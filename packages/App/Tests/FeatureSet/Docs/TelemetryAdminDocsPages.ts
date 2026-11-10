@@ -123,6 +123,8 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "A Server key is a password.",
     "A role that manages ingestion keys.",
     "On OneUptime Cloud, a payment method.",
+    // The link to Ingestion Budgets (issue #5917).
+    "A key can have budgets of its own.",
   ],
   [TOPOLOGY]: [
     "Only what was active is drawn.",
@@ -145,6 +147,9 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Each list runs in order.",
     "Logs or spans arriving.",
     "A role that changes telemetry settings.",
+    // What a rule reads inside a list or a nested value (issue #6397).
+    "Lists and nested values are read too.",
+    "A value too large to read item by item is read as text.",
     "Exceptions come from the scrubbed record.",
     "Session replays are scrubbed too.",
     "Rules run in the order of the list.",

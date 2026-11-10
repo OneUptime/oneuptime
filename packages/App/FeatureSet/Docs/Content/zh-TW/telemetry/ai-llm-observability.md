@@ -44,7 +44,7 @@ flowchart TB
 | 接入方式 | 你會得到什麼 | 方法 |
 | --- | --- | --- |
 | **你的應用程式** | 即時記錄每次 AI 呼叫：對話、人員、提示詞和回答、token、成本和錯誤 | 來自程式碼或閘道的 OpenTelemetry，分五個步驟完成 |
-| **你的 AI 提供者帳戶** | 每個 OpenAI、Anthropic、Azure、Bedrock 或 Vertex AI 帳戶每天的使用量和成本 | 只需一個唯讀憑證，不需要程式碼： [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts) |
+| **你的 AI 提供者帳戶** | 每個 OpenAI、Anthropic、Azure、Bedrock、Vertex AI 或 Cursor 帳戶每天或每小時的使用量和成本 | 只需一個唯讀憑證，不需要程式碼： [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts) |
 | **公司的 AI 工具** | 員工向 Claude Enterprise 或 Microsoft 365 Copilot 問的問題，依人員劃分 | 只需一個唯讀憑證，不需要程式碼： [公司的 AI 工具](/docs/telemetry/ai-company-tools) |
 
 提供者帳戶和程式設計助理帶來的是使用量和成本，從不帶來呼叫：它們填入的是 **使用量** ，而 **對話** 和 **呼叫** 會一直是空的，直到你的應用程式傳送 AI 呼叫，或連線了公司的 AI 工具。[檢查正在到達的內容](#檢查正在到達的內容) 會說明哪種方式帶來什麼。
@@ -57,7 +57,8 @@ flowchart TB
 | --- | --- |
 | 沒有應用程式傳送過 AI 呼叫 | [傳送你的 AI 呼叫](#傳送你的-ai-呼叫)：已連線的提供者帳戶依日帶來使用量和成本，從不帶來呼叫 |
 | 應用程式呼叫了 AI 提供者的 API，但沒有 GenAI 檢測記錄 | 為該應用程式的語言加入一個：檢查發現了該應用程式送往 `api.openai.com`、`*.openai.azure.com`、`*.services.ai.azure.com` 或其他 AI 提供者 API 的 HTTP 用戶端 span |
-| 呼叫抵達了，但沒有提示或回答 | 在 span 上 [記錄說了什麼](#記錄說了什麼)：以記錄事件傳送的提示和回答不會顯示 |
+| 呼叫抵達了，但沒有提示或回答 | 在 span 上或以記錄事件 [記錄說了什麼](#記錄說了什麼) |
+| 提示和回答以記錄事件抵達 | 無需操作：對話會讀取它們，能讀取該應用程式日誌的人也能在 **日誌** 頁面上讀到它們 |
 | 呼叫剛好在時間範圍之外 | 清單會提供包含最新一次呼叫的時間範圍 |
 | 提供者帳戶讀不到使用量 | 它的那一列會寫出最後一次有使用量的日期，或第一次讀取的日期；找不到資源的 Azure 連線需要在資源所在位置擁有 Monitoring Reader |
 
@@ -150,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 較新的 OpenTelemetry 檢測接受 `span_only`、`event_only` 或 `span_and_event`，而不是 `true`。即使沒有記錄內容，對話仍會顯示其時間、成本和問題。提示可能包含敏感資料： [隱私與遮蔽](#隱私與遮蔽) 說明了如何在儲存前加以遮罩。
 
-對話讀取的是記錄在呼叫的 span 上的內容。Python 的 OpenTelemetry 檢測用 `span_only` 把它記錄在那裡；JavaScript 和 Java 的檢測，以及設定為 `true` 的 Python 檢測，會把它以記錄事件傳送，而對話不會讀取這些事件， **設定檢查** 會指出這一點。Azure 的 AI Inference SDK 用 `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true` 把它記錄在 span 上，Microsoft.Extensions.AI 用 `EnableSensitiveData`；.NET 的 OpenAI 程式庫什麼也不記錄。
+對話讀取的是記錄在呼叫的 span 上的內容，以及應用程式帶著呼叫的追蹤 ID 和 span ID 傳送的記錄事件。Python 的 OpenTelemetry 檢測用 `span_only` 把它記錄在 span 上；JavaScript 和 Java 的檢測，以及設定為 `true` 或 `event_only` 的 Python 檢測，會把它以記錄事件傳送，這些事件隨應用程式的日誌一起抵達 OneUptime。Azure 的 AI Inference SDK 用 `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true` 把它記錄在 span 上，Microsoft.Extensions.AI 用 `EnableSensitiveData`；.NET 的 OpenAI 程式庫什麼也不記錄。
 
 ### 把呼叫歸入對話
 
@@ -240,35 +241,36 @@ trace.get_current_span().add_event(
 
 **使用量** 分頁會顯示某個時間範圍（除非你另外選擇，否則為最近 7 天）內的呼叫、token 和成本，以及依五種細分之一列出的前 25 名表格： **員工** 、 **團隊** 、 **模型** 、 **提供者** 和 **應用程式 / 服務** 。沒有指明任何人的呼叫會計入 **未歸屬** ，絕不捨棄。
 
-這些是 **你的 AI 呼叫** 。如果想查看已連線的 OpenAI、Anthropic、Azure、Bedrock 和 Vertex AI 帳戶的帳單金額，請改選 **提供者帳戶** ：請參閱 [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts#查看使用量)。兩者絕不會相加。
+這些是 **你的 AI 呼叫** 。如果想查看已連線的 OpenAI、Anthropic、Azure、Bedrock、Vertex AI 和 Cursor 帳戶的帳單金額，請改選 **提供者帳戶** ：請參閱 [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts#查看使用量)。兩者絕不會相加。
 
 人員和團隊來自呼叫上的身分屬性：請參閱 [員工和團隊歸屬](/docs/telemetry/ai-coding-assistants#員工和團隊歸屬)。
 
-### span 優先，指標補充
+### 每個服務依其傳送的資料計數
 
-GenAI span 攜帶一次呼叫的模型、token 和成本，因此只要有 span，就能回答一切。有些工具會發布 token 和成本指標，卻不傳送 GenAI span，大多數程式設計助理都是如此。OneUptime 只會為 span 沒有回報的數字讀取這些指標，而且絕不把兩者相加：許多檢測會為同一次呼叫同時傳送兩者，相加會讓每一塊美元被計算兩次。
+AI 使用量以兩種形式抵達。GenAI span 是 AI 呼叫：每次呼叫一個，帶有其模型、token 和成本。GenAI 指標是使用量指標：token 和成本的計數器，大多數程式設計助理傳送它們來取代 span，有些檢測則為同樣的呼叫在 span 之外一併傳送。把兩者相加會讓這些呼叫被計算兩次，因此 OneUptime 對每個服務只依其中一種來計數：當其 AI 呼叫回報 token 時，從 AI 呼叫計數其 token，否則從其使用量指標計數；成本也以同樣的方式單獨決定。這樣，只傳送指標的程式設計助理會與傳送 span 的應用程式一起在同一個專案中計數，而同時傳送兩者的應用程式只計一次。
 
-```mermaid title="使用量分頁上的數字從何而來"
+```mermaid title="服務的 token 或成本從何而來"
 flowchart TB
-    spans{"GenAI span<br/>回報了嗎？"}
-    spans -->|"是"| fromSpans["來自 span<br/>的資料"]
-    spans -->|"否"| metrics{"GenAI 指標<br/>回報了嗎？"}
-    metrics -->|"是"| fromMetrics["顯示指標資料，<br/>並標示<br/>來自 GenAI 指標"]
-    metrics -->|"否"| nothing["沒有可<br/>顯示的內容"]
+    spans{"它的 AI 呼叫<br/>回報了嗎？"}
+    spans -->|"是"| fromSpans["依 AI 呼叫<br/>計數"]
+    spans -->|"否"| metrics{"它的使用量指標<br/>回報了嗎？"}
+    metrics -->|"是"| fromMetrics["依使用量指標<br/>計數"]
+    metrics -->|"否"| nothing["沒有可<br/>計數的內容"]
 ```
 
-| 位置 | 改用指標的內容 | 何時 |
+| 位置 | 來自 AI 呼叫 | 來自使用量指標 |
 | --- | --- | --- |
-| 輸入和輸出 token | 兩個總數 | span 的 token 總數皆為 0 |
-| 成本（USD） | 成本，Codex 以微美元計的成本會換算為 USD | span 的成本總數為 0 |
-| LLM 呼叫 | 無：僅限 span | — |
-| **員工** 、 **團隊** 、 **模型** 表格 | 成本，以及指標計數的 token；呼叫儲存格顯示 `—` | 該表格找不到 span 的資料列 |
-| **提供者** 、 **應用程式 / 服務** 表格 | 無：僅限 span | — |
-| 對話 | 無：對話由 span 建構 | — |
+| 輸入和輸出 token | 每次模型呼叫的 token，只計一次 | 某個服務的 token，當其 AI 呼叫沒有回報任何 token 時 |
+| 成本（USD） | 每次模型呼叫的成本，只計一次 | 某個服務的成本，當其 AI 呼叫沒有回報任何成本時，Codex 以微美元計的成本會換算為 USD |
+| AI 呼叫 | 每次 AI 呼叫，與 **呼叫** 列出的一致 | 從不：指標不計任何呼叫 |
+| **員工** 、 **團隊** 、 **模型** 、 **提供者** 、 **應用程式 / 服務** 表格 | 每一列的呼叫、token 和成本 | 依指標計數的服務的 token 和成本，歸入其資料點指明的人員、團隊、模型或提供者 |
+| 對話 | 由 AI 呼叫建構 | 從不 |
 
-取自指標的數字會標示 **來自 GenAI 指標** ，因為它在 **呼叫** 中沒有對應的資料列。所以，一旦你的 GenAI span 回報了某個數字，只傳送指標的工具所占的部分就不會顯示。若要單獨查看這類工具的支出，請把它傳送到沒有 GenAI span 抵達的專用專案。
+在每個數字下方，使用量分頁會說明它的來源： **來自 AI 呼叫** 、 **來自使用量指標** ，或者在有些服務傳送呼叫、另一些服務傳送指標時顯示 **來自 AI 呼叫和使用量指標** 。依使用量指標計數的表格資料列會在其名稱下方註明，當它沒有 AI 呼叫時，其呼叫儲存格顯示 `—`，因為指標沒有逐次呼叫的細節；表格的標題會列出依使用量指標計數的服務， **應用程式 / 服務** 表格除外，因為它的資料列本身就是服務。不指明任何服務的使用量指標會計入 **未知服務** ，它和其他服務一樣算作一個服務。如果你的角色可以讀取追蹤但不能讀取指標，使用量指標會被排除，表格會註明這一點。
 
-token 或成本指標是計數器。delta 計數器的資料點會相加；累積計數器（OpenTelemetry SDK 的預設方式）依時間範圍內成長了多少來計數，每個序列分開計算，因此每分鐘匯出一次的累計值只會計一次。預算也以同樣的方式計算 GenAI 指標。
+每次模型呼叫只計一次。代理執行，或者框架包在 SDK 自身 span 外面的 span，常常會重複其內部呼叫的 token 和成本：只要其內部的某個呼叫回報了 token 或成本，該 span 的 token 或成本就不計入；而當其內部沒有任何呼叫回報時，代理執行會保留自己的數字。預算和 **對話** 清單也以同樣的方式計數，而 **呼叫** 會列出每個 span 及其自身的數字。
+
+token 或成本指標是計數器。delta 計數器的資料點會相加；累積計數器（OpenTelemetry SDK 的預設方式）依時間範圍內成長了多少來計數，每個序列分開計算，因此每分鐘匯出一次的累計值只會計一次，而數值下降會被視為從 0 重新開始，就像 Prometheus 的 `increase()` 那樣。預算也以同樣的方式計算 GenAI 指標。
 
 ## 一次呼叫的成本
 
@@ -282,7 +284,7 @@ span 回報為從供應商的提示快取讀取或寫入其中的 token，依供
 
 ## 每日成本預算
 
-預算會依 UTC 日以 USD 追蹤一天的支出。OneUptime 每 15 分鐘彙總當天的 AI 支出（來自 span，或在沒有 span 回報支出時來自 GenAI 成本指標），顯示在預算上，並發布兩個指標。 **支出統計來源** 為 **提供者帳戶** 的預算則改為統計已連線帳戶的帳單金額：請參閱 [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts#預算與警示)。
+預算會依 UTC 日以 USD 追蹤一天的支出。OneUptime 每 15 分鐘彙總當天的 AI 支出（每個服務來自其 AI 呼叫，或在其呼叫沒有回報成本時來自其成本指標），顯示在預算上，並發布兩個指標。 **支出統計來源** 為 **提供者帳戶** 的預算則改為統計已連線帳戶的帳單金額：請參閱 [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts#預算與警示)。
 
 | 指標 | 意義 |
 | --- | --- |
@@ -314,6 +316,10 @@ span 回報為從供應商的提示快取讀取或寫入其中的 token，依供
 ## 隱私與遮蔽
 
 AI 呼叫以追蹤 span 的形式儲存，因此追蹤的 **清理規則** 和 **捨棄過濾器** 也適用於它們：在儲存之前遮罩某個屬性或捨棄某個 span。兩者都在 **追蹤 → 設定** 下。員工電子郵件欄會與其來源屬性一起被清理，因此遮罩電子郵件的規則也會涵蓋這一欄。
+
+以記錄事件傳送的提示和回答以日誌的形式儲存，因此適用於它們的是日誌的 **清理規則** 和 **捨棄過濾器**，兩者都在 **日誌 → 設定** 下：在追蹤中遮罩電子郵件的規則不會遮罩記錄事件中的電子郵件。對話只向也能讀取該應用程式日誌的人顯示它們，這些人也能在 **日誌** 頁面上找到它們。
+
+無論哪種情況，規則都會讀取清單或結構化值中的每一段文字（例如檢測以清單而非 JSON 文字傳送的訊息），並保留值的形狀：提示中的電子郵件地址無論位於何處都會被遮罩。請參閱 [清理敏感資料](/docs/telemetry/drop-filters-and-scrub-rules#清理敏感資料)。
 
 讀取對話所需的權限與追蹤相同：能讀取專案追蹤的人才能讀取其對話，其他人都不能。公司 AI 工具的對話是例外：除非其連線另有設定，否則只有專案擁有者和管理員可以閱讀（ [公司的 AI 工具](/docs/telemetry/ai-company-tools#隱私) ）。
 
@@ -357,6 +363,8 @@ OneUptime 會讀取 OpenTelemetry GenAI 慣例，以及 OpenLLMetry、OpenInfere
 - 帶索引的屬性：OpenLLMetry 的 `gen_ai.prompt.N.content` 和 `gen_ai.completion.N.content`，OpenInference 的 `llm.input_messages.N.message.content` 和 `llm.output_messages.N.message.content`；
 - `gen_ai.prompt`、`gen_ai.completion`、`ai.prompt.messages`、`ai.response.text`、`input.value` 和 `output.value` 中的訊息陣列。
 
+當呼叫的 span 中沒有提示或沒有回答時，會從帶有該呼叫的追蹤 ID 和 span ID 的日誌記錄中讀取：同樣的事件，透過日誌訊號傳送，名稱位於記錄的 `event.name` 屬性或其事件名稱欄位中。帶有追蹤 ID 但沒有 span ID 的記錄歸入該追蹤唯一的模型呼叫，或歸入傳送它時正在進行的呼叫；如果這不是唯一一次呼叫，則不予採用。span 記錄的內容優先，因此兩種方式都記錄了的呼叫，每則訊息只顯示一次。
+
 ## 疑難排解
 
 :::details 已連線提供者帳戶，但對話和呼叫是空的
@@ -364,7 +372,7 @@ OneUptime 會讀取 OpenTelemetry GenAI 慣例，以及 OpenLLMetry、OpenInfere
 :::
 
 :::details 呼叫已抵達，但沒有任何對話顯示文字
-你的檢測沒有記錄內容。請依 [記錄說了什麼](#記錄說了什麼) 中的說明開啟；在那之前的呼叫仍然沒有文字。
+你的檢測沒有記錄內容，或者它以記錄事件傳送內容，而應用程式的日誌沒有抵達 OneUptime。請依 [記錄說了什麼](#記錄說了什麼) 中的說明開啟，並把日誌和追蹤一起傳送；在那之前的呼叫仍然沒有文字。
 :::
 
 :::details 一個聊天的每次呼叫都顯示為單獨的對話
@@ -375,8 +383,12 @@ OneUptime 會讀取 OpenTelemetry GenAI 慣例，以及 OpenLLMetry、OpenInfere
 模型不在內建價目表中，或者 span 沒有指明模型。請在 **定價** 分頁上新增該模型的價格；此後抵達的呼叫就會被計價。Azure OpenAI 呼叫會依處理它的模型 `gen_ai.response.model` 計價：如果 span 沒有指明模型，請為部署名稱設定價格。
 :::
 
-:::details 使用量分頁顯示「來自 GenAI 指標」，呼叫顯示 `—`
-這些數字來自只傳送指標、不傳送 GenAI span 的工具，例如程式設計助理。指標攜帶成本和 token，但沒有逐次呼叫的細節，因此呼叫儲存格會保持空白。請參閱 [span 優先，指標補充](#span-優先指標補充)。
+:::details 使用量分頁顯示「來自使用量指標」，呼叫顯示 `—`
+這些數字來自只傳送指標、不傳送 GenAI span 的服務，例如程式設計助理。指標攜帶成本和 token，但沒有逐次呼叫的細節，因此呼叫儲存格會保持空白。請參閱 [每個服務依其傳送的資料計數](#每個服務依其傳送的資料計數)。
+:::
+
+:::details 使用量分頁上的成本低於呼叫中各項成本的總和
+有些 span 會重複其內部呼叫的 token 和成本，例如代理執行，或者框架包在 SDK 自身 span 外面的 span。 **呼叫** 會列出每個 span 及其自身的數字，而使用量分頁、預算和 **對話** 清單對每次模型呼叫只計一次。
 :::
 
 :::details 預算監測器在兩種狀態之間來回切換
@@ -386,7 +398,7 @@ OneUptime 會讀取 OpenTelemetry GenAI 慣例，以及 OpenLLMetry、OpenInfere
 ## 後續步驟
 
 :::cards
-- [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts): 不需要程式碼，查看你的 OpenAI、Anthropic、Azure、Bedrock 和 Vertex AI 帳戶的使用量和成本。
+- [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts): 不需要程式碼，查看你的 OpenAI、Anthropic、Azure、Bedrock、Vertex AI 和 Cursor 帳戶的使用量和成本。
 - [公司的 AI 工具](/docs/telemetry/ai-company-tools): 你的員工向 Claude Enterprise 和 Microsoft 365 Copilot 問了什麼問題。
 - [AI 程式設計助理](/docs/telemetry/ai-coding-assistants): Claude Code、Cursor、Codex、Gemini CLI 和 Copilot 依工程師劃分的支出。
 - [AI 閘道](/docs/telemetry/ai-gateways): 透過一個 LiteLLM 或 Portkey 閘道追蹤每個應用程式的模型呼叫。

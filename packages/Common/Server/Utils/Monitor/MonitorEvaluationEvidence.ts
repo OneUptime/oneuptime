@@ -22,6 +22,7 @@ import DataToProcess from "./DataToProcess";
 import JavaScriptExpressionValues from "./JavaScriptExpressionValues";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
 import MonitorEvidenceRedaction from "./MonitorEvidenceRedaction";
+import MonitorQuotedValue from "./MonitorQuotedValue";
 import ResponseExcerpt, {
   MatchExcerptResult,
   ResponseText,
@@ -665,17 +666,6 @@ export default class MonitorEvaluationEvidence {
     text: string,
     maxChars: number = MonitorEvaluationDetailsLimits.valueChars,
   ): string {
-    if (text.length <= maxChars) {
-      return text;
-    }
-
-    let end: number = maxChars;
-    const last: number = text.charCodeAt(end - 1);
-
-    if (last >= 0xd800 && last <= 0xdbff) {
-      end--;
-    }
-
-    return `${text.slice(0, end)}…`;
+    return MonitorQuotedValue.bound(text, maxChars);
   }
 }

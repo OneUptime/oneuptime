@@ -1,235 +1,65 @@
 import PageComponentProps from "../PageComponentProps";
-import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
-import OneUptimeDate from "Common/Types/Date";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import useTranslator from "Common/UI/Utils/UseTranslator";
+import DiscoveredDeviceRetentionCard from "../../Components/NetworkDevice/DiscoveredDevices/DiscoveredDeviceRetentionCard";
+import {
+  DISCOVERED_DEVICES_MORE_SETTINGS_TEST_ID,
+  getDiscoveredDeviceRetentionFoldedItem,
+} from "../../Components/NetworkDevice/DiscoveredDevices/DiscoveredDeviceRetentionCopy";
+import DiscoveredDevicesTable from "../../Components/NetworkDevice/DiscoveredDevices/DiscoveredDevicesTable";
+import ObjectID from "Common/Types/ObjectID";
+import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
+import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 
 /*
- * Inventory of LAN endpoints (POS terminals, kiosks, cameras, printers,
- * ...) discovered via ARP/FDB walks of monitored switches and routers.
- * Rows are upserted by the server as devices report them; classification
- * is the one user-editable field, so a franchise can tag what each MAC
- * actually is.
+ * Network > Topology > Discovered Devices (OneUptime issue #5775): every
+ * device the project's switches, routers and network controllers have seen
+ * - POS terminals, kiosks, cameras, printers - and whether OneUptime
+ * monitors it. Found by name, address, MAC or vendor; added to monitoring
+ * a selection at a time, through the discovery import; hidden from the
+ * topology map, or shown on it again, in bulk. It used to be the Endpoints
+ * table, which could only be read, classified and deleted a row at a time.
+ *
+ * Under it, folded under More settings, Unseen Devices (issue #6389): how
+ * long a device nothing sees any more stays on the list. The line under the
+ * table says what it is set to, and its Change opens the fold at the card
+ * (#unseen-devices); each save reaches the line at once.
  */
 const NetworkEndpoints: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  // What the card read or last saved: undefined until it has.
+  const [retentionInDays, setRetentionInDays] = useState<number | undefined>(
+    undefined,
+  );
+
   return (
     <Fragment>
-      <ModelTable<NetworkEndpoint>
-        modelType={NetworkEndpoint}
-        id="network-endpoints-table"
-        userPreferencesKey="network-endpoints-table"
-        isDeleteable={true}
-        isEditable={true}
-        isCreateable={false}
-        isViewable={false}
-        showRefreshButton={true}
-        name="Network Endpoints"
-        sortBy="lastSeenAt"
-        sortOrder={SortOrder.Descending}
-        cardProps={{
-          title: "Endpoints",
-          description:
-            "What is plugged into your switches and routers, read from their address tables. Nothing is removed on its own: Last Seen says when each was last there.",
-        }}
-        /*
-         * Collecting endpoints is a device setting, off by default (Collect
-         * Connected Endpoints, on the device's Settings page). This used to
-         * send people to "your switch and router monitors", where there is
-         * no such switch.
-         */
-        noItemsMessage={
-          "No endpoints yet. Turn on Collect Connected Endpoints in a switch or router's polling settings to see what is plugged into it."
-        }
-        formFields={[
-          {
-            field: {
-              classification: true,
-            },
-            title: "Classification",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "POS, Kiosk, Camera, Printer, ...",
-            description:
-              "What this endpoint actually is. Free-form — use whatever taxonomy your team searches by.",
-          },
-        ]}
-        filters={[
-          {
-            field: {
-              vendor: true,
-            },
-            title: "Vendor",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              classification: true,
-            },
-            title: "Classification",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              ipAddress: true,
-            },
-            title: "IP Address",
-            type: FieldType.Text,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              macAddress: true,
-            },
-            title: "MAC Address",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              hostname: true,
-            },
-            title: "Hostname",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: NetworkEndpoint): ReactElement => {
-              return (
-                <span className="text-sm text-gray-900">
-                  {item.hostname || "—"}
-                </span>
-              );
-            },
-          },
-          {
-            field: {
-              ipAddress: true,
-            },
-            title: "IP Address",
-            type: FieldType.Element,
-            getElement: (item: NetworkEndpoint): ReactElement => {
-              return (
-                <span className="text-sm text-gray-900">
-                  {item.ipAddress || "—"}
-                </span>
-              );
-            },
-          },
-          {
-            field: {
-              vendor: true,
-            },
-            title: "Vendor",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: NetworkEndpoint): ReactElement => {
-              return (
-                <span className="text-sm text-gray-900">
-                  {item.vendor || "—"}
-                </span>
-              );
-            },
-          },
-          {
-            field: {
-              classification: true,
-            },
-            title: "Classification",
-            type: FieldType.Element,
-            getElement: (item: NetworkEndpoint): ReactElement => {
-              if (!item.classification) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              return (
-                <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
-                  {item.classification}
-                </span>
-              );
-            },
-          },
-          {
-            field: {
-              attachedNetworkDevice: {
-                name: true,
-              },
-            },
-            title: "Attached Device",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: NetworkEndpoint): ReactElement => {
-              return (
-                <span className="text-sm text-gray-900">
-                  {item.attachedNetworkDevice?.name || "—"}
-                </span>
-              );
-            },
-          },
-          {
-            field: {
-              attachedPortName: true,
-            },
-            title: "Port",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: NetworkEndpoint): ReactElement => {
-              return (
-                <span className="text-sm text-gray-600">
-                  {item.attachedPortName || "—"}
-                </span>
-              );
-            },
-          },
-          {
-            field: {
-              vlanId: true,
-            },
-            title: "VLAN",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: NetworkEndpoint): ReactElement => {
-              if (item.vlanId === undefined || item.vlanId === null) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              return (
-                <span className="text-sm text-gray-600">{item.vlanId}</span>
-              );
-            },
-          },
-          {
-            field: {
-              lastSeenAt: true,
-            },
-            title: "Last Seen",
-            type: FieldType.Element,
-            getElement: (item: NetworkEndpoint): ReactElement => {
-              if (!item.lastSeenAt) {
-                return (
-                  <span className="text-sm text-gray-400">
-                    {translator.translateText("Never")}
-                  </span>
-                );
-              }
-
-              const lastSeen: Date = OneUptimeDate.fromString(item.lastSeenAt);
-
-              return (
-                <span
-                  className="text-sm text-gray-600"
-                  title={OneUptimeDate.getDateAsLocalFormattedString(lastSeen)}
-                >
-                  {OneUptimeDate.fromNow(lastSeen)}
-                </span>
-              );
-            },
-          },
-        ]}
-      />
+      <DiscoveredDevicesTable retentionInDays={retentionInDays} />
+      {projectId ? (
+        <AdvancedPageSection
+          items={[
+            getDiscoveredDeviceRetentionFoldedItem(retentionInDays, translator),
+          ]}
+          dataTestId={DISCOVERED_DEVICES_MORE_SETTINGS_TEST_ID}
+        >
+          <DiscoveredDeviceRetentionCard
+            projectId={projectId}
+            onRetentionChange={setRetentionInDays}
+          />
+        </AdvancedPageSection>
+      ) : (
+        <></>
+      )}
     </Fragment>
   );
 };

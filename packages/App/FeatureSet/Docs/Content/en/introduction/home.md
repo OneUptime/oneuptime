@@ -48,7 +48,7 @@ Each number counts something, says whether that needs you, and opens the list be
 | --- | --- | --- |
 | **Active incidents** | Incidents that are not resolved | **All clear** |
 | **Active alerts** | Alerts that are not resolved | **All clear** |
-| **Not operational monitors** | Monitors whose status is not an operational one. Archived monitors are left out. | **All operational** |
+| **Not operational monitors** | Monitors whose status is not an operational one. Archived monitors, and monitors with monitoring turned off, are left out. | **All operational** |
 | **Ongoing maintenance** | Scheduled maintenance events in progress | **None ongoing** |
 | **SLOs at risk** | Turned-on SLOs that are at risk or have used up their error budget | **Budgets healthy** |
 

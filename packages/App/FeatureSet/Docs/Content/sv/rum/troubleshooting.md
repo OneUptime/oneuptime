@@ -41,6 +41,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 En webbapp behöver en **Webbläsare**-nyckel, och en mobilapp en **Server**-nyckel: se [Webbläsarkonfiguration](/docs/rum/browser-setup) och [Mobilkonfiguration](/docs/rum/mobile-setup). Exportslutpunkterna avvisar också en felaktig nyckel med `401`, som OTLP-specifikationen kräver, så ett väluppfostrat SDK loggar avvisningen i stället för att försöka igen. Den raden är lätt att missa i webbläsarkonsolen, och den här kontrollen svarar direkt.
 
+OneUptime räknar också vad den avvisar från en nyckel den känner till. Nyckelns sida under **Projektinställningar → Telemetri och APM → Intagningsnycklar** visar under **Avvisad telemetri** vad som avvisats de senaste 30 dagarna, och **Konfigurationskontroll** på applikationens sida **Dokumentation** säger vilken sorts telemetri som avvisas, varför och hur du åtgärdar det. En saknad eller okänd nyckel pekar inte ut något projekt, så inget räknar den: den här kontrollen och `401` är allt som finns.
+
 ## Kontrollera vad som lämnar webbläsaren
 
 Öppna webbläsarens utvecklarverktyg på appens sida, välj fliken Nätverk och filtrera på `otlp`. Du letar efter `POST /otlp/v1/traces` som besvaras med en `2xx`-status.
@@ -108,6 +110,34 @@ Applikationen finns, men dess sidor visar ingenting.
 - **Kontrollera tidsintervallet.** Översikten visar den senaste timmen som standard, så en testbatch från i morse hamnar utanför.
 - **Vänta några minuter.** Intag går via en kö, och **Senast sedd** uppdateras med några minuters mellanrum i stället för vid varje batch.
 - **Kontrollera projektet.** En nyckel skriver till sitt eget projekt, så telemetri som skickas med ett annat projekts nyckel finns där och inte här.
+
+## Undantag eller loggar är tomma
+
+Sidladdningar och förfrågningar kommer in, men **Undantag** eller **Loggar** förblir tomma. OpenTelemetry-SDK:t för webbläsare skickar av sig självt spår av sidladdningar och förfrågningar, men inga undantag och inga loggar, så en applikation kan se ansluten ut medan de här två förblir tomma för gott.
+
+Det tomma diagrammet på applikationens **Översikt** säger vilket fall det är, och **Konfigurationskontroll** på dess sida **Dokumentation** visar varje sorts telemetri med när den senaste kom in:
+
+| Diagrammet säger | Vad det betyder |
+| --- | --- |
+| **Undantag är inte konfigurerade** eller **Loggar är inte konfigurerade** | Inget har någonsin kommit från den här appen. **Konfigurera undantag** eller **Konfigurera loggar** visar koden som skickar dem, med din URL och nyckel redan ifyllda. |
+| **Inga undantag i det här tidsintervallet** eller **Inga loggar i det här tidsintervallet** | Några kom tidigare, och diagrammet säger när den senaste kom. Välj det längre tidsintervall som det erbjuder. |
+| **Inget har kommit från den här appen än** | Ingen telemetri alls kommer in: börja med [Kontrollera nyckeln](#kontrollera-nyckeln). |
+| **OpenTelemetry SDK:t rapporterar inte** | Bara sessionsuppspelning rapporterar från den här appen: konfigurera SDK:t som i [Webbläsarkonfiguration](/docs/rum/browser-setup). |
+| **Undantag avvisas** eller **Loggar avvisas** | OneUptime har avvisat dem efter att den senaste kom in, och diagrammet säger varför och när: nyckeln är avstängd eller har gått ut, den tillåter inte webbplatsens ursprung, en gräns eller budget är förbrukad, eller projektet har ingen betalningsmetod. Dess knapp åtgärdar det: **Välj en annan nyckel**, **Öppna nyckeln**, **Se budgetar** eller **Lägg till en betalningsmetod**. |
+
+Undantag behöver en felhanterare, eftersom SDK:t inte fångar ohanterade fel: [Rapportera ohanterade fel](/docs/rum/browser-setup#rapportera-ohanterade-fel) har koden. Ett fel som en error boundary eller en `try`/`catch` hanterar når aldrig fönstret, så registrera det där du hanterar det, med `span.recordException`.
+
+Loggar behöver en pipeline för loggar och kod som skriver loggposter, eftersom en `LoggerProvider` ensam inte skickar något: [Lägg till loggar och mätvärden](/docs/rum/browser-setup#lägg-till-loggar-och-mätvärden) har båda. Bygg pipelinen med samma `resource` som dina spår, annars arkiveras loggarna under en backend-tjänst.
+
+När sidladdningar kommer in släpper nyckeln, dess tillåtna ursprung och din Content Security Policy igenom undantag och loggar också, så länge loggexportören använder samma nyckel och värd. En felhanterare som ännu inte har fångat något skickar ingenting, precis som en som aldrig lades till, så kasta ett testfel från webbläsarens konsol för att skilja de två åt:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+Inom en minut syns det på applikationens **Översikt**, under **Undantag**.
 
 ## Sidan Klienter är tom
 

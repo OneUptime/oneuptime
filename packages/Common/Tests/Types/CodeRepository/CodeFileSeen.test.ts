@@ -1047,7 +1047,10 @@ describe("every interleaving of reads, pushes, Ask AI's own commits, proposals a
     for (const outcome of [
       "nothing",
       ...Object.values(CodeFileUnseen).filter((unseen: CodeFileUnseen) => {
-        return unseen !== CodeFileUnseen.ReadInPart;
+        return (
+          unseen !== CodeFileUnseen.ReadInPart &&
+          unseen !== CodeFileUnseen.ValuesHidden
+        );
       }),
     ]) {
       expect({ outcome, count: (said[outcome] || 0) > 100 }).toEqual({
@@ -1057,5 +1060,7 @@ describe("every interleaving of reads, pushes, Ask AI's own commits, proposals a
     }
     // Every read here showed all of its file: none was read in part (issue #6330).
     expect(said[CodeFileUnseen.ReadInPart]).toBeUndefined();
+    // Values hidden are said of what a change writes, never of what Ask AI saw (issue #6364).
+    expect(said[CodeFileUnseen.ValuesHidden]).toBeUndefined();
   });
 });

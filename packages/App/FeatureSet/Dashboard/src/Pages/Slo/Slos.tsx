@@ -55,6 +55,11 @@ import {
   translatePlural,
   translateText,
 } from "Common/UI/Utils/TranslateTemplate";
+import useProductFirstRun, {
+  ProductFirstRun,
+} from "../../Components/ProductOnboarding/UseProductFirstRun";
+import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const documentationMarkdown: string = `
 ### How SLOs and Error Budgets Work
@@ -414,6 +419,11 @@ export const getSloViewRoute: GetSloViewRouteFunction = (
 type OnSummaryTileClickFunction = (tile: SloStatusSummaryTile) => void;
 
 const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  // Until the first one, the page explains the product under the empty table.
+  const firstRun: ProductFirstRun = useProductFirstRun<ServiceLevelObjective>({
+    modelType: ServiceLevelObjective,
+    query: getSloListBaseQuery(),
+  });
   const {
     bulkActions,
     archiveBulkActions,
@@ -473,6 +483,8 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
       />
       <ModelTable<ServiceLevelObjective>
         modelType={ServiceLevelObjective}
+        refreshToggle={firstRun.refreshToken}
+        showCreateForm={firstRun.showCreateForm}
         // Enable or Disable, and Archive, in each row's ⋯ menu.
         actionButtons={[...rowActions, ...archiveRowActions]}
         id={SLOS_TABLE_ID}
@@ -483,8 +495,8 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
          * overrides this pinned query, and would pull archived rows back in.
          */
         query={mergeFiltersIntoQuery(getSloListBaseQuery())}
-        topContent={filterBar}
-        emptyState={facetEmptyState}
+        topContent={firstRun.getTopContent(filterBar)}
+        emptyState={firstRun.getEmptyState(facetEmptyState)}
         onFetchSuccess={(data: Array<ServiceLevelObjective>) => {
           onResourcesFetched(data);
 
@@ -620,6 +632,7 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
           item: ServiceLevelObjective,
           modalType?: ModalType,
         ): Promise<ServiceLevelObjective> => {
+          firstRun.onRecordCreated();
           if (modalType === ModalType.Create && item._id) {
             Navigation.navigate(getSloViewRoute(item));
           }
@@ -684,6 +697,15 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
       {modals}
+      {/* Under the table (the modals above are dialogs over the page). */}
+      {firstRun.isFirstRun && (
+        <ProductShowcase
+          product={ProductKey.Slos}
+          // The empty table above says what the list is for.
+          hidesDescription={true}
+          startButton={firstRun.startButton}
+        />
+      )}
     </Fragment>
   );
 };

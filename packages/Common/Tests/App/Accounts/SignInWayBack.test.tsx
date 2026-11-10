@@ -115,8 +115,8 @@ const WAY_BACK_LINES: Array<[string, string]> = [
 ];
 
 describe("every 'question? Link.' line says something in its question that its link does not", () => {
-  test("in all 17 languages", () => {
-    expect(LANGUAGES).toHaveLength(17);
+  test("in all 18 languages", () => {
+    expect(LANGUAGES).toHaveLength(18);
   });
 
   test.each(LANGUAGES)("%s", (language: string) => {

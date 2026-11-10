@@ -28,6 +28,7 @@ flowchart TB
 
 - **I monitor archiviati non contano.** Un monitor archiviato non viene controllato, quindi il suo stato è congelato; il gruppo lo esclude.
 - **Un gruppo vuoto è operativo.** Un gruppo senza monitor, o con soli monitor archiviati, mostra il vostro stato operativo. Finché non aggiungete un monitor, la dashboard mostra **Nessun monitor ancora** al posto del suo stato.
+- **Il monitoraggio disattivato mostra Disabilitato.** Quando il monitoraggio è disattivato per tutti i monitor di un gruppo, niente li controlla, quindi la dashboard mostra **Disabilitato** al posto dello stato del gruppo.
 - **L'ordine lo decidete voi.** Quale stato sia il peggiore segue l'ordine di **Monitor → Impostazioni → Stato del monitor**. Vedere [Stati dei monitor](/docs/monitor/criteria-and-statuses#stati-dei-monitor).
 
 Un gruppo di monitor non è un gruppo di una pagina di stato. Un gruppo di una pagina di stato è un'intestazione su una pagina di stato che contiene righe. Un gruppo di monitor è una riga che rappresenta più monitor, e qualsiasi pagina di stato può mostrarla.
@@ -80,7 +81,7 @@ Aprite un gruppo per vederne le pagine nel menu laterale:
 
 | Pagina | Cosa mostra |
 | --- | --- |
-| **Panoramica** | **Dettagli del gruppo di monitor**, **Stato attuale** e **Grafico di uptime** con la percentuale di disponibilità del gruppo negli ultimi 90 giorni. Un gruppo senza monitor offre **Aggiungi monitor** al posto del grafico. |
+| **Panoramica** | **Dettagli del gruppo di monitor**, **Stato attuale**, **Monitoraggio** e **Grafico di uptime** con la percentuale di disponibilità del gruppo negli ultimi 90 giorni. Un gruppo senza monitor offre **Aggiungi monitor** al posto del grafico. |
 | **Monitor** | **Monitor nel gruppo**, con **Aggiungi monitor** e **Rimuovi**. |
 | **Incidenti** | Gli incidenti su qualsiasi monitor del gruppo. |
 | **Avvisi** | Gli avvisi su qualsiasi monitor del gruppo. |
@@ -91,6 +92,17 @@ Aprite un gruppo per vederne le pagine nel menu laterale:
 La disponibilità nella **Panoramica** conta come inattività ogni stato tranne quello operativo. Una pagina di stato conta solo gli stati nel proprio elenco **Conta come inattività**: vedere [Scegliere cosa mostra la pagina](/docs/status-pages/index#scegliere-che-cosa-compare-sulla-pagina).
 
 L'elenco **Gruppi di monitor** può filtrare i gruppi per proprietario ed etichetta, impostare etichette e proprietari su molti gruppi insieme, ed esportare o importare gruppi in JSON.
+
+## Disattivare il monitoraggio di un intero gruppo
+
+La scheda **Monitoraggio** nella **Panoramica** di un gruppo disattiva il monitoraggio, o lo riattiva, per tutti i monitor del gruppo in una volta sola.
+
+- **Disattiva il monitoraggio** chiede prima conferma. Poi niente controlla i monitor del gruppo finché il monitoraggio non viene riattivato, quindi non aprono incidenti né avvisi, e il gruppo mostra **Disabilitato** al posto del suo stato.
+- **Attiva il monitoraggio** salva subito. Il controllo successivo di ogni monitor ne imposta di nuovo lo stato.
+
+Disattivare il monitoraggio risolve anche gli incidenti e gli avvisi aperti dei monitor impostati per la risoluzione automatica, come ogni monitor avrebbe fatto al ripristino. Gli incidenti e gli avvisi dichiarati a mano, o i cui criteri non si risolvono automaticamente, restano aperti. Disattivare il monitoraggio di un singolo monitor, nella sua pagina **Impostazioni**, fa lo stesso.
+
+La scheda cambia i monitor, non il gruppo: la scheda **Monitoraggio** di ogni monitor mostra la modifica, e un monitor aggiunto al gruppo in seguito mantiene la propria impostazione. I monitor archiviati restano come sono. Finché il monitoraggio è disattivato solo per alcuni monitor, la scheda dice per quanti e offre entrambi i pulsanti.
 
 ## Mostrare un gruppo su una pagina di stato
 

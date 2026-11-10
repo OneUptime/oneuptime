@@ -41,6 +41,11 @@ import {
   SessionReplaySealedReason,
 } from "Common/Types/Rum/SessionReplay";
 import { sanitizeSessionReplayStringMap } from "Common/Utils/Rum/SessionReplayStringMap";
+import {
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAME_LENGTH,
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAMES_PER_SESSION,
+  SessionReplayCustomSignalCount,
+} from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import SessionIdentity from "Common/Utils/Rum/SessionIdentity";
 import SessionSampling from "Common/Utils/Rum/SessionSampling";
@@ -235,6 +240,15 @@ interface SessionHeaderCarry {
   deadClickCount: number;
   errorClickCount: number;
   refreshRageCount: number;
+  /*
+   * The application's own signals (issue #6443): hits, the hits that were
+   * frustration, and the names hit. Carried like the built-in counters so
+   * a session captured BECAUSE one of its own frustration signals fired
+   * stays in the Frustration tab for the provisional window.
+   */
+  customSignalCount: number;
+  customSignalFrustrationCount: number;
+  customSignalNames: Array<string>;
   pageCount: number;
   chunkEndOffsetMs: number;
   routes: Array<string>;
@@ -282,6 +296,13 @@ interface SessionHeaderCarry {
    * set any must not wipe the ones an earlier page did.
    */
   tags: Record<string, string>;
+}
+
+/* One chunk's signals of the application's own, summed and named. */
+interface ChunkCustomSignals {
+  count: number;
+  frustrationCount: number;
+  names: Array<string>;
 }
 
 /* The person half of the carry, as one chunk's meta yields it. */
@@ -1601,12 +1622,20 @@ export default class SessionReplayIngestService {
       envelope: envelope,
     });
 
+    const customSignals: ChunkCustomSignals =
+      SessionReplayIngestService.summarizeCustomSignals(
+        envelope.signals.customSignals,
+      );
+
     const fromThisChunk: SessionHeaderCarry = {
       errorCount: envelope.signals.errorCount,
       rageClickCount: envelope.signals.rageClickCount,
       deadClickCount: envelope.signals.deadClickCount,
       errorClickCount: envelope.signals.errorClickCount,
       refreshRageCount: envelope.signals.refreshRageCount,
+      customSignalCount: customSignals.count,
+      customSignalFrustrationCount: customSignals.frustrationCount,
+      customSignalNames: customSignals.names,
       pageCount: envelope.signals.routeCount,
       chunkEndOffsetMs: envelope.chunkEndOffsetMs,
       routes: SessionReplayIngestService.buildChunkRoutes(
@@ -1696,6 +1725,7 @@ export default class SessionReplayIngestService {
           PROVISIONAL_HEADER_MAX_ROUTES,
         ),
         traceIds: next.traceIds.slice(0, PROVISIONAL_HEADER_MAX_TRACE_IDS),
+        customSignalNames: this.mergeSignalNames([], next.customSignalNames),
       };
     }
 
@@ -1713,6 +1743,18 @@ export default class SessionReplayIngestService {
       refreshRageCount: Math.max(
         previous.refreshRageCount,
         next.refreshRageCount,
+      ),
+      customSignalCount: Math.max(
+        previous.customSignalCount,
+        next.customSignalCount,
+      ),
+      customSignalFrustrationCount: Math.max(
+        previous.customSignalFrustrationCount,
+        next.customSignalFrustrationCount,
+      ),
+      customSignalNames: this.mergeSignalNames(
+        previous.customSignalNames,
+        next.customSignalNames,
       ),
       pageCount: Math.max(previous.pageCount, next.pageCount),
       chunkEndOffsetMs: Math.max(
@@ -1860,6 +1902,52 @@ export default class SessionReplayIngestService {
     });
   }
 
+  /*
+   * One chunk's signals of the application's own, as the chunk row and the
+   * header carry store them: every hit, the hits that were frustration,
+   * and the names, sorted so the same chunk always writes the same bytes.
+   */
+  private static summarizeCustomSignals(
+    counts: Array<SessionReplayCustomSignalCount> | undefined,
+  ): ChunkCustomSignals {
+    const summary: ChunkCustomSignals = {
+      count: 0,
+      frustrationCount: 0,
+      names: [],
+    };
+
+    for (const entry of counts ?? []) {
+      summary.count += entry.count;
+      summary.frustrationCount += entry.frustrationCount;
+      summary.names.push(entry.name);
+    }
+
+    summary.names.sort();
+
+    return summary;
+  }
+
+  /*
+   * The names of the application's own signals a session hit: a set, sorted
+   * and then cut to the session's budget, exactly as the finalizer writes
+   * it. Cutting after sorting is what makes the kept names independent of
+   * the order chunks arrived in, so a re-merge is byte-identical.
+   */
+  private static mergeSignalNames(
+    previous: Array<string>,
+    next: Array<string>,
+  ): Array<string> {
+    return Array.from(
+      new Set<string>(
+        [...previous, ...next].filter((name: string): boolean => {
+          return name.length > 0;
+        }),
+      ),
+    )
+      .sort()
+      .slice(0, SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAMES_PER_SESSION);
+  }
+
   private static mergeCappedList(
     previous: Array<string>,
     next: Array<string>,
@@ -1906,6 +1994,21 @@ export default class SessionReplayIngestService {
         deadClickCount: this.readCarryCount(view["deadClickCount"]),
         errorClickCount: this.readCarryCount(view["errorClickCount"]),
         refreshRageCount: this.readCarryCount(view["refreshRageCount"]),
+        /* A memo written before custom signals existed reads as none. */
+        customSignalCount: this.readCarryCount(view["customSignalCount"]),
+        customSignalFrustrationCount: this.readCarryCount(
+          view["customSignalFrustrationCount"],
+        ),
+        customSignalNames: this.mergeSignalNames(
+          [],
+          this.readCarryStrings(view["customSignalNames"]).filter(
+            (name: string): boolean => {
+              return (
+                name.length <= SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAME_LENGTH
+              );
+            },
+          ),
+        ),
         pageCount: this.readCarryCount(view["pageCount"]),
         chunkEndOffsetMs: this.readCarryCount(view["chunkEndOffsetMs"]),
         routes: this.readCarryStrings(view["routes"]),
@@ -2114,6 +2217,11 @@ export default class SessionReplayIngestService {
     const chunkRoutes: Array<string> =
       SessionReplayIngestService.buildChunkRoutes(envelope.routes, chunkUrl);
 
+    const chunkCustomSignals: ChunkCustomSignals =
+      SessionReplayIngestService.summarizeCustomSignals(
+        envelope.signals.customSignals,
+      );
+
     return {
       _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: OneUptimeDate.toClickhouseDateTime(
@@ -2180,6 +2288,13 @@ export default class SessionReplayIngestService {
        */
       clickCount: envelope.signals.clickCount ?? 0,
       customEventCount: envelope.signals.customEventCount ?? 0,
+      /*
+       * The application's own signals (issue #6443), as the envelope parser
+       * bounded them. Absent from an older recorder: none.
+       */
+      customSignalCount: chunkCustomSignals.count,
+      customSignalFrustrationCount: chunkCustomSignals.frustrationCount,
+      customSignalNames: chunkCustomSignals.names,
 
       /*
        * RE-SCRUBBED SERVER SIDE, for the same reason the header's URLs are
@@ -2406,6 +2521,9 @@ export default class SessionReplayIngestService {
       deadClickCount: carry.deadClickCount,
       errorClickCount: carry.errorClickCount,
       refreshRageCount: carry.refreshRageCount,
+      customSignalCount: carry.customSignalCount,
+      customSignalFrustrationCount: carry.customSignalFrustrationCount,
+      customSignalNames: carry.customSignalNames,
       pageCount: carry.pageCount,
       browserName: envelope.meta?.browserName ?? "",
       browserVersion: envelope.meta?.browserVersion ?? "",

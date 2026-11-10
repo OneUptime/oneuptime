@@ -29,7 +29,7 @@
  *    (AgentUpgradeGuides, KubernetesClusterAiAccessSettings, the docs
  *    suites) hold the rendered commands to the same rule.
  *
- * The dashboard's copy says which flag keeps the values, in 17 languages: a
+ * The dashboard's copy says which flag keeps the values, in 18 languages: a
  * translation names the flags its English names. And the upgrade for an
  * older Helm saves what `helm get values` prints, which is only the values
  * the release was given unless --all asks for every value, the old chart's
@@ -489,7 +489,9 @@ describe("the dashboard's translations name the flags and the file its English n
         return key.includes("saves the values you set to values.yaml");
       }),
     ).toBe(true);
-    expect(locales).toHaveLength(16);
+    // Every language the dashboard has besides English: 17 since Arabic
+    // joined on 2026-11-09 (#6465), its translations held as the others are.
+    expect(locales).toHaveLength(17);
   });
 
   test.each(locales)("%s", (locale) => {

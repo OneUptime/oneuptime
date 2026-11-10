@@ -401,8 +401,8 @@ afterEach(() => {
 });
 
 describe("what the traces explorer hands its sidebar", () => {
-  test("every Dashboard language is read: English and the 16 others", () => {
-    expect(LANGUAGES).toHaveLength(17);
+  test("every Dashboard language is read: English and the 17 others", () => {
+    expect(LANGUAGES).toHaveLength(18);
     expect(LANGUAGES).toEqual(expect.arrayContaining(["en", "ja", "es"]));
   });
 

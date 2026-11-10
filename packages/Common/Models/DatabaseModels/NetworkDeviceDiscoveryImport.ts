@@ -120,7 +120,7 @@ export default class NetworkDeviceDiscoveryImport extends BaseModel {
     modelType: NetworkDeviceDiscoveryScan,
     title: "Discovery Scan",
     description:
-      "The scan whose hosts are imported. Deleting the scan deletes its imports; the devices and monitors they created stay.",
+      "The scan whose hosts are imported, on an import from a scan. Deleting the scan deletes its imports; the devices and monitors they created stay. Empty on an import from the Discovered Devices list.",
   })
   @ManyToOne(
     () => {
@@ -128,7 +128,7 @@ export default class NetworkDeviceDiscoveryImport extends BaseModel {
     },
     {
       eager: false,
-      nullable: false,
+      nullable: true,
       onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
@@ -141,15 +141,20 @@ export default class NetworkDeviceDiscoveryImport extends BaseModel {
     read: [],
     update: [],
   })
+  /*
+   * Empty on an import from the Discovered Devices list (issue #5775): its
+   * hosts are devices switches and controllers saw, not a scan's results.
+   */
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
+    required: false,
     title: "Discovery Scan ID",
-    description: "ID of the scan whose hosts are imported.",
+    description:
+      "ID of the scan whose hosts are imported. Empty on an import from the Discovered Devices list.",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public networkDeviceDiscoveryScanId?: ObjectID = undefined;

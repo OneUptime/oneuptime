@@ -528,6 +528,34 @@ class User extends UserModel {
   })
   public timezone?: Timezone = undefined;
 
+  /*
+   * The language OneUptime writes to this person in, and the Dashboard
+   * starts in on every browser they sign in on (Types/UserLanguage): one
+   * of the codes OneUptime writes in ("de", "zh-TW"), or empty for none -
+   * English, and the browser's language on the Dashboard, as before.
+   * Their own to set: User Profile's Language, or the Dashboard's
+   * language menu while they are signed in.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [Permission.CurrentUser],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Language",
+    description:
+      "The language OneUptime writes this person's on-call pages in, and the Dashboard starts in. Empty means English.",
+    example: "de",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: false,
+  })
+  public language?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],

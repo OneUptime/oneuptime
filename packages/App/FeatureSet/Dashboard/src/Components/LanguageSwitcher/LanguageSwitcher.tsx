@@ -8,7 +8,9 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import UserLanguageUtil from "Common/UI/Utils/UserLanguage";
 import { SupportedLanguage, SUPPORTED_LANGUAGES } from "../../Utils/i18n";
+import { switchDashboardLanguage } from "../../Utils/DashboardLanguageSwitch";
 
 export interface ComponentProps {
   className?: string | undefined;
@@ -35,23 +37,17 @@ const LanguageSwitcher: FunctionComponent<ComponentProps> = (
   }, [i18n]);
 
   /*
-   * Non-English locales are lazy chunks (Utils/i18n.ts), so the target
-   * language's bundle must be in memory BEFORE the switch happens —
-   * otherwise every translated string briefly renders as a raw key while
-   * the chunk downloads. loadLanguages resolves instantly for anything
-   * already loaded (including the statically-bundled English), and if the
-   * chunk cannot be fetched we still switch: i18next then serves the
-   * English fallback strings for the missing keys.
+   * The bundle is loaded before the switch (DashboardLanguageSwitch). A
+   * signed-in person's pick is theirs from then on, saved to their account
+   * (Types/UserLanguage): every browser they sign in on starts in it, and
+   * their on-call pages are written in it. Saving is best effort and never
+   * holds the switch up.
    */
   const switchLanguage: (nextLanguage: string) => Promise<void> = async (
     nextLanguage: string,
   ): Promise<void> => {
-    try {
-      await i18n.loadLanguages(nextLanguage);
-    } catch {
-      // Fall through to changeLanguage — English fallback still applies.
-    }
-    await i18n.changeLanguage(nextLanguage);
+    await switchDashboardLanguage(i18n, nextLanguage);
+    await UserLanguageUtil.saveSignedInUserLanguage(nextLanguage);
   };
 
   const onChange: (event: ChangeEvent<HTMLSelectElement>) => void = (

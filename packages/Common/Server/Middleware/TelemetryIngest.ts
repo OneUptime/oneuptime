@@ -33,6 +33,25 @@ import TelemetryIngestionKeyRateLimiter, {
   TelemetryIngestionKeyLimitDecision,
   TelemetryIngestionKeyLimitOutcome,
 } from "../Utils/Telemetry/TelemetryIngestionKeyRateLimiter";
+import TelemetryIngestionBudget, {
+  TelemetryIngestionBudgetAdmission,
+  TelemetryIngestionBudgetAdmissionMode,
+  TelemetryIngestionBudgetCharge,
+} from "../Utils/Telemetry/TelemetryIngestionBudget";
+import {
+  DEFERRED_BODY_SURFACES,
+  getTelemetryIngestionBudgetSignalForSurface,
+  measureTelemetryIngestRequest,
+  sendTelemetryIngestionBudgetRefusal,
+} from "../Utils/Telemetry/TelemetryIngestionBudgetHttp";
+import { TelemetryIngestionBudgetSignal } from "../../Types/Telemetry/TelemetryIngestionBudget";
+import {
+  TelemetryIngestRefusalReason,
+  getTelemetryIngestRefusalReasonForBudget,
+} from "../../Types/Telemetry/TelemetryIngestRefusal";
+import TelemetryIngestRefusalRecorder, {
+  recordTelemetryIngestBillingRefusal,
+} from "../Utils/Telemetry/TelemetryIngestRefusalRecorder";
 
 export interface TelemetryRequest extends ExpressRequest {
   projectId: ObjectID; // Project ID
@@ -64,6 +83,16 @@ export interface TelemetryRequest extends ExpressRequest {
    * the worker's clock (issue #2825).
    */
   receivedAt?: Date | string | undefined;
+
+  /*
+   * What the ingestion budget gate counted for this request
+   * (TelemetryIngestionBudget), set by whichever producer admitted it so the
+   * queue counts it once - pending when the gate could not size the body yet,
+   * so the queue counts it with the size it stores. null when a gate ran and
+   * counted nothing (no budget in force, or the counters were unavailable);
+   * undefined when no gate ran, and the queue decides.
+   */
+  telemetryIngestionBudgetCharge?: TelemetryIngestionBudgetCharge | null;
 }
 
 /*
@@ -418,6 +447,12 @@ export default class TelemetryIngest {
        * afternoons. Like 401, 422 is non-retryable under the OTLP spec.
        */
       if (policy.isEnabled === false) {
+        TelemetryIngest.recordRefusal(
+          policy,
+          TelemetryIngestRefusalReason.KeyDisabled,
+          surface,
+        );
+
         return Response.sendErrorResponse(
           req,
           res,
@@ -441,6 +476,12 @@ export default class TelemetryIngest {
        * whoever happens to be holding a dead one.
        */
       if (policy.expiresAt && policy.expiresAt.getTime() <= Date.now()) {
+        TelemetryIngest.recordRefusal(
+          policy,
+          TelemetryIngestRefusalReason.KeyExpired,
+          surface,
+        );
+
         return Response.sendErrorResponse(
           req,
           res,
@@ -479,6 +520,12 @@ export default class TelemetryIngest {
             ? getIngestSurfaceReadableName(surface)
             : UNNAMED_SURFACE_READABLE_NAME;
 
+          TelemetryIngest.recordRefusal(
+            policy,
+            TelemetryIngestRefusalReason.BrowserKeyNotAllowedHere,
+            surface,
+          );
+
           return Response.sendErrorResponse(
             req,
             res,
@@ -492,6 +539,12 @@ export default class TelemetryIngest {
           TelemetryIngest.getOriginRefusalMessage(resolvedClientOrigin, policy);
 
         if (originRefusalMessage) {
+          TelemetryIngest.recordRefusal(
+            policy,
+            TelemetryIngestRefusalReason.OriginNotAllowed,
+            surface,
+          );
+
           return Response.sendErrorResponse(
             req,
             res,
@@ -514,6 +567,12 @@ export default class TelemetryIngest {
         IDENTITY_REGISTRATION_SURFACES.has(surface) &&
         policy.pinnedServiceName
       ) {
+        TelemetryIngest.recordRefusal(
+          policy,
+          TelemetryIngestRefusalReason.PinnedKeyNotAllowedHere,
+          surface,
+        );
+
         return Response.sendErrorResponse(
           req,
           res,
@@ -567,6 +626,12 @@ export default class TelemetryIngest {
             );
           }
 
+          TelemetryIngest.recordRefusal(
+            policy,
+            TelemetryIngestRefusalReason.KeyRequestsPerMinute,
+            surface,
+          );
+
           return Response.sendErrorResponse(
             req,
             res,
@@ -607,6 +672,58 @@ export default class TelemetryIngest {
             );
           }
         }
+      }
+
+      /*
+       * Ingestion budgets: the project's daily budget and per-second rate for
+       * this surface's signal, and the key's own. Nothing is read from Redis
+       * - or measured - unless one is in force (TelemetryIngestionBudget), so
+       * a project without a budget pays two in-process lookups here.
+       */
+      const budgetSignal: TelemetryIngestionBudgetSignal | null =
+        getTelemetryIngestionBudgetSignalForSurface(surface);
+
+      if (budgetSignal && surface) {
+        const admission: TelemetryIngestionBudgetAdmission =
+          await TelemetryIngestionBudget.admit({
+            projectId: policy.projectId,
+            signal: budgetSignal,
+            ingestionKeyPolicy: policy,
+            mode: DEFERRED_BODY_SURFACES.has(surface)
+              ? TelemetryIngestionBudgetAdmissionMode.Check
+              : TelemetryIngestionBudgetAdmissionMode.Refuse,
+            measure: () => {
+              return measureTelemetryIngestRequest({
+                req: req,
+                surface: surface,
+              });
+            },
+          });
+
+        if (admission.refusal) {
+          SpanUtil.addAttributesToCurrentSpan({
+            projectId: policy.projectId.toString(),
+            telemetryIngestionBudgetRefusal: admission.refusal.kind,
+            telemetryIngestionBudgetScope: admission.refusal.scope,
+          });
+
+          TelemetryIngest.recordRefusal(
+            policy,
+            getTelemetryIngestRefusalReasonForBudget(admission.refusal),
+            surface,
+          );
+
+          return sendTelemetryIngestionBudgetRefusal({
+            req: req,
+            res: res,
+            refusal: admission.refusal,
+            surface: surface,
+          });
+        }
+
+        // Even null: the queue then knows this request was already decided.
+        (req as TelemetryRequest).telemetryIngestionBudgetCharge =
+          admission.charge;
       }
 
       (req as TelemetryRequest).projectId = policy.projectId;
@@ -655,8 +772,37 @@ export default class TelemetryIngest {
        * event instead of an Issue.
        */
       SpanUtil.recordExceptionOnCurrentSpan(err);
+
+      /*
+       * A billing refusal (no payment method, a blocked project) is thrown
+       * while the key resolves, so it reaches here, not a branch above. The
+       * key service noted which key it was thrown for; count it against
+       * that key, on this surface. Anything else counts nothing.
+       */
+      recordTelemetryIngestBillingRefusal({ err, surface });
+
       return next(err);
     }
+  }
+
+  /*
+   * Count a refusal against the key that sent it (issue #6378), for the
+   * RUM setup check and the key's own page. In memory, written in batches
+   * (TelemetryIngestRefusalRecorder: a key refused again and again is
+   * written at most once per five minutes), so a flood of refusals is never
+   * a flood of writes. Never throws.
+   */
+  private static recordRefusal(
+    policy: TelemetryIngestionKeyPolicy,
+    reason: TelemetryIngestRefusalReason,
+    surface: TelemetryIngestSurface | null,
+  ): void {
+    TelemetryIngestRefusalRecorder.record({
+      projectId: policy.projectId,
+      ingestionKeyId: policy.ingestionKeyId,
+      reason,
+      surface,
+    });
   }
 
   /*

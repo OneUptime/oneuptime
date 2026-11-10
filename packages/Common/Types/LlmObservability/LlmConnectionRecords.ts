@@ -16,7 +16,10 @@
  * cache counts are never added to it.
  */
 export interface LlmUsageRecord {
-  // Start of the UTC day the figures belong to.
+  /*
+   * Start of the UTC day the figures belong to - or of the hour, for a
+   * provider read by the hour (Cursor: LlmUsageFetchResult.bucket).
+   */
   day: Date;
   model: string;
   // An email when the provider gives one, else the provider's id for them.
@@ -104,7 +107,9 @@ export interface LlmChatTurn {
  * Where a connection's last read got to, kept on the connection so the next
  * read resumes there. Provider accounts keep the days already final; company
  * tools keep a time cursor and, for a read that had to stop part way, where
- * it stopped.
+ * it stopped. A provider read by the hour (Cursor) keeps the hours it has
+ * queued (windowEnd), the ranges of them still to read, and its once-a-day
+ * work.
  */
 export interface LlmConnectionPullState {
   // Everything before this instant has been read (ISO).
@@ -115,4 +120,15 @@ export interface LlmConnectionPullState {
   // ...and the provider's page token or the index it had reached.
   pageToken?: string | undefined;
   nextIndex?: number | undefined;
+  // Hour ranges still to read, newest first (ISO starts and ends).
+  pendingWindows?: Array<LlmConnectionPendingWindow> | undefined;
+  // The last UTC day queued to be read again once it was over (ISO).
+  settledDay?: string | undefined;
+  // The UTC day the account's people were last counted ("YYYY-MM-DD").
+  membersDay?: string | undefined;
+}
+
+export interface LlmConnectionPendingWindow {
+  start: string;
+  end: string;
 }

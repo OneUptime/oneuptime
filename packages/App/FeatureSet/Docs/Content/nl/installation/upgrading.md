@@ -435,6 +435,14 @@ Om de oude limieten te houden, stelt u ze zelf in: **Minimale ernst om te onderz
 
 De AI-pagina's zijn ook veranderd in de zijmenu's van Incidenten en Waarschuwingen. Het onderdeel **AI** van elk menu, direct na **Episoden** en ingeklapt tot u het opent, bevat alles wat OneUptime AI voor dat soort signaal doet: **Inzichten** en **Logboeken**, die nieuw zijn, dan **Instellingen**, de pagina die **Onderzoek** heette, en **Regels voor automatisch herstel**, de pagina die **Herstel** heette. Hun adressen zijn verhuisd van `…/settings/ai` en `…/settings/auto-remediation-rules` naar `…/ai/settings` en `…/ai/auto-remediation-rules`. De oude adressen openen de nieuwe pagina's, dus bladwijzers blijven werken.
 
+### AI-runs hebben alleen nog een tijdslimiet
+
+Een run van OneUptime AI stopte vroeger bij vaste aantallen, zoals 100 modelaanroepen en 300 tool-aanroepen voor een onderzoek, en 40 modelaanroepen en 100.000 uitvoertokens voor een codetaak. Die zijn weg: een run doet nu zoveel aanroepen als zijn werk nodig heeft, tot 120 minuten lang. Een onderzoek zonder ingestelde tijdslimiet, dat er eerder geen had, stopt nu ook na 120 minuten. Lusdetectie stopt nog steeds een onderzoek of antwoord dat in rondjes draait, en je kunt elke run stoppen.
+
+Voor een bestaand project kan een moeilijke vraag nu meer aanroepen kosten dan voorheen, en dus meer tokens en, op OneUptime Cloud, meer AI-tegoed; de dagelijkse limieten van het project begrenzen de dag nog steeds. Om elke run tot minder te beperken, stel je **Modelaanroepen per uitvoering**, **Toolaanroepen per uitvoering**, **Tokens per uitvoering** of **Tijdslimiet per uitvoering (minuten)** in op **Projectinstellingen → AI → AI-functies**, onder **Meer instellingen**. Een run die er een bereikt, antwoordt met wat hij vond en zegt welke limiet hem stopte. Er wordt niets gemigreerd: geen project had deze instellingen eerder.
+
+Een Runner van vóór deze release stopt een codetaak nog steeds bij 40 modelaanroepen en 100.000 uitvoertokens; upgrade hem om die grenzen op te heffen.
+
 ### De AI Logs krijgen een index voor de dagelijkse AI-limieten
 
 De dagelijkse AI-limieten van een project (**Projectinstellingen → AI → AI-functies → Meer instellingen**) en de dagelijkse tokenlimieten voor incidenten en waarschuwingen tellen vóór elke AI-aanroep de AI Logs van die dag op. Tot nu toe las dat elke AI Log die het project ooit had geschreven, en een zelf gehoste installatie bewaart ze allemaal. De upgrade voegt een index toe op de AI Logs (`LlmLog`), op het project en het tijdstip van elke aanroep, zodat elke controle alleen die van die dag leest. De pagina met AI Logs toont de logs van een project ook sneller.

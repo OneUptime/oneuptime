@@ -145,6 +145,79 @@ export enum SessionReplayFidelityNotice {
   SnapshotTooLarge = "snapshot-too-large",
 }
 
+/*
+ * Frustration signals (issue #6443), copied from Common's
+ * Types/Rum/SessionReplayFrustrationSignals: what the config response
+ * carries about the application's rules and its signals of its own, and
+ * how a chunk counts the signals it saw. ContractParity holds every type
+ * and number here identical to Common's.
+ *
+ * This recorder detects the application's own page, event and error
+ * signals. The built-in rules (rage, dead and error clicks, refresh rage)
+ * and click signals are about a mouse on a web page, and only the browser
+ * recorder detects them.
+ */
+export type SessionReplayCustomSignalTrigger =
+  | "click"
+  | "page"
+  | "event"
+  | "error";
+
+export interface SessionReplayRageClickRule {
+  isEnabled: boolean;
+  clickCount: number;
+  windowMs: number;
+  radiusPx: number;
+  ignoreSelectors: Array<string>;
+}
+
+export interface SessionReplayDeadClickRule {
+  isEnabled: boolean;
+  timeoutMs: number;
+  ignoreSelectors: Array<string>;
+}
+
+export interface SessionReplayErrorClickRule {
+  isEnabled: boolean;
+  windowMs: number;
+}
+
+export interface SessionReplayRefreshRageRule {
+  isEnabled: boolean;
+  reloadCount: number;
+  windowSeconds: number;
+}
+
+export interface SessionReplayCustomSignalConfig {
+  name: string;
+  trigger: SessionReplayCustomSignalTrigger;
+  match: string;
+  isFrustration: boolean;
+}
+
+export interface SessionReplayFrustrationSignalsConfig {
+  rageClick: SessionReplayRageClickRule;
+  deadClick: SessionReplayDeadClickRule;
+  errorClick: SessionReplayErrorClickRule;
+  refreshRage: SessionReplayRefreshRageRule;
+  customSignals: Array<SessionReplayCustomSignalConfig>;
+}
+
+export interface SessionReplayCustomSignalCount {
+  name: string;
+  count: number;
+  frustrationCount: number;
+}
+
+export const SESSION_REPLAY_MAX_CUSTOM_SIGNALS: number = 20;
+export const SESSION_REPLAY_MAX_CUSTOM_SIGNAL_NAME_LENGTH: number = 40;
+export const SESSION_REPLAY_MAX_CUSTOM_SIGNAL_MATCH_LENGTH: number = 200;
+export const SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENT_NAME_LENGTH: number = 64;
+/* The same signal is not counted twice within a second. */
+export const SESSION_REPLAY_CUSTOM_SIGNAL_COOLDOWN_MS: number = 1000;
+/* How many signal markers one chunk holds. */
+export const SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENTS_PER_CHUNK: number = 50;
+
 export type SessionReplayConsentState = "Granted" | "NotRequired" | "Unknown";
 export type SessionReplayDirective = "continue" | "stop" | "throttle";
 export type SessionReplayPayloadEncoding = "gzip" | "identity";
@@ -171,6 +244,7 @@ export interface SessionReplayConfigResponse {
   disabledDetail?: string;
   budgetResetsAt?: string;
   debug?: boolean;
+  frustrationSignals?: SessionReplayFrustrationSignalsConfig;
 }
 
 export interface SessionReplaySignalCounts {
@@ -182,7 +256,14 @@ export interface SessionReplaySignalCounts {
   routeCount: number;
   clickCount?: number;
   customEventCount?: number;
+  customSignals?: Array<SessionReplayCustomSignalCount>;
 }
+
+/* The counts a chunk adds one to at a time. */
+export type SessionReplayNumericSignalKey = Exclude<
+  keyof SessionReplaySignalCounts,
+  "customSignals"
+>;
 
 export interface SessionReplayChunkMeta {
   entryUrl: string;
@@ -276,6 +357,24 @@ export const VISIBILITY_CUSTOM_EVENT_TAG: string = "oneuptime.visibility";
 export const TOUCH_CUSTOM_EVENT_TAG: string = "oneuptime.touch";
 export const SESSION_ROTATED_CUSTOM_EVENT_TAG: string =
   "oneuptime.session-rotated";
+
+/*
+ * A signal of the application's own (Common's
+ * SessionReplayCustomEventTag.CustomSignal and its payload). Carries the
+ * signal's name, never what it matched: not the error's text, not the
+ * route.
+ */
+export const CUSTOM_SIGNAL_CUSTOM_EVENT_TAG: string = "oneuptime.signal";
+
+export interface SessionReplayCustomSignalPayload {
+  name: string;
+  trigger: SessionReplayCustomSignalTrigger;
+  isFrustration: boolean;
+  atUnixMs: number;
+  /* Present for click signals. Viewport coordinates, never content. */
+  x?: number;
+  y?: number;
+}
 
 /*
  * The idle pause's two markers, copied from Common's

@@ -15,9 +15,10 @@ import { withResourcePrefixedKeys } from "./LlmConventions";
  *   - AI gateways and vendor exporters that publish spend/usage counters only.
  *
  * For those, token and cost totals have to come off the metric stream instead.
- * Both the budget evaluator (Common/Server/Utils/Telemetry/LlmMetricSpend.ts)
- * and anything else that needs metric-sourced LLM figures import these lists,
- * so a newly recognized metric name is added HERE, once.
+ * The usage reads (Common/Server/Utils/Telemetry/LlmMetricUsageReader.ts,
+ * which the Usage tab and the cost budgets share through LlmUsageReader) and
+ * anything else that needs metric-sourced LLM figures import these lists, so
+ * a newly recognized metric name is added HERE, once.
  *
  * Order matters: within each list the preferred convention comes first.
  */
@@ -305,6 +306,25 @@ export const LlmMetricModelBaseAttributeKeys: Array<string> = [
 
 export const LlmMetricModelAttributeKeys: Array<string> =
   withResourcePrefixedKeys(LlmMetricModelBaseAttributeKeys);
+
+/*
+ * Attribute keys naming WHICH PROVIDER served the calls a datapoint counts:
+ * the conventions' gen_ai.provider.name (and gen_ai.system, which it
+ * replaced), and the spellings the span list knows (LlmSystemAttributeKeys).
+ * An SDK's gen_ai.client.token.usage carries one; the coding assistants'
+ * counters carry none - Cursor and Claude Code reach several providers
+ * behind one subscription - so their usage falls under Unattributed in the
+ * Provider breakdown, still counted. The value is read as sent and named
+ * the way ingest names a span's provider (normalizeLlmProvider) before it
+ * is grouped. Not resource-widened, like the span list: a provider names
+ * one call, never a whole process.
+ */
+export const LlmMetricProviderAttributeKeys: Array<string> = [
+  "gen_ai.provider.name",
+  "gen_ai.system",
+  "llm.system",
+  "llm.provider",
+];
 
 /**
  * Which side of the exchange a `gen_ai.token.type` value denotes, or null

@@ -1,6 +1,6 @@
 # Uw account
 
-Uw account is hoe OneUptime u kent: het e-mailadres en wachtwoord waarmee u inlogt, uw naam en tijdzone, en wat uw aanmelding beschermt. Eén account kan bij veel projecten horen, en deze instellingen gaan met u mee naar elk ervan. Hoe OneUptime u bereikt, en wanneer het u oproept, stelt u per project in, onder **Gebruikersinstellingen**.
+Uw account is hoe OneUptime u kent: het e-mailadres en wachtwoord waarmee u inlogt, uw naam, tijdzone en taal, en wat uw aanmelding beschermt. Eén account kan bij veel projecten horen, en deze instellingen gaan met u mee naar elk ervan. Hoe OneUptime u bereikt, en wanneer het u oproept, stelt u per project in, onder **Gebruikersinstellingen**.
 
 ```mermaid title="Wat bij uw account hoort, en wat elk project voor u bewaart"
 flowchart TB
@@ -11,7 +11,7 @@ flowchart TB
 ```
 
 :::cards
-- [Uw profiel](#uw-profiel): Uw naam, e-mailadres, tijdzone en foto.
+- [Uw profiel](#uw-profiel): Uw naam, e-mailadres, tijdzone, taal en foto.
 - [Veilig inloggen](#veilig-inloggen): Uw wachtwoord, inloglinks, passkeys en tweestapsverificatie.
 - [Uw projecten](#uw-projecten): Van project wisselen, er een aanmaken en uitnodigingen accepteren.
 - [Gebruikersinstellingen](#wat-elk-project-voor-u-bewaart): Hoe OneUptime u in elk project bereikt.
@@ -23,7 +23,7 @@ Klik op uw foto rechtsboven in het dashboard.
 
 | Item | Wat het doet |
 | --- | --- |
-| **Profiel** | Opent **Gebruikersprofiel**: uw naam, e-mailadres, tijdzone, foto en de beveiliging van uw aanmelding. |
+| **Profiel** | Opent **Gebruikersprofiel**: uw naam, e-mailadres, tijdzone, taal, foto en de beveiliging van uw aanmelding. |
 | **Beheerdersinstellingen** | Opent het Admin Dashboard. Alleen hoofdbeheerders van een zelf-gehoste installatie zien dit. |
 | **Thema** | Stelt het thema van het dashboard in: **Licht**, **Donker** of **Systeem**, dat licht of donker is zoals uw apparaat is ingesteld. |
 | **Uitloggen** | Meldt u af. |
@@ -35,7 +35,7 @@ Klik op uw foto rechtsboven in het dashboard.
 :::steps
 ### Uw profiel openen
 
-Klik rechtsboven op uw foto en kies **Profiel**. De pagina **Overzicht** opent met de kaart **Basisinformatie**: uw naam, e-mailadres en tijdzone.
+Klik rechtsboven op uw foto en kies **Profiel**. De pagina **Overzicht** opent met de kaart **Basisinformatie**: uw naam, e-mailadres, tijdzone en taal.
 
 ### Uw gegevens bewerken
 
@@ -44,6 +44,7 @@ Klik op **Gebruiker bewerken** en wijzig wat u nodig hebt:
 - **E-mail**: het adres waarmee u inlogt. Als u het wijzigt, verifieert u het nieuwe adres opnieuw.
 - **Volledige naam**: de naam die uw team overal in OneUptime ziet.
 - **Tijdzone**: de tijdzone waarin het dashboard tijden toont en leest, en die van de tijden in meldingen aan u.
+- **Taal**: de taal van het dashboard in elke browser waarin u inlogt, en van uw oproepen voor dienst. Niet ingesteld: uw oproepen zijn in het Engels en het dashboard volgt uw browser.
 
 Klik op **Wijzigingen opslaan**.
 
@@ -146,9 +147,9 @@ U kunt bij zoveel projecten horen als u wilt. De projectkiezer linksboven in het
 
 ## Taal en thema
 
-Beide worden in uw browser opgeslagen, niet in uw account, dus stel ze opnieuw in op een andere browser of een ander apparaat. Ze blijven bewaard als u uitlogt, dus op een gedeelde computer begint de volgende persoon met uw instellingen.
+Uw thema wordt in uw browser opgeslagen, dus stel het opnieuw in op een andere browser of een ander apparaat. Uw taal wordt in uw account opgeslagen zodra u die kiest, en elke browser waarin u inlogt, start in die taal. Ze blijven bewaard als u uitlogt, dus op een gedeelde computer begint de volgende persoon met uw instellingen.
 
-- **Taal**: het dashboard start in de taal van uw browser. Om die te wijzigen, gebruikt u het taalmenu onderaan elke pagina. Deze documentatie heeft bovenaan een eigen taalmenu.
+- **Taal**: het dashboard start in de taal van uw browser. Om die te wijzigen, gebruikt u het taalmenu onderaan elke pagina. Uw keuze wordt in uw account opgeslagen, net als **Taal** in uw profiel, en OneUptime schrijft uw oproepen voor dienst in die taal. Zie [De taal van uw oproepen](/docs/notifications/index#de-taal-van-je-oproepen). Deze documentatie heeft bovenaan een eigen taalmenu.
 - **Thema**: kies **Licht**, **Donker** of **Systeem** in het gebruikersmenu. **Systeem** is licht of donker zoals uw apparaat is ingesteld, en verandert mee; elke browser start ermee. De aanmeldpagina's gebruiken hetzelfde thema.
 
 ## Uw account verwijderen

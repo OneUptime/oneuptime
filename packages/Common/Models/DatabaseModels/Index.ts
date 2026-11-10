@@ -470,6 +470,7 @@ import UserTwoFactorBackupCode from "./UserTwoFactorBackupCode";
 import UserWebAuthn from "./UserWebAuthn";
 
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
+import TelemetryIngestionKeyRefusal from "./TelemetryIngestionKeyRefusal";
 
 import TelemetryException from "./TelemetryException";
 import TelemetryExceptionActivity from "./TelemetryExceptionActivity";
@@ -559,6 +560,7 @@ import IncidentReminderRule from "./IncidentReminderRule";
 import AlertReminderRule from "./AlertReminderRule";
 import ScheduledMaintenanceReminderRule from "./ScheduledMaintenanceReminderRule";
 import PublicNoteApprovalStep from "./PublicNoteApprovalStep";
+import PublicNoteApprovalRequest from "./PublicNoteApprovalRequest";
 import MonitorOwnerRule from "./MonitorOwnerRule";
 import MonitorLabelRule from "./MonitorLabelRule";
 import StatusPageOwnerRule from "./StatusPageOwnerRule";
@@ -882,6 +884,7 @@ const AllModelTypes: Array<{
   AlertReminderRule,
   ScheduledMaintenanceReminderRule,
   PublicNoteApprovalStep,
+  PublicNoteApprovalRequest,
 
   MonitorOwnerRule,
   MonitorLabelRule,
@@ -1128,6 +1131,7 @@ const AllModelTypes: Array<{
   UserWebAuthn,
 
   TelemetryIngestionKey,
+  TelemetryIngestionKeyRefusal,
 
   TelemetryException,
   TelemetryExceptionActivity,

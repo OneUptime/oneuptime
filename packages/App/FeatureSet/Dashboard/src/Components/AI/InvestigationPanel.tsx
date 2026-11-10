@@ -4,6 +4,13 @@ import ChatActivityFeed, {
   KubectlActivitySummary,
   summarizeKubectlActivity,
 } from "../AIChat/ChatActivityFeed";
+import {
+  ActivityFeedRun,
+  readActivityFeedRun,
+} from "../AIChat/ActivityFeedRun";
+import AiRunFailureNotice from "./AiRunFailureNotice";
+import { formatAiRunTime } from "./AiRunFailureWords";
+import OneUptimeDate from "Common/Types/Date";
 import RemediationStep from "../AutoRemediation/RemediationStep";
 import AiCardStep from "./AiCardStep";
 import useAiCardFold, { AiCardFoldWiring } from "./useAiCardFold";
@@ -315,6 +322,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const [conversationHasContent, setConversationHasContent] =
     useState<boolean>(false);
   const [events, setEvents] = useState<Array<AIRunEvent>>([]);
+  /*
+   * The run's times, for its activity's times and how long it took, and
+   * whether this reader may start an investigation that did not finish
+   * again (issues #6437, #6438).
+   */
+  const [runTimes, setRunTimes] = useState<ActivityFeedRun | null>(null);
+  const [mayTryAgain, setMayTryAgain] = useState<boolean>(false);
   const [analysisMarkdown, setAnalysisMarkdown] = useState<string | null>(null);
   /*
    * The AI-written one-liner shown above the report. Purely a summary of the
@@ -621,6 +635,10 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           (runJson?.["totalTokens"] as number | undefined) || 0;
         const nextErrorMessage: string | null =
           (runJson?.["errorMessage"] as string | undefined) || null;
+        const nextRunTimes: ActivityFeedRun | null = runJson
+          ? readActivityFeedRun(runJson)
+          : null;
+        const nextMayTryAgain: boolean = data["mayTryAgain"] === true;
         const nextClusterAccess: Array<ClusterAccessNoticeRow> =
           parseClusterAccess(data["clusterAccess"]);
         const nextSupportsSettledPolling: boolean =
@@ -731,6 +749,8 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           status,
           nextRunId,
           eventsJson.length,
+          nextRunTimes,
+          nextMayTryAgain,
           verdictFromServer,
           nextErrorMessage,
           nextToolCallCount,
@@ -754,6 +774,8 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           signatureRef.current = signature;
           setRunStatus(status);
           setRunId(nextRunId);
+          setRunTimes(nextRunTimes);
+          setMayTryAgain(nextMayTryAgain);
           setNotInvestigatedReason(nextNotInvestigatedReason);
           setWaitingInvestigation(nextWaitingInvestigation);
           setCodeFixRecommendation(codeFixRecommendationFromServer);
@@ -937,6 +959,16 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
 
   const isRunning: boolean = runStatus === AIRunStatus.Running;
   const isQueued: boolean = runStatus === AIRunStatus.Queued;
+  /*
+   * An attempt failed and the run waits to try again (issue #6438): when,
+   * or null for a run that waits for a worker.
+   */
+  const retryAt: Date | null =
+    isQueued &&
+    runTimes?.retryAt &&
+    OneUptimeDate.isInTheFuture(runTimes.retryAt)
+      ? OneUptimeDate.fromString(runTimes.retryAt)
+      : null;
   // Poll while the run can still make progress (queued runs get claimed).
   const isActive: boolean = isRunning || isQueued;
   const isDiscoveringRun: boolean =
@@ -1243,6 +1275,29 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     !conversationHasContent;
 
   /*
+   * Try again (issue #6438): start the investigation again after it did
+   * not finish. The server queues a new run, which the card reads from
+   * then on; a refusal is thrown for the button to show.
+   */
+  const tryAgainInvestigation: () => Promise<void> =
+    async (): Promise<void> => {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: URL.fromString(
+            APP_API_URL.toString() + "/ai-investigation/try-again",
+          ),
+          data: { subjectType, subjectId: subjectIdString },
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      await fetchDataSequentially();
+    };
+
+  /*
    * Investigate now: start the investigation the rule makes wait, at once.
    * The server checks who may (the one who may change the record); the run
    * it queues appears on the next read, and a refusal says why.
@@ -1385,6 +1440,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     isFailed = false;
   } else if (runStatus === AIRunStatus.Running) {
     statusMeta = { text: "Investigating…", indicator: "live" };
+    isFailed = false;
+  } else if (retryAt) {
+    /*
+     * An attempt failed, and the next one waits (issue #6438): nothing
+     * moves until its time, so the mark is the calm clock, not the pulse.
+     */
+    statusMeta = { text: "Trying again soon", indicator: "waiting" };
     isFailed = false;
   } else if (runStatus === AIRunStatus.Queued) {
     statusMeta = { text: "Queued", indicator: "live" };
@@ -1843,6 +1905,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               subjectId={subjectIdString}
               runId={runId}
               focusRequest={evidenceFocusRequest}
+              run={runTimes}
             />
           ) : (
             <></>
@@ -1871,26 +1934,37 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
       >
         <div>
           <h3 className="text-sm font-semibold text-gray-900">
+            {/*
+              Between attempts nothing is investigating: the heading says
+              what comes next, as the pill's clock does (issue #6438).
+            */}
             {translator.translateText(
               isFailed
                 ? "What the investigation got through"
-                : isFollowUpCheckRun(events)
-                  ? "OneUptime AI is checking again"
-                  : "OneUptime AI is investigating",
+                : retryAt
+                  ? "OneUptime AI will try again"
+                  : isFollowUpCheckRun(events)
+                    ? "OneUptime AI is checking again"
+                    : "OneUptime AI is investigating",
             )}
           </h3>
           <p className="mt-1 text-sm leading-6 text-gray-500">
-            {translator.translateText(
-              isFailed
-                ? "The steps this run completed before it stopped."
-                : isQueued
-                  ? "Waiting for a worker to pick this up. Steps appear here the moment it starts."
-                  : clusterAccess.some((status: ClusterAccessNoticeRow) => {
-                        return status.isInvestigationReady;
-                      })
-                    ? "Reading this project's telemetry and running read-only kubectl on the cluster, narrating every step. Nothing is changed."
-                    : "Reading this project's own telemetry and narrating every step. Read-only — nothing is changed.",
-            )}
+            {retryAt
+              ? translator.translateTemplate(
+                  "The last attempt did not finish. OneUptime tries again at {{time}}; its steps so far are below.",
+                  { time: formatAiRunTime(retryAt) },
+                )
+              : translator.translateText(
+                  isFailed
+                    ? "The steps this run completed before it stopped."
+                    : isQueued
+                      ? "Waiting for a worker to pick this up. Steps appear here the moment it starts."
+                      : clusterAccess.some((status: ClusterAccessNoticeRow) => {
+                            return status.isInvestigationReady;
+                          })
+                        ? "Reading this project's telemetry and running read-only kubectl on the cluster, narrating every step. Nothing is changed."
+                        : "Reading this project's own telemetry and narrating every step. Read-only — nothing is changed.",
+                )}
           </p>
         </div>
         <ClusterAccessNotice
@@ -1904,6 +1978,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             hideChrome={true}
             showLiveIndicator={false}
             maxVisibleSteps={10}
+            run={
+              runTimes
+                ? { ...runTimes, status: runStatus || undefined }
+                : undefined
+            }
+            showStepTimes={true}
           />
         ) : (
           <p className="text-sm text-gray-500">
@@ -2013,14 +2093,19 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               testId="ai-card-step-investigation"
               headingRef={investigationHeadingRef}
             >
-              {hasRun && isFailed && errorMessage ? (
-                <InvestigationNotice
+              {hasRun && isFailed ? (
+                /*
+                 * What stopped it, in words to act on, how many times it
+                 * was tried, and Try again for whoever may start it
+                 * (issues #6437, #6438).
+                 */
+                <AiRunFailureNotice
                   testId="investigation-error"
-                  indicator={noticeFailedIcon}
                   title="The investigation stopped before it could report."
-                >
-                  {errorMessage}
-                </InvestigationNotice>
+                  events={events}
+                  errorMessage={errorMessage}
+                  onTryAgain={mayTryAgain ? tryAgainInvestigation : undefined}
+                />
               ) : (
                 <></>
               )}

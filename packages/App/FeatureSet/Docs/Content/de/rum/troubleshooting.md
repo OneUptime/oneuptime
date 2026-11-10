@@ -41,6 +41,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 Eine Web-App braucht einen **Browser**-Schlüssel, eine Mobile-App einen **Server**-Schlüssel: siehe [Einrichtung für Browser](/docs/rum/browser-setup) und [Einrichtung für Mobilgeräte](/docs/rum/mobile-setup). Auch die Export-Endpunkte lehnen einen ungültigen Schlüssel mit `401` ab, wie es die OTLP-Spezifikation verlangt, daher protokolliert ein ordentliches SDK die Ablehnung, statt es erneut zu versuchen. Diese Zeile übersieht man in der Browser-Konsole leicht, und diese Prüfung antwortet direkt.
 
+OneUptime zählt außerdem, was es von einem bekannten Schlüssel ablehnt. Die Seite des Schlüssels unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** zeigt unter **Abgelehnte Telemetrie**, was in den letzten 30 Tagen abgelehnt wurde, und die **Einrichtungsprüfung** auf der Seite **Dokumentation** der Anwendung sagt, welche Art von Telemetrie abgelehnt wird, warum und wie Sie das beheben. Ein fehlender oder unbekannter Schlüssel nennt kein Projekt, daher zählt ihn nichts: Diese Prüfung und die `401` sind alles, was es dazu gibt.
+
 ## Prüfen, was den Browser verlässt
 
 Öffnen Sie auf der Seite der App die Entwicklertools Ihres Browsers, wählen Sie den Tab „Netzwerk“ und filtern Sie nach `otlp`. Sie suchen `POST /otlp/v1/traces` mit einem `2xx`-Status als Antwort.
@@ -108,6 +110,34 @@ Die Anwendung existiert, aber ihre Seiten zeigen nichts.
 - **Prüfen Sie den Zeitraum.** Die Übersicht zeigt standardmäßig die letzte Stunde, ein Test-Batch von heute Morgen liegt also außerhalb.
 - **Warten Sie ein paar Minuten.** Ingest läuft über eine Warteschlange, und **Zuletzt gesehen** wird alle paar Minuten aktualisiert statt bei jedem Batch.
 - **Prüfen Sie das Projekt.** Ein Schlüssel schreibt in sein eigenes Projekt, mit dem Schlüssel eines anderen Projekts gesendete Telemetrie liegt also dort, nicht hier.
+
+## Ausnahmen oder Logs sind leer
+
+Seitenaufrufe und Anfragen kommen an, aber **Ausnahmen** oder **Protokolle** bleiben leer. Das OpenTelemetry-Browser-SDK sendet von sich aus Traces von Seitenaufrufen und Anfragen, aber keine Ausnahmen und keine Logs. Eine Anwendung kann also verbunden aussehen, während diese beiden dauerhaft leer bleiben.
+
+Das leere Diagramm in der **Übersicht** der Anwendung sagt, welcher Fall vorliegt, und die **Einrichtungsprüfung** auf ihrer Seite **Dokumentation** listet jede Art von Telemetrie mit dem Zeitpunkt, zu dem die neueste ankam:
+
+| Das Diagramm zeigt | Was es bedeutet |
+| --- | --- |
+| **Ausnahmen sind nicht eingerichtet** oder **Protokolle sind nicht eingerichtet** | Von dieser App sind noch nie welche angekommen. **Ausnahmen einrichten** oder **Protokolle einrichten** zeigt den Code, der sie sendet, mit Ihrer URL und Ihrem Schlüssel schon eingesetzt. |
+| **Keine Ausnahmen in diesem Zeitraum** oder **Keine Protokolle in diesem Zeitraum** | Früher kamen welche an, und das Diagramm nennt den Zeitpunkt der letzten Ankunft. Wählen Sie den längeren Zeitraum, den es anbietet. |
+| **Von dieser App ist noch nichts angekommen** | Es kommt keinerlei Telemetrie an: Beginnen Sie mit [Den Schlüssel prüfen](#den-schlüssel-prüfen). |
+| **Das OpenTelemetry SDK meldet nichts** | Von dieser App meldet nur die Sitzungswiedergabe: Richten Sie das SDK wie in [Einrichtung für Browser](/docs/rum/browser-setup) ein. |
+| **Ausnahmen werden abgelehnt** oder **Protokolle werden abgelehnt** | OneUptime hat sie nach der letzten Ankunft abgelehnt, und das Diagramm sagt, warum und wann: Der Schlüssel ist ausgeschaltet oder abgelaufen, er lässt den Ursprung Ihrer Website nicht zu, ein Limit oder Budget ist aufgebraucht, oder das Projekt hat keine Zahlungsmethode. Seine Schaltfläche behebt es: **Anderen Schlüssel wählen**, **Schlüssel öffnen**, **Budgets ansehen** oder **Zahlungsmethode hinzufügen**. |
+
+Ausnahmen brauchen einen Fehler-Handler, weil das SDK unbehandelte Fehler nicht erfasst: [Unbehandelte Fehler melden](/docs/rum/browser-setup#unbehandelte-fehler-melden) enthält den Code. Ein Fehler, den eine Error Boundary oder ein `try`/`catch` abfängt, erreicht das Fenster nie. Erfassen Sie ihn also dort, wo Sie ihn behandeln, mit `span.recordException`.
+
+Logs brauchen eine Log-Pipeline und Code, der Log-Einträge schreibt, weil ein `LoggerProvider` allein nichts sendet: [Logs und Metriken hinzufügen](/docs/rum/browser-setup#logs-und-metriken-hinzufügen) enthält beides. Bauen Sie die Pipeline mit derselben `resource` wie Ihre Traces, sonst werden die Logs unter einem Backend-Dienst eingeordnet.
+
+Wenn Seitenaufrufe ankommen, lassen der Schlüssel, seine erlaubten Origins und Ihre Content Security Policy auch Ausnahmen und Logs durch, solange der Log-Exporter denselben Schlüssel und Host verwendet. Ein Fehler-Handler, der noch nichts abgefangen hat, sendet nichts, genau wie einer, der nie hinzugefügt wurde. Werfen Sie also in der Konsole des Browsers einen Testfehler, um die beiden zu unterscheiden:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+Innerhalb einer Minute erscheint er in der **Übersicht** der Anwendung unter **Ausnahmen**.
 
 ## Die Seite Clients ist leer
 

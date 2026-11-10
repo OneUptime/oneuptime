@@ -15,6 +15,7 @@ import {
   cutText,
   readAttribute,
   readIpAddress,
+  readRemoteIpAddress,
   readWord,
 } from "./SecurityLogLine";
 
@@ -27,7 +28,8 @@ import {
  * A web server logs every request, so only a line that carries an attack
  * string becomes a security event: SQL injection, path traversal, or a
  * Log4Shell JNDI lookup (which an attacker also puts in headers, so it is
- * looked for in any log line, access log or not).
+ * looked for in any log line, access log or not - as a lookup, "${jndi:"
+ * and where to look, never the bare string a rule or a query names).
  *
  * Common and combined log format lines and JSON access logs (nginx,
  * Caddy, Envoy and the like) are read for the client address, the method,
@@ -99,15 +101,122 @@ export const WEB_ATTACK_MARKERS: ReadonlyArray<{
   },
 ];
 
+// Where a marker is in a lowercased text: its first character and the one past it.
+interface MarkerMatch {
+  start: number;
+  end: number;
+}
+
+function isHexDigit(character: string | undefined): boolean {
+  return (
+    character !== undefined &&
+    character.length === 1 &&
+    "0123456789abcdef".indexOf(character) !== -1
+  );
+}
+
+/*
+ * Whether a JNDI lookup's name starts at `index` of a lowercased text:
+ * where to look - a protocol ("ldap://", "dns://"), a nested lookup that
+ * spells one ("${lower:l}dap://"), an escape ("ldap://") - raw or
+ * percent-encoded. A "%" that encodes nothing is SQL's wildcard
+ * ("LIKE '%${jndi:%'"), somebody searching for the string.
+ */
+function isLookupNameStart(lower: string, index: number): boolean {
+  let character: string = lower[index] || "";
+
+  // A percent-encoded character, read as the character it encodes.
+  if (character === "%") {
+    if (!isHexDigit(lower[index + 1]) || !isHexDigit(lower[index + 2])) {
+      return false;
+    }
+
+    character = String.fromCharCode(
+      parseInt(lower.slice(index + 1, index + 3), 16),
+    ).toLowerCase();
+  }
+
+  const code: number = character.charCodeAt(0);
+
+  return (
+    (code >= 97 && code <= 122) ||
+    (code >= 48 && code <= 57) ||
+    character === "$" ||
+    character === "\\"
+  );
+}
+
+/*
+ * The first Log4Shell marker in a lowercased text that starts a lookup:
+ * "${jndi:" followed by a name to look up, or "%24%7bjndi" followed by
+ * its colon (":" or "%3a") and one. The bare marker followed by a quote,
+ * a comma, a bracket, a space or nothing is somebody NAMING the string -
+ * a detection rule, a WAF's configuration, a query that looks for it
+ * (issue #6419) - and looks nothing up.
+ */
+function findLog4ShellLookup(
+  lower: string,
+  marker: string,
+): MarkerMatch | null {
+  let index: number = lower.indexOf(marker);
+
+  while (index !== -1) {
+    let end: number = index + marker.length;
+
+    // An encoded marker stops before its colon.
+    if (!marker.endsWith(":")) {
+      if (lower[end] === ":") {
+        end += 1;
+      } else if (lower.startsWith("%3a", end)) {
+        end += 3;
+      } else {
+        end = -1;
+      }
+    }
+
+    if (end !== -1 && isLookupNameStart(lower, end)) {
+      return { start: index, end };
+    }
+
+    index = lower.indexOf(marker, index + marker.length);
+  }
+
+  return null;
+}
+
+// The first marker of a group in a lowercased text that counts, or null.
+function findWebAttackMarker(
+  lower: string,
+  group: { kind: WebAttackKind; markers: ReadonlyArray<string> },
+): MarkerMatch | null {
+  let first: MarkerMatch | null = null;
+
+  for (const marker of group.markers) {
+    let match: MarkerMatch | null = null;
+
+    if (group.kind === WebAttackKind.Log4Shell) {
+      match = findLog4ShellLookup(lower, marker);
+    } else {
+      const index: number = lower.indexOf(marker);
+      match =
+        index === -1 ? null : { start: index, end: index + marker.length };
+    }
+
+    if (match && (!first || match.start < first.start)) {
+      first = match;
+    }
+  }
+
+  return first;
+}
+
 // The attack a line carries, the first kind in the list's order.
 export function readWebAttackKind(text: string): WebAttackKind | null {
   const lower: string = text.toLowerCase();
 
   for (const group of WEB_ATTACK_MARKERS) {
-    for (const marker of group.markers) {
-      if (lower.indexOf(marker) !== -1) {
-        return group.kind;
-      }
+    if (findWebAttackMarker(lower, group)) {
+      return group.kind;
     }
   }
 
@@ -312,27 +421,177 @@ export function readJsonAccessLog(text: string): AccessLogRequest | null {
   };
 }
 
-// The first word of a line that is an IP address, for lines in no known format.
-function findFirstIpAddress(text: string): string {
-  let start: number = 0;
-  let checked: number = 0;
+/*
+ * The words a line names its client's address after, the most telling
+ * first: nginx's error log ("client: 203.0.113.7,"), Apache's ("[client
+ * 203.0.113.7:51234]"), key=value lines ("remote_addr=203.0.113.7",
+ * "src=203.0.113.7") and an application's own words ("... from
+ * 203.0.113.7"). Never a forwarded-for header's value, which whoever sent
+ * the request wrote.
+ */
+export const CLIENT_ADDRESS_LABELS: ReadonlyArray<string> = [
+  "client_ip",
+  "clientip",
+  "client_addr",
+  "client.address",
+  "client.ip",
+  "client",
+  "remote_addr",
+  "remoteaddr",
+  "remote_ip",
+  "remoteip",
+  "remote_address",
+  "remote.address",
+  "remote",
+  "source_ip",
+  "sourceip",
+  "src_ip",
+  "srcip",
+  "source.address",
+  "source.ip",
+  "source",
+  "src",
+  "from",
+  "ip",
+];
 
-  while (start < text.length && checked < 64) {
-    const end: number = text.indexOf(" ", start);
-    const word: string =
-      end === -1 ? text.slice(start) : text.slice(start, end);
-    const ip: string = readIpAddress(word);
+// How many times one label is looked at in a line before the next is tried.
+const MAX_LABEL_OCCURRENCES: number = 64;
 
-    if (ip) {
-      return ip;
+// The longest address a label is followed by, with its brackets and port.
+const MAX_ADDRESS_TOKEN_LENGTH: number = 64;
+
+// What may stand between a label and its address: "client: ", "ip=", '"ip":"'.
+const LABEL_SEPARATORS: string = " :=\"'";
+
+// What ends an address: the space, comma or bracket after it.
+const ADDRESS_ENDS: string = " \t\r\n,;)]\"'|&<>";
+
+function isLabelCharacter(character: string | undefined): boolean {
+  if (!character) {
+    return false;
+  }
+
+  const code: number = character.charCodeAt(0);
+
+  return (
+    (code >= 48 && code <= 57) ||
+    (code >= 97 && code <= 122) ||
+    character === "_" ||
+    character === "." ||
+    character === "-"
+  );
+}
+
+/*
+ * An address as a line writes it, without what is around it: the port of
+ * "203.0.113.7:51234", the brackets and port of "[2001:db8::7]:443", the
+ * full stop that ends a sentence. Read as the client's (readRemoteIpAddress:
+ * never this machine's own, an IPv4 address written as IPv6 read as IPv4).
+ */
+export function readAddressToken(token: string): string {
+  let address: string = token;
+
+  if (address.startsWith("[")) {
+    const close: number = address.indexOf("]");
+    address = close === -1 ? address.slice(1) : address.slice(1, close);
+  } else {
+    const colon: number = address.indexOf(":");
+
+    if (colon !== -1 && address.indexOf(":", colon + 1) === -1) {
+      address = address.slice(0, colon);
     }
+  }
 
-    if (end === -1) {
+  while (address.endsWith(".")) {
+    address = address.slice(0, -1);
+  }
+
+  return readRemoteIpAddress(address);
+}
+
+// The address that follows the label at `labelEnd` of a lowercased text, else "".
+function readAddressAfterLabel(lower: string, labelEnd: number): string {
+  let index: number = labelEnd;
+
+  while (
+    index < lower.length &&
+    index - labelEnd < 4 &&
+    LABEL_SEPARATORS.indexOf(lower[index]!) !== -1
+  ) {
+    // "from ::ffff:203.0.113.7" (Node's remoteAddress): the "::" is the address's.
+    if (lower.startsWith("::", index)) {
       break;
     }
 
-    start = end + 1;
-    checked++;
+    index++;
+  }
+
+  if (index === labelEnd) {
+    return "";
+  }
+
+  let end: number = index;
+
+  // "[2001:db8::7]:443": the brackets hold the address, a port may follow.
+  if (lower[index] === "[") {
+    const close: number = lower
+      .slice(index, index + MAX_ADDRESS_TOKEN_LENGTH)
+      .indexOf("]");
+
+    if (close === -1) {
+      return "";
+    }
+
+    end = index + close + 1;
+  }
+
+  while (end < lower.length && ADDRESS_ENDS.indexOf(lower[end]!) === -1) {
+    end++;
+
+    if (end - index > MAX_ADDRESS_TOKEN_LENGTH) {
+      return "";
+    }
+  }
+
+  return end === index ? "" : readAddressToken(lower.slice(index, end));
+}
+
+/*
+ * The client's address of a line in no known format: its first word, when
+ * that is an address, else the first address a line names after one of
+ * CLIENT_ADDRESS_LABELS. Never just any word that reads as one - a version
+ * ("ClickHouse 26.7.38.18", issue #6419), a server's own address or an
+ * upstream's is no client.
+ */
+export function readClientAddress(text: string): string {
+  const firstWord: string = readAddressToken(readWord(text, 0));
+
+  if (firstWord) {
+    return firstWord;
+  }
+
+  const lower: string = text.toLowerCase();
+
+  for (const label of CLIENT_ADDRESS_LABELS) {
+    let index: number = lower.indexOf(label);
+    let looked: number = 0;
+
+    while (index !== -1 && looked < MAX_LABEL_OCCURRENCES) {
+      if (!isLabelCharacter(lower[index - 1])) {
+        const address: string = readAddressAfterLabel(
+          lower,
+          index + label.length,
+        );
+
+        if (address) {
+          return address;
+        }
+      }
+
+      index = lower.indexOf(label, index + label.length);
+      looked++;
+    }
   }
 
   return "";
@@ -444,27 +703,23 @@ function endsPayload(character: string): boolean {
  * without them. '' when no marker of the kind is there.
  */
 export function readAttackPayload(text: string, kind: WebAttackKind): string {
-  const lower: string = text.toLowerCase();
-  const group: { markers: ReadonlyArray<string> } | undefined =
-    WEB_ATTACK_MARKERS.find((item: { kind: WebAttackKind }): boolean => {
+  const group:
+    | { kind: WebAttackKind; markers: ReadonlyArray<string> }
+    | undefined = WEB_ATTACK_MARKERS.find(
+    (item: { kind: WebAttackKind }): boolean => {
       return item.kind === kind;
-    });
+    },
+  );
+  const match: MarkerMatch | null = group
+    ? findWebAttackMarker(text.toLowerCase(), group)
+    : null;
 
-  let markerStart: number = -1;
-  let markerEnd: number = -1;
-
-  for (const marker of group?.markers || []) {
-    const index: number = lower.indexOf(marker);
-
-    if (index !== -1 && (markerStart === -1 || index < markerStart)) {
-      markerStart = index;
-      markerEnd = index + marker.length;
-    }
-  }
-
-  if (markerStart === -1) {
+  if (!match) {
     return "";
   }
+
+  const markerStart: number = match.start;
+  const markerEnd: number = match.end;
 
   let start: number = markerStart;
 
@@ -679,9 +934,7 @@ export default class WebAttackLogParser {
     const statusCode: number = accessLog?.status || fromAttributes.status;
     const userAgent: string = accessLog?.userAgent || fromAttributes.userAgent;
     const clientIp: string =
-      accessLog?.clientIp ||
-      fromAttributes.clientIp ||
-      findFirstIpAddress(text);
+      accessLog?.clientIp || fromAttributes.clientIp || readClientAddress(text);
     const outcome: SecurityEventRequestOutcome | undefined =
       requestOutcomeFromStatusCode(statusCode);
 

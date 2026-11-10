@@ -17,6 +17,7 @@ import TelemetryRulePreviewUtil, {
 import OneUptimeDate from "Common/Types/Date";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorStepMetricQueries from "Common/Utils/Monitor/MonitorStepMetricQueries";
+import MetricQueryCloudAggregation from "Common/Utils/Metrics/MetricQueryCloudAggregation";
 import { getRollingTimeInSeconds } from "../../../../Utils/Form/Monitor/TelemetryRule/TelemetryRuleText";
 
 /*
@@ -245,6 +246,15 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
           settings: monitorStepMetricMonitor,
           queryConfigs: drawn.queryConfigs,
         })}
+        /*
+         * A query's default aggregation is the one for the intervals the
+         * monitor reads in, not the preview's: a namespace's messages
+         * waiting add up by the minute, which a window of up to 3 hours is
+         * read in.
+         */
+        queryReadInterval={MetricQueryCloudAggregation.getMetricMonitorReadInterval(
+          monitorStepMetricMonitor,
+        )}
         hideCardInQueryElements={true}
         hideCardInCharts={true}
         chartCssClass="rounded-lg border border-gray-200 shadow-sm"

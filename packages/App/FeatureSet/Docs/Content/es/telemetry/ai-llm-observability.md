@@ -44,7 +44,7 @@ Las tres están en **Productos → IA / LLM → Conectar**. Usa una, dos o todas
 | Vía de entrada | Qué obtienes | Cómo |
 | --- | --- | --- |
 | **Tus aplicaciones** | Cada llamada de IA en el momento: la conversación, la persona, el prompt y la respuesta, los tokens, el coste y los errores | OpenTelemetry desde tu código o un gateway, en cinco pasos |
-| **Tus cuentas de proveedores de IA** | Lo que usó y costó cada cuenta de OpenAI, Anthropic, Azure, Bedrock o Vertex AI, por día | Una credencial de solo lectura y ningún código: [Cuentas de proveedores de IA](/docs/telemetry/ai-provider-accounts) |
+| **Tus cuentas de proveedores de IA** | Lo que usó y costó cada cuenta de OpenAI, Anthropic, Azure, Bedrock, Vertex AI o Cursor, por día o por hora | Una credencial de solo lectura y ningún código: [Cuentas de proveedores de IA](/docs/telemetry/ai-provider-accounts) |
 | **Las herramientas de IA de tu empresa** | Lo que tu gente pregunta a Claude Enterprise o Microsoft 365 Copilot, por persona | Una credencial de solo lectura y ningún código: [Herramientas de IA de la empresa](/docs/telemetry/ai-company-tools) |
 
 Las cuentas de proveedor y los asistentes de programación traen uso y coste, nunca una llamada: llenan **Uso**, y **Conversaciones** y **Llamadas** siguen vacías hasta que tus aplicaciones envíen sus llamadas de IA o se conecte una herramienta de IA de la empresa. [Comprueba lo que llega](#comprueba-lo-que-llega) muestra qué vía trae qué.
@@ -57,7 +57,8 @@ La **Comprobación de la configuración**, arriba en **Conectar**, dice lo que t
 | --- | --- |
 | Ninguna aplicación ha enviado una llamada de IA | [Envía tus llamadas de IA](#envía-tus-llamadas-de-ia): las cuentas de proveedor conectadas traen uso y coste por día, nunca una llamada |
 | Una aplicación llama a la API de un proveedor de IA y ninguna instrumentación de GenAI lo registra | Añade una para el lenguaje de la aplicación: la comprobación encontró los spans de cliente HTTP de la aplicación hacia `api.openai.com`, `*.openai.azure.com`, `*.services.ai.azure.com` u otra API de un proveedor de IA |
-| Las llamadas llegan sin prompts ni respuestas | [Registra lo que se dijo](#registra-lo-que-se-dijo) en los spans: los prompts y las respuestas enviados como eventos de log no se muestran |
+| Las llamadas llegan sin prompts ni respuestas | [Registra lo que se dijo](#registra-lo-que-se-dijo), en los spans o como eventos de log |
+| Los prompts y las respuestas llegan como eventos de log | Nada: las conversaciones los leen, y quien puede leer los logs de la aplicación también puede leerlos en la página **Registros** |
 | Las llamadas quedan justo fuera del intervalo | La lista ofrece el intervalo que contiene la más reciente |
 | Una cuenta de proveedor no lee ningún uso | Su línea dice el último día con uso, o el primer día leído; una conexión de Azure que no encuentra ningún recurso necesita Monitoring Reader donde están los recursos |
 
@@ -150,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 Las instrumentaciones de OpenTelemetry más recientes aceptan `span_only`, `event_only` o `span_and_event` en lugar de `true`. Sin contenido registrado, una conversación sigue mostrando sus tiempos, su coste y sus problemas. Los prompts pueden llevar datos sensibles: [Privacidad y ocultación](#privacidad-y-ocultación) muestra cómo enmascararlos antes de guardarlos.
 
-Las conversaciones leen lo que se registra en el span de la llamada. La instrumentación de OpenTelemetry para Python lo registra ahí con `span_only`; las instrumentaciones para JavaScript y Java, y la de Python con `true`, lo envían como eventos de log, que las conversaciones no leen, y la **Comprobación de la configuración** lo indica. El SDK AI Inference de Azure lo registra en el span con `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI con `EnableSensitiveData`; la biblioteca OpenAI para .NET no registra nada.
+Las conversaciones leen lo que se registra en el span de la llamada, y los eventos de log que la aplicación envía con los ids de traza y de span de la llamada. La instrumentación de OpenTelemetry para Python lo registra en el span con `span_only`; las instrumentaciones para JavaScript y Java, y la de Python con `true` o `event_only`, lo envían como eventos de log, que llegan a OneUptime con los logs de la aplicación. El SDK AI Inference de Azure lo registra en el span con `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.AI con `EnableSensitiveData`; la biblioteca OpenAI para .NET no registra nada.
 
 ### Agrupa las llamadas en conversaciones
 
@@ -240,35 +241,36 @@ Una alerta lista lanza una alerta que se resuelve sola, y muestra el monitor com
 
 La pestaña **Uso** muestra las llamadas, los tokens y el coste de un periodo (los últimos 7 días si no eliges otro), y una tabla de los 25 primeros según uno de cinco desgloses: **Empleado**, **Equipo**, **Modelo**, **Proveedor** y **Aplicación / Servicio**. Las llamadas que no nombran a nadie se cuentan en **Sin atribuir**, nunca se descartan.
 
-Esto son **Tus llamadas de IA**. Elige **Cuentas de proveedor** en su lugar para ver lo que se facturó a tus cuentas conectadas de OpenAI, Anthropic, Azure, Bedrock y Vertex AI: consulta [Cuentas de proveedores de IA](/docs/telemetry/ai-provider-accounts#ver-el-uso). Las dos cosas nunca se suman.
+Esto son **Tus llamadas de IA**. Elige **Cuentas de proveedor** en su lugar para ver lo que se facturó a tus cuentas conectadas de OpenAI, Anthropic, Azure, Bedrock, Vertex AI y Cursor: consulta [Cuentas de proveedores de IA](/docs/telemetry/ai-provider-accounts#ver-el-uso). Las dos cosas nunca se suman.
 
 Las personas y los equipos salen de los atributos de identidad de la llamada: consulta [Atribución a empleados y equipos](/docs/telemetry/ai-coding-assistants#atribución-a-empleados-y-equipos).
 
-### Primero los spans, las métricas los suplen
+### Cada servicio se cuenta a partir de lo que envía
 
-Los spans de GenAI llevan el modelo, los tokens y el coste de una llamada, así que donde existen lo responden todo. Algunas herramientas publican métricas de tokens y de coste sin spans de GenAI, como la mayoría de los asistentes de programación. OneUptime lee esas métricas solo para una cifra que los spans no aportaron, y nunca suma ambas: muchas instrumentaciones envían las dos para la misma llamada, y sumarlas contaría cada dólar dos veces.
+El uso de IA llega de dos formas. Los spans de GenAI son llamadas de IA: uno por llamada, con su modelo, sus tokens y su coste. Las métricas de GenAI son métricas de uso: contadores de tokens y de coste que la mayoría de los asistentes de programación envían en lugar de spans, y algunas instrumentaciones junto a sus spans, para las mismas llamadas. Sumar las dos contaría esas llamadas dos veces, así que OneUptime cuenta cada servicio a partir de una de ellas: sus tokens, de sus llamadas de IA cuando informan tokens, y si no, de sus métricas de uso; y su coste del mismo modo, por separado. Así, un asistente de programación que solo envía métricas se cuenta junto a las aplicaciones que envían spans, en el mismo proyecto, y una aplicación que envía ambas cosas se cuenta una vez.
 
-```mermaid title="De dónde sale una cifra de la pestaña Uso"
+```mermaid title="De dónde salen los tokens o el coste de un servicio"
 flowchart TB
-    spans{"¿La dan los<br/>spans de GenAI?"}
-    spans -->|"Sí"| fromSpans["Se muestra<br/>de los spans"]
-    spans -->|"No"| metrics{"¿La dan las<br/>métricas de GenAI?"}
-    metrics -->|"Sí"| fromMetrics["Se muestra de las<br/>métricas, marcada<br/>de las métricas<br/>de GenAI"]
-    metrics -->|"No"| nothing["Nada<br/>que mostrar"]
+    spans{"¿Lo informan sus<br/>llamadas de IA?"}
+    spans -->|"Sí"| fromSpans["Contado de las<br/>llamadas de IA"]
+    spans -->|"No"| metrics{"¿Lo informan sus<br/>métricas de uso?"}
+    metrics -->|"Sí"| fromMetrics["Contado de las<br/>métricas de uso"]
+    metrics -->|"No"| nothing["Nada<br/>que contar"]
 ```
 
-| Dónde | Qué pasa a las métricas | Cuándo |
+| Dónde | De las llamadas de IA | De las métricas de uso |
 | --- | --- | --- |
-| Tokens de entrada y de salida | Ambos totales | Los totales de tokens de los spans son ambos 0 |
-| Coste (USD) | El coste, con el coste en micro-USD de Codex convertido a USD | El total de coste de los spans es 0 |
-| Llamadas de LLM | Nada: solo spans | — |
-| Tablas **Empleado**, **Equipo**, **Modelo** | El coste, y los tokens donde las métricas los cuentan; la celda de llamadas muestra `—` | Esa tabla no encontró filas de spans |
-| Tablas **Proveedor**, **Aplicación / Servicio** | Nada: solo spans | — |
-| Conversaciones | Nada: las conversaciones se construyen a partir de spans | — |
+| Tokens de entrada y de salida | Los tokens de cada llamada al modelo, una vez | Los tokens de un servicio, cuando sus llamadas de IA no informan ninguno |
+| Coste (USD) | El coste de cada llamada al modelo, una vez | El coste de un servicio, cuando sus llamadas de IA no informan ninguno, con el coste en micro-USD de Codex convertido a USD |
+| Llamadas de IA | Cada llamada de IA, tal como las lista **Llamadas** | Nunca: una métrica no cuenta llamadas |
+| Tablas **Empleado**, **Equipo**, **Modelo**, **Proveedor**, **Aplicación / Servicio** | Las llamadas, los tokens y el coste de cada fila | Los tokens y el coste de los servicios contados a partir de métricas, bajo la persona, el equipo, el modelo o el proveedor que nombran sus puntos |
+| Conversaciones | Se construyen a partir de las llamadas de IA | Nunca |
 
-Una cifra tomada de las métricas lleva la marca **de las métricas de GenAI**, porque no tiene filas correspondientes en **Llamadas**. Así que, en cuanto tus spans de GenAI aportan una cifra, la parte de una herramienta que solo envía métricas no aparece. Para ver el gasto de esa herramienta por separado, envíala a un proyecto propio, donde no lleguen spans de GenAI.
+Bajo cada cifra, la pestaña Uso dice de dónde salió: **De las llamadas de IA**, **De las métricas de uso**, o **De las llamadas de IA y las métricas de uso** cuando unos servicios enviaron llamadas y otros métricas. Una fila de la tabla contada a partir de métricas de uso lo dice bajo su nombre, y su celda de llamadas muestra `—` cuando no tiene ninguna llamada de IA, porque una métrica no tiene detalle por llamada; el encabezado de la tabla nombra los servicios contados a partir de métricas de uso, salvo en **Aplicación / Servicio**, cuyas filas son los propios servicios. Una métrica de uso que no nombra ningún servicio se cuenta en **Servicio desconocido**, un servicio como cualquier otro. Si tu rol puede leer trazas pero no métricas, las métricas de uso quedan fuera, y la tabla lo dice.
 
-Una métrica de tokens o de coste es un contador. Los puntos de un contador delta se suman; un contador acumulativo, el predeterminado de los SDK de OpenTelemetry, cuenta lo que creció en el intervalo, cada serie por separado, así que un total acumulado exportado cada minuto se cuenta una sola vez. Los presupuestos cuentan las métricas de GenAI del mismo modo.
+Cada llamada al modelo se cuenta una vez. Una ejecución de agente, o el span de un framework alrededor del span propio del SDK, suele repetir los tokens y el coste de las llamadas que contiene: los tokens de un span, o su coste, se dejan fuera siempre que una llamada dentro de él los informa, y una ejecución de agente conserva sus propias cifras cuando ninguna llamada dentro de ella las informa. Los presupuestos y la lista **Conversaciones** cuentan igual, mientras que **Llamadas** lista cada span con sus propias cifras.
+
+Una métrica de tokens o de coste es un contador. Los puntos de un contador delta se suman; un contador acumulativo, el predeterminado de los SDK de OpenTelemetry, cuenta lo que creció en el periodo, cada serie por separado, de modo que un total acumulado exportado cada minuto se cuenta una vez, y una bajada se lee como un reinicio desde 0, como la lee `increase()` de Prometheus. Los presupuestos cuentan las métricas de GenAI del mismo modo.
 
 ## Lo que cuesta una llamada
 
@@ -282,7 +284,7 @@ Para poner precio a un modelo tú mismo (una tarifa negociada, un modelo ajustad
 
 ## Presupuestos de coste diarios
 
-Un presupuesto sigue el gasto de un día, en USD, a lo largo del día UTC. Cada 15 minutos, OneUptime suma el gasto de IA del día (de los spans, o de las métricas de coste de GenAI cuando ningún span aportó gasto), lo muestra en el presupuesto y publica dos métricas. Un presupuesto cuyo **Contar el gasto desde** es **Cuentas de proveedor** cuenta en su lugar lo que se facturó a tus cuentas conectadas: consulta [Cuentas de proveedores de IA](/docs/telemetry/ai-provider-accounts#presupuestos-y-alertas).
+Un presupuesto sigue el gasto de un día, en USD, a lo largo del día UTC. Cada 15 minutos, OneUptime suma el gasto de IA del día (cada servicio a partir de sus llamadas de IA, o de sus métricas de coste cuando sus llamadas no informan ningún coste), lo muestra en el presupuesto y publica dos métricas. Un presupuesto cuyo **Contar el gasto desde** es **Cuentas de proveedor** cuenta en su lugar lo que se facturó a tus cuentas conectadas: consulta [Cuentas de proveedores de IA](/docs/telemetry/ai-provider-accounts#presupuestos-y-alertas).
 
 | Métrica | Qué es |
 | --- | --- |
@@ -314,6 +316,10 @@ Las métricas de GenAI como `gen_ai.client.token.usage` y `gen_ai.client.operati
 ## Privacidad y ocultación
 
 Las llamadas de IA se guardan como spans de traza, así que las **Reglas de depuración** y los **Filtros de descarte** de las trazas se aplican a ellas: enmascara un atributo, o descarta un span, antes de que se guarde. Encuentras ambos en **Trazas → Ajustes**. La columna del correo del empleado se depura junto con el atributo del que se leyó, así que una regla que enmascara correos también la cubre.
+
+Los prompts y las respuestas enviados como eventos de log se guardan como logs, así que se les aplican las **Reglas de depuración** y los **Filtros de descarte** de los logs, en **Registros → Ajustes**: una regla que enmascara correos en las trazas no los enmascara en los eventos de log. Una conversación solo los muestra a quien también puede leer los logs de esa aplicación, y quienes pueden leerlos también los encuentran en la página **Registros**.
+
+En ambos casos, una regla lee cada texto dentro de una lista o de un valor estructurado, como los mensajes que una instrumentación envía como lista en lugar de como texto JSON, y conserva la forma del valor: una dirección de correo en un prompt se enmascara esté donde esté. Consulta [Depurar datos sensibles](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles).
 
 Las conversaciones se leen con el mismo permiso que las trazas: quien puede leer las trazas del proyecto puede leer sus conversaciones, y nadie más. Las conversaciones de una herramienta de IA de la empresa son la excepción: solo los propietarios y administradores del proyecto pueden leerlas, salvo que su conexión diga otra cosa ([Herramientas de IA de la empresa](/docs/telemetry/ai-company-tools#privacidad)).
 
@@ -357,6 +363,8 @@ La vista de conversación lee los mensajes de una llamada, en este orden, de:
 - los atributos indexados: `gen_ai.prompt.N.content` y `gen_ai.completion.N.content` de OpenLLMetry, `llm.input_messages.N.message.content` y `llm.output_messages.N.message.content` de OpenInference;
 - los arrays de mensajes en `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` y `output.value`.
 
+Cuando el span de una llamada no tiene prompt o no tiene respuesta, se leen de los registros de log que llevan los ids de traza y de span de la llamada: los mismos eventos, enviados por la señal de logs, con su nombre en el atributo `event.name` del registro o en su campo de nombre de evento. Un registro con el id de la traza y sin id de span va a la única llamada al modelo de la traza, o a la llamada durante la que se envió, y se deja fuera cuando no es una sola llamada. Lo que registra el span tiene prioridad, así que una llamada registrada de las dos formas muestra cada mensaje una vez.
+
 ## Solución de problemas
 
 :::details Hay cuentas de proveedor conectadas, pero Conversaciones y Llamadas están vacías
@@ -364,7 +372,7 @@ Una cuenta de proveedor trae lo que usó y costó, por día, nunca una llamada n
 :::
 
 :::details Llegan llamadas, pero ninguna conversación muestra texto
-Tu instrumentación no registra el contenido. Actívalo como muestra [Registra lo que se dijo](#registra-lo-que-se-dijo); las llamadas anteriores se quedan sin texto.
+Tu instrumentación no registra el contenido, o lo envía como eventos de log y los logs de la aplicación no llegan a OneUptime. Actívalo como muestra [Registra lo que se dijo](#registra-lo-que-se-dijo), y envía los logs con las trazas; las llamadas anteriores se quedan sin texto.
 :::
 
 :::details Cada llamada de un chat aparece como su propia conversación
@@ -375,8 +383,12 @@ Las llamadas no llevan id de conversación. Define `gen_ai.conversation.id` o `s
 El modelo no está en la lista de precios integrada, o el span no nombra ningún modelo. Añade los precios del modelo en la pestaña **Precios**; las llamadas que lleguen después tendrán precio. Una llamada de Azure OpenAI tiene el precio del modelo que la atendió, `gen_ai.response.model`: si su span no nombra ninguno, ponle precio al nombre del despliegue.
 :::
 
-:::details La pestaña Uso dice de las métricas de GenAI y muestra `—` en llamadas
-Las cifras vienen de una herramienta que envía métricas y no spans de GenAI, como un asistente de programación. Una métrica lleva el coste y los tokens pero ningún detalle por llamada, así que las celdas de llamadas se quedan vacías. Consulta [Primero los spans, las métricas los suplen](#primero-los-spans-las-métricas-los-suplen).
+:::details La pestaña Uso dice De las métricas de uso y muestra `—` en llamadas
+Las cifras vienen de un servicio que envía métricas y ningún span de GenAI, como un asistente de programación. Una métrica lleva coste y tokens, pero ningún detalle por llamada, así que las celdas de llamadas quedan vacías. Consulta [Cada servicio se cuenta a partir de lo que envía](#cada-servicio-se-cuenta-a-partir-de-lo-que-envía).
+:::
+
+:::details El coste de la pestaña Uso es menor que la suma de los costes de Llamadas
+Algunos spans repiten los tokens y el coste de las llamadas que contienen, como una ejecución de agente o el span de un framework alrededor del span propio del SDK. **Llamadas** lista cada span con sus propias cifras, mientras que la pestaña Uso, los presupuestos y la lista **Conversaciones** cuentan cada llamada al modelo una vez.
 :::
 
 :::details Un monitor de presupuesto oscila entre dos estados
@@ -386,7 +398,7 @@ La ventana móvil del monitor es más corta que 15 minutos, así que a veces no 
 ## Próximos pasos
 
 :::cards
-- [Cuentas de proveedores de IA](/docs/telemetry/ai-provider-accounts): Uso y coste de tus cuentas de OpenAI, Anthropic, Azure, Bedrock y Vertex AI, sin código.
+- [Cuentas de proveedores de IA](/docs/telemetry/ai-provider-accounts): Uso y coste de tus cuentas de OpenAI, Anthropic, Azure, Bedrock, Vertex AI y Cursor, sin código.
 - [Herramientas de IA de la empresa](/docs/telemetry/ai-company-tools): Lo que tu gente pregunta a Claude Enterprise y Microsoft 365 Copilot.
 - [Asistentes de programación con IA](/docs/telemetry/ai-coding-assistants): El gasto por ingeniero de Claude Code, Cursor, Codex, Gemini CLI y Copilot.
 - [Gateways de IA](/docs/telemetry/ai-gateways): Traza las llamadas a modelos de cada aplicación desde un gateway de LiteLLM o Portkey.

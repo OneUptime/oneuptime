@@ -220,6 +220,7 @@ const NEW_STRINGS: Array<string> = [
  * translate.
  */
 const NON_ENGLISH_LANGUAGES: Array<string> = [
+  "ar",
   "da",
   "de",
   "es",
@@ -377,8 +378,8 @@ const literalArguments: LiteralArgumentsFunction = (
 };
 
 describe("Create a workflow's strings", () => {
-  test("seventeen locales are checked", () => {
-    expect(LOCALE_FILES).toHaveLength(17);
+  test("eighteen locales are checked", () => {
+    expect(LOCALE_FILES).toHaveLength(18);
     expect(LOCALE_FILES).toContain("en.json");
   });
 

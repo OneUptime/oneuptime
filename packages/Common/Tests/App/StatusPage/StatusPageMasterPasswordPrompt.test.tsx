@@ -178,7 +178,7 @@ describe("a status page's password prompt", () => {
     expect(document.body.textContent || "").not.toContain("accounts.");
   });
 
-  test("the sentence is translated in all 16 other languages, and the retired keys are gone from all 17", () => {
+  test("the sentence is translated in all 17 other languages, and the retired keys are gone from all 18", () => {
     const english: Record<string, any> = readLocale("en.json");
 
     expect(english["accounts"]["masterPassword"]["prompt"]).toBe(PROMPT);
@@ -189,7 +189,7 @@ describe("a status page's password prompt", () => {
         return file.endsWith(".json");
       });
 
-    expect(files).toHaveLength(17);
+    expect(files).toHaveLength(18);
 
     for (const file of files) {
       const masterPassword: Record<string, unknown> =

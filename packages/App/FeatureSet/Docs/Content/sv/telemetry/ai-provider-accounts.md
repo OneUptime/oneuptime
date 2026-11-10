@@ -1,6 +1,6 @@
 # Konton hos AI-leverantörer
 
-Se vad dina konton hos AI-leverantörer har använt och vad det har kostat, utan att ändra dina appar. Anslut ett konto hos OpenAI, Anthropic, Azure OpenAI och Microsoft Foundry, Amazon Bedrock eller Google Vertex AI med inloggningsuppgifter som bara kan läsa, så läser OneUptime dess användning var 15:e minut in i **Användning**, **Budgetar** och mätvärden som du kan larma på.
+Se vad dina konton hos AI-leverantörer har använt och vad det har kostat, utan att ändra dina appar. Anslut ett konto hos OpenAI, Anthropic, Azure OpenAI och Microsoft Foundry, Amazon Bedrock eller Google Vertex AI med inloggningsuppgifter som bara kan läsa, så läser OneUptime dess användning var 15:e minut in i **Användning**, **Budgetar** och mätvärden som du kan larma på. Ett Cursor-team ansluts på samma sätt, med sin administratörs-API-nyckel, och läses varje timme.
 
 :::cards
 - [Anslut ett konto](#anslut-ett-konto): Välj leverantör, klistra in inloggningsuppgifterna, testa dem och anslut.
@@ -11,7 +11,7 @@ Se vad dina konton hos AI-leverantörer har använt och vad det har kostat, utan
 
 ## Så fungerar det
 
-Var 15:e minut ber OneUptime varje anslutet konto om dess användning per UTC-dygn och sparar den som tre mätvärden i anslutningens egen tjänst. Varje läsning tar dagarna sedan förra läsningen, och de senaste 3 dagarna igen, i dag inräknad, eftersom leverantörerna fortsätter att lägga till i dag och rättar de dagar som just passerat.
+Var 15:e minut ber OneUptime varje anslutet konto om dess användning per UTC-dygn och sparar den som tre mätvärden i anslutningens egen tjänst. Varje läsning tar dagarna sedan förra läsningen, och de senaste 3 dagarna igen, i dag inräknad, eftersom leverantörerna fortsätter att lägga till i dag och rättar de dagar som just passerat. Ett Cursor-team läses i stället varje timme, timme för timme: se [Cursor](#cursor).
 
 ```mermaid title="Från ett leverantörskonto till Användning och Budgetar"
 flowchart TB
@@ -60,10 +60,11 @@ Anslutna konton listas under rutorna, med **Status** och **Senast läst**. **Lä
 | Azure OpenAI och Microsoft Foundry | Uppskattad utifrån tokens | Resurs och modell | En app med Monitoring Reader |
 | Amazon Bedrock | Uppskattad utifrån tokens | Region och modell | En åtkomstnyckel som läser CloudWatch |
 | Google Vertex AI | Uppskattad utifrån tokens | Region och modell | Ett tjänstkonto med Monitoring Viewer |
+| Cursor | Det som Cursor rapporterar | Person, modell och tjänstkonto, per timme | Ett teams administratörs-API-nyckel |
 
 Alla leverantörer utom Anthropic räknar också förfrågningar: Anthropics användningsrapport har inga. En uppskattad kostnad använder prislistan från [Vad ett anrop kostar](/docs/telemetry/ai-llm-observability#vad-ett-anrop-kostar) och dina egna priser från **Priser**, och markeras som en uppskattning. En modell som prislistan inte känner till har ingen kostnad förrän du sätter ett pris på den där.
 
-Inga av dessa inloggningsuppgifter kan anropa en modell: var och en läser användning, kostnader eller mätvärden och inget annat.
+Inga av dessa inloggningsuppgifter kan anropa en modell: var och en läser användning, kostnader eller mätvärden och inget annat. Cursors administratörs-API-nyckel är undantaget: den kan också ändra vissa teaminställningar, som utgiftsgränser, och OneUptime läser bara med den.
 
 ## OpenAI
 
@@ -139,6 +140,24 @@ Skapa ett tjänstkonto med rollen Monitoring Viewer i projektet, och en JSON-nyc
 Fyll i **Projekt-ID** och klistra in hela nyckelfilen som **Tjänstkontonyckel (JSON)**.
 :::
 
+## Cursor
+
+OneUptime läser ditt Cursor-team med en administratörs-API-nyckel: varje förfrågan från dess medlemmar, med modell, tokens och vad Cursor tog betalt för den, summerat per timme, person, modell och tjänstkonto, och hur många av medlemmarna som använde Cursor de senaste 7 dagarna. En förfrågan som görs med ett tjänstkonto visas under kontots namn som dess API-nyckel. Den innehåller inga prompter, ingen kod och inga svar: Cursors Admin API har inga.
+
+:::steps
+### Skapa en administratörs-API-nyckel i Cursor
+
+Öppna Settings, Cursor Admin API Keys i Cursors dashboard och skapa en nyckel. Bara en teamadministratör kan göra det, och nyckeln ingår i planerna Teams och Enterprise. Den börjar med `crsr_`.
+
+### Anslut Cursor
+
+Klistra in nyckeln som **Administratörs-API-nyckel**. Testet visar också teamets **Medlemmar**, och som **Personer** hur många av dem som använde Cursor.
+:::
+
+Cursor summerar sin användning per timme och ber om att läsas högst en gång i timmen, så OneUptime läser ett Cursor-team varje timme och sparar dess användning per timme. Varje läsning tar timmarna sedan den förra och läser om de 3 timmarna före dem, eftersom Cursor lägger till förfrågningar sent, och läser om en dag i sin helhet när 6 timmar av nästa har gått. Den första läsningen går 30 dagar bakåt, nyast först, en dag i taget: ett flitigt team behöver några läsningar med en minuts mellanrum, och dess rad visar **Läser fortfarande tidigare användning** tills de är klara.
+
+Med Enterprise-planen kan Cursor också skicka sin användning medan den sker, med sin OpenTelemetry Export: se [Cursor](/docs/telemetry/cursor). De två hålls isär: det här kontot visas under **Leverantörskonton**, exporten under **Dina AI-anrop**, aldrig ihoplagda, och en budget räknar en av dem.
+
 ## Se användningen
 
 Öppna **Användning** och välj **Leverantörskonton**. Där ser du de kostnader, tokens och förfrågningar som dina konton rapporterade för tidsperioden, rangordnade efter **Modell**, **Person**, **Leverantör**, **Projekt eller resurs**, **API-nyckel** eller **Anslutning**. Perioden börjar vid midnatt UTC den första dagen, eftersom leverantörerna rapporterar hela dagar.
@@ -157,7 +176,7 @@ Varje kontos användning sparas som tre mätvärden, som du kan visa på en [das
 | `oneuptime.llm.provider.tokens` | En dags tokens, efter `gen_ai.token.type`: `input` (cachade tokens inräknade), `output`, `cache_read` och `cache_write` |
 | `oneuptime.llm.provider.requests` | En dags förfrågningar |
 
-Varje punkt får tidsstämpeln för början av sitt UTC-dygn. Den bär `oneuptime.llm.connection.id` och `oneuptime.llm.connection.name`, och det som leverantören nämner: `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project` och `oneuptime.llm.provider.api_key`. En uppskattad kostnad bär `oneuptime.llm.cost.estimated`.
+Varje punkt får tidsstämpeln för början av sitt UTC-dygn. Den bär `oneuptime.llm.connection.id` och `oneuptime.llm.connection.name`, och det som leverantören nämner: `gen_ai.provider.name`, `gen_ai.request.model`, `user.email`, `oneuptime.llm.provider.project` och `oneuptime.llm.provider.api_key`. En uppskattad kostnad bär `oneuptime.llm.cost.estimated`. Ett Cursor-teams punkter rymmer var sin timmes användning, tidsstämplade vid början av sin UTC-timme.
 
 ## När läsningarna sker
 
@@ -168,6 +187,9 @@ Varje punkt får tidsstämpeln för början av sitt UTC-dygn. Den bär `oneuptim
 | Efter att en nyckel eller behörighet har nekats | 60 minuter senare |
 | Efter alla andra fel | 15 minuter senare |
 | Avstängd | Ingen förrän den slås på igen |
+| Ett Cursor-teams följande | Varje timme |
+| En Cursor-läsning som stannade halvvägs | En minut senare |
+| Ett Cursor-teams, efter alla fel | 60 minuter senare |
 
 En plan utan telemetrifunktioner läser ingenting. Att ta bort en anslutning stoppar dess läsningar och behåller det den har läst tills tjänstens lagringstid tar bort det.
 
@@ -183,6 +205,14 @@ Kontrollera att du kopierade allt, att den inte har återkallats och att det är
 
 :::details Inloggningsuppgifterna fungerar men får inte läsa det som anslutningen behöver
 Ge dem den roll som den här sidan nämner för leverantören: Monitoring Reader på Azure-prenumerationen, de två CloudWatch-åtgärderna i AWS, Monitoring Viewer på Google Cloud-projektet.
+:::
+
+:::details Cursor godtog nyckeln, men den får inte läsa teamets användning
+Använd en administratörs-API-nyckel från ett team med planen Teams eller Enterprise: en teamadministratör skapar den i Cursors dashboard, under Settings, Cursor Admin API Keys. Testa sedan igen.
+:::
+
+:::details Cursor bad OneUptime att sakta ner
+Cursors Admin API tar emot 20 förfrågningar i minuten från ett team, 60 för användningshändelser, delade med alla verktyg som läser det. OneUptime väntar en minut en gång och fortsätter. Om Cursor fortfarande nekar behåller läsningen det den har läst i sin helhet och fortsätter en minut senare; en läsning som inte fick något försöker igen en timme senare.
 :::
 
 :::details Testet lyckas, men inget visas för i dag

@@ -27,6 +27,7 @@ flowchart TB
 - **Spår inkluderar sina undantag, och profiler sina prov.**
 - **OneUptimes egen telemetri räknas inte.** Avläsningar från monitorer, larm, incidenter och SLO:er, avläsningar från Dataobserverbarhet och budgetmätvärdena för sessionsuppspelningar skrivs av OneUptime självt.
 - **På OneUptime Cloud är det de här raderna som telemetrin faktureras efter.** På en installation utan fakturering räknas användningen utan kostnad, och inget debiteras för den, inte ens om fakturering slås på senare.
+- **En budget räknas separat från användningen.** En [intagningsbudget](/docs/telemetry/ingestion-budgets) räknar telemetri när den kommer in, dekomprimerad, så att den kan stoppa en dags telemetri samma dag. Medan en sådan är angiven öppnas den här sidan med dagens budgetar.
 
 ## Innan du börjar
 
@@ -134,4 +135,5 @@ Resursen har tagits bort sedan den skickade telemetrin, eller så läser din rol
 - [Datalagring](/docs/telemetry/data-retention): Behåll telemetri så länge som behövs, och inte längre.
 - [Fakturering och användning](/docs/configuration/billing): Vad telemetri kostar på OneUptime Cloud.
 - [Intagningsnycklar](/docs/telemetry/ingestion-keys): Skicka telemetri till ditt projekt.
+- [Intagningsbudgetar](/docs/telemetry/ingestion-budgets): Begränsa hur mycket av varje signal ett projekt skickar under en dag.
 :::

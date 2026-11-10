@@ -40,7 +40,7 @@ import { describe, expect, test } from "@jest/globals";
  */
 
 describe("which way a language is read", () => {
-  test("Persian reads right to left, and every other language OneUptime is translated into left to right", () => {
+  test("Persian and Arabic read right to left, and every other language OneUptime is translated into left to right", () => {
     const registries: Array<
       Array<
         | AccountsLanguage
@@ -80,7 +80,7 @@ describe("which way a language is read", () => {
           },
         );
 
-      expect(rightToLeft).toEqual(["fa"]);
+      expect(rightToLeft).toEqual(["fa", "ar"]);
     }
   });
 
@@ -104,6 +104,11 @@ describe("which way a language is read", () => {
     [" fa ", RIGHT_TO_LEFT],
     ["ar", RIGHT_TO_LEFT],
     ["ar-EG", RIGHT_TO_LEFT],
+    ["ar-SA", RIGHT_TO_LEFT],
+    ["ar_AE", RIGHT_TO_LEFT],
+    ["AR", RIGHT_TO_LEFT],
+    // Arabic written in Latin letters (Arabizi) reads left to right.
+    ["ar-Latn", LEFT_TO_RIGHT],
     ["he", RIGHT_TO_LEFT],
     ["iw", RIGHT_TO_LEFT],
     ["ur-PK", RIGHT_TO_LEFT],

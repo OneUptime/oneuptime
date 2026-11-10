@@ -932,6 +932,19 @@ import { AddTelemetryUsageRetention1808997405916 } from "./1808997405916-AddTele
 import { AddTelemetryUsageCreatedAtIndex1808997415916 } from "./1808997415916-AddTelemetryUsageCreatedAtIndex";
 import { AddWorkspacePublicNoteApprovalMessage1809063170000 } from "./1809063170000-AddWorkspacePublicNoteApprovalMessage";
 import { AddSloDeploymentGate1809063206333 } from "./1809063206333-AddSloDeploymentGate";
+import { AddRumSignalArrivals1809063215770 } from "./1809063215770-AddRumSignalArrivals";
+import { AddPublicNoteApprovalRequest1809063230000 } from "./1809063230000-AddPublicNoteApprovalRequest";
+import { AddTelemetryIngestionBudgets1809063245917 } from "./1809063245917-AddTelemetryIngestionBudgets";
+import { AllowDiscoveryImportWithoutScan1809063255775 } from "./1809063255775-AllowDiscoveryImportWithoutScan";
+import { AddUserLanguage1809063412000 } from "./1809063412000-AddUserLanguage";
+import { AddTelemetryIngestionKeyRefusals1809071100000 } from "./1809071100000-AddTelemetryIngestionKeyRefusals";
+import { AddAIRunRetryAtAndProviderTimeout1809080100000 } from "./1809080100000-AddAIRunRetryAtAndProviderTimeout";
+import { AddProjectAiRunLimits1809080210000 } from "./1809080210000-AddProjectAiRunLimits";
+import { AddCodeFixRunAutoRetry1809080300000 } from "./1809080300000-AddCodeFixRunAutoRetry";
+import { AddRumApplicationFrustrationSignals1809080410000 } from "./1809080410000-AddRumApplicationFrustrationSignals";
+import { AddDiscoveredDeviceRetention1809080463890 } from "./1809080463890-AddDiscoveredDeviceRetention";
+import { AddNetworkEndpointLastSeenIndex1809080463891 } from "./1809080463891-AddNetworkEndpointLastSeenIndex";
+import { KeepEditedDiscoveredDevices1809080463892 } from "./1809080463892-KeepEditedDiscoveredDevices";
 
 export default [
   InitialMigration,
@@ -1868,4 +1881,17 @@ export default [
   AddTelemetryUsageCreatedAtIndex1808997415916,
   AddWorkspacePublicNoteApprovalMessage1809063170000,
   AddSloDeploymentGate1809063206333,
+  AddRumSignalArrivals1809063215770,
+  AddPublicNoteApprovalRequest1809063230000,
+  AddTelemetryIngestionBudgets1809063245917,
+  AllowDiscoveryImportWithoutScan1809063255775,
+  AddUserLanguage1809063412000,
+  AddTelemetryIngestionKeyRefusals1809071100000,
+  AddAIRunRetryAtAndProviderTimeout1809080100000,
+  AddProjectAiRunLimits1809080210000,
+  AddCodeFixRunAutoRetry1809080300000,
+  AddRumApplicationFrustrationSignals1809080410000,
+  AddDiscoveredDeviceRetention1809080463890,
+  AddNetworkEndpointLastSeenIndex1809080463891,
+  KeepEditedDiscoveredDevices1809080463892,
 ];

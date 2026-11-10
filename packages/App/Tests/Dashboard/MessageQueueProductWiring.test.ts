@@ -661,8 +661,8 @@ describe("the navbar entry is translated everywhere", () => {
     return JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, file), "utf8"));
   }
 
-  test("all 17 locale files are present", () => {
-    expect(localeFiles.length).toBe(17);
+  test("all 18 locale files are present", () => {
+    expect(localeFiles.length).toBe(18);
   });
 
   test.each(localeFiles)("%s carries the Queues nav keys", (file: string) => {

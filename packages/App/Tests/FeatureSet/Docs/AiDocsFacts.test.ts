@@ -33,6 +33,7 @@ import AIChatPermissionMode, {
   AIChatPermissionModeHelper,
 } from "Common/Types/AI/AIChatPermissionMode";
 import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixPullRequests";
+import { DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES } from "Common/Types/AI/AIAgentRunLimits";
 import { INCIDENT_AND_ALERT_TRIGGER_ENTITIES } from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
   CODE_TASK_LIMITS,
@@ -41,6 +42,10 @@ import {
 import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "Common/Types/AI/CodeFixTaskType";
+import {
+  CODE_TASK_MAX_ATTEMPTS,
+  CODE_TASK_RETRY_DELAYS_IN_MINUTES,
+} from "Common/Types/AI/CodeTaskRetry";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import {
   CodeHost,
@@ -656,18 +661,18 @@ describe("Ask AI", () => {
       "A change through the agent, such as restarting a service, never runs from Ask AI: it gives you the exact command instead",
     );
 
-    // At most so many for one answer, through each kind of agent's toolkit.
-    const perAnswer: number = numberConstant(
-      readRepoFile("Common/Server/Utils/AI/Chat/ChatInfrastructureAccess.ts"),
-      "MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER",
-    );
-    expect(access).toContain(
-      "maxCommands: MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER,",
-    );
+    /*
+     * As many as the answer needs (#6440): no count of its own, only a cap
+     * a caller passes, through each kind of agent's toolkit, and none does.
+     */
+    expect(access).not.toContain("MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER");
+    expect(access).toContain("maxCommands?: number | undefined;");
     expect(access.split("maxCommands: data.maxCommands,").length - 1).toBe(2);
+    expect(api).not.toContain("maxCommands");
     expect(section).toContain(
-      `at most ${perAnswer} for one answer through each kind of agent`,
+      "as many as the answer needs, checked by OneUptime and again by the agent",
     );
+    expect(section).not.toMatch(/at most \d+ for one answer/);
 
     /*
      * The commands only read; Ask AI's own actions - a runbook among them -
@@ -893,6 +898,17 @@ describe("Code", () => {
       expect(copy).toContain(`label: translationKey("${state}"),`);
     }
 
+    /*
+     * A turn queued for an attempt AI makes by itself says Retrying, as its
+     * list row and an insight's card do (CodeTaskStateBadge).
+     */
+    expect(dashboardSource("Components/Code/CodeTaskStatusCopy.ts")).toContain(
+      'label: translationKey("Retrying"),',
+    );
+    expect(dashboardSource("Components/Code/CodeTaskStateBadge.tsx")).toContain(
+      "CODE_TASK_STAGE_COPY[CodeTaskStage.Retrying]",
+    );
+
     expect(
       states.map((row: Array<string>): string => {
         return row[0] as string;
@@ -900,12 +916,16 @@ describe("Code", () => {
     ).toEqual(
       [
         "Queued",
+        "Retrying",
         "Working…",
         "Waiting for you",
         "Done",
         "Failed",
         "Stopped",
       ].map(bold),
+    );
+    expect(rowStartingWith(states, bold("Queued"))[1]).toBe(
+      "It waits for a Runner to pick it up.",
     );
     expect(conversation).toContain('translator.translateText("Stop")');
     expect(turn).toContain('translator.translateText("Try again")');
@@ -1104,7 +1124,12 @@ describe("Code", () => {
     );
   });
 
-  it("states the run's budgets as the server enforces them", () => {
+  /*
+   * Issue #6440: a run has no count of its own, only its time limit and the
+   * project's limits per run; a Runner from before still winds down on the
+   * numbers the server tells it.
+   */
+  it("states the run's limits as the server enforces them, and an older Runner's", () => {
     const completion: string = readRepoFile(
       "Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts",
     );
@@ -1113,16 +1138,34 @@ describe("Code", () => {
     );
     const calls: number = numberConstant(
       completion,
-      "MAX_COMPLETION_CALLS_PER_RUN",
+      "LEGACY_MAX_COMPLETION_CALLS",
     );
     const tokens: number = numberConstant(
       completion,
-      "MAX_OUTPUT_TOKENS_PER_RUN",
+      "LEGACY_MAX_OUTPUT_TOKENS",
     );
 
-    expect(run).toContain(
-      `at most ${bold(`${calls} LLM calls`)} and ${bold(`${tokens.toLocaleString("en-US")} output tokens`)}`,
+    expect(completion).not.toMatch(
+      /MAX_COMPLETION_CALLS_PER_RUN|MAX_OUTPUT_TOKENS_PER_RUN|MAX_TELEMETRY_TOOL_CALLS_PER_RUN/,
     );
+    expect(run).toContain(
+      `A run makes as many LLM calls and production telemetry queries as its work needs, within its time limit: ${DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES} minutes unless the project sets its own.`,
+    );
+    expect(run).toContain(
+      `The project can hold every run to less in ${bold("Limits per run")}, under ${bold("More settings")} on ${bold("Project Settings → AI → AI Features")}; a run that reaches a limit finishes with a summary of the work so far.`,
+    );
+    expect(run).toContain(
+      `A Runner from before this release still stops a run at ${calls} LLM calls and ${tokens.toLocaleString("en-US")} output tokens: upgrade it to lift them.`,
+    );
+    expect(run).not.toMatch(/budget|at most \*\*\d/i);
+
+    // A production query is one tool call of the run.
+    expect(
+      flat(englishSection(CODE_PAGE, "## Production telemetry in a fix")),
+    ).toContain(
+      `${bold("Bounded.")} By the run's time limit, and by ${bold("Tool Calls per Run")} when the project sets it: each query is one tool call.`,
+    );
+    expect(flat(englishPage(CODE_PAGE))).not.toMatch(/budget/i);
   });
 
   it("names an exception fix's branch as the Runner names it", () => {
@@ -1252,7 +1295,7 @@ describe("Code", () => {
     );
   });
 
-  it("fails a run that stops reporting after 12 minutes, and a task no Runner takes after 30", () => {
+  it("tries a run that stops reporting after 12 minutes again only when it pushed nothing, and fails a task no Runner takes after 30", () => {
     const stuck: string = readRepoFile(
       "App/FeatureSet/Workers/Jobs/AIChat/TimeoutStuckRuns.ts",
     );
@@ -1266,8 +1309,11 @@ describe("Code", () => {
     expect(numberConstant(stuck, "RUN_HEARTBEAT_TIMEOUT_MINUTES")).toBe(12);
     expect(stuck).toContain("CodeFixRunQueue.markStaleRunAsError");
     expect(numberConstant(queue, "ORPHANED_QUEUED_TIMEOUT_MINUTES")).toBe(30);
+    // The sweeper asks CodeFixAutoRetry first, as a Runner that went away.
+    expect(queue).toContain("CodeFixAutoRetry.tryAgainLater({");
+    expect(queue).toContain("kind: TransientAIFailureKind.RunnerWentAway,");
     expect(fails).toContain(
-      "A run whose heartbeat has been silent for more than 12 minutes is failed with an error. It is never queued again on its own",
+      "A run whose heartbeat has been silent for more than 12 minutes is tried again by itself in the same way when it has pushed nothing, its task has no pull request, and it has attempts left. Otherwise it fails with an error, because the Runner may already have pushed part of a fix branch",
     );
     expect(fails).toContain(
       "A task that waits more than 30 minutes while the Runner that should take it is not connected - the one its repository picks, the project's default Runner for a repository that picks none, or a global Runner - fails, with a message that says which",
@@ -1297,6 +1343,62 @@ describe("Code", () => {
     );
     expect(flat(englishSection(CODE_PAGE, "## When a fix fails"))).toContain(
       "A command the code agent runs keeps the heartbeat going while it runs, so a long build or test suite is not taken for a stopped Runner.",
+    );
+  });
+
+  it("tries a failure that may pass again by itself, as many times and after the waits Types/AI/CodeTaskRetry sets, and says so on the task", () => {
+    const fails: string = flat(
+      englishSection(CODE_PAGE, "## When a fix fails"),
+    );
+    const conversation: string = flat(
+      englishSection(CODE_PAGE, "## A task's conversation"),
+    );
+    const ask: string = flat(
+      englishSection(CODE_PAGE, "## Ask AI in a repository"),
+    );
+    const retry: string = readRepoFile(
+      "Common/Server/Utils/AI/CodeFix/CodeFixAutoRetry.ts",
+    );
+
+    // One wait before each attempt after the first.
+    expect(CODE_TASK_RETRY_DELAYS_IN_MINUTES).toHaveLength(
+      CODE_TASK_MAX_ATTEMPTS - 1,
+    );
+    expect(fails).toContain(
+      `is tried again by itself, up to ${CODE_TASK_MAX_ATTEMPTS} attempts in all, the second after ${CODE_TASK_RETRY_DELAYS_IN_MINUTES[0]} minute and the third after ${CODE_TASK_RETRY_DELAYS_IN_MINUTES[1]}, unless the run may already have pushed a branch or opened a pull request.`,
+    );
+    // Never a second push or pull request: what it may have written stops it.
+    expect(retry).toContain("CodeFixAutoRetry.mayHaveWritten({");
+    // What may pass, and what would happen again, is the shared classifier's.
+    expect(retry).toContain("TransientAIFailure.classify(data.failure)");
+
+    // A Retrying turn says which attempt comes next, and may start now.
+    expect(conversation).toContain(
+      `${bold("Retrying")} | A turn AI tries again by itself says which attempt comes next and when; ${bold("Retry now")} starts it at once.`,
+    );
+    expect(dashboardSource("Components/Code/CodeTaskStatusCopy.ts")).toContain(
+      'CODE_TASK_RETRY_NOW: string = translationKey("Retry now")',
+    );
+    expect(conversation).toContain(
+      "and after how many attempts when AI tried it again by itself.",
+    );
+
+    // The list's filters, its search and Retry selected on a repository's page.
+    expect(ask).toContain(
+      "filter them by how they stand, each filter with its count, or search them by title or number.",
+    );
+    expect(ask).toContain(
+      `and there you can tick the requests that failed or were stopped and try them all again with ${bold("Retry selected")}.`,
+    );
+    expect(dashboardSource("Components/Code/CodeTaskList.tsx")).toContain(
+      'translator.translateText("Retry selected")',
+    );
+    expect(dashboardSource("Pages/Code/Repository/Tasks.tsx")).toContain(
+      "canRetry={repository.canAsk && !repository.blocker}",
+    );
+    // The task's header: its files and lines, and how long AI worked on it.
+    expect(conversation).toContain(
+      "how many files and lines it changed, how long AI has worked on it,",
     );
   });
 
@@ -1799,14 +1901,19 @@ describe("GitHub App", () => {
     );
   });
 
-  it("states a run's budget as a fix task's", () => {
-    const completion: string = readRepoFile(
-      "Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts",
-    );
+  it("states a run's limits as a fix task's", () => {
+    const page: string = flat(englishPage(GITHUB_APP));
 
-    expect(flat(englishPage(GITHUB_APP))).toContain(
-      `a clone, up to ${numberConstant(completion, "MAX_COMPLETION_CALLS_PER_RUN")} LLM calls and ${numberConstant(completion, "MAX_OUTPUT_TOKENS_PER_RUN").toLocaleString("en-US")} output tokens`,
+    expect(page).toContain(
+      `a clone, as many LLM calls as the work needs within the run's time limit (${DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES} minutes unless the project sets its own)`,
     );
+    expect(page).toContain(
+      "A review's production queries count as tool calls toward the project's limits per run.",
+    );
+    expect(page).toContain(
+      "It is the same agent and the same Runner as in [Code](/docs/ai/ai-agent), with the same limits; only the trigger differs.",
+    );
+    expect(page).not.toMatch(/budget/i);
   });
 
   it("connects a repository in Products → Code", () => {

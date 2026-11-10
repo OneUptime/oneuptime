@@ -30,18 +30,24 @@ export const MAX_PAYLOAD_BYTES: number = 64 * 1024;
 /*
  * A rule is a pattern and what replaces each match, or - where one pattern
  * cannot read a text in time in line with its length - a function that
- * reads the text itself and says how many it replaced.
+ * reads the text itself and says how many it replaced. Each names the
+ * placeholder it writes where it hid a value ("[redacted-ip]"): a model
+ * shown it knows a value was there, never the value.
  */
 type RedactionRule =
   | {
       name: string;
+      placeholder: string;
       regex: RegExp;
       replacement: string;
     }
   | {
       name: string;
+      placeholder: string;
       redact: (text: string) => { text: string; count: number };
     };
+
+const PRIVATE_KEY_PLACEHOLDER: string = "[redacted-private-key]";
 
 /*
  * These are security redactions, not the fingerprint-normalization regexes
@@ -62,12 +68,14 @@ const REDACTION_RULES: Array<RedactionRule> = [
      * in line with its length.
      */
     name: "jwt",
+    placeholder: "[redacted-jwt]",
     regex:
       /(?<![A-Za-z0-9_-])(?=([A-Za-z0-9_-]*?)eyJ)\1eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g,
     replacement: "$1[redacted-jwt]",
   },
   {
     name: "bearer",
+    placeholder: "[redacted-token]",
     regex: /Bearer\s+[A-Za-z0-9._~+/-]{16,}=*/gi,
     replacement: "Bearer [redacted-token]",
   },
@@ -79,28 +87,33 @@ const REDACTION_RULES: Array<RedactionRule> = [
      * BEGIN lines it holds with no END after them.
      */
     name: "private-key",
+    placeholder: PRIVATE_KEY_PLACEHOLDER,
     redact: (text: string): { text: string; count: number } => {
-      return replacePrivateKeyBlocks(text, "[redacted-private-key]");
+      return replacePrivateKeyBlocks(text, PRIVATE_KEY_PLACEHOLDER);
     },
   },
   {
     name: "aws-access-key-id",
+    placeholder: "[redacted-aws-key]",
     regex: /\b(?:AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASCA)[0-9A-Z]{16}\b/g,
     replacement: "[redacted-aws-key]",
   },
   {
     name: "github-token",
+    placeholder: "[redacted-github-token]",
     regex:
       /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36,}\b|\bgithub_pat_[A-Za-z0-9_]{22,}\b/g,
     replacement: "[redacted-github-token]",
   },
   {
     name: "slack-token",
+    placeholder: "[redacted-slack-token]",
     regex: /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/g,
     replacement: "[redacted-slack-token]",
   },
   {
     name: "google-api-key",
+    placeholder: "[redacted-google-api-key]",
     regex: /\bAIza[0-9A-Za-z_-]{35}\b/g,
     replacement: "[redacted-google-api-key]",
   },
@@ -111,11 +124,13 @@ const REDACTION_RULES: Array<RedactionRule> = [
      * result for addresses stays in line with its length.
      */
     name: "email",
+    placeholder: "[redacted-email]",
     regex: /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63}/g,
     replacement: "[redacted-email]",
   },
   {
     name: "ipv4",
+    placeholder: "[redacted-ip]",
     regex: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
     replacement: "[redacted-ip]",
   },
@@ -127,6 +142,7 @@ const REDACTION_RULES: Array<RedactionRule> = [
      * break the search_logs → get_trace pivot.
      */
     name: "credit-card",
+    placeholder: "[redacted-card]",
     regex: /\b\d{4}[ -]\d{4}[ -]\d{4}[ -]\d{4}\b/g,
     replacement: "[redacted-card]",
   },
@@ -142,16 +158,30 @@ const REDACTION_RULES: Array<RedactionRule> = [
      * key-value-secret below.
      */
     name: "hex-secret",
+    placeholder: "[redacted-hex]",
     regex: /\b[0-9a-fA-F]{33,}\b/g,
     replacement: "[redacted-hex]",
   },
   {
     name: "key-value-secret",
+    placeholder: "[redacted]",
     regex:
       /\b(password|passwd|secret|api[_-]?key|access[_-]?token|authorization)\b(\s*[:=]\s*)("[^"]{4,}"|'[^']{4,}'|[^\s,;&]{4,})/gi,
     replacement: "$1$2[redacted]",
   },
 ];
+
+/*
+ * The placeholders redaction writes in place of what it hides, one per
+ * rule, in the rules' order. A model shown "[redacted-ip]" never saw the
+ * address, so a file it writes whole with a placeholder in it - one the
+ * file did not have - writes the placeholder over the value it stood for
+ * (issue #6364, CodeFilesSeen).
+ */
+export const REDACTION_PLACEHOLDERS: ReadonlyArray<string> =
+  REDACTION_RULES.map((rule: RedactionRule): string => {
+    return rule.placeholder;
+  });
 
 export interface SerializedResult {
   text: string;

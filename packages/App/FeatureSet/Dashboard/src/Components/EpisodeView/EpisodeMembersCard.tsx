@@ -14,10 +14,16 @@ import API from "Common/UI/Utils/API/API";
 import React, {
   MutableRefObject,
   ReactElement,
+  ReactNode,
   useEffect,
   useRef,
   useState,
 } from "react";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
+import {
+  getLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "Common/UI/Utils/LineDirection";
 import {
   EPISODE_MEMBERS_PREVIEW_LIMIT,
   EpisodeMemberPill,
@@ -31,6 +37,7 @@ import {
 import RelativeTime from "./RelativeTime";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  PluralTemplate,
   translatableTerm,
   TranslatableTerm,
   Translator,
@@ -53,6 +60,14 @@ export interface ComponentProps<
   description?: string | undefined;
   singularNoun: string; // "incident"
   pluralNoun: string; // "incidents"
+  /*
+   * The count beside the title, worded for the members: { one: "{{count}}
+   * incident", other: "{{count}} incidents" }. Each language words a count
+   * of incidents its own way - Arabic as a label and its count, "الحوادث:
+   * 2" - which "{{count}} {{itemsName}}" could not: it put the number
+   * before the noun, "2 الحوادث".
+   */
+  countTemplate: PluralTemplate;
   // The full member list for this episode.
   viewAllRoute: Route;
   getMemberRoute: (memberId: ObjectID) => Route;
@@ -69,6 +84,8 @@ interface LoadedMembers {
 
 type PillFunction = (
   pill: EpisodeMemberPill,
+  // The name as the reader's language words it ("تم الحل" for Resolved).
+  name: string,
   testId: string,
   // The pill's whole tooltip, e.g. "State: Investigating".
   tooltip: string,
@@ -76,6 +93,7 @@ type PillFunction = (
 
 const getStatusPill: PillFunction = (
   pill: EpisodeMemberPill,
+  name: string,
   testId: string,
   tooltip: string,
 ): ReactElement => {
@@ -90,7 +108,7 @@ const getStatusPill: PillFunction = (
         className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
         style={{ backgroundColor: (pill.color || Black).toString() }}
       />
-      <span className="truncate">{pill.name}</span>
+      <span className="truncate">{name}</span>
     </span>
   );
 };
@@ -212,16 +230,55 @@ const EpisodeMembersCard: <
   });
 
   const countLabel: string | undefined = current
-    ? translator.translatePlural(
-        { one: "{{count}} {{itemName}}", other: "{{count}} {{itemsName}}" },
-        current.totalCount,
-        { itemName, itemsName },
-      )
+    ? translator.translatePlural(props.countTemplate, current.totalCount)
     : undefined;
+
+  /*
+   * A state or severity is named as the episode's own header names it (its
+   * Pill): a built-in name such as Resolved in the reader's language, a name
+   * the project gave it as it was typed. On an Arabic page the header said
+   * "تم الحل" and each incident under it still said "Resolved".
+   */
+  const getPillName: (pill: EpisodeMemberPill) => string = (
+    pill: EpisodeMemberPill,
+  ): string => {
+    return translator.translateText(pill.name) || pill.name;
+  };
+
+  /*
+   * A member's title, cut short at its own end: on an Arabic page an
+   * English title in a line laid out from the right lost its start
+   * ("...kout API p95 latency above 2s"). A title that reads the other way
+   * from the page is a line of its own that reads its own way and starts
+   * where the page's lines do (LineDirection); one that reads the page's
+   * way is drawn as it always was.
+   */
+  const getTitleLine: (text: string) => ReactNode = (
+    text: string,
+  ): ReactNode => {
+    const direction: ReadingDirection | undefined = getLineDirection(
+      text,
+      translator.language,
+    );
+
+    if (!direction) {
+      return text;
+    }
+
+    return (
+      <span
+        data-testid="episode-member-title-line"
+        className={`block truncate ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME}`}
+        dir={direction}
+      >
+        {text}
+      </span>
+    );
+  };
 
   const title: ReactElement = (
     <span className="inline-flex flex-wrap items-center gap-2">
-      <span>{props.title}</span>
+      <span>{translator.translateText(props.title) || props.title}</span>
       {countLabel && (
         <span
           data-testid="episode-members-count"
@@ -341,11 +398,11 @@ const EpisodeMembersCard: <
                       title={row.title}
                       className="block min-w-0 truncate rounded-sm text-sm font-medium text-gray-900 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     >
-                      {row.title}
+                      {getTitleLine(row.title)}
                     </Link>
                   ) : (
                     <span className="min-w-0 truncate text-sm font-medium text-gray-900">
-                      {row.title}
+                      {getTitleLine(row.title)}
                     </span>
                   )}
                 </div>
@@ -353,17 +410,19 @@ const EpisodeMembersCard: <
                   {row.state &&
                     getStatusPill(
                       row.state,
+                      getPillName(row.state),
                       "episode-member-state",
                       translator.translateTemplate("State: {{name}}", {
-                        name: row.state.name,
+                        name: getPillName(row.state),
                       }),
                     )}
                   {row.severity &&
                     getStatusPill(
                       row.severity,
+                      getPillName(row.severity),
                       "episode-member-severity",
                       translator.translateTemplate("Severity: {{name}}", {
-                        name: row.severity.name,
+                        name: getPillName(row.severity),
                       }),
                     )}
                   {row.occurredAt && (

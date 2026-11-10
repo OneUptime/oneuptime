@@ -17,10 +17,18 @@
  *   ?state=  resolved (default) | ongoing | created
  *            Incident #1042, Alert #311 and both episodes. "ongoing" stops
  *            them at Acknowledged, "created" before it.
- *   ?ai=     report (default) | none | queued | running | failed | pending
- *            | legacy | waiting | waiting-viewer
+ *   ?ai=     report (default) | none | queued | running | failed
+ *            | failed-viewer | retrying | pending | legacy | waiting
+ *            | waiting-viewer
  *            What POST /ai-investigation/{incident,alert} returns for
  *            Incident #1042 and Alert #311. Other incidents/alerts have no run.
+ *            "failed" is a run that did not finish, answered for someone who
+ *            may change the record, so the card offers Try again (issue
+ *            #6438, POST /ai-investigation/try-again): the record's next read
+ *            answers the new run, queued. "failed-viewer" is the same run for
+ *            someone who may not. "retrying" is a run between attempts (issue
+ *            #6437): its first ran out of time with the AI provider, and it
+ *            tries again 2 minutes from NOW.
  *            "legacy" is a completed report from an API replica that predates
  *            structured evidence: no `evidence` or `references` keys.
  *            "waiting" is an investigation rule's wait (issue #5074): no run
@@ -70,7 +78,9 @@
  *            minutes after its start; "overrun" is still Ongoing 30 minutes
  *            after its end.
  *   ?fail=   comma separated: evidence, verdict, create-fix-task,
- *            investigation, investigate-now, conversation, conversation-send, resend,
+ *            investigation, investigate-now, investigation-try-again (Try
+ *            again on a run that did not finish is refused: OneUptime AI is
+ *            switched off), conversation, conversation-send, resend,
  *            channel-links, channel-members (the channel card's read),
  *            channel-add (its Join channel and Add people), pass-on-read
  *            (whether the viewer is paged, for Escalate), pass-on
@@ -84,7 +94,9 @@
  *            policies to page now."), dry-run (Dry run on a cloud fix,
  *            ?cloudfix=, is refused: the account's agent is offline),
  *            dismiss (Dismiss fix, ?fixes=, is refused: the viewer may not
- *            start runbook executions). The matching API call throws HTTPErrorResponse. "conversation" is
+ *            start runbook executions), round-try-again (Try again on a
+ *            round of a fix that stopped, ?fixes=unfinished, is refused:
+ *            the project reached its daily AI limit). The matching API call throws HTTPErrorResponse. "conversation" is
  *            the read of the AI card's thread and "conversation-send" a
  *            question sent to it. "resend" also marks the subscriber
  *            notifications of Incident #1042 and Scheduled Maintenance #58 as
@@ -347,6 +359,17 @@
  *            (approvedFrom), verified fixed. Dismiss fix dismisses the
  *            runbook; ?fail=dismiss refuses it, as the server refuses
  *            someone who may not start runbook executions.
+ *            unfinished: OneUptime AI's round on prod-eu-west-1 stopped
+ *            before it found a fix - the AI provider did not answer within
+ *            120 seconds, three times - after two kubectl checks. Its
+ *            round (POST /auto-remediation/round) offers Try again while
+ *            the incident is open (?state=ongoing or created); Try again
+ *            (POST /auto-remediation/round-try-again) starts it again with
+ *            a new run, queued, and ?fail=round-try-again refuses it.
+ *            no-fix: the round found no safe fix and said why - the fixes
+ *            it ruled out, with their commands and why not - beside the
+ *            commands it checked with (one refused by kubectl) and four
+ *            queries of the project's telemetry.
  *   ?approvals= on | first | mine: with ?fixes=many, the project asks two
  *            people to approve a riskier fix (requireTwoApprovalsForRiskier
  *            Fixes, #6148's follow-ups), and the kubectl fix holds one (its
@@ -421,6 +444,10 @@ import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline"
 import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import { ALREADY_APPROVED_FIRST_MESSAGE } from "Common/Types/AutoRemediation/RemediationApprovals";
+import {
+  REMEDIATION_ROUND_TRY_AGAIN_REFUSALS,
+  RemediationRoundTryAgainRefusal,
+} from "Common/Types/AutoRemediation/RemediationRound";
 import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import DataAlert from "Common/Models/DatabaseModels/DataAlert";
@@ -594,6 +621,19 @@ const WAIT_ENDS_IN_MINUTES = { default: 8, tomorrow: 23 * 60, ended: -0.5 }[
 ];
 const WAIT_MINUTES = waitEndMode === "tomorrow" ? 1440 : 10;
 const startedNow = new Set();
+/*
+ * A run that did not finish (issue #6438): "failed" is answered for someone
+ * who may change the record, so the card offers Try again; "failed-viewer"
+ * for someone who may not.
+ */
+const isFailedMode = aiMode === "failed" || aiMode === "failed-viewer";
+/*
+ * Records whose investigation someone started again with Try again, by id,
+ * and the new run's id: their next read answers the new run, queued.
+ */
+const triedAgain = new Map();
+// When the run waiting between attempts (?ai=retrying) tries again.
+const RETRY_IN_MINUTES = 2;
 const tldrMode = params.get("tldr") === "long" ? "long" : "default";
 const titleMode = ["long", "sentence"].includes(params.get("title"))
   ? params.get("title")
@@ -761,10 +801,12 @@ const codeFixMode = CODE_FIX_MODES.includes(params.get("codefix"))
 /*
  * ?fixes=: more fixes on Incident #1042's Remediation step - of every kind
  * (many), the three rounds of a fix that ran, did not work and was rolled
- * back (rolled-back, issue #5598), or a runbook that waits with its track
- * record beside a fix approved in Slack (runbook, #5519's follow-ups).
+ * back (rolled-back, issue #5598), a runbook that waits with its track
+ * record beside a fix approved in Slack (runbook, #5519's follow-ups), or
+ * one round of an AI fix that stopped before it found one (unfinished) or
+ * found no safe fix and said why (no-fix, issues #6436 and #6487).
  */
-const FIXES_MODES = ["many", "rolled-back", "runbook"];
+const FIXES_MODES = ["many", "rolled-back", "runbook", "unfinished", "no-fix"];
 const fixesMode = FIXES_MODES.includes(params.get("fixes"))
   ? params.get("fixes")
   : "";
@@ -5471,6 +5513,68 @@ if (fixesMode === "rolled-back") {
 
 /*
  * ---------------------------------------------------------------------------
+ * A round that stopped, and a round that found no safe fix (?fixes=
+ * unfinished | no-fix, issues #6436 and #6487). The Remediation step reads
+ * the round of each fix with a run (POST /auto-remediation/round) and says
+ * what it did, as RemediationRound.readForViewer answers it.
+ *
+ * unfinished: OneUptime AI's round on prod-eu-west-1 gave up after three
+ * attempts - the AI provider did not answer within 120 seconds, each time
+ * - after it had checked the HPA and the pods with two kubectl commands.
+ * The plan runner's sweep settled it, in the words it has for a command
+ * round. It changed nothing, so whoever may change the incident may try it
+ * again while the incident is open (?state=ongoing or created): Try again
+ * (POST /auto-remediation/round-try-again) starts it again with a new run,
+ * queued, as RemediationRound.tryAgain does, and ?fail=round-try-again
+ * refuses it with the server's words for a project at its daily AI limit.
+ *
+ * no-fix: the round finished without a fix and said why (explain_no_fix):
+ * the fixes it ruled out, with the commands each would run and why not,
+ * beside the commands it checked with - three ran, and one kubectl refused
+ * - and four queries of the project's telemetry.
+ * ---------------------------------------------------------------------------
+ */
+const UNFINISHED_ROUND_SUGGESTION_ID = uuid("93000000", 10);
+const NO_FIX_ROUND_SUGGESTION_ID = uuid("93000000", 11);
+const UNFINISHED_ROUND_RUN_ID = ID.aiRun(11);
+const NO_FIX_ROUND_RUN_ID = ID.aiRun(12);
+// The run Try again starts.
+const TRIED_AGAIN_ROUND_RUN_ID = ID.aiRun(13);
+const ROUND_PROVIDER_TIMEOUT_ERROR =
+  "OpenAI API request failed: the LLM provider did not respond within 120 seconds.";
+
+if (fixesMode === "unfinished") {
+  insert(AutoRemediationSuggestion, {
+    _id: UNFINISHED_ROUND_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "NoneApplicable",
+    suggestionType: "CommandPlan",
+    ruleNameSnapshot: 'AI remediation for cluster "prod-eu-west-1"',
+    kubernetesClusterId: new ObjectID(ID.kubernetesCluster(1)),
+    aiRunId: new ObjectID(UNFINISHED_ROUND_RUN_ID),
+    rationaleMarkdown:
+      "The AI fix did not finish — the planning run failed. Nothing was run or proposed.",
+    createdAt: at("18:04", 10),
+  });
+}
+
+if (fixesMode === "no-fix") {
+  insert(AutoRemediationSuggestion, {
+    _id: NO_FIX_ROUND_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "NoneApplicable",
+    suggestionType: "CommandPlan",
+    ruleNameSnapshot: 'AI remediation for cluster "prod-eu-west-1"',
+    kubernetesClusterId: new ObjectID(ID.kubernetesCluster(1)),
+    aiRunId: new ObjectID(NO_FIX_ROUND_RUN_ID),
+    rationaleMarkdown:
+      "checkout-api's pods are healthy and the HPA has room to scale. The latency began with the 17:52 rollout, and rolling it back is not safe, so OneUptime AI proposes no change.",
+    createdAt: at("18:04", 10),
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * A runbook that waits, and a fix approved in Slack (?fixes=runbook,
  * #5519's follow-ups). The rule "Checkout fixes" proposed the runbook
  * "Restart checkout-api pods" at 18:03, with how it went the last times
@@ -5537,6 +5641,261 @@ function firstApproval(user, from, when) {
     firstApprovedFrom: from,
     firstApprovedAt: when,
   };
+}
+
+/*
+ * A fix's round (POST /auto-remediation/round, ?fixes=unfinished | no-fix),
+ * as RemediationRound.readForViewer answers it: the run, how its attempts
+ * started and ended - never a tool or its arguments - the commands it
+ * checked with, how many other checks it made, why it found no fix, what
+ * it changed, and whether the reader may try it again: only a round that
+ * stopped without its answer and changed nothing, on an open incident.
+ */
+const ROUND_APPLIED_NOTHING = {
+  commandCount: 0,
+  changeCount: 0,
+  isRunbookStarted: false,
+};
+
+function roundRunJson(data) {
+  const run = make(AIRun, {
+    _id: data.runId,
+    status: data.status,
+    createdAt: data.createdAt,
+    ...(data.startedAt ? { startedAt: data.startedAt } : {}),
+    ...(data.completedAt ? { completedAt: data.completedAt } : {}),
+    ...(data.errorMessage ? { errorMessage: data.errorMessage } : {}),
+  });
+  return BaseModel.toJSONArray([run], AIRun)[0];
+}
+
+function roundEventsJson(runId, entries) {
+  return BaseModel.toJSONArray(
+    entries.map((entry, index) => {
+      return make(AIRunEvent, {
+        _id: uuid(
+          runId === UNFINISHED_ROUND_RUN_ID ? "8c000000" : "8d000000",
+          index + 1,
+        ),
+        sequence: index + 1,
+        eventType: entry.eventType,
+        createdAt: entry.at,
+        resultSummary: entry.resultSummary || {},
+      });
+    }),
+    AIRunEvent,
+  );
+}
+
+/*
+ * The unfinished round's three attempts, as AIRunRetryPolicy records them:
+ * each start, and each end - the provider did not answer within 120
+ * seconds - the last one ending the run.
+ */
+function unfinishedRoundEvents() {
+  const attempts = [
+    { startedAt: at("18:04", 12), endedAt: at("18:06", 20) },
+    { startedAt: at("18:06", 50), endedAt: at("18:08", 52) },
+    { startedAt: at("18:09", 22), endedAt: at("18:11", 24) },
+  ];
+  const entries = [];
+  attempts.forEach((attempt, index) => {
+    const isLast = index === attempts.length - 1;
+    entries.push({
+      eventType: AIRunEventType.RunStarted,
+      at: attempt.startedAt,
+    });
+    entries.push({
+      eventType: isLast
+        ? AIRunEventType.RunFailed
+        : AIRunEventType.AttemptEnded,
+      at: attempt.endedAt,
+      resultSummary: {
+        attemptEnd: {
+          outcome: isLast ? "GaveUp" : "WillRetry",
+          failureKind: "ProviderTimeout",
+          attempt: index + 1,
+          maxAttempts: attempts.length,
+          timeoutInSeconds: 120,
+          ...(isLast
+            ? {}
+            : { nextAttemptAt: iso(attempts[index + 1].startedAt) }),
+        },
+        errorMessage: ROUND_PROVIDER_TIMEOUT_ERROR,
+      },
+    });
+  });
+  return roundEventsJson(UNFINISHED_ROUND_RUN_ID, entries);
+}
+
+function roundCheck(command, why, status, when, error) {
+  return { command, why, status, at: iso(when), error: error || "" };
+}
+
+function remediationRound(suggestionId) {
+  const record = table(AutoRemediationSuggestion).find((row) => {
+    return String(row._id) === String(suggestionId);
+  });
+  if (!record || !record.aiRunId) {
+    throw fail(
+      400,
+      "Auto-remediation suggestion not found (or you do not have access to it).",
+    );
+  }
+  const runId = String(record.aiRunId);
+
+  // The round Try again started: queued, with nothing done yet.
+  if (runId === TRIED_AGAIN_ROUND_RUN_ID) {
+    return {
+      run: roundRunJson({ runId, status: AIRunStatus.Queued, createdAt: NOW }),
+      events: [],
+      checks: [],
+      otherCheckCount: 0,
+      explanation: null,
+      appliedSteps: ROUND_APPLIED_NOTHING,
+      mayTryAgain: false,
+    };
+  }
+
+  if (runId === UNFINISHED_ROUND_RUN_ID) {
+    return {
+      run: roundRunJson({
+        runId,
+        status: AIRunStatus.Error,
+        createdAt: at("18:04", 10),
+        startedAt: at("18:04", 12),
+        completedAt: at("18:11", 24),
+        errorMessage: ROUND_PROVIDER_TIMEOUT_ERROR,
+      }),
+      events: unfinishedRoundEvents(),
+      checks: [
+        roundCheck(
+          "kubectl get hpa checkout-api -n checkout",
+          "See whether the HPA is pinned at its ceiling.",
+          "ran",
+          at("18:05", 2),
+        ),
+        roundCheck(
+          "kubectl top pods -n checkout -l app=checkout-api",
+          "Compare each pod's memory with its request.",
+          "ran",
+          at("18:05", 40),
+        ),
+      ],
+      otherCheckCount: 0,
+      explanation: null,
+      appliedSteps: ROUND_APPLIED_NOTHING,
+      // It changed nothing: the incident's state is all that is left.
+      mayTryAgain: !isResolved,
+    };
+  }
+
+  return {
+    run: roundRunJson({
+      runId,
+      status: AIRunStatus.Completed,
+      createdAt: at("18:04", 10),
+      startedAt: at("18:04", 12),
+      completedAt: at("18:06", 30),
+    }),
+    events: roundEventsJson(runId, [
+      { eventType: AIRunEventType.RunStarted, at: at("18:04", 12) },
+      { eventType: AIRunEventType.RunCompleted, at: at("18:06", 30) },
+    ]),
+    checks: [
+      roundCheck(
+        "kubectl get hpa checkout-api -n checkout",
+        "See whether the HPA has room to scale.",
+        "ran",
+        at("18:04", 40),
+      ),
+      roundCheck(
+        "kubectl top pods -n checkout -l app=checkout-api",
+        "Compare each pod's CPU and memory with its limits.",
+        "ran",
+        at("18:05", 1),
+      ),
+      roundCheck(
+        "kubectl rollout history deployment/checkout-api -n checkout",
+        "Find what changed before the latency rose.",
+        "ran",
+        at("18:05", 20),
+      ),
+      roundCheck(
+        "kubectl get events -n checkout --field-selector type=Warning",
+        "Look for evictions and failed probes.",
+        "failed",
+        at("18:05", 41),
+        'Error from server (Forbidden): events is forbidden: User "system:serviceaccount:oneuptime:oneuptime-agent" cannot list resource "events" in API group "" in the namespace "checkout"',
+      ),
+    ],
+    otherCheckCount: 4,
+    explanation: {
+      reason:
+        "checkout-api's pods are healthy and the HPA has room to scale. The latency began with the 17:52 rollout, and rolling it back is not safe: that release also changed the database schema.",
+      ruledOutFixes: [
+        {
+          fix: "Roll checkout-api back to the revision before the 17:52 rollout",
+          commands: [
+            "kubectl rollout undo deployment/checkout-api -n checkout",
+          ],
+          whyNot:
+            "Not safe: the 17:52 release ran a database migration, and the revision before it does not read the new schema.",
+        },
+        {
+          fix: "Restart checkout-api's pods",
+          commands: [
+            "kubectl rollout restart deployment/checkout-api -n checkout",
+          ],
+          whyNot:
+            "Would not fix the cause: the pods are healthy, and new pods run the same release.",
+        },
+        {
+          fix: "Scale checkout-api out to 6 replicas",
+          commands: [
+            "kubectl scale deployment/checkout-api -n checkout --replicas=6",
+          ],
+          whyNot:
+            "Would not fix the cause: CPU and memory are well under their limits, so more replicas would not make each request faster.",
+        },
+      ],
+    },
+    appliedSteps: ROUND_APPLIED_NOTHING,
+    mayTryAgain: false,
+  };
+}
+
+/*
+ * Try again on a round that stopped (POST /auto-remediation/round-try-
+ * again), as RemediationRound.tryAgain does: the fix names a new run and is
+ * being worked out again, with nothing the last run left on it. Refused in
+ * the server's words: ?fail=round-try-again as for a project at its daily
+ * AI limit, a resolved incident, and a round that has moved on.
+ */
+function tryRoundAgain(suggestionId) {
+  const record = table(AutoRemediationSuggestion).find((row) => {
+    return String(row._id) === String(suggestionId);
+  });
+  const refuse = (refusal) => {
+    return fail(400, REMEDIATION_ROUND_TRY_AGAIN_REFUSALS[refusal]);
+  };
+  if (failures.has("round-try-again")) {
+    throw refuse(RemediationRoundTryAgainRefusal.LimitReached);
+  }
+  if (
+    !record ||
+    String(record.aiRunId) !== UNFINISHED_ROUND_RUN_ID ||
+    record.status !== "NoneApplicable"
+  ) {
+    throw refuse(RemediationRoundTryAgainRefusal.AlreadyStarted);
+  }
+  if (isResolved) {
+    throw refuse(RemediationRoundTryAgainRefusal.IncidentResolved);
+  }
+  record.status = "Planning";
+  record.aiRunId = new ObjectID(TRIED_AGAIN_ROUND_RUN_ID);
+  delete record.rationaleMarkdown;
+  return { runId: TRIED_AGAIN_ROUND_RUN_ID };
 }
 
 // Approve & Run (POST /auto-remediation/approve) on a fix that waits.
@@ -6297,6 +6656,42 @@ function buildEvents(investigation, options) {
       0,
     );
   }
+  /*
+   * The attempt ended without the report, and the run waits before its
+   * next one (issue #6437): the model call that ran out of time, and the
+   * attempt's end, as AIRunRetryPolicy records them.
+   */
+  if (options.ending === "retrying") {
+    push(AIRunEventType.LlmCallStarted, {}, 120000);
+    push(
+      AIRunEventType.LlmCallFailed,
+      {
+        resultSummary: {
+          errorMessage:
+            "OpenAI API request failed: the LLM provider did not respond within 120 seconds.",
+        },
+      },
+      0,
+    );
+    push(
+      AIRunEventType.AttemptEnded,
+      {
+        resultSummary: {
+          errorMessage:
+            "OpenAI API request failed: the LLM provider did not respond within 120 seconds.",
+          attemptEnd: {
+            outcome: "WillRetry",
+            failureKind: "ProviderTimeout",
+            attempt: 1,
+            maxAttempts: 3,
+            nextAttemptAt: iso(options.retryAt),
+            timeoutInSeconds: 120,
+          },
+        },
+      },
+      0,
+    );
+  }
   return events;
 }
 
@@ -6453,9 +6848,11 @@ function investigationPayload(investigation) {
     };
   }
 
+  // Try again starts a new run: its own id, queued now.
+  const triedAgainRunId = triedAgain.get(String(investigation.subjectId));
   const run = make(AIRun, {
-    _id: investigation.runId,
-    createdAt: investigation.createdAt,
+    _id: triedAgainRunId || investigation.runId,
+    createdAt: triedAgainRunId ? NOW : investigation.createdAt,
     llmCallCount: 0,
     toolCallCount: 0,
     totalTokens: 0,
@@ -6467,9 +6864,29 @@ function investigationPayload(investigation) {
   let isAnalysisPending = false;
   const toolCount = investigation.citations.length;
 
-  // A waiting record someone started with Investigate now is queued.
-  if (aiMode === "queued" || isWaitingMode) {
+  /*
+   * A waiting record someone started with Investigate now is queued, and so
+   * is the new run of one someone tried again.
+   */
+  if (aiMode === "queued" || isWaitingMode || triedAgainRunId) {
     run.status = AIRunStatus.Queued;
+  } else if (aiMode === "retrying") {
+    /*
+     * Between attempts (issue #6437): its first attempt ran out of time
+     * with the AI provider four minutes ago, and it tries again in two.
+     */
+    const startedAt = new Date(NOW.getTime() - 4 * MINUTE);
+    const retryAt = new Date(NOW.getTime() + RETRY_IN_MINUTES * MINUTE);
+    run.status = AIRunStatus.Queued;
+    run.startedAt = startedAt;
+    run.retryAt = retryAt;
+    run.llmCallCount = 2;
+    run.toolCallCount = 4;
+    run.totalTokens = 10230;
+    events = buildEvents(
+      { ...investigation, startedAt },
+      { toolCount: 4, ending: "retrying", retryAt },
+    );
   } else if (aiMode === "running") {
     run.status = AIRunStatus.Running;
     run.startedAt = investigation.startedAt;
@@ -6477,7 +6894,7 @@ function investigationPayload(investigation) {
     run.toolCallCount = 3;
     run.totalTokens = 9120;
     events = buildEvents(investigation, { toolCount: 3, openTool: true });
-  } else if (aiMode === "failed") {
+  } else if (isFailedMode) {
     run.status = AIRunStatus.Error;
     run.startedAt = investigation.startedAt;
     run.completedAt = new Date(investigation.startedAt.getTime() + 38000);
@@ -6533,6 +6950,11 @@ function investigationPayload(investigation) {
 
   const payload = {
     run: runJson,
+    /*
+     * Try again (issue #6438), as AIInvestigationAPI answers it: for a run
+     * that did not finish, to someone who may change the record.
+     */
+    mayTryAgain: aiMode === "failed" && run.status === AIRunStatus.Error,
     events: BaseModel.toJSONArray(events, AIRunEvent),
     analysisMarkdown,
     analysisTldr,
@@ -8769,6 +9191,39 @@ async function handleApi(method, options) {
     return ok({ runId: investigation.runId });
   }
 
+  /*
+   * Try again on an investigation that did not finish (issue #6438): a new
+   * run, queued, as InvestigationTryAgain starts one - the record's next
+   * read answers it - or refused with the server's words: OneUptime AI
+   * switched off, for ?fail=investigation-try-again, and a run that is not
+   * one to try again (queued or running already, or someone else's to start).
+   */
+  if (method === "POST" && url.endsWith("/ai-investigation/try-again")) {
+    if (failures.has("investigation-try-again")) {
+      throw fail(
+        400,
+        "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+      );
+    }
+    const isAlert = body.subjectType === "alert";
+    const investigation = isAlert
+      ? investigations.alert
+      : investigations.incident;
+    if (
+      aiMode !== "failed" ||
+      String(body.subjectId) !== String(investigation.subjectId) ||
+      triedAgain.has(String(investigation.subjectId))
+    ) {
+      throw fail(
+        400,
+        `This ${isAlert ? "alert" : "incident"}'s investigation is queued or running already.`,
+      );
+    }
+    const newRunId = ID.aiRun(100 + triedAgain.size + 1);
+    triedAgain.set(String(investigation.subjectId), newRunId);
+    return ok({ runId: newRunId });
+  }
+
   if (url.includes("/ai-investigation/evidence")) {
     if (failures.has("evidence")) {
       throw fail(
@@ -8921,6 +9376,18 @@ async function handleApi(method, options) {
   // Try again on the Remediation step: decided again, or refused.
   if (method === "POST" && url.endsWith("/auto-remediation/try-again")) {
     return ok(tryAgain(body));
+  }
+
+  /*
+   * A fix's round (?fixes=unfinished | no-fix), and Try again on one that
+   * stopped: started again, or refused.
+   */
+  if (method === "POST" && url.endsWith("/auto-remediation/round")) {
+    return ok(remediationRound(body.suggestionId));
+  }
+
+  if (method === "POST" && url.endsWith("/auto-remediation/round-try-again")) {
+    return ok(tryRoundAgain(body.suggestionId));
   }
 
   // Approve & Run and Dismiss on a fix that waits (?fixes=many).

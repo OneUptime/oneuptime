@@ -264,7 +264,7 @@ flowchart TB
 
 **從 Slack、Microsoft Teams 和 Mattermost。** 新增備註的表單會說明，公開備註核准後才會發布到狀態頁面。送出公開備註的人會得知它已送交核准，以及它在等待誰：在 Slack 和 Mattermost 中是一則只有本人能看到的訊息，在 Microsoft Teams 中則在對話裡。透過 📣 或 📢 表情回應儲存的備註，也會在確認訊息中說明同樣的內容。頻道會在備註發布時得知它。
 
-**從 Slack、Microsoft Teams 和 Mattermost 核准。** 在 **使用者設定 → 通知設定** 中為 **公開備註核准** 開啟 Slack、Microsoft Teams 或 Mattermost 的核准者，會在那裡收到 OneUptime 傳來的私人訊息：誰傳送了它、它在等待哪一步，以及核准、拒絕或在 OneUptime 中開啟它的按鈕。按下按鈕時，會以其聊天帳號所連結的 OneUptime 帳號身分、依照與備註上按鈕相同的規則做出決定，在那裡拒絕同樣需要理由。只有他們本人看得到回覆。如果別人先做了決定，或在訊息送出後備註或其步驟有所變更，就不會做出任何決定，回覆會說明發生了什麼事。備註一經決定，每位核准者關於它的訊息都會改為說明發生了什麼事，只保留指向 OneUptime 的連結。請參閱 [Slack](/docs/workspace-connections/slack)、 [Microsoft Teams](/docs/workspace-connections/microsoft-teams) 和 [Mattermost](/docs/workspace-connections/mattermost)。
+**從 Slack、Microsoft Teams 和 Mattermost 核准。** 在 **使用者設定 → 通知設定** 中為 **公開備註核准** 開啟 Slack、Microsoft Teams 或 Mattermost 的核准者，會在那裡收到 OneUptime 傳來的私人訊息：誰傳送了它、它在等待哪一步，以及核准、拒絕或在 OneUptime 中開啟它的按鈕。按下按鈕時，會以其聊天帳號所連結的 OneUptime 帳號身分、依照與備註上按鈕相同的規則做出決定，在那裡拒絕同樣需要理由。只有他們本人看得到回覆。如果別人先做了決定，或在訊息送出後備註或其步驟有所變更，就不會做出任何決定，回覆會說明發生了什麼事。備註一經決定，每位核准者關於它的訊息都會改為說明發生了什麼事，只保留指向 OneUptime 的連結。核准步驟在備註等待期間有所變更時，關於它已不再等待的步驟的訊息也會這樣改變，其步驟不再詢問的人的訊息也一樣；它現在等待的人會收到屬於自己的、附有按鈕的訊息。請參閱 [Slack](/docs/workspace-connections/slack)、 [Microsoft Teams](/docs/workspace-connections/microsoft-teams) 和 [Mattermost](/docs/workspace-connections/mattermost)。
 
 動態會把每一步記錄為一則 `PublicNoteApproval` 項目：備註被送交核准、獲得核准或被拒絕、編輯被撤回，或備註未經核准就發布。這些項目不會發布到聊天頻道；發布到頻道的是已發布的備註。
 

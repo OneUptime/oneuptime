@@ -39,6 +39,8 @@ const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 
 const getItemMock: MockFunction = getJestMockFunction();
 const countMock: MockFunction = getJestMockFunction();
+// The newest exception, and the setup dialog's key picker.
+const getListMock: MockFunction = getJestMockFunction();
 const fetchSpanMetricsMock: MockFunction = getJestMockFunction();
 const fetchSpanNameStatsMock: MockFunction = getJestMockFunction();
 const fetchWebVitalsMock: MockFunction = getJestMockFunction();
@@ -86,6 +88,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       count: (...args: Array<unknown>): unknown => {
         return countMock(...args);
+      },
+      getList: (...args: Array<unknown>): unknown => {
+        return getListMock(...args);
       },
       getCommonHeaders: (): Record<string, string> => {
         return {};
@@ -265,6 +270,16 @@ jest.mock(
   },
 );
 
+// The setup dialogs' code, as plain text (SetupGuideCard.test.tsx).
+jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
+  return {
+    __esModule: true,
+    default: (props: { text: string }) => {
+      return <div data-testid="setup-guide-markdown">{props.text}</div>;
+    },
+  };
+});
+
 // A plain anchor, so hrefs can be read and nesting checked without a router.
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/AppLink/AppLink",
@@ -302,6 +317,9 @@ import {
   WebVitalByRoute,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/telemetryMetrics";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
+import TelemetryIngestionKeyRefusal from "../../../Models/DatabaseModels/TelemetryIngestionKeyRefusal";
+import OneUptimeDate from "../../../Types/Date";
 import {
   WebVitalDefinition,
   WebVitalDefinitions,
@@ -457,6 +475,19 @@ interface Scenario {
   vitals?: Promise<Array<WebVital>> | undefined;
   inpByRoute?: Promise<WebVitalByRoute> | undefined;
   sessionList?: Promise<unknown> | undefined;
+  /*
+   * When the newest exception arrived (null: never), read only when the
+   * range has none. Two years ago by default: an app that reports them.
+   */
+  newestException?: Promise<Date | null> | undefined;
+  // What the project's keys were refused in the past day (issue #6378).
+  refusals?: Array<Record<string, unknown>> | undefined;
+}
+
+const DAY_MS: number = 24 * 60 * 60 * 1000;
+
+function ago(ms: number): Date {
+  return new Date(Date.now() - ms);
 }
 
 function arrange(scenario: Scenario = {}): void {
@@ -493,6 +524,28 @@ function arrange(scenario: Scenario = {}): void {
         ignoredFilters: [],
       })
     );
+  });
+  getListMock.mockImplementation(async (args: unknown) => {
+    const modelType: unknown = (args as { modelType?: unknown }).modelType;
+
+    if (modelType === TelemetryIngestionKeyRefusal) {
+      const rows: Array<Record<string, unknown>> = scenario.refusals ?? [];
+      return { data: rows, count: rows.length, skip: 0, limit: 100 };
+    }
+
+    if (modelType !== TelemetryException) {
+      return { data: [], count: 0, skip: 0, limit: 10 };
+    }
+
+    const at: Date | null = await (scenario.newestException ??
+      Promise.resolve(ago(730 * DAY_MS)));
+
+    return {
+      data: at ? [{ lastSeenAt: at }] : [],
+      count: at ? 1 : 0,
+      skip: 0,
+      limit: 1,
+    };
   });
 }
 
@@ -597,6 +650,7 @@ beforeEach(() => {
   for (const mock of [
     getItemMock,
     countMock,
+    getListMock,
     fetchSpanMetricsMock,
     fetchSpanNameStatsMock,
     fetchWebVitalsMock,
@@ -1118,9 +1172,15 @@ describe("RUM overview: empty and failed lookups", () => {
     await renderPage();
 
     expectTile("Exceptions", "—", "could not load");
+    // The chart cannot say there are none either.
+    expect(
+      within(screen.getByTestId("rum-exceptions-empty")).getByText(
+        "Couldn't load exceptions",
+      ),
+    ).toBeInTheDocument();
   });
 
-  test("zero exceptions that really are zero show 0", async () => {
+  test("zero exceptions from an app that has reported them before show 0", async () => {
     arrange({
       signals: Promise.resolve({
         logs: SIGNALS.logs,
@@ -1132,6 +1192,7 @@ describe("RUM overview: empty and failed lookups", () => {
           failed: false,
         },
       }),
+      newestException: Promise.resolve(ago(3 * DAY_MS)),
     });
     await renderPage();
 
@@ -1373,5 +1434,512 @@ describe("RUM overview: INP by route", () => {
       screen.getByText("Could not load INP by route."),
     ).toBeInTheDocument();
     expect(screen.queryByText("INP is reported, but not per route")).toBeNull();
+  });
+});
+
+/*
+ * Issue #5770. An empty Exceptions or Logs chart used to say "No data in
+ * this time range" whatever the reason. Now it says which of three it is -
+ * quiet in this range, not set up, or nothing arriving at all - with the
+ * one thing that helps: a longer range, the setup dialog, or the setup
+ * steps; and when the check itself fails, a retry.
+ */
+const NO_SIGNALS: LogAndExceptionSignals = {
+  logs: {
+    total: 0,
+    errorCount: 0,
+    countSeries: [],
+    errorSeries: [],
+    failed: false,
+  },
+  exceptions: {
+    total: 0,
+    unhandledCount: 0,
+    unhandledSeries: [],
+    handledSeries: [],
+    failed: false,
+  },
+};
+
+// The app's arrivals have been kept for ten days.
+const TRACKED_APP: Record<string, unknown> = {
+  ...APP,
+  tracesLastReceivedAt: new Date(),
+  signalArrivalsTrackedSince: new Date(Date.now() - 10 * DAY_MS),
+};
+
+function emptyChart(signal: "exceptions" | "logs"): HTMLElement {
+  return screen.getByTestId(`rum-${signal}-empty`);
+}
+
+function textOf(signal: "exceptions" | "logs", part: string): string {
+  return screen.getByTestId(`rum-${signal}-empty-${part}`).textContent || "";
+}
+
+function lastSignalsWindow(): { start: Date; end: Date } {
+  const calls: Array<Array<unknown>> = fetchSignalsMock.mock.calls;
+  return calls[calls.length - 1]![0] as { start: Date; end: Date };
+}
+
+describe("RUM overview: why Exceptions and Logs are empty", () => {
+  test("set up but quiet: when the last one arrived, and the longer range that shows it", async () => {
+    const lastException: Date = ago(3 * DAY_MS);
+    const lastLog: Date = ago(DAY_MS + 60 * 60 * 1000);
+    arrange({
+      app: { ...TRACKED_APP, logsLastReceivedAt: lastLog },
+      signals: Promise.resolve(NO_SIGNALS),
+      newestException: Promise.resolve(lastException),
+    });
+    await renderPage();
+
+    expect(emptyChart("exceptions")).toHaveAttribute("data-state", "quiet");
+    expect(textOf("exceptions", "title")).toBe(
+      "No exceptions in this time range",
+    );
+    expect(textOf("exceptions", "detail")).toBe(
+      `The last exception arrived ${OneUptimeDate.fromNow(lastException, new Date())}.`,
+    );
+    expect(textOf("logs", "title")).toBe("No logs in this time range");
+    expect(textOf("logs", "detail")).toBe(
+      `The last log arrived ${OneUptimeDate.fromNow(lastLog, new Date())}.`,
+    );
+    // Quiet is not broken: no setup dialog, no troubleshooting link.
+    expect(
+      screen.queryByRole("button", { name: /Set up/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Why nothing arrives")).toBeNull();
+    // A real zero.
+    expectTile("Exceptions", "0", "reported by your app");
+
+    fireEvent.click(
+      within(emptyChart("exceptions")).getByRole("button", {
+        name: "Show the past week",
+      }),
+    );
+    await flush();
+
+    const window: { start: Date; end: Date } = lastSignalsWindow();
+    expect(window.end.getTime() - window.start.getTime()).toBe(7 * DAY_MS);
+  });
+
+  test("quiet for longer than a week offers the month", async () => {
+    arrange({
+      app: { ...TRACKED_APP, logsLastReceivedAt: ago(9 * DAY_MS) },
+      signals: Promise.resolve(NO_SIGNALS),
+    });
+    await renderPage();
+
+    expect(
+      within(emptyChart("logs")).getByRole("button", {
+        name: "Show the past month",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("never reported: the tile says not set up, the charts say why and open the setup dialog", async () => {
+    arrange({
+      app: TRACKED_APP,
+      signals: Promise.resolve(NO_SIGNALS),
+      newestException: Promise.resolve(null),
+    });
+    await renderPage();
+
+    expectTile("Exceptions", "—", "not set up");
+
+    expect(emptyChart("exceptions")).toHaveAttribute(
+      "data-state",
+      "not-set-up",
+    );
+    expect(textOf("exceptions", "title")).toBe("Exceptions aren't set up");
+    expect(textOf("exceptions", "detail")).toBe(
+      "No exception has arrived from this app. The OpenTelemetry browser SDK doesn't report errors on its own: a few lines in your telemetry file report them.",
+    );
+    expect(screen.queryByTestId("rum-exceptions-empty-evidence")).toBeNull();
+    expect(screen.getByTestId("rum-exceptions-empty-help")).toHaveAttribute(
+      "href",
+      "/docs/rum/troubleshooting#exceptions-or-logs-are-empty",
+    );
+
+    // Logs have been kept for ten days: "none since" names the day.
+    expect(textOf("logs", "title")).toBe("Logs aren't set up");
+    expect(textOf("logs", "detail")).toMatch(
+      /^No logs have arrived from this app since \w{3} \d{2}, \d{4}\. The OpenTelemetry browser SDK sends page loads and requests on its own; logs need a log pipeline and code that writes log records\.$/,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Set up exceptions" }));
+    await flush();
+
+    const dialog: HTMLElement = screen.getByTestId("rum-exceptions-setup");
+    expect(screen.getByTestId("modal-title")).toHaveTextContent(
+      "Set up exceptions",
+    );
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "Report the errors checkout-web throws, so they appear under Exceptions.",
+    );
+    expect(
+      within(dialog).getByText("Add the error handlers to src/telemetry.ts"),
+    ).toBeInTheDocument();
+    expect(dialog.textContent).toContain('window.addEventListener("error"');
+    /*
+     * The trace exporter the app has sends them: no key is asked for. (The
+     * empty charts read what the project's keys were refused, issue #6378.)
+     */
+    expect(
+      getListMock.mock.calls.filter((call: Array<unknown>): boolean => {
+        const modelType: unknown = (call[0] as { modelType?: unknown })
+          .modelType;
+        return (
+          modelType !== TelemetryException &&
+          modelType !== TelemetryIngestionKeyRefusal
+        );
+      }),
+    ).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    await flush();
+    expect(screen.queryByTestId("rum-exceptions-setup")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Set up logs" }));
+    await flush();
+
+    const logsDialog: HTMLElement = screen.getByTestId("rum-logs-setup");
+    expect(screen.getByTestId("modal-title")).toHaveTextContent("Set up logs");
+    expect(
+      within(logsDialog).getByText("Add a log pipeline to src/telemetry.ts"),
+    ).toBeInTheDocument();
+    expect(logsDialog.textContent).toContain("/otlp/v1/logs");
+  });
+
+  test("recorded sessions with errors back the not-set-up answer up", async () => {
+    arrange({
+      app: TRACKED_APP,
+      signals: Promise.resolve(NO_SIGNALS),
+      newestException: Promise.resolve(null),
+      sessionList: Promise.resolve({
+        sessions: [
+          { sessionId: "s-1", errorCount: 2, hasError: true },
+          { sessionId: "s-2", errorCount: 0, hasError: true },
+          { sessionId: "s-3", errorCount: 0, hasError: false },
+        ],
+        nextCursor: null,
+        ignoredFilters: [],
+      }),
+    });
+    await renderPage();
+
+    expect(textOf("exceptions", "evidence")).toBe(
+      "Session Replay recorded 2 sessions with errors in this time range, so errors do happen.",
+    );
+  });
+
+  test("one recorded session with an error reads in the singular", async () => {
+    arrange({
+      app: TRACKED_APP,
+      signals: Promise.resolve(NO_SIGNALS),
+      newestException: Promise.resolve(null),
+      sessionList: Promise.resolve({
+        sessions: [{ sessionId: "s-1", errorCount: 1, hasError: true }],
+        nextCursor: null,
+        ignoredFilters: [],
+      }),
+    });
+    await renderPage();
+
+    expect(textOf("exceptions", "evidence")).toBe(
+      "Session Replay recorded 1 session with an error in this time range, so errors do happen.",
+    );
+  });
+
+  test("an app silent since before its arrivals were kept is quiet, never 'not set up'", async () => {
+    const lastHeard: Date = ago(40 * DAY_MS);
+    arrange({
+      app: {
+        ...APP,
+        lastSeenAt: lastHeard,
+        signalArrivalsTrackedSince: ago(2 * DAY_MS),
+      },
+      signals: Promise.resolve(NO_SIGNALS),
+      newestException: Promise.resolve(ago(45 * DAY_MS)),
+    });
+    await renderPage();
+
+    expect(emptyChart("logs")).toHaveAttribute("data-state", "quiet");
+    expect(textOf("logs", "title")).toBe("No logs in this time range");
+    expect(textOf("logs", "detail")).toMatch(
+      /^Nothing has arrived from this app since \w{3} \d{2}, \d{4}\.$/,
+    );
+    expect(
+      within(emptyChart("logs")).getByRole("link", {
+        name: "See the setup steps",
+      }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/rum/${MODEL_ID}/documentation`,
+    );
+    expect(screen.queryByText("Logs aren't set up")).toBeNull();
+  });
+
+  test("only Session Replay reports: the SDK is what is missing", async () => {
+    arrange({
+      app: {
+        ...APP,
+        clientType: undefined,
+        sdkLanguage: undefined,
+        agentVersion: undefined,
+        lastSeenAt: new Date(),
+        sessionReplayLastChunkReceivedAt: new Date(),
+        signalArrivalsTrackedSince: ago(10 * DAY_MS),
+      },
+      signals: Promise.resolve(NO_SIGNALS),
+      newestException: Promise.resolve(null),
+    });
+    await renderPage();
+
+    expect(textOf("exceptions", "title")).toBe(
+      "The OpenTelemetry SDK isn't reporting",
+    );
+    expect(textOf("logs", "detail")).toBe(
+      "Recordings arrive from this app, but logs come through the OpenTelemetry browser SDK, which hasn't reported yet.",
+    );
+    expect(screen.queryByRole("button", { name: /Set up/ })).toBeNull();
+  });
+
+  test("nothing has ever arrived: neither chart blames the signal", async () => {
+    arrange({
+      app: {
+        ...APP,
+        clientType: undefined,
+        sdkLanguage: undefined,
+        agentVersion: undefined,
+        lastSeenAt: undefined,
+        signalArrivalsTrackedSince: new Date(),
+      },
+      signals: Promise.resolve(NO_SIGNALS),
+      newestException: Promise.resolve(null),
+    });
+    await renderPage();
+
+    expect(emptyChart("exceptions")).toHaveAttribute(
+      "data-state",
+      "not-arriving",
+    );
+    expect(textOf("exceptions", "title")).toBe(
+      "Nothing has arrived from this app yet",
+    );
+    expect(textOf("logs", "title")).toBe(
+      "Nothing has arrived from this app yet",
+    );
+    expect(screen.queryByText("Exceptions aren't set up")).toBeNull();
+    expect(screen.queryByText("Logs aren't set up")).toBeNull();
+  });
+
+  test("a check that failed says so, and Try again reads again", async () => {
+    let answer: Promise<Date | null> = rejected<Date | null>("503");
+    arrange({
+      app: TRACKED_APP,
+      signals: Promise.resolve(NO_SIGNALS),
+    });
+    getListMock.mockImplementation(async () => {
+      const at: Date | null = await answer;
+      return { data: at ? [{ lastSeenAt: at }] : [], count: 0 };
+    });
+    await renderPage();
+
+    expect(emptyChart("exceptions")).toHaveAttribute("data-state", "unknown");
+    expect(textOf("exceptions", "title")).toBe(
+      "Couldn't check why there are no exceptions",
+    );
+    // Never a guess: the tile stays a real count.
+    expectTile("Exceptions", "0", "reported by your app");
+
+    answer = Promise.resolve(null);
+    const reads: number = fetchSignalsMock.mock.calls.length;
+    fireEvent.click(
+      within(emptyChart("exceptions")).getByRole("button", {
+        name: "Try again",
+      }),
+    );
+    await flush();
+
+    expect(fetchSignalsMock.mock.calls.length).toBe(reads + 1);
+    expect(textOf("exceptions", "title")).toBe("Exceptions aren't set up");
+  });
+
+  test("a chart with data draws it, with no explanation", async () => {
+    arrange({ app: TRACKED_APP });
+    await renderPage();
+
+    expect(screen.queryByTestId("rum-exceptions-empty")).toBeNull();
+    expect(screen.queryByTestId("rum-logs-empty")).toBeNull();
+    // Nothing to explain, so neither the newest exception nor the refusals are read.
+    expect(getListMock).not.toHaveBeenCalled();
+  });
+
+  test("in German the empty charts read in German", async () => {
+    const german: Record<string, string> = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "../../../../App/FeatureSet/Dashboard/src/Locales/de.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+    const keys: Array<string> = [
+      "Exceptions aren't set up",
+      "Set up exceptions",
+      "Why nothing arrives",
+      "not set up",
+    ];
+    for (const key of keys) {
+      expect(german[key]).toBeTruthy();
+      expect(german[key]).not.toBe(key);
+      TRANSLATIONS[key] = german[key]!;
+    }
+
+    try {
+      arrange({
+        app: TRACKED_APP,
+        signals: Promise.resolve(NO_SIGNALS),
+        newestException: Promise.resolve(null),
+      });
+      await renderPage();
+
+      expect(textOf("exceptions", "title")).toBe(
+        german["Exceptions aren't set up"],
+      );
+      expect(
+        screen.getByRole("button", { name: german["Set up exceptions"]! }),
+      ).toBeInTheDocument();
+      expect(textOf("exceptions", "help")).toBe(german["Why nothing arrives"]);
+      expectTile("Exceptions", "—", german["not set up"]!);
+    } finally {
+      for (const key of keys) {
+        delete TRANSLATIONS[key];
+      }
+    }
+  });
+});
+
+describe("RUM overview: telemetry refused at ingest", () => {
+  const HOUR_MS: number = 60 * 60 * 1000;
+
+  // Nothing has come from the app for five hours.
+  const SILENT_APP: Record<string, unknown> = {
+    ...TRACKED_APP,
+    lastSeenAt: ago(5 * HOUR_MS),
+    tracesLastReceivedAt: ago(5 * HOUR_MS),
+    logsLastReceivedAt: ago(5 * HOUR_MS),
+  };
+
+  function refusalRow(
+    extra: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      reason: "key-disabled",
+      surface: "otel-traces",
+      refusedCount: 250,
+      firstRefusedAt: ago(4 * HOUR_MS),
+      lastRefusedAt: ago(10 * 60 * 1000),
+      telemetryIngestionKeyId: "6c3d0000-0000-4000-8000-0000000000f6",
+      telemetryIngestionKey: {
+        name: "Checkout key",
+        keyType: "Server",
+        pinnedServiceName: "checkout-web",
+      },
+      ...extra,
+    };
+  }
+
+  function refusalReads(): number {
+    return getListMock.mock.calls.filter((call: Array<unknown>): boolean => {
+      return (
+        (call[0] as { modelType?: unknown }).modelType ===
+        TelemetryIngestionKeyRefusal
+      );
+    }).length;
+  }
+
+  test("the app's key turned off and the project's budget used up: each empty chart says what refused it, and the fix", async () => {
+    const traces: Record<string, unknown> = refusalRow();
+    arrange({
+      app: SILENT_APP,
+      signals: Promise.resolve(NO_SIGNALS),
+      newestException: Promise.resolve(ago(3 * DAY_MS)),
+      refusals: [
+        traces,
+        refusalRow({
+          reason: "project-daily-budget",
+          surface: "otel-logs",
+          telemetryIngestionKey: { name: "Backend key", keyType: "Server" },
+        }),
+      ],
+    });
+    await renderPage();
+
+    expect(textOf("exceptions", "title")).toBe("Exceptions are being refused");
+    expect(textOf("exceptions", "detail")).toBe(
+      'The key "Checkout key" is turned off, so everything sent with it is refused.',
+    );
+    expect(textOf("exceptions", "evidence")).toBe(
+      `The latest was refused ${OneUptimeDate.fromNow(
+        traces["lastRefusedAt"] as Date,
+        new Date(),
+      )}.`,
+    );
+
+    expect(textOf("logs", "title")).toBe("Logs are being refused");
+    expect(
+      within(emptyChart("logs")).getByRole("link", { name: "See budgets" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/usage-history`,
+    );
+
+    fireEvent.click(
+      within(emptyChart("exceptions")).getByRole("button", {
+        name: "Pick another key",
+      }),
+    );
+    await flush();
+
+    expect(screen.getByTestId("rum-pick-key-setup")).toBeInTheDocument();
+    expect(screen.getByTestId("modal-title")).toHaveTextContent(
+      "Pick another key",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    await flush();
+    expect(screen.queryByTestId("rum-pick-key-setup")).toBeNull();
+  });
+
+  test("telemetry that arrived after the refusal: the chart's own answer", async () => {
+    const lastLog: Date = ago(3 * 60 * 1000);
+    arrange({
+      app: { ...SILENT_APP, logsLastReceivedAt: lastLog },
+      signals: Promise.resolve(NO_SIGNALS),
+      refusals: [
+        refusalRow({ surface: "otel-logs", lastRefusedAt: ago(HOUR_MS) }),
+      ],
+    });
+    await renderPage();
+
+    expect(textOf("logs", "title")).not.toBe("Logs are being refused");
+  });
+
+  test("read once a chart is empty, and again on every refresh", async () => {
+    arrange({
+      app: SILENT_APP,
+      signals: Promise.resolve(NO_SIGNALS),
+      refusals: [refusalRow()],
+    });
+    await renderPage();
+
+    expect(refusalReads()).toBe(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
+    await flush();
+
+    expect(refusalReads()).toBe(2);
+    expect(textOf("exceptions", "title")).toBe("Exceptions are being refused");
   });
 });

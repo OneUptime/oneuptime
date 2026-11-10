@@ -61,7 +61,7 @@ export const NETWORK_SITE_METRIC_DESCRIPTIONS: Record<
     "Sites directly beneath this one in the hierarchy, one level down. Their own child sites are not counted here.",
   ),
   endpoints: translationKey(
-    "Hosts such as PCs, phones and printers that devices assigned to this site found in their address tables (ARP and MAC forwarding tables). Every host found so far is counted, including ones not seen recently.",
+    "Hosts such as PCs, phones and printers that devices assigned to this site found in their address tables (ARP and MAC forwarding tables). Every host still on the Discovered Devices list is counted, including ones not seen recently.",
   ),
 
   // Status Timeline tab (Pages/NetworkSite/View/StatusTimeline.tsx).

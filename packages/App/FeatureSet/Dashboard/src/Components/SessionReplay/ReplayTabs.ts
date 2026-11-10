@@ -50,7 +50,10 @@ export interface ReplayTabSummary {
   pageCount?: number | undefined;
   /* Sum of the chunks' errorCount. */
   errorCount?: number | undefined;
-  /* Sum of the chunks' rage + dead + error + refresh-rage clicks. */
+  /*
+   * Sum of the chunks' rage + dead + error + refresh-rage clicks and the
+   * application's own signals that counted as frustration (issue #6443).
+   */
   frustrationCount?: number | undefined;
 }
 
@@ -199,7 +202,8 @@ export function summarizeReplayTabs(args: {
               chunk.rageClickCount +
               chunk.deadClickCount +
               chunk.errorClickCount +
-              chunk.refreshRageCount
+              chunk.refreshRageCount +
+              (chunk.customSignalFrustrationCount ?? 0)
             );
           },
         ),

@@ -42,10 +42,10 @@ Het zijmenu van een applicatie groepeert de pagina's zo; **Instellingen**, **Ont
 | --- | --- |
 | **Basis** | **Overzicht**, **Aanbevelingen**, **Documentatie** |
 | **Observability** | **Metrieken**, **Logboeken**, **Traces**, **Clients** |
-| **Sessieherhaling** | **Sessieherhaling**, **Gebruikersstromen**, **Gebruikers in herhalingen**, **Gezondheid**, **Herhalingsbeleid**, **Toegangslog van replays**, **Documentatie** |
+| **Sessieherhaling** | **Sessieherhaling**, **Gebruikersstromen**, **Gebruikers in herhalingen**, **Gezondheid**, **Herhalingsbeleid**, **Frustratiesignalen**, **Toegangslog van replays**, **Documentatie** |
 | **Instellingen** | **Instellingen** |
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI**, **AI-assistenten** |
-| **Geavanceerd** | **Applicatie verwijderen** |
+| **Geavanceerd** | **Auditlogboeken**, **Applicatie verwijderen** |
 
 ## Hoe OneUptime RUM herkent
 

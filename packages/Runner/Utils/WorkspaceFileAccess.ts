@@ -72,6 +72,55 @@ export default class WorkspaceFileAccess {
   }
 
   /*
+   * The entry a path names itself, for deleting or moving it (delete_file,
+   * move_file): its directory is resolved like any other path - every link
+   * on the way followed only while it stays inside the workspace - but the
+   * last component is NOT followed, so a link is deleted or moved as the
+   * link, never the file it points at. The same rules as a write: never the
+   * workspace root, never the repository's git metadata.
+   */
+  public static async resolveEntry(
+    workspaceRoot: string,
+    requestedPath: string,
+  ): Promise<WorkspaceTarget> {
+    const lexicalPath: string = CodeAgentWorkspaceGuard.resolveWorkspacePath(
+      workspaceRoot,
+      requestedPath,
+    );
+    const root: string = path.resolve(workspaceRoot);
+
+    if (lexicalPath === root) {
+      throw new BadDataException(
+        `Cannot delete or move the workspace root itself: ${requestedPath}`,
+      );
+    }
+
+    const directory: WorkspaceTarget = await this.resolveRealTarget(
+      workspaceRoot,
+      path.relative(root, path.dirname(lexicalPath)) || ".",
+    );
+    const realRoot: string = await fs.promises.realpath(root);
+    const absolutePath: string = path.join(
+      directory.absolutePath,
+      path.basename(lexicalPath),
+    );
+    const relativePath: string = path.relative(realRoot, absolutePath);
+
+    if (!relativePath || !this.isWithin(realRoot, absolutePath)) {
+      throw this.outsideWorkspace(requestedPath);
+    }
+
+    if (this.isInGitMetadata(relativePath)) {
+      throw new BadDataException(
+        `Refused: ${requestedPath} is inside the repository's git metadata (.git). ` +
+          `The pipeline owns the repository's git state; change files in the working tree only.`,
+      );
+    }
+
+    return { absolutePath, relativePath };
+  }
+
+  /*
    * Write a file at a target resolveForWrite returned, creating its parent
    * directories. The final component is opened without following a link.
    */

@@ -116,6 +116,7 @@ import { buildMessageQueueIdentifier } from "Common/Types/MessageQueue/MessageQu
 import ejs from "ejs";
 import fs from "fs";
 import path from "path";
+import ts from "typescript";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
@@ -2393,6 +2394,94 @@ function parseMockupCount(value: string): number {
   return Number(match[1]) * multiplier;
 }
 
+const QUEUE_OVERVIEW_PAGE: string =
+  "packages/App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/Overview.tsx";
+
+/*
+ * What each tile of a queue's Overview can say under its number, by the
+ * tile's title: every string written in the `sublabel` the page's `tiles`
+ * give it, read with the TypeScript compiler. A tile's line names where its
+ * figure comes from, so since #6362 it is a choice rather than one string:
+ * the queue's spans, or, for a queue no traced application uses, its
+ * broker's metrics.
+ */
+function queueOverviewTileSublabels(): Map<string, Array<string>> {
+  const source: ts.SourceFile = ts.createSourceFile(
+    QUEUE_OVERVIEW_PAGE,
+    repoFile(QUEUE_OVERVIEW_PAGE),
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
+  const sublabels: Map<string, Array<string>> = new Map();
+
+  const stringsIn: (node: ts.Node) => Array<string> = (
+    node: ts.Node,
+  ): Array<string> => {
+    if (ts.isStringLiteralLike(node)) {
+      return [node.text];
+    }
+
+    const found: Array<string> = [];
+
+    node.forEachChild((child: ts.Node): void => {
+      found.push(...stringsIn(child));
+    });
+
+    return found;
+  };
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === "tiles" &&
+      node.initializer &&
+      ts.isArrayLiteralExpression(node.initializer)
+    ) {
+      for (const tile of node.initializer.elements) {
+        if (!ts.isObjectLiteralExpression(tile)) {
+          continue;
+        }
+
+        const valueOf: (name: string) => ts.Expression | undefined = (
+          name: string,
+        ): ts.Expression | undefined => {
+          for (const property of tile.properties) {
+            if (
+              ts.isPropertyAssignment(property) &&
+              ts.isIdentifier(property.name) &&
+              property.name.text === name
+            ) {
+              return property.initializer;
+            }
+          }
+
+          return undefined;
+        };
+        const title: ts.Expression | undefined = valueOf("title");
+        const sublabel: ts.Expression | undefined = valueOf("sublabel");
+
+        if (title && ts.isStringLiteralLike(title)) {
+          sublabels.set(title.text, sublabel ? stringsIn(sublabel) : []);
+        }
+      }
+    }
+
+    node.forEachChild(visit);
+  };
+
+  visit(source);
+
+  if (sublabels.size === 0) {
+    throw new Error(
+      `${QUEUE_OVERVIEW_PAGE} no longer gives its tiles as \`const tiles = [...]\`: point this test at where they are now.`,
+    );
+  }
+
+  return sublabels;
+}
+
 /*
  * The Queues page's own sections: everything in <main> up to the end of its
  * FAQ. The shared features-table include that follows lists the other
@@ -2806,13 +2895,18 @@ describe("queues.ejs", () => {
   });
 
   test("the producers and consumers mockup uses the labels a queue's Overview shows", () => {
-    const overview: string = repoFile(
-      "packages/App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/Overview.tsx",
-    );
+    const overview: string = repoFile(QUEUE_OVERVIEW_PAGE);
+    const sublabels: Map<string, Array<string>> = queueOverviewTileSublabels();
     const servicesCard: string = repoFile(
       "packages/App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueServicesCard.tsx",
     );
 
+    /*
+     * The lines a tile shows for a queue with spans: the mockup's queue is
+     * traced, its producers and consumers being the services its spans name.
+     * A queue no traced application uses reads its broker's metrics and says
+     * so instead (#6362), which the mockup does not show.
+     */
     for (const [title, sublabel] of [
       ["Published", "publish spans, selected range"],
       ["Consumed", "consumer spans, selected range"],
@@ -2820,8 +2914,8 @@ describe("queues.ejs", () => {
     ] as Array<[string, string]>) {
       expect(html).toContain(`data-queue-tile="${title}"`);
       expect(html).toContain(`>${sublabel}</div>`);
-      expect(overview).toContain(`title: "${title}"`);
-      expect(overview).toContain(`sublabel: "${sublabel}"`);
+      expect([...sublabels.keys()]).toContain(title);
+      expect(sublabels.get(title)).toContain(sublabel);
     }
 
     /*
@@ -2830,8 +2924,8 @@ describe("queues.ejs", () => {
      * queue's total.
      */
     expect(html).toContain('data-queue-tile="Errors"');
-    expect(overview).toContain('title: "Errors"');
-    expect(overview).toContain('other: "{{rate}} of {{count}} spans"');
+    expect([...sublabels.keys()]).toContain("Errors");
+    expect(sublabels.get("Errors")).toContain("{{rate}} of {{count}} spans");
     expect(overview).toContain("count: formatMessageQueueCount(m.total)");
     expect(html).toMatch(/>[\d.]+% of [\d.]+M spans</);
 

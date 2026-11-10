@@ -41,6 +41,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 Een web-app heeft een **Browser**-sleutel nodig, en een mobiele app een **Server**-sleutel: zie [Browserconfiguratie](/docs/rum/browser-setup) en [Mobiele configuratie](/docs/rum/mobile-setup). Ook de exportendpoints weigeren een verkeerde sleutel met `401`, zoals de OTLP-specificatie voorschrijft, dus een nette SDK logt de weigering in plaats van het opnieuw te proberen. Die regel valt in de browserconsole makkelijk weg, en deze controle geeft direct antwoord.
 
+OneUptime telt ook wat het weigert van een sleutel die het kent. De pagina van de sleutel onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** toont onder **Geweigerde telemetrie** wat de afgelopen 30 dagen is geweigerd, en de **Configuratiecontrole** op de pagina **Documentatie** van de applicatie zegt welke soort telemetrie wordt geweigerd, waarom en hoe u dat oplost. Een ontbrekende of onbekende sleutel wijst geen project aan, dus niets telt hem: deze controle en de `401` zijn alles wat er is.
+
 ## Controleren wat de browser verlaat
 
 Open de ontwikkelaarstools van je browser op de pagina van de app, kies het tabblad Netwerk en filter op `otlp`. Je zoekt `POST /otlp/v1/traces` met een `2xx`-status als antwoord.
@@ -108,6 +110,34 @@ De applicatie bestaat, maar de pagina's ervan tonen niets.
 - **Controleer de periode.** Het overzicht toont standaard het laatste uur, dus een testbatch van vanochtend valt erbuiten.
 - **Wacht een paar minuten.** Ingestie loopt via een wachtrij, en **Laatst gezien** wordt om de paar minuten bijgewerkt in plaats van bij elke batch.
 - **Controleer het project.** Een sleutel schrijft naar zijn eigen project, dus telemetrie die met de sleutel van een ander project is verstuurd, staat daar en niet hier.
+
+## Uitzonderingen of logs zijn leeg
+
+Paginaladingen en verzoeken komen binnen, maar **Uitzonderingen** of **Logboeken** blijven leeg. De OpenTelemetry-browser-SDK verstuurt uit zichzelf traces van paginaladingen en verzoeken, maar geen uitzonderingen en geen logs, dus een applicatie kan verbonden lijken terwijl deze twee voorgoed leeg blijven.
+
+De lege grafiek op het **Overzicht** van de applicatie zegt welk geval het is, en de **Configuratiecontrole** op de pagina **Documentatie** ervan toont elke soort telemetrie met wanneer de nieuwste binnenkwam:
+
+| De grafiek zegt | Wat het betekent |
+| --- | --- |
+| **Uitzonderingen zijn niet ingesteld** of **Logboeken zijn niet ingesteld** | Van deze app is er nog nooit een binnengekomen. **Uitzonderingen instellen** of **Logboeken instellen** toont de code die ze verstuurt, met je URL en sleutel al ingevuld. |
+| **Geen uitzonderingen in dit tijdsbereik** of **Geen logboeken in dit tijdsbereik** | Er kwamen er eerder binnen, en de grafiek zegt wanneer de laatste binnenkwam. Kies de langere periode die hij aanbiedt. |
+| **Er is nog niets van deze app binnengekomen** | Er komt geen enkele telemetrie binnen: begin bij [De sleutel controleren](#de-sleutel-controleren). |
+| **De OpenTelemetry SDK rapporteert niet** | Alleen sessieherhaling rapporteert vanuit deze app: stel de SDK in zoals in [Browserconfiguratie](/docs/rum/browser-setup). |
+| **Uitzonderingen worden geweigerd** of **Logboeken worden geweigerd** | OneUptime heeft ze geweigerd nadat de laatste binnenkwam, en de grafiek zegt waarom en wanneer: de sleutel is uitgeschakeld of verlopen, hij staat de origin van uw site niet toe, een limiet of budget is op, of het project heeft geen betaalmethode. De knop ervan lost het op: **Andere sleutel kiezen**, **Sleutel openen**, **Budgetten bekijken** of **Betaalmethode toevoegen**. |
+
+Uitzonderingen hebben een foutafhandelaar nodig, omdat de SDK onafgevangen fouten niet opvangt: [Onafgevangen fouten melden](/docs/rum/browser-setup#onafgevangen-fouten-melden) heeft de code. Een fout die een error boundary of een `try`/`catch` afhandelt, bereikt het venster nooit, dus leg hem vast waar je hem afhandelt, met `span.recordException`.
+
+Logs hebben een logpipeline nodig en code die logrecords schrijft, omdat een `LoggerProvider` op zichzelf niets verstuurt: [Logs en metrieken toevoegen](/docs/rum/browser-setup#logs-en-metrieken-toevoegen) heeft allebei. Bouw de pipeline met dezelfde `resource` als je traces, anders worden de logs onder een backend-service ingedeeld.
+
+Als paginaladingen binnenkomen, laten de sleutel, de toegestane origins ervan en je Content Security Policy ook uitzonderingen en logs door, zolang de logexporter dezelfde sleutel en host gebruikt. Een foutafhandelaar die nog niets heeft opgevangen, verstuurt niets, precies zoals een die nooit is toegevoegd, dus gooi een testfout vanuit de console van de browser om de twee uit elkaar te houden:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+Binnen een minuut staat hij op het **Overzicht** van de applicatie, onder **Uitzonderingen**.
 
 ## De pagina Clients is leeg
 

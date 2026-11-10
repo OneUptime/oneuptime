@@ -41,6 +41,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 Una aplicación web necesita una clave **Navegador**, y una aplicación móvil una clave **Servidor**: consulta [Configuración para navegadores](/docs/rum/browser-setup) y [Configuración para móviles](/docs/rum/mobile-setup). Los endpoints de exportación también rechazan una clave incorrecta con `401`, como pide la especificación OTLP, así que un SDK bien hecho registra el rechazo en lugar de reintentar. Esa línea pasa fácilmente desapercibida en la consola del navegador, y esta comprobación responde directamente.
 
+OneUptime también cuenta lo que rechaza de una clave que conoce. La página de la clave, en **Ajustes del proyecto → Telemetría y APM → Claves de ingesta**, muestra en **Telemetría rechazada** lo rechazado en los últimos 30 días, y la **Comprobación de la configuración** de la página **Documentación** de la aplicación dice qué tipo de telemetría se rechaza, por qué y cómo arreglarlo. Una clave que falta o es desconocida no señala ningún proyecto, así que nada la cuenta: esta comprobación y el `401` es todo lo que hay.
+
 ## Comprobar lo que sale del navegador
 
 Abre las herramientas de desarrollo de tu navegador en la página de la aplicación, selecciona la pestaña Red y filtra por `otlp`. Buscas `POST /otlp/v1/traces` respondida con un estado `2xx`.
@@ -108,6 +110,34 @@ La aplicación existe, pero sus páginas no muestran nada.
 - **Revisa el periodo.** La vista general muestra la última hora por defecto, así que un lote de prueba de esta mañana queda fuera.
 - **Espera unos minutos.** La ingesta pasa por una cola, y **Visto por última vez** se actualiza cada pocos minutos en lugar de con cada lote.
 - **Revisa el proyecto.** Una clave escribe en su propio proyecto, así que la telemetría enviada con la clave de otro proyecto está allí, no aquí.
+
+## Las excepciones o los registros están vacíos
+
+Las cargas de página y las solicitudes llegan, pero **Excepciones** o **Registros** siguen vacíos. El SDK de OpenTelemetry para navegador envía por sí solo trazas de las cargas de página y las solicitudes, pero ninguna excepción y ningún registro, así que una aplicación puede parecer conectada mientras estos dos siguen vacíos para siempre.
+
+El gráfico vacío de la **Vista general** de la aplicación dice qué caso es, y la **Comprobación de la configuración** de su página **Documentación** enumera cada tipo de telemetría con el momento en que llegó lo más reciente:
+
+| El gráfico dice | Qué significa |
+| --- | --- |
+| **Las excepciones no están configuradas** o **Los registros no están configurados** | Nunca ha llegado ninguno de esta aplicación. **Configurar las excepciones** o **Configurar los registros** muestra el código que los envía, con tu URL y tu clave ya puestas. |
+| **No hay excepciones en este intervalo de tiempo** o **No hay registros en este intervalo de tiempo** | Llegaron algunos antes, y el gráfico dice cuándo llegó el último. Elige el intervalo más largo que ofrece. |
+| **Aún no ha llegado nada de esta aplicación** | No llega telemetría de ningún tipo: empieza por [Comprobar la clave](#comprobar-la-clave). |
+| **El SDK de OpenTelemetry no está informando** | Solo la reproducción de sesiones informa desde esta aplicación: configura el SDK como en [Configuración para navegadores](/docs/rum/browser-setup). |
+| **Se están rechazando las excepciones** o **Se están rechazando los registros** | OneUptime los rechazó después de que llegara el último, y el gráfico dice por qué y cuándo: la clave está desactivada o caducada, no permite el origen de tu sitio, se agotó un límite o un presupuesto, o el proyecto no tiene método de pago. Su botón lo arregla: **Elegir otra clave**, **Abrir la clave**, **Ver presupuestos** o **Añadir un método de pago**. |
+
+Las excepciones necesitan un manejador de errores, porque el SDK no captura los errores no capturados: [Informar de errores no capturados](/docs/rum/browser-setup#informar-de-errores-no-capturados) tiene el código. Un error que maneja un error boundary o un `try`/`catch` nunca llega a la ventana, así que regístralo donde lo manejas, con `span.recordException`.
+
+Los registros necesitan un pipeline de registros y código que escriba entradas de registro, porque un `LoggerProvider` por sí solo no envía nada: [Añadir registros y métricas](/docs/rum/browser-setup#añadir-registros-y-métricas) tiene ambos. Construye el pipeline con el mismo `resource` que tus trazas, o los registros se archivan bajo un servicio backend.
+
+Cuando llegan las cargas de página, la clave, sus orígenes permitidos y tu Content Security Policy también dejan pasar las excepciones y los registros, siempre que el exportador de registros use la misma clave y el mismo host. Un manejador de errores que aún no ha capturado nada no envía nada, exactamente igual que uno que nunca se añadió, así que lanza un error de prueba desde la consola del navegador para distinguirlos:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+En menos de un minuto, aparece en la **Vista general** de la aplicación, en **Excepciones**.
 
 ## La página Clientes está vacía
 

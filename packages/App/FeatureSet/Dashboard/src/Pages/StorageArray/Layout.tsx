@@ -6,6 +6,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const StorageArrayLayout: FunctionComponent<LayoutPageComponentProps> = (
   _props: LayoutPageComponentProps,
@@ -14,6 +16,7 @@ const StorageArrayLayout: FunctionComponent<LayoutPageComponentProps> = (
   return (
     <Page
       title={"Storage Arrays"}
+      titleRight={<ProductAboutButton product={ProductKey.StorageArrays} />}
       sideMenu={<SideMenu />}
       breadcrumbLinks={getStorageArrayBreadcrumbs(path)}
     >

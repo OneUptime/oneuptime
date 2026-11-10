@@ -24,6 +24,7 @@ import Permission from "../../Types/Permission";
 import SessionReplayCaptureTrigger from "../../Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "../../Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "../../Types/Rum/SessionReplayMaskingMode";
+import { SessionReplayFrustrationSettings } from "../../Types/Rum/SessionReplayFrustrationSignals";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import {
   Column,
@@ -496,6 +497,138 @@ export default class RumApplication extends BaseModel {
     type: ColumnType.Date,
   })
   public lastSeenAt?: Date = undefined;
+
+  /*
+   * When each kind of telemetry last arrived from this application (issue
+   * #5770): page loads and requests (traces), logs and metrics. lastSeenAt
+   * says the application is reporting; these say WHAT it reports, so an
+   * empty Logs chart can say "logs are not set up" - the browser SDK sends
+   * traces on its own and logs only once a log pipeline is added - rather
+   * than "no data in this time range" for an app that has never sent one.
+   *
+   * Written by the OpenTelemetry ingest path as root, at most once per
+   * signal per maintenance-fence window (OtelIngestBaseService), so each
+   * trails live traffic by the same few minutes lastSeenAt does. No
+   * create/update ACL: nobody sets them by hand.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Traces Last Received At",
+    description:
+      "When page loads, requests or other spans last arrived from this application.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public tracesLastReceivedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Logs Last Received At",
+    description: "When log records last arrived from this application.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public logsLastReceivedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Metrics Last Received At",
+    description:
+      "When metrics, such as Core Web Vitals, last arrived from this application.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public metricsLastReceivedAt?: Date = undefined;
+
+  /*
+   * Since when the three columns above are kept: when the application was
+   * created, or - for an application that existed before they were - when
+   * this install started keeping them (the migration gives every existing
+   * row that moment). A column that is still empty means "nothing of that
+   * kind since this date", never "nothing ever": an app that sent logs only
+   * before the upgrade has no logsLastReceivedAt, and the Dashboard says
+   * "no logs have arrived since <this date>" for it, which stays true.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Signal Arrivals Tracked Since",
+    description:
+      "Since when OneUptime has recorded when traces, logs and metrics last arrived from this application.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+    default: () => {
+      return "now()";
+    },
+  })
+  public signalArrivalsTrackedSince?: Date = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -1127,6 +1260,61 @@ export default class RumApplication extends BaseModel {
     default: 0,
   })
   public sessionReplaySlowRequestBudgetMs?: number = undefined;
+
+  /*
+   * What counts as frustration in this application's recordings: the four
+   * built-in rules (rage, dead and error clicks, refresh rage), each with
+   * its numbers or switched off, and up to 20 signals of the application's
+   * own. Null - every row from before this column, and the default - means
+   * the built-in rules exactly as the recorder always had them.
+   *
+   * Written through RumApplicationService, which refuses settings it cannot
+   * stand behind (Utils/Rum/SessionReplayFrustrationSettingsValidation) and
+   * stores the rest canonical. Its name starts with "sessionReplay", so an
+   * edit clears the gate cache like every other policy column, and the
+   * recorders read it on their next page load.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Session Replay Frustration Signals",
+    description:
+      "What counts as frustration in this application's recordings: the rules for rage clicks, dead clicks, error clicks and refresh rage (each can be changed or switched off), and up to 20 signals of the application's own (a click on an element, a page, an event from track() or an error's text), each counted as frustration or shown as a marker. Empty means the built-in rules: 3 clicks within 1 second in a 30 px radius, 3 seconds with nothing happening after a click, an error within 1 second of a click, and the same page loaded 3 times within 60 seconds.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public sessionReplayFrustrationSignals?: SessionReplayFrustrationSettings =
+    undefined;
 
   @ColumnAccessControl({
     create: [

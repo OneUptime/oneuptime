@@ -3,7 +3,6 @@ import { ExternalMcpServerFailureKind } from "../../../../Types/AI/ExternalMcpSe
 import {
   EXTERNAL_MCP_TOOL_CALL_TIMEOUT_MS,
   MAX_EXTERNAL_MCP_ARGUMENTS_CHARS,
-  MAX_EXTERNAL_MCP_CALLS_PER_RUN,
   MAX_EXTERNAL_MCP_TOOL_DESCRIPTION_CHARS,
   MAX_EXTERNAL_MCP_TOOL_SCHEMA_CHARS,
 } from "../../../../Types/AI/ExternalMcpServer/ExternalMcpServerLimits";
@@ -53,9 +52,12 @@ import { McpToolResultText, readMcpToolResult } from "./McpToolResult";
  *     change handler, which makes it now (a rule that fixes without asking
  *     and names its servers) or records it for approval - the rule's
  *     Approval, never the model, decides;
- *   - at most MAX_EXTERNAL_MCP_CALLS_PER_RUN calls a run, each held to a
- *     time limit (and to the run's own deadline, when it has one), and its
- *     answer to a size limit (McpClient).
+ *   - each call held to a time limit (and to the run's own deadline), and
+ *     its answer to a size limit (McpClient). How many calls a run makes is
+ *     no count of this toolkit's: the run's own limits hold them (the
+ *     project's tool calls per run, loop detection and the time limit:
+ *     Types/AI/AIAgentRunLimits), and a fix's changes stay held to
+ *     MAX_EXTERNAL_MCP_CHANGES_PER_FIX.
  *
  * What a server answers is text from outside OneUptime. It is handed to the
  * model framed as data from that server, never as instructions; a long
@@ -110,6 +112,7 @@ export interface McpRunToolkitOptions {
   outputPager?: ToolOutputPager | undefined;
   // The run's own deadline, when it has one.
   runDeadlineAtMs?: number | undefined;
+  // Calls one run may make, when its caller sets a cap. None by default.
   maxCalls?: number | undefined;
   // Tests: how a server is reached.
   createConnection?:
@@ -483,10 +486,9 @@ export default class McpRunToolkit {
       );
     }
 
-    const maxCalls: number =
-      this.options.maxCalls ?? MAX_EXTERNAL_MCP_CALLS_PER_RUN;
+    const maxCalls: number | undefined = this.options.maxCalls;
 
-    if (this.callCount >= maxCalls) {
+    if (maxCalls !== undefined && this.callCount >= maxCalls) {
       return this.failure(
         `Error: this run has made the most MCP tool calls it may (${maxCalls}). Answer with what you have.`,
       );

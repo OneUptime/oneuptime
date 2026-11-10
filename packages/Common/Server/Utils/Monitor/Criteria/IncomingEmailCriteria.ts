@@ -9,6 +9,7 @@ import {
 import IncomingEmailMonitorRequest from "../../../../Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import Typeof from "../../../../Types/Typeof";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import MonitorQuotedValue from "../MonitorQuotedValue";
 import ReceivingSilence, { MeasuredSilence } from "../ReceivingSilence";
 
 export default class IncomingEmailCriteria {
@@ -256,11 +257,12 @@ export default class IncomingEmailCriteria {
 
     if (criteriaFilter.filterType === FilterType.IsNotEmpty) {
       if (fieldValue && fieldValue.trim() !== "") {
-        const truncatedValue: string =
-          fieldValue.length > 500
-            ? fieldValue.substring(0, 500) + "..."
-            : fieldValue;
-        return `${fieldName} is not empty. Value: ${truncatedValue}`;
+        /*
+         * What the sender wrote, in a root cause that goes out in email,
+         * Slack and Teams: redacted, on one line and bounded
+         * (MonitorQuotedValue).
+         */
+        return `${fieldName} is not empty. Value: ${MonitorQuotedValue.quote(fieldValue)}`;
       }
       return null;
     }

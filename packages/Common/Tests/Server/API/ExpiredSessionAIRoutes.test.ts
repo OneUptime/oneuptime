@@ -172,6 +172,14 @@ const AI_INVESTIGATION_ROUTES: Array<HumanOnlyRoute> = [
     notAUserMessage: USER_SESSION_REQUIRED,
     firstRead: "incidentRead",
   },
+  // Try again, after an investigation did not finish (issue #6438).
+  {
+    uri: "/ai-investigation/try-again",
+    params: {},
+    body: { subjectType: "incident", subjectId: SUBJECT_ID.toString() },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "incidentRead",
+  },
   {
     uri: "/ai-investigation/evidence",
     params: {},
@@ -321,6 +329,14 @@ const AI_INSIGHT_ROUTES: Array<HumanOnlyRoute> = [
     notAUserMessage: USER_SESSION_REQUIRED,
     firstRead: "insightRead",
   },
+  // Try again, after a triage did not finish (issue #6438).
+  {
+    uri: "/ai-insight/triage-try-again",
+    params: {},
+    body: { insightId: INSIGHT_ID.toString() },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "insightRead",
+  },
   {
     uri: "/ai-insight/highlights",
     params: {},
@@ -359,6 +375,25 @@ const AUTO_REMEDIATION_ROUTES: Array<HumanOnlyRoute> = [
     body: { incidentId: SUBJECT_ID.toString() },
     notAUserMessage: USER_SESSION_REQUIRED,
     firstRead: "incidentRead",
+  },
+  /*
+   * A round of an AI fix (RemediationRound, #6436 and #6487): what it did,
+   * and Try again for one that did not finish. Each reads the fix under
+   * the person's own props first.
+   */
+  {
+    uri: "/auto-remediation/round",
+    params: {},
+    body: { suggestionId: SUGGESTION_ID.toString() },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "suggestionRead",
+  },
+  {
+    uri: "/auto-remediation/round-try-again",
+    params: {},
+    body: { suggestionId: SUGGESTION_ID.toString() },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "suggestionRead",
   },
   /*
    * A fix that lasts (DeclaredCodeChanges, #6186): the repositories that

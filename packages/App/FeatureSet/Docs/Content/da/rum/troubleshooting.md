@@ -41,6 +41,8 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 En webapp har brug for en **Browser**-nøgle, og en mobilapp for en **Server**-nøgle: se [Browseropsætning](/docs/rum/browser-setup) og [Mobilopsætning](/docs/rum/mobile-setup). Eksportendpoints afviser også en forkert nøgle med `401`, som OTLP-specifikationen kræver, så et velopdragent SDK logger afvisningen i stedet for at prøve igen. Den linje er let at overse i browserkonsollen, og dette tjek svarer direkte.
 
+OneUptime tæller også, hvad den afviser fra en nøgle, den kender. Nøglens side under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler** viser under **Afvist telemetri**, hvad der er afvist de seneste 30 dage, og **Opsætningstjek** på applikationens side **Dokumentation** siger, hvilken slags telemetri der afvises, hvorfor, og hvordan du retter det. En manglende eller ukendt nøgle peger ikke på noget projekt, så intet tæller den: dette tjek og `401` er alt, hvad der er.
+
 ## Tjek, hvad der forlader browseren
 
 Åbn browserens udviklerværktøjer på appens side, vælg fanen Netværk, og filtrér på `otlp`. Du leder efter `POST /otlp/v1/traces` besvaret med en `2xx`-status.
@@ -108,6 +110,34 @@ Applikationen findes, men dens sider viser intet.
 - **Tjek tidsrummet.** Oversigten viser som standard den seneste time, så en testbatch fra i morges falder uden for.
 - **Vent et par minutter.** Indtagelse går gennem en kø, og **Sidst set** opdateres med få minutters mellemrum i stedet for ved hver batch.
 - **Tjek projektet.** En nøgle skriver til sit eget projekt, så telemetri, der sendes med et andet projekts nøgle, ligger der og ikke her.
+
+## Undtagelser eller logs er tomme
+
+Sideindlæsninger og forespørgsler ankommer, men **Undtagelser** eller **Protokoller** forbliver tomme. OpenTelemetry-browser-SDK'et sender af sig selv spor af sideindlæsninger og forespørgsler, men ingen undtagelser og ingen logs, så en applikation kan se forbundet ud, mens de to forbliver tomme for altid.
+
+Det tomme diagram på applikationens **Oversigt** siger, hvilket tilfælde det er, og **Opsætningstjek** på dens side **Dokumentation** viser hver slags telemetri med, hvornår den seneste ankom:
+
+| Diagrammet siger | Hvad det betyder |
+| --- | --- |
+| **Undtagelser er ikke sat op** eller **Logs er ikke sat op** | Der er aldrig ankommet nogen fra denne app. **Opsæt undtagelser** eller **Opsæt logs** viser koden, der sender dem, med din URL og nøgle allerede udfyldt. |
+| **Ingen undtagelser i dette tidsinterval** eller **Ingen logs i dette tidsinterval** | Der er ankommet nogle før, og diagrammet siger, hvornår den seneste ankom. Vælg det længere tidsrum, det tilbyder. |
+| **Intet er ankommet fra denne app endnu** | Der ankommer ingen telemetri overhovedet: start med [Tjek nøglen](#tjek-nøglen). |
+| **OpenTelemetry SDK'et rapporterer ikke** | Kun sessionsafspilning rapporterer fra denne app: opsæt SDK'et som i [Browseropsætning](/docs/rum/browser-setup). |
+| **Undtagelser bliver afvist** eller **Protokoller bliver afvist** | OneUptime har afvist dem, efter at den seneste ankom, og diagrammet siger hvorfor og hvornår: nøglen er slået fra eller udløbet, den tillader ikke dit websteds oprindelse, en grænse eller et budget er brugt op, eller projektet har ingen betalingsmetode. Dens knap retter det: **Vælg en anden nøgle**, **Åbn nøglen**, **Se budgetter** eller **Tilføj en betalingsmetode**. |
+
+Undtagelser kræver en fejlhåndtering, fordi SDK'et ikke fanger ufangede fejl: [Rapporter ufangede fejl](/docs/rum/browser-setup#rapporter-ufangede-fejl) har koden. En fejl, som en error boundary eller en `try`/`catch` håndterer, når aldrig vinduet, så registrer den, hvor du håndterer den, med `span.recordException`.
+
+Logs kræver en logpipeline og kode, der skriver logposter, fordi en `LoggerProvider` alene ikke sender noget: [Tilføj logs og metrikker](/docs/rum/browser-setup#tilføj-logs-og-metrikker) har begge dele. Byg pipelinen med samme `resource` som dine spor, ellers arkiveres logsene under en backend-tjeneste.
+
+Når sideindlæsninger ankommer, lukker nøglen, dens tilladte origins og din Content Security Policy også undtagelser og logs igennem, så længe logeksportøren bruger samme nøgle og vært. En fejlhåndtering, der endnu ikke har fanget noget, sender intet, præcis som en, der aldrig blev tilføjet, så kast en testfejl fra browserens konsol for at skelne de to:
+
+```js
+setTimeout(() => {
+  throw new Error("OneUptime test error");
+});
+```
+
+Inden for et minut står den på applikationens **Oversigt** under **Undtagelser**.
 
 ## Siden Klienter er tom
 

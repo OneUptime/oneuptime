@@ -119,6 +119,10 @@ const COVERED: Record<string, Coverage> = {
       suites: [MORE_SETTINGS_ONE_CARD],
       drawnBy: "Pages/Incidents/Settings/IncidentAISettings",
     },
+  "packages/App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Endpoints.tsx": {
+    suites: ["DiscoveredDeviceRetention.test.tsx"],
+    drawnBy: "Pages/NetworkDevice/Endpoints",
+  },
   "packages/App/FeatureSet/Dashboard/src/Pages/OnCallDuty/OnCallDutyPolicy/Escalation.tsx":
     {
       suites: ["AcknowledgementTimeoutEscalationPage.test.tsx"],

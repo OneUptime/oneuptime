@@ -27,6 +27,7 @@ flowchart TB
 - **Les traces incluent leurs exceptions, et les profils leurs échantillons.**
 - **La télémétrie propre à OneUptime n'est pas comptée.** Les relevés des moniteurs, des alertes, des incidents et des SLO, les relevés de l'Observabilité des données et les métriques de budget des relectures de session sont écrits par OneUptime lui-même.
 - **Sur OneUptime Cloud, c'est à partir de ces lignes que la télémétrie est facturée.** Sur une installation sans facturation, l'utilisation est comptée sans frais, et rien n'est facturé pour elle, même si la facturation est activée plus tard.
+- **Un budget est compté à part de l'utilisation.** Un [budget d'ingestion](/docs/telemetry/ingestion-budgets) compte la télémétrie à son arrivée, décompressée, et peut donc arrêter la télémétrie d'une journée le jour même. Tant qu'un budget est défini, cette page s'ouvre sur les budgets du jour.
 
 ## Avant de commencer
 
@@ -134,4 +135,5 @@ La ressource a été supprimée depuis qu'elle a envoyé la télémétrie, ou vo
 - [Rétention des données](/docs/telemetry/data-retention): Conserver la télémétrie aussi longtemps que nécessaire, et pas plus.
 - [Facturation et utilisation](/docs/configuration/billing): Ce que coûte la télémétrie sur OneUptime Cloud.
 - [Clés d'ingestion](/docs/telemetry/ingestion-keys): Envoyer de la télémétrie dans votre projet.
+- [Budgets d'ingestion](/docs/telemetry/ingestion-budgets): Plafonner la quantité de chaque signal qu'un projet envoie en une journée.
 :::

@@ -131,13 +131,14 @@ export const APPLICATION_SIDE_MENU: ReadonlyArray<{
       "Replay Users",
       "Health",
       "Replay Policy",
+      "Frustration Signals",
       "Replay Access Log",
       "Documentation",
     ],
   },
   { section: "Settings", items: ["Settings"] },
   { section: "Developer", items: ["Terraform", "API", "CLI", "AI Assistants"] },
-  { section: "Advanced", items: ["Delete Application"] },
+  { section: "Advanced", items: ["Audit Logs", "Delete Application"] },
 ];
 
 /*

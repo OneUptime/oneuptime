@@ -21,6 +21,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 
 export const DISCOVERY_IMPORT_ROUTES: {
   start: string;
+  startFromDiscoveredDevices: string;
   active: string;
   import: (importId: string) => string;
   latestForScan: (scanId: string) => string;
@@ -28,6 +29,8 @@ export const DISCOVERY_IMPORT_ROUTES: {
   retry: (importId: string) => string;
 } = {
   start: "/network-device-discovery-import/start",
+  startFromDiscoveredDevices:
+    "/network-device-discovery-import/start-from-discovered-devices",
   active: "/network-device-discovery-import/active",
   import: (importId: string): string => {
     return `/network-device-discovery-import/import/${encodeURIComponent(importId)}`;
@@ -104,6 +107,25 @@ export async function startDiscoveryImport(data: {
     ipAddresses: data.ipAddresses,
     settings: data.settings as unknown as JSONObject,
   });
+
+  return readImport(body);
+}
+
+/*
+ * An import of rows of the Discovered Devices list (issue #5775): the same
+ * runner and progress as a scan's, with no scan.
+ */
+export async function startDiscoveredDeviceImport(data: {
+  endpointIds: Array<string>;
+  settings: DiscoveryImportSettings;
+}): Promise<DiscoveryImportView> {
+  const body: JSONObject = await postJson(
+    DISCOVERY_IMPORT_ROUTES.startFromDiscoveredDevices,
+    {
+      endpointIds: data.endpointIds,
+      settings: data.settings as unknown as JSONObject,
+    },
+  );
 
   return readImport(body);
 }

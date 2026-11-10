@@ -38,6 +38,12 @@ import MonitorGroupMonitorsCopy, {
   ADD_MONITORS_QUERY_PARAM,
 } from "../../../Components/MonitorGroup/MonitorGroupMonitorsCopy";
 import NoMonitorsStatus from "../../../Components/MonitorGroup/NoMonitorsStatus";
+import MonitorGroupDisabledStatus from "../../../Components/MonitorGroup/MonitorGroupDisabledStatus";
+import MonitorGroupMonitoringCard from "../../../Components/MonitorGroup/MonitorGroupMonitoringCard";
+import { fetchMonitorGroupMonitoringSummary } from "../../../Components/MonitorGroup/MonitorGroupMonitoringAPI";
+import MonitorGroupMonitoring, {
+  MonitorGroupMonitoringSummary,
+} from "Common/Utils/Monitor/MonitorGroupMonitoring";
 import React, {
   Fragment,
   FunctionComponent,
@@ -73,6 +79,15 @@ const MonitorGroupView: FunctionComponent<
    * group with nothing in it.
    */
   const [monitorCount, setMonitorCount] = useState<number | null>(null);
+
+  /*
+   * How many of the group's monitors are checked (issue #6401): the
+   * Monitoring card says so and turns them off or on, and a group whose
+   * monitors all have monitoring off reads Disabled. Null when it could not
+   * be read: the card is then left out and the status shown as it is.
+   */
+  const [monitoringSummary, setMonitoringSummary] =
+    useState<MonitorGroupMonitoringSummary | null>(null);
 
   const getUptimePercent: () => ReactElement = (): ReactElement => {
     if (isLoading) {
@@ -122,6 +137,16 @@ const MonitorGroupView: FunctionComponent<
       return <NoMonitorsStatus />;
     }
 
+    /*
+     * Nothing checks any of its monitors: their worst status is only what
+     * their last checks saw, so the group says it is off instead.
+     */
+    if (
+      MonitorGroupMonitoring.isMonitoringOffForEveryMonitor(monitoringSummary)
+    ) {
+      return <MonitorGroupDisabledStatus />;
+    }
+
     return (
       <Statusbubble
         text={currentGroupStatus?.name || "Operational"}
@@ -134,6 +159,36 @@ const MonitorGroupView: FunctionComponent<
   useAsyncEffect(async () => {
     await fetchItem();
   }, []);
+
+  const getCurrentStatus: () => Promise<MonitorStatus | null> =
+    async (): Promise<MonitorStatus | null> => {
+      return await ModelAPI.post<MonitorStatus>({
+        modelType: MonitorStatus,
+        apiUrl: URL.fromString(APP_API_URL.toString())
+          .addRoute(new MonitorGroup().getCrudApiPath()!)
+          .addRoute("/current-status/")
+          .addRoute(`/${modelId.toString()}`),
+      });
+    };
+
+  /*
+   * Monitoring was turned off or on from the Monitoring card: its counts,
+   * and the group's status - turning monitoring off resolves incidents,
+   * which gives monitors back their operational status.
+   */
+  const onMonitoringChanged: (
+    summary: MonitorGroupMonitoringSummary,
+  ) => void = (summary: MonitorGroupMonitoringSummary): void => {
+    setMonitoringSummary(summary);
+
+    getCurrentStatus()
+      .then((currentStatus: MonitorStatus | null) => {
+        setCurrentGroupStatus(currentStatus);
+      })
+      .catch(() => {
+        // The status read before stays: the page reports its own errors on load.
+      });
+  };
 
   const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -184,16 +239,16 @@ const MonitorGroupView: FunctionComponent<
         },
       });
 
-      const currentStatus: MonitorStatus | null =
-        await ModelAPI.post<MonitorStatus>({
-          modelType: MonitorStatus,
-          apiUrl: URL.fromString(APP_API_URL.toString())
-            .addRoute(new MonitorGroup().getCrudApiPath()!)
-            .addRoute("/current-status/")
-            .addRoute(`/${modelId.toString()}`),
+      const currentStatus: MonitorStatus | null = await getCurrentStatus();
+
+      // Not worth failing the page over: the card is left out without it.
+      const summary: MonitorGroupMonitoringSummary | null =
+        await fetchMonitorGroupMonitoringSummary(modelId).catch((): null => {
+          return null;
         });
 
       setMonitorCount(groupMonitorCount);
+      setMonitoringSummary(summary);
       setCurrentGroupStatus(currentStatus);
       setStatusTimelines(statusTimelines.data);
       setDowntimeMonitorStatues(
@@ -313,6 +368,18 @@ const MonitorGroupView: FunctionComponent<
           modelId: modelId,
         }}
       />
+
+      {monitorCount !== 0 &&
+      monitoringSummary &&
+      monitoringSummary.monitorCount > 0 ? (
+        <MonitorGroupMonitoringCard
+          monitorGroupId={modelId}
+          summary={monitoringSummary}
+          onChange={onMonitoringChanged}
+        />
+      ) : (
+        <></>
+      )}
 
       {monitorCount === 0 ? (
         /*

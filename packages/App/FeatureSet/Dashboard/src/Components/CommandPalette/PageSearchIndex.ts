@@ -652,6 +652,15 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               { name: "Daily AI Token Limit", anchor: "DailyLimits" },
               { name: "Daily AI Spend Limit (USD)", anchor: "DailyLimits" },
               /*
+               * How far one AI run may go (issue #6440), under the same
+               * More settings (PROJECT_AI_RUN_LIMITS_CARD_KEY).
+               */
+              { name: "Limits per run", anchor: "LimitsPerRun" },
+              { name: "Model Calls per Run", anchor: "LimitsPerRun" },
+              { name: "Tool Calls per Run", anchor: "LimitsPerRun" },
+              { name: "Tokens per Run", anchor: "LimitsPerRun" },
+              { name: "Time Limit per Run (Minutes)", anchor: "LimitsPerRun" },
+              /*
                * Two people approve a riskier fix: the card under the same
                * More settings (FIX_APPROVALS_CARD_KEY), and its switch.
                */
@@ -3490,9 +3499,26 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.NETWORK_DEVICE_ENDPOINTS,
-            title: "Endpoints",
+            title: "Discovered Devices",
             icon: IconProp.Squares,
-            keywords: ["arp", "mac addresses", "connected devices"],
+            keywords: [
+              "endpoints",
+              "arp",
+              "mac addresses",
+              "ip addresses",
+              "hostnames",
+              "connected devices",
+              "add to monitoring",
+              "hide from map",
+              "stale devices",
+              "remove old devices",
+            ],
+            /*
+             * How long a device nothing sees stays (issue #6389), folded
+             * under the page's More settings: the result opens the fold at
+             * its card (DiscoveredDeviceRetentionCopy's place for it).
+             */
+            settings: [{ name: "Unseen Devices", anchor: "unseen-devices" }],
           },
           {
             page: PageMap.NETWORK_DEVICE_LATENCY_MATRIX,

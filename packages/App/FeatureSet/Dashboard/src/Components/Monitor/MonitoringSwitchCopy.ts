@@ -61,8 +61,12 @@ export const MonitoringSwitchCopy: {
   bannerTitle: translationKey("Monitoring is turned off"),
   turnOnButton: translationKey("Turn monitoring on"),
   turnOffConfirmTitle: translationKey("Turn off monitoring?"),
+  /*
+   * Turning monitoring off resolves the monitor's open incidents and alerts
+   * that it would have resolved itself (Server/Utils/Monitor/MonitorTurnedOff).
+   */
   turnOffConfirmDescription: translationKey(
-    "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.",
+    "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.",
   ),
   turnOffConfirmButton: translationKey("Turn off monitoring"),
 };

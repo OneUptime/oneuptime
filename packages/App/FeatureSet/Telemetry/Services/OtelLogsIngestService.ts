@@ -8,7 +8,11 @@ import {
 import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
 import EventLoop from "Common/Server/Utils/EventLoop";
 import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
-import OneUptimeDate, { ExactUnixNano } from "Common/Types/Date";
+import OneUptimeDate from "Common/Types/Date";
+import OtlpLogRecordTimeUtil, {
+  OtlpLogRecordTime,
+  OtlpLogTimeSource,
+} from "../Utils/OtlpLogRecordTime";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Text from "Common/Types/Text";
 import {
@@ -19,6 +23,9 @@ import {
 import Response from "Common/Server/Utils/Response";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
+import { RumTelemetrySignal } from "Common/Types/Rum/RumTelemetrySignal";
+import LogEventName from "Common/Types/Log/LogEventName";
+import LlmLogEventsUtil from "Common/Utils/Telemetry/LlmLogEvents";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import {
@@ -658,6 +665,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           const rumApplicationId: ObjectID | null = await this.autoDiscoverRum({
             projectId,
             attributes: resourceAttributes_raw,
+            signal: RumTelemetrySignal.Logs,
           });
 
           const serviceMetadata: TelemetryServiceMetadata =
@@ -820,6 +828,25 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   );
 
                   /*
+                   * An event sent by a newer SDK names itself in the
+                   * record's event name field rather than in the
+                   * `event.name` attribute older SDKs and most
+                   * instrumentations set: stamp it there when the record
+                   * does not set the attribute, so every event is found by
+                   * one key (the Logs page, filters, the AI conversations
+                   * read of GenAI events).
+                   */
+                  LogEventName.stampOnAttributes(attributesObject, log);
+
+                  /*
+                   * A GenAI inference event's messages, held as their JSON
+                   * text - as the Log table stores them, and as a span holds
+                   * them - so the scrub rules below mask what was said on
+                   * the logs signal as the traces' rules do on a span.
+                   */
+                  LlmLogEventsUtil.holdContentAsText(attributesObject);
+
+                  /*
                    * `attributeKeys` is stored as a ClickHouse Array column
                    * and used downstream only as an unordered set (for
                    * "has this attribute?" checks). Skip the sort the
@@ -833,63 +860,31 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     Object.keys(attributesObject);
 
                   /*
-                   * Assigned in every branch below — no eager current-time
-                   * pair here, since records normally carry their own
-                   * timeUnixNano and the fallback is only for records that
-                   * do not.
-                   *
-                   * timeUnixNano is the record's time in whole nanoseconds,
-                   * which the time column's fraction and the timeUnixNano
-                   * column are written from. An integer string - how
-                   * OTLP/protobuf sends it - is read exactly, digits and
-                   * Date alike (OneUptimeDate.readExactUnixNano): a float of
-                   * it was up to 128 ns off and its Date a millisecond early
-                   * or late. A number, any other text and the current time
-                   * stay the float they were read as before, with the Date
-                   * made from that float.
+                   * When the record happened: its own time, else - OTLP's
+                   * rule - the time its SDK or collector observed it, else
+                   * when it arrived (OtlpLogRecordTime). timeUnixNano is
+                   * that time in whole nanoseconds, which the time column's
+                   * fraction and the timeUnixNano column are written from,
+                   * and timeDate its Date, from the same read: an integer
+                   * string's exact digits (a float of one was up to 128 ns
+                   * off and its Date a millisecond early or late), or the
+                   * float of a number or other text.
                    */
-                  let timeUnixNano: number | string;
-                  let timeDate: Date;
-                  // Whether the record said when it happened (a time past 0).
-                  let hasRecordTime: boolean = false;
-
-                  const exactTime: ExactUnixNano | null =
-                    OneUptimeDate.readExactUnixNano(log["timeUnixNano"]);
-
-                  if (exactTime !== null) {
-                    timeUnixNano = exactTime.nano;
-                    timeDate = exactTime.date;
-                    hasRecordTime = exactTime.nano !== "0";
-                  } else if (log["timeUnixNano"]) {
-                    try {
-                      let floatTimeUnixNano: number;
-                      if (typeof log["timeUnixNano"] === "string") {
-                        floatTimeUnixNano = parseFloat(log["timeUnixNano"]);
-                        if (isNaN(floatTimeUnixNano)) {
-                          throw new Error(
-                            `Invalid timestamp string: ${log["timeUnixNano"]}`,
-                          );
-                        }
-                      } else {
-                        floatTimeUnixNano =
-                          (log["timeUnixNano"] as number) ||
-                          OneUptimeDate.getCurrentDateAsUnixNano();
-                      }
-
-                      timeUnixNano = floatTimeUnixNano;
-                      timeDate = OneUptimeDate.fromUnixNano(floatTimeUnixNano);
-                      hasRecordTime = floatTimeUnixNano > 0;
-                    } catch (timeError) {
-                      logger.warn(
-                        `Error processing timestamp ${log["timeUnixNano"]}: ${timeError instanceof Error ? timeError.message : String(timeError)}, using current time`,
-                      );
-                      timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
-                      timeDate = OneUptimeDate.getCurrentDate();
-                    }
-                  } else {
-                    timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
-                    timeDate = OneUptimeDate.getCurrentDate();
-                  }
+                  const recordTime: OtlpLogRecordTime =
+                    OtlpLogRecordTimeUtil.read({
+                      timeUnixNano: log["timeUnixNano"],
+                      observedTimeUnixNano: log["observedTimeUnixNano"],
+                    });
+                  let timeUnixNano: number | string = recordTime.timeUnixNano;
+                  let timeDate: Date = recordTime.timeDate;
+                  /*
+                   * Whether the record said when it happened. An observed
+                   * time is when a reader saw it, so a time the record's
+                   * body says - a Kubernetes Event's, an OpenStack line's -
+                   * still wins over it, as it did over the arrival time.
+                   */
+                  const hasRecordTime: boolean =
+                    recordTime.source === OtlpLogTimeSource.Record;
 
                   let logSeverityNumber: number = this.normalizeSeverityNumber(
                     log["severityNumber"],
@@ -1037,11 +1032,29 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     this.getSeverityText(logSeverityNumber);
 
                   /*
+                   * When the inventory hooks below saw a resource: the
+                   * record's own time, else when it arrived - not its
+                   * observed time, which the log row is now stored at
+                   * (#6395). The agents' snapshots - the k8sobjects pull,
+                   * the Swarm agent's snapshot file - send only an observed
+                   * time, off the agent's clock, while the stale sweep
+                   * deletes a resource the server's clock has not seen for
+                   * 15 minutes (CleanupStaleResources): an agent whose clock
+                   * ran 15 minutes behind would lose its whole inventory.
+                   */
+                  const inventorySeenAt: Date =
+                    recordTime.source === OtlpLogTimeSource.Observed
+                      ? OneUptimeDate.getCurrentDate()
+                      : timeDate;
+
+                  /*
                    * Kubernetes inventory hook: convert the k8sobjects log
                    * body into a row for the inventory upsert. Buffered per
-                   * cluster and flushed once per request batch below. Uses
-                   * the agent-observed timestamp so out-of-order delivery
-                   * doesn't regress newer snapshots.
+                   * cluster and flushed once per request batch below. The
+                   * upsert never moves a resource's lastSeenAt back, so a
+                   * snapshot with a time of its own that arrives after a
+                   * newer one does not undo it; one with only an observed
+                   * time is seen when it is read here (inventorySeenAt).
                    *
                    * k8s.resource.name sits on each log record (not the
                    * resource envelope), so we read it from the record's
@@ -1061,7 +1074,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                           extractInventoryResource({
                             resourceType: recordK8sResourceType,
                             logBody: body,
-                            lastSeenAt: timeDate,
+                            lastSeenAt: inventorySeenAt,
                           });
                         if (parsed) {
                           const key: string = kubernetesClusterId.toString();
@@ -1115,7 +1128,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                           extractDockerInventoryResource({
                             kind: recordDockerKind,
                             logBody: body,
-                            lastSeenAt: timeDate,
+                            lastSeenAt: inventorySeenAt,
                           });
                         if (parsed) {
                           const key: string = dockerHostId.toString();
@@ -1154,7 +1167,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                           extractPodmanInventoryResource({
                             kind: recordPodmanKind,
                             logBody: body,
-                            lastSeenAt: timeDate,
+                            lastSeenAt: inventorySeenAt,
                           });
                         if (parsed) {
                           const key: string = podmanHostId.toString();
@@ -1198,7 +1211,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                           extractDockerSwarmInventoryResource({
                             kind: recordSwarmKind,
                             logBody: body,
-                            lastSeenAt: timeDate,
+                            lastSeenAt: inventorySeenAt,
                           });
                         if (parsed) {
                           const key: string = dockerSwarmClusterId.toString();
@@ -1235,37 +1248,13 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   );
 
                   /*
-                   * Extract observedTimeUnixNano, read as timeUnixNano is:
-                   * an integer string's own digits, exactly, and anything
-                   * else the float it was read as before.
+                   * The observedTimeUnixNano column keeps the observed time
+                   * as it came - an integer string's own digits, exactly,
+                   * anything else the float it was read as - whichever time
+                   * the record is stored at.
                    */
-                  let observedTimeUnixNano: number | string = 0;
-                  if (log["observedTimeUnixNano"]) {
-                    try {
-                      const exactObservedTime: ExactUnixNano | null =
-                        OneUptimeDate.readExactUnixNano(
-                          log["observedTimeUnixNano"],
-                        );
-
-                      if (exactObservedTime !== null) {
-                        observedTimeUnixNano = exactObservedTime.nano;
-                      } else if (
-                        typeof log["observedTimeUnixNano"] === "string"
-                      ) {
-                        const floatObservedTimeUnixNano: number = parseFloat(
-                          log["observedTimeUnixNano"],
-                        );
-                        observedTimeUnixNano = isNaN(floatObservedTimeUnixNano)
-                          ? 0
-                          : floatObservedTimeUnixNano;
-                      } else {
-                        observedTimeUnixNano =
-                          (log["observedTimeUnixNano"] as number) || 0;
-                      }
-                    } catch {
-                      observedTimeUnixNano = 0;
-                    }
-                  }
+                  const observedTimeUnixNano: number | string =
+                    recordTime.observedTimeUnixNano;
 
                   const droppedAttributesCount: number =
                     (log["droppedAttributesCount"] as number) || 0;

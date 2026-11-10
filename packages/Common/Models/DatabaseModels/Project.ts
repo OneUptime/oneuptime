@@ -10,11 +10,13 @@ import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "../../Types/Billing/SubscriptionStatus";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
+import { ColumnAccessControl as BaseColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
+import { getDecimalDatabaseTransformer } from "../../Types/Database/DecimalColumnTransformer";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import MultiTenentQueryAllowed from "../../Types/Database/MultiTenentQueryAllowed";
@@ -32,9 +34,33 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Phone from "../../Types/Phone";
 import PositiveNumber from "../../Types/PositiveNumber";
+import { DEFAULT_DISCOVERED_DEVICE_RETENTION_IN_DAYS } from "../../Types/NetworkDevice/DiscoveredDeviceRetention";
 import { NETWORK_TOPOLOGY_LAYOUTS } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { SECURITY_CASE_NUMBER_PREFIX } from "../../Types/SecurityCase/SecurityCaseNumber";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+
+/*
+ * Who reads and writes a project's telemetry ingestion budgets: its members
+ * and its telemetry roles read them (the Usage page shows them); only a
+ * master admin writes them, so a project cannot raise the budget the
+ * instance admin set for it.
+ */
+const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
+  create: [],
+  read: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.Viewer,
+    Permission.ReadProject,
+    Permission.UnAuthorizedSsoUser,
+    Permission.ProjectUser,
+    Permission.TelemetryAdmin,
+    Permission.TelemetryMember,
+    Permission.TelemetryViewer,
+  ],
+  update: [],
+};
 
 @EnableDocumentation({
   isMasterAdminApiDocs: true,
@@ -2109,6 +2135,134 @@ export default class Project extends TenantModel {
   public aiDailySpendLimitInUSD?: number = undefined;
 
   /*
+   * The project's own limits on each OneUptime AI run (issue #6440): see
+   * Types/AI/ProjectAiRunLimits. One setting for every kind of run. All four
+   * are unset until someone sets one: no cap on model calls, tool calls or
+   * tokens, and the default time limit (Types/AI/AIAgentRunLimits). Like the
+   * daily limits, only a project owner or someone with Manage Billing may
+   * set them, since they decide what a run may cost.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Model Calls per AI Run",
+    description:
+      "The most model (LLM) calls one OneUptime AI run may make: an investigation, an Ask AI answer, a Slack or Microsoft Teams answer, a triage, a remediation or a code task. The run answers with what it found when it gets there. Unset means no limit.",
+    example: 50,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiRunMaxModelCalls?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Tool Calls per AI Run",
+    description:
+      "The most tool calls (queries, commands, file reads and edits) one OneUptime AI run may make. The run answers with what it found when it gets there. Unset means no limit.",
+    example: 200,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiRunMaxToolCalls?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Tokens per AI Run",
+    description:
+      "The most tokens one OneUptime AI run may use, counted as the AI Logs count them. The run stops when it gets there and says so. Unset means no limit.",
+    example: 500000,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiRunMaxTokens?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "AI Run Time Limit (Minutes)",
+    description:
+      "How long one OneUptime AI run may take before it answers with what it found. An incident or alert investigation uses its own lane's time limit when that is set. Unset means the default, 120 minutes.",
+    example: 60,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiRunTimeLimitInMinutes?: number = undefined;
+
+  /*
    * When each of the two limits above last stopped OneUptime AI: the first
    * time it did on the latest UTC day it did (Types/AI/ProjectAiDailyLimits,
    * PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS). The conditional UPDATE that
@@ -2721,6 +2875,47 @@ export default class Project extends TenantModel {
     length: ColumnLength.ShortText,
   })
   public defaultNetworkTopologyLayout?: string = undefined;
+
+  /*
+   * How long a device the project's switches, routers and network
+   * controllers saw stays on the Discovered Devices list once nothing sees
+   * it any more (issue #6389, Types/NetworkDevice/DiscoveredDeviceRetention):
+   * in days, one of the choices that module lists, or 0 to keep every
+   * device. A monitored device, a classified one and one a person added or
+   * changed always stay. A Project Owner or Admin sets it on Network ->
+   * Topology -> Discovered Devices, under More settings; refused by
+   * ProjectService unless it is one of the choices or 0. A project made
+   * before it existed starts at the default, as a new one does.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Number,
+    title: "Discovered Device Retention (Days)",
+    description:
+      "Days a discovered device stays once no longer seen: 7, 14, 30, 60, 90, 180 or 365, or 0 to keep all. Monitored and classified devices always stay.",
+    defaultValue: DEFAULT_DISCOVERED_DEVICE_RETENTION_IN_DAYS,
+    example: 30,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: DEFAULT_DISCOVERED_DEVICE_RETENTION_IN_DAYS,
+  })
+  public discoveredDeviceRetentionInDays?: number = undefined;
 
   /*
    * The columns each of the project's lists shows, and their order, for
@@ -4888,4 +5083,174 @@ export default class Project extends TenantModel {
   })
   public requireApprovalForScheduledMaintenancePublicNotes?: boolean =
     undefined;
+
+  /*
+   * Telemetry ingestion budgets for this project, per signal
+   * (TelemetryIngestionBudget): set by the master admin only (Admin
+   * Dashboard > Projects > the project > Ingestion Budgets), so `create` and
+   * `update` are empty - the project's own admins can see the budget they
+   * are held to but cannot raise it. Empty is the instance default
+   * (GlobalConfig), 0 is no limit for this project. Read by the ingest path
+   * through TelemetryIngestionBudgetSettings' one-minute cache, which
+   * ProjectService clears on this server when one changes.
+   */
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Logs Daily Budget (GB)",
+    description:
+      "Set by the instance admin. The most logs this project may send in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. Empty: the instance default. 0: no limit for this project.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public logsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Traces Daily Budget (GB)",
+    description:
+      "Set by the instance admin. The most traces this project may send in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. Empty: the instance default. 0: no limit for this project.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public tracesDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Metrics Daily Budget (GB)",
+    description:
+      "Set by the instance admin. The most metrics this project may send in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. Empty: the instance default. 0: no limit for this project.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public metricsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Profiles Daily Budget (GB)",
+    description:
+      "Set by the instance admin. The most profiles this project may send in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. Empty: the instance default. 0: no limit for this project.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public profilesDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Security Events Daily Budget (GB)",
+    description:
+      "Set by the instance admin. The most security events this project may send in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. Empty: the instance default. 0: no limit for this project.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public securityEventsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Logs Rate Limit (MB per second)",
+    description:
+      "Set by the instance admin. The fastest this project may send logs, in MB per second; faster requests are answered 429 with Retry-After. Empty: the instance default. 0: no limit for this project.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public logsIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Traces Rate Limit (MB per second)",
+    description:
+      "Set by the instance admin. The fastest this project may send traces, in MB per second; faster requests are answered 429 with Retry-After. Empty: the instance default. 0: no limit for this project.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public tracesIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Metrics Rate Limit (MB per second)",
+    description:
+      "Set by the instance admin. The fastest this project may send metrics, in MB per second; faster requests are answered 429 with Retry-After. Empty: the instance default. 0: no limit for this project.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public metricsIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Profiles Rate Limit (MB per second)",
+    description:
+      "Set by the instance admin. The fastest this project may send profiles, in MB per second; faster requests are answered 429 with Retry-After. Empty: the instance default. 0: no limit for this project.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public profilesIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl(TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Security Events Rate Limit (MB per second)",
+    description:
+      "Set by the instance admin. The fastest this project may send security events, in MB per second; faster requests are answered 429 with Retry-After. Empty: the instance default. 0: no limit for this project.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public securityEventsIngestionRateLimitInMBPerSecond?: number = undefined;
 }

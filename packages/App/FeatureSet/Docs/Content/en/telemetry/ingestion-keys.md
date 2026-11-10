@@ -26,6 +26,7 @@ flowchart TB
 
 - **The key decides the project.** You never send a project ID: data sent with a key lands in the project the key belongs to.
 - **Changes reach every server within a minute.** Turning a key off, resetting its secret, or changing its origins, expiry or limit takes effect within about a minute.
+- **A key can have budgets of its own.** A daily budget and a per-second rate for each signal, within its project's: see [Ingestion Budgets](/docs/telemetry/ingestion-budgets).
 - **A Server key is a password.** Anyone who has it can send telemetry into your project. Keep it in your servers' secrets, never in source control or a web page.
 
 ## Server or Browser
@@ -121,6 +122,8 @@ To change a secret without losing data, create a second key, move your senders t
 
 A refused request is answered with a status and a sentence that says why.
 
+The key's page keeps count too: **Refused Telemetry** lists what was refused from the key in the past 30 days, why, on which endpoint, how many requests and when. A missing or mistyped key belongs to no project, so nothing counts it.
+
 | Answer | What it means |
 | --- | --- |
 | `401` with `Missing ingestion token` | The request has no key. Send it in `x-oneuptime-token`. |
@@ -155,4 +158,5 @@ Nothing has sent data with this key since OneUptime began recording its use. Che
 - [Service Catalog](/docs/telemetry/services): See the services your telemetry is filed under.
 - [Data Retention](/docs/telemetry/data-retention): Decide how long the data is kept.
 - [Drop Filters & Scrub Rules](/docs/telemetry/drop-filters-and-scrub-rules): Drop or mask data before it is stored.
+- [Ingestion Budgets](/docs/telemetry/ingestion-budgets): Cap how much each key may send in a day.
 :::

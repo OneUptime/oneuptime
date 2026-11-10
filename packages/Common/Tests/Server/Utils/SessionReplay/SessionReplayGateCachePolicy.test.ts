@@ -77,6 +77,11 @@ import SessionReplayGateCacheStore from "../../../../Server/Utils/SessionReplay/
 import SessionReplayCaptureTrigger from "../../../../Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "../../../../Types/Rum/SessionReplayConsentMode";
 import { getApplicationSessionReplayRetentionInDays } from "../../../../Server/Utils/SessionReplay/SessionReplayRetention";
+import {
+  SessionReplayFrustrationSignalsConfig,
+  getDefaultSessionReplayFrustrationSettings,
+  toSessionReplayFrustrationSignalsConfig,
+} from "../../../../Types/Rum/SessionReplayFrustrationSignals";
 
 const isProjectKilledMock: jest.Mock =
   SessionReplayGateCacheStore.isProjectKilled as unknown as jest.Mock;
@@ -474,6 +479,114 @@ describe("SessionReplayGateCache same-origin trace propagation switch", (): void
     });
 
     expect(policy).toBeNull();
+  });
+});
+
+/*
+ * What counts as frustration rides the policy to the config endpoint, which
+ * hands it to both recorders. The column is read leniently, like every
+ * policy column: null is the built-in rules, and a damaged row records what
+ * an untouched application records rather than nothing.
+ */
+describe("SessionReplayGateCache frustration signals", (): void => {
+  beforeEach((): void => {
+    jest.clearAllMocks();
+    projectFindOneByMock.mockResolvedValue(projectRow());
+  });
+
+  async function resolveWith(
+    overrides?: Record<string, unknown>,
+  ): Promise<SessionReplayGatePolicy | null> {
+    appFindOneByMock.mockResolvedValue(appRow(overrides));
+
+    return await SessionReplayGateCache.getPolicy({
+      projectId: PROJECT_ID,
+      appIdentifier: "checkout-web",
+    });
+  }
+
+  const BUILT_IN: SessionReplayFrustrationSignalsConfig =
+    toSessionReplayFrustrationSignalsConfig(
+      getDefaultSessionReplayFrustrationSettings(),
+    );
+
+  it("selects the column from RumApplication", async (): Promise<void> => {
+    await resolveWith();
+
+    const select: Record<string, unknown> = (
+      appFindOneByMock.mock.calls[0]?.[0] as { select: Record<string, unknown> }
+    ).select;
+
+    expect(select["sessionReplayFrustrationSignals"]).toBe(true);
+  });
+
+  it("a null or absent column is the built-in rules", async (): Promise<void> => {
+    expect((await resolveWith())?.frustrationSignals).toEqual(BUILT_IN);
+    expect(
+      (await resolveWith({ sessionReplayFrustrationSignals: null }))
+        ?.frustrationSignals,
+    ).toEqual(BUILT_IN);
+  });
+
+  it("serves changed rules and the custom signals that are on, without their ids", async (): Promise<void> => {
+    const policy: SessionReplayGatePolicy | null = await resolveWith({
+      sessionReplayFrustrationSignals: {
+        rageClick: {
+          isEnabled: true,
+          clickCount: 4,
+          windowMs: 800,
+          radiusPx: 30,
+          ignoreSelectors: [".stepper"],
+        },
+        deadClick: { isEnabled: false, timeoutMs: 3000, ignoreSelectors: [] },
+        errorClick: { isEnabled: true, windowMs: 1000 },
+        refreshRage: { isEnabled: true, reloadCount: 3, windowSeconds: 60 },
+        customSignals: [
+          {
+            id: "a",
+            name: "Payment failed",
+            trigger: "event",
+            match: "payment_failed",
+            isFrustration: true,
+            isEnabled: true,
+          },
+          {
+            id: "b",
+            name: "Old banner",
+            trigger: "click",
+            match: ".banner",
+            isFrustration: false,
+            isEnabled: false,
+          },
+        ],
+      },
+    });
+
+    expect(policy?.frustrationSignals.rageClick).toEqual({
+      isEnabled: true,
+      clickCount: 4,
+      windowMs: 800,
+      radiusPx: 30,
+      ignoreSelectors: [".stepper"],
+    });
+    expect(policy?.frustrationSignals.deadClick.isEnabled).toBe(false);
+    expect(policy?.frustrationSignals.customSignals).toEqual([
+      {
+        name: "Payment failed",
+        trigger: "event",
+        match: "payment_failed",
+        isFrustration: true,
+      },
+    ]);
+  });
+
+  it("reads a damaged row as the built-in rules instead of refusing the application", async (): Promise<void> => {
+    const policy: SessionReplayGatePolicy | null = await resolveWith({
+      sessionReplayFrustrationSignals: "not an object",
+    });
+
+    expect(policy).not.toBeNull();
+    expect(policy?.frustrationSignals).toEqual(BUILT_IN);
   });
 });
 

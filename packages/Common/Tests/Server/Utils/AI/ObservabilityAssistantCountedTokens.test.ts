@@ -8,6 +8,7 @@ import AIService, {
 import AIToolbox, {
   ToolCallOutcome,
 } from "../../../../Server/Utils/AI/Toolbox/Index";
+import AIAgentRunLimitsHelper from "../../../../Types/AI/AIAgentRunLimits";
 import AiTokenCount from "../../../../Types/AI/AiTokenCount";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -109,7 +110,7 @@ async function investigate(
     props: { isRoot: true },
     question: "Why is checkout returning 500 errors?",
     feature: "AI Incident Investigation",
-    maxWallClockMs: null,
+    runLimits: AIAgentRunLimitsHelper.getDefault(),
     onStep: async (step: ObservabilityAssistantStep): Promise<void> => {
       steps.push(step);
     },

@@ -27,6 +27,7 @@ flowchart TB
 - **追踪包含其异常，性能剖析数据包含其样本。**
 - **OneUptime 自己的遥测不计入。** 监视器、警报、事件和 SLO 的读数、数据可观测性的读数以及会话回放预算指标都由 OneUptime 自己写入。
 - **在 OneUptime Cloud 上，遥测按这些行计费。** 在没有计费的安装上，用量的统计不产生任何费用，也不会为其收费，即使之后启用了计费也是如此。
+- **预算与用量分开计数。** [摄取预算](/docs/telemetry/ingestion-budgets) 在遥测数据到达时按解压后的大小计数，因此可以在当天就拦下当天的遥测数据。设置了预算时，此页面最上方会显示今天的预算。
 
 ## 开始之前
 
@@ -134,4 +135,5 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
 - [数据保留](/docs/telemetry/data-retention): 按需保留遥测数据，不多留一天。
 - [账单与用量](/docs/configuration/billing): OneUptime Cloud 上遥测的费用。
 - [摄取密钥](/docs/telemetry/ingestion-keys): 把遥测发送到你的项目。
+- [摄取预算](/docs/telemetry/ingestion-budgets): 限制项目一天内每个信号最多发送多少。
 :::

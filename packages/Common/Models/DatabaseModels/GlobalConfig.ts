@@ -5,6 +5,7 @@ import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccess
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
+import { getDecimalDatabaseTransformer } from "../../Types/Database/DecimalColumnTransformer";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -2387,4 +2388,271 @@ export default class GlobalConfig extends GlobalConfigModel {
     default: 10,
   })
   public postgresRetainedWalLimitInGb?: number = undefined;
+
+  /*
+   * Telemetry ingestion budgets: the default every project gets, per signal
+   * (TelemetryIngestionBudget). A project's own budget, set by the master
+   * admin on the project (Project.<signal>DailyIngestionBudgetInGB), wins
+   * over these; an ingestion key's own budget subdivides the project's.
+   * Empty is no limit, which is how every installation starts. Read by the
+   * ingest path through TelemetryIngestionBudgetSettings' one-minute cache.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Logs Daily Budget (GB)",
+    description:
+      "The most logs each project may send in a budget day, in GB, counted decompressed as they arrive. A project's own budget, set on its page, wins over this. Leave empty for no limit.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public logsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Traces Daily Budget (GB)",
+    description:
+      "The most traces each project may send in a budget day, in GB, counted decompressed as they arrive. A project's own budget, set on its page, wins over this. Leave empty for no limit.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public tracesDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Metrics Daily Budget (GB)",
+    description:
+      "The most metrics each project may send in a budget day, in GB, counted decompressed as they arrive. A project's own budget, set on its page, wins over this. Leave empty for no limit.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public metricsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Profiles Daily Budget (GB)",
+    description:
+      "The most profiles each project may send in a budget day, in GB, counted decompressed as they arrive. A project's own budget, set on its page, wins over this. Leave empty for no limit.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public profilesDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Security Events Daily Budget (GB)",
+    description:
+      "The most security events each project may send in a budget day, in GB, counted decompressed as they arrive. A project's own budget, set on its page, wins over this. Leave empty for no limit.",
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public securityEventsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Logs Rate Limit (MB per second)",
+    description:
+      "The fastest each project may send logs, in MB per second. Faster requests are answered 429 with Retry-After, so senders retry them. A project's own limit wins over this. Leave empty for no limit.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public logsIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Traces Rate Limit (MB per second)",
+    description:
+      "The fastest each project may send traces, in MB per second. Faster requests are answered 429 with Retry-After, so senders retry them. A project's own limit wins over this. Leave empty for no limit.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public tracesIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Metrics Rate Limit (MB per second)",
+    description:
+      "The fastest each project may send metrics, in MB per second. Faster requests are answered 429 with Retry-After, so senders retry them. A project's own limit wins over this. Leave empty for no limit.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public metricsIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Profiles Rate Limit (MB per second)",
+    description:
+      "The fastest each project may send profiles, in MB per second. Faster requests are answered 429 with Retry-After, so senders retry them. A project's own limit wins over this. Leave empty for no limit.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public profilesIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Default Security Events Rate Limit (MB per second)",
+    description:
+      "The fastest each project may send security events, in MB per second. Faster requests are answered 429 with Retry-After, so senders retry them. A project's own limit wins over this. Leave empty for no limit.",
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public securityEventsIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Ingestion Budget Warning Threshold (%)",
+    description:
+      "Projects are warned when they have used this percent of a daily ingestion budget, from 1 to 99. Leave empty for 80.",
+    example: 80,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public telemetryIngestionBudgetWarningPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Ingestion Budget Reset Time",
+    description:
+      "When each budget day starts again, as HH:MM on the 24-hour clock in the reset time zone. Leave empty for 00:00.",
+    example: "00:00",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public telemetryIngestionBudgetResetTime?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Ingestion Budget Reset Time Zone",
+    description:
+      "The IANA time zone of the reset time, for example UTC, Europe/Berlin or America/New_York. Leave empty for UTC.",
+    example: "UTC",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public telemetryIngestionBudgetResetTimezone?: string = undefined;
 }

@@ -9,10 +9,12 @@ import CodeFixRunQueue from "Common/Server/Utils/AI/CodeFix/CodeFixRunQueue";
  * Decision logic lives in CodeFixRunQueue so it is unit-testable.
  *
  * (Heartbeat-stale RUNNING code-fix runs are swept by
- * AIChat:TimeoutStuckRuns — Error, never requeued, because an external
- * executor may have pushed a partial fix branch. The legacy AIAgentTask
- * sweepers that used to live alongside this job died with the AIAgentTask
- * table.)
+ * AIChat:TimeoutStuckRuns — tried again in place only when nothing says
+ * the external executor pushed a branch or opened a pull request and the
+ * run has attempts left (CodeFixAutoRetry), Error otherwise. A run queued
+ * again that way waits here only from its nextAttemptAt. The legacy
+ * AIAgentTask sweepers that used to live alongside this job died with the
+ * AIAgentTask table.)
  */
 RunCron(
   "AIAgent:FailOrphanedQueuedCodeFixRuns",

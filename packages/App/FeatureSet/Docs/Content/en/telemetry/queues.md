@@ -218,7 +218,7 @@ Each queue's **Broker health** section charts the metrics listed for its system 
 
 Where no traced application publishes to or consumes from a queue, its **Published**, **Consumed** and **Errors** tiles and its **Messages** chart read the broker's own counts instead — messages in, messages out, and its errors added up, with throttled requests counted apart under **Errors** — and each says so under its number. A queue with spans keeps them, since they say which service did what. **p95 processing time** comes from consumer traces alone, because no broker measures how long a consumer takes with a message: without them it reads **Needs consumer traces**.
 
-The **Broker metrics** card at the top of the section lists every metric charted for the queue's system: whether it arrived for the queue in the selected range, when it last did, and why each other one did not. A count can have nothing to report (no throttled request is good news); a level the broker reports all the time and that never arrives is one the collector does not ask for, and the card gives the lines its configuration needs; a metric can stop arriving. For a Service Bus or Event Hubs queue none of whose metrics arrives, the card also reads what its namespace sends instead (see [Broker health stays empty](#broker-health-stays-empty)).
+The **Broker metrics** card at the top of the section lists every metric charted for the queue's system: whether it arrived for the queue in the selected range, when it last did, and why each other one did not. A count can have nothing to report (no throttled request is good news); a level the broker reports all the time and that never arrives is one the collector does not ask for, and the card gives the lines its configuration needs; a metric can stop arriving. For a Service Bus or Event Hubs queue none of whose metrics arrives, the card also reads what its namespace sends instead (see [Broker health stays empty](#broker-health-stays-empty)). Under its summary, the card names what read the queue's metrics lately: the collector's receiver, your cloud connections, linked to **Cloud → Connect**, or both. On a queue only a [connected Azure subscription](/docs/telemetry/cloud-accounts) reads, a metric the subscription does not read is **Collector only**, with the line that adds it to the receiver, rather than missing.
 
 ### Amazon SNS
 
@@ -595,7 +595,9 @@ OneUptime does not chart Event Grid's metrics on a queue's page: Azure Monitor r
 
 ### Azure Event Hubs
 
-Read the namespace's metrics from Azure Monitor with the collector's `azure_monitor` receiver, which splits them per event hub by the EntityName dimension.
+A connected Azure subscription reads the namespace's key metrics for each event hub, with nothing to run. To read all of them, run the collector's `azure_monitor` receiver, which splits them per event hub by the EntityName dimension.
+
+A [connected Azure subscription](/docs/telemetry/cloud-accounts) reads `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` and `azure_throttledrequests_total` for up to 1,000 event hubs of a namespace, with one Azure Monitor call per namespace each time it reads, however many event hubs the namespace has. Only the receiver reads the other three, which an event hub's **Broker metrics** card marks **Collector only**. Where both read a metric of an event hub, the receiver's is kept and the subscription's left out, so nothing is counted twice.
 
 The receiver signs in through the `azure_auth` extension. Give the service principal the **Monitoring Reader** role on the subscription:
 
@@ -659,7 +661,9 @@ Azure Monitor has no consumer-lag metric for Event Hubs: its `ConsumerLag` exist
 
 ### Azure Service Bus
 
-Read the namespace's metrics from Azure Monitor with the collector's `azure_monitor` receiver, which splits them per queue and topic by the EntityName dimension.
+A connected Azure subscription reads the namespace's key metrics for each queue and topic, with nothing to run. To read all of them, run the collector's `azure_monitor` receiver, which splits them per queue and topic by the EntityName dimension.
+
+A [connected Azure subscription](/docs/telemetry/cloud-accounts) reads `azure_activemessages_average`, `azure_deadletteredmessages_average`, `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` and `azure_throttledrequests_total` for up to 1,000 queues and topics of a namespace, with one Azure Monitor call per namespace each time it reads, however many queues the namespace has: read every 5 minutes, a namespace of 50 queues costs 12 calls an hour, as a namespace of one does. Only the receiver reads the other six, which a queue's **Broker metrics** card marks **Collector only**. Where both read a metric of a queue, the receiver's is kept and the subscription's left out, so nothing is counted twice.
 
 The receiver signs in through the `azure_auth` extension. Give the service principal the **Monitoring Reader** role on the subscription:
 
@@ -718,7 +722,7 @@ service:
 - `maximum_number_of_records_per_resource` is how many series Azure returns per metric and namespace, 10 unless you raise it: keep it above your number of queues and topics — the error metrics split each entity further by result — or the rest go unreported.
 - Azure Monitor does not split by topic subscription: a topic's counts cover all its subscriptions.
 - The `metrics` list collects exactly what the queue page charts, each with the one aggregation it charts; add a metric (`IncomingRequests`, `Messages`, …) to collect it too. A collector whose list predates `ScheduledMessages`, `Size` or `ServerSendLatency` sends none of them: the queue's **Broker metrics** card names the lines to add.
-- Only this receiver splits the metrics by queue and topic. A [connected Azure subscription](/docs/telemetry/cloud-accounts) and a diagnostic setting that exports metrics both send the namespace's totals, with no `EntityName`, so none of them reaches a queue: the namespace's own page under **Cloud → All Resources** has the subscription's, and a queue's **Broker metrics** card says why its own are missing.
+- A [connected Azure subscription](/docs/telemetry/cloud-accounts) splits its six metrics by queue and topic as this receiver does, and the namespace's own page under **Cloud → All Resources** adds them up. While the subscription [streams its metrics](/docs/telemetry/cloud-streaming-azure), it keeps reading a namespace's: a diagnostic setting sends only the namespace's totals, with no `EntityName`, and four of the six not at all. Where this receiver sends a namespace's totals, split by no queue or topic, the namespace's page keeps those, and the subscription's series reach only their queues, so no message is counted twice.
 - None of these metrics depends on the namespace's tier. `ServerSendLatency` is reported per send, so a queue nothing sent to in the range has none.
 - The receiver lists your namespaces once a day, so a new namespace can take up to 24 hours to appear.
 
@@ -1063,9 +1067,9 @@ When its spans do name it, create it by hand with the same system and destinatio
 - It is late. `aws_cloudwatch` waits `delay` (10 minutes) for CloudWatch to publish, so its points arrive 11 to 17 minutes late, and Pub/Sub's metrics arrive minutes late.
 - The system has no charted metrics: Azure Event Grid, NATS, JMS brokers other than ActiveMQ and BullMQ (see their sections). Their metrics are in the **Metrics** explorer.
 - Open the queue's **Broker metrics** card: it lists which metrics arrive and why the others do not. For a Service Bus or Event Hubs queue none of whose metrics arrives, it also says what the namespace sends instead, one of three things.
-- **Nothing from the namespace**: no collector reads it, or every read fails. Give the receiver's service principal the **Monitoring Reader** role, and look in the collector's log for `AuthorizationFailed` or `401`: an expired client secret stops every read.
-- **Totals only**: a [connected Azure subscription](/docs/telemetry/cloud-accounts) or a diagnostic setting sends the namespace's metrics for the namespace as a whole, with no queue or topic in them. Read the namespace with the `azure_monitor` receiver as well, which splits them by `EntityName`.
-- **Other queues only**: metrics arrive for other queues and topics of the namespace, not this one. The receiver's `maximum_number_of_records_per_resource` (10 unless you raise it) left it out: raise it above the number of queues and topics in the namespace.
+- **Nothing from the namespace**: nothing reads it, or every read fails. Connect its Azure subscription on **Cloud → Connect**, or run the `azure_monitor` receiver. Give the connection's app or the receiver's service principal the **Monitoring Reader** role, and look at the connection's last read, or in the collector's log for `AuthorizationFailed` or `401`: an expired client secret stops every read.
+- **Totals only**: the namespace's metrics arrive for the namespace as a whole, with no queue or topic in them. A diagnostic setting sends only those: connect the namespace's subscription, or read it with the `azure_monitor` receiver as well, either of which splits them by `EntityName`. A [connected Azure subscription](/docs/telemetry/cloud-accounts) sent only those before it read each queue, or when its reads of them fail: its last read on **Cloud → Connect** says why.
+- **Other queues only**: metrics arrive for other queues and topics of the namespace, not this one. The receiver's `maximum_number_of_records_per_resource` (10 unless you raise it) left it out: raise it above the number of queues and topics in the namespace. A connected subscription reads up to 1,000 of them: past that, read the namespace with the receiver too.
 
 ### Two queues for one destination
 

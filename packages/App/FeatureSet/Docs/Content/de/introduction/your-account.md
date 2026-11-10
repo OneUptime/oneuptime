@@ -1,6 +1,6 @@
 # Ihr Konto
 
-Über Ihr Konto kennt OneUptime Sie: die E-Mail-Adresse und das Passwort, mit denen Sie sich anmelden, Ihren Namen und Ihre Zeitzone und das, was Ihre Anmeldung schützt. Ein Konto kann zu vielen Projekten gehören, und diese Einstellungen begleiten Sie in jedes davon. Wie OneUptime Sie erreicht und wann es Sie alarmiert, legen Sie in jedem Projekt unter **Benutzereinstellungen** fest.
+Über Ihr Konto kennt OneUptime Sie: die E-Mail-Adresse und das Passwort, mit denen Sie sich anmelden, Ihren Namen, Ihre Zeitzone und Ihre Sprache und das, was Ihre Anmeldung schützt. Ein Konto kann zu vielen Projekten gehören, und diese Einstellungen begleiten Sie in jedes davon. Wie OneUptime Sie erreicht und wann es Sie alarmiert, legen Sie in jedem Projekt unter **Benutzereinstellungen** fest.
 
 ```mermaid title="Was zu Ihrem Konto gehört und was jedes Projekt für Sie speichert"
 flowchart TB
@@ -11,7 +11,7 @@ flowchart TB
 ```
 
 :::cards
-- [Ihr Profil](#ihr-profil): Ihr Name, Ihre E-Mail-Adresse, Zeitzone und Ihr Bild.
+- [Ihr Profil](#ihr-profil): Ihr Name, Ihre E-Mail-Adresse, Zeitzone, Sprache und Ihr Bild.
 - [Sicher anmelden](#sicher-anmelden): Ihr Passwort, Anmeldelinks, Passkeys und die Zwei-Faktor-Authentifizierung.
 - [Ihre Projekte](#ihre-projekte): Projekte wechseln, eines anlegen und Einladungen annehmen.
 - [Benutzereinstellungen](#was-jedes-projekt-für-sie-speichert): Wie OneUptime Sie in jedem Projekt erreicht.
@@ -23,7 +23,7 @@ Klicken Sie oben rechts im Dashboard auf Ihr Bild.
 
 | Eintrag | Was er tut |
 | --- | --- |
-| **Profil** | Öffnet **Benutzerprofil**: Ihren Namen, Ihre E-Mail-Adresse, Zeitzone, Ihr Bild und die Sicherheit Ihrer Anmeldung. |
+| **Profil** | Öffnet **Benutzerprofil**: Ihren Namen, Ihre E-Mail-Adresse, Zeitzone, Sprache, Ihr Bild und die Sicherheit Ihrer Anmeldung. |
 | **Admin-Einstellungen** | Öffnet das Admin-Dashboard. Nur Master-Admins einer selbst gehosteten Installation sehen ihn. |
 | **Design** | Legt das Design des Dashboards fest: **Hell**, **Dunkel** oder **System**, das hell oder dunkel ist, je nachdem, wie Ihr Gerät eingestellt ist. |
 | **Abmelden** | Meldet Sie ab. |
@@ -35,7 +35,7 @@ Klicken Sie oben rechts im Dashboard auf Ihr Bild.
 :::steps
 ### Ihr Profil öffnen
 
-Klicken Sie oben rechts auf Ihr Bild und wählen Sie **Profil**. Die Seite **Übersicht** öffnet sich mit der Karte **Grundinformationen**: Ihrem Namen, Ihrer E-Mail-Adresse und Ihrer Zeitzone.
+Klicken Sie oben rechts auf Ihr Bild und wählen Sie **Profil**. Die Seite **Übersicht** öffnet sich mit der Karte **Grundinformationen**: Ihrem Namen, Ihrer E-Mail-Adresse, Ihrer Zeitzone und Ihrer Sprache.
 
 ### Ihre Angaben bearbeiten
 
@@ -44,6 +44,7 @@ Klicken Sie auf **Benutzer bearbeiten** und ändern Sie, was Sie brauchen:
 - **E-Mail**: die Adresse, mit der Sie sich anmelden. Wenn Sie sie ändern, bestätigen Sie die neue Adresse erneut.
 - **Vollständiger Name**: der Name, den Ihr Team überall in OneUptime sieht.
 - **Zeitzone**: die Zeitzone, in der das Dashboard Zeiten anzeigt und liest, und die für die Zeiten in Benachrichtigungen an Sie verwendet wird.
+- **Sprache**: die Sprache des Dashboards in jedem Browser, in dem Sie sich anmelden, und Ihrer Bereitschaftsalarme. Ohne Auswahl sind Ihre Alarme auf Englisch, und das Dashboard folgt Ihrem Browser.
 
 Klicken Sie auf **Änderungen speichern**.
 
@@ -146,9 +147,9 @@ Sie können zu beliebig vielen Projekten gehören. Die Projektauswahl oben links
 
 ## Sprache und Design
 
-Beides wird in Ihrem Browser gespeichert, nicht in Ihrem Konto; stellen Sie es also in einem anderen Browser oder auf einem anderen Gerät erneut ein. Beides bleibt beim Abmelden erhalten, sodass die nächste Person an einem gemeinsam genutzten Computer mit Ihren Einstellungen beginnt.
+Ihr Design wird in Ihrem Browser gespeichert; stellen Sie es also in einem anderen Browser oder auf einem anderen Gerät erneut ein. Ihre Sprache wird in Ihrem Konto gespeichert, sobald Sie sie wählen, und jeder Browser, in dem Sie sich anmelden, startet in ihr. Beides bleibt beim Abmelden erhalten, sodass die nächste Person an einem gemeinsam genutzten Computer mit Ihren Einstellungen beginnt.
 
-- **Sprache**: Das Dashboard startet in der Sprache Ihres Browsers. Um sie zu ändern, nutzen Sie das Sprachmenü unten auf jeder Seite. Diese Dokumentation hat oben ein eigenes Sprachmenü.
+- **Sprache**: Das Dashboard startet in der Sprache Ihres Browsers. Um sie zu ändern, nutzen Sie das Sprachmenü unten auf jeder Seite. Ihre Wahl wird in Ihrem Konto gespeichert, wie **Sprache** in Ihrem Profil, und OneUptime schreibt Ihre Bereitschaftsalarme in ihr. Siehe [Die Sprache Ihrer Alarme](/docs/notifications/index#die-sprache-ihrer-alarme). Diese Dokumentation hat oben ein eigenes Sprachmenü.
 - **Design**: Wählen Sie im Benutzermenü **Hell**, **Dunkel** oder **System**. **System** ist hell oder dunkel, je nachdem, wie Ihr Gerät eingestellt ist, und wechselt mit ihm; jeder Browser startet damit. Die Anmeldeseiten verwenden dasselbe Design.
 
 ## Ihr Konto löschen

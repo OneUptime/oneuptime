@@ -81,7 +81,7 @@ See [Security Cases](/docs/telemetry/security-cases#notifications).
 
 The **Public Note Approval** card, on the **Status Pages** tab, is about public notes that wait for approval before they are published, in a project that asks for it:
 
-- **Public note waiting for my approval** tells you that a public note, or an edit of one, waits for a step you approve, by name or through a team. You are not asked about a note you sent, or about a step after one you approved. It starts on by email and by push, and **Email Rollup** never holds it back: the customers the note is written for are waiting for it.
+- **Public note waiting for my approval** tells you that a public note, or an edit of one, waits for a step you approve, by name or through a team. You are not asked about a note you sent, or about a step after one you approved. You are asked about each step once: when the note reaches it, or when you become one of its approvers while the note waits, because the approval steps changed or you joined a team a step names. It starts on by email and by push, and **Email Rollup** never holds it back: the customers the note is written for are waiting for it.
 - **My public note approved or rejected** tells you that a note you sent for approval was approved and published, or rejected, with the reason. It starts on by email.
 
 See [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).

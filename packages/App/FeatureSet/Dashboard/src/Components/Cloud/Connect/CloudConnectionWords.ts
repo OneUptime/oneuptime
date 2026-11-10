@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
@@ -107,7 +108,10 @@ function numberIn(value: number, fractionDigits?: number): TemplateValue {
           };
 
     try {
-      return value.toLocaleString(translator.language, options);
+      return value.toLocaleString(
+        getNumberLocale(translator.language),
+        options,
+      );
     } catch {
       return value.toLocaleString("en-US", options);
     }
@@ -313,6 +317,50 @@ export function getResourceCountWords(count: number): CloudTemplate {
  */
 export function getChangesRecordedWords(count: number): CloudTemplate {
   return pluralOf(CHANGES_RECORDED, count);
+}
+
+/*
+ * "2 warnings": what a read that worked could not read, or left for the
+ * next one (CloudConnectionReadSummary.warnings) - a namespace with more
+ * queues than a read takes, a metric Azure Monitor refused. Under the
+ * row's status, opening them.
+ */
+const READ_WARNINGS: PluralTemplate = {
+  one: "{{count}} warning",
+  other: "{{count}} warnings",
+};
+
+export function getReadWarningsWords(count: number): CloudTemplate {
+  return pluralOf(READ_WARNINGS, count);
+}
+
+export const READ_WARNINGS_TITLE: string = translationKey("Warnings");
+
+export const READ_WARNINGS_DESCRIPTION: string = translationKey(
+  "What the last read of {{name}} could not read, or left for the next one. It read the rest.",
+);
+
+/*
+ * The warnings of a connection's last read, as its row shows them: none
+ * while it is not working - View error says why its last read failed.
+ */
+export function getCloudReadWarnings(
+  connection: Pick<
+    CloudConnection,
+    | "isEnabled"
+    | "lastPulledAt"
+    | "lastSuccessfulPullAt"
+    | "lastError"
+    | "lastPullResult"
+  >,
+): Array<string> {
+  if (getCloudConnectionHealth(connection).key === "failing") {
+    return [];
+  }
+
+  return (
+    readCloudConnectionReadSummary(connection.lastPullResult)?.warnings || []
+  );
 }
 
 /*

@@ -456,6 +456,15 @@ ModelAPI.getList = async ({ modelType }) => {
 };
 ModelAPI.getCommonHeaders = () => ({});
 ModelAPI.getItem = async () => null;
+/*
+ * Whether the project has received telemetry: services that have reported.
+ * The map is drawn from its eight services' traces, so it has
+ * (Components/ProductOnboarding explains Topology only to a project with
+ * none).
+ */
+ModelAPI.count = async ({ modelType }) => {
+  return new modelType().tableName === "Service" ? 8 : 0;
+};
 API.post = async ({ url, data }) => {
   const route = url.toString();
   window.__topologyFixtureRequests.push({ operation: "post", route, data });

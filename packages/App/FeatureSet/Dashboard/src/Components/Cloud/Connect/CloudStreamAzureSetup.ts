@@ -55,8 +55,13 @@ export const AZURE_STREAM_WHAT_OPTIONS: ReadonlyArray<{
   {
     key: CloudStreamWhat.Metrics,
     label: translationKey("Metrics"),
+    /*
+     * Not every key metric: a diagnostic setting cannot send some of them,
+     * and a Service Bus or Event Hubs namespace's stay with the reads
+     * (isAzureStreamedKeyMetric).
+     */
     description: translationKey(
-      "Every key metric of every resource, a minute at a time: what OneUptime charts and judges each resource by.",
+      "The key metrics Azure can stream, a minute at a time: the connection keeps reading the rest.",
     ),
   },
   {

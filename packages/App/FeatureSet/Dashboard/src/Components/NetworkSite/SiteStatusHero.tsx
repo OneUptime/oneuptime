@@ -453,7 +453,7 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
 
         <div>
           <SiteHeroTileTitle
-            title="Endpoints"
+            title="Discovered Devices"
             description={NETWORK_SITE_METRIC_DESCRIPTIONS.endpoints}
           />
           <div className="mt-1.5 text-2xl font-semibold text-gray-900">

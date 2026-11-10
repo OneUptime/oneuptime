@@ -1103,6 +1103,8 @@ const NAMES_A_KIND_AS_IT_IS: Record<string, string> = {
   "NetworkSite.probe": PICKS_A_PROBE,
   "DataSecurityScan.probe": PICKS_A_PROBE,
   "PacketCapture.probe": PICKS_A_PROBE,
+  "PublicNoteApprovalRequest.incidentEpisodePublicNote":
+    "the record of whom OneUptime asked to approve an episode's public note, kept by OneUptime alone so nobody is asked twice: no member reads or writes it",
   "PushNotificationLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
   "RunbookVariable.runners": PICKS_RUNNERS,
   "RunnerJob.targetAgent":

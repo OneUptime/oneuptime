@@ -993,23 +993,32 @@ describe("the logs walk stores a record's time to the nanosecond", () => {
     );
   });
 
-  test("a zero is stored as the epoch, as before", async () => {
+  test("a zero is no time (#6395): stored at the observed time to the nanosecond, or when it arrived - no longer at the epoch", async () => {
     const captured: CapturedWalk = stubBackends();
+    freezeClock();
 
     await OtelLogsIngestService.processLogsFromQueue(
       logsRequest([
-        { timeUnixNano: "0", body: { stringValue: "zero" } },
+        {
+          timeUnixNano: "0",
+          observedTimeUnixNano: JUST_BEFORE_SECOND,
+          body: { stringValue: "zero" },
+        },
         { timeUnixNano: "+000", body: { stringValue: "zeros" } },
       ]),
     );
 
     const logs: Array<JSONObject> = captured.rows["submitLogsBuffer"] || [];
 
-    for (const row of logs) {
-      expect(row["time"]).toBe("1970-01-01 00:00:00.000000000");
-      expect(row["timeUnixNano"]).toBe("0");
-    }
-    expect(logs).toHaveLength(2);
+    // Before #6395: "1970-01-01 00:00:00.000000000" and "0" for both.
+    expect(
+      logs.map((row: JSONObject) => {
+        return [row["time"], row["timeUnixNano"], row["observedTimeUnixNano"]];
+      }),
+    ).toEqual([
+      ["2026-10-17 10:11:11.999999900", JUST_BEFORE_SECOND, JUST_BEFORE_SECOND],
+      ["2026-10-31 08:00:00.777000000", `${FROZEN_NOW_MS}000000`, "0"],
+    ]);
   });
 
   test("text that is no time falls back to the current time, with master's warning", async () => {

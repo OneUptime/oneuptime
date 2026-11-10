@@ -375,8 +375,8 @@ describe("3. every new sentence is in every locale, translated", () => {
     }),
   ];
 
-  test("there are seventeen locales", () => {
-    expect(LOCALE_FILES).toHaveLength(17);
+  test("there are eighteen locales", () => {
+    expect(LOCALE_FILES).toHaveLength(18);
   });
 
   test.each(LOCALE_FILES)("%s has every string", (file: string) => {

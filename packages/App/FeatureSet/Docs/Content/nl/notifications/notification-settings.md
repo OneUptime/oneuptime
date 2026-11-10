@@ -81,7 +81,7 @@ Zie [Beveiligingszaken](/docs/telemetry/security-cases#meldingen).
 
 De kaart **Goedkeuring van openbare notities**, op het tabblad **Statuspagina's**, gaat over openbare notities die op goedkeuring wachten voordat ze worden gepubliceerd, in een project dat daarom vraagt:
 
-- **Openbare notitie wacht op mijn goedkeuring** vertelt je dat een openbare notitie, of een bewerking ervan, wacht op een stap die jij goedkeurt, bij naam of via een team. Je wordt niet gevraagd naar een notitie die je zelf verstuurde, of naar een stap na een stap die je goedkeurde. Hij staat bij het begin aan per e-mail en per push, en **Email Rollup** houdt hem nooit tegen: de klanten voor wie de notitie is geschreven, wachten erop.
+- **Openbare notitie wacht op mijn goedkeuring** vertelt je dat een openbare notitie, of een bewerking ervan, wacht op een stap die jij goedkeurt, bij naam of via een team. Je wordt niet gevraagd naar een notitie die je zelf verstuurde, of naar een stap na een stap die je goedkeurde. Naar elke stap word je één keer gevraagd: wanneer de notitie die stap bereikt, of wanneer je een van de goedkeurders ervan wordt terwijl de notitie wacht, omdat de goedkeuringsstappen veranderden of je lid werd van een team dat een stap noemt. Hij staat bij het begin aan per e-mail en per push, en **Email Rollup** houdt hem nooit tegen: de klanten voor wie de notitie is geschreven, wachten erop.
 - **Mijn openbare notitie goedgekeurd of afgewezen** vertelt je dat een notitie die je ter goedkeuring verstuurde, is goedgekeurd en gepubliceerd, of afgewezen, met de reden. Hij staat bij het begin aan per e-mail.
 
 Zie [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities).

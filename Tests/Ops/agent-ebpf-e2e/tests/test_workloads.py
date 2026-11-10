@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """Unit tests of the end-to-end test's own workloads (manifests/*.yaml), without a cluster (#6184).
 
-On k3s under ubuntu-26.04, containerd's AppArmor profile labels a container's processes
-cri-containerd.apparmor.d//&unconfined and then denies a signal to that stacked label, a
-process's own threads included (containerd#12886, fixed in no k3s release yet). Go drops a
-process's privileges by signalling every one of its threads (rtmin+1, for setuid and setgid),
-so postgres's entrypoint, starting as root and dropping to postgres through gosu, spun
-forever in gosu, and postgres never started: the run's capture showed
-`apparmor="DENIED" operation="signal" comm="gosu" signal=rtmin+1`.
+On k3s under ubuntu-26.04, AppArmor labels a container's processes
+cri-containerd.apparmor.d//&unconfined, and containerd's generated profile denies every signal
+to that label (containerd#12886, fixed in no k3s release yet). Two runs showed what that does:
 
-postgres now starts as the image's own user, so nothing drops privileges. These tests hold
-that, and keep any workload of the e2e from dropping privileges through gosu again.
-Standard library only:
+- postgres's entrypoint, dropping root through gosu, spun forever: Go drops privileges by
+  signalling each of its threads (`apparmor="DENIED" ... comm="gosu" signal=rtmin+1`);
+- run as postgres's own user, its entrypoint's pg_ctl could not stop its init server
+  ("could not send stop signal (PID: 34): Permission denied"), and the container exited.
+
+So the e2e's own workloads - every pod of manifests/, none of which is what the test tests -
+run with the pod-level appArmorProfile Unconfined, while the chart's pods keep the runtime's
+profile, as on a customer's node. These tests hold both, keep postgres as its own user, and
+keep any workload from dropping privileges through gosu. Standard library only:
 
   python3 -m unittest discover -s Tests/Ops/agent-ebpf-e2e/tests -v
 """
@@ -57,7 +59,62 @@ def security_context(block):
     return dict(pairs)
 
 
+def pod_templates(name):
+    """(kind and name, pod spec text) of each workload of a manifest file that has a pod template."""
+    found = []
+    for doc in documents(read(name)):
+        kind = re.search(r'^kind: (\w+)$', doc, re.M)
+        if not kind or kind.group(1) not in ('Deployment', 'Job', 'DaemonSet', 'StatefulSet'):
+            continue
+        title = re.search(r'^  name: (\S+)$', doc, re.M)
+        spec = re.search(r'^    spec:\n(.*)', doc, re.M | re.S)
+        if not spec:
+            raise AssertionError('%s %s has no pod template' % (kind.group(1), title and title.group(1)))
+        found.append(('%s %s' % (kind.group(1), title.group(1) if title else '?'), spec.group(1)))
+    return found
+
+
+def pod_apparmor_type(spec):
+    """The pod-level appArmorProfile's type, or None."""
+    match = re.search(r'^      securityContext:\n(?:        .*\n)*?        appArmorProfile:\n          type: (\w+)',
+                      spec, re.M)
+    return match.group(1) if match else None
+
+
+FIXTURE_FILES = ('workloads.yaml', 'sink.yaml', 'loadgen-job.yaml')
+REASON = ('cri-containerd.apparmor.d//&unconfined', 'every signal', 'pg_ctl', 'gosu', "chart's own pods",
+          '#6184', 'containerd#12886')
+
+
 class Workloads(unittest.TestCase):
+    def test_every_pod_of_the_e2es_own_runs_unconfined(self):
+        templates = [(name, title, spec) for name in FIXTURE_FILES for title, spec in pod_templates(name)]
+
+        # redis, postgres, downstream, app and sleeper; the sink; the load generator.
+        self.assertEqual(len(templates), 7)
+        for name, title, spec in templates:
+            self.assertEqual((name, title, pod_apparmor_type(spec)), (name, title, 'Unconfined'))
+
+    def test_the_privileged_context_probe_needs_no_profile_of_its_own(self):
+        # A privileged container runs unconfined already; it is the only pod not set above.
+        self.assertRegex(read('ctxprobe.yaml'), re.compile(r'^\s+privileged: true$', re.M))
+
+    def test_the_chart_keeps_the_runtimes_profile(self):
+        # What the e2e tests is the chart: its pods stay as a customer's node runs them.
+        values = open(os.path.join(MANIFESTS, '..', 'values-e2e.yaml'), encoding='utf-8').read()
+
+        self.assertNotIn('appArmorProfile', values)
+        self.assertNotIn('Unconfined', values)
+
+    def test_each_file_says_why_at_its_first_workload(self):
+        # The comment is what stops someone dropping the setting as noise.
+        for name in FIXTURE_FILES:
+            text = read(name)
+            at = text.index('      securityContext:\n        appArmorProfile:')
+            reason = text[max(0, at - 900):at]
+            for words in REASON:
+                self.assertIn(words, reason, '%s: %s' % (name, words))
+
     def test_postgres_starts_as_its_own_user_so_its_entrypoint_drops_nothing(self):
         block = container_block(deployment('postgres'), 'postgres')
 
@@ -83,15 +140,6 @@ class Workloads(unittest.TestCase):
             for doc in documents(read(name)):
                 self.assertNotRegex(doc, r'\bgosu\b', '%s runs gosu' % name)
 
-    def test_the_reason_is_beside_the_setting(self):
-        # The comment is what stops someone dropping the setting as noise.
-        text = read('workloads.yaml')
-        at = text.index('image: postgres:17-alpine')
-        nearby = text[at:at + 1200]
-
-        for words in ('gosu', 'rtmin+1', 'cri-containerd.apparmor.d//&unconfined', '#6184', 'containerd#12886'):
-            self.assertIn(words, nearby)
-
     def test_the_helpers_read_what_they_say(self):
         doc = '\n'.join([
             'kind: Deployment',
@@ -109,6 +157,9 @@ class Workloads(unittest.TestCase):
 
         self.assertEqual(security_context(container_block(doc, 'a')), {'runAsUser': '1'})
         self.assertEqual(security_context(container_block(doc, 'b')), {})
+        self.assertEqual(pod_apparmor_type('      securityContext:\n        appArmorProfile:\n'
+                                           '          type: Unconfined\n'), 'Unconfined')
+        self.assertEqual(pod_apparmor_type('      nodeSelector:\n        x: "y"\n'), None)
 
 
 if __name__ == '__main__':

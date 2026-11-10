@@ -2182,7 +2182,7 @@ export default class Monitor extends BaseModel {
     isDefaultValueColumn: true,
     title: "Keep Response Content",
     description:
-      "Keep the response part that matched, and the response body, on this monitor's incidents and alerts. Secrets are masked either way.",
+      "Keep the response part that matched, and the response body and headers, in this monitor's logs and on its incidents and alerts. Secrets are masked either way.",
     defaultValue: true,
     example: true,
   })

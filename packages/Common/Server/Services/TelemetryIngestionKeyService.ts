@@ -18,6 +18,16 @@ import TelemetryIngestionKeyPolicy from "../../Types/Telemetry/TelemetryIngestio
 import TelemetryIngestionKeyType from "../../Types/Telemetry/TelemetryIngestionKeyType";
 import OriginAllowList from "../../Utils/Telemetry/OriginAllowList";
 import logger from "../Utils/Logger";
+import TelemetryIngestionBudgetValidation, {
+  isTelemetryIngestionBudgetColumnTouched,
+} from "../Utils/Telemetry/TelemetryIngestionBudgetValidation";
+import {
+  hasAnyTelemetryIngestionBudgetSetting,
+  readTelemetryIngestionBudgetStoredSettings,
+  TELEMETRY_INGESTION_BUDGET_COLUMN_NAMES,
+  TelemetryIngestionBudgetStoredSettings,
+} from "../../Types/Telemetry/TelemetryIngestionBudget";
+import { noteTelemetryIngestRefusalKey } from "../Utils/Telemetry/TelemetryIngestRefusalRecorder";
 import { createHash } from "crypto";
 
 /*
@@ -98,7 +108,18 @@ interface CachedIngestionKeyPolicy {
   isEnabled: boolean;
   expiresAtIso: string | null;
   requestsPerMinuteLimit: number | null;
+  // The key's own ingestion budgets, or null when it sets none.
+  ingestionBudgets: TelemetryIngestionBudgetStoredSettings | null;
 }
+
+// The budget columns, for the policy read's select.
+const INGESTION_BUDGET_SELECT: Record<string, boolean> = Object.fromEntries(
+  TELEMETRY_INGESTION_BUDGET_COLUMN_NAMES.map(
+    (column: string): [string, boolean] => {
+      return [column, true];
+    },
+  ),
+);
 
 export class Service extends DatabaseService<Model> {
   private policyCache: InMemoryTTLCache<CachedIngestionKeyPolicy | null> =
@@ -189,6 +210,28 @@ export class Service extends DatabaseService<Model> {
 
     if (Object.prototype.hasOwnProperty.call(data, "expiresAt")) {
       data["expiresAt"] = this.validateExpiresAt(data["expiresAt"]);
+    }
+
+    /*
+     * The key's own ingestion budgets: valid numbers, and no more than its
+     * project may send - a key budget only subdivides the project's.
+     */
+    TelemetryIngestionBudgetValidation.applyBudgetColumnRules(data, {
+      allowZero: false,
+    });
+
+    if (isTelemetryIngestionBudgetColumnTouched(data)) {
+      const budgetProjectId: ObjectID | undefined =
+        createBy.props.tenantId || createBy.data.projectId;
+
+      if (budgetProjectId) {
+        await TelemetryIngestionBudgetValidation.assertIngestionKeyBudgetsWithinProject(
+          {
+            projectId: new ObjectID(budgetProjectId.toString()),
+            patch: data,
+          },
+        );
+      }
     }
 
     if (IsBillingEnabled) {
@@ -293,6 +336,37 @@ export class Service extends DatabaseService<Model> {
       data["expiresAt"] = this.validateExpiresAt(data["expiresAt"]);
     }
 
+    /*
+     * The key's own ingestion budgets, checked against each updated key's
+     * project: a key budget may only subdivide its project's.
+     */
+    TelemetryIngestionBudgetValidation.applyBudgetColumnRules(data, {
+      allowZero: false,
+    });
+
+    if (isTelemetryIngestionBudgetColumnTouched(data)) {
+      const keys: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        { projectId: true },
+      );
+      const checkedProjects: Set<string> = new Set<string>();
+
+      for (const key of keys) {
+        if (!key.projectId || checkedProjects.has(key.projectId.toString())) {
+          continue;
+        }
+
+        checkedProjects.add(key.projectId.toString());
+
+        await TelemetryIngestionBudgetValidation.assertIngestionKeyBudgetsWithinProject(
+          {
+            projectId: key.projectId,
+            patch: data,
+          },
+        );
+      }
+    }
+
     if (IsBillingEnabled && data["isEnabled"] === true) {
       const keys: Array<Model> = await this.findRowsAndHoldUpdateToThem(
         updateBy,
@@ -376,6 +450,7 @@ export class Service extends DatabaseService<Model> {
         isEnabled: true,
         expiresAt: true,
         requestsPerMinuteLimit: true,
+        ...INGESTION_BUDGET_SELECT,
       },
       props: { isRoot: true },
     });
@@ -401,6 +476,30 @@ export class Service extends DatabaseService<Model> {
   private async requireBillingForPolicy(
     policy: TelemetryIngestionKeyPolicy,
   ): Promise<TelemetryIngestionKeyPolicy> {
+    try {
+      await this.requireBillingForUsableKey(policy);
+    } catch (err) {
+      /*
+       * The caller that catches a billing refusal never holds the policy
+       * (this throws instead of returning it), so note which key it was
+       * thrown for: the ingest guards count it against that key (issue
+       * #6378, TelemetryIngestRefusalRecorder). The validation endpoint
+       * and other callers ignore the note.
+       */
+      noteTelemetryIngestRefusalKey(err, {
+        projectId: policy.projectId,
+        ingestionKeyId: policy.ingestionKeyId,
+      });
+
+      throw err;
+    }
+
+    return policy;
+  }
+
+  private async requireBillingForUsableKey(
+    policy: TelemetryIngestionKeyPolicy,
+  ): Promise<void> {
     if (
       policy.isEnabled &&
       (!policy.expiresAt || policy.expiresAt.getTime() > Date.now())
@@ -433,8 +532,6 @@ export class Service extends DatabaseService<Model> {
         allowStaleDenial: true,
       });
     }
-
-    return policy;
   }
 
   /**
@@ -641,6 +738,9 @@ export class Service extends DatabaseService<Model> {
       ? token._id.toString()
       : ObjectID.getZeroObjectID().toString();
 
+    const ingestionBudgets: TelemetryIngestionBudgetStoredSettings =
+      readTelemetryIngestionBudgetStoredSettings(token);
+
     return {
       ingestionKeyId: ingestionKeyId,
       projectId: projectId.toString(),
@@ -650,6 +750,14 @@ export class Service extends DatabaseService<Model> {
       isEnabled: isEnabled,
       expiresAtIso: expiresAtIso,
       requestsPerMinuteLimit: requestsPerMinuteLimit,
+      /*
+       * Garbage reads as "not set", as everywhere on the read side: a bad
+       * row lifts a key's own limit (the project's still holds) rather than
+       * blocking the key.
+       */
+      ingestionBudgets: hasAnyTelemetryIngestionBudgetSetting(ingestionBudgets)
+        ? ingestionBudgets
+        : null,
     };
   }
 
@@ -671,6 +779,11 @@ export class Service extends DatabaseService<Model> {
       isEnabled: cached.isEnabled,
       expiresAt: cached.expiresAtIso ? new Date(cached.expiresAtIso) : null,
       requestsPerMinuteLimit: cached.requestsPerMinuteLimit,
+      ingestionBudgets: cached.ingestionBudgets
+        ? (JSON.parse(
+            JSON.stringify(cached.ingestionBudgets),
+          ) as TelemetryIngestionBudgetStoredSettings)
+        : null,
     };
   }
 

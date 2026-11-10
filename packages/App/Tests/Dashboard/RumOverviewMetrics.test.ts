@@ -356,10 +356,62 @@ describe("describeExceptionsTile", () => {
       { total: 5, failed: false },
       { total: 5, failed: true },
     ]) {
-      const text: TileText = describeExceptionsTile({ exceptions });
+      for (const isNotSetUp of [false, true]) {
+        const text: TileText = describeExceptionsTile({
+          exceptions,
+          isNotSetUp,
+        });
 
-      expect(text.sublabel).not.toMatch(/handled/i);
+        expect(text.sublabel).not.toMatch(/handled/i);
+      }
     }
+  });
+
+  /*
+   * The OpenTelemetry browser SDK reports no errors on its own, so an app
+   * that has never reported one says nothing about how many happened: the
+   * tile shows a dash and "not set up", not a confident 0 (issue #5770).
+   */
+  test("an app that has never reported an exception is not set up, not 0", () => {
+    expect(
+      describeExceptionsTile({
+        exceptions: { total: 0, failed: false },
+        isNotSetUp: true,
+      }),
+    ).toEqual({ value: "—", sublabel: "not set up" });
+  });
+
+  test("an exception in the range always shows its count", () => {
+    expect(
+      describeExceptionsTile({
+        exceptions: { total: 3, failed: false },
+        isNotSetUp: true,
+      }),
+    ).toEqual({ value: "3", sublabel: "reported by your app" });
+  });
+
+  test("a failed lookup stays unknown, whatever the diagnosis says", () => {
+    expect(
+      describeExceptionsTile({
+        exceptions: { total: 0, failed: true },
+        isNotSetUp: true,
+      }),
+    ).toEqual({ value: "—", sublabel: "could not load" });
+  });
+
+  test("before the lookup returns it shows a dash, not 'not set up'", () => {
+    expect(
+      describeExceptionsTile({ exceptions: null, isNotSetUp: true }),
+    ).toEqual({ value: "—", sublabel: "reported by your app" });
+  });
+
+  test("an app set up but quiet keeps its real 0", () => {
+    expect(
+      describeExceptionsTile({
+        exceptions: { total: 0, failed: false },
+        isNotSetUp: false,
+      }),
+    ).toEqual({ value: "0", sublabel: "reported by your app" });
   });
 });
 
@@ -589,7 +641,7 @@ describe("Overview.tsx wiring: tiles", () => {
     expect(exceptions).toContain("sublabel: exceptionsTile.sublabel");
     expect(exceptions).toContain("loading: signalsLoading");
     expect(OVERVIEW).toContain(
-      "describeExceptionsTile({ exceptions: signals ? signals.exceptions : null, })",
+      'describeExceptionsTile({ exceptions: signals ? signals.exceptions : null, isNotSetUp: exceptionsDiagnosis.state === "not-set-up" && exceptionsDiagnosis.cause === "signal", })',
     );
   });
 
@@ -797,9 +849,10 @@ describe("Overview.tsx wiring: the telemetry loader", () => {
     /*
      * all spans (then/catch), web vitals (then/catch), INP by route
      * (then/catch, chained off web vitals), page loads (then/catch),
-     * signals (then/catch), sessions (then/catch).
+     * signals (then/catch), the newest exception (then/catch, chained off
+     * signals when the range has none), sessions (then/catch).
      */
-    expect(stateWriters).toBe(12);
+    expect(stateWriters).toBe(14);
   });
 
   test("page loads are two requests for the documentLoad span, waited on together", () => {

@@ -147,45 +147,45 @@ interface ColouredRow {
 }
 
 const COLOURED_ROWS: Array<ColouredRow> = [
-  // On-call page-outs.
+  // On-call page-outs: labels with no colon, as on every other card (fu-i18n-larger).
   {
     template: "AcknowledgeAlert.hbs",
-    label: "Current State:",
+    label: "Current State",
     variable: "currentState",
   },
   {
     template: "AcknowledgeAlert.hbs",
-    label: "Severity:",
+    label: "Severity",
     variable: "alertSeverity",
   },
   {
     template: "AcknowledgeIncident.hbs",
-    label: "Current State:",
+    label: "Current State",
     variable: "currentState",
   },
   {
     template: "AcknowledgeIncident.hbs",
-    label: "Severity:",
+    label: "Severity",
     variable: "incidentSeverity",
   },
   {
     template: "AcknowledgeAlertEpisode.hbs",
-    label: "Current State:",
+    label: "Current State",
     variable: "currentState",
   },
   {
     template: "AcknowledgeAlertEpisode.hbs",
-    label: "Severity:",
+    label: "Severity",
     variable: "alertEpisodeSeverity",
   },
   {
     template: "AcknowledgeIncidentEpisode.hbs",
-    label: "Current State:",
+    label: "Current State",
     variable: "currentState",
   },
   {
     template: "AcknowledgeIncidentEpisode.hbs",
-    label: "Severity:",
+    label: "Severity",
     variable: "incidentEpisodeSeverity",
   },
   // Incident owners and members.

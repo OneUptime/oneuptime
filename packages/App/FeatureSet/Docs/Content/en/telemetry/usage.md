@@ -27,6 +27,7 @@ flowchart TB
 - **Traces include their exceptions, and profiles their samples.**
 - **OneUptime's own telemetry is not counted.** Monitor, alert, incident and SLO readings, Data Observability readings and the session replay budget metrics are written by OneUptime itself.
 - **On OneUptime Cloud, these rows are what telemetry is billed from.** On an installation without billing, usage is counted at no cost, and nothing is charged for it, even if billing is turned on later.
+- **A budget is counted apart from usage.** An [ingestion budget](/docs/telemetry/ingestion-budgets) counts telemetry as it arrives, decompressed, so it can stop a day's telemetry the same day. While one is set, this page opens with today's budgets.
 
 ## Before you begin
 
@@ -134,4 +135,5 @@ The resource has been deleted since it sent the telemetry, or your role does not
 - [Data Retention](/docs/telemetry/data-retention): Keep telemetry as long as you need, and no longer.
 - [Billing & Usage](/docs/configuration/billing): What telemetry costs on OneUptime Cloud.
 - [Ingestion Keys](/docs/telemetry/ingestion-keys): Send telemetry into your project.
+- [Ingestion Budgets](/docs/telemetry/ingestion-budgets): Cap how much of each signal a project sends in a day.
 :::

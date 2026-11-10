@@ -2,10 +2,12 @@ import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
+import { ColumnAccessControl as BaseColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
+import { getDecimalDatabaseTransformer } from "../../Types/Database/DecimalColumnTransformer";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
@@ -17,6 +19,28 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import TelemetryIngestionKeyType from "../../Types/Telemetry/TelemetryIngestionKeyType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+
+/*
+ * The key's own ingestion budgets are set like its requests per minute
+ * limit: by whoever may create or edit the key.
+ */
+const INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
+  create: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.CreateTelemetryIngestionKey,
+  ],
+  read: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ReadTelemetryIngestionKey,
+  ],
+  update: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.EditTelemetryIngestionKey,
+  ],
+};
 
 @EnableDocumentation()
 @TenantColumn("projectId")
@@ -583,4 +607,171 @@ export default class TelemetryIngestionKey extends BaseModel {
     nullable: true,
   })
   public requestsPerMinuteLimit?: number = undefined;
+
+  /*
+   * The key's own ingestion budgets, per signal (TelemetryIngestionBudget),
+   * set by whoever may edit the key. A key's budget only subdivides the
+   * project's: TelemetryIngestionKeyService refuses one above the project's
+   * budget, and the ingest path holds it to the project's if that is lowered
+   * later. Part of the cached key policy, like requestsPerMinuteLimit.
+   */
+  @ColumnAccessControl(INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Logs Daily Budget (GB)",
+    description:
+      "The most logs accepted with this key in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. At most the project's own budget. Empty: no budget of the key's own (the project's still applies).",
+    example: 10,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public logsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Traces Daily Budget (GB)",
+    description:
+      "The most traces accepted with this key in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. At most the project's own budget. Empty: no budget of the key's own (the project's still applies).",
+    example: 10,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public tracesDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Metrics Daily Budget (GB)",
+    description:
+      "The most metrics accepted with this key in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. At most the project's own budget. Empty: no budget of the key's own (the project's still applies).",
+    example: 10,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public metricsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Profiles Daily Budget (GB)",
+    description:
+      "The most profiles accepted with this key in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. At most the project's own budget. Empty: no budget of the key's own (the project's still applies).",
+    example: 10,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public profilesDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Security Events Daily Budget (GB)",
+    description:
+      "The most security events accepted with this key in a budget day, in GB, counted decompressed as they arrive; once used up they are refused until the budget resets. At most the project's own budget. Empty: no budget of the key's own (the project's still applies).",
+    example: 10,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public securityEventsDailyIngestionBudgetInGB?: number = undefined;
+
+  @ColumnAccessControl(INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Logs Rate Limit (MB per second)",
+    description:
+      "The fastest logs may be sent with this key, in MB per second; faster requests are answered 429 with Retry-After. At most the project's own limit. Empty: no limit of the key's own.",
+    example: 5,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public logsIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl(INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Traces Rate Limit (MB per second)",
+    description:
+      "The fastest traces may be sent with this key, in MB per second; faster requests are answered 429 with Retry-After. At most the project's own limit. Empty: no limit of the key's own.",
+    example: 5,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public tracesIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl(INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Metrics Rate Limit (MB per second)",
+    description:
+      "The fastest metrics may be sent with this key, in MB per second; faster requests are answered 429 with Retry-After. At most the project's own limit. Empty: no limit of the key's own.",
+    example: 5,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public metricsIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl(INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Profiles Rate Limit (MB per second)",
+    description:
+      "The fastest profiles may be sent with this key, in MB per second; faster requests are answered 429 with Retry-After. At most the project's own limit. Empty: no limit of the key's own.",
+    example: 5,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public profilesIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  @ColumnAccessControl(INGESTION_BUDGET_COLUMN_ACCESS)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Security Events Rate Limit (MB per second)",
+    description:
+      "The fastest security events may be sent with this key, in MB per second; faster requests are answered 429 with Retry-After. At most the project's own limit. Empty: no limit of the key's own.",
+    example: 5,
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public securityEventsIngestionRateLimitInMBPerSecond?: number = undefined;
 }

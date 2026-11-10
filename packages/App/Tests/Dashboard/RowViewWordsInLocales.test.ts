@@ -65,8 +65,8 @@ const VIEW_NAMES: Array<string> = Object.keys(EN).filter((key: string) => {
 });
 
 describe("a row's View in every language", () => {
-  test("there are 17 languages, and the names a row's View may have", () => {
-    expect(LOCALE_FILES.length).toBe(17);
+  test("there are 18 languages, and the names a row's View may have", () => {
+    expect(LOCALE_FILES.length).toBe(18);
     expect(VIEW_NAMES).toEqual(
       expect.arrayContaining([
         "View Incident",
