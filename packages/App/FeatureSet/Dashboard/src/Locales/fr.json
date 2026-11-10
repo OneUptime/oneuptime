@@ -15597,7 +15597,7 @@
   "Saint Martin (French part)": "Saint Martin (French part)",
   "Saint Pierre and Miquelon": "Saint Pierre and Miquelon",
   "Saint Vincent and the Grenadines": "Saint Vincent and the Grenadines",
-  "Same as the monitor name": "Same as the monitor name",
+  "Same as the monitor name": "Identique au nom du moniteur",
   "Same-origin requests carry this session's id to your backend while the session uploads, and your backend's OpenTelemetry forwards it to the services it calls, third parties included. Backend telemetry that names the user links to the recording. The visitor id is never sent.": "Les requêtes de même origine transmettent l'identifiant de cette session à votre backend pendant l'envoi de la session, et l'OpenTelemetry de votre backend le transmet aux services qu'il appelle, tiers compris. La télémétrie backend qui nomme l'utilisateur est liée à l'enregistrement. L'identifiant du visiteur n'est jamais envoyé.",
   "Same-origin trace propagation": "Propagation des traces de même origine",
   "Samoa": "Samoa",
@@ -47732,5 +47732,8 @@
   "These steps make sure the right people hear when a table breaks.": "Ces étapes garantissent que les bonnes personnes sont prévenues quand une table casse.",
   "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "Une base de données tout juste connectée est lue pour la première fois en quelques minutes, et ses tables sont surveillées dès lors.",
   "Incoming Monitor Request As Received": "Requête du moniteur entrant telle que reçue",
-  "The monitor keeps no request content: its headers and body are not shown.": "Le moniteur ne conserve aucun contenu de requête : ses en-têtes et son corps ne sont pas affichés."
+  "The monitor keeps no request content: its headers and body are not shown.": "Le moniteur ne conserve aucun contenu de requête : ses en-têtes et son corps ne sont pas affichés.",
+  "Same as the monitor group name": "Identique au nom du groupe de moniteurs",
+  "Show a Monitor Group instead.": "Affichez plutôt un groupe de moniteurs.",
+  "Show a Monitor instead.": "Affichez plutôt un moniteur."
 }

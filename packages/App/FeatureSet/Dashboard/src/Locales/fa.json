@@ -15597,7 +15597,7 @@
   "Saint Martin (French part)": "Saint Martin (French part)",
   "Saint Pierre and Miquelon": "Saint Pierre and Miquelon",
   "Saint Vincent and the Grenadines": "Saint Vincent and the Grenadines",
-  "Same as the monitor name": "Same as the monitor name",
+  "Same as the monitor name": "همان نام مانیتور",
   "Same-origin requests carry this session's id to your backend while the session uploads, and your backend's OpenTelemetry forwards it to the services it calls, third parties included. Backend telemetry that names the user links to the recording. The visitor id is never sent.": "درخواست‌های هم‌مبدأ هنگام بارگذاری نشست، شناسه این نشست را به بک‌اند شما می‌برند و OpenTelemetry بک‌اند شما آن را به سرویس‌هایی که فرا می‌خواند، از جمله اشخاص ثالث، می‌فرستد. تله‌متری بک‌اندی که کاربر را نام می‌برد به ضبط پیوند می‌خورد. شناسه بازدیدکننده هرگز فرستاده نمی‌شود.",
   "Same-origin trace propagation": "انتشار ترِیس هم‌مبدأ",
   "Samoa": "Samoa",
@@ -47732,5 +47732,8 @@
   "These steps make sure the right people hear when a table breaks.": "این گام‌ها مطمئن می‌شوند وقتی جدولی خراب شود، افراد درست خبردار شوند.",
   "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "پایگاه داده‌ای که تازه وصل شده، ظرف چند دقیقه برای نخستین بار خوانده می‌شود و از آن پس جدول‌هایش پایش می‌شوند.",
   "Incoming Monitor Request As Received": "درخواست ورودی مانیتور به همان شکل دریافت‌شده",
-  "The monitor keeps no request content: its headers and body are not shown.": "این مانیتور محتوای درخواست را نگه نمی‌دارد: سرآیندها و بدنهٔ آن نشان داده نمی‌شوند."
+  "The monitor keeps no request content: its headers and body are not shown.": "این مانیتور محتوای درخواست را نگه نمی‌دارد: سرآیندها و بدنهٔ آن نشان داده نمی‌شوند.",
+  "Same as the monitor group name": "همان نام گروه مانیتور",
+  "Show a Monitor Group instead.": "به‌جای آن یک گروه مانیتور نشان دهید.",
+  "Show a Monitor instead.": "به‌جای آن یک مانیتور نشان دهید."
 }

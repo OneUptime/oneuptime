@@ -129,6 +129,7 @@ import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
 import RecordApproversAskedAboutWaitingPublicNotes from "./RecordApproversAskedAboutWaitingPublicNotes";
 import RestoreNamespaceMetricMonitorTotals from "./RestoreNamespaceMetricMonitorTotals";
 import RedactLatestIncomingRequests from "./RedactLatestIncomingRequests";
+import ClearMonitorGroupOnMonitorStatusPageResources from "./ClearMonitorGroupOnMonitorStatusPageResources";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
 import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
@@ -1003,6 +1004,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * asserts for itself.
    */
   new RedactLatestIncomingRequests(),
+  /*
+   * A status page resource shows a monitor or a monitor group, never both
+   * (issue #6540: the Edit resource form wrote a monitor onto a monitor
+   * group's row and left the group). Every row that names both keeps the
+   * monitor it is shown as, and its monitor group is cleared. Postgres-only,
+   * one statement and idempotent, with no order of its own, so it sits above
+   * the runbook moves, which keep their places right before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new ClearMonitorGroupOnMonitorStatusPageResources(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

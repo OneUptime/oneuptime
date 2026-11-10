@@ -15597,7 +15597,7 @@
   "Saint Martin (French part)": "Saint Martin (French part)",
   "Saint Pierre and Miquelon": "Saint Pierre and Miquelon",
   "Saint Vincent and the Grenadines": "Saint Vincent and the Grenadines",
-  "Same as the monitor name": "Same as the monitor name",
+  "Same as the monitor name": "與監測器名稱相同",
   "Same-origin requests carry this session's id to your backend while the session uploads, and your backend's OpenTelemetry forwards it to the services it calls, third parties included. Backend telemetry that names the user links to the recording. The visitor id is never sent.": "工作階段上傳期間，同源請求會將此工作階段的 ID 傳給你的後端，你後端的 OpenTelemetry 再把它轉送給其呼叫的服務，包括第三方。標識出使用者的後端遙測資料會關聯到此錄製。訪客 ID 永遠不會被傳送。",
   "Same-origin trace propagation": "同源追蹤傳播",
   "Samoa": "Samoa",
@@ -47732,5 +47732,8 @@
   "These steps make sure the right people hear when a table breaks.": "這些步驟可確保資料表出問題時，適當的人能收到通知。",
   "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "剛連線的資料庫會在幾分鐘內首次讀取，此後其資料表都會受到監控。",
   "Incoming Monitor Request As Received": "依原樣接收的傳入監測器請求",
-  "The monitor keeps no request content: its headers and body are not shown.": "此監測器不保留請求內容：不會顯示其標頭與內文。"
+  "The monitor keeps no request content: its headers and body are not shown.": "此監測器不保留請求內容：不會顯示其標頭與內文。",
+  "Same as the monitor group name": "與監測器群組名稱相同",
+  "Show a Monitor Group instead.": "請改為顯示監測器群組。",
+  "Show a Monitor instead.": "請改為顯示監測器。"
 }

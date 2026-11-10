@@ -1,7 +1,14 @@
 import MonitorElement from "../Monitor/Monitor";
 import MonitorGroupElement from "../MonitorGroup/MonitorGroupElement";
 import BulkAddStatusPageMonitorsModal from "./BulkAddStatusPageMonitorsModal";
-import { insertBeforeFoldedFields } from "./StatusPageResourceFormFields";
+import {
+  StatusPageResourceTargetType,
+  getStatusPageResourceFormFields,
+  getStatusPageResourceTargetName,
+  getStatusPageResourceTargetType,
+  insertBeforeFoldedFields,
+} from "./StatusPageResourceFormFields";
+import StatusPageResourceTargetSwitch from "./StatusPageResourceTargetSwitch";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -106,10 +113,14 @@ export interface ComponentProps {
   onShowGroupId: () => void;
 
   /*
-   * The resource form, minus anything a grid group adds to it. One page:
-   * the monitor and its display name, then a folded Advanced section.
+   * Which picker Add Monitor opens on: the monitor one, or - on projects
+   * with monitor groups, after "Add a Monitor Group instead." - the monitor
+   * group one. The page keeps it, so the next Add, in any group, opens on
+   * the same picker. Edit never reads it: an Edit form opens on what the
+   * resource shows (issue #6540).
    */
-  baseFormFields: Array<ModelField<StatusPageResource>>;
+  isAddingMonitorGroup: boolean;
+  onIsAddingMonitorGroupChange: (isAddingMonitorGroup: boolean) => void;
 
   /*
    * How many resources this selection turned out to hold, reported on every
@@ -138,6 +149,31 @@ export interface ComponentProps {
  */
 const MENU_TRIGGER_CLASS_NAME: string =
   "inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
+
+/*
+ * The resource an Edit form is open on, and the picker it shows. The picker
+ * starts on what the resource shows - its monitor, or its monitor group -
+ * read off the row that was clicked, and the form's own link swaps it from
+ * there; nothing the Add form chose reaches it.
+ */
+interface StatusPageResourceEdit {
+  resourceId: ObjectID;
+  targetType: StatusPageResourceTargetType;
+  // The name of what the resource showed, as its row read it.
+  savedTargetName: string | undefined;
+}
+
+type GetOtherTargetTypeFunction = (
+  targetType: StatusPageResourceTargetType,
+) => StatusPageResourceTargetType;
+
+const getOtherTargetType: GetOtherTargetTypeFunction = (
+  targetType: StatusPageResourceTargetType,
+): StatusPageResourceTargetType => {
+  return targetType === StatusPageResourceTargetType.MonitorGroup
+    ? StatusPageResourceTargetType.Monitor
+    : StatusPageResourceTargetType.MonitorGroup;
+};
 
 /*
  * The right hand side of the Resources explorer: everything in one group, and
@@ -200,9 +236,8 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
     columnValue: string | null;
   }>({ rowValue: null, columnValue: null });
 
-  const [resourceIdToEdit, setResourceIdToEdit] = useState<ObjectID | null>(
-    null,
-  );
+  const [resourceEdit, setResourceEdit] =
+    useState<StatusPageResourceEdit | null>(null);
   const [resourceToDelete, setResourceToDelete] =
     useState<StatusPageResource | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
@@ -621,28 +656,25 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
    * it is never folded away under Advanced. Everything else about the form is
    * the same wherever it is opened from.
    */
-  const formFields: Array<ModelField<StatusPageResource>> = useMemo((): Array<
-    ModelField<StatusPageResource>
-  > => {
-    if (!isGrid) {
-      return props.baseFormFields;
-    }
+  const gridCellFields: Array<ModelField<StatusPageResource>> =
+    useMemo((): Array<ModelField<StatusPageResource>> => {
+      if (!isGrid) {
+        return [];
+      }
 
-    type ToOptionsFunction = (
-      values: Array<string>,
-    ) => Array<{ label: string; value: string }>;
+      type ToOptionsFunction = (
+        values: Array<string>,
+      ) => Array<{ label: string; value: string }>;
 
-    const toOptions: ToOptionsFunction = (
-      values: Array<string>,
-    ): Array<{ label: string; value: string }> => {
-      return values.map((value: string) => {
-        return { label: value, value: value };
-      });
-    };
+      const toOptions: ToOptionsFunction = (
+        values: Array<string>,
+      ): Array<{ label: string; value: string }> => {
+        return values.map((value: string) => {
+          return { label: value, value: value };
+        });
+      };
 
-    return insertBeforeFoldedFields<ModelField<StatusPageResource>>(
-      props.baseFormFields,
-      [
+      return [
         {
           field: {
             rowAxisValue: true,
@@ -679,16 +711,115 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
               ? `Select ${columnLabel.toLowerCase()}`
               : "Define columns on the group first",
         },
-      ],
+      ];
+    }, [isGrid, rowValues, columnValues, rowLabel, columnLabel]);
+
+  type GetResourceFormFieldsFunction = (data: {
+    targetType: StatusPageResourceTargetType;
+    isEditForm: boolean;
+    onSwitchTarget: () => void;
+    savedTargetName?: string | undefined;
+  }) => Array<ModelField<StatusPageResource>>;
+
+  /*
+   * One page: the monitor (or monitor group), its display name, a grid
+   * group's cell, then a folded Advanced section (StatusPageResourceFormFields).
+   * On projects with monitor groups a link under the picker swaps it for the
+   * other one.
+   */
+  const getResourceFormFields: GetResourceFormFieldsFunction = (data: {
+    targetType: StatusPageResourceTargetType;
+    isEditForm: boolean;
+    onSwitchTarget: () => void;
+    savedTargetName?: string | undefined;
+  }): Array<ModelField<StatusPageResource>> => {
+    return insertBeforeFoldedFields<ModelField<StatusPageResource>>(
+      getStatusPageResourceFormFields({
+        targetType: data.targetType,
+        savedTargetName: data.savedTargetName,
+        targetFooterElement: props.isMonitorGroupsFeatureEnabled ? (
+          <StatusPageResourceTargetSwitch
+            targetType={data.targetType}
+            isEditForm={data.isEditForm}
+            onSwitch={data.onSwitchTarget}
+          />
+        ) : undefined,
+      }),
+      gridCellFields,
     );
-  }, [
-    props.baseFormFields,
-    isGrid,
-    rowValues,
-    columnValues,
-    rowLabel,
-    columnLabel,
-  ]);
+  };
+
+  const createTargetType: StatusPageResourceTargetType =
+    props.isAddingMonitorGroup
+      ? StatusPageResourceTargetType.MonitorGroup
+      : StatusPageResourceTargetType.Monitor;
+
+  // Add Monitor: the picker is the page's choice (isAddingMonitorGroup).
+  const createFormFields: Array<ModelField<StatusPageResource>> =
+    useMemo((): Array<ModelField<StatusPageResource>> => {
+      return getResourceFormFields({
+        targetType: createTargetType,
+        isEditForm: false,
+        onSwitchTarget: () => {
+          props.onIsAddingMonitorGroupChange(!props.isAddingMonitorGroup);
+        },
+      });
+    }, [createTargetType, props.isMonitorGroupsFeatureEnabled, gridCellFields]);
+
+  /*
+   * Edit resource: the picker is the resource's own, and its link swaps it
+   * for this form alone. The name of what the resource showed goes with it,
+   * so a display name never changed from that name follows a pick from
+   * either picker.
+   */
+  const editFormFields: Array<ModelField<StatusPageResource>> =
+    useMemo((): Array<ModelField<StatusPageResource>> => {
+      if (!resourceEdit) {
+        return [];
+      }
+
+      return getResourceFormFields({
+        targetType: resourceEdit.targetType,
+        isEditForm: true,
+        savedTargetName: resourceEdit.savedTargetName,
+        onSwitchTarget: () => {
+          setResourceEdit(
+            (
+              current: StatusPageResourceEdit | null,
+            ): StatusPageResourceEdit | null => {
+              return current
+                ? {
+                    ...current,
+                    targetType: getOtherTargetType(current.targetType),
+                  }
+                : current;
+            },
+          );
+        },
+      });
+    }, [
+      resourceEdit?.targetType,
+      resourceEdit?.savedTargetName,
+      props.isMonitorGroupsFeatureEnabled,
+      gridCellFields,
+    ]);
+
+  type OpenEditFunction = (statusPageResource: StatusPageResource) => void;
+
+  // Opens Edit resource on the picker for what the clicked row shows.
+  const openEdit: OpenEditFunction = (
+    statusPageResource: StatusPageResource,
+  ): void => {
+    if (!statusPageResource.id) {
+      return;
+    }
+
+    setResourceEdit({
+      resourceId: statusPageResource.id,
+      targetType: getStatusPageResourceTargetType(statusPageResource),
+      savedTargetName: getStatusPageResourceTargetName(statusPageResource),
+    });
+  };
 
   const initialValuesForCreate: FormValues<StatusPageResource> =
     useMemo((): FormValues<StatusPageResource> => {
@@ -1469,9 +1600,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           selectedResourceIds={selectedResourceIds}
           onToggleResourceSelected={toggleResourceSelected}
           onAddToCell={openCreate}
-          onEdit={(statusPageResource: StatusPageResource) => {
-            setResourceIdToEdit(statusPageResource.id || null);
-          }}
+          onEdit={openEdit}
           onDelete={(statusPageResource: StatusPageResource) => {
             setDeleteError("");
             setResourceToDelete(statusPageResource);
@@ -1504,9 +1633,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
             visibleCount + StatusPageResourceExplorerUtil.ResourceRowsPerPage,
           );
         }}
-        onEdit={(statusPageResource: StatusPageResource) => {
-          setResourceIdToEdit(statusPageResource.id || null);
-        }}
+        onEdit={openEdit}
         onDelete={(statusPageResource: StatusPageResource) => {
           setDeleteError("");
           setResourceToDelete(statusPageResource);
@@ -1613,7 +1740,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           formProps={{
             modelType: StatusPageResource,
             id: `create-status-page-resource-${selectionKey}`,
-            fields: formFields,
+            fields: createFormFields,
             formType: FormType.Create,
           }}
           onClose={() => {
@@ -1628,24 +1755,24 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      {resourceIdToEdit ? (
+      {resourceEdit ? (
         <ModelFormModal<StatusPageResource>
           modelType={StatusPageResource}
           name="Status Page > Resources"
           title="Edit resource"
           description="Update how this resource shows up on the status page."
-          modelIdToEdit={resourceIdToEdit}
+          modelIdToEdit={resourceEdit.resourceId}
           formProps={{
             modelType: StatusPageResource,
             id: `edit-status-page-resource-${selectionKey}`,
-            fields: formFields,
+            fields: editFormFields,
             formType: FormType.Update,
           }}
           onClose={() => {
-            setResourceIdToEdit(null);
+            setResourceEdit(null);
           }}
           onSuccess={() => {
-            setResourceIdToEdit(null);
+            setResourceEdit(null);
             reload();
           }}
         />

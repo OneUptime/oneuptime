@@ -47732,5 +47732,8 @@
   "These steps make sure the right people hear when a table breaks.": "Diese Schritte sorgen dafür, dass die richtigen Personen erfahren, wenn eine Tabelle ausfällt.",
   "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "Eine gerade verbundene Datenbank wird innerhalb weniger Minuten zum ersten Mal gelesen, und ab dann werden ihre Tabellen überwacht.",
   "Incoming Monitor Request As Received": "Eingehende Monitoranfrage wie empfangen",
-  "The monitor keeps no request content: its headers and body are not shown.": "Der Monitor behält keinen Anfrageinhalt: Header und Body der Anfrage werden nicht angezeigt."
+  "The monitor keeps no request content: its headers and body are not shown.": "Der Monitor behält keinen Anfrageinhalt: Header und Body der Anfrage werden nicht angezeigt.",
+  "Same as the monitor group name": "Wie der Name der Monitor-Gruppe",
+  "Show a Monitor Group instead.": "Zeigen Sie stattdessen eine Monitor-Gruppe an.",
+  "Show a Monitor instead.": "Zeigen Sie stattdessen einen Monitor an."
 }

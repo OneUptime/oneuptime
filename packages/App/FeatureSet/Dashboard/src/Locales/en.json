@@ -47732,5 +47732,8 @@
   "These steps make sure the right people hear when a table breaks.": "These steps make sure the right people hear when a table breaks.",
   "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.",
   "Incoming Monitor Request As Received": "Incoming Monitor Request As Received",
-  "The monitor keeps no request content: its headers and body are not shown.": "The monitor keeps no request content: its headers and body are not shown."
+  "The monitor keeps no request content: its headers and body are not shown.": "The monitor keeps no request content: its headers and body are not shown.",
+  "Same as the monitor group name": "Same as the monitor group name",
+  "Show a Monitor Group instead.": "Show a Monitor Group instead.",
+  "Show a Monitor instead.": "Show a Monitor instead."
 }

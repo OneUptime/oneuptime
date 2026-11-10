@@ -15597,7 +15597,7 @@
   "Saint Martin (French part)": "Saint Martin (French part)",
   "Saint Pierre and Miquelon": "Saint Pierre and Miquelon",
   "Saint Vincent and the Grenadines": "Saint Vincent and the Grenadines",
-  "Same as the monitor name": "Same as the monitor name",
+  "Same as the monitor name": "Samma som monitorns namn",
   "Same-origin requests carry this session's id to your backend while the session uploads, and your backend's OpenTelemetry forwards it to the services it calls, third parties included. Backend telemetry that names the user links to the recording. The visitor id is never sent.": "Förfrågningar från samma ursprung skickar den här sessionens id till din backend medan sessionen laddas upp, och din backends OpenTelemetry vidarebefordrar det till tjänsterna den anropar, inklusive tredje parter. Backend-telemetri som namnger användaren länkas till inspelningen. Besökar-id:t skickas aldrig.",
   "Same-origin trace propagation": "Spårvidarebefordran från samma ursprung",
   "Samoa": "Samoa",
@@ -47732,5 +47732,8 @@
   "These steps make sure the right people hear when a table breaks.": "De här stegen ser till att rätt personer får veta när en tabell går sönder.",
   "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "En nyss ansluten databas läses första gången inom några minuter, och därefter bevakas dess tabeller.",
   "Incoming Monitor Request As Received": "Inkommande övervakningsförfrågan som den togs emot",
-  "The monitor keeps no request content: its headers and body are not shown.": "Övervakaren behåller inget av förfrågans innehåll: dess huvuden och brödtext visas inte."
+  "The monitor keeps no request content: its headers and body are not shown.": "Övervakaren behåller inget av förfrågans innehåll: dess huvuden och brödtext visas inte.",
+  "Same as the monitor group name": "Samma som monitorgruppens namn",
+  "Show a Monitor Group instead.": "Visa en monitorgrupp i stället.",
+  "Show a Monitor instead.": "Visa en monitor i stället."
 }

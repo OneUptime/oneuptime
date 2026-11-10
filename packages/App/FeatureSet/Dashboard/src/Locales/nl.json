@@ -15597,7 +15597,7 @@
   "Saint Martin (French part)": "Saint Martin (French part)",
   "Saint Pierre and Miquelon": "Saint Pierre and Miquelon",
   "Saint Vincent and the Grenadines": "Saint Vincent and the Grenadines",
-  "Same as the monitor name": "Same as the monitor name",
+  "Same as the monitor name": "Gelijk aan de naam van de monitor",
   "Same-origin requests carry this session's id to your backend while the session uploads, and your backend's OpenTelemetry forwards it to the services it calls, third parties included. Backend telemetry that names the user links to the recording. The visitor id is never sent.": "Verzoeken van dezelfde origin sturen de id van deze sessie naar uw backend terwijl de sessie wordt geüpload, en de OpenTelemetry van uw backend geeft die door aan de services die het aanroept, inclusief derden. Backendtelemetrie die de gebruiker noemt, wordt aan de opname gekoppeld. De bezoekers-id wordt nooit verzonden.",
   "Same-origin trace propagation": "Trace-doorgifte binnen dezelfde origin",
   "Samoa": "Samoa",
@@ -47732,5 +47732,8 @@
   "These steps make sure the right people hear when a table breaks.": "Deze stappen zorgen dat de juiste mensen het horen wanneer een tabel stukgaat.",
   "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "Een zojuist verbonden database wordt binnen een paar minuten voor het eerst gelezen, en vanaf dan worden de tabellen bewaakt.",
   "Incoming Monitor Request As Received": "Binnenkomend monitorverzoek zoals ontvangen",
-  "The monitor keeps no request content: its headers and body are not shown.": "De monitor bewaart geen verzoekinhoud: de headers en de body worden niet getoond."
+  "The monitor keeps no request content: its headers and body are not shown.": "De monitor bewaart geen verzoekinhoud: de headers en de body worden niet getoond.",
+  "Same as the monitor group name": "Gelijk aan de naam van de monitorgroep",
+  "Show a Monitor Group instead.": "Toon in plaats daarvan een monitorgroep.",
+  "Show a Monitor instead.": "Toon in plaats daarvan een monitor."
 }

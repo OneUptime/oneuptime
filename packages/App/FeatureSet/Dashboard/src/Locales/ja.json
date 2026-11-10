@@ -47732,5 +47732,8 @@
   "These steps make sure the right people hear when a table breaks.": "これらの手順で、テーブルに問題が起きたときに適切な人へ通知が届くようにします。",
   "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.": "接続したばかりのデータベースは数分以内に初めて読み取られ、それ以降そのテーブルが監視されます。",
   "Incoming Monitor Request As Received": "受信したままの受信モニターのリクエスト",
-  "The monitor keeps no request content: its headers and body are not shown.": "このモニターはリクエストの内容を保持しません。ヘッダーと本文は表示されません。"
+  "The monitor keeps no request content: its headers and body are not shown.": "このモニターはリクエストの内容を保持しません。ヘッダーと本文は表示されません。",
+  "Same as the monitor group name": "モニターグループ名と同じ",
+  "Show a Monitor Group instead.": "代わりにモニターグループを表示してください。",
+  "Show a Monitor instead.": "代わりにモニターを表示してください。"
 }
