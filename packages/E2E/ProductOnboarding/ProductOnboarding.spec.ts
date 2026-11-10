@@ -542,7 +542,7 @@ test("Data Observability with no database: the explanation with Connect a Databa
     "data-observability",
   );
   await expect(showcase(page).getByRole("heading", { level: 2 })).toHaveText(
-    "Know when a table goes stale or changes shape",
+    "Know when your data is late, wrong or changed",
   );
   // Nothing above it says what the product is for: the explanation does.
   await expect(

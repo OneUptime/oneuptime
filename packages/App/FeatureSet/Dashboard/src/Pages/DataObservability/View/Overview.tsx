@@ -1,6 +1,9 @@
 import PageComponentProps from "../../PageComponentProps";
 import DataObservabilityApi from "../../../Components/DataObservability/DataObservabilityApi";
 import StoreStatusPill from "../../../Components/DataObservability/StoreStatusPill";
+import StoreAlertStatus, {
+  isStoreWithoutAlerts,
+} from "../../../Components/DataObservability/StoreAlertStatus";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import PageMap from "../../../Utils/PageMap";
@@ -22,7 +25,8 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 /*
  * One database at a glance: how many of its tables are watched and late,
  * who reads its catalog and how the last read went - with Collect Now - and
- * the way to its recommended monitors.
+ * the way to its recommended monitors, saying whether any is on: with none,
+ * nobody is told when its tables break.
  */
 const StoreOverviewPage: FunctionComponent<
   PageComponentProps
@@ -165,8 +169,12 @@ const StoreOverviewPage: FunctionComponent<
         description="Monitors recommended for this database: late tables, sharp drops in rows, schema changes, and a collection that stopped."
         buttons={[
           {
-            title: "View Recommendations",
-            buttonStyle: ButtonStyleType.NORMAL,
+            title: isStoreWithoutAlerts(store)
+              ? "Set Up Alerts"
+              : "View Recommendations",
+            buttonStyle: isStoreWithoutAlerts(store)
+              ? ButtonStyleType.PRIMARY
+              : ButtonStyleType.NORMAL,
             icon: IconProp.Alert,
             onClick: () => {
               Navigation.navigate(
@@ -181,11 +189,22 @@ const StoreOverviewPage: FunctionComponent<
           },
         ]}
       >
-        <p className="px-6 pb-6 text-sm text-gray-600">
-          {translator.translateText(
-            "Each is one monitor for the whole database that alerts once per table, so tables created later are watched too.",
+        <div className="space-y-2 px-6 pb-6 text-sm text-gray-600">
+          {isStoreWithoutAlerts(store) ? (
+            <p className="font-medium text-amber-700">
+              {translator.translateText(
+                "No alert is on yet, so nobody is told when one of its tables is late, loses rows or changes its columns.",
+              )}
+            </p>
+          ) : (
+            <StoreAlertStatus store={store} />
           )}
-        </p>
+          <p>
+            {translator.translateText(
+              "Each is one monitor for the whole database that alerts once per table, so tables created later are watched too.",
+            )}
+          </p>
+        </div>
       </Card>
 
       {isConfirmingStop ? (
