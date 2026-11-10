@@ -312,7 +312,7 @@ describe("Application replay settings page composition", () => {
     const health: string = fs.readFileSync(
       nodePath.join(
         __dirname,
-        "../../../Common/Utils/Rum/SessionReplayHealth.ts",
+        "../../../Common/Utils/SessionReplay/SessionReplayHealth.ts",
       ),
       "utf8",
     );

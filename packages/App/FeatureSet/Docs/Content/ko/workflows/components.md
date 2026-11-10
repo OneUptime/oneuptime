@@ -195,7 +195,7 @@ Libera.Chat, OFTC 또는 자체 서버 등 어떤 IRC 네트워크든 IRC 채널
 | **From Email**                          | 보내는 사람. 예: `Alerts <alerts@company.com>`.                                                       |
 | **To Email**                            | 받는 사람 주소. 여러 주소는 쉼표나 세미콜론으로 구분합니다.                                           |
 | **Subject**                             | 제목 줄.                                                                                              |
-| **Email Body**                          | HTML로 보내는 메시지.                                                                                 |
+| **이메일 본문**                          | HTML로 보내는 메시지.                                                                                 |
 | **SMTP HOST** 및 **SMTP Port**          | 연결할 메일 서버.                                                                                     |
 | **SMTP Username** 및 **SMTP Password**  | 선택 사항. 둘 다 채우거나 둘 다 비워 두세요.                                                          |
 | **Use Implicit TLS**                    | 암시적 TLS(보통 포트 465)에는 켭니다. STARTTLS(보통 포트 587)에는 꺼 둡니다.                           |

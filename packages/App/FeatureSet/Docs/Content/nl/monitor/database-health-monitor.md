@@ -370,14 +370,14 @@ Tellers die op `total` eindigen zijn cumulatief sinds de server is gestart. Verg
 
 | Filtertype | Wat het controleert |
 |---|---|
-| **Database Is Online** | Of de database bereikbaar was en de testquery slaagde. Dit is het offline-criterium waarmee de monitor wordt gemaakt, en de enige controle die de bereikbaarheid weergeeft. |
-| **Database Metric** | Kies een metric en vergelijk hem: Groter dan, Kleiner dan, Groter dan of gelijk aan, Kleiner dan of gelijk aan, Gelijk aan of Niet gelijk aan. De metrickiezer biedt alleen de metrics aan die je gekozen engine kan leveren, dus je kunt geen criterium bouwen dat voorgoed onvervuld blijft (één uitzondering: de Replication-metrics die voor Microsoft SQL Server worden aangeboden, worden op Azure SQL Database nooit verzameld). Als de metric bij een controle niet is verzameld — de groep mislukte of de engine rapporteert hem niet — komt het filter niet overeen, en ook niet als "false": het wordt overgeslagen. Een rechtenprobleem kan niemand oproepen. |
-| **Database Collection Error** | De samenvatting van de verzamelproblemen van de controle, één "groep: bericht" per niet-beschikbare groep. Alarmeer als die niet leeg is om verloren zicht op te merken, of gebruik Bevat om op één specifieke groep te letten. |
-| **JavaScript Expression** | Volledige controle. Zie [JavaScript-expressies](/docs/monitor/javascript-expression). |
+| **Database is online** | Of de database bereikbaar was en de testquery slaagde. Dit is het offline-criterium waarmee de monitor wordt gemaakt, en de enige controle die de bereikbaarheid weergeeft. |
+| **Databasemetriek** | Kies een metric en vergelijk hem: Groter dan, Kleiner dan, Groter dan of gelijk aan, Kleiner dan of gelijk aan, Gelijk aan of Niet gelijk aan. De metrickiezer biedt alleen de metrics aan die je gekozen engine kan leveren, dus je kunt geen criterium bouwen dat voorgoed onvervuld blijft (één uitzondering: de Replication-metrics die voor Microsoft SQL Server worden aangeboden, worden op Azure SQL Database nooit verzameld). Als de metric bij een controle niet is verzameld — de groep mislukte of de engine rapporteert hem niet — komt het filter niet overeen, en ook niet als "false": het wordt overgeslagen. Een rechtenprobleem kan niemand oproepen. |
+| **Verzamelfout van database** | De samenvatting van de verzamelproblemen van de controle, één "groep: bericht" per niet-beschikbare groep. Alarmeer als die niet leeg is om verloren zicht op te merken, of gebruik Bevat om op één specifieke groep te letten. |
+| **JavaScript-expressie** | Volledige controle. Zie [JavaScript-expressies](/docs/monitor/javascript-expression). |
 
 Drempels zijn gehele getallen. Schrijf `90`, niet `90.5` — percentages en seconden worden als gehele getallen vergeleken.
 
-**Database Is Online** en **Database Metric** kunnen over een periode worden gecontroleerd: vink **Evalueer deze criteria over een bepaalde periode** aan, kies dan onder **Evalueren** hoe de waarden worden beoordeeld (bijvoorbeeld **All Values**) en vul **Voor de laatste (in minuten)** in. Over een periode bepaalt de instelling **Als geen gegevens** van het filter wat een ontbrekende waarde betekent; laat die op **Ignore** staan, zodat een ontbrekend recht nog steeds niemand kan oproepen.
+**Database is online** en **Databasemetriek** kunnen over een periode worden gecontroleerd: vink **Evalueer deze criteria over een bepaalde periode** aan, kies dan onder **Evalueren** hoe de waarden worden beoordeeld (bijvoorbeeld **Alle waarden**) en vul **Voor de laatste (in minuten)** in. Over een periode bepaalt de instelling **Als geen gegevens** van het filter wat een ontbrekende waarde betekent; laat die op **Ignore** staan, zodat een ontbrekend recht nog steeds niemand kan oproepen.
 
 ### Variabelen voor JavaScript-expressies
 
@@ -402,7 +402,7 @@ Om één metric in een expressie te lezen, zet je de reeksnaam met zijn punten t
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
 ```
 
-Gebruik voor een drempel op één metric liever **Database Metric** dan een expressie: het zoekt de reeks voor je op, biedt alleen aan wat je engine kan leveren, en slaat de controle over als de waarde niet is verzameld in plaats van met niets te vergelijken.
+Gebruik voor een drempel op één metric liever **Databasemetriek** dan een expressie: het zoekt de reeks voor je op, biedt alleen aan wat je engine kan leveren, en slaat de controle over als de waarde niet is verzameld in plaats van met niets te vergelijken.
 
 ### Voorbeeld: een primaire PostgreSQL-server
 

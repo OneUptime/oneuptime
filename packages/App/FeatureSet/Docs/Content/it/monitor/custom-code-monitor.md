@@ -178,14 +178,14 @@ I criteri di un monitor Custom Code possono controllare:
 | Tipo di filtro | Cosa controlla | Condizioni del filtro |
 | --- | --- | --- |
 | **Errore** | L'errore generato dallo script, se presente. | Contiene, Non contiene, Uguale a, Diverso da, È vuoto, Non è vuoto |
-| **Result Value** | I `data` restituiti dallo script. Confrontati come numero quando lo sono. | Le stesse, più Maggiore di, Minore di, Maggiore o uguale a, Minore o uguale a, Vero e Falso |
+| **Valore del risultato** | I `data` restituiti dallo script. Confrontati come numero quando lo sono. | Le stesse, più Maggiore di, Minore di, Maggiore o uguale a, Minore o uguale a, Vero e Falso |
 | **Tempo di esecuzione (in ms)** | Quanto è durato lo script. | Confronti numerici |
 
 I criteri predefiniti segnano il monitor online quando **Errore** è vuoto, e offline (con un incidente che si risolve da solo quando lo script torna a funzionare) quando non lo è. Nei modelli di incidente e di avviso, l'esecuzione è disponibile come `{{result}}`, `{{scriptError}}`, `{{logMessages}}` e `{{executionTimeInMs}}`: consultate [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating).
 
 ### Avvisi sui dati restituiti
 
-Ciò che lo script restituisce come `data` è il **Result Value** del monitor, e un criterio può confrontarlo: per esempio _Result Value è Uguale a `UP`_.
+Ciò che lo script restituisce come `data` è il **Valore del risultato** del monitor, e un criterio può confrontarlo: per esempio _Result Value è Uguale a `UP`_.
 
 Quando `data` è un oggetto o un array, compilate **Percorso del campo (facoltativo)** nel filtro Result Value per confrontare uno dei suoi campi invece del valore intero. Usate i punti per i campi annidati e `[n]` per gli elementi di un array:
 

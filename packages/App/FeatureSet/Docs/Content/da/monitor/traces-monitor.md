@@ -110,9 +110,9 @@ En trace-monitors kriterier har én **Filtertype**: **Span Count**, antallet af 
 | **Mindre end** | under værdien |
 | **Mindre end eller lig med** | lig med værdien eller derunder |
 | **Lig med** | præcis værdien |
-| **Anomalously High** | over det forventede interval for denne time på ugen |
-| **Anomalously Low** | under det interval |
-| **Anomalous** | uden for det interval, i begge retninger |
+| **Unormalt høj** | over det forventede interval for denne time på ugen |
+| **Unormalt lav** | under det interval |
+| **Unormal** | uden for det interval, i begge retninger |
 
 Anomalibetingelserne har ingen **Værdi**. Vælg en **Følsomhed** (Lav, Middel, som er standard, eller Høj) og, i de egne kriterier, et **Baseline-vindue** på 14 (standard), 28, 60 eller 90 dage. OneUptime omregner antallet til en rate pr. minut og sammenligner den med vinduer af samme længde omkring samme tidspunkt i tidligere uger, så langt tilbage som **Baseline-vindue** rækker; det, der sker nu, indgår aldrig i sammenligningen. Baselinen dækker kun monitorens tjenester og span-statusser: dens filtre på span-navn og attributter indgår ikke. Minutter uden spans tæller også med, så en tjeneste, der ofte er stille, ikke regnes for usædvanligt lav, fordi den er stille. Et vindue regnes kun for usædvanligt højt i forhold til de vinduer, der indeholdt spans, og kun med mindst 20, 10 eller 5 spans ved følsomheden Lav, Middel eller Høj, så hverken et jobs sædvanlige udbrud eller en stille tjenestes første få spans udløser det. Indtil monitorens tjenester har to ugers historik, er kriteriet stadig ved at lære og udløses ikke.
 

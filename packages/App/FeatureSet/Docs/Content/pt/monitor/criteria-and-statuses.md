@@ -25,7 +25,7 @@ flowchart TB
     A --> L["Cria um alerta"]
 ```
 
-A ordem faz parte da regra. Um novo monitor lista seus critérios do pior caso para o melhor: offline, depois um aviso quando o tipo tem um (um certificado ou um domínio que expira em breve), depois online. Um critério saudável e amplo, como **Is Online** definido como **Verdadeiro**, corresponde a quase toda verificação, então ele fica por último: acima dos outros, corresponderia primeiro todas as vezes e os outros nunca agiriam.
+A ordem faz parte da regra. Um novo monitor lista seus critérios do pior caso para o melhor: offline, depois um aviso quando o tipo tem um (um certificado ou um domínio que expira em breve), depois online. Um critério saudável e amplo, como **Online** definido como **Verdadeiro**, corresponde a quase toda verificação, então ele fica por último: acima dos outros, corresponderia primeiro todas as vezes e os outros nunca agiriam.
 
 Um critério que corresponde mas não altera nenhum status ainda decide a verificação: o monitor mantém o status que tem, e os critérios abaixo esperam a próxima verificação. O **Status Padrão do Monitor** só se aplica quando nenhum critério corresponde. Em um novo monitor ele é **Operacional**; altere-o em **Mais campos**, abaixo dos critérios.
 
@@ -49,7 +49,7 @@ Um filtro lê um dado da verificação e o compara: um **Tipo de filtro** (o que
 
 Com dois filtros ou mais, a **Condição de correspondência** aparece abaixo deles: **Todos** significa que todo filtro precisa corresponder, **Qualquer** que um basta. Um novo critério começa em **Todos**.
 
-Os filtros que medem cada verificação, como **Is Online**, **Código de status da resposta** e **Tempo de resposta (em ms)**, oferecem **Avaliar este critério durante um período de tempo**. Isso julga uma janela de verificações recentes em vez da última apenas, e começa com os últimos 5 minutos e **All Values**, que só corresponde quando toda verificação da janela correspondeu. Veja [Avaliar durante um período de tempo](/docs/monitor/website-monitor#avaliar-durante-um-período-de-tempo).
+Os filtros que medem cada verificação, como **Online**, **Código de status da resposta** e **Tempo de resposta (em ms)**, oferecem **Avaliar este critério durante um período de tempo**. Isso julga uma janela de verificações recentes em vez da última apenas, e começa com os últimos 5 minutos e **Todos os valores**, que só corresponde quando toda verificação da janela correspondeu. Veja [Avaliar durante um período de tempo](/docs/monitor/website-monitor#avaliar-durante-um-período-de-tempo).
 
 ### Ações
 
@@ -97,8 +97,8 @@ Para ver como uma verificação foi julgada, abra a **Visão geral** do monitor:
 
 Um incidente ou alerta que um monitor abre guarda a verificação que o abriu, para que você veja o porquê muito depois de os registros do próprio monitor terem sido apagados. Abaixo da causa raiz, a seção **Detalhes da avaliação** nomeia o critério que correspondeu e, para cada filtro que correspondeu, o que a verificação encontrou. **Mostrar detalhes** acrescenta o resto das evidências, os filtros que não corresponderam e a própria verificação: a solicitação, quando foi feita, de qual sonda e o que voltou. O que um filtro encontrou pode ser:
 
-- **O campo.** Onde um filtro **Corpo da Resposta** correspondeu em um corpo JSON, como `checks[1].status`, ou o cabeçalho em que um filtro **Response Header Value** correspondeu.
-- **Os valores.** O que cada valor lido por uma **JavaScript Expression** continha quando ela foi avaliada, como `responseBody.status = "down"`.
+- **O campo.** Onde um filtro **Corpo da Resposta** correspondeu em um corpo JSON, como `checks[1].status`, ou o cabeçalho em que um filtro **Valor do cabeçalho da resposta** correspondeu.
+- **Os valores.** O que cada valor lido por uma **Expressão JavaScript** continha quando ela foi avaliada, como `responseBody.status = "down"`.
 - **Um trecho.** Uma pequena parte da resposta em volta da correspondência, com ela destacada: nunca o corpo inteiro.
 
 Segredos e dados pessoais são mascarados antes de qualquer coisa ser guardada: cabeçalhos como `Authorization`, `Cookie` e `Set-Cookie`, campos cujos nomes dizem `password`, `token`, `key`, `session` ou `email`, e texto que parece um token bearer, um JWT, um número de cartão ou um endereço de e-mail. A URL da solicitação é a configurada no monitor, então `{{monitorSecrets.NAME}}` continua sendo um nome, e um valor secreto da consulta é mascarado. Os **Registros de monitoramento** do monitor, e qualquer valor que uma causa raiz cite, são mascarados da mesma forma. Um incidente ou alerta aberto manualmente, ou antes de os detalhes da avaliação serem guardados, não tem nenhum.

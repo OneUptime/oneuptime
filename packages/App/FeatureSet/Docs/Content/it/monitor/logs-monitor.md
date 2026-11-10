@@ -113,9 +113,9 @@ I criteri di un monitor log hanno un solo **Tipo di filtro**: **Log Count**, il 
 | **Minore di** | sotto il valore |
 | **Minore o uguale a** | pari al valore o inferiore |
 | **Uguale a** | esattamente il valore |
-| **Anomalously High** | sopra l'intervallo atteso per quest'ora della settimana |
-| **Anomalously Low** | sotto quell'intervallo |
-| **Anomalous** | fuori da quell'intervallo, in un senso o nell'altro |
+| **Anomalmente alto** | sopra l'intervallo atteso per quest'ora della settimana |
+| **Anomalmente basso** | sotto quell'intervallo |
+| **Anomalo** | fuori da quell'intervallo, in un senso o nell'altro |
 
 Le condizioni di anomalia non hanno un **Valore**. Scegliete una **Sensibilità** (Basso, Medio, quella predefinita, oppure Alto) e, nei criteri personalizzati, una **Finestra di riferimento** di 14 (quella predefinita), 28, 60 o 90 giorni. OneUptime trasforma il conteggio in un tasso al minuto e lo confronta con finestre della stessa durata attorno alla stessa ora delle settimane precedenti, fin dove arriva la **Finestra di riferimento**; ciò che accade adesso non fa mai parte di questo confronto. Il riferimento copre solo i servizi e le gravità del monitor: i suoi filtri di testo e di attributi non ne fanno parte. Contano anche i minuti senza log, quindi un servizio spesso silenzioso non risulta insolitamente basso per il solo fatto di tacere. Una finestra risulta insolitamente alta solo rispetto alle finestre che contenevano log, e solo con almeno 20, 10 o 5 log con sensibilità Basso, Medio o Alto, così né la solita raffica di un job né le prime righe di un servizio silenzioso lo fanno scattare. Finché i servizi del monitor non hanno due settimane di storico, il criterio sta ancora imparando e non scatta.
 
@@ -234,7 +234,7 @@ Il valore di ogni attributo di Group By è una [variabile di modello](/docs/moni
 
 - **Ogni criterio viene valutato**, come in un monitor metriche raggruppato, quindi gruppi diversi possono soddisfare criteri diversi allo stesso tempo. Un gruppo che soddisfa due criteri riceve comunque un solo avviso, quello del primo, quindi ordinate i criteri dal più grave al meno grave.
 - **Un gruppo esiste solo se ha registrato qualcosa nella finestra di tempo.** Per questo i criteri **Uguale a 0** e **Minore di** scattano solo per i gruppi che hanno registrato almeno una volta; per essere avvisati quando i log smettono del tutto di arrivare, usate un monitor senza Group By.
-- **Il rilevamento delle anomalie** (**Anomalously High**, **Anomalously Low**, **Anomalous**) non viene valutato per gruppo (il suo riferimento copre l'intero monitor), quindi questi filtri non corrispondono mai su un monitor raggruppato.
+- **Il rilevamento delle anomalie** (**Anomalmente alto**, **Anomalmente basso**, **Anomalo**) non viene valutato per gruppo (il suo riferimento copre l'intero monitor), quindi questi filtri non corrispondono mai su un monitor raggruppato.
 - Lo stato del monitor segue il primo criterio che un qualsiasi gruppo soddisfa. Quando nessun gruppo soddisfa alcun criterio, il monitor torna al suo stato predefinito.
 
 ## Risoluzione dei problemi

@@ -45,7 +45,7 @@ Een [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) geeft je 
 :::steps
 ### De monitor maken
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Kies **Incoming Request** onder **Monitortype**, noem hem `Alertmanager` en klik op **Volgende**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Kies **Inkomende aanvraag** onder **Monitortype**, noem hem `Alertmanager` en klik op **Volgende**.
 
 ### Een incident declareren voor elke afgaande waarschuwing
 
@@ -222,7 +222,7 @@ Geen van beide wegen merkt het wanneer Prometheus of Alertmanager stopt met werk
 :::steps
 ### De watchdog-monitor maken
 
-Maak een tweede Incoming Request-monitor, met de naam `Alertmanager watchdog`. Zet het filter van het eerste criterium, het criterium dat de monitor offline zet, op **Incoming Request**, **Not Recieved In Minutes**, `10`, en het filter van het tweede criterium op **Incoming Request**, **Recieved In Minutes**, `10`. Het dashboard spelt beide zo. Kopieer de **Heartbeat URL** van de nieuwe monitor.
+Maak een tweede Incoming Request-monitor, met de naam `Alertmanager watchdog`. Zet het filter van het eerste criterium, het criterium dat de monitor offline zet, op **Inkomende aanvraag**, **Niet ontvangen in minuten**, `10`, en het filter van het tweede criterium op **Inkomende aanvraag**, **Ontvangen in minuten**, `10`. Het dashboard spelt beide zo. Kopieer de **Heartbeat URL** van de nieuwe monitor.
 
 ### De watchdog-waarschuwing ernaartoe sturen
 

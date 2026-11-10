@@ -178,14 +178,14 @@ Die Kriterien eines Custom-Code-Monitors können prüfen:
 | Filtertyp | Was er prüft | Filterbedingungen |
 | --- | --- | --- |
 | **Fehler** | Den Fehler, den das Skript geworfen hat, falls vorhanden. | Enthält, Enthält nicht, Gleich, Ungleich, Ist leer, Ist nicht leer |
-| **Result Value** | Die `data`, die das Skript zurückgegeben hat. Als Zahl verglichen, wenn es eine ist. | Dieselben, dazu Größer als, Kleiner als, Größer als oder gleich, Kleiner als oder gleich, Wahr und Falsch |
+| **Ergebniswert** | Die `data`, die das Skript zurückgegeben hat. Als Zahl verglichen, wenn es eine ist. | Dieselben, dazu Größer als, Kleiner als, Größer als oder gleich, Kleiner als oder gleich, Wahr und Falsch |
 | **Ausführungszeit (in ms)** | Wie lange das Skript lief. | Numerische Vergleiche |
 
 Die Standardkriterien markieren den Monitor als online, wenn **Fehler** leer ist, und als offline — mit einem Vorfall, der sich selbst behebt, sobald das Skript wieder erfolgreich läuft — wenn nicht. In Vorfall- und Warnungsvorlagen steht der Lauf als `{{result}}`, `{{scriptError}}`, `{{logMessages}}` und `{{executionTimeInMs}}` zur Verfügung: siehe [Vorfall- & Warnmeldungsvorlagen](/docs/monitor/incident-alert-templating).
 
 ### Auf die zurückgegebenen Daten alarmieren
 
-Was das Skript als `data` zurückgibt, ist der **Result Value** des Monitors, und ein Kriterium kann ihn vergleichen — zum Beispiel _Result Value ist Gleich `UP`_.
+Was das Skript als `data` zurückgibt, ist der **Ergebniswert** des Monitors, und ein Kriterium kann ihn vergleichen — zum Beispiel _Result Value ist Gleich `UP`_.
 
 Ist `data` ein Objekt oder ein Array, füllen Sie im Result-Value-Filter **Feldpfad (optional)** aus, um ein Feld daraus statt des ganzen Werts zu vergleichen. Verwenden Sie Punkte für verschachtelte Felder und `[n]` für Array-Elemente:
 

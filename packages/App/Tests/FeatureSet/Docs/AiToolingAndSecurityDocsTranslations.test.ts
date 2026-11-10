@@ -191,15 +191,15 @@ export const WORKFLOW_STEP_NAMES: Record<string, Array<string>> = {
 };
 
 /*
- * The monitor criteria's filter types (CheckOn), which no Dashboard locale
- * translates. SecurityDocsFacts holds each to its enum. Their conditions
+ * The monitor criteria's filter types (CheckOn) no Dashboard locale
+ * translates. None is left: Security Event Count, the one these pages bold
+ * (SecurityDocsFacts holds it to its enum), left this list on 2026-11-10,
+ * when #6575 keyed every filter type in every language. Their conditions
  * (FilterType: Greater Than, Greater Than Or Equal To) are labels since
  * adc8421a1b, drawn like any other. The circuit breaker's monitors are set
  * up as one rule (When to alert), whose words are all labels.
  */
-export const CRITERIA_NAMES: Record<string, Array<string>> = {
-  [SECURITY_EVENTS]: ["Security Event Count"],
-};
+export const CRITERIA_NAMES: Record<string, Array<string>> = {};
 
 // The workflow value picker's button, a glyph.
 const GLYPHS: Record<string, Array<string>> = {

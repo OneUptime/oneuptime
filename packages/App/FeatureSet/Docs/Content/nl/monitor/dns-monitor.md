@@ -52,7 +52,7 @@ Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op 
 
 ### De criteria nakijken
 
-**Monitorcriteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer de naam niet wordt omgezet, online wanneer dat wel gebeurt. Om te controleren wat de records zeggen, voegt u een filter **DNS Record Value** toe en klikt u op **Volgende**.
+**Monitorcriteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer de naam niet wordt omgezet, online wanneer dat wel gebeurt. Om te controleren wat de records zeggen, voegt u een filter **DNS-recordwaarde** toe en klikt u op **Volgende**.
 
 ### Sondes kiezen en maken
 
@@ -72,7 +72,7 @@ Behoud of wijzig de **Sondes** en het **Bewakingsinterval** (het begint bij **El
 
 ### Recordtypen
 
-Een criterium **DNS Record Value** vergelijkt uw tekst met elk record zoals de sonde het schrijft, dus houd u aan dit formaat:
+Een criterium **DNS-recordwaarde** vergelijkt uw tekst met elk record zoals de sonde het schrijft, dus houd u aan dit formaat:
 
 | Recordtype | Wat het bevat | Formaat van de waarde, voor criteria |
 | --- | --- | --- |
@@ -95,15 +95,15 @@ Criteria bepalen wanneer de naam telt als online, verminderd of offline, en of d
 
 | Filter | Voorwaarden | Wat het controleert |
 | --- | --- | --- |
-| **DNS Is Online** | **Waar**, **Onwaar** | Of de query minstens één record van het type heeft teruggegeven. |
-| **DNS Response Time (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Hoe lang de query duurde. |
-| **DNS Record Exists** | **Waar**, **Onwaar** | Of er een record van het type terugkwam. |
-| **DNS Record Value** | **Bevat**, **Bevat niet**, **Begint met**, **Eindigt op**, **Gelijk aan**, **Niet gelijk aan** | De waarden van de records. Het filter komt overeen wanneer één record overeenkomt. |
-| **DNSSEC Is Valid** | **Waar**, **Onwaar** | Of een validerende resolver de AD-vlag op het antwoord zet. |
+| **DNS is online** | **Waar**, **Onwaar** | Of de query minstens één record van het type heeft teruggegeven. |
+| **DNS-reactietijd (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Hoe lang de query duurde. |
+| **DNS-record bestaat** | **Waar**, **Onwaar** | Of er een record van het type terugkwam. |
+| **DNS-recordwaarde** | **Bevat**, **Bevat niet**, **Begint met**, **Eindigt op**, **Gelijk aan**, **Niet gelijk aan** | De waarden van de records. Het filter komt overeen wanneer één record overeenkomt. |
+| **DNSSEC is geldig** | **Waar**, **Onwaar** | Of een validerende resolver de AD-vlag op het antwoord zet. |
 
-**DNS Record Value** komt overeen wanneer _een willekeurig_ record overeenkomt. Met meerdere `A`-records komt **Gelijk aan** `93.184.216.34` overeen wanneer een ervan dat adres is, en komt **Niet gelijk aan** overeen wanneer een ervan dat niet is.
+**DNS-recordwaarde** komt overeen wanneer _een willekeurig_ record overeenkomt. Met meerdere `A`-records komt **Gelijk aan** `93.184.216.34` overeen wanneer een ervan dat adres is, en komt **Niet gelijk aan** overeen wanneer een ervan dat niet is.
 
-**DNSSEC Is Valid** vraagt de server bij **DNS-server (optioneel)**, op zijn **Poort**, of Google Public DNS (`8.8.8.8`) wanneer dat veld leeg is, dus de server die u instelt moet DNSSEC valideren. Het filter heeft geen waarde, en komt in geen enkele richting overeen, wanneer de sonde die controle niet kan uitvoeren. Voor een volledige controle van een ondertekende zone gebruikt u een [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
+**DNSSEC is geldig** vraagt de server bij **DNS-server (optioneel)**, op zijn **Poort**, of Google Public DNS (`8.8.8.8`) wanneer dat veld leeg is, dus de server die u instelt moet DNSSEC valideren. Het filter heeft geen waarde, en komt in geen enkele richting overeen, wanneer de sonde die controle niet kan uitvoeren. Voor een volledige controle van een ondertekende zone gebruikt u een [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
 
 Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters moeten overeenkomen of dat **Minstens één** filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing aanmaken, een incident melden, of meerdere daarvan.
 
@@ -118,15 +118,15 @@ Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenk
 
 ### Over een periode evalueren
 
-**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **DNS Is Online** en **DNS Response Time (in ms)**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**.
+**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **DNS is online** en **DNS-reactietijd (in ms)**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**.
 
 | Aggregatie | Komt overeen wanneer |
 | --- | --- |
-| **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value** | Die waarde over het venster aan de voorwaarde voldoet. Alleen **DNS Response Time (in ms)**. |
-| **All Values** | Elke controle in het venster aan de voorwaarde voldoet. |
-| **Any Value** | Minstens één controle in het venster aan de voorwaarde voldoet. |
+| **Gemiddelde**, **Som**, **Maximale waarde**, **Minimale waarde** | Die waarde over het venster aan de voorwaarde voldoet. Alleen **DNS-reactietijd (in ms)**. |
+| **Alle waarden** | Elke controle in het venster aan de voorwaarde voldoet. |
+| **Willekeurige waarde** | Minstens één controle in het venster aan de voorwaarde voldoet. |
 
-**All Values** komt pas overeen wanneer het venster echt met gegevens is gevuld. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Any Value** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en gaat nog steeds meteen af.
+**Alle waarden** komt pas overeen wanneer het venster echt met gegevens is gevuld. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Willekeurige waarde** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en gaat nog steeds meteen af.
 
 **Als geen gegevens** bepaalt wat er gebeurt zolang het venster het criterium niet kan onderbouwen:
 
@@ -140,11 +140,11 @@ Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenk
 
 | Doel | Filter | Voorwaarde | Waarde |
 | --- | --- | --- | --- |
-| Offline wanneer de naam niet meer wordt omgezet | **DNS Is Online** | **Onwaar** | — |
-| Waarschuwen wanneer het enige `A`-record van een naam verandert | **DNS Record Value** | **Niet gelijk aan** | `93.184.216.34` |
-| Waarschuwen wanneer een `MX`-record buiten uw domein wijst | **DNS Record Value** | **Bevat niet** | `example.com` |
-| DNS als verminderd markeren wanneer het traag is | **DNS Response Time (in ms)** | **Groter dan** | `500` |
-| Waarschuwen wanneer de DNSSEC-validatie mislukt | **DNSSEC Is Valid** | **Onwaar** | — |
+| Offline wanneer de naam niet meer wordt omgezet | **DNS is online** | **Onwaar** | — |
+| Waarschuwen wanneer het enige `A`-record van een naam verandert | **DNS-recordwaarde** | **Niet gelijk aan** | `93.184.216.34` |
+| Waarschuwen wanneer een `MX`-record buiten uw domein wijst | **DNS-recordwaarde** | **Bevat niet** | `example.com` |
+| DNS als verminderd markeren wanneer het traag is | **DNS-reactietijd (in ms)** | **Groter dan** | `500` |
+| Waarschuwen wanneer de DNSSEC-validatie mislukt | **DNSSEC is geldig** | **Onwaar** | — |
 
 ## Problemen oplossen
 
@@ -157,11 +157,11 @@ dig @8.8.8.8 example.com A
 :::
 
 :::details Een criterium met Niet gelijk aan gaat af terwijl het juiste adres er is
-**DNS Record Value** komt overeen wanneer één record overeenkomt. Met meerdere records gaat **Niet gelijk aan** af zodra een ervan afwijkt. Om te controleren dat een bepaalde waarde tussen de records staat, vertrouwt u op de volgorde van de criteria, want het eerste dat overeenkomt wint:
+**DNS-recordwaarde** komt overeen wanneer één record overeenkomt. Met meerdere records gaat **Niet gelijk aan** af zodra een ervan afwijkt. Om te controleren dat een bepaalde waarde tussen de records staat, vertrouwt u op de volgorde van de criteria, want het eerste dat overeenkomt wint:
 
-1. Houd het standaard offline-criterium bovenaan: **DNS Is Online** / **Onwaar**.
-2. Voeg daaronder een criterium toe met **DNS Record Value** / **Gelijk aan** / de verwachte waarde, dat de monitor als **Operationeel** markeert.
-3. Voeg daaronder een criterium toe met **DNS Is Online** / **Waar**, dat de monitor als **Offline** markeert en een incident meldt. Het komt alleen overeen met antwoorden die de waarde niet hebben.
+1. Houd het standaard offline-criterium bovenaan: **DNS is online** / **Onwaar**.
+2. Voeg daaronder een criterium toe met **DNS-recordwaarde** / **Gelijk aan** / de verwachte waarde, dat de monitor als **Operationeel** markeert.
+3. Voeg daaronder een criterium toe met **DNS is online** / **Waar**, dat de monitor als **Offline** markeert en een incident meldt. Het komt alleen overeen met antwoorden die de waarde niet hebben.
 :::
 
 :::details DNSSEC Is Valid komt nooit overeen

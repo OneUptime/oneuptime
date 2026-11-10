@@ -86,11 +86,11 @@ Kriterier afgør, hvornår adressen tæller som online, forringet eller offline,
 
 | Filter | Betingelser | Hvad det tjekker |
 | --- | --- | --- |
-| **Is Online** | **Sand**, **Falsk** | Om mindst én ekkoanmodning fik svar. |
+| **Er online** | **Sand**, **Falsk** | Om mindst én ekkoanmodning fik svar. |
 | **Svartid (i ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Svarenes gennemsnitlige rundturstid. |
-| **Packet Loss (in %)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Andelen af de fem ekkoanmodninger, der ikke fik svar. |
-| **Jitter (in ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Standardafvigelsen af rundturstiderne over pakkerne i ét tjek. |
-| **Is Request Timeout** | **Sand**, **Falsk** | Om pingen fik timeout ved hvert forsøg. |
+| **Pakketab (i %)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Andelen af de fem ekkoanmodninger, der ikke fik svar. |
+| **Jitter (i ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Standardafvigelsen af rundturstiderne over pakkerne i ét tjek. |
+| **Timeout for anmodning** | **Sand**, **Falsk** | Om pingen fik timeout ved hvert forsøg. |
 
 Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, eller om **Enhver** enkelt er nok. Et kriteriums **Handlinger** afgør, hvad det gør: ændrer monitorstatus, opretter en advarsel, erklærer en hændelse eller flere af dem.
 
@@ -105,17 +105,17 @@ Kriterier tjekkes fra top til bund, og det første, der matcher, afgør, hvad de
 
 ### Evaluering over en periode
 
-**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **Is Online**, **Svartid (i ms)**, **Packet Loss (in %)**, **Jitter (in ms)** og **Is Request Timeout**. Slå det til for at bedømme et vindue af tidligere tjek i stedet for kun det seneste: vælg en aggregering under **Evaluér** og et vindue fra 2 til 60 minutter under **For de seneste (i minutter)**.
+**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **Er online**, **Svartid (i ms)**, **Pakketab (i %)**, **Jitter (i ms)** og **Timeout for anmodning**. Slå det til for at bedømme et vindue af tidligere tjek i stedet for kun det seneste: vælg en aggregering under **Evaluér** og et vindue fra 2 til 60 minutter under **For de seneste (i minutter)**.
 
 | Aggregering | Matcher, når |
 | --- | --- |
-| **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value** | Den værdi over vinduet opfylder betingelsen. Kun numeriske filtre. |
-| **All Values** | Hvert tjek i vinduet opfylder betingelsen. |
-| **Any Value** | Mindst ét tjek i vinduet opfylder betingelsen. |
+| **Gennemsnit**, **Sum**, **Maksimumværdi**, **Minimumværdi** | Den værdi over vinduet opfylder betingelsen. Kun numeriske filtre. |
+| **Alle værdier** | Hvert tjek i vinduet opfylder betingelsen. |
+| **Vilkårlig værdi** | Mindst ét tjek i vinduet opfylder betingelsen. |
 
-**All Values** matcher først, når vinduet virkelig er dækket af data. En monitor, der lige er oprettet, eller en, hvis tjek ikke længere er blevet registreret, har ikke nok historik til at sige noget om de seneste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Any Value** er indstillingen for "sig det med det samme, når et enkelt tjek overskrider grænsen" og udløses stadig med det samme.
+**Alle værdier** matcher først, når vinduet virkelig er dækket af data. En monitor, der lige er oprettet, eller en, hvis tjek ikke længere er blevet registreret, har ikke nok historik til at sige noget om de seneste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Vilkårlig værdi** er indstillingen for "sig det med det samme, når et enkelt tjek overskrider grænsen" og udløses stadig med det samme.
 
-**Is Request Timeout** er ikke et tal, OneUptime registrerer. OneUptime registrerer derfor, om filteret passede ved hvert tjek, og bedømmer vinduet ud fra den registrering med **All Values** eller **Any Value**.
+**Timeout for anmodning** er ikke et tal, OneUptime registrerer. OneUptime registrerer derfor, om filteret passede ved hvert tjek, og bedømmer vinduet ud fra den registrering med **Alle værdier** eller **Vilkårlig værdi**.
 
 Gør vinduet længere end overvågningsintervallet, så det rummer flere tjek: en monitor, der tjekkes hvert 5. minut, har kun ét tjek i et vindue på 5 minutter.
 
@@ -131,10 +131,10 @@ Gør vinduet længere end overvågningsintervallet, så det rummer flere tjek: e
 
 | Mål | Filter | Betingelse | Værdi |
 | --- | --- | --- | --- |
-| Offline, når adressen ikke kan nås | **Is Online** | **Falsk** | — |
+| Offline, når adressen ikke kan nås | **Er online** | **Falsk** | — |
 | Advar, når latensen er høj | **Svartid (i ms)** | **Større end** | `100` |
-| Markér adressen som forringet på en forbindelse med tab | **Packet Loss (in %)** | **Større end** | `20` |
-| Advar ved en ustabil forbindelse | **Jitter (in ms)** | **Større end** | `30` |
+| Markér adressen som forringet på en forbindelse med tab | **Pakketab (i %)** | **Større end** | `20` |
+| Advar ved en ustabil forbindelse | **Jitter (i ms)** | **Større end** | `30` |
 
 ## Fejlfinding
 

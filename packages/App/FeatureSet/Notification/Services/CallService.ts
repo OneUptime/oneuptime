@@ -61,6 +61,7 @@ import {
   TwilioMessageKind,
 } from "Common/Utils/Project/TwilioAccount";
 import TwilioSendError, { TwilioSendKind } from "../Utils/TwilioSendError";
+import { withProviderConfig } from "../Utils/StatusCallbackProviderConfig";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import Project from "Common/Models/DatabaseModels/Project";
 import Twilio from "twilio";
@@ -629,10 +630,16 @@ export default class CallService {
          * How the call ends - answered, not answered, busy, failed - Twilio
          * tells this call's own status callback (API/Call.ts) once it does,
          * for a project's call, whose log is kept, from a server Twilio can
-         * reach (HOST).
+         * reach (HOST). Its address says whose Twilio account the call is
+         * made on, for the delivery metrics (StatusCallbackProviderConfig).
          */
         const statusCallbackUrl: string | null = options.projectId
-          ? this.prepareStatusCallback(callLog)
+          ? this.prepareStatusCallback(
+              callLog,
+              customTwilioConfig
+                ? NotificationProviderConfig.Project
+                : NotificationProviderConfig.Global,
+            )
           : null;
 
         twillioCall = await client.calls.create({
@@ -742,8 +749,13 @@ export default class CallService {
    * public webhook, and the token is what says it is Twilio's (the same as
    * an SMS's delivery status, SmsService). Nginx serves the external
    * /notification path from /api/notification, where the call router is.
+   * A call made on a project's own Twilio account says so in the URL's
+   * query, for the delivery metrics (StatusCallbackProviderConfig).
    */
-  public static prepareStatusCallback(callLog: CallLog): string | null {
+  public static prepareStatusCallback(
+    callLog: CallLog,
+    providerConfig: NotificationProviderConfig = NotificationProviderConfig.Global,
+  ): string | null {
     if (!Host) {
       return null;
     }
@@ -754,7 +766,10 @@ export default class CallService {
 
     callLog.statusCallbackToken = ObjectID.generate().toString();
 
-    return `${HttpProtocol}${Host}/notification/call/status-callback/${callLog.id!.toString()}/${callLog.statusCallbackToken}`;
+    return withProviderConfig(
+      `${HttpProtocol}${Host}/notification/call/status-callback/${callLog.id!.toString()}/${callLog.statusCallbackToken}`,
+      providerConfig,
+    );
   }
 
   /*

@@ -104,7 +104,7 @@ Cada mudança de status, com o motivo, fica registrada na **Linha do tempo de st
 
 ## Critérios
 
-Os critérios de um monitor de logs têm um único **Tipo de filtro**: **Log Count**, o número de logs que corresponderam na janela. **Quando alertar** configura um critério, cuja **Condição** é **Mais de**, **Pelo menos**, **Menos de**, **No máximo**, **Exatamente**, **Incomumente alto**, **Incomumente baixo** ou **Incomumente alto ou baixo**. Para vários critérios, ou um com mais de um filtro, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Condição do filtro** e, para uma condição de limite, um **Valor**.
+Os critérios de um monitor de logs têm um único **Tipo de filtro**: **Quantidade de logs**, o número de logs que corresponderam na janela. **Quando alertar** configura um critério, cuja **Condição** é **Mais de**, **Pelo menos**, **Menos de**, **No máximo**, **Exatamente**, **Incomumente alto**, **Incomumente baixo** ou **Incomumente alto ou baixo**. Para vários critérios, ou um com mais de um filtro, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Condição do filtro** e, para uma condição de limite, um **Valor**.
 
 | Condição do filtro | Corresponde quando a contagem de logs está… |
 | --- | --- |
@@ -113,9 +113,9 @@ Os critérios de um monitor de logs têm um único **Tipo de filtro**: **Log Cou
 | **Menor que** | abaixo do valor |
 | **Menor ou igual a** | no valor ou abaixo |
 | **Igual a** | exatamente no valor |
-| **Anomalously High** | acima da faixa esperada para esta hora da semana |
-| **Anomalously Low** | abaixo dessa faixa |
-| **Anomalous** | fora dessa faixa, em qualquer direção |
+| **Anomalamente alto** | acima da faixa esperada para esta hora da semana |
+| **Anomalamente baixo** | abaixo dessa faixa |
+| **Anômalo** | fora dessa faixa, em qualquer direção |
 
 As condições de anomalia não têm **Valor**. Escolha uma **Sensibilidade** (Baixo, Médio, a padrão, ou Alto) e, nos critérios personalizados, uma **Janela de linha de base** de 14 (a padrão), 28, 60 ou 90 dias. O OneUptime transforma a contagem em uma taxa por minuto e a compara com janelas do mesmo tamanho em torno da mesma hora de semanas anteriores, até onde alcança a **Janela de linha de base**; o que está acontecendo agora nunca entra nessa comparação. A linha de base cobre apenas os serviços e as severidades do monitor: seus filtros de texto e de atributos não fazem parte dela. Os minutos sem logs também contam, então um serviço que costuma ficar em silêncio não é visto como incomumente baixo por estar em silêncio. Uma janela só é vista como incomumente alta em relação às janelas que tiveram logs, e apenas com pelo menos 20, 10 ou 5 logs na sensibilidade Baixo, Médio ou Alto, de modo que nem o pico habitual de um job nem as primeiras linhas de um serviço silencioso o disparam. Até que os serviços do monitor tenham duas semanas de histórico, o critério ainda está aprendendo e não dispara.
 
@@ -131,8 +131,8 @@ Um monitor de logs criado pela API ou pelo Terraform sem critérios começa com 
 
 | Critério | Filtro | Efeito |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Igual a** `0` | Coloca o monitor offline e declara um incidente, resolvido automaticamente |
-| Check if … is online | **Log Count** **Maior que** `0` | Coloca o monitor online |
+| Check if … is offline | **Quantidade de logs** **Igual a** `0` | Coloca o monitor offline e declara um incidente, resolvido automaticamente |
+| Check if … is online | **Quantidade de logs** **Maior que** `0` | Coloca o monitor online |
 
 ## Exemplo prático: um pico de erros
 
@@ -234,7 +234,7 @@ O valor de cada atributo de Group By é uma [variável de modelo](/docs/monitor/
 
 - **Todos os critérios são avaliados**, como em um monitor de métricas agrupado, então grupos diferentes podem atender a critérios diferentes ao mesmo tempo. Um grupo que atende a dois critérios ainda recebe um só alerta, o do primeiro; por isso, ordene os critérios do mais grave para o menos grave.
 - **Um grupo só existe se registrou algo na janela de tempo.** Por isso, os critérios **Igual a 0** e **Menor que** só disparam para grupos que registraram pelo menos uma vez; para alertar quando os logs param de chegar por completo, use um monitor sem Group By.
-- **A detecção de anomalias** (**Anomalously High**, **Anomalously Low**, **Anomalous**) não é avaliada por grupo (sua linha de base cobre o monitor inteiro), então esses filtros nunca correspondem em um monitor agrupado.
+- **A detecção de anomalias** (**Anomalamente alto**, **Anomalamente baixo**, **Anômalo**) não é avaliada por grupo (sua linha de base cobre o monitor inteiro), então esses filtros nunca correspondem em um monitor agrupado.
 - O status do monitor segue o primeiro critério que qualquer grupo atende. Quando nenhum grupo atende a nenhum critério, o monitor volta ao seu status padrão.
 
 ## Solução de problemas
@@ -244,7 +244,7 @@ A contagem foi 0, então os filtros não correspondem a nenhum dos logs que o se
 :::
 
 :::details Houve um pico, mas nada alertou
-Os critérios são verificados de cima para baixo e a primeira correspondência decide. Um critério amplo acima do que você esperava, como **Log Count** **Maior que** `0`, corresponde primeiro e interrompe o resto. Coloque o critério mais grave no topo.
+Os critérios são verificados de cima para baixo e a primeira correspondência decide. Um critério amplo acima do que você esperava, como **Quantidade de logs** **Maior que** `0`, corresponde primeiro e interrompe o resto. Coloque o critério mais grave no topo.
 :::
 
 :::details Um critério de anomalia nunca dispara

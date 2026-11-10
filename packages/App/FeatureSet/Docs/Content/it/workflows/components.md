@@ -195,7 +195,7 @@ Invia un'email tramite un server SMTP che indichi sul blocco. Il blocco si chiam
 | **From Email**                          | Il mittente, ad esempio `Alerts <alerts@company.com>`.                                                |
 | **To Email**                            | L'indirizzo del destinatario. Separa più indirizzi con virgole o punti e virgola.                     |
 | **Subject**                             | L'oggetto.                                                                                            |
-| **Email Body**                          | Il messaggio, inviato come HTML.                                                                      |
+| **Corpo dell'email**                          | Il messaggio, inviato come HTML.                                                                      |
 | **SMTP HOST** e **SMTP Port**           | Il server di posta a cui collegarsi.                                                                  |
 | **SMTP Username** e **SMTP Password**   | Facoltativi. Compila entrambi o nessuno.                                                              |
 | **Use Implicit TLS**                    | Attivalo per il TLS implicito, di solito sulla porta 465. Lascialo spento per STARTTLS, di solito sulla porta 587. |

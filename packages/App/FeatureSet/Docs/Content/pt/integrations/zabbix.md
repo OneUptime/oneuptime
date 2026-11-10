@@ -135,7 +135,7 @@ Um [monitor Incoming Request](/docs/monitor/incoming-request-monitor) fornece um
 :::steps
 ### Criar o monitor
 
-Vá para **Monitores** e clique em **Criar monitor**. Escolha **Incoming Request** em **Tipo de monitor**, dê o nome `Zabbix` e clique em **Próximo**.
+Vá para **Monitores** e clique em **Criar monitor**. Escolha **Requisição recebida** em **Tipo de monitor**, dê o nome `Zabbix` e clique em **Próximo**.
 
 ### Declarar um incidente para cada problema
 

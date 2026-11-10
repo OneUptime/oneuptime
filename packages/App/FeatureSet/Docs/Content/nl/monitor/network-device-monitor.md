@@ -378,7 +378,7 @@ Voeg alle OID's toe die je bij elke poll wilt verzamelen, op een sjabloon of als
 | Naam | Een herkenbare naam voor de OID, zoals sysDescr. | Nee |
 | Beschrijving | Wat de OID voorstelt. | Nee |
 
-Verzamelde waarden worden in grafieken getoond op de pagina **Metrieken** van het apparaat, en de criteria **SNMP OID Value**, **SNMP OID Exists** en **SNMP OID Rate (per second)** waarschuwen erop. Een teller (Counter32 of Counter64) groeit alleen maar, dus waarschuw op hoe snel hij sinds de vorige poll is gegroeid. De OID-kiezer van die criteria toont de OID's die het gekozen apparaat verzamelt, die van zijn sjabloon en zijn eigen, dus er valt niets te typen.
+Verzamelde waarden worden in grafieken getoond op de pagina **Metrieken** van het apparaat, en de criteria **SNMP-OID-waarde**, **SNMP-OID bestaat** en **SNMP-OID-snelheid (per seconde)** waarschuwen erop. Een teller (Counter32 of Counter64) groeit alleen maar, dus waarschuw op hoe snel hij sinds de vorige poll is gegroeid. De OID-kiezer van die criteria toont de OID's die het gekozen apparaat verzamelt, die van zijn sjabloon en zijn eigen, dus er valt niets te typen.
 
 Lange OID-lijsten worden over meerdere SNMP GET-verzoeken verdeeld, zodat elk in één UDP-datagram past. Als je je OID-lijsten kort hield omdat een oudere versie een apparaat dat `tooBig` antwoordde als offline meldde, hoeft dat niet meer.
 
@@ -391,7 +391,7 @@ Typ een numerieke OID bij **Start-OID** of klik op een van de startpunten eronde
 Elke rij zegt waar zijn OID bekend is: een waarde die een gezondheidssjabloon van een leverancier verzamelt, een kolom van de SNMP-tabel van een leverancierssjabloon, een teller die de interface-walk al voor elke poort in een grafiek toont, of een OID onder de MIB van zijn leverancier. Vanuit een rij:
 
 - **Verzamelen** voegt de OID toe aan de **Device-Specific Health OIDs** van het apparaat: elke poll verzamelt hem vanaf de volgende, en de pagina **Metrieken** van het apparaat toont hem in een grafiek. Op een apparaat dat aan een OID Collection Template is gekoppeld, kan het menu van de rij hem in plaats daarvan aan het sjabloon toevoegen, voor elk apparaat dat het gebruikt.
-- **Waarschuwing instellen** verschijnt zodra de OID wordt verzameld en opent een nieuwe netwerkapparaat-monitor voor het apparaat met één criterium op de OID. Een teller begint op **SNMP OID Rate (per second)** en een meter op **SNMP OID Value**, elk boven een zelf gekozen drempel; een uptime waarschuwt onder tien minuten (het apparaat is herstart), al het andere wanneer het afwijkt van de gelezen waarde.
+- **Waarschuwing instellen** verschijnt zodra de OID wordt verzameld en opent een nieuwe netwerkapparaat-monitor voor het apparaat met één criterium op de OID. Een teller begint op **SNMP-OID-snelheid (per seconde)** en een meter op **SNMP-OID-waarde**, elk boven een zelf gekozen drempel; een uptime waarschuwt onder tien minuten (het apparaat is herstart), al het andere wanneer het afwijkt van de gelezen waarde.
 - **OID kopiëren**, in het menu van de rij, kopieert de OID.
 
 **Downloaden**, naast de samenvatting van de walk, slaat op wat de walk heeft gelezen als bestand: **snmpwalk-tekst (.txt)**, één OID per regel zoals `snmpwalk -On` die afdrukt, die elk SNMP-hulpmiddel en elke leverancierssupport leest, of **CSV-spreadsheet (.csv)**, met de naam, MIB, het type en de waarde van elke OID. Het bestand bevat elke OID die de walk heeft gelezen, voortgezette walks inbegrepen, wat het filter ook toont, en is genoemd naar het apparaat, de subboom en het tijdstip waarop het is opgeslagen. Iedereen die de laatste walk van het apparaat kan lezen, kan hem downloaden.
@@ -425,7 +425,7 @@ Een deel van wat een apparaat weet, is een lijst: één rij per IPsec-tunnel, wi
 | Rijnamen | Optionele kolommen waarvan de waarden elke rij een naam geven, zoals de verbindingsnaam van een tunnel. Zonder die kolommen worden rijen naar hun index genoemd. Een naam kan komen uit een zustertabel die de index deelt (Fabric Engine noemt IS-IS-adjacencies naar `rcIsisAdjHostName`), of uit een oudertabel waarvan de index het begin is van die van deze tabel (Aruba Instant noemt elke radio naar zijn access point). Een tabel die op een naam is geïndexeerd (ArubaOS indexeert zijn SSID's op de SSID) wordt genoemd naar haar gedecodeerde index. |
 | Rijlimiet | Hoeveel rijen er bewaard blijven: standaard 100, maximaal 250. |
 
-Getallen worden als getallen gelezen, en tekst die met een getal begint, wordt als dat getal gelezen (`"36"`, `"-95 dBm"`, `"80MHz"`), omdat veel leveranciers getallen in strings zetten. Zet het waardetype van een kolom op **Text only** voor waarden die alleen numeriek lijken. **Value labels** maken van codes woorden (`0=inactive, 1=active`): de ruwe waarde blijft wat in grafieken komt en wordt vergeleken, het label is wat wordt getoond. **Healthy values** (`1`) zeggen welke waarden betekenen dat alles goed is: ze kleuren de rij op de pagina **SNMP-tabellen** van het apparaat en sturen het criterium **SNMP Table Row Is Unhealthy** aan.
+Getallen worden als getallen gelezen, en tekst die met een getal begint, wordt als dat getal gelezen (`"36"`, `"-95 dBm"`, `"80MHz"`), omdat veel leveranciers getallen in strings zetten. Zet het waardetype van een kolom op **Text only** voor waarden die alleen numeriek lijken. **Value labels** maken van codes woorden (`0=inactive, 1=active`): de ruwe waarde blijft wat in grafieken komt en wordt vergeleken, het label is wat wordt getoond. **Healthy values** (`1`) zeggen welke waarden betekenen dat alles goed is: ze kleuren de rij op de pagina **SNMP-tabellen** van het apparaat en sturen het criterium **SNMP-tabelrij is ongezond** aan.
 
 Sommige kolommen van leverancierssjablonen **passen** ook het getal aan dat ze lezen, voor MIB's die een waarde in een eigen eenheid bewaren: ArubaOS meldt het zendvermogen verdubbeld (gelezen × 0.5), Aruba Instant de ruisvloer zonder teken (× −1), Aerohive de ruisvloer plus 256 (− 256), en de controller van Extreme de kanaalbreedte in stappen van 20 MHz (× 20). Het aangepaste getal is wat wordt getoond, in grafieken gezet en vergeleken, dus **Noise Floor Groter dan -80** betekent bij elke leverancier hetzelfde, en de tabeleditor toont de berekening onder de kolom.
 
@@ -494,7 +494,7 @@ De pagina **Interfaces** van het apparaat opent met een kaart **Transceivers**: 
 | Waarschuwing | Een meting zit op of voorbij een waarschuwingsdrempel. |
 | Alarm | Een meting zit op of voorbij een alarmdrempel, of het apparaat meldt signaalverlies of een zenderfout. |
 | Niet gedetecteerd | De poort had een optic en meldt er geen meer, terwijl de poort nog ingeschakeld is. De pagina noemt nog wat er zat. |
-| Geen drempels | De optic meldt metingen, maar het apparaat meldt geen grenzen om ze aan te toetsen. Waarschuw erop met **SNMP Transceiver Reading**. |
+| Geen drempels | De optic meldt metingen, maar het apparaat meldt geen grenzen om ze aan te toetsen. Waarschuw erop met **SNMP-transceiver-meetwaarde**. |
 | Gedetecteerd | De optic meldt helemaal geen diagnostiek: gebruikelijk bij koper-SFP's en direct-attach-kabels. |
 | Poort uitgeschakeld | De poort is dicht, dus de laser staat bewust uit: de metingen worden getoond maar nooit beoordeeld. |
 
@@ -805,7 +805,7 @@ Om er een te maken vanuit **Monitoren**:
 
 Een netwerkapparaat-monitor heeft geen eigen interval: hij wordt beoordeeld telkens als de pollresultaten van het apparaat binnenkomen, en telkens als er een trap van het apparaat binnenkomt.
 
-Als de polls stoppen, wordt de monitor toch beoordeeld. Zodra een apparaat drie pollintervallen, en minstens tien minuten, geen poll heeft gehad, worden zijn monitors elke vijf minuten beoordeeld als een poll die het apparaat niet kon bereiken: een criterium dat past bij **SNMP Device Is Online** op False, zoals **Device unreachable**, gaat af, en het incident zegt waarom er geen poll kwam, bijvoorbeeld dat de sonde uitgevallen is of dat het apparaat geen sonde heeft. Een apparaat waarvan het pollen uit staat, of dat de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) gebruikt, blijft buiten beschouwing. De volgende poll beoordeelt de monitor zoals altijd.
+Als de polls stoppen, wordt de monitor toch beoordeeld. Zodra een apparaat drie pollintervallen, en minstens tien minuten, geen poll heeft gehad, worden zijn monitors elke vijf minuten beoordeeld als een poll die het apparaat niet kon bereiken: een criterium dat past bij **SNMP-apparaat is online** op False, zoals **Device unreachable**, gaat af, en het incident zegt waarom er geen poll kwam, bijvoorbeeld dat de sonde uitgevallen is of dat het apparaat geen sonde heeft. Een apparaat waarvan het pollen uit staat, of dat de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) gebruikt, blijft buiten beschouwing. De volgende poll beoordeelt de monitor zoals altijd.
 
 ### Incidenten en waarschuwingen van een apparaat
 
@@ -875,7 +875,7 @@ Klik op **Add Recommended Alerts** in het criteriaformulier om een kant-en-klare
 | Transceiver past its alarm threshold | Een meting van een optic zit voorbij een alarmdrempel die het apparaat meldt, of het apparaat meldt signaalverlies of een zenderfout. | Waarschuwing |
 | Transceiver RX power dropping | Een optic ontvangt minstens 2 dB minder licht dan op zijn beste dag van de laatste 30. | Waarschuwing |
 
-Als het apparaat [SNMP-tabellen](#snmp-tabellen) walkt die gezonde waarden declareren, voegt het pakket ook één criterium **SNMP Table Row Is Unhealthy** toe per zo'n tabel, met Row `*`: een incident per rij voor tunnels, routeringsburen en de access points van een controller ("IPsec Tunnels: row unhealthy", of "Access Points: row unhealthy" voor een access point dat van zijn controller verdwenen is), en een waarschuwing per rij voor hardwaretabellen en radio's.
+Als het apparaat [SNMP-tabellen](#snmp-tabellen) walkt die gezonde waarden declareren, voegt het pakket ook één criterium **SNMP-tabelrij is ongezond** toe per zo'n tabel, met Row `*`: een incident per rij voor tunnels, routeringsburen en de access points van een controller ("IPsec Tunnels: row unhealthy", of "Access Points: row unhealthy" voor een access point dat van zijn controller verdwenen is), en een waarschuwing per rij voor hardwaretabellen en radio's.
 
 SNMP walk failing is bewust een waarschuwing en geen incident: het apparaat is niet uitgevallen, dus iemand er om 2 uur 's nachts voor wakker maken zou verkeerd zijn, maar zijn inventaris wordt niet meer ververst en iemand moet de inloggegevens repareren. Het gaat nooit af op een apparaat met alleen ping, omdat het criterium niet wordt beoordeeld als er geen walk draaide.
 
@@ -930,7 +930,7 @@ Traps worden gekoppeld via de apparaatinventaris:
 
 1. Een trap komt aan bij de ontvanger van een sonde en wordt doorgestuurd naar OneUptime.
 2. OneUptime zoekt de netwerkapparaten die aan die sonde zijn toegewezen en waarvan de hostnaam, of een van de **Overige adressen**, het bron-IP-adres van de trap is.
-3. De trap wordt vastgelegd in de trapgeschiedenis van het apparaat, en elke netwerkapparaat-monitor op een passend apparaat beoordeelt hem tegen zijn criteria, meestal een filter **SNMP Trap Received (Trap OID)**.
+3. De trap wordt vastgelegd in de trapgeschiedenis van het apparaat, en elke netwerkapparaat-monitor op een passend apparaat beoordeelt hem tegen zijn criteria, meestal een filter **SNMP-trap ontvangen (trap-OID)**.
 
 Het koppelen gebeurt op adres, niet op inloggegevens, dus ook een apparaat met alleen ping kan traps ontvangen: een apparaat waarvoor je geen leesrechten hebt, kan ze nog steeds sturen. Registreer het apparaat met het adres waarvandaan het traps stuurt, of voeg dat adres toe aan zijn **Overige adressen** op zijn pagina **Instellingen**. Generieke SNMPv1-traps (coldStart, linkDown, linkUp enzovoort) worden omgezet naar hun standaard-SNMPv2-notificatie-OID's, dus linkDown past op trap-OID `1.3.6.1.6.3.1.1.5.3`, welke SNMP-versie ook.
 
@@ -946,8 +946,8 @@ Het filter biedt ook Bevat, Begint met en Eindigt op, dus één criterium kan ee
 
 Sommige leveranciers sturen elke gebeurtenis als dezelfde trap en zetten de gebeurtenis in een tekst-varbind: elke melding van een Sophos Firewall is `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`) met het bericht in `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Combineer de twee in één criterium:
 
-- **SNMP Trap Received (Trap OID)**: Gelijk aan `1.3.6.1.4.1.2604.5.1.8.1.1`
-- **SNMP Trap Varbind Value**: varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Bevat `IPSec`
+- **SNMP-trap ontvangen (trap-OID)**: Gelijk aan `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **Varbindwaarde van SNMP-trap**: varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Bevat `IPSec`
 
 Een negatief filter (Bevat niet, Niet gelijk aan, Is leeg) is alleen vervuld als geen enkele varbind binnen het bereik op zijn positieve vorm past. Laat de varbind-OID leeg om in elke varbind te zoeken die de trap meedraagt.
 

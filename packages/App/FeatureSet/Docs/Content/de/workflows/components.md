@@ -195,7 +195,7 @@ Eine E-Mail über einen SMTP-Server senden, den Sie im Baustein eintragen. Der B
 | **From Email**                           | Der Absender, zum Beispiel `Alerts <alerts@company.com>`.                                            |
 | **To Email**                             | Die Adresse des Empfängers. Trennen Sie mehrere Adressen mit Kommas oder Semikolons.                 |
 | **Subject**                              | Die Betreffzeile.                                                                                    |
-| **Email Body**                           | Die Nachricht, gesendet als HTML.                                                                    |
+| **E-Mail-Text**                           | Die Nachricht, gesendet als HTML.                                                                    |
 | **SMTP HOST** und **SMTP Port**          | Der Mailserver, mit dem verbunden wird.                                                              |
 | **SMTP Username** und **SMTP Password**  | Optional. Füllen Sie beide aus oder keines.                                                          |
 | **Use Implicit TLS**                     | Einschalten für implizites TLS, meist auf Port 465. Für STARTTLS aus lassen, meist auf Port 587.      |

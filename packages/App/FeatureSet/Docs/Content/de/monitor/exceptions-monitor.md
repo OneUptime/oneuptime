@@ -116,7 +116,7 @@ Jede Statusänderung wird mit ihrem Grund in der **Status-Zeitachse** des Monito
 
 ## Kriterien
 
-Die Kriterien eines Ausnahmen-Monitors haben vier Arten von **Filtertyp**: **Exception Count**, die Anzahl der Ausnahmen, die im Fenster gepasst haben, sowie **New Exceptions**, **Regressed Exceptions** und **Exception Increase (in %)**, die unten beschrieben sind. **Wann alarmieren** richtet ein Kriterium ein, dessen **Bedingung** **Mehr als**, **Mindestens**, **Weniger als**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig** oder **Ungewöhnlich hoch oder niedrig** lautet. Für mehrere Kriterien oder eines mit mehr als einem Filter klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Filterbedingung** und einen **Wert**.
+Die Kriterien eines Ausnahmen-Monitors haben vier Arten von **Filtertyp**: **Exception Count**, die Anzahl der Ausnahmen, die im Fenster gepasst haben, sowie **New Exceptions**, **Erneut aufgetretene Ausnahmen** und **Anstieg der Ausnahmen (in %)**, die unten beschrieben sind. **Wann alarmieren** richtet ein Kriterium ein, dessen **Bedingung** **Mehr als**, **Mindestens**, **Weniger als**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig** oder **Ungewöhnlich hoch oder niedrig** lautet. Für mehrere Kriterien oder eines mit mehr als einem Filter klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Filterbedingung** und einen **Wert**.
 
 | Filterbedingung | Passt, wenn die Anzahl der Ausnahmen … |
 | --- | --- |
@@ -126,9 +126,9 @@ Die Kriterien eines Ausnahmen-Monitors haben vier Arten von **Filtertyp**: **Exc
 | **Kleiner als oder gleich** | den Wert erreicht oder darunter liegt |
 | **Gleich** | genau dem Wert entspricht |
 | **Ungleich** | alles außer dem Wert ist |
-| **Anomalously High** | über dem Bereich liegt, der für diese Stunde der Woche erwartet wird |
-| **Anomalously Low** | unter diesem Bereich liegt |
-| **Anomalous** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
+| **Anomal hoch** | über dem Bereich liegt, der für diese Stunde der Woche erwartet wird |
+| **Anomal niedrig** | unter diesem Bereich liegt |
+| **Anomal** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
 
 Die Anomaliebedingungen haben keinen **Wert**. Wählen Sie eine **Empfindlichkeit** – Niedrig, Mittel (der Standard) oder Hoch – und, in den eigenen Kriterien, ein **Baseline-Fenster** von 14 (der Standard), 28, 60 oder 90 Tagen. Nur **Exception Count** hat sie: siehe [Sprünge gegenüber dem Normalen](#sprünge-gegenüber-dem-normalen).
 
@@ -156,8 +156,8 @@ Neben der Anzahl der Ausnahmen kann ein Ausnahmen-Monitor bei dem alarmieren, wo
 | Filtertyp | Was es im Fenster zählt |
 | --- | --- |
 | **New Exceptions** | Passende Ausnahmen, die zum ersten Mal gesehen wurden und weder behoben noch archiviert sind. |
-| **Regressed Exceptions** | Passende Ausnahmen, die Sie behoben haben, die zurückkamen und noch offen sind. |
-| **Exception Increase (in %)** | Wie weit die Anzahl passender Ausnahmen über der üblichen liegt: der Tag vor dem Fenster, je Fenster seiner Länge, mindestens eine. Zehn Ausnahmen nach einem ruhigen Tag ergeben 900 %. |
+| **Erneut aufgetretene Ausnahmen** | Passende Ausnahmen, die Sie behoben haben, die zurückkamen und noch offen sind. |
+| **Anstieg der Ausnahmen (in %)** | Wie weit die Anzahl passender Ausnahmen über der üblichen liegt: der Tag vor dem Fenster, je Fenster seiner Länge, mindestens eine. Zehn Ausnahmen nach einem ruhigen Tag ergeben 900 %. |
 
 Neue und zurückgekommene Ausnahmen werden nach Dienst, Ausnahmetyp, Umgebung und Meldung gefiltert und auch nach Infrastruktur-Entität: Eine Ausnahme zählt, wenn eines ihrer Vorkommen im Fenster von einer der gewählten Entitäten kam.
 

@@ -37,6 +37,12 @@ import {
  * enforces are the product's, not decoration: name the cause, quantify
  * it, offer ONE action, never render a counter that was not read as 0,
  * and never say "disconnected" without saying why.
+ *
+ * It lives here rather than in Utils/Rum because it speaks the reader's
+ * language (Types/Translator). Utils/Rum and Types/Rum hold what the
+ * browser recorder inlines into the pages it is served on, and may import
+ * nothing outside those two folders (BrowserRecorder's SourceHygiene test);
+ * the recorder never draws a health sentence.
  */
 
 /*

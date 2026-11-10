@@ -53,23 +53,18 @@ export const CRITERIA_GROUPS_POSTMORTEMS_PAGES: ReadonlyArray<CriteriaGroupsPost
   ];
 
 /*
- * Bold words every language writes as the English does, by page: the
- * criteria editor's filter and window names that no Dashboard locale has a
- * wording for (the dropdowns draw them as they are), and the built-in
- * outlines of Generate Postmortem with AI, which the dialog lists by their
- * English names in every language.
+ * Bold words every language writes as the English does, by page: the "⋯"
+ * that opens a row's menu, and the built-in outlines of Generate Postmortem
+ * with AI, which the dialog lists by their English names in every language.
+ * The criteria editor's filter and window names (Is Online, All Values,
+ * Response Header Value, JavaScript Expression) left this list on
+ * 2026-11-10: #6575 keyed them in every language, so every translation
+ * names them as its criteria editor draws them.
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
     // The "⋯" that opens a row's menu, drawn the same in every language.
-    [CRITERIA_AND_STATUSES]: [
-      "Is Online",
-      "All Values",
-      "⋯",
-      // What an incident or alert keeps of the check: two filter types.
-      "Response Header Value",
-      "JavaScript Expression",
-    ],
+    [CRITERIA_AND_STATUSES]: ["⋯"],
     [POSTMORTEMS]: [
       "Standard Postmortem",
       "Detailed Technical Postmortem",

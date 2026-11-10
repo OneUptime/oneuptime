@@ -101,7 +101,7 @@ Jede Statusänderung wird mit ihrem Grund in der **Status-Zeitachse** des Monito
 
 ## Kriterien
 
-Die Kriterien eines Traces-Monitors haben einen **Filtertyp**: **Span Count**, die Anzahl der Spans, die im Fenster gepasst haben. **Wann alarmieren** richtet ein Kriterium ein, dessen **Bedingung** **Mehr als**, **Mindestens**, **Weniger als**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig** oder **Ungewöhnlich hoch oder niedrig** lautet. Für mehrere Kriterien oder eines mit mehr als einem Filter klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Filterbedingung** und, bei einer Schwellenwertbedingung, einen **Wert**.
+Die Kriterien eines Traces-Monitors haben einen **Filtertyp**: **Span-Anzahl**, die Anzahl der Spans, die im Fenster gepasst haben. **Wann alarmieren** richtet ein Kriterium ein, dessen **Bedingung** **Mehr als**, **Mindestens**, **Weniger als**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig** oder **Ungewöhnlich hoch oder niedrig** lautet. Für mehrere Kriterien oder eines mit mehr als einem Filter klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Filterbedingung** und, bei einer Schwellenwertbedingung, einen **Wert**.
 
 | Filterbedingung | Passt, wenn die Anzahl der Spans … |
 | --- | --- |
@@ -110,9 +110,9 @@ Die Kriterien eines Traces-Monitors haben einen **Filtertyp**: **Span Count**, d
 | **Kleiner als** | unter dem Wert liegt |
 | **Kleiner als oder gleich** | den Wert erreicht oder darunter liegt |
 | **Gleich** | genau dem Wert entspricht |
-| **Anomalously High** | über dem Bereich liegt, der für diese Stunde der Woche erwartet wird |
-| **Anomalously Low** | unter diesem Bereich liegt |
-| **Anomalous** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
+| **Anomal hoch** | über dem Bereich liegt, der für diese Stunde der Woche erwartet wird |
+| **Anomal niedrig** | unter diesem Bereich liegt |
+| **Anomal** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
 
 Die Anomaliebedingungen haben keinen **Wert**. Wählen Sie eine **Empfindlichkeit** – Niedrig, Mittel (der Standard) oder Hoch – und, in den eigenen Kriterien, ein **Baseline-Fenster** von 14 (der Standard), 28, 60 oder 90 Tagen. OneUptime rechnet die Anzahl in eine Rate pro Minute um und vergleicht sie mit Fenstern gleicher Länge um dieselbe Zeit in früheren Wochen, so weit das **Baseline-Fenster** zurückreicht; was gerade geschieht, ist nie Teil dieses Vergleichs. Die Baseline umfasst nur die Dienste und Span-Status des Monitors: Seine Span-Namen- und Attributfilter gehören nicht dazu. Minuten ohne Spans zählen mit, sodass ein oft stiller Dienst nicht als ungewöhnlich niedrig gilt, nur weil er still ist. Als ungewöhnlich hoch gilt ein Fenster nur im Vergleich mit den Fenstern, die Spans enthielten, und nur mit mindestens 20, 10 oder 5 Spans bei der Empfindlichkeit Niedrig, Mittel oder Hoch, sodass weder der übliche Schub eines Jobs noch die ersten paar Spans eines stillen Dienstes auslösen. Solange die Dienste des Monitors keine zwei Wochen Verlauf haben, lernt das Kriterium noch und löst nicht aus.
 
@@ -127,8 +127,8 @@ Ein über die API oder Terraform ohne Kriterien angelegter Traces-Monitor beginn
 
 | Kriterium | Filter | Wirkung |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Gleich** `0` | Setzt den Monitor auf offline und eröffnet einen Vorfall, der automatisch behoben wird |
-| Check if … is online | **Span Count** **Größer als** `0` | Setzt den Monitor auf online |
+| Check if … is offline | **Span-Anzahl** **Gleich** `0` | Setzt den Monitor auf offline und eröffnet einen Vorfall, der automatisch behoben wird |
+| Check if … is online | **Span-Anzahl** **Größer als** `0` | Setzt den Monitor auf online |
 
 ## Ein Beispiel: fehlgeschlagene Checkout-Anfragen
 

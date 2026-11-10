@@ -16,7 +16,7 @@ import {
 import {
   diagnoseRecordingHealth,
   parseRecordingHealthStatus,
-} from "Common/Utils/Rum/SessionReplayHealth";
+} from "Common/Utils/SessionReplay/SessionReplayHealth";
 import { readDtoStringArray } from "Common/Types/Rum/SessionReplayApi";
 import {
   describeHealthError,

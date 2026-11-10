@@ -45,6 +45,7 @@ const SOURCES: Record<string, string> = {
   sideMenu: `${DASHBOARD}/Pages/Rum/View/SideMenu.tsx`,
   usersPage: `${DASHBOARD}/Pages/Rum/View/ProductAnalyticsUsers.tsx`,
   sessionsPage: `${DASHBOARD}/Pages/Rum/View/ProductAnalyticsSessions.tsx`,
+  eventsPage: `${DASHBOARD}/Pages/Rum/View/ProductAnalyticsEvents.tsx`,
   personPage: `${DASHBOARD}/Pages/Rum/View/ProductAnalyticsPerson.tsx`,
   peopleCard: `${DASHBOARD}/Components/ProductAnalytics/ProductAnalyticsPeopleCard.tsx`,
   format: `${DASHBOARD}/Components/ProductAnalytics/ProductAnalyticsFormat.ts`,
@@ -56,6 +57,33 @@ const SOURCES: Record<string, string> = {
 const BOLD: RegExp = /\*\*([^*]+)\*\*/g;
 // A tile's or a column's title in a page's source: title: "Active users",
 const TITLE: RegExp = /title: "([^"]+)"/g;
+// An opening card's link to a section of the page: [Users](#users).
+const CARD_ANCHOR: RegExp = /^- \[([^\]]+)\]\(#([^)]+)\): /;
+
+/*
+ * The Product Analytics section of an application's side menu, as
+ * SideMenu.tsx draws it since the events, funnels, retention and flows
+ * pages came (#6612): the page names it in this order.
+ */
+const MENU_PAGES: Array<string> = [
+  "Users",
+  "Sessions",
+  "Events",
+  "Funnels",
+  "User Retention",
+  "User Flows",
+  "Analytics Settings",
+];
+
+// The sections the page's opening cards point at, in order.
+const CARD_SECTIONS: Array<string> = [
+  "Users",
+  "Sessions",
+  "Send events and metrics",
+  "Events",
+  "Funnels",
+  "User Retention",
+];
 // A Permission.ts entry: the enum member, then its title.
 const PERMISSION_TITLE: RegExp =
   /permission: Permission\.(\w+),\s*title: "([^"]+)"/g;
@@ -151,9 +179,12 @@ describe("Product Analytics: its place in the docs", () => {
       );
 
       expect(markdown.split("\n")[0]).toBe(`# ${entry.navTitle}`);
-      expect(
-        cardLines(markdown.slice(0, markdown.indexOf("\n## "))).length,
-      ).toBe(4);
+
+      const cards: Array<string> = cardLines(
+        markdown.slice(0, markdown.indexOf("\n## ")),
+      );
+
+      expect(cards.length).toBe(CARD_SECTIONS.length);
       expect(headings[headings.length - 1]).toBe("Next steps");
       // The title, then the sections the opening cards point at, and more.
       expect(headings).toEqual([
@@ -161,10 +192,35 @@ describe("Product Analytics: its place in the docs", () => {
         "How people are counted",
         "Users",
         "Sessions",
+        "Send events and metrics",
+        "User properties",
+        "Events",
+        "Funnels",
+        "User Retention",
+        "Dashboards and alerts",
         "Privacy and retention",
         "Who can see it",
         "Next steps",
       ]);
+
+      // Each card is titled as its section and lands on its heading.
+      const anchors: Array<[string, string]> = cards.map(
+        (line: string): [string, string] => {
+          const match: RegExpExecArray | null = CARD_ANCHOR.exec(line);
+
+          return [match?.[1] || line, match?.[2] || ""];
+        },
+      );
+
+      expect(anchors).toEqual(
+        CARD_SECTIONS.map((heading: string): [string, string] => {
+          return [heading, heading.toLowerCase().split(" ").join("-")];
+        }),
+      );
+
+      for (const heading of CARD_SECTIONS) {
+        expect(headings).toContain(heading);
+      }
     },
   );
 });
@@ -172,27 +228,43 @@ describe("Product Analytics: its place in the docs", () => {
 describe("Product Analytics: where it lives and what it counts", () => {
   const counted: string = section("## How people are counted");
 
-  it("names the side menu section and its two pages as SideMenu.tsx draws them", () => {
+  it("names the side menu section and its seven pages as SideMenu.tsx draws them", () => {
     const menu: string = between(
       source("sideMenu"),
       '<SideMenuSection title="Product Analytics">',
       "</SideMenuSection>",
     );
 
-    expect(allMatches(menu, TITLE)).toEqual(["Users", "Sessions"]);
+    expect(allMatches(menu, TITLE)).toEqual(MENU_PAGES);
     expect(counted).toContain(
-      "An application's side menu has a **Product Analytics** section with two pages, **Users** and **Sessions**.",
+      `An application's side menu has a **Product Analytics** section: ${listedWith(
+        MENU_PAGES.map((page: string): string => {
+          return `**${page}**`;
+        }),
+        "and",
+      )}.`,
     );
   });
 
-  it("counts the sessions Session Replay records, as both pages say", () => {
+  it("counts the sessions Session Replay records on Users and Sessions, as both pages say", () => {
     for (const page of ["usersPage", "sessionsPage"]) {
       expect(source(page)).toContain(
         "counted from the sessions Session Replay records.",
       );
     }
 
-    expect(counted).toContain("Both count the sessions Session Replay records");
+    expect(counted).toContain(
+      "**Users** and **Sessions** count the sessions Session Replay records, so they start when the application's recorder does",
+    );
+  });
+
+  it("counts events from every session, recorded or not, as the Events page says", () => {
+    expect(source("eventsPage")).toContain(
+      "from every session, recorded or not.",
+    );
+    expect(counted).toContain(
+      "**Events**, **Funnels** and **User Retention** count people the same way, from the events the recorder sends from every session, recorded or not",
+    );
   });
 
   it("files a session under its signed-in user, else its browser's visitor, else nobody, as the diagram draws it", () => {

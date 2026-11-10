@@ -58,13 +58,13 @@ Tras el siguiente sondeo, la página **Tablas SNMP** del dispositivo lista cada 
 
 ### Alertar sobre cada túnel IPsec
 
-En la página del dispositivo, haz clic en **Crear monitor**. Las alertas recomendadas incluyen **IPsec Tunnels: row unhealthy**, un criterio **SNMP Table Row Is Unhealthy** sobre la tabla `ipsec_tunnels` con Row `*`: abre un incidente por cada túnel que no está activo, con el nombre del túnel, y resuelve cada uno cuando su túnel vuelve.
+En la página del dispositivo, haz clic en **Crear monitor**. Las alertas recomendadas incluyen **IPsec Tunnels: row unhealthy**, un criterio **Fila de la tabla SNMP con problemas** sobre la tabla `ipsec_tunnels` con Row `*`: abre un incidente por cada túnel que no está activo, con el nombre del túnel, y resuelve cada uno cuando su túnel vuelve.
 
 Un túnel que Sophos informa como activo solo tiene sus asociaciones de seguridad establecidas. Para comprobar que el tráfico lo atraviesa, añade un [monitor Ping](/docs/monitor/ping-monitor) desde una sonda en un sitio hacia un host al otro lado de cada túnel, y dibuja el túnel como un enlace de sitio en **Red → Topología → Enlaces del sitio** entre los dos [sitios](/docs/monitor/network-sites), vinculado a ese monitor: el enlace del mapa toma entonces el color del monitor.
 
 ### Enlaces WAN
 
-- **Salud de los puertos.** El recorrido de interfaces ya mide el estado, los bits de entrada y salida, el uso y los errores de cada puerto WAN. En el monitor del firewall, un criterio **SNMP Interface Is Down** o **SNMP Interface Utilization (in %)** con **Interfaz** puesto en el nombre del puerto WAN, o `*` para cada puerto, alerta por enlace.
+- **Salud de los puertos.** El recorrido de interfaces ya mide el estado, los bits de entrada y salida, el uso y los errores de cada puerto WAN. En el monitor del firewall, un criterio **Interfaz SNMP caída** o **Utilización de la interfaz SNMP (en %)** con **Interfaz** puesto en el nombre del puerto WAN, o `*` para cada puerto, alerta por enlace.
 - **Calidad del camino.** La latencia, la pérdida de paquetes y la fluctuación de cada enlace se miden desde fuera del firewall: un monitor Ping desde las sondas en la nube de OneUptime hacia la dirección pública de cada enlace WAN, y un monitor Ping desde una sonda del sitio hacia el gateway de cada proveedor. Los criterios de pérdida de paquetes y de fluctuación de esos monitores alertan por enlace, y **Red → Topología → Matriz de latencia** muestra de un vistazo cada sonda frente a cada monitor.
 - **Tráfico.** SFOS exporta NetFlow v5. Envíalo a la sonda en UDP 2055, donde escucha por defecto el colector de flujos de la sonda, y la página **Tráfico** del dispositivo muestra quién habla con quién por cada enlace WAN; [Tráfico de red](/docs/monitor/network-traffic) tiene los detalles.
 
@@ -88,7 +88,7 @@ Las dos primeras están en la lista de **Crear alerta**; para la tercera, abre u
 
 ### Traps
 
-Cada notificación de Sophos es el mismo trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), con el evento como texto en `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Para alertar sobre un tipo de evento, combina **SNMP Trap Received (Trap OID)** Igual a `1.3.6.1.4.1.2604.5.1.8.1.1` con **SNMP Trap Varbind Value** sobre esa varbind, Contiene `IPSec` por ejemplo. Pon el destino de traps del firewall en SNMP v2c: el receptor de traps de la sonda acepta traps v1 y v2c.
+Cada notificación de Sophos es el mismo trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), con el evento como texto en `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Para alertar sobre un tipo de evento, combina **Trap SNMP recibido (OID del trap)** Igual a `1.3.6.1.4.1.2604.5.1.8.1.1` con **Valor del varbind del trap SNMP** sobre esa varbind, Contiene `IPSec` por ejemplo. Pon el destino de traps del firewall en SNMP v2c: el receptor de traps de la sonda acepta traps v1 y v2c.
 
 ## Extreme Networks (EXOS / Switch Engine y Fabric Engine / VOSS)
 
@@ -105,7 +105,7 @@ Fabric Engine en el hardware universal de Extreme (las series 5000 y 7000) infor
 
 ### Alertas del fabric y del hardware
 
-Las alertas recomendadas en un switch Fabric Engine incluyen **Fabric Adjacencies (IS-IS): row unhealthy**, un incidente por cada vecino cuya adyacencia no está activa. Fabric Engine también envía un trap cuando cambia una adyacencia, `rcnIsisPlsbAdjStateTrap` (`1.3.6.1.4.1.2272.1.21.0.281`), y un criterio **SNMP Trap Received (Trap OID)** sobre él alerta en segundos, antes del siguiente sondeo.
+Las alertas recomendadas en un switch Fabric Engine incluyen **Fabric Adjacencies (IS-IS): row unhealthy**, un incidente por cada vecino cuya adyacencia no está activa. Fabric Engine también envía un trap cuando cambia una adyacencia, `rcnIsisPlsbAdjStateTrap` (`1.3.6.1.4.1.2272.1.21.0.281`), y un criterio **Trap SNMP recibido (OID del trap)** sobre él alerta en segundos, antes del siguiente sondeo.
 
 Las fuentes de alimentación, los ventiladores, los sensores de temperatura y los miembros de la pila son tablas que declaran sus valores sanos, así que cada una recibe una alerta por fila en las alertas recomendadas.
 
@@ -129,10 +129,10 @@ Alertas útiles, todas sobre la tabla `wifi_radios` con Row `*`, para que cada r
 
 | Alerta | Criterio |
 | --- | --- |
-| Una radio apagada | **SNMP Table Row Is Unhealthy**, parte de las alertas recomendadas |
-| Cambió la potencia de transmisión | **SNMP Table Value**, columna TX Power, Distinto de tu potencia planificada |
-| Una radio saturada | **SNMP Table Value**, columna Clients, Mayor que tu límite |
-| Un canal ruidoso | **SNMP Table Value**, columna Noise Floor, Mayor que `-80` |
+| Una radio apagada | **Fila de la tabla SNMP con problemas**, parte de las alertas recomendadas |
+| Cambió la potencia de transmisión | **Valor de la tabla SNMP**, columna TX Power, Distinto de tu potencia planificada |
+| Una radio saturada | **Valor de la tabla SNMP**, columna Clients, Mayor que tu límite |
+| Un canal ruidoso | **Valor de la tabla SNMP**, columna Noise Floor, Mayor que `-80` |
 
 Cada valor numérico de radio es también una métrica (`oneuptime.monitor.snmp.table.value`, una serie por radio y columna), así que el canal, la potencia y los clientes se pueden graficar a lo largo del tiempo en un panel; un canal que no deja de cambiar es DFS en acción.
 

@@ -102,7 +102,7 @@ flowchart TB
 
 ### 元件
 
-選擇你依賴的元件後，監測器只留意它們：**External Status Page Component Status** 只比較它們的狀態，整體狀態取它們之中最差的那個，**External Status Page Active Incidents** 只計算至少影響其中一個元件的事件。無論選擇多少個元件，對頁面的檢查仍然只有一次。
+選擇你依賴的元件後，監測器只留意它們：**外部狀態頁面元件狀態** 只比較它們的狀態，整體狀態取它們之中最差的那個，**外部狀態頁面進行中事件數** 只計算至少影響其中一個元件的事件。無論選擇多少個元件，對頁面的檢查仍然只有一次。
 
 開啟 **元件** 時，你的瀏覽器會從 Atlassian Statuspage、incident.io 頁面或 OneUptime 狀態頁面讀取頁面本身的清單，並依頁面的群組顯示；未正常運作的元件會註明它目前的狀況。你選擇的名稱只留意與它完全同名的元件，不區分大小寫：GitHub 頁面上的 `Copilot` 不是 `Copilot AI Model Providers`。
 
@@ -129,13 +129,13 @@ flowchart TB
 
 | 篩選器類型 | 檢查內容 | 篩選條件 |
 | --- | --- | --- |
-| **External Status Page Is Online** | 狀態頁面是否可以連線並傳回狀態資料 | 是 或 否 |
-| **External Status Page Overall Status** | 頁面回報的整體狀態 | 等於、不等於、包含、不包含、開頭是、結尾是 |
-| **External Status Page Component Status** | 範圍內每個元件的狀態（設定後為所選元件或該群組的元件）：運作中、維護中、效能降低、部分中斷、重大中斷 或 完全中斷 | 等於、不等於、包含、不包含、開頭是、結尾是 |
-| **External Status Page Active Incidents** | 狀態頁面上目前進行中的事件數（選擇了元件或群組時，只計算影響範圍內元件的事件） | 等於、不等於以及數值比較 |
-| **External Status Page Response Time (in ms)** | 取得狀態頁面資料所花的時間 | 大於、小於、大於或等於、小於或等於 |
+| **外部狀態頁面是否在線** | 狀態頁面是否可以連線並傳回狀態資料 | 是 或 否 |
+| **外部狀態頁面整體狀態** | 頁面回報的整體狀態 | 等於、不等於、包含、不包含、開頭是、結尾是 |
+| **外部狀態頁面元件狀態** | 範圍內每個元件的狀態（設定後為所選元件或該群組的元件）：運作中、維護中、效能降低、部分中斷、重大中斷 或 完全中斷 | 等於、不等於、包含、不包含、開頭是、結尾是 |
+| **外部狀態頁面進行中事件數** | 狀態頁面上目前進行中的事件數（選擇了元件或群組時，只計算影響範圍內元件的事件） | 等於、不等於以及數值比較 |
+| **外部狀態頁面回應時間（毫秒）** | 取得狀態頁面資料所花的時間 | 大於、小於、大於或等於、小於或等於 |
 
-整體狀態就是頁面上寫的內容，因此其值會因供應商而異：Atlassian Statuspage 回報它自己的描述，例如 `All Systems Operational`；OneUptime 狀態頁面回報範圍內元件中最差的狀態，例如 `under_maintenance`；摘要回報 `operational` 或 `degraded_performance`；連線能力檢查回報 `reachable` 或 `unreachable`。選擇了元件或群組時，無論是哪種頁面，它都是其中最差的狀態。這些比較會區分大小寫。監測器摘要會像顯示每個元件的狀態一樣，用文字和顏色顯示整體狀態（`under_maintenance` 顯示為 **維護中**），而條件比較的是頁面回報的值。若要針對服務中斷發出警示，**External Status Page Active Incidents** 和 **External Status Page Component Status** 通常比較可靠。
+整體狀態就是頁面上寫的內容，因此其值會因供應商而異：Atlassian Statuspage 回報它自己的描述，例如 `All Systems Operational`；OneUptime 狀態頁面回報範圍內元件中最差的狀態，例如 `under_maintenance`；摘要回報 `operational` 或 `degraded_performance`；連線能力檢查回報 `reachable` 或 `unreachable`。選擇了元件或群組時，無論是哪種頁面，它都是其中最差的狀態。這些比較會區分大小寫。監測器摘要會像顯示每個元件的狀態一樣，用文字和顏色顯示整體狀態（`under_maintenance` 顯示為 **維護中**），而條件比較的是頁面回報的值。若要針對服務中斷發出警示，**外部狀態頁面進行中事件數** 和 **外部狀態頁面元件狀態** 通常比較可靠。
 
 對於 RSS 或 Atom 摘要，最近 24 小時內的項目算作進行中的事件：RSS 項目依發布日期，Atom 項目依更新日期。日期在未來的項目要到該日期才計入。
 
@@ -178,7 +178,7 @@ flowchart TB
 :::steps
 ### 新增條件
 
-在監測器的條件中點選 **新增條件準則** 。為它設定篩選器 **External Status Page Component Status** 、 **等於** 、 **維護中** ，並在 **將監測器狀態變更為** 中選擇你的維護狀態。
+在監測器的條件中點選 **新增條件準則** 。為它設定篩選器 **外部狀態頁面元件狀態** 、 **等於** 、 **維護中** ，並在 **將監測器狀態變更為** 中選擇你的維護狀態。
 
 ### 把它移到最上面
 

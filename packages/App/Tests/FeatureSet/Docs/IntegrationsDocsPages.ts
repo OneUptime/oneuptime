@@ -793,10 +793,11 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
     [DYNAMICS]: ["⋯", "Access Token Fetched", "`customFields.dynamicsCaseId`."],
     /*
-     * The criteria filter's conditions, drawn from the filter type's own
-     * text, misspelling included.
+     * The Alertmanager page's criteria conditions, Recieved In Minutes and
+     * Not Recieved In Minutes, left this list on 2026-11-10: #6575 keyed
+     * them in every language, so every translation names them as its
+     * criteria form draws them.
      */
-    [ALERTMANAGER]: ["Not Recieved In Minutes", "Recieved In Minutes"],
     /*
      * What the Security Events connection pages name that no Dashboard
      * locale words: the providers' titles, the connection form's settings

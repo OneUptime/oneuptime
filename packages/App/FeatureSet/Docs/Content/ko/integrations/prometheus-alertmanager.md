@@ -45,7 +45,7 @@ Prometheus는 알림 규칙을 평가하고 발생한 알림을 Alertmanager로 
 :::steps
 ### 모니터 만들기
 
-**모니터**로 이동해 **모니터 생성**을 클릭합니다. **모니터 유형**에서 **Incoming Request**를 고르고, 이름을 `Alertmanager`로 정한 다음 **다음**을 클릭합니다.
+**모니터**로 이동해 **모니터 생성**을 클릭합니다. **모니터 유형**에서 **수신 요청**을 고르고, 이름을 `Alertmanager`로 정한 다음 **다음**을 클릭합니다.
 
 ### 발생한 알림마다 인시던트 선언
 
@@ -222,7 +222,7 @@ Alertmanager와 인시던트 사이에 직접 만든 단계가 필요하면 [워
 :::steps
 ### 워치독 모니터 만들기
 
-`Alertmanager watchdog`이라는 이름으로 두 번째 Incoming Request 모니터를 만듭니다. 모니터를 오프라인으로 표시하는 첫 번째 기준의 필터는 **Incoming Request**, **Not Recieved In Minutes**, `10`으로, 두 번째 기준의 필터는 **Incoming Request**, **Recieved In Minutes**, `10`으로 설정합니다. 대시보드에서는 둘 다 이 철자로 표시됩니다. 새 모니터의 **Heartbeat URL**을 복사합니다.
+`Alertmanager watchdog`이라는 이름으로 두 번째 Incoming Request 모니터를 만듭니다. 모니터를 오프라인으로 표시하는 첫 번째 기준의 필터는 **수신 요청**, **분 동안 미수신**, `10`으로, 두 번째 기준의 필터는 **수신 요청**, **분 이내 수신**, `10`으로 설정합니다. 대시보드에서는 둘 다 이 철자로 표시됩니다. 새 모니터의 **Heartbeat URL**을 복사합니다.
 
 ### 워치독 알림을 그쪽으로 보내기
 

@@ -74,13 +74,13 @@ Kriterien entscheiden, wann das Zertifikat als in Ordnung, beeinträchtigt oder 
 | Filter | Bedingungen | Was er prüft |
 | --- | --- | --- |
 | **Is Valid Certificate** | **Wahr**, **Falsch** | Das Zertifikat besteht die Prüfungen eines Browsers: eine vertrauenswürdige ausstellende Stelle, ein passender Hostname und ein Gültigkeitszeitraum, der heute einschließt. **Falsch**, wenn der Endpunkt nicht geantwortet hat. |
-| **Is Not A Valid Certificate** | **Wahr**, **Falsch** | Das Gegenteil von **Is Valid Certificate**: **Wahr**, wenn das Zertifikat diese Prüfungen nicht besteht oder nicht geprüft werden konnte. |
-| **Is Expired Certificate** | **Wahr**, **Falsch** | Das Ablaufdatum des Zertifikats ist überschritten. |
-| **Is Self Signed Certificate** | **Wahr**, **Falsch** | Das Zertifikat oder eines in seiner Kette ist selbstsigniert. |
-| **Expires In Days** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Tage, bis das Zertifikat abläuft. |
-| **Expires In Hours** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Stunden, bis das Zertifikat abläuft. |
+| **Zertifikat ist ungültig** | **Wahr**, **Falsch** | Das Gegenteil von **Is Valid Certificate**: **Wahr**, wenn das Zertifikat diese Prüfungen nicht besteht oder nicht geprüft werden konnte. |
+| **Zertifikat ist abgelaufen** | **Wahr**, **Falsch** | Das Ablaufdatum des Zertifikats ist überschritten. |
+| **Zertifikat ist selbstsigniert** | **Wahr**, **Falsch** | Das Zertifikat oder eines in seiner Kette ist selbstsigniert. |
+| **Tage bis zum Ablauf** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Tage, bis das Zertifikat abläuft. |
+| **Stunden bis zum Ablauf** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Stunden, bis das Zertifikat abläuft. |
 
-**Expires In Days** zählt ganze Tage: Ein Zertifikat, das in 14 Tagen und 20 Stunden abläuft, hat noch 14 Tage. **Expires In Hours** zählt ganze Stunden auf dieselbe Weise.
+**Tage bis zum Ablauf** zählt ganze Tage: Ein Zertifikat, das in 14 Tagen und 20 Stunden abläuft, hat noch 14 Tage. **Stunden bis zum Ablauf** zählt ganze Stunden auf dieselbe Weise.
 
 Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutreffen müssen oder **Beliebig** einer genügt. Die **Aktionen** eines Kriteriums legen fest, was es tut: den Monitorstatus ändern, eine Warnung erstellen, einen Vorfall melden oder mehreres davon.
 
@@ -96,13 +96,13 @@ Die Warnung „läuft bald ab“ ist eine Warnung, kein Vorfall: Sie erscheint n
 
 Kriterien werden von oben nach unten geprüft, und das erste zutreffende entscheidet, was passiert. Deshalb steht „läuft bald ab“ über „ist gültig“: Ein ablaufendes Zertifikat ist noch gültig und würde daher auf beide zutreffen.
 
-Um früher gewarnt zu werden, ändern Sie den Wert des Filters **Expires In Days** im Kriterium „läuft bald ab“, etwa auf `30`. Um stattdessen jemanden zu alarmieren, öffnen Sie die **Aktionen** dieses Kriteriums: Schalten Sie **Wenn Filter übereinstimmen, einen Vorfall deklarieren.** ein, oder behalten Sie die Warnung und fügen Sie ihr unter **Bereitschaftsrichtlinien** eine Bereitschaftsrichtlinie hinzu.
+Um früher gewarnt zu werden, ändern Sie den Wert des Filters **Tage bis zum Ablauf** im Kriterium „läuft bald ab“, etwa auf `30`. Um stattdessen jemanden zu alarmieren, öffnen Sie die **Aktionen** dieses Kriteriums: Schalten Sie **Wenn Filter übereinstimmen, einen Vorfall deklarieren.** ein, oder behalten Sie die Warnung und fügen Sie ihr unter **Bereitschaftsrichtlinien** eine Bereitschaftsrichtlinie hinzu.
 
 :::details Die Warnung einem Monitor hinzufügen, der vor ihr erstellt wurde
 Monitore, die erstellt wurden, bevor OneUptime diese Warnung eingeführt hat, haben kein Kriterium „läuft bald ab“. So fügen Sie es hinzu:
 
 1. Öffnen Sie beim Monitor **Konfiguration → Kriterien** und klicken Sie auf **Überwachungskriterien bearbeiten**.
-2. Klicken Sie auf **Kriterien hinzufügen**. Setzen Sie seinen Filter auf **Is Valid Certificate** / **Wahr**, klicken Sie auf **Filter hinzufügen** und setzen Sie den zweiten auf **Expires In Days** / **Kleiner als oder gleich** / `14`. Lassen Sie **Abgleichsbedingung** auf **Alle** (es erscheint unter den Filtern, sobald es zwei sind).
+2. Klicken Sie auf **Kriterien hinzufügen**. Setzen Sie seinen Filter auf **Is Valid Certificate** / **Wahr**, klicken Sie auf **Filter hinzufügen** und setzen Sie den zweiten auf **Tage bis zum Ablauf** / **Kleiner als oder gleich** / `14`. Lassen Sie **Abgleichsbedingung** auf **Alle** (es erscheint unter den Filtern, sobald es zwei sind).
 3. Schalten Sie unter **Aktionen** **Wenn Filter übereinstimmen, eine Warnung erstellen.** ein und lassen Sie **Wenn Filter übereinstimmen, Monitorstatus ändern.** ausgeschaltet, sodass es eine Warnung erstellt und den Monitorstatus nicht ändert.
 4. Ziehen Sie das neue Kriterium über das Kriterium, das den Monitor als online markiert, und speichern Sie dann.
 :::
@@ -111,10 +111,10 @@ Monitore, die erstellt wurden, bevor OneUptime diese Warnung eingeführt hat, ha
 
 | Ziel | Filter | Bedingung | Wert |
 | --- | --- | --- | --- |
-| Einen Monat im Voraus warnen | **Expires In Days** | **Kleiner als oder gleich** | `30` |
-| Am letzten Tag jemanden alarmieren | **Expires In Hours** | **Kleiner als** | `24` |
-| Erst offline, wenn das Zertifikat abgelaufen ist | **Is Expired Certificate** | **Wahr** | — |
-| Ein selbstsigniertes Zertifikat kennzeichnen | **Is Self Signed Certificate** | **Wahr** | — |
+| Einen Monat im Voraus warnen | **Tage bis zum Ablauf** | **Kleiner als oder gleich** | `30` |
+| Am letzten Tag jemanden alarmieren | **Stunden bis zum Ablauf** | **Kleiner als** | `24` |
+| Erst offline, wenn das Zertifikat abgelaufen ist | **Zertifikat ist abgelaufen** | **Wahr** | — |
+| Ein selbstsigniertes Zertifikat kennzeichnen | **Zertifikat ist selbstsigniert** | **Wahr** | — |
 
 Ein Kriterium zum Ablauf muss über dem Kriterium stehen, das das Zertifikat als gültig markiert: Ein Zertifikat kurz vor dem Ablauf ist noch gültig, und das erste zutreffende Kriterium gewinnt.
 
@@ -132,11 +132,11 @@ Die Grundursache des Vorfalls sagt, warum. Ein häufiger Grund ist ein Server, d
 :::
 
 :::details Ich überwache einen internen Dienst mit einem selbstsignierten Zertifikat
-Ein selbstsigniertes Zertifikat ist nie gültig, daher halten die Standardkriterien den Monitor offline. **Is Self Signed Certificate**, **Is Expired Certificate** und **Expires In Days** funktionieren dafür trotzdem, also bauen Sie die Kriterien darauf auf. Unter **Konfiguration → Kriterien**:
+Ein selbstsigniertes Zertifikat ist nie gültig, daher halten die Standardkriterien den Monitor offline. **Zertifikat ist selbstsigniert**, **Zertifikat ist abgelaufen** und **Tage bis zum Ablauf** funktionieren dafür trotzdem, also bauen Sie die Kriterien darauf auf. Unter **Konfiguration → Kriterien**:
 
-1. Klicken Sie im Kriterium „nicht gültig“ auf **Filter hinzufügen**, setzen Sie den neuen Filter auf **Is Self Signed Certificate** / **Falsch** und setzen Sie **Abgleichsbedingung** auf **Alle**. Das Kriterium nimmt den Monitor weiterhin offline, wenn der Endpunkt nicht antwortet oder das Zertifikat auf andere Weise fehlerhaft ist.
-2. Fügen Sie ein Kriterium mit **Is Expired Certificate** / **Wahr** hinzu, das den Monitor als **Offline** markiert und einen Vorfall meldet, und ziehen Sie es nach oben.
-3. Ersetzen Sie im Kriterium „läuft bald ab“ **Is Valid Certificate** / **Wahr** durch **Is Expired Certificate** / **Falsch**, sodass die Warnung auch das selbstsignierte Zertifikat abdeckt.
+1. Klicken Sie im Kriterium „nicht gültig“ auf **Filter hinzufügen**, setzen Sie den neuen Filter auf **Zertifikat ist selbstsigniert** / **Falsch** und setzen Sie **Abgleichsbedingung** auf **Alle**. Das Kriterium nimmt den Monitor weiterhin offline, wenn der Endpunkt nicht antwortet oder das Zertifikat auf andere Weise fehlerhaft ist.
+2. Fügen Sie ein Kriterium mit **Zertifikat ist abgelaufen** / **Wahr** hinzu, das den Monitor als **Offline** markiert und einen Vorfall meldet, und ziehen Sie es nach oben.
+3. Ersetzen Sie im Kriterium „läuft bald ab“ **Is Valid Certificate** / **Wahr** durch **Zertifikat ist abgelaufen** / **Falsch**, sodass die Warnung auch das selbstsignierte Zertifikat abdeckt.
 
 Solange das Zertifikat aktuell ist, trifft kein Kriterium zu, und der Monitor zeigt seinen Standardstatus, **Betriebsbereit**.
 :::

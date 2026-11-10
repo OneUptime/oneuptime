@@ -84,7 +84,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en beoordeel
 
 Een filter beperkt alleen een reeks die het bijbehorende label draagt: `openstack_nova_up` heeft geen project, dus een projectfilter laat die reeks ongemoeid.
 
-Houd het venster op minstens drie verzamelingen van wat u leest: 6 minuten voor compute, netwerk, volume en placement, 15 voor identity en image. Een korter venster bevat te weinig verzamelingen om **All Values** een duur te laten betekenen.
+Houd het venster op minstens drie verzamelingen van wat u leest: 6 minuten voor compute, netwerk, volume en placement, 15 voor identity en image. Een korter venster bevat te weinig verzamelingen om **Alle waarden** een duur te laten betekenen.
 
 ## Identiteitsattributen
 
@@ -752,8 +752,8 @@ Een criterium vergelijkt een van de queries of formules van de monitor met een d
 | Veld | Wat het doet |
 | --- | --- |
 | **Metriek** | De query of formule om te controleren, op zijn variabelenaam. |
-| **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet overeenkomen, over het hele venster) of **Any Value** (één is genoeg). |
-| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. **Geen gegevens** komt overeen als de query niets stuurde in het venster, **Gegevens aanwezig** als hij iets stuurde. **Verwacht boven** en **Verwacht onder** komen overeen als de trend van de metriek over het venster aan het einde van **Termijn** voorbij de drempel zal zijn. |
+| **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximale waarde**, **Minimale waarde**, **Alle waarden** (elke waarde moet overeenkomen, over het hele venster) of **Willekeurige waarde** (één is genoeg). |
+| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Afwijkend hoog**, **Afwijkend laag** of **Afwijkend**. **Geen gegevens** komt overeen als de query niets stuurde in het venster, **Gegevens aanwezig** als hij iets stuurde. **Verwacht boven** en **Verwacht onder** komen overeen als de trend van de metriek over het venster aan het einde van **Termijn** voorbij de drempel zal zijn. |
 | **Drempel** | De waarde om mee te vergelijken. Een eenhedenlijst staat ernaast als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, de standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen aan geschiedenis. |

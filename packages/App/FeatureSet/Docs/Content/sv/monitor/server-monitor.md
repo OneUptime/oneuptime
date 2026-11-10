@@ -16,7 +16,7 @@ En Server- / VM-monitor övervakar en maskin genom OneUptimes infrastrukturagent
 
 Agenten körs som en systemtjänst. Var 30:e sekund samlar den in en rapport och skickar den till din OneUptime-URL, signerad med monitorns hemliga nyckel. OneUptime sparar siffrorna som monitorns mätvärden och prövar rapporten mot monitorns kriterier.
 
-Tystnad kontrolleras separat. Varje minut utvärderar OneUptime på nytt **Is Online**-kriterierna för varje Server- / VM-monitor som inte har rapporterat på 3 minuter eller mer, och en server som är tyst längre än kriterierna tillåter (3 minuter som standard) räknas som offline. En monitor utan **Is Online**-kriterium markeras aldrig som offline bara för att agenten har tystnat. Bara tid då OneUptime tog emot data räknas in i den tystnaden: tid då OneUptime själv startade om, uppgraderades eller kom ikapp räknas inte, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
+Tystnad kontrolleras separat. Varje minut utvärderar OneUptime på nytt **Är online**-kriterierna för varje Server- / VM-monitor som inte har rapporterat på 3 minuter eller mer, och en server som är tyst längre än kriterierna tillåter (3 minuter som standard) räknas som offline. En monitor utan **Är online**-kriterium markeras aldrig som offline bara för att agenten har tystnat. Bara tid då OneUptime tog emot data räknas in i den tystnaden: tid då OneUptime själv startade om, uppgraderades eller kom ikapp räknas inte, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ```mermaid title="Så får en Server- / VM-monitor sina data"
 flowchart TB
@@ -224,17 +224,17 @@ Kriterier avgör när monitorn är online, försämrad eller offline, och när d
 | Load Average (1 minute) | Belastningsmedelvärde under den senaste minuten | Som för CPU |
 | Load Average (5 minute) | Belastningsmedelvärde under de senaste 5 minuterna | Som för CPU |
 | Load Average (15 minute) | Belastningsmedelvärde under de senaste 15 minuterna | Som för CPU |
-| Server Process Name | Om en process med det här namnet körs (skiftlägesokänsligt) | Is Executing, Is Not Executing |
-| Server Process Command | Om en process med exakt den här kommandoraden körs (skiftlägesokänsligt) | Is Executing, Is Not Executing |
-| Server Process PID | Om en process med det här PID:t körs | Is Executing, Is Not Executing |
+| Server Process Name | Om en process med det här namnet körs (skiftlägesokänsligt) | Körs, Körs inte |
+| Server Process Command | Om en process med exakt den här kommandoraden körs (skiftlägesokänsligt) | Körs, Körs inte |
+| Server Process PID | Om en process med det här PID:t körs | Körs, Körs inte |
 
 **Diskväg** tar en monteringspunkt eller en enhet, till exempel `/`, `/mnt/data`, `C:\` eller `/dev/sda1`; tom är den `/`. Ange `*` för att kontrollera varje disk som agenten rapporterar: varje disk som passerar tröskeln får ett eget larm, så att en andra disk som fylls inte döljs bakom den första diskens öppna larm. Versaler och ett avslutande `/` eller `\` spelar ingen roll, och en enhet står för disken som är monterad från den. En sökväg som inte anger någon disk som agenten rapporterar matchar inte. När agenten inte kan läsa serverns processer har dess rapport ingen processlista, och inget processfilter matchar, vare sig det kontrollerar att en process körs eller att den inte gör det.
 
 ### Utvärdera över en tidsperiod
 
-**Utvärdera dessa kriterier över en tidsperiod** är en separat kryssruta i kriterieformuläret och inte ett filtervillkor. Den finns för **Is Online** och för varje numerisk filtertyp. Slå på den för att jämföra ett aggregat – valt under **Utvärdera** (Genomsnitt, Summa, Maximum Value, Minimum Value, All Values, Any Value) över fönstret som **Under de senaste (i minuter)** anger – i stället för värdet från den senaste kontrollen. På ett **Is Online**-filter är fönstret hur länge agenten får vara tyst innan servern räknas som offline.
+**Utvärdera dessa kriterier över en tidsperiod** är en separat kryssruta i kriterieformuläret och inte ett filtervillkor. Den finns för **Är online** och för varje numerisk filtertyp. Slå på den för att jämföra ett aggregat – valt under **Utvärdera** (Genomsnitt, Summa, Maximum Value, Minimum Value, All Values, Any Value) över fönstret som **Under de senaste (i minuter)** anger – i stället för värdet från den senaste kontrollen. På ett **Är online**-filter är fönstret hur länge agenten får vara tyst innan servern räknas som offline.
 
-**All Values** matchar först när fönstret verkligen täcks av data. En monitor som just har skapats, eller en vars kontroller har slutat registreras, har inte tillräckligt med historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Any Value** är inställningen för "säg till så fort en enda kontroll passerar gränsen" och utlöses fortfarande direkt.
+**Alla värden** matchar först när fönstret verkligen täcks av data. En monitor som just har skapats, eller en vars kontroller har slutat registreras, har inte tillräckligt med historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Minst ett värde** är inställningen för "säg till så fort en enda kontroll passerar gränsen" och utlöses fortfarande direkt.
 
 **Om ingen data** styr vad som händer medan fönstret inte kan bära kriteriet:
 
@@ -245,7 +245,7 @@ Kriterier avgör när monitorn är online, försämrad eller offline, och när d
 | **Treat As Zero** | Fönstret jämförs som en enda nolla. | Räknare, där "inga händelser" verkligen betyder noll. |
 
 > [!TIP]
-> CPU och belastning har korta toppar hela tiden. Utvärdera dem över några minuter med **Genomsnitt** eller **All Values** i stället för att varna på en enda rapport.
+> CPU och belastning har korta toppar hela tiden. Utvärdera dem över några minuter med **Genomsnitt** eller **Alla värden** i stället för att varna på en enda rapport.
 
 ### Exempel på kriterier
 
@@ -256,7 +256,7 @@ Kriterier avgör när monitorn är online, försämrad eller offline, och när d
 | Varna när rotdisken är mer än 85 % full | Disk Usage (in %), **Diskväg** `/` | Större än | `85` |
 | Varna för varje disk som är mer än 85 % full, ett larm per disk | Disk Usage (in %), **Diskväg** `*` | Större än | `85` |
 | Varna när minnesanvändningen är över 80 % | Memory Usage (in %) | Större än | `80` |
-| Varna när nginx slutar köras | Server Process Name | Is Not Executing | `nginx` |
+| Varna när nginx slutar köras | Server Process Name | Körs inte | `nginx` |
 
 ## Felsökning
 
@@ -280,7 +280,7 @@ curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install
 :::
 
 :::details Monitorn går aldrig offline när servern är nere
-Bara ett **Is Online**-kriterium markerar en tyst server som offline. Lägg till ett med **Filtervillkor** satt till **Falskt**, och ange den monitorstatus det ändrar till.
+Bara ett **Är online**-kriterium markerar en tyst server som offline. Lägg till ett med **Filtervillkor** satt till **Falskt**, och ange den monitorstatus det ändrar till.
 :::
 
 :::details Rapporterna kommer inte igenom proxyn

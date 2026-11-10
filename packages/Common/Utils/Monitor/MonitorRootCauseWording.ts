@@ -1,4 +1,8 @@
-import { mdText } from "../Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  MarkdownValue,
+  mdText,
+} from "../Markdown/FeedMarkdown";
 import {
   WordEvaluationSentenceOptions,
   wordStoredEvaluationText,
@@ -32,6 +36,9 @@ import { translationKey, Translator } from "../../Types/Translator";
  *
  * Line by line, and only a whole line, or a label at a line's start, is
  * ever replaced: nothing else in the text is read as one of OneUptime's.
+ * A line that is replaced is written with mdText, as the engine wrote it:
+ * OneUptime's words placed as text, the rest of the line as it was stored
+ * (FeedAndChatPlainTextEscapedGuard holds the file to it).
  */
 
 // A section heading or a label OneUptime writes in bold, at a line's start.
@@ -118,18 +125,23 @@ export interface RootCauseFinding {
 }
 
 interface WordedFinding {
-  // The finding as the root cause has it: escaped as Markdown text.
+  // The finding as the evaluation stored it, and in the reader's language.
   english: string;
   worded: string;
 }
 
-const asMarkdownText: (text: string) => string = (text: string): string => {
-  return mdText`${text}`.toString();
+// A finding as an Any criteria's root cause writes it after its label.
+const asMarkdownText: (text: string) => MarkdownText = (
+  text: string,
+): MarkdownText => {
+  return mdText`${text}`;
 };
 
-// A finding as an All criteria's list has it ("\n- finding"), without the "- ".
-const asListItemText: (text: string) => string = (text: string): string => {
-  return mdText`\n- ${text}`.toString().replace(/^\n- /, "");
+// A finding's whole line in an All criteria's list: "- finding".
+const asListItem: (text: string) => MarkdownText = (
+  text: string,
+): MarkdownText => {
+  return mdText`- ${text}`;
 };
 
 export default class MonitorRootCauseWording {
@@ -152,16 +164,21 @@ export default class MonitorRootCauseWording {
         options: data.options,
       });
 
+    /*
+     * The worded finding the text is, written as `write` writes it: the
+     * text is a finding when the English finding, written the same way, is
+     * the text.
+     */
     const findingAt: (
       text: string,
-      escape: (text: string) => string,
-    ) => string | null = (
+      write: (text: string) => MarkdownText,
+    ) => MarkdownText | null = (
       text: string,
-      escape: (text: string) => string,
-    ): string | null => {
+      write: (text: string) => MarkdownText,
+    ): MarkdownText | null => {
       for (const finding of findings) {
-        if (escape(finding.english) === text) {
-          return escape(finding.worded);
+        if (write(finding.english).toString() === text) {
+          return write(finding.worded);
         }
       }
 
@@ -175,48 +192,60 @@ export default class MonitorRootCauseWording {
 
         if (boldLabel && BOLD_LABEL_SET.has(boldLabel[1]!)) {
           const label: string = boldLabel[1]!;
-          let rest: string = boldLabel[3] || "";
+          const stored: string = boldLabel[3] || "";
+          // What follows the label: as stored, unless this language words it.
+          let rest: MarkdownText = FeedMarkdown.asMarkdown(stored);
 
           // "**Filter Conditions Met**: <the finding, or All filters met.>"
-          if (label === FILTER_CONDITIONS_MET && rest.startsWith(" ")) {
-            const said: string = rest.slice(1);
+          if (label === FILTER_CONDITIONS_MET && stored.startsWith(" ")) {
+            const said: string = stored.slice(1);
 
             if (said === ALL_FILTERS_MET) {
-              rest = ` ${MonitorRootCauseWording.word(ALL_FILTERS_MET, translator)}`;
+              rest = mdText` ${MonitorRootCauseWording.word(ALL_FILTERS_MET, translator)}`;
             } else {
-              const worded: string | null = findingAt(said, asMarkdownText);
+              const worded: MarkdownText | null = findingAt(
+                said,
+                asMarkdownText,
+              );
 
               if (worded !== null) {
-                rest = ` ${worded}`;
+                rest = mdText` ${worded}`;
               }
             }
           }
 
-          return `${MonitorRootCauseWording.boldLabel(label, translator)}${boldLabel[2]}${rest}`;
+          const wordedLabel: MarkdownText = MonitorRootCauseWording.boldLabel(
+            label,
+            translator,
+          );
+
+          return (
+            boldLabel[2]
+              ? mdText`${wordedLabel}:${rest}`
+              : mdText`${wordedLabel}${rest}`
+          ).toString();
         }
 
         const fact: RegExpExecArray | null = FACT_LINE.exec(line);
 
         if (fact && FACT_LABEL_SET.has(fact[1]!)) {
           const label: string = fact[1]!;
-          let value: string = fact[2] || "";
+          const stored: string = fact[2] || "";
+          // OneUptime's own yes or no is worded; any other value is as stored.
+          const value: MarkdownValue =
+            YES_NO_FACTS.has(label) && (stored === "Yes" || stored === "No")
+              ? MonitorRootCauseWording.word(stored, translator)
+              : FeedMarkdown.asMarkdown(stored);
 
-          if (YES_NO_FACTS.has(label) && (value === "Yes" || value === "No")) {
-            value = MonitorRootCauseWording.word(value, translator);
-          }
-
-          return `- ${asMarkdownText(MonitorRootCauseWording.word(label, translator))}: ${value}`;
+          return mdText`- ${MonitorRootCauseWording.word(label, translator)}: ${value}`.toString();
         }
 
         // "- <a finding>", under All filters met.
         if (line.startsWith("- ")) {
-          const worded: string | null = findingAt(
-            line.slice(2),
-            asListItemText,
-          );
+          const worded: MarkdownText | null = findingAt(line, asListItem);
 
           if (worded !== null) {
-            return `- ${worded}`;
+            return worded.toString();
           }
         }
 
@@ -225,8 +254,11 @@ export default class MonitorRootCauseWording {
       .join("\n");
   }
 
-  private static boldLabel(label: string, translator: Translator): string {
-    return `**${asMarkdownText(MonitorRootCauseWording.word(label, translator))}**`;
+  private static boldLabel(
+    label: string,
+    translator: Translator,
+  ): MarkdownText {
+    return mdText`**${MonitorRootCauseWording.word(label, translator)}**`;
   }
 
   // One of OneUptime's words, in the reader's language when it words it.

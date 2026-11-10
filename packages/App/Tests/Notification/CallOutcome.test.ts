@@ -3,9 +3,11 @@ import {
   TwilioCallStatus,
   getCallOutcome,
   getCallOutcomeStatusMessage,
+  getTimeToCallOutcomeInMs,
 } from "../../FeatureSet/Notification/Utils/CallOutcome";
 import CallStatus from "Common/Types/Call/CallStatus";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import { NotificationDeliveryStatus } from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -38,6 +40,8 @@ describe("each final status Twilio sends", () => {
       callStatus: CallStatus.MissedCall,
       notificationStatus: UserNotificationStatus.NotAnswered,
       sentence: "The call was not answered: it rang out.",
+      deliveryStatus: NotificationDeliveryStatus.NotAnswered,
+      durationInSeconds: null,
     });
   });
 
@@ -47,6 +51,8 @@ describe("each final status Twilio sends", () => {
       notificationStatus: UserNotificationStatus.NotAnswered,
       sentence:
         "The call was not answered: the line was busy, or the call was declined.",
+      deliveryStatus: NotificationDeliveryStatus.NotAnswered,
+      durationInSeconds: null,
     });
   });
 
@@ -55,6 +61,8 @@ describe("each final status Twilio sends", () => {
       callStatus: CallStatus.Error,
       notificationStatus: UserNotificationStatus.Error,
       sentence: "The call could not be connected.",
+      deliveryStatus: NotificationDeliveryStatus.Failed,
+      durationInSeconds: null,
     });
   });
 
@@ -63,6 +71,8 @@ describe("each final status Twilio sends", () => {
       callStatus: null,
       notificationStatus: null,
       sentence: "The call was answered and lasted 42 seconds.",
+      deliveryStatus: NotificationDeliveryStatus.Answered,
+      durationInSeconds: 42,
     });
   });
 
@@ -183,4 +193,117 @@ describe("the message the log and the notification are left with", () => {
       expect(sentence).not.toMatch(/\+|\d/);
     }
   });
+});
+
+/*
+ * How the call ended, for the platform's delivery metrics (#6648):
+ * notification.delivery.count says answered, not answered or failed, and
+ * notification.delivery.duration how long after Twilio accepted the call -
+ * to the moment it was picked up when it was answered, or else to its end.
+ */
+describe("how the call ended, for the platform's delivery metrics", () => {
+  test("each final status's delivery status", () => {
+    expect(outcomeOf("completed", "42")?.deliveryStatus).toBe(
+      NotificationDeliveryStatus.Answered,
+    );
+    expect(outcomeOf("completed")?.deliveryStatus).toBe(
+      NotificationDeliveryStatus.Answered,
+    );
+    expect(outcomeOf("no-answer")?.deliveryStatus).toBe(
+      NotificationDeliveryStatus.NotAnswered,
+    );
+    expect(outcomeOf("busy")?.deliveryStatus).toBe(
+      NotificationDeliveryStatus.NotAnswered,
+    );
+    expect(outcomeOf("failed")?.deliveryStatus).toBe(
+      NotificationDeliveryStatus.Failed,
+    );
+  });
+
+  test("an answered call keeps how long it lasted, when Twilio said it in whole seconds", () => {
+    expect(outcomeOf("completed", "42")?.durationInSeconds).toBe(42);
+    expect(outcomeOf("completed", 0)?.durationInSeconds).toBe(0);
+    expect(outcomeOf("completed", " 7 ")?.durationInSeconds).toBe(7);
+
+    for (const duration of [undefined, "", "abc", "-3", "1.5", Number.NaN]) {
+      expect(outcomeOf("completed", duration)?.durationInSeconds).toBeNull();
+    }
+  });
+
+  test("a call not answered keeps no duration, whatever Twilio sent", () => {
+    for (const status of ["no-answer", "busy", "failed"]) {
+      expect(outcomeOf(status, "42")?.durationInSeconds).toBeNull();
+    }
+  });
+});
+
+describe("getTimeToCallOutcomeInMs", () => {
+  test("an answered call: to the moment it was picked up - its end, less how long it lasted", () => {
+    expect(
+      getTimeToCallOutcomeInMs({
+        outcome: outcomeOf("completed", "42")!,
+        millisecondsSincePlaced: 90_000,
+      }),
+    ).toBe(48_000);
+  });
+
+  test("an answered call picked up at once is zero", () => {
+    expect(
+      getTimeToCallOutcomeInMs({
+        outcome: outcomeOf("completed", "90")!,
+        millisecondsSincePlaced: 90_000,
+      }),
+    ).toBe(0);
+  });
+
+  test("an answered call lasting longer than the log says it was placed ago - whole seconds, two clocks - is zero, never below", () => {
+    expect(
+      getTimeToCallOutcomeInMs({
+        outcome: outcomeOf("completed", "91")!,
+        millisecondsSincePlaced: 90_400,
+      }),
+    ).toBe(0);
+  });
+
+  test("an answered call Twilio said no duration of: not known", () => {
+    expect(
+      getTimeToCallOutcomeInMs({
+        outcome: outcomeOf("completed")!,
+        millisecondsSincePlaced: 90_000,
+      }),
+    ).toBeUndefined();
+  });
+
+  test.each(["no-answer", "busy", "failed"])(
+    "%s: to its end, whatever duration Twilio sent",
+    (status: string) => {
+      expect(
+        getTimeToCallOutcomeInMs({
+          outcome: outcomeOf(status, "42")!,
+          millisecondsSincePlaced: 31_000,
+        }),
+      ).toBe(31_000);
+    },
+  );
+
+  test("a call 'ending' before it was placed - two clocks - is zero, never below", () => {
+    expect(
+      getTimeToCallOutcomeInMs({
+        outcome: outcomeOf("no-answer")!,
+        millisecondsSincePlaced: -250,
+      }),
+    ).toBe(0);
+  });
+
+  test.each(["completed", "no-answer", "busy", "failed"])(
+    "%s, with no time the call's log was written: not known",
+    (status: string) => {
+      expect(
+        getTimeToCallOutcomeInMs({
+          outcome: outcomeOf(status, "42")!,
+          millisecondsSincePlaced: undefined,
+        }),
+      ).toBeUndefined();
+    },
+  );
 });

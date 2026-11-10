@@ -128,7 +128,7 @@ I dati restituiti dallo script vengono serializzati in JSON prima di essere salv
 
 ### Avvisi sui dati restituiti
 
-Ciò che lo script restituisce come `data` è il **Result Value** del monitor, che un criterio può confrontare. Quando `data` è un oggetto o un array, compilate **Percorso del campo (facoltativo)** nel filtro Result Value per confrontare uno dei suoi campi: per esempio `status`, `timings.loadTime` o `errors[0].message`. Il filtro viene controllato sui dati di ogni browser e dimensione dello schermo su cui gira il monitor, e corrisponde quando corrisponde uno qualsiasi di essi. Consultate [Avvisi sui dati restituiti](/docs/monitor/custom-code-monitor#avvisi-sui-dati-restituiti) per come funzionano percorsi e condizioni.
+Ciò che lo script restituisce come `data` è il **Valore del risultato** del monitor, che un criterio può confrontare. Quando `data` è un oggetto o un array, compilate **Percorso del campo (facoltativo)** nel filtro Result Value per confrontare uno dei suoi campi: per esempio `status`, `timings.loadTime` o `errors[0].message`. Il filtro viene controllato sui dati di ogni browser e dimensione dello schermo su cui gira il monitor, e corrisponde quando corrisponde uno qualsiasi di essi. Consultate [Avvisi sui dati restituiti](/docs/monitor/custom-code-monitor#avvisi-sui-dati-restituiti) per come funzionano percorsi e condizioni.
 
 ## Screenshot
 
@@ -232,10 +232,10 @@ Un'esecuzione può catturare al massimo 100 metriche, solo con valori numerici, 
 | Tipo di filtro | Cosa controlla |
 | --- | --- |
 | **Errore** | L'errore generato da un'esecuzione, se presente. |
-| **Result Value** | I `data` restituiti da un'esecuzione. |
+| **Valore del risultato** | I `data` restituiti da un'esecuzione. |
 | **Tempo di esecuzione (in ms)** | Quanto è durata un'esecuzione. |
 | **Tipo di browser** | Il browser usato da un'esecuzione: **Uguale a** o **Diverso da**. |
-| **Screen Size** | La dimensione dello schermo usata da un'esecuzione: **Uguale a** o **Diverso da**. |
+| **Dimensione dello schermo** | La dimensione dello schermo usata da un'esecuzione: **Uguale a** o **Diverso da**. |
 
 Ogni filtro viene controllato su ogni esecuzione, e corrisponde quando corrisponde anche una sola esecuzione. I filtri vengono controllati separatamente, non esecuzione per esecuzione: **Errore** Non è vuoto insieme a **Tipo di browser** Uguale a `Firefox` corrisponde quando un'esecuzione qualsiasi è fallita e una delle esecuzioni ha usato Firefox, non solo quando è fallita l'esecuzione Firefox. Per tenere d'occhio un browser da solo, dategli un monitor tutto suo.
 

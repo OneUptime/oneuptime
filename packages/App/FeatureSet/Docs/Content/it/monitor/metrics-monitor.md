@@ -116,7 +116,7 @@ Più lunga è la finestra, più largo è ogni intervallo di raggruppamento, quin
 
 ## Criteri
 
-Questi monitor valutano sempre il **Metric Value**: il valore aggregato della query di metriche o della formula configurata. **Quando avvisare** imposta un criterio a partire da **Misurato come**, **Finestra temporale**, **Condizione** e **Valore**. Quando la metrica ha un'unità, scegliete l'unità del valore accanto. La sua **Condizione** è **Sopra**, **Pari o superiore a**, **Sotto**, **Pari o inferiore a**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso**, **Insolitamente alto o basso**, **Previsto sopra** o **Previsto sotto**. Per più criteri, come fasce di gravità, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Metrica**, un'**Aggregazione**, una **Condizione** e una **Soglia**.
+Questi monitor valutano sempre il **Valore della metrica**: il valore aggregato della query di metriche o della formula configurata. **Quando avvisare** imposta un criterio a partire da **Misurato come**, **Finestra temporale**, **Condizione** e **Valore**. Quando la metrica ha un'unità, scegliete l'unità del valore accanto. La sua **Condizione** è **Sopra**, **Pari o superiore a**, **Sotto**, **Pari o inferiore a**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso**, **Insolitamente alto o basso**, **Previsto sopra** o **Previsto sotto**. Per più criteri, come fasce di gravità, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Metrica**, un'**Aggregazione**, una **Condizione** e una **Soglia**.
 
 | Condizione | Corrisponde quando il valore è… |
 | --- | --- |
@@ -125,9 +125,9 @@ Questi monitor valutano sempre il **Metric Value**: il valore aggregato della qu
 | **Minore di** | sotto la soglia |
 | **Minore o uguale a** | pari alla soglia o inferiore |
 | **Uguale a** | esattamente la soglia |
-| **Anomalously High** | sopra l'intervallo atteso per quest'ora della settimana |
-| **Anomalously Low** | sotto quell'intervallo |
-| **Anomalous** | fuori da quell'intervallo, in un senso o nell'altro |
+| **Anomalmente alto** | sopra l'intervallo atteso per quest'ora della settimana |
+| **Anomalmente basso** | sotto quell'intervallo |
+| **Anomalo** | fuori da quell'intervallo, in un senso o nell'altro |
 | **Previsto sopra** | è diretto sopra la soglia: la sua tendenza la supera entro la fine di **Orizzonte** |
 | **Previsto sotto** | è diretto sotto la soglia, entro la fine di **Orizzonte** |
 | **Nessun dato** | assente: la query non ha inviato nulla nella finestra |
@@ -148,7 +148,7 @@ Una somma o un conteggio conta come basso solo su un punto dati completo seguito
 
 Un monitor metriche creato in Crea monitor parte con una regola sulla sua prima query: **La media** in **Ultimi 5 minuti**, **Sopra** il **Valore** che inserite, e **Crea un avviso**.
 
-Un nuovo monitor metriche creato tramite l'API o Terraform senza criteri parte con due criteri sulla sua prima query, entrambi con l'aggregazione **Any Value**:
+Un nuovo monitor metriche creato tramite l'API o Terraform senza criteri parte con due criteri sulla sua prima query, entrambi con l'aggregazione **Qualsiasi valore**:
 
 | Criterio | Condizione | Effetto |
 | --- | --- | --- |

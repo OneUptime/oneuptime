@@ -84,7 +84,7 @@ Haz clic en **Crear monitor**. OneUptime abre la página del monitor y lo evalú
 
 Un filtro solo acota una serie que lleva su etiqueta: `openstack_nova_up` no tiene proyecto, así que un filtro por proyecto la deja como está.
 
-Mantén la ventana en tres recopilaciones o más de lo que lees: 6 minutos para compute, network, volume y placement, 15 para identity e image. Una ventana más corta no contiene suficientes recopilaciones para que **All Values** signifique una duración.
+Mantén la ventana en tres recopilaciones o más de lo que lees: 6 minutos para compute, network, volume y placement, 15 para identity e image. Una ventana más corta no contiene suficientes recopilaciones para que **Todos los valores** signifique una duración.
 
 ## Atributos de identidad
 
@@ -752,8 +752,8 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | Campo | Qué hace |
 | --- | --- |
 | **Métrica** | La consulta o fórmula que se comprueba, por el nombre de su variable. |
-| **Agregación** | Cómo los valores de la ventana se convierten en una sola respuesta: **Promedio**, **Suma**, **Maximum Value**, **Minimum Value**, **All Values** (todos deben coincidir, en toda la ventana) o **Any Value** (basta con uno). |
-| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Sin datos** coincide cuando la consulta no envió nada en la ventana, **Con datos** cuando envió algo. **Previsto por encima de** y **Previsto por debajo de** coinciden cuando la tendencia de la métrica en la ventana estará más allá del umbral al final de **Plazo**. |
+| **Agregación** | Cómo los valores de la ventana se convierten en una sola respuesta: **Promedio**, **Suma**, **Valor máximo**, **Valor mínimo**, **Todos los valores** (todos deben coincidir, en toda la ventana) o **Cualquier valor** (basta con uno). |
+| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anómalamente alto**, **Anómalamente bajo** o **Anómalo**. **Sin datos** coincide cuando la consulta no envió nada en la ventana, **Con datos** cuando envió algo. **Previsto por encima de** y **Previsto por debajo de** coinciden cuando la tendencia de la métrica en la ventana estará más allá del umbral al final de **Plazo**. |
 | **Umbral** | El valor con el que comparar. Junto a él aparece una lista de unidades cuando la métrica tiene unidad. No se muestra para las condiciones de anomalía. |
 | **Sensibilidad** | Solo condiciones de anomalía. **Bajo** (4σ), **Medio** (3σ, el predeterminado) o **Alto** (2σ). |
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (la predeterminada), 28, 60 o 90 días de historial. |

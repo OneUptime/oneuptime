@@ -255,6 +255,66 @@ describe("a WhatsApp message", () => {
     expect(onlySend()["outcome"]).toBe("not_sent");
   });
 
+  /*
+   * Meta's status webhook reads the page from the log, to count how the
+   * message ended as an on-call page as its send was (issue #6648).
+   */
+  test("the log of an on-call page's message keeps the page it was sent for", async () => {
+    await WhatsAppService.sendWhatsApp(message(), {
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: TIMELINE_ID,
+    });
+
+    const log: WhatsAppLog = (
+      (WhatsAppLogService.create as jest.Mock).mock.calls[0]![0] as {
+        data: WhatsAppLog;
+      }
+    ).data;
+
+    expect(log.userOnCallLogTimelineId?.toString()).toBe(
+      TIMELINE_ID.toString(),
+    );
+    expect(log.whatsAppMessageId).toBe("wamid.HBgL");
+  });
+
+  test("a message of no page keeps none", async () => {
+    await WhatsAppService.sendWhatsApp(message(), { projectId: PROJECT_ID });
+
+    const log: WhatsAppLog = (
+      (WhatsAppLogService.create as jest.Mock).mock.calls[0]![0] as {
+        data: WhatsAppLog;
+      }
+    ).data;
+
+    expect(log.userOnCallLogTimelineId).toBeUndefined();
+  });
+
+  test("a page's message not sent - too little balance - keeps the page on its log too", async () => {
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(
+        project({ smsOrCallCurrentBalanceInUSDCents: 0 }) as never,
+      );
+    jest
+      .spyOn(NotificationService, "rechargeIfBalanceIsLow")
+      .mockResolvedValue(0);
+
+    await WhatsAppService.sendWhatsApp(message(), {
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: TIMELINE_ID,
+    });
+
+    const log: WhatsAppLog = (
+      (WhatsAppLogService.create as jest.Mock).mock.calls[0]![0] as {
+        data: WhatsAppLog;
+      }
+    ).data;
+
+    expect(log.userOnCallLogTimelineId?.toString()).toBe(
+      TIMELINE_ID.toString(),
+    );
+  });
+
   test("with no template to send: a failure", async () => {
     await expect(
       WhatsAppService.sendWhatsApp(

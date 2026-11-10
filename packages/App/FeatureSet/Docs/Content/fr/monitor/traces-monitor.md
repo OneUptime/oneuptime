@@ -110,9 +110,9 @@ Les critères d'un moniteur de traces ont un seul **Type de filtre** : **Span Co
 | **Inférieur à** | en dessous de la valeur |
 | **Inférieur ou égal à** | égal ou inférieur à la valeur |
 | **Égal à** | exactement la valeur |
-| **Anomalously High** | au-dessus de la plage attendue pour cette heure de la semaine |
-| **Anomalously Low** | en dessous de cette plage |
-| **Anomalous** | hors de cette plage, dans un sens ou dans l'autre |
+| **Anormalement élevé** | au-dessus de la plage attendue pour cette heure de la semaine |
+| **Anormalement bas** | en dessous de cette plage |
+| **Anormal** | hors de cette plage, dans un sens ou dans l'autre |
 
 Les conditions d'anomalie ne prennent pas de **Valeur**. Choisissez une **Sensibilité** – Faible, Moyen (la valeur par défaut) ou Élevé – et, dans les critères personnalisés, une **Fenêtre de référence** de 14 (la valeur par défaut), 28, 60 ou 90 jours. OneUptime convertit le décompte en taux par minute et le compare à des fenêtres de même durée autour de la même heure des semaines précédentes, aussi loin que remonte la **Fenêtre de référence** ; ce qui se passe maintenant n'entre jamais dans cette comparaison. La référence ne couvre que les services et les statuts de span du moniteur : ses filtres de nom de span et d'attributs n'en font pas partie. Les minutes sans spans comptent aussi : un service souvent silencieux ne passe donc pas pour anormalement bas parce qu'il se tait. Une fenêtre ne passe pour anormalement haute que face aux fenêtres qui contenaient des spans, et seulement avec au moins 20, 10 ou 5 spans en sensibilité Faible, Moyen ou Élevé, de sorte que ni la rafale habituelle d'une tâche ni les premiers spans d'un service silencieux ne le déclenchent. Tant que les services du moniteur n'ont pas deux semaines d'historique, le critère est encore en apprentissage et ne se déclenche pas.
 

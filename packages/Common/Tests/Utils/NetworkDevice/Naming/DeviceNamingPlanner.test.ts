@@ -76,7 +76,7 @@ function unitDevice(data: {
   site: string;
   lastOctet: number;
   discoveredName?: string;
-  vendor?: string;
+  vendor?: string | undefined;
 }): DeviceNamingFacts {
   const subnet: string = data.unit === "1216" ? "10.48.145" : "10.64.137";
 

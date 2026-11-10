@@ -18,7 +18,7 @@ import {
   RecordingHealthDiagnosis,
   RecordingHealthSeverity,
 } from "Common/Types/Rum/SessionReplayHealth";
-import { formatRelativeAge } from "Common/Utils/Rum/SessionReplayHealth";
+import { formatRelativeAge } from "Common/Utils/SessionReplay/SessionReplayHealth";
 import {
   ComposedValue,
   composedValue,

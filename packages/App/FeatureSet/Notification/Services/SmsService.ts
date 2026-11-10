@@ -63,6 +63,7 @@ import {
   TwilioMessageKind,
 } from "Common/Utils/Project/TwilioAccount";
 import TwilioSendError, { TwilioSendKind } from "../Utils/TwilioSendError";
+import { withProviderConfig } from "../Utils/StatusCallbackProviderConfig";
 import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import Twilio from "twilio";
@@ -553,8 +554,15 @@ export default class SmsService {
           /*
            * Nginx rewrites the external /notification path to /api/notification,
            * which is where the SMS router (and the /status-callback route) is mounted.
+           * It says whose Twilio account the SMS goes out on, for the delivery
+           * metrics (StatusCallbackProviderConfig).
            */
-          statusCallbackUrl = `${HttpProtocol}${Host}/notification/sms/status-callback/${smsLogId.toString()}/${smsLog.statusCallbackToken}`;
+          statusCallbackUrl = withProviderConfig(
+            `${HttpProtocol}${Host}/notification/sms/status-callback/${smsLogId.toString()}/${smsLog.statusCallbackToken}`,
+            customTwilioConfig
+              ? NotificationProviderConfig.Project
+              : NotificationProviderConfig.Global,
+          );
         }
       }
 

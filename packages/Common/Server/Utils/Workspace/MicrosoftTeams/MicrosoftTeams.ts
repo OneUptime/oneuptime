@@ -130,6 +130,11 @@ import MicrosoftTeamsMessageSize, {
 import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
 import MicrosoftTeamsAiAnswer from "./MicrosoftTeamsAiAnswer";
 import MicrosoftTeamsInlineImages from "./MicrosoftTeamsInlineImages";
+import WorkspaceDeliveryMetrics, {
+  WorkspaceChannelPost,
+  WorkspaceChannelPosts,
+} from "../WorkspaceDeliveryMetrics";
+import { NotificationProviderConfig } from "../../Telemetry/NotificationDeliveryMetrics";
 import MicrosoftTeamsCardProject from "./MicrosoftTeamsCardProject";
 import MicrosoftTeamsAffectedResources from "./MicrosoftTeamsAffectedResources";
 import MicrosoftTeamsProjectChoice, {
@@ -1116,8 +1121,34 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     return payload;
   }
 
+  /*
+   * Posts to an incoming webhook - a status page subscriber's - recorded
+   * for the platform's operator (WorkspaceDeliveryMetrics): a success when
+   * Teams took it, a failure when it did not, or the address is not a Teams
+   * webhook's.
+   */
   @CaptureSpan()
   public static override async sendMessageToChannelViaIncomingWebhook(data: {
+    url: URL;
+    text: string;
+    // Whose webhook it is: a project's, unless said otherwise.
+    providerConfig?: NotificationProviderConfig | undefined;
+    // False for a post that is no notification (a workflow's step): not counted.
+    isNotification?: boolean | undefined;
+  }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
+    return await WorkspaceDeliveryMetrics.measureIncomingWebhookPost(
+      {
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        providerConfig: data.providerConfig,
+        isNotification: data.isNotification,
+      },
+      (): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+        return this.postToIncomingWebhook({ url: data.url, text: data.text });
+      },
+    );
+  }
+
+  private static async postToIncomingWebhook(data: {
     url: URL;
     text: string;
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
@@ -1811,6 +1842,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     return null;
   }
 
+  /*
+   * Posts a message in each channel and chat it names, as the project's
+   * bot. Each post is recorded for the platform's operator
+   * (WorkspaceChannelPosts): a success or a failure for every channel or
+   * chat it was posted in or not - one that could not be found or read
+   * among them - and, when the message fails as a whole before every one
+   * was tried (it names no team), a failure for each left.
+   */
   @CaptureSpan()
   public static override async sendMessage(data: {
     workspaceMessagePayload: WorkspaceMessagePayload;
@@ -1818,6 +1857,28 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     userId: string;
     projectId: ObjectID;
   }): Promise<WorkspaceSendMessageResponse> {
+    const posts: WorkspaceChannelPosts = new WorkspaceChannelPosts({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      payload: data.workspaceMessagePayload,
+    });
+
+    try {
+      return await this.postMessageInChannels(data, posts);
+    } catch (err) {
+      posts.recordRestAsFailed();
+      throw err;
+    }
+  }
+
+  private static async postMessageInChannels(
+    data: {
+      workspaceMessagePayload: WorkspaceMessagePayload;
+      authToken: string;
+      userId: string;
+      projectId: ObjectID;
+    },
+    posts: WorkspaceChannelPosts,
+  ): Promise<WorkspaceSendMessageResponse> {
     logger.debug("=== MicrosoftTeamsUtil.sendMessage called ===", {
       projectId: data.projectId.toString(),
     });
@@ -1913,6 +1974,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         workspaceChannelsToPostTo.push(channel);
       } else {
         logger.warn(`Channel not found: ${channelName}`);
+        posts.recordChannelNotFound();
         workspaceMessageResponse.errors!.push({
           channel: {
             id: "",
@@ -1959,6 +2021,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           },
         );
         logger.error(err);
+        // Not posted in - unless it is a channel the message is not for.
+        posts.recordChannelNotFound(channelId);
         workspaceMessageResponse.errors!.push({
           channel: {
             id: channelId,
@@ -1998,6 +2062,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(`Channels: ${JSON.stringify(workspaceChannelsToPostTo)}`);
 
     for (const channel of workspaceChannelsToPostTo) {
+      const post: WorkspaceChannelPost = posts.startPost();
+
       try {
         logger.debug(
           `Attempting to send message to channel: ${JSON.stringify(channel)}`,
@@ -2029,6 +2095,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           });
         }
 
+        post.succeeded();
+
         if (lastThread) {
           logger.debug(
             `Message sent successfully to channel ${channel.name}, thread: ${JSON.stringify(lastThread)}`,
@@ -2036,6 +2104,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           workspaceMessageResponse.threads.push(lastThread);
         }
       } catch (e) {
+        post.failed();
         logger.error(`Error sending message to channel ID ${channel.id}:`, {
           projectId: data.projectId.toString(),
           channelId: channel.id,
@@ -2067,6 +2136,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           workspaceType: WorkspaceType.MicrosoftTeams,
         };
 
+        const post: WorkspaceChannelPost = posts.startPost();
+
         try {
           let lastThread: WorkspaceThread | undefined;
           for (let index: number = 0; index < adaptiveCards.length; index++) {
@@ -2085,6 +2156,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             });
           }
 
+          post.succeeded();
+
           if (lastThread) {
             logger.debug(
               `Message sent successfully to chat ${chatAsChannel.name}, thread: ${JSON.stringify(lastThread)}`,
@@ -2092,6 +2165,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             workspaceMessageResponse.threads.push(lastThread);
           }
         } catch (e) {
+          post.failed();
           logger.error(`Error sending message to chat ID ${chatId}:`, {
             projectId: data.projectId.toString(),
             chatId: chatId,

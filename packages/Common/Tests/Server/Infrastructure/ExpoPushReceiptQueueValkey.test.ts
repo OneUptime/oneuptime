@@ -229,6 +229,41 @@ describe("the receipts queue on a real Valkey", () => {
     ]);
   });
 
+  /*
+   * Whether the push was an on-call page rides with its receipt, so the
+   * receipt's delivery metric says what the send's did (#6648): through
+   * Valkey to whichever worker takes it, and through a receipt looked for
+   * again.
+   */
+  test("a page's receipt is still a page when another worker takes it, and when it is looked for again", async () => {
+    const page: PendingExpoPushReceipt = {
+      ...receiptNumber(1),
+      isOnCallPage: true,
+    };
+    const notAPage: PendingExpoPushReceipt = receiptNumber(2, SENT_AT + MINUTE);
+
+    expect(await queue.add([page, notAPage], SENT_AT)).toBe(2);
+
+    const taken: Array<PendingExpoPushReceipt> = (
+      await otherWorker.claimDue({ now: SENT_AT + 20 * MINUTE, limit: 10 })
+    ).receipts;
+
+    expect(taken).toEqual([page, notAPage]);
+    expect(taken[0]!.isOnCallPage).toBe(true);
+    expect(taken[1]).not.toHaveProperty("isOnCallPage");
+
+    expect(
+      await otherWorker.checkAgainLater([taken[0]!], SENT_AT + 20 * MINUTE),
+    ).toEqual({ rescheduled: 1, expired: 0 });
+
+    const takenAgain: Array<PendingExpoPushReceipt> = (
+      await queue.claimDue({ now: SENT_AT + HOUR, limit: 10 })
+    ).receipts;
+
+    expect(takenAgain).toEqual([{ ...page, attempts: 1 }]);
+    expect(takenAgain[0]!.isOnCallPage).toBe(true);
+  });
+
   test("when a token last registered is kept for a day and an hour, under a key that does not name it", async () => {
     const token: string = receiptNumber(1).deviceToken;
 

@@ -370,14 +370,14 @@ Los contadores que terminan en `total` son acumulativos desde que arrancó el se
 
 | Tipo de filtro | Qué comprueba |
 |---|---|
-| **Database Is Online** | Si la base de datos era accesible y la consulta de prueba tuvo éxito. Es el criterio de desconexión con el que se crea el monitor, y la única comprobación que refleja la accesibilidad. |
-| **Database Metric** | Elige una métrica y compárala: Mayor que, Menor que, Mayor o igual que, Menor o igual que, Igual a o Distinto de. El selector de métricas solo ofrece las métricas que tu motor puede producir, así que no puedes crear un criterio que quede incumplido para siempre (una excepción: las métricas de Replication que se ofrecen para Microsoft SQL Server nunca se recopilan en Azure SQL Database). Si la métrica no se recopiló en una comprobación —el grupo falló o el motor no la informa—, el filtro no coincide, y tampoco coincide como "false": se omite. Un problema de permisos no puede avisar a nadie. |
-| **Database Collection Error** | El resumen de problemas de recopilación de la comprobación, un "grupo: mensaje" por cada grupo no disponible. Alerta cuando no esté vacío para detectar la pérdida de visibilidad, o usa Contiene para vigilar un grupo concreto. |
-| **JavaScript Expression** | Control total. Consulta [Expresiones de JavaScript](/docs/monitor/javascript-expression). |
+| **Base de datos en línea** | Si la base de datos era accesible y la consulta de prueba tuvo éxito. Es el criterio de desconexión con el que se crea el monitor, y la única comprobación que refleja la accesibilidad. |
+| **Métrica de la base de datos** | Elige una métrica y compárala: Mayor que, Menor que, Mayor o igual que, Menor o igual que, Igual a o Distinto de. El selector de métricas solo ofrece las métricas que tu motor puede producir, así que no puedes crear un criterio que quede incumplido para siempre (una excepción: las métricas de Replication que se ofrecen para Microsoft SQL Server nunca se recopilan en Azure SQL Database). Si la métrica no se recopiló en una comprobación —el grupo falló o el motor no la informa—, el filtro no coincide, y tampoco coincide como "false": se omite. Un problema de permisos no puede avisar a nadie. |
+| **Error de recopilación de la base de datos** | El resumen de problemas de recopilación de la comprobación, un "grupo: mensaje" por cada grupo no disponible. Alerta cuando no esté vacío para detectar la pérdida de visibilidad, o usa Contiene para vigilar un grupo concreto. |
+| **Expresión de JavaScript** | Control total. Consulta [Expresiones de JavaScript](/docs/monitor/javascript-expression). |
 
 Los umbrales son números enteros. Escribe `90`, no `90.5`: los porcentajes y los segundos se comparan como enteros.
 
-**Database Is Online** y **Database Metric** pueden comprobarse a lo largo del tiempo: marca **Evaluar estos criterios durante un periodo de tiempo**, luego elige cómo **Evaluar** los valores (por ejemplo **All Values**) y **Durante los últimos (en minutos)**. A lo largo del tiempo, el ajuste **Si no hay datos** del filtro decide qué significa un valor que falta; déjalo en **Ignore** para que un permiso que falta siga sin poder avisar a nadie.
+**Base de datos en línea** y **Métrica de la base de datos** pueden comprobarse a lo largo del tiempo: marca **Evaluar estos criterios durante un periodo de tiempo**, luego elige cómo **Evaluar** los valores (por ejemplo **Todos los valores**) y **Durante los últimos (en minutos)**. A lo largo del tiempo, el ajuste **Si no hay datos** del filtro decide qué significa un valor que falta; déjalo en **Ignore** para que un permiso que falta siga sin poder avisar a nadie.
 
 ### Variables de las expresiones de JavaScript
 
@@ -402,7 +402,7 @@ Para leer una métrica en una expresión, escribe el nombre de la serie con sus 
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
 ```
 
-Para un umbral sobre una sola métrica, usa **Database Metric** en lugar de una expresión: resuelve la serie por ti, solo ofrece lo que tu motor puede producir y omite la comprobación cuando el valor no se recopiló, en lugar de comparar con nada.
+Para un umbral sobre una sola métrica, usa **Métrica de la base de datos** en lugar de una expresión: resuelve la serie por ti, solo ofrece lo que tu motor puede producir y omite la comprobación cuando el valor no se recopiló, en lugar de comparar con nada.
 
 ### Ejemplo: un primario de PostgreSQL
 

@@ -74,13 +74,13 @@ Criteria bepalen wanneer het certificaat telt als in orde, verminderd of kapot, 
 | Filter | Voorwaarden | Wat het controleert |
 | --- | --- | --- |
 | **Is Valid Certificate** | **Waar**, **Onwaar** | Het certificaat doorstaat de controles van een browser: een vertrouwde uitgever, een hostnaam die overeenkomt en data die vandaag omvatten. **Onwaar** wanneer het eindpunt niet antwoordde. |
-| **Is Not A Valid Certificate** | **Waar**, **Onwaar** | Het tegenovergestelde van **Is Valid Certificate**: **Waar** wanneer het certificaat die controles niet doorstaat of niet kon worden gecontroleerd. |
-| **Is Expired Certificate** | **Waar**, **Onwaar** | De vervaldatum van het certificaat is verstreken. |
-| **Is Self Signed Certificate** | **Waar**, **Onwaar** | Het certificaat, of een certificaat in de keten, is zelfondertekend. |
-| **Expires In Days** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Dagen totdat het certificaat verloopt. |
-| **Expires In Hours** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Uren totdat het certificaat verloopt. |
+| **Certificaat is ongeldig** | **Waar**, **Onwaar** | Het tegenovergestelde van **Is Valid Certificate**: **Waar** wanneer het certificaat die controles niet doorstaat of niet kon worden gecontroleerd. |
+| **Certificaat is verlopen** | **Waar**, **Onwaar** | De vervaldatum van het certificaat is verstreken. |
+| **Certificaat is zelfondertekend** | **Waar**, **Onwaar** | Het certificaat, of een certificaat in de keten, is zelfondertekend. |
+| **Dagen tot verloop** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Dagen totdat het certificaat verloopt. |
+| **Uren tot verloop** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Uren totdat het certificaat verloopt. |
 
-**Expires In Days** telt hele dagen: een certificaat dat over 14 dagen en 20 uur verloopt, heeft nog 14 dagen. **Expires In Hours** telt hele uren op dezelfde manier.
+**Dagen tot verloop** telt hele dagen: een certificaat dat over 14 dagen en 20 uur verloopt, heeft nog 14 dagen. **Uren tot verloop** telt hele uren op dezelfde manier.
 
 Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters moeten overeenkomen of dat **Minstens één** filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing aanmaken, een incident melden, of meerdere daarvan.
 
@@ -96,13 +96,13 @@ De waarschuwing "verloopt binnenkort" is een waarschuwing, geen incident: ze ver
 
 Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenkomt bepaalt wat er gebeurt. Daarom staat "verloopt binnenkort" boven "is geldig": een certificaat dat bijna verloopt is nog geldig, en zou dus met beide overeenkomen.
 
-Om eerder gewaarschuwd te worden, wijzigt u de waarde van het filter **Expires In Days** in het criterium "verloopt binnenkort", bijvoorbeeld in `30`. Om in plaats daarvan iemand op te roepen, opent u de **Acties** van dat criterium: zet **Wanneer filters overeenkomen, verklaar een incident.** aan, of houd de waarschuwing en voeg er onder **Bereikbaarheidsbeleid** een bereikbaarheidsbeleid aan toe.
+Om eerder gewaarschuwd te worden, wijzigt u de waarde van het filter **Dagen tot verloop** in het criterium "verloopt binnenkort", bijvoorbeeld in `30`. Om in plaats daarvan iemand op te roepen, opent u de **Acties** van dat criterium: zet **Wanneer filters overeenkomen, verklaar een incident.** aan, of houd de waarschuwing en voeg er onder **Bereikbaarheidsbeleid** een bereikbaarheidsbeleid aan toe.
 
 :::details De waarschuwing toevoegen aan een monitor die van vóór de waarschuwing is
 Monitoren die zijn gemaakt voordat OneUptime deze waarschuwing toevoegde, hebben geen criterium "verloopt binnenkort". Zo voegt u het toe:
 
 1. Open bij de monitor **Configuratie → Criteria** en klik op **Bewakingscriteria bewerken**.
-2. Klik op **Criteria toevoegen**. Zet het filter op **Is Valid Certificate** / **Waar**, klik op **Filter toevoegen** en zet het tweede op **Expires In Days** / **Kleiner dan of gelijk aan** / `14`. Laat **Overeenkomstvoorwaarde** op **Alle** staan (het verschijnt onder de filters zodra er twee zijn).
+2. Klik op **Criteria toevoegen**. Zet het filter op **Is Valid Certificate** / **Waar**, klik op **Filter toevoegen** en zet het tweede op **Dagen tot verloop** / **Kleiner dan of gelijk aan** / `14`. Laat **Overeenkomstvoorwaarde** op **Alle** staan (het verschijnt onder de filters zodra er twee zijn).
 3. Zet onder **Acties** **Wanneer filters overeenkomen, maak een waarschuwing aan.** aan en laat **Wanneer filters overeenkomen, wijzig de monitorstatus.** uit, zodat het een waarschuwing aanmaakt en de monitorstatus niet wijzigt.
 4. Sleep het nieuwe criterium boven het criterium dat de monitor als online markeert, en sla op.
 :::
@@ -111,10 +111,10 @@ Monitoren die zijn gemaakt voordat OneUptime deze waarschuwing toevoegde, hebben
 
 | Doel | Filter | Voorwaarde | Waarde |
 | --- | --- | --- | --- |
-| Een maand van tevoren waarschuwen | **Expires In Days** | **Kleiner dan of gelijk aan** | `30` |
-| Iemand op de laatste dag oproepen | **Expires In Hours** | **Kleiner dan** | `24` |
-| Pas offline wanneer het certificaat verlopen is | **Is Expired Certificate** | **Waar** | — |
-| Een zelfondertekend certificaat markeren | **Is Self Signed Certificate** | **Waar** | — |
+| Een maand van tevoren waarschuwen | **Dagen tot verloop** | **Kleiner dan of gelijk aan** | `30` |
+| Iemand op de laatste dag oproepen | **Uren tot verloop** | **Kleiner dan** | `24` |
+| Pas offline wanneer het certificaat verlopen is | **Certificaat is verlopen** | **Waar** | — |
+| Een zelfondertekend certificaat markeren | **Certificaat is zelfondertekend** | **Waar** | — |
 
 Een criterium over het verlopen moet boven het criterium staan dat het certificaat als geldig markeert: een certificaat dat bijna verloopt is nog geldig, en het eerste criterium dat overeenkomt wint.
 
@@ -132,11 +132,11 @@ De hoofdoorzaak van het incident zegt waarom. Een veelvoorkomende reden is een s
 :::
 
 :::details Ik bewaak een interne service met een zelfondertekend certificaat
-Een zelfondertekend certificaat is nooit geldig, dus de standaardcriteria houden de monitor offline. **Is Self Signed Certificate**, **Is Expired Certificate** en **Expires In Days** werken er nog wel voor, dus bouw de criteria daarop. Onder **Configuratie → Criteria**:
+Een zelfondertekend certificaat is nooit geldig, dus de standaardcriteria houden de monitor offline. **Certificaat is zelfondertekend**, **Certificaat is verlopen** en **Dagen tot verloop** werken er nog wel voor, dus bouw de criteria daarop. Onder **Configuratie → Criteria**:
 
-1. Klik in het criterium "niet geldig" op **Filter toevoegen**, zet het nieuwe filter op **Is Self Signed Certificate** / **Onwaar** en zet **Overeenkomstvoorwaarde** op **Alle**. Het criterium zet de monitor nog steeds offline wanneer het eindpunt niet antwoordt, of het certificaat op een andere manier fout is.
-2. Voeg een criterium toe met **Is Expired Certificate** / **Waar** dat de monitor als **Offline** markeert en een incident meldt, en sleep het naar boven.
-3. Vervang in het criterium "verloopt binnenkort" **Is Valid Certificate** / **Waar** door **Is Expired Certificate** / **Onwaar**, zodat de waarschuwing ook het zelfondertekende certificaat dekt.
+1. Klik in het criterium "niet geldig" op **Filter toevoegen**, zet het nieuwe filter op **Certificaat is zelfondertekend** / **Onwaar** en zet **Overeenkomstvoorwaarde** op **Alle**. Het criterium zet de monitor nog steeds offline wanneer het eindpunt niet antwoordt, of het certificaat op een andere manier fout is.
+2. Voeg een criterium toe met **Certificaat is verlopen** / **Waar** dat de monitor als **Offline** markeert en een incident meldt, en sleep het naar boven.
+3. Vervang in het criterium "verloopt binnenkort" **Is Valid Certificate** / **Waar** door **Certificaat is verlopen** / **Onwaar**, zodat de waarschuwing ook het zelfondertekende certificaat dekt.
 
 Zolang het certificaat actueel is, komt geen enkel criterium overeen en toont de monitor zijn standaardstatus, **Operationeel**.
 :::

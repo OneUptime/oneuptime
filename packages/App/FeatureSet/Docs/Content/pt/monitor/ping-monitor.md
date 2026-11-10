@@ -81,11 +81,11 @@ Os critérios decidem quando o host conta como online, degradado ou offline, e s
 
 | Filtro | Condições | O que verifica |
 | --- | --- | --- |
-| **Is Online** | **Verdadeiro**, **Falso** | Se pelo menos uma requisição de eco recebeu resposta. |
+| **Online** | **Verdadeiro**, **Falso** | Se pelo menos uma requisição de eco recebeu resposta. |
 | **Tempo de resposta (em ms)** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | O tempo médio de ida e volta das respostas. |
-| **Packet Loss (in %)** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | A parcela das cinco requisições de eco que ficaram sem resposta. |
-| **Jitter (in ms)** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | O desvio padrão dos tempos de ida e volta entre os pacotes enviados em uma verificação. |
-| **Is Request Timeout** | **Verdadeiro**, **Falso** | Se o ping excedeu o tempo limite em todas as tentativas. |
+| **Perda de pacotes (em %)** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | A parcela das cinco requisições de eco que ficaram sem resposta. |
+| **Jitter (em ms)** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | O desvio padrão dos tempos de ida e volta entre os pacotes enviados em uma verificação. |
+| **Tempo limite da requisição esgotado** | **Verdadeiro**, **Falso** | Se o ping excedeu o tempo limite em todas as tentativas. |
 
 Com dois ou mais filtros, **Condição de correspondência** decide se **Todos** precisam corresponder ou se basta **Qualquer** um. As **Ações** de um critério decidem o que ele faz: mudar o status do monitor, criar um alerta, declarar um incidente, ou várias dessas coisas.
 
@@ -100,17 +100,17 @@ Os critérios são verificados de cima para baixo, e o primeiro que corresponde 
 
 ### Avaliar durante um período de tempo
 
-**Avaliar este critério durante um período de tempo** é uma caixa de seleção abaixo de um filtro, oferecida para **Is Online**, **Tempo de resposta (em ms)**, **Packet Loss (in %)**, **Jitter (in ms)** e **Is Request Timeout**. Ative-a para avaliar uma janela de verificações anteriores em vez da última: escolha uma agregação em **Avaliar** e uma janela, de 2 a 60 minutos, em **Nos últimos (em minutos)**.
+**Avaliar este critério durante um período de tempo** é uma caixa de seleção abaixo de um filtro, oferecida para **Online**, **Tempo de resposta (em ms)**, **Perda de pacotes (em %)**, **Jitter (em ms)** e **Tempo limite da requisição esgotado**. Ative-a para avaliar uma janela de verificações anteriores em vez da última: escolha uma agregação em **Avaliar** e uma janela, de 2 a 60 minutos, em **Nos últimos (em minutos)**.
 
 | Agregação | Corresponde quando |
 | --- | --- |
-| **Média**, **Soma**, **Maximum Value**, **Minimum Value** | Esse valor, na janela, atende à condição. Somente filtros numéricos. |
-| **All Values** | Cada verificação na janela atende à condição. |
-| **Any Value** | Pelo menos uma verificação na janela atende à condição. |
+| **Média**, **Soma**, **Valor máximo**, **Valor mínimo** | Esse valor, na janela, atende à condição. Somente filtros numéricos. |
+| **Todos os valores** | Cada verificação na janela atende à condição. |
+| **Qualquer valor** | Pelo menos uma verificação na janela atende à condição. |
 
-**All Values** só corresponde quando a janela está realmente coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder com a única leitura que tem. **Any Value** é a configuração para "me avise no momento em que uma única verificação ultrapassar o limite" e continua disparando imediatamente.
+**Todos os valores** só corresponde quando a janela está realmente coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder com a única leitura que tem. **Qualquer valor** é a configuração para "me avise no momento em que uma única verificação ultrapassar o limite" e continua disparando imediatamente.
 
-**Is Request Timeout** não é um número que o OneUptime registre, por isso ele registra se o filtro correspondeu em cada verificação e avalia a janela a partir desse registro com **All Values** ou **Any Value**.
+**Tempo limite da requisição esgotado** não é um número que o OneUptime registre, por isso ele registra se o filtro correspondeu em cada verificação e avalia a janela a partir desse registro com **Todos os valores** ou **Qualquer valor**.
 
 Escolha uma janela mais longa que o intervalo de monitoramento, para que ela contenha várias verificações: um monitor verificado a cada 5 minutos tem uma única verificação em qualquer janela de 5 minutos.
 
@@ -126,12 +126,12 @@ Escolha uma janela mais longa que o intervalo de monitoramento, para que ela con
 
 | Objetivo | Filtro | Condição | Valor |
 | --- | --- | --- | --- |
-| Offline quando o host está inacessível | **Is Online** | **Falso** | — |
+| Offline quando o host está inacessível | **Online** | **Falso** | — |
 | Alertar quando a latência está alta | **Tempo de resposta (em ms)** | **Maior que** | `200` |
-| Marcar o host como degradado em um enlace com perdas | **Packet Loss (in %)** | **Maior que** | `20` |
-| Alertar sobre uma conexão instável | **Jitter (in ms)** | **Maior que** | `30` |
+| Marcar o host como degradado em um enlace com perdas | **Perda de pacotes (em %)** | **Maior que** | `20` |
+| Alertar sobre uma conexão instável | **Jitter (em ms)** | **Maior que** | `30` |
 
-Para alertar só quando a latência continua alta, ative **Avaliar este critério durante um período de tempo** no filtro de tempo de resposta e escolha **All Values** durante **5** minutos.
+Para alertar só quando a latência continua alta, ative **Avaliar este critério durante um período de tempo** no filtro de tempo de resposta e escolha **Todos os valores** durante **5** minutos.
 
 ## Solução de problemas
 

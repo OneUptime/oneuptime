@@ -151,7 +151,7 @@ Cela convient au cas courant où une tâche ou un outil tiers envoie son propre 
 Remplacez la valeur par ce que votre expéditeur écrit réellement (`FAILED`, `exit code 1`, etc.).
 
 > [!NOTE]
-> Ces critères par défaut ne sont **pas** un interrupteur de l'homme mort : rien ici ne se déclenche quand les e-mails cessent d'arriver. Les critères qui ne lisent que l'objet, l'expéditeur, le corps ou le destinataire sont évalués à l'arrivée d'un e-mail et jamais à un autre moment. Pour être alerté en cas de silence, ajoutez un critère **Email Received** / **Not Recieved In Minutes** — voir l'[Exemple 3](#exemple-3-moniteur-heartbeat-pas-de-mail-alerte).
+> Ces critères par défaut ne sont **pas** un interrupteur de l'homme mort : rien ici ne se déclenche quand les e-mails cessent d'arriver. Les critères qui ne lisent que l'objet, l'expéditeur, le corps ou le destinataire sont évalués à l'arrivée d'un e-mail et jamais à un autre moment. Pour être alerté en cas de silence, ajoutez un critère **E-mail reçu** / **Non reçu dans le délai (minutes)** — voir l'[Exemple 3](#exemple-3-moniteur-heartbeat-pas-de-mail-alerte).
 
 ## Types de filtre disponibles
 
@@ -160,13 +160,13 @@ Vous pouvez créer des critères à partir de ces champs de l'e-mail :
 | Type de filtre | Description |
 | ------------------------- | ----------------------------------------------------------------------------------- |
 | **Objet de l'e-mail** | La ligne d'objet de l'e-mail entrant |
-| **Email From Address** | L'adresse de l'expéditeur : l'adresse seule, en minuscules, sans nom d'affichage |
-| **Email Body** | La partie texte brut du corps de l'e-mail |
-| **Email To Address** | L'adresse e-mail du destinataire |
-| **Email Received** | Critères temporels sur la réception des e-mails |
-| **JavaScript Expression** | Une expression JavaScript personnalisée qui doit valoir vrai |
+| **Adresse e-mail de l'expéditeur** | L'adresse de l'expéditeur : l'adresse seule, en minuscules, sans nom d'affichage |
+| **Corps de l'e-mail** | La partie texte brut du corps de l'e-mail |
+| **Adresse e-mail du destinataire** | L'adresse e-mail du destinataire |
+| **E-mail reçu** | Critères temporels sur la réception des e-mails |
+| **Expression JavaScript** | Une expression JavaScript personnalisée qui doit valoir vrai |
 
-L'adresse du moniteur lui-même est masquée avant qu'un critère ne lise l'e-mail : dans **Email To Address**, **Objet de l'e-mail** et **Email Body**, elle apparaît donc comme `[REDACTED]`.
+L'adresse du moniteur lui-même est masquée avant qu'un critère ne lise l'e-mail : dans **Adresse e-mail du destinataire**, **Objet de l'e-mail** et **Corps de l'e-mail**, elle apparaît donc comme `[REDACTED]`.
 
 ## Conditions de filtre
 
@@ -191,8 +191,8 @@ Le tableau de bord écrit ces conditions "Recieved".
 
 | Condition de filtre | Description | Exemple |
 | --------------------------- | ----------------------------------- | -------------------------------- |
-| **Recieved In Minutes** | Un e-mail a été reçu dans les X minutes | E-mail reçu dans les 30 minutes |
-| **Not Recieved In Minutes** | Aucun e-mail reçu en X minutes | Aucun e-mail reçu en 60 minutes |
+| **Reçu dans le délai (minutes)** | Un e-mail a été reçu dans les X minutes | E-mail reçu dans les 30 minutes |
+| **Non reçu dans le délai (minutes)** | Aucun e-mail reçu en X minutes | Aucun e-mail reçu en 60 minutes |
 
 Un moniteur qui n'a jamais reçu d'e-mail compte son heure de création comme le dernier e-mail.
 
@@ -200,9 +200,9 @@ Un moniteur qui n'a jamais reçu d'e-mail compte son heure de création comme le
 
 | Condition de filtre | Description |
 | --------------------- | ------------------------------------- |
-| **Evaluates To True** | L'expression renvoie une valeur vraie |
+| **S'évalue à vrai** | L'expression renvoie une valeur vraie |
 
-L'expression s'exécute dans un bac à sable auquel aucun champ de l'e-mail n'est lié : elle ne peut donc lire ni l'objet, ni l'expéditeur, ni le corps, ni le destinataire du message qui a déclenché la vérification. Utilisez les types de filtre **Objet de l'e-mail**, **Email From Address**, **Email Body** et **Email To Address** pour vérifier le contenu de l'e-mail.
+L'expression s'exécute dans un bac à sable auquel aucun champ de l'e-mail n'est lié : elle ne peut donc lire ni l'objet, ni l'expéditeur, ni le corps, ni le destinataire du message qui a déclenché la vérification. Utilisez les types de filtre **Objet de l'e-mail**, **Adresse e-mail de l'expéditeur**, **Corps de l'e-mail** et **Adresse e-mail du destinataire** pour vérifier le contenu de l'e-mail.
 
 ## Exemples de configuration
 
@@ -221,15 +221,15 @@ Placez le critère critique en premier : les critères sont vérifiés depuis le
 
 | Critère | Filtres | Condition de correspondance | Actions |
 | --- | --- | --- | --- |
-| Tâche échouée | **Email From Address** Égal à `monitoring@legacy-system.com` ; **Objet de l'e-mail** Contient `Failed` | **Tous** | Passer le statut à hors ligne ; déclarer un incident |
-| Tâche réussie | **Email From Address** Égal à `monitoring@legacy-system.com` ; **Objet de l'e-mail** Contient `Success` | **Tous** | Passer le statut à en ligne |
+| Tâche échouée | **Adresse e-mail de l'expéditeur** Égal à `monitoring@legacy-system.com` ; **Objet de l'e-mail** Contient `Failed` | **Tous** | Passer le statut à hors ligne ; déclarer un incident |
+| Tâche réussie | **Adresse e-mail de l'expéditeur** Égal à `monitoring@legacy-system.com` ; **Objet de l'e-mail** Contient `Success` | **Tous** | Passer le statut à en ligne |
 
 ### Exemple 3 : moniteur heartbeat (pas d'e-mail = alerte)
 
 | Critère | Filtres | Actions |
 | --- | --- | --- |
-| E-mail en retard | **Email Received** Not Recieved In Minutes `60` | Passer le statut à hors ligne ; créer une alerte |
-| E-mail arrivé | **Email Received** Recieved In Minutes `60` | Passer le statut à en ligne |
+| E-mail en retard | **E-mail reçu** Non reçu dans le délai (minutes) `60` | Passer le statut à hors ligne ; créer une alerte |
+| E-mail arrivé | **E-mail reçu** Reçu dans le délai (minutes) `60` | Passer le statut à en ligne |
 
 Le premier critère se déclenche quand aucun e-mail n'est arrivé depuis 60 minutes — utile pour les tâches planifiées ou les traitements par lots qui envoient un e-mail de fin. Le second résout l'alerte dès qu'un e-mail arrive. Les minutes pendant lesquelles OneUptime lui-même ne recevait pas d'e-mails ne comptent pas dans les 60, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
 
@@ -240,7 +240,7 @@ Un critère garde un seul incident ouvert à la fois : tant qu'il est ouvert, le
 :::steps
 ### Choisir les e-mails
 
-Donnez au critère un filtre qui correspond aux e-mails pour lesquels ouvrir des incidents. Pour n'accepter que les signalements de vos propres équipes, utilisez **Email From Address** avec **Se termine par** et votre domaine, par exemple `@example.com`.
+Donnez au critère un filtre qui correspond aux e-mails pour lesquels ouvrir des incidents. Pour n'accepter que les signalements de vos propres équipes, utilisez **Adresse e-mail de l'expéditeur** avec **Se termine par** et votre domaine, par exemple `@example.com`.
 
 ### Déclarer l'incident
 
@@ -263,7 +263,7 @@ Dès lors, le critère traite chaque e-mail séparément :
 
 Chaque e-mail obtient toujours une ligne dans **Journaux de surveillance**, et **Voir le résumé** sur cette ligne indique ce que l'e-mail a ouvert, ou pourquoi il n'a rien ouvert. Quand le critère crée aussi des alertes, l'option s'appelle **Ouvrir un nouvel incident et une nouvelle alerte pour chaque e-mail**, et chaque e-mail ouvre sa propre alerte de la même façon.
 
-Ces incidents restent ouverts jusqu'à ce que quelqu'un les résolve. Avec **Résoudre automatiquement l'incident** activé, ils sont aussi résolus quand un e-mail ultérieur correspond à un autre critère, comme tout incident ; un e-mail ultérieur qui correspond au même critère ne résout jamais les précédents. Une vérification d'e-mail manquant (**Email Received**) n'est pas un e-mail : elle ouvre donc toujours un seul incident à la fois.
+Ces incidents restent ouverts jusqu'à ce que quelqu'un les résolve. Avec **Résoudre automatiquement l'incident** activé, ils sont aussi résolus quand un e-mail ultérieur correspond à un autre critère, comme tout incident ; un e-mail ultérieur qui correspond au même critère ne résout jamais les précédents. Une vérification d'e-mail manquant (**E-mail reçu**) n'est pas un e-mail : elle ouvre donc toujours un seul incident à la fois.
 
 > [!WARNING]
 > **Quiconque connaît l'adresse peut ouvrir des incidents.** Gardez l'adresse privée, filtrez sur l'expéditeur comme ci-dessus et [réinitialisez l'adresse](#réinitialiser-ou-personnaliser-ladresse-e-mail) si elle fuit. L'adresse d'un expéditeur peut être falsifiée : le filtre écarte le courrier égaré, pas quelqu'un de déterminé à entrer.
@@ -294,7 +294,7 @@ Les titres, descriptions et notes de remédiation des alertes et incidents que c
 
 - **Un titre reçoit une ligne de chacune.** Dans un titre, chaque variable est coupée à une ligne d'au plus 150 caractères, et se termine par `...` quand elle était plus longue. Un titre ne peut pas dépasser 500 caractères, et une alerte ou un incident dont le titre est trop long n'est pas créé du tout : citer un e-mail entier empêcherait donc le moniteur d'alerter sur les e-mails longs. Les descriptions et notes de remédiation reçoivent la valeur complète.
 - **L'adresse de ce moniteur est masquée.** L'adresse fonctionne comme un mot de passe : elle est donc masquée avant que l'e-mail ne soit stocké, et `{{emailTo}}` vaut `monitor-[REDACTED]@{inbound-domain}` (ou `[REDACTED]@{inbound-domain}` pour une adresse personnalisée).
-- **Une vérification d'e-mail manquant utilise le dernier e-mail.** Quand un critère **Email Received** ouvre une alerte parce qu'aucun e-mail n'est arrivé à temps, les variables décrivent le dernier e-mail reçu par le moniteur. Elles sont vides si aucun n'est encore arrivé.
+- **Une vérification d'e-mail manquant utilise le dernier e-mail.** Quand un critère **E-mail reçu** ouvre une alerte parce qu'aucun e-mail n'est arrivé à temps, les variables décrivent le dernier e-mail reçu par le moniteur. Elles sont vides si aucun n'est encore arrivé.
 
 ## Vue Résumé du moniteur
 
@@ -312,7 +312,7 @@ Cliquez sur **Afficher plus de détails** pour voir le reste :
 
 ### E-mails précédents
 
-La carte n'affiche que l'e-mail le plus récent. Chaque e-mail que le moniteur évalue est aussi écrit dans **Journaux de surveillance** : la colonne **E-mail** affiche son objet et son expéditeur, et **Voir le résumé** sur sa ligne affiche l'e-mail entier comme le fait la carte. Un moniteur dont la surveillance est désactivée n'évalue rien : les e-mails qu'il reçoit n'ont donc pas de ligne. Si l'un de vos critères vérifie **Email Received**, le moniteur écrit aussi une ligne à chaque vérification d'e-mail manquant. La colonne **E-mail** indique "Scheduled check" sur ces lignes, et leur **Voir le résumé** affiche l'e-mail le plus récent au moment de la vérification, ou "No email yet" si aucun n'était arrivé. Les journaux de surveillance sont conservés un jour par défaut. Sur un serveur auto-hébergé, un administrateur peut changer cela avec **Rétention des journaux du moniteur (jours)** dans les paramètres du tableau de bord d'administration.
+La carte n'affiche que l'e-mail le plus récent. Chaque e-mail que le moniteur évalue est aussi écrit dans **Journaux de surveillance** : la colonne **E-mail** affiche son objet et son expéditeur, et **Voir le résumé** sur sa ligne affiche l'e-mail entier comme le fait la carte. Un moniteur dont la surveillance est désactivée n'évalue rien : les e-mails qu'il reçoit n'ont donc pas de ligne. Si l'un de vos critères vérifie **E-mail reçu**, le moniteur écrit aussi une ligne à chaque vérification d'e-mail manquant. La colonne **E-mail** indique "Scheduled check" sur ces lignes, et leur **Voir le résumé** affiche l'e-mail le plus récent au moment de la vérification, ou "No email yet" si aucun n'était arrivé. Les journaux de surveillance sont conservés un jour par défaut. Sur un serveur auto-hébergé, un administrateur peut changer cela avec **Rétention des journaux du moniteur (jours)** dans les paramètres du tableau de bord d'administration.
 
 ## Configuration auto-hébergée
 

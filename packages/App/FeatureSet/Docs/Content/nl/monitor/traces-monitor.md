@@ -110,9 +110,9 @@ De criteria van een traces-monitor hebben één **Filtertype**: **Span Count**, 
 | **Kleiner dan** | onder de waarde ligt |
 | **Kleiner dan of gelijk aan** | gelijk is aan de waarde of lager |
 | **Gelijk aan** | precies de waarde is |
-| **Anomalously High** | boven het verwachte bereik voor dit uur van de week ligt |
-| **Anomalously Low** | onder dat bereik ligt |
-| **Anomalous** | buiten dat bereik ligt, in welke richting ook |
+| **Afwijkend hoog** | boven het verwachte bereik voor dit uur van de week ligt |
+| **Afwijkend laag** | onder dat bereik ligt |
+| **Afwijkend** | buiten dat bereik ligt, in welke richting ook |
 
 De anomaliecondities hebben geen **Waarde**. Kies een **Gevoeligheid** (Laag, Gemiddeld, de standaard, of Hoog) en, in de eigen criteria, een **Baseline-venster** van 14 (de standaard), 28, 60 of 90 dagen. OneUptime zet het aantal om in een tempo per minuut en vergelijkt dat met vensters van dezelfde lengte rond hetzelfde tijdstip in eerdere weken, zo ver als het **Baseline-venster** teruggaat; wat er nu gebeurt, hoort nooit bij die vergelijking. De baseline omvat alleen de services en span-statussen van de monitor: de filters op spannaam en attributen horen er niet bij. Minuten zonder spans tellen ook mee, dus een service die vaak stil is, telt niet als ongewoon laag omdat hij stil is. Een venster telt alleen als ongewoon hoog ten opzichte van de vensters met spans, en alleen met minstens 20, 10 of 5 spans bij de gevoeligheid Laag, Gemiddeld of Hoog, zodat noch de gebruikelijke piek van een taak noch de eerste paar spans van een stille service het laten afgaan. Zolang de services van de monitor geen twee weken geschiedenis hebben, is het criterium nog aan het leren en gaat het niet af.
 

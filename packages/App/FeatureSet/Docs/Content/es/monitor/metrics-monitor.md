@@ -116,7 +116,7 @@ Cuanto más larga es la ventana, más ancho es cada tramo de tiempo, así que un
 
 ## Criterios
 
-Estos monitores evalúan siempre el **Metric Value**: el valor agregado de la consulta de métricas o la fórmula configurada. **Cuándo alertar** configura un criterio a partir de **Medido como**, **Ventana de tiempo**, **Condición** y **Valor**. Cuando la métrica tiene unidad, elige la unidad del valor a su lado. Su **Condición** es **Por encima de**, **Igual o por encima de**, **Por debajo de**, **Igual o por debajo de**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo**, **Inusualmente alto o bajo**, **Previsto por encima de** o **Previsto por debajo de**. Para varios criterios, como franjas de gravedad, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Métrica**, una **Agregación**, una **Condición** y un **Umbral**.
+Estos monitores evalúan siempre el **Valor de la métrica**: el valor agregado de la consulta de métricas o la fórmula configurada. **Cuándo alertar** configura un criterio a partir de **Medido como**, **Ventana de tiempo**, **Condición** y **Valor**. Cuando la métrica tiene unidad, elige la unidad del valor a su lado. Su **Condición** es **Por encima de**, **Igual o por encima de**, **Por debajo de**, **Igual o por debajo de**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo**, **Inusualmente alto o bajo**, **Previsto por encima de** o **Previsto por debajo de**. Para varios criterios, como franjas de gravedad, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Métrica**, una **Agregación**, una **Condición** y un **Umbral**.
 
 | Condición | Coincide cuando el valor está… |
 | --- | --- |
@@ -125,9 +125,9 @@ Estos monitores evalúan siempre el **Metric Value**: el valor agregado de la co
 | **Menor que** | por debajo del umbral |
 | **Menor o igual que** | en el umbral o por debajo |
 | **Igual a** | exactamente en el umbral |
-| **Anomalously High** | por encima del rango esperado para esta hora de la semana |
-| **Anomalously Low** | por debajo de ese rango |
-| **Anomalous** | fuera de ese rango, en cualquier sentido |
+| **Anómalamente alto** | por encima del rango esperado para esta hora de la semana |
+| **Anómalamente bajo** | por debajo de ese rango |
+| **Anómalo** | fuera de ese rango, en cualquier sentido |
 | **Previsto por encima de** | va camino de superar el umbral: su tendencia lo supera al final de **Plazo** |
 | **Previsto por debajo de** | va camino de bajar del umbral, al final de **Plazo** |
 | **Sin datos** | ausente: la consulta no envió nada en la ventana |
@@ -148,7 +148,7 @@ Una suma o un recuento solo cuenta como bajo en un punto de datos completo con o
 
 Un monitor de métricas creado en Crear monitor empieza con una regla sobre su primera consulta: **La media** en **Últimos 5 minutos**, **Por encima de** el **Valor** que indiques, y **Crear una alerta**.
 
-Un monitor de métricas nuevo creado mediante la API o Terraform sin criterios empieza con dos criterios sobre su primera consulta, ambos con la agregación **Any Value**:
+Un monitor de métricas nuevo creado mediante la API o Terraform sin criterios empieza con dos criterios sobre su primera consulta, ambos con la agregación **Cualquier valor**:
 
 | Criterio | Condición | Efecto |
 | --- | --- | --- |

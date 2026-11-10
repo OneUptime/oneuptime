@@ -139,14 +139,14 @@ Hver serie bærer enhedens label `device.id` og attributterne `iot.device.type` 
 
 ## Overvågningskriterier
 
-Et kriterium sammenligner en af monitorens forespørgsler eller formler med en tærskel. En IoT-enhedsmonitors kriterier tilbyder én **Filtertype**, **Metric Value**: hver regel tjekker metrikværdien, med disse felter.
+Et kriterium sammenligner en af monitorens forespørgsler eller formler med en tærskel. En IoT-enhedsmonitors kriterier tilbyder én **Filtertype**, **Metrikværdi**: hver regel tjekker metrikværdien, med disse felter.
 
 | Felt | Hvad det gør |
 | --- | --- |
-| **Filtertype** | Altid **Metric Value**, det eneste tjek, denne monitor tilbyder. |
+| **Filtertype** | Altid **Metrikværdi**, det eneste tjek, denne monitor tilbyder. |
 | **Select Metric Variable** | Den forespørgsel eller formel, der skal tjekkes, efter dens variabelnavn. |
-| **Aggregering** | Hvordan værdierne i vinduet bliver til ét svar: **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver værdi skal matche, i hele vinduet) eller **Any Value** (én er nok). |
-| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Har ingen data** passer, når forespørgslen intet sendte i vinduet, og **Har data**, når den sendte noget. **Forventes at stige over** og **Forventes at falde under** matcher, når metrikkens tendens i vinduet er forbi tærsklen ved udgangen af **Tidshorisont**. |
+| **Aggregering** | Hvordan værdierne i vinduet bliver til ét svar: **Gennemsnit**, **Sum**, **Maksimumværdi**, **Minimumværdi**, **Alle værdier** (hver værdi skal matche, i hele vinduet) eller **Vilkårlig værdi** (én er nok). |
+| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Unormalt høj**, **Unormalt lav** eller **Unormal**. **Har ingen data** passer, når forespørgslen intet sendte i vinduet, og **Har data**, når den sendte noget. **Forventes at stige over** og **Forventes at falde under** matcher, når metrikkens tendens i vinduet er forbi tærsklen ved udgangen af **Tidshorisont**. |
 | **Tærskel** | Den værdi, der sammenlignes med. En enhedsliste står ved siden af, når metrikken har en enhed. Vises ikke for anomalibetingelser. |
 | **Følsomhed** | Kun anomalibetingelser. **Lav** (4σ), **Mellem** (3σ, standarden) eller **Høj** (2σ). |
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standarden), 28, 60 eller 90 dages historik. |

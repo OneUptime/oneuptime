@@ -17,9 +17,15 @@ import ts from "typescript";
  *
  * This keeps a skip added later from forgetting it: in the call, WhatsApp
  * and Telegram senders, every return before the provider is asked to send
- * is right after a markNotSent; the SMS sender returns its reason instead,
- * and sendSms hands every reason to markNotSent.
+ * is right after a markNotSent - and, since each send is measured for the
+ * platform's operator (#6600), the dispatch's own markNotSent that may
+ * follow it; the SMS sender returns its reason instead, and sendSms hands
+ * every reason to markNotSent.
  */
+
+// What sendSms does with a reason not to send: the dispatch's, then the timeline's.
+const SEND_SMS_HANDS_THE_REASON_ON: RegExp =
+  /if \(notSentReason !== null\) \{\s*(dispatch\.markNotSent\(\);\s*)?await UserOnCallLogTimelineService\.markNotSent\(\{\s*userOnCallLogTimelineId: options\.userOnCallLogTimelineId,\s*reason: notSentReason,/;
 
 const SERVICES: string = path.resolve(
   __dirname,
@@ -72,6 +78,33 @@ function isMarkNotSent(statement: ts.Statement | undefined): boolean {
   );
 }
 
+// The send's own record that it was not sent (NotificationDeliveryMetrics).
+function isDispatchMarkNotSent(statement: ts.Statement | undefined): boolean {
+  return Boolean(
+    statement &&
+      ts.isExpressionStatement(statement) &&
+      statement.getText() === "dispatch.markNotSent();",
+  );
+}
+
+/*
+ * A return right after the timeline's markNotSent - or after the
+ * dispatch's, right after the timeline's.
+ */
+function isRightAfterMarkNotSent(
+  statements: ReadonlyArray<ts.Statement>,
+  index: number,
+): boolean {
+  if (isMarkNotSent(statements[index - 1])) {
+    return true;
+  }
+
+  return (
+    isDispatchMarkNotSent(statements[index - 1]) &&
+    isMarkNotSent(statements[index - 2])
+  );
+}
+
 interface EarlyReturn {
   line: number;
   isAfterMarkNotSent: boolean;
@@ -105,7 +138,7 @@ function earlyReturnsOf(
             line:
               source.getLineAndCharacterOfPosition(statement.getStart()).line +
               1,
-            isAfterMarkNotSent: isMarkNotSent(node.statements[index - 1]),
+            isAfterMarkNotSent: isRightAfterMarkNotSent(node.statements, index),
           });
         }
       });
@@ -129,10 +162,13 @@ function earlyReturnsOf(
 
 describe("the senders that return nothing record every skip on the timeline", () => {
   test.each([
-    // [file, sender, the call that asks the provider to send, skips]
+    /*
+     * [file, sender, the call that asks the provider to send, skips] - the
+     * sender that asks the provider, inside the measured send (#6600).
+     */
     ["CallService.ts", "makeCallInternal", "client.calls.create(", 3],
-    ["WhatsAppService.ts", "sendWhatsApp", "API.post<JSONObject>(", 2],
-    ["TelegramService.ts", "sendTelegram", "API.post<JSONObject>(", 3],
+    ["WhatsAppService.ts", "sendWhatsAppMessage", "API.post<JSONObject>(", 2],
+    ["TelegramService.ts", "sendTelegramMessage", "API.post<JSONObject>(", 3],
   ])(
     "%s: every return before the provider is right after a markNotSent",
     (file: string, sender: string, providerCall: string, skips: number) => {
@@ -169,9 +205,72 @@ describe("the SMS sender", () => {
     const source: ts.SourceFile = sourceOf("SmsService.ts");
     const send: string = findMethod(source, "sendSms").getText();
 
-    expect(send.split("markNotSent(").length - 1).toBe(1);
-    expect(send).toMatch(
-      /if \(notSentReason !== null\) \{\s*await UserOnCallLogTimelineService\.markNotSent\(\{\s*userOnCallLogTimelineId: options\.userOnCallLogTimelineId,\s*reason: notSentReason,/,
+    expect(
+      send.split("UserOnCallLogTimelineService.markNotSent(").length - 1,
+    ).toBe(1);
+    expect(send).toMatch(SEND_SMS_HANDS_THE_REASON_ON);
+  });
+});
+
+describe("the reader, on a sender's shapes", () => {
+  function returnsOf(body: string): Array<EarlyReturn> {
+    const source: ts.SourceFile = ts.createSourceFile(
+      "Sender.ts",
+      `class Sender {\n  private static async send(): Promise<void> {\n${body}\n    await API.post<JSONObject>({});\n  }\n}\n`,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
     );
+
+    return earlyReturnsOf(
+      source,
+      findMethod(source, "send"),
+      "API.post<JSONObject>(",
+    );
+  }
+
+  const timeline: string =
+    "await UserOnCallLogTimelineService.markNotSent({ userOnCallLogTimelineId: id, reason: why });";
+
+  test("takes a return right after the timeline's markNotSent", () => {
+    expect(
+      returnsOf(`if (off) {\n${timeline}\nreturn;\n}`).map(
+        (earlyReturn: EarlyReturn): boolean => {
+          return earlyReturn.isAfterMarkNotSent;
+        },
+      ),
+    ).toEqual([true]);
+  });
+
+  test("takes the dispatch's not-sent count between the timeline's markNotSent and the return", () => {
+    expect(
+      returnsOf(
+        `if (off) {\n${timeline}\ndispatch.markNotSent();\nreturn;\n}`,
+      ).map((earlyReturn: EarlyReturn): boolean => {
+        return earlyReturn.isAfterMarkNotSent;
+      }),
+    ).toEqual([true]);
+  });
+
+  test("does not take the dispatch's count alone, or anything else between", () => {
+    expect(
+      returnsOf(
+        [
+          "if (off) {\ndispatch.markNotSent();\nreturn;\n}",
+          `if (gone) {\n${timeline}\nlogger.error(why);\nreturn;\n}`,
+          "if (poor) {\nreturn;\n}",
+        ].join("\n"),
+      ).map((earlyReturn: EarlyReturn): boolean => {
+        return earlyReturn.isAfterMarkNotSent;
+      }),
+    ).toEqual([false, false, false]);
+  });
+
+  test("leaves out the returns of callbacks, which are not the sender's own", () => {
+    expect(
+      returnsOf(
+        "items.forEach((item: string): void => {\nif (!item) {\nreturn;\n}\n});",
+      ),
+    ).toEqual([]);
   });
 });

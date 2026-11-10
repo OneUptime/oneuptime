@@ -104,15 +104,15 @@ Los criterios deciden cuándo el dominio cuenta como correcto o roto, y si eso d
 
 | Filtro | Condiciones | Qué comprueba |
 | --- | --- | --- |
-| **Is Online** | **Verdadero**, **Falso** | Si la propia búsqueda de registro tuvo éxito. |
-| **Is Request Timeout** | **Verdadero**, **Falso** | Si la búsqueda agotó el tiempo de espera, en todos los intentos. |
-| **Domain Expires In Days** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Los días que faltan para que caduque el registro, redondeados hacia arriba a un día completo. |
-| **Domain Is Expired** | **Verdadero**, **Falso** | Si la fecha de caducidad ya pasó. |
-| **Domain Registrar** | **Contiene**, **No contiene**, **Empieza por**, **Termina en**, **Igual a**, **Distinto de** | El nombre del registrador. |
-| **Domain Name Server** | **Contiene**, **No contiene**, **Empieza por**, **Termina en**, **Igual a**, **Distinto de** | Los servidores de nombres del dominio. Coincide cuando coincide uno cualquiera de ellos. |
-| **Domain Status Code** | **Contiene**, **No contiene**, **Empieza por**, **Termina en**, **Igual a**, **Distinto de** | Los códigos de estado EPP del dominio. Coincide cuando coincide uno cualquiera de ellos. |
+| **En línea** | **Verdadero**, **Falso** | Si la propia búsqueda de registro tuvo éxito. |
+| **Tiempo de espera de la solicitud agotado** | **Verdadero**, **Falso** | Si la búsqueda agotó el tiempo de espera, en todos los intentos. |
+| **Días hasta la caducidad del dominio** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Los días que faltan para que caduque el registro, redondeados hacia arriba a un día completo. |
+| **Dominio caducado** | **Verdadero**, **Falso** | Si la fecha de caducidad ya pasó. |
+| **Registrador del dominio** | **Contiene**, **No contiene**, **Empieza por**, **Termina en**, **Igual a**, **Distinto de** | El nombre del registrador. |
+| **Servidor de nombres del dominio** | **Contiene**, **No contiene**, **Empieza por**, **Termina en**, **Igual a**, **Distinto de** | Los servidores de nombres del dominio. Coincide cuando coincide uno cualquiera de ellos. |
+| **Código de estado del dominio** | **Contiene**, **No contiene**, **Empieza por**, **Termina en**, **Igual a**, **Distinto de** | Los códigos de estado EPP del dominio. Coincide cuando coincide uno cualquiera de ellos. |
 
-Los códigos de estado se normalizan a sus nombres EPP (`clientTransferProhibited`) sea cual sea el protocolo que respondió, así que un criterio sigue coincidiendo cuando **Automático** cambia entre RDAP y WHOIS. Los _nombres_ de registrador son lo que publique el servicio que responde y pueden variar ligeramente entre los dos protocolos, así que prefiera **Contiene** a **Igual a** para un criterio **Domain Registrar**.
+Los códigos de estado se normalizan a sus nombres EPP (`clientTransferProhibited`) sea cual sea el protocolo que respondió, así que un criterio sigue coincidiendo cuando **Automático** cambia entre RDAP y WHOIS. Los _nombres_ de registrador son lo que publique el servicio que responde y pueden variar ligeramente entre los dos protocolos, así que prefiera **Contiene** a **Igual a** para un criterio **Registrador del dominio**.
 
 Las fechas se normalizan a ISO 8601. Una fecha que un registro publica en un formato que no se puede analizar se omite en lugar de guardarse, así que un criterio de caducidad no puede decidir, y no coincide, en lugar de responder en silencio «no caducado» para siempre.
 
@@ -130,13 +130,13 @@ El aviso de «caduca pronto» es una alerta, no un incidente: no aparece en sus 
 
 Los criterios se comprueban de arriba abajo, y el primero que coincide decide qué ocurre. Por eso «caduca pronto» está por encima de «no ha caducado»: un dominio a punto de caducar todavía no ha caducado, así que coincidiría con ambos.
 
-Para recibir el aviso antes, cambie el valor del filtro **Domain Expires In Days** del criterio «caduca pronto», por ejemplo a `60`. Para avisar a alguien en su lugar, abra las **Acciones** de ese criterio: active **Cuando los filtros coinciden, declarar un incidente.**, o mantenga la alerta y añádale una política de guardia en **Políticas de guardia**.
+Para recibir el aviso antes, cambie el valor del filtro **Días hasta la caducidad del dominio** del criterio «caduca pronto», por ejemplo a `60`. Para avisar a alguien en su lugar, abra las **Acciones** de ese criterio: active **Cuando los filtros coinciden, declarar un incidente.**, o mantenga la alerta y añádale una política de guardia en **Políticas de guardia**.
 
 :::details Añadir el aviso a un monitor creado antes de que existiera
 Los monitores creados antes de que OneUptime añadiera este aviso no tienen un criterio de «caduca pronto». Para añadirlo:
 
 1. En el monitor, abra **Configuración → Criterios** y haga clic en **Editar criterios de monitoreo**.
-2. Haga clic en **Añadir criterios**. Ponga su filtro en **Domain Is Expired** / **Falso**, haga clic en **Añadir filtro** y ponga el segundo en **Domain Expires In Days** / **Menor o igual que** / `30`. Deje **Condición de coincidencia** en **Todos** (aparece bajo los filtros en cuanto hay dos).
+2. Haga clic en **Añadir criterios**. Ponga su filtro en **Dominio caducado** / **Falso**, haga clic en **Añadir filtro** y ponga el segundo en **Días hasta la caducidad del dominio** / **Menor o igual que** / `30`. Deje **Condición de coincidencia** en **Todos** (aparece bajo los filtros en cuanto hay dos).
 3. En **Acciones**, active **Cuando los filtros coinciden, crear una alerta.** y deje desactivado **Cuando los filtros coinciden, cambiar el estado del monitor.**, para que cree una alerta y no cambie el estado del monitor.
 4. Arrastre el nuevo criterio por encima del criterio que marca el monitor como en línea, y guarde.
 :::
@@ -145,20 +145,20 @@ Los monitores creados antes de que OneUptime añadiera este aviso no tienen un c
 
 | Objetivo | Filtro | Condición | Valor |
 | --- | --- | --- | --- |
-| Alertar cuando el dominio caduca en 30 días (uno predeterminado) | **Domain Expires In Days** | **Menor o igual que** | `30` |
-| Sin conexión cuando el dominio ha caducado | **Domain Is Expired** | **Verdadero** | — |
-| Sin conexión cuando no se puede leer el registro | **Is Online** | **Falso** | — |
-| Alertar cuando cambian los servidores de nombres | **Domain Name Server** | **No contiene** | `ns1.example.com` |
-| Alertar cuando el dominio se desbloquea para una transferencia | **Domain Status Code** | **No contiene** | `clientTransferProhibited` |
+| Alertar cuando el dominio caduca en 30 días (uno predeterminado) | **Días hasta la caducidad del dominio** | **Menor o igual que** | `30` |
+| Sin conexión cuando el dominio ha caducado | **Dominio caducado** | **Verdadero** | — |
+| Sin conexión cuando no se puede leer el registro | **En línea** | **Falso** | — |
+| Alertar cuando cambian los servidores de nombres | **Servidor de nombres del dominio** | **No contiene** | `ns1.example.com` |
+| Alertar cuando el dominio se desbloquea para una transferencia | **Código de estado del dominio** | **No contiene** | `clientTransferProhibited` |
 
-**Domain Name Server** y **Domain Status Code** coinciden cuando coincide _cualquier_ valor, así que **No contiene** coincide en cuanto un servidor de nombres, o un código de estado, no contiene el texto.
+**Servidor de nombres del dominio** y **Código de estado del dominio** coinciden cuando coincide _cualquier_ valor, así que **No contiene** coincide en cuanto un servidor de nombres, o un código de estado, no contiene el texto.
 
 ## Buenas prácticas
 
 1. **Dese tiempo para renovar** — El aviso predeterminado llega 30 días antes de la caducidad. Si renovar requiere aprobaciones o un pago que tarda más, súbalo a 60 días.
-2. **Cubra las búsquedas fallidas** — Incluya un filtro **Is Online** / **Falso** en su criterio sin conexión para que un registro ilegible no se tome por uno sano. Los monitores nuevos lo tienen en sus criterios predeterminados; un monitor creado antes de que se añadiera lo necesita a mano. Para aguantar un servidor WHOIS que limita a la sonda de vez en cuando, marque **Evaluar estos criterios durante un periodo de tiempo** bajo ese filtro y elija **All Values**: el dominio solo pasa a sin conexión cuando fallaron todas las búsquedas de la ventana.
+2. **Cubra las búsquedas fallidas** — Incluya un filtro **En línea** / **Falso** en su criterio sin conexión para que un registro ilegible no se tome por uno sano. Los monitores nuevos lo tienen en sus criterios predeterminados; un monitor creado antes de que se añadiera lo necesita a mano. Para aguantar un servidor WHOIS que limita a la sonda de vez en cuando, marque **Evaluar estos criterios durante un periodo de tiempo** bajo ese filtro y elija **Todos los valores**: el dominio solo pasa a sin conexión cuando fallaron todas las búsquedas de la ventana.
 3. **Monitorice todos los dominios críticos** — Incluya los dominios principales, los subdominios registrados por separado y cualquier dominio que se use para correo o API.
-4. **Siga los cambios de registrador** — Añada un criterio con **Domain Registrar** / **No contiene** / el nombre de su registrador, para detectar una transferencia no autorizada.
+4. **Siga los cambios de registrador** — Añada un criterio con **Registrador del dominio** / **No contiene** / el nombre de su registrador, para detectar una transferencia no autorizada.
 
 ## Solución de problemas
 
@@ -179,7 +179,7 @@ RDAP pasa por los ajustes de proxy de la sonda, WHOIS no. Permita el puerto TCP 
 :::
 
 :::details La fecha de caducidad está vacía, y los criterios de caducidad nunca se disparan
-El registro no publica fecha de caducidad, o la publica en un formato que no se puede analizar. Los criterios de caducidad no pueden decidir sin fecha, así que no saltan. **Is Online** le sigue diciendo si el registro se puede leer.
+El registro no publica fecha de caducidad, o la publica en un formato que no se puede analizar. Los criterios de caducidad no pueden decidir sin fecha, así que no saltan. **En línea** le sigue diciendo si el registro se puede leer.
 :::
 
 ## Próximos pasos

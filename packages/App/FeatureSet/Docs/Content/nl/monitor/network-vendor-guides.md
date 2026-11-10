@@ -58,13 +58,13 @@ Na de volgende poll somt de pagina **SNMP-tabellen** van het apparaat elke IPsec
 
 ### Waarschuwen op elke IPsec-tunnel
 
-Klik op de pagina van het apparaat op **Monitor maken**. De aanbevolen waarschuwingen bevatten **IPsec Tunnels: row unhealthy**, een criterium **SNMP Table Row Is Unhealthy** op de tabel `ipsec_tunnels` met Row `*`: het opent één incident per tunnel die niet actief is, genoemd naar de tunnel, en lost elk op als zijn tunnel terugkomt.
+Klik op de pagina van het apparaat op **Monitor maken**. De aanbevolen waarschuwingen bevatten **IPsec Tunnels: row unhealthy**, een criterium **SNMP-tabelrij is ongezond** op de tabel `ipsec_tunnels` met Row `*`: het opent één incident per tunnel die niet actief is, genoemd naar de tunnel, en lost elk op als zijn tunnel terugkomt.
 
 Bij een tunnel die Sophos als actief meldt, zijn alleen de security associations opgebouwd. Om te bewijzen dat er verkeer doorheen gaat, voeg je een [Ping-monitor](/docs/monitor/ping-monitor) toe vanaf een sonde op de ene locatie naar een host aan de andere kant van elke tunnel, en teken je de tunnel als locatieverbinding onder **Netwerk → Topologie → Locatiekoppelingen** tussen de twee [locaties](/docs/monitor/network-sites), gekoppeld aan die monitor: de verbinding op de kaart neemt dan de kleur van de monitor over.
 
 ### WAN-verbindingen
 
-- **Poortgezondheid.** De interfacewalk meet al de status, bits in en uit, benutting en fouten van elke WAN-poort. Op de monitor van de firewall waarschuwt een criterium **SNMP Interface Is Down** of **SNMP Interface Utilization (in %)** met **Interface** ingesteld op de naam van de WAN-poort, of `*` voor elke poort, per verbinding.
+- **Poortgezondheid.** De interfacewalk meet al de status, bits in en uit, benutting en fouten van elke WAN-poort. Op de monitor van de firewall waarschuwt een criterium **SNMP-interface is uitgevallen** of **SNMP-interfacegebruik (in %)** met **Interface** ingesteld op de naam van de WAN-poort, of `*` voor elke poort, per verbinding.
 - **Kwaliteit van het pad.** De latentie, het pakketverlies en de jitter van elke verbinding worden van buiten de firewall gemeten: een Ping-monitor vanaf de cloudsondes van OneUptime naar het openbare adres van elke WAN-verbinding, en een Ping-monitor vanaf een sonde op de locatie naar de gateway van elke provider. Criteria voor pakketverlies en jitter op die monitors waarschuwen per verbinding, en **Netwerk → Topologie → Latentiematrix** toont in één oogopslag elke sonde tegen elke monitor.
 - **Verkeer.** SFOS exporteert NetFlow v5. Stuur het naar de sonde op UDP 2055, waar de flowcollector van de sonde standaard luistert, en de pagina **Verkeer** van het apparaat laat zien wie met wie praat over elke WAN-verbinding; [Netwerkverkeer](/docs/monitor/network-traffic) heeft de details.
 
@@ -88,7 +88,7 @@ De eerste twee staan in de lijst van **Waarschuwing maken**; voor de derde open 
 
 ### Traps
 
-Elke Sophos-melding is dezelfde trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), met de gebeurtenis als tekst in `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Om op één soort gebeurtenis te waarschuwen, combineer je **SNMP Trap Received (Trap OID)** Gelijk aan `1.3.6.1.4.1.2604.5.1.8.1.1` met **SNMP Trap Varbind Value** op die varbind, Bevat `IPSec` bijvoorbeeld. Zet de trapbestemming van de firewall op SNMP v2c: de trapontvanger van de sonde neemt v1- en v2c-traps aan.
+Elke Sophos-melding is dezelfde trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), met de gebeurtenis als tekst in `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Om op één soort gebeurtenis te waarschuwen, combineer je **SNMP-trap ontvangen (trap-OID)** Gelijk aan `1.3.6.1.4.1.2604.5.1.8.1.1` met **Varbindwaarde van SNMP-trap** op die varbind, Bevat `IPSec` bijvoorbeeld. Zet de trapbestemming van de firewall op SNMP v2c: de trapontvanger van de sonde neemt v1- en v2c-traps aan.
 
 ## Extreme Networks (EXOS / Switch Engine en Fabric Engine / VOSS)
 
@@ -105,7 +105,7 @@ Fabric Engine op de universele hardware van Extreme (de series 5000 en 7000) mel
 
 ### Waarschuwingen voor fabric en hardware
 
-De aanbevolen waarschuwingen op een Fabric Engine-switch bevatten **Fabric Adjacencies (IS-IS): row unhealthy**, een incident per buur waarvan de adjacency niet actief is. Fabric Engine stuurt ook een trap als een adjacency verandert, `rcnIsisPlsbAdjStateTrap` (`1.3.6.1.4.1.2272.1.21.0.281`), en een criterium **SNMP Trap Received (Trap OID)** daarop waarschuwt binnen seconden, vóór de volgende poll.
+De aanbevolen waarschuwingen op een Fabric Engine-switch bevatten **Fabric Adjacencies (IS-IS): row unhealthy**, een incident per buur waarvan de adjacency niet actief is. Fabric Engine stuurt ook een trap als een adjacency verandert, `rcnIsisPlsbAdjStateTrap` (`1.3.6.1.4.1.2272.1.21.0.281`), en een criterium **SNMP-trap ontvangen (trap-OID)** daarop waarschuwt binnen seconden, vóór de volgende poll.
 
 Voedingen, ventilatoren, temperatuursensoren en stackleden zijn tabellen die hun gezonde waarden declareren, dus elk krijgt een waarschuwing per rij in de aanbevolen waarschuwingen.
 
@@ -129,10 +129,10 @@ Nuttige waarschuwingen, allemaal op de tabel `wifi_radios` met Row `*`, zodat el
 
 | Waarschuwing | Criterium |
 | --- | --- |
-| Een radio uitgezet | **SNMP Table Row Is Unhealthy**, onderdeel van de aanbevolen waarschuwingen |
-| Zendvermogen gewijzigd | **SNMP Table Value**, kolom TX Power, Niet gelijk aan je geplande vermogen |
-| Een drukke radio | **SNMP Table Value**, kolom Clients, Groter dan je limiet |
-| Een kanaal met veel ruis | **SNMP Table Value**, kolom Noise Floor, Groter dan `-80` |
+| Een radio uitgezet | **SNMP-tabelrij is ongezond**, onderdeel van de aanbevolen waarschuwingen |
+| Zendvermogen gewijzigd | **SNMP-tabelwaarde**, kolom TX Power, Niet gelijk aan je geplande vermogen |
+| Een drukke radio | **SNMP-tabelwaarde**, kolom Clients, Groter dan je limiet |
+| Een kanaal met veel ruis | **SNMP-tabelwaarde**, kolom Noise Floor, Groter dan `-80` |
 
 Elke numerieke radiowaarde is ook een metriek (`oneuptime.monitor.snmp.table.value`, één reeks per radio en kolom), dus kanaal, vermogen en clients kunnen in de loop van de tijd op een dashboard in grafieken worden gezet; een kanaal dat steeds verandert, is DFS aan het werk.
 

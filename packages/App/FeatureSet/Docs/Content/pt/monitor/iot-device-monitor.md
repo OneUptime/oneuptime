@@ -139,14 +139,14 @@ Cada série traz o rótulo `device.id` do dispositivo, e os atributos `iot.devic
 
 ## Critérios de monitoramento
 
-Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os critérios de um monitor de dispositivos IoT oferecem um único **Tipo de filtro**, **Metric Value**: cada regra verifica o valor da métrica, com estes campos.
+Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os critérios de um monitor de dispositivos IoT oferecem um único **Tipo de filtro**, **Valor da métrica**: cada regra verifica o valor da métrica, com estes campos.
 
 | Campo | O que faz |
 | --- | --- |
-| **Tipo de filtro** | Sempre **Metric Value**, a única verificação que este monitor oferece. |
+| **Tipo de filtro** | Sempre **Valor da métrica**, a única verificação que este monitor oferece. |
 | **Select Metric Variable** | A consulta ou fórmula a verificar, pelo nome da sua variável. |
-| **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todo valor precisa corresponder, na janela inteira) ou **Any Value** (basta um). |
-| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo. **Previsão acima de** e **Previsão abaixo de** correspondem quando a tendência da métrica na janela tiver passado do limite ao fim de **Horizonte**. |
+| **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Valor máximo**, **Valor mínimo**, **Todos os valores** (todo valor precisa corresponder, na janela inteira) ou **Qualquer valor** (basta um). |
+| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalamente alto**, **Anomalamente baixo** ou **Anômalo**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo. **Previsão acima de** e **Previsão abaixo de** correspondem quando a tendência da métrica na janela tiver passado do limite ao fim de **Horizonte**. |
 | **Limite** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não aparece nas condições de anomalia. |
 | **Sensibilidade** | Só condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |
 | **Janela de linha de base** | Só condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |

@@ -34,10 +34,10 @@ const ProductAnalyticsEventsSwitchCopy: {
   ),
   switchTitle: translationKey("Send product analytics events"),
   switchDescription: translationKey(
-    "The browser recorder sends each session's start, its page views and your track() and metric() calls from every session, recorded or not. Consent, Do Not Track and the allowed origins apply as they do to recordings.",
+    "Sends session starts, page views, track() and metric() calls from every session, recorded or not. Consent, Do Not Track and allowed origins apply.",
   ),
   offDescription: translationKey(
-    "Turn them on to count every session's start, page views and the events your app sends with track(). Nothing changes on your pages: the recorder you installed for Session Replay sends them.",
+    "Turn them on to count session starts, page views and track() events. Nothing changes on your pages: your Session Replay recorder sends them.",
   ),
   // {{replayPolicy}}: a link to the page, in the words of its menu item.
   replayOffNote: translationKey(
@@ -49,7 +49,7 @@ const ProductAnalyticsEventsSwitchCopy: {
   ),
   propertiesFieldTitle: translationKey("User properties"),
   propertiesFieldDescription: translationKey(
-    'A JSON array of trait keys, as your app passes them to identify(): ["plan", "role"]. At most 20. Kept only while end-user identity capture is on. Do not list traits that hold personal data, such as an email address.',
+    'Trait keys your app passes to identify(), as a JSON array: ["plan", "role"]. Up to 20, kept while end-user identity capture is on. No personal data.',
   ),
   noProperties: translationKey("None: events carry no user properties"),
 };
