@@ -109,7 +109,7 @@ test("offers the recommended policy to an SLO without one, lists exactly what it
 
   await expect(dialog).toContainText(BUTTON);
   await expect(dialog).toContainText(
-    "They raise no alerts or incidents until you switch that on, and you can edit them afterwards like any other tier.",
+    "They raise no alerts or incidents until you switch that on.",
   );
 
   const listed: Locator = dialog.getByTestId("slo-recommended-policy-tier");
