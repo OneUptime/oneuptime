@@ -1,0 +1,23 @@
+{
+  /*
+   * The project the TypeScript under Tests belongs to - the OpenStack rig's
+   * checks-run.ts and whole-path-template.ts - for editors and ESLint's typed
+   * linting (projectService in eslint.config.js), which both take a file's
+   * nearest tsconfig.json. Without this file the lookup walked on up to the
+   * repository-root tsconfig.json, which has no "include": both were linted
+   * inside a program of the whole monorepo (29,574 files), which ran ESLint
+   * out of its 12 GB heap in js-lint from 2026-11-09.
+   *
+   * Same compiler options as the root's. Where the files run, nothing
+   * type-checks them: checks-record.sh runs checks-run.ts with ts-node,
+   * transpile only, under packages/Probe/tsconfig.json, and whole-path.py
+   * bundles whole-path-template.ts with esbuild, which reads the
+   * compilerOptions of the nearest tsconfig.json - this file's, the root's
+   * unchanged.
+   */
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["**/*.ts"]
+}

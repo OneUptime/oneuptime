@@ -72,6 +72,24 @@ export function getRumBreadcrumbs(path: string): Array<Link> | undefined {
       "User Flows",
     ]),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_USERS,
+      ["Project", "Real User Monitoring", "View Application", "Users"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_PERSON,
+      [
+        "Project",
+        "Real User Monitoring",
+        "View Application",
+        "Users",
+        "Person",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SESSIONS,
+      ["Project", "Real User Monitoring", "View Application", "Sessions"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH,
       ["Project", "Real User Monitoring", "View Application", "Replay Health"],
     ),

@@ -945,6 +945,7 @@ import { AddRumApplicationFrustrationSignals1809080410000 } from "./180908041000
 import { AddDiscoveredDeviceRetention1809080463890 } from "./1809080463890-AddDiscoveredDeviceRetention";
 import { AddNetworkEndpointLastSeenIndex1809080463891 } from "./1809080463891-AddNetworkEndpointLastSeenIndex";
 import { KeepEditedDiscoveredDevices1809080463892 } from "./1809080463892-KeepEditedDiscoveredDevices";
+import { AddIncomingMonitorRequestAsReceived1809080466402 } from "./1809080466402-AddIncomingMonitorRequestAsReceived";
 import { AddTelemetryUsageExceptionsPart1809080476356 } from "./1809080476356-AddTelemetryUsageExceptionsPart";
 
 export default [
@@ -1895,5 +1896,6 @@ export default [
   AddDiscoveredDeviceRetention1809080463890,
   AddNetworkEndpointLastSeenIndex1809080463891,
   KeepEditedDiscoveredDevices1809080463892,
+  AddIncomingMonitorRequestAsReceived1809080466402,
   AddTelemetryUsageExceptionsPart1809080476356,
 ];

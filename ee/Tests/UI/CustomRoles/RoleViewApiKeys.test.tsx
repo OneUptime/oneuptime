@@ -194,8 +194,6 @@ import PermissionGate from "Common/UI/Utils/PermissionGate";
 import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
 import { getJestSpyOn } from "Common/Tests/Spy";
 
-jest.setTimeout(30000);
-
 const PROJECT_ID: string = "0c000000-0000-4000-8000-000000000001";
 const ROLE_ID: string = "0c000000-0000-4000-8000-000000000002";
 const DEPLOY_KEY_ID: string = "0c000000-0000-4000-8000-0000000000a1";

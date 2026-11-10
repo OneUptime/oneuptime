@@ -8,6 +8,7 @@ import MonitorService from "Common/Server/Services/MonitorService";
 import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
+import LatestIncomingRequest from "Common/Server/Utils/Monitor/LatestIncomingRequest";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectService from "Common/Server/Services/ProjectService";
 import OneUptimeDate from "Common/Types/Date";
@@ -47,6 +48,13 @@ RunCron(
       select: {
         _id: true,
         monitorSteps: true,
+        /*
+         * The latest request as it came, which this job judges again, and
+         * the copy people read: a server from before the two were split
+         * writes that one alone, as it came
+         * (LatestIncomingRequest.getAsReceived).
+         */
+        incomingMonitorRequestAsReceived: true,
         incomingMonitorRequest: true,
         // Keys this monitor's arrivals in IncomingRequestReceivedAtStore.
         incomingRequestSecretKey: true,
@@ -96,6 +104,25 @@ const checkHeartBeat: (monitor: Monitor) => Promise<void> = async (
       `Updated incoming request monitor heartbeat checked at: ${monitor.id?.toString()}`,
     );
 
+    /*
+     * A copy people read that is still the request as it came - one a
+     * server from before the two copies were split wrote while an upgrade
+     * ran - is cut now, the request kept beside it (LatestIncomingRequest).
+     * In a try/catch of its own: it never stands in the way of the check.
+     */
+    if (LatestIncomingRequest.isReadersCopyAsItCame(monitor)) {
+      try {
+        await MonitorService.rewriteLatestIncomingRequestForReaders(
+          monitor.id!,
+        );
+      } catch (error) {
+        logger.error(
+          `Splitting the latest request of incoming request monitor ${monitor.id?.toString()} failed`,
+        );
+        logger.error(error);
+      }
+    }
+
     const processRequest: boolean = shouldProcessRequest(monitor);
 
     logger.debug(
@@ -105,6 +132,13 @@ const checkHeartBeat: (monitor: Monitor) => Promise<void> = async (
     if (!processRequest) {
       return;
     }
+
+    /*
+     * The request as the sender sent it, never the copy people read: that
+     * one is cut, and a filter on the body or on a header needs what came.
+     */
+    const latestRequest: IncomingMonitorRequest | undefined =
+      LatestIncomingRequest.getAsReceived(monitor);
 
     /*
      * Judge the latest ARRIVAL, not the last heartbeat a Telemetry worker
@@ -126,14 +160,13 @@ const checkHeartBeat: (monitor: Monitor) => Promise<void> = async (
     const latestReceivedAt: Date = await IncomingRequestReceivedAtStore.track({
       secretKey: monitor.incomingRequestSecretKey,
       receivedAt:
-        monitor.incomingMonitorRequest?.incomingRequestReceivedAt ||
-        monitor.createdAt!,
+        latestRequest?.incomingRequestReceivedAt || monitor.createdAt!,
     });
 
     const checkedAt: Date = OneUptimeDate.getCurrentDate();
 
     const incomingRequest: IncomingMonitorRequest = {
-      ...(monitor.incomingMonitorRequest! || {}),
+      ...(latestRequest || {}),
       incomingRequestReceivedAt:
         IncomingRequestReceivedAtStore.getReceivedAtAsOf(
           latestReceivedAt,

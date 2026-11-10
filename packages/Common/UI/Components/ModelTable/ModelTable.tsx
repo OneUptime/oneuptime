@@ -83,6 +83,53 @@ import {
 } from "../RuleCriteria/RuleCriteriaModelTable";
 import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
 
+/**
+ * The columns of the fields an Edit form leaves out (doNotShowWhenEditing):
+ * a choice made once, when the record is added. The fields it shows may
+ * still read them - a secret variable has no plain Value, a Power BI
+ * connection no address - so the Edit form reads what they hold, without
+ * showing or sending it (ModelForm's alsoReadColumns). A column a field the
+ * Edit form does show is read already, and left out here.
+ */
+export const getColumnsLeftOffEditForm: <TBaseModel extends BaseModel>(
+  formFields: Array<ModelField<TBaseModel>> | undefined,
+) => Array<string> = <TBaseModel extends BaseModel>(
+  formFields: Array<ModelField<TBaseModel>> | undefined,
+): Array<string> => {
+  const columnOf: (field: ModelField<TBaseModel>) => string | undefined = (
+    field: ModelField<TBaseModel>,
+  ): string | undefined => {
+    return field.field ? Object.keys(field.field)[0] : undefined;
+  };
+
+  const shownOnEdit: Set<string> = new Set<string>();
+
+  for (const field of formFields || []) {
+    const column: string | undefined = columnOf(field);
+
+    if (column && !field.doNotShowWhenEditing) {
+      shownOnEdit.add(column);
+    }
+  }
+
+  const columns: Array<string> = [];
+
+  for (const field of formFields || []) {
+    const column: string | undefined = columnOf(field);
+
+    if (
+      column &&
+      field.doNotShowWhenEditing &&
+      !shownOnEdit.has(column) &&
+      !columns.includes(column)
+    ) {
+      columns.push(column);
+    }
+  }
+
+  return columns;
+};
+
 export interface ComponentProps<TBaseModel extends BaseModel>
   extends BaseTableProps<TBaseModel> {
   modelAPI?: typeof ModelAPI | undefined;
@@ -500,6 +547,17 @@ const ModelTable: <TBaseModel extends BaseModel>(
                   onItemFetched:
                     modalType === ModalType.Edit
                       ? props.onEditFormItemFetched
+                      : undefined,
+                  /*
+                   * What the fields the Edit form leaves out hold, read but
+                   * not sent: the fields it shows open on the record's own
+                   * choices - a secret variable as a secret, a Power BI
+                   * connection with no address to ask for - not as if they
+                   * were unset (ModelForm's alsoReadColumns).
+                   */
+                  alsoReadColumns:
+                    modalType === ModalType.Edit
+                      ? getColumnsLeftOffEditForm(props.formFields)
                       : undefined,
                 }}
                 modelIdToEdit={modelIdToEdit}

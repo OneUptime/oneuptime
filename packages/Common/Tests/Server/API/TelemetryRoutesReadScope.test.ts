@@ -2076,6 +2076,8 @@ describe("every /telemetry/* route", () => {
 
   // Session replay routes: SessionReplayAPI.test.ts pins their scope.
   const SESSION_REPLAY_PREFIX: string = "/telemetry/rum/session-replay/";
+  // Product analytics routes: RumProductAnalyticsAPI.test.ts pins their scope.
+  const PRODUCT_ANALYTICS_PREFIX: string = "/telemetry/rum/product-analytics/";
 
   test("is in the scope matrix or has scope cases of its own", () => {
     const telemetryRoutes: Array<string> = recordedRoutes
@@ -2099,7 +2101,8 @@ describe("every /telemetry/* route", () => {
         return (
           !inMatrix.has(uri) &&
           !TESTED_ON_THEIR_OWN[uri] &&
-          !uri.startsWith(SESSION_REPLAY_PREFIX)
+          !uri.startsWith(SESSION_REPLAY_PREFIX) &&
+          !uri.startsWith(PRODUCT_ANALYTICS_PREFIX)
         );
       },
     );
@@ -2125,6 +2128,7 @@ describe("every /telemetry/* route", () => {
     "canReadIdentifiedUserLabel",
     "resolveAccessibleRumApplicationIds",
     "resolveAuthorizedSession",
+    "readProductAnalyticsRequest",
   ];
 
   function telemetryApiSource(): string {

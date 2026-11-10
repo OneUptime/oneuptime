@@ -20,6 +20,14 @@ import LogService from "Common/Server/Services/LogService";
 import SpanService from "Common/Server/Services/SpanService";
 import RumSessionChunkService from "Common/Server/Services/RumSessionChunkService";
 import RumSessionService from "Common/Server/Services/RumSessionService";
+import RumProductAnalyticsSessionService from "Common/Server/Services/RumProductAnalyticsSessionService";
+import RumProductAnalyticsUserService from "Common/Server/Services/RumProductAnalyticsUserService";
+import {
+  ProductAnalyticsErasureFilter,
+  buildProductAnalyticsDeleteStatement,
+  buildProductAnalyticsErasureFilters,
+  buildProductAnalyticsUserSessionLookup,
+} from "Common/Server/Utils/RumProductAnalytics/RumProductAnalyticsErasure";
 import AnalyticsDatabaseService, {
   ClickhouseExecuteOptions,
   MigrationExecuteOptions,
@@ -124,6 +132,14 @@ import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
  *    behind would show a protected badge over a recording that no longer
  *    exists and keep the pin's reason and incident link as a record of
  *    the erased subject.
+ *
+ *  - Erasure removes PRODUCT ANALYTICS too (issue #6444). Its session
+ *    summaries go with each batch, by id, like everything else; but they
+ *    are kept for 13 months, longer than most recordings, so a subject the
+ *    headers no longer name can still be there. Once a request has found
+ *    and erased every recording it will, eraseProductAnalyticsSubject
+ *    removes what only product analytics still holds: a user's summaries
+ *    and monthly rows, an application's rows, a date range's summaries.
  * ------------------------------------------------------------------
  */
 
@@ -1305,6 +1321,18 @@ export async function eraseSessionBatch(data: {
     });
   }
 
+  /*
+   * Product analytics' summaries of these sessions - every row of each,
+   * the anonymous first one of a session somebody signed in during too.
+   * Before the header, which is how a retry finds this batch again.
+   */
+  await eraseSessionRowsFromTable({
+    service: RumProductAnalyticsSessionService,
+    databaseName: data.databaseName,
+    projectId: data.projectId,
+    sessionIds: data.sessionIds,
+  });
+
   /* The header, last of the ClickHouse deletes (see "Chunks first" above). */
   await eraseSessionRowsFromTable({
     service: RumSessionService,
@@ -1338,6 +1366,120 @@ export async function eraseSessionBatch(data: {
   }
 
   return chunksDeleted;
+}
+
+export interface ProductAnalyticsErasureResult {
+  /* Deletes submitted on the two product analytics tables. */
+  deletesSubmitted: number;
+  /* A user's sessions product analytics still held (ByIdentifiedUserKey). */
+  userSessionsFound: number;
+  /*
+   * True when the user's sessions filled the lookup's page, so more may
+   * remain and the request must come back next run.
+   */
+  moreMayRemain: boolean;
+}
+
+async function readProductAnalyticsSessionIds(
+  statement: Statement,
+): Promise<Array<string>> {
+  const resultSet: ClickhouseJsonResultSet =
+    (await RumProductAnalyticsSessionService.executeQuery(
+      statement,
+    )) as unknown as ClickhouseJsonResultSet;
+
+  const parsed: { data: Array<JSONObject> } = await resultSet.json();
+
+  return (parsed.data || [])
+    .map((row: JSONObject): unknown => {
+      return row["paSessionId"];
+    })
+    .filter((sessionId: unknown): sessionId is string => {
+      return typeof sessionId === "string" && sessionId.length > 0;
+    });
+}
+
+/*
+ * What only product analytics still holds of a request's subject (see
+ * Common/Server/Utils/RumProductAnalytics/RumProductAnalyticsErasure): run
+ * once the request's recordings are all found and erased, so an id list
+ * (whose sessions the batches already took) needs nothing more.
+ *
+ * A user's sessions are looked up in product analytics itself - their
+ * headers may be long gone - and deleted by id, at most one run's cap of
+ * them a run; their monthly rows go by key. The lookup also sees sessions
+ * the batches just queued for deletion (a mutation lands later), which
+ * costs one repeated delete of them, never a missed one.
+ */
+export async function eraseProductAnalyticsSubject(data: {
+  databaseName: string;
+  request: RumSessionErasureRequest;
+}): Promise<ProductAnalyticsErasureResult> {
+  const request: RumSessionErasureRequest = data.request;
+  const projectId: ObjectID | undefined = request.projectId;
+  const requestType: RumSessionErasureRequestType | undefined =
+    request.requestType;
+
+  if (!projectId) {
+    throw new Error("Erasure request has no projectId");
+  }
+
+  if (!requestType) {
+    throw new Error("Erasure request has no request type");
+  }
+
+  if (requestType === RumSessionErasureRequestType.BySessionId) {
+    return { deletesSubmitted: 0, userSessionsFound: 0, moreMayRemain: false };
+  }
+
+  let userSessionIds: Array<string> | undefined = undefined;
+
+  if (requestType === RumSessionErasureRequestType.ByIdentifiedUserKey) {
+    userSessionIds = await readProductAnalyticsSessionIds(
+      buildProductAnalyticsUserSessionLookup({
+        databaseName: data.databaseName,
+        projectId: projectId,
+        identifiedUserKey: request.targetValue || "",
+        rumApplicationId: request.rumApplicationId,
+        limit: MAX_SESSION_IDS_PER_REQUEST_PER_RUN,
+      }),
+    );
+  }
+
+  const filters: Array<ProductAnalyticsErasureFilter> =
+    buildProductAnalyticsErasureFilters({
+      projectId: projectId,
+      requestType: requestType,
+      rumApplicationId: request.rumApplicationId,
+      targetValue: request.targetValue,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      sessionIds: userSessionIds,
+    });
+
+  /* One after another, like the batches' deletes. */
+  for (const filter of filters) {
+    const service: AnalyticsDatabaseService<AnalyticsBaseModel> =
+      filter.tableName === AnalyticsTableName.RumProductAnalyticsUser
+        ? RumProductAnalyticsUserService
+        : RumProductAnalyticsSessionService;
+
+    await service.execute(
+      buildProductAnalyticsDeleteStatement({
+        databaseName: data.databaseName,
+        filter: filter,
+      }),
+      MigrationExecuteOptions,
+    );
+  }
+
+  return {
+    deletesSubmitted: filters.length,
+    userSessionsFound: userSessionIds ? userSessionIds.length : 0,
+    moreMayRemain: userSessionIds
+      ? userSessionIds.length >= MAX_SESSION_IDS_PER_REQUEST_PER_RUN
+      : false,
+  };
 }
 
 export function chunkSessionIds(
@@ -1412,6 +1554,25 @@ export async function processErasureRequest(data: {
       (request.chunksDeleted || 0) + chunksDeleted;
 
     /*
+     * What only product analytics still holds, once the recordings this
+     * request will find are all erased - not on a run that stops at the
+     * cap, whose next run would only submit the same deletes again.
+     */
+    const productAnalytics: ProductAnalyticsErasureResult | null =
+      targets.moreMayRemain
+        ? null
+        : await eraseProductAnalyticsSubject({
+            databaseName: data.databaseName,
+            request: request,
+          });
+
+    if (productAnalytics && productAnalytics.deletesSubmitted > 0) {
+      logger.info(
+        `${JOB_NAME}: submitted ${productAnalytics.deletesSubmitted} product analytics delete(s) for request ${requestId.toString()}${productAnalytics.userSessionsFound > 0 ? `, covering ${productAnalytics.userSessionsFound} of the user's session(s)` : ""}`,
+      );
+    }
+
+    /*
      * Hitting the per-run cap means more of this subject may remain, so
      * the request goes back to Pending with its progress accumulated
      * rather than reporting a completion it has not achieved. The next
@@ -1423,7 +1584,7 @@ export async function processErasureRequest(data: {
      * directly. completedAt stays unset: a requeued request must not look
      * finished to the UI or to a compliance export.
      */
-    if (targets.moreMayRemain) {
+    if (targets.moreMayRemain || productAnalytics?.moreMayRemain) {
       await RumSessionErasureRequestService.updateOneById({
         id: requestId,
         data: {

@@ -7,6 +7,21 @@ export interface ComponentProps {
   store: DataObservabilityStoreSummary;
 }
 
+/*
+ * A watched database that has never been read, neither collected nor
+ * failed: one just connected. Until its first read it has no table to
+ * count, and nothing about it can be known to be well or not.
+ */
+export function isStoreWaitingForFirstRead(
+  store: Pick<DataObservabilityStoreSummary, "isTableHealthEnabled" | "status">,
+): boolean {
+  return (
+    store.isTableHealthEnabled &&
+    store.status !== "Failed" &&
+    store.status !== "Collected"
+  );
+}
+
 // How a database's table health collection stands: off, failing, collected, or not yet.
 const StoreStatusPill: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

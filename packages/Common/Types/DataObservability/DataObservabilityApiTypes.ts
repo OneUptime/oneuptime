@@ -1,5 +1,10 @@
 import { WatchedTablePricing } from "../Billing/PayAsYouGoPricing";
 import { DataCheckAlertCondition } from "./DataCheckType";
+import {
+  DataAttentionItem,
+  DataCheckHealthAnswer,
+  DataObservabilitySetup,
+} from "./DataObservabilityAttention";
 /*
  * WHAT DATA OBSERVABILITY'S OWN ROUTES ANSWER (Server/API/DataObservabilityAPI).
  *
@@ -16,6 +21,7 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   collectNow: (dataStoreId: string) => string;
   checkAlert: (dataCheckId: string) => string;
   checkRunNow: (dataCheckId: string) => string;
+  checkHealth: string;
   dataProductSync: (dataProductId: string) => string;
   dataProductBadge: (dataProductId: string) => string;
   dataProductBadgeReset: (dataProductId: string) => string;
@@ -70,6 +76,8 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   checkRunNow: (dataCheckId: string): string => {
     return `/data-observability/checks/${dataCheckId}/run-now`;
   },
+  // How each of some checks stands now: passing, failing (its alert open), or could not run.
+  checkHealth: "/data-observability/checks/health",
   // Makes the data product's monitor and SLO match it.
   dataProductSync: (dataProductId: string): string => {
     return `/data-observability/data-products/${dataProductId}/sync`;
@@ -232,11 +240,15 @@ export interface DataObservabilityStoreSummary {
   collectedAt: string | null;
   assetCount: number;
   lateAssetCount: number;
+  // The monitors on, scoped to the whole database: its recommended alerts, or its own.
+  alertMonitorCount: number;
 }
 
 export interface DataObservabilityOverviewAsset {
   dataAssetId: string;
   assetKey: string;
+  // Its database: whether that database's alerts are on says whether anyone is told.
+  dataStoreId?: string | null | undefined;
   dataStoreName: string;
   lastChangedAt: string | null;
   updateIntervalInSeconds: number | null;
@@ -267,7 +279,30 @@ export interface DataObservabilityOverview {
   // The latest schema changes, newest first.
   recentChanges: Array<DataObservabilityOverviewChange>;
   stores: Array<DataObservabilityStoreSummary>;
+  /*
+   * What needs someone now, worst first (DataObservabilityAttention), at most
+   * MAX_DATA_ATTENTION_ITEMS of them; attentionCount is how many in all.
+   */
+  attention: Array<DataAttentionItem>;
+  attentionCount: number;
+  // Checks whose alert is open, that the reader may see.
+  failingCheckCount: number;
+  // How far the project has set Data Observability up: the Overview's first steps.
+  setup: DataObservabilitySetup;
 }
+
+export interface DataObservabilityCheckHealthRequest {
+  // The checks to answer for: the page of a list, at most MAX_CHECK_HEALTH_IDS.
+  dataCheckIds: Array<string>;
+}
+
+export interface DataObservabilityCheckHealthResponse {
+  // By check id; a check not found in the project is left out.
+  checks: { [dataCheckId: string]: DataCheckHealthAnswer };
+}
+
+// The most checks one status answer covers: more than a page of any list.
+export const MAX_CHECK_HEALTH_IDS: number = 200;
 
 // How far back the Overview counts schema changes.
 export const SCHEMA_CHANGE_WINDOW_IN_DAYS: number = 7;

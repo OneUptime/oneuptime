@@ -2870,6 +2870,28 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/DockerHostReRegisterPostgres.test.ts --forceExit
 
+      # An Incoming Request monitor's latest request, kept twice (#6402): the
+      # column 1809080466402 adds is a nullable jsonb; a request is written
+      # as it came and cut in one statement; changing Keep request content
+      # writes the copy people read again by a compare-and-set Postgres must
+      # find equal to the jsonb it was read with, and never over a request
+      # that came in meanwhile; RedactLatestIncomingRequests splits each
+      # request kept once and changes nothing the second time; a Viewer's
+      # select gets the cut copy only. Clones the migrated Monitor table into
+      # an isolated schema.
+      - name: Test an incoming request monitor's latest request on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_LATEST_INCOMING_REQUEST_TESTS: "true"
+          LATEST_INCOMING_REQUEST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LATEST_INCOMING_REQUEST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LATEST_INCOMING_REQUEST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/RedactLatestIncomingRequestsPostgres.test.ts
+          --forceExit
+
       # Exceptions: the exception group upsert's ON CONFLICT branch, which is
       # all of regression detection - an occurrence after the resolve
       # reopens it as Regressed, a late one from before does not, and one
