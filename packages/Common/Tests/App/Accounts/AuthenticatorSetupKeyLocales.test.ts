@@ -160,8 +160,10 @@ describe("the setup key's words on the sign-in pages", () => {
     for (const key of [...SETUP_KEYS, ...COPY_KEYS]) {
       const translated: string = wordsOf(locale, key);
 
-      expect({ key, isTranslated: translated !== "" && translated !== key })
-        .toEqual({ key, isTranslated: true });
+      expect({
+        key,
+        isTranslated: translated !== "" && translated !== key,
+      }).toEqual({ key, isTranslated: true });
       expect(translated).not.toMatch(PLACEHOLDER);
       expect(translated.trim()).toBe(translated);
       expect(translated).not.toMatch(NON_LATIN_DIGIT);
@@ -254,17 +256,19 @@ describe("the setup key's words in the Dashboard", () => {
     for (const key of SETUP_KEYS) {
       const translated: string = wordsOf(locale, key);
 
-      expect({ key, isTranslated: translated !== "" && translated !== key })
-        .toEqual({ key, isTranslated: true });
+      expect({
+        key,
+        isTranslated: translated !== "" && translated !== key,
+      }).toEqual({ key, isTranslated: true });
     }
   });
 
   test.each(LANGUAGES)(
     "call the QR code what the sign-in pages call it, in %s",
     (language: string) => {
-      expect(
-        wordsOf(readLocale(DASHBOARD_LOCALES, language), QR_CODE),
-      ).toBe(wordsOf(readLocale(ACCOUNTS_LOCALES, language), QR_CODE));
+      expect(wordsOf(readLocale(DASHBOARD_LOCALES, language), QR_CODE)).toBe(
+        wordsOf(readLocale(ACCOUNTS_LOCALES, language), QR_CODE),
+      );
     },
   );
 });

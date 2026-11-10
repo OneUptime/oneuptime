@@ -19,8 +19,7 @@ export interface ComponentProps {
   alt?: string | undefined;
   /*
    * Told when the code cannot be drawn, so the page can offer its other way
-   * in - the setup key beside an authenticator app's code
-   * (AuthenticatorAppSetupCode), the link beside Telegram's.
+   * in: AuthenticatorAppSetupCode shows the setup key in the code's place.
    */
   onError?: (() => void) | undefined;
 }
