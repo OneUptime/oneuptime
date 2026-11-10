@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 48847,
-    "untranslated": 11287
+    "untranslated": 10776
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -497,6 +497,7 @@
     "{{minutes}} min",
     "{{observation}} in {{readings}}",
     "{{size}} in {{duration}}",
-    "{{up}}/{{count}} OSD up"
+    "{{up}}/{{count}} OSD up",
+    "{{value}} ms"
   ]
 }
