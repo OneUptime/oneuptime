@@ -211,6 +211,17 @@ describe("what the git tool shows", () => {
         })
       ).output,
     ).toBe("export const price = 10;\nexport const tax = 1;");
+
+    // A commit named by its message (:/text) is still a commit: path limits it.
+    const byMessage: ToolExecution = await run(context, {
+      action: "show",
+      revision: ":/say",
+      path: "src/price.ts",
+    });
+    expect(byMessage.output).toContain("Raise the price and say so");
+    expect(byMessage.output).toContain("+export const price = 14;");
+    expect(byMessage.output).not.toContain("README.md");
+    expect(byMessage.output).not.toContain("Sells more things.");
   });
 
   test("blame says who last changed each line, for the lines asked", async () => {

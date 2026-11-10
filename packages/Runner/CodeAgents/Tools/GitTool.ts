@@ -160,8 +160,12 @@ export default class GitTool {
           "--no-textconv",
           ...(statOnly ? ["--stat"] : []),
           revision || "HEAD",
-          // A file at a revision (HEAD:path) is that file: no path limits it.
-          ...(revision.includes(":") ? [] : pathspec),
+          /*
+           * Only that file's change in the commit, a commit named by its
+           * message (:/text) included. Git shows a file or folder at a
+           * revision (HEAD:path) whole, whatever path says.
+           */
+          ...pathspec,
         ];
         break;
       default: {
