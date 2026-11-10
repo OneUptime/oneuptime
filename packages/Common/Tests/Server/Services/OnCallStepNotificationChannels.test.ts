@@ -131,13 +131,15 @@ function selectColumns(
   sql: string,
   row: Record<string, unknown>,
 ): Record<string, unknown> {
+  /*
+   * Array.from's own map, not the iterator's: iterator helpers are newer
+   * than the ES2017 Common is compiled to.
+   */
   const named: Array<string> = Array.from(
-    sql
-      .split(" FROM ")[0]!
-      .matchAll(/"([A-Za-z_]+)"/g)
-      .map((match: RegExpMatchArray) => {
-        return match[1]!;
-      }),
+    sql.split(" FROM ")[0]!.matchAll(/"([A-Za-z_]+)"/g),
+    (match: RegExpMatchArray) => {
+      return match[1]!;
+    },
   );
   const out: Record<string, unknown> = {};
 
