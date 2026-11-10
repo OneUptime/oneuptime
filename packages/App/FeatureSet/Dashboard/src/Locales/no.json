@@ -47801,5 +47801,7 @@
   "Hosts such as PCs, phones and printers that devices assigned to this site found in their address tables (ARP and MAC forwarding tables). Every host still on the Discovered Devices list is counted, including ones not seen recently.": "Verter som PC-er, telefoner og skrivere som enheter tilordnet dette stedet har funnet i adressetabellene sine (ARP- og MAC-videresendingstabeller). Hver vert som fortsatt står på listen Oppdagede enheter, telles, også de som ikke er sett nylig.",
   "Remove after": "Fjern etter",
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "Fjern oppdagede enheter som ikke er sett på en stund. Overvåkede og klassifiserte enheter, og de noen har lagt til eller endret, blir alltid værende.",
-  "Unseen Devices": "Usette enheter"
+  "Unseen Devices": "Usette enheter",
+  "Charted for this database only — its endpoints and the pods or containers it runs as.": "Charted for this database only — its endpoints and the pods or containers it runs as.",
+  "{{metricDescription}} Charted for this database only.": "{{metricDescription}} Charted for this database only."
 }

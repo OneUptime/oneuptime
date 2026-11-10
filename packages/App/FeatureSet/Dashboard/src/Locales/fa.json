@@ -47801,5 +47801,7 @@
   "Hosts such as PCs, phones and printers that devices assigned to this site found in their address tables (ARP and MAC forwarding tables). Every host still on the Discovered Devices list is counted, including ones not seen recently.": "میزبان‌هایی مانند رایانه‌ها، تلفن‌ها و چاپگرها که دستگاه‌های اختصاص‌یافته به این سایت در جدول‌های نشانی خود (جدول‌های ARP و ارسال MAC) پیدا کرده‌اند. هر میزبانی که هنوز در فهرست دستگاه‌های کشف‌شده است شمرده می‌شود، حتی آن‌هایی که اخیراً دیده نشده‌اند.",
   "Remove after": "حذف پس از",
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "دستگاه‌های کشف‌شده‌ای را که مدتی دیده نشده‌اند حذف کنید. دستگاه‌های پایش‌شده و طبقه‌بندی‌شده، و آن‌هایی که کسی افزوده یا تغییر داده، همیشه می‌مانند.",
-  "Unseen Devices": "دستگاه‌های دیده‌نشده"
+  "Unseen Devices": "دستگاه‌های دیده‌نشده",
+  "Charted for this database only — its endpoints and the pods or containers it runs as.": "Charted for this database only — its endpoints and the pods or containers it runs as.",
+  "{{metricDescription}} Charted for this database only.": "{{metricDescription}} Charted for this database only."
 }
