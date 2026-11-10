@@ -521,7 +521,7 @@ describe("Use the recommended policy on the Error Budget Policy page", () => {
       ),
     );
     expect(dialog).toHaveTextContent(
-      "They raise no alerts or incidents until you switch that on, and you can edit them afterwards like any other tier.",
+      "They raise no alerts or incidents until you switch that on.",
     );
     expect(
       within(dialog).getByRole("button", { name: "Add tiers" }),
@@ -758,7 +758,7 @@ describe("the tiers table", () => {
 
     expect(mockTableProps!.cardProps!.title).toBe("Error Budget Policy");
     expect(mockTableProps!.cardProps!.description).toBe(
-      `What the team agreed to do as this SLO's error budget runs down. The SLO is in the tier with the lowest threshold its budget is at or below. It leaves a tier once its budget is ${SLO_AT_RISK_RECOVERY_MARGIN_PERCENTAGE} points above the tier's threshold, and a tier at 0% once ${SLO_BUDGET_EXHAUSTED_RECOVERY_PERCENTAGE}% is left again.`,
+      `What the team agreed to do as this SLO's error budget runs down. The SLO stays in the deepest tier its budget reached until the budget is ${SLO_AT_RISK_RECOVERY_MARGIN_PERCENTAGE} points above its threshold (${SLO_BUDGET_EXHAUSTED_RECOVERY_PERCENTAGE}% for a 0% tier).`,
     );
     expect(mockTableProps!.documentationLink!.toString()).toBe(
       "/docs/slo/error-budget-policy",

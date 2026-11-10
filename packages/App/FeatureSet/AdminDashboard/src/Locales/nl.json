@@ -615,13 +615,13 @@
       },
       "ingestionBudgets": {
         "dailyCardTitle": "Standaard dagbudgetten",
-        "dailyCardDescription": "Hoeveel elk project van elk telemetriesignaal hooguit mag versturen op een budgetdag, gedecomprimeerd geteld bij binnenkomst. Zodra een budget op is, wordt dat signaal geweigerd tot het budget wordt gereset. Het eigen budget van een project, ingesteld op zijn pagina onder Projecten, gaat boven deze. Laat een signaal leeg voor geen limiet.",
+        "dailyCardDescription": "Hoeveel elk project van elk telemetriesignaal hooguit mag versturen op een budgetdag. Zodra dat op is, wordt dat signaal geweigerd tot het budget wordt gereset. Het eigen budget van een project gaat voor. Laat een signaal leeg voor geen limiet.",
         "dailyEditButton": "Standaard dagbudgetten bewerken",
         "resetCardTitle": "Waarschuwing en reset",
         "resetCardDescription": "Wanneer projecten worden gewaarschuwd dat een budget opraakt, en wanneer elke budgetdag opnieuw begint.",
         "resetEditButton": "Waarschuwing en reset bewerken",
         "rateCardTitle": "Standaard snelheidslimieten",
-        "rateCardDescription": "Optioneel. Hoe snel elk project elk signaal hooguit mag versturen, zodat één piek niet in enkele minuten het budget van een dag kan opmaken. Snellere verzoeken krijgen 429 met Retry-After als antwoord, en afzenders proberen ze opnieuw. Laat een signaal leeg voor geen limiet.",
+        "rateCardDescription": "Optioneel. Hoe snel elk project elk signaal hooguit mag versturen, zodat één piek niet in enkele minuten het budget van een dag kan opmaken. Snellere verzoeken krijgen 429 als antwoord en worden opnieuw geprobeerd. Laat een signaal leeg voor geen limiet.",
         "rateEditButton": "Standaard snelheidslimieten bewerken"
       }
     },

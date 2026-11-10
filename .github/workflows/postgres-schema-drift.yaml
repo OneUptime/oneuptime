@@ -903,10 +903,11 @@ jobs:
 
       # Clones the migrated Incident / Alert / Scheduled Maintenance reminder
       # rule tables (with their junctions, the trigger that encodes a
-      # criteria-backed rule's enabled state, and the tables the reminder
-      # refresh reads and writes) into an isolated schema, so it must run
-      # after the registered migrations. The criteria-backed isEnabled filter
-      # is raw SQL only Postgres can judge (#4030).
+      # criteria-backed rule's enabled state, the tables the reminder refresh
+      # reads and writes, and the Project and User rows a delete reads for its
+      # audit log entry) into an isolated schema, so it must run after the
+      # registered migrations. The criteria-backed isEnabled filter is raw SQL
+      # only Postgres can judge (#4030).
       - name: Test reminder rule lookup on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common

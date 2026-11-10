@@ -1168,6 +1168,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               impactStartedAt={alertImpactStartedAt}
               stateTimeline={timelineDates}
               states={alertStates}
+              stateList={StateListType.AlertState}
             />
           ) : (
             <></>

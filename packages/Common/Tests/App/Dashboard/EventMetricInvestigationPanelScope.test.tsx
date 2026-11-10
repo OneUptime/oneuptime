@@ -179,6 +179,7 @@ import RollingTime from "../../../Types/RollingTime/RollingTime";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import MonitorStepMetricQueries from "../../../Utils/Monitor/MonitorStepMetricQueries";
+import { StateListType } from "../../../Utils/StateOrder";
 
 const NOW: Date = new Date("2026-11-07T09:00:00.000Z");
 const STARTED_AT: Date = new Date("2026-11-07T05:44:00.000Z");
@@ -356,6 +357,7 @@ function renderPanel(
       startedAt={STARTED_AT}
       stateTimeline={[]}
       states={[]}
+      stateList={StateListType.IncidentState}
       {...overrides}
     />,
   );

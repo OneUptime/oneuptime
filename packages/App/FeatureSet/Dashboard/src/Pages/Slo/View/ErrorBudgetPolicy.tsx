@@ -274,7 +274,7 @@ const SloErrorBudgetPolicy: FunctionComponent<
         cardProps={{
           title: "Error Budget Policy",
           description: translator.translateTemplate(
-            "What the team agreed to do as this SLO's error budget runs down. The SLO is in the tier with the lowest threshold its budget is at or below. It leaves a tier once its budget is {{margin}} points above the tier's threshold, and a tier at 0% once {{exhausted}}% is left again.",
+            "What the team agreed to do as this SLO's error budget runs down. The SLO stays in the deepest tier its budget reached until the budget is {{margin}} points above its threshold ({{exhausted}}% for a 0% tier).",
             {
               margin: SLO_AT_RISK_RECOVERY_MARGIN_PERCENTAGE,
               exhausted: SLO_BUDGET_EXHAUSTED_RECOVERY_PERCENTAGE,

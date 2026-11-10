@@ -453,13 +453,11 @@ export function getAlertEpisodeRootCauseEvent(
 }
 
 /*
- * One of the project's states, as the card reads it: what the moments read
- * (EventMomentState), and its place in the list, which decides the states
- * that count as resolved.
+ * One of the project's states, as the card reads it: as the moments read it
+ * (EventMomentState), whose place in the list decides the states that count
+ * as resolved.
  */
-export interface RootCauseState extends EventMomentState {
-  order?: number | undefined;
-}
+export type RootCauseState = EventMomentState;
 
 export interface RootCauseTimes {
   // Where the ranges around the event start from.

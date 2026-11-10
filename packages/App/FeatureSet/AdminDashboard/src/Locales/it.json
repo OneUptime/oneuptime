@@ -615,13 +615,13 @@
       },
       "ingestionBudgets": {
         "dailyCardTitle": "Budget giornalieri predefiniti",
-        "dailyCardDescription": "Il massimo di ogni segnale di telemetria che ogni progetto può inviare in un giorno di budget, conteggiato decompresso man mano che arriva. Quando un budget è esaurito, quel segnale viene rifiutato finché il budget non si azzera. Il budget proprio di un progetto, impostato nella sua pagina in Progetti, prevale su questi. Lascia vuoto un segnale per nessun limite.",
+        "dailyCardDescription": "Il massimo di ogni segnale di telemetria che ogni progetto può inviare in un giorno di budget. Quando è esaurito, quel segnale viene rifiutato finché il budget non si azzera. Il budget proprio di un progetto prevale. Lascia vuoto un segnale per nessun limite.",
         "dailyEditButton": "Modifica budget giornalieri predefiniti",
         "resetCardTitle": "Avviso e azzeramento",
         "resetCardDescription": "Quando i progetti vengono avvisati che un budget sta per esaurirsi, e quando ogni giorno di budget ricomincia.",
         "resetEditButton": "Modifica avviso e azzeramento",
         "rateCardTitle": "Limiti di frequenza predefiniti",
-        "rateCardDescription": "Facoltativo. La velocità massima con cui ogni progetto può inviare ciascun segnale, così che un singolo picco non possa esaurire in pochi minuti il budget di un giorno. Le richieste più veloci ricevono un 429 con Retry-After, e i mittenti le ritentano. Lascia vuoto un segnale per nessun limite.",
+        "rateCardDescription": "Facoltativo. La velocità massima con cui ogni progetto può inviare ciascun segnale, così che un singolo picco non possa esaurire in pochi minuti il budget di un giorno. Le richieste più veloci ricevono un 429 e vengono ritentate. Lascia vuoto un segnale per nessun limite.",
         "rateEditButton": "Modifica limiti di frequenza predefiniti"
       }
     },

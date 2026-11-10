@@ -727,6 +727,7 @@ const IncidentEpisodeView: FunctionComponent<
                 endedAt={timing.durationEndsAt}
                 stateTimeline={episodeTimelineDates}
                 states={incidentStates}
+                stateList={StateListType.IncidentState}
               />
             </div>
           )}

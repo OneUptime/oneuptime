@@ -97,6 +97,13 @@ const TABLES: Array<string> = [
   "ScheduledMaintenanceState",
   "ScheduledMaintenance",
   "ScheduledMaintenanceLabel",
+  /*
+   * Read by every delete of an audited record: it reads the whole of each
+   * row it removes, the rows it links to included (its project, who created
+   * or deleted it), for the audit log's entry.
+   */
+  "Project",
+  "User",
 ];
 
 const MINUTE_IN_MS: number = 60 * 1000;

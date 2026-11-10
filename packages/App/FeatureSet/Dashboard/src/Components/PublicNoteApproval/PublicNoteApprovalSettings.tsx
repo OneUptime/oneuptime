@@ -105,7 +105,7 @@ const PublicNoteApprovalSettings: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: translationKey("Who Approves"),
           description: translationKey(
-            "Anyone listed in a step can approve a note for that step. Most projects need one step. Add another when a note needs a second approval - for example from your legal team after your support lead. Steps are approved in order; drag them to reorder.",
+            "Anyone listed in a step can approve a note for that step. Add another step when a note needs a second approval, such as legal after support. Steps are approved in order; drag them to reorder.",
           ),
         }}
         noItemsMessage={translationKey(
@@ -129,13 +129,6 @@ const PublicNoteApprovalSettings: FunctionComponent<ComponentProps> = (
           },
         }}
         columns={[
-          {
-            field: {
-              order: true,
-            },
-            title: "Step",
-            type: FieldType.Number,
-          },
           {
             field: {
               name: true,
