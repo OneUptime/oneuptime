@@ -14,7 +14,10 @@ import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 /*
  * The latest request is shown as the monitor's logs keep it (#6402): with
  * secrets and personal data masked, and with no headers or body at all when
- * the monitor keeps no request content (its Settings page).
+ * the monitor keeps no request content (its Settings page). A copy says
+ * when its content was left out (isResponseContentOmitted) wherever it is
+ * shown; only the monitor's overview says that secrets in it are masked
+ * (areSecretsMasked).
  */
 export const REQUEST_CONTENT_NOT_SHOWN: string = translationKey(
   "The monitor keeps no request content: its headers and body are not shown.",
@@ -29,6 +32,15 @@ export const INCOMING_REQUEST_SECRETS_MASKED_TEST_ID: string =
 export interface ComponentProps {
   incomingMonitorRequest: IncomingMonitorRequest;
   incomingRequestMonitorHeartbeatCheckedAt?: Date | undefined;
+  /*
+   * The request is the copy the server cuts for readers, as a monitor's
+   * latest request is (Monitor.incomingMonitorRequest): the details then
+   * say that secrets and personal data in them are masked. Left out where
+   * the request may have been kept before copies were cut - a monitoring
+   * log row, the summary an incident or an alert keeps - so nothing claims
+   * a masking an old copy never had.
+   */
+  areSecretsMasked?: boolean | undefined;
 }
 
 const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
@@ -115,12 +127,16 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
             fields={fields}
             showDetailsInNumberOfColumns={1}
           />
-          <p
-            data-testid={INCOMING_REQUEST_SECRETS_MASKED_TEST_ID}
-            className="text-sm text-gray-500"
-          >
-            {translator.translateText(SECRETS_IN_REQUEST_ARE_MASKED)}
-          </p>
+          {props.areSecretsMasked ? (
+            <p
+              data-testid={INCOMING_REQUEST_SECRETS_MASKED_TEST_ID}
+              className="text-sm text-gray-500"
+            >
+              {translator.translateText(SECRETS_IN_REQUEST_ARE_MASKED)}
+            </p>
+          ) : (
+            <></>
+          )}
         </div>
       )}
 
