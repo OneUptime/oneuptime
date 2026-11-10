@@ -171,6 +171,8 @@ function timedOutEvents(): Array<JSONObject> {
 function roundJson(data: {
   runStatus: AIRunStatus;
   runId?: string;
+  // When its run was created: a round tried again started later.
+  createdAt?: string;
   events?: Array<JSONObject>;
   checks?: Array<JSONObject>;
   otherCheckCount?: number;
@@ -191,8 +193,8 @@ function roundJson(data: {
     run: {
       _id: data.runId || RUN_ID,
       status: data.runStatus,
-      createdAt: dateJson(AT_STARTED),
-      startedAt: dateJson(AT_STARTED),
+      createdAt: dateJson(data.createdAt || AT_STARTED),
+      startedAt: dateJson(data.createdAt || AT_STARTED),
       ...(isOver ? { completedAt: dateJson(AT_ENDED) } : {}),
       ...(data.errorMessage ? { errorMessage: data.errorMessage } : {}),
     },
@@ -423,11 +425,16 @@ describe("a fix whose round stopped before it found one", () => {
       ),
     ).toHaveLength(1);
 
+    /*
+     * Nothing ran and nobody was asked - in so many words: the step's
+     * title already says it stopped before it found a fix.
+     */
     expect(
-      within(details).getByTestId("remediation-round-approval"),
-    ).toHaveTextContent(
-      "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.",
-    );
+      within(details).getByTestId("remediation-round-approval").textContent,
+    ).toBe("No fix ran, and nobody was asked to approve one.");
+    expect(
+      within(planStep()).getAllByText(/stopped before it found a fix/i),
+    ).toHaveLength(1);
 
     // What it checked before it stopped.
     expect(
@@ -554,6 +561,9 @@ describe("a fix whose round stopped before it found one", () => {
     await waitFor(() => {
       expect(planTitle()).toBe("Stopped before it found a fix");
     });
+    expect(within(theFix()).queryByRole("button", { name: "Try again" })).toBe(
+      null,
+    );
 
     const details: HTMLElement = openPlan();
 
@@ -563,6 +573,136 @@ describe("a fix whose round stopped before it found one", () => {
     expect(within(details).queryByRole("button", { name: "Try again" })).toBe(
       null,
     );
+  });
+
+  /*
+   * Try again is what to do about a round that stopped: it is in sight
+   * under the folded step, and in the notice the step opens to - one at a
+   * time, never two.
+   */
+  test("Try again is in sight under the folded step, and in its notice once it opens", async () => {
+    roundServed = unfinishedRound(true);
+    await renderStep([
+      kubectlFix(AutoRemediationSuggestionStatus.NoneApplicable),
+    ]);
+    await waitFor(() => {
+      expect(planTitle()).toBe("Stopped before it found a fix");
+    });
+
+    expect(
+      within(planStep()).getByTestId("remediation-round-try-again"),
+    ).toHaveTextContent("Try again");
+    expect(
+      within(theFix()).getAllByRole("button", { name: "Try again" }),
+    ).toHaveLength(1);
+
+    const details: HTMLElement = openPlan();
+
+    expect(
+      within(planStep()).queryByTestId("remediation-round-try-again"),
+    ).toBeNull();
+    expect(
+      within(theFix()).getAllByRole("button", { name: "Try again" }),
+    ).toHaveLength(1);
+    expect(
+      within(
+        within(details).getByTestId("remediation-round-failure"),
+      ).getByRole("button", { name: "Try again" }),
+    ).toBeVisible();
+  });
+
+  test("the folded Try again starts it again; the keyboard goes to the step that works on it, timed from its new start", async () => {
+    const AT_TRIED_AGAIN: string = "2026-11-09T10:30:00.000Z";
+    roundServed = unfinishedRound(true);
+    await renderStep([
+      kubectlFix(AutoRemediationSuggestionStatus.NoneApplicable),
+    ]);
+    await waitFor(() => {
+      expect(planTitle()).toBe("Stopped before it found a fix");
+    });
+    tryAgainServed = () => {
+      served = [
+        kubectlFix(AutoRemediationSuggestionStatus.Planning, {
+          aiRunId: new ObjectID(NEW_RUN_ID),
+          rationaleMarkdown: undefined,
+        }),
+      ];
+      roundServed = roundJson({
+        runStatus: AIRunStatus.Queued,
+        runId: NEW_RUN_ID,
+        createdAt: AT_TRIED_AGAIN,
+      });
+      return new HTTPResponse<JSONObject>(200, { runId: NEW_RUN_ID }, {});
+    };
+    const button: HTMLElement = within(planStep()).getByTestId(
+      "remediation-round-try-again",
+    );
+    button.focus();
+
+    await act(async () => {
+      fireEvent.click(button);
+    });
+
+    expect(postsTo(TRY_AGAIN_URL)).toEqual([
+      { url: TRY_AGAIN_URL, data: { suggestionId: FIX_ID } },
+    ]);
+    await waitFor(() => {
+      expect(planTitle()).toBe("Working out a fix…");
+    });
+    /*
+     * The button went with the step that offered it: the keyboard is on
+     * the step's title, not the top of the page.
+     */
+    expect(document.activeElement).not.toBe(document.body);
+    expect(planStep()).toContainElement(document.activeElement as HTMLElement);
+    expect(document.activeElement).toHaveTextContent("Working out a fix…");
+    // When it started again - never when the fix was first worked out.
+    await waitFor(() => {
+      expect(
+        within(planStep()).getByTestId("remediation-fix-step-time"),
+      ).toHaveAttribute("dateTime", AT_TRIED_AGAIN);
+    });
+  });
+
+  test("negative control: a reader who moved on keeps their place", async () => {
+    roundServed = unfinishedRound(true);
+    await renderStep([
+      kubectlFix(AutoRemediationSuggestionStatus.NoneApplicable),
+    ]);
+    await waitFor(() => {
+      expect(planTitle()).toBe("Stopped before it found a fix");
+    });
+    tryAgainServed = () => {
+      served = [
+        kubectlFix(AutoRemediationSuggestionStatus.Planning, {
+          aiRunId: new ObjectID(NEW_RUN_ID),
+          rationaleMarkdown: undefined,
+        }),
+      ];
+      roundServed = roundJson({
+        runStatus: AIRunStatus.Queued,
+        runId: NEW_RUN_ID,
+      });
+      return new HTTPResponse<JSONObject>(200, { runId: NEW_RUN_ID }, {});
+    };
+    const elsewhere: HTMLButtonElement = document.createElement("button");
+    document.body.appendChild(elsewhere);
+
+    try {
+      await act(async () => {
+        fireEvent.click(
+          within(planStep()).getByTestId("remediation-round-try-again"),
+        );
+        elsewhere.focus();
+      });
+      await waitFor(() => {
+        expect(planTitle()).toBe("Working out a fix…");
+      });
+
+      expect(document.activeElement).toBe(elsewhere);
+    } finally {
+      elsewhere.remove();
+    }
   });
 
   test("a runbook pick that stopped says it stopped before it picked a runbook", async () => {
@@ -585,10 +725,8 @@ describe("a fix whose round stopped before it found one", () => {
     const details: HTMLElement = openPlan();
 
     expect(
-      within(details).getByTestId("remediation-round-approval"),
-    ).toHaveTextContent(
-      "No runbook ran, and nobody was asked to approve one: it stopped before it picked a runbook.",
-    );
+      within(details).getByTestId("remediation-round-approval").textContent,
+    ).toBe("No runbook ran, and nobody was asked to approve one.");
   });
 
   test("a round still marked as being worked out, whose run is over, stopped too", async () => {
@@ -708,7 +846,26 @@ describe("a fix whose round found none", () => {
       "The web pods are OOM-killed: their 512Mi limit is below their steady use, and raising it changes the Deployment.",
     );
     expect(reason).toHaveAttribute("dir", "auto");
-    expect(details.firstElementChild).toBe(reason);
+    const lead: HTMLElement = within(details).getByTestId(
+      "remediation-round-lead",
+    );
+    expect(details.firstElementChild).toBe(lead);
+    expect(lead.firstElementChild).toBe(reason);
+
+    /*
+     * The answer first, then how the round got there: the fixes it ruled
+     * out, what it checked, and that nobody was asked.
+     */
+    expect(
+      Array.from(details.children).map((child: Element): string | null => {
+        return child.getAttribute("data-testid");
+      }),
+    ).toEqual([
+      "remediation-round-lead",
+      "remediation-round-ruled-out",
+      "remediation-round-checks",
+      "remediation-round-approval",
+    ]);
 
     // The fixes it ruled out: what, why not, and the commands it would run.
     const fixes: Array<HTMLElement> = within(details).getAllByTestId(
@@ -733,7 +890,20 @@ describe("a fix whose round found none", () => {
     expect(
       within(fixes[1]!).queryByTestId("remediation-round-ruled-out-command"),
     ).toBeNull();
-    expect(within(details).getByText("Fixes it ruled out")).toBeInTheDocument();
+    // The AI's words read their own way on a right-to-left page.
+    expect(
+      within(fixes[0]!).getByTestId("remediation-round-ruled-out-what"),
+    ).toHaveAttribute("dir", "auto");
+    expect(
+      within(fixes[0]!).getByTestId("remediation-round-ruled-out-why"),
+    ).toHaveAttribute("dir", "auto");
+    // Headings under the card step's own (an h3).
+    expect(
+      within(details).getByRole("heading", {
+        level: 4,
+        name: "Fixes it ruled out",
+      }),
+    ).toBeInTheDocument();
 
     // What it checked, in order, each with how it went.
     const checks: Array<HTMLElement> = within(details).getAllByTestId(
@@ -760,9 +930,30 @@ describe("a fix whose round found none", () => {
       within(checks[0]!).getByTestId("remediation-round-check-why"),
     ).toHaveTextContent("See which pods are failing.");
     expect(
+      within(checks[0]!).getByTestId("remediation-round-check-why"),
+    ).toHaveAttribute("dir", "auto");
+    expect(
       within(checks[1]!).getByTestId("remediation-round-check-error"),
     ).toHaveTextContent("error: Metrics API not available");
-    expect(within(details).getByText("What it checked")).toBeInTheDocument();
+    /*
+     * When it ran, to the second, in its command's line; the full moment
+     * under the pointer.
+     */
+    const time: HTMLElement = within(checks[0]!).getByTestId(
+      "remediation-round-check-time",
+    );
+    expect(time).toHaveAttribute("dateTime", AT_STARTED);
+    expect(time.textContent).toMatch(/\d:\d\d:\d\d/);
+    expect(time.getAttribute("title")).toMatch(/\d:\d\d:\d\d/);
+    expect(time.previousElementSibling).toBe(
+      within(checks[0]!).getByTestId("remediation-round-check-command"),
+    );
+    expect(
+      within(details).getByRole("heading", {
+        level: 4,
+        name: "What it checked",
+      }),
+    ).toBeInTheDocument();
     expect(
       within(details).getByTestId("remediation-round-other-checks"),
     ).toHaveTextContent("It also queried the project's telemetry 3 times.");
@@ -774,10 +965,34 @@ describe("a fix whose round found none", () => {
       "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.",
     );
 
-    // Its whole answer is still there, after what its round did.
-    expect(within(details).getByTestId("markdown")).toHaveTextContent(
+    /*
+     * Its whole answer says the why again, at length: folded under the
+     * reason, one press away - never a second copy of it at the bottom.
+     */
+    expect(within(details).queryByTestId("markdown")).toBeNull();
+    const toggle: HTMLElement = within(lead).getByTestId(
+      "remediation-round-reasoning-toggle",
+    );
+    expect(toggle).toHaveTextContent("Show full reasoning");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).not.toHaveAttribute("aria-controls");
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveTextContent("Show less");
+    const answer: HTMLElement = within(lead).getByTestId("markdown");
+    expect(answer).toHaveTextContent(
       "A longer answer about the memory limits.",
     );
+    expect(
+      document.getElementById(toggle.getAttribute("aria-controls") || ""),
+    ).toContainElement(answer);
+
+    fireEvent.click(toggle);
+
+    expect(within(details).queryByTestId("markdown")).toBeNull();
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
 
     // It finished: nothing to try again.
     expect(within(details).queryByTestId("remediation-round-failure")).toBe(
@@ -786,6 +1001,34 @@ describe("a fix whose round found none", () => {
     expect(within(details).queryByRole("button", { name: "Try again" })).toBe(
       null,
     );
+  });
+
+  test("an answer that says no more than its reason is not offered again", async () => {
+    roundServed = roundJson({
+      runStatus: AIRunStatus.Completed,
+      explanation: {
+        reason: "The pods are healthy; nothing to change.",
+        ruledOutFixes: [],
+      },
+    });
+    await renderStep([
+      kubectlFix(AutoRemediationSuggestionStatus.NoneApplicable, {
+        rationaleMarkdown: "The pods are healthy;\nnothing to change.\n",
+      }),
+    ]);
+    await waitFor(() => {
+      expect(planSummary()).toBe("The pods are healthy; nothing to change.");
+    });
+
+    const details: HTMLElement = openPlan();
+
+    expect(
+      within(details).getByTestId("remediation-round-reason"),
+    ).toHaveTextContent("The pods are healthy; nothing to change.");
+    expect(
+      within(details).queryByTestId("remediation-round-reasoning-toggle"),
+    ).toBeNull();
+    expect(within(details).queryByTestId("markdown")).toBeNull();
   });
 
   test("the AI's words are text: markup in them is never drawn", async () => {
@@ -884,9 +1127,15 @@ describe("a fix whose round found none", () => {
     expect(within(details).getByTestId("markdown")).toHaveTextContent(
       "The pods are healthy; nothing to change.",
     );
+    // Its reasoning is its answer: first, before that nobody was asked.
     expect(
-      within(details).getByTestId("remediation-round-approval"),
-    ).toBeVisible();
+      Array.from(details.children).map((child: Element): string | null => {
+        return child.getAttribute("data-testid");
+      }),
+    ).toEqual(["remediation-fix-reasoning", "remediation-round-approval"]);
+    expect(
+      within(details).queryByTestId("remediation-round-reasoning-toggle"),
+    ).toBeNull();
     // Its reasoning is said once, in full: no reason of the AI's above it.
     expect(within(details).queryByTestId("remediation-round-reason")).toBe(
       null,

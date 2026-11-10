@@ -80,6 +80,8 @@ const SENTENCES: Array<string> = [
   REMEDIATION_ROUND_COPY.nothingAskedNoRunbook,
   REMEDIATION_ROUND_COPY.nothingAskedUnfinished,
   REMEDIATION_ROUND_COPY.nothingAskedUnfinishedRunbook,
+  REMEDIATION_ROUND_COPY.showFullReasoning,
+  REMEDIATION_ROUND_COPY.showLessReasoning,
   REMEDIATION_STEP_STATUS_TEXT.didNotFinish,
   ...Object.values(REMEDIATION_ROUND_TRY_AGAIN_REFUSAL_KEYS),
   ...Object.values(REMEDIATION_ROUND_TRY_AGAIN_NOT_ALLOWED_KEYS),

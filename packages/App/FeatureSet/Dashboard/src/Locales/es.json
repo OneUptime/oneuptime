@@ -47325,9 +47325,7 @@
   "It also queried the project's telemetry {{count}} times.": "OneUptime AI también consultó la telemetría del proyecto {{count}} veces.",
   "It also queried the project's telemetry {{count}} times._one": "OneUptime AI también consultó la telemetría del proyecto {{count}} vez.",
   "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.": "No se ejecutó ninguna corrección ni se pidió a nadie que aprobara una: OneUptime AI solo pide aprobación cuando propone una corrección.",
-  "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.": "No se ejecutó ninguna corrección ni se pidió a nadie que aprobara una: OneUptime AI se detuvo antes de encontrar una corrección.",
   "No runbook ran, and nobody was asked to approve one.": "No se ejecutó ningún runbook ni se pidió a nadie que aprobara uno.",
-  "No runbook ran, and nobody was asked to approve one: it stopped before it picked a runbook.": "No se ejecutó ningún runbook ni se pidió a nadie que aprobara uno: OneUptime AI se detuvo antes de elegir un runbook.",
   "OneUptime AI did not work this fix out, so there is nothing to try again.": "OneUptime AI no elaboró esta corrección, así que no hay nada que volver a intentar.",
   "OneUptime AI finished working on this fix, so there is nothing to try again.": "OneUptime AI terminó de trabajar en esta corrección, así que no hay nada que volver a intentar.",
   "OneUptime AI is still working on this fix.": "OneUptime AI todavía está trabajando en esta corrección.",
@@ -47343,5 +47341,7 @@
   "What it checked": "Qué comprobó",
   "Why it stopped": "Por qué se detuvo",
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "No tienes permiso para cambiar esta alerta, así que no puedes pedir a OneUptime AI que vuelva a intentar esta corrección.",
-  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "No tienes permiso para cambiar este incidente, así que no puedes pedir a OneUptime AI que vuelva a intentar esta corrección."
+  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "No tienes permiso para cambiar este incidente, así que no puedes pedir a OneUptime AI que vuelva a intentar esta corrección.",
+  "No fix ran, and nobody was asked to approve one.": "No se ejecutó ninguna corrección ni se pidió a nadie que aprobara una.",
+  "Show full reasoning": "Mostrar el razonamiento completo"
 }

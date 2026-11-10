@@ -47325,9 +47325,7 @@
   "It also queried the project's telemetry {{count}} times.": "OneUptime AI はプロジェクトのテレメトリにも {{count}} 回クエリを実行しました。",
   "It also queried the project's telemetry {{count}} times._one": "OneUptime AI はプロジェクトのテレメトリにも {{count}} 回クエリを実行しました。",
   "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.": "修正は実行されておらず、誰にも承認を求めていません。OneUptime AI が承認を求めるのは、修正を提案するときだけです。",
-  "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.": "修正は実行されておらず、誰にも承認を求めていません。OneUptime AI は修正を見つける前に停止しました。",
   "No runbook ran, and nobody was asked to approve one.": "Runbook は実行されておらず、誰にも承認を求めていません。",
-  "No runbook ran, and nobody was asked to approve one: it stopped before it picked a runbook.": "Runbook は実行されておらず、誰にも承認を求めていません。OneUptime AI は Runbook を選ぶ前に停止しました。",
   "OneUptime AI did not work this fix out, so there is nothing to try again.": "この修正は OneUptime AI が作成したものではないため、再試行するものはありません。",
   "OneUptime AI finished working on this fix, so there is nothing to try again.": "OneUptime AI はこの修正の作業を終えているため、再試行するものはありません。",
   "OneUptime AI is still working on this fix.": "OneUptime AI はまだこの修正に取り組んでいます。",
@@ -47343,5 +47341,7 @@
   "What it checked": "確認した内容",
   "Why it stopped": "停止した理由",
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "このアラートを変更する権限がないため、OneUptime AI にこの修正の再試行を依頼できません。",
-  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "このインシデントを変更する権限がないため、OneUptime AI にこの修正の再試行を依頼できません。"
+  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "このインシデントを変更する権限がないため、OneUptime AI にこの修正の再試行を依頼できません。",
+  "No fix ran, and nobody was asked to approve one.": "修正は実行されておらず、誰にも承認を求めていません。",
+  "Show full reasoning": "推論全体を表示"
 }

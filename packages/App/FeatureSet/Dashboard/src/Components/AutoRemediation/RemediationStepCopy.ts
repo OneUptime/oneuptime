@@ -525,6 +525,9 @@ export const REMEDIATION_ROUND_COPY: {
   nothingAskedNoRunbook: string;
   nothingAskedUnfinished: string;
   nothingAskedUnfinishedRunbook: string;
+  // Unfolds the AI's whole answer under the reason it gave, and folds it.
+  showFullReasoning: string;
+  showLessReasoning: string;
 } = {
   unfinishedFix: translationKey("Stopped before it found a fix"),
   unfinishedRunbook: translationKey("Stopped before it picked a runbook"),
@@ -547,12 +550,18 @@ export const REMEDIATION_ROUND_COPY: {
   nothingAskedNoRunbook: translationKey(
     "No runbook ran, and nobody was asked to approve one.",
   ),
+  /*
+   * The step's title already says it stopped before it found one: the
+   * line says only what did not happen.
+   */
   nothingAskedUnfinished: translationKey(
-    "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.",
+    "No fix ran, and nobody was asked to approve one.",
   ),
   nothingAskedUnfinishedRunbook: translationKey(
-    "No runbook ran, and nobody was asked to approve one: it stopped before it picked a runbook.",
+    "No runbook ran, and nobody was asked to approve one.",
   ),
+  showFullReasoning: translationKey("Show full reasoning"),
+  showLessReasoning: translationKey("Show less"),
 };
 
 /*

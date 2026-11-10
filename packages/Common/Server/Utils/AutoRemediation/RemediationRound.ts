@@ -78,6 +78,10 @@ import {
   RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
 } from "../AI/ResourceAccess/ResourceAccessToolNames";
 import { READ_TOOL_OUTPUT_TOOL_NAME } from "../AI/Chat/ToolOutputPager";
+import {
+  CALL_MCP_TOOL_TOOL_NAME,
+  LIST_MCP_TOOLS_TOOL_NAME,
+} from "../../../Types/AI/ExternalMcpServer/ExternalMcpToolNames";
 import { Indigo500 } from "../../../Types/BrandColors";
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
 import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFeed";
@@ -131,8 +135,11 @@ const COMMAND_CHECK_TOOL_NAMES: ReadonlyArray<string> = [
 ];
 
 /*
- * A round's own tools, which are not checks: what it proposes or makes,
- * where it may run, the rest of a long output, and its explanation.
+ * The tools that are not a query of the project's telemetry: a round's
+ * own - what it proposes or makes, where it may run, the rest of a long
+ * output, and its explanation - and the project's external MCP servers',
+ * which are other systems (a fix through MCP servers proposes and makes
+ * its changes with call_mcp_tool).
  */
 const NOT_A_CHECK_TOOL_NAMES: ReadonlyArray<string> = [
   ...COMMAND_CHECK_TOOL_NAMES,
@@ -144,6 +151,8 @@ const NOT_A_CHECK_TOOL_NAMES: ReadonlyArray<string> = [
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
   READ_TOOL_OUTPUT_TOOL_NAME,
+  LIST_MCP_TOOLS_TOOL_NAME,
+  CALL_MCP_TOOL_TOOL_NAME,
 ];
 
 // The fix's fields a round's read and its Try again need.
@@ -845,7 +854,9 @@ export default class RemediationRound {
 
   /*
    * The record's feed says who started the fix again - a person made
-   * OneUptime AI act on the record. Best effort: never fails the press.
+   * OneUptime AI act on the record - and why, in the words the
+   * Remediation step said it with ("Stopped before it found a fix"), not
+   * the server's ("round"). Best effort: never fails the press.
    */
   private static async postTriedAgainFeedItem(data: {
     suggestion: AutoRemediationSuggestion;
@@ -857,8 +868,12 @@ export default class RemediationRound {
       (suggestion.resourceType && suggestion.resourceId)
         ? suggestion.ruleNameSnapshot || "AI remediation"
         : `AI rule "${suggestion.ruleNameSnapshot || "AI rule"}"`;
-    const markdown: string =
-      mdText`⚡ Asked ${ProductBrandingText.getProductName()} AI to work out **${source}** again: its last round did not finish.`.toString();
+    const isRunbookPick: boolean =
+      suggestion.suggestionType !== AutoRemediationSuggestionType.CommandPlan &&
+      suggestion.suggestionType !== AutoRemediationSuggestionType.McpToolCalls;
+    const markdown: string = isRunbookPick
+      ? mdText`⚡ Asked ${ProductBrandingText.getProductName()} AI to try **${source}** again: it stopped before it picked a runbook.`.toString()
+      : mdText`⚡ Asked ${ProductBrandingText.getProductName()} AI to try **${source}** again: it stopped before it found a fix.`.toString();
 
     try {
       if (suggestion.incidentId && suggestion.projectId) {

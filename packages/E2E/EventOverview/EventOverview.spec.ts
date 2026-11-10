@@ -22900,9 +22900,18 @@ test.describe("a round of an AI fix, said as it went (?fixes=unfinished | no-fix
       stepPillWords(remediationStep(page), "remediation"),
     ).toHaveText("Did not finish");
     await expect(remediationStep(page)).not.toContainText("Found no safe fix");
+    // What to do about it is in sight before the step opens.
+    await expect(
+      fixStep(fix, "plan").getByTestId("remediation-round-try-again"),
+    ).toBeVisible();
 
     const details: Locator = await openRoundPlan(fix);
     const notice: Locator = roundNotice(fix);
+    // Open, its notice offers it, with why: one Try again, never two.
+    await expect(
+      fixStep(fix, "plan").getByTestId("remediation-round-try-again"),
+    ).toHaveCount(0);
+    await expect(fix.getByRole("button", { name: "Try again" })).toHaveCount(1);
     await expect(
       notice.getByText("Why it stopped", { exact: true }),
     ).toBeVisible();
@@ -22941,8 +22950,9 @@ test.describe("a round of an AI fix, said as it went (?fixes=unfinished | no-fix
       "kubectl get hpa checkout-api -n checkout",
       "kubectl top pods -n checkout -l app=checkout-api",
     ]);
+    // The title says it stopped before it found a fix: the line does not.
     await expect(details.getByTestId("remediation-round-approval")).toHaveText(
-      "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.",
+      "No fix ran, and nobody was asked to approve one.",
     );
 
     // The sweep's note says less than the notice: it gives way.
@@ -23004,6 +23014,45 @@ test.describe("a round of an AI fix, said as it went (?fixes=unfinished | no-fix
       remediationStep(page),
       "remediation-round-tried-again",
     );
+  });
+
+  test("Try again under the folded step starts it again from the keyboard, which goes to the step that works on it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const fix: Locator = await openRound(
+      page,
+      "fixes=unfinished&state=ongoing",
+    );
+    await expect(roundPlanTitle(fix)).toHaveText(
+      "Stopped before it found a fix",
+      { timeout: 30000 },
+    );
+
+    await fixStep(fix, "plan")
+      .getByTestId("remediation-round-try-again")
+      .focus();
+    await page.keyboard.press("Enter");
+
+    await expect(roundPlanTitle(fix)).toHaveText("Working out a fix…", {
+      timeout: 30000,
+    });
+    expect(
+      await apiRequestsTo(page, "/auto-remediation/round-try-again"),
+    ).toHaveLength(1);
+    // Its button went with the step: the keyboard is on the step's title.
+    await expect
+      .poll(async (): Promise<string> => {
+        return page.evaluate((): string => {
+          return document.activeElement?.textContent || "";
+        });
+      })
+      .toContain("Working out a fix…");
+    // When it started again, not when the fix was first worked out (18:04).
+    await expect(
+      fixStep(fix, "plan").getByTestId("remediation-fix-step-time"),
+    ).toHaveAttribute("datetime", NOW.toISOString(), { timeout: 30000 });
   });
 
   test("a refusal is said under the button, in the server's words, and the round reads as it was", async ({
@@ -23091,6 +23140,43 @@ test.describe("a round of an AI fix, said as it went (?fixes=unfinished | no-fix
     ).toHaveCount(0);
     await expect(details.getByTestId("remediation-round-reason")).toHaveText(
       NO_FIX_REASON,
+    );
+    // The answer first, then how the round got there.
+    expect(
+      await details.evaluate((element: Element): Array<string | null> => {
+        return Array.from(element.children).map(
+          (child: Element): string | null => {
+            return child.getAttribute("data-testid");
+          },
+        );
+      }),
+    ).toEqual([
+      "remediation-round-lead",
+      "remediation-round-ruled-out",
+      "remediation-round-checks",
+      "remediation-round-approval",
+    ]);
+
+    /*
+     * The AI's whole answer says the same why again, at length: folded
+     * under the reason, one press away.
+     */
+    const fullReasoning: Locator = details.getByTestId(
+      "remediation-round-reasoning-toggle",
+    );
+    await expect(details.getByTestId("remediation-fix-reasoning")).toHaveCount(
+      0,
+    );
+    await expect(fullReasoning).toHaveText("Show full reasoning");
+    await fullReasoning.click();
+    await expect(details.getByTestId("remediation-fix-reasoning")).toHaveText(
+      "checkout-api's pods are healthy and the HPA has room to scale. The latency began with the 17:52 rollout, and rolling it back is not safe, so OneUptime AI proposes no change.",
+    );
+    await expect(fullReasoning).toHaveText("Show less");
+    await expect(fullReasoning).toHaveAttribute("aria-expanded", "true");
+    await fullReasoning.click();
+    await expect(details.getByTestId("remediation-fix-reasoning")).toHaveCount(
+      0,
     );
 
     // The fixes it ruled out: what each would do, why not, its commands.
@@ -23246,9 +23332,7 @@ test.describe("a round of an AI fix, said as it went (?fixes=unfinished | no-fix
     ).toBe("ltr");
     await expect(
       details.getByTestId("remediation-round-approval"),
-    ).not.toHaveText(
-      "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.",
-    );
+    ).not.toHaveText("No fix ran, and nobody was asked to approve one.");
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await page.mouse.move(0, 0);
     await screenshotElement(

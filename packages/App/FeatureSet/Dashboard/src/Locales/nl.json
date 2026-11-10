@@ -47325,9 +47325,7 @@
   "It also queried the project's telemetry {{count}} times.": "OneUptime AI heeft ook {{count}} keer de telemetrie van het project opgevraagd.",
   "It also queried the project's telemetry {{count}} times._one": "OneUptime AI heeft ook {{count}} keer de telemetrie van het project opgevraagd.",
   "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.": "Er is geen oplossing uitgevoerd en niemand is gevraagd er een goed te keuren: OneUptime AI vraagt alleen om goedkeuring als het een oplossing voorstelt.",
-  "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.": "Er is geen oplossing uitgevoerd en niemand is gevraagd er een goed te keuren: OneUptime AI stopte voordat het een oplossing vond.",
   "No runbook ran, and nobody was asked to approve one.": "Er is geen runbook uitgevoerd en niemand is gevraagd er een goed te keuren.",
-  "No runbook ran, and nobody was asked to approve one: it stopped before it picked a runbook.": "Er is geen runbook uitgevoerd en niemand is gevraagd er een goed te keuren: OneUptime AI stopte voordat het een runbook koos.",
   "OneUptime AI did not work this fix out, so there is nothing to try again.": "Deze oplossing is niet door OneUptime AI uitgewerkt, dus er valt niets opnieuw te proberen.",
   "OneUptime AI finished working on this fix, so there is nothing to try again.": "OneUptime AI is klaar met deze oplossing, dus er valt niets opnieuw te proberen.",
   "OneUptime AI is still working on this fix.": "OneUptime AI werkt nog aan deze oplossing.",
@@ -47343,5 +47341,7 @@
   "What it checked": "Wat het heeft gecontroleerd",
   "Why it stopped": "Waarom het stopte",
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "U hebt geen toestemming om deze waarschuwing te wijzigen, dus u kunt OneUptime AI niet vragen deze oplossing opnieuw te proberen.",
-  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "U hebt geen toestemming om dit incident te wijzigen, dus u kunt OneUptime AI niet vragen deze oplossing opnieuw te proberen."
+  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "U hebt geen toestemming om dit incident te wijzigen, dus u kunt OneUptime AI niet vragen deze oplossing opnieuw te proberen.",
+  "No fix ran, and nobody was asked to approve one.": "Er is geen oplossing uitgevoerd en niemand is gevraagd er een goed te keuren.",
+  "Show full reasoning": "Volledige redenering tonen"
 }

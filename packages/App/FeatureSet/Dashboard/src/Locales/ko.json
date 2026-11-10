@@ -47325,9 +47325,7 @@
   "It also queried the project's telemetry {{count}} times.": "OneUptime AI는 프로젝트의 텔레메트리도 {{count}}번 조회했습니다.",
   "It also queried the project's telemetry {{count}} times._one": "OneUptime AI는 프로젝트의 텔레메트리도 {{count}}번 조회했습니다.",
   "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.": "실행된 수정은 없으며 누구에게도 승인을 요청하지 않았습니다. OneUptime AI는 수정을 제안할 때만 승인을 요청합니다.",
-  "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.": "실행된 수정은 없으며 누구에게도 승인을 요청하지 않았습니다. OneUptime AI가 수정을 찾기 전에 중지되었습니다.",
   "No runbook ran, and nobody was asked to approve one.": "실행된 런북은 없으며 누구에게도 승인을 요청하지 않았습니다.",
-  "No runbook ran, and nobody was asked to approve one: it stopped before it picked a runbook.": "실행된 런북은 없으며 누구에게도 승인을 요청하지 않았습니다. OneUptime AI가 런북을 고르기 전에 중지되었습니다.",
   "OneUptime AI did not work this fix out, so there is nothing to try again.": "이 수정은 OneUptime AI가 만든 것이 아니므로 다시 시도할 것이 없습니다.",
   "OneUptime AI finished working on this fix, so there is nothing to try again.": "OneUptime AI가 이 수정 작업을 마쳤으므로 다시 시도할 것이 없습니다.",
   "OneUptime AI is still working on this fix.": "OneUptime AI가 아직 이 수정을 작업하고 있습니다.",
@@ -47343,5 +47341,7 @@
   "What it checked": "확인한 내용",
   "Why it stopped": "중지된 이유",
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "이 경고를 변경할 권한이 없으므로 OneUptime AI에게 이 수정을 다시 시도하도록 요청할 수 없습니다.",
-  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "이 인시던트를 변경할 권한이 없으므로 OneUptime AI에게 이 수정을 다시 시도하도록 요청할 수 없습니다."
+  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "이 인시던트를 변경할 권한이 없으므로 OneUptime AI에게 이 수정을 다시 시도하도록 요청할 수 없습니다.",
+  "No fix ran, and nobody was asked to approve one.": "실행된 수정은 없으며 누구에게도 승인을 요청하지 않았습니다.",
+  "Show full reasoning": "전체 추론 보기"
 }

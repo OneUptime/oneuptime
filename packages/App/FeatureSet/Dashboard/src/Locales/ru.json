@@ -47325,9 +47325,7 @@
   "It also queried the project's telemetry {{count}} times.": "Кроме того, запросов к телеметрии проекта: {{count}}.",
   "It also queried the project's telemetry {{count}} times._one": "Кроме того, OneUptime AI {{count}} раз обратился к телеметрии проекта.",
   "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.": "Ни одно исправление не выполнялось, и никого не просили его утвердить: OneUptime AI просит утверждения, только когда предлагает исправление.",
-  "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.": "Ни одно исправление не выполнялось, и никого не просили его утвердить: OneUptime AI остановился, не успев найти исправление.",
   "No runbook ran, and nobody was asked to approve one.": "Ни один runbook не выполнялся, и никого не просили его утвердить.",
-  "No runbook ran, and nobody was asked to approve one: it stopped before it picked a runbook.": "Ни один runbook не выполнялся, и никого не просили его утвердить: OneUptime AI остановился, не успев выбрать runbook.",
   "OneUptime AI did not work this fix out, so there is nothing to try again.": "Это исправление подготовил не OneUptime AI, поэтому повторять нечего.",
   "OneUptime AI finished working on this fix, so there is nothing to try again.": "OneUptime AI закончил работу над этим исправлением, поэтому повторять нечего.",
   "OneUptime AI is still working on this fix.": "OneUptime AI ещё работает над этим исправлением.",
@@ -47343,5 +47341,7 @@
   "What it checked": "Что проверено",
   "Why it stopped": "Почему работа остановилась",
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "У вас нет прав на изменение этого оповещения, поэтому вы не можете попросить OneUptime AI повторить это исправление.",
-  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "У вас нет прав на изменение этого инцидента, поэтому вы не можете попросить OneUptime AI повторить это исправление."
+  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "У вас нет прав на изменение этого инцидента, поэтому вы не можете попросить OneUptime AI повторить это исправление.",
+  "No fix ran, and nobody was asked to approve one.": "Ни одно исправление не выполнялось, и никого не просили его утвердить.",
+  "Show full reasoning": "Показать рассуждения полностью"
 }

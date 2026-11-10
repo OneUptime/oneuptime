@@ -47325,9 +47325,7 @@
   "It also queried the project's telemetry {{count}} times.": "OneUptime AI ने प्रोजेक्ट की टेलीमेट्री पर {{count}} बार क्वेरी भी चलाई।",
   "It also queried the project's telemetry {{count}} times._one": "OneUptime AI ने प्रोजेक्ट की टेलीमेट्री पर {{count}} बार क्वेरी भी चलाई।",
   "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.": "कोई सुधार नहीं चला, और किसी से उसे मंज़ूरी देने को नहीं कहा गया: OneUptime AI मंज़ूरी तभी माँगता है जब वह कोई सुधार प्रस्तावित करता है।",
-  "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.": "कोई सुधार नहीं चला, और किसी से उसे मंज़ूरी देने को नहीं कहा गया: सुधार मिलने से पहले ही OneUptime AI रुक गया।",
   "No runbook ran, and nobody was asked to approve one.": "कोई रनबुक नहीं चली, और किसी से उसे मंज़ूरी देने को नहीं कहा गया।",
-  "No runbook ran, and nobody was asked to approve one: it stopped before it picked a runbook.": "कोई रनबुक नहीं चली, और किसी से उसे मंज़ूरी देने को नहीं कहा गया: रनबुक चुनने से पहले ही OneUptime AI रुक गया।",
   "OneUptime AI did not work this fix out, so there is nothing to try again.": "यह सुधार OneUptime AI ने तैयार नहीं किया, इसलिए फिर से आज़माने के लिए कुछ नहीं है।",
   "OneUptime AI finished working on this fix, so there is nothing to try again.": "OneUptime AI ने इस सुधार पर काम पूरा कर लिया है, इसलिए फिर से आज़माने के लिए कुछ नहीं है।",
   "OneUptime AI is still working on this fix.": "OneUptime AI अभी भी इस सुधार पर काम कर रहा है।",
@@ -47343,5 +47341,7 @@
   "What it checked": "क्या जाँचा गया",
   "Why it stopped": "यह क्यों रुका",
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "आपको इस अलर्ट को बदलने की अनुमति नहीं है, इसलिए आप OneUptime AI से यह सुधार फिर से आज़माने को नहीं कह सकते।",
-  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "आपको इस घटना को बदलने की अनुमति नहीं है, इसलिए आप OneUptime AI से यह सुधार फिर से आज़माने को नहीं कह सकते।"
+  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "आपको इस घटना को बदलने की अनुमति नहीं है, इसलिए आप OneUptime AI से यह सुधार फिर से आज़माने को नहीं कह सकते।",
+  "No fix ran, and nobody was asked to approve one.": "कोई सुधार नहीं चला, और किसी से उसे मंज़ूरी देने को नहीं कहा गया।",
+  "Show full reasoning": "पूरा तर्क दिखाएँ"
 }

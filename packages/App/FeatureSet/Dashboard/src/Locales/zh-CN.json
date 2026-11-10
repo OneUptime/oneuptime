@@ -47325,9 +47325,7 @@
   "It also queried the project's telemetry {{count}} times.": "OneUptime AI 还查询了 {{count}} 次项目遥测。",
   "It also queried the project's telemetry {{count}} times._one": "OneUptime AI 还查询了 {{count}} 次项目遥测。",
   "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.": "没有运行任何修复，也没有请任何人批准：OneUptime AI 只在提出修复时才请求批准。",
-  "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.": "没有运行任何修复，也没有请任何人批准：OneUptime AI 在找到修复之前就停止了。",
   "No runbook ran, and nobody was asked to approve one.": "没有运行任何运行手册，也没有请任何人批准。",
-  "No runbook ran, and nobody was asked to approve one: it stopped before it picked a runbook.": "没有运行任何运行手册，也没有请任何人批准：OneUptime AI 在挑选运行手册之前就停止了。",
   "OneUptime AI did not work this fix out, so there is nothing to try again.": "此修复并非由 OneUptime AI 制定，因此没有可重试的内容。",
   "OneUptime AI finished working on this fix, so there is nothing to try again.": "OneUptime AI 已完成此修复的工作，因此没有可重试的内容。",
   "OneUptime AI is still working on this fix.": "OneUptime AI 仍在处理此修复。",
@@ -47343,5 +47341,7 @@
   "What it checked": "检查了什么",
   "Why it stopped": "停止原因",
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "您没有更改此警报的权限，因此无法请 OneUptime AI 重试此修复。",
-  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "您没有更改此事件的权限，因此无法请 OneUptime AI 重试此修复。"
+  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "您没有更改此事件的权限，因此无法请 OneUptime AI 重试此修复。",
+  "No fix ran, and nobody was asked to approve one.": "没有运行任何修复，也没有请任何人批准。",
+  "Show full reasoning": "显示完整推理"
 }

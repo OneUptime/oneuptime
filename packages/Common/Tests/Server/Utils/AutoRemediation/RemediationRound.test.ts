@@ -673,6 +673,23 @@ describe("countRoundOtherChecks: the telemetry a round queried", () => {
       ]),
     ).toBe(0);
   });
+
+  /*
+   * An external MCP server is another system, never the project's
+   * telemetry - and a fix through MCP servers proposes and makes its
+   * changes with call_mcp_tool: "It also queried the project's telemetry
+   * 3 times" said that of the changes it proposed.
+   */
+  it("a call to the project's MCP servers is not a telemetry query", () => {
+    expect(
+      countRoundOtherChecks([
+        completed("list_mcp_tools"),
+        completed("call_mcp_tool"),
+        completed("call_mcp_tool"),
+        completed("query_logs"),
+      ]),
+    ).toBe(1);
+  });
 });
 
 describe("getRoundExplanation: why the AI found no fix, in its own words", () => {
@@ -1274,7 +1291,7 @@ describe("RemediationRound.tryAgain: a round that did not finish starts again", 
         projectId: PROJECT_ID,
         userId: USER_ID,
         feedInfoInMarkdown:
-          '⚡ Asked OneUptime AI to work out **AI kubectl fix for cluster "prod-us"** again: its last round did not finish.',
+          '⚡ Asked OneUptime AI to try **AI kubectl fix for cluster "prod-us"** again: it stopped before it found a fix.',
         workspaceNotification: expect.objectContaining({
           sendWorkspaceNotification: false,
         }),
@@ -1296,8 +1313,33 @@ describe("RemediationRound.tryAgain: a round that did not finish starts again", 
       (mocks.incidentFeed.mock.calls[0]![0] as { feedInfoInMarkdown: string })
         .feedInfoInMarkdown,
     ).toBe(
-      '⚡ Asked OneUptime AI to work out **AI rule "Restart API pods"** again: its last round did not finish.',
+      '⚡ Asked OneUptime AI to try **AI rule "Restart API pods"** again: it stopped before it found a fix.',
     );
+  });
+
+  /*
+   * In the words the Remediation step said it with: a runbook pick stopped
+   * before it picked a runbook, never "its last round did not finish".
+   */
+  it("a runbook pick says it stopped before it picked a runbook", async () => {
+    const mocks: RoundMocks = mockRound({
+      suggestion: fakeSuggestion({
+        kubernetesClusterId: undefined,
+        suggestionType: AutoRemediationSuggestionType.Runbook,
+        ruleNameSnapshot: "Checkout runbooks",
+      }),
+      run: fakeRun({ runType: AIRunType.RemediationPlan }),
+    });
+
+    await tryAgain();
+
+    const markdown: string = (
+      mocks.incidentFeed.mock.calls[0]![0] as { feedInfoInMarkdown: string }
+    ).feedInfoInMarkdown;
+    expect(markdown).toBe(
+      '⚡ Asked OneUptime AI to try **AI rule "Checkout runbooks"** again: it stopped before it picked a runbook.',
+    );
+    expect(markdown).not.toMatch(/round/);
   });
 
   it("a feed that cannot be written never fails the press", async () => {

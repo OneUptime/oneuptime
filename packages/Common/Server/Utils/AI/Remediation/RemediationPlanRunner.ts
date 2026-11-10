@@ -71,6 +71,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import FeedMarkdown, { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import PromptText from "../../../../Utils/AI/PromptText";
 import { findLabelledValues } from "../LabelledAnswerLines";
+import { parseClusterRoundNameSnapshot } from "../../../../Types/AutoRemediation/RemediationRoundName";
 import {
   buildExplainNoFixTool,
   EXPLAIN_NO_RUNBOOK_RULE,
@@ -1248,11 +1249,14 @@ export default class RemediationPlanRunner {
           mcpToolCallPlan: true,
           verificationWindowMinutes: true,
           /*
-           * So a resource round's notes name its resource: this sweep's
-           * own (describeStrandedSource) and settleInterruptedExecution's.
+           * So a cluster's or a resource's round is named by what it ran
+           * on: this sweep's notes (describeStrandedSource) and
+           * settleInterruptedExecution's.
            */
           resourceType: true,
           resourceId: true,
+          kubernetesClusterId: true,
+          autoRemediationRuleId: true,
         },
         limit: 100,
         skip: 0,
@@ -1398,16 +1402,27 @@ export default class RemediationPlanRunner {
   }
 
   /*
-   * How the sweeper's feed note names a stranded round. A resource round
-   * (a Docker host's, a database server's, ...) names its resource —
-   * 'AI remediation for Docker host "web-1"' — as the execution runner's
-   * notes do, never "AI rule ...": only a resource round
-   * carries resourceType and resourceId (a rule round never sets them).
-   * Every other round keeps its label unchanged.
+   * How the sweeper's feed note names a stranded round, as the execution
+   * runner's notes do (describeSource). A cluster round names its cluster
+   * - 'AI remediation for cluster "prod-us"' - and so does one whose
+   * cluster was deleted since (no rule, and the name it carries says
+   * so); a resource round (a Docker host's, a database server's, ...)
+   * names its resource - 'AI remediation for Docker host "web-1"'. Never
+   * "AI rule ...": a stopped cluster round read 'AI rule "AI remediation
+   * for cluster "prod-us""' on the feed. A rule round keeps its rule
+   * label.
    */
   private static describeStrandedSource(
     suggestion: AutoRemediationSuggestion,
   ): string {
+    if (
+      suggestion.kubernetesClusterId ||
+      (!suggestion.autoRemediationRuleId &&
+        parseClusterRoundNameSnapshot(suggestion.ruleNameSnapshot))
+    ) {
+      return suggestion.ruleNameSnapshot || "AI remediation for cluster";
+    }
+
     if (suggestion.resourceType && suggestion.resourceId) {
       return suggestion.ruleNameSnapshot || "AI remediation";
     }

@@ -47325,9 +47325,7 @@
   "It also queried the project's telemetry {{count}} times.": "It also queried the project's telemetry {{count}} times.",
   "It also queried the project's telemetry {{count}} times._one": "It also queried the project's telemetry {{count}} time.",
   "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.": "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.",
-  "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.": "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.",
   "No runbook ran, and nobody was asked to approve one.": "No runbook ran, and nobody was asked to approve one.",
-  "No runbook ran, and nobody was asked to approve one: it stopped before it picked a runbook.": "No runbook ran, and nobody was asked to approve one: it stopped before it picked a runbook.",
   "OneUptime AI did not work this fix out, so there is nothing to try again.": "OneUptime AI did not work this fix out, so there is nothing to try again.",
   "OneUptime AI finished working on this fix, so there is nothing to try again.": "OneUptime AI finished working on this fix, so there is nothing to try again.",
   "OneUptime AI is still working on this fix.": "OneUptime AI is still working on this fix.",
@@ -47343,5 +47341,7 @@
   "What it checked": "What it checked",
   "Why it stopped": "Why it stopped",
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.",
-  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again."
+  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.",
+  "No fix ran, and nobody was asked to approve one.": "No fix ran, and nobody was asked to approve one.",
+  "Show full reasoning": "Show full reasoning"
 }

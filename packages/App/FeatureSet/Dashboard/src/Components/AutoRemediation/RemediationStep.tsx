@@ -101,7 +101,10 @@ import {
   isRemediationRoundUnfinished,
   RemediationRoundView,
 } from "./RemediationRoundView";
-import RemediationRoundDetails from "./RemediationRoundDetails";
+import {
+  RemediationRoundEvidence,
+  RemediationRoundLead,
+} from "./RemediationRoundDetails";
 import {
   REMEDIATION_ROUND_TRY_AGAIN_PATH,
   RemediationRoundTryAgainRefusal,
@@ -110,13 +113,14 @@ import { getRiskierRemediationCommands } from "Common/Types/AutoRemediation/Reme
 import UserUtil from "Common/UI/Utils/User";
 import RemediationFixStepList, {
   getRemediationFixStepDetailsId,
+  getRemediationFixStepTitleId,
 } from "./RemediationFixStepList";
+import AiRunTryAgainButton from "../AI/AiRunTryAgainButton";
 import {
   hasRemovedSshCommand,
   RemediationCommandPlanList,
   RemediationCommandRollbackList,
   RemediationCommandRunList,
-  RemediationFixReasoning,
   REMOVED_SSH_PLAN_NOTE,
 } from "./RemediationFixStepDetails";
 import {
@@ -218,6 +222,12 @@ export interface RemediationStepCodeFix {
   isRecommended: boolean;
   // The investigation whose report a pull request is opened from.
   investigationRunId: string | null;
+}
+
+// A round Try again started again: whose, and how many times so far.
+interface RoundTriedAgain {
+  suggestionId: string;
+  count: number;
 }
 
 /*
@@ -935,6 +945,9 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     suggestions,
     subjectKey: subjectIdString,
   });
+  // The fix whose round a Try again last started again (see below).
+  const [roundTriedAgain, setRoundTriedAgain] =
+    useState<RoundTriedAgain | null>(null);
 
   /*
    * Try again on a fix whose round stopped before it found one (issue
@@ -977,7 +990,42 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
       await remediationRounds.reloadRound(suggestion);
       throw new Error(translator.translateText(refusal) as string);
     }
+
+    setRoundTriedAgain((previous: RoundTriedAgain | null): RoundTriedAgain => {
+      return {
+        suggestionId: suggestion.id?.toString() || "",
+        count: (previous?.count || 0) + 1,
+      };
+    });
   };
+
+  /*
+   * Once a round started again, the keyboard stays on its fix. The Try
+   * again that was pressed goes with the step that offered it - the step
+   * is "Working out a fix…" now - and the focus fell to the top of the
+   * page. It goes to that step's title, so the new line is read from
+   * there. A reader who has moved on meanwhile keeps their place.
+   */
+  useEffect(() => {
+    if (!roundTriedAgain) {
+      return;
+    }
+
+    const active: Element | null = document.activeElement;
+
+    if (active && active !== document.body) {
+      return;
+    }
+
+    document
+      .getElementById(
+        getRemediationFixStepTitleId(
+          `${fixDetailsIdPrefix}-${roundTriedAgain.suggestionId}`,
+          "plan",
+        ),
+      )
+      ?.focus();
+  }, [roundTriedAgain, fixDetailsIdPrefix]);
 
   /*
    * While the investigation runs, remediation waits for it. The moment it
@@ -1705,8 +1753,19 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     const isDryRunShown: boolean = mayAct && Boolean(dryRunTitle) && isReviewed;
     const isDismissShown: boolean =
       mayAct && canDismiss && (!canApproveNow || isReviewed);
+    /*
+     * Try again for a round that stopped, in sight while its step is
+     * folded (issue #6487): the notice its step opens to offers it there
+     * instead, with why it stopped.
+     */
+    const isRoundTryAgainShown: boolean =
+      isUnfinishedRound && Boolean(round?.mayTryAgain) && !isStepOpen("plan");
     const hasButtons: boolean =
-      isApproveShown || isDryRunShown || isDismissShown || canViewExecution;
+      isRoundTryAgainShown ||
+      isApproveShown ||
+      isDryRunShown ||
+      isDismissShown ||
+      canViewExecution;
     const planDetailsId: string = getRemediationFixStepDetailsId(
       stepsIdPrefix,
       "plan",
@@ -1748,34 +1807,24 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     ): ReactElement => {
       if (kind === "plan") {
         /*
-         * Why OneUptime AI proposes it first, then what it runs: the
-         * reasoning is part of what is reviewed. Before it, what its round
-         * did: why it stopped, the fixes it ruled out, what it checked,
-         * and that nothing was asked (issue #6436).
+         * The answer first, then what it runs, then how its round got
+         * there (issue #6436): why it stopped (with Try again), why it
+         * found no fix (the AI's whole answer folded under it) or why
+         * OneUptime AI proposes the fix - the reasoning is part of what is
+         * reviewed; the commands or changes it runs; then the fixes it
+         * ruled out, what it checked, and that nothing was asked.
          */
         return (
           <>
-            {round ||
-            status === AutoRemediationSuggestionStatus.NoneApplicable ? (
-              <RemediationRoundDetails
-                round={round}
-                status={status}
-                isRunbook={!isCommandPlan && !isMcpFix}
-                isUnfinished={isUnfinishedRound}
-                onTryAgain={() => {
-                  return tryAgainRound(suggestion);
-                }}
-              />
-            ) : (
-              <></>
-            )}
-            {suggestion.rationaleMarkdown && !isUnfinishedRound ? (
-              <RemediationFixReasoning
-                markdown={suggestion.rationaleMarkdown}
-              />
-            ) : (
-              <></>
-            )}
+            <RemediationRoundLead
+              round={round}
+              status={status}
+              isUnfinished={isUnfinishedRound}
+              onTryAgain={() => {
+                return tryAgainRound(suggestion);
+              }}
+              reasoningMarkdown={suggestion.rationaleMarkdown || undefined}
+            />
             {plan ? (
               <RemediationCommandPlanList
                 plan={plan}
@@ -1793,6 +1842,17 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
             )}
             {mcpPlan && !hasSentMcpCalls ? (
               <McpToolCallList plan={mcpPlan} suggestionId={suggestionId} />
+            ) : (
+              <></>
+            )}
+            {round ||
+            status === AutoRemediationSuggestionStatus.NoneApplicable ? (
+              <RemediationRoundEvidence
+                round={round}
+                status={status}
+                isRunbook={!isCommandPlan && !isMcpFix}
+                isUnfinished={isUnfinishedRound}
+              />
             ) : (
               <></>
             )}
@@ -1855,6 +1915,17 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
             data-testid="remediation-fix-actions"
             className={`${className} flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:w-auto [&>button]:md:ml-0`}
           >
+            {isRoundTryAgainShown ? (
+              <AiRunTryAgainButton
+                testId="remediation-round-try-again"
+                onTryAgain={() => {
+                  return tryAgainRound(suggestion);
+                }}
+              />
+            ) : (
+              <></>
+            )}
+
             {isApproveShown ? (
               <Button
                 title={isFirstOfTwoApprovals ? "Approve" : "Approve & Run"}

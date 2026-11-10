@@ -47325,9 +47325,7 @@
   "It also queried the project's telemetry {{count}} times.": "OneUptime AI frågade också projektets telemetri {{count}} gånger.",
   "It also queried the project's telemetry {{count}} times._one": "OneUptime AI frågade också projektets telemetri {{count}} gång.",
   "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.": "Ingen åtgärd kördes och ingen ombads godkänna någon: OneUptime AI ber bara om godkännande när den föreslår en åtgärd.",
-  "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.": "Ingen åtgärd kördes och ingen ombads godkänna någon: OneUptime AI stoppade innan den hittade en åtgärd.",
   "No runbook ran, and nobody was asked to approve one.": "Ingen runbook kördes och ingen ombads godkänna någon.",
-  "No runbook ran, and nobody was asked to approve one: it stopped before it picked a runbook.": "Ingen runbook kördes och ingen ombads godkänna någon: OneUptime AI stoppade innan den valde en runbook.",
   "OneUptime AI did not work this fix out, so there is nothing to try again.": "OneUptime AI tog inte fram den här åtgärden, så det finns inget att försöka igen.",
   "OneUptime AI finished working on this fix, so there is nothing to try again.": "OneUptime AI är klar med den här åtgärden, så det finns inget att försöka igen.",
   "OneUptime AI is still working on this fix.": "OneUptime AI arbetar fortfarande med den här åtgärden.",
@@ -47343,5 +47341,7 @@
   "What it checked": "Vad den kontrollerade",
   "Why it stopped": "Varför den stoppade",
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "Du har inte behörighet att ändra det här larmet, så du kan inte be OneUptime AI att försöka med den här åtgärden igen.",
-  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "Du har inte behörighet att ändra den här incidenten, så du kan inte be OneUptime AI att försöka med den här åtgärden igen."
+  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "Du har inte behörighet att ändra den här incidenten, så du kan inte be OneUptime AI att försöka med den här åtgärden igen.",
+  "No fix ran, and nobody was asked to approve one.": "Ingen åtgärd kördes och ingen ombads godkänna någon.",
+  "Show full reasoning": "Visa hela resonemanget"
 }

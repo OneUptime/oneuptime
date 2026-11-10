@@ -47325,9 +47325,7 @@
   "It also queried the project's telemetry {{count}} times.": "كما استعلم OneUptime AI عن القياس عن بُعد للمشروع (عدد المرات: {{count}}).",
   "It also queried the project's telemetry {{count}} times._one": "كما استعلم OneUptime AI عن القياس عن بُعد للمشروع {{count}} مرة.",
   "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.": "لم يُشغَّل أي إصلاح، ولم يُطلب من أحد الموافقة على إصلاح: لا يطلب OneUptime AI الموافقة إلا عندما يقترح إصلاحًا.",
-  "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.": "لم يُشغَّل أي إصلاح، ولم يُطلب من أحد الموافقة على إصلاح: توقّف OneUptime AI قبل أن يجد إصلاحًا.",
   "No runbook ran, and nobody was asked to approve one.": "لم يُشغَّل أي دليل تشغيل، ولم يُطلب من أحد الموافقة على دليل تشغيل.",
-  "No runbook ran, and nobody was asked to approve one: it stopped before it picked a runbook.": "لم يُشغَّل أي دليل تشغيل، ولم يُطلب من أحد الموافقة على دليل تشغيل: توقّف OneUptime AI قبل أن يختار دليل تشغيل.",
   "OneUptime AI did not work this fix out, so there is nothing to try again.": "لم يُعِدّ OneUptime AI هذا الإصلاح، لذا لا يوجد ما تُعاد محاولته.",
   "OneUptime AI finished working on this fix, so there is nothing to try again.": "أنهى OneUptime AI العمل على هذا الإصلاح، لذا لا يوجد ما تُعاد محاولته.",
   "OneUptime AI is still working on this fix.": "لا يزال OneUptime AI يعمل على هذا الإصلاح.",
@@ -47343,5 +47341,7 @@
   "What it checked": "ما الذي فحصه",
   "Why it stopped": "سبب التوقف",
   "You do not have permission to change this alert, so you cannot ask OneUptime AI to try this fix again.": "ليس لديك إذن بتغيير هذا التنبيه، لذا لا يمكنك أن تطلب من OneUptime AI إعادة محاولة هذا الإصلاح.",
-  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "ليس لديك إذن بتغيير هذه الحادثة، لذا لا يمكنك أن تطلب من OneUptime AI إعادة محاولة هذا الإصلاح."
+  "You do not have permission to change this incident, so you cannot ask OneUptime AI to try this fix again.": "ليس لديك إذن بتغيير هذه الحادثة، لذا لا يمكنك أن تطلب من OneUptime AI إعادة محاولة هذا الإصلاح.",
+  "No fix ran, and nobody was asked to approve one.": "لم يُشغَّل أي إصلاح، ولم يُطلب من أحد الموافقة على إصلاح.",
+  "Show full reasoning": "إظهار الاستدلال الكامل"
 }

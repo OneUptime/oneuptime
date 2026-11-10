@@ -547,8 +547,15 @@ describe("getRemediationRoundApprovalLine: did anything run, was anyone asked", 
     expect(REMEDIATION_ROUND_COPY.nothingAskedNoFix).toBe(
       "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.",
     );
+    /*
+     * The step's title already says it stopped before it found a fix:
+     * the line does not say it again.
+     */
     expect(REMEDIATION_ROUND_COPY.nothingAskedUnfinished).toBe(
-      "No fix ran, and nobody was asked to approve one: it stopped before it found a fix.",
+      "No fix ran, and nobody was asked to approve one.",
+    );
+    expect(REMEDIATION_ROUND_COPY.nothingAskedUnfinishedRunbook).toBe(
+      "No runbook ran, and nobody was asked to approve one.",
     );
   });
 });
@@ -716,6 +723,43 @@ describe("getRemediationFixSteps: the plan step of a fix with a round", () => {
     expect(
       stepsOf(fix(AutoRemediationSuggestionStatus.Planning), undefined)[0],
     ).toMatchObject({ tone: "live", summary: null, hasDetails: false });
+  });
+
+  /*
+   * A round tried again (issue #6487) started well after its fix was
+   * first worked out: "Working out a fix…" said the first time.
+   */
+  test("the plan step says when its round started: a round tried again, when it started again", () => {
+    const AT_TRIED_AGAIN: string = "2026-11-09T11:30:00.000Z";
+    const triedAgain: RemediationRoundView = round({
+      runStatus: AIRunStatus.Running,
+      extra: {
+        run: Object.assign(new AIRun(), {
+          status: AIRunStatus.Running,
+          createdAt: new Date(AT_TRIED_AGAIN),
+        }),
+      },
+    });
+
+    expect(
+      stepsOf(fix(AutoRemediationSuggestionStatus.Planning), triedAgain)[0]!.at,
+    ).toEqual(new Date(AT_TRIED_AGAIN));
+    expect(
+      stepsOf(
+        fix(AutoRemediationSuggestionStatus.NoneApplicable),
+        Object.assign({}, triedAgain, {
+          run: Object.assign(new AIRun(), {
+            status: AIRunStatus.Completed,
+            createdAt: new Date(AT_TRIED_AGAIN),
+          }),
+        }),
+      )[0]!.at,
+    ).toEqual(new Date(AT_TRIED_AGAIN));
+
+    // Negative control: before its round is read, the fix's own time.
+    expect(
+      stepsOf(fix(AutoRemediationSuggestionStatus.Planning), undefined)[0]!.at,
+    ).toEqual(new Date(AT_PLANNED));
   });
 });
 

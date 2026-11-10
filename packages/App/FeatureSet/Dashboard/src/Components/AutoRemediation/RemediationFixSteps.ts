@@ -694,6 +694,13 @@ export function getRemediationFixSteps(data: {
   const steps: Array<RemediationFixStep> = [];
   const round: RemediationRoundView | undefined = data.round;
   const hasRoundDetails: boolean = hasRemediationRoundDetails(round);
+  /*
+   * When its round started: its run's start, once the round is read. A
+   * round tried again (issue #6487) started well after its fix was first
+   * worked out, and "Working out a fix…" said the first time.
+   */
+  const roundStartedAt: Date | null =
+    readRemediationMoment(round?.run?.createdAt) || createdAt;
 
   // --- plan: what OneUptime AI worked out, or that it found nothing ---
 
@@ -744,7 +751,7 @@ export function getRemediationFixSteps(data: {
       ),
       summary: retryWait ? describeAttemptEnd(retryWait, translator) : null,
       isSummaryWritten: false,
-      at: createdAt,
+      at: roundStartedAt,
       // The commands it has checked with so far.
       hasDetails: hasRoundDetails,
     });
@@ -770,7 +777,7 @@ export function getRemediationFixSteps(data: {
       ),
       summary: reason,
       isSummaryWritten: Boolean(reason),
-      at: createdAt,
+      at: roundStartedAt,
       /*
        * What it ruled out and what it checked, once its round is read -
        * and always that no fix ran and nobody was asked to approve one.
@@ -804,7 +811,7 @@ export function getRemediationFixSteps(data: {
       ? text(isMcpFix ? CHANGES_NOT_SHOWN : COMMANDS_NOT_SHOWN)
       : reasoning,
     isSummaryWritten: !isUnreadable && Boolean(reasoning),
-    at: createdAt,
+    at: roundStartedAt,
     hasDetails:
       hasReasoning ||
       hasRoundDetails ||

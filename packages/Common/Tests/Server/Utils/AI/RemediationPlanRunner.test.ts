@@ -769,9 +769,10 @@ describe("RemediationPlanRunner.settleStrandedPlanningSuggestions", () => {
   });
 
   /*
-   * A resource round (a Docker host's, a database server's, ...) is named
-   * by its resource on the feed, never as "AI rule ...";
-   * rule and cluster rounds read exactly as before.
+   * A cluster's or a resource's round (a Docker host's, a database
+   * server's, ...) is named by what it ran on, on the feed - as the
+   * execution runner names it - never as "AI rule ..."; a rule round
+   * reads exactly as before.
    */
   describe("how the feed note names the stranded round", () => {
     const RESOURCE_ID: ObjectID = new ObjectID(
@@ -821,6 +822,8 @@ describe("RemediationPlanRunner.settleStrandedPlanningSuggestions", () => {
       ).select;
       expect(select["resourceType"]).toBe(true);
       expect(select["resourceId"]).toBe(true);
+      expect(select["kubernetesClusterId"]).toBe(true);
+      expect(select["autoRemediationRuleId"]).toBe(true);
     });
 
     it("a resource round is named by its resource", async () => {
@@ -873,10 +876,40 @@ describe("RemediationPlanRunner.settleStrandedPlanningSuggestions", () => {
       );
     });
 
-    it("negative control: a cluster round's note is unchanged", async () => {
+    /*
+     * It read 'AI rule "AI remediation for cluster "prod-us""': a cluster
+     * round is named by its cluster, as the execution runner names it.
+     */
+    it("a cluster round is named by its cluster", async () => {
       mockPlanningList({
         autoRemediationRuleId: undefined,
         kubernetesClusterId: RULE_ID,
+        ruleNameSnapshot: 'AI remediation for cluster "prod-us"',
+        suggestionType: AutoRemediationSuggestionType.CommandPlan,
+      });
+      mockRun({ status: AIRunStatus.Error });
+
+      expect(await settleAndReadFeed()).toBe(
+        '⚡ **AI remediation for cluster "prod-us": the AI fix did not finish** (the planning run failed) — nothing was run or proposed.',
+      );
+    });
+
+    it("a round on a cluster deleted since is named by the name it carries", async () => {
+      mockPlanningList({
+        autoRemediationRuleId: undefined,
+        kubernetesClusterId: undefined,
+        ruleNameSnapshot: 'AI remediation for cluster "prod-us" (round 2)',
+        suggestionType: AutoRemediationSuggestionType.CommandPlan,
+      });
+      mockRun({ status: AIRunStatus.Error });
+
+      expect(await settleAndReadFeed()).toBe(
+        '⚡ **AI remediation for cluster "prod-us" (round 2): the AI fix did not finish** (the planning run failed) — nothing was run or proposed.',
+      );
+    });
+
+    it("negative control: a rule named like a cluster round keeps its rule label", async () => {
+      mockPlanningList({
         ruleNameSnapshot: 'AI remediation for cluster "prod-us"',
       });
       mockRun({ status: AIRunStatus.Error });
