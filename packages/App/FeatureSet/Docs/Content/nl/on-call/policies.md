@@ -112,7 +112,7 @@ Uitvoeringslogboeken vind je op drie plekken:
 - onder **Bereikbaarheidsdienst → Geavanceerd → Uitvoeringslogboeken**, voor elk beleid, waar directe oproepen vanuit workflows en chat staan als **Directe oproep**;
 - op de pagina **Bereikbaarheidsuitvoeringen** van een incident of een waarschuwing.
 
-Elke rij toont wat de uitvoering startte, wanneer, de **Status** ervan en wie haar bevestigde. **Tijdlijn bekijken** opent de **Tijdlijn van de uitvoering**: elke escalatieregel, wie die opriep, via welk schema en hoe elke oproep afliep. Een schema waarin niemand dienst heeft, toont **Niemand was bereikbaar** in plaats van een persoon. Een niveau dat niemand opriep, zegt waarom, met **Direct doorgegaan** eronder: het beleid heeft er niet op gewacht. In OneUptime Cloud hebben uitvoeringslogboeken het abonnement **Growth** nodig.
+Elke rij toont wat de uitvoering startte, wanneer, de **Status** ervan en wie haar bevestigde. **Tijdlijn bekijken** opent de **Tijdlijn van de uitvoering**: elke escalatieregel, wie die opriep, via welk schema en hoe elke oproep afliep. **Gemeld via** toont hoe elke oproep de persoon bereikte: telefoonoproep, sms, e-mail, pushmelding enzovoort. Een schema waarin niemand dienst heeft, toont **Niemand was bereikbaar** in plaats van een persoon. Een niveau dat niemand opriep, zegt waarom, met **Direct doorgegaan** eronder: het beleid heeft er niet op gewacht. In OneUptime Cloud hebben uitvoeringslogboeken het abonnement **Growth** nodig.
 
 ## Een beleid archiveren of verwijderen
 

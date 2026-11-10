@@ -7,6 +7,7 @@ import {
   test,
 } from "@jest/globals";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
+import { OnCallPageChannel } from "../../../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import { JSONObject } from "../../../../../Types/JSON";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../../Utils/API";
@@ -360,5 +361,56 @@ describe("an incident's on-call run pages Nitin", () => {
         });
       });
     });
+  });
+});
+
+/*
+ * THE SAME, ON THE RUN'S OWN PAGE (#6585): its Execution Timeline shows on
+ * Nitin's line the channels the page went out by ("Notified Via"), kept on
+ * the step by each notification's own hooks - for whoever reviews the run,
+ * who cannot read Nitin's own notifications.
+ */
+describe("the run's Execution Timeline says how the page reached Nitin", () => {
+  test("the channels the page went out by, as it goes out", () => {
+    expect(world.notifiedVia(NITIN)).toEqual([
+      OnCallPageChannel.SMS,
+      OnCallPageChannel.Email,
+    ]);
+  });
+
+  test("a call ten minutes on joins them", async () => {
+    await world.notifyAgain(NITIN, "userCallId");
+
+    expect(world.notifiedVia(NITIN)).toEqual([
+      OnCallPageChannel.Call,
+      OnCallPageChannel.SMS,
+      OnCallPageChannel.Email,
+    ]);
+  });
+
+  test("an SMS that turns out not to have been delivered leaves them", async () => {
+    await world.failNotification(NITIN, "userSmsId");
+
+    expect(world.notifiedVia(NITIN)).toEqual([OnCallPageChannel.Email]);
+  });
+
+  test("a call nobody answered stays: it reached Nitin's phone", async () => {
+    await world.notifyAgain(NITIN, "userCallId");
+    await world.missCall(NITIN);
+
+    expect(world.notifiedVia(NITIN)).toEqual([
+      OnCallPageChannel.Call,
+      OnCallPageChannel.SMS,
+      OnCallPageChannel.Email,
+    ]);
+  });
+
+  test("an answer changes nothing: how Nitin answered is the feed's to say", async () => {
+    await world.acknowledge(NITIN, "userSmsId");
+
+    expect(world.notifiedVia(NITIN)).toEqual([
+      OnCallPageChannel.SMS,
+      OnCallPageChannel.Email,
+    ]);
   });
 });

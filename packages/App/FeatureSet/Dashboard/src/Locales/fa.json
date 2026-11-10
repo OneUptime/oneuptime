@@ -14423,7 +14423,7 @@
   "Phone Number which will be used for call notifications.": "Phone Number which will be used for call notifications.",
   "Phone Number which will be used for receiving routed incoming calls.": "Phone Number which will be used for receiving routed incoming calls.",
   "Phone Numbers & Twilio Configuration": "شماره‌های تلفن و پیکربندی Twilio",
-  "Phone call": "Phone call",
+  "Phone call": "تماس تلفنی",
   "Phone numbers need the country code, for example +15551234567.": "Phone numbers need the country code, for example +15551234567.",
   "Phone numbers that route incoming calls to an incoming call policy.": "Phone numbers that route incoming calls to an incoming call policy.",
   "Pick a color for the series, or leave on Auto to use the theme palette.": "Pick a color for the series, or leave on Auto to use the theme palette.",
@@ -48245,5 +48245,6 @@
   "Team Team Owner": "تیم مالک تیم",
   "Team Team Owners": "تیم‌های مالک تیم",
   "Team User Owner": "کاربر مالک تیم",
-  "Team User Owners": "کاربران مالک تیم"
+  "Team User Owners": "کاربران مالک تیم",
+  "Notified Via": "اطلاع‌رسانی از طریق"
 }

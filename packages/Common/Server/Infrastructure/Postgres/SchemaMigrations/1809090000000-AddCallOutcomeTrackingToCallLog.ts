@@ -6,8 +6,14 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * delivery does (AddDeliveryTrackingToSmsLog): each call log gets the
  * secret token its callback URL carries, and the on-call notification it
  * was made for, so the outcome can be written back onto that notification
- * and told in the record's feed. Index and foreign key names are TypeORM's
- * own, so the schema drift check finds nothing to change.
+ * and told in the record's feed.
+ *
+ * The two columns only, nullable with no default, so no row is rewritten.
+ * The index and foreign key generated with them are built online, in
+ * AddCallOutcomeTrackingToCallLogIndexAndKey1809090010000: "CallLog"
+ * already holds every call a project made, and every call that goes out
+ * writes to it. (This migration built both itself at first; a database
+ * that ran it then has them already, and the online one leaves them be.)
  */
 export class AddCallOutcomeTrackingToCallLog1809090000000
   implements MigrationInterface
@@ -21,21 +27,9 @@ export class AddCallOutcomeTrackingToCallLog1809090000000
     await queryRunner.query(
       `ALTER TABLE "CallLog" ADD "userOnCallLogTimelineId" uuid`,
     );
-    await queryRunner.query(
-      `CREATE INDEX "IDX_30706ded4048de3ce84e66b536" ON "CallLog" ("userOnCallLogTimelineId") `,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "CallLog" ADD CONSTRAINT "FK_30706ded4048de3ce84e66b5369" FOREIGN KEY ("userOnCallLogTimelineId") REFERENCES "UserOnCallLogTimeline"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
-    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `ALTER TABLE "CallLog" DROP CONSTRAINT "FK_30706ded4048de3ce84e66b5369"`,
-    );
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_30706ded4048de3ce84e66b536"`,
-    );
     await queryRunner.query(
       `ALTER TABLE "CallLog" DROP COLUMN "userOnCallLogTimelineId"`,
     );

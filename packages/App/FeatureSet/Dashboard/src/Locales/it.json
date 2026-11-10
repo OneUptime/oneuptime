@@ -14423,7 +14423,7 @@
   "Phone Number which will be used for call notifications.": "Phone Number which will be used for call notifications.",
   "Phone Number which will be used for receiving routed incoming calls.": "Phone Number which will be used for receiving routed incoming calls.",
   "Phone Numbers & Twilio Configuration": "Numeri di telefono e configurazione Twilio",
-  "Phone call": "Phone call",
+  "Phone call": "Chiamata telefonica",
   "Phone numbers need the country code, for example +15551234567.": "Phone numbers need the country code, for example +15551234567.",
   "Phone numbers that route incoming calls to an incoming call policy.": "Phone numbers that route incoming calls to an incoming call policy.",
   "Pick a color for the series, or leave on Auto to use the theme palette.": "Pick a color for the series, or leave on Auto to use the theme palette.",
@@ -48245,5 +48245,6 @@
   "Team Team Owner": "Team proprietario del team",
   "Team Team Owners": "Team proprietari del team",
   "Team User Owner": "Utente proprietario del team",
-  "Team User Owners": "Utenti proprietari del team"
+  "Team User Owners": "Utenti proprietari del team",
+  "Notified Via": "Notificato tramite"
 }
