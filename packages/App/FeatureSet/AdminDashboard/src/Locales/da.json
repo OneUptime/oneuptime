@@ -615,13 +615,13 @@
       },
       "ingestionBudgets": {
         "dailyCardTitle": "Daglige standardbudgetter",
-        "dailyCardDescription": "Det meste af hvert telemetrisignal, hvert projekt må sende på en budgetdag, talt dekomprimeret, efterhånden som det ankommer. Når et budget er brugt op, afvises det signal, indtil budgettet nulstilles. Et projekts eget budget, angivet på dets side under Projekter, går forud for disse. Lad et signal stå tomt for ingen grænse.",
+        "dailyCardDescription": "Det meste af hvert telemetrisignal, hvert projekt må sende på en budgetdag. Når det er brugt op, afvises det signal, indtil budgettet nulstilles. Et projekts eget budget går forud. Lad et signal stå tomt for ingen grænse.",
         "dailyEditButton": "Rediger daglige standardbudgetter",
         "resetCardTitle": "Advarsel og nulstilling",
         "resetCardDescription": "Hvornår projekter advares om, at et budget er ved at slippe op, og hvornår hver budgetdag begynder forfra.",
         "resetEditButton": "Rediger advarsel og nulstilling",
         "rateCardTitle": "Standardhastighedsgrænser",
-        "rateCardDescription": "Valgfrit. Det hurtigste, hvert projekt må sende hvert signal, så én spidsbelastning ikke kan bruge en dags budget op på få minutter. Hurtigere anmodninger besvares med 429 og Retry-After, og afsenderne prøver dem igen. Lad et signal stå tomt for ingen grænse.",
+        "rateCardDescription": "Valgfrit. Det hurtigste, hvert projekt må sende hvert signal, så én spidsbelastning ikke kan bruge en dags budget op på få minutter. Hurtigere anmodninger besvares med 429 og prøves igen. Lad et signal stå tomt for ingen grænse.",
         "rateEditButton": "Rediger standardhastighedsgrænser"
       }
     },

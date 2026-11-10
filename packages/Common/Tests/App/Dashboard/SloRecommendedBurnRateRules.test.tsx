@@ -824,7 +824,7 @@ describe("the confirmation, on its own", () => {
     const dialog: HTMLElement = screen.getByRole("dialog", { name: BUTTON });
 
     expect(dialog).toHaveTextContent(
-      "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them afterwards like any other rule.",
+      "These are the recommended burn rate rules this SLO does not have yet, scaled to its compliance window. Edit or delete them like any other rule.",
     );
   });
 

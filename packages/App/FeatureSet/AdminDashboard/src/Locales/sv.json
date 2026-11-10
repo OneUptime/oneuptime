@@ -615,13 +615,13 @@
       },
       "ingestionBudgets": {
         "dailyCardTitle": "Dagliga standardbudgetar",
-        "dailyCardDescription": "Hur mycket av varje telemetrisignal varje projekt högst får skicka under en budgetdag, räknat dekomprimerat när det kommer in. När en budget är förbrukad avvisas den signalen tills budgeten återställs. Ett projekts egen budget, som anges på dess sida under Projekt, går före dessa. Lämna en signal tom för ingen gräns.",
+        "dailyCardDescription": "Hur mycket av varje telemetrisignal varje projekt högst får skicka under en budgetdag. När det är förbrukat avvisas den signalen tills budgeten återställs. Ett projekts egen budget går före. Lämna en signal tom för ingen gräns.",
         "dailyEditButton": "Redigera dagliga standardbudgetar",
         "resetCardTitle": "Varning och återställning",
         "resetCardDescription": "När projekt varnas för att en budget håller på att ta slut, och när varje budgetdag börjar om.",
         "resetEditButton": "Redigera varning och återställning",
         "rateCardTitle": "Standardhastighetsgränser",
-        "rateCardDescription": "Valfritt. Det snabbaste varje projekt får skicka varje signal, så att en enda topp inte kan förbruka en dags budget på några minuter. Snabbare begäranden besvaras med 429 och Retry-After, och avsändarna försöker igen. Lämna en signal tom för ingen gräns.",
+        "rateCardDescription": "Valfritt. Det snabbaste varje projekt får skicka varje signal, så att en enda topp inte kan förbruka en dags budget på några minuter. Snabbare begäranden besvaras med 429 och skickas igen. Lämna en signal tom för ingen gräns.",
         "rateEditButton": "Redigera standardhastighetsgränser"
       }
     },

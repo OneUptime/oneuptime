@@ -615,13 +615,13 @@
       },
       "ingestionBudgets": {
         "dailyCardTitle": "Orçamentos diários padrão",
-        "dailyCardDescription": "O máximo de cada sinal de telemetria que cada projeto pode enviar em um dia de orçamento, contado descomprimido à medida que chega. Quando um orçamento se esgota, esse sinal é recusado até o orçamento ser redefinido. O orçamento próprio de um projeto, definido na página dele em Projetos, prevalece sobre estes. Deixe um sinal vazio para não ter limite.",
+        "dailyCardDescription": "O máximo de cada sinal de telemetria que cada projeto pode enviar em um dia de orçamento. Quando se esgota, esse sinal é recusado até o orçamento ser redefinido. O orçamento próprio de um projeto prevalece. Deixe um sinal vazio para não ter limite.",
         "dailyEditButton": "Editar orçamentos diários padrão",
         "resetCardTitle": "Aviso e redefinição",
         "resetCardDescription": "Quando os projetos são avisados de que um orçamento está acabando, e quando cada dia de orçamento recomeça.",
         "resetEditButton": "Editar aviso e redefinição",
         "rateCardTitle": "Limites de taxa padrão",
-        "rateCardDescription": "Opcional. A maior velocidade com que cada projeto pode enviar cada sinal, para que um único pico não esgote em minutos o orçamento de um dia. Requisições mais rápidas recebem 429 com Retry-After, e os remetentes tentam de novo. Deixe um sinal vazio para não ter limite.",
+        "rateCardDescription": "Opcional. A maior velocidade com que cada projeto pode enviar cada sinal, para que um único pico não esgote em minutos o orçamento de um dia. Requisições mais rápidas recebem 429 e são tentadas de novo. Deixe um sinal vazio para não ter limite.",
         "rateEditButton": "Editar limites de taxa padrão"
       }
     },

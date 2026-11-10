@@ -68,13 +68,13 @@ export const BUILT_IN_CARD_TITLE: string = translationKey("Built-in signals");
  * four are. CHANGES_APPLY_COPY follows, in the card's body.
  */
 export const BUILT_IN_CARD_DESCRIPTION: string = translationKey(
-  "Frustration signals flag sessions in the list, mark the replay timeline, and count toward the Frustration filter, sort and totals. The browser recorder detects these four. Switch one off, or change its rule, if it flags things that are not frustration in your product.",
+  "The browser recorder detects these four signals. They flag sessions in the list and mark the replay timeline. Switch one off, or change its rule, if it flags things that are not frustration.",
 );
 
 export const CUSTOM_CARD_TITLE: string = translationKey("Your own signals");
 
 export const CUSTOM_CARD_DESCRIPTION: string = translationKey(
-  "Name the moments that matter in your product, such as a payment error page, a support chat opened or an error you know. Each one shows on the session list and the replay timeline, and you choose whether it counts as frustration.",
+  "Name the moments that matter in your product, such as a payment error page or a support chat opened. Each shows on the session list and the replay timeline, and you choose whether it counts as frustration.",
 );
 
 export const MOBILE_NOTE_COPY: string = translationKey(

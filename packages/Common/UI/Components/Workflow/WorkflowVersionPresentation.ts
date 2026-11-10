@@ -41,7 +41,7 @@ export const WorkflowVersionCopy: {
   openButton: translationKey("Version history"),
   panelTitle: translationKey("Version history"),
   panelDescription: translationKey(
-    "Every saved version of this workflow, newest first. Changes you save within 10 minutes of each other are one version, and the newest 100 versions are kept.",
+    "Every saved version of this workflow, newest first. Saves within 10 minutes of each other are one version, and the newest 100 versions are kept.",
   ),
   versionTitle: translationKey("Version {{number}}"),
   current: translationKey("Current"),

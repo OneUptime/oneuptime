@@ -615,13 +615,13 @@
       },
       "ingestionBudgets": {
         "dailyCardTitle": "Budgets quotidiens par défaut",
-        "dailyCardDescription": "Le maximum de chaque signal de télémétrie que chaque projet peut envoyer sur une journée de budget, décompté une fois décompressé, à son arrivée. Dès qu'un budget est épuisé, ce signal est refusé jusqu'à la réinitialisation du budget. Le budget propre d'un projet, défini sur sa page sous Projets, l'emporte sur ceux-ci. Laissez un signal vide pour n'avoir aucune limite.",
+        "dailyCardDescription": "Le maximum de chaque signal de télémétrie que chaque projet peut envoyer sur une journée de budget. Dès qu'il est épuisé, ce signal est refusé jusqu'à la réinitialisation du budget. Le budget propre d'un projet l'emporte. Laissez un signal vide pour n'avoir aucune limite.",
         "dailyEditButton": "Modifier les budgets quotidiens par défaut",
         "resetCardTitle": "Avertissement et réinitialisation",
         "resetCardDescription": "Quand les projets sont avertis qu'un budget s'épuise, et quand chaque journée de budget recommence.",
         "resetEditButton": "Modifier l'avertissement et la réinitialisation",
         "rateCardTitle": "Limites de débit par défaut",
-        "rateCardDescription": "Facultatif. Le débit maximal auquel chaque projet peut envoyer chaque signal, pour qu'une rafale ne puisse pas épuiser le budget d'une journée en quelques minutes. Les requêtes plus rapides reçoivent une réponse 429 avec Retry-After, et les émetteurs les réessaient. Laissez un signal vide pour n'avoir aucune limite.",
+        "rateCardDescription": "Facultatif. Le débit maximal auquel chaque projet peut envoyer chaque signal, pour qu'une rafale ne puisse pas épuiser le budget d'une journée en quelques minutes. Les requêtes plus rapides reçoivent une réponse 429 et sont réessayées. Laissez un signal vide pour n'avoir aucune limite.",
         "rateEditButton": "Modifier les limites de débit par défaut"
       }
     },
