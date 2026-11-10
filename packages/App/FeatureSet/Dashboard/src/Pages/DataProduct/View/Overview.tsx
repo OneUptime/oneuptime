@@ -135,8 +135,13 @@ const DataProductOverviewPage: FunctionComponent<
 
   return (
     <div className="space-y-5">
-      <EventStatBar columns={4} ariaLabel="Data product freshness">
+      <EventStatBar
+        columns={4}
+        ariaLabel="Data product freshness"
+        isLaidOutByOwnWidth={true}
+      >
         <EventStatTile
+          variant="segment"
           label="Status"
           value={getDataProductStatusPill(product?.status)}
           note={
@@ -151,6 +156,7 @@ const DataProductOverviewPage: FunctionComponent<
           icon={IconProp.Signal}
         />
         <EventStatTile
+          variant="segment"
           label="Data As Of"
           value={
             product?.dataAsOf
@@ -167,6 +173,7 @@ const DataProductOverviewPage: FunctionComponent<
           icon={IconProp.Clock}
         />
         <EventStatTile
+          variant="segment"
           label="SLA"
           value={product ? describeDataProductSla(translator, product) : "-"}
           note={
@@ -180,6 +187,7 @@ const DataProductOverviewPage: FunctionComponent<
           icon={IconProp.Flag}
         />
         <EventStatTile
+          variant="segment"
           label="Tables"
           value={translator.formatNumber(tableIds.length)}
           note={

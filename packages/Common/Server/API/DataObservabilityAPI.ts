@@ -25,7 +25,15 @@ import {
 } from "../../Types/DataObservability/DataAssetFreshness";
 import { isDataAssetUnused } from "../../Types/DataObservability/DataAssetReads";
 import {
+  DataCheckHealthAnswer,
+  MAX_DATA_ATTENTION_ITEMS,
+} from "../../Types/DataObservability/DataObservabilityAttention";
+import DataObservabilityAttentionReader, {
+  DataObservabilityAttention,
+} from "../Utils/DataObservability/DataObservabilityAttentionReader";
+import {
   DATA_OBSERVABILITY_API_ROUTES,
+  DataObservabilityCheckHealthResponse,
   DataObservabilityCollector,
   DataObservabilityConnectStoreResponse,
   DataObservabilityOverview,
@@ -33,6 +41,7 @@ import {
   DataObservabilityOverviewChange,
   DataObservabilityStoragePathStore,
   DataObservabilityStoreSummary,
+  MAX_CHECK_HEALTH_IDS,
   SCHEMA_CHANGE_WINDOW_IN_DAYS,
 } from "../../Types/DataObservability/DataObservabilityApiTypes";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -99,7 +108,11 @@ import CommonAPI from "./CommonAPI";
  * DATA OBSERVABILITY'S OWN ROUTES, BESIDE THE DATA ASSET CRUD ROUTES.
  *
  *  - the Overview's figures and the watched stores with how their last
- *    collection went, for anyone who may read data assets;
+ *    collection went, for anyone who may read data assets - with what
+ *    needs someone now, worst first (DataObservabilityAttentionReader),
+ *    naming only the alerts its reader may see;
+ *  - how each of a page of checks stands now - passing, failing or could
+ *    not run - for the same people, by the same alerts;
  *  - Collect Now on a store, for anyone who may edit data assets;
  *  - a data check's alert monitor kept in step with it, and Run Now on a
  *    check, for the same people - the monitor made with their own
@@ -180,9 +193,31 @@ export default class DataObservabilityAPI extends BaseAPI<
     this.post(
       DATA_OBSERVABILITY_API_ROUTES.overview,
       READ_PERMISSIONS,
-      async (projectId: ObjectID) => {
+      async (
+        projectId: ObjectID,
+        _req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        // The alerts it names are the ones its reader may see.
         return (await DataObservabilityAPI.getOverview(
           projectId,
+          props,
+        )) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.checkHealth,
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await DataObservabilityAPI.getCheckHealth(
+          projectId,
+          (req.body || {}) as JSONObject,
+          props,
         )) as unknown as JSONObject;
       },
     );
@@ -1046,6 +1081,10 @@ export default class DataObservabilityAPI extends BaseAPI<
     ];
 
     const lateByStore: Map<string, number> = new Map();
+    const alertsByStore: Map<string, number> =
+      await DataObservabilityAttentionReader.getAlertMonitorCountByStore(
+        projectId,
+      );
 
     for (const asset of await this.readAssets(projectId)) {
       if (asset.isDropped || !asset.dataStoreId) {
@@ -1092,12 +1131,74 @@ export default class DataObservabilityAPI extends BaseAPI<
             : null,
           assetCount: store.tableHealthAssetCount || 0,
           lateAssetCount: lateByStore.get(store.id!.toString()) || 0,
+          alertMonitorCount: alertsByStore.get(store.id!.toString()) || 0,
         };
       });
   }
 
+  // How each of some checks stands now, for a list of them: the Checks page's Status.
+  public static async getCheckHealth(
+    projectId: ObjectID,
+    body: JSONObject,
+    reader: DatabaseCommonInteractionProps,
+  ): Promise<DataObservabilityCheckHealthResponse> {
+    const given: unknown = body["dataCheckIds"];
+
+    if (!Array.isArray(given)) {
+      throw new BadDataException("Name the checks: dataCheckIds.");
+    }
+
+    const ids: Array<string> = Array.from(
+      new Set(
+        given.filter((id: unknown): id is string => {
+          return typeof id === "string" && ObjectID.isValidUUID(id);
+        }),
+      ),
+    );
+
+    if (ids.length > MAX_CHECK_HEALTH_IDS) {
+      throw new BadDataException(
+        `Ask for at most ${MAX_CHECK_HEALTH_IDS} checks at a time.`,
+      );
+    }
+
+    if (ids.length === 0) {
+      return { checks: {} };
+    }
+
+    const checks: Array<DataCheck> = await DataCheckService.findBy({
+      query: { projectId, _id: QueryHelper.any(ids) },
+      select: {
+        _id: true,
+        checkType: true,
+        isEnabled: true,
+        lastRunAt: true,
+        lastRunStatus: true,
+        monitorId: true,
+      },
+      skip: 0,
+      limit: ids.length,
+      props: { isRoot: true },
+    });
+    const answers: Map<string, DataCheckHealthAnswer> =
+      await DataObservabilityAttentionReader.getCheckHealth({
+        projectId,
+        reader,
+        checks,
+      });
+    const response: DataObservabilityCheckHealthResponse = { checks: {} };
+
+    for (const [id, answer] of answers) {
+      response.checks[id] = answer;
+    }
+
+    return response;
+  }
+
   public static async getOverview(
     projectId: ObjectID,
+    // Whoever asked: the alerts named are the ones they may see. Read as nobody, none private.
+    reader: DatabaseCommonInteractionProps = {},
   ): Promise<DataObservabilityOverview> {
     const now: Date = OneUptimeDate.getCurrentDate();
     const stores: Array<DataObservabilityStoreSummary> =
@@ -1133,6 +1234,7 @@ export default class DataObservabilityAPI extends BaseAPI<
         lateAssets.push({
           dataAssetId: asset.id.toString(),
           assetKey: asset.assetKey || "",
+          dataStoreId: asset.dataStoreId?.toString() || null,
           dataStoreName: asset.dataStoreName || "",
           lastChangedAt: asset.lastChangedAt
             ? OneUptimeDate.fromString(asset.lastChangedAt).toISOString()
@@ -1204,6 +1306,30 @@ export default class DataObservabilityAPI extends BaseAPI<
         };
       });
 
+    const [attention, owners]: [
+      DataObservabilityAttention,
+      { tableOwnerCount: number; ownerRuleCount: number },
+    ] = await Promise.all([
+      DataObservabilityAttentionReader.read({
+        projectId,
+        now,
+        reader,
+        stores,
+        lateAssets,
+      }),
+      DataObservabilityAttentionReader.getOwnerCounts(projectId),
+    ]);
+    // A database nobody watches needs no alerts: the ones watched do.
+    const watchedStores: Array<DataObservabilityStoreSummary> = stores.filter(
+      (store: DataObservabilityStoreSummary) => {
+        return store.isTableHealthEnabled;
+      },
+    );
+    const storesWithoutAlerts: Array<DataObservabilityStoreSummary> =
+      watchedStores.filter((store: DataObservabilityStoreSummary) => {
+        return store.alertMonitorCount === 0;
+      });
+
     return {
       storeCount: stores.length,
       assetCount,
@@ -1220,6 +1346,19 @@ export default class DataObservabilityAPI extends BaseAPI<
       lateAssets: lateAssets.slice(0, OVERVIEW_LIST_LENGTH),
       recentChanges,
       stores,
+      attention: attention.items.slice(0, MAX_DATA_ATTENTION_ITEMS),
+      attentionCount: attention.items.length,
+      failingCheckCount: attention.failingCheckCount,
+      setup: {
+        storeCount: watchedStores.length,
+        storesWithAlertsCount:
+          watchedStores.length - storesWithoutAlerts.length,
+        firstStoreWithoutAlertsId: storesWithoutAlerts[0]?.dataStoreId || null,
+        checkCount: attention.checkCount,
+        pipelineCount: attention.pipelineCount,
+        tableOwnerCount: owners.tableOwnerCount,
+        ownerRuleCount: owners.ownerRuleCount,
+      },
     };
   }
 

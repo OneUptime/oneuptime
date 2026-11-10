@@ -49,16 +49,22 @@ flowchart TB
 :::steps
 ### Forbind en database
 
-Åbn **Dataobservabilitet**, gå til **Databaser**, og vælg **Forbind en database**. Vælg motoren, og angiv en skrivebeskyttet forbindelsesstreng eller navnet på den miljøvariabel, din sonde læser den fra. [Forbind en database](/docs/data-observability/connect) viser login for hver motor.
+Åbn **Dataobservabilitet**, og vælg **Forbind en database** på **Oversigt** eller på **Databaser**. Vælg motoren, og angiv en skrivebeskyttet forbindelsesstreng eller navnet på den miljøvariabel, din sonde læser den fra. [Forbind en database](/docs/data-observability/connect) viser login for hver motor.
 
-### Se dens tabeller
+### Slå dens anbefalede advarsler til
+
+En database, du forbinder, åbner på siden **Anbefalede advarsler**, for ingen hører om dens tabeller, før nogle af dem er slået til. Tilføj dem, du vil have: en tabel, der er forsinket, en, hvis rækker falder kraftigt eller er usædvanligt få, en, hvis kolonner ændrer sig, og en database, der holder op med at rapportere. Hver er en almindelig monitor: vagtordning, ejere, vedligeholdelsesvinduer og statussider fungerer som for enhver anden.
+
+### Læs oversigten
 
 Inden for fem minutter vises dens tabeller under **Tabeller**, hver med sine rækker, sin størrelse og tidspunktet for den seneste ændring. En tabels aktualitet kendes, når den har ændret sig to gange: **Frisk**, så længe den holder sin rytme, **Forsinket**, når den misser den.
 
-### Tilføj de anbefalede advarsler
-
-Vælg **Anbefalede advarsler** for databasen under **Databaser**, og tilføj dem, du vil have: en tabel, der er forsinket, en, hvis rækker falder kraftigt eller er usædvanligt få, en, hvis kolonner ændrer sig, og en database, der holder op med at rapportere. Hver er en almindelig monitor: vagtordning, ejere, vedligeholdelsesvinduer og statussider fungerer som for enhver anden.
+**Oversigt** viser derefter, hvad der kræver nogen nu, det værste først: en database, der ikke kunne læses, en pipelinekørsel, der fejlede eller er forsinket, et tjek, der fejler eller ikke kunne køre, en afstemning, der er skredet, og et dataprodukt eller en tabel, der er forsinket. Hvert punkt siger, hvem der ejer det, og om dets advarsel er åben, eller at ingen får besked, fordi dets database ikke har nogen advarsel slået til, og åbner den side, hvor det bliver rettet. Indtil projektet er sat op, viser **Oversigt** de trin, der mangler: advarsler på hver database, ejere til tabellerne, et tjek og dine pipelinekørsler.
 :::
+
+## Hvor tingene er
+
+Menuen følger de spørgsmål, du stiller til dine data. Dens første sektion rummer siderne til hverdagsbrug: **Oversigt**, **Tabeller**, **Pipelines**, **Skemaændringer**, **Databaser** og **Lagerstier**. **Kvalitet** rummer de regler, dataene skal overholde, **Tjek** og **Afstemninger**, og **Forbrug** hvem der er afhængige af dem, og hvad de koster: **Dataprodukter**, **BI-dashboards**, **Lagerforbrug** og **Ubrugte tabeller**. **Regler** (**Ejerregler** og **Etiketregler**), **Hjælp** og **Avanceret** (**Indstillinger** og **Slettede tabeller**) forbliver foldet sammen, indtil du åbner dem.
 
 ## Hvad det koster
 
