@@ -699,6 +699,13 @@ describe("whose name a device has", () => {
     // Added by hand: no record of either.
     expect(isDeviceNamedByPerson({ name: "Core switch" })).toBe(true);
     expect(isDeviceNamedByPerson({ name: "" })).toBe(false);
+    // Called by its own address: what a device added without a name is called.
+    expect(
+      isDeviceNamedByPerson({ name: "10.0.0.5", hostname: " 10.0.0.5 " }),
+    ).toBe(false);
+    expect(
+      isDeviceNamedByPerson({ name: "core", hostname: "10.0.0.5" }),
+    ).toBe(true);
   });
 
   test("isDeviceStillNamedByRule", () => {

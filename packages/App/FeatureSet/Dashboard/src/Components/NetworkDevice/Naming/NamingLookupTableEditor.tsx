@@ -123,6 +123,19 @@ export function readLookupRows(value: unknown): Array<NamingLookupEntry> {
   return rows;
 }
 
+// The table's first value: what the rule form's example device is named with.
+export function getExampleLookupValue(values: unknown): string | undefined {
+  const rows: Array<NamingLookupEntry> = readLookupRows(
+    (values as Record<string, unknown> | undefined)?.["lookupEntries"],
+  );
+
+  return (
+    rows.find((row: NamingLookupEntry): boolean => {
+      return Boolean(row.value.trim());
+    })?.value || undefined
+  );
+}
+
 const NamingLookupTableEditor: FunctionComponent<
   NamingLookupTableEditorProps
 > = (props: NamingLookupTableEditorProps): ReactElement => {

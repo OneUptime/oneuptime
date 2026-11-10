@@ -199,14 +199,36 @@ describe("nameDeviceByRule: the device an import builds under a rule's name", ()
     expect(device.discoveredName).toBe("DMB-5");
     expect(device.discoveredNameSource).toBe(DeviceNameSource.NetbiosName);
     expect(device.siteId?.toString()).toBe(SITE_ID);
+  });
 
-    // And the create hook keeps all of it.
+  test("the create hook keeps what the builder named, discovery's name and all", async () => {
+    // No site and no probe: nothing the hook reaches the database for.
+    const device: NetworkDevice = nameDeviceByRule({
+      device: buildNetworkDeviceFromDiscoveredHost({
+        projectId: PROJECT_ID,
+        host: {
+          ipAddress: "10.48.145.55",
+          snmpReachable: false,
+          netbiosName: "DMB-5",
+        },
+        scan: { useShortDeviceNames: false },
+        name: "UN1216DRTPLR02",
+      }),
+      naming: naming({ discoveredName: "DMB-5" }),
+      address: "10.48.145.55",
+      isDiscoveredDevice: false,
+    });
+
     const result: OnCreate<NetworkDevice> = await internals().onBeforeCreate({
       data: device,
       props: { isRoot: true },
     } as CreateBy<NetworkDevice>);
 
+    expect(created(result)["name"]).toBe("UN1216DRTPLR02");
     expect(created(result)["discoveredName"]).toBe("DMB-5");
+    expect(created(result)["discoveredNameSource"]).toBe(
+      DeviceNameSource.NetbiosName,
+    );
     expect(created(result)["ruleAssignedName"]).toBe("UN1216DRTPLR02");
   });
 

@@ -42,8 +42,6 @@ export const NAMING_SENTENCES: {
   readonly missingValueFallback: string;
   readonly nameTaken: string;
   readonly nameTooLong: string;
-  readonly byRule: string;
-  readonly keepsDiscoveredName: string;
 } = {
   noRule: translationKey("No naming rule matches it."),
   missingValueFallback: translationKey(
@@ -55,8 +53,6 @@ export const NAMING_SENTENCES: {
   nameTooLong: translationKey(
     "The name the rule gives it is longer than {{max}} characters.",
   ),
-  byRule: translationKey("By {{rule}}"),
-  keepsDiscoveredName: translationKey("Keeps the name discovery found"),
 };
 
 function readPlaceholder(value: string | undefined): NamePlaceholder | null {

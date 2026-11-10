@@ -1,8 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import ApplyNamingRulesModal from "../../../Components/NetworkDevice/Naming/ApplyNamingRulesModal";
-import getNamingRuleFormFields, {
-  getExampleLookupValue,
-} from "../../../Components/NetworkDevice/Naming/NamingRuleFormFields";
+import getNamingRuleFormFields from "../../../Components/NetworkDevice/Naming/NamingRuleFormFields";
+import { getExampleLookupValue } from "../../../Components/NetworkDevice/Naming/NamingLookupTableEditor";
 import NetworkDeviceNamingRule from "Common/Models/DatabaseModels/NetworkDeviceNamingRule";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Green, Red } from "Common/Types/BrandColors";

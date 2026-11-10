@@ -201,17 +201,27 @@ export const NAMING_APPLY_RULES_CHANGED_REASON: string =
 /*
  * The device's name, its discovered name and its rule-given name: which of
  * them is the one it has. True when the name was typed by a person - it is
- * neither what discovery recorded nor what a naming rule gave it. A device
- * with neither record was added by hand, so its name is a person's too.
+ * neither what discovery recorded nor what a naming rule gave it, nor its
+ * own address (what a device added without a name is called, and what an
+ * import before discovery recorded names named a device by). A device with
+ * no record at all was otherwise added by hand, so its name is a person's.
  */
 export function isDeviceNamedByPerson(device: {
   name?: unknown;
   discoveredName?: unknown;
   ruleAssignedName?: unknown;
+  hostname?: unknown;
 }): boolean {
   const name: string = typeof device.name === "string" ? device.name.trim() : "";
 
   if (!name) {
+    return false;
+  }
+
+  if (
+    typeof device.hostname === "string" &&
+    name.toLowerCase() === device.hostname.trim().toLowerCase()
+  ) {
     return false;
   }
 

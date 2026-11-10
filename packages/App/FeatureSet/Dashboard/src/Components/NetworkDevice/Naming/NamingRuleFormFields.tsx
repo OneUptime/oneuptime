@@ -31,6 +31,7 @@ import {
 import React, { ReactElement } from "react";
 import NamePatternInput from "./NamePatternInput";
 import NamingLookupTableEditor, {
+  getExampleLookupValue,
   readLookupRows,
 } from "./NamingLookupTableEditor";
 
@@ -139,19 +140,6 @@ export function getLookupTableFieldError(
   }
 
   return null;
-}
-
-// The table's first value: what the example device is named with.
-export function getExampleLookupValue(values: unknown): string | undefined {
-  const rows: Array<NamingLookupEntry> = readLookupRows(
-    (values as Record<string, unknown> | undefined)?.["lookupEntries"],
-  );
-
-  return (
-    rows.find((row: NamingLookupEntry): boolean => {
-      return Boolean(row.value.trim());
-    })?.value || undefined
-  );
 }
 
 const LOOKUP_SECTION: {
