@@ -1,6 +1,6 @@
 # Uso de telemetria
 
-Veja quanta telemetria cada projeto, e cada serviço ou recurso dele, envia: registros, métricas, traços e as exceções deles, perfis, reproduções de sessão e eventos de segurança. O uso é contado em toda instalação do OneUptime, com cobrança ou sem ela, para que você encontre o que enche o seu armazenamento sem consultar o ClickHouse.
+Veja quanta telemetria cada projeto, e cada serviço ou recurso dele, envia: registros, métricas, traços, exceções, perfis, reproduções de sessão e eventos de segurança. O uso é contado em toda instalação do OneUptime, com cobrança ou sem ela, para que você encontre o que enche o seu armazenamento sem consultar o ClickHouse.
 
 :::cards
 - [Como o uso é contado](#como-o-uso-é-contado): Uma vez por dia, para cada recurso e sinal.
@@ -24,10 +24,12 @@ flowchart TB
 
 - **Um dia é contado quando termina.** Cada dia é contado até por volta das 08:00 UTC do dia seguinte, então o uso de hoje aparece amanhã. Um dia que não pôde ser contado é tentado de novo durante uma semana.
 - **O tamanho é o tamanho armazenado.** Cada sinal é contado pelo tamanho das linhas em que é armazenado, antes da compressão. As reproduções de sessão são contadas pelos bytes que os gravadores enviaram.
-- **Os traços incluem as suas exceções, e os perfis as suas amostras.**
+- **As exceções são mostradas à parte.** As exceções que vêm de spans e registros têm um total, uma coluna e uma parte do gráfico próprios, e os **Traços** contam os spans. Elas não têm uma linha própria: cada linha de traços diz quanto dela corresponde a exceções. Um dia contado antes de as exceções serem mostradas à parte continua com elas dentro dos **Traços**, como estava.
+- **Os perfis incluem as suas amostras.**
 - **A telemetria do próprio OneUptime não é contada.** As leituras de monitores, alertas, incidentes e SLOs, as leituras da Observabilidade de dados e as métricas de orçamento das reproduções de sessão são gravadas pelo próprio OneUptime.
 - **No OneUptime Cloud, a telemetria é cobrada com base nessas linhas.** Em uma instalação sem cobrança, o uso é contado sem custo, e nada é cobrado por ele, mesmo que a cobrança seja ativada depois.
-- **Um orçamento é contado à parte do uso.** Um [orçamento de ingestão](/docs/telemetry/ingestion-budgets) conta a telemetria à medida que chega, descomprimida, então pode parar a telemetria de um dia no mesmo dia. Enquanto houver um definido, esta página abre com os orçamentos de hoje.
+- **As exceções são cobradas como parte dos Traços.** No OneUptime Cloud, os traços são cobrados pelos seus spans e pelas suas exceções juntos, ao preço dos traços, como sempre foram. Mostrar as exceções à parte não muda em nada a sua cobrança, e elas nunca são cobradas duas vezes.
+- **Um orçamento é contado à parte do uso.** Um [orçamento de ingestão](/docs/telemetry/ingestion-budgets) conta a telemetria à medida que chega, descomprimida, então pode parar a telemetria de um dia no mesmo dia. Enquanto houver um definido, esta página abre com os orçamentos de hoje. As exceções não têm orçamento próprio: são contadas no orçamento dos traços ou dos registros em que chegam.
 
 ## Antes de começar
 
@@ -56,7 +58,7 @@ A página tem três cartões:
 | --- | --- |
 | **Uso de telemetria** | O **Total** do período, um total para cada sinal e um gráfico de cada dia, com os sinais empilhados. |
 | **Uso por recurso** | Cada **Recurso** com o seu tipo, uma coluna para cada sinal, o **Total** e a **Retenção** da telemetria dele. |
-| **Histórico de uso de telemetria** | Uma linha por sinal, recurso e dia, com filtros para **Produto**, **Dia** e **Serviço**. |
+| **Histórico de uso de telemetria** | Uma linha por produto, recurso e dia, com filtros para **Produto**, **Dia** e **Serviço**. Uma linha de **Traços** reúne os seus spans e as suas exceções, assim como os traços são cobrados, e indica em **Dados Ingeridos (em GB)** quanto dela corresponde a exceções. |
 
 A telemetria que não indicou um serviço aparece como **Serviço desconhecido**. Um recurso que foi excluído desde então, ou cujo tipo a sua função não lê, aparece pelo tipo e pelo início do ID.
 
@@ -112,7 +114,7 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
   -H "ApiKey: $ONEUPTIME_API_KEY"
 ```
 
-`startDay` e `endDay` são dias escritos `YYYY-MM-DD`, ambos incluídos, e um período pode ter até 1095 dias. A resposta traz os totais, cada dia por sinal e cada recurso por sinal, em GB, com o custo apenas onde a cobrança está ativada e a chave lê a cobrança.
+`startDay` e `endDay` são dias escritos `YYYY-MM-DD`, ambos incluídos, e um período pode ter até 1095 dias. A resposta traz os totais, cada dia por sinal e cada recurso por sinal, em GB, com o custo apenas onde a cobrança está ativada e a chave lê a cobrança. As exceções ficam em `Exceptions`, separadas de `Traces`, e um dia contado antes de as exceções serem mostradas à parte as traz dentro de `Traces`.
 
 ## Solução de problemas
 
@@ -126,6 +128,10 @@ O uso é o tamanho das linhas antes da compressão. O ClickHouse comprime o que 
 
 :::details Um recurso aparece pelo tipo e por um ID
 O recurso foi excluído depois de enviar a telemetria, ou a sua função não lê esse tipo de recurso. O uso dele continua sendo contado.
+:::
+
+:::details Os Traços caíram no dia em que as Exceções apareceram
+As exceções eram contadas dentro dos **Traços**. A partir do primeiro dia contado com as exceções à parte, os **Traços** contam os spans e as **Exceções** contam as exceções. Juntos, eles são o que os **Traços** eram, e é por eles que os traços são cobrados.
 :::
 
 ## Próximos passos

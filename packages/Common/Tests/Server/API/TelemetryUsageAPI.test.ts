@@ -34,7 +34,10 @@ import TelemetryUsageAPI, {
   canReadProjectTelemetryUsage,
   canReadProjectTelemetryUsageCost,
   TELEMETRY_USAGE_READ_REFUSAL,
+  TELEMETRY_USAGE_SORT_BY_REFUSAL,
 } from "../../../Server/API/TelemetryUsageAPI";
+import TelemetryUsageBillingService from "../../../Server/Services/TelemetryUsageBillingService";
+import TelemetryUsageResourceNames from "../../../Server/Utils/TelemetryUsage/TelemetryUsageResourceNames";
 import MasterAdminAuthorization from "../../../Server/Middleware/MasterAdminAuthorization";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import ProjectService from "../../../Server/Services/ProjectService";
@@ -54,13 +57,18 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import ProductType from "../../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../../Types/ObjectID";
+import ServiceType from "../../../Types/Telemetry/ServiceType";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import {
   TELEMETRY_USAGE_ADMIN_PROJECTS_ROUTE,
+  TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
   TELEMETRY_USAGE_PROJECT_ROUTE,
+  TELEMETRY_USAGE_SIGNALS,
+  TelemetryProjectUsagePage,
+  TelemetryUsageSummary,
 } from "../../../Types/Telemetry/TelemetryUsage";
 import UserType from "../../../Types/UserType";
 import {
@@ -528,6 +536,176 @@ describe("GET /telemetry-usage/admin/projects", () => {
 
     expect(thrown).toBeInstanceOf(BadDataException);
     expect(getUsageByProject).not.toHaveBeenCalled();
+  });
+
+  test("sorts by the exceptions, a signal of their own (issue #6356), heaviest first", async () => {
+    expect(
+      await call(TELEMETRY_USAGE_ADMIN_PROJECTS_ROUTE, {
+        ...RANGE,
+        sortBy: TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+      }),
+    ).toBeUndefined();
+
+    expect(getUsageByProject.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        sortBy: TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+        sortOrder: "desc",
+      }),
+    );
+  });
+
+  test("says which signals it sorts by when it refuses one, the exceptions among them", async () => {
+    const thrown: unknown = await call(TELEMETRY_USAGE_ADMIN_PROJECTS_ROUTE, {
+      ...RANGE,
+      sortBy: "Spans",
+    });
+
+    expect(thrown).toBeInstanceOf(BadDataException);
+    expect((thrown as Error).message).toBe(TELEMETRY_USAGE_SORT_BY_REFUSAL);
+    expect(TELEMETRY_USAGE_SORT_BY_REFUSAL).toBe(
+      "sortBy must be total, name or one of the signals (Logs, Metrics, Traces, Exceptions, Profiles, Session Replay, Security Events).",
+    );
+
+    for (const signal of TELEMETRY_USAGE_SIGNALS) {
+      expect(TELEMETRY_USAGE_SORT_BY_REFUSAL).toContain(signal);
+    }
+  });
+});
+
+/*
+ * Issue #6356: the answer says how much each resource sent in exceptions,
+ * apart from its spans - read from the usage rows through the real reads,
+ * with only Postgres answered here: a Traces row's sums hold its spans and,
+ * apart, its exceptions (TelemetryUsageReads.getSignalSumsSql).
+ */
+describe("the answer, with exceptions apart from traces", () => {
+  const SERVICE_ID: string = "63560000-2222-4222-8222-222222222222";
+  let statements: Array<string>;
+
+  beforeEach(() => {
+    statements = [];
+    getProjectUsage.mockRestore();
+    getUsageByProject.mockRestore();
+
+    jest
+      .spyOn(TelemetryUsageResourceNames, "resolve")
+      .mockResolvedValue(new Map<string, string>([[SERVICE_ID, "checkout"]]));
+
+    jest.spyOn(TelemetryUsageBillingService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (sql: string): Promise<Array<Record<string, unknown>>> => {
+          statements.push(sql);
+
+          const traces: Record<string, unknown> = {
+            productType: ProductType.Traces,
+            // Spans, the exceptions taken out; and the exceptions apart.
+            dataIngestedInGB: "2",
+            totalCostInUSD: "0.2",
+            exceptionDataIngestedInGB: "1",
+            exceptionCostInUSD: "0.1",
+          };
+
+          if (sql.includes('AS "latestDay"')) {
+            return [{ latestDay: "2026-10-30" }];
+          }
+
+          if (sql.includes('AS "projectName"')) {
+            return [
+              {
+                ...traces,
+                projectId: PROJECT_ID.toString(),
+                projectName: "Checkout",
+              },
+            ];
+          }
+
+          if (sql.includes('AS "retentionInDays"')) {
+            return [
+              {
+                ...traces,
+                primaryEntityId: SERVICE_ID,
+                primaryEntityType: ServiceType.OpenTelemetry,
+                retentionInDays: 15,
+              },
+            ];
+          }
+
+          return [{ ...traces, day: "2026-10-30" }];
+        },
+      },
+    } as never);
+  });
+
+  function answered<T>(): T {
+    return sendJson.mock.calls[0]![2] as T;
+  }
+
+  test("a project's answer has its exceptions by day, by resource and in all", async () => {
+    expect(await call(TELEMETRY_USAGE_PROJECT_ROUTE, RANGE)).toBeUndefined();
+
+    const summary: TelemetryUsageSummary = answered<TelemetryUsageSummary>();
+
+    expect(summary.byProduct).toEqual({
+      [ProductType.Traces]: { dataIngestedInGB: 2 },
+      [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 1 },
+    });
+    expect(summary.total).toEqual({ dataIngestedInGB: 3 });
+    expect(summary.days[29]).toEqual({
+      day: "2026-10-30",
+      byProduct: {
+        [ProductType.Traces]: { dataIngestedInGB: 2 },
+        [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 1 },
+      },
+      total: { dataIngestedInGB: 3 },
+    });
+    expect(summary.resources).toEqual([
+      expect.objectContaining({
+        primaryEntityId: SERVICE_ID,
+        name: "checkout",
+        byProduct: {
+          [ProductType.Traces]: { dataIngestedInGB: 2 },
+          [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 1 },
+        },
+        total: { dataIngestedInGB: 3 },
+      }),
+    ]);
+
+    // Where billing is off, no cost - the exceptions' share included.
+    expect(JSON.stringify(summary)).not.toContain("totalCostInUSD");
+  });
+
+  test("says what the exceptions cost, as their share of the traces' cost, only to who reads billing where it is on", async () => {
+    mockIsBillingEnabled = true;
+    props = memberProps([row(Permission.ProjectOwner)]);
+
+    await call(TELEMETRY_USAGE_PROJECT_ROUTE, RANGE);
+
+    const summary: TelemetryUsageSummary = answered<TelemetryUsageSummary>();
+
+    expect(summary.byProduct[TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]).toEqual({
+      dataIngestedInGB: 1,
+      totalCostInUSD: 0.1,
+    });
+    expect(summary.total.totalCostInUSD).toBeCloseTo(0.3, 10);
+  });
+
+  test("the instance's answer has each project's exceptions, and sorts by them", async () => {
+    await call(TELEMETRY_USAGE_ADMIN_PROJECTS_ROUTE, {
+      ...RANGE,
+      sortBy: TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+    });
+
+    const page: TelemetryProjectUsagePage =
+      answered<TelemetryProjectUsagePage>();
+
+    expect(page.byProduct[TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]).toEqual({
+      dataIngestedInGB: 1,
+    });
+    expect(page.projects[0]!.byProduct).toEqual({
+      [ProductType.Traces]: { dataIngestedInGB: 2 },
+      [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 1 },
+    });
+    expect(statements.join("\n")).toContain('AS "exceptionDataIngestedInGB"');
   });
 });
 

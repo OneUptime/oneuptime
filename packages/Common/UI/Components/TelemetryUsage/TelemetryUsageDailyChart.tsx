@@ -1,8 +1,8 @@
 import OneUptimeDate from "../../../Types/Date";
-import ProductType from "../../../Types/MeteredPlan/ProductType";
 import {
-  TELEMETRY_USAGE_PRODUCT_TYPES,
+  TELEMETRY_USAGE_SIGNALS,
   TelemetryUsageDaySummary,
+  TelemetryUsageSignal,
 } from "../../../Types/Telemetry/TelemetryUsage";
 import { Translator } from "../../../Types/Translator";
 import useTranslator from "../../Utils/UseTranslator";
@@ -47,16 +47,19 @@ export const toReaderNoon: (day: string) => Date = (day: string): Date => {
   );
 };
 
-// The signals that sent anything on any day, in their canonical order.
+/*
+ * The signals that sent anything on any day, in their canonical order: the
+ * exceptions after the traces they are billed with.
+ */
 export const getChartedSignals: (
   days: ReadonlyArray<TelemetryUsageDaySummary>,
-) => Array<ProductType> = (
+) => Array<TelemetryUsageSignal> = (
   days: ReadonlyArray<TelemetryUsageDaySummary>,
-): Array<ProductType> => {
-  return TELEMETRY_USAGE_PRODUCT_TYPES.filter(
-    (productType: ProductType): boolean => {
+): Array<TelemetryUsageSignal> => {
+  return TELEMETRY_USAGE_SIGNALS.filter(
+    (signal: TelemetryUsageSignal): boolean => {
       return days.some((day: TelemetryUsageDaySummary): boolean => {
-        return (day.byProduct[productType]?.dataIngestedInGB || 0) > 0;
+        return (day.byProduct[signal]?.dataIngestedInGB || 0) > 0;
       });
     },
   );
@@ -78,16 +81,16 @@ const TelemetryUsageDailyChart: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const signals: Array<ProductType> = getChartedSignals(props.days);
+  const signals: Array<TelemetryUsageSignal> = getChartedSignals(props.days);
 
   const series: Array<SeriesPoints> = signals.map(
-    (productType: ProductType): SeriesPoints => {
+    (signal: TelemetryUsageSignal): SeriesPoints => {
       return {
-        seriesName: getTelemetryUsageSignalTitle(productType, translator),
+        seriesName: getTelemetryUsageSignalTitle(signal, translator),
         data: props.days.map((day: TelemetryUsageDaySummary) => {
           return {
             x: toReaderNoon(day.day),
-            y: day.byProduct[productType]?.dataIngestedInGB || 0,
+            y: day.byProduct[signal]?.dataIngestedInGB || 0,
           };
         }),
       };
@@ -95,8 +98,8 @@ const TelemetryUsageDailyChart: FunctionComponent<ComponentProps> = (
   );
 
   const colors: Array<ChartColorValue> = signals.map(
-    (productType: ProductType): ChartColorValue => {
-      return TELEMETRY_USAGE_SIGNAL_COLORS[productType] || "gray";
+    (signal: TelemetryUsageSignal): ChartColorValue => {
+      return TELEMETRY_USAGE_SIGNAL_COLORS[signal] || "gray";
     },
   );
 

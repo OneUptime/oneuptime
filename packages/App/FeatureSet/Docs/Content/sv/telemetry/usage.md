@@ -1,6 +1,6 @@
 # Telemetrianvändning
 
-Se hur mycket telemetri varje projekt, och varje tjänst eller resurs i det, skickar: loggar, mätvärden, spår och deras undantag, profiler, sessionsuppspelningar och säkerhetshändelser. Användningen räknas på varje OneUptime-installation, med eller utan fakturering, så att du kan hitta det som fyller din lagring utan att köra frågor mot ClickHouse.
+Se hur mycket telemetri varje projekt, och varje tjänst eller resurs i det, skickar: loggar, mätvärden, spår, undantag, profiler, sessionsuppspelningar och säkerhetshändelser. Användningen räknas på varje OneUptime-installation, med eller utan fakturering, så att du kan hitta det som fyller din lagring utan att köra frågor mot ClickHouse.
 
 :::cards
 - [Hur användningen räknas](#hur-användningen-räknas): En gång om dagen, för varje resurs och signal.
@@ -24,10 +24,12 @@ flowchart TB
 
 - **En dag räknas när den är slut.** Varje dag räknas senast omkring 08:00 UTC nästa dag, så dagens användning visas i morgon. En dag som inte gick att räkna försöker OneUptime räkna igen under en vecka.
 - **Storleken är den lagrade storleken.** Varje signal räknas som storleken på de rader den lagras i, före komprimering. Sessionsuppspelningar räknas som de byte som inspelarna laddade upp.
-- **Spår inkluderar sina undantag, och profiler sina prov.**
+- **Undantag visas separat.** Undantagen som registreras från spans och loggar har en egen summa, kolumn och del av diagrammet, och **Spår** räknar spans. De har ingen egen rad: varje rad för spår anger hur mycket av den som var undantag. En dag som räknades innan undantag visades separat har dem fortfarande i **Spår**, som tidigare.
+- **Profiler inkluderar sina prov.**
 - **OneUptimes egen telemetri räknas inte.** Avläsningar från monitorer, larm, incidenter och SLO:er, avläsningar från Dataobserverbarhet och budgetmätvärdena för sessionsuppspelningar skrivs av OneUptime självt.
 - **På OneUptime Cloud är det de här raderna som telemetrin faktureras efter.** På en installation utan fakturering räknas användningen utan kostnad, och inget debiteras för den, inte ens om fakturering slås på senare.
-- **En budget räknas separat från användningen.** En [intagningsbudget](/docs/telemetry/ingestion-budgets) räknar telemetri när den kommer in, dekomprimerad, så att den kan stoppa en dags telemetri samma dag. Medan en sådan är angiven öppnas den här sidan med dagens budgetar.
+- **Undantag faktureras som en del av Spår.** På OneUptime Cloud faktureras spår för sina spans och sina undantag tillsammans, till priset för spår, precis som de alltid har fakturerats. Att undantagen visas separat ändrar inget av det du faktureras för, och de debiteras aldrig två gånger.
+- **En budget räknas separat från användningen.** En [intagningsbudget](/docs/telemetry/ingestion-budgets) räknar telemetri när den kommer in, dekomprimerad, så att den kan stoppa en dags telemetri samma dag. Medan en sådan är angiven öppnas den här sidan med dagens budgetar. Undantag har ingen egen budget: de räknas i budgeten för de spår eller loggar som de kommer in med.
 
 ## Innan du börjar
 
@@ -56,7 +58,7 @@ Sidan har tre kort:
 | --- | --- |
 | **Telemetrianvändning** | **Totalt** för intervallet, en summa för varje signal och ett diagram över varje dag, med signalerna staplade. |
 | **Användning per resurs** | Varje **Resurs** med sin typ, en kolumn för varje signal, **Totalt** och **Lagringstid**, hur länge dess telemetri sparas. |
-| **Användningshistorik för telemetri** | En rad per signal, resurs och dag, med filter för **Produkt**, **Dag** och **Tjänst**. |
+| **Användningshistorik för telemetri** | En rad per produkt, resurs och dag, med filter för **Produkt**, **Dag** och **Tjänst**. En rad för **Spår** innehåller sina spans och undantag tillsammans, så som spår faktureras, och anger under **Inmatad data (i GB)** hur mycket av den som var undantag. |
 
 Telemetri som inte angav någon tjänst listas som **Okänd tjänst**. En resurs som har tagits bort sedan dess, eller vars typ din roll inte läser, listas med sin typ och början av sitt ID.
 
@@ -112,7 +114,7 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
   -H "ApiKey: $ONEUPTIME_API_KEY"
 ```
 
-`startDay` och `endDay` är dagar skrivna `YYYY-MM-DD`, båda inräknade, och ett intervall kan vara upp till 1095 dagar långt. Svaret innehåller summorna, varje dag per signal och varje resurs per signal, i GB, med kostnaden bara där fakturering är på och nyckeln läser fakturering.
+`startDay` och `endDay` är dagar skrivna `YYYY-MM-DD`, båda inräknade, och ett intervall kan vara upp till 1095 dagar långt. Svaret innehåller summorna, varje dag per signal och varje resurs per signal, i GB, med kostnaden bara där fakturering är på och nyckeln läser fakturering. Undantag finns under `Exceptions`, skilt från `Traces`, och en dag som räknades innan undantag visades separat har dem i `Traces`.
 
 ## Felsökning
 
@@ -126,6 +128,10 @@ Användningen är storleken på raderna före komprimering. ClickHouse komprimer
 
 :::details En resurs listas med sin typ och ett ID
 Resursen har tagits bort sedan den skickade telemetrin, eller så läser din roll inte den typen av resurs. Dess användning räknas fortfarande.
+:::
+
+:::details Spår minskade samma dag som Undantag dök upp
+Undantag räknades tidigare in i **Spår**. Från och med den första dagen då undantagen räknades separat räknar **Spår** spans och **Undantag** undantagen. Tillsammans är de det som **Spår** var, och det som spår faktureras för.
 :::
 
 ## Nästa steg
