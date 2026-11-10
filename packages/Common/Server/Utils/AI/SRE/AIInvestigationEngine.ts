@@ -72,6 +72,7 @@ import {
 } from "../../../../Types/AI/AiContext";
 import AiContextReader from "../AiContext/AiContextReader";
 import { getAiContextEventSummary } from "../AiContext/AiContextPrompt";
+import { getReportLanguageInstructions } from "./InvestigationReportLanguagePrompt";
 
 /*
  * AI SRE — the shared autonomous-investigation engine.
@@ -715,6 +716,18 @@ export default class AIInvestigationEngine {
       });
     }
 
+    const persona: string = request.personaOverride ?? INVESTIGATION_PERSONA;
+
+    /*
+     * Notes may ask for another language (issue #6542): a run that read
+     * them is also given each language's words for its persona's headings,
+     * which the AI card lays the report out by. Without notes, the prompt
+     * is the one it always was.
+     */
+    const reportLanguageInstructions: string = aiContext
+      ? getReportLanguageInstructions(persona)
+      : "";
+
     /*
      * The model reads text: an image embedded in the subject's text - a
      * synthetic monitor's screenshot is hundreds of kilobytes of base64 -
@@ -908,9 +921,13 @@ export default class AIInvestigationEngine {
           feature: request.feature,
           // Read above, and recorded: null when there is none to read.
           aiContext,
-          systemInstructions: `${request.personaOverride ?? INVESTIGATION_PERSONA}${
+          systemInstructions: `${persona}${
             request.additionalInstructions
               ? `\n\n${request.additionalInstructions}`
+              : ""
+          }${
+            reportLanguageInstructions
+              ? `\n\n${reportLanguageInstructions}`
               : ""
           }`,
           question: `${

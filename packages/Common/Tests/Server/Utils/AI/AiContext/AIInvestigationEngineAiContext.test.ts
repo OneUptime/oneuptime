@@ -2,6 +2,8 @@ import AIInvestigationEngine, {
   INVESTIGATION_PERSONA,
   InvestigationRequest,
 } from "../../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
+import { getReportLanguageInstructions } from "../../../../../Server/Utils/AI/SRE/InvestigationReportLanguagePrompt";
+import { SECURITY_CASE_TRIAGE_PERSONA } from "../../../../../Server/Utils/AI/Security/SecurityCaseTriagePrompt";
 import AIConfidenceSignal from "../../../../../Server/Utils/AI/SRE/ConfidenceSignal";
 import InvestigationTldr from "../../../../../Server/Utils/AI/SRE/InvestigationTldr";
 import ObservabilityAssistant, {
@@ -43,6 +45,10 @@ import type { SpyInstance } from "jest-mock";
  * in the run's activity before the model starts, and hands the same to the
  * agent loop, which places it first in the system prompt. Nothing to read:
  * nothing recorded, and the loop told so (null) - it reads nothing again.
+ *
+ * Notes may ask for a language (issue #6542): a run that read some is also
+ * given each language's words for its persona's headings, after the
+ * persona; a run that read none is sent the persona as it always was.
  */
 
 const PROJECT_A: ObjectID = new ObjectID(
@@ -197,13 +203,73 @@ describe("AIInvestigationEngine.executeRun: the project's AI context", () => {
     expect(events.indexOf(recorded[0]!)).toBe(1);
   });
 
-  test("hands the loop exactly what it recorded, and keeps the persona as it was", async () => {
+  test("hands the loop exactly what it recorded, and the persona with each language's words for its headings", async () => {
     await run(PROJECT_A);
 
     const given: AiContextActivity | null | undefined = loopRequest().aiContext;
 
     expect(given).toEqual(aiContextEvents()[0]!.resultSummary!.aiContext);
+    // The notes may ask for a language (issue #6542): the persona, then the table.
+    expect(loopRequest().systemInstructions).toBe(
+      `${INVESTIGATION_PERSONA}\n\n${getReportLanguageInstructions(INVESTIGATION_PERSONA)}`,
+    );
+    expect(loopRequest().systemInstructions).toContain(
+      "| Chinese (Simplified), 简体中文 | 摘要 | 影响 | 最可能的根本原因 | 证据 | 已排除的原因 | 建议的后续步骤 | 用户 | 服务 | SLOs |",
+    );
+  });
+
+  test("a run with no notes is sent the persona exactly as it always was", async () => {
+    projectNotes[PROJECT_A.toString()] = undefined;
+
+    await run(PROJECT_A);
+
+    expect(loopRequest().aiContext).toBeNull();
     expect(loopRequest().systemInstructions).toBe(INVESTIGATION_PERSONA);
+  });
+
+  test("notes that cannot be read add no language table either", async () => {
+    projectRead.mockRejectedValue(new Error("database is down"));
+
+    await run(PROJECT_A);
+
+    expect(loopRequest().systemInstructions).toBe(INVESTIGATION_PERSONA);
+  });
+
+  test("the table comes after the caller's own instructions, and only with notes", async () => {
+    await run(PROJECT_A, { additionalInstructions: "CLUSTER RULES" });
+
+    expect(loopRequest().systemInstructions).toBe(
+      `${INVESTIGATION_PERSONA}\n\nCLUSTER RULES\n\n${getReportLanguageInstructions(INVESTIGATION_PERSONA)}`,
+    );
+
+    projectNotes[PROJECT_A.toString()] = undefined;
+    await run(PROJECT_A, { additionalInstructions: "CLUSTER RULES" });
+
+    expect(loopRequest(1).systemInstructions).toBe(
+      `${INVESTIGATION_PERSONA}\n\nCLUSTER RULES`,
+    );
+  });
+
+  test("a security case's triage is given the words for its own headings only, and keeps its closing lines", async () => {
+    await run(PROJECT_A, {
+      feature: "AI Security Case Triage",
+      personaOverride: SECURITY_CASE_TRIAGE_PERSONA,
+    });
+
+    const instructions: string = loopRequest().systemInstructions || "";
+
+    expect(instructions.startsWith(SECURITY_CASE_TRIAGE_PERSONA)).toBe(true);
+    expect(instructions).toContain(
+      "| Language | Summary | Evidence | Suggested next steps |",
+    );
+    expect(instructions).toContain(
+      "| German, Deutsch | Zusammenfassung | Belege | Vorgeschlagene nächste Schritte |",
+    );
+    expect(instructions).not.toContain("| Impact |");
+    // The lines the server reads stay as the persona gives them.
+    expect(instructions).toContain(
+      "every line, key, value or block the instructions above require in a fixed form",
+    );
   });
 
   test("reads its own project's notes by the run's project id, as root", async () => {

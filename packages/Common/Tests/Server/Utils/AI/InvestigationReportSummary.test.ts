@@ -661,6 +661,49 @@ describe("InvestigationReportSummary.nextStepFromReport", () => {
   });
 });
 
+/*
+ * A team's AI context asked for Chinese (issue #6542): the AI Logs and AI
+ * Insights pages read the report's own Summary and first step in it, as
+ * they read an English report's.
+ */
+describe("InvestigationReportSummary, on a report written in another language", () => {
+  const CHINESE_REPORT: string = brandedReport(
+    [
+      "**摘要**",
+      "checkout 部署的 2 个副本中 0 个就绪 [C1][C2]，因为镜像无法拉取 [C2]。",
+      "",
+      "**最可能的根本原因**（高置信度）",
+      "镜像标签 v2.4.1 不存在 [C1]。",
+      "",
+      "**建议的后续步骤**",
+      "1. 将部署回滚到 `v2.4.0` [C1]。",
+      "2. 固定镜像标签。",
+    ].join("\n"),
+  );
+
+  test("its Summary, without citation markers or the space they leave before a full-width mark", () => {
+    expect(InvestigationReportSummary.fromReport(CHINESE_REPORT)).toBe(
+      "checkout 部署的 2 个副本中 0 个就绪，因为镜像无法拉取。",
+    );
+  });
+
+  test("its first suggested step", () => {
+    expect(InvestigationReportSummary.nextStepFromReport(CHINESE_REPORT)).toBe(
+      "将部署回滚到 v2.4.0。",
+    );
+  });
+
+  test("its root cause, when it has no Summary", () => {
+    expect(
+      InvestigationReportSummary.fromReport(
+        brandedReport(
+          "**最可能的根本原因**（高置信度）\n镜像标签 v2.4.1 不存在，所以无法拉取 [C1]。",
+        ),
+      ),
+    ).toBe("镜像标签 v2.4.1 不存在，所以无法拉取。");
+  });
+});
+
 describe("InvestigationReportSummary.getConclusionsForRuns", () => {
   let incidentFeedFind: jest.SpyInstance;
   let alertFeedFind: jest.SpyInstance;
