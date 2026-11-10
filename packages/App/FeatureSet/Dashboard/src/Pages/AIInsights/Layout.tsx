@@ -6,6 +6,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import { RouteUtil } from "../../Utils/RouteMap";
 import { Outlet } from "react-router-dom";
 import { getAIInsightsBreadcrumbs } from "../../Utils/Breadcrumbs";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const AIInsightsLayout: FunctionComponent<LayoutPageComponentProps> = (
   _props: LayoutPageComponentProps,
@@ -15,6 +17,7 @@ const AIInsightsLayout: FunctionComponent<LayoutPageComponentProps> = (
   return (
     <Page
       title={"AI Insights"}
+      titleRight={<ProductAboutButton product={ProductKey.AIInsights} />}
       sideMenu={<SideMenu />}
       breadcrumbLinks={getAIInsightsBreadcrumbs(path)}
     >

@@ -10,6 +10,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
 import { TelemetryIngestionBudgetExplorerBanner } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 // Which of Traces' tabs a page is under (its AI pages: the AI tab).
 export const getActiveTracesTab: (path: string) => TracesTabKey = (
@@ -38,6 +40,7 @@ const TracesLayout: FunctionComponent<
   return (
     <Page
       title="Traces"
+      titleRight={<ProductAboutButton product={ProductKey.Traces} />}
       breadcrumbLinks={getTracesBreadcrumbs(path)}
       headerRight={<TracesNavTabs active={getActiveTracesTab(path)} />}
     >

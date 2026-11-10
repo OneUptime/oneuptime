@@ -13,6 +13,8 @@ import {
   DeveloperDocsChildPage,
   getDeveloperDocsChildPages,
 } from "../../Components/DeveloperDocs/DeveloperDocsPages";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const networkModelPageRoutes: Array<string> = [
   PageMap.NETWORK_DEVICE_VIEW,
@@ -84,6 +86,7 @@ const NetworkLayout: FunctionComponent = (): ReactElement => {
   return (
     <Page
       title={NETWORK_PAGE_TITLE}
+      titleRight={<ProductAboutButton product={ProductKey.Network} />}
       sideMenu={<NetworkSideMenu />}
       breadcrumbLinks={breadcrumbLinks}
     >

@@ -6,6 +6,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const DockerLayout: FunctionComponent<LayoutPageComponentProps> = (
   _props: LayoutPageComponentProps,
@@ -14,6 +16,7 @@ const DockerLayout: FunctionComponent<LayoutPageComponentProps> = (
   return (
     <Page
       title={"Docker"}
+      titleRight={<ProductAboutButton product={ProductKey.Docker} />}
       sideMenu={<SideMenu />}
       breadcrumbLinks={getDockerBreadcrumbs(path)}
     >
