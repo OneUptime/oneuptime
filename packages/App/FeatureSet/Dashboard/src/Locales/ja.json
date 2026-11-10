@@ -48102,7 +48102,6 @@
   "Reload the page so it fetches the latest recorder.": "ページを再読み込みして、最新のレコーダーを取得させてください。",
   "Reload with cache disabled; if it persists, report it.": "キャッシュを無効にして再読み込みしてください。解決しない場合は報告してください。",
   "Remove a filter, widen the range, or clear everything.": "フィルターを削除するか、期間を広げるか、すべてをクリアしてください。",
-  "Remove a filter, widen the range, or clear everything. {{health}}.": "フィルターを削除するか、期間を広げるか、すべてをクリアしてください。{{health}}。",
   "Remove the queued stop, or grant consent before the page starts the recorder.": "キューに入っている stop を削除するか、ページがレコーダーを起動する前に同意を付与してください。",
   "Remove {{filter}} filter": "{{filter}} フィルターを削除",
   "Report it with this diagnostics output.": "この診断の出力を添えて報告してください。",
@@ -49347,5 +49346,6 @@
   "Use a name that starts with a letter and holds only letters, digits, underscores, dots, hyphens and slashes, at most 100 characters. A name starting with \"oneuptime.\" is reserved for OneUptime's own metrics.": "英字で始まり、英字、数字、アンダースコア、ドット、ハイフン、スラッシュだけを含む 100 文字以下の名前を使ってください。\"oneuptime.\" で始まる名前は OneUptime 自身のメトリクス用に予約されています。",
   "metric() was called while the application has product analytics events off, so nothing was sent.": "アプリケーションでプロダクト分析イベントがオフの間に metric() が呼ばれたため、何も送信されませんでした。",
   "metric() was given a name it cannot send, so nothing was sent. The detail shows that name, or its type if it was not a string.": "metric() に送信できない名前が渡されたため、何も送信されませんでした。レコードの詳細には、その名前か、文字列でなかった場合はその型が表示されます。",
-  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() に有限の数値でない値が渡されたため、何も送信されませんでした。レコードの詳細にメトリクス名が表示されます。"
+  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() に有限の数値でない値が渡されたため、何も送信されませんでした。レコードの詳細にメトリクス名が表示されます。",
+  "Remove a filter, widen the range, or clear everything. {{diagnosis}}.": "フィルターを削除するか、期間を広げるか、すべてをクリアしてください。{{diagnosis}}。"
 }

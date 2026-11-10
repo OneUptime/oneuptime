@@ -48102,7 +48102,6 @@
   "Reload the page so it fetches the latest recorder.": "صفحه را دوباره بارگذاری کنید تا جدیدترین ضبط‌کننده را دریافت کند.",
   "Reload with cache disabled; if it persists, report it.": "با حافظه پنهانِ غیرفعال دوباره بارگذاری کنید؛ اگر مشکل ادامه داشت، آن را گزارش دهید.",
   "Remove a filter, widen the range, or clear everything.": "یک فیلتر را بردارید، بازه را گسترده‌تر کنید یا همه را پاک کنید.",
-  "Remove a filter, widen the range, or clear everything. {{health}}.": "یک فیلتر را بردارید، بازه را گسترده‌تر کنید یا همه را پاک کنید. {{health}}.",
   "Remove the queued stop, or grant consent before the page starts the recorder.": "فرمان stop در صف را حذف کنید، یا پیش از اینکه صفحه ضبط‌کننده را شروع کند رضایت بدهید.",
   "Remove {{filter}} filter": "حذف فیلتر {{filter}}",
   "Report it with this diagnostics output.": "آن را همراه با این خروجی عیب‌یابی گزارش دهید.",
@@ -49347,5 +49346,6 @@
   "Use a name that starts with a letter and holds only letters, digits, underscores, dots, hyphens and slashes, at most 100 characters. A name starting with \"oneuptime.\" is reserved for OneUptime's own metrics.": "نامی به کار ببرید که با یک حرف آغاز شود و فقط حروف، رقم‌ها، زیرخط، نقطه، خط تیره و اسلش داشته باشد، حداکثر ۱۰۰ نویسه. نام‌هایی که با oneuptime و سپس یک نقطه آغاز می‌شوند برای متریک‌های خود OneUptime رزرو شده‌اند.",
   "metric() was called while the application has product analytics events off, so nothing was sent.": "metric() در حالی فراخوانده شد که برنامه رویدادهای تحلیل محصول را خاموش دارد، پس چیزی فرستاده نشد.",
   "metric() was given a name it cannot send, so nothing was sent. The detail shows that name, or its type if it was not a string.": "metric() نامی گرفت که نمی‌تواند بفرستد، پس چیزی فرستاده نشد. جزئیات رکورد آن نام را نشان می‌دهد، یا اگر رشته نبود، نوعش را.",
-  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() مقداری گرفت که عدد متناهی نیست، پس چیزی فرستاده نشد. جزئیات رکورد نام متریک را می‌گوید."
+  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() مقداری گرفت که عدد متناهی نیست، پس چیزی فرستاده نشد. جزئیات رکورد نام متریک را می‌گوید.",
+  "Remove a filter, widen the range, or clear everything. {{diagnosis}}.": "یک فیلتر را بردارید، بازه را گسترده‌تر کنید یا همه را پاک کنید. {{diagnosis}}."
 }

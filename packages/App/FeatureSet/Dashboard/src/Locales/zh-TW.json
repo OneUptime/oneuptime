@@ -48102,7 +48102,6 @@
   "Reload the page so it fetches the latest recorder.": "重新載入頁面，讓它取得最新的錄製器。",
   "Reload with cache disabled; if it persists, report it.": "停用快取後重新載入；如果問題持續，請回報。",
   "Remove a filter, widen the range, or clear everything.": "請移除篩選條件、擴大範圍，或全部清除。",
-  "Remove a filter, widen the range, or clear everything. {{health}}.": "請移除篩選條件、擴大範圍，或全部清除。{{health}}。",
   "Remove the queued stop, or grant consent before the page starts the recorder.": "移除排隊中的 stop 命令，或在頁面啟動錄製器之前授予同意。",
   "Remove {{filter}} filter": "移除{{filter}}篩選",
   "Report it with this diagnostics output.": "請附上此診斷輸出回報問題。",
@@ -49347,5 +49346,6 @@
   "Use a name that starts with a letter and holds only letters, digits, underscores, dots, hyphens and slashes, at most 100 characters. A name starting with \"oneuptime.\" is reserved for OneUptime's own metrics.": "請使用以字母開頭、只包含字母、數字、底線、點、連字號和斜線且最多 100 個字元的名稱。以 \"oneuptime.\" 開頭的名稱保留給 OneUptime 自己的指標。",
   "metric() was called while the application has product analytics events off, so nothing was sent.": "在應用程式關閉了產品分析事件時呼叫了 metric()，因此沒有傳送任何內容。",
   "metric() was given a name it cannot send, so nothing was sent. The detail shows that name, or its type if it was not a string.": "metric() 收到了一個無法傳送的名稱，因此沒有傳送任何內容。記錄詳情會顯示該名稱；如果它不是字串，則顯示其類型。",
-  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() 收到了一個不是有限數字的值，因此沒有傳送任何內容。記錄詳情會列出該指標的名稱。"
+  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() 收到了一個不是有限數字的值，因此沒有傳送任何內容。記錄詳情會列出該指標的名稱。",
+  "Remove a filter, widen the range, or clear everything. {{diagnosis}}.": "請移除篩選條件、擴大範圍，或全部清除。{{diagnosis}}。"
 }

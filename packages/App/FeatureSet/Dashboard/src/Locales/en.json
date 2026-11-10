@@ -48102,7 +48102,6 @@
   "Reload the page so it fetches the latest recorder.": "Reload the page so it fetches the latest recorder.",
   "Reload with cache disabled; if it persists, report it.": "Reload with cache disabled; if it persists, report it.",
   "Remove a filter, widen the range, or clear everything.": "Remove a filter, widen the range, or clear everything.",
-  "Remove a filter, widen the range, or clear everything. {{health}}.": "Remove a filter, widen the range, or clear everything. {{health}}.",
   "Remove the queued stop, or grant consent before the page starts the recorder.": "Remove the queued stop, or grant consent before the page starts the recorder.",
   "Remove {{filter}} filter": "Remove {{filter}} filter",
   "Report it with this diagnostics output.": "Report it with this diagnostics output.",
@@ -49347,5 +49346,6 @@
   "Use a name that starts with a letter and holds only letters, digits, underscores, dots, hyphens and slashes, at most 100 characters. A name starting with \"oneuptime.\" is reserved for OneUptime's own metrics.": "Use a name that starts with a letter and holds only letters, digits, underscores, dots, hyphens and slashes, at most 100 characters. A name starting with \"oneuptime.\" is reserved for OneUptime's own metrics.",
   "metric() was called while the application has product analytics events off, so nothing was sent.": "metric() was called while the application has product analytics events off, so nothing was sent.",
   "metric() was given a name it cannot send, so nothing was sent. The detail shows that name, or its type if it was not a string.": "metric() was given a name it cannot send, so nothing was sent. The detail shows that name, or its type if it was not a string.",
-  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric."
+  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.",
+  "Remove a filter, widen the range, or clear everything. {{diagnosis}}.": "Remove a filter, widen the range, or clear everything. {{diagnosis}}."
 }

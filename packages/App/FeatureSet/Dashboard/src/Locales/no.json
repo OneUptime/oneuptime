@@ -48102,7 +48102,6 @@
   "Reload the page so it fetches the latest recorder.": "Last inn siden på nytt slik at den henter den nyeste opptakeren.",
   "Reload with cache disabled; if it persists, report it.": "Last inn på nytt med hurtigbufferen deaktivert; rapporter det hvis det vedvarer.",
   "Remove a filter, widen the range, or clear everything.": "Fjern et filter, utvid tidsrommet eller fjern alt.",
-  "Remove a filter, widen the range, or clear everything. {{health}}.": "Fjern et filter, utvid tidsrommet eller fjern alt. {{health}}.",
   "Remove the queued stop, or grant consent before the page starts the recorder.": "Fjern stop-kommandoen fra køen, eller gi samtykke før siden starter opptakeren.",
   "Remove {{filter}} filter": "Fjern filteret for {{filter}}",
   "Report it with this diagnostics output.": "Rapporter det sammen med disse diagnostikkdataene.",
@@ -49347,5 +49346,6 @@
   "Use a name that starts with a letter and holds only letters, digits, underscores, dots, hyphens and slashes, at most 100 characters. A name starting with \"oneuptime.\" is reserved for OneUptime's own metrics.": "Bruk et navn som begynner med en bokstav og bare inneholder bokstaver, sifre, understreker, punktum, bindestreker og skråstreker, høyst 100 tegn. Et navn som begynner med \"oneuptime.\", er forbeholdt målinger fra OneUptime selv.",
   "metric() was called while the application has product analytics events off, so nothing was sent.": "metric() ble kalt mens applikasjonen har produktanalysehendelser slått av, så ingenting ble sendt.",
   "metric() was given a name it cannot send, so nothing was sent. The detail shows that name, or its type if it was not a string.": "metric() fikk et navn den ikke kan sende, så ingenting ble sendt. Oppføringens detaljer viser navnet, eller typen hvis det ikke var en streng.",
-  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() fikk en verdi som ikke er et endelig tall, så ingenting ble sendt. Oppføringens detaljer navngir målingen."
+  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() fikk en verdi som ikke er et endelig tall, så ingenting ble sendt. Oppføringens detaljer navngir målingen.",
+  "Remove a filter, widen the range, or clear everything. {{diagnosis}}.": "Fjern et filter, utvid tidsrommet eller fjern alt. {{diagnosis}}."
 }

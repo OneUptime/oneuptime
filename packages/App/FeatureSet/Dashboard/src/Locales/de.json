@@ -48102,7 +48102,6 @@
   "Reload the page so it fetches the latest recorder.": "Laden Sie die Seite neu, damit sie den neuesten Recorder abruft.",
   "Reload with cache disabled; if it persists, report it.": "Laden Sie mit deaktiviertem Cache neu; wenn es weiterhin auftritt, melden Sie es.",
   "Remove a filter, widen the range, or clear everything.": "Entfernen Sie einen Filter, erweitern Sie den Zeitraum oder setzen Sie alles zurück.",
-  "Remove a filter, widen the range, or clear everything. {{health}}.": "Entfernen Sie einen Filter, erweitern Sie den Zeitraum oder setzen Sie alles zurück. {{health}}.",
   "Remove the queued stop, or grant consent before the page starts the recorder.": "Entfernen Sie den eingereihten stop-Befehl oder erteilen Sie die Einwilligung, bevor die Seite den Recorder startet.",
   "Remove {{filter}} filter": "Filter für {{filter}} entfernen",
   "Report it with this diagnostics output.": "Melden Sie es mit dieser Diagnoseausgabe.",
@@ -49347,5 +49346,6 @@
   "Use a name that starts with a letter and holds only letters, digits, underscores, dots, hyphens and slashes, at most 100 characters. A name starting with \"oneuptime.\" is reserved for OneUptime's own metrics.": "Verwenden Sie einen Namen, der mit einem Buchstaben beginnt und nur Buchstaben, Ziffern, Unterstriche, Punkte, Bindestriche und Schrägstriche enthält, höchstens 100 Zeichen. Ein Name, der mit \"oneuptime.\" beginnt, ist den eigenen Metriken von OneUptime vorbehalten.",
   "metric() was called while the application has product analytics events off, so nothing was sent.": "metric() wurde aufgerufen, während die Anwendung Produktanalyse-Ereignisse ausgeschaltet hat, daher wurde nichts gesendet.",
   "metric() was given a name it cannot send, so nothing was sent. The detail shows that name, or its type if it was not a string.": "metric() hat einen Namen erhalten, den es nicht senden kann, daher wurde nichts gesendet. Die Details des Eintrags zeigen diesen Namen oder seinen Typ, wenn er kein String war.",
-  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() hat einen Wert erhalten, der keine endliche Zahl ist, daher wurde nichts gesendet. Die Details des Eintrags nennen die Metrik."
+  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() hat einen Wert erhalten, der keine endliche Zahl ist, daher wurde nichts gesendet. Die Details des Eintrags nennen die Metrik.",
+  "Remove a filter, widen the range, or clear everything. {{diagnosis}}.": "Entfernen Sie einen Filter, erweitern Sie den Zeitraum oder setzen Sie alles zurück. {{diagnosis}}."
 }

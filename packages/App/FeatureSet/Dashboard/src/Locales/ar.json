@@ -48102,7 +48102,6 @@
   "Reload the page so it fetches the latest recorder.": "أعد تحميل الصفحة لتجلب أحدث مسجّل.",
   "Reload with cache disabled; if it persists, report it.": "أعد التحميل مع تعطيل ذاكرة التخزين المؤقت؛ وإذا استمرت المشكلة، فأبلغ عنها.",
   "Remove a filter, widen the range, or clear everything.": "أزل أحد عوامل التصفية، أو وسّع النطاق، أو امسح كل شيء.",
-  "Remove a filter, widen the range, or clear everything. {{health}}.": "أزل أحد عوامل التصفية، أو وسّع النطاق، أو امسح كل شيء. {{health}}.",
   "Remove the queued stop, or grant consent before the page starts the recorder.": "أزل أمر الإيقاف الموجود في قائمة الانتظار، أو امنح الموافقة قبل أن تبدأ الصفحة المسجّل.",
   "Remove {{filter}} filter": "إزالة عامل التصفية {{filter}}",
   "Report it with this diagnostics output.": "أبلغ عن ذلك مع مخرجات التشخيص هذه.",
@@ -49347,5 +49346,6 @@
   "Use a name that starts with a letter and holds only letters, digits, underscores, dots, hyphens and slashes, at most 100 characters. A name starting with \"oneuptime.\" is reserved for OneUptime's own metrics.": "استخدم اسمًا يبدأ بحرف ولا يحوي إلا الحروف والأرقام والشرطات السفلية والنقاط والشرطات والشرطات المائلة، بحد أقصى 100 حرف. والأسماء التي تبدأ بـ oneuptime متبوعةً بنقطة محجوزة لمقاييس OneUptime نفسها.",
   "metric() was called while the application has product analytics events off, so nothing was sent.": "استُدعيت الدالة metric() بينما أحداث تحليلات المنتج متوقفة في التطبيق، لذا لم يُرسَل شيء.",
   "metric() was given a name it cannot send, so nothing was sent. The detail shows that name, or its type if it was not a string.": "تلقّت الدالة metric() اسمًا لا يمكنها إرساله، لذا لم يُرسَل شيء. تُظهر تفاصيل القيد ذلك الاسم، أو نوعه إن لم يكن سلسلة نصية.",
-  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "تلقّت الدالة metric() قيمة ليست عددًا منتهيًا، لذا لم يُرسَل شيء. تذكر تفاصيل القيد اسم المقياس."
+  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "تلقّت الدالة metric() قيمة ليست عددًا منتهيًا، لذا لم يُرسَل شيء. تذكر تفاصيل القيد اسم المقياس.",
+  "Remove a filter, widen the range, or clear everything. {{diagnosis}}.": "أزل أحد عوامل التصفية، أو وسّع النطاق، أو امسح كل شيء. {{diagnosis}}."
 }

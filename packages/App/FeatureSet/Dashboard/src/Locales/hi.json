@@ -48102,7 +48102,6 @@
   "Reload the page so it fetches the latest recorder.": "पेज रीलोड करें ताकि वह नवीनतम रिकॉर्डर प्राप्त करे।",
   "Reload with cache disabled; if it persists, report it.": "कैश बंद करके रीलोड करें; अगर समस्या बनी रहे, तो इसकी रिपोर्ट करें।",
   "Remove a filter, widen the range, or clear everything.": "कोई फ़िल्टर हटाएँ, समय-सीमा बढ़ाएँ, या सब कुछ साफ़ करें।",
-  "Remove a filter, widen the range, or clear everything. {{health}}.": "कोई फ़िल्टर हटाएँ, समय-सीमा बढ़ाएँ, या सब कुछ साफ़ करें। {{health}}।",
   "Remove the queued stop, or grant consent before the page starts the recorder.": "कतार में रखा stop कमांड हटाएँ, या पेज के रिकॉर्डर शुरू करने से पहले सहमति दें।",
   "Remove {{filter}} filter": "{{filter}} फ़िल्टर हटाएँ",
   "Report it with this diagnostics output.": "इस डायग्नोस्टिक्स आउटपुट के साथ इसकी रिपोर्ट करें।",
@@ -49347,5 +49346,6 @@
   "Use a name that starts with a letter and holds only letters, digits, underscores, dots, hyphens and slashes, at most 100 characters. A name starting with \"oneuptime.\" is reserved for OneUptime's own metrics.": "ऐसा नाम इस्तेमाल करें जो किसी अक्षर से शुरू हो और जिसमें केवल अक्षर, अंक, अंडरस्कोर, डॉट, हाइफ़न और स्लैश हों, अधिकतम 100 अक्षर। \"oneuptime.\" से शुरू होने वाले नाम OneUptime के अपने मेट्रिक्स के लिए आरक्षित हैं।",
   "metric() was called while the application has product analytics events off, so nothing was sent.": "metric() तब कॉल हुआ जब एप्लिकेशन में प्रोडक्ट एनालिटिक्स इवेंट बंद हैं, इसलिए कुछ नहीं भेजा गया।",
   "metric() was given a name it cannot send, so nothing was sent. The detail shows that name, or its type if it was not a string.": "metric() को ऐसा नाम मिला जिसे वह भेज नहीं सकता, इसलिए कुछ नहीं भेजा गया। रिकॉर्ड का विवरण वह नाम दिखाता है, या अगर वह स्ट्रिंग नहीं था तो उसका प्रकार।",
-  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() को ऐसा मान मिला जो परिमित संख्या नहीं है, इसलिए कुछ नहीं भेजा गया। रिकॉर्ड का विवरण मेट्रिक का नाम बताता है।"
+  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() को ऐसा मान मिला जो परिमित संख्या नहीं है, इसलिए कुछ नहीं भेजा गया। रिकॉर्ड का विवरण मेट्रिक का नाम बताता है।",
+  "Remove a filter, widen the range, or clear everything. {{diagnosis}}.": "कोई फ़िल्टर हटाएँ, समय-सीमा बढ़ाएँ, या सब कुछ साफ़ करें। {{diagnosis}}।"
 }

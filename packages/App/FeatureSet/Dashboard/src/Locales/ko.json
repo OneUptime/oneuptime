@@ -48102,7 +48102,6 @@
   "Reload the page so it fetches the latest recorder.": "최신 녹화기를 가져오도록 페이지를 새로고침하세요.",
   "Reload with cache disabled; if it persists, report it.": "캐시를 끄고 새로고침하세요. 계속 발생하면 보고하세요.",
   "Remove a filter, widen the range, or clear everything.": "필터를 제거하거나, 범위를 넓히거나, 모두 지우세요.",
-  "Remove a filter, widen the range, or clear everything. {{health}}.": "필터를 제거하거나, 범위를 넓히거나, 모두 지우세요. {{health}}.",
   "Remove the queued stop, or grant consent before the page starts the recorder.": "대기열의 stop 명령을 제거하거나, 페이지가 녹화기를 시작하기 전에 동의를 부여하세요.",
   "Remove {{filter}} filter": "{{filter}} 필터 제거",
   "Report it with this diagnostics output.": "이 진단 출력과 함께 보고하세요.",
@@ -49347,5 +49346,6 @@
   "Use a name that starts with a letter and holds only letters, digits, underscores, dots, hyphens and slashes, at most 100 characters. A name starting with \"oneuptime.\" is reserved for OneUptime's own metrics.": "문자로 시작하고 문자, 숫자, 밑줄, 점, 하이픈, 슬래시만 포함하는 100자 이하의 이름을 사용하세요. \"oneuptime.\"로 시작하는 이름은 OneUptime 자체 메트릭용으로 예약되어 있습니다.",
   "metric() was called while the application has product analytics events off, so nothing was sent.": "애플리케이션에서 제품 분석 이벤트가 꺼져 있는 동안 metric()이 호출되어 아무것도 보내지 않았습니다.",
   "metric() was given a name it cannot send, so nothing was sent. The detail shows that name, or its type if it was not a string.": "metric()에 보낼 수 없는 이름이 전달되어 아무것도 보내지 않았습니다. 기록의 세부 정보에는 그 이름이, 문자열이 아니었다면 그 타입이 표시됩니다.",
-  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric()에 유한한 숫자가 아닌 값이 전달되어 아무것도 보내지 않았습니다. 기록의 세부 정보에 메트릭 이름이 표시됩니다."
+  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric()에 유한한 숫자가 아닌 값이 전달되어 아무것도 보내지 않았습니다. 기록의 세부 정보에 메트릭 이름이 표시됩니다.",
+  "Remove a filter, widen the range, or clear everything. {{diagnosis}}.": "필터를 제거하거나, 범위를 넓히거나, 모두 지우세요. {{diagnosis}}."
 }

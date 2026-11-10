@@ -48102,7 +48102,6 @@
   "Reload the page so it fetches the latest recorder.": "Genindlæs siden, så den henter den nyeste optager.",
   "Reload with cache disabled; if it persists, report it.": "Genindlæs med cache slået fra; rapportér det, hvis det fortsætter.",
   "Remove a filter, widen the range, or clear everything.": "Fjern et filter, udvid tidsrummet, eller ryd det hele.",
-  "Remove a filter, widen the range, or clear everything. {{health}}.": "Fjern et filter, udvid tidsrummet, eller ryd det hele. {{health}}.",
   "Remove the queued stop, or grant consent before the page starts the recorder.": "Fjern det stop, der står i køen, eller giv samtykke, før siden starter optageren.",
   "Remove {{filter}} filter": "Fjern filteret for {{filter}}",
   "Report it with this diagnostics output.": "Rapportér det med dette diagnoseoutput.",
@@ -49347,5 +49346,6 @@
   "Use a name that starts with a letter and holds only letters, digits, underscores, dots, hyphens and slashes, at most 100 characters. A name starting with \"oneuptime.\" is reserved for OneUptime's own metrics.": "Brug et navn, der begynder med et bogstav og kun indeholder bogstaver, cifre, understregninger, punktummer, bindestreger og skråstreger, højst 100 tegn. Et navn, der begynder med \"oneuptime.\", er forbeholdt metrikker fra OneUptime selv.",
   "metric() was called while the application has product analytics events off, so nothing was sent.": "metric() blev kaldt, mens applikationen har produktanalysebegivenheder slået fra, så intet blev sendt.",
   "metric() was given a name it cannot send, so nothing was sent. The detail shows that name, or its type if it was not a string.": "metric() fik et navn, den ikke kan sende, så intet blev sendt. Postens detaljer viser navnet eller dets type, hvis det ikke var en streng.",
-  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() fik en værdi, der ikke er et endeligt tal, så intet blev sendt. Postens detaljer navngiver metrikken."
+  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() fik en værdi, der ikke er et endeligt tal, så intet blev sendt. Postens detaljer navngiver metrikken.",
+  "Remove a filter, widen the range, or clear everything. {{diagnosis}}.": "Fjern et filter, udvid tidsrummet, eller ryd det hele. {{diagnosis}}."
 }

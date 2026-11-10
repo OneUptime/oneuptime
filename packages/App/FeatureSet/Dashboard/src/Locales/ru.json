@@ -48102,7 +48102,6 @@
   "Reload the page so it fetches the latest recorder.": "Перезагрузите страницу, чтобы она получила последнюю версию рекордера.",
   "Reload with cache disabled; if it persists, report it.": "Перезагрузите страницу с отключённым кешем; если проблема сохраняется, сообщите о ней.",
   "Remove a filter, widen the range, or clear everything.": "Уберите фильтр, расширьте период или сбросьте всё.",
-  "Remove a filter, widen the range, or clear everything. {{health}}.": "Уберите фильтр, расширьте период или сбросьте всё. {{health}}.",
   "Remove the queued stop, or grant consent before the page starts the recorder.": "Уберите команду stop из очереди или дайте согласие до того, как страница запустит рекордер.",
   "Remove {{filter}} filter": "Убрать фильтр «{{filter}}»",
   "Report it with this diagnostics output.": "Сообщите об этом, приложив этот вывод диагностики.",
@@ -49347,5 +49346,6 @@
   "Use a name that starts with a letter and holds only letters, digits, underscores, dots, hyphens and slashes, at most 100 characters. A name starting with \"oneuptime.\" is reserved for OneUptime's own metrics.": "Используйте имя, которое начинается с буквы и содержит только буквы, цифры, подчёркивания, точки, дефисы и косые черты, не длиннее 100 символов. Имена, начинающиеся с \"oneuptime.\", зарезервированы для собственных метрик OneUptime.",
   "metric() was called while the application has product analytics events off, so nothing was sent.": "metric() был вызван, когда у приложения выключены события продуктовой аналитики, поэтому ничего не отправлено.",
   "metric() was given a name it cannot send, so nothing was sent. The detail shows that name, or its type if it was not a string.": "metric() получил имя, которое не может отправить, поэтому ничего не отправлено. В подробностях записи — это имя или его тип, если это была не строка.",
-  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() получил значение, которое не является конечным числом, поэтому ничего не отправлено. В подробностях записи указана метрика."
+  "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.": "metric() получил значение, которое не является конечным числом, поэтому ничего не отправлено. В подробностях записи указана метрика.",
+  "Remove a filter, widen the range, or clear everything. {{diagnosis}}.": "Уберите фильтр, расширьте период или сбросьте всё. {{diagnosis}}."
 }
