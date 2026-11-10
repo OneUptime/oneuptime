@@ -293,6 +293,12 @@ export default class InHouseCodeAgent implements CodeAgent {
    */
   private contextSize: CodeAgentContextSize = DEFAULT_CODE_AGENT_CONTEXT_SIZE;
 
+  /*
+   * The results THIS task's conversation holds cut to their start and end,
+   * as its last compaction left them (CodeAgentCompaction.cutResultOrigins).
+   */
+  private cutResultOrigins: Map<string, string> = new Map<string, string>();
+
   // The production telemetry tools of THIS task, when it asked and was offered some.
   private productionTelemetry: ProductionTelemetry | null = null;
 
@@ -365,6 +371,7 @@ export default class InHouseCodeAgent implements CodeAgent {
     this.outputs = new ToolOutputStore();
     this.plan = new AgentPlan();
     this.contextSize = DEFAULT_CODE_AGENT_CONTEXT_SIZE;
+    this.cutResultOrigins = new Map<string, string>();
     this.allowQuestions = Boolean(task.allowQuestions);
     this.telemetryCallsSinceCompletion = 0;
     this.toolCallsMade = 0;
@@ -693,10 +700,11 @@ export default class InHouseCodeAgent implements CodeAgent {
    * conversation it was made with, possibly cut to fit, comes back with its
    * answer.
    *
-   *   - A conversation too long for the model's context window is cut to
-   *     half the size (CodeAgentContext) and asked again at once - and the
-   *     smaller size kept for the rest of the task. When nothing more can
-   *     be cut, the task fails with the server's words.
+   *   - A conversation too long for the model's context window, or larger
+   *     than the server takes in one request (HTTP 413), is cut to half the
+   *     size (CodeAgentContext) and asked again at once - and the smaller
+   *     size kept for the rest of the task. When nothing more can be cut,
+   *     the task fails with the server's words.
    *   - A provider down, overloaded or slow, or a server that could not be
    *     reached, is waited out (a minute, then five) with the run kept
    *     alive, never past the task's time; any other failure a repeat
@@ -736,7 +744,13 @@ export default class InHouseCodeAgent implements CodeAgent {
           throw error;
         }
 
-        if (CodeAgentCompletionRetry.isContextWindowError(error)) {
+        const isTooLarge: boolean =
+          CodeAgentCompletionRetry.isRequestTooLarge(error);
+
+        if (
+          isTooLarge ||
+          CodeAgentCompletionRetry.isContextWindowError(error)
+        ) {
           const smaller: CodeAgentContextSize | null = shrinkContextSize(
             this.contextSize,
             measureContextChars(messages),
@@ -753,7 +767,9 @@ export default class InHouseCodeAgent implements CodeAgent {
 
             if (messages !== before) {
               await this.log(
-                "The model said the conversation was too long for its context window; trying again with less of it.",
+                isTooLarge
+                  ? "The conversation was larger than the OneUptime server takes in one request; trying again with less of it."
+                  : "The model said the conversation was too long for its context window; trying again with less of it.",
               );
               continue;
             }
@@ -832,8 +848,11 @@ export default class InHouseCodeAgent implements CodeAgent {
 
   /*
    * The conversation inside the size this task keeps it under (or cut to it
-   * now, with `force`): see CodeAgentContext. What the model no longer has,
-   * reading again is progress, so the loop detector forgets what it saw.
+   * now, with `force`): see CodeAgentContext. Getting back a result the
+   * model no longer has in any form is progress, so the loop detector
+   * forgets those results - and only those: a command run again and again
+   * with the same answer the model still has, whole or cut, is still a
+   * circle, however often the conversation is cut.
    */
   private async keepWithinContext(data: {
     messages: Array<LLMMessage>;
@@ -850,13 +869,15 @@ export default class InHouseCodeAgent implements CodeAgent {
       size: this.contextSize,
       state,
       force: data.force,
+      cutResultOrigins: this.cutResultOrigins,
     });
 
     if (!outcome.changed) {
       return data.messages;
     }
 
-    data.loopDetector.forgetSeenResults();
+    this.cutResultOrigins = outcome.cutResultOrigins;
+    data.loopDetector.forgetResults(outcome.forgottenResultKeys);
     await this.log(CodeAgentContext.describe(outcome));
 
     return outcome.messages;

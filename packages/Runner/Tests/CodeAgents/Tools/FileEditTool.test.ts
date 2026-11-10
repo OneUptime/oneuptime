@@ -589,9 +589,67 @@ describe("where edit_file may not go", () => {
     });
 
     expect(result.output).toContain(
-      "past the 2,000,000 a file may have. Nothing was changed.",
+      "past the 2,000,000 an edit may grow a file to. Nothing was changed.",
     );
     expect(readFile(root, "a.txt")).toBe("seed\n");
+  });
+
+  /*
+   * A repository can hold a file past that size already (a lockfile, a
+   * generated table): an edit that does not make it larger is a change
+   * like any other, and one that grows it says what is fine.
+   */
+  describe("a file the repository holds larger than a write may make", () => {
+    const LINE: string = "entry 0000000000 = value-0000000000\n";
+    const lines: number = Math.ceil(MAX_WRITE_FILE_CHARS / LINE.length) + 10;
+    const big: string = `${LINE.repeat(lines)}version = "1.2.3"\n`;
+
+    test("takes an edit that keeps it the same size", async () => {
+      const root: string = makeRepository({ "data/table.txt": big });
+
+      const result: ToolExecution = await edit(makeContext(root), {
+        path: "data/table.txt",
+        old_text: 'version = "1.2.3"',
+        new_text: 'version = "1.2.4"',
+      });
+
+      expect(result.output).toContain("Edited data/table.txt: 1 replacement.");
+      expect(readFile(root, "data/table.txt")).toBe(
+        big.replace('"1.2.3"', '"1.2.4"'),
+      );
+    });
+
+    test("takes an edit that makes it smaller", async () => {
+      const root: string = makeRepository({ "data/table.txt": big });
+
+      const result: ToolExecution = await edit(makeContext(root), {
+        path: "data/table.txt",
+        old_text: 'version = "1.2.3"\n',
+        new_text: "",
+      });
+
+      expect(result.output).toContain("Edited data/table.txt: 1 replacement.");
+      expect(readFile(root, "data/table.txt").length).toBe(
+        big.length - 'version = "1.2.3"\n'.length,
+      );
+    });
+
+    test("refuses an edit that makes it larger, and says one that does not is fine", async () => {
+      const root: string = makeRepository({ "data/table.txt": big });
+
+      const result: ToolExecution = await edit(makeContext(root), {
+        path: "data/table.txt",
+        old_text: 'version = "1.2.3"',
+        new_text: 'version = "1.2.3-beta.1"',
+      });
+
+      expect(result.output).toContain(
+        `an edit may grow a file to (it is ${big.length.toLocaleString(
+          "en-US",
+        )} now: an edit that does not make it larger is fine). Nothing was changed.`,
+      );
+      expect(readFile(root, "data/table.txt")).toBe(big);
+    });
   });
 });
 

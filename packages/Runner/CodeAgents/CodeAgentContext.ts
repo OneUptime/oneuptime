@@ -5,6 +5,7 @@ import {
   measureMessageChars,
 } from "Common/Server/Utils/AI/Chat/AgentContextCompactor";
 import { LLMMessage, LLMToolCall } from "Common/Server/Utils/LLM/LLMService";
+import { agentLoopResultKey } from "Common/Types/AI/AgentLoopDetector";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 
 /*
@@ -26,13 +27,19 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
  *   3. then the oldest rounds go as a whole, replaced by one note that says
  *      what they did, call by call, what the model wrote then, the files
  *      changed so far and the plan as it stands;
- *   4. last, a result still too long for what is left is cut to its start
- *      and end.
+ *   4. last, results still too long for what is left - the newest rounds'
+ *      included - are cut to their start and end, as short as it takes to
+ *      fit, never under MIN_CUT_RESULT_CHARS.
  *
- * The system prompt, the first message and the newest rounds are never
- * touched. A model server that still says the conversation is too long
- * (a smaller window than this one) makes the agent cut to half and try
- * again (InHouseCodeAgent). Everything here is pure over the messages.
+ * The system prompt and the first message are never touched, and the
+ * newest rounds only by that last cut. A model server that still says the
+ * conversation is too long (a smaller window than this one) makes the
+ * agent cut to half and try again (InHouseCodeAgent). Everything here is
+ * pure over the messages.
+ *
+ * Each result is described by the call it answers in its own round: some
+ * providers number the calls of each response from the same id (Ollama's
+ * tool_call_0), so an id alone names a call of every round.
  */
 
 // The rounds whose results and arguments stay whole, newest first.
@@ -50,9 +57,19 @@ const MAX_DIGEST_CHARS: number = 16_000;
 // The most the model's own words of a left-out round are quoted.
 const MAX_QUOTED_NOTE_CHARS: number = 300;
 
+// The shortest a result is cut to when the conversation does not fit.
+export const MIN_CUT_RESULT_CHARS: number = 2_000;
+
 const ELIDED_RESULT_PREFIX: string = "[Earlier result of ";
 const ELIDED_ARGUMENT_PREFIX: string = "[left out: ";
 export const CONTEXT_DIGEST_PREFIX: string = "[Context note: ";
+
+// The line a result cut to its start and end says how much was left out in.
+const CUT_NOTE_START: string = "\n... [";
+const CUT_NOTE_END: string =
+  " characters of this result left out to keep this task within the model's context window; run the tool again, or read part of it, if you need them] ...\n";
+const CUT_NOTE_PATTERN: RegExp =
+  /\n\.\.\. \[([\d,]+) characters of this result left out to keep this task within the model's context window; run the tool again, or read part of it, if you need them\] \.\.\.\n/;
 
 export interface CodeAgentContextState {
   // The plan as it stands (AgentPlan.describe), when there is one.
@@ -71,6 +88,23 @@ export interface CodeAgentCompaction {
   cutResults: number;
   charsBefore: number;
   charsAfter: number;
+  /*
+   * The results the model no longer has in any form - left out, or gone
+   * with their round, whole or cut before - as the loop detector knows
+   * them (agentLoopResultKey, of the whole result), less any the
+   * conversation still holds, whole or cut: a call made again to get one
+   * of these back is progress, not a circle. A result cut to its start and
+   * end is not among them: the model still has those, and reads the rest
+   * in part.
+   */
+  forgottenResultKeys: Array<string>;
+  /*
+   * The results the conversation holds cut to their start and end: the
+   * key of what is left of each, to the key of the whole result. The next
+   * compaction is given it back (cutResultOrigins), so that leaving one of
+   * them out forgets the whole result.
+   */
+  cutResultOrigins: Map<string, string>;
 }
 
 // The size the conversation is kept under, and cut back to past it.
@@ -126,8 +160,12 @@ export default class CodeAgentContext {
     size: CodeAgentContextSize;
     state: CodeAgentContextState;
     force?: boolean | undefined;
+    // The last compaction's cutResultOrigins: the results it left cut.
+    cutResultOrigins?: Map<string, string> | undefined;
   }): CodeAgentCompaction {
     const charsBefore: number = measureContextChars(data.messages);
+    const earlierCuts: Map<string, string> =
+      data.cutResultOrigins || new Map<string, string>();
     const outcome: CodeAgentCompaction = {
       messages: data.messages,
       changed: false,
@@ -137,6 +175,8 @@ export default class CodeAgentContext {
       cutResults: 0,
       charsBefore,
       charsAfter: charsBefore,
+      forgottenResultKeys: [],
+      cutResultOrigins: earlierCuts,
     };
 
     if (!data.force && charsBefore <= data.size.maxChars) {
@@ -152,8 +192,49 @@ export default class CodeAgentContext {
     const target: number = data.size.targetChars;
     let total: number = charsBefore;
 
-    const calls: Map<string, LLMToolCall> =
-      CodeAgentContext.callsById(messages);
+    // The call each result answers, as the calls were before this cut.
+    const callForResult: Map<number, LLMToolCall> =
+      CodeAgentContext.callsByResultIndex(messages);
+    // The results cut here: the key of what is left, to the whole's.
+    const cutsNow: Map<string, string> = new Map<string, string>();
+
+    /*
+     * The key the loop detector knows a result by (agentLoopResultKey): of
+     * the whole result, also for one cut to its start and end - or null for
+     * one left out already.
+     */
+    const wholeResultKey: (
+      call: LLMToolCall,
+      content: string,
+    ) => string | null = (
+      call: LLMToolCall,
+      content: string,
+    ): string | null => {
+      if (content.startsWith(ELIDED_RESULT_PREFIX)) {
+        return null;
+      }
+
+      const key: string = CodeAgentContext.resultKey(call, content);
+
+      return cutsNow.get(key) ?? earlierCuts.get(key) ?? key;
+    };
+
+    // The results the model had, and loses here.
+    const lostResultKeys: Array<string> = [];
+
+    const rememberLost: (index: number) => void = (index: number): void => {
+      const message: LLMMessage = messages[index] as LLMMessage;
+      const call: LLMToolCall | undefined = callForResult.get(index);
+      const key: string | null =
+        message.role === "tool" && call
+          ? wholeResultKey(call, message.content)
+          : null;
+
+      if (key) {
+        lostResultKeys.push(key);
+      }
+    };
+
     const rounds: Array<Round> = CodeAgentContext.rounds(messages);
     const protectedFrom: number =
       rounds.length > KEEP_RECENT_ROUNDS
@@ -179,11 +260,12 @@ export default class CodeAgentContext {
       }
 
       const before: number = measureMessageChars(message);
-      const call: LLMToolCall | undefined = message.toolCallId
-        ? calls.get(message.toolCallId)
-        : undefined;
 
-      message.content = CodeAgentContext.elidedResult(message.content, call);
+      rememberLost(index);
+      message.content = CodeAgentContext.elidedResult(
+        message.content,
+        callForResult.get(index),
+      );
       total += measureMessageChars(message) - before;
       outcome.elidedResults++;
     }
@@ -251,11 +333,15 @@ export default class CodeAgentContext {
           messages,
           firstRound,
         );
+
+        for (let index: number = firstRound; index < cutIndex; index++) {
+          rememberLost(index);
+        }
+
         const digest: LLMMessage = {
           role: "user",
           content: CodeAgentContext.buildDigest({
             removed: messages.slice(firstRound, cutIndex),
-            calls,
             earlierDigest,
             collapsedRounds,
             state: data.state,
@@ -277,11 +363,36 @@ export default class CodeAgentContext {
       }
     }
 
-    // 4. A result still too long for what is left: its start and its end.
+    /*
+     * 4. Results still too long for what is left: each cut to its start
+     * and its end - a quarter of the target, or shorter while that would
+     * still not fit (the newest rounds can hold many long results at once),
+     * never under MIN_CUT_RESULT_CHARS.
+     */
     if (total > target) {
-      const maxResultChars: number = Math.max(2_000, Math.floor(target / 4));
+      let maxResultChars: number = Math.max(
+        MIN_CUT_RESULT_CHARS,
+        Math.floor(target / 4),
+      );
 
-      for (const message of messages) {
+      while (
+        maxResultChars > MIN_CUT_RESULT_CHARS &&
+        CodeAgentContext.totalAfterCuts(messages, total, maxResultChars) >
+          target
+      ) {
+        maxResultChars = Math.max(
+          MIN_CUT_RESULT_CHARS,
+          Math.floor(maxResultChars / 2),
+        );
+      }
+
+      // The call each result answers, as the rounds are now.
+      const callNow: Map<number, LLMToolCall> =
+        CodeAgentContext.callsByResultIndex(messages);
+
+      for (let index: number = 0; index < messages.length; index++) {
+        const message: LLMMessage = messages[index] as LLMMessage;
+
         if (total <= target) {
           break;
         }
@@ -293,16 +404,64 @@ export default class CodeAgentContext {
           continue;
         }
 
-        const before: number = message.content.length;
-        message.content = CodeAgentContext.cutResult(
+        const cut: string = CodeAgentContext.cutResult(
           message.content,
           maxResultChars,
         );
-        total += message.content.length - before;
+
+        // Cut before to this size or about it: as short as a cut makes it.
+        if (cut.length >= message.content.length) {
+          continue;
+        }
+
+        const call: LLMToolCall | undefined = callNow.get(index);
+        const wholeKey: string | null = call
+          ? wholeResultKey(call, message.content)
+          : null;
+
+        total += cut.length - message.content.length;
+        message.content = cut;
         outcome.cutResults++;
+
+        if (call && wholeKey) {
+          cutsNow.set(CodeAgentContext.resultKey(call, cut), wholeKey);
+        }
       }
     }
 
+    /*
+     * What the conversation still holds, whole or cut, is still the
+     * model's; the results it holds cut are passed on to the next
+     * compaction.
+     */
+    const keptResultKeys: Set<string> = new Set<string>();
+    const cutResultOrigins: Map<string, string> = new Map<string, string>();
+
+    for (const [index, call] of CodeAgentContext.callsByResultIndex(messages)) {
+      const content: string = (messages[index] as LLMMessage).content;
+      const wholeKey: string | null = wholeResultKey(call, content);
+
+      if (!wholeKey) {
+        continue;
+      }
+
+      keptResultKeys.add(wholeKey);
+
+      const key: string = CodeAgentContext.resultKey(call, content);
+
+      if (key !== wholeKey) {
+        cutResultOrigins.set(key, wholeKey);
+      }
+    }
+
+    outcome.forgottenResultKeys = Array.from(
+      new Set<string>(
+        lostResultKeys.filter((key: string): boolean => {
+          return !keptResultKeys.has(key);
+        }),
+      ),
+    );
+    outcome.cutResultOrigins = cutResultOrigins;
     outcome.messages = messages;
     outcome.charsAfter = measureContextChars(messages);
     outcome.changed =
@@ -369,18 +528,70 @@ export default class CodeAgentContext {
     return rounds;
   }
 
-  private static callsById(
+  /*
+   * The call each tool result answers, by the result's index: the call of
+   * its id in the assistant message of its own round, never one of another
+   * round that the provider gave the same id.
+   */
+  private static callsByResultIndex(
     messages: Array<LLMMessage>,
-  ): Map<string, LLMToolCall> {
-    const calls: Map<string, LLMToolCall> = new Map<string, LLMToolCall>();
+  ): Map<number, LLMToolCall> {
+    const pairs: Map<number, LLMToolCall> = new Map<number, LLMToolCall>();
+    let roundCalls: Map<string, LLMToolCall> = new Map<string, LLMToolCall>();
+
+    messages.forEach((message: LLMMessage, index: number): void => {
+      if (message.role === "assistant") {
+        roundCalls = new Map<string, LLMToolCall>(
+          (message.toolCalls || []).map(
+            (toolCall: LLMToolCall): [string, LLMToolCall] => {
+              return [toolCall.id, toolCall];
+            },
+          ),
+        );
+        return;
+      }
+
+      const call: LLMToolCall | undefined =
+        message.role === "tool" && message.toolCallId
+          ? roundCalls.get(message.toolCallId)
+          : undefined;
+
+      if (call) {
+        pairs.set(index, call);
+      }
+    });
+
+    return pairs;
+  }
+
+  // What the loop detector knows a call's result by, as the result reads.
+  private static resultKey(call: LLMToolCall, content: string): string {
+    return agentLoopResultKey({
+      name: call.name,
+      arguments: call.arguments || {},
+      output: content,
+    });
+  }
+
+  // The conversation's size once every result longer than maxChars is cut to it.
+  private static totalAfterCuts(
+    messages: Array<LLMMessage>,
+    total: number,
+    maxChars: number,
+  ): number {
+    let after: number = total;
 
     for (const message of messages) {
-      for (const toolCall of message.toolCalls || []) {
-        calls.set(toolCall.id, toolCall);
+      if (message.role === "tool" && message.content.length > maxChars) {
+        after += Math.min(
+          0,
+          CodeAgentContext.cutResult(message.content, maxChars).length -
+            message.content.length,
+        );
       }
     }
 
-    return calls;
+    return after;
   }
 
   // "read_file src/a.ts", "run_command npm test": a call in a few words.
@@ -503,7 +714,6 @@ export default class CodeAgentContext {
 
   private static buildDigest(data: {
     removed: Array<LLMMessage>;
-    calls: Map<string, LLMToolCall>;
     earlierDigest: string | null;
     collapsedRounds: number;
     state: CodeAgentContextState;
@@ -520,17 +730,20 @@ export default class CodeAgentContext {
       lines.push(...listed);
     }
 
-    const results: Map<string, string> = new Map<string, string>();
+    // The first line of each call's result, by the call it answers.
+    const results: Map<LLMToolCall, string> = new Map<LLMToolCall, string>();
 
-    for (const message of data.removed) {
-      if (message.role === "tool" && message.toolCallId) {
-        const firstLine: string = message.content.startsWith(
-          ELIDED_RESULT_PREFIX,
-        )
+    for (const [index, call] of CodeAgentContext.callsByResultIndex(
+      data.removed,
+    )) {
+      const content: string = (data.removed[index] as LLMMessage).content;
+
+      results.set(
+        call,
+        content.startsWith(ELIDED_RESULT_PREFIX)
           ? ""
-          : (message.content.split("\n")[0] || "").trim();
-        results.set(message.toolCallId, firstLine);
-      }
+          : (content.split("\n")[0] || "").trim(),
+      );
     }
 
     for (const message of data.removed) {
@@ -551,7 +764,7 @@ export default class CodeAgentContext {
       }
 
       for (const toolCall of message.toolCalls || []) {
-        const result: string = results.get(toolCall.id) || "";
+        const result: string = results.get(toolCall) || "";
         lines.push(
           `- ${CodeAgentContext.describeCall(toolCall)}${
             result ? ` -> ${result.substring(0, 120)}` : ""
@@ -598,18 +811,37 @@ export default class CodeAgentContext {
     return parts.join("\n");
   }
 
+  /*
+   * A result's start and its end, maxChars of them, around a line that
+   * says how much was left out between. A result cut before is cut further
+   * from the start and the end it kept, and the line counts all that is
+   * left out of it - not only what this cut takes.
+   */
   private static cutResult(content: string, maxChars: number): string {
     const headChars: number = Math.floor(maxChars / 4);
     const tailChars: number = maxChars - headChars;
+    const earlierCut: RegExpExecArray | null = CUT_NOTE_PATTERN.exec(content);
 
-    return `${content.substring(0, headChars)}\n... [${(
-      content.length -
-      headChars -
-      tailChars
-    ).toLocaleString(
+    let head: string = content.substring(0, headChars);
+    let tail: string = content.substring(content.length - tailChars);
+    let leftOut: number = content.length - headChars - tailChars;
+
+    if (earlierCut) {
+      const start: string = content.substring(0, earlierCut.index);
+      const end: string = content.substring(
+        earlierCut.index + earlierCut[0].length,
+      );
+
+      head = start.substring(0, headChars);
+      tail = end.substring(Math.max(0, end.length - tailChars));
+      leftOut =
+        Number((earlierCut[1] as string).replace(/,/g, "")) +
+        (start.length - head.length) +
+        (end.length - tail.length);
+    }
+
+    return `${head}${CUT_NOTE_START}${leftOut.toLocaleString(
       "en-US",
-    )} characters of this result left out to keep this task within the model's context window; run the tool again, or read part of it, if you need them] ...\n${content.substring(
-      content.length - tailChars,
-    )}`;
+    )}${CUT_NOTE_END}${tail}`;
   }
 }

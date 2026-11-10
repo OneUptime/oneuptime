@@ -177,14 +177,29 @@ export default class FileEditTool {
       };
     }
 
-    if (applied.content.length > MAX_WRITE_FILE_CHARS) {
+    /*
+     * An edit may not grow a file past what a write may make (a model
+     * looping on replace_all could otherwise fill the Runner's disk). A file
+     * the repository already holds larger than that - a lockfile, a
+     * generated table - still takes an edit that does not make it larger.
+     */
+    if (
+      applied.content.length > MAX_WRITE_FILE_CHARS &&
+      applied.content.length > file.content.length
+    ) {
       return {
         narration: `refused ${EDIT_FILE_TOOL_NAME} ${relativePath}: the result is too large`,
         output: `Error: the edited ${relativePath} would be ${applied.content.length.toLocaleString(
           "en-US",
         )} characters, past the ${MAX_WRITE_FILE_CHARS.toLocaleString(
           "en-US",
-        )} a file may have. Nothing was changed.`,
+        )} an edit may grow a file to${
+          file.content.length > MAX_WRITE_FILE_CHARS
+            ? ` (it is ${file.content.length.toLocaleString(
+                "en-US",
+              )} now: an edit that does not make it larger is fine)`
+            : ""
+        }. Nothing was changed.`,
       };
     }
 

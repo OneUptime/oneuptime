@@ -28,6 +28,7 @@ import { CodeAgentResult } from "../../CodeAgents/CodeAgentInterface";
 import LlmCompletionError from "../../Utils/LlmCompletionError";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import { LLMMessage, LLMToolCall } from "Common/Server/Utils/LLM/LLMService";
+import logger from "Common/Server/Utils/Logger";
 import { execFileSync } from "child_process";
 import fs from "fs";
 import os from "os";
@@ -399,6 +400,86 @@ describe("a conversation too long for the model's window", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("maximum context length is 8192 tokens");
+    expect(sleepSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A proxy in front of the OneUptime server takes a request body up to a
+ * size (nginx's own is 1 MB) and answers a larger one with 413 and a page
+ * of its own - no words the agent knows. That is the conversation being
+ * too large, not a refusal: it is cut and sent again, as for a full
+ * context window.
+ */
+describe("a conversation larger than the server takes in one request", () => {
+  function tooLarge(): LlmCompletionError {
+    return new LlmCompletionError({
+      message: "LLM completion request failed (HTTP 413)",
+      statusCode: 413,
+    });
+  }
+
+  test("is cut to half and sent again at once - and the task goes on", async () => {
+    const big: string = Array.from(
+      { length: 600 },
+      (_: unknown, index: number) => {
+        return `export const value${index}: string = "${"v".repeat(70)}";`;
+      },
+    ).join("\n");
+    const workspace: string = makeWorkspace({ "src/big.ts": `${big}\n` });
+
+    script(
+      completion({
+        toolCalls: [toolCall("read_file", { path: "src/big.ts" }, "c1")],
+      }),
+      tooLarge(),
+      completion({ content: "Read it." }),
+    );
+
+    const result: CodeAgentResult = await runAgent(workspace);
+
+    expect(result.success).toBe(true);
+    expect(result.summary).toBe("Read it.");
+    expect(llmCompletionMock).toHaveBeenCalledTimes(3);
+    expect(sleepSpy).not.toHaveBeenCalled();
+    expect(sent[2]!.length).toBeLessThan(sent[1]!.length / 2);
+    // The run's log says why the conversation was cut.
+    expect(
+      (logger.debug as jest.Mock).mock.calls.map((args: Array<unknown>) => {
+        return String(args[0]);
+      }),
+    ).toContain(
+      "[InHouse] The conversation was larger than the OneUptime server takes in one request; trying again with less of it.",
+    );
+  });
+
+  test("fails the task once nothing more can be cut, never waiting", async () => {
+    const workspace: string = makeWorkspace();
+
+    script(tooLarge());
+
+    const result: CodeAgentResult = await runAgent(workspace);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("LLM completion request failed (HTTP 413)");
+    expect(llmCompletionMock).toHaveBeenCalledTimes(1);
+    expect(sleepSpy).not.toHaveBeenCalled();
+  });
+
+  test("any other refusal of the request is still a refusal", async () => {
+    const workspace: string = makeWorkspace();
+
+    script(
+      new LlmCompletionError({
+        message: "LLM completion request failed (HTTP 400)",
+        statusCode: 400,
+      }),
+    );
+
+    const result: CodeAgentResult = await runAgent(workspace);
+
+    expect(result.success).toBe(false);
+    expect(llmCompletionMock).toHaveBeenCalledTimes(1);
     expect(sleepSpy).not.toHaveBeenCalled();
   });
 });

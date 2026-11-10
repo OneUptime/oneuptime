@@ -2,6 +2,10 @@ import AIRunRetryPolicy, {
   AIRunRetryDecision,
 } from "Common/Server/Utils/AI/AIRunRetryPolicy";
 import { AIRunFailureKind } from "Common/Types/AI/AIRunAttempt";
+import LlmCompletionError from "../Utils/LlmCompletionError";
+
+// What a server or a proxy answers a request body larger than it takes.
+const HTTP_PAYLOAD_TOO_LARGE: number = 413;
 
 /*
  * Whether a failed model call of the code agent is made again, and when
@@ -19,9 +23,9 @@ import { AIRunFailureKind } from "Common/Types/AI/AIRunAttempt";
  *     running: the task fails at once and says why.
  *
  * Only the model call is made again: it changes nothing, and no tool runs
- * twice. A conversation too long for the model's context window is not
- * waited out either: the agent cuts it (CodeAgentContext) and asks again
- * at once.
+ * twice. A conversation too long for the model's context window - or for
+ * the server to take in one request - is not waited out either: the agent
+ * cuts it (CodeAgentContext) and asks again at once.
  */
 export default class CodeAgentCompletionRetry {
   public static decide(data: {
@@ -41,6 +45,20 @@ export default class CodeAgentCompletionRetry {
     return (
       AIRunRetryPolicy.classifyFailure({ error }).failureKind ===
       AIRunFailureKind.ContextWindow
+    );
+  }
+
+  /*
+   * The conversation was larger than the OneUptime server takes in one
+   * request (HTTP 413, from the server or a proxy in front of it, which
+   * answers with a page of its own, not the server's words). Like a full
+   * context window, it is cut and sent again at once - never waited out,
+   * and never a refusal that ends the task.
+   */
+  public static isRequestTooLarge(error: unknown): boolean {
+    return (
+      error instanceof LlmCompletionError &&
+      error.statusCode === HTTP_PAYLOAD_TOO_LARGE
     );
   }
 

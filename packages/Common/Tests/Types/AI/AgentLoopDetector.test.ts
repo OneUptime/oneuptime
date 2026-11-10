@@ -1,4 +1,5 @@
 import AgentLoopDetector, {
+  agentLoopResultKey,
   AgentLoopToolCall,
   AgentLoopVerdict,
   canonicalArguments,
@@ -357,11 +358,13 @@ describe("what counts as the same call", () => {
 
 describe("after the conversation left results out", () => {
   /*
-   * The code agent drops the oldest tool results to stay inside the
-   * model's context window (issue #6441). A file read again after that is
-   * the model getting back what it lost, not a circle.
+   * The code agent leaves the oldest tool results out to stay inside the
+   * model's context window (issue #6441), and tells the detector which
+   * (forgetResults). A file read again after that is the model getting back
+   * what it lost, not a circle - but a result the model still has is still
+   * one it has seen, however often the conversation is cut.
    */
-  test("a call made again to get a dropped result back is progress", () => {
+  test("a call made again to get a left-out result back is progress", () => {
     const detector: AgentLoopDetector = new AgentLoopDetector();
     const read: AgentLoopToolCall = call(
       "read_file",
@@ -373,14 +376,80 @@ describe("after the conversation left results out", () => {
     expect(detector.recordRound([read])).toBe(AgentLoopVerdict.Continue);
     expect(detector.getRoundsWithoutProgress()).toBe(1);
 
-    detector.forgetSeenResults();
+    detector.forgetResults([agentLoopResultKey(read)]);
 
-    expect(detector.getRoundsWithoutProgress()).toBe(0);
+    // Forgetting is not progress; getting the result back is.
+    expect(detector.getRoundsWithoutProgress()).toBe(1);
     expect(detector.recordRound([read])).toBe(AgentLoopVerdict.Continue);
     expect(detector.getRoundsWithoutProgress()).toBe(0);
   });
 
-  test("rounds without progress start counting again, nudge included", () => {
+  test("only the results left out are new again", () => {
+    const detector: AgentLoopDetector = new AgentLoopDetector();
+    const cart: AgentLoopToolCall = call(
+      "read_file",
+      { path: "src/cart.ts" },
+      "export const cart = 2;",
+    );
+    const tests: AgentLoopToolCall = call(
+      "run_command",
+      { command: "npm test" },
+      "Exit code: 1\n1 failing",
+    );
+
+    detector.recordRound([cart]);
+    detector.recordRound([tests]);
+    detector.forgetResults([agentLoopResultKey(cart)]);
+
+    expect(detector.recordRound([tests])).toBe(AgentLoopVerdict.Continue);
+    expect(detector.getRoundsWithoutProgress()).toBe(1);
+    expect(detector.recordRound([cart])).toBe(AgentLoopVerdict.Continue);
+    expect(detector.getRoundsWithoutProgress()).toBe(0);
+  });
+
+  /*
+   * A long task's conversation is cut every few rounds once it is full. A
+   * model running the same failing test again and again, its answer still
+   * in the newest rounds, must still be told to change course and then
+   * stopped - the cuts in between forget nothing it still has.
+   */
+  test("a run repeating a result it still has is nudged and stopped, however often the conversation is cut", () => {
+    const detector: AgentLoopDetector = new AgentLoopDetector();
+    const tests: AgentLoopToolCall = call(
+      "run_command",
+      { command: "npm test" },
+      "Exit code: 1\n1 failing",
+    );
+    const elsewhere: AgentLoopToolCall = call(
+      "read_file",
+      { path: "src/old.ts" },
+      "export const old = 1;",
+    );
+    const verdicts: Array<AgentLoopVerdict> = [];
+
+    detector.recordRound([elsewhere]);
+    detector.recordRound([tests]);
+
+    for (
+      let round: number = 1;
+      round <= NO_PROGRESS_ROUNDS_BEFORE_STOP;
+      round++
+    ) {
+      // A cut between every two rounds, of a result long gone.
+      detector.forgetResults([agentLoopResultKey(elsewhere)]);
+      verdicts.push(detector.recordRound([tests]));
+    }
+
+    expect(verdicts).toEqual([
+      AgentLoopVerdict.Continue,
+      AgentLoopVerdict.Continue,
+      AgentLoopVerdict.Nudge,
+      AgentLoopVerdict.Continue,
+      AgentLoopVerdict.Stop,
+    ]);
+  });
+
+  test("forgetting nothing changes nothing", () => {
     const detector: AgentLoopDetector = new AgentLoopDetector();
     const idle: AgentLoopToolCall = call(
       "list_directory",
@@ -389,29 +458,12 @@ describe("after the conversation left results out", () => {
     );
 
     detector.recordRound([idle]);
-
-    for (
-      let round: number = 1;
-      round < NO_PROGRESS_ROUNDS_BEFORE_NUDGE;
-      round++
-    ) {
-      detector.recordRound([idle]);
-    }
-
-    expect(detector.recordRound([idle])).toBe(AgentLoopVerdict.Nudge);
-
-    detector.forgetSeenResults();
     detector.recordRound([idle]);
+    detector.forgetResults([]);
 
-    for (
-      let round: number = 1;
-      round < NO_PROGRESS_ROUNDS_BEFORE_NUDGE;
-      round++
-    ) {
-      expect(detector.recordRound([idle])).toBe(AgentLoopVerdict.Continue);
-    }
-
-    expect(detector.recordRound([idle])).toBe(AgentLoopVerdict.Nudge);
+    expect(detector.getRoundsWithoutProgress()).toBe(1);
+    expect(detector.recordRound([idle])).toBe(AgentLoopVerdict.Continue);
+    expect(detector.getRoundsWithoutProgress()).toBe(2);
   });
 
   test("a call that keeps failing the same way is still stopped", () => {
@@ -425,9 +477,39 @@ describe("after the conversation left results out", () => {
 
     detector.recordRound([failing]);
     detector.recordRound([failing]);
-    detector.forgetSeenResults();
+    detector.forgetResults([agentLoopResultKey(failing)]);
 
     expect(detector.recordRound([failing])).toBe(AgentLoopVerdict.Stop);
+  });
+});
+
+describe("agentLoopResultKey", () => {
+  test("is the same for the same call however its arguments are written", () => {
+    expect(agentLoopResultKey(call("q", { b: 2, a: 1 }, "out", false))).toBe(
+      agentLoopResultKey(call("q", '{ "a": 1, "b": 2 }', "out", true)),
+    );
+  });
+
+  test("tells apart the tool, the arguments and what it returned", () => {
+    const key: string = agentLoopResultKey(call("q", { a: 1 }, "out"));
+
+    expect(agentLoopResultKey(call("r", { a: 1 }, "out"))).not.toBe(key);
+    expect(agentLoopResultKey(call("q", { a: 2 }, "out"))).not.toBe(key);
+    expect(agentLoopResultKey(call("q", { a: 1 }, "out "))).not.toBe(key);
+  });
+
+  test("is the key a round is remembered by: forgetting it makes that result new", () => {
+    const detector: AgentLoopDetector = new AgentLoopDetector();
+    const read: AgentLoopToolCall = call("read_file", { path: "a" }, "1");
+    // Whether the call failed is not part of what its result is known by.
+    const failedRead: AgentLoopToolCall = { ...read, isError: true };
+
+    detector.recordRound([read]);
+    detector.recordRound([read]);
+    detector.forgetResults([agentLoopResultKey(failedRead)]);
+
+    expect(detector.recordRound([read])).toBe(AgentLoopVerdict.Continue);
+    expect(detector.getRoundsWithoutProgress()).toBe(0);
   });
 });
 

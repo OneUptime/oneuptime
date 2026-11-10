@@ -15,7 +15,10 @@
  *   - the system prompt and the request lead every call, unchanged;
  *   - every tool call is answered by exactly one result, right after it
  *     (the providers' contract), however much was left out;
- *   - a result left out is read again as progress, never taken for a loop;
+ *   - a result left out is read again as progress, never taken for a loop,
+ *     and one cut to fit, then left out, too;
+ *   - a model that keeps repeating itself is still told to change course
+ *     and then stopped, however often the conversation is cut;
  *   - once the oldest rounds are summarized, the plan and the files changed
  *     are still in front of the model - and the task finishes its change.
  * ---------------------------------------------------------------------------
@@ -754,5 +757,228 @@ describe("a task of many hundreds of rounds", () => {
     const logLines: Array<string> = keptInsideLogLines();
     expect(logLines.length).toBeGreaterThanOrEqual(2);
     expect(logLines[0]).toMatch(/: \d+ earlier round\(s\) summarized\.$/);
+  });
+});
+
+describe("a task whose conversation is cut every round or two", () => {
+  // A file whose whole read is about 47,000 characters.
+  function largeSource(index: number): string {
+    const lines: Array<string> = [];
+
+    for (let line: number = 1; line <= 520; line++) {
+      lines.push(
+        `export const large${index}Value${line}: string = "${"l".repeat(40)}${line}";`,
+      );
+    }
+
+    return `${lines.join("\n")}\n`;
+  }
+
+  function largeFiles(count: number): Record<string, string> {
+    const files: Record<string, string> = {
+      "src/total.ts": TOTAL_BEFORE,
+      "src/report.ts": REPORT_BEFORE,
+    };
+
+    for (let index: number = 1; index <= count; index++) {
+      files[`src/large${index}.ts`] = largeSource(index);
+    }
+
+    return files;
+  }
+
+  // One round's calls: read each of these large files.
+  function readLarge(indexes: Array<number>): Array<LLMToolCall> {
+    return indexes.map((index: number) => {
+      return call("read_file", { path: `src/large${index}.ts` });
+    });
+  }
+
+  // The result in a conversation of the read of one large file, if any.
+  function largeResult(
+    messages: Array<LLMMessage>,
+    index: number,
+  ): string | undefined {
+    const ids: Set<string> = new Set<string>();
+
+    for (const message of messages) {
+      for (const toolCall of message.toolCalls || []) {
+        if (
+          toolCall.name === "read_file" &&
+          (toolCall.arguments as Record<string, unknown>)["path"] ===
+            `src/large${index}.ts`
+        ) {
+          ids.add(toolCall.id);
+        }
+      }
+    }
+
+    return messages.find((message: LLMMessage) => {
+      return message.role === "tool" && ids.has(message.toolCallId || "");
+    })?.content;
+  }
+
+  /*
+   * Every round reads the same five large files and gets the same five
+   * answers, so the conversation passes its size every round and is cut
+   * each time. Cutting it is no reason to forget what the model still has
+   * in front of it: the repeats are still a circle - the model is told to
+   * change course, then stopped, not left to run until its time is up.
+   */
+  test("a model that keeps repeating itself is told to change course and then stopped, however often it is cut", async () => {
+    const workspace: string = makeRepository(largeFiles(5));
+    const sent: Array<{
+      chars: number;
+      problems: Array<string>;
+      nudged: boolean;
+      withTools: boolean;
+    }> = [];
+
+    llmCompletionMock.mockReset();
+    llmCompletionMock.mockImplementation(
+      (request: { messages: Array<LLMMessage>; tools?: unknown }) => {
+        const withTools: boolean = "tools" in request;
+
+        sent.push({
+          chars: measureContextChars(request.messages),
+          problems: contractProblems(request.messages),
+          nudged: request.messages.some((message: LLMMessage) => {
+            return (
+              message.role === "user" && message.content.includes(NUDGE_WORDS)
+            );
+          }),
+          withTools,
+        });
+
+        // Past twenty calls the run was never stopped: it answers so.
+        const toolCalls: Array<LLMToolCall> =
+          withTools && sent.length <= 20 ? readLarge([1, 2, 3, 4, 5]) : [];
+
+        return Promise.resolve({
+          content:
+            toolCalls.length > 0
+              ? ""
+              : withTools
+                ? "Never stopped."
+                : "Stopped going in circles.",
+          toolCalls,
+          stopReason: toolCalls.length > 0 ? "tool_use" : "stop",
+          budget: {
+            completionCallsUsed: sent.length,
+            maxCompletionCalls: 100_000,
+            outputTokensUsed: 100,
+            maxOutputTokens: 1_000_000_000,
+          },
+        });
+      },
+    );
+
+    const result: CodeAgentResult = await runAgent(workspace);
+
+    // One round that showed something, five that showed nothing new, the answer.
+    expect(
+      sent.map((check: { withTools: boolean }) => {
+        return check.withTools;
+      }),
+    ).toEqual([true, true, true, true, true, true, false]);
+    expect(result.success).toBe(true);
+    expect(result.summary).toBe(
+      "Stopped going in circles.\n\n_This run stopped early: it kept repeating calls that showed it nothing new._",
+    );
+    expect(result.filesModified).toEqual([]);
+
+    // Told to change course after three rounds that showed nothing new.
+    expect(
+      sent.map((check: { nudged: boolean }) => {
+        return check.nudged;
+      }),
+    ).toEqual([false, false, false, false, true, true, true]);
+
+    // Cut before every call from the third - each call inside the size.
+    expect(keptInsideLogLines().length).toBeGreaterThanOrEqual(5);
+    for (const check of sent) {
+      expect(check.problems).toEqual([]);
+      expect(check.chars).toBeLessThanOrEqual(DEFAULT_MAX_CONTEXT_CHARS);
+    }
+  });
+
+  /*
+   * Reads cut to their start and end to fit, then left out as newer reads
+   * came: the model has none of them any more, so reading them again - one
+   * a round, as a model getting back what it lost does - is progress, not a
+   * circle.
+   */
+  test("reading again results that were cut, then left out, is progress", async () => {
+    const workspace: string = makeRepository(largeFiles(20));
+    const progress: {
+      // The first reads as the model had them before reading them again.
+      cutFirst: Array<string> | null;
+      leftOut: Array<string> | null;
+      readAgain: number;
+    } = { cutFirst: null, leftOut: null, readAgain: 0 };
+
+    const model: DrivenModel = driveModel(
+      (messages: Array<LLMMessage>, callIndex: number) => {
+        // 1. Read twenty large files, five a round.
+        if (callIndex < 4) {
+          if (callIndex === 2) {
+            progress.cutFirst = [1, 2, 3, 4, 5].map((index: number) => {
+              return largeResult(messages, index) || "";
+            });
+          }
+
+          return readLarge(
+            [1, 2, 3, 4, 5].map((index: number) => {
+              return callIndex * 5 + index;
+            }),
+          );
+        }
+
+        if (callIndex === 4) {
+          progress.leftOut = [1, 2, 3, 4, 5].map((index: number) => {
+            return largeResult(messages, index) ?? "gone with its round";
+          });
+        }
+
+        // 2. Read the first five again, one a round.
+        if (progress.readAgain < 5) {
+          progress.readAgain++;
+          return readLarge([progress.readAgain]);
+        }
+
+        return "Read what I needed.";
+      },
+    );
+
+    const result: CodeAgentResult = await runAgent(workspace);
+
+    expectNoErrors(model);
+
+    // The first reads were cut to fit, then left out - or gone with their round.
+    for (const content of progress.cutFirst!) {
+      expect(content).toContain(
+        "characters of this result left out to keep this task within the model's context window",
+      );
+    }
+    expect(progress.leftOut).toEqual(
+      [1, 2, 3, 4, 5].map((index: number) => {
+        return expect.stringMatching(
+          new RegExp(
+            `^(gone with its round|\\[Earlier result of read_file src/large${index}\\.ts left out)`,
+          ),
+        );
+      }),
+    );
+
+    // Each read again was progress: never told to change course, never stopped.
+    expect(progress.readAgain).toBe(5);
+    expect(result.success).toBe(true);
+    expect(result.summary).toBe("Read what I needed.");
+    for (const check of model.checks) {
+      expect(check.nudged).toBe(false);
+      expect(check.problems).toEqual([]);
+      expect(check.chars).toBeLessThanOrEqual(DEFAULT_MAX_CONTEXT_CHARS);
+    }
+    expect(model.checks).toHaveLength(10);
   });
 });
