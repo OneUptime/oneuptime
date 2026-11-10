@@ -8,8 +8,10 @@ import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import {
   GLOBAL_TWILIO_CONFIG_SELECT,
+  PROJECT_DEFAULT_TWILIO_CONFIG_SELECT,
   PROJECT_TWILIO_CONFIG_SELECT,
 } from "../../../Server/Utils/TwilioConfigSelect";
+import { TwilioMessageKind } from "../../../Utils/Project/TwilioAccount";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TwilioConfig from "../../../Types/CallAndSMS/TwilioConfig";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
@@ -226,15 +228,20 @@ describe("the project's default Twilio config", () => {
     const twilioConfig: TwilioConfig | undefined =
       await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
         PROJECT_ID,
+        TwilioMessageKind.SMS,
       );
 
     const call: FindOneBy<ProjectCallSMSConfig> = findOneBy.mock
       .calls[0]![0] as FindOneBy<ProjectCallSMSConfig>;
 
-    expect(call.select).toEqual(PROJECT_TWILIO_CONFIG_SELECT);
+    // Every column a send reads, and what the config is the default for.
+    expect(call.select).toEqual(PROJECT_DEFAULT_TWILIO_CONFIG_SELECT);
+    expect(call.select).toEqual(
+      expect.objectContaining(PROJECT_TWILIO_CONFIG_SELECT),
+    );
     expect(call.query).toEqual({
       projectId: PROJECT_ID,
-      isProjectDefault: true,
+      isProjectDefaultForSms: true,
     });
     expect(asText(twilioConfig)).toEqual({
       primary: SG_NATIONAL,
@@ -248,12 +255,20 @@ describe("the project's default Twilio config", () => {
       .spyOn(ProjectCallSMSConfigService, "findOneBy")
       .mockResolvedValue(null as never);
 
-    await expect(
-      ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(PROJECT_ID),
-    ).resolves.toBeUndefined();
-    await expect(
-      ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(undefined),
-    ).resolves.toBeUndefined();
+    for (const kind of [TwilioMessageKind.SMS, TwilioMessageKind.Call]) {
+      await expect(
+        ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+          PROJECT_ID,
+          kind,
+        ),
+      ).resolves.toBeUndefined();
+      await expect(
+        ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+          undefined,
+          kind,
+        ),
+      ).resolves.toBeUndefined();
+    }
   });
 
   test("the select names the SMS column, and every other column a send needs", () => {
@@ -301,7 +316,7 @@ describe("a list of SMS numbers that holds something that is not a phone number"
     jest
       .spyOn(ProjectCallSMSConfigService, "onTriggerRealtime")
       .mockResolvedValue(undefined);
-    // The project has a config, so this one is not made its default.
+    // The project has no config yet, so this one is made its default.
     jest
       .spyOn(ProjectCallSMSConfigService, "countBy")
       .mockImplementation(
@@ -311,9 +326,13 @@ describe("a list of SMS numbers that holds something that is not a phone number"
           return new PositiveNumber(0);
         },
       );
+    /*
+     * The config is the project's first, so it is saved as the default and
+     * its project's defaults are settled: the project has no other config.
+     */
     jest
-      .spyOn(ProjectCallSMSConfigService, "updateBy")
-      .mockResolvedValue(0 as never);
+      .spyOn(ProjectCallSMSConfigService, "findBy")
+      .mockResolvedValue([] as never);
   });
 
   test("is refused when a member creates the config, before anything is saved", async () => {

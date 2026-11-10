@@ -89,11 +89,11 @@ export default class TwilioAccountAvailability {
   }
 
   /*
-   * A caller that already read the project's default config (for the
-   * balance check, which it skips when the project pays Twilio itself)
-   * passes it in, so it is not read twice. A default that is not used for
-   * this kind of message does not count: the message would go through the
-   * server's own account.
+   * A caller that already read the project's default config for this kind
+   * of message (for the balance check, which it skips when the project pays
+   * Twilio itself) passes it in, so it is not read twice. A default that is
+   * not used for this kind of message does not count: the message would go
+   * through the server's own account.
    */
   public static async isAccountAvailableForProject(data: {
     projectId: ObjectID;
@@ -104,6 +104,7 @@ export default class TwilioAccountAvailability {
       data.projectDefaultTwilioConfig ||
       (await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
         data.projectId,
+        data.kind,
       ));
 
     if (TwilioPhoneNumbers.canSend(projectDefaultTwilioConfig, data.kind)) {

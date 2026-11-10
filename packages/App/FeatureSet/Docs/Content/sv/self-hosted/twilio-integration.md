@@ -46,7 +46,7 @@ Så lägger du till en projektkonfiguration:
 2. Välj **Skapa Twilio-konfiguration** i **Twilio-konfiguration**.
 3. Ange ett namn och välj under **Använd det här kontot för** vad kontot skickar: **Samtal och SMS**, **Endast SMS** eller **Endast samtal**. Ange sedan **Twilio-konto-SID**, **Twilio-autentiseringstoken** och det nummer som valet ber om: **Twilio primärt telefonnummer** för samtal, eller **Twilio SMS-telefonnummer** för **Endast SMS**. Under **Fler fält** kan du också ange kommaseparerade **Twilio sekundära telefonnummer** för andra länder, och **Twilio SMS-telefonnummer** om dina nummer inte kan skicka SMS.
 4. **Ange som projektstandard** är påslaget för projektets första konfiguration, så SMS och samtal till projektets medlemmar, även jouraviseringar, går genom den så fort du sparar. Stäng av det om kontot bara är till för statussidor eller inkommande samtal. En senare konfiguration börjar med reglaget avstängt: slå på det, eller välj **Ange som projektstandard** i konfigurationens radmeny, för att flytta de meddelandena dit. En API-begäran som utelämnar `isProjectDefault` behandlas på samma sätt.
-5. Spara. Bara en konfiguration kan vara projektstandard. Statussidor använder den konfiguration som uttryckligen har tilldelats varje statussida.
+5. Spara. Ett projekt har en standard för SMS och en för samtal, så en konfiguration inställd på **Endast SMS** och en inställd på **Endast samtal** kan båda vara standard: se [Ett konto endast för SMS, eller endast för samtal](#ett-konto-endast-för-sms-eller-endast-för-samtal). Statussidor använder den konfiguration som uttryckligen har tilldelats varje statussida.
 
 > [!IMPORTANT]
 > **SMS** och **Telefonsamtal** är avstängda från början i varje projekt, och så länge de är avstängda kan ingen i projektet lägga till ett telefonnummer för dem. En projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på dem i kortet **Aviseringskanaler** på samma sida.
@@ -81,7 +81,9 @@ Ett konto som du bara använder för SMS, eller bara för samtal, behöver inget
 | **Endast SMS** | **Twilio SMS-telefonnummer** | Samtal |
 | **Endast samtal** | **Twilio primärt telefonnummer** | SMS |
 
-Det som en konfiguration inte skickar går ut som det skulle ha gjort utan konfigurationen: när projektets standard är inställd på **Endast SMS** går samtal till projektets medlemmar via konfigurationen för hela installationen. Om ingen konfiguration kan skicka ett meddelande står det i meddelandets logg att projektets konfiguration inte används för det, och vem som kan ändra det.
+Ett projekt har en standard för SMS och en standard för samtal, och en konfiguration är standard för det den skickar. I en konfigurations radmeny gör **Ange som projektstandard för SMS** eller **Ange som projektstandard för samtal** den till standard för det den skickar och låter den andra standarden vara som den är, så en konfiguration inställd på **Endast SMS** och en inställd på **Endast samtal** kan båda vara standard. En konfiguration inställd på **Samtal och SMS** tar båda. Kolumnen **Projektstandard** visar vad varje konfiguration är standard för, och **Sluta använda som projektstandard** i radmenyn avslutar det.
+
+Det som ingen standard skickar går ut som det skulle ha gjort utan en konfiguration: så länge den enda standarden är inställd på **Endast SMS** går samtal till projektets medlemmar via konfigurationen för hela installationen. Om ingen konfiguration kan skicka ett meddelande står det i meddelandets logg att projektets konfiguration inte används för det, och vem som kan ändra det.
 
 Statussidor erbjuder bara de konfigurationer som skickar SMS, och **Skicka test-SMS** och **Skicka testsamtal** visas bara för det som en konfiguration skickar. Alla befintliga konfigurationer är som tidigare inställda på **Samtal och SMS**. Via API:et och Terraform är valet fältet `usedFor`, och en konfiguration utan de nummer som valet behöver avvisas.
 
@@ -161,7 +163,7 @@ För utveckling beskriver Twilios [guide för att testa webhooks](https://www.tw
 | --- | --- |
 | Inget skickas | Autentiseringsuppgifter, numrets funktioner, kontots begränsningar och den utgående anslutningen. |
 | Twilio avvisar SMS med fel 21606 | Numret kan inte skicka SMS. Lägg till ett som kan under **Twilio SMS-telefonnummer**: se [Separata nummer för samtal och SMS](#separata-nummer-för-samtal-och-sms). |
-| Samtal eller SMS går via ett annat konto än projektets | Projektets standard är inställd på **Endast SMS** eller **Endast samtal**: se [Ett konto endast för SMS, eller endast för samtal](#ett-konto-endast-för-sms-eller-endast-för-samtal). |
+| Samtal eller SMS går via ett annat konto än projektets | Ingen konfiguration är projektets standard för dem: kolumnen **Projektstandard** visar vad varje konfiguration är standard för. Se [Ett konto endast för SMS, eller endast för samtal](#ett-konto-endast-för-sms-eller-endast-för-samtal). |
 | SMS:et eller samtalet kommer fram, men status eller kvittering uppdateras inte | Återanrops-URL:en och loggarna från den offentliga ingressen. Twilios [vägledning om fel vid HTTP-hämtning](https://www.twilio.com/docs/api/errors/11200) hjälper till med återanrop som inte nås, TLS-problem och HTTP-fel. |
 
 Ett lyckat testsamtal bevisar inte ensamt att återanrop kan nås.
