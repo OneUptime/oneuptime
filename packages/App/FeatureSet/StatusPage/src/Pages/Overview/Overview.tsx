@@ -737,18 +737,19 @@ const Overview: FunctionComponent<PageComponentProps> = (
    * the numbers it needs and formats the label.
    */
   interface GroupRollup {
-    label: string;
-    color: string;
+    label?: string | undefined;
+    color?: string | undefined;
+    isNonOperational: boolean;
   }
 
   type GetGroupRollupFunction = (data: {
     group: StatusPageGroup;
-  }) => GroupRollup | null;
+  }) => GroupRollup;
 
-  const groupRollups: Map<StatusPageGroup, GroupRollup | null> = useMemo(() => {
+  const groupRollups: Map<StatusPageGroup, GroupRollup> = useMemo(() => {
     const getGroupRollup: GetGroupRollupFunction = (data: {
       group: StatusPageGroup;
-    }): GroupRollup | null => {
+    }): GroupRollup => {
       /*
        * Everything under this group, at any depth. A group with nothing under it
        * reports no rollup at all - see getRollupKind.
@@ -817,23 +818,31 @@ const Overview: FunctionComponent<PageComponentProps> = (
           resourceCountInSubtree: resourcesInSubtree.length,
         });
 
+      const isNonOperational: boolean =
+        resourcesInSubtree.length > 0 &&
+        (isCurrentlyDown ||
+          currentStatus?.isOperationalState === false ||
+          (Boolean(currentStatus?.name) &&
+            currentStatus?.name?.toLowerCase() !== "operational" &&
+            currentStatus?.isOperationalState !== true));
+
+      let label: string | undefined = undefined;
+      let rollupColor: string | undefined = undefined;
+
       if (kind === StatusPageGroupRollupKind.UptimePercent) {
-        return {
-          label: `${uptimePercent}${t("overview.uptimeSuffix")}`,
-          color: color,
-        };
+        label = `${uptimePercent}${t("overview.uptimeSuffix")}`;
+        rollupColor = color;
+      } else if (kind === StatusPageGroupRollupKind.CurrentStatus) {
+        label =
+          translateStatusName(currentStatus?.name) || t("overview.operational");
+        rollupColor = color;
       }
 
-      if (kind === StatusPageGroupRollupKind.CurrentStatus) {
-        return {
-          label:
-            translateStatusName(currentStatus?.name) ||
-            t("overview.operational"),
-          color: color,
-        };
-      }
-
-      return null;
+      return {
+        label: label,
+        color: rollupColor,
+        isNonOperational: isNonOperational,
+      };
     };
 
     return new Map(
@@ -1752,7 +1761,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       });
     }
 
-    const rollup: GroupRollup | null = groupRollups.get(group) || null;
+    const rollup: GroupRollup | undefined = groupRollups.get(group);
 
     return (
       <ResourceGroupSection
@@ -1769,8 +1778,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
         /*
          * A match folded inside a collapsed group is indistinguishable from no
          * match at all, so a running search opens the groups it kept.
+         *
+         * Similarly, if any monitor in the group (or its sub-groups) is
+         * non-operational, auto-expand the section so visitors immediately see
+         * degraded or failing resources without having to drill down.
          */
-        autoExpand={searchResult.isActive}
+        autoExpand={searchResult.isActive || Boolean(rollup?.isNonOperational)}
         resourcesElement={
           showOwnResources ? (
             isGrid ? (
