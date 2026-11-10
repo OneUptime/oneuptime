@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48180,
-    "untranslated": 11063
+    "keys": 48350,
+    "untranslated": 10629
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -451,6 +451,7 @@
     "prod-vcenter",
     "recordset",
     "recordsets",
+    "resident set size",
     "rollbacks",
     "router",
     "s",
