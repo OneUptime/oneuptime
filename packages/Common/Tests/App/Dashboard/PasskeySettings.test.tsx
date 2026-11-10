@@ -1262,6 +1262,45 @@ describe("Passkey settings registration", () => {
       expect(API.post).not.toHaveBeenCalled();
     });
 
+    /*
+     * Issue #6638: every QR code once failed to draw, and setup offered
+     * nothing else. The setup key unfolds under the code, for whoever cannot
+     * scan it, and the code field is still there to finish with.
+     */
+    test("offers the setup key under the QR code, for whoever cannot scan it", async () => {
+      await openSetup();
+      const dialog: HTMLElement = screen.getByRole("dialog", {
+        name: "Set up My authenticator",
+      });
+      const toggle: HTMLElement = within(dialog).getByRole("button", {
+        name: "Can't scan the QR code?",
+      });
+
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(
+        within(dialog).queryByTestId("authenticator-setup-key"),
+      ).not.toBeInTheDocument();
+
+      await click(toggle);
+
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      expect(
+        within(dialog).getByTestId("authenticator-setup-key"),
+      ).toHaveTextContent("TESTONLY");
+      expect(
+        within(dialog).getByText(
+          "Enter this setup key in your authenticator app instead.",
+        ),
+      ).toBeVisible();
+      expect(within(dialog).getByTestId("authenticator-qr")).toHaveTextContent(
+        "otpauth://totp/OneUptime?secret=TESTONLY",
+      );
+      expect(
+        within(dialog).getByRole("textbox", { name: "Verification code" }),
+      ).toBeInTheDocument();
+      expect(API.post).not.toHaveBeenCalled();
+    });
+
     test.each(["", "12345", "abcdef"])(
       "rejects an invalid verification code before posting: %s",
       async (code: string) => {

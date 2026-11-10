@@ -37,6 +37,8 @@ const SHARED_MODULES: ReadonlyArray<string> = [
   "UI/Components/ModelList/StaticModelList",
   "UI/Components/Forms/Fields/FormField",
   "UI/Components/QR/QR",
+  // The QR code and the setup key, on the required two-factor setup (#6638).
+  "UI/Components/AuthenticatorAppSetupCode/AuthenticatorAppSetupCode",
   "UI/Components/EditionLabel/EditionLabel",
   "UI/Utils/Analytics",
   "UI/Utils/Telemetry/Telemetry",
@@ -93,6 +95,11 @@ const LEFT_OUT: ReadonlyArray<LeftOut> = [
   {
     name: "qrcode, for a QR code being drawn",
     path: "node_modules/qrcode/",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "QRCodeImage, the module of ours a QR code loads qrcode through (#6638)",
+    path: "UI/Components/QR/QRCodeImage.ts",
     isLoadedWhenNeeded: true,
   },
   {
