@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 47623,
-    "untranslated": 3478
+    "untranslated": 3476
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -75,6 +75,7 @@
     "Apps",
     "Array",
     "Aruba",
+    "Assets",
     "Atmosphere",
     "Audit",
     "Auth, No Priv",
@@ -462,6 +463,7 @@
     "Portugal",
     "Portugal (+351)",
     "Position",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
     "Postmortem",

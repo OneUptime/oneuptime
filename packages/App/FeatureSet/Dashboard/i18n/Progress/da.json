@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 47623,
-    "untranslated": 11080
+    "untranslated": 11077
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -131,6 +131,7 @@
     "Hardware",
     "Hello world",
     "Hertz",
+    "Histogram",
     "Hunt",
     "Hunts",
     "Hypervisor",
@@ -242,6 +243,7 @@
     "Port",
     "Portugal (+351)",
     "Position",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Postmortem",
     "Powered by OneUptime",
@@ -306,6 +308,7 @@
     "StatusPage",
     "Stratum",
     "Sum",
+    "Switch",
     "System",
     "TLS",
     "TTL",
