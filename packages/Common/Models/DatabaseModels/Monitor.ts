@@ -2547,6 +2547,12 @@ export default class Monitor extends BaseModel {
    * a filter on its body or on a header needs what the sender sent. No role
    * reads it, so the API, exports, MCP, Terraform and the audit log leave it
    * out; people read the copy above (LatestIncomingRequest).
+   *
+   * Not marked computed: the column check skips a computed column on a
+   * create (ColumnPermission.checkDataColumnPermissions), which would let a
+   * member's create set the request the heartbeat judges. Unmarked, a
+   * create that carries it is refused, as an update is. Only the server's
+   * own hook-free writes set it (MonitorResource, LatestIncomingRequest).
    * https://github.com/OneUptime/oneuptime/issues/6402
    */
   @ColumnAccessControl({
@@ -2556,7 +2562,6 @@ export default class Monitor extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.JSON,
-    computed: true,
     canReadOnRelationQuery: false,
     title: "Incoming Monitor Request As Received",
     description:
