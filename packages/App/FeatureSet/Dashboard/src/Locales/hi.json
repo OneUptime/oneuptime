@@ -47717,7 +47717,7 @@
   "Send OpenLineage events from Airflow, dbt or Spark, or Fivetran and Airbyte webhooks, to see every run, the tables it writes, and which failure made a table late.": "Airflow, dbt या Spark से OpenLineage इवेंट, या Fivetran और Airbyte वेबहुक भेजें, ताकि हर रन, उसकी लिखी टेबल, और किस विफलता से कोई टेबल देरी से हुई, यह दिखे।",
   "Send your pipeline runs": "अपने पाइपलाइन रन भेजें",
   "Set Up Alerts": "अलर्ट सेट अप करें",
-  "Table health says when a table changed, not whether its values are right. A check tests what it holds: empty or repeated values, values outside a list, or a query of your own.": "टेबल की सेहत बताती है कि टेबल कब बदली, यह नहीं कि उसके मान सही हैं या नहीं। जाँच यह परखती है कि उसमें क्या है: खाली या दोहराए गए मान, किसी सूची से बाहर के मान, या आपकी अपनी क्वेरी।",
+  "Table health says when a table changed, not whether its values are right. A check tests what it holds: empty or repeated values, values outside a list, or a query of your own.": "टेबल स्वास्थ्य बताता है कि टेबल कब बदली, यह नहीं कि उसके मान सही हैं या नहीं। जाँच यह परखती है कि उसमें क्या है: खाली या दोहराए गए मान, किसी सूची से बाहर के मान, या आपकी अपनी क्वेरी।",
   "Test what tables hold, bring your dbt tests, and send pipeline runs from Airflow, dbt or Spark to see which failed run made a table late.": "टेबल में क्या है उसे परखें, अपने dbt टेस्ट लाएँ, और Airflow, dbt या Spark से पाइपलाइन रन भेजें ताकि दिखे कि किस विफल रन से कोई टेबल देरी से हुई।",
   "The data broke this check, and its alert is open.": "डेटा ने यह जाँच तोड़ी है, और इसका अलर्ट खुला है।",
   "The {{shown}} most urgent of {{count}}, worst first: what failed, then what is late.": "{{count}} में से सबसे ज़रूरी {{shown}}, सबसे गंभीर पहले: जो विफल हुआ, फिर जो देरी से है।",

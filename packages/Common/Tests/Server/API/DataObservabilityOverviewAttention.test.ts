@@ -41,6 +41,7 @@ import {
   DATA_OBSERVABILITY_API_ROUTES,
   DataObservabilityOverview,
   DataObservabilityOverviewAsset,
+  DataObservabilityStoreSummary,
   MAX_CHECK_HEALTH_IDS,
 } from "../../../Types/DataObservability/DataObservabilityApiTypes";
 import {
@@ -275,16 +276,22 @@ function stubOverviewSources(): void {
 
   jest
     .spyOn(DataObservabilityAttentionReader, "read")
-    .mockImplementation(async (data) => {
-      reads.push({
-        reader: data.reader,
-        lateAssets: data.lateAssets,
-        storeIds: data.stores.map((store) => {
-          return store.dataStoreId;
-        }),
-      });
-      return attention;
-    });
+    .mockImplementation(
+      async (
+        data: Parameters<typeof DataObservabilityAttentionReader.read>[0],
+      ) => {
+        reads.push({
+          reader: data.reader,
+          lateAssets: data.lateAssets,
+          storeIds: data.stores.map(
+            (store: DataObservabilityStoreSummary): string => {
+              return store.dataStoreId;
+            },
+          ),
+        });
+        return attention;
+      },
+    );
 
   jest
     .spyOn(DataObservabilityAttentionReader, "getOwnerCounts")
@@ -370,9 +377,11 @@ describe("the Overview's answer", () => {
 
     expect(
       Object.fromEntries(
-        overview.stores.map((store) => {
-          return [store.name, store.alertMonitorCount];
-        }),
+        overview.stores.map(
+          (store: DataObservabilityStoreSummary): [string, number] => {
+            return [store.name, store.alertMonitorCount];
+          },
+        ),
       ),
     ).toEqual({
       "orders-db": 4,

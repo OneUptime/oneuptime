@@ -103,7 +103,7 @@ const OverviewSetupSteps: FunctionComponent<ComponentProps> = (
             </p>
           </div>
         </div>
-        <div className="flex-shrink-0 ps-14 sm:ps-0">
+        <div className="flex-shrink-0 self-end sm:self-auto">
           <Button
             title="Hide"
             buttonStyle={ButtonStyleType.OUTLINE}

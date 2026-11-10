@@ -78,18 +78,25 @@ const StoreOverviewPage: FunctionComponent<
     <div className="space-y-5">
       <EventStatBar columns={3} ariaLabel="Database health">
         <EventStatTile
+          variant="segment"
           label="Tables Watched"
           value={translator.formatNumber(store.assetCount)}
           icon={IconProp.TableCells}
-          description="Tables and views in this database."
+          description={translator.translateText(
+            "Tables and views in this database.",
+          )}
         />
         <EventStatTile
+          variant="segment"
           label="Late Tables"
           value={translator.formatNumber(store.lateAssetCount)}
           icon={IconProp.Clock}
-          description="Tables that have gone well past their usual interval without a change."
+          description={translator.translateText(
+            "Tables that have gone well past their usual interval without a change.",
+          )}
         />
         <EventStatTile
+          variant="segment"
           label="Last Collected"
           value={
             store.collectedAt
@@ -99,7 +106,9 @@ const StoreOverviewPage: FunctionComponent<
               : "-"
           }
           icon={IconProp.Refresh}
-          description="The catalog is read every few minutes."
+          description={translator.translateText(
+            "The catalog is read every few minutes.",
+          )}
         />
       </EventStatBar>
 

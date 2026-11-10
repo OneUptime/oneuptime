@@ -257,17 +257,14 @@ const DataObservabilityStoresPage: FunctionComponent<
                         )}
                       </div>
                       <div className="flex shrink-0 flex-wrap gap-2">
+                        {/* A row's action is never filled: several databases can have no alert on at once. */}
                         <Button
                           title={
                             isStoreWithoutAlerts(store)
                               ? "Set Up Alerts"
                               : "Recommended Alerts"
                           }
-                          buttonStyle={
-                            isStoreWithoutAlerts(store)
-                              ? ButtonStyleType.PRIMARY
-                              : ButtonStyleType.NORMAL
-                          }
+                          buttonStyle={ButtonStyleType.NORMAL}
                           icon={IconProp.Alert}
                           onClick={() => {
                             Navigation.navigate(

@@ -59,11 +59,14 @@ function getOwnerName(
     return (
       entry.user.name?.toString() ||
       entry.user.email?.toString() ||
-      translator.translateText("User")
+      translator.translateText("User") ||
+      "User"
     );
   }
 
-  return entry.team.name?.toString() || translator.translateText("Team");
+  return (
+    entry.team.name?.toString() || translator.translateText("Team") || "Team"
+  );
 }
 
 export interface ComponentProps {
@@ -102,7 +105,7 @@ const OverviewNeedsAttention: FunctionComponent<ComponentProps> = (
     ),
   );
 
-  const description: string =
+  const description: string | undefined =
     props.totalCount === 0
       ? translator.translateText("Nothing is broken or late right now.")
       : props.totalCount > props.items.length

@@ -47717,7 +47717,7 @@
   "Send OpenLineage events from Airflow, dbt or Spark, or Fivetran and Airbyte webhooks, to see every run, the tables it writes, and which failure made a table late.": "Airflow、dbt、Spark から OpenLineage イベントを、または Fivetran と Airbyte から Webhook を送信すると、すべての実行、書き込み先のテーブル、どの失敗がテーブルの遅延を招いたかがわかります。",
   "Send your pipeline runs": "パイプライン実行を送信",
   "Set Up Alerts": "アラートを設定",
-  "Table health says when a table changed, not whether its values are right. A check tests what it holds: empty or repeated values, values outside a list, or a query of your own.": "テーブルの健全性はテーブルがいつ変わったかを示しますが、値が正しいかどうかは示しません。チェックは中身をテストします。空や重複の値、リスト外の値、または独自のクエリです。",
+  "Table health says when a table changed, not whether its values are right. A check tests what it holds: empty or repeated values, values outside a list, or a query of your own.": "テーブルのヘルスはテーブルがいつ変わったかを示しますが、値が正しいかどうかは示しません。チェックは中身をテストします。空や重複の値、リスト外の値、または独自のクエリです。",
   "Test what tables hold, bring your dbt tests, and send pipeline runs from Airflow, dbt or Spark to see which failed run made a table late.": "テーブルの中身をテストし、dbt テストを取り込み、Airflow、dbt、Spark からパイプライン実行を送信して、どの失敗した実行がテーブルの遅延を招いたかを確認します。",
   "The data broke this check, and its alert is open.": "データがこのチェックに違反し、アラートがオープン中です。",
   "The {{shown}} most urgent of {{count}}, worst first: what failed, then what is late.": "{{count}} 件中、最も緊急な {{shown}} 件。重大な順に、失敗したもの、次に遅延しているもの。",

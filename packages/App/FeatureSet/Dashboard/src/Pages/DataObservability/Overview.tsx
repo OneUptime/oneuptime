@@ -213,6 +213,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
 
       <EventStatBar columns={4} ariaLabel="Data health">
         <EventStatTile
+          variant="segment"
           label="Tables Watched"
           value={translator.formatNumber(overview.assetCount)}
           icon={IconProp.TableCells}
@@ -225,6 +226,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
           )}
         />
         <EventStatTile
+          variant="segment"
           label="Needs Attention"
           value={translator.formatNumber(overview.attentionCount)}
           icon={IconProp.Alert}
@@ -233,16 +235,22 @@ const DataObservabilityOverviewPage: FunctionComponent<
           )}
         />
         <EventStatTile
+          variant="segment"
           label="Late Tables"
           value={translator.formatNumber(overview.lateAssetCount)}
           icon={IconProp.Clock}
-          description="Tables that have gone well past their usual interval without a change."
+          description={translator.translateText(
+            "Tables that have gone well past their usual interval without a change.",
+          )}
         />
         <EventStatTile
+          variant="segment"
           label="Failing Checks"
           value={translator.formatNumber(overview.failingCheckCount)}
           icon={IconProp.CheckCircle}
-          description="Checks whose alert is open: the data broke what they test."
+          description={translator.translateText(
+            "Checks whose alert is open: the data broke what they test.",
+          )}
         />
       </EventStatBar>
 
@@ -334,15 +342,22 @@ const DataObservabilityOverviewPage: FunctionComponent<
             },
           ]}
         >
-          <ul className="divide-y divide-gray-100 px-6 pb-4">
+          {/*
+           * A database's name and facts, and how its last read went: side
+           * by side in a card wide enough for both, one under the other in
+           * a narrow one (a phone, or beside the side menu) - keyed to the
+           * card's width, not the window's.
+           */}
+          <ul className="divide-y divide-gray-100 px-6 pb-4 [container-type:inline-size]">
             {overview.stores.map(
               (store: DataObservabilityStoreSummary): ReactElement => {
                 return (
                   <li
                     key={store.dataStoreId}
-                    className="flex items-center justify-between gap-3 py-2"
+                    data-testid="data-observability-store-row"
+                    className="flex flex-col gap-1 py-2 [@container(min-width:24rem)]:flex-row [@container(min-width:24rem)]:items-center [@container(min-width:24rem)]:justify-between [@container(min-width:24rem)]:gap-3"
                   >
-                    <div className="min-w-0">
+                    <div className="min-w-0 [@container(min-width:24rem)]:flex-1">
                       <AppLink
                         to={RouteUtil.populateRouteParams(
                           RouteMap[
@@ -360,7 +375,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
                       </span>
                     </div>
                     <span
-                      className={`shrink-0 text-sm ${
+                      className={`text-sm [@container(min-width:24rem)]:flex-none ${
                         store.status === "Failed"
                           ? "font-medium text-red-600"
                           : "text-gray-600"
@@ -420,6 +435,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
       {quality && quality.issueCount > 0 ? (
         <EventStatBar columns={4} ariaLabel="How well it is working">
           <EventStatTile
+            variant="segment"
             label="Useful Issues a Week"
             value={translator.formatNumber(quality.usefulIssuesPerWeek)}
             icon={IconProp.CheckCircle}
@@ -429,22 +445,31 @@ const DataObservabilityOverviewPage: FunctionComponent<
             )}
           />
           <EventStatTile
+            variant="segment"
             label="Precision"
             value={formatPercent(quality.precisionPercent)}
             icon={IconProp.Filter}
-            description="The share of issues not marked expected or not an issue."
+            description={translator.translateText(
+              "The share of issues not marked expected or not an issue.",
+            )}
           />
           <EventStatTile
+            variant="segment"
             label="Caught First"
             value={formatPercent(quality.caughtFirstPercent)}
             icon={IconProp.Bolt}
-            description="The share of problems people reported that OneUptime had already raised."
+            description={translator.translateText(
+              "The share of problems people reported that OneUptime had already raised.",
+            )}
           />
           <EventStatTile
+            variant="segment"
             label="Cause Found"
             value={formatPercent(quality.causeFoundPercent)}
             icon={IconProp.Search}
-            description="The share of answered issues whose likely cause was the real one."
+            description={translator.translateText(
+              "The share of answered issues whose likely cause was the real one.",
+            )}
           />
         </EventStatBar>
       ) : (

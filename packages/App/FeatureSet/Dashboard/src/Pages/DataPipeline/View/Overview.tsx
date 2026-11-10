@@ -88,6 +88,7 @@ const PipelineOverviewPage: FunctionComponent<
     <div className="space-y-5">
       <EventStatBar columns={4} ariaLabel="Pipeline health">
         <EventStatTile
+          variant="segment"
           label="Last Run"
           value={
             pipeline?.lastRunStartedAt
@@ -100,6 +101,7 @@ const PipelineOverviewPage: FunctionComponent<
           icon={IconProp.Play}
         />
         <EventStatTile
+          variant="segment"
           label="Usually Takes"
           value={
             pipeline?.typicalRunDurationInSeconds
@@ -135,6 +137,7 @@ const PipelineOverviewPage: FunctionComponent<
           icon={IconProp.Clock}
         />
         <EventStatTile
+          variant="segment"
           label="Schedule"
           value={
             pipeline && lateness
@@ -145,6 +148,7 @@ const PipelineOverviewPage: FunctionComponent<
           icon={IconProp.Calendar}
         />
         <EventStatTile
+          variant="segment"
           label="Runs"
           value={translator.formatNumber(pipeline?.runCount || 0)}
           note={

@@ -60,16 +60,19 @@ const TableOverviewPage: FunctionComponent<
       </div>
       <EventStatBar columns={4} ariaLabel="Table health">
         <EventStatTile
+          variant="segment"
           label="Rows"
           value={formatRowCount(translator, dataAsset.rowCount)}
           icon={IconProp.TableCells}
         />
         <EventStatTile
+          variant="segment"
           label="Size"
           value={formatSize(dataAsset.sizeInBytes)}
           icon={IconProp.Database}
         />
         <EventStatTile
+          variant="segment"
           label="Last Changed"
           value={
             dataAsset.lastChangedAt
@@ -88,6 +91,7 @@ const TableOverviewPage: FunctionComponent<
           icon={IconProp.Clock}
         />
         <EventStatTile
+          variant="segment"
           label="Usually Changes"
           value={formatUpdateInterval(
             translator,

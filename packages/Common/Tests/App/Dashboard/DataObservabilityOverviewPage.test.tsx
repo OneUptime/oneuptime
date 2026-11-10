@@ -60,12 +60,19 @@ import RouteMap, {
 
 jest.setTimeout(60000);
 
+/*
+ * The reader's language, as a test sets it: a word found here reads as
+ * given, any other as written. Empty but for the test that reads the page
+ * in another language.
+ */
+const mockTranslations: Record<string, string> = {};
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
       return {
         t: (value: string): string => {
-          return value;
+          return mockTranslations[value] ?? value;
         },
       };
     },
@@ -282,7 +289,12 @@ let overviewAnswer: DataObservabilityOverview | Error;
 let ownersRead: Error | null;
 let overviewSpy: jest.SpiedFunction<typeof DataObservabilityApi.getOverview>;
 let navigateSpy: jest.SpiedFunction<typeof Navigation.navigate>;
-let ownerQueries: Array<{ modelType: unknown; query: Record<string, unknown> }>;
+interface OwnerQuery {
+  modelType: unknown;
+  query: Record<string, unknown>;
+}
+
+let ownerQueries: Array<OwnerQuery>;
 
 function list<T>(data: Array<T>): {
   data: Array<T>;
@@ -295,7 +307,7 @@ function list<T>(data: Array<T>): {
 
 function owner<T>(Type: { new (): T }, fields: Record<string, unknown>): T {
   const row: T = new Type();
-  Object.assign(row as object, fields);
+  Object.assign(row as unknown as Record<string, unknown>, fields);
   return row;
 }
 
@@ -397,6 +409,9 @@ afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
   window.localStorage.clear();
+  for (const key of Object.keys(mockTranslations)) {
+    delete mockTranslations[key];
+  }
 });
 
 async function openPage(): Promise<void> {
@@ -694,9 +709,11 @@ describe("what needs someone now", () => {
     );
 
     // Only the tables and products told of are asked about.
-    const assetQuery: Includes = ownerQueries.find((query) => {
-      return query.modelType === DataAssetOwnerUser;
-    })!.query["dataAssetId"] as Includes;
+    const assetQuery: Includes = ownerQueries.find(
+      (query: OwnerQuery): boolean => {
+        return query.modelType === DataAssetOwnerUser;
+      },
+    )!.query["dataAssetId"] as Includes;
 
     expect([...assetQuery.values].map(String).sort()).toEqual(
       [TABLE_ORDERS, TABLE_PAYMENTS, TABLE_EVENTS].sort(),
@@ -768,6 +785,63 @@ describe("what needs someone now", () => {
     expect(tileValue("Failing Checks")).toBe("1");
     expect(tileValue("Tables Watched")).toBe("1,840");
     expect(tileValue("Late Tables")).toBe("2");
+  });
+
+  test("the strip is one bar of cells, whose numbers wrap rather than being cut short", async () => {
+    await openPage();
+
+    const bar: HTMLElement = await screen.findByRole("group", {
+      name: "Data health",
+    });
+
+    for (const label of [
+      "Tables Watched",
+      "Needs Attention",
+      "Late Tables",
+      "Failing Checks",
+    ]) {
+      const tile: HTMLElement = within(bar).getByText(label, {
+        selector: "span",
+      }).parentElement!.parentElement!;
+
+      // A cell of the bar (EventStatTile variant="segment"), not a card in a card.
+      expect(tile.className).not.toContain("rounded-xl");
+      expect(tile.children[1]!.className).toContain("break-words");
+      expect(tile.children[1]!.className).not.toContain("truncate");
+    }
+  });
+
+  test("every word on the strip is looked up in the reader's language: its name, each tile's name and the line under it", async () => {
+    const words: Array<string> = [
+      "Data health",
+      "Tables Watched",
+      "In {{count}} connected databases.",
+      "Needs Attention",
+      "Broken, late or drifting now.",
+      "Late Tables",
+      "Tables that have gone well past their usual interval without a change.",
+      "Failing Checks",
+      "Checks whose alert is open: the data broke what they test.",
+    ];
+    for (const word of words) {
+      mockTranslations[word] = `«${word}»`;
+    }
+
+    await openPage();
+
+    const bar: HTMLElement = await screen.findByRole("group", {
+      name: "«Data health»",
+    });
+
+    for (const word of words.slice(1)) {
+      expect(
+        within(bar).getByText(
+          word === "In {{count}} connected databases."
+            ? "«In 2 connected databases.»"
+            : `«${word}»`,
+        ),
+      ).toBeInTheDocument();
+    }
   });
 
   test("nothing wrong: it says what was looked at and found well", async () => {
