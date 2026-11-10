@@ -45346,7 +45346,7 @@
   "The secret that goes with the access key ID. It is stored encrypted.": "Секрет, который идёт вместе с идентификатором ключа доступа. Хранится в зашифрованном виде.",
   "The AWS Region your sender's identity is verified in, such as us-east-1 or eu-west-1.": "Регион AWS, в котором подтверждено удостоверение отправителя, например us-east-1 или eu-west-1.",
   "Enter an AWS Region code, such as us-east-1.": "Введите код региона AWS, например us-east-1.",
-  "A SendGrid API key with the Mail Send permission, from Settings > API Keys in SendGrid. It is stored encrypted.": "Ключ API SendGrid с разрешением Mail Send из раздела Settings > API Keys в SendGrid. Хранится в зашифрованном виде.",
+  "A SendGrid API key with the Mail Send permission, from SendGrid's Settings > API Keys. It is stored encrypted.": "Ключ API SendGrid с разрешением Mail Send из раздела Settings > API Keys в SendGrid. Хранится в зашифрованном виде.",
   "An API key from your Mailgun account, or a sending key made for this domain. It is stored encrypted.": "Ключ API вашей учётной записи Mailgun или ключ отправки, созданный для этого домена. Хранится в зашифрованном виде.",
   "The sending domain, as Mailgun lists it under Sending > Domains.": "Домен отправки в том виде, в каком Mailgun показывает его в разделе Sending > Domains.",
   "Enter a domain, such as mg.example.com.": "Введите домен, например mg.example.com.",

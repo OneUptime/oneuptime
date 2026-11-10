@@ -2054,7 +2054,7 @@
   "The secret that goes with the access key ID. It is stored encrypted.": "El secreto que acompaña al ID de clave de acceso. Se guarda cifrado.",
   "The AWS Region your sender's identity is verified in, such as us-east-1 or eu-west-1.": "La región de AWS en la que está verificada la identidad de su remitente, como us-east-1 o eu-west-1.",
   "Enter an AWS Region code, such as us-east-1.": "Introduzca un código de región de AWS, como us-east-1.",
-  "A SendGrid API key with the Mail Send permission, from Settings > API Keys in SendGrid. It is stored encrypted.": "Una clave de API de SendGrid con el permiso Mail Send, de Settings > API Keys en SendGrid. Se guarda cifrada.",
+  "A SendGrid API key with the Mail Send permission, from SendGrid's Settings > API Keys. It is stored encrypted.": "Una clave de API de SendGrid con el permiso Mail Send, de Settings > API Keys en SendGrid. Se guarda cifrada.",
   "An API key from your Mailgun account, or a sending key made for this domain. It is stored encrypted.": "Una clave de API de su cuenta de Mailgun, o una clave de envío creada para este dominio. Se guarda cifrada.",
   "The sending domain, as Mailgun lists it under Sending > Domains.": "El dominio de envío, tal como Mailgun lo muestra en Sending > Domains.",
   "Enter a domain, such as mg.example.com.": "Introduzca un dominio, como mg.example.com.",
