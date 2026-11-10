@@ -49125,5 +49125,10 @@
   "Loading infrastructure…": "Laster infrastruktur…",
   "Loading service map…": "Laster tjenestekart…",
   "Service Map": "Tjenestekart",
+  "Can't scan the QR code?": "Kan du ikke skanne QR-koden?",
+  "Enter this setup key in your authenticator app instead.": "Skriv inn denne oppsettsnøkkelen i autentiseringsappen din i stedet.",
+  "If your app asks, choose a time-based key.": "Velg en tidsbasert nøkkel hvis appen spør.",
+  "QR code": "QR-kode",
+  "The QR code could not be shown.": "QR-koden kunne ikke vises.",
   "Microsoft Dataverse": "Microsoft Dataverse"
 }

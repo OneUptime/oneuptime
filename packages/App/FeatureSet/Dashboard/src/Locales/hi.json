@@ -49125,5 +49125,10 @@
   "Loading infrastructure…": "बुनियादी ढांचा लोड हो रहा है…",
   "Loading service map…": "सेवा मानचित्र लोड हो रहा है…",
   "Service Map": "सेवा मानचित्र",
+  "Can't scan the QR code?": "QR कोड स्कैन नहीं कर पा रहे हैं?",
+  "Enter this setup key in your authenticator app instead.": "इसके बजाय यह सेटअप कुंजी अपने प्रमाणक ऐप में दर्ज करें।",
+  "If your app asks, choose a time-based key.": "अगर आपका ऐप पूछे, तो समय-आधारित कुंजी चुनें।",
+  "QR code": "QR कोड",
+  "The QR code could not be shown.": "QR कोड नहीं दिखाया जा सका।",
   "Microsoft Dataverse": "Microsoft Dataverse"
 }

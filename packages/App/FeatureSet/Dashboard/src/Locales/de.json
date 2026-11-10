@@ -49125,5 +49125,10 @@
   "Loading infrastructure…": "Infrastruktur wird geladen…",
   "Loading service map…": "Dienstkarte wird geladen…",
   "Service Map": "Dienstkarte",
+  "Can't scan the QR code?": "Sie können den QR-Code nicht scannen?",
+  "Enter this setup key in your authenticator app instead.": "Geben Sie stattdessen diesen Einrichtungsschlüssel in Ihre Authenticator-App ein.",
+  "If your app asks, choose a time-based key.": "Falls Ihre App danach fragt, wählen Sie einen zeitbasierten Schlüssel.",
+  "QR code": "QR-Code",
+  "The QR code could not be shown.": "Der QR-Code konnte nicht angezeigt werden.",
   "Microsoft Dataverse": "Microsoft Dataverse"
 }
