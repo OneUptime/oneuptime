@@ -370,7 +370,36 @@ const lightBoxes: (page: Page) => Promise<Array<string>> = async (
 const lowContrastTexts: (page: Page) => Promise<Array<string>> = async (
   page: Page,
 ): Promise<Array<string>> => {
-  return page.evaluate((): Array<string> => {
+  return page.evaluate(async (): Promise<Array<string>> => {
+    /*
+     * Read once no colour is changing, as the visitor reads the page. Its
+     * styles are made in the browser, by the Tailwind script, a moment after
+     * the elements they style, and a Button fades its colours in
+     * (transition-colors, 150 ms). So a button drawn before its styles
+     * arrived fades from the colour it inherited to its own: in the light
+     * theme, from black to its white, through greys too faint on its indigo.
+     * The wait and the reading are one script, so no fade can start between
+     * them.
+     */
+    const isFading: () => boolean = (): boolean => {
+      return document.getAnimations().some((animation: Animation): boolean => {
+        const timing: ComputedEffectTiming | undefined =
+          animation.effect?.getComputedTiming();
+
+        return (
+          animation.playState === "running" && timing?.iterations !== Infinity
+        );
+      });
+    };
+
+    while (isFading()) {
+      await new Promise<void>((resolve: () => void) => {
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    }
+
     const RGB: RegExp =
       /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/;
     const parse: (value: string) => Array<number> | null = (
