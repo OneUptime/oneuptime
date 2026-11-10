@@ -148,13 +148,13 @@ The message says the change in the words of the SLO's **Feed**: the tier the SLO
 - Nothing is posted while the SLO stays in its tier, however long the budget hovers at a threshold: see [Entering and leaving a tier](#entering-and-leaving-a-tier).
 - Switching **Freeze Deployments** on or off for the tier the SLO is in posts a message of its own.
 - A Paused, Misconfigured, disabled or archived SLO keeps its tier, and posts nothing.
-- A message that cannot be sent never holds up the evaluation, the SLO's feed or what the tier raises.
+- A message that cannot be sent is logged, and the evaluation, the SLO's feed and what the tier raises go on without it.
 
 ### What a rule matches
 
 | Condition | What it matches |
 | --- | --- |
-| **SLOs** | The SLOs you pick. |
+| **SLOs** | The SLOs you pick, or every SLO but those. |
 | **SLO Labels** | The SLO's labels: any of the ones you pick, all of them, or none of them. |
 | **SLO Name** | The SLO's name: equal to your text or not, containing it or not, starting or ending with it. |
 | **Error Budget Policy Change** | What changed: **Entered a more severe tier**, **Recovered to a less severe tier**, **Left every tier**, **Deployments frozen** or **Deployments allowed again**. |

@@ -93,7 +93,11 @@ import {
 import { canRuleCreateChannel } from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleOwnChannel";
 import { SLO_ERROR_BUDGET_POLICY_CHANGES } from "Common/Types/ServiceLevelObjective/SloErrorBudgetPolicyChange";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
-import { NotificationRuleConditionUtil } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import {
+  ConditionType,
+  NotificationRuleConditionCheckOn,
+  NotificationRuleConditionUtil,
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import {
   getSloFeedChatMarkdown,
@@ -3212,6 +3216,84 @@ describe("Error Budget Policy in Slack, Microsoft Teams and Mattermost, against 
     expect(section(page, "Not available yet")).not.toContain("Slack");
     expect(section(page, "Not available yet")).not.toContain(
       "Microsoft Teams",
+    );
+  });
+
+  it("says how each condition matches, as the Filter Type offers its operators", () => {
+    const matches: Map<string, string> = new Map(
+      tableRows(section(page, "What a rule matches")).map(
+        (row: Array<string>): [string, string] => {
+          return [row[0] as string, row[1] as string];
+        },
+      ),
+    );
+    const operators: (checkOn: NotificationRuleConditionCheckOn) => string = (
+      checkOn: NotificationRuleConditionCheckOn,
+    ): string => {
+      return NotificationRuleConditionUtil.getConditionTypeByCheckOn(checkOn)
+        .slice()
+        .sort()
+        .join(", ");
+    };
+
+    // Picked SLOs: any of them, or every SLO but them.
+    expect(operators(NotificationRuleConditionCheckOn.Slos)).toBe(
+      [ConditionType.ContainsAny, ConditionType.NotContains].sort().join(", "),
+    );
+    expect(matches.get("**SLOs**")).toBe(
+      "The SLOs you pick, or every SLO but those.",
+    );
+
+    // Labels: any, all, or none of the ones picked.
+    expect(operators(NotificationRuleConditionCheckOn.SloLabels)).toBe(
+      [
+        ConditionType.ContainsAny,
+        ConditionType.ContainsAll,
+        ConditionType.NotContains,
+      ]
+        .sort()
+        .join(", "),
+    );
+    expect(matches.get("**SLO Labels**")).toBe(
+      "The SLO's labels: any of the ones you pick, all of them, or none of them.",
+    );
+
+    // The name: equal or not, containing or not, starting or ending with.
+    expect(operators(NotificationRuleConditionCheckOn.SloName)).toBe(
+      [
+        ConditionType.EqualTo,
+        ConditionType.NotEqualTo,
+        ConditionType.Contains,
+        ConditionType.NotContains,
+        ConditionType.StartsWith,
+        ConditionType.EndsWith,
+      ]
+        .sort()
+        .join(", "),
+    );
+    expect(matches.get("**SLO Name**")).toBe(
+      "The SLO's name: equal to your text or not, containing it or not, starting or ending with it.",
+    );
+  });
+
+  it("says a message that cannot be sent is logged, and the evaluation goes on without it", () => {
+    const worker: string = readSource("worker");
+    const poster: string = readSource("sloWorkspaceNotifications");
+
+    // The poster catches what the workspaces throw, and says so in the log...
+    expect(poster).toContain("} catch (err) {");
+    expect(poster).toContain("logger.error(");
+    // ...and the worker catches whatever is left, after the feed item.
+    const workerPost: string = blockFrom(
+      worker,
+      "async function postPolicyChangeToWorkspaces(",
+      "\n}\n",
+    );
+
+    expect(workerPost).toContain("} catch (err) {");
+    expect(workerPost).toContain("logger.error(");
+    expect(posting).toContain(
+      "A message that cannot be sent is logged, and the evaluation, the SLO's feed and what the tier raises go on without it.",
     );
   });
 });
