@@ -22,7 +22,7 @@ import Navigation from "../../../UI/Utils/Navigation";
 import { JSONObject } from "../../../Types/JSON";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { RecordingHealthStatus } from "../../../Types/Rum/SessionReplayHealth";
-import { diagnoseRecordingHealth } from "../../../Utils/Rum/SessionReplayHealth";
+import { diagnoseRecordingHealth } from "../../../Utils/SessionReplay/SessionReplayHealth";
 
 /*
  * The Replay Health page.

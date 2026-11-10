@@ -1,9 +1,4 @@
 import "@testing-library/jest-dom";
-/*
- * The global jest, whose jest.Mock the mocks below are typed with: a jest.fn()
- * from @jest/globals is jest-mock's Mock, which compile-tests refuses as a
- * jest.Mock (TS2322, issue #6660).
- */
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
   act,

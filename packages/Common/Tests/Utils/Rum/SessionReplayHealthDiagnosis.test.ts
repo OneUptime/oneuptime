@@ -11,7 +11,7 @@ import {
   getTopRefusal,
   parseHealthTimestamp,
   parseRecordingHealthStatus,
-} from "../../../Utils/Rum/SessionReplayHealth";
+} from "../../../Utils/SessionReplay/SessionReplayHealth";
 import {
   RecordingHealthDiagnosis,
   RecordingHealthState,

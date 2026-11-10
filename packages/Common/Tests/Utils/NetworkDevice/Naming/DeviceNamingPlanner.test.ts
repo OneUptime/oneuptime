@@ -76,7 +76,6 @@ function unitDevice(data: {
   site: string;
   lastOctet: number;
   discoveredName?: string;
-  // Undefined too: a seeded draw may pick a device with no vendor.
   vendor?: string | undefined;
 }): DeviceNamingFacts {
   const subnet: string = data.unit === "1216" ? "10.48.145" : "10.64.137";

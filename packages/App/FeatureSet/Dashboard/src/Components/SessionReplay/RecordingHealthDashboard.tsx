@@ -26,7 +26,7 @@ import { RecordingHealthStatus } from "Common/Types/Rum/SessionReplayHealth";
 import {
   formatCountForCopy,
   formatRelativeAge,
-} from "Common/Utils/Rum/SessionReplayHealth";
+} from "Common/Utils/SessionReplay/SessionReplayHealth";
 import useSessionReplayHealth, {
   SESSION_REPLAY_HEALTH_POLL_SLOW_MS,
   SessionReplayHealthSnapshot,
