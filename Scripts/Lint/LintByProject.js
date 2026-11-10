@@ -12,8 +12,11 @@
 //
 // A file that no nearer tsconfig.json's program contains lands in the
 // repository-root tsconfig.json's, which has no "include" and so is the whole
-// monorepo. packages/Common/Tests and packages/CLI/Tests used to, excluded by
-// their package's tsconfig; each now has a Tests/tsconfig.json of its own.
+// monorepo: 29,574 files on 2026-11-10, more than an ESLint process holds in
+// its 12 GB heap. packages/Common/Tests and packages/CLI/Tests used to,
+// excluded by their package's tsconfig, and so did the TypeScript under the
+// repository's own Tests from 2026-11-05; each now has a tsconfig.json of its
+// own, as any folder of TypeScript outside the packages needs.
 // --list-projects lists under "tsconfig.json" the files that may land there
 // (see projectOf).
 //
