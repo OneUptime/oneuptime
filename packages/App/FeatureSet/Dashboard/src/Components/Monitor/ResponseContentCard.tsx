@@ -13,10 +13,11 @@ import {
 /*
  * "Response content", on a Website, API or Incoming Request monitor's
  * Settings page: one switch that saves when it is flipped
- * (Monitor.keepResponseContent). On, the monitor's incidents and alerts keep
- * an excerpt of the response around what matched and the response body,
- * with secrets and personal data masked; off, they keep none of it. Nothing
- * for the other monitor types, whose checks carry no body.
+ * (Monitor.keepResponseContent). On, the monitor's logs keep the response
+ * body and headers, and its incidents and alerts an excerpt of the response
+ * around what matched and the response body, with secrets and personal data
+ * masked; off, none of them keeps any of it. Nothing for the other monitor
+ * types, whose checks carry no body.
  */
 
 export interface ComponentProps {

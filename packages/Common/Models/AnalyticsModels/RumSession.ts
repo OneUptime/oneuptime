@@ -103,26 +103,35 @@ const COUNTER_COLUMNS: Array<{
     title: "Error Count",
     description: "Uncaught errors and unhandled rejections in this session",
   },
+  /*
+   * The four built-in frustration signals, each by the rule its RUM
+   * application sets on the Frustration Signals page
+   * (RumApplication.sessionReplayFrustrationSignals); the numbers below are
+   * the defaults.
+   */
   {
     key: "rageClickCount",
     title: "Rage Click Count",
-    description: "Bursts of >=3 clicks within 1s in a 30px radius",
+    description:
+      "Bursts of rapid clicks in one spot, by the application's rule (by default 3 or more within 1s in a 30px radius)",
   },
   {
     key: "deadClickCount",
     title: "Dead Click Count",
     description:
-      "Clicks on a non-interactive element that produced no DOM change, navigation or request",
+      "Clicks on something that looks clickable that produced no DOM change, navigation or request, by the application's rule (by default within 3s)",
   },
   {
     key: "errorClickCount",
     title: "Error Click Count",
-    description: "Clicks followed within 1s by an uncaught error",
+    description:
+      "Clicks followed by an uncaught error, by the application's rule (by default within 1s)",
   },
   {
     key: "refreshRageCount",
     title: "Refresh Rage Count",
-    description: "Bursts of >=3 reloads of the same path within 60s",
+    description:
+      "Bursts of reloads of the same path, by the application's rule (by default 3 or more within 60s)",
   },
   {
     key: "pageCount",
@@ -148,6 +157,39 @@ const COUNTER_COLUMNS: Array<{
     description:
       "Host-page track() events (oneuptime.custom) across all chunks; capped per chunk by the recorder",
   },
+  /*
+   * Signals of the application's own (issue #6443): a click on an element,
+   * a page, a track() event or an error's text it named on its Frustration
+   * Signals page. Summed per chunk by the finalizer like the counters above.
+   * The frustration count is part of the session's frustration total - the
+   * Frustration filter, sort and totals read it with the four built-in
+   * counters - and is fixed when the signal fires, so a later change to the
+   * signal does not rewrite a recording.
+   */
+  {
+    key: "customSignalCount",
+    title: "Custom Signal Count",
+    description:
+      "Hits of the application's own signals (oneuptime.signal events) across all chunks; capped per chunk by the recorder",
+  },
+  {
+    key: "customSignalFrustrationCount",
+    title: "Custom Signal Frustration Count",
+    description:
+      "The hits of the application's own signals that counted as frustration when they happened; part of the session's frustration total",
+  },
+];
+
+/*
+ * Counters added by ADD COLUMN after the table shipped. An explicit 0
+ * default makes every pre-existing row and every older-recorder header read
+ * as "none counted" rather than failing the insert.
+ */
+const COUNTERS_ADDED_LATER: ReadonlyArray<string> = [
+  "clickCount",
+  "customEventCount",
+  "customSignalCount",
+  "customSignalFrustrationCount",
 ];
 
 /* Low-cardinality device / policy descriptors, all Set-indexed. */
@@ -517,21 +559,15 @@ export default class RumSession extends AnalyticsBaseModel {
         title: string;
         description: string;
       }): AnalyticsTableColumn => {
-        /*
-         * The engagement counters were added by ADD COLUMN after the table
-         * shipped; an explicit 0 default makes every pre-existing row and
-         * every older-recorder header read as "no clicks counted" rather
-         * than failing the insert.
-         */
-        const isEngagementCounter: boolean =
-          def.key === "clickCount" || def.key === "customEventCount";
+        /* See COUNTERS_ADDED_LATER. */
+        const isAddedLater: boolean = COUNTERS_ADDED_LATER.includes(def.key);
 
         return new AnalyticsTableColumn({
           key: def.key,
           title: def.title,
           description: def.description,
           required: true,
-          ...(isEngagementCounter && { defaultValue: 0 }),
+          ...(isAddedLater && { defaultValue: 0 }),
           type: TableColumnType.Number,
           codec: [{ codec: "T64" }, { codec: "ZSTD", level: 1 }],
           accessControl: sessionAccessControl,
@@ -664,6 +700,31 @@ export default class RumSession extends AnalyticsBaseModel {
       },
       accessControl: sessionAccessControl,
     });
+
+    /*
+     * The names of the application's own signals this session hit (issue
+     * #6443), sorted, so "sessions where Checkout error fired" is a
+     * bloom-pruned lookup like a route. Names the application chose - never
+     * what a signal matched.
+     */
+    const customSignalNamesColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "customSignalNames",
+        title: "Custom Signal Names",
+        description:
+          "Names of the application's own signals hit in this session, so 'sessions where a signal fired' is a bloom-pruned lookup",
+        required: true,
+        defaultValue: [],
+        type: TableColumnType.ArrayText,
+        codec: { codec: "ZSTD", level: 3 },
+        skipIndex: {
+          name: "idx_custom_signal_names",
+          type: SkipIndexType.BloomFilter,
+          params: [0.01],
+          granularity: 1,
+        },
+        accessControl: sessionAccessControl,
+      });
 
     /* Country only, derived server-side. The IP itself is never stored. */
     const countryCodeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
@@ -1043,6 +1104,7 @@ export default class RumSession extends AnalyticsBaseModel {
         samplePercentageAtCaptureColumn,
         ...urlColumns,
         routesColumn,
+        customSignalNamesColumn,
         ...lowCardinalityColumns,
         countryCodeColumn,
         identifiedUserKeyColumn,

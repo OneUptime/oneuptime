@@ -26,6 +26,7 @@ flowchart TB
 
 - **密钥决定项目。** 你从不发送项目 ID：用某个密钥发送的数据会进入该密钥所属的项目。
 - **更改会在一分钟内到达每台服务器。** 停用密钥、重置其密钥值，或更改其来源、过期时间或限额，大约一分钟内生效。
+- **密钥可以有自己的预算。** 每个信号的每日预算和每秒速率，都在其项目的预算之内：请参阅 [摄取预算](/docs/telemetry/ingestion-budgets)。
 - **服务器密钥就是密码。** 任何拿到它的人都能向你的项目发送遥测。请把它保存在服务器的机密配置中，切勿放进源代码管理或网页。
 
 ## 服务器还是浏览器
@@ -121,6 +122,8 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 被拒绝的请求会收到一个状态和一句说明原因的话。
 
+密钥页面也会计数： **被拒绝的遥测** 列出过去 30 天此密钥被拒绝的内容、原因、端点、请求数和时间。缺失或输错的密钥不属于任何项目，因此不会被统计。
+
 | 应答 | 含义 |
 | --- | --- |
 | `401` 加 `Missing ingestion token` | 请求中没有密钥。请在 `x-oneuptime-token` 中发送它。 |
@@ -155,4 +158,5 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 - [服务目录](/docs/telemetry/services): 查看你的遥测所归入的服务。
 - [数据保留](/docs/telemetry/data-retention): 决定数据保留多长时间。
 - [丢弃过滤器与清理规则](/docs/telemetry/drop-filters-and-scrub-rules): 在存储之前丢弃或掩码数据。
+- [摄取预算](/docs/telemetry/ingestion-budgets): 限制每个密钥一天内最多可发送多少。
 :::

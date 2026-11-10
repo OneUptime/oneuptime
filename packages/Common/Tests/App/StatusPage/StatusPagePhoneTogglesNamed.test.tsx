@@ -142,14 +142,14 @@ describe("a status page's phone toggles are named for what they open", () => {
     );
   });
 
-  test("both names are in all 17 languages", () => {
+  test("both names are in all 18 languages", () => {
     const files: Array<string> = fs
       .readdirSync(LOCALES_DIR)
       .filter((file: string): boolean => {
         return file.endsWith(".json");
       });
 
-    expect(files).toHaveLength(17);
+    expect(files).toHaveLength(18);
 
     for (const file of files) {
       const a11y: Record<string, unknown> = JSON.parse(

@@ -350,9 +350,7 @@ describe("a Metrics finding's page", () => {
       expect(posted("/telemetry-ai/fix")).toEqual([{ insightId: INSIGHT_ID }]);
     });
 
-    expect(
-      await screen.findByText("View the fix task and pull request"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("View the task")).toBeInTheDocument();
   });
 
   test("a closed finding offers nothing and asks nothing", async () => {
@@ -509,9 +507,7 @@ describe("the way past a missing metrics finding that changes no code", () => {
     finding.status = AIInsightStatus.FixOpened;
     await renderPage();
 
-    expect(
-      await screen.findByText("View the fix task and pull request"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("View the task")).toBeInTheDocument();
     expect(
       screen.queryByTestId(SPAN_METRICS_STEP_TEST_IDS.panel),
     ).not.toBeInTheDocument();

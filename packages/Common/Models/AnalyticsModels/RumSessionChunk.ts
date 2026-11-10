@@ -447,16 +447,27 @@ export default class RumSessionChunk extends AnalyticsBaseModel {
        */
       "clickCount",
       "customEventCount",
+      /*
+       * Signals of the application's own (issue #6443): every hit, and the
+       * hits that counted as frustration. Added after the table shipped,
+       * with the same explicit 0 default.
+       */
+      "customSignalCount",
+      "customSignalFrustrationCount",
     ].map((key: string): AnalyticsTableColumn => {
-      const isEngagementCounter: boolean =
-        key === "clickCount" || key === "customEventCount";
+      const isAddedLater: boolean = [
+        "clickCount",
+        "customEventCount",
+        "customSignalCount",
+        "customSignalFrustrationCount",
+      ].includes(key);
 
       return new AnalyticsTableColumn({
         key: key,
         title: key,
         description: `Per-chunk ${key}, summed into the session header by the finalizer`,
         required: true,
-        ...(isEngagementCounter && { defaultValue: 0 }),
+        ...(isAddedLater && { defaultValue: 0 }),
         type: TableColumnType.Number,
         codec: [{ codec: "T64" }, { codec: "ZSTD", level: 1 }],
         accessControl: chunkAccessControl,
@@ -512,6 +523,24 @@ export default class RumSessionChunk extends AnalyticsBaseModel {
       codec: [{ codec: "ZSTD", level: 1 }],
       accessControl: chunkAccessControl,
     });
+
+    /*
+     * The names of the application's own signals this chunk hit; the
+     * session's customSignalNames is the union of these. Names the
+     * application chose, never what a signal matched.
+     */
+    const customSignalNamesColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "customSignalNames",
+        title: "Custom Signal Names",
+        description:
+          "Names of the application's own signals hit while this chunk was open. The session's customSignalNames is the union of these.",
+        required: true,
+        defaultValue: [],
+        type: TableColumnType.ArrayText,
+        codec: [{ codec: "ZSTD", level: 1 }],
+        accessControl: chunkAccessControl,
+      });
 
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
@@ -575,6 +604,7 @@ export default class RumSessionChunk extends AnalyticsBaseModel {
         ...counterColumns,
         urlColumn,
         routesColumn,
+        customSignalNamesColumn,
         retentionDateColumn,
       ],
       sortKeys: ["projectId", "sessionId", "tabId", "chunkIndex"],

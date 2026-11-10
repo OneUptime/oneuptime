@@ -24,6 +24,7 @@ import {
   SESSION_REPLAY_STALE_CHUNK_MS,
 } from "Common/Utils/Rum/SessionReplayHealth";
 import SessionSampling from "Common/Utils/Rum/SessionSampling";
+import { SESSION_REPLAY_FRUSTRATION_LIMITS } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import { USAGE_WARNING_PERCENT } from "../../FeatureSet/Dashboard/src/Components/SessionReplay/RecordingHealthModel";
 
 /*
@@ -183,11 +184,6 @@ const COUNTER_LIST_PATTERN: RegExp =
   /<CounterList\s+title="([^"]+)"[\s\S]*?tooltip=\{\s*RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS\.(\w+)\s*\}/g;
 const USAGE_METER_PATTERN: RegExp =
   /<UsageMeterRow\s+label="([^"]+)"\s+tooltip=\{\s*RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS\.(\w+)\s*\}/g;
-const FRUSTRATION_CONSTANT_PATTERN: (name: string) => RegExp = (
-  name: string,
-): RegExp => {
-  return new RegExp(`const ${name}: number = (\\d+);`);
-};
 /*
  * A detail-panel figure: <Stat label="..." or label={...}, then its tooltip.
  * The label is captured raw, so a template label reads as its source.
@@ -203,16 +199,6 @@ function pairs(source: string, pattern: RegExp): Array<[string, string]> {
       return [match[1]!, match[2]!];
     },
   );
-}
-
-function frustrationConstant(name: string): number {
-  const match: RegExpMatchArray | null = FRUSTRATION.match(
-    FRUSTRATION_CONSTANT_PATTERN(name),
-  );
-
-  expect({ name, found: Boolean(match) }).toEqual({ name, found: true });
-
-  return Number(match![1]);
 }
 
 /* ------------------------------------------------------------------ */
@@ -687,7 +673,7 @@ describe("User Flows texts match what the page computes", () => {
     expect(RECORDER).toContain("url: this.routeRecorder.getCurrentUrl(),");
     // The read keeps each signal-bearing chunk with that url.
     expect(USER_FLOW_READ).toContain(
-      "(url, toFloat64(errorCount), toFloat64(rageClickCount + deadClickCount + errorClickCount + refreshRageCount)),",
+      "(url, toFloat64(errorCount), toFloat64(rageClickCount + deadClickCount + errorClickCount + refreshRageCount + customSignalFrustrationCount)),",
     );
     expect(RUM_USER_FLOW_METRIC_DESCRIPTIONS.pageErrors).toContain(
       "placed on the page the visitor was on when its recording chunk was sent",
@@ -720,42 +706,86 @@ describe("User Flows texts match what the page computes", () => {
     }
   });
 
-  test("Frustrated names the four signals with the recorder's own thresholds", () => {
+  test("Frustrated names the four signals and the application's own, and leaves their rules to the Frustration Signals page", () => {
     expect(USER_FLOW_READ).toContain(
-      "toFloat64(sum(rageClickCount + deadClickCount + errorClickCount + refreshRageCount)) AS flowFrustrationTotal",
+      "toFloat64(sum(rageClickCount + deadClickCount + errorClickCount + refreshRageCount + customSignalFrustrationCount)) AS flowFrustrationTotal",
     );
-    expect(frustrationConstant("RAGE_CLICK_THRESHOLD")).toBe(3);
-    expect(frustrationConstant("RAGE_CLICK_WINDOW_MS")).toBe(1000);
-    expect(frustrationConstant("DEAD_CLICK_TIMEOUT_MS")).toBe(3000);
-    expect(frustrationConstant("ERROR_CLICK_WINDOW_MS")).toBe(1000);
+    /*
+     * The default rules: each application can change them on its
+     * Frustration Signals page (issue #6443), and the recorders fall back
+     * to these when a server sends no rules.
+     */
+    expect(SESSION_REPLAY_FRUSTRATION_LIMITS.rageClickCount.defaultValue).toBe(
+      3,
+    );
+    expect(
+      SESSION_REPLAY_FRUSTRATION_LIMITS.rageClickWindowMs.defaultValue,
+    ).toBe(1000);
+    expect(
+      SESSION_REPLAY_FRUSTRATION_LIMITS.deadClickTimeoutMs.defaultValue,
+    ).toBe(3000);
+    expect(
+      SESSION_REPLAY_FRUSTRATION_LIMITS.errorClickWindowMs.defaultValue,
+    ).toBe(1000);
+    expect(
+      SESSION_REPLAY_FRUSTRATION_LIMITS.refreshRageReloadCount.defaultValue,
+    ).toBe(3);
+    expect(
+      SESSION_REPLAY_FRUSTRATION_LIMITS.refreshRageWindowSeconds.defaultValue,
+    ).toBe(60);
     expect(RUM_SESSION_MODEL).toContain(
-      '"Bursts of >=3 reloads of the same path within 60s"',
+      "Bursts of reloads of the same path, by the application's rule (by default 3 or more within 60s)",
     );
+    // The detector judges clicks by the application's rules, not fixed numbers.
+    for (const ruleRead of [
+      "this.rules.rageClick.clickCount",
+      "this.rules.rageClick.windowMs",
+      "this.rules.rageClick.radiusPx",
+      "this.rules.deadClick.timeoutMs",
+      "this.rules.errorClick.isEnabled",
+    ]) {
+      expect(FRUSTRATION).toContain(ruleRead);
+    }
 
     /*
      * Refresh rage counts page LOADS of one path, the first load included:
      * the recorder logs every start, not only reloads, so three loads (two
      * reloads, or A -> B -> A -> B -> A by full page loads) are enough -
-     * which is why the text says "loaded 3 or more times", not "reloads".
+     * which is why the text says the same page "loaded again and again",
+     * not "reloads".
      */
     expect(SESSION_ID).toContain(
       "const REFRESH_RAGE_WINDOW_MS: number = 60 * 1000;",
     );
     expect(SESSION_ID).toContain("const REFRESH_RAGE_THRESHOLD: number = 3;");
-    expect(SESSION_ID).toContain(
-      "return loadCountInWindow >= REFRESH_RAGE_THRESHOLD;",
+    expect(squash(SESSION_ID)).toContain(
+      "threshold: number = REFRESH_RAGE_THRESHOLD, ): boolean { return loadCountInWindow >= threshold;",
     );
     expect(countOf(RECORDER, "SessionId.recordPageLoad(")).toBe(1);
     expect(squash(RECORDER)).toContain(
-      "const refreshRageCount: number = SessionId.recordPageLoad( this.windowRef.location.href, Date.now(), );",
+      "const refreshRageCount: number = SessionId.recordPageLoad( this.windowRef.location.href, Date.now(), refreshRage.windowSeconds * 1000, );",
+    );
+    expect(squash(RECORDER)).toContain(
+      "SessionId.isRefreshRage(refreshRageCount, refreshRage.reloadCount)",
     );
 
     const text: string = RUM_USER_FLOW_METRIC_DESCRIPTIONS.pageFrustrated;
 
-    expect(text).toContain("3 or more clicks within a second in one spot");
-    expect(text).toContain("did nothing for 3 seconds");
-    expect(text).toContain("an error within a second of a click");
-    expect(text).toContain("the same page loaded 3 or more times in a minute");
+    /*
+     * The tooltip names the four and the application's own, and sends the
+     * reader to the page that holds this application's rules: it states no
+     * number, because the numbers are each application's to change.
+     */
+    expect(text).toContain(
+      "a rage click, a dead click, an error right after a click, the same page loaded again and again",
+    );
+    expect(text).toContain(
+      "one of your own signals that counts as frustration",
+    );
+    expect(text).toContain(
+      "each as the application's Frustration Signals page defines it",
+    );
+    expect(text).not.toMatch(/\d/);
     expect(text).not.toContain("reloads within a minute");
   });
 
@@ -994,9 +1024,9 @@ describe("Users texts match the per-person rollup", () => {
     );
   });
 
-  test("Signals adds up errors and the four frustration counters; a live session keeps a maximum", () => {
+  test("Signals adds up errors, the four frustration counters and the application's own; a live session keeps a maximum", () => {
     expect(REPLAY_READ).toContain(
-      '"(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount)"',
+      '"(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount + aggCustomSignalFrustrationCount)"',
     );
     expect(REPLAY_READ).toContain(
       '{ alias: "rollupErrorCount", expression: "toFloat64(sum(aggErrorCount))" },',
@@ -1005,7 +1035,7 @@ describe("Users texts match the per-person rollup", () => {
       "errorCount: Math.max(previous.errorCount, next.errorCount),",
     );
     expect(RUM_REPLAY_USERS_METRIC_DESCRIPTIONS.signals).toContain(
-      "rage, dead and error clicks and repeated reloads",
+      "Frustration: rage, dead and error clicks, repeated reloads and your own.",
     );
     expect(RUM_REPLAY_USERS_METRIC_DESCRIPTIONS.signals).toContain(
       "A live session can show fewer until it is closed off",

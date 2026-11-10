@@ -6,6 +6,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 /*
  * The Queues product's own pages — the list, the archived list, the install
@@ -19,6 +21,7 @@ const MessageQueueLayout: FunctionComponent<LayoutPageComponentProps> = (
   return (
     <Page
       title={"Queues"}
+      titleRight={<ProductAboutButton product={ProductKey.Queues} />}
       sideMenu={<SideMenu />}
       breadcrumbLinks={getMessageQueueBreadcrumbs(path)}
     >

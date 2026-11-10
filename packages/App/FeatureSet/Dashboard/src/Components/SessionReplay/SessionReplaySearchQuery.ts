@@ -88,10 +88,13 @@ const TRIGGER_ALIASES: Record<string, SessionReplayTriggerReason> = {
  * digest set by clicking a user whose label the viewer's role cannot read,
  * and nobody types one - a token for it would only invite pasting a hash
  * into a search box. It is shown as a chip and removed there.
+ * `customSignalName` (one of the application's own signals, issue #6443)
+ * is set in the filter modal and shown as a chip, like route: a token for
+ * a name that is usually several words would need quoting every time.
  */
 export const SEARCH_BOX_UNCOVERED_FIELDS: ReadonlyArray<
   keyof SessionReplayAdvancedFilters
-> = ["route", "identifiedUserKey"];
+> = ["route", "identifiedUserKey", "customSignalName"];
 
 /*
  * The fields the chips above the list hold (SessionReplayFacets: Browser,

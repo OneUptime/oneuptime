@@ -262,11 +262,11 @@ describe("Status Page Branding & Domains (English)", () => {
   });
 
   it("names every language a status page ships in", () => {
-    expect(SUPPORTED_STATUS_PAGE_LANGUAGES).toHaveLength(17);
-    expect(page).toContain("Seventeen languages ship with OneUptime:");
+    expect(SUPPORTED_STATUS_PAGE_LANGUAGES).toHaveLength(18);
+    expect(page).toContain("Eighteen languages ship with OneUptime:");
 
     const sentence: string = page.split("\n").find((line: string): boolean => {
-      return line.startsWith("Seventeen languages ship with OneUptime:");
+      return line.startsWith("Eighteen languages ship with OneUptime:");
     })!;
 
     for (const language of SUPPORTED_STATUS_PAGE_LANGUAGES) {
@@ -277,18 +277,22 @@ describe("Status Page Branding & Domains (English)", () => {
     }
   });
 
-  it("says a Persian page is laid out right to left, its uptime bars still from the left, as the servers and the page draw it", () => {
+  it("says a Persian or Arabic page is laid out right to left, its uptime bars still from the left, as the servers and the page draw it", () => {
     const sentence: string = page.split("\n").find((line: string): boolean => {
-      return line.startsWith("Seventeen languages ship with OneUptime:");
+      return line.startsWith("Eighteen languages ship with OneUptime:");
     })!;
 
     expect(sentence).toContain(
-      "Persian reads right to left, so a page shown in Persian is laid out from the right, from its first moment when Persian is its default language. Its uptime bars still run from the oldest day on the left.",
+      "Persian and Arabic read right to left, so a page shown in either is laid out from the right, from its first moment when that language is its default. Its uptime bars still run from the oldest day on the left.",
     );
 
-    // Served right to left from the start when Persian is the default.
+    // Served right to left from the start when Persian or Arabic is the default.
     expect(getStatusPageLanguageHead("fa")).toEqual({
       lang: "fa",
+      dir: "rtl",
+    });
+    expect(getStatusPageLanguageHead("ar")).toEqual({
+      lang: "ar",
       dir: "rtl",
     });
 

@@ -13,6 +13,8 @@ import {
   DeveloperDocsChildPage,
   getDeveloperDocsChildPages,
 } from "../../Components/DeveloperDocs/DeveloperDocsPages";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const monitorPageMaps: Array<string> = [
   PageMap.MONITORS,
@@ -110,6 +112,7 @@ const MonitorLayout: FunctionComponent<PageComponentProps> = (
   return (
     <Page
       title={"Monitors"}
+      titleRight={<ProductAboutButton product={ProductKey.Monitors} />}
       breadcrumbLinks={
         isMonitorGroupList
           ? monitorGroupBreadcrumbs

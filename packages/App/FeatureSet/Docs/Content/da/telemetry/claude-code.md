@@ -64,7 +64,7 @@ Variablerne læses, når Claude Code starter. Metrikker sendes hvert 60. sekund 
 
 ### Tjek, at data ankommer
 
-Åbn **Målinger**, og søg efter `claude_code.token.usage`, åbn derefter **Produkter → AI / LLM**, og gå til **Forbrug**: dine omkostninger vises under din e-mail, markeret med **fra GenAI-metrikker**.
+Åbn **Målinger**, og søg efter `claude_code.token.usage`, åbn derefter **Produkter → AI / LLM**, og gå til **Forbrug**: dine omkostninger vises under din e-mail, markeret med **Fra forbrugsmetrikker**.
 :::
 
 For at sende metrikker og hændelser til forskellige steder sætter du i stedet `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` og `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` med den fulde sti (`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`).
@@ -139,8 +139,8 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 På **Produkter → AI / LLM → Forbrug** fodrer `claude_code.cost.usage` tabellerne **Medarbejder**, **Team** og **Model**, og `claude_code.token.usage` tokentotalerne. To regler afgør, hvad du ser:
 
-- **Metrikkerne udfylder hullerne i spans; de lægges aldrig oven i dem.** Hvis det samme projekt modtager GenAI-spans med omkostninger fra dine egne apps, vises Claude Codes forbrug ikke. Send Claude Code til et projekt for sig selv. Se [Spans kommer først, metrikker udfylder hullerne](/docs/telemetry/ai-llm-observability#spans-kommer-først-metrikker-udfylder-hullerne).
-- **En række fra metrikker bærer kun omkostninger.** Dens celler for kald og tokens viser `—`, og tabellerne **Udbyder** og **Applikation / Tjeneste** forbliver tomme: metrikkerne nævner ingen udbyder og tilhører ingen OneUptime-tjeneste.
+- **Claude Code tælles ved siden af dine apps.** Dets metrikker ankommer under dets egen tjeneste, så dets forbrug lægges til de AI-kald, dine apps sender til samme projekt. Hvis du slår dets traces (beta) til, så slå dem til for alle: derefter tælles Claude Code kun fra dets traces, én gang. Se [Hver tjeneste tælles ud fra det, den sender](/docs/telemetry/ai-llm-observability#hver-tjeneste-tælles-ud-fra-det-den-sender).
+- **En række fra metrikker nævner intet kald.** Den siger **Fra forbrugsmetrikker** under sit navn, dens celle for kald viser `—`, og tabellen **Udbyder** placerer den under **Ikke tildelt**: metrikkerne nævner ingen udbyder.
 
 Alt andet, som acceptrate, kodelinjer, commits og pull requests pr. udvikler eller forbrug pr. `query_source`, viser du i et [dashboard](/docs/dashboards/index) ud fra metrikkerne nedenfor og advarer på med en [metrik-monitor](/docs/monitor/metrics-monitor).
 

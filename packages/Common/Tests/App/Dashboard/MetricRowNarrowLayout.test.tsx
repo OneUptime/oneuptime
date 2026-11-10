@@ -154,7 +154,10 @@ describe("a metrics list row lays itself out by its own width", () => {
       <MetricRow metric={METRIC} sparklinePoints={POINTS} lastValue={1536} />,
     );
 
-    const description: HTMLElement = screen.getByText(METRIC.description!);
+    // The paragraph around the description's own isolate.
+    const description: HTMLElement = screen
+      .getByText(METRIC.description!)
+      .closest("p")!;
     expectClasses(description, METRIC_ROW_DESCRIPTION_CLASS_NAME);
     expect(classesOf(description)).toContain("line-clamp-2");
     expect(classesOf(description)).not.toContain("truncate");

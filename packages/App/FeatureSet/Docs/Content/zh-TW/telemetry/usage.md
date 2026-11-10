@@ -27,6 +27,7 @@ flowchart TB
 - **追蹤包含其例外，效能剖析資料包含其樣本。**
 - **OneUptime 自己的遙測不計入。** 監測器、警示、事件和 SLO 的讀數、資料可觀測性的讀數以及工作階段重播預算指標，都由 OneUptime 自己寫入。
 - **在 OneUptime Cloud 上，遙測依這些列計費。** 在沒有計費的安裝上，使用量的統計不產生任何費用，也不會為其收費，即使之後啟用了計費也是如此。
+- **預算與使用量分開計數。** [擷取預算](/docs/telemetry/ingestion-budgets) 在遙測資料抵達時依解壓縮後的大小計數，因此可以在當天就擋下當天的遙測資料。設定了預算時，此頁面最上方會顯示今天的預算。
 
 ## 開始之前
 
@@ -134,4 +135,5 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
 - [資料保留](/docs/telemetry/data-retention): 依需要保留遙測資料，不多留一天。
 - [帳單與用量](/docs/configuration/billing): OneUptime Cloud 上遙測的費用。
 - [擷取金鑰](/docs/telemetry/ingestion-keys): 把遙測傳送到你的專案。
+- [擷取預算](/docs/telemetry/ingestion-budgets): 限制專案一天內每個訊號最多傳送多少。
 :::

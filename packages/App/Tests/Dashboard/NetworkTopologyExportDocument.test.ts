@@ -48,6 +48,7 @@ import {
   computeTopologyLayoutModel,
 } from "../../FeatureSet/Dashboard/src/Components/Topology/NetworkTopologyDrawing";
 import { TopologyLayoutModel } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyLayout";
+import { labelSecondaryLineForNode } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyFootprint";
 import { TopologyPoint } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyGraphUtil";
 import { HEALTH_STATE_COLORS } from "../../FeatureSet/Dashboard/src/Components/Topology/TopologyHealthFilter";
 
@@ -422,10 +423,39 @@ describe("the map page draws the whole map the reader is looking at", () => {
     const frame: ExportRectItem = frameOf(page);
     for (const node of STORE_NODES) {
       expect(items(page, `node-shape:${node.id}`).length).toBeGreaterThan(0);
-      expect(texts(page, `node-label:${node.id}`).join(" ")).toBe(node.name);
+      // Its name, then the address it is at, as the map draws it (#5775).
+      const address: string = labelSecondaryLineForNode(node);
+      expect(texts(page, `node-label:${node.id}`).join(" ")).toBe(
+        address ? `${node.name} ${address}` : node.name,
+      );
     }
     for (const item of diagramItems(page)) {
       expectInside(extentOf(item), extentOf(frame));
+    }
+  });
+
+  test("the address under a device's name is printed a shade lighter than its name", () => {
+    const addressed: Array<NetworkTopologyNode> = STORE_NODES.filter(
+      (node: NetworkTopologyNode): boolean => {
+        return labelSecondaryLineForNode(node).length > 0;
+      },
+    );
+    expect(addressed.length).toBeGreaterThan(0);
+
+    for (const node of addressed) {
+      const labels: Array<ExportTextItem> = items(
+        page,
+        `node-label:${node.id}`,
+      ) as Array<ExportTextItem>;
+      const name: ExportTextItem = labels[0]!;
+      const address: ExportTextItem = labels[labels.length - 1]!;
+      expect(address.text).toBe(labelSecondaryLineForNode(node));
+      expect(address.color).toBe(
+        resolvePrintColor(TOPOLOGY_DRAWING_STYLE.labelSecondaryColor),
+      );
+      expect(name.color).toBe(
+        resolvePrintColor(TOPOLOGY_DRAWING_STYLE.labelColor),
+      );
     }
   });
 

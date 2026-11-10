@@ -25,6 +25,11 @@ import { getDashboardViewRoute } from "../../Components/Dashboard/DashboardCreat
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import ObjectID from "Common/Types/ObjectID";
+import useProductFirstRun, {
+  ProductFirstRun,
+} from "../../Components/ProductOnboarding/UseProductFirstRun";
+import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 /*
  * Create Dashboard opens Create a dashboard (Components/Dashboard/
@@ -33,6 +38,11 @@ import ObjectID from "Common/Types/ObjectID";
  * the template. Create opens the new dashboard.
  */
 const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  // Until the first one, the page explains the product under the empty table.
+  const firstRun: ProductFirstRun = useProductFirstRun<Dashboard>({
+    modelType: Dashboard,
+    query: { isArchived: false },
+  });
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
@@ -101,13 +111,14 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       <ModelTable<Dashboard>
         modelType={Dashboard}
+        refreshToggle={firstRun.refreshToken}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
         enableJsonImportExport={true}
         id="dashboard-table"
         userPreferencesKey="dashboards-table"
-        topContent={filterBar}
-        emptyState={facetEmptyState}
+        topContent={firstRun.getTopContent(filterBar)}
+        emptyState={firstRun.getEmptyState(facetEmptyState)}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -222,6 +233,21 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
       />
+      {firstRun.isFirstRun && (
+        <ProductShowcase
+          product={ProductKey.Dashboards}
+          // The empty table above says what the list is for.
+          hidesDescription={true}
+          startButton={
+            firstRun.startButton && {
+              ...firstRun.startButton,
+              onClick: () => {
+                setShowCreateModal(true);
+              },
+            }
+          }
+        />
+      )}
       {labelBulkActionModals}
       {ownerBulkActionModals}
     </Fragment>

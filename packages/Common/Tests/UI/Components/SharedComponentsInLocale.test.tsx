@@ -176,6 +176,33 @@ describe("text props", () => {
     expect(screen.getByTestId("pill")).toHaveTextContent("payments-api");
     expect(screen.getByText("Degraded")).toBeInTheDocument();
   });
+
+  test("a StatusBadge marked as a name someone typed draws it as typed, even when the locale has the same words", () => {
+    inLocale(german, <StatusBadge text="Active" isUserContent={true} />);
+
+    expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(screen.queryByText("Aktiv")).toBeNull();
+  });
+
+  test("a StatusBadge kept to one line translates its words, and draws a typed name as typed, reading its own way", () => {
+    inLocale(
+      german,
+      <>
+        <StatusBadge text="Active" isOneLine={true} />
+        <StatusBadge text="Degraded" isOneLine={true} isUserContent={true} />
+      </>,
+    );
+
+    const [translated, typed] = screen.getAllByTestId("status-badge-text");
+
+    expect(translated).toHaveTextContent("Aktiv");
+    expect(translated).not.toHaveAttribute("dir");
+    expect(typed).toHaveTextContent("Degraded");
+    expect(typed).toHaveAttribute("dir", "auto");
+    // One line, ending in "..." where the box it is in ends.
+    expect(typed).toHaveClass("truncate", "min-w-0");
+    expect(typed!.parentElement).toHaveClass("whitespace-nowrap", "max-w-full");
+  });
 });
 
 describe("TranslatedSentence", () => {

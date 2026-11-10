@@ -118,13 +118,17 @@ L'**Identifiant**, comme `Bearer <token>`, est envoyé dans l'en-tête choisi so
 
 ### Syslog
 
-Chaque entrée est un message RFC 5424 envoyé à l'**Hôte** et au **Port**, en TLS sur le port `6514` sauf si **Protocole** indique TCP, avec la facility 13 (log audit) et la severity 6 (informational) :
+Chaque entrée est un message RFC 5424 envoyé à l'**Hôte** et au **Port**, en TLS sur le port `6514` sauf si **Protocole** indique TCP ou UDP, avec la facility 13 (log audit) et la severity 6 (informational) :
 
 ```text
 <110>1 2026-10-24T09:15:03.000Z oneuptime.example.com oneuptime - audit-log - {"schemaVersion":2,"id":"..."}
 ```
 
-Les messages sont délimités par comptage d'octets (RFC 5425), sauf si **Délimitation** indique un message par ligne. Un récepteur dont le certificat a été signé par une AC privée a besoin du certificat de cette AC dans **Certificat de l'AC**. Les deux attendent sous **Plus de champs**.
+En TLS et en TCP, les messages sont délimités par comptage d'octets (RFC 5425), sauf si **Délimitation** indique un message par ligne. Un récepteur dont le certificat a été signé par une AC privée a besoin du certificat de cette AC dans **Certificat de l'AC**. Les deux attendent sous **Plus de champs**.
+
+En UDP, **Port** commence à `514`, et chaque message est un datagramme à part entière (RFC 5426) : aucun n'est donc délimité. UDP envoie le journal d'audit en texte clair, et rien ne confirme qu'un message est arrivé : quand l'hôte du récepteur répond que son port est fermé, le lot échoue et est réessayé, mais un message perdu en route n'est pas renvoyé. Après un test en UDP, vérifiez que l'entrée de test est arrivée. Quand chaque entrée doit arriver, choisissez TLS ou TCP.
+
+En UDP, un message fait au plus la **Taille maximale des messages**, en octets : `8192`, sauf si vous la changez sous **Plus de champs**, de `1024` à `65507`. Une entrée plus longue est raccourcie pour tenir et reste un seul objet JSON : ses valeurs sont d'abord coupées, comme le journal d'audit les coupe, par exemple `[… 1,234 more characters]` ou `[12.3 KB of JSON]`, puis les modifications qui ne tiennent toujours pas sont comptées en une seule, par exemple `[… 12 more changes]`.
 
 ## Ce qui est envoyé
 
@@ -188,7 +192,7 @@ L'export d'un projet sur OneUptime Cloud ne peut pas joindre une adresse de rés
 :::
 
 :::details Rien n'arrive
-Vérifiez que la journalisation d'audit est activée dans le projet, et que quelqu'un a modifié quelque chose après l'enregistrement de l'export. Un stockage ne reçoit un fichier qu'une fois un lot plein ou âgé de cinq minutes.
+Vérifiez que la journalisation d'audit est activée dans le projet, et que quelqu'un a modifié quelque chose après l'enregistrement de l'export. Un stockage ne reçoit un fichier qu'une fois un lot plein ou âgé de cinq minutes. En UDP, un pare-feu rejette les messages sans rien dire : vérifiez qu'UDP peut atteindre le port du récepteur.
 :::
 
 ## Étapes suivantes

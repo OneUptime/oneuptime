@@ -372,6 +372,39 @@ describe("assignMarkerLane", () => {
     ["console", { kind: "console", severity: "error" }, null],
     ["plain click", { kind: "interaction", severity: "info" }, null],
     /*
+     * Issue #6443: one of the application's own signals that only marks
+     * the moment is a grey tick beside the clicks (a frustrating one is a
+     * frustration row, amber, above); the page's own track() events stay
+     * off the timeline.
+     */
+    [
+      "own marker signal",
+      {
+        kind: "custom",
+        severity: "info",
+        detail: { customSignalTrigger: "page" },
+      },
+      "navigation/gray",
+    ],
+    [
+      "page's own track() event",
+      {
+        kind: "custom",
+        severity: "info",
+        detail: { customSignalTrigger: null },
+      },
+      null,
+    ],
+    [
+      "own frustration signal",
+      {
+        kind: "frustration",
+        severity: "warn",
+        detail: { customSignalName: "Payment failed" },
+      },
+      "navigation/amber",
+    ],
+    /*
      * ux-06: a subresource that failed to load is a network warning, not
      * a client error - the recorder keeps it out of its trigger counts -
      * and the recorder's own "capture stopped" marker is no error at all.
@@ -546,6 +579,81 @@ describe("buildCoarseMarkers and the coarse->exact replacement", () => {
       ),
     ).toBe("2 rage clicks · 1 refresh rage");
     expect(describeFrustrationCounters(chunk({ chunkIndex: 0 }))).toBeNull();
+  });
+
+  test("the frustration tooltip counts the application's own frustration signals (issue #6443)", () => {
+    expect(
+      describeFrustrationCounters(
+        chunk({
+          chunkIndex: 0,
+          rageClickCount: 1,
+          customSignalCount: 4,
+          customSignalFrustrationCount: 2,
+        }),
+      ),
+    ).toBe("1 rage click · 2 signals of your own");
+    expect(
+      describeFrustrationCounters(
+        chunk({ chunkIndex: 0, customSignalFrustrationCount: 1 }),
+      ),
+    ).toBe("1 signal of your own");
+    /* Markers only: not frustration, so no amber marker. */
+    expect(
+      describeFrustrationCounters(
+        chunk({
+          chunkIndex: 0,
+          customSignalCount: 2,
+          customSignalFrustrationCount: 0,
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("an undecoded chunk's own marker signals are one grey hollow marker; the frustrating ones join the amber one", () => {
+    const markers: Array<ReplayTimelineMarker> = buildCoarseMarkers(
+      [
+        chunk({
+          chunkIndex: 2,
+          customSignalCount: 5,
+          customSignalFrustrationCount: 2,
+        }),
+        chunk({ chunkIndex: 3, customSignalCount: 1 }),
+        /* A server from before the counts: nothing drawn. */
+        chunk({ chunkIndex: 4 }),
+      ],
+      [],
+      DURATION_MS,
+    );
+
+    expect(
+      markers.map((marker: ReplayTimelineMarker): string => {
+        return `${marker.id} ${marker.tone}`;
+      }),
+    ).toEqual([
+      "coarse:frustration:2 amber",
+      "coarse:signals:2 gray",
+      "coarse:signals:3 gray",
+    ]);
+    expect(markers[0]?.title).toContain("2 signals of your own");
+    expect(markers[1]?.title).toContain("3 signals of your own");
+    expect(markers[1]?.kind).toBe("custom");
+    expect(markers[1]?.lane).toBe("navigation");
+    expect(markers[1]?.isHollow).toBe(true);
+    expect(markers[2]?.title).toContain("1 signal of your own");
+    /* "Next frustration" steps through the amber one only. */
+    expect(
+      getFrustrationMarkers(markers).map((marker: ReplayTimelineMarker) => {
+        return marker.id;
+      }),
+    ).toEqual(["coarse:frustration:2"]);
+    /* A decoded chunk's exact signals take over, as for every counter. */
+    expect(
+      buildCoarseMarkers(
+        [chunk({ chunkIndex: 2, customSignalCount: 5 })],
+        [2],
+        DURATION_MS,
+      ),
+    ).toEqual([]);
   });
 });
 

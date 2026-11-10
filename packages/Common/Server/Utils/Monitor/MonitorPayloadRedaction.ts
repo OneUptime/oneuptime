@@ -29,9 +29,11 @@ import { isSensitiveLogKey, REDACTED } from "../LogRedaction";
  *     rather than masking keeps `Monitor.serverMonitorResponse` faithful to
  *     the `ServerMonitorResponse` interface, which declares no `secretKey`.
  *
- *   - `redactForPersistence` MASKS the value with `[REDACTED]`. It runs on the
- *     copy `MonitorLogUtil` writes to `logBody`. Masking is the better choice
- *     there because `logBody` is a diagnostic record: an operator debugging an
+ *   - `redactForPersistence` MASKS the value with `[REDACTED]`. It is the
+ *     first pass of `MonitorRecordEvidence.redactCheck`, which cuts every copy
+ *     of a check a reader can see (`logBody`, a status change's log, an
+ *     incident's or an alert's raw check). Masking is the better choice there
+ *     because those copies are diagnostic records: an operator debugging an
  *     API monitor wants to see THAT an `Authorization` header was sent without
  *     seeing what it was. It is also the net underneath the boundary strip —
  *     it applies to every monitor type and every future payload field, so a
@@ -40,9 +42,14 @@ import { isSensitiveLogKey, REDACTED } from "../LogRedaction";
  *
  * What counts as a credential is delegated to `isSensitiveLogKey`, the same
  * deny-by-default classifier the logger uses, so there is one list to keep
- * current rather than two. It is structural only (decided by key name): the
- * textual sweeps in `redactLogString` are right for log lines but would mangle
- * a captured HTTP response body, which is legitimate monitor evidence.
+ * current rather than two. It is structural only (decided by key name), and
+ * runs over the whole payload: OneUptime's own fields as much as what the
+ * monitored system sent. The rules that read a body's text and its personal
+ * data - the ones an incident's evidence is cut by - are
+ * MonitorEvidenceRedaction's, and `redactCheck` applies them after this, to
+ * the parts of a check that came from outside: they would read OneUptime's
+ * own field names (`sessionCount`, an attribute's `key`) as personal data.
+ * https://github.com/OneUptime/oneuptime/issues/6341
  */
 
 // Deep enough for any real ingest payload, shallow enough to bound the walk.
@@ -145,8 +152,9 @@ export const stripAgentCredentials: StripAgentCredentialsFunction = <T>(
 export type RedactForPersistenceFunction = (payload: JSONValue) => JSONValue;
 
 /*
- * Storage boundary. Masks credentials in the copy that is about to be written
- * to `MonitorLog.logBody`.
+ * Storage boundary. Masks credentials in a copy of a check that is about to
+ * be kept (MonitorRecordEvidence.redactCheck, which goes on to the evidence
+ * rules).
  */
 export const redactForPersistence: RedactForPersistenceFunction = (
   payload: JSONValue,

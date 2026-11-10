@@ -1067,6 +1067,14 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
               attributes={fullSpan?.attributes as JSONObject | undefined}
               events={fullSpan?.events}
               durationLabel={durationLabel}
+              traceId={traceIdStr}
+              spanId={spanIdStr}
+              startTimeUnixNano={
+                fullSpan?.startTimeUnixNano ?? span.startTimeUnixNano
+              }
+              endTimeUnixNano={
+                fullSpan?.endTimeUnixNano ?? span.endTimeUnixNano
+              }
             />
 
             {/* Attributes */}

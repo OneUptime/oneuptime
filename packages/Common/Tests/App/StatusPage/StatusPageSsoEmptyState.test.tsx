@@ -279,7 +279,7 @@ describe("Status page SSO sign-in when no provider can be offered", () => {
         return file.endsWith(".json") && file !== "en.json";
       });
 
-    expect(locales).toHaveLength(16);
+    expect(locales).toHaveLength(17);
 
     for (const file of locales) {
       const sso: Record<string, unknown> = readLocale(file)["accounts"]["sso"];

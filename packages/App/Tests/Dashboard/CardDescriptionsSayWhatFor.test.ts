@@ -215,7 +215,7 @@ const OTHER_DESCRIPTIONS: Array<[string, string]> = [
   ],
   [
     "Pages/Global/UserProfile/Index.tsx",
-    "Your name and email as your team sees them, and the time zone OneUptime shows times in.",
+    "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.",
   ],
   /*
    * The two balance pages' Current Balance cards: asking someone who may
@@ -405,8 +405,8 @@ describe("cards, feeds and dialogs say what they show", () => {
 });
 
 describe("every new sentence is translated in every language", () => {
-  test("there are sixteen languages besides English", () => {
-    expect(NON_ENGLISH).toHaveLength(16);
+  test("there are seventeen languages besides English", () => {
+    expect(NON_ENGLISH).toHaveLength(17);
   });
 
   test.each(

@@ -223,6 +223,85 @@ export interface LlmConnectionSummary {
   count?: number | undefined;
 }
 
+/*
+ * A team's people, for a tool that counts them (Cursor): how many of its
+ * members were active in the past 7 days, or how many members it has when
+ * that could not be read. Undefined for a connection that does not count
+ * them, before its first count, and after a failed read.
+ */
+export const LLM_CONNECTION_ACTIVE_MEMBERS: PluralTemplate = {
+  one: "{{active}} of {{count}} member active in the last 7 days",
+  other: "{{active}} of {{count}} members active in the last 7 days",
+};
+export const LLM_CONNECTION_MEMBERS: PluralTemplate = {
+  one: "{{count}} member",
+  other: "{{count}} members",
+};
+
+export function getLlmConnectionPeopleSummary(
+  connection: LlmObservabilityConnection,
+  /*
+   * How the reader's language writes a number: the translator's
+   * formatNumber, which writes the count beside it, so a big team reads
+   * "1,031 of 1,248" - or "1.031 von 1.248" - and never "1031 of 1,248".
+   */
+  formatNumber: (value: number) => string = (value: number): string => {
+    return value.toLocaleString("en-US");
+  },
+): LlmConnectionSummary | undefined {
+  const result: JSONObject | undefined = connection.lastPullResult;
+
+  if (!result || result["kind"] !== "usage") {
+    return undefined;
+  }
+
+  const members: number | undefined = readNumber(result, "members");
+
+  if (members === undefined) {
+    return undefined;
+  }
+
+  const active: number | undefined = readNumber(result, "activeMembers");
+
+  if (active !== undefined) {
+    return {
+      template: LLM_CONNECTION_ACTIVE_MEMBERS.other,
+      values: { active: formatNumber(Math.min(active, members)) },
+      plural: LLM_CONNECTION_ACTIVE_MEMBERS,
+      count: members,
+    };
+  }
+
+  return {
+    template: LLM_CONNECTION_MEMBERS.other,
+    values: {},
+    plural: LLM_CONNECTION_MEMBERS,
+    count: members,
+  };
+}
+
+/*
+ * A provider account whose reads are still catching up - a first read of a
+ * busy Cursor team takes more than one run - says so under what it has
+ * read, so a short history on Usage is not taken for all there is.
+ */
+export const LLM_CONNECTION_STILL_READING: string = translationKey(
+  "Still reading earlier usage",
+);
+
+export function getLlmConnectionReadingNote(
+  connection: LlmObservabilityConnection,
+): string | undefined {
+  const result: JSONObject | undefined = connection.lastPullResult;
+
+  return result &&
+    result["kind"] === "usage" &&
+    result["status"] === "partial" &&
+    connection.isEnabled !== false
+    ? LLM_CONNECTION_STILL_READING
+    : undefined;
+}
+
 export function getLlmConnectionNoUsageSummary(
   result: JSONObject,
 ): LlmConnectionSummary {

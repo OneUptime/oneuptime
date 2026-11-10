@@ -72,9 +72,6 @@ export default class CodeRequestTaskHandler extends BaseTaskHandler {
   public readonly taskType: string = CodeFixTaskType.CodeRequest;
   public readonly name: string = "Code Request Handler";
 
-  // Wall clock for the code agent, matching the other recipes.
-  public static readonly CODE_AGENT_TIMEOUT_MS: number = 30 * 60 * 1000;
-
   // A pull request title is cut at this length.
   private static readonly MAX_TITLE_LENGTH: number = 72;
 
@@ -191,7 +188,7 @@ export default class CodeRequestTaskHandler extends BaseTaskHandler {
       const agentTask: CodeAgentTask = {
         workingDirectory: cloneResult.repositoryPath,
         prompt: prompt,
-        timeoutMs: CodeRequestTaskHandler.CODE_AGENT_TIMEOUT_MS,
+        // No timeoutMs: the agent keeps to the run's time limit, which the server gives it.
         allowQuestions: true,
       };
 

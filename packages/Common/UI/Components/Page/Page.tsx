@@ -76,6 +76,11 @@ export interface ComponentProps {
   labels?: Array<LabelModel> | undefined;
   headerRight?: ReactElement | undefined;
   /*
+   * Beside the title, on its line: a product page's "About" (the product's
+   * explanation, in a dialog). Drawn with a plain title only.
+   */
+  titleRight?: ReactElement | undefined;
+  /*
    * The page is one numbered record's - an incident's, an alert's, a
    * scheduled maintenance event's, an episode's - and is headed by its
    * number and its name, "INC-18 Manually declared", in place of the title:
@@ -105,6 +110,14 @@ export interface PageRecordHeading {
   // The record's name as typed: "Manually declared".
   name: string;
 }
+
+/*
+ * The title and what sits beside it (titleRight) on one line, which wraps
+ * under the title where the two do not fit.
+ */
+export const PAGE_TITLE_ROW_CLASS_NAME: string =
+  "flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1";
+export const PAGE_TITLE_ROW_TEST_ID: string = "page-title-row";
 
 // The header's right side (headerRight): its classes, for the tests.
 export const PAGE_HEADER_RIGHT_CLASS_NAME: string =
@@ -363,6 +376,16 @@ const Page: FunctionComponent<ComponentProps> = (
                         }}
                       />
                     </h1>
+                  ) : props.titleRight ? (
+                    <div
+                      className={PAGE_TITLE_ROW_CLASS_NAME}
+                      data-testid={PAGE_TITLE_ROW_TEST_ID}
+                    >
+                      <h1 className="min-w-0 text-xl font-semibold leading-7 text-gray-900 sm:text-xl sm:tracking-tight sm:truncate">
+                        {translatedTitle}
+                      </h1>
+                      {props.titleRight}
+                    </div>
                   ) : (
                     <h1 className="text-xl font-semibold leading-7 text-gray-900 sm:text-xl sm:tracking-tight sm:truncate">
                       {translatedTitle}

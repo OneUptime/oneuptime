@@ -6,6 +6,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const DashboardsLayout: FunctionComponent<
   PageComponentProps
@@ -14,6 +16,7 @@ const DashboardsLayout: FunctionComponent<
   return (
     <Page
       title={"Dashboards"}
+      titleRight={<ProductAboutButton product={ProductKey.Dashboards} />}
       breadcrumbLinks={getDashboardBreadcrumbs(path)}
       sideMenu={<DashboardsSideMenu />}
     >

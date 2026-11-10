@@ -6,6 +6,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const ProxmoxLayout: FunctionComponent<LayoutPageComponentProps> = (
   _props: LayoutPageComponentProps,
@@ -14,6 +16,7 @@ const ProxmoxLayout: FunctionComponent<LayoutPageComponentProps> = (
   return (
     <Page
       title={"Proxmox"}
+      titleRight={<ProductAboutButton product={ProductKey.Proxmox} />}
       sideMenu={<SideMenu />}
       breadcrumbLinks={getProxmoxBreadcrumbs(path)}
     >

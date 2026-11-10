@@ -653,7 +653,7 @@ export default class RemediationCommandToolkit {
         name: ROLL_BACK_CHANGE_TOOL_NAME,
         description: `Roll back a Kubernetes rollout OneUptime recorded, by its changeId from the Recent changes section. OneUptime builds the exact kubectl rollout undo from the Deployment, namespace and cluster the change names - you do not write it - and refuses when the change names no Deployment on a cluster this round may change, or when the Deployment changed again after it (an undo would then undo the later change). ${
           this.options.mode === "FullAuto"
-            ? "It then runs like a change you execute with execute_remediation_command: the same policy, mode, breaker and command budget apply."
+            ? "It then runs like a change you execute with execute_remediation_command: the same policy, mode, breaker and limit on commands apply."
             : "It is recorded as the FIRST step of the plan for one-click human approval; propose_remediation_commands adds the rest of your plan after it (do not repeat the rollback there)."
         } Use it when the evidence says that change caused the signal.`,
         inputSchema: {
@@ -1605,7 +1605,7 @@ export default class RemediationCommandToolkit {
   private async executeCommand(args: JSONObject): Promise<ToolCallOutcome> {
     if (this.getSentCommandCount() >= MAX_AUTO_EXECUTED_COMMANDS_PER_RUN) {
       return this.failure(
-        `The per-remediation command budget (${MAX_AUTO_EXECUTED_COMMANDS_PER_RUN}) is spent. Summarize what you did and what remains for a human.`,
+        `This remediation has sent ${MAX_AUTO_EXECUTED_COMMANDS_PER_RUN} commands that change things, the most one remediation may send. Summarize what you did and what remains for a human.`,
       );
     }
 

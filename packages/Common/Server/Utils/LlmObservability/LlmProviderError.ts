@@ -32,6 +32,12 @@ const TRANSPORT_HTTP_ERROR_REGEX: RegExp =
  */
 const PROVIDER_KEY_REGEX: RegExp = /\bsk-[A-Za-z0-9_-]{20,256}/g;
 
+/*
+ * Cursor's API keys: crsr_ and 64 characters. The same rule: at least 20
+ * after the prefix, so the guidance's "starts with crsr_" stays readable.
+ */
+const CURSOR_KEY_REGEX: RegExp = /\bcrsr_[A-Za-z0-9_-]{20,256}/g;
+
 // Longest message kept on the connection, the marker included.
 export const MAX_LLM_PROVIDER_ERROR_LENGTH: number = 1000;
 const TRUNCATION_MARKER: string = "... (truncated)";
@@ -136,6 +142,7 @@ export default class LlmProviderError extends APIException {
     }
 
     redacted = redacted.replace(PROVIDER_KEY_REGEX, REDACTED);
+    redacted = redacted.replace(CURSOR_KEY_REGEX, REDACTED);
     redacted = redactLogString(redacted);
 
     if (redacted.length > MAX_LLM_PROVIDER_ERROR_LENGTH) {

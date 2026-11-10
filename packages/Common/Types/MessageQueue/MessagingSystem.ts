@@ -240,7 +240,11 @@ export const MESSAGING_SYSTEMS: ReadonlyArray<MessagingSystemDescriptor> = [
       kind: "cloud-monitoring",
       receiver: AZURE_MONITOR_RECEIVER,
       alternativeReceivers: [],
-      note: "Read the namespace's metrics from Azure Monitor with the collector's `azure_monitor` receiver, which splits them per queue and topic by the EntityName dimension.",
+      /*
+       * A cloud connection reads the key metrics per queue too
+       * (MessageQueueCloudConnectionMetrics); the receiver reads them all.
+       */
+      note: "A connected Azure subscription reads the namespace's key metrics for each queue and topic, with nothing to run. To read all of them, run the collector's `azure_monitor` receiver, which splits them per queue and topic by the EntityName dimension.",
     },
     docsAnchor: "azure-service-bus",
   },
@@ -254,7 +258,7 @@ export const MESSAGING_SYSTEMS: ReadonlyArray<MessagingSystemDescriptor> = [
       kind: "cloud-monitoring",
       receiver: AZURE_MONITOR_RECEIVER,
       alternativeReceivers: [],
-      note: "Read the namespace's metrics from Azure Monitor with the collector's `azure_monitor` receiver, which splits them per event hub by the EntityName dimension.",
+      note: "A connected Azure subscription reads the namespace's key metrics for each event hub, with nothing to run. To read all of them, run the collector's `azure_monitor` receiver, which splits them per event hub by the EntityName dimension.",
     },
     docsAnchor: "azure-event-hubs",
   },

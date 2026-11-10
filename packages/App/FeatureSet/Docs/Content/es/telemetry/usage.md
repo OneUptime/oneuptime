@@ -27,6 +27,7 @@ flowchart TB
 - **Las trazas incluyen sus excepciones, y los perfiles sus muestras.**
 - **La telemetría propia de OneUptime no se cuenta.** Las lecturas de monitores, alertas, incidentes y SLO, las lecturas de Observabilidad de datos y las métricas de presupuesto de las reproducciones de sesiones las escribe el propio OneUptime.
 - **En OneUptime Cloud, la telemetría se factura a partir de estas filas.** En una instalación sin facturación, el uso se cuenta sin costo, y no se cobra nada por él, aunque la facturación se active más adelante.
+- **Un presupuesto se cuenta aparte del uso.** Un [presupuesto de ingesta](/docs/telemetry/ingestion-budgets) cuenta la telemetría a medida que llega, descomprimida, así que puede detener la telemetría de un día el mismo día. Mientras haya uno fijado, esta página se abre con los presupuestos de hoy.
 
 ## Antes de empezar
 
@@ -134,4 +135,5 @@ El recurso se eliminó después de enviar la telemetría, o su rol no lee ese ti
 - [Retención de datos](/docs/telemetry/data-retention): Conserve la telemetría el tiempo que necesite, y no más.
 - [Facturación y uso](/docs/configuration/billing): Lo que cuesta la telemetría en OneUptime Cloud.
 - [Claves de ingesta](/docs/telemetry/ingestion-keys): Envíe telemetría a su proyecto.
+- [Presupuestos de ingesta](/docs/telemetry/ingestion-budgets): Limite cuánto envía un proyecto de cada señal en un día.
 :::

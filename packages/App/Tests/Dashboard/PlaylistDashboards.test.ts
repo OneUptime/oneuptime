@@ -433,7 +433,7 @@ describe("a playlist's row in the list, in one phrase", () => {
         return file.replace(".json", "");
       });
 
-    expect(languages).toHaveLength(16);
+    expect(languages).toHaveLength(17);
 
     for (const language of languages) {
       const locale: Record<string, string> = readLocale(language);

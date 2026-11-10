@@ -59,10 +59,12 @@ export const MAX_EXTERNAL_MCP_RESPONSE_BYTES: number = 2 * 1024 * 1024;
 export const MAX_EXTERNAL_MCP_ARGUMENTS_CHARS: number = 64 * 1000;
 
 /*
- * Tool calls one run (an investigation or a fix) may make to the project's
- * external MCP servers, all of them together.
+ * How many tool calls one run (an investigation or a fix) makes to the
+ * project's external MCP servers is not counted here: the run's own limits
+ * hold them, with every other tool call (Types/AI/AIAgentRunLimits) - none
+ * by default but loop detection and the time limit (issue #6440). What a fix
+ * may change through them stays counted, below.
  */
-export const MAX_EXTERNAL_MCP_CALLS_PER_RUN: number = 40;
 
 /*
  * Changes one fix may make through the external MCP servers without asking

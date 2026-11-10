@@ -88,6 +88,22 @@ const BODY: string = JSON.stringify({
   ],
 });
 
+/*
+ * The body as a stored check keeps it: its shape and its evidence, the
+ * session (a field named for a credential, masked whole as the excerpt
+ * masks it) and the email address masked, as the monitor's logs keep it
+ * (MonitorRecordEvidence, #6341).
+ */
+const STORED_BODY: string = JSON.stringify({
+  service: "checkout",
+  owner: REDACTED,
+  session: REDACTED,
+  checks: [
+    { name: "db", status: "ok" },
+    { name: "payments", status: "error: connection refused" },
+  ],
+});
+
 function criteriaInstance(): MonitorCriteriaInstance {
   const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
   instance.data!.id = "criteria-1";
@@ -460,8 +476,8 @@ describe("Incidents and alerts keep the evaluation that opened them", () => {
 
       expect(headers["set-cookie"]).toBe(REDACTED);
       expect(headers["content-type"]).toBe("application/json");
-      // The stored check keeps its body while the monitor keeps content.
-      expect(stateLog["responseBody"]).toBe(BODY);
+      // The stored check keeps its body while the monitor keeps content, masked.
+      expect(stateLog["responseBody"]).toBe(STORED_BODY);
 
       const summary: MonitorSummarySnapshot | null =
         MonitorSummarySnapshotUtil.deserialize(
@@ -705,7 +721,7 @@ describe("Incidents and alerts keep the evaluation that opened them", () => {
       });
     }
 
-    it("masks its credential headers and keeps its body", async () => {
+    it("masks its credential headers, and the secret and the email address in its body", async () => {
       await resolveBoth(true);
 
       for (const timeline of [
@@ -717,7 +733,7 @@ describe("Incidents and alerts keep the evaluation that opened them", () => {
         expect((log["responseHeaders"] as JSONObject)["set-cookie"]).toBe(
           REDACTED,
         );
-        expect(log["responseBody"]).toBe(BODY);
+        expect(log["responseBody"]).toBe(STORED_BODY);
       }
     });
 

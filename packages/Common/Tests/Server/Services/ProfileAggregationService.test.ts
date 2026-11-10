@@ -12,6 +12,7 @@ import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, test, afterEach, jest } from "@jest/globals";
+import { decodedQueryParams } from "../../Helpers/StatementEcho";
 
 /*
  * A trace-wide read (traceId, no spanIds) keeps only samples that name one
@@ -39,7 +40,7 @@ const traceSpansFilterValues: (statement: Statement) => Array<unknown> = (
 
   return Array.from(predicate![0].matchAll(/\{(p\d+):[^}]+\}/g)).map(
     (placeholder: RegExpMatchArray) => {
-      return statement.query_params[placeholder[1]!];
+      return decodedQueryParams(statement)[placeholder[1]!];
     },
   );
 };
@@ -350,7 +351,9 @@ describe("ProfileAggregationService trace-scoped sample filters", () => {
     });
 
     expect(statement.query).toMatch(/AND traceId = \{p\d+:String\}/);
-    expect(Object.values(statement.query_params)).toContain("trace-abc-123");
+    expect(Object.values(decodedQueryParams(statement))).toContain(
+      "trace-abc-123",
+    );
   });
 
   test("traceId alone keeps only samples that name one of the trace's spans", () => {
@@ -394,7 +397,9 @@ describe("ProfileAggregationService trace-scoped sample filters", () => {
 
     expect(statement.query).toMatch(SPAN_LIST_PREDICATE);
     expect(statement.query).not.toContain("SELECT spanId");
-    expect(Object.values(statement.query_params)).not.toContain("SpanItemV3");
+    expect(Object.values(decodedQueryParams(statement))).not.toContain(
+      "SpanItemV3",
+    );
   });
 
   test("spanIds alone add a parameter-bound IN predicate", () => {
@@ -407,7 +412,7 @@ describe("ProfileAggregationService trace-scoped sample filters", () => {
       /AND spanId IN \(\{p\d+:Array\(String\)\}\)/,
     );
     expect(statement.query).not.toContain("traceId");
-    expect(Object.values(statement.query_params)).toContainEqual([
+    expect(Object.values(decodedQueryParams(statement))).toContainEqual([
       "span-a",
       "span-b",
     ]);
@@ -424,8 +429,12 @@ describe("ProfileAggregationService trace-scoped sample filters", () => {
     expect(statement.query).toMatch(
       /AND spanId IN \(\{p\d+:Array\(String\)\}\)/,
     );
-    expect(Object.values(statement.query_params)).toContain("trace-abc-123");
-    expect(Object.values(statement.query_params)).toContainEqual(["span-a"]);
+    expect(Object.values(decodedQueryParams(statement))).toContain(
+      "trace-abc-123",
+    );
+    expect(Object.values(decodedQueryParams(statement))).toContainEqual([
+      "span-a",
+    ]);
   });
 
   test("an empty spanIds array behaves exactly like an absent filter", () => {
@@ -460,7 +469,7 @@ describe("ProfileAggregationService trace-scoped sample filters", () => {
 
     expect(statement.query).toMatch(TRACE_SPANS_PREDICATE);
     expect(statement.query).not.toContain(evilTraceId);
-    expect(Object.values(statement.query_params)).toContain(evilTraceId);
+    expect(Object.values(decodedQueryParams(statement))).toContain(evilTraceId);
   });
 
   test("injection-shaped values never reach the query text", () => {
@@ -475,8 +484,10 @@ describe("ProfileAggregationService trace-scoped sample filters", () => {
 
     expect(statement.query).not.toContain(evilTraceId);
     expect(statement.query).not.toContain(evilSpanId);
-    expect(Object.values(statement.query_params)).toContain(evilTraceId);
-    expect(Object.values(statement.query_params)).toContainEqual([evilSpanId]);
+    expect(Object.values(decodedQueryParams(statement))).toContain(evilTraceId);
+    expect(Object.values(decodedQueryParams(statement))).toContainEqual([
+      evilSpanId,
+    ]);
   });
 
   test("the window-total query carries the same trace predicates", () => {
@@ -505,7 +516,9 @@ describe("ProfileAggregationService trace-scoped sample filters", () => {
     });
 
     expect(statement.query).not.toContain("SELECT spanId");
-    expect(Object.values(statement.query_params)).not.toContain("SpanItemV3");
+    expect(Object.values(decodedQueryParams(statement))).not.toContain(
+      "SpanItemV3",
+    );
   });
 });
 
@@ -548,8 +561,10 @@ describe("ProfileAggregationService trace filters through the public reads", () 
     expect(statement.query).toMatch(
       /AND spanId IN \(\{p\d+:Array\(String\)\}\)/,
     );
-    expect(Object.values(statement.query_params)).toContain("trace-9");
-    expect(Object.values(statement.query_params)).toContainEqual(["span-9"]);
+    expect(Object.values(decodedQueryParams(statement))).toContain("trace-9");
+    expect(Object.values(decodedQueryParams(statement))).toContainEqual([
+      "span-9",
+    ]);
   };
 
   test("getFlamegraph threads traceId + spanIds into the grouped query", async () => {
@@ -658,11 +673,11 @@ describe("ProfileAggregationService.getTracePresence", () => {
       /AND spanId IN \(\{p\d+:Array\(String\)\}\)/,
     );
     expect(statement.query).toContain("retentionDate >= now()");
-    expect(Object.values(statement.query_params)).toContain(
+    expect(Object.values(decodedQueryParams(statement))).toContain(
       projectId.toString(),
     );
-    expect(Object.values(statement.query_params)).toContain("trace-1");
-    expect(Object.values(statement.query_params)).toContainEqual([
+    expect(Object.values(decodedQueryParams(statement))).toContain("trace-1");
+    expect(Object.values(decodedQueryParams(statement))).toContainEqual([
       "span-1",
       "span-2",
     ]);
@@ -753,7 +768,7 @@ describe("ProfileAggregationService.getTracePresence", () => {
 
     expect(captured[1]!.query).toBe(captured[0]!.query);
     expect(captured[1]!.query).not.toContain(subtreeSpanIds[999]!);
-    expect(Object.values(captured[1]!.query_params)).toContainEqual(
+    expect(Object.values(decodedQueryParams(captured[1]!))).toContainEqual(
       subtreeSpanIds,
     );
   });
@@ -780,6 +795,8 @@ describe("ProfileAggregationService.getTracePresence", () => {
     });
 
     expect(captured[0]!.query).not.toContain(evilTraceId);
-    expect(Object.values(captured[0]!.query_params)).toContain(evilTraceId);
+    expect(Object.values(decodedQueryParams(captured[0]!))).toContain(
+      evilTraceId,
+    );
   });
 });

@@ -39,6 +39,7 @@ export const SUPPORTED_DASHBOARD_LANGUAGES: Array<DashboardLanguage> = [
   },
   { code: "hi", nativeName: "हिन्दी", englishName: "Hindi" },
   { code: "fa", nativeName: "فارسی", englishName: "Persian" },
+  { code: "ar", nativeName: "العربية", englishName: "Arabic" },
 ];
 
 export const SUPPORTED_DASHBOARD_LANGUAGE_CODES: Array<string> =

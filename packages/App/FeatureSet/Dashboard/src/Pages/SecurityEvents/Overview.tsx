@@ -75,6 +75,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 // Each detection source's color on the detections chart.
 export const DETECTION_SOURCE_COLORS: Record<SecurityDetectionSource, string> =
@@ -440,6 +442,16 @@ const SecurityOverviewPage: FunctionComponent<
           onDismiss={() => {
             setShowGetStarted(false);
           }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {/* What Security Events does, under its setup (ProductOnboarding). */}
+      {status && showGetStarted ? (
+        <ProductShowcase
+          product={ProductKey.SecurityEvents}
+          hidesSteps={true}
         />
       ) : (
         <></>

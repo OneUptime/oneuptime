@@ -15,6 +15,7 @@ import Search from "../../../Types/BaseDatabase/Search";
 import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
+import { holdsSecurityScanWord } from "../../../Utils/SecurityEvent/SecurityScanWords";
 import { inspect } from "util";
 
 /**
@@ -24,7 +25,70 @@ import { inspect } from "util";
 export type StatementParameter = {
   type: TableColumnType;
   value: RecordValue;
+  /*
+   * Send this text hex encoded whatever it holds (see "Hex encoded text"
+   * below). A text that holds a security scan word is sent so anyway; this
+   * is for a statement that binds a scan's whole vocabulary, words a line
+   * is only read for together - the security log prefilter's "cef:" and
+   * "login" - so nothing of it is left to read back.
+   */
+  sendAsHex?: boolean | undefined;
 };
+
+/*
+ * HEX ENCODED TEXT. A text parameter that holds a word the security scans
+ * look for - an attack string, the start of an SSH sign-in, a
+ * prompt-injection phrase (Utils/SecurityEvent/SecurityScanWords.ts) - is
+ * sent hex encoded, and ClickHouse decodes it:
+ *
+ *   {p0:String}          is sent as   unhex({p0:String})
+ *   {p1:Array(String)}   is sent as   [unhex({p1_0:String}), unhex({p1_1:String})]
+ *
+ * ClickHouse writes down a query with its parameters filled in: in the
+ * error it logs when the query fails, and in system.query_log. Sent as
+ * they are, a scan's words make its own query read as the attack it looks
+ * for, and the scan finds that line in the logs it reads (issue #6419).
+ * Hex reads as nothing, and the query finds the same rows: unhex of a
+ * constant is a constant, so a skip index still prunes, and IN and
+ * multiSearchAny still take it. An array is decoded element by element,
+ * because the older analyzer takes no arrayMap where IN needs a constant.
+ */
+type RenderedParameter =
+  | { kind: "qualified"; column: QualifiedColumn }
+  | {
+      kind: "plain";
+      dataType: string;
+      parameter: StatementParameter | string;
+    }
+  | { kind: "hex"; value: string }
+  | { kind: "hexArray"; values: Array<string> };
+
+function isText(value: unknown): value is string {
+  return typeof value === "string";
+}
+
+// A non-empty array of texts, as an array of strings; else null.
+function toTexts(value: unknown): Array<string> | null {
+  if (!Array.isArray(value) || value.length === 0) {
+    return null;
+  }
+
+  const texts: Array<string> = [];
+
+  for (const item of value as Array<unknown>) {
+    if (!isText(item)) {
+      return null;
+    }
+
+    texts.push(item);
+  }
+
+  return texts;
+}
+
+function toHex(text: string): string {
+  return Buffer.from(text, "utf8").toString("hex");
+}
 
 /*
  * Escape LIKE/ILIKE metacharacters so a user-supplied value matches
@@ -67,23 +131,11 @@ export class Statement implements BaseQueryParams {
   ) {}
 
   public get query(): string {
+    const rendered: Array<RenderedParameter> = this.renderParameters();
+
     let query: string = this.strings.reduce(
       (prev: string, curr: string, i: integer) => {
-        const param: StatementParameter | string | QualifiedColumn =
-          this.values[i - 1]!;
-
-        if (param instanceof QualifiedColumn) {
-          return (
-            prev + `{p${i - 1}_t:Identifier}.{p${i - 1}_c:Identifier}` + curr
-          );
-        }
-
-        const dataType: string =
-          typeof param === "string"
-            ? "Identifier"
-            : Statement.toColumnType(param);
-
-        return prev + `{p${i - 1}:${dataType}}` + curr;
+        return prev + Statement.toPlaceholder(rendered[i - 1]!, i - 1) + curr;
       },
     );
 
@@ -100,24 +152,107 @@ export class Statement implements BaseQueryParams {
   }
 
   public get query_params(): Record<string, unknown> {
-    let index: number = 0;
-
     const returnObject: Record<string, unknown> = {};
 
-    for (const v of this.values) {
-      if (v instanceof QualifiedColumn) {
-        returnObject[`p${index}_t`] = v.tableAlias;
-        returnObject[`p${index}_c`] = v.column;
-        index++;
-        continue;
-      }
-      const finalValue: RecordValue | Array<RecordValue> =
-        this.serializseValue(v);
-      returnObject[`p${index}`] = finalValue;
-      index++;
-    }
+    this.renderParameters().forEach(
+      (rendered: RenderedParameter, index: number): void => {
+        switch (rendered.kind) {
+          case "qualified":
+            returnObject[`p${index}_t`] = rendered.column.tableAlias;
+            returnObject[`p${index}_c`] = rendered.column.column;
+            return;
+          case "hex":
+            returnObject[`p${index}`] = rendered.value;
+            return;
+          case "hexArray":
+            rendered.values.forEach((value: string, element: number): void => {
+              returnObject[`p${index}_${element}`] = value;
+            });
+            return;
+          default:
+            returnObject[`p${index}`] = this.serializseValue(
+              rendered.parameter,
+            );
+        }
+      },
+    );
 
     return returnObject;
+  }
+
+  /*
+   * How each parameter is written into the query and sent - decided in one
+   * place, so the query and its parameters always agree.
+   */
+  private renderParameters(): Array<RenderedParameter> {
+    return this.values.map(
+      (
+        parameter: StatementParameter | string | QualifiedColumn,
+      ): RenderedParameter => {
+        return this.renderParameter(parameter);
+      },
+    );
+  }
+
+  private renderParameter(
+    parameter: StatementParameter | string | QualifiedColumn,
+  ): RenderedParameter {
+    if (parameter instanceof QualifiedColumn) {
+      return { kind: "qualified", column: parameter };
+    }
+
+    if (typeof parameter === "string") {
+      return { kind: "plain", dataType: "Identifier", parameter };
+    }
+
+    const dataType: string = Statement.toColumnType(parameter);
+
+    // Only text is ever hex encoded: never an identifier, an id, a number or a date.
+    if (
+      (parameter.type === TableColumnType.Text ||
+        parameter.type === TableColumnType.ArrayText) &&
+      (dataType === "String" || dataType === "Array(String)")
+    ) {
+      const serialized: RecordValue | Array<RecordValue> =
+        this.serializseValue(parameter);
+
+      if (
+        dataType === "String" &&
+        isText(serialized) &&
+        (parameter.sendAsHex || holdsSecurityScanWord(serialized))
+      ) {
+        return { kind: "hex", value: toHex(serialized) };
+      }
+
+      const texts: Array<string> | null =
+        dataType === "Array(String)" ? toTexts(serialized) : null;
+
+      if (texts && (parameter.sendAsHex || texts.some(holdsSecurityScanWord))) {
+        return { kind: "hexArray", values: texts.map(toHex) };
+      }
+    }
+
+    return { kind: "plain", dataType, parameter };
+  }
+
+  private static toPlaceholder(
+    rendered: RenderedParameter,
+    index: number,
+  ): string {
+    switch (rendered.kind) {
+      case "qualified":
+        return `{p${index}_t:Identifier}.{p${index}_c:Identifier}`;
+      case "hex":
+        return `unhex({p${index}:String})`;
+      case "hexArray":
+        return `[${rendered.values
+          .map((_value: string, element: number): string => {
+            return `unhex({p${index}_${element}:String})`;
+          })
+          .join(", ")}]`;
+      default:
+        return `{p${index}:${rendered.dataType}}`;
+    }
   }
 
   public serializseValue(
@@ -221,6 +356,18 @@ export class Statement implements BaseQueryParams {
       query: this.query,
       query_params: this.query_params,
     })}`;
+  }
+
+  /*
+   * What a log line shows of a statement (the logger serializes through
+   * toJSON): the query and parameters as they are sent, hex encoded text
+   * and all - never the values a scan's words are in.
+   */
+  public toJSON(): { query: string; query_params: Record<string, unknown> } {
+    return {
+      query: this.query,
+      query_params: this.query_params,
+    };
   }
 
   private static toColumnType(

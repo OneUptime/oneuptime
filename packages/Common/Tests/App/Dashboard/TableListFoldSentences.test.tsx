@@ -98,8 +98,8 @@ afterEach(() => {
 });
 
 describe("every list's fold is one sentence in every language", () => {
-  test("seventeen languages", () => {
-    expect(LOCALE_FILES).toHaveLength(17);
+  test("eighteen languages", () => {
+    expect(LOCALE_FILES).toHaveLength(18);
   });
 
   test("English holds both forms of every sentence, word for word", () => {

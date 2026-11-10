@@ -211,8 +211,8 @@ afterEach(() => {
 });
 
 describe("a monitor criteria's Match Condition", () => {
-  test("is asked in all seventeen languages", () => {
-    expect(SUPPORTED_DASHBOARD_LANGUAGE_CODES).toHaveLength(17);
+  test("is asked in all eighteen languages", () => {
+    expect(SUPPORTED_DASHBOARD_LANGUAGE_CODES).toHaveLength(18);
   });
 
   test.each(SUPPORTED_DASHBOARD_LANGUAGE_CODES)(

@@ -83,10 +83,14 @@ import {
   getAccountsNotInName,
   getChangesRecordedWords,
   getCloudConnectionHealth,
+  getCloudReadWarnings,
   getCloudReadFailureWords,
   getCloudReadIntervalWords,
   getCloudRegionNames,
+  getReadWarningsWords,
   getResourceCountWords,
+  READ_WARNINGS_DESCRIPTION,
+  READ_WARNINGS_TITLE,
 } from "./CloudConnectionWords";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
@@ -140,6 +144,10 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
   const [testItem, setTestItem] = useState<CloudConnection | null>(null);
   const [testRun, setTestRun] = useState<number>(0);
   const [errorItem, setErrorItem] = useState<CloudConnection | null>(null);
+  // The connection whose last read's warnings are open.
+  const [warningsItem, setWarningsItem] = useState<CloudConnection | null>(
+    null,
+  );
   // The connection whose streaming dialog is open, of whichever cloud.
   const [streamItem, setStreamItem] = useState<CloudConnection | null>(null);
   const [notice, setNotice] = useState<
@@ -944,6 +952,9 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                   );
                 }
 
+                // What its last read could not read, though it worked.
+                const warnings: Array<string> = getCloudReadWarnings(item);
+
                 return (
                   <div className="min-w-0 space-y-1">
                     <Pill
@@ -956,6 +967,30 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                       }
                     />
                     {lastRead}
+                    {warnings.length > 0 ? (
+                      <button
+                        type="button"
+                        aria-haspopup="dialog"
+                        data-testid="cloud-connection-warnings"
+                        className="flex items-center gap-1 text-start text-xs font-medium text-amber-700 hover:underline"
+                        onClick={(): void => {
+                          setWarningsItem(item);
+                        }}
+                      >
+                        <Icon
+                          icon={IconProp.Alert}
+                          className="h-3 w-3 flex-shrink-0"
+                        />
+                        <span>
+                          {drawCloudTemplate(
+                            translator,
+                            getReadWarningsWords(warnings.length),
+                          )}
+                        </span>
+                      </button>
+                    ) : (
+                      <></>
+                    )}
                     {/* How often it is read - not while it is turned off. */}
                     {definition && item.isEnabled !== false ? (
                       <div
@@ -1121,6 +1156,45 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
           }
         >
           {renderLastError(errorItem)}
+        </Modal>
+      )}
+
+      {warningsItem && (
+        <Modal
+          title={READ_WARNINGS_TITLE}
+          description={translator.translateTemplate(READ_WARNINGS_DESCRIPTION, {
+            name: warningsItem.name || "",
+          })}
+          modalWidth={ModalWidth.Medium}
+          closeButtonText="Close"
+          onClose={(): void => {
+            setWarningsItem(null);
+          }}
+        >
+          {/*
+           * The cloud's and the read's own words, in English: each starts
+           * where an English sentence does, on a page laid out right to
+           * left too.
+           */}
+          <ul
+            data-testid="cloud-connection-warning-list"
+            className="divide-y divide-gray-100 rounded-md border border-gray-200"
+          >
+            {getCloudReadWarnings(warningsItem).map(
+              (warning: string, index: number): ReactElement => {
+                return (
+                  <li
+                    key={`warning-${index}`}
+                    dir="auto"
+                    data-testid="cloud-connection-warning"
+                    className="break-words px-4 py-3 text-sm text-gray-700"
+                  >
+                    {warning}
+                  </li>
+                );
+              },
+            )}
+          </ul>
         </Modal>
       )}
     </Fragment>

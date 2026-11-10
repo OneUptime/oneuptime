@@ -1,4 +1,5 @@
 import { NetworkTopologyNode } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
+import { isIpAddressLiteral } from "Common/Utils/NetworkDevice/DiscoveredDeviceIdentity";
 import { isEndpointNode } from "./EndpointNodeUtil";
 import {
   DEVICE_NODE_BASE_RADIUS,
@@ -63,6 +64,16 @@ export const DEVICE_LABEL_MAX_CHARS: number = 17;
 export const DEVICE_LABEL_MAX_LINES: number = 2;
 export const ENDPOINT_LABEL_MAX_CHARS: number = 11;
 export const ENDPOINT_LABEL_MAX_LINES: number = 2;
+/*
+ * The line under a name: an address (issue #5775), or an unnamed device's
+ * maker. Never wrapped, and wide enough for any IPv4 address - fifteen
+ * characters - on the narrowest node. A maker is a hint, not a name: it is
+ * cut to the endpoint's name width (ENDPOINT_LABEL_MAX_CHARS), so the long
+ * ones the address tables carry ("Seiko Epson Corporation") do not space
+ * the whole map out.
+ */
+export const DEVICE_SECONDARY_LABEL_MAX_CHARS: number = 17;
+export const ENDPOINT_SECONDARY_LABEL_MAX_CHARS: number = 15;
 
 /*
  * Hard cap on how much horizontal room a label may claim. Without it a
@@ -156,22 +167,120 @@ export const wrapNodeLabel: (
   return lines;
 };
 
-/** The wrapped label lines a node renders, per its kind. */
-export const labelLinesForNode: (node: NetworkTopologyNode) => Array<string> = (
+/*
+ * One line, at most `maxChars` long. An address keeps its two ends - the
+ * network it is in and the host it is - and loses its middle; any other
+ * text keeps its start.
+ */
+export const fitLabelLine: (
+  text: string,
+  maxChars: number,
+  isAddress?: boolean,
+) => string = (
+  text: string,
+  maxChars: number,
+  isAddress: boolean = false,
+): string => {
+  const value: string = (text || "").trim();
+  const limit: number = Math.max(2, Math.floor(maxChars));
+
+  if (value.length <= limit) {
+    return value;
+  }
+
+  if (isAddress) {
+    const head: number = Math.ceil((limit - 1) / 2);
+    const tail: number = limit - 1 - head;
+    return `${value.slice(0, head)}…${value.slice(value.length - tail)}`;
+  }
+
+  return `${value.slice(0, limit - 1).replace(/\s+$/, "")}…`;
+};
+
+/*
+ * A node's name, wrapped to its kind's lines. A name that IS an address -
+ * a discovered device nothing named, which the map labels by its IP - is
+ * drawn whole on one line: "10.240.0.2" split as "10.240.0." over "2" is
+ * two meaningless halves.
+ */
+export const labelNameLinesForNode: (
   node: NetworkTopologyNode,
-): Array<string> => {
-  if (isEndpointNode(node)) {
+) => Array<string> = (node: NetworkTopologyNode): Array<string> => {
+  const isEndpoint: boolean = isEndpointNode(node);
+  const name: string = (node.name || "").trim();
+
+  if (name && isIpAddressLiteral(name)) {
+    return [
+      fitLabelLine(
+        name,
+        isEndpoint
+          ? ENDPOINT_SECONDARY_LABEL_MAX_CHARS
+          : DEVICE_SECONDARY_LABEL_MAX_CHARS,
+        true,
+      ),
+    ];
+  }
+
+  if (isEndpoint) {
     return wrapNodeLabel(
-      node.name || "",
+      name,
       ENDPOINT_LABEL_MAX_CHARS,
       ENDPOINT_LABEL_MAX_LINES,
     );
   }
-  return wrapNodeLabel(
-    node.name || "",
-    DEVICE_LABEL_MAX_CHARS,
-    DEVICE_LABEL_MAX_LINES,
-  );
+  return wrapNodeLabel(name, DEVICE_LABEL_MAX_CHARS, DEVICE_LABEL_MAX_LINES);
+};
+
+/*
+ * The line under a node's name (issue #5775): its IP address, when the name
+ * is something else - so "Front register" reads over "10.0.0.5" and a
+ * switch over the address it is polled at - and, for a discovered device
+ * with no name of its own, its maker under the address it is labelled by.
+ * The maker is never the name: every register in a store shares one.
+ * Empty when there is nothing to add.
+ */
+export const labelSecondaryLineForNode: (
+  node: NetworkTopologyNode,
+) => string = (node: NetworkTopologyNode): string => {
+  const isEndpoint: boolean = isEndpointNode(node);
+  const name: string = (node.name || "").trim();
+  const ipAddress: string = (node.ipAddress || "").trim();
+  const maxChars: number = isEndpoint
+    ? ENDPOINT_SECONDARY_LABEL_MAX_CHARS
+    : DEVICE_SECONDARY_LABEL_MAX_CHARS;
+
+  if (ipAddress && ipAddress !== name && isIpAddressLiteral(ipAddress)) {
+    return fitLabelLine(ipAddress, maxChars, true);
+  }
+
+  const vendor: string = (node.vendor || "").trim();
+
+  if (isEndpoint && vendor && vendor !== name) {
+    return fitLabelLine(vendor, ENDPOINT_LABEL_MAX_CHARS);
+  }
+
+  return "";
+};
+
+/**
+ * The label lines a node renders, per its kind: its name, wrapped, then the
+ * line under it when it has one (labelSecondaryLineForNode). The layout
+ * reserves room for every one of them; hasSecondaryLabelLine says whether
+ * the last is that secondary line, which the map draws a shade lighter.
+ */
+export const labelLinesForNode: (node: NetworkTopologyNode) => Array<string> = (
+  node: NetworkTopologyNode,
+): Array<string> => {
+  const lines: Array<string> = labelNameLinesForNode(node);
+  const secondary: string = labelSecondaryLineForNode(node);
+
+  return secondary ? [...lines, secondary] : lines;
+};
+
+export const hasSecondaryLabelLine: (node: NetworkTopologyNode) => boolean = (
+  node: NetworkTopologyNode,
+): boolean => {
+  return labelSecondaryLineForNode(node).length > 0;
 };
 
 export interface TopologyNodeFootprint {

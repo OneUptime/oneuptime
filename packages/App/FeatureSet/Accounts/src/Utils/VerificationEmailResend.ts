@@ -1,3 +1,4 @@
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import { RESEND_VERIFICATION_EMAIL_API_URL } from "./ApiPaths";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -204,13 +205,19 @@ export const formatCountdown: (
   const secondsPart: number = seconds % 60;
 
   try {
-    const minutesFormat: Intl.NumberFormat = new Intl.NumberFormat(locale, {
-      useGrouping: false,
-    });
-    const secondsFormat: Intl.NumberFormat = new Intl.NumberFormat(locale, {
-      useGrouping: false,
-      minimumIntegerDigits: 2,
-    });
+    const minutesFormat: Intl.NumberFormat = new Intl.NumberFormat(
+      getNumberLocale(locale),
+      {
+        useGrouping: false,
+      },
+    );
+    const secondsFormat: Intl.NumberFormat = new Intl.NumberFormat(
+      getNumberLocale(locale),
+      {
+        useGrouping: false,
+        minimumIntegerDigits: 2,
+      },
+    );
 
     return `${minutesFormat.format(minutesPart)}:${secondsFormat.format(secondsPart)}`;
   } catch {

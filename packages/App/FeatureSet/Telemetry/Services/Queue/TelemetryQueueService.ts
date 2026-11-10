@@ -16,6 +16,18 @@ import TelemetryBodyStore from "../../Utils/TelemetryBodyStore";
 import SessionReplayChunkStore from "../../Utils/SessionReplayChunkStore";
 import IncomingRequestLatestPayloadStore from "../../Utils/IncomingRequestLatestPayloadStore";
 import { INCOMING_REQUEST_INGEST_COALESCE_ENABLED } from "../../Config";
+import TelemetryIngestionBudget, {
+  TelemetryIngestionBudgetAdmission,
+  TelemetryIngestionBudgetAdmissionMode,
+  TelemetryIngestionBudgetCharge,
+  TelemetryIngestionBudgetJobCharge,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestionBudget";
+import {
+  measureParsedTelemetryIngestBody,
+  measureRawTelemetryIngestBody,
+  TelemetryIngestBodySize,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestBodySize";
+import { TelemetryIngestionBudgetSignal } from "Common/Types/Telemetry/TelemetryIngestionBudget";
 
 export enum TelemetryType {
   Logs = "logs",
@@ -253,6 +265,14 @@ export interface TelemetryIngestJobData {
    * seeing it in a failed-job listing grants no access.
    */
   pinnedServiceName?: string;
+  /*
+   * Set only when the body was counted against an ingestion budget at an
+   * estimate - a compressed OTLP/HTTP body, sized from its own header
+   * (TelemetryIngestBodySize) - so the worker, once it has inflated the
+   * body, adds the difference to the day it was counted on
+   * (TelemetryIngestionBudget.reconcile). Absent on every other job.
+   */
+  ingestionBudgetCharge?: TelemetryIngestionBudgetJobCharge;
   ingestionTimestamp: Date;
   // ProbeIngest-specific
   probeIngest?: ProbeIngestJobData;
@@ -323,6 +343,115 @@ const PRODUCT_TYPE_BY_TELEMETRY_TYPE: Partial<
   [TelemetryType.Metrics]: ProductType.Metrics,
   [TelemetryType.Profiles]: ProductType.Profiles,
 };
+
+/*
+ * The ingestion budget signal each queued telemetry type counts against.
+ * Syslog and Fluent batches are logs; every type not listed (probe results,
+ * monitor evaluations, Kubernetes cost, session replay, which has budgets of
+ * its own) is not budgeted.
+ */
+const BUDGET_SIGNAL_BY_TELEMETRY_TYPE: Partial<
+  Record<TelemetryType, TelemetryIngestionBudgetSignal>
+> = {
+  [TelemetryType.Logs]: ProductType.Logs,
+  [TelemetryType.Syslog]: ProductType.Logs,
+  [TelemetryType.FluentLogs]: ProductType.Logs,
+  [TelemetryType.Traces]: ProductType.Traces,
+  [TelemetryType.Metrics]: ProductType.Metrics,
+  [TelemetryType.Profiles]: ProductType.Profiles,
+  [TelemetryType.SecurityEvents]: ProductType.SecurityEvents,
+};
+
+export const getTelemetryIngestionBudgetSignalForTelemetryType: (
+  type: TelemetryType,
+) => TelemetryIngestionBudgetSignal | null = (
+  type: TelemetryType,
+): TelemetryIngestionBudgetSignal | null => {
+  return BUDGET_SIGNAL_BY_TELEMETRY_TYPE[type] ?? null;
+};
+
+export interface TelemetryIngestionBudgetEnqueueDecision {
+  // false: the budget is used up and the batch is dropped, not queued.
+  isAdmitted: boolean;
+  // What the job carries for the worker to settle, when anything.
+  jobCharge?: TelemetryIngestionBudgetJobCharge | undefined;
+}
+
+/*
+ * Count a batch against its project's ingestion budget as it is queued -
+ * once, whoever produced it:
+ *
+ *   - a request the ingest middleware or the gRPC server already admitted
+ *     carries its charge (null when nothing was counted), and is not
+ *     counted again;
+ *   - one they checked without sizing (Pyroscope) is counted now, at the
+ *     size it is stored with;
+ *   - one that passed no gate - MQTT, the cloud streams, OneUptime's own
+ *     collectors - is decided here. Its sender cannot be answered, so over a
+ *     used-up budget it is dropped (and counted as dropped), and no
+ *     per-second rate applies: a burst over one would only be lost.
+ *
+ * Exported for tests.
+ */
+export async function admitToTelemetryIngestionBudget(data: {
+  req: Partial<TelemetryRequest>;
+  signal: TelemetryIngestionBudgetSignal;
+  measure: () => TelemetryIngestBodySize;
+}): Promise<TelemetryIngestionBudgetEnqueueDecision> {
+  const charge: TelemetryIngestionBudgetCharge | null | undefined =
+    data.req.telemetryIngestionBudgetCharge;
+
+  // A gate already decided it and counted nothing: no budget was in force.
+  if (charge === null) {
+    return { isAdmitted: true };
+  }
+
+  const toDecision: (
+    counted: TelemetryIngestionBudgetCharge | null | undefined,
+  ) => TelemetryIngestionBudgetEnqueueDecision = (
+    counted: TelemetryIngestionBudgetCharge | null | undefined,
+  ): TelemetryIngestionBudgetEnqueueDecision => {
+    return {
+      isAdmitted: true,
+      jobCharge:
+        counted && !counted.isExact && !counted.isPending
+          ? TelemetryIngestionBudget.toJobCharge(counted)
+          : undefined,
+    };
+  };
+
+  if (charge && !charge.isPending) {
+    return toDecision(charge);
+  }
+
+  if (charge && charge.isPending) {
+    return toDecision(
+      await TelemetryIngestionBudget.chargePending({
+        charge: charge,
+        size: data.measure(),
+      }),
+    );
+  }
+
+  if (!data.req.projectId) {
+    return { isAdmitted: true };
+  }
+
+  const admission: TelemetryIngestionBudgetAdmission =
+    await TelemetryIngestionBudget.admit({
+      projectId: data.req.projectId,
+      signal: data.signal,
+      ingestionKeyPolicy: data.req.ingestionKeyPolicy ?? null,
+      mode: TelemetryIngestionBudgetAdmissionMode.Drop,
+      measure: data.measure,
+    });
+
+  if (admission.refusal) {
+    return { isAdmitted: false };
+  }
+
+  return toDecision(admission.charge);
+}
 
 /*
  * The complete set of request headers that worker-side telemetry code
@@ -544,6 +673,44 @@ export default class TelemetryQueueService {
         jobData.pinnedServiceName = pinnedServiceName;
       }
 
+      const budgetSignal: TelemetryIngestionBudgetSignal | null =
+        getTelemetryIngestionBudgetSignalForTelemetryType(type);
+
+      /*
+       * Count the batch against its ingestion budget before anything is
+       * stored for it, so a batch dropped over a used-up budget costs no
+       * Redis body and no job. Measured lazily: a project without a budget
+       * is never measured at all.
+       */
+      const admitToBudget: (
+        measure: () => TelemetryIngestBodySize,
+      ) => Promise<boolean> = async (
+        measure: () => TelemetryIngestBodySize,
+      ): Promise<boolean> => {
+        if (!budgetSignal) {
+          return true;
+        }
+
+        const decision: TelemetryIngestionBudgetEnqueueDecision =
+          await admitToTelemetryIngestionBudget({
+            req: req as Partial<TelemetryRequest>,
+            signal: budgetSignal,
+            measure: measure,
+          });
+
+        if (decision.jobCharge) {
+          jobData.ingestionBudgetCharge = decision.jobCharge;
+        }
+
+        if (!decision.isAdmitted) {
+          logger.debug(
+            `Dropped a ${type} batch for project ${req.projectId?.toString()}: its ingestion budget is used up.`,
+          );
+        }
+
+        return decision.isAdmitted;
+      };
+
       if (isRawBuffer) {
         /*
          * Deferred-decode path: the OTel middleware leaves `req.body`
@@ -588,6 +755,19 @@ export default class TelemetryQueueService {
           contentType.includes("application/x-protobuf") ||
           contentType.includes("application/protobuf");
 
+        const isBudgetAdmitted: boolean = await admitToBudget(
+          (): TelemetryIngestBodySize => {
+            return measureRawTelemetryIngestBody({
+              body: buffer,
+              contentEncoding: req.headers["content-encoding"],
+            });
+          },
+        );
+
+        if (!isBudgetAdmitted) {
+          return;
+        }
+
         /*
          * Store the raw bytes out-of-band via TelemetryBodyStore
          * (binary Redis SET). The worker reads them back through
@@ -622,12 +802,37 @@ export default class TelemetryQueueService {
         const buffer: Buffer = Buffer.from(
           JSON.stringify(req.body, binaryToBase64Replacer),
         );
+
+        // Counted at the size it is stored with, unless a gate counted it.
+        const isBudgetAdmitted: boolean = await admitToBudget(
+          (): TelemetryIngestBodySize => {
+            return { bytes: buffer.length, isExact: true };
+          },
+        );
+
+        if (!isBudgetAdmitted) {
+          return;
+        }
+
         jobData.bodyKey = await TelemetryBodyStore.storeBody(buffer);
         jobData.bodyFormat = OtelPayloadFormat.Json;
         jobData.bodyEncoding = "none";
         jobData.productType =
           req.productType ?? PRODUCT_TYPE_BY_TELEMETRY_TYPE[type];
       } else {
+        const isBudgetAdmitted: boolean = await admitToBudget(
+          (): TelemetryIngestBodySize => {
+            return measureParsedTelemetryIngestBody({
+              body: req.body,
+              rawBody: (req as { rawBody?: string | undefined }).rawBody,
+            });
+          },
+        );
+
+        if (!isBudgetAdmitted) {
+          return;
+        }
+
         // Syslog / FluentLogs — their worker cases read `requestBody` directly.
         jobData.requestBody = req.body;
       }

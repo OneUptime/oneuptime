@@ -66,7 +66,7 @@ Netværk-menuen holder det, du åbner hver dag, synligt: **Oversigt**, **Enheder
 
 | Sektion | Sider |
 | --- | --- |
-| **Topologi** | **Enhedstopologi**, **Endepunkter**, **Latensmatrix**, **Lokationslinks**, **Enhedslinks** |
+| **Topologi** | **Enhedstopologi**, **Opdagede enheder**, **Latensmatrix**, **Lokationslinks**, **Enhedslinks** |
 | **Regler** | **Regler for automatisk import**, **Regler for lokationstildeling**, **Ejerregler**, **Etiketregler**, **Linkregler** |
 | **Indstillinger** | **Advarselspolitikker**, **SNMP-loginoplysninger**, **Enhedsroller**, **Lokationstyper**, **Adressenavne**, **Skabeloner til OID-indsamling** |
 | **Avanceret** | **SNMP-walk**, **Arkiverede enheder** |
@@ -974,7 +974,20 @@ For at kortet fyldes ud:
 - Slå LLDP, eller CDP på Cisco-enheder, til på enhederne selv.
 - På et Meraki-netværk skal du forbinde dashboardet. En [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) tegner de kabler, Meraki kender, også dem til en MX, der kun svarer på ping.
 
-Klik på en ikke-administreret peer, og **Add to Monitoring** registrerer den som en sonde-pollet enhed. Den tager den sonde, som dens naboer er enige om, så den pinges fra sin første polling, og du kan tilføje loginoplysninger senere, hvis den viser sig at have SNMP.
+Klik på en ikke-administreret peer, og **Føj til overvågning** registrerer den som en sonde-pollet enhed. Den tager den sonde, som dens naboer er enige om, så den pinges fra sin første polling, og du kan tilføje loginoplysninger senere, hvis den viser sig at have SNMP.
+
+### Opdagede enheder
+
+**Netværk → Topologi → Opdagede enheder** viser hver enhed, dine switches, routere og netværkscontrollere har set, overvåget eller ej. Listen åbner på **Ikke overvåget**, de enheder, der endnu skal tages stilling til; **Overvåget**, **Skjult på kortet** og **Alle** viser resten. Kortets knap **Opdagede enheder** åbner den og siger, hvor mange enheder der ikke overvåges; på en lokations kort åbner den lokationens liste. En enheds **Navn** er den klassificering, du gav den med **Rediger klassificering**, ellers dens værtsnavn, IP-adresse eller MAC-adresse, aldrig dens producent. Ved siden af står **IP-adresse**, **MAC-adresse**, **Leverandør**, **Set på** (switchen, dens port og VLAN'et), **Sidst set** og **Tilstand**: **Overvåget**, med et link til enheden, **Kun opdaget**, **Skjult på kortet** eller **Ikke set for nylig**. Søgningen finder en enhed på dens navn, IP-adresse, leverandør eller MAC-adresse, med eller uden skilletegn. **Sidst set** siger, hvornår en enhed sidst var der.
+
+Vælg enheder, eller hver enhed, der matcher søgningen, og derefter:
+
+- **Føj til overvågning** importerer dem, som en scannings værter importeres (se [Import af det, en scanning fandt](#import-af-det-en-scanning-fandt)), med de samme valg: hvor ofte de tjekkes, og om hver får en monitor fra en monitorskabelon. En **Enhedsrolle** siger, hvad de er, og en **SNMP-legitimationsprofil** gennemgår dem; uden profil pinges en enhed og gennemgås med sin lokations standardprofil, når lokationen har en. Hver enhed kommer på den lokation, hvor den blev set, beholder den MAC-adresse, den blev set med, og polles af sonden for den switch, der så den. Enheder, der allerede overvåges, udelades, og det samme gør en enhed, der endnu ikke har en IP-adresse, indtil en routers ARP-tabel eller en netværkscontroller rapporterer en: Vinduet nævner begge, med grunden. Intet tilføjes to gange: En enhed, hvis MAC-adresse allerede tilhører en enhed i projektet, eller hvis IP-adresse allerede tilhører en enhed på dens lokation, viser **Allerede tilføjet**. Importen kører på serveren, så du kan lukke vinduet: Listen viser importen, indtil den er færdig.
+- **Skjul på kortet** fjerner dem fra topologikortet for alle i projektet, når du har bekræftet. Intet slettes, og en overvåget enhed skjules aldrig: Kortet tegner den som den enhed, den er, og dens overvågning ændres ikke. **Vis på kortet** sætter dem tilbage, og **Vis dem** ved kortets antal skjulte knuder viser alle skjulte knuder i projektet igen på én gang.
+
+En rækkes egne knapper gør det samme for én enhed. På kortet står en knudes IP-adresse under dens navn, og søgningen finder også en knude på dens IP-adresse eller MAC-adresse, uanset hvordan en switch skrev den. Klik på en opdaget enhed på kortet, og dens panel tilbyder **Føj til overvågning**, som tilføjer den på samme måde, og **Skjul på kortet**.
+
+En enhed, der ikke er set i 30 dage, fjernes fra listen og kortet, medmindre den overvåges, er klassificeret eller er tilføjet eller ændret af nogen. Linjen under listen siger, hvor længe enheder bliver; projektejere og projektadministratorer ændrer det under **Yderligere indstillinger → Usete enheder → Fjern efter**: 7, 14, 30, 60, 90, 180 eller 365 dage eller **Aldrig**. Listen kontrolleres hver time, og intet, som en switch eller controller har set, fjernes, mens den ikke rapporterer noget. En fjernet enhed, der ses igen, kommer tilbage som ny og vises på kortet, også selvom den var skjult før.
 
 ### Vælg det layout, kortet åbner med
 
@@ -1018,7 +1031,7 @@ For det skal kortet vide, hvilken lært MAC der er enhedens. Der er to måder, o
 
 Den switch, enheden hænger på, skal også have **Collect Connected Endpoints** slået til: det er derfra, porten kommer. Adresser matches inden for enhedens lokation, da hver filial har en `10.0.0.5`; en MAC matcher uanset lokationen.
 
-En [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) klarer alt dette, uden at noget skal slås til. Merakis klientliste viser, hvilken switch og port hver klient er på, så en enhed placeres, så snart den switch er en netværksenhed her, på samme lokation. Listen giver også enheden dens MAC-adresse, og det, Meraki kalder en klient, vises i kolonnen **Værtsnavn** under **Endepunkter**. Den læses hver anden time, så en ny enhed kan være så længe om at dukke op. Så længe Meraki rapporterer en klient, går dens port forud for en gennemgået forwarding-tabel, fordi Meraki kan skelne en adgangsport fra et uplink. En Wi-Fi-klient placeres kun på sit adgangspunkt, når den er en enhed her: Telefonerne på et gæstenetværk holdes uden for kortet.
+En [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) klarer alt dette, uden at noget skal slås til. Merakis klientliste viser, hvilken switch og port hver klient er på, så en enhed placeres, så snart den switch er en netværksenhed her, på samme lokation. Listen giver også enheden dens MAC-adresse, og det, Meraki kalder en klient, er enhedens navn under **Opdagede enheder** og på kortet, medmindre du giver den din egen klassificering. Den læses hver anden time, så en ny enhed kan være så længe om at dukke op. Så længe Meraki rapporterer en klient, går dens port forud for en gennemgået forwarding-tabel, fordi Meraki kan skelne en adgangsport fra et uplink. En Wi-Fi-klient placeres kun på sit adgangspunkt, når den er en enhed her: Telefonerne på et gæstenetværk holdes uden for kortet.
 
 Enhedens oversigt har et kort **Forbundet til**, der nævner switchen, porten og VLAN'et. En switch, router eller firewall, der rapporterer sine naboer over LLDP eller CDP, viser dem der i stedet: sin egen port, naboen (et link, når den er en enhed her) og porten i den anden ende, med **Åbn kortet** ved siden af. På kortet viser enhedens skuffe det samme under **Forbundet til**, og forbindelsens skuffe siger, at den blev lært fra switchens forwardingtabel. Parent-Child-visningen tegner enheden under dens switch. En forbindelse, du har tegnet i hånden under **Enhedslinks** for det samme par, smelter sammen med den lærte i stedet for at fordoble den: den lærte port erstatter en fejlskrevet, og en forælder, du har sat på den håndtegnede forbindelse, bevares.
 

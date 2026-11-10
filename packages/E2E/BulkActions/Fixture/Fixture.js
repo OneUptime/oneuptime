@@ -626,6 +626,15 @@ ModelAPI.getCount = async (options) => {
 };
 
 /*
+ * How many records a table holds, as the server counts them: a product
+ * list asks it once, to explain the product under its empty table while
+ * the project has none (Components/ProductOnboarding).
+ */
+ModelAPI.count = async (options) => {
+  return ModelAPI.getCount(options);
+};
+
+/*
  * One update by id, as the bulk actions send them: what was written is
  * recorded, and the record takes it, unless the server refuses it.
  */

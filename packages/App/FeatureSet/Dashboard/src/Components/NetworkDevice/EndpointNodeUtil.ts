@@ -189,8 +189,8 @@ export function learnedAttachmentForNode(
 export function endpointTooltipForNode(node: NetworkTopologyNode): string {
   const identity: string = [
     node.hostname !== node.name ? node.hostname : undefined,
-    node.macAddress,
-    node.ipAddress,
+    node.macAddress !== node.name ? node.macAddress : undefined,
+    node.ipAddress !== node.name ? node.ipAddress : undefined,
     node.vendor,
     node.classification,
     typeof node.vlanId === "number" ? `VLAN ${node.vlanId}` : undefined,

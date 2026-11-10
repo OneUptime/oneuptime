@@ -44,6 +44,16 @@ export const MIN_AGENT_COMMAND_TIMEOUT_SECONDS: number = 1;
 export const AGENT_COMMAND_KEEP_ALIVE_INTERVAL_MS: number = 2 * 60 * 1000;
 
 /*
+ * How long the output of a command that has exited may still arrive. The
+ * last of it - a test run's failures and its summary - can still be in the
+ * pipe when the command exits, and is read just after. A program the
+ * command left running (a server started in the background) holds the
+ * pipe open, so its output may never end: past this, the command is done
+ * with what has arrived.
+ */
+export const AGENT_COMMAND_OUTPUT_DRAIN_GRACE_MS: number = 2 * 1000;
+
+/*
  * The time limit the model asked for, in seconds: a whole number of them
  * between the least and the most a command may be given, or the default
  * when it asked for none (or for something that is not a number of

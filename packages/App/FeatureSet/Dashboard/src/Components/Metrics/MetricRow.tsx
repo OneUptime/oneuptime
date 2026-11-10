@@ -24,6 +24,7 @@ import {
   METRIC_ROW_VALUE_TEXT_CLASS_NAME,
 } from "./MetricRowLayout";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -144,10 +145,13 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
             </span>
           )}
         </div>
-        {/* Description */}
+        {/*
+         * Description, read the way it is written: a provider's English one
+         * on a Persian page kept its full stop at its start.
+         */}
         {metric.description && (
           <p className={METRIC_ROW_DESCRIPTION_CLASS_NAME}>
-            {metric.description}
+            <IsolatedText text={metric.description} />
           </p>
         )}
         {/* Services */}
@@ -191,22 +195,38 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
             className={METRIC_ROW_VALUE_TEXT_CLASS_NAME}
           >
             <div className="font-mono text-sm font-semibold tabular-nums text-gray-900">
-              {ValueFormatter.formatValue(
-                displayedValue,
-                rawUnit,
-                formatterOptions,
-              )}
-              {props.valueSuffix || ""}
+              {/*
+               * A number and its unit read left to right on every page: on a
+               * Persian one "65 Count" read "Count 65", while "4.95K Count"
+               * beside it kept its order. font-mono again on the isolate:
+               * the page's `* { font-family }` outranks inheriting it.
+               */}
+              <bdi
+                dir="ltr"
+                data-testid="metric-row-value-number"
+                className="font-mono"
+              >
+                {ValueFormatter.formatValue(
+                  displayedValue,
+                  rawUnit,
+                  formatterOptions,
+                )}
+                {props.valueSuffix || ""}
+              </bdi>
             </div>
+            {/*
+             * Gray 500, not 400: at 10px, gray 400 on white is 2.5:1, and
+             * the caption is what tells a total from an average.
+             */}
             {displayedTime && (
-              <div className="mt-0.5 font-mono text-[10px] text-gray-400 tabular-nums">
+              <div className="mt-0.5 font-mono text-[10px] text-gray-500 tabular-nums">
                 {displayedTime}
               </div>
             )}
             {!displayedTime && props.valueCaption && (
               <div
                 data-testid="metric-row-value-caption"
-                className="mt-0.5 text-[10px] text-gray-400"
+                className="mt-0.5 text-[10px] text-gray-500"
               >
                 {translator.translateText(props.valueCaption) ||
                   props.valueCaption}

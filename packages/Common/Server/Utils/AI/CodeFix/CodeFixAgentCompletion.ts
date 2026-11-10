@@ -4,6 +4,13 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
+import AIAgentRunLimitsHelper, {
+  AIAgentRunLimits,
+  AIRunStopReason,
+} from "../../../../Types/AI/AIAgentRunLimits";
+import CodeAgentRunLimitsUtil, {
+  CodeAgentRunLimits,
+} from "../../../../Types/AI/CodeAgentRunLimits";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import AIRunService from "../../../Services/AIRunService";
@@ -14,8 +21,10 @@ import AIService, {
   AILogResponse,
   AI_CODE_FIX_FEATURE,
 } from "../../../Services/AIService";
+import AIRunLimitsReader from "../AIRunLimitsReader";
 import LlmProviderChoice, { RuleLlmProviderChoice } from "../LlmProviderChoice";
 import { LlmProviderActivity } from "../../../../Types/AI/LlmProviderChoice";
+import AiTokenCount from "../../../../Types/AI/AiTokenCount";
 import {
   LLMMessage,
   LLMToolCall,
@@ -28,40 +37,55 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * 0, Docs/Internal/Roadmap/CodeFixSandboxDesign.md). The worker never holds a
  * provider secret: every completion of its tool loop is executed HERE via
  * AIService.executeWithLogging — logged to LlmLog, linked to the run, billed
- * when the provider is the costed global one, and inside the G4 daily
- * autonomous token budget.
+ * when the provider is the costed global one, and inside the project's
+ * daily limits.
  *
- * Loop budgets are enforced server-side per run, not trusted to the worker:
- * a run gets at most MAX_COMPLETION_CALLS_PER_RUN completion calls and
- * MAX_OUTPUT_TOKENS_PER_RUN output tokens. Usage is counted from the run's
- * own LlmLog rows (one row per executeWithLogging call, success or error),
- * so the count survives worker restarts and cannot be reset from outside
- * the server.
+ * A run has the limits every OneUptime AI run has (issue #6440,
+ * Types/AI/AIAgentRunLimits): no cap on its model calls or tokens unless the
+ * project set one (Project Settings → AI → AI Features → More settings →
+ * Limits per run), and a time limit - DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES
+ * unless the project set its own - from when the run was claimed. The
+ * server holds the ones it can count, not trusting the worker: model calls
+ * and tokens from the run's own LlmLog rows (one row per executeWithLogging
+ * call, success or error), so the count survives worker restarts and cannot
+ * be reset from outside the server, and the time from the run's start. It
+ * tells the worker the limits and what the run has used with every answer
+ * (`limits`, Types/AI/CodeAgentRunLimits), so the worker winds down before
+ * them and the run ends with an honest summary.
  */
 
-// Max LLM completion calls one code-fix run may make.
-export const MAX_COMPLETION_CALLS_PER_RUN: number = 40;
-
-// Max output (completion) tokens one code-fix run may generate in total.
-export const MAX_OUTPUT_TOKENS_PER_RUN: number = 100_000;
-
-// Per-call output cap — a single call can never exhaust the run budget.
+/*
+ * The most one call may write - what a single answer may run to, not a
+ * limit on the run.
+ */
 export const MAX_TOKENS_PER_COMPLETION_CALL: number = 16_384;
 
 /*
- * Max production telemetry tool calls one code-fix run may make (the code
- * agent's queries of its repository's traces, logs, metrics, exceptions,
- * incidents and deploys, executed by the server: CodeAgentTelemetry). Each
- * one also counts against the run's MAX_COMPLETION_CALLS_PER_RUN, so a run
- * that queries production has fewer LLM calls left, never more calls in
- * all.
+ * Once a run's time is up, a call is still served - without tools, so it
+ * can only be the run's answer - for this long: the worker winds down at the
+ * deadline, and needs that one call to write what it changed.
  */
-export const MAX_TELEMETRY_TOOL_CALLS_PER_RUN: number = 12;
+export const CODE_AGENT_ANSWER_GRACE_MS: number = 5 * 60 * 1000;
 
+/*
+ * What a Runner from before #6440 reads: the `budget` it always wound down
+ * on - 40 calls, 100,000 output tokens and 12 production telemetry calls,
+ * or the project's cap when that is lower. Such a Runner stops itself at 40
+ * calls whatever it is told, so these keep it working as it did; the server
+ * holds no run to them. Upgrading the Runner lifts them.
+ */
+export const LEGACY_MAX_COMPLETION_CALLS: number = 40;
+export const LEGACY_MAX_OUTPUT_TOKENS: number = 100_000;
+export const LEGACY_MAX_TELEMETRY_TOOL_CALLS: number = 12;
+
+/*
+ * The usage a Runner from before #6440 winds down on (`budget` in the
+ * answer). A current Runner reads `limits` instead.
+ */
 export interface AgentCompletionLoopBudget {
   /*
    * The run's calls so far: its LLM completions and its production
-   * telemetry tool calls, which share MAX_COMPLETION_CALLS_PER_RUN.
+   * telemetry tool calls, which such a Runner counts together.
    */
   completionCallsUsed: number;
   maxCompletionCalls: number;
@@ -72,10 +96,25 @@ export interface AgentCompletionLoopBudget {
   maxToolCalls: number;
 }
 
-export interface LoopBudgetDecision {
+// What a run has used so far, as the server counts it.
+export interface CodeAgentServerUsage {
+  // Model calls: the run's LlmLog rows.
+  modelCalls: number;
+  // Tokens, as OneUptime counts them (AiTokenCount).
+  tokens: number;
+}
+
+export interface CodeAgentLimitDecision {
   allowed: boolean;
-  // Set when not allowed — a clear, human-readable rejection.
+  // Set when not allowed: why, naming the setting (AIAgentRunLimits.getRefusal).
   reason: string | null;
+  /*
+   * The call is served as the run's answer: without tools, since the run's
+   * time is up.
+   */
+  withoutTools: boolean;
+  // The limit reached, when one is.
+  stopReason: AIRunStopReason | null;
 }
 
 export interface AgentCompletionRequest {
@@ -92,45 +131,108 @@ export interface AgentCompletionResult {
   content: string;
   toolCalls: Array<LLMToolCall>;
   stopReason: "stop" | "tool_use";
-  // Post-call usage so the worker can wind down before hitting the wall.
+  // The run's limits and its usage after this call, so the worker winds down before them.
+  limits: CodeAgentRunLimits;
+  // The same for a Runner from before #6440.
   budget: AgentCompletionLoopBudget;
 }
 
 export default class CodeFixAgentCompletion {
   /*
-   * The pure budget decision, separated from IO so it is directly testable
-   * (the FixRunBudget idiom).
+   * Whether a run may make one more model call - pure, separated from IO so
+   * it is directly testable (the FixRunBudget idiom). Only the caps the
+   * project set count, and the time limit: none is reached by a run that
+   * does as much as its work needs. In order:
+   *
+   *   - its model calls reach the project's cap: refused;
+   *   - its tokens reach the project's cap: refused;
+   *   - its time is up for longer than CODE_AGENT_ANSWER_GRACE_MS: refused;
+   *   - its time is up: served, without tools - the run's answer.
    */
-  public static evaluateLoopBudget(data: {
-    completionCalls: number;
-    outputTokens: number;
-    // The run's production telemetry tool calls, counted against the same calls.
-    toolCalls?: number | undefined;
-  }): LoopBudgetDecision {
-    const toolCalls: number = data.toolCalls || 0;
-
-    if (data.completionCalls + toolCalls >= MAX_COMPLETION_CALLS_PER_RUN) {
+  public static evaluateRunLimits(data: {
+    limits: AIAgentRunLimits;
+    usage: CodeAgentServerUsage;
+    nowMs: number;
+    // Null for a run whose start is not recorded: no time limit is held here.
+    deadlineAtMs: number | null;
+  }): CodeAgentLimitDecision {
+    const refuse: (reason: AIRunStopReason) => CodeAgentLimitDecision = (
+      reason: AIRunStopReason,
+    ): CodeAgentLimitDecision => {
       return {
         allowed: false,
-        reason:
-          toolCalls > 0
-            ? `This fix run has reached its call budget (${data.completionCalls} completion calls and ${toolCalls} production telemetry queries, of ${MAX_COMPLETION_CALLS_PER_RUN} calls). The run must finish with the work done so far.`
-            : `This fix run has reached its LLM call budget (${data.completionCalls} of ${MAX_COMPLETION_CALLS_PER_RUN} completion calls). The run must finish with the work done so far.`,
+        reason: AIAgentRunLimitsHelper.getRefusal(reason, data.limits),
+        withoutTools: false,
+        stopReason: reason,
       };
+    };
+
+    if (
+      data.limits.maxLlmCalls !== undefined &&
+      data.usage.modelCalls >= data.limits.maxLlmCalls
+    ) {
+      return refuse(AIRunStopReason.ModelCalls);
     }
 
-    if (data.outputTokens >= MAX_OUTPUT_TOKENS_PER_RUN) {
-      return {
-        allowed: false,
-        reason: `This fix run has reached its output-token budget (${data.outputTokens.toLocaleString()} of ${MAX_OUTPUT_TOKENS_PER_RUN.toLocaleString()} output tokens). The run must finish with the work done so far.`,
-      };
+    if (
+      data.limits.maxTokens !== undefined &&
+      data.usage.tokens >= data.limits.maxTokens
+    ) {
+      return refuse(AIRunStopReason.Tokens);
     }
 
-    return { allowed: true, reason: null };
+    if (data.deadlineAtMs !== null) {
+      if (data.nowMs >= data.deadlineAtMs + CODE_AGENT_ANSWER_GRACE_MS) {
+        return refuse(AIRunStopReason.TimeLimit);
+      }
+
+      if (data.nowMs >= data.deadlineAtMs) {
+        return {
+          allowed: true,
+          reason: null,
+          withoutTools: true,
+          stopReason: AIRunStopReason.TimeLimit,
+        };
+      }
+    }
+
+    return {
+      allowed: true,
+      reason: null,
+      withoutTools: false,
+      stopReason: null,
+    };
   }
 
   /*
-   * Validate the run, enforce the loop budgets, resolve the provider on the
+   * What a Runner from before #6440 is told (`budget`): the numbers it
+   * always wound down on, or the project's caps when they are lower.
+   */
+  public static buildLegacyBudget(data: {
+    limits: AIAgentRunLimits;
+    // LLM completions, this one included.
+    completionCalls: number;
+    outputTokens: number;
+    toolCalls: number;
+  }): AgentCompletionLoopBudget {
+    return {
+      completionCallsUsed: data.completionCalls + data.toolCalls,
+      maxCompletionCalls: Math.min(
+        LEGACY_MAX_COMPLETION_CALLS,
+        data.limits.maxLlmCalls ?? LEGACY_MAX_COMPLETION_CALLS,
+      ),
+      outputTokensUsed: data.outputTokens,
+      maxOutputTokens: LEGACY_MAX_OUTPUT_TOKENS,
+      toolCallsUsed: data.toolCalls,
+      maxToolCalls: Math.min(
+        LEGACY_MAX_TELEMETRY_TOOL_CALLS,
+        data.limits.maxToolCalls ?? LEGACY_MAX_TELEMETRY_TOOL_CALLS,
+      ),
+    };
+  }
+
+  /*
+   * Validate the run, hold it to its limits, resolve the provider on the
    * METERED path, and execute one completion. Throws BadDataException (4xx)
    * with a clear message on every guard failure. The API route only does
    * agent-key auth + body parsing around this.
@@ -159,6 +261,8 @@ export default class CodeFixAgentCompletion {
         triggeredByIncidentId: true,
         triggeredByAlertId: true,
         toolCallCount: true,
+        // When this attempt was claimed: its time limit runs from here.
+        startedAt: true,
         // The LLM provider the rule behind the run picked, if any.
         llmProviderId: true,
       },
@@ -192,21 +296,40 @@ export default class CodeFixAgentCompletion {
       );
     }
 
-    // Server-side loop budgets — counted from the run's own LlmLog rows.
-    const usage: { completionCalls: number; outputTokens: number } =
-      await LlmLogService.getRunCompletionUsage({ aiRunId: request.aiRunId });
+    // The run's limits, and what it has used - counted from its own LlmLog rows.
+    const limits: AIAgentRunLimits = await AIRunLimitsReader.read({
+      projectId: run.projectId,
+    });
+
+    const usage: {
+      completionCalls: number;
+      outputTokens: number;
+      totalTokens: number;
+    } = await LlmLogService.getRunCompletionUsage({ aiRunId: request.aiRunId });
 
     // The production telemetry tool calls the server ran for the run.
     const telemetryToolCalls: number = run.toolCallCount || 0;
 
-    const budgetDecision: LoopBudgetDecision = this.evaluateLoopBudget({
-      completionCalls: usage.completionCalls,
-      outputTokens: usage.outputTokens,
-      toolCalls: telemetryToolCalls,
+    const startedAtMs: number | null = run.startedAt
+      ? new Date(run.startedAt).getTime()
+      : null;
+    const deadlineAtMs: number | null =
+      startedAtMs !== null && Number.isFinite(startedAtMs)
+        ? AIAgentRunLimitsHelper.getDeadlineAtMs(limits, startedAtMs)
+        : null;
+
+    const decision: CodeAgentLimitDecision = this.evaluateRunLimits({
+      limits,
+      usage: {
+        modelCalls: usage.completionCalls,
+        tokens: usage.totalTokens || 0,
+      },
+      nowMs: OneUptimeDate.getCurrentDate().getTime(),
+      deadlineAtMs,
     });
 
-    if (!budgetDecision.allowed) {
-      throw new BadDataException(budgetDecision.reason as string);
+    if (!decision.allowed) {
+      throw new BadDataException(decision.reason as string);
     }
 
     /*
@@ -224,8 +347,9 @@ export default class CodeFixAgentCompletion {
      * no rule picked one, or its pick cannot be used - metered-path
      * provider resolution: project-owned first, else the global provider —
      * on cloud too, because this call is executed through
-     * AIService.executeWithLogging and therefore billed/logged/budgeted.
-     * See getLlmProviderForMeteredAgentPath for the full rationale.
+     * AIService.executeWithLogging and therefore billed, logged and held to
+     * the project's daily limits. See getLlmProviderForMeteredAgentPath for
+     * the full rationale.
      */
     const llmProviderChoice: RuleLlmProviderChoice =
       await LlmProviderChoice.decideIfPicked({
@@ -281,7 +405,8 @@ export default class CodeFixAgentCompletion {
       alertId: run.triggeredByAlertId,
       llmProviderId: llmProvider.id,
       messages: request.messages,
-      tools: request.tools,
+      // A run whose time is up gets its answer, not more tools.
+      tools: decision.withoutTools ? undefined : request.tools,
       maxTokens: maxTokens,
       /*
        * Prompts embed customer source code, whose ACLs are narrower than
@@ -315,7 +440,10 @@ export default class CodeFixAgentCompletion {
       },
     });
 
-    const toolCalls: Array<LLMToolCall> = response.toolCalls || [];
+    const toolCalls: Array<LLMToolCall> = decision.withoutTools
+      ? []
+      : response.toolCalls || [];
+    const callNumber: number = usage.completionCalls + 1;
 
     /*
      * Record this call on the run's transcript. This is the only place a
@@ -329,7 +457,9 @@ export default class CodeFixAgentCompletion {
       eventType: AIRunEventType.LlmCallCompleted,
       resultSummary: {
         durationInMs: response.llmLog.durationMs,
-        message: `LLM call ${usage.completionCalls + 1} of ${MAX_COMPLETION_CALLS_PER_RUN} — ${
+        message: `LLM call ${callNumber}${
+          limits.maxLlmCalls !== undefined ? ` of ${limits.maxLlmCalls}` : ""
+        } — ${
           toolCalls.length > 0
             ? `requested ${toolCalls.length} tool call(s)`
             : "returned a final answer"
@@ -352,19 +482,27 @@ export default class CodeFixAgentCompletion {
       },
     });
 
+    const callTokens: number = AiTokenCount.count(response.llmLog);
+
     return {
       content: response.content,
       toolCalls: toolCalls,
       stopReason: toolCalls.length > 0 ? "tool_use" : "stop",
-      budget: {
-        completionCallsUsed: usage.completionCalls + 1 + telemetryToolCalls,
-        maxCompletionCalls: MAX_COMPLETION_CALLS_PER_RUN,
-        outputTokensUsed:
-          usage.outputTokens + (response.llmLog.completionTokens || 0),
-        maxOutputTokens: MAX_OUTPUT_TOKENS_PER_RUN,
+      limits: CodeAgentRunLimitsUtil.build({
+        limits,
+        startedAt: run.startedAt,
+        modelCallsUsed: callNumber,
         toolCallsUsed: telemetryToolCalls,
-        maxToolCalls: MAX_TELEMETRY_TOOL_CALLS_PER_RUN,
-      },
+        tokensUsed: (usage.totalTokens || 0) + callTokens,
+        lastCallTokens: callTokens,
+      }),
+      budget: this.buildLegacyBudget({
+        limits,
+        completionCalls: callNumber,
+        outputTokens:
+          usage.outputTokens + (response.llmLog.completionTokens || 0),
+        toolCalls: telemetryToolCalls,
+      }),
     };
   }
 

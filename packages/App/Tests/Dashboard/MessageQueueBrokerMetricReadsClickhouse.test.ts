@@ -56,7 +56,10 @@ import {
  * checks what the card is told: each metric's last arrival to the minute
  * or the hour, nothing of another queue, project or week, the namespace's
  * other queues, its totals from a cloud connection, a namespace whose name
- * only contains the queue's, and a namespace that sends nothing.
+ * only contains the queue's, and a namespace that sends nothing - and
+ * what read the queue lately (#6373): an Azure cloud connection, which
+ * reads the namespace split per queue, a collector, or both, grouped by
+ * the connection's stored key on the real server.
  *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server:
  *
@@ -107,6 +110,7 @@ import {
   MESSAGE_QUEUE_BROKER_METRIC_RECENT_HOURS,
   MESSAGE_QUEUE_CLOUD_CONNECTION_ATTRIBUTE_KEY,
   MessageQueueBrokerMetricArrivals,
+  MessageQueueBrokerMetricSources,
   MessageQueueNamespaceSeries,
   fetchMessageQueueBrokerMetricArrivals,
   fetchMessageQueueNamespaceSeries,
@@ -116,7 +120,9 @@ import {
   getMessageQueueScopeKeys,
 } from "../../FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueTelemetryScope";
 import {
+  MessageQueueBrokerMetricsStatus,
   MessageQueueNamespaceFinding,
+  getMessageQueueBrokerMetricsStatus,
   getMessageQueueNamespaceFinding,
 } from "../../FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueBrokerMetricsStatus";
 
@@ -148,6 +154,10 @@ const OTHER_PROJECT: string = ObjectID.generate().toString();
 const OTHERS_ONLY_PROJECT: string = ObjectID.generate().toString();
 const TOTALS_ONLY_PROJECT: string = ObjectID.generate().toString();
 const NOTHING_PROJECT: string = ObjectID.generate().toString();
+// What read a queue lately: a connection that took over, both, a connection's queues only.
+const TAKEN_OVER_PROJECT: string = ObjectID.generate().toString();
+const BOTH_PROJECT: string = ObjectID.generate().toString();
+const CONNECTION_OTHERS_PROJECT: string = ObjectID.generate().toString();
 
 const SERVICE_BUS_CATALOG: ReadonlyArray<MessageQueueMetricDescriptor> =
   getMessageQueueMetricsForSystem("servicebus");
@@ -180,6 +190,23 @@ function serviceBus(
 function cloudConnectionTotal(namespace: string): FixtureAttributes {
   return {
     ...serviceBus(namespace, null),
+    "resource.service.name": "oneuptime-cloud-azure",
+    [`resource.${CLOUD_CONNECTION_ID_ATTRIBUTE}`]: CLOUD_CONNECTION_ID,
+  };
+}
+
+/*
+ * What an Azure cloud connection writes of one queue (#6373): the
+ * namespace's metric split by EntityName, filed as the azure_monitor
+ * receiver files it, with the connection's id a resource attribute.
+ */
+function cloudConnectionQueue(
+  namespace: string,
+  entity: string,
+): FixtureAttributes {
+  return {
+    ...serviceBus(namespace, null),
+    metadata_entityname: entity,
     "resource.service.name": "oneuptime-cloud-azure",
     [`resource.${CLOUD_CONNECTION_ID_ATTRIBUTE}`]: CLOUD_CONNECTION_ID,
   };
@@ -325,6 +352,61 @@ add(
   "azure_incomingmessages_total",
   9 * MINUTE_MS,
   serviceBus("shipping-ns", "-NamespaceOnlyMetric-"),
+);
+
+/*
+ * ---- what read servicebus|sales-ns|orders lately --------------------------
+ */
+// A collector read it until three days ago; the connection since.
+add(
+  TAKEN_OVER_PROJECT,
+  "azure_scheduledmessages_average",
+  3 * DAY_MS,
+  serviceBus("sales-ns", "orders"),
+);
+add(
+  TAKEN_OVER_PROJECT,
+  "azure_activemessages_average",
+  3 * DAY_MS,
+  serviceBus("sales-ns", "orders"),
+);
+add(
+  TAKEN_OVER_PROJECT,
+  "azure_activemessages_average",
+  8 * MINUTE_MS,
+  cloudConnectionQueue("sales-ns", "orders"),
+);
+add(
+  TAKEN_OVER_PROJECT,
+  "azure_incomingmessages_total",
+  8 * MINUTE_MS,
+  cloudConnectionQueue("sales-ns", "orders"),
+);
+// Both within the last hour: the receiver's Size, the connection's backlog.
+add(
+  BOTH_PROJECT,
+  "azure_size_average",
+  20 * MINUTE_MS,
+  serviceBus("sales-ns", "orders"),
+);
+add(
+  BOTH_PROJECT,
+  "azure_activemessages_average",
+  20 * MINUTE_MS,
+  cloudConnectionQueue("sales-ns", "orders"),
+);
+// The connection reads the namespace's other queues, never this one.
+add(
+  CONNECTION_OTHERS_PROJECT,
+  "azure_activemessages_average",
+  20 * MINUTE_MS,
+  cloudConnectionQueue("sales-ns", "invoices"),
+);
+add(
+  CONNECTION_OTHERS_PROJECT,
+  "azure_activemessages_average",
+  20 * MINUTE_MS,
+  cloudConnectionQueue("sales-ns", "payments"),
 );
 
 // Namespace quiet-ns sends nothing; another project's quiet-ns does.
@@ -690,6 +772,7 @@ integration("The Broker metrics card's reads against ClickHouse", () => {
       kind: "otherEntitiesOnly",
       namespace: "orders-ns",
       entityCount: 2,
+      fromCloudConnection: false,
     });
   });
 
@@ -746,6 +829,130 @@ integration("The Broker metrics card's reads against ClickHouse", () => {
       series: [],
       isComplete: true,
       finding: { kind: "nothingFromNamespace", namespace: "quiet-ns" },
+    });
+  });
+
+  async function arrivalsOf(
+    projectId: string,
+    queueIdentifier: string,
+  ): Promise<MessageQueueBrokerMetricArrivals> {
+    const { keys } = scopeOf({
+      projectId: projectId,
+      queueIdentifier: queueIdentifier,
+    });
+    const arrivals: MessageQueueBrokerMetricArrivals | null =
+      await fetchMessageQueueBrokerMetricArrivals({
+        projectId: projectId,
+        keys: keys,
+        metrics: SERVICE_BUS_CATALOG,
+        now: NOW,
+      });
+    expect(arrivals).not.toBeNull();
+    return arrivals!;
+  }
+
+  test("a collector's datapoints carry no connection's id: the collector read the queue", async () => {
+    const arrivals: MessageQueueBrokerMetricArrivals = await arrivalsOf(
+      ARRIVALS_PROJECT,
+      "servicebus|orders-ns|orders",
+    );
+    expect(arrivals.sources).toEqual({
+      connectionIds: [],
+      fromCollector: true,
+    });
+  });
+
+  test("a connection that took over from a collector: the connection alone, its per-queue series on the queue", async () => {
+    const arrivals: MessageQueueBrokerMetricArrivals = await arrivalsOf(
+      TAKEN_OVER_PROJECT,
+      "servicebus|sales-ns|orders",
+    );
+    // The connection's split series reached the queue under its key.
+    expect(arrivals.lastArrivedAt.get("azure_activemessages_average")).toEqual(
+      new Date(NOW.getTime() - 8 * MINUTE_MS),
+    );
+    expect(arrivals.lastArrivedAt.get("azure_incomingmessages_total")).toEqual(
+      new Date(NOW.getTime() - 8 * MINUTE_MS),
+    );
+    const sources: MessageQueueBrokerMetricSources = arrivals.sources;
+    expect(sources).toEqual({
+      connectionIds: [CLOUD_CONNECTION_ID],
+      fromCollector: false,
+    });
+
+    // The card: what the connection does not read is the collector's, not stopped.
+    const status: MessageQueueBrokerMetricsStatus =
+      getMessageQueueBrokerMetricsStatus({
+        messagingSystem: "servicebus",
+        catalog: SERVICE_BUS_CATALOG,
+        results: SERVICE_BUS_CATALOG.filter(
+          (descriptor: MessageQueueMetricDescriptor): boolean => {
+            return [
+              "azure_activemessages_average",
+              "azure_incomingmessages_total",
+            ].includes(descriptor.metricName);
+          },
+        ).map((descriptor: MessageQueueMetricDescriptor) => {
+          return {
+            descriptor: descriptor,
+            series: [{ x: new Date(NOW.getTime() - 8 * MINUTE_MS), y: 3 }],
+            value: 3,
+            observedSeries: [],
+          };
+        }),
+        arrivals: arrivals,
+        brokerMetricsLastSeenAt: null,
+        window: { start: RANGE_START, end: NOW },
+      });
+    const scheduled: { state: string; reason: string | null } | undefined =
+      status.metrics.find((metric: { id: string }): boolean => {
+        return metric.id.includes("azure_scheduledmessages_average");
+      });
+    expect([scheduled?.state, scheduled?.reason]).toEqual([
+      "collectorOnly",
+      "notReadByConnection",
+    ]);
+  });
+
+  test("a collector and a connection both lately: both are sources", async () => {
+    const arrivals: MessageQueueBrokerMetricArrivals = await arrivalsOf(
+      BOTH_PROJECT,
+      "servicebus|sales-ns|orders",
+    );
+    expect(arrivals.sources).toEqual({
+      connectionIds: [CLOUD_CONNECTION_ID],
+      fromCollector: true,
+    });
+  });
+
+  test("only a connection's other queues of the namespace arrive: its cap, or the queue is gone", async () => {
+    const read: {
+      series: Array<MessageQueueNamespaceSeries>;
+      isComplete: boolean;
+      finding: MessageQueueNamespaceFinding | null;
+    } = await namespaceReadOf({
+      projectId: CONNECTION_OTHERS_PROJECT,
+      queueIdentifier: "servicebus|sales-ns|orders",
+    });
+    expect(read.series).toEqual(
+      sortedSeries([
+        {
+          namespace: "sales-ns",
+          entity: "invoices",
+          fromCloudConnection: true,
+        },
+        {
+          namespace: "sales-ns",
+          entity: "payments",
+          fromCloudConnection: true,
+        },
+      ]),
+    );
+    expect(read.finding).toEqual({
+      kind: "otherEntitiesOnly",
+      namespace: "sales-ns",
+      entityCount: 2,
+      fromCloudConnection: true,
     });
   });
 

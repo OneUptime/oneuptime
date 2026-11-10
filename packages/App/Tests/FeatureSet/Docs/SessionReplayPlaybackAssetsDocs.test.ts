@@ -1601,7 +1601,7 @@ describe("the Persian mirrors carry the playback sections", (): void => {
     );
     // The status as the Persian Dashboard draws it.
     expect(troubleshootingHeadings[entry + 1]).toBe(
-      "## برنامه RUM «قطع‌شده» نشان می‌دهد",
+      "## برنامه RUM «بدون ترافیک اخیر» نشان می‌دهد",
     );
   });
 

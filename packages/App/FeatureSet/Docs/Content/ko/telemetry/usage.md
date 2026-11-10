@@ -27,6 +27,7 @@ flowchart TB
 - **트레이스에는 예외가, 프로파일에는 샘플이 포함됩니다.**
 - **OneUptime 자체의 텔레메트리는 집계되지 않습니다.** 모니터, 알림, 인시던트, SLO 측정값, 데이터 관측 가능성 측정값, 세션 리플레이 예산 메트릭은 OneUptime이 직접 기록합니다.
 - **OneUptime Cloud에서는 이 행들을 기준으로 텔레메트리가 청구됩니다.** 결제가 없는 설치에서는 사용량이 무료로 집계되며, 나중에 결제를 켜더라도 그 사용량에는 아무것도 청구되지 않습니다.
+- **예산은 사용량과 별도로 집계됩니다.** [수집 예산](/docs/telemetry/ingestion-budgets)은 텔레메트리를 도착할 때 압축 해제된 크기로 집계하므로, 그날의 텔레메트리를 그날 바로 멈출 수 있습니다. 예산이 설정되어 있는 동안에는 이 페이지 맨 위에 오늘의 예산이 표시됩니다.
 
 ## 시작하기 전에
 
@@ -134,4 +135,5 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
 - [데이터 보존](/docs/telemetry/data-retention): 텔레메트리를 필요한 만큼만 보존합니다.
 - [결제 및 사용량](/docs/configuration/billing): OneUptime Cloud의 텔레메트리 비용.
 - [수집 키](/docs/telemetry/ingestion-keys): 프로젝트로 텔레메트리를 보냅니다.
+- [수집 예산](/docs/telemetry/ingestion-budgets): 프로젝트가 하루에 보내는 신호별 양에 상한을 둡니다.
 :::

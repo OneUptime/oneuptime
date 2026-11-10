@@ -8,9 +8,13 @@ import {
   PageSearchCommandDescriptor,
   PageSearchIndexEntry,
 } from "../../FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPaletteHelpers";
-import { PROJECT_AI_DAILY_LIMITS_CARD_KEY } from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
+import {
+  PROJECT_AI_DAILY_LIMITS_CARD_KEY,
+  PROJECT_AI_RUN_LIMITS_CARD_KEY,
+} from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import { FIX_APPROVALS_CARD_KEY } from "../../FeatureSet/Dashboard/src/Components/AISettings/FixApprovalsCopy";
 import { RETENTION_BY_TELEMETRY_TYPE_PLACE } from "../../FeatureSet/Dashboard/src/Components/TelemetryResource/TelemetryRetentionFold";
+import { DISCOVERED_DEVICE_RETENTION_PLACE } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveredDevices/DiscoveredDeviceRetentionCopy";
 import {
   getPageSearchAreas,
   PageSearchArea,
@@ -503,6 +507,32 @@ describe("a folded setting opens its fold at its card", () => {
       pageKey: PageMap.SETTINGS_AI_FEATURES,
       place: PROJECT_AI_DAILY_LIMITS_CARD_KEY,
     },
+    // How far one AI run may go, beside the daily limits (#6440).
+    {
+      name: "Limits per run",
+      pageKey: PageMap.SETTINGS_AI_FEATURES,
+      place: PROJECT_AI_RUN_LIMITS_CARD_KEY,
+    },
+    {
+      name: "Model Calls per Run",
+      pageKey: PageMap.SETTINGS_AI_FEATURES,
+      place: PROJECT_AI_RUN_LIMITS_CARD_KEY,
+    },
+    {
+      name: "Tool Calls per Run",
+      pageKey: PageMap.SETTINGS_AI_FEATURES,
+      place: PROJECT_AI_RUN_LIMITS_CARD_KEY,
+    },
+    {
+      name: "Tokens per Run",
+      pageKey: PageMap.SETTINGS_AI_FEATURES,
+      place: PROJECT_AI_RUN_LIMITS_CARD_KEY,
+    },
+    {
+      name: "Time Limit per Run (Minutes)",
+      pageKey: PageMap.SETTINGS_AI_FEATURES,
+      place: PROJECT_AI_RUN_LIMITS_CARD_KEY,
+    },
     // Two people approve a riskier fix, beside the daily limits (#6148's follow-up).
     {
       name: "Fix approvals",
@@ -513,6 +543,12 @@ describe("a folded setting opens its fold at its card", () => {
       name: "Two people approve riskier fixes",
       pageKey: PageMap.SETTINGS_AI_FEATURES,
       place: FIX_APPROVALS_CARD_KEY,
+    },
+    // How long a device nothing sees stays, under Discovered Devices (#6389).
+    {
+      name: "Unseen Devices",
+      pageKey: PageMap.NETWORK_DEVICE_ENDPOINTS,
+      place: DISCOVERED_DEVICE_RETENTION_PLACE,
     },
   ];
 
@@ -553,7 +589,15 @@ describe("a folded setting opens its fold at its card", () => {
       PROJECT_AI_DAILY_LIMITS_CARD_KEY,
       RETENTION_BY_TELEMETRY_TYPE_PLACE,
       FIX_APPROVALS_CARD_KEY,
-    ]).toEqual(["DailyLimits", "retention-by-telemetry-type", "FixApprovals"]);
+      PROJECT_AI_RUN_LIMITS_CARD_KEY,
+      DISCOVERED_DEVICE_RETENTION_PLACE,
+    ]).toEqual([
+      "DailyLimits",
+      "retention-by-telemetry-type",
+      "FixApprovals",
+      "LimitsPerRun",
+      "unseen-devices",
+    ]);
   });
 
   test("a setting in sight opens its page as it is", () => {

@@ -20,6 +20,7 @@ import SettingsSso from "./Pages/Settings/SSO/Index";
 import SettingsGlobalSSOView from "./Pages/Settings/GlobalSSO/View";
 import SettingsGlobalOIDCView from "./Pages/Settings/GlobalOIDC/View";
 import SettingsDataRetention from "./Pages/Settings/DataRetention/Index";
+import SettingsIngestionBudgets from "./Pages/Settings/IngestionBudgets/Index";
 import SettingsCallSMS from "./Pages/Settings/CallSMS/Index";
 import SettingsWhatsApp from "./Pages/Settings/WhatsApp/Index";
 import SettingsTelegram from "./Pages/Settings/Telegram/Index";
@@ -67,6 +68,7 @@ import ProjectView from "./Pages/Projects/View/Index";
 import ProjectSubscription from "./Pages/Projects/View/Subscription";
 import ProjectSupport from "./Pages/Projects/View/Support";
 import ProjectTelemetryUsage from "./Pages/Projects/View/TelemetryUsage";
+import ProjectIngestionBudgets from "./Pages/Projects/View/IngestionBudgets";
 import TelemetryUsage from "./Pages/TelemetryUsage/Index";
 import ProjectDelete from "./Pages/Projects/View/Delete";
 import ProjectUsers from "./Pages/Projects/View/Users";
@@ -243,6 +245,11 @@ const App: () => JSX.Element = () => {
         />
 
         <PageRoute
+          path={RouteMap[PageMap.PROJECT_INGESTION_BUDGETS]?.toString() || ""}
+          element={<ProjectIngestionBudgets />}
+        />
+
+        <PageRoute
           path={RouteMap[PageMap.PROJECT_DELETE]?.toString() || ""}
           element={<ProjectDelete />}
         />
@@ -370,6 +377,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.SETTINGS_DATA_RETENTION]?.toString() || ""}
           element={<SettingsDataRetention />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.SETTINGS_INGESTION_BUDGETS]?.toString() || ""}
+          element={<SettingsIngestionBudgets />}
         />
 
         {/*

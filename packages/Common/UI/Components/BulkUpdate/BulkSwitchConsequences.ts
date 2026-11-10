@@ -30,12 +30,14 @@ export const BULK_SWITCH_CONSEQUENCES: Readonly<
 > = {
   /*
    * The other way round: Disable Monitoring on is a disabled monitor, so its
-   * "on" is what Disable does.
+   * "on" is what Disable does - and what turning monitoring off does to the
+   * incidents and alerts the monitor would have resolved itself
+   * (Server/Utils/Monitor/MonitorTurnedOff).
    */
   Monitor: {
     disableActiveMonitoring: {
       on: translationKey(
-        "A disabled monitor is not checked, and opens no incidents or alerts, until it is enabled again.",
+        "A disabled monitor is not checked, and opens no incidents or alerts, until it is enabled again. Its open incidents and alerts that are set to auto-resolve are resolved.",
       ),
     },
   },

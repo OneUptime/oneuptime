@@ -826,9 +826,9 @@ test.describe("Traces → AI → a finding", () => {
   }, testInfo: TestInfo) => {
     await page.goto(`${AI}/insights/${FAILING_INSIGHT}`);
 
-    await expect(
-      page.getByText("View the fix task and pull request"),
-    ).toBeVisible({ timeout: 60000 });
+    await expect(page.getByTestId("ai-insight-fix-view-task")).toBeVisible({
+      timeout: 60000,
+    });
     await expect(page.getByTestId("telemetry-ai-fix")).toHaveCount(0);
 
     // Open in Traces: only the operation's failed spans.
@@ -981,6 +981,316 @@ test.describe("Traces → AI → a finding", () => {
     expect(
       (await measureFixStrip(picker, button)).buttonHeight,
     ).toBeLessThanOrEqual(ONE_LINE_BUTTON_HEIGHT);
+  });
+});
+
+/*
+ * The finding's AI triage, when it did not finish, while it waits for its
+ * next attempt and while it works (issues #6437, #6438): Fixture/
+ * TriageRuns.js answers the slow finding's run as the server does.
+ */
+const TRIAGE_TIMEOUT_ERROR: string =
+  "OpenAICompatible API request failed: the LLM provider did not respond within 120 seconds.";
+const TRIAGE_REFUSAL: string =
+  "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.";
+
+function triageCard(page: Page): Locator {
+  return page
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { level: 2, name: "AI Triage" }) })
+    .last();
+}
+
+// The steps, under their own heading.
+function triageActivity(page: Page): Locator {
+  return page.getByRole("region", { name: "Activity", exact: true });
+}
+
+// The vertical middle of each box, to say whether they share a line.
+async function middles(locators: Array<Locator>): Promise<Array<number>> {
+  return (await boxesInOneFrame(locators)).map(
+    (box: { y: number; height: number }): number => {
+      return box.y + box.height / 2;
+    },
+  );
+}
+
+test.describe("Traces → AI → a finding's triage", () => {
+  test("one that did not finish says why, how many times it was tried and what to do: Try again, the page the fix is made on, and the error under Details", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await inBothThemes(
+      page,
+      `${AI}/insights/${SLOW_INSIGHT}?triage=failed`,
+      async (theme: "light" | "dark"): Promise<void> => {
+        const notice: Locator = page.getByTestId("ai-triage-failure");
+
+        await expect(notice).toBeVisible({ timeout: 60000 });
+        await expect(notice.getByText("Triage did not finish")).toBeVisible();
+        await expect(page.getByTestId("ai-triage-failure-cause")).toHaveText(
+          "The AI provider did not answer within 120 seconds.",
+        );
+        await expect(page.getByTestId("ai-triage-failure-tries")).toHaveText(
+          "OneUptime tried 3 times.",
+        );
+        await expect(page.getByTestId("ai-triage-failure-fix")).toContainText(
+          "raise the provider's Response Timeout",
+        );
+
+        const tryAgain: Locator = notice.getByRole("button", {
+          name: "Try again",
+        });
+        const settings: Locator = notice.getByRole("link", {
+          name: "Open LLM Providers",
+        });
+        const details: Locator = page.getByTestId(
+          "ai-triage-failure-details-toggle",
+        );
+
+        await expect(tryAgain).toBeEnabled();
+        await expect(settings).toHaveAttribute(
+          "href",
+          `/dashboard/${PROJECT_ID}/settings/llm-providers`,
+        );
+        // The provider's own words wait under Details.
+        await expect(details).toHaveAttribute("aria-expanded", "false");
+        await expect(
+          page.getByTestId("ai-triage-failure-details"),
+        ).toBeHidden();
+
+        // A laptop has room for the three on one line.
+        if (!isPhone(testInfo)) {
+          const [tryAgainMiddle, settingsMiddle, detailsMiddle] = await middles(
+            [tryAgain, settings, details],
+          );
+
+          expect(Math.abs(tryAgainMiddle! - settingsMiddle!)).toBeLessThan(4);
+          expect(Math.abs(tryAgainMiddle! - detailsMiddle!)).toBeLessThan(4);
+        }
+
+        /*
+         * The steps under a heading of their own, not a second message:
+         * nothing in the card says it is still triaging, and nothing on it
+         * moves.
+         */
+        const activity: Locator = triageActivity(page);
+
+        await expect(
+          activity.getByRole("heading", { level: 3, name: "Activity" }),
+        ).toBeVisible();
+        await expect(page.getByTestId("activity-run-summary")).toContainText(
+          "38 steps",
+        );
+        await expect(
+          activity.getByTestId("activity-attempt-toggle"),
+        ).toHaveText([
+          /^Attempt 1 of 3 · did not finish · 10 steps/,
+          /^Attempt 2 of 3 · did not finish · 10 steps/,
+        ]);
+        await expect(activity.getByTestId("activity-attempt-title")).toHaveText(
+          "Attempt 3 of 3",
+        );
+        await expect(activity.getByTestId("activity-attempt-end")).toHaveText(
+          "Stopped: The AI provider did not answer within 120 seconds.",
+        );
+        await expect(triageCard(page).getByText("Triaging…")).toHaveCount(0);
+        // Nothing on a triage that stopped moves: no spinner, no pulse.
+        await expect(
+          triageCard(page).locator("[class*='animate-']"),
+        ).toHaveCount(0);
+
+        if (isPhone(testInfo)) {
+          await expectNoSidewaysScroll(page);
+        }
+
+        await screenshot(page, testInfo, `triage-failed-${theme}`);
+
+        await details.click();
+        await expect(details).toHaveAttribute("aria-expanded", "true");
+        await expect(page.getByTestId("ai-triage-failure-details")).toHaveText(
+          TRIAGE_TIMEOUT_ERROR,
+        );
+      },
+    );
+  });
+
+  test("Try again asks for the finding's triage again, and the card says it waits for a worker", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${AI}/insights/${SLOW_INSIGHT}?triage=failed`);
+
+    const notice: Locator = page.getByTestId("ai-triage-failure");
+
+    await expect(notice).toBeVisible({ timeout: 60000 });
+    await notice.getByRole("button", { name: "Try again" }).click();
+
+    const status: Locator = page.getByTestId("ai-triage-status");
+
+    await expect(status).toHaveText("Queued — waiting for a worker…");
+    await expect(page.getByTestId("ai-triage-status-pulse")).toBeVisible();
+    await expect(notice).toHaveCount(0);
+    // A new run: nothing done yet, so no steps.
+    await expect(triageActivity(page)).toHaveCount(0);
+
+    const { apiRequests } = await fixture(page);
+
+    expect(
+      apiRequests
+        .filter((request: { url: string }): boolean => {
+          return request.url.includes("/ai-insight/triage-try-again");
+        })
+        .map((request: { method: string; body: Record<string, unknown> }) => {
+          return { method: request.method, body: request.body };
+        }),
+    ).toEqual([{ method: "POST", body: { insightId: SLOW_INSIGHT } }]);
+  });
+
+  test("a Try again the server refuses says why on a line under the whole row, and can be pressed again", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(
+      `${AI}/insights/${SLOW_INSIGHT}?triage=failed&fail=triage-try-again`,
+    );
+
+    const notice: Locator = page.getByTestId("ai-triage-failure");
+    const tryAgain: Locator = notice.getByRole("button", { name: "Try again" });
+
+    await expect(notice).toBeVisible({ timeout: 60000 });
+    await tryAgain.click();
+
+    const refusal: Locator = notice.getByRole("alert");
+
+    await expect(refusal).toHaveText(TRIAGE_REFUSAL);
+    await expect(tryAgain).toBeEnabled();
+
+    const settings: Locator = notice.getByRole("link", {
+      name: "Open LLM Providers",
+    });
+    const details: Locator = page.getByTestId(
+      "ai-triage-failure-details-toggle",
+    );
+    const [tryAgainBox, settingsBox, detailsBox, refusalBox] =
+      await boxesInOneFrame([tryAgain, settings, details, refusal]);
+
+    // Under every action, never between Try again and Details.
+    for (const action of [tryAgainBox!, settingsBox!, detailsBox!]) {
+      expect(refusalBox!.y).toBeGreaterThanOrEqual(
+        action.y + action.height - 1,
+      );
+    }
+
+    if (!isPhone(testInfo)) {
+      const [tryAgainMiddle, detailsMiddle] = await middles([
+        tryAgain,
+        details,
+      ]);
+
+      expect(Math.abs(tryAgainMiddle! - detailsMiddle!)).toBeLessThan(4);
+    }
+
+    await screenshot(page, testInfo, "triage-try-again-refused");
+  });
+
+  test("someone who may not start it again reads why and what to do, with no Try again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${AI}/insights/${SLOW_INSIGHT}?triage=failed-viewer`);
+
+    const notice: Locator = page.getByTestId("ai-triage-failure");
+
+    await expect(notice).toBeVisible({ timeout: 60000 });
+    await expect(page.getByTestId("ai-triage-failure-cause")).toHaveText(
+      "The AI provider did not answer within 120 seconds.",
+    );
+    await expect(notice.getByRole("button", { name: "Try again" })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByTestId("ai-triage-failure-details-toggle"),
+    ).toBeVisible();
+  });
+
+  test("one waiting for its next attempt says when, and nothing on it moves", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${AI}/insights/${SLOW_INSIGHT}?triage=retrying`);
+
+    const status: Locator = page.getByTestId("ai-triage-status");
+
+    await expect(status).toHaveText(
+      /^Trying again at \d{1,2}:\d{2}(\s?[AP]M)?$/,
+      {
+        timeout: 60000,
+      },
+    );
+    await expect(page.getByTestId("ai-triage-status-pulse")).toHaveCount(0);
+
+    const activity: Locator = triageActivity(page);
+
+    await expect(activity.getByTestId("activity-attempt-end")).toHaveText(
+      /^Did not finish: The AI provider did not answer within 120 seconds\. Trying again at \d{1,2}:\d{2}(\s?[AP]M)?\.$/,
+    );
+    await expect(activity.getByText("Thinking", { exact: true })).toHaveCount(
+      1,
+    );
+    // It waits for its time: nothing on the card moves until then.
+    await expect(triageCard(page).locator("[class*='animate-']")).toHaveCount(
+      0,
+    );
+    await expect(triageCard(page).getByText("Triaging…")).toHaveCount(0);
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+
+    await screenshot(page, testInfo, "triage-retrying");
+  });
+
+  test("one at work says so once, with its pulse, and its steps under Activity", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${AI}/insights/${SLOW_INSIGHT}?triage=running`);
+
+    const status: Locator = page.getByTestId("ai-triage-status");
+
+    await expect(status).toHaveText("Triaging…", { timeout: 60000 });
+    await expect(page.getByTestId("ai-triage-status-pulse")).toBeVisible();
+    // Said by the strip alone: the steps are not a second message saying it.
+    await expect(triageCard(page).getByText("Triaging…")).toHaveCount(1);
+
+    const activity: Locator = triageActivity(page);
+
+    await expect(
+      activity.getByRole("heading", { level: 3, name: "Activity" }),
+    ).toBeVisible();
+    await expect(page.getByTestId("activity-run-summary")).toContainText(
+      "running for 9 minutes",
+    );
+    await expect(activity.getByTestId("activity-attempt-toggle")).toHaveText(
+      /^Attempt 1 of 3 · did not finish · 10 steps/,
+    );
+    await expect(activity.getByTestId("activity-attempt-title")).toHaveText(
+      "Attempt 2 of 3",
+    );
+    await expect(activity.getByText("Thinking…")).toBeVisible();
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+
+    await screenshot(page, testInfo, "triage-running");
   });
 });
 

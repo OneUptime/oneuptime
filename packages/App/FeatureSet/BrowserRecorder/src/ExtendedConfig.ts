@@ -1,4 +1,8 @@
 import { LoaderConfig } from "./Config";
+import {
+  SessionReplayFrustrationSignalsConfig,
+  readSessionReplayFrustrationSignalsConfig,
+} from "Common/Types/Rum/SessionReplayFrustrationSignals";
 
 /*
  * Normalisation for the config fields the ARTIFACT acts on but the loader
@@ -53,6 +57,14 @@ export interface ExtendedReplayConfig {
 
   /* This boot matched a "record this user's next session" target. */
   isTargeted: boolean;
+
+  /*
+   * What counts as frustration in this application: the built-in rules and
+   * the application's own signals. The second exception to "absent means
+   * off": a server too old to send it gets the built-in rules, which is
+   * what every recorder before it detected, never no detection at all.
+   */
+  frustrationSignals: SessionReplayFrustrationSignalsConfig;
 }
 
 export function readExtendedConfig(
@@ -75,6 +87,9 @@ export function readExtendedConfig(
     slowRequestBudgetMs: readBudgetMs(source["slowRequestBudgetMs"]),
     captureWebVitals: source["captureWebVitals"] !== false,
     isTargeted: source["isTargeted"] === true,
+    frustrationSignals: readSessionReplayFrustrationSignalsConfig(
+      source["frustrationSignals"],
+    ),
   };
 }
 

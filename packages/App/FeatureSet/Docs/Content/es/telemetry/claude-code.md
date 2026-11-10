@@ -64,7 +64,7 @@ Las variables se leen cuando arranca Claude Code. Las métricas se envían cada 
 
 ### Comprueba que llegan datos
 
-Abre **Métricas** y busca `claude_code.token.usage`, después abre **Productos → IA / LLM** y ve a **Uso**: tu coste aparece con tu correo, con la marca **de las métricas de GenAI**.
+Abre **Métricas** y busca `claude_code.token.usage`, después abre **Productos → IA / LLM** y ve a **Uso**: tu coste aparece con tu correo, con la marca **De las métricas de uso**.
 :::
 
 Para enviar las métricas y los eventos a sitios distintos, define en su lugar `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` y `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, con la ruta completa (`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`).
@@ -139,8 +139,8 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 En **Productos → IA / LLM → Uso**, `claude_code.cost.usage` alimenta las tablas **Empleado**, **Equipo** y **Modelo**, y `claude_code.token.usage` los totales de tokens. Dos reglas deciden lo que ves:
 
-- **Las métricas suplen a los spans; nunca se suman a ellos.** Si el mismo proyecto recibe spans de GenAI con coste de tus propias aplicaciones, el gasto de Claude Code no aparece. Envía Claude Code a un proyecto propio. Consulta [Primero los spans, las métricas los suplen](/docs/telemetry/ai-llm-observability#primero-los-spans-las-métricas-los-suplen).
-- **Una fila de métricas solo lleva el coste.** Sus celdas de llamadas y tokens muestran `—`, y las tablas **Proveedor** y **Aplicación / Servicio** se quedan vacías: las métricas no nombran ningún proveedor ni pertenecen a ningún servicio de OneUptime.
+- **Claude Code se cuenta junto a tus aplicaciones.** Sus métricas llegan con su propio servicio, así que su gasto se suma a las llamadas de IA que tus aplicaciones envían al mismo proyecto. Si activas sus trazas (beta), actívalas para todos: desde entonces Claude Code se cuenta solo a partir de sus trazas, una vez. Consulta [Cada servicio se cuenta a partir de lo que envía](/docs/telemetry/ai-llm-observability#cada-servicio-se-cuenta-a-partir-de-lo-que-envía).
+- **Una fila de métricas no nombra ninguna llamada.** Dice **De las métricas de uso** bajo su nombre, su celda de llamadas muestra `—`, y la tabla **Proveedor** la pone en **Sin atribuir**: las métricas no nombran ningún proveedor.
 
 Todo lo demás, como la tasa de aceptación, las líneas de código, los commits y las pull requests por desarrollador, o el gasto por `query_source`, lo representas en un [panel](/docs/dashboards/index) a partir de las métricas de abajo, y alertas sobre ello con un [monitor de métricas](/docs/monitor/metrics-monitor).
 

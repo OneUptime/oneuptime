@@ -39,6 +39,7 @@ function readLocale(code: string): LocaleData {
 
 const EN: LocaleData = readLocale("en");
 const DE: LocaleData = readLocale("de");
+const AR: LocaleData = readLocale("ar");
 
 let activeLocale: LocaleData = EN;
 
@@ -57,7 +58,8 @@ jest.mock("react-i18next", () => {
           );
         },
         i18n: {
-          language: activeLocale === DE ? "de" : "en",
+          language:
+            activeLocale === DE ? "de" : activeLocale === AR ? "ar" : "en",
         },
       };
     },
@@ -96,6 +98,7 @@ import {
   toHeadline,
 } from "../../../UI/Components/Table/EmptyTableMessage";
 import IconProp from "../../../Types/Icon/IconProp";
+import { LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
 import { resolveFlex } from "../../ResponsiveFlexLayout";
 import {
   describeHeightFill,
@@ -845,5 +848,142 @@ describe("in German", () => {
         "home-attention-unavailable-state-description",
       ),
     ).toHaveTextContent(german(UNAVAILABLE_DESCRIPTION));
+  });
+});
+
+/*
+ * A title cut short in a line read right to left lost its start: on an
+ * Arabic page an English incident title ended in "...returning 503 errors"
+ * with its first words gone. A title that reads the other way from the page
+ * gets a line of its own direction, so it is cut at its own end, and stands
+ * where the page's lines start, under the rows' other titles
+ * (LineDirection). A title that reads as the page does is drawn as before.
+ */
+describe("a title that reads the other way from the page", () => {
+  const ARABIC_TITLE: string = "تعطل واجهة الدفع";
+
+  function titleOf(row: HTMLElement, title: string): HTMLElement {
+    return within(row).getByText(title);
+  }
+
+  test("an English title on an Arabic page reads left to right, standing where the page's lines start", () => {
+    activeLocale = AR;
+    renderCard(busy());
+
+    const title: HTMLElement = titleOf(
+      rowsOf(AttentionGroupKey.Incidents)[0]!,
+      "Checkout API returning 503 errors",
+    );
+
+    expect(title).toHaveAttribute("dir", "ltr");
+    expect(title).toHaveClass(
+      "block",
+      "truncate",
+      LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+    );
+  });
+
+  test("so does every kind's: an alert, a monitor, an SLO and maintenance", () => {
+    activeLocale = AR;
+    renderCard(busy());
+
+    const titles: Array<[AttentionGroupKey, string]> = [
+      [AttentionGroupKey.Alerts, "CPU above 90% on orders-db-1"],
+      [AttentionGroupKey.Monitors, "Checkout API"],
+      [AttentionGroupKey.Slos, "Checkout availability"],
+      [AttentionGroupKey.Maintenance, "Database failover drill"],
+    ];
+
+    for (const [groupKey, text] of titles) {
+      const title: HTMLElement = titleOf(rowsOf(groupKey)[0]!, text);
+
+      expect([text, title.getAttribute("dir")]).toEqual([text, "ltr"]);
+      expect([
+        text,
+        title.classList.contains(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME),
+      ]).toEqual([text, true]);
+    }
+  });
+
+  test("an Arabic title on an Arabic page is drawn as it always was", () => {
+    activeLocale = AR;
+    renderCard(
+      overview({
+        activeIncidents: list([
+          incident({ number: 9, title: ARABIC_TITLE, state: "Investigating" }),
+        ]),
+      }),
+    );
+
+    const title: HTMLElement = titleOf(
+      rowsOf(AttentionGroupKey.Incidents)[0]!,
+      ARABIC_TITLE,
+    );
+
+    expect(title).not.toHaveAttribute("dir");
+    expect(title).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    expect(title).toHaveClass("block", "truncate");
+  });
+
+  test("on an English page an English title is drawn as it always was, and an Arabic one reads right to left", () => {
+    renderCard(
+      overview({
+        activeIncidents: list([
+          incident({ number: 9, title: ARABIC_TITLE, state: "Investigating" }),
+          incident({
+            number: 8,
+            title: "Checkout API returning 503 errors",
+            state: "Investigating",
+          }),
+        ]),
+      }),
+    );
+
+    const [arabicRow, englishRow]: Array<HTMLElement> = rowsOf(
+      AttentionGroupKey.Incidents,
+    );
+    const arabic: HTMLElement = titleOf(arabicRow!, ARABIC_TITLE);
+    const english: HTMLElement = titleOf(
+      englishRow!,
+      "Checkout API returning 503 errors",
+    );
+
+    expect(arabic).toHaveAttribute("dir", "rtl");
+    expect(arabic).toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    expect(english).not.toHaveAttribute("dir");
+    expect(english).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+  });
+
+  test("a row without a title says so in the page's words, as a line of the page", () => {
+    activeLocale = AR;
+    renderCard(overview({ activeIncidents: list([incident({ number: 7 })]) }));
+
+    const untitled: unknown = AR["Untitled"];
+    expect(typeof untitled).toBe("string");
+    expect(untitled).not.toBe("Untitled");
+
+    const title: HTMLElement = titleOf(
+      rowsOf(AttentionGroupKey.Incidents)[0]!,
+      untitled as string,
+    );
+
+    expect(title).not.toHaveAttribute("dir");
+    expect(title).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+  });
+
+  test("a title of numbers alone reads as the page does", () => {
+    activeLocale = AR;
+    renderCard(
+      overview({
+        activeIncidents: list([incident({ number: 6, title: "503 / 504" })]),
+      }),
+    );
+
+    const title: HTMLElement = titleOf(
+      rowsOf(AttentionGroupKey.Incidents)[0]!,
+      "503 / 504",
+    );
+
+    expect(title).not.toHaveAttribute("dir");
   });
 });
