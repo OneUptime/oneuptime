@@ -319,6 +319,8 @@ AI-anrop lagras som trace-spans, så tracens **Scrub-regler** och **Drop-filter*
 
 Promptar och svar som skickas som logghändelser lagras som loggar, så det är loggarnas **Scrub-regler** och **Drop-filter** som gäller för dem, under **Loggar → Inställningar**: en regel som maskerar e-postadresser i traces maskerar dem inte i logghändelser. En konversation visar dem bara för den som också kan läsa appens loggar, och den kan också hitta dem på sidan **Loggar**.
 
+Oavsett vilket läser en regel varje text i en lista eller ett strukturerat värde, till exempel meddelanden som en instrumentering skickar som en lista i stället för som JSON-text, och behåller värdets form: en e-postadress i en prompt maskeras var den än står. Se [Rensa känsliga data](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data).
+
 Konversationer läses med samma behörighet som traces: den som kan läsa projektets traces kan läsa dess konversationer, och ingen annan. Konversationerna från ett av företagets AI-verktyg är undantaget: bara projektets ägare och administratörer kan läsa dem, om inte anslutningen säger något annat ([Företagets AI-verktyg](/docs/telemetry/ai-company-tools#integritet)).
 
 ## Attribut som OneUptime läser

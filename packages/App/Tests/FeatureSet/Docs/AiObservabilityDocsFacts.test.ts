@@ -123,6 +123,13 @@ import {
 import LogEventName, {
   LogEventNameAttributeKey,
 } from "Common/Types/Log/LogEventName";
+import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
+import { JSONObject } from "Common/Types/JSON";
+import { ScrubRegExp } from "Common/Types/Telemetry/ScrubRule";
+import TraceScrubAction from "Common/Types/Trace/TraceScrubAction";
+import TraceScrubField from "Common/Types/Trace/TraceScrubField";
+import TraceScrubPatternType from "Common/Types/Trace/TraceScrubPatternType";
+import TraceScrubRuleService from "../../../FeatureSet/Telemetry/Services/TraceScrubRuleService";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1418,6 +1425,58 @@ describe("the AI / LLM Observability page", () => {
 
     expect(page).toContain(
       "so it is the logs' **Scrub Rules** and **Drop Filters** that apply to them, under **Logs → Settings**",
+    );
+  });
+
+  it("masks an address in messages a span carries as a list, and keeps the list's shape", () => {
+    type GetRegex = (patternType: string) => ScrubRegExp | null;
+    const rule: TraceScrubRule = new TraceScrubRule();
+    rule.patternType = TraceScrubPatternType.Email;
+    rule.scrubAction = TraceScrubAction.Mask;
+    rule.fieldsToScrub = TraceScrubField.All;
+    const regex: ScrubRegExp | null = (
+      TraceScrubRuleService as unknown as { getRegexForPattern: GetRegex }
+    ).getRegexForPattern(TraceScrubPatternType.Email);
+    /*
+     * gen_ai.input.messages as a list of key-value lists, read as ingest
+     * reads one: each message a map of keys under the attribute's own.
+     */
+    const message: (role: string, content: string) => JSONObject = (
+      role: string,
+      content: string,
+    ): JSONObject => {
+      return {
+        "gen_ai.input.messages.role": role,
+        "gen_ai.input.messages.content": content,
+      };
+    };
+
+    expect(LlmPromptJsonAttributeKeys).toContain("gen_ai.input.messages");
+    expect(
+      TraceScrubRuleService.scrubSpan(
+        {
+          name: "chat gpt-4o",
+          attributes: {
+            "gen_ai.input.messages": [
+              message("system", "Answer briefly."),
+              message("user", "Write to jane@example.com"),
+            ],
+            "gen_ai.usage.input_tokens": 12,
+          },
+          events: [],
+          links: [],
+        },
+        [{ rule, regex }] as never,
+      )["attributes"],
+    ).toEqual({
+      "gen_ai.input.messages": [
+        message("system", "Answer briefly."),
+        message("user", "Write to j***@***.com"),
+      ],
+      "gen_ai.usage.input_tokens": 12,
+    });
+    expect(page).toContain(
+      "Either way, a rule reads every text inside a list or a structured value, such as messages an instrumentation sends as a list rather than as JSON text, and keeps the value's shape: an email address in a prompt is masked wherever it sits.",
     );
   });
 
