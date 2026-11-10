@@ -96,7 +96,8 @@
  *              Response content card of a Website or API monitor (Request
  *              content for an Incoming Request monitor), whose switch saves
  *              Monitor.keepResponseContent. ?content=off: the monitor keeps
- *              no response content.
+ *              no response content - an Incoming Request monitor's overview
+ *              then gets its latest request with no headers or body.
  *   ?criteria= logs | several: a Logs monitor, "Checkout logs", whose
  *              Criteria page (/monitors/<TELEMETRY_MONITOR_ID>/criteria) is
  *              the production one rather than the stub every other monitor
@@ -1800,15 +1801,29 @@ function defineMonitor(typeKey) {
   };
 
   if (typeKey === "incoming-request" && !isAwaiting) {
+    /*
+     * The latest request as the server hands it to people (#6402): cut as
+     * the monitor's logs are - its token masked - and with no headers or
+     * body at all when the monitor keeps no request content
+     * (?content=off).
+     */
+    const keepsRequestContent =
+      typeKey === subjectType ? keepsResponseContent : true;
+
     record.incomingMonitorRequest = {
       projectId: PROJECT_ID,
       monitorId,
       requestMethod: HTTPMethod.POST,
-      requestHeaders: {
-        "content-type": "application/json",
-        "user-agent": "billing-export/2.3",
-      },
-      requestBody: { job: "nightly-billing-export", rows: 18234 },
+      ...(keepsRequestContent
+        ? {
+            requestHeaders: {
+              "content-type": "application/json",
+              "user-agent": "billing-export/2.3",
+              authorization: "[REDACTED]",
+            },
+            requestBody: { job: "nightly-billing-export", rows: 18234 },
+          }
+        : { isResponseContentOmitted: true }),
       incomingRequestReceivedAt: ago(7 * MINUTE).toISOString(),
       checkedAt: ago(40 * SECOND).toISOString(),
     };

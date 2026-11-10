@@ -61,6 +61,9 @@ import MonitorAutoResolveTemplates, {
 } from "../../../Utils/Monitor/MonitorAutoResolveTemplates";
 import MonitorSummaryCapture from "./MonitorSummaryCapture";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import LatestIncomingRequest, {
+  LatestIncomingRequestColumns,
+} from "./LatestIncomingRequest";
 import MonitorEvaluationDetailsCapture, {
   GetEvaluationDetails,
 } from "./MonitorEvaluationDetailsCapture";
@@ -731,20 +734,28 @@ export default class MonitorResourceUtil {
            * the pre-SELECT of the large incomingMonitorRequest jsonb row. See
            * ServiceService.updateLastSeen.
            */
+          /*
+           * Both copies of the latest request, in this one statement
+           * (LatestIncomingRequest): as it came, for the heartbeat job, which
+           * judges it again - a filter on its body needs the body the sender
+           * sent - and which no one else reads; and the copy people read,
+           * cut as the monitor's logs are, by its switch.
+           */
+          const latestRequest: LatestIncomingRequestColumns =
+            LatestIncomingRequest.toColumns({
+              request: incomingMonitorRequest,
+              keepResponseContent:
+                MonitorRecordEvidence.keepsResponseContent(monitor),
+            });
+
           await MonitorService.updateColumnsByIdWithoutHooks({
             id: monitor.id!,
             data: {
               incomingRequestMonitorHeartbeatCheckedAt:
                 OneUptimeDate.getCurrentDate(),
-              /*
-               * Kept as it came, unlike the monitor's logs: the heartbeat
-               * job judges this request again (CheckHeartbeat), and a
-               * filter on its body needs the body the sender sent. People
-               * still read it as it came: to be redacted for them, as a
-               * probe's latest check is.
-               * https://github.com/OneUptime/oneuptime/issues/6402
-               */
-              incomingMonitorRequest: toStorableJson(incomingMonitorRequest),
+              incomingMonitorRequest: latestRequest.incomingMonitorRequest,
+              incomingMonitorRequestAsReceived:
+                latestRequest.incomingMonitorRequestAsReceived,
             } as any,
           });
 

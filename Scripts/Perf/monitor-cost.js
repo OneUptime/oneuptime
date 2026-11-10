@@ -110,6 +110,8 @@ async function main() {
     require("/usr/src/Common/Server/Services/MonitorProbeService").default;
   const MonitorResourceUtil =
     require("/usr/src/Common/Server/Utils/Monitor/MonitorResource").default;
+  const LatestIncomingRequest =
+    require("/usr/src/Common/Server/Utils/Monitor/LatestIncomingRequest").default;
   const MonitorType =
     require("/usr/src/Common/Types/Monitor/MonitorType").default;
   const ObjectID = require("/usr/src/Common/Types/ObjectID").default;
@@ -125,7 +127,9 @@ async function main() {
       _id: true,
       projectId: true,
       monitorSteps: true,
+      // The heartbeat judges the request as it came (LatestIncomingRequest).
       incomingMonitorRequest: true,
+      incomingMonitorRequestAsReceived: true,
       createdAt: true,
     },
     limit: Number(process.env.MONITORS || "30"),
@@ -141,7 +145,7 @@ async function main() {
 
   async function oneCall(monitor) {
     if (kind === "heartbeat") {
-      const request = monitor.incomingMonitorRequest || {};
+      const request = LatestIncomingRequest.getAsReceived(monitor) || {};
       await MonitorResourceUtil.monitorResource({
         ...request,
         incomingRequestReceivedAt:

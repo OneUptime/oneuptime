@@ -121,6 +121,7 @@ describe("ModelImportExport", () => {
         ModelImportExport.getImportExportableColumnNames(Monitor);
 
       expect(columns).not.toContain("incomingMonitorRequest");
+      expect(columns).not.toContain("incomingMonitorRequestAsReceived");
       expect(columns).not.toContain("serverMonitorResponse");
       expect(columns).not.toContain("incomingRequestMonitorHeartbeatCheckedAt");
       expect(columns).not.toContain("serverMonitorRequestReceivedAt");
