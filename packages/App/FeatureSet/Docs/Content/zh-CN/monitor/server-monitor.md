@@ -16,7 +16,7 @@ Server / VM 监视器通过 OneUptime 基础设施代理（`oneuptime-infrastruc
 
 代理作为系统服务运行。它每 30 秒收集一份报告，用监视器的密钥签名后发送到你的 OneUptime URL。OneUptime 将这些数值存为监视器的指标，并用监视器的条件检查报告。
 
-静默会单独检查。OneUptime 每分钟会重新评估所有 3 分钟或更长时间没有报告的 Server / VM 监视器的 **Is Online** 条件；静默时间超过其条件允许范围（默认 3 分钟）的服务器会被视为离线。没有 **Is Online** 条件的监视器不会仅仅因为代理静默而被标记为离线。只有 OneUptime 正在接收数据的时间才计入这段静默：OneUptime 自身重启、升级或追赶积压的时间不计入，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
+静默会单独检查。OneUptime 每分钟会重新评估所有 3 分钟或更长时间没有报告的 Server / VM 监视器的 **是否在线** 条件；静默时间超过其条件允许范围（默认 3 分钟）的服务器会被视为离线。没有 **是否在线** 条件的监视器不会仅仅因为代理静默而被标记为离线。只有 OneUptime 正在接收数据的时间才计入这段静默：OneUptime 自身重启、升级或追赶积压的时间不计入，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ```mermaid title="Server / VM 监视器如何获取数据"
 flowchart TB
@@ -224,17 +224,17 @@ oneuptime-infrastructure-agent start
 | Load Average (1 minute) | 最近 1 分钟的平均负载 | 与 CPU 相同 |
 | Load Average (5 minute) | 最近 5 分钟的平均负载 | 与 CPU 相同 |
 | Load Average (15 minute) | 最近 15 分钟的平均负载 | 与 CPU 相同 |
-| Server Process Name | 是否有使用此名称的进程在运行（不区分大小写） | Is Executing, Is Not Executing |
-| Server Process Command | 是否有命令行与此完全一致的进程在运行（不区分大小写） | Is Executing, Is Not Executing |
-| Server Process PID | 是否有此 PID 的进程在运行 | Is Executing, Is Not Executing |
+| Server Process Name | 是否有使用此名称的进程在运行（不区分大小写） | 正在执行, 未在执行 |
+| Server Process Command | 是否有命令行与此完全一致的进程在运行（不区分大小写） | 正在执行, 未在执行 |
+| Server Process PID | 是否有此 PID 的进程在运行 | 正在执行, 未在执行 |
 
 **磁盘路径** 接受挂载点或设备，例如 `/`、`/mnt/data`、`C:\` 或 `/dev/sda1`；留空时为 `/`。输入 `*` 可检查代理报告的所有磁盘：每个超过阈值的磁盘都会获得单独的警报，因此第二个磁盘写满时不会被第一个磁盘未关闭的警报掩盖。大小写以及末尾的 `/` 或 `\` 都不影响匹配，设备代表从该设备挂载的磁盘。不指向代理所报告的任何磁盘的路径不会匹配。代理无法读取服务器的进程时，报告中没有进程列表，任何进程筛选条件都不会匹配，无论它检查进程正在运行还是未在运行。
 
 ### 按时间段评估
 
-**在一段时间内评估此条件** 是条件表单上的一个独立复选框，而不是过滤条件。它适用于 **Is Online** 和所有数值型过滤器类型。启用后，比较的不再是最近一次检查的值，而是一个聚合值：在 **评估** 中选择（平均值、总和、Maximum Value、Minimum Value、All Values、Any Value），时间窗口由 **在过去（分钟）** 设置。对于 **Is Online** 过滤器，这个窗口就是服务器被视为离线之前代理可以保持静默的时长。
+**在一段时间内评估此条件** 是条件表单上的一个独立复选框，而不是过滤条件。它适用于 **是否在线** 和所有数值型过滤器类型。启用后，比较的不再是最近一次检查的值，而是一个聚合值：在 **评估** 中选择（平均值、总和、Maximum Value、Minimum Value、All Values、Any Value），时间窗口由 **在过去（分钟）** 设置。对于 **是否在线** 过滤器，这个窗口就是服务器被视为离线之前代理可以保持静默的时长。
 
-**All Values** 只有在窗口确实被数据覆盖时才会匹配。刚创建的监视器，或检查不再被记录的监视器，没有足够的历史来判断最近 N 分钟的情况，因此条件会等待，而不是根据仅有的一个读数匹配。**Any Value** 用于“只要有一次检查越过阈值就立即通知我”，它仍然会立即触发。
+**所有值** 只有在窗口确实被数据覆盖时才会匹配。刚创建的监视器，或检查不再被记录的监视器，没有足够的历史来判断最近 N 分钟的情况，因此条件会等待，而不是根据仅有的一个读数匹配。**任一值** 用于“只要有一次检查越过阈值就立即通知我”，它仍然会立即触发。
 
 **如果无数据** 控制窗口无法支撑条件时会发生什么：
 
@@ -245,7 +245,7 @@ oneuptime-infrastructure-agent start
 | **Treat As Zero** | 把窗口当作单个零来比较。 | 计数器，“没有事件”确实意味着零。 |
 
 > [!TIP]
-> CPU 和负载经常出现短暂的峰值。请使用 **平均值** 或 **All Values** 在几分钟内评估它们，而不是根据单份报告发出警报。
+> CPU 和负载经常出现短暂的峰值。请使用 **平均值** 或 **所有值** 在几分钟内评估它们，而不是根据单份报告发出警报。
 
 ### 条件示例
 
@@ -256,7 +256,7 @@ oneuptime-infrastructure-agent start
 | 根磁盘使用率超过 85% 时发出警报 | Disk Usage (in %)，**磁盘路径** `/` | 大于 | `85` |
 | 任何磁盘使用率超过 85% 时发出警报，每个磁盘一个警报 | Disk Usage (in %)，**磁盘路径** `*` | 大于 | `85` |
 | 内存使用率超过 80% 时发出警报 | Memory Usage (in %) | 大于 | `80` |
-| nginx 停止运行时发出警报 | Server Process Name | Is Not Executing | `nginx` |
+| nginx 停止运行时发出警报 | Server Process Name | 未在执行 | `nginx` |
 
 ## 故障排除
 
@@ -280,7 +280,7 @@ curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install
 :::
 
 :::details 服务器宕机时监视器始终不进入离线状态
-只有 **Is Online** 条件会把静默的服务器标记为离线。添加一个 **过滤条件** 为 **否** 的条件，并设置它要切换到的监视器状态。
+只有 **是否在线** 条件会把静默的服务器标记为离线。添加一个 **过滤条件** 为 **否** 的条件，并设置它要切换到的监视器状态。
 :::
 
 :::details 报告无法通过代理服务器

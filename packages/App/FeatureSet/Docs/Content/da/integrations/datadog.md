@@ -91,7 +91,7 @@ En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) giver dig 
 :::steps
 ### Opret monitoren
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Vælg **Incoming Request** under **Monitortype**, kald den `Datadog`, og klik på **Næste**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Vælg **Indgående anmodning** under **Monitortype**, kald den `Datadog`, og klik på **Næste**.
 
 ### Erklær en hændelse for hver advarsel
 

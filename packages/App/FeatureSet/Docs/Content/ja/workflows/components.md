@@ -195,7 +195,7 @@ Webhook の URL は [シークレットのグローバル変数](/docs/workflows
 | **From Email**                          | 送信者。例: `Alerts <alerts@company.com>`。                                                           |
 | **To Email**                            | 受信者のアドレス。複数のアドレスはカンマまたはセミコロンで区切ります。                                |
 | **Subject**                             | 件名。                                                                                                |
-| **Email Body**                          | HTML として送られるメッセージ。                                                                       |
+| **メール本文**                          | HTML として送られるメッセージ。                                                                       |
 | **SMTP HOST** と **SMTP Port**          | 接続するメールサーバー。                                                                              |
 | **SMTP Username** と **SMTP Password**  | 任意。両方入力するか、どちらも入力しないでください。                                                  |
 | **Use Implicit TLS**                    | 暗黙の TLS（通常はポート 465）ではオンにします。STARTTLS（通常はポート 587）ではオフのままにします。    |

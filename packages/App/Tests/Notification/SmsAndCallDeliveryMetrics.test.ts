@@ -29,6 +29,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import Twilio from "twilio";
 
 /*
@@ -182,7 +183,7 @@ function callRequest(): CallRequest {
 
 let createMessage: jest.Mock;
 let createCall: jest.Mock;
-let post: jest.SpiedFunction<typeof API.post>;
+let post: SpyInstance<typeof API.post>;
 let project: Project | null;
 
 function onlySend(): Record<string, string> {
@@ -239,9 +240,12 @@ beforeEach(() => {
     };
   });
 
+  // API.post is generic, so its spy is typed by a cast.
   post = jest
     .spyOn(API, "post")
-    .mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}) as never);
+    .mockResolvedValue(
+      new HTTPResponse<JSONObject>(200, {}, {}) as never,
+    ) as unknown as SpyInstance<typeof API.post>;
   jest
     .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
     .mockResolvedValue(undefined as never);

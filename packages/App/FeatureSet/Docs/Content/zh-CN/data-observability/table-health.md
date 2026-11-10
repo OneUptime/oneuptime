@@ -57,7 +57,7 @@
 | `oneuptime.data.table.schema_changes` | 自上一次采集以来发生变化的列数 |
 | `oneuptime.data.table.breaking_schema_changes` | 自上一次采集以来被删除、重命名或更改类型的列数 |
 
-每条指标记录都带有 `oneuptime.data.store.id`、`oneuptime.data.store.name`、`oneuptime.data.table.id`、`oneuptime.data.table.schema`、`oneuptime.data.table.name` 和 `oneuptime.data.table.key`（`schema.table`）。按 `oneuptime.data.table.key` 分组的 [指标监视器](/docs/monitor/metrics-monitor) 会对每个表警报一次，它的 **Anomalously High** 和 **Anomalously Low** 筛选条件会把每个表与它自己在每周该时段的通常值进行比较。这些指标是 OneUptime 自身的运维数据，不按遥测计费。
+每条指标记录都带有 `oneuptime.data.store.id`、`oneuptime.data.store.name`、`oneuptime.data.table.id`、`oneuptime.data.table.schema`、`oneuptime.data.table.name` 和 `oneuptime.data.table.key`（`schema.table`）。按 `oneuptime.data.table.key` 分组的 [指标监视器](/docs/monitor/metrics-monitor) 会对每个表警报一次，它的 **异常偏高** 和 **异常偏低** 筛选条件会把每个表与它自己在每周该时段的通常值进行比较。这些指标是 OneUptime 自身的运维数据，不按遥测计费。
 
 ## 未使用的表
 

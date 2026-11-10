@@ -80,7 +80,7 @@ Behold eller skift **Sonder** og **Overvågningsinterval** (det starter på **Hv
 | **Zone (domænenavn)** | Ingen | Den zone, der valideres, for eksempel `example.com`. |
 | **Resolvere** | `1.1.1.1, 8.8.8.8, 9.9.9.9` | Validerende resolvere, der spørges, adskilt af kommaer. Hver af dem skal returnere AD-flaget, for at kæden tæller som gyldig. |
 | **Kontroller navneserverkonsistens** | Til | Spørg hver autoritativ navneserver direkte, og sammenlign deres SOA-serienumre. Slå det fra, hvis dit netværk blokerer udgående DNS til vilkårlige servere. |
-| **Advarsel om signaturudløb (dage)** (under **Flere felter**) | `7` | Gemmes sammen med monitoren. Filteret **DNSSEC Signature Expires In Days** bruger den værdi, du giver det i kriteriet, så angiv din tærskel dér. |
+| **Advarsel om signaturudløb (dage)** (under **Flere felter**) | `7` | Gemmes sammen med monitoren. Filteret **Dage til udløb af DNSSEC-signatur** bruger den værdi, du giver det i kriteriet, så angiv din tærskel dér. |
 | **Timeout (ms)** (under **Flere felter**) | `10000` | Hvor længe der ventes på hver DNS-forespørgsel, i millisekunder. Et forsøg kan i alt tage op til tre gange så lang tid. |
 | **Genforsøg** (under **Flere felter**) | `3` | Genforsøg, efter at det første forsøg er mislykket. `0` betyder et enkelt forsøg. |
 
@@ -90,12 +90,12 @@ Kriterier afgør, hvornår zonen tæller som online, forringet eller offline, og
 
 | Filter | Betingelser | Hvad det kontrollerer |
 | --- | --- | --- |
-| **DNSSEC Chain Is Valid** | **Sand**, **Falsk** | Alle fire kontroller ovenfor holder: nøgler offentliggjort, DS i den overordnede zone, signaturer til stede med en dag eller mere tilbage, og AD-flaget fra hver resolver. |
-| **DNSSEC DNSKEY Record Exists** | **Sand**, **Falsk** | Zonen offentliggør mindst én DNSKEY-post. |
-| **DNSSEC DS Record Exists At Parent** | **Sand**, **Falsk** | Den overordnede zone offentliggør en DS-post for zonen. |
-| **DNSSEC Signature Expires In Days** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Hele dage, indtil den signatur (RRSIG), der udløber først, udløber. |
-| **DNSSEC Resolver Consensus (AD Flag)** | **Sand**, **Falsk** | Hver resolver i **Resolvere** returnerer AD-flaget. |
-| **DNSSEC Nameservers Are Consistent** | **Sand**, **Falsk** | Hver autoritativ navneserver svarer med det samme SOA-serienummer. Altid **Sand**, så længe **Kontroller navneserverkonsistens** er slået fra. |
+| **DNSSEC-kæde er gyldig** | **Sand**, **Falsk** | Alle fire kontroller ovenfor holder: nøgler offentliggjort, DS i den overordnede zone, signaturer til stede med en dag eller mere tilbage, og AD-flaget fra hver resolver. |
+| **DNSSEC DNSKEY-post findes** | **Sand**, **Falsk** | Zonen offentliggør mindst én DNSKEY-post. |
+| **DNSSEC DS-post findes i overordnet zone** | **Sand**, **Falsk** | Den overordnede zone offentliggør en DS-post for zonen. |
+| **Dage til udløb af DNSSEC-signatur** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Hele dage, indtil den signatur (RRSIG), der udløber først, udløber. |
+| **DNSSEC-resolverkonsensus (AD-flag)** | **Sand**, **Falsk** | Hver resolver i **Resolvere** returnerer AD-flaget. |
+| **DNSSEC-navneservere er konsistente** | **Sand**, **Falsk** | Hver autoritativ navneserver svarer med det samme SOA-serienummer. Altid **Sand**, så længe **Kontroller navneserverkonsistens** er slået fra. |
 
 Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, eller om **Enhver** af dem er nok. Et kriteriums **Handlinger** afgør, hvad det gør: ændrer monitorens status, opretter en advarsel, erklærer en hændelse eller flere af disse.
 
@@ -103,7 +103,7 @@ Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, e
 
 En ny DNSSEC-monitor starter med to kriterier:
 
-- **Kæden er brudt** — **DNSSEC Chain Is Valid** er **Falsk**. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "_monitor name_ DNSSEC chain is broken". Hændelsen løser sig selv, så snart kæden er gyldig igen.
+- **Kæden er brudt** — **DNSSEC-kæde er gyldig** er **Falsk**. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "_monitor name_ DNSSEC chain is broken". Hændelsen løser sig selv, så snart kæden er gyldig igen.
 - **Kæden er gyldig** — monitoren markeres som **I drift**.
 
 Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør, hvad der sker. Når ingen matcher, viser monitoren sin standardstatus: **I drift**, medmindre du vælger en anden under **Flere felter** under kriterierne.
@@ -114,16 +114,16 @@ Standardkriterierne holder ikke selv øje med signaturudløb eller navneserverko
 
 | Mål | Filter | Betingelse | Værdi |
 | --- | --- | --- | --- |
-| Offline, når kæden er brudt (et standardkriterie) | **DNSSEC Chain Is Valid** | **Falsk** | — |
-| Advar, før signaturer udløber | **DNSSEC Signature Expires In Days** | **Mindre end** | `7` |
-| Opdag en delegering, der har mistet sin DS-post | **DNSSEC DS Record Exists At Parent** | **Falsk** | — |
-| Opdag resolvere, der er uenige | **DNSSEC Resolver Consensus (AD Flag)** | **Falsk** | — |
-| Opdag navneservere, der er ude af trit | **DNSSEC Nameservers Are Consistent** | **Falsk** | — |
+| Offline, når kæden er brudt (et standardkriterie) | **DNSSEC-kæde er gyldig** | **Falsk** | — |
+| Advar, før signaturer udløber | **Dage til udløb af DNSSEC-signatur** | **Mindre end** | `7` |
+| Opdag en delegering, der har mistet sin DS-post | **DNSSEC DS-post findes i overordnet zone** | **Falsk** | — |
+| Opdag resolvere, der er uenige | **DNSSEC-resolverkonsensus (AD-flag)** | **Falsk** | — |
+| Opdag navneservere, der er ude af trit | **DNSSEC-navneservere er konsistente** | **Falsk** | — |
 
 ## Bedste praksis
 
 1. **Vælg resolvere, der altid kan nås.** Hver resolver skal returnere AD-flaget, for at kæden tæller som gyldig, så en resolver, sonden ikke kan nå, får kontrollen til at fejle, når genforsøgene er brugt op. Standardværdierne, `1.1.1.1`, `8.8.8.8` og `9.9.9.9`, drives af tre forskellige operatører, hvilket også fanger en zone, der validerer hos én resolver, men ikke hos en anden.
-2. **Bliv advaret, før signaturer udløber.** Signeringsprogrammer gensignerer en zone, før dens signaturer udløber, så en signatur tæt på udløb betyder, at gensigneringen er stoppet. Tilføj et kriterium med **DNSSEC Signature Expires In Days** / **Mindre end** / `7`, der opretter en advarsel, og et andet på `2`, der erklærer en hændelse. Træk begge op over det kriterium, der markerer kæden som gyldig, med `2`-dageskriteriet først, fordi det første kriterium, der matcher, vinder. Vælg tærskler, der er lavere end den tid, dit signeringsprogram normalt lader en signatur have tilbage, før det gensignerer, så de forbliver tavse, mens gensigneringen virker.
+2. **Bliv advaret, før signaturer udløber.** Signeringsprogrammer gensignerer en zone, før dens signaturer udløber, så en signatur tæt på udløb betyder, at gensigneringen er stoppet. Tilføj et kriterium med **Dage til udløb af DNSSEC-signatur** / **Mindre end** / `7`, der opretter en advarsel, og et andet på `2`, der erklærer en hændelse. Træk begge op over det kriterium, der markerer kæden som gyldig, med `2`-dageskriteriet først, fordi det første kriterium, der matcher, vinder. Vælg tærskler, der er lavere end den tid, dit signeringsprogram normalt lader en signatur have tilbage, før det gensignerer, så de forbliver tavse, mens gensigneringen virker.
 3. **Overvåg hver signeret zone.** Medtag apex-domænet, signerede underdomæner og enhver zone, der er delegeret til en anden operatør.
 4. **Lad kontrollen af navneserverkonsistens være slået til,** og tilføj et kriterium for den. Den fanger en sekundær server, der er holdt op med at modtage overførsler fra den primære, hvilket DNSSEC-validering alene kan overse.
 

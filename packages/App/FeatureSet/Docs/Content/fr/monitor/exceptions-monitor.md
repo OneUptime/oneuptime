@@ -116,7 +116,7 @@ Chaque changement de statut est enregistré, avec sa raison, dans la **Chronolog
 
 ## Critères
 
-Les critères d'un moniteur d'exceptions ont quatre sortes de **Type de filtre** : **Exception Count**, le nombre d'exceptions qui ont correspondu dans la fenêtre, ainsi que **New Exceptions**, **Regressed Exceptions** et **Exception Increase (in %)**, décrits plus bas. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus**, **Exactement**, **Anormalement haut**, **Anormalement bas** ou **Anormalement haut ou bas**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et une **Valeur**.
+Les critères d'un moniteur d'exceptions ont quatre sortes de **Type de filtre** : **Exception Count**, le nombre d'exceptions qui ont correspondu dans la fenêtre, ainsi que **New Exceptions**, **Exceptions en régression** et **Augmentation des exceptions (en %)**, décrits plus bas. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus**, **Exactement**, **Anormalement haut**, **Anormalement bas** ou **Anormalement haut ou bas**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et une **Valeur**.
 
 | Condition de filtre | Correspond quand le nombre d'exceptions est… |
 | --- | --- |
@@ -126,9 +126,9 @@ Les critères d'un moniteur d'exceptions ont quatre sortes de **Type de filtre**
 | **Inférieur ou égal à** | égal ou inférieur à la valeur |
 | **Égal à** | exactement la valeur |
 | **Différent de** | tout sauf la valeur |
-| **Anomalously High** | au-dessus de la plage attendue pour cette heure de la semaine |
-| **Anomalously Low** | en dessous de cette plage |
-| **Anomalous** | hors de cette plage, dans un sens ou dans l'autre |
+| **Anormalement élevé** | au-dessus de la plage attendue pour cette heure de la semaine |
+| **Anormalement bas** | en dessous de cette plage |
+| **Anormal** | hors de cette plage, dans un sens ou dans l'autre |
 
 Les conditions d'anomalie ne prennent pas de **Valeur**. Choisissez une **Sensibilité** – Faible, Moyen (la valeur par défaut) ou Élevé – et, dans les critères personnalisés, une **Fenêtre de référence** de 14 (la valeur par défaut), 28, 60 ou 90 jours. Seul **Exception Count** les a : voir [Les pics par rapport à la normale](#les-pics-par-rapport-à-la-normale).
 
@@ -156,8 +156,8 @@ Au-delà du nombre d'exceptions, un moniteur d'exceptions peut alerter sur ce qu
 | Type de filtre | Ce qu'il compte dans la fenêtre |
 | --- | --- |
 | **New Exceptions** | Les exceptions correspondantes vues pour la première fois, ni résolues ni archivées. |
-| **Regressed Exceptions** | Les exceptions correspondantes que vous avez résolues, revenues et toujours ouvertes. |
-| **Exception Increase (in %)** | De combien le nombre d'exceptions correspondantes dépasse l'habitude : la veille de la fenêtre, par fenêtre de même durée, au moins une. Dix exceptions après une journée calme donnent 900 %. |
+| **Exceptions en régression** | Les exceptions correspondantes que vous avez résolues, revenues et toujours ouvertes. |
+| **Augmentation des exceptions (en %)** | De combien le nombre d'exceptions correspondantes dépasse l'habitude : la veille de la fenêtre, par fenêtre de même durée, au moins une. Dix exceptions après une journée calme donnent 900 %. |
 
 Les exceptions nouvelles et revenues sont filtrées par service, type d'exception, environnement et message, et aussi par entité d'infrastructure : une exception compte quand l'une de ses occurrences dans la fenêtre vient de l'une des entités choisies.
 

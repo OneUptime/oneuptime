@@ -120,9 +120,9 @@ Avvikelseidentifiering mot en baslinje behöver ingen tröskel. Välj ett av de 
 
 | Villkor | Matchar när värdet |
 | --- | --- |
-| **Anomalously High** | Stiger över det förväntade intervallet |
-| **Anomalously Low** | Sjunker under det förväntade intervallet |
-| **Anomalous** | Lämnar det förväntade intervallet åt något håll |
+| **Onormalt hög** | Stiger över det förväntade intervallet |
+| **Onormalt låg** | Sjunker under det förväntade intervallet |
+| **Avvikande** | Lämnar det förväntade intervallet åt något håll |
 
 Varje mätning jämförs med en baslinje för samma timme i veckan, byggd från **Baslinjefönster** (14 dagar som standard; 28, 60 eller 90 dagar). **Känslighet** anger hur brett det förväntade intervallet är: **Låg (4σ — endast grova avvikelser)**, **Medel (3σ — rekommenderas)**, som är standard, eller **Hög (2σ — brusigare, mycket stabila tjänster)**. Avvikelsevillkor stannar i ett "Learning"-läge och ger inga larm förrän den timmen i veckan har två veckors historik. Den här monitorn filtrerar sina frågor på attribut, så varje fråga, och varje serie i en grupperad fråga, jämförs med sin egen historik, så långt tillbaka som dina metriker sparas. Är det under två veckor stannar en summa, ett antal eller en fråga på ett histogram i det tillståndet för alltid, och allt annat jämförs med alla serier i metriken. En percentil av ett histogram stannar alltid i det tillståndet.
 

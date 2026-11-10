@@ -101,7 +101,7 @@ Ces réglages sont repliés sous **Plus de champs**. L'en-tête replié les nomm
 
 | Champ | Par défaut | Ce qu'il fait |
 | --- | --- | --- |
-| **En-têtes de la requête** | Aucun | Les en-têtes à envoyer, sous forme de paires nom et valeur. Cliquez sur **Ajouter : Request Header** pour chacun. |
+| **En-têtes de la requête** | Aucun | Les en-têtes à envoyer, sous forme de paires nom et valeur. Cliquez sur **Ajouter : En-tête de la requête** pour chacun. |
 | **Corps de la requête (en JSON)** | Aucun | Un objet JSON à envoyer comme corps, généralement avec **POST**, **PUT** ou **PATCH**. Il doit être du JSON valide. |
 | **Ne pas suivre les redirections** | Désactivé | Juger la première réponse au lieu de suivre les redirections. Voir [ci-dessous](#ne-pas-suivre-les-redirections). |
 | **Autoriser les certificats auto-signés** | Désactivé | Ignorer la validation du certificat TLS pour le nom d'hôte du moniteur lui-même. |
@@ -158,10 +158,10 @@ Les critères décident quand l'API compte comme en ligne, dégradée ou hors li
 | **Code de statut de la réponse** | **Égal à**, **Différent de**, **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Le code de statut HTTP. |
 | **Temps de réponse (en ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Le temps qu'a pris la requête, redirections comprises. |
 | **Corps de la réponse** | **Contient**, **Ne contient pas** | Du texte dans le corps de la réponse. La correspondance respecte la casse. |
-| **Response Header** | **Contient**, **Ne contient pas** | Si la réponse a un en-tête avec ce nom. Saisissez le nom en minuscules, comme `x-request-id`. |
-| **Response Header Value** | **Contient**, **Ne contient pas** | Si un en-tête a exactement cette valeur, comparée en minuscules, comme `application/json`. |
-| **JavaScript Expression** | **Evaluates To True** | Une expression sur la réponse. Voir [Expressions JavaScript](/docs/monitor/javascript-expression). |
-| **Is Request Timeout** | **Vrai**, **Faux** | Si la requête a expiré à chaque tentative. |
+| **En-tête de réponse** | **Contient**, **Ne contient pas** | Si la réponse a un en-tête avec ce nom. Saisissez le nom en minuscules, comme `x-request-id`. |
+| **Valeur de l'en-tête de réponse** | **Contient**, **Ne contient pas** | Si un en-tête a exactement cette valeur, comparée en minuscules, comme `application/json`. |
+| **Expression JavaScript** | **S'évalue à vrai** | Une expression sur la réponse. Voir [Expressions JavaScript](/docs/monitor/javascript-expression). |
+| **Délai de la requête dépassé** | **Vrai**, **Faux** | Si la requête a expiré à chaque tentative. |
 
 Une réponse JSON est vérifiée sous sa forme compacte, sans espaces entre les clés et les valeurs. Pour trouver `"status": "ok"` avec **Corps de la réponse**, saisissez `"status":"ok"`.
 
@@ -178,7 +178,7 @@ Un nouveau moniteur d'API commence avec deux critères, il fonctionne donc sans 
 
 Dans la liste des critères, ils sont nommés d'après le moniteur : _Check if (name) is offline_ et _Check if (name) is online_.
 
-Ainsi, un point de terminaison qui répond `201 Created` ou `204 No Content` compte comme disponible. Si un seul code de statut signifie « en bonne santé » pour vous, modifiez les deux critères sur la page **Configuration → Critères** du moniteur : par exemple **Code de statut de la réponse** / **Égal à** / `200` dans le critère en ligne et **Différent de** / `200` dans le critère hors ligne, à la place des deux filtres de code de statut de chacun. Pour vérifier aussi ce que l'API renvoie, ajoutez un filtre **Corps de la réponse** ou **JavaScript Expression** au critère hors ligne.
+Ainsi, un point de terminaison qui répond `201 Created` ou `204 No Content` compte comme disponible. Si un seul code de statut signifie « en bonne santé » pour vous, modifiez les deux critères sur la page **Configuration → Critères** du moniteur : par exemple **Code de statut de la réponse** / **Égal à** / `200` dans le critère en ligne et **Différent de** / `200` dans le critère hors ligne, à la place des deux filtres de code de statut de chacun. Pour vérifier aussi ce que l'API renvoie, ajoutez un filtre **Corps de la réponse** ou **Expression JavaScript** au critère hors ligne.
 
 Les critères sont vérifiés de haut en bas, et le premier qui correspond décide de ce qui se passe.
 
@@ -188,17 +188,17 @@ Les moniteurs créés avant que OneUptime change ces valeurs par défaut gardent
 
 ### Évaluer sur une période
 
-**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **Is Online**, **Code de statut de la réponse**, **Temps de réponse (en ms)**, **Corps de la réponse**, **Response Header**, **Response Header Value**, **JavaScript Expression** et **Is Request Timeout**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
+**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **Is Online**, **Code de statut de la réponse**, **Temps de réponse (en ms)**, **Corps de la réponse**, **En-tête de réponse**, **Valeur de l'en-tête de réponse**, **Expression JavaScript** et **Délai de la requête dépassé**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
 
 | Agrégation | Correspond quand |
 | --- | --- |
-| **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value** | Cette valeur, sur la fenêtre, remplit la condition. Filtres numériques seulement. |
-| **All Values** | Chaque vérification de la fenêtre remplit la condition. |
-| **Any Value** | Au moins une vérification de la fenêtre remplit la condition. |
+| **Moyenne**, **Somme**, **Valeur maximale**, **Valeur minimale** | Cette valeur, sur la fenêtre, remplit la condition. Filtres numériques seulement. |
+| **Toutes les valeurs** | Chaque vérification de la fenêtre remplit la condition. |
+| **Au moins une valeur** | Au moins une vérification de la fenêtre remplit la condition. |
 
-**All Values** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Any Value** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
+**Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
 
-Un corps, un en-tête, une valeur d'en-tête ou une expression n'est pas un nombre qu'OneUptime enregistre : pour ces filtres et pour **Is Request Timeout**, OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **All Values** ou **Any Value**. C'est ainsi qu'un moniteur traverse un redémarrage. Une application qui démarre peut répondre `200` avec une page d'attente comme `Application starting...` ; avec **All Values**, un filtre **Corps de la réponse** qui cherche le titre de l'application ne met le moniteur hors ligne qu'une fois que la page d'attente a duré toute la fenêtre.
+Un corps, un en-tête, une valeur d'en-tête ou une expression n'est pas un nombre qu'OneUptime enregistre : pour ces filtres et pour **Délai de la requête dépassé**, OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **Toutes les valeurs** ou **Au moins une valeur**. C'est ainsi qu'un moniteur traverse un redémarrage. Une application qui démarre peut répondre `200` avec une page d'attente comme `Application starting...` ; avec **Toutes les valeurs**, un filtre **Corps de la réponse** qui cherche le titre de l'application ne met le moniteur hors ligne qu'une fois que la page d'attente a duré toute la fenêtre.
 
 Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'elle contienne plusieurs vérifications : un moniteur vérifié toutes les 5 minutes n'a qu'une seule vérification dans une fenêtre de 5 minutes.
 
@@ -216,10 +216,10 @@ Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'el
 | --- | --- | --- | --- |
 | Marquer l'API dégradée quand elle est lente | **Temps de réponse (en ms)** | **Supérieur à** | `1000` |
 | Hors ligne quand la vérification de santé signale un problème | **Corps de la réponse** | **Ne contient pas** | `"status":"ok"` |
-| La même chose, lue dans le JSON analysé | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
+| La même chose, lue dans le JSON analysé | **Expression JavaScript** | **S'évalue à vrai** | `"{{responseBody.status}}" !== "ok"` |
 | N'accepter que `201` d'un `POST` | **Code de statut de la réponse** | **Égal à** | `201` |
 
-Pour traverser un redémarrage, activez **Évaluer ce critère sur une période donnée** pour le filtre du corps de la réponse et choisissez **All Values** sur 15 minutes.
+Pour traverser un redémarrage, activez **Évaluer ce critère sur une période donnée** pour le filtre du corps de la réponse et choisissez **Toutes les valeurs** sur 15 minutes.
 
 ## Dépannage
 

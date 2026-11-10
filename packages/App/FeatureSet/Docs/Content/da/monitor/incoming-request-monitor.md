@@ -49,11 +49,11 @@ Gå til **Monitorer**, og klik på **Opret monitor**.
 
 ### Vælg Incoming Request
 
-Under **Monitortype** skal du vælge **Incoming Request** — den er en af de almindelige typer øverst. Angiv et **Navn**, og klik derefter på **Næste**.
+Under **Monitortype** skal du vælge **Indgående anmodning** — den er en af de almindelige typer øverst. Angiv et **Navn**, og klik derefter på **Næste**.
 
 ### Gennemgå kriterierne
 
-Trinnet **Kriterier** starter med [standardkriterierne](#hvad-du-får-fra-start). Til et heartbeat skal du klikke på **Tilføj kriterier** og give det nye kriterium et filter **Incoming Request** / **Not Recieved In Minutes**, der ændrer status til offline og erklærer en hændelse, med **Løs hændelse automatisk** slået til. Træk det derefter øverst på listen — se [Eksempler på kriterier](#eksempler-på-kriterier) for at se hvorfor.
+Trinnet **Kriterier** starter med [standardkriterierne](#hvad-du-får-fra-start). Til et heartbeat skal du klikke på **Tilføj kriterier** og give det nye kriterium et filter **Indgående anmodning** / **Ikke modtaget inden for minutter**, der ændrer status til offline og erklærer en hændelse, med **Løs hændelse automatisk** slået til. Træk det derefter øverst på listen — se [Eksempler på kriterier](#eksempler-på-kriterier) for at se hvorfor.
 
 ### Opret monitoren
 
@@ -205,7 +205,7 @@ Det passer til det almindelige tilfælde, hvor afsenderen rapporterer sit eget h
 Ret værdien til det, din afsender faktisk sender (`"status":"firing"`, `FAILED` og så videre) — sammenligningen er en søgning efter en delstreng, der skelner mellem store og små bogstaver, i hele brødteksten inklusive nøgler, så også `{"error":null}` matcher `error`.
 
 > [!NOTE]
-> Disse standarder er **ikke** en dødmandsknap: intet her udløses, når anmodningerne holder op med at komme. Vil du advares ved stilhed, så tilføj et kriterium **Incoming Request** / **Not Recieved In Minutes** som beskrevet nedenfor.
+> Disse standarder er **ikke** en dødmandsknap: intet her udløses, når anmodningerne holder op med at komme. Vil du advares ved stilhed, så tilføj et kriterium **Indgående anmodning** / **Ikke modtaget inden for minutter** som beskrevet nedenfor.
 
 ### Tilgængelige filtertyper
 
@@ -223,9 +223,9 @@ Hver filtertype har sine egne betingelser:
 
 | Filtertype | Betingelser |
 | --- | --- |
-| **Incoming Request** | **Recieved In Minutes** — der er modtaget en anmodning inden for det angivne antal minutter. **Not Recieved In Minutes** — der er ikke modtaget nogen anmodning inden for det angivne antal minutter. (Dashboardet staver dem sådan.) |
-| **Anmodningsbrødtekst**, **Request Header**, **Request Header Value** | **Indeholder** og **Indeholder ikke** |
-| **JavaScript Expression** | **Evaluates To True** |
+| **Indgående anmodning** | **Modtaget inden for minutter** — der er modtaget en anmodning inden for det angivne antal minutter. **Ikke modtaget inden for minutter** — der er ikke modtaget nogen anmodning inden for det angivne antal minutter. (Dashboardet staver dem sådan.) |
+| **Anmodningsbrødtekst**, **Anmodningsheader**, **Anmodningsheaderværdi** | **Indeholder** og **Indeholder ikke** |
+| **JavaScript-udtryk** | **Evalueres til sand** |
 
 > [!NOTE]
 > Headernavne og -værdier sammenlignes med små bogstaver og med hele navnet eller hele værdien, ikke som delstreng: `application/json` matcher ikke `application/json; charset=utf-8`. Kun **Anmodningsbrødtekst** søger efter en delstreng. Headere, som din proxy eller OneUptimes egen load balancer tilføjer (`x-forwarded-for`, `x-real-ip`), gemmes også.
@@ -239,7 +239,7 @@ Objekter som brødtekst sammenlignes som kompakt JSON uden mellemrum, så et fil
 | Felt | Værdi |
 | --- | --- |
 | **Filtertype** | Incoming Request |
-| **Filterbetingelse** | Not Recieved In Minutes |
+| **Filterbetingelse** | Ikke modtaget inden for minutter |
 | **Værdi** | `10` |
 
 #### Markér som forringet ud fra indholdet af anmodningens brødtekst
@@ -254,9 +254,9 @@ Objekter som brødtekst sammenlignes som kompakt JSON uden mellemrum, så et fil
 > Placér dødmandsknappen **over** standardkriterierne. Kriterier tjekkes oppefra, og det første, der matcher, afgør det. Baggrundstjekket læser den seneste anmodning igen, så standardkriteriet for online — "Anmodningsbrødtekst Indeholder ikke `error`" — bliver ved med at matche den, og et kriterium under det kommer aldrig til. **Tilføj kriterier** tilføjer et kriterium nederst: træk det op.
 
 > [!WARNING]
-> En monitor evalueres kun igen i baggrunden, hvis mindst ét af dens kriterier tjekker **Incoming Request**. En monitor, hvis kriterier kun tjekker brødteksten, Request Header eller et JavaScript-udtryk, evalueres, når en anmodning kommer, og på intet andet tidspunkt — så den kan aldrig gå offline af sig selv. Vil du have en alarm for manglende heartbeats, har du brug for et kriterium med **Incoming Request**.
+> En monitor evalueres kun igen i baggrunden, hvis mindst ét af dens kriterier tjekker **Indgående anmodning**. En monitor, hvis kriterier kun tjekker brødteksten, Request Header eller et JavaScript-udtryk, evalueres, når en anmodning kommer, og på intet andet tidspunkt — så den kan aldrig gå offline af sig selv. Vil du have en alarm for manglende heartbeats, har du brug for et kriterium med **Indgående anmodning**.
 
-Baggrundstjekket tæller hele minutter og udløses, så snart *mere* end værdien er gået: "Not Recieved In Minutes: 10" udløses omkring 11 minutter efter den seneste anmodning (tjekket kører hvert 30. sekund). En monitor, der aldrig har modtaget en anmodning, behandles, som om dens oprettelsestidspunkt var den seneste anmodning, så det samme kriterium på en helt ny monitor udløses omkring 11 minutter efter, at du opretter den, også selv om afsenderen aldrig blev koblet på. Kun minutter, hvor OneUptime modtog, tæller med i værdien: minutter, hvor OneUptime selv genstarter, opgraderes eller indhenter et efterslæb, tæller ikke, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+Baggrundstjekket tæller hele minutter og udløses, så snart *mere* end værdien er gået: "Ikke modtaget inden for minutter: 10" udløses omkring 11 minutter efter den seneste anmodning (tjekket kører hvert 30. sekund). En monitor, der aldrig har modtaget en anmodning, behandles, som om dens oprettelsestidspunkt var den seneste anmodning, så det samme kriterium på en helt ny monitor udløses omkring 11 minutter efter, at du opretter den, også selv om afsenderen aldrig blev koblet på. Kun minutter, hvor OneUptime modtog, tæller med i værdien: minutter, hvor OneUptime selv genstarter, opgraderes eller indhenter et efterslæb, tæller ikke, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Modtagelse af advarsler fra et andet system
 
@@ -347,10 +347,10 @@ En komplet Alertmanager-konfiguration finder du under [Prometheus Alertmanager](
 
 ## Bedste praksis
 
-1. **Sæt tidsvinduet passende** — Hvis dit cronjob kører hvert 5. minut, så sæt tærsklen for "Not Recieved In Minutes" til 10–15 minutter for at give plads til lejlighedsvise forsinkelser, og placér det kriterium først.
+1. **Sæt tidsvinduet passende** — Hvis dit cronjob kører hvert 5. minut, så sæt tærsklen for "Ikke modtaget inden for minutter" til 10–15 minutter for at give plads til lejlighedsvise forsinkelser, og placér det kriterium først.
 2. **Send meningsfulde data med** — Send statusoplysninger i anmodningens brødtekst, så du kan opsætte detaljerede kriterier.
 3. **Brug POST med `Content-Type: application/json`** — alt, der læser inde i brødteksten, afhænger af det.
-4. **Bland ikke de to opgaver på én monitor** — en monitor, der modtager hændelsesdrevne advarsler, har ingen fast rytme, så et kriterium "Not Recieved In Minutes" på den vil skifte frem og tilbage. Brug en separat monitor til dødmandsknappen.
+4. **Bland ikke de to opgaver på én monitor** — en monitor, der modtager hændelsesdrevne advarsler, har ingen fast rytme, så et kriterium "Ikke modtaget inden for minutter" på den vil skifte frem og tilbage. Brug en separat monitor til dødmandsknappen.
 5. **Overvåg overvågningen** — Sørg for, at den tjeneste, der sender anmodningerne, håndterer fejl ordentligt, så mislykkede anmodninger ikke går ubemærket hen.
 
 ## Fejlfinding
@@ -360,7 +360,7 @@ En komplet Alertmanager-konfiguration finder du under [Prometheus Alertmanager](
 :::
 
 :::details Monitoren går aldrig offline, når heartbeats stopper
-Kun et kriterium med **Incoming Request** (**Not Recieved In Minutes**) kan opdage stilhed. Tilføj et, hvis der ikke er noget, og træk det op over standardkriterierne: standardkriteriet for online matcher den seneste anmodning ved hvert baggrundstjek, og det første kriterium, der matcher, afgør det.
+Kun et kriterium med **Indgående anmodning** (**Ikke modtaget inden for minutter**) kan opdage stilhed. Tilføj et, hvis der ikke er noget, og træk det op over standardkriterierne: standardkriteriet for online matcher den seneste anmodning ved hvert baggrundstjek, og det første kriterium, der matcher, afgør det.
 :::
 
 :::details Et filter på Anmodningsbrødtekst matcher aldrig

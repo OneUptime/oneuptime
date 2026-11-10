@@ -116,7 +116,7 @@ Cada mudança de status, com o motivo, fica registrada na **Linha do tempo de st
 
 ## Critérios
 
-Os critérios de um monitor de exceções têm quatro opções de **Tipo de filtro**: **Exception Count**, o número de exceções que corresponderam na janela, e **New Exceptions**, **Regressed Exceptions** e **Exception Increase (in %)**, descritos abaixo. **Quando alertar** configura um critério, cuja **Condição** é **Mais de**, **Pelo menos**, **Menos de**, **No máximo**, **Exatamente**, **Incomumente alto**, **Incomumente baixo** ou **Incomumente alto ou baixo**. Para vários critérios, ou um com mais de um filtro, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Condição do filtro** e um **Valor**.
+Os critérios de um monitor de exceções têm quatro opções de **Tipo de filtro**: **Quantidade de exceções**, o número de exceções que corresponderam na janela, e **New Exceptions**, **Exceções com regressão** e **Aumento de exceções (em %)**, descritos abaixo. **Quando alertar** configura um critério, cuja **Condição** é **Mais de**, **Pelo menos**, **Menos de**, **No máximo**, **Exatamente**, **Incomumente alto**, **Incomumente baixo** ou **Incomumente alto ou baixo**. Para vários critérios, ou um com mais de um filtro, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Condição do filtro** e um **Valor**.
 
 | Condição do filtro | Corresponde quando a contagem de exceções está… |
 | --- | --- |
@@ -126,11 +126,11 @@ Os critérios de um monitor de exceções têm quatro opções de **Tipo de filt
 | **Menor ou igual a** | no valor ou abaixo |
 | **Igual a** | exatamente no valor |
 | **Diferente de** | em qualquer valor, menos esse |
-| **Anomalously High** | acima da faixa esperada para esta hora da semana |
-| **Anomalously Low** | abaixo dessa faixa |
-| **Anomalous** | fora dessa faixa, em qualquer direção |
+| **Anomalamente alto** | acima da faixa esperada para esta hora da semana |
+| **Anomalamente baixo** | abaixo dessa faixa |
+| **Anômalo** | fora dessa faixa, em qualquer direção |
 
-As condições de anomalia não têm **Valor**. Escolha uma **Sensibilidade** (Baixo, Médio, a padrão, ou Alto) e, nos critérios personalizados, uma **Janela de linha de base** de 14 (a padrão), 28, 60 ou 90 dias. Só **Exception Count** as tem: veja [Picos em relação ao normal](#picos-em-relação-ao-normal).
+As condições de anomalia não têm **Valor**. Escolha uma **Sensibilidade** (Baixo, Médio, a padrão, ou Alto) e, nos critérios personalizados, uma **Janela de linha de base** de 14 (a padrão), 28, 60 ou 90 dias. Só **Quantidade de exceções** as tem: veja [Picos em relação ao normal](#picos-em-relação-ao-normal).
 
 Um monitor de exceções criado em Criar monitor começa com a regra do que você escolheu em **Sobre o que este monitor deve avisar você?**:
 
@@ -146,8 +146,8 @@ Um monitor de exceções criado pela API ou pelo Terraform sem critérios começ
 
 | Critério | Filtro | Efeito |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Maior que** `0` | Coloca o monitor offline e declara um incidente, resolvido automaticamente |
-| Check if … has no exceptions | **Exception Count** **Igual a** `0` | Coloca o monitor online |
+| Check if … has exceptions | **Quantidade de exceções** **Maior que** `0` | Coloca o monitor offline e declara um incidente, resolvido automaticamente |
+| Check if … has no exceptions | **Quantidade de exceções** **Igual a** `0` | Coloca o monitor online |
 
 ## Exceções novas, que voltam e em alta
 
@@ -156,8 +156,8 @@ Além de quantas exceções aconteceram, um monitor de exceções pode alertar s
 | Tipo de filtro | O que conta na janela |
 | --- | --- |
 | **New Exceptions** | Exceções correspondentes vistas pela primeira vez que não estão resolvidas nem arquivadas. |
-| **Regressed Exceptions** | Exceções correspondentes que você resolveu, que voltaram e continuam abertas. |
-| **Exception Increase (in %)** | Quanto o número de exceções correspondentes está acima do habitual: o dia anterior à janela, por janela da mesma duração, no mínimo uma. Dez exceções depois de um dia calmo dão 900%. |
+| **Exceções com regressão** | Exceções correspondentes que você resolveu, que voltaram e continuam abertas. |
+| **Aumento de exceções (em %)** | Quanto o número de exceções correspondentes está acima do habitual: o dia anterior à janela, por janela da mesma duração, no mínimo uma. Dez exceções depois de um dia calmo dão 900%. |
 
 Exceções novas e que voltaram são filtradas por serviço, tipo de exceção, ambiente e mensagem, e também por entidade de infraestrutura: uma exceção conta quando uma das suas ocorrências na janela veio de uma das entidades escolhidas.
 
@@ -188,7 +188,7 @@ Você quer um incidente sempre que a API lançar uma exceção em produção, e 
 | `TimeoutError` × 2 | nenhum | Ativa | Não: sem ambiente |
 | `NullReferenceException` × 4 | `production` | Resolvida depois de ocorrer | Não: resolvida |
 
-O **Exception Count** é 3, então **Mais de** `0` corresponde: o monitor fica offline e um incidente é declarado. Depois que passam cinco minutos sem nenhuma exceção de produção ativa, a regra deixa de corresponder, o monitor volta ao seu status padrão e o incidente se resolve sozinho.
+O **Quantidade de exceções** é 3, então **Mais de** `0` corresponde: o monitor fica offline e um incidente é declarado. Depois que passam cinco minutos sem nenhuma exceção de produção ativa, a regra deixa de corresponder, o monitor volta ao seu status padrão e o incidente se resolve sozinho.
 
 ## Solução de problemas
 

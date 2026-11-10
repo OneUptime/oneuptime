@@ -195,7 +195,7 @@ Skicka ett e-postmeddelande via en SMTP-server som du anger på blocket. Blocket
 | **From Email**                          | Avsändaren, till exempel `Alerts <alerts@company.com>`.                                               |
 | **To Email**                            | Mottagarens adress. Separera flera adresser med kommatecken eller semikolon.                          |
 | **Subject**                             | Ämnesraden.                                                                                           |
-| **Email Body**                          | Meddelandet, skickat som HTML.                                                                        |
+| **E-postinnehåll**                          | Meddelandet, skickat som HTML.                                                                        |
 | **SMTP HOST** och **SMTP Port**         | E-postservern att ansluta till.                                                                       |
 | **SMTP Username** och **SMTP Password** | Valfria. Fyll i båda eller ingen.                                                                     |
 | **Use Implicit TLS**                    | Slå på för implicit TLS, vanligtvis på port 465. Låt den vara av för STARTTLS, vanligtvis på port 587. |

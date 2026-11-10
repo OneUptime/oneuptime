@@ -25,7 +25,7 @@ flowchart TB
     criteria -->|"2xx o 3xx"| up["Operativo"]
 ```
 
-Cuando ninguno de los criterios del monitor lee el cuerpo de la respuesta (un filtro **Cuerpo de la respuesta** o **JavaScript Expression**), la sonda envía una solicitud `HEAD` en lugar de un `GET`, y la repite como `GET` si el servidor rechaza `HEAD`. Los registros de acceso de su servidor pueden mostrar cualquiera de las dos.
+Cuando ninguno de los criterios del monitor lee el cuerpo de la respuesta (un filtro **Cuerpo de la respuesta** o **Expresión de JavaScript**), la sonda envía una solicitud `HEAD` en lugar de un `GET`, y la repite como `GET` si el servidor rechaza `HEAD`. Los registros de acceso de su servidor pueden mostrar cualquiera de las dos.
 
 Una sonda que ha perdido su propia conexión de red no informa de ningún resultado, así que no puede marcar su sitio como sin conexión.
 
@@ -146,10 +146,10 @@ Los criterios deciden cuándo el sitio web cuenta como en línea, degradado o si
 | **Código de estado de respuesta** | **Igual a**, **Distinto de**, **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | El código de estado HTTP. |
 | **Tiempo de respuesta (en ms)** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Cuánto tardó la solicitud, redirecciones incluidas. |
 | **Cuerpo de la respuesta** | **Contiene**, **No contiene** | Texto en el cuerpo de la respuesta. La coincidencia distingue mayúsculas y minúsculas. |
-| **Response Header** | **Contiene**, **No contiene** | Si la respuesta tiene un encabezado con este nombre. Escriba el nombre en minúsculas, como `x-cache`. |
-| **Response Header Value** | **Contiene**, **No contiene** | Si un encabezado tiene exactamente este valor, comparado en minúsculas, como `no-store`. |
-| **JavaScript Expression** | **Evaluates To True** | Una expresión sobre la respuesta. Consulte [Expresiones JavaScript](/docs/monitor/javascript-expression). |
-| **Is Request Timeout** | **Verdadero**, **Falso** | Si la solicitud agotó el tiempo de espera en todos los intentos. |
+| **Encabezado de respuesta** | **Contiene**, **No contiene** | Si la respuesta tiene un encabezado con este nombre. Escriba el nombre en minúsculas, como `x-cache`. |
+| **Valor del encabezado de respuesta** | **Contiene**, **No contiene** | Si un encabezado tiene exactamente este valor, comparado en minúsculas, como `no-store`. |
+| **Expresión de JavaScript** | **Se evalúa como verdadero** | Una expresión sobre la respuesta. Consulte [Expresiones JavaScript](/docs/monitor/javascript-expression). |
+| **Tiempo de espera de la solicitud agotado** | **Verdadero**, **Falso** | Si la solicitud agotó el tiempo de espera en todos los intentos. |
 
 **Añadir criterios** añade un criterio que ya lleva el nombre de su filtro, por ejemplo _Response Time (in ms) is above 3000_. El nombre cambia con los filtros hasta que escribe uno propio. La descripción es opcional: para añadirla, abra los **Ajustes** del criterio.
 
@@ -174,17 +174,17 @@ Los monitores creados antes de que OneUptime cambiara estos valores predetermina
 
 ### Evaluar durante un periodo de tiempo
 
-**Evaluar estos criterios durante un periodo de tiempo** es una casilla debajo de un filtro, disponible para **Is Online**, **Código de estado de respuesta**, **Tiempo de respuesta (en ms)**, **Cuerpo de la respuesta**, **Response Header**, **Response Header Value**, **JavaScript Expression** y **Is Request Timeout**. Actívela para juzgar una ventana de comprobaciones anteriores en lugar de la última: elija una agregación en **Evaluar** y una ventana, de 2 a 60 minutos, en **Durante los últimos (en minutos)**.
+**Evaluar estos criterios durante un periodo de tiempo** es una casilla debajo de un filtro, disponible para **Is Online**, **Código de estado de respuesta**, **Tiempo de respuesta (en ms)**, **Cuerpo de la respuesta**, **Encabezado de respuesta**, **Valor del encabezado de respuesta**, **Expresión de JavaScript** y **Tiempo de espera de la solicitud agotado**. Actívela para juzgar una ventana de comprobaciones anteriores en lugar de la última: elija una agregación en **Evaluar** y una ventana, de 2 a 60 minutos, en **Durante los últimos (en minutos)**.
 
 | Agregación | Coincide cuando |
 | --- | --- |
-| **Promedio**, **Suma**, **Maximum Value**, **Minimum Value** | Esa cifra, en la ventana, cumple la condición. Solo filtros numéricos. |
-| **All Values** | Cada comprobación de la ventana cumple la condición. |
-| **Any Value** | Al menos una comprobación de la ventana cumple la condición. |
+| **Promedio**, **Suma**, **Valor máximo**, **Valor mínimo** | Esa cifra, en la ventana, cumple la condición. Solo filtros numéricos. |
+| **Todos los valores** | Cada comprobación de la ventana cumple la condición. |
+| **Cualquier valor** | Al menos una comprobación de la ventana cumple la condición. |
 
-**All Values** solo coincide cuando la ventana está realmente cubierta por datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Any Value** es el ajuste para «avísame en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
+**Todos los valores** solo coincide cuando la ventana está realmente cubierta por datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Cualquier valor** es el ajuste para «avísame en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
 
-Un cuerpo, un encabezado, un valor de encabezado o una expresión no es un número que OneUptime registre, así que para esos filtros y para **Is Request Timeout** registra si el filtro coincidió en cada comprobación, y juzga la ventana a partir de ese registro con **All Values** o **Any Value**. Así es como un monitor supera un reinicio. Una aplicación que está arrancando puede responder `200` con una página provisional como `Application starting...`; con **All Values**, un filtro **Cuerpo de la respuesta** que busca el título de la aplicación solo deja el monitor fuera de línea cuando la página provisional ha durado toda la ventana.
+Un cuerpo, un encabezado, un valor de encabezado o una expresión no es un número que OneUptime registre, así que para esos filtros y para **Tiempo de espera de la solicitud agotado** registra si el filtro coincidió en cada comprobación, y juzga la ventana a partir de ese registro con **Todos los valores** o **Cualquier valor**. Así es como un monitor supera un reinicio. Una aplicación que está arrancando puede responder `200` con una página provisional como `Application starting...`; con **Todos los valores**, un filtro **Cuerpo de la respuesta** que busca el título de la aplicación solo deja el monitor fuera de línea cuando la página provisional ha durado toda la ventana.
 
 Elija una ventana más larga que el intervalo de supervisión, para que contenga varias comprobaciones: un monitor que se comprueba cada 5 minutos tiene una sola comprobación en cualquier ventana de 5 minutos.
 
@@ -202,10 +202,10 @@ Elija una ventana más larga que el intervalo de supervisión, para que contenga
 | --- | --- | --- | --- |
 | Marcar el sitio como degradado cuando es lento | **Tiempo de respuesta (en ms)** | **Mayor que** | `3000` |
 | Detectar una página de error servida con `200` | **Cuerpo de la respuesta** | **No contiene** | `Welcome` |
-| Comprobar que hay un encabezado del CDN | **Response Header** | **Contiene** | `x-cache` |
+| Comprobar que hay un encabezado del CDN | **Encabezado de respuesta** | **Contiene** | `x-cache` |
 | Aceptar solo `200` como sano | **Código de estado de respuesta** | **Igual a** | `200` |
 
-Para superar un reinicio, active **Evaluar estos criterios durante un periodo de tiempo** en el filtro del cuerpo de la respuesta y elija **All Values** durante 15 minutos.
+Para superar un reinicio, active **Evaluar estos criterios durante un periodo de tiempo** en el filtro del cuerpo de la respuesta y elija **Todos los valores** durante 15 minutos.
 
 ## Solución de problemas
 
@@ -218,7 +218,7 @@ La sonda recibió una respuesta distinta a la de su navegador. La causa raíz de
 :::
 
 :::details La comprobación falla con «Remote response exceeded the allowed size.»
-La sonda lee como máximo 512 KiB de una respuesta, y esta página es más grande. Apunte el monitor a una página más pequeña, como un endpoint de salud, o quite los filtros **Cuerpo de la respuesta** y **JavaScript Expression** para que la sonda solo necesite los encabezados.
+La sonda lee como máximo 512 KiB de una respuesta, y esta página es más grande. Apunte el monitor a una página más pequeña, como un endpoint de salud, o quite los filtros **Cuerpo de la respuesta** y **Expresión de JavaScript** para que la sonda solo necesite los encabezados.
 :::
 
 :::details La comprobación falla con «Monitor target exceeded 10 redirects.»

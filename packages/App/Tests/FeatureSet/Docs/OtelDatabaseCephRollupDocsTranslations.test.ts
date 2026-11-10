@@ -47,10 +47,12 @@ import { describe, expect, it } from "@jest/globals";
  *     segment.
  *   - A bold name the Dashboard has no locale key for is drawn in English in
  *     every language - the Ceph form's Custom Metric tab, the criteria's
- *     filter types and aggregations, the database metric picker's names -
- *     so the translations keep it exactly (SHOWN_IN_ENGLISH). If the
- *     Dashboard starts translating one, "names only bold text with no
- *     Dashboard label" fails and says which one to move.
+ *     no-data policies, the database metric picker's names - so the
+ *     translations keep it exactly (SHOWN_IN_ENGLISH). If the Dashboard
+ *     starts translating one, "names only bold text with no Dashboard label"
+ *     fails and says which one to move: the criteria's filter types,
+ *     aggregations and anomaly conditions moved on 2026-11-10, when #6575
+ *     keyed them in every language.
  *   - Bold labels kept in English on purpose (KEPT_IN_ENGLISH) and bold
  *     words that are prose (PROSE) are listed with why.
  */
@@ -133,29 +135,20 @@ const PROSE: Record<string, Array<string>> = {
  * has no locale key for them. The translations keep each one exactly.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
-  [DATABASE_PAGE]: [
-    // The criteria's filter types, and the over-time options.
-    "Database Is Online",
-    "Database Metric",
-    "Database Collection Error",
-    "JavaScript Expression",
-    "All Values",
-    "Ignore",
-  ],
+  /*
+   * The criteria's filter types (Database Is Online, Database Metric), their
+   * aggregations (All Values) and anomaly conditions left this list on
+   * 2026-11-10: #6575 keyed them in every language. The no-data policies
+   * have no key yet.
+   */
+  [DATABASE_PAGE]: ["Ignore"],
   [CEPH_PAGE]: [
     // The Ceph form's More fields tab that has no locale key (Advanced has one).
     "Custom Metric",
     // The Time Range picker's ends.
     "Past 1 Minute",
     "Past 365 Days",
-    // The criteria's aggregations, anomaly conditions and no-data policies.
-    "Maximum Value",
-    "Minimum Value",
-    "All Values",
-    "Any Value",
-    "Anomalously High",
-    "Anomalously Low",
-    "Anomalous",
+    // The criteria's no-data policies.
     "Ignore",
     "Treat As Zero",
     // Templates' names, as the template picker shows them.

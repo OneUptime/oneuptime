@@ -246,7 +246,7 @@ Um pipeline pertence ao seu projeto. Para usar um em outro projeto, crie-o lá c
 
 - **Syslog sobre TLS** (RFC 5425). A sonda aceita UDP e TCP sem criptografia; mantenha o caminho entre os dispositivos e a sonda em uma rede em que você confia.
 - **Compartilhar analisadores entre projetos.** Um pipeline ainda não pode ser exportado e importado.
-- **Eventos de traps SNMP além dos quatro padrão.** Os traps próprios de um fabricante são guardados como logs, e os alertas sobre eles são criados com o critério **SNMP Trap Received (Trap OID)** do [monitor de dispositivos de rede](/docs/monitor/network-device-monitor).
+- **Eventos de traps SNMP além dos quatro padrão.** Os traps próprios de um fabricante são guardados como logs, e os alertas sobre eles são criados com o critério **Trap SNMP recebido (OID do trap)** do [monitor de dispositivos de rede](/docs/monitor/network-device-monitor).
 - **Switches Cambium cnMatrix, controladores de mobilidade Aruba e FortiGate em modo CEF.** As mensagens deles são guardadas e pesquisáveis; ainda não se leem eventos nelas.
 - **Um acompanhamento ao vivo.** A página de Eventos mostra o que tinha chegado quando foi aberta; use o botão de atualizar dela, ou o acompanhamento ao vivo de **Registros**.
 

@@ -370,14 +370,14 @@ Räknare som slutar på `total` är kumulativa sedan servern startade. Jämför 
 
 | Filtertyp | Vad den kontrollerar |
 |---|---|
-| **Database Is Online** | Om databasen gick att nå och testfrågan lyckades. Det här är offline-kriteriet som monitorn skapas med, och den enda kontrollen som speglar nåbarheten. |
-| **Database Metric** | Välj ett mätvärde och jämför det: Större än, Mindre än, Större än eller lika med, Mindre än eller lika med, Lika med eller Inte lika med. Mätvärdesväljaren erbjuder bara de mätvärden som din valda motor kan leverera, så du kan inte bygga ett kriterium som för alltid förblir ouppfyllt (ett undantag: Replication-mätvärdena som erbjuds för Microsoft SQL Server samlas aldrig in på Azure SQL Database). Om mätvärdet inte samlades in vid en kontroll — gruppen misslyckades, eller motorn rapporterar det inte — matchar inte filtret, och det matchar inte heller som ”false”: det hoppas över. Ett behörighetsproblem kan inte larma någon. |
-| **Database Collection Error** | Sammanfattningen av kontrollens insamlingsproblem, en ”grupp: meddelande” per otillgänglig grupp. Larma när den inte är tom för att upptäcka förlorad insyn, eller använd Innehåller för att bevaka en viss grupp. |
-| **JavaScript Expression** | Full kontroll. Se [JavaScript-uttryck](/docs/monitor/javascript-expression). |
+| **Databasen är online** | Om databasen gick att nå och testfrågan lyckades. Det här är offline-kriteriet som monitorn skapas med, och den enda kontrollen som speglar nåbarheten. |
+| **Databasmätvärde** | Välj ett mätvärde och jämför det: Större än, Mindre än, Större än eller lika med, Mindre än eller lika med, Lika med eller Inte lika med. Mätvärdesväljaren erbjuder bara de mätvärden som din valda motor kan leverera, så du kan inte bygga ett kriterium som för alltid förblir ouppfyllt (ett undantag: Replication-mätvärdena som erbjuds för Microsoft SQL Server samlas aldrig in på Azure SQL Database). Om mätvärdet inte samlades in vid en kontroll — gruppen misslyckades, eller motorn rapporterar det inte — matchar inte filtret, och det matchar inte heller som ”false”: det hoppas över. Ett behörighetsproblem kan inte larma någon. |
+| **Insamlingsfel för databas** | Sammanfattningen av kontrollens insamlingsproblem, en ”grupp: meddelande” per otillgänglig grupp. Larma när den inte är tom för att upptäcka förlorad insyn, eller använd Innehåller för att bevaka en viss grupp. |
+| **JavaScript-uttryck** | Full kontroll. Se [JavaScript-uttryck](/docs/monitor/javascript-expression). |
 
 Trösklar är heltal. Skriv `90`, inte `90.5` — procent och sekunder jämförs som heltal.
 
-**Database Is Online** och **Database Metric** kan kontrolleras över tid: kryssa i **Utvärdera dessa kriterier över en tidsperiod**, välj sedan under **Utvärdera** hur värdena ska bedömas (till exempel **All Values**) och fyll i **Under de senaste (i minuter)**. Över tid avgör filtrets inställning **Om ingen data** vad ett saknat värde betyder; låt den stå på **Ignore**, så att en saknad behörighet fortfarande inte kan larma någon.
+**Databasen är online** och **Databasmätvärde** kan kontrolleras över tid: kryssa i **Utvärdera dessa kriterier över en tidsperiod**, välj sedan under **Utvärdera** hur värdena ska bedömas (till exempel **Alla värden**) och fyll i **Under de senaste (i minuter)**. Över tid avgör filtrets inställning **Om ingen data** vad ett saknat värde betyder; låt den stå på **Ignore**, så att en saknad behörighet fortfarande inte kan larma någon.
 
 ### Variabler för JavaScript-uttryck
 
@@ -402,7 +402,7 @@ För att läsa ett mätvärde i ett uttryck skriver du serienamnet med punkter i
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
 ```
 
-För en tröskel på ett enda mätvärde är **Database Metric** ett bättre val än ett uttryck: det slår upp serien åt dig, erbjuder bara det som din motor kan leverera och hoppar över kontrollen när värdet inte samlades in, i stället för att jämföra med ingenting.
+För en tröskel på ett enda mätvärde är **Databasmätvärde** ett bättre val än ett uttryck: det slår upp serien åt dig, erbjuder bara det som din motor kan leverera och hoppar över kontrollen när värdet inte samlades in, i stället för att jämföra med ingenting.
 
 ### Exempel: en primär PostgreSQL-server
 

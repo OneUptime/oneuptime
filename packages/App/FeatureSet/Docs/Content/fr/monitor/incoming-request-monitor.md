@@ -53,7 +53,7 @@ Sous **Type de moniteur**, choisissez **Requête entrante** — c'est l'un des t
 
 ### Passer en revue les critères
 
-L'étape **Critères** commence avec [les critères par défaut](#ce-que-vous-obtenez-demblée). Pour un heartbeat, cliquez sur **Ajouter un critère** et donnez au nouveau critère un filtre **Requête entrante** / **Not Recieved In Minutes** qui passe le statut à hors ligne et déclare un incident, avec **Résoudre automatiquement l'incident** activé. Faites-le ensuite glisser en haut de la liste — voir [Exemples de critères](#exemples-de-critères) pour savoir pourquoi.
+L'étape **Critères** commence avec [les critères par défaut](#ce-que-vous-obtenez-demblée). Pour un heartbeat, cliquez sur **Ajouter un critère** et donnez au nouveau critère un filtre **Requête entrante** / **Non reçu dans le délai (minutes)** qui passe le statut à hors ligne et déclare un incident, avec **Résoudre automatiquement l'incident** activé. Faites-le ensuite glisser en haut de la liste — voir [Exemples de critères](#exemples-de-critères) pour savoir pourquoi.
 
 ### Créer le moniteur
 
@@ -205,7 +205,7 @@ Cela convient au cas courant où l'expéditeur rapporte sa propre santé dans la
 Remplacez la valeur par ce que votre expéditeur émet réellement (`"status":"firing"`, `FAILED`, etc.) — la correspondance est une recherche de sous-chaîne sensible à la casse sur tout le corps, clés comprises : `{"error":null}` correspond donc aussi à `error`.
 
 > [!NOTE]
-> Ces critères par défaut ne sont **pas** un interrupteur de l'homme mort : rien ici ne se déclenche quand les requêtes cessent d'arriver. Pour être alerté en cas de silence, ajoutez un critère **Requête entrante** / **Not Recieved In Minutes** comme décrit plus bas.
+> Ces critères par défaut ne sont **pas** un interrupteur de l'homme mort : rien ici ne se déclenche quand les requêtes cessent d'arriver. Pour être alerté en cas de silence, ajoutez un critère **Requête entrante** / **Non reçu dans le délai (minutes)** comme décrit plus bas.
 
 ### Types de filtre disponibles
 
@@ -223,9 +223,9 @@ Chaque type de filtre propose ses propres conditions :
 
 | Type de filtre | Conditions |
 | --- | --- |
-| **Requête entrante** | **Recieved In Minutes** — une requête a été reçue dans le nombre de minutes indiqué. **Not Recieved In Minutes** — aucune requête n'a été reçue dans le nombre de minutes indiqué. (Le tableau de bord les écrit ainsi.) |
-| **Corps de la requête**, **Request Header**, **Request Header Value** | **Contient** et **Ne contient pas** |
-| **JavaScript Expression** | **Evaluates To True** |
+| **Requête entrante** | **Reçu dans le délai (minutes)** — une requête a été reçue dans le nombre de minutes indiqué. **Non reçu dans le délai (minutes)** — aucune requête n'a été reçue dans le nombre de minutes indiqué. (Le tableau de bord les écrit ainsi.) |
+| **Corps de la requête**, **En-tête de la requête**, **Valeur de l'en-tête de la requête** | **Contient** et **Ne contient pas** |
+| **Expression JavaScript** | **S'évalue à vrai** |
 
 > [!NOTE]
 > Les noms et valeurs d'en-tête sont comparés en minuscules, au nom ou à la valeur entière, pas à une sous-chaîne : `application/json` ne correspond pas à `application/json; charset=utf-8`. Seul **Corps de la requête** fait une recherche de sous-chaîne. Les en-têtes qu'ajoutent votre proxy ou l'équilibreur de charge de OneUptime (`x-forwarded-for`, `x-real-ip`) sont stockés aussi.
@@ -239,7 +239,7 @@ Les corps objets sont comparés en JSON compact, sans espaces : un filtre **Corp
 | Champ | Valeur |
 | --- | --- |
 | **Type de filtre** | Requête entrante |
-| **Condition de filtre** | Not Recieved In Minutes |
+| **Condition de filtre** | Non reçu dans le délai (minutes) |
 | **Valeur** | `10` |
 
 #### Marquer dégradé selon le contenu du corps de la requête
@@ -256,7 +256,7 @@ Les corps objets sont comparés en JSON compact, sans espaces : un filtre **Corp
 > [!WARNING]
 > Un moniteur n'est réévalué en arrière-plan que si au moins un de ses critères vérifie **Requête entrante**. Un moniteur dont les critères ne vérifient que le corps de la requête, Request Header ou une expression JavaScript est évalué à l'arrivée d'une requête et jamais à un autre moment — il ne peut donc jamais passer hors ligne de lui-même. Si vous voulez une alarme sur heartbeat manquant, il vous faut un critère **Requête entrante**.
 
-La vérification en arrière-plan compte des minutes entières et se déclenche une fois que *plus* que la valeur s'est écoulée : "Not Recieved In Minutes: 10" se déclenche environ 11 minutes après la dernière requête (la vérification tourne toutes les 30 secondes). Un moniteur qui n'a jamais reçu de requête est traité comme si son heure de création était la dernière requête : le même critère sur un moniteur tout neuf se déclenche donc environ 11 minutes après sa création, même si l'expéditeur n'a jamais été branché. Seules comptent les minutes où OneUptime recevait : les minutes pendant lesquelles OneUptime lui-même redémarre, est mis à jour ou rattrape son retard ne comptent pas, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
+La vérification en arrière-plan compte des minutes entières et se déclenche une fois que *plus* que la valeur s'est écoulée : "Non reçu dans le délai (minutes): 10" se déclenche environ 11 minutes après la dernière requête (la vérification tourne toutes les 30 secondes). Un moniteur qui n'a jamais reçu de requête est traité comme si son heure de création était la dernière requête : le même critère sur un moniteur tout neuf se déclenche donc environ 11 minutes après sa création, même si l'expéditeur n'a jamais été branché. Seules comptent les minutes où OneUptime recevait : les minutes pendant lesquelles OneUptime lui-même redémarre, est mis à jour ou rattrape son retard ne comptent pas, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Recevoir les alertes d'un autre système
 
@@ -347,10 +347,10 @@ Pour une configuration Alertmanager complète, voir [Prometheus Alertmanager](/d
 
 ## Bonnes pratiques
 
-1. **Choisissez une fenêtre de temps adaptée** — Si votre tâche cron s'exécute toutes les 5 minutes, réglez le seuil "Not Recieved In Minutes" sur 10 à 15 minutes pour absorber les retards occasionnels, et placez ce critère en premier.
+1. **Choisissez une fenêtre de temps adaptée** — Si votre tâche cron s'exécute toutes les 5 minutes, réglez le seuil "Non reçu dans le délai (minutes)" sur 10 à 15 minutes pour absorber les retards occasionnels, et placez ce critère en premier.
 2. **Envoyez des données utiles** — Mettez des informations d'état dans le corps de la requête pour pouvoir définir des critères fins.
 3. **Utilisez POST avec `Content-Type: application/json`** — tout ce qui lit le corps en dépend.
-4. **Ne mélangez pas les deux usages sur un même moniteur** — un moniteur qui reçoit des alertes pilotées par les événements n'a pas de cadence régulière : un critère "Not Recieved In Minutes" y basculerait sans cesse. Utilisez un moniteur à part pour l'interrupteur de l'homme mort.
+4. **Ne mélangez pas les deux usages sur un même moniteur** — un moniteur qui reçoit des alertes pilotées par les événements n'a pas de cadence régulière : un critère "Non reçu dans le délai (minutes)" y basculerait sans cesse. Utilisez un moniteur à part pour l'interrupteur de l'homme mort.
 5. **Surveillez le surveillant** — Assurez-vous que le service qui envoie les requêtes gère correctement les erreurs, pour que les requêtes échouées ne passent pas inaperçues.
 
 ## Dépannage
@@ -360,7 +360,7 @@ Le `200` est envoyé avant la validation de la requête : il ne prouve donc pas 
 :::
 
 :::details Le moniteur ne passe jamais hors ligne quand les heartbeats cessent
-Seul un critère **Requête entrante** (**Not Recieved In Minutes**) peut remarquer le silence. Ajoutez-en un s'il n'y en a pas, et faites-le glisser au-dessus des critères par défaut : le critère en ligne par défaut correspond à la dernière requête à chaque vérification en arrière-plan, et le premier critère qui correspond décide.
+Seul un critère **Requête entrante** (**Non reçu dans le délai (minutes)**) peut remarquer le silence. Ajoutez-en un s'il n'y en a pas, et faites-le glisser au-dessus des critères par défaut : le critère en ligne par défaut correspond à la dernière requête à chaque vérification en arrière-plan, et le premier critère qui correspond décide.
 :::
 
 :::details Un filtre Corps de la requête ne correspond jamais

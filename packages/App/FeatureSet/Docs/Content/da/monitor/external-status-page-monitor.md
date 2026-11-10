@@ -102,7 +102,7 @@ Vælg **Sonder** og et **Overvågningsinterval** — det starter på **Hvert 5. 
 
 ### Komponenter
 
-Vælg de komponenter, du er afhængig af, så holder monitoren kun øje med dem: **External Status Page Component Status** sammenligner kun deres status, den samlede status er den værste af deres, og **External Status Page Active Incidents** tæller kun de hændelser, der rammer mindst én af dem. Det er stadig ét tjek af siden, uanset hvor mange du vælger.
+Vælg de komponenter, du er afhængig af, så holder monitoren kun øje med dem: **Komponentstatus på ekstern statusside** sammenligner kun deres status, den samlede status er den værste af deres, og **Aktive hændelser på ekstern statusside** tæller kun de hændelser, der rammer mindst én af dem. Det er stadig ét tjek af siden, uanset hvor mange du vælger.
 
 Når du åbner **Komponenter**, læser din browser sidens egen liste fra en Atlassian Statuspage, en incident.io-side eller en OneUptime-statusside og viser den i sidens grupper; hver komponent, der ikke er i drift, fortæller, hvordan den har det. Et navn, du vælger, holder øje med komponenten med præcis det navn, uden hensyn til store og små bogstaver: `Copilot` på GitHubs side er ikke `Copilot AI Model Providers`.
 
@@ -129,13 +129,13 @@ Du kan konfigurere kriterier, der afgør, hvornår den eksterne tjeneste betragt
 
 | Filtertype | Hvad den tjekker | Filterbetingelser |
 | --- | --- | --- |
-| **External Status Page Is Online** | Om statussiden kan nås og returnerer statusdata | Sand eller Falsk |
-| **External Status Page Overall Status** | Den samlede status, siden melder | Lig med, Ikke lig med, Indeholder, Indeholder ikke, Starter med, Slutter med |
-| **External Status Page Component Status** | Status for hver komponent inden for afgrænsningen (de valgte komponenter eller gruppens, når de er angivet): I drift, Under vedligeholdelse, Nedsat ydeevne, Delvist nedbrud, Større nedbrud eller Fuldt nedbrud | Lig med, Ikke lig med, Indeholder, Indeholder ikke, Starter med, Slutter med |
-| **External Status Page Active Incidents** | Antallet af aktuelt aktive hændelser på statussiden (kun dem, der rammer en komponent inden for afgrænsningen, når komponenter eller en gruppe er valgt) | Lig med, Ikke lig med og de numeriske sammenligninger |
-| **External Status Page Response Time (in ms)** | Hvor lang tid det tager at hente statussidens data | Større end, Mindre end, Større end eller lig med, Mindre end eller lig med |
+| **Ekstern statusside er online** | Om statussiden kan nås og returnerer statusdata | Sand eller Falsk |
+| **Samlet status for ekstern statusside** | Den samlede status, siden melder | Lig med, Ikke lig med, Indeholder, Indeholder ikke, Starter med, Slutter med |
+| **Komponentstatus på ekstern statusside** | Status for hver komponent inden for afgrænsningen (de valgte komponenter eller gruppens, når de er angivet): I drift, Under vedligeholdelse, Nedsat ydeevne, Delvist nedbrud, Større nedbrud eller Fuldt nedbrud | Lig med, Ikke lig med, Indeholder, Indeholder ikke, Starter med, Slutter med |
+| **Aktive hændelser på ekstern statusside** | Antallet af aktuelt aktive hændelser på statussiden (kun dem, der rammer en komponent inden for afgrænsningen, når komponenter eller en gruppe er valgt) | Lig med, Ikke lig med og de numeriske sammenligninger |
+| **Svartid for ekstern statusside (i ms)** | Hvor lang tid det tager at hente statussidens data | Større end, Mindre end, Større end eller lig med, Mindre end eller lig med |
 
-Den samlede status er det, siden siger, så dens værdier afhænger af udbyderen: en Atlassian Statuspage melder sin egen beskrivelse, som `All Systems Operational`; en OneUptime-statusside den værste status blandt sine komponenter i omfanget, som `under_maintenance`; et feed melder `operational` eller `degraded_performance`; tjekket af, om siden kan nås, melder `reachable` eller `unreachable`. Med valgte komponenter eller en gruppe er det den værste status blandt dem, på enhver side. Disse sammenligninger skelner mellem store og små bogstaver. Monitorens oversigt viser den samlede status i ord og farve, ligesom hver komponents (`under_maintenance` står som **Under vedligeholdelse**), mens kriterierne sammenligner den værdi, siden melder. Til advarsler om nedbrud er **External Status Page Active Incidents** og **External Status Page Component Status** som regel mere pålidelige.
+Den samlede status er det, siden siger, så dens værdier afhænger af udbyderen: en Atlassian Statuspage melder sin egen beskrivelse, som `All Systems Operational`; en OneUptime-statusside den værste status blandt sine komponenter i omfanget, som `under_maintenance`; et feed melder `operational` eller `degraded_performance`; tjekket af, om siden kan nås, melder `reachable` eller `unreachable`. Med valgte komponenter eller en gruppe er det den værste status blandt dem, på enhver side. Disse sammenligninger skelner mellem store og små bogstaver. Monitorens oversigt viser den samlede status i ord og farve, ligesom hver komponents (`under_maintenance` står som **Under vedligeholdelse**), mens kriterierne sammenligner den værdi, siden melder. Til advarsler om nedbrud er **Aktive hændelser på ekstern statusside** og **Komponentstatus på ekstern statusside** som regel mere pålidelige.
 
 På et RSS- eller Atom-feed tæller elementerne fra de seneste 24 timer som aktive hændelser: et RSS-element ud fra dets udgivelsesdato, et Atom-element ud fra dets opdateringsdato. Et element, der er dateret ud i fremtiden, tæller først fra sin dato.
 
@@ -178,7 +178,7 @@ Mens en igangværende planlagt vedligeholdelsesbegivenhed berører en ressource,
 :::steps
 ### Tilføj kriteriet
 
-Klik på **Tilføj kriterier** i monitorens kriterier. Giv det filteret **External Status Page Component Status**, **Lig med**, **Under vedligeholdelse**, og vælg din vedligeholdelsesstatus i **Skift overvågningsstatus til**.
+Klik på **Tilføj kriterier** i monitorens kriterier. Giv det filteret **Komponentstatus på ekstern statusside**, **Lig med**, **Under vedligeholdelse**, og vælg din vedligeholdelsesstatus i **Skift overvågningsstatus til**.
 
 ### Flyt det helt op
 

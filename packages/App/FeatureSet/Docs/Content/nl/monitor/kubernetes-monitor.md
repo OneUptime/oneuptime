@@ -99,7 +99,7 @@ Het tabblad **Custom Metric** biedt deze metrieken aan, gegroepeerd per resource
 
 ### Wat wordt geëvalueerd
 
-Deze monitors evalueren altijd de **Metric Value** – de waarde van de geconfigureerde metriekquery of formule. Het criteriaformulier heeft geen keuze voor het filtertype; het toont **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**.
+Deze monitors evalueren altijd de **Metriekwaarde** – de waarde van de geconfigureerde metriekquery of formule. Het criteriaformulier heeft geen keuze voor het filtertype; het toont **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**.
 
 ### Aggregatietypen
 
@@ -120,9 +120,9 @@ Anomaliedetectie ten opzichte van een baseline heeft geen drempel nodig. Kies ee
 
 | Voorwaarde | Komt overeen als de waarde |
 | --- | --- |
-| **Anomalously High** | Boven het verwachte bereik uitstijgt |
-| **Anomalously Low** | Onder het verwachte bereik zakt |
-| **Anomalous** | Het verwachte bereik in een van beide richtingen verlaat |
+| **Afwijkend hoog** | Boven het verwachte bereik uitstijgt |
+| **Afwijkend laag** | Onder het verwachte bereik zakt |
+| **Afwijkend** | Het verwachte bereik in een van beide richtingen verlaat |
 
 Elke meting wordt vergeleken met een baseline voor hetzelfde uur van de week, opgebouwd uit het **Baseline-venster** (standaard 14 dagen; 28, 60 of 90 dagen). **Gevoeligheid** bepaalt hoe breed het verwachte bereik is: **Laag (4σ — alleen flagrante afwijkingen)**, **Gemiddeld (3σ — aanbevolen)**, de standaard, of **Hoog (2σ — luidruchtiger, zeer stabiele services)**. Anomalievoorwaarden blijven in een "Learning"-status en geven geen waarschuwingen tot dat uur van de week twee weken geschiedenis heeft. Deze monitor filtert zijn query's op attributen, dus elke query, en elke reeks van een gegroepeerde query, wordt vergeleken met zijn eigen geschiedenis, zo ver terug als de metrics worden bewaard. Is dat minder dan twee weken, dan blijft een som, een telling of een query op een histogram voorgoed in die toestand, en wordt al het andere vergeleken met alle reeksen van de metric. Een percentiel van een histogram blijft altijd in die toestand.
 

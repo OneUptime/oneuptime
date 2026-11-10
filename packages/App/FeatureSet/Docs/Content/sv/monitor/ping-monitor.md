@@ -81,11 +81,11 @@ Kriterier avgör när värden räknas som online, försämrad eller offline, och
 
 | Filter | Villkor | Vad det kontrollerar |
 | --- | --- | --- |
-| **Is Online** | **Sant**, **Falskt** | Om minst en ekobegäran fick svar. |
+| **Är online** | **Sant**, **Falskt** | Om minst en ekobegäran fick svar. |
 | **Svarstid (i ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Svarens genomsnittliga tur och retur-tid. |
-| **Packet Loss (in %)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Andelen av de fem ekobegäranden som inte fick svar. |
-| **Jitter (in ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Standardavvikelsen för tur och retur-tiderna över paketen i en kontroll. |
-| **Is Request Timeout** | **Sant**, **Falskt** | Om pingen nådde tidsgränsen vid varje försök. |
+| **Paketförlust (i %)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Andelen av de fem ekobegäranden som inte fick svar. |
+| **Jitter (i ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Standardavvikelsen för tur och retur-tiderna över paketen i en kontroll. |
+| **Är begärandetimeout** | **Sant**, **Falskt** | Om pingen nådde tidsgränsen vid varje försök. |
 
 Med två eller fler filter avgör **Matchningsvillkor** om **Alla** måste matcha eller om **Valfri** av dem räcker. Ett kriteriums **Åtgärder** avgör vad det gör: ändrar monitorns status, skapar ett larm, deklarerar en incident eller flera av dessa.
 
@@ -100,17 +100,17 @@ Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad
 
 ### Utvärdering över en tidsperiod
 
-**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **Is Online**, **Svarstid (i ms)**, **Packet Loss (in %)**, **Jitter (in ms)** och **Is Request Timeout**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för bara den senaste: välj en aggregering under **Utvärdera** och ett fönster från 2 till 60 minuter under **Under de senaste (i minuter)**.
+**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **Är online**, **Svarstid (i ms)**, **Paketförlust (i %)**, **Jitter (i ms)** och **Är begärandetimeout**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för bara den senaste: välj en aggregering under **Utvärdera** och ett fönster från 2 till 60 minuter under **Under de senaste (i minuter)**.
 
 | Aggregering | Matchar när |
 | --- | --- |
-| **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value** | Det värdet över fönstret uppfyller villkoret. Bara numeriska filter. |
-| **All Values** | Varje kontroll i fönstret uppfyller villkoret. |
-| **Any Value** | Minst en kontroll i fönstret uppfyller villkoret. |
+| **Genomsnitt**, **Summa**, **Maxvärde**, **Minvärde** | Det värdet över fönstret uppfyller villkoret. Bara numeriska filter. |
+| **Alla värden** | Varje kontroll i fönstret uppfyller villkoret. |
+| **Minst ett värde** | Minst en kontroll i fönstret uppfyller villkoret. |
 
-**All Values** matchar först när fönstret verkligen täcks av data. En monitor som just skapats, eller en vars kontroller slutade registreras, har inte tillräcklig historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Any Value** är inställningen för "säg till direkt när en enda kontroll går över gränsen" och utlöses fortfarande omedelbart.
+**Alla värden** matchar först när fönstret verkligen täcks av data. En monitor som just skapats, eller en vars kontroller slutade registreras, har inte tillräcklig historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Minst ett värde** är inställningen för "säg till direkt när en enda kontroll går över gränsen" och utlöses fortfarande omedelbart.
 
-**Is Request Timeout** är inte ett tal som OneUptime registrerar. OneUptime registrerar därför om filtret matchade vid varje kontroll, och bedömer fönstret utifrån den registreringen med **All Values** eller **Any Value**.
+**Är begärandetimeout** är inte ett tal som OneUptime registrerar. OneUptime registrerar därför om filtret matchade vid varje kontroll, och bedömer fönstret utifrån den registreringen med **Alla värden** eller **Minst ett värde**.
 
 Gör fönstret längre än övervakningsintervallet så att det rymmer flera kontroller: en monitor som kontrolleras var 5:e minut har bara en kontroll i varje fönster på 5 minuter.
 
@@ -126,12 +126,12 @@ Gör fönstret längre än övervakningsintervallet så att det rymmer flera kon
 
 | Mål | Filter | Villkor | Värde |
 | --- | --- | --- | --- |
-| Offline när värden inte kan nås | **Is Online** | **Falskt** | — |
+| Offline när värden inte kan nås | **Är online** | **Falskt** | — |
 | Larma när latensen är hög | **Svarstid (i ms)** | **Större än** | `200` |
-| Markera värden som försämrad på en länk med förluster | **Packet Loss (in %)** | **Större än** | `20` |
-| Larma vid en instabil anslutning | **Jitter (in ms)** | **Större än** | `30` |
+| Markera värden som försämrad på en länk med förluster | **Paketförlust (i %)** | **Större än** | `20` |
+| Larma vid en instabil anslutning | **Jitter (i ms)** | **Större än** | `30` |
 
-För att bara larma när latensen förblir hög slår du på **Utvärdera dessa kriterier över en tidsperiod** för svarstidsfiltret och väljer **All Values** över **5** minuter.
+För att bara larma när latensen förblir hög slår du på **Utvärdera dessa kriterier över en tidsperiod** för svarstidsfiltret och väljer **Alla värden** över **5** minuter.
 
 ## Felsökning
 

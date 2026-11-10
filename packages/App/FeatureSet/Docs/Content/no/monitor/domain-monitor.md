@@ -104,15 +104,15 @@ Kriterier avgjør når domenet regnes som i orden eller feil, og om det erklære
 
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
-| **Is Online** | **Sann**, **Usann** | Om selve registreringsoppslaget lyktes. |
-| **Is Request Timeout** | **Sann**, **Usann** | Om oppslaget fikk tidsavbrudd ved hvert forsøk. |
-| **Domain Expires In Days** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Dager til registreringen utløper, rundet opp til en hel dag. |
-| **Domain Is Expired** | **Sann**, **Usann** | Om utløpsdatoen er passert. |
-| **Domain Registrar** | **Inneholder**, **Inneholder ikke**, **Starter med**, **Slutter med**, **Lik**, **Ikke lik** | Registrarens navn. |
-| **Domain Name Server** | **Inneholder**, **Inneholder ikke**, **Starter med**, **Slutter med**, **Lik**, **Ikke lik** | Domenets navneservere. Samsvarer når én av dem samsvarer. |
-| **Domain Status Code** | **Inneholder**, **Inneholder ikke**, **Starter med**, **Slutter med**, **Lik**, **Ikke lik** | Domenets EPP-statuskoder. Samsvarer når én av dem samsvarer. |
+| **Er tilkoblet** | **Sann**, **Usann** | Om selve registreringsoppslaget lyktes. |
+| **Er tidsavbrudd for forespørsel** | **Sann**, **Usann** | Om oppslaget fikk tidsavbrudd ved hvert forsøk. |
+| **Dager til domenet utløper** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Dager til registreringen utløper, rundet opp til en hel dag. |
+| **Domenet er utløpt** | **Sann**, **Usann** | Om utløpsdatoen er passert. |
+| **Domeneregistrar** | **Inneholder**, **Inneholder ikke**, **Starter med**, **Slutter med**, **Lik**, **Ikke lik** | Registrarens navn. |
+| **Navneserver for domenet** | **Inneholder**, **Inneholder ikke**, **Starter med**, **Slutter med**, **Lik**, **Ikke lik** | Domenets navneservere. Samsvarer når én av dem samsvarer. |
+| **Statuskode for domenet** | **Inneholder**, **Inneholder ikke**, **Starter med**, **Slutter med**, **Lik**, **Ikke lik** | Domenets EPP-statuskoder. Samsvarer når én av dem samsvarer. |
 
-Statuskoder normaliseres til EPP-navnene sine (`clientTransferProhibited`) uansett hvilken protokoll som svarte, så et kriterium fortsetter å samsvare når **Auto** bytter mellom RDAP og WHOIS. Registrarers _navn_ er det den svarende tjenesten publiserer, og kan variere litt mellom de to protokollene, så foretrekk **Inneholder** fremfor **Lik** i et kriterium med **Domain Registrar**.
+Statuskoder normaliseres til EPP-navnene sine (`clientTransferProhibited`) uansett hvilken protokoll som svarte, så et kriterium fortsetter å samsvare når **Auto** bytter mellom RDAP og WHOIS. Registrarers _navn_ er det den svarende tjenesten publiserer, og kan variere litt mellom de to protokollene, så foretrekk **Inneholder** fremfor **Lik** i et kriterium med **Domeneregistrar**.
 
 Datoer normaliseres til ISO 8601. En dato som et register publiserer i en form som ikke kan tolkes, utelates i stedet for å lagres, så et utløpskriterium ikke kan avgjøre noe og ikke samsvarer, i stedet for å svare "ikke utløpt" i det stille for alltid.
 
@@ -130,13 +130,13 @@ Varselet "utløper snart" er et varsel, ikke en hendelse: det vises ikke på sta
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Derfor står "utløper snart" over "er ikke utløpt": et domene som er i ferd med å utløpe, er ennå ikke utløpt, så det ville samsvare med begge.
 
-For å bli varslet tidligere endrer du verdien til filteret **Domain Expires In Days** i kriteriet "utløper snart", for eksempel til `60`. For å få noen tilkalt i stedet åpner du kriteriets **Handlinger**: slå på **Når filtre samsvarer, erklær en hendelse.**, eller behold varselet og legg til en vaktretningslinje på det under **Vaktretningslinjer**.
+For å bli varslet tidligere endrer du verdien til filteret **Dager til domenet utløper** i kriteriet "utløper snart", for eksempel til `60`. For å få noen tilkalt i stedet åpner du kriteriets **Handlinger**: slå på **Når filtre samsvarer, erklær en hendelse.**, eller behold varselet og legg til en vaktretningslinje på det under **Vaktretningslinjer**.
 
 :::details Legg til varselet på en monitor som ble opprettet før det fantes
 Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke noe kriterium "utløper snart". Slik legger du det til:
 
 1. Åpne **Konfigurasjon → Kriterier** på monitoren, og klikk på **Rediger overvåkingskriterier**.
-2. Klikk på **Legg til kriterier**. Sett filteret til **Domain Is Expired** / **Usann**, klikk på **Legg til filter**, og sett det andre til **Domain Expires In Days** / **Mindre enn eller lik** / `30`. La **Samsvarsbetingelse** stå på **Alle** (den vises under filtrene så snart det er to).
+2. Klikk på **Legg til kriterier**. Sett filteret til **Domenet er utløpt** / **Usann**, klikk på **Legg til filter**, og sett det andre til **Dager til domenet utløper** / **Mindre enn eller lik** / `30`. La **Samsvarsbetingelse** stå på **Alle** (den vises under filtrene så snart det er to).
 3. Slå på **Når filtre samsvarer, opprett et varsel.** under **Handlinger**, og la **Når filtre samsvarer, endre overvåkerstatus.** være slått av, så det oppretter et varsel og ikke endrer monitorens status.
 4. Dra det nye kriteriet over kriteriet som merker monitoren som tilkoblet, og lagre så.
 :::
@@ -145,20 +145,20 @@ Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke no
 
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
-| Varsle når domenet utløper innen 30 dager (et standardkriterium) | **Domain Expires In Days** | **Mindre enn eller lik** | `30` |
-| Frakoblet når domenet er utløpt | **Domain Is Expired** | **Sann** | — |
-| Frakoblet når registreringen ikke kan leses | **Is Online** | **Usann** | — |
-| Varsle når navneserverne endres | **Domain Name Server** | **Inneholder ikke** | `ns1.example.com` |
-| Varsle når domenet er låst opp for overføring | **Domain Status Code** | **Inneholder ikke** | `clientTransferProhibited` |
+| Varsle når domenet utløper innen 30 dager (et standardkriterium) | **Dager til domenet utløper** | **Mindre enn eller lik** | `30` |
+| Frakoblet når domenet er utløpt | **Domenet er utløpt** | **Sann** | — |
+| Frakoblet når registreringen ikke kan leses | **Er tilkoblet** | **Usann** | — |
+| Varsle når navneserverne endres | **Navneserver for domenet** | **Inneholder ikke** | `ns1.example.com` |
+| Varsle når domenet er låst opp for overføring | **Statuskode for domenet** | **Inneholder ikke** | `clientTransferProhibited` |
 
-**Domain Name Server** og **Domain Status Code** samsvarer når _hvilken som helst_ enkeltverdi samsvarer, så **Inneholder ikke** samsvarer så snart én navneserver, eller én statuskode, ikke inneholder teksten.
+**Navneserver for domenet** og **Statuskode for domenet** samsvarer når _hvilken som helst_ enkeltverdi samsvarer, så **Inneholder ikke** samsvarer så snart én navneserver, eller én statuskode, ikke inneholder teksten.
 
 ## Beste praksis
 
 1. **Gi deg selv tid til å fornye** — Standardvarselet kommer 30 dager før utløp. Hvis fornyelsen krever godkjenninger eller en betaling som tar lenger tid, øker du det til 60 dager.
-2. **Dekk mislykkede oppslag** — Ta med et filter **Is Online** / **Usann** i frakoblet-kriteriet ditt, så en registrering som ikke kan leses, ikke forveksles med en frisk. Nye monitorer har det i standardkriteriene sine; en monitor som ble opprettet før det kom, må få det lagt til for hånd. For å komme gjennom en WHOIS-server som av og til begrenser sonden, krysser du av for **Evaluer disse kriteriene over en tidsperiode** under det filteret og velger **All Values**: domenet går da først frakoblet når hvert oppslag i vinduet har feilet.
+2. **Dekk mislykkede oppslag** — Ta med et filter **Er tilkoblet** / **Usann** i frakoblet-kriteriet ditt, så en registrering som ikke kan leses, ikke forveksles med en frisk. Nye monitorer har det i standardkriteriene sine; en monitor som ble opprettet før det kom, må få det lagt til for hånd. For å komme gjennom en WHOIS-server som av og til begrenser sonden, krysser du av for **Evaluer disse kriteriene over en tidsperiode** under det filteret og velger **Alle verdier**: domenet går da først frakoblet når hvert oppslag i vinduet har feilet.
 3. **Overvåk alle viktige domener** — Ta med primærdomener, separat registrerte underdomener og alle domener som brukes til e-post eller API-er.
-4. **Følg med på registrarbytter** — Legg til et kriterium med **Domain Registrar** / **Inneholder ikke** / navnet på registraren din, for å fange opp en uautorisert overføring.
+4. **Følg med på registrarbytter** — Legg til et kriterium med **Domeneregistrar** / **Inneholder ikke** / navnet på registraren din, for å fange opp en uautorisert overføring.
 
 ## Feilsøking
 
@@ -179,7 +179,7 @@ RDAP går gjennom sondens proxyinnstillinger, WHOIS gjør det ikke. Tillat utgå
 :::
 
 :::details Utløpsdatoen er tom, og utløpskriteriene utløses aldri
-Registeret publiserer ingen utløpsdato, eller en i en form som ikke kan tolkes. Utløpskriterier kan ikke avgjøre noe uten en dato, så de holder seg stille. **Is Online** forteller deg fortsatt om posten kan leses.
+Registeret publiserer ingen utløpsdato, eller en i en form som ikke kan tolkes. Utløpskriterier kan ikke avgjøre noe uten en dato, så de holder seg stille. **Er tilkoblet** forteller deg fortsatt om posten kan leses.
 :::
 
 ## Neste steg

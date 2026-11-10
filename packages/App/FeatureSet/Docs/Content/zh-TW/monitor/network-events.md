@@ -246,7 +246,7 @@ syslog 可能在傳送它的裝置被新增到 OneUptime 之前到達。在你�
 
 - **透過 TLS 的 syslog**（RFC 5425）。探測器接收明文的 UDP 和 TCP；請將裝置與探測器之間的路徑保持在你信任的網路內。
 - **在專案之間共用剖析器。** 管道目前還不能匯出和匯入。
-- **來自四種標準 Trap 之外的 SNMP Trap 的事件。** 廠商自有的 Trap 會儲存為日誌，可使用 **SNMP Trap Received (Trap OID)** 條件在[網路設備監控](/docs/monitor/network-device-monitor)中對其設定警示。
+- **來自四種標準 Trap 之外的 SNMP Trap 的事件。** 廠商自有的 Trap 會儲存為日誌，可使用 **收到的 SNMP Trap（Trap OID）** 條件在[網路設備監控](/docs/monitor/network-device-monitor)中對其設定警示。
 - **Cambium cnMatrix 交換器、Aruba 行動控制器和 CEF 模式下的 FortiGate。** 它們的訊息會被儲存並可搜尋；目前還不會從中讀取事件。
 - **即時追蹤。** 事件頁面顯示的是開啟時已到達的內容；請使用頁面的重新整理按鈕，或使用**日誌**的即時追蹤。
 

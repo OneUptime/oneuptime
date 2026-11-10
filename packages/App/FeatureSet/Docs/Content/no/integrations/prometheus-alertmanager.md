@@ -45,7 +45,7 @@ En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) gir deg en
 :::steps
 ### Opprett monitoren
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Incoming Request** under **Monitortype**, gi den navnet `Alertmanager`, og klikk på **Neste**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Innkommende forespørsel** under **Monitortype**, gi den navnet `Alertmanager`, og klikk på **Neste**.
 
 ### Erklær en hendelse for hvert utløst varsel
 
@@ -222,7 +222,7 @@ Ingen av veiene merker det når Prometheus eller Alertmanager slutter å virke: 
 :::steps
 ### Opprett watchdog-monitoren
 
-Opprett en andre Incoming Request-monitor, kalt `Alertmanager watchdog`. Sett filteret for det første kriteriet, det som markerer monitoren som frakoblet, til **Incoming Request**, **Not Recieved In Minutes**, `10`, og filteret for det andre kriteriet til **Incoming Request**, **Recieved In Minutes**, `10`. Dashbordet staver begge slik. Kopier **Heartbeat URL** for den nye monitoren.
+Opprett en andre Incoming Request-monitor, kalt `Alertmanager watchdog`. Sett filteret for det første kriteriet, det som markerer monitoren som frakoblet, til **Innkommende forespørsel**, **Ikke mottatt innen (minutter)**, `10`, og filteret for det andre kriteriet til **Innkommende forespørsel**, **Mottatt innen (minutter)**, `10`. Dashbordet staver begge slik. Kopier **Heartbeat URL** for den nye monitoren.
 
 ### Send watchdog-varselet dit
 

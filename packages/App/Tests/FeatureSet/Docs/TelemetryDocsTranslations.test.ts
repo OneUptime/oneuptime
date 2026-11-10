@@ -141,10 +141,12 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     ".NET",
   ],
   [RECORDING_RULES]: [
-    // The editor's aggregation option, which has no locale key.
+    /*
+     * The editor's aggregation option, which has no locale key. A metrics
+     * monitor's aggregation strategy, All Values, left this list on
+     * 2026-11-10: #6575 keyed it in every language.
+     */
     "Count of logs",
-    // A metrics monitor's aggregation strategy.
-    "All Values",
   ],
 };
 

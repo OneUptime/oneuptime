@@ -1,6 +1,6 @@
 # Expressões JavaScript
 
-Um filtro de critério **JavaScript Expression** decide se o critério de um monitor é atendido com uma linha de JavaScript em vez de uma comparação fixa. Use-o quando os filtros prontos não conseguem expressar a condição — um campo dentro de uma resposta JSON, dois valores comparados entre si, ou várias verificações combinadas com `&&` e `||`.
+Um filtro de critério **Expressão JavaScript** decide se o critério de um monitor é atendido com uma linha de JavaScript em vez de uma comparação fixa. Use-o quando os filtros prontos não conseguem expressar a condição — um campo dentro de uma resposta JSON, dois valores comparados entre si, ou várias verificações combinadas com `&&` e `||`.
 
 :::cards
 - [Como funciona](#como-funciona): Os marcadores são preenchidos e depois a expressão é executada.
@@ -33,7 +33,7 @@ No monitor, abra **Configuração → Critérios** e clique em **Editar critéri
 
 ### Adicionar um filtro
 
-Em **Filtros**, clique em **Adicionar filtro** e defina o **Tipo de filtro** dele como **JavaScript Expression**. A **Condição do filtro** é **Evaluates To True**.
+Em **Filtros**, clique em **Adicionar filtro** e defina o **Tipo de filtro** dele como **Expressão JavaScript**. A **Condição do filtro** é **Resulta em verdadeiro**.
 
 ### Escrever a expressão
 

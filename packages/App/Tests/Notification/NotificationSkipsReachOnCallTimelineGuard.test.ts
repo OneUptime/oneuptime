@@ -211,3 +211,66 @@ describe("the SMS sender", () => {
     expect(send).toMatch(SEND_SMS_HANDS_THE_REASON_ON);
   });
 });
+
+describe("the reader, on a sender's shapes", () => {
+  function returnsOf(body: string): Array<EarlyReturn> {
+    const source: ts.SourceFile = ts.createSourceFile(
+      "Sender.ts",
+      `class Sender {\n  private static async send(): Promise<void> {\n${body}\n    await API.post<JSONObject>({});\n  }\n}\n`,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
+    );
+
+    return earlyReturnsOf(
+      source,
+      findMethod(source, "send"),
+      "API.post<JSONObject>(",
+    );
+  }
+
+  const timeline: string =
+    "await UserOnCallLogTimelineService.markNotSent({ userOnCallLogTimelineId: id, reason: why });";
+
+  test("takes a return right after the timeline's markNotSent", () => {
+    expect(
+      returnsOf(`if (off) {\n${timeline}\nreturn;\n}`).map(
+        (earlyReturn: EarlyReturn): boolean => {
+          return earlyReturn.isAfterMarkNotSent;
+        },
+      ),
+    ).toEqual([true]);
+  });
+
+  test("takes the dispatch's not-sent count between the timeline's markNotSent and the return", () => {
+    expect(
+      returnsOf(
+        `if (off) {\n${timeline}\ndispatch.markNotSent();\nreturn;\n}`,
+      ).map((earlyReturn: EarlyReturn): boolean => {
+        return earlyReturn.isAfterMarkNotSent;
+      }),
+    ).toEqual([true]);
+  });
+
+  test("does not take the dispatch's count alone, or anything else between", () => {
+    expect(
+      returnsOf(
+        [
+          "if (off) {\ndispatch.markNotSent();\nreturn;\n}",
+          `if (gone) {\n${timeline}\nlogger.error(why);\nreturn;\n}`,
+          "if (poor) {\nreturn;\n}",
+        ].join("\n"),
+      ).map((earlyReturn: EarlyReturn): boolean => {
+        return earlyReturn.isAfterMarkNotSent;
+      }),
+    ).toEqual([false, false, false]);
+  });
+
+  test("leaves out the returns of callbacks, which are not the sender's own", () => {
+    expect(
+      returnsOf(
+        "items.forEach((item: string): void => {\nif (!item) {\nreturn;\n}\n});",
+      ),
+    ).toEqual([]);
+  });
+});

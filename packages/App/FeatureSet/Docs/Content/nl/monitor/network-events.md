@@ -246,7 +246,7 @@ Een pipeline hoort bij zijn project. Om er een in een ander project te gebruiken
 
 - **Syslog over TLS** (RFC 5425). De probe neemt gewone UDP en TCP aan; houd het pad tussen de apparaten en de probe op een netwerk dat je vertrouwt.
 - **Parsers delen tussen projecten.** Een pipeline kan nog niet geëxporteerd en geïmporteerd worden.
-- **Gebeurtenissen uit andere SNMP-traps dan de vier standaardtraps.** De eigen traps van een leverancier worden als logs opgeslagen, en waarschuwingen daarop maak je met het criterium **SNMP Trap Received (Trap OID)** van de [netwerkapparaat-monitor](/docs/monitor/network-device-monitor).
+- **Gebeurtenissen uit andere SNMP-traps dan de vier standaardtraps.** De eigen traps van een leverancier worden als logs opgeslagen, en waarschuwingen daarop maak je met het criterium **SNMP-trap ontvangen (trap-OID)** van de [netwerkapparaat-monitor](/docs/monitor/network-device-monitor).
 - **Cambium cnMatrix-switches, Aruba mobility controllers en FortiGate in CEF-modus.** Hun berichten worden opgeslagen en zijn doorzoekbaar; er worden nog geen gebeurtenissen uit gelezen.
 - **Een live weergave.** De Gebeurtenissen-pagina toont wat er binnen was toen ze geopend werd; gebruik haar vernieuwknop, of de live weergave van **Logboeken**.
 

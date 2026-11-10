@@ -63,14 +63,15 @@ import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
  *     screen shows the English, never the Edit template. FLAT_LOOKUP lists
  *     them with the source line that draws each, and the translations name
  *     them as the flat lookup draws them.
- *   - Criteria filters and the anomaly conditions (Log Count, Anomalously
- *     High), several dropdown options (Past 1 Minute, Treat As Zero, Any
- *     Value) and two dialog titles built from template literals have no
- *     locale key at all: every language shows them in English
- *     (SHOWN_IN_ENGLISH). The threshold conditions (Greater Than, Equal To)
- *     gained theirs in adc8421a1b: they are labels now, drawn like any
- *     other, and a condition written out with its value ("**Equal To 0**")
- *     is drawn with it (CONDITIONS_WITH_VALUES).
+ *   - OpenTelemetry's span status codes and two dialog titles built from
+ *     template literals have no locale key at all: every language shows
+ *     them in English (SHOWN_IN_ENGLISH). The threshold conditions (Greater
+ *     Than, Equal To) gained theirs in adc8421a1b, and the criteria filters
+ *     (Log Count, Metric Value, Exception Count), the anomaly conditions
+ *     (Anomalously High) and the window aggregates (Any Value) theirs in
+ *     #6575 (2026-11-10): they are labels now, drawn like any other, and a
+ *     condition written out with its value ("**Equal To 0**") is drawn with
+ *     it (CONDITIONS_WITH_VALUES).
  *   - Plan names and permission titles stay in English, as on the workflow
  *     and runbook pages (KEPT_IN_ENGLISH): the plans are product names, and
  *     the permissions are what the API, Terraform and the team pages call
@@ -136,54 +137,26 @@ const TELEMETRY_MONITOR_PAGES: Array<string> = [
   PROFILES_MONITOR,
 ];
 
-// The anomaly conditions of a log, span or exception count and a metric value.
-const ANOMALY_CONDITIONS: Array<string> = [
-  "Anomalously High",
-  "Anomalously Low",
-  "Anomalous",
-];
-
 /*
  * Bold names every language's Dashboard shows in English, because its
  * locale has no key for them, by page. A translation keeps each one bold and
  * in English, so the reader finds it as the screen shows it.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
-  [LOGS_MONITOR]: [
-    // The criteria filter (CheckOn) and its anomaly conditions (FilterType).
-    "Log Count",
-    ...ANOMALY_CONDITIONS,
-  ],
-  [METRICS_MONITOR]: [
-    /*
-     * When to alert words its windows, measures and no-data choices for
-     * the locales (TelemetryRuleText); the criteria filter and the
-     * aggregation a monitor made through the API starts with have no key.
-     */
-    "Metric Value",
-    ...ANOMALY_CONDITIONS,
-    "Any Value",
-  ],
+  /*
+   * The logs, metrics and exceptions monitors have none since #6575
+   * (2026-11-10): their criteria filters (Log Count, Metric Value, Exception
+   * Count, New Exceptions), anomaly conditions (Anomalously High) and window
+   * aggregates (Any Value) are keyed in every language, so every criteria
+   * form draws them in its own words. Profiles had none before: its
+   * criteria's labels (Profile Count, Function Share (in %)) are spelled out
+   * for the locales (PROFILE_CHECK_ON_LABELS).
+   */
   [TRACES_MONITOR]: [
     // OpenTelemetry's span status codes, as TracesMonitorSpanStatusDocs keeps them.
     "ERROR",
     "UNSET",
-    "Span Count",
-    ...ANOMALY_CONDITIONS,
   ],
-  // The criteria's filter types, as the Dashboard draws them in English.
-  [EXCEPTIONS_MONITOR]: [
-    "Exception Count",
-    "New Exceptions",
-    "Regressed Exceptions",
-    "Exception Increase (in %)",
-    ...ANOMALY_CONDITIONS,
-  ],
-  /*
-   * Profiles has none: its criteria's labels (Profile Count, Function Share
-   * (in %)) are spelled out for the locales (PROFILE_CHECK_ON_LABELS), so
-   * every language's criteria form draws them in its own words.
-   */
   [RESOURCES_AND_GROUPS]: [
     // Titles built from a template literal, which no lookup can find.
     "Add a monitor to {group}",

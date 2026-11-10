@@ -195,7 +195,7 @@ Stuur een e-mail via een SMTP-server die je in het blok invult. Het blok heet **
 | **From Email**                          | De afzender, bijvoorbeeld `Alerts <alerts@company.com>`.                                              |
 | **To Email**                            | Het adres van de ontvanger. Scheid meerdere adressen met komma's of puntkomma's.                      |
 | **Subject**                             | De onderwerpregel.                                                                                    |
-| **Email Body**                          | Het bericht, verstuurd als HTML.                                                                      |
+| **E-mailtekst**                          | Het bericht, verstuurd als HTML.                                                                      |
 | **SMTP HOST** en **SMTP Port**          | De mailserver om mee te verbinden.                                                                    |
 | **SMTP Username** en **SMTP Password**  | Optioneel. Vul beide in of geen van beide.                                                            |
 | **Use Implicit TLS**                    | Zet aan voor impliciete TLS, meestal op poort 465. Laat uit voor STARTTLS, meestal op poort 587.     |

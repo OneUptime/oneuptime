@@ -49,11 +49,11 @@ Andate in **Monitor** e fate clic su **Crea monitor**.
 
 ### Scegliere Incoming Request
 
-In **Tipo di monitor**, scegliete **Incoming Request**: è uno dei tipi comuni in alto. Inserite un **Nome**, poi fate clic su **Avanti**.
+In **Tipo di monitor**, scegliete **Richiesta in arrivo**: è uno dei tipi comuni in alto. Inserite un **Nome**, poi fate clic su **Avanti**.
 
 ### Rivedere i criteri
 
-Il passaggio **Criteri** parte con [i criteri predefiniti](#cosa-ottenete-subito). Per un heartbeat, fate clic su **Aggiungi criteri** e date al nuovo criterio un filtro **Incoming Request** / **Not Recieved In Minutes** che porti lo stato a offline e dichiari un incidente, con **Risoluzione automatica dell'incidente** attiva. Poi trascinatelo in cima all'elenco: vedete [Criteri di esempio](#criteri-di-esempio) per capire perché.
+Il passaggio **Criteri** parte con [i criteri predefiniti](#cosa-ottenete-subito). Per un heartbeat, fate clic su **Aggiungi criteri** e date al nuovo criterio un filtro **Richiesta in arrivo** / **Non ricevuto in minuti** che porti lo stato a offline e dichiari un incidente, con **Risoluzione automatica dell'incidente** attiva. Poi trascinatelo in cima all'elenco: vedete [Criteri di esempio](#criteri-di-esempio) per capire perché.
 
 ### Creare il monitor
 
@@ -205,7 +205,7 @@ Un nuovo monitor di richieste in arrivo viene creato con due criteri che leggono
 Sostituite il valore con ciò che il vostro mittente emette davvero (`"status":"firing"`, `FAILED` e così via): la corrispondenza è una ricerca di sottostringa sensibile a maiuscole e minuscole su tutto il corpo, chiavi comprese, quindi anche `{"error":null}` corrisponde a `error`.
 
 > [!NOTE]
-> Questi criteri predefiniti **non** sono un interruttore a uomo morto: niente qui scatta quando le richieste smettono di arrivare. Se volete essere avvisati del silenzio, aggiungete un criterio **Incoming Request** / **Not Recieved In Minutes** come descritto più sotto.
+> Questi criteri predefiniti **non** sono un interruttore a uomo morto: niente qui scatta quando le richieste smettono di arrivare. Se volete essere avvisati del silenzio, aggiungete un criterio **Richiesta in arrivo** / **Non ricevuto in minuti** come descritto più sotto.
 
 ### Tipi di filtro disponibili
 
@@ -223,9 +223,9 @@ Ogni tipo di filtro offre le proprie condizioni:
 
 | Tipo di filtro | Condizioni |
 | --- | --- |
-| **Incoming Request** | **Recieved In Minutes**: è stata ricevuta una richiesta entro il numero di minuti indicato. **Not Recieved In Minutes**: non è stata ricevuta alcuna richiesta entro il numero di minuti indicato. (La dashboard le scrive così.) |
-| **Corpo della Richiesta**, **Request Header**, **Request Header Value** | **Contiene** e **Non contiene** |
-| **JavaScript Expression** | **Evaluates To True** |
+| **Richiesta in arrivo** | **Ricevuto in minuti**: è stata ricevuta una richiesta entro il numero di minuti indicato. **Non ricevuto in minuti**: non è stata ricevuta alcuna richiesta entro il numero di minuti indicato. (La dashboard le scrive così.) |
+| **Corpo della Richiesta**, **Intestazione della richiesta**, **Valore dell'intestazione della richiesta** | **Contiene** e **Non contiene** |
+| **Espressione JavaScript** | **Risulta vero** |
 
 > [!NOTE]
 > Nomi e valori delle intestazioni vengono confrontati in minuscolo, con il nome o il valore intero, non con una sottostringa: `application/json` non corrisponde a `application/json; charset=utf-8`. Solo **Corpo della Richiesta** cerca sottostringhe. Vengono salvate anche le intestazioni aggiunte dal vostro proxy o dal bilanciatore di carico di OneUptime (`x-forwarded-for`, `x-real-ip`).
@@ -239,7 +239,7 @@ I corpi oggetto vengono confrontati come JSON compatto senza spazi, quindi un fi
 | Campo | Valore |
 | --- | --- |
 | **Tipo di filtro** | Incoming Request |
-| **Condizione del filtro** | Not Recieved In Minutes |
+| **Condizione del filtro** | Non ricevuto in minuti |
 | **Valore** | `10` |
 
 #### Segnare degradato in base al contenuto del corpo della richiesta
@@ -254,9 +254,9 @@ I corpi oggetto vengono confrontati come JSON compatto senza spazi, quindi un fi
 > Mettete l'interruttore a uomo morto **sopra** i criteri predefiniti. I criteri vengono controllati dall'alto, e decide il primo che corrisponde. Il controllo in background rilegge l'ultima richiesta, quindi il criterio online predefinito ("Corpo della Richiesta Non contiene `error`") continua a corrispondervi, e un criterio sotto di esso non arriva mai al suo turno. **Aggiungi criteri** aggiunge un criterio in fondo: trascinatelo in alto.
 
 > [!WARNING]
-> Un monitor viene rivalutato in background solo se almeno uno dei suoi criteri controlla **Incoming Request**. Un monitor i cui criteri controllano solo il corpo della richiesta, Request Header o un'espressione JavaScript viene valutato quando arriva una richiesta e in nessun altro momento, quindi non può mai andare offline da solo. Se volete un allarme per heartbeat mancante, vi serve un criterio **Incoming Request**.
+> Un monitor viene rivalutato in background solo se almeno uno dei suoi criteri controlla **Richiesta in arrivo**. Un monitor i cui criteri controllano solo il corpo della richiesta, Request Header o un'espressione JavaScript viene valutato quando arriva una richiesta e in nessun altro momento, quindi non può mai andare offline da solo. Se volete un allarme per heartbeat mancante, vi serve un criterio **Richiesta in arrivo**.
 
-Il controllo in background conta minuti interi e scatta quando è passato *più* del valore: "Not Recieved In Minutes: 10" scatta circa 11 minuti dopo l'ultima richiesta (il controllo gira ogni 30 secondi). Un monitor che non ha mai ricevuto una richiesta viene trattato come se la sua ora di creazione fosse l'ultima richiesta, quindi lo stesso criterio su un monitor appena creato scatta circa 11 minuti dopo la creazione, anche se il mittente non è mai stato collegato. Contano solo i minuti in cui OneUptime stava ricevendo: i minuti in cui OneUptime stesso si riavvia, viene aggiornato o recupera il ritardo non contano, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
+Il controllo in background conta minuti interi e scatta quando è passato *più* del valore: "Non ricevuto in minuti: 10" scatta circa 11 minuti dopo l'ultima richiesta (il controllo gira ogni 30 secondi). Un monitor che non ha mai ricevuto una richiesta viene trattato come se la sua ora di creazione fosse l'ultima richiesta, quindi lo stesso criterio su un monitor appena creato scatta circa 11 minuti dopo la creazione, anche se il mittente non è mai stato collegato. Contano solo i minuti in cui OneUptime stava ricevendo: i minuti in cui OneUptime stesso si riavvia, viene aggiornato o recupera il ritardo non contano, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Ricevere avvisi da un altro sistema
 
@@ -347,10 +347,10 @@ Per una configurazione completa di Alertmanager, consultate [Prometheus Alertman
 
 ## Buone pratiche
 
-1. **Impostate bene la finestra di tempo**: se il vostro cron job gira ogni 5 minuti, impostate la soglia "Not Recieved In Minutes" a 10–15 minuti per assorbire ritardi occasionali, e mettete quel criterio per primo.
+1. **Impostate bene la finestra di tempo**: se il vostro cron job gira ogni 5 minuti, impostate la soglia "Non ricevuto in minuti" a 10–15 minuti per assorbire ritardi occasionali, e mettete quel criterio per primo.
 2. **Includete dati significativi**: inviate informazioni di stato nel corpo della richiesta, così potete impostare criteri dettagliati.
 3. **Usate POST con `Content-Type: application/json`**: tutto ciò che legge dentro il corpo dipende da questo.
-4. **Non mescolate i due compiti su un monitor**: un monitor che riceve avvisi guidati dagli eventi non ha una cadenza regolare, quindi un criterio "Not Recieved In Minutes" su di esso oscillerebbe. Usate un monitor separato per l'interruttore a uomo morto.
+4. **Non mescolate i due compiti su un monitor**: un monitor che riceve avvisi guidati dagli eventi non ha una cadenza regolare, quindi un criterio "Non ricevuto in minuti" su di esso oscillerebbe. Usate un monitor separato per l'interruttore a uomo morto.
 5. **Monitorate il monitor**: assicuratevi che il servizio che invia le richieste gestisca bene gli errori, così le richieste fallite non passano inosservate.
 
 ## Risoluzione dei problemi
@@ -360,7 +360,7 @@ Il `200` viene inviato prima che la richiesta sia convalidata, quindi non dimost
 :::
 
 :::details Il monitor non va mai offline quando gli heartbeat si fermano
-Solo un criterio **Incoming Request** (**Not Recieved In Minutes**) può accorgersi del silenzio. Aggiungetene uno se manca, e trascinatelo sopra i criteri predefiniti: il criterio online predefinito corrisponde all'ultima richiesta a ogni controllo in background, e decide il primo criterio che corrisponde.
+Solo un criterio **Richiesta in arrivo** (**Non ricevuto in minuti**) può accorgersi del silenzio. Aggiungetene uno se manca, e trascinatelo sopra i criteri predefiniti: il criterio online predefinito corrisponde all'ultima richiesta a ogni controllo in background, e decide il primo criterio che corrisponde.
 :::
 
 :::details Un filtro Corpo della Richiesta non corrisponde mai

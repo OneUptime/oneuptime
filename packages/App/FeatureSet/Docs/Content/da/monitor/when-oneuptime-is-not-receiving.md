@@ -23,8 +23,8 @@ En genstart, der tager under 90 sekunder, er ikke et hul: collectors sender igen
 
 | Hvor | Hvad OneUptime gør |
 | --- | --- |
-| Server- / VM-monitorer | **Is Online** tæller kun de minutter, hvor OneUptime modtog: som standard er en server offline efter 3 minutters stilhed, som OneUptime kunne have hørt. |
-| Monitorer for indgående anmodninger og indgående e-mail | **Recieved In Minutes** og **Not Recieved In Minutes** tæller kun de minutter, hvor OneUptime modtog. Når et sådant kriterium er opfyldt, oplyser dets årsag, hvor mange af minutterne der blev udeladt. |
+| Server- / VM-monitorer | **Er online** tæller kun de minutter, hvor OneUptime modtog: som standard er en server offline efter 3 minutters stilhed, som OneUptime kunne have hørt. |
+| Monitorer for indgående anmodninger og indgående e-mail | **Modtaget inden for minutter** og **Ikke modtaget inden for minutter** tæller kun de minutter, hvor OneUptime modtog. Når et sådant kriterium er opfyldt, oplyser dets årsag, hvor mange af minutterne der blev udeladt. |
 | Værts-, Kubernetes-, Docker-, metrik-, log- og trace-monitorer og de andre monitorer, der læser telemetri | Et tjek, hvis vindue rummer tid uden modtagelse, venter, til den tid har forladt vinduet, og aldrig længere end 15 minutter efter, at den sluttede. Indtil da ændres intet: ingen statusændring, og ingen hændelse eller advarsel åbnes eller løses. Så længe køen er bagud, læser et tjek op til, hvor køen er, i stedet for op til nu. |
 | Værter, klynger og resten af inventaret | En ressource bliver først **Afbrudt**, når dens stilhedstærskel, 15 minutter for de fleste, er gået, mens OneUptime modtog. |
 | Sonder og AI-agenter | Bliver **Afbrudt** efter 3 minutters stilhed, mens OneUptime modtog. |

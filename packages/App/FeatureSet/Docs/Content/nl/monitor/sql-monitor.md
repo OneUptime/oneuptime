@@ -224,16 +224,16 @@ Voeg criteria toe om te bepalen wanneer de monitor als online, verminderd of off
 
 | Filtertype | Wat het controleert |
 |---|---|
-| **SQL Is Online** | Of de database bereikbaar was en de query slaagde. |
-| **SQL Query Row Count** | Het aantal teruggegeven rijen. Vergelijk met operatoren zoals groter dan, kleiner dan of gelijk aan. |
-| **SQL Query Scalar Value** | De eerste kolom van de eerste rij. Als getal vergeleken als de waarde die u invoert een getal is, anders als tekenreeks. Dit is de controle voor queries in de stijl van `COUNT(*)`. |
-| **SQL Query Execution Time (in ms)** | Hoe lang de query duurde. Handig om een trage database op te merken. |
-| **SQL Query Error** | De foutmelding van de query. Waarschuw als die (niet) leeg is, of overeenkomt met een bepaalde tekenreeks. |
-| **JavaScript Expression** | Een eigen JavaScript-expressie evalueren over `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` en `isOnline`. Zie [JavaScript-expressies](/docs/monitor/javascript-expression#sql-querymonitoren). |
+| **SQL is online** | Of de database bereikbaar was en de query slaagde. |
+| **Aantal rijen van SQL-query** | Het aantal teruggegeven rijen. Vergelijk met operatoren zoals groter dan, kleiner dan of gelijk aan. |
+| **Scalaire waarde van SQL-query** | De eerste kolom van de eerste rij. Als getal vergeleken als de waarde die u invoert een getal is, anders als tekenreeks. Dit is de controle voor queries in de stijl van `COUNT(*)`. |
+| **Uitvoeringstijd van SQL-query (in ms)** | Hoe lang de query duurde. Handig om een trage database op te merken. |
+| **SQL-queryfout** | De foutmelding van de query. Waarschuw als die (niet) leeg is, of overeenkomt met een bepaalde tekenreeks. |
+| **JavaScript-expressie** | Een eigen JavaScript-expressie evalueren over `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` en `isOnline`. Zie [JavaScript-expressies](/docs/monitor/javascript-expression#sql-querymonitoren). |
 
 Numerieke drempels zijn gehele getallen: schrijf `10`, niet `10.5`. SQL Query-filters kunnen niet over een periode worden geëvalueerd; elke controle staat op zichzelf.
 
-Een nieuwe SQL-query-monitor begint met twee criteria: **SQL Is Online** is onwaar (de monitor gaat offline en verklaart een incident dat zichzelf oplost) en **SQL Is Online** is waar, wat hem als online markeert. **Criteria toevoegen** voegt er een onderaan toe; sleep het boven het online-criterium, want criteria worden van boven af gecontroleerd en het eerste dat overeenkomt, beslist.
+Een nieuwe SQL-query-monitor begint met twee criteria: **SQL is online** is onwaar (de monitor gaat offline en verklaart een incident dat zichzelf oplost) en **SQL is online** is waar, wat hem als online markeert. **Criteria toevoegen** voegt er een onderaan toe; sleep het boven het online-criterium, want criteria worden van boven af gecontroleerd en het eerste dat overeenkomt, beslist.
 
 ### Voorbeeld: waarschuwen als annuleringen pieken
 

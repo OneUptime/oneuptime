@@ -49,11 +49,11 @@ Vá para **Monitores** e clique em **Criar monitor**.
 
 ### Escolher Incoming Request
 
-Em **Tipo de monitor**, escolha **Incoming Request**: ele é um dos tipos comuns no topo. Digite um **Nome** e clique em **Próximo**.
+Em **Tipo de monitor**, escolha **Requisição recebida**: ele é um dos tipos comuns no topo. Digite um **Nome** e clique em **Próximo**.
 
 ### Revisar os critérios
 
-A etapa **Critérios** começa com [os critérios padrão](#o-que-você-recebe-de-saída). Para um heartbeat, clique em **Adicionar critérios** e dê ao novo critério um filtro **Incoming Request** / **Not Recieved In Minutes** que mude o status para offline e declare um incidente, com **Resolver incidente automaticamente** ligado. Depois arraste-o para o topo da lista: veja [Critérios de exemplo](#critérios-de-exemplo) para entender por quê.
+A etapa **Critérios** começa com [os critérios padrão](#o-que-você-recebe-de-saída). Para um heartbeat, clique em **Adicionar critérios** e dê ao novo critério um filtro **Requisição recebida** / **Não recebido em minutos** que mude o status para offline e declare um incidente, com **Resolver incidente automaticamente** ligado. Depois arraste-o para o topo da lista: veja [Critérios de exemplo](#critérios-de-exemplo) para entender por quê.
 
 ### Criar o monitor
 
@@ -205,7 +205,7 @@ Isso atende ao caso comum em que o remetente informa a própria saúde no payloa
 Troque o valor pelo que seu remetente realmente emite (`"status":"firing"`, `FAILED` e assim por diante): a correspondência é uma busca de substring que diferencia maiúsculas de minúsculas em todo o corpo, chaves incluídas, então `{"error":null}` também corresponde a `error`.
 
 > [!NOTE]
-> Esses critérios padrão **não** são um interruptor de homem morto: nada aqui dispara quando as requisições param de chegar. Se você quiser ser alertado sobre o silêncio, adicione um critério **Incoming Request** / **Not Recieved In Minutes** como descrito abaixo.
+> Esses critérios padrão **não** são um interruptor de homem morto: nada aqui dispara quando as requisições param de chegar. Se você quiser ser alertado sobre o silêncio, adicione um critério **Requisição recebida** / **Não recebido em minutos** como descrito abaixo.
 
 ### Tipos de filtro disponíveis
 
@@ -223,9 +223,9 @@ Cada tipo de filtro oferece suas próprias condições:
 
 | Tipo de filtro | Condições |
 | --- | --- |
-| **Incoming Request** | **Recieved In Minutes**: uma requisição foi recebida dentro do número de minutos informado. **Not Recieved In Minutes**: nenhuma requisição foi recebida dentro do número de minutos informado. (O dashboard as escreve assim.) |
-| **Corpo da Requisição**, **Request Header**, **Request Header Value** | **Contém** e **Não contém** |
-| **JavaScript Expression** | **Evaluates To True** |
+| **Requisição recebida** | **Recebido em minutos**: uma requisição foi recebida dentro do número de minutos informado. **Não recebido em minutos**: nenhuma requisição foi recebida dentro do número de minutos informado. (O dashboard as escreve assim.) |
+| **Corpo da Requisição**, **Cabeçalho da requisição**, **Valor do cabeçalho da requisição** | **Contém** e **Não contém** |
+| **Expressão JavaScript** | **Resulta em verdadeiro** |
 
 > [!NOTE]
 > Nomes e valores de cabeçalhos são comparados em minúsculas, com o nome ou o valor inteiro, não com uma substring: `application/json` não corresponde a `application/json; charset=utf-8`. Só **Corpo da Requisição** faz busca de substring. Os cabeçalhos que seu proxy ou o balanceador de carga do OneUptime adicionam (`x-forwarded-for`, `x-real-ip`) também são armazenados.
@@ -239,7 +239,7 @@ Corpos de objeto são comparados como JSON compacto sem espaços, então um filt
 | Campo | Valor |
 | --- | --- |
 | **Tipo de filtro** | Incoming Request |
-| **Condição do filtro** | Not Recieved In Minutes |
+| **Condição do filtro** | Não recebido em minutos |
 | **Valor** | `10` |
 
 #### Marcar como degradado com base no conteúdo do corpo da requisição
@@ -254,9 +254,9 @@ Corpos de objeto são comparados como JSON compacto sem espaços, então um filt
 > Coloque o interruptor de homem morto **acima** dos critérios padrão. Os critérios são verificados de cima para baixo, e o primeiro que corresponde decide. A verificação em segundo plano relê a última requisição, então o critério online padrão ("Corpo da Requisição Não contém `error`") continua correspondendo a ela, e um critério abaixo dele nunca tem sua vez. **Adicionar critérios** adiciona um critério no final: arraste-o para cima.
 
 > [!WARNING]
-> Um monitor só é reavaliado em segundo plano se pelo menos um dos seus critérios verificar **Incoming Request**. Um monitor cujos critérios só verificam o corpo da requisição, Request Header ou uma expressão JavaScript é avaliado quando uma requisição chega e em nenhum outro momento, então nunca pode ficar offline sozinho. Se você quer um alarme de heartbeat ausente, precisa de um critério **Incoming Request**.
+> Um monitor só é reavaliado em segundo plano se pelo menos um dos seus critérios verificar **Requisição recebida**. Um monitor cujos critérios só verificam o corpo da requisição, Request Header ou uma expressão JavaScript é avaliado quando uma requisição chega e em nenhum outro momento, então nunca pode ficar offline sozinho. Se você quer um alarme de heartbeat ausente, precisa de um critério **Requisição recebida**.
 
-A verificação em segundo plano conta minutos inteiros e dispara quando passou *mais* que o valor: "Not Recieved In Minutes: 10" dispara cerca de 11 minutos depois da última requisição (a verificação roda a cada 30 segundos). Um monitor que nunca recebeu uma requisição é tratado como se a hora de criação fosse a última requisição, então o mesmo critério em um monitor recém-criado dispara cerca de 11 minutos depois da criação, mesmo que o remetente nunca tenha sido configurado. Só contam os minutos em que o OneUptime estava recebendo: os minutos em que o próprio OneUptime reinicia, é atualizado ou se recupera de atrasos não contam, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
+A verificação em segundo plano conta minutos inteiros e dispara quando passou *mais* que o valor: "Não recebido em minutos: 10" dispara cerca de 11 minutos depois da última requisição (a verificação roda a cada 30 segundos). Um monitor que nunca recebeu uma requisição é tratado como se a hora de criação fosse a última requisição, então o mesmo critério em um monitor recém-criado dispara cerca de 11 minutos depois da criação, mesmo que o remetente nunca tenha sido configurado. Só contam os minutos em que o OneUptime estava recebendo: os minutos em que o próprio OneUptime reinicia, é atualizado ou se recupera de atrasos não contam, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Receber alertas de outro sistema
 
@@ -347,10 +347,10 @@ Para uma configuração completa do Alertmanager, veja [Prometheus Alertmanager]
 
 ## Boas práticas
 
-1. **Defina bem a janela de tempo**: se seu cron job roda a cada 5 minutos, defina o limite "Not Recieved In Minutes" em 10–15 minutos para acomodar atrasos ocasionais, e coloque esse critério em primeiro lugar.
+1. **Defina bem a janela de tempo**: se seu cron job roda a cada 5 minutos, defina o limite "Não recebido em minutos" em 10–15 minutos para acomodar atrasos ocasionais, e coloque esse critério em primeiro lugar.
 2. **Inclua dados úteis**: envie informações de status no corpo da requisição para poder montar critérios detalhados.
 3. **Use POST com `Content-Type: application/json`**: tudo o que lê dentro do corpo depende disso.
-4. **Não misture os dois trabalhos em um monitor**: um monitor que recebe alertas orientados a eventos não tem uma cadência regular, então um critério "Not Recieved In Minutes" nele ficaria oscilando. Use um monitor separado para o interruptor de homem morto.
+4. **Não misture os dois trabalhos em um monitor**: um monitor que recebe alertas orientados a eventos não tem uma cadência regular, então um critério "Não recebido em minutos" nele ficaria oscilando. Use um monitor separado para o interruptor de homem morto.
 5. **Monitore o monitor**: garanta que o serviço que envia as requisições trate bem os erros, para que requisições que falharam não passem despercebidas.
 
 ## Solução de problemas
@@ -360,7 +360,7 @@ O `200` é enviado antes de a requisição ser validada, então não prova que e
 :::
 
 :::details O monitor nunca fica offline quando os heartbeats param
-Só um critério **Incoming Request** (**Not Recieved In Minutes**) consegue perceber o silêncio. Adicione um, se não houver, e arraste-o para cima dos critérios padrão: o critério online padrão corresponde à última requisição a cada verificação em segundo plano, e o primeiro critério que corresponde decide.
+Só um critério **Requisição recebida** (**Não recebido em minutos**) consegue perceber o silêncio. Adicione um, se não houver, e arraste-o para cima dos critérios padrão: o critério online padrão corresponde à última requisição a cada verificação em segundo plano, e o primeiro critério que corresponde decide.
 :::
 
 :::details Um filtro Corpo da Requisição nunca corresponde

@@ -224,16 +224,16 @@ OneUptime 會在把設定交給探測器之前，於伺服器端解析密鑰。O
 
 | 篩選器類型 | 檢查內容 |
 |---|---|
-| **SQL Is Online** | 資料庫是否可以連線，以及查詢是否成功。 |
-| **SQL Query Row Count** | 傳回的列數。以大於、小於或等於等運算子比較。 |
-| **SQL Query Scalar Value** | 第一列的第一欄。你輸入的值是數字時以數字比較，否則以字串比較。`COUNT(*)` 這類查詢應使用這項檢查。 |
-| **SQL Query Execution Time (in ms)** | 查詢耗時。適合用來發現變慢的資料庫。 |
-| **SQL Query Error** | 查詢的錯誤訊息。在它為空（或不為空），或符合特定字串時發出警示。 |
-| **JavaScript Expression** | 對 `rowCount`、`scalarValue`、`firstRow`、`executionTimeInMs`、`queryError` 和 `isOnline` 求值一個自訂 JavaScript 運算式。請參閱 [JavaScript 運算式](/docs/monitor/javascript-expression#sql-查詢監測器)。 |
+| **SQL 是否在線** | 資料庫是否可以連線，以及查詢是否成功。 |
+| **SQL 查詢列數** | 傳回的列數。以大於、小於或等於等運算子比較。 |
+| **SQL 查詢純量值** | 第一列的第一欄。你輸入的值是數字時以數字比較，否則以字串比較。`COUNT(*)` 這類查詢應使用這項檢查。 |
+| **SQL 查詢執行時間（毫秒）** | 查詢耗時。適合用來發現變慢的資料庫。 |
+| **SQL 查詢錯誤** | 查詢的錯誤訊息。在它為空（或不為空），或符合特定字串時發出警示。 |
+| **JavaScript 運算式** | 對 `rowCount`、`scalarValue`、`firstRow`、`executionTimeInMs`、`queryError` 和 `isOnline` 求值一個自訂 JavaScript 運算式。請參閱 [JavaScript 運算式](/docs/monitor/javascript-expression#sql-查詢監測器)。 |
 
 數值門檻是整數：寫 `10`，不要寫 `10.5`。SQL Query 篩選器無法在一段時間內求值；每次檢查都各自獨立判斷。
 
-新的 SQL 查詢監測器一開始有兩個條件：**SQL Is Online** 為 false 時，監測器離線並宣告一個會自動解決的事件；**SQL Is Online** 為 true 時，將它標示為上線。**新增條件準則** 會在底部加入一個條件；請把它拖到上線條件之上，因為條件是由上往下檢查，第一個符合的條件說了算。
+新的 SQL 查詢監測器一開始有兩個條件：**SQL 是否在線** 為 false 時，監測器離線並宣告一個會自動解決的事件；**SQL 是否在線** 為 true 時，將它標示為上線。**新增條件準則** 會在底部加入一個條件；請把它拖到上線條件之上，因為條件是由上往下檢查，第一個符合的條件說了算。
 
 ### 範例：取消訂單暴增時發出警示
 

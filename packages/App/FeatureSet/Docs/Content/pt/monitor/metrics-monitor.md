@@ -116,7 +116,7 @@ Quanto maior a janela, mais largo é cada intervalo de agrupamento, então um po
 
 ## Critérios
 
-Estes monitores sempre avaliam o **Metric Value**: o valor agregado da consulta de métricas ou da fórmula configurada. **Quando alertar** configura um critério a partir de **Medido como**, **Janela de tempo**, **Condição** e **Valor**. Quando a métrica tem uma unidade, escolha a unidade do valor ao lado dele. A **Condição** dele é **Acima de**, **Igual ou acima de**, **Abaixo de**, **Igual ou abaixo de**, **Exatamente**, **Incomumente alto**, **Incomumente baixo**, **Incomumente alto ou baixo**, **Previsão acima de** ou **Previsão abaixo de**. Para vários critérios, como faixas de severidade, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Métrica**, uma **Agregação**, uma **Condição** e um **Limite**.
+Estes monitores sempre avaliam o **Valor da métrica**: o valor agregado da consulta de métricas ou da fórmula configurada. **Quando alertar** configura um critério a partir de **Medido como**, **Janela de tempo**, **Condição** e **Valor**. Quando a métrica tem uma unidade, escolha a unidade do valor ao lado dele. A **Condição** dele é **Acima de**, **Igual ou acima de**, **Abaixo de**, **Igual ou abaixo de**, **Exatamente**, **Incomumente alto**, **Incomumente baixo**, **Incomumente alto ou baixo**, **Previsão acima de** ou **Previsão abaixo de**. Para vários critérios, como faixas de severidade, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Métrica**, uma **Agregação**, uma **Condição** e um **Limite**.
 
 | Condição | Corresponde quando o valor está… |
 | --- | --- |
@@ -125,9 +125,9 @@ Estes monitores sempre avaliam o **Metric Value**: o valor agregado da consulta 
 | **Menor que** | abaixo do limite |
 | **Menor ou igual a** | no limite ou abaixo |
 | **Igual a** | exatamente no limite |
-| **Anomalously High** | acima da faixa esperada para esta hora da semana |
-| **Anomalously Low** | abaixo dessa faixa |
-| **Anomalous** | fora dessa faixa, em qualquer direção |
+| **Anomalamente alto** | acima da faixa esperada para esta hora da semana |
+| **Anomalamente baixo** | abaixo dessa faixa |
+| **Anômalo** | fora dessa faixa, em qualquer direção |
 | **Previsão acima de** | está a caminho de passar do limite: sua tendência o ultrapassa até o fim de **Horizonte** |
 | **Previsão abaixo de** | está a caminho de ficar abaixo do limite, até o fim de **Horizonte** |
 | **Sem dados** | ausente: a consulta não enviou nada na janela |
@@ -148,7 +148,7 @@ Uma soma ou uma contagem só conta como baixa em um ponto de dados completo segu
 
 Um monitor de métricas criado em Criar monitor começa com uma regra na sua primeira consulta: **A média** em **Últimos 5 minutos**, **Acima de** o **Valor** que você informar, e **Criar um alerta**.
 
-Um novo monitor de métricas criado pela API ou pelo Terraform sem critérios começa com dois critérios na sua primeira consulta, ambos com a agregação **Any Value**:
+Um novo monitor de métricas criado pela API ou pelo Terraform sem critérios começa com dois critérios na sua primeira consulta, ambos com a agregação **Qualquer valor**:
 
 | Critério | Condição | Efeito |
 | --- | --- | --- |

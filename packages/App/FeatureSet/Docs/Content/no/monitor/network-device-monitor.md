@@ -378,7 +378,7 @@ Legg til de OID-ene du vil samle inn ved hver polling, i en mal eller som enhets
 | Navn | Et lettlest navn på OID-en, for eksempel sysDescr. | Nei |
 | Beskrivelse | Hva OID-en representerer. | Nei |
 
-Innsamlede verdier vises i diagrammer på enhetens side **Målinger**, og kriteriene **SNMP OID Value**, **SNMP OID Exists** og **SNMP OID Rate (per second)** varsler om dem. En teller (Counter32 eller Counter64) bare vokser, så varsle på hvor fort den har vokst siden forrige polling. OID-velgeren i de kriteriene viser OID-ene den valgte enheten samler inn, malens og dens egne, så det er ingenting å skrive.
+Innsamlede verdier vises i diagrammer på enhetens side **Målinger**, og kriteriene **SNMP OID-verdi**, **SNMP OID finnes** og **SNMP OID-rate (per sekund)** varsler om dem. En teller (Counter32 eller Counter64) bare vokser, så varsle på hvor fort den har vokst siden forrige polling. OID-velgeren i de kriteriene viser OID-ene den valgte enheten samler inn, malens og dens egne, så det er ingenting å skrive.
 
 Lange OID-lister deles over flere SNMP GET-forespørsler slik at hver får plass i ett UDP-datagram. Hvis du holdt OID-listene dine korte fordi en eldre versjon rapporterte en enhet som svarte `tooBig`, som offline, trenger du ikke det lenger.
 
@@ -391,7 +391,7 @@ Skriv en numerisk OID under **Start-OID**, eller trykk på et av startpunktene u
 Hver rad sier hvor OID-en er kjent: en verdi som en leverandørs helsemal samler inn, en kolonne i SNMP-tabellen til en leverandørmal, en teller som grensesnitt-walken allerede viser i diagrammer for hver port, eller en OID under leverandørens MIB. Fra en rad:
 
 - **Samle inn** legger OID-en til enhetens **Device-Specific Health OIDs**: hver polling samler den inn fra den neste, og enhetens side **Målinger** viser den i et diagram. På en enhet som er koblet til en OID Collection Template, kan radens meny i stedet legge den til malen, for hver enhet som bruker den.
-- **Opprett varsel** vises når OID-en samles inn, og åpner en ny nettverksenhetsmonitor for enheten med ett kriterium på OID-en. En teller starter på **SNMP OID Rate (per second)** og en måler på **SNMP OID Value**, begge over en terskel du setter selv; en oppetid varsler under ti minutter (enheten startet på nytt), alt annet når det endrer seg fra verdien som ble lest.
+- **Opprett varsel** vises når OID-en samles inn, og åpner en ny nettverksenhetsmonitor for enheten med ett kriterium på OID-en. En teller starter på **SNMP OID-rate (per sekund)** og en måler på **SNMP OID-verdi**, begge over en terskel du setter selv; en oppetid varsler under ti minutter (enheten startet på nytt), alt annet når det endrer seg fra verdien som ble lest.
 - **Kopier OID**, i radens meny, kopierer OID-en.
 
 **Last ned**, ved siden av sammendraget av walken, lagrer det walken leste, som en fil: **snmpwalk-tekst (.txt)**, én OID per linje slik `snmpwalk -On` skriver den, som alle SNMP-verktøy og all leverandørstøtte kan lese, eller **CSV-regneark (.csv)** med navnet, MIB-en, typen og verdien til hver OID. Filen inneholder hver OID walken leste, også fortsatte walker, uansett hva filteret viser, og har navn etter enheten, undertreet og tidspunktet den ble lagret. Alle som kan lese enhetens siste walk, kan laste den ned.
@@ -425,7 +425,7 @@ Noe av det en enhet vet, er en liste: én rad per IPsec-tunnel, Wi-Fi-radio, SSI
 | Radnavn | Valgfrie kolonner der verdiene gir hver rad et navn, for eksempel en tunnels tilkoblingsnavn. Uten dem får radene navn etter indeksen sin. Et navn kan komme fra en søskentabell som deler indeksen (Fabric Engine gir IS-IS-adjacencies navn fra `rcIsisAdjHostName`), eller fra en overordnet tabell der indeksen innleder denne tabellens (Aruba Instant gir hver radio navn etter tilgangspunktet). En tabell som er indeksert etter et navn (ArubaOS indekserer SSID-ene sine etter SSID), får navn etter den dekodede indeksen. |
 | Radgrense | Hvor mange rader som beholdes: 100 som standard, høyst 250. |
 
-Tall leses som tall, og tekst som begynner med et tall, leses som det tallet (`"36"`, `"-95 dBm"`, `"80MHz"`), fordi mange produsenter legger tall i strenger. Sett en kolonnes verditype til **Text only** for verdier som bare ser numeriske ut. **Value labels** gjør koder om til ord (`0=inactive, 1=active`): råverdien er fortsatt det som vises i diagrammer og sammenlignes, etiketten er det som vises. **Healthy values** (`1`) sier hvilke verdier som betyr at alt er bra: de fargelegger raden på enhetens side **SNMP-tabeller** og driver kriteriet **SNMP Table Row Is Unhealthy**.
+Tall leses som tall, og tekst som begynner med et tall, leses som det tallet (`"36"`, `"-95 dBm"`, `"80MHz"`), fordi mange produsenter legger tall i strenger. Sett en kolonnes verditype til **Text only** for verdier som bare ser numeriske ut. **Value labels** gjør koder om til ord (`0=inactive, 1=active`): råverdien er fortsatt det som vises i diagrammer og sammenlignes, etiketten er det som vises. **Healthy values** (`1`) sier hvilke verdier som betyr at alt er bra: de fargelegger raden på enhetens side **SNMP-tabeller** og driver kriteriet **SNMP-tabellrad er ikke feilfri**.
 
 Noen kolonner i produsentmaler **justerer** også tallet de leser, for MIB-er som holder en verdi i en egen enhet: ArubaOS rapporterer sendeeffekten doblet (leses × 0.5), Aruba Instant støygulvet uten fortegn (× −1), Aerohive støygulvet pluss 256 (− 256), og Extremes kontroller kanalbredden i trinn på 20 MHz (× 20). Det justerte tallet er det som vises, tegnes i diagrammer og sammenlignes, så **Noise Floor Større enn -80** betyr det samme hos hver produsent, og tabellredigeringen viser utregningen under kolonnen.
 
@@ -494,7 +494,7 @@ Enhetens side **Grensesnitt** åpner med et kort **Transceivere**: problemene f�
 | Advarsel | En måling er ved eller over en advarselsterskel. |
 | Alarm | En måling er ved eller over en alarmterskel, eller enheten melder signaltap eller senderfeil. |
 | Ikke oppdaget | Porten hadde en modul og rapporterer ikke lenger noen, mens porten fortsatt er aktivert. Siden nevner fortsatt hva som satt der. |
-| Ingen terskler | Modulen rapporterer målinger, men enheten rapporterer ingen grenser å vurdere dem mot. Varsle om dem med **SNMP Transceiver Reading**. |
+| Ingen terskler | Modulen rapporterer målinger, men enheten rapporterer ingen grenser å vurdere dem mot. Varsle om dem med **SNMP-transceiver-måling**. |
 | Oppdaget | Modulen rapporterer ingen diagnostikk i det hele tatt: vanlig for kobber-SFP-er og direct-attach-kabler. |
 | Port deaktivert | Porten er stengt, så laseren er slått av med vilje: målingene vises, men vurderes aldri. |
 
@@ -805,7 +805,7 @@ For å opprette en fra **Monitorer** i stedet:
 
 En nettverksenhetsmonitor har ikke noe eget intervall: den vurderes hver gang enhetens pollingresultater kommer inn, og hver gang en trap fra enheten kommer inn.
 
-Når pollingen stopper, vurderes monitoren likevel. Når en enhet har gått tre pollingintervaller, og minst ti minutter, uten polling, vurderes monitorene dens hvert femte minutt som en polling som ikke nådde den: et kriterium som treffer at **SNMP Device Is Online** er False, for eksempel **Device unreachable**, utløses, og hendelsen sier hvorfor ingen polling kom, for eksempel at sonden er nede eller at enheten ikke har noen sonde. En enhet med polling slått av, eller med [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor), blir latt være. Neste polling vurderer monitoren som vanlig.
+Når pollingen stopper, vurderes monitoren likevel. Når en enhet har gått tre pollingintervaller, og minst ti minutter, uten polling, vurderes monitorene dens hvert femte minutt som en polling som ikke nådde den: et kriterium som treffer at **SNMP-enhet er tilkoblet** er False, for eksempel **Device unreachable**, utløses, og hendelsen sier hvorfor ingen polling kom, for eksempel at sonden er nede eller at enheten ikke har noen sonde. En enhet med polling slått av, eller med [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor), blir latt være. Neste polling vurderer monitoren som vanlig.
 
 ### En enhets hendelser og varsler
 
@@ -875,7 +875,7 @@ Klikk på **Add Recommended Alerts** i kriterieskjemaet for å legge til et ferd
 | Transceiver past its alarm threshold | En moduls måling er over en alarmterskel enheten rapporterer, eller enheten melder signaltap eller senderfeil. | Varsel |
 | Transceiver RX power dropping | En modul mottar minst 2 dB mindre lys enn på sin beste dag de siste 30. | Varsel |
 
-Når enheten walker [SNMP-tabeller](#snmp-tabeller) som oppgir friske verdier, legger pakken også til ett kriterium **SNMP Table Row Is Unhealthy** per slik tabell, med Row `*`: en hendelse per rad for tunneler, rutingnaboer og en kontrollers tilgangspunkter ("IPsec Tunnels: row unhealthy", eller "Access Points: row unhealthy" for et tilgangspunkt som har forsvunnet fra kontrolleren sin), og et varsel per rad for maskinvaretabeller og radioer.
+Når enheten walker [SNMP-tabeller](#snmp-tabeller) som oppgir friske verdier, legger pakken også til ett kriterium **SNMP-tabellrad er ikke feilfri** per slik tabell, med Row `*`: en hendelse per rad for tunneler, rutingnaboer og en kontrollers tilgangspunkter ("IPsec Tunnels: row unhealthy", eller "Access Points: row unhealthy" for et tilgangspunkt som har forsvunnet fra kontrolleren sin), og et varsel per rad for maskinvaretabeller og radioer.
 
 SNMP walk failing er med vilje et varsel og ikke en hendelse: enheten er ikke nede, så å vekke noen klokken 2 om natten for det ville vært feil, men inventaret har sluttet å bli oppdatert, og noen bør rette påloggingsinformasjonen. Det utløses aldri på en enhet med bare ping, fordi kriteriet ikke vurderes når det ikke kjørte noe walk.
 
@@ -930,7 +930,7 @@ Traps matches gjennom enhetsinventaret:
 
 1. En trap kommer inn til en sondes mottaker og videresendes til OneUptime.
 2. OneUptime ser etter nettverksenhetene som er tildelt den sonden, der vertsnavnet, eller en av **Andre adresser**, er trapens kilde-IP-adresse.
-3. Trapen logges i enhetens traphistorikk, og hver nettverksenhetsmonitor på en enhet som passer, vurderer den mot kriteriene sine, som regel et filter **SNMP Trap Received (Trap OID)**.
+3. Trapen logges i enhetens traphistorikk, og hver nettverksenhetsmonitor på en enhet som passer, vurderer den mot kriteriene sine, som regel et filter **SNMP-trap mottatt (trap-OID)**.
 
 Matchingen skjer på adresse, ikke på påloggingsinformasjon, så en enhet med bare ping kan likevel ta imot traps: en enhet du ikke har lesepålogging for, kan likevel sende dem. Registrer enheten med adressen den sender traps fra, eller legg til den adressen under **Andre adresser** på enhetens side **Innstillinger**. Generiske SNMPv1-traps (coldStart, linkDown, linkUp og så videre) gjøres om til standard SNMPv2-varslings-OID-er, så linkDown treffer trap-OID `1.3.6.1.6.3.1.1.5.3` uansett SNMP-versjon.
 
@@ -946,8 +946,8 @@ Filteret tilbyr også Inneholder, Starter med og Slutter med, så ett kriterium 
 
 Noen produsenter sender hver hendelse som den samme trapen og legger hendelsen i en tekst-varbind: hver melding fra en Sophos Firewall er `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`) med meldingen i `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Kombiner de to i ett kriterium:
 
-- **SNMP Trap Received (Trap OID)**: Lik `1.3.6.1.4.1.2604.5.1.8.1.1`
-- **SNMP Trap Varbind Value**: varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Inneholder `IPSec`
+- **SNMP-trap mottatt (trap-OID)**: Lik `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **Varbind-verdi i SNMP-trap**: varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Inneholder `IPSec`
 
 Et negativt filter (Inneholder ikke, Ikke lik, Er tom) er bare oppfylt når ingen varbind innenfor omfanget passer den positive formen. La varbind-OID-en stå tom for å søke i hver varbind trapen bærer.
 

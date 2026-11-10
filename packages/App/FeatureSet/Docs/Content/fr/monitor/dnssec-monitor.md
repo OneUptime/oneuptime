@@ -80,7 +80,7 @@ Gardez ou changez les **Sondes** et l'**Intervalle de surveillance** (il commenc
 | **Zone (nom de domaine)** | Aucune | La zone à valider, comme `example.com`. |
 | **Résolveurs** | `1.1.1.1, 8.8.8.8, 9.9.9.9` | Les résolveurs validants à interroger, séparés par des virgules. Chacun doit renvoyer l'indicateur AD pour que la chaîne compte comme valide. |
 | **Vérifier la cohérence des serveurs de noms** | Activé | Interroger directement chaque serveur de noms faisant autorité et comparer leurs numéros de série SOA. Désactivez-le si votre réseau bloque le DNS sortant vers des serveurs arbitraires. |
-| **Avertissement d'expiration de la signature (jours)** (sous **Plus de champs**) | `7` | Enregistré avec le moniteur. Le filtre **DNSSEC Signature Expires In Days** utilise la valeur que vous lui donnez dans le critère, donc fixez votre seuil là. |
+| **Avertissement d'expiration de la signature (jours)** (sous **Plus de champs**) | `7` | Enregistré avec le moniteur. Le filtre **Jours avant l'expiration de la signature DNSSEC** utilise la valeur que vous lui donnez dans le critère, donc fixez votre seuil là. |
 | **Délai d'expiration (ms)** (sous **Plus de champs**) | `10000` | Combien de temps attendre chaque requête DNS, en millisecondes. Une tentative peut durer jusqu'à trois fois plus au total. |
 | **Tentatives** (sous **Plus de champs**) | `3` | Nouvelles tentatives après l'échec de la première. `0` signifie une seule tentative. |
 
@@ -90,12 +90,12 @@ Les critères décident quand la zone compte comme en ligne, dégradée ou hors 
 
 | Filtre | Conditions | Ce qu'il vérifie |
 | --- | --- | --- |
-| **DNSSEC Chain Is Valid** | **Vrai**, **Faux** | Les quatre vérifications ci-dessus sont vraies : clés publiées, DS chez le parent, signatures présentes avec un jour ou plus restant, et l'indicateur AD de chaque résolveur. |
-| **DNSSEC DNSKEY Record Exists** | **Vrai**, **Faux** | La zone publie au moins un enregistrement DNSKEY. |
-| **DNSSEC DS Record Exists At Parent** | **Vrai**, **Faux** | La zone parente publie un enregistrement DS pour la zone. |
-| **DNSSEC Signature Expires In Days** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Les jours entiers avant l'expiration de la signature (RRSIG) la plus proche de son échéance. |
-| **DNSSEC Resolver Consensus (AD Flag)** | **Vrai**, **Faux** | Chaque résolveur de **Résolveurs** renvoie l'indicateur AD. |
-| **DNSSEC Nameservers Are Consistent** | **Vrai**, **Faux** | Chaque serveur de noms faisant autorité répond avec le même numéro de série SOA. Toujours **Vrai** tant que **Vérifier la cohérence des serveurs de noms** est désactivé. |
+| **Chaîne DNSSEC valide** | **Vrai**, **Faux** | Les quatre vérifications ci-dessus sont vraies : clés publiées, DS chez le parent, signatures présentes avec un jour ou plus restant, et l'indicateur AD de chaque résolveur. |
+| **Enregistrement DNSSEC DNSKEY présent** | **Vrai**, **Faux** | La zone publie au moins un enregistrement DNSKEY. |
+| **Enregistrement DNSSEC DS présent chez le parent** | **Vrai**, **Faux** | La zone parente publie un enregistrement DS pour la zone. |
+| **Jours avant l'expiration de la signature DNSSEC** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Les jours entiers avant l'expiration de la signature (RRSIG) la plus proche de son échéance. |
+| **Consensus des résolveurs DNSSEC (indicateur AD)** | **Vrai**, **Faux** | Chaque résolveur de **Résolveurs** renvoie l'indicateur AD. |
+| **Serveurs de noms DNSSEC cohérents** | **Vrai**, **Faux** | Chaque serveur de noms faisant autorité répond avec le même numéro de série SOA. Toujours **Vrai** tant que **Vérifier la cohérence des serveurs de noms** est désactivé. |
 
 Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Au moins un** suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer l'état du moniteur, créer une alerte, déclarer un incident, ou plusieurs de ces actions.
 
@@ -103,7 +103,7 @@ Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** d
 
 Un nouveau moniteur DNSSEC commence avec deux critères :
 
-- **Chaîne rompue** — **DNSSEC Chain Is Valid** est **Faux**. Le moniteur est marqué **Hors ligne** et un incident appelé « _monitor name_ DNSSEC chain is broken » est créé. L'incident se résout de lui-même dès que la chaîne est de nouveau valide.
+- **Chaîne rompue** — **Chaîne DNSSEC valide** est **Faux**. Le moniteur est marqué **Hors ligne** et un incident appelé « _monitor name_ DNSSEC chain is broken » est créé. L'incident se résout de lui-même dès que la chaîne est de nouveau valide.
 - **Chaîne valide** — le moniteur est marqué **Opérationnel**.
 
 Les critères sont vérifiés de haut en bas, et le premier qui correspond décide de ce qui se passe. Quand aucun ne correspond, le moniteur affiche son état par défaut : **Opérationnel**, sauf si vous en choisissez un autre sous **Plus de champs**, sous les critères.
@@ -114,16 +114,16 @@ Les critères par défaut ne surveillent pas d'eux-mêmes l'expiration des signa
 
 | Objectif | Filtre | Condition | Valeur |
 | --- | --- | --- | --- |
-| Hors ligne quand la chaîne est rompue (un critère par défaut) | **DNSSEC Chain Is Valid** | **Faux** | — |
-| Avertir avant l'expiration des signatures | **DNSSEC Signature Expires In Days** | **Inférieur à** | `7` |
-| Repérer une délégation qui a perdu son enregistrement DS | **DNSSEC DS Record Exists At Parent** | **Faux** | — |
-| Repérer des résolveurs en désaccord | **DNSSEC Resolver Consensus (AD Flag)** | **Faux** | — |
-| Repérer des serveurs de noms désaccordés | **DNSSEC Nameservers Are Consistent** | **Faux** | — |
+| Hors ligne quand la chaîne est rompue (un critère par défaut) | **Chaîne DNSSEC valide** | **Faux** | — |
+| Avertir avant l'expiration des signatures | **Jours avant l'expiration de la signature DNSSEC** | **Inférieur à** | `7` |
+| Repérer une délégation qui a perdu son enregistrement DS | **Enregistrement DNSSEC DS présent chez le parent** | **Faux** | — |
+| Repérer des résolveurs en désaccord | **Consensus des résolveurs DNSSEC (indicateur AD)** | **Faux** | — |
+| Repérer des serveurs de noms désaccordés | **Serveurs de noms DNSSEC cohérents** | **Faux** | — |
 
 ## Bonnes pratiques
 
 1. **Choisissez des résolveurs toujours joignables.** Chaque résolveur doit renvoyer l'indicateur AD pour que la chaîne compte comme valide, donc un résolveur que la sonde ne peut pas joindre fait échouer la vérification une fois les tentatives épuisées. Les valeurs par défaut, `1.1.1.1`, `8.8.8.8` et `9.9.9.9`, sont exploitées par trois opérateurs différents, ce qui repère aussi une zone qui se valide sur un résolveur mais pas sur un autre.
-2. **Soyez averti avant l'expiration des signatures.** Les signataires re-signent une zone avant que ses signatures n'expirent, donc une signature proche de son échéance signifie que la re-signature s'est arrêtée. Ajoutez un critère avec **DNSSEC Signature Expires In Days** / **Inférieur à** / `7` qui crée une alerte, et un second à `2` qui déclare un incident. Faites glisser les deux au-dessus du critère qui marque la chaîne valide, celui à `2` jours en premier, car le premier critère qui correspond l'emporte. Choisissez des seuils inférieurs au temps que votre signataire laisse normalement sur une signature avant de re-signer, pour qu'ils restent silencieux tant que la re-signature fonctionne.
+2. **Soyez averti avant l'expiration des signatures.** Les signataires re-signent une zone avant que ses signatures n'expirent, donc une signature proche de son échéance signifie que la re-signature s'est arrêtée. Ajoutez un critère avec **Jours avant l'expiration de la signature DNSSEC** / **Inférieur à** / `7` qui crée une alerte, et un second à `2` qui déclare un incident. Faites glisser les deux au-dessus du critère qui marque la chaîne valide, celui à `2` jours en premier, car le premier critère qui correspond l'emporte. Choisissez des seuils inférieurs au temps que votre signataire laisse normalement sur une signature avant de re-signer, pour qu'ils restent silencieux tant que la re-signature fonctionne.
 3. **Surveillez chaque zone signée.** Incluez le domaine apex, les sous-domaines signés et toute zone déléguée à un autre opérateur.
 4. **Gardez la vérification de cohérence des serveurs de noms activée,** et ajoutez un critère pour elle. Elle repère un serveur secondaire qui ne reçoit plus les transferts du primaire, ce que la validation DNSSEC seule peut manquer.
 

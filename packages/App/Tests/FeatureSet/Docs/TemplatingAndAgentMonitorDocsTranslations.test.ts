@@ -102,21 +102,14 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
 
 const MONITOR_PAGES: Array<string> = [STORAGE, IOT, VMWARE, OPENSTACK];
 
-const ANOMALY_CONDITIONS: Array<string> = [
-  "Anomalously High",
-  "Anomalously Low",
-  "Anomalous",
-];
-
-// The window aggregates with no locale key; Average and Sum have one.
-const UNKEYED_AGGREGATES: Array<string> = [
-  "Maximum Value",
-  "Minimum Value",
-  "All Values",
-  "Any Value",
-];
-
-// The If No Data options with no locale key; Trigger has one.
+/*
+ * The If No Data options with no locale key; Trigger has one. The anomaly
+ * conditions (Anomalous, Anomalously High, Anomalously Low), the window
+ * aggregates (Maximum Value, Minimum Value, All Values, Any Value) and the
+ * criteria filters (Is Online, Metric Value) left this list on 2026-11-10:
+ * #6575 keyed them in every language, so every translation names them as
+ * its Dashboard draws them, like any other label.
+ */
 const UNKEYED_NO_DATA: Array<string> = ["Ignore", "Treat As Zero"];
 
 // The step forms' tab and windows with no locale key.
@@ -126,11 +119,8 @@ const FORM_NAMES: Array<string> = [
   "Past 365 Days",
 ];
 
-const CRITERIA_NAMES: Array<string> = [
-  ...UNKEYED_AGGREGATES,
-  ...ANOMALY_CONDITIONS,
-  ...UNKEYED_NO_DATA,
-];
+// The criteria names every Dashboard still shows in English.
+const CRITERIA_NAMES: Array<string> = [...UNKEYED_NO_DATA];
 
 /*
  * Bold names every language's Dashboard shows in English, because its
@@ -141,9 +131,8 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [STORAGE]: [...FORM_NAMES, "Array Stopped Reporting", ...CRITERIA_NAMES],
   [IOT]: [
     ...FORM_NAMES,
-    // A template's name, and the one check the criteria offer.
+    // A template's name.
     "Device Offline",
-    "Metric Value",
     ...CRITERIA_NAMES,
   ],
   /*

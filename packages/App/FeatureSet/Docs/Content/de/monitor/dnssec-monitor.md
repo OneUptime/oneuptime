@@ -80,7 +80,7 @@ Behalten oder ändern Sie die **Sonden** und das **Überwachungsintervall** (es 
 | **Zone (Domänenname)** | Keiner | Die zu validierende Zone, etwa `example.com`. |
 | **Resolver** | `1.1.1.1, 8.8.8.8, 9.9.9.9` | Validierende Resolver, die abgefragt werden, durch Kommas getrennt. Jeder muss das AD-Flag liefern, damit die Kette als gültig gilt. |
 | **Konsistenz der Nameserver prüfen** | Ein | Jeden autoritativen Nameserver direkt abfragen und ihre SOA-Seriennummern vergleichen. Schalten Sie es aus, wenn Ihr Netzwerk ausgehendes DNS zu beliebigen Servern blockiert. |
-| **Warnung zum Signaturablauf (Tage)** (unter **Weitere Felder**) | `7` | Wird mit dem Monitor gespeichert. Der Filter **DNSSEC Signature Expires In Days** verwendet den Wert, den Sie ihm im Kriterium geben, also legen Sie Ihren Schwellenwert dort fest. |
+| **Warnung zum Signaturablauf (Tage)** (unter **Weitere Felder**) | `7` | Wird mit dem Monitor gespeichert. Der Filter **Tage bis zum Ablauf der DNSSEC-Signatur** verwendet den Wert, den Sie ihm im Kriterium geben, also legen Sie Ihren Schwellenwert dort fest. |
 | **Zeitüberschreitung (ms)** (unter **Weitere Felder**) | `10000` | Wie lange auf jede DNS-Abfrage gewartet wird, in Millisekunden. Ein Versuch kann insgesamt bis zum Dreifachen davon dauern. |
 | **Wiederholungen** (unter **Weitere Felder**) | `3` | Wiederholungen, nachdem der erste Versuch fehlgeschlagen ist. `0` bedeutet einen einzigen Versuch. |
 
@@ -90,12 +90,12 @@ Kriterien entscheiden, wann die Zone als online, beeinträchtigt oder offline gi
 
 | Filter | Bedingungen | Was er prüft |
 | --- | --- | --- |
-| **DNSSEC Chain Is Valid** | **Wahr**, **Falsch** | Alle vier Prüfungen oben treffen zu: Schlüssel veröffentlicht, DS bei der übergeordneten Zone, Signaturen vorhanden mit einem Tag oder mehr Restlaufzeit und das AD-Flag von jedem Resolver. |
-| **DNSSEC DNSKEY Record Exists** | **Wahr**, **Falsch** | Die Zone veröffentlicht mindestens einen DNSKEY-Eintrag. |
-| **DNSSEC DS Record Exists At Parent** | **Wahr**, **Falsch** | Die übergeordnete Zone veröffentlicht einen DS-Eintrag für die Zone. |
-| **DNSSEC Signature Expires In Days** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Ganze Tage, bis die früheste Signatur (RRSIG) abläuft. |
-| **DNSSEC Resolver Consensus (AD Flag)** | **Wahr**, **Falsch** | Jeder Resolver unter **Resolver** liefert das AD-Flag. |
-| **DNSSEC Nameservers Are Consistent** | **Wahr**, **Falsch** | Jeder autoritative Nameserver antwortet mit derselben SOA-Seriennummer. Immer **Wahr**, solange **Konsistenz der Nameserver prüfen** ausgeschaltet ist. |
+| **DNSSEC-Kette ist gültig** | **Wahr**, **Falsch** | Alle vier Prüfungen oben treffen zu: Schlüssel veröffentlicht, DS bei der übergeordneten Zone, Signaturen vorhanden mit einem Tag oder mehr Restlaufzeit und das AD-Flag von jedem Resolver. |
+| **DNSSEC-DNSKEY-Eintrag existiert** | **Wahr**, **Falsch** | Die Zone veröffentlicht mindestens einen DNSKEY-Eintrag. |
+| **DNSSEC-DS-Eintrag existiert in übergeordneter Zone** | **Wahr**, **Falsch** | Die übergeordnete Zone veröffentlicht einen DS-Eintrag für die Zone. |
+| **Tage bis zum Ablauf der DNSSEC-Signatur** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Ganze Tage, bis die früheste Signatur (RRSIG) abläuft. |
+| **DNSSEC-Resolver-Konsens (AD-Flag)** | **Wahr**, **Falsch** | Jeder Resolver unter **Resolver** liefert das AD-Flag. |
+| **DNSSEC-Nameserver sind konsistent** | **Wahr**, **Falsch** | Jeder autoritative Nameserver antwortet mit derselben SOA-Seriennummer. Immer **Wahr**, solange **Konsistenz der Nameserver prüfen** ausgeschaltet ist. |
 
 Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutreffen müssen oder **Beliebig** einer genügt. Die **Aktionen** eines Kriteriums legen fest, was es tut: den Monitorstatus ändern, eine Warnung erstellen, einen Vorfall melden oder mehreres davon.
 
@@ -103,7 +103,7 @@ Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutre
 
 Ein neuer DNSSEC-Monitor beginnt mit zwei Kriterien:
 
-- **Kette unterbrochen** — **DNSSEC Chain Is Valid** ist **Falsch**. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_monitor name_ DNSSEC chain is broken“ wird erstellt. Der Vorfall löst sich von selbst auf, sobald die Kette wieder gültig ist.
+- **Kette unterbrochen** — **DNSSEC-Kette ist gültig** ist **Falsch**. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_monitor name_ DNSSEC chain is broken“ wird erstellt. Der Vorfall löst sich von selbst auf, sobald die Kette wieder gültig ist.
 - **Kette gültig** — der Monitor wird als **Betriebsbereit** markiert.
 
 Kriterien werden von oben nach unten geprüft, und das erste zutreffende entscheidet, was passiert. Trifft keines zu, zeigt der Monitor seinen Standardstatus: **Betriebsbereit**, sofern Sie unter **Weitere Felder** unterhalb der Kriterien keinen anderen wählen.
@@ -114,16 +114,16 @@ Die Standardkriterien beobachten den Ablauf der Signaturen und die Konsistenz de
 
 | Ziel | Filter | Bedingung | Wert |
 | --- | --- | --- | --- |
-| Offline, wenn die Kette unterbrochen ist (ein Standardkriterium) | **DNSSEC Chain Is Valid** | **Falsch** | — |
-| Vor dem Ablauf von Signaturen warnen | **DNSSEC Signature Expires In Days** | **Kleiner als** | `7` |
-| Eine Delegierung bemerken, die ihren DS-Eintrag verloren hat | **DNSSEC DS Record Exists At Parent** | **Falsch** | — |
-| Resolver bemerken, die sich widersprechen | **DNSSEC Resolver Consensus (AD Flag)** | **Falsch** | — |
-| Nameserver bemerken, die nicht übereinstimmen | **DNSSEC Nameservers Are Consistent** | **Falsch** | — |
+| Offline, wenn die Kette unterbrochen ist (ein Standardkriterium) | **DNSSEC-Kette ist gültig** | **Falsch** | — |
+| Vor dem Ablauf von Signaturen warnen | **Tage bis zum Ablauf der DNSSEC-Signatur** | **Kleiner als** | `7` |
+| Eine Delegierung bemerken, die ihren DS-Eintrag verloren hat | **DNSSEC-DS-Eintrag existiert in übergeordneter Zone** | **Falsch** | — |
+| Resolver bemerken, die sich widersprechen | **DNSSEC-Resolver-Konsens (AD-Flag)** | **Falsch** | — |
+| Nameserver bemerken, die nicht übereinstimmen | **DNSSEC-Nameserver sind konsistent** | **Falsch** | — |
 
 ## Bewährte Vorgehensweisen
 
 1. **Wählen Sie Resolver, die immer erreichbar sind.** Jeder Resolver muss das AD-Flag liefern, damit die Kette als gültig gilt, daher lässt ein Resolver, den die Sonde nicht erreicht, die Prüfung scheitern, sobald die Wiederholungen aufgebraucht sind. Die Standardwerte `1.1.1.1`, `8.8.8.8` und `9.9.9.9` werden von drei verschiedenen Betreibern betrieben, was auch eine Zone auffängt, die auf einem Resolver validiert, auf einem anderen aber nicht.
-2. **Warnen Sie vor dem Ablauf von Signaturen.** Signierer signieren eine Zone neu, bevor ihre Signaturen ablaufen, daher bedeutet eine Signatur kurz vor dem Ablauf, dass das Neusignieren aufgehört hat. Fügen Sie ein Kriterium mit **DNSSEC Signature Expires In Days** / **Kleiner als** / `7` hinzu, das eine Warnung erstellt, und ein zweites bei `2`, das einen Vorfall meldet. Ziehen Sie beide über das Kriterium, das die Kette als gültig markiert, das `2`-Tage-Kriterium zuerst, denn das erste zutreffende Kriterium gewinnt. Wählen Sie Schwellenwerte unterhalb der Zeit, die Ihr Signierer einer Signatur normalerweise lässt, bevor er neu signiert, damit sie ruhig bleiben, solange das Neusignieren funktioniert.
+2. **Warnen Sie vor dem Ablauf von Signaturen.** Signierer signieren eine Zone neu, bevor ihre Signaturen ablaufen, daher bedeutet eine Signatur kurz vor dem Ablauf, dass das Neusignieren aufgehört hat. Fügen Sie ein Kriterium mit **Tage bis zum Ablauf der DNSSEC-Signatur** / **Kleiner als** / `7` hinzu, das eine Warnung erstellt, und ein zweites bei `2`, das einen Vorfall meldet. Ziehen Sie beide über das Kriterium, das die Kette als gültig markiert, das `2`-Tage-Kriterium zuerst, denn das erste zutreffende Kriterium gewinnt. Wählen Sie Schwellenwerte unterhalb der Zeit, die Ihr Signierer einer Signatur normalerweise lässt, bevor er neu signiert, damit sie ruhig bleiben, solange das Neusignieren funktioniert.
 3. **Überwachen Sie jede signierte Zone.** Schließen Sie die Apex-Domain, signierte Subdomains und jede an einen anderen Betreiber delegierte Zone ein.
 4. **Lassen Sie die Prüfung der Nameserver-Konsistenz eingeschaltet,** und fügen Sie ein Kriterium dafür hinzu. Sie bemerkt einen Sekundärserver, der keine Zonentransfers vom Primärserver mehr erhält, was die DNSSEC-Validierung allein übersehen kann.
 

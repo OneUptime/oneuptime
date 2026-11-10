@@ -23,8 +23,8 @@ Un reinicio que dura menos de 90 segundos no es una interrupción: los colectore
 
 | Dónde | Qué hace OneUptime |
 | --- | --- |
-| Monitores de servidor / VM | **Is Online** solo cuenta los minutos en que OneUptime estaba recibiendo: de forma predeterminada, un servidor está fuera de línea tras 3 minutos de silencio que OneUptime podría haber oído. |
-| Monitores de solicitudes entrantes y de correos entrantes | **Recieved In Minutes** y **Not Recieved In Minutes** solo cuentan los minutos en que OneUptime estaba recibiendo. Cuando se cumple uno de esos criterios, su motivo indica cuántos de esos minutos se dejaron fuera. |
+| Monitores de servidor / VM | **En línea** solo cuenta los minutos en que OneUptime estaba recibiendo: de forma predeterminada, un servidor está fuera de línea tras 3 minutos de silencio que OneUptime podría haber oído. |
+| Monitores de solicitudes entrantes y de correos entrantes | **Recibido en minutos** y **No recibido en minutos** solo cuentan los minutos en que OneUptime estaba recibiendo. Cuando se cumple uno de esos criterios, su motivo indica cuántos de esos minutos se dejaron fuera. |
 | Monitores de host, Kubernetes, Docker, métricas, registros, trazas y los demás monitores que leen telemetría | Una comprobación cuya ventana contiene tiempo sin recepción espera hasta que ese tiempo salga de la ventana, y nunca más de 15 minutos después de que terminó. Hasta entonces no cambia nada: ningún cambio de estado, y no se abre ni se resuelve ningún incidente ni alerta. Mientras la cola lleva atraso, una comprobación lee hasta donde está la cola en lugar de hasta ahora. |
 | Hosts, clústeres y el resto del inventario | Un recurso pasa a **Desconectado** solo después de que su umbral de silencio, 15 minutos para la mayoría, transcurra mientras OneUptime estaba recibiendo. |
 | Sondas y agentes de IA | Pasan a **Desconectado** tras 3 minutos de silencio mientras OneUptime estaba recibiendo. |
