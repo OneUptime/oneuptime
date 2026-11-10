@@ -58,13 +58,13 @@ Depois da próxima sondagem, a página **Tabelas SNMP** do dispositivo lista cad
 
 ### Alertar sobre cada túnel IPsec
 
-Na página do dispositivo, clique em **Criar monitor**. Os alertas recomendados incluem **IPsec Tunnels: row unhealthy**, um critério **SNMP Table Row Is Unhealthy** sobre a tabela `ipsec_tunnels` com Row `*`: ele abre um incidente por túnel que não está ativo, com o nome do túnel, e resolve cada um quando o túnel dele volta.
+Na página do dispositivo, clique em **Criar monitor**. Os alertas recomendados incluem **IPsec Tunnels: row unhealthy**, um critério **Linha da tabela SNMP não íntegra** sobre a tabela `ipsec_tunnels` com Row `*`: ele abre um incidente por túnel que não está ativo, com o nome do túnel, e resolve cada um quando o túnel dele volta.
 
 Um túnel que a Sophos informa como ativo só tem as associações de segurança estabelecidas. Para provar que o tráfego passa por ele, adicione um [monitor Ping](/docs/monitor/ping-monitor) de uma sonda em um site para um host do outro lado de cada túnel, e desenhe o túnel como um enlace entre sites em **Rede → Topologia → Links do site** entre os dois [sites](/docs/monitor/network-sites), vinculado a esse monitor: o enlace no mapa passa a ter a cor do monitor.
 
 ### Enlaces WAN
 
-- **Saúde das portas.** O walk das interfaces já mede o status, os bits de entrada e saída, a utilização e os erros de cada porta WAN. No monitor do firewall, um critério **SNMP Interface Is Down** ou **SNMP Interface Utilization (in %)** com **Interface** definido como o nome da porta WAN, ou `*` para todas as portas, alerta por enlace.
+- **Saúde das portas.** O walk das interfaces já mede o status, os bits de entrada e saída, a utilização e os erros de cada porta WAN. No monitor do firewall, um critério **Interface SNMP inativa** ou **Utilização da interface SNMP (em %)** com **Interface** definido como o nome da porta WAN, ou `*` para todas as portas, alerta por enlace.
 - **Qualidade do caminho.** A latência, a perda de pacotes e o jitter de cada enlace são medidos de fora do firewall: um monitor Ping a partir das sondas em nuvem do OneUptime para o endereço público de cada enlace WAN, e um monitor Ping a partir de uma sonda no site para o gateway de cada provedor. Critérios de perda de pacotes e de jitter nesses monitores alertam por enlace, e **Rede → Topologia → Matriz de latência** mostra de relance cada sonda contra cada monitor.
 - **Tráfego.** O SFOS exporta NetFlow v5. Envie-o para a sonda em UDP 2055, onde o coletor de fluxos da sonda escuta por padrão, e a página **Tráfego** do dispositivo mostra quem fala com quem em cada enlace WAN; [Tráfego de rede](/docs/monitor/network-traffic) tem os detalhes.
 
@@ -88,7 +88,7 @@ Os dois primeiros estão na lista de **Criar alerta**; para o terceiro, abra um 
 
 ### Traps
 
-Toda notificação da Sophos é o mesmo trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), com o evento como texto em `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Para alertar sobre um tipo de evento, combine **SNMP Trap Received (Trap OID)** Igual a `1.3.6.1.4.1.2604.5.1.8.1.1` com **SNMP Trap Varbind Value** sobre esse varbind, Contém `IPSec` por exemplo. Defina o destino de traps do firewall como SNMP v2c: o receptor de traps da sonda aceita traps v1 e v2c.
+Toda notificação da Sophos é o mesmo trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), com o evento como texto em `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Para alertar sobre um tipo de evento, combine **Trap SNMP recebido (OID do trap)** Igual a `1.3.6.1.4.1.2604.5.1.8.1.1` com **Valor do varbind do trap SNMP** sobre esse varbind, Contém `IPSec` por exemplo. Defina o destino de traps do firewall como SNMP v2c: o receptor de traps da sonda aceita traps v1 e v2c.
 
 ## Extreme Networks (EXOS / Switch Engine e Fabric Engine / VOSS)
 
@@ -105,7 +105,7 @@ O Fabric Engine no hardware universal da Extreme (as séries 5000 e 7000) inform
 
 ### Alertas do fabric e do hardware
 
-Os alertas recomendados em um switch Fabric Engine incluem **Fabric Adjacencies (IS-IS): row unhealthy**, um incidente por vizinho cuja adjacência não está ativa. O Fabric Engine também envia um trap quando uma adjacência muda, `rcnIsisPlsbAdjStateTrap` (`1.3.6.1.4.1.2272.1.21.0.281`), e um critério **SNMP Trap Received (Trap OID)** sobre ele alerta em segundos, antes da próxima sondagem.
+Os alertas recomendados em um switch Fabric Engine incluem **Fabric Adjacencies (IS-IS): row unhealthy**, um incidente por vizinho cuja adjacência não está ativa. O Fabric Engine também envia um trap quando uma adjacência muda, `rcnIsisPlsbAdjStateTrap` (`1.3.6.1.4.1.2272.1.21.0.281`), e um critério **Trap SNMP recebido (OID do trap)** sobre ele alerta em segundos, antes da próxima sondagem.
 
 Fontes de alimentação, ventoinhas, sensores de temperatura e membros da pilha são tabelas que declaram os seus valores saudáveis, então cada uma recebe um alerta por linha nos alertas recomendados.
 
@@ -129,10 +129,10 @@ Alertas úteis, todos sobre a tabela `wifi_radios` com Row `*`, para que cada r�
 
 | Alerta | Critério |
 | --- | --- |
-| Um rádio desligado | **SNMP Table Row Is Unhealthy**, parte dos alertas recomendados |
-| Potência de transmissão alterada | **SNMP Table Value**, coluna TX Power, Diferente de a potência que você planejou |
-| Um rádio lotado | **SNMP Table Value**, coluna Clients, Maior que o seu limite |
-| Um canal ruidoso | **SNMP Table Value**, coluna Noise Floor, Maior que `-80` |
+| Um rádio desligado | **Linha da tabela SNMP não íntegra**, parte dos alertas recomendados |
+| Potência de transmissão alterada | **Valor da tabela SNMP**, coluna TX Power, Diferente de a potência que você planejou |
+| Um rádio lotado | **Valor da tabela SNMP**, coluna Clients, Maior que o seu limite |
+| Um canal ruidoso | **Valor da tabela SNMP**, coluna Noise Floor, Maior que `-80` |
 
 Cada valor numérico dos rádios também é uma métrica (`oneuptime.monitor.snmp.table.value`, uma série por rádio e coluna), então canal, potência e clientes podem ser colocados em gráficos ao longo do tempo em um painel; um canal que não para de mudar é o DFS trabalhando.
 

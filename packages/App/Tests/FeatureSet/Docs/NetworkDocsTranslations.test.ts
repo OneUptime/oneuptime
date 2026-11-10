@@ -71,12 +71,13 @@ import { describe, expect, it } from "@jest/globals";
  *     " > " between them.
  *   - The Overview's verdicts are quoted as the Overview words them, with a
  *     number in them, in any plural form the locale has.
- *   - What every Dashboard shows in English stays English: criteria names
- *     (the criteria form has no locale key for them), records the product
- *     creates with English names, and labels with no locale key
+ *   - What every Dashboard shows in English stays English: records the
+ *     product creates with English names, and labels with no locale key
  *     (SHOWN_IN_ENGLISH); so do permission names (PERMISSIONS), the labels
  *     of other products' consoles (OTHER_CONSOLES) and names of products,
- *     vendors and vendor templates (NAMES).
+ *     vendors and vendor templates (NAMES). The criteria form's Filter Type
+ *     options ("SNMP OID Value", "SNMP Trap Received (Trap OID)") have keys
+ *     since 31eadaee92e and are drawn like any other label.
  *   - A criteria written out as the form sets it up ("**Noise Floor Greater
  *     Than -80**") keeps its column as the form lists it and draws its
  *     condition, which has a key since adc8421a1b (WRITTEN_CRITERIA).
@@ -121,15 +122,6 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [DEVICE]: [
-    // Criteria names: the criteria form's Filter Type options.
-    "SNMP OID Value",
-    "SNMP OID Exists",
-    "SNMP OID Rate (per second)",
-    "SNMP Table Row Is Unhealthy",
-    "SNMP Transceiver Reading",
-    "SNMP Trap Received (Trap OID)",
-    "SNMP Trap Varbind Value",
-    "SNMP Device Is Online",
     // Review Results' label for a host found without a name.
     "No name found",
     // The alert pack's criteria, named in English (NetworkDeviceAlertPack).
@@ -140,17 +132,10 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   ],
   // The Health Rollup card's second policy has no locale key.
   [SITES]: ["Percentage of devices down"],
+  // Criteria the recommended alerts create, named after their tables.
   [VENDORS]: [
-    // Criteria the recommended alerts create, named after their tables.
     "IPsec Tunnels: row unhealthy",
     "Fabric Adjacencies (IS-IS): row unhealthy",
-    // Criteria names and filter types.
-    "SNMP Table Row Is Unhealthy",
-    "SNMP Interface Is Down",
-    "SNMP Interface Utilization (in %)",
-    "SNMP Trap Received (Trap OID)",
-    "SNMP Trap Varbind Value",
-    "SNMP Table Value",
   ],
 };
 

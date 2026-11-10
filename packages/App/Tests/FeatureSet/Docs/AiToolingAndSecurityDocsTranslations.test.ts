@@ -97,9 +97,11 @@ import { describe, expect, it } from "@jest/globals";
  *
  * What every Dashboard draws in English stays English (KEPT_AS_WRITTEN): a
  * workflow step's own names (its title, settings and dots, as the workflow
- * pages keep them), the monitor criteria's filter types and conditions, and
- * the value picker's glyph. A new bold word on these English pages fails
- * "know every bold word" until it is a Dashboard label or listed here.
+ * pages keep them) and the value picker's glyph. The monitor criteria's
+ * filter types and conditions are labels like any other: every one is a key
+ * of the Dashboard's locales since 31eadaee92e (CriteriaFilterTerms), so
+ * "Security Event Count" is drawn. A new bold word on these English pages
+ * fails "know every bold word" until it is a Dashboard label or listed here.
  */
 
 const LANGUAGES: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
@@ -190,17 +192,6 @@ export const WORKFLOW_STEP_NAMES: Record<string, Array<string>> = {
   ],
 };
 
-/*
- * The monitor criteria's filter types (CheckOn), which no Dashboard locale
- * translates. SecurityDocsFacts holds each to its enum. Their conditions
- * (FilterType: Greater Than, Greater Than Or Equal To) are labels since
- * adc8421a1b, drawn like any other. The circuit breaker's monitors are set
- * up as one rule (When to alert), whose words are all labels.
- */
-export const CRITERIA_NAMES: Record<string, Array<string>> = {
-  [SECURITY_EVENTS]: ["Security Event Count"],
-};
-
 // The workflow value picker's button, a glyph.
 const GLYPHS: Record<string, Array<string>> = {
   [CIRCUIT_BREAKER]: ["{ }"],
@@ -277,11 +268,7 @@ function listed(
 
 // Bold words a translation keeps exactly as the English page writes them.
 function keptAsWritten(page: string): Array<string> {
-  return [
-    ...listed(WORKFLOW_STEP_NAMES, page),
-    ...listed(CRITERIA_NAMES, page),
-    ...listed(GLYPHS, page),
-  ];
+  return [...listed(WORKFLOW_STEP_NAMES, page), ...listed(GLYPHS, page)];
 }
 
 // Whether a list accounts for a bold English word on a page.
@@ -447,7 +434,6 @@ describe("the lists this test keeps", () => {
       MENU_ITEMS,
       CREATE_BUTTONS,
       WORKFLOW_STEP_NAMES,
-      CRITERIA_NAMES,
       GLYPHS,
       WIDEST_DIAGRAM_LINE,
     ]) {
@@ -486,10 +472,7 @@ describe("the lists this test keeps", () => {
 
   it("keep in English only what no Dashboard locale has as a label, or a step's own name", () => {
     for (const page of PAGE_NAMES) {
-      for (const name of [
-        ...listed(CRITERIA_NAMES, page),
-        ...listed(GLYPHS, page),
-      ]) {
+      for (const name of listed(GLYPHS, page)) {
         expect({ page, name, label: isActionLabel(name) }).toEqual({
           page,
           name,
@@ -865,7 +848,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(missing).toEqual([]);
     });
 
-    it("keeps in English a workflow step's own names, the criteria's filter types and conditions, and the picker's glyph", () => {
+    it("keeps in English a workflow step's own names and the picker's glyph", () => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = keptAsWritten(entry.page).filter(
         (name: string): boolean => {

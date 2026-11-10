@@ -101,7 +101,7 @@ Cada cambio de estado, con su motivo, queda registrado en la **Cronología de es
 
 ## Criterios
 
-Los criterios de un monitor de trazas tienen un único **Tipo de filtro**: **Span Count**, el número de spans que coincidieron en la ventana. **Cuándo alertar** configura un criterio, cuya **Condición** es **Más de**, **Al menos**, **Menos de**, **Como mucho**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo** o **Inusualmente alto o bajo**. Para varios criterios, o uno con más de un filtro, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Condición de filtro** y, para una condición de umbral, un **Valor**.
+Los criterios de un monitor de trazas tienen un único **Tipo de filtro**: **Número de spans**, el número de spans que coincidieron en la ventana. **Cuándo alertar** configura un criterio, cuya **Condición** es **Más de**, **Al menos**, **Menos de**, **Como mucho**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo** o **Inusualmente alto o bajo**. Para varios criterios, o uno con más de un filtro, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Condición de filtro** y, para una condición de umbral, un **Valor**.
 
 | Condición de filtro | Coincide cuando el recuento de spans está… |
 | --- | --- |
@@ -110,9 +110,9 @@ Los criterios de un monitor de trazas tienen un único **Tipo de filtro**: **Spa
 | **Menor que** | por debajo del valor |
 | **Menor o igual que** | en el valor o por debajo |
 | **Igual a** | exactamente en el valor |
-| **Anomalously High** | por encima del rango esperado para esta hora de la semana |
-| **Anomalously Low** | por debajo de ese rango |
-| **Anomalous** | fuera de ese rango, en cualquier sentido |
+| **Anómalamente alto** | por encima del rango esperado para esta hora de la semana |
+| **Anómalamente bajo** | por debajo de ese rango |
+| **Anómalo** | fuera de ese rango, en cualquier sentido |
 
 Las condiciones de anomalía no llevan **Valor**. Elige una **Sensibilidad** (Baja, Media, la predeterminada, o Alta) y, en los criterios propios, una **Ventana de referencia** de 14 (la predeterminada), 28, 60 o 90 días. OneUptime convierte el recuento en una tasa por minuto y la compara con ventanas de la misma duración en torno a la misma hora de semanas anteriores, hasta donde llega la **Ventana de referencia**; lo que ocurre ahora nunca forma parte de esa comparación. La referencia solo abarca los servicios y los estados de span del monitor: sus filtros de nombre de span y de atributos no forman parte de ella. Los minutos sin spans también cuentan, así que un servicio que suele estar en silencio no se considera inusualmente bajo por estarlo. Una ventana solo se considera inusualmente alta frente a las ventanas que tuvieron spans, y solo con al menos 20, 10 o 5 spans con la sensibilidad Baja, Media o Alta, de modo que ni la ráfaga habitual de una tarea ni los primeros spans de un servicio silencioso lo disparan. Hasta que los servicios del monitor tengan dos semanas de historial, el criterio sigue aprendiendo y no se dispara.
 
@@ -127,8 +127,8 @@ Un monitor de trazas creado mediante la API o Terraform sin criterios empieza co
 
 | Criterio | Filtro | Efecto |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Igual a** `0` | Pone el monitor fuera de línea y declara un incidente que se resuelve solo |
-| Check if … is online | **Span Count** **Mayor que** `0` | Pone el monitor en línea |
+| Check if … is offline | **Número de spans** **Igual a** `0` | Pone el monitor fuera de línea y declara un incidente que se resuelve solo |
+| Check if … is online | **Número de spans** **Mayor que** `0` | Pone el monitor en línea |
 
 ## Ejemplo práctico: solicitudes de checkout fallidas
 

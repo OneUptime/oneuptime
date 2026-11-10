@@ -116,7 +116,7 @@ Jo lengre vinduet er, desto bredere er hvert tidsintervall, så ett datapunkt st
 
 ## Kriterier
 
-Disse monitorene evaluerer alltid **Metric Value**: den aggregerte verdien av den konfigurerte metrikkspørringen eller formelen. **Når det skal varsles** setter opp ett kriterium ut fra **Målt som**, **Tidsvindu**, **Betingelse** og **Verdi**. Når metrikken har en enhet, velger du verdiens enhet ved siden av den. **Betingelse** er **Over**, **På eller over**, **Under**, **På eller under**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav**, **Uvanlig høy eller lav**, **Ventes å stige over** eller **Ventes å falle under**. For flere kriterier, for eksempel alvorlighetsbånd, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har en **Metrikk**, en **Aggregering**, en **Betingelse** og en **Terskel**.
+Disse monitorene evaluerer alltid **Metrikkverdi**: den aggregerte verdien av den konfigurerte metrikkspørringen eller formelen. **Når det skal varsles** setter opp ett kriterium ut fra **Målt som**, **Tidsvindu**, **Betingelse** og **Verdi**. Når metrikken har en enhet, velger du verdiens enhet ved siden av den. **Betingelse** er **Over**, **På eller over**, **Under**, **På eller under**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav**, **Uvanlig høy eller lav**, **Ventes å stige over** eller **Ventes å falle under**. For flere kriterier, for eksempel alvorlighetsbånd, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har en **Metrikk**, en **Aggregering**, en **Betingelse** og en **Terskel**.
 
 | Betingelse | Samsvarer når verdien er… |
 | --- | --- |
@@ -125,9 +125,9 @@ Disse monitorene evaluerer alltid **Metric Value**: den aggregerte verdien av de
 | **Mindre enn** | under terskelen |
 | **Mindre enn eller lik** | lik terskelen eller lavere |
 | **Lik** | nøyaktig terskelen |
-| **Anomalously High** | over det forventede området for denne timen i uken |
-| **Anomalously Low** | under det området |
-| **Anomalous** | utenfor det området, i hvilken som helst retning |
+| **Unormalt høy** | over det forventede området for denne timen i uken |
+| **Unormalt lav** | under det området |
+| **Avvikende** | utenfor det området, i hvilken som helst retning |
 | **Ventes å stige over** | er på vei over terskelen: trenden er over den ved slutten av **Tidshorisont** |
 | **Ventes å falle under** | er på vei under terskelen, ved slutten av **Tidshorisont** |
 | **Ingen data** | fraværende: spørringen sendte ingenting i vinduet |
@@ -148,7 +148,7 @@ En sum eller en telling regnes bare som lav på et fullstendig datapunkt med end
 
 En metrikkmonitor som er opprettet i Opprett monitor, starter med én regel på den første spørringen: **Gjennomsnittet** over **Siste 5 minutter**, **Over** **Verdi** du angir, og **Opprett et varsel**.
 
-En ny metrikkmonitor som er opprettet via API-et eller Terraform uten kriterier, starter med to kriterier på den første spørringen, begge med aggregeringen **Any Value**:
+En ny metrikkmonitor som er opprettet via API-et eller Terraform uten kriterier, starter med to kriterier på den første spørringen, begge med aggregeringen **Minst én verdi**:
 
 | Kriterium | Betingelse | Virkning |
 | --- | --- | --- |

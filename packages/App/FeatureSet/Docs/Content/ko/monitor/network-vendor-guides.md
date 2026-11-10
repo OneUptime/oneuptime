@@ -58,13 +58,13 @@ Sophos는 어떤 SFOS 버전에서도 게이트웨이나 SD-WAN 상태를 SNMP�
 
 ### 모든 IPsec 터널에 알림 걸기
 
-디바이스 페이지에서 **모니터 생성**을 클릭합니다. 권장 알림에는 **IPsec Tunnels: row unhealthy**가 포함됩니다. `ipsec_tunnels` 테이블에 대해 Row `*`로 설정한 **SNMP Table Row Is Unhealthy** 기준으로, active가 아닌 터널마다 터널 이름을 딴 인시던트를 하나씩 열고, 터널이 돌아오면 각각 해결합니다.
+디바이스 페이지에서 **모니터 생성**을 클릭합니다. 권장 알림에는 **IPsec Tunnels: row unhealthy**가 포함됩니다. `ipsec_tunnels` 테이블에 대해 Row `*`로 설정한 **SNMP 테이블 행 비정상 여부** 기준으로, active가 아닌 터널마다 터널 이름을 딴 인시던트를 하나씩 열고, 터널이 돌아오면 각각 해결합니다.
 
 Sophos가 active로 보고하는 터널은 보안 연결(SA)이 올라와 있다는 뜻일 뿐입니다. 트래픽이 실제로 지나가는지 증명하려면 한 사이트의 프로브에서 각 터널 건너편의 호스트로 가는 [Ping 모니터](/docs/monitor/ping-monitor)를 추가하고, **네트워크 → 토폴로지 → 사이트 링크**에서 두 [사이트](/docs/monitor/network-sites) 사이의 사이트 링크로 터널을 그려 그 모니터에 바인딩하세요. 그러면 맵의 링크가 모니터의 색을 띱니다.
 
 ### WAN 링크
 
-- **포트 상태.** 인터페이스 워크가 이미 모든 WAN 포트의 상태, 들어오고 나가는 비트, 사용률, 오류를 측정합니다. 방화벽의 모니터에서 **인터페이스**를 WAN 포트의 이름으로, 또는 모든 포트를 위해 `*`로 설정한 **SNMP Interface Is Down** 또는 **SNMP Interface Utilization (in %)** 기준이 링크마다 알림을 보냅니다.
+- **포트 상태.** 인터페이스 워크가 이미 모든 WAN 포트의 상태, 들어오고 나가는 비트, 사용률, 오류를 측정합니다. 방화벽의 모니터에서 **인터페이스**를 WAN 포트의 이름으로, 또는 모든 포트를 위해 `*`로 설정한 **SNMP 인터페이스 다운 여부** 또는 **SNMP 인터페이스 사용률(%)** 기준이 링크마다 알림을 보냅니다.
 - **경로 품질.** 각 링크의 지연 시간, 패킷 손실, 지터는 방화벽 밖에서 측정합니다. OneUptime 클라우드 프로브에서 각 WAN 링크의 공인 주소로 가는 Ping 모니터와, 사이트의 프로브에서 각 ISP 게이트웨이로 가는 Ping 모니터입니다. 이 모니터의 패킷 손실 및 지터 기준이 링크마다 알림을 보내며, **네트워크 → 토폴로지 → 지연 시간 매트릭스**는 모든 프로브와 모든 모니터를 한눈에 보여 줍니다.
 - **트래픽.** SFOS는 NetFlow v5를 내보냅니다. 프로브의 플로 수집기가 기본으로 수신 대기하는 UDP 2055로 프로브에 보내면, 디바이스의 **트래픽** 페이지가 각 WAN 링크에서 누가 누구와 통신하는지 보여 줍니다. 자세한 내용은 [네트워크 트래픽](/docs/monitor/network-traffic)에 있습니다.
 
@@ -88,7 +88,7 @@ Sophos가 active로 보고하는 터널은 보안 연결(SA)이 올라와 있다
 
 ### 트랩
 
-Sophos의 모든 알림은 같은 트랩 `sfosNotification`(`1.3.6.1.4.1.2604.5.1.8.1.1`)이며, 이벤트는 `sfosTrapMessage`(`1.3.6.1.4.1.2604.5.1.8.1.2`)에 텍스트로 들어 있습니다. 한 종류의 이벤트에 알림을 걸려면 **SNMP Trap Received (Trap OID)** 같음 `1.3.6.1.4.1.2604.5.1.8.1.1`과, 그 varbind에 대한 **SNMP Trap Varbind Value**(예: 포함 `IPSec`)를 결합하세요. 방화벽의 트랩 대상은 SNMP v2c로 설정하세요. 프로브의 트랩 수신기는 v1과 v2c 트랩을 받습니다.
+Sophos의 모든 알림은 같은 트랩 `sfosNotification`(`1.3.6.1.4.1.2604.5.1.8.1.1`)이며, 이벤트는 `sfosTrapMessage`(`1.3.6.1.4.1.2604.5.1.8.1.2`)에 텍스트로 들어 있습니다. 한 종류의 이벤트에 알림을 걸려면 **SNMP 트랩 수신(트랩 OID)** 같음 `1.3.6.1.4.1.2604.5.1.8.1.1`과, 그 varbind에 대한 **SNMP 트랩 Varbind 값**(예: 포함 `IPSec`)을 결합하세요. 방화벽의 트랩 대상은 SNMP v2c로 설정하세요. 프로브의 트랩 수신기는 v1과 v2c 트랩을 받습니다.
 
 ## Extreme Networks (EXOS / Switch Engine 및 Fabric Engine / VOSS)
 
@@ -105,7 +105,7 @@ Extreme의 범용 하드웨어(5000 및 7000 시리즈)에서 실행되는 Fabri
 
 ### 패브릭과 하드웨어 알림
 
-Fabric Engine 스위치의 권장 알림에는 **Fabric Adjacencies (IS-IS): row unhealthy**가 포함되어, 인접 관계가 올라와 있지 않은 이웃마다 인시던트를 엽니다. Fabric Engine은 인접 관계가 바뀔 때 트랩 `rcnIsisPlsbAdjStateTrap`(`1.3.6.1.4.1.2272.1.21.0.281`)도 보내며, 이 트랩에 대한 **SNMP Trap Received (Trap OID)** 기준은 다음 폴링 전에 몇 초 안에 알립니다.
+Fabric Engine 스위치의 권장 알림에는 **Fabric Adjacencies (IS-IS): row unhealthy**가 포함되어, 인접 관계가 올라와 있지 않은 이웃마다 인시던트를 엽니다. Fabric Engine은 인접 관계가 바뀔 때 트랩 `rcnIsisPlsbAdjStateTrap`(`1.3.6.1.4.1.2272.1.21.0.281`)도 보내며, 이 트랩에 대한 **SNMP 트랩 수신(트랩 OID)** 기준은 다음 폴링 전에 몇 초 안에 알립니다.
 
 전원 공급 장치, 팬, 온도 센서, 스택 멤버는 정상 값을 선언하는 테이블이므로, 각각 권장 알림에서 행별 알림을 받습니다.
 
@@ -129,10 +129,10 @@ IQ Engine(HiveOS) 액세스 포인트와 ExtremeCloud IQ Controller에는 자체
 
 | 알림 | 기준 |
 | --- | --- |
-| 꺼진 무선 | **SNMP Table Row Is Unhealthy**, 권장 알림에 포함 |
-| 송신 전력 변경 | **SNMP Table Value**, 열 TX Power, 계획한 전력과 같지 않음 |
-| 붐비는 무선 | **SNMP Table Value**, 열 Clients, 한도보다 큼 |
-| 시끄러운 채널 | **SNMP Table Value**, 열 Noise Floor, 보다 큼 `-80` |
+| 꺼진 무선 | **SNMP 테이블 행 비정상 여부**, 권장 알림에 포함 |
+| 송신 전력 변경 | **SNMP 테이블 값**, 열 TX Power, 계획한 전력과 같지 않음 |
+| 붐비는 무선 | **SNMP 테이블 값**, 열 Clients, 한도보다 큼 |
+| 시끄러운 채널 | **SNMP 테이블 값**, 열 Noise Floor, 보다 큼 `-80` |
 
 모든 숫자 무선 값은 메트릭(`oneuptime.monitor.snmp.table.value`, 무선과 열마다 하나의 시계열)이기도 하므로, 채널, 전력, 클라이언트를 대시보드에서 시간에 따라 차트로 그릴 수 있습니다. 계속 바뀌는 채널은 DFS가 작동하고 있다는 뜻입니다.
 

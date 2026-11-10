@@ -58,13 +58,13 @@ Nach der nächsten Abfrage listet die Seite **SNMP-Tabellen** des Geräts jede I
 
 ### Für jeden IPsec-Tunnel warnen
 
-Klicken Sie auf der Seite des Geräts auf **Monitor erstellen**. Die empfohlenen Warnungen enthalten **IPsec Tunnels: row unhealthy**, ein Kriterium **SNMP Table Row Is Unhealthy** auf der Tabelle `ipsec_tunnels` mit Row `*`: Es eröffnet einen Vorfall pro Tunnel, der nicht aktiv ist, nach dem Tunnel benannt, und löst jeden auf, wenn sein Tunnel zurückkommt.
+Klicken Sie auf der Seite des Geräts auf **Monitor erstellen**. Die empfohlenen Warnungen enthalten **IPsec Tunnels: row unhealthy**, ein Kriterium **SNMP-Tabellenzeile ist fehlerhaft** auf der Tabelle `ipsec_tunnels` mit Row `*`: Es eröffnet einen Vorfall pro Tunnel, der nicht aktiv ist, nach dem Tunnel benannt, und löst jeden auf, wenn sein Tunnel zurückkommt.
 
 Ein Tunnel, den Sophos als aktiv meldet, hat nur seine Security Associations aufgebaut. Um zu belegen, dass Verkehr durch ihn fließt, fügen Sie einen [Ping-Monitor](/docs/monitor/ping-monitor) von einer Sonde an einem Standort zu einem Host auf der anderen Seite jedes Tunnels hinzu, und zeichnen Sie den Tunnel als Standortverbindung unter **Netzwerk → Topologie → Standortverbindungen** zwischen den beiden [Standorten](/docs/monitor/network-sites), gebunden an diesen Monitor: Die Verbindung auf der Karte übernimmt dann die Farbe des Monitors.
 
 ### WAN-Verbindungen
 
-- **Integrität der Ports.** Der Schnittstellen-Walk misst bereits Status, Bits ein- und ausgehend, Auslastung und Fehler jedes WAN-Ports. Auf dem Monitor der Firewall warnt ein Kriterium **SNMP Interface Is Down** oder **SNMP Interface Utilization (in %)** mit **Schnittstelle** auf dem Namen des WAN-Ports, oder `*` für jeden Port, pro Verbindung.
+- **Integrität der Ports.** Der Schnittstellen-Walk misst bereits Status, Bits ein- und ausgehend, Auslastung und Fehler jedes WAN-Ports. Auf dem Monitor der Firewall warnt ein Kriterium **SNMP-Schnittstelle ist ausgefallen** oder **SNMP-Schnittstellenauslastung (in %)** mit **Schnittstelle** auf dem Namen des WAN-Ports, oder `*` für jeden Port, pro Verbindung.
 - **Qualität des Pfads.** Latenz, Paketverlust und Jitter jeder Verbindung werden von außerhalb der Firewall gemessen: ein Ping-Monitor von den Cloud-Sonden von OneUptime zur öffentlichen Adresse jeder WAN-Verbindung und ein Ping-Monitor von einer Sonde am Standort zum Gateway jedes Providers. Kriterien für Paketverlust und Jitter auf diesen Monitoren warnen pro Verbindung, und **Netzwerk → Topologie → Latenzmatrix** zeigt jede Sonde gegen jeden Monitor auf einen Blick.
 - **Datenverkehr.** SFOS exportiert NetFlow v5. Senden Sie es an die Sonde auf UDP 2055, wo der Flow-Collector der Sonde standardmäßig lauscht, und die Seite **Datenverkehr** des Geräts zeigt, wer über jede WAN-Verbindung mit wem spricht; [Netzwerkverkehr](/docs/monitor/network-traffic) beschreibt die Details.
 
@@ -88,7 +88,7 @@ Die ersten beiden stehen in der Liste **Warnung erstellen**; für die dritte öf
 
 ### Traps
 
-Jede Sophos-Benachrichtigung ist derselbe Trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), mit dem Ereignis als Text in `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Um für eine Art von Ereignis zu warnen, kombinieren Sie **SNMP Trap Received (Trap OID)** Gleich `1.3.6.1.4.1.2604.5.1.8.1.1` mit **SNMP Trap Varbind Value** auf diesem Varbind, zum Beispiel Enthält `IPSec`. Stellen Sie das Trap-Ziel der Firewall auf SNMP v2c: Der Trap-Empfänger der Sonde nimmt v1- und v2c-Traps an.
+Jede Sophos-Benachrichtigung ist derselbe Trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), mit dem Ereignis als Text in `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Um für eine Art von Ereignis zu warnen, kombinieren Sie **SNMP-Trap empfangen (Trap-OID)** Gleich `1.3.6.1.4.1.2604.5.1.8.1.1` mit **SNMP-Trap-Varbind-Wert** auf diesem Varbind, zum Beispiel Enthält `IPSec`. Stellen Sie das Trap-Ziel der Firewall auf SNMP v2c: Der Trap-Empfänger der Sonde nimmt v1- und v2c-Traps an.
 
 ## Extreme Networks (EXOS / Switch Engine und Fabric Engine / VOSS)
 
@@ -105,7 +105,7 @@ Fabric Engine auf der universellen Hardware von Extreme (die Serien 5000 und 700
 
 ### Warnungen für Fabric und Hardware
 
-Die empfohlenen Warnungen auf einem Fabric-Engine-Switch enthalten **Fabric Adjacencies (IS-IS): row unhealthy**, einen Vorfall pro Nachbar, dessen Nachbarschaft nicht aufgebaut ist. Fabric Engine sendet außerdem einen Trap, wenn sich eine Nachbarschaft ändert, `rcnIsisPlsbAdjStateTrap` (`1.3.6.1.4.1.2272.1.21.0.281`), und ein Kriterium **SNMP Trap Received (Trap OID)** darauf warnt innerhalb von Sekunden, vor der nächsten Abfrage.
+Die empfohlenen Warnungen auf einem Fabric-Engine-Switch enthalten **Fabric Adjacencies (IS-IS): row unhealthy**, einen Vorfall pro Nachbar, dessen Nachbarschaft nicht aufgebaut ist. Fabric Engine sendet außerdem einen Trap, wenn sich eine Nachbarschaft ändert, `rcnIsisPlsbAdjStateTrap` (`1.3.6.1.4.1.2272.1.21.0.281`), und ein Kriterium **SNMP-Trap empfangen (Trap-OID)** darauf warnt innerhalb von Sekunden, vor der nächsten Abfrage.
 
 Netzteile, Lüfter, Temperatursensoren und Stack-Mitglieder sind Tabellen, die ihre gesunden Werte deklarieren, jede bekommt also in den empfohlenen Warnungen eine Warnung pro Zeile.
 
@@ -129,10 +129,10 @@ Nützliche Warnungen, alle auf der Tabelle `wifi_radios` mit Row `*`, sodass jed
 
 | Warnung | Kriterium |
 | --- | --- |
-| Ein Funkmodul wurde abgeschaltet | **SNMP Table Row Is Unhealthy**, Teil der empfohlenen Warnungen |
-| Die Sendeleistung hat sich geändert | **SNMP Table Value**, Spalte TX Power, Ungleich Ihre geplante Leistung |
-| Ein überlastetes Funkmodul | **SNMP Table Value**, Spalte Clients, Größer als Ihre Grenze |
-| Ein verrauschter Kanal | **SNMP Table Value**, Spalte Noise Floor, Größer als `-80` |
+| Ein Funkmodul wurde abgeschaltet | **SNMP-Tabellenzeile ist fehlerhaft**, Teil der empfohlenen Warnungen |
+| Die Sendeleistung hat sich geändert | **SNMP-Tabellenwert**, Spalte TX Power, Ungleich Ihre geplante Leistung |
+| Ein überlastetes Funkmodul | **SNMP-Tabellenwert**, Spalte Clients, Größer als Ihre Grenze |
+| Ein verrauschter Kanal | **SNMP-Tabellenwert**, Spalte Noise Floor, Größer als `-80` |
 
 Jeder numerische Wert eines Funkmoduls ist auch eine Metrik (`oneuptime.monitor.snmp.table.value`, eine Reihe pro Funkmodul und Spalte), Kanal, Leistung und Clients lassen sich also auf einem Dashboard über die Zeit zeigen; ein Kanal, der sich ständig ändert, ist DFS bei der Arbeit.
 
