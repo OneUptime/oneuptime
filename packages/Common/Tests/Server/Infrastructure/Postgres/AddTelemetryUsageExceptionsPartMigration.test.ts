@@ -37,7 +37,15 @@ import ColumnType from "../../../../Types/Database/ColumnType";
  *   names the suite reads.
  */
 
-const REPO_ROOT: string = path.join(__dirname, "..", "..", "..", "..", "..", "..");
+const REPO_ROOT: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+);
 
 const MIGRATIONS_DIR: string = path.join(
   REPO_ROOT,
@@ -52,7 +60,8 @@ const MIGRATIONS_DIR: string = path.join(
 const FILE: string = "1809080476356-AddTelemetryUsageExceptionsPart.ts";
 const NAME: string = "AddTelemetryUsageExceptionsPart1809080476356";
 // The migration it was generated on top of, on its branch.
-const PREVIOUS_NAME: string = "AddIncomingMonitorRequestAsReceived1809080466402";
+const PREVIOUS_NAME: string =
+  "AddIncomingMonitorRequestAsReceived1809080466402";
 /*
  * The first migration main added while the branch was open. It was generated
  * later, so it runs after this one.
@@ -111,27 +120,24 @@ const sentByUp: () => Promise<Array<string>> = (): Promise<Array<string>> => {
   });
 };
 
-const sentByDown: () => Promise<Array<string>> = (): Promise<
-  Array<string>
-> => {
+const sentByDown: () => Promise<Array<string>> = (): Promise<Array<string>> => {
   return sqlSentBy((queryRunner: QueryRunner): Promise<void> => {
-    return new AddTelemetryUsageExceptionsPart1809080476356().down(
-      queryRunner,
-    );
+    return new AddTelemetryUsageExceptionsPart1809080476356().down(queryRunner);
   });
 };
 
 const declaredColumn: (propertyName: string) => ColumnMetadataArgs = (
   propertyName: string,
 ): ColumnMetadataArgs => {
-  const found: ColumnMetadataArgs | undefined = getMetadataArgsStorage().columns.find(
-    (column: ColumnMetadataArgs): boolean => {
-      return (
-        column.target === TelemetryUsageBilling &&
-        column.propertyName === propertyName
-      );
-    },
-  );
+  const found: ColumnMetadataArgs | undefined =
+    getMetadataArgsStorage().columns.find(
+      (column: ColumnMetadataArgs): boolean => {
+        return (
+          column.target === TelemetryUsageBilling &&
+          column.propertyName === propertyName
+        );
+      },
+    );
 
   if (!found) {
     throw new Error(`${TABLE}.${propertyName} is not declared on the model`);
@@ -155,7 +161,9 @@ describe("registration", () => {
   test("its name matches its class and its file's timestamp", () => {
     expect(new AddTelemetryUsageExceptionsPart1809080476356().name).toBe(NAME);
     expect(FILE.split("-")[0]).toBe(timestampOf(NAME));
-    expect(FILE).toBe(`${timestampOf(NAME)}-AddTelemetryUsageExceptionsPart.ts`);
+    expect(FILE).toBe(
+      `${timestampOf(NAME)}-AddTelemetryUsageExceptionsPart.ts`,
+    );
   });
 
   test("Index.ts imports it from its own file", () => {
@@ -185,6 +193,8 @@ describe("registration", () => {
     expect(Migrations[names.indexOf(NEXT_ON_MAIN_NAME)]).toBe(
       AddTeamOwners1809086561000,
     );
+    // Registered at all, so "before" cannot pass on an index of -1.
+    expect(names.indexOf(NAME)).toBeGreaterThan(-1);
     expect(names.indexOf(NAME)).toBeLessThan(names.indexOf(NEXT_ON_MAIN_NAME));
   });
 
@@ -193,9 +203,7 @@ describe("registration", () => {
     const before: string = names[index - 1]!;
     const after: string | undefined = names[index + 1];
 
-    expect(Number(timestampOf(before))).toBeLessThan(
-      Number(timestampOf(NAME)),
-    );
+    expect(Number(timestampOf(before))).toBeLessThan(Number(timestampOf(NAME)));
 
     // It may be the newest migration on a branch; on main something follows.
     if (after) {
@@ -398,9 +406,9 @@ describe("the opt-in Postgres suite runs in CI", () => {
   test("the step runs the suite from packages/Common", () => {
     expect(step).toContain("working-directory: packages/Common");
     expect(step).toContain(SUITE_FILE);
-    expect(fs.existsSync(path.join(REPO_ROOT, "packages", "Common", SUITE_FILE))).toBe(
-      true,
-    );
+    expect(
+      fs.existsSync(path.join(REPO_ROOT, "packages", "Common", SUITE_FILE)),
+    ).toBe(true);
   });
 
   test("the step switches the suite on with the variable the suite checks", () => {
