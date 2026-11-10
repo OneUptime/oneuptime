@@ -24,8 +24,9 @@ import {
  *     name, which follows the monitor's name (StatusPageResourceFormFields);
  *     its fields reach the panel as a prop, so the scan cannot read them -
  *     Tests/App/StatusPage/StatusPageResourceForm.test.tsx does;
- *   - Add Multiple Monitors: the monitors (and, for a grid group, the cell
- *     they go in);
+ *   - Add Multiple Monitors: the monitors - or, on its monitor group
+ *     picker (Add Multiple Monitor Groups, #6544), the monitor groups -
+ *     and, for a grid group, the cell they go in;
  *   - a group: its name and parent, with Layout and Advanced folded;
  *   - a monitor rule: what it matches, then where the monitors go, with
  *     its name filled in from that and the display options and the
@@ -278,11 +279,45 @@ describe("the status page resource forms", () => {
     test("submits with one plain button, never a Next", () => {
       const code: string = readCode(BULK_ADD_MODAL);
 
-      expect(code).toContain('submitButtonText="Add Monitors"');
+      // Add Monitors, or Add Monitor Groups on the monitor group picker.
+      expect(code).toMatch(
+        /submitButtonText=\{\s*isMonitorGroupPicker\s*\?\s*"Add Monitor Groups"\s*:\s*"Add Monitors"\s*\}/,
+      );
       expect(code).not.toContain("getSteppedFormFooter");
       expect(code).not.toContain("goToNextStep");
       expect(code).not.toContain("submitAllSteps");
       expect(code).not.toContain("modal-footer-next-button");
+    });
+  });
+
+  /*
+   * Add Multiple Monitor Groups (#6544) is the same dialog on its other
+   * picker: one field of monitor groups in place of the monitors, never the
+   * two kinds mixed in one field, and the same cell and folded options.
+   */
+  describe("Add Multiple Monitor Groups", () => {
+    const code: string = readCode(BULK_ADD_MODAL);
+
+    test("asks for monitor groups in a picker of their own", () => {
+      expect(code).toMatch(
+        /field: \{ monitorGroups: true, \}, title: "Monitor Groups", description: "[^"]+", fieldType: FormFieldSchemaType\.MultiSelectDropdown, dropdownModal: \{ type: MonitorGroup,/,
+      );
+      expect(code).toMatch(
+        /field: \{ monitors: true, \}, title: "Monitors", description: "[^"]+", fieldType: FormFieldSchemaType\.MultiSelectDropdown, dropdownModal: \{ type: Monitor,/,
+      );
+    });
+
+    // A monitor rule adds monitors: nothing keeps a group in sync with labels.
+    test("never offers to keep the group in sync with labels", () => {
+      expect(code).toMatch(
+        /keepInSyncWithLabels: true,[\s\S]*?showIf: \(\): boolean => \{ return \( syncLabels\.length > 0 && !props\.gridPlacement && !isMonitorGroupPicker \); \}/,
+      );
+    });
+
+    test("is titled for monitor groups", () => {
+      expect(code).toMatch(
+        /title=\{\s*isMonitorGroupPicker\s*\?\s*"Add Multiple Monitor Groups"\s*:\s*"Add Multiple Monitors"\s*\}/,
+      );
     });
   });
 

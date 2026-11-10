@@ -245,7 +245,12 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
   const [resourceToShowIdFor, setResourceToShowIdFor] =
     useState<StatusPageResource | null>(null);
 
-  const [isBulkAddModalOpen, setIsBulkAddModalOpen] = useState<boolean>(false);
+  /*
+   * The bulk add on screen, by the picker it opened on: Add Multiple
+   * Monitors, or Add Multiple Monitor Groups (issue #6544). Null when closed.
+   */
+  const [bulkAddTargetType, setBulkAddTargetType] =
+    useState<StatusPageResourceTargetType | null>(null);
 
   /*
    * Which rows are ticked, as ids rather than as resources: every write on this
@@ -995,10 +1000,28 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
             text="Add multiple monitors"
             icon={IconProp.Add}
             onClick={() => {
-              setIsBulkAddModalOpen(true);
+              setBulkAddTargetType(StatusPageResourceTargetType.Monitor);
             }}
           />,
         );
+
+        /*
+         * Its twin for monitor groups, on projects that have them (issue
+         * #6544): one group at a time is still Add Monitor's "Add a Monitor
+         * Group instead.", and several are one dialog, as monitors are.
+         */
+        if (props.isMonitorGroupsFeatureEnabled) {
+          items.push(
+            <MoreMenuItem
+              key="bulk-add-monitor-groups"
+              text="Add multiple monitor groups"
+              icon={IconProp.Add}
+              onClick={() => {
+                setBulkAddTargetType(StatusPageResourceTargetType.MonitorGroup);
+              }}
+            />,
+          );
+        }
       }
 
       if (isGroupSelected && props.canEditGroup) {
@@ -1534,7 +1557,9 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
             {/*
              * Adding a screenful at once is a setup move, and an empty group is
              * exactly when it is worth making: it is otherwise only reachable
-             * from the overflow menu.
+             * from the overflow menu. It opens on the picker Add Monitor beside
+             * it opens on - monitors, or monitor groups once Add Monitor was
+             * switched to them - and its own link swaps it.
              */}
             {canAddToSelection ? (
               <Button
@@ -1543,7 +1568,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
                 buttonStyle={ButtonStyleType.NORMAL}
                 dataTestId="status-page-resource-panel-empty-bulk-add"
                 onClick={() => {
-                  setIsBulkAddModalOpen(true);
+                  setBulkAddTargetType(createTargetType);
                 }}
               />
             ) : (
@@ -1825,9 +1850,11 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      {isBulkAddModalOpen ? (
+      {bulkAddTargetType ? (
         <BulkAddStatusPageMonitorsModal
           projectId={props.projectId}
+          targetType={bulkAddTargetType}
+          canSwitchTarget={props.isMonitorGroupsFeatureEnabled}
           statusPageId={props.statusPageId}
           statusPageGroupId={statusPageGroupId || undefined}
           gridPlacement={
@@ -1841,7 +1868,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
               : undefined
           }
           onClose={() => {
-            setIsBulkAddModalOpen(false);
+            setBulkAddTargetType(null);
           }}
           onComplete={() => {
             reload();

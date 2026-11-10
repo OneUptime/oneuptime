@@ -83,11 +83,13 @@ In een rastergroep vraagt het dialoogvenster boven **Meer velden** ook om de rij
 
 De meervoudige selectie heeft een tabblad **Labels**: klik op een label en elke monitor met dat label wordt in één keer geselecteerd.
 
+Monitorgroepen voegt u op dezelfde manier toe. Met de schakelaar **Monitorgroepen** aan heeft **Meer acties** ook **Meerdere monitorgroepen toevoegen**, dat **Meerdere monitorgroepen toevoegen** opent: een meervoudige selectie **Monitorgroepen**, dan dezelfde ingeklapte **Meer velden**. Elke resource neemt de weergavenaam en beschrijving van zijn monitorgroep over, en **Monitorgroepen toevoegen** voegt ze allemaal toe; een monitorgroep die al op de pagina staat, blijft zoals hij is en staat onder **Al toegevoegd**. De link onder de meervoudige selectie, **Voeg in plaats daarvan monitorgroepen toe.** of **Voeg in plaats daarvan monitors toe.**, wisselt tussen de twee dialoogvensters en houdt de weergaveopties vast die u hebt ingesteld. In een lege groep opent **Meerdere toevoegen** met monitorgroepen wanneer **Monitor toevoegen** naar monitorgroepen is omgezet.
+
 ### Twee keer op label toevoegen is veilig
 
 Een statuspagina toont een monitor maar één keer. Toevoegen is idempotent, dus hetzelfde label opnieuw kiezen nadat u een paar nieuwe monitoren een label hebt gegeven, voegt alleen de nieuwe toe: de monitoren die al op de pagina staan, blijven precies zoals ze zijn, met de weergavenaam en opties die u ze gaf.
 
-De samenvatting aan het eind van het bulksgewijs toevoegen zegt dat ook: toegevoegde monitoren staan onder **Toegevoegd**, en de monitoren die er al stonden onder **Already Added**. Niets wordt als fout gemeld, en voor die monitoren wordt niets weggeschreven.
+De samenvatting aan het eind van het bulksgewijs toevoegen zegt dat ook: toegevoegde monitoren staan onder **Toegevoegd**, en de monitoren die er al stonden onder **Al toegevoegd**. Niets wordt als fout gemeld, en voor die monitoren wordt niets weggeschreven.
 
 Dezelfde regel geldt overal waar een resource wordt aangemaakt. Een monitor die al op de pagina staat, toevoegen vanuit het formulier voor één monitor, of een bestaande resource er vanuit het bewerkformulier naar laten verwijzen, wordt geweigerd met *"This monitor is already added to this status page"*, ook wanneer de bestaande resource in een andere groep staat, want een bezoeker zou de monitor anders toch twee keer zien. Om een monitor in een andere groep te tonen, verwijdert u de resource die hij al heeft en voegt u hem toe waar u hem wilt hebben.
 

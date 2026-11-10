@@ -219,7 +219,7 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     file: `${DASHBOARD}/Components/StatusPage/BulkAddStatusPageMonitorsModal.tsx`,
     form: "BasicForm: Status Page > Add Multiple Monitors",
     reason:
-      "Adding several monitors to a status page: the monitors, then the folded Advanced options. 'Keep this group in sync' shows only after monitors are picked by label and never on a grid group, and the row and column only on a grid group, where they are the one cell every picked monitor goes in - so it is never more than four rows, and usually two.",
+      "Adding several monitors (or, on its other picker, monitor groups) to a status page: the monitors, then the folded Advanced options. 'Keep this group in sync' shows only after monitors are picked by label and never on a grid group or for monitor groups, and the row and column only on a grid group, where they are the one cell every picked monitor goes in - so it is never more than four rows, and usually two.",
   },
   /*
    * Small wizards whose steps did not earn their place: each split a short
@@ -366,6 +366,12 @@ export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
     form: "BasicForm #1",
     reason:
       "A dashboard widget's settings, built from the widget's own argument list and already drawn as one small form per argument section in the side panel, not as one long dialog.",
+  },
+  {
+    file: `${DASHBOARD}/Components/StatusPage/StatusPageResourcePanel.tsx`,
+    form: "ModelFormModal: Status Page > Resources",
+    reason:
+      "Add Monitor and Edit resource on Status Page > Resources, both built by getStatusPageResourceFormFields (StatusPageResourceFormFields.tsx, whose shape StatusPageResourceFormsGuard pins): the monitor or monitor group, its display name and description, a grid group's row and column, then the display options folded under More fields. One short page with the options closed; a Next between picking the monitor and naming it would only slow down the add an operator repeats most.",
   },
   {
     file: `${DASHBOARD}/Components/NumberPrefix/NumberPrefixCard.tsx`,
