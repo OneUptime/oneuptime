@@ -42,6 +42,8 @@ Indstil **Advar, når** for at advare på et tjek:
 
 Når du gemmer tjekket, oprettes en metrik-monitor for det, i dit navn og med dine tilladelser. Rydder du betingelsen, fjernes monitoren.
 
+Et tjeks **Status**, under **Tjek** og på fanen **Tjek** for dets tabel, siger, hvordan det står: **Fejler**, mens dets advarsel er åben, **Bestås**, mens den ikke er, og **Kunne ikke køre**, når dets forespørgsel fejlede. Et tjek uden advarsel siger kun, at det **Kørte**. Et tjek, der fejler, og et, der ikke kunne køre, står også på **Oversigt**.
+
 ## Hvad et tjek koster
 
 Et tjek konkurrerer med din applikation om databasen, og på et datavarehus, der afregner efter det, en forespørgsel læser, koster det penge. Tre ting holder det under kontrol:

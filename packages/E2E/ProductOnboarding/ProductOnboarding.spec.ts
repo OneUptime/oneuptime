@@ -9,6 +9,7 @@ import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
 
 /*
  * How a product explains itself (Components/ProductOnboarding, #6430), in a
@@ -33,6 +34,16 @@ import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
  * database connected, the explanation with Connect a Database, and under
  * it the database the project's traces know of.
  *
+ * And Data Observability in use (#6435): a busy project's Overview leads
+ * with the one first step left, its counts, then what needs someone now,
+ * worst first - each with what it means, who owns it, its open alert or
+ * that nobody is told, and the page where it is put right - its menu in
+ * sections with the rarely used ones folded, the first steps put away by
+ * Dismiss, a project with nothing wrong, and an Overview that cannot be
+ * read; at 1440, 1280, 1024 and 768 pixels beside the menu - its counts two
+ * by two where four would squeeze their names - and on a phone, in German,
+ * and in Persian in the dark theme.
+ *
  * And every other product: the fixture's explanations page draws each
  * product's explanation as its How it works dialog does, so one page shows
  * every product's words, in English at a laptop's width and on a phone in
@@ -48,9 +59,49 @@ const PORT: string = process.env["PRODUCT_ONBOARDING_FIXTURE_PORT"] || "4489";
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000a1";
 const MONITORS: string = `/dashboard/${PROJECT_ID}/monitors`;
 const STATUS_PAGES: string = `/dashboard/${PROJECT_ID}/status-pages`;
-const DATA_OBSERVABILITY: string = `/dashboard/${PROJECT_ID}/data-observability/overview`;
+const DATA_OBSERVABILITY_BASE: string = `/dashboard/${PROJECT_ID}/data-observability`;
+const DATA_OBSERVABILITY: string = `${DATA_OBSERVABILITY_BASE}/overview`;
 // The status page Create answers with (Fixture.js).
 const NEW_STATUS_PAGE_ID: string = "30000000-0000-4000-8000-0000000000a9";
+
+// What Data Observability in use (data=busy) holds, as Fixture.js's DATA names it.
+interface BusyDataIds {
+  warehouse: string;
+  billingDb: string;
+  orders: string;
+  dailySessions: string;
+  nightlyLoad: string;
+  revenueProduct: string;
+  nightlyLoadAlert: string;
+  ordersEmailAlert: string;
+}
+
+const DATA: BusyDataIds = {
+  warehouse: "70000000-0000-4000-8000-0000000000d2",
+  billingDb: "70000000-0000-4000-8000-0000000000d3",
+  orders: "71000000-0000-4000-8000-0000000000d1",
+  dailySessions: "71000000-0000-4000-8000-0000000000d3",
+  nightlyLoad: "72000000-0000-4000-8000-0000000000d1",
+  revenueProduct: "75000000-0000-4000-8000-0000000000d1",
+  nightlyLoadAlert: "76000000-0000-4000-8000-0000000000d1",
+  ordersEmailAlert: "76000000-0000-4000-8000-0000000000d2",
+};
+
+// The eight most urgent things a busy project's Overview lists, worst first, as the server sends them.
+const BUSY_ATTENTION_KINDS: Array<string> = [
+  "Collection Failed",
+  "Pipeline Failed",
+  "Check Failing",
+  "Reconciliation Drifted",
+  "Data Product Late",
+  "Table Late",
+  "Table Late",
+  "Check Could Not Run",
+];
+
+// Components/DataObservability: OverviewNeedsAttention and StoreAlertStatus.
+const ATTENTION_OWNERS: string = "data-observability-attention-owners";
+const STORE_ALERT_STATUS: string = "data-observability-store-alert-status";
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -103,6 +154,8 @@ interface FixtureProduct {
 interface FixtureState {
   counts: Array<{ modelName: string; query: Record<string, unknown> }>;
   creates: Array<{ modelName: string; data: Record<string, unknown> }>;
+  // Each read of Data Observability's own routes, by its route.
+  dataReads: Array<string>;
   unhandled: Array<Record<string, unknown>>;
   products: Array<FixtureProduct>;
 }
@@ -228,6 +281,29 @@ async function isBelow(upper: Locator, lower: Locator): Promise<boolean> {
 }
 
 /*
+ * Whether `after` is drawn on `first`'s line, after it in the reading
+ * direction: their boxes share a band of the page's height, and `after`
+ * starts where `first` ends, to its right - or to its left, in Persian.
+ */
+async function isOnOneLine(first: Locator, after: Locator): Promise<boolean> {
+  const [one, two] = await boxesInOneFrame([first, after]);
+  if (!one || !two) {
+    return false;
+  }
+  const isRightToLeft: boolean = await first.evaluate(
+    (element: Element): boolean => {
+      return getComputedStyle(element).direction === "rtl";
+    },
+  );
+  const sharesTheLine: boolean =
+    two.y < one.y + one.height && one.y < two.y + two.height;
+  const comesAfter: boolean = isRightToLeft
+    ? two.x + two.width <= one.x + 1
+    : two.x >= one.x + one.width - 1;
+  return sharesTheLine && comesAfter;
+}
+
+/*
  * A dialog grows in (Modal's 150ms transition): photographed or measured
  * any sooner, it is caught half drawn over the page.
  */
@@ -256,6 +332,249 @@ async function screenshot(
   await page.screenshot({
     path: path.join(SCREENSHOTS, `${name}-synthetic.png`),
     fullPage: !options.isDialog,
+  });
+}
+
+/*
+ * Data Observability's Overview in a scenario of the fixture's (data=busy,
+ * healthy, connected or fail), once it has read the Overview: its state,
+ * why it could not, or - with no database - the product's explanation. On a busy
+ * project, once it has read who owns what too, so the page is measured as
+ * it settles.
+ */
+async function openDataObservability(page: Page, query: string): Promise<void> {
+  await page.goto(`${DATA_OBSERVABILITY}?${query}`);
+  // The first load parses a large bundle.
+  await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+    timeout: 60000,
+  });
+  await expect(
+    needsAttention(page)
+      .or(page.getByTestId("refresh-button"))
+      .or(showcase(page)),
+  ).toBeVisible();
+  if (query.includes("data=busy")) {
+    await expect(page.getByTestId(ATTENTION_OWNERS).first()).toBeVisible();
+  }
+  // Every box is measured in the font it is drawn in.
+  await page.evaluate(async (): Promise<void> => {
+    await document.fonts.ready;
+  });
+}
+
+function setupSteps(page: Page): Locator {
+  return page.getByTestId("data-observability-setup-steps");
+}
+
+function needsAttention(page: Page): Locator {
+  return page.getByTestId("data-observability-needs-attention");
+}
+
+function attentionItems(page: Page): Locator {
+  return page.getByTestId("data-observability-attention-item");
+}
+
+// The items of one kind ("Table Late"), as the server names it.
+function attentionItem(page: Page, kind: string): Locator {
+  return page.locator(
+    `[data-testid='data-observability-attention-item'][data-kind='${kind}']`,
+  );
+}
+
+async function attentionKinds(page: Page): Promise<Array<string>> {
+  return attentionItems(page).evaluateAll(
+    (items: Array<Element>): Array<string> => {
+      return items.map((item: Element): string => {
+        return item.getAttribute("data-kind") || "";
+      });
+    },
+  );
+}
+
+// What each item's pill says: "Collection Failed", "Late by 26 hours".
+async function attentionPills(page: Page): Promise<Array<string | undefined>> {
+  return attentionItems(page).evaluateAll(
+    (items: Array<Element>): Array<string | undefined> => {
+      return items.map((item: Element): string | undefined => {
+        return (
+          item.querySelector("span.rounded-full")?.textContent || ""
+        ).trim();
+      });
+    },
+  );
+}
+
+// Each first step, in order, and whether it is done.
+async function stepStates(
+  page: Page,
+): Promise<Array<{ step: string; isDone: boolean }>> {
+  return setupSteps(page)
+    .locator("li[data-testid^='data-observability-setup-step-']")
+    .evaluateAll(
+      (items: Array<Element>): Array<{ step: string; isDone: boolean }> => {
+        return items.map((item: Element): { step: string; isDone: boolean } => {
+          return {
+            step: (item.getAttribute("data-testid") || "").replace(
+              "data-observability-setup-step-",
+              "",
+            ),
+            isDone: item.getAttribute("data-done") === "true",
+          };
+        });
+      },
+    );
+}
+
+// The Overview's counts, by the name the bar gives itself in the reader's language.
+function dataHealth(page: Page, name: string = "Data health"): Locator {
+  return page.getByRole("group", { name, exact: true });
+}
+
+interface StatTile {
+  label: string;
+  value: string;
+  description: string;
+}
+
+// Each tile of a bar: its name, its number and the line under it.
+async function statTiles(bar: Locator): Promise<Array<StatTile>> {
+  return bar.evaluate((element: Element): Array<StatTile> => {
+    return Array.from(element.querySelectorAll(".uppercase")).map(
+      (labelRow: Element): StatTile => {
+        const tile: Element = labelRow.parentElement!;
+        return {
+          label: (labelRow.textContent || "").trim(),
+          value: (tile.children[1]?.textContent || "").trim(),
+          description: (tile.children[2]?.textContent || "").trim(),
+        };
+      },
+    );
+  });
+}
+
+// The tiles of a bar whose name runs onto a second line: "ÜBERWACHTE / TABELLEN".
+async function wrappedTileLabels(bar: Locator): Promise<Array<string>> {
+  return bar.evaluate((element: Element): Array<string> => {
+    return Array.from(element.querySelectorAll(".uppercase > span"))
+      .filter((label: Element): boolean => {
+        const lineHeight: number = parseFloat(
+          window.getComputedStyle(label).lineHeight,
+        );
+        return label.getBoundingClientRect().height > lineHeight * 1.5;
+      })
+      .map((label: Element): string => {
+        return (label.textContent || "").trim();
+      });
+  });
+}
+
+// How many of a bar's tiles share its first row.
+async function tilesPerRow(bar: Locator): Promise<number> {
+  return bar.evaluate((element: Element): number => {
+    const tops: Array<number> = Array.from(element.children).map(
+      (tile: Element): number => {
+        return Math.round(tile.getBoundingClientRect().top);
+      },
+    );
+    return tops.filter((top: number): boolean => {
+      return top === tops[0];
+    }).length;
+  });
+}
+
+// A database's row on the Overview's Databases card, by its name.
+function databaseRow(card: Locator, name: string): Locator {
+  return card.locator("li").filter({
+    has: card.page().getByRole("link", { name, exact: true }),
+  });
+}
+
+function storeAlertsAddress(dataStoreId: string): string {
+  return `${DATA_OBSERVABILITY_BASE}/stores/${dataStoreId}/recommendations`;
+}
+
+function alertAddress(alertId: string): string {
+  return `/dashboard/${PROJECT_ID}/alerts/${alertId}`;
+}
+
+// A translation with its values in: "{{count}} Stunden zu spät" for 26.
+function fill(template: string, values: Record<string, string>): string {
+  return Object.entries(values).reduce(
+    (text: string, [key, value]: [string, string]): string => {
+      return text.split(`{{${key}}}`).join(value);
+    },
+    template,
+  );
+}
+
+// A side menu section's toggle, by its heading's text (CSS draws it in capitals).
+function sectionToggle(menu: Locator, title: string): Locator {
+  return menu.locator(
+    `xpath=.//h6[normalize-space(.)='${title}']/ancestor::button[1]`,
+  );
+}
+
+/*
+ * On the Overview, every box of the first steps, the counts and each card
+ * that runs outside it, and every box whose words run past its own edge
+ * where nothing cuts them short on purpose (an ellipsis): a long German
+ * word, a table's name with no space to break at, a Persian line. Drawings
+ * and words only a screen reader hears are left out.
+ */
+async function overflowingOnTheOverview(page: Page): Promise<Array<string>> {
+  return page.evaluate((): Array<string> => {
+    const SPACES: RegExp = /\s+/g;
+    const problems: Array<string> = [];
+    const describe: (element: Element) => string = (
+      element: Element,
+    ): string => {
+      const words: string = (element.textContent || "")
+        .replace(SPACES, " ")
+        .trim()
+        .slice(0, 60);
+      return `<${element.tagName.toLowerCase()}> "${words}"`;
+    };
+    const frames: Array<Element> = Array.from(
+      document.querySelectorAll(
+        "[data-testid='data-observability-setup-steps'], [role='group'][aria-label], [data-testid='card']",
+      ),
+    );
+
+    for (const frameElement of frames) {
+      const frame: DOMRect = frameElement.getBoundingClientRect();
+      const name: string = describe(frameElement).slice(0, 40);
+
+      for (const element of Array.from(frameElement.querySelectorAll("*"))) {
+        if (element.closest("svg") || element.closest(".sr-only")) {
+          continue;
+        }
+
+        const box: DOMRect = element.getBoundingClientRect();
+        if (box.width === 0 && box.height === 0) {
+          continue;
+        }
+
+        if (box.left < frame.left - 1 || box.right > frame.right + 1) {
+          problems.push(
+            `${describe(element)} runs outside ${name} (${Math.round(box.left)} to ${Math.round(box.right)}, the box ${Math.round(frame.left)} to ${Math.round(frame.right)})`,
+          );
+          continue;
+        }
+
+        const style: CSSStyleDeclaration = window.getComputedStyle(element);
+        if (style.display === "inline" || style.textOverflow === "ellipsis") {
+          continue;
+        }
+
+        if (element.scrollWidth > element.clientWidth + 1) {
+          problems.push(
+            `${describe(element)} is ${element.scrollWidth - element.clientWidth}px wider than its box`,
+          );
+        }
+      }
+    }
+
+    return problems;
   });
 }
 
@@ -542,7 +861,7 @@ test("Data Observability with no database: the explanation with Connect a Databa
     "data-observability",
   );
   await expect(showcase(page).getByRole("heading", { level: 2 })).toHaveText(
-    "Know when a table goes stale or changes shape",
+    "Know when your data is late, wrong or changed",
   );
   // Nothing above it says what the product is for: the explanation does.
   await expect(
@@ -572,6 +891,693 @@ test("Data Observability with no database: the explanation with Connect a Databa
     message: "Data Observability at 390px",
   });
   await screenshot(page, "data-observability-first-run-390");
+
+  // Nothing is set up or wrong yet: no steps, no list of nothing.
+  await expect(setupSteps(page)).toHaveCount(0);
+  await expect(needsAttention(page)).toHaveCount(0);
+  expect((await fixture(page)).dataReads).toContain(
+    "/data-observability/stores/suggestions",
+  );
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Data Observability in use (#6435)
+ * ---------------------------------------------------------------------------
+ */
+
+test("a busy project's Overview says what is wrong now: the step left to do, the counts, then what needs someone, worst first, with who owns it and whether anyone was told", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openDataObservability(page, "data=busy");
+
+  // The project has databases: its state, not the product's explanation.
+  await expect(showcase(page)).toHaveCount(0);
+  await expect(aboutButton(page)).toHaveText(HOW_IT_WORKS);
+
+  // First, the one step left: turning on the warehouse's alerts.
+  await expect(setupSteps(page).getByRole("heading", { level: 2 })).toHaveText(
+    "Finish setting up Data Observability",
+  );
+  await expect(setupSteps(page)).toContainText(
+    "These steps make sure the right people hear when a table breaks.",
+  );
+  // How many are done, in words and as a bar four fifths full.
+  const progress: Locator = page.getByTestId(
+    "data-observability-setup-progress",
+  );
+  await expect(progress).toHaveText("4 of 5 done");
+  expect(
+    await progress.evaluate((element: Element): number => {
+      const track: DOMRect = element.lastElementChild!.getBoundingClientRect();
+      const fill: DOMRect =
+        element.lastElementChild!.firstElementChild!.getBoundingClientRect();
+      return Math.round((fill.width / track.width) * 100);
+    }),
+  ).toBe(80);
+  // Dismiss stays on the title's line, at its end.
+  expect(
+    await isOnOneLine(
+      setupSteps(page).getByRole("heading", { level: 2 }),
+      page.getByTestId("data-observability-setup-dismiss"),
+    ),
+  ).toBe(true);
+  expect(await stepStates(page)).toEqual([
+    { step: "connect", isDone: true },
+    { step: "alerts", isDone: false },
+    { step: "owners", isDone: true },
+    { step: "checks", isDone: true },
+    { step: "pipelines", isDone: true },
+  ]);
+  const alertsStep: Locator = page.getByTestId(
+    "data-observability-setup-step-alerts",
+  );
+  await expect(alertsStep).toContainText("Turn on alerts");
+  await expect(
+    alertsStep.getByRole("link", { name: "Set Up Alerts" }),
+  ).toHaveAttribute("href", storeAlertsAddress(DATA.warehouse));
+  // A step done says so, with no way to do it again.
+  await expect(
+    page.getByTestId("data-observability-setup-step-connect").getByRole("link"),
+  ).toHaveCount(0);
+
+  // Then the counts, then what needs someone.
+  expect(await isBelow(setupSteps(page), dataHealth(page))).toBe(true);
+  expect(await isBelow(dataHealth(page), needsAttention(page))).toBe(true);
+  expect(await statTiles(dataHealth(page))).toEqual([
+    {
+      label: "Tables Watched",
+      value: "1,824",
+      description: "In 3 connected databases.",
+    },
+    {
+      label: "Needs Attention",
+      value: "23",
+      description: "Broken, late or drifting now.",
+    },
+    {
+      label: "Late Tables",
+      value: "9",
+      description:
+        "Tables that have gone well past their usual interval without a change.",
+    },
+    {
+      label: "Failing Checks",
+      value: "3",
+      description: "Checks whose alert is open.",
+    },
+  ]);
+
+  // The eight most urgent of twenty-three, in the server's order: what failed, then what is late.
+  await expect(needsAttention(page)).toContainText("Needs Attention");
+  await expect(needsAttention(page)).toContainText(
+    "The 8 most urgent of 23, worst first: what failed, then what is late.",
+  );
+  expect(await attentionKinds(page)).toEqual(BUSY_ATTENTION_KINDS);
+  expect(await attentionPills(page)).toEqual([
+    // As the Databases card below names it: "Collection failed".
+    "Collection Failed",
+    "Run Failed",
+    "Failing",
+    "Drifted",
+    "Late",
+    // A late table says by how much.
+    "Late by 26 hours",
+    "Late by 3 hours",
+    "Could Not Run",
+  ]);
+
+  // The database that could not be read: why, and its page. Nobody owns a database.
+  const billing: Locator = attentionItem(page, "Collection Failed");
+  await expect(billing).toContainText(
+    "OneUptime could not read this database, so none of its tables is watched until it can.",
+  );
+  await expect(billing).toContainText(
+    "Access denied for user 'oneuptime_reader'@'10.0.4.12'",
+  );
+  await expect(
+    billing.getByRole("link", { name: "Open Database" }),
+  ).toHaveAttribute(
+    "href",
+    `${DATA_OBSERVABILITY_BASE}/stores/${DATA.billingDb}`,
+  );
+  await expect(billing.getByTestId(ATTENTION_OWNERS)).toHaveCount(0);
+
+  // The failed run: the error it gave, and its open alert, a link to it.
+  const run: Locator = attentionItem(page, "Pipeline Failed");
+  await expect(run).toContainText(
+    'Task load_orders failed: relation "staging.orders" does not exist',
+  );
+  await expect(
+    run.getByRole("link", { name: "Alert ALT-42 is open" }),
+  ).toHaveAttribute("href", alertAddress(DATA.nightlyLoadAlert));
+  await expect(
+    run.getByRole("link", { name: "Open Pipeline" }),
+  ).toHaveAttribute(
+    "href",
+    `${DATA_OBSERVABILITY_BASE}/pipelines/${DATA.nightlyLoad}`,
+  );
+
+  // The failing check: its table's owners, by name, and its table's Checks.
+  const check: Locator = attentionItem(page, "Check Failing");
+  await expect(check.getByTestId(ATTENTION_OWNERS)).toHaveText(
+    /Owners\s*Ada Lovelace.*Grace Hopper.*Payments/,
+  );
+  await expect(
+    check.getByRole("link", { name: "Alert ALT-41 is open" }),
+  ).toHaveAttribute("href", alertAddress(DATA.ordersEmailAlert));
+  await expect(
+    check.getByRole("link", { name: "Open Checks" }),
+  ).toHaveAttribute(
+    "href",
+    `${DATA_OBSERVABILITY_BASE}/tables/${DATA.orders}/checks`,
+  );
+
+  // The data product: its owning team, named - so no owner to add.
+  const product: Locator = attentionItem(page, "Data Product Late");
+  await expect(product.getByTestId(ATTENTION_OWNERS)).toHaveText(
+    /Owners\s*Finance Analytics/,
+  );
+  await expect(product.getByRole("link", { name: "Add one" })).toHaveCount(0);
+  await expect(
+    product.getByRole("link", { name: "Open Data Product" }),
+  ).toHaveAttribute(
+    "href",
+    `${DATA_OBSERVABILITY_BASE}/data-products/${DATA.revenueProduct}`,
+  );
+
+  // The late warehouse table: nobody owns it, and nobody is told - its database's alerts are off.
+  const sessions: Locator = attentionItem(page, "Table Late").filter({
+    hasText: "analytics.daily_sessions",
+  });
+  await expect(sessions.getByTestId(ATTENTION_OWNERS)).toContainText(
+    "No owner",
+  );
+  await expect(sessions.getByRole("link", { name: "Add one" })).toHaveAttribute(
+    "href",
+    `${DATA_OBSERVABILITY_BASE}/tables/${DATA.dailySessions}/owners`,
+  );
+  await expect(sessions).toContainText("Nobody is told: its alerts are off");
+  await expect(
+    sessions.getByRole("link", { name: "Set Up Alerts" }),
+  ).toHaveAttribute("href", storeAlertsAddress(DATA.warehouse));
+
+  // The late table on a database whose alerts are on: its alert is open.
+  const payments: Locator = attentionItem(page, "Table Late").filter({
+    hasText: "public.payments",
+  });
+  await expect(payments.getByTestId(ATTENTION_OWNERS)).toHaveText(
+    /Owners\s*Payments/,
+  );
+  await expect(
+    payments.getByRole("link", { name: "Alert ALT-40 is open" }),
+  ).toBeVisible();
+  await expect(payments).not.toContainText("Nobody is told");
+
+  // The check that could not run: its query's error.
+  await expect(attentionItem(page, "Check Could Not Run")).toContainText(
+    'column "customer_id" does not exist',
+  );
+
+  // Each database says how its last read went and whether its alerts are on.
+  const databases: Locator = page
+    .getByTestId("card")
+    .filter({ has: page.getByRole("heading", { name: "Databases" }) });
+  await expect(databaseRow(databases, "orders-db")).toContainText(
+    "6 alerts on",
+  );
+  await expect(databaseRow(databases, "orders-db")).toContainText("184 tables");
+  await expect(databaseRow(databases, "warehouse")).toContainText(
+    "No alerts on",
+  );
+  await expect(databaseRow(databases, "billing-db")).toContainText(
+    "Collection failed",
+  );
+  await expect(databaseRow(databases, "billing-db")).toContainText(
+    "2 alerts on",
+  );
+
+  // What changed in the schemas.
+  await expect(page.getByText("discount_code")).toBeVisible();
+
+  // Read once each: the Overview, how well it does, and what it costs; no suggestions.
+  const reads: Array<string> = (await fixture(page)).dataReads;
+  expect(reads).toContain("/data-observability/overview");
+  expect(reads).toContain("/data-observability/quality");
+  expect(reads).toContain("/data-observability/watched-tables");
+  expect(reads).not.toContain("/data-observability/stores/suggestions");
+
+  expect(await overflowingOnTheOverview(page)).toEqual([]);
+  await expectNoSidewaysScroll(page, {
+    message: "a busy Data Observability Overview at 1440px",
+  });
+  await screenshot(page, "data-observability-busy-1440");
+
+  // Set Up Alerts opens the warehouse's recommended alerts.
+  await sessions.getByRole("link", { name: "Set Up Alerts" }).click();
+  await expect(page.getByTestId("stub-page")).toHaveText(
+    storeAlertsAddress(DATA.warehouse),
+  );
+});
+
+test("the Data Observability menu reads in the order a data engineer asks: the everyday pages, Quality, Usage, then Rules, Help and Advanced folded", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openDataObservability(page, "data=busy");
+  await sideMenuAtRest(page);
+  const menu: Locator = page.locator(
+    "aside[role='navigation'][aria-label='Main navigation']",
+  );
+
+  await expect(menu.locator("h6").first()).toBeVisible();
+  expect(
+    (await menu.locator("h6").allTextContents()).map(
+      (title: string): string => {
+        return title.trim();
+      },
+    ),
+  ).toEqual([
+    "Data Observability",
+    "Quality",
+    "Usage",
+    "Rules",
+    "Help",
+    "Advanced",
+  ]);
+
+  for (const [title, isOpen] of [
+    ["Data Observability", true],
+    ["Quality", true],
+    ["Usage", true],
+    ["Rules", false],
+    ["Help", false],
+    ["Advanced", false],
+  ] as Array<[string, boolean]>) {
+    await expect(
+      sectionToggle(menu, title),
+      `${title} is ${isOpen ? "open" : "folded"}`,
+    ).toHaveAttribute("aria-expanded", isOpen ? "true" : "false");
+  }
+
+  // The everyday pages and the rules the data keeps are in sight.
+  for (const [name, address] of [
+    ["Overview", "overview"],
+    ["Tables", "tables"],
+    ["Pipelines", "pipelines"],
+    ["Checks", "checks"],
+    ["Reconciliations", "reconciliations"],
+    ["Data Products", "data-products"],
+  ]) {
+    await expect(
+      menu.locator(`a[href='${DATA_OBSERVABILITY_BASE}/${address}']`),
+      `${name} is in sight`,
+    ).toBeVisible();
+  }
+  await expect(menu.locator(`a[href='${DATA_OBSERVABILITY}']`)).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+
+  // What most visits never need is folded away.
+  for (const address of [
+    "settings/owner-rules",
+    "documentation",
+    "tables/dropped",
+  ]) {
+    await expect(
+      menu.locator(`a[href='${DATA_OBSERVABILITY_BASE}/${address}']`),
+      `${address} is folded away`,
+    ).toBeHidden();
+  }
+
+  // A folded section opens on its title.
+  await sectionToggle(menu, "Rules").click();
+  await expect(
+    menu.locator(`a[href='${DATA_OBSERVABILITY_BASE}/settings/owner-rules']`),
+  ).toBeVisible();
+  await screenshot(page, "data-observability-menu-1440");
+});
+
+test("Dismiss puts the first steps away for this project, and they stay away after a reload", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openDataObservability(page, "data=busy");
+  await expect(setupSteps(page)).toBeVisible();
+
+  await page.getByTestId("data-observability-setup-dismiss").click();
+  await expect(setupSteps(page)).toHaveCount(0);
+  // The rest of the page stays as it was.
+  await expect(attentionItems(page)).toHaveCount(BUSY_ATTENTION_KINDS.length);
+
+  await page.reload();
+  await expect(needsAttention(page)).toBeVisible({ timeout: 60000 });
+  await expect(attentionItems(page)).toHaveCount(BUSY_ATTENTION_KINDS.length);
+  await expect(setupSteps(page)).toHaveCount(0);
+});
+
+test("a project with nothing wrong and everything set up: no steps, and the Overview says what it looked at and found well", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openDataObservability(page, "data=healthy");
+
+  await expect(needsAttention(page)).toContainText(
+    "Nothing is broken or late right now.",
+  );
+  await expect(needsAttention(page)).toContainText(
+    "Every database was read, no pipeline run failed, no check is failing, and every table is changing as often as it usually does.",
+  );
+  await expect(attentionItems(page)).toHaveCount(0);
+  await expect(setupSteps(page)).toHaveCount(0);
+  await expect(showcase(page)).toHaveCount(0);
+  expect(
+    (await statTiles(dataHealth(page))).map((tile: StatTile): string => {
+      return `${tile.label}: ${tile.value}`;
+    }),
+  ).toEqual([
+    "Tables Watched: 184",
+    "Needs Attention: 0",
+    "Late Tables: 0",
+    "Failing Checks: 0",
+  ]);
+  await expect(page.getByTestId(STORE_ALERT_STATUS)).toHaveText("6 alerts on");
+
+  await expectNoSidewaysScroll(page, {
+    message: "a healthy Data Observability Overview",
+  });
+  await screenshot(page, "data-observability-healthy-1440");
+});
+
+test("a database just connected, not read yet: one step of five done, and the Overview says its first read is awaited - never that every database was read, never 0 tables", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openDataObservability(page, "data=connected");
+
+  await expect(
+    page.getByTestId("data-observability-setup-progress"),
+  ).toHaveText("1 of 5 done");
+  expect(await stepStates(page)).toEqual([
+    { step: "connect", isDone: true },
+    { step: "alerts", isDone: false },
+    { step: "owners", isDone: false },
+    { step: "checks", isDone: false },
+    { step: "pipelines", isDone: false },
+  ]);
+
+  await expect(needsAttention(page)).toContainText(
+    "Nothing is broken or late right now.",
+  );
+  await expect(needsAttention(page)).toContainText(
+    "A database just connected is read for the first time within a few minutes, and its tables are watched from then on.",
+  );
+  await expect(needsAttention(page)).not.toContainText(
+    "Every database was read",
+  );
+
+  const databases: Locator = page
+    .getByTestId("card")
+    .filter({ has: page.getByRole("heading", { name: "Databases" }) });
+  await expect(databaseRow(databases, "orders-db")).toContainText(
+    "Waiting for first collection",
+  );
+  await expect(databaseRow(databases, "orders-db")).not.toContainText(
+    "0 tables",
+  );
+  await expect(databaseRow(databases, "orders-db")).toContainText(
+    "No alerts on",
+  );
+
+  expect(await overflowingOnTheOverview(page)).toEqual([]);
+  await expectNoSidewaysScroll(page, {
+    message: "a Data Observability Overview with a database just connected",
+  });
+  await screenshot(page, "data-observability-connected-1440");
+});
+
+test("an Overview that cannot be read says why, and Refresh reads it again; it never offers to connect a first database", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openDataObservability(page, "data=fail");
+
+  const refresh: Locator = page.getByTestId("refresh-button");
+  await expect(refresh).toBeVisible();
+  await expect(
+    page.getByText("Something went wrong. Please try again."),
+  ).toBeVisible();
+  await expect(showcase(page)).toHaveCount(0);
+  await expect(needsAttention(page)).toHaveCount(0);
+  await expect(setupSteps(page)).toHaveCount(0);
+  await screenshot(page, "data-observability-read-failed-1440");
+
+  const overviewReads: () => Promise<number> = async (): Promise<number> => {
+    return (await fixture(page)).dataReads.filter((read: string): boolean => {
+      return read === "/data-observability/overview";
+    }).length;
+  };
+  const before: number = await overviewReads();
+  expect(before).toBeGreaterThanOrEqual(1);
+
+  await refresh.click();
+  await expect.poll(overviewReads).toBe(before + 1);
+  await expect(page.getByTestId("refresh-button")).toBeVisible();
+  await expect(showcase(page)).toHaveCount(0);
+});
+
+for (const width of [1280, 1024, 768, 390]) {
+  test(`a busy Overview at ${width}px${width < 1280 && width > 390 ? " beside the side menu" : ""}: every item, its owners and its links inside their card, nothing scrolling sideways`, async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+    await openDataObservability(page, "data=busy");
+    await expect(setupSteps(page)).toBeVisible();
+
+    expect(await attentionKinds(page)).toEqual(BUSY_ATTENTION_KINDS);
+    expect(await overflowingOnTheOverview(page)).toEqual([]);
+    // Dismiss keeps to the end of the title's line, on a phone too.
+    expect(
+      await isOnOneLine(
+        setupSteps(page).getByRole("heading", { level: 2 }),
+        page.getByTestId("data-observability-setup-dismiss"),
+      ),
+    ).toBe(true);
+    /*
+     * Beside the side menu, the four counts go two by two rather than
+     * squeezing each name onto two lines: laid out by the bar's own width.
+     */
+    expect(await wrappedTileLabels(dataHealth(page))).toEqual([]);
+    expect(await tilesPerRow(dataHealth(page))).toBe(
+      width >= 1280 ? 4 : width >= 768 ? 2 : 1,
+    );
+    await expectNoSidewaysScroll(page, {
+      message: `a busy Data Observability Overview at ${width}px`,
+    });
+    await screenshot(page, `data-observability-busy-${width}`);
+  });
+}
+
+test("in German: the steps, the counts and what needs someone in the Dashboard's German, every word inside its box", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openDataObservability(page, "data=busy&lang=de");
+
+  await expect(setupSteps(page).getByRole("heading", { level: 2 })).toHaveText(
+    GERMAN["Finish setting up Data Observability"]!,
+  );
+  await expect(setupSteps(page)).toContainText(
+    GERMAN["These steps make sure the right people hear when a table breaks."]!,
+  );
+  await expect(
+    page.getByTestId("data-observability-setup-progress"),
+  ).toHaveText(
+    fill(GERMAN["{{done}} of {{total}} done"]!, { done: "4", total: "5" }),
+  );
+  await expect(page.getByTestId("data-observability-setup-dismiss")).toHaveText(
+    GERMAN["Dismiss"]!,
+  );
+
+  // Every tile's name, number and line in German: 1.824, not 1,824.
+  expect(await statTiles(dataHealth(page, GERMAN["Data health"]!))).toEqual([
+    {
+      label: GERMAN["Tables Watched"]!,
+      value: "1.824",
+      description: fill(GERMAN["In {{count}} connected databases."]!, {
+        count: "3",
+      }),
+    },
+    {
+      label: GERMAN["Needs Attention"]!,
+      value: "23",
+      description: GERMAN["Broken, late or drifting now."]!,
+    },
+    {
+      label: GERMAN["Late Tables"]!,
+      value: "9",
+      description:
+        GERMAN[
+          "Tables that have gone well past their usual interval without a change."
+        ]!,
+    },
+    {
+      label: GERMAN["Failing Checks"]!,
+      value: "3",
+      description: GERMAN["Checks whose alert is open."]!,
+    },
+  ]);
+  // "Überwachte Tabellen", "Fehlerhafte Prüfungen": each name on one line.
+  expect(
+    await wrappedTileLabels(dataHealth(page, GERMAN["Data health"]!)),
+  ).toEqual([]);
+
+  await expect(needsAttention(page)).toContainText(GERMAN["Needs Attention"]!);
+  await expect(needsAttention(page)).toContainText(
+    fill(
+      GERMAN[
+        "The {{shown}} most urgent of {{count}}, worst first: what failed, then what is late."
+      ]!,
+      { shown: "8", count: "23" },
+    ),
+  );
+  expect(await attentionPills(page)).toEqual([
+    GERMAN["Collection Failed"],
+    GERMAN["Run Failed"],
+    GERMAN["Failing"],
+    GERMAN["Drifted"],
+    GERMAN["Late"],
+    fill(GERMAN["Late by {{count}} hours"]!, { count: "26" }),
+    fill(GERMAN["Late by {{count}} hours"]!, { count: "3" }),
+    GERMAN["Could Not Run"],
+  ]);
+  const sessions: Locator = attentionItem(page, "Table Late").filter({
+    hasText: "analytics.daily_sessions",
+  });
+  await expect(sessions).toContainText(
+    GERMAN["Nobody is told: its alerts are off"]!,
+  );
+  await expect(sessions).toContainText(GERMAN["No owner"]!);
+  await expect(
+    attentionItem(page, "Pipeline Failed").getByRole("link", {
+      name: fill(GERMAN["Alert {{number}} is open"]!, { number: "ALT-42" }),
+    }),
+  ).toBeVisible();
+  // The time each started, in German too: "vor 3 Stunden".
+  await expect(attentionItem(page, "Pipeline Failed")).toContainText("vor");
+
+  expect(await overflowingOnTheOverview(page)).toEqual([]);
+  await expectNoSidewaysScroll(page, {
+    message: "a busy Data Observability Overview in German",
+  });
+  await screenshot(page, "data-observability-busy-de");
+
+  // On a phone too, where German's long words wrap inside their boxes.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(needsAttention(page)).toBeVisible();
+  expect(await overflowingOnTheOverview(page)).toEqual([]);
+  await expectNoSidewaysScroll(page, {
+    message: "a busy Data Observability Overview in German at 390px",
+  });
+  await screenshot(page, "data-observability-busy-de-390");
+});
+
+test("in Persian, dark: right to left, what needs someone in Persian with its facts set off by bullets, names read left to right, and readable on the dark card", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openDataObservability(page, "data=busy&lang=fa&theme=dark");
+
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+  await expect(setupSteps(page).getByRole("heading", { level: 2 })).toHaveText(
+    PERSIAN["Finish setting up Data Observability"]!,
+  );
+  // Dismiss at the end of the title's line: its left, right to left.
+  await expect(page.getByTestId("data-observability-setup-dismiss")).toHaveText(
+    PERSIAN["Dismiss"]!,
+  );
+  expect(
+    await isOnOneLine(
+      setupSteps(page).getByRole("heading", { level: 2 }),
+      page.getByTestId("data-observability-setup-dismiss"),
+    ),
+  ).toBe(true);
+  await expect(needsAttention(page)).toContainText(PERSIAN["Needs Attention"]!);
+
+  const pills: Array<string | undefined> = await attentionPills(page);
+  expect(pills.slice(0, 5)).toEqual([
+    PERSIAN["Collection Failed"],
+    PERSIAN["Run Failed"],
+    PERSIAN["Failing"],
+    PERSIAN["Drifted"],
+    PERSIAN["Late"],
+  ]);
+  // "Late by 26 hours", in Persian and its own digits.
+  const lateBy: Array<string> = PERSIAN["Late by {{count}} hours"]!.split(
+    "{{count}}",
+  ).map((part: string): string => {
+    return part.trim();
+  });
+  for (const part of lateBy.filter(Boolean)) {
+    expect(pills[5]).toContain(part);
+  }
+
+  /*
+   * A fact is set off from the next by a bullet, as Persian writes it, not
+   * a middle dot; the table's name reads left to right in its isolate.
+   */
+  const sessions: Locator = attentionItem(page, "Table Late").filter({
+    hasText: "analytics.daily_sessions",
+  });
+  await expect(sessions).toContainText(
+    PERSIAN["Nobody is told: its alerts are off"]!,
+  );
+  const sessionsText: string = await sessions.innerText();
+  expect(sessionsText).toContain("•");
+  expect(sessionsText).not.toContain("·");
+  await expect(
+    sessions.locator("bdi, [dir='ltr'], [dir='auto']").filter({
+      hasText: "analytics.daily_sessions",
+    }),
+  ).not.toHaveCount(0);
+
+  // The card's title reads light on the dark card.
+  const color: string = await setupSteps(page)
+    .getByRole("heading", { level: 2 })
+    .evaluate((element: Element): string => {
+      return window.getComputedStyle(element).color;
+    });
+  const channels: Array<number> = (color.match(/\d+/g) || [])
+    .slice(0, 3)
+    .map(Number);
+  expect(Math.min(...channels)).toBeGreaterThan(180);
+
+  expect(await overflowingOnTheOverview(page)).toEqual([]);
+  await expectNoSidewaysScroll(page, {
+    message: "a busy Data Observability Overview in Persian",
+  });
+  await screenshot(page, "data-observability-busy-fa-dark");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(needsAttention(page)).toBeVisible();
+  expect(await overflowingOnTheOverview(page)).toEqual([]);
+  await expectNoSidewaysScroll(page, {
+    message: "a busy Data Observability Overview in Persian at 390px",
+  });
+  await screenshot(page, "data-observability-busy-fa-dark-390");
 });
 
 /*

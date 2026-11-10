@@ -42,6 +42,8 @@ Renseignez **Alerter quand** pour déclencher une alerte sur un contrôle :
 
 L'enregistrement du contrôle crée un moniteur de métrique pour lui, en votre nom et avec vos autorisations. Vider la condition supprime le moniteur.
 
+Le **Statut** d'un contrôle, dans **Vérifications** et dans l'onglet **Vérifications** de sa table, dit où il en est : **En échec** tant que son alerte est ouverte, **Réussi** tant qu'elle ne l'est pas, et **Exécution impossible** quand sa requête a échoué. Un contrôle sans alerte affiche seulement **Exécuté** : sa requête a fonctionné. Un contrôle en échec, et un contrôle qui n'a pas pu s'exécuter, figurent aussi dans la **Vue d'ensemble**.
+
 ## Ce que coûte un contrôle
 
 Un contrôle se dispute la base de données avec votre application, et sur un entrepôt qui facture selon ce qu'une requête lit, il coûte de l'argent. Trois choses permettent de le maîtriser :

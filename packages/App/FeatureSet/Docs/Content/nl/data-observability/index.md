@@ -49,16 +49,22 @@ flowchart TB
 :::steps
 ### Koppel een database
 
-Open **Data Observability**, ga naar **Databases** en kies **Een database koppelen**. Kies de engine en geef een alleen-lezen verbindingsreeks op, of de naam van de omgevingsvariabele waaruit je sonde die leest. [Een database koppelen](/docs/data-observability/connect) toont de login van elke engine.
+Open **Data Observability** en kies **Een database koppelen**, op **Overzicht** of op **Databases**. Kies de engine en geef een alleen-lezen verbindingsreeks op, of de naam van de omgevingsvariabele waaruit je sonde die leest. [Een database koppelen](/docs/data-observability/connect) toont de login van elke engine.
 
-### Bekijk de tabellen
+### Zet de aanbevolen waarschuwingen aan
+
+Een database die je koppelt, opent op de pagina **Aanbevolen waarschuwingen**, want niemand hoort iets over haar tabellen zolang er geen aan staat. Voeg de waarschuwingen toe die je wilt: een tabel die te laat is, een tabel waarvan de rijen sterk dalen of ongewoon laag uitvallen, een tabel waarvan de kolommen veranderen, en een database die niet meer rapporteert. Elk is een gewone monitor: on-call, eigenaren, onderhoudsvensters en statuspagina's werken zoals bij elke andere.
+
+### Lees het overzicht
 
 Binnen vijf minuten verschijnen de tabellen onder **Tabellen**, elk met haar rijen, grootte en het moment van de laatste wijziging. De actualiteit van een tabel is bekend zodra ze twee keer is gewijzigd: **Vers** zolang ze haar ritme houdt, **Te laat** zodra ze het mist.
 
-### Voeg de aanbevolen waarschuwingen toe
-
-Kies op **Databases** de optie **Aanbevolen waarschuwingen** voor de database, en voeg de waarschuwingen toe die je wilt: een tabel die te laat is, een tabel waarvan de rijen sterk dalen of ongewoon laag uitvallen, een tabel waarvan de kolommen veranderen, en een database die niet meer rapporteert. Elk is een gewone monitor: on-call, eigenaren, onderhoudsvensters en statuspagina's werken zoals bij elke andere.
+**Overzicht** zegt daarna wat nu iemand nodig heeft, het ergste eerst: een database die niet gelezen kon worden, een pipeline-run die mislukte of te laat is, een controle die faalt of niet kon draaien, een reconciliatie die afweek, en een dataproduct of tabel die te laat is. Elk item zegt wie de eigenaar is en of de waarschuwing openstaat, of dat niemand iets hoort omdat de database geen enkele waarschuwing aan heeft staan, en opent de pagina waar het wordt opgelost. Zolang het project niet is ingericht, toont **Overzicht** de stappen die nog openstaan: waarschuwingen op elke database, eigenaren voor de tabellen, een controle en je pipeline-runs.
 :::
+
+## Waar je wat vindt
+
+Het menu volgt de vragen die je over je data stelt. De eerste sectie bevat de pagina's voor elke dag: **Overzicht**, **Tabellen**, **Pipelines**, **Schemawijzigingen**, **Databases** en **Opslagpaden**. **Kwaliteit** bevat de regels waaraan de data moet voldoen, **Controles** en **Reconciliaties**, en **Gebruik** wie erop vertrouwt en wat het kost: **Dataproducten**, **BI-dashboards**, **Warehouse-uitgaven** en **Ongebruikte tabellen**. **Regels** (**Eigenaarsregels** en **Labelregels**), **Hulp** en **Geavanceerd** (**Instellingen** en **Verwijderde tabellen**) blijven ingeklapt tot je ze opent.
 
 ## Wat het kost
 
