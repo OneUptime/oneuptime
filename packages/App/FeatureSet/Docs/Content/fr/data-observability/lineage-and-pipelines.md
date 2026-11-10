@@ -78,13 +78,24 @@ Le véritable impact de données erronées, c'est le tableau de bord que quelqu'
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, un principal de service autorisé à utiliser les API d'administration de Power BI |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, un principal de service autorisé à utiliser les API d'administration en lecture seule de Power BI. Les rapports et les tableaux de bord sont lus tous les deux, avec leurs vues et leurs actualisations (ci-dessous) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (ou `eu`) |
 
 Hightouch et Census sont des outils d'ETL inversé : une synchronisation qui copie une table dans un CRM dépend de cette table comme un tableau de bord, elle est donc lue de la même façon et nommée sur les alertes de la table.
 
-Seuls les noms et liens des tableaux de bord et les tables qu'ils interrogent sont lus : jamais leurs données.
+Seuls les noms et liens des tableaux de bord, les tables qu'ils interrogent et, pour Power BI, qui les ouvre et comment leurs actualisations se sont passées sont lus : jamais leurs données.
+
+### Vues et actualisations dans Power BI
+
+Pour chaque rapport et tableau de bord Power BI, **Tableaux de bord BI** indique d'abord combien de fois il a été ouvert au cours des 28 derniers jours, quand il a été ouvert pour la dernière fois et comment s'est passée la dernière actualisation de ses données, avec l'erreur d'une actualisation en échec. Le nombre de personnes qui l'ont ouvert, qui l'a ouvert le plus et ses dernières actualisations sont des colonnes que vous pouvez afficher. L'onglet **Lignage** d'une table dit la même chose de chaque tableau de bord construit sur elle, avec son propriétaire et ses lecteurs sous **Plus**.
+
+- Les **vues** viennent du journal d'activité de Power BI, lu par son API d'administration des événements d'activité. Power BI en conserve 28 jours, répond à 200 requêtes par heure et découpe chaque requête en heures ; OneUptime le lit donc une heure à la fois : chaque lecture horaire ajoute les heures écoulées depuis la précédente, puis remonte les 28 jours, des plus récentes aux plus anciennes, avec au plus 100 requêtes. Un nouvel outil Power BI affiche tout de suite les derniers jours, et les 28 jours en moins d'une journée ; d'ici là, les vues indiquent depuis quand elles sont comptées. Un événement peut mettre jusqu'à une heure pour arriver dans le journal, les vues ont donc jusqu'à deux heures de retard. Les lecteurs sont nommés comme Power BI les nomme, par leur adresse e-mail.
+- Les **actualisations** des jeux de données sur une capacité (Premium, Premium par utilisateur ou Fabric) viennent de la liste d'administration des éléments actualisables de Power BI : la dernière actualisation de chaque jeu de données avec son erreur, et combien d'actualisations ont été exécutées et ont échoué au cours des sept jours que Power BI conserve.
+- Les **actualisations des jeux de données sur une capacité partagée** ne figurent pas dans cette liste. Power BI ne montre l'historique d'actualisation d'un jeu de données qu'aux personnes qui peuvent le modifier : ajoutez donc le principal de service à son espace de travail comme **Contributeur**, **Membre** ou **Administrateur**, et activez pour lui **Service principals can call Fabric public APIs** dans les paramètres développeur du portail d'administration Fabric. OneUptime lit alors chaque actualisation, avec son erreur. D'ici là, l'outil BI indique pour combien de jeux de données il n'a pas pu lire les actualisations.
+- Un tableau de bord Power BI dont les vignettes viennent de plusieurs jeux de données affiche la dernière actualisation en échec ou, si aucune n'a échoué, la plus ancienne : ses données ne sont pas plus fraîches que celle-ci.
+
+Les vues, et les actualisations sur les capacités, ne demandent rien de plus que l'accès aux API d'administration ci-dessus : le principal de service dans un groupe de sécurité autorisé par **Service principals can access read-only admin APIs**, sans autorisation Power BI nécessitant le consentement d'un administrateur sur l'application. Quand les vues ou les actualisations ne peuvent pas être lues, les tableaux de bord sont tout de même lus et conservés, l'outil BI indique ce qui a été ignoré et pourquoi, et la lecture suivante réessaie.
 
 ## Pipelines
 

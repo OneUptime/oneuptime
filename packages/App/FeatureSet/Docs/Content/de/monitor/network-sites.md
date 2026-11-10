@@ -54,7 +54,7 @@ Jedes Gerät gehört zu einem Standort. Der Teilbaum eines Standorts ist der Sta
 Gehen Sie zu **Netzwerk → Standorte** und klicken Sie auf **Standort hinzufügen**.
 
 ### Sagen, was der Standort ist
-Wählen Sie im Schritt **Standortdetails** den **Standorttyp** (was für ein Ort das ist: eine Region, eine Filiale, ein Rechenzentrum) und geben Sie einen **Name** ein. Die Beschreibung, die Straßenadresse sowie Breiten- und Längengrad, die den Standort auf der Karte festlegen, sind unter **Weitere Felder** eingeklappt: Füllen Sie sie jetzt oder später aus.
+Wählen Sie im Schritt **Standortdetails** den **Standorttyp** (was für ein Ort das ist: eine Region, eine Filiale, ein Rechenzentrum) und geben Sie einen **Name** ein. Der **Standortcode**, die Beschreibung, die Straßenadresse sowie Breiten- und Längengrad, die den Standort auf der Karte festlegen, sind unter **Weitere Felder** eingeklappt: Füllen Sie sie jetzt oder später aus. Ein Standortcode ist ein kurzer Code wie eine Filial- oder Betriebsnummer (`1216`); [Benennungsregeln](/docs/monitor/network-device-monitor#geräte-nach-ihrer-namenskonvention-benennen) setzen ihn mit `{site.code}` in Gerätenamen ein.
 
 ### Ihn in den Baum einordnen
 Wählen Sie im Schritt **Hierarchie** den **Übergeordneter Standort**, wenn der Standort unter einem anderen liegt. Lassen Sie ihn leer, um den Standort auf der obersten Ebene zu halten.

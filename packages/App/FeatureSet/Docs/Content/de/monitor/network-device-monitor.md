@@ -67,7 +67,7 @@ Das Netzwerkmenü zeigt, was Sie täglich öffnen: **Übersicht**, **Geräte**, 
 | Abschnitt | Seiten |
 | --- | --- |
 | **Topologie** | **Gerätetopologie**, **Erkannte Geräte**, **Latenzmatrix**, **Standortverbindungen**, **Geräteverbindungen** |
-| **Regeln** | **Regeln für automatischen Import**, **Standortzuweisungsregeln**, **Eigentümerregeln**, **Beschriftungsregeln**, **Verbindungsregeln** |
+| **Regeln** | **Regeln für automatischen Import**, **Standortzuweisungsregeln**, **Benennungsregeln**, **Eigentümerregeln**, **Beschriftungsregeln**, **Verbindungsregeln** |
 | **Einstellungen** | **Warnungsrichtlinien**, **SNMP-Anmeldedaten**, **Geräterollen**, **Standorttypen**, **Adressnamen**, **OID-Erfassungsvorlagen** |
 | **Erweitert** | **SNMP-Walk**, **Archivierte Geräte** |
 
@@ -691,8 +691,33 @@ Ein Scan findet nicht immer beim ersten Mal den besten Namen eines Hosts. Die Te
 
 Ein Gerät, das die Erkennung benannt hat, merkt sich deshalb, woher sein Name kam. Wenn ein abgeschlossener Scan seiner Adresse einen besseren Namen findet — seinen SNMP-Systemnamen oder NetBIOS-Namen statt seines Reverse-DNS-Namens, irgendeinen Namen statt seiner IP-Adresse —, wird das Gerät auf den Namen umbenannt, den ein Import ihm jetzt geben würde, und sein DNS-Name wird ergänzt, wenn es keinen hat. Hat schon ein anderes Gerät diesen Namen, wird das Gerät mit seiner Adresse in Klammern benannt (`FILESRV01 (10.0.0.5)`), und ist auch das vergeben, behält es seinen Namen.
 
-Ein Name wird immer nur verbessert: Ein Gerät behält seinen Namen, wenn sich sein DNS-Eintrag ändert oder ein späterer Scan keine NetBIOS-Antwort bekommt. Ein Gerät mit DNS-Namen wird nur von einem Scan umbenannt, der genau diesen DNS-Namen unter seiner Adresse findet; wenn die Adresse inzwischen zu einer anderen Maschine gehört (etwa ein umgezogenes DHCP-Lease), übernimmt das Gerät also nicht den Namen dieser Maschine. Ein Gerät, das Sie umbenannt haben — auf seiner Einstellungen-Seite, über die API oder mit **Shorten Names to Hostname** —, wird nie von einem Scan umbenannt. Geräte, die importiert wurden, bevor die Erkennung die Herkunft von Namen festhielt, behalten ihre Namen, außer dass eines, das ein noch laufender Scan unter seiner IP-Adresse importiert hat, umbenannt wird, wenn dieser Scan abschließt.
+Ein Name wird immer nur verbessert: Ein Gerät behält seinen Namen, wenn sich sein DNS-Eintrag ändert oder ein späterer Scan keine NetBIOS-Antwort bekommt. Ein Gerät mit DNS-Namen wird nur von einem Scan umbenannt, der genau diesen DNS-Namen unter seiner Adresse findet; wenn die Adresse inzwischen zu einer anderen Maschine gehört (etwa ein umgezogenes DHCP-Lease), übernimmt das Gerät also nicht den Namen dieser Maschine. Ein Gerät, das Sie umbenannt haben — auf seiner Einstellungen-Seite, über die API oder mit **Shorten Names to Hostname** —, wird nie von einem Scan umbenannt, und ebenso wenig ein Gerät, das von einer [Benennungsregel](#geräte-nach-ihrer-namenskonvention-benennen) benannt wurde. Geräte, die importiert wurden, bevor die Erkennung die Herkunft von Namen festhielt, behalten ihre Namen, außer dass eines, das ein noch laufender Scan unter seiner IP-Adresse importiert hat, umbenannt wird, wenn dieser Scan abschließt.
 :::
+
+### Geräte nach Ihrer Namenskonvention benennen
+
+Wenn Ihre Geräte einer eigenen Namenskonvention folgen — `UN1216MNUPLR01` ist der Menü-Player der Filiale 1216 —, halten Sie sie als **Benennungsregeln** unter **Netzwerk → Regeln → Benennungsregeln** fest, und die Erkennung benennt Geräte danach statt nach dem, was sie findet. Eine Regel sagt, welche Geräte gemeint sind (ein IP-Bereich, der erkannte Name, die MAC-Adresse, der Hersteller und der Standort, mit denselben Bedingungen wie bei jeder Netzwerkregel) und wie sie heißen: ein **Namensmuster**, ein Text, in dem die Teile, die sich von Gerät zu Gerät unterscheiden, in geschweiften Klammern stehen.
+
+| Platzhalter | Wird ersetzt durch | Beispiel |
+| --- | --- | --- |
+| `{site.code}` | Den **Standortcode** des Standorts, zu dem das Gerät gehört (legen Sie ihn in den Einstellungen des Standorts fest) | `1216` |
+| `{site}` | Den Namen des Standorts des Geräts | `Unit 1216` |
+| `{discoveredName}` | Den Namen, den die Erkennung gefunden hat, wie oben beschrieben | `dmb-5` |
+| `{ip}`, `{ip.1}` … `{ip.4}` | Die IP-Adresse oder einen ihrer vier Teile | `51` |
+| `{mac}` | Die MAC-Adresse, 12 Ziffern und Buchstaben | `00050BB07FFC` |
+| `{vendor}` | Den Hersteller des Geräts | `SICOM Systems` |
+| `{lookup}` | Den Wert, den die Nachschlagetabelle der Regel dem Gerät zuordnet | `MNUPLR01` |
+| `{n}`, `{nn}`, `{nnn}` | Die niedrigste Zahl, die den Namen eindeutig macht: `1`, `01`, `001` | `01` |
+
+Auf einen Platzhalter können Filter folgen, einer nach dem anderen: `upper`, `lower`, `first:N`, `last:N`, `digits` und `nospaces`. `{vendor|first:3|upper}` ergibt `SIC`, und `{site|digits}` ergibt `1216` für einen Standort namens „Unit 1216“. Das Regelformular bietet jeden Platzhalter als Schaltfläche an und zeigt schon beim Tippen, wie ein Beispielgerät heißen würde.
+
+Manche Konventionen sind eher eine Tabelle als eine Formel: Im Subnetz jeder Filiale ist das Gerät unter `.51` der Menü-Player `MNUPLR01`, das unter `.151` der linke Bildschirm `MNUSCR01`. Öffnen Sie im Schritt **Name** der Regel den Abschnitt **Nachschlagetabelle**, wählen Sie, was ihr Schlüssel ist — der letzte Teil der IP-Adresse, die IP-Adresse, die MAC-Adresse oder der erkannte Name —, und tippen Sie die Zeilen ein, fügen Sie zwei Spalten aus einer Tabellenkalkulation ein oder importieren Sie eine CSV-Datei (**CSV exportieren** speichert sie wieder als Datei). Dann benennt `UN{site.code}{lookup}` die Menütafeln aller Filialen mit einer einzigen Regel.
+
+Die Regeln werden der Reihe nach von oben in der Liste geprüft, und Sie ändern ihre Reihenfolge per Ziehen. Die erste aktivierte Regel, die auf ein Gerät passt und jeden Wert hat, den ihr Muster braucht, benennt es. Ein Gerät, das eine Regel nicht benennen kann — sein Standort hat keinen Code, seine Adresse hat keine Zeile in der Nachschlagetabelle —, wird der nächsten Regel überlassen. Gerätenamen sind in einem Projekt eindeutig: Ein Muster mit einer Nummer nimmt deshalb die niedrigste noch freie Nummer — `UN{site.code}DRTPLR{nn}` zählt in jeder Filiale ab `01` —, und wenn ein Muster ohne Nummer einen Namen ergibt, den schon ein anderes Gerät trägt, behält das Gerät seinen erkannten Namen.
+
+Regeln benennen ein Gerät, wenn es importiert wird: aus **Ergebnisse prüfen**, aus **Erkannte Geräte** mit **Zur Überwachung hinzufügen** und durch Regeln für den automatischen Import. **Ergebnisse prüfen** zeigt unter jedem Host den Namen, unter dem sein Gerät angelegt wird — **Wird benannt als** `UN1216DRTPLR02` —, oder warum eine Regel ihn nicht benennen kann, und **Zur Überwachung hinzufügen** listet die Namen auf dieselbe Weise. Ein Gerät, das von einer Regel benannt wird, behält den Namen, den die Erkennung gefunden hat, als **Erkannter Name** und wird an dem Standort angelegt, den ihm die Standortzuweisungsregeln geben, sodass sein Name und sein Standort immer zusammenpassen. Ein späterer Scan benennt es nie um, auch wenn er einen besseren Namen findet.
+
+Um die Geräte, die Sie schon haben, an die Konvention anzupassen, klicken Sie auf der Seite Benennungsregeln auf **Auf vorhandene Geräte anwenden** oder wählen Sie Geräte in der Liste **Geräte** aus und verwenden Sie **Benennungsregeln anwenden**. Nichts wird umbenannt, bevor Sie bestätigen: Die Vorschau listet jedes Gerät, dessen Name den Regeln nicht folgt, mit dem Namen, den es bekäme, die Geräte, die eine Regel noch nicht benennen kann, mit dem Grund, und zählt die Geräte, die ihnen schon folgen. Geräte, die von der Erkennung oder einer Regel benannt wurden, sind angekreuzt; Geräte, deren Namen jemand eingetippt hat, stehen nicht angekreuzt in der Liste, ein Name, den ein Mensch gewählt hat, wird also nur geändert, wenn Sie das Gerät ankreuzen. Ein Gerät, das schon eine Nummer seines Musters trägt, behält diese Nummer. Zum Anwenden der Regeln brauchen Sie die Berechtigung, die Benennungsregeln zu bearbeiten und jedes Netzwerkgerät im Projekt zu bearbeiten.
 
 ### Automatisch importieren mit Regeln für den automatischen Import
 

@@ -7,6 +7,7 @@ import {
   readDeviceNameSource,
 } from "../../Types/NetworkDevice/DeviceNameSource";
 import { isDeviceStillNamedByDiscovery } from "../NetworkDevice/DeviceNameRule";
+import { isDeviceStillNamedByRule } from "../../Types/NetworkDevice/DeviceNaming";
 import {
   DiscoveredHostNaming,
   getDiscoveredHostNameSource,
@@ -95,6 +96,12 @@ export interface DiscoveredNameDeviceRow {
   dnsName?: string | null | undefined;
   discoveredName?: string | null | undefined;
   discoveredNameSource?: string | null | undefined;
+  /*
+   * The name a naming rule gave the device (issue #6619). A device still
+   * called that is named by the rules, not by discovery, even when the
+   * rules' name is the one discovery found.
+   */
+  ruleAssignedName?: string | null | undefined;
   // Only orders the plans: the device imported first keeps the plain name.
   createdAt?: Date | string | null | undefined;
 }
@@ -351,6 +358,14 @@ export function planDiscoveredNameUpgrades(data: {
 
     // (c) Still called exactly what discovery named it.
     if (!isDeviceStillNamedByDiscovery(row)) {
+      continue;
+    }
+
+    /*
+     * ...and not by a naming rule (issue #6619): the rules decide such a
+     * device's name, and applying them again is what renames it.
+     */
+    if (isDeviceStillNamedByRule(row)) {
       continue;
     }
 

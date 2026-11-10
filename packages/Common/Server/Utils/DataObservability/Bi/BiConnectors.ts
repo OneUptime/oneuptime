@@ -1,9 +1,19 @@
 import DataBiTool from "../../../../Types/DataObservability/DataBiTool";
+import { DataDashboardRefreshHistory } from "../../../../Types/DataObservability/DataDashboardActivity";
 import { JSONObject } from "../../../../Types/JSON";
 import DataSourceHttpFetch, {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
 } from "../../DataSource/HttpFetch";
+import BiRequestError from "./BiRequestError";
+import { BiUsageRead } from "./BiUsage";
+import { PowerBiUsageCursor, readPowerBiUsage } from "./PowerBiActivity";
+import {
+  combineRefreshHistories,
+  PowerBiRefreshRead,
+  PowerBiRefreshTarget,
+  readPowerBiRefreshes,
+} from "./PowerBiRefreshes";
 
 /*
  * EACH BI TOOL'S DASHBOARDS, AND THE TABLES BEHIND THEM.
@@ -22,7 +32,10 @@ import DataSourceHttpFetch, {
  *     explore, whose base view's sql_table_name is the table.
  *   - Power BI: a service principal allowed to use the admin APIs. A scan
  *     of the workspaces says each dataset's tables, from their Power Query
- *     sources; a report charts its dataset.
+ *     sources; a report charts its dataset, and a dashboard its tiles'.
+ *     Each also says how often it is viewed, from the activity log
+ *     (PowerBiActivity), and how fresh its datasets are, from their
+ *     refreshes (PowerBiRefreshes).
  *   - Hightouch: an API key. Each sync's model is a table, or SQL naming them.
  *   - Census: a workspace API key. Each sync's source is a table.
  *
@@ -51,6 +64,21 @@ export interface BiDashboardRead {
   owner: string | null;
   changedAt: Date | null;
   tables: Array<BiTableRef>;
+  /*
+   * The refreshes of the data it charts, where its tool says (Power BI):
+   * null when it has none, and left out when they were not read, so what
+   * was read before is kept.
+   */
+  refresh?: DataDashboardRefreshHistory | null | undefined;
+}
+
+// What a tool says: its dashboards, the views read with them, and what could not be read.
+export interface BiToolRead {
+  dashboards: Array<BiDashboardRead>;
+  // The views read this time, where the tool says (Power BI); null otherwise.
+  usage: BiUsageRead | null;
+  // What was not read while the dashboards were: views or refreshes.
+  warnings: Array<string>;
 }
 
 export type BiTransport = (
@@ -61,6 +89,9 @@ export interface BiReadInput {
   baseUrl: string;
   credentials: JSONObject;
   transport?: BiTransport | undefined;
+  // The hours of views read already (Power BI): the read goes on from them.
+  usageCursor?: PowerBiUsageCursor | undefined;
+  now?: Date | undefined;
 }
 
 // The most dashboards read from one tool, and tables kept of one.
@@ -270,7 +301,10 @@ async function requestJson(data: {
       readText(body["error"], 300) ||
       (response.bodyText || "").slice(0, 200);
 
-    throw new Error(`${data.tool} answered ${response.statusCode}: ${message}`);
+    throw new BiRequestError(
+      `${data.tool} answered ${response.statusCode}: ${message}`,
+      response.statusCode,
+    );
   }
 
   return response.bodyJson;
@@ -898,7 +932,7 @@ export function readPowerQueryTables(expression: string): Array<BiTableRef> {
 export class PowerBiConnector {
   public static async read(
     input: BiReadInput & { wait?: ((ms: number) => Promise<void>) | undefined },
-  ): Promise<Array<BiDashboardRead>> {
+  ): Promise<BiToolRead> {
     const transport: BiTransport = transportOf(input);
     const tool: string = DataBiTool.PowerBI;
     const tenantId: string = requireText(input.credentials, "tenantId", tool);
@@ -921,6 +955,18 @@ export class PowerBiConnector {
       Authorization: `Bearer ${readText(token["access_token"], 8_192)}`,
       "Content-Type": "application/json",
     };
+    const get: (path: string) => Promise<unknown> = (
+      path: string,
+    ): Promise<unknown> => {
+      return requestJson({
+        transport,
+        tool,
+        method: "GET",
+        url: `${POWER_BI_API}${path}`,
+        headers,
+      });
+    };
+    const now: Date = input.now || new Date();
     const wait: (ms: number) => Promise<void> =
       input.wait ||
       ((ms: number): Promise<void> => {
@@ -929,19 +975,13 @@ export class PowerBiConnector {
         });
       });
     const workspaceIds: Array<string> = readArray(
-      await requestJson({
-        transport,
-        tool,
-        method: "GET",
-        url: `${POWER_BI_API}/admin/workspaces/modified?excludePersonalWorkspaces=true`,
-        headers,
-      }),
+      await get("/admin/workspaces/modified?excludePersonalWorkspaces=true"),
     )
       .map((value: unknown): string => {
         return readText(readObject(value)["id"], 100);
       })
       .filter(Boolean);
-    const dashboards: Array<BiDashboardRead> = [];
+    const workspaces: Array<JSONObject> = [];
 
     for (let start: number = 0; start < workspaceIds.length; start += 100) {
       const scan: JSONObject = readObject(
@@ -960,13 +1000,9 @@ export class PowerBiConnector {
 
       for (let poll: number = 0; ; poll++) {
         const status: JSONObject = readObject(
-          await requestJson({
-            transport,
-            tool,
-            method: "GET",
-            url: `${POWER_BI_API}/admin/workspaces/scanStatus/${encodeURIComponent(scanId)}`,
-            headers,
-          }),
+          await get(
+            `/admin/workspaces/scanStatus/${encodeURIComponent(scanId)}`,
+          ),
         );
 
         if (readText(status["status"]) === "Succeeded") {
@@ -984,65 +1020,241 @@ export class PowerBiConnector {
       }
 
       const result: JSONObject = readObject(
-        await requestJson({
-          transport,
-          tool,
-          method: "GET",
-          url: `${POWER_BI_API}/admin/workspaces/scanResult/${encodeURIComponent(scanId)}`,
-          headers,
-        }),
+        await get(`/admin/workspaces/scanResult/${encodeURIComponent(scanId)}`),
       );
 
-      for (const workspaceValue of readArray(result["workspaces"])) {
-        const workspace: JSONObject = readObject(workspaceValue);
-        const workspaceId: string = readText(workspace["id"], 100);
-        const datasetTables: Map<string, Array<BiTableRef>> = new Map();
+      workspaces.push(...readArray(result["workspaces"]).map(readObject));
+    }
 
-        for (const datasetValue of readArray(workspace["datasets"])) {
-          const dataset: JSONObject = readObject(datasetValue);
-          const refs: Array<BiTableRef> = [];
+    // Every dataset scanned, by its id in lower case: a report's dataset can be in another workspace.
+    const datasets: Map<string, PowerBiDataset> = new Map();
 
-          for (const tableValue of readArray(dataset["tables"])) {
-            for (const source of readArray(readObject(tableValue)["source"])) {
-              refs.push(
-                ...readPowerQueryTables(
-                  readText(readObject(source)["expression"], 100_000),
-                ),
-              );
-            }
+    for (const workspace of workspaces) {
+      const workspaceId: string = readText(workspace["id"], 100);
+
+      for (const datasetValue of readArray(workspace["datasets"])) {
+        const dataset: JSONObject = readObject(datasetValue);
+        const datasetId: string = readText(dataset["id"], 100);
+        const refs: Array<BiTableRef> = [];
+
+        for (const tableValue of readArray(dataset["tables"])) {
+          for (const source of readArray(readObject(tableValue)["source"])) {
+            refs.push(
+              ...readPowerQueryTables(
+                readText(readObject(source)["expression"], 100_000),
+              ),
+            );
           }
-
-          datasetTables.set(readText(dataset["id"], 100), refs);
         }
 
-        for (const reportValue of readArray(workspace["reports"])) {
-          const report: JSONObject = readObject(reportValue);
-          const id: string = readText(report["id"], 100);
-
-          if (!id || dashboards.length >= MAX_BI_DASHBOARDS) {
-            continue;
-          }
-
-          dashboards.push({
-            externalId: id,
-            name: readText(report["name"]) || `Report ${id}`,
-            url: `https://app.powerbi.com/groups/${encodeURIComponent(workspaceId)}/reports/${encodeURIComponent(id)}`,
-            folder: readText(workspace["name"]) || null,
-            owner:
-              readText(report["modifiedBy"]) ||
-              readText(report["createdBy"]) ||
-              null,
-            changedAt: readDate(report["modifiedDateTime"]),
-            tables: uniqueTables(
-              datasetTables.get(readText(report["datasetId"], 100)) || [],
-            ),
+        if (datasetId) {
+          datasets.set(datasetId.toLowerCase(), {
+            datasetId,
+            workspaceId,
+            onCapacity: workspace["isOnDedicatedCapacity"] === true,
+            tables: refs,
           });
         }
       }
     }
 
-    return dashboards;
+    const items: Array<{ read: BiDashboardRead; datasetIds: Array<string> }> =
+      readPowerBiItems(workspaces, datasets);
+    const warnings: Array<string> = [];
+    let refreshRead: PowerBiRefreshRead = {
+      refreshes: new Map(),
+      warnings: [],
+    };
+
+    try {
+      refreshRead = await readPowerBiRefreshes({
+        get,
+        datasets: Array.from(
+          new Set(
+            items.flatMap(
+              (item: {
+                read: BiDashboardRead;
+                datasetIds: Array<string>;
+              }): Array<string> => {
+                return item.datasetIds;
+              },
+            ),
+          ),
+        )
+          .map((datasetId: string): PowerBiRefreshTarget | null => {
+            const dataset: PowerBiDataset | undefined = datasets.get(datasetId);
+
+            return dataset
+              ? {
+                  datasetId: dataset.datasetId,
+                  workspaceId: dataset.workspaceId,
+                  onCapacity: dataset.onCapacity,
+                }
+              : null;
+          })
+          .filter(
+            (
+              target: PowerBiRefreshTarget | null,
+            ): target is PowerBiRefreshTarget => {
+              return target !== null;
+            },
+          ),
+        now,
+      });
+    } catch (error) {
+      warnings.push(
+        `Refreshes were not read: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    for (const item of items) {
+      item.read.refresh = combineRefreshHistories(
+        item.datasetIds.map(
+          (
+            datasetId: string,
+          ): DataDashboardRefreshHistory | null | undefined => {
+            return refreshRead.refreshes.has(datasetId)
+              ? refreshRead.refreshes.get(datasetId)
+              : undefined;
+          },
+        ),
+      );
+    }
+
+    const dashboards: Array<BiDashboardRead> = items.map(
+      (item: { read: BiDashboardRead }): BiDashboardRead => {
+        return item.read;
+      },
+    );
+    let usage: BiUsageRead | null = null;
+
+    try {
+      const usageRead: Awaited<ReturnType<typeof readPowerBiUsage>> =
+        await readPowerBiUsage({
+          get,
+          cursor: input.usageCursor || { from: null, until: null },
+          now,
+          items: new Map(
+            dashboards.map((dashboard: BiDashboardRead): [string, string] => {
+              return [dashboard.externalId.toLowerCase(), dashboard.externalId];
+            }),
+          ),
+        });
+
+      usage = usageRead.usage;
+
+      if (usageRead.warning) {
+        warnings.push(usageRead.warning);
+      }
+    } catch (error) {
+      warnings.push(
+        `Views were not read: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    return {
+      dashboards,
+      usage,
+      warnings: [...refreshRead.warnings, ...warnings],
+    };
   }
+}
+
+// A dataset scanned: where it is, and the tables its Power Query reads.
+interface PowerBiDataset {
+  datasetId: string;
+  workspaceId: string;
+  onCapacity: boolean;
+  tables: Array<BiTableRef>;
+}
+
+/*
+ * A scan's reports and dashboards, each workspace's in turn: a report
+ * charts its dataset, a dashboard its tiles' datasets. Each with the ids of
+ * its datasets, in lower case.
+ */
+function readPowerBiItems(
+  workspaces: Array<JSONObject>,
+  datasets: Map<string, PowerBiDataset>,
+): Array<{ read: BiDashboardRead; datasetIds: Array<string> }> {
+  const items: Array<{ read: BiDashboardRead; datasetIds: Array<string> }> = [];
+  const tablesOf: (datasetIds: Array<string>) => Array<BiTableRef> = (
+    datasetIds: Array<string>,
+  ): Array<BiTableRef> => {
+    return uniqueTables(
+      datasetIds.flatMap((datasetId: string): Array<BiTableRef> => {
+        return datasets.get(datasetId)?.tables || [];
+      }),
+    );
+  };
+
+  for (const workspace of workspaces) {
+    const workspaceId: string = readText(workspace["id"], 100);
+    const folder: string | null = readText(workspace["name"]) || null;
+
+    for (const reportValue of readArray(workspace["reports"])) {
+      const report: JSONObject = readObject(reportValue);
+      const id: string = readText(report["id"], 100);
+      const datasetId: string = readText(
+        report["datasetId"],
+        100,
+      ).toLowerCase();
+
+      if (!id || items.length >= MAX_BI_DASHBOARDS) {
+        continue;
+      }
+
+      items.push({
+        read: {
+          externalId: id,
+          name: readText(report["name"]) || `Report ${id}`,
+          url: `https://app.powerbi.com/groups/${encodeURIComponent(workspaceId)}/reports/${encodeURIComponent(id)}`,
+          folder,
+          owner:
+            readText(report["modifiedBy"]) ||
+            readText(report["createdBy"]) ||
+            null,
+          changedAt: readDate(report["modifiedDateTime"]),
+          tables: tablesOf(datasetId ? [datasetId] : []),
+        },
+        datasetIds: datasetId ? [datasetId] : [],
+      });
+    }
+
+    for (const dashboardValue of readArray(workspace["dashboards"])) {
+      const dashboard: JSONObject = readObject(dashboardValue);
+      const id: string = readText(dashboard["id"], 100);
+
+      if (!id || items.length >= MAX_BI_DASHBOARDS) {
+        continue;
+      }
+
+      const datasetIds: Array<string> = Array.from(
+        new Set(
+          readArray(dashboard["tiles"])
+            .map((tile: unknown): string => {
+              return readText(readObject(tile)["datasetId"], 100).toLowerCase();
+            })
+            .filter(Boolean),
+        ),
+      );
+
+      items.push({
+        read: {
+          externalId: id,
+          name: readText(dashboard["displayName"]) || `Dashboard ${id}`,
+          url: `https://app.powerbi.com/groups/${encodeURIComponent(workspaceId)}/dashboards/${encodeURIComponent(id)}`,
+          folder,
+          owner: null,
+          changedAt: null,
+          tables: tablesOf(datasetIds),
+        },
+        datasetIds,
+      });
+    }
+  }
+
+  return items;
 }
 
 // A tool's dashboards, by the tool's own reader.
@@ -1211,26 +1423,40 @@ export function readCensusSync(sync: JSONObject): BiDashboardRead {
   };
 }
 
+// A tool's dashboards, read by the tool's own reader, with its views and what could not be read.
+export async function readBiTool(
+  tool: DataBiTool,
+  input: BiReadInput,
+): Promise<BiToolRead> {
+  const dashboardsOnly: (dashboards: Array<BiDashboardRead>) => BiToolRead = (
+    dashboards: Array<BiDashboardRead>,
+  ): BiToolRead => {
+    return { dashboards, usage: null, warnings: [] };
+  };
+
+  switch (tool) {
+    case DataBiTool.Metabase:
+      return dashboardsOnly(await MetabaseConnector.read(input));
+    case DataBiTool.Superset:
+      return dashboardsOnly(await SupersetConnector.read(input));
+    case DataBiTool.Tableau:
+      return dashboardsOnly(await TableauConnector.read(input));
+    case DataBiTool.Looker:
+      return dashboardsOnly(await LookerConnector.read(input));
+    case DataBiTool.PowerBI:
+      return await PowerBiConnector.read(input);
+    case DataBiTool.Hightouch:
+      return dashboardsOnly(await HightouchConnector.read(input));
+    case DataBiTool.Census:
+      return dashboardsOnly(await CensusConnector.read(input));
+    default:
+      throw new Error(`OneUptime cannot read ${String(tool)} yet.`);
+  }
+}
+
 export async function readBiDashboards(
   tool: DataBiTool,
   input: BiReadInput,
 ): Promise<Array<BiDashboardRead>> {
-  switch (tool) {
-    case DataBiTool.Metabase:
-      return await MetabaseConnector.read(input);
-    case DataBiTool.Superset:
-      return await SupersetConnector.read(input);
-    case DataBiTool.Tableau:
-      return await TableauConnector.read(input);
-    case DataBiTool.Looker:
-      return await LookerConnector.read(input);
-    case DataBiTool.PowerBI:
-      return await PowerBiConnector.read(input);
-    case DataBiTool.Hightouch:
-      return await HightouchConnector.read(input);
-    case DataBiTool.Census:
-      return await CensusConnector.read(input);
-    default:
-      throw new Error(`OneUptime cannot read ${String(tool)} yet.`);
-  }
+  return (await readBiTool(tool, input)).dashboards;
 }

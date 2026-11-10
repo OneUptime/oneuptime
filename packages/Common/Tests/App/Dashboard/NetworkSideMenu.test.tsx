@@ -195,6 +195,12 @@ const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
         ],
       },
       {
+        title: "Naming Rules",
+        pageMapKey: PageMap.NETWORK_DEVICE_SETTINGS_NAMING_RULES,
+        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
+        breadcrumbTitles: ["Project", "Network", "Rules", "Naming Rules"],
+      },
+      {
         title: "Owner Rules",
         pageMapKey: PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES,
         getBreadcrumbs: getNetworkDeviceBreadcrumbs,
@@ -598,7 +604,7 @@ describe("Network side menu", () => {
 
       expect(isExpanded("Rules")).toBe(false);
       expect(sectionBody("Rules")).toHaveClass("max-h-0", "opacity-0");
-      expect(linksIn("Rules")).toHaveLength(5);
+      expect(linksIn("Rules")).toHaveLength(6);
 
       fireEvent.click(sectionToggle("Rules"));
 
@@ -652,11 +658,11 @@ describe("Network side menu", () => {
   });
 
   describe("coverage", () => {
-    test("keeps all twenty-nine destinations reachable exactly once", async () => {
+    test("keeps all thirty destinations reachable exactly once", async () => {
       await renderNetworkMenu();
 
-      expect(EXPECTED_ENTRIES).toHaveLength(29);
-      expect(allLinks()).toHaveLength(29);
+      expect(EXPECTED_ENTRIES).toHaveLength(30);
+      expect(allLinks()).toHaveLength(30);
       expect(hrefsInMenu().sort()).toEqual(
         EXPECTED_ENTRIES.map(expectedHref).sort(),
       );

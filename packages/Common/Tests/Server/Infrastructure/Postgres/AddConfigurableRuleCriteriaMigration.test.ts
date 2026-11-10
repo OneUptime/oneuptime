@@ -52,6 +52,8 @@ const RULE_MODELS_INTRODUCED_AFTER_MIGRATION: ReadonlyArray<string> = [
   // 1808992900000-AddOpenStackClouds
   "OpenStackCloudLabelRule",
   "OpenStackCloudOwnerRule",
+  // 1809100066190-AddNetworkDeviceNamingRules
+  "NetworkDeviceNamingRule",
 ];
 
 type IsCoveredByMigrationFunction = (modelName: string) => boolean;

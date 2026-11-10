@@ -193,6 +193,7 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES]: `settings/oid-collection-templates`,
   [PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES]: `settings/device-roles`,
   [PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES]: `settings/address-names`,
+  [PageMap.NETWORK_DEVICE_SETTINGS_NAMING_RULES]: `settings/naming-rules`,
   [PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES]: `settings/snmp-credential-profiles`,
   [PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES]: `settings/alert-policies`,
   [PageMap.NETWORK_DEVICE_DISCOVERY]: `discovery`,
@@ -3941,6 +3942,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_SETTINGS_NAMING_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_NAMING_RULES]
     }`,
   ),
 

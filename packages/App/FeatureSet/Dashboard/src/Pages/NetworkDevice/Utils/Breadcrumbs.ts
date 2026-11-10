@@ -182,6 +182,10 @@ export function getNetworkDeviceBreadcrumbs(
       ["Project", "Network", "Rules", "Auto Import Rules"],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_DEVICE_SETTINGS_NAMING_RULES,
+      ["Project", "Network", "Rules", "Naming Rules"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES,
       ["Project", "Network", "Settings", "OID Collection Templates"],
     ),

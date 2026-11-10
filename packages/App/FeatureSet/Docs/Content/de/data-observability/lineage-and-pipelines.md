@@ -78,13 +78,24 @@ Die eigentliche Folge schlechter Daten ist das Dashboard, das jemand öffnet. F�
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, ein Service Principal, der die Admin-APIs von Power BI verwenden darf |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, ein Service Principal, der die schreibgeschützten Admin-APIs von Power BI verwenden darf. Berichte und Dashboards werden beide gelesen, mit ihren Aufrufen und Aktualisierungen (siehe unten) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (oder `eu`) |
 
 Hightouch und Census sind Reverse-ETL-Werkzeuge: Ein Sync, der eine Tabelle in ein CRM kopiert, hängt von dieser Tabelle ab wie ein Dashboard, wird also auf dieselbe Weise gelesen und bei den Warnungen der Tabelle genannt.
 
-Gelesen werden nur die Namen und Links der Dashboards und die Tabellen, die sie abfragen: nie ihre Daten.
+Gelesen werden nur die Namen und Links der Dashboards, die Tabellen, die sie abfragen, und bei Power BI, wer sie öffnet und wie ihre Aktualisierungen verliefen: nie ihre Daten.
+
+### Aufrufe und Aktualisierungen in Power BI
+
+Für jeden Power-BI-Bericht und jedes Power-BI-Dashboard zeigt **BI-Dashboards** zuerst, wie oft es in den letzten 28 Tagen geöffnet wurde, wann es zuletzt geöffnet wurde und wie die letzte Aktualisierung seiner Daten verlief, bei einer fehlgeschlagenen Aktualisierung mit ihrem Fehler. Wie viele Personen es geöffnet haben, wer es am häufigsten geöffnet hat und seine letzten Aktualisierungen sind Spalten, die Sie einblenden können. Der Tab **Datenherkunft** einer Tabelle sagt dasselbe über jedes Dashboard, das auf ihr aufbaut, mit seinem Besitzer und seinen Betrachtern unter **Mehr**.
+
+- **Aufrufe** stammen aus dem Aktivitätsprotokoll von Power BI, gelesen über seine Admin-API für Aktivitätsereignisse. Power BI bewahrt davon 28 Tage auf, beantwortet 200 Anfragen pro Stunde und teilt jede Anfrage in Stunden auf, daher liest OneUptime es Stunde für Stunde: Jedes stündliche Lesen ergänzt die Stunden seit dem letzten und geht dann durch die 28 Tage zurück, die neuesten zuerst, mit höchstens 100 Anfragen. Ein neues Power-BI-Tool zeigt sofort die letzten Tage und alle 28 Tage innerhalb eines Tages; bis dahin sagen die Aufrufe, seit wann sie gezählt werden. Ein Ereignis kann bis zu einer Stunde brauchen, bis es im Protokoll steht, daher hinken die Aufrufe bis zu zwei Stunden hinterher. Betrachter werden so genannt, wie Power BI sie nennt: mit ihrer E-Mail-Adresse.
+- **Aktualisierungen** von Datasets auf einer Kapazität (Premium, Premium pro Benutzer oder Fabric) stammen aus der Admin-Liste der aktualisierbaren Elemente von Power BI: die letzte Aktualisierung jedes Datasets mit ihrem Fehler und wie viele Aktualisierungen in den sieben Tagen, die Power BI aufbewahrt, liefen und fehlschlugen.
+- **Aktualisierungen von Datasets auf gemeinsam genutzter Kapazität** stehen nicht in dieser Liste. Power BI zeigt den Aktualisierungsverlauf eines Datasets nur Personen, die das Dataset ändern dürfen. Fügen Sie den Service Principal daher seinem Arbeitsbereich als **Mitwirkender**, **Mitglied** oder **Administrator** hinzu und aktivieren Sie **Service principals can call Fabric public APIs** für ihn in den Entwicklereinstellungen des Fabric-Verwaltungsportals. OneUptime liest dann jede Aktualisierung mit ihrem Fehler. Bis dahin sagt das BI-Tool, für wie viele Datasets es die Aktualisierungen nicht lesen konnte.
+- Ein Power-BI-Dashboard, dessen Kacheln aus mehreren Datasets stammen, zeigt die letzte fehlgeschlagene Aktualisierung oder, wenn keine fehlschlug, die älteste: Seine Daten sind nur so aktuell wie diese.
+
+Aufrufe und Aktualisierungen auf Kapazitäten brauchen nichts über den Admin-API-Zugriff oben hinaus: den Service Principal in einer Sicherheitsgruppe, die **Service principals can access read-only admin APIs** erlaubt, ohne Power-BI-Berechtigungen der App, die eine Administratorzustimmung erfordern. Wenn Aufrufe oder Aktualisierungen nicht gelesen werden können, werden die Dashboards trotzdem gelesen und behalten, das BI-Tool sagt, was übersprungen wurde und warum, und das nächste Lesen versucht es erneut.
 
 ## Pipelines
 

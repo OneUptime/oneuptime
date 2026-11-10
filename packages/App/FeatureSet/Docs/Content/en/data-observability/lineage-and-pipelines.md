@@ -78,13 +78,24 @@ The real impact of bad data is the dashboard someone opens. Under **BI Dashboard
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, a service principal allowed to use Power BI's admin APIs |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, a service principal allowed to use Power BI's read-only admin APIs. Reports and dashboards are both read, with their views and refreshes (below) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (or `eu`) |
 
 Hightouch and Census are reverse ETL tools: a sync that copies a table into a CRM depends on that table as a dashboard does, so it is read the same way and named on the table's alerts.
 
-Only dashboards' names and links, and the tables they query, are read: never their data.
+Only dashboards' names and links, the tables they query, and for Power BI who opens them and how their refreshes went, are read: never their data.
+
+### Views and refreshes in Power BI
+
+For each Power BI report and dashboard, **BI Dashboards** shows first how many times it was opened in the last 28 days, when it was last opened, and how the last refresh of its data went, with a failed refresh's error. How many people opened it, who opened it most and its latest refreshes are columns you can switch on. A table's **Lineage** tab says the same of each dashboard built on it, with its owner and viewers under **More**.
+
+- **Views** come from Power BI's activity log, read through its admin activity events API. Power BI keeps 28 days of it, answers 200 requests an hour and splits every request into hours, so OneUptime reads it an hour at a time: each hourly read adds the hours since the last one, then goes back through the 28 days, newest first, with at most 100 requests. A new Power BI tool shows the last few days right away and all 28 days within a day; until then, the views say since when they are counted. An event can take up to an hour to reach the log, so views are up to two hours behind. Viewers are named as Power BI names them, by their email address.
+- **Refreshes** of datasets on a capacity (Premium, Premium Per User or Fabric) come from Power BI's admin list of refreshables: each dataset's last refresh with its error, and how many refreshes ran and failed in the seven days Power BI keeps.
+- **Refreshes of datasets on shared capacity** are not in that list. Power BI shows a dataset's refresh history only to people who may change the dataset, so add the service principal to its workspace as a **Contributor**, **Member** or **Admin**, and turn on **Service principals can call Fabric public APIs** for it in the Fabric admin portal's developer settings. OneUptime then reads every refresh, with its error. Until then, the BI tool says how many datasets' refreshes it could not read.
+- A Power BI dashboard whose tiles come from several datasets shows the latest refresh that failed, or the oldest refresh if none failed: its data is only as fresh as that.
+
+Views, and refreshes on capacities, need nothing beyond the admin API access above: the service principal in a security group allowed by **Service principals can access read-only admin APIs**, with no Power BI permissions on the app that need admin consent. When views or refreshes cannot be read, the dashboards are still read and kept, the BI tool says what was skipped and why, and the next read tries again.
 
 ## Pipelines
 

@@ -78,13 +78,24 @@ Den reelle følge af dårlige data er det dashboard, nogen åbner. Under **BI-da
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, en service principal, der må bruge Power BI's administrator-API'er |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, en service principal, der må bruge Power BI's skrivebeskyttede administrator-API'er. Både rapporter og dashboards læses, med deres visninger og opdateringer (nedenfor) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (eller `eu`) |
 
 Hightouch og Census er reverse ETL-værktøjer: en synkronisering, der kopierer en tabel ind i et CRM, afhænger af den tabel, som et dashboard gør, så den læses på samme måde og nævnes på tabellens advarsler.
 
-Kun dashboards' navne og links og de tabeller, de forespørger, læses: aldrig deres data.
+Kun dashboards' navne og links, de tabeller, de forespørger, og for Power BI hvem der åbner dem, og hvordan deres opdateringer gik, læses: aldrig deres data.
+
+### Visninger og opdateringer i Power BI
+
+For hver Power BI-rapport og hvert Power BI-dashboard viser **BI-dashboards** først, hvor mange gange det blev åbnet de seneste 28 dage, hvornår det sidst blev åbnet, og hvordan den seneste opdatering af dets data gik, med fejlen fra en mislykket opdatering. Hvor mange personer der åbnede det, hvem der åbnede det mest, og dets seneste opdateringer er kolonner, du kan slå til. En tabels fane **Afstamning** siger det samme om hvert dashboard, der bygger på den, med dets ejer og seere under **Mere**.
+
+- **Visninger** kommer fra Power BI's aktivitetslog, læst gennem dens administrator-API til aktivitetshændelser. Power BI gemmer 28 dage af den, besvarer 200 anmodninger i timen og deler hver anmodning op i timer, så OneUptime læser den en time ad gangen: hver timelig læsning tilføjer timerne siden den forrige og går derefter tilbage gennem de 28 dage, nyeste først, med højst 100 anmodninger. Et nyt Power BI-værktøj viser de seneste dage med det samme og alle 28 dage inden for et døgn; indtil da siger visningerne, siden hvornår de tælles. En hændelse kan tage op til en time om at nå loggen, så visningerne er op til to timer bagud. Seere nævnes, som Power BI nævner dem: ved deres e-mailadresse.
+- **Opdateringer** af datasæt på en kapacitet (Premium, Premium pr. bruger eller Fabric) kommer fra Power BI's administratorliste over elementer, der kan opdateres: hvert datasæts seneste opdatering med dens fejl, og hvor mange opdateringer der kørte og mislykkedes i de syv dage, Power BI gemmer.
+- **Opdateringer af datasæt på delt kapacitet** er ikke på den liste. Power BI viser kun et datasæts opdateringshistorik til dem, der må ændre datasættet, så tilføj service principal'en til dets arbejdsområde som **Bidragyder**, **Medlem** eller **Administrator**, og slå **Service principals can call Fabric public APIs** til for den i udviklerindstillingerne i Fabric-administrationsportalen. OneUptime læser så hver opdatering med dens fejl. Indtil da siger BI-værktøjet, for hvor mange datasæt det ikke kunne læse opdateringerne.
+- Et Power BI-dashboard, hvis felter kommer fra flere datasæt, viser den seneste opdatering, der mislykkedes, eller den ældste, hvis ingen mislykkedes: dets data er kun så friske som den.
+
+Visninger og opdateringer på kapaciteter kræver intet ud over administrator-API-adgangen ovenfor: service principal'en i en sikkerhedsgruppe, som **Service principals can access read-only admin APIs** tillader, uden Power BI-tilladelser på appen, der kræver administratorsamtykke. Når visninger eller opdateringer ikke kan læses, bliver dashboards stadig læst og bevaret, BI-værktøjet siger, hvad der blev sprunget over og hvorfor, og den næste læsning prøver igen.
 
 ## Pipelines
 
