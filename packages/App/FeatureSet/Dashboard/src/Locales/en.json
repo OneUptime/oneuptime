@@ -47663,5 +47663,8 @@
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.",
   "Unseen Devices": "Unseen Devices",
   "Incoming Monitor Request As Received": "Incoming Monitor Request As Received",
-  "The monitor keeps no request content: its headers and body are not shown.": "The monitor keeps no request content: its headers and body are not shown."
+  "The monitor keeps no request content: its headers and body are not shown.": "The monitor keeps no request content: its headers and body are not shown.",
+  "Same as the monitor group name": "Same as the monitor group name",
+  "Show a Monitor Group instead.": "Show a Monitor Group instead.",
+  "Show a Monitor instead.": "Show a Monitor instead."
 }

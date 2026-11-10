@@ -191,6 +191,17 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * field alone keeps it. What it returns is what the form opens on.
    */
   onItemFetched?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+  /*
+   * Columns an Update form reads into its values, though no field of it
+   * shows or sends them: what a create-time choice the Edit form leaves out
+   * holds - a variable's Secret switch, a BI connection's tool, which
+   * ModelTable's Edit drops with every doNotShowWhenEditing field - so the
+   * fields that are on the form and read it (showIf, required, a step's
+   * showIf) open as the record is, not as if it were unset. Only plain
+   * columns the user may read are read (canReadColumn): a secret never
+   * read back stays out of the fetch, as does a relation.
+   */
+  alsoReadColumns?: Array<string> | undefined;
   saveRequestOptions?: RequestOptions | undefined;
   doNotFetchExistingModel?: boolean | undefined;
   /*
@@ -479,6 +490,26 @@ const ModelForm: <TBaseModel extends BaseModel>(
       if (isWriteOnlyField(key)) {
         delete select[key];
       }
+    }
+
+    /*
+     * Read, never sent: the save sends the fields' columns alone
+     * (getSelectFields). Asked fail-closed - before the permission snapshot
+     * lands nothing more is read - since one column the user may not read
+     * would refuse the whole fetch.
+     */
+    for (const key of props.alsoReadColumns || []) {
+      if (
+        select[key] !== undefined ||
+        !model.hasColumn(key) ||
+        model.isEntityColumn(key) ||
+        model.isFileColumn(key) ||
+        !PermissionGate.canReadColumn(model, key, { held: heldPermissions })
+      ) {
+        continue;
+      }
+
+      select[key] = true;
     }
 
     return select as Select<TBaseModel>;

@@ -15597,7 +15597,7 @@
   "Saint Martin (French part)": "Saint Martin (French part)",
   "Saint Pierre and Miquelon": "Saint Pierre and Miquelon",
   "Saint Vincent and the Grenadines": "Saint Vincent and the Grenadines",
-  "Same as the monitor name": "Same as the monitor name",
+  "Same as the monitor name": "Совпадает с названием монитора",
   "Same-origin requests carry this session's id to your backend while the session uploads, and your backend's OpenTelemetry forwards it to the services it calls, third parties included. Backend telemetry that names the user links to the recording. The visitor id is never sent.": "Запросы с того же источника передают идентификатор этого сеанса вашему бэкенду, пока сеанс выгружается, а OpenTelemetry вашего бэкенда передаёт его вызываемым сервисам, включая сторонние. Телеметрия бэкенда, где указан пользователь, связывается с записью. Идентификатор посетителя никогда не отправляется.",
   "Same-origin trace propagation": "Передача трассировки в пределах источника",
   "Samoa": "Samoa",
@@ -47663,5 +47663,8 @@
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "Удалять обнаруженные устройства, которых давно не видели. Отслеживаемые и классифицированные устройства, а также добавленные или изменённые кем-то, остаются всегда.",
   "Unseen Devices": "Устройства не на связи",
   "Incoming Monitor Request As Received": "Входящий запрос монитора в исходном виде",
-  "The monitor keeps no request content: its headers and body are not shown.": "Монитор не сохраняет содержимое запросов: заголовки и тело запроса не показываются."
+  "The monitor keeps no request content: its headers and body are not shown.": "Монитор не сохраняет содержимое запросов: заголовки и тело запроса не показываются.",
+  "Same as the monitor group name": "Совпадает с названием группы мониторов",
+  "Show a Monitor Group instead.": "Вместо этого покажите группу мониторов.",
+  "Show a Monitor instead.": "Вместо этого покажите монитор."
 }

@@ -47663,5 +47663,8 @@
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "Elimina los dispositivos descubiertos que no se han visto en un tiempo. Los dispositivos monitoreados y clasificados, y los que alguien agregó o cambió, siempre permanecen.",
   "Unseen Devices": "Dispositivos no vistos",
   "Incoming Monitor Request As Received": "Solicitud del monitor entrante tal como se recibió",
-  "The monitor keeps no request content: its headers and body are not shown.": "El monitor no conserva el contenido de las solicitudes: sus encabezados y su cuerpo no se muestran."
+  "The monitor keeps no request content: its headers and body are not shown.": "El monitor no conserva el contenido de las solicitudes: sus encabezados y su cuerpo no se muestran.",
+  "Same as the monitor group name": "Igual que el nombre del grupo de monitores",
+  "Show a Monitor Group instead.": "Muestra un grupo de monitores en su lugar.",
+  "Show a Monitor instead.": "Muestra un monitor en su lugar."
 }

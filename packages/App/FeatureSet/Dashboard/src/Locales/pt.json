@@ -15597,7 +15597,7 @@
   "Saint Martin (French part)": "Saint Martin (French part)",
   "Saint Pierre and Miquelon": "Saint Pierre and Miquelon",
   "Saint Vincent and the Grenadines": "Saint Vincent and the Grenadines",
-  "Same as the monitor name": "Same as the monitor name",
+  "Same as the monitor name": "Igual ao nome do monitor",
   "Same-origin requests carry this session's id to your backend while the session uploads, and your backend's OpenTelemetry forwards it to the services it calls, third parties included. Backend telemetry that names the user links to the recording. The visitor id is never sent.": "Solicitações de mesma origem levam o ID desta sessão ao seu backend enquanto a sessão é enviada, e o OpenTelemetry do seu backend o repassa aos serviços que chama, incluindo terceiros. A telemetria do backend que identifica o usuário fica vinculada à gravação. O ID do visitante nunca é enviado.",
   "Same-origin trace propagation": "Propagação de traços da mesma origem",
   "Samoa": "Samoa",
@@ -47663,5 +47663,8 @@
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "Remova dispositivos descobertos que não são vistos há algum tempo. Dispositivos monitorados e classificados, e os que alguém adicionou ou alterou, sempre permanecem.",
   "Unseen Devices": "Dispositivos não vistos",
   "Incoming Monitor Request As Received": "Solicitação do monitor de entrada como recebida",
-  "The monitor keeps no request content: its headers and body are not shown.": "O monitor não mantém o conteúdo das solicitações: os cabeçalhos e o corpo não são exibidos."
+  "The monitor keeps no request content: its headers and body are not shown.": "O monitor não mantém o conteúdo das solicitações: os cabeçalhos e o corpo não são exibidos.",
+  "Same as the monitor group name": "Igual ao nome do grupo de monitores",
+  "Show a Monitor Group instead.": "Mostre um grupo de monitores em vez disso.",
+  "Show a Monitor instead.": "Mostre um monitor em vez disso."
 }

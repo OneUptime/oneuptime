@@ -15597,7 +15597,7 @@
   "Saint Martin (French part)": "Saint Martin (French part)",
   "Saint Pierre and Miquelon": "Saint Pierre and Miquelon",
   "Saint Vincent and the Grenadines": "Saint Vincent and the Grenadines",
-  "Same as the monitor name": "Same as the monitor name",
+  "Same as the monitor name": "मॉनिटर के नाम जैसा",
   "Same-origin requests carry this session's id to your backend while the session uploads, and your backend's OpenTelemetry forwards it to the services it calls, third parties included. Backend telemetry that names the user links to the recording. The visitor id is never sent.": "सेशन अपलोड होते समय समान-ओरिजिन अनुरोध इस सेशन की आईडी आपके बैकएंड तक ले जाते हैं, और आपके बैकएंड का OpenTelemetry उसे उन सेवाओं को आगे भेजता है जिन्हें वह कॉल करता है, तीसरे पक्ष समेत। उपयोगकर्ता का नाम बताने वाली बैकएंड टेलीमेट्री रिकॉर्डिंग से जुड़ती है। विज़िटर आईडी कभी नहीं भेजी जाती।",
   "Same-origin trace propagation": "समान-ओरिजिन ट्रेस प्रसार",
   "Samoa": "Samoa",
@@ -47663,5 +47663,8 @@
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "ऐसे खोजे गए डिवाइस हटाएँ जो कुछ समय से नहीं दिखे। निगरानी में और वर्गीकृत डिवाइस, और जिन्हें किसी ने जोड़ा या बदला, हमेशा बने रहते हैं।",
   "Unseen Devices": "न दिखे डिवाइस",
   "Incoming Monitor Request As Received": "जैसा प्राप्त हुआ वैसा आने वाला मॉनिटर अनुरोध",
-  "The monitor keeps no request content: its headers and body are not shown.": "यह मॉनिटर अनुरोध सामग्री नहीं रखता: इसके हेडर और बॉडी नहीं दिखाए जाते।"
+  "The monitor keeps no request content: its headers and body are not shown.": "यह मॉनिटर अनुरोध सामग्री नहीं रखता: इसके हेडर और बॉडी नहीं दिखाए जाते।",
+  "Same as the monitor group name": "मॉनिटर समूह के नाम जैसा",
+  "Show a Monitor Group instead.": "इसके बजाय एक मॉनिटर समूह दिखाएँ।",
+  "Show a Monitor instead.": "इसके बजाय एक मॉनिटर दिखाएँ।"
 }

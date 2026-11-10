@@ -15597,7 +15597,7 @@
   "Saint Martin (French part)": "Saint Martin (French part)",
   "Saint Pierre and Miquelon": "Saint Pierre and Miquelon",
   "Saint Vincent and the Grenadines": "Saint Vincent and the Grenadines",
-  "Same as the monitor name": "Same as the monitor name",
+  "Same as the monitor name": "모니터 이름과 동일",
   "Same-origin requests carry this session's id to your backend while the session uploads, and your backend's OpenTelemetry forwards it to the services it calls, third parties included. Backend telemetry that names the user links to the recording. The visitor id is never sent.": "세션을 업로드하는 동안 동일 출처 요청은 이 세션의 ID를 백엔드로 전달하고, 백엔드의 OpenTelemetry는 이를 호출하는 서비스(제3자 포함)로 전달합니다. 사용자를 식별하는 백엔드 텔레메트리는 녹화와 연결됩니다. 방문자 ID는 절대 전송되지 않습니다.",
   "Same-origin trace propagation": "동일 출처 트레이스 전파",
   "Samoa": "Samoa",
@@ -47663,5 +47663,8 @@
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "한동안 확인되지 않은 발견된 장치를 삭제합니다. 모니터링되거나 분류된 장치, 그리고 누군가 추가하거나 변경한 장치는 항상 남아 있습니다.",
   "Unseen Devices": "확인되지 않는 장치",
   "Incoming Monitor Request As Received": "받은 그대로의 수신 모니터 요청",
-  "The monitor keeps no request content: its headers and body are not shown.": "이 모니터는 요청 내용을 보관하지 않으므로 헤더와 본문이 표시되지 않습니다."
+  "The monitor keeps no request content: its headers and body are not shown.": "이 모니터는 요청 내용을 보관하지 않으므로 헤더와 본문이 표시되지 않습니다.",
+  "Same as the monitor group name": "모니터 그룹 이름과 동일",
+  "Show a Monitor Group instead.": "대신 모니터 그룹을 표시하세요.",
+  "Show a Monitor instead.": "대신 모니터를 표시하세요."
 }

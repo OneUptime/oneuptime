@@ -15597,7 +15597,7 @@
   "Saint Martin (French part)": "Saint Martin (French part)",
   "Saint Pierre and Miquelon": "Saint Pierre and Miquelon",
   "Saint Vincent and the Grenadines": "Saint Vincent and the Grenadines",
-  "Same as the monitor name": "Same as the monitor name",
+  "Same as the monitor name": "Samme som navnet på monitoren",
   "Same-origin requests carry this session's id to your backend while the session uploads, and your backend's OpenTelemetry forwards it to the services it calls, third parties included. Backend telemetry that names the user links to the recording. The visitor id is never sent.": "Forespørsler fra samme opprinnelse sender denne øktens id til backend-en din mens økten lastes opp, og backend-ens OpenTelemetry videresender den til tjenestene den kaller, inkludert tredjeparter. Backend-telemetri som navngir brukeren, kobles til opptaket. Besøkendes id sendes aldri.",
   "Same-origin trace propagation": "Sporvideresending fra samme opprinnelse",
   "Samoa": "Samoa",
@@ -47663,5 +47663,8 @@
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "Fjern oppdagede enheter som ikke er sett på en stund. Overvåkede og klassifiserte enheter, og de noen har lagt til eller endret, blir alltid værende.",
   "Unseen Devices": "Usette enheter",
   "Incoming Monitor Request As Received": "Innkommende overvåkingsforespørsel slik den ble mottatt",
-  "The monitor keeps no request content: its headers and body are not shown.": "Overvåkeren beholder ikke forespørselsinnhold: hodene og innholdet vises ikke."
+  "The monitor keeps no request content: its headers and body are not shown.": "Overvåkeren beholder ikke forespørselsinnhold: hodene og innholdet vises ikke.",
+  "Same as the monitor group name": "Samme som navnet på monitorgruppen",
+  "Show a Monitor Group instead.": "Vis heller en monitorgruppe.",
+  "Show a Monitor instead.": "Vis heller en monitor."
 }

@@ -15597,7 +15597,7 @@
   "Saint Martin (French part)": "Saint Martin (French part)",
   "Saint Pierre and Miquelon": "Saint Pierre and Miquelon",
   "Saint Vincent and the Grenadines": "Saint Vincent and the Grenadines",
-  "Same as the monitor name": "Same as the monitor name",
+  "Same as the monitor name": "مثل اسم المراقبة",
   "Same-origin requests carry this session's id to your backend while the session uploads, and your backend's OpenTelemetry forwards it to the services it calls, third parties included. Backend telemetry that names the user links to the recording. The visitor id is never sent.": "Same-origin requests carry this session's id to your backend while the session uploads, and your backend's OpenTelemetry forwards it to the services it calls, third parties included. Backend telemetry that names the user links to the recording. The visitor id is never sent.",
   "Same-origin trace propagation": "Same-origin trace propagation",
   "Samoa": "Samoa",
@@ -47663,5 +47663,8 @@
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "أزِل الأجهزة المكتشفة التي لم تُرَ منذ مدة. تبقى دائمًا الأجهزة التي تحت المراقبة والمصنَّفة، وتلك التي أضافها أحد أو غيّرها.",
   "Unseen Devices": "الأجهزة الغائبة",
   "Incoming Monitor Request As Received": "طلب المراقبة الوارد كما استُلم",
-  "The monitor keeps no request content: its headers and body are not shown.": "لا تحتفظ المراقبة بمحتوى الطلب: لا تُعرض ترويساته ولا متنه."
+  "The monitor keeps no request content: its headers and body are not shown.": "لا تحتفظ المراقبة بمحتوى الطلب: لا تُعرض ترويساته ولا متنه.",
+  "Same as the monitor group name": "مثل اسم مجموعة المراقبات",
+  "Show a Monitor Group instead.": "اعرض مجموعة مراقبات بدلًا من ذلك.",
+  "Show a Monitor instead.": "اعرض مراقبة بدلًا من ذلك."
 }

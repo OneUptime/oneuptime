@@ -15597,7 +15597,7 @@
   "Saint Martin (French part)": "Saint Martin (French part)",
   "Saint Pierre and Miquelon": "Saint Pierre and Miquelon",
   "Saint Vincent and the Grenadines": "Saint Vincent and the Grenadines",
-  "Same as the monitor name": "Same as the monitor name",
+  "Same as the monitor name": "Uguale al nome del monitor",
   "Same-origin requests carry this session's id to your backend while the session uploads, and your backend's OpenTelemetry forwards it to the services it calls, third parties included. Backend telemetry that names the user links to the recording. The visitor id is never sent.": "Le richieste della stessa origine portano l'ID di questa sessione al tuo backend mentre la sessione viene caricata, e l'OpenTelemetry del tuo backend lo inoltra ai servizi che chiama, terze parti incluse. La telemetria del backend che nomina l'utente si collega alla registrazione. L'ID del visitatore non viene mai inviato.",
   "Same-origin trace propagation": "Propagazione delle tracce stessa origine",
   "Samoa": "Samoa",
@@ -47663,5 +47663,8 @@
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "Rimuovi i dispositivi rilevati che non vengono visti da un po'. I dispositivi monitorati e classificati, e quelli aggiunti o modificati da qualcuno, restano sempre.",
   "Unseen Devices": "Dispositivi non visti",
   "Incoming Monitor Request As Received": "Richiesta del monitor in entrata così come ricevuta",
-  "The monitor keeps no request content: its headers and body are not shown.": "Il monitor non conserva il contenuto delle richieste: intestazioni e corpo non vengono mostrati."
+  "The monitor keeps no request content: its headers and body are not shown.": "Il monitor non conserva il contenuto delle richieste: intestazioni e corpo non vengono mostrati.",
+  "Same as the monitor group name": "Uguale al nome del gruppo di monitor",
+  "Show a Monitor Group instead.": "Mostra invece un gruppo di monitor.",
+  "Show a Monitor instead.": "Mostra invece un monitor."
 }
