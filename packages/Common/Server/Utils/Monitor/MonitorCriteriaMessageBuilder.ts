@@ -119,7 +119,9 @@ export default class MonitorCriteriaMessageBuilder {
     return sentence ? { message: message, sentence: sentence } : { message };
   }
 
-  private static fromSentence(sentence: EvaluationSentence): CriteriaFilterText {
+  private static fromSentence(
+    sentence: EvaluationSentence,
+  ): CriteriaFilterText {
     return {
       message: englishOfEvaluationSentence(sentence),
       sentence: sentence,

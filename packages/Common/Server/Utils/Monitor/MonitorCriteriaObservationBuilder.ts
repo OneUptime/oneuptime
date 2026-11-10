@@ -704,9 +704,12 @@ export default class MonitorCriteriaObservationBuilder {
        */
       return EvaluationSentenceMemo.write(
         probeResponse.isOnline
-          ? translatableSentence("Monitor reported online status at {{time}}.", {
-              time: evaluationTime(monitoredAt),
-            })
+          ? translatableSentence(
+              "Monitor reported online status at {{time}}.",
+              {
+                time: evaluationTime(monitoredAt),
+              },
+            )
           : translatableSentence(
               "Monitor reported offline status at {{time}}.",
               { time: evaluationTime(monitoredAt) },

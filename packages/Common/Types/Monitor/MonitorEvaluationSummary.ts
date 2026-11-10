@@ -87,8 +87,6 @@ export interface MonitorEvaluationCriteriaResult {
   filterCondition: FilterCondition;
   met: boolean;
   message: string;
-  // The message as a sentence (EvaluationSentence), when it is one.
-  messageSentence?: EvaluationSentence | undefined;
   filters: Array<MonitorEvaluationFilterResult>;
   skipped?: boolean | undefined;
   skipReason?: string | undefined;

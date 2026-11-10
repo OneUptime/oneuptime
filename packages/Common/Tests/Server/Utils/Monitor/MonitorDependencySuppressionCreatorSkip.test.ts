@@ -19,6 +19,10 @@ jest.mock("../../../../Server/Utils/PasswordHash", () => {
 });
 
 import Alert from "../../../../Models/DatabaseModels/Alert";
+import {
+  englishOfEvaluationSentence,
+  isEvaluationSentence,
+} from "../../../../Types/Monitor/EvaluationSentence";
 import AlertStateTimeline from "../../../../Models/DatabaseModels/AlertStateTimeline";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentStateTimeline";
@@ -176,6 +180,29 @@ function eventsOfType(
   return summary.events.filter((event: MonitorEvaluationEvent) => {
     return event.type === type;
   });
+}
+
+/*
+ * Every event is stored with the sentences its title and message are
+ * filled from, for the Dashboard to word in each reader's language - and
+ * their English is exactly what is stored beside them (issue #6542).
+ */
+function expectEventsStoredAsSentences(
+  summary: MonitorEvaluationSummary,
+): void {
+  expect(summary.events.length).toBeGreaterThan(0);
+
+  for (const event of summary.events) {
+    expect(isEvaluationSentence(event.titleSentence)).toBe(true);
+    expect(englishOfEvaluationSentence(event.titleSentence!)).toBe(event.title);
+
+    if (event.message !== undefined) {
+      expect(isEvaluationSentence(event.messageSentence)).toBe(true);
+      expect(englishOfEvaluationSentence(event.messageSentence!)).toBe(
+        event.message,
+      );
+    }
+  }
 }
 
 describe("Dependency-suppression skip block in the alert / incident creators", () => {
@@ -369,6 +396,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
         `parent monitor "${SUPPRESSING_PARENT_NAME}" is Offline`,
       );
       expect(skipEvent.relatedCriteriaId).toBe("criteria-1");
+      expectEventsStoredAsSentences(summary);
 
       // The skip block RETURNS: nothing after it (cluster context) runs.
       expect(resourceContextSpy.mock.calls).toHaveLength(0);
@@ -411,6 +439,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
       expect(createdAlerts[0]!.title).toBe("API is down");
       expect(eventsOfType(summary, "alert-skipped")).toHaveLength(0);
       expect(eventsOfType(summary, "alert-created")).toHaveLength(1);
+      expectEventsStoredAsSentences(summary);
     });
 
     it("isSuppressed=false: creates the alert (an evaluated-but-clear dependency changes nothing)", async () => {
@@ -425,6 +454,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
       expect(createdAlerts).toHaveLength(1);
       expect(eventsOfType(summary, "alert-skipped")).toHaveLength(0);
       expect(eventsOfType(summary, "alert-created")).toHaveLength(1);
+      expectEventsStoredAsSentences(summary);
     });
 
     it("createAlerts=false: returns BEFORE the skip block — no skip event even when suppressed", async () => {
@@ -491,6 +521,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
         RESOLVED_STATE_ID.toString(),
       );
       expect(eventsOfType(summary, "alert-resolved")).toHaveLength(1);
+      expectEventsStoredAsSentences(summary);
     });
   });
 
@@ -515,6 +546,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
         `parent monitor "${SUPPRESSING_PARENT_NAME}" is Offline`,
       );
       expect(skipEvent.relatedCriteriaId).toBe("criteria-1");
+      expectEventsStoredAsSentences(summary);
 
       expect(resourceContextSpy.mock.calls).toHaveLength(0);
     });
@@ -555,6 +587,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
       expect(createdIncidents[0]!.title).toBe("API is down");
       expect(eventsOfType(summary, "incident-skipped")).toHaveLength(0);
       expect(eventsOfType(summary, "incident-created")).toHaveLength(1);
+      expectEventsStoredAsSentences(summary);
     });
 
     it("isSuppressed=false: creates the incident (an evaluated-but-clear dependency changes nothing)", async () => {
@@ -569,6 +602,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
       expect(createdIncidents).toHaveLength(1);
       expect(eventsOfType(summary, "incident-skipped")).toHaveLength(0);
       expect(eventsOfType(summary, "incident-created")).toHaveLength(1);
+      expectEventsStoredAsSentences(summary);
     });
 
     it("createIncidents=false: returns BEFORE the skip block — no skip event even when suppressed", async () => {
@@ -633,6 +667,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
         createdIncidentStateTimelines[0]!.incidentStateId?.toString(),
       ).toBe(RESOLVED_STATE_ID.toString());
       expect(eventsOfType(summary, "incident-resolved")).toHaveLength(1);
+      expectEventsStoredAsSentences(summary);
     });
   });
 });

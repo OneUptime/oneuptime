@@ -707,7 +707,9 @@ export default class CompareCriteria {
      * evaluation summary can store the sentence beside it for the Dashboard
      * to word in each reader's language (EvaluationSentenceMemo).
      */
-    return EvaluationSentenceMemo.write(CompareCriteria.getCompareSentence(data));
+    return EvaluationSentenceMemo.write(
+      CompareCriteria.getCompareSentence(data),
+    );
   }
 
   /*

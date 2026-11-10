@@ -392,22 +392,19 @@ const hasWords: (template: string) => boolean = (template: string): boolean => {
  * worded yet makes the whole sentence English: a Chinese sentence never
  * holds an English clause. A template without words of its own ("{{a}},
  * {{b}}.") belongs to no language and does not count.
+ *
+ * A count-dependent sentence is worded under its general form, its key:
+ * a language's other forms are stored beside it ("…_one", "…_few"), and a
+ * language with one form only - Chinese, Japanese - has none of them.
  */
 export function isWhollyWorded(
   sentence: EvaluationSentence,
   translator: Translator,
 ): boolean {
-  const templates: Array<string> = [sentence.template];
-
-  if (sentence.one !== undefined) {
-    templates.push(sentence.one);
-  }
-
-  const isWorded: boolean = templates.every((template: string): boolean => {
-    return !hasWords(template) || translator.hasTranslation(template);
-  });
-
-  if (!isWorded) {
+  if (
+    hasWords(sentence.template) &&
+    !translator.hasTranslation(sentence.template)
+  ) {
     return false;
   }
 
