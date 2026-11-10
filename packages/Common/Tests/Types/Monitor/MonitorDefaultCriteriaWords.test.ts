@@ -8,6 +8,11 @@ import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInsta
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import {
+  forgetRememberedDateTexts,
+  getEnglishOf,
+  rememberEnglishOf,
+} from "../../../Types/DateLanguage";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -213,6 +218,37 @@ describe("a new monitor's default criteria, written with no reader", () => {
         monitorType,
         words: wordsOfSteps(defaultSteps({ monitorType, monitorName })),
       }).toEqual({ monitorType, words: englishFor(monitorType, monitorName) });
+    }
+  });
+
+  /*
+   * A name that reads like a date the Dashboard wrote in another language
+   * ("6. Okt." on a German page) is still the monitor's name: it is never
+   * put back into English the way a value of a reader's English sentence is
+   * (Translator's englishDateValues).
+   */
+  test("a name that reads like a date written in another language goes in as written", () => {
+    const monitorName: string = "6. Okt.";
+
+    rememberEnglishOf(monitorName, (): string => {
+      return "Oct 6";
+    });
+
+    try {
+      // The Dashboard would put this text back into English in a sentence.
+      expect(getEnglishOf(monitorName)).toBe("Oct 6");
+
+      for (const monitorType of MONITOR_TYPES) {
+        expect({
+          monitorType,
+          words: wordsOfSteps(defaultSteps({ monitorType, monitorName })),
+        }).toEqual({
+          monitorType,
+          words: englishFor(monitorType, monitorName),
+        });
+      }
+    } finally {
+      forgetRememberedDateTexts();
     }
   });
 
