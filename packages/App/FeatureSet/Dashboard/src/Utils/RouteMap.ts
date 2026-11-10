@@ -806,6 +806,15 @@ export const RumRoutePath: Dictionary<string> = {
    */
   [PageMap.RUM_APPLICATION_VIEW_USER_FLOWS]: `${RouteParams.ModelID}/user-flows`,
   /*
+   * Product analytics (issue #6444): who uses the application and how
+   * their sessions go. Top-level hyphenated segments, so neither can be
+   * read as a session id by the player route; a person is the users
+   * page's child, their key with its colon as a dash.
+   */
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_USERS]: `${RouteParams.ModelID}/product-analytics-users`,
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_PERSON]: `${RouteParams.ModelID}/product-analytics-users/${RouteParams.SubModelID}`,
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SESSIONS]: `${RouteParams.ModelID}/product-analytics-sessions`,
+  /*
    * A sibling of /session-replay rather than a child, for the same reason
    * as the audit page: a child segment would be shadowed by a session
    * whose id happened to be "settings".
@@ -7150,6 +7159,24 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUM_APPLICATION_VIEW_USER_FLOWS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_APPLICATION_VIEW_USER_FLOWS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_USERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_USERS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_PERSON]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_PERSON]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SESSIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SESSIONS]
     }`,
   ),
 

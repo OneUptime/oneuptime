@@ -42,6 +42,7 @@ El menú lateral de una aplicación agrupa sus páginas así; **Ajustes**, **Des
 | --- | --- |
 | **Básico** | **Vista general**, **Recomendaciones**, **Documentación** |
 | **Observabilidad** | **Métricas**, **Registros**, **Trazas**, **Clientes** |
+| **Analítica de producto** | **Usuarios**, **Sesiones** |
 | **Reproducción de sesiones** | **Reproducción de sesiones**, **Flujos de usuarios**, **Usuarios de la reproducción**, **Salud**, **Política de reproducción**, **Señales de frustración**, **Registro de acceso a las reproducciones**, **Documentación** |
 | **Ajustes** | **Ajustes** |
 | **Desarrolladores** | **Terraform**, **API**, **CLI**, **Asistentes de IA** |
@@ -81,6 +82,7 @@ OneUptime encuentra la aplicación por su `service.name`, sin distinguir mayúsc
 | **Core Web Vitals** | Una tarjeta en la vista general con LCP, INP, CLS, FCP y TTFB, cada uno calificado según los límites de Google, y el INP de cada ruta de una aplicación de una sola página. Consulta [Core Web Vitals](/docs/rum/web-vitals) y [Aplicaciones de una sola página](/docs/rum/web-vitals#aplicaciones-de-una-sola-página). |
 | **Métricas**, **Registros**, **Trazas** | Los exploradores de telemetría, limitados a esta aplicación. |
 | **Clientes** | Las plataformas de navegador y los modelos de dispositivo en los que se ha usado la aplicación: una lista corta por plataforma, nunca una fila por usuario. |
+| **Analítica de producto** | Usuarios activos, nuevos, recurrentes e inactivos, y sesiones por dispositivo, navegador, país y página, contados a partir de las sesiones grabadas: consulta [Analítica de producto](/docs/rum/product-analytics). |
 | **Reproducción de sesiones** | Grabaciones de sesiones reales, junto a sus errores, trazas y registros: consulta [Reproducción de sesiones](/docs/telemetry/session-replay). |
 | **Recomendaciones** | Monitores listos para usar con la aplicación: Core Web Vitals deficientes, solicitudes fallidas, excepciones del navegador y, en cuanto graba, presupuestos de reproducción de sesiones. |
 

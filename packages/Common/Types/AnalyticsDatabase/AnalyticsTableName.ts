@@ -105,6 +105,22 @@ enum AnalyticsTableName {
    */
   RumSession = "RumSessionV1",
   RumSessionChunk = "RumSessionChunkV1",
+  /*
+   * Product analytics (issue #6444), filled by materialized views on
+   * RumSessionV1 inserts and kept for a year and a month, apart from the
+   * recordings' own retention:
+   *
+   *  - RumProductAnalyticsSessionV1 is one row per session: its person,
+   *    device, browser, operating system, country, pages and length, never
+   *    its recording.
+   *  - RumProductAnalyticsUserV1 is one row per person per month: first
+   *    and last visit, sessions, device and country - never a name.
+   *
+   * Both are AggregatingMergeTree, so the provisional, finished and pinned
+   * writes of one session fold into one row (Types/Rum/ProductAnalytics.ts).
+   */
+  RumProductAnalyticsSession = "RumProductAnalyticsSessionV1",
+  RumProductAnalyticsUser = "RumProductAnalyticsUserV1",
 }
 
 export default AnalyticsTableName;
