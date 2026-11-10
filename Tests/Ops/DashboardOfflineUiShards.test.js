@@ -6,9 +6,11 @@
  * Event Overview (since 2026-10-22), the Workflow Builder suite (since
  * 2026-10-27), Model Tables and Monitor Overview (both since 2026-11-01)
  * each took a Dashboard Offline UI group past the minutes a group is kept to
- * on its own, so each runs in halves: a group's matrix sets <suite>_shard
- * ("1/2" or "2/2"), the job's env hands it to the suite's Playwright config
- * as a variable of its own (EVENT_OVERVIEW_SHARD, WORKFLOW_BUILDER_SHARD,
+ * on its own, so each runs in halves - the OpenStack pages (since
+ * 2026-11-05) in thirds since 2026-11-10, when they outgrew two groups: a
+ * group's matrix sets <suite>_shard ("1/2" or "2/2", or "1/3" to "3/3"),
+ * the job's env hands it to the suite's Playwright config as a variable of
+ * its own (EVENT_OVERVIEW_SHARD, WORKFLOW_BUILDER_SHARD,
  * MODEL_TABLES_SHARD, MONITOR_OVERVIEW_SHARD, OPENSTACK_PAGES_SHARD), and the config passes it to
  * Playwright's shard.
  * A half that no group runs never fails; a half two groups run costs a

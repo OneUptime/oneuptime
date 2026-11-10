@@ -1606,27 +1606,29 @@ of median speed. Planned by hand from each group's comment, the groups drifted:
 on 2026-11-02's six finished App Test runs group 14's suites took 30.5 minutes
 at median speed (32.3 on its slowest run), group 13's 26.1, and four more
 groups' between 23.4 and 25. `DashboardOfflineUiMinutes.json` holds each
-suite's minutes - each half's, `<suite> <i>/<n>`, for a suite run in halves -
-the median over the runs it
-names, and the suite holds every suite a group runs to having its minutes there
-(and nothing there that no group runs), every group's suites to summing to at
-most 22, naming a group past it with its sum, its suites and the groups with
-the most room, and the run step's limit to 22 x 1.45. A new suite's minutes
+suite's minutes - each part's, `<suite> <i>/<n>`, for a suite run in halves
+or thirds - the median over the runs it names, and the suite holds every suite
+a group runs to having its minutes there (and nothing there that no group
+runs), every group's suites to summing to at most 22, naming a group past it
+with its sum, its suites and the groups with the most room, and the run step's
+limit to 22 x 1.45. A new suite's minutes
 come from a local run (CI=1, its bundle built, nothing else running) until App
 Test's runs measure it. Re-measure from finished runs (each group job's log,
 from one `▶ npm run` to the next) when the groups are moved again.
 
 ### `DashboardOfflineUiShards.test.js`
 
-App Test runs Event Overview and the Workflow Builder suite in halves, one per
+App Test runs Event Overview, the Workflow Builder suite, Model Tables and
+Monitor Overview in halves, and the OpenStack pages in thirds, one part per
 Dashboard Offline UI group: a group's matrix sets `<suite>_shard` ("1/2",
-"2/2"), the job's env hands it to the suite's config as a variable of its own
-(`EVENT_OVERVIEW_SHARD`, `WORKFLOW_BUILDER_SHARD`), and the config passes it to
-Playwright's `shard`. The suite holds every half to running once, in a group
-that runs that suite and sets its key, with one count of halves; the env to
-naming the config's own variable, empty where a group sets none (the whole
-suite, as before); and each config to sharding by that variable with
-Playwright's own shard, never lists of its own.
+"2/2", or "1/3" to "3/3"), the job's env hands it to the suite's config as a
+variable of its own (`EVENT_OVERVIEW_SHARD`, `WORKFLOW_BUILDER_SHARD`,
+`MODEL_TABLES_SHARD`, `MONITOR_OVERVIEW_SHARD`, `OPENSTACK_PAGES_SHARD`), and
+the config passes it to Playwright's `shard`. The suite holds every part to
+running once, in a group that runs that suite and sets its key, with one count
+of parts; the env to naming the config's own variable, empty where a group sets
+none (the whole suite, as before); and each config to sharding by that variable
+with Playwright's own shard, never lists of its own.
 
 ### `E2EFixtureRouters.test.js`
 

@@ -164,6 +164,10 @@ import RouteMap, {
   RouteUtil,
 } from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import {
+  ingestionBudgetStatus,
+  isIngestionBudgetRead,
+} from "../../SecurityOperations/Fixture/IngestionBudgetFixture.js";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Metric from "Common/Models/AnalyticsModels/Metric";
@@ -3515,6 +3519,17 @@ async function handleApi(method, options) {
     )
   ) {
     return ok({ link: null });
+  }
+
+  /*
+   * The Logs, Traces and Metrics layouts read today's telemetry ingestion
+   * budgets (GET /telemetry-ingestion-budget/project) for the banner each
+   * shows above its explorer while the signal's budget is past its warning
+   * or used up. The project sets no budget, the default: answered as the
+   * server answers then, and the banner stays away.
+   */
+  if (isIngestionBudgetRead(method, parsed.pathname)) {
+    return ok(ingestionBudgetStatus(NOW));
   }
 
   fixture.unhandled.push({ kind: "api", method, url });
