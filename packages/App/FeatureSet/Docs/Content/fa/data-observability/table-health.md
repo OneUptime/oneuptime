@@ -57,7 +57,7 @@
 | `oneuptime.data.table.schema_changes` | ستون‌هایی که از جمع‌آوری قبلی تغییر کرده‌اند |
 | `oneuptime.data.table.breaking_schema_changes` | ستون‌هایی که از جمع‌آوری قبلی حذف، تغییرنام یا تغییر نوع داده شده‌اند |
 
-هر سطر `oneuptime.data.store.id`، `oneuptime.data.store.name`، `oneuptime.data.table.id`، `oneuptime.data.table.schema`، `oneuptime.data.table.name` و `oneuptime.data.table.key` (`schema.table`) را با خود دارد. یک [مانیتور متریک](/docs/monitor/metrics-monitor) که بر اساس `oneuptime.data.table.key` گروه‌بندی شده باشد، برای هر جدول جداگانه هشدار می‌دهد، و فیلترهای **Anomalously High** و **Anomalously Low** آن هر جدول را با مقدار معمول خودش برای آن ساعت از هفته مقایسه می‌کنند. این متریک‌ها دادهٔ عملیاتی خود OneUptime هستند و به‌عنوان تله‌متری صورت‌حساب نمی‌شوند.
+هر سطر `oneuptime.data.store.id`، `oneuptime.data.store.name`، `oneuptime.data.table.id`، `oneuptime.data.table.schema`، `oneuptime.data.table.name` و `oneuptime.data.table.key` (`schema.table`) را با خود دارد. یک [مانیتور متریک](/docs/monitor/metrics-monitor) که بر اساس `oneuptime.data.table.key` گروه‌بندی شده باشد، برای هر جدول جداگانه هشدار می‌دهد، و فیلترهای **به‌طور غیرعادی بالا** و **به‌طور غیرعادی پایین** آن هر جدول را با مقدار معمول خودش برای آن ساعت از هفته مقایسه می‌کنند. این متریک‌ها دادهٔ عملیاتی خود OneUptime هستند و به‌عنوان تله‌متری صورت‌حساب نمی‌شوند.
 
 ## جدول‌های بلااستفاده
 

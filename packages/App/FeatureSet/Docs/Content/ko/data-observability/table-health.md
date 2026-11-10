@@ -57,7 +57,7 @@
 | `oneuptime.data.table.schema_changes` | 이전 수집 이후 바뀐 열의 수 |
 | `oneuptime.data.table.breaking_schema_changes` | 이전 수집 이후 제거, 이름 변경 또는 타입 변경된 열의 수 |
 
-각 메트릭 행에는 `oneuptime.data.store.id`, `oneuptime.data.store.name`, `oneuptime.data.table.id`, `oneuptime.data.table.schema`, `oneuptime.data.table.name`, `oneuptime.data.table.key`(`schema.table`)가 붙습니다. `oneuptime.data.table.key` 로 그룹화한 [메트릭 모니터](/docs/monitor/metrics-monitor)는 테이블마다 한 번씩 경고하며, 그 **Anomalously High** 와 **Anomalously Low** 필터는 각 테이블을 그 요일 그 시간대의 테이블 자체 평소 값과 비교합니다. 이 메트릭은 OneUptime 자체의 운영 데이터이며, 텔레메트리로 과금되지 않습니다.
+각 메트릭 행에는 `oneuptime.data.store.id`, `oneuptime.data.store.name`, `oneuptime.data.table.id`, `oneuptime.data.table.schema`, `oneuptime.data.table.name`, `oneuptime.data.table.key`(`schema.table`)가 붙습니다. `oneuptime.data.table.key` 로 그룹화한 [메트릭 모니터](/docs/monitor/metrics-monitor)는 테이블마다 한 번씩 경고하며, 그 **비정상적으로 높음** 과 **비정상적으로 낮음** 필터는 각 테이블을 그 요일 그 시간대의 테이블 자체 평소 값과 비교합니다. 이 메트릭은 OneUptime 자체의 운영 데이터이며, 텔레메트리로 과금되지 않습니다.
 
 ## 사용되지 않는 테이블
 

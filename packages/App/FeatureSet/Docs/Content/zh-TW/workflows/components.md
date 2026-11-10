@@ -195,7 +195,7 @@ Mattermost 接受訊息時觸發 **Success**。無法連線到伺服器或 Matte
 | **From Email**                          | 寄件者，例如 `Alerts <alerts@company.com>`。                                                          |
 | **To Email**                            | 收件者的地址。多個地址請用逗號或分號分隔。                                                            |
 | **Subject**                             | 主旨行。                                                                                              |
-| **Email Body**                          | 以 HTML 形式傳送的訊息。                                                                              |
+| **電子郵件內文**                          | 以 HTML 形式傳送的訊息。                                                                              |
 | **SMTP HOST** 和 **SMTP Port**          | 要連線的郵件伺服器。                                                                                  |
 | **SMTP Username** 和 **SMTP Password**  | 選填。兩者都填或都不填。                                                                              |
 | **Use Implicit TLS**                    | 對隱含式 TLS（通常是連接埠 465）開啟。對 STARTTLS（通常是連接埠 587）保持關閉。                        |

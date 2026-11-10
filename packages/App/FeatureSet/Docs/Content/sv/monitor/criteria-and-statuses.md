@@ -25,7 +25,7 @@ flowchart TB
     A --> L["Skapar ett<br/>larm"]
 ```
 
-Ordningen är en del av regeln. En ny monitor listar sina kriterier från det värsta fallet: offline, sedan en varning där typen har en (ett certifikat eller en domän som snart går ut), sedan online. Ett brett friskt kriterium, som **Is Online** satt till **Sant**, matchar nästan varje kontroll, så det kommer sist: ovanför de andra skulle det matcha först varje gång, och de andra skulle aldrig agera.
+Ordningen är en del av regeln. En ny monitor listar sina kriterier från det värsta fallet: offline, sedan en varning där typen har en (ett certifikat eller en domän som snart går ut), sedan online. Ett brett friskt kriterium, som **Är online** satt till **Sant**, matchar nästan varje kontroll, så det kommer sist: ovanför de andra skulle det matcha först varje gång, och de andra skulle aldrig agera.
 
 Ett kriterium som matchar men inte ändrar någon status avgör ändå kontrollen: monitorn behåller sin status, och kriterierna under det väntar på nästa kontroll. **Standardstatus för övervakning** gäller bara när inget kriterium matchar. För en ny monitor är den **Fungerar**; ändra den under **Fler fält**, under kriterierna.
 
@@ -49,7 +49,7 @@ Ett filter läser en sak från kontrollen och jämför den: en **Filtertyp** (va
 
 Från två filter och uppåt visas **Matchningsvillkor** under dem: **Alla** betyder att varje filter måste matcha, **Valfri** att ett räcker. Ett nytt kriterium börjar på **Alla**.
 
-Filter som mäter varje kontroll, som **Is Online**, **Statuskod för svar** och **Svarstid (i ms)**, erbjuder **Utvärdera dessa kriterier över en tidsperiod**. Det bedömer ett fönster av senaste kontroller i stället för bara den senaste, och börjar på de senaste 5 minuterna med **All Values**, som matchar först när varje kontroll i fönstret har matchat. Se [Utvärdering över en tidsperiod](/docs/monitor/website-monitor#utvärdering-över-en-tidsperiod).
+Filter som mäter varje kontroll, som **Är online**, **Statuskod för svar** och **Svarstid (i ms)**, erbjuder **Utvärdera dessa kriterier över en tidsperiod**. Det bedömer ett fönster av senaste kontroller i stället för bara den senaste, och börjar på de senaste 5 minuterna med **Alla värden**, som matchar först när varje kontroll i fönstret har matchat. Se [Utvärdering över en tidsperiod](/docs/monitor/website-monitor#utvärdering-över-en-tidsperiod).
 
 ### Åtgärder
 
@@ -97,8 +97,8 @@ För att se hur en kontroll bedömdes öppnar du monitorns **Översikt**: kortet
 
 En incident eller ett larm som en monitor öppnar behåller kontrollen som öppnade den, så att du kan se varför långt efter att monitorns egna loggar är borta. Under rotorsaken nämner **Utvärderingsdetaljer** kriteriet som matchade och, för varje filter som matchade, vad kontrollen hittade. **Visa detaljer** lägger till resten av bevisen, filtren som inte matchade och själva kontrollen: förfrågan, när den kördes, från vilken sond och vad som kom tillbaka. Det ett filter hittade kan vara:
 
-- **Fältet.** Var ett filter **Svarstext** matchade i ett JSON-innehåll, till exempel `checks[1].status`, eller headern där ett filter **Response Header Value** matchade.
-- **Värdena.** Vad varje värde som en **JavaScript Expression** läser innehöll när det utvärderades, till exempel `responseBody.status = "down"`.
+- **Fältet.** Var ett filter **Svarstext** matchade i ett JSON-innehåll, till exempel `checks[1].status`, eller headern där ett filter **Värde för svarshuvud** matchade.
+- **Värdena.** Vad varje värde som en **JavaScript-uttryck** läser innehöll när det utvärderades, till exempel `responseBody.status = "down"`.
 - **Ett utdrag.** En kort bit av svaret runt träffen, med träffen markerad: aldrig hela innehållet.
 
 Hemligheter och personuppgifter maskeras innan något sparas: headers som `Authorization`, `Cookie` och `Set-Cookie`, fält vars namn säger `password`, `token`, `key`, `session` eller `email`, och text som ser ut som en bearer-token, en JWT, ett kortnummer eller en e-postadress. Förfrågans URL är den som monitorn konfigurerades med, så `{{monitorSecrets.NAME}}` förblir ett namn, och ett hemligt frågevärde maskeras. Monitorns **Övervakningsloggar**, och varje värde som en rotorsak citerar, maskeras på samma sätt. En incident eller ett larm som öppnades för hand, eller innan utvärderingsdetaljer sparades, har inga.

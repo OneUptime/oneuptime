@@ -99,7 +99,7 @@ Fanen **Custom Metric** tilbyr disse metrikkene, gruppert etter ressurstype:
 
 ### Hva som evalueres
 
-Disse monitorene evaluerer alltid **Metric Value** – verdien av den konfigurerte metrikkspørringen eller formelen. Kriterieskjemaet har ingen velger for filtertype; det viser **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**.
+Disse monitorene evaluerer alltid **Metrikkverdi** – verdien av den konfigurerte metrikkspørringen eller formelen. Kriterieskjemaet har ingen velger for filtertype; det viser **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**.
 
 ### Aggregeringstyper
 
@@ -120,9 +120,9 @@ Avviksdeteksjon mot en grunnlinje trenger ingen terskel. Velg en av disse beting
 
 | Betingelse | Samsvarer når verdien |
 | --- | --- |
-| **Anomalously High** | Stiger over det forventede området |
-| **Anomalously Low** | Faller under det forventede området |
-| **Anomalous** | Forlater det forventede området i en av retningene |
+| **Unormalt høy** | Stiger over det forventede området |
+| **Unormalt lav** | Faller under det forventede området |
+| **Avvikende** | Forlater det forventede området i en av retningene |
 
 Hver måling sammenlignes med en grunnlinje for samme time i uken, bygget fra **Grunnlinjevindu** (14 dager som standard; 28, 60 eller 90 dager). **Følsomhet** angir hvor bredt det forventede området er: **Lav (4σ — kun grove avvik)**, **Middels (3σ — anbefalt)**, som er standard, eller **Høy (2σ — mer støy, svært stabile tjenester)**. Avviksbetingelser blir værende i en «Learning»-tilstand og gir ingen varsler før den timen i uken har to ukers historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som metrikkene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til metrikken. En persentil av et histogram blir alltid værende i den tilstanden.
 

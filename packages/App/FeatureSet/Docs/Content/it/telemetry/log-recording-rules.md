@@ -168,7 +168,7 @@ Create un monitor **Metriche** (vedete [Monitor metriche](/docs/monitor/metrics-
 
 1. **Query della metrica:** `sdwan.gateway.latency.ms`, aggregazione **Media**, **Raggruppa per** `gw_name` e `profile_name`.
 2. **Finestra temporale mobile:** Past 15 Minutes. Il firewall invia dati ogni pochi minuti, quindi la finestra contiene più punti per gateway.
-3. **Strategia di aggregazione:** **All Values**: ogni punto della finestra deve superare la soglia, così un singolo riepilogo lento non avvisa nessuno. Usate invece **Media** per ricevere un avviso su una media alta.
+3. **Strategia di aggregazione:** **Tutti i valori**: ogni punto della finestra deve superare la soglia, così un singolo riepilogo lento non avvisa nessuno. Usate invece **Media** per ricevere un avviso su una media alta.
 4. **Criteri:** Metric value **Maggiore di** `150` apre un avviso.
 5. Facoltativamente usate i valori di raggruppamento nel titolo dell'avviso, per esempio `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 

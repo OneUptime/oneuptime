@@ -102,7 +102,7 @@ flowchart TB
 
 ### 组件
 
-选择你依赖的组件后，监视器只关注它们：**External Status Page Component Status** 只比较它们的状态，整体状态取它们之中最差的那个，**External Status Page Active Incidents** 只计算至少影响其中一个组件的事件。无论选择多少个组件，对页面的检查仍然只有一次。
+选择你依赖的组件后，监视器只关注它们：**外部状态页组件状态** 只比较它们的状态，整体状态取它们之中最差的那个，**外部状态页活动事件数** 只计算至少影响其中一个组件的事件。无论选择多少个组件，对页面的检查仍然只有一次。
 
 打开 **组件** 时，你的浏览器会从 Atlassian Statuspage、incident.io 页面或 OneUptime 状态页读取页面自己的列表，并按页面的分组显示；未处于正常运行的组件会注明它当前的状况。你选择的名称只关注与它完全同名的组件，不区分大小写：GitHub 页面上的 `Copilot` 不是 `Copilot AI Model Providers`。
 
@@ -129,13 +129,13 @@ flowchart TB
 
 | 过滤器类型 | 检查内容 | 过滤条件 |
 | --- | --- | --- |
-| **External Status Page Is Online** | 状态页是否可访问并返回状态数据 | 是 或 否 |
-| **External Status Page Overall Status** | 页面报告的整体状态 | 等于、不等于、包含、不包含、开头是、结尾是 |
-| **External Status Page Component Status** | 范围内每个组件的状态（设置后为所选组件或该组的组件）：运行正常、维护中、性能下降、部分中断、重大中断 或 完全中断 | 等于、不等于、包含、不包含、开头是、结尾是 |
-| **External Status Page Active Incidents** | 状态页上当前进行中的事件数（选择了组件或组时，只计算影响范围内组件的事件） | 等于、不等于以及数值比较 |
-| **External Status Page Response Time (in ms)** | 获取状态页数据所花的时间 | 大于、小于、大于或等于、小于或等于 |
+| **外部状态页是否在线** | 状态页是否可访问并返回状态数据 | 是 或 否 |
+| **外部状态页整体状态** | 页面报告的整体状态 | 等于、不等于、包含、不包含、开头是、结尾是 |
+| **外部状态页组件状态** | 范围内每个组件的状态（设置后为所选组件或该组的组件）：运行正常、维护中、性能下降、部分中断、重大中断 或 完全中断 | 等于、不等于、包含、不包含、开头是、结尾是 |
+| **外部状态页活动事件数** | 状态页上当前进行中的事件数（选择了组件或组时，只计算影响范围内组件的事件） | 等于、不等于以及数值比较 |
+| **外部状态页响应时间（毫秒）** | 获取状态页数据所花的时间 | 大于、小于、大于或等于、小于或等于 |
 
-整体状态就是页面上写的内容，因此其取值因服务商而异：Atlassian Statuspage 报告它自己的描述，例如 `All Systems Operational`；OneUptime 状态页报告范围内组件中最差的状态，例如 `under_maintenance`；订阅源报告 `operational` 或 `degraded_performance`；可达性检查报告 `reachable` 或 `unreachable`。选择了组件或组时，无论是哪种页面，它都是其中最差的状态。这些比较区分大小写。监视器摘要会像显示每个组件的状态一样，用文字和颜色显示整体状态（`under_maintenance` 显示为 **维护中**），而条件比较的是页面报告的值。要针对故障告警，**External Status Page Active Incidents** 和 **External Status Page Component Status** 通常更可靠。
+整体状态就是页面上写的内容，因此其取值因服务商而异：Atlassian Statuspage 报告它自己的描述，例如 `All Systems Operational`；OneUptime 状态页报告范围内组件中最差的状态，例如 `under_maintenance`；订阅源报告 `operational` 或 `degraded_performance`；可达性检查报告 `reachable` 或 `unreachable`。选择了组件或组时，无论是哪种页面，它都是其中最差的状态。这些比较区分大小写。监视器摘要会像显示每个组件的状态一样，用文字和颜色显示整体状态（`under_maintenance` 显示为 **维护中**），而条件比较的是页面报告的值。要针对故障告警，**外部状态页活动事件数** 和 **外部状态页组件状态** 通常更可靠。
 
 对于 RSS 或 Atom 订阅源，最近 24 小时内的条目算作进行中的事件：RSS 条目按发布日期，Atom 条目按更新日期。日期在未来的条目要到该日期才计入。
 
@@ -178,7 +178,7 @@ flowchart TB
 :::steps
 ### 添加条件
 
-在监视器的条件中点击 **添加条件** 。为它设置过滤器 **External Status Page Component Status** 、 **等于** 、 **维护中** ，并在 **将监视器状态更改为** 中选择你的维护状态。
+在监视器的条件中点击 **添加条件** 。为它设置过滤器 **外部状态页组件状态** 、 **等于** 、 **维护中** ，并在 **将监视器状态更改为** 中选择你的维护状态。
 
 ### 把它移到最上面
 

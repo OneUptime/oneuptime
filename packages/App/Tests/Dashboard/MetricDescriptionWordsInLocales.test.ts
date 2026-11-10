@@ -23,6 +23,7 @@ import {
   MESSAGE_QUEUE_METRICS,
   MessageQueueMetricDescriptor,
 } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -378,13 +379,9 @@ const UNIT_SYMBOLS: ReadonlyArray<string> = [
   "B/s",
 ];
 
-function escapeForPattern(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
-}
-
 // A name standing as a word of its own: not part of a longer word or name.
 function standsAlone(token: string): RegExp {
-  return new RegExp(`(?<![\\w.])${escapeForPattern(token)}(?!\\w)`);
+  return new RegExp(`(?<![\\w.])${escapeRegExp(token)}(?!\\w)`);
 }
 
 const NAME_PATTERNS: ReadonlyArray<[string, RegExp]> = [

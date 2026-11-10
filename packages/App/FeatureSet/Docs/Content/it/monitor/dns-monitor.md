@@ -52,7 +52,7 @@ Fate clic su **Testa il monitor**, scegliete una sonda in **Seleziona sonda** e 
 
 ### Rivedere i criteri
 
-**Criteri del monitor** parte dai [criteri predefiniti](#criteri-predefiniti): offline quando il nome non si risolve, online quando si risolve. Per controllare cosa dicono i record, aggiungete un filtro **DNS Record Value**, poi fate clic su **Avanti**.
+**Criteri del monitor** parte dai [criteri predefiniti](#criteri-predefiniti): offline quando il nome non si risolve, online quando si risolve. Per controllare cosa dicono i record, aggiungete un filtro **Valore del record DNS**, poi fate clic su **Avanti**.
 
 ### Scegliere le sonde e creare
 
@@ -72,7 +72,7 @@ Mantenete o cambiate le **Sonde** e l'**Intervallo di monitoraggio** (parte da *
 
 ### Tipi di record
 
-Un criterio **DNS Record Value** confronta il vostro testo con ogni record così come lo scrive la sonda, quindi rispettate questo formato:
+Un criterio **Valore del record DNS** confronta il vostro testo con ogni record così come lo scrive la sonda, quindi rispettate questo formato:
 
 | Tipo di record | Cosa contiene | Formato del valore, per i criteri |
 | --- | --- | --- |
@@ -95,15 +95,15 @@ I criteri decidono quando il nome conta come online, degradato o offline, e se q
 
 | Filtro | Condizioni | Cosa controlla |
 | --- | --- | --- |
-| **DNS Is Online** | **Vero**, **Falso** | Se la query ha restituito almeno un record del tipo. |
-| **DNS Response Time (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Quanto è durata la query. |
-| **DNS Record Exists** | **Vero**, **Falso** | Se è tornato un record del tipo. |
-| **DNS Record Value** | **Contiene**, **Non contiene**, **Inizia con**, **Finisce con**, **Uguale a**, **Diverso da** | I valori dei record. Il filtro corrisponde quando corrisponde un solo record. |
-| **DNSSEC Is Valid** | **Vero**, **Falso** | Se un resolver di convalida imposta il flag AD sulla risposta. |
+| **DNS online** | **Vero**, **Falso** | Se la query ha restituito almeno un record del tipo. |
+| **Tempo di risposta DNS (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Quanto è durata la query. |
+| **Record DNS presente** | **Vero**, **Falso** | Se è tornato un record del tipo. |
+| **Valore del record DNS** | **Contiene**, **Non contiene**, **Inizia con**, **Finisce con**, **Uguale a**, **Diverso da** | I valori dei record. Il filtro corrisponde quando corrisponde un solo record. |
+| **DNSSEC valido** | **Vero**, **Falso** | Se un resolver di convalida imposta il flag AD sulla risposta. |
 
-**DNS Record Value** corrisponde quando corrisponde _uno qualsiasi_ dei record. Con più record `A`, **Uguale a** `93.184.216.34` corrisponde quando uno di essi è quell'indirizzo, e **Diverso da** corrisponde quando uno di essi non lo è.
+**Valore del record DNS** corrisponde quando corrisponde _uno qualsiasi_ dei record. Con più record `A`, **Uguale a** `93.184.216.34` corrisponde quando uno di essi è quell'indirizzo, e **Diverso da** corrisponde quando uno di essi non lo è.
 
-**DNSSEC Is Valid** interroga il server in **Server DNS (opzionale)**, sulla sua **Porta**, oppure Google Public DNS (`8.8.8.8`) quando il campo è vuoto, quindi il server che impostate dovrebbe convalidare DNSSEC. Il filtro non ha valore, e non corrisponde in nessun senso, quando la sonda non può eseguire quel controllo. Per un controllo completo di una zona firmata, usate un [monitor DNSSEC](/docs/monitor/dnssec-monitor).
+**DNSSEC valido** interroga il server in **Server DNS (opzionale)**, sulla sua **Porta**, oppure Google Public DNS (`8.8.8.8`) quando il campo è vuoto, quindi il server che impostate dovrebbe convalidare DNSSEC. Il filtro non ha valore, e non corrisponde in nessun senso, quando la sonda non può eseguire quel controllo. Per un controllo completo di una zona firmata, usate un [monitor DNSSEC](/docs/monitor/dnssec-monitor).
 
 Con due o più filtri, **Condizione di corrispondenza** decide se devono corrispondere **Tutti** o se basta **Qualsiasi** filtro. Le **Azioni** di un criterio decidono cosa fa: cambiare lo stato del monitor, creare un avviso, dichiarare un incidente, o più di queste cose.
 
@@ -118,15 +118,15 @@ I criteri vengono controllati dall'alto verso il basso, e il primo che corrispon
 
 ### Valutare su un periodo di tempo
 
-**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **DNS Is Online** e **DNS Response Time (in ms)**. Attivatela per giudicare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
+**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **DNS online** e **Tempo di risposta DNS (in ms)**. Attivatela per giudicare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
 
 | Aggregazione | Corrisponde quando |
 | --- | --- |
-| **Media**, **Somma**, **Maximum Value**, **Minimum Value** | Quel valore, sulla finestra, soddisfa la condizione. Solo **DNS Response Time (in ms)**. |
-| **All Values** | Ogni controllo della finestra soddisfa la condizione. |
-| **Any Value** | Almeno un controllo della finestra soddisfa la condizione. |
+| **Media**, **Somma**, **Valore massimo**, **Valore minimo** | Quel valore, sulla finestra, soddisfa la condizione. Solo **Tempo di risposta DNS (in ms)**. |
+| **Tutti i valori** | Ogni controllo della finestra soddisfa la condizione. |
+| **Qualsiasi valore** | Almeno un controllo della finestra soddisfa la condizione. |
 
-**All Values** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio aspetta invece di corrispondere sull'unica lettura che ha. **Any Value** è l'impostazione per «avvisatemi appena un singolo controllo supera la soglia» e scatta comunque subito.
+**Tutti i valori** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio aspetta invece di corrispondere sull'unica lettura che ha. **Qualsiasi valore** è l'impostazione per «avvisatemi appena un singolo controllo supera la soglia» e scatta comunque subito.
 
 **Se nessun dato** decide cosa succede finché la finestra non può sostenere il criterio:
 
@@ -140,11 +140,11 @@ I criteri vengono controllati dall'alto verso il basso, e il primo che corrispon
 
 | Obiettivo | Filtro | Condizione | Valore |
 | --- | --- | --- | --- |
-| Offline quando il nome smette di risolversi | **DNS Is Online** | **Falso** | — |
-| Avvisare quando cambia l'unico record `A` di un nome | **DNS Record Value** | **Diverso da** | `93.184.216.34` |
-| Avvisare quando un record `MX` punta fuori dal vostro dominio | **DNS Record Value** | **Non contiene** | `example.com` |
-| Segnare il DNS come degradato quando è lento | **DNS Response Time (in ms)** | **Maggiore di** | `500` |
-| Avvisare quando la convalida DNSSEC fallisce | **DNSSEC Is Valid** | **Falso** | — |
+| Offline quando il nome smette di risolversi | **DNS online** | **Falso** | — |
+| Avvisare quando cambia l'unico record `A` di un nome | **Valore del record DNS** | **Diverso da** | `93.184.216.34` |
+| Avvisare quando un record `MX` punta fuori dal vostro dominio | **Valore del record DNS** | **Non contiene** | `example.com` |
+| Segnare il DNS come degradato quando è lento | **Tempo di risposta DNS (in ms)** | **Maggiore di** | `500` |
+| Avvisare quando la convalida DNSSEC fallisce | **DNSSEC valido** | **Falso** | — |
 
 ## Risoluzione dei problemi
 
@@ -157,11 +157,11 @@ dig @8.8.8.8 example.com A
 :::
 
 :::details Un criterio Diverso da scatta anche se l'indirizzo giusto c'è
-**DNS Record Value** corrisponde quando corrisponde un solo record. Con più record, **Diverso da** scatta appena uno di essi è diverso. Per controllare che un valore preciso sia tra i record, sfruttate l'ordine dei criteri, perché vince il primo che corrisponde:
+**Valore del record DNS** corrisponde quando corrisponde un solo record. Con più record, **Diverso da** scatta appena uno di essi è diverso. Per controllare che un valore preciso sia tra i record, sfruttate l'ordine dei criteri, perché vince il primo che corrisponde:
 
-1. Tenete in cima il criterio offline predefinito: **DNS Is Online** / **Falso**.
-2. Sotto, aggiungete un criterio con **DNS Record Value** / **Uguale a** / il valore che vi aspettate, che segni il monitor **Operativo**.
-3. Ancora sotto, aggiungete un criterio con **DNS Is Online** / **Vero**, che segni il monitor **Offline** e dichiari un incidente. Corrisponde solo alle risposte che non hanno il valore.
+1. Tenete in cima il criterio offline predefinito: **DNS online** / **Falso**.
+2. Sotto, aggiungete un criterio con **Valore del record DNS** / **Uguale a** / il valore che vi aspettate, che segni il monitor **Operativo**.
+3. Ancora sotto, aggiungete un criterio con **DNS online** / **Vero**, che segni il monitor **Offline** e dichiari un incidente. Corrisponde solo alle risposte che non hanno il valore.
 :::
 
 :::details DNSSEC Is Valid non corrisponde mai

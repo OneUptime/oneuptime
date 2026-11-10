@@ -84,7 +84,7 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 
 Un filtro restringe solo una serie che porta la sua etichetta: `openstack_nova_up` non ha un progetto, quindi un filtro sul progetto la lascia com'è.
 
-Mantieni la finestra a tre raccolte o più di ciò che leggi: 6 minuti per compute, network, volume e placement, 15 per identity e image. Una finestra più corta non contiene abbastanza raccolte perché **All Values** valga come durata.
+Mantieni la finestra a tre raccolte o più di ciò che leggi: 6 minuti per compute, network, volume e placement, 15 per identity e image. Una finestra più corta non contiene abbastanza raccolte perché **Tutti i valori** valga come durata.
 
 ## Attributi di identità
 
@@ -752,8 +752,8 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | Campo | Cosa fa |
 | --- | --- |
 | **Metrica** | La query o formula da controllare, tramite il nome della sua variabile. |
-| **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere, su tutta la finestra) o **Any Value** (ne basta uno). |
-| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a** — oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Nessun dato** corrisponde quando la query non ha inviato nulla nella finestra, **Dati presenti** quando ha inviato qualcosa. **Previsto sopra** e **Previsto sotto** corrispondono quando l'andamento della metrica sulla finestra supererà la soglia entro la fine dell'**Orizzonte**. |
+| **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Valore massimo**, **Valore minimo**, **Tutti i valori** (ogni valore deve corrispondere, su tutta la finestra) o **Qualsiasi valore** (ne basta uno). |
+| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a** — oppure una condizione di anomalia: **Anomalmente alto**, **Anomalmente basso** o **Anomalo**. **Nessun dato** corrisponde quando la query non ha inviato nulla nella finestra, **Dati presenti** quando ha inviato qualcosa. **Previsto sopra** e **Previsto sotto** corrispondono quando l'andamento della metrica sulla finestra supererà la soglia entro la fine dell'**Orizzonte**. |
 | **Soglia** | Il valore con cui confrontare. Accanto compare un elenco di unità quando la metrica ha un'unità. Non mostrata per le condizioni di anomalia. |
 | **Sensibilità** | Solo per le condizioni di anomalia. **Bassa** (4σ), **Medio** (3σ, il valore predefinito) o **Alta** (2σ). |
 | **Finestra di riferimento** | Solo per le condizioni di anomalia. 14 giorni (il valore predefinito), 28, 60 o 90 giorni di storico. |

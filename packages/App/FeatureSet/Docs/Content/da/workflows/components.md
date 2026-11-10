@@ -195,7 +195,7 @@ Send en e-mail gennem en SMTP-server, som du angiver på blokken. Blokken hedder
 | **From Email**                          | Afsenderen, for eksempel `Alerts <alerts@company.com>`.                                               |
 | **To Email**                            | Modtagerens adresse. Adskil flere adresser med kommaer eller semikoloner.                             |
 | **Subject**                             | Emnelinjen.                                                                                           |
-| **Email Body**                          | Beskeden, sendt som HTML.                                                                             |
+| **E-mailens brødtekst**                          | Beskeden, sendt som HTML.                                                                             |
 | **SMTP HOST** og **SMTP Port**          | Den mailserver, der skal forbindes til.                                                               |
 | **SMTP Username** og **SMTP Password**  | Valgfrie. Udfyld begge eller ingen.                                                                   |
 | **Use Implicit TLS**                    | Slå til for implicit TLS, som regel på port 465. Lad den være slået fra for STARTTLS, som regel på port 587. |

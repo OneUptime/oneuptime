@@ -195,7 +195,7 @@ Mattermost 接受消息时触发 **Success**。无法连接到服务器或 Matte
 | **From Email**                          | 发件人，例如 `Alerts <alerts@company.com>`。                                                          |
 | **To Email**                            | 收件人的地址。多个地址用逗号或分号分隔。                                                              |
 | **Subject**                             | 主题行。                                                                                              |
-| **Email Body**                          | 以 HTML 形式发送的消息。                                                                              |
+| **邮件正文**                          | 以 HTML 形式发送的消息。                                                                              |
 | **SMTP HOST** 和 **SMTP Port**          | 要连接的邮件服务器。                                                                                  |
 | **SMTP Username** 和 **SMTP Password**  | 可选。两者都填或都不填。                                                                              |
 | **Use Implicit TLS**                    | 对隐式 TLS（通常是端口 465）开启。对 STARTTLS（通常是端口 587）保持关闭。                              |

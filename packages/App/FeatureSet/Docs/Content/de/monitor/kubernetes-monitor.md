@@ -99,7 +99,7 @@ Der Tab **Custom Metric** bietet diese Metriken an, gruppiert nach Ressourcentyp
 
 ### Was ausgewertet wird
 
-Diese Monitore werten immer den **Metric Value** aus – den Wert der konfigurierten Metrikabfrage oder Formel. Das Kriterienformular hat keine Auswahl für den Filtertyp; es zeigt **Metrik**, **Aggregation**, **Bedingung** und **Schwellenwert**.
+Diese Monitore werten immer den **Metrikwert** aus – den Wert der konfigurierten Metrikabfrage oder Formel. Das Kriterienformular hat keine Auswahl für den Filtertyp; es zeigt **Metrik**, **Aggregation**, **Bedingung** und **Schwellenwert**.
 
 ### Aggregationsarten
 
@@ -120,9 +120,9 @@ Die Anomalieerkennung anhand einer Baseline braucht keinen Schwellenwert. Wähle
 
 | Bedingung | Trifft zu, wenn der Wert |
 | --- | --- |
-| **Anomalously High** | Über den erwarteten Bereich steigt |
-| **Anomalously Low** | Unter den erwarteten Bereich fällt |
-| **Anomalous** | Den erwarteten Bereich in eine der beiden Richtungen verlässt |
+| **Anomal hoch** | Über den erwarteten Bereich steigt |
+| **Anomal niedrig** | Unter den erwarteten Bereich fällt |
+| **Anomal** | Den erwarteten Bereich in eine der beiden Richtungen verlässt |
 
 Jeder Messwert wird mit einer Baseline derselben Stunde der Woche verglichen, die aus dem **Baseline-Fenster** gebildet wird (standardmäßig 14 Tage; 28, 60 oder 90 Tage). **Empfindlichkeit** legt fest, wie breit der erwartete Bereich ist: **Niedrig (4σ — nur eklatante Abweichungen)**, **Mittel (3σ — empfohlen)**, der Standard, oder **Hoch (2σ — verrauschter, sehr stabile Dienste)**. Anomaliebedingungen bleiben im Zustand „Learning“ und lösen keine Warnungen aus, bis diese Stunde der Woche zwei Wochen Verlauf hat. Dieser Monitor filtert seine Abfragen nach Attributen, daher wird jede Abfrage, und jede Reihe einer gruppierten Abfrage, mit ihrem eigenen Verlauf verglichen, so weit zurück, wie Ihre Metriken aufbewahrt werden. Sind das weniger als zwei Wochen, bleibt eine Summe, eine Anzahl oder eine Abfrage auf einem Histogramm dauerhaft in diesem Zustand, und alles andere wird mit allen Reihen der Metrik verglichen. Ein Perzentil eines Histogramms bleibt immer in diesem Zustand.
 

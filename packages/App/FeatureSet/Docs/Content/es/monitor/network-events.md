@@ -246,7 +246,7 @@ Una canalización pertenece a su proyecto. Para usar una en otro proyecto, créa
 
 - **Syslog sobre TLS** (RFC 5425). La sonda acepta UDP y TCP sin cifrar; mantén el camino entre los dispositivos y la sonda en una red de confianza.
 - **Compartir analizadores entre proyectos.** Una canalización todavía no se puede exportar e importar.
-- **Eventos de traps SNMP distintos de los cuatro estándar.** Los traps propios de un fabricante se guardan como registros, y se alerta sobre ellos con el criterio **SNMP Trap Received (Trap OID)** del [monitor de dispositivos de red](/docs/monitor/network-device-monitor).
+- **Eventos de traps SNMP distintos de los cuatro estándar.** Los traps propios de un fabricante se guardan como registros, y se alerta sobre ellos con el criterio **Trap SNMP recibido (OID del trap)** del [monitor de dispositivos de red](/docs/monitor/network-device-monitor).
 - **Switches Cambium cnMatrix, controladores de movilidad Aruba y FortiGate en modo CEF.** Sus mensajes se guardan y se pueden buscar; todavía no se leen eventos de ellos.
 - **Un seguimiento en vivo.** La página de Eventos muestra lo que había llegado cuando se abrió; usa su botón de actualizar, o el seguimiento en vivo de **Registros**.
 

@@ -139,14 +139,14 @@ Ogni serie porta l'etichetta `device.id` del dispositivo, e gli attributi `iot.d
 
 ## Criteri di monitoraggio
 
-Un criterio confronta una delle query o formule del monitor con una soglia. I criteri di un monitor di dispositivi IoT offrono un solo **Tipo di filtro**, **Metric Value**: ogni regola controlla il valore della metrica, con questi campi.
+Un criterio confronta una delle query o formule del monitor con una soglia. I criteri di un monitor di dispositivi IoT offrono un solo **Tipo di filtro**, **Valore della metrica**: ogni regola controlla il valore della metrica, con questi campi.
 
 | Campo | Cosa fa |
 | --- | --- |
-| **Tipo di filtro** | Sempre **Metric Value**, l'unico controllo che questo monitor offre. |
+| **Tipo di filtro** | Sempre **Valore della metrica**, l'unico controllo che questo monitor offre. |
 | **Select Metric Variable** | La query o la formula da controllare, tramite il nome della sua variabile. |
-| **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere, su tutta la finestra) o **Any Value** (ne basta uno). |
-| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a** — oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa. **Previsto sopra** e **Previsto sotto** corrispondono quando la tendenza della metrica nella finestra avrà superato la soglia alla fine di **Orizzonte**. |
+| **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Valore massimo**, **Valore minimo**, **Tutti i valori** (ogni valore deve corrispondere, su tutta la finestra) o **Qualsiasi valore** (ne basta uno). |
+| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a** — oppure una condizione di anomalia: **Anomalmente alto**, **Anomalmente basso** o **Anomalo**. **Nessun dato** è vera quando la query non ha restituito nulla nella finestra, **Dati presenti** quando ha restituito qualcosa. **Previsto sopra** e **Previsto sotto** corrispondono quando la tendenza della metrica nella finestra avrà superato la soglia alla fine di **Orizzonte**. |
 | **Soglia** | Il valore con cui confrontare. Accanto c'è un elenco di unità quando la metrica ha un'unità. Non mostrato per le condizioni di anomalia. |
 | **Sensibilità** | Solo condizioni di anomalia. **Bassa** (4σ), **Media** (3σ, il predefinito) o **Alta** (2σ). |
 | **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (il predefinito), 28, 60 o 90 giorni di storico. |

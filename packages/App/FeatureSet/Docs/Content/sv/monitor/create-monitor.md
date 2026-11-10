@@ -18,7 +18,7 @@ Gå till **Monitorer** och klicka på **Skapa monitor**. Formuläret öppnas på
 
 Den första frågan är **Monitortyp**: vad vill du övervaka?
 
-- De sex typer som flest skapar kommer först: **Webbplats**, **API**, **Ping**, **Port**, **SSL Certificate** och **Incoming Request**, för heartbeats från cron-jobb och webhooks.
+- De sex typer som flest skapar kommer först: **Webbplats**, **API**, **Ping**, **Port**, **SSL Certificate** och **Inkommande begäran**, för heartbeats från cron-jobb och webhooks.
 - **Fler monitortyper** listar alla andra typer under sin kategori, som **Infrastruktur** (Kubernetes, Docker, värd) och **Telemetri** (loggar, mätvärden, spår). **Manuell**, en monitor vars status du själv sätter, och **Sondstatus**, som säger till när en prob tappar anslutningen, finns under **Annat**.
 - Eller skriv i sökrutan. Den känner till orden du redan använder, som `k8s`, `postgres`, `heartbeat` eller `tls`, och **Enter** väljer den första träffen.
 

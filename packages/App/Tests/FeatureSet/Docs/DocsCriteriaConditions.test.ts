@@ -63,6 +63,25 @@ const KEYED_BEFORE: ReadonlyArray<string> = [
 ];
 
 /*
+ * The rest, keyed in every language by #6575 (2026-11-10), with the checks
+ * they belong to: a heartbeat's and an email's time conditions, an
+ * expression's result, a code monitor's run, and the anomaly and forecast
+ * conditions. Every FilterType has a key since.
+ */
+const KEYED_IN_6575: ReadonlyArray<string> = [
+  FilterType.RecievedInMinutes,
+  FilterType.NotRecievedInMinutes,
+  FilterType.EvaluatesToTrue,
+  FilterType.IsExecuting,
+  FilterType.IsNotExecuting,
+  FilterType.AnomalouslyHigh,
+  FilterType.AnomalouslyLow,
+  FilterType.Anomalous,
+  FilterType.ForecastAbove,
+  FilterType.ForecastBelow,
+];
+
+/*
  * The criteria form's option for a condition, as a Dropdown draws it: looked
  * up in the locale, unless the option is something a person named
  * (isUserContent), which no condition is.
@@ -97,9 +116,13 @@ function nonEmptyLines(lines: Array<string>): Array<string> {
 }
 
 describe("the conditions this suite reads", () => {
-  it("are every condition the Dashboard has a key for, the ones adc8421a1b keyed among them", () => {
+  it("are every condition the Dashboard has a key for, the ones adc8421a1b and #6575 keyed among them", () => {
     expect([...DRAWN_CONDITIONS].sort()).toEqual(
-      [...KEYED_IN_ADC8421A1B, ...KEYED_BEFORE].sort(),
+      [...KEYED_IN_ADC8421A1B, ...KEYED_BEFORE, ...KEYED_IN_6575].sort(),
+    );
+    // That is every condition the criteria form offers.
+    expect([...DRAWN_CONDITIONS].sort()).toEqual(
+      [...Object.values(FilterType)].sort(),
     );
 
     // Every other condition has no key, and is read as a longer name only.
@@ -171,13 +194,13 @@ describe("the conditions this suite reads", () => {
       expect(DRAWN_CONDITIONS).toContain(condition);
     }
 
-    expect(LONGER_NAMES).toEqual(
-      expect.arrayContaining([
-        FilterType.EvaluatesToTrue,
-        "Contains Any",
-        "Contains All",
-      ]),
-    );
+    /*
+     * Every FilterType is a condition of its own since #6575, so the longer
+     * names left are the workspace rules' two, which are no condition.
+     */
+    expect(LONGER_NAMES).toEqual(["Contains Any", "Contains All"]);
+    expect(DRAWN_CONDITIONS).toContain(FilterType.EvaluatesToTrue);
+    expect(DRAWN_CONDITIONS).toContain(FilterType.NotRecievedInMinutes);
 
     // Contains Any and Contains All are labels of their own, drawn whole.
     expect(isDashboardLabel("Contains Any")).toBe(true);
@@ -300,10 +323,35 @@ describe("the reader, on the shapes the pages have", () => {
   it("does not take a longer name for the condition inside it", () => {
     const markdown: string = [
       "**Contains Any** und **Contains All** sind eigene Bezeichnungen.",
-      "**Evaluates To True** und **Not Recieved In Minutes** haben keinen Schlüssel.",
+      "Contains Any trifft zu, wenn einer der Werte vorkommt.",
     ].join("\n");
 
     expect(conditionsOn("de", "monitor/page", markdown)).toEqual([]);
+  });
+
+  it("reads a condition with a shorter one inside it whole: Evaluates To True, not True", () => {
+    const markdown: string = [
+      "**Evaluates To True** und **Not Recieved In Minutes** haben einen Schlüssel.",
+      "Recieved In Minutes und **Anomalously High** auch.",
+    ].join("\n");
+
+    expect(conditionsOn("de", "monitor/page", markdown)).toEqual([
+      `monitor/page:1: **Evaluates To True** -> ${drawnDashboardLabel("de", FilterType.EvaluatesToTrue)}`,
+      `monitor/page:1: **Not Recieved In Minutes** -> ${drawnDashboardLabel("de", FilterType.NotRecievedInMinutes)}`,
+      `monitor/page:2: Recieved In Minutes -> ${drawnDashboardLabel("de", FilterType.RecievedInMinutes)}`,
+      `monitor/page:2: **Anomalously High** -> ${drawnDashboardLabel("de", FilterType.AnomalouslyHigh)}`,
+    ]);
+    // German draws each in its own words, so a page that names them so passes.
+    expect(drawnDashboardLabel("de", FilterType.EvaluatesToTrue)).not.toBe(
+      FilterType.EvaluatesToTrue,
+    );
+    expect(
+      conditionsOn(
+        "de",
+        "monitor/page",
+        `**${drawnDashboardLabel("de", FilterType.EvaluatesToTrue)}** und **${drawnDashboardLabel("de", FilterType.NotRecievedInMinutes)}**.`,
+      ),
+    ).toEqual([]);
   });
 
   it("reads True and False in bold only, where they are the condition", () => {

@@ -99,7 +99,7 @@ L'onglet **Custom Metric** propose ces métriques, regroupées par type de resso
 
 ### Ce qui est évalué
 
-Ces moniteurs évaluent toujours la **Metric Value** – la valeur de la requête de métrique ou de la formule configurée. Le formulaire de critère n'a pas de sélecteur de type de filtre ; il affiche **Métrique**, **Agrégation**, **Condition** et **Seuil**.
+Ces moniteurs évaluent toujours la **Valeur de la métrique** – la valeur de la requête de métrique ou de la formule configurée. Le formulaire de critère n'a pas de sélecteur de type de filtre ; il affiche **Métrique**, **Agrégation**, **Condition** et **Seuil**.
 
 ### Types d'agrégation
 
@@ -120,9 +120,9 @@ La détection d'anomalies par rapport à une référence n'a pas besoin de seuil
 
 | Condition | Correspond quand la valeur |
 | --- | --- |
-| **Anomalously High** | Monte au-dessus de la plage attendue |
-| **Anomalously Low** | Descend sous la plage attendue |
-| **Anomalous** | Sort de la plage attendue dans un sens ou dans l'autre |
+| **Anormalement élevé** | Monte au-dessus de la plage attendue |
+| **Anormalement bas** | Descend sous la plage attendue |
+| **Anormal** | Sort de la plage attendue dans un sens ou dans l'autre |
 
 Chaque mesure est comparée à une référence de la même heure de la semaine, construite à partir de la **Fenêtre de référence** (14 jours par défaut ; 28, 60 ou 90 jours). **Sensibilité** fixe la largeur de la plage attendue : **Faible (4σ — écarts flagrants uniquement)**, **Moyen (3σ — recommandé)**, la valeur par défaut, ou **Élevé (2σ — plus bruyant, services très stables)**. Les conditions d'anomalie restent dans un état « Learning » et ne produisent aucune alerte tant que cette heure de la semaine n'a pas deux semaines d'historique. Ce moniteur filtre ses requêtes par attributs, donc chaque requête, et chaque série d'une requête regroupée, est comparée à son propre historique, aussi loin que vos métriques sont conservées. Si c'est moins de deux semaines, une somme, un décompte ou une requête sur un histogramme reste dans cet état pour de bon, et tout le reste est comparé à toutes les séries de la métrique. Un centile d'un histogramme reste toujours dans cet état.
 

@@ -125,9 +125,9 @@ Dessa monitorer utvärderar alltid **Metric Value**: det aggregerade värdet av 
 | **Mindre än** | under tröskelvärdet |
 | **Mindre än eller lika med** | lika med tröskelvärdet eller lägre |
 | **Lika med** | exakt tröskelvärdet |
-| **Anomalously High** | över det förväntade intervallet för den här timmen i veckan |
-| **Anomalously Low** | under det intervallet |
-| **Anomalous** | utanför det intervallet, åt vilket håll som helst |
+| **Onormalt hög** | över det förväntade intervallet för den här timmen i veckan |
+| **Onormalt låg** | under det intervallet |
+| **Avvikande** | utanför det intervallet, åt vilket håll som helst |
 | **Väntas stiga över** | är på väg över tröskeln: trenden ligger över den vid slutet av **Tidshorisont** |
 | **Väntas sjunka under** | är på väg under tröskeln, vid slutet av **Tidshorisont** |
 | **Inga data** | frånvarande: frågan skickade ingenting i fönstret |
@@ -148,7 +148,7 @@ En summa eller ett antal räknas bara som lågt på en fullständig datapunkt me
 
 En metrikmonitor som skapats i Skapa monitor börjar med en regel på sin första fråga: **Genomsnittet** över **Senaste 5 minuterna**, **Över** det **Värde** du anger, och **Skapa ett larm**.
 
-En ny metrikmonitor som skapats via API:et eller Terraform utan kriterier börjar med två kriterier på sin första fråga, båda med aggregeringen **Any Value**:
+En ny metrikmonitor som skapats via API:et eller Terraform utan kriterier börjar med två kriterier på sin första fråga, båda med aggregeringen **Minst ett värde**:
 
 | Kriterium | Villkor | Effekt |
 | --- | --- | --- |

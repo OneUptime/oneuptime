@@ -91,7 +91,7 @@ Un [monitor Incoming Request](/docs/monitor/incoming-request-monitor) ti dà un 
 :::steps
 ### Creare il monitor
 
-Vai su **Monitor** e fai clic su **Crea monitor**. Scegli **Incoming Request** in **Tipo di monitor**, chiamalo `Datadog` e fai clic su **Avanti**.
+Vai su **Monitor** e fai clic su **Crea monitor**. Scegli **Richiesta in arrivo** in **Tipo di monitor**, chiamalo `Datadog` e fai clic su **Avanti**.
 
 ### Dichiarare un incidente per ogni avviso
 

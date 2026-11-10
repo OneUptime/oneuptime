@@ -1555,15 +1555,28 @@ describe("responding to an alert", () => {
     );
 
     // Three Markdown pages, as each draws its field.
-    for (const file of [
-      "Description.tsx",
-      "RootCause.tsx",
-      "Remediation.tsx",
-    ]) {
+    for (const file of ["Description.tsx", "Remediation.tsx"]) {
       expect(readDashboardSource(`Pages/Alerts/View/${file}`)).toContain(
         "fieldType: FieldType.Markdown,",
       );
     }
+
+    /*
+     * The Root Cause page is written in Markdown and shown as Markdown, with
+     * what a monitor wrote in it worded in the reader's language
+     * (MonitorRootCauseValue, since #6575).
+     */
+    const rootCausePage: string = readDashboardSource(
+      "Pages/Alerts/View/RootCause.tsx",
+    );
+    expect(rootCausePage).toContain("fieldType: FormFieldSchemaType.Markdown,");
+    expect(rootCausePage).toContain("<MonitorRootCauseValue");
+
+    const rootCauseValue: string = readDashboardSource(
+      "Components/EventView/MonitorRootCauseValue.tsx",
+    );
+    expect(rootCauseValue).toContain("<MarkdownViewer");
+    expect(rootCauseValue).toContain("MonitorRootCauseWording.wordRootCause(");
 
     // The card an incident's Root Cause page shows, reading the alert...
     expect(readDashboardSource("Pages/Alerts/View/RootCause.tsx")).toContain(

@@ -86,11 +86,11 @@ Kriterien entscheiden, wann die Adresse als online, beeinträchtigt oder offline
 
 | Filter | Bedingungen | Was er prüft |
 | --- | --- | --- |
-| **Is Online** | **Wahr**, **Falsch** | Ob mindestens eine Echo-Anfrage eine Antwort bekommen hat. |
+| **Ist online** | **Wahr**, **Falsch** | Ob mindestens eine Echo-Anfrage eine Antwort bekommen hat. |
 | **Antwortzeit (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Die durchschnittliche Umlaufzeit der Antworten. |
-| **Packet Loss (in %)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Der Anteil der fünf Echo-Anfragen, die keine Antwort bekommen haben. |
+| **Paketverlust (in %)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Der Anteil der fünf Echo-Anfragen, die keine Antwort bekommen haben. |
 | **Jitter (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Die Standardabweichung der Umlaufzeiten über die Pakete einer Prüfung. |
-| **Is Request Timeout** | **Wahr**, **Falsch** | Ob der Ping bei jedem Versuch in ein Zeitlimit gelaufen ist. |
+| **Zeitüberschreitung der Anfrage** | **Wahr**, **Falsch** | Ob der Ping bei jedem Versuch in ein Zeitlimit gelaufen ist. |
 
 Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutreffen müssen oder **Beliebig** einer genügt. Die **Aktionen** eines Kriteriums legen fest, was es tut: den Monitorstatus ändern, eine Warnung erstellen, einen Vorfall melden oder mehreres davon.
 
@@ -105,17 +105,17 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 
 ### Über einen Zeitraum auswerten
 
-**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Is Online**, **Antwortzeit (in ms)**, **Packet Loss (in %)**, **Jitter (in ms)** und **Is Request Timeout**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
+**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Ist online**, **Antwortzeit (in ms)**, **Paketverlust (in %)**, **Jitter (in ms)** und **Zeitüberschreitung der Anfrage**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
 
 | Aggregation | Trifft zu, wenn |
 | --- | --- |
-| **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value** | Dieser Wert über das Fenster die Bedingung erfüllt. Nur für numerische Filter. |
-| **All Values** | Jede Prüfung im Fenster die Bedingung erfüllt. |
-| **Any Value** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
+| **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert** | Dieser Wert über das Fenster die Bedingung erfüllt. Nur für numerische Filter. |
+| **Alle Werte** | Jede Prüfung im Fenster die Bedingung erfüllt. |
+| **Beliebiger Wert** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
 
-**All Values** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Any Value** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
+**Alle Werte** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Beliebiger Wert** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
 
-**Is Request Timeout** ist keine Zahl, die OneUptime aufzeichnet. OneUptime zeichnet deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **All Values** oder **Any Value**.
+**Zeitüberschreitung der Anfrage** ist keine Zahl, die OneUptime aufzeichnet. OneUptime zeichnet deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **Alle Werte** oder **Beliebiger Wert**.
 
 Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere Prüfungen enthält: Ein Monitor, der alle 5 Minuten geprüft wird, hat in jedem 5-Minuten-Fenster nur eine einzige Prüfung.
 
@@ -131,9 +131,9 @@ Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere
 
 | Ziel | Filter | Bedingung | Wert |
 | --- | --- | --- | --- |
-| Offline, wenn die Adresse nicht erreichbar ist | **Is Online** | **Falsch** | — |
+| Offline, wenn die Adresse nicht erreichbar ist | **Ist online** | **Falsch** | — |
 | Warnen, wenn die Latenz hoch ist | **Antwortzeit (in ms)** | **Größer als** | `100` |
-| Die Adresse bei einer verlustbehafteten Verbindung als beeinträchtigt markieren | **Packet Loss (in %)** | **Größer als** | `20` |
+| Die Adresse bei einer verlustbehafteten Verbindung als beeinträchtigt markieren | **Paketverlust (in %)** | **Größer als** | `20` |
 | Bei einer instabilen Verbindung warnen | **Jitter (in ms)** | **Größer als** | `30` |
 
 ## Fehlerbehebung

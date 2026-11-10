@@ -151,7 +151,7 @@ Isso atende ao caso comum em que um job ou uma ferramenta de terceiros envia o p
 Troque o valor pelo que seu remetente realmente escreve (`FAILED`, `exit code 1` e assim por diante).
 
 > [!NOTE]
-> Esses critérios padrão **não** são um interruptor de homem morto: nada aqui dispara quando os e-mails param de chegar. Critérios que só leem o assunto, o remetente, o corpo ou o destinatário são avaliados quando um e-mail chega e em nenhum outro momento. Para ser alertado sobre o silêncio, adicione um critério **Email Received** / **Not Recieved In Minutes**: veja o [Exemplo 3](#exemplo-3-monitor-de-heartbeat-sem-e-mail-alerta).
+> Esses critérios padrão **não** são um interruptor de homem morto: nada aqui dispara quando os e-mails param de chegar. Critérios que só leem o assunto, o remetente, o corpo ou o destinatário são avaliados quando um e-mail chega e em nenhum outro momento. Para ser alertado sobre o silêncio, adicione um critério **E-mail recebido** / **Não recebido em minutos**: veja o [Exemplo 3](#exemplo-3-monitor-de-heartbeat-sem-e-mail-alerta).
 
 ## Tipos de filtro disponíveis
 
@@ -160,13 +160,13 @@ Você pode criar critérios com base nestes campos do e-mail:
 | Tipo de filtro | Descrição |
 | ------------------------- | ----------------------------------------------------------------------------------- |
 | **Assunto do e-mail** | A linha de assunto do e-mail recebido |
-| **Email From Address** | O endereço do remetente: só o endereço, em minúsculas, sem nome de exibição |
-| **Email Body** | A parte de texto simples do corpo do e-mail |
-| **Email To Address** | O endereço de e-mail do destinatário |
-| **Email Received** | Critérios de tempo sobre quando os e-mails são recebidos |
-| **JavaScript Expression** | Uma expressão JavaScript personalizada que precisa resultar em verdadeiro |
+| **Endereço do remetente do e-mail** | O endereço do remetente: só o endereço, em minúsculas, sem nome de exibição |
+| **Corpo do e-mail** | A parte de texto simples do corpo do e-mail |
+| **Endereço do destinatário do e-mail** | O endereço de e-mail do destinatário |
+| **E-mail recebido** | Critérios de tempo sobre quando os e-mails são recebidos |
+| **Expressão JavaScript** | Uma expressão JavaScript personalizada que precisa resultar em verdadeiro |
 
-O endereço do próprio monitor é mascarado antes de qualquer critério ler o e-mail, então em **Email To Address**, **Assunto do e-mail** e **Email Body** ele aparece como `[REDACTED]`.
+O endereço do próprio monitor é mascarado antes de qualquer critério ler o e-mail, então em **Endereço do destinatário do e-mail**, **Assunto do e-mail** e **Corpo do e-mail** ele aparece como `[REDACTED]`.
 
 ## Condições do filtro
 
@@ -191,8 +191,8 @@ O dashboard escreve essas condições "Recieved".
 
 | Condição do filtro | Descrição | Exemplo |
 | --------------------------- | ----------------------------------- | -------------------------------- |
-| **Recieved In Minutes** | Um e-mail foi recebido em até X minutos | E-mail recebido em 30 minutos |
-| **Not Recieved In Minutes** | Nenhum e-mail recebido em X minutos | Nenhum e-mail recebido em 60 minutos |
+| **Recebido em minutos** | Um e-mail foi recebido em até X minutos | E-mail recebido em 30 minutos |
+| **Não recebido em minutos** | Nenhum e-mail recebido em X minutos | Nenhum e-mail recebido em 60 minutos |
 
 Um monitor que nunca recebeu um e-mail conta a hora de criação como o último e-mail.
 
@@ -200,9 +200,9 @@ Um monitor que nunca recebeu um e-mail conta a hora de criação como o último 
 
 | Condição do filtro | Descrição |
 | --------------------- | ------------------------------------- |
-| **Evaluates To True** | A expressão retorna um valor verdadeiro |
+| **Resulta em verdadeiro** | A expressão retorna um valor verdadeiro |
 
-A expressão roda em um sandbox sem campos de e-mail vinculados, então não consegue ler o assunto, o remetente, o corpo nem o destinatário da mensagem que disparou a verificação. Use os tipos de filtro **Assunto do e-mail**, **Email From Address**, **Email Body** e **Email To Address** para comparar o conteúdo do e-mail.
+A expressão roda em um sandbox sem campos de e-mail vinculados, então não consegue ler o assunto, o remetente, o corpo nem o destinatário da mensagem que disparou a verificação. Use os tipos de filtro **Assunto do e-mail**, **Endereço do remetente do e-mail**, **Corpo do e-mail** e **Endereço do destinatário do e-mail** para comparar o conteúdo do e-mail.
 
 ## Configurações de exemplo
 
@@ -221,15 +221,15 @@ Coloque o critério crítico primeiro: os critérios são verificados de cima pa
 
 | Critério | Filtros | Condição de correspondência | Ações |
 | --- | --- | --- | --- |
-| Job com falha | **Email From Address** Igual a `monitoring@legacy-system.com`; **Assunto do e-mail** Contém `Failed` | **Todos** | Mudar o status para offline; declarar um incidente |
-| Job bem-sucedido | **Email From Address** Igual a `monitoring@legacy-system.com`; **Assunto do e-mail** Contém `Success` | **Todos** | Mudar o status para online |
+| Job com falha | **Endereço do remetente do e-mail** Igual a `monitoring@legacy-system.com`; **Assunto do e-mail** Contém `Failed` | **Todos** | Mudar o status para offline; declarar um incidente |
+| Job bem-sucedido | **Endereço do remetente do e-mail** Igual a `monitoring@legacy-system.com`; **Assunto do e-mail** Contém `Success` | **Todos** | Mudar o status para online |
 
 ### Exemplo 3: monitor de heartbeat (sem e-mail = alerta)
 
 | Critério | Filtros | Ações |
 | --- | --- | --- |
-| O e-mail está atrasado | **Email Received** Not Recieved In Minutes `60` | Mudar o status para offline; criar um alerta |
-| O e-mail chegou | **Email Received** Recieved In Minutes `60` | Mudar o status para online |
+| O e-mail está atrasado | **E-mail recebido** Não recebido em minutos `60` | Mudar o status para offline; criar um alerta |
+| O e-mail chegou | **E-mail recebido** Recebido em minutos `60` | Mudar o status para online |
 
 O primeiro critério dispara quando nenhum e-mail chegou por 60 minutos: útil para jobs agendados ou processos em lote que enviam um e-mail ao terminar. O segundo resolve o alerta assim que um chega. Os minutos em que o próprio OneUptime não estava recebendo e-mail não contam para os 60, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
@@ -240,7 +240,7 @@ Um critério mantém um único incidente aberto por vez: enquanto ele está aber
 :::steps
 ### Escolher os e-mails
 
-Dê ao critério um filtro que corresponda aos e-mails para os quais abrir incidentes. Para aceitar só relatos da sua própria equipe, use **Email From Address** com **Termina com** e o seu domínio, por exemplo `@example.com`.
+Dê ao critério um filtro que corresponda aos e-mails para os quais abrir incidentes. Para aceitar só relatos da sua própria equipe, use **Endereço do remetente do e-mail** com **Termina com** e o seu domínio, por exemplo `@example.com`.
 
 ### Declarar o incidente
 
@@ -263,7 +263,7 @@ A partir daí, o critério trata cada e-mail separadamente:
 
 Cada e-mail continua ganhando uma linha em **Registros de monitoramento**, e **Ver resumo** nessa linha diz o que o e-mail abriu ou por que não abriu nada. Quando o critério também cria alertas, a opção se chama **Abrir um novo incidente e um novo alerta para cada e-mail**, e cada e-mail abre um alerta próprio da mesma forma.
 
-Esses incidentes ficam abertos até alguém resolvê-los. Com **Resolver incidente automaticamente** ligado, eles também são resolvidos quando um e-mail posterior corresponde a outro critério, como qualquer incidente; um e-mail posterior que corresponde ao mesmo critério nunca resolve os anteriores. Uma verificação de e-mail que não chegou (**Email Received**) não é um e-mail, então continua abrindo um único incidente por vez.
+Esses incidentes ficam abertos até alguém resolvê-los. Com **Resolver incidente automaticamente** ligado, eles também são resolvidos quando um e-mail posterior corresponde a outro critério, como qualquer incidente; um e-mail posterior que corresponde ao mesmo critério nunca resolve os anteriores. Uma verificação de e-mail que não chegou (**E-mail recebido**) não é um e-mail, então continua abrindo um único incidente por vez.
 
 > [!WARNING]
 > **Qualquer pessoa que conheça o endereço pode abrir incidentes.** Mantenha o endereço privado, filtre pelo remetente como acima e [redefina o endereço](#redefinir-ou-personalizar-o-endereço-de-e-mail) se ele vazar. O endereço de um remetente pode ser falsificado, então o filtro barra e-mails perdidos, não alguém determinado a entrar.
@@ -294,7 +294,7 @@ Os títulos, as descrições e as notas de correção dos alertas e incidentes q
 
 - **Um título recebe uma linha de cada.** Em um título, cada variável é cortada em uma linha de no máximo 150 caracteres, terminando em `...` quando era mais longa. Um título não pode passar de 500 caracteres, e um alerta ou incidente com título longo demais nem chega a ser criado, então citar um e-mail inteiro impediria o monitor de alertar sobre e-mails longos. Descrições e notas de correção recebem o valor completo.
 - **O endereço deste monitor é mascarado.** O endereço funciona como uma senha, então é mascarado antes de o e-mail ser armazenado, e `{{emailTo}}` aparece como `monitor-[REDACTED]@{inbound-domain}` (ou `[REDACTED]@{inbound-domain}` para um endereço personalizado).
-- **Uma verificação de e-mail ausente usa o último e-mail.** Quando um critério **Email Received** abre um alerta porque nenhum e-mail chegou a tempo, as variáveis descrevem o último e-mail que o monitor recebeu. Elas ficam vazias se nenhum chegou ainda.
+- **Uma verificação de e-mail ausente usa o último e-mail.** Quando um critério **E-mail recebido** abre um alerta porque nenhum e-mail chegou a tempo, as variáveis descrevem o último e-mail que o monitor recebeu. Elas ficam vazias se nenhum chegou ainda.
 
 ## Visão Resumo do monitor
 
@@ -312,7 +312,7 @@ Clique em **Mostrar mais detalhes** para ver o resto:
 
 ### E-mails anteriores
 
-O cartão só mostra o e-mail mais recente. Cada e-mail que o monitor avalia também é gravado em **Registros de monitoramento**: a coluna **E-mail** mostra o assunto e o remetente dele, e **Ver resumo** na linha dele mostra o e-mail inteiro do mesmo jeito que o cartão. Um monitor com o monitoramento desligado não avalia nada, então os e-mails que ele recebe não ganham linhas. Se um dos seus critérios verificar **Email Received**, o monitor também grava uma linha a cada verificação de e-mail ausente. A coluna **E-mail** mostra "Scheduled check" nessas linhas, e o **Ver resumo** delas mostra o e-mail mais recente no momento da verificação, ou "No email yet" se nenhum tinha chegado. Os registros de monitoramento são mantidos por um dia por padrão. Em um servidor auto-hospedado, um administrador pode mudar isso com **Retenção de Registros do Monitor (Dias)** nas configurações do Admin Dashboard.
+O cartão só mostra o e-mail mais recente. Cada e-mail que o monitor avalia também é gravado em **Registros de monitoramento**: a coluna **E-mail** mostra o assunto e o remetente dele, e **Ver resumo** na linha dele mostra o e-mail inteiro do mesmo jeito que o cartão. Um monitor com o monitoramento desligado não avalia nada, então os e-mails que ele recebe não ganham linhas. Se um dos seus critérios verificar **E-mail recebido**, o monitor também grava uma linha a cada verificação de e-mail ausente. A coluna **E-mail** mostra "Scheduled check" nessas linhas, e o **Ver resumo** delas mostra o e-mail mais recente no momento da verificação, ou "No email yet" se nenhum tinha chegado. Os registros de monitoramento são mantidos por um dia por padrão. Em um servidor auto-hospedado, um administrador pode mudar isso com **Retenção de Registros do Monitor (Dias)** nas configurações do Admin Dashboard.
 
 ## Configuração auto-hospedada
 

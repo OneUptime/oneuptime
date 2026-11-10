@@ -45,7 +45,7 @@ Prometheus 评估你的告警规则，并把触发的告警发送给 Alertmanage
 :::steps
 ### 创建监视器
 
-前往 **监视器**，点击 **创建监视器**。在 **监视器类型** 下选择 **Incoming Request**，将其命名为 `Alertmanager`，然后点击 **下一步**。
+前往 **监视器**，点击 **创建监视器**。在 **监视器类型** 下选择 **传入请求**，将其命名为 `Alertmanager`，然后点击 **下一步**。
 
 ### 为每个触发的告警声明事件
 
@@ -222,7 +222,7 @@ amtool alert add test_alert severity=warning \
 :::steps
 ### 创建看门狗监视器
 
-创建第二个 Incoming Request 监视器，命名为 `Alertmanager watchdog`。把它第一个条件（把监视器标记为离线的那个）的过滤器设为 **Incoming Request**、**Not Recieved In Minutes**、`10`，把第二个条件的过滤器设为 **Incoming Request**、**Recieved In Minutes**、`10`。仪表板上这两项就是这样拼写的。复制新监视器的 **Heartbeat URL**。
+创建第二个 Incoming Request 监视器，命名为 `Alertmanager watchdog`。把它第一个条件（把监视器标记为离线的那个）的过滤器设为 **传入请求**、**在指定分钟内未收到**、`10`，把第二个条件的过滤器设为 **传入请求**、**在指定分钟内收到**、`10`。仪表板上这两项就是这样拼写的。复制新监视器的 **Heartbeat URL**。
 
 ### 把看门狗告警路由到它
 

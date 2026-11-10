@@ -102,7 +102,7 @@ Selecteer de **Sondes** en een **Bewakingsinterval** — dat begint op **Elke 5 
 
 ### Componenten
 
-Kies de componenten waarvan u afhankelijk bent, en de monitor volgt alleen die: **External Status Page Component Status** vergelijkt alleen hun statussen, de algemene status is de slechtste van hun statussen, en **External Status Page Active Incidents** telt alleen de incidenten die minstens één van hen raken. Het blijft één controle van de pagina, hoeveel u er ook kiest.
+Kies de componenten waarvan u afhankelijk bent, en de monitor volgt alleen die: **Componentstatus van externe statuspagina** vergelijkt alleen hun statussen, de algemene status is de slechtste van hun statussen, en **Actieve incidenten van externe statuspagina** telt alleen de incidenten die minstens één van hen raken. Het blijft één controle van de pagina, hoeveel u er ook kiest.
 
 Als u **Componenten** opent, leest uw browser de lijst van de pagina van een Atlassian Statuspage, een incident.io-pagina of een OneUptime-statuspagina, en toont die in de groepen van de pagina; elk component dat niet operationeel is, zegt hoe het ermee staat. Een gekozen naam volgt het component met precies die naam, zonder op hoofdletters te letten: `Copilot` op de pagina van GitHub is niet `Copilot AI Model Providers`.
 
@@ -129,13 +129,13 @@ U kunt criteria instellen die bepalen wanneer de externe dienst als online of of
 
 | Filtertype | Wat het controleert | Filtervoorwaarden |
 | --- | --- | --- |
-| **External Status Page Is Online** | Of de statuspagina bereikbaar is en statusgegevens teruggeeft | Waar of Onwaar |
-| **External Status Page Overall Status** | De algemene status die de pagina meldt | Gelijk aan, Niet gelijk aan, Bevat, Bevat niet, Begint met, Eindigt op |
-| **External Status Page Component Status** | De status van elk component binnen de afbakening (de gekozen componenten, of die van de groep, als die zijn ingesteld): Operationeel, In onderhoud, Verminderde prestaties, Gedeeltelijke storing, Grote storing of Volledige storing | Gelijk aan, Niet gelijk aan, Bevat, Bevat niet, Begint met, Eindigt op |
-| **External Status Page Active Incidents** | Het aantal momenteel actieve incidenten op de statuspagina (alleen die een component binnen de afbakening raken, als er componenten of een groep zijn gekozen) | Gelijk aan, Niet gelijk aan en de numerieke vergelijkingen |
-| **External Status Page Response Time (in ms)** | Hoe lang het ophalen van de gegevens van de statuspagina duurt | Groter dan, Kleiner dan, Groter dan of gelijk aan, Kleiner dan of gelijk aan |
+| **Externe statuspagina is online** | Of de statuspagina bereikbaar is en statusgegevens teruggeeft | Waar of Onwaar |
+| **Algehele status van externe statuspagina** | De algemene status die de pagina meldt | Gelijk aan, Niet gelijk aan, Bevat, Bevat niet, Begint met, Eindigt op |
+| **Componentstatus van externe statuspagina** | De status van elk component binnen de afbakening (de gekozen componenten, of die van de groep, als die zijn ingesteld): Operationeel, In onderhoud, Verminderde prestaties, Gedeeltelijke storing, Grote storing of Volledige storing | Gelijk aan, Niet gelijk aan, Bevat, Bevat niet, Begint met, Eindigt op |
+| **Actieve incidenten van externe statuspagina** | Het aantal momenteel actieve incidenten op de statuspagina (alleen die een component binnen de afbakening raken, als er componenten of een groep zijn gekozen) | Gelijk aan, Niet gelijk aan en de numerieke vergelijkingen |
+| **Reactietijd van externe statuspagina (in ms)** | Hoe lang het ophalen van de gegevens van de statuspagina duurt | Groter dan, Kleiner dan, Groter dan of gelijk aan, Kleiner dan of gelijk aan |
 
-De algemene status is wat de pagina zegt, dus de waarden verschillen per provider: een Atlassian Statuspage meldt haar eigen omschrijving, zoals `All Systems Operational`; een OneUptime-statuspagina de slechtste status van haar componenten binnen het bereik, zoals `under_maintenance`; een feed meldt `operational` of `degraded_performance`; de controle op bereikbaarheid meldt `reachable` of `unreachable`. Met gekozen componenten of een groep is het de slechtste status onder hen, op elke pagina. Bij deze vergelijkingen tellen hoofdletters mee. De samenvatting van de monitor toont de algemene status in woorden en kleur, net als die van elke component (`under_maintenance` staat er als **In onderhoud**), terwijl de criteria de waarde vergelijken die de pagina meldt. Om bij storingen te waarschuwen, zijn **External Status Page Active Incidents** en **External Status Page Component Status** meestal betrouwbaarder.
+De algemene status is wat de pagina zegt, dus de waarden verschillen per provider: een Atlassian Statuspage meldt haar eigen omschrijving, zoals `All Systems Operational`; een OneUptime-statuspagina de slechtste status van haar componenten binnen het bereik, zoals `under_maintenance`; een feed meldt `operational` of `degraded_performance`; de controle op bereikbaarheid meldt `reachable` of `unreachable`. Met gekozen componenten of een groep is het de slechtste status onder hen, op elke pagina. Bij deze vergelijkingen tellen hoofdletters mee. De samenvatting van de monitor toont de algemene status in woorden en kleur, net als die van elke component (`under_maintenance` staat er als **In onderhoud**), terwijl de criteria de waarde vergelijken die de pagina meldt. Om bij storingen te waarschuwen, zijn **Actieve incidenten van externe statuspagina** en **Componentstatus van externe statuspagina** meestal betrouwbaarder.
 
 Bij een RSS- of Atom-feed tellen de items van de laatste 24 uur als actieve incidenten: een RSS-item op zijn publicatiedatum, een Atom-item op zijn bijwerkdatum. Een item met een datum in de toekomst telt pas vanaf die datum.
 
@@ -178,7 +178,7 @@ De [standaardcriteria](#standaardcriteria) zien onderhoud nooit aan voor een sto
 :::steps
 ### Het criterium toevoegen
 
-Klik in de criteria van de monitor op **Criteria toevoegen**. Geef het het filter **External Status Page Component Status**, **Gelijk aan**, **In onderhoud**, en kies uw onderhoudsstatus bij **Monitorstatus wijzigen naar**.
+Klik in de criteria van de monitor op **Criteria toevoegen**. Geef het het filter **Componentstatus van externe statuspagina**, **Gelijk aan**, **In onderhoud**, en kies uw onderhoudsstatus bij **Monitorstatus wijzigen naar**.
 
 ### Het bovenaan zetten
 

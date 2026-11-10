@@ -104,15 +104,15 @@ Les critères décident quand le domaine compte comme bon ou défaillant, et si 
 
 | Filtre | Conditions | Ce qu'il vérifie |
 | --- | --- | --- |
-| **Is Online** | **Vrai**, **Faux** | Si la recherche d'enregistrement elle-même a réussi. |
-| **Is Request Timeout** | **Vrai**, **Faux** | Si la recherche a expiré, à chaque tentative. |
-| **Domain Expires In Days** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Les jours avant l'expiration de l'enregistrement, arrondis au jour entier supérieur. |
-| **Domain Is Expired** | **Vrai**, **Faux** | Si la date d'expiration est passée. |
-| **Domain Registrar** | **Contient**, **Ne contient pas**, **Commence par**, **Se termine par**, **Égal à**, **Différent de** | Le nom du registraire. |
-| **Domain Name Server** | **Contient**, **Ne contient pas**, **Commence par**, **Se termine par**, **Égal à**, **Différent de** | Les serveurs de noms du domaine. Correspond quand l'un d'eux correspond. |
-| **Domain Status Code** | **Contient**, **Ne contient pas**, **Commence par**, **Se termine par**, **Égal à**, **Différent de** | Les codes de statut EPP du domaine. Correspond quand l'un d'eux correspond. |
+| **En ligne** | **Vrai**, **Faux** | Si la recherche d'enregistrement elle-même a réussi. |
+| **Délai de la requête dépassé** | **Vrai**, **Faux** | Si la recherche a expiré, à chaque tentative. |
+| **Jours avant l'expiration du domaine** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Les jours avant l'expiration de l'enregistrement, arrondis au jour entier supérieur. |
+| **Domaine expiré** | **Vrai**, **Faux** | Si la date d'expiration est passée. |
+| **Bureau d'enregistrement du domaine** | **Contient**, **Ne contient pas**, **Commence par**, **Se termine par**, **Égal à**, **Différent de** | Le nom du registraire. |
+| **Serveur de noms du domaine** | **Contient**, **Ne contient pas**, **Commence par**, **Se termine par**, **Égal à**, **Différent de** | Les serveurs de noms du domaine. Correspond quand l'un d'eux correspond. |
+| **Code d'état du domaine** | **Contient**, **Ne contient pas**, **Commence par**, **Se termine par**, **Égal à**, **Différent de** | Les codes de statut EPP du domaine. Correspond quand l'un d'eux correspond. |
 
-Les codes de statut sont normalisés vers leur nom EPP (`clientTransferProhibited`) quel que soit le protocole qui a répondu, donc un critère continue de correspondre quand **Auto** passe de RDAP à WHOIS. Les _noms_ de registraire sont ce que publie le service qui répond et peuvent légèrement différer entre les deux protocoles, alors préférez **Contient** à **Égal à** pour un critère **Domain Registrar**.
+Les codes de statut sont normalisés vers leur nom EPP (`clientTransferProhibited`) quel que soit le protocole qui a répondu, donc un critère continue de correspondre quand **Auto** passe de RDAP à WHOIS. Les _noms_ de registraire sont ce que publie le service qui répond et peuvent légèrement différer entre les deux protocoles, alors préférez **Contient** à **Égal à** pour un critère **Bureau d'enregistrement du domaine**.
 
 Les dates sont normalisées en ISO 8601. Une date qu'un registre publie sous une forme impossible à analyser est omise plutôt qu'enregistrée, donc un critère d'expiration ne peut pas trancher, et ne correspond pas, au lieu de répondre en silence « non expiré » pour toujours.
 
@@ -130,13 +130,13 @@ L'avertissement « bientôt expiré » est une alerte, pas un incident : il n'ap
 
 Les critères sont vérifiés de haut en bas, et le premier qui correspond décide de ce qui se passe. C'est pourquoi « bientôt expiré » se trouve au-dessus de « non expiré » : un domaine sur le point d'expirer n'a pas encore expiré, il correspondrait donc aux deux.
 
-Pour être averti plus tôt, changez la valeur du filtre **Domain Expires In Days** dans le critère « bientôt expiré », par exemple à `60`. Pour faire prévenir quelqu'un à la place, ouvrez les **Actions** de ce critère : activez **Lorsque les filtres correspondent, déclarer un incident.**, ou gardez l'alerte et ajoutez-lui une politique d'astreinte sous **Politiques d'astreinte**.
+Pour être averti plus tôt, changez la valeur du filtre **Jours avant l'expiration du domaine** dans le critère « bientôt expiré », par exemple à `60`. Pour faire prévenir quelqu'un à la place, ouvrez les **Actions** de ce critère : activez **Lorsque les filtres correspondent, déclarer un incident.**, ou gardez l'alerte et ajoutez-lui une politique d'astreinte sous **Politiques d'astreinte**.
 
 :::details Ajouter l'avertissement à un moniteur créé avant son existence
 Les moniteurs créés avant que OneUptime n'ajoute cet avertissement n'ont pas de critère « bientôt expiré ». Pour l'ajouter :
 
 1. Sur le moniteur, ouvrez **Configuration → Critères** et cliquez sur **Modifier les critères de surveillance**.
-2. Cliquez sur **Ajouter un critère**. Réglez son filtre sur **Domain Is Expired** / **Faux**, cliquez sur **Ajouter un filtre** et réglez le second sur **Domain Expires In Days** / **Inférieur ou égal à** / `30`. Laissez **Condition de correspondance** sur **Tous** (il apparaît sous les filtres dès qu'il y en a deux).
+2. Cliquez sur **Ajouter un critère**. Réglez son filtre sur **Domaine expiré** / **Faux**, cliquez sur **Ajouter un filtre** et réglez le second sur **Jours avant l'expiration du domaine** / **Inférieur ou égal à** / `30`. Laissez **Condition de correspondance** sur **Tous** (il apparaît sous les filtres dès qu'il y en a deux).
 3. Sous **Actions**, activez **Lorsque les filtres correspondent, créer une alerte.** et laissez **Lorsque les filtres correspondent, modifier le statut du moniteur.** désactivé, pour qu'il crée une alerte sans changer l'état du moniteur.
 4. Faites glisser le nouveau critère au-dessus du critère qui marque le moniteur en ligne, puis enregistrez.
 :::
@@ -145,20 +145,20 @@ Les moniteurs créés avant que OneUptime n'ajoute cet avertissement n'ont pas d
 
 | Objectif | Filtre | Condition | Valeur |
 | --- | --- | --- | --- |
-| Alerter quand le domaine expire dans les 30 jours (un critère par défaut) | **Domain Expires In Days** | **Inférieur ou égal à** | `30` |
-| Hors ligne quand le domaine a expiré | **Domain Is Expired** | **Vrai** | — |
-| Hors ligne quand l'enregistrement ne peut pas être lu | **Is Online** | **Faux** | — |
-| Alerter quand les serveurs de noms changent | **Domain Name Server** | **Ne contient pas** | `ns1.example.com` |
-| Alerter quand le domaine est déverrouillé pour un transfert | **Domain Status Code** | **Ne contient pas** | `clientTransferProhibited` |
+| Alerter quand le domaine expire dans les 30 jours (un critère par défaut) | **Jours avant l'expiration du domaine** | **Inférieur ou égal à** | `30` |
+| Hors ligne quand le domaine a expiré | **Domaine expiré** | **Vrai** | — |
+| Hors ligne quand l'enregistrement ne peut pas être lu | **En ligne** | **Faux** | — |
+| Alerter quand les serveurs de noms changent | **Serveur de noms du domaine** | **Ne contient pas** | `ns1.example.com` |
+| Alerter quand le domaine est déverrouillé pour un transfert | **Code d'état du domaine** | **Ne contient pas** | `clientTransferProhibited` |
 
-**Domain Name Server** et **Domain Status Code** correspondent quand _n'importe quelle_ valeur correspond, donc **Ne contient pas** correspond dès qu'un serveur de noms, ou un code de statut, ne contient pas le texte.
+**Serveur de noms du domaine** et **Code d'état du domaine** correspondent quand _n'importe quelle_ valeur correspond, donc **Ne contient pas** correspond dès qu'un serveur de noms, ou un code de statut, ne contient pas le texte.
 
 ## Bonnes pratiques
 
 1. **Gardez-vous le temps de renouveler** — L'avertissement par défaut arrive 30 jours avant l'expiration. Si le renouvellement demande des validations ou un paiement qui prend plus de temps, passez-le à 60 jours.
-2. **Couvrez les recherches échouées** — Incluez un filtre **Is Online** / **Faux** dans votre critère hors ligne pour qu'un enregistrement illisible ne soit pas pris pour un enregistrement en bonne santé. Les nouveaux moniteurs l'ont dans leurs critères par défaut ; un moniteur créé avant son ajout a besoin qu'on l'ajoute à la main. Pour encaisser un serveur WHOIS qui limite la sonde de temps en temps, cochez **Évaluer ce critère sur une période donnée** sous ce filtre et choisissez **All Values** : le domaine ne passe alors hors ligne que quand chaque recherche de la fenêtre a échoué.
+2. **Couvrez les recherches échouées** — Incluez un filtre **En ligne** / **Faux** dans votre critère hors ligne pour qu'un enregistrement illisible ne soit pas pris pour un enregistrement en bonne santé. Les nouveaux moniteurs l'ont dans leurs critères par défaut ; un moniteur créé avant son ajout a besoin qu'on l'ajoute à la main. Pour encaisser un serveur WHOIS qui limite la sonde de temps en temps, cochez **Évaluer ce critère sur une période donnée** sous ce filtre et choisissez **Toutes les valeurs** : le domaine ne passe alors hors ligne que quand chaque recherche de la fenêtre a échoué.
 3. **Surveillez tous les domaines critiques** — Incluez les domaines principaux, les sous-domaines enregistrés séparément et tous les domaines utilisés pour les e-mails ou les API.
-4. **Suivez les changements de registraire** — Ajoutez un critère avec **Domain Registrar** / **Ne contient pas** / le nom de votre registraire, pour repérer un transfert non autorisé.
+4. **Suivez les changements de registraire** — Ajoutez un critère avec **Bureau d'enregistrement du domaine** / **Ne contient pas** / le nom de votre registraire, pour repérer un transfert non autorisé.
 
 ## Dépannage
 
@@ -179,7 +179,7 @@ RDAP passe par les réglages de proxy de la sonde, WHOIS non. Autorisez le port 
 :::
 
 :::details La date d'expiration est vide, et les critères d'expiration ne se déclenchent jamais
-Le registre ne publie aucune date d'expiration, ou une date sous une forme impossible à analyser. Les critères d'expiration ne peuvent pas trancher sans date, ils restent donc silencieux. **Is Online** vous dit toujours si l'enregistrement peut être lu.
+Le registre ne publie aucune date d'expiration, ou une date sous une forme impossible à analyser. Les critères d'expiration ne peuvent pas trancher sans date, ils restent donc silencieux. **En ligne** vous dit toujours si l'enregistrement peut être lu.
 :::
 
 ## Étapes suivantes

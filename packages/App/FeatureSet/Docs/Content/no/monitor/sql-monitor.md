@@ -224,16 +224,16 @@ Legg til kriterier for å avgjøre når monitoren regnes som online, redusert el
 
 | Filtertype | Hva den sjekker |
 |---|---|
-| **SQL Is Online** | Om databasen kunne nås og spørringen lyktes. |
-| **SQL Query Row Count** | Antall returnerte rader. Sammenlign med operatorer som større enn, mindre enn eller lik. |
-| **SQL Query Scalar Value** | Den første kolonnen i den første raden. Sammenlignes som et tall når verdien du skriver inn, er et tall, ellers som en streng. Dette er kontrollen du bruker for spørringer av typen `COUNT(*)`. |
-| **SQL Query Execution Time (in ms)** | Hvor lang tid spørringen tok. Nyttig for å fange en treg database. |
-| **SQL Query Error** | Feilmeldingen fra spørringen. Varsle når den er (eller ikke er) tom, eller samsvarer med en bestemt streng. |
-| **JavaScript Expression** | Evaluer et egendefinert JavaScript-uttrykk over `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` og `isOnline`. Se [JavaScript-uttrykk](/docs/monitor/javascript-expression#monitorer-for-sql-spørringer). |
+| **SQL er tilkoblet** | Om databasen kunne nås og spørringen lyktes. |
+| **Antall rader fra SQL-spørring** | Antall returnerte rader. Sammenlign med operatorer som større enn, mindre enn eller lik. |
+| **Skalarverdi fra SQL-spørring** | Den første kolonnen i den første raden. Sammenlignes som et tall når verdien du skriver inn, er et tall, ellers som en streng. Dette er kontrollen du bruker for spørringer av typen `COUNT(*)`. |
+| **Kjøretid for SQL-spørring (i ms)** | Hvor lang tid spørringen tok. Nyttig for å fange en treg database. |
+| **SQL-spørringsfeil** | Feilmeldingen fra spørringen. Varsle når den er (eller ikke er) tom, eller samsvarer med en bestemt streng. |
+| **JavaScript-uttrykk** | Evaluer et egendefinert JavaScript-uttrykk over `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` og `isOnline`. Se [JavaScript-uttrykk](/docs/monitor/javascript-expression#monitorer-for-sql-spørringer). |
 
 Numeriske terskler er heltall: skriv `10`, ikke `10.5`. SQL Query-filtre kan ikke evalueres over en tidsperiode; hver kontroll står for seg selv.
 
-En ny SQL-spørring-monitor starter med to kriterier: **SQL Is Online** er usann — monitoren blir frakoblet og erklærer en hendelse som løser seg selv — og **SQL Is Online** er sann, som markerer den som online. **Legg til kriterier** legger til ett nederst; dra det over online-kriteriet, fordi kriteriene sjekkes ovenfra, og det første som samsvarer, avgjør.
+En ny SQL-spørring-monitor starter med to kriterier: **SQL er tilkoblet** er usann — monitoren blir frakoblet og erklærer en hendelse som løser seg selv — og **SQL er tilkoblet** er sann, som markerer den som online. **Legg til kriterier** legger til ett nederst; dra det over online-kriteriet, fordi kriteriene sjekkes ovenfra, og det første som samsvarer, avgjør.
 
 ### Eksempel: varsle når kanselleringer skyter i været
 

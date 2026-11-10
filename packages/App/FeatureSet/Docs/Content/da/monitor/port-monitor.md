@@ -108,11 +108,11 @@ Kriterier afgør, hvornår porten tæller som online, forringet eller offline, o
 
 | Filter | Betingelser | Hvad det tjekker |
 | --- | --- | --- |
-| **Is Online** | **Sand**, **Falsk** | Om porten accepterede en forbindelse. |
+| **Er online** | **Sand**, **Falsk** | Om porten accepterede en forbindelse. |
 | **Total Connection Time (DNS + TCP) (in ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Hele forbindelsestiden, inklusive DNS-opslaget for et værtsnavn. |
-| **Port DNS Lookup Time (in ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | DNS-opslaget før det første TCP-forsøg. Det har ingen værdi, når målet er en IP-adresse. |
-| **Port TCP Connect Time (in ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Fra det første TCP-forsøg, til forbindelsen accepteres, inklusive skift mellem IPv6 og IPv4. |
-| **Is Request Timeout** | **Sand**, **Falsk** | Om DNS-opslaget eller TCP-forbindelsen overskred timeout ved hvert forsøg. |
+| **DNS-opslagstid for port (i ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | DNS-opslaget før det første TCP-forsøg. Det har ingen værdi, når målet er en IP-adresse. |
+| **TCP-forbindelsestid for port (i ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Fra det første TCP-forsøg, til forbindelsen accepteres, inklusive skift mellem IPv6 og IPv4. |
+| **Timeout for anmodning** | **Sand**, **Falsk** | Om DNS-opslaget eller TCP-forbindelsen overskred timeout ved hvert forsøg. |
 
 Et kriterium for DNS-opslagstid har intet at evaluere, når målet er en IP-adresse. Til kriterier, der skal virke med både værtsnavne og IP-adresser, bruger du totaltiden eller TCP-forbindelsestiden.
 
@@ -129,17 +129,17 @@ Kriterier tjekkes fra top til bund, og det første, der matcher, afgør, hvad de
 
 ### Evaluering over en periode
 
-**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **Is Online**, **Total Connection Time (DNS + TCP) (in ms)**, **Port DNS Lookup Time (in ms)**, **Port TCP Connect Time (in ms)** og **Is Request Timeout**. Slå det til for at bedømme et vindue af tidligere tjek i stedet for kun det seneste: vælg en aggregering under **Evaluér** og et vindue fra 2 til 60 minutter under **For de seneste (i minutter)**.
+**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **Er online**, **Total Connection Time (DNS + TCP) (in ms)**, **DNS-opslagstid for port (i ms)**, **TCP-forbindelsestid for port (i ms)** og **Timeout for anmodning**. Slå det til for at bedømme et vindue af tidligere tjek i stedet for kun det seneste: vælg en aggregering under **Evaluér** og et vindue fra 2 til 60 minutter under **For de seneste (i minutter)**.
 
 | Aggregering | Matcher, når |
 | --- | --- |
-| **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value** | Den værdi over vinduet opfylder betingelsen. Kun numeriske filtre. |
-| **All Values** | Hvert tjek i vinduet opfylder betingelsen. |
-| **Any Value** | Mindst ét tjek i vinduet opfylder betingelsen. |
+| **Gennemsnit**, **Sum**, **Maksimumværdi**, **Minimumværdi** | Den værdi over vinduet opfylder betingelsen. Kun numeriske filtre. |
+| **Alle værdier** | Hvert tjek i vinduet opfylder betingelsen. |
+| **Vilkårlig værdi** | Mindst ét tjek i vinduet opfylder betingelsen. |
 
-**All Values** matcher først, når vinduet virkelig er dækket af data. En monitor, der lige er oprettet, eller en, hvis tjek ikke længere er blevet registreret, har ikke nok historik til at sige noget om de seneste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Any Value** er indstillingen for "sig det med det samme, når et enkelt tjek overskrider grænsen" og udløses stadig med det samme.
+**Alle værdier** matcher først, når vinduet virkelig er dækket af data. En monitor, der lige er oprettet, eller en, hvis tjek ikke længere er blevet registreret, har ikke nok historik til at sige noget om de seneste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Vilkårlig værdi** er indstillingen for "sig det med det samme, når et enkelt tjek overskrider grænsen" og udløses stadig med det samme.
 
-**Is Request Timeout** er ikke et tal, OneUptime registrerer. OneUptime registrerer derfor, om filteret passede ved hvert tjek, og bedømmer vinduet ud fra den registrering med **All Values** eller **Any Value**.
+**Timeout for anmodning** er ikke et tal, OneUptime registrerer. OneUptime registrerer derfor, om filteret passede ved hvert tjek, og bedømmer vinduet ud fra den registrering med **Alle værdier** eller **Vilkårlig værdi**.
 
 Gør vinduet længere end overvågningsintervallet, så det rummer flere tjek: en monitor, der tjekkes hvert 5. minut, har kun ét tjek i et vindue på 5 minutter.
 
@@ -155,11 +155,11 @@ Gør vinduet længere end overvågningsintervallet, så det rummer flere tjek: e
 
 | Mål | Filter | Betingelse | Værdi |
 | --- | --- | --- | --- |
-| Offline, når porten er lukket | **Is Online** | **Falsk** | — |
+| Offline, når porten er lukket | **Er online** | **Falsk** | — |
 | Advar, når det går langsomt at forbinde | **Total Connection Time (DNS + TCP) (in ms)** | **Større end** | `500` |
 | Markér tjenesten som forringet, når den er langsom til at forbinde | **Total Connection Time (DNS + TCP) (in ms)** | **Større end** | `200` |
-| Advar, når DNS er langsom | **Port DNS Lookup Time (in ms)** | **Større end** | `100` |
-| Advar, når TCP-handshaket er langsomt | **Port TCP Connect Time (in ms)** | **Større end** | `250` |
+| Advar, når DNS er langsom | **DNS-opslagstid for port (i ms)** | **Større end** | `100` |
+| Advar, når TCP-handshaket er langsomt | **TCP-forbindelsestid for port (i ms)** | **Større end** | `250` |
 
 ## Fejlfinding
 
@@ -168,7 +168,7 @@ Sonden kunne ikke åbne en forbindelse: en firewall dropper den, tjenesten lytte
 :::
 
 :::details DNS-opslagstiden er altid tom
-Målet er en IP-adresse, så der er intet at slå op. Brug i stedet **Total Connection Time (DNS + TCP) (in ms)** eller **Port TCP Connect Time (in ms)**.
+Målet er en IP-adresse, så der er intet at slå op. Brug i stedet **Total Connection Time (DNS + TCP) (in ms)** eller **TCP-forbindelsestid for port (i ms)**.
 :::
 
 :::details Jeg skal tjekke en UDP-tjeneste

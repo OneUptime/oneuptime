@@ -15,6 +15,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * HOW EVERY WEBHOOK WENT, FOR THE PLATFORM'S OPERATOR (issue #6600).
@@ -76,7 +77,7 @@ const TIMELINE_ID: ObjectID = new ObjectID(
   "66008888-0000-4000-8000-000000000002",
 );
 
-let post: jest.SpiedFunction<typeof API.post>;
+let post: SpyInstance<typeof API.post>;
 
 function send(
   url: string = "https://hooks.example.com/oneuptime",
@@ -104,11 +105,12 @@ beforeEach(() => {
   jest
     .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
     .mockResolvedValue(undefined as never);
+  // API.post is generic, so its spy is typed by a cast.
   post = jest
     .spyOn(API, "post")
     .mockResolvedValue(
       new HTTPResponse<JSONObject>(200, { ok: true }, {}) as never,
-    );
+    ) as unknown as SpyInstance<typeof API.post>;
   jest.spyOn(WebhookLogService, "create").mockResolvedValue({} as never);
   jest
     .spyOn(UserOnCallLogTimelineService, "updateOneById")

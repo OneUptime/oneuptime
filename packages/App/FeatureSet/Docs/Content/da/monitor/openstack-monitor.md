@@ -84,7 +84,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 Et filter afgrænser kun en serie, der har dets label: `openstack_nova_up` har intet projekt, så et projektfilter lader den være uændret.
 
-Hold vinduet på tre indsamlinger eller flere af det, du læser: 6 minutter for compute, netværk, volumen og placement, 15 for identitet og image. Et kortere vindue rummer ikke nok indsamlinger til, at **All Values** kan betyde en varighed.
+Hold vinduet på tre indsamlinger eller flere af det, du læser: 6 minutter for compute, netværk, volumen og placement, 15 for identitet og image. Et kortere vindue rummer ikke nok indsamlinger til, at **Alle værdier** kan betyde en varighed.
 
 ## Identitetsattributter
 
@@ -752,8 +752,8 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | Felt | Hvad det gør |
 | --- | --- |
 | **Metrik** | Forespørgslen eller formlen, der skal tjekkes, ved dens variabelnavn. |
-| **Aggregering** | Hvordan værdierne i vinduet bliver til ét svar: **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver værdi skal passe, over hele vinduet) eller **Any Value** (én er nok). |
-| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Har ingen data** passer, når forespørgslen intet sendte i vinduet, **Har data**, når den sendte noget. **Forventes at stige over** og **Forventes at falde under** passer, når metrikkens tendens over vinduet vil være forbi tærsklen ved udgangen af **Tidshorisont**. |
+| **Aggregering** | Hvordan værdierne i vinduet bliver til ét svar: **Gennemsnit**, **Sum**, **Maksimumværdi**, **Minimumværdi**, **Alle værdier** (hver værdi skal passe, over hele vinduet) eller **Vilkårlig værdi** (én er nok). |
+| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Unormalt høj**, **Unormalt lav** eller **Unormal**. **Har ingen data** passer, når forespørgslen intet sendte i vinduet, **Har data**, når den sendte noget. **Forventes at stige over** og **Forventes at falde under** passer, når metrikkens tendens over vinduet vil være forbi tærsklen ved udgangen af **Tidshorisont**. |
 | **Tærskel** | Den værdi, der sammenlignes med. En enhedsliste står ved siden af, når metrikken har en enhed. Vises ikke for anomalibetingelser. |
 | **Følsomhed** | Kun anomalibetingelser. **Lav** (4σ), **Mellem** (3σ, standarden) eller **Høj** (2σ). |
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standarden), 28, 60 eller 90 dages historik. |

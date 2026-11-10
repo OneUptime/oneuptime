@@ -49,11 +49,11 @@ Ga naar **Monitoren** en klik op **Monitor maken**.
 
 ### Incoming Request kiezen
 
-Kies onder **Monitortype** de optie **Incoming Request**: dat is een van de gangbare typen bovenaan. Voer een **Naam** in en klik op **Volgende**.
+Kies onder **Monitortype** de optie **Inkomende aanvraag**: dat is een van de gangbare typen bovenaan. Voer een **Naam** in en klik op **Volgende**.
 
 ### De criteria nakijken
 
-De stap **Criteria** begint met [de standaardcriteria](#wat-u-meteen-krijgt). Klik voor een heartbeat op **Criteria toevoegen** en geef het nieuwe criterium een filter **Incoming Request** / **Not Recieved In Minutes** dat de status op offline zet en een incident verklaart, met **Incident automatisch oplossen** aan. Sleep het daarna bovenaan de lijst; zie [Voorbeeldcriteria](#voorbeeldcriteria) voor het waarom.
+De stap **Criteria** begint met [de standaardcriteria](#wat-u-meteen-krijgt). Klik voor een heartbeat op **Criteria toevoegen** en geef het nieuwe criterium een filter **Inkomende aanvraag** / **Niet ontvangen in minuten** dat de status op offline zet en een incident verklaart, met **Incident automatisch oplossen** aan. Sleep het daarna bovenaan de lijst; zie [Voorbeeldcriteria](#voorbeeldcriteria) voor het waarom.
 
 ### De monitor maken
 
@@ -205,7 +205,7 @@ Dit past bij het gangbare geval waarin de afzender zijn eigen gezondheid in de p
 Verander de waarde in wat uw afzender werkelijk stuurt (`"status":"firing"`, `FAILED` enzovoort): de vergelijking is een hoofdlettergevoelige zoekactie naar een deeltekenreeks over de hele body, sleutels inbegrepen, dus ook `{"error":null}` komt overeen met `error`.
 
 > [!NOTE]
-> Deze standaardcriteria zijn **geen** dodemansknop: niets hier gaat af als verzoeken uitblijven. Wilt u bij stilte gewaarschuwd worden, voeg dan een criterium **Incoming Request** / **Not Recieved In Minutes** toe zoals hieronder beschreven.
+> Deze standaardcriteria zijn **geen** dodemansknop: niets hier gaat af als verzoeken uitblijven. Wilt u bij stilte gewaarschuwd worden, voeg dan een criterium **Inkomende aanvraag** / **Niet ontvangen in minuten** toe zoals hieronder beschreven.
 
 ### Beschikbare filtertypen
 
@@ -223,9 +223,9 @@ Elk filtertype heeft zijn eigen voorwaarden:
 
 | Filtertype | Voorwaarden |
 | --- | --- |
-| **Incoming Request** | **Recieved In Minutes**: binnen het opgegeven aantal minuten is een verzoek ontvangen. **Not Recieved In Minutes**: binnen het opgegeven aantal minuten is geen verzoek ontvangen. (Het dashboard spelt ze zo.) |
-| **Verzoeklichaam**, **Request Header**, **Request Header Value** | **Bevat** en **Bevat niet** |
-| **JavaScript Expression** | **Evaluates To True** |
+| **Inkomende aanvraag** | **Ontvangen in minuten**: binnen het opgegeven aantal minuten is een verzoek ontvangen. **Niet ontvangen in minuten**: binnen het opgegeven aantal minuten is geen verzoek ontvangen. (Het dashboard spelt ze zo.) |
+| **Verzoeklichaam**, **Aanvraagheader**, **Waarde van aanvraagheader** | **Bevat** en **Bevat niet** |
+| **JavaScript-expressie** | **Resulteert in waar** |
 
 > [!NOTE]
 > Headernamen en -waarden worden in kleine letters vergeleken, met de hele naam of waarde, niet als deeltekenreeks: `application/json` komt niet overeen met `application/json; charset=utf-8`. Alleen **Verzoeklichaam** zoekt naar een deeltekenreeks. Headers die uw proxy of de load balancer van OneUptime toevoegt (`x-forwarded-for`, `x-real-ip`), worden ook opgeslagen.
@@ -239,7 +239,7 @@ Object-bodies worden vergeleken als compacte JSON zonder spaties, dus een filter
 | Veld | Waarde |
 | --- | --- |
 | **Filtertype** | Incoming Request |
-| **Filtervoorwaarde** | Not Recieved In Minutes |
+| **Filtervoorwaarde** | Niet ontvangen in minuten |
 | **Waarde** | `10` |
 
 #### Als verminderd markeren op basis van de inhoud van het verzoeklichaam
@@ -254,9 +254,9 @@ Object-bodies worden vergeleken als compacte JSON zonder spaties, dus een filter
 > Zet de dodemansknop **boven** de standaardcriteria. Criteria worden van boven af getoetst, en het eerste dat overeenkomt, beslist. De controle op de achtergrond leest het laatste verzoek opnieuw, dus het standaard online-criterium ("Verzoeklichaam Bevat niet `error`") blijft ermee overeenkomen, en een criterium eronder komt nooit aan de beurt. **Criteria toevoegen** voegt een criterium onderaan toe: sleep het omhoog.
 
 > [!WARNING]
-> Een monitor wordt alleen op de achtergrond opnieuw getoetst als ten minste één van zijn criteria **Incoming Request** controleert. Een monitor waarvan de criteria alleen het verzoeklichaam, Request Header of een JavaScript-expressie controleren, wordt getoetst als er een verzoek binnenkomt en op geen ander moment, dus hij kan nooit vanzelf offline gaan. Wilt u een alarm bij een ontbrekende heartbeat, dan hebt u een criterium **Incoming Request** nodig.
+> Een monitor wordt alleen op de achtergrond opnieuw getoetst als ten minste één van zijn criteria **Inkomende aanvraag** controleert. Een monitor waarvan de criteria alleen het verzoeklichaam, Request Header of een JavaScript-expressie controleren, wordt getoetst als er een verzoek binnenkomt en op geen ander moment, dus hij kan nooit vanzelf offline gaan. Wilt u een alarm bij een ontbrekende heartbeat, dan hebt u een criterium **Inkomende aanvraag** nodig.
 
-De controle op de achtergrond telt hele minuten en gaat af zodra er *meer* dan de waarde verstreken is: "Not Recieved In Minutes: 10" gaat ongeveer 11 minuten na het laatste verzoek af (de controle draait elke 30 seconden). Een monitor die nog nooit een verzoek heeft ontvangen, wordt behandeld alsof zijn aanmaaktijd het laatste verzoek was, dus hetzelfde criterium op een gloednieuwe monitor gaat ongeveer 11 minuten na het aanmaken af, ook als de afzender nooit is aangesloten. Alleen minuten waarin OneUptime ontving, tellen mee: minuten waarin OneUptime zelf herstart, wordt bijgewerkt of een achterstand inhaalt, tellen niet, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.
+De controle op de achtergrond telt hele minuten en gaat af zodra er *meer* dan de waarde verstreken is: "Niet ontvangen in minuten: 10" gaat ongeveer 11 minuten na het laatste verzoek af (de controle draait elke 30 seconden). Een monitor die nog nooit een verzoek heeft ontvangen, wordt behandeld alsof zijn aanmaaktijd het laatste verzoek was, dus hetzelfde criterium op een gloednieuwe monitor gaat ongeveer 11 minuten na het aanmaken af, ook als de afzender nooit is aangesloten. Alleen minuten waarin OneUptime ontving, tellen mee: minuten waarin OneUptime zelf herstart, wordt bijgewerkt of een achterstand inhaalt, tellen niet, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.
 
 ## Waarschuwingen uit een ander systeem ontvangen
 
@@ -347,10 +347,10 @@ Een volledige Alertmanager-configuratie vindt u onder [Prometheus Alertmanager](
 
 ## Aanbevolen werkwijzen
 
-1. **Stel het tijdvenster passend in**: draait uw cronjob elke 5 minuten, zet de drempel van "Not Recieved In Minutes" dan op 10–15 minuten om af en toe een vertraging op te vangen, en zet dat criterium bovenaan.
+1. **Stel het tijdvenster passend in**: draait uw cronjob elke 5 minuten, zet de drempel van "Niet ontvangen in minuten" dan op 10–15 minuten om af en toe een vertraging op te vangen, en zet dat criterium bovenaan.
 2. **Stuur zinvolle gegevens mee**: stuur statusinformatie in het verzoeklichaam, zodat u fijnmazige criteria kunt instellen.
 3. **Gebruik POST met `Content-Type: application/json`**: alles wat in de body leest, hangt daarvan af.
-4. **Meng de twee taken niet op één monitor**: een monitor die gebeurtenisgestuurde waarschuwingen ontvangt, heeft geen vast ritme, dus een criterium "Not Recieved In Minutes" daarop zou steeds omslaan. Gebruik een aparte monitor voor de dodemansknop.
+4. **Meng de twee taken niet op één monitor**: een monitor die gebeurtenisgestuurde waarschuwingen ontvangt, heeft geen vast ritme, dus een criterium "Niet ontvangen in minuten" daarop zou steeds omslaan. Gebruik een aparte monitor voor de dodemansknop.
 5. **Bewaak de bewaker**: zorg dat de service die de verzoeken stuurt, fouten goed afhandelt, zodat mislukte verzoeken niet onopgemerkt blijven.
 
 ## Probleemoplossing
@@ -360,7 +360,7 @@ De `200` wordt verstuurd voordat het verzoek wordt gecontroleerd, dus hij bewijs
 :::
 
 :::details De monitor gaat nooit offline als de heartbeats uitblijven
-Alleen een criterium **Incoming Request** (**Not Recieved In Minutes**) kan stilte opmerken. Voeg er een toe als dat er niet is, en sleep het boven de standaardcriteria: het standaard online-criterium komt bij elke controle op de achtergrond overeen met het laatste verzoek, en het eerste criterium dat overeenkomt, beslist.
+Alleen een criterium **Inkomende aanvraag** (**Niet ontvangen in minuten**) kan stilte opmerken. Voeg er een toe als dat er niet is, en sleep het boven de standaardcriteria: het standaard online-criterium komt bij elke controle op de achtergrond overeen met het laatste verzoek, en het eerste criterium dat overeenkomt, beslist.
 :::
 
 :::details Een filter Verzoeklichaam komt nooit overeen

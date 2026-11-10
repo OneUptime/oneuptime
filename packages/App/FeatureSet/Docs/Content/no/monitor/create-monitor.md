@@ -18,7 +18,7 @@ Gå til **Monitorer**, og klikk på **Opprett monitor**. Skjemaet åpner på fø
 
 Det første spørsmålet er **Monitortype**: hva vil du overvåke?
 
-- De seks typene folk oppretter oftest, kommer først: **Nettsted**, **API**, **Ping**, **Port**, **SSL Certificate** og **Incoming Request**, for heartbeats fra cron-jobber og webhooks.
+- De seks typene folk oppretter oftest, kommer først: **Nettsted**, **API**, **Ping**, **Port**, **SSL Certificate** og **Innkommende forespørsel**, for heartbeats fra cron-jobber og webhooks.
 - **Flere monitortyper** viser alle andre typer under kategorien sin, som **Infrastruktur** (Kubernetes, Docker, vert) og **Telemetri** (logger, målinger, spor). **Manuell**, en monitor der du selv setter statusen, og **Sondestatus**, som gir beskjed når en probe mister forbindelsen, ligger under **Annet**.
 - Eller skriv i søkefeltet. Det kjenner ordene du allerede bruker, som `k8s`, `postgres`, `heartbeat` eller `tls`, og **Enter** velger det første treffet.
 

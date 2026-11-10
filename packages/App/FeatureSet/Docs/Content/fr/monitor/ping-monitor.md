@@ -83,9 +83,9 @@ Les critères décident quand l'hôte compte comme en ligne, dégradé ou hors l
 | --- | --- | --- |
 | **Is Online** | **Vrai**, **Faux** | Si au moins une requête d'écho a reçu une réponse. |
 | **Temps de réponse (en ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Le temps aller-retour moyen des réponses. |
-| **Packet Loss (in %)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | La part des cinq requêtes d'écho restées sans réponse. |
-| **Jitter (in ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | L'écart type des temps aller-retour sur les paquets envoyés lors d'une vérification. |
-| **Is Request Timeout** | **Vrai**, **Faux** | Si le ping a expiré à chaque tentative. |
+| **Perte de paquets (en %)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | La part des cinq requêtes d'écho restées sans réponse. |
+| **Gigue (en ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | L'écart type des temps aller-retour sur les paquets envoyés lors d'une vérification. |
+| **Délai de la requête dépassé** | **Vrai**, **Faux** | Si le ping a expiré à chaque tentative. |
 
 Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Au moins un** suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer l'état du moniteur, créer une alerte, déclarer un incident, ou plusieurs de ces actions.
 
@@ -100,17 +100,17 @@ Les critères sont vérifiés de haut en bas, et le premier qui correspond déci
 
 ### Évaluer sur une période
 
-**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **Is Online**, **Temps de réponse (en ms)**, **Packet Loss (in %)**, **Jitter (in ms)** et **Is Request Timeout**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
+**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **Is Online**, **Temps de réponse (en ms)**, **Perte de paquets (en %)**, **Gigue (en ms)** et **Délai de la requête dépassé**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
 
 | Agrégation | Correspond quand |
 | --- | --- |
-| **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value** | Cette valeur, sur la fenêtre, remplit la condition. Filtres numériques seulement. |
-| **All Values** | Chaque vérification de la fenêtre remplit la condition. |
-| **Any Value** | Au moins une vérification de la fenêtre remplit la condition. |
+| **Moyenne**, **Somme**, **Valeur maximale**, **Valeur minimale** | Cette valeur, sur la fenêtre, remplit la condition. Filtres numériques seulement. |
+| **Toutes les valeurs** | Chaque vérification de la fenêtre remplit la condition. |
+| **Au moins une valeur** | Au moins une vérification de la fenêtre remplit la condition. |
 
-**All Values** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Any Value** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
+**Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
 
-**Is Request Timeout** n'est pas un nombre qu'OneUptime enregistre : OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **All Values** ou **Any Value**.
+**Délai de la requête dépassé** n'est pas un nombre qu'OneUptime enregistre : OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **Toutes les valeurs** ou **Au moins une valeur**.
 
 Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'elle contienne plusieurs vérifications : un moniteur vérifié toutes les 5 minutes n'a qu'une seule vérification dans une fenêtre de 5 minutes.
 
@@ -128,10 +128,10 @@ Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'el
 | --- | --- | --- | --- |
 | Hors ligne quand l'hôte est injoignable | **Is Online** | **Faux** | — |
 | Alerter quand la latence est élevée | **Temps de réponse (en ms)** | **Supérieur à** | `200` |
-| Marquer l'hôte dégradé sur un lien qui perd des paquets | **Packet Loss (in %)** | **Supérieur à** | `20` |
-| Alerter sur une connexion instable | **Jitter (in ms)** | **Supérieur à** | `30` |
+| Marquer l'hôte dégradé sur un lien qui perd des paquets | **Perte de paquets (en %)** | **Supérieur à** | `20` |
+| Alerter sur une connexion instable | **Gigue (en ms)** | **Supérieur à** | `30` |
 
-Pour n'alerter que lorsque la latence reste élevée, activez **Évaluer ce critère sur une période donnée** pour le filtre de temps de réponse et choisissez **All Values** sur **5** minutes.
+Pour n'alerter que lorsque la latence reste élevée, activez **Évaluer ce critère sur une période donnée** pour le filtre de temps de réponse et choisissez **Toutes les valeurs** sur **5** minutes.
 
 ## Dépannage
 

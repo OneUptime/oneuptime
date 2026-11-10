@@ -101,7 +101,7 @@ Estos ajustes están plegados en **Más campos**. El encabezado plegado los enum
 
 | Campo | Predeterminado | Qué hace |
 | --- | --- | --- |
-| **Encabezados de la solicitud** | Ninguno | Los encabezados que se envían, como pares de nombre y valor. Haga clic en **Añadir Request Header** para cada uno. |
+| **Encabezados de la solicitud** | Ninguno | Los encabezados que se envían, como pares de nombre y valor. Haga clic en **Añadir Encabezado de la solicitud** para cada uno. |
 | **Cuerpo de la solicitud (en JSON)** | Ninguno | Un objeto JSON que se envía como cuerpo, normalmente con **POST**, **PUT** o **PATCH**. Debe ser JSON válido. |
 | **No seguir redirecciones** | Desactivado | Juzgar la primera respuesta en lugar de seguir las redirecciones. Consulte [más abajo](#no-seguir-redirecciones). |
 | **Permitir certificados autofirmados** | Desactivado | Omitir la validación del certificado TLS para el propio nombre de host del monitor. |
@@ -158,10 +158,10 @@ Los criterios deciden cuándo la API cuenta como en línea, degradada o sin cone
 | **Código de estado de respuesta** | **Igual a**, **Distinto de**, **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | El código de estado HTTP. |
 | **Tiempo de respuesta (en ms)** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Cuánto tardó la solicitud, redirecciones incluidas. |
 | **Cuerpo de la respuesta** | **Contiene**, **No contiene** | Texto en el cuerpo de la respuesta. La coincidencia distingue mayúsculas y minúsculas. |
-| **Response Header** | **Contiene**, **No contiene** | Si la respuesta tiene un encabezado con este nombre. Escriba el nombre en minúsculas, como `x-request-id`. |
-| **Response Header Value** | **Contiene**, **No contiene** | Si un encabezado tiene exactamente este valor, comparado en minúsculas, como `application/json`. |
-| **JavaScript Expression** | **Evaluates To True** | Una expresión sobre la respuesta. Consulte [Expresiones JavaScript](/docs/monitor/javascript-expression). |
-| **Is Request Timeout** | **Verdadero**, **Falso** | Si la solicitud agotó el tiempo de espera en todos los intentos. |
+| **Encabezado de respuesta** | **Contiene**, **No contiene** | Si la respuesta tiene un encabezado con este nombre. Escriba el nombre en minúsculas, como `x-request-id`. |
+| **Valor del encabezado de respuesta** | **Contiene**, **No contiene** | Si un encabezado tiene exactamente este valor, comparado en minúsculas, como `application/json`. |
+| **Expresión de JavaScript** | **Se evalúa como verdadero** | Una expresión sobre la respuesta. Consulte [Expresiones JavaScript](/docs/monitor/javascript-expression). |
+| **Tiempo de espera de la solicitud agotado** | **Verdadero**, **Falso** | Si la solicitud agotó el tiempo de espera en todos los intentos. |
 
 Una respuesta JSON se comprueba en su forma compacta, sin espacios entre claves y valores. Para encontrar `"status": "ok"` con **Cuerpo de la respuesta**, introduzca `"status":"ok"`.
 
@@ -178,7 +178,7 @@ Un monitor de API nuevo empieza con dos criterios, así que funciona sin cambiar
 
 En la lista de criterios llevan el nombre del monitor: _Check if (name) is offline_ y _Check if (name) is online_.
 
-Así que un endpoint que responde `201 Created` o `204 No Content` cuenta como disponible. Si para usted solo un código de estado significa que está sano, cambie ambos criterios en la página **Configuración → Criterios** del monitor: por ejemplo **Código de estado de respuesta** / **Igual a** / `200` en el criterio en línea y **Distinto de** / `200` en el de sin conexión, en lugar de los dos filtros de código de estado que tiene cada uno. Para comprobar también lo que devuelve la API, añada un filtro **Cuerpo de la respuesta** o **JavaScript Expression** al criterio de sin conexión.
+Así que un endpoint que responde `201 Created` o `204 No Content` cuenta como disponible. Si para usted solo un código de estado significa que está sano, cambie ambos criterios en la página **Configuración → Criterios** del monitor: por ejemplo **Código de estado de respuesta** / **Igual a** / `200` en el criterio en línea y **Distinto de** / `200` en el de sin conexión, en lugar de los dos filtros de código de estado que tiene cada uno. Para comprobar también lo que devuelve la API, añada un filtro **Cuerpo de la respuesta** o **Expresión de JavaScript** al criterio de sin conexión.
 
 Los criterios se comprueban de arriba abajo, y el primero que coincide decide qué ocurre.
 
@@ -188,17 +188,17 @@ Los monitores creados antes de que OneUptime cambiara estos valores predetermina
 
 ### Evaluar durante un periodo de tiempo
 
-**Evaluar estos criterios durante un periodo de tiempo** es una casilla debajo de un filtro, disponible para **Is Online**, **Código de estado de respuesta**, **Tiempo de respuesta (en ms)**, **Cuerpo de la respuesta**, **Response Header**, **Response Header Value**, **JavaScript Expression** y **Is Request Timeout**. Actívela para juzgar una ventana de comprobaciones anteriores en lugar de la última: elija una agregación en **Evaluar** y una ventana, de 2 a 60 minutos, en **Durante los últimos (en minutos)**.
+**Evaluar estos criterios durante un periodo de tiempo** es una casilla debajo de un filtro, disponible para **Is Online**, **Código de estado de respuesta**, **Tiempo de respuesta (en ms)**, **Cuerpo de la respuesta**, **Encabezado de respuesta**, **Valor del encabezado de respuesta**, **Expresión de JavaScript** y **Tiempo de espera de la solicitud agotado**. Actívela para juzgar una ventana de comprobaciones anteriores en lugar de la última: elija una agregación en **Evaluar** y una ventana, de 2 a 60 minutos, en **Durante los últimos (en minutos)**.
 
 | Agregación | Coincide cuando |
 | --- | --- |
-| **Promedio**, **Suma**, **Maximum Value**, **Minimum Value** | Esa cifra, en la ventana, cumple la condición. Solo filtros numéricos. |
-| **All Values** | Cada comprobación de la ventana cumple la condición. |
-| **Any Value** | Al menos una comprobación de la ventana cumple la condición. |
+| **Promedio**, **Suma**, **Valor máximo**, **Valor mínimo** | Esa cifra, en la ventana, cumple la condición. Solo filtros numéricos. |
+| **Todos los valores** | Cada comprobación de la ventana cumple la condición. |
+| **Cualquier valor** | Al menos una comprobación de la ventana cumple la condición. |
 
-**All Values** solo coincide cuando la ventana está realmente cubierta por datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Any Value** es el ajuste para «avísame en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
+**Todos los valores** solo coincide cuando la ventana está realmente cubierta por datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Cualquier valor** es el ajuste para «avísame en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
 
-Un cuerpo, un encabezado, un valor de encabezado o una expresión no es un número que OneUptime registre, así que para esos filtros y para **Is Request Timeout** registra si el filtro coincidió en cada comprobación, y juzga la ventana a partir de ese registro con **All Values** o **Any Value**. Así es como un monitor supera un reinicio. Una aplicación que está arrancando puede responder `200` con una página provisional como `Application starting...`; con **All Values**, un filtro **Cuerpo de la respuesta** que busca el título de la aplicación solo deja el monitor fuera de línea cuando la página provisional ha durado toda la ventana.
+Un cuerpo, un encabezado, un valor de encabezado o una expresión no es un número que OneUptime registre, así que para esos filtros y para **Tiempo de espera de la solicitud agotado** registra si el filtro coincidió en cada comprobación, y juzga la ventana a partir de ese registro con **Todos los valores** o **Cualquier valor**. Así es como un monitor supera un reinicio. Una aplicación que está arrancando puede responder `200` con una página provisional como `Application starting...`; con **Todos los valores**, un filtro **Cuerpo de la respuesta** que busca el título de la aplicación solo deja el monitor fuera de línea cuando la página provisional ha durado toda la ventana.
 
 Elija una ventana más larga que el intervalo de supervisión, para que contenga varias comprobaciones: un monitor que se comprueba cada 5 minutos tiene una sola comprobación en cualquier ventana de 5 minutos.
 
@@ -216,10 +216,10 @@ Elija una ventana más larga que el intervalo de supervisión, para que contenga
 | --- | --- | --- | --- |
 | Marcar la API como degradada cuando es lenta | **Tiempo de respuesta (en ms)** | **Mayor que** | `1000` |
 | Sin conexión cuando la comprobación de salud informa de un problema | **Cuerpo de la respuesta** | **No contiene** | `"status":"ok"` |
-| Lo mismo, leído del JSON analizado | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
+| Lo mismo, leído del JSON analizado | **Expresión de JavaScript** | **Se evalúa como verdadero** | `"{{responseBody.status}}" !== "ok"` |
 | Aceptar solo `201` de un `POST` | **Código de estado de respuesta** | **Igual a** | `201` |
 
-Para superar un reinicio, active **Evaluar estos criterios durante un periodo de tiempo** en el filtro del cuerpo de la respuesta y elija **All Values** durante 15 minutos.
+Para superar un reinicio, active **Evaluar estos criterios durante un periodo de tiempo** en el filtro del cuerpo de la respuesta y elija **Todos los valores** durante 15 minutos.
 
 ## Solución de problemas
 

@@ -222,7 +222,7 @@ Aucune des deux façons ne remarque quand Prometheus ou Alertmanager cesse de fo
 :::steps
 ### Créer le moniteur de surveillance
 
-Créez un second moniteur de requêtes entrantes, nommé `Alertmanager watchdog`. Réglez le filtre de son premier critère, celui qui marque le moniteur hors ligne, sur **Requête entrante**, **Not Recieved In Minutes**, `10`, et le filtre de son second critère sur **Requête entrante**, **Recieved In Minutes**, `10`. Le tableau de bord écrit les deux ainsi. Copiez l'**URL de heartbeat** du nouveau moniteur.
+Créez un second moniteur de requêtes entrantes, nommé `Alertmanager watchdog`. Réglez le filtre de son premier critère, celui qui marque le moniteur hors ligne, sur **Requête entrante**, **Non reçu dans le délai (minutes)**, `10`, et le filtre de son second critère sur **Requête entrante**, **Reçu dans le délai (minutes)**, `10`. Le tableau de bord écrit les deux ainsi. Copiez l'**URL de heartbeat** du nouveau moniteur.
 
 ### Y diriger l'alerte de surveillance
 

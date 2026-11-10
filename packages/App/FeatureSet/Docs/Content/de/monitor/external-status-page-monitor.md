@@ -102,7 +102,7 @@ Wählen Sie die **Sonden** und ein **Überwachungsintervall** — es beginnt bei
 
 ### Komponenten
 
-Wählen Sie die Komponenten, von denen Sie abhängen, und der Monitor beobachtet nur sie: **External Status Page Component Status** vergleicht nur ihre Status, der Gesamtstatus ist der schlechteste ihrer Status, und **External Status Page Active Incidents** zählt nur die Vorfälle, die mindestens eine von ihnen betreffen. Es bleibt eine einzige Prüfung der Seite, wie viele Sie auch wählen.
+Wählen Sie die Komponenten, von denen Sie abhängen, und der Monitor beobachtet nur sie: **Komponentenstatus der externen Statusseite** vergleicht nur ihre Status, der Gesamtstatus ist der schlechteste ihrer Status, und **Aktive Vorfälle der externen Statusseite** zählt nur die Vorfälle, die mindestens eine von ihnen betreffen. Es bleibt eine einzige Prüfung der Seite, wie viele Sie auch wählen.
 
 Wenn Sie **Komponenten** öffnen, liest Ihr Browser die Liste der Seite von einer Atlassian Statuspage, einer incident.io-Seite oder einer OneUptime-Statusseite und zeigt sie in den Gruppen der Seite; jede Komponente, die nicht betriebsbereit ist, sagt, wie es ihr geht. Ein gewählter Name beobachtet die Komponente mit genau diesem Namen, ohne Beachtung der Groß- und Kleinschreibung: `Copilot` auf der Seite von GitHub ist nicht `Copilot AI Model Providers`.
 
@@ -129,13 +129,13 @@ Sie können Kriterien festlegen, die entscheiden, wann der externe Dienst als on
 
 | Filtertyp | Was er prüft | Filterbedingungen |
 | --- | --- | --- |
-| **External Status Page Is Online** | Ob die Statusseite erreichbar ist und Statusdaten liefert | Wahr oder Falsch |
-| **External Status Page Overall Status** | Der Gesamtstatus, den die Seite meldet | Gleich, Ungleich, Enthält, Enthält nicht, Beginnt mit, Endet mit |
-| **External Status Page Component Status** | Der Status jeder Komponente im Umfang (der gewählten Komponenten oder derer der Gruppe, falls gesetzt): Betriebsbereit, In Wartung, Beeinträchtigte Leistung, Teilweiser Ausfall, Schwerer Ausfall oder Vollständiger Ausfall | Gleich, Ungleich, Enthält, Enthält nicht, Beginnt mit, Endet mit |
-| **External Status Page Active Incidents** | Die Zahl der aktuell aktiven Vorfälle auf der Statusseite (nur die, die eine Komponente im Umfang betreffen, wenn Komponenten oder eine Gruppe gewählt sind) | Gleich, Ungleich und die numerischen Vergleiche |
-| **External Status Page Response Time (in ms)** | Wie lange das Abrufen der Daten der Statusseite dauert | Größer als, Kleiner als, Größer als oder gleich, Kleiner als oder gleich |
+| **Externe Statusseite ist online** | Ob die Statusseite erreichbar ist und Statusdaten liefert | Wahr oder Falsch |
+| **Gesamtstatus der externen Statusseite** | Der Gesamtstatus, den die Seite meldet | Gleich, Ungleich, Enthält, Enthält nicht, Beginnt mit, Endet mit |
+| **Komponentenstatus der externen Statusseite** | Der Status jeder Komponente im Umfang (der gewählten Komponenten oder derer der Gruppe, falls gesetzt): Betriebsbereit, In Wartung, Beeinträchtigte Leistung, Teilweiser Ausfall, Schwerer Ausfall oder Vollständiger Ausfall | Gleich, Ungleich, Enthält, Enthält nicht, Beginnt mit, Endet mit |
+| **Aktive Vorfälle der externen Statusseite** | Die Zahl der aktuell aktiven Vorfälle auf der Statusseite (nur die, die eine Komponente im Umfang betreffen, wenn Komponenten oder eine Gruppe gewählt sind) | Gleich, Ungleich und die numerischen Vergleiche |
+| **Antwortzeit der externen Statusseite (in ms)** | Wie lange das Abrufen der Daten der Statusseite dauert | Größer als, Kleiner als, Größer als oder gleich, Kleiner als oder gleich |
 
-Der Gesamtstatus ist das, was die Seite sagt, seine Werte hängen also vom Anbieter ab: Eine Atlassian Statuspage meldet ihre eigene Beschreibung, etwa `All Systems Operational`; eine OneUptime-Statusseite den schlechtesten Status ihrer Komponenten im Bereich, etwa `under_maintenance`; ein Feed meldet `operational` oder `degraded_performance`; die Erreichbarkeitsprüfung meldet `reachable` oder `unreachable`. Sind Komponenten oder eine Gruppe gewählt, ist er auf jeder Seite der schlechteste Status unter ihnen. Diese Vergleiche beachten die Groß- und Kleinschreibung. Die Zusammenfassung des Monitors zeigt den Gesamtstatus in Worten und Farbe, wie den jeder Komponente (`under_maintenance` lautet **In Wartung**), während die Kriterien den Wert vergleichen, den die Seite meldet. Um auf Ausfälle zu alarmieren, sind **External Status Page Active Incidents** und **External Status Page Component Status** meist zuverlässiger.
+Der Gesamtstatus ist das, was die Seite sagt, seine Werte hängen also vom Anbieter ab: Eine Atlassian Statuspage meldet ihre eigene Beschreibung, etwa `All Systems Operational`; eine OneUptime-Statusseite den schlechtesten Status ihrer Komponenten im Bereich, etwa `under_maintenance`; ein Feed meldet `operational` oder `degraded_performance`; die Erreichbarkeitsprüfung meldet `reachable` oder `unreachable`. Sind Komponenten oder eine Gruppe gewählt, ist er auf jeder Seite der schlechteste Status unter ihnen. Diese Vergleiche beachten die Groß- und Kleinschreibung. Die Zusammenfassung des Monitors zeigt den Gesamtstatus in Worten und Farbe, wie den jeder Komponente (`under_maintenance` lautet **In Wartung**), während die Kriterien den Wert vergleichen, den die Seite meldet. Um auf Ausfälle zu alarmieren, sind **Aktive Vorfälle der externen Statusseite** und **Komponentenstatus der externen Statusseite** meist zuverlässiger.
 
 Bei einem RSS- oder Atom-Feed zählen die Einträge der letzten 24 Stunden als aktive Vorfälle: ein RSS-Eintrag nach seinem Veröffentlichungsdatum, ein Atom-Eintrag nach seinem Aktualisierungsdatum. Ein Eintrag mit einem Datum in der Zukunft zählt erst ab diesem Datum.
 
@@ -178,7 +178,7 @@ Die [Standardkriterien](#standardkriterien) halten Wartung nie für einen Ausfal
 :::steps
 ### Das Kriterium hinzufügen
 
-Klicken Sie in den Kriterien des Monitors auf **Kriterien hinzufügen**. Geben Sie ihm den Filter **External Status Page Component Status**, **Gleich**, **In Wartung** und wählen Sie Ihren Wartungsstatus unter **Überwachungsstatus ändern in**.
+Klicken Sie in den Kriterien des Monitors auf **Kriterien hinzufügen**. Geben Sie ihm den Filter **Komponentenstatus der externen Statusseite**, **Gleich**, **In Wartung** und wählen Sie Ihren Wartungsstatus unter **Überwachungsstatus ändern in**.
 
 ### Es ganz nach oben ziehen
 

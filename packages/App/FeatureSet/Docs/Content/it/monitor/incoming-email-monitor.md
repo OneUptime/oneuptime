@@ -151,7 +151,7 @@ Un nuovo monitor di email in arrivo viene creato con due criteri che leggono il 
 Sostituite il valore con ciò che il vostro mittente scrive davvero (`FAILED`, `exit code 1` e così via).
 
 > [!NOTE]
-> Questi criteri predefiniti **non** sono un interruttore a uomo morto: niente qui scatta quando le email smettono di arrivare. I criteri che leggono solo oggetto, mittente, corpo o destinatario vengono valutati quando arriva un'email e in nessun altro momento. Per essere avvisati del silenzio, aggiungete un criterio **Email Received** / **Not Recieved In Minutes**: vedete l'[Esempio 3](#esempio-3-monitor-heartbeat-nessuna-email-avviso).
+> Questi criteri predefiniti **non** sono un interruttore a uomo morto: niente qui scatta quando le email smettono di arrivare. I criteri che leggono solo oggetto, mittente, corpo o destinatario vengono valutati quando arriva un'email e in nessun altro momento. Per essere avvisati del silenzio, aggiungete un criterio **Email ricevuta** / **Non ricevuto in minuti**: vedete l'[Esempio 3](#esempio-3-monitor-heartbeat-nessuna-email-avviso).
 
 ## Tipi di filtro disponibili
 
@@ -160,13 +160,13 @@ Potete creare criteri basati su questi campi dell'email:
 | Tipo di filtro | Descrizione |
 | ------------------------- | ----------------------------------------------------------------------------------- |
 | **Oggetto dell'email** | La riga dell'oggetto dell'email in arrivo |
-| **Email From Address** | L'indirizzo del mittente: solo l'indirizzo, in minuscolo, senza nome visualizzato |
-| **Email Body** | La parte in testo semplice del corpo dell'email |
-| **Email To Address** | L'indirizzo email del destinatario |
-| **Email Received** | Criteri temporali su quando vengono ricevute le email |
-| **JavaScript Expression** | Un'espressione JavaScript personalizzata che deve risultare vera |
+| **Indirizzo del mittente dell'email** | L'indirizzo del mittente: solo l'indirizzo, in minuscolo, senza nome visualizzato |
+| **Corpo dell'email** | La parte in testo semplice del corpo dell'email |
+| **Indirizzo del destinatario dell'email** | L'indirizzo email del destinatario |
+| **Email ricevuta** | Criteri temporali su quando vengono ricevute le email |
+| **Espressione JavaScript** | Un'espressione JavaScript personalizzata che deve risultare vera |
 
-L'indirizzo del monitor stesso viene mascherato prima che un criterio legga l'email, quindi in **Email To Address**, **Oggetto dell'email** e **Email Body** appare come `[REDACTED]`.
+L'indirizzo del monitor stesso viene mascherato prima che un criterio legga l'email, quindi in **Indirizzo del destinatario dell'email**, **Oggetto dell'email** e **Corpo dell'email** appare come `[REDACTED]`.
 
 ## Condizioni del filtro
 
@@ -191,8 +191,8 @@ La dashboard scrive queste condizioni "Recieved".
 
 | Condizione del filtro | Descrizione | Esempio |
 | --------------------------- | ----------------------------------- | -------------------------------- |
-| **Recieved In Minutes** | È stata ricevuta un'email entro X minuti | Email ricevuta entro 30 minuti |
-| **Not Recieved In Minutes** | Nessuna email ricevuta in X minuti | Nessuna email ricevuta in 60 minuti |
+| **Ricevuto in minuti** | È stata ricevuta un'email entro X minuti | Email ricevuta entro 30 minuti |
+| **Non ricevuto in minuti** | Nessuna email ricevuta in X minuti | Nessuna email ricevuta in 60 minuti |
 
 Un monitor che non ha mai ricevuto un'email conta la propria ora di creazione come ultima email.
 
@@ -200,9 +200,9 @@ Un monitor che non ha mai ricevuto un'email conta la propria ora di creazione co
 
 | Condizione del filtro | Descrizione |
 | --------------------- | ------------------------------------- |
-| **Evaluates To True** | L'espressione restituisce un valore vero |
+| **Risulta vero** | L'espressione restituisce un valore vero |
 
-L'espressione viene eseguita in una sandbox senza campi email collegati, quindi non può leggere oggetto, mittente, corpo o destinatario del messaggio che ha avviato il controllo. Usate i tipi di filtro **Oggetto dell'email**, **Email From Address**, **Email Body** ed **Email To Address** per confrontare il contenuto dell'email.
+L'espressione viene eseguita in una sandbox senza campi email collegati, quindi non può leggere oggetto, mittente, corpo o destinatario del messaggio che ha avviato il controllo. Usate i tipi di filtro **Oggetto dell'email**, **Indirizzo del mittente dell'email**, **Corpo dell'email** ed **Indirizzo del destinatario dell'email** per confrontare il contenuto dell'email.
 
 ## Configurazioni di esempio
 
@@ -221,15 +221,15 @@ Mettete per primo il criterio critico: i criteri vengono controllati dall'alto, 
 
 | Criterio | Filtri | Condizione di corrispondenza | Azioni |
 | --- | --- | --- | --- |
-| Job fallito | **Email From Address** Uguale a `monitoring@legacy-system.com`; **Oggetto dell'email** Contiene `Failed` | **Tutti** | Portare lo stato offline; dichiarare un incidente |
-| Job riuscito | **Email From Address** Uguale a `monitoring@legacy-system.com`; **Oggetto dell'email** Contiene `Success` | **Tutti** | Portare lo stato online |
+| Job fallito | **Indirizzo del mittente dell'email** Uguale a `monitoring@legacy-system.com`; **Oggetto dell'email** Contiene `Failed` | **Tutti** | Portare lo stato offline; dichiarare un incidente |
+| Job riuscito | **Indirizzo del mittente dell'email** Uguale a `monitoring@legacy-system.com`; **Oggetto dell'email** Contiene `Success` | **Tutti** | Portare lo stato online |
 
 ### Esempio 3: monitor heartbeat (nessuna email = avviso)
 
 | Criterio | Filtri | Azioni |
 | --- | --- | --- |
-| L'email è in ritardo | **Email Received** Not Recieved In Minutes `60` | Portare lo stato offline; creare un avviso |
-| L'email è arrivata | **Email Received** Recieved In Minutes `60` | Portare lo stato online |
+| L'email è in ritardo | **Email ricevuta** Non ricevuto in minuti `60` | Portare lo stato offline; creare un avviso |
+| L'email è arrivata | **Email ricevuta** Ricevuto in minuti `60` | Portare lo stato online |
 
 Il primo criterio scatta quando non è arrivata alcuna email per 60 minuti: utile per job pianificati o processi batch che inviano un'email di completamento. Il secondo risolve l'avviso appena ne arriva una. I minuti in cui OneUptime stesso non riceveva email non contano nei 60, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
 
@@ -240,7 +240,7 @@ Un criterio tiene aperto un solo incidente alla volta: finché è aperto, le ema
 :::steps
 ### Scegliere le email
 
-Date al criterio un filtro che corrisponda alle email per cui aprire incidenti. Per accettare solo le segnalazioni delle vostre persone, usate **Email From Address** con **Finisce con** e il vostro dominio, per esempio `@example.com`.
+Date al criterio un filtro che corrisponda alle email per cui aprire incidenti. Per accettare solo le segnalazioni delle vostre persone, usate **Indirizzo del mittente dell'email** con **Finisce con** e il vostro dominio, per esempio `@example.com`.
 
 ### Dichiarare l'incidente
 
@@ -263,7 +263,7 @@ Da quel momento il criterio tratta ogni email a sé:
 
 Ogni email riceve comunque una riga in **Registri di monitoraggio**, e **Visualizza riepilogo** su quella riga dice cosa ha aperto l'email, o perché non ha aperto nulla. Quando il criterio crea anche avvisi, l'interruttore si chiama **Apri un nuovo incidente e un nuovo avviso per ogni email**, e ogni email apre allo stesso modo un avviso tutto suo.
 
-Questi incidenti restano aperti finché qualcuno non li risolve. Con **Risoluzione automatica dell'incidente** attiva, vengono risolti anche quando un'email successiva corrisponde a un altro criterio, come ogni incidente; un'email successiva che corrisponde allo stesso criterio non risolve mai quelli precedenti. Un controllo delle email mancanti (**Email Received**) non è un'email, quindi apre ancora un solo incidente alla volta.
+Questi incidenti restano aperti finché qualcuno non li risolve. Con **Risoluzione automatica dell'incidente** attiva, vengono risolti anche quando un'email successiva corrisponde a un altro criterio, come ogni incidente; un'email successiva che corrisponde allo stesso criterio non risolve mai quelli precedenti. Un controllo delle email mancanti (**Email ricevuta**) non è un'email, quindi apre ancora un solo incidente alla volta.
 
 > [!WARNING]
 > **Chiunque conosca l'indirizzo può aprire incidenti.** Tenete l'indirizzo riservato, filtrate sul mittente come sopra e [reimpostate l'indirizzo](#reimpostare-o-personalizzare-lindirizzo-email) se trapela. L'indirizzo di un mittente si può falsificare, quindi il filtro tiene fuori la posta vagante, non chi è deciso a entrare.
@@ -294,7 +294,7 @@ I titoli, le descrizioni e le note di rimedio degli avvisi e degli incidenti cre
 
 - **Un titolo riceve una riga di ciascuna.** In un titolo, ogni variabile viene troncata a una riga di al massimo 150 caratteri, e termina con `...` quando era più lunga. Un titolo non può superare i 500 caratteri, e un avviso o un incidente con un titolo troppo lungo non viene creato affatto, quindi citare un'email intera impedirebbe al monitor di avvisare sulle email lunghe. Descrizioni e note di rimedio ricevono il valore completo.
 - **L'indirizzo di questo monitor è mascherato.** L'indirizzo funziona come una password, quindi viene mascherato prima che l'email venga salvata, e `{{emailTo}}` vale `monitor-[REDACTED]@{inbound-domain}` (o `[REDACTED]@{inbound-domain}` per un indirizzo personalizzato).
-- **Un controllo di email mancante usa l'ultima email.** Quando un criterio **Email Received** apre un avviso perché nessuna email è arrivata in tempo, le variabili descrivono l'ultima email ricevuta dal monitor. Sono vuote se non ne è ancora arrivata nessuna.
+- **Un controllo di email mancante usa l'ultima email.** Quando un criterio **Email ricevuta** apre un avviso perché nessuna email è arrivata in tempo, le variabili descrivono l'ultima email ricevuta dal monitor. Sono vuote se non ne è ancora arrivata nessuna.
 
 ## Vista Riepilogo del monitor
 
@@ -312,7 +312,7 @@ Fate clic su **Mostra altri dettagli** per vedere il resto:
 
 ### Email precedenti
 
-La scheda mostra solo l'email più recente. Ogni email valutata dal monitor viene anche scritta in **Registri di monitoraggio**: la colonna **E-mail** ne mostra oggetto e mittente, e **Visualizza riepilogo** sulla sua riga mostra l'email intera come fa la scheda. Un monitor con il monitoraggio disattivato non valuta nulla, quindi le email che riceve non hanno righe. Se uno dei vostri criteri controlla **Email Received**, il monitor scrive anche una riga a ogni controllo delle email mancanti. La colonna **E-mail** indica "Scheduled check" su quelle righe, e il loro **Visualizza riepilogo** mostra l'email più recente al momento del controllo, oppure "No email yet" se non ne era arrivata nessuna. I registri di monitoraggio vengono conservati per un giorno per impostazione predefinita. Su un server self-hosted, un amministratore può cambiarlo con **Conservazione dei log del monitor (giorni)** nelle impostazioni della Admin Dashboard.
+La scheda mostra solo l'email più recente. Ogni email valutata dal monitor viene anche scritta in **Registri di monitoraggio**: la colonna **E-mail** ne mostra oggetto e mittente, e **Visualizza riepilogo** sulla sua riga mostra l'email intera come fa la scheda. Un monitor con il monitoraggio disattivato non valuta nulla, quindi le email che riceve non hanno righe. Se uno dei vostri criteri controlla **Email ricevuta**, il monitor scrive anche una riga a ogni controllo delle email mancanti. La colonna **E-mail** indica "Scheduled check" su quelle righe, e il loro **Visualizza riepilogo** mostra l'email più recente al momento del controllo, oppure "No email yet" se non ne era arrivata nessuna. I registri di monitoraggio vengono conservati per un giorno per impostazione predefinita. Su un server self-hosted, un amministratore può cambiarlo con **Conservazione dei log del monitor (giorni)** nelle impostazioni della Admin Dashboard.
 
 ## Configurazione self-hosted
 

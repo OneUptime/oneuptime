@@ -25,7 +25,7 @@ flowchart TB
     criteria -->|"2xx eller 3xx"| up["I drift"]
 ```
 
-Når ingen af monitorens kriterier læser svarets brødtekst (et filter **Svarets brødtekst** eller **JavaScript Expression**), sender sonden en anmodning `HEAD` i stedet for et `GET` og gentager den som `GET`, hvis serveren afviser `HEAD`. Din servers adgangslogge kan vise begge.
+Når ingen af monitorens kriterier læser svarets brødtekst (et filter **Svarets brødtekst** eller **JavaScript-udtryk**), sender sonden en anmodning `HEAD` i stedet for et `GET` og gentager den som `GET`, hvis serveren afviser `HEAD`. Din servers adgangslogge kan vise begge.
 
 En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet resultat, så den kan ikke markere dit websted som offline.
 
@@ -142,14 +142,14 @@ Kriterier afgør, hvornår webstedet tæller som online, forringet eller offline
 
 | Filter | Betingelser | Hvad det tjekker |
 | --- | --- | --- |
-| **Is Online** | **Sand**, **Falsk** | Om webstedet overhovedet svarede, uanset statuskode. |
+| **Er online** | **Sand**, **Falsk** | Om webstedet overhovedet svarede, uanset statuskode. |
 | **Svarstatuskode** | **Lig med**, **Ikke lig med**, **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | HTTP-statuskoden. |
 | **Svartid (i ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Hvor lang tid anmodningen tog, omdirigeringer medregnet. |
 | **Svarets brødtekst** | **Indeholder**, **Indeholder ikke** | Tekst i svarets brødtekst. Der skelnes mellem store og små bogstaver. |
-| **Response Header** | **Indeholder**, **Indeholder ikke** | Om svaret har en header med dette navn. Angiv navnet med små bogstaver, som `x-cache`. |
-| **Response Header Value** | **Indeholder**, **Indeholder ikke** | Om en header har præcis denne værdi, sammenlignet med små bogstaver, som `no-store`. |
-| **JavaScript Expression** | **Evaluates To True** | Et udtryk over svaret. Se [JavaScript-udtryk](/docs/monitor/javascript-expression). |
-| **Is Request Timeout** | **Sand**, **Falsk** | Om anmodningen fik timeout ved hvert forsøg. |
+| **Svar-header** | **Indeholder**, **Indeholder ikke** | Om svaret har en header med dette navn. Angiv navnet med små bogstaver, som `x-cache`. |
+| **Svar-headerværdi** | **Indeholder**, **Indeholder ikke** | Om en header har præcis denne værdi, sammenlignet med små bogstaver, som `no-store`. |
+| **JavaScript-udtryk** | **Evalueres til sand** | Et udtryk over svaret. Se [JavaScript-udtryk](/docs/monitor/javascript-expression). |
+| **Timeout for anmodning** | **Sand**, **Falsk** | Om anmodningen fik timeout ved hvert forsøg. |
 
 **Tilføj kriterier** tilføjer et kriterium, der allerede er navngivet efter sit filter, for eksempel _Response Time (in ms) is above 3000_. Navnet ændrer sig med filtrene, indtil du skriver dit eget. En beskrivelse er valgfri: for at tilføje en åbner du kriteriets **Indstillinger**.
 
@@ -174,17 +174,17 @@ Monitorer, der blev oprettet, før OneUptime ændrede disse standarder, beholder
 
 ### Evaluering over en periode
 
-**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **Is Online**, **Svarstatuskode**, **Svartid (i ms)**, **Svarets brødtekst**, **Response Header**, **Response Header Value**, **JavaScript Expression** og **Is Request Timeout**. Slå det til for at bedømme et vindue af tidligere tjek i stedet for kun det seneste: vælg en aggregering under **Evaluér** og et vindue fra 2 til 60 minutter under **For de seneste (i minutter)**.
+**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **Er online**, **Svarstatuskode**, **Svartid (i ms)**, **Svarets brødtekst**, **Svar-header**, **Svar-headerværdi**, **JavaScript-udtryk** og **Timeout for anmodning**. Slå det til for at bedømme et vindue af tidligere tjek i stedet for kun det seneste: vælg en aggregering under **Evaluér** og et vindue fra 2 til 60 minutter under **For de seneste (i minutter)**.
 
 | Aggregering | Matcher, når |
 | --- | --- |
-| **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value** | Den værdi over vinduet opfylder betingelsen. Kun numeriske filtre. |
-| **All Values** | Hvert tjek i vinduet opfylder betingelsen. |
-| **Any Value** | Mindst ét tjek i vinduet opfylder betingelsen. |
+| **Gennemsnit**, **Sum**, **Maksimumværdi**, **Minimumværdi** | Den værdi over vinduet opfylder betingelsen. Kun numeriske filtre. |
+| **Alle værdier** | Hvert tjek i vinduet opfylder betingelsen. |
+| **Vilkårlig værdi** | Mindst ét tjek i vinduet opfylder betingelsen. |
 
-**All Values** matcher først, når vinduet virkelig er dækket af data. En monitor, der lige er oprettet, eller en, hvis tjek ikke længere er blevet registreret, har ikke nok historik til at sige noget om de seneste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Any Value** er indstillingen for "sig det med det samme, når et enkelt tjek overskrider grænsen" og udløses stadig med det samme.
+**Alle værdier** matcher først, når vinduet virkelig er dækket af data. En monitor, der lige er oprettet, eller en, hvis tjek ikke længere er blevet registreret, har ikke nok historik til at sige noget om de seneste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Vilkårlig værdi** er indstillingen for "sig det med det samme, når et enkelt tjek overskrider grænsen" og udløses stadig med det samme.
 
-En body, en header, en headerværdi eller et udtryk er ikke et tal, OneUptime registrerer. For de filtre og for **Is Request Timeout** registrerer OneUptime derfor, om filteret passede ved hvert tjek, og bedømmer vinduet ud fra den registrering med **All Values** eller **Any Value**. Sådan kommer en monitor igennem en genstart. En app, der er ved at starte, svarer måske `200` med en midlertidig side som `Application starting...`; med **All Values** sætter et filter **Svarets brødtekst**, der leder efter appens titel, først monitoren offline, når den midlertidige side har varet hele vinduet.
+En body, en header, en headerværdi eller et udtryk er ikke et tal, OneUptime registrerer. For de filtre og for **Timeout for anmodning** registrerer OneUptime derfor, om filteret passede ved hvert tjek, og bedømmer vinduet ud fra den registrering med **Alle værdier** eller **Vilkårlig værdi**. Sådan kommer en monitor igennem en genstart. En app, der er ved at starte, svarer måske `200` med en midlertidig side som `Application starting...`; med **Alle værdier** sætter et filter **Svarets brødtekst**, der leder efter appens titel, først monitoren offline, når den midlertidige side har varet hele vinduet.
 
 Gør vinduet længere end overvågningsintervallet, så det rummer flere tjek: en monitor, der tjekkes hvert 5. minut, har kun ét tjek i et vindue på 5 minutter.
 
@@ -202,10 +202,10 @@ Gør vinduet længere end overvågningsintervallet, så det rummer flere tjek: e
 | --- | --- | --- | --- |
 | Markér webstedet som forringet, når det er langsomt | **Svartid (i ms)** | **Større end** | `3000` |
 | Fang en fejlside, der leveres med `200` | **Svarets brødtekst** | **Indeholder ikke** | `Welcome` |
-| Tjek, at en CDN-header er til stede | **Response Header** | **Indeholder** | `x-cache` |
+| Tjek, at en CDN-header er til stede | **Svar-header** | **Indeholder** | `x-cache` |
 | Accepter kun `200` som sund | **Svarstatuskode** | **Lig med** | `200` |
 
-For at komme igennem en genstart skal du slå **Evaluér disse kriterier over en periode** til for filteret på svarets brødtekst og vælge **All Values** over 15 minutter.
+For at komme igennem en genstart skal du slå **Evaluér disse kriterier over en periode** til for filteret på svarets brødtekst og vælge **Alle værdier** over 15 minutter.
 
 ## Fejlfinding
 
@@ -218,7 +218,7 @@ Sonden fik et andet svar end din browser. Hændelsens grundårsag og **Overvågn
 :::
 
 :::details Tjekket fejler med "Remote response exceeded the allowed size."
-Sonden læser højst 512 KiB af et svar, og denne side er større. Peg monitoren på en mindre side, som et health-endpoint, eller fjern filtrene **Svarets brødtekst** og **JavaScript Expression**, så sonden kun behøver headerne.
+Sonden læser højst 512 KiB af et svar, og denne side er større. Peg monitoren på en mindre side, som et health-endpoint, eller fjern filtrene **Svarets brødtekst** og **JavaScript-udtryk**, så sonden kun behøver headerne.
 :::
 
 :::details Tjekket fejler med "Monitor target exceeded 10 redirects."

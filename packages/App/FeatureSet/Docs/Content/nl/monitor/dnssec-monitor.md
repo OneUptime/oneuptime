@@ -80,7 +80,7 @@ Behoud of wijzig de **Sondes** en het **Bewakingsinterval** (het begint bij **El
 | **Zone (domeinnaam)** | Geen | De zone die wordt gevalideerd, zoals `example.com`. |
 | **Resolvers** | `1.1.1.1, 8.8.8.8, 9.9.9.9` | Validerende resolvers die worden gevraagd, gescheiden door komma's. Elk ervan moet de AD-vlag teruggeven om de keten als geldig te laten tellen. |
 | **Consistentie van naamservers controleren** | Aan | Elke gezaghebbende naamserver rechtstreeks vragen en hun SOA-serienummers vergelijken. Zet het uit als uw netwerk uitgaand DNS naar willekeurige servers blokkeert. |
-| **Waarschuwing handtekeningvervaldatum (dagen)** (onder **Meer velden**) | `7` | Wordt met de monitor opgeslagen. Het filter **DNSSEC Signature Expires In Days** gebruikt de waarde die u het in het criterium geeft, dus stel uw drempel daar in. |
+| **Waarschuwing handtekeningvervaldatum (dagen)** (onder **Meer velden**) | `7` | Wordt met de monitor opgeslagen. Het filter **Dagen tot verloop van DNSSEC-handtekening** gebruikt de waarde die u het in het criterium geeft, dus stel uw drempel daar in. |
 | **Time-out (ms)** (onder **Meer velden**) | `10000` | Hoe lang op elke DNS-query wordt gewacht, in milliseconden. Eén poging kan in totaal tot drie keer zo lang duren. |
 | **Nieuwe pogingen** (onder **Meer velden**) | `3` | Nieuwe pogingen nadat de eerste mislukt. `0` betekent één enkele poging. |
 
@@ -90,12 +90,12 @@ Criteria bepalen wanneer de zone telt als online, verminderd of offline, en of d
 
 | Filter | Voorwaarden | Wat het controleert |
 | --- | --- | --- |
-| **DNSSEC Chain Is Valid** | **Waar**, **Onwaar** | Alle vier de controles hierboven kloppen: sleutels gepubliceerd, DS bij de bovenliggende zone, handtekeningen aanwezig met nog een dag of meer te gaan, en de AD-vlag van elke resolver. |
-| **DNSSEC DNSKEY Record Exists** | **Waar**, **Onwaar** | De zone publiceert minstens één DNSKEY-record. |
-| **DNSSEC DS Record Exists At Parent** | **Waar**, **Onwaar** | De bovenliggende zone publiceert een DS-record voor de zone. |
-| **DNSSEC Signature Expires In Days** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Hele dagen totdat de eerst verlopende handtekening (RRSIG) verloopt. |
-| **DNSSEC Resolver Consensus (AD Flag)** | **Waar**, **Onwaar** | Elke resolver bij **Resolvers** geeft de AD-vlag terug. |
-| **DNSSEC Nameservers Are Consistent** | **Waar**, **Onwaar** | Elke gezaghebbende naamserver antwoordt met hetzelfde SOA-serienummer. Altijd **Waar** zolang **Consistentie van naamservers controleren** uit staat. |
+| **DNSSEC-keten is geldig** | **Waar**, **Onwaar** | Alle vier de controles hierboven kloppen: sleutels gepubliceerd, DS bij de bovenliggende zone, handtekeningen aanwezig met nog een dag of meer te gaan, en de AD-vlag van elke resolver. |
+| **DNSSEC DNSKEY-record bestaat** | **Waar**, **Onwaar** | De zone publiceert minstens één DNSKEY-record. |
+| **DNSSEC DS-record bestaat in bovenliggende zone** | **Waar**, **Onwaar** | De bovenliggende zone publiceert een DS-record voor de zone. |
+| **Dagen tot verloop van DNSSEC-handtekening** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Hele dagen totdat de eerst verlopende handtekening (RRSIG) verloopt. |
+| **DNSSEC-resolverconsensus (AD-vlag)** | **Waar**, **Onwaar** | Elke resolver bij **Resolvers** geeft de AD-vlag terug. |
+| **DNSSEC-nameservers zijn consistent** | **Waar**, **Onwaar** | Elke gezaghebbende naamserver antwoordt met hetzelfde SOA-serienummer. Altijd **Waar** zolang **Consistentie van naamservers controleren** uit staat. |
 
 Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters moeten overeenkomen of dat **Minstens één** filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing aanmaken, een incident melden, of meerdere daarvan.
 
@@ -103,7 +103,7 @@ Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters 
 
 Een nieuwe DNSSEC-monitor begint met twee criteria:
 
-- **Keten gebroken** — **DNSSEC Chain Is Valid** is **Onwaar**. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitor name_ DNSSEC chain is broken" gemaakt. Het incident lost zichzelf op zodra de keten weer geldig is.
+- **Keten gebroken** — **DNSSEC-keten is geldig** is **Onwaar**. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitor name_ DNSSEC chain is broken" gemaakt. Het incident lost zichzelf op zodra de keten weer geldig is.
 - **Keten geldig** — de monitor wordt als **Operationeel** gemarkeerd.
 
 Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenkomt bepaalt wat er gebeurt. Komt er geen overeen, dan toont de monitor zijn standaardstatus: **Operationeel**, tenzij u onder **Meer velden**, onder de criteria, een andere kiest.
@@ -114,16 +114,16 @@ De standaardcriteria houden het verlopen van handtekeningen en de consistentie v
 
 | Doel | Filter | Voorwaarde | Waarde |
 | --- | --- | --- | --- |
-| Offline wanneer de keten gebroken is (een standaardcriterium) | **DNSSEC Chain Is Valid** | **Onwaar** | — |
-| Waarschuwen voordat handtekeningen verlopen | **DNSSEC Signature Expires In Days** | **Kleiner dan** | `7` |
-| Een delegatie opmerken die haar DS-record kwijt is | **DNSSEC DS Record Exists At Parent** | **Onwaar** | — |
-| Resolvers opmerken die het oneens zijn | **DNSSEC Resolver Consensus (AD Flag)** | **Onwaar** | — |
-| Naamservers opmerken die niet in de pas lopen | **DNSSEC Nameservers Are Consistent** | **Onwaar** | — |
+| Offline wanneer de keten gebroken is (een standaardcriterium) | **DNSSEC-keten is geldig** | **Onwaar** | — |
+| Waarschuwen voordat handtekeningen verlopen | **Dagen tot verloop van DNSSEC-handtekening** | **Kleiner dan** | `7` |
+| Een delegatie opmerken die haar DS-record kwijt is | **DNSSEC DS-record bestaat in bovenliggende zone** | **Onwaar** | — |
+| Resolvers opmerken die het oneens zijn | **DNSSEC-resolverconsensus (AD-vlag)** | **Onwaar** | — |
+| Naamservers opmerken die niet in de pas lopen | **DNSSEC-nameservers zijn consistent** | **Onwaar** | — |
 
 ## Aanbevolen werkwijzen
 
 1. **Kies resolvers die altijd bereikbaar zijn.** Elke resolver moet de AD-vlag teruggeven om de keten als geldig te laten tellen, dus een resolver die de sonde niet kan bereiken laat de controle mislukken zodra de nieuwe pogingen op zijn. De standaardwaarden, `1.1.1.1`, `8.8.8.8` en `9.9.9.9`, worden door drie verschillende beheerders geleverd, wat ook een zone opmerkt die op de ene resolver valideert maar op de andere niet.
-2. **Laat u waarschuwen voordat handtekeningen verlopen.** Ondertekenaars ondertekenen een zone opnieuw voordat haar handtekeningen verlopen, dus een handtekening die bijna verloopt, betekent dat het opnieuw ondertekenen is gestopt. Voeg een criterium toe met **DNSSEC Signature Expires In Days** / **Kleiner dan** / `7` dat een waarschuwing aanmaakt, en een tweede op `2` dat een incident meldt. Sleep beide boven het criterium dat de keten als geldig markeert, dat van `2` dagen eerst, want het eerste criterium dat overeenkomt wint. Kies drempels die lager zijn dan de tijd die uw ondertekenaar normaal op een handtekening laat staan voordat hij opnieuw ondertekent, zodat ze stil blijven zolang het opnieuw ondertekenen werkt.
+2. **Laat u waarschuwen voordat handtekeningen verlopen.** Ondertekenaars ondertekenen een zone opnieuw voordat haar handtekeningen verlopen, dus een handtekening die bijna verloopt, betekent dat het opnieuw ondertekenen is gestopt. Voeg een criterium toe met **Dagen tot verloop van DNSSEC-handtekening** / **Kleiner dan** / `7` dat een waarschuwing aanmaakt, en een tweede op `2` dat een incident meldt. Sleep beide boven het criterium dat de keten als geldig markeert, dat van `2` dagen eerst, want het eerste criterium dat overeenkomt wint. Kies drempels die lager zijn dan de tijd die uw ondertekenaar normaal op een handtekening laat staan voordat hij opnieuw ondertekent, zodat ze stil blijven zolang het opnieuw ondertekenen werkt.
 3. **Bewaak elke ondertekende zone.** Neem het apex-domein mee, ondertekende subdomeinen, en elke zone die aan een andere beheerder is gedelegeerd.
 4. **Laat de consistentiecontrole van de naamservers aan staan,** en voeg er een criterium voor toe. Ze merkt een secundaire server op die geen overdrachten van de primaire meer ontvangt, wat DNSSEC-validatie alleen kan missen.
 
