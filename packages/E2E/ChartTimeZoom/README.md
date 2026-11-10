@@ -104,6 +104,11 @@ severity, count }` per bucket and series that has rows, in time order; the logs
 - The Metrics explorer lists the `MetricType` rows above and draws each row's sparkline
   from the series catalogue; its Service facet lists the four services, each counted
   zero.
+- The project sets no telemetry ingestion budget, the default: the Logs, Traces and
+  Metrics layouts' read of today's budgets (`GET /telemetry-ingestion-budget/project`)
+  is answered as the server answers then
+  (`SecurityOperations/Fixture/IngestionBudgetFixture.js`), so no budget banner shows
+  above an explorer.
 - Empty on purpose: incidents, alerts, scheduled maintenance, monitors, dismissals,
   change events, exemplars (raw `Metric` rows with a trace id), trace saved views,
   Docker and Podman hosts.
