@@ -15,6 +15,11 @@ import {
   TRANSLATED_LOCALES,
 } from "../../FeatureSet/Dashboard/scripts/i18n/LocaleFiles";
 import { DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES } from "Common/Types/AI/AIAgentRunLimits";
+import {
+  PROJECT_AI_RUN_LIMIT_COLUMNS,
+  ProjectAiRunLimitColumn,
+} from "Common/Types/AI/ProjectAiRunLimits";
+import Project from "Common/Models/DatabaseModels/Project";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -285,5 +290,149 @@ describe("the limits per run in every language", () => {
         ]).toEqual([language, text, false]);
       }
     }
+  });
+});
+
+/*
+ * THE PROJECT'S COLUMNS OF THE LIMITS PER RUN (issue #6511). The four
+ * limits are columns of the Project, and wherever the Dashboard names a
+ * Project column by its title - a table, a filter, what an audit says
+ * changed - it draws the title in the reader's language. Each language
+ * words a title as its card words the field above, with the word for AI it
+ * names AI Features with added to the run: the card and the column never
+ * disagree.
+ */
+interface AiRunWords {
+  // The language's word for AI, as it names AI Features.
+  ai: string;
+  // What it adds to the card's word for a run, to make it an AI run.
+  added: string;
+}
+
+const AI_RUN_WORDS: Record<string, AiRunWords> = {
+  ar: { ai: "الذكاء الاصطناعي", added: " للذكاء الاصطناعي" },
+  da: { ai: "AI", added: "AI-" },
+  de: { ai: "KI", added: "KI-" },
+  es: { ai: "IA", added: " de IA" },
+  fa: { ai: "هوش مصنوعی", added: "ی هوش مصنوعی" },
+  fr: { ai: "IA", added: " IA" },
+  hi: { ai: "AI", added: "AI " },
+  it: { ai: "IA", added: " IA" },
+  ja: { ai: "AI", added: "AI " },
+  ko: { ai: "AI", added: "AI " },
+  nl: { ai: "AI", added: "AI-" },
+  no: { ai: "AI", added: "AI-" },
+  pt: { ai: "IA", added: " de IA" },
+  ru: { ai: "ИИ", added: " ИИ" },
+  sv: { ai: "AI", added: "AI-" },
+  "zh-CN": { ai: "AI", added: " AI " },
+  "zh-TW": { ai: "AI", added: " AI " },
+};
+
+function columnTitle(column: ProjectAiRunLimitColumn): string {
+  return new Project().getTableColumnMetadata(column).title as string;
+}
+
+function occurrencesOf(text: string, part: string): number {
+  return text.split(part).length - 1;
+}
+
+describe("the Project's columns of the limits per run, in every language", () => {
+  const TITLES: Array<string> = PROJECT_AI_RUN_LIMIT_COLUMNS.map(columnTitle);
+
+  test("the four columns are titled as an AI run's limits, each with its card field", () => {
+    expect(TITLES).toEqual([
+      "Model Calls per AI Run",
+      "Tool Calls per AI Run",
+      "Tokens per AI Run",
+      "AI Run Time Limit (Minutes)",
+    ]);
+    expect(
+      PROJECT_AI_RUN_LIMIT_FIELDS.map(
+        (field: ProjectAiRunLimitField): ProjectAiRunLimitColumn => {
+          return field.column;
+        },
+      ),
+    ).toEqual([...PROJECT_AI_RUN_LIMIT_COLUMNS]);
+  });
+
+  test("en.json maps each title to itself, and the extractor finds it in the Project model", () => {
+    const found: Set<string> = new Set<string>(
+      scanSourceRoots([
+        {
+          directory: "packages/Common/Models/DatabaseModels/Project.ts",
+          kind: "models",
+        },
+      ]).strings.map((entry: ExtractedString): string => {
+        return entry.text;
+      }),
+    );
+
+    for (const title of TITLES) {
+      expect([title, ENGLISH[title]]).toEqual([title, title]);
+      expect([title, found.has(title)]).toEqual([title, true]);
+    }
+  });
+
+  test("every language besides English has its words for an AI run", () => {
+    expect(Object.keys(AI_RUN_WORDS).sort()).toEqual(
+      [...TRANSLATED_LOCALES].sort(),
+    );
+  });
+
+  test.each(TRANSLATED_LOCALES)(
+    "%s titles each column as its card words the field, the run an AI run",
+    (language: string) => {
+      const locale: Record<string, unknown> = readLocale(language);
+      const words: AiRunWords = AI_RUN_WORDS[language]!;
+
+      /*
+       * The word for AI is the one the language names AI Features with.
+       * Arabic's "ل" (for) takes the article's alef: ل + الذكاء is للذكاء.
+       */
+      expect(words.added.replace("للذكاء", "الذكاء")).toContain(words.ai);
+      expect(String(locale["AI Features"])).toContain(words.ai);
+
+      for (const field of PROJECT_AI_RUN_LIMIT_FIELDS) {
+        const title: string = columnTitle(field.column);
+        const worded: unknown = locale[title];
+        const card: unknown = locale[field.title];
+
+        expect([title, typeof worded]).toEqual([title, "string"]);
+        expect([title, worded]).not.toEqual([title, title]);
+        expect([title, typeof card]).toEqual([title, "string"]);
+        expect([title, occurrencesOf(worded as string, words.added)]).toEqual([
+          title,
+          1,
+        ]);
+        expect([title, (worded as string).replace(words.added, "")]).toEqual([
+          title,
+          card,
+        ]);
+      }
+    },
+  );
+
+  test("Arabic and German, word for word", () => {
+    expect(
+      TITLES.map((title: string): unknown => {
+        return readLocale("ar")[title];
+      }),
+    ).toEqual([
+      "استدعاءات النموذج لكل تشغيل للذكاء الاصطناعي",
+      "استدعاءات الأدوات لكل تشغيل للذكاء الاصطناعي",
+      "الرموز لكل تشغيل للذكاء الاصطناعي",
+      "المهلة الزمنية لكل تشغيل للذكاء الاصطناعي (بالدقائق)",
+    ]);
+    expect(
+      TITLES.map((title: string): unknown => {
+        return readLocale("de")[title];
+      }),
+    ).toEqual([
+      "Modellaufrufe pro KI-Ausführung",
+      "Tool-Aufrufe pro KI-Ausführung",
+      "Tokens pro KI-Ausführung",
+      "Zeitlimit pro KI-Ausführung (Minuten)",
+    ]);
   });
 });

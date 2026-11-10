@@ -47491,7 +47491,7 @@
   "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.": "رفض موفّر الذكاء الاصطناعي الطلب: ربما يكون مفتاح API أو النموذج خاطئًا، أو ربما يفتقر حسابه إلى صلاحية الوصول أو الرصيد.",
   "OneUptime AI will try again": "سيحاول OneUptime AI مرة أخرى",
   "A call to the AI model provider timed out.": "انتهت مهلة استدعاء موفّر نموذج الذكاء الاصطناعي.",
-  "AI Run Time Limit (Minutes)": "المهلة الزمنية لتشغيل الذكاء الاصطناعي (بالدقائق)",
+  "AI Run Time Limit (Minutes)": "المهلة الزمنية لكل تشغيل للذكاء الاصطناعي (بالدقائق)",
   "Attempt {{attempt}} of {{max}}": "المحاولة {{attempt}} من {{max}}",
   "Automatic Retries": "إعادات المحاولة التلقائية",
   "Filter tasks": "تصفية المهام",
