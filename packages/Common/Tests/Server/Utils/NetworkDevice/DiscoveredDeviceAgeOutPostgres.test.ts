@@ -1,6 +1,6 @@
 import Entities from "../../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
-import { KeepEditedDiscoveredDevices1809080363892 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809080363892-KeepEditedDiscoveredDevices";
+import { KeepEditedDiscoveredDevices1809080463892 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809080463892-KeepEditedDiscoveredDevices";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import NetworkEndpointService from "../../../../Server/Services/NetworkEndpointService";
 import NetworkSiteService from "../../../../Server/Services/NetworkSiteService";
@@ -833,9 +833,9 @@ describePostgres(
       const runner: QueryRunner = database.createQueryRunner();
 
       try {
-        await new KeepEditedDiscoveredDevices1809080363892().up(runner);
+        await new KeepEditedDiscoveredDevices1809080463892().up(runner);
         // Run again, it changes nothing.
-        await new KeepEditedDiscoveredDevices1809080363892().up(runner);
+        await new KeepEditedDiscoveredDevices1809080463892().up(runner);
       } finally {
         await runner.release();
       }

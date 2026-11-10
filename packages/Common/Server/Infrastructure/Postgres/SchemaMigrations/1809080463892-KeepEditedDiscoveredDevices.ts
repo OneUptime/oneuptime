@@ -2,7 +2,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Marks the discovered devices people changed before
- * AddDiscoveredDeviceRetention1809080363890 as edited, so the job that
+ * AddDiscoveredDeviceRetention1809080463890 as edited, so the job that
  * removes the devices no longer seen (DiscoveredDeviceAgeOut) keeps them, as
  * it keeps the ones people change from now on.
  *
@@ -25,10 +25,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Hand-written: it changes data, not the schema, so the generator produces
  * nothing for it and the schema-drift check is unaffected.
  */
-export class KeepEditedDiscoveredDevices1809080363892
+export class KeepEditedDiscoveredDevices1809080463892
   implements MigrationInterface
 {
-  public name: string = "KeepEditedDiscoveredDevices1809080363892";
+  public name: string = "KeepEditedDiscoveredDevices1809080463892";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -39,7 +39,7 @@ export class KeepEditedDiscoveredDevices1809080363892
   public async down(): Promise<void> {
     /*
      * Nothing to undo: the column it wrote goes with
-     * AddDiscoveredDeviceRetention1809080363890's down.
+     * AddDiscoveredDeviceRetention1809080463890's down.
      */
   }
 }

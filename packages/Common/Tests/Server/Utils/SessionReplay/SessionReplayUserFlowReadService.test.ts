@@ -134,6 +134,25 @@ describe("statements", () => {
     expect(query).toContain("AND retentionDate >= now()");
   });
 
+  /*
+   * Issue #6443: a page where the application's own frustration signals
+   * fire is a frustrating page, as it is on the session list. Marker-only
+   * signals (customSignalCount) never count.
+   */
+  test("the application's own frustration signals count toward a page's frustration", () => {
+    const statement: Statement =
+      SessionReplayUserFlowReadService.buildChunkStatement(REQUEST, 250);
+    const query: string = squash(statement.query);
+
+    expect(query).toContain(
+      "toFloat64(sum(rageClickCount + deadClickCount + errorClickCount + refreshRageCount + customSignalFrustrationCount)) AS flowFrustrationTotal",
+    );
+    expect(query).toContain(
+      "url != '' AND (errorCount + rageClickCount + deadClickCount + errorClickCount + refreshRageCount + customSignalFrustrationCount) > 0",
+    );
+    expect(query).not.toMatch(/\bcustomSignalCount\b/);
+  });
+
   test("the count reads the same window", () => {
     const statement: Statement =
       SessionReplayUserFlowReadService.buildCountStatement(REQUEST);

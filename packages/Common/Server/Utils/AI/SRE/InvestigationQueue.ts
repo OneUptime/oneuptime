@@ -266,6 +266,13 @@ export default class AIInvestigationQueue {
      * provider, else the global one.
      */
     llmProviderId?: ObjectID | undefined;
+    /*
+     * The id to create the run with. A round of an AI fix tried again
+     * (RemediationRound.tryAgain) names its new run on the round inside
+     * admitInsideSubjectLock, before the run exists, so no other run - an
+     * older one, or a second press's - ever acts on it.
+     */
+    runId?: ObjectID | undefined;
   }): Promise<ObjectID | null> {
     const { projectId } = data;
 
@@ -355,6 +362,11 @@ export default class AIInvestigationQueue {
       : AIRunType.Investigation;
 
     const run: AIRun = new AIRun();
+
+    if (data.runId) {
+      run.id = data.runId;
+    }
+
     run.projectId = projectId;
     run.runType = runType;
     run.status = AIRunStatus.Queued;

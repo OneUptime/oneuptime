@@ -17,6 +17,7 @@ import {
   isSessionReplayCustomEventData,
   isSessionReplayCustomEventTag,
   isSessionReplayCustomPayload,
+  isSessionReplayCustomSignalPayload,
   isSessionReplayErrorPayload,
   isSessionReplayFrustrationPayload,
   isSessionReplayIdentifyPayload,
@@ -104,11 +105,19 @@ describe("SessionReplayCustomEventTag", () => {
     );
   });
 
+  /*
+   * The application's own signals (its Frustration Signals page). Stored
+   * payloads quote the tag like every other.
+   */
+  it("names the custom signal tag under the oneuptime. prefix", () => {
+    expect(SessionReplayCustomEventTag.CustomSignal).toBe("oneuptime.signal");
+  });
+
   it("every tag is unique and prefixed", () => {
     expect(new Set(SESSION_REPLAY_CUSTOM_EVENT_TAGS).size).toBe(
       SESSION_REPLAY_CUSTOM_EVENT_TAGS.length,
     );
-    expect(SESSION_REPLAY_CUSTOM_EVENT_TAGS).toHaveLength(17);
+    expect(SESSION_REPLAY_CUSTOM_EVENT_TAGS).toHaveLength(18);
 
     for (const tag of SESSION_REPLAY_CUSTOM_EVENT_TAGS) {
       expect(tag.startsWith("oneuptime.")).toBe(true);
@@ -539,6 +548,72 @@ describe("payload guards for the engagement events", () => {
     ).toBe(false);
   });
 
+  it("custom signal: a name, a trigger, whether it was frustration and a time; x and y only for clicks", () => {
+    expect(
+      isSessionReplayCustomSignalPayload({
+        name: "Payment failed",
+        trigger: "event",
+        isFrustration: true,
+        atUnixMs: 1700000000000,
+      }),
+    ).toBe(true);
+    expect(
+      isSessionReplayCustomSignalPayload({
+        name: "Help button",
+        trigger: "click",
+        isFrustration: false,
+        atUnixMs: 1,
+        x: 10,
+        y: 20,
+      }),
+    ).toBe(true);
+
+    for (const trigger of ["page", "error"]) {
+      expect(
+        isSessionReplayCustomSignalPayload({
+          name: "x",
+          trigger: trigger,
+          isFrustration: true,
+          atUnixMs: 1,
+        }),
+      ).toBe(true);
+    }
+
+    // The minimum each row needs.
+    expect(
+      isSessionReplayCustomSignalPayload({
+        name: "",
+        trigger: "event",
+        isFrustration: true,
+        atUnixMs: 1,
+      }),
+    ).toBe(false);
+    expect(
+      isSessionReplayCustomSignalPayload({
+        name: "x",
+        trigger: "hover",
+        isFrustration: true,
+        atUnixMs: 1,
+      }),
+    ).toBe(false);
+    expect(
+      isSessionReplayCustomSignalPayload({
+        name: "x",
+        trigger: "event",
+        isFrustration: "yes",
+        atUnixMs: 1,
+      }),
+    ).toBe(false);
+    expect(
+      isSessionReplayCustomSignalPayload({
+        name: "x",
+        trigger: "event",
+        isFrustration: true,
+        atUnixMs: Number.NaN,
+      }),
+    ).toBe(false);
+  });
+
   it("every guard rejects non-objects without throwing", () => {
     const guards: Array<(value: unknown) => boolean> = [
       isSessionReplayConsolePayload,
@@ -558,6 +633,7 @@ describe("payload guards for the engagement events", () => {
       isSessionReplayTagsPayload,
       isSessionReplayIdlePausedPayload,
       isSessionReplayIdleResumedPayload,
+      isSessionReplayCustomSignalPayload,
     ];
 
     for (const guard of guards) {

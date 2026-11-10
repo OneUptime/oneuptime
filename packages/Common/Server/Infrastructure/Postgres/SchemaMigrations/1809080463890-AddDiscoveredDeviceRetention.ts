@@ -16,14 +16,14 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * Generated with npm run generate-postgres-migration, then numbered after
  * the last registered migration. The index the generator wrote with it is
- * built online in AddNetworkEndpointLastSeenIndex1809080363891, and the
+ * built online in AddNetworkEndpointLastSeenIndex1809080463891, and the
  * devices people changed before this migration are marked edited in
- * KeepEditedDiscoveredDevices1809080363892.
+ * KeepEditedDiscoveredDevices1809080463892.
  */
-export class AddDiscoveredDeviceRetention1809080363890
+export class AddDiscoveredDeviceRetention1809080463890
   implements MigrationInterface
 {
-  public name: string = "AddDiscoveredDeviceRetention1809080363890";
+  public name: string = "AddDiscoveredDeviceRetention1809080463890";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

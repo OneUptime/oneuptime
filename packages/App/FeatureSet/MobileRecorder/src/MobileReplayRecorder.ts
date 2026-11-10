@@ -5,6 +5,7 @@ import ReplayChunkBuffer, {
 } from "./ChunkBuffer";
 import {
   CUSTOM_EVENT_TAG,
+  CUSTOM_SIGNAL_CUSTOM_EVENT_TAG,
   ERROR_CUSTOM_EVENT_TAG,
   IDENTIFY_CUSTOM_EVENT_TAG,
   IDLE_PAUSED_CUSTOM_EVENT_TAG,
@@ -33,6 +34,8 @@ import {
   SessionReplayChunkMeta,
   SessionReplayConsentMode,
   SessionReplayConsentState,
+  SessionReplayCustomSignalConfig,
+  SessionReplayCustomSignalPayload,
   SessionReplayDirective,
   SessionReplayIdlePausedPayload,
   SessionReplayIdleResumedPayload,
@@ -48,6 +51,7 @@ import {
   ValidatedStartOptions,
   validateStartOptions,
 } from "./Config";
+import { CustomSignalMatcher, MobileCustomSignalHit } from "./CustomSignals";
 import {
   createCustomEvent,
   createTouchEvent,
@@ -242,6 +246,23 @@ const SAFE_ERROR_NAMES: ReadonlySet<string> = new Set<string>([
   "URIError",
 ]);
 
+/*
+ * The text an error's signals are matched on: its message as thrown. Only
+ * ever compared on the device; never recorded or sent.
+ */
+function errorText(error: unknown): string {
+  if (typeof error === "string") {
+    return error;
+  }
+  if (error && typeof error === "object") {
+    const message: unknown = (error as { message?: unknown }).message;
+    if (typeof message === "string") {
+      return message;
+    }
+  }
+  return "";
+}
+
 function defaultNow(): number {
   return Date.now();
 }
@@ -325,6 +346,9 @@ export default class MobileReplayRecorder {
   private readonly now: () => number;
   private readonly serializer: ViewTreeSerializer = new ViewTreeSerializer();
   private readonly chunkBuffer: ReplayChunkBuffer = new ReplayChunkBuffer();
+  /* The application's own page, event and error signals (issue #6443). */
+  private readonly customSignalMatcher: CustomSignalMatcher =
+    new CustomSignalMatcher();
   private readonly rollingBuffer: RollingReplayBuffer =
     new RollingReplayBuffer();
   private diagnosticsStatus: MobileReplayStatus = "idle";
@@ -583,6 +607,7 @@ export default class MobileReplayRecorder {
     this.resetTouchSequences();
     this.idlePause = null;
     this.idleResumeBacklog = null;
+    this.customSignalMatcher.reset();
     const validated: ValidatedStartOptions | null =
       validateStartOptions(options);
     if (!validated) {
@@ -1000,6 +1025,17 @@ export default class MobileReplayRecorder {
         { name: eventName, properties: sanitizedProperties },
         "customEventCount",
       );
+      if (
+        this.recordCustomSignals(
+          this.customSignalMatcher.matchEvent(
+            this.customSignals(),
+            eventName,
+            this.now(),
+          ),
+        )
+      ) {
+        void this.trigger(SessionReplayTriggerReason.Frustration);
+      }
     });
   }
 
@@ -1046,9 +1082,24 @@ export default class MobileReplayRecorder {
       },
       "routeCount",
     );
+    /*
+     * Matched on the route as the app passed it, not the recorded copy
+     * whose ids are redacted: a pattern names the app's own screens, and
+     * only the signal's name is recorded.
+     */
+    const frustrated: boolean = this.recordCustomSignals(
+      this.customSignalMatcher.matchPage(
+        this.customSignals(),
+        route,
+        this.now(),
+      ),
+    );
     await this.closeCurrent(false);
     this.forceFullSnapshot = true;
     await this.captureTick(true);
+    if (frustrated) {
+      await this.trigger(SessionReplayTriggerReason.Frustration);
+    }
   }
 
   public async captureSession(reason: string = "manual"): Promise<void> {
@@ -1132,6 +1183,18 @@ export default class MobileReplayRecorder {
       ERROR_CUSTOM_EVENT_TAG,
       { kind: "error", name, message: "[masked]" },
       "errorCount",
+    );
+    /*
+     * The application's error signals are matched on the text the app
+     * threw - compared here, on the device, and never sent: the marker
+     * carries the signal's name.
+     */
+    this.recordCustomSignals(
+      this.customSignalMatcher.matchErrorText(
+        this.customSignals(),
+        errorText(error),
+        this.now(),
+      ),
     );
     await this.trigger(SessionReplayTriggerReason.Error);
   }
@@ -1741,6 +1804,58 @@ export default class MobileReplayRecorder {
     }
   }
 
+  /* The page, event and error signals the application's policy defines. */
+  private customSignals(): ReadonlyArray<SessionReplayCustomSignalConfig> {
+    return this.config?.frustrationSignals.customSignals ?? [];
+  }
+
+  /*
+   * Marks each hit in the stream and counts it on the chunk, as the browser
+   * recorder does. Returns whether one of them counts as frustration, which
+   * starts an upload under "On error or frustration" like an error does.
+   *
+   * Nothing while the recorder records nothing: before start, while
+   * waiting, paused for idle or after a session ended idle - a hit then
+   * belongs to no recording, and must not start an upload of footage that
+   * ended minutes before it.
+   */
+  private recordCustomSignals(hits: Array<MobileCustomSignalHit>): boolean {
+    if (
+      hits.length === 0 ||
+      !this.running ||
+      !this.acceptingEvents ||
+      this.sealedForIdle ||
+      this.isIdlePaused()
+    ) {
+      return false;
+    }
+    let frustrated: boolean = false;
+    for (const hit of hits) {
+      if (!this.chunkBuffer.hasRoomForCustomSignal()) {
+        this.diagnostic("custom-signal-cap-reached");
+        break;
+      }
+      const payload: SessionReplayCustomSignalPayload = {
+        name: hit.name,
+        trigger: hit.trigger,
+        isFrustration: hit.isFrustration,
+        atUnixMs: hit.atUnixMs,
+      };
+      this.appendEvent(
+        createCustomEvent(
+          CUSTOM_SIGNAL_CUSTOM_EVENT_TAG,
+          payload,
+          hit.atUnixMs,
+        ),
+        undefined,
+        false,
+        { name: hit.name, isFrustration: hit.isFrustration },
+      );
+      frustrated = frustrated || hit.isFrustration;
+    }
+    return frustrated;
+  }
+
   private appendCustom(
     tag: string,
     payload: unknown,
@@ -1758,6 +1873,7 @@ export default class MobileReplayRecorder {
     event: RrwebEvent,
     signal?: "errorCount" | "routeCount" | "clickCount" | "customEventCount",
     allowWhenQuiesced: boolean = false,
+    customSignal?: { name: string; isFrustration: boolean },
   ): void {
     if (!this.running || (!this.acceptingEvents && !allowWhenQuiesced)) {
       return;
@@ -1796,6 +1912,9 @@ export default class MobileReplayRecorder {
     }
     if (signal) {
       appendOptions.signal = signal;
+    }
+    if (customSignal) {
+      appendOptions.customSignal = customSignal;
     }
 
     /*

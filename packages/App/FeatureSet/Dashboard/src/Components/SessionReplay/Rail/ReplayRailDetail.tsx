@@ -3,6 +3,7 @@ import Route from "Common/Types/API/Route";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import { SessionReplayCustomSignalTrigger } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import AppLink from "../../AppLink/AppLink";
 import {
   formatReplayDuration,
@@ -16,6 +17,7 @@ import {
   ReplaySignal,
 } from "./ReplaySignalTypes";
 import {
+  CUSTOM_SIGNAL_TRIGGER_SUBTITLES,
   REPLAY_NETWORK_CAPTURE_CAP,
   REPLAY_SLOW_REQUEST_MS,
   ReplayClientErrorSignalDetail,
@@ -631,7 +633,20 @@ const InteractionDetail: FunctionComponent<{
   return (
     <div className="space-y-2">
       <dl>
-        {isFrustration && (
+        {isFrustration && frustration.customSignalName && (
+          <Fact label="Signal">
+            {frustration.customSignalTrigger
+              ? `${frustration.customSignalName} (${CUSTOM_SIGNAL_TRIGGER_SUBTITLES[
+                  frustration.customSignalTrigger
+                ].toLowerCase()})`
+              : frustration.customSignalName}
+          </Fact>
+        )}
+        {/* As a marker's detail says what it counted as (OwnSignalMarkerDetail). */}
+        {isFrustration && frustration.customSignalName && (
+          <Fact label="Counts as">frustration</Fact>
+        )}
+        {isFrustration && !frustration.customSignalName && (
           <Fact label="Signal">
             {frustration.kind === "rage-click"
               ? `rage click${
@@ -1210,12 +1225,80 @@ const TraceDetail: FunctionComponent<{
   );
 };
 
-const CustomDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
+/*
+ * One of the application's own signals that only marked the moment (issue
+ * #6443): which signal it was and what set it off, as a frustrating one
+ * says it, that it did not count as frustration, and where a click
+ * signal's click was. It carries no properties - the recorder sends the
+ * signal's name, never what it matched - so it never says "Properties:
+ * none" as a track() event with none would.
+ */
+const OwnSignalMarkerDetail: FunctionComponent<{
+  detail: ReplayCustomSignalDetail;
+  trigger: SessionReplayCustomSignalTrigger;
+  onShowOnStage: ((x: number, y: number) => void) | undefined;
+}> = (props: {
+  detail: ReplayCustomSignalDetail;
+  trigger: SessionReplayCustomSignalTrigger;
+  onShowOnStage: ((x: number, y: number) => void) | undefined;
+}): ReactElement => {
+  const x: number | null = isFiniteNumber(props.detail.x)
+    ? props.detail.x
+    : null;
+  const y: number | null = isFiniteNumber(props.detail.y)
+    ? props.detail.y
+    : null;
+
+  return (
+    <div className="space-y-2">
+      <dl>
+        <Fact label="Signal">
+          {`${props.detail.name} (${CUSTOM_SIGNAL_TRIGGER_SUBTITLES[
+            props.trigger
+          ].toLowerCase()})`}
+        </Fact>
+        <Fact label="Counts as">a marker, not frustration</Fact>
+        {x !== null && y !== null && (
+          <Fact label="Position">
+            {x}, {y}
+          </Fact>
+        )}
+      </dl>
+
+      {props.onShowOnStage && x !== null && y !== null && (
+        <ActionButton
+          label="Show on stage"
+          testId="rail-show-on-stage"
+          icon={IconProp.CursorArrowRays}
+          onClick={(): void => {
+            props.onShowOnStage?.(x, y);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+const CustomDetail: FunctionComponent<{
   signal: ReplaySignal;
+  onShowOnStage: ((x: number, y: number) => void) | undefined;
+}> = (props: {
+  signal: ReplaySignal;
+  onShowOnStage: ((x: number, y: number) => void) | undefined;
 }): ReactElement => {
   const detail: ReplayCustomSignalDetail = props.signal
     .detail as ReplayCustomSignalDetail;
   const keys: Array<string> = Object.keys(detail.properties || {});
+
+  if (detail.customSignalTrigger) {
+    return (
+      <OwnSignalMarkerDetail
+        detail={detail}
+        trigger={detail.customSignalTrigger}
+        onShowOnStage={props.onShowOnStage}
+      />
+    );
+  }
 
   return (
     <dl>
@@ -1404,7 +1487,9 @@ const ReplayRailDetail: FunctionComponent<ReplayRailDetailProps> = (
       );
       break;
     case "custom":
-      body = <CustomDetail signal={signal} />;
+      body = (
+        <CustomDetail signal={signal} onShowOnStage={props.onShowOnStage} />
+      );
       break;
     default:
       body = <MarkerDetail signal={signal} />;

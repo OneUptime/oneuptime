@@ -319,6 +319,8 @@ AI-kald gemmes som trace-spans, så traces' **Scrub-regler** og **Drop-filtre** 
 
 Prompts og svar sendt som loghændelser gemmes som logs, så det er logs' **Scrub-regler** og **Drop-filtre**, der gælder for dem, under **Protokoller → Indstillinger**: en regel, der maskerer e-mails i traces, maskerer dem ikke i loghændelser. En samtale viser dem kun til den, der også kan læse appens logs, og den kan også finde dem på siden **Protokoller**.
 
+Uanset hvad læser en regel hver tekst i en liste eller en struktureret værdi, såsom beskeder, som en instrumentering sender som en liste i stedet for som JSON-tekst, og bevarer værdiens form: en e-mailadresse i en prompt maskeres, uanset hvor den står. Se [Rens følsomme data](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data).
+
 Samtaler læses med samme tilladelse som traces: den, der kan læse projektets traces, kan læse dets samtaler, og ingen andre. Samtalerne fra et af virksomhedens AI-værktøjer er undtagelsen: kun projektets ejere og administratorer kan læse dem, medmindre forbindelsen siger andet ([Virksomhedens AI-værktøjer](/docs/telemetry/ai-company-tools#privatliv)).
 
 ## Attributter, som OneUptime læser

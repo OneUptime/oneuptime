@@ -319,6 +319,8 @@ Le chiamate di IA vengono salvate come span di traccia, quindi le **Regole di ma
 
 Prompt e risposte inviati come eventi di log vengono salvati come log, quindi si applicano a loro le **Regole di mascheramento** e i **Filtri di scarto** dei log, in **Log → Impostazioni**: una regola che maschera le email nelle tracce non le maschera negli eventi di log. Una conversazione li mostra solo a chi può leggere anche i log di quell'app, e chi può leggerli li trova anche nella pagina **Log**.
 
+In entrambi i casi, una regola legge ogni testo dentro una lista o un valore strutturato, come i messaggi che una strumentazione invia come lista invece che come testo JSON, e mantiene la forma del valore: un indirizzo email in un prompt viene mascherato ovunque si trovi. Vedi [Mascherare i dati sensibili](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili).
+
 Le conversazioni si leggono con lo stesso permesso delle tracce: chi può leggere le tracce del progetto può leggerne le conversazioni, e nessun altro. Le conversazioni di uno strumento di IA aziendale sono l'eccezione: solo i proprietari e gli amministratori del progetto possono leggerle, a meno che la sua connessione non dica altrimenti ([Strumenti di IA aziendali](/docs/telemetry/ai-company-tools#privacy)).
 
 ## Attributi che OneUptime legge

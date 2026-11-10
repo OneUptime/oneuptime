@@ -132,9 +132,23 @@ const FORBIDDEN_IN_BUNDLE = [
  * did not carry before. Measured after: recorder.js 331411 bytes raw / 99218
  * gzip; before it 329727 / 98655. The gzip budget still holds it (110 bytes
  * to spare) and is unchanged; the raw one follows the same rule.
+ *
+ * Raised again from 325 KB to 333 KB on 2026-11-09 for frustration signals
+ * an application defines itself (issue #6443, src/CustomSignalDetector.ts
+ * and Common's SessionReplayFrustrationSignals): the built-in rules read
+ * their numbers, switches and ignored elements from the replay config
+ * instead of constants, and the recorder detects the application's own
+ * signals - a click on an element, a page, a track() event, an error's
+ * text - marks them in the stream and counts them on the envelope. The
+ * shared module carries the config's defensive reader (every number pulled
+ * into its range, every signal checked) and the linear page matcher.
+ * Measured after: recorder.js 339513 bytes raw / 101329 gzip; before it
+ * 331424 / 99229. The loader is unchanged at 13333 / 4912. Both budgets
+ * follow the rule: the measured size plus about 1 KB, rounded up to a
+ * whole KB.
  */
 const LOADER_MAX_BYTES = 13.5 * 1024;
-const RECORDER_MAX_BYTES = 325 * 1024;
+const RECORDER_MAX_BYTES = 333 * 1024;
 
 /*
  * Gzip budgets, which are the numbers a customer's browser actually pays.
@@ -213,9 +227,14 @@ const RECORDER_MAX_BYTES = 325 * 1024;
  * left 557 bytes of headroom). The loader is 13333 / 4912, against
  * 13322 / 4907 before. Same rule: the measured size plus about 1 KB,
  * rounded up to a whole KB.
+ *
+ * Raised from 97 KB to 100 KB on 2026-11-09 for frustration signals an
+ * application defines itself (issue #6443; the raw budget's note above
+ * says what they are). Measured after: recorder.js 101329 gzip; before it
+ * 99229, which had left 99 bytes of headroom. Same rule.
  */
 const LOADER_MAX_GZIP_BYTES = 5 * 1024;
-const RECORDER_MAX_GZIP_BYTES = 97 * 1024;
+const RECORDER_MAX_GZIP_BYTES = 100 * 1024;
 
 function isInside(directory, candidate) {
   const withSeparator = directory.endsWith(path.sep)

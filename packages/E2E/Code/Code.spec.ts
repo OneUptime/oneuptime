@@ -3023,11 +3023,10 @@ test.describe("a repository's page: ask AI", () => {
 
     if (isPhone(testInfo)) {
       // On a phone, Try again sits under the row's words, where its title starts.
-      const title: { x: number; y: number; height: number } | null =
-        await failed.getByTestId("code-task-row-title").boundingBox();
-      const button: { x: number; y: number } | null = await failed
-        .getByTestId("code-task-row-retry-button")
-        .boundingBox();
+      const [title, button] = await boxesInOneFrame([
+        failed.getByTestId("code-task-row-title"),
+        failed.getByTestId("code-task-row-retry-button"),
+      ]);
       expect(title && button).toBeTruthy();
       expect(Math.abs(button!.x - title!.x)).toBeLessThanOrEqual(1);
       expect(button!.y).toBeGreaterThan(title!.y + title!.height);
