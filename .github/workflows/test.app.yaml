@@ -190,7 +190,7 @@ jobs:
   # esbuild and serve them against fixture data: no database or Docker stack.
   # They used to run one after another in a single 41-minute job, the longest
   # of every pull request's checks. They are independent - each starts its
-  # own fixture server on its own port - so they run here in eighteen groups
+  # own fixture server on its own port - so they run here in twenty-one groups
   # balanced by measured duration. Event Overview and the Workflow Builder
   # suite outgrew a group each on their own (20.4 and 19.4 minutes on
   # 2026-10-17's slowest runner), so each now runs in halves, in two groups
@@ -240,8 +240,9 @@ jobs:
   # the laptop's projects in one half and the phone's in the other. Model
   # Tables and Monitor Overview are split since 2026-11-01 by
   # MODEL_TABLES_SHARD and MONITOR_OVERVIEW_SHARD, by test as Event Overview
-  # is, and the OpenStack pages since 2026-11-05 by OPENSTACK_PAGES_SHARD
-  # (Tests/Ops/DashboardOfflineUiShards holds every half to running once).
+  # is, and the OpenStack pages since 2026-11-05 by OPENSTACK_PAGES_SHARD, in
+  # thirds since 2026-11-10 (Tests/Ops/DashboardOfflineUiShards holds every
+  # half, or third, to running once).
   #
   # A suite added to packages/E2E needs a place in one group's `suites`, its
   # minutes in Tests/Ops/DashboardOfflineUiMinutes.json, and its output
@@ -276,7 +277,8 @@ jobs:
       MODEL_TABLES_SHARD: ${{ matrix.model_tables_shard || '' }}
       # And of Monitor Overview (playwright.monitor-overview-ui.config.ts).
       MONITOR_OVERVIEW_SHARD: ${{ matrix.monitor_overview_shard || '' }}
-      # And of the OpenStack pages (playwright.openstack-pages-ui.config.ts).
+      # And which third of the OpenStack pages, "1/3" to "3/3"
+      # (playwright.openstack-pages-ui.config.ts).
       OPENSTACK_PAGES_SHARD: ${{ matrix.openstack_pages_shard || '' }}
     strategy:
       # Every group reports its own suites, whatever happens to the others.
@@ -1337,6 +1339,9 @@ jobs:
           # Host Collectors (1.2) joined it from group 3 on 2026-11-08, when
           # #5762 grew Meraki Traffic there; Reading Direction had left it
           # for group 20 (17.6): about 18.8.
+          # Dashboard Templates (2.5) joined it from group 20 on 2026-11-10,
+          # the group with the most room, when the OpenStack pages went to
+          # thirds (see group 19): about 21.3.
           - group: 13
             suites: >-
               test-logs-ai-ui
@@ -1348,6 +1353,7 @@ jobs:
               test-accounts-theme-ui
               test-data-security-ui
               test-host-collectors-ui
+              test-dashboard-templates-ui
           # Added on 2026-10-29, when group 3's run step reached its 28 minutes
           # on two of master's runs (#5393 grew Monitor Overview from 209 tests
           # to 222) and took 24.6 on the next, and groups 5 and 9 took 25.3 and
@@ -1591,12 +1597,32 @@ jobs:
           # English at 1280 pixels and on a phone in German and in Persian
           # dark) joined it on 2026-11-09, the group with the most room:
           # about 17.6.
+          # The OpenStack pages run in thirds since 2026-11-10. Their halves
+          # were planned at 11.6 minutes each from the 341 tests the suite had
+          # when it was split, early on 2026-11-05; the pages merged later
+          # that day (Checks, Capacity, Spend, bare metal, Heat and Magnum,
+          # Octavia, Swift, Trove, Manila, Designate, Gnocchi, the service
+          # logs, the AI pages, Status Pages and more) made it 585 tests, 586
+          # since 2026-11-06, and its minutes were not measured again. On App
+          # Test's runs since 2026-11-06 22:08 the first half took 24.4
+          # minutes at the median (37 runs, 18.1 to 29.1) and the second 26.2
+          # (35 runs, 20.5 to 33.8): this group summed to 30.4 and group 20 to
+          # 35.6, whose run step hit its 35 minutes on 18 of its 36 runs in
+          # that time, this group's on 3 of 38. The suite grew; its tests did
+          # not slow (the same tests took a little longer at the median on
+          # 2026-11-05 and 11-06). Its tests' median minutes over those 72
+          # runs, and the 0.2 a run takes to start, plan the thirds at 17.1
+          # minutes (196 tests: Checks to Instance Usage), 16.0 (195: on to
+          # Projects and Topology) and 17.8 (195: on to Traces). The first
+          # stays here, and Global Runners (2.2) moved to the new group 21.
+          # Product Onboarding, 27 tests now, is planned at the 1.1 minutes App
+          # Test measured on the two runs that reached it (0.97 and 1.20)
+          # rather than the 0.7 of a local run: about 21.3.
           - group: 19
-            openstack_pages_shard: 1/2
+            openstack_pages_shard: 1/3
             suites: >-
               test-openstack-pages-ui
               test-ai-insights-ui
-              test-global-runners-ui
               test-archivable-values-ui
               test-product-onboarding-ui
           # Dashboard Templates (2.5) from group 10 on 2026-11-06, the group with
@@ -1615,13 +1641,25 @@ jobs:
           # more the same day (two blocks at once in a Persian and an English
           # week, and a chart's time axis in three languages, about 18
           # seconds locally): planned as 5.3, this group about 21.0.
+          # The second third of the OpenStack pages (16.0, see group 19) runs
+          # here since 2026-11-10, with Reading Direction. Dashboard Templates
+          # (2.5) moved to group 13, the group with the most room, and Host
+          # Pages (1.6) to the new group 21: about 21.3.
           - group: 20
-            openstack_pages_shard: 2/2
+            openstack_pages_shard: 2/3
             suites: >-
               test-openstack-pages-ui
-              test-dashboard-templates-ui
-              test-host-pages-ui
               test-reading-direction-ui
+          # Added on 2026-11-10 for the last third of the OpenStack pages (195
+          # tests, 17.8 minutes, see group 19): no group had the room for it.
+          # Global Runners (2.2) from group 19 and Host Pages (1.6) from group
+          # 20 joined it: about 21.6.
+          - group: 21
+            openstack_pages_shard: 3/3
+            suites: >-
+              test-openstack-pages-ui
+              test-global-runners-ui
+              test-host-pages-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
