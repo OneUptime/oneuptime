@@ -1,5 +1,11 @@
 import logger from "../Logger";
 import OneUptimeDate from "../../../Types/Date";
+import EvaluationSentenceMemo from "./EvaluationSentenceMemo";
+import {
+  EvaluationSentence,
+  evaluationTime,
+  translatableSentence,
+} from "../../../Types/Monitor/EvaluationSentence";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import DataToProcess from "./DataToProcess";
@@ -492,7 +498,9 @@ export default class MonitorCriteriaObservationBuilder {
       probeResponse.responseTimeInMs ?? undefined;
 
     if (responseTime === undefined || responseTime === null) {
-      return "Response time metric was not recorded";
+      return EvaluationSentenceMemo.write(
+        translatableSentence("Response time metric was not recorded"),
+      );
     }
 
     const formatted: string | null =
@@ -500,18 +508,24 @@ export default class MonitorCriteriaObservationBuilder {
         maximumFractionDigits: 2,
       });
 
-    const evaluationWindow: string | null =
-      MonitorCriteriaExpectationBuilder.getEvaluationWindowDescription(
+    const evaluationWindow: EvaluationSentence | null =
+      MonitorCriteriaExpectationBuilder.getEvaluationWindowSentence(
         input.criteriaFilter,
       );
 
-    let message: string = `Response Time (in ms) was ${formatted ?? responseTime} ms`;
+    const observation: EvaluationSentence = translatableSentence(
+      "Response Time (in ms) was {{value}} ms",
+      { value: `${formatted ?? responseTime}` },
+    );
 
-    if (evaluationWindow) {
-      message += ` ${evaluationWindow}`;
-    }
-
-    return message;
+    return EvaluationSentenceMemo.write(
+      evaluationWindow
+        ? translatableSentence("{{observation}} {{window}}", {
+            observation: observation,
+            window: evaluationWindow,
+          })
+        : observation,
+    );
   }
 
   private static describeResponseStatusCodeObservation(input: {
@@ -525,10 +539,16 @@ export default class MonitorCriteriaObservationBuilder {
     }
 
     if (probeResponse.responseCode === undefined) {
-      return "Response status code was not recorded";
+      return EvaluationSentenceMemo.write(
+        translatableSentence("Response status code was not recorded"),
+      );
     }
 
-    return `Response Status Code was ${probeResponse.responseCode}.`;
+    return EvaluationSentenceMemo.write(
+      translatableSentence("Response Status Code was {{code}}.", {
+        code: `${probeResponse.responseCode}`,
+      }),
+    );
   }
 
   private static describeResponseHeaderObservation(input: {
@@ -664,11 +684,34 @@ export default class MonitorCriteriaObservationBuilder {
       MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
 
     if (probeResponse && probeResponse.isOnline !== undefined) {
-      return `Monitor reported ${
-        probeResponse.isOnline ? "online" : "offline"
-      } status at ${OneUptimeDate.getDateAsLocalFormattedString(
-        probeResponse.monitoredAt,
-      )}.`;
+      const monitoredAt: Date | null = probeResponse.monitoredAt
+        ? OneUptimeDate.fromString(probeResponse.monitoredAt)
+        : null;
+
+      // A check with no time of its own is said as it always was, in English.
+      if (!monitoredAt || Number.isNaN(monitoredAt.getTime())) {
+        return `Monitor reported ${
+          probeResponse.isOnline ? "online" : "offline"
+        } status at ${OneUptimeDate.getDateAsLocalFormattedString(
+          probeResponse.monitoredAt,
+        )}.`;
+      }
+
+      /*
+       * The time is written where the sentence is read: in the reader's
+       * time zone and language on the Dashboard, as the server writes it in
+       * the English.
+       */
+      return EvaluationSentenceMemo.write(
+        probeResponse.isOnline
+          ? translatableSentence("Monitor reported online status at {{time}}.", {
+              time: evaluationTime(monitoredAt),
+            })
+          : translatableSentence(
+              "Monitor reported offline status at {{time}}.",
+              { time: evaluationTime(monitoredAt) },
+            ),
+      );
     }
 
     const serverResponse: ServerMonitorResponse | null =
@@ -688,9 +731,12 @@ export default class MonitorCriteriaObservationBuilder {
           maximumFractionDigits: 2,
         });
 
-      return `Server heartbeat last received ${
-        formattedMinutes ?? minutesSinceHeartbeat
-      } minutes ago.`;
+      return EvaluationSentenceMemo.write(
+        translatableSentence(
+          "Server heartbeat last received {{minutes}} minutes ago.",
+          { minutes: `${formattedMinutes ?? minutesSinceHeartbeat}` },
+        ),
+      );
     }
 
     return null;
@@ -703,12 +749,16 @@ export default class MonitorCriteriaObservationBuilder {
       MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
 
     if (probeResponse && probeResponse.isTimeout !== undefined) {
-      return probeResponse.isTimeout
-        ? "Request timed out."
-        : "Request completed before timeout.";
+      return EvaluationSentenceMemo.write(
+        probeResponse.isTimeout
+          ? translatableSentence("Request timed out.")
+          : translatableSentence("Request completed before timeout."),
+      );
     }
 
-    return "Timeout information was unavailable.";
+    return EvaluationSentenceMemo.write(
+      translatableSentence("Timeout information was unavailable."),
+    );
   }
 
   private static describeIncomingRequestObservation(input: {

@@ -52,6 +52,11 @@ import {
 
 export interface EvaluationTerm {
   term: string;
+  /*
+   * Cased for the middle of a sentence in the sentence's language: "using
+   * all values" in English, "mit Durchschnitt" in German.
+   */
+  inSentence?: boolean | undefined;
 }
 
 export interface EvaluationTime {
@@ -122,10 +127,16 @@ export const translatablePluralSentence: (
 };
 
 // A word the reader's language words: a check's name, "true".
-export const evaluationTerm: (text: string) => EvaluationTerm = (
+export const evaluationTerm: (
   text: string,
+  options?: { inSentence?: boolean | undefined } | undefined,
+) => EvaluationTerm = (
+  text: string,
+  options?: { inSentence?: boolean | undefined } | undefined,
 ): EvaluationTerm => {
-  return { term: text };
+  return options?.inSentence
+    ? { term: text, inSentence: true }
+    : { term: text };
 };
 
 // A time, written where the sentence is read.
@@ -147,7 +158,9 @@ export const isEvaluationTerm: (value: unknown) => value is EvaluationTerm = (
   return (
     isPlainObject(value) &&
     typeof value["term"] === "string" &&
-    value["term"].length <= MAX_VALUE_LENGTH
+    value["term"].length <= MAX_VALUE_LENGTH &&
+    (value["inSentence"] === undefined ||
+      typeof value["inSentence"] === "boolean")
   );
 };
 
@@ -278,7 +291,9 @@ const toTemplateValue: (
   }
 
   if (isEvaluationTerm(value)) {
-    return translatableTerm(value.term);
+    return translatableTerm(value.term, {
+      inSentence: Boolean(value.inSentence),
+    });
   }
 
   if (isEvaluationTime(value)) {
