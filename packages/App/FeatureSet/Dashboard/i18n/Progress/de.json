@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 47694,
+    "keys": 47977,
     "untranslated": 3476
   },
   "sameAsEnglish": [
@@ -307,6 +307,7 @@
     "JavaScript API",
     "Jersey",
     "Jitter",
+    "Jitter (in ms)",
     "Job",
     "Jobs",
     "Journey",
@@ -599,6 +600,7 @@
     "Traceroute",
     "Traces",
     "Transport",
+    "Trend",
     "Tunnel",
     "Turkmenistan",
     "Tuvalu",

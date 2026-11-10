@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47694,
-    "untranslated": 11101
+    "keys": 47977,
+    "untranslated": 11100
   },
   "sameAsEnglish": [
     " is",
@@ -221,6 +221,7 @@
     "Item",
     "Items",
     "Japan (+81)",
+    "Jitter (in ms)",
     "Kelvin",
     "Kernel",
     "Keystone",
@@ -438,6 +439,7 @@
     "Trace: {{id}}",
     "Traces",
     "Transceivers",
+    "Trend",
     "Trigger",
     "Triggers",
     "Tunnel",
@@ -750,6 +752,8 @@
     "{{in}} in",
     "{{minutes}} min",
     "{{size}} in {{duration}}",
+    "{{subject}} is {{value}}.",
+    "{{subject}} was {{value}}",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up"
   ]

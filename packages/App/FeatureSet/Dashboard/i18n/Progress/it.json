@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47694,
-    "untranslated": 11075
+    "keys": 47977,
+    "untranslated": 11074
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -147,6 +147,7 @@
     "Insight",
     "Internet",
     "IoT",
+    "Jitter (in ms)",
     "Job",
     "Kelvin",
     "Kernel",
@@ -492,6 +493,7 @@
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
+    "{{observation}} in {{readings}}",
     "{{size}} in {{duration}}",
     "{{up}}/{{count}} OSD up"
   ]
