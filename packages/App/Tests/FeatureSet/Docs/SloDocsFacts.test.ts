@@ -146,7 +146,6 @@ const SOURCES: Record<string, string> = {
   notificationSettingService:
     "Common/Server/Services/UserNotificationSettingService.ts",
   worker: "App/FeatureSet/Workers/Jobs/Slo/EvaluateSlos.ts",
-  sloListSideMenu: `${DASHBOARD}/Pages/Slo/SideMenu.tsx`,
   sloWorkspaceNotifications:
     "Common/Server/Utils/Slo/SloWorkspaceNotifications.ts",
   sloHistory: "Common/Models/AnalyticsModels/SloHistory.ts",
