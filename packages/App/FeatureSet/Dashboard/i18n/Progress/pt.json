@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 48847,
-    "untranslated": 11274
+    "untranslated": 10763
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -261,6 +261,7 @@
     "TX",
     "Tablet",
     "Tags",
+    "Tags ({{count}})",
     "Tebibytes",
     "Tenancy",
     "Terabytes",
@@ -479,6 +480,7 @@
     "{{minutes}} min",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
-    "{{up}}/{{count}} OSDs up"
+    "{{up}}/{{count}} OSDs up",
+    "{{value}} ms"
   ]
 }

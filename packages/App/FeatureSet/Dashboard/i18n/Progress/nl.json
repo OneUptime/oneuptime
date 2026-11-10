@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48180,
-    "untranslated": 11087
+    "keys": 48847,
+    "untranslated": 10801
   },
   "sameAsEnglish": [
     " is",
@@ -385,6 +385,7 @@
     "ScheduledMaintenance",
     "Schema",
     "Script",
+    "Selector",
     "Server",
     "Serverless",
     "Servers",
@@ -420,12 +421,15 @@
     "Tablet",
     "Tag",
     "Tags",
+    "Tags ({{count}})",
     "Team",
     "Teams",
     "Tebibytes",
     "Tenancy",
     "Terabytes",
+    "Theater",
     "Threads",
+    "Timing",
     "Tip",
     "Token",
     "Tokens",
@@ -466,7 +470,9 @@
     "VM · esx-04",
     "VMID {{vmid}}",
     "VMware vCenter",
+    "Viewport",
     "Vital",
+    "Vitals",
     "Volume",
     "Volumes",
     "Web",
@@ -553,6 +559,7 @@
     "kubectl set image deployment/web * -n web",
     "labels",
     "libvirt",
+    "live",
     "main",
     "message",
     "misses",
@@ -652,6 +659,7 @@
     "x86",
     "z",
     "zone",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{capacity}} CPU",
     "{{controlPlane}} control plane, {{workers}}",
     "{{count}} B",
@@ -697,6 +705,7 @@
     "{{count}} incident",
     "{{count}} item, {{size}}",
     "{{count}} items, {{size}}",
+    "{{count}} live",
     "{{count}} manager",
     "{{count}} managers",
     "{{count}} mon",
@@ -732,10 +741,12 @@
     "{{count}} spans",
     "{{count}} stack",
     "{{count}} stacks",
+    "{{count}} stylesheets",
     "{{count}} team",
     "{{count}} teams",
     "{{count}} token",
     "{{count}} tokens",
+    "{{count}} traces",
     "{{count}} trigger",
     "{{count}} triggers",
     "{{count}} vCPU",
@@ -756,6 +767,7 @@
     "{{subject}} is {{value}}.",
     "{{subject}} was {{value}}",
     "{{tokens}} tokens",
-    "{{up}}/{{count}} OSD up"
+    "{{up}}/{{count}} OSD up",
+    "{{value}} ms"
   ]
 }

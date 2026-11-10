@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 48847,
-    "untranslated": 39583
+    "untranslated": 39057
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -164,6 +164,7 @@
     "{\"version\": \"...\", \"records\": [...]}",
     "{{gigabytes}} GB",
     "{{in}} in",
-    "{{label}}: {{count}}"
+    "{{label}}: {{count}}",
+    "{{value}} ms"
   ]
 }

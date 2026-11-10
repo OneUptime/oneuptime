@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48180,
-    "untranslated": 11063
+    "keys": 48847,
+    "untranslated": 10778
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -289,6 +289,7 @@
     "Server",
     "Service Mesh",
     "Session",
+    "Session {{id}}",
     "Shares",
     "Signal",
     "Singapore (+65)",
@@ -315,6 +316,7 @@
     "TX",
     "Tablet",
     "Tags",
+    "Tags ({{count}})",
     "Team",
     "Teams",
     "Tenancy",
@@ -411,6 +413,7 @@
     "jobs",
     "kubectl set image deployment/web * -n web",
     "libvirt",
+    "live",
     "main",
     "median",
     "message",
@@ -421,6 +424,7 @@
     "name",
     "namespace",
     "namespaces",
+    "neutral",
     "node",
     "note",
     "nova-compute",
@@ -487,6 +491,7 @@
     "x86",
     "z",
     "zone",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{capacity}} CPU",
     "{{count}} B",
     "{{count}} CPU",
@@ -517,6 +522,7 @@
     "{{count}} hunt",
     "{{count}} hunts",
     "{{count}} hypervisor",
+    "{{count}} live",
     "{{count}} load balancer",
     "{{count}} manager",
     "{{count}} match",
@@ -545,6 +551,7 @@
     "{{count}} spans",
     "{{count}} stack",
     "{{count}} stacks",
+    "{{count}} stylesheets",
     "{{count}} team",
     "{{count}} teams",
     "{{count}} token",
@@ -555,6 +562,7 @@
     "{{in}} in",
     "{{online}}/{{count}} node online",
     "{{size}} disk",
-    "{{tokens}} tokens"
+    "{{tokens}} tokens",
+    "{{value}} ms"
   ]
 }
