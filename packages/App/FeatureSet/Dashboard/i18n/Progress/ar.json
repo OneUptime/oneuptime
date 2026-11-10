@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 47463,
-    "untranslated": 7083
+    "untranslated": 5040
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -55,6 +55,7 @@
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
+    "CPU ready {{percent}}",
     "CSS",
     "Canonical Sunbeam",
     "ClickHouse",
@@ -85,6 +86,8 @@
     "Elasticsearch",
     "Enter",
     "Fivetran",
+    "FlashArray",
+    "FlashBlade",
     "Flavor",
     "Flavors",
     "Fluent Bit",
@@ -174,6 +177,7 @@
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
     "Postmark",
+    "Purity CLI",
     "RTT",
     "RX",
     "RabbitMQ",
@@ -291,6 +295,7 @@
     "kubectl set image deployment/web * -n web",
     "libvirt",
     "main",
+    "member@company.com",
     "mm",
     "monitoring",
     "mqtt",
@@ -316,6 +321,7 @@
     "p95 {{latency}}",
     "p99 (ms)",
     "p99 {{duration}}",
+    "payment-.*",
     "pending\npaid\nrefunded",
     "pod",
     "prod, staging",
@@ -324,6 +330,7 @@
     "prod-vcenter",
     "production, staging",
     "public",
+    "pve-production",
     "resolved",
     "s",
     "security-alerts",
@@ -357,6 +364,7 @@
     "var(--ou-tool-text, #0e7490)",
     "var(--ou-warning-text, #b45309)",
     "vertical pod autoscaler",
+    "web-.*",
     "x86",
     "you@company.com",
     "z",
