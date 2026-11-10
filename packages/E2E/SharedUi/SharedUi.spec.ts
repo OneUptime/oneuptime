@@ -694,6 +694,110 @@ test.describe("a button that cannot be pressed looks it", () => {
 });
 
 /*
+ * A DROPDOWN THAT CANNOT BE CHANGED LOOKS IT (the UI review of #6389).
+ *
+ * The control carried !bg-white always and !bg-gray-100 as well when
+ * locked: two !important fills, so the stylesheet's order decided, and it
+ * painted white. A Project Member's locked Remove after (Discovered
+ * Devices > More settings > Unseen Devices) looked exactly as open as an
+ * Admin's until hovered. The control now carries one fill or the other.
+ * jsdom has no stylesheet, so this reads what the browser paints.
+ */
+test.describe("a dropdown that cannot be changed looks it", () => {
+  const WHITE: string = "rgb(255, 255, 255)";
+
+  function control(page: Page, testId: string): Locator {
+    return page.getByTestId(testId).locator(".ou-select__control");
+  }
+
+  test("a locked one is grey and does not point, an open one is white and points, also under the pointer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=pills");
+
+    const unlocked: Locator = control(page, "single-select");
+    const locked: Locator = control(page, "single-select-locked");
+
+    await expect(locked).toHaveClass(/ou-select__control--is-disabled/);
+    await expect(unlocked).not.toHaveClass(/ou-select__control--is-disabled/);
+
+    // Read once Tailwind has written the classes the page holds.
+    await expect
+      .poll(async (): Promise<string> => {
+        return await styleOf(unlocked, "background-color");
+      })
+      .toBe(WHITE);
+    await expect
+      .poll(async (): Promise<string> => {
+        return await styleOf(locked, "background-color");
+      })
+      .toBe(GRAY_100);
+    expect(await styleOf(unlocked, "cursor")).toBe("pointer");
+    expect(await styleOf(locked, "cursor")).not.toBe("pointer");
+
+    // Only the box is grey: what it is set to still reads.
+    await expect(page.getByTestId("single-select-locked")).toContainText(
+      "30 days",
+    );
+
+    await locked.hover({ force: true });
+    expect(await styleOf(locked, "background-color")).toBe(GRAY_100);
+
+    await page.getByTestId("single-select").scrollIntoViewIfNeeded();
+    await screenshot(page, "dropdown-open-and-locked", { fullPage: false });
+  });
+
+  test("in the dark theme too, a locked one is filled apart from an open one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=pills&theme=dark");
+
+    const fills: () => Promise<{
+      unlocked: string;
+      locked: string;
+    }> = async (): Promise<{ unlocked: string; locked: string }> => {
+      return {
+        unlocked: await styleOf(
+          control(page, "single-select"),
+          "background-color",
+        ),
+        locked: await styleOf(
+          control(page, "single-select-locked"),
+          "background-color",
+        ),
+      };
+    };
+
+    // Read once the theme's rules have been applied to both.
+    await expect
+      .poll(
+        async (): Promise<{
+          unlockedIsWhite: boolean;
+          lockedIsWhite: boolean;
+          sameFill: boolean;
+        }> => {
+          const { unlocked, locked } = await fills();
+
+          return {
+            unlockedIsWhite: unlocked === WHITE,
+            lockedIsWhite: locked === WHITE,
+            sameFill: locked === unlocked,
+          };
+        },
+      )
+      .toEqual({
+        unlockedIsWhite: false,
+        lockedIsWhite: false,
+        sameFill: false,
+      });
+  });
+});
+
+/*
  * ON A PHONE, A TAP IS HOW SOMEBODY ASKS WHY.
  *
  * A locked button keeps its reason in a tooltip, and a locked switch keeps

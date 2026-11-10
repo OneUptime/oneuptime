@@ -83,6 +83,13 @@ export default class DiscoveredDevicesFakeServer {
   // The next request to these routes is refused with these words.
   public refuseNext: { route: RegExp; message: string } | null = null;
 
+  /*
+   * How long the project keeps a device nothing sees (issue #6389), as the
+   * list answers it; left out of the answer while undefined, as the server
+   * leaves it out when it cannot read it.
+   */
+  public retentionInDays: number | undefined = undefined;
+
   public constructor(devices: Array<FakeDiscoveredDevice> = []) {
     for (const device of devices) {
       this.devices.set(device.id.toLowerCase(), { ...device });
@@ -289,6 +296,9 @@ export default class DiscoveredDevicesFakeServer {
         }),
       count: rows.length,
       counts: counts as unknown as JSONObject,
+      ...(this.retentionInDays !== undefined
+        ? { retentionInDays: this.retentionInDays }
+        : {}),
     });
   }
 
