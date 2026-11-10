@@ -47073,6 +47073,9 @@
   "Note ID": "Note ID",
   "Public Note Approval Request": "Public Note Approval Request",
   "Public Note Approval Requests": "Public Note Approval Requests",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}.": "La IA leyó estos {{count}} archivos en una respuesta anterior y ya no tiene su texto, y sus versiones los reemplazan enteros: {{files}}.",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}._one": "La IA leyó este archivo en una respuesta anterior y ya no tiene su texto, y su versión lo reemplaza entero: {{files}}.",
+  "Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: {{files}}.": "La IA leyó este archivo en una respuesta anterior y ya no tiene su texto, y su versión lo reemplaza entero: {{files}}.",
   "Read from this call's log events": "Leído de los eventos de registro de esta llamada",
   "Reading this call's log events…": "Leyendo los eventos de registro de esta llamada…",
   "What this device is. Free-form: use whatever your team searches by. It names the device in this list and on the map.": "Qué es este dispositivo. Texto libre: use lo que su equipo busque. Da nombre al dispositivo en esta lista y en el mapa.",
@@ -48218,5 +48221,16 @@
   "{{monitorName}} is not serving good time": "{{monitorName}} no proporciona una hora fiable",
   "{{monitorName}} is offline": "{{monitorName}} está sin conexión",
   "{{monitorName}}: too many bad AI answers": "{{monitorName}}: demasiadas respuestas malas de la IA",
-  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nUna sonda se considera desconectada cuando no se ha sabido nada de ella durante tres minutos. Los monitores que solo se ejecutan en una sonda desconectada no se comprueban hasta que vuelva. Esto se resuelve solo en cuanto todas las sondas que vigila este monitor vuelvan a estar conectadas."
+  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nUna sonda se considera desconectada cuando no se ha sabido nada de ella durante tres minutos. Los monitores que solo se ejecutan en una sonda desconectada no se comprueban hasta que vuelva. Esto se resuelve solo en cuanto todas las sondas que vigila este monitor vuelvan a estar conectadas.",
+  "This team comes with every project and can't have owners.": "Este equipo viene con todos los proyectos y no puede tener propietarios.",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "Personas y equipos que se encargan de este equipo. Con permisos de equipo limitados a los equipos de los que son propietarios, invitan a personas, las quitan y cambian lo que el equipo puede hacer.",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "Añade a un compañero o a un equipo que se encargue de quién está en este equipo y de lo que puede hacer.",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "Añade personas como propietarias de tus equipos. Los propietarios se encargan de quién está en un equipo y de lo que puede hacer.",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "Añade equipos como propietarios de tus equipos. Los miembros de un equipo propietario se encargan de quién está en el equipo que poseen y de lo que puede hacer.",
+  "Owned Team": "Equipo en propiedad",
+  "Owned Team ID": "ID del equipo en propiedad",
+  "Team Team Owner": "Equipo propietario del equipo",
+  "Team Team Owners": "Equipos propietarios del equipo",
+  "Team User Owner": "Usuario propietario del equipo",
+  "Team User Owners": "Usuarios propietarios del equipo"
 }

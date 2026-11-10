@@ -1,5 +1,6 @@
 import Project from "./Project";
 import Team from "./Team";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -41,10 +42,15 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ReadProjectTeam,
     Permission.CurrentUser,
   ],
+  /*
+   * Remove Team Members takes people out of a team; Delete Team does too,
+   * as deleting a team takes everyone out of it.
+   */
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.DeleteProjectTeam,
+    Permission.RemoveProjectTeamMembers,
   ],
   update: [
     Permission.ProjectOwner,
@@ -56,6 +62,13 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @MultiTenentQueryAllowed(true)
 @AllowUserQueryWithoutTenant(true)
 @CurrentUserCanAccessRecordBy("userId")
+/*
+ * Who is in a team is the team's owners' to look after: Invite New Members
+ * and Remove Team Members scoped to Owned add and remove people only in the
+ * teams their holder or their teams own (OwnerTableRegistry: "Team"). Every
+ * reader of teams reads every membership, as before.
+ */
+@OwnedThrough("teamId", Team)
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/team-member"))
 @Entity({

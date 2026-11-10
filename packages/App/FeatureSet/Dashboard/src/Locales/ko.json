@@ -47073,6 +47073,9 @@
   "Note ID": "Note ID",
   "Public Note Approval Request": "Public Note Approval Request",
   "Public Note Approval Requests": "Public Note Approval Requests",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI가 이전 답변에서 파일 {{count}}개를 읽었지만 더 이상 그 내용을 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}.",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI가 이전 답변에서 이 파일을 읽었지만 더 이상 그 내용을 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}.",
+  "Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI가 이전 답변에서 이 파일을 읽었지만 더 이상 그 내용을 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}.",
   "Read from this call's log events": "이 호출의 로그 이벤트에서 읽음",
   "Reading this call's log events…": "이 호출의 로그 이벤트를 읽는 중…",
   "What this device is. Free-form: use whatever your team searches by. It names the device in this list and on the map.": "이 장치가 무엇인지 적습니다. 자유 형식이며, 팀이 검색할 때 쓰는 말을 쓰세요. 이 목록과 지도에서 장치 이름으로 쓰입니다.",
@@ -48218,5 +48221,16 @@
   "{{monitorName}} is not serving good time": "{{monitorName}}의 시간이 정확하지 않음",
   "{{monitorName}} is offline": "{{monitorName}} 오프라인",
   "{{monitorName}}: too many bad AI answers": "{{monitorName}}: 나쁜 AI 답변이 너무 많음",
-  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\n프로브는 3분 동안 응답이 없으면 연결 끊김으로 간주됩니다. 연결이 끊긴 프로브에서만 실행되는 모니터는 해당 프로브가 다시 연결될 때까지 검사되지 않습니다. 이 모니터가 감시하는 모든 프로브가 다시 연결되면 자동으로 해결됩니다."
+  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\n프로브는 3분 동안 응답이 없으면 연결 끊김으로 간주됩니다. 연결이 끊긴 프로브에서만 실행되는 모니터는 해당 프로브가 다시 연결될 때까지 검사되지 않습니다. 이 모니터가 감시하는 모든 프로브가 다시 연결되면 자동으로 해결됩니다.",
+  "This team comes with every project and can't have owners.": "이 팀은 모든 프로젝트에 기본으로 있어 소유자를 둘 수 없습니다.",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "이 팀을 관리하는 사람과 팀입니다. 소유한 팀으로 제한된 팀 권한으로 사람을 초대하고, 제거하고, 이 팀이 할 수 있는 일을 변경합니다.",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "이 팀에 누가 있는지와 이 팀이 할 수 있는 일을 관리할 팀원이나 팀을 추가하세요.",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "팀의 소유자로 사람을 추가하세요. 소유자는 팀에 누가 있는지와 팀이 할 수 있는 일을 관리합니다.",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "팀의 소유자로 팀을 추가하세요. 소유자 팀의 구성원은 소유된 팀에 누가 있는지와 그 팀이 할 수 있는 일을 관리합니다.",
+  "Owned Team": "소유된 팀",
+  "Owned Team ID": "소유된 팀 ID",
+  "Team Team Owner": "팀의 팀 소유자",
+  "Team Team Owners": "팀의 팀 소유자",
+  "Team User Owner": "팀의 사용자 소유자",
+  "Team User Owners": "팀의 사용자 소유자"
 }

@@ -105,6 +105,63 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * A ROW OF THE TEAM SOMEONE IS ADDED TO, HELD BY THE CALLER THROUGH THAT
+   * SAME TEAM: the very row the newcomer is handed. A member of a team holds
+   * its rows, and bringing someone into it gives them those same rows - so
+   * the team's rows scoped to Owned, which no other row of the caller's
+   * covers (permissionCoversGrant: an Owned row reaches what its holder
+   * owns, which differs from one person to the next), are covered by the
+   * caller's own copies of them. With Invite New Members scoped to Owned,
+   * that is what lets the members of a team that owns itself bring others
+   * into it, whatever it lets them do with what it owns.
+   *
+   * Only an allow row of `teamId`, the team being joined, with the same
+   * permission (the caller's rows are filtered to it), scope and labels: a
+   * row of any other team, or a broader one, is weighed as before.
+   */
+  private isRowOfJoinedTeam(
+    callerPermission: UserPermission,
+    target: {
+      teamId?: ObjectID | undefined;
+      scope?: PermissionScope | undefined;
+      labelIds: Array<ObjectID>;
+    },
+  ): boolean {
+    if (
+      !target.teamId ||
+      !callerPermission.teamId ||
+      callerPermission.isBlockPermission ||
+      callerPermission.teamId.toString().toLowerCase() !==
+        target.teamId.toString().toLowerCase()
+    ) {
+      return false;
+    }
+
+    // An absent scope is Labels, the legacy default, on either side.
+    if (
+      (callerPermission.scope || PermissionScope.Labels) !==
+      (target.scope || PermissionScope.Labels)
+    ) {
+      return false;
+    }
+
+    const labelKey: (labelIds: Array<ObjectID>) => string = (
+      labelIds: Array<ObjectID>,
+    ): string => {
+      return labelIds
+        .map((labelId: ObjectID): string => {
+          return labelId.toString().toLowerCase();
+        })
+        .sort()
+        .join(",");
+    };
+
+    return (
+      labelKey(callerPermission.labelIds || []) === labelKey(target.labelIds)
+    );
+  }
+
+  /*
    * ProjectOwner held for the whole project, with nothing blocking it: the
    * one grant that lets its holder hand on any permission
    * (assertCanGrantPermission).
@@ -189,6 +246,13 @@ export class Service extends ProjectReferencesService<Model> {
     labelIds?: Array<ObjectID> | undefined;
     scope?: PermissionScope | undefined;
     props: DatabaseCommonInteractionProps;
+    /*
+     * The team whose row this is, when it is handed on by adding someone to
+     * that team (assertCanGrantTeamPermissions): the caller's own copy of
+     * the row, held through the same team, covers it (isRowOfJoinedTeam).
+     * Absent for a row being created, which no copy of the caller's covers.
+     */
+    joinedTeamId?: ObjectID | undefined;
   }): void {
     if (data.props.isRoot || data.props.isMasterAdmin) {
       return;
@@ -223,10 +287,13 @@ export class Service extends ProjectReferencesService<Model> {
         return permission.permission === data.permission;
       })
       .some((permission: UserPermission) => {
-        return this.permissionCoversGrant(
-          permission,
-          data.scope,
-          targetLabelIds,
+        return (
+          this.permissionCoversGrant(permission, data.scope, targetLabelIds) ||
+          this.isRowOfJoinedTeam(permission, {
+            teamId: data.joinedTeamId,
+            scope: data.scope,
+            labelIds: targetLabelIds,
+          })
         );
       });
 
@@ -299,7 +366,10 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     for (const permission of permissions) {
-      this.assertCanGrantTeamRow(permission, data.props);
+      // A row the caller holds through this same team covers itself.
+      this.assertCanGrantTeamRow(permission, data.props, {
+        joinedTeamId: data.teamId,
+      });
     }
   }
 
@@ -417,16 +487,21 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
-  // One team row against the ceiling, as assertCanGrantPermission weighs it.
+  /*
+   * One team row against the ceiling, as assertCanGrantPermission weighs it:
+   * with `joinedTeamId` when someone is being added to that team.
+   */
   private assertCanGrantTeamRow(
     row: Model,
     props: DatabaseCommonInteractionProps,
+    options?: { joinedTeamId?: ObjectID | undefined } | undefined,
   ): void {
     this.assertCanGrantPermission({
       permission: row.permission!,
       labelIds: this.getLabelIds(row.labels),
       scope: row.scope,
       props: props,
+      joinedTeamId: options?.joinedTeamId,
     });
   }
 

@@ -137,6 +137,9 @@ const OWNER_TABLES_CREATED_AFTER_MIGRATION: Array<string> = [
   // 1808992900000-AddOpenStackClouds
   "OpenStackCloudOwnerTeam",
   "OpenStackCloudOwnerUser",
+  // 1809086561000-AddTeamOwners
+  "TeamOwnerTeam",
+  "TeamOwnerUser",
 ];
 
 const MIGRATED_OWNER_MODELS: Array<OwnerModel> = OWNER_MODELS.filter(
@@ -262,8 +265,14 @@ describe.each(OWNER_MODEL_CASES)(
       expect(message).toMatch(
         new RegExp(`^This ${kind} is already an owner of this .+\\.$`),
       );
-      // A pasted message naming the wrong kind of owner is the likely slip.
-      expect(message).not.toContain(kind === "team" ? "user" : "team");
+      /*
+       * A pasted message naming the wrong kind of owner is the likely slip -
+       * anywhere but in the resource it ends on, which may itself be a team
+       * (TeamOwnerUser: "of this team").
+       */
+      expect(message.replace(/ of this [^.]+\.$/, "")).not.toContain(
+        kind === "team" ? "user" : "team",
+      );
     });
 
     test("every key column is a non-null id column the check can compare", () => {

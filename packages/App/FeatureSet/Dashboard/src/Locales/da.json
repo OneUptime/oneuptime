@@ -47073,6 +47073,9 @@
   "Note ID": "Note ID",
   "Public Note Approval Request": "Public Note Approval Request",
   "Public Note Approval Requests": "Public Note Approval Requests",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI læste disse {{count}} filer i et tidligere svar og har ikke længere deres tekst, og AI's versioner erstatter filerne helt: {{files}}.",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI læste denne fil i et tidligere svar og har ikke længere dens tekst, og AI's version erstatter hele filen: {{files}}.",
+  "Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI læste denne fil i et tidligere svar og har ikke længere dens tekst, og AI's version erstatter hele filen: {{files}}.",
   "Read from this call's log events": "Læst fra dette kalds loghændelser",
   "Reading this call's log events…": "Læser dette kalds loghændelser…",
   "What this device is. Free-form: use whatever your team searches by. It names the device in this list and on the map.": "Hvad denne enhed er. Fri tekst: brug det, dit team søger efter. Det navngiver enheden på denne liste og på kortet.",
@@ -48218,5 +48221,16 @@
   "{{monitorName}} is not serving good time": "{{monitorName}} leverer ikke korrekt tid",
   "{{monitorName}} is offline": "{{monitorName}} er offline",
   "{{monitorName}}: too many bad AI answers": "{{monitorName}}: for mange dårlige AI-svar",
-  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nEn sonde regnes som afbrudt, når der ikke er hørt fra den i tre minutter. Monitorer, der kun kører på en afbrudt sonde, tjekkes ikke, før sonden er tilbage. Dette løses automatisk, så snart alle de sonder, denne monitor overvåger, er forbundet igen."
+  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nEn sonde regnes som afbrudt, når der ikke er hørt fra den i tre minutter. Monitorer, der kun kører på en afbrudt sonde, tjekkes ikke, før sonden er tilbage. Dette løses automatisk, så snart alle de sonder, denne monitor overvåger, er forbundet igen.",
+  "This team comes with every project and can't have owners.": "Dette team følger med alle projekter og kan ikke have ejere.",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "Personer og teams, der passer på dette team. Med teamtilladelser, der er begrænset til de teams, de ejer, inviterer de folk til det, fjerner dem og ændrer, hvad det må.",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "Tilføj en kollega eller et team, der skal passe på, hvem der er i dette team, og hvad det må.",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "Tilføj personer som ejere af dine teams. Ejere passer på, hvem der er i et team, og hvad det må.",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "Tilføj teams som ejere af dine teams. Medlemmerne af et ejerteam passer på, hvem der er i det ejede team, og hvad det må.",
+  "Owned Team": "Ejet team",
+  "Owned Team ID": "Ejet team-ID",
+  "Team Team Owner": "Ejerteam for team",
+  "Team Team Owners": "Ejerteams for team",
+  "Team User Owner": "Ejerbruger for team",
+  "Team User Owners": "Ejerbrugere for team"
 }

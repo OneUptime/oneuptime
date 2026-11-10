@@ -47073,6 +47073,9 @@
   "Note ID": "Note ID",
   "Public Note Approval Request": "Public Note Approval Request",
   "Public Note Approval Requests": "Public Note Approval Requests",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI 在之前的回答中读取了这 {{count}} 个文件，但已不再掌握其内容，而 AI 的版本会替换整个文件：{{files}}。",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI 在之前的回答中读取了此文件，但已不再掌握其内容，而 AI 的版本会替换整个文件：{{files}}。",
+  "Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI 在之前的回答中读取了此文件，但已不再掌握其内容，而 AI 的版本会替换整个文件：{{files}}。",
   "Read from this call's log events": "读取自此调用的日志事件",
   "Reading this call's log events…": "正在读取此调用的日志事件…",
   "What this device is. Free-form: use whatever your team searches by. It names the device in this list and on the map.": "此设备是什么。自由填写：使用你的团队搜索时用的词。它会作为设备在此列表和地图上的名称。",
@@ -48218,5 +48221,16 @@
   "{{monitorName}} is not serving good time": "{{monitorName}} 提供的时间不准确",
   "{{monitorName}} is offline": "{{monitorName}} 已离线",
   "{{monitorName}}: too many bad AI answers": "{{monitorName}}：不佳的 AI 回答过多",
-  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\n探测器在三分钟内没有任何消息即视为已断开连接。仅在已断开连接的探测器上运行的监视器，在该探测器恢复之前不会被检查。此监视器监视的所有探测器都重新连接后，此问题将自动解决。"
+  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\n探测器在三分钟内没有任何消息即视为已断开连接。仅在已断开连接的探测器上运行的监视器，在该探测器恢复之前不会被检查。此监视器监视的所有探测器都重新连接后，此问题将自动解决。",
+  "This team comes with every project and can't have owners.": "每个项目都自带此团队，无法设置所有者。",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "负责管理此团队的人员和团队。凭借仅限于其拥有的团队的团队权限，他们可以邀请成员加入、移除成员，并更改此团队可以执行的操作。",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "添加一位成员或一个团队，负责管理此团队的成员及其可以执行的操作。",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "添加人员作为团队的所有者。所有者负责管理团队的成员及其可以执行的操作。",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "添加团队作为团队的所有者。所有者团队的成员负责管理被拥有团队的成员及其可以执行的操作。",
+  "Owned Team": "被拥有的团队",
+  "Owned Team ID": "被拥有的团队 ID",
+  "Team Team Owner": "团队的团队所有者",
+  "Team Team Owners": "团队的团队所有者",
+  "Team User Owner": "团队的用户所有者",
+  "Team User Owners": "团队的用户所有者"
 }

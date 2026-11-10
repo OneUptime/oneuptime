@@ -5,6 +5,11 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
+import {
+  AUDIT_LOG_MAX_RETENTION_IN_DAYS,
+  AUDIT_LOG_MIN_RETENTION_IN_DAYS,
+  readAuditLogRetentionInDays,
+} from "Common/Types/AuditLog/AuditLogRetention";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import AuditLogsLicenseNotice from "./AuditLogsLicenseNotice";
 import {
@@ -27,6 +32,14 @@ import useEnterpriseLicenseMode from "../Identity/License/UseEnterpriseLicenseMo
  * audit logging stops recording, whatever the switch says, and so does a
  * license that does not include audit logs; the notice above the card says
  * so (AuditLogsLicenseNotice).
+ *
+ * The retention is read by the recorder's own rule
+ * (Common/Types/AuditLog/AuditLogRetention): from 7 to 180 days, which the
+ * form checks and the server holds every write to. A project that stores a
+ * value from before the server checked it (-3, written through the API)
+ * keeps its entries for the nearest retention in that range, so the card
+ * shows that retention, and the form opens on it: saving it stores what the
+ * project already keeps.
  */
 const AuditLogsSettings: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -65,8 +78,8 @@ const AuditLogsSettings: FunctionComponent<PageComponentProps> = (
               "Number of days to retain audit log entries. Minimum 7, maximum 180.",
             placeholder: "7",
             validation: {
-              minValue: 7,
-              maxValue: 180,
+              minValue: AUDIT_LOG_MIN_RETENTION_IN_DAYS,
+              maxValue: AUDIT_LOG_MAX_RETENTION_IN_DAYS,
             },
           },
           {
@@ -78,6 +91,13 @@ const AuditLogsSettings: FunctionComponent<PageComponentProps> = (
               "When enabled, audit logs will also include events triggered by the system. By default, only events triggered by users are recorded.",
           },
         ]}
+        onEditFormItemFetched={(project: Project): Promise<Project> => {
+          project.auditLogsRetentionInDays = readAuditLogRetentionInDays(
+            project.auditLogsRetentionInDays,
+          );
+
+          return Promise.resolve(project);
+        }}
         onSaveSuccess={() => {
           Navigation.reload();
         }}
@@ -96,6 +116,13 @@ const AuditLogsSettings: FunctionComponent<PageComponentProps> = (
               fieldType: FieldType.Number,
               title: "Retention (days)",
               placeholder: "7",
+              getElement: (item: Project): ReactElement => {
+                return (
+                  <span>
+                    {readAuditLogRetentionInDays(item.auditLogsRetentionInDays)}
+                  </span>
+                );
+              },
             },
             {
               field: { storeSystemEventsInAuditLogs: true },

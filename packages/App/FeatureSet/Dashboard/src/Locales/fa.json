@@ -47073,6 +47073,9 @@
   "Note ID": "Note ID",
   "Public Note Approval Request": "Public Note Approval Request",
   "Public Note Approval Requests": "Public Note Approval Requests",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}.": "هوش مصنوعی این {{count}} فایل را در یکی از پاسخ‌های قبلی خوانده است و دیگر متن آن‌ها را ندارد و نسخه‌های هوش مصنوعی جایگزین کل این فایل‌ها می‌شوند: {{files}}.",
+  "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}._one": "هوش مصنوعی این فایل را در یکی از پاسخ‌های قبلی خوانده است و دیگر متن آن را ندارد و نسخهٔ هوش مصنوعی جایگزین کل فایل می‌شود: {{files}}.",
+  "Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: {{files}}.": "هوش مصنوعی این فایل را در یکی از پاسخ‌های قبلی خوانده است و دیگر متن آن را ندارد و نسخهٔ هوش مصنوعی جایگزین کل فایل می‌شود: {{files}}.",
   "Read from this call's log events": "خوانده‌شده از رویدادهای لاگ این فراخوانی",
   "Reading this call's log events…": "در حال خواندن رویدادهای لاگ این فراخوانی…",
   "What this device is. Free-form: use whatever your team searches by. It names the device in this list and on the map.": "این دستگاه چیست. متن آزاد: همان چیزی را بنویسید که تیم شما با آن جستجو می‌کند. نام دستگاه در این فهرست و روی نقشه از آن می‌آید.",
@@ -48218,5 +48221,16 @@
   "{{monitorName}} is not serving good time": "{{monitorName}} زمان درست ارائه نمی‌دهد",
   "{{monitorName}} is offline": "{{monitorName}} آفلاین است",
   "{{monitorName}}: too many bad AI answers": "{{monitorName}}: تعداد بیش از حد پاسخ‌های بد هوش مصنوعی",
-  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nپراب زمانی قطع‌شده به شمار می‌آید که سه دقیقه هیچ خبری از آن نرسیده باشد. مانیتورهایی که فقط روی یک پراب قطع‌شده اجرا می‌شوند، تا بازگشت آن پراب بررسی نمی‌شوند. وقتی همه پراب‌های تحت نظر این مانیتور دوباره متصل شوند، این مورد خودبه‌خود برطرف می‌شود."
+  "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nپراب زمانی قطع‌شده به شمار می‌آید که سه دقیقه هیچ خبری از آن نرسیده باشد. مانیتورهایی که فقط روی یک پراب قطع‌شده اجرا می‌شوند، تا بازگشت آن پراب بررسی نمی‌شوند. وقتی همه پراب‌های تحت نظر این مانیتور دوباره متصل شوند، این مورد خودبه‌خود برطرف می‌شود.",
+  "This team comes with every project and can't have owners.": "این تیم در هر پروژه وجود دارد و نمی‌تواند مالک داشته باشد.",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "افراد و تیم‌هایی که مسئول این تیم هستند. با دسترسی‌های تیمی محدود به تیم‌هایی که مالک آن‌ها هستند، افراد را به آن دعوت می‌کنند، آن‌ها را حذف می‌کنند و تعیین می‌کنند این تیم چه کارهایی می‌تواند انجام دهد.",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "یک هم‌تیمی یا یک تیم بیفزایید تا مسئول اعضای این تیم و کارهایی باشد که این تیم می‌تواند انجام دهد.",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "افراد را به‌عنوان مالک تیم‌های خود اضافه کنید. مالکان مسئول اعضای یک تیم و کارهایی هستند که آن تیم می‌تواند انجام دهد.",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "تیم‌ها را به‌عنوان مالک تیم‌های خود اضافه کنید. اعضای تیم مالک مسئول اعضای تیم تحت مالکیت و کارهایی هستند که آن تیم می‌تواند انجام دهد.",
+  "Owned Team": "تیم تحت مالکیت",
+  "Owned Team ID": "شناسه تیم تحت مالکیت",
+  "Team Team Owner": "تیم مالک تیم",
+  "Team Team Owners": "تیم‌های مالک تیم",
+  "Team User Owner": "کاربر مالک تیم",
+  "Team User Owners": "کاربران مالک تیم"
 }
