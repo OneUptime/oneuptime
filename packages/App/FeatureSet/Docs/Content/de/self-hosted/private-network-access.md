@@ -61,8 +61,9 @@ Diese Ziele sind abgedeckt, weil das Ziel eine URL ist, die ein authentifizierte
 - HTTP-Anfragen der Workflow-Komponente **Custom JavaScript**
 - Projekt-Webhook-Benachrichtigungen (Incidents, Alarme, Monitore, Bereitschaft, geplante Wartung, Statusseiten-Ereignisse)
 - **Benutzer-Webhooks** der Bereitschaft
+- Webhook-Abonnenten von Statusseiten, die Ihr Team im Dashboard, mit einem API-Schlüssel oder per Workflow hinzufügt
 
-**Nicht** abgedeckt, und das wird auch so bleiben: **Webhooks von Statusseiten-Abonnenten**. Jeder Besucher einer öffentlichen Statusseite kann einen registrieren; dieses Ziel zu lockern ließe also jeden im Internet Ihren Server in Ihr privates Netzwerk POSTen. Das ist nicht konfigurierbar.
+**Nicht** abgedeckt, und das wird auch so bleiben: **Webhook-Abonnenten, die sich auf einer Statusseite eintragen**. Jeder Besucher einer öffentlichen Statusseite kann einen eintragen; dieses Ziel zu lockern ließe also jeden im Internet Ihren Server in Ihr privates Netzwerk POSTen. Deren Webhooks erreichen nur öffentliche Adressen, auch nachdem jemand aus Ihrem Team einen davon bearbeitet hat. Das ist nicht konfigurierbar.
 
 Ausgehende Verbindungen, die keine Webhooks sind – externe Datenquellen, LLM-Anbieter, SMTP-Server (die SMTP-Einstellungen eines Projekts und die Workflow-Komponente **Email**), SMTP-OAuth-Token-Endpunkte, OIDC-Discovery und HTTP-Schritte in Runbooks –, regelt getrennt davon `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`, und bei selbst gehosteten Installationen erlauben sie private Bereiche bereits. Siehe [Andere ausgehende Verbindungen](#andere-ausgehende-verbindungen).
 
@@ -182,6 +183,7 @@ Das Einschalten öffnet Loopback, Link-Local und den Cloud-Metadaten-Endpunkt **
 Führen Sie den Workflow oder Monitor erneut aus. Wird er weiterhin abgelehnt, nennt die Fehlermeldung, welches Tor geschlossen ist:
 
 - _"...points to a private network address and is not allowed. Self-hosted instances can allow this by setting `ALLOW_PRIVATE_NETWORK_WEBHOOKS`..."_ – die Einstellung des API-Servers fehlt.
+- _"...is not allowed. This subscriber signed up on the status page, so its webhook must be on the public internet."_ oder _"...is not allowed. Use a webhook URL on the public internet."_ auf der Statusseite selbst – der Webhook gehört einem Abonnenten, der sich auf der Statusseite eingetragen hat, und dafür gibt es keine Einstellung. Lassen Sie ihn stattdessen von Ihrem Team als Webhook-Abonnenten hinzufügen, im Dashboard, mit einem API-Schlüssel oder per Workflow.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ – eine private (eigene) Probe hat den Monitor ausgeführt, und ihr Schalter ist aus. Beachten Sie, dass er auf der Probe gesetzt wird, nicht auf dem API-Server.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ – eine mitgelieferte (globale) Probe hat den Monitor ausgeführt, und ihr Schalter ist aus. Schalten Sie ihn wie oben beschrieben für diese Probe ein, wenn jedes Projekt auf der Instanz dieses Netzwerk erreichen darf; andernfalls wählen Sie für den Monitor eine private Probe.
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ – eine globale Probe mit `BILLING_ENABLED=true` in ihrer Umgebung hat den Monitor ausgeführt. Automatisch registrierte globale Probes bleiben dort rein öffentlich, egal was ihr Schalter sagt; stellen Sie eine private Probe im Netzwerk des Ziels bereit und wählen Sie sie für den Monitor.
@@ -196,7 +198,7 @@ Führen Sie den Workflow oder Monitor erneut aus. Wird er weiterhin abgelehnt, n
 Dies zu öffnen ändert tatsächlich, was Ihre OneUptime-Instanz erreichen kann; es lohnt sich also, bewusst vorzugehen:
 
 - **Bevorzugen Sie die Allowlist gegenüber dem pauschalen Schalter.** `mattermost.internal` zu nennen ist eine viel kleinere Freigabe, als jede RFC-1918-Adresse zu öffnen.
-- **Wer einen Workflow oder einen Monitor vom Typ API, Website, External Status Page oder Custom JavaScript Code erstellen kann, erreicht alles, was Sie erlaubt haben.** Behandeln Sie die Mitgliedschaft in diesen Projekten entsprechend.
+- **Wer einen Workflow oder einen Monitor vom Typ API, Website, External Status Page oder Custom JavaScript Code erstellen oder einer Statusseite einen Abonnenten hinzufügen kann, erreicht alles, was Sie erlaubt haben.** Behandeln Sie die Mitgliedschaft in diesen Projekten entsprechend.
 - **Der Antworttext kommt zurück.** Eine API-Komponente in einem Workflow gibt Status, Header und Body in das Workflow-Log zurück; ein erlaubter Host ist also lesbar, nicht nur beschreibbar.
 - **Weiterleitungen werden bei Webhook-Anfragen nie befolgt**, sodass ein erlaubter öffentlicher Host den Server nicht mit einem zweiten Sprung auf einen internen weiterleiten kann.
 - **Begrenzen Sie wo möglich pro Probe statt instanzweit.** Eine in einem Netzwerk bereitgestellte Probe ist eine engere Freigabe, als den ausgehenden Verkehr des API-Servers zu öffnen.

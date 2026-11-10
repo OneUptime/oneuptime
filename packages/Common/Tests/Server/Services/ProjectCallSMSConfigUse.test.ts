@@ -6,11 +6,14 @@ import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMS
 import CountBy from "../../../Server/Types/Database/CountBy";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import FindOneBy from "../../../Server/Types/Database/FindOneBy";
 import {
   GLOBAL_TWILIO_CONFIG_USE_SELECT,
+  PROJECT_DEFAULT_TWILIO_CONFIG_SELECT,
   PROJECT_TWILIO_CONFIG_SELECT,
   PROJECT_TWILIO_CONFIG_USE_SELECT,
 } from "../../../Server/Utils/TwilioConfigSelect";
+import TwilioPhoneNumbers from "../../../Types/CallAndSMS/TwilioPhoneNumbers";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TwilioConfig from "../../../Types/CallAndSMS/TwilioConfig";
 import { TwilioConfigUse } from "../../../Types/CallAndSMS/TwilioConfigUse";
@@ -226,7 +229,8 @@ describe("creating a config", () => {
       .mockResolvedValue(undefined);
     /*
      * No row shares the config's name or slug; the project's first config
-     * becomes its default, which takes it from no other (updateBy).
+     * becomes its default, which takes it from no other: the project has no
+     * other config (findBy).
      */
     jest
       .spyOn(ProjectCallSMSConfigService, "countBy")
@@ -238,8 +242,8 @@ describe("creating a config", () => {
         },
       );
     jest
-      .spyOn(ProjectCallSMSConfigService, "updateBy")
-      .mockResolvedValue(0 as never);
+      .spyOn(ProjectCallSMSConfigService, "findBy")
+      .mockResolvedValue([] as never);
   });
 
   const create: (
@@ -550,62 +554,133 @@ describe("a config, as the senders take it", () => {
 });
 
 describe("the project's default config, for one kind of message", () => {
-  const defaultIs: (config: ProjectCallSMSConfig | null) => void = (
-    config: ProjectCallSMSConfig | null,
+  /*
+   * The project's defaults, as findOneBy answers for them: a read of the
+   * default for SMS, of the default for calls, and of any default.
+   */
+  interface ProjectDefaults {
+    sms?: ProjectCallSMSConfig | undefined;
+    calls?: ProjectCallSMSConfig | undefined;
+    any?: ProjectCallSMSConfig | undefined;
+  }
+
+  let reads: Array<FindOneBy<ProjectCallSMSConfig>>;
+
+  const defaultsAre: (defaults: ProjectDefaults) => void = (
+    defaults: ProjectDefaults,
   ): void => {
+    reads = [];
+
     jest
       .spyOn(ProjectCallSMSConfigService, "findOneBy")
-      .mockResolvedValue(config as never);
+      .mockImplementation(
+        async (
+          findOneBy: FindOneBy<ProjectCallSMSConfig>,
+        ): Promise<ProjectCallSMSConfig | null> => {
+          reads.push(findOneBy);
+
+          const query: Record<string, unknown> = findOneBy.query as Record<
+            string,
+            unknown
+          >;
+
+          if (query["isProjectDefaultForSms"] === true) {
+            return defaults.sms || null;
+          }
+
+          if (query["isProjectDefaultForCalls"] === true) {
+            return defaults.calls || null;
+          }
+
+          if (query["isProjectDefault"] === true) {
+            return defaults.any || defaults.sms || defaults.calls || null;
+          }
+
+          return null;
+        },
+      );
   };
 
-  test("is the default when it is used for that kind", async () => {
-    defaultIs(buildConfig({ use: TwilioConfigUse.SmsOnly, sms: SG_MOBILE }));
+  // The customer's project (#6574): numbers for SMS, and others for calls.
+  const smsOnly: () => ProjectCallSMSConfig = (): ProjectCallSMSConfig => {
+    return buildConfig({ use: TwilioConfigUse.SmsOnly, sms: SG_MOBILE });
+  };
 
-    const twilioConfig: TwilioConfig | undefined =
+  const callsOnly: () => ProjectCallSMSConfig = (): ProjectCallSMSConfig => {
+    return buildConfig({ use: TwilioConfigUse.CallsOnly, primary: US });
+  };
+
+  test("an SMS goes through the default for SMS, and a call through the default for calls - two configs at once", async () => {
+    defaultsAre({ sms: smsOnly(), calls: callsOnly() });
+
+    const forSms: TwilioConfig | undefined =
       await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
         PROJECT_ID,
         TwilioMessageKind.SMS,
       );
-
-    expect(twilioConfig?.smsPhoneNumbers?.map(String)).toEqual([SG_MOBILE]);
-  });
-
-  test("is none when the default is not used for that kind: the server's own account takes it, paid for as such", async () => {
-    defaultIs(buildConfig({ use: TwilioConfigUse.SmsOnly, sms: SG_MOBILE }));
-
-    await expect(
-      ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+    const forCalls: TwilioConfig | undefined =
+      await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
         PROJECT_ID,
         TwilioMessageKind.Call,
-      ),
-    ).resolves.toBeUndefined();
-
-    defaultIs(buildConfig({ use: TwilioConfigUse.CallsOnly, primary: US }));
-
-    await expect(
-      ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
-        PROJECT_ID,
-        TwilioMessageKind.SMS,
-      ),
-    ).resolves.toBeUndefined();
-  });
-
-  test("without a kind, is the default whatever it is used for: the senders decide per message", async () => {
-    defaultIs(buildConfig({ use: TwilioConfigUse.SmsOnly, sms: SG_MOBILE }));
-
-    const twilioConfig: TwilioConfig | undefined =
-      await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
-        PROJECT_ID,
       );
 
-    expect(twilioConfig?.use).toBe(TwilioConfigUse.SmsOnly);
+    expect(forSms?.use).toBe(TwilioConfigUse.SmsOnly);
+    expect(forSms?.smsPhoneNumbers?.map(String)).toEqual([SG_MOBILE]);
+    expect(TwilioPhoneNumbers.canSend(forSms, TwilioMessageKind.SMS)).toBe(
+      true,
+    );
+
+    expect(forCalls?.use).toBe(TwilioConfigUse.CallsOnly);
+    expect(forCalls?.primaryPhoneNumber?.toString()).toBe(US);
+    expect(TwilioPhoneNumbers.canSend(forCalls, TwilioMessageKind.Call)).toBe(
+      true,
+    );
   });
 
-  test("is read with what it is used for", async () => {
-    const findOneBy: SpyInstance<typeof ProjectCallSMSConfigService.findOneBy> =
-      jest
-        .spyOn(ProjectCallSMSConfigService, "findOneBy")
-        .mockResolvedValue(buildConfig({ primary: US }) as never);
+  test("with no default for that kind, is the project's other default, which cannot send it: the server's own account takes it, paid for as such", async () => {
+    defaultsAre({ sms: smsOnly() });
+
+    const forCalls: TwilioConfig | undefined =
+      await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+        PROJECT_ID,
+        TwilioMessageKind.Call,
+      );
+
+    // Handed on, so the Notification service can say what it is used for.
+    expect(forCalls?.use).toBe(TwilioConfigUse.SmsOnly);
+    expect(TwilioPhoneNumbers.canSend(forCalls, TwilioMessageKind.Call)).toBe(
+      false,
+    );
+
+    defaultsAre({ calls: callsOnly() });
+
+    const forSms: TwilioConfig | undefined =
+      await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+        PROJECT_ID,
+        TwilioMessageKind.SMS,
+      );
+
+    expect(forSms?.use).toBe(TwilioConfigUse.CallsOnly);
+    expect(TwilioPhoneNumbers.canSend(forSms, TwilioMessageKind.SMS)).toBe(
+      false,
+    );
+  });
+
+  test("is none when the project has no default at all", async () => {
+    defaultsAre({});
+
+    for (const kind of [TwilioMessageKind.SMS, TwilioMessageKind.Call]) {
+      await expect(
+        ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+          PROJECT_ID,
+          kind,
+        ),
+      ).resolves.toBeUndefined();
+    }
+  });
+
+  test("is read as root with what it is used for and what it is the default for: the default for the kind first, then any default", async () => {
+    defaultsAre({ sms: smsOnly() });
 
     await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
       PROJECT_ID,
@@ -613,14 +688,39 @@ describe("the project's default config, for one kind of message", () => {
     );
 
     expect(
-      (findOneBy.mock.calls[0]![0] as { select: Record<string, unknown> })
-        .select,
-    ).toEqual(PROJECT_TWILIO_CONFIG_SELECT);
+      reads.map((read: FindOneBy<ProjectCallSMSConfig>) => {
+        return read.query;
+      }),
+    ).toEqual([
+      { projectId: PROJECT_ID, isProjectDefaultForCalls: true },
+      { projectId: PROJECT_ID, isProjectDefault: true },
+    ]);
+
+    for (const read of reads) {
+      expect(read.select).toEqual(PROJECT_DEFAULT_TWILIO_CONFIG_SELECT);
+      expect(read.props).toEqual({ isRoot: true });
+    }
+
+    expect(PROJECT_DEFAULT_TWILIO_CONFIG_SELECT).toEqual(
+      expect.objectContaining(PROJECT_TWILIO_CONFIG_SELECT),
+    );
     expect(PROJECT_TWILIO_CONFIG_SELECT.usedFor).toBe(true);
   });
 
+  test("the default for the kind is read once, and nothing more, when there is one", async () => {
+    defaultsAre({ sms: smsOnly(), calls: callsOnly() });
+
+    await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+      PROJECT_ID,
+      TwilioMessageKind.SMS,
+    );
+
+    expect(reads).toHaveLength(1);
+  });
+
   test("a default for calls and SMS - every existing config - serves both, as before", async () => {
-    defaultIs(buildConfig({ primary: US }));
+    const both: ProjectCallSMSConfig = buildConfig({ primary: US });
+    defaultsAre({ sms: both, calls: both });
 
     for (const kind of [TwilioMessageKind.SMS, TwilioMessageKind.Call]) {
       const twilioConfig: TwilioConfig | undefined =
@@ -630,7 +730,21 @@ describe("the project's default config, for one kind of message", () => {
         );
 
       expect(twilioConfig?.primaryPhoneNumber?.toString()).toBe(US);
+      expect(TwilioPhoneNumbers.canSend(twilioConfig, kind)).toBe(true);
     }
+  });
+
+  test("a default without the numbers its use takes is none: the server's own account sends", async () => {
+    defaultsAre({
+      sms: buildConfig({ use: TwilioConfigUse.SmsOnly, primary: US }),
+    });
+
+    await expect(
+      ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+        PROJECT_ID,
+        TwilioMessageKind.SMS,
+      ),
+    ).resolves.toBeUndefined();
   });
 });
 

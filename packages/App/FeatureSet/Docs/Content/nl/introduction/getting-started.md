@@ -93,6 +93,7 @@ De documentatie is net als de zijbalk ingedeeld in negen secties. Kies het deel 
 - [API-referentie](/docs/api-reference/api-reference): OneUptime automatiseren met de REST API.
 - [CLI](/docs/cli/index): OneUptime beheren vanuit uw terminal en uw CI.
 - [Terraform-provider](/docs/terraform/index): Monitoren, statuspagina's en bereikbaarheid als code beheren.
+- [Crossplane-provider](/docs/crossplane/index): Uw project met Crossplane vanuit Kubernetes beheren.
 :::
 
 ### Beheer

@@ -61,8 +61,9 @@ Estos destinos están cubiertos, porque el destino es una URL que escribió un m
 - Las peticiones HTTP que hace el componente de workflow **Custom JavaScript**
 - Las notificaciones de webhook del proyecto (incidentes, alertas, monitores, guardia, mantenimiento programado, eventos de páginas de estado)
 - Los **webhooks de usuario** de guardia
+- Los suscriptores por webhook de páginas de estado que añade tu equipo, desde el panel, con una clave de API o mediante un workflow
 
-**No** están cubiertos, ni lo estarán nunca: los **webhooks de suscriptores de páginas de estado**. Cualquier visitante de una página de estado pública puede registrar uno, así que relajar ese destino permitiría a cualquiera en internet hacer que tu servidor envíe POST a tu red privada. Esto no es configurable.
+**No** están cubiertos, ni lo estarán nunca: los **suscriptores por webhook que se registran en una página de estado**. Cualquier visitante de una página de estado pública puede registrar uno, así que relajar ese destino permitiría a cualquiera en internet hacer que tu servidor envíe POST a tu red privada. Sus webhooks solo llegan a direcciones públicas, incluso después de que alguien de tu equipo edite uno. Esto no es configurable.
 
 Las conexiones salientes que no son webhooks – fuentes de datos externas, proveedores de LLM, servidores SMTP (los ajustes SMTP de un proyecto y el componente de workflow **Email**), endpoints de tokens OAuth de SMTP, descubrimiento OIDC y pasos HTTP de runbooks – se rigen por separado, mediante `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`, y ya permiten rangos privados en las instalaciones autoalojadas. Consulta [Otras conexiones salientes](#otras-conexiones-salientes).
 
@@ -182,6 +183,7 @@ Activarlo **no** abre el loopback, el link-local ni el endpoint de metadatos de 
 Vuelve a ejecutar el workflow o el monitor. Si sigue rechazado, el mensaje de error nombra qué barrera está cerrada:
 
 - _"...points to a private network address and is not allowed. Self-hosted instances can allow this by setting `ALLOW_PRIVATE_NETWORK_WEBHOOKS`..."_ – falta el ajuste del servidor de API.
+- _"...is not allowed. This subscriber signed up on the status page, so its webhook must be on the public internet."_, o _"...is not allowed. Use a webhook URL on the public internet."_ en la propia página de estado – el webhook pertenece a un suscriptor que se registró en la página de estado, algo que ningún ajuste cubre. Haz que tu equipo lo añada en su lugar como suscriptor por webhook, desde el panel, con una clave de API o mediante un workflow.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ – una sonda privada (personalizada) ejecutó el monitor y su interruptor está desactivado. Ten en cuenta que se define en la sonda, no en el servidor de API.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ – una sonda incluida (global) ejecutó el monitor y su interruptor está desactivado. Actívalo para esa sonda como se describe arriba si todos los proyectos de la instancia pueden alcanzar esa red; si no, selecciona una sonda privada en el monitor.
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ – una sonda global con `BILLING_ENABLED=true` en su entorno ejecutó el monitor. Las sondas globales registradas automáticamente siguen ahí siendo solo públicas, diga lo que diga su interruptor; despliega una sonda privada dentro de la red del destino y selecciónala en el monitor.
@@ -196,7 +198,7 @@ Vuelve a ejecutar el workflow o el monitor. Si sigue rechazado, el mensaje de er
 Abrir esto cambia de verdad lo que tu instancia de OneUptime puede llegar a alcanzar, así que conviene hacerlo de forma deliberada:
 
 - **Prefiere la lista de permitidos al interruptor general.** Nombrar `mattermost.internal` es una autorización mucho menor que abrir todas las direcciones RFC-1918.
-- **Cualquiera que pueda crear un workflow o un monitor API, Website, External Status Page o Custom JavaScript Code puede alcanzar todo lo que hayas permitido.** Trata la pertenencia a esos proyectos en consecuencia.
+- **Cualquiera que pueda crear un workflow o un monitor API, Website, External Status Page o Custom JavaScript Code, o añadir un suscriptor a una página de estado, puede alcanzar todo lo que hayas permitido.** Trata la pertenencia a esos proyectos en consecuencia.
 - **El cuerpo de la respuesta vuelve.** Un componente API de workflow devuelve el estado, las cabeceras y el cuerpo al registro del workflow, así que un host permitido se puede leer, no solo escribir.
 - **Las redirecciones nunca se siguen** en las peticiones de webhook, así que un host público permitido no puede rebotar el servidor a uno interno en un segundo salto.
 - **Limita por sonda en lugar de a toda la instancia siempre que puedas.** Una sonda desplegada dentro de una red es una autorización más estrecha que abrir la salida del servidor de API.

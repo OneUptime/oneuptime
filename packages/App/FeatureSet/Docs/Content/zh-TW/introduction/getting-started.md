@@ -93,6 +93,7 @@ flowchart TB
 - [API 參考](/docs/api-reference/api-reference): 透過 REST API 自動化 OneUptime。
 - [CLI](/docs/cli/index): 從終端機和 CI 管理 OneUptime。
 - [Terraform 提供者](/docs/terraform/index): 以程式碼管理監測器、狀態頁面和待命。
+- [Crossplane 提供者](/docs/crossplane/index): 透過 Crossplane 從 Kubernetes 管理您的專案。
 :::
 
 ### 管理

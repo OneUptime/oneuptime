@@ -1647,19 +1647,24 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
   ],
   "status-pages/change/webhook-subscribers": [
     fact(
-      "Private addresses are always refused here",
+      "Ones your team adds reach your own tools",
       PRIVATE_NETWORK,
-      "**Not** covered, and never will be: **status page subscriber webhooks**.",
+      "- Status page webhook subscribers your team adds, from the dashboard, with an API key or by a workflow",
     ),
     fact(
-      "because anyone on a public page can subscribe one",
+      "once webhooks may reach private addresses",
       PRIVATE_NETWORK,
-      "Any visitor to a public status page can register one",
+      "| `ALLOW_PRIVATE_NETWORK_WEBHOOKS` | `webhooks.allowPrivateNetwork` | The whole private tier, when set to `true`. |",
     ),
     fact(
-      "use a project webhook or a workflow",
+      "People who subscribe themselves on the page still need a public address",
       PRIVATE_NETWORK,
-      "Project webhook notifications (incidents, alerts, monitors, on-call, scheduled maintenance, status page events)",
+      "**Not** covered, and never will be: **webhook subscribers who sign up on a status page**.",
+    ),
+    fact(
+      "People who subscribe themselves on the page still need a public address",
+      SUBSCRIBERS,
+      "are rejected for a subscriber who signs up on the status page, whatever your instance allows.",
     ),
   ],
   "status-pages/step/cname": [

@@ -1,0 +1,15 @@
+# A label made outside Kubernetes, imported by its ID and only observed:
+# deleting this object leaves the label in OneUptime.
+apiVersion: crossplane.oneuptime.com/v1alpha1
+kind: Label
+metadata:
+  name: made-outside
+  namespace: ${NAMESPACE}
+  annotations:
+    crossplane.io/external-name: ${IMPORTED_LABEL_ID}
+spec:
+  managementPolicies: ["Observe"]
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider: {}

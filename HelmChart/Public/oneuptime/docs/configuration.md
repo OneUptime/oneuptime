@@ -596,7 +596,7 @@ for the full picture.
 
 | Parameter                                 | Description                                                                                                                         | Default |
 |-------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `webhooks.allowPrivateNetwork`            | Let workflows, project webhooks and on-call user webhooks reach private ranges. Status page subscriber webhooks are never covered.   | `false` |
+| `webhooks.allowPrivateNetwork`            | Let workflows, project webhooks, on-call user webhooks and the status page webhook subscribers your team adds reach private ranges. Subscribers who sign up on a status page are never covered.   | `false` |
 | `webhooks.privateNetworkAllowlist`        | Comma-separated hosts, wildcards, IPs and CIDRs webhooks may reach regardless of range. Never list `169.254.169.254`.                | `""`    |
 | `outboundConnections.blockPrivateNetwork` | Refuse private ranges for everything that is not a webhook, too (`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`). Always on when `billing.enabled` is `true`. With it on, a refused host name, webhooks included, is reported without saying what it resolved to. | `false` |
 

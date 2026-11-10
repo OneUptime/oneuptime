@@ -1016,6 +1016,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                   return StatusPageSubscriberWebhookUtil.sendWebhookNotification(
                     {
                       webhookUrl: subscriberWebhook,
+                      isAddedByTeam: subscriber.isAddedByTeam,
                       payload: {
                         eventType: copy.webhookEventType,
                         statusPageId: statuspage.id!.toString(),

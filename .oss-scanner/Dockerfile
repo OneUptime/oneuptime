@@ -121,6 +121,7 @@ RUN mkdir -p /usr/src \
 # not built: packages/MobileApp - the on-call app for iOS and Android, built by Expo's cloud service; a client of the same API, whose server enforces every permission, so its large React Native toolchain is left out
 # not built: Scripts - developer and release tooling (OpenAPI, Terraform and docs generators); never deployed
 # not built: Scripts/TerraformProvider - generates the Terraform provider, which is published from its own repository and runs with its user's own API key
+# not built: Scripts/CrossplaneProvider - generates the Crossplane provider from the Terraform provider; the release publishes its package, which runs in its user's cluster with their own API key
 # not built: Tests/Ops - tests of this repository's operations config, including the one that checks this file
 # not built: Tests/Ops/agent-ebpf-e2e/apps - a demo app the Kubernetes agent's eBPF test instruments
 # not built: Examples/fluentd - an example log shipper configuration
