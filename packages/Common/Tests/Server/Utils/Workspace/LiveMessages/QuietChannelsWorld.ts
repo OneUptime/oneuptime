@@ -17,7 +17,10 @@ import OnCallDutyPolicySchedule from "../../../../../Models/DatabaseModels/OnCal
 import Team from "../../../../../Models/DatabaseModels/Team";
 import User from "../../../../../Models/DatabaseModels/User";
 import UserOnCallLogTimeline from "../../../../../Models/DatabaseModels/UserOnCallLogTimeline";
-import { OnCallPageNotificationMethods } from "../../../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import {
+  ON_CALL_PAGE_CHANNELS,
+  OnCallPageNotificationMethods,
+} from "../../../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import WorkspaceNotificationRule from "../../../../../Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import DatabaseConfig from "../../../../../Server/DatabaseConfig";
@@ -1118,6 +1121,26 @@ export default class QuietChannelsWorld {
 
     this.installDirectPages(hook);
 
+    /*
+     * The step's own list of the channels its page went out by, kept by
+     * the notifications' hooks (refreshNotificationChannels) in a
+     * transaction of its own: its statements, answered from the rows here.
+     */
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "executeTransaction")
+      .mockImplementation((async (
+        run: (entityManager: unknown) => Promise<unknown>,
+      ): Promise<unknown> => {
+        return await run({
+          query: async (
+            sql: string,
+            parameters: Array<unknown>,
+          ): Promise<Array<Record<string, unknown>>> => {
+            return this.answerStepChannelsStatement(sql, parameters);
+          },
+        });
+      }) as never);
+
     // How each page reached its person.
     jest
       .spyOn(UserOnCallLogTimelineService, "findBy")
@@ -1336,6 +1359,75 @@ export default class QuietChannelsWorld {
   private nextDeliveryTime(): Date {
     this.deliveriesWritten++;
     return new Date(this.clock.getTime() + this.deliveriesWritten);
+  }
+
+  /*
+   * What the run's Execution Timeline shows as "Notified Via" on a person's
+   * page: the channels its step keeps (#6585) - null for one that keeps no
+   * list.
+   */
+  public notifiedVia(userId: ObjectID): unknown {
+    return this.latestPageOf(userId)?.notificationChannels ?? null;
+  }
+
+  /*
+   * A statement of the step's own list of the channels its page went out by
+   * (OnCallDutyPolicyExecutionLogTimelineService.refreshNotificationChannels),
+   * answered from the rows kept here: the step's row, the step's
+   * notifications as Postgres hands them back, and the list written.
+   */
+  private answerStepChannelsStatement(
+    sql: string,
+    parameters: Array<unknown>,
+  ): Array<Record<string, unknown>> {
+    if (sql.includes('FROM "OnCallDutyPolicyExecutionLogTimeline"')) {
+      const step: OnCallDutyPolicyExecutionLogTimeline | undefined =
+        this.steps.find(
+          (candidate: OnCallDutyPolicyExecutionLogTimeline): boolean => {
+            return candidate.id!.toString() === String(parameters[0]);
+          },
+        );
+
+      return step
+        ? [{ notificationChannels: step.notificationChannels ?? null }]
+        : [];
+    }
+
+    if (sql.includes('FROM "UserOnCallLogTimeline"')) {
+      return this.deliveries
+        .filter((delivery: UserOnCallLogTimeline): boolean => {
+          return (
+            delivery.onCallDutyPolicyExecutionLogTimelineId?.toString() ===
+            String(parameters[0])
+          );
+        })
+        .map((delivery: UserOnCallLogTimeline): Record<string, unknown> => {
+          const row: Record<string, unknown> = { status: delivery.status };
+
+          for (const info of ON_CALL_PAGE_CHANNELS) {
+            row[info.field] = delivery[info.field]?.toString() ?? null;
+          }
+
+          return row;
+        });
+    }
+
+    if (sql.startsWith('UPDATE "OnCallDutyPolicyExecutionLogTimeline"')) {
+      const step: OnCallDutyPolicyExecutionLogTimeline | undefined =
+        this.steps.find(
+          (candidate: OnCallDutyPolicyExecutionLogTimeline): boolean => {
+            return candidate.id!.toString() === String(parameters[1]);
+          },
+        );
+
+      if (step) {
+        step.notificationChannels = JSON.parse(String(parameters[0]));
+      }
+
+      return [];
+    }
+
+    throw new Error(`The world does not answer: ${sql}`);
   }
 
   // A person's page as it stands: their latest step that paged them.
