@@ -552,9 +552,10 @@ describe("the Audit Log Export page's entries", () => {
    * and says what the product does: a new export sends the newest (the
    * service's default), one saved before keeps 1 (the migration's
    * default), and the choice is the form's Record version, under More
-   * fields.
+   * fields - the form is ee/'s, so the Enterprise half below holds it to
+   * that.
    */
-  it("says which record version each export sends, and what version 2 adds, as the record, the service and the form do", () => {
+  it("says which record version each export sends, and what version 2 adds, as the record and the service do", () => {
     const versions: string = section(english(), "## Record versions");
     const rows: Array<Array<string>> = bodyRows(versions);
     const service: string = readCommonSource(
@@ -562,12 +563,6 @@ describe("the Audit Log Export page's entries", () => {
     );
     const migration: string = readCommonSource(
       "Server/Infrastructure/Postgres/SchemaMigrations/1808996130000-AddAuditLogExportSchemaVersion.ts",
-    );
-    const modal: string = readEe(
-      "Dashboard/AuditLogExport/AuditLogExportFormModal.tsx",
-    );
-    const copy: string = readEe(
-      "Dashboard/AuditLogExport/AuditLogExportCopy.ts",
     );
 
     expect(
@@ -593,13 +588,6 @@ describe("the Audit Log Export page's entries", () => {
     expect(versions).toContain(
       `choose version ${AUDIT_LOG_EXPORT_SCHEMA_VERSION} in **Record version**, under **${MORE_FIELDS_SECTION_TITLE}**.`,
     );
-    expect(copy).toContain(
-      'schemaVersionField: translationKey("Record version")',
-    );
-    expect(modal).toContain("title: AuditLogExportCopy.schemaVersionField");
-    expect(
-      modal.slice(modal.indexOf("field: { schemaVersion: true }")),
-    ).toContain("collapsibleSection: advancedSection");
   });
 
   /*
@@ -785,6 +773,26 @@ describeWhenEnterprisePresent(
       expect(page).toContain(
         "To pause an export, choose **Turn off** in its row's menu: it keeps its place, and **Turn on** sends what was recorded meanwhile.",
       );
+    });
+
+    it("chooses the record version where the page says: the form's Record version, under More fields", () => {
+      const modal: string = readEe(
+        "Dashboard/AuditLogExport/AuditLogExportFormModal.tsx",
+      );
+      const copy: string = readEe(
+        "Dashboard/AuditLogExport/AuditLogExportCopy.ts",
+      );
+
+      expect(section(english(), "## Record versions")).toContain(
+        `choose version ${AUDIT_LOG_EXPORT_SCHEMA_VERSION} in **Record version**, under **${MORE_FIELDS_SECTION_TITLE}**.`,
+      );
+      expect(copy).toContain(
+        'schemaVersionField: translationKey("Record version")',
+      );
+      expect(modal).toContain("title: AuditLogExportCopy.schemaVersionField");
+      expect(
+        modal.slice(modal.indexOf("field: { schemaVersion: true }")),
+      ).toContain("collapsibleSection: advancedSection");
     });
 
     it("names the Admin Dashboard's Settings entry for the instance's page", () => {
