@@ -245,13 +245,16 @@ describe("a write that carries the request as it came", () => {
     return "allowed";
   }
 
-  test.each(WRITERS)("%s cannot create a monitor with it", (permission) => {
-    expect(columnCheck(permission, DatabaseRequestType.Create)).toBe(
-      "incomingMonitorRequestAsReceived",
-    );
-  });
+  test.each(WRITERS)(
+    "%s cannot create a monitor with it",
+    (permission: Permission) => {
+      expect(columnCheck(permission, DatabaseRequestType.Create)).toBe(
+        "incomingMonitorRequestAsReceived",
+      );
+    },
+  );
 
-  test.each(WRITERS)("%s cannot update it", (permission) => {
+  test.each(WRITERS)("%s cannot update it", (permission: Permission) => {
     expect(columnCheck(permission, DatabaseRequestType.Update)).toBe(
       "incomingMonitorRequestAsReceived",
     );
