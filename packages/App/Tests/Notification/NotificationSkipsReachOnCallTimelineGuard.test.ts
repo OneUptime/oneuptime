@@ -19,6 +19,12 @@ import ts from "typescript";
  * and Telegram senders, every return before the provider is asked to send
  * is right after a markNotSent; the SMS sender returns its reason instead,
  * and sendSms hands every reason to markNotSent.
+ *
+ * A skip also tells its dispatch (dispatch.markNotSent(), so
+ * NotificationDeliveryMetrics counts it as not sent rather than as a
+ * success). That call may sit beside the timeline's markNotSent - between
+ * it and the return in the WhatsApp and Telegram senders, just before it
+ * in sendSms; the delivery metrics tests hold every skip to it.
  */
 
 const SERVICES: string = path.resolve(
@@ -72,6 +78,30 @@ function isMarkNotSent(statement: ts.Statement | undefined): boolean {
   );
 }
 
+// The skip told to the dispatch, which counts it as not sent.
+function isDispatchMarkNotSent(statement: ts.Statement | undefined): boolean {
+  return Boolean(
+    statement &&
+      ts.isExpressionStatement(statement) &&
+      statement.getText() === "dispatch.markNotSent();",
+  );
+}
+
+/*
+ * Whether the statement at `index` comes right after the timeline's
+ * markNotSent in its block, the dispatch's own markNotSent aside.
+ */
+function isRightAfterMarkNotSent(
+  statements: ts.NodeArray<ts.Statement>,
+  index: number,
+): boolean {
+  const before: number = isDispatchMarkNotSent(statements[index - 1])
+    ? index - 2
+    : index - 1;
+
+  return isMarkNotSent(statements[before]);
+}
+
 interface EarlyReturn {
   line: number;
   isAfterMarkNotSent: boolean;
@@ -105,7 +135,7 @@ function earlyReturnsOf(
             line:
               source.getLineAndCharacterOfPosition(statement.getStart()).line +
               1,
-            isAfterMarkNotSent: isMarkNotSent(node.statements[index - 1]),
+            isAfterMarkNotSent: isRightAfterMarkNotSent(node.statements, index),
           });
         }
       });
@@ -129,10 +159,15 @@ function earlyReturnsOf(
 
 describe("the senders that return nothing record every skip on the timeline", () => {
   test.each([
-    // [file, sender, the call that asks the provider to send, skips]
+    /*
+     * [file, sender, the call that asks the provider to send, skips]. The
+     * sender is the method that does the sending: sendWhatsApp and
+     * sendTelegram run sendWhatsAppMessage and sendTelegramMessage inside
+     * their delivery measure.
+     */
     ["CallService.ts", "makeCallInternal", "client.calls.create(", 3],
-    ["WhatsAppService.ts", "sendWhatsApp", "API.post<JSONObject>(", 2],
-    ["TelegramService.ts", "sendTelegram", "API.post<JSONObject>(", 3],
+    ["WhatsAppService.ts", "sendWhatsAppMessage", "API.post<JSONObject>(", 2],
+    ["TelegramService.ts", "sendTelegramMessage", "API.post<JSONObject>(", 3],
   ])(
     "%s: every return before the provider is right after a markNotSent",
     (file: string, sender: string, providerCall: string, skips: number) => {
@@ -169,9 +204,11 @@ describe("the SMS sender", () => {
     const source: ts.SourceFile = sourceOf("SmsService.ts");
     const send: string = findMethod(source, "sendSms").getText();
 
-    expect(send.split("markNotSent(").length - 1).toBe(1);
+    expect(
+      send.split("UserOnCallLogTimelineService.markNotSent(").length - 1,
+    ).toBe(1);
     expect(send).toMatch(
-      /if \(notSentReason !== null\) \{\s*await UserOnCallLogTimelineService\.markNotSent\(\{\s*userOnCallLogTimelineId: options\.userOnCallLogTimelineId,\s*reason: notSentReason,/,
+      /if \(notSentReason !== null\) \{\s*(?:dispatch\.markNotSent\(\);\s*)?await UserOnCallLogTimelineService\.markNotSent\(\{\s*userOnCallLogTimelineId: options\.userOnCallLogTimelineId,\s*reason: notSentReason,/,
     );
   });
 });
