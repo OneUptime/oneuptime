@@ -143,7 +143,7 @@ const DeviceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
               slots={{
                 logs: (
                   <AppLink to={logsRoute} className={linkClassName}>
-                    {translator.translateText("Logs") || "Logs"}
+                    <span>{translator.translateText("Logs")}</span>
                   </AppLink>
                 ),
               }}
@@ -165,7 +165,7 @@ const DeviceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
                 slots={{
                   connections: (
                     <AppLink to={connectionsRoute} className={linkClassName}>
-                      {translator.translateText("Connections") || "Connections"}
+                      <span>{translator.translateText("Connections")}</span>
                     </AppLink>
                   ),
                 }}
@@ -176,7 +176,7 @@ const DeviceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
                 slots={{
                   connections: (
                     <AppLink to={connectionsRoute} className={linkClassName}>
-                      {translator.translateText("Connections") || "Connections"}
+                      <span>{translator.translateText("Connections")}</span>
                     </AppLink>
                   ),
                 }}
