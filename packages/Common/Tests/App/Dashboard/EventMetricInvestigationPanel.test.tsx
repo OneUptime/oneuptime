@@ -169,6 +169,7 @@ import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationTyp
 import ObjectID from "../../../Types/ObjectID";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import TelemetryType from "../../../Types/Telemetry/TelemetryType";
+import { StateListType } from "../../../Utils/StateOrder";
 
 const NOW: Date = new Date("2026-11-05T09:00:00.000Z");
 const STARTED_AT: Date = new Date("2026-11-05T05:44:00.000Z");
@@ -242,6 +243,7 @@ function renderIncident(
       endedAt={new Date("2026-11-05T06:05:00.000Z")}
       stateTimeline={TIMELINE}
       states={STATES}
+      stateList={StateListType.IncidentState}
       {...overrides}
     />,
   );
@@ -458,6 +460,7 @@ describe("an alert a metrics monitor opened", () => {
       subject: EventMetricSubject.Alert,
       eventId: "alert-1",
       seriesSummary: "",
+      stateList: StateListType.AlertState,
     });
     await metricsShown();
 

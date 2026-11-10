@@ -590,6 +590,7 @@ const AlertEpisodeView: FunctionComponent<
                 endedAt={timing.durationEndsAt}
                 stateTimeline={episodeTimelineDates}
                 states={alertStates}
+                stateList={StateListType.AlertState}
               />
             </div>
           )}

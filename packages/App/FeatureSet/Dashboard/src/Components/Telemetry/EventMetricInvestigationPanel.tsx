@@ -10,6 +10,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import MetricTelemetrySnapshot from "Common/Utils/Monitor/MetricTelemetrySnapshot";
+import { ResolvedStateList } from "Common/Utils/ResolvedState";
 import MetricInvestigation from "../Metrics/Investigation/MetricInvestigation";
 import MetricInvestigationTime, {
   MetricInvestigationTimePreset,
@@ -81,6 +82,11 @@ export interface ComponentProps {
   // Its state timeline, and the project's states, for the moments it marks.
   stateTimeline: Array<EventMomentTimelineEntry>;
   states: Array<EventMomentState>;
+  /*
+   * Which list those states are - the project's incident states or its
+   * alert states - whose places decide what each move counts as.
+   */
+  stateList: ResolvedStateList;
   /*
    * Where the page keeps what the reader changed in its URL: "metrics" on
    * an event's Overview. A page with a card of its own beside it names its
@@ -173,6 +179,7 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
     impactStartedAt: props.impactStartedAt,
     timeline: props.stateTimeline,
     states: props.states,
+    stateList: props.stateList,
   });
 
   // Rebuilt only when a moment really moved, not on every render of the page.

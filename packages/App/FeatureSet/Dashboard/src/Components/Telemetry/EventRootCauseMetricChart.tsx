@@ -263,6 +263,7 @@ const EventRootCauseMetricChart: FunctionComponent<ComponentProps> = (
       impactStartedAt={card.impactStartedAt}
       stateTimeline={card.moments.stateTimeline}
       states={card.moments.states}
+      stateList={reader.stateList}
       urlParamPrefix={ROOT_CAUSE_METRICS_URL_PREFIX}
       showsCompanionTabs={false}
       chartedFromMonitorNow={card.metrics.chartedFromMonitorNow}

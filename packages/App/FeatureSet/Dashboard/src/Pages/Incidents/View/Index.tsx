@@ -1345,6 +1345,7 @@ const IncidentView: FunctionComponent<
               impactStartedAt={incidentImpactStartedAt}
               stateTimeline={timelineDates}
               states={incidentStates}
+              stateList={StateListType.IncidentState}
             />
           ) : (
             <></>

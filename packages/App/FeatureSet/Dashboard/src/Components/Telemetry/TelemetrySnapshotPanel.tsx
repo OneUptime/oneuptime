@@ -14,6 +14,8 @@ import Span from "Common/Models/AnalyticsModels/Span";
 import Card from "Common/UI/Components/Card/Card";
 import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import { TimeRangeZoom } from "Common/UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
+import { ResolvedStateList } from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import DashboardLogsViewer from "../Logs/LogsViewer";
 import ExceptionsViewer from "../Exceptions/ExceptionsViewer";
@@ -76,10 +78,13 @@ export interface ComponentProps {
   /*
    * For a metrics monitor's snapshot, which is a metric investigation
    * (EventMetricInvestigationPanel): the state timeline with the project's
-   * states, for the moments its charts mark.
+   * states, for the moments its charts mark, and which list those states
+   * are. Left out, the list is the event noun's: the project's incident
+   * states for an incident, its alert states for an alert.
    */
   stateTimeline?: Array<EventMomentTimelineEntry> | undefined;
   states?: Array<EventMomentState> | undefined;
+  stateList?: ResolvedStateList | undefined;
   /*
    * The member event whose telemetry this is: a metric snapshot's charts
    * draw the rule its monitor opened it with (issue #6250).
@@ -119,6 +124,12 @@ const TelemetrySnapshotPanel: FunctionComponent<ComponentProps> = (
         endedAt={props.endedAt}
         stateTimeline={props.stateTimeline || []}
         states={props.states || []}
+        stateList={
+          props.stateList ||
+          (props.eventNoun === "alert"
+            ? StateListType.AlertState
+            : StateListType.IncidentState)
+        }
         ruleEventId={props.metricRuleEventId}
       />
     );
