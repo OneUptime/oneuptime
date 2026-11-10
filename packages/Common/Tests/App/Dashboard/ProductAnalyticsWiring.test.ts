@@ -17,6 +17,14 @@ import {
   fromProductAnalyticsPersonSegment,
   toProductAnalyticsPersonSegment,
 } from "../../../Types/Rum/ProductAnalytics";
+import {
+  PRODUCT_ANALYTICS_EVENT_BREAKDOWN_ROUTE,
+  PRODUCT_ANALYTICS_EVENT_NAMES_ROUTE,
+  PRODUCT_ANALYTICS_EVENT_PROPERTIES_ROUTE,
+  PRODUCT_ANALYTICS_EVENT_TREND_ROUTE,
+  PRODUCT_ANALYTICS_FUNNEL_ROUTE,
+  PRODUCT_ANALYTICS_RETENTION_ROUTE,
+} from "../../../Types/Rum/ProductAnalyticsEventReads";
 
 /*
  * The product analytics pages (issue #6444) are reached through wirings no
@@ -72,6 +80,35 @@ const PAGES: Array<{ key: string; path: string; component: string }> = [
     path: ":id/product-analytics-sessions",
     component: "RumApplicationProductAnalyticsSessions",
   },
+  /* Part two: what people do, and the switch that sends the events. */
+  {
+    key: "RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_EVENTS",
+    path: ":id/product-analytics-events",
+    component: "RumApplicationProductAnalyticsEvents",
+  },
+  {
+    key: "RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_FUNNELS",
+    path: ":id/product-analytics-funnels",
+    component: "RumApplicationProductAnalyticsFunnels",
+  },
+  {
+    key: "RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_RETENTION",
+    path: ":id/product-analytics-retention",
+    component: "RumApplicationProductAnalyticsRetention",
+  },
+  {
+    key: "RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SETTINGS",
+    path: ":id/product-analytics-settings",
+    component: "RumApplicationProductAnalyticsSettings",
+  },
+];
+
+/* The part two pages, each read from its own module. */
+const PART_TWO_PAGE_FILES: Array<string> = [
+  "Pages/Rum/View/ProductAnalyticsEvents.tsx",
+  "Pages/Rum/View/ProductAnalyticsFunnels.tsx",
+  "Pages/Rum/View/ProductAnalyticsRetention.tsx",
+  "Pages/Rum/View/ProductAnalyticsSettings.tsx",
 ];
 
 describe("the product analytics pages have keys and paths", () => {
@@ -129,6 +166,9 @@ describe("the routes are registered once, at the right depth", () => {
     expect(sessionsPageSource).toContain(
       "Navigation.getLastParamAsObjectID(1)",
     );
+    for (const file of PART_TWO_PAGE_FILES) {
+      expect(read(file)).toContain("Navigation.getLastParamAsObjectID(1)");
+    }
     expect(personPageSource).toContain("useLocation()");
     expect(personPageSource).not.toContain("getLastParamAsObjectID");
   });
@@ -163,6 +203,18 @@ describe("the side menu", () => {
     expect(section).toContain(
       "PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SESSIONS",
     );
+    for (const [title, key] of [
+      ["Events", "RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_EVENTS"],
+      ["Funnels", "RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_FUNNELS"],
+      ["User Retention", "RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_RETENTION"],
+      ["User Flows", "RUM_APPLICATION_VIEW_USER_FLOWS"],
+      ["Analytics Settings", "RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SETTINGS"],
+    ] as Array<[string, string]>) {
+      expect(section).toContain(`title: "${title}"`);
+      expect(section).toContain(`PageMap.${key}`);
+      /* Linked once in the whole menu. */
+      expect(sideMenuSource.split(`PageMap.${key}`)).toHaveLength(2);
+    }
     /* A person's page lights Users. */
     expect(section).toContain("activeRoute={isOnPersonPage ? personRoute");
   });
@@ -208,6 +260,32 @@ describe("the trails", () => {
     ]);
   });
 
+  test.each([
+    [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_EVENTS, "events", "Events"],
+    [
+      PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_FUNNELS,
+      "funnels",
+      "Funnels",
+    ],
+    [
+      PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_RETENTION,
+      "retention",
+      "User Retention",
+    ],
+    [
+      PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SETTINGS,
+      "settings",
+      "Analytics Settings",
+    ],
+  ])(
+    "%s sits under the application",
+    (key: string, segment: string, title: string) => {
+      expect(
+        titles(trail(key, `${APP_PATH}/product-analytics-${segment}`)),
+      ).toEqual(["Project", "Real User Monitoring", "View Application", title]);
+    },
+  );
+
   test("a person sits under Users, which leads back to the list", () => {
     const links: Array<Link> = trail(
       PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_PERSON,
@@ -252,6 +330,31 @@ describe("the reads the pages call", () => {
       PRODUCT_ANALYTICS_PERSON_ROUTE,
     ]) {
       expect(telemetryApi).toContain(`"${route}"`);
+    }
+  });
+
+  test("the six event reads are POST routes under the same prefix, written out so the scope guard reads them", () => {
+    const telemetryApi: string = stripComments(
+      fs.readFileSync(
+        path.join(__dirname, "../../../Server/API/TelemetryAPI.ts"),
+        "utf8",
+      ),
+    );
+
+    for (const route of [
+      PRODUCT_ANALYTICS_EVENT_NAMES_ROUTE,
+      PRODUCT_ANALYTICS_EVENT_TREND_ROUTE,
+      PRODUCT_ANALYTICS_EVENT_BREAKDOWN_ROUTE,
+      PRODUCT_ANALYTICS_EVENT_PROPERTIES_ROUTE,
+      PRODUCT_ANALYTICS_FUNNEL_ROUTE,
+      PRODUCT_ANALYTICS_RETENTION_ROUTE,
+    ]) {
+      expect(route.startsWith("/telemetry/rum/product-analytics/")).toBe(true);
+      /*
+       * TelemetryRoutesReadScope finds a route by its quoted path: a route
+       * registered through a constant would escape its scope check.
+       */
+      expect(telemetryApi).toContain(`router.post(\n  "${route}",`);
     }
   });
 

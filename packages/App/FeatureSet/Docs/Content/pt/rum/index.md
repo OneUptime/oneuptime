@@ -42,8 +42,8 @@ O menu lateral de uma aplicação agrupa as páginas dela assim; **Configuraçõ
 | --- | --- |
 | **Básico** | **Visão geral**, **Recomendações**, **Documentação** |
 | **Observabilidade** | **Métricas**, **Registros**, **Traços**, **Clientes** |
-| **Análise de produto** | **Usuários**, **Sessões** |
-| **Reprodução de sessões** | **Reprodução de sessões**, **Fluxos de usuários**, **Usuários das reproduções**, **Integridade**, **Política de reprodução**, **Sinais de frustração**, **Registro de acesso aos replays**, **Documentação** |
+| **Análise de produto** | **Usuários**, **Sessões**, **Eventos**, **Funis**, **Retenção de usuários**, **Fluxos de usuários**, **Configurações de análise** |
+| **Reprodução de sessões** | **Reprodução de sessões**, **Usuários das reproduções**, **Integridade**, **Política de reprodução**, **Sinais de frustração**, **Registro de acesso aos replays**, **Documentação** |
 | **Configurações** | **Configurações** |
 | **Desenvolvedores** | **Terraform**, **API**, **CLI**, **Assistentes de IA** |
 | **Avançado** | **Registros de auditoria**, **Excluir aplicação** |
@@ -78,11 +78,11 @@ O OneUptime encontra a aplicação pelo `service.name`, sem diferenciar maiúscu
 
 | Onde | O que mostra |
 | --- | --- |
-| **Visão geral** | Blocos de **Carregamentos de página**, **Tempo de carregamento da página (p95)**, **Eventos**, **Taxa de erro**, **Event duration (p95)**, **Exceções**, **Clientes** e **Sessions recorded**, e gráficos de tendência do intervalo de tempo que você escolher. |
+| **Visão geral** | Blocos de **Carregamentos de página**, **Tempo de carregamento da página (p95)**, **Eventos**, **Taxa de erro**, **Duração dos eventos (p95)**, **Exceções**, **Clientes** e **Sessões gravadas**, e gráficos de tendência do intervalo de tempo que você escolher. |
 | **Core Web Vitals** | Um cartão na visão geral com LCP, INP, CLS, FCP e TTFB, cada um avaliado pelos limites do Google, e o INP de cada rota de um aplicativo de página única. Veja [Core Web Vitals](/docs/rum/web-vitals) e [Aplicativos de página única](/docs/rum/web-vitals#aplicativos-de-página-única). |
 | **Métricas**, **Registros**, **Traços** | Os exploradores de telemetria, limitados a esta aplicação. |
 | **Clientes** | As plataformas de navegador e os modelos de dispositivo em que a aplicação foi usada: uma lista curta por plataforma, nunca uma linha por usuário. |
-| **Análise de produto** | Usuários ativos, novos, recorrentes e inativos, e sessões por dispositivo, navegador, país e página, contados a partir das sessões gravadas: veja [Análise de produto](/docs/rum/product-analytics). |
+| **Análise de produto** | Usuários ativos, novos, recorrentes e inativos e sessões por dispositivo, navegador, país e página, contados a partir das sessões gravadas, e os eventos que o seu app envia, como tendências, funis e retenção: veja [Análise de produto](/docs/rum/product-analytics). |
 | **Reprodução de sessões** | Gravações de sessões reais, ao lado dos erros, traços e registros delas: veja [Reprodução de sessões](/docs/telemetry/session-replay). |
 | **Recomendações** | Monitores prontos para a aplicação: Core Web Vitals ruins, requisições com falha, exceções do navegador e, assim que ela grava, orçamentos do Session Replay. |
 

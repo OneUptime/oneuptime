@@ -1,4 +1,10 @@
 import { SessionReplayConfigResponse } from "Common/Types/Rum/SessionReplay";
+import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
+import {
+  PRODUCT_ANALYTICS_EVENTS_PATH,
+  ProductAnalyticsRecorderConfig,
+  readProductAnalyticsRecorderConfig,
+} from "Common/Types/Rum/ProductAnalyticsEvents";
 import Config, { RECORDER_VERSION, RecorderInitOptions } from "./Config";
 import Consent from "./Consent";
 import {
@@ -19,6 +25,9 @@ import Recorder, {
   RecorderStopReason,
   SessionChangeListener,
 } from "./Recorder";
+import ProductAnalytics, {
+  ProductAnalyticsStopReason,
+} from "./ProductAnalytics";
 
 /*
  * Entry point for the mutable `latest` artifact, bundled as an IIFE under the global
@@ -41,8 +50,9 @@ import Recorder, {
  * grant would mean recording a session we are never allowed to upload.
  *
  * Entries are arrays: [command, ...arguments], e.g. ["identify", ref,
- * traits], ["track", name, properties], ["setTags", tags], ["addTag", key,
- * value], ["captureSession", reason], ["onSessionChange", callback].
+ * traits], ["track", name, properties], ["metric", name, value,
+ * attributes], ["setTags", tags], ["addTag", key, value],
+ * ["captureSession", reason], ["onSessionChange", callback].
  *
  * The queue stays LIVE after the drain: bootstrap() replaces its push() with
  * one that applies each entry immediately (installLiveCommandQueue). A
@@ -93,8 +103,24 @@ export interface SessionReplayApi {
    */
   identify: (userRef: string, traits?: SessionReplayTraits) => void;
 
-  /* A business event ("checkout_failed") with optional properties. */
+  /*
+   * A business event ("checkout_failed") with optional properties: a
+   * marker in the recording, and - with product analytics on - an event
+   * the application's Events, Funnels and Retention pages count, from
+   * every session, recorded or not.
+   */
   track: (name: string, properties?: SessionReplayTraits) => void;
+
+  /*
+   * A number the application measured ("cart.value", 42.5), with optional
+   * attributes: a point in the metric store under the RUM application, for
+   * charts, dashboards and Metrics monitors. Needs product analytics on.
+   */
+  metric: (
+    name: string,
+    value: number,
+    attributes?: SessionReplayTraits,
+  ) => void;
 
   /* Per-session tags, searchable from the session list. */
   setTags: (tags: SessionReplayTraits) => void;
@@ -180,11 +206,26 @@ export interface SessionReplayDiagnostics {
   hasTraits: boolean;
   capabilities: Array<string>;
 
+  /*
+   * Product analytics events (src/ProductAnalytics.ts): "off" when the
+   * application has them off or nothing runs, "on" while they are sent,
+   * else why they stopped; what is held to be sent, and how many events
+   * were dropped because too many were held.
+   */
+  productAnalytics: {
+    state: "off" | "on" | ProductAnalyticsStopReason;
+    pending: number;
+    dropped: number;
+  };
+
   records: Array<DebugRecord>;
 }
 
 let activeRecorder: Recorder | null = null;
 let bootstrapDecision: SessionReplayBootstrapDecision = "not-started";
+
+/* Product analytics events, beside the recorder; null while they are off. */
+let activeAnalytics: ProductAnalytics | null = null;
 
 /*
  * True while bootstrap() waits for a prerendered page to be opened. A call
@@ -423,9 +464,73 @@ function startRecorder(
   activeRecorder.start();
   bootstrapDecision = "started";
 
+  startProductAnalytics(initOptions, config);
+
   notifySessionChange(activeRecorder.getSessionId(), activeRecorder.getTabId());
 
   drainCommandQueue();
+}
+
+/*
+ * Product analytics events (src/ProductAnalytics.ts), when the application
+ * has them on: from a recorder that runs and from one the replay sample left
+ * out alike, never from one stopped for any other reason.
+ */
+function startProductAnalytics(
+  initOptions: RecorderInitOptions,
+  config: SessionReplayConfigResponse,
+): void {
+  const recorder: Recorder | null = activeRecorder;
+  const analyticsConfig: ProductAnalyticsRecorderConfig =
+    readProductAnalyticsRecorderConfig(config.productAnalytics);
+
+  if (
+    !recorder ||
+    activeAnalytics ||
+    !analyticsConfig.enabled ||
+    recorder.getState() === "stopped"
+  ) {
+    return;
+  }
+
+  const userAgent: string =
+    typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+
+  activeAnalytics = new ProductAnalytics(
+    {
+      url: `${initOptions.host}${PRODUCT_ANALYTICS_EVENTS_PATH}`,
+      headers: Config.getIngestHeaders(initOptions),
+      getSessionId: (nowUnixMs: number): string => {
+        return recorder.getAnalyticsSessionId(nowUnixMs);
+      },
+      getVisitorId: (): string => {
+        return recorder.getVisitorId();
+      },
+      getConsentState: (): string => {
+        return recorder.getConsentState();
+      },
+      requiresConsent:
+        config.consentMode === SessionReplayConsentMode.RequireExplicit,
+      getIdentity: (): {
+        userRef: string;
+        traits: Record<string, string> | null;
+      } => {
+        return recorder.getAnalyticsIdentity();
+      },
+      maskProperties: (map: Record<string, string>): Record<string, string> => {
+        return recorder.maskAnalyticsProperties(map);
+      },
+      context: {
+        deviceType: Recorder.getDeviceType(userAgent),
+        browserName: Recorder.getBrowserName(userAgent),
+        osName: Recorder.getOsName(userAgent),
+        appVersion: "",
+      },
+    },
+    analyticsConfig,
+  );
+
+  activeAnalytics.start();
 }
 
 export async function start(initOptions?: RecorderInitOptions): Promise<void> {
@@ -503,6 +608,10 @@ export function grantConsent(): void {
   debugLog("api-grant-consent", "grantConsent() called.");
 
   activeRecorder.grantConsent();
+
+  if (activeAnalytics) {
+    activeAnalytics.onConsentGranted();
+  }
 }
 
 export function revokeConsent(): void {
@@ -516,6 +625,11 @@ export function revokeConsent(): void {
      * of the page's life.
      */
     activeRecorder.revokeConsent();
+
+    /* Product analytics drops what it held, and holds nothing until a grant. */
+    if (activeAnalytics) {
+      activeAnalytics.forget();
+    }
   } else {
     queueUntilOpened(["revokeConsent"]);
   }
@@ -557,6 +671,35 @@ export function track(name: string, properties?: SessionReplayTraits): void {
   }
 
   activeRecorder.track(name, properties);
+
+  if (activeAnalytics) {
+    activeAnalytics.track(name, properties);
+  }
+}
+
+export function metric(
+  name: string,
+  value: number,
+  attributes?: SessionReplayTraits,
+): void {
+  if (!activeRecorder) {
+    if (!queueUntilOpened(["metric", name, value, attributes])) {
+      warnNoRecorder("metric()");
+    }
+
+    return;
+  }
+
+  if (!activeAnalytics) {
+    debugWarn(
+      "metric-analytics-off",
+      "metric() needs product analytics on for this application. Nothing was sent.",
+    );
+
+    return;
+  }
+
+  activeAnalytics.metric(name, value, attributes);
 }
 
 export function setTags(tags: SessionReplayTraits): void {
@@ -629,6 +772,13 @@ export function getDiagnostics(): SessionReplayDiagnostics {
     tags: activeRecorder ? activeRecorder.getTags() : {},
     hasTraits: activeRecorder ? activeRecorder.hasTraits() : false,
     capabilities: activeRecorder ? activeRecorder.getCapabilities() : [],
+    productAnalytics: activeAnalytics
+      ? {
+          state: activeAnalytics.getStopReason() || "on",
+          pending: activeAnalytics.getPendingCount(),
+          dropped: activeAnalytics.getDroppedEventCount(),
+        }
+      : { state: "off", pending: 0, dropped: 0 },
     records: getDebugRecords(),
   };
 }
@@ -639,6 +789,11 @@ export function stop(): void {
 
     activeRecorder.stop();
     activeRecorder = null;
+
+    if (activeAnalytics) {
+      activeAnalytics.stop();
+      activeAnalytics = null;
+    }
   } else {
     queueUntilOpened(["stop"]);
   }
@@ -791,6 +946,12 @@ function applyCommand(entry: Array<unknown>): void {
     identify(first, isTraits(second) ? second : undefined);
   } else if (command === "track" && typeof first === "string") {
     track(first, isTraits(second) ? second : undefined);
+  } else if (command === "metric" && typeof first === "string") {
+    metric(
+      first,
+      second as number,
+      isTraits(entry[3]) ? (entry[3] as SessionReplayTraits) : undefined,
+    );
   } else if (command === "setTags" && isTraits(first)) {
     setTags(first);
   } else if (

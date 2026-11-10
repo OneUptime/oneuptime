@@ -20,6 +20,7 @@ import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceSe
 import RumSessionChunkService from "Common/Server/Services/RumSessionChunkService";
 import RumSessionService from "Common/Server/Services/RumSessionService";
 import RumProductAnalyticsSessionService from "Common/Server/Services/RumProductAnalyticsSessionService";
+import RumProductAnalyticsEventService from "Common/Server/Services/RumProductAnalyticsEventService";
 import RumSessionPinService from "Common/Server/Services/RumSessionPinService";
 import {
   afterAll,
@@ -491,6 +492,7 @@ integration(
 
     test("eraseSessionBatch submits trace-id deletes for exactly the owned traces, after one lookup", async () => {
       const submitted: Array<{ table: string; traceIds: Array<string> }> = [];
+      const sessionDeletes: Array<string> = [];
       const order: Array<string> = [];
       const realLookup: typeof SpanService.executeQuery =
         SpanService.executeQuery.bind(SpanService);
@@ -517,6 +519,7 @@ integration(
         SpanService,
         ExceptionInstanceService,
         RumProductAnalyticsSessionService,
+        RumProductAnalyticsEventService,
       ]) {
         jest
           .spyOn(
@@ -527,6 +530,10 @@ integration(
           )
           .mockImplementation(((statement: Statement): Promise<unknown> => {
             order.push("delete");
+
+            if (statement.query.includes("sessionId IN")) {
+              sessionDeletes.push(service.model.tableName);
+            }
 
             if (statement.query.includes("traceId IN")) {
               submitted.push({
@@ -587,6 +594,25 @@ integration(
           return entry.table === AnalyticsTableName.Log;
         }).length,
       ).toBe(Math.ceil(expectedOwned.length / MAX_TRACE_IDS_PER_MUTATION));
+
+      /*
+       * Product analytics keeps two tables of a session: its summary and
+       * the events it sent. Both are erased by session id, before the
+       * header a retry finds the batch by.
+       */
+      expect(
+        sessionDeletes.filter((table: string): boolean => {
+          return (
+            table === AnalyticsTableName.RumProductAnalyticsSession ||
+            table === AnalyticsTableName.RumProductAnalyticsEvent ||
+            table === AnalyticsTableName.RumSession
+          );
+        }),
+      ).toEqual([
+        AnalyticsTableName.RumProductAnalyticsSession,
+        AnalyticsTableName.RumProductAnalyticsEvent,
+        AnalyticsTableName.RumSession,
+      ]);
     });
 
     test("a full mutation's WHERE clause is accepted over HTTP and matches exactly its ids in its project", async () => {

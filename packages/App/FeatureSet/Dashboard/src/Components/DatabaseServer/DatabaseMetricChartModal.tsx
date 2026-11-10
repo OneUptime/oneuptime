@@ -49,7 +49,10 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  translatableTerm,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * A database's Metrics tab charts a clicked metric HERE, in place, instead
@@ -390,9 +393,22 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
         }),
   );
 
+  /*
+   * The metric's own description - what the (i) beside its tile says, a key
+   * of the locales - then what the chart is cut to, worded whole in the
+   * reader's language: a language that has not worded the sentence reads
+   * both in English, never one of each.
+   */
   const description: string = spec.definition
-    ? `${spec.definition.description} Charted for this database only.`
-    : "Charted for this database only — its endpoints and the pods or containers it runs as.";
+    ? translator.translateTemplate(
+        "{{metricDescription}} Charted for this database only.",
+        {
+          metricDescription: translatableTerm(spec.definition.description),
+        },
+      )
+    : translator.translateText(
+        "Charted for this database only — its endpoints and the pods or containers it runs as.",
+      ) || "";
 
   return (
     <Modal

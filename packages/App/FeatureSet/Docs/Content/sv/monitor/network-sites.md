@@ -171,7 +171,7 @@ En plats utan några tidslinjerader alls visar `—` i stället för 100 %: en p
 
 ### Daglig upptid
 
-Bredvid siffran för 30 dagar visar varje plats översikt **Uptime (24h)**, och dess sida **Statustidslinje** visar de senaste 24 timmarna, 7, 30 och 90 dagarna, och en stapel per dag för de senaste 30.
+Bredvid siffran för 30 dagar visar varje plats översikt **Drifttid (24 h)**, och dess sida **Statustidslinje** visar de senaste 24 timmarna, 7, 30 och 90 dagarna, och en stapel per dag för de senaste 30.
 
 Ett medelvärde över 30 dagar kan inte visa en dålig dag. En hel dags avbrott i ett fönster på 30 dagar kostar 3,3 procentenheter, så en plats som var mörk en hel tisdag rapporterar ändå 96,7 % för månaden, en siffra som ser ut som en avrundning. De dagliga staplarna placerar samma data där en dålig dag är en dålig stapel.
 

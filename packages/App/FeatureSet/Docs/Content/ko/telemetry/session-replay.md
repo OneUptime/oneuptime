@@ -253,12 +253,13 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 );
 ```
 
-`grantConsent`, `revokeConsent`, `stop`, `identify`, `setTags`, `addTag`는 레코더가 시작되기 전에 적용되므로, 대기열의 동의 결정이 무엇이든 업로드될지를 정하고, 대기열의 신원은 첫 청크부터 함께 전송됩니다. `track`, `captureSession`, `onSessionChange`는 시작 직후에 실행됩니다.
+`grantConsent`, `revokeConsent`, `stop`, `identify`, `setTags`, `addTag`는 레코더가 시작되기 전에 적용되므로, 대기열의 동의 결정이 무엇이든 업로드될지를 정하고, 대기열의 신원은 첫 청크부터 함께 전송됩니다. `track`, `metric`, `captureSession`, `onSessionChange`는 시작 직후에 실행됩니다.
 
 | 메서드 | 하는 일 |
 | --- | --- |
 | `identify(userRef, traits?)` | 최종 사용자를 세션에, 즉 그 모든 페이지와 탭에 처음부터 연결합니다([사용자 식별하기](#사용자-식별하기) 참고). `traits`는 문자열, 숫자, 불리언 값을 가진 객체(키 ≤ 20개, 키 ≤ 40자, 값 ≤ 200자)이며, _Mask all text_ 모드에서 마스킹되고 **최종 사용자 신원 캡처**가 켜져 있을 때만 업로드됩니다. 같은 사용자로 다시 호출하면 다음 청크에서 신원(그리고 새 특성이 있다면 그것도)을 다시 보내며, 다른 사용자를 지정하면 세션이 끝나고 그 사람을 위한 새 세션이 시작됩니다. |
-| `track(name, properties?)` | 비즈니스 이벤트(`"checkout_failed"`)를 타임라인에 기록합니다. `name` ≤ 64자, 속성 키 ≤ 20개이며 값 제한은 특성과 같습니다. 15초 청크당 최대 50개이며, 그보다 많으면 청크에 개수와 함께 "events dropped" 마커 하나가 담깁니다. |
+| `track(name, properties?)` | 비즈니스 이벤트(`"checkout_failed"`)를 타임라인에 기록합니다. `name` ≤ 64자, 속성 키 ≤ 20개이며 값 제한은 특성과 같습니다. 15초 청크당 최대 50개이며, 그보다 많으면 청크에 개수와 함께 "events dropped" 마커 하나가 담깁니다. 제품 분석 이벤트가 켜져 있으면 녹화 여부와 관계없이 모든 세션에서 애플리케이션의 [제품 분석](/docs/rum/product-analytics#이벤트와-메트릭-보내기) 페이지가 세는 이벤트이기도 합니다. |
+| `metric(name, value, attributes?)` | 페이지가 측정한 숫자(`"cart.value"`, `42.5`)를 애플리케이션 메트릭의 포인트로 보냅니다. 선택적 속성을 붙일 수 있으며 한도는 `track()` 속성과 같습니다. 제품 분석 이벤트가 켜져 있어야 합니다. [제품 분석](/docs/rum/product-analytics#이벤트와-메트릭-보내기)을 참고하세요. |
 | `setTags(tags)` / `addTag(key, value)` | 세션 단위 태그(`{ build: "1.4.2", experiment: "new-checkout" }`), 태그 ≤ 20개, 키 ≤ 32자, 값 ≤ 128자. 세션 목록에서 `tag:key=value`로 검색할 수 있고 세션 세부 정보에 표시됩니다. `setTags`는 매핑 전체를 **바꾸므로**, 두 번째 `setTags({ experiment })`는 첫 번째가 설정한 `build` 태그를 지웁니다. `addTag`는 키 하나를 설정하고 나머지는 유지합니다. 매핑은 `setTags` 한 번의 호출로 만들거나, 각 값을 알게 될 때마다 `addTag`를 사용하세요. |
 | `captureSession(reason?)` | _On error or frustration_ 설정에서는 이 세션이 순환 버퍼부터 업로드하도록 강제합니다. _Always_ 설정에서는 업로드를 바꾸지 않지만, `reason`(≤ 80자)은 여전히 타임라인에 표시됩니다. 자신의 "문제 신고" 버튼에서 사용하세요. |
 | `onSessionChange(listener)` | `listener(sessionId, tabId)`는 세션이 있으면 즉시 호출되고, ID가 바뀔 때마다 다시 호출됩니다. 사용자가 30분 유휴 후 돌아올 때, 4시간 한도에서, `identify()`가 다른 사용자를 지정할 때, 또는 같은 방문자의 다른 탭이 먼저 세션을 바꿨을 때입니다. 구독 해제 함수를 반환합니다. **선택 사항**입니다. 자신의 출처로 가는 요청은 이것 없이도 백엔드의 스팬, 로그, 예외를 녹화에 연결합니다([나머지 텔레메트리와 연결하기](#나머지-텔레메트리와-연결하기) 참고). OpenTelemetry 브라우저 SDK의 스팬처럼 페이지 자체가 만드는 텔레메트리에 `session.id`를 설정할 때 사용하세요. [페이지 자체의 브라우저 텔레메트리](#페이지-자체의-브라우저-텔레메트리)를 참고하세요. |
@@ -286,6 +287,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 | `decisions` | 각 관문의 답. `isSampled`, `captureTrigger`, `consentMode`, `consentState`, `uploadsAllowed`, `uploadBlockedBy`(`consent`, `transport`, `null`), `lastDirective`와 그 이유, 그리고 `startDecision`(`recording-and-uploading`, `recording-into-memory`, `not-sampled`, `not-started`). |
 | `capabilities` | 이 레코더 빌드가 캡처하는 것. `click-events`, `web-vitals`, `custom-events`, `traits`, `tags`, `visibility`, `visitor-id`. 대시보드의 **상태** 페이지가 최신 세션에 대해 같은 목록을 보여 주므로, 오래 열려 있던 옛 페이지에서 온 녹화를 쉽게 알아볼 수 있습니다. |
 | `tags`, `hasTraits`, `triggerReason`, `isRecording`, `isUploading`, `sessionId`, `tabId`, `visitorId`, `version` | 세션의 현재 상태. `isRecording`은 레코더가 실제로 녹화하는 동안에만 true입니다. `visitorId`는 레코더가 생기기 전에는 `null`, 동의가 취소된 동안에는 `""`입니다. |
+| `productAnalytics` | [제품 분석 이벤트](/docs/rum/product-analytics#이벤트와-메트릭-보내기)의 상태입니다. `state`는 `on`, `off`(애플리케이션에서 꺼져 있음) 또는 멈춘 이유(`not-enabled`, `origin-not-allowed`, `refused`, `stopped`)이고, `pending`은 전송을 기다리는 것, `dropped`는 너무 많이 기다려서 버려진 이벤트 수입니다. |
 | `records` | 안정적인 코드가 붙은 최근 250개의 결정. 아티팩트가 존재하기 전 로더의 결정도 포함합니다. 각 코드는 [세션 리플레이 문제 해결](/docs/rum/session-replay-troubleshooting#코드)에서 설명합니다. |
 
 ## 개인정보 보호
@@ -661,7 +663,7 @@ flowchart TB
 
 ### 사용자 흐름
 
-**사용자 흐름**은 애플리케이션 사이드 메뉴의 **세션 리플레이** 섹션, `.../user-flows`에 있습니다. 선택한 기간(기본값은 일주일)의 녹화에서, 사람들이 앱의 페이지에서 페이지로 어떻게 이동하는지 그립니다. 어디로 들어오는지, 다음에 어느 페이지로 가는지, 어디서 떠나는지, 어디서 맴도는지입니다.
+**사용자 흐름**은 애플리케이션 사이드 메뉴의 **제품 분석** 섹션, `.../user-flows`에 있습니다. 선택한 기간(기본값은 일주일)의 녹화에서, 사람들이 앱의 페이지에서 페이지로 어떻게 이동하는지 그립니다. 어디로 들어오는지, 다음에 어느 페이지로 가는지, 어디서 떠나는지, 어디서 맴도는지입니다.
 
 흐름 지도에는 단계마다 열이 하나 있습니다. 페이지는 그 단계의 세션 수를 높이로 하는 상자이며, 두 상자 사이의 띠는 그 이동을 한 세션 수만큼 두껍습니다. 상자에서 나오는 빨간 짧은 선은 거기서 앱을 떠난 세션이며, 회색으로 흐려지는 것은 경로가 마지막 열 너머로 이어진다는 뜻입니다. 호박색 띠는 대부분의 세션이 이미 본 페이지로 돌아간 띠입니다. 상자의 빨간 점은 세션이 그 페이지에서 오류를 겪었다는 뜻입니다. 상자나 띠에 포인터를 올리면 지도에서 트래픽을 따라갈 수 있고, 클릭하면 세부 정보 패널이 열립니다.
 
@@ -670,10 +672,10 @@ flowchart TB
 | **From session start** | 1단계는 각 세션의 진입 페이지입니다. |
 | **After a page** | 지도를 한 페이지에 고정하고, 세션이 그 페이지에 처음 도달한 때부터 따라갑니다. "`/pricing` 다음에 사람들은 어디로 가나?" |
 | **Before a page** | 세션이 어떤 페이지에 처음 도달한 때부터 거꾸로 따라갑니다. "사람들은 어떻게 `/checkout`에 도달하나?" 기준 페이지는 오른쪽에 그려집니다. |
-| **단계** / **Pages per step** | 그릴 열의 수와, 나머지를 **Other pages**로 모으기 전에 한 열이 나열하는 페이지 수(클릭하면 무엇이 들어 있는지 보임). |
+| **단계** / **단계당 페이지 수** | 그릴 열의 수와, 나머지를 **Other pages**로 모으기 전에 한 열이 나열하는 페이지 수(클릭하면 무엇이 들어 있는지 보임). |
 | **세션** | 모든 세션, 오류가 있는 세션만, 또는 좌절 신호(분노 클릭, 반응 없는 클릭, 오류 클릭, 분노 새로고침)가 있는 세션만. 자체 신호도 불만으로 집계되면 여기에 포함됩니다. |
 | **디바이스** | 데스크톱, 모바일, 태블릿의 세션만. |
-| **Group IDs in URLs** | 기본적으로 켜져 있습니다. `/orders/1042`와 `/orders/1043`은 하나의 페이지 `/orders/:id`입니다. 숫자, 십육진수 ID, 문자와 숫자로 된 긴 토큰은 레코더가 이미 `[redacted]`로 바꾼 모든 세그먼트처럼 묶입니다. 한 사용자 또는 한 세션에서는 기본적으로 꺼져 있습니다. |
+| **URL의 ID 그룹화** | 기본적으로 켜져 있습니다. `/orders/1042`와 `/orders/1043`은 하나의 페이지 `/orders/:id`입니다. 숫자, 십육진수 ID, 문자와 숫자로 된 긴 토큰은 레코더가 이미 `[redacted]`로 바꾼 모든 세그먼트처럼 묶입니다. 한 사용자 또는 한 세션에서는 기본적으로 꺼져 있습니다. |
 | **Hide this page** | 페이지의 세부 정보 패널에 있습니다. 모든 경로에서 그 페이지를 빼서, 로그인이나 동의를 위한 중간 페이지가 경로를 둘로 가르지 않게 합니다. 숨긴 페이지는 지도 위에 나열되며 다시 표시할 수 있습니다. |
 
 페이지의 세부 정보 패널은 그 단계에서 그 페이지에 도달한 세션 수, 거기서 떠난 수, 거기서 오류를 겪은 수, 기간 전체에서 방문자가 어디서 왔고 다음에 어디로 갔는지, 시청할 세션 최대 다섯 개, 그리고 그 페이지를 방문한 모든 세션으로 필터링된 세션 목록 링크를 보여 줍니다. 띠의 경우에는 각 페이지의 비율과 정확히 그 이동을 한 세션을 보여 줍니다.

@@ -121,6 +121,13 @@ enum AnalyticsTableName {
    */
   RumProductAnalyticsSession = "RumProductAnalyticsSessionV1",
   RumProductAnalyticsUser = "RumProductAnalyticsUserV1",
+  /*
+   * Product analytics events (issue #6444, part two): one row per event the
+   * RUM recorders send from every session, recorded or not - a session
+   * starting, a page viewed, a track() call - kept for the same year and a
+   * month. A plain MergeTree written by the product analytics ingest worker.
+   */
+  RumProductAnalyticsEvent = "RumProductAnalyticsEventV1",
 }
 
 export default AnalyticsTableName;

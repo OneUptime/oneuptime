@@ -30,6 +30,12 @@ import { PRODUCT_ANALYTICS_IDENTIFIED_PREFIX } from "../../../Types/Rum/ProductA
  *    session did, and the sessions they count may lie outside the range.
  *  - a list of sessions: those sessions, by id (the job's batches do it).
  *
+ * The events table (part two: RumProductAnalyticsEventV1, every session's
+ * events, recorded or not) goes the same way: by session id beside the
+ * session summaries, a user's sessions found in it too and its rows that
+ * name the user by key, an application's rows, and a date range's events
+ * by when they happened.
+ *
  * Every filter starts with the project, and with the application when the
  * request names one.
  */
@@ -52,6 +58,13 @@ export interface ProductAnalyticsErasureSubject {
    */
   sessionIds?: Array<string> | undefined;
 }
+
+/* The product analytics tables that hold rows by session id. */
+export const PRODUCT_ANALYTICS_SESSION_ID_TABLES: ReadonlyArray<AnalyticsTableName> =
+  [
+    AnalyticsTableName.RumProductAnalyticsSession,
+    AnalyticsTableName.RumProductAnalyticsEvent,
+  ];
 
 export interface ProductAnalyticsErasureFilter {
   /* The model's table name; the delete statement names its storage table. */
@@ -102,8 +115,13 @@ function bySessionIds(
     return sessionId.length > 0;
   });
 
-  return chunk(sessionIds, PRODUCT_ANALYTICS_ERASURE_IDS_PER_MUTATION).map(
-    (ids: Array<string>): ProductAnalyticsErasureFilter => {
+  const filters: Array<ProductAnalyticsErasureFilter> = [];
+
+  for (const ids of chunk(
+    sessionIds,
+    PRODUCT_ANALYTICS_ERASURE_IDS_PER_MUTATION,
+  )) {
+    for (const tableName of PRODUCT_ANALYTICS_SESSION_ID_TABLES) {
       const where: Statement = scopedTo(subject);
 
       where.append(
@@ -113,12 +131,11 @@ function bySessionIds(
         }}`,
       );
 
-      return {
-        tableName: AnalyticsTableName.RumProductAnalyticsSession,
-        where: where,
-      };
-    },
-  );
+      filters.push({ tableName: tableName, where: where });
+    }
+  }
+
+  return filters;
 }
 
 /*
@@ -149,11 +166,28 @@ export function buildProductAnalyticsErasureFilters(
         }}`,
       );
 
+      /*
+       * The events that named the user, by key: the sessions found by id
+       * are capped per run, this is not.
+       */
+      const events: Statement = scopedTo(subject);
+
+      events.append(
+        SQL` AND identifiedUserKey = ${{
+          type: TableColumnType.Text,
+          value: userKey,
+        }}`,
+      );
+
       return [
         ...bySessionIds(subject),
         {
           tableName: AnalyticsTableName.RumProductAnalyticsUser,
           where: months,
+        },
+        {
+          tableName: AnalyticsTableName.RumProductAnalyticsEvent,
+          where: events,
         },
       ];
     }
@@ -173,6 +207,7 @@ export function buildProductAnalyticsErasureFilters(
       return [
         AnalyticsTableName.RumProductAnalyticsSession,
         AnalyticsTableName.RumProductAnalyticsUser,
+        AnalyticsTableName.RumProductAnalyticsEvent,
       ].map((tableName: AnalyticsTableName): ProductAnalyticsErasureFilter => {
         const where: Statement = projectClause(subject.projectId);
         where.append(applicationClause(rumApplicationId));
@@ -198,10 +233,26 @@ export function buildProductAnalyticsErasureFilters(
         }}`,
       );
 
+      const events: Statement = scopedTo(subject);
+
+      events.append(
+        SQL` AND time >= ${{
+          type: TableColumnType.DateTime64,
+          value: subject.startDate,
+        }} AND time <= ${{
+          type: TableColumnType.DateTime64,
+          value: subject.endDate,
+        }}`,
+      );
+
       return [
         {
           tableName: AnalyticsTableName.RumProductAnalyticsSession,
           where: where,
+        },
+        {
+          tableName: AnalyticsTableName.RumProductAnalyticsEvent,
+          where: events,
         },
       ];
     }
@@ -216,7 +267,9 @@ export function buildProductAnalyticsErasureFilters(
 /*
  * Every session product analytics holds that named the user, at most
  * `limit` of them: the job removes them by id, so the first, anonymous row
- * of a session they signed in during goes with the rest.
+ * of a session they signed in during goes with the rest. Read from the
+ * session summaries (recorded sessions) or, with `tableName`, from the
+ * events (every session): the job asks both.
  *
  * An empty key is refused, not looked up: `identifiedUserKey = ''` is every
  * session in which nobody signed in.
@@ -227,6 +280,10 @@ export function buildProductAnalyticsUserSessionLookup(data: {
   identifiedUserKey: string;
   rumApplicationId?: ObjectID | undefined;
   limit: number;
+  tableName?:
+    | AnalyticsTableName.RumProductAnalyticsSession
+    | AnalyticsTableName.RumProductAnalyticsEvent
+    | undefined;
 }): Statement {
   const identifiedUserKey: string = data.identifiedUserKey.trim();
 
@@ -234,7 +291,7 @@ export function buildProductAnalyticsUserSessionLookup(data: {
     throw new Error("ByIdentifiedUserKey erasure request has no user key");
   }
 
-  const statement: Statement = SQL`SELECT DISTINCT sessionId AS paSessionId FROM ${data.databaseName}.${AnalyticsTableName.RumProductAnalyticsSession} WHERE `;
+  const statement: Statement = SQL`SELECT DISTINCT sessionId AS paSessionId FROM ${data.databaseName}.${data.tableName || AnalyticsTableName.RumProductAnalyticsSession} WHERE `;
 
   statement.append(projectClause(data.projectId));
 

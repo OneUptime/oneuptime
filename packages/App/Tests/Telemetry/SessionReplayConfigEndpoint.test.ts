@@ -394,6 +394,8 @@ function buildPolicy(overrides?: Record<string, unknown>): unknown {
     longTaskBudgetMs: 200,
     slowRequestBudgetMs: 5000,
     frustrationSignals: CUSTOM_FRUSTRATION_SIGNALS,
+    isProductAnalyticsEnabled: false,
+    productAnalyticsUserPropertyKeys: [],
     configEpoch: 77,
     ...overrides,
   };

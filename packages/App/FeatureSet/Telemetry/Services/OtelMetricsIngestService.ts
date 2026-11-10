@@ -1,4 +1,8 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
+import {
+  PRODUCT_ANALYTICS_DERIVED_METRIC_PREFIX,
+  isProductAnalyticsDerivedMetricName,
+} from "Common/Types/Rum/ProductAnalyticsEvents";
 import { TelemetryBatch } from "Common/Server/Utils/PatternWorkScope";
 import {
   OtelAggregationTemporality,
@@ -1759,6 +1763,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   }
 
                   /*
+                   * And the per-minute product analytics counts the event
+                   * pipeline writes (issue #6444): they back the
+                   * application's event charts and monitors and are left
+                   * out of billing by name, so no sender may write one.
+                   */
+                  if (isProductAnalyticsDerivedMetricName(metricName)) {
+                    logger.debug(
+                      `Dropped metric "${metricName}" for project ${projectId.toString()}: names starting with "${PRODUCT_ANALYTICS_DERIVED_METRIC_PREFIX}" are reserved for OneUptime's product analytics event counts.`,
+                    );
+                    continue;
+                  }
+
+                  /*
                    * Likewise the ingestion budget sweep's readings: they
                    * open budget incidents and are left out of usage and
                    * billing by name, so no sender may write one.
@@ -2214,6 +2231,17 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         ) {
                           logger.debug(
                             `Dropped a "${metricName}" datapoint for project ${projectId.toString()}: a metric pipeline rule renamed it to "${finalMetricName}", and names starting with "${SESSION_REPLAY_METRIC_NAME_PREFIX}" are reserved for OneUptime's session replay budget metrics.`,
+                          );
+                          continue;
+                        }
+
+                        if (
+                          finalMetricName !== metricName &&
+                          typeof finalMetricName === "string" &&
+                          isProductAnalyticsDerivedMetricName(finalMetricName)
+                        ) {
+                          logger.debug(
+                            `Dropped a "${metricName}" datapoint for project ${projectId.toString()}: a metric pipeline rule renamed it to "${finalMetricName}", and names starting with "${PRODUCT_ANALYTICS_DERIVED_METRIC_PREFIX}" are reserved for OneUptime's product analytics event counts.`,
                           );
                           continue;
                         }

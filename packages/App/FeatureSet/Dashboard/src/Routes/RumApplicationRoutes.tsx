@@ -23,6 +23,10 @@ import RumApplicationUserFlows from "../Pages/Rum/View/UserFlows";
 import RumApplicationProductAnalyticsUsers from "../Pages/Rum/View/ProductAnalyticsUsers";
 import RumApplicationProductAnalyticsPerson from "../Pages/Rum/View/ProductAnalyticsPerson";
 import RumApplicationProductAnalyticsSessions from "../Pages/Rum/View/ProductAnalyticsSessions";
+import RumApplicationProductAnalyticsEvents from "../Pages/Rum/View/ProductAnalyticsEvents";
+import RumApplicationProductAnalyticsFunnels from "../Pages/Rum/View/ProductAnalyticsFunnels";
+import RumApplicationProductAnalyticsRetention from "../Pages/Rum/View/ProductAnalyticsRetention";
+import RumApplicationProductAnalyticsSettings from "../Pages/Rum/View/ProductAnalyticsSettings";
 import RumApplicationSessionReplaySettings from "../Pages/Rum/View/SessionReplaySettings";
 import RumApplicationSessionReplayHealth from "../Pages/Rum/View/SessionReplayHealth";
 import RumApplicationSessionReplayFrustrationSignals from "../Pages/Rum/View/SessionReplayFrustrationSignals";
@@ -316,6 +320,70 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SESSIONS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_EVENTS,
+          )}
+          element={
+            <RumApplicationProductAnalyticsEvents
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_EVENTS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_FUNNELS,
+          )}
+          element={
+            <RumApplicationProductAnalyticsFunnels
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_FUNNELS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_RETENTION,
+          )}
+          element={
+            <RumApplicationProductAnalyticsRetention
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_RETENTION
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SETTINGS,
+          )}
+          element={
+            <RumApplicationProductAnalyticsSettings
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SETTINGS
                 ] as Route
               }
             />

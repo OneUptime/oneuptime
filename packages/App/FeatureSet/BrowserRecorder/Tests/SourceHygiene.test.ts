@@ -92,6 +92,7 @@ describe("source hygiene", (): void => {
       "NetworkRecorder.ts",
       "OfflineStore.ts",
       "PerformanceRecorder.ts",
+      "ProductAnalytics.ts",
       "Recorder.ts",
       "RollingBuffer.ts",
       "RouteRecorder.ts",

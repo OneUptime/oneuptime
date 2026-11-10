@@ -253,12 +253,13 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 );
 ```
 
-`grantConsent` 、 `revokeConsent` 、 `stop` 、 `identify` 、 `setTags` 與 `addTag` 會在錄製器啟動之前套用，因此佇列中的同意決定會決定是否有任何內容被上傳，而佇列中的身分會隨第一個區塊一起傳送。 `track` 、 `captureSession` 與 `onSessionChange` 會在啟動後立即執行。
+`grantConsent` 、 `revokeConsent` 、 `stop` 、 `identify` 、 `setTags` 與 `addTag` 會在錄製器啟動之前套用，因此佇列中的同意決定會決定是否有任何內容被上傳，而佇列中的身分會隨第一個區塊一起傳送。 `track` 、 `metric` 、 `captureSession` 與 `onSessionChange` 會在啟動後立即執行。
 
 | 方法 | 作用 |
 | --- | --- |
 | `identify(userRef, traits?)` | 把終端使用者附加到工作階段 — 附加到其中的每個頁面與分頁，從工作階段開始算起（請參閱 [識別你的使用者](#識別你的使用者) ）。 `traits` 是一個值為字串、數字或布林值的物件（≤ 20 個鍵，鍵 ≤ 40 個字元，值 ≤ 200 個字元），在 _Mask all text_ 下會被遮罩，而且只有在 **擷取終端使用者身分** 開啟時才會上傳。為同一位使用者再次呼叫，會在下一個區塊中重新傳送身分（以及新的特徵，如果有）；指定另一位使用者則會結束目前的工作階段，並為該使用者開始一個新的工作階段。 |
-| `track(name, properties?)` | 在時間軸上記錄一個業務事件（ `"checkout_failed"` ）。 `name` ≤ 64 個字元，≤ 20 個屬性鍵，值的上限與特徵相同。每個 15 秒的區塊最多 50 個；超出的部分會讓該區塊帶有一個附上數量的「events dropped」標記。 |
+| `track(name, properties?)` | 在時間軸上記錄一個業務事件（ `"checkout_failed"` ）。 `name` ≤ 64 個字元，≤ 20 個屬性鍵，值的上限與特徵相同。每個 15 秒的區塊最多 50 個；超出的部分會讓該區塊帶有一個附上數量的「events dropped」標記。開啟產品分析事件後，它也是應用程式的 [產品分析](/docs/rum/product-analytics#傳送事件和指標) 頁面所計算的事件，來自每個工作階段，無論是否錄製。 |
+| `metric(name, value, attributes?)` | 把你的頁面測量的數值（ `"cart.value"` 、 `42.5` ）作為應用程式某個指標的資料點傳送，可附帶選用屬性，其上限與 `track()` 的屬性相同。需要開啟產品分析事件；請參閱 [產品分析](/docs/rum/product-analytics#傳送事件和指標) 。 |
 | `setTags(tags)` / `addTag(key, value)` | 工作階段層級的標籤（ `{ build: "1.4.2", experiment: "new-checkout" }` ），≤ 20 個標籤，鍵 ≤ 32 個字元，值 ≤ 128 個字元。可以在工作階段清單中以 `tag:key=value` 搜尋，並顯示在工作階段的詳細資料中。 `setTags` 會 **取代** 整個對應，因此第二次呼叫 `setTags({ experiment })` 會拿掉第一次設定的 `build` 標籤； `addTag` 只設定一個鍵，其餘保持不變。請在一次 `setTags` 呼叫中建構對應，或在得知每個值時使用 `addTag` 。 |
 | `captureSession(reason?)` | 在 _On error or frustration_ 下，強制這個工作階段從其滾動緩衝區開始上傳；在 _Always_ 下，它不會改變上傳，但 `reason` （≤ 80 個字元）仍會被標示在時間軸上。請在你自己的「回報問題」按鈕中使用它。 |
 | `onSessionChange(listener)` | 如果存在工作階段，會立即呼叫 `listener(sessionId, tabId)` ，並在 ID 每次變更時再次呼叫 — 使用者在閒置 30 分鐘後回來時、達到 4 小時上限時、 `identify()` 指定另一位使用者時，或同一位訪客的另一個分頁先輪替了工作階段時。傳回一個取消訂閱的函式。 **選用** ：即使沒有它，傳往你自己來源的請求也會把後端的 span、日誌與例外狀況關聯到錄製（請參閱 [與其他遙測資料關聯](#與其他遙測資料關聯) ）。用它為頁面自己產生的遙測設定 `session.id` ，例如來自 OpenTelemetry 瀏覽器 SDK 的 span；請參閱 [頁面本身的瀏覽器遙測](#頁面本身的瀏覽器遙測) 。 |
@@ -286,6 +287,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 | `decisions` | 每道關卡的答案： `isSampled` 、 `captureTrigger` 、 `consentMode` 、 `consentState` 、 `uploadsAllowed` 、 `uploadBlockedBy` （ `consent` 、 `transport` 或 `null` ）、 `lastDirective` 及其原因，以及 `startDecision` （ `recording-and-uploading` 、 `recording-into-memory` 、 `not-sampled` 、 `not-started` ）。 |
 | `capabilities` | 這個建置版本的錄製器能擷取什麼： `click-events` 、 `web-vitals` 、 `custom-events` 、 `traits` 、 `tags` 、 `visibility` 、 `visitor-id` 。儀表板的 **健康狀況** 頁面會為最新的工作階段顯示同樣的清單，因此很容易發現來自一個開啟已久的舊頁面的錄製。 |
 | `tags`, `hasTraits`, `triggerReason`, `isRecording`, `isUploading`, `sessionId`, `tabId`, `visitorId`, `version` | 工作階段的目前狀態。只有當錄製器確實在錄製時， `isRecording` 才為 true。在錄製器存在之前 `visitorId` 為 `null` ，在同意被撤銷期間為 `""` 。 |
+| `productAnalytics` | [產品分析事件](/docs/rum/product-analytics#傳送事件和指標) ： `state` 為 `on` 、 `off` （應用程式已關閉它們）或它們停止的原因（ `not-enabled` 、 `origin-not-allowed` 、 `refused` 或 `stopped` ）， `pending` 為等待傳送的內容， `dropped` 為因等待的事件過多而被捨棄的事件數。 |
 | `records` | 最近 250 個帶有穩定代碼的決定 — 包括成品存在之前載入器做出的決定。每個代碼都在 [工作階段重播疑難排解](/docs/rum/session-replay-troubleshooting#代碼) 中有說明。 |
 
 ## 隱私
@@ -661,7 +663,7 @@ flowchart TB
 
 ### 使用者流程
 
-**使用者流程** 位於應用程式側邊選單的 **工作階段重播** 區段，在 `.../user-flows` 。它根據所選時間範圍（預設為一週）內的錄製，繪製人們如何在你的應用程式中從一個頁面移動到另一個頁面：他們從哪裡進入、接下來去哪個頁面、從哪裡離開，以及在哪裡兜圈子。
+**使用者流程** 位於應用程式側邊選單的 **產品分析** 區段，在 `.../user-flows` 。它根據所選時間範圍（預設為一週）內的錄製，繪製人們如何在你的應用程式中從一個頁面移動到另一個頁面：他們從哪裡進入、接下來去哪個頁面、從哪裡離開，以及在哪裡兜圈子。
 
 流程圖每一步一欄。頁面是一個方塊，高度是該步驟的工作階段數；兩個方塊之間的帶狀連線，粗細與完成該移動的工作階段數相當。從方塊伸出的紅色短線，是在那裡離開應用程式的工作階段；灰色漸隱表示路徑延續到最後一欄之外。以琥珀色繪製的帶狀連線，表示大多數工作階段回到了它們已經看過的頁面。方塊上的紅點表示有工作階段在該頁面遇到了錯誤。把指標停在方塊或帶狀連線上，可以在圖中追蹤流量；按一下可開啟詳細資料面板。
 
@@ -670,10 +672,10 @@ flowchart TB
 | **From session start** | 第 1 步是每個工作階段的登陸頁面。 |
 | **After a page** | 把圖錨定在一個頁面上，並從工作階段第一次抵達該頁面時開始追蹤 — 「人們在 `/pricing` 之後去哪裡？」 |
 | **Before a page** | 從工作階段第一次抵達某個頁面時開始往回追蹤 — 「人們是怎麼抵達 `/checkout` 的？」錨點繪製在右側。 |
-| **步驟** / **Pages per step** | 繪製多少欄，以及每欄在把其餘頁面歸入 **Other pages** 之前列出多少個頁面（按一下它可查看其中包含的內容）。 |
+| **步驟** / **每步驟頁數** | 繪製多少欄，以及每欄在把其餘頁面歸入 **Other pages** 之前列出多少個頁面（按一下它可查看其中包含的內容）。 |
 | **工作階段** | 所有工作階段、僅有錯誤的工作階段，或僅有挫折訊號（憤怒點擊、無效點擊、錯誤點擊、憤怒重新整理）的工作階段。計為挫折的自訂訊號也計入此處。 |
 | **裝置** | 僅限桌上型、行動或平板裝置的工作階段。 |
-| **Group IDs in URLs** | 預設開啟： `/orders/1042` 與 `/orders/1043` 是同一個頁面 `/orders/:id` 。數字、十六進位 ID 以及由字母與數字組成的長權杖都會被分組，就像錄製器已經替換為 `[redacted]` 的每個路徑區段一樣。 對於單一使用者或單一工作階段，預設為關閉。 |
+| **合併 URL 中的 ID** | 預設開啟： `/orders/1042` 與 `/orders/1043` 是同一個頁面 `/orders/:id` 。數字、十六進位 ID 以及由字母與數字組成的長權杖都會被分組，就像錄製器已經替換為 `[redacted]` 的每個路徑區段一樣。 對於單一使用者或單一工作階段，預設為關閉。 |
 | **Hide this page** | 位於頁面的詳細資料面板中。從每條路徑中移除該頁面，使登入或同意的中介頁面不再把路徑一分為二；隱藏的頁面列在圖的上方，可以重新顯示。 |
 
 頁面的詳細資料面板會顯示在該步驟抵達它的工作階段數、在那裡離開的工作階段數、在那裡遇到錯誤的工作階段數、在整個時間範圍內訪客從哪裡來以及接下來去了哪裡、最多五個可觀看的工作階段，以及一個指向工作階段清單（篩選到造訪過該頁面的每個工作階段）的連結。對於帶狀連線，它會顯示兩側各自的佔比，以及恰好完成該移動的工作階段。
