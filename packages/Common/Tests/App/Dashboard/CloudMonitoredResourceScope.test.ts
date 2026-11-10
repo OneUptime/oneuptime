@@ -21,6 +21,7 @@ import { CLOUD_ALERT_WINDOWS } from "../../../Types/Monitor/CloudAlertTemplates"
 import RollingTimeUtil from "../../../Types/RollingTime/RollingTimeUtil";
 import { MetricRowAggregation } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/MetricRowScope";
 import { getCloudResourceTypeDescriptor } from "../../../Types/Cloud/CloudResourceCatalog";
+import { SUPPORTED_DASHBOARD_LANGUAGE_CODES } from "../../../Types/Dashboard/DashboardLanguage";
 import fs from "fs";
 import path from "path";
 
@@ -584,7 +585,12 @@ describe("getCloudMonitoredResourceRowAggregation", () => {
         return file.endsWith(".json");
       });
 
-    expect(files.length).toBe(17);
+    // Every language the Dashboard ships, and no other locale file.
+    expect([...files].sort()).toEqual(
+      SUPPORTED_DASHBOARD_LANGUAGE_CODES.map((code: string): string => {
+        return `${code}.json`;
+      }).sort(),
+    );
 
     for (const file of files) {
       const locale: Record<string, string> = JSON.parse(
