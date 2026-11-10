@@ -78,13 +78,24 @@ El impacto real de los datos malos es el panel que alguien abre. En **Paneles de
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, una entidad de servicio autorizada a usar las API de administración de Power BI |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, una entidad de servicio autorizada a usar las API de administración de solo lectura de Power BI. Se leen tanto los informes como los paneles, con sus vistas y actualizaciones (abajo) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (o `eu`) |
 
 Hightouch y Census son herramientas de ETL inverso: una sincronización que copia una tabla en un CRM depende de esa tabla igual que un panel, así que se lee del mismo modo y se nombra en las alertas de la tabla.
 
-Solo se leen los nombres y enlaces de los paneles y las tablas que consultan: nunca sus datos.
+Solo se leen los nombres y enlaces de los paneles, las tablas que consultan y, en Power BI, quién los abre y cómo fueron sus actualizaciones: nunca sus datos.
+
+### Vistas y actualizaciones en Power BI
+
+Para cada informe y panel de Power BI, **Paneles de BI** muestra primero cuántas veces se abrió en los últimos 28 días, cuándo se abrió por última vez y cómo fue la última actualización de sus datos, con el error de una actualización fallida. Cuántas personas lo abrieron, quién lo abrió más y sus últimas actualizaciones son columnas que puede activar. La pestaña **Linaje** de una tabla dice lo mismo de cada panel construido sobre ella, con su propietario y sus espectadores en **Más**.
+
+- Las **vistas** vienen del registro de actividad de Power BI, leído con su API de administración de eventos de actividad. Power BI guarda 28 días, responde 200 solicitudes por hora y divide cada solicitud en horas, así que OneUptime lo lee de hora en hora: cada lectura horaria añade las horas desde la anterior y luego recorre hacia atrás los 28 días, primero las más recientes, con 100 solicitudes como máximo. Una nueva herramienta de Power BI muestra enseguida los últimos días, y los 28 días en menos de un día; hasta entonces, las vistas indican desde cuándo se cuentan. Un evento puede tardar hasta una hora en llegar al registro, así que las vistas llevan hasta dos horas de retraso. Los espectadores se nombran como los nombra Power BI, por su dirección de correo electrónico.
+- Las **actualizaciones** de los conjuntos de datos en una capacidad (Premium, Premium por usuario o Fabric) vienen de la lista de administración de elementos actualizables de Power BI: la última actualización de cada conjunto de datos con su error, y cuántas actualizaciones se ejecutaron y fallaron en los siete días que Power BI conserva.
+- Las **actualizaciones de conjuntos de datos en capacidad compartida** no están en esa lista. Power BI muestra el historial de actualizaciones de un conjunto de datos solo a quienes pueden modificarlo, así que agregue la entidad de servicio a su área de trabajo como **Colaborador**, **Miembro** o **Administrador** y active para ella **Service principals can call Fabric public APIs** en la configuración para desarrolladores del portal de administración de Fabric. Entonces OneUptime lee cada actualización, con su error. Hasta entonces, la herramienta de BI indica de cuántos conjuntos de datos no pudo leer las actualizaciones.
+- Un panel de Power BI cuyos iconos vienen de varios conjuntos de datos muestra la última actualización que falló o, si ninguna falló, la más antigua: sus datos solo son tan recientes como esa.
+
+Las vistas, y las actualizaciones en capacidades, no necesitan nada más que el acceso a las API de administración de arriba: la entidad de servicio en un grupo de seguridad permitido por **Service principals can access read-only admin APIs**, sin permisos de Power BI en la aplicación que requieran el consentimiento de un administrador. Cuando no se pueden leer las vistas o las actualizaciones, los paneles se leen y se conservan igualmente, la herramienta de BI indica qué se omitió y por qué, y la siguiente lectura vuelve a intentarlo.
 
 ## Pipelines
 

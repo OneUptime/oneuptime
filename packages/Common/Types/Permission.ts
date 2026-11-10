@@ -1740,6 +1740,11 @@ enum Permission {
   EditNetworkSiteAssignmentRule = "EditNetworkSiteAssignmentRule",
   ReadNetworkSiteAssignmentRule = "ReadNetworkSiteAssignmentRule",
 
+  CreateNetworkDeviceNamingRule = "CreateNetworkDeviceNamingRule",
+  DeleteNetworkDeviceNamingRule = "DeleteNetworkDeviceNamingRule",
+  EditNetworkDeviceNamingRule = "EditNetworkDeviceNamingRule",
+  ReadNetworkDeviceNamingRule = "ReadNetworkDeviceNamingRule",
+
   CreatePodmanHost = "CreatePodmanHost",
   DeletePodmanHost = "DeletePodmanHost",
   EditPodmanHost = "EditPodmanHost",
@@ -11192,6 +11197,46 @@ export class PermissionHelper {
         title: "Read Network Site Assignment Rule",
         description:
           "This permission can read Network Site Assignment Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkDeviceNamingRule,
+        title: "Create Network Device Naming Rule",
+        description:
+          "This permission can create Network Device Naming Rule in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkDeviceNamingRule,
+        title: "Delete Network Device Naming Rule",
+        description:
+          "This permission can delete Network Device Naming Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkDeviceNamingRule,
+        title: "Edit Network Device Naming Rule",
+        description:
+          "This permission can edit Network Device Naming Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkDeviceNamingRule,
+        title: "Read Network Device Naming Rule",
+        description:
+          "This permission can read Network Device Naming Rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,

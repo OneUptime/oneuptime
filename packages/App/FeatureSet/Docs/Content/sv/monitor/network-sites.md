@@ -54,7 +54,7 @@ Varje enhet kopplas till en plats. En plats underträd är platsen själv plus v
 Gå till **Nätverk → Platser** och klicka på **Lägg till Plats**.
 
 ### Ange vad platsen är
-I steget **Site Details** väljer du **Site Type** (vilken sorts plats det är: en region, en butik, ett datacenter) och skriver ett **Namn**. Beskrivningen, adressen och den latitud och longitud som fäster platsen på kartan är hopfällda under **Fler fält**: fyll i dem nu eller senare.
+I steget **Site Details** väljer du **Site Type** (vilken sorts plats det är: en region, en butik, ett datacenter) och skriver ett **Namn**. Fältet **Platskod**, beskrivningen, adressen och den latitud och longitud som fäster platsen på kartan är hopfällda under **Fler fält**: fyll i dem nu eller senare. En platskod är en kort kod, till exempel ett butiks- eller filialnummer (`1216`); [namngivningsregler](/docs/monitor/network-device-monitor#namnge-enheter-enligt-din-namngivningskonvention) sätter in den i enhetsnamn med `{site.code}`.
 
 ### Placera den i trädet
 I steget **Hierarchy** väljer du **Parent Site** om platsen ligger under en annan. Lämna det tomt för att hålla platsen på översta nivån.

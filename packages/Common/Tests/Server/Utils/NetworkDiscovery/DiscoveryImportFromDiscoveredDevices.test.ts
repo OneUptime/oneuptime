@@ -554,6 +554,8 @@ describe("asking to add discovered devices to monitoring", () => {
           macAddress: "00:11:22:33:44:20",
           siteId: STORE_A,
           probeId: SWITCH_PROBE_ID,
+          // What a naming rule's Vendor condition and {vendor} read (#6619).
+          vendor: "Zebra",
         },
       },
     ]);

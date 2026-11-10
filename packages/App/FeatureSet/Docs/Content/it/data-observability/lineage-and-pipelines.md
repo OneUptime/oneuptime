@@ -78,13 +78,24 @@ Il vero impatto dei dati sbagliati è la dashboard che qualcuno apre. In **Dashb
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, un service principal autorizzato a usare le API di amministrazione di Power BI |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, un service principal autorizzato a usare le API di amministrazione di sola lettura di Power BI. Vengono letti sia i report sia le dashboard, con le loro visualizzazioni e i loro aggiornamenti (sotto) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (oppure `eu`) |
 
 Hightouch e Census sono strumenti di reverse ETL: una sincronizzazione che copia una tabella in un CRM dipende da quella tabella come una dashboard, quindi viene letta allo stesso modo e nominata negli avvisi della tabella.
 
-Vengono letti solo nomi e link delle dashboard e le tabelle che interrogano: mai i loro dati.
+Vengono letti solo nomi e link delle dashboard, le tabelle che interrogano e, per Power BI, chi le apre e come sono andati i loro aggiornamenti: mai i loro dati.
+
+### Visualizzazioni e aggiornamenti in Power BI
+
+Per ogni report e dashboard di Power BI, **Dashboard BI** mostra per primi quante volte è stato aperto negli ultimi 28 giorni, quando è stato aperto l'ultima volta e com'è andato l'ultimo aggiornamento dei suoi dati, con l'errore di un aggiornamento non riuscito. Quante persone l'hanno aperto, chi l'ha aperto di più e i suoi ultimi aggiornamenti sono colonne che puoi attivare. La scheda **Derivazione** di una tabella dice lo stesso di ogni dashboard costruita su di essa, con il proprietario e chi la visualizza sotto **Altro**.
+
+- Le **visualizzazioni** vengono dal log attività di Power BI, letto tramite la sua API di amministrazione degli eventi di attività. Power BI ne conserva 28 giorni, risponde a 200 richieste all'ora e divide ogni richiesta in ore, quindi OneUptime lo legge un'ora alla volta: ogni lettura oraria aggiunge le ore trascorse dalla precedente, poi risale i 28 giorni, dalle più recenti, con al massimo 100 richieste. Un nuovo strumento Power BI mostra subito gli ultimi giorni, e tutti i 28 giorni entro un giorno; fino ad allora, le visualizzazioni dicono da quando vengono contate. Un evento può impiegare fino a un'ora per arrivare nel log, quindi le visualizzazioni sono indietro fino a due ore. Chi visualizza è indicato come lo indica Power BI, con il suo indirizzo email.
+- Gli **aggiornamenti** dei set di dati su una capacità (Premium, Premium per utente o Fabric) vengono dall'elenco di amministrazione degli elementi aggiornabili di Power BI: l'ultimo aggiornamento di ogni set di dati con il suo errore, e quanti aggiornamenti sono stati eseguiti e non sono riusciti nei sette giorni che Power BI conserva.
+- Gli **aggiornamenti dei set di dati su capacità condivisa** non sono in quell'elenco. Power BI mostra la cronologia degli aggiornamenti di un set di dati solo a chi può modificarlo, quindi aggiungi il service principal alla sua area di lavoro come **Collaboratore**, **Membro** o **Amministratore** e attiva per lui **Service principals can call Fabric public APIs** nelle impostazioni per sviluppatori del portale di amministrazione di Fabric. OneUptime legge allora ogni aggiornamento, con il suo errore. Fino ad allora, lo strumento BI dice di quanti set di dati non ha potuto leggere gli aggiornamenti.
+- Una dashboard di Power BI i cui riquadri vengono da più set di dati mostra l'ultimo aggiornamento non riuscito o, se nessuno è fallito, il più vecchio: i suoi dati sono aggiornati solo quanto quello.
+
+Le visualizzazioni, e gli aggiornamenti sulle capacità, non richiedono altro che l'accesso alle API di amministrazione indicato sopra: il service principal in un gruppo di sicurezza consentito da **Service principals can access read-only admin APIs**, senza autorizzazioni Power BI sull'app che richiedano il consenso di un amministratore. Quando le visualizzazioni o gli aggiornamenti non possono essere letti, le dashboard vengono comunque lette e mantenute, lo strumento BI dice cosa è stato saltato e perché, e la lettura successiva riprova.
 
 ## Pipeline
 

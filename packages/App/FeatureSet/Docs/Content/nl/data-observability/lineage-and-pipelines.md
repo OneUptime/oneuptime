@@ -78,13 +78,24 @@ De echte impact van slechte gegevens is het dashboard dat iemand opent. Voeg ond
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, een service principal die de beheer-API's van Power BI mag gebruiken |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, een service principal die de alleen-lezen beheer-API's van Power BI mag gebruiken. Zowel rapporten als dashboards worden gelezen, met hun weergaven en vernieuwingen (hieronder) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (of `eu`) |
 
 Hightouch en Census zijn reverse-ETL-tools: een synchronisatie die een tabel naar een CRM kopieert, hangt van die tabel af zoals een dashboard dat doet, dus ze wordt op dezelfde manier gelezen en genoemd bij de waarschuwingen van de tabel.
 
-Alleen de namen en links van dashboards en de tabellen die ze opvragen worden gelezen: nooit hun gegevens.
+Alleen de namen en links van dashboards, de tabellen die ze opvragen en, voor Power BI, wie ze opent en hoe hun vernieuwingen verliepen, worden gelezen: nooit hun gegevens.
+
+### Weergaven en vernieuwingen in Power BI
+
+Voor elk Power BI-rapport en -dashboard toont **BI-dashboards** eerst hoe vaak het in de afgelopen 28 dagen is geopend, wanneer het voor het laatst is geopend en hoe de laatste vernieuwing van de gegevens verliep, met de fout van een mislukte vernieuwing. Hoeveel mensen het openden, wie het het vaakst opende en de laatste vernieuwingen zijn kolommen die u kunt inschakelen. Het tabblad **Herkomst** van een tabel zegt hetzelfde van elk dashboard dat erop is gebouwd, met de eigenaar en de kijkers onder **Meer**.
+
+- **Weergaven** komen uit het activiteitenlogboek van Power BI, gelezen via de beheer-API voor activiteitsgebeurtenissen. Power BI bewaart er 28 dagen van, beantwoordt 200 aanvragen per uur en splitst elke aanvraag in uren, dus OneUptime leest het per uur: elke uurlijkse lezing voegt de uren sinds de vorige toe en gaat dan terug door de 28 dagen, de nieuwste eerst, met hoogstens 100 aanvragen. Een nieuwe Power BI-tool toont meteen de laatste dagen, en alle 28 dagen binnen een dag; tot dan zeggen de weergaven sinds wanneer ze worden geteld. Een gebeurtenis kan tot een uur nodig hebben om in het logboek te komen, dus weergaven lopen tot twee uur achter. Kijkers worden genoemd zoals Power BI ze noemt: met hun e-mailadres.
+- **Vernieuwingen** van datasets op een capaciteit (Premium, Premium per gebruiker of Fabric) komen uit de beheerlijst van vernieuwbare items van Power BI: de laatste vernieuwing van elke dataset met de fout, en hoeveel vernieuwingen er liepen en mislukten in de zeven dagen die Power BI bewaart.
+- **Vernieuwingen van datasets op gedeelde capaciteit** staan niet in die lijst. Power BI toont de vernieuwingsgeschiedenis van een dataset alleen aan wie de dataset mag wijzigen, dus voeg de service principal toe aan de werkruimte als **Inzender**, **Lid** of **Beheerder** en zet **Service principals can call Fabric public APIs** ervoor aan in de ontwikkelaarsinstellingen van de Fabric-beheerportal. OneUptime leest dan elke vernieuwing, met de fout. Tot dan zegt de BI-tool van hoeveel datasets het de vernieuwingen niet kon lezen.
+- Een Power BI-dashboard waarvan de tegels uit meerdere datasets komen, toont de laatste mislukte vernieuwing, of de oudste als er geen mislukte: de gegevens zijn maar zo vers als die.
+
+Weergaven, en vernieuwingen op capaciteiten, hebben niets nodig buiten de beheer-API-toegang hierboven: de service principal in een beveiligingsgroep die **Service principals can access read-only admin APIs** toestaat, zonder Power BI-machtigingen op de app die toestemming van een beheerder vereisen. Als weergaven of vernieuwingen niet gelezen kunnen worden, worden de dashboards toch gelezen en bewaard, zegt de BI-tool wat is overgeslagen en waarom, en probeert de volgende lezing het opnieuw.
 
 ## Pipelines
 

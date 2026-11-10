@@ -78,13 +78,24 @@ O impacto real de dados ruins é o painel que alguém abre. Em **Painéis de BI*
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, uma entidade de serviço autorizada a usar as APIs de administração do Power BI |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, uma entidade de serviço autorizada a usar as APIs de administração somente leitura do Power BI. Relatórios e painéis são lidos, com suas visualizações e atualizações (abaixo) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (ou `eu`) |
 
 Hightouch e Census são ferramentas de ETL reverso: uma sincronização que copia uma tabela para um CRM depende dessa tabela como um painel depende, então é lida do mesmo modo e citada nos alertas da tabela.
 
-Somente nomes e links dos painéis e as tabelas que eles consultam são lidos: nunca seus dados.
+Somente nomes e links dos painéis, as tabelas que eles consultam e, no Power BI, quem os abre e como foram suas atualizações são lidos: nunca seus dados.
+
+### Visualizações e atualizações no Power BI
+
+Para cada relatório e painel do Power BI, **Painéis de BI** mostra primeiro quantas vezes ele foi aberto nos últimos 28 dias, quando foi aberto pela última vez e como foi a última atualização dos seus dados, com o erro de uma atualização que falhou. Quantas pessoas o abriram, quem mais o abriu e suas últimas atualizações são colunas que você pode ativar. A aba **Linhagem** de uma tabela diz o mesmo de cada painel construído sobre ela, com seu proprietário e seus visualizadores em **Mais**.
+
+- As **visualizações** vêm do log de atividades do Power BI, lido pela sua API de administração de eventos de atividade. O Power BI guarda 28 dias dele, responde a 200 solicitações por hora e divide cada solicitação em horas, então o OneUptime o lê uma hora por vez: cada leitura de hora em hora acrescenta as horas desde a anterior e depois volta pelos 28 dias, das mais recentes para as mais antigas, com no máximo 100 solicitações. Uma nova ferramenta do Power BI mostra logo os últimos dias, e os 28 dias em até um dia; até lá, as visualizações dizem desde quando são contadas. Um evento pode levar até uma hora para chegar ao log, então as visualizações ficam até duas horas atrasadas. Os visualizadores são identificados como o Power BI os identifica, pelo endereço de e-mail.
+- As **atualizações** de conjuntos de dados em uma capacidade (Premium, Premium por Usuário ou Fabric) vêm da lista de administração de itens atualizáveis do Power BI: a última atualização de cada conjunto de dados com seu erro, e quantas atualizações foram executadas e falharam nos sete dias que o Power BI guarda.
+- As **atualizações de conjuntos de dados em capacidade compartilhada** não estão nessa lista. O Power BI mostra o histórico de atualizações de um conjunto de dados somente a quem pode alterá-lo, então adicione a entidade de serviço ao workspace dele como **Colaborador**, **Membro** ou **Administrador** e ative para ela **Service principals can call Fabric public APIs** nas configurações de desenvolvedor do portal de administração do Fabric. O OneUptime então lê cada atualização, com seu erro. Até lá, a ferramenta de BI diz de quantos conjuntos de dados não conseguiu ler as atualizações.
+- Um painel do Power BI cujos blocos vêm de vários conjuntos de dados mostra a última atualização que falhou ou, se nenhuma falhou, a mais antiga: seus dados só são tão recentes quanto ela.
+
+As visualizações, e as atualizações em capacidades, não precisam de nada além do acesso às APIs de administração acima: a entidade de serviço em um grupo de segurança permitido por **Service principals can access read-only admin APIs**, sem permissões do Power BI no aplicativo que exijam consentimento do administrador. Quando visualizações ou atualizações não podem ser lidas, os painéis ainda são lidos e mantidos, a ferramenta de BI diz o que foi ignorado e por quê, e a próxima leitura tenta de novo.
 
 ## Pipelines
 
