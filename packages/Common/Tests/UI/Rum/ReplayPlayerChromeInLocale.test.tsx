@@ -303,9 +303,7 @@ describe("ReplayHeader in the reader's language", () => {
     expect(screen.getByTestId("replay-header-traits")).toHaveTextContent(
       "⟦2 traits⟧",
     );
-    expect(screen.getByTestId("replay-live-pill")).toHaveTextContent(
-      "⟦Live⟧",
-    );
+    expect(screen.getByTestId("replay-live-pill")).toHaveTextContent("⟦Live⟧");
     expect(screen.getByTestId("replay-live-pill")).toHaveAttribute(
       "title",
       "⟦Still being recorded; new footage is added as it arrives⟧",
@@ -361,6 +359,27 @@ describe("ReplayHeader in the reader's language", () => {
         startedAt.textContent || "",
       ]),
     ).toEqual([]);
+  });
+
+  /*
+   * With no start time the header says the same sentence, with what is
+   * known of the time in the date's place: never a lone "Recorded" key,
+   * which every screen's "Recorded" shares (an incident measurement's
+   * status among them).
+   */
+  it("says a recording with no start time as the same whole sentence", () => {
+    render(<ReplayHeader {...makeHeaderProps({ startTimeUnixMs: null })} />);
+
+    const startedAt: HTMLElement = screen.getByTestId(
+      "replay-header-started-at",
+    );
+
+    expect(startedAt).toHaveTextContent("⟦Start time unavailable⟧");
+    expect(startedAt.parentElement?.textContent).toBe(
+      "⟦Recorded ⟦Start time unavailable⟧⟧",
+    );
+    // No lone "Recorded" key: the word is drawn inside the sentence's own.
+    expect(screen.queryByText("⟦Recorded⟧")).not.toBeInTheDocument();
   });
 
   it("words the identity it could not show, and an anonymous visitor's short id", () => {
@@ -553,9 +572,9 @@ describe("ReplayControls in the reader's language", () => {
       "⟦Playback speed⟧",
     );
 
-    expect(
-      textsNotLookedUp(screen.getByTestId("replay-controls"), []),
-    ).toEqual([]);
+    expect(textsNotLookedUp(screen.getByTestId("replay-controls"), [])).toEqual(
+      [],
+    );
   });
 
   it("words the waits: the first footage, a seek to its time, and the long wait", () => {
@@ -707,7 +726,12 @@ describe("ReplayTimeline in the reader's language", () => {
       `⟦Recording paused while the page was idle: ⟦${minute} paused⟧⟧`,
     );
 
-    for (const lane of ["⟦Recording⟧", "⟦Errors⟧", "⟦Network⟧", "⟦Nav / clicks⟧"]) {
+    for (const lane of [
+      "⟦Recording⟧",
+      "⟦Errors⟧",
+      "⟦Network⟧",
+      "⟦Nav / clicks⟧",
+    ]) {
       expect(screen.getByText(lane)).toBeInTheDocument();
     }
 
@@ -747,15 +771,18 @@ describe("ReplayTimeline in the reader's language", () => {
       "⟦and 2 more⟧",
     );
 
-    expect(
-      textsNotLookedUp(screen.getByTestId("replay-timeline"), []),
-    ).toEqual([]);
+    expect(textsNotLookedUp(screen.getByTestId("replay-timeline"), [])).toEqual(
+      [],
+    );
   });
 });
 
 /* ---- The browser-tab switcher. ---- */
 
-function makeTab(index: number, overrides?: Partial<ReplayTabSummary>): ReplayTabSummary {
+function makeTab(
+  index: number,
+  overrides?: Partial<ReplayTabSummary>,
+): ReplayTabSummary {
   return {
     tabId: `tab-${index}`,
     label: `Tab ${index}`,
@@ -814,10 +841,7 @@ describe("ReplayTabSwitcher in the reader's language", () => {
       .find((pill: HTMLElement): boolean => {
         return pill.getAttribute("data-tab-id") === "tab-3";
       }) as HTMLElement;
-    const thirtySeconds: string = formatReplayDurationInLanguage(
-      30000,
-      MARKED,
-    );
+    const thirtySeconds: string = formatReplayDurationInLanguage(30000, MARKED);
 
     expect(watched).toHaveTextContent(`⟦Tab 3⟧ · /page-3 · ${thirtySeconds}`);
     expect(watched).toHaveAttribute(
@@ -953,7 +977,9 @@ describe("ReplayUserSessionsMenu in the reader's language", () => {
 
     const menu: HTMLElement = screen.getByTestId("replay-user-sessions-menu");
 
-    expect(menu).toHaveTextContent("⟦Sessions from this visitor · past 30 days⟧");
+    expect(menu).toHaveTextContent(
+      "⟦Sessions from this visitor · past 30 days⟧",
+    );
     expect(
       within(menu).getByRole("listbox", {
         name: "⟦Sessions from this visitor⟧",
@@ -1030,7 +1056,9 @@ describe("ReplayPinControl in the reader's language", () => {
       new HTTPErrorResponse(500, { message: "Server exploded" }, {}),
     );
 
-    render(<ReplayPinControl rumApplicationId={APP_ID} sessionId={SESSION_ID} />);
+    render(
+      <ReplayPinControl rumApplicationId={APP_ID} sessionId={SESSION_ID} />,
+    );
 
     const error: HTMLElement = await screen.findByTestId("replay-pin-error");
 
@@ -1072,7 +1100,9 @@ describe("ReplayPinControl in the reader's language", () => {
     deleteItemMock.mockReset();
     deleteItemMock.mockResolvedValue({});
 
-    render(<ReplayPinControl rumApplicationId={APP_ID} sessionId={SESSION_ID} />);
+    render(
+      <ReplayPinControl rumApplicationId={APP_ID} sessionId={SESSION_ID} />,
+    );
 
     const protectedPin: HTMLElement =
       await screen.findByTestId("replay-pin-status");
@@ -1195,9 +1225,7 @@ describe("ReplayStage in the reader's language", () => {
     expect(stage).toHaveAttribute("aria-label", "⟦Session replay⟧");
     /* The phase itself stays data, for the E2E hooks. */
     expect(stage).toHaveAttribute("data-replay-phase", "buffering");
-    expect(screen.getByTestId("replay-phase")).toHaveTextContent(
-      "⟦buffering⟧",
-    );
+    expect(screen.getByTestId("replay-phase")).toHaveTextContent("⟦buffering⟧");
   });
 
   it("has a word for every phase, the phase's own English", () => {

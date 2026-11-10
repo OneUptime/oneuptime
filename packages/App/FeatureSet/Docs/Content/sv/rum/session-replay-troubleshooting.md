@@ -108,7 +108,7 @@ Det returnerar inspelarens version, sessions-ID:t, dess `state` (`recording`, `u
 copy(JSON.stringify(window.__ONEUPTIME_SESSION_REPLAY_DEBUG__.records, null, 2));
 ```
 
-Klistra in någon av dem i ditt supportärende — eller i **Ask the browser** på applikationens sida **Hälsa**, som förklarar varje kod i den. Ofta räcker det i sig.
+Klistra in någon av dem i ditt supportärende — eller i **Fråga webbläsaren** på applikationens sida **Hälsa**, som förklarar varje kod i den. Ofta räcker det i sig.
 
 ## När tystnad är normalt: den felstyrda policyn
 
@@ -185,7 +185,7 @@ Varje rad bär en stabil `code`. Slå upp din här.
 | `disabled-by-default` | `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` på den här driftsättningen. Sätt den till `true` — och sätt först `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` om du kör själv, eftersom uppspelning är den tyngsta tabell du har. |
 | `ingest-disabled` | `SESSION_REPLAY_INGEST_ENABLED=false` på den här driftsättningen. |
 | `policy-unavailable` | Servern kunde inte avgöra policyn — vanligtvis Redis eller Postgres. Misslyckas stängt med avsikt. Kontrollera loggarna för OneUptime-appen. |
-| `not-reported` | Servern är äldre än det här fältet. Använd i stället panelen **Test your installation** i instrumentpanelen, på sidan **Uppspelningspolicy**. |
+| `not-reported` | Servern är äldre än det här fältet. Använd i stället panelen **Testa din installation** i instrumentpanelen, på sidan **Uppspelningspolicy**. |
 
 ### Artefakten
 
@@ -358,7 +358,7 @@ Luckor är inte samma sak som inaktiva sträckor: en inaktiv sträcka är inspel
 
 ## Spelaren säger Buffering, eller ett segment kunde inte laddas
 
-Spelaren hämtar inspelningen i segment om 15 sekunder när uppspelningshuvudet närmar sig dem. _Buffering_ betyder att nästa segment inte har kommit än; efter åtta sekunder erbjuder den **Försök igen**. Ett segment som misslyckas för gott visar ett fel med **Försök igen** och **Copy diagnostic** — det senare bär sessions-ID:t, fliken, segmentet och generationen, vilket är vad supporten behöver. En session vars inspelning har gått ut visar en förklaring i stället för scenen, medan flikarna Logs, Traces och Errors fortsätter att fungera på din telemetri.
+Spelaren hämtar inspelningen i segment om 15 sekunder när uppspelningshuvudet närmar sig dem. _Buffering_ betyder att nästa segment inte har kommit än; efter åtta sekunder erbjuder den **Försök igen**. Ett segment som misslyckas för gott visar ett fel med **Försök igen** och **Kopiera diagnostik** — det senare bär sessions-ID:t, fliken, segmentet och generationen, vilket är vad supporten behöver. En session vars inspelning har gått ut visar en förklaring i stället för scenen, medan flikarna Logs, Traces och Errors fortsätter att fungera på din telemetri.
 
 ## Bilder, ikoner eller stilar saknas i uppspelningen
 
@@ -373,7 +373,7 @@ En inspelning behåller adressen till varje bild, och till varje formatmall som 
 
 ### Kontrollera det här först
 
-1. **Läs inspelningsanteckningarna under spelaren.** När bilder eller formatmallar inte kunde laddas i din webbläsare säger den första anteckningen det — till exempel _2 images didn't load in this replay_ — och nämner webbplatserna de kom från. Den täcker varje flik som spelaren har spelat upp sedan du öppnade sessionen. **Sessionsdetaljer** (`I`) → **Fidelity** → **Missing assets** listar varje adress, upp till de första 200. Webbtypsnitt, CSS-bakgrundsbilder och bilder som din sida skapade i webbläsaren (`blob:`-adresser) finns inte i den listan; leta efter dem i DevTools (nedan).
+1. **Läs inspelningsanteckningarna under spelaren.** När bilder eller formatmallar inte kunde laddas i din webbläsare säger den första anteckningen det — till exempel _2 images didn't load in this replay_ — och nämner webbplatserna de kom från. Den täcker varje flik som spelaren har spelat upp sedan du öppnade sessionen. **Sessionsdetaljer** (`I`) → **Återgivning** → **Saknade resurser** listar varje adress, upp till de första 200. Webbtypsnitt, CSS-bakgrundsbilder och bilder som din sida skapade i webbläsaren (`blob:`-adresser) finns inte i den listan; leta efter dem i DevTools (nedan).
 2. **Kontrollera maskeringsläget.** En session som spelades in med _Mask all text_ laddar varken sina bilder eller sina webbtypsnitt, avsiktligt (en bild som sidan hade som `data:`-URL ingår i inspelningen och visas fortfarande), och dess inspelningsanteckningar säger _Images and web fonts are not loaded_. Detsamma gäller en session vars maskeringsläge inte rapporterades, eller inte är ett som instrumentpanelen känner igen. Formatmallar laddas ändå i båda fallen. **Sessionsdetaljer** → **Integritet** visar det läge som sessionen rapporterar, vilket är läget för dess senaste sidladdning.
 3. **Kontrollera om det också misslyckades för din användare.** Öppna händelsepanelens flik **Fel** vid den tidpunkten: en rad _Resource failed to load_ för samma fil betyder att den också var trasig på din användares skärm, och att uppspelningen visar det troget.
 
@@ -467,8 +467,8 @@ Samla in det här innan du ber om hjälp:
 
 - Utdata från `OneUptimeReplay.getDiagnostics()`.
 - Statusen för förfrågan `session-replay/v1/config`.
-- Vad applikationens sida **Hälsa** och panelen **Test your installation** på **Uppspelningspolicy** säger. De svarar från serversidan, som är den halva som en webbläsare inte kan se.
-- För saknade bilder, ikoner eller stilar: adressen till en fil som inte laddades (**Missing assets** listar dem) och raden som webbläsarkonsolen skrev ut för den.
+- Vad applikationens sida **Hälsa** och panelen **Testa din installation** på **Uppspelningspolicy** säger. De svarar från serversidan, som är den halva som en webbläsare inte kan se.
+- För saknade bilder, ikoner eller stilar: adressen till en fil som inte laddades (**Saknade resurser** listar dem) och raden som webbläsarkonsolen skrev ut för den.
 
 Skriv sedan till support@oneuptime.com eller öppna ett ärende på [GitHub](https://github.com/OneUptime/oneuptime).
 

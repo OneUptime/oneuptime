@@ -185,7 +185,7 @@ Chaque ligne porte un `code` stable. Cherchez le vôtre ici.
 | `disabled-by-default` | `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` sur ce déploiement. Passez-le à `true` — et définissez d'abord `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` si vous êtes auto-hébergé, car la relecture est votre plus grosse table. |
 | `ingest-disabled` | `SESSION_REPLAY_INGEST_ENABLED=false` sur ce déploiement. |
 | `policy-unavailable` | Le serveur n'a pas pu résoudre la politique — en général Redis ou Postgres. Il échoue en position fermée à dessein. Consultez les journaux de l'application OneUptime. |
-| `not-reported` | Le serveur est plus ancien que ce champ. Utilisez plutôt le panneau **Test your installation** du tableau de bord, sur la page **Politique de relecture**. |
+| `not-reported` | Le serveur est plus ancien que ce champ. Utilisez plutôt le panneau **Testez votre installation** du tableau de bord, sur la page **Politique de relecture**. |
 
 ### L'artefact
 
@@ -467,7 +467,7 @@ Rassemblez ces éléments avant de demander de l'aide :
 
 - La sortie de `OneUptimeReplay.getDiagnostics()`.
 - Le statut de la requête `session-replay/v1/config`.
-- Ce que disent la page **Santé** de l'application et le panneau **Test your installation** de **Politique de relecture**. Ils répondent côté serveur, c'est-à-dire la moitié qu'un navigateur ne peut pas voir.
+- Ce que disent la page **Santé** de l'application et le panneau **Testez votre installation** de **Politique de relecture**. Ils répondent côté serveur, c'est-à-dire la moitié qu'un navigateur ne peut pas voir.
 - Pour des images, icônes ou styles manquants : l'adresse d'un fichier qui ne s'est pas chargé (**Ressources manquantes** les liste) et la ligne que la console du navigateur a affichée pour lui.
 
 Contactez ensuite support@oneuptime.com, ou ouvrez un ticket sur [GitHub](https://github.com/OneUptime/oneuptime).

@@ -108,7 +108,7 @@ Det returnerer optagerens version, sessions-id'et, dens `state` (`recording`, `u
 copy(JSON.stringify(window.__ONEUPTIME_SESSION_REPLAY_DEBUG__.records, null, 2));
 ```
 
-Indsæt et af dem i din supportsag — eller i **Ask the browser** på applikationens side **Sundhed**, som forklarer hver kode i det. Ofte er det nok i sig selv.
+Indsæt et af dem i din supportsag — eller i **Spørg browseren** på applikationens side **Sundhed**, som forklarer hver kode i det. Ofte er det nok i sig selv.
 
 ## Når stilhed er normalt: den fejlstyrede politik
 
@@ -185,7 +185,7 @@ Hver linje bærer en stabil `code`. Slå din op her.
 | `disabled-by-default` | `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` på dette deployment. Sæt det til `true` — og sæt først `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY`, hvis du selv hoster, fordi afspilning er den tungeste tabel, du har. |
 | `ingest-disabled` | `SESSION_REPLAY_INGEST_ENABLED=false` på dette deployment. |
 | `policy-unavailable` | Serveren kunne ikke afgøre politikken — normalt Redis eller Postgres. Fejler lukket med vilje. Tjek OneUptime-appens logs. |
-| `not-reported` | Serveren er ældre end dette felt. Brug i stedet panelet **Test your installation** i dashboardet, på siden **Afspilningspolitik**. |
+| `not-reported` | Serveren er ældre end dette felt. Brug i stedet panelet **Test din installation** i dashboardet, på siden **Afspilningspolitik**. |
 
 ### Artefaktet
 
@@ -358,7 +358,7 @@ Huller er ikke det samme som inaktive strækninger: en inaktiv strækning er opt
 
 ## Afspilleren siger Buffering, eller et segment kunne ikke indlæses
 
-Afspilleren henter optagelsen i segmenter på 15 sekunder, efterhånden som afspilningshovedet nærmer sig dem. _Buffering_ betyder, at det næste segment ikke er ankommet endnu; efter otte sekunder tilbyder den **Prøv igen**. Et segment, der fejler for godt, viser en fejl med **Prøv igen** og **Copy diagnostic** — sidstnævnte bærer sessions-id'et, fanen, segmentet og generationen, som er det, support har brug for. En session, hvis optagelse er udløbet, viser en forklaring i stedet for scenen, mens fanerne Logs, Traces og Errors bliver ved med at virke på din telemetri.
+Afspilleren henter optagelsen i segmenter på 15 sekunder, efterhånden som afspilningshovedet nærmer sig dem. _Buffering_ betyder, at det næste segment ikke er ankommet endnu; efter otte sekunder tilbyder den **Prøv igen**. Et segment, der fejler for godt, viser en fejl med **Prøv igen** og **Kopiér diagnose** — sidstnævnte bærer sessions-id'et, fanen, segmentet og generationen, som er det, support har brug for. En session, hvis optagelse er udløbet, viser en forklaring i stedet for scenen, mens fanerne Logs, Traces og Errors bliver ved med at virke på din telemetri.
 
 ## Billeder, ikoner eller typografi mangler i afspilningen
 
@@ -373,7 +373,7 @@ En optagelse gemmer adressen på hvert billede, og på hvert typografiark, som o
 
 ### Tjek dette først
 
-1. **Læs optagelsesnoterne under afspilleren.** Når billeder eller typografiark ikke kunne indlæses i din browser, siger den første note det — for eksempel _2 images didn't load in this replay_ — og nævner de sites, de kom fra. Den dækker hver fane, afspilleren har afspillet, siden du åbnede sessionen. **Sessionsdetaljer** (`I`) → **Fidelity** → **Missing assets** viser hver adresse, op til de første 200. Webskrifttyper, CSS-baggrundsbilleder og billeder, som din side har oprettet i browseren (`blob:`-adresser), er ikke på den liste; kig efter dem i DevTools (nedenfor).
+1. **Læs optagelsesnoterne under afspilleren.** Når billeder eller typografiark ikke kunne indlæses i din browser, siger den første note det — for eksempel _2 images didn't load in this replay_ — og nævner de sites, de kom fra. Den dækker hver fane, afspilleren har afspillet, siden du åbnede sessionen. **Sessionsdetaljer** (`I`) → **Nøjagtighed** → **Manglende ressourcer** viser hver adresse, op til de første 200. Webskrifttyper, CSS-baggrundsbilleder og billeder, som din side har oprettet i browseren (`blob:`-adresser), er ikke på den liste; kig efter dem i DevTools (nedenfor).
 2. **Tjek maskeringstilstanden.** En session, der er optaget med _Mask all text_, indlæser hverken sine billeder eller sine webskrifttyper, med vilje (et billede, som siden havde som `data:`-URL, er en del af optagelsen og vises stadig), og dens optagelsesnoter siger _Images and web fonts are not loaded_. Det samme gælder en session, hvis maskeringstilstand ikke blev rapporteret, eller som ikke er en, dashboardet genkender. Typografiark indlæses stadig i begge tilfælde. **Sessionsdetaljer** → **Privatliv** viser den tilstand, sessionen rapporterer, som er tilstanden for dens seneste sideindlæsning.
 3. **Tjek, om det også fejlede for din bruger.** Åbn hændelsespanelets fane **Fejl** på det tidspunkt: en række _Resource failed to load_ for den samme fil betyder, at den også var ødelagt på din brugers skærm, og at afspilningen viser det trofast.
 
@@ -467,8 +467,8 @@ Saml dette, før du beder om hjælp:
 
 - Outputtet fra `OneUptimeReplay.getDiagnostics()`.
 - Statussen for forespørgslen `session-replay/v1/config`.
-- Hvad applikationens side **Sundhed** og panelet **Test your installation** på **Afspilningspolitik** siger. De svarer fra serversiden, som er den halvdel, en browser ikke kan se.
-- For manglende billeder, ikoner eller typografi: adressen på en fil, der ikke blev indlæst (**Missing assets** viser dem), og den linje, browserkonsollen udskrev for den.
+- Hvad applikationens side **Sundhed** og panelet **Test din installation** på **Afspilningspolitik** siger. De svarer fra serversiden, som er den halvdel, en browser ikke kan se.
+- For manglende billeder, ikoner eller typografi: adressen på en fil, der ikke blev indlæst (**Manglende ressourcer** viser dem), og den linje, browserkonsollen udskrev for den.
 
 Skriv derefter til support@oneuptime.com, eller opret et issue på [GitHub](https://github.com/OneUptime/oneuptime).
 

@@ -108,7 +108,7 @@ Det returnerer opptakerens versjon, økt-ID-en, dens `state` (`recording`, `uplo
 copy(JSON.stringify(window.__ONEUPTIME_SESSION_REPLAY_DEBUG__.records, null, 2));
 ```
 
-Lim inn ett av dem i supportsaken din — eller i **Ask the browser** på applikasjonens side **Helse**, som forklarer hver kode i det. Ofte er det nok i seg selv.
+Lim inn ett av dem i supportsaken din — eller i **Spør nettleseren** på applikasjonens side **Helse**, som forklarer hver kode i det. Ofte er det nok i seg selv.
 
 ## Når stillhet er normalt: den feilstyrte retningslinjen
 
@@ -185,7 +185,7 @@ Hver linje bærer en stabil `code`. Slå opp din her.
 | `disabled-by-default` | `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` på denne deploymenten. Sett den til `true` — og sett først `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` hvis du hoster selv, fordi avspilling er den tyngste tabellen du har. |
 | `ingest-disabled` | `SESSION_REPLAY_INGEST_ENABLED=false` på denne deploymenten. |
 | `policy-unavailable` | Serveren kunne ikke avgjøre retningslinjen — vanligvis Redis eller Postgres. Feiler lukket med vilje. Sjekk loggene til OneUptime-appen. |
-| `not-reported` | Serveren er eldre enn dette feltet. Bruk i stedet panelet **Test your installation** i dashbordet, på siden **Avspillingspolicy**. |
+| `not-reported` | Serveren er eldre enn dette feltet. Bruk i stedet panelet **Test installasjonen din** i dashbordet, på siden **Avspillingspolicy**. |
 
 ### Artefaktet
 
@@ -358,7 +358,7 @@ Hull er ikke det samme som inaktive strekninger: en inaktiv strekning er opptak 
 
 ## Avspilleren sier Buffering, eller et segment kunne ikke lastes inn
 
-Avspilleren henter opptaket i segmenter på 15 sekunder etter hvert som avspillingshodet nærmer seg dem. _Buffering_ betyr at neste segment ikke har kommet ennå; etter åtte sekunder tilbyr den **Prøv på nytt**. Et segment som feiler for godt, viser en feil med **Prøv på nytt** og **Copy diagnostic** — sistnevnte bærer økt-ID-en, fanen, segmentet og generasjonen, som er det support trenger. En økt der opptaket er utløpt, viser en forklaring i stedet for scenen, mens fanene Logs, Traces og Errors fortsetter å virke på telemetrien din.
+Avspilleren henter opptaket i segmenter på 15 sekunder etter hvert som avspillingshodet nærmer seg dem. _Buffering_ betyr at neste segment ikke har kommet ennå; etter åtte sekunder tilbyr den **Prøv på nytt**. Et segment som feiler for godt, viser en feil med **Prøv på nytt** og **Kopier diagnostikk** — sistnevnte bærer økt-ID-en, fanen, segmentet og generasjonen, som er det support trenger. En økt der opptaket er utløpt, viser en forklaring i stedet for scenen, mens fanene Logs, Traces og Errors fortsetter å virke på telemetrien din.
 
 ## Bilder, ikoner eller stiler mangler i avspillingen
 
@@ -373,7 +373,7 @@ Et opptak tar vare på adressen til hvert bilde, og til hvert stilark som opptak
 
 ### Sjekk dette først
 
-1. **Les opptaksnotatene under avspilleren.** Når bilder eller stilark ikke kunne lastes inn i nettleseren din, sier det første notatet det — for eksempel _2 images didn't load in this replay_ — og nevner nettstedene de kom fra. Det dekker hver fane avspilleren har spilt av siden du åpnet økten. **Øktdetaljer** (`I`) → **Fidelity** → **Missing assets** viser hver adresse, opptil de første 200. Webskrifttyper, CSS-bakgrunnsbilder og bilder som siden din har laget i nettleseren (`blob:`-adresser), er ikke på den listen; se etter dem i DevTools (nedenfor).
+1. **Les opptaksnotatene under avspilleren.** Når bilder eller stilark ikke kunne lastes inn i nettleseren din, sier det første notatet det — for eksempel _2 images didn't load in this replay_ — og nevner nettstedene de kom fra. Det dekker hver fane avspilleren har spilt av siden du åpnet økten. **Øktdetaljer** (`I`) → **Nøyaktighet** → **Manglende ressurser** viser hver adresse, opptil de første 200. Webskrifttyper, CSS-bakgrunnsbilder og bilder som siden din har laget i nettleseren (`blob:`-adresser), er ikke på den listen; se etter dem i DevTools (nedenfor).
 2. **Sjekk maskeringsmodusen.** En økt som er tatt opp med _Mask all text_, laster verken inn bildene eller webskrifttypene sine, med vilje (et bilde som siden hadde som `data:`-URL, er en del av opptaket og vises fortsatt), og opptaksnotatene sier _Images and web fonts are not loaded_. Det samme gjelder en økt der maskeringsmodusen ikke ble rapportert, eller ikke er en som dashbordet gjenkjenner. Stilark lastes fortsatt inn i begge tilfeller. **Øktdetaljer** → **Personvern** viser modusen økten rapporterer, som er modusen for den siste sideinnlastingen.
 3. **Sjekk om det også feilet for brukeren din.** Åpne fanen **Feil** i hendelsespanelet på det tidspunktet: en rad _Resource failed to load_ for den samme filen betyr at den også var ødelagt på brukerens skjerm, og at avspillingen viser det trofast.
 
@@ -467,8 +467,8 @@ Samle dette før du ber om hjelp:
 
 - Utdataene fra `OneUptimeReplay.getDiagnostics()`.
 - Statusen for forespørselen `session-replay/v1/config`.
-- Hva applikasjonens side **Helse** og panelet **Test your installation** på **Avspillingspolicy** sier. De svarer fra serversiden, som er halvdelen en nettleser ikke kan se.
-- For manglende bilder, ikoner eller stiler: adressen til en fil som ikke ble lastet inn (**Missing assets** viser dem), og linjen nettleserkonsollen skrev ut for den.
+- Hva applikasjonens side **Helse** og panelet **Test installasjonen din** på **Avspillingspolicy** sier. De svarer fra serversiden, som er halvdelen en nettleser ikke kan se.
+- For manglende bilder, ikoner eller stiler: adressen til en fil som ikke ble lastet inn (**Manglende ressurser** viser dem), og linjen nettleserkonsollen skrev ut for den.
 
 Skriv deretter til support@oneuptime.com, eller opprett en issue på [GitHub](https://github.com/OneUptime/oneuptime).
 

@@ -208,31 +208,26 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
      */
     [RUM_TROUBLESHOOTING]: ["`401`.", "`404`.", "`413`.", "`422`.", "`429`."],
     /*
-     * - the player's, the session list's and the Health page's words that
-     *   their components write with no translation lookup: the back link,
-     *   the other-sessions menu's steps, the ended card's buttons, the
-     *   stage fit's 1:1, the shortcuts button, the More menu, the flow
-     *   map's Other pages and the Health page's four stages;
+     * - the player's and the session list's words that have no translation:
+     *   the other-sessions menu's steps (icon buttons the page names Older
+     *   and Newer), the stage fit's 1:1, the shortcuts button, the More
+     *   menu and the flow map's Other pages;
      * - links a span's and a log's details draw the same way;
      * - the budget recommendations, as their cards name them;
      * - the monitor form's Maximum Value and Ignore, enum values;
      * - a permission's Owned scope, as the team permission picker lists it.
+     * (The back link, the ended card's buttons and the Health page's four
+     * stages are translated since #6369, so every language names them as
+     * its own Dashboard draws them.)
      */
     [SESSION_REPLAY]: [
       "⋯",
       "View session replay",
       "Other pages",
-      "All recordings",
       "Older",
       "Newer",
-      "Next session by this user",
-      "Watch again",
       "1:1",
       "?",
-      "Recorder loaded",
-      "Recording allowed",
-      "Chunks received",
-      "Sessions in 24h",
       ...SESSION_REPLAY_BUDGET_RECOMMENDATION_NAMES,
       "Maximum Value",
       "Ignore",
