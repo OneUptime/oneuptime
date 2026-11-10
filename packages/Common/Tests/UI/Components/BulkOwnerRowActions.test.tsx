@@ -1,4 +1,11 @@
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -95,6 +102,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import Name from "../../../Types/Name";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
+import { loadPeoplePicker } from "../../../UI/Components/PeoplePicker/LazyPeoplePicker";
 
 // The real modal, Formik and people picker mount slowly on a loaded box.
 const WAIT_TIMEOUT: number = 20000;
@@ -239,6 +247,15 @@ const menuItemNames: (menu: HTMLElement) => Array<string> = (
       return (item.textContent || "").trim();
     });
 };
+
+/*
+ * A form draws its people picker from a file of its own, loaded by the first
+ * form that has one (LazyPeoplePicker). Loaded once here, as on a page where
+ * a form with one has been drawn before, so the picker is there with the form.
+ */
+beforeAll(async () => {
+  await loadPeoplePicker();
+});
 
 beforeEach(() => {
   cleanup();
