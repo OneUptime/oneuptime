@@ -615,6 +615,16 @@ interface HttpResult {
   body: JSONObject | null;
 }
 
+/*
+ * Every request goes on a connection of its own. The servers run in this
+ * process, and a test can hold it for seconds while it loads another
+ * installation (startInstallation's isolateModules). A pooled keep-alive
+ * connection left idle across that pause has outlived the server's 5 s
+ * keep-alive, yet fetch can still hand it the next request, which the
+ * server's overdue timer then resets: "fetch failed" (ECONNRESET), always on
+ * a test's first request after such a pause. Which connection carries a
+ * request is nothing this suite checks.
+ */
 async function send(
   installation: RunningInstallation,
   method: "GET" | "POST",
@@ -626,7 +636,11 @@ async function send(
     `${installation.origin}${url}`,
     {
       method: method,
-      headers: { "content-type": "application/json", ...headers },
+      headers: {
+        "content-type": "application/json",
+        connection: "close",
+        ...headers,
+      },
       ...(method === "POST" ? { body: JSON.stringify(body) } : {}),
     },
   );
@@ -1122,7 +1136,7 @@ describe("an installation whose operator set ONEUPTIME_SECRET", () => {
 /*
  * A POST with these header lines exactly as given: a name with a list of
  * values is sent as that many lines, as a client that repeats a header
- * would.
+ * would. On a connection of its own, as send's requests are (see there).
  */
 async function sendHeaderLines(
   installation: RunningInstallation,
@@ -1140,6 +1154,7 @@ async function sendHeaderLines(
           path: `${target.pathname}${target.search}`,
           method: "POST",
           headers: { "content-type": "application/json", ...headers },
+          agent: false,
         },
         (response: IncomingMessage) => {
           let text: string = "";
