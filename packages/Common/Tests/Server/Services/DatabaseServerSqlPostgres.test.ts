@@ -104,6 +104,13 @@ const TABLES: Array<string> = [
   "KubernetesClusterLabel",
   "DockerHost",
   "PodmanHost",
+  /*
+   * Read by every delete of an audited record: it reads the whole of each
+   * row it removes, the rows it links to included (its project, who created,
+   * archived or deleted it), for the audit log's entry.
+   */
+  "Project",
+  "User",
 ];
 
 /*
