@@ -134,6 +134,22 @@ db.createUser({
 ```
 
 MongoDB wordt gelezen met de eigen driver: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/`, of `mongodb://` met de hosts van een replica set. Een database in het pad is de enige die bewaakt wordt; zonder pad wordt elke database bewaakt die de login mag lezen, en `{ role: "read", db: "orders" }` in plaats van `readAnyDatabase` beperkt hem tot één. De documenten, grootte en schrijfacties van elke collectie komen uit `$collStats`, en wanneer er voor het laatst een document bij kwam uit de nieuwste `_id`. De velden komen uit het JSON-schema van de validator, of anders uit de namen en typen van de velden van de 100 nieuwste documenten, in de database bepaald zodat geen waarde haar verlaat. Documenten worden gelezen op een secondary als die er is, en een aangepaste controle is een aggregatiepijplijn, als JSON.
+@tab Microsoft Dataverse
+OneUptime meldt zich als app aan bij de omgeving. Registreer er een in Microsoft Entra ID en geef die een clientgeheim. Voeg de app daarna als toepassingsgebruiker toe aan de omgeving: open in het Power Platform admin center de omgeving en daarna **Settings** > **Users + permissions** > **Application users** > **New app user**. Geef hem een beveiligingsrol die de bewaakte tabellen mag lezen.
+
+Maak verbinding met JSON:
+
+```json
+{ "environmentUrl": "https://contoso.crm.dynamics.com", "tenantId": "72f988bf-86f1-41af-91ab-2d7cd011db47", "clientId": "11111111-2222-3333-4444-555555555555", "clientSecret": "..." }
+```
+
+Of met een Dataverse-verbindingsreeks, in de vorm die de SDK's gebruiken: `AuthType=ClientSecret;Url=https://contoso.crm.dynamics.com;ClientId=...;ClientSecret=...`. Laat je de tenant weg, dan zegt de omgeving zelf in welke ze zit.
+
+Een omgeving bevat honderden eigen tabellen, dus alleen deze worden bewaakt: de belangrijkste bedrijfstabellen (`account`, `contact`, `lead`, `opportunity`, `quote`, `salesorder`, `invoice`, `product`, `incident`, `email`, `phonecall`, `appointment`, `task` en `annotation`) en je eigen aangepaste tabellen. De tabellen van de apps van Microsoft, waarvan de namen beginnen met `msdyn_`, `adx_` of een ander `ms`-voorvoegsel, worden weggelaten. Noem elke andere tabel bij haar logische naam om die ook te bewaken: `"tables": ["msdyn_workorder", "systemuser"]`.
+
+Elke vijf minuten geeft de Web API van elke tabel de definitie, de rijen en de nieuwste `modifiedon`, het moment waarop ze voor het laatst is gewijzigd. De rijen komen uit de telling die Dataverse eens per dag maakt, dus ze kunnen tot een dag achterlopen. De kolommen worden eens per uur gelezen. Elke verzamelronde doet twee verzoeken, plus één per bewaakte tabel, die meetellen voor de limiet van de app van 6.000 verzoeken in vijf minuten. Vraagt Dataverse om af te remmen, dan wachten de overige leesacties op de volgende verzamelronde. Sluit een tabel uit om haar niet meer te lezen.
+
+Controles draaien als alleen-lezen SQL op het TDS-endpoint van de omgeving, op poort 1433 of 5558, aangemeld als dezelfde app. Het staat aan, tenzij een beheerder het heeft uitgezet. Waar toegangsbeheer op gebruikersniveau ervoor aan staat, heeft de rol van de app de bevoegdheid **Allow user to access TDS endpoint** nodig. De SQL ervan kent geen reguliere expressies, geen `WITH` en geen steekproef, dus een controle daar leest elke rij.
 :::
 
 ## Wat wordt gelezen, en hoe vaak
@@ -162,6 +178,8 @@ Elk pad verschijnt dan onder **Tabellen**: het nieuwste object is het moment van
 - **Tabellen tonen geen laatste wijziging.** De login kan de statistieken van de engine niet lezen: verleen wat het tabblad van je engine opsomt, of wacht tot de rijen van een tabel twee keer zijn gewijzigd.
 - **Er ontbreekt een tabel.** Die staat in een schema dat de login niet mag gebruiken, of is op de database uitgesloten. Verleen `USAGE` op het schema, of verwijder de uitsluiting.
 - **Een MySQL-tabel heeft geen kolommen.** De login heeft `REFERENCES` nodig, zoals hierboven: het toont de kolommen van een tabel zonder enige leestoegang tot haar rijen.
+- **Een Dataverse-omgeving zegt dat ze de app heeft geweigerd.** Voeg de app als toepassingsgebruiker toe aan de omgeving, met een beveiligingsrol die de tabellen mag lezen, zoals op het tabblad Microsoft Dataverse.
+- **Er ontbreekt een Dataverse-tabel.** Alleen de belangrijkste bedrijfstabellen en je eigen aangepaste tabellen worden bewaakt. Noem de tabel in `tables`, bij haar logische naam.
 
 ## Volgende stappen
 

@@ -1,4 +1,5 @@
 import Incident from "../../../Models/DatabaseModels/Incident";
+import OnCallPageTiming from "../OnCall/OnCallPageTiming";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import IncidentMember from "../../../Models/DatabaseModels/IncidentMember";
@@ -1159,12 +1160,26 @@ export default class MonitorIncident {
               });
           }
 
-          const createdIncident: Incident = await IncidentService.create({
-            data: incident,
-            props: {
-              isRoot: true,
-            },
-          });
+          /*
+           * Its pages start when OneUptime received the data that tripped
+           * the monitor, when it knows it (OnCallPageTiming).
+           */
+          const createdIncident: Incident =
+            await OnCallPageTiming.runAsMonitorTriggered(
+              {
+                dataReceivedAt: OnCallPageTiming.getMonitorDataReceivedAt(
+                  input.dataToProcess,
+                ),
+              },
+              (): Promise<Incident> => {
+                return IncidentService.create({
+                  data: incident,
+                  props: {
+                    isRoot: true,
+                  },
+                });
+              },
+            );
 
           await OpenStackScopedRules.finishIncident({
             projectId: input.monitor.projectId!,

@@ -16,7 +16,7 @@ Ogni vista della topologia è costruita da un tipo diverso di telemetria:
 
 ```mermaid title="Da dove viene ogni vista della topologia"
 flowchart LR
-    traces["Tracce ed eBPF,<br/>lette ogni<br/>10 minuti"] --> serviceMap["Service Map"]
+    traces["Tracce ed eBPF,<br/>lette ogni<br/>10 minuti"] --> serviceMap["Mappa dei servizi"]
     resources["Host, cluster e<br/>container che<br/>inviano dati"] --> infrastructure["Infrastruttura"]
     neighbours["Vicini che i vostri<br/>dispositivi segnalano<br/>via LLDP"] --> network["Rete"]
 ```
@@ -32,11 +32,11 @@ flowchart LR
 
 ## Aprire la topologia
 
-Andate in **Prodotti → Osservabilità → Topologia**. **Inventario → Mappa della topologia** apre la stessa pagina. Si apre sulla **Service Map**, per il periodo **Ultimo giorno**.
+Andate in **Prodotti → Osservabilità → Topologia**. **Inventario → Mappa della topologia** apre la stessa pagina. Si apre sulla **Mappa dei servizi**, per il periodo **Ultimo giorno**.
 
 | Vista | La domanda a cui risponde |
 | --- | --- |
-| **Service Map** | Quali servizi dipendono l'uno dall'altro? |
+| **Mappa dei servizi** | Quali servizi dipendono l'uno dall'altro? |
 | **Infrastruttura** | Che cosa gira dove nella vostra infrastruttura? |
 | **Rete** | Come sono collegati i vostri dispositivi di rete? |
 
@@ -44,7 +44,7 @@ Accanto al selettore del tempo, **Mostra inattivi** aggiunge ciò che non ha inv
 
 ## Leggere la mappa dei servizi
 
-La **Service Map** disegna ogni servizio che ha inviato dati, e i database, le API e i message broker che chiama, anche quando questi non inviano telemetria propria. Le frecce vanno dal chiamante al chiamato, e le linee più spesse portano più richieste. I conteggi in alto dicono quanti servizi, dipendenze e connessioni disegna, e quanti richiedono attenzione.
+La **Mappa dei servizi** disegna ogni servizio che ha inviato dati, e i database, le API e i message broker che chiama, anche quando questi non inviano telemetria propria. Le frecce vanno dal chiamante al chiamato, e le linee più spesse portano più richieste. I conteggi in alto dicono quanti servizi, dipendenze e connessioni disegna, e quanti richiedono attenzione.
 
 Ogni servizio mostra il suo stato, calcolato dalle chiamate ricevute negli ultimi 15 minuti:
 
@@ -80,7 +80,7 @@ Fate clic su una freccia per vederne la frequenza delle richieste, il tasso di e
 
 - **Sfogliatela a modo vostro.** Mostratela come **Elenco** o come **Mappa**, da tutta la vostra infrastruttura fino a un singolo pod. I conteggi in alto dicono quante risorse e quanti carichi di lavoro disegna, quanti servizi riesce a collocare e quante risorse silenziose lascia fuori.
 - **Trovate una risorsa.** Cercatela per nome e fate clic su **Visualizza dettagli** per aprirne la pagina.
-- **Passate da una vista all'altra.** Un servizio elencato su una risorsa si apre sulla **Service Map**, e le risorse su cui gira un servizio si aprono su **Infrastruttura**.
+- **Passate da una vista all'altra.** Un servizio elencato su una risorsa si apre sulla **Mappa dei servizi**, e le risorse su cui gira un servizio si aprono su **Infrastruttura**.
 
 ## Aprire la mappa di una risorsa
 

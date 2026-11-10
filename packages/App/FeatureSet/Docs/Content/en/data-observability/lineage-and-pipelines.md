@@ -15,6 +15,8 @@ Lineage says which tables each table is built from, and which pipelines write it
 
 A table's **Lineage** tab shows the tables it is built from, the pipelines that write it with their latest run, and the tables built from it. Each edge says where it was seen.
 
+At the top of the tab, a diagram draws that lineage a few steps each way (three, or pick 1, 2 or 5): what the table is built from on the left, the tables and dashboards built from it on the right, and the pipelines that load data from outside where it comes in. Each card says how it is now - late, an open alert, a failed run - and an arrow turns red when its pipeline's latest run failed, so a late table can be followed up to the run that broke it. Open any table to center the diagram on it.
+
 Where the source names columns, a table's **Columns** tab says where each column comes from and what it feeds: Snowflake's access history (Enterprise edition, which needs `IMPORTED PRIVILEGES` on the `SNOWFLAKE` database), and OpenLineage's `columnLineage` facet.
 
 ## OpenLineage

@@ -31,10 +31,20 @@ import {
   isOnCallObserverPage,
 } from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import {
+  OnCallPageChannel,
   OnCallPageNotificationEvent,
   getOnCallPageChannelsOf,
   isOnCallPageNotificationOut,
 } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import OnCallPageTiming, {
+  OnCallPageStartMoment,
+} from "../Utils/OnCall/OnCallPageTiming";
+import NotificationDeliveryMetrics, {
+  NotificationCustomChannelIdentity,
+  NotificationDeliveryChannel,
+} from "../Utils/Telemetry/NotificationDeliveryMetrics";
+import CustomNotificationChannelService from "./CustomNotificationChannelService";
+import CustomNotificationChannel from "../../Models/DatabaseModels/CustomNotificationChannel";
 
 /*
  * What the record's feed is told of a notification that an update gives
@@ -99,6 +109,96 @@ export class Service extends DatabaseService<Model> {
         `On-call timeline ${data.userOnCallLogTimelineId.toString()}: could not record that a notification was not sent (${data.reason}): ${err}`,
       );
     }
+  }
+
+  /*
+   * Records how long after its page's trigger each notification just
+   * written as sent reached its provider (notification.time_to_send): those
+   * written as their page started, whose start was kept (OnCallPageTiming),
+   * and taken back here so it is recorded once. A notification that names
+   * two channels - a rule written through the API can - is not timed: which
+   * of them was accepted first cannot be told. Never throws.
+   */
+  private async recordTimeToSend(deliveries: Array<Model>): Promise<void> {
+    for (const delivery of deliveries) {
+      try {
+        if (delivery.status !== UserNotificationStatus.Sent) {
+          continue;
+        }
+
+        const pageStart: OnCallPageStartMoment | null =
+          await OnCallPageTiming.takePageStartOf(delivery.id);
+
+        if (!pageStart) {
+          continue;
+        }
+
+        const sentAt: Date = OneUptimeDate.getCurrentDate();
+        const channels: Array<OnCallPageChannel> =
+          getOnCallPageChannelsOf(delivery);
+
+        if (channels.length !== 1) {
+          continue;
+        }
+
+        const channel: NotificationDeliveryChannel | null =
+          NotificationDeliveryMetrics.getChannelOfOnCallPage(channels[0]!);
+
+        if (!channel) {
+          continue;
+        }
+
+        NotificationDeliveryMetrics.recordTimeToSend({
+          channel: channel,
+          customChannel:
+            channel === NotificationDeliveryChannel.CustomChannel &&
+            delivery.customNotificationChannelId
+              ? await this.readCustomChannelIdentity(
+                  delivery.customNotificationChannelId,
+                )
+              : undefined,
+          triggerType: NotificationDeliveryMetrics.getTriggerTypeOf(delivery),
+          pageStart: pageStart.start,
+          timeToSendInMs: sentAt.getTime() - pageStart.startedAt.getTime(),
+        });
+      } catch (err) {
+        logger.error(
+          `Could not record the time to send of on-call notification ${delivery.id?.toString()}: ${err}`,
+        );
+      }
+    }
+  }
+
+  // A custom channel's id and name, as the metrics name it; its id alone when it cannot be read.
+  private async readCustomChannelIdentity(
+    customNotificationChannelId: ObjectID,
+  ): Promise<NotificationCustomChannelIdentity> {
+    const identity: NotificationCustomChannelIdentity = {
+      id: customNotificationChannelId.toString(),
+    };
+
+    try {
+      const customChannel: CustomNotificationChannel | null =
+        await CustomNotificationChannelService.findOneById({
+          id: customNotificationChannelId,
+          select: {
+            name: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (customChannel?.name) {
+        identity.name = customChannel.name;
+      }
+    } catch (err) {
+      logger.debug(
+        `Could not read the name of custom channel ${customNotificationChannelId.toString()}: ${err}`,
+      );
+    }
+
+    return identity;
   }
 
   /*
@@ -177,6 +277,15 @@ export class Service extends DatabaseService<Model> {
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    /*
+     * A notification on its way out, written as its page starts: its page's
+     * start is kept for whichever server writes that it was sent, before it
+     * is handed to its sender (OnCallPageTiming). Nothing for any other.
+     */
+    if (createdItem.status === UserNotificationStatus.Sending) {
+      await OnCallPageTiming.rememberPageStartOf(createdItem.id);
+    }
+
     OnCallPolicyRunMessage.refresh(createdItem.onCallDutyPolicyExecutionLogId);
 
     await this.refreshStepNotificationChannels([createdItem]);
@@ -261,6 +370,11 @@ export class Service extends DatabaseService<Model> {
             userMattermostId: true,
             userWebhookId: true,
             customNotificationChannelId: true,
+            // The record it pages about, for its time to send (recordTimeToSend).
+            triggeredByIncidentId: true,
+            triggeredByAlertId: true,
+            triggeredByIncidentEpisodeId: true,
+            triggeredByAlertEpisodeId: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
@@ -278,6 +392,14 @@ export class Service extends DatabaseService<Model> {
         logger.error(
           `Could not ask for the on-call run's chat message to be updated: ${err}`,
         );
+      }
+
+      /*
+       * A notification its provider accepted: how long after its page's
+       * trigger, for the platform's operator (notification.time_to_send).
+       */
+      if (onUpdate.updateBy.data.status === UserNotificationStatus.Sent) {
+        await this.recordTimeToSend(deliveries);
       }
 
       /*

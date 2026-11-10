@@ -9,6 +9,13 @@ import WorkspaceNotificationText from "../Utils/Workspace/WorkspaceNotificationT
 import { WorkspaceDirectMessageLocation } from "../Utils/Workspace/WorkspaceBase";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+  NotificationDeliveryOutcome,
+  NotificationDeliveryProvider,
+  NotificationDispatch,
+  NotificationProviderConfig,
+} from "../Utils/Telemetry/NotificationDeliveryMetrics";
 import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -108,6 +115,20 @@ export class WorkspaceUserNotificationService extends BaseService {
     let sendError: Error | null = null;
     let sent: WorkspaceSentDirectMessage | null = null;
 
+    // How it went, for the platform's operator (NotificationDeliveryMetrics).
+    const deliveryChannel: NotificationDeliveryChannel | null =
+      getDeliveryChannelOfWorkspace(options.workspaceType);
+
+    const dispatch: NotificationDispatch | null = deliveryChannel
+      ? NotificationDeliveryMetrics.startDispatch({
+          channel: deliveryChannel,
+          provider: getDeliveryProviderOfWorkspace(options.workspaceType),
+          // Sent as the project's own bot, through its workspace connection.
+          providerConfig: NotificationProviderConfig.Project,
+          isOnCallPage: Boolean(options.userOnCallLogTimelineId),
+        })
+      : null;
+
     try {
       if (!options.workspaceUserId) {
         throw new BadDataException(
@@ -181,6 +202,12 @@ export class WorkspaceUserNotificationService extends BaseService {
       logger.error(error);
     }
 
+    dispatch?.end(
+      sendError
+        ? NotificationDeliveryOutcome.Failure
+        : NotificationDeliveryOutcome.Success,
+    );
+
     // Where it landed, for whoever keeps it. Best effort: it never fails the send.
     if (!sendError && sent && options.onSent) {
       try {
@@ -252,6 +279,40 @@ export class WorkspaceUserNotificationService extends BaseService {
     if (sendError) {
       throw sendError;
     }
+  }
+}
+
+/*
+ * A workspace's direct messages as the platform's delivery metrics name
+ * them; null for a workspace they do not know, which sends none.
+ */
+export function getDeliveryChannelOfWorkspace(
+  workspaceType: WorkspaceType,
+): NotificationDeliveryChannel | null {
+  switch (workspaceType) {
+    case WorkspaceType.Slack:
+      return NotificationDeliveryChannel.Slack;
+    case WorkspaceType.MicrosoftTeams:
+      return NotificationDeliveryChannel.MicrosoftTeams;
+    case WorkspaceType.Mattermost:
+      return NotificationDeliveryChannel.Mattermost;
+    default:
+      return null;
+  }
+}
+
+export function getDeliveryProviderOfWorkspace(
+  workspaceType: WorkspaceType,
+): NotificationDeliveryProvider {
+  switch (workspaceType) {
+    case WorkspaceType.Slack:
+      return NotificationDeliveryProvider.Slack;
+    case WorkspaceType.MicrosoftTeams:
+      return NotificationDeliveryProvider.MicrosoftTeams;
+    case WorkspaceType.Mattermost:
+      return NotificationDeliveryProvider.Mattermost;
+    default:
+      return NotificationDeliveryProvider.None;
   }
 }
 

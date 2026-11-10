@@ -134,6 +134,22 @@ db.createUser({
 ```
 
 MongoDB is read over its own driver: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/`, or `mongodb://` with a replica set's hosts. A database in the path is the only one watched; without one, every database the login may read is watched, and `{ role: "read", db: "orders" }` in place of `readAnyDatabase` limits it to one. Each collection's documents, size and writes come from `$collStats`, and when it last took a document from its newest `_id`. Its fields come from its validator's JSON schema, or else from the names and types of the fields of its 100 newest documents, worked out in the database so no value leaves it. Documents are read on a secondary where there is one, and a custom check is an aggregation pipeline, as JSON.
+@tab Microsoft Dataverse
+OneUptime signs in to the environment as an app. Register one in Microsoft Entra ID and give it a client secret. Then add it to the environment as an application user: in the Power Platform admin center, open the environment, then **Settings** > **Users + permissions** > **Application users** > **New app user**. Give it a security role that may read the tables you watch.
+
+Connect with JSON:
+
+```json
+{ "environmentUrl": "https://contoso.crm.dynamics.com", "tenantId": "72f988bf-86f1-41af-91ab-2d7cd011db47", "clientId": "11111111-2222-3333-4444-555555555555", "clientSecret": "..." }
+```
+
+Or with a Dataverse connection string, as its SDKs take it: `AuthType=ClientSecret;Url=https://contoso.crm.dynamics.com;ClientId=...;ClientSecret=...`. Leave the tenant out and the environment says which one it is in.
+
+An environment holds hundreds of tables of its own, so only these are watched: the core business tables (`account`, `contact`, `lead`, `opportunity`, `quote`, `salesorder`, `invoice`, `product`, `incident`, `email`, `phonecall`, `appointment`, `task` and `annotation`) and your own custom tables. The tables of Microsoft's apps, whose names start with `msdyn_`, `adx_` or another `ms` prefix, are left out. Name any other table by its logical name to watch it too: `"tables": ["msdyn_workorder", "systemuser"]`.
+
+Every five minutes the Web API gives each table's definition, its rows and its newest `modifiedon`, which is when it last changed. The rows come from the count Dataverse takes once a day, so they lag by up to a day. The columns are read once an hour. Each collection makes two requests, and one more per watched table, against the app's limit of 6,000 requests in five minutes. When Dataverse asks it to slow down, the rest of the reads wait for the next collection. Exclude a table to stop reading it.
+
+Checks run as read-only SQL on the environment's TDS endpoint, on port 1433 or 5558, signed in as the same app. It is on unless an admin turned it off. Where user level access control for it is on, the app's role needs the **Allow user to access TDS endpoint** privilege. Its SQL has no regular expressions, no `WITH` and no sample, so a check there reads every row.
 :::
 
 ## What is read, and how often
@@ -162,6 +178,8 @@ Each path then shows under **Tables**: its newest object is when it last changed
 - **Tables show no last change.** The login cannot read the engine's statistics: grant what your engine's tab lists, or wait for a table's rows to change twice.
 - **A table is missing.** It is in a schema the login cannot use, or it is excluded on the database. Grant `USAGE` on its schema, or remove the exclusion.
 - **A MySQL table has no columns.** The login needs `REFERENCES`, as above: it shows a table's columns without giving any read of its rows.
+- **A Dataverse environment says it refused the app.** Add the app to the environment as an application user, with a security role that may read the tables, as on the Microsoft Dataverse tab.
+- **A Dataverse table is missing.** Only the core business tables and your own custom tables are watched. Name it in `tables`, by its logical name.
 
 ## Next steps
 

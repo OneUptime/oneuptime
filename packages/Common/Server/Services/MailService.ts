@@ -14,6 +14,7 @@ import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
+import { NotificationDeliveryChannel } from "../Utils/Telemetry/NotificationDeliveryMetrics";
 
 export class MailService extends BaseService {
   @CaptureSpan()
@@ -50,6 +51,7 @@ export class MailService extends BaseService {
     const blockedProjectRefusal: HTTPErrorResponse | null =
       await BlockedProjectNotifications.getRefusal({
         channel: "Email",
+        deliveryChannel: NotificationDeliveryChannel.Email,
         projectId: options?.projectId,
         userOnCallLogTimelineId: options?.userOnCallLogTimelineId,
       });

@@ -134,6 +134,22 @@ db.createUser({
 ```
 
 MongoDB viene letto con il suo driver: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/`, oppure `mongodb://` con gli host di un replica set. Un database nel percorso è l'unico monitorato; senza, viene monitorato ogni database che l'utente può leggere, e `{ role: "read", db: "orders" }` al posto di `readAnyDatabase` lo limita a uno. Documenti, dimensione e scritture di ogni collection vengono da `$collStats`, e quando ha ricevuto l'ultimo documento, dal suo `_id` più recente. I suoi campi vengono dallo schema JSON del suo validatore oppure dai nomi e tipi dei campi dei suoi 100 documenti più recenti, calcolati nel database così che nessun valore ne esca. I documenti vengono letti su un secondario quando c'è, e un controllo personalizzato è una pipeline di aggregazione, in JSON.
+@tab Microsoft Dataverse
+OneUptime accede all'ambiente come app. Registrane una in Microsoft Entra ID e assegnale un client secret. Poi aggiungila all'ambiente come utente applicazione: nel Power Platform admin center, apri l'ambiente, poi **Settings** > **Users + permissions** > **Application users** > **New app user**. Assegnale un ruolo di sicurezza che possa leggere le tabelle che sorvegli.
+
+Collegati con un JSON:
+
+```json
+{ "environmentUrl": "https://contoso.crm.dynamics.com", "tenantId": "72f988bf-86f1-41af-91ab-2d7cd011db47", "clientId": "11111111-2222-3333-4444-555555555555", "clientSecret": "..." }
+```
+
+Oppure con una stringa di connessione Dataverse, nel formato che accettano i suoi SDK: `AuthType=ClientSecret;Url=https://contoso.crm.dynamics.com;ClientId=...;ClientSecret=...`. Ometti il tenant e l'ambiente indica in quale si trova.
+
+Un ambiente contiene centinaia di tabelle proprie, quindi vengono sorvegliate solo queste: le tabelle di business principali (`account`, `contact`, `lead`, `opportunity`, `quote`, `salesorder`, `invoice`, `product`, `incident`, `email`, `phonecall`, `appointment`, `task` e `annotation`) e le tue tabelle personalizzate. Le tabelle delle app di Microsoft, i cui nomi iniziano con `msdyn_`, `adx_` o un altro prefisso `ms`, restano fuori. Indica qualsiasi altra tabella con il suo nome logico per sorvegliare anche quella: `"tables": ["msdyn_workorder", "systemuser"]`.
+
+Ogni cinque minuti la Web API fornisce la definizione di ogni tabella, le sue righe e il suo `modifiedon` più recente, cioè quando è cambiata l'ultima volta. Le righe vengono dal conteggio che Dataverse fa una volta al giorno, quindi possono essere indietro fino a un giorno. Le colonne vengono lette una volta all'ora. Ogni raccolta fa due richieste, più una per ogni tabella sorvegliata, che vengono conteggiate nel limite dell'app di 6.000 richieste in cinque minuti. Quando Dataverse chiede di rallentare, le letture rimanenti aspettano la raccolta successiva. Escludi una tabella per smettere di leggerla.
+
+I controlli vengono eseguiti come SQL di sola lettura sull'endpoint TDS dell'ambiente, sulla porta 1433 o 5558, accedendo come la stessa app. L'endpoint è attivo a meno che un amministratore non l'abbia disattivato. Dove per esso è attivo il controllo di accesso a livello di utente, il ruolo dell'app ha bisogno del privilegio **Allow user to access TDS endpoint**. Il suo SQL non ha espressioni regolari, né `WITH`, né campionamento, quindi lì un controllo legge ogni riga.
 :::
 
 ## Cosa viene letto, e ogni quanto
@@ -162,6 +178,8 @@ Ogni percorso compare allora in **Tabelle**: il suo oggetto più recente è il m
 - **Le tabelle non mostrano alcuna ultima modifica.** L'utente non può leggere le statistiche del motore: concedi ciò che elenca la scheda del tuo motore, oppure attendi che le righe di una tabella cambino due volte.
 - **Manca una tabella.** Si trova in uno schema che l'utente non può usare, oppure è esclusa sul database. Concedi `USAGE` sul suo schema, oppure rimuovi l'esclusione.
 - **Una tabella MySQL non ha colonne.** L'utente ha bisogno di `REFERENCES`, come sopra: mostra le colonne di una tabella senza dare alcuna lettura delle sue righe.
+- **Un ambiente Dataverse dice di aver rifiutato l'app.** Aggiungi l'app all'ambiente come utente applicazione, con un ruolo di sicurezza che possa leggere le tabelle, come nella scheda Microsoft Dataverse.
+- **Manca una tabella Dataverse.** Vengono sorvegliate solo le tabelle di business principali e le tue tabelle personalizzate. Indicala in `tables`, con il suo nome logico.
 
 ## Passaggi successivi
 

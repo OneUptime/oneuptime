@@ -13,7 +13,7 @@ Lägg till en kontroll på en tabells flik **Kontroller**:
 | **Distinct Count** | Hur många olika värden kolumnen innehåller |
 | **Minimum**, **Maximum**, **Genomsnitt**, **Summa** | Av en numerisk kolumn (en Summa av inga rader är 0) |
 | **Invalid Percent** | Procentandel värden utanför en lista som du anger |
-| **Format Mismatch Percent** | Procentandel värden som inte har ett format som du väljer, till exempel Email, UUID eller Country Code, eller som inte matchar ett reguljärt uttryck som du anger (alla motorer utom SQL Server) |
+| **Format Mismatch Percent** | Procentandel värden som inte har ett format som du väljer, till exempel Email, UUID eller Country Code, eller som inte matchar ett reguljärt uttryck som du anger (alla motorer utom SQL Server och Dataverse) |
 | **Orphan Count** | Rader vars värde saknar motsvarighet i en annan tabells kolumn |
 | **Row Count** | Rader i tabellen, mest användbart med **Segmentera efter** |
 | **Anpassad SQL** | Talet som en egen SELECT med enbart läsbehörighet returnerar, med namnet `value` (i MongoDB en aggregeringspipelines) |
@@ -48,7 +48,7 @@ En kontrolls **Status**, under **Kontroller** och på fliken **Kontroller** för
 
 En kontroll konkurrerar med din applikation om databasen, och i ett datavaruhus som debiterar efter vad en fråga läser kostar den pengar. Tre saker håller det under kontroll:
 
-- **Stickprovsprocent** läser en andel av raderna i stället för alla, för en kontroll som läser en andel: Null Percent, Genomsnitt, Invalid Percent och Format Mismatch Percent. De flesta motorer hoppar över hela sidor av tabellen; MySQL, Redshift, ClickHouse och MongoDB läser fortfarande varje rad, och slipper arbetet med resten. En vy kan vägra det, och kontrollen säger det.
+- **Stickprovsprocent** läser en andel av raderna i stället för alla, för en kontroll som läser en andel: Null Percent, Genomsnitt, Invalid Percent och Format Mismatch Percent. De flesta motorer hoppar över hela sidor av tabellen; MySQL, Redshift, ClickHouse och MongoDB läser fortfarande varje rad, och slipper arbetet med resten. Dataverse tar inget stickprov: en kontroll där läser varje rad. En vy kan vägra det, och kontrollen säger det.
 - **Mest en kontroll får läsa (GB)**, under **Inställningar**, stoppar en kontroll i BigQuery eller Athena innan den läser fler gigabyte än så. Den är 10 tills du ändrar den.
 - **Vänta när en databas är upptagen**, under **Inställningar**, lämnar kontroller som ska köras till nästa insamling när en PostgreSQL-, MySQL- eller SQL Server-databas ser upptagen ut. Den är påslagen tills du stänger av den, och databasen säger när kontroller väntade.
 

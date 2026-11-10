@@ -807,3 +807,358 @@ describe("Monitoring Logs on the other push monitors", () => {
     expect(infoCardValue(modal, "Hostname")).toBe("orders-db-01");
   });
 });
+
+/*
+ * MONITORING LOGS ON EVERY MONITOR BUT A MANUAL ONE (issue #6639).
+ *
+ * The telemetry worker's checks were always logged, but a Metrics, Logs or
+ * Kubernetes monitor had no Monitoring Logs page to read them on. Its rows
+ * now say what each check saw - the logs or spans its criteria counted, the
+ * data a metric check read, or that it read none - and View Summary shows
+ * when the check ran, what it saw and how the criteria judged it, with no
+ * "Next Check At" a check that has run cannot have.
+ */
+describe("Monitoring Logs on a telemetry monitor", () => {
+  const METRIC_EVALUATION: MonitorEvaluationSummary = {
+    evaluatedAt: at("2026-11-10T09:12:00.000Z"),
+    criteriaResults: [
+      {
+        criteriaId: "criteria-high-cpu",
+        criteriaName: "High CPU",
+        filterCondition: FilterCondition.Any,
+        met: true,
+        message: "CPU recorded latest 92.00% (expected above 80%).",
+        filters: [],
+      },
+    ],
+    events: [],
+  };
+
+  function points(count: number): Array<JSONObject> {
+    const data: Array<JSONObject> = [];
+    for (let index: number = 0; index < count; index++) {
+      data.push({
+        timestamp: at("2026-11-10T09:10:00.000Z"),
+        value: 90 + index,
+      } as unknown as JSONObject);
+    }
+    return data;
+  }
+
+  function metricRow(data: {
+    id: string;
+    time: string;
+    pointsPerQuery: Array<number>;
+    evaluationSummary?: MonitorEvaluationSummary | undefined;
+  }): JSONObject {
+    return logRow({
+      id: data.id,
+      time: data.time,
+      body: {
+        projectId: new ObjectID(PROJECT_ID),
+        monitorId: new ObjectID(MONITOR_ID),
+        startAndEndDate: {
+          startValue: at("2026-11-10T09:07:00.000Z"),
+          endValue: at(data.time),
+        },
+        metricResult: data.pointsPerQuery.map((count: number): JSONObject => {
+          return { data: points(count) } as unknown as JSONObject;
+        }),
+        metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
+        evaluationSummary: data.evaluationSummary || METRIC_EVALUATION,
+      },
+    });
+  }
+
+  const METRIC_ROWS: Array<JSONObject> = [
+    metricRow({
+      id: "e0000000-0000-4000-8000-000000000003",
+      time: "2026-11-10T09:12:00.000Z",
+      pointsPerQuery: [5, 3],
+    }),
+    // The metric stopped arriving: the check read nothing.
+    metricRow({
+      id: "e0000000-0000-4000-8000-000000000002",
+      time: "2026-11-10T09:11:00.000Z",
+      pointsPerQuery: [0, 0],
+      evaluationSummary: {
+        ...METRIC_EVALUATION,
+        criteriaResults: [
+          {
+            ...METRIC_EVALUATION.criteriaResults[0]!,
+            met: false,
+            message: "No data points in the window.",
+          },
+        ],
+      },
+    }),
+    metricRow({
+      id: "e0000000-0000-4000-8000-000000000001",
+      time: "2026-11-10T09:10:00.000Z",
+      pointsPerQuery: [1],
+    }),
+  ];
+
+  function logsRow(data: {
+    id: string;
+    time: string;
+    logCount: number;
+  }): JSONObject {
+    return logRow({
+      id: data.id,
+      time: data.time,
+      body: {
+        projectId: new ObjectID(PROJECT_ID),
+        monitorId: new ObjectID(MONITOR_ID),
+        logCount: data.logCount,
+        logQuery: { severityText: "ERROR" },
+        evaluationSummary: EVALUATION_SUMMARY,
+      },
+    });
+  }
+
+  function textsOfColumn(title: string): Array<string> {
+    return cellsOfColumn(title).map((cell: HTMLElement): string => {
+      return cell.textContent || "";
+    });
+  }
+
+  test("a Metrics monitor's rows say how much data each check read", async () => {
+    await renderLogsPage({
+      monitorType: MonitorType.Metrics,
+      rows: METRIC_ROWS,
+    });
+
+    const headers: Array<string> = columnHeaderTexts();
+
+    // When it ran, what it saw, then how the criteria judged it.
+    expect(headers.indexOf("Monitored At")).toBeLessThan(
+      headers.indexOf("Observed"),
+    );
+    expect(headers.indexOf("Observed")).toBeLessThan(
+      headers.indexOf("Evaluation Outcome"),
+    );
+    expect(textsOfColumn("Observed")).toEqual([
+      "8 data points",
+      "No data",
+      "1 data point",
+    ]);
+  });
+
+  test("a check that read nothing stands out as No data", async () => {
+    await renderLogsPage({
+      monitorType: MonitorType.Metrics,
+      rows: METRIC_ROWS,
+    });
+
+    const cells: Array<HTMLElement> = cellsOfColumn("Observed");
+
+    expect(
+      within(cells[1]!).getByTestId("monitor-log-no-data"),
+    ).toHaveTextContent("No data");
+    expect(
+      within(cells[0]!).queryByTestId("monitor-log-no-data"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a telemetry monitor has none of a probe's or an email's columns", async () => {
+    await renderLogsPage({
+      monitorType: MonitorType.Metrics,
+      rows: METRIC_ROWS,
+    });
+
+    const headers: Array<string> = columnHeaderTexts();
+
+    expect(headers).not.toContain("Probe");
+    expect(headers).not.toContain("Attempts");
+    expect(headers).not.toContain("Email");
+    // It never asks for the probes: no probe checks it.
+    expect(getAllProbesMock).not.toHaveBeenCalled();
+  });
+
+  test("the evaluation outcome reads the same as on every other monitor", async () => {
+    await renderLogsPage({
+      monitorType: MonitorType.Metrics,
+      rows: METRIC_ROWS,
+    });
+
+    expect(textsOfColumn("Evaluation Outcome")).toEqual([
+      "Criteria met: High CPU",
+      "No criteria met",
+      "Criteria met: High CPU",
+    ]);
+  });
+
+  test("View Summary shows when the check ran, what it saw and how it was judged", async () => {
+    await renderLogsPage({
+      monitorType: MonitorType.Metrics,
+      rows: METRIC_ROWS,
+    });
+
+    const modal: HTMLElement = openSummary(0);
+
+    expect(infoCardValue(modal, "Monitored At")).toBe(
+      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        at("2026-11-10T09:12:00.000Z"),
+      ),
+    );
+    expect(infoCardValue(modal, "Observed")).toBe("8 data points");
+    // A check that has run has no next one.
+    expect(within(modal).queryByText("Next Check At")).not.toBeInTheDocument();
+    // How the criteria judged it.
+    expect(within(modal).getByText("High CPU")).toBeInTheDocument();
+
+    closeSummary(modal);
+
+    const noData: HTMLElement = openSummary(1);
+
+    expect(infoCardValue(noData, "Observed")).toBe("No data");
+  });
+
+  test("a Logs monitor's rows say how many logs each check counted", async () => {
+    await renderLogsPage({
+      monitorType: MonitorType.Logs,
+      rows: [
+        logsRow({
+          id: "f0000000-0000-4000-8000-000000000003",
+          time: "2026-11-10T09:12:00.000Z",
+          logCount: 412,
+        }),
+        logsRow({
+          id: "f0000000-0000-4000-8000-000000000002",
+          time: "2026-11-10T09:11:00.000Z",
+          logCount: 1,
+        }),
+        // A service that stopped logging: a count of 0, said as one.
+        logsRow({
+          id: "f0000000-0000-4000-8000-000000000001",
+          time: "2026-11-10T09:10:00.000Z",
+          logCount: 0,
+        }),
+      ],
+    });
+
+    expect(textsOfColumn("Observed")).toEqual(["412 logs", "1 log", "0 logs"]);
+
+    const modal: HTMLElement = openSummary(0);
+
+    expect(infoCardValue(modal, "Observed")).toBe("412 logs");
+    expect(within(modal).queryByText("Next Check At")).not.toBeInTheDocument();
+  });
+
+  test("a grouped Kubernetes monitor's rows count the series that reported", async () => {
+    await renderLogsPage({
+      monitorType: MonitorType.Kubernetes,
+      rows: [
+        logRow({
+          id: "f1000000-0000-4000-8000-000000000001",
+          time: "2026-11-10T09:12:00.000Z",
+          body: {
+            projectId: new ObjectID(PROJECT_ID),
+            monitorId: new ObjectID(MONITOR_ID),
+            metricResult: [{ data: points(6) }],
+            metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
+            seriesBreakdown: [
+              {
+                fingerprint: "pod=api-1",
+                labels: { "k8s.pod.name": "api-1" },
+                aggregatedResults: [{ data: points(3) }],
+              },
+              {
+                fingerprint: "pod=api-2",
+                labels: { "k8s.pod.name": "api-2" },
+                aggregatedResults: [{ data: points(3) }],
+              },
+            ],
+            evaluationSummary: METRIC_EVALUATION,
+          },
+        }),
+      ],
+    });
+
+    expect(textsOfColumn("Observed")).toEqual(["2 series"]);
+  });
+
+  test("a row whose check cannot be read shows a dash, not a count of 0", async () => {
+    await renderLogsPage({
+      monitorType: MonitorType.Traces,
+      rows: [
+        logRow({
+          id: "f2000000-0000-4000-8000-000000000001",
+          time: "2026-11-10T09:12:00.000Z",
+          body: {
+            projectId: new ObjectID(PROJECT_ID),
+            monitorId: new ObjectID(MONITOR_ID),
+            evaluationSummary: EVALUATION_SUMMARY,
+          },
+        }),
+      ],
+    });
+
+    expect(textsOfColumn("Observed")).toEqual(["—"]);
+  });
+
+  test("exports the Observed column as its words, not the log body behind it", async () => {
+    const downloads: Array<{ csv: string; filename: string }> = [];
+
+    jest
+      .spyOn(TableColumnsToCsv, "downloadCsv")
+      .mockImplementation((data: { csv: string; filename: string }): void => {
+        downloads.push(data);
+      });
+
+    await renderLogsPage({
+      monitorType: MonitorType.Metrics,
+      rows: METRIC_ROWS,
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("checkbox", { name: "Select all items" }),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText("Bulk Actions"));
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("Export CSV")).not.toBeNull();
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText("Export CSV"));
+    });
+    await waitFor(() => {
+      expect(downloads).toHaveLength(1);
+    });
+
+    const csv: string = downloads[0]!.csv;
+
+    expect(csv.split("\r\n")[0]).toContain("Observed");
+    expect(csv).toContain("8 data points");
+    expect(csv).toContain("No data");
+    expect(csv).toContain("1 data point");
+  });
+
+  test("a probe monitor gets no Observed column", async () => {
+    await renderLogsPage({
+      monitorType: MonitorType.Website,
+      rows: [
+        logRow({
+          id: "f3000000-0000-4000-8000-000000000001",
+          time: "2026-11-10T09:12:00.000Z",
+          body: {
+            projectId: new ObjectID(PROJECT_ID),
+            monitorId: new ObjectID(MONITOR_ID),
+            monitorStepId: new ObjectID(MONITOR_STEP_ID),
+            probeId: new ObjectID(PROBE_FRANKFURT),
+            isOnline: true,
+            responseCode: 200,
+            monitoredAt: at("2026-11-10T09:12:00.000Z"),
+            evaluationSummary: EVALUATION_SUMMARY,
+          },
+        }),
+      ],
+    });
+
+    expect(columnHeaderTexts()).not.toContain("Observed");
+  });
+});

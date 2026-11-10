@@ -13,7 +13,7 @@ Legg til en sjekk i fanen **Sjekker** for en tabell:
 | **Distinct Count** | Hvor mange forskjellige verdier kolonnen inneholder |
 | **Minimum**, **Maksimum**, **Gjennomsnitt**, **Sum** | Av en numerisk kolonne (en Sum av null rader er 0) |
 | **Invalid Percent** | Prosentandelen verdier utenfor en liste du oppgir |
-| **Format Mismatch Percent** | Prosentandelen verdier som ikke har et format du velger, for eksempel Email, UUID eller Country Code, eller som ikke samsvarer med et regulært uttrykk fra deg (alle databasemotorer unntatt SQL Server) |
+| **Format Mismatch Percent** | Prosentandelen verdier som ikke har et format du velger, for eksempel Email, UUID eller Country Code, eller som ikke samsvarer med et regulært uttrykk fra deg (alle databasemotorer unntatt SQL Server og Dataverse) |
 | **Orphan Count** | Rader der verdien ikke har noe samsvar i en kolonne i en annen tabell |
 | **Row Count** | Rader i tabellen, mest nyttig med **Segmenter etter** |
 | **Egendefinert SQL** | Tallet som én skrivebeskyttet SELECT fra deg returnerer, kalt `value` (i MongoDB en aggregeringspipelines) |
@@ -48,7 +48,7 @@ Når du lagrer sjekken, opprettes en metrikkmonitor for den, som deg og med dine
 
 En sjekk konkurrerer med applikasjonen din om databasen, og på et datavarehus som fakturerer etter det en spørring leser, koster den penger. Tre ting holder det under kontroll:
 
-- **Utvalgsprosent** leser en andel av radene i stedet for alle, for en sjekk som leser en rate: Null Percent, Average, Invalid Percent og Format Mismatch Percent. De fleste databasemotorer hopper over hele sider av tabellen; MySQL, Redshift, ClickHouse og MongoDB leser fortsatt hver rad, og sparer arbeidet på resten. En visning kan nekte det, og sjekken sier fra om det.
+- **Utvalgsprosent** leser en andel av radene i stedet for alle, for en sjekk som leser en rate: Null Percent, Average, Invalid Percent og Format Mismatch Percent. De fleste databasemotorer hopper over hele sider av tabellen; MySQL, Redshift, ClickHouse og MongoDB leser fortsatt hver rad, og sparer arbeidet på resten. Dataverse tar ikke noe utvalg: en sjekk der leser hver rad. En visning kan nekte det, og sjekken sier fra om det.
 - **Mest en kontroll kan lese (GB)**, under **Innstillinger**, stopper en sjekk på BigQuery eller Athena før den leser mer enn så mange gigabyte. Den er 10 til du endrer den.
 - **Vent når en database er opptatt**, under **Innstillinger**, lar sjekker som er på tur vente til neste innsamling når en PostgreSQL-, MySQL- eller SQL Server-database ser opptatt ut. Den er på til du slår den av, og databasen sier fra når sjekker ventet.
 

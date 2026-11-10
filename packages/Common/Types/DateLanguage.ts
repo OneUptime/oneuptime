@@ -723,6 +723,35 @@ export const formatRelativeDate: (data: {
 };
 
 /*
+ * "in 2 Stunden", "قبل 3 أيام" - `count` `unit`s ahead of now, or behind it
+ * when `isFuture` is false, in `locale`: for a caller that counts its own
+ * units (a maintenance window's "in 2 hours", its minutes floored). Null
+ * when this engine has no Intl.RelativeTimeFormat.
+ */
+export const formatRelativeAmount: (data: {
+  count: number;
+  unit: RelativeDateUnit;
+  isFuture: boolean;
+  locale: string;
+}) => string | null = (data: {
+  count: number;
+  unit: RelativeDateUnit;
+  isFuture: boolean;
+  locale: string;
+}): string | null => {
+  const always: RelativeTimeFormatter | null = getRelativeTimeFormatter(
+    data.locale,
+    "always",
+  );
+
+  if (!always) {
+    return null;
+  }
+
+  return always.format(data.isFuture ? data.count : -data.count, data.unit);
+};
+
+/*
  * HOW LONG SOMETHING TOOK.
  */
 

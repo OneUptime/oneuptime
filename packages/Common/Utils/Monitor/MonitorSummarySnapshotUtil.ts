@@ -20,6 +20,7 @@ import SyntheticMonitorResponse from "../../Types/Monitor/SyntheticMonitors/Synt
 import TraceMonitorResponse from "../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ProbeMonitorResponse from "../../Types/Probe/ProbeMonitorResponse";
 import ProbeStatusMonitorResponse from "../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
+import TelemetryObservation from "../../Types/Monitor/TelemetryObservation";
 
 /*
  * Builds and reads the frozen "Monitor Summary" stored on an incident or
@@ -69,7 +70,12 @@ export interface MonitorSummaryInfoProps {
    * which lives in App and so cannot be imported here.
    */
   telemetryMonitorSummary?:
-    | { lastCheckedAt?: Date | undefined; nextCheckAt?: Date | undefined }
+    | {
+        lastCheckedAt?: Date | undefined;
+        nextCheckAt?: Date | undefined;
+        isPastCheck?: boolean | undefined;
+        observation?: TelemetryObservation | undefined;
+      }
     | undefined;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
   probeStatusMonitorResponse?: ProbeStatusMonitorResponse | undefined;
@@ -536,11 +542,14 @@ export default class MonitorSummarySnapshotUtil {
     if (snapshot.telemetryMonitorSummary) {
       /*
        * Only "monitored at". The live card's companion field is "next
-       * check at", which has no meaning on a frozen capture, and
-       * TelemetryMonitorView already renders "-" for a missing one.
+       * check at", which has no meaning on a frozen capture: an incident's
+       * or alert's check, or a Monitoring Logs row, has run, so it is a
+       * past check and TelemetryMonitorView leaves "Next Check At" out
+       * rather than drawing it as "-".
        */
       props.telemetryMonitorSummary = {
         lastCheckedAt: snapshot.telemetryMonitorSummary.monitoredAt,
+        isPastCheck: true,
       };
     }
 

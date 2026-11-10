@@ -13,7 +13,7 @@ Añade una comprobación en la pestaña **Comprobaciones** de una tabla:
 | **Distinct Count** | Cuántos valores distintos contiene la columna |
 | **Mínimo**, **Máximo**, **Promedio**, **Suma** | De una columna numérica (la suma de cero filas es 0) |
 | **Invalid Percent** | Porcentaje de valores que están fuera de una lista que proporcionas |
-| **Format Mismatch Percent** | Porcentaje de valores que no están en un formato que eliges, como Email, UUID o Country Code, o que no coinciden con una expresión regular tuya (todos los motores salvo SQL Server) |
+| **Format Mismatch Percent** | Porcentaje de valores que no están en un formato que eliges, como Email, UUID o Country Code, o que no coinciden con una expresión regular tuya (todos los motores salvo SQL Server y Dataverse) |
 | **Orphan Count** | Filas cuyo valor no tiene correspondencia en la columna de otra tabla |
 | **Número de filas** | Filas de la tabla, sobre todo útil con **Segmentar por** |
 | **SQL personalizado** | El número que devuelve un SELECT tuyo de solo lectura, llamado `value` (en MongoDB, el de un pipeline de agregación) |
@@ -48,7 +48,7 @@ El **Estado** de una comprobación, en **Comprobaciones** y en la pestaña **Com
 
 Una comprobación compite con tu aplicación por la base de datos, y en un almacén de datos que factura por lo que lee una consulta, cuesta dinero. Tres cosas lo mantienen bajo control:
 
-- **Porcentaje de muestra** lee una parte de las filas en lugar de todas, para una comprobación que lee una tasa: Null Percent, Promedio, Invalid Percent y Format Mismatch Percent. La mayoría de los motores se saltan páginas enteras de la tabla; MySQL, Redshift, ClickHouse y MongoDB siguen leyendo todas las filas, y se ahorran el trabajo con el resto. Una vista puede rechazarlo, y la comprobación lo indica.
+- **Porcentaje de muestra** lee una parte de las filas en lugar de todas, para una comprobación que lee una tasa: Null Percent, Promedio, Invalid Percent y Format Mismatch Percent. La mayoría de los motores se saltan páginas enteras de la tabla; MySQL, Redshift, ClickHouse y MongoDB siguen leyendo todas las filas, y se ahorran el trabajo con el resto. Dataverse no toma muestras: una comprobación allí lee todas las filas. Una vista puede rechazarlo, y la comprobación lo indica.
 - **Máximo que puede leer una comprobación (GB)**, en **Ajustes**, detiene una comprobación en BigQuery o Athena antes de que lea más de esos gigabytes. Es 10 hasta que lo cambies.
 - **Esperar cuando una base de datos está ocupada**, en **Ajustes**, deja las comprobaciones pendientes para la siguiente recopilación cuando una base de datos de PostgreSQL, MySQL o SQL Server parece ocupada. Está activado hasta que lo desactives, y la base de datos indica cuándo esperaron las comprobaciones.
 

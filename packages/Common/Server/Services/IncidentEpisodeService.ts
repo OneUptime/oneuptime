@@ -77,6 +77,11 @@ import IncidentGroupingRule from "../../Models/DatabaseModels/IncidentGroupingRu
 import IncidentEpisodeLabelRuleEngineService from "./IncidentEpisodeLabelRuleEngineService";
 import IncidentEpisodeOnCallRuleEngineService from "./IncidentEpisodeOnCallRuleEngineService";
 import WaitingRunsOnRecordChange from "../Utils/OnCall/WaitingRunsOnRecordChange";
+import OnCallPageTiming from "../Utils/OnCall/OnCallPageTiming";
+import NotificationDeliveryMetrics, {
+  NotificationTriggerSource,
+  NotificationTriggerType,
+} from "../Utils/Telemetry/NotificationDeliveryMetrics";
 import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
 import {
   OnCallRulesPaging,
@@ -739,6 +744,17 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
+     * An episode notifies people: counted for the platform's operator
+     * (notification.trigger.count). A grouping rule opens most of them.
+     */
+    NotificationDeliveryMetrics.recordTrigger({
+      type: NotificationTriggerType.IncidentEpisode,
+      source: createdItem.isManuallyCreated
+        ? NotificationTriggerSource.Manual
+        : NotificationTriggerSource.Automatic,
+    });
+
+    /*
      * How far along the episode starts, as onBeforeCreate read it
      * (StartingStage). Created already acknowledged, no on-call policy runs;
      * created resolved, no channel is opened for it either. Its rules, its
@@ -964,13 +980,19 @@ export class Service extends ProjectReferencesService<Model> {
         /*
          * Execute on-call duty policies: the episode's, and those its
          * on-call rules page as observers (OnCallObserverPage), when it
-         * starts open.
+         * starts open. Their pages start at the episode's creation, its
+         * trigger (OnCallPageTiming).
          */
         try {
-          await this.executeEpisodeOnCallDutyPoliciesAsync(
-            createdItem,
-            startingStage,
-            onCallRulesPaging,
+          await OnCallPageTiming.runAsRecordIsCreated(
+            { recordCreatedAt: createdItem.createdAt },
+            (): Promise<void> => {
+              return this.executeEpisodeOnCallDutyPoliciesAsync(
+                createdItem,
+                startingStage,
+                onCallRulesPaging,
+              );
+            },
           );
         } catch (error) {
           logger.error(

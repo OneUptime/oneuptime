@@ -1,6 +1,6 @@
 # データオブザーバビリティ
 
-データオブザーバビリティは、PostgreSQL、MySQL、SQL Server、Oracle、MongoDB、Redshift、Snowflake、BigQuery、ClickHouse、Databricks、Athena にある、会社が頼りにしているテーブルを見守り、データが遅れている、欠けている、間違っている、壊れているときに、それを使う人が気づく前に知らせます。各テーブルの更新のリズムを自動で学習し、各データベースのカタログを読むので値がデータベースの外に出ることはなく、あらゆるデータの問題を、その背後にあるパイプラインの実行、デプロイ、上流のテーブルに結び付けます。
+データオブザーバビリティは、PostgreSQL、MySQL、SQL Server、Oracle、MongoDB、Redshift、Snowflake、BigQuery、ClickHouse、Databricks、Athena、Microsoft Dataverse にある、会社が頼りにしているテーブルを見守り、データが遅れている、欠けている、間違っている、壊れているときに、それを使う人が気づく前に知らせます。各テーブルの更新のリズムを自動で学習し、各データベースのカタログを読むので値がデータベースの外に出ることはなく、あらゆるデータの問題を、その背後にあるパイプラインの実行、デプロイ、上流のテーブルに結び付けます。
 
 次の 4 つの問いに答えます。
 

@@ -139,6 +139,11 @@ import IncidentGroupingEngineService from "./IncidentGroupingEngineService";
 import IncidentLabelRuleEngineService from "./IncidentLabelRuleEngineService";
 import IncidentOnCallRuleEngineService from "./IncidentOnCallRuleEngineService";
 import WaitingRunsOnRecordChange from "../Utils/OnCall/WaitingRunsOnRecordChange";
+import OnCallPageTiming from "../Utils/OnCall/OnCallPageTiming";
+import NotificationDeliveryMetrics, {
+  NotificationTriggerSource,
+  NotificationTriggerType,
+} from "../Utils/Telemetry/NotificationDeliveryMetrics";
 import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
 import {
   OnCallRulesPaging,
@@ -3475,6 +3480,21 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
+     * An incident notifies people: counted for the platform's operator
+     * (notification.trigger.count), with the type of the monitor that
+     * opened it - the one monitor it names, when a monitor did.
+     */
+    NotificationDeliveryMetrics.recordTrigger({
+      type: NotificationTriggerType.Incident,
+      source: createdItem.isCreatedAutomatically
+        ? NotificationTriggerSource.Automatic
+        : NotificationTriggerSource.Manual,
+      monitorType: createdItem.isCreatedAutomatically
+        ? createdItem.monitors?.[0]?.monitorType
+        : undefined,
+    });
+
+    /*
      * Activation event for marketing funnels. Only fires for human-declared
      * incidents (captureForUser skips when there is no user).
      */
@@ -3962,11 +3982,18 @@ export class Service extends ProjectReferencesService<Model> {
            * The incident's on-call policies, and those its on-call rules
            * page as observers (OnCallObserverPage): the fan-out pages them
            * when the incident starts open, and its feed says otherwise.
+           * Their pages start at the incident's creation, its trigger
+           * (OnCallPageTiming).
            */
-          return await this.executeOnCallDutyPoliciesAsync(
-            createdItem,
-            startingStage,
-            onCallRulesPaging,
+          return await OnCallPageTiming.runAsRecordIsCreated(
+            { recordCreatedAt: createdItem.createdAt },
+            (): Promise<void> => {
+              return this.executeOnCallDutyPoliciesAsync(
+                createdItem,
+                startingStage,
+                onCallRulesPaging,
+              );
+            },
           );
         } catch (error) {
           logger.error(

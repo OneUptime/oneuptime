@@ -163,7 +163,11 @@ describe("Ask AI", () => {
     const dialog: string = dashboardSource("Components/AIChat/AskAiPanel.tsx");
     const anyPage: string = rowStartingWith(open, "Any page").join(" | ");
 
-    expect(header).toContain('name="Ask AI"');
+    // The button's name is the docs' "Ask AI", in the reader's language.
+    expect(header).toContain(
+      'ASK_AI_BUTTON_LABEL: string = translationKey("Ask AI")',
+    );
+    expect(header).toContain("name={label}");
     expect(header).toContain('shortcut={[KeyboardKey.Mod, "I"]}');
     expect(dialog).toContain('event.key.toLowerCase() !== "i"');
     expect(dialog).toContain('target.tagName === "TEXTAREA"');

@@ -487,6 +487,8 @@ describe("MonitorSummarySnapshotUtil - every monitor type is covered", () => {
          * check time on a closed incident is a lie.
          */
         expect(props.telemetryMonitorSummary?.nextCheckAt).toBeUndefined();
+        // So the card leaves the field out rather than drawing "-".
+        expect(props.telemetryMonitorSummary?.isPastCheck).toBe(true);
       }
 
       if (kind === PayloadKind.ProbeStatus) {

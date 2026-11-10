@@ -128,4 +128,11 @@ export default interface Columns<
   getElement?:
     | ((item: TEntity, onBeforeFetchData?: TEntity | undefined) => ReactElement)
     | undefined;
+  /*
+   * The words getElement draws on the cell's line - a name drawn as a link -
+   * so the cell reads their way when that is not the page's: an English
+   * monitor name on an Arabic page is cut short at its own end
+   * (Table/Types/Column's getLineText).
+   */
+  getLineText?: ((item: TEntity) => string | undefined) | undefined;
 }

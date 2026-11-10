@@ -1026,10 +1026,12 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("tell the Dashboard's labels from the words a page keeps", () => {
-    // A tab no locale words is kept, not drawn.
-    expect(dashboardLabels(TOPOLOGY)).not.toContain("Service Map");
+    // A status no locale words is kept, not drawn.
+    expect(dashboardLabels(TOPOLOGY)).not.toContain("Entry point");
     // A tab a locale words is drawn.
     expect(dashboardLabels(TOPOLOGY)).toContain("Infrastructure");
+    expect(dashboardLabels(TOPOLOGY)).toContain("Service Map");
+    expect(drawnActionLabel("de", "Service Map")).toBe("Dienstkarte");
     // A create button is drawn from "Create {{itemName}}" with its thing.
     expect(dashboardLabels(DROP_FILTERS_AND_SCRUB_RULES)).toContain(
       "Create Log Drop Filter",

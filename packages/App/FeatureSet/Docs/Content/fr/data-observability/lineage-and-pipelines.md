@@ -15,6 +15,8 @@ Le lignage indique à partir de quelles tables chaque table est construite, et q
 
 L'onglet **Lignage** d'une table montre les tables à partir desquelles elle est construite, les pipelines qui y écrivent avec leur dernière exécution, et les tables construites à partir d'elle. Chaque lien indique où il a été observé.
 
+En haut de l'onglet, un diagramme dessine ce lignage sur quelques étapes de chaque côté (trois, ou choisissez 1, 2 ou 5) : à gauche ce à partir de quoi la table est construite, à droite les tables et les tableaux de bord construits à partir d'elle, et les pipelines qui chargent des données venues de l'extérieur, là où elles entrent. Chaque carte indique son état actuel - en retard, une alerte ouverte, une exécution en échec - et une flèche devient rouge quand la dernière exécution de son pipeline a échoué, si bien qu'on peut remonter d'une table en retard jusqu'à l'exécution qui l'a bloquée. Ouvrez n'importe quelle table pour centrer le diagramme sur elle.
+
 Lorsque la source nomme des colonnes, l'onglet **Colonnes** d'une table indique d'où vient chaque colonne et ce qu'elle alimente : l'historique d'accès de Snowflake (édition Enterprise, qui demande `IMPORTED PRIVILEGES` sur la base de données `SNOWFLAKE`), et la facette `columnLineage` d'OpenLineage.
 
 ## OpenLineage

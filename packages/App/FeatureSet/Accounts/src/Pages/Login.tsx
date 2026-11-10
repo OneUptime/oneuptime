@@ -64,7 +64,7 @@ import {
 } from "Common/UI/Components/SignInOption/SignInOptionStyle";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import QRCodeElement from "Common/UI/Components/QR/QR";
+import AuthenticatorAppSetupCode from "Common/UI/Components/AuthenticatorAppSetupCode/AuthenticatorAppSetupCode";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
 import {
@@ -2045,10 +2045,16 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                * nothing, so making it a field means inventing a fake value to
                * keep validation happy -- and a form whose validity depends on
                * a decoration is a form that fails for reasons nobody can see.
+               *
+               * The code AND its setup key (issue #6638): every QR code once
+               * failed to draw, and this screen had nothing else, so somebody
+               * whose administrator requires two factor auth could not finish
+               * signing in. Whoever cannot scan - or is shown no code - types
+               * the key in instead.
                */}
-              <div className="flex justify-center">
-                <QRCodeElement text={totpEnrolment.twoFactorOtpUrl} />
-              </div>
+              <AuthenticatorAppSetupCode
+                otpUrl={totpEnrolment.twoFactorOtpUrl}
+              />
 
               <BasicForm
                 id="two-factor-enrolment-form"

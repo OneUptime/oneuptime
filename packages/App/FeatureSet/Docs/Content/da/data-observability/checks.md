@@ -13,7 +13,7 @@ Tilføj et tjek på en tabels fane **Tjek**:
 | **Distinct Count** | Hvor mange forskellige værdier kolonnen indeholder |
 | **Minimum**, **Maksimum**, **Gennemsnit**, **Sum** | Af en numerisk kolonne (en Sum af ingen rækker er 0) |
 | **Invalid Percent** | Procentdel af værdier uden for en liste, du angiver |
-| **Format Mismatch Percent** | Procentdel af værdier, der ikke har et format, du vælger, f.eks. Email, UUID eller Country Code, eller som ikke matcher et regulært udtryk af din egen (alle motorer undtagen SQL Server) |
+| **Format Mismatch Percent** | Procentdel af værdier, der ikke har et format, du vælger, f.eks. Email, UUID eller Country Code, eller som ikke matcher et regulært udtryk af din egen (alle motorer undtagen SQL Server og Dataverse) |
 | **Orphan Count** | Rækker, hvis værdi ikke har noget match i en anden tabels kolonne |
 | **Row Count** | Rækker i tabellen, mest nyttigt med **Opdel efter** |
 | **Brugerdefineret SQL** | Det tal, som en skrivebeskyttet SELECT af din egen returnerer, med navnet `value` (i MongoDB en aggregeringspipelines) |
@@ -48,7 +48,7 @@ Et tjeks **Status**, under **Tjek** og på fanen **Tjek** for dets tabel, siger,
 
 Et tjek konkurrerer med din applikation om databasen, og på et datavarehus, der afregner efter det, en forespørgsel læser, koster det penge. Tre ting holder det under kontrol:
 
-- **Stikprøveprocent** læser en andel af rækkerne i stedet for alle, til et tjek, der læser en rate: Null Percent, Average, Invalid Percent og Format Mismatch Percent. De fleste motorer springer hele sider af tabellen over; MySQL, Redshift, ClickHouse og MongoDB læser stadig hver række og slipper for arbejdet på resten. En visning kan afvise det, og tjekket siger det.
+- **Stikprøveprocent** læser en andel af rækkerne i stedet for alle, til et tjek, der læser en rate: Null Percent, Average, Invalid Percent og Format Mismatch Percent. De fleste motorer springer hele sider af tabellen over; MySQL, Redshift, ClickHouse og MongoDB læser stadig hver række og slipper for arbejdet på resten. Dataverse tager ingen stikprøve: et tjek dér læser hver række. En visning kan afvise det, og tjekket siger det.
 - **Mest en kontrol må læse (GB)** under **Indstillinger** stopper et tjek på BigQuery eller Athena, før det læser mere end så mange gigabyte. Den er 10, indtil du ændrer den.
 - **Vent, når en database er optaget** under **Indstillinger** lader forfaldne tjek vente til næste indsamling, når en PostgreSQL-, MySQL- eller SQL Server-database ser optaget ud. Den er slået til, indtil du slår den fra, og databasen siger, hvornår tjek ventede.
 

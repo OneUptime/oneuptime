@@ -13,7 +13,7 @@ Aggiungi un controllo nella scheda **Controlli** di una tabella:
 | **Distinct Count** | Quanti valori diversi contiene la colonna |
 | **Minimo**, **Massimo**, **Media**, **Somma** | Di una colonna numerica (la somma di zero righe è 0) |
 | **Invalid Percent** | Percentuale di valori fuori da un elenco che fornisci tu |
-| **Format Mismatch Percent** | Percentuale di valori che non sono in un formato che scegli, come Email, UUID o Country Code, oppure che non corrispondono a un'espressione regolare tua (tutti i motori tranne SQL Server) |
+| **Format Mismatch Percent** | Percentuale di valori che non sono in un formato che scegli, come Email, UUID o Country Code, oppure che non corrispondono a un'espressione regolare tua (tutti i motori tranne SQL Server e Dataverse) |
 | **Orphan Count** | Righe il cui valore non ha corrispondenza nella colonna di un'altra tabella |
 | **Row Count** | Righe nella tabella, utile soprattutto con **Segmenta per** |
 | **SQL personalizzato** | Il numero restituito da una tua SELECT di sola lettura, chiamato `value` (su MongoDB, quello di una pipeline di aggregazione) |
@@ -48,7 +48,7 @@ Lo **Stato** di un controllo, in **Controlli** e nella scheda **Controlli** dell
 
 Un controllo compete con la tua applicazione per il database e, su un warehouse che fattura in base a ciò che una query legge, costa denaro. Tre cose lo tengono sotto controllo:
 
-- **Percentuale di campionamento** legge una parte delle righe invece di tutte, per un controllo che legge una percentuale: Null Percent, Media, Invalid Percent e Format Mismatch Percent. La maggior parte dei motori salta intere pagine della tabella; MySQL, Redshift, ClickHouse e MongoDB leggono comunque ogni riga, e risparmiano il lavoro sul resto. Una vista può rifiutarla, e il controllo lo segnala.
+- **Percentuale di campionamento** legge una parte delle righe invece di tutte, per un controllo che legge una percentuale: Null Percent, Media, Invalid Percent e Format Mismatch Percent. La maggior parte dei motori salta intere pagine della tabella; MySQL, Redshift, ClickHouse e MongoDB leggono comunque ogni riga, e risparmiano il lavoro sul resto. Dataverse non usa il campionamento: lì un controllo legge ogni riga. Una vista può rifiutarla, e il controllo lo segnala.
 - **Massimo che un controllo può leggere (GB)**, in **Impostazioni**, ferma un controllo su BigQuery o Athena prima che legga più di quel numero di gigabyte. Vale 10 finché non lo cambi.
 - **Attendi quando un database è occupato**, in **Impostazioni**, lascia i controlli in scadenza alla raccolta successiva quando un database PostgreSQL, MySQL o SQL Server sembra occupato. È attivo finché non lo disattivi, e il database indica quando i controlli hanno atteso.
 

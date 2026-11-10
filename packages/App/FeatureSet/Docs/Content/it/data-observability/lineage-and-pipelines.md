@@ -15,6 +15,8 @@ Il lineage dice da quali tabelle viene costruita ogni tabella, e quali pipeline 
 
 La scheda **Derivazione** di una tabella mostra le tabelle da cui viene costruita, le pipeline che la scrivono con la loro ultima esecuzione, e le tabelle costruite a partire da essa. Ogni arco indica dove è stato osservato.
 
+In cima alla scheda, un diagramma disegna questa derivazione per alcuni passi in ogni direzione (tre, oppure scegli 1, 2 o 5): a sinistra ciò da cui viene costruita la tabella, a destra le tabelle e le dashboard costruite a partire da essa, e le pipeline che caricano dati dall'esterno, nel punto in cui entrano. Ogni riquadro dice com'è adesso - in ritardo, un avviso aperto, un'esecuzione non riuscita - e una freccia diventa rossa quando l'ultima esecuzione della sua pipeline non è riuscita, così una tabella in ritardo si può seguire fino all'esecuzione che l'ha fermata. Apri qualsiasi tabella per centrare il diagramma su di essa.
+
 Dove la fonte indica le colonne, la scheda **Colonne** di una tabella dice da dove viene ciascuna colonna e cosa alimenta: la cronologia degli accessi di Snowflake (edizione Enterprise, che richiede `IMPORTED PRIVILEGES` sul database `SNOWFLAKE`) e la faccetta `columnLineage` di OpenLineage.
 
 ## OpenLineage

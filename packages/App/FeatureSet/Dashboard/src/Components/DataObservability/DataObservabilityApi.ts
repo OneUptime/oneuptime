@@ -33,6 +33,10 @@ import {
   MAX_CHECK_HEALTH_IDS,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import { DataCheckHealthAnswer } from "Common/Types/DataObservability/DataObservabilityAttention";
+import {
+  DataTableLineage,
+  DataTableLineageRequest,
+} from "Common/Types/DataObservability/DataTableLineage";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -250,6 +254,22 @@ export default class DataObservabilityApi {
     return (Array.isArray(response["dashboards"])
       ? response["dashboards"]
       : []) as unknown as Array<DataObservabilityTableDashboard>;
+  }
+
+  // A table's lineage several steps each way, with how each table on it is now.
+  public static async getTableLineage(
+    dataAssetId: ObjectID,
+    depth: number,
+  ): Promise<DataTableLineage> {
+    const request: DataTableLineageRequest = {
+      dataAssetId: dataAssetId.toString(),
+      depth,
+    };
+
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.tableLineage,
+      request as unknown as JSONObject,
+    )) as unknown as DataTableLineage;
   }
 
   // The databases the project knows of that nobody has connected.

@@ -10,7 +10,12 @@ import {
 } from "../../../Types/DataObservability/DataCheckType";
 import { DataAssetColumn } from "../../../Types/DataObservability/DataAssetColumn";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import { checkCustomSql } from "./DataCheckSql";
+import {
+  checkCustomSql,
+  DATAVERSE_NO_REGEX_MESSAGE,
+  DATAVERSE_NO_WITH_MESSAGE,
+  STARTS_WITH_WITH,
+} from "./DataCheckSql";
 import { checkMongoPipeline } from "./MongoDbChecks";
 
 /*
@@ -105,6 +110,10 @@ export function validateDataCheck(
       );
     }
 
+    if (table.engine === "dataverse") {
+      throw new BadDataException(DATAVERSE_NO_REGEX_MESSAGE);
+    }
+
     try {
       new RegExp(draft.pattern);
     } catch {
@@ -151,6 +160,12 @@ export function validateDataCheck(
       );
     }
 
+    if (table.engine === "dataverse") {
+      throw new BadDataException(
+        "Dataverse's SQL endpoint reads every row: it takes no sample. Leave Sample Percent empty.",
+      );
+    }
+
     if (!Number.isFinite(percent) || percent <= 0 || percent >= 100) {
       throw new BadDataException(
         "Sample Percent must be more than 0 and less than 100.",
@@ -162,7 +177,11 @@ export function validateDataCheck(
     if (table.engine === "mongodb") {
       checkMongoPipeline(draft.customSql || "");
     } else {
-      checkCustomSql(draft.customSql || "");
+      const sql: string = checkCustomSql(draft.customSql || "");
+
+      if (table.engine === "dataverse" && STARTS_WITH_WITH.test(sql)) {
+        throw new BadDataException(DATAVERSE_NO_WITH_MESSAGE);
+      }
     }
   }
 
