@@ -513,7 +513,7 @@ Webhook-Abonnenten bekommen bei jedem Ereignis auf der Statusseite eine JSON-`PO
 
 Weil das Abonnieren ein öffentlicher Vorgang auf einer öffentlichen Seite ist, schützt OneUptime das Ziel:
 
-- Eine allgemeine **Webhook-URL** wird geprüft, bevor sie angenommen wird, und private, Loopback-, Link-Local- und Cloud-Metadaten-Adressen werden abgelehnt. Sie können ein Abonnement nicht auf etwas im eigenen Netzwerk des OneUptime-Deployments richten.
+- Eine allgemeine **Webhook-URL** wird beim Speichern, bei jeder Änderung und noch einmal vor jedem Versand geprüft. Loopback-, Link-Local- und Cloud-Metadaten-Adressen werden immer abgelehnt. Private Adressen wie `10.0.0.0/8` oder `192.168.0.0/16` werden für einen Abonnenten, der sich auf der Statusseite einträgt, abgelehnt, egal was Ihre Instanz erlaubt. Ein Webhook-Abonnent, den Ihr Team im Dashboard, mit einem API-Schlüssel oder per Workflow hinzufügt, darf eine private Adresse verwenden, sobald eine selbst gehostete Instanz das erlaubt (siehe [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access)); bis dahin wird sie ebenfalls abgelehnt.
 - Eine **Slack Eingehende Webhook-URL** muss mit `https://hooks.slack.com/services/` beginnen.
 - Eine **Microsoft Teams Eingehende Webhook-URL** muss eine `https`-Adresse auf `office.com`, `office365.com`, `logic.azure.com` oder `environment.api.powerplatform.com` oder einer Subdomain davon sein.
 

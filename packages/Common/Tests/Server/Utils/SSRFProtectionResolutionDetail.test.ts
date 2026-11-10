@@ -19,7 +19,7 @@ import { startEachTestOnSelfHostedEgressPolicy } from "./EgressPolicyEnvironment
  * What a DNS-decided refusal is allowed to say.
  *
  * Webhook URLs, workflow API URLs and sandboxed axios requests are typed by
- * project members (and, for status page subscriber webhooks, by anyone), and
+ * project members (and, for a status page sign-up's webhook, by anyone), and
  * the refusal is shown straight back to them. "could not be resolved via DNS"
  * next to "resolves to a private network address" is a DNS oracle: try
  * `http://redis/` and `http://oneuptime-postgresql/`, compare, and learn which

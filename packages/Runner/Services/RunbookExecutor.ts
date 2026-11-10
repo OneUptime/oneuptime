@@ -111,6 +111,20 @@ export function getKubeconfigFromCredential(credential: unknown): string {
 }
 
 /*
+ * What a JavaScript step that requests a private address is told it can do
+ * instead, appended to the refusal's own sentence (so each starts with a
+ * space). No setting widens a JavaScript step's sandbox on any Runner, so
+ * neither names one: the way to an address on a network is a Bash step on a
+ * Runner inside it, which has that host's own network access. Picking
+ * another Runner for the JavaScript step would change nothing.
+ */
+export const OWN_RUNNER_JAVASCRIPT_PRIVATE_NETWORK_HINT: string =
+  " A JavaScript step reaches public addresses only. Use a Bash step to call an address on this Runner's network.";
+
+export const GLOBAL_RUNNER_JAVASCRIPT_PRIVATE_NETWORK_HINT: string =
+  " Global Runners reach the internet only, and so do JavaScript steps on your own Runners. Use a Bash step on one of your own Runners to call an address on your network.";
+
+/*
  * The egress policy of a JavaScript step's sandbox. On any Runner the
  * strict one applies, because nothing here asks for more: public addresses
  * only. A global Runner - one OneUptime runs for every project - says so
@@ -118,6 +132,10 @@ export function getKubeconfigFromCredential(credential: unknown): string {
  * nothing in this host's environment can widen it), and keeps DNS answers
  * out of a refusal's words, as a shared probe does: one project's script
  * must not learn what the network the global Runner sits in looks like.
+ *
+ * Either way a refusal of a private address says what does reach one. On a
+ * project's own Runner the guard would otherwise name the API server's
+ * webhook settings, which no Runner reads (issue #6589).
  */
 export function getJavaScriptSandboxPolicy(): {
   allowPrivateNetworkRequests?: boolean;
@@ -126,15 +144,15 @@ export function getJavaScriptSandboxPolicy(): {
   includeResolutionDetailInError?: boolean;
 } {
   if (!GlobalRunnerMode.isActive()) {
-    return {};
+    return {
+      privateNetworkHint: OWN_RUNNER_JAVASCRIPT_PRIVATE_NETWORK_HINT,
+    };
   }
 
   return {
     allowPrivateNetworkRequests: false,
     privateNetworkAccessIsAllowed: false,
-    // Appended to the refusal's own sentence, so it starts with a space.
-    privateNetworkHint:
-      " Global Runners reach the internet only. Pick one of your own Runners for a step that calls an address on your network.",
+    privateNetworkHint: GLOBAL_RUNNER_JAVASCRIPT_PRIVATE_NETWORK_HINT,
     includeResolutionDetailInError: false,
   };
 }
