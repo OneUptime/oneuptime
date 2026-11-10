@@ -773,6 +773,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
         if (subscriber.subscriberWebhook) {
           StatusPageSubscriberWebhookUtil.sendWebhookNotification({
             webhookUrl: subscriber.subscriberWebhook,
+            isAddedByTeam: subscriber.isAddedByTeam,
             payload: {
               eventType: copy.webhookEventType,
               statusPageId: statuspage.id!.toString(),

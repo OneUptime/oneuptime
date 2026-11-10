@@ -1167,6 +1167,7 @@ ${teamsCustomFields}${SubscriberMessageText.chatLinks(translator, { statusPageUr
                         return StatusPageSubscriberWebhookUtil.sendWebhookNotification(
                           {
                             webhookUrl: subscriberWebhook,
+                            isAddedByTeam: subscriber.isAddedByTeam,
                             payload: {
                               eventType: "IncidentPostmortemPublished",
                               statusPageId: statuspage.id!.toString(),

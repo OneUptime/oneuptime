@@ -513,7 +513,7 @@ Webhook-abonnenter mottar en JSON-`POST`-forespørsel ved hver hendelse på stat
 
 Fordi påmelding er en offentlig handling på en offentlig side, beskytter OneUptime målet:
 
-- En generell **Webhook-URL** valideres før den godtas, og private adresser, loopback-, link-local- og sky-metadata-adresser avvises. Du kan ikke peke et abonnement mot noe inne i OneUptime-installasjonens eget nettverk.
+- En generell **Webhook-URL** kontrolleres når den lagres, når den endres og igjen før hver utsending. Loopback-, link-local- og sky-metadata-adresser avvises alltid. Private adresser, som `10.0.0.0/8` eller `192.168.0.0/16`, avvises for en abonnent som melder seg på via statussiden, uansett hva instansen din tillater. En webhook-abonnent som teamet ditt legger til, fra dashbordet, med en API-nøkkel eller av en arbeidsflyt, kan bruke en privat adresse så snart en selvhostet instans tillater det (se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access)); inntil da avvises den også.
 - En **URL for innkommende webhook for Slack** må starte med `https://hooks.slack.com/services/`.
 - En **URL for innkommende webhook for Microsoft Teams** må være en `https`-adresse på `office.com`, `office365.com`, `logic.azure.com` eller `environment.api.powerplatform.com`, eller på et underdomene av et av dem.
 
