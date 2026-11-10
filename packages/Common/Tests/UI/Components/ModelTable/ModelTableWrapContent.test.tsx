@@ -186,20 +186,21 @@ const ONE_LINE_CONTENT_CLASS_NAME: string =
  * never below 8rem, never above its cap - while its table would otherwise
  * run past its card (data-give="line" or "box", set on it by
  * useTableScrollState) - and held whole where the table has the room
- * (data-whole="true", at the width it carries).
+ * (data-whole="true", at the width it carries). A line read right to left
+ * breaks between words.
  */
 const GIVING_ONE_LINE_CONTENT_CLASS_NAME: string =
-  "max-w-[20rem] data-[give=line]:min-w-[8rem] data-[give=line]:whitespace-normal data-[give=line]:break-all data-[give=line]:line-clamp-1 data-[give=box]:grid data-[give=box]:min-w-[8rem] data-[give=box]:grid-cols-1 data-[give=box]:justify-items-start [&[data-give=box]>*]:min-w-0 [&[data-give=box]>*]:max-w-full data-[whole=true]:min-w-[var(--ou-table-whole-width)] overflow-x-clip text-ellipsis [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>:is(span,p,div,a):not([class*=inline-])]:leading-6 [&>*]:align-top";
+  "max-w-[20rem] data-[give=line]:min-w-[8rem] data-[give=line]:whitespace-normal data-[give=line]:break-all data-[give=line]:[&:dir(rtl)]:[word-break:normal] data-[give=line]:[&:dir(rtl)]:[overflow-wrap:anywhere] data-[give=line]:line-clamp-1 data-[give=box]:grid data-[give=box]:min-w-[8rem] data-[give=box]:grid-cols-1 data-[give=box]:justify-items-start [&[data-give=box]>*]:min-w-0 [&[data-give=box]>*]:max-w-full data-[whole=true]:min-w-[var(--ou-table-whole-width)] overflow-x-clip text-ellipsis [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>:is(span,p,div,a):not([class*=inline-])]:leading-6 [&>*]:align-top";
 
 /*
  * The row's name - its first column - has the same wrapper, and while its
  * table fits its card (data-fill="true", set on it by useTableScrollState)
  * lifts the cap: the name may then break anywhere for the table's
  * measuring, only its first line shows - to the column's end - and it never
- * narrows below 10rem.
+ * narrows below 10rem. A line read right to left breaks between words.
  */
 const NAME_ONE_LINE_CONTENT_CLASS_NAME: string =
-  "max-w-[20rem] data-[fill=true]:max-w-none data-[fill=true]:min-w-[10rem] data-[fill=true]:whitespace-normal data-[fill=true]:break-all data-[fill=true]:line-clamp-1 overflow-x-clip text-ellipsis [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>:is(span,p,div,a):not([class*=inline-])]:leading-6 [&>*]:align-top";
+  "max-w-[20rem] data-[fill=true]:max-w-none data-[fill=true]:min-w-[10rem] data-[fill=true]:whitespace-normal data-[fill=true]:break-all data-[fill=true]:[&:dir(rtl)]:[word-break:normal] data-[fill=true]:[&:dir(rtl)]:[overflow-wrap:anywhere] data-[fill=true]:line-clamp-1 overflow-x-clip text-ellipsis [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>:is(span,p,div,a):not([class*=inline-])]:leading-6 [&>*]:align-top";
 
 /*
  * The default cap a wrapping column gets when it names no width of its own.

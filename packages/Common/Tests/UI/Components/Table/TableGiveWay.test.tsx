@@ -15,6 +15,7 @@ import {
   TABLE_HEADER_CONTENT_WRAP_CLASS_NAME,
   TABLE_HEADER_WRAP_ATTRIBUTE,
   TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME,
+  TABLE_RIGHT_TO_LEFT_LINE_BREAKS,
   TABLE_ROWS_DRAWN_CLASS_NAME,
   TABLE_ROWS_DRAWN_PROPERTY,
   TABLE_SHRINKABLE_ATTRIBUTE,
@@ -147,6 +148,8 @@ describe("the classes a table gives way with", () => {
       "min-w-[8rem]",
       "whitespace-normal",
       "break-all",
+      // A line read right to left breaks between words, as a name does.
+      ...TABLE_RIGHT_TO_LEFT_LINE_BREAKS,
       "line-clamp-1",
     ]);
     expect(line).not.toContain("[overflow-wrap:anywhere]");

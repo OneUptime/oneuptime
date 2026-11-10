@@ -49122,5 +49122,8 @@
   "{{count}} profiles_one": "{{count}} پروفایل",
   "{{count}} security events": "{{count}} رویداد امنیتی",
   "{{count}} security events_one": "{{count}} رویداد امنیتی",
+  "Loading infrastructure…": "در حال بارگذاری زیرساخت…",
+  "Loading service map…": "در حال بارگذاری نقشهٔ سرویس‌ها…",
+  "Service Map": "نقشهٔ سرویس‌ها",
   "Microsoft Dataverse": "Microsoft Dataverse"
 }

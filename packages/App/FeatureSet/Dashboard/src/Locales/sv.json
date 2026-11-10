@@ -49122,5 +49122,8 @@
   "{{count}} profiles_one": "{{count}} profil",
   "{{count}} security events": "{{count}} säkerhetshändelser",
   "{{count}} security events_one": "{{count}} säkerhetshändelse",
+  "Loading infrastructure…": "Läser in infrastrukturen…",
+  "Loading service map…": "Läser in tjänstekartan…",
+  "Service Map": "Tjänstekarta",
   "Microsoft Dataverse": "Microsoft Dataverse"
 }

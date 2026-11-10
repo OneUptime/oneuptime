@@ -16,7 +16,7 @@ Hver visning i Topologi bygges fra en annen type telemetri:
 
 ```mermaid title="Hvor hver visning i Topologi kommer fra"
 flowchart LR
-    traces["Spor og eBPF,<br/>lest hvert<br/>10. minutt"] --> serviceMap["Service Map"]
+    traces["Spor og eBPF,<br/>lest hvert<br/>10. minutt"] --> serviceMap["Tjenestekart"]
     resources["Verter, klynger og<br/>containere som<br/>sender data"] --> infrastructure["Infrastruktur"]
     neighbours["Naboer som enhetene<br/>dine melder<br/>via LLDP"] --> network["Nettverk"]
 ```
@@ -32,11 +32,11 @@ flowchart LR
 
 ## Åpne Topologi
 
-Gå til **Produkter → Observerbarhet → Topologi**. **Inventar → Topologikart** åpner den samme siden. Den åpnes på **Service Map**, for **Siste døgn**.
+Gå til **Produkter → Observerbarhet → Topologi**. **Inventar → Topologikart** åpner den samme siden. Den åpnes på **Tjenestekart**, for **Siste døgn**.
 
 | Visning | Spørsmålet den besvarer |
 | --- | --- |
-| **Service Map** | Hvilke tjenester er avhengige av hverandre? |
+| **Tjenestekart** | Hvilke tjenester er avhengige av hverandre? |
 | **Infrastruktur** | Hva kjører hvor i infrastrukturen din? |
 | **Nettverk** | Hvordan er nettverksenhetene dine koblet sammen? |
 
@@ -44,7 +44,7 @@ Ved siden av tidsvelgeren legger **Vis inaktive** til det som ikke sendte data i
 
 ## Les tjenestekartet
 
-**Service Map** tegner hver tjeneste som sendte data, og databasene, API-ene og meldingsmeglerne de kaller, også når disse ikke sender egen telemetri. Piler peker fra den som kaller til den som blir kalt, og tykkere linjer bærer flere forespørsler. Tallene over den sier hvor mange tjenester, avhengigheter og forbindelser den tegner, og hvor mange som krever oppmerksomhet.
+**Tjenestekart** tegner hver tjeneste som sendte data, og databasene, API-ene og meldingsmeglerne de kaller, også når disse ikke sender egen telemetri. Piler peker fra den som kaller til den som blir kalt, og tykkere linjer bærer flere forespørsler. Tallene over det sier hvor mange tjenester, avhengigheter og forbindelser det tegner, og hvor mange som krever oppmerksomhet.
 
 Hver tjeneste viser statusen sin, beregnet fra kallene den mottok de siste 15 minuttene:
 
@@ -80,7 +80,7 @@ Klikk på en pil for å se forespørselsraten, feilraten og gjennomsnittlig vent
 
 - **Bla gjennom den på din måte.** Vis den som **Liste** eller **Kart**, fra hele infrastrukturen ned til én pod. Tallene over den sier hvor mange ressurser og arbeidslaster den tegner, hvor mange tjenester den kan plassere, og hvor mange stille ressurser den utelater.
 - **Finn en ressurs.** Søk etter den med navn, og klikk på **Vis detaljer** for å åpne siden dens.
-- **Bytt mellom visninger.** En tjeneste som står på en ressurs, åpnes på **Service Map**, og ressursene en tjeneste kjører på, åpnes på **Infrastruktur**.
+- **Bytt mellom visninger.** En tjeneste som står på en ressurs, åpnes på **Tjenestekart**, og ressursene en tjeneste kjører på, åpnes på **Infrastruktur**.
 
 ## Åpne en ressurs sitt eget kart
 

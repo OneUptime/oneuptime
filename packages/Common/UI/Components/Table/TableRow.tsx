@@ -56,6 +56,7 @@ import { Translator } from "../../Utils/TranslateTemplate";
 import {
   getLineDirection,
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+  LINE_OR_CLAMPED_LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
 } from "../../Utils/LineDirection";
 import { ReadingDirection } from "../../../Types/ReadingDirection";
 import React, { ReactElement, useState } from "react";
@@ -427,16 +428,19 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
   /*
    * The way a cell's line reads when it is not the page's way: a plain
    * value in the other script - an English summary on a Persian page - is
-   * cut short at its own end, not at its start (LineDirection). A cell
-   * with columns folded under it keeps the page's way: its folded lines
-   * are the page's words.
+   * cut short at its own end, not at its start (LineDirection). So is an
+   * element whose column names the words it draws (getLineText: a monitor's
+   * name drawn as a link). A cell with columns folded under it keeps the
+   * page's way: its folded lines are the page's words.
    */
   const getCellLineDirection: (
     column: Column<T>,
   ) => ReadingDirection | undefined = (
     column: Column<T>,
   ): ReadingDirection | undefined => {
-    const text: string | undefined = getPlainCellText(column);
+    const text: string | undefined = column.getElement
+      ? column.getLineText?.(props.item) || undefined
+      : getPlainCellText(column);
 
     if (!text) {
       return undefined;
@@ -877,7 +881,16 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                       <div
                         className={
                           lineDirection
-                            ? `${contentWrapperClassName} ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME}`
+                            ? `${contentWrapperClassName} ${
+                                /*
+                                 * The row's name may be cut short to its
+                                 * first line (line-clamp), whose "..." an
+                                 * end-aligned box drew past its edge.
+                                 */
+                                isFillingNameColumn<T>(column, i === 0)
+                                  ? LINE_OR_CLAMPED_LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME
+                                  : LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME
+                              }`
                             : contentWrapperClassName
                         }
                         dir={lineDirection}

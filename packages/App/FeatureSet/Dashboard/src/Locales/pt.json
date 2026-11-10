@@ -49122,5 +49122,8 @@
   "{{count}} profiles_one": "{{count}} perfil",
   "{{count}} security events": "{{count}} eventos de segurança",
   "{{count}} security events_one": "{{count}} evento de segurança",
+  "Loading infrastructure…": "Carregando a infraestrutura…",
+  "Loading service map…": "Carregando o mapa de serviços…",
+  "Service Map": "Mapa de serviços",
   "Microsoft Dataverse": "Microsoft Dataverse"
 }
