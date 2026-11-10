@@ -227,7 +227,7 @@ Quién es propietario de un recurso se lee a través del recurso. Los propietari
 
 ### Propietarios de equipos
 
-Un equipo también tiene propietarios: las personas y los equipos que se encargan de él. Se muestran en la página del equipo y en la lista de equipos, y se añaden y se quitan con **Edit Team**. Los equipos **Owners** y **Admin**, que vienen con cada proyecto, no tienen ninguno.
+Un equipo también tiene propietarios: las personas y los equipos que se encargan de él. Se muestran en la página del equipo y en la lista de equipos, y se añaden y se quitan con **Edit Team**. Los equipos **Owners** y **Admin**, que vienen con cada proyecto, no tienen ninguno. Para añadir o quitar propietarios de varios equipos a la vez, selecciónalos en la lista de equipos y elige **Añadir propietario** o **Quitar propietario** en **Acciones masivas**; **Owners** y **Admin** se omiten.
 
 Seis permisos de equipo se pueden limitar al alcance Propios: **Create Team**, **Edit Team**, **Delete Team**, **Invite New Members**, **Remove Team Members** y **Edit Team Permissions**. Con alcance Propios, cada uno alcanza solo los equipos que pertenecen a usted o al equipo al que se da, con sus miembros, permisos, roles personalizados y ajustes de cumplimiento. Quien crea un equipo con **Create Team** con alcance Propios se convierte en su primer propietario. La lectura de equipos nunca se acota: un equipo se elige en todas partes como propietario, como responsable de guardia y como destinatario, así que todos los que pueden leer equipos ven todos los equipos, quién está en ellos y qué pueden hacer.
 

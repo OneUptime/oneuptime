@@ -227,7 +227,7 @@ Hvem som eier en ressurs, leses gjennom ressursen. Eierne av en overvåker eller
 
 ### Eiere av team
 
-Et team har også eiere: personene og teamene som har ansvar for det. De vises på teamets side og i teamlisten, og legges til og fjernes med **Edit Team**. Teamene **Owners** og **Admin**, som følger med alle prosjekter, har ingen.
+Et team har også eiere: personene og teamene som har ansvar for det. De vises på teamets side og i teamlisten, og legges til og fjernes med **Edit Team**. Teamene **Owners** og **Admin**, som følger med alle prosjekter, har ingen. For å legge til eller fjerne eiere for flere team på én gang merker du dem i teamlisten og velger **Legg til eier** eller **Fjern eier** under **Massehandlinger**; **Owners** og **Admin** hoppes over.
 
 Seks teamtillatelser kan begrenses til omfanget Eide: **Create Team**, **Edit Team**, **Delete Team**, **Invite New Members**, **Remove Team Members** og **Edit Team Permissions**. Med omfanget Eide rekker hver av dem bare til teamene som du eller teamet den er gitt til, eier, med medlemmene, tillatelsene, de egendefinerte rollene og samsvarsinnstillingene deres. Den som oppretter et team med **Create Team** med omfanget Eide, blir dets første eier. Lesing av team innsnevres aldri: et team velges overalt som eier, som vakthavende og som mottaker, så alle som kan lese team, ser alle team, hvem som er med i dem, og hva de kan gjøre.
 

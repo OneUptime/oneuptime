@@ -1,5 +1,6 @@
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import OwnersCard from "../../../Components/Owners/OwnersCard";
+import { BUILT_IN_TEAM_OWNERS_REASON } from "../../../Components/Team/BuiltInTeamOwners";
 import PageComponentProps from "../../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
@@ -21,16 +22,6 @@ import React, {
   useEffect,
   useState,
 } from "react";
-
-/*
- * Owners and Admin come with every project and have no owners: the server
- * refuses one for them (TeamService.assertTeamCanHaveOwners, in these words:
- * Common/Types/Team/BuiltInTeam). Their page says so where every other
- * team lists its owners.
- */
-export const BUILT_IN_TEAM_OWNERS_REASON: string = translationKey(
-  "This team comes with every project and can't have owners.",
-);
 
 // What a team's owners do, under the Owners card's title.
 export const TEAM_OWNERS_DESCRIPTION: string = translationKey(
@@ -164,6 +155,11 @@ const TeamViewIndex: FunctionComponent<
         />
       )}
 
+      {/*
+       * Owners and Admin come with every project and have no owners: their
+       * page says so where every other team lists its owners, in the
+       * server's words (Components/Team/BuiltInTeamOwners).
+       */}
       {canHaveOwners === false && (
         <Card
           title="Owners"
