@@ -87,7 +87,7 @@ SMS에만, 또는 통화에만 쓰는 계정에는 다른 쪽을 위한 번호�
 
 ## 3. 네트워크 액세스 설정
 
-전송은 아웃바운드 액세스만으로 동작합니다. 전달 상태 업데이트, 키패드 확인, 수신 전화에는 Twilio가 서버에 도달해야 합니다.
+전송은 아웃바운드 액세스만으로 동작합니다. 전달 상태 업데이트, 통화 결과, 키패드 확인, 수신 전화에는 Twilio가 서버에 도달해야 합니다.
 
 ```mermaid title="아웃바운드 전송과 인바운드 콜백"
 sequenceDiagram
@@ -109,6 +109,7 @@ sequenceDiagram
 | --- | --- |
 | SMS 전송 | 아니요. 다만 전달 상태 업데이트에는 콜백이 필요합니다. |
 | 간단한 테스트 음성 통화 | 아니요. OneUptime이 음성 안내를 아웃바운드 API 요청에 함께 보냅니다. |
+| 온콜 전화를 받았는지 알기 | 예. Twilio가 각 통화가 어떻게 끝났는지 알려 주므로 응답하지 않은 경우 인시던트 피드에 표시할 수 있습니다. 없어도 전화는 걸립니다. |
 | 1을 눌러 온콜 알림 확인 | 예. Twilio가 키패드 입력을 OneUptime에 보냅니다. |
 | 수신 전화 정책 | 예. Twilio가 통화 지침을 요청하고 다이얼 결과를 보고합니다. |
 
@@ -117,13 +118,14 @@ sequenceDiagram
 | 메서드 | 경로 | 용도 |
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | SMS 전달 상태 |
+| POST | `/notification/call/status-callback/:callLogId/:token` | 통화 결과 |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | 키패드 확인 |
 | POST | `/notification/incoming-call/voice` | 선택: 수신 전화 지침 |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | 선택: 수신 전화 라우팅 결과 |
 
-SMS와 확인 URL은 OneUptime이 자동으로 만듭니다. 그 토큰을 고정된 웹훅 URL로 바꾸지 마세요. 수신 전화는 [수신 전화 정책](/docs/on-call/incoming-call-policy)을 따르세요. 번호를 연결하면 그 번호의 웹훅이 구성됩니다.
+SMS, 통화 결과, 확인 URL은 OneUptime이 자동으로 만듭니다. 그 토큰을 고정된 웹훅 URL로 바꾸지 마세요. 수신 전화는 [수신 전화 정책](/docs/on-call/incoming-call-policy)을 따르세요. 번호를 연결하면 그 번호의 웹훅이 구성됩니다.
 
-Twilio는 [공개적으로 접근할 수 있는 웹훅 URL](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)이 필요합니다. 공개적으로 신뢰되는 TLS 인증서를 사용하고, 프록시를 거쳐도 원래의 호스트, 프로토콜, 경로, 쿼리 매개변수, 본문, `X-Twilio-Signature` 헤더를 유지하세요. 수신 전화 핸들러는 Twilio 서명을 검증합니다. SMS 전달은 메시지마다 URL 토큰을, 키패드 확인은 서명된 쿼리 토큰을 사용합니다. 토큰을 공유 로그나 스크린샷에 노출하지 마세요. [Twilio 웹훅 보안](https://www.twilio.com/docs/usage/webhooks/webhooks-security)을 참고하세요.
+Twilio는 [공개적으로 접근할 수 있는 웹훅 URL](https://www.twilio.com/docs/usage/webhooks/webhooks-overview)이 필요합니다. 공개적으로 신뢰되는 TLS 인증서를 사용하고, 프록시를 거쳐도 원래의 호스트, 프로토콜, 경로, 쿼리 매개변수, 본문, `X-Twilio-Signature` 헤더를 유지하세요. 수신 전화 핸들러는 Twilio 서명을 검증합니다. SMS 전달과 통화 결과는 메시지나 통화마다 URL 토큰을, 키패드 확인은 서명된 쿼리 토큰을 사용합니다. 토큰을 공유 로그나 스크린샷에 노출하지 마세요. [Twilio 웹훅 보안](https://www.twilio.com/docs/usage/webhooks/webhooks-security)을 참고하세요.
 
 ### 프라이빗 배포에서 콜백 공개하기
 
@@ -142,7 +144,7 @@ Twilio는 [공개적으로 접근할 수 있는 웹훅 URL](https://www.twilio.c
 Twilio의 일반적인 웹훅 출발지 주소는 바뀌므로, SIP나 미디어 IP 범위를 콜백 허용 목록으로 쓰지 마세요. 자격을 갖춘 Twilio 에디션은 [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy)를 제공합니다. 사용 중인 에디션이 대상인지와 지원 제품을 확인하고, Twilio가 현재 공개한 범위로 방화벽을 구성하세요. 이를 쓰더라도 콜백 검증은 계속합니다.
 
 > [!WARNING]
-> 정책상 인바운드 연결이 금지되어 있다면, SMS 전송과 간단한 인라인 음성 재생은 아웃바운드 HTTPS로 동작할 수 있습니다. SMS 전달 업데이트, 키패드 확인, 수신 전화 라우팅은 접근 가능한 콜백 없이는 동작하지 않습니다. 완전히 단절된 설치에서는 Twilio를 사용할 수 없습니다.
+> 정책상 인바운드 연결이 금지되어 있다면, SMS 전송과 간단한 인라인 음성 재생은 아웃바운드 HTTPS로 동작할 수 있습니다. SMS 전달 업데이트, 통화 결과, 키패드 확인, 수신 전화 라우팅은 접근 가능한 콜백 없이는 동작하지 않습니다. 완전히 단절된 설치에서는 Twilio를 사용할 수 없습니다.
 
 개발용으로는 Twilio의 [웹훅 테스트 가이드](https://www.twilio.com/docs/usage/webhooks/webhook-testing)가 공개 터널 사용법을 설명합니다. 필요한 경로만 허용하는 프록시로 터널을 전달하고, 얻은 호스트 이름을 위와 같이 구성한 뒤, 테스트가 끝나면 멈추세요. 터널도 인바운드 액세스를 엽니다.
 

@@ -73,7 +73,7 @@ L'invio degli avvisi richiede solo HTTPS in uscita verso `api.telegram.org`. Col
 
 ### Twilio
 
-Quando un reperibile preme 1 durante una chiamata per confermare l'avviso, Twilio invia il tasto a `POST /api/user-notification-log-timeline/call/gather-input/*`. Gli indirizzi dei webhook di Twilio cambiano, a meno che la tua edizione di Twilio non includa [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Gli aggiornamenti di consegna degli SMS e le chiamate in arrivo sono descritti in [Integrazione Twilio](/docs/self-hosted/twilio-integration).
+Quando un reperibile preme 1 durante una chiamata per confermare l'avviso, Twilio invia il tasto a `POST /api/user-notification-log-timeline/call/gather-input/*`. Gli indirizzi dei webhook di Twilio cambiano, a meno che la tua edizione di Twilio non includa [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Gli aggiornamenti di consegna degli SMS, l'esito delle chiamate e le chiamate in arrivo sono descritti in [Integrazione Twilio](/docs/self-hosted/twilio-integration).
 
 ### WhatsApp
 

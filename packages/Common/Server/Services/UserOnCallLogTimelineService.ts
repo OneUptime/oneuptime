@@ -36,6 +36,26 @@ import {
   isOnCallPageNotificationOut,
 } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
 
+/*
+ * What the record's feed is told of a notification that an update gives
+ * this status: one that could not be sent, or a call not answered. Null for
+ * every other status - the feed hears of none of those from an update.
+ */
+export const getFeedEventOfStatus: (
+  status: unknown,
+) => OnCallPageNotificationEvent | null = (
+  status: unknown,
+): OnCallPageNotificationEvent | null => {
+  switch (status) {
+    case UserNotificationStatus.Error:
+      return OnCallPageNotificationEvent.Failed;
+    case UserNotificationStatus.NotAnswered:
+      return OnCallPageNotificationEvent.NotAnswered;
+    default:
+      return null;
+  }
+};
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -142,8 +162,8 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * The status each notification had before an update that marks it as not
-   * sent, so the record's feed hears of its failure once - not again when a
-   * second write says the same (onUpdateSuccess).
+   * sent, or as a call not answered, so the record's feed hears of it once -
+   * not again when a second write says the same (onUpdateSuccess).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -154,7 +174,7 @@ export class Service extends DatabaseService<Model> {
       UserNotificationStatus | undefined
     > = {};
 
-    if (updateBy.data.status === UserNotificationStatus.Error) {
+    if (getFeedEventOfStatus(updateBy.data.status)) {
       const itemsBeforeUpdate: Array<Model> =
         await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
@@ -226,11 +246,19 @@ export class Service extends DatabaseService<Model> {
 
       /*
        * A notification that could not be sent after all - its provider
-       * refused it, its push token is gone - is told of in the record's
-       * feed, once: a second write saying the same is no news. A status
-       * not read before the update counts as a change.
+       * refused it, its push token is gone - or a call that rang and was
+       * not picked up is told of in the record's feed, once: a second write
+       * saying the same is no news. A status not read before the update
+       * counts as a change.
        */
-      if (onUpdate.updateBy.data.status === UserNotificationStatus.Error) {
+      const event: OnCallPageNotificationEvent | null = getFeedEventOfStatus(
+        onUpdate.updateBy.data.status,
+      );
+
+      if (event) {
+        const status: UserNotificationStatus = onUpdate.updateBy.data
+          .status as UserNotificationStatus;
+
         const statusBeforeUpdate:
           | Record<string, UserNotificationStatus | undefined>
           | undefined = (
@@ -245,20 +273,14 @@ export class Service extends DatabaseService<Model> {
         for (const delivery of deliveries) {
           const id: string = delivery.id?.toString() || "";
 
-          const wasFailedBefore: boolean = Boolean(
+          const wasSoBefore: boolean = Boolean(
             statusBeforeUpdate &&
               id in statusBeforeUpdate &&
-              statusBeforeUpdate[id] === UserNotificationStatus.Error,
+              statusBeforeUpdate[id] === status,
           );
 
-          if (
-            delivery.status === UserNotificationStatus.Error &&
-            !wasFailedBefore
-          ) {
-            await this.addNotificationToFeed(
-              delivery,
-              OnCallPageNotificationEvent.Failed,
-            );
+          if (delivery.status === status && !wasSoBefore) {
+            await this.addNotificationToFeed(delivery, event);
           }
         }
       }

@@ -73,7 +73,7 @@
 
 ### Twilio
 
-対応者が通話中に 1 を押して確認応答すると、Twilio はそのキーを `POST /api/user-notification-log-timeline/call/gather-input/*` に送信します。お使いの Twilio のエディションに [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy) が含まれていない限り、Twilio の Webhook の送信元アドレスは変わります。SMS の配信状況の更新と着信については、[Twilio 統合](/docs/self-hosted/twilio-integration)で説明しています。
+対応者が通話中に 1 を押して確認応答すると、Twilio はそのキーを `POST /api/user-notification-log-timeline/call/gather-input/*` に送信します。お使いの Twilio のエディションに [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy) が含まれていない限り、Twilio の Webhook の送信元アドレスは変わります。SMS の配信状況の更新、通話の結果、着信については、[Twilio 統合](/docs/self-hosted/twilio-integration)で説明しています。
 
 ### WhatsApp
 

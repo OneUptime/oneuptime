@@ -238,6 +238,81 @@ describe("an incident's on-call run pages Nitin", () => {
       expect(nitinsLineInSlack()).toContain("by call, SMS and email");
     });
 
+    /*
+     * Twilio says how the call ended (#6586): it rang out. The feed says
+     * so - of Nitin, as their answer would be - once, and never how.
+     */
+    describe("and Nitin does not pick up the call", () => {
+      beforeEach(async () => {
+        await world.missCall(NITIN);
+      });
+
+      test("the feed says Nitin did not answer the phone call - and not how it ended", () => {
+        expect(nitinsEntries()).toEqual([
+          `On-call policy PolicyX paged **Nitin** via SMS and email at ${LEVEL}.`,
+          `On-call policy PolicyX paged **Nitin** again via phone call at ${LEVEL}.`,
+          `**Nitin** did not answer the phone call from on-call policy PolicyX at ${LEVEL}.`,
+        ]);
+        expect(nitinsEntries().join("\n")).not.toContain("rang out");
+      });
+
+      test("Twilio telling the same twice is told of once", async () => {
+        await world.missCall(NITIN);
+
+        expect(
+          nitinsEntries().filter((markdown: string): boolean => {
+            return markdown.indexOf("did not answer") !== -1;
+          }),
+        ).toHaveLength(1);
+      });
+
+      test("a second call that rings out adds nothing: the feed said as much", async () => {
+        await world.notifyAgain(NITIN, "userCallId");
+        await world.missCall(NITIN);
+
+        expect(nitinsEntries()).toHaveLength(3);
+      });
+
+      test("the Slack message still counts the call: it reached Nitin's phone", () => {
+        expect(nitinsLineInSlack()).toContain("by call, SMS and email");
+      });
+
+      test("the entry is the feed's alone: the run's one message is how the channel hears of the page", () => {
+        for (const entry of onCallEntries()) {
+          expect(entry.postsToWorkspace).toBe(false);
+        }
+      });
+
+      describe("and Nitin acknowledges from the SMS", () => {
+        beforeEach(async () => {
+          await world.acknowledge(NITIN, "userSmsId");
+        });
+
+        test("the whole story, in order: paged, called, did not answer, acknowledged via SMS", () => {
+          expect(nitinsEntries()).toEqual([
+            `On-call policy PolicyX paged **Nitin** via SMS and email at ${LEVEL}.`,
+            `On-call policy PolicyX paged **Nitin** again via phone call at ${LEVEL}.`,
+            `**Nitin** did not answer the phone call from on-call policy PolicyX at ${LEVEL}.`,
+            `**Nitin** acknowledged the page from on-call policy PolicyX at ${LEVEL} via SMS.`,
+          ]);
+        });
+      });
+    });
+
+    describe("and Nitin acknowledges from the SMS while the phone still rings", () => {
+      beforeEach(async () => {
+        await world.acknowledge(NITIN, "userSmsId");
+        await world.missCall(NITIN);
+      });
+
+      test("the call ringing out afterwards says nothing: the page was answered", () => {
+        expect(nitinsEntries().join("\n")).not.toContain("did not answer");
+        expect(nitinsEntries()[nitinsEntries().length - 1]).toBe(
+          `**Nitin** acknowledged the page from on-call policy PolicyX at ${LEVEL} via SMS.`,
+        );
+      });
+    });
+
     describe("and the SMS turns out not to have been delivered", () => {
       beforeEach(async () => {
         await world.failNotification(NITIN, "userSmsId");

@@ -12,6 +12,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PASS_ON_PAGE_TEXT } from "../../Components/OnCallPolicy/PassOn/PassOnPage";
 import { withEscalatedStatusLabel } from "../../Components/OnCallPolicy/PassOn/PassedOnStatus";
+import {
+  NOT_ANSWERED_STATUS_LABEL,
+  withNotAnsweredStatusLabel,
+} from "../../Components/OnCallPolicy/NotAnsweredStatus";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -102,9 +106,15 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Status",
             type: FieldType.Element,
 
-            // The notification you escalated from: stored "Passed On", offered as Escalated.
-            filterDropdownOptions: withEscalatedStatusLabel(
-              DropdownUtil.getDropdownOptionsFromEnum(UserNotificationStatus),
+            /*
+             * The notification you escalated from: stored "Passed On",
+             * offered as Escalated. A call you did not pick up: stored "Not
+             * Answered", offered as Not answered.
+             */
+            filterDropdownOptions: withNotAnsweredStatusLabel(
+              withEscalatedStatusLabel(
+                DropdownUtil.getDropdownOptionsFromEnum(UserNotificationStatus),
+              ),
             ),
           },
         ]}
@@ -172,6 +182,11 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     text={PASS_ON_PAGE_TEXT.passedOnStatus}
                   />
                 );
+              } else if (
+                item["status"] === UserNotificationStatus.NotAnswered
+              ) {
+                // A call that rang out, or found the line busy.
+                return <Pill color={Yellow} text={NOT_ANSWERED_STATUS_LABEL} />;
               }
 
               return <Pill color={Red} text={UserNotificationStatus.Error} />;
