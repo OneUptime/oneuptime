@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48275,
-    "untranslated": 11090
+    "keys": 48448,
+    "untranslated": 10658
   },
   "sameAsEnglish": [
     " is",
@@ -455,6 +455,7 @@
     "Uplinks",
     "Uploads",
     "Uptime %",
+    "Uptime ({{days}}d)",
     "VIP",
     "VLAN",
     "VM",
@@ -599,6 +600,7 @@
     "records",
     "recordset",
     "recordsets",
+    "resident set size",
     "resource",
     "resources",
     "rollbacks",

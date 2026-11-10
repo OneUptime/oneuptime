@@ -672,10 +672,10 @@ Flytkartet har én kolonne per trinn. En side er en boks der høyden er antallet
 | **From session start** | Trinn 1 er hver økts landingsside. |
 | **After a page** | Forankrer kartet ved én side og følger øktene fra første gang de nådde den — «hvor går folk etter `/pricing`?» |
 | **Before a page** | Følger økter bakover fra første gang de nådde en side — «hvordan kommer folk til `/checkout`?» Ankeret tegnes til høyre. |
-| **Trinn** / **Pages per step** | Hvor mange kolonner som tegnes, og hvor mange sider en kolonne nevner før resten samles i **Other pages** (klikk på den for å se hva den inneholder). |
+| **Trinn** / **Sider per trinn** | Hvor mange kolonner som tegnes, og hvor mange sider en kolonne nevner før resten samles i **Other pages** (klikk på den for å se hva den inneholder). |
 | **Økter** | Alle økter, bare økter med feil eller bare økter med frustrasjonssignaler (raseriklikk, døde klikk, feilklikk, raseri-innlastinger). Dine egne signaler teller med når de teller som frustrasjon. |
 | **Enhet** | Bare økter fra datamaskin, mobil eller nettbrett. |
-| **Group IDs in URLs** | Slått på som standard: `/orders/1042` og `/orders/1043` er én side, `/orders/:id`. Tall, heksadesimale ID-er og lange tokener av bokstaver og sifre grupperes, akkurat som hvert segment opptakeren allerede har erstattet med `[redacted]`. Av som standard for én bruker eller én økt. |
+| **Grupper ID-er i URL-er** | Slått på som standard: `/orders/1042` og `/orders/1043` er én side, `/orders/:id`. Tall, heksadesimale ID-er og lange tokener av bokstaver og sifre grupperes, akkurat som hvert segment opptakeren allerede har erstattet med `[redacted]`. Av som standard for én bruker eller én økt. |
 | **Hide this page** | I en sides detaljpanel. Fjerner siden fra hver bane, slik at en mellomside for pålogging eller samtykke slutter å dele baner i to; skjulte sider vises over kartet og kan vises igjen. |
 
 En sides detaljpanel viser hvor mange økter som nådde den på det trinnet, hvor mange som forlot den der, hvor mange som hadde en feil der, hvor besøkende kom fra og hvor de gikk etterpå i hele tidsrommet, opptil fem økter å se og en lenke til øktlisten filtrert på hver økt som besøkte siden. For et bånd viser det hver sides andel og øktene som gjorde nøyaktig den bevegelsen.

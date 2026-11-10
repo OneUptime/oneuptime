@@ -51,7 +51,11 @@ import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  translatableTerm,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -311,10 +315,14 @@ const MessageQueueMetricChartModal: FunctionComponent<ComponentProps> = (
         }),
   );
 
+  /*
+   * The metric's description is a key of the locales (what the (i) beside
+   * its tile says), translated along with the sentence around it.
+   */
   const description: string = descriptor
     ? translator.translateTemplate(
         "{{metricDescription}} Charted for this queue only.",
-        { metricDescription: descriptor.description },
+        { metricDescription: translatableTerm(descriptor.description) },
       )
     : translator.translateText(
         "Charted for this queue only: the datapoints tagged with its key.",

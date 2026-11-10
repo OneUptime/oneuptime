@@ -672,10 +672,10 @@ De stroomkaart heeft één kolom per stap. Een pagina is een blok waarvan de hoo
 | **From session start** | Stap 1 is de landingspagina van elke sessie. |
 | **After a page** | Verankert de kaart aan één pagina en volgt sessies vanaf het eerste moment dat ze die bereikten — «waar gaan mensen heen na `/pricing`?» |
 | **Before a page** | Volgt sessies terug vanaf het eerste moment dat ze een pagina bereikten — «hoe komen mensen bij `/checkout`?» Het anker wordt rechts getekend. |
-| **Stappen** / **Pages per step** | Hoeveel kolommen er worden getekend en hoeveel pagina's een kolom noemt voordat de rest wordt samengevoegd tot **Other pages** (klik erop om te zien wat erin zit). |
+| **Stappen** / **Pagina's per stap** | Hoeveel kolommen er worden getekend en hoeveel pagina's een kolom noemt voordat de rest wordt samengevoegd tot **Other pages** (klik erop om te zien wat erin zit). |
 | **Sessies** | Alle sessies, alleen sessies met fouten, of alleen sessies met frustratiesignalen (rage-klikken, dead-klikken, error-klikken, rage-herladen). Je eigen signalen tellen mee wanneer ze als frustratie tellen. |
 | **Apparaat** | Alleen desktop-, mobiele of tabletsessies. |
-| **Group IDs in URLs** | Standaard aan: `/orders/1042` en `/orders/1043` zijn één pagina, `/orders/:id`. Getallen, hexadecimale id's en lange tokens van letters en cijfers worden gegroepeerd, net als elk segment dat de recorder al door `[redacted]` heeft vervangen. Standaard uit voor één gebruiker of één sessie. |
+| **ID's in URL's groeperen** | Standaard aan: `/orders/1042` en `/orders/1043` zijn één pagina, `/orders/:id`. Getallen, hexadecimale id's en lange tokens van letters en cijfers worden gegroepeerd, net als elk segment dat de recorder al door `[redacted]` heeft vervangen. Standaard uit voor één gebruiker of één sessie. |
 | **Hide this page** | In het detailpaneel van een pagina. Haalt de pagina uit elk pad, zodat een tussenpagina voor aanmelden of toestemming paden niet meer in tweeën knipt; verborgen pagina's staan boven de kaart en kunnen weer worden getoond. |
 
 Het detailpaneel van een pagina toont hoeveel sessies haar in die stap bereikten, hoeveel daar vertrokken, hoeveel daar een fout hadden, waar bezoekers vandaan kwamen en waar ze daarna heen gingen over het hele bereik, tot vijf sessies om te bekijken, en een link naar de sessielijst gefilterd op elke sessie die de pagina bezocht. Voor een band toont het het aandeel van elke kant en de sessies die precies die beweging maakten.

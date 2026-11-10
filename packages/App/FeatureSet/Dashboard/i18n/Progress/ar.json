@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48275,
-    "untranslated": 39856
+    "keys": 48448,
+    "untranslated": 38689
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -52,6 +52,7 @@
     "INP 540 ms",
     "IP",
     "IoT",
+    "Job",
     "Jobs",
     "John Smith",
     "Keystone",
@@ -65,6 +66,7 @@
     "Markdown",
     "Memcached",
     "Mirantis MOSK",
+    "Mons",
     "MySQL",
     "New Relic",
     "OK",

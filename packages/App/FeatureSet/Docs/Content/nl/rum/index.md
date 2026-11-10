@@ -78,7 +78,7 @@ OneUptime vindt de applicatie via `service.name`, zonder op hoofdletters te lett
 
 | Waar | Wat het toont |
 | --- | --- |
-| **Overzicht** | Tegels voor **Paginaladingen**, **Paginalaadtijd (p95)**, **Gebeurtenissen**, **Foutpercentage**, **Event duration (p95)**, **Uitzonderingen**, **Clients** en **Sessions recorded**, en trendgrafieken over het tijdsbereik dat je kiest. |
+| **Overzicht** | Tegels voor **Paginaladingen**, **Paginalaadtijd (p95)**, **Gebeurtenissen**, **Foutpercentage**, **Gebeurtenisduur (p95)**, **Uitzonderingen**, **Clients** en **Opgenomen sessies**, en trendgrafieken over het tijdsbereik dat je kiest. |
 | **Core Web Vitals** | Een kaart in het overzicht met LCP, INP, CLS, FCP en TTFB, elk beoordeeld tegen de grenzen van Google, en de INP van elke route van een single-page-app. Zie [Core Web Vitals](/docs/rum/web-vitals) en [Single-page-apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metrieken**, **Logboeken**, **Traces** | De telemetrieverkenners, beperkt tot deze applicatie. |
 | **Clients** | De browserplatforms en apparaatmodellen waarop de applicatie is gebruikt: een korte lijst per platform, nooit een rij per gebruiker. |

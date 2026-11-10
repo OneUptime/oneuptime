@@ -672,10 +672,10 @@ O mapa de fluxos tem uma coluna por etapa. Uma página é uma caixa cuja altura 
 | **From session start** | A etapa 1 é a página de entrada de cada sessão. |
 | **After a page** | Ancora o mapa em uma página e segue as sessões a partir da primeira vez que chegaram a ela — «para onde as pessoas vão depois de `/pricing`?» |
 | **Before a page** | Segue as sessões para trás a partir da primeira vez que chegaram a uma página — «como as pessoas chegam a `/checkout`?» A âncora é desenhada à direita. |
-| **Etapas** / **Pages per step** | Quantas colunas desenhar e quantas páginas uma coluna nomeia antes de o resto ser agrupado em **Other pages** (clique nele para ver o que contém). |
+| **Etapas** / **Páginas por etapa** | Quantas colunas desenhar e quantas páginas uma coluna nomeia antes de o resto ser agrupado em **Other pages** (clique nele para ver o que contém). |
 | **Sessões** | Todas as sessões, só as sessões com erros, ou só as sessões com sinais de frustração (cliques de raiva, cliques mortos, cliques de erro, recargas de raiva). Os seus próprios sinais entram aqui quando contam como frustração. |
 | **Dispositivo** | Só sessões de desktop, celular ou tablet. |
-| **Group IDs in URLs** | Ativado por padrão: `/orders/1042` e `/orders/1043` são uma só página, `/orders/:id`. Números, ids hexadecimais e tokens longos de letras e dígitos são agrupados, assim como cada segmento que o gravador já substituiu por `[redacted]`. Desativado por padrão para um usuário ou uma sessão. |
+| **Agrupar IDs nas URLs** | Ativado por padrão: `/orders/1042` e `/orders/1043` são uma só página, `/orders/:id`. Números, ids hexadecimais e tokens longos de letras e dígitos são agrupados, assim como cada segmento que o gravador já substituiu por `[redacted]`. Desativado por padrão para um usuário ou uma sessão. |
 | **Hide this page** | No painel de detalhes de uma página. Tira a página de todos os caminhos, para que uma página intermediária de login ou de consentimento pare de dividir os caminhos em dois; as páginas ocultas são listadas acima do mapa e podem ser mostradas de novo. |
 
 O painel de detalhes de uma página mostra quantas sessões chegaram a ela naquela etapa, quantas saíram dali, quantas tiveram um erro ali, de onde os visitantes vinham e para onde foram em seguida em todo o intervalo, até cinco sessões para assistir, e um link para a lista de sessões filtrada para cada sessão que visitou a página. Para uma faixa, ele mostra a parcela de cada lado e as sessões que fizeram exatamente aquele movimento.

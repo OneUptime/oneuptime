@@ -78,7 +78,7 @@ OneUptime retrouve l'application par son `service.name`, sans tenir compte de la
 
 | Où | Ce qui s'affiche |
 | --- | --- |
-| **Vue d'ensemble** | Des tuiles pour **Chargements de page**, **Temps de chargement de la page (p95)**, **Événements**, **Taux d'erreur**, **Durée des événements (p95)**, **Exceptions**, **Clients** et **Sessions recorded**, et des graphiques de tendance sur la période choisie. |
+| **Vue d'ensemble** | Des tuiles pour **Chargements de page**, **Temps de chargement de la page (p95)**, **Événements**, **Taux d'erreur**, **Durée des événements (p95)**, **Exceptions**, **Clients** et **Sessions enregistrées**, et des graphiques de tendance sur la période choisie. |
 | **Core Web Vitals** | Une carte de la vue d'ensemble avec LCP, INP, CLS, FCP et TTFB, chacun évalué selon les seuils de Google, et l'INP de chaque route d'une application monopage. Voir [Core Web Vitals](/docs/rum/web-vitals) et [Applications monopages](/docs/rum/web-vitals#applications-monopages). |
 | **Métriques**, **Journaux**, **Traces** | Les explorateurs de télémétrie, limités à cette application. |
 | **Clients** | Les plateformes de navigateur et les modèles d'appareil sur lesquels l'application a été utilisée : une courte liste par plateforme, jamais une ligne par utilisateur. |

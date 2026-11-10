@@ -20,6 +20,8 @@
  * Change the fetch, change the words.
  */
 
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
 export type DatabaseMetric =
   | "queries"
   | "errorRate"
@@ -31,20 +33,28 @@ export type DatabaseMetric =
   | "runtimeMemory";
 
 export const DATABASE_METRIC_DESCRIPTIONS: Record<DatabaseMetric, string> = {
-  queries:
+  queries: translationKey(
     "Queries and commands your instrumented applications sent to this database in the selected range, counted from their client spans. Only calls to one of the database's endpoints count; traffic from applications that are not instrumented does not appear here.",
-  errorRate:
+  ),
+  errorRate: translationKey(
     "Share of those queries whose client span ended with an error status, in the selected range. A failure the database driver did not report as an error is not counted.",
-  p95Latency:
+  ),
+  p95Latency: translationKey(
     "95% of the queries applications sent in the selected range finished faster than this. It is one percentile over every query in the range, measured by the applications themselves, so it includes network time and waiting for a free connection, not only the time the database spent.",
-  callingServices:
+  ),
+  callingServices: translationKey(
     "How many different services sent at least one query to this database in the selected range. The Calling services table below lists the busiest ten.",
-  queriesChart:
+  ),
+  queriesChart: translationKey(
     "Queries applications sent to this database in each interval of the selected range, with the ones that failed.",
-  p95Chart:
+  ),
+  p95Chart: translationKey(
     "The p95 query duration of each interval: 95% of the queries sent in that interval finished faster than the line. A spike in one interval can come from a handful of slow queries.",
-  runtimeCpu:
+  ),
+  runtimeCpu: translationKey(
     "CPU used by the pods or containers this database runs as, averaged across them for each interval, as their own Kubernetes, Docker or Podman agent reports it.",
-  runtimeMemory:
+  ),
+  runtimeMemory: translationKey(
     "Memory used by the pods or containers this database runs as, averaged across them for each interval, as their own Kubernetes, Docker or Podman agent reports it.",
+  ),
 };

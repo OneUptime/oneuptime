@@ -672,10 +672,10 @@ Flödeskartan har en kolumn per steg. En sida är en ruta vars höjd är antalet
 | **From session start** | Steg 1 är varje sessions landningssida. |
 | **After a page** | Förankrar kartan vid en sida och följer sessionerna från första gången de nådde den — «vart går folk efter `/pricing`?» |
 | **Before a page** | Följer sessioner bakåt från första gången de nådde en sida — «hur kommer folk till `/checkout`?» Ankaret ritas till höger. |
-| **Steg** / **Pages per step** | Hur många kolumner som ritas, och hur många sidor en kolumn nämner innan resten samlas i **Other pages** (klicka på den för att se vad den innehåller). |
+| **Steg** / **Sidor per steg** | Hur många kolumner som ritas, och hur många sidor en kolumn nämner innan resten samlas i **Other pages** (klicka på den för att se vad den innehåller). |
 | **Sessioner** | Alla sessioner, bara sessioner med fel eller bara sessioner med frustrationssignaler (ilskeklick, döda klick, felklick, ilskeomladdningar). Dina egna signaler räknas med när de räknas som frustration. |
 | **Enhet** | Bara sessioner från dator, mobil eller surfplatta. |
-| **Group IDs in URLs** | Påslagen som standard: `/orders/1042` och `/orders/1043` är en sida, `/orders/:id`. Tal, hexadecimala ID:n och långa token av bokstäver och siffror grupperas, precis som varje segment som inspelaren redan har ersatt med `[redacted]`. Av som standard för en användare eller en session. |
+| **Gruppera ID:n i URL:er** | Påslagen som standard: `/orders/1042` och `/orders/1043` är en sida, `/orders/:id`. Tal, hexadecimala ID:n och långa token av bokstäver och siffror grupperas, precis som varje segment som inspelaren redan har ersatt med `[redacted]`. Av som standard för en användare eller en session. |
 | **Hide this page** | I en sidas detaljpanel. Tar bort sidan från varje väg, så att en mellansida för inloggning eller samtycke slutar dela vägar i två; dolda sidor visas ovanför kartan och kan visas igen. |
 
 En sidas detaljpanel visar hur många sessioner som nådde den på det steget, hur många som lämnade den där, hur många som hade ett fel där, var besökarna kom ifrån och vart de gick därefter under hela tidsintervallet, upp till fem sessioner att titta på och en länk till sessionslistan filtrerad på varje session som besökte sidan. För ett band visar den varje sidas andel och de sessioner som gjorde exakt den förflyttningen.
