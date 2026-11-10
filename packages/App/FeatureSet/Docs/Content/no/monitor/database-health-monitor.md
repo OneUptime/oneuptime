@@ -370,14 +370,14 @@ Tellere som slutter på `total`, er kumulative siden serveren startet. Sammenlig
 
 | Filtertype | Hva den sjekker |
 |---|---|
-| **Database Is Online** | Om databasen kunne nås og testspørringen lyktes. Dette er offline-kriteriet monitoren opprettes med, og den eneste kontrollen som gjenspeiler tilgjengeligheten. |
-| **Database Metric** | Velg en metrikk og sammenlign den: Større enn, Mindre enn, Større enn eller lik, Mindre enn eller lik, Lik eller Ikke lik. Metrikkvelgeren tilbyr bare metrikkene den valgte motoren kan levere, så du kan ikke bygge et kriterium som for alltid forblir uoppfylt (ett unntak: Replication-metrikkene som tilbys for Microsoft SQL Server, samles aldri inn på Azure SQL Database). Hvis metrikken ikke ble samlet inn ved en kontroll — gruppen feilet, eller motoren rapporterer den ikke — samsvarer ikke filteret, og det samsvarer heller ikke som «false»: det hoppes over. Et rettighetsproblem kan ikke tilkalle noen. |
-| **Database Collection Error** | Sammendraget av innsamlingsproblemene ved kontrollen, én «gruppe: melding» per utilgjengelig gruppe. Varsle når det ikke er tomt for å oppdage tapt innsyn, eller bruk Inneholder for å følge med på én bestemt gruppe. |
-| **JavaScript Expression** | Full kontroll. Se [JavaScript-uttrykk](/docs/monitor/javascript-expression). |
+| **Databasen er tilkoblet** | Om databasen kunne nås og testspørringen lyktes. Dette er offline-kriteriet monitoren opprettes med, og den eneste kontrollen som gjenspeiler tilgjengeligheten. |
+| **Databasemetrikk** | Velg en metrikk og sammenlign den: Større enn, Mindre enn, Større enn eller lik, Mindre enn eller lik, Lik eller Ikke lik. Metrikkvelgeren tilbyr bare metrikkene den valgte motoren kan levere, så du kan ikke bygge et kriterium som for alltid forblir uoppfylt (ett unntak: Replication-metrikkene som tilbys for Microsoft SQL Server, samles aldri inn på Azure SQL Database). Hvis metrikken ikke ble samlet inn ved en kontroll — gruppen feilet, eller motoren rapporterer den ikke — samsvarer ikke filteret, og det samsvarer heller ikke som «false»: det hoppes over. Et rettighetsproblem kan ikke tilkalle noen. |
+| **Innsamlingsfeil for database** | Sammendraget av innsamlingsproblemene ved kontrollen, én «gruppe: melding» per utilgjengelig gruppe. Varsle når det ikke er tomt for å oppdage tapt innsyn, eller bruk Inneholder for å følge med på én bestemt gruppe. |
+| **JavaScript-uttrykk** | Full kontroll. Se [JavaScript-uttrykk](/docs/monitor/javascript-expression). |
 
 Terskler er heltall. Skriv `90`, ikke `90.5` — prosenter og sekunder sammenlignes som heltall.
 
-**Database Is Online** og **Database Metric** kan kontrolleres over tid: kryss av for **Evaluer disse kriteriene over en tidsperiode**, velg deretter under **Evaluer** hvordan verdiene skal vurderes (for eksempel **All Values**), og fyll inn **For de siste (i minutter)**. Over tid avgjør filterets innstilling **Hvis ingen data** hva en manglende verdi betyr; la den stå på **Ignore**, slik at en manglende rettighet fortsatt ikke kan tilkalle noen.
+**Databasen er tilkoblet** og **Databasemetrikk** kan kontrolleres over tid: kryss av for **Evaluer disse kriteriene over en tidsperiode**, velg deretter under **Evaluer** hvordan verdiene skal vurderes (for eksempel **Alle verdier**), og fyll inn **For de siste (i minutter)**. Over tid avgjør filterets innstilling **Hvis ingen data** hva en manglende verdi betyr; la den stå på **Ignore**, slik at en manglende rettighet fortsatt ikke kan tilkalle noen.
 
 ### Variabler for JavaScript-uttrykk
 
@@ -402,7 +402,7 @@ For å lese én metrikk i et uttrykk skriver du serienavnet med punktum inne i k
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
 ```
 
-For en terskel på én enkelt metrikk bør du bruke **Database Metric** fremfor et uttrykk: det slår opp serien for deg, tilbyr bare det motoren din kan levere, og hopper over kontrollen når verdien ikke ble samlet inn, i stedet for å sammenligne med ingenting.
+For en terskel på én enkelt metrikk bør du bruke **Databasemetrikk** fremfor et uttrykk: den slår opp serien for deg, tilbyr bare det motoren din kan levere, og hopper over kontrollen når verdien ikke ble samlet inn, i stedet for å sammenligne med ingenting.
 
 ### Eksempel: en primær PostgreSQL-server
 

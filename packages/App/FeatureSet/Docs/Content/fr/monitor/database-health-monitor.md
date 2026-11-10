@@ -370,14 +370,14 @@ Les compteurs qui se terminent par `total` sont cumulés depuis le démarrage du
 
 | Type de filtre | Ce qu'il vérifie |
 |---|---|
-| **Database Is Online** | Si la base était joignable et si la requête de test a réussi. C'est le critère hors ligne avec lequel le moniteur est créé, et la seule vérification qui reflète la joignabilité. |
-| **Database Metric** | Choisissez une métrique, puis comparez-la : Supérieur à, Inférieur à, Supérieur ou égal à, Inférieur ou égal à, Égal à ou Différent de. Le sélecteur de métriques ne propose que les métriques que votre moteur peut produire, vous ne pouvez donc pas construire un critère qui resterait insatisfait en permanence (une exception : les métriques Replication proposées pour Microsoft SQL Server ne sont jamais collectées sur Azure SQL Database). Si la métrique n'a pas été collectée lors d'une vérification — le groupe a échoué, ou le moteur ne la remonte pas —, le filtre ne correspond pas, et ne correspond pas non plus comme « false » : il est ignoré. Un problème de droits ne peut appeler personne. |
-| **Database Collection Error** | Le résumé des problèmes de collecte de la vérification, un « groupe : message » par groupe indisponible. Alertez quand il n'est pas vide pour détecter une perte de visibilité, ou utilisez Contient pour surveiller un groupe précis. |
-| **JavaScript Expression** | Contrôle total. Voir [Expressions JavaScript](/docs/monitor/javascript-expression). |
+| **Base de données en ligne** | Si la base était joignable et si la requête de test a réussi. C'est le critère hors ligne avec lequel le moniteur est créé, et la seule vérification qui reflète la joignabilité. |
+| **Métrique de base de données** | Choisissez une métrique, puis comparez-la : Supérieur à, Inférieur à, Supérieur ou égal à, Inférieur ou égal à, Égal à ou Différent de. Le sélecteur de métriques ne propose que les métriques que votre moteur peut produire, vous ne pouvez donc pas construire un critère qui resterait insatisfait en permanence (une exception : les métriques Replication proposées pour Microsoft SQL Server ne sont jamais collectées sur Azure SQL Database). Si la métrique n'a pas été collectée lors d'une vérification — le groupe a échoué, ou le moteur ne la remonte pas —, le filtre ne correspond pas, et ne correspond pas non plus comme « false » : il est ignoré. Un problème de droits ne peut appeler personne. |
+| **Erreur de collecte de base de données** | Le résumé des problèmes de collecte de la vérification, un « groupe : message » par groupe indisponible. Alertez quand il n'est pas vide pour détecter une perte de visibilité, ou utilisez Contient pour surveiller un groupe précis. |
+| **Expression JavaScript** | Contrôle total. Voir [Expressions JavaScript](/docs/monitor/javascript-expression). |
 
 Les seuils sont des nombres entiers. Écrivez `90`, pas `90.5` — les pourcentages et les secondes sont comparés comme des entiers.
 
-**Database Is Online** et **Database Metric** peuvent être vérifiés dans la durée : cochez **Évaluer ce critère sur une période donnée**, puis choisissez comment **Évaluer** les valeurs (par exemple **All Values**) et **Pour les dernières (en minutes)**. Dans la durée, le réglage **En l'absence de données** du filtre décide de ce que signifie une valeur manquante ; laissez-le sur **Ignore** pour qu'un droit manquant ne puisse toujours appeler personne.
+**Base de données en ligne** et **Métrique de base de données** peuvent être vérifiées dans la durée : cochez **Évaluer ce critère sur une période donnée**, puis choisissez comment **Évaluer** les valeurs (par exemple **Toutes les valeurs**) et **Pour les dernières (en minutes)**. Dans la durée, le réglage **En l'absence de données** du filtre décide de ce que signifie une valeur manquante ; laissez-le sur **Ignore** pour qu'un droit manquant ne puisse toujours appeler personne.
 
 ### Variables des expressions JavaScript
 
@@ -402,7 +402,7 @@ Pour lire une métrique dans une expression, écrivez le nom de la série, point
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
 ```
 
-Pour un seuil sur une seule métrique, préférez **Database Metric** à une expression : il résout la série pour vous, ne propose que ce que votre moteur peut produire, et ignore la vérification quand la valeur n'a pas été collectée au lieu de comparer avec rien.
+Pour un seuil sur une seule métrique, préférez **Métrique de base de données** à une expression : elle résout la série pour vous, ne propose que ce que votre moteur peut produire, et ignore la vérification quand la valeur n'a pas été collectée au lieu de comparer avec rien.
 
 ### Exemple : un primaire PostgreSQL
 

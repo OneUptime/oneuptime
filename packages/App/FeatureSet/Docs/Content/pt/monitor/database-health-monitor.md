@@ -370,14 +370,14 @@ Contadores que terminam em `total` são cumulativos desde que o servidor foi ini
 
 | Tipo de filtro | O que verifica |
 |---|---|
-| **Database Is Online** | Se o banco de dados estava acessível e a consulta de teste funcionou. É o critério de offline com que o monitor é criado, e a única verificação que reflete a acessibilidade. |
-| **Database Metric** | Escolha uma métrica e compare: Maior que, Menor que, Maior ou igual a, Menor ou igual a, Igual a ou Diferente de. O seletor de métricas só oferece as métricas que o mecanismo escolhido consegue produzir, então você não consegue montar um critério que ficaria para sempre sem ser atendido (uma exceção: as métricas de Replication oferecidas para o Microsoft SQL Server nunca são coletadas no Azure SQL Database). Se a métrica não foi coletada em uma verificação — o grupo falhou ou o mecanismo não a informa —, o filtro não corresponde, e também não corresponde como "false": ele é ignorado. Um problema de permissões não consegue acionar ninguém. |
-| **Database Collection Error** | O resumo dos problemas de coleta da verificação, um "grupo: mensagem" por grupo indisponível. Alerte quando não estiver vazio para perceber a perda de visibilidade, ou use Contém para acompanhar um grupo específico. |
-| **JavaScript Expression** | Controle total. Veja [Expressões JavaScript](/docs/monitor/javascript-expression). |
+| **Banco de dados online** | Se o banco de dados estava acessível e a consulta de teste funcionou. É o critério de offline com que o monitor é criado, e a única verificação que reflete a acessibilidade. |
+| **Métrica do banco de dados** | Escolha uma métrica e compare: Maior que, Menor que, Maior ou igual a, Menor ou igual a, Igual a ou Diferente de. O seletor de métricas só oferece as métricas que o mecanismo escolhido consegue produzir, então você não consegue montar um critério que ficaria para sempre sem ser atendido (uma exceção: as métricas de Replication oferecidas para o Microsoft SQL Server nunca são coletadas no Azure SQL Database). Se a métrica não foi coletada em uma verificação — o grupo falhou ou o mecanismo não a informa —, o filtro não corresponde, e também não corresponde como "false": ele é ignorado. Um problema de permissões não consegue acionar ninguém. |
+| **Erro de coleta do banco de dados** | O resumo dos problemas de coleta da verificação, um "grupo: mensagem" por grupo indisponível. Alerte quando não estiver vazio para perceber a perda de visibilidade, ou use Contém para acompanhar um grupo específico. |
+| **Expressão JavaScript** | Controle total. Veja [Expressões JavaScript](/docs/monitor/javascript-expression). |
 
 Os limites são números inteiros. Escreva `90`, não `90.5` — porcentagens e segundos são comparados como inteiros.
 
-**Database Is Online** e **Database Metric** podem ser verificados ao longo do tempo: marque **Avaliar este critério durante um período de tempo**, depois escolha como **Avaliar** os valores (por exemplo **All Values**) e **Nos últimos (em minutos)**. Ao longo do tempo, a configuração **Se não houver dados** do filtro decide o que um valor ausente significa; deixe-a em **Ignore** para que uma permissão ausente continue sem conseguir acionar ninguém.
+**Banco de dados online** e **Métrica do banco de dados** podem ser verificados ao longo do tempo: marque **Avaliar este critério durante um período de tempo**, depois escolha como **Avaliar** os valores (por exemplo **Todos os valores**) e **Nos últimos (em minutos)**. Ao longo do tempo, a configuração **Se não houver dados** do filtro decide o que um valor ausente significa; deixe-a em **Ignore** para que uma permissão ausente continue sem conseguir acionar ninguém.
 
 ### Variáveis das expressões JavaScript
 
@@ -402,7 +402,7 @@ Para ler uma métrica em uma expressão, escreva o nome da série, com os pontos
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
 ```
 
-Para um limite em uma única métrica, prefira **Database Metric** a uma expressão: ele resolve a série para você, só oferece o que o seu mecanismo consegue produzir e ignora a verificação quando o valor não foi coletado, em vez de comparar com nada.
+Para um limite em uma única métrica, prefira **Métrica do banco de dados** a uma expressão: ela resolve a série para você, só oferece o que o seu mecanismo consegue produzir e ignora a verificação quando o valor não foi coletado, em vez de comparar com nada.
 
 ### Exemplo: um primário PostgreSQL
 
