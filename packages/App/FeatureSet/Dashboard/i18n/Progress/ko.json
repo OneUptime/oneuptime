@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 48180,
-    "untranslated": 10808
+    "keys": 48350,
+    "untranslated": 10374
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -59,6 +59,7 @@
     "IP",
     "Infrastructure only",
     "IoT",
+    "JVM CPU",
     "JavaScript API",
     "K8s Deployment",
     "Keystone",

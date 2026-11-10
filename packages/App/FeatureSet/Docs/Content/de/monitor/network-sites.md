@@ -171,7 +171,7 @@ Ein Standort ganz ohne Zeilen in der Zeitachse zeigt `—` statt 100%: Ein Stand
 
 ### Tägliche Verfügbarkeit
 
-Neben dem 30-Tage-Wert zeigt die Übersicht jedes Standorts **Uptime (24h)**, und seine Seite **Status-Zeitachse** zeigt die letzten 24 Stunden, 7, 30 und 90 Tage sowie einen Balken pro Tag für die letzten 30.
+Neben dem 30-Tage-Wert zeigt die Übersicht jedes Standorts **Verfügbarkeit (24 Std.)**, und seine Seite **Status-Zeitachse** zeigt die letzten 24 Stunden, 7, 30 und 90 Tage sowie einen Balken pro Tag für die letzten 30.
 
 Ein 30-Tage-Durchschnitt kann keinen schlechten Tag zeigen. Ein voller Ausfalltag in einem 30-Tage-Fenster kostet 3.3 Punkte, ein Standort, der einen ganzen Dienstag dunkel war, meldet für den Monat also immer noch 96.7%, eine Zahl, die wie Rundung aussieht. Die täglichen Balken legen dieselben Daten dorthin, wo ein schlechter Tag ein schlechter Balken ist.
 

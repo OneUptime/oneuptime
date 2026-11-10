@@ -171,7 +171,7 @@ Un site sans aucune ligne de chronologie affiche `—` au lieu de 100% : un site
 
 ### Disponibilité quotidienne
 
-À côté du chiffre sur 30 jours, l'aperçu de chaque site affiche **Uptime (24h)**, et sa page **Chronologie de statut** montre les dernières 24 heures, 7, 30 et 90 jours, ainsi qu'une barre par jour pour les 30 derniers.
+À côté du chiffre sur 30 jours, l'aperçu de chaque site affiche **Disponibilité (24 h)**, et sa page **Chronologie de statut** montre les dernières 24 heures, 7, 30 et 90 jours, ainsi qu'une barre par jour pour les 30 derniers.
 
 Une moyenne sur 30 jours ne peut pas montrer un mauvais jour. Une journée complète de panne dans une période de 30 jours coûte 3.3 points, si bien qu'un site éteint pendant tout un mardi affiche encore 96.7% pour le mois, un chiffre qui ressemble à un arrondi. Les barres quotidiennes placent les mêmes données là où un mauvais jour est une mauvaise barre.
 

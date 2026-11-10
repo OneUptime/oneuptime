@@ -171,7 +171,7 @@ Un sito senza alcuna riga nella cronologia mostra `—` invece di 100%: un sito 
 
 ### Uptime giornaliero
 
-Accanto al dato a 30 giorni, la panoramica di ogni sito mostra **Uptime (24h)**, e la sua pagina **Cronologia di stato** mostra le ultime 24 ore, 7, 30 e 90 giorni, e una barra al giorno per gli ultimi 30.
+Accanto al dato a 30 giorni, la panoramica di ogni sito mostra **Tempo di attività (24 h)**, e la sua pagina **Cronologia di stato** mostra le ultime 24 ore, 7, 30 e 90 giorni, e una barra al giorno per gli ultimi 30.
 
 Una media a 30 giorni non può mostrare una brutta giornata. Un giorno intero di disservizio in una finestra di 30 giorni costa 3,3 punti, quindi un sito rimasto spento per un intero martedì riporta comunque il 96,7% per il mese, un numero che sembra un arrotondamento. Le barre giornaliere mettono gli stessi dati dove una brutta giornata è una brutta barra.
 

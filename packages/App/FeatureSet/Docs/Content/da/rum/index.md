@@ -78,7 +78,7 @@ OneUptime finder applikationen ud fra `service.name` uden hensyn til store og sm
 
 | Hvor | Hvad det viser |
 | --- | --- |
-| **Oversigt** | Felter for **Sideindlæsninger**, **Sideindlæsningstid (p95)**, **Begivenheder**, **Fejlrate**, **Event duration (p95)**, **Undtagelser**, **Klienter** og **Sessions recorded**, og trendgrafer over det tidsrum, du vælger. |
+| **Oversigt** | Felter for **Sideindlæsninger**, **Sideindlæsningstid (p95)**, **Begivenheder**, **Fejlrate**, **Begivenhedsvarighed (p95)**, **Undtagelser**, **Klienter** og **Optagne sessioner**, og trendgrafer over det tidsrum, du vælger. |
 | **Core Web Vitals** | Et kort i oversigten med LCP, INP, CLS, FCP og TTFB, hver vurderet efter Googles grænser, og INP for hver rute i en single-page-app. Se [Core Web Vitals](/docs/rum/web-vitals) og [Single-page-apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metrikker**, **Protokoller**, **Spor** | Telemetri-explorerne, begrænset til denne applikation. |
 | **Klienter** | De browserplatforme og enhedsmodeller, applikationen er blevet brugt på: en kort liste pr. platform, aldrig en række pr. bruger. |

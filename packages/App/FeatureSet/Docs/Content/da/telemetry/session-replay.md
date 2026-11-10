@@ -670,10 +670,10 @@ Flowkortet har én kolonne pr. trin. En side er en boks, hvis højde er antallet
 | **From session start** | Trin 1 er hver sessions landingsside. |
 | **After a page** | Forankrer kortet ved én side og følger sessioner fra første gang, de nåede den — «hvor går folk hen efter `/pricing`?» |
 | **Before a page** | Følger sessioner baglæns fra første gang, de nåede en side — «hvordan kommer folk til `/checkout`?» Ankeret tegnes til højre. |
-| **Trin** / **Pages per step** | Hvor mange kolonner der tegnes, og hvor mange sider en kolonne nævner, før resten samles i **Other pages** (klik på den for at se, hvad den indeholder). |
+| **Trin** / **Sider pr. trin** | Hvor mange kolonner der tegnes, og hvor mange sider en kolonne nævner, før resten samles i **Other pages** (klik på den for at se, hvad den indeholder). |
 | **Sessioner** | Alle sessioner, kun sessioner med fejl eller kun sessioner med frustrationssignaler (raseriklik, døde klik, fejlklik, raseri-genindlæsninger). Dine egne signaler tæller med, når de tæller som frustration. |
 | **Enhed** | Kun sessioner fra computer, mobil eller tablet. |
-| **Group IDs in URLs** | Slået til som standard: `/orders/1042` og `/orders/1043` er én side, `/orders/:id`. Tal, hexadecimale id'er og lange tokens af bogstaver og cifre grupperes, ligesom hvert segment, som optageren allerede har erstattet med `[redacted]`. Slået fra som standard for én bruger eller én session. |
+| **Gruppér id'er i URL'er** | Slået til som standard: `/orders/1042` og `/orders/1043` er én side, `/orders/:id`. Tal, hexadecimale id'er og lange tokens af bogstaver og cifre grupperes, ligesom hvert segment, som optageren allerede har erstattet med `[redacted]`. Slået fra som standard for én bruger eller én session. |
 | **Hide this page** | I en sides detaljepanel. Fjerner siden fra hver sti, så en mellemside til login eller samtykke holder op med at dele stier i to; skjulte sider vises over kortet og kan vises igen. |
 
 En sides detaljepanel viser, hvor mange sessioner der nåede den på det trin, hvor mange der forlod den der, hvor mange der havde en fejl der, hvor besøgende kom fra, og hvor de gik hen derefter i hele tidsrummet, op til fem sessioner at se og et link til sessionslisten filtreret på hver session, der besøgte siden. For et bånd viser det hver sides andel og de sessioner, der foretog præcis den bevægelse.
