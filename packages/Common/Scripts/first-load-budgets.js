@@ -91,7 +91,8 @@ const PAGES = [
     // 2026-11-03: 1,839,798 bytes, loading what it does not draw with where it is used (#5619).
     // 2026-11-04: 1,807,182 bytes, loading browser telemetry only where it is configured (#5619).
     // 2026-11-04: 1,720,563 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
-    ceiling: 1710 * KIB,
+    // 2026-11-10: 1,535,455 bytes, loading the investigation drawer only when a chart opens it - a public dashboard never does - and the people picker only for a form that has one.
+    ceiling: 1530 * KIB,
   },
 ];
 

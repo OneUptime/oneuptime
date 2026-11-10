@@ -1,5 +1,6 @@
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -66,6 +67,7 @@ import { DropdownChange } from "../../../../UI/Components/Dropdown/DropdownChang
 import BasicForm from "../../../../UI/Components/Forms/BasicForm";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import getOwnersFormField from "../../../../UI/Components/PeoplePicker/OwnersFormField";
+import { loadPeoplePicker } from "../../../../UI/Components/PeoplePicker/LazyPeoplePicker";
 import PeoplePicker from "../../../../UI/Components/PeoplePicker/PeoplePicker";
 import {
   getPeoplePickerNamedOptions,
@@ -278,6 +280,15 @@ describe("a people picker's change, by name", () => {
     // The user who left is still a chip, so it can be removed - not a name.
     expect(names(lastChange().previousOptions)).toEqual(["Ada Lovelace"]);
   });
+});
+
+/*
+ * A form draws its people picker from a file of its own, loaded by the first
+ * form that has one (LazyPeoplePicker). Loaded once here, as on a page where
+ * a form with one has been drawn before, so the picker is there with the form.
+ */
+beforeAll(async () => {
+  await loadPeoplePicker();
 });
 
 describe("a people picker field's onChange", () => {

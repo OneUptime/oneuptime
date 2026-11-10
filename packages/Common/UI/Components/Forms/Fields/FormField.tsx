@@ -51,7 +51,7 @@ import { BasicRadioButtonOption } from "../../RadioButtons/BasicRadioButtons";
 import HorizontalRule from "../../HorizontalRule/HorizontalRule";
 import MarkdownEditor from "../../Markdown.tsx/LazyMarkdownEditor";
 import YamlEditor from "../../CodeEditor/LazyYamlEditor";
-import PeoplePicker from "../../PeoplePicker/PeoplePicker";
+import PeoplePicker from "../../PeoplePicker/LazyPeoplePicker";
 import {
   getPeoplePickerKinds,
   PeoplePickerChange,
