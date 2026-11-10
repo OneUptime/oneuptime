@@ -23,15 +23,14 @@ type ReviewerNoteFunction = (data: {
  * read - a file changed on the base branch after Ask AI read it, read on
  * another branch only, never read, read only in an earlier answer (issue
  * #6365), read only in part (issue #6330), or not checked - and the person
- * approved it anyway. Whoever reviews it on
- * GitHub, GitLab, Forgejo or Gitea may never have seen the card, so the
- * pull request's description says it too, as Markdown: each file in a
- * code span, so its name reads as written (src/__init__.py,
- * pages/[slug].tsx), and for a file read in part, the lines AI never saw,
- * where its diff may drop code - and for a file whose version writes
- * placeholders in place of values hidden from AI (issue #6364), each
- * placeholder and its lines, where the real values belong. Null when the
- * card said nothing.
+ * approved it anyway. Whoever reviews it on GitHub, GitLab, Forgejo or
+ * Gitea may never have seen the card, so the pull request's description
+ * says it too, as Markdown: each file in a code span, so its name reads
+ * as written (src/__init__.py, pages/[slug].tsx), and for a file read in
+ * part, the lines AI never saw, where its diff may drop code - and for a
+ * file whose version writes placeholders in place of values hidden from
+ * AI (issue #6364), each placeholder and its lines, where the real values
+ * belong. Null when the card said nothing.
  */
 export const describeCodeFilesUnseenForReviewer: ReviewerNoteFunction = (data: {
   baseBranchName: string;

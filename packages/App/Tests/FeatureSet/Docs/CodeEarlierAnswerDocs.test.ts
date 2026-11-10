@@ -134,7 +134,9 @@ describe("the Ask AI page on a file Ask AI read only in an earlier answer (issue
       filePath: FILE,
       fingerprint: "a",
     });
-    const decide: (records: Array<unknown>) => Array<{ unseen: CodeFileUnseen }> = (
+    const decide: (
+      records: Array<unknown>,
+    ) => Array<{ unseen: CodeFileUnseen }> = (
       records: Array<unknown>,
     ): Array<{ unseen: CodeFileUnseen }> => {
       return findCodeFilesUnseen({
@@ -179,7 +181,10 @@ describe("the Ask AI page on a file Ask AI read only in an earlier answer (issue
       const translator: Translator = translatorFor(language);
       const earlier: string = describeAIActionSentence(EARLIER, translator);
       const part: string = describeAIActionSentence(READ_IN_PART, translator);
-      const hidden: string = describeAIActionSentence(VALUES_HIDDEN, translator);
+      const hidden: string = describeAIActionSentence(
+        VALUES_HIDDEN,
+        translator,
+      );
 
       expect(bullet.indexOf(part)).toBeGreaterThan(-1);
       expect(bullet.indexOf(earlier)).toBeGreaterThan(bullet.indexOf(part));

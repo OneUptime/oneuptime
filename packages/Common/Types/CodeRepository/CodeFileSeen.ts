@@ -590,7 +590,10 @@ const findLinesNotInHand: FindLinesNotInHandFunction = (data: {
   fingerprint: string | null;
 }): Omit<CodeFileUnseenFinding, "filePath"> | null => {
   if (!data.viewsInHand) {
-    return findLinesNotRead({ views: data.views, fingerprint: data.fingerprint });
+    return findLinesNotRead({
+      views: data.views,
+      fingerprint: data.fingerprint,
+    });
   }
 
   if (data.fingerprint === null) {
@@ -607,7 +610,10 @@ const findLinesNotInHand: FindLinesNotInHandFunction = (data: {
     return { unseen: CodeFileUnseen.ReadInEarlierAnswer };
   }
 
-  return findLinesNotRead({ views: data.viewsInHand, fingerprint: fingerprint });
+  return findLinesNotRead({
+    views: data.viewsInHand,
+    fingerprint: fingerprint,
+  });
 };
 
 type FindCodeFileUnseenFunction = (data: {

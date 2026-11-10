@@ -131,8 +131,12 @@ const decide: DecideFunction = (data: {
         return null;
       }
 
-      const { filePath: _filePath, ...finding }: CodeFileUnseenFinding =
-        found[0]!;
+      // One finding, of the one file asked about.
+      expect(found).toHaveLength(1);
+
+      const { filePath, ...finding }: CodeFileUnseenFinding = found[0]!;
+
+      expect(filePath).toBe(PATH);
 
       return finding;
     },
@@ -149,7 +153,9 @@ describe("a record of a turn before, as the runner hands it to a prepare", () =>
 
     expect(earlier(record)).toEqual({ ...record, fromEarlierAnswer: true });
     expect(record.fromEarlierAnswer).toBeUndefined();
-    expect(JSON.stringify(see("fix/login", "a"))).not.toContain("fromEarlierAnswer");
+    expect(JSON.stringify(see("fix/login", "a"))).not.toContain(
+      "fromEarlierAnswer",
+    );
   });
 
   test("a record that is not well formed is dropped, as everywhere", () => {
@@ -168,26 +174,35 @@ describe("a record of a turn before, as the runner hands it to a prepare", () =>
     ["true", true, true],
     ["false", false, false],
     ["left out", undefined, false],
-  ])("read back with the mark %s", (_case: string, mark: unknown, kept: boolean) => {
-    const read: AIChatRecordSeen | null = readAIChatRecordSeen({
-      ...see("fix/login", "a"),
-      ...(mark === undefined ? {} : { fromEarlierAnswer: mark }),
-    });
+  ])(
+    "read back with the mark %s",
+    (_case: string, mark: unknown, kept: boolean) => {
+      const read: AIChatRecordSeen | null = readAIChatRecordSeen({
+        ...see("fix/login", "a"),
+        ...(mark === undefined ? {} : { fromEarlierAnswer: mark }),
+      });
 
-    expect(read).not.toBeNull();
-    expect(read!.fromEarlierAnswer === true).toBe(kept);
-  });
+      expect(read).not.toBeNull();
+      expect(read!.fromEarlierAnswer === true).toBe(kept);
+    },
+  );
 
   test.each<[string, unknown]>([
     ["text", "true"],
     ["a number", 1],
     ["null", null],
     ["an object", {}],
-  ])("a mark that is %s is not well formed: the record is dropped", (_case: string, mark: unknown) => {
-    expect(
-      readAIChatRecordSeen({ ...see("fix/login", "a"), fromEarlierAnswer: mark }),
-    ).toBeNull();
-  });
+  ])(
+    "a mark that is %s is not well formed: the record is dropped",
+    (_case: string, mark: unknown) => {
+      expect(
+        readAIChatRecordSeen({
+          ...see("fix/login", "a"),
+          fromEarlierAnswer: mark,
+        }),
+      ).toBeNull();
+    },
+  );
 
   test("the views in hand leave a record of a turn before out; all the views keep it", () => {
     const records: Array<AIChatRecordSeen> = [
@@ -196,11 +211,13 @@ describe("a record of a turn before, as the runner hands it to a prepare", () =>
     ];
 
     expect(
-      getCodeFileViews({ records, repositoryId: REPOSITORY, filePath: PATH }).map(
-        (view: { branchName: string }) => {
-          return view.branchName;
-        },
-      ),
+      getCodeFileViews({
+        records,
+        repositoryId: REPOSITORY,
+        filePath: PATH,
+      }).map((view: { branchName: string }) => {
+        return view.branchName;
+      }),
     ).toEqual(["main", "fix/login"]);
     expect(
       getCodeFileViews({
@@ -322,7 +339,10 @@ describe("what a commit says of a file read in an earlier answer", () => {
   test("read before on another branch only, different on this one: said as read elsewhere", () => {
     expect(
       decide({ records: [earlier(see("main", "a"))], now: file("b") }),
-    ).toEqual({ unseen: CodeFileUnseen.ReadOnAnotherBranch, readOnBranch: "main" });
+    ).toEqual({
+      unseen: CodeFileUnseen.ReadOnAnotherBranch,
+      readOnBranch: "main",
+    });
   });
 
   test("read before on main, the same on this branch: read in an earlier answer", () => {
@@ -333,7 +353,10 @@ describe("what a commit says of a file read in an earlier answer", () => {
 
   test("a new file, an unreadable one, and one never read: as they always were", () => {
     expect(
-      decide({ records: [earlier(see("fix/login", "a"))], now: { state: "absent" } }),
+      decide({
+        records: [earlier(see("fix/login", "a"))],
+        now: { state: "absent" },
+      }),
     ).toEqual({ unseen: CodeFileUnseen.ChangedSinceRead });
     expect(decide({ records: [], now: { state: "absent" } })).toBeNull();
     expect(
@@ -422,9 +445,11 @@ const oracle: (data: {
     let any: boolean = false;
 
     for (const branchName of BRANCHES) {
-      const on: Array<OracleEvent> = data.events.filter((event: OracleEvent) => {
-        return event.branchName === branchName;
-      });
+      const on: Array<OracleEvent> = data.events.filter(
+        (event: OracleEvent) => {
+          return event.branchName === branchName;
+        },
+      );
       let from: number = on.length;
 
       while (from > 0 && on[from - 1]!.version === version) {
@@ -442,7 +467,11 @@ const oracle: (data: {
           return "all";
         }
 
-        for (let line: number = event.shown.first; line <= event.shown.last; line++) {
+        for (
+          let line: number = event.shown.first;
+          line <= event.shown.last;
+          line++
+        ) {
           shown.add(line);
         }
       }
@@ -451,7 +480,9 @@ const oracle: (data: {
     return any ? shown : "none";
   };
 
-  const linesOf: (version: string) => Omit<CodeFileUnseenFinding, "filePath"> | null = (
+  const linesOf: (
+    version: string,
+  ) => Omit<CodeFileUnseenFinding, "filePath"> | null = (
     version: string,
   ): Omit<CodeFileUnseenFinding, "filePath"> | null => {
     const inHand: "none" | "all" | Set<number> = linesInHand(version);
@@ -498,9 +529,11 @@ const oracle: (data: {
     return null;
   }
 
-  const elsewhere: Array<OracleEvent> = BRANCHES.filter((branchName: string) => {
-    return branchName !== data.branchName;
-  })
+  const elsewhere: Array<OracleEvent> = BRANCHES.filter(
+    (branchName: string) => {
+      return branchName !== data.branchName;
+    },
+  )
     .map((branchName: string) => {
       return lastOn(branchName);
     })
@@ -523,7 +556,10 @@ const oracle: (data: {
   )[0];
 
   return latest
-    ? { unseen: CodeFileUnseen.ReadOnAnotherBranch, readOnBranch: latest.branchName }
+    ? {
+        unseen: CodeFileUnseen.ReadOnAnotherBranch,
+        readOnBranch: latest.branchName,
+      }
     : { unseen: CodeFileUnseen.NotRead };
 };
 
@@ -580,11 +616,12 @@ describe("every history of turns, against an oracle", () => {
           const last: number = whole
             ? lineCount
             : Math.min(lineCount, first + random(400));
-          const linesShown: AIChatLinesShown | undefined = getCodeFileLinesShown({
-            lineCount,
-            firstLine: first,
-            lastLine: last,
-          });
+          const linesShown: AIChatLinesShown | undefined =
+            getCodeFileLinesShown({
+              lineCount,
+              firstLine: first,
+              lastLine: last,
+            });
 
           events.push({
             turn,
@@ -599,7 +636,10 @@ describe("every history of turns, against an oracle", () => {
       const lastTurn: number = turns - 1;
       // As the runner hands them: the turns before marked.
       const handed: Array<AIChatRecordSeen> = records.map(
-        (entry: { turn: number; record: AIChatRecordSeen }): AIChatRecordSeen => {
+        (entry: {
+          turn: number;
+          record: AIChatRecordSeen;
+        }): AIChatRecordSeen => {
           return entry.turn < lastTurn ? earlier(entry.record) : entry.record;
         },
       );
@@ -609,15 +649,21 @@ describe("every history of turns, against an oracle", () => {
           random(8) === 0 ? null : onBranch.get(branchName)!;
         const now: CodeFileOnBranch =
           nowVersion === null ? { state: "absent" } : file(nowVersion);
-        const expected: Omit<CodeFileUnseenFinding, "filePath"> | null = oracle({
-          events,
-          lastTurn,
-          branchName,
-          now: nowVersion,
-          lineCounts,
-        });
+        const expected: Omit<CodeFileUnseenFinding, "filePath"> | null = oracle(
+          {
+            events,
+            lastTurn,
+            branchName,
+            now: nowVersion,
+            lineCounts,
+          },
+        );
 
-        expect({ round, branchName, found: decide({ records: handed, branchName, now }) }).toEqual({
+        expect({
+          round,
+          branchName,
+          found: decide({ records: handed, branchName, now }),
+        }).toEqual({
           round,
           branchName,
           found: expected,

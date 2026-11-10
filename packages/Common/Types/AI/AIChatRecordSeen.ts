@@ -355,22 +355,21 @@ type FromEarlierAnswersFunction = (
  * (issue #6365): each well-formed one marked as from an earlier answer,
  * whose text the model no longer has. Stored records are never marked.
  */
-export const markAIChatRecordsFromEarlierAnswers: FromEarlierAnswersFunction =
-  (
-    records: ReadonlyArray<unknown> | null | undefined,
-  ): Array<AIChatRecordSeen> => {
-    const marked: Array<AIChatRecordSeen> = [];
+export const markAIChatRecordsFromEarlierAnswers: FromEarlierAnswersFunction = (
+  records: ReadonlyArray<unknown> | null | undefined,
+): Array<AIChatRecordSeen> => {
+  const marked: Array<AIChatRecordSeen> = [];
 
-    for (const value of records || []) {
-      const record: AIChatRecordSeen | null = readAIChatRecordSeen(value);
+  for (const value of records || []) {
+    const record: AIChatRecordSeen | null = readAIChatRecordSeen(value);
 
-      if (record) {
-        marked.push({ ...record, fromEarlierAnswer: true });
-      }
+    if (record) {
+      marked.push({ ...record, fromEarlierAnswer: true });
     }
+  }
 
-    return marked;
-  };
+  return marked;
+};
 
 type RecordKeyFunction = (
   recordType: AIChatRecordSeenType,

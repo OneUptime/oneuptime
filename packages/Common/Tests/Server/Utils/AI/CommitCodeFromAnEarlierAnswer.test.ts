@@ -374,7 +374,9 @@ describe("the issue's case: read whole in one turn, committed without a read in 
           fingerprint: fingerprintCodeFileVersion(blobOf(ON_BRANCH)),
         },
       ],
-      unseen: [{ filePath: CHARGE, unseen: CodeFileUnseen.ReadInEarlierAnswer }],
+      unseen: [
+        { filePath: CHARGE, unseen: CodeFileUnseen.ReadInEarlierAnswer },
+      ],
     });
 
     await conversation.run(CommitCodeToBranchTool, prepared);
@@ -433,7 +435,10 @@ describe("what an earlier answer still counts for, and what it does not", () => 
 
     await conversation.read(CHARGE, { branchName: "fix/login" });
     conversation.newTurn();
-    await conversation.read(CHARGE, { startLine: 401, branchName: "fix/login" });
+    await conversation.read(CHARGE, {
+      startLine: 401,
+      branchName: "fix/login",
+    });
 
     const prepared: PreparedMutation = await conversation.propose(
       CommitCodeToBranchTool,
@@ -461,7 +466,10 @@ describe("what an earlier answer still counts for, and what it does not", () => 
 
     await conversation.read(CHARGE, { branchName: "fix/login" });
     conversation.newTurn();
-    await conversation.read(CHARGE, { startLine: 401, branchName: "fix/login" });
+    await conversation.read(CHARGE, {
+      startLine: 401,
+      branchName: "fix/login",
+    });
 
     expect(
       (
@@ -531,8 +539,13 @@ describe("what an earlier answer still counts for, and what it does not", () => 
   });
 
   test("read in the turn before, written with a placeholder over a hidden value now: both lines, the placeholders first (#6364)", async () => {
-    const config: string = 'export const HOST = "10.0.0.12";\nexport const RETRIES = 3;\n';
-    serveOnGitHub(makeRepository({ files: { "fix/login": { "config/servers.ts": config } } }));
+    const config: string =
+      'export const HOST = "10.0.0.12";\nexport const RETRIES = 3;\n';
+    serveOnGitHub(
+      makeRepository({
+        files: { "fix/login": { "config/servers.ts": config } },
+      }),
+    );
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
     await conversation.read("config/servers.ts", { branchName: "fix/login" });
@@ -543,7 +556,8 @@ describe("what an earlier answer still counts for, and what it does not", () => 
       commit("fix/login", [
         {
           filePath: "config/servers.ts",
-          content: 'export const HOST = "[redacted-ip]";\nexport const RETRIES = 5;\n',
+          content:
+            'export const HOST = "[redacted-ip]";\nexport const RETRIES = 5;\n',
         },
       ]),
     );
@@ -564,10 +578,14 @@ describe("what an earlier answer still counts for, and what it does not", () => 
     expect(told).toContain(
       "- config/servers.ts: you read it in an earlier answer, and you no longer have its text.",
     );
-    expect(told).toContain("Read each file you read in an earlier answer again in this answer");
+    expect(told).toContain(
+      "Read each file you read in an earlier answer again in this answer",
+    );
     expect(told).toContain("You cannot write a value hidden from you back");
     // Mixed kinds: the general opening.
-    expect(told).toMatch(/^Not done: nothing was committed to fix\/login, because writing these files whole/);
+    expect(told).toMatch(
+      /^Not done: nothing was committed to fix\/login, because writing these files whole/,
+    );
   });
 
   test("five files read in the turn before: one line, three named and the rest counted; the model told every one", async () => {
@@ -700,35 +718,38 @@ describe("beyond GitHub", () => {
         serveOnForgejo(gitlabOrForgejo);
       },
     ],
-  ])("%s: read in the turn before, the card says so; read again, nothing", async (_host: string, serve: () => void) => {
-    gitlabOrForgejo = repositoryWithCharge();
-    serve();
-    const conversation: Conversation = new Conversation(CONNECTED_CONTEXT);
+  ])(
+    "%s: read in the turn before, the card says so; read again, nothing",
+    async (_host: string, serve: () => void) => {
+      gitlabOrForgejo = repositoryWithCharge();
+      serve();
+      const conversation: Conversation = new Conversation(CONNECTED_CONTEXT);
 
-    await conversation.read(CHARGE, { branchName: "fix/login" });
-    conversation.newTurn();
+      await conversation.read(CHARGE, { branchName: "fix/login" });
+      conversation.newTurn();
 
-    expect(
-      cardOf(
-        CommitCodeToBranchTool,
-        await conversation.propose(
+      expect(
+        cardOf(
           CommitCodeToBranchTool,
-          commit("fix/login", [{ filePath: CHARGE, content: FROM_MEMORY }]),
-        ),
-      ).line,
-    ).toBe(EARLIER_CHARGE);
+          await conversation.propose(
+            CommitCodeToBranchTool,
+            commit("fix/login", [{ filePath: CHARGE, content: FROM_MEMORY }]),
+          ),
+        ).line,
+      ).toBe(EARLIER_CHARGE);
 
-    await conversation.read(CHARGE, { branchName: "fix/login" });
+      await conversation.read(CHARGE, { branchName: "fix/login" });
 
-    expect(
-      Object.keys(
-        await conversation.propose(
-          CommitCodeToBranchTool,
-          commit("fix/login", [{ filePath: CHARGE, content: FROM_MEMORY }]),
+      expect(
+        Object.keys(
+          await conversation.propose(
+            CommitCodeToBranchTool,
+            commit("fix/login", [{ filePath: CHARGE, content: FROM_MEMORY }]),
+          ),
         ),
-      ),
-    ).toEqual(["arguments"]);
-  });
+      ).toEqual(["arguments"]);
+    },
+  );
 });
 
 describe("what a turn hands on, and what it stores", () => {
@@ -739,11 +760,14 @@ describe("what a turn hands on, and what it stores", () => {
     await conversation.read(CHARGE, { branchName: "fix/login" });
     conversation.newTurn();
 
-    const handed: ReadonlyArray<AIChatRecordSeen> = conversation.seen().recordsSeen!;
+    const handed: ReadonlyArray<AIChatRecordSeen> =
+      conversation.seen().recordsSeen!;
 
     expect(handed).toHaveLength(1);
     expect(handed[0]!.fromEarlierAnswer).toBe(true);
-    expect(JSON.stringify(conversation.earlier)).not.toContain("fromEarlierAnswer");
+    expect(JSON.stringify(conversation.earlier)).not.toContain(
+      "fromEarlierAnswer",
+    );
   });
 
   test("a finding of a file read in an earlier answer is read back as stored", () => {

@@ -1156,8 +1156,8 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
           ? `Not done: nothing was committed to ${branch}, because you read these files in an earlier answer and no longer have their text:`
           : `Not done: no pull request was opened, because you read these files in an earlier answer and no longer have their text:`
         : isCommit
-        ? `Not done: nothing was committed to ${branch}, because writing these files whole would undo or replace what you have not read there:`
-        : `Not done: no pull request was opened, because writing these files whole on top of ${branch}, the branch it starts from, would undo or replace what you have not read there:`,
+          ? `Not done: nothing was committed to ${branch}, because writing these files whole would undo or replace what you have not read there:`
+          : `Not done: no pull request was opened, because writing these files whole on top of ${branch}, the branch it starts from, would undo or replace what you have not read there:`,
   ];
 
   for (const finding of data.findings) {

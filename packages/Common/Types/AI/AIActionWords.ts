@@ -307,9 +307,10 @@ export const AI_ACTION_LINES: {
  * - would undo what was pushed to a file since, or replace a file Ask AI
  * read on another branch, or never read, or read only part of (issue
  * #6330), or read only in an earlier answer (issue #6365) - or write
- * placeholders where values were hidden from Ask AI (issue #6364). Each names the files, as {{files}}: a list of
- * AI_ACTION_CODE_FILE, the first few written out and the rest counted
- * (moreFiles). {{count}} is how many files it names.
+ * placeholders where values were hidden from Ask AI (issue #6364). Each
+ * names the files, as {{files}}: a list of AI_ACTION_CODE_FILE, the first
+ * few written out and the rest counted (moreFiles). {{count}} is how many
+ * files it names.
  */
 export const AI_ACTION_PLURAL_LINES: {
   codeFilesChangedSinceRead: PluralTemplate;
