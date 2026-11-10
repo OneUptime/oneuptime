@@ -234,7 +234,8 @@ async function isBelow(upper: Locator, lower: Locator): Promise<boolean> {
 async function dialogAtRest(page: Page): Promise<void> {
   await page.waitForFunction((): boolean => {
     return document.getAnimations().every((animation: Animation): boolean => {
-      const endTime: number | string | undefined = animation.effect
+      // A number, or a CSS value in browsers that type it so: compared, not used.
+      const endTime: unknown = animation.effect
         ? animation.effect.getComputedTiming().endTime
         : undefined;
       return animation.playState !== "running" || endTime === Infinity;
