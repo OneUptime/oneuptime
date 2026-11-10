@@ -524,7 +524,7 @@ async function renderInvestigationCard(): Promise<HTMLElement> {
   // Until the card has read its investigation, it says it is checking.
   await waitFor(() => {
     expect(
-      screen.getByRole("region", { name: AR["OneUptime AI"] }),
+      screen.getByRole("region", { name: AR["OneUptime AI"] as string }),
     ).toHaveAttribute("aria-busy", "false");
   });
 
