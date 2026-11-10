@@ -204,21 +204,48 @@ describe("dashboard locale bundling contract (source-pinned)", () => {
     );
   });
 
+  /*
+   * The language menu, User Profile's Language and the page's start (a
+   * person's own language) all switch through switchDashboardLanguage
+   * (Utils/DashboardLanguageSwitch.ts), so the load-then-switch order is
+   * pinned there, and nothing else in the Dashboard changes the language.
+   */
   test("the language switcher loads the target locale before switching to it", () => {
-    const switcherSource: string = readDashboardCode(
-      "Components",
-      "LanguageSwitcher",
-      "LanguageSwitcher.tsx",
+    const switchSource: string = readDashboardCode(
+      "Utils",
+      "DashboardLanguageSwitch.ts",
     );
 
     // The load is awaited — a fire-and-forget load would still flash keys.
-    expect(switcherSource).toMatch(/await\s+i18n\.loadLanguages\(/);
+    expect(switchSource).toMatch(/await\s+i18n\.loadLanguages\(/);
 
-    const loadIndex: number = switcherSource.indexOf("loadLanguages(");
-    const changeIndex: number = switcherSource.indexOf("changeLanguage(");
+    const loadIndex: number = switchSource.indexOf("loadLanguages(");
+    const changeIndex: number = switchSource.indexOf("changeLanguage(");
 
     expect(loadIndex).toBeGreaterThanOrEqual(0);
     expect(changeIndex).toBeGreaterThan(loadIndex);
+
+    // The language menu switches through it...
+    expect(
+      readDashboardCode(
+        "Components",
+        "LanguageSwitcher",
+        "LanguageSwitcher.tsx",
+      ),
+    ).toMatch(/await\s+switchDashboardLanguage\(\s*i18n\s*,/);
+
+    // ...and no other source changes the language without the load first.
+    expect(
+      walkSourceFiles(DASHBOARD_SRC)
+        .filter((file: string): boolean => {
+          return stripComments(fs.readFileSync(file, "utf8")).includes(
+            "changeLanguage(",
+          );
+        })
+        .map((file: string): string => {
+          return path.relative(DASHBOARD_SRC, file);
+        }),
+    ).toEqual([path.join("Utils", "DashboardLanguageSwitch.ts")]);
   });
 });
 
