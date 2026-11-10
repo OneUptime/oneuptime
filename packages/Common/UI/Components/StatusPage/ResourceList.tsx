@@ -393,8 +393,18 @@ const ResourceList: FunctionComponent<ComponentProps> = (
               {displayName}
             </p>
           ) : (
-            <p className="truncate text-sm text-gray-400">
-              {translator.translateText("Same as the monitor name")}
+            <p
+              className="truncate text-sm text-gray-400"
+              data-testid="status-page-resource-row-same-name"
+            >
+              {/*
+               * A row that shows a monitor group repeats the group's name,
+               * not a monitor's (issue #6540). A row that still names both
+               * shows its monitor, as getResourceName does.
+               */}
+              {!statusPageResource.monitor && statusPageResource.monitorGroup
+                ? translator.translateText("Same as the monitor group name")
+                : translator.translateText("Same as the monitor name")}
             </p>
           )}
         </div>

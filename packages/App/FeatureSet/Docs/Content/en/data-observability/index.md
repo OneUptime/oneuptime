@@ -49,16 +49,22 @@ flowchart TB
 :::steps
 ### Connect a database
 
-Open **Data Observability**, go to **Databases** and choose **Connect a Database**. Pick the engine, and give a read-only connection string, or the name of the environment variable your probe reads it from. [Connect a Database](/docs/data-observability/connect) shows each engine's login.
+Open **Data Observability** and choose **Connect a Database**, on the **Overview** or on **Databases**. Pick the engine, and give a read-only connection string, or the name of the environment variable your probe reads it from. [Connect a Database](/docs/data-observability/connect) shows each engine's login.
 
-### See its tables
+### Turn on its recommended alerts
+
+A database you connect opens on its **Recommended Alerts**, because nobody hears of its tables until some are on. Add the ones you want: a table that is late, one whose rows fall sharply or run unusually low, one whose columns change, and a database that stops reporting. Each is an ordinary monitor: on-call, owners, maintenance windows and status pages work as for any other.
+
+### Read the Overview
 
 Within five minutes its tables appear under **Tables**, each with its rows, size and when it last changed. Its freshness is known once a table has changed twice: **Fresh** while it keeps its rhythm, **Late** once it misses it.
 
-### Add the recommended alerts
-
-On **Databases**, choose **Recommended Alerts** for the database, and add the ones you want: a table that is late, one whose rows fall sharply or run unusually low, one whose columns change, and a database that stops reporting. Each is an ordinary monitor: on-call, owners, maintenance windows and status pages work as for any other.
+The **Overview** then says what needs someone now, worst first: a database that could not be read, a pipeline run that failed or is late, a check that is failing or could not run, a reconciliation that drifted, and a late data product or table. Each says who owns it and whether its alert is open, or that nobody is told because its database has no alert on, and opens the page where it is put right. Until the project is set up, the **Overview** lists the steps left: alerts on every database, owners for the tables, a check, and your pipeline runs.
 :::
+
+## Where things are
+
+The menu follows the questions you ask of your data. Its first section holds the everyday pages: **Overview**, **Tables**, **Pipelines**, **Schema Changes**, **Databases** and **Storage Paths**. **Quality** holds the rules the data must keep, **Checks** and **Reconciliations**, and **Usage** who relies on it and what it costs: **Data Products**, **BI Dashboards**, **Warehouse Spend** and **Unused Tables**. **Rules** (**Owner Rules** and **Label Rules**), **Help** and **Advanced** (**Settings** and **Dropped Tables**) stay folded until you open them.
 
 ## What it costs
 

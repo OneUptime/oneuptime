@@ -7,6 +7,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import MonitorRootCauseValue from "../../../Components/EventView/MonitorRootCauseValue";
 import IncidentRootCauseMetricChart from "../../../Components/Incident/IncidentRootCauseMetricChart";
 
 const IncidentDelete: FunctionComponent<
@@ -43,6 +44,13 @@ const IncidentDelete: FunctionComponent<
           showDetailsInNumberOfColumns: 1,
           modelType: Incident,
           id: "model-detail-incident-root-cause",
+          /*
+           * What a monitor wrote reads in the reader's language as far as
+           * it goes: its findings are worded from the evaluation details.
+           */
+          selectMoreFields: {
+            evaluationDetails: true,
+          },
           fields: [
             {
               field: {
@@ -50,7 +58,16 @@ const IncidentDelete: FunctionComponent<
               },
               title: "",
               placeholder: "No root cause identified for this incident.",
-              fieldType: FieldType.Markdown,
+              fieldType: FieldType.Element,
+              getElement: (item: Incident): ReactElement => {
+                return (
+                  <MonitorRootCauseValue
+                    rootCause={item.rootCause}
+                    evaluationDetails={item.evaluationDetails}
+                    placeholder="No root cause identified for this incident."
+                  />
+                );
+              },
             },
           ],
           modelId: modelId,

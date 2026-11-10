@@ -3,14 +3,21 @@ import LogMonitorGroupResult from "../../../Types/Monitor/LogMonitor/LogMonitorG
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import DataToProcess from "./DataToProcess";
 import { FanOutEntity } from "./PerEntityCriteriaFanOut";
+import { translationKey } from "../../../Types/Translator";
 
-// What an alert or incident resolved by a log says about why it closed.
+/*
+ * What an alert or incident resolved by a log says about why it closed.
+ * The two resolved messages are keys too: the evaluation log words them in
+ * each reader's language (EvaluationEventText).
+ */
 export const LOG_GROUP_RESOLVED_ROOT_CAUSE: string =
   "A log that resolves this group arrived.";
-export const LOG_GROUP_ALERT_RESOLVED_MESSAGE: string =
-  "Alert auto-resolved because a log that resolves its group arrived.";
-export const LOG_GROUP_INCIDENT_RESOLVED_MESSAGE: string =
-  "Incident auto-resolved because a log that resolves its group arrived.";
+export const LOG_GROUP_ALERT_RESOLVED_MESSAGE: string = translationKey(
+  "Alert auto-resolved because a log that resolves its group arrived.",
+);
+export const LOG_GROUP_INCIDENT_RESOLVED_MESSAGE: string = translationKey(
+  "Incident auto-resolved because a log that resolves its group arrived.",
+);
 
 /**
  * Per-group alerting for Logs monitors.

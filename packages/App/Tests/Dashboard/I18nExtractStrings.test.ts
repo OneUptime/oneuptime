@@ -803,6 +803,57 @@ describe("a root that marks its keys", () => {
     expect(result.hardcoded).toEqual([]);
   });
 
+  /*
+   * The monitor engine stores what an evaluation found as a sentence the
+   * Dashboard words in each reader's language (issue #6542): its template
+   * is a key, read from the server file as a translation call, while the
+   * file's other English - its logs, its stored text - is never a key.
+   */
+  test("takes the template of a sentence the monitor engine stores", () => {
+    const result: SourceScanResult = scan(
+      `
+      const found = translatableSentence("Response Status Code was {{code}}.", {
+        code: String(responseCode),
+      });
+      const online = translatableSentence(
+        isOnline
+          ? "Monitor reported online status at {{time}}."
+          : "Monitor reported offline status at {{time}}.",
+        { time: evaluationTime(at) },
+      );
+      const readings = translatablePluralSentence(
+        {
+          one: translationKey("{{count}} reading"),
+          other: translationKey("{{count}} readings"),
+        },
+        count,
+      );
+      const asGiven = translatableSentence(input.resolvedMessage);
+      logger.debug("Probe agreement not met. Skipping status change.");
+      const stored: string = "Monitor status updated";
+    `,
+      "packages/Common/Server/Utils/Monitor/Example.ts",
+      "keys",
+    );
+
+    expect(
+      result.strings.map(
+        (entry: ExtractedString): [string, string, string | undefined] => {
+          return [entry.text, entry.kind, entry.pluralOne];
+        },
+      ),
+    ).toEqual([
+      ["Response Status Code was {{code}}.", "call", undefined],
+      ["Monitor reported online status at {{time}}.", "call", undefined],
+      ["Monitor reported offline status at {{time}}.", "call", undefined],
+      ["{{count}} readings", "plural", "{{count}} reading"],
+      // Each marked form is a key of its own too, as in every keys root.
+      ["{{count}} reading", "call", undefined],
+      ["{{count}} readings", "call", undefined],
+    ]);
+    expect(result.hardcoded).toEqual([]);
+  });
+
   test("the same file read as a ui root takes every name too", () => {
     expect(
       textsOf(
@@ -1441,7 +1492,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, the Hunt Library's starters, what each of the traces explorer's span types is, why Add or Delete is locked on the Global User Overrides page, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, a database's status by its engine's alert lines, what each managed app platform is, a cloud resource's status by its key metrics and the kinds of saving the clouds recommend, a resource's right-sizing from OneUptime's own readings, what an AI action's approval card says and the kinds of resource it names, how an AI remediation round reads, and the curated metrics' names", () => {
+  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, a new monitor's default criteria words, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, the Hunt Library's starters, what each of the traces explorer's span types is, why Add or Delete is locked on the Global User Overrides page, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, a database's status by its engine's alert lines, what each managed app platform is, a cloud resource's status by its key metrics and the kinds of saving the clouds recommend, a resource's right-sizing from OneUptime's own readings, what an AI action's approval card says and the kinds of resource it names, how an AI remediation round reads, the curated metrics' names, and what a monitor's evaluation says and the checks it names", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -1465,6 +1516,8 @@ describe("the real source roots", () => {
       "ui packages/Common/Utils/Monitor",
       // Create Monitor's type cards: each type's title and what it alerts on.
       "ui packages/Common/Types/Monitor/MonitorType.ts",
+      // A new monitor's default criteria: names, descriptions, what they open.
+      "keys packages/Common/Types/Monitor/MonitorCriteriaInstance.ts",
       // A cron schedule in words.
       "ui packages/Common/Utils/CronScheduleText.ts",
       // The common schedules a workflow's Schedule trigger offers.
@@ -1536,6 +1589,20 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Monitor/ProxmoxMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/OpenStackMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/CephMetricCatalog.ts",
+      // What a monitor's evaluation says, worded for each reader (#6542).
+      "keys packages/Common/Types/Monitor/CriteriaFilterTerms.ts",
+      "keys packages/Common/Server/Utils/Monitor/Criteria/CompareCriteria.ts",
+      "keys packages/Common/Server/Utils/Monitor/Criteria/APIRequestCriteria.ts",
+      "keys packages/Common/Server/Utils/Monitor/MonitorCriteriaExpectationBuilder.ts",
+      "keys packages/Common/Server/Utils/Monitor/MonitorCriteriaMessageBuilder.ts",
+      "keys packages/Common/Server/Utils/Monitor/MonitorCriteriaObservationBuilder.ts",
+      "keys packages/Common/Server/Utils/Monitor/EvaluationEventText.ts",
+      "keys packages/Common/Server/Utils/Monitor/MonitorResource.ts",
+      "keys packages/Common/Server/Utils/Monitor/MonitorIncident.ts",
+      "keys packages/Common/Server/Utils/Monitor/MonitorAlert.ts",
+      "keys packages/Common/Server/Utils/Monitor/MonitorMaintenanceSuppression.ts",
+      "keys packages/Common/Server/Utils/Monitor/MonitorDependencySuppression.ts",
+      "keys packages/Common/Server/Utils/Monitor/LogGroupCriteriaFanOut.ts",
     ]);
   });
 

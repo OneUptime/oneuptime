@@ -2,6 +2,8 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
+import EvaluationEventText from "./EvaluationEventText";
+import { translatableSentence } from "../../../Types/Monitor/EvaluationSentence";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import ObjectID from "../../../Types/ObjectID";
@@ -453,10 +455,18 @@ export default class MonitorMaintenanceSuppression {
     }
 
     if (input.criteriaInstance.data?.createIncidents) {
+      /*
+       * The title in the reader's words; the message names the resources in
+       * English, as it is stored.
+       */
       input.evaluationSummary.events.push({
         type: "incident-skipped",
-        title: "Incident suppressed by scheduled maintenance",
-        message: `Skipped creating incidents because ${databases} under an active scheduled maintenance window. This monitor's status still updates normally; open incidents still auto-resolve.`,
+        ...EvaluationEventText.from({
+          title: translatableSentence(
+            "Incident suppressed by scheduled maintenance",
+          ),
+          message: `Skipped creating incidents because ${databases} under an active scheduled maintenance window. This monitor's status still updates normally; open incidents still auto-resolve.`,
+        }),
         relatedCriteriaId: input.criteriaInstance.data?.id,
         at: OneUptimeDate.getCurrentDate(),
       });
@@ -465,8 +475,12 @@ export default class MonitorMaintenanceSuppression {
     if (input.criteriaInstance.data?.createAlerts) {
       input.evaluationSummary.events.push({
         type: "alert-skipped",
-        title: "Alert suppressed by scheduled maintenance",
-        message: `Skipped creating alerts because ${databases} under an active scheduled maintenance window. This monitor's status still updates normally; open alerts still auto-resolve.`,
+        ...EvaluationEventText.from({
+          title: translatableSentence(
+            "Alert suppressed by scheduled maintenance",
+          ),
+          message: `Skipped creating alerts because ${databases} under an active scheduled maintenance window. This monitor's status still updates normally; open alerts still auto-resolve.`,
+        }),
         relatedCriteriaId: input.criteriaInstance.data?.id,
         at: OneUptimeDate.getCurrentDate(),
       });

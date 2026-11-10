@@ -49,16 +49,22 @@ flowchart TB
 :::steps
 ### Conecte um banco de dados
 
-Abra **Observabilidade de dados**, vá para **Bancos de dados** e escolha **Conectar um banco de dados**. Escolha o mecanismo e informe uma string de conexão somente leitura, ou o nome da variável de ambiente de onde a sua sonda a lê. [Conectar um banco de dados](/docs/data-observability/connect) mostra o login de cada mecanismo.
+Abra **Observabilidade de dados** e escolha **Conectar um banco de dados**, em **Visão geral** ou em **Bancos de dados**. Escolha o mecanismo e informe uma string de conexão somente leitura, ou o nome da variável de ambiente de onde a sua sonda a lê. [Conectar um banco de dados](/docs/data-observability/connect) mostra o login de cada mecanismo.
 
-### Veja as tabelas dele
+### Ative os alertas recomendados dele
+
+Um banco de dados que você conecta abre nos seus **Alertas recomendados**, porque ninguém fica sabendo das tabelas dele até que algum esteja ativo. Adicione os que você quiser: uma tabela atrasada, uma cujas linhas caem bruscamente ou ficam anormalmente baixas, uma cujas colunas mudam, e um banco de dados que para de reportar. Cada um é um monitor comum: plantão, proprietários, janelas de manutenção e páginas de status funcionam como em qualquer outro.
+
+### Leia a visão geral
 
 Em até cinco minutos as tabelas dele aparecem em **Tabelas**, cada uma com as suas linhas, o seu tamanho e quando mudou pela última vez. A atualidade de uma tabela é conhecida assim que ela muda duas vezes: **Atualizada** enquanto mantém o seu ritmo, **Atrasada** quando o perde.
 
-### Adicione os alertas recomendados
-
-Em **Bancos de dados**, escolha **Alertas recomendados** para o banco de dados e adicione os que você quiser: uma tabela atrasada, uma cujas linhas caem bruscamente ou ficam anormalmente baixas, uma cujas colunas mudam, e um banco de dados que para de reportar. Cada um é um monitor comum: plantão, proprietários, janelas de manutenção e páginas de status funcionam como em qualquer outro.
+A **Visão geral** diz então o que precisa de alguém agora, o pior primeiro: um banco de dados que não pôde ser lido, uma execução de pipeline que falhou ou está atrasada, uma verificação que está falhando ou não pôde ser executada, uma reconciliação que divergiu, e um produto de dados ou uma tabela atrasada. Cada item diz quem é o proprietário e se o alerta dele está aberto, ou que ninguém é avisado porque o banco de dados dele não tem nenhum alerta ativo, e abre a página onde ele é corrigido. Enquanto o projeto não estiver configurado, a **Visão geral** lista os passos que faltam: alertas em cada banco de dados, proprietários para as tabelas, uma verificação e as execuções dos seus pipelines.
 :::
+
+## Onde fica cada coisa
+
+O menu segue as perguntas que você faz sobre os seus dados. A primeira seção reúne as páginas do dia a dia: **Visão geral**, **Tabelas**, **Pipelines**, **Alterações de esquema**, **Bancos de dados** e **Caminhos de armazenamento**. **Qualidade** reúne as regras que os dados devem seguir, **Verificações** e **Reconciliações**, e **Uso** quem depende deles e quanto custam: **Produtos de dados**, **Painéis de BI**, **Gasto do warehouse** e **Tabelas não utilizadas**. **Regras** (**Regras de proprietário** e **Regras de Rótulos**), **Ajuda** e **Avançado** (**Configurações** e **Tabelas removidas**) ficam recolhidas até você abri-las.
 
 ## Quanto custa
 

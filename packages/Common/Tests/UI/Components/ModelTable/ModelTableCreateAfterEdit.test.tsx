@@ -112,6 +112,7 @@ type RecordedModalProps = {
   formProps: {
     formType: unknown;
     fields: Array<RecordedFormField>;
+    alsoReadColumns?: Array<string> | undefined;
   };
 };
 
@@ -323,6 +324,29 @@ describe("Create after Edit on the same table", () => {
      * the modal's prefetch select and the whole GET would be refused.
      */
     expect(titles).not.toContain(SECRET_VALUE_TITLE);
+
+    /*
+     * What the fields it leaves out hold is read, not shown (ModelForm's
+     * alsoReadColumns, which skips a column the user may not read - this
+     * one): the fields it shows open on the record's own choices.
+     */
+    expect(modal.formProps.alsoReadColumns).toEqual(["secretValue"]);
+  });
+
+  test("a Create reads nothing it does not show", async () => {
+    renderTable();
+
+    await waitFor(() => {
+      expect(findButton("Create Runbook Secret")).not.toBeNull();
+    });
+
+    fireEvent.click(findButton("Create Runbook Secret")!);
+
+    await waitFor(() => {
+      expect(recordedModalProps.length).toBeGreaterThan(0);
+    });
+
+    expect(lastModal().formProps.alsoReadColumns).toBeUndefined();
   });
 
   test("a Create before any Edit offers the write-only field", async () => {

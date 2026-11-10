@@ -1,5 +1,6 @@
 import FilterCondition from "../Filter/FilterCondition";
 import { CheckOn, FilterType } from "./CriteriaFilter";
+import { EvaluationSentence } from "./EvaluationSentence";
 import MonitorType from "./MonitorType";
 
 /*
@@ -128,6 +129,12 @@ export interface MonitorEvaluationFilterDetails {
    * "Response Status Code was 503, above the 499 threshold."
    */
   message: string;
+  /*
+   * The message as the sentence it was filled from (EvaluationSentence),
+   * for the Dashboard to word in the reader's language; absent when the
+   * engine wrote none, or the record was trimmed to its size.
+   */
+  messageSentence?: EvaluationSentence | undefined;
   /*
    * What the check found for this filter, written as a value: "503",
    * "6200 ms", "true". Absent where the sentence above is the only account

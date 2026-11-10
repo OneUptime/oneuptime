@@ -80,7 +80,7 @@ Replace `https://oneuptime.com` with your OneUptime instance URL if self-hosted.
 Send **GET** or **POST** requests to this URL. HEAD is accepted and treated as GET; PUT, PATCH and DELETE return 404. The secret key in the path is the only credential — no header or token is required. Query strings are ignored: send what criteria should read in the body or the headers.
 
 > [!WARNING]
-> Anyone who knows this URL can mark the monitor healthy, so treat it as a secret. If it leaks, open the monitor's **Settings** page and click **Reset Incoming Request Secret Key**, then update every sender. Every header you send is stored on the monitor and is visible to anyone who can read it — do not send API keys or tokens in headers to this endpoint.
+> Anyone who knows this URL can mark the monitor healthy, so treat it as a secret. If it leaks, open the monitor's **Settings** page and click **Reset Incoming Request Secret Key**, then update every sender. The monitor's overview shows the latest request as its logs keep it: with secrets and personal data masked, and with no headers or body when **Keep request content** is off. Masking catches the names and patterns it knows, so do not send API keys or tokens to this endpoint.
 
 > [!IMPORTANT]
 > OneUptime replies `200` with an empty JSON object (`{}`) immediately and processes the request on a queue. That reply is written before any validation happens, so a `200` is **not** confirmation that the request was accepted — a wrong secret key, a deleted monitor, and a disabled monitor all return `200` too. Check the monitor's own timeline to confirm requests are landing.

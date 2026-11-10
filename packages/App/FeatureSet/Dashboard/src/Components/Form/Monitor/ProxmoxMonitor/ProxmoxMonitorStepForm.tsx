@@ -37,6 +37,8 @@ import {
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { ProxmoxMetricDefinition } from "Common/Types/Monitor/ProxmoxMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorStepMetricQueries from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import InfrastructureMonitorSetup from "../InfrastructureMonitorSetup/InfrastructureMonitorSetup";
@@ -87,6 +89,7 @@ const scopeOptions: Array<DropdownOption> = [
 const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [rollingTime, setRollingTime] = React.useState<RollingTime | null>(
     null,
   );
@@ -324,6 +327,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
             props.defaultIncidentSeverityId || ObjectID.generate(),
           defaultAlertSeverityId:
             props.defaultAlertSeverityId || ObjectID.generate(),
+          translator: translator,
         }),
       );
     }

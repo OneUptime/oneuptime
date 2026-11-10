@@ -4,6 +4,23 @@ import DataToProcess from "./DataToProcess";
 import { CriteriaFilter } from "../../../Types/Monitor/CriteriaFilter";
 import MonitorCriteriaExpectationBuilder from "./MonitorCriteriaExpectationBuilder";
 import MonitorCriteriaObservationBuilder from "./MonitorCriteriaObservationBuilder";
+import EvaluationSentenceMemo from "./EvaluationSentenceMemo";
+import {
+  EvaluationSentence,
+  englishOfEvaluationSentence,
+  translatableSentence,
+} from "../../../Types/Monitor/EvaluationSentence";
+
+/*
+ * A filter's message, and the sentence it was filled from when it was
+ * filled from one (EvaluationSentence): the evaluation summary stores both,
+ * the English for every reader without a translation and the sentence for
+ * the Dashboard to word in each reader's language.
+ */
+export interface CriteriaFilterText {
+  message: string;
+  sentence?: EvaluationSentence | undefined;
+}
 
 export default class MonitorCriteriaMessageBuilder {
   public static buildCriteriaFilterMessage(input: {
@@ -14,17 +31,37 @@ export default class MonitorCriteriaMessageBuilder {
     didMeetCriteria: boolean;
     matchMessage: string | null;
   }): string {
+    return MonitorCriteriaMessageBuilder.buildCriteriaFilterText(input).message;
+  }
+
+  /*
+   * What buildCriteriaFilterMessage says, with the sentence it is filled
+   * from: a finding a checker wrote from a sentence is found under its
+   * English (EvaluationSentenceMemo); what this builder writes, it writes as
+   * one. A message written as text alone - a window still filling, a
+   * forecast - has no sentence and reads as stored.
+   */
+  public static buildCriteriaFilterText(input: {
+    monitor: Monitor;
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    didMeetCriteria: boolean;
+    matchMessage: string | null;
+  }): CriteriaFilterText {
     if (input.matchMessage) {
-      return input.matchMessage;
+      return MonitorCriteriaMessageBuilder.asWritten(input.matchMessage);
     }
 
     if (input.didMeetCriteria) {
-      const description: string =
-        MonitorCriteriaExpectationBuilder.getCriteriaFilterDescription(
-          input.criteriaFilter,
-        );
-
-      return `${description} condition met.`;
+      return MonitorCriteriaMessageBuilder.fromSentence(
+        translatableSentence("{{description}} condition met.", {
+          description:
+            MonitorCriteriaExpectationBuilder.getCriteriaFilterDescriptionSentence(
+              input.criteriaFilter,
+            ),
+        }),
+      );
     }
 
     /*
@@ -37,7 +74,7 @@ export default class MonitorCriteriaMessageBuilder {
       input.criteriaFilter.metricCriteriaContext?.windowWait?.message;
 
     if (windowWaitMessage) {
-      return windowWaitMessage;
+      return MonitorCriteriaMessageBuilder.asWritten(windowWaitMessage);
     }
 
     /*
@@ -49,35 +86,54 @@ export default class MonitorCriteriaMessageBuilder {
       input.criteriaFilter.metricCriteriaContext?.forecast?.message;
 
     if (forecastMessage) {
-      return forecastMessage;
+      return MonitorCriteriaMessageBuilder.asWritten(forecastMessage);
     }
 
-    const failureMessage: string | null =
-      MonitorCriteriaMessageBuilder.buildCriteriaFilterFailureMessage({
+    const failure: CriteriaFilterText | null =
+      MonitorCriteriaMessageBuilder.buildCriteriaFilterFailureText({
         monitor: input.monitor,
         criteriaFilter: input.criteriaFilter,
         dataToProcess: input.dataToProcess,
         monitorStep: input.monitorStep,
       });
 
-    if (failureMessage) {
-      return failureMessage;
+    if (failure) {
+      return failure;
     }
 
-    const description: string =
-      MonitorCriteriaExpectationBuilder.getCriteriaFilterDescription(
-        input.criteriaFilter,
-      );
-
-    return `${description} condition was not met.`;
+    return MonitorCriteriaMessageBuilder.fromSentence(
+      translatableSentence("{{description}} condition was not met.", {
+        description:
+          MonitorCriteriaExpectationBuilder.getCriteriaFilterDescriptionSentence(
+            input.criteriaFilter,
+          ),
+      }),
+    );
   }
 
-  private static buildCriteriaFilterFailureMessage(input: {
+  // A text another helper wrote: with its sentence, when it wrote one.
+  private static asWritten(message: string): CriteriaFilterText {
+    const sentence: EvaluationSentence | undefined =
+      EvaluationSentenceMemo.find(message);
+
+    return sentence ? { message: message, sentence: sentence } : { message };
+  }
+
+  private static fromSentence(
+    sentence: EvaluationSentence,
+  ): CriteriaFilterText {
+    return {
+      message: englishOfEvaluationSentence(sentence),
+      sentence: sentence,
+    };
+  }
+
+  private static buildCriteriaFilterFailureText(input: {
     monitor: Monitor;
     criteriaFilter: CriteriaFilter;
     dataToProcess: DataToProcess;
     monitorStep: MonitorStep;
-  }): string | null {
+  }): CriteriaFilterText | null {
     /*
      * Resolve the metric's display unit (undefined for non-metric criteria)
      * so the threshold in the expectation clause reads in the same unit as
@@ -93,8 +149,8 @@ export default class MonitorCriteriaMessageBuilder {
       monitorStep: input.monitorStep,
     });
 
-    const expectation: string | null =
-      MonitorCriteriaExpectationBuilder.describeCriteriaExpectation(
+    const expectation: EvaluationSentence | null =
+      MonitorCriteriaExpectationBuilder.describeCriteriaExpectationSentence(
         input.criteriaFilter,
         {
           ...metricDisplay,
@@ -111,11 +167,42 @@ export default class MonitorCriteriaMessageBuilder {
       });
 
     if (observation) {
+      /*
+       * The observation is the checker's text; its sentence, when it wrote
+       * it from one, is found under it. Without one, the message is the
+       * English text alone - a sentence never holds an English clause.
+       */
+      const observationSentence: EvaluationSentence | undefined =
+        EvaluationSentenceMemo.find(observation);
+
       if (expectation) {
-        return `${observation} (expected ${expectation}).`;
+        const message: string = `${observation} (expected ${englishOfEvaluationSentence(expectation)}).`;
+
+        return observationSentence
+          ? {
+              message: message,
+              sentence: translatableSentence(
+                "{{observation}} (expected {{expectation}}).",
+                {
+                  observation: observationSentence,
+                  expectation: expectation,
+                },
+              ),
+            }
+          : { message: message };
       }
 
-      return `${observation}; configured filter was not met.`;
+      const message: string = `${observation}; configured filter was not met.`;
+
+      return observationSentence
+        ? {
+            message: message,
+            sentence: translatableSentence(
+              "{{observation}}; configured filter was not met.",
+              { observation: observationSentence },
+            ),
+          }
+        : { message: message };
     }
 
     if (expectation) {
@@ -125,13 +212,19 @@ export default class MonitorCriteriaMessageBuilder {
        * greater than 1000000000 did not satisfy the configured condition
        * (expected to be greater than 1 GB)".
        */
-      const description: string =
-        MonitorCriteriaExpectationBuilder.getCriteriaFilterDescription(
-          input.criteriaFilter,
-          metricDisplay,
-        );
-
-      return `${description} did not satisfy the configured condition (${expectation}).`;
+      return MonitorCriteriaMessageBuilder.fromSentence(
+        translatableSentence(
+          "{{description}} did not satisfy the configured condition ({{expectation}}).",
+          {
+            description:
+              MonitorCriteriaExpectationBuilder.getCriteriaFilterDescriptionSentence(
+                input.criteriaFilter,
+                metricDisplay,
+              ),
+            expectation: expectation,
+          },
+        ),
+      );
     }
 
     return null;

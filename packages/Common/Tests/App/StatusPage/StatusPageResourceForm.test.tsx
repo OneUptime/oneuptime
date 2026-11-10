@@ -39,6 +39,8 @@ const MONITOR_A_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194165001";
 const MONITOR_B_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194165002";
 const MONITOR_C_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194165003";
 const RESOURCE_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194165101";
+const MONITOR_GROUP_A_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194165201";
+const MONITOR_GROUP_B_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194165202";
 
 interface CapturedSave {
   model: JSONObject;
@@ -93,15 +95,40 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
         return { ...recordToEdit };
       },
       /*
-       * Every list a resource form reads is the monitors: the picker's own
-       * options (ModelForm), and anything the picker searches for.
+       * Every list a resource form reads is the monitors, or the monitor
+       * groups on the monitor group picker: the picker's own options
+       * (ModelForm), and anything the picker searches for.
        */
-      getList: async (): Promise<{
+      getList: async (data?: {
+        modelType?: { name?: string } | undefined;
+      }): Promise<{
         data: Array<unknown>;
         count: number;
         skip: number;
         limit: number;
       }> => {
+        if (data?.modelType?.name === "MonitorGroup") {
+          const MonitorGroupModel: typeof MonitorGroup = (
+            jest.requireActual(
+              "../../../Models/DatabaseModels/MonitorGroup",
+            ) as {
+              default: typeof MonitorGroup;
+            }
+          ).default;
+
+          const groups: Array<MonitorGroup> = [
+            [MONITOR_GROUP_A_ID, "Payments Stack"],
+            [MONITOR_GROUP_B_ID, "Search Stack"],
+          ].map(([id, name]: Array<string>): MonitorGroup => {
+            const group: MonitorGroup = new MonitorGroupModel();
+            group._id = id!;
+            group.name = name!;
+            return group;
+          });
+
+          return { data: groups, count: groups.length, skip: 0, limit: 50 };
+        }
+
         const MonitorModel: typeof Monitor = (
           jest.requireActual("../../../Models/DatabaseModels/Monitor") as {
             default: typeof Monitor;
@@ -142,8 +169,12 @@ import {
   FILLED_IN_DISPLAY_NAME_KEY,
   followPickWithDisplayName,
   getDisplayNameAfterPick,
+  getFollowPickWithDisplayName,
   getStatusPageResourceFormFields,
+  getStatusPageResourceTargetName,
+  getStatusPageResourceTargetType,
   insertBeforeFoldedFields,
+  StatusPageResourceTargetType,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageResourceFormFields";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorGroup from "../../../Models/DatabaseModels/MonitorGroup";
@@ -392,6 +423,199 @@ describe("the monitor picker's onChange", () => {
   });
 });
 
+type ResourceOfFunction = (data: {
+  monitorId?: string | undefined;
+  monitor?: { _id: string; name?: string } | undefined;
+  monitorGroupId?: string | undefined;
+  monitorGroup?: { _id: string; name?: string } | undefined;
+}) => StatusPageResource;
+
+// A row as the resource list reads it: ID columns, and relations with names.
+const resourceOf: ResourceOfFunction = (data: {
+  monitorId?: string | undefined;
+  monitor?: { _id: string; name?: string } | undefined;
+  monitorGroupId?: string | undefined;
+  monitorGroup?: { _id: string; name?: string } | undefined;
+}): StatusPageResource => {
+  const resource: StatusPageResource = new StatusPageResource();
+  resource._id = RESOURCE_ID;
+
+  if (data.monitorId) {
+    resource.monitorId = new ObjectID(data.monitorId);
+  }
+
+  if (data.monitor) {
+    const monitor: Monitor = new Monitor();
+    monitor._id = data.monitor._id;
+    if (data.monitor.name) {
+      monitor.name = data.monitor.name;
+    }
+    resource.monitor = monitor;
+  }
+
+  if (data.monitorGroupId) {
+    resource.monitorGroupId = new ObjectID(data.monitorGroupId);
+  }
+
+  if (data.monitorGroup) {
+    const group: MonitorGroup = new MonitorGroup();
+    group._id = data.monitorGroup._id;
+    if (data.monitorGroup.name) {
+      group.name = data.monitorGroup.name;
+    }
+    resource.monitorGroup = group;
+  }
+
+  return resource;
+};
+
+/*
+ * Issue #6540: Edit resource opened the monitor picker on every resource,
+ * so a monitor group's row opened with nothing picked. The picker an Edit
+ * form opens on is the one for what the resource shows.
+ */
+describe("what a resource shows, for the picker its Edit form opens on", () => {
+  test("is a monitor group for a row that names only a monitor group", () => {
+    expect(
+      getStatusPageResourceTargetType(
+        resourceOf({ monitorGroupId: MONITOR_GROUP_A_ID }),
+      ),
+    ).toBe(StatusPageResourceTargetType.MonitorGroup);
+
+    expect(
+      getStatusPageResourceTargetType(
+        resourceOf({ monitorGroup: { _id: MONITOR_GROUP_A_ID } }),
+      ),
+    ).toBe(StatusPageResourceTargetType.MonitorGroup);
+  });
+
+  test("is a monitor for a row that names a monitor, by its column or its relation", () => {
+    expect(
+      getStatusPageResourceTargetType(resourceOf({ monitorId: MONITOR_A_ID })),
+    ).toBe(StatusPageResourceTargetType.Monitor);
+
+    expect(
+      getStatusPageResourceTargetType(
+        resourceOf({ monitor: { _id: MONITOR_A_ID } }),
+      ),
+    ).toBe(StatusPageResourceTargetType.Monitor);
+  });
+
+  /*
+   * A row the old Edit form left naming both shows its monitor, in the list
+   * and on the status page: its Edit form opens on what it shows.
+   */
+  test("is the monitor of a row that still names both", () => {
+    expect(
+      getStatusPageResourceTargetType(
+        resourceOf({
+          monitorId: MONITOR_A_ID,
+          monitorGroupId: MONITOR_GROUP_A_ID,
+        }),
+      ),
+    ).toBe(StatusPageResourceTargetType.Monitor);
+  });
+
+  test("is a monitor for a row that names neither", () => {
+    expect(getStatusPageResourceTargetType(resourceOf({}))).toBe(
+      StatusPageResourceTargetType.Monitor,
+    );
+  });
+
+  test("is named by the name of what it shows", () => {
+    expect(
+      getStatusPageResourceTargetName(
+        resourceOf({
+          monitorGroupId: MONITOR_GROUP_A_ID,
+          monitorGroup: { _id: MONITOR_GROUP_A_ID, name: "Payments Stack" },
+        }),
+      ),
+    ).toBe("Payments Stack");
+
+    expect(
+      getStatusPageResourceTargetName(
+        resourceOf({
+          monitorId: MONITOR_A_ID,
+          monitor: { _id: MONITOR_A_ID, name: "Checkout API" },
+          monitorGroupId: MONITOR_GROUP_A_ID,
+          monitorGroup: { _id: MONITOR_GROUP_A_ID, name: "Payments Stack" },
+        }),
+      ),
+    ).toBe("Checkout API");
+  });
+
+  test("has no name when the row did not carry one", () => {
+    expect(
+      getStatusPageResourceTargetName(
+        resourceOf({ monitorGroupId: MONITOR_GROUP_A_ID }),
+      ),
+    ).toBeUndefined();
+
+    expect(
+      getStatusPageResourceTargetName(
+        resourceOf({ monitor: { _id: MONITOR_A_ID, name: "" } }),
+      ),
+    ).toBeUndefined();
+  });
+});
+
+/*
+ * Edit resource on a monitor group's row, swapped to the monitor picker: the
+ * new picker had nothing picked before, but a display name still equal to
+ * the group's was never changed by anybody.
+ */
+describe("the display name on an Edit form, after the picker is swapped", () => {
+  test("follows the first pick when it is still the name of what the resource showed", () => {
+    expect(
+      getDisplayNameAfterPick({
+        displayName: "Payments Stack",
+        filledInDisplayName: undefined,
+        change: pick(["Checkout API"]),
+        savedTargetName: "Payments Stack",
+      }),
+    ).toBe("Checkout API");
+  });
+
+  test("keeps a name of the resource's own", () => {
+    expect(
+      getDisplayNameAfterPick({
+        displayName: "Payments",
+        filledInDisplayName: undefined,
+        change: pick(["Checkout API"]),
+        savedTargetName: "Payments Stack",
+      }),
+    ).toBeNull();
+  });
+
+  // Without it, the swapped picker's first pick could not tell.
+  test("keeps the name when the form was not told what the resource showed", () => {
+    expect(
+      getDisplayNameAfterPick({
+        displayName: "Payments Stack",
+        filledInDisplayName: undefined,
+        change: pick(["Checkout API"]),
+      }),
+    ).toBeNull();
+  });
+
+  test("is written by the picker's onChange an Edit form builds", () => {
+    const setNewFormValues: Mock<SetNewFormValuesFunction> =
+      jest.fn<SetNewFormValuesFunction>();
+
+    getFollowPickWithDisplayName("Payments Stack")(
+      MONITOR_A_ID,
+      { displayName: "Payments Stack" } as FormValues<StatusPageResource>,
+      setNewFormValues,
+      pick(["Checkout API"]),
+    );
+
+    expect(setNewFormValues).toHaveBeenCalledWith({
+      displayName: "Checkout API",
+      [FILLED_IN_DISPLAY_NAME_KEY]: "Checkout API",
+    });
+  });
+});
+
 type FieldKeyFunction = (field: ModelField<StatusPageResource>) => string;
 
 const fieldKey: FieldKeyFunction = (
@@ -402,7 +626,9 @@ const fieldKey: FieldKeyFunction = (
 
 describe("the resource form's fields", () => {
   const fields: Array<ModelField<StatusPageResource>> =
-    getStatusPageResourceFormFields({ addMonitorGroup: false });
+    getStatusPageResourceFormFields({
+      targetType: StatusPageResourceTargetType.Monitor,
+    });
 
   test("are the monitor, its display name, and an Advanced section holding the rest", () => {
     expect(fields.map(fieldKey)).toEqual([
@@ -463,7 +689,7 @@ describe("the resource form's fields", () => {
 
     const groupFields: Array<ModelField<StatusPageResource>> =
       getStatusPageResourceFormFields({
-        addMonitorGroup: true,
+        targetType: StatusPageResourceTargetType.MonitorGroup,
         targetFooterElement: footer,
       });
 
@@ -474,6 +700,31 @@ describe("the resource form's fields", () => {
     expect(groupFields[0]!.dropdownModal?.type).toBe(MonitorGroup);
     expect(groupFields[0]!.onChange).toBe(followPickWithDisplayName);
     expect(groupFields[0]!.footerElement).toBe(footer);
+  });
+
+  test("let an Edit form's display name follow from the name of what the resource showed", () => {
+    const editFields: Array<ModelField<StatusPageResource>> =
+      getStatusPageResourceFormFields({
+        targetType: StatusPageResourceTargetType.Monitor,
+        savedTargetName: "Payments Stack",
+      });
+
+    expect(fieldKey(editFields[0]!)).toBe("monitor");
+
+    const setNewFormValues: Mock<SetNewFormValuesFunction> =
+      jest.fn<SetNewFormValuesFunction>();
+
+    editFields[0]!.onChange!(
+      MONITOR_A_ID,
+      { displayName: "Payments Stack" } as FormValues<StatusPageResource>,
+      setNewFormValues,
+      pick(["Checkout API"]),
+    );
+
+    expect(setNewFormValues).toHaveBeenCalledWith({
+      displayName: "Checkout API",
+      [FILLED_IN_DISPLAY_NAME_KEY]: "Checkout API",
+    });
   });
 
   /*
@@ -510,7 +761,9 @@ describe("the resource form's fields", () => {
 
   test("build their Advanced section afresh for every form", () => {
     const again: Array<ModelField<StatusPageResource>> =
-      getStatusPageResourceFormFields({ addMonitorGroup: false });
+      getStatusPageResourceFormFields({
+        targetType: StatusPageResourceTargetType.Monitor,
+      });
 
     expect(again[2]!.collapsibleSection).not.toBe(
       fields[2]!.collapsibleSection,
@@ -651,7 +904,9 @@ describe("Add Monitor, as somebody fills it in", () => {
           name="Status Page > Resources"
           fields={
             data?.fields ||
-            getStatusPageResourceFormFields({ addMonitorGroup: false })
+            getStatusPageResourceFormFields({
+              targetType: StatusPageResourceTargetType.Monitor,
+            })
           }
           formType={formType}
           modelIdToEdit={
@@ -818,16 +1073,25 @@ describe("Edit resource", () => {
     recordToEdit = {};
   });
 
-  type RenderEditFunction = () => Promise<void>;
+  type RenderEditFunction = (
+    fields?: Array<ModelField<StatusPageResource>> | undefined,
+  ) => Promise<void>;
 
-  const renderEdit: RenderEditFunction = async (): Promise<void> => {
+  const renderEdit: RenderEditFunction = async (
+    fields?: Array<ModelField<StatusPageResource>> | undefined,
+  ): Promise<void> => {
     await act(async (): Promise<void> => {
       render(
         <ModelForm<StatusPageResource>
           modelType={StatusPageResource}
           id="edit-status-page-resource-test"
           name="Status Page > Resources"
-          fields={getStatusPageResourceFormFields({ addMonitorGroup: false })}
+          fields={
+            fields ||
+            getStatusPageResourceFormFields({
+              targetType: StatusPageResourceTargetType.Monitor,
+            })
+          }
           formType={FormType.Update}
           modelIdToEdit={new ObjectID(RESOURCE_ID)}
           onSuccess={(): void => {
@@ -927,5 +1191,175 @@ describe("Edit resource", () => {
 
     await screen.findByRole("button", { name: "More fields" });
     expect(setChips()).toEqual([]);
+  });
+});
+
+const MONITOR_GROUP_NAMES: Array<string> = ["Payments Stack", "Search Stack"];
+
+type ShownValueFunction = (names: Array<string>) => HTMLElement | undefined;
+
+// The value a single-select shows once something is picked: a button.
+const shownValue: ShownValueFunction = (
+  names: Array<string>,
+): HTMLElement | undefined => {
+  return screen
+    .queryAllByRole("button")
+    .find((button: HTMLElement): boolean => {
+      return names.includes((button.textContent || "").trim());
+    });
+};
+
+/*
+ * Issue #6540, through the real form: Edit resource on a monitor group's
+ * row opened the monitor picker with nothing picked, and saving it wrote a
+ * monitor beside the group. The Resources panel builds the Edit form for
+ * what the row shows (StatusPageResourcePanel); these are those forms.
+ */
+describe("Edit resource, on a monitor group's row", () => {
+  afterEach(() => {
+    cleanup();
+    capturedSaves = [];
+    recordToEdit = {};
+  });
+
+  const GROUP_ROW: JSONObject = {
+    _id: RESOURCE_ID,
+    displayName: "Payments Stack",
+    monitorGroup: { _id: MONITOR_GROUP_A_ID, name: "Payments Stack" },
+    showCurrentStatus: true,
+    showUptimePercent: false,
+    showStatusHistoryChart: true,
+  };
+
+  type RenderGroupEditFunction = (
+    targetType: StatusPageResourceTargetType,
+  ) => Promise<ReturnType<typeof userEvent.setup>>;
+
+  const renderGroupEdit: RenderGroupEditFunction = async (
+    targetType: StatusPageResourceTargetType,
+  ): Promise<ReturnType<typeof userEvent.setup>> => {
+    recordToEdit = { ...GROUP_ROW };
+
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+    await act(async (): Promise<void> => {
+      render(
+        <ModelForm<StatusPageResource>
+          modelType={StatusPageResource}
+          id="edit-status-page-resource-group-test"
+          name="Status Page > Resources"
+          fields={getStatusPageResourceFormFields({
+            targetType: targetType,
+            savedTargetName: "Payments Stack",
+          })}
+          formType={FormType.Update}
+          modelIdToEdit={new ObjectID(RESOURCE_ID)}
+          onSuccess={(): void => {
+            // Not asserted on.
+          }}
+          submitButtonText="Save Changes"
+        />,
+      );
+    });
+
+    await screen.findByRole("button", { name: "Save Changes" });
+
+    await waitFor(() => {
+      expect(displayNameInput().value).toBe("Payments Stack");
+    });
+
+    return user;
+  };
+
+  type SaveFunction = () => Promise<Record<string, unknown>>;
+
+  const save: SaveFunction = async (): Promise<Record<string, unknown>> => {
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+    });
+
+    await waitFor(() => {
+      expect(capturedSaves).toHaveLength(1);
+    });
+
+    return capturedSaves[0]!.model as Record<string, unknown>;
+  };
+
+  test("opens on the monitor group picker, with the row's group picked", async () => {
+    await renderGroupEdit(StatusPageResourceTargetType.MonitorGroup);
+
+    await waitFor(() => {
+      expect(shownValue(MONITOR_GROUP_NAMES)?.textContent?.trim()).toBe(
+        "Payments Stack",
+      );
+    });
+
+    expect(screen.getByText("Monitor Group")).toBeVisible();
+    expect(screen.queryByRole("combobox", { name: "Monitor" })).toBeNull();
+    expect(shownValue(MONITOR_NAMES)).toBeUndefined();
+  });
+
+  test("saves the monitor group it shows, and no monitor", async () => {
+    await renderGroupEdit(StatusPageResourceTargetType.MonitorGroup);
+
+    await waitFor(() => {
+      expect(shownValue(MONITOR_GROUP_NAMES)).toBeDefined();
+    });
+
+    const saved: Record<string, unknown> = await save();
+
+    expect(
+      (saved["monitorGroup"] as { _id?: unknown } | undefined)?._id?.toString(),
+    ).toBe(MONITOR_GROUP_A_ID);
+    expect(saved["monitor"]).toBeUndefined();
+    expect(saved["displayName"]).toBe("Payments Stack");
+  });
+
+  test("names the resource after another group picked in its place", async () => {
+    const user: ReturnType<typeof userEvent.setup> = await renderGroupEdit(
+      StatusPageResourceTargetType.MonitorGroup,
+    );
+
+    const value: HTMLElement = await waitFor((): HTMLElement => {
+      const found: HTMLElement | undefined = shownValue(MONITOR_GROUP_NAMES);
+      expect(found).toBeDefined();
+      return found!;
+    });
+
+    await user.click(value);
+    await user.click(
+      await screen.findByRole("option", { name: "Search Stack" }),
+    );
+
+    await waitFor(() => {
+      expect(displayNameInput().value).toBe("Search Stack");
+    });
+  });
+
+  /*
+   * "Show a Monitor instead." swaps the group picker for the monitor one: a
+   * display name still the group's follows the monitor picked, and the save
+   * sends the monitor alone - the server clears the group it leaves out.
+   */
+  test("swapped to the monitor picker, names it after the monitor and saves that monitor", async () => {
+    const user: ReturnType<typeof userEvent.setup> = await renderGroupEdit(
+      StatusPageResourceTargetType.Monitor,
+    );
+
+    expect(screen.getByRole("combobox", { name: "Monitor" })).toBeVisible();
+
+    await pickMonitor(user, "Billing Worker");
+
+    await waitFor(() => {
+      expect(displayNameInput().value).toBe("Billing Worker");
+    });
+
+    const saved: Record<string, unknown> = await save();
+
+    expect(
+      (saved["monitor"] as { _id?: unknown } | undefined)?._id?.toString(),
+    ).toBe(MONITOR_B_ID);
+    expect(saved["monitorGroup"]).toBeUndefined();
+    expect(saved["displayName"]).toBe("Billing Worker");
   });
 });

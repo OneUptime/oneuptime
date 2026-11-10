@@ -3,6 +3,7 @@ import { JSONObject } from "Common/Types/JSON";
 import MonitorEvaluationDetails from "Common/Types/Monitor/MonitorEvaluationDetails";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorEvaluationDetailsUtil from "Common/Utils/Monitor/MonitorEvaluationDetailsUtil";
+import MonitorRootCauseWording from "Common/Utils/Monitor/MonitorRootCauseWording";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
@@ -31,6 +32,7 @@ import React, {
   useState,
 } from "react";
 import EventEvaluationDetails from "./EventEvaluationDetails";
+import { EVALUATION_TEXT_OPTIONS } from "../../Utils/EvaluationText";
 
 /*
  * "What happened": the first card of an incident's, alert's or episode's
@@ -342,9 +344,20 @@ const EventWhatHappenedCard: <TBaseModel extends BaseModel>(
 
   const description: string = props.description?.trim() || "";
   const storedRootCause: string = props.rootCause?.trim() || "";
+
+  /*
+   * A root cause a monitor wrote, in the reader's language as far as it
+   * goes: OneUptime's own labels, and each finding the evaluation details
+   * hold as a sentence (MonitorRootCauseWording). The rest reads as stored.
+   */
   const rootCause: string = isOpenedByRootCause(storedRootCause)
     ? ""
-    : storedRootCause;
+    : MonitorRootCauseWording.wordRootCause({
+        rootCause: storedRootCause,
+        translator: translator,
+        findings: evaluationDetails?.filters,
+        options: EVALUATION_TEXT_OPTIONS,
+      });
 
   return (
     <>

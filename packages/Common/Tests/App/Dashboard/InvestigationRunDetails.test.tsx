@@ -1216,8 +1216,9 @@ describe("InvestigationRunDetails run times", () => {
     openDetails();
     fireEvent.click(activityTab());
 
+    // A run from an earlier day is dated too ("Started Nov 9, 2:00 PM").
     expect(activitySummary()).toHaveTextContent(
-      /^Started \d{1,2}:\d{2}(\s?[AP]M)? · took 6 minutes · 2 steps$/,
+      /^Started ([A-Z][a-z]{2} \d{1,2}, )?\d{1,2}:\d{2}(\s?[AP]M)? · took 6 minutes · 2 steps$/,
     );
     expect(activitySummary()!.querySelector("time")).toHaveAttribute(
       "dateTime",

@@ -1,4 +1,6 @@
-import StatusPageResourceService from "../../../Server/Services/StatusPageResourceService";
+import StatusPageResourceService, {
+  BOTH_TARGETS_MESSAGE,
+} from "../../../Server/Services/StatusPageResourceService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -993,5 +995,267 @@ describe("StatusPageResourceService, under either name of a reference", () => {
         }),
       ),
     ).rejects.toThrow(new BadDataException(DUPLICATE_MONITOR_MESSAGE));
+  });
+});
+
+/*
+ * Contract under test - a resource shows a monitor or a monitor group, never
+ * both (issue #6540).
+ *
+ * The dashboard's Edit resource form opened the monitor picker on every
+ * resource: saving it on a monitor group's row wrote a monitor and left the
+ * group, and the row named both - shown as its monitor, while the group
+ * still kept the group from being added again and was what deleting the
+ * group deleted. So:
+ *
+ *   1. a write that names both is refused, on create and on update, before
+ *      anything is read;
+ *   2. pointing a resource at one clears the other, under either name the
+ *      write used - the edit form sends only the picker it shows;
+ *   3. a write that names the other itself, or names neither, is left as it
+ *      was.
+ */
+describe("StatusPageResourceService, a monitor or a monitor group", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  // An update body as BaseAPI hands it over: plain JSON, relations as { _id }.
+  function rawUpdateBy(
+    id: ObjectID,
+    data: Record<string, unknown>,
+  ): UpdateBy<StatusPageResource> {
+    return {
+      query: { _id: id.toString() },
+      data: data,
+      props: { isRoot: true },
+    } as unknown as UpdateBy<StatusPageResource>;
+  }
+
+  function dataOf(
+    update: UpdateBy<StatusPageResource>,
+  ): Record<string, unknown> {
+    return update.data as unknown as Record<string, unknown>;
+  }
+
+  describe("on create", () => {
+    it("refuses a resource naming a monitor and a monitor group, before it looks anything up", async () => {
+      const mocks: ReturnType<typeof mockService> = mockService([]);
+
+      await expect(
+        onBeforeCreate(
+          createBy({ monitorId: MONITOR_ID, monitorGroupId: MONITOR_GROUP_ID }),
+        ),
+      ).rejects.toThrow(new BadDataException(BOTH_TARGETS_MESSAGE));
+
+      expect(mocks.findOneBy).not.toHaveBeenCalled();
+      expect(mocks.countBy).not.toHaveBeenCalled();
+    });
+
+    it("refuses one naming both by the relations the resource form posts", async () => {
+      mockService([]);
+
+      await expect(
+        onBeforeCreate(
+          createBy({ monitor: MONITOR_ID, monitorGroup: MONITOR_GROUP_ID }),
+        ),
+      ).rejects.toThrow(new BadDataException(BOTH_TARGETS_MESSAGE));
+    });
+
+    it("refuses one naming the monitor by its ID column and the group by its relation", async () => {
+      mockService([]);
+
+      await expect(
+        onBeforeCreate(
+          createBy({ monitorId: MONITOR_ID, monitorGroup: MONITOR_GROUP_ID }),
+        ),
+      ).rejects.toThrow(new BadDataException(BOTH_TARGETS_MESSAGE));
+    });
+
+    it("adds a resource that names a monitor group alone", async () => {
+      mockService([]);
+
+      const create: CreateBy<StatusPageResource> = createBy({
+        monitorGroup: MONITOR_GROUP_ID,
+      });
+
+      await expect(onBeforeCreate(create)).resolves.toBeDefined();
+
+      expect(create.data.monitorGroupId?.toString()).toBe(
+        MONITOR_GROUP_ID.toString(),
+      );
+      expect(create.data.monitorId).toBeUndefined();
+    });
+  });
+
+  describe("on update", () => {
+    it("refuses an update naming a monitor and a monitor group, before it reads a resource", async () => {
+      const mocks: ReturnType<typeof mockService> = mockService([
+        makeResource({ id: resourceId(1), monitorGroupId: MONITOR_GROUP_ID }),
+      ]);
+
+      await expect(
+        onBeforeUpdate(
+          rawUpdateBy(resourceId(1), {
+            monitor: { _id: MONITOR_ID.toString() },
+            monitorGroup: { _id: MONITOR_GROUP_ID.toString() },
+          }),
+        ),
+      ).rejects.toThrow(new BadDataException(BOTH_TARGETS_MESSAGE));
+
+      expect(resourceReads(mocks.findBy)).toHaveLength(0);
+      expect(mocks.findOneBy).not.toHaveBeenCalled();
+    });
+
+    it("refuses one naming both by their ID columns", async () => {
+      mockService([makeResource({ id: resourceId(1), monitorId: MONITOR_ID })]);
+
+      await expect(
+        onBeforeUpdate(
+          updateBy({
+            id: resourceId(1),
+            monitorId: MONITOR_ID,
+            monitorGroupId: MONITOR_GROUP_ID,
+          }),
+        ),
+      ).rejects.toThrow(new BadDataException(BOTH_TARGETS_MESSAGE));
+    });
+
+    /*
+     * The reported shape: Edit resource on a monitor group's row, a monitor
+     * picked and saved. The form sends the monitor alone.
+     */
+    it("clears the monitor group of a resource the edit form points at a monitor", async () => {
+      mockService([
+        makeResource({ id: resourceId(1), monitorGroupId: MONITOR_GROUP_ID }),
+      ]);
+
+      const update: UpdateBy<StatusPageResource> = rawUpdateBy(resourceId(1), {
+        monitor: { _id: MONITOR_ID.toString() },
+        displayName: "Checkout API",
+      });
+
+      await onBeforeUpdate(update);
+
+      expect(dataOf(update)["monitorGroupId"]).toBeNull();
+      expect("monitorGroup" in dataOf(update)).toBe(false);
+      // What it now shows is kept as it was sent.
+      expect(dataOf(update)["monitor"]).toEqual({
+        _id: MONITOR_ID.toString(),
+      });
+      expect(dataOf(update)["displayName"]).toBe("Checkout API");
+    });
+
+    it("clears the monitor of a resource pointed at a monitor group", async () => {
+      mockService([makeResource({ id: resourceId(1), monitorId: MONITOR_ID })]);
+
+      const update: UpdateBy<StatusPageResource> = rawUpdateBy(resourceId(1), {
+        monitorGroup: { _id: MONITOR_GROUP_ID.toString() },
+      });
+
+      await onBeforeUpdate(update);
+
+      expect(dataOf(update)["monitorId"]).toBeNull();
+      expect("monitor" in dataOf(update)).toBe(false);
+      expect(dataOf(update)["monitorGroup"]).toEqual({
+        _id: MONITOR_GROUP_ID.toString(),
+      });
+    });
+
+    it("clears the other reference of a write naming its target by the ID column", async () => {
+      mockService([
+        makeResource({ id: resourceId(1), monitorGroupId: MONITOR_GROUP_ID }),
+      ]);
+
+      const update: UpdateBy<StatusPageResource> = updateBy({
+        id: resourceId(1),
+        monitorId: MONITOR_ID,
+      });
+
+      await onBeforeUpdate(update);
+
+      expect(dataOf(update)["monitorGroupId"]).toBeNull();
+      expect(String(dataOf(update)["monitorId"])).toBe(MONITOR_ID.toString());
+    });
+
+    /*
+     * Every save of the edit form sends the target it shows, changed or not -
+     * so a row the old form left naming both is mended by its next save, and
+     * no duplicate is looked for: the monitor is its own.
+     */
+    it("mends a row naming both when it is saved with the monitor it shows", async () => {
+      const mocks: ReturnType<typeof mockService> = mockService([
+        makeResource({
+          id: resourceId(1),
+          monitorId: MONITOR_ID,
+          monitorGroupId: MONITOR_GROUP_ID,
+        }),
+      ]);
+
+      const update: UpdateBy<StatusPageResource> = rawUpdateBy(resourceId(1), {
+        monitor: { _id: MONITOR_ID.toString() },
+        displayName: "Renamed",
+      });
+
+      await expect(onBeforeUpdate(update)).resolves.toBeDefined();
+
+      expect(dataOf(update)["monitorGroupId"]).toBeNull();
+      expect(mocks.findOneBy).not.toHaveBeenCalled();
+    });
+
+    it("still refuses pointing a resource at a monitor group the page already lists", async () => {
+      mockService([
+        makeResource({ id: resourceId(1), monitorId: MONITOR_ID }),
+        makeResource({ id: resourceId(2), monitorGroupId: MONITOR_GROUP_ID }),
+      ]);
+
+      await expect(
+        onBeforeUpdate(
+          rawUpdateBy(resourceId(1), {
+            monitorGroup: { _id: MONITOR_GROUP_ID.toString() },
+          }),
+        ),
+      ).rejects.toThrow(new BadDataException(DUPLICATE_MONITOR_GROUP_MESSAGE));
+    });
+
+    it("leaves a write that names the other reference itself as it was", async () => {
+      mockService([
+        makeResource({ id: resourceId(1), monitorGroupId: MONITOR_GROUP_ID }),
+      ]);
+
+      const update: UpdateBy<StatusPageResource> = rawUpdateBy(resourceId(1), {
+        monitor: { _id: MONITOR_ID.toString() },
+        monitorGroup: null,
+      });
+
+      await onBeforeUpdate(update);
+
+      expect(dataOf(update)["monitorGroup"]).toBeNull();
+      expect("monitorGroupId" in dataOf(update)).toBe(false);
+    });
+
+    it("adds no reference to an update that names neither", async () => {
+      mockService([makeResource({ id: resourceId(1), monitorId: MONITOR_ID })]);
+
+      const update: UpdateBy<StatusPageResource> = rawUpdateBy(resourceId(1), {
+        displayName: "Renamed",
+      });
+
+      await onBeforeUpdate(update);
+
+      expect(Object.keys(dataOf(update))).toEqual(["displayName"]);
+    });
+
+    it("adds no reference to an update that clears its target and names no other", async () => {
+      mockService([makeResource({ id: resourceId(1), monitorId: MONITOR_ID })]);
+
+      const update: UpdateBy<StatusPageResource> = rawUpdateBy(resourceId(1), {
+        monitorId: null,
+      });
+
+      await onBeforeUpdate(update);
+
+      expect(Object.keys(dataOf(update))).toEqual(["monitorId"]);
+    });
   });
 });
