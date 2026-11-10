@@ -102,6 +102,9 @@ Stubbed:
   build-runner-07 is on the service map and on the Engineering Tools status page, web-03's Checkout
   API on Acme Commerce Status. Those two status pages and two runbooks are rows of their own, for a
   playbook step to pick.
+- Today's telemetry ingestion budgets (`GET /telemetry-ingestion-budget/project`), which the
+  layout reads for its banner: the project sets no budget, so every signal answers without one, as
+  the server answers then, and the banner stays away (`Fixture/IngestionBudgetFixture.js`).
 - Realtime: nothing pushes changes.
 - The menu's other pages (Events, Correlate, Connections, Setup Guide) render a small stub page,
   inside the real layout and its side menu.
@@ -439,7 +442,8 @@ ClickHouse matches the search the page compiles.
 kept as it was, one the case keeps already left alone. CASE-138 keeps one of the PowerShell events,
 found by the first hunt. The project's Slack page holds two rules (`WorkspaceNotificationRule`, in
 `Fixture.js` beside the connected Slack): New cases to #soc under Security Case Rules, and
-PowerShell finds to #threat-hunting under Hunt Rules (Security Hunt Name contains PowerShell);
+PowerShell finds to #threat-hunting under Hunt Rules (Security Hunt Name contains PowerShell),
+neither owned by a team (`WorkspaceNotificationRuleOwningTeam` holds no rows);
 `GET /workspace-notification-rule/number-prefixes` answers no prefixes.
 
 | Parameter | Values                                     |

@@ -4,6 +4,7 @@ import CreatePermission, {
 } from "../../../Server/Types/Database/Permissions/CreatePermission";
 import EditionPermissions from "../../../Server/Types/Database/Permissions/EditionPermission";
 import PrivateRecordPermission from "../../../Server/Types/Database/Permissions/PrivateRecordPermission";
+import TeamOwnedRulePermission from "../../../Server/Types/Database/Permissions/TeamOwnedRulePermission";
 import { ProjectScopedReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -206,7 +207,9 @@ interface LookupCall {
  * which holds no reference to the project itself (no ProjectReferencesService
  * check), so every parent it is given is looked up. The edition check is
  * left out: the Enterprise Edition's models are swept on a Community Edition
- * test run too.
+ * test run too. So is the check of a rule some teams own
+ * (TeamOwnedRulePermission, its own suite): no team owns a rule named here,
+ * so an owning team goes on it from whoever may add one.
  */
 interface ServiceOptions {
   /*
@@ -264,6 +267,11 @@ const serviceFor: (
       return (options?.unreachableIds || []).includes(id);
     });
   }) as never);
+
+  getJestSpyOn(
+    TeamOwnedRulePermission,
+    "getUnreachableParentIds",
+  ).mockResolvedValue([] as never);
 
   getJestSpyOn(DatabaseService as never, "findIdsInProject").mockImplementation(
     (async (lookup: {

@@ -256,7 +256,11 @@ const TABLE_CREATE_BUTTONS: Record<string, Array<string>> = {
   [INTRODUCTION]: ["Create Service Level Objective"],
   [MONITOR_RULES]: ["Create SLO Monitor Rule"],
   [BURN_RATE]: ["Create SLO Burn Rate Rule"],
-  [ERROR_BUDGET_POLICY]: ["Create SLO Error Budget Policy Tier"],
+  [ERROR_BUDGET_POLICY]: [
+    "Create SLO Error Budget Policy Tier",
+    // The SLOs' Slack, Microsoft Teams and Mattermost rules.
+    "Create SLO Notification Rule",
+  ],
   [LABEL_RULES]: ["Create SLO Label Rule", "Create SLO Owner Rule"],
 };
 

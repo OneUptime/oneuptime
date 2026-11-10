@@ -13,7 +13,9 @@ import Team from "Common/Models/DatabaseModels/Team";
 import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
 import TeamOwnerTeam from "Common/Models/DatabaseModels/TeamOwnerTeam";
 import TeamOwnerUser from "Common/Models/DatabaseModels/TeamOwnerUser";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import { getTeamOwnersDisabledReason } from "../../Components/Team/BuiltInTeamOwners";
 import useCustomFieldFacets from "../../Components/CustomFields/useCustomFieldFacets";
 import {
   ROLE_ACCESS_FIELD_KEY,
@@ -296,6 +298,20 @@ const Teams: FunctionComponent<PageComponentProps> = (
     areFacetsLoading: areCustomFieldFacetsLoading,
   });
 
+  /*
+   * Add Owner and Remove Owner for the selected teams, as every list of
+   * things with owners has them. Owners and Admin take no owners: a run
+   * that includes them sends nothing for them and lists them as left
+   * alone, saying why (Components/Team/BuiltInTeamOwners).
+   */
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<Team>({
+      ownerUserModelType: TeamOwnerUser,
+      ownerTeamModelType: TeamOwnerTeam,
+      resourceIdField: "ownedTeamId",
+      getOwnersDisabledReason: getTeamOwnersDisabledReason,
+    });
+
   return (
     <Fragment>
       {accessNotice && (
@@ -326,8 +342,12 @@ const Teams: FunctionComponent<PageComponentProps> = (
         isDeleteable={true}
         selectMoreFields={{
           isTeamDeleteable: true,
+          isTeamEditable: true,
         }}
         getDeleteDisabledReason={getTeamDeleteDisabledReason}
+        bulkActions={{
+          buttons: ownerBulkActions,
+        }}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
@@ -469,6 +489,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
           },
         ]}
       />
+      {ownerBulkActionModals}
     </Fragment>
   );
 };

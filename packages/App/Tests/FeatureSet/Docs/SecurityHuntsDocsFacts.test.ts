@@ -195,9 +195,15 @@ describe("the Security Events page on hunts", () => {
   });
 
   it("names the toolbar's list, its save, the list's create button and the hunt's buttons as the Dashboard draws them", () => {
-    // The toolbar's list is titled Hunts, and saves the search with + Save as Hunt.
+    /*
+     * The toolbar's list is titled Hunts, and saves the search with + Save as
+     * Hunt. Hunts are the project's: a network device's Security Events tab
+     * (the explorer locked to the device by its scope) has no Hunts list.
+     */
     expect(HUNTS_MENU_SAVE_AS_HUNT).toBe(`+ ${SAVE_AS_HUNT}`);
-    expect(source("viewer")).toContain("toolbarLeadingActions={ <HuntsMenu");
+    expect(source("viewer")).toContain(
+      "toolbarLeadingActions={ props.scope ? undefined : ( <HuntsMenu",
+    );
     expect(source("huntsList")).toContain("singularName={HUNT_SINGULAR}");
     expect(source("huntsList")).toContain("isCreateable={true}");
 

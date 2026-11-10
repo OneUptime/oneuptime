@@ -227,7 +227,7 @@ Wer eine Ressource besitzt, wird über die Ressource gelesen. Die Eigentümer ei
 
 ### Eigentümer von Teams
 
-Auch ein Team hat Eigentümer: die Personen und Teams, die sich um es kümmern. Sie werden auf der Seite des Teams und in der Teamliste angezeigt und mit **Edit Team** hinzugefügt und entfernt. Die Teams **Owners** und **Admin**, die zu jedem Projekt gehören, haben keine.
+Auch ein Team hat Eigentümer: die Personen und Teams, die sich um es kümmern. Sie werden auf der Seite des Teams und in der Teamliste angezeigt und mit **Edit Team** hinzugefügt und entfernt. Die Teams **Owners** und **Admin**, die zu jedem Projekt gehören, haben keine. Um Eigentümer mehrerer Teams auf einmal hinzuzufügen oder zu entfernen, wählen Sie die Teams in der Teamliste aus und wählen **Eigentümer hinzufügen** oder **Eigentümer entfernen** unter **Massenaktionen**; **Owners** und **Admin** werden übersprungen.
 
 Sechs Team-Berechtigungen lassen sich auf den Geltungsbereich „Eigene" beschränken: **Create Team**, **Edit Team**, **Delete Team**, **Invite New Members**, **Remove Team Members** und **Edit Team Permissions**. Mit Geltungsbereich „Eigene" reicht jede nur so weit wie die Teams, die Ihnen oder dem Team gehören, dem sie gegeben ist, samt deren Mitgliedern, Berechtigungen, benutzerdefinierten Rollen und Compliance-Einstellungen. Wer ein Team mit **Create Team** mit Geltungsbereich „Eigene" erstellt, wird sein erster Eigentümer. Das Lesen von Teams wird nie eingegrenzt: Ein Team wird überall als Eigentümer, in der Bereitschaft und als Empfänger ausgewählt, daher sieht jeder, der Teams lesen darf, jedes Team, wer darin ist und was es darf.
 

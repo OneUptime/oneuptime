@@ -227,7 +227,7 @@ Quem é proprietário de um recurso é lido por meio do recurso. Os proprietári
 
 ### Proprietários de equipes
 
-Uma equipe também tem proprietários: as pessoas e equipes que cuidam dela. Eles aparecem na página da equipe e na lista de equipes, e são adicionados e removidos com **Edit Team**. As equipes **Owners** e **Admin**, que vêm com todo projeto, não têm nenhum.
+Uma equipe também tem proprietários: as pessoas e equipes que cuidam dela. Eles aparecem na página da equipe e na lista de equipes, e são adicionados e removidos com **Edit Team**. As equipes **Owners** e **Admin**, que vêm com todo projeto, não têm nenhum. Para adicionar ou remover proprietários de várias equipes de uma vez, selecione-as na lista de equipes e escolha **Adicionar proprietário** ou **Remover proprietário** em **Ações em massa**; as equipes **Owners** e **Admin** são ignoradas.
 
 Seis permissões de equipe podem ser limitadas ao escopo Próprios: **Create Team**, **Edit Team**, **Delete Team**, **Invite New Members**, **Remove Team Members** e **Edit Team Permissions**. Com escopo Próprios, cada uma alcança apenas as equipes que pertencem a você ou à equipe a que ela é dada, com seus membros, permissões, funções personalizadas e configurações de conformidade. Quem cria uma equipe com **Create Team** com escopo Próprios se torna o primeiro proprietário dela. A leitura de equipes nunca é restringida: uma equipe é escolhida em todo lugar como proprietária, como responsável de plantão e como destinatária, então todos que podem ler equipes veem todas as equipes, quem está nelas e o que elas podem fazer.
 

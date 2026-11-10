@@ -19,6 +19,14 @@ enum NotificationRuleEventType {
    * (SecurityHuntNotifications). A hunt gets no channel of its own.
    */
   SecurityHunt = "Security Hunt",
+  /*
+   * An SLO's error budget policy: posted to the channels and chats its rules
+   * name each time the evaluation moves the SLO into a tier, to a less
+   * severe one or out of every tier, or freezes its deployments or allows
+   * them again (SloWorkspaceNotifications). An SLO gets no channel of its
+   * own.
+   */
+  ServiceLevelObjective = "Service Level Objective",
 }
 
 export default NotificationRuleEventType;

@@ -35,9 +35,10 @@ import {
  *     - Archives the channel when the incident is resolved.
  *     - Posts updates in #ops.
  *
- * A security case rule only posts to channels and chats people have
- * (NotificationRuleOwnChannel), so the words about a channel of the
- * record's own exist only for the kinds of record that can have one.
+ * A security case rule, a hunt rule and an SLO rule only post to channels
+ * and chats people have (NotificationRuleOwnChannel), so the words about a
+ * channel of the record's own exist only for the kinds of record that can
+ * have one.
  *
  * React-free, so the copy can be read where React is not (App's tests).
  * Every sentence is whole in the locale files - one per kind of record
@@ -71,6 +72,8 @@ export const NOTIFICATION_RULE_CONDITIONS_TITLES: ByEventType = {
     "Which security cases",
   ),
   [NotificationRuleEventType.SecurityHunt]: translationKey("Which hunts"),
+  [NotificationRuleEventType.ServiceLevelObjective]:
+    translationKey("Which SLOs"),
 };
 
 /*
@@ -109,6 +112,10 @@ export const NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS: ByEventType = {
   [NotificationRuleEventType.SecurityHunt]: translationKey(
     "Conditions are checked each time a scheduled run of a hunt finds security events.",
   ),
+  // What there is to post about an SLO: SloWorkspaceNotifications.
+  [NotificationRuleEventType.ServiceLevelObjective]: translationKey(
+    "Conditions are checked each time an SLO's error budget policy changes: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again.",
+  ),
 };
 
 /*
@@ -133,6 +140,8 @@ const RULE_SUBJECTS: Readonly<
   [NotificationRuleEventType.Monitor]: RuleCriteriaSubject.Monitors,
   [NotificationRuleEventType.OnCallDutyPolicy]:
     RuleCriteriaSubject.OnCallPolicies,
+  [NotificationRuleEventType.ServiceLevelObjective]:
+    RuleCriteriaSubject.ServiceLevelObjectives,
 };
 
 /*
@@ -217,6 +226,9 @@ export const RULE_SINGULAR_NAMES: ByEventType = {
   [NotificationRuleEventType.SecurityHunt]: translationKey(
     "Hunt Notification Rule",
   ),
+  [NotificationRuleEventType.ServiceLevelObjective]: translationKey(
+    "SLO Notification Rule",
+  ),
 };
 
 export const RULE_PLURAL_NAMES: ByEventType = {
@@ -244,6 +256,9 @@ export const RULE_PLURAL_NAMES: ByEventType = {
   ),
   [NotificationRuleEventType.SecurityHunt]: translationKey(
     "Hunt Notification Rules",
+  ),
+  [NotificationRuleEventType.ServiceLevelObjective]: translationKey(
+    "SLO Notification Rules",
   ),
 };
 
@@ -296,6 +311,24 @@ export const CONDITION_FIELD_WORDS: ReadonlyArray<string> = [
   translationKey("Security Case Source"),
   translationKey("Security Case Labels"),
   translationKey("Security Hunt Name"),
+  translationKey("SLO Name"),
+  translationKey("SLOs"),
+  translationKey("SLO Labels"),
+  translationKey("Error Budget Policy Change"),
+];
+
+/*
+ * What an SLO rule's Error Budget Policy Change condition offers, and the
+ * card shows (SloErrorBudgetPolicyChange): what moved in the SLO's error
+ * budget policy, listed here so each is translated. A test holds the list
+ * to the enum.
+ */
+export const ERROR_BUDGET_POLICY_CHANGE_WORDS: ReadonlyArray<string> = [
+  translationKey("Entered a more severe tier"),
+  translationKey("Recovered to a less severe tier"),
+  translationKey("Left every tier"),
+  translationKey("Deployments frozen"),
+  translationKey("Deployments allowed again"),
 ];
 
 export const CONDITION_OPERATOR_WORDS: ReadonlyArray<string> = [
@@ -374,6 +407,10 @@ export const NOTIFICATION_RULES_CARD_DESCRIPTIONS: ByEventType = {
   // What there is to post about a hunt: SecurityHuntNotifications.
   [NotificationRuleEventType.SecurityHunt]: translationKey(
     "Each rule picks the hunts it is for, then posts to channels you have each time a scheduled run finds security events.",
+  ),
+  // What there is to post about an SLO: SloWorkspaceNotifications.
+  [NotificationRuleEventType.ServiceLevelObjective]: translationKey(
+    "Each rule picks the SLOs it is for, then posts to channels you have when an SLO enters a tier of its error budget policy, recovers or leaves every tier, and when its deployments are frozen or allowed again.",
   ),
 };
 
@@ -673,6 +710,8 @@ export const NO_CONDITIONS_SENTENCES: ByEventType = {
     "Every security case.",
   ),
   [NotificationRuleEventType.SecurityHunt]: translationKey("Every hunt."),
+  [NotificationRuleEventType.ServiceLevelObjective]:
+    translationKey("Every SLO."),
 };
 
 /*

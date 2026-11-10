@@ -227,7 +227,7 @@ Who owns a resource is read through the resource. The owners of a monitor or of 
 
 ### Team owners
 
-A team has owners too: the people and teams who look after it. They are shown on the team's page and in the team list, and are added and removed with **Edit Team**. The **Owners** and **Admin** teams, which come with every project, have none.
+A team has owners too: the people and teams who look after it. They are shown on the team's page and in the team list, and are added and removed with **Edit Team**. The **Owners** and **Admin** teams, which come with every project, have none. To add or remove owners of several teams at once, select them in the team list and choose **Add Owner** or **Remove Owner** under **Bulk Actions**; **Owners** and **Admin** are skipped.
 
 Six team permissions can be scoped to Owned: **Create Team**, **Edit Team**, **Delete Team**, **Invite New Members**, **Remove Team Members** and **Edit Team Permissions**. Scoped to Owned, each reaches only the teams that you, or the team it is given to, own, with their members, permissions, custom roles and compliance settings. Whoever creates a team with **Create Team** scoped to Owned becomes its first owner. Reading teams is never narrowed: a team is picked as an owner, an on-call responder and a recipient everywhere, so everyone who may read teams sees every team, who is in it and what it may do.
 

@@ -352,6 +352,19 @@ function resource(overrides: Record<string, unknown> = {}): BaseModel {
   } as unknown as BaseModel;
 }
 
+/*
+ * The resource as the update's own read of it (_findBy) hands it back: an
+ * instance of its model. The update compares each column it writes with
+ * the row by the column's type (getChangedColumns), for the audit log that
+ * records every resource's changes (AuditLogCoverage).
+ */
+function storedResource(
+  wiring: ServiceWiring,
+  overrides: Record<string, unknown> = {},
+): BaseModel {
+  return Object.assign(new wiring.modelType(), resource(overrides));
+}
+
 // Roles that may edit a resource of this type but may not author a FullAuto rule.
 function editorRoles(wiring: ServiceWiring): Array<Permission> {
   return [
@@ -1018,7 +1031,7 @@ describe.each(FULLY_COVERED)(
     beforeEach(() => {
       withoutResourceAiAgents();
       getJestSpyOn(wiring.service, "_findBy").mockResolvedValue([
-        resource({
+        storedResource(wiring, {
           _id: RESOURCE_ID.toString(),
           aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
         }),

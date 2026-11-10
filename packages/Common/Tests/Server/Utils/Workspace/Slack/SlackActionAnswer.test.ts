@@ -280,7 +280,7 @@ describe("SlackActionAnswer.answer", () => {
   test("only when no place in Slack takes it does the answer go to the direct messages", async () => {
     const directMessage: jest.SpyInstance = jest
       .spyOn(SlackUtil, "sendDirectMessageToUser")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(null);
     slackAnswers.set(RESPONSE_URL, () => {
       return new HTTPErrorResponse(404, { error: "no_such_url" }, {});
     });

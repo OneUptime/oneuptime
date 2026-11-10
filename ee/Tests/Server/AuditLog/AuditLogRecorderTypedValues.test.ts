@@ -62,8 +62,9 @@ import {
   readAuditLogChange,
   readAuditLogTypedValue,
 } from "Common/Utils/AuditLog/AuditLogTypedValues";
+// Not typeorm itself: ee's type-check cannot resolve Common's dependencies.
+import { ModelColumn, modelColumns } from "Common/Tests/Helpers/ModelColumns";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import { getMetadataArgsStorage } from "typeorm";
 
 /*
  * A PHONE NUMBER IN AN AUDIT LOG ENTRY READS AS THE NUMBER (issue #6325).
@@ -1033,11 +1034,7 @@ describe("a seeded sweep over every typed column of every audited model", () => 
 
   function findTypedColumns(): Array<TypedColumn> {
     const found: Array<TypedColumn> = [];
-    const columns: Array<{
-      target: unknown;
-      propertyName: string;
-      options: { transformer?: unknown };
-    }> = getMetadataArgsStorage().columns as never;
+    const columns: Array<ModelColumn> = modelColumns();
 
     for (const modelType of AllModelTypes as Array<ModelType>) {
       const model: BaseModel = new modelType();
@@ -1047,18 +1044,16 @@ describe("a seeded sweep over every typed column of every audited model", () => 
       }
 
       for (const column of columns) {
-        const transformer: { from?: (value: unknown) => unknown } | undefined =
-          column.options.transformer as
-            | { from?: (value: unknown) => unknown }
-            | undefined;
+        const transformer: ModelColumn["transformer"] = column.transformer;
 
         if (
           !transformer ||
-          typeof transformer.from !== "function" ||
+          // A list of transformers, which no model's column has.
+          Array.isArray(transformer) ||
           !(
-            column.target === modelType ||
-            (typeof column.target === "function" &&
-              modelType.prototype instanceof (column.target as ModelType))
+            column.model === modelType ||
+            (typeof column.model === "function" &&
+              modelType.prototype instanceof (column.model as ModelType))
           )
         ) {
           continue;
@@ -1083,7 +1078,7 @@ describe("a seeded sweep over every typed column of every audited model", () => 
               className: (held as { constructor: { name: string } }).constructor
                 .name,
               from: (value: unknown): unknown => {
-                return transformer.from!(value);
+                return transformer.from(value);
               },
             });
           }

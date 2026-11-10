@@ -37,6 +37,25 @@ export function getSloBreadcrumbs(path: string): Array<Link> | undefined {
       "Label Rules",
       "View Label Rule",
     ]),
+    // The Workspace section: each workspace's rules, and the page that connects one.
+    ...BuildBreadcrumbLinksByTitles(PageMap.SLOS_WORKSPACE_CONNECTION_SLACK, [
+      "Project",
+      "SLOs",
+      "Slack",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      ["Project", "SLOs", "Microsoft Teams"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SLOS_WORKSPACE_CONNECTION_MATTERMOST,
+      ["Project", "SLOs", "Mattermost"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SLOS_WORKSPACE_CONNECTIONS, [
+      "Project",
+      "SLOs",
+      "Workspace",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SLO_VIEW, [
       "Project",
       "SLOs",

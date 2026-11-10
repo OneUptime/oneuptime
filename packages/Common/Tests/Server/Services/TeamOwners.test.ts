@@ -6,13 +6,17 @@ import ProjectReferencesService from "../../../Server/Services/ProjectReferences
 import TeamOwnerTeamService from "../../../Server/Services/TeamOwnerTeamService";
 import TeamOwnerUserService from "../../../Server/Services/TeamOwnerUserService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
+import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
+import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
+import Errors from "../../../Server/Utils/Errors";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
 import Team from "../../../Models/DatabaseModels/Team";
 import TeamOwnerTeam from "../../../Models/DatabaseModels/TeamOwnerTeam";
 import TeamOwnerUser from "../../../Models/DatabaseModels/TeamOwnerUser";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
@@ -20,6 +24,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import { BUILT_IN_TEAM_OWNERS_MESSAGE } from "../../../Types/Team/BuiltInTeam";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -46,7 +51,10 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  *     row being created, not past a block, and not for the teams a single
  *     sign-on provider hands on;
  *   - a custom role is given to teams of every owner, so Edit Team
- *     Permissions scoped to Owned never changes one, nor what it holds.
+ *     Permissions scoped to Owned never changes one, nor what it holds;
+ *   - Remove from Project takes someone off every team or off none: a
+ *     caller whose delete reaches only some of their memberships - Remove
+ *     Team Members scoped to Owned - is refused before anything is removed.
  */
 
 jest.mock("../../../Server/Utils/PasswordHash", () => {
@@ -449,6 +457,134 @@ describe("a member of a team invites to it with the rows they hold through it", 
         return teamId.toString();
       }),
     ).toEqual([TEAM_T.toString()]);
+  });
+});
+
+describe("Remove from Project takes someone off every team of the project, or off none", () => {
+  const TARGET_ID: ObjectID = new ObjectID(
+    "6d200000-0000-4000-8000-000000000002",
+  );
+
+  // What the caller's own delete reaches of the person's memberships.
+  const REACHED: Record<string, unknown> = {
+    userId: TARGET_ID,
+    projectId: PROJECT_ID,
+    teamId: TEAM_U,
+  };
+
+  /*
+   * The person's memberships in the project, and how many of them the
+   * caller's own delete reaches (the query checkDeleteQueryPermission
+   * hands back): counted as OneUptime, as the delete reads them.
+   */
+  function memberships(data: { all: number; reached: number }): {
+    countSpy: jest.SpiedFunction<never>;
+    narrowSpy: jest.SpiedFunction<never>;
+  } {
+    const narrowSpy: jest.SpiedFunction<never> = jest
+      .spyOn(ModelPermission, "checkDeleteQueryPermission")
+      .mockResolvedValue(REACHED as never) as never;
+
+    const countSpy: jest.SpiedFunction<never> = jest
+      .spyOn(TeamMemberService, "countBy")
+      .mockImplementation((async (args: { query: unknown }) => {
+        return new PositiveNumber(
+          args.query === REACHED ? data.reached : data.all,
+        );
+      }) as never) as never;
+
+    return { countSpy, narrowSpy };
+  }
+
+  const ask: (props: DatabaseCommonInteractionProps) => Promise<void> = (
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> => {
+    return TeamMemberService.assertCallerMayRemoveUserFromProject({
+      userId: TARGET_ID,
+      projectId: PROJECT_ID,
+      props: props,
+    });
+  };
+
+  const OWNS_SOME: DatabaseCommonInteractionProps = propsHolding([
+    row(Permission.ReadProjectTeam, PermissionScope.All, { teamId: TEAM_U }),
+    row(Permission.RemoveProjectTeamMembers, PermissionScope.Owned, {
+      teamId: TEAM_U,
+    }),
+  ]);
+
+  test("someone also in a team the caller may not remove them from is refused, saying where to remove them instead", async () => {
+    memberships({ all: 2, reached: 1 });
+
+    await expect(ask(OWNS_SOME)).rejects.toThrow(BadDataException);
+    await expect(ask(OWNS_SOME)).rejects.toThrow(
+      Errors.TeamMemberService.REMOVE_FROM_SOME_TEAMS_ONLY,
+    );
+    expect(Errors.TeamMemberService.REMOVE_FROM_SOME_TEAMS_ONLY).toBe(
+      "You can remove this person from only some of their teams, so you can't remove them from the project. Remove them from those teams on their Teams page instead.",
+    );
+  });
+
+  test("someone only in teams the caller may remove them from is let through", async () => {
+    memberships({ all: 2, reached: 2 });
+
+    await expect(ask(OWNS_SOME)).resolves.toBeUndefined();
+  });
+
+  test("counts the person's memberships in the project, then those the caller's own delete reaches, as OneUptime", async () => {
+    const { countSpy, narrowSpy } = memberships({ all: 3, reached: 3 });
+
+    await ask(OWNS_SOME);
+
+    expect(narrowSpy).toHaveBeenCalledTimes(1);
+    const narrowed: Array<unknown> = (
+      narrowSpy.mock.calls as Array<Array<unknown>>
+    )[0]!;
+    const query: Record<string, unknown> = narrowed[1] as Record<
+      string,
+      unknown
+    >;
+    expect(narrowed[0]).toBe(TeamMember);
+    expect(Object.keys(query).sort()).toEqual(["projectId", "userId"]);
+    expect(String(query["userId"])).toBe(TARGET_ID.toString());
+    expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
+    expect(narrowed[2]).toBe(OWNS_SOME);
+
+    expect(countSpy).toHaveBeenCalledTimes(2);
+    const counted: Array<{ query: unknown; props: unknown }> = (
+      countSpy.mock.calls as Array<Array<unknown>>
+    ).map((call: Array<unknown>) => {
+      return call[0] as { query: unknown; props: unknown };
+    });
+    expect(
+      Object.keys(counted[0]!.query as Record<string, unknown>).sort(),
+    ).toEqual(["projectId", "userId"]);
+    expect(counted[1]!.query).toBe(REACHED);
+    for (const count of counted) {
+      expect(count.props).toEqual({ isRoot: true });
+    }
+  });
+
+  test("a caller who may remove none of them is refused by the permission check itself", async () => {
+    const refusal: NotAuthorizedException = new NotAuthorizedException(
+      "You do not have permission to delete Team Member.",
+    );
+    memberships({ all: 2, reached: 0 }).narrowSpy.mockRejectedValue(
+      refusal as never,
+    );
+
+    await expect(ask(OWNS_SOME)).rejects.toBe(refusal);
+  });
+
+  test("OneUptime's own removals and a master admin's are not asked", async () => {
+    const { countSpy, narrowSpy } = memberships({ all: 2, reached: 1 });
+
+    await expect(ask({ isRoot: true })).resolves.toBeUndefined();
+    await expect(
+      ask({ ...OWNS_SOME, isMasterAdmin: true }),
+    ).resolves.toBeUndefined();
+    expect(countSpy).not.toHaveBeenCalled();
+    expect(narrowSpy).not.toHaveBeenCalled();
   });
 });
 

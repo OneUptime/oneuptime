@@ -53,6 +53,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "feed lines per OpenStack cloud per hour",
   "packages/Common/Server/Utils/Telemetry/TelemetryIngestionKeyRateLimiter.ts":
     "telemetry per ingestion key",
+  "packages/Common/Server/Utils/Telemetry/TelemetryIngestionBudgetCounter.ts":
+    "telemetry bytes and requests per project or ingestion key with a budget of its own, signal and day, and their per-second rate",
   "packages/Common/Server/Utils/Telemetry/TelemetryWriterShedMetrics.ts":
     "telemetry writes shed per minute, for the instance's health",
   "packages/Common/Server/Utils/SessionReplay/SessionReplayHealthCounters.ts":

@@ -89,6 +89,8 @@ const SOURCES: Record<string, string> = {
   environmentConfig: `${COMMON_SERVER}/EnvironmentConfig.ts`,
   projectService: `${COMMON_SERVER}/Services/ProjectService.ts`,
   customRoleService: `${COMMON_SERVER}/Services/CustomRoleService.ts`,
+  teamsList: `${DASHBOARD}/Pages/Teams/Index.tsx`,
+  builtInTeamOwners: `${DASHBOARD}/Components/Team/BuiltInTeamOwners.ts`,
   pushService: `${COMMON_SERVER}/Services/PushNotificationService.ts`,
   pushRelay: "packages/App/FeatureSet/Notification/API/PushRelay.ts",
   receiptQueue: `${COMMON_SERVER}/Infrastructure/ExpoPushReceiptQueue.ts`,
@@ -992,6 +994,24 @@ describe("Users, Teams & Permissions, against the dashboard and the server", () 
     );
     expect(BUILT_IN_TEAM_OWNERS_MESSAGE).toBe(
       "This team comes with every project and can't have owners.",
+    );
+
+    /*
+     * Many teams at once (#6592): the team list's Bulk Actions, over the same
+     * two owner tables, skipping the teams that take no owners.
+     */
+    const teamsList: string = readSource("teamsList");
+    expect(teamsList).toContain("useBulkOwnerActions<Team>({");
+    expect(teamsList).toContain("ownerUserModelType: TeamOwnerUser,");
+    expect(teamsList).toContain("ownerTeamModelType: TeamOwnerTeam,");
+    expect(teamsList).toContain(
+      "getOwnersDisabledReason: getTeamOwnersDisabledReason,",
+    );
+    expect(readSource("builtInTeamOwners")).toContain(
+      "return team.isTeamEditable === false",
+    );
+    expect(page).toContain(
+      "To add or remove owners of several teams at once, select them in the team list and choose **Add Owner** or **Remove Owner** under **Bulk Actions**; **Owners** and **Admin** are skipped.",
     );
 
     // A custom role is given to any team, so it changes only over the whole project.

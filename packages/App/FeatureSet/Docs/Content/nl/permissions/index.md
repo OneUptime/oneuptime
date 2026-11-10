@@ -227,7 +227,7 @@ Wie eigenaar is van een resource, wordt gelezen via die resource. De eigenaren v
 
 ### Eigenaren van teams
 
-Ook een team heeft eigenaren: de personen en teams die voor het team zorgen. Ze staan op de pagina van het team en in de teamlijst, en worden toegevoegd en verwijderd met **Edit Team**. De teams **Owners** en **Admin**, die bij elk project horen, hebben er geen.
+Ook een team heeft eigenaren: de personen en teams die voor het team zorgen. Ze staan op de pagina van het team en in de teamlijst, en worden toegevoegd en verwijderd met **Edit Team**. De teams **Owners** en **Admin**, die bij elk project horen, hebben er geen. Om eigenaren van meerdere teams tegelijk toe te voegen of te verwijderen, selecteer je ze in de teamlijst en kies je **Eigenaar toevoegen** of **Eigenaar verwijderen** onder **Bulkacties**; **Owners** en **Admin** worden overgeslagen.
 
 Zes teammachtigingen kunnen worden beperkt tot bereik Eigen: **Create Team**, **Edit Team**, **Delete Team**, **Invite New Members**, **Remove Team Members** en **Edit Team Permissions**. Met bereik Eigen reikt elke machtiging alleen tot de teams die van u zijn, of van het team waaraan ze is gegeven, met hun leden, machtigingen, aangepaste rollen en compliance-instellingen. Wie een team aanmaakt met **Create Team** met bereik Eigen, wordt de eerste eigenaar ervan. Het lezen van teams wordt nooit ingeperkt: een team wordt overal gekozen als eigenaar, als dienstdoende en als ontvanger, dus iedereen die teams mag lezen, ziet elk team, wie erin zit en wat het mag.
 
