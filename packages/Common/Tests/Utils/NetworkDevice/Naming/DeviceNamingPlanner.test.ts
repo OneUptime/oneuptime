@@ -356,7 +356,10 @@ describe("names are unique in the project", () => {
 
   test("a taken name does not fall through to a broader rule", () => {
     const results: Map<string, DeviceNamingResult> = plan({
-      rules: [DMB_RULE, rule({ _id: "broad", priority: -5, namePattern: "X-{ip}" })],
+      rules: [
+        DMB_RULE,
+        rule({ _id: "broad", priority: -5, namePattern: "X-{ip}" }),
+      ],
       subjects: [
         {
           key: "d",
@@ -420,7 +423,11 @@ describe("counters", () => {
     namePattern: "UN{site.code}LANSWI{nn}",
   });
 
-  function switchAt(unit: string, site: string, lastOctet: number): DeviceNamingFacts {
+  function switchAt(
+    unit: string,
+    site: string,
+    lastOctet: number,
+  ): DeviceNamingFacts {
     return unitDevice({ unit: unit, site: site, lastOctet: lastOctet });
   }
 
@@ -553,9 +560,7 @@ describe("counters", () => {
       nameOf(
         plan({
           rules: [rule({ namePattern: "{site.code}-{nn}-SCR" })],
-          subjects: [
-            { key: "d", facts: switchAt("1216", UNIT_1216, 2) },
-          ],
+          subjects: [{ key: "d", facts: switchAt("1216", UNIT_1216, 2) }],
           names: [{ name: "1216-01-SCR", deviceId: "x" }],
         }),
         "d",
@@ -567,7 +572,10 @@ describe("counters", () => {
     const subjects: Array<DeviceNamingSubject> = [];
 
     for (let index: number = 0; index < 1500; index++) {
-      subjects.push({ key: `d${index}`, facts: { ipAddress: `10.0.${index >> 8}.${index & 255}` } });
+      subjects.push({
+        key: `d${index}`,
+        facts: { ipAddress: `10.0.${index >> 8}.${index & 255}` },
+      });
     }
 
     const results: Map<string, DeviceNamingResult> = plan({
@@ -575,9 +583,11 @@ describe("counters", () => {
       subjects: subjects,
       names: [{ name: "POS-010", deviceId: "existing" }],
     });
-    const given: Array<string> = subjects.map((subject: DeviceNamingSubject) => {
-      return nameOf(results, subject.key);
-    });
+    const given: Array<string> = subjects.map(
+      (subject: DeviceNamingSubject) => {
+        return nameOf(results, subject.key);
+      },
+    );
 
     expect(new Set<string>(given).size).toBe(1500);
     expect(given[0]).toBe("POS-001");
@@ -607,7 +617,10 @@ describe("devices already in the project", () => {
 
   test("a device that does not follow them is given the name, its own old name still held", () => {
     const results: Map<string, DeviceNamingResult> = plan({
-      rules: [DMB_RULE, rule({ _id: "fallback", priority: -1, namePattern: "dmb-5" })],
+      rules: [
+        DMB_RULE,
+        rule({ _id: "fallback", priority: -1, namePattern: "dmb-5" }),
+      ],
       subjects: [
         {
           key: "renamed",
@@ -632,7 +645,9 @@ describe("devices already in the project", () => {
 describe("names too long", () => {
   test("a name longer than a device name may be is reported, never cut", () => {
     const results: Map<string, DeviceNamingResult> = plan({
-      rules: [rule({ namePattern: `${"X".repeat(MAX_DEVICE_NAME_LENGTH)}-{ip.4}` })],
+      rules: [
+        rule({ namePattern: `${"X".repeat(MAX_DEVICE_NAME_LENGTH)}-{ip.4}` }),
+      ],
       subjects: [{ key: "d", facts: { ipAddress: "10.0.0.51" } }],
     });
 
@@ -703,9 +718,9 @@ describe("whose name a device has", () => {
     expect(
       isDeviceNamedByPerson({ name: "10.0.0.5", hostname: " 10.0.0.5 " }),
     ).toBe(false);
-    expect(
-      isDeviceNamedByPerson({ name: "core", hostname: "10.0.0.5" }),
-    ).toBe(true);
+    expect(isDeviceNamedByPerson({ name: "core", hostname: "10.0.0.5" })).toBe(
+      true,
+    );
   });
 
   test("isDeviceStillNamedByRule", () => {
@@ -716,9 +731,9 @@ describe("whose name a device has", () => {
       isDeviceStillNamedByRule({ name: "un1", ruleAssignedName: "UN1" }),
     ).toBe(false);
     expect(isDeviceStillNamedByRule({ name: "UN1" })).toBe(false);
-    expect(
-      isDeviceStillNamedByRule({ name: "", ruleAssignedName: "" }),
-    ).toBe(false);
+    expect(isDeviceStillNamedByRule({ name: "", ruleAssignedName: "" })).toBe(
+      false,
+    );
   });
 });
 

@@ -145,9 +145,7 @@ describe("an import's preview, as the person may see it", () => {
 
   test("someone who may read the rules sees which rule named each host", () => {
     expect(previewForPerson(preview, true)).toBe(preview);
-    expect(canReadNamingRules(userWith([Permission.ProjectMember]))).toBe(
-      true,
-    );
+    expect(canReadNamingRules(userWith([Permission.ProjectMember]))).toBe(true);
     expect(
       canReadNamingRules(userWith([Permission.ReadNetworkDeviceNamingRule])),
     ).toBe(true);

@@ -22,7 +22,9 @@ import { describe, expect, test } from "@jest/globals";
  * the person can still fix it.
  */
 
-type RuleState = Parameters<typeof NetworkDeviceNamingRuleServiceType.validateRule>[0];
+type RuleState = Parameters<
+  typeof NetworkDeviceNamingRuleServiceType.validateRule
+>[0];
 
 function validate(state: RuleState): Array<NamingLookupEntry> {
   return NetworkDeviceNamingRuleServiceType.validateRule(state);
@@ -267,7 +269,10 @@ describe("a rule that is refused, with what is wrong", () => {
     "%s",
     (_title: string, filter: RuleCriteriaFilter, expected: string) => {
       expect(
-        refusal({ namePattern: "{discoveredName}", criteria: criteria([filter]) }),
+        refusal({
+          namePattern: "{discoveredName}",
+          criteria: criteria([filter]),
+        }),
       ).toContain(expected);
     },
   );

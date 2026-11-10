@@ -90,7 +90,13 @@ describe("IP Address", () => {
       "10.48.145.50-59",
     ]) {
       expect(
-        matches(condition("ipMatchTarget", RuleCriteriaOperator.MatchesPattern, range)),
+        matches(
+          condition(
+            "ipMatchTarget",
+            RuleCriteriaOperator.MatchesPattern,
+            range,
+          ),
+        ),
       ).toBe(true);
     }
   });
@@ -98,11 +104,21 @@ describe("IP Address", () => {
   test("is not in a range that leaves the device out", () => {
     for (const range of ["10.48.146.0/24", "10.*.*.151", "10.48.145.150-159"]) {
       expect(
-        matches(condition("ipMatchTarget", RuleCriteriaOperator.MatchesPattern, range)),
+        matches(
+          condition(
+            "ipMatchTarget",
+            RuleCriteriaOperator.MatchesPattern,
+            range,
+          ),
+        ),
       ).toBe(false);
       expect(
         matches(
-          condition("ipMatchTarget", RuleCriteriaOperator.DoesNotMatchPattern, range),
+          condition(
+            "ipMatchTarget",
+            RuleCriteriaOperator.DoesNotMatchPattern,
+            range,
+          ),
         ),
       ).toBe(true);
     }
@@ -111,7 +127,11 @@ describe("IP Address", () => {
   test("a device without an address is in no range", () => {
     expect(
       matches(
-        condition("ipMatchTarget", RuleCriteriaOperator.MatchesPattern, "10.0.0.0/8"),
+        condition(
+          "ipMatchTarget",
+          RuleCriteriaOperator.MatchesPattern,
+          "10.0.0.0/8",
+        ),
         { ...MENU_PLAYER, ipAddress: undefined },
       ),
     ).toBe(false);
@@ -168,7 +188,11 @@ describe("Discovered Name", () => {
   test("a device with no discovered name matches no positive condition", () => {
     expect(
       matches(
-        condition("discoveredNamePattern", RuleCriteriaOperator.Contains, "dmb"),
+        condition(
+          "discoveredNamePattern",
+          RuleCriteriaOperator.Contains,
+          "dmb",
+        ),
         { ...MENU_PLAYER, discoveredName: undefined },
       ),
     ).toBe(false);
@@ -180,7 +204,11 @@ describe("MAC Address", () => {
     for (const prefix of ["00:05:0b", "00-05-0B", "0005.0b", "00050b"]) {
       expect(
         matches(
-          condition("macAddressPattern", RuleCriteriaOperator.StartsWith, prefix),
+          condition(
+            "macAddressPattern",
+            RuleCriteriaOperator.StartsWith,
+            prefix,
+          ),
         ),
       ).toBe(true);
     }
@@ -189,12 +217,20 @@ describe("MAC Address", () => {
   test("a negated condition holds only when no spelling matches", () => {
     expect(
       matches(
-        condition("macAddressPattern", RuleCriteriaOperator.DoesNotContain, "00-05-0b"),
+        condition(
+          "macAddressPattern",
+          RuleCriteriaOperator.DoesNotContain,
+          "00-05-0b",
+        ),
       ),
     ).toBe(false);
     expect(
       matches(
-        condition("macAddressPattern", RuleCriteriaOperator.DoesNotContain, "00-05-0c"),
+        condition(
+          "macAddressPattern",
+          RuleCriteriaOperator.DoesNotContain,
+          "00-05-0c",
+        ),
       ),
     ).toBe(true);
   });
@@ -214,10 +250,14 @@ describe("MAC Address", () => {
 describe("Vendor", () => {
   test("contains, without case", () => {
     expect(
-      matches(condition("vendorPattern", RuleCriteriaOperator.Contains, "sicom")),
+      matches(
+        condition("vendorPattern", RuleCriteriaOperator.Contains, "sicom"),
+      ),
     ).toBe(true);
     expect(
-      matches(condition("vendorPattern", RuleCriteriaOperator.Contains, "samsung")),
+      matches(
+        condition("vendorPattern", RuleCriteriaOperator.Contains, "samsung"),
+      ),
     ).toBe(false);
   });
 
@@ -243,19 +283,27 @@ describe("Site", () => {
   test("has all of, and has none of", () => {
     expect(
       matches(
-        condition("sites", RuleCriteriaOperator.HasAllOf, [UNIT_SITE, REGION_SITE]),
+        condition("sites", RuleCriteriaOperator.HasAllOf, [
+          UNIT_SITE,
+          REGION_SITE,
+        ]),
       ),
     ).toBe(true);
     expect(
       matches(
-        condition("sites", RuleCriteriaOperator.HasAllOf, [UNIT_SITE, OTHER_SITE]),
+        condition("sites", RuleCriteriaOperator.HasAllOf, [
+          UNIT_SITE,
+          OTHER_SITE,
+        ]),
       ),
     ).toBe(false);
     expect(
       matches(condition("sites", RuleCriteriaOperator.HasNoneOf, [OTHER_SITE])),
     ).toBe(true);
     expect(
-      matches(condition("sites", RuleCriteriaOperator.HasNoneOf, [REGION_SITE])),
+      matches(
+        condition("sites", RuleCriteriaOperator.HasNoneOf, [REGION_SITE]),
+      ),
     ).toBe(false);
   });
 
@@ -267,10 +315,16 @@ describe("Site", () => {
     };
 
     expect(
-      matches(condition("sites", RuleCriteriaOperator.HasAnyOf, [UNIT_SITE]), noSite),
+      matches(
+        condition("sites", RuleCriteriaOperator.HasAnyOf, [UNIT_SITE]),
+        noSite,
+      ),
     ).toBe(false);
     expect(
-      matches(condition("sites", RuleCriteriaOperator.HasNoneOf, [UNIT_SITE]), noSite),
+      matches(
+        condition("sites", RuleCriteriaOperator.HasNoneOf, [UNIT_SITE]),
+        noSite,
+      ),
     ).toBe(true);
   });
 
@@ -303,9 +357,9 @@ describe("conditions together", () => {
   };
 
   test("all of them must hold, by default", () => {
-    expect(matches({ criteria: criteria([vendorIsSicom, inScreensRange]) })).toBe(
-      false,
-    );
+    expect(
+      matches({ criteria: criteria([vendorIsSicom, inScreensRange]) }),
+    ).toBe(false);
     expect(
       matches(
         { criteria: criteria([vendorIsSicom, inScreensRange]) },
@@ -317,14 +371,19 @@ describe("conditions together", () => {
   test("or any one of them", () => {
     expect(
       matches({
-        criteria: criteria([vendorIsSicom, inScreensRange], FilterCondition.Any),
+        criteria: criteria(
+          [vendorIsSicom, inScreensRange],
+          FilterCondition.Any,
+        ),
       }),
     ).toBe(true);
   });
 
   test("a condition on a field the rule does not have matches nothing", () => {
     expect(
-      matches(condition("sysObjectIdPattern", RuleCriteriaOperator.Contains, "1.3")),
+      matches(
+        condition("sysObjectIdPattern", RuleCriteriaOperator.Contains, "1.3"),
+      ),
     ).toBe(false);
   });
 

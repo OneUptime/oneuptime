@@ -372,18 +372,24 @@ describe("only the server updates the rule-assigned name: the column permissions
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.CreateNetworkDevice,
-  ])("%s can import a device with its rule-assigned name", (permission: Permission) => {
-    expect(check(permission, DatabaseRequestType.Create)).toBe("allowed");
-  });
+  ])(
+    "%s can import a device with its rule-assigned name",
+    (permission: Permission) => {
+      expect(check(permission, DatabaseRequestType.Create)).toBe("allowed");
+    },
+  );
 
   test.each([
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.EditNetworkDevice,
-  ])("%s cannot write a rule-assigned name on update", (permission: Permission) => {
-    expect(check(permission, DatabaseRequestType.Update)).toBe(
-      "refused: ruleAssignedName",
-    );
-  });
+  ])(
+    "%s cannot write a rule-assigned name on update",
+    (permission: Permission) => {
+      expect(check(permission, DatabaseRequestType.Update)).toBe(
+        "refused: ruleAssignedName",
+      );
+    },
+  );
 });

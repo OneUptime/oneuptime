@@ -135,56 +135,53 @@ function mockProject(state: ProjectState): {
 
   const ruleRead: jest.SpiedFunction<
     typeof NetworkDeviceNamingRuleService.findBy
-  > = jest
-    .spyOn(NetworkDeviceNamingRuleService, "findBy")
-    .mockResolvedValue(
-      (state.rules || []).filter((rule: NetworkDeviceNamingRule) => {
-        return rule.isEnabled !== false;
-      }),
-    );
-  const siteRead: jest.SpiedFunction<typeof NetworkSiteService.findAllBy> =
-    jest
-      .spyOn(NetworkSiteService, "findAllBy")
-      .mockResolvedValue(state.sites || SITES);
+  > = jest.spyOn(NetworkDeviceNamingRuleService, "findBy").mockResolvedValue(
+    (state.rules || []).filter((rule: NetworkDeviceNamingRule) => {
+      return rule.isEnabled !== false;
+    }),
+  );
+  const siteRead: jest.SpiedFunction<typeof NetworkSiteService.findAllBy> = jest
+    .spyOn(NetworkSiteService, "findAllBy")
+    .mockResolvedValue(state.sites || SITES);
 
   jest
     .spyOn(NetworkSiteAssignmentRuleService, "findBy")
     .mockResolvedValue(state.siteRules || SITE_RULES);
-  jest
-    .spyOn(NetworkDeviceService, "findAllBy")
-    .mockResolvedValue(devices);
+  jest.spyOn(NetworkDeviceService, "findAllBy").mockResolvedValue(devices);
   jest
     .spyOn(NetworkDeviceService, "findBy")
-    .mockImplementation(async (data: unknown): Promise<Array<NetworkDevice>> => {
-      const query: Record<string, unknown> =
-        ((data as Record<string, unknown>)["query"] as Record<
-          string,
-          unknown
-        >) || {};
-      /*
-       * QueryHelper.any is a Raw condition carrying the ids as its one
-       * parameter.
-       */
-      const parameters: Record<string, unknown> =
-        (
-          query["_id"] as
-            | { objectLiteralParameters?: Record<string, unknown> }
-            | undefined
-        )?.objectLiteralParameters || {};
-      const wanted: Array<string> = Object.values(parameters)
-        .flat()
-        .map((value: unknown): string => {
-          return String(value);
+    .mockImplementation(
+      async (data: unknown): Promise<Array<NetworkDevice>> => {
+        const query: Record<string, unknown> =
+          ((data as Record<string, unknown>)["query"] as Record<
+            string,
+            unknown
+          >) || {};
+        /*
+         * QueryHelper.any is a Raw condition carrying the ids as its one
+         * parameter.
+         */
+        const parameters: Record<string, unknown> =
+          (
+            query["_id"] as
+              | { objectLiteralParameters?: Record<string, unknown> }
+              | undefined
+          )?.objectLiteralParameters || {};
+        const wanted: Array<string> = Object.values(parameters)
+          .flat()
+          .map((value: unknown): string => {
+            return String(value);
+          });
+
+        if (wanted.length === 0) {
+          return devices;
+        }
+
+        return devices.filter((device: NetworkDevice): boolean => {
+          return wanted.includes(String(device._id));
         });
-
-      if (wanted.length === 0) {
-        return devices;
-      }
-
-      return devices.filter((device: NetworkDevice): boolean => {
-        return wanted.includes(String(device._id));
-      });
-    });
+      },
+    );
 
   const update: jest.SpiedFunction<typeof NetworkDeviceService.updateOneById> =
     jest
@@ -613,9 +610,11 @@ describe("planning the devices already in the project", () => {
       });
 
     expect(plan.devicesChecked).toBe(1);
-    expect(plan.items.map((item: DeviceNamingPlanItem) => item.deviceId)).toEqual(
-      [deviceId(1)],
-    );
+    expect(
+      plan.items.map((item: DeviceNamingPlanItem) => {
+        return item.deviceId;
+      }),
+    ).toEqual([deviceId(1)]);
   });
 });
 
@@ -654,7 +653,11 @@ describe("applying renames a person confirmed", () => {
         projectId: PROJECT_ID,
         props: { userId: USER_ID, tenantId: PROJECT_ID },
         renames: [
-          { deviceId: deviceId(1), fromName: "dmb-5", toName: "UN1216DRTPLR02" },
+          {
+            deviceId: deviceId(1),
+            fromName: "dmb-5",
+            toName: "UN1216DRTPLR02",
+          },
           // The person saw another name.
           {
             deviceId: deviceId(2),
@@ -702,7 +705,11 @@ describe("applying renames a person confirmed", () => {
       await NetworkDeviceNamingRuleEngineService.applyRenames({
         projectId: PROJECT_ID,
         renames: [
-          { deviceId: deviceId(1), fromName: "dmb-5", toName: "UN1216DRTPLR02" },
+          {
+            deviceId: deviceId(1),
+            fromName: "dmb-5",
+            toName: "UN1216DRTPLR02",
+          },
           {
             deviceId: deviceId(3),
             fromName: "Samsung",

@@ -24,6 +24,8 @@ import { MAX_NAME_PATTERN_LENGTH } from "../../../../Types/NetworkDevice/DeviceN
 import { seededRandom, SeededRandom } from "../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
+const ENDS_IN_DIGIT: RegExp = /\d$/;
+
 /*
  * A naming rule's name pattern (OneUptime issue #6619): what it accepts,
  * what it refuses and says why, and the name it makes for a device. Every
@@ -80,9 +82,7 @@ describe("parseNamePattern", () => {
   test("a pattern of text alone is a pattern (one device by its address)", () => {
     const parsed: ParsedNamePattern = parse("UN1216MNUPLR01");
 
-    expect(parsed.segments).toEqual([
-      { kind: "text", text: "UN1216MNUPLR01" },
-    ]);
+    expect(parsed.segments).toEqual([{ kind: "text", text: "UN1216MNUPLR01" }]);
     expect(parsed.counterWidth).toBeNull();
   });
 
@@ -153,17 +153,29 @@ describe("parseNamePattern", () => {
       "UN{site{site.code}",
       NAME_PATTERN_PROBLEMS.unclosedBrace,
     ],
-    ["a stray closing brace", "UN}site", NAME_PATTERN_PROBLEMS.strayClosingBrace],
+    [
+      "a stray closing brace",
+      "UN}site",
+      NAME_PATTERN_PROBLEMS.strayClosingBrace,
+    ],
     ["empty braces", "UN{}", NAME_PATTERN_PROBLEMS.emptyPlaceholder],
     ["braces of spaces", "UN{  }", NAME_PATTERN_PROBLEMS.emptyPlaceholder],
-    ["an unknown placeholder", "UN{unit}", NAME_PATTERN_PROBLEMS.unknownPlaceholder],
+    [
+      "an unknown placeholder",
+      "UN{unit}",
+      NAME_PATTERN_PROBLEMS.unknownPlaceholder,
+    ],
     [
       "a near miss of a placeholder",
       "{sitecode}",
       NAME_PATTERN_PROBLEMS.unknownPlaceholder,
     ],
     ["an unknown filter", "{site|title}", NAME_PATTERN_PROBLEMS.unknownFilter],
-    ["first without a count", "{site|first}", NAME_PATTERN_PROBLEMS.filterNeedsCount],
+    [
+      "first without a count",
+      "{site|first}",
+      NAME_PATTERN_PROBLEMS.filterNeedsCount,
+    ],
     [
       "last with a word for a count",
       "{site|last:x}",
@@ -437,7 +449,7 @@ describe("counters", () => {
       };
       const name: string = composeName(rendering, value);
 
-      if (/\d$/.test(prefix)) {
+      if (ENDS_IN_DIGIT.test(prefix)) {
         continue;
       }
 
@@ -448,9 +460,9 @@ describe("counters", () => {
 
 describe("filters", () => {
   test("first and last count characters as people see them", () => {
-    expect(applyNameFilter("Bürö-🙂-Switch", { filter: NameFilter.First, count: 6 })).toBe(
-      "Bürö-🙂",
-    );
+    expect(
+      applyNameFilter("Bürö-🙂-Switch", { filter: NameFilter.First, count: 6 }),
+    ).toBe("Bürö-🙂");
     expect(applyNameFilter("ab🙂", { filter: NameFilter.Last, count: 1 })).toBe(
       "🙂",
     );
@@ -460,9 +472,9 @@ describe("filters", () => {
   });
 
   test("digits keeps only digits, nospaces drops every space", () => {
-    expect(applyNameFilter("Unit 1216 / 3", { filter: NameFilter.Digits })).toBe(
-      "12163",
-    );
+    expect(
+      applyNameFilter("Unit 1216 / 3", { filter: NameFilter.Digits }),
+    ).toBe("12163");
     expect(
       applyNameFilter(" Samsung  Electronics Co ", {
         filter: NameFilter.NoSpaces,

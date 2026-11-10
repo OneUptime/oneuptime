@@ -96,9 +96,9 @@ describe("normalizeNamingLookupKey", () => {
     expect(
       normalizeNamingLookupKey(NamingLookupKey.IpAddress, "10.048.145.051"),
     ).toBe("10.48.145.51");
-    expect(
-      normalizeNamingLookupKey(NamingLookupKey.IpAddress, "FE80::1"),
-    ).toBe("fe80::1");
+    expect(normalizeNamingLookupKey(NamingLookupKey.IpAddress, "FE80::1")).toBe(
+      "fe80::1",
+    );
     expect(
       normalizeNamingLookupKey(NamingLookupKey.IpAddress, "10.48.145"),
     ).toBeNull();
@@ -258,10 +258,30 @@ describe("validateNamingLookupEntries", () => {
   });
 
   const refusals: Array<[string, unknown, unknown, string]> = [
-    ["a table that is not a list", NamingLookupKey.LastIpOctet, "51", NAMING_LOOKUP_PROBLEMS.notAList],
-    ["a row that is not a row", NamingLookupKey.LastIpOctet, ["51"], NAMING_LOOKUP_PROBLEMS.notAList],
-    ["a table without a kind", null, DMB_TABLE, NAMING_LOOKUP_PROBLEMS.noKeyKind],
-    ["a table of an unknown kind", "colour", DMB_TABLE, NAMING_LOOKUP_PROBLEMS.noKeyKind],
+    [
+      "a table that is not a list",
+      NamingLookupKey.LastIpOctet,
+      "51",
+      NAMING_LOOKUP_PROBLEMS.notAList,
+    ],
+    [
+      "a row that is not a row",
+      NamingLookupKey.LastIpOctet,
+      ["51"],
+      NAMING_LOOKUP_PROBLEMS.notAList,
+    ],
+    [
+      "a table without a kind",
+      null,
+      DMB_TABLE,
+      NAMING_LOOKUP_PROBLEMS.noKeyKind,
+    ],
+    [
+      "a table of an unknown kind",
+      "colour",
+      DMB_TABLE,
+      NAMING_LOOKUP_PROBLEMS.noKeyKind,
+    ],
     [
       "a key of another kind",
       NamingLookupKey.LastIpOctet,
@@ -329,9 +349,7 @@ describe("validateNamingLookupEntries", () => {
           }),
         ),
       ),
-    ).toBe(
-      'Row 2: "300" is not a last part of the ip address, such as 51.',
-    );
+    ).toBe('Row 2: "300" is not a last part of the ip address, such as 51.');
 
     expect(
       formatNamingLookupProblem(
@@ -467,7 +485,10 @@ describe("pasted and uploaded tables", () => {
   });
 
   test("the reporter's table written as CSV reads back to the same rows", () => {
-    const csv: string = toNamingLookupCsv(NamingLookupKey.LastIpOctet, DMB_TABLE);
+    const csv: string = toNamingLookupCsv(
+      NamingLookupKey.LastIpOctet,
+      DMB_TABLE,
+    );
 
     expect(csv.startsWith("Last part of the IP address,Value\r\n")).toBe(true);
     expect(parseNamingLookupText(csv, NamingLookupKey.LastIpOctet)).toEqual({
