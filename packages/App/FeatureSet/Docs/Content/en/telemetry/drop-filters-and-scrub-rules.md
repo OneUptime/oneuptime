@@ -122,8 +122,10 @@ Mask:   Payment failed for j***@***.com
 Hash:   Payment failed for [HASHED:8c87b489]
 ```
 
-**Fields to Scrub** is **Both (Body & Attributes)** for a log rule unless you pick **Body Only** or **Attributes Only**, and **All (Name, Attributes & Events)** for a span rule unless you pick **Span Name Only**, **Attributes Only** or **Event Attributes Only**. A **Sensitive Attribute Keys** rule always scrubs attribute values, since it reads attribute keys.
+**Fields to Scrub** is **Both (Body & Attributes)** for a log rule unless you pick **Body Only** or **Attributes Only**, and **All (Name, Attributes & Events)** for a span rule unless you pick **Span Name Only**, **Attributes Only** or **Event Attributes Only**. The attributes of a span's links are scrubbed with the span's own attributes. A **Sensitive Attribute Keys** rule always scrubs attribute values, since it reads attribute keys.
 
+- **Lists and nested values are read too.** A rule reads every text inside a list, a list of lists or a key-value list, such as the values of an HTTP header, and keeps the value's shape: numbers and true or false stay as they are. A **Sensitive Attribute Keys** rule also reads the keys inside a value, so the `password` inside a key-value list is hidden too. A log body sent as a map or a list is stored as its JSON text, which a pattern rule scrubs like any other text.
+- **A value too large to read item by item is read as text.** A value nested more than 32 levels deep, or one that would take a record past 10,000 values inside its lists and maps, is read and stored as its JSON text. A pattern rule scrubs what it finds in that text, and a **Sensitive Attribute Keys** rule hides the whole value when a word such as `password` or `token` appears in it.
 - **Exceptions come from the scrubbed record.** An exception found in a log is made after scrubbing, and the rules that scrub span events also scrub the exceptions recorded on them.
 - **Session replays are scrubbed too.** Log scrub rules also run over session replay recordings, behind the masking the recorder does in the browser.
 - **Rules run in the order of the list.** Each rule sees what the rules before it left.

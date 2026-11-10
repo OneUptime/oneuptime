@@ -319,6 +319,8 @@ AI-kall lagres som trace-spans, så traces' **Scrub-regler** og **Drop-filtre** 
 
 Prompter og svar sendt som logghendelser lagres som logger, så det er loggenes **Scrub-regler** og **Drop-filtre** som gjelder for dem, under **Logger → Innstillinger**: en regel som maskerer e-poster i traces, maskerer dem ikke i logghendelser. En samtale viser dem bare til den som også kan lese appens logger, og den kan også finne dem på siden **Logger**.
 
+Uansett leser en regel hver tekst i en liste eller en strukturert verdi, som meldinger en instrumentering sender som en liste i stedet for som JSON-tekst, og beholder verdiens form: en e-postadresse i en prompt maskeres uansett hvor den står. Se [Rens sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#rens-sensitive-data).
+
 Samtaler leses med samme tillatelse som traces: den som kan lese prosjektets traces, kan lese samtalene, og ingen andre. Samtalene fra et av virksomhetens AI-verktøy er unntaket: bare prosjektets eiere og administratorer kan lese dem, med mindre tilkoblingen sier noe annet ([Virksomhetens AI-verktøy](/docs/telemetry/ai-company-tools#personvern)).
 
 ## Attributter OneUptime leser

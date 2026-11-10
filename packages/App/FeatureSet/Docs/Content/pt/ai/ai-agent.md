@@ -22,7 +22,7 @@ Código é onde você pede à OneUptime AI que trabalhe nos seus repositórios, 
 :::steps
 ### Abra o Código
 
-Abra **Produtos → Código**. Ele abre em **O que a IA deve fazer?**: a caixa onde você pede, com todas as tarefas abaixo, as mais recentes primeiro. Se ainda não houver nenhum repositório, ele oferece **Conectar o GitHub** no lugar, com GitLab, Forgejo ou Gitea e qualquer servidor Git abaixo (veja [Conectar um repositório](#conectar-um-repositório)). **Repositórios**, no menu lateral, lista os repositórios em que a IA pode trabalhar, e agrupa em **Não conectado** os que o OneUptime não alcança mais. A página de cada repositório tem a mesma caixa para aquele repositório.
+Abra **Produtos → Código**. Ele abre em **O que a IA deve fazer?**: a caixa onde você pede, com todas as tarefas abaixo, as mais recentes primeiro; filtre-as por como estão, cada filtro com sua contagem, ou busque-as por título ou número. Se ainda não houver nenhum repositório, ele oferece **Conectar o GitHub** no lugar, com GitLab, Forgejo ou Gitea e qualquer servidor Git abaixo (veja [Conectar um repositório](#conectar-um-repositório)). **Repositórios**, no menu lateral, lista os repositórios em que a IA pode trabalhar, e agrupa em **Não conectado** os que o OneUptime não alcança mais. A página de cada repositório tem a mesma caixa para aquele repositório, e lá você pode marcar os pedidos que falharam ou foram parados e tentar todos de novo com **Tentar novamente as selecionadas**.
 
 ### Escolha o repositório e o branch
 
@@ -57,15 +57,16 @@ Um pedido leva no máximo 10 itens de contexto. Tokens, chaves, senhas e endere�
 
 ## A conversa de uma tarefa
 
-A página de uma tarefa é uma conversa: o que foi pedido e o contexto adicionado, depois a vez da IA – os passos que ela dá à medida que os dá (os arquivos que leu e editou, o que procurou, os comandos que executou), a resposta dela, os arquivos que alterou com o diff deles, e o pull request. O topo da página diz onde a tarefa trabalha (o repositório dela e o branch de onde partiu), quantas linhas ela alterou, com um botão para o pull request dela, e como a tarefa está:
+A página de uma tarefa é uma conversa: o que foi pedido e o contexto adicionado, depois a vez da IA – os passos que ela dá à medida que os dá (os arquivos que leu e editou, o que procurou, os comandos que executou), a resposta dela, os arquivos que alterou com o diff deles, e o pull request. O topo da página diz onde a tarefa trabalha (o repositório dela e o branch de onde partiu), quantos arquivos e linhas ela alterou, quanto tempo a IA trabalhou nela, com um botão para o pull request dela, e como a tarefa está:
 
 | Estado | O que significa |
 | --- | --- |
 | **Na fila** | Espera que um Runner a assuma. |
+| **Tentando novamente** | Se a IA tenta a vez de novo sozinha, a página diz qual tentativa vem a seguir e quando; **Tentar novamente agora** a inicia na hora. |
 | **Trabalhando…** | A IA está trabalhando nela. **Parar** a interrompe; o que ela enviou continua no branch. |
 | **Aguardando você** | A IA fez uma pergunta. Responda na caixa abaixo. |
 | **Concluído** | A IA terminou: a resposta dela, e o pull request quando alterou código. |
-| **Falhou** | A vez não pôde terminar, e diz por quê. **Tentar novamente** pede o mesmo outra vez. |
+| **Falhou** | A vez não pôde terminar, e diz por quê, e depois de quantas tentativas quando a IA tentou de novo sozinha. **Tentar novamente** pede o mesmo outra vez. |
 | **Parado** | Alguém a interrompeu. **Tentar novamente** pede o mesmo outra vez. |
 
 Para continuar, escreva na caixa embaixo, que fica à vista enquanto a conversa rola: responda à IA, adicione contexto ou peça alterações. Cada resposta é a próxima vez da mesma tarefa: ela trabalha no mesmo branch e envia para o mesmo pull request enquanto ele estiver aberto. Uma tarefa faz uma vez de cada vez, então a caixa espera enquanto a IA trabalha. O **Registro** de cada vez é o registro literal do que ela fez. Em uma tarefa com mais de uma vez, um seletor no topo da página **Registro** passa de uma vez para outra.
@@ -328,11 +329,11 @@ Todo o resto é igual ao botão:
 ## Quando uma correção falha
 
 :::details A execução falha
-A correção não pôde ser aplicada, o repositório ou o branch de onde um pedido partiu não pôde ser acessado, ou a chamada ao LLM falhou. A conversa da tarefa, e a página de onde ela foi iniciada, mostram o motivo e oferecem tentar de novo. O **Registro** da vez tem o log completo da execução.
+A correção não pôde ser aplicada, o repositório ou o branch de onde um pedido partiu não pôde ser acessado, ou a chamada ao LLM falhou. Uma falha passageira (o provedor do modelo de IA ocupado ou fora do ar, uma chamada que excedeu o tempo, a rede) é tentada de novo sozinha, até 3 tentativas no total, a segunda depois de 1 minuto e a terceira depois de 4, a menos que a execução possa já ter enviado um branch ou aberto um pull request. Uma falha que se repetiria, como uma chave que o provedor recusa ou a falta de créditos, não é tentada de novo. Quando a vez falha definitivamente, a conversa da tarefa, e a página de onde ela foi iniciada, mostram o motivo e oferecem tentar de novo. O **Registro** da vez tem o log completo da execução.
 :::
 
 :::details O Runner para no meio de uma execução
-Uma execução cujo heartbeat está em silêncio há mais de 12 minutos é encerrada com um erro. Ela nunca volta para a fila sozinha, porque o Runner pode já ter enviado parte de um branch de correção; inicie-a de novo de onde você a iniciou. Um comando que o agente de código executa mantém o heartbeat enquanto roda, então um build ou uma suíte de testes longa não é confundido com um Runner parado.
+Uma execução cujo heartbeat está em silêncio há mais de 12 minutos é tentada de novo sozinha, da mesma forma, quando não enviou nada, a tarefa dela não tem pull request e ainda restam tentativas. Caso contrário, é encerrada com um erro, porque o Runner pode já ter enviado parte de um branch de correção; inicie-a de novo de onde você a iniciou. Um comando que o agente de código executa mantém o heartbeat enquanto roda, então um build ou uma suíte de testes longa não é confundido com um Runner parado.
 :::
 
 :::details Nenhum Runner assume a tarefa

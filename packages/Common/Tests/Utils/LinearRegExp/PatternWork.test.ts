@@ -2,6 +2,7 @@ import {
   getPatternWorkAllowance,
   getStoppedPatternQuestions,
   MAX_GRANTED_TEXTS,
+  MAX_RECORD_DEPTH,
   noteQuestionStoppedOutsideAllowance,
   PatternWorkAllowance,
   patternWorkRefusesQuestions,
@@ -18,6 +19,7 @@ import {
   PatternWorkLimitError,
 } from "../../../Utils/LinearRegExp/PatternProblem";
 import { WORK_PER_CODE_UNIT } from "../../../Utils/LinearRegExp/Matcher";
+import { SCRUB_MAX_VALUE_DEPTH } from "../../../Utils/Telemetry/ScrubNestedValues";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -351,18 +353,53 @@ describe("records a batch of telemetry hands over", () => {
     expect(allowance.allowedWork).toBe(2048 + 128 * 16);
   });
 
-  test("a record deeper than six levels adds what lies within them only", () => {
-    const allowance: PatternWorkAllowance = batch();
-    let deep: unknown = "hidden";
+  // `inner` inside `maps` maps, one in the other: chain("a", 2) is {level: {level: "a"}}.
+  function chain(inner: unknown, maps: number): unknown {
+    let value: unknown = inner;
 
-    for (let level: number = 0; level < 10; level++) {
-      deep = { level: deep };
+    for (let level: number = 0; level < maps; level++) {
+      value = { level: value };
     }
 
-    allowance.handOver({ shallow: "ab", deep: deep });
-    allowance.beforeQuestion("ab");
+    return value;
+  }
 
-    expect(allowance.allowedWork).toBe(2048 + 128 * 2);
+  test(`a record deeper than ${MAX_RECORD_DEPTH} levels adds what lies within them only`, () => {
+    // The record is level 0 and `deep` level 1: a text sits a level below its last map.
+    const within: PatternWorkAllowance = batch();
+    within.handOver({
+      shallow: "ab",
+      deep: chain("seen", MAX_RECORD_DEPTH - 1),
+    });
+    within.beforeQuestion("ab");
+
+    expect(within.allowedWork).toBe(2 * 2048 + 128 * ("ab".length + 4));
+
+    const deeper: PatternWorkAllowance = batch();
+    deeper.handOver({ shallow: "ab", deep: chain("hidden", MAX_RECORD_DEPTH) });
+    deeper.beforeQuestion("ab");
+
+    expect(deeper.allowedWork).toBe(2048 + 128 * "ab".length);
+  });
+
+  test("each text a scrub rule reads inside a span event's or a link's value adds its share", () => {
+    /*
+     * A span is level 0, its events 1, an event 2, its attributes 3 and a
+     * value 4: a scrub rule reads SCRUB_MAX_VALUE_DEPTH levels into the
+     * value (Utils/Telemetry/ScrubNestedValues.ts).
+     */
+    const deepestRead: unknown = [
+      chain("in a list", SCRUB_MAX_VALUE_DEPTH - 1),
+    ];
+    const allowance: PatternWorkAllowance = batch();
+
+    allowance.handOver({
+      events: [{ attributes: { value: deepestRead } }],
+      links: [{ attributes: { value: deepestRead } }],
+    });
+    allowance.beforeQuestion("in a list");
+
+    expect(allowance.allowedWork).toBe(2 * (2048 + 128 * "in a list".length));
   });
 
   test("a record of more values than are counted adds what the first of them say", () => {

@@ -122,8 +122,10 @@ Mask:   Payment failed for j***@***.com
 Hash:   Payment failed for [HASHED:8c87b489]
 ```
 
-**Fält att rensa** är **Båda (brödtext och attribut)** för en loggregel, om du inte väljer **Endast brödtext** eller **Endast attribut**, och **Alla (namn, attribut och händelser)** för en span-regel, om du inte väljer **Endast span-namn**, **Endast attribut** eller **Endast händelseattribut**. En **Sensitive Attribute Keys**-regel rensar alltid attributvärden, eftersom den läser attributnycklar.
+**Fält att rensa** är **Båda (brödtext och attribut)** för en loggregel, om du inte väljer **Endast brödtext** eller **Endast attribut**, och **Alla (namn, attribut och händelser)** för en span-regel, om du inte väljer **Endast span-namn**, **Endast attribut** eller **Endast händelseattribut**. Attributen på ett spans länkar rensas tillsammans med spanets egna attribut. En **Sensitive Attribute Keys**-regel rensar alltid attributvärden, eftersom den läser attributnycklar.
 
+- **Listor och nästlade värden läses också.** En regel läser varje text i en lista, en lista av listor eller en nyckel-värde-lista, till exempel värdena i en HTTP-header, och behåller värdets form: tal och sant eller falskt förblir som de är. En **Sensitive Attribute Keys**-regel läser också nycklarna inuti ett värde, så `password` inuti en nyckel-värde-lista döljs också. Brödtexten i en loggpost som skickas som en map eller en lista lagras som sin JSON-text, som en mönsterregel rensar som all annan text.
+- **Ett värde som är för stort för att läsas element för element läses som text.** Ett värde som är nästlat mer än 32 nivåer djupt, eller som skulle ta en post över 10 000 värden i dess listor och maps, läses och lagras som sin JSON-text. En mönsterregel rensar det den hittar i den texten, och en **Sensitive Attribute Keys**-regel döljer hela värdet när ett ord som `password` eller `token` förekommer i det.
 - **Undantag kommer från den rensade posten.** Ett undantag som hittas i en loggpost skapas efter rensningen, och reglerna som rensar span-händelser rensar också de undantag som registrerats på dem.
 - **Session Replays rensas också.** Scrub-regler för loggar körs också över Session Replay-inspelningar, utöver den maskering som inspelaren gör i webbläsaren.
 - **Regler körs i listans ordning.** Varje regel ser det som reglerna före den lämnade kvar.

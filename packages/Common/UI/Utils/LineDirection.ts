@@ -31,6 +31,22 @@ import {
 export const LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME: string = "text-end";
 
 /*
+ * A VALUE CUT SHORT TO A FEW LINES (line-clamp), READ THE OTHER WAY.
+ *
+ * A clamped box cannot be aligned to its end as a one-line box is: Chrome
+ * draws the "..." of a clamped line past the end of a line aligned to its
+ * end, where the box cuts it off, so an English title clamped on a Persian
+ * page lost its end with nothing to say so. The box is as wide as its
+ * value instead, up to its holder's width (with its own dir, from
+ * getLineDirection). A short value is a box narrower than its holder, and
+ * such a box sits at its holder's start: where the page's lines start, as
+ * one aligned to its end would. One too long fills its holder, runs from
+ * its own start and ends in "..." at its own end.
+ */
+export const CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME: string =
+  "w-fit max-w-full";
+
+/*
  * The dir a box that holds one line of `text` needs: the way most of the
  * text's letters read (getTextReadingDirectionByMostLetters) when that is
  * not the way the page's language reads, and none otherwise - nor for a

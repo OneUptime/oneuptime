@@ -2,9 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import CodeApi, {
   CodeRepositoryResponse,
 } from "../../../Components/Code/CodeApi";
-import CodeAskBox, {
-  CODE_COLUMN_CLASS_NAME,
-} from "../../../Components/Code/CodeAskBox";
+import CodeAskBox from "../../../Components/Code/CodeAskBox";
 import { GitBranchMark } from "../../../Components/Code/CodeMarks";
 import { getRepositoryFullName } from "../../../Components/Code/CodePaths";
 import CodeTaskList from "../../../Components/Code/CodeTaskList";
@@ -43,6 +41,15 @@ import React, {
  * with no box, and reads the tasks. A repository with no task yet suggests
  * what to ask. Sending opens the new task's conversation.
  */
+/*
+ * A repository's page, one column: its request box and its task list start
+ * and end together. The list takes this width - a row has room for its
+ * state, its pull request, how long it took and why it failed - and the box
+ * above it takes the same: in Code's narrower column over a wider list,
+ * the two started at different places on a wide screen.
+ */
+export const CODE_TASKS_WIDE_CLASS_NAME: string = "mx-auto w-full max-w-5xl";
+
 const CodeRepositoryTasks: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -99,7 +106,7 @@ const CodeRepositoryTasks: FunctionComponent<
   const showTaskList: boolean = !(repository.canAsk && hasNoTasks);
 
   return (
-    <div className={`${CODE_COLUMN_CLASS_NAME} space-y-8 pb-10`}>
+    <div className={`${CODE_TASKS_WIDE_CLASS_NAME} space-y-8 pb-10`}>
       <div className="space-y-4">
         <div
           data-testid="code-repository-header"
@@ -194,6 +201,8 @@ const CodeRepositoryTasks: FunctionComponent<
               onCount={(count: number) => {
                 setTaskCount(count);
               }}
+              showFilters={true}
+              canRetry={repository.canAsk && !repository.blocker}
               emptyState={
                 <div
                   data-testid="code-tasks-empty"
