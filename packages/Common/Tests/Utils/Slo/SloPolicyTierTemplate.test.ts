@@ -1,6 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
-import { TemplateVariable } from "../../../Types/Template/TemplateVariable";
+import {
+  TemplateVariable,
+  TemplateVariableGroup,
+} from "../../../Types/Template/TemplateVariable";
 import {
   DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
@@ -271,13 +274,11 @@ describe("a policy tier's catalog", () => {
     ) => Array<string> = (
       groups: typeof SLO_POLICY_TIER_TEMPLATE_VARIABLE_GROUPS,
     ): Array<string> => {
-      return groups.flatMap(
-        (group: { variables: Array<TemplateVariable> }): Array<string> => {
-          return group.variables.map((variable: TemplateVariable): string => {
-            return variable.name;
-          });
-        },
-      );
+      return groups.flatMap((group: TemplateVariableGroup): Array<string> => {
+        return group.variables.map((variable: TemplateVariable): string => {
+          return variable.name;
+        });
+      });
     };
 
     expect(toNames(SLO_POLICY_TIER_TEMPLATE_VARIABLE_GROUPS)).toEqual(tierKeys);
