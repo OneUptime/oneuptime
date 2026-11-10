@@ -49124,5 +49124,10 @@
   "{{count}} security events_one": "{{count}} security event",
   "Loading infrastructure…": "インフラストラクチャを読み込み中…",
   "Loading service map…": "サービスマップを読み込み中…",
-  "Service Map": "サービスマップ"
+  "Service Map": "サービスマップ",
+  "Can't scan the QR code?": "QR コードをスキャンできない場合",
+  "Enter this setup key in your authenticator app instead.": "代わりに、このセットアップキーを認証アプリに入力してください。",
+  "If your app asks, choose a time-based key.": "アプリで尋ねられた場合は、時間ベースのキーを選択してください。",
+  "QR code": "QR コード",
+  "The QR code could not be shown.": "QR コードを表示できませんでした。"
 }

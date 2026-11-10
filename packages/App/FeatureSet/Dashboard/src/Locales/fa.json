@@ -49124,5 +49124,10 @@
   "{{count}} security events_one": "{{count}} رویداد امنیتی",
   "Loading infrastructure…": "در حال بارگذاری زیرساخت…",
   "Loading service map…": "در حال بارگذاری نقشهٔ سرویس‌ها…",
-  "Service Map": "نقشهٔ سرویس‌ها"
+  "Service Map": "نقشهٔ سرویس‌ها",
+  "Can't scan the QR code?": "نمی‌توانید کد QR را اسکن کنید؟",
+  "Enter this setup key in your authenticator app instead.": "به‌جای آن، این کلید راه‌اندازی را در اپلیکیشن احراز هویت خود وارد کنید.",
+  "If your app asks, choose a time-based key.": "اگر اپلیکیشن پرسید، کلید مبتنی بر زمان را انتخاب کنید.",
+  "QR code": "کد QR",
+  "The QR code could not be shown.": "نمایش کد QR ممکن نشد."
 }

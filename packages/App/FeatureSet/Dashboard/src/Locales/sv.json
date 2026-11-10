@@ -49124,5 +49124,10 @@
   "{{count}} security events_one": "{{count}} säkerhetshändelse",
   "Loading infrastructure…": "Läser in infrastrukturen…",
   "Loading service map…": "Läser in tjänstekartan…",
-  "Service Map": "Tjänstekarta"
+  "Service Map": "Tjänstekarta",
+  "Can't scan the QR code?": "Kan du inte skanna QR-koden?",
+  "Enter this setup key in your authenticator app instead.": "Ange den här inställningsnyckeln i din autentiseringsapp i stället.",
+  "If your app asks, choose a time-based key.": "Välj en tidsbaserad nyckel om appen frågar.",
+  "QR code": "QR-kod",
+  "The QR code could not be shown.": "QR-koden kunde inte visas."
 }

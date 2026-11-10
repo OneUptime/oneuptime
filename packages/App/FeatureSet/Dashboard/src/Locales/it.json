@@ -49124,5 +49124,10 @@
   "{{count}} security events_one": "{{count}} evento di sicurezza",
   "Loading infrastructure…": "Caricamento dell'infrastruttura…",
   "Loading service map…": "Caricamento della mappa dei servizi…",
-  "Service Map": "Mappa dei servizi"
+  "Service Map": "Mappa dei servizi",
+  "Can't scan the QR code?": "Non riesci a scansionare il codice QR?",
+  "Enter this setup key in your authenticator app instead.": "Inserisci invece questa chiave di configurazione nella tua app di autenticazione.",
+  "If your app asks, choose a time-based key.": "Se l'app lo chiede, scegli una chiave basata sull'ora.",
+  "QR code": "Codice QR",
+  "The QR code could not be shown.": "Impossibile mostrare il codice QR."
 }
