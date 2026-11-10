@@ -128,6 +128,10 @@ const SOURCES: Record<string, string> = {
   monitorsTeamsPage: `${DASHBOARD}/Pages/Monitor/WorkspaceConnectionMicrosoftTeams.tsx`,
   onCallSlackPage: `${DASHBOARD}/Pages/OnCallDuty/WorkspaceConnectionSlack.tsx`,
   onCallTeamsPage: `${DASHBOARD}/Pages/OnCallDuty/WorkspaceConnectionMicrosoftTeams.tsx`,
+  sloSideMenu: `${DASHBOARD}/Pages/Slo/SideMenu.tsx`,
+  sloSlackPage: `${DASHBOARD}/Pages/Slo/WorkspaceConnectionSlack.tsx`,
+  sloTeamsPage: `${DASHBOARD}/Pages/Slo/WorkspaceConnectionMicrosoftTeams.tsx`,
+  sloMattermostPage: `${DASHBOARD}/Pages/Slo/WorkspaceConnectionMattermost.tsx`,
   eventVideoCallsCard: `${DASHBOARD}/Components/VideoCall/EventVideoCallsCard.tsx`,
   videoCallConnectionsTable: `${DASHBOARD}/Components/VideoCall/VideoCallConnectionsTable.tsx`,
   videoCallOAuthConnectModal: `${DASHBOARD}/Components/VideoCall/VideoCallOAuthConnectModal.tsx`,
@@ -548,6 +552,8 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       },
       Monitors: { slack: "monitorsSlackPage", teams: "monitorsTeamsPage" },
       "On-Call Duty": { slack: "onCallSlackPage", teams: "onCallTeamsPage" },
+      // The rules that post SLOs' error budget policy changes.
+      SLOs: { slack: "sloSlackPage", teams: "sloTeamsPage" },
     };
 
     for (const page of CHAT_PAGES) {

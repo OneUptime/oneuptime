@@ -112,7 +112,7 @@ Trovate i registri di esecuzione in tre posti:
 - in **Reperibilità → Avanzato → Registri di esecuzione**, per tutte le policy, dove le chiamate dirette da workflow e chat compaiono come **Chiamata diretta**;
 - nella pagina **Esecuzioni di reperibilità** di un incidente o di un avviso.
 
-Ogni riga mostra che cosa ha avviato l'esecuzione, quando, il suo **Stato** e chi l'ha riconosciuta. **Visualizza cronologia** apre la sua **Cronologia di esecuzione**: ogni regola di escalation, chi ha avvisato, tramite quale pianificazione e come è finito ogni avviso. Una pianificazione in cui nessuno è reperibile mostra **Nessuno era di turno** al posto di una persona. Un livello che non ha avvisato nessuno dice perché, con **Proseguito senza attendere** sotto: la policy non lo ha atteso. Su OneUptime Cloud, i registri di esecuzione richiedono il piano **Growth**.
+Ogni riga mostra che cosa ha avviato l'esecuzione, quando, il suo **Stato** e chi l'ha riconosciuta. **Visualizza cronologia** apre la sua **Cronologia di esecuzione**: ogni regola di escalation, chi ha avvisato, tramite quale pianificazione e come è finito ogni avviso. **Notificato tramite** mostra come ogni avviso ha raggiunto la persona: chiamata telefonica, SMS, e-mail, notifica push e così via. Una pianificazione in cui nessuno è reperibile mostra **Nessuno era di turno** al posto di una persona. Un livello che non ha avvisato nessuno dice perché, con **Proseguito senza attendere** sotto: la policy non lo ha atteso. Su OneUptime Cloud, i registri di esecuzione richiedono il piano **Growth**.
 
 ## Archiviare o eliminare una policy
 

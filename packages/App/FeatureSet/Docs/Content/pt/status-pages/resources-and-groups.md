@@ -83,11 +83,13 @@ Em um grupo em grade, a caixa de diálogo também pede a linha e a coluna em que
 
 A seleção múltipla tem uma aba **Rótulos**: clique em um rótulo e cada monitor que o tem é selecionado de uma vez.
 
+Os grupos de monitores são adicionados do mesmo jeito. Com o interruptor **Grupos de monitores** ligado, **Mais ações** também tem **Adicionar vários grupos de monitores**, que abre **Adicionar vários grupos de monitores**: uma seleção múltipla **Grupos de monitores**, depois o mesmo **Mais campos** recolhido. Cada recurso recebe o nome de exibição e a descrição do seu grupo de monitores, e **Adicionar grupos de monitores** adiciona todos; um grupo de monitores que já está na página fica como está e aparece em **Já adicionados**. O link abaixo da seleção múltipla, **Adicione grupos de monitores em vez disso.** ou **Adicione monitores em vez disso.**, alterna entre as duas caixas de diálogo e mantém as opções de exibição que você definiu. Num grupo vazio, **Adicionar vários** abre com grupos de monitores quando **Adicionar monitor** foi trocado para eles.
+
 ### Adicionar duas vezes pelo rótulo é seguro
 
 Uma página de status lista cada monitor uma só vez. A adição é idempotente, então escolher de novo o mesmo rótulo depois de rotular alguns monitores novos adiciona só os novos: os monitores que já estão na página ficam exatamente como estão, com o nome de exibição e as opções que você deu a eles.
 
-O resumo ao final da adição em lote diz isso: os monitores adicionados aparecem em **Adicionado**, e os que já estavam lá em **Already Added**. Nada é informado como falha, e nada é gravado para eles.
+O resumo ao final da adição em lote diz isso: os monitores adicionados aparecem em **Adicionado**, e os que já estavam lá em **Já adicionados**. Nada é informado como falha, e nada é gravado para eles.
 
 A mesma regra vale em todo lugar onde um recurso é criado. Adicionar pelo formulário de adição individual um monitor que já está na página, ou apontar para ele um recurso existente pelo formulário de edição, é recusado com *"This monitor is already added to this status page"*, inclusive quando o recurso existente está em outro grupo, porque um visitante ainda veria o monitor duas vezes. Para mostrar um monitor em outro grupo, exclua o recurso que ele já tem e adicione-o onde você quiser.
 

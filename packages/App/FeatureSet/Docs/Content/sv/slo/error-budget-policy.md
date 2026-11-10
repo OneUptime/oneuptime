@@ -1,11 +1,12 @@
 # Felbudgetpolicy
 
-En felbudgetpolicy skriver ned vad ditt team har kommit överens om att göra medan ett SLO:s felbudget tar slut, till exempel att granska riskfyllda ändringar när hälften är förbrukad, eller att frysa releaser när allt är förbrukat. OneUptime placerar SLO:et i den nivå i policyn som budgeten har nått, visar teamets överenskommelse för nivån på SLO:ets sidor, kan utlösa ett larm eller deklarera en incident när SLO:et går in i en nivå och talar om för dina CI/CD-pipelines om de ska hålla tillbaka releaser. Det är praxisen med en felbudgetpolicy från [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
+En felbudgetpolicy skriver ned vad ditt team har kommit överens om att göra medan ett SLO:s felbudget tar slut, till exempel att granska riskfyllda ändringar när hälften är förbrukad, eller att frysa releaser när allt är förbrukat. OneUptime placerar SLO:et i den nivå i policyn som budgeten har nått, visar teamets överenskommelse för nivån på SLO:ets sidor, kan utlösa ett larm eller deklarera en incident när SLO:et går in i en nivå, publicerar varje byte av nivå i de kanaler i Slack, Microsoft Teams eller Mattermost som du väljer och talar om för dina CI/CD-pipelines om de ska hålla tillbaka releaser. Det är praxisen med en felbudgetpolicy från [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
 
 :::cards
 - [Så fungerar nivåer](#så-fungerar-nivåer): Vilken nivå som gäller, och när SLO:et lämnar den.
 - [Ställ in en policy](#ställ-in-en-policy): Börja med den rekommenderade policyn, eller skriv dina egna nivåer.
 - [Larm och incidenter](#larm-och-incidenter): Larma ditt team när SLO:et går in i en nivå.
+- [Publicera i Slack, Microsoft Teams och Mattermost](#publicera-i-slack-microsoft-teams-och-mattermost): Meddela en kanal när ett SLO går in i en nivå, utan att larma någon.
 - [Distributionsspärr](#distributionsspärr): Håll tillbaka releaser från CI/CD medan en nivå fryser distributioner.
 - [Läs nivån via API:et](#läs-nivån-via-apiet): Kontrollera nivån från CI och skript.
 :::
@@ -88,6 +89,7 @@ Ingen av dem utlöser ett larm eller deklarerar en incident förrän du slår p�
 - SLO:ets **Översikt** visar nivån det är i och vad teamet har kommit överens om att göra där, så att alla som öppnar SLO:et ser den överenskommelse som gäller nu. Medan nivån fryser distributioner visar en röd etikett under nivåns namn sedan när de är frysta.
 - Diagrammet **Nedbränning av felbudget** ritar en linje med etikett vid varje nivås tröskel, bredvid linjen för tröskeln för riskzon.
 - SLO:ets **Feed** visar varje byte av nivå: nivån som SLO:et lämnade och nivån det gick in i, återstående budget, vad teamet har kommit överens om att göra i den nya nivån och om bytet frös distributioner eller tillät dem igen.
+- De kanaler i Slack, Microsoft Teams och Mattermost som dina regler anger får samma inlägg: se [Publicera i Slack, Microsoft Teams och Mattermost](#publicera-i-slack-microsoft-teams-och-mattermost).
 - SLO:ets **Granskningsloggar** registrerar varje byte av nivå, och varje gång distributioner fryses eller tillåts igen, som en ändring som OneUptime själv har gjort, och visar dem därför bara med **Lagra systemhändelser** påslaget: se [Slå på granskningsloggar](/docs/slo/feed-and-audit-logs#slå-på-granskningsloggar). Att lägga till, redigera och ta bort en nivå registreras på den person som gjorde det.
 - SLO:ets läs-API returnerar nivån och om distributioner är tillåtna: se [Läs nivån via API:et](#läs-nivån-via-apiet) och [Distributionsspärr](#distributionsspärr).
 
@@ -121,6 +123,43 @@ SLO error budget policy: {{sloName}} — {{policyTier}}
 ```
 
 Den inbyggda beskrivningen nämner nivån, ställer återstående budget mot nivåns tröskel och säger vad teamet har kommit överens om att göra i den.
+
+## Publicera i Slack, Microsoft Teams och Mattermost
+
+En regel kan publicera varje ändring i ett SLO:s felbudgetpolicy i de kanaler i Slack, Microsoft Teams eller Mattermost som ditt team läser, utan att larma någon: när SLO:et går in i en nivå, återhämtar sig till en mindre allvarlig nivå eller lämnar alla nivåer, och när dess distributioner fryses eller tillåts igen. Varje regel väljer vilka SLO:er och vilka ändringar den publicerar. Anslut först arbetsytan till projektet: se [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) eller [Mattermost](/docs/workspace-connections/mattermost).
+
+:::steps
+### Öppna avsnittet Arbetsyta för SLO:er
+
+Gå till **SLOs** → **Arbetsyta** → **Slack**, eller **Microsoft Teams**, eller **Mattermost**. Avsnittet **Arbetsyta** visar bara de chattarbetsytor som ditt projekt har anslutit.
+
+### Skapa en regel
+
+Klicka på **Skapa Aviseringsregel för SLO:er** och ge den ett **Regelnamn**. Under **Vilka SLO:er** behåller du **Alla SLO:er**, eller väljer **Endast SLO:er som uppfyller villkoren** och lägger till villkor: se [Vad en regel matchar](#vad-en-regel-matchar).
+
+### Välj var den publicerar
+
+Under **Sedan i Slack** anger du de kanaler som regeln publicerar i. I Microsoft Teams väljer du ett team och dess kanaler, eller chattar som OneUptime-appen har lagts till i. Ett SLO får ingen egen kanal, så en regel publicerar bara i kanaler och chattar som du redan har.
+:::
+
+Meddelandet beskriver ändringen med samma ord som SLO:ets **Feed**: nivån som SLO:et lämnade och nivån det gick in i, hur distributionerna påverkades, återstående felbudget, den nya nivåns tröskel och vad teamet har kommit överens om att göra där, så som teamet skrev det. Ett omnämnande i den överenskommelsen, till exempel `<!channel>`, publiceras som text och aviserar ingen.
+
+- En ändring publiceras en gång, efter att utvärderingen som orsakade den har sparats. En utvärdering som inte sparas publicerar ingenting, och nästa utvärdering publicerar ändringen.
+- Ingenting publiceras medan SLO:et stannar i sin nivå, hur länge budgeten än pendlar kring en tröskel: se [Att gå in i en nivå och lämna den](#att-gå-in-i-en-nivå-och-lämna-den).
+- Att slå på eller av **Frys distributioner** för den nivå SLO:et är i publicerar ett eget meddelande.
+- Ett pausat, felkonfigurerat, inaktiverat eller arkiverat SLO behåller sin nivå och publicerar ingenting.
+- Ett meddelande som inte kan skickas loggas, och utvärderingen, SLO:ets flöde och det som nivån utlöser fortsätter utan det.
+
+### Vad en regel matchar
+
+| Villkor | Vad det matchar |
+| --- | --- |
+| **SLOs** | De SLO:er som du väljer, eller alla SLO:er utom dem. |
+| **SLO-etiketter** | SLO:ets etiketter: någon av dem som du väljer, alla, eller ingen av dem. |
+| **SLO-namn** | SLO:ets namn: lika med din text eller inte, innehåller den eller inte, börjar eller slutar med den. |
+| **Ändring i felbudgetpolicy** | Vad som ändrades: **Gick in i en allvarligare nivå**, **Återhämtade sig till en mindre allvarlig nivå**, **Lämnade alla nivåer**, **Distributioner frysta** eller **Distributioner tillåtna igen**. |
+
+Ett byte av nivå som frös distributioner, eller tillät dem igen, är ett enda meddelande som rymmer båda ändringarna. En regel för **Distributioner frysta** publicerar alltså också bytet till en nivå som fryser dem: en kanal för releaser får veta om varje frysning.
 
 ## När budgeten inte mäts
 
@@ -259,7 +298,7 @@ Dessa behörigheter finns i en rolls SLO-grupp. Rollerna Project Owner och Proje
 
 ## Inte tillgängligt än
 
-Vissa delar av en felbudgetpolicy finns inte ännu: arbetsflödesutlösare och aviseringar i Slack eller Microsoft Teams för varje nivå, en policy som flera SLO:er delar, att kvittera en nivå eller ge ett undantag från den, och nivåer som bygger på budgetens räckvidd i stället för återstående budget. OneUptime stoppar inte en release själv: det gör en pipeline som kontrollerar `deploymentsAllowed`, som [Distributionsspärr](#distributionsspärr) visar.
+Vissa delar av en felbudgetpolicy finns inte ännu: en egen arbetsflödesutlösare för varje nivå, en policy som flera SLO:er delar, att kvittera en nivå eller ge ett undantag från den, och nivåer som bygger på budgetens räckvidd i stället för återstående budget. OneUptime stoppar inte en release själv: det gör en pipeline som kontrollerar `deploymentsAllowed`, som [Distributionsspärr](#distributionsspärr) visar.
 
 ## Nästa steg
 

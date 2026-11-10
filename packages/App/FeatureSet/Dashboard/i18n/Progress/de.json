@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47298,
-    "untranslated": 3476
+    "keys": 48180,
+    "untranslated": 3471
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -75,6 +75,7 @@
     "Apps",
     "Array",
     "Aruba",
+    "Assets",
     "Atmosphere",
     "Audit",
     "Auth, No Priv",
@@ -306,6 +307,7 @@
     "JavaScript API",
     "Jersey",
     "Jitter",
+    "Jitter (in ms)",
     "Job",
     "Jobs",
     "Journey",
@@ -462,6 +464,7 @@
     "Portugal",
     "Portugal (+351)",
     "Position",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
     "Postmortem",
@@ -597,6 +600,7 @@
     "Traceroute",
     "Traces",
     "Transport",
+    "Trend",
     "Tunnel",
     "Turkmenistan",
     "Tuvalu",

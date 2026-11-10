@@ -26,9 +26,13 @@ A catalog can say a table changed when only its housekeeping did, or say nothing
 
 A PostgreSQL or SQL Server read replica does not move its write counters, so OneUptime leaves them out there and says so on the database.
 
+## The Overview
+
+The **Overview** says how your data stands now. Until the project is set up, it lists the steps left: alerts on every database, owners for the tables, a check, and your pipeline runs. **Needs Attention** lists what needs someone, worst first: a database that could not be read, a pipeline run that failed or is late, a check that is failing or could not run, a reconciliation that drifted, and a late data product or table. Each says who owns it and whether its alert is open, or that nobody is told because its database has no alert on, and opens the page where it is put right. **Databases** shows how each database's last read went and whether its alerts are on.
+
 ## Connect a database
 
-Use a **read-only login**. On Databases, choose **Connect a Database**, then either:
+Use a **read-only login**. On the Overview or on Databases, choose **Connect a Database**, then either:
 
 - **OneUptime connects**: paste a connection string. It is stored encrypted and never shown again.
 - **A probe in my network connects**: pick one of this project's probes and name the probe's environment variable that holds the connection string (for example \`ORDERS_DB_URL\`). The connection string never leaves your network. Update the probe to the latest version first.
@@ -176,7 +180,7 @@ Every row carries \`oneuptime.data.store.id\`, \`oneuptime.data.store.name\`, \`
 
 ## Alerts
 
-On **Databases**, choose **Recommended Alerts** for a database. Each recommendation is one Metrics monitor for the whole database that alerts once per table, so a table created later is watched too:
+A database you connect opens on its **Recommended Alerts**; later, choose them for it on **Databases**. Each recommendation is one Metrics monitor for the whole database that alerts once per table, so a table created later is watched too:
 
 | Alert | Fires when |
 | --- | --- |

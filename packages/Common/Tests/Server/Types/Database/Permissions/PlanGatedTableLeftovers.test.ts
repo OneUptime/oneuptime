@@ -118,6 +118,8 @@ const READABLE_BELOW_PLAN_TABLES: ReadonlyArray<string> = [
   "StatusPageSCIM",
   "StatusPageSSO",
   "WorkspaceNotificationRule",
+  // The teams that own a rule above, read with the rules they own.
+  "WorkspaceNotificationRuleOwningTeam",
   "WorkspaceNotificationSummary",
   // The @team-oncall Slack user groups and Teams tags, kept in step after a downgrade.
   "WorkspaceUserGroup",

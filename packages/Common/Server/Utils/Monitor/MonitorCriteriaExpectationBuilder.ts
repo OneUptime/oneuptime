@@ -5,6 +5,15 @@ import {
 } from "../../../Types/Monitor/CriteriaFilter";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
+import {
+  EvaluationSentence,
+  EvaluationSentenceValue,
+  englishOfEvaluationSentence,
+  evaluationTerm,
+  translatablePluralSentence,
+  translatableSentence,
+} from "../../../Types/Monitor/EvaluationSentence";
+import { translationKey } from "../../../Types/Translator";
 
 /**
  * How a criteria's values are displayed: the unit, the metric name the
@@ -22,23 +31,64 @@ export default class MonitorCriteriaExpectationBuilder {
     criteriaFilter: CriteriaFilter,
     options?: CriteriaDisplayOptions,
   ): string {
-    const parts: Array<string> = [criteriaFilter.checkOn];
+    return englishOfEvaluationSentence(
+      MonitorCriteriaExpectationBuilder.getCriteriaFilterDescriptionSentence(
+        criteriaFilter,
+        options,
+      ),
+    ).trim();
+  }
+
+  /*
+   * A filter as the evaluation names it - its check, its condition and its
+   * value: "Response Status Code Greater Than 499" - as a sentence the
+   * reader's language words (EvaluationSentence): the check and the
+   * condition are its words, the value is as configured.
+   */
+  public static getCriteriaFilterDescriptionSentence(
+    criteriaFilter: CriteriaFilter,
+    options?: CriteriaDisplayOptions,
+  ): EvaluationSentence {
+    const check: EvaluationSentenceValue = evaluationTerm(
+      criteriaFilter.checkOn,
+    );
+
+    const hasValue: boolean =
+      criteriaFilter.value !== undefined && criteriaFilter.value !== null;
+
+    // Its end trimmed, as the English always was.
+    const value: string = hasValue
+      ? String(
+          MonitorCriteriaExpectationBuilder.formatThreshold(
+            criteriaFilter.value,
+            options,
+          ) ?? criteriaFilter.value,
+        ).trimEnd()
+      : "";
 
     if (criteriaFilter.filterType) {
-      parts.push(criteriaFilter.filterType);
+      const condition: EvaluationSentenceValue = evaluationTerm(
+        criteriaFilter.filterType,
+      );
+
+      return hasValue
+        ? translatableSentence("{{check}} {{condition}} {{value}}", {
+            check: check,
+            condition: condition,
+            value: value,
+          })
+        : translatableSentence("{{check}} {{condition}}", {
+            check: check,
+            condition: condition,
+          });
     }
 
-    if (criteriaFilter.value !== undefined && criteriaFilter.value !== null) {
-      const formatted: string | number =
-        MonitorCriteriaExpectationBuilder.formatThreshold(
-          criteriaFilter.value,
-          options,
-        ) ?? criteriaFilter.value;
-
-      parts.push(String(formatted));
-    }
-
-    return parts.join(" ").trim();
+    return hasValue
+      ? translatableSentence("{{check}} {{value}}", {
+          check: check,
+          value: value,
+        })
+      : translatableSentence("{{check}}", { check: check });
   }
 
   /*
@@ -75,11 +125,29 @@ export default class MonitorCriteriaExpectationBuilder {
     criteriaFilter: CriteriaFilter,
     options?: CriteriaDisplayOptions,
   ): string | null {
+    const sentence: EvaluationSentence | null =
+      MonitorCriteriaExpectationBuilder.describeCriteriaExpectationSentence(
+        criteriaFilter,
+        options,
+      );
+
+    return sentence ? englishOfEvaluationSentence(sentence) : null;
+  }
+
+  /*
+   * What a filter expects, as a sentence the reader's language words
+   * (EvaluationSentence): "to be greater than 499 over the last 5 minutes".
+   * Its English is what describeCriteriaExpectation says.
+   */
+  public static describeCriteriaExpectationSentence(
+    criteriaFilter: CriteriaFilter,
+    options?: CriteriaDisplayOptions,
+  ): EvaluationSentence | null {
     if (!criteriaFilter.filterType) {
       return null;
     }
 
-    let expectation: string;
+    let expectation: EvaluationSentence;
 
     /*
      * Render the threshold the way the observed value is rendered, so the
@@ -118,126 +186,221 @@ export default class MonitorCriteriaExpectationBuilder {
     const unitSuffix: string =
       options?.unit && comparedValue === value ? ` ${options.unit}` : "";
 
-    switch (criteriaFilter.filterType) {
-      case FilterType.GreaterThan:
-        expectation = `to be greater than ${comparedValue}${unitSuffix}`;
-        break;
-      case FilterType.GreaterThanOrEqualTo:
-        expectation = `to be greater than or equal to ${comparedValue}${unitSuffix}`;
-        break;
-      case FilterType.LessThan:
-        expectation = `to be less than ${comparedValue}${unitSuffix}`;
-        break;
-      case FilterType.LessThanOrEqualTo:
-        expectation = `to be less than or equal to ${comparedValue}${unitSuffix}`;
-        break;
-      case FilterType.EqualTo:
-        expectation = `to equal ${comparedValue}${unitSuffix}`;
-        break;
-      case FilterType.NotEqualTo:
-        expectation = `to not equal ${comparedValue}${unitSuffix}`;
-        break;
-      case FilterType.Contains:
-        expectation = `to contain ${value}`;
-        break;
-      case FilterType.NotContains:
-        expectation = `to not contain ${value}`;
-        break;
-      case FilterType.StartsWith:
-        expectation = `to start with ${value}`;
-        break;
-      case FilterType.EndsWith:
-        expectation = `to end with ${value}`;
-        break;
-      case FilterType.IsEmpty:
-        expectation = "to be empty";
-        break;
-      case FilterType.IsNotEmpty:
-        expectation = "to not be empty";
-        break;
-      case FilterType.True:
-        expectation = "to be true";
-        break;
-      case FilterType.False:
-        expectation = "to be false";
-        break;
-      case FilterType.IsExecuting:
-        expectation = "to be executing";
-        break;
-      case FilterType.IsNotExecuting:
-        expectation = "to not be executing";
-        break;
-      case FilterType.RecievedInMinutes:
-        expectation = value
-          ? `to receive a heartbeat within ${value} minutes`
-          : "to receive a heartbeat within the configured window";
-        break;
-      case FilterType.NotRecievedInMinutes:
-        expectation = value
-          ? `to miss a heartbeat for at least ${value} minutes`
-          : "to miss a heartbeat within the configured window";
-        break;
-      case FilterType.EvaluatesToTrue:
-        expectation = "to evaluate to true";
-        break;
-      case FilterType.ForecastAbove:
-        expectation = `to be forecast above ${comparedValue}${unitSuffix} within ${MonitorCriteriaExpectationBuilder.describeForecastHorizon(criteriaFilter)}`;
-        break;
-      case FilterType.ForecastBelow:
-        expectation = `to be forecast below ${comparedValue}${unitSuffix} within ${MonitorCriteriaExpectationBuilder.describeForecastHorizon(criteriaFilter)}`;
-        break;
-      default:
-        expectation = `${criteriaFilter.filterType}${value ? ` ${value}` : ""}`;
-        break;
-    }
-
-    const evaluationWindow: string | null =
-      MonitorCriteriaExpectationBuilder.getEvaluationWindowDescription(
+    const evaluationWindow: EvaluationSentence | null =
+      MonitorCriteriaExpectationBuilder.getEvaluationWindowSentence(
         criteriaFilter,
         options?.monitorType,
       );
 
-    if (evaluationWindow) {
-      expectation += ` ${evaluationWindow}`;
+    /*
+     * The expectation's last value, as the sentence ends with it: the
+     * English was trimmed at its end, so a value typed with spaces after it
+     * ends the sentence without them when nothing follows it.
+     */
+    const atEnd: (text: string) => string = (text: string): string => {
+      return evaluationWindow ? text : text.trimEnd();
+    };
+
+    const compared: string = atEnd(`${comparedValue}${unitSuffix}`);
+    const typed: string = atEnd(`${value}`);
+
+    switch (criteriaFilter.filterType) {
+      case FilterType.GreaterThan:
+        expectation = translatableSentence("to be greater than {{value}}", {
+          value: compared,
+        });
+        break;
+      case FilterType.GreaterThanOrEqualTo:
+        expectation = translatableSentence(
+          "to be greater than or equal to {{value}}",
+          { value: compared },
+        );
+        break;
+      case FilterType.LessThan:
+        expectation = translatableSentence("to be less than {{value}}", {
+          value: compared,
+        });
+        break;
+      case FilterType.LessThanOrEqualTo:
+        expectation = translatableSentence(
+          "to be less than or equal to {{value}}",
+          { value: compared },
+        );
+        break;
+      case FilterType.EqualTo:
+        expectation = translatableSentence("to equal {{value}}", {
+          value: compared,
+        });
+        break;
+      case FilterType.NotEqualTo:
+        expectation = translatableSentence("to not equal {{value}}", {
+          value: compared,
+        });
+        break;
+      case FilterType.Contains:
+        expectation = translatableSentence("to contain {{value}}", {
+          value: typed,
+        });
+        break;
+      case FilterType.NotContains:
+        expectation = translatableSentence("to not contain {{value}}", {
+          value: typed,
+        });
+        break;
+      case FilterType.StartsWith:
+        expectation = translatableSentence("to start with {{value}}", {
+          value: typed,
+        });
+        break;
+      case FilterType.EndsWith:
+        expectation = translatableSentence("to end with {{value}}", {
+          value: typed,
+        });
+        break;
+      case FilterType.IsEmpty:
+        expectation = translatableSentence("to be empty");
+        break;
+      case FilterType.IsNotEmpty:
+        expectation = translatableSentence("to not be empty");
+        break;
+      case FilterType.True:
+        expectation = translatableSentence("to be true");
+        break;
+      case FilterType.False:
+        expectation = translatableSentence("to be false");
+        break;
+      case FilterType.IsExecuting:
+        expectation = translatableSentence("to be executing");
+        break;
+      case FilterType.IsNotExecuting:
+        expectation = translatableSentence("to not be executing");
+        break;
+      case FilterType.RecievedInMinutes:
+        expectation = value
+          ? translatableSentence(
+              "to receive a heartbeat within {{minutes}} minutes",
+              { minutes: `${value}` },
+            )
+          : translatableSentence(
+              "to receive a heartbeat within the configured window",
+            );
+        break;
+      case FilterType.NotRecievedInMinutes:
+        expectation = value
+          ? translatableSentence(
+              "to miss a heartbeat for at least {{minutes}} minutes",
+              { minutes: `${value}` },
+            )
+          : translatableSentence(
+              "to miss a heartbeat within the configured window",
+            );
+        break;
+      case FilterType.EvaluatesToTrue:
+        expectation = translatableSentence("to evaluate to true");
+        break;
+      case FilterType.ForecastAbove:
+        expectation = translatableSentence(
+          "to be forecast above {{value}} within {{horizon}}",
+          {
+            value: `${comparedValue}${unitSuffix}`,
+            horizon:
+              MonitorCriteriaExpectationBuilder.describeForecastHorizonSentence(
+                criteriaFilter,
+              ),
+          },
+        );
+        break;
+      case FilterType.ForecastBelow:
+        expectation = translatableSentence(
+          "to be forecast below {{value}} within {{horizon}}",
+          {
+            value: `${comparedValue}${unitSuffix}`,
+            horizon:
+              MonitorCriteriaExpectationBuilder.describeForecastHorizonSentence(
+                criteriaFilter,
+              ),
+          },
+        );
+        break;
+      default:
+        expectation = value
+          ? translatableSentence("{{condition}} {{value}}", {
+              condition: evaluationTerm(criteriaFilter.filterType),
+              value: typed,
+            })
+          : translatableSentence("{{condition}}", {
+              condition: evaluationTerm(criteriaFilter.filterType),
+            });
+        break;
     }
 
-    return expectation.trim();
+    if (evaluationWindow) {
+      return translatableSentence("{{expectation}} {{window}}", {
+        expectation: expectation,
+        window: evaluationWindow,
+      });
+    }
+
+    return expectation;
   }
 
   // A forecast's horizon: "1 hour", "12 hours", "7 days".
-  private static describeForecastHorizon(
+  private static describeForecastHorizonSentence(
     criteriaFilter: CriteriaFilter,
-  ): string {
+  ): EvaluationSentence {
     const hours: number =
       CriteriaFilterUtil.getForecastHorizonInHours(criteriaFilter);
 
     if (hours >= 24 && hours % 24 === 0) {
       const days: number = hours / 24;
-      return `${days} ${days === 1 ? "day" : "days"}`;
+
+      return translatablePluralSentence(
+        {
+          one: translationKey("{{count}} day"),
+          other: translationKey("{{count}} days"),
+        },
+        days,
+      );
     }
 
-    return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+    return translatablePluralSentence(
+      {
+        one: translationKey("{{count}} hour"),
+        other: translationKey("{{count}} hours"),
+      },
+      hours,
+    );
   }
 
   public static getEvaluationWindowDescription(
     criteriaFilter: CriteriaFilter,
     monitorType?: MonitorType | undefined,
   ): string | null {
-    const parts: Array<string> = [];
+    const sentence: EvaluationSentence | null =
+      MonitorCriteriaExpectationBuilder.getEvaluationWindowSentence(
+        criteriaFilter,
+        monitorType,
+      );
 
+    return sentence ? englishOfEvaluationSentence(sentence) : null;
+  }
+
+  /*
+   * The window a filter is judged over, and how: "over the last 5 minutes
+   * using average", as a sentence (EvaluationSentence).
+   */
+  public static getEvaluationWindowSentence(
+    criteriaFilter: CriteriaFilter,
+    monitorType?: MonitorType | undefined,
+  ): EvaluationSentence | null {
     const isEvaluatedOverTime: boolean = CriteriaFilterUtil.isEvaluatedOverTime(
       criteriaFilter,
       monitorType,
     );
 
-    if (
-      isEvaluatedOverTime &&
-      criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
-    ) {
-      parts.push(
-        `over the last ${criteriaFilter.evaluateOverTimeOptions.timeValueInMinutes} minutes`,
-      );
-    }
+    const minutes: number | undefined = isEvaluatedOverTime
+      ? criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
+      : undefined;
 
     /*
      * The window's type only while the filter is evaluated over time: the
@@ -255,17 +418,36 @@ export default class MonitorCriteriaExpectationBuilder {
       criteriaFilter.metricMonitorOptions?.metricAggregationType;
 
     // A forecast reads every value of the window into its trend.
-    if (
+    const usesAggregation: boolean = Boolean(
       aggregation &&
-      !CriteriaFilterUtil.isForecastFilterType(criteriaFilter.filterType)
-    ) {
-      parts.push(`using ${aggregation.toLowerCase()}`);
+        !CriteriaFilterUtil.isForecastFilterType(criteriaFilter.filterType),
+    );
+
+    // The aggregation's name, cased for the middle of a sentence ("using average").
+    const aggregationTerm: EvaluationSentenceValue = evaluationTerm(
+      aggregation || "",
+      { inSentence: true },
+    );
+
+    if (minutes && usesAggregation) {
+      return translatableSentence(
+        "over the last {{minutes}} minutes using {{aggregation}}",
+        { minutes: String(minutes), aggregation: aggregationTerm },
+      );
     }
 
-    if (!parts.length) {
-      return null;
+    if (minutes) {
+      return translatableSentence("over the last {{minutes}} minutes", {
+        minutes: String(minutes),
+      });
     }
 
-    return parts.join(" ");
+    if (usesAggregation) {
+      return translatableSentence("using {{aggregation}}", {
+        aggregation: aggregationTerm,
+      });
+    }
+
+    return null;
   }
 }

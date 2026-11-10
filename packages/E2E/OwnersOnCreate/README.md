@@ -46,7 +46,8 @@ The suite drives the field the way a person does:
 And the other half, the owner rules pages (`?form=incident-rules`,
 `?form=alert-rules`, at `/dashboard/<project>/<incidents|alerts>/settings/owner-rules`),
 with one incident rule that lists Platform, Database and Frontend under
-Creator's Team and one older rule that adds nothing:
+Creator's Team and one older rule that adds nothing, neither owned by a team
+(no Owning Teams), so whoever may edit rules may edit them:
 
 - Creator's Team waits last in the folded Inherit Owners, whose line names
   it;

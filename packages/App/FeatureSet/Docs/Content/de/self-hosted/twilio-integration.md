@@ -46,7 +46,7 @@ So fügen Sie eine Projektkonfiguration hinzu:
 2. Wählen Sie in **Twilio-Konfiguration** die Schaltfläche **Twilio-Konfiguration erstellen**.
 3. Geben Sie einen Namen ein, und wählen Sie unter **Dieses Konto verwenden für**, was das Konto sendet: **Anrufe und SMS**, **Nur SMS** oder **Nur Anrufe**. Geben Sie dann **Twilio Account SID**, **Twilio Auth Token** und die Nummer ein, nach der die Auswahl fragt: **Twilio-Primärrufnummer** für Anrufe oder **Twilio-SMS-Rufnummern** für **Nur SMS**. Unter **Weitere Felder** geben Sie optional durch Kommas getrennte **Twilio-Sekundärrufnummern** für andere Länder ein, und **Twilio-SMS-Rufnummern**, wenn Ihre Nummern keine SMS senden können.
 4. **Als Projektstandard festlegen** ist bei der ersten Konfiguration des Projekts eingeschaltet, sodass die SMS und Anrufe an die Mitglieder des Projekts, einschließlich der Bereitschaftsbenachrichtigungen, gleich nach dem Speichern darüber laufen. Schalten Sie es aus, wenn dieses Konto nur für Statusseiten oder eingehende Anrufe gedacht ist. Eine spätere Konfiguration beginnt mit ausgeschaltetem Schalter: Schalten Sie ihn ein oder wählen Sie im Zeilenmenü der Konfiguration **Als Projektstandard festlegen**, um diese Nachrichten dorthin zu verlegen. Eine API-Anfrage, die `isProjectDefault` weglässt, wird genauso behandelt.
-5. Speichern Sie. Nur eine Konfiguration kann der Projektstandard sein. Statusseiten verwenden die Konfiguration, die jeder Statusseite ausdrücklich zugewiesen ist.
+5. Speichern Sie. Ein Projekt hat einen Standard für SMS und einen für Anrufe, sodass eine auf **Nur SMS** und eine auf **Nur Anrufe** gestellte Konfiguration beide der Standard sein können: siehe [Ein Konto nur für SMS oder nur für Anrufe](#ein-konto-nur-für-sms-oder-nur-für-anrufe). Statusseiten verwenden die Konfiguration, die jeder Statusseite ausdrücklich zugewiesen ist.
 
 > [!IMPORTANT]
 > **SMS** und **Telefonanrufe** sind in jedem Projekt zunächst ausgeschaltet, und solange sie aus sind, kann niemand im Projekt eine Telefonnummer dafür hinzufügen. Ein Projekteigentümer, ein **Abrechnungs-Administrator** oder jemand mit **Manage Billing** schaltet sie in der Karte **Benachrichtigungskanäle** auf derselben Seite ein.
@@ -81,13 +81,15 @@ Ein Konto, das Sie nur für SMS oder nur für Anrufe verwenden, braucht keine Nu
 | **Nur SMS** | **Twilio-SMS-Rufnummern** | Anrufe |
 | **Nur Anrufe** | **Twilio-Primärrufnummer** | SMS |
 
-Was eine Konfiguration nicht sendet, geht so hinaus wie ohne sie: Ist die Standardkonfiguration des Projekts auf **Nur SMS** gestellt, gehen Anrufe an die Mitglieder des Projekts über die installationsweite Konfiguration. Kann keine Konfiguration eine Nachricht senden, steht im Protokoll der Nachricht, dass die Konfiguration des Projekts dafür nicht verwendet wird, und wer das ändern kann.
+Ein Projekt hat einen Standard für SMS und einen Standard für Anrufe, und eine Konfiguration ist der Standard für das, was sie sendet. Im Zeilenmenü einer Konfiguration macht **Als Projektstandard für SMS festlegen** oder **Als Projektstandard für Anrufe festlegen** sie zum Standard für das, was sie sendet, und lässt den anderen Standard, wie er ist, sodass eine auf **Nur SMS** und eine auf **Nur Anrufe** gestellte Konfiguration beide der Standard sein können. Eine auf **Anrufe und SMS** gestellte Konfiguration übernimmt beides. Die Spalte **Projektstandard** zeigt, wofür jede Konfiguration der Standard ist, und **Nicht mehr als Projektstandard nutzen** im Zeilenmenü beendet das.
+
+Was kein Standard sendet, geht so hinaus wie ohne Konfiguration: Solange der einzige Standard auf **Nur SMS** gestellt ist, gehen Anrufe an die Mitglieder des Projekts über die installationsweite Konfiguration. Kann keine Konfiguration eine Nachricht senden, steht im Protokoll der Nachricht, dass die Konfiguration des Projekts dafür nicht verwendet wird, und wer das ändern kann.
 
 Statusseiten bieten nur die Konfigurationen an, die SMS senden, und **Test-SMS senden** und **Testanruf senden** erscheinen nur für das, was eine Konfiguration sendet. Jede bestehende Konfiguration ist wie bisher auf **Anrufe und SMS** gestellt. Über die API und Terraform ist die Auswahl das Feld `usedFor`, und eine Konfiguration ohne die Nummern, die ihre Auswahl braucht, wird abgelehnt.
 
 ## 3. Netzwerkzugriff konfigurieren
 
-Das Senden funktioniert allein mit ausgehendem Zugriff. Zustellungsupdates, die Bestätigung per Tastatur und eingehende Anrufe brauchen eine Verbindung von Twilio zu Ihrem Server.
+Das Senden funktioniert allein mit ausgehendem Zugriff. Zustellungsupdates, Anrufergebnisse, die Bestätigung per Tastatur und eingehende Anrufe brauchen eine Verbindung von Twilio zu Ihrem Server.
 
 ```mermaid title="Ausgehendes Senden, eingehende Callbacks"
 sequenceDiagram
@@ -109,6 +111,7 @@ Ob Twilio eingehend zugreifen muss, hängt von der Funktion ab:
 | --- | --- |
 | SMS absetzen | Nein. Updates zum Zustellungsstatus brauchen jedoch einen Callback. |
 | Ein einfacher Test-Sprachanruf | Nein. OneUptime liefert die gesprochenen Anweisungen mit der ausgehenden API-Anfrage. |
+| Erkennen, ob ein Bereitschaftsanruf angenommen wurde | Ja. Twilio meldet, wie jeder Anruf endete, damit der Feed des Vorfalls sagen kann, wenn eine Person nicht abgenommen hat. Anrufe gehen auch ohne das hinaus. |
 | 1 drücken, um einen Bereitschaftsalarm zu bestätigen | Ja. Twilio übermittelt die Tastatureingabe an OneUptime. |
 | Richtlinien für eingehende Anrufe | Ja. Twilio fragt Anrufanweisungen ab und meldet die Ergebnisse der Wahl. |
 
@@ -117,13 +120,14 @@ Dies sind die externen Pfade über das Nginx-Gateway von OneUptime. Die Platzhal
 | Methode | Pfad | Zweck |
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | Zustellungsstatus der SMS |
+| POST | `/notification/call/status-callback/:callLogId/:token` | Anrufergebnis |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Bestätigung per Tastatur |
 | POST | `/notification/incoming-call/voice` | Optionale Anweisungen für eingehende Anrufe |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Optionale Ergebnisse der Weiterleitung eingehender Anrufe |
 
-OneUptime erzeugt die URLs für SMS und Bestätigung automatisch. Ersetzen Sie deren Tokens nicht durch eine statische Webhook-URL. Für eingehende Anrufe folgen Sie [Richtlinien für eingehende Anrufe](/docs/on-call/incoming-call-policy); dort wird der Webhook der Nummer konfiguriert, wenn Sie eine Nummer zuordnen.
+OneUptime erzeugt die URLs für SMS, Anrufergebnisse und Bestätigung automatisch. Ersetzen Sie deren Tokens nicht durch eine statische Webhook-URL. Für eingehende Anrufe folgen Sie [Richtlinien für eingehende Anrufe](/docs/on-call/incoming-call-policy); dort wird der Webhook der Nummer konfiguriert, wenn Sie eine Nummer zuordnen.
 
-Twilio verlangt [öffentlich erreichbare Webhook-URLs](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Verwenden Sie ein öffentlich vertrauenswürdiges TLS-Zertifikat und erhalten Sie über Proxys hinweg den ursprünglichen Host, das Protokoll, den Pfad, die Abfrageparameter, den Body und den Header `X-Twilio-Signature`. Die Handler für eingehende Anrufe prüfen die Signaturen von Twilio; die SMS-Zustellung verwendet ein URL-Token pro Nachricht, und die Bestätigung per Tastatur ein signiertes Abfrage-Token. Legen Sie Tokens nicht in gemeinsam genutzten Logs oder Screenshots offen. Siehe [Twilio-Webhook-Sicherheit](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio verlangt [öffentlich erreichbare Webhook-URLs](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Verwenden Sie ein öffentlich vertrauenswürdiges TLS-Zertifikat und erhalten Sie über Proxys hinweg den ursprünglichen Host, das Protokoll, den Pfad, die Abfrageparameter, den Body und den Header `X-Twilio-Signature`. Die Handler für eingehende Anrufe prüfen die Signaturen von Twilio; die SMS-Zustellung und die Anrufergebnisse verwenden ein URL-Token pro Nachricht bzw. Anruf, und die Bestätigung per Tastatur ein signiertes Abfrage-Token. Legen Sie Tokens nicht in gemeinsam genutzten Logs oder Screenshots offen. Siehe [Twilio-Webhook-Sicherheit](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
 ### Callbacks aus einer privaten Installation veröffentlichen
 
@@ -142,7 +146,7 @@ Das Dashboard kann auf einem privaten Ingress bleiben: Mit Split-DNS lösen Mita
 Die gewöhnlichen Quelladressen der Webhooks von Twilio ändern sich, verwenden Sie also keine SIP- oder Medien-IP-Bereiche als Allowlist für Callbacks. Berechtigte Twilio-Editionen bieten [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Prüfen Sie, ob Ihre Edition berechtigt ist und welche Produkte unterstützt werden, und konfigurieren Sie Ihre Firewall mit den aktuell veröffentlichten Bereichen von Twilio; prüfen Sie die Callbacks auch dann weiter, wenn Sie es nutzen.
 
 > [!WARNING]
-> Wenn eine Richtlinie eingehende Verbindungen verbietet, funktionieren das Absetzen von SMS und die einfache Wiedergabe von Sprachnachrichten mit ausgehendem HTTPS. Updates zur SMS-Zustellung, die Bestätigung per Tastatur und die Weiterleitung eingehender Anrufe funktionieren ohne erreichbare Callbacks nicht. Eine vollständig abgeschottete Installation kann Twilio nicht nutzen.
+> Wenn eine Richtlinie eingehende Verbindungen verbietet, funktionieren das Absetzen von SMS und die einfache Wiedergabe von Sprachnachrichten mit ausgehendem HTTPS. Updates zur SMS-Zustellung, Anrufergebnisse, die Bestätigung per Tastatur und die Weiterleitung eingehender Anrufe funktionieren ohne erreichbare Callbacks nicht. Eine vollständig abgeschottete Installation kann Twilio nicht nutzen.
 
 Für die Entwicklung beschreibt Twilios [Anleitung zum Testen von Webhooks](https://www.twilio.com/docs/usage/webhooks/webhook-testing) die Verwendung eines öffentlichen Tunnels: Leiten Sie ihn an einen Proxy weiter, der nur die nötigen Routen erlaubt, konfigurieren Sie den so entstandenen Hostnamen wie oben und beenden Sie ihn nach dem Test. Auch ein Tunnel öffnet einen eingehenden Zugang.
 
@@ -159,7 +163,7 @@ Für die Entwicklung beschreibt Twilios [Anleitung zum Testen von Webhooks](http
 | --- | --- |
 | Nichts wird gesendet | Zugangsdaten, die Funktionen der Nummer, Einschränkungen des Kontos und die ausgehende Verbindung. |
 | Twilio lehnt SMS mit dem Fehler 21606 ab | Die Nummer kann keine SMS senden. Fügen Sie unter **Twilio-SMS-Rufnummern** eine hinzu, die es kann: siehe [Getrennte Nummern für Anrufe und SMS](#getrennte-nummern-für-anrufe-und-sms). |
-| Anrufe oder SMS gehen über ein anderes Konto als das des Projekts | Die Standardkonfiguration des Projekts ist auf **Nur SMS** oder **Nur Anrufe** gestellt: siehe [Ein Konto nur für SMS oder nur für Anrufe](#ein-konto-nur-für-sms-oder-nur-für-anrufe). |
+| Anrufe oder SMS gehen über ein anderes Konto als das des Projekts | Keine Konfiguration ist der Projektstandard für sie: Die Spalte **Projektstandard** zeigt, wofür jede Konfiguration der Standard ist. Siehe [Ein Konto nur für SMS oder nur für Anrufe](#ein-konto-nur-für-sms-oder-nur-für-anrufe). |
 | Die SMS oder der Anruf kommt an, aber Status oder Bestätigung werden nicht aktualisiert | Die Callback-URL und die Logs des öffentlichen Ingress. Twilios [Hinweise zu HTTP-Abruffehlern](https://www.twilio.com/docs/api/errors/11200) helfen bei unerreichbaren Callbacks, TLS-Problemen und HTTP-Fehlern. |
 
 Ein erfolgreicher Testanruf allein beweist nicht, dass Callbacks erreichbar sind.

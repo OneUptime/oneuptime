@@ -77,6 +77,7 @@ En varslingsregel sier hvilke hendelser som publiseres i Slack, og hvor. Hvert p
 | **Planlagt vedlikehold** | Én liste med regler |
 | **Monitorer** | Én liste med regler |
 | **Vakttjeneste** | Én liste med regler |
+| **SLOs** | Én liste med regler |
 
 Å opprette en regel går gjennom fire trinn:
 
@@ -86,6 +87,8 @@ En varslingsregel sier hvilke hendelser som publiseres i Slack, og hvor. Hvert p
 | **Betingelser** | Hvilke hendelser regelen gjelder for, for eksempel etter alvorlighetsgrad, tilstand, etikett, monitor eller ord i tittelen. De kontrolleres når en hendelse opprettes, og på nytt ved hver oppdatering OneUptime publiserer om den, så en regel for bekreftede hendelser virker når en hendelse bekreftes. En ny regel gjelder for hver hendelse, for eksempel **Alle hendelser**. For å snevre den inn velger du **Bare hendelser som oppfyller betingelsene** og legger til betingelsene. Med to eller flere sier **Samsvarsbetingelse** om alle må passe, eller om én er nok. |
 | **Mål** | Hvor den publiserer: **Publiser i eksisterende kanaler** med kanalnavnene, **Opprett en kanal for hver hendelse** (eller varsel, episode, planlagt vedlikehold, monitor eller vaktretningslinje) med hvem som blir med i den, eller begge. Under steget sier **Hva denne regelen gjør** det i setninger, som regelens kort. |
 | **Video Call** | Bare hendelser og varsler: start en samtale for hver. Se [Videosamtaler](/docs/workspace-connections/video-calls). |
+
+En regel for SLO-er publiserer endringene i feilbudsjettpolicyen til et SLO: når SLO-et går inn i et nivå, kommer seg til et mindre alvorlig nivå eller forlater alle nivåer, og når distribusjonene fryses eller tillates igjen. Den publiserer bare i eksisterende kanaler, siden et SLO ikke får noen egen kanal. Se [Publiser i Slack, Microsoft Teams og Mattermost](/docs/slo/error-budget-policy#publiser-i-slack-microsoft-teams-og-mattermost).
 
 En kanal som regelen oppretter, får navn etter posten sin: hendelse INC-42 får `inc-42`, varsel ALT-7 får `alt-7`, og i et prosjekt uten nummerprefikser får hendelse 42 `incident-42`. Tekst i **Prefiks for kanalnavn** settes foran, så `prod-` gir `prod-inc-42`, og skjemaet viser navnet mens du skriver. For en planlagt vedlikeholdshendelse tar prefikset plassen til nummerprefikset: SM-5 får `sm-5`, og `maint-` gir `maint-5`. Slack tar små bokstaver, tall, `-` og `_`, opptil 80 tegn. Finnes det allerede en kanal med det navnet, for eksempel et annet prosjekts eller en arkivert kanal, legger OneUptime til `-2`, `-3` og så videre.
 

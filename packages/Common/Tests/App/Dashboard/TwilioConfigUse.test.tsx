@@ -160,13 +160,6 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
-      count: async (data: {
-        query: Record<string, unknown>;
-      }): Promise<number> => {
-        return "isProjectDefault" in data.query
-          ? Math.min(configCount, 1)
-          : configCount;
-      },
       getItem: async (data: {
         modelType: { new (): Record<string, unknown> };
       }): Promise<unknown> => {
@@ -174,13 +167,29 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
         Object.assign(item, { _id: CONFIG_ID, ...stored });
         return item;
       },
+      /*
+       * The project's configs, as the card reads them: configCount configs
+       * for calls and SMS, the first the project default for both.
+       */
       getList: async (): Promise<{
         data: Array<unknown>;
         count: number;
         skip: number;
         limit: number;
       }> => {
-        return { data: [], count: 0, skip: 0, limit: 0 };
+        const data: Array<JSONObject> = Array.from(
+          { length: configCount },
+          (_unused: unknown, index: number): JSONObject => {
+            return {
+              usedFor: "Calls and SMS",
+              isProjectDefault: index === 0,
+              isProjectDefaultForSms: index === 0,
+              isProjectDefaultForCalls: index === 0,
+            };
+          },
+        );
+
+        return { data, count: data.length, skip: 0, limit: data.length };
       },
       getCommonHeaders: (): JSONObject => {
         return { tenantid: "99999999-9999-4999-8999-999999999999" };
@@ -465,8 +474,14 @@ describe("the Basic step asks what the account is used for", () => {
       ),
     ).toEqual([
       ["Calls and SMS", "Calls and SMS go out from this account."],
-      ["SMS only", "Calls go through OneUptime's own Twilio account instead."],
-      ["Calls only", "SMS go through OneUptime's own Twilio account instead."],
+      [
+        "SMS only",
+        "Calls go through the project default for calls, or OneUptime's own Twilio account if there is none.",
+      ],
+      [
+        "Calls only",
+        "SMS go through the project default for SMS, or OneUptime's own Twilio account if there is none.",
+      ],
     ]);
     expect(TwilioConfigUseCopy.fieldTitle).toBe("Use This Account For");
   });
@@ -1116,7 +1131,7 @@ describe("what decides which fields show", () => {
         TwilioConfigUse.SmsOnly,
       ),
     ).toBe(
-      "One config is the project default: the SMS to people in this project, such as on-call alerts, go through it. Status pages use the config picked on each page.",
+      "The SMS to people in this project, such as on-call alerts, will go through this config. Calls keep the project default they have.",
     );
     expect(
       getDefaultSwitchDescription(

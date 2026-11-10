@@ -83,11 +83,13 @@ In einer Rastergruppe fragt der Dialog über **Weitere Felder** außerdem nach d
 
 Die Mehrfachauswahl hat einen Reiter **Beschriftungen**: Klicken Sie auf eine Beschriftung, und jeder Monitor, der sie trägt, wird auf einmal gewählt.
 
+Monitor-Gruppen fügen Sie genauso hinzu. Ist der Schalter **Monitor-Gruppen** an, hat **Weitere Aktionen** auch **Mehrere Monitor-Gruppen hinzufügen**, das **Mehrere Monitor-Gruppen hinzufügen** öffnet: eine Mehrfachauswahl **Monitor-Gruppen**, dann dieselben eingeklappten **Weitere Felder**. Jede Ressource übernimmt Anzeigenamen und Beschreibung von ihrer Monitor-Gruppe, und **Monitor-Gruppen hinzufügen** fügt sie alle hinzu; eine Monitor-Gruppe, die schon auf der Seite ist, bleibt, wie sie ist, und steht unter **Bereits hinzugefügt**. Der Link unter der Mehrfachauswahl, **Fügen Sie stattdessen Monitor-Gruppen hinzu.** oder **Fügen Sie stattdessen Monitore hinzu.**, wechselt zwischen den beiden Dialogen und behält die Anzeigeoptionen, die Sie eingestellt haben. In einer leeren Gruppe öffnet **Mehrere hinzufügen** mit Monitor-Gruppen, wenn **Monitor hinzufügen** auf sie umgestellt wurde.
+
 ### Zweimal nach Beschriftung hinzuzufügen ist sicher
 
 Eine Statusseite führt einen Monitor nur einmal. Das Hinzufügen ist idempotent: Wählen Sie dieselbe Beschriftung erneut, nachdem Sie ein paar neue Monitore damit versehen haben, kommen nur die neuen hinzu – die Monitore, die schon auf der Seite sind, bleiben genau so, wie sie sind, mit dem Anzeigenamen und den Optionen, die Sie ihnen gegeben haben.
 
-Die Zusammenfassung am Ende des Massenhinzufügens sagt das: Hinzugefügte Monitore stehen unter **Hinzugefügt**, die schon vorhandenen unter **Already Added**. Nichts wird als Fehler gemeldet, und für sie wird nichts geschrieben.
+Die Zusammenfassung am Ende des Massenhinzufügens sagt das: Hinzugefügte Monitore stehen unter **Hinzugefügt**, die schon vorhandenen unter **Bereits hinzugefügt**. Nichts wird als Fehler gemeldet, und für sie wird nichts geschrieben.
 
 Dieselbe Regel gilt überall, wo eine Ressource entsteht. Einen Monitor, der schon auf der Seite ist, über das Formular für einen einzelnen Monitor hinzuzufügen oder eine bestehende Ressource im Bearbeitungsformular auf ihn zu richten, wird mit *„This monitor is already added to this status page“* abgelehnt – auch wenn die bestehende Ressource in einer anderen Gruppe liegt, denn ein Besucher sähe den Monitor trotzdem zweimal. Um einen Monitor in einer anderen Gruppe zu zeigen, löschen Sie seine bestehende Ressource und fügen ihn dort hinzu, wo Sie ihn haben wollen.
 

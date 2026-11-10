@@ -113,6 +113,11 @@ secret.env
 # App's merged without its Dockerfile). Tests/Ops/IronBankApp.test.js fails if
 # it is ever ignored again.
 !IronBank/**/Dockerfile
+# ...and except the Crossplane provider's runtime image, hand-written too: the
+# generator copies it into the provider, and build-package.sh builds the
+# package's image from it (Scripts/CrossplaneProvider/Tests/StaticFiles.test.ts
+# fails if it is ever ignored again).
+!Scripts/CrossplaneProvider/StaticFiles/Dockerfile
 # The resources Scripts/IronBank/fetch_resources.sh downloads into a project:
 # Iron Bank's pipeline downloads its own copies, and Repo1 never holds them.
 IronBank/**/*.deb
@@ -200,6 +205,12 @@ Terraform/terraform-provider-oneuptime/**
 Terraform/openapi.json
 Terraform/provider-schema.json
 TerraformTest/**
+
+# Crossplane provider, generated from the Terraform provider
+# (npm run generate-crossplane-provider), and the packages
+# Scripts/CrossplaneProvider/build-package.sh builds from it
+Crossplane/provider-oneuptime/**
+Crossplane/packages/**
 
 terraform-provider-example/**
 

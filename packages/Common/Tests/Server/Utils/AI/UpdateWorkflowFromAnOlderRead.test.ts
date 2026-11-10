@@ -195,6 +195,23 @@ let server: Server;
 // What the conversation showed the model, as the chat runner keeps it.
 let records: Array<AIChatRecordSeen>;
 
+/*
+ * The record a workflow's tool kept: one. Only a commit keeps a list, of the
+ * files it wrote (ToolExecutionResult.recordSeen).
+ */
+const workflowSeen: (result: ToolExecutionResult) => AIChatRecordSeen = (
+  result: ToolExecutionResult,
+): AIChatRecordSeen => {
+  const seen: AIChatRecordSeen | Array<AIChatRecordSeen> | undefined =
+    result.recordSeen;
+
+  if (!seen || Array.isArray(seen)) {
+    throw new Error(`Expected one record seen, got ${JSON.stringify(seen)}`);
+  }
+
+  return seen;
+};
+
 const stored: () => Workflow = (): Workflow => {
   const workflow: Workflow = new Workflow();
   workflow.id = WORKFLOW_ID;
@@ -383,7 +400,7 @@ const readSteps: () => Promise<WorkflowDraft> =
     );
 
     if (result.recordSeen) {
-      records.push(result.recordSeen);
+      records.push(workflowSeen(result));
     }
 
     const text: string = result.dataForLlm;
@@ -436,7 +453,7 @@ const approve: (
   );
 
   if (result.recordSeen) {
-    records.push(result.recordSeen);
+    records.push(workflowSeen(result));
   }
 
   return result;
@@ -512,9 +529,9 @@ describe("what Ask AI is shown of a workflow is kept by OneUptime, never by the 
         revision: 7,
       }),
     );
-    expect(result.recordSeen!.recordType).toBe(AIChatRecordSeenType.Workflow);
-    expect(result.recordSeen!.isPartial).toBeUndefined();
-    expect(result.recordSeen!.parts).toEqual(
+    expect(workflowSeen(result).recordType).toBe(AIChatRecordSeenType.Workflow);
+    expect(workflowSeen(result).isPartial).toBeUndefined();
+    expect(workflowSeen(result).parts).toEqual(
       seeWorkflowParts({
         graph: server.graph,
         digest: fingerprintWorkflowStep,
@@ -522,7 +539,7 @@ describe("what Ask AI is shown of a workflow is kept by OneUptime, never by the 
     );
 
     // The model is shown the steps, never the record of them.
-    for (const part of result.recordSeen!.parts) {
+    for (const part of workflowSeen(result).parts) {
       expect(result.dataForLlm).not.toContain(part.fingerprint as string);
     }
   });
@@ -588,7 +605,7 @@ describe("what Ask AI is shown of a workflow is kept by OneUptime, never by the 
       CTX,
     );
 
-    expect(result.recordSeen!.revision).toBe(0);
+    expect(workflowSeen(result).revision).toBe(0);
   });
 
   test("create_workflow keeps the workflow it made, whole, at revision 0", async () => {
@@ -615,8 +632,8 @@ describe("what Ask AI is shown of a workflow is kept by OneUptime, never by the 
     expect(update.mock.calls[0]![0].miscDataProps).toEqual({
       [WORKFLOW_GRAPH_REVISION_KEY]: 7,
     });
-    expect(result.recordSeen!.isPartial).toBe(true);
-    expect(result.recordSeen!.revision).toBe(8);
+    expect(workflowSeen(result).isPartial).toBe(true);
+    expect(workflowSeen(result).revision).toBe(8);
     expect(server.revision).toBe(8);
 
     const saved: Map<string, string | null> = new Map<string, string | null>(
@@ -630,8 +647,8 @@ describe("what Ask AI is shown of a workflow is kept by OneUptime, never by the 
 
     // Log a, and Log b after it: as saved. Nothing else: Ask AI saw the rest when it read.
     expect(
-      result
-        .recordSeen!.parts.map((part: { id: string }) => {
+      workflowSeen(result)
+        .parts.map((part: { id: string }) => {
           return part.id;
         })
         .sort(),
@@ -643,7 +660,7 @@ describe("what Ask AI is shown of a workflow is kept by OneUptime, never by the 
         'connection:["webhook-1","out","log-a"]',
       ].sort(),
     );
-    for (const part of result.recordSeen!.parts) {
+    for (const part of workflowSeen(result).parts) {
       expect(part.fingerprint).toBe(saved.get(part.id));
     }
   });
@@ -1161,7 +1178,7 @@ describe("what Ask AI changed itself, it knows", () => {
       { name: "Tickets", ...(copyOf(BASE_DRAFT) as unknown as JSONObject) },
       CTX,
     );
-    records.push(made.recordSeen!);
+    records.push(workflowSeen(made));
     builder.setValue("log-a", "filled in by the person");
 
     // Written from the draft it sent, which had no such value.

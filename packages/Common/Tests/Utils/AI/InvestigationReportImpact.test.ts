@@ -324,7 +324,8 @@ describe("parseImpactLines", () => {
         textMarkdown: "about 30 of them on iOS [C2].",
       },
       {
-        aspect: null,
+        // Japanese for "Services" (issue #6542).
+        aspect: InvestigationImpactAspect.Services,
         labelMarkdown: "サービス",
         textMarkdown: "checkout-api [C3]",
       },

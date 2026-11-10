@@ -273,6 +273,16 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
    * search finds Cloud by its costs' words.
    */
   "Spend",
+  /*
+   * Data Observability's Quality and Usage: the Checks on what tables hold
+   * and the Reconciliations of tables that must agree - what a data engineer
+   * comes back to when a number looks wrong - and the Data Products
+   * promised to consumers, the BI Dashboards built on the data, Warehouse
+   * Spend and the Unused Tables nobody reads. Its Rules, Help and Advanced
+   * fold (DataObservabilityNavigation.ts).
+   */
+  "Quality",
+  "Usage",
 ];
 
 /*

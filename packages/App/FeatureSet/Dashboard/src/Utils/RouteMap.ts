@@ -219,6 +219,16 @@ export const SloRoutePath: Dictionary<string> = {
   [PageMap.SLOS_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.SLOS_SETTINGS_LABEL_RULES]: "settings/label-rules",
   [PageMap.SLOS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
+  /*
+   * The Workspace section's pages: list-layout pages too, whose static
+   * segments React Router ranks above the view's `:id`.
+   */
+  [PageMap.SLOS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
+  [PageMap.SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
+    "workspace-connection-microsoft-teams",
+  [PageMap.SLOS_WORKSPACE_CONNECTION_MATTERMOST]:
+    "workspace-connection-mattermost",
+  [PageMap.SLOS_WORKSPACE_CONNECTIONS]: "workspace-connections",
   [PageMap.SLO_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SLO_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
   [PageMap.SLO_VIEW_MONITOR_RULES]: `${RouteParams.ModelID}/monitor-rules`,
@@ -805,6 +815,15 @@ export const RumRoutePath: Dictionary<string> = {
    * segment, so it can never be read as a session id by the player route.
    */
   [PageMap.RUM_APPLICATION_VIEW_USER_FLOWS]: `${RouteParams.ModelID}/user-flows`,
+  /*
+   * Product analytics (issue #6444): who uses the application and how
+   * their sessions go. Top-level hyphenated segments, so neither can be
+   * read as a session id by the player route; a person is the users
+   * page's child, their key with its colon as a dash.
+   */
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_USERS]: `${RouteParams.ModelID}/product-analytics-users`,
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_PERSON]: `${RouteParams.ModelID}/product-analytics-users/${RouteParams.SubModelID}`,
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SESSIONS]: `${RouteParams.ModelID}/product-analytics-sessions`,
   /*
    * A sibling of /session-replay rather than a child, for the same reason
    * as the audit page: a child segment would be shadowed by a session
@@ -4096,6 +4115,31 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  // SLOs' Slack, Microsoft Teams and Mattermost rules
+  [PageMap.SLOS_WORKSPACE_CONNECTION_SLACK]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_WORKSPACE_CONNECTION_SLACK]
+    }`,
+  ),
+
+  [PageMap.SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
+    }`,
+  ),
+
+  [PageMap.SLOS_WORKSPACE_CONNECTION_MATTERMOST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_WORKSPACE_CONNECTION_MATTERMOST]
+    }`,
+  ),
+
+  [PageMap.SLOS_WORKSPACE_CONNECTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_WORKSPACE_CONNECTIONS]
+    }`,
+  ),
+
   [PageMap.SLO_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/slos/${
       SloRoutePath[PageMap.SLO_VIEW]
@@ -7150,6 +7194,24 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUM_APPLICATION_VIEW_USER_FLOWS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_APPLICATION_VIEW_USER_FLOWS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_USERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_USERS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_PERSON]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_PERSON]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SESSIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_PRODUCT_ANALYTICS_SESSIONS]
     }`,
   ),
 

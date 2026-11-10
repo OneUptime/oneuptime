@@ -30,6 +30,20 @@ export const PROJECT_TWILIO_CONFIG_SELECT: Select<ProjectCallSMSConfig> = {
   twilioSmsPhoneNumbers: true,
 };
 
+/*
+ * A project's default configs, as the senders read them: the config, and
+ * what it is the project default for - its SMS, its calls or both
+ * (Types/CallAndSMS/TwilioConfigDefaults) - so each message goes through
+ * the default for its kind.
+ */
+export const PROJECT_DEFAULT_TWILIO_CONFIG_SELECT: Select<ProjectCallSMSConfig> =
+  {
+    ...PROJECT_TWILIO_CONFIG_SELECT,
+    isProjectDefault: true,
+    isProjectDefaultForSms: true,
+    isProjectDefaultForCalls: true,
+  };
+
 // The OneUptime server's own account (Admin Dashboard > Settings > Call and SMS).
 export const GLOBAL_TWILIO_CONFIG_SELECT: Select<GlobalConfig> = {
   twilioUsedFor: true,

@@ -41,10 +41,20 @@ import React, {
 } from "react";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
+import useProductFirstRun, {
+  ProductFirstRun,
+} from "../../Components/ProductOnboarding/UseProductFirstRun";
+import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const ServicesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  // Until the first one, the page explains the product under the empty table.
+  const firstRun: ProductFirstRun = useProductFirstRun<Service>({
+    modelType: Service,
+    query: { isArchived: false },
+  });
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Service>({ modelType: Service });
 
@@ -94,17 +104,19 @@ const ServicesPage: FunctionComponent<
     <Fragment>
       <ModelTable<Service>
         modelType={Service}
+        refreshToggle={firstRun.refreshToken}
+        showCreateForm={firstRun.showCreateForm}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
         id="service-table"
         userPreferencesKey="service-table"
-        topContent={filterBar}
+        topContent={firstRun.getTopContent(filterBar)}
         /*
          * A service appears by itself when telemetry with a new service.name
          * arrives, so an empty list says so, with the setup guide beside the
          * Create button for a service made by hand.
          */
-        emptyState={{
+        emptyState={firstRun.getEmptyState({
           ...facetEmptyState,
           description: SERVICES_EMPTY_DESCRIPTION,
           actions: [
@@ -121,7 +133,7 @@ const ServicesPage: FunctionComponent<
               },
             },
           ],
-        }}
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -139,6 +151,7 @@ const ServicesPage: FunctionComponent<
           item: Service,
           modalType?: ModalType,
         ): Promise<Service> => {
+          firstRun.onRecordCreated();
           if (item._id && modalType !== ModalType.Edit) {
             setAddedService({
               id: new ObjectID(item._id.toString()),
@@ -312,6 +325,14 @@ const ServicesPage: FunctionComponent<
           },
         ]}
       />
+      {firstRun.isFirstRun && (
+        <ProductShowcase
+          product={ProductKey.Services}
+          // The empty table above says what the list is for.
+          hidesDescription={true}
+          startButton={firstRun.startButton}
+        />
+      )}
       {addedService && (
         <ServiceAddedModal
           serviceId={addedService.id}

@@ -147,7 +147,14 @@ const PERMISSIONS: Record<string, Array<string>> = {
     // What Add Permission offers a scope for, and what it offers none for.
     "Create Workflow",
     "Edit Workflow",
+    "Create Label",
+    // The team permissions Owned narrows to the teams you own (Team owners).
     "Create Team",
+    "Edit Team",
+    "Delete Team",
+    "Invite New Members",
+    "Remove Team Members",
+    "Edit Team Permissions",
   ],
 };
 
@@ -335,7 +342,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Forbidden",
     "user webhooks",
     "Not",
-    "status page subscriber webhooks",
+    "webhook subscribers who sign up on a status page",
     "without a DNS check",
     "Never put `169.254.169.254`, or any range containing it, in the allowlist.",
     "allows",
@@ -345,7 +352,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "not",
     "hostname",
     "Prefer the allowlist to the blanket boolean.",
-    "Anyone who can author a workflow or an API, Website, External Status Page or Custom JavaScript Code monitor can reach anything you allowed.",
+    "Anyone who can author a workflow or an API, Website, External Status Page or Custom JavaScript Code monitor, or add a status page subscriber, can reach anything you allowed.",
     "The response body comes back.",
     "Redirects are never followed",
     "Scope by probe rather than instance-wide where you can.",

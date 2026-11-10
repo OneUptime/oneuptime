@@ -513,7 +513,7 @@ Webhook subscribers receive a JSON `POST` request on each status page event, whi
 
 Because subscribing is a public operation on a public page, OneUptime guards the target:
 
-- A generic **Webhook URL** is validated before it is accepted, and private, loopback, link-local and cloud-metadata addresses are rejected. You cannot point a subscription at something inside the OneUptime deployment's own network.
+- A generic **Webhook URL** is checked when it is saved, when it is changed and again before every send. Loopback, link-local and cloud-metadata addresses are always rejected. Private addresses, such as `10.0.0.0/8` or `192.168.0.0/16`, are rejected for a subscriber who signs up on the status page, whatever your instance allows. A webhook subscriber your team adds, from the dashboard, with an API key or by a workflow, may use a private address once a self-hosted instance allows it (see [Private Network Access](/docs/self-hosted/private-network-access)); until then it is rejected too.
 - A **Slack Incoming Webhook URL** must start with `https://hooks.slack.com/services/`.
 - A **Microsoft Teams Incoming Webhook URL** must be an `https` address on `office.com`, `office365.com`, `logic.azure.com` or `environment.api.powerplatform.com`, or a subdomain of one of them.
 

@@ -58,7 +58,14 @@ jest.setTimeout(60_000);
 const submitJobResult: jest.Mock = AgentClient.submitJobResult as jest.Mock;
 
 const PRIVATE_ADDRESS_REFUSAL: string =
-  "Request URL points to a private network address and is not allowed. Global Runners reach the internet only. Pick one of your own Runners for a step that calls an address on your network.";
+  "Request URL points to a private network address and is not allowed. Global Runners reach the internet only, and so do JavaScript steps on your own Runners. Use a Bash step on one of your own Runners to call an address on your network.";
+
+/*
+ * The same refusal on a project's own Runner (issue #6589): it used to name
+ * the API server's ALLOW_PRIVATE_NETWORK_WEBHOOKS, which no Runner reads.
+ */
+const OWN_RUNNER_PRIVATE_ADDRESS_REFUSAL: string =
+  "Request URL points to a private network address and is not allowed. A JavaScript step reaches public addresses only. Use a Bash step to call an address on this Runner's network.";
 
 const LOCAL_ADDRESS_REFUSAL: string =
   "Request URL points to a private, loopback, or link-local address and is not allowed.";
@@ -138,7 +145,7 @@ afterEach(() => {
 });
 
 describe("a JavaScript step on a global Runner, in the real sandbox", () => {
-  test("a private address is refused, saying to pick one of your own Runners", async () => {
+  test("a private address is refused, saying to use a Bash step on one of your own Runners", async () => {
     await Executor.executeAndReport(step(fetchScript("http://10.20.30.40/")));
 
     const result: Record<string, unknown> = reported();
@@ -186,5 +193,73 @@ describe("a JavaScript step on a global Runner, in the real sandbox", () => {
     expect(result["success"]).toBe(true);
     expect(String(result["output"])).toContain("checked");
     expect(String(result["output"])).toContain('"sum": 42');
+  });
+});
+
+describe("a JavaScript step on a project's own Runner, in the real sandbox", () => {
+  const ALLOW_ENV: string = "ALLOW_PRIVATE_NETWORK_WEBHOOKS";
+  let originalAllow: string | undefined;
+
+  beforeEach(() => {
+    GlobalRunnerMode.setFromServer(false);
+    originalAllow = process.env[ALLOW_ENV];
+  });
+
+  afterEach(() => {
+    if (originalAllow === undefined) {
+      delete process.env[ALLOW_ENV];
+    } else {
+      process.env[ALLOW_ENV] = originalAllow;
+    }
+  });
+
+  test("a private address is refused, saying to use a Bash step, and naming no setting", async () => {
+    await Executor.executeAndReport(step(fetchScript("http://10.20.30.40/")));
+
+    const result: Record<string, unknown> = reported();
+
+    expect(result["success"]).toBe(false);
+    expect(String(result["errorMessage"])).toContain(
+      OWN_RUNNER_PRIVATE_ADDRESS_REFUSAL,
+    );
+    expect(String(result["errorMessage"])).not.toContain(
+      "ALLOW_PRIVATE_NETWORK_WEBHOOKS",
+    );
+  });
+
+  /*
+   * The setting the old refusal named, set where it was sent to look: it
+   * changes nothing for a JavaScript step, which is why no refusal may name
+   * it.
+   */
+  test("the API server's webhook setting, set on the Runner, still lets nothing through", async () => {
+    process.env[ALLOW_ENV] = "true";
+
+    await Executor.executeAndReport(step(fetchScript("http://10.20.30.40/")));
+
+    const result: Record<string, unknown> = reported();
+
+    expect(result["success"]).toBe(false);
+    expect(String(result["errorMessage"])).toContain(
+      OWN_RUNNER_PRIVATE_ADDRESS_REFUSAL,
+    );
+  });
+
+  test("the host's own services are refused too, and never see a request", async () => {
+    const host: LoopbackServer = await startLoopbackServer();
+
+    try {
+      await Executor.executeAndReport(
+        step(fetchScript(`http://127.0.0.1:${host.port}/`)),
+      );
+
+      const result: Record<string, unknown> = reported();
+
+      expect(result["success"]).toBe(false);
+      expect(String(result["errorMessage"])).toContain(LOCAL_ADDRESS_REFUSAL);
+      expect(host.requestCount()).toBe(0);
+    } finally {
+      await host.close();
+    }
   });
 });

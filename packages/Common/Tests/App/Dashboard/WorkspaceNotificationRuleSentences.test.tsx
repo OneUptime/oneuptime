@@ -52,6 +52,7 @@ import {
   CHANNEL_RECORD_EVENT_TYPES,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleOwnChannel";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
+import SloErrorBudgetPolicyChange from "../../../Types/ServiceLevelObjective/SloErrorBudgetPolicyChange";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleInvites from "../../../Types/Workspace/NotificationRules/NotificationRuleInvites";
 import {
@@ -533,6 +534,87 @@ describe("the sentences that say what a rule does", () => {
     ).toBe("Pick where this rule posts: existing channels, chats, or both.");
   });
 
+  /*
+   * An SLO gets no channel of its own either
+   * (ServiceLevelObjectiveNotificationRule): the changes of its error budget
+   * policy are posted to channels and chats people have, and its rule says
+   * only that.
+   */
+  test("an SLO rule says only where it posts, whatever channel switches it holds", () => {
+    expect(
+      canRuleCreateChannel(NotificationRuleEventType.ServiceLevelObjective),
+    ).toBe(false);
+
+    expect(
+      sentences({
+        eventType: NotificationRuleEventType.ServiceLevelObjective,
+        exampleChannelName: "#slo",
+        rule: rule({
+          shouldCreateNewChannel: true,
+          shouldInviteOwnersToNewChannel: true,
+          archiveChannelAutomatically: true,
+          shouldPostToExistingChannel: true,
+          existingChannelNames: "#sre, #releases",
+        }),
+      }),
+    ).toEqual(["Posts updates in #sre and #releases."]);
+
+    expect(
+      sentences({
+        eventType: NotificationRuleEventType.ServiceLevelObjective,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        chatNames: ["Release managers"],
+        rule: rule({
+          shouldPostToExistingChat: true,
+          existingChatIds: ["chat-1"],
+        }),
+      }),
+    ).toEqual(["Posts updates in the chat Release managers."]);
+
+    expect(
+      Copy.getNotificationRuleDestinationDescription({
+        eventType: NotificationRuleEventType.ServiceLevelObjective,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      }),
+    ).toBe("The channels and chats the rule posts in.");
+    expect(
+      Copy.getNothingChosenSentence({
+        eventType: NotificationRuleEventType.ServiceLevelObjective,
+        workspaceType: WorkspaceType.Slack,
+      }),
+    ).toBe("Name the channels this rule posts in.");
+  });
+
+  test("an SLO rule is named, its records counted and its card titled in its own words", () => {
+    const slo: NotificationRuleEventType =
+      NotificationRuleEventType.ServiceLevelObjective;
+
+    expect(Copy.NOTIFICATION_RULE_CONDITIONS_TITLES[slo]).toBe("Which SLOs");
+    expect(Copy.NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS[slo]).toBe(
+      "Conditions are checked each time an SLO's error budget policy changes: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again.",
+    );
+    expect(Copy.APPLIES_TO_ALL_ANSWERS[slo]).toBe("All SLOs");
+    expect(Copy.APPLIES_TO_MATCHING_ANSWERS[slo]).toBe(
+      "Only SLOs that match conditions",
+    );
+    expect(Copy.NO_CONDITIONS_SENTENCES[slo]).toBe("Every SLO.");
+    expect(Copy.RULE_SINGULAR_NAMES[slo]).toBe("SLO Notification Rule");
+    expect(Copy.RULE_PLURAL_NAMES[slo]).toBe("SLO Notification Rules");
+    expect(Copy.NOTIFICATION_RULES_CARD_DESCRIPTIONS[slo]).toBe(
+      "Each rule picks the SLOs it is for, then posts to channels you have when an SLO enters a tier of its error budget policy, recovers or leaves every tier, and when its deployments are frozen or allowed again.",
+    );
+    // The only kind of rule on the SLOs' Slack and Microsoft Teams pages.
+    expect(Copy.getNotificationRulesCardTitle(slo)).toBe(
+      Copy.NOTIFICATION_RULES_CARD_TITLE,
+    );
+  });
+
+  test("the changes an SLO rule can pick are listed to translate, as the enum holds them", () => {
+    expect([...Copy.ERROR_BUDGET_POLICY_CHANGE_WORDS]).toEqual(
+      Object.values(SloErrorBudgetPolicyChange),
+    );
+  });
+
   test("a hunt rule is named, its records counted and its card titled in its own words", () => {
     expect(
       Copy.NOTIFICATION_RULE_CONDITIONS_TITLES[
@@ -695,7 +777,7 @@ describe("the sentences that say what a rule does", () => {
   });
 
   // The words about a channel of the record's own: only where it can have one.
-  test("every kind of record a rule can create a channel for has the words of that channel, and a security case and a hunt have none", () => {
+  test("every kind of record a rule can create a channel for has the words of that channel, and a security case, a hunt and an SLO have none", () => {
     const channelMaps: Array<Readonly<Record<string, string>>> = [
       Copy.CREATE_CHANNEL_TITLES,
       Copy.CREATE_CHANNEL_DESCRIPTIONS,
@@ -709,7 +791,8 @@ describe("the sentences that say what a rule does", () => {
       ALL_EVENT_TYPES.filter((eventType: NotificationRuleEventType) => {
         return (
           eventType !== NotificationRuleEventType.SecurityCase &&
-          eventType !== NotificationRuleEventType.SecurityHunt
+          eventType !== NotificationRuleEventType.SecurityHunt &&
+          eventType !== NotificationRuleEventType.ServiceLevelObjective
         );
       }).sort(),
     );
@@ -725,6 +808,9 @@ describe("the sentences that say what a rule does", () => {
 
       expect(map[NotificationRuleEventType.SecurityCase]).toBeUndefined();
       expect(map[NotificationRuleEventType.SecurityHunt]).toBeUndefined();
+      expect(
+        map[NotificationRuleEventType.ServiceLevelObjective],
+      ).toBeUndefined();
     }
   });
 
@@ -744,6 +830,7 @@ describe("the sentences that say what a rule does", () => {
       [NotificationRuleEventType.OnCallDutyPolicy]: "All on-call policies",
       [NotificationRuleEventType.SecurityCase]: "All security cases",
       [NotificationRuleEventType.SecurityHunt]: "All hunts",
+      [NotificationRuleEventType.ServiceLevelObjective]: "All SLOs",
     });
 
     for (const eventType of ALL_EVENT_TYPES) {
@@ -755,10 +842,10 @@ describe("the sentences that say what a rule does", () => {
       expect(Copy.APPLIES_TO_MATCHING_ANSWERS[eventType]).toBe(
         `Only ${records} that match conditions`,
       );
-      // "Which incidents" is the question; these are its answers.
+      // "Which incidents" is the question; these are its answers ("Which SLOs").
       expect(
         Copy.NOTIFICATION_RULE_CONDITIONS_TITLES[eventType].toLowerCase(),
-      ).toBe(`which ${records}`);
+      ).toBe(`which ${records}`.toLowerCase());
     }
   });
 });

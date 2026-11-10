@@ -56,6 +56,11 @@ const describePostgres: typeof describe =
     : describe.skip;
 
 const TABLES: Array<string> = [
+  /*
+   * Removing a rule reads the whole of it, who created or deleted it
+   * included, for the audit log's entry.
+   */
+  "User",
   "Project",
   "StatusPage",
   "StatusPageHistoryChartBarColorRule",

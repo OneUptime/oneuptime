@@ -1,4 +1,5 @@
 import { JSONObject, JSONValue } from "../../Types/JSON";
+import SloErrorBudgetPolicyChange from "../../Types/ServiceLevelObjective/SloErrorBudgetPolicyChange";
 import {
   SLO_AT_RISK_RECOVERY_MARGIN_PERCENTAGE,
   SLO_BUDGET_EXHAUSTED_RECOVERY_PERCENTAGE,
@@ -453,6 +454,51 @@ export function getSloDeploymentGateChange(data: {
   }
 
   return { gate, transition, columns };
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * What an evaluation changed
+ * ---------------------------------------------------------------------------
+ *
+ * The changes one evaluation committed, as the Slack, Microsoft Teams and
+ * Mattermost rules for SLOs match them (SloErrorBudgetPolicyChange): the
+ * tier change first - entered a more severe tier, recovered to a less
+ * severe one, or left every tier - then how the deploy gate moved, when it
+ * did. A tier change that froze deployments is both. Nothing when neither
+ * moved: a renamed tier refreshes its name quietly, and an SLO that holds
+ * its tier under the hysteresis changed nothing.
+ */
+export function getSloErrorBudgetPolicyChanges(data: {
+  // The SLO moved to another tier, or out of every tier.
+  isTierChange: boolean;
+  // It is in a tier after the evaluation.
+  isInTier: boolean;
+  // That tier is more severe than the one it left, or it was in none.
+  isEscalation: boolean;
+  deploymentGateTransition: SloDeploymentGateTransition | null;
+}): Array<SloErrorBudgetPolicyChange> {
+  const changes: Array<SloErrorBudgetPolicyChange> = [];
+
+  if (data.isTierChange) {
+    if (!data.isInTier) {
+      changes.push(SloErrorBudgetPolicyChange.LeftEveryTier);
+    } else if (data.isEscalation) {
+      changes.push(SloErrorBudgetPolicyChange.EnteredMoreSevereTier);
+    } else {
+      changes.push(SloErrorBudgetPolicyChange.RecoveredToLessSevereTier);
+    }
+  }
+
+  if (data.deploymentGateTransition === SloDeploymentGateTransition.Frozen) {
+    changes.push(SloErrorBudgetPolicyChange.DeploymentsFrozen);
+  } else if (
+    data.deploymentGateTransition === SloDeploymentGateTransition.Allowed
+  ) {
+    changes.push(SloErrorBudgetPolicyChange.DeploymentsAllowed);
+  }
+
+  return changes;
 }
 
 /*

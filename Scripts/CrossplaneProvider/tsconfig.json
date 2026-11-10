@@ -1,0 +1,28 @@
+{
+  /*
+   * The generator's type check (`npm run compile`, run by the Crossplane
+   * Provider workflow) and jest's (ts-jest compiles with this file).
+   *
+   * As Scripts/TerraformProvider's does, it extends Common's tsconfig: the
+   * generator reads the spec with the Terraform generator's OpenAPIParser,
+   * which imports Common's sources, and a program has one set of compiler
+   * options for every file in it. Only what has to differ is set here: jest
+   * and ts-node run these files as CommonJS, this is a check (noEmit), and
+   * the generator's own @types (jest 30) are used.
+   */
+  "extends": "../../packages/Common/tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "noEmit": true,
+    "typeRoots": ["./node_modules/@types"],
+    "types": ["node", "jest"]
+  },
+  "include": [
+    "Core/**/*.ts",
+    "Tests/**/*.ts",
+    "GenerateProvider.ts",
+    "../../packages/Common/Typings/**/*.d.ts",
+    "../../packages/Common/UI/index.d.ts"
+  ],
+  "exclude": ["node_modules"]
+}

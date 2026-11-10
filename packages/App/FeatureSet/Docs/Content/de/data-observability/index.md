@@ -49,16 +49,22 @@ flowchart TB
 :::steps
 ### Eine Datenbank verbinden
 
-Öffnen Sie **Data Observability**, gehen Sie zu **Datenbanken** und wählen Sie **Datenbank verbinden**. Wählen Sie die Engine und geben Sie eine schreibgeschützte Verbindungszeichenfolge an oder den Namen der Umgebungsvariable, aus der Ihre Sonde sie liest. [Eine Datenbank verbinden](/docs/data-observability/connect) zeigt das Login jeder Engine.
+Öffnen Sie **Data Observability** und wählen Sie **Datenbank verbinden**, in der **Übersicht** oder unter **Datenbanken**. Wählen Sie die Engine und geben Sie eine schreibgeschützte Verbindungszeichenfolge an oder den Namen der Umgebungsvariable, aus der Ihre Sonde sie liest. [Eine Datenbank verbinden](/docs/data-observability/connect) zeigt das Login jeder Engine.
 
-### Ihre Tabellen ansehen
+### Ihre empfohlenen Warnungen einschalten
+
+Eine Datenbank, die Sie verbinden, öffnet sich auf der Seite **Empfohlene Warnungen**, denn niemand erfährt etwas von ihren Tabellen, bevor einige davon aktiv sind. Fügen Sie die gewünschten hinzu: eine Tabelle, die verspätet ist, eine, deren Zeilen stark fallen oder ungewöhnlich niedrig liegen, eine, deren Spalten sich ändern, und eine Datenbank, die nicht mehr meldet. Jede ist ein gewöhnlicher Monitor: Bereitschaft, Eigentümer, Wartungsfenster und Statusseiten funktionieren wie bei jedem anderen.
+
+### Die Übersicht lesen
 
 Innerhalb von fünf Minuten erscheinen ihre Tabellen unter **Tabellen**, jede mit ihren Zeilen, ihrer Größe und dem Zeitpunkt ihrer letzten Änderung. Die Aktualität einer Tabelle ist bekannt, sobald sie sich zweimal geändert hat: **Aktuell**, solange sie ihren Rhythmus einhält, **Verspätet**, sobald sie ihn verpasst.
 
-### Die empfohlenen Warnungen hinzufügen
-
-Wählen Sie unter **Datenbanken** für die Datenbank **Empfohlene Warnungen** und fügen Sie die gewünschten hinzu: eine Tabelle, die verspätet ist, eine, deren Zeilen stark fallen oder ungewöhnlich niedrig liegen, eine, deren Spalten sich ändern, und eine Datenbank, die nicht mehr meldet. Jede ist ein gewöhnlicher Monitor: Bereitschaft, Eigentümer, Wartungsfenster und Statusseiten funktionieren wie bei jedem anderen.
+Die **Übersicht** sagt dann, was jetzt jemanden braucht, das Schlimmste zuerst: eine Datenbank, die nicht gelesen werden konnte, ein Pipeline-Lauf, der fehlgeschlagen oder verspätet ist, eine Prüfung, die fehlschlägt oder nicht laufen konnte, ein Abgleich, der abweicht, und ein verspätetes Datenprodukt oder eine verspätete Tabelle. Jeder Eintrag sagt, wem er gehört und ob seine Warnung offen ist, oder dass niemand benachrichtigt wird, weil seine Datenbank keine Warnung aktiv hat, und öffnet die Seite, auf der er behoben wird. Solange das Projekt nicht eingerichtet ist, listet die **Übersicht** die offenen Schritte: Warnungen auf jeder Datenbank, Eigentümer für die Tabellen, eine Prüfung und Ihre Pipeline-Läufe.
 :::
+
+## Wo Sie was finden
+
+Das Menü folgt den Fragen, die Sie an Ihre Daten stellen. Sein erster Abschnitt enthält die Seiten für jeden Tag: **Übersicht**, **Tabellen**, **Pipelines**, **Schemaänderungen**, **Datenbanken** und **Speicherpfade**. **Qualität** enthält die Regeln, die die Daten einhalten müssen, **Prüfungen** und **Abgleiche**, und **Nutzung**, wer sich auf sie verlässt und was sie kosten: **Datenprodukte**, **BI-Dashboards**, **Warehouse-Ausgaben** und **Ungenutzte Tabellen**. **Regeln** (**Eigentümerregeln** und **Beschriftungsregeln**), **Hilfe** und **Erweitert** (**Einstellungen** und **Gelöschte Tabellen**) bleiben eingeklappt, bis Sie sie öffnen.
 
 ## Was es kostet
 

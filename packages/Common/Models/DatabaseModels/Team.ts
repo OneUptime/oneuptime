@@ -60,11 +60,19 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.DeleteProjectTeam,
   ],
+  /*
+   * A team's own columns - its name, description and custom fields - are
+   * changed with Edit Team alone. Invite New Members and Edit Team
+   * Permissions change the team's members and permissions, which are rows
+   * of their own (TeamMember, TeamPermission): listed here they let no
+   * column of the team be changed, but a grant of either over the whole
+   * project kept Edit Team scoped to the teams someone owns from narrowing
+   * which teams they could rename (OwnedScopePermission reads the rows that
+   * grant the operation).
+   */
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.InviteProjectTeamMembers,
-    Permission.EditProjectTeamPermissions,
     Permission.EditProjectTeam,
   ],
 })

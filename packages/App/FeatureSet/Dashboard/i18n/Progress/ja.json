@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47298,
-    "untranslated": 1390
+    "keys": 48180,
+    "untranslated": 1387
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -181,6 +181,7 @@
     "Pod · production",
     "Podman CLI",
     "Podman Compose",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
     "Powered by OneUptime",

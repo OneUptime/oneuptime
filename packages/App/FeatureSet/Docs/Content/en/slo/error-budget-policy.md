@@ -1,11 +1,12 @@
 # Error Budget Policy
 
-An error budget policy writes down what your team agreed to do as an SLO's error budget runs down, such as reviewing risky changes once half of it is spent, or freezing releases once all of it is. OneUptime puts the SLO in the tier of the policy its budget has reached, shows the team's agreement for that tier on the SLO's pages, can raise an alert or declare an incident when the SLO enters a tier, and tells your CI/CD pipelines whether to hold back releases. It is the error budget policy practice of the [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
+An error budget policy writes down what your team agreed to do as an SLO's error budget runs down, such as reviewing risky changes once half of it is spent, or freezing releases once all of it is. OneUptime puts the SLO in the tier of the policy its budget has reached, shows the team's agreement for that tier on the SLO's pages, can raise an alert or declare an incident when the SLO enters a tier, posts each tier change to the Slack, Microsoft Teams or Mattermost channels you pick, and tells your CI/CD pipelines whether to hold back releases. It is the error budget policy practice of the [Google SRE Workbook](https://sre.google/workbook/error-budget-policy/).
 
 :::cards
 - [How tiers work](#how-tiers-work): Which tier applies, and when the SLO leaves it.
 - [Set up a policy](#set-up-a-policy): Start from the recommended policy, or write your own tiers.
 - [Alerts and incidents](#alerts-and-incidents): Page your team when the SLO enters a tier.
+- [Post to Slack, Microsoft Teams and Mattermost](#post-to-slack-microsoft-teams-and-mattermost): Tell a channel when an SLO enters a tier, without paging anyone.
 - [Deployment gate](#deployment-gate): Hold back releases from CI/CD while a tier freezes deployments.
 - [Read the tier from the API](#read-the-tier-from-the-api): Check the tier from CI and scripts.
 :::
@@ -88,6 +89,7 @@ None of them raises an alert or declares an incident until you switch that on. *
 - The SLO's **Overview** shows the tier it is in and what the team agreed to do there, so everyone who opens the SLO sees the agreement that holds now. While the tier freezes deployments, a red badge under its name says since when.
 - The **Error budget burn-down** chart draws a labelled line at each tier's threshold, beside the at-risk threshold's.
 - The SLO's **Feed** posts every tier change: the tier the SLO left and the tier it entered, the budget left, what the team agreed to do in the new tier, and whether the change froze deployments or allowed them again.
+- The Slack, Microsoft Teams and Mattermost channels your rules name get the same post: see [Post to Slack, Microsoft Teams and Mattermost](#post-to-slack-microsoft-teams-and-mattermost).
 - The SLO's **Audit Logs** record each tier change, and each time deployments are frozen or allowed again, as a change OneUptime made itself, so they show it only with **Store System Events** on: see [Turn audit logs on](/docs/slo/feed-and-audit-logs#turn-audit-logs-on). Adding, editing and removing a tier is recorded as the person who did it.
 - The SLO's read API returns the tier, and whether deployments are allowed: see [Read the tier from the API](#read-the-tier-from-the-api) and [Deployment gate](#deployment-gate).
 
@@ -121,6 +123,43 @@ SLO error budget policy: {{sloName}} — {{policyTier}}
 ```
 
 The built-in description names the tier, gives the budget left against the tier's threshold, and says what the team agreed to do in it.
+
+## Post to Slack, Microsoft Teams and Mattermost
+
+A rule can post each change of an SLO's error budget policy to the Slack, Microsoft Teams or Mattermost channels your team reads, without paging anyone: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again. Each rule picks the SLOs and the changes it posts. Connect the workspace to the project first: see [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) or [Mattermost](/docs/workspace-connections/mattermost).
+
+:::steps
+### Open the SLOs' Workspace section
+
+Go to **SLOs** → **Workspace** → **Slack**, or **Microsoft Teams**, or **Mattermost**. The **Workspace** section lists only the chat workspaces your project has connected.
+
+### Create a rule
+
+Click **Create SLO Notification Rule** and give it a **Rule Name**. Under **Which SLOs**, keep **All SLOs**, or pick **Only SLOs that match conditions** and add conditions: see [What a rule matches](#what-a-rule-matches).
+
+### Pick where it posts
+
+Under **Then, in Slack**, name the channels the rule posts in. In Microsoft Teams, pick a team and its channels, or chats the OneUptime app was added to. An SLO gets no channel of its own, so a rule posts only to channels and chats you already have.
+:::
+
+The message says the change in the words of the SLO's **Feed**: the tier the SLO left and the tier it entered, how deployments moved, the error budget left, the new tier's threshold, and what the team agreed to do there, as the team wrote it. A mention in that agreement, such as `<!channel>`, is posted as text and notifies nobody.
+
+- A change is posted once, after the evaluation that made it is saved. An evaluation that is not saved posts nothing, and the next one posts the change.
+- Nothing is posted while the SLO stays in its tier, however long the budget hovers at a threshold: see [Entering and leaving a tier](#entering-and-leaving-a-tier).
+- Switching **Freeze Deployments** on or off for the tier the SLO is in posts a message of its own.
+- A Paused, Misconfigured, disabled or archived SLO keeps its tier, and posts nothing.
+- A message that cannot be sent is logged, and the evaluation, the SLO's feed and what the tier raises go on without it.
+
+### What a rule matches
+
+| Condition | What it matches |
+| --- | --- |
+| **SLOs** | The SLOs you pick, or every SLO but those. |
+| **SLO Labels** | The SLO's labels: any of the ones you pick, all of them, or none of them. |
+| **SLO Name** | The SLO's name: equal to your text or not, containing it or not, starting or ending with it. |
+| **Error Budget Policy Change** | What changed: **Entered a more severe tier**, **Recovered to a less severe tier**, **Left every tier**, **Deployments frozen** or **Deployments allowed again**. |
+
+A tier change that froze deployments, or allowed them again, is one message that is both changes. So a rule for **Deployments frozen** also posts the change that entered a tier that freezes them: a release channel hears of every freeze.
 
 ## When the budget is not measured
 
@@ -259,7 +298,7 @@ These permissions are in the SLO group of a role. The Project Owner and Project 
 
 ## Not available yet
 
-Some parts of an error budget policy are not available yet: workflow triggers and Slack or Microsoft Teams notifications for each tier, a policy shared by several SLOs, acknowledging a tier or granting an exception to it, and tiers based on the budget runway rather than the budget left. OneUptime does not stop a release by itself: a pipeline that checks `deploymentsAllowed` does, as [Deployment gate](#deployment-gate) shows.
+Some parts of an error budget policy are not available yet: a workflow trigger of its own for each tier, a policy shared by several SLOs, acknowledging a tier or granting an exception to it, and tiers based on the budget runway rather than the budget left. OneUptime does not stop a release by itself: a pipeline that checks `deploymentsAllowed` does, as [Deployment gate](#deployment-gate) shows.
 
 ## Next steps
 

@@ -158,7 +158,12 @@ const RETIRED: Array<string> = [
   "Auto Remediation Rules",
   "Incident Auto Remediation Rules",
   "Alert Auto Remediation Rules",
-  "Approval",
+  /*
+   * Not "Approval", the auto remediation rule's field: a public note that
+   * waits for approval is read under that word now (its Approval column),
+   * so the locales keep it. That the AI rule has no such field is checked
+   * on the model below.
+   */
   "OneUptime AI works out each fix. Choose whether it waits for someone to approve it.",
   "Investigate production incidents",
   "Investigate production alerts",
@@ -233,6 +238,18 @@ describe("English holds every sentence under its own words", () => {
     expect(MODEL.singularName).toBe("AI Rule");
     expect(MODEL.pluralName).toBe("AI Rules");
     expect(MODEL.formerSingularName).toBe("Auto Remediation Rule");
+  });
+
+  test("the AI rule has no Approval field: how it fixes says whether it asks first", () => {
+    const titles: Array<string> = MODEL.getTableColumns().columns.map(
+      (column: string): string => {
+        return MODEL.getTableColumnMetadata(column).title || "";
+      },
+    );
+
+    // Whether it fixes, and whether it asks first, is its Execution Mode.
+    expect(titles).toContain("Execution Mode");
+    expect(titles).not.toContain("Approval");
   });
 
   test("a fix names the AI rule behind it", () => {

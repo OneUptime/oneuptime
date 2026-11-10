@@ -83,11 +83,13 @@ I en rutenettgruppe ber dialogen også om raden og kolonnen monitoren skal stå 
 
 Flervalgslisten har fanen **Etiketter**: klikk på en etikett, så velges alle monitorer med den på én gang.
 
+Monitorgrupper legges til på samme måte. Når bryteren **Monitorgrupper** er på, har **Flere handlinger** også **Legg til flere monitorgrupper**, som åpner **Legg til flere monitorgrupper**: en flervalgsliste **Monitorgrupper**, deretter de samme sammenslåtte **Flere felt**. Hver ressurs får visningsnavn og beskrivelse fra monitorgruppen sin, og **Legg til monitorgrupper** legger til alle; en monitorgruppe som allerede er på siden, blir stående som den er og står under **Allerede lagt til**. Lenken under flervalgslisten, **Legg heller til monitorgrupper.** eller **Legg heller til monitorer.**, bytter mellom de to dialogene og beholder visningsalternativene du har valgt. I en tom gruppe åpner **Legg til flere** med monitorgrupper når **Legg til monitor** er byttet til dem.
+
 ### Det er trygt å legge til etter etikett to ganger
 
 En statusside viser en monitor én gang. Tillegg er idempotent, så når du velger den samme etiketten igjen etter å ha gitt noen nye monitorer den, legges bare de nye til: monitorene som allerede er på siden, forblir nøyaktig som de er, med visningsnavnet og alternativene du ga dem.
 
-Sammendraget etter tillegget av flere sier det samme: monitorer som ble lagt til, står under **Lagt til**, og de som allerede var der, under **Already Added**. Ingenting rapporteres som en feil, og ingenting skrives for dem.
+Sammendraget etter tillegget av flere sier det samme: monitorer som ble lagt til, står under **Lagt til**, og de som allerede var der, under **Allerede lagt til**. Ingenting rapporteres som en feil, og ingenting skrives for dem.
 
 Den samme regelen gjelder overalt ellers der en ressurs opprettes. Å legge til en monitor som allerede er på siden, fra skjemaet for én monitor, eller å la en eksisterende ressurs peke på den fra redigeringsskjemaet, avvises med *"This monitor is already added to this status page"*, også når den eksisterende ressursen står i en annen gruppe, for en besøkende ville fortsatt sett monitoren to ganger. For å vise en monitor i en annen gruppe sletter du ressursen den allerede har, og legger den til der du vil ha den.
 

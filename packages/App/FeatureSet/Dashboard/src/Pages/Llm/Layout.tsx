@@ -7,6 +7,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 /*
  * Which tab a page belongs to, from its route pattern. A conversation's own
@@ -51,6 +53,7 @@ const LlmLayout: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Page
       title="AI / LLM Observability"
+      titleRight={<ProductAboutButton product={ProductKey.Llm} />}
       breadcrumbLinks={getLlmBreadcrumbs(path)}
       headerRight={<LlmNavTabs active={getActiveLlmTab(path)} />}
     >

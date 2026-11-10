@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47298,
-    "untranslated": 11079
+    "keys": 48180,
+    "untranslated": 11061
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -16,6 +16,7 @@
     "A-Z",
     "AM",
     "AND",
+    "Access point",
     "Account",
     "Account: {{accounts}}",
     "Active + Clean",
@@ -146,6 +147,7 @@
     "Insight",
     "Internet",
     "IoT",
+    "Jitter (in ms)",
     "Job",
     "Kelvin",
     "Kernel",
@@ -222,6 +224,7 @@
     "Pool",
     "Pool {{name}}",
     "Pools",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
     "Principal",
@@ -278,6 +281,7 @@
     "Standard",
     "StatusPage",
     "Stratum",
+    "Switch",
     "TLS",
     "TTL",
     "TX",
@@ -489,6 +493,7 @@
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
+    "{{observation}} in {{readings}}",
     "{{size}} in {{duration}}",
     "{{up}}/{{count}} OSD up"
   ]

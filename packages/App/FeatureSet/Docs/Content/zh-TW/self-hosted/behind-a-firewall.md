@@ -73,7 +73,7 @@
 
 ### Twilio
 
-值班人員按 1 確認電話呼叫時，Twilio 會把按鍵 POST 到 `POST /api/user-notification-log-timeline/call/gather-input/*`。Twilio 傳送 webhook 的位址會變動，除非你的 Twilio 版本包含 [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy)。簡訊傳送狀態更新和來電請參閱 [Twilio 整合](/docs/self-hosted/twilio-integration)。
+值班人員按 1 確認電話呼叫時，Twilio 會把按鍵 POST 到 `POST /api/user-notification-log-timeline/call/gather-input/*`。Twilio 傳送 webhook 的位址會變動，除非你的 Twilio 版本包含 [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy)。簡訊傳送狀態更新、通話結果和來電請參閱 [Twilio 整合](/docs/self-hosted/twilio-integration)。
 
 ### WhatsApp
 

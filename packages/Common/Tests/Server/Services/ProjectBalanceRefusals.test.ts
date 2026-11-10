@@ -20,6 +20,8 @@ import TwilioConfig from "../../../Types/CallAndSMS/TwilioConfig";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import Phone from "../../../Types/Phone";
+import { TwilioMessageKind } from "../../../Utils/Project/TwilioAccount";
+import { TwilioConfigUse } from "../../../Types/CallAndSMS/TwilioConfigUse";
 import {
   getProjectNotificationChannelOffMessage,
   ProjectNotificationChannel,
@@ -119,6 +121,34 @@ function projectWithBalance(cents: number): Project {
 
 function readsProject(project: Project): void {
   getJestSpyOn(ProjectService, "findOneById").mockResolvedValue(project);
+}
+
+/*
+ * The project's own Twilio account: a config used for calls and SMS, unless
+ * it says otherwise. One used for calls only sends no SMS, and one used for
+ * SMS only makes no calls (TwilioPhoneNumbers.canSend): the project's
+ * default for the other kind of message is handed on when it has none for
+ * this one (#6574), and its balance pays for those.
+ */
+function projectTwilio(use?: TwilioConfigUse | undefined): TwilioConfig {
+  const config: TwilioConfig = {
+    accountSid: "AC1",
+    authToken: "token",
+    secondaryPhoneNumbers: [],
+  };
+
+  if (use === TwilioConfigUse.SmsOnly) {
+    config.use = use;
+    config.smsPhoneNumbers = [new Phone("+15551239999")];
+  } else {
+    config.primaryPhoneNumber = new Phone("+15551239999");
+
+    if (use) {
+      config.use = use;
+    }
+  }
+
+  return config;
 }
 
 function hasProjectTwilio(config: TwilioConfig | undefined): void {
@@ -260,7 +290,7 @@ describe("adding a phone number for SMS", () => {
 
   test("goes ahead whatever the balance when the project's own Twilio account pays", async () => {
     readsProject(projectWithBalance(0));
-    hasProjectTwilio({ accountSid: "AC1" } as unknown as TwilioConfig);
+    hasProjectTwilio(projectTwilio());
 
     await expect(
       hooksOf<UserSMS>(UserSmsService).onBeforeCreate(createBy(sms())),
@@ -274,6 +304,29 @@ describe("adding a phone number for SMS", () => {
     await expect(
       hooksOf<UserSMS>(UserSmsService).onBeforeCreate(createBy(sms())),
     ).resolves.toBeDefined();
+  });
+
+  test("is refused when the project's only default is used for calls only: its SMS are paid from the balance", async () => {
+    readsProject(projectWithBalance(LOW_BALANCE_IN_CENTS));
+    hasProjectTwilio(projectTwilio(TwilioConfigUse.CallsOnly));
+
+    expect(
+      await refusalOf(
+        hooksOf<UserSMS>(UserSmsService).onBeforeCreate(createBy(sms())),
+      ),
+    ).toBe(getProjectBalanceTooLowMessage(ProjectNotificationChannel.SMS));
+  });
+
+  test("asks for the project's default for SMS", async () => {
+    readsProject(projectWithBalance(0));
+    hasProjectTwilio(projectTwilio(TwilioConfigUse.SmsOnly));
+
+    await expect(
+      hooksOf<UserSMS>(UserSmsService).onBeforeCreate(createBy(sms())),
+    ).resolves.toBeDefined();
+    expect(
+      ProjectCallSMSConfigService.getProjectDefaultTwilioConfig,
+    ).toHaveBeenCalledWith(PROJECT_ID, TwilioMessageKind.SMS);
   });
 
   test("with SMS also off, says SMS is off first - turning it on comes before paying for it", async () => {
@@ -333,11 +386,34 @@ describe("adding a phone number for calls", () => {
 
   test("goes ahead whatever the balance when the project's own Twilio account pays", async () => {
     readsProject(projectWithBalance(0));
-    hasProjectTwilio({ accountSid: "AC1" } as unknown as TwilioConfig);
+    hasProjectTwilio(projectTwilio());
 
     await expect(
       hooksOf<UserCall>(UserCallService).onBeforeCreate(createBy(call())),
     ).resolves.toBeDefined();
+  });
+
+  test("is refused when the project's only default is used for SMS only: its calls are paid from the balance", async () => {
+    readsProject(projectWithBalance(0));
+    hasProjectTwilio(projectTwilio(TwilioConfigUse.SmsOnly));
+
+    expect(
+      await refusalOf(
+        hooksOf<UserCall>(UserCallService).onBeforeCreate(createBy(call())),
+      ),
+    ).toBe(getProjectBalanceTooLowMessage(ProjectNotificationChannel.Call));
+  });
+
+  test("asks for the project's default for calls", async () => {
+    readsProject(projectWithBalance(0));
+    hasProjectTwilio(projectTwilio(TwilioConfigUse.CallsOnly));
+
+    await expect(
+      hooksOf<UserCall>(UserCallService).onBeforeCreate(createBy(call())),
+    ).resolves.toBeDefined();
+    expect(
+      ProjectCallSMSConfigService.getProjectDefaultTwilioConfig,
+    ).toHaveBeenCalledWith(PROJECT_ID, TwilioMessageKind.Call);
   });
 
   test("calling with its code again is refused the same way", async () => {
@@ -433,7 +509,7 @@ describe("adding a number for incoming calls", () => {
 
   test("goes ahead whatever the balance when the project's own Twilio account pays", async () => {
     readsProject(projectWithBalance(0));
-    hasProjectTwilio({ accountSid: "AC1" } as unknown as TwilioConfig);
+    hasProjectTwilio(projectTwilio());
 
     await expect(
       hooksOf<UserIncomingCallNumber>(

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47298,
-    "untranslated": 6383
+    "keys": 48180,
+    "untranslated": 6372
   },
   "sameAsEnglish": [
     " incidents",
@@ -120,6 +120,7 @@
     "Canada (+1)",
     "Canonical Sunbeam",
     "Capture",
+    "Cause",
     "Celsius",
     "Chat",
     "Checkout primary",
@@ -425,6 +426,7 @@
     "Ports",
     "Portugal (+351)",
     "Position",
+    "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
     "Principal",
@@ -483,6 +485,7 @@
     "Stacks",
     "Standard",
     "StatusPage",
+    "Switch",
     "TLS",
     "TTL",
     "TX",

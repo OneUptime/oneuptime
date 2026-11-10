@@ -149,7 +149,10 @@ only the edge's line follows the pointer until it is let go. Its
 screenshots are `column-resize-*.png`.
 
 `Fixture/Fixture.js` records every list read on
-`window.__fixture.listRequests`, every write on `window.__fixture.updates`,
+`window.__fixture.listRequests`, every count on
+`window.__fixture.countRequests` (a product list counts its table once, to
+explain the product under its empty table while the project has none),
+every write on `window.__fixture.updates`,
 every delete on `window.__fixture.deletes`, every navigation on
 `window.__fixture.navigations`, and every read of a table it does not model
 on `window.__fixture.unmodelled` (the suite fails on any).

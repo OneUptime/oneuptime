@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.105",
+  "version": "14.0.106",
   "description": "",
   "repository": {
     "type": "git",
@@ -134,7 +134,8 @@
     "test-openstack-pages-ui": "playwright test --config playwright.openstack-pages-ui.config.ts",
     "test-kubernetes-pages-ui": "playwright test --config playwright.kubernetes-pages-ui.config.ts",
     "test-host-pages-ui": "playwright test --config playwright.host-pages-ui.config.ts",
-    "test-vmware-pages-ui": "playwright test --config playwright.vmware-pages-ui.config.ts"
+    "test-vmware-pages-ui": "playwright test --config playwright.vmware-pages-ui.config.ts",
+    "test-product-onboarding-ui": "playwright test --config playwright.product-onboarding-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

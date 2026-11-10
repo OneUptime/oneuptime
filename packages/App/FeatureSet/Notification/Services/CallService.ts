@@ -26,7 +26,11 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
-import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import {
+  Host,
+  HttpProtocol,
+  IsBillingEnabled,
+} from "Common/Server/EnvironmentConfig";
 import CallLogService from "Common/Server/Services/CallLogService";
 import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
@@ -376,6 +380,15 @@ export default class CallService {
         callLog.teamId = options.teamId;
       }
 
+      /*
+       * The on-call notification this call is made for: how the call ends -
+       * answered, not answered, busy, failed - is written back onto it
+       * (API/Call.ts's status callback).
+       */
+      if (options.userOnCallLogTimelineId) {
+        callLog.userOnCallLogTimelineId = options.userOnCallLogTimelineId;
+      }
+
       // Set OnCall-related fields
       if (options.onCallPolicyId) {
         callLog.onCallDutyPolicyId = options.onCallPolicyId;
@@ -596,10 +609,27 @@ export default class CallService {
           ).asUserError();
         }
 
+        /*
+         * How the call ends - answered, not answered, busy, failed - Twilio
+         * tells this call's own status callback (API/Call.ts) once it does,
+         * for a project's call, whose log is kept, from a server Twilio can
+         * reach (HOST).
+         */
+        const statusCallbackUrl: string | null = options.projectId
+          ? this.prepareStatusCallback(callLog)
+          : null;
+
         twillioCall = await client.calls.create({
           twiml: this.generateTwimlForCall(callRequest),
           to: callRequest.to.toString(),
           from: fromNumber.toString(), // From a valid Twilio number
+          ...(statusCallbackUrl
+            ? {
+                statusCallback: statusCallbackUrl,
+                statusCallbackEvent: ["completed"],
+                statusCallbackMethod: "POST",
+              }
+            : {}),
         });
 
         callLog.status = CallStatus.Success;
@@ -684,6 +714,29 @@ export default class CallService {
     }
 
     return null;
+  }
+
+  /*
+   * The URL Twilio tells how a call ended at - its status callback - or
+   * null when this server has no public host to be called back on. The
+   * call's log is given its id now, as it is written only once the call is
+   * placed, and an unguessable token the URL carries: the callback is a
+   * public webhook, and the token is what says it is Twilio's (the same as
+   * an SMS's delivery status, SmsService). Nginx serves the external
+   * /notification path from /api/notification, where the call router is.
+   */
+  public static prepareStatusCallback(callLog: CallLog): string | null {
+    if (!Host) {
+      return null;
+    }
+
+    if (!callLog.id) {
+      callLog.id = ObjectID.generate();
+    }
+
+    callLog.statusCallbackToken = ObjectID.generate().toString();
+
+    return `${HttpProtocol}${Host}/notification/call/status-callback/${callLog.id!.toString()}/${callLog.statusCallbackToken}`;
   }
 
   /*

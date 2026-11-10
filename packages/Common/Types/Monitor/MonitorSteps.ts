@@ -3,6 +3,7 @@ import BadDataException from "../Exception/BadDataException";
 import { JSONArray, JSONObject, ObjectType } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
 import ObjectID from "../ObjectID";
+import { Translator } from "../Translator";
 import MonitorStep from "./MonitorStep";
 import MonitorType from "./MonitorType";
 import { FindOperator } from "typeorm";
@@ -43,6 +44,8 @@ export default class MonitorSteps extends DatabaseProperty {
     defaultAlertSeverityId: ObjectID;
     // See MonitorCriteria.getDefaultMonitorCriteria.
     warningAlertSeverityId?: ObjectID | undefined;
+    // The reader's: see MonitorCriteria.getDefaultMonitorCriteria.
+    translator?: Translator | undefined;
   }): MonitorSteps {
     const monitorSteps: MonitorSteps = new MonitorSteps();
 

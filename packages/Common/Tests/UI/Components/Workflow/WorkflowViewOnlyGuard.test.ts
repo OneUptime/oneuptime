@@ -83,10 +83,16 @@ const OUTSIDE_THE_VIEW: Record<string, string> = {
   "WorkflowIssuesModal.tsx":
     "What the Builder's checks found: a row opens its step, which a view opens to be read.",
   "WorkflowRunExportActions.tsx": "Copies or downloads a run's log.",
+  "WorkflowSaveConflictModal.tsx":
+    "Someone else saved the workflow first: it opens only when a save from this Builder met a newer version, and a view saves nothing (the Builder page turns its editing off, UseWorkflowEditing).",
   "WorkflowStatusBar.tsx":
     "The Builder's status: View only in a view (readOnlyReason), and the run log and checks it opens change nothing.",
   "WorkflowTurnedOffNotice.tsx":
     "The note a turned-off workflow shows; the Builder page offers its Turn on only to who may turn the workflow on.",
+  "WorkflowUndoRedoButtons.tsx":
+    "Undo and Redo: the Builder page draws them only for who may change the workflow, and leaves them out of a view.",
+  "WorkflowVersionHistory.tsx":
+    "Version history: anyone who may open the workflow reads its versions and previews one (WorkflowVersionPreview, drawn only here); Restore takes the Builder page's edit-locked reason (restoreDisabledReason), so a view restores nothing.",
 };
 
 /*
@@ -210,6 +216,16 @@ const isOutsideTheView: (file: string, seen?: Set<string>) => boolean = (
 ): boolean => {
   if (OUTSIDE_THE_VIEW[file]) {
     return true;
+  }
+
+  /*
+   * What provides the view - the canvas, a step's dialog - is a view
+   * whenever it is told to be one, wherever it is drawn: the version
+   * history's preview draws the canvas, as a view, and that leaves neither
+   * the canvas nor the steps on it outside the view.
+   */
+  if (builderFile(file).readings.includes(ViewReading.ProvidesTheView)) {
+    return false;
   }
 
   if (seen.has(file)) {
@@ -791,6 +807,43 @@ describe("the view comes from getWorkflowEditGate", () => {
     expect(
       attributeValues(source, "WorkflowStatusBar", "readOnlyReason"),
     ).toEqual(["{editLockedReason}"]);
+  });
+
+  /*
+   * Why Undo and Redo, the version history and the save conflict dialog are
+   * no part of a view (OUTSIDE_THE_VIEW): the page draws them only for who
+   * may change the workflow, or tells them why not.
+   */
+  test("the Builder page keeps Undo, Redo, a restore and every save to who may change the workflow", () => {
+    const source: string = fs.readFileSync(BUILDER_PAGE_FILE, "utf8");
+
+    expect(source).toMatch(/!isViewOnly \? \(\s*<WorkflowUndoRedoButtons\b/);
+    expect(
+      attributeValues(
+        source,
+        "WorkflowVersionHistory",
+        "restoreDisabledReason",
+      ),
+    ).toEqual(["{editLockedReason}"]);
+    // A view saves nothing, so none of its saves meets a newer version.
+    expect(source).toContain("isEnabled: !isViewOnly && !isLoading,");
+  });
+
+  test("the version history hands its preview the reason, and the preview's canvas is a view", () => {
+    expect(
+      attributeValues(
+        readBuilderFile("WorkflowVersionHistory.tsx"),
+        "WorkflowVersionPreview",
+        "restoreDisabledReason",
+      ),
+    ).toEqual(["{props.restoreDisabledReason}"]);
+    expect(
+      attributeValues(
+        readBuilderFile("WorkflowVersionPreview.tsx"),
+        "Workflow",
+        "editDisabledReason",
+      ),
+    ).toHaveLength(1);
   });
 
   test("the canvas is a view while there is a reason, and its step's dialog is told why", () => {

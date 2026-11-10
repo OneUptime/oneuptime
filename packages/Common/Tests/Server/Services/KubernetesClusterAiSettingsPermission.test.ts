@@ -210,6 +210,18 @@ function cluster(overrides: Record<string, unknown> = {}): KubernetesCluster {
   } as unknown as KubernetesCluster;
 }
 
+/*
+ * The cluster as the update's own read of it (_findBy) hands it back: a
+ * KubernetesCluster instance. The update compares each column it writes
+ * with the row by the column's type (getChangedColumns), for the audit log
+ * that records every cluster's changes (AuditLogCoverage).
+ */
+function storedCluster(
+  overrides: Record<string, unknown> = {},
+): KubernetesCluster {
+  return Object.assign(new KubernetesCluster(), cluster(overrides));
+}
+
 // Writes that make AI do more on a never-configured cluster.
 const LOOSENING_WRITES: Array<[string, Record<string, unknown>]> = [
   [
@@ -1078,7 +1090,7 @@ describe("KubernetesCluster AI access through updateOneById", () => {
       .spyOn(KubernetesAiAgentService, "findForClusters")
       .mockResolvedValue(new Map<string, KubernetesAiAgent>());
     getJestSpyOn(KubernetesClusterService, "_findBy").mockResolvedValue([
-      cluster({
+      storedCluster({
         _id: CLUSTER_ID.toString(),
         aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
       }),
@@ -1140,7 +1152,7 @@ describe("KubernetesCluster AI access through updateOneById", () => {
 
   it("refuses a Settings Member turning fixes on from Off before anything is written", async () => {
     getJestSpyOn(KubernetesClusterService, "_findBy").mockResolvedValue([
-      cluster({
+      storedCluster({
         _id: CLUSTER_ID.toString(),
         aiRemediationMode: KubernetesAiRemediationMode.Disabled,
       }),
@@ -1161,7 +1173,7 @@ describe("KubernetesCluster AI access through updateOneById", () => {
 
   it("writes a Settings Member's clearing of the Runner of a cluster with an AI agent", async () => {
     getJestSpyOn(KubernetesClusterService, "_findBy").mockResolvedValue([
-      cluster({
+      storedCluster({
         _id: CLUSTER_ID.toString(),
         aiAccessRunnerId: RUNNER_ID,
       }),

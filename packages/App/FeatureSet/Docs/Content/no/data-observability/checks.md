@@ -42,6 +42,8 @@ Sett **Varsle når** for å varsle på en sjekk:
 
 Når du lagrer sjekken, opprettes en metrikkmonitor for den, som deg og med dine tillatelser. Fjerner du betingelsen, fjernes monitoren.
 
+**Status** for en sjekk, under **Sjekker** og på fanen **Sjekker** for tabellen, sier hvordan den står: **Feiler** mens varselet er åpent, **Består** mens det ikke er det, og **Kunne ikke kjøre** når spørringen feilet. En sjekk uten varsel viser bare **Kjørte**: spørringen virket. En sjekk som feiler, og en som ikke kunne kjøre, står også på **Oversikt**.
+
 ## Hva en sjekk koster
 
 En sjekk konkurrerer med applikasjonen din om databasen, og på et datavarehus som fakturerer etter det en spørring leser, koster den penger. Tre ting holder det under kontroll:

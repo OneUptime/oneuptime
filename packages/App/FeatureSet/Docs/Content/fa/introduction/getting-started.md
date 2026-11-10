@@ -93,6 +93,7 @@ flowchart TB
 - [مرجع API](/docs/api-reference/api-reference): OneUptime را با REST API آن خودکار کنید.
 - [CLI](/docs/cli/index): OneUptime را از ترمینال و CI خود مدیریت کنید.
 - [ارائه‌دهنده Terraform](/docs/terraform/index): مانیتورها، صفحات وضعیت و آنکال را به‌صورت کد مدیریت کنید.
+- [ارائه‌دهنده Crossplane](/docs/crossplane/index): پروژه خود را با Crossplane از Kubernetes مدیریت کنید.
 :::
 
 ### مدیریت

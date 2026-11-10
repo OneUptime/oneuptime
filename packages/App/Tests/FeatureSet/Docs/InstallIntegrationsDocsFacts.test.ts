@@ -4,6 +4,9 @@ import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import TwilioConfigDefaults, {
+  TwilioConfigDefaultFlags,
+} from "Common/Types/CallAndSMS/TwilioConfigDefaults";
 import TwilioConfigUses, {
   DEFAULT_TWILIO_CONFIG_USE,
   PRIMARY_PHONE_NUMBER_TITLE,
@@ -42,6 +45,9 @@ import {
   SMS_NUMBER_HINT,
   TWILIO_FROM_NUMBER_CANNOT_SEND_SMS_CODE,
 } from "../../../FeatureSet/Notification/Utils/TwilioSendError";
+import TwilioConfigDefaultCopy, {
+  getSetDefaultTitle,
+} from "../../../FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigDefaultCopy";
 import TwilioConfigUseCopy, {
   TwilioConfigUseOption,
   getTwilioConfigUseOptions,
@@ -161,6 +167,7 @@ const SOURCES: Record<string, string> = {
     "packages/App/FeatureSet/Workers/DataMigrations/UpdateGlobalCongfigFromEnv.ts",
   notificationIndex: `${NOTIFICATION}/Index.ts`,
   smsApi: `${NOTIFICATION}/API/SMS.ts`,
+  callApi: `${NOTIFICATION}/API/Call.ts`,
   incomingCallApi: `${NOTIFICATION}/API/IncomingCall.ts`,
   callTimelineApi: `${COMMON_SERVER}/API/UserOnCallLogTimelineAPI.ts`,
   callTimelineModel:
@@ -3228,12 +3235,16 @@ describe("Twilio Integration, against the notification server and the forms", ()
 
     expect(paths).toEqual([
       "/notification/sms/status-callback/:smsLogId/:token",
+      "/notification/call/status-callback/:callLogId/:token",
       "/api/user-notification-log-timeline/call/gather-input/:itemId?token=...",
       "/notification/incoming-call/voice",
       "/notification/incoming-call/dial-status/:callLogId/:callLogItemId",
     ]);
     expect(index).toContain('const APP_NAME: string = "api/notification";');
     expect(index).toContain('app.use([`/${APP_NAME}/sms`, "/sms"], SmsAPI);');
+    expect(index).toContain(
+      'app.use([`/${APP_NAME}/call`, "/call"], CallAPI);',
+    );
     expect(index).toContain(
       'app.use([`/${APP_NAME}/incoming-call`, "/incoming-call"], IncomingCallAPI);',
     );
@@ -3242,6 +3253,13 @@ describe("Twilio Integration, against the notification server and the forms", ()
         readSource("smsApi"),
         "post",
         "/status-callback/:smsLogId/:token",
+      ),
+    ).toBe(true);
+    expect(
+      registersRoute(
+        readSource("callApi"),
+        "post",
+        "/status-callback/:callLogId/:token",
       ),
     ).toBe(true);
     expect(registersRoute(incoming, "post", "/voice")).toBe(true);
@@ -3817,9 +3835,145 @@ describe("Twilio Integration, against the notification server and the forms", ()
       }
     });
 
-    it("what a config does not send goes as without it, and the log says why and who can change that", () => {
+    /*
+     * A project has a default for SMS and one for calls (#6574): a config
+     * for SMS only and one for calls only are the default together, each
+     * for what it sends, as the rule the server settles defaults by says.
+     */
+    it("a project has a default for SMS and one for calls, and the row menu sets each", () => {
       expect(section).toContain(
-        "What a configuration does not send goes as it would without the configuration: when the project default is used for **SMS only**, calls to the project's members go through the installation-wide configuration.",
+        "A project has a default for SMS and a default for calls, and a configuration is the default for what it sends.",
+      );
+
+      // A column for each, which the senders read for what they send.
+      const columns: Record<string, unknown> = getTableColumns(
+        new ProjectCallSMSConfig(),
+      ) as Record<string, unknown>;
+
+      for (const kind of [TwilioMessageKind.SMS, TwilioMessageKind.Call]) {
+        const column: string = TwilioConfigDefaults.getDefaultColumn(kind);
+
+        expect({ kind, column, defined: Boolean(columns[column]) }).toEqual({
+          kind,
+          column,
+          defined: true,
+        });
+      }
+
+      // The row menu's actions, in the words the section quotes.
+      expect(TwilioConfigDefaultCopy.setSmsDefaultTitle).toBe(
+        "Set as Project Default for SMS",
+      );
+      expect(TwilioConfigDefaultCopy.setCallsDefaultTitle).toBe(
+        "Set as Project Default for Calls",
+      );
+      expect(table).toContain(
+        "getSetDefaultAction(TwilioConfigDefaultCopy.setSmsDefaultTitle)",
+      );
+      expect(table).toContain(
+        "getSetDefaultAction(TwilioConfigDefaultCopy.setCallsDefaultTitle)",
+      );
+      expect(section).toContain(
+        "In a configuration's row menu, **Set as Project Default for SMS** or **Set as Project Default for Calls** makes it the default for what it sends and leaves the other default as it is, so an **SMS only** configuration and a **Calls only** configuration can both be the default.",
+      );
+
+      const only: (
+        flags: Partial<TwilioConfigDefaultFlags>,
+      ) => TwilioConfigDefaultFlags = (
+        flags: Partial<TwilioConfigDefaultFlags>,
+      ): TwilioConfigDefaultFlags => {
+        return {
+          isProjectDefault: false,
+          isProjectDefaultForSms: false,
+          isProjectDefaultForCalls: false,
+          ...flags,
+        };
+      };
+
+      // An SMS only config made the default leaves the calls where they are.
+      const smsMadeDefault: Map<string, TwilioConfigDefaultFlags> =
+        TwilioConfigDefaults.getProjectDefaults({
+          configs: [
+            {
+              id: "calls",
+              use: TwilioConfigUse.CallsOnly,
+              isProjectDefault: true,
+              isProjectDefaultForCalls: true,
+            },
+            { id: "sms", use: TwilioConfigUse.SmsOnly, isProjectDefault: true },
+          ],
+          madeDefaultIds: ["sms"],
+        });
+
+      expect(smsMadeDefault.get("calls")).toEqual(
+        only({ isProjectDefault: true, isProjectDefaultForCalls: true }),
+      );
+      expect(smsMadeDefault.get("sms")).toEqual(
+        only({ isProjectDefault: true, isProjectDefaultForSms: true }),
+      );
+      expect(getSetDefaultTitle({ usedFor: TwilioConfigUse.SmsOnly })).toBe(
+        TwilioConfigDefaultCopy.setSmsDefaultTitle,
+      );
+      expect(getSetDefaultTitle({ usedFor: TwilioConfigUse.CallsOnly })).toBe(
+        TwilioConfigDefaultCopy.setCallsDefaultTitle,
+      );
+
+      // One for calls and SMS takes both, from the two that had them.
+      expect(section).toContain(
+        "A configuration used for **Calls and SMS** takes both.",
+      );
+
+      const bothMadeDefault: Map<string, TwilioConfigDefaultFlags> =
+        TwilioConfigDefaults.getProjectDefaults({
+          configs: [
+            {
+              id: "calls",
+              use: TwilioConfigUse.CallsOnly,
+              isProjectDefault: true,
+              isProjectDefaultForCalls: true,
+            },
+            {
+              id: "sms",
+              use: TwilioConfigUse.SmsOnly,
+              isProjectDefault: true,
+              isProjectDefaultForSms: true,
+            },
+            {
+              id: "both",
+              use: TwilioConfigUse.CallsAndSms,
+              isProjectDefault: true,
+            },
+          ],
+          madeDefaultIds: ["both"],
+        });
+
+      expect(bothMadeDefault.get("both")).toEqual(
+        only({
+          isProjectDefault: true,
+          isProjectDefaultForSms: true,
+          isProjectDefaultForCalls: true,
+        }),
+      );
+      expect(bothMadeDefault.get("calls")).toEqual(only({}));
+      expect(bothMadeDefault.get("sms")).toEqual(only({}));
+
+      // The column that says what each is the default for, and the way out.
+      expect(TwilioConfigDefaultCopy.stopDefaultTitle).toBe(
+        "Stop Using as Project Default",
+      );
+      expect(table).toContain('title: "Project Default"');
+      expect(table).toContain("getProjectDefaultPillText(item)");
+      expect(table).toContain(
+        "title: TwilioConfigDefaultCopy.stopDefaultTitle",
+      );
+      expect(section).toContain(
+        "The **Project Default** column says what each configuration is the default for, and **Stop Using as Project Default** in the row menu ends that.",
+      );
+    });
+
+    it("what no default sends goes as without a config, and the log says why and who can change that", () => {
+      expect(section).toContain(
+        "What no default sends goes as it would without a configuration: while the only default is used for **SMS only**, calls to the project's members go through the installation-wide configuration.",
       );
 
       /*
@@ -3961,7 +4115,7 @@ describe("Twilio Integration, against the notification server and the forms", ()
           "Calls or SMS go through another account than the project's",
         )[1],
       ).toBe(
-        "The project default is used for **SMS only** or **Calls only**: see [An account for SMS only, or calls only](#an-account-for-sms-only-or-calls-only).",
+        "No configuration is the project default for them: the **Project Default** column says what each configuration is the default for. See [An account for SMS only, or calls only](#an-account-for-sms-only-or-calls-only).",
       );
     });
   });

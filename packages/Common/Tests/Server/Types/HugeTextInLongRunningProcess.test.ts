@@ -555,12 +555,23 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
 
           results["incoming webhook card: " + name] = await attempt(() => {
             const card = MicrosoftTeamsUtil["buildMessageCardFromMarkdown"](markdown);
-            const text = (card.sections && card.sections[0] && card.sections[0].text) || "";
+            /*
+             * The card's sections are its text and facts in the order they
+             * were written, and Teams draws a section's text above its
+             * facts (toMessageCardSections): the note is the last thing
+             * drawn when the last section is its text alone. A response
+             * body after a label is a fact, so the note after it is a
+             * section of its own.
+             */
+            const sections = card.sections || [];
+            const last = sections[sections.length - 1] || {};
 
             return {
               "is titled with the first line": card.title === "Before",
               "fits the budget, as Teams counts it": JSON.stringify(card).length * 2 <= 80 * 1024,
-              "ends with the note": text.endsWith("_… (truncated — see OneUptime for the full text)_"),
+              "ends with the note":
+                (last.text || "").endsWith("_… (truncated — see OneUptime for the full text)_") &&
+                !(last.facts && last.facts.length > 0),
             };
           });
 
@@ -1026,6 +1037,74 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
 
     expectUnoptimizedProcess(report);
     expect(Object.keys(report.results)).toHaveLength(1);
+    expectEveryCheckPassed(report);
+  }, 600000);
+
+  /*
+   * An SLO's error budget policy change, as its Slack, Microsoft Teams and
+   * Mattermost rules post it (getSloFeedChatMarkdown): the team's agreement
+   * for the tier goes in as the Markdown it was written in, with its chat
+   * mentions broken and an inline image as its alt text - over the whole
+   * agreement, however long, before a sender cuts the message.
+   */
+  test("an SLO tier's agreement reaches its chat message whole, its mentions broken, its image as words", () => {
+    const report: ProcessReport = runUnoptimized(
+      [
+        'export { getSloFeedChatMarkdown, getSloPolicyTierChangedFeedParts } from "./Utils/Slo/SloFeedMarkdown";',
+        'export { default as FeedMarkdown } from "./Utils/Markdown/FeedMarkdown";',
+      ],
+      String.raw`
+        const chatMessage = (whatWeDo) => {
+          return lib
+            .getSloFeedChatMarkdown(
+              lib.getSloPolicyTierChangedFeedParts({
+                sloMarkdownLink: lib.FeedMarkdown.asMarkdown(
+                  "[SLO Checkout](https://oneuptime.com/dashboard/slos/slo-1)",
+                ),
+                previousTierName: "Caution",
+                newTier: {
+                  name: "Budget exhausted",
+                  thresholdPercentage: 0,
+                  whatWeDo: whatWeDo,
+                },
+                isEscalation: true,
+                errorBudgetRemainingPercentage: -4.17,
+                errorBudgetRemainingSeconds: -36,
+              }),
+            )
+            .toString();
+        };
+
+        for (const [name, input] of Object.entries(markdownInputs)) {
+          results[name] = await attempt(() => {
+            const markdown = chatMessage(input() + "\n\nPage <!channel> now.");
+
+            return {
+              "keeps the agreement's start": markdown.includes("HEAD"),
+              "keeps the agreement's end": markdown.endsWith("Page <⁠!channel> now."),
+              "breaks the mention": !markdown.includes("<!channel>"),
+            };
+          });
+        }
+
+        results["a screenshot of sixteen megabytes"] = await attempt(() => {
+          const markdown = chatMessage(
+            "HEAD\n\n![burn-down](data:image/png;base64," +
+              repeatTo("A", SIZE) +
+              ")\n\nTAIL",
+          );
+
+          return {
+            "drops the image's data": !markdown.includes("data:image/png"),
+            "keeps its alt text": markdown.includes("burn\\-down"),
+            "keeps what is around it": markdown.includes("HEAD") && markdown.endsWith("TAIL"),
+          };
+        });
+      `,
+    );
+
+    expectUnoptimizedProcess(report);
+    expect(Object.keys(report.results)).toHaveLength(10);
     expectEveryCheckPassed(report);
   }, 600000);
 

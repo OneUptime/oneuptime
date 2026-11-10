@@ -8,6 +8,8 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement, Suspense } from "react";
 import { Location, matchPath, Outlet, useLocation } from "react-router-dom";
+import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
+import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const InventoryLayout: FunctionComponent<LayoutPageComponentProps> = (
   _props: LayoutPageComponentProps,
@@ -41,6 +43,11 @@ const InventoryLayout: FunctionComponent<LayoutPageComponentProps> = (
   return (
     <Page
       title={isTopology ? "Topology" : "Inventory"}
+      titleRight={
+        <ProductAboutButton
+          product={isTopology ? ProductKey.Topology : ProductKey.Inventory}
+        />
+      }
       description={
         isTopology
           ? "Understand how your services, infrastructure, and network connect."

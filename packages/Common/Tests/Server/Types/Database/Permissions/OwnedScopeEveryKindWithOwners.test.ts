@@ -36,7 +36,12 @@ import OnCallDutyPolicySchedule from "../../../../../Models/DatabaseModels/OnCal
 import OnCallDutyPolicyScheduleCalendarFeed from "../../../../../Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import OnCallDutyPolicyScheduleLayer from "../../../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "../../../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
+import CustomRole from "../../../../../Models/DatabaseModels/CustomRole";
 import Team from "../../../../../Models/DatabaseModels/Team";
+import TeamComplianceSetting from "../../../../../Models/DatabaseModels/TeamComplianceSetting";
+import TeamCustomRole from "../../../../../Models/DatabaseModels/TeamCustomRole";
+import TeamMember from "../../../../../Models/DatabaseModels/TeamMember";
+import TeamPermission from "../../../../../Models/DatabaseModels/TeamPermission";
 import WorkspaceUserGroup from "../../../../../Models/DatabaseModels/WorkspaceUserGroup";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { OwnedThroughMetadata } from "../../../../../Types/Database/AccessControl/OwnedThrough";
@@ -155,6 +160,12 @@ interface PartOfAKind {
   modelType: ModelType;
   kind: ModelType;
   fkColumn: string;
+  /*
+   * An operation every signed-in person is granted on the part, which the
+   * scope therefore never narrows, with why that is safe: the columns it
+   * may change, and who it lets change them.
+   */
+  notNarrowed?: Partial<Record<DatabaseRequestType, string>> | undefined;
 }
 
 const PARTS_OF_A_KIND: Array<PartOfAKind> = [
@@ -243,11 +254,43 @@ const PARTS_OF_A_KIND: Array<PartOfAKind> = [
   },
 ];
 
+/*
+ * The records that are part of a team and take their owners from it: who is
+ * in it, what it may do (its permissions and custom roles) and its
+ * compliance rules. A team's owners look after them, with the team
+ * permissions scoped to Owned. Held to the same rules as the parts above;
+ * kept apart from them because the records that NAME a team are not swept
+ * (KINDS_WHOSE_NAMERS_ARE_SWEPT): a team is picked as an owner, an on-call
+ * responder or a recipient everywhere, which reading it allows, and every
+ * reader of teams reads every team.
+ */
+const PARTS_OF_A_TEAM: Array<PartOfAKind> = [
+  {
+    modelType: TeamMember,
+    kind: Team,
+    fkColumn: "teamId",
+    notNarrowed: {
+      [DatabaseRequestType.Update]:
+        "the only columns a membership's update changes are its invitation's acceptance, which CurrentUser - every signed-in person - writes, and which TeamMemberService lets only the invited person write, for themselves",
+    },
+  },
+  { modelType: TeamPermission, kind: Team, fkColumn: "teamId" },
+  { modelType: TeamCustomRole, kind: Team, fkColumn: "teamId" },
+  { modelType: TeamComplianceSetting, kind: Team, fkColumn: "teamId" },
+];
+
 function modelNamed(name: string): ModelType | undefined {
   return MODEL_TYPES.find((modelType: ModelType): boolean => {
     return modelType.name === name;
   });
 }
+
+/*
+ * The owner columns of every owner table: the person and the team who own
+ * the record. A team's own owner tables name the team they own by another
+ * column (ownedTeamId), as teamId is the owning team's.
+ */
+const OWNER_COLUMNS: Array<string> = ["userId", "teamId"];
 
 // One owner table of the schema, found by its name, and the kind it owns.
 interface OwnerTable {
@@ -271,7 +314,8 @@ function ownerTableOf(modelType: ModelType): OwnerTable {
       metadata &&
       metadata.type === TableColumnType.Entity &&
       metadata.modelType &&
-      (metadata.modelType as ModelType).name === kind
+      (metadata.modelType as ModelType).name === kind &&
+      !OWNER_COLUMNS.includes(metadata.manyToOneRelationColumn || "")
     ) {
       fkColumn = metadata.manyToOneRelationColumn;
     }
@@ -465,6 +509,7 @@ describe("every kind with owners is one the Owned scope narrows", () => {
       "Probe",
       "Runner",
       "AIAgent",
+      "Team",
     ]) {
       expect([kind, KINDS_WITH_OWNER_TABLES.includes(kind)]).toEqual([
         kind,
@@ -629,9 +674,13 @@ describe("what every reader of a kind reads in full", () => {
   });
 
   test("a record of no kind with owners has nothing for the scope to narrow, and no reads it leaves alone", () => {
+    /*
+     * A custom role is shared by every team given it: it has no owners, and
+     * a grant scoped to Owned does not change one (CustomRoleService).
+     */
     for (const modelType of [
       Label,
-      Team,
+      CustomRole,
       IncidentState,
       WorkspaceUserGroup,
     ] as Array<ModelType>) {
@@ -784,7 +833,7 @@ describe.each(Array.from(OwnerTableRegistry.keys()))(
   },
 );
 
-describe.each(PARTS_OF_A_KIND)(
+describe.each([...PARTS_OF_A_KIND, ...PARTS_OF_A_TEAM])(
   "$modelType.name, part of its $kind.name",
   (part: PartOfAKind) => {
     const kindName: string = part.kind.name;
@@ -877,7 +926,9 @@ describe.each(PARTS_OF_A_KIND)(
           part.modelType.name,
           type,
           true,
-          type === DatabaseRequestType.Read && isReadByEveryReader(kindName),
+          (type === DatabaseRequestType.Read &&
+            isReadByEveryReader(kindName)) ||
+            Boolean(part.notNarrowed?.[type]),
         ]);
       }
     });
