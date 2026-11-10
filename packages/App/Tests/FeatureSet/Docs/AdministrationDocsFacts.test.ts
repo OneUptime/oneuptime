@@ -838,11 +838,13 @@ describe("Inviting People", () => {
     expect(users).toContain(
       '"Each selected user will be removed from every team in this project and lose access to it immediately."',
     );
+    // Remove Team Members too (#6561); scoped to Owned, it removes someone from the project only when it reaches every team of theirs.
     expect(sorted(new TeamMember().getDeletePermissions())).toEqual(
       sorted([
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.DeleteProjectTeam,
+        Permission.RemoveProjectTeamMembers,
       ]),
     );
     expect(section(page, "## Remove someone from the project")).toContain(
