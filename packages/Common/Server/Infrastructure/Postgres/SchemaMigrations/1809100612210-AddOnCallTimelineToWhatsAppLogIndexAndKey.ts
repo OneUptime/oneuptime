@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddOnCallTimelineToWhatsAppLog1809100200000, and moved into a migration of
+ * AddOnCallTimelineToWhatsAppLog1809100612200, and moved into a migration of
  * its own: "WhatsAppLog" already holds every WhatsApp message a project
  * sent, and every message that goes out writes to it, so the index on its
  * new "userOnCallLogTimelineId" column is built online, and the foreign key
@@ -15,11 +15,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Safe to run again after a stop part way: an index or key that is already
  * there is left as it is.
  */
-export class AddOnCallTimelineToWhatsAppLogIndexAndKey1809100210000
+export class AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210
   implements MigrationInterface
 {
   public name: string =
-    "AddOnCallTimelineToWhatsAppLogIndexAndKey1809100210000";
+    "AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210";
 
   // CREATE INDEX CONCURRENTLY and the validation run outside a transaction.
   public transaction: boolean = false;

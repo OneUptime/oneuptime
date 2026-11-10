@@ -23,13 +23,16 @@ import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
  *  - direct_message: to one person, the notification methods' own - an
  *    on-call page's among them (WorkspaceUserNotificationService).
  *  - channel: a post into each channel - or Microsoft Teams group chat - a
- *    message names, as the project's bot: workspace notification rules, a
- *    rule's test message, live run messages, a reposted live message (each
- *    workspace's sendMessage, through WorkspaceChannelPosts). One post a
- *    channel, however many messages Slack's block limit or Teams' card size
- *    splits it into. A channel that could not be found or read is a
- *    failure; a blocked project's message, not sent, once for each channel
- *    it names (WorkspaceUtil). Editing a message already posted is no post.
+ *    message names, as the project's bot, whatever asked for it: workspace
+ *    notification rules and their test messages, live run messages and
+ *    their reposts, summaries, playbook steps, the answer to an action
+ *    taken in the chat (each workspace's sendMessage, through
+ *    WorkspaceChannelPosts). One post a channel, however many messages
+ *    Slack's block limit or Teams' card size splits it into. A channel that
+ *    could not be found or read is a failure - but for one the message is
+ *    not for (exceptChannelIds), which it would not have been posted in; a
+ *    blocked project's message, not sent, once for each channel it names
+ *    (WorkspaceUtil). Editing a message already posted is no post.
  *  - incoming_webhook: a post to an incoming webhook somebody made - a
  *    status page subscriber's Slack or Microsoft Teams webhook (each
  *    workspace's sendMessageToChannelViaIncomingWebhook). A workflow's
@@ -92,6 +95,8 @@ export interface WorkspaceChannelPost {
 export class WorkspaceChannelPosts {
   private readonly start: NotificationDispatchStart | null;
   private readonly destinationCount: number;
+  // The channels the message is not for (WorkspaceMessagePayload.exceptChannelIds).
+  private readonly exceptChannelIds: ReadonlyArray<string>;
   private recordedCount: number = 0;
 
   public constructor(data: {
@@ -105,6 +110,7 @@ export class WorkspaceChannelPosts {
       data.payload,
       data.workspaceType,
     );
+    this.exceptChannelIds = data.payload.exceptChannelIds || [];
   }
 
   // A post into a channel, its request about to be made.
@@ -130,10 +136,16 @@ export class WorkspaceChannelPosts {
   /*
    * A channel the message names that it could not be posted in before any
    * request to post: not found - renamed, deleted, private to the bot - or
-   * not read.
+   * not read. A channel named by an id the message is not for
+   * (exceptChannelIds) is nothing: it would not have been posted in, found
+   * or not, and countDestinations leaves it out too.
    */
-  public recordChannelNotFound(): void {
+  public recordChannelNotFound(channelId?: string | undefined): void {
     if (!this.start) {
+      return;
+    }
+
+    if (channelId && this.exceptChannelIds.includes(channelId)) {
       return;
     }
 

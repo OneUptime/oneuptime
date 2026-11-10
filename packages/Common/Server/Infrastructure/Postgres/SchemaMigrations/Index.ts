@@ -954,9 +954,9 @@ import { AddNotificationChannelsToOnCallDutyPolicyExecutionLogTimeline1809090065
 import { AddTwilioConfigDefaultPerKind1809090657400 } from "./1809090657400-AddTwilioConfigDefaultPerKind";
 import { AddRumApplicationProductAnalyticsEvents1809096444000 } from "./1809096444000-AddRumApplicationProductAnalyticsEvents";
 import { AddNetworkDeviceNamingRules1809100066190 } from "./1809100066190-AddNetworkDeviceNamingRules";
-import { AddOnCallTimelineToWhatsAppLog1809100200000 } from "./1809100200000-AddOnCallTimelineToWhatsAppLog";
-import { AddOnCallTimelineToWhatsAppLogIndexAndKey1809100210000 } from "./1809100210000-AddOnCallTimelineToWhatsAppLogIndexAndKey";
 import { AddDataDashboardUsageAndRefreshes1809100612000 } from "./1809100612000-AddDataDashboardUsageAndRefreshes";
+import { AddOnCallTimelineToWhatsAppLog1809100612200 } from "./1809100612200-AddOnCallTimelineToWhatsAppLog";
+import { AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210 } from "./1809100612210-AddOnCallTimelineToWhatsAppLogIndexAndKey";
 
 export default [
   InitialMigration,
@@ -1915,7 +1915,7 @@ export default [
   AddTwilioConfigDefaultPerKind1809090657400,
   AddRumApplicationProductAnalyticsEvents1809096444000,
   AddNetworkDeviceNamingRules1809100066190,
-  AddOnCallTimelineToWhatsAppLog1809100200000,
-  AddOnCallTimelineToWhatsAppLogIndexAndKey1809100210000,
   AddDataDashboardUsageAndRefreshes1809100612000,
+  AddOnCallTimelineToWhatsAppLog1809100612200,
+  AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210,
 ];

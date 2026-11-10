@@ -315,6 +315,7 @@ describe("WorkspaceChannelPosts", () => {
       channelNames?: Array<string> | undefined;
       channelIds?: Array<string> | undefined;
       chatIds?: Array<string> | undefined;
+      exceptChannelIds?: Array<string> | undefined;
     } = { channelIds: ["C1", "C2", "C3"] },
   ): WorkspaceChannelPosts {
     return new WorkspaceChannelPosts({
@@ -370,6 +371,52 @@ describe("WorkspaceChannelPosts", () => {
 
     expect(counted()).toEqual([channelPost("slack", "failure")]);
     expect(sendDurationCalls).toEqual([]);
+  });
+
+  test("a channel named by an id the message is not for, that could not be read: nothing - it would not have been posted in", () => {
+    const posts: WorkspaceChannelPosts = postsFor(WorkspaceType.Mattermost, {
+      channelIds: ["C1", "C2"],
+      exceptChannelIds: ["C2"],
+    });
+
+    posts.recordChannelNotFound("C2");
+
+    expect(sendCounterCalls).toEqual([]);
+    expect(sendDurationCalls).toEqual([]);
+  });
+
+  test("a channel the message is for, or a name, that could not be found: a failure each, though the message is not for another", () => {
+    const posts: WorkspaceChannelPosts = postsFor(
+      WorkspaceType.MicrosoftTeams,
+      {
+        channelNames: ["Alerts"],
+        channelIds: ["C1", "C2"],
+        exceptChannelIds: ["C2"],
+      },
+    );
+
+    posts.recordChannelNotFound("C1");
+    // A name is not known to be the channel left out until it is found.
+    posts.recordChannelNotFound();
+
+    expect(counted()).toEqual([
+      channelPost("microsoft_teams", "failure"),
+      channelPost("microsoft_teams", "failure"),
+    ]);
+  });
+
+  test("a message failing as a whole after a channel it is not for could not be read: each channel it is for, not tried yet, is a failure - and only those", () => {
+    const posts: WorkspaceChannelPosts = postsFor(WorkspaceType.Mattermost, {
+      channelIds: ["C1", "C2", "C3"],
+      exceptChannelIds: ["C2"],
+    });
+
+    posts.startPost().succeeded();
+    posts.recordChannelNotFound("C2");
+    posts.recordRestAsFailed();
+
+    // C1 posted, C3 failed as a whole; C2 neither.
+    expect(outcomes()).toEqual(["success", "failure"]);
   });
 
   test("a message failing as a whole: each channel not tried yet is a failure, untimed", () => {
@@ -1028,6 +1075,40 @@ describe("MicrosoftTeamsUtil.sendMessage: a post a channel or chat", () => {
     expect(outcomes()).toEqual(["success"]);
   });
 
+  test("a channel the message is not for, that Teams could not read: neither posted in nor counted", async () => {
+    jest
+      .spyOn(MicrosoftTeamsUtil, "getWorkspaceChannelFromChannelId")
+      .mockImplementation(
+        async (data: { channelId: string }): Promise<WorkspaceChannel> => {
+          if (data.channelId === "19:b@thread.tacv2") {
+            throw new HTTPErrorResponse(
+              404,
+              { error: { message: "Not found." } },
+              {},
+            );
+          }
+
+          return channel(data.channelId);
+        },
+      );
+
+    await MicrosoftTeamsUtil.sendMessage({
+      workspaceMessagePayload: payloadFor({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        channelIds: ["19:a@thread.tacv2", "19:b@thread.tacv2"],
+        exceptChannelIds: ["19:b@thread.tacv2"],
+        teamId: TEAM_ID,
+      }),
+      authToken: "graph-token",
+      userId: "user-1",
+      projectId: PROJECT_ID,
+    });
+
+    expect(sendToChannel).toHaveBeenCalledTimes(1);
+    expect(counted()).toEqual([channelPost("microsoft_teams", "success")]);
+    expect(sendDurationCalls).toHaveLength(1);
+  });
+
   test("a message naming channels but no team: each channel and chat it names is a failure, and the error is passed on", async () => {
     await expect(
       send({
@@ -1235,6 +1316,19 @@ describe("MattermostUtil.sendMessage: a post a channel", () => {
 
     expect(posted).toEqual([PUBLIC_CHANNEL_ID]);
     expect(outcomes()).toEqual(["success"]);
+  });
+
+  test("a channel the message is not for, that could not be read: neither posted in nor counted", async () => {
+    const GONE_CHANNEL_ID: string = "z".repeat(26);
+
+    await send({
+      channelIds: [PUBLIC_CHANNEL_ID, GONE_CHANNEL_ID],
+      exceptChannelIds: [GONE_CHANNEL_ID],
+    });
+
+    expect(posted).toEqual([PUBLIC_CHANNEL_ID]);
+    expect(counted()).toEqual([channelPost("mattermost", "success")]);
+    expect(sendDurationCalls).toHaveLength(1);
   });
 
   test("a connection that is no connection: each channel the message names is a failure, and the error is passed on", async () => {

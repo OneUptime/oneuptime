@@ -1,7 +1,7 @@
 import WhatsAppLog from "../../../../Models/DatabaseModels/WhatsAppLog";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { AddOnCallTimelineToWhatsAppLog1809100200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809100200000-AddOnCallTimelineToWhatsAppLog";
-import { AddOnCallTimelineToWhatsAppLogIndexAndKey1809100210000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809100210000-AddOnCallTimelineToWhatsAppLogIndexAndKey";
+import { AddOnCallTimelineToWhatsAppLog1809100612200 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809100612200-AddOnCallTimelineToWhatsAppLog";
+import { AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809100612210-AddOnCallTimelineToWhatsAppLogIndexAndKey";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import {
   DefaultNamingStrategy,
@@ -83,10 +83,10 @@ function columnOf(property: string): ColumnMetadataArgs | undefined {
     .pop();
 }
 
-describe("AddOnCallTimelineToWhatsAppLog1809100200000", () => {
+describe("AddOnCallTimelineToWhatsAppLog1809100612200", () => {
   test("adds the notification's column - and nothing else", async () => {
-    const migration: AddOnCallTimelineToWhatsAppLog1809100200000 =
-      new AddOnCallTimelineToWhatsAppLog1809100200000();
+    const migration: AddOnCallTimelineToWhatsAppLog1809100612200 =
+      new AddOnCallTimelineToWhatsAppLog1809100612200();
 
     expect(
       await statementsOf((runner: QueryRunner) => {
@@ -98,7 +98,7 @@ describe("AddOnCallTimelineToWhatsAppLog1809100200000", () => {
   test("never rewrites the table: the column is nullable, with no default", async () => {
     const statements: Array<string> = await statementsOf(
       (runner: QueryRunner) => {
-        return new AddOnCallTimelineToWhatsAppLog1809100200000().up(runner);
+        return new AddOnCallTimelineToWhatsAppLog1809100612200().up(runner);
       },
     );
 
@@ -112,7 +112,7 @@ describe("AddOnCallTimelineToWhatsAppLog1809100200000", () => {
   test("down() takes back exactly what up() added", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddOnCallTimelineToWhatsAppLog1809100200000().down(runner);
+        return new AddOnCallTimelineToWhatsAppLog1809100612200().down(runner);
       }),
     ).toEqual([
       `ALTER TABLE "WhatsAppLog" DROP COLUMN "userOnCallLogTimelineId"`,
@@ -127,7 +127,7 @@ describe("AddOnCallTimelineToWhatsAppLog1809100200000", () => {
     );
 
     const index: number = names.indexOf(
-      "AddOnCallTimelineToWhatsAppLog1809100200000",
+      "AddOnCallTimelineToWhatsAppLog1809100612200",
     );
 
     expect(index).toBeGreaterThan(-1);
@@ -137,21 +137,24 @@ describe("AddOnCallTimelineToWhatsAppLog1809100200000", () => {
     expect(index).toBeGreaterThan(
       names.indexOf("AddCallOutcomeTrackingToCallLogIndexAndKey1809090010000"),
     );
-    expect(new AddOnCallTimelineToWhatsAppLog1809100200000().name).toBe(
-      "AddOnCallTimelineToWhatsAppLog1809100200000",
+    expect(index).toBeGreaterThan(
+      names.indexOf("AddDataDashboardUsageAndRefreshes1809100612000"),
+    );
+    expect(new AddOnCallTimelineToWhatsAppLog1809100612200().name).toBe(
+      "AddOnCallTimelineToWhatsAppLog1809100612200",
     );
   });
 });
 
-describe("AddOnCallTimelineToWhatsAppLogIndexAndKey1809100210000", () => {
+describe("AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210", () => {
   test("the index and the key are named as TypeORM names them: the drift check finds nothing", () => {
     expect(INDEX).toBe("IDX_f6f9b9b3a51e0eee9b1bfa95b7");
     expect(FOREIGN_KEY).toBe("FK_f6f9b9b3a51e0eee9b1bfa95b76");
   });
 
   test("builds the notification's index and foreign key online, outside a transaction", async () => {
-    const migration: AddOnCallTimelineToWhatsAppLogIndexAndKey1809100210000 =
-      new AddOnCallTimelineToWhatsAppLogIndexAndKey1809100210000();
+    const migration: AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210 =
+      new AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210();
 
     expect(migration.transaction).toBe(false);
     expect(
@@ -167,7 +170,7 @@ describe("AddOnCallTimelineToWhatsAppLogIndexAndKey1809100210000", () => {
   test("down() takes the key, then the index, away - the columns' migration then the column", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddOnCallTimelineToWhatsAppLogIndexAndKey1809100210000().down(
+        return new AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210().down(
           runner,
         );
       }),
@@ -180,23 +183,23 @@ describe("AddOnCallTimelineToWhatsAppLogIndexAndKey1809100210000", () => {
   test("is registered right after the column's migration, once, named for its class", () => {
     const registered: Array<unknown> = SchemaMigrations as Array<unknown>;
     const at: number = registered.indexOf(
-      AddOnCallTimelineToWhatsAppLog1809100200000,
+      AddOnCallTimelineToWhatsAppLog1809100612200,
     );
 
     expect(at).toBeGreaterThan(-1);
     expect(registered[at + 1]).toBe(
-      AddOnCallTimelineToWhatsAppLogIndexAndKey1809100210000,
+      AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210,
     );
     expect(
       registered.filter((candidate: unknown): boolean => {
         return (
-          candidate === AddOnCallTimelineToWhatsAppLogIndexAndKey1809100210000
+          candidate === AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210
         );
       }),
     ).toHaveLength(1);
     expect(
-      new AddOnCallTimelineToWhatsAppLogIndexAndKey1809100210000().name,
-    ).toBe("AddOnCallTimelineToWhatsAppLogIndexAndKey1809100210000");
+      new AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210().name,
+    ).toBe("AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210");
   });
 });
 

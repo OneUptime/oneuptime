@@ -1428,7 +1428,8 @@ export default class MattermostUtil extends WorkspaceBase {
           }),
         );
       } catch (err) {
-        posts.recordChannelNotFound();
+        // Not posted in - unless it is a channel the message is not for.
+        posts.recordChannelNotFound(channelId);
         response.errors!.push({
           channel: {
             id: channelId,

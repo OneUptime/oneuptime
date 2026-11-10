@@ -350,27 +350,38 @@ describe("an SMS", () => {
       customTwilioConfig: PROJECT_TWILIO,
     });
 
-    const callback: string = String(
-      (createMessage.mock.calls[0]![0] as JSONObject)["statusCallback"],
+    // Read as an address, never by a piece of its text.
+    const callback: globalThis.URL = new globalThis.URL(
+      String((createMessage.mock.calls[0]![0] as JSONObject)["statusCallback"]),
     );
 
-    expect(callback).toContain(
-      "oneuptime.example.com/notification/sms/status-callback/",
-    );
-    expect(callback.endsWith("?providerConfig=project")).toBe(true);
+    expect(callback.host).toBe("oneuptime.example.com");
+    expect(callback.pathname.split("/").slice(0, 4)).toEqual([
+      "",
+      "notification",
+      "sms",
+      "status-callback",
+    ]);
+    expect([...callback.searchParams.entries()]).toEqual([
+      ["providerConfig", "project"],
+    ]);
   });
 
   test("on the server's own account, its status callback's address is as it always was", async () => {
     await SmsService.sendSms(TO, MESSAGE, { projectId: PROJECT_ID });
 
-    const callback: string = String(
-      (createMessage.mock.calls[0]![0] as JSONObject)["statusCallback"],
+    const callback: globalThis.URL = new globalThis.URL(
+      String((createMessage.mock.calls[0]![0] as JSONObject)["statusCallback"]),
     );
 
-    expect(callback).toContain(
-      "oneuptime.example.com/notification/sms/status-callback/",
-    );
-    expect(callback).not.toContain("?");
+    expect(callback.host).toBe("oneuptime.example.com");
+    expect(callback.pathname.split("/").slice(0, 4)).toEqual([
+      "",
+      "notification",
+      "sms",
+      "status-callback",
+    ]);
+    expect(callback.search).toBe("");
   });
 
   test("through the server's own gateway: counted under the gateway, not Twilio", async () => {

@@ -9,14 +9,14 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * The column only, nullable with no default, so no row is rewritten. The
  * index and foreign key generated with it are built online, in
- * AddOnCallTimelineToWhatsAppLogIndexAndKey1809100210000: "WhatsAppLog"
+ * AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210: "WhatsAppLog"
  * already holds every WhatsApp message a project sent, and every message
  * that goes out writes to it.
  */
-export class AddOnCallTimelineToWhatsAppLog1809100200000
+export class AddOnCallTimelineToWhatsAppLog1809100612200
   implements MigrationInterface
 {
-  public name: string = "AddOnCallTimelineToWhatsAppLog1809100200000";
+  public name: string = "AddOnCallTimelineToWhatsAppLog1809100612200";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

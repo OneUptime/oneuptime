@@ -2021,7 +2021,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           },
         );
         logger.error(err);
-        posts.recordChannelNotFound();
+        // Not posted in - unless it is a channel the message is not for.
+        posts.recordChannelNotFound(channelId);
         workspaceMessageResponse.errors!.push({
           channel: {
             id: channelId,
