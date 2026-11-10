@@ -203,6 +203,76 @@ describe("mobile recorder configuration", () => {
     ).resolves.toEqual(expect.objectContaining({ enabled: true }));
   });
 
+  test("reads the application's own signals, and none from a server without them", () => {
+    expect(normalizeReplayConfig(enabledConfig()).frustrationSignals).toEqual({
+      customSignals: [],
+    });
+    expect(
+      normalizeReplayConfig(enabledConfig({ frustrationSignals: "nonsense" }))
+        .frustrationSignals,
+    ).toEqual({ customSignals: [] });
+
+    const read: ResolvedReplayConfig = normalizeReplayConfig(
+      enabledConfig({
+        frustrationSignals: {
+          rageClick: { isEnabled: false },
+          customSignals: [
+            {
+              name: "  Checkout error  ",
+              trigger: "page",
+              match: " /checkout/error ",
+              isFrustration: true,
+            },
+            {
+              name: "Help opened",
+              trigger: "event",
+              match: "help_opened",
+              isFrustration: false,
+            },
+            {
+              name: "Declined",
+              trigger: "error",
+              match: "card declined",
+            },
+            /* A CSS selector means nothing on a native screen. */
+            {
+              name: "Disabled pay button",
+              trigger: "click",
+              match: "button.pay:disabled",
+              isFrustration: true,
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(read.frustrationSignals.customSignals).toEqual([
+      {
+        name: "Checkout error",
+        trigger: "page",
+        match: "/checkout/error",
+        isFrustration: true,
+      },
+      {
+        name: "Help opened",
+        trigger: "event",
+        match: "help_opened",
+        isFrustration: false,
+      },
+      {
+        name: "Declined",
+        trigger: "error",
+        match: "card declined",
+        isFrustration: true,
+      },
+    ]);
+
+    /* A closed policy carries no signals either. */
+    expect(normalizeReplayConfig(null).frustrationSignals).toEqual({
+      customSignals: [],
+    });
+  });
+
   test("always collapses server masking to strict mobile wireframes", () => {
     const config: ResolvedReplayConfig = normalizeReplayConfig(enabledConfig());
     expect(config.maskingMode).toBe(SessionReplayMaskingMode.MaskAllText);
@@ -387,6 +457,66 @@ describe("remembered policy for offline launches", () => {
     expect(
       (await loadCachedReplayConfig(storage, NAMESPACE, NOW))?.maskingMode,
     ).toBe(SessionReplayMaskingMode.MaskAllText);
+  });
+
+  /*
+   * Frustration signals (issue #6443): the application's own page, event
+   * and error signals are part of the remembered policy, so an app launched
+   * offline still detects them, and they are re-read like the rest of it.
+   */
+  test("remembers the application's own signals and re-reads them", async () => {
+    const storage: MemoryStorage = new MemoryStorage();
+    const withSignals: ResolvedReplayConfig = normalizeReplayConfig(
+      enabledConfig({
+        frustrationSignals: {
+          customSignals: [
+            {
+              name: "Payment failed",
+              trigger: "page",
+              match: "/checkout/*/failed",
+              isFrustration: true,
+            },
+          ],
+        },
+      }),
+    );
+
+    await saveReplayConfig(storage, NAMESPACE, withSignals, NOW);
+    expect(
+      (await loadCachedReplayConfig(storage, NAMESPACE, NOW))
+        ?.frustrationSignals,
+    ).toEqual({
+      customSignals: [
+        {
+          name: "Payment failed",
+          trigger: "page",
+          match: "/checkout/*/failed",
+          isFrustration: true,
+        },
+      ],
+    });
+
+    /* A signal tampered with on the device is no signal. */
+    storage.values.set(
+      replayConfigCacheKey(NAMESPACE),
+      JSON.stringify({
+        savedAtUnixMs: NOW,
+        config: {
+          ...withSignals,
+          frustrationSignals: {
+            customSignals: [
+              { name: "", trigger: "page", match: "/x" },
+              { name: "Unanchored", trigger: "page", match: "checkout" },
+              { name: "Unknown", trigger: "shake", match: "x" },
+            ],
+          },
+        },
+      }),
+    );
+    expect(
+      (await loadCachedReplayConfig(storage, NAMESPACE, NOW))
+        ?.frustrationSignals,
+    ).toEqual({ customSignals: [] });
   });
 
   test("forgets on request, and never throws when storage does", async () => {

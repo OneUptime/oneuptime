@@ -67,6 +67,14 @@ export interface ConsoleRecorderOptions {
   onConsole: (atUnixMs: number, entry: RecordedConsoleEntry) => void;
 
   /*
+   * The RAW text of every console.error, before masking and past the cap:
+   * the application's own error signals are matched against what the page
+   * logged. Only compared, never recorded through this door. Optional:
+   * only a recorder with error signals to look for passes it.
+   */
+  onErrorText?: (atUnixMs: number, rawText: string) => void;
+
+  /*
    * Called ONCE per session when the cap first drops an entry, so the
    * recorder can attach a fidelity notice to the chunk. Optional so the
    * wiring can land independently of this module.
@@ -193,6 +201,18 @@ export default class ConsoleRecorder {
 
     if (this.options.isSuspended && this.options.isSuspended()) {
       return;
+    }
+
+    if (level === "error" && this.options.onErrorText) {
+      this.options.onErrorText(
+        Date.now(),
+        args
+          .map((arg: unknown): string => {
+            return ConsoleRecorder.describe(arg);
+          })
+          .join(" ")
+          .slice(0, MAX_MESSAGE_LENGTH),
+      );
     }
 
     if (this.recordedCount >= MAX_CONSOLE_RECORDED) {

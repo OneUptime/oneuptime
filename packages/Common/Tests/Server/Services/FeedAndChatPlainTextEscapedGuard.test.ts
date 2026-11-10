@@ -178,6 +178,20 @@ const ALLOWED_UNTAGGED: Array<AllowedUntagged> = [
     text: "You are OneUptime AI, OneUptime's autonomous AI Site Reliability Engineer",
     reason: PROMPT_REASON,
   },
+  /*
+   * The rules every remediation persona shares, which end with the rule to
+   * say why a round ends without a fix (explain_no_fix, issue #6436).
+   */
+  ...[
+    REMEDIATION_RUNNER,
+    "packages/Common/Server/Utils/AI/Remediation/McpRemediationRunner.ts",
+  ].map((file: string): AllowedUntagged => {
+    return {
+      file: file,
+      text: "EXPLAIN_NO_FIX_RULE",
+      reason: PROMPT_REASON,
+    };
+  }),
   {
     file: "packages/Common/Server/Utils/AI/SRE/AlertInvestigationRunner.ts",
     inFunction: "buildAlertSummary",

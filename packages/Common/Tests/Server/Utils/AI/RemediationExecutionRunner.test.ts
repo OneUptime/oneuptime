@@ -1,4 +1,5 @@
 import RemediationExecutionRunner from "../../../../Server/Utils/AI/Remediation/RemediationExecutionRunner";
+import McpRemediationRunner from "../../../../Server/Utils/AI/Remediation/McpRemediationRunner";
 import AIInvestigationEngine, {
   InvestigationRequest,
 } from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
@@ -448,6 +449,82 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
         }),
       );
     });
+
+    /*
+     * A round tried again (RemediationRound.tryAgain, issue #6487) names
+     * its new run on the row before the run exists: the older run - or a
+     * second press's - must never act on it, not even to settle what an
+     * earlier attempt executed, whatever kind of fix it is.
+     */
+    it.each([
+      ["a command round", AutoRemediationSuggestionType.CommandPlan, {}],
+      [
+        "a command round that already executed a command",
+        AutoRemediationSuggestionType.CommandPlan,
+        { commandPlan: interruptedPlanJson() },
+      ],
+      [
+        "a fix through MCP servers",
+        AutoRemediationSuggestionType.McpToolCalls,
+        {},
+      ],
+    ])(
+      "a run that is not the round's own never acts on %s: it completes quietly",
+      async (
+        _label: string,
+        suggestionType: AutoRemediationSuggestionType,
+        overrides: Partial<Record<string, unknown>>,
+      ) => {
+        mockHappyPathLoads();
+        mockSuggestion({
+          suggestionType,
+          aiRunId: new ObjectID("99999999-9999-4999-8999-999999999990"),
+          ...overrides,
+        });
+        const executeRun: jest.SpyInstance = jest
+          .spyOn(AIInvestigationEngine, "executeRun")
+          .mockResolvedValue(undefined as never);
+        const mcpRun: jest.SpyInstance = jest
+          .spyOn(McpRemediationRunner, "executeRun")
+          .mockResolvedValue(undefined as never);
+
+        await run();
+
+        expect(executeRun).not.toHaveBeenCalled();
+        expect(mcpRun).not.toHaveBeenCalled();
+        expect(suggestionCas).not.toHaveBeenCalled();
+        expect(incidentFeed).not.toHaveBeenCalled();
+        expect(runCas).toHaveBeenCalledWith(
+          expect.objectContaining({
+            aiRunId: RUN_ID,
+            set: expect.objectContaining({ status: AIRunStatus.Completed }),
+          }),
+        );
+      },
+    );
+
+    it("negative control: the round's own run, named on the row, runs", async () => {
+      mockHappyPathLoads();
+      mockSuggestion({ aiRunId: RUN_ID });
+      const request: { get: () => InvestigationRequest } = captureRequest();
+
+      await run();
+
+      expect(toolNames(request.get())).toContain("explain_no_fix");
+    });
+
+    it("reads whose run the round is", async () => {
+      mockHappyPathLoads();
+      captureRequest();
+
+      await run();
+
+      const select: Record<string, unknown> = (
+        (AutoRemediationSuggestionService.findOneById as unknown as jest.Mock)
+          .mock.calls[0]![0] as { select: Record<string, unknown> }
+      ).select;
+      expect(select["aiRunId"]).toBe(true);
+    });
   });
 
   describe("interrupted execution (persisted side effects from an earlier attempt)", () => {
@@ -611,6 +688,8 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
         expect(toolNames(request.get())).toEqual([
           "list_command_targets",
           "propose_remediation_commands",
+          // Why there is no fix, when it ends without one (#6436).
+          "explain_no_fix",
         ]);
         // Nothing settled it early: the run went to the engine.
         expect(suggestionCas).not.toHaveBeenCalled();
@@ -646,6 +725,7 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
       expect(toolNames(request.get())).toEqual([
         "list_command_targets",
         "execute_remediation_command",
+        "explain_no_fix",
       ]);
       expect(suggestionCas).not.toHaveBeenCalled();
     });
@@ -826,6 +906,7 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
       expect(toolNames(request.get())).toEqual([
         "list_command_targets",
         "propose_remediation_commands",
+        "explain_no_fix",
       ]);
       // The persona must make clear NOTHING executes without a human.
       expect(request.get().personaOverride).toContain(
@@ -853,6 +934,7 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
       expect(toolNames(request.get())).toEqual([
         "list_command_targets",
         "execute_remediation_command",
+        "explain_no_fix",
       ]);
       expect(request.get().personaOverride).toContain(
         "FullAuto command execution",

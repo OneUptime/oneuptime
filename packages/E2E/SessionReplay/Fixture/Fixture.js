@@ -19,6 +19,7 @@ import ReplayPolicy from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/S
 import ReplayAccessLog from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayAudit";
 import ReplayHealth from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayHealth";
 import ReplayDocumentation from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayDocumentation";
+import FrustrationSignals from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayFrustrationSignals";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import Project from "Common/Models/DatabaseModels/Project";
 import ObjectID from "Common/Types/ObjectID";
@@ -31,6 +32,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
+import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
 
 // Actual routed pages, shared components, manifest parsing, binary chunk decoding,
 // and the lazy rrweb Replayer all execute. Only API/user boundaries are replaced.
@@ -124,12 +126,61 @@ const fixture = {
   savedModels,
   releaseHealth: () => releaseHealth(),
   failList: params.get("fixture") === "error",
+  frustrationSaves: [],
   sessionId,
   tabId,
   projectId,
   appId,
 };
 window.__sessionReplayFixture = fixture;
+/*
+ * The application's Frustration Signals settings (issue #6443). None are
+ * stored by default, so the page shows the default rules, as for an
+ * application created before the page existed. ?frustration=custom stores
+ * a changed rage-click rule, dead clicks switched off and two signals of
+ * the application's own; ?frustration=fail-read fails the page's first read
+ * and ?frustration=fail-save refuses its first save, each once, as a
+ * restarting server would. A save is kept and read back, as the server
+ * stores it.
+ */
+const frustrationMode = params.get("frustration") || "";
+let frustrationSignals =
+  frustrationMode === "custom"
+    ? {
+        rageClick: {
+          isEnabled: true,
+          clickCount: 5,
+          windowMs: 1500,
+          radiusPx: 40,
+          ignoreSelectors: [".quantity-stepper"],
+        },
+        deadClick: { isEnabled: false, timeoutMs: 3000, ignoreSelectors: [] },
+        errorClick: { isEnabled: true, windowMs: 1000 },
+        refreshRage: { isEnabled: true, reloadCount: 3, windowSeconds: 60 },
+        customSignals: [
+          {
+            id: "signal-payment-failed",
+            name: "Payment failed",
+            trigger: "page",
+            match: "/checkout/error",
+            isFrustration: true,
+            isEnabled: true,
+          },
+          {
+            id: "signal-support-chat",
+            name: "Support chat opened",
+            trigger: "click",
+            match: "#open-support-chat",
+            isFrustration: false,
+            isEnabled: true,
+          },
+        ],
+      }
+    : null;
+let frustrationReadFailures = frustrationMode === "fail-read" ? 1 : 0;
+let frustrationSaveFailures = frustrationMode === "fail-save" ? 1 : 0;
+// ?signals=custom: two rows hit signals of the application's own.
+const customSignalRows = params.get("signals") === "custom";
 const policyValues = {
   isSessionReplayEnabled: true,
   sessionReplayAllowedOrigins: mobileRecording
@@ -155,6 +206,7 @@ function makeApp() {
     name: mobileRecording ? "Responder Mobile" : "Storefront Web",
     appIdentifier: mobileRecording ? "responder-mobile" : "storefront-web",
     ...policyValues,
+    sessionReplayFrustrationSignals: frustrationSignals,
   });
 }
 const app = makeApp();
@@ -163,9 +215,16 @@ const project = Object.assign(new Project(), {
   name: "Commerce",
   sessionReplayEnabled: true,
 });
-User.isMasterAdmin = () => true;
+/*
+ * ?access=view: a project Viewer, who may read the application but not
+ * change it - the Frustration Signals page's locked state, with the reason
+ * the permission gate gives. Otherwise the project's owner.
+ */
+const isViewOnly = params.get("access") === "view";
+User.isMasterAdmin = () => !isViewOnly;
 User.getUserId = () => new ObjectID("30000000-0000-4000-8000-000000000001");
-PermissionUtil.getAllPermissions = () => [Permission.ProjectOwner];
+PermissionUtil.getAllPermissions = () =>
+  isViewOnly ? [Permission.Viewer] : [Permission.ProjectOwner];
 ProjectUtil.getCurrentProjectId = () => new ObjectID(projectId);
 ProjectUtil.getCurrentProject = () => project;
 ModelAPI.getCommonHeaders = () => ({ tenantid: projectId });
@@ -175,6 +234,14 @@ ModelAPI.getItem = async (options) => {
     id: options.id?.toString(),
     selectKeys: Object.keys(options.select || {}),
   });
+  if (
+    options.modelType !== Project &&
+    options.select?.sessionReplayFrustrationSignals &&
+    frustrationReadFailures > 0
+  ) {
+    frustrationReadFailures--;
+    throw new Error("The server did not answer.");
+  }
   return options.modelType === Project ? project : makeApp();
 };
 ModelAPI.createOrUpdate = async (options) => {
@@ -198,7 +265,25 @@ ModelAPI.createOrUpdate = async (options) => {
 };
 ModelAPI.getList = async () => ({ data: [], count: 0, skip: 0, limit: 50 });
 ModelAPI.getCount = async () => 0;
-ModelAPI.updateById = async () => app;
+ModelAPI.updateById = async (options) => {
+  const data = options?.data || {};
+  if (
+    Object.prototype.hasOwnProperty.call(
+      data,
+      "sessionReplayFrustrationSignals",
+    )
+  ) {
+    if (frustrationSaveFailures > 0) {
+      frustrationSaveFailures--;
+      throw new Error("The server is restarting. Try again in a moment.");
+    }
+    frustrationSignals = JSON.parse(
+      JSON.stringify(data.sessionReplayFrustrationSignals),
+    );
+    fixture.frustrationSaves.push(frustrationSignals);
+  }
+  return app;
+};
 // One visitor id per browser; the two anonymous rows share one so the list
 // and the Users page can show "the same browser came back".
 const visitorIds = [
@@ -296,6 +381,20 @@ const records = Array.from({ length: count }, (_, index) => {
         ]
       : [],
     expiresAtUnixMs: now + 29 * 86400000,
+    ...(customSignalRows && index === 1
+      ? {
+          customSignalCount: 3,
+          customSignalFrustrationCount: 2,
+          customSignalNames: ["Payment failed", "Support chat opened"],
+        }
+      : {}),
+    ...(customSignalRows && index === 3
+      ? {
+          customSignalCount: 1,
+          customSignalFrustrationCount: 0,
+          customSignalNames: ["Support chat opened"],
+        }
+      : {}),
   };
 });
 /*
@@ -586,6 +685,13 @@ function makeChunk(ownerTabId, chunkIndex, url, signals = {}) {
     refreshRageCount: 0,
     routeCount: 1,
     clickCount: 4,
+    ...(signals.customSignalCount !== undefined
+      ? {
+          customSignalCount: signals.customSignalCount,
+          customSignalFrustrationCount:
+            signals.customSignalFrustrationCount || 0,
+        }
+      : {}),
     url,
   };
 }
@@ -594,7 +700,21 @@ const manifestChunks = [0, 1, 2].map((index) => {
     tabId,
     index,
     mobileRecording ? "/alerts" : "https://shop.example.com/checkout",
-    { errorCount: index === 0 ? 1 : 0, rageClickCount: index === 1 ? 1 : 0 },
+    {
+      errorCount: index === 0 ? 1 : 0,
+      rageClickCount: index === 1 ? 1 : 0,
+      /*
+       * ?signals=custom: the application's own signals in the player too -
+       * one that counted as frustration in chunk 0 and a marker in chunk 1,
+       * as chunkEvents() records them.
+       */
+      ...(customSignalRows && index === 0
+        ? { customSignalCount: 1, customSignalFrustrationCount: 1 }
+        : {}),
+      ...(customSignalRows && index === 1
+        ? { customSignalCount: 1, customSignalFrustrationCount: 0 }
+        : {}),
+    },
   );
 });
 /*
@@ -1509,6 +1629,25 @@ function chunkEvents(index, startTime) {
       x: 520,
       y: 640,
     });
+  /*
+   * ?signals=custom: what the recorders send for the application's own
+   * signals - the name, what set it off and whether it counted as
+   * frustration, never the text or the address it matched.
+   */
+  if (customSignalRows && !mobileRecording && index === 0)
+    custom(13000, "signal", {
+      name: "Payment failed",
+      trigger: "page",
+      isFrustration: true,
+    });
+  if (customSignalRows && !mobileRecording && index === 1)
+    custom(18000, "signal", {
+      name: "Support chat opened",
+      trigger: "click",
+      isFrustration: false,
+      x: 1080,
+      y: 690,
+    });
   custom(21000, "route", {
     from: mobileRecording ? "/on-call" : "https://shop.example.com/cart",
     to: mobileRecording ? "/alerts" : "https://shop.example.com/checkout",
@@ -1594,10 +1733,25 @@ window.fetch = async (input, init) => {
     headers: { "Content-Type": "application/octet-stream" },
   });
 };
+/*
+ * ?lang=de (or any Dashboard language) draws the pages in that language,
+ * from the Dashboard's own locale file, with <html lang> and dir set by
+ * the Dashboard's own setPageLanguage: Persian and Arabic read right to
+ * left.
+ */
+const language = params.get("lang") || "en";
+const resources = { en: { translation: {} } };
+if (language !== "en") {
+  const response = await fetch(`/locales/${encodeURIComponent(language)}.json`);
+  if (response.ok) {
+    resources[language] = { translation: await response.json() };
+  }
+}
+setPageLanguage(language);
 await i18next.use(initReactI18next).init({
-  lng: "en",
+  lng: language,
   fallbackLng: "en",
-  resources: { en: { translation: {} } },
+  resources,
   interpolation: { escapeValue: false },
 });
 function FixtureLayout() {
@@ -1630,6 +1784,10 @@ createRoot(document.getElementById("root")).render(
         <Route path="session-replay-settings" element={<ReplayPolicy />} />
         <Route path="session-replay-audit" element={<ReplayAccessLog />} />
         <Route path="session-replay-health" element={<ReplayHealth />} />
+        <Route
+          path="session-replay-frustration-signals"
+          element={<FrustrationSignals />}
+        />
         <Route
           path="session-replay-documentation"
           element={<ReplayDocumentation />}

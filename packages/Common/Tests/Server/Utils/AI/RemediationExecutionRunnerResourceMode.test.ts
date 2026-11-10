@@ -3,6 +3,7 @@ import RemediationExecutionRunner, {
   ResourceModeResolution,
   isResourceRemediationRound,
 } from "../../../../Server/Utils/AI/Remediation/RemediationExecutionRunner";
+import { EXPLAIN_NO_FIX_RULE } from "../../../../Server/Utils/AI/Remediation/RemediationRoundRun";
 import AIInvestigationEngine, {
   InvestigationRequest,
 } from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
@@ -686,12 +687,16 @@ describe("RemediationExecutionRunner.executeRemediation — resource rounds", ()
         RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
         // The reads are paged, never cut: their reader comes with them.
         "read_tool_output",
+        // Why there is no fix, when it ends without one (#6436).
+        "explain_no_fix",
       ].sort(),
     );
     expect(request.get().personaOverride).toContain(
       "turned on Automatic remediation",
     );
     expect(request.get().personaOverride).toContain('Docker host "web-1"');
+    // A round that ends without a fix says why (#6436).
+    expect(request.get().personaOverride).toContain(EXPLAIN_NO_FIX_RULE);
     expect(request.get().questionOverride).toContain(
       'A signal has been declared on Docker host "web-1"',
     );
@@ -734,6 +739,8 @@ describe("RemediationExecutionRunner.executeRemediation — resource rounds", ()
       "execute_remediation_command",
     );
     expect(request.get().personaOverride).toContain("REMEDIATION PLANNING");
+    expect(request.get().personaOverride).toContain(EXPLAIN_NO_FIX_RULE);
+    expect(toolNames(request.get())).toContain("explain_no_fix");
     expect(request.get().questionOverride).toContain(
       "compose a plan for human approval",
     );
@@ -756,6 +763,7 @@ describe("RemediationExecutionRunner.executeRemediation — resource rounds", ()
     expect(request.get().personaOverride).toContain(
       "chose to bypass approvals entirely",
     );
+    expect(request.get().personaOverride).toContain(EXPLAIN_NO_FIX_RULE);
     expect(request.get().questionOverride).toContain(
       "its operator bypassed approvals",
     );

@@ -170,11 +170,15 @@ describe("a fix still being worked out, or one that found nothing", () => {
         suggestionType: AutoRemediationSuggestionType.Runbook,
       }),
     );
+    /*
+     * With no reasoning it still opens: to say that no runbook ran and
+     * nobody was asked to approve one (issue #6436).
+     */
     expect(noRunbook[0]).toMatchObject({
       tone: "idle",
       title: "Found no runbook that applies",
       summary: null,
-      hasDetails: false,
+      hasDetails: true,
     });
   });
 

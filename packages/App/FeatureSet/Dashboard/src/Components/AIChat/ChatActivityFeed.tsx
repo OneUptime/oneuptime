@@ -441,6 +441,8 @@ export const friendlyToolNames: { [key: string]: string } = {
   execute_remediation_command: translationKey("Applying a fix"),
   propose_remediation_commands: translationKey("Proposing a fix for approval"),
   roll_back_change: translationKey("Rolling back a change"),
+  // Why a fix's round ends without a fix (RemediationRound, issue #6436).
+  explain_no_fix: translationKey("Explaining why there is no fix"),
   // The project's external MCP servers (Settings → AI → External MCP Servers).
   [LIST_MCP_TOOLS_TOOL_NAME]: translationKey(
     "Listing the tools of your MCP servers",

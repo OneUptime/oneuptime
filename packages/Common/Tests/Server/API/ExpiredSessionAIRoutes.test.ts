@@ -377,6 +377,25 @@ const AUTO_REMEDIATION_ROUTES: Array<HumanOnlyRoute> = [
     firstRead: "incidentRead",
   },
   /*
+   * A round of an AI fix (RemediationRound, #6436 and #6487): what it did,
+   * and Try again for one that did not finish. Each reads the fix under
+   * the person's own props first.
+   */
+  {
+    uri: "/auto-remediation/round",
+    params: {},
+    body: { suggestionId: SUGGESTION_ID.toString() },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "suggestionRead",
+  },
+  {
+    uri: "/auto-remediation/round-try-again",
+    params: {},
+    body: { suggestionId: SUGGESTION_ID.toString() },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "suggestionRead",
+  },
+  /*
    * A fix that lasts (DeclaredCodeChanges, #6186): the repositories that
    * may hold a declared resource's code, the pull request asked for in the
    * one a person picks - a Code task, so OneUptime AI - and where each
