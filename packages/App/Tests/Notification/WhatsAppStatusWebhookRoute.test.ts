@@ -18,6 +18,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * POST /notification/whatsapp/webhook - HOW A WHATSAPP MESSAGE ENDED, AS
@@ -245,7 +246,12 @@ function snapshot(row: StoredLog | undefined): WhatsAppLog | null {
   return log;
 }
 
-async function webhook(body: JSONObject): Promise<jest.Mock> {
+/*
+ * Typed as what jest.fn() from @jest/globals makes (jest-mock's Mock): the
+ * global jest.Mock App's tsc reads is @types/jest 29's, with members
+ * jest-mock 28's Mock lacks.
+ */
+async function webhook(body: JSONObject): Promise<Mock> {
   const req: ExpressRequest = {
     params: {},
     query: {},
@@ -260,7 +266,7 @@ async function webhook(body: JSONObject): Promise<jest.Mock> {
     sendStatus: jest.fn(),
   } as unknown as ExpressResponse;
 
-  const next: jest.Mock = jest.fn();
+  const next: Mock = jest.fn();
 
   await ROUTE!.handlerFunction(req, res, next as unknown as NextFunction);
 
@@ -705,7 +711,7 @@ describe("each message is counted once - on its log's move into a final status",
       return Promise.reject(new Error("connection reset"));
     }) as never);
 
-    const next: jest.Mock = await webhook(
+    const next: Mock = await webhook(
       statuses(status("delivered"), status("delivered", {}, OTHER_MESSAGE_ID)),
     );
 

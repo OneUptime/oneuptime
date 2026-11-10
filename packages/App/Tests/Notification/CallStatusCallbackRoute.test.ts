@@ -20,6 +20,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * POST /notification/call/status-callback/:callLogId/:token - HOW A CALL
@@ -208,10 +209,15 @@ const sendError: jest.Mock = Response.sendErrorResponse as jest.Mock;
 let callLog: CallLog | null;
 let notification: UserOnCallLogTimeline | null;
 
+/*
+ * Typed as what jest.fn() from @jest/globals makes (jest-mock's Mock): the
+ * global jest.Mock App's tsc reads is @types/jest 29's, with members
+ * jest-mock 28's Mock lacks.
+ */
 interface Answer {
-  status: jest.Mock;
-  send: jest.Mock;
-  next: jest.Mock;
+  status: Mock;
+  send: Mock;
+  next: Mock;
 }
 
 async function callback(
@@ -229,8 +235,8 @@ async function callback(
     headers: {},
   } as unknown as ExpressRequest;
 
-  const send: jest.Mock = jest.fn();
-  const status: jest.Mock = jest.fn();
+  const send: Mock = jest.fn();
+  const status: Mock = jest.fn();
   const res: ExpressResponse = {
     send: send,
     json: jest.fn(),
@@ -238,7 +244,7 @@ async function callback(
   } as unknown as ExpressResponse;
   status.mockReturnValue(res);
 
-  const next: jest.Mock = jest.fn();
+  const next: Mock = jest.fn();
 
   await ROUTE!.handlerFunction(req, res, next as unknown as NextFunction);
 
