@@ -1,11 +1,4 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * HOW EVERY SLACK, MICROSOFT TEAMS AND MATTERMOST DIRECT MESSAGE WENT, FOR

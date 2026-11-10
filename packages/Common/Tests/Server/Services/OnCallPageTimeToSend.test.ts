@@ -1,11 +1,4 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * AN ON-CALL PAGE'S TIME TO SEND, END TO END THROUGH ITS NOTIFICATION'S
@@ -175,7 +168,8 @@ function hook(name: string): AnyFunction {
 // One notification of a page, by one channel, about the incident.
 function notificationBy(
   field: keyof OnCallPageNotificationMethods,
-  overrides: Partial<UserOnCallLogTimeline> = {},
+  // Columns written over the row's, an unset one as undefined.
+  overrides: Record<string, unknown> = {},
 ): UserOnCallLogTimeline {
   const row: UserOnCallLogTimeline = new UserOnCallLogTimeline();
   row.id = ObjectID.generate();
@@ -404,7 +398,8 @@ describe("a notification due as its page starts", () => {
     },
   );
 
-  test.each([
+  // Each kind of record a page can be about, by the column a row names it in.
+  const OTHER_RECORDS: Array<[string, Record<string, unknown>]> = [
     [
       "alert",
       { triggeredByIncidentId: undefined, triggeredByAlertId: INCIDENT },
@@ -420,9 +415,11 @@ describe("a notification due as its page starts", () => {
       "alert_episode",
       { triggeredByIncidentId: undefined, triggeredByAlertEpisodeId: INCIDENT },
     ],
-  ])(
+  ];
+
+  test.each(OTHER_RECORDS)(
     "a page about an %s says so",
-    async (type: string, overrides: Partial<UserOnCallLogTimeline>) => {
+    async (type: string, overrides: Record<string, unknown>) => {
       const row: UserOnCallLogTimeline = notificationBy("userSmsId", overrides);
 
       await writtenAsPageStarts(row);
