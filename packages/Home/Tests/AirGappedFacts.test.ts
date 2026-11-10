@@ -708,7 +708,7 @@ describe("what runs inside the network", () => {
     expectFileToSay(privateAccess, "`webhooks.allowPrivateNetwork`");
     expectFileToSay(
       CHART_CONFIGURATION,
-      "| `webhooks.allowPrivateNetwork`            | Let workflows, project webhooks and on-call user webhooks reach private ranges.",
+      "| `webhooks.allowPrivateNetwork`            | Let workflows, project webhooks, on-call user webhooks and the status page webhook subscribers your team adds reach private ranges.",
     );
   });
 

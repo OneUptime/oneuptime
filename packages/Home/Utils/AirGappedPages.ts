@@ -1796,8 +1796,8 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
           name: "Webhook subscribers",
           usually: "Any address that is not private",
           inside:
-            "Private addresses are always refused here, because anyone on a public page can subscribe one. To reach your own tools, use a project webhook or a workflow.",
-          status: "needs-a-route",
+            "Ones your team adds reach your own tools once webhooks may reach private addresses. People who subscribe themselves on the page still need a public address.",
+          status: "change-a-setting",
         },
       ],
     },
