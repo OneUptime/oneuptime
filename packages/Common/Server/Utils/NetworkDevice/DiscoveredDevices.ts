@@ -2,6 +2,7 @@ import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkEndpoint from "../../../Models/DatabaseModels/NetworkEndpoint";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import NetworkTopologySuppression from "../../../Models/DatabaseModels/NetworkTopologySuppression";
+import AuditLogAction from "../../../Types/AuditLog/AuditLogAction";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
@@ -22,6 +23,7 @@ import {
 import ObjectID from "../../../Types/ObjectID";
 import { getEndpointSightingWindowMs } from "../../../Utils/Monitor/NetworkTopologyUtil";
 import { getDiscoveredDeviceName } from "../../../Utils/NetworkDevice/DiscoveredDeviceIdentity";
+import AuditLogService from "../../Services/AuditLogService";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import NetworkEndpointService from "../../Services/NetworkEndpointService";
 import NetworkSiteService from "../../Services/NetworkSiteService";
@@ -31,13 +33,12 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import {
   DiscoveredDeviceScope,
   DiscoveredDeviceStatement,
+  StatementParams,
   buildClassifyStatement,
   buildCountsStatement,
-  buildHideStatement,
   buildIdsStatement,
   buildRetentionStatement,
   buildRowsStatement,
-  buildShowStatement,
 } from "./DiscoveredDeviceQuery";
 import { readDiscoveredDeviceRetentionInDays } from "../../../Types/NetworkDevice/DiscoveredDeviceRetention";
 
@@ -45,8 +46,9 @@ import { readDiscoveredDeviceRetentionInDays } from "../../../Types/NetworkDevic
  * THE DISCOVERED DEVICES LIST, AND WHAT IT DOES IN BULK (OneUptime issue
  * #5775): see Types/NetworkDevice/DiscoveredDevice for what a row is.
  *
- * The statements are DiscoveredDeviceQuery's, run as root, so every entry
- * point here checks the person first:
+ * The list's statements are DiscoveredDeviceQuery's and the map's writes
+ * are here, all run as root, so every entry point here checks the person
+ * first:
  *
  *  - reading the list needs the right to read endpoints, the table every
  *    row is;
@@ -60,6 +62,13 @@ import { readDiscoveredDeviceRetentionInDays } from "../../../Types/NetworkDevic
  * it is, so its endpoint row is not on the map to hide, and nothing about
  * its monitoring changes. Neither action deletes anything but a map
  * preference.
+ *
+ * Every suppression a bulk action writes or removes is in the project's
+ * audit log, by the person who hid or showed it, as the map's own Hide and
+ * Show are. Those go through DatabaseService, which records them; a bulk
+ * action writes in one statement, round DatabaseService's hooks, so it
+ * records its own entries (HookFreeWritesAreRecorded holds it to that). A
+ * node that was hidden already, or was not hidden, adds no entry.
  */
 
 export interface ClassifiedDiscoveredDevice extends DiscoveredDeviceRow {
@@ -81,6 +90,12 @@ const MAX_NODE_NAME_LENGTH: number = 100;
 // Rows per write: a statement's parameters stay well short of any limit.
 const WRITE_CHUNK_SIZE: number = 1000;
 
+// What a map write answers of each suppression: what its audit log entry records.
+const SUPPRESSION_COLUMNS: string = `"_id", "nodeKey", "nodeName", "reason", "createdByUserId"`;
+
+// How many audit log entries are written at once.
+const AUDIT_LOG_ENTRIES_AT_ONCE: number = 10;
+
 function isRefusal(error: unknown): boolean {
   return (
     error instanceof NotAuthorizedException ||
@@ -96,6 +111,11 @@ function text(value: unknown): string | undefined {
   const string: string = String(value).trim();
 
   return string ? string : undefined;
+}
+
+// A column as it is stored, untrimmed; undefined only when it holds nothing.
+function stored(value: unknown): string | undefined {
+  return value === null || value === undefined ? undefined : String(value);
 }
 
 function isoDate(value: unknown): string | undefined {
@@ -397,28 +417,12 @@ export default class DiscoveredDevices {
     const changedKeys: Set<string> = new Set<string>();
 
     for (const part of chunk(toHide, WRITE_CHUNK_SIZE)) {
-      const statement: DiscoveredDeviceStatement = buildHideStatement({
-        projectId: data.projectId.toString(),
-        userId: data.props.userId?.toString(),
-        reason: HIDDEN_FROM_LIST_REASON,
-        rows: part.map(
-          (
-            row: ClassifiedDiscoveredDevice,
-          ): { id: string; nodeKey: string; nodeName: string } => {
-            return {
-              id: ObjectID.generate().toString(),
-              nodeKey: getEndpointNodeKey(row.id),
-              nodeName: row.name.substring(0, MAX_NODE_NAME_LENGTH),
-            };
-          },
-        ),
-      });
-
-      for (const written of await this.runQuery(
-        statement.sql,
-        statement.params,
-      )) {
-        changedKeys.add(String(written["nodeKey"]));
+      for (const hidden of await this.writeSuppressions({
+        projectId: data.projectId,
+        props: data.props,
+        rows: part,
+      })) {
+        changedKeys.add(hidden.nodeKey || "");
       }
     }
 
@@ -445,18 +449,14 @@ export default class DiscoveredDevices {
     const changedKeys: Set<string> = new Set<string>();
 
     for (const part of chunk(rows, WRITE_CHUNK_SIZE)) {
-      const statement: DiscoveredDeviceStatement = buildShowStatement({
-        projectId: data.projectId.toString(),
+      for (const shown of await this.removeSuppressions({
+        projectId: data.projectId,
+        props: data.props,
         nodeKeys: part.map((row: ClassifiedDiscoveredDevice): string => {
           return getEndpointNodeKey(row.id);
         }),
-      });
-
-      for (const removed of await this.runQuery(
-        statement.sql,
-        statement.params,
-      )) {
-        changedKeys.add(String(removed["nodeKey"]));
+      })) {
+        changedKeys.add(shown.nodeKey || "");
       }
     }
 
@@ -528,13 +528,209 @@ export default class DiscoveredDevices {
   }): Promise<{ changed: number }> {
     this.assertCanChangeMap(data.props, DatabaseRequestType.Delete);
 
-    const statement: DiscoveredDeviceStatement = buildShowStatement({
-      projectId: data.projectId.toString(),
+    const shown: Array<NetworkTopologySuppression> =
+      await this.removeSuppressions({
+        projectId: data.projectId,
+        props: data.props,
+      });
+
+    return { changed: shown.length };
+  }
+
+  /*
+   * Suppressions for these rows' endpoint nodes, those not hidden already,
+   * in one statement however many there are - hiding three thousand rows one
+   * create at a time would outlive the request - with the columns the
+   * model's own create writes, `version` included (it has no database
+   * default). Answers the ones it wrote, each recorded in the audit log as a
+   * Create by the person who hid it.
+   *
+   * Both map writes answer through a SELECT over their RETURNING rows:
+   * TypeORM's Postgres driver answers a bare DELETE or UPDATE with
+   * [rows, rowCount] rather than the rows, so a count read off it would
+   * always be two.
+   */
+  private static async writeSuppressions(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    rows: Array<ClassifiedDiscoveredDevice>;
+  }): Promise<Array<NetworkTopologySuppression>> {
+    const params: StatementParams = new StatementParams();
+    const project: string = params.add(data.projectId.toString());
+    const user: string = params.add(data.props.userId?.toString() || null);
+    const reason: string = params.add(HIDDEN_FROM_LIST_REASON);
+    const ids: string = params.add(
+      data.rows.map((): string => {
+        return ObjectID.generate().toString();
+      }),
+    );
+    const keys: string = params.add(
+      data.rows.map((row: ClassifiedDiscoveredDevice): string => {
+        return getEndpointNodeKey(row.id);
+      }),
+    );
+    const names: string = params.add(
+      data.rows.map((row: ClassifiedDiscoveredDevice): string => {
+        return row.name.substring(0, MAX_NODE_NAME_LENGTH);
+      }),
+    );
+
+    const written: Array<NetworkTopologySuppression> = (
+      await this.runQuery(
+        `WITH added AS (
+INSERT INTO "NetworkTopologySuppression"
+  ("_id", "createdAt", "updatedAt", "version", "projectId", "nodeKey", "nodeName", "reason", "createdByUserId")
+SELECT v."id"::uuid, now(), now(), 1, ${project}::uuid, v."nodeKey", v."nodeName", ${reason}, ${user}::uuid
+FROM unnest(${ids}::text[], ${keys}::text[], ${names}::text[]) AS v("id", "nodeKey", "nodeName")
+WHERE NOT EXISTS (
+  SELECT 1 FROM "NetworkTopologySuppression" s
+  WHERE s."projectId" = ${project}::uuid
+    AND s."nodeKey" = v."nodeKey"
+    AND s."deletedAt" IS NULL
+)
+RETURNING ${SUPPRESSION_COLUMNS}
+)
+SELECT ${SUPPRESSION_COLUMNS} FROM added`,
+        params.values,
+      )
+    ).map((raw: Record<string, unknown>): NetworkTopologySuppression => {
+      return this.toSuppression(data.projectId, raw);
     });
 
-    return {
-      changed: (await this.runQuery(statement.sql, statement.params)).length,
-    };
+    await this.recordInAuditLog({
+      action: AuditLogAction.Create,
+      suppressions: written,
+      props: data.props,
+    });
+
+    return written;
+  }
+
+  /*
+   * Removes suppressions - these node keys, or with none given every one of
+   * the project's - the way a person's restore of one node removes it.
+   * Answers the ones it removed, each recorded in the audit log as a Delete
+   * by the person who showed it.
+   */
+  private static async removeSuppressions(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    nodeKeys?: Array<string> | undefined;
+  }): Promise<Array<NetworkTopologySuppression>> {
+    const params: StatementParams = new StatementParams();
+    const project: string = params.add(data.projectId.toString());
+    const filters: Array<string> = [`"projectId" = ${project}::uuid`];
+
+    if (data.nodeKeys) {
+      filters.push(`"nodeKey" = ANY(${params.add(data.nodeKeys)}::text[])`);
+    }
+
+    const removed: Array<NetworkTopologySuppression> = (
+      await this.runQuery(
+        `WITH removed AS (
+DELETE FROM "NetworkTopologySuppression"
+WHERE ${filters.join(" AND ")}
+RETURNING ${SUPPRESSION_COLUMNS}
+)
+SELECT ${SUPPRESSION_COLUMNS} FROM removed`,
+        params.values,
+      )
+    ).map((raw: Record<string, unknown>): NetworkTopologySuppression => {
+      return this.toSuppression(data.projectId, raw);
+    });
+
+    await this.recordInAuditLog({
+      action: AuditLogAction.Delete,
+      suppressions: removed,
+      props: data.props,
+    });
+
+    return removed;
+  }
+
+  // A suppression as a map write's RETURNING row has it.
+  private static toSuppression(
+    projectId: ObjectID,
+    raw: Record<string, unknown>,
+  ): NetworkTopologySuppression {
+    const suppression: NetworkTopologySuppression =
+      new NetworkTopologySuppression();
+    const id: string = String(raw["_id"] || "");
+    const nodeName: string | undefined = stored(raw["nodeName"]);
+    const reason: string | undefined = stored(raw["reason"]);
+    const createdByUserId: string = String(raw["createdByUserId"] || "");
+
+    if (ObjectID.isValidUUID(id)) {
+      suppression.id = new ObjectID(id);
+    }
+
+    suppression.projectId = projectId;
+    suppression.nodeKey = String(raw["nodeKey"]);
+
+    if (nodeName !== undefined) {
+      suppression.nodeName = nodeName;
+    }
+
+    if (reason !== undefined) {
+      suppression.reason = reason;
+    }
+
+    if (ObjectID.isValidUUID(createdByUserId)) {
+      suppression.createdByUserId = new ObjectID(createdByUserId);
+    }
+
+    return suppression;
+  }
+
+  /*
+   * An entry in the project's audit log for each suppression a map write
+   * wrote or removed, by the person in `props`, a few at a time: the entry
+   * DatabaseService records for the map's own Hide (a Create) and Show (a
+   * Delete). Every one is recorded, however many: an audit log that stops
+   * after some number of changes is not one. Like every audit write, it
+   * never fails the change it records (AuditLogService).
+   */
+  private static async recordInAuditLog(data: {
+    action: AuditLogAction.Create | AuditLogAction.Delete;
+    suppressions: Array<NetworkTopologySuppression>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const recorded: Array<NetworkTopologySuppression> =
+      data.suppressions.filter(
+        (suppression: NetworkTopologySuppression): boolean => {
+          return Boolean(suppression.id);
+        },
+      );
+
+    for (
+      let start: number = 0;
+      start < recorded.length;
+      start += AUDIT_LOG_ENTRIES_AT_ONCE
+    ) {
+      await Promise.all(
+        recorded
+          .slice(start, start + AUDIT_LOG_ENTRIES_AT_ONCE)
+          .map(
+            async (suppression: NetworkTopologySuppression): Promise<void> => {
+              if (data.action === AuditLogAction.Create) {
+                await AuditLogService.recordCreate({
+                  model: new NetworkTopologySuppression(),
+                  createdItem: suppression,
+                  props: data.props,
+                });
+                return;
+              }
+
+              await AuditLogService.recordDelete({
+                model: new NetworkTopologySuppression(),
+                deletedItem: suppression,
+                itemId: suppression.id!,
+                props: data.props,
+              });
+            },
+          ),
+      );
+    }
   }
 
   // ---- Rows.

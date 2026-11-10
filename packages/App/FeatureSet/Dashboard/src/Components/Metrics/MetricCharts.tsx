@@ -97,7 +97,7 @@ import {
 } from "../../Utils/MetricSeriesInvestigation";
 import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
 import { PREVIOUS_PERIOD_SERIES_SUFFIX } from "Common/UI/Components/Charts/ChartLibrary/Utils/TooltipEntries";
-import InvestigationDrawer from "../Telemetry/InvestigationDrawer";
+import InvestigationDrawer from "../Telemetry/LazyInvestigationDrawer";
 import ExplorerLink from "./Utils/ExplorerLink";
 import {
   MetricChartThreshold,

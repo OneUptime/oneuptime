@@ -1,5 +1,6 @@
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -56,6 +57,7 @@ import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormField
 import { FormStep } from "../../../../UI/Components/Forms/Types/FormStep";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import getOwnersFormField from "../../../../UI/Components/PeoplePicker/OwnersFormField";
+import { loadPeoplePicker } from "../../../../UI/Components/PeoplePicker/LazyPeoplePicker";
 import { PeoplePickerKind } from "../../../../UI/Components/PeoplePicker/PeoplePickerTypes";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -147,6 +149,15 @@ async function pick(name: string): Promise<void> {
 function submittedValues(onSubmit: MockFunction): JSONObject {
   return onSubmit.mock.calls[0]![0] as JSONObject;
 }
+
+/*
+ * A form draws its people picker from a file of its own, loaded by the first
+ * form that has one (LazyPeoplePicker). Loaded once here, as on a page where
+ * a form with one has been drawn before, so the picker is there with the form.
+ */
+beforeAll(async () => {
+  await loadPeoplePicker();
+});
 
 describe("a people picker in a form", () => {
   beforeEach(() => {
