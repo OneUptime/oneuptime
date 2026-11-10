@@ -65,9 +65,7 @@ describe("makeQRCodeImage", () => {
 
 describe("loadQRCodeImage", () => {
   test("loads the module and makes the image with it", async () => {
-    expect(await loadQRCodeImage(OTP_URL)).toBe(
-      await makeQRCodeImage(OTP_URL),
-    );
+    expect(await loadQRCodeImage(OTP_URL)).toBe(await makeQRCodeImage(OTP_URL));
   });
 
   test("passes a refusal on, for the element to say it cannot show the code", async () => {

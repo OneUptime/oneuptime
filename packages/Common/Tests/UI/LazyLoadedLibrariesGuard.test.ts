@@ -396,7 +396,7 @@ describe("findLibraryImports", () => {
           'let loaded: import("jspdf").jsPDF | null = null;',
           '// import("qrcode")',
           '/* import("qrcode") */',
-          'const text: string = \'import("qrcode")\';',
+          "const text: string = 'import(\"qrcode\")';",
         ].join("\n"),
       ),
     ).toEqual([]);

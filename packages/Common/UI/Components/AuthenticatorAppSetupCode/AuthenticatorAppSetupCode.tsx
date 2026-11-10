@@ -8,11 +8,51 @@ import {
   getTotpSetupKey,
   getTotpSetupKeyGroups,
 } from "../../../Utils/TotpSetupKey";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  useRef,
+  useState,
+} from "react";
 
 export interface ComponentProps {
   // The otpauth:// URL of the authenticator app being set up.
   otpUrl: string;
+}
+
+const WHITESPACE: RegExp = /\s+/g;
+
+/*
+ * The key's groups are flex items, which a copy would put on lines of their
+ * own. So a selection made within the key is copied as the characters it
+ * holds, without the breaks - pasted into an authenticator app, it is the key.
+ * A selection that reaches beyond the key is copied as the browser would.
+ */
+export function copySelectedKeyWhole(
+  event: React.ClipboardEvent<HTMLElement>,
+  keyElement: HTMLElement | null,
+): void {
+  const selection: Selection | null = window.getSelection();
+
+  if (!keyElement || !selection || selection.rangeCount === 0) {
+    return;
+  }
+
+  const range: Range = selection.getRangeAt(0);
+
+  if (!keyElement.contains(range.commonAncestorContainer)) {
+    return;
+  }
+
+  const selected: string = selection.toString().replace(WHITESPACE, "");
+
+  if (!selected) {
+    return;
+  }
+
+  event.clipboardData.setData("text/plain", selected);
+  event.preventDefault();
 }
 
 /*
@@ -37,6 +77,8 @@ const AuthenticatorAppSetupCode: FunctionComponent<ComponentProps> = (
   const [isKeyShown, setIsKeyShown] = useState<boolean>(false);
   const [hasQRCodeFailed, setHasQRCodeFailed] = useState<boolean>(false);
   const keyPanelId: string = React.useId();
+  const setupKeyElement: MutableRefObject<HTMLElement | null> =
+    useRef<HTMLElement | null>(null);
 
   const setupKey: string = getTotpSetupKey(props.otpUrl);
   const isKeyPanelOpen: boolean =
@@ -91,25 +133,24 @@ const AuthenticatorAppSetupCode: FunctionComponent<ComponentProps> = (
           </p>
           <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-gray-200 bg-white px-3 py-2">
             {/*
-             * In groups of four, set apart by a margin rather than by spaces:
-             * read off the screen in groups, and copied - by the button, or
-             * by selecting it - whole, as every authenticator app takes it.
-             * Inline blocks, not flex items, which a copy would put on lines
-             * of their own; a line may still break between two groups. Left
-             * to right on a right-to-left page too: it is a code.
+             * In groups of four, read off the screen in groups - four to a
+             * line on a phone as on a desktop, the gap only between them -
+             * and copied, by the button or by selecting it, whole, as every
+             * authenticator app takes it. Left to right on a right-to-left
+             * page too: it is a code.
              */}
             <code
+              ref={setupKeyElement}
               dir="ltr"
               data-testid="authenticator-setup-key"
-              className="min-w-0 font-mono text-base font-medium tracking-wider text-gray-900"
+              className="flex min-w-0 flex-wrap gap-x-2 font-mono text-sm font-medium tracking-wider text-gray-900 sm:text-base"
+              onCopy={(event: React.ClipboardEvent<HTMLElement>) => {
+                copySelectedKeyWhole(event, setupKeyElement.current);
+              }}
             >
               {getTotpSetupKeyGroups(setupKey).map(
                 (group: string, index: number): ReactElement => {
-                  return (
-                    <span key={index} className="me-2 inline-block last:me-0">
-                      {group}
-                    </span>
-                  );
+                  return <span key={index}>{group}</span>;
                 },
               )}
             </code>

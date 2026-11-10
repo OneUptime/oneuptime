@@ -84,14 +84,15 @@ const QRCodeElement: FunctionComponent<ComponentProps> = (
     };
   }, [props.text]);
 
-  const alt: string = props.alt || translator.translateText("QR code");
+  const alt: string =
+    props.alt || translator.translateText("QR code") || "QR code";
 
   if (hasFailed) {
     return (
       <div
         role="alert"
         data-testid="qr-code-failed"
-        className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+        className="flex w-full items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
       >
         <Icon icon={IconProp.Alert} className="h-5 w-5 flex-shrink-0" />
         <span>
@@ -114,12 +115,7 @@ const QRCodeElement: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <img
-      className="h-48 w-48"
-      src={image}
-      alt={alt}
-      data-testid="qr-code"
-    />
+    <img className="h-48 w-48" src={image} alt={alt} data-testid="qr-code" />
   );
 };
 

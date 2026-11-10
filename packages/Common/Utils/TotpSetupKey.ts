@@ -18,7 +18,7 @@
 // A secret as base32 writes it (RFC 4648): A-Z and 2-7, padded with "=".
 const BASE32_SECRET: RegExp = /^[A-Z2-7]+=*$/;
 
-const PADDING: RegExp = /=+$/;
+const PADDING: RegExp = /[=]+$/;
 
 // How many characters a group of the key holds, as it is shown.
 export const TOTP_SETUP_KEY_GROUP_LENGTH: number = 4;

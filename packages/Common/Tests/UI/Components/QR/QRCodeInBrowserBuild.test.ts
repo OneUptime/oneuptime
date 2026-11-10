@@ -227,16 +227,13 @@ describe("a QR code drawn by the frontends' build", () => {
     ["an authenticator app's enrolment", OTP_URL],
     ["Telegram's verification link", TELEGRAM_LINK],
     ["text past ASCII", NON_ASCII_TEXT],
-  ])(
-    "is drawn for %s, as an SVG image",
-    (_name: string, text: string) => {
-      const svg: string = svgOf(drawnFor(text));
+  ])("is drawn for %s, as an SVG image", (_name: string, text: string) => {
+    const svg: string = svgOf(drawnFor(text));
 
-      expect(svg.startsWith("<svg xmlns=")).toBe(true);
-      expect(svg.endsWith("</svg>\n")).toBe(true);
-      expect(svg).toContain("<path");
-    },
-  );
+    expect(svg.startsWith("<svg xmlns=")).toBe(true);
+    expect(svg.endsWith("</svg>\n")).toBe(true);
+    expect(svg).toContain("<path");
+  });
 
   test.each([
     ["an authenticator app's enrolment", OTP_URL],

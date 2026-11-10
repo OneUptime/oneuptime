@@ -19,7 +19,9 @@ import {
 import { createInstance, i18n } from "i18next";
 import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
-import AuthenticatorAppSetupCode from "../../../../UI/Components/AuthenticatorAppSetupCode/AuthenticatorAppSetupCode";
+import AuthenticatorAppSetupCode, {
+  copySelectedKeyWhole,
+} from "../../../../UI/Components/AuthenticatorAppSetupCode/AuthenticatorAppSetupCode";
 import { Logger } from "../../../../UI/Utils/Logger";
 
 /*
@@ -204,7 +206,7 @@ describe("AuthenticatorAppSetupCode", () => {
     });
 
     expect(groups).toEqual(GROUPS);
-    // Set apart by a margin, so a selection copies the key whole.
+    // The gap between the groups is drawn, not written into the key.
     expect(shownKey()).toBe(KEY);
   });
 
@@ -251,6 +253,58 @@ describe("AuthenticatorAppSetupCode", () => {
     expect(screen.getByRole("button", { name: "Copy" })).toHaveTextContent(
       "Copied!",
     );
+  });
+
+  test("copies the key selected by hand whole too, without the breaks between its groups", async () => {
+    render(<AuthenticatorAppSetupCode otpUrl={OTP_URL} />);
+    await drawCode();
+    fireEvent.click(toggle());
+
+    const key: HTMLElement = screen.getByTestId("authenticator-setup-key");
+    const range: Range = document.createRange();
+    range.selectNodeContents(key);
+    window.getSelection()!.removeAllRanges();
+    window.getSelection()!.addRange(range);
+
+    const setData: ReturnType<
+      typeof jest.fn<(format: string, data: string) => void>
+    > = jest.fn<(format: string, data: string) => void>();
+    const isNotPrevented: boolean = fireEvent.copy(
+      key.firstElementChild as HTMLElement,
+      { clipboardData: { setData } },
+    );
+
+    expect(setData).toHaveBeenCalledWith("text/plain", KEY);
+    // The browser's own copy, with a break after each group, does not run.
+    expect(isNotPrevented).toBe(false);
+
+    window.getSelection()!.removeAllRanges();
+  });
+
+  test("leaves a selection that reaches beyond the key to the browser", async () => {
+    render(<AuthenticatorAppSetupCode otpUrl={OTP_URL} />);
+    await drawCode();
+    fireEvent.click(toggle());
+
+    const key: HTMLElement = screen.getByTestId("authenticator-setup-key");
+    const range: Range = document.createRange();
+    range.setStart(key.firstElementChild!.firstChild!, 0);
+    range.setEnd(screen.getByText(TIME_BASED).firstChild!, 6);
+    window.getSelection()!.removeAllRanges();
+    window.getSelection()!.addRange(range);
+
+    const setData: ReturnType<
+      typeof jest.fn<(format: string, data: string) => void>
+    > = jest.fn<(format: string, data: string) => void>();
+    const isNotPrevented: boolean = fireEvent.copy(
+      key.firstElementChild as HTMLElement,
+      { clipboardData: { setData } },
+    );
+
+    expect(setData).not.toHaveBeenCalled();
+    expect(isNotPrevented).toBe(true);
+
+    window.getSelection()!.removeAllRanges();
   });
 
   test("reads the key left to right, a right-to-left page included", async () => {
@@ -365,5 +419,109 @@ describe("AuthenticatorAppSetupCode", () => {
       screen.getByRole("button", { name: "Kopieren" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "QR-Code" })).toBeInTheDocument();
+  });
+});
+
+describe("copySelectedKeyWhole", () => {
+  type CopyEventStandIn = {
+    event: React.ClipboardEvent<HTMLElement>;
+    setData: ReturnType<typeof jest.fn<(format: string, data: string) => void>>;
+    preventDefault: ReturnType<typeof jest.fn<() => void>>;
+  };
+
+  const copyEvent: () => CopyEventStandIn = (): CopyEventStandIn => {
+    const setData: ReturnType<
+      typeof jest.fn<(format: string, data: string) => void>
+    > = jest.fn<(format: string, data: string) => void>();
+    const preventDefault: ReturnType<typeof jest.fn<() => void>> =
+      jest.fn<() => void>();
+
+    return {
+      event: {
+        clipboardData: { setData },
+        preventDefault,
+      } as unknown as React.ClipboardEvent<HTMLElement>,
+      setData,
+      preventDefault,
+    };
+  };
+
+  const keyElement: () => HTMLElement = (): HTMLElement => {
+    const key: HTMLElement = document.createElement("code");
+    key.innerHTML = "<span>MTEA</span><span>5EME</span><span>V46E</span>";
+    document.body.appendChild(key);
+    return key;
+  };
+
+  // A selection as a browser reads it off the groups: a line for each.
+  const selecting: (text: string, within: Node) => void = (
+    text: string,
+    within: Node,
+  ): void => {
+    jest.spyOn(window, "getSelection").mockReturnValue({
+      rangeCount: 1,
+      getRangeAt: (): Partial<Range> => {
+        return { commonAncestorContainer: within };
+      },
+      toString: (): string => {
+        return text;
+      },
+    } as unknown as Selection);
+  };
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  test("copies the groups a browser reads a line each as one string", () => {
+    const key: HTMLElement = keyElement();
+    const copy: CopyEventStandIn = copyEvent();
+
+    selecting("MTEA\n5EME\nV46E\n", key);
+    copySelectedKeyWhole(copy.event, key);
+
+    expect(copy.setData).toHaveBeenCalledWith("text/plain", "MTEA5EMEV46E");
+    expect(copy.preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  test("copies part of the key as the characters selected", () => {
+    const key: HTMLElement = keyElement();
+    const copy: CopyEventStandIn = copyEvent();
+
+    selecting("5E", key.children[1]!.firstChild!);
+    copySelectedKeyWhole(copy.event, key);
+
+    expect(copy.setData).toHaveBeenCalledWith("text/plain", "5E");
+  });
+
+  test("leaves the browser to copy a selection beyond the key, an empty one, or none", () => {
+    const key: HTMLElement = keyElement();
+    const outside: HTMLElement = document.createElement("p");
+    document.body.appendChild(outside);
+
+    for (const [text, within] of [
+      ["MTEA\nIf your app asks", document.body],
+      ["Somewhere else", outside],
+      [" \n ", key],
+    ] as Array<[string, Node]>) {
+      const copy: CopyEventStandIn = copyEvent();
+
+      selecting(text, within);
+      copySelectedKeyWhole(copy.event, key);
+
+      expect(copy.setData).not.toHaveBeenCalled();
+      expect(copy.preventDefault).not.toHaveBeenCalled();
+      jest.restoreAllMocks();
+    }
+
+    const noSelection: CopyEventStandIn = copyEvent();
+    jest.spyOn(window, "getSelection").mockReturnValue(null);
+    copySelectedKeyWhole(noSelection.event, key);
+    expect(noSelection.setData).not.toHaveBeenCalled();
+
+    const noKey: CopyEventStandIn = copyEvent();
+    selecting("MTEA", key);
+    copySelectedKeyWhole(noKey.event, null);
+    expect(noKey.setData).not.toHaveBeenCalled();
   });
 });

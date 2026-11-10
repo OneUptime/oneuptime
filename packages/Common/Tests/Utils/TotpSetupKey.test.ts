@@ -99,9 +99,9 @@ describe("getTotpSetupKey", () => {
   });
 
   test("reads a URL with space around it, and a scheme in any case", () => {
-    expect(getTotpSetupKey("  OTPAUTH://totp/OneUptime?secret=ABCDEFGH\n")).toBe(
-      "ABCDEFGH",
-    );
+    expect(
+      getTotpSetupKey("  OTPAUTH://totp/OneUptime?secret=ABCDEFGH\n"),
+    ).toBe("ABCDEFGH");
   });
 
   test("never takes a parameter that only ends in secret", () => {
