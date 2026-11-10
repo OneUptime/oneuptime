@@ -103,7 +103,9 @@ function monitorFor(step: MonitorStep): Monitor {
   return monitor;
 }
 
-function check(): DataToProcess {
+function check(
+  responseBody: string = '{"status":"error","detail":"payments unavailable"}',
+): DataToProcess {
   return {
     projectId: PROJECT_ID,
     monitorId: MONITOR_ID,
@@ -111,7 +113,7 @@ function check(): DataToProcess {
     isOnline: true,
     responseCode: 503,
     responseTimeInMs: 640,
-    responseBody: '{"status":"error","detail":"payments unavailable"}',
+    responseBody: responseBody,
     responseHeaders: { "content-type": "application/json" },
     monitorDestination: URL.fromString("https://api.acme.example/v1/health"),
     failureCause: "",
@@ -131,6 +133,7 @@ interface Evaluated {
 async function evaluate(input: {
   filterCondition: FilterCondition;
   filters: Array<CriteriaFilter>;
+  responseBody?: string;
 }): Promise<Evaluated> {
   const instance: MonitorCriteriaInstance = criteriaInstance(input);
   const step: MonitorStep = new MonitorStep();
@@ -140,7 +143,7 @@ async function evaluate(input: {
   );
 
   const monitor: Monitor = monitorFor(step);
-  const dataToProcess: DataToProcess = check();
+  const dataToProcess: DataToProcess = check(input.responseBody);
   const summary: MonitorEvaluationSummary = {
     evaluatedAt: CHECKED_AT,
     criteriaResults: [],
@@ -451,6 +454,90 @@ describe("A root cause a monitor wrote reads in the reader's language", () => {
         }, "zh-CN"),
       }),
     ).toBe("**\\[原因\\](https://evil.example)**: timeout");
+  });
+
+  /*
+   * A finding can quote what the monitored system sent, Markdown and all.
+   * The engine escapes it into the root cause (mdText), and the reader finds
+   * it by writing its English the same way (issue #6660): an All criteria's
+   * "- finding" lines and an Any criteria's finding after its label.
+   */
+  const MARKDOWN_BODY: string = "**urgent**: see [runbook](x) _now_";
+  const BODY_CONTAINS_MARKDOWN: CriteriaFilter = {
+    checkOn: CheckOn.ResponseBody,
+    filterType: FilterType.Contains,
+    value: "**urgent**",
+  };
+
+  test("finds an All criteria's finding that quotes Markdown, as the engine escaped it", async () => {
+    const evaluated: Evaluated = await evaluate({
+      filterCondition: FilterCondition.All,
+      filters: [STATUS_ABOVE_499, BODY_CONTAINS_MARKDOWN],
+      responseBody: MARKDOWN_BODY,
+    });
+    const details: MonitorEvaluationDetails | null =
+      await MonitorEvaluationDetailsBuilder.build({
+        monitor: evaluated.monitor,
+        monitorStep: evaluated.step,
+        criteriaInstance: evaluated.instance,
+        evaluationSummary: evaluated.summary,
+        dataToProcess: evaluated.dataToProcess,
+      });
+    const rootCause: string = evaluated.rootCause!;
+
+    // The engine wrote the quoted Markdown as text.
+    expect(rootCause).toContain("- Response body contains \\*\\*urgent\\*\\*.");
+
+    const worded: string = MonitorRootCauseWording.wordRootCause({
+      rootCause: rootCause,
+      translator: chinese,
+      findings: details!.filters,
+    });
+
+    // Found and worded, the quoted Markdown still text: escaped once.
+    expect(worded).toContain("- 响应正文包含 \\*\\*urgent\\*\\*。");
+    expect(worded).toContain("- 响应状态码为 503，高于阈值 499。");
+    expect(worded).not.toContain("Response body contains");
+    expect(worded).not.toContain("\\\\*");
+  });
+
+  test("finds an Any criteria's finding that quotes Markdown, as the engine escaped it", async () => {
+    const evaluated: Evaluated = await evaluate({
+      filterCondition: FilterCondition.Any,
+      filters: [BODY_CONTAINS_MARKDOWN],
+      responseBody: MARKDOWN_BODY,
+    });
+    const details: MonitorEvaluationDetails | null =
+      await MonitorEvaluationDetailsBuilder.build({
+        monitor: evaluated.monitor,
+        monitorStep: evaluated.step,
+        criteriaInstance: evaluated.instance,
+        evaluationSummary: evaluated.summary,
+        dataToProcess: evaluated.dataToProcess,
+      });
+    const rootCause: string = evaluated.rootCause!;
+
+    expect(rootCause).toContain(
+      "**Filter Conditions Met**: Response body contains \\*\\*urgent\\*\\*.",
+    );
+
+    const worded: string = MonitorRootCauseWording.wordRootCause({
+      rootCause: rootCause,
+      translator: chinese,
+      findings: details!.filters,
+    });
+
+    expect(worded).toContain(
+      "**满足的筛选条件**: 响应正文包含 \\*\\*urgent\\*\\*。",
+    );
+    // An English reader reads it exactly as stored.
+    expect(
+      MonitorRootCauseWording.wordRootCause({
+        rootCause: rootCause,
+        translator: createTranslator(undefined, "en"),
+        findings: details!.filters,
+      }),
+    ).toBe(rootCause);
   });
 
   test("reads a long root cause line by line, in linear time", () => {
