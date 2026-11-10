@@ -66,6 +66,12 @@ const RESOURCE_FORM_FIELDS: Array<string> = [
   "StatusPageResourceFormFields.ts",
 ];
 
+const RESOURCE_PANEL: Array<string> = [
+  "Components",
+  "StatusPage",
+  "StatusPageResourcePanel.tsx",
+];
+
 // The title of each <SideMenuSection> a menu writes out, in order.
 const SIDE_MENU_SECTION_TITLE: RegExp = /<SideMenuSection\s+title="([^"]+)"/g;
 
@@ -794,7 +800,7 @@ describe("the group form survived the merge intact", () => {
   test("folds the layout into a section of its own, and the rest under Advanced", () => {
     const groupForm: string = between(
       "const getGroupFormFields:",
-      "const getFooterForMonitor:",
+      "type GetPanelFunction",
     );
 
     expect(groupForm).toContain(
@@ -844,25 +850,47 @@ describe("the group form survived the merge intact", () => {
 /*
  * The resource form shares the page with the group form - and two ModelForms
  * in one file is exactly the shape where one quietly ends up rendering the
- * other's fields. It is one page now, built by the shared resource form
+ * other's fields. It is one page, built by the shared resource form
  * (StatusPageResourceFormFields): the monitor and its display name, which
  * follows the monitor's name, and the rest folded under Advanced.
+ *
+ * The pane builds it, Add and Edit apart (issue #6540): the page handed it
+ * one field list built from the Add form's monitor/monitor group choice,
+ * which Edit opened on too - a monitor group's resource opened with an empty
+ * Monitor field. The page keeps only that Add choice now.
  */
 describe("the resource form is still its own form", () => {
-  test("is built by the shared resource form, not written out on the page", () => {
-    expect(code).toContain(
+  test("is built by the shared resource form, in the pane, not on the page", () => {
+    const panel: string = readCode(...RESOURCE_PANEL);
+
+    expect(panel).toContain(
       squash(
-        "getStatusPageResourceFormFields({ addMonitorGroup: addMonitorGroup, targetFooterElement: getFooterForMonitor(), })",
+        "getStatusPageResourceFormFields({ targetType: data.targetType, savedTargetName: data.savedTargetName,",
       ),
     );
+    expect(code).not.toContain("getStatusPageResourceFormFields");
   });
 
-  test("the pane is handed the resource fields, not the group's, and no steps", () => {
+  test("the pane is handed the Add form's choice, not fields, and no steps", () => {
     const pane: string = between("<StatusPageResourcePanel", "/>");
 
-    expect(pane).toContain("baseFormFields={formFields}");
+    expect(pane).toContain("isAddingMonitorGroup={addMonitorGroup}");
+    expect(pane).toContain("onIsAddingMonitorGroupChange={setAddMonitorGroup}");
+    expect(pane).not.toContain("baseFormFields");
     expect(pane).not.toContain("formSteps");
     expect(code).not.toContain("FORM_STEPS");
+  });
+
+  test("Edit opens on what the clicked resource shows, never on the Add form's choice", () => {
+    const panel: string = readCode(...RESOURCE_PANEL);
+    const openEdit: string =
+      panel.split("const openEdit: OpenEditFunction")[1]?.split("};")[0] || "";
+
+    expect(openEdit).toContain(
+      "targetType: getStatusPageResourceTargetType(statusPageResource),",
+    );
+    expect(openEdit).not.toContain("isAddingMonitorGroup");
+    expect(panel.split("onEdit={openEdit}").length - 1).toBe(2);
   });
 
   test("a monitor group can still be published instead of a monitor", () => {

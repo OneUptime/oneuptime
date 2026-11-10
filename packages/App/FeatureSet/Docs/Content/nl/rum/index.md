@@ -42,6 +42,7 @@ Het zijmenu van een applicatie groepeert de pagina's zo; **Instellingen**, **Ont
 | --- | --- |
 | **Basis** | **Overzicht**, **Aanbevelingen**, **Documentatie** |
 | **Observability** | **Metrieken**, **Logboeken**, **Traces**, **Clients** |
+| **Productanalyse** | **Gebruikers**, **Sessies** |
 | **Sessieherhaling** | **Sessieherhaling**, **Gebruikersstromen**, **Gebruikers in herhalingen**, **Gezondheid**, **Herhalingsbeleid**, **Frustratiesignalen**, **Toegangslog van replays**, **Documentatie** |
 | **Instellingen** | **Instellingen** |
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI**, **AI-assistenten** |
@@ -81,6 +82,7 @@ OneUptime vindt de applicatie via `service.name`, zonder op hoofdletters te lett
 | **Core Web Vitals** | Een kaart in het overzicht met LCP, INP, CLS, FCP en TTFB, elk beoordeeld tegen de grenzen van Google, en de INP van elke route van een single-page-app. Zie [Core Web Vitals](/docs/rum/web-vitals) en [Single-page-apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metrieken**, **Logboeken**, **Traces** | De telemetrieverkenners, beperkt tot deze applicatie. |
 | **Clients** | De browserplatforms en apparaatmodellen waarop de applicatie is gebruikt: een korte lijst per platform, nooit een rij per gebruiker. |
+| **Productanalyse** | Actieve, nieuwe, terugkerende en inactieve gebruikers, en sessies per apparaat, browser, land en pagina, geteld uit de opgenomen sessies: zie [Productanalyse](/docs/rum/product-analytics). |
 | **Sessieherhaling** | Opnames van echte sessies, naast hun fouten, traces en logs: zie [Sessieherhaling](/docs/telemetry/session-replay). |
 | **Aanbevelingen** | Kant-en-klare monitors voor de applicatie: slechte Core Web Vitals, mislukte verzoeken, browseruitzonderingen en, zodra ze opneemt, budgetten voor Session Replay. |
 

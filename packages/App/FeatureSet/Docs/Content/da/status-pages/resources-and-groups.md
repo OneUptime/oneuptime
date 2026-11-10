@@ -83,11 +83,13 @@ I en gittergruppe beder dialogen også om den række og kolonne, monitoren skal 
 
 Flervalgslisten har fanen **Etiketter**: klik på en etiket, og alle monitorer med den vælges på én gang.
 
+Monitorgrupper tilføjes på samme måde. Når kontakten **Monitorgrupper** er slået til, har **Flere handlinger** også **Tilføj flere monitorgrupper**, som åbner **Tilføj flere monitorgrupper**: en flervalgsliste **Monitorgrupper**, derefter de samme sammenfoldede **Flere felter**. Hver ressource får sit visningsnavn og sin beskrivelse fra sin monitorgruppe, og **Tilføj monitorgrupper** tilføjer dem alle; en monitorgruppe, der allerede er på siden, forbliver, som den er, og står under **Allerede tilføjet**. Linket under flervalgslisten, **Tilføj monitorgrupper i stedet.** eller **Tilføj monitorer i stedet.**, skifter mellem de to dialoger og beholder de visningsindstillinger, du har valgt. I en tom gruppe åbner **Tilføj flere** med monitorgrupper, når **Tilføj monitor** er skiftet til dem.
+
 ### Det er sikkert at tilføje efter etiket to gange
 
 En statusside viser en monitor én gang. Tilføjelse er idempotent, så når du vælger den samme etiket igen efter at have givet nogle nye monitorer den, tilføjes kun de nye: de monitorer, der allerede er på siden, forbliver præcis, som de er, med det visningsnavn og de indstillinger, du gav dem.
 
-Oversigten efter tilføjelsen af flere siger det samme: tilføjede monitorer står under **Tilføjet**, og dem, der allerede var der, under **Already Added**. Intet rapporteres som en fejl, og intet skrives for dem.
+Oversigten efter tilføjelsen af flere siger det samme: tilføjede monitorer står under **Tilføjet**, og dem, der allerede var der, under **Allerede tilføjet**. Intet rapporteres som en fejl, og intet skrives for dem.
 
 Den samme regel gælder alle andre steder, hvor en ressource oprettes. At tilføje en monitor, der allerede er på siden, fra formularen til én monitor, eller at lade en eksisterende ressource pege på den fra redigeringsformularen, afvises med *"This monitor is already added to this status page"*, også når den eksisterende ressource står i en anden gruppe, for en besøgende ville stadig se monitoren to gange. For at vise en monitor i en anden gruppe sletter du den ressource, den allerede har, og tilføjer den, hvor du vil have den.
 

@@ -211,8 +211,6 @@ import {
   setChips,
 } from "Common/Tests/UI/Components/FoldedSection/FoldedSectionQueries";
 
-jest.setTimeout(30000);
-
 const PROJECT_ID: string = "0e000000-0000-4000-8000-000000000001";
 const TEAM_ID: string = "0e000000-0000-4000-8000-000000000002";
 const RESPONDER_ID: string = "0e000000-0000-4000-8000-0000000000a1";

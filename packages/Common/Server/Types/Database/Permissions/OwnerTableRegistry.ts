@@ -78,6 +78,8 @@ import RunnerOwnerTeamService from "../../../Services/RunnerOwnerTeamService";
 import RunnerOwnerUserService from "../../../Services/RunnerOwnerUserService";
 import AIAgentOwnerTeamService from "../../../Services/AIAgentOwnerTeamService";
 import AIAgentOwnerUserService from "../../../Services/AIAgentOwnerUserService";
+import TeamOwnerTeamService from "../../../Services/TeamOwnerTeamService";
+import TeamOwnerUserService from "../../../Services/TeamOwnerUserService";
 /*
  * The resources whose ids can appear in a telemetry row's polymorphic
  * serviceId also expose their own service (for label-scope resolution).
@@ -582,6 +584,30 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       ownerUserService: AIAgentOwnerUserService,
       ownerTeamService: AIAgentOwnerTeamService,
       fkColumn: "aiAgentId",
+      ownedScopeLeavesReads: true,
+    },
+  ],
+  [
+    /*
+     * The people who look after a team: with a team permission scoped to
+     * Owned (Invite New Members, Remove Team Members, Edit Team, Edit Team
+     * Permissions, Delete Team) its holder acts only on the teams they or
+     * their teams own - and on those teams' members, permissions, custom
+     * roles and compliance rules (@OwnedThrough("teamId")). Whoever creates
+     * a team with Create Team scoped to Owned becomes its first owner.
+     *
+     * Every team is read by everyone who may read teams, as before: a
+     * team is picked as an owner, an on-call responder and a notification
+     * recipient everywhere, and who is in it is shown with it. Owners and
+     * Admin, which come with every project, have no owners (TeamService
+     * .assertTeamCanHaveOwners). The owner tables name the team by
+     * ownedTeamId: teamId is a team owner's column in every owner table.
+     */
+    "Team",
+    {
+      ownerUserService: TeamOwnerUserService,
+      ownerTeamService: TeamOwnerTeamService,
+      fkColumn: "ownedTeamId",
       ownedScopeLeavesReads: true,
     },
   ],

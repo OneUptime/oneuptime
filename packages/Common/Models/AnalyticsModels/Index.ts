@@ -22,6 +22,8 @@ import Profile from "./Profile";
 import ProfileSample from "./ProfileSample";
 import RumSession from "./RumSession";
 import RumSessionChunk from "./RumSessionChunk";
+import RumProductAnalyticsSession from "./RumProductAnalyticsSession";
+import RumProductAnalyticsUser from "./RumProductAnalyticsUser";
 import AuditLog from "./AuditLog";
 import ChangeEvent from "./ChangeEvent";
 import ThreatIntelIndicator from "./ThreatIntelIndicator";
@@ -73,6 +75,12 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
    */
   RumSession,
   RumSessionChunk,
+  /*
+   * Product analytics: aggregate targets filled by views on RumSessionV1
+   * inserts. Created by the AnalyticsServices array like the replay tables.
+   */
+  RumProductAnalyticsSession,
+  RumProductAnalyticsUser,
   AuditLog,
   SecurityEvent,
   ChangeEvent,

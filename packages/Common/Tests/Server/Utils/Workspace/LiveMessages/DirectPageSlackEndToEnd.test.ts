@@ -384,12 +384,12 @@ describe("a workflow pages a person, two teams and two schedules about an incide
     }
   });
 
-  test("the incident's feed has one entry for everybody paged and every target that reached nobody", () => {
+  test("the incident's feed has one entry for everybody paged, naming how the page reached them, and every target that reached nobody", () => {
     expect(onCallFeed()).toEqual([
-      "Workflow **Page the on-call engineer** paged **Nitin**, as a member of **Platform**.\n\nAlert Sent.",
-      "Workflow **Page the on-call engineer** paged **Jane Doe**, as a member of **Platform**.\n\nAlert Sent.",
+      "Workflow **Page the on-call engineer** paged **Nitin** via SMS and email, as a member of **Platform**.",
+      "Workflow **Page the on-call engineer** paged **Jane Doe** via SMS and email, as a member of **Platform**.",
       "Workflow **Page the on-call engineer** paged nobody: team **Night Shift** has no members.",
-      "Workflow **Page the on-call engineer** paged **NB User 3**.\n\nAlert Sent.",
+      "Workflow **Page the on-call engineer** paged **NB User 3** via SMS and email.",
       "Workflow **Page the on-call engineer** did not page **NB User 2**.\n\nSkipped because this user is not a member of the project.",
       "Workflow **Page the on-call engineer** paged nobody: nobody was on call in schedule **sec**.",
     ]);
@@ -433,9 +433,9 @@ describe("a workflow pages a person, two teams and two schedules about an incide
     }
   });
 
-  describe("and Nitin acknowledges his page", () => {
+  describe("and Nitin acknowledges the page from its SMS", () => {
     beforeEach(async () => {
-      await world.acknowledge(NITIN);
+      await world.acknowledge(NITIN, "userSmsId");
       await world.incidentState({
         to: STATE_ACKNOWLEDGED,
         name: "Acknowledged",
@@ -476,9 +476,9 @@ describe("a workflow pages a person, two teams and two schedules about an incide
       ).toEqual([]);
     });
 
-    test("the feed says he acknowledged the page from the workflow", () => {
+    test("the feed says Nitin acknowledged the page from the workflow, and from which notification", () => {
       expect(onCallFeed()).toContain(
-        "**Nitin** acknowledged the page from workflow **Page the on-call engineer**.\n\nIncident acknowledged by Nitin.",
+        "**Nitin** acknowledged the page from workflow **Page the on-call engineer** via SMS.",
       );
     });
   });
@@ -816,7 +816,7 @@ describe("a page somebody covers", () => {
       "•   *Jane Doe* (covering for NB User 3): paged once · by SMS and email",
     ]);
     expect(onCallFeed()).toEqual([
-      "Workflow **Page the on-call engineer** paged **Jane Doe**.\n\nThey are covering for NB User 3 (a user override).\n\nAlert Sent.",
+      "Workflow **Page the on-call engineer** paged **Jane Doe** via SMS and email.\n\nThey are covering for NB User 3 (a user override).",
     ]);
   });
 });
@@ -839,7 +839,7 @@ describe("a page a person started", () => {
       "Jane Doe is paging for Incident INC-8",
     );
     expect(onCallFeed()).toEqual([
-      "**Jane Doe** paged **Nitin**.\n\nAlert Sent.",
+      "**Jane Doe** paged **Nitin** via SMS and email.",
     ]);
   });
 });
@@ -868,7 +868,7 @@ describe("a page about an alert", () => {
     expect(entries).toHaveLength(1);
     expect(entries[0]!.record).toBe("alert");
     expect(entries[0]!.markdown).toBe(
-      "Workflow **Page the on-call engineer** paged **Nitin**.\n\nAlert Sent.",
+      "Workflow **Page the on-call engineer** paged **Nitin** via SMS and email.",
     );
   });
 });

@@ -1,0 +1,939 @@
+{
+  "Manual": [
+    {
+      "name": "",
+      "description": "",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Website": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout is offline or responds with an error status code",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is not responding, or is responding with an error status code."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is not responding, or is responding with an error status code."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is online and responds with a 2xx or 3xx status code",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "API": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout is offline or responds with an error status code",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is not responding, or is responding with an error status code."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is not responding, or is responding with an error status code."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is online and responds with a 2xx or 3xx status code",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Ping": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout is offline",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is online",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Kubernetes": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout has stopped sending data.",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is sending data.",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Docker": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout has stopped sending data.",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is sending data.",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Host": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout has stopped sending data.",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is sending data.",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Podman": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout has stopped sending data.",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is sending data.",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Docker Swarm": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout has stopped sending data.",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is sending data.",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Proxmox": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout has stopped sending data.",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is sending data.",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "OpenStack": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout has stopped sending data.",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is sending data.",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "VMware": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout has stopped sending data.",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is sending data.",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Ceph": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout has stopped sending data.",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is sending data.",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Storage Array": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout has stopped sending data.",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is sending data.",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "IoT Device": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout has stopped sending data.",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is sending data.",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "IP": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout is offline",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is online",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Incoming Request": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the request body of Acme Checkout contains \"error\"",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline. The request body contains \"error\"."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline. The request body contains \"error\"."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the request body of Acme Checkout does not contain \"error\"",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Incoming Email": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the email body of Acme Checkout contains \"error\"",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline. The email body contains \"error\"."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline. The email body contains \"error\"."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the email body of Acme Checkout does not contain \"error\"",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Port": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout is offline",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is online",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Server": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout is offline",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is online",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "SSL Certificate": [
+    {
+      "name": "Check if Acme Checkout certificate is not valid",
+      "description": "This criteria checks if the Acme Checkout SSL certificate is not valid or could not be checked",
+      "incidents": [
+        {
+          "title": "Acme Checkout certificate is not valid",
+          "description": "The SSL certificate of Acme Checkout is not valid, or could not be checked."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout certificate is not valid",
+          "description": "The SSL certificate of Acme Checkout is not valid, or could not be checked."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout certificate expires soon",
+      "description": "This criteria checks if the Acme Checkout SSL certificate is valid but expires in 14 days or less",
+      "incidents": [],
+      "alerts": [
+        {
+          "title": "Acme Checkout certificate expires soon",
+          "description": "The SSL certificate of Acme Checkout expires soon. Renew it before it expires, so visitors do not see a certificate error."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout certificate is valid",
+      "description": "This criteria checks if the Acme Checkout SSL certificate is valid",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "SQL Query": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout database query is failing",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout database query is currently failing."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout database query is currently failing."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout database query ran successfully",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Database": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if Acme Checkout is offline",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is not reachable, or the health check could not connect."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is not reachable, or the health check could not connect."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if Acme Checkout is reachable and its health metrics were collected",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Synthetic Monitor": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout is offline",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is online",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Custom JavaScript Code": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout is offline",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is online",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Logs": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout is offline",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is online",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Metrics": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout is offline",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is online",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Traces": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout is offline",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is online",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Exceptions": [
+    {
+      "name": "Check if Acme Checkout has exceptions",
+      "description": "This criteria checks if the Acme Checkout has exceptions.",
+      "incidents": [
+        {
+          "title": "Acme Checkout has exceptions",
+          "description": "Acme Checkout has active exceptions."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout has exceptions",
+          "description": "Acme Checkout has active exceptions."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout has no exceptions",
+      "description": "This criteria checks if the Acme Checkout has no exceptions.",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Profiles": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout is offline",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout is currently offline."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is online",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Security Events": [
+    {
+      "name": "Check if Acme Checkout found security events",
+      "description": "This criteria fires when Acme Checkout finds matching security events",
+      "incidents": [],
+      "alerts": [
+        {
+          "title": "Acme Checkout detected security events",
+          "description": "Acme Checkout found matching security events."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is clear",
+      "description": "This criteria checks that Acme Checkout has no matching security events",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "AI / LLM": [
+    {
+      "name": "Too many bad AI answers",
+      "description": "This criteria fires when more than 5% of the answers Acme Checkout counts, and at least 3 of them, were bad",
+      "incidents": [
+        {
+          "title": "Acme Checkout: too many bad AI answers",
+          "description": "More than 5% of the AI's answers were bad."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout: too many bad AI answers",
+          "description": "More than 5% of the AI's answers were bad."
+        }
+      ]
+    },
+    {
+      "name": "AI answers are fine",
+      "description": "This criteria checks that no more than 5% of the answers Acme Checkout counts were bad",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Network Device": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout SNMP device is offline",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout SNMP device is currently offline."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout SNMP device is currently offline."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout SNMP device is online",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "DNS": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout DNS resolution is failing",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout DNS resolution is currently failing."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout DNS resolution is currently failing."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout DNS resolution is online",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "DNSSEC": [
+    {
+      "name": "Check if Acme Checkout DNSSEC chain is broken",
+      "description": "This criteria checks if the Acme Checkout DNSSEC chain is broken",
+      "incidents": [
+        {
+          "title": "Acme Checkout DNSSEC chain is broken",
+          "description": "Acme Checkout DNSSEC validation is currently failing."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout DNSSEC chain is broken",
+          "description": "Acme Checkout DNSSEC validation is currently failing."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout DNSSEC chain is valid",
+      "description": "This criteria checks if the Acme Checkout DNSSEC chain is valid end-to-end",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "NTP": [
+    {
+      "name": "Check if Acme Checkout is not serving good time",
+      "description": "This criteria checks if the Acme Checkout time server does not answer, is not synchronized, or its clock is 1000 ms or more away from the probe's",
+      "incidents": [
+        {
+          "title": "Acme Checkout is not serving good time",
+          "description": "Acme Checkout did not answer, is not synchronized, or its clock is 1000 ms or more away from the probe's."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is not serving good time",
+          "description": "Acme Checkout did not answer, is not synchronized, or its clock is 1000 ms or more away from the probe's."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout serves good time",
+      "description": "This criteria checks if the Acme Checkout time server answers, is synchronized, and its clock is within 1000 ms of the probe's",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Domain": [
+    {
+      "name": "Check if Acme Checkout domain check failed",
+      "description": "This criteria checks if the Acme Checkout domain registration has expired or could not be read",
+      "incidents": [
+        {
+          "title": "Acme Checkout domain check failed",
+          "description": "Acme Checkout domain registration has expired, or its registration data could not be retrieved."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout domain check failed",
+          "description": "Acme Checkout domain registration has expired, or its registration data could not be retrieved."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout domain expires soon",
+      "description": "This criteria checks if the Acme Checkout domain registration expires in 30 days or less",
+      "incidents": [],
+      "alerts": [
+        {
+          "title": "Acme Checkout domain expires soon",
+          "description": "The registration of Acme Checkout expires soon. Renew it with your registrar before it expires, or the websites and email that use it stop working."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is not expired",
+      "description": "This criteria checks if the Acme Checkout domain registration was read successfully and is not expired",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "External Status Page": [
+    {
+      "name": "Check if Acme Checkout has an active incident or outage",
+      "description": "This criteria checks if the Acme Checkout external status page is unreachable, has an active incident, or has a degraded, partial, or major outage",
+      "incidents": [
+        {
+          "title": "Acme Checkout has an active incident or outage",
+          "description": "Acme Checkout external status page is reporting an active incident or a non-operational component."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout has an active incident or outage",
+          "description": "Acme Checkout external status page is reporting an active incident or a non-operational component."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is operational",
+      "description": "This criteria checks if the Acme Checkout external status page is reachable and has no active incidents",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
+  "Probe Status": [
+    {
+      "name": "Check if a probe is disconnected",
+      "description": "This criteria checks if any probe this monitor watches is disconnected",
+      "incidents": [
+        {
+          "title": "Probe disconnected: {{disconnectedProbeNames}}",
+          "description": "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Probe disconnected: {{disconnectedProbeNames}}",
+          "description": "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again."
+        }
+      ]
+    },
+    {
+      "name": "Check if every probe is connected",
+      "description": "This criteria checks if every probe this monitor watches is connected",
+      "incidents": [],
+      "alerts": []
+    }
+  ]
+}

@@ -42,6 +42,8 @@ Defina **Gerar alerta quando** para alertar sobre uma verificação:
 
 Salvar a verificação cria um monitor de métricas para ela, em seu nome e com as suas permissões. Limpar a condição remove o monitor.
 
+O **Status** de uma verificação, em **Verificações** e na aba **Verificações** da tabela dela, diz como ela está: **Com falha** enquanto o alerta dela está aberto, **Aprovado** enquanto não está, e **Não foi possível executar** quando a consulta dela falhou. Uma verificação sem alerta mostra apenas **Executou**: a consulta dela funcionou. Uma verificação com falha, e uma que não pôde ser executada, aparece também na **Visão geral**.
+
 ## O que uma verificação custa
 
 Uma verificação compete com a sua aplicação pelo banco de dados e, em um warehouse que cobra pelo que uma consulta lê, custa dinheiro. Três coisas mantêm isso sob controle:

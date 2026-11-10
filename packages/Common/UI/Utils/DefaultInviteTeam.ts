@@ -75,6 +75,28 @@ export type {
 } from "../../Types/Team/DefaultInviteTeamRule";
 
 /*
+ * What adds someone to a team: the permissions TeamMember's create takes.
+ */
+export const TEAM_INVITE_PERMISSIONS: ReadonlyArray<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.InviteProjectTeamMembers,
+];
+
+/*
+ * Whether the signed-in user may invite people to every team of the
+ * project. Invite New Members scoped to Owned reaches only the teams they,
+ * or the team holding it, own: the server refuses any other team, the
+ * members team included. Such a person gets no team picked - a default the
+ * server refuses is worse than none - and picks one of their own.
+ */
+export const canSignedInUserInviteToEveryTeam: () => boolean = (): boolean => {
+  return GrantablePermission.canCurrentUserActOnWholeProject([
+    ...TEAM_INVITE_PERMISSIONS,
+  ]);
+};
+
+/*
  * The signed-in user's own permissions, as the server reads them for a
  * request in the current project (GrantablePermission).
  */

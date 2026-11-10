@@ -2691,7 +2691,7 @@ describe("status page resources", () => {
       "Select Monitor Group",
     );
     expect(form).toContain(
-      'const targetField: ModelField<StatusPageResource> = options.addMonitorGroup ? { field: { monitorGroup: true, }, title: "Monitor Group",',
+      'const targetField: ModelField<StatusPageResource> = options.targetType === StatusPageResourceTargetType.MonitorGroup ? { field: { monitorGroup: true, }, title: "Monitor Group",',
     );
 
     expect(RESOURCES).toContain(

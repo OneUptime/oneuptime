@@ -215,6 +215,12 @@ const READ_IN_FULL: Array<string> = [
   "OnCallDutyPolicySchedule",
   "IncidentTemplate",
   "ScheduledMaintenanceTemplate",
+  /*
+   * A team is picked as an owner, a responder and a recipient everywhere:
+   * the permissions page's Team owners section says reading teams is never
+   * narrowed (#6561).
+   */
+  "Team",
 ];
 
 function read(language: string, page: string): string {
@@ -481,6 +487,20 @@ describe("what the docs say holds in the product", () => {
         kind,
         OwnedScopePermission.leavesReadsAlone(modelNamed(kind)),
       ]).toEqual([kind, false]);
+    }
+
+    // What belongs to a team goes with it, and is read in full with it.
+    for (const part of [
+      "TeamMember",
+      "TeamPermission",
+      "TeamCustomRole",
+      "TeamComplianceSetting",
+    ]) {
+      expect([
+        part,
+        OwnedScopePermission.getOwnedThrough(modelNamed(part))?.parentModels,
+        OwnedScopePermission.leavesReadsAlone(modelNamed(part)),
+      ]).toEqual([part, [modelNamed("Team")], true]);
     }
 
     // What belongs to one goes with it: a schedule's layers and shared link.

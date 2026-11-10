@@ -1,6 +1,7 @@
 import CustomRole from "./CustomRole";
 import Project from "./Project";
 import Team from "./Team";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -55,6 +56,12 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   },
   resourceNameRelation: "customRole",
 })
+/*
+ * Giving a team a custom role, or taking it away, is changing what the team
+ * may do: with Edit Team Permissions scoped to Owned, only on the teams its
+ * holder or their teams own.
+ */
+@OwnedThrough("teamId", Team)
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [

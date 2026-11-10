@@ -17,6 +17,10 @@ import { getTableColumn } from "../../../../Types/Database/TableColumn";
 import { AddInvestigationAnalysisTldr1786600000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1786600000000-AddInvestigationAnalysisTldr";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import ObjectID from "../../../../Types/ObjectID";
+import {
+  InvestigationReportTerm,
+  getTranslatedReportWords,
+} from "../../../../Utils/AI/InvestigationReportLanguages";
 import { QueryRunner } from "typeorm";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
@@ -333,6 +337,108 @@ describe("InvestigationTldr.sanitizeTldr", () => {
 });
 
 /*
+ * A team's AI context may ask for another language (issue #6542): the
+ * analysis is then written in it, and so is its TL;DR. The sanitizer takes
+ * off the Summary label of every language the Dashboard reads, as it takes
+ * off "Summary:", and its floor still tells a finding from noise in
+ * scripts that write a word in a character or two.
+ */
+describe("InvestigationTldr.sanitizeTldr, in other languages", () => {
+  const CHINESE_TLDR: string =
+    "结账服务因 payments-db 连接池耗尽而失败，很可能是 2026.09.14-2 版本把连接池上限改成了 10。";
+
+  test("the Summary label of every language is stripped, on its own line or inline, after either colon", () => {
+    for (const word of getTranslatedReportWords(
+      InvestigationReportTerm.Summary,
+    )) {
+      for (const response of [
+        `${word}：${CHINESE_TLDR}`,
+        `${word}: ${CHINESE_TLDR}`,
+        `${word} — ${CHINESE_TLDR}`,
+        `**${word}：** ${CHINESE_TLDR}`,
+        `**${word}**：${CHINESE_TLDR}`,
+        `## ${word}\n${CHINESE_TLDR}`,
+        `**${word}：**\n${CHINESE_TLDR}`,
+        `> ${word}\n\n${CHINESE_TLDR}`,
+        `### **${word}** ###\n${CHINESE_TLDR}`,
+      ]) {
+        expect({
+          response,
+          tldr: InvestigationTldr.sanitizeTldr(response),
+        }).toEqual({ response, tldr: CHINESE_TLDR });
+      }
+    }
+  });
+
+  test("labels of two languages, stacked, are all stripped", () => {
+    expect(
+      InvestigationTldr.sanitizeTldr(
+        `## Summary\n摘要：\nTL;DR： ${CHINESE_TLDR}`,
+      ),
+    ).toBe(CHINESE_TLDR);
+    expect(
+      InvestigationTldr.sanitizeTldr(`摘要\nZusammenfassung\n${CHINESE_TLDR}`),
+    ).toBe(CHINESE_TLDR);
+  });
+
+  test("a sentence that merely starts with such a word is left intact", () => {
+    for (const sentence of [
+      "摘要显示结账服务因连接池耗尽而失败，需要回滚。",
+      "Zusammenfassung der Lage: der Checkout fällt seit 14:02 aus.",
+      "Сводка ошибок: checkout-api отвечает 500 с 14:02.",
+      "概要としては、決済サービスが接続プールの枯渇で失敗しています。",
+    ]) {
+      expect(InvestigationTldr.sanitizeTldr(sentence)).toBe(sentence);
+    }
+  });
+
+  test("a short finding in Chinese, Japanese or Korean is kept; noise is still dropped", () => {
+    // Eleven characters, each as wide as two letters: a finding.
+    expect(InvestigationTldr.sanitizeTldr("支付数据库连接池耗尽。")).toBe(
+      "支付数据库连接池耗尽。",
+    );
+    expect(InvestigationTldr.sanitizeTldr("決済DBの接続プールが枯渇。")).toBe(
+      "決済DBの接続プールが枯渇。",
+    );
+    expect(InvestigationTldr.sanitizeTldr("결제 DB 연결 풀 고갈.")).toBe(
+      "결제 DB 연결 풀 고갈.",
+    );
+    // "Unknown." in each.
+    expect(InvestigationTldr.sanitizeTldr("未知。")).toBeNull();
+    expect(InvestigationTldr.sanitizeTldr("不明です。")).toBeNull();
+    expect(InvestigationTldr.sanitizeTldr("알 수 없음.")).toBeNull();
+    // Letters of other scripts count once, as they always did.
+    expect(InvestigationTldr.sanitizeTldr("Неизвестно.")).toBeNull();
+    expect(InvestigationTldr.sanitizeTldr("نامشخص است.")).toBeNull();
+  });
+
+  test("a cut Chinese TL;DR ends on a character, not on a full-width comma", () => {
+    // Eleven characters a clause: the cap's 319 is 29 of them, the last a "，".
+    const sanitized: string | null = InvestigationTldr.sanitizeTldr(
+      "结账服务因连接池耗尽，".repeat(40),
+    );
+
+    expect(sanitized).not.toBeNull();
+    expect(sanitized!.length).toBeLessThanOrEqual(MAX_TLDR_CHARS);
+    expect(sanitized!.endsWith("耗尽…")).toBe(true);
+  });
+
+  test("a long Chinese TL;DR still sits inside the cap and the column", () => {
+    for (const response of [
+      "结".repeat(MAX_TLDR_CHARS * 3),
+      `摘要：${"连接池耗尽。".repeat(200)}`,
+      `${"𠀀".repeat(400)}`,
+    ]) {
+      const sanitized: string | null = InvestigationTldr.sanitizeTldr(response);
+
+      expect(sanitized).not.toBeNull();
+      expect(sanitized!.length).toBeLessThanOrEqual(MAX_TLDR_CHARS);
+      expect(Buffer.from(sanitized!, "utf8").toString("utf8")).toBe(sanitized);
+    }
+  });
+});
+
+/*
  * Three numbers have to move together or the feature breaks silently: the
  * sanitizer's cap, the entity's column width, and the migration's DDL. Every
  * other cap assertion in this file is written in terms of MAX_TLDR_CHARS, so
@@ -508,6 +614,33 @@ describe("InvestigationTldr.generateTldr", () => {
     expect(systemPrompt).toContain("Add no facts that are not in the analysis");
     expect(systemPrompt).toContain("at most two sentences");
     expect(systemPrompt).toContain(String(MAX_TLDR_CHARS));
+  });
+
+  /*
+   * The TL;DR reads only the analysis, never the team's notes: a report
+   * written in Chinese (issue #6542) gets a Chinese TL;DR above it.
+   */
+  test("the system prompt asks for the analysis's own language", async () => {
+    const executeWithLogging: jest.SpyInstance = jest
+      .spyOn(AIService, "executeWithLogging")
+      .mockResolvedValue(
+        fakeLlmResponse("摘要：结账服务因 payments-db 连接池耗尽而失败。"),
+      );
+
+    await expect(
+      InvestigationTldr.generateTldr({
+        projectId,
+        aiRunId,
+        analysisMarkdown: "**摘要**\n结账服务因连接池耗尽而失败 [C1]。",
+      }),
+    ).resolves.toBe("结账服务因 payments-db 连接池耗尽而失败。");
+
+    const systemPrompt: string =
+      executeWithLogging.mock.calls[0]![0].messages[0].content;
+
+    expect(systemPrompt).toContain(
+      "Write it in the language the analysis is written in, with its names and identifiers as it writes them.",
+    );
   });
 
   test("a provider failure or budget rejection degrades to no TL;DR, never a throw", async () => {

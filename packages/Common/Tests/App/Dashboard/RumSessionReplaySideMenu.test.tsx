@@ -16,6 +16,8 @@ import {
   MOBILE_WIDTH,
   MenuLink,
   PROJECT_ID,
+  activeLinkTitles,
+  currentEntries,
   goTo,
   iconCountIn,
   isExpanded,
@@ -70,6 +72,7 @@ describe("RUM application Session Replay navigation", () => {
     expect(sectionTitlesInOrder()).toEqual([
       "Basic",
       "Observability",
+      "Product Analytics",
       "Session Replay",
       "Settings",
       "Developer",
@@ -160,6 +163,75 @@ describe("RUM application Session Replay navigation", () => {
       }
 
       expect(mobileSummaryText()).toContain(`Session Replay / ${label}`);
+    },
+  );
+});
+
+/*
+ * Product analytics (issue #6444): who uses the application and how their
+ * sessions go, a category of its own beside Observability, ahead of the
+ * replay pages its numbers are counted from.
+ */
+describe("RUM application Product Analytics navigation", () => {
+  beforeEach(() => {
+    setViewportWidth(DESKTOP_WIDTH);
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("holds Users and Sessions, each with its icon", async () => {
+    goTo(`${APPLICATION_PATH}/product-analytics-users`);
+    await renderApplicationMenu();
+
+    expect(isExpanded("Product Analytics")).toBe(true);
+    expect(linksIn("Product Analytics")).toEqual([
+      { title: "Users", href: `${APPLICATION_PATH}/product-analytics-users` },
+      {
+        title: "Sessions",
+        href: `${APPLICATION_PATH}/product-analytics-sessions`,
+      },
+    ]);
+    expect(iconCountIn("Product Analytics")).toBe(2);
+    expect(activeLinkTitles()).toEqual(["Users"]);
+  });
+
+  test("the Sessions page lights Sessions only", async () => {
+    goTo(`${APPLICATION_PATH}/product-analytics-sessions`);
+    await renderApplicationMenu();
+
+    expect(activeLinkTitles()).toEqual(["Sessions"]);
+  });
+
+  test("a person's page keeps Users lit, as one of the people Users lists", async () => {
+    goTo(
+      `${APPLICATION_PATH}/product-analytics-users/u-9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08`,
+    );
+    await renderApplicationMenu();
+
+    expect(activeLinkTitles()).toEqual(["Users"]);
+    expect(currentEntries()).toEqual([{ title: "Users", current: "true" }]);
+  });
+
+  test("the replay pages light nothing in Product Analytics", async () => {
+    goTo(`${APPLICATION_PATH}/session-replay-users`);
+    await renderApplicationMenu();
+
+    expect(activeLinkTitles()).toEqual(["Replay Users"]);
+  });
+
+  test.each([
+    ["product-analytics-users", "Users"],
+    ["product-analytics-sessions", "Sessions"],
+  ])(
+    "mobile navigation locates %s inside Product Analytics",
+    async (path: string, label: string) => {
+      setViewportWidth(MOBILE_WIDTH);
+      goTo(`${APPLICATION_PATH}/${path}`);
+      await renderApplicationMenu();
+
+      expect(mobileSummaryText()).toContain(`Product Analytics / ${label}`);
     },
   );
 });

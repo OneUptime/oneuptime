@@ -49,16 +49,22 @@ flowchart TB
 :::steps
 ### Collega un database
 
-Apri **Osservabilità dei dati**, vai su **Database** e scegli **Collega un database**. Scegli il motore e fornisci una stringa di connessione di sola lettura, oppure il nome della variabile d'ambiente da cui la legge la tua sonda. [Collegare un database](/docs/data-observability/connect) mostra l'utente di ogni motore.
+Apri **Osservabilità dei dati** e scegli **Collega un database**, in **Panoramica** o in **Database**. Scegli il motore e fornisci una stringa di connessione di sola lettura, oppure il nome della variabile d'ambiente da cui la legge la tua sonda. [Collegare un database](/docs/data-observability/connect) mostra l'utente di ogni motore.
 
-### Guarda le sue tabelle
+### Attiva i suoi avvisi consigliati
+
+Un database che colleghi si apre sui suoi **Avvisi consigliati**, perché nessuno viene a sapere nulla delle sue tabelle finché alcuni non sono attivi. Aggiungi quelli che vuoi: una tabella in ritardo, una le cui righe calano bruscamente o sono insolitamente poche, una le cui colonne cambiano, e un database che smette di inviare dati. Ognuno è un monitor come gli altri: reperibilità, proprietari, finestre di manutenzione e pagine di stato funzionano come per qualsiasi altro.
+
+### Leggi la panoramica
 
 Entro cinque minuti le sue tabelle compaiono in **Tabelle**, ognuna con le sue righe, le sue dimensioni e il momento dell'ultima modifica. La freschezza di una tabella è nota non appena è cambiata due volte: **Aggiornata** finché mantiene il suo ritmo, **In ritardo** appena lo salta.
 
-### Aggiungi gli avvisi consigliati
-
-In **Database**, scegli **Avvisi consigliati** per il database e aggiungi quelli che vuoi: una tabella in ritardo, una le cui righe calano bruscamente o sono insolitamente poche, una le cui colonne cambiano, e un database che smette di inviare dati. Ognuno è un monitor come gli altri: reperibilità, proprietari, finestre di manutenzione e pagine di stato funzionano come per qualsiasi altro.
+La **Panoramica** dice poi cosa ha bisogno di qualcuno adesso, prima il più grave: un database che non è stato possibile leggere, un'esecuzione di pipeline fallita o in ritardo, un controllo in errore o che non è stato possibile eseguire, una riconciliazione che ha deviato, e un prodotto di dati o una tabella in ritardo. Ognuno dice chi ne è il proprietario e se il suo avviso è aperto, oppure che nessuno viene avvisato perché il suo database non ha alcun avviso attivo, e apre la pagina in cui si risolve. Finché il progetto non è configurato, la **Panoramica** elenca i passi mancanti: avvisi su ogni database, proprietari per le tabelle, un controllo e le esecuzioni delle tue pipeline.
 :::
+
+## Dove trovare cosa
+
+Il menu segue le domande che fai ai tuoi dati. La sua prima sezione raccoglie le pagine di tutti i giorni: **Panoramica**, **Tabelle**, **Pipeline**, **Modifiche allo schema**, **Database** e **Percorsi di archiviazione**. **Qualità** raccoglie le regole che i dati devono rispettare, **Controlli** e **Riconciliazioni**, e **Utilizzo** chi ne dipende e quanto costano: **Prodotti di dati**, **Dashboard BI**, **Spesa del warehouse** e **Tabelle inutilizzate**. **Regole** (**Regole del proprietario** e **Regole etichette**), **Aiuto** e **Avanzato** (**Impostazioni** e **Tabelle eliminate**) restano chiuse finché non le apri.
 
 ## Quanto costa
 
