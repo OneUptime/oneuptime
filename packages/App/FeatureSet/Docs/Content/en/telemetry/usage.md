@@ -24,7 +24,7 @@ flowchart TB
 
 - **A day is counted once it is over.** Each day is counted by about 08:00 UTC the next day, so today's usage shows up tomorrow. A day that could not be counted is tried again for a week.
 - **The size is the stored size.** Each signal is counted as the size of the rows it is stored in, before compression. Session replays are counted as the bytes the recorders uploaded.
-- **Exceptions are shown on their own.** The exceptions recorded from spans and logs have a total, a column and a part of the chart of their own, and **Traces** counts spans. A day counted before exceptions were shown apart still has them inside **Traces**, as it did.
+- **Exceptions are shown on their own.** The exceptions recorded from spans and logs have a total, a column and a part of the chart of their own, and **Traces** counts spans. They have no row of their own: each traces row says how much of it was exceptions. A day counted before exceptions were shown apart still has them inside **Traces**, as it did.
 - **Profiles include their samples.**
 - **OneUptime's own telemetry is not counted.** Monitor, alert, incident and SLO readings, Data Observability readings and the session replay budget metrics are written by OneUptime itself.
 - **On OneUptime Cloud, these rows are what telemetry is billed from.** On an installation without billing, usage is counted at no cost, and nothing is charged for it, even if billing is turned on later.
@@ -58,7 +58,7 @@ The page has three cards:
 | --- | --- |
 | **Telemetry Usage** | The range's **Total**, a total for each signal, and a chart of each day, its signals stacked. |
 | **Usage by Resource** | Each **Resource** with its kind, a column for each signal, the **Total** and the **Retention** its telemetry is kept for. |
-| **Telemetry Usage History** | One row per product, resource and day, with filters for **Product**, **Day** and **Service**. A **Traces** row is billed for its spans and exceptions together, and says under **Data Ingested (in GB)** how much of it was exceptions. |
+| **Telemetry Usage History** | One row per product, resource and day, with filters for **Product**, **Day** and **Service**. A **Traces** row holds its spans and exceptions together, as traces are billed, and says under **Data Ingested (in GB)** how much of it was exceptions. |
 
 Telemetry that did not name a service is listed as **Unknown Service**. A resource that has been deleted since, or whose kind your role does not read, is listed by its kind and the start of its ID.
 

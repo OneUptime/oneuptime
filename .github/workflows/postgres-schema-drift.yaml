@@ -107,6 +107,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/AIInvestigationDecisionPostgres.test.ts --forceExit
 
+      # #6356: exceptions are shown apart from the traces they are billed
+      # with. Metering and billing write the exceptions' part beside a traces
+      # row's whole, billing prices the whole exactly as before, and the usage
+      # reads split it in SQL - over a range mixing days counted before the
+      # part existed (inside Traces) and after - all on structure-only copies
+      # of the migrated TelemetryUsageBilling and Project tables.
+      - name: Test telemetry usage with exceptions apart, on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TELEMETRY_USAGE_EXCEPTIONS_TESTS: "true"
+          TELEMETRY_USAGE_EXCEPTIONS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TELEMETRY_USAGE_EXCEPTIONS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TELEMETRY_USAGE_EXCEPTIONS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/TelemetryUsageExceptionsPostgres.test.ts
+          --forceExit
+
       # Block 43, "remediation never runs although it is on": the production
       # rule engine writes down each reason fixing stopped (Enable AI, the
       # record kind's switch, linked to nothing, AI rules), Try again decides
