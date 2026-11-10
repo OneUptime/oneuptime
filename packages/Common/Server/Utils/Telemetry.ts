@@ -466,6 +466,13 @@ export default class Telemetry {
     name: string;
     description: string;
     unit?: string;
+    /*
+     * The bucket boundaries, for a histogram whose values the SDK's default
+     * buckets do not fit: those end at 10,000, so every value above lands in
+     * one overflow bucket - a latency of seconds to minutes, in ms, has no
+     * percentiles at all without boundaries of its own.
+     */
+    explicitBucketBoundaries?: Array<number> | undefined;
   }): Histogram {
     const { name, description } = data;
 
@@ -475,6 +482,15 @@ export default class Telemetry {
 
     if (data.unit) {
       metricOptions.unit = data.unit;
+    }
+
+    if (
+      data.explicitBucketBoundaries &&
+      data.explicitBucketBoundaries.length > 0
+    ) {
+      metricOptions.advice = {
+        explicitBucketBoundaries: [...data.explicitBucketBoundaries],
+      };
     }
 
     const histogram: Histogram<opentelemetry.api.Attributes> =

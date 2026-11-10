@@ -108,6 +108,11 @@ import AlertLabelRuleEngineService from "./AlertLabelRuleEngineService";
 import AlertOnCallRuleEngineService from "./AlertOnCallRuleEngineService";
 import AlertIncidentRuleEngineService from "./AlertIncidentRuleEngineService";
 import WaitingRunsOnRecordChange from "../Utils/OnCall/WaitingRunsOnRecordChange";
+import OnCallPageTiming from "../Utils/OnCall/OnCallPageTiming";
+import NotificationDeliveryMetrics, {
+  NotificationTriggerSource,
+  NotificationTriggerType,
+} from "../Utils/Telemetry/NotificationDeliveryMetrics";
 import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
 import {
   OnCallRulesPaging,
@@ -1107,6 +1112,21 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
+     * An alert notifies people: counted for the platform's operator
+     * (notification.trigger.count), with the type of the monitor that
+     * raised it.
+     */
+    NotificationDeliveryMetrics.recordTrigger({
+      type: NotificationTriggerType.Alert,
+      source: createdItem.isCreatedAutomatically
+        ? NotificationTriggerSource.Automatic
+        : NotificationTriggerSource.Manual,
+      monitorType: createdItem.isCreatedAutomatically
+        ? createdItem.monitor?.monitorType
+        : undefined,
+    });
+
+    /*
      * How far along the alert starts, as onBeforeCreate read it
      * (StartingStage). Created already acknowledged, no on-call policy runs;
      * created resolved, it is over, and nothing below that answers a live
@@ -1358,13 +1378,19 @@ export class Service extends ProjectReferencesService<Model> {
         /*
          * The alert's on-call policies, and those its on-call rules page as
          * observers (OnCallObserverPage): the fan-out pages them when the
-         * alert starts open, and its feed says otherwise.
+         * alert starts open, and its feed says otherwise. Their pages start
+         * at the alert's creation, its trigger (OnCallPageTiming).
          */
         try {
-          return await this.executeAlertOnCallDutyPoliciesAsync(
-            createdItem,
-            startingStage,
-            onCallRulesPaging,
+          return await OnCallPageTiming.runAsRecordIsCreated(
+            { recordCreatedAt: createdItem.createdAt },
+            (): Promise<void> => {
+              return this.executeAlertOnCallDutyPoliciesAsync(
+                createdItem,
+                startingStage,
+                onCallRulesPaging,
+              );
+            },
           );
         } catch (error) {
           logger.error(

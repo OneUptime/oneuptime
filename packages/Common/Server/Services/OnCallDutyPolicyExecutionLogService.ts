@@ -5,7 +5,12 @@ import OnCallDutyPolicyEscalationRuleService, {
   OnCallPagingOutcome,
   OnCallRuleExecutionOutcome,
 } from "./OnCallDutyPolicyEscalationRuleService";
-import OnCallEscalationAdvance from "../Utils/OnCall/OnCallEscalationAdvance";
+import OnCallEscalationAdvance, {
+  OnCallEscalationAdvanceResult,
+} from "../Utils/OnCall/OnCallEscalationAdvance";
+import OnCallPageTiming, {
+  OnCallPageStartMoment,
+} from "../Utils/OnCall/OnCallPageTiming";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserService from "./UserService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -405,14 +410,20 @@ export class Service extends ProjectReferencesService<Model> {
     let outcome: OnCallPagingOutcome;
 
     try {
-      outcome = await OnCallDutyPolicyEscalationRuleService.startDirectPage({
-        projectId: data.projectId,
-        triggeredByIncidentId: data.triggeredByIncidentId,
-        triggeredByAlertId: data.triggeredByAlertId,
-        userNotificationEventType: log.userNotificationEventType!,
-        onCallPolicyExecutionLogId: executionLogId,
-        targets: data.targets,
-      });
+      // A direct page starts now (OnCallPageTiming).
+      outcome = await OnCallPageTiming.runInPageStart(
+        OnCallPageTiming.startPage(),
+        (): Promise<OnCallPagingOutcome> => {
+          return OnCallDutyPolicyEscalationRuleService.startDirectPage({
+            projectId: data.projectId,
+            triggeredByIncidentId: data.triggeredByIncidentId,
+            triggeredByAlertId: data.triggeredByAlertId,
+            userNotificationEventType: log.userNotificationEventType!,
+            onCallPolicyExecutionLogId: executionLogId,
+            targets: data.targets,
+          });
+        },
+      );
     } catch (err) {
       /*
        * The run says what went wrong rather than sitting at "started" until
@@ -606,21 +617,29 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
+      // A page again starts now (OnCallPageTiming).
+      const pageStart: OnCallPageStartMoment = OnCallPageTiming.startPage();
+
       const firstRuleOutcome: OnCallRuleExecutionOutcome =
-        await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
-          rule.id!,
-          {
-            projectId: data.projectId,
-            triggeredByIncidentId: data.triggeredByIncidentId,
-            triggeredByAlertId: data.triggeredByAlertId,
-            triggeredByAlertEpisodeId: data.triggeredByAlertEpisodeId,
-            triggeredByIncidentEpisodeId: data.triggeredByIncidentEpisodeId,
-            userNotificationEventType: data.userNotificationEventType,
-            onCallPolicyExecutionLogId: runId,
-            onCallPolicyId: data.onCallDutyPolicyId,
-            alsoPageUserIds: data.acknowledgedByUserId
-              ? [data.acknowledgedByUserId]
-              : [],
+        await OnCallPageTiming.runInPageStart(
+          pageStart,
+          (): Promise<OnCallRuleExecutionOutcome> => {
+            return OnCallDutyPolicyEscalationRuleService.startRuleExecution(
+              rule.id!,
+              {
+                projectId: data.projectId,
+                triggeredByIncidentId: data.triggeredByIncidentId,
+                triggeredByAlertId: data.triggeredByAlertId,
+                triggeredByAlertEpisodeId: data.triggeredByAlertEpisodeId,
+                triggeredByIncidentEpisodeId: data.triggeredByIncidentEpisodeId,
+                userNotificationEventType: data.userNotificationEventType,
+                onCallPolicyExecutionLogId: runId,
+                onCallPolicyId: data.onCallDutyPolicyId,
+                alsoPageUserIds: data.acknowledgedByUserId
+                  ? [data.acknowledgedByUserId]
+                  : [],
+              },
+            );
           },
         );
 
@@ -644,7 +663,12 @@ export class Service extends ProjectReferencesService<Model> {
        * level with nobody to wait for (OnCallEmptyLevel).
        */
       if (firstRuleOutcome?.movesOnAtOnce) {
-        await OnCallEscalationAdvance.moveOnAtOnce({ runId: runId });
+        await OnCallPageTiming.runInPageStart(
+          pageStart,
+          (): Promise<OnCallEscalationAdvanceResult | null> => {
+            return OnCallEscalationAdvance.moveOnAtOnce({ runId: runId });
+          },
+        );
       }
     } catch (err) {
       // The run says what went wrong rather than sitting at "started".
@@ -1243,18 +1267,30 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Invalid userNotificationEventType");
     }
 
+    /*
+     * The page starts now - or, for a run started as its record was
+     * created, when the record was - and every notification its first rule
+     * sends at once is due then (OnCallPageTiming).
+     */
+    const pageStart: OnCallPageStartMoment = OnCallPageTiming.startPage();
+
     const firstRuleOutcome: OnCallRuleExecutionOutcome =
-      await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
-        executionRule.id!,
-        {
-          projectId: run.projectId!,
-          triggeredByIncidentId: run.triggeredByIncidentId,
-          triggeredByAlertId: run.triggeredByAlertId,
-          triggeredByAlertEpisodeId: run.triggeredByAlertEpisodeId,
-          triggeredByIncidentEpisodeId: run.triggeredByIncidentEpisodeId,
-          userNotificationEventType: userNotificationEventType,
-          onCallPolicyExecutionLogId: run.id!,
-          onCallPolicyId: run.onCallDutyPolicyId!,
+      await OnCallPageTiming.runInPageStart(
+        pageStart,
+        (): Promise<OnCallRuleExecutionOutcome> => {
+          return OnCallDutyPolicyEscalationRuleService.startRuleExecution(
+            executionRule.id!,
+            {
+              projectId: run.projectId!,
+              triggeredByIncidentId: run.triggeredByIncidentId,
+              triggeredByAlertId: run.triggeredByAlertId,
+              triggeredByAlertEpisodeId: run.triggeredByAlertEpisodeId,
+              triggeredByIncidentEpisodeId: run.triggeredByIncidentEpisodeId,
+              userNotificationEventType: userNotificationEventType!,
+              onCallPolicyExecutionLogId: run.id!,
+              onCallPolicyId: run.onCallDutyPolicyId!,
+            },
+          );
         },
       );
 
@@ -1272,10 +1308,16 @@ export class Service extends ProjectReferencesService<Model> {
     /*
      * The first rule reached nobody: there is nobody on it to wait for, so
      * the run moves on now - to the next level, or to its end - rather than
-     * a whole wait later (Types/OnCallDutyPolicy/OnCallEmptyLevel).
+     * a whole wait later (Types/OnCallDutyPolicy/OnCallEmptyLevel). What it
+     * pages there is due as the page starts, too.
      */
     if (firstRuleOutcome?.movesOnAtOnce) {
-      await OnCallEscalationAdvance.moveOnAtOnce({ runId: run.id! });
+      await OnCallPageTiming.runInPageStart(
+        pageStart,
+        (): Promise<OnCallEscalationAdvanceResult | null> => {
+          return OnCallEscalationAdvance.moveOnAtOnce({ runId: run.id! });
+        },
+      );
     }
   }
 

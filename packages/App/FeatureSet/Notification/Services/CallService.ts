@@ -50,7 +50,12 @@ import {
   getProjectNotificationChannelOffMessage,
   ProjectNotificationChannel,
 } from "Common/Utils/Project/NotificationChannels";
-import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+  NotificationDeliveryProvider,
+  NotificationDispatch,
+  NotificationProviderConfig,
+} from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import {
   getNoTwilioAccountMessage,
   TwilioMessageKind,
@@ -186,36 +191,32 @@ export default class CallService {
       failIfNotSent?: boolean | undefined;
     },
   ): Promise<void> {
-    const startNs: bigint = process.hrtime.bigint();
-    let outcome: "success" | "failure" = "success";
+    // How it went, for the platform's operator (NotificationDeliveryMetrics).
+    await NotificationDeliveryMetrics.measureDispatch(
+      {
+        channel: NotificationDeliveryChannel.Call,
+        isOnCallPage: Boolean(options.userOnCallLogTimelineId),
+      },
+      async (dispatch: NotificationDispatch): Promise<void> => {
+        const notPlacedReason: string | null = await this.makeCallInternal(
+          // The installation's own name in what the call says, when it goes by one.
+          ProductBrandingText.brandCallRequest(callRequest),
+          options,
+          dispatch,
+        );
 
-    try {
-      const notPlacedReason: string | null = await this.makeCallInternal(
-        // The installation's own name in what the call says, when it goes by one.
-        ProductBrandingText.brandCallRequest(callRequest),
-        options,
-      );
+        if (notPlacedReason !== null) {
+          dispatch.markNotSent();
+        }
 
-      if (notPlacedReason !== null && options.failIfNotSent) {
-        // The tenant's settings or balance, not a defect: a user error.
-        throw new BadDataException(
-          `Call not placed: ${notPlacedReason}`,
-        ).asUserError();
-      }
-    } catch (err) {
-      outcome = "failure";
-      throw err;
-    } finally {
-      const elapsedNs: bigint = process.hrtime.bigint() - startNs;
-      const durationMs: number = Number(elapsedNs) / 1e6;
-      const attributes: Record<string, string> = {
-        "notification.channel": "call",
-        outcome,
-      };
-
-      AppMetrics.getNotificationCounter().add(1, attributes);
-      AppMetrics.getNotificationDuration().record(durationMs, attributes);
-    }
+        if (notPlacedReason !== null && options.failIfNotSent) {
+          // The tenant's settings or balance, not a defect: a user error.
+          throw new BadDataException(
+            `Call not placed: ${notPlacedReason}`,
+          ).asUserError();
+        }
+      },
+    );
   }
 
   private static async makeCallInternal(
@@ -240,11 +241,13 @@ export default class CallService {
       teamId?: ObjectID | undefined;
       failIfNotSent?: boolean | undefined;
     },
+    dispatch: NotificationDispatch,
   ): Promise<string | null> {
     /*
      * Returns why the call was deliberately not placed (the project was not
      * found, has calls turned off, or has too little balance), after logging
      * it; null when it was handed to Twilio. A failure to place it throws.
+     * `dispatch` is told what it goes out through, and that it went.
      */
     let callError: Error | null = null;
     const callLog: CallLog = new CallLog();
@@ -296,6 +299,17 @@ export default class CallService {
       const twilioConfig: TwilioConfig | null = gateway
         ? null
         : customTwilioConfig || (await getTwilioConfig(TwilioMessageKind.Call));
+
+      if (gateway) {
+        dispatch.setProvider(NotificationDeliveryProvider.SmsAndCallGateway);
+      } else if (twilioConfig) {
+        dispatch.setProvider(
+          NotificationDeliveryProvider.Twilio,
+          customTwilioConfig
+            ? NotificationProviderConfig.Project
+            : NotificationProviderConfig.Global,
+        );
+      }
 
       if (!gateway && !twilioConfig) {
         /*
@@ -597,6 +611,8 @@ export default class CallService {
           throw new BadDataException(result.message).asUserError();
         }
 
+        dispatch.markSucceeded();
+
         callLog.status = CallStatus.Success;
         callLog.statusMessage = result.message;
       } else {
@@ -631,6 +647,8 @@ export default class CallService {
               }
             : {}),
         });
+
+        dispatch.markSucceeded();
 
         callLog.status = CallStatus.Success;
         callLog.statusMessage = "Call ID: " + twillioCall.sid;

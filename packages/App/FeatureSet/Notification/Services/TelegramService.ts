@@ -41,30 +41,55 @@ import {
   fitTelegramMessage,
   TelegramMessageText,
 } from "Common/Utils/TelegramMessageFit";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+  NotificationDeliveryProvider,
+  NotificationDispatch,
+} from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 
 const SENSITIVE_MESSAGE_PLACEHOLDER: string =
   "This message is sensitive and is not logged";
 
+export interface TelegramSendOptions {
+  projectId?: ObjectID | undefined;
+  isSensitive?: boolean | undefined;
+  userOnCallLogTimelineId?: ObjectID | undefined;
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
+  monitorId?: ObjectID | undefined;
+  scheduledMaintenanceId?: ObjectID | undefined;
+  statusPageId?: ObjectID | undefined;
+  statusPageAnnouncementId?: ObjectID | undefined;
+  userId?: ObjectID | undefined;
+  onCallPolicyId?: ObjectID | undefined;
+  onCallPolicyEscalationRuleId?: ObjectID | undefined;
+  onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+  onCallScheduleId?: ObjectID | undefined;
+  teamId?: ObjectID | undefined;
+}
+
 export default class TelegramService {
   public static async sendTelegram(
     message: TelegramMessage,
-    options: {
-      projectId?: ObjectID | undefined;
-      isSensitive?: boolean | undefined;
-      userOnCallLogTimelineId?: ObjectID | undefined;
-      incidentId?: ObjectID | undefined;
-      alertId?: ObjectID | undefined;
-      monitorId?: ObjectID | undefined;
-      scheduledMaintenanceId?: ObjectID | undefined;
-      statusPageId?: ObjectID | undefined;
-      statusPageAnnouncementId?: ObjectID | undefined;
-      userId?: ObjectID | undefined;
-      onCallPolicyId?: ObjectID | undefined;
-      onCallPolicyEscalationRuleId?: ObjectID | undefined;
-      onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
-      onCallScheduleId?: ObjectID | undefined;
-      teamId?: ObjectID | undefined;
-    } = {},
+    options: TelegramSendOptions = {},
+  ): Promise<void> {
+    // How it went, for the platform's operator (NotificationDeliveryMetrics).
+    await NotificationDeliveryMetrics.measureDispatch(
+      {
+        channel: NotificationDeliveryChannel.Telegram,
+        provider: NotificationDeliveryProvider.TelegramBotApi,
+        isOnCallPage: Boolean(options.userOnCallLogTimelineId),
+      },
+      (dispatch: NotificationDispatch): Promise<void> => {
+        return this.sendTelegramMessage(message, options, dispatch);
+      },
+    );
+  }
+
+  private static async sendTelegramMessage(
+    message: TelegramMessage,
+    options: TelegramSendOptions,
+    dispatch: NotificationDispatch,
   ): Promise<void> {
     let sendError: Error | null = null;
     const telegramLog: TelegramLog = new TelegramLog();
@@ -176,6 +201,7 @@ export default class TelegramService {
             userOnCallLogTimelineId: options.userOnCallLogTimelineId,
             reason: telegramLog.statusMessage!,
           });
+          dispatch.markNotSent();
           return;
         }
 
@@ -226,6 +252,7 @@ export default class TelegramService {
             userOnCallLogTimelineId: options.userOnCallLogTimelineId,
             reason: telegramLog.statusMessage!,
           });
+          dispatch.markNotSent();
           return;
         }
 
@@ -304,6 +331,7 @@ export default class TelegramService {
               userOnCallLogTimelineId: options.userOnCallLogTimelineId,
               reason: telegramLog.statusMessage!,
             });
+            dispatch.markNotSent();
             return;
           }
         }
@@ -387,6 +415,8 @@ export default class TelegramService {
       if (telegramMessageId) {
         telegramLog.telegramMessageId = telegramMessageId;
       }
+
+      dispatch.markSucceeded();
 
       telegramLog.status = TelegramStatus.Sent;
       telegramLog.statusMessage = telegramMessageId

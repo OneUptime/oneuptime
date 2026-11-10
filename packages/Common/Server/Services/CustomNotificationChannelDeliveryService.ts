@@ -11,6 +11,12 @@ import ObjectID from "../../Types/ObjectID";
 import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+  NotificationDeliveryOutcome,
+  NotificationDeliveryProvider,
+  NotificationDispatch,
+} from "../Utils/Telemetry/NotificationDeliveryMetrics";
 import CustomChannelEdition, {
   CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
 } from "../Utils/Notification/CustomChannelEdition";
@@ -63,6 +69,17 @@ export class CustomNotificationChannelDeliveryService extends BaseService {
         reason: CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
       });
 
+      // Not sent, for the platform's operator (NotificationDeliveryMetrics).
+      if (!data.isTest) {
+        NotificationDeliveryMetrics.recordNotSent({
+          channel: NotificationDeliveryChannel.CustomChannel,
+          isOnCallPage: Boolean(data.userOnCallLogTimelineId),
+          customChannel: {
+            id: data.customNotificationChannelId.toString(),
+          },
+        });
+      }
+
       return {
         ok: false,
         message: CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
@@ -73,6 +90,7 @@ export class CustomNotificationChannelDeliveryService extends BaseService {
     const blockedProjectRefusal: HTTPErrorResponse | null =
       await BlockedProjectNotifications.getRefusal({
         channel: CUSTOM_CHANNEL_DELIVERY_LABEL,
+        deliveryChannel: NotificationDeliveryChannel.CustomChannel,
         projectId: data.projectId,
         userOnCallLogTimelineId: data.userOnCallLogTimelineId,
       });
@@ -100,6 +118,21 @@ export class CustomNotificationChannelDeliveryService extends BaseService {
       body["userOnCallLogTimelineId"] = data.userOnCallLogTimelineId.toString();
     }
 
+    /*
+     * The Enterprise Edition's sender records how the request went
+     * (CustomChannelSender). One that never got an answer from it is
+     * recorded here, as a failure; a test, as there, is not recorded at all.
+     */
+    const dispatch: NotificationDispatch =
+      NotificationDeliveryMetrics.startDispatch({
+        channel: NotificationDeliveryChannel.CustomChannel,
+        provider: NotificationDeliveryProvider.CustomChannel,
+        isOnCallPage: Boolean(data.userOnCallLogTimelineId),
+        customChannel: {
+          id: data.customNotificationChannelId.toString(),
+        },
+      });
+
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.post<JSONObject>({
         url: new URL(
@@ -117,6 +150,10 @@ export class CustomNotificationChannelDeliveryService extends BaseService {
       });
 
     if (response instanceof HTTPErrorResponse) {
+      if (!data.isTest) {
+        dispatch.end(NotificationDeliveryOutcome.Failure);
+      }
+
       return {
         ok: false,
         message:

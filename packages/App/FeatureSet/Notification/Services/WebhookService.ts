@@ -12,6 +12,12 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import SSRFProtection from "Common/Server/Utils/SSRFProtection";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+  NotificationDeliveryProvider,
+  NotificationDispatch,
+  NotificationProviderConfig,
+} from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import crypto from "crypto";
 
 const WEBHOOK_REQUEST_TIMEOUT_MS: number = 10_000;
@@ -25,24 +31,46 @@ export interface WebhookSendInput {
   secret?: string | undefined;
 }
 
+export interface WebhookSendOptions {
+  projectId?: ObjectID | undefined;
+  userOnCallLogTimelineId?: ObjectID | undefined;
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
+  monitorId?: ObjectID | undefined;
+  scheduledMaintenanceId?: ObjectID | undefined;
+  statusPageId?: ObjectID | undefined;
+  statusPageAnnouncementId?: ObjectID | undefined;
+  userId?: ObjectID | undefined;
+  onCallPolicyId?: ObjectID | undefined;
+  onCallPolicyEscalationRuleId?: ObjectID | undefined;
+  onCallScheduleId?: ObjectID | undefined;
+  teamId?: ObjectID | undefined;
+}
+
 export default class WebhookService {
   public static async sendWebhook(
     message: WebhookSendInput,
-    options: {
-      projectId?: ObjectID | undefined;
-      userOnCallLogTimelineId?: ObjectID | undefined;
-      incidentId?: ObjectID | undefined;
-      alertId?: ObjectID | undefined;
-      monitorId?: ObjectID | undefined;
-      scheduledMaintenanceId?: ObjectID | undefined;
-      statusPageId?: ObjectID | undefined;
-      statusPageAnnouncementId?: ObjectID | undefined;
-      userId?: ObjectID | undefined;
-      onCallPolicyId?: ObjectID | undefined;
-      onCallPolicyEscalationRuleId?: ObjectID | undefined;
-      onCallScheduleId?: ObjectID | undefined;
-      teamId?: ObjectID | undefined;
-    } = {},
+    options: WebhookSendOptions = {},
+  ): Promise<void> {
+    // How it went, for the platform's operator (NotificationDeliveryMetrics).
+    await NotificationDeliveryMetrics.measureDispatch(
+      {
+        channel: NotificationDeliveryChannel.Webhook,
+        provider: NotificationDeliveryProvider.Webhook,
+        // The endpoint is the person's or the project's own.
+        providerConfig: NotificationProviderConfig.Project,
+        isOnCallPage: Boolean(options.userOnCallLogTimelineId),
+      },
+      (dispatch: NotificationDispatch): Promise<void> => {
+        return this.postWebhook(message, options, dispatch);
+      },
+    );
+  }
+
+  private static async postWebhook(
+    message: WebhookSendInput,
+    options: WebhookSendOptions,
+    dispatch: NotificationDispatch,
   ): Promise<void> {
     let sendError: Error | null = null;
     const webhookLog: WebhookLog = new WebhookLog();
@@ -167,6 +195,13 @@ export default class WebhookService {
       } else {
         webhookLog.status = WebhookStatus.Error;
         webhookLog.statusMessage = `Webhook endpoint returned non-success status ${statusCode}.`;
+      }
+
+      // The endpoint's answer, which is not thrown when it refused.
+      if (webhookLog.status === WebhookStatus.Success) {
+        dispatch.markSucceeded();
+      } else {
+        dispatch.markFailed();
       }
     } catch (error: unknown) {
       /*
