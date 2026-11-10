@@ -47735,5 +47735,16 @@
   "The monitor keeps no request content: its headers and body are not shown.": "لا تحتفظ المراقبة بمحتوى الطلب: لا تُعرض ترويساته ولا متنه.",
   "Same as the monitor group name": "مثل اسم مجموعة المراقبات",
   "Show a Monitor Group instead.": "اعرض مجموعة مراقبات بدلًا من ذلك.",
-  "Show a Monitor instead.": "اعرض مراقبة بدلًا من ذلك."
+  "Show a Monitor instead.": "اعرض مراقبة بدلًا من ذلك.",
+  "This team comes with every project and can't have owners.": "هذا الفريق موجود في كل مشروع ولا يمكن أن يكون له مالكون.",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "الأشخاص والفرق الذين يتولّون أمر هذا الفريق. بصلاحيات فرق مقصورة على الفرق التي يملكونها، يدعون الأشخاص إليه، ويزيلونهم منه، ويغيّرون ما يُسمح له بفعله.",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "أضف زميلًا أو فريقًا ليتولّى أمر من ينتمي إلى هذا الفريق وما يُسمح له بفعله.",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "أضف أشخاصًا كمالكين لفرقك. يتولّى المالكون أمر من ينتمي إلى الفريق وما يُسمح له بفعله.",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "أضف فرقًا كمالكة لفرقك. يتولّى أعضاء الفريق المالك أمر من ينتمي إلى الفريق المملوك وما يُسمح له بفعله.",
+  "Owned Team": "الفريق المملوك",
+  "Owned Team ID": "معرّف الفريق المملوك",
+  "Team Team Owner": "الفريق المالك للفريق",
+  "Team Team Owners": "الفرق المالكة للفريق",
+  "Team User Owner": "المستخدم المالك للفريق",
+  "Team User Owners": "المستخدمون المالكون للفريق"
 }

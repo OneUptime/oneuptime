@@ -18,6 +18,16 @@ import {
   normalizeCustomRoleName,
 } from "../../Types/Team/CustomRole";
 import Model from "../../Models/DatabaseModels/CustomRole";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import OwnedScopePermission from "../Types/Database/Permissions/OwnedScopePermission";
+
+/*
+ * Why someone whose Edit Team Permissions is scoped to the teams they own
+ * may not change a custom role (assertNotLimitedToOwnedTeams).
+ */
+export const CUSTOM_ROLE_OWNED_ONLY_MESSAGE: string =
+  "A custom role can be given to any team, so changing one needs Edit Team Permissions for the whole project, not only for the teams you own. You can still give the project's custom roles to the teams you own, and take them away.";
 
 /*
  * A project's custom roles: their names, and what deleting one does.
@@ -113,10 +123,38 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * A CUSTOM ROLE IS CHANGED ONLY WITH EDIT TEAM PERMISSIONS FOR THE WHOLE
+   * PROJECT. A role is given to teams of every owner, and what it holds is
+   * every such team's (CustomRoleSync): Edit Team Permissions scoped to the
+   * teams its holder owns changes the permissions of those teams alone - it
+   * gives them roles and takes them away (TeamCustomRole, held to their
+   * owners) - and never what a role holds, nor its name, nor whether it is
+   * there. Asked of a role's create, rename and delete, and of every change
+   * of its permissions (CustomRolePermissionService), by the operation's
+   * own grants: a caller with one that is not scoped to Owned is not
+   * refused here.
+   */
+  public assertNotLimitedToOwnedTeams(
+    modelType: { new (): BaseModel },
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): void {
+    if (OwnedScopePermission.isGrantedOnlyAsOwned(modelType, props, type)) {
+      throw new NotAuthorizedException(CUSTOM_ROLE_OWNED_ONLY_MESSAGE);
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    this.assertNotLimitedToOwnedTeams(
+      Model,
+      createBy.props,
+      DatabaseRequestType.Create,
+    );
+
     const projectId: ObjectID | null = this.getProjectIdOfCreate(createBy);
 
     if (!projectId) {
@@ -150,6 +188,12 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    this.assertNotLimitedToOwnedTeams(
+      Model,
+      updateBy.props,
+      DatabaseRequestType.Update,
+    );
+
     const rawName: unknown = (updateBy.data as unknown as { name?: unknown })
       .name;
 
@@ -195,6 +239,12 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
+    this.assertNotLimitedToOwnedTeams(
+      Model,
+      deleteBy.props,
+      DatabaseRequestType.Delete,
+    );
+
     const roles: Array<Model> = await this.findRowsAndHoldDeleteToThem(
       deleteBy,
       {

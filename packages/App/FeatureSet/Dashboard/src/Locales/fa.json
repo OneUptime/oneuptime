@@ -47735,5 +47735,16 @@
   "The monitor keeps no request content: its headers and body are not shown.": "این مانیتور محتوای درخواست را نگه نمی‌دارد: سرآیندها و بدنهٔ آن نشان داده نمی‌شوند.",
   "Same as the monitor group name": "همان نام گروه مانیتور",
   "Show a Monitor Group instead.": "به‌جای آن یک گروه مانیتور نشان دهید.",
-  "Show a Monitor instead.": "به‌جای آن یک مانیتور نشان دهید."
+  "Show a Monitor instead.": "به‌جای آن یک مانیتور نشان دهید.",
+  "This team comes with every project and can't have owners.": "این تیم در هر پروژه وجود دارد و نمی‌تواند مالک داشته باشد.",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "افراد و تیم‌هایی که مسئول این تیم هستند. با دسترسی‌های تیمی محدود به تیم‌هایی که مالک آن‌ها هستند، افراد را به آن دعوت می‌کنند، آن‌ها را حذف می‌کنند و تعیین می‌کنند این تیم چه کارهایی می‌تواند انجام دهد.",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "یک هم‌تیمی یا یک تیم بیفزایید تا مسئول اعضای این تیم و کارهایی باشد که این تیم می‌تواند انجام دهد.",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "افراد را به‌عنوان مالک تیم‌های خود اضافه کنید. مالکان مسئول اعضای یک تیم و کارهایی هستند که آن تیم می‌تواند انجام دهد.",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "تیم‌ها را به‌عنوان مالک تیم‌های خود اضافه کنید. اعضای تیم مالک مسئول اعضای تیم تحت مالکیت و کارهایی هستند که آن تیم می‌تواند انجام دهد.",
+  "Owned Team": "تیم تحت مالکیت",
+  "Owned Team ID": "شناسه تیم تحت مالکیت",
+  "Team Team Owner": "تیم مالک تیم",
+  "Team Team Owners": "تیم‌های مالک تیم",
+  "Team User Owner": "کاربر مالک تیم",
+  "Team User Owners": "کاربران مالک تیم"
 }

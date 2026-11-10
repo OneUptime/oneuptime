@@ -47735,5 +47735,16 @@
   "The monitor keeps no request content: its headers and body are not shown.": "El monitor no conserva el contenido de las solicitudes: sus encabezados y su cuerpo no se muestran.",
   "Same as the monitor group name": "Igual que el nombre del grupo de monitores",
   "Show a Monitor Group instead.": "Muestra un grupo de monitores en su lugar.",
-  "Show a Monitor instead.": "Muestra un monitor en su lugar."
+  "Show a Monitor instead.": "Muestra un monitor en su lugar.",
+  "This team comes with every project and can't have owners.": "Este equipo viene con todos los proyectos y no puede tener propietarios.",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "Personas y equipos que se encargan de este equipo. Con permisos de equipo limitados a los equipos de los que son propietarios, invitan a personas, las quitan y cambian lo que el equipo puede hacer.",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "Añade a un compañero o a un equipo que se encargue de quién está en este equipo y de lo que puede hacer.",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "Añade personas como propietarias de tus equipos. Los propietarios se encargan de quién está en un equipo y de lo que puede hacer.",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "Añade equipos como propietarios de tus equipos. Los miembros de un equipo propietario se encargan de quién está en el equipo que poseen y de lo que puede hacer.",
+  "Owned Team": "Equipo en propiedad",
+  "Owned Team ID": "ID del equipo en propiedad",
+  "Team Team Owner": "Equipo propietario del equipo",
+  "Team Team Owners": "Equipos propietarios del equipo",
+  "Team User Owner": "Usuario propietario del equipo",
+  "Team User Owners": "Usuarios propietarios del equipo"
 }

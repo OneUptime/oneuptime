@@ -47735,5 +47735,16 @@
   "The monitor keeps no request content: its headers and body are not shown.": "이 모니터는 요청 내용을 보관하지 않으므로 헤더와 본문이 표시되지 않습니다.",
   "Same as the monitor group name": "모니터 그룹 이름과 동일",
   "Show a Monitor Group instead.": "대신 모니터 그룹을 표시하세요.",
-  "Show a Monitor instead.": "대신 모니터를 표시하세요."
+  "Show a Monitor instead.": "대신 모니터를 표시하세요.",
+  "This team comes with every project and can't have owners.": "이 팀은 모든 프로젝트에 기본으로 있어 소유자를 둘 수 없습니다.",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "이 팀을 관리하는 사람과 팀입니다. 소유한 팀으로 제한된 팀 권한으로 사람을 초대하고, 제거하고, 이 팀이 할 수 있는 일을 변경합니다.",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "이 팀에 누가 있는지와 이 팀이 할 수 있는 일을 관리할 팀원이나 팀을 추가하세요.",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "팀의 소유자로 사람을 추가하세요. 소유자는 팀에 누가 있는지와 팀이 할 수 있는 일을 관리합니다.",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "팀의 소유자로 팀을 추가하세요. 소유자 팀의 구성원은 소유된 팀에 누가 있는지와 그 팀이 할 수 있는 일을 관리합니다.",
+  "Owned Team": "소유된 팀",
+  "Owned Team ID": "소유된 팀 ID",
+  "Team Team Owner": "팀의 팀 소유자",
+  "Team Team Owners": "팀의 팀 소유자",
+  "Team User Owner": "팀의 사용자 소유자",
+  "Team User Owners": "팀의 사용자 소유자"
 }

@@ -2,6 +2,7 @@ import AlertSeverity from "./AlertSeverity";
 import IncidentSeverity from "./IncidentSeverity";
 import Project from "./Project";
 import Team from "./Team";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -69,6 +70,11 @@ import {
     Permission.EditProjectTeam,
   ],
 })
+/*
+ * A team's compliance rules are part of the team: with Edit Team scoped to
+ * Owned, changed only on the teams its holder or their teams own.
+ */
+@OwnedThrough("teamId", Team)
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/team-compliance-setting"))
 /*

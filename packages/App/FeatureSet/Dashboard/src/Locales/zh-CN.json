@@ -47735,5 +47735,16 @@
   "The monitor keeps no request content: its headers and body are not shown.": "该监视器不保留请求内容：不显示其请求头和请求正文。",
   "Same as the monitor group name": "与监视器组名称相同",
   "Show a Monitor Group instead.": "请改为显示监视器组。",
-  "Show a Monitor instead.": "请改为显示监视器。"
+  "Show a Monitor instead.": "请改为显示监视器。",
+  "This team comes with every project and can't have owners.": "每个项目都自带此团队，无法设置所有者。",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "负责管理此团队的人员和团队。凭借仅限于其拥有的团队的团队权限，他们可以邀请成员加入、移除成员，并更改此团队可以执行的操作。",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "添加一位成员或一个团队，负责管理此团队的成员及其可以执行的操作。",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "添加人员作为团队的所有者。所有者负责管理团队的成员及其可以执行的操作。",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "添加团队作为团队的所有者。所有者团队的成员负责管理被拥有团队的成员及其可以执行的操作。",
+  "Owned Team": "被拥有的团队",
+  "Owned Team ID": "被拥有的团队 ID",
+  "Team Team Owner": "团队的团队所有者",
+  "Team Team Owners": "团队的团队所有者",
+  "Team User Owner": "团队的用户所有者",
+  "Team User Owners": "团队的用户所有者"
 }

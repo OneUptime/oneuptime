@@ -47735,5 +47735,16 @@
   "The monitor keeps no request content: its headers and body are not shown.": "Overvåkeren beholder ikke forespørselsinnhold: hodene og innholdet vises ikke.",
   "Same as the monitor group name": "Samme som navnet på monitorgruppen",
   "Show a Monitor Group instead.": "Vis heller en monitorgruppe.",
-  "Show a Monitor instead.": "Vis heller en monitor."
+  "Show a Monitor instead.": "Vis heller en monitor.",
+  "This team comes with every project and can't have owners.": "Dette teamet følger med alle prosjekter og kan ikke ha eiere.",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "Personer og team som har ansvar for dette teamet. Med teamtillatelser som er begrenset til teamene de eier, inviterer de folk til det, fjerner dem og endrer hva det kan gjøre.",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "Legg til en kollega eller et team som skal ha ansvar for hvem som er i dette teamet og hva det kan gjøre.",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "Legg til personer som eiere av teamene dine. Eiere har ansvar for hvem som er i et team og hva det kan gjøre.",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "Legg til team som eiere av teamene dine. Medlemmene av et eierteam har ansvar for hvem som er i det eide teamet og hva det kan gjøre.",
+  "Owned Team": "Eid team",
+  "Owned Team ID": "Eid team-ID",
+  "Team Team Owner": "Eierteam for team",
+  "Team Team Owners": "Eierteam for team",
+  "Team User Owner": "Eierbruker for team",
+  "Team User Owners": "Eierbrukere for team"
 }

@@ -47735,5 +47735,16 @@
   "The monitor keeps no request content: its headers and body are not shown.": "Монитор не сохраняет содержимое запросов: заголовки и тело запроса не показываются.",
   "Same as the monitor group name": "Совпадает с названием группы мониторов",
   "Show a Monitor Group instead.": "Вместо этого покажите группу мониторов.",
-  "Show a Monitor instead.": "Вместо этого покажите монитор."
+  "Show a Monitor instead.": "Вместо этого покажите монитор.",
+  "This team comes with every project and can't have owners.": "Эта команда есть в каждом проекте, и у неё не может быть владельцев.",
+  "People and teams who look after this team. With team permissions limited to the teams they own, they invite people to it, remove them, and change what it may do.": "Люди и команды, которые отвечают за эту команду. С правами команд, ограниченными командами, которыми они владеют, они приглашают в неё людей, удаляют их и меняют, что ей разрешено.",
+  "Add a teammate or a team to look after who is in this team and what it may do.": "Добавьте коллегу или команду, чтобы они отвечали за состав этой команды и за то, что ей разрешено.",
+  "Add people as owners of your teams. Owners look after who is in a team and what it may do.": "Добавьте людей в качестве владельцев ваших команд. Владельцы отвечают за состав команды и за то, что ей разрешено.",
+  "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.": "Добавьте команды в качестве владельцев ваших команд. Участники команды-владельца отвечают за состав команды, которой она владеет, и за то, что ей разрешено.",
+  "Owned Team": "Команда во владении",
+  "Owned Team ID": "ID команды во владении",
+  "Team Team Owner": "Команда-владелец команды",
+  "Team Team Owners": "Команды-владельцы команды",
+  "Team User Owner": "Пользователь-владелец команды",
+  "Team User Owners": "Пользователи-владельцы команды"
 }
