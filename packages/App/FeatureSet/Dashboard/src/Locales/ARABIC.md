@@ -3,8 +3,10 @@
 Arabic is the eighteenth language. The status page, Accounts, the admin
 dashboard, public dashboards, the server's own texts (emails, chat and text
 messages) and the Dashboard are fully translated: `npm run i18n:check --
---locale ar` in the Dashboard counts 0 keys left, and a key added later reads
-in English until someone translates it.
+--locale ar` in the Dashboard counts 0 keys left. `Common/Tests/App/ArabicLocaleGuards`
+keeps it so: a key added later fails it while ar.json holds its English, until
+it is translated - or, for a name, a code or an example that stays as written,
+recorded with `--same-as-english` (README.md).
 
 This file is the glossary and the choices every Arabic string follows, so the
 next person who translates a key writes it the same way.

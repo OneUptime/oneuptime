@@ -9,9 +9,10 @@ import path from "path";
  * status page, Accounts, the admin dashboard, public dashboards and the
  * server's own texts. Each holds exactly English's keys, in English's
  * order, with the same placeholders and tags, and none of the plural keys
- * English does not have. The small files are translated through; the
- * Dashboard starts with its most-used words. A count's general form reads
- * right for every count Arabic sends it (Locales/ARABIC.md).
+ * English does not have. Every one is translated through: what reads as
+ * English is a name, a code or an example, on a list that says so. A
+ * count's general form reads right for every count Arabic sends it
+ * (Locales/ARABIC.md).
  */
 
 const PACKAGES: string = path.resolve(__dirname, "..", "..", "..");
@@ -84,6 +85,40 @@ const tokensOf: (text: string) => Array<string> = (
 const APPS: Array<string> = Object.keys(LOCALE_DIRS);
 
 /*
+ * The Dashboard's lists of what is right in English, beside its locales: one
+ * for every language (i18n/SameAsEnglish.json) and Arabic's own, with its
+ * progress baseline (i18n/Progress/ar.json). npm run i18n:apply --
+ * --same-as-english records a text there (Locales/README.md).
+ */
+const DASHBOARD_TRACKING: string = path.join(
+  PACKAGES,
+  "App/FeatureSet/Dashboard/i18n",
+);
+
+interface LocaleProgressFile {
+  baseline: { keys: number; untranslated: number };
+  sameAsEnglish: Array<string>;
+}
+
+const readJson: <T>(file: string) => T = <T>(file: string): T => {
+  return JSON.parse(fs.readFileSync(file, "utf8")) as T;
+};
+
+// One Arabic letter, from hamza to yeh.
+const ARABIC_LETTER: RegExp = /[ء-ي]/;
+const LETTER: RegExp = /\p{L}/u;
+const PLACEHOLDER: RegExp = /\{\{[^{}]*\}\}/g;
+
+/*
+ * A text with no letter once its {{placeholders}} are gone - "{{count}}%",
+ * "{{a}} - {{b}}" - reads the same in every language, as npm run i18n:check
+ * counts it.
+ */
+const hasLetters: (text: string) => boolean = (text: string): boolean => {
+  return LETTER.test(text.replace(PLACEHOLDER, ""));
+};
+
+/*
  * The small apps' texts Arabic writes as English does, on purpose: product
  * and vendor names, example values a person types over, and templates that
  * are only their values.
@@ -91,6 +126,19 @@ const APPS: Array<string> = Object.keys(LOCALE_DIRS);
 const SAME_AS_ENGLISH: Record<string, Array<string>> = {
   Accounts: ["OneUptime"],
   PublicDashboard: [],
+  StatusPage: [
+    "+11234567890",
+    "Apple Calendar / Outlook",
+    "Google Calendar",
+    "MS Teams",
+    "Slack",
+    "email@yourcompany.com",
+    "https://example.com/webhook",
+    "https://hooks.slack.com/services/...",
+    "https://outlook.office.com/webhook/...",
+    "my-company-workspace",
+    "subscriber@company.com",
+  ],
   Server: [
     "{{first}} {{second}}",
     "{{hours}} {{minutes}}",
@@ -248,7 +296,8 @@ describe.each(APPS)("Arabic's %s locale", (app: string) => {
     expect(lost).toEqual([]);
   });
 
-  if (app !== "Dashboard" && app !== "StatusPage") {
+  // The Dashboard's lists live beside its locales: see below.
+  if (app !== "Dashboard") {
     test("is translated through: only names and examples read as English", () => {
       const same: Array<string> = [];
 
@@ -263,6 +312,90 @@ describe.each(APPS)("Arabic's %s locale", (app: string) => {
       );
     });
   }
+});
+
+describe("the Dashboard, translated through", () => {
+  const english: Map<string, string> = leaves(readLocale("Dashboard", "en"));
+  const arabic: Map<string, string> = leaves(readLocale("Dashboard", "ar"));
+  const progress: LocaleProgressFile = readJson<LocaleProgressFile>(
+    path.join(DASHBOARD_TRACKING, "Progress", "ar.json"),
+  );
+  const everyLanguagesList: Array<string> = readJson<Array<string>>(
+    path.join(DASHBOARD_TRACKING, "SameAsEnglish.json"),
+  );
+  const rightInEnglish: Set<string> = new Set<string>([
+    ...everyLanguagesList,
+    ...progress.sameAsEnglish,
+  ]);
+
+  /*
+   * A new Dashboard string arrives in ar.json as its English. Translate it
+   * by ARABIC.md's rules (npm run i18n:apply -- --locale ar, as
+   * Locales/README.md says) - or, for a name, a code or an example that
+   * stays as written, record it with --same-as-english.
+   */
+  test("reads as English only where a same-as-English list says English is right", () => {
+    const untranslated: Array<string> = [];
+
+    for (const [key, text] of english) {
+      if (
+        arabic.get(key) === text &&
+        hasLetters(text) &&
+        !rightInEnglish.has(text)
+      ) {
+        untranslated.push(key);
+      }
+    }
+
+    expect(untranslated).toEqual([]);
+    // The check reads the whole file: tens of thousands of keys.
+    expect(english.size).toBeGreaterThan(40000);
+    expect(arabic.size).toBe(english.size);
+  });
+
+  test("its progress baseline counts nothing untranslated, so a translation turned back into English fails", () => {
+    expect(progress.baseline.untranslated).toBe(0);
+    expect(progress.baseline.keys).toBeGreaterThan(40000);
+  });
+
+  /*
+   * The lists are for names, codes and examples: a word the glossary gives
+   * an Arabic word for never passes as right in English.
+   */
+  test("no word the glossary translates is on a same-as-English list", () => {
+    const glossary: string = fs
+      .readFileSync(
+        path.join(PACKAGES, LOCALE_DIRS["Dashboard"] as string, "ARABIC.md"),
+        "utf8",
+      )
+      .split("## Glossary")[1] as string;
+    const translatedTerms: Set<string> = new Set<string>();
+
+    for (const row of glossary.matchAll(/^\| (.+?) \| (.+?) \|$/gm)) {
+      const englishTerms: string = row[1] as string;
+      const arabicWords: string = row[2] as string;
+
+      // A term kept in Latin letters (OneUptime AI, huddle) is not translated.
+      if (englishTerms === "English" || !ARABIC_LETTER.test(arabicWords)) {
+        continue;
+      }
+
+      for (const term of englishTerms
+        .replace(/\s*\([^)]*\)/g, "")
+        .split(/ \/ |, /)) {
+        translatedTerms.add(term.trim().toLowerCase());
+      }
+    }
+
+    expect(translatedTerms).toContain("monitor");
+    expect(translatedTerms).toContain("triage");
+    expect(translatedTerms.size).toBeGreaterThan(80);
+    expect(
+      Array.from(rightInEnglish).filter((text: string): boolean => {
+        return translatedTerms.has(text.toLowerCase());
+      }),
+    ).toEqual([]);
+  });
 });
 
 describe("the Dashboard's most-used words, in Arabic", () => {
