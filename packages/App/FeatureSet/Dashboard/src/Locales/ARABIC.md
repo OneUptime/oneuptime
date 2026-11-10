@@ -89,9 +89,10 @@ browser's own rules lay it out right:
   `regex ^api-.*`), or name the format without its dot (`ملف VTT`,
   `ملف env`).
 - A negative number is written out: `سالب 70 dBm`.
-- A function named in plain text drops its brackets:
-  `استدعِ الدالة grantConsent`. In a code span (backticks) the brackets stay,
-  since code is laid out left to right on its own.
+- A function keeps its brackets, as the English writes it and as the suites
+  that hold code to its written form expect: `استدعِ الدالة grantConsent()`.
+  A right-to-left line can draw the brackets on the name's left; keeping code
+  in its own direction inside a line is the page's job, not the locale's.
 - A Latin aside in brackets right after a Latin name reads before the name:
   write `{{file}} في VS Code`, or put an Arabic word inside the brackets
   (`(السمات {{attributes}})`).

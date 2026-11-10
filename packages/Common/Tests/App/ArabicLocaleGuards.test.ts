@@ -150,6 +150,9 @@ const NAMED_AS_CODE: Record<string, string> = {
   "e.g. latency": "an example of a log attribute's name",
 };
 
+// A function an English sentence names with its brackets: track(), grantConsent().
+const FUNCTION_WITH_BRACKETS: RegExp = /[A-Za-z_][\w.]*\(\)/g;
+
 /*
  * The small apps' texts Arabic writes as English does, on purpose: product
  * and vendor names, example values a person types over, and templates that
@@ -688,6 +691,38 @@ describe("the Dashboard's most-used words, in Arabic", () => {
       "| Data store, Datastore (VMware) | مخزن البيانات (مخازن البيانات) |",
     );
     expect(glossary).toContain("| Inventory | الجرد |");
+  });
+
+  /*
+   * A function the English names with its brackets keeps them in Arabic, as
+   * ARABIC.md says and Session Replay's suite holds code: الدالة track(),
+   * never الدالة track.
+   */
+  test("a function keeps its brackets", () => {
+    const arabicTexts: Map<string, string> = leaves(arabic);
+    const dropped: Array<string> = [];
+    let named: number = 0;
+
+    for (const [key, text] of leaves(english)) {
+      for (const name of text.match(FUNCTION_WITH_BRACKETS) || []) {
+        named += 1;
+
+        if (!(arabicTexts.get(key) || "").includes(name)) {
+          dropped.push(`${key} -> ${name}`);
+        }
+      }
+    }
+
+    expect(dropped).toEqual([]);
+    // identify(), start(), grantConsent(), oneuptime.captureMetric(), ...
+    expect(named).toBeGreaterThan(40);
+
+    const glossary: string = fs.readFileSync(
+      path.join(PACKAGES, LOCALE_DIRS["Dashboard"] as string, "ARABIC.md"),
+      "utf8",
+    );
+
+    expect(glossary).toContain("`استدعِ الدالة grantConsent()`");
   });
 });
 
