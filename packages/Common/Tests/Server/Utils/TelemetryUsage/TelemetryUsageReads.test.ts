@@ -828,9 +828,11 @@ describe("exceptions, apart from the traces they are billed with", () => {
         });
       };
 
-      expect(names(await readPage(TELEMETRY_USAGE_EXCEPTIONS_SIGNAL))).toEqual(
-        ["Beta", "Alpha", "Gamma"],
-      );
+      expect(names(await readPage(TELEMETRY_USAGE_EXCEPTIONS_SIGNAL))).toEqual([
+        "Beta",
+        "Alpha",
+        "Gamma",
+      ]);
       expect(names(await readPage(ProductType.Traces))).toEqual([
         "Alpha",
         "Beta",

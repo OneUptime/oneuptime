@@ -643,7 +643,9 @@ describe("a trace day's usage row, where billing is off", () => {
     ).toEqual([...TELEMETRY_USAGE_PRODUCT_TYPES].sort());
     expect(
       store.some((row: StoredRow): boolean => {
-        return (row.productType as string) === TELEMETRY_USAGE_EXCEPTIONS_SIGNAL;
+        return (
+          (row.productType as string) === TELEMETRY_USAGE_EXCEPTIONS_SIGNAL
+        );
       }),
     ).toBe(false);
   });

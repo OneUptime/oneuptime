@@ -293,9 +293,7 @@ describePostgres(
       setTestBillingEnabled(false);
 
       if (database?.isInitialized) {
-        await database.query(
-          `DELETE FROM "${schema}"."TelemetryUsageBilling"`,
-        );
+        await database.query(`DELETE FROM "${schema}"."TelemetryUsageBilling"`);
         await database.query(`DELETE FROM "${schema}"."Project"`);
       }
     });
@@ -444,7 +442,10 @@ describePostgres(
         const projectId: ObjectID = ObjectID.generate();
 
         installTelemetry({
-          spans: [scan(SERVICE_ID, 3 * GB), scan(HOST_ID, GB, ServiceType.Host)],
+          spans: [
+            scan(SERVICE_ID, 3 * GB),
+            scan(HOST_ID, GB, ServiceType.Host),
+          ],
           exceptions: [scan(SERVICE_ID, GB)],
         });
 
@@ -935,10 +936,9 @@ describePostgres(
         expect(
           summary.byProduct[TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]!.totalCostInUSD,
         ).toBeCloseTo(0.175, 10);
-        expect(summary.byProduct[ProductType.Traces]!.totalCostInUSD).toBeCloseTo(
-          0.6,
-          10,
-        );
+        expect(
+          summary.byProduct[ProductType.Traces]!.totalCostInUSD,
+        ).toBeCloseTo(0.6, 10);
       });
 
       test("Traces and Exceptions together cost what billing charges for traces", async () => {
@@ -1009,10 +1009,16 @@ describePostgres(
 
       test("lists every project's exceptions apart for the instance admin, and sorts by them", async () => {
         const read: (
-          sortBy: "total" | ProductType | typeof TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+          sortBy:
+            | "total"
+            | ProductType
+            | typeof TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
           sortOrder: "asc" | "desc",
         ) => Promise<TelemetryProjectUsagePage> = async (
-          sortBy: "total" | ProductType | typeof TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+          sortBy:
+            | "total"
+            | ProductType
+            | typeof TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
           sortOrder: "asc" | "desc",
         ): Promise<TelemetryProjectUsagePage> => {
           return await TelemetryUsageReads.getUsageByProject({
@@ -1032,13 +1038,15 @@ describePostgres(
 
         // The deleted project is left out.
         expect(
-          page.projects.map((project: TelemetryProjectUsageSummary): unknown => {
-            return {
-              name: project.projectName,
-              byProduct: gigabytesOf(project.byProduct),
-              total: project.total.dataIngestedInGB,
-            };
-          }),
+          page.projects.map(
+            (project: TelemetryProjectUsageSummary): unknown => {
+              return {
+                name: project.projectName,
+                byProduct: gigabytesOf(project.byProduct),
+                total: project.total.dataIngestedInGB,
+              };
+            },
+          ),
         ).toEqual([
           {
             name: "Alpha",
