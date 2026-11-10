@@ -1,11 +1,13 @@
-import { describe, expect, test } from "@jest/globals";
+import { beforeAll, describe, expect, test } from "@jest/globals";
 import fs from "fs";
+import { readConfigs } from "jest-config";
 import path from "path";
 
 /*
  * ee/jest.config.js: the server project must resolve Common/ and App/ to the
  * core packages with anchored mappers, and the ui project's mapper list must
  * be DERIVED from packages/Common/jest.config.json (never a drifting copy).
+ * Every option sits where Jest reads it, the test timeout above all (#6382).
  * Running this file at all proves the server project works.
  */
 
@@ -41,6 +43,7 @@ const EE_OVERRIDDEN_KEYS: ReadonlySet<string> = new Set<string>([
 ]);
 
 const jestConfig: {
+  testTimeout?: number;
   projects: Array<JestProject>;
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
 } = require("../../jest.config.js");
@@ -63,6 +66,7 @@ const commonJestConfig: {
   moduleNameMapper: Record<string, string>;
   testEnvironment: string;
   setupFilesAfterEnv: Array<string>;
+  testTimeout: number;
 } = JSON.parse(
   fs.readFileSync(path.join(COMMON_DIR, "jest.config.json"), "utf8"),
 );
@@ -205,5 +209,137 @@ describe("ee/jest.config.js", () => {
     expect(mapper["^@oneuptime/ee-admin-dashboard$"]).toBe(
       path.join(EE_DIR, "AdminDashboard", "Index.tsx"),
     );
+  });
+});
+
+/*
+ * EVERY OPTION WHERE JEST READS IT (#6382). In a config with `projects`, Jest
+ * reads its global options - testTimeout, verbose, bail, coverage, reporters
+ * and the rest - at the top level only, and a project's options in that
+ * project's entry only. Whatever sits in the other place is dropped without a
+ * word. ee/jest.config.js set testTimeout inside each project (30 s for
+ * server, 60 s for ui): neither applied, and every ee test ran with Jest's
+ * default of 5 seconds, which a busy machine overran.
+ *
+ * Which options go where comes from Jest's own config reader (readConfigs,
+ * the one `jest --showConfig` prints from), so it holds for the Jest ee runs.
+ * testTimeout is named as well: Jest 30 keeps a project's testTimeout in the
+ * config it prints, yet times every test by the top-level one, so reading the
+ * config would not catch it there. Tests/Server/JestTimeout.test.ts and
+ * Tests/UI/JestTimeout.test.ts run a 6-second test in each project.
+ */
+
+type JestReading = Awaited<ReturnType<typeof readConfigs>>;
+
+interface OptionPlaces {
+  topLevelOnly: Array<string>;
+  projectOnly: Array<string>;
+}
+
+const JEST_DEFAULT_TEST_TIMEOUT_IN_MS: number = 5000;
+
+const optionPlaces: (reading: JestReading) => OptionPlaces = (
+  reading: JestReading,
+): OptionPlaces => {
+  const globalOptions: Set<string> = new Set<string>(
+    Object.keys(reading.globalConfig),
+  );
+  const projectOptions: Set<string> = new Set<string>(
+    reading.configs.flatMap((config: object): Array<string> => {
+      return Object.keys(config);
+    }),
+  );
+
+  return {
+    topLevelOnly: [
+      ...new Set<string>([
+        ...[...globalOptions].filter((option: string): boolean => {
+          return !projectOptions.has(option);
+        }),
+        "testTimeout",
+      ]),
+    ],
+    projectOnly: [...projectOptions].filter((option: string): boolean => {
+      return !globalOptions.has(option);
+    }),
+  };
+};
+
+describe("ee/jest.config.js puts every option where Jest reads it", () => {
+  let reading: JestReading;
+
+  beforeAll(async () => {
+    reading = await readConfigs({ $0: "jest", _: [] }, [
+      path.join(EE_DIR, "jest.config.js"),
+    ]);
+  });
+
+  test("every ee test gets Common's test timeout, set at the top level and in no project", () => {
+    expect(jestConfig.testTimeout).toBe(commonJestConfig.testTimeout);
+    expect(jestConfig.testTimeout).toBeGreaterThan(
+      JEST_DEFAULT_TEST_TIMEOUT_IN_MS,
+    );
+
+    for (const candidate of jestConfig.projects) {
+      expect({
+        project: candidate.displayName,
+        setsTestTimeout: "testTimeout" in candidate,
+      }).toEqual({ project: candidate.displayName, setsTestTimeout: false });
+    }
+  });
+
+  test("Jest's own config reader times both projects' tests by it", () => {
+    expect(
+      reading.configs.map((config: JestReading["configs"][number]) => {
+        return config.displayName?.name;
+      }),
+    ).toEqual(["server", "ui"]);
+    expect(reading.globalConfig.testTimeout).toBe(commonJestConfig.testTimeout);
+  });
+
+  test("no project sets an option Jest reads only at the top level", () => {
+    const { topLevelOnly }: OptionPlaces = optionPlaces(reading);
+
+    expect(topLevelOnly).toEqual(
+      expect.arrayContaining([
+        "testTimeout",
+        "verbose",
+        "bail",
+        "coverageThreshold",
+        "reporters",
+        "maxWorkers",
+      ]),
+    );
+
+    for (const candidate of jestConfig.projects) {
+      expect({
+        project: candidate.displayName,
+        topLevelOptions: Object.keys(candidate).filter(
+          (option: string): boolean => {
+            return topLevelOnly.includes(option);
+          },
+        ),
+      }).toEqual({ project: candidate.displayName, topLevelOptions: [] });
+    }
+  });
+
+  test("the top level sets no option Jest reads only in a project", () => {
+    const { projectOnly }: OptionPlaces = optionPlaces(reading);
+
+    expect(projectOnly).toEqual(
+      expect.arrayContaining([
+        "testEnvironment",
+        "setupFilesAfterEnv",
+        "moduleNameMapper",
+        "clearMocks",
+      ]),
+    );
+    expect({
+      projectOptionsAtTheTopLevel: Object.keys(jestConfig).filter(
+        (option: string): boolean => {
+          return projectOnly.includes(option);
+        },
+      ),
+    }).toEqual({ projectOptionsAtTheTopLevel: [] });
   });
 });
