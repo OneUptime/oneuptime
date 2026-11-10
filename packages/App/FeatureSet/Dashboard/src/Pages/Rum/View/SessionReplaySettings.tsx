@@ -74,7 +74,7 @@ import {
  * switch is on unless someone turned it off (Project.isSessionReplayAllowed
  * defaults to true), and when it is off the health card says "Session replay
  * is switched off for this project" with a "Turn it on" action - the
- * disabled-project diagnosis in Common/Utils/Rum/SessionReplayHealth.ts. A
+ * disabled-project diagnosis in Common/Utils/SessionReplay/SessionReplayHealth.ts. A
  * blue "Recording must also be allowed for the project" banner used to sit
  * here on every visit, saying so in the case nothing was wrong.
  *

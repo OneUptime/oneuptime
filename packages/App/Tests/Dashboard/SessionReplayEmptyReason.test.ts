@@ -5,7 +5,7 @@ import {
   RecordingHealthDiagnosis,
   RecordingHealthStatus,
 } from "Common/Types/Rum/SessionReplayHealth";
-import { diagnoseRecordingHealth } from "Common/Utils/Rum/SessionReplayHealth";
+import { diagnoseRecordingHealth } from "Common/Utils/SessionReplay/SessionReplayHealth";
 import {
   EMPTY_ADVANCED_FILTERS,
   SessionReplayAdvancedFilters,

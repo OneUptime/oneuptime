@@ -41,7 +41,7 @@ import {
 import {
   formatRelativeAge,
   parseHealthTimestamp,
-} from "Common/Utils/Rum/SessionReplayHealth";
+} from "Common/Utils/SessionReplay/SessionReplayHealth";
 import { readDtoString } from "Common/Types/Rum/SessionReplayApi";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
