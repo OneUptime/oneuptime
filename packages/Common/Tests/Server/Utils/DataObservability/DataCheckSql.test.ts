@@ -1,9 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
 import { DataCheckType } from "../../../../Types/DataObservability/DataCheckType";
 import {
+  buildDataCheckSampleStatement,
   buildDataCheckStatement,
+  buildFreshnessStatement,
   checkCustomSql,
   DataCheckStatement,
+  DataCheckTarget,
   quoteIdentifier,
 } from "../../../../Server/Utils/DataObservability/DataCheckSql";
 
@@ -223,5 +226,106 @@ describe("checkCustomSql", () => {
         return checkCustomSql(sql);
       }).toThrow();
     }
+  });
+});
+
+describe("Dataverse's SQL endpoint", () => {
+  const invalid: DataCheckTarget = {
+    type: DataCheckType.InvalidPercent,
+    schemaName: "dbo",
+    tableName: "account",
+    columnName: "statuscode",
+    acceptedValues: ["1", "2"],
+  };
+
+  test("a check is written as SQL Server's: names in brackets, values as @p0, @p1", () => {
+    expect(quoteIdentifier("dataverse", "we]ird")).toBe("[we]]ird]");
+
+    const statement: DataCheckStatement = buildDataCheckStatement(
+      "dataverse",
+      invalid,
+    );
+
+    expect(statement).toEqual(buildDataCheckStatement("sqlserver", invalid));
+    expect(statement.sql).toContain("FROM [dbo].[account]");
+    expect(statement.sql).toContain("NOT IN (@p0, @p1)");
+    expect(statement.params).toEqual(["1", "2"]);
+  });
+
+  test("segments and custom SQL keep SQL Server's TOP", () => {
+    expect(
+      buildDataCheckStatement("dataverse", {
+        type: DataCheckType.RowCount,
+        schemaName: "dbo",
+        tableName: "account",
+        segmentColumn: "statecode",
+      }).sql,
+    ).toBe(
+      "SELECT TOP 100 CAST([statecode] AS NVARCHAR(4000)) AS segment, COUNT(*) AS value FROM [dbo].[account] GROUP BY [statecode] ORDER BY COUNT(*) DESC",
+    );
+    expect(
+      buildDataCheckStatement("dataverse", {
+        type: DataCheckType.CustomSql,
+        schemaName: "dbo",
+        tableName: "account",
+        customSql: "SELECT COUNT(*) AS value FROM account WHERE name IS NULL",
+      }).sql,
+    ).toBe(
+      "SELECT TOP 100 * FROM (SELECT COUNT(*) AS value FROM account WHERE name IS NULL) AS oneuptime_check",
+    );
+  });
+
+  test("it reads every row: a sample is never asked of it", () => {
+    const sql: string = buildDataCheckStatement("dataverse", {
+      type: DataCheckType.NullPercent,
+      schemaName: "dbo",
+      tableName: "account",
+      columnName: "name",
+      samplePercent: 10,
+    }).sql;
+
+    expect(sql).not.toContain("TABLESAMPLE");
+    expect(sql).toBe(
+      "SELECT 100.0 * SUM(CASE WHEN [name] IS NULL THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0) AS value FROM [dbo].[account]",
+    );
+  });
+
+  test("a regular expression or a WITH is refused, saying why", () => {
+    expect(() => {
+      return buildDataCheckStatement("dataverse", {
+        type: DataCheckType.FormatMismatchPercent,
+        schemaName: "dbo",
+        tableName: "contact",
+        columnName: "emailaddress1",
+        pattern: "@",
+      });
+    }).toThrow("Dataverse's SQL has no regular expressions");
+    expect(() => {
+      return buildDataCheckStatement("dataverse", {
+        type: DataCheckType.FailingRows,
+        schemaName: "dbo",
+        tableName: "contact",
+        customSql: "WITH c AS (SELECT * FROM contact) SELECT * FROM c",
+      });
+    }).toThrow("Dataverse's SQL has no WITH");
+  });
+
+  test("failing rows and a freshness column are read as SQL Server's", () => {
+    expect(buildDataCheckSampleStatement("dataverse", invalid)).toEqual(
+      buildDataCheckSampleStatement("sqlserver", invalid),
+    );
+    expect(buildDataCheckSampleStatement("dataverse", invalid)!.sql).toMatch(
+      /^SELECT TOP \d+ \[statuscode\] FROM \[dbo\]\.\[account\] WHERE /,
+    );
+    expect(
+      buildFreshnessStatement("dataverse", {
+        schemaName: "dbo",
+        tableName: "account",
+        columnName: "msdyn_lastsyncedon",
+      }),
+    ).toEqual({
+      sql: "SELECT MAX([msdyn_lastsyncedon]) AS value FROM [dbo].[account]",
+      params: [],
+    });
   });
 });

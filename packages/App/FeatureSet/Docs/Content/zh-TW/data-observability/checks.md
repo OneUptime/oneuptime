@@ -13,7 +13,7 @@
 | **Distinct Count** | 該欄包含多少個不同的值 |
 | **最小值**、**最大值**、**平均**、**總和** | 數值欄的相應值（沒有列時總和為 0） |
 | **Invalid Percent** | 不在你提供的清單中的值所占的百分比 |
-| **Format Mismatch Percent** | 不是你所選格式（例如 Email、UUID 或 Country Code）的值，或不符合你的規則運算式的值所占的百分比（SQL Server 以外的所有引擎） |
+| **Format Mismatch Percent** | 不是你所選格式（例如 Email、UUID 或 Country Code）的值，或不符合你的規則運算式的值所占的百分比（SQL Server 和 Dataverse 以外的所有引擎） |
 | **Orphan Count** | 其值在另一個資料表的欄中找不到相符項目的列 |
 | **Row Count** | 資料表中的列數，搭配 **分群依據** 使用最有用 |
 | **自訂 SQL** | 你的一個唯讀 SELECT 所傳回、名為 `value` 的數字（在 MongoDB 中為聚合管線傳回的數字） |
@@ -48,7 +48,7 @@
 
 檢查會與你的應用程式爭用資料庫，而在依查詢讀取量計費的資料倉儲上，它會花錢。有三項設定可以控制：
 
-- **取樣百分比** 只讀取一部分列而不是全部，適用於讀取比率的檢查：Null Percent、平均、Invalid Percent 和 Format Mismatch Percent。大多數引擎會略過資料表的整個頁面；MySQL、Redshift、ClickHouse 和 MongoDB 仍會讀取每一列，只是省去其餘部分的處理工作。檢視可能會拒絕它，檢查會如實說明。
+- **取樣百分比** 只讀取一部分列而不是全部，適用於讀取比率的檢查：Null Percent、平均、Invalid Percent 和 Format Mismatch Percent。大多數引擎會略過資料表的整個頁面；MySQL、Redshift、ClickHouse 和 MongoDB 仍會讀取每一列，只是省去其餘部分的處理工作。Dataverse 不會取樣：其上的檢查會讀取每一列。檢視可能會拒絕它，檢查會如實說明。
 - **單次檢查最多可讀取量 (GB)**（在 **設定** 下）會在 BigQuery 或 Athena 上的檢查讀取超過該吉位元組數之前將它停止。在你變更之前為 10。
 - **資料庫忙碌時等待**（在 **設定** 下）會在 PostgreSQL、MySQL 或 SQL Server 資料庫看起來忙碌時，把到期的檢查留到下一次收集。在你關閉之前它一直是開啟的，資料庫會說明檢查何時等待過。
 

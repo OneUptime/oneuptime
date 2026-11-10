@@ -49113,5 +49113,6 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} تغییر مسیر در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} تغییر مسیر در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} سیگنال خودتان در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} سیگنال خودتان در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} سیگنال خودتان در این قطعه به طول {{window}} (تقریبی، قطعه هنوز بارگذاری نشده)",
+  "Microsoft Dataverse": "Microsoft Dataverse"
 }

@@ -163,6 +163,40 @@ describe("a rule in a sentence, as a check", () => {
     }).toThrow("Say the rule");
   });
 
+  test("for Dataverse, the model writes the SQL its TDS endpoint reads, and a WITH is refused", () => {
+    const prompt: { system: string; user: string } =
+      buildCheckFromSentencePrompt({
+        sentence: "every account has a name",
+        engine: "dataverse",
+        schemaName: "dbo",
+        tableName: "account",
+        columns: [
+          { name: "name", dataType: "string", isNullable: true, position: 1 },
+        ],
+      });
+
+    expect(prompt.system).toContain("[dbo].[account]");
+    expect(prompt.system).toContain(
+      "Microsoft Dataverse's TDS endpoint: SQL Server's T-SQL, read-only, with no WITH",
+    );
+    expect(prompt.system).not.toContain("Write SQL for dataverse");
+    expect(prompt.user).toContain("- [name] string");
+    expect(() => {
+      return readCheckSuggestion(
+        '{"name": "x", "sql": "WITH a AS (SELECT name FROM [dbo].[account]) SELECT COUNT(*) AS value FROM a WHERE name IS NULL", "alertCondition": "Above", "alertThreshold": 0}',
+        "dataverse",
+      );
+    }).toThrow("Dataverse's SQL has no WITH");
+    expect(
+      readCheckSuggestion(
+        '{"name": "Accounts without a name", "sql": "SELECT COUNT(*) AS value FROM [dbo].[account] WHERE [name] IS NULL", "alertCondition": "Above", "alertThreshold": 0}',
+        "dataverse",
+      ).customSql,
+    ).toBe(
+      "SELECT COUNT(*) AS value FROM [dbo].[account] WHERE [name] IS NULL",
+    );
+  });
+
   test("its answer becomes a check to review, even inside a code fence", () => {
     const suggestion: DataCheckSuggestion = readCheckSuggestion(
       '```json\n{"name": "Orders with a negative total", "sql": "SELECT COUNT(*) AS value FROM \\"public\\".\\"orders\\" WHERE \\"total\\" < 0", "alertCondition": "Above", "alertThreshold": 0, "explanation": "Counts orders whose total is below zero."}\n```',

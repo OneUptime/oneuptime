@@ -49113,5 +49113,6 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} 這個 {{window}} 的資料區塊中有 {{count}} 次路由變化（約略值，資料區塊尚未載入）",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} route change in this {{window}} chunk (approximate, chunk not loaded yet)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} 這個 {{window}} 的資料區塊中有 {{count}} 個自訂訊號（約略值，資料區塊尚未載入）",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} signal of your own in this {{window}} chunk (approximate, chunk not loaded yet)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} signal of your own in this {{window}} chunk (approximate, chunk not loaded yet)",
+  "Microsoft Dataverse": "Microsoft Dataverse"
 }

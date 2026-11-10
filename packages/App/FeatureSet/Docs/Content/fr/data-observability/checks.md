@@ -13,7 +13,7 @@ Ajoutez un contrôle dans l'onglet **Vérifications** d'une table :
 | **Distinct Count** | Nombre de valeurs différentes que contient la colonne |
 | **Minimum**, **Maximum**, **Moyenne**, **Somme** | D'une colonne numérique (la somme de zéro ligne vaut 0) |
 | **Invalid Percent** | Pourcentage de valeurs hors d'une liste que vous fournissez |
-| **Format Mismatch Percent** | Pourcentage de valeurs qui ne sont pas dans un format que vous choisissez, comme Email, UUID ou Country Code, ou qui ne correspondent pas à une expression régulière de votre choix (tous les moteurs sauf SQL Server) |
+| **Format Mismatch Percent** | Pourcentage de valeurs qui ne sont pas dans un format que vous choisissez, comme Email, UUID ou Country Code, ou qui ne correspondent pas à une expression régulière de votre choix (tous les moteurs sauf SQL Server et Dataverse) |
 | **Orphan Count** | Lignes dont la valeur n'a aucune correspondance dans la colonne d'une autre table |
 | **Row Count** | Lignes de la table, surtout utile avec **Segmenter par** |
 | **SQL personnalisé** | Le nombre que renvoie l'un de vos SELECT en lecture seule, nommé `value` (sur MongoDB, celui d'un pipeline d'agrégation) |
@@ -48,7 +48,7 @@ Le **Statut** d'un contrôle, dans **Vérifications** et dans l'onglet **Vérifi
 
 Un contrôle se dispute la base de données avec votre application, et sur un entrepôt qui facture selon ce qu'une requête lit, il coûte de l'argent. Trois choses permettent de le maîtriser :
 
-- **Pourcentage d'échantillon** lit une part des lignes au lieu de toutes, pour un contrôle qui lit un taux : Null Percent, Moyenne, Invalid Percent et Format Mismatch Percent. La plupart des moteurs sautent des pages entières de la table ; MySQL, Redshift, ClickHouse et MongoDB lisent encore chaque ligne, et s'épargnent le travail sur les autres. Une vue peut le refuser, et le contrôle l'indique.
+- **Pourcentage d'échantillon** lit une part des lignes au lieu de toutes, pour un contrôle qui lit un taux : Null Percent, Moyenne, Invalid Percent et Format Mismatch Percent. La plupart des moteurs sautent des pages entières de la table ; MySQL, Redshift, ClickHouse et MongoDB lisent encore chaque ligne, et s'épargnent le travail sur les autres. Dataverse ne prend aucun échantillon : un contrôle y lit chaque ligne. Une vue peut le refuser, et le contrôle l'indique.
 - **Maximum lisible par une vérification (Go)**, sous **Paramètres**, arrête un contrôle sur BigQuery ou Athena avant qu'il ne lise plus de gigaoctets que cela. Il vaut 10 tant que vous ne le changez pas.
 - **Attendre quand une base de données est occupée**, sous **Paramètres**, laisse les contrôles dus pour la prochaine collecte quand une base de données PostgreSQL, MySQL ou SQL Server semble occupée. Il est activé tant que vous ne le désactivez pas, et la base de données indique quand des contrôles ont attendu.
 

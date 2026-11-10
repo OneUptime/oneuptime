@@ -134,6 +134,22 @@ db.createUser({
 ```
 
 MongoDB 透過其自有驅動程式讀取：`mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/`，或帶有複本集主機清單的 `mongodb://`。路徑中指定的資料庫是唯一受監控的；未指定時，監控該登入可讀取的每個資料庫，以 `{ role: "read", db: "orders" }` 取代 `readAnyDatabase` 可將其限制為一個。每個集合的文件、大小和寫入來自 `$collStats`，最後一次收到文件的時間來自其最新的 `_id`。欄位來自其驗證器的 JSON 結構描述，否則來自其最新 100 份文件的欄位名稱和類型，皆在資料庫內計算，任何值都不會離開資料庫。有次要節點時在次要節點上讀取文件，自訂檢查是 JSON 格式的聚合管線。
+@tab Microsoft Dataverse
+OneUptime 以應用程式身分登入環境。在 Microsoft Entra ID 中註冊一個應用程式，並為它建立用戶端密碼。接著將它以應用程式使用者的身分新增到環境中：在 Power Platform admin center 中開啟該環境，然後依序選擇 **Settings** > **Users + permissions** > **Application users** > **New app user**。為它指派一個能讀取你所監看的資料表的安全性角色。
+
+以 JSON 連接：
+
+```json
+{ "environmentUrl": "https://contoso.crm.dynamics.com", "tenantId": "72f988bf-86f1-41af-91ab-2d7cd011db47", "clientId": "11111111-2222-3333-4444-555555555555", "clientSecret": "..." }
+```
+
+或使用 Dataverse 連線字串，格式與其 SDK 接受的相同：`AuthType=ClientSecret;Url=https://contoso.crm.dynamics.com;ClientId=...;ClientSecret=...`。省略租用戶時，環境會說明它位於哪個租用戶。
+
+一個環境本身就有數百個資料表，因此只會監看以下這些：核心商務資料表（`account`、`contact`、`lead`、`opportunity`、`quote`、`salesorder`、`invoice`、`product`、`incident`、`email`、`phonecall`、`appointment`、`task` 和 `annotation`）以及你自己的自訂資料表。Microsoft 應用程式的資料表會被排除，它們的名稱以 `msdyn_`、`adx_` 或其他 `ms` 前置詞開頭。若也要監看其他資料表，請以其邏輯名稱指定：`"tables": ["msdyn_workorder", "systemuser"]`。
+
+Web API 每五分鐘提供每個資料表的定義、列數和最新的 `modifiedon`，也就是它最後一次變更的時間。列數來自 Dataverse 每天進行一次的計數，因此最多會落後一天。欄位每小時讀取一次。每次收集會發出兩個請求，每個受監看的資料表再多一個，這些請求計入該應用程式每五分鐘 6,000 個請求的上限。當 Dataverse 要求放慢速度時，其餘的讀取會等到下一次收集。排除某個資料表即可停止讀取它。
+
+檢查會以唯讀 SQL 在環境的 TDS 端點上執行，連接埠為 1433 或 5558，並以同一個應用程式身分登入。除非管理員已將它關閉，否則該端點是開啟的。如果該端點啟用了使用者層級的存取控制，該應用程式的角色需要 **Allow user to access TDS endpoint** 權限。它的 SQL 不支援規則運算式、`WITH` 和取樣，因此 Dataverse 上的檢查會讀取每一列。
 :::
 
 ## 讀取的內容和頻率
@@ -162,6 +178,8 @@ PostgreSQL 或 SQL Server 的唯讀複本不會更新其寫入計數器，因此
 - **資料表沒有顯示最後變更時間。** 該登入無法讀取引擎的統計資料：請授予你的引擎索引標籤中列出的權限，或等待資料表的列數變更兩次。
 - **缺少某個資料表。** 它位於該登入無法使用的結構描述中，或在該資料庫上遭到排除。請授予對其結構描述的 `USAGE` 權限，或移除該排除項目。
 - **MySQL 資料表沒有欄位。** 該登入需要 `REFERENCES`，如上所述：它能顯示資料表的欄位，卻不會授予讀取其列的權限。
+- **Dataverse 環境表示它拒絕了該應用程式。** 將該應用程式以應用程式使用者的身分新增到環境中，並為它指派能讀取這些資料表的安全性角色，如 Microsoft Dataverse 索引標籤所述。
+- **缺少某個 Dataverse 資料表。** 只會監看核心商務資料表和你自己的自訂資料表。請在 `tables` 中以其邏輯名稱指定它。
 
 ## 後續步驟
 

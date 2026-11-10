@@ -13,7 +13,7 @@ Add a check on a table's **Checks** tab:
 | **Distinct Count** | How many different values the column holds |
 | **Minimum**, **Maximum**, **Average**, **Sum** | Of a numeric column (a Sum of no rows is 0) |
 | **Invalid Percent** | Percent of values outside a list you give |
-| **Format Mismatch Percent** | Percent of values that are not in a format you pick, such as Email, UUID or Country Code, or that do not match a regular expression of yours (every engine but SQL Server) |
+| **Format Mismatch Percent** | Percent of values that are not in a format you pick, such as Email, UUID or Country Code, or that do not match a regular expression of yours (every engine but SQL Server and Dataverse) |
 | **Orphan Count** | Rows whose value has no match in another table's column |
 | **Row Count** | Rows in the table, most useful with **Segment By** |
 | **Custom SQL** | The number one read-only SELECT of yours returns, named `value` (on MongoDB, an aggregation pipeline's) |
@@ -48,7 +48,7 @@ A check's **Status**, on **Checks** and on its table's **Checks** tab, says how 
 
 A check competes with your application for the database, and on a warehouse that bills by what a query reads, it costs money. Three things keep that in hand:
 
-- **Sample Percent** reads a share of the rows instead of all of them, for a check that reads a rate: Null Percent, Average, Invalid Percent and Format Mismatch Percent. Most engines skip whole pages of the table; MySQL, Redshift, ClickHouse and MongoDB still read every row, and are spared the work on the rest. A view can refuse it, and the check says so.
+- **Sample Percent** reads a share of the rows instead of all of them, for a check that reads a rate: Null Percent, Average, Invalid Percent and Format Mismatch Percent. Most engines skip whole pages of the table; MySQL, Redshift, ClickHouse and MongoDB still read every row, and are spared the work on the rest. Dataverse takes no sample: a check there reads every row. A view can refuse it, and the check says so.
 - **Most a Check May Read (GB)**, under **Settings**, stops a check on BigQuery or Athena before it reads more than that many gigabytes. It is 10 until you change it.
 - **Wait When a Database Is Busy**, under **Settings**, leaves due checks for the next collection when a PostgreSQL, MySQL or SQL Server database looks busy. It is on until you turn it off, and the database says when checks waited.
 
