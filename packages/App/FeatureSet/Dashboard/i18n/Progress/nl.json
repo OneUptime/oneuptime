@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47977,
-    "untranslated": 11100
+    "keys": 48069,
+    "untranslated": 11095
   },
   "sameAsEnglish": [
     " is",
@@ -751,6 +751,7 @@
     "{{inQuorum}}/{{count}} mons in quorum",
     "{{in}} in",
     "{{minutes}} min",
+    "{{monitorName}} is offline",
     "{{size}} in {{duration}}",
     "{{subject}} is {{value}}.",
     "{{subject}} was {{value}}",
