@@ -59,6 +59,9 @@ function tab(overrides: Partial<TabChunkAggregate>): TabChunkAggregate {
     routeCount: 0,
     clickCount: 0,
     customEventCount: 0,
+    customSignalCount: 0,
+    customSignalFrustrationCount: 0,
+    customSignalNames: [],
     erroredChunkCount: 0,
     firstErrorOffsetMs: 0,
     activeMs: 0,
@@ -106,6 +109,9 @@ function header(
     deadClickCount: 0,
     errorClickCount: 0,
     refreshRageCount: 0,
+    customSignalCount: 0,
+    customSignalFrustrationCount: 0,
+    customSignalNames: [],
     pageCount: 0,
     entryUrl: "https://shop.example.com/",
     exitUrl: "https://shop.example.com/",
@@ -171,6 +177,92 @@ describe("FinalizeSessions engagement aggregates", () => {
 
     expect(row["clickCount"]).toBe(41);
     expect(row["customEventCount"]).toBe(7);
+  });
+
+  /*
+   * Issue #6443: the application's own signals. Hits and frustration hits
+   * are summed across tabs; the names are a sorted set, so re-finalizing
+   * identical chunks writes identical bytes.
+   */
+  test("the application's own signals are summed across tabs, and their names are one sorted set", () => {
+    const aggregate: SessionChunkAggregate = combineTabAggregates([
+      tab({
+        tabId: "tab-b",
+        customSignalCount: 3,
+        customSignalFrustrationCount: 2,
+        customSignalNames: ["Help opened", "Payment failed"],
+      }),
+      tab({
+        tabId: "tab-a",
+        customSignalCount: 1,
+        customSignalFrustrationCount: 1,
+        customSignalNames: ["Checkout error", "Payment failed"],
+      }),
+    ]);
+
+    expect(aggregate.customSignalCount).toBe(4);
+    expect(aggregate.customSignalFrustrationCount).toBe(3);
+    expect(aggregate.customSignalNames).toEqual([
+      "Checkout error",
+      "Help opened",
+      "Payment failed",
+    ]);
+
+    const row: JSONObject = rowFor(aggregate, header());
+
+    expect(row["customSignalCount"]).toBe(4);
+    expect(row["customSignalFrustrationCount"]).toBe(3);
+    expect(row["customSignalNames"]).toEqual([
+      "Checkout error",
+      "Help opened",
+      "Payment failed",
+    ]);
+
+    /* The same tabs in the other order make the same row. */
+    const reversed: SessionChunkAggregate = combineTabAggregates([
+      tab({
+        tabId: "tab-a",
+        customSignalCount: 1,
+        customSignalFrustrationCount: 1,
+        customSignalNames: ["Checkout error", "Payment failed"],
+      }),
+      tab({
+        tabId: "tab-b",
+        customSignalCount: 3,
+        customSignalFrustrationCount: 2,
+        customSignalNames: ["Help opened", "Payment failed"],
+      }),
+    ]);
+    expect(reversed.customSignalNames).toEqual(aggregate.customSignalNames);
+  });
+
+  test("a session keeps at most fifty signal names", () => {
+    const names: Array<string> = [];
+    for (let index: number = 0; index < 70; index++) {
+      names.push(`Signal ${String(index).padStart(2, "0")}`);
+    }
+
+    const aggregate: SessionChunkAggregate = combineTabAggregates([
+      tab({ tabId: "tab-a", customSignalNames: names.slice(30) }),
+      tab({ tabId: "tab-b", customSignalNames: names.slice(0, 30) }),
+    ]);
+
+    /* The first fifty in sorted order, whichever tab came first. */
+    expect(aggregate.customSignalNames).toEqual(names.slice(0, 50));
+    expect(
+      combineTabAggregates([
+        tab({ tabId: "tab-b", customSignalNames: names.slice(0, 30) }),
+        tab({ tabId: "tab-a", customSignalNames: names.slice(30) }),
+      ]).customSignalNames,
+    ).toEqual(names.slice(0, 50));
+  });
+
+  test("a session recorded before the signal columns has none", () => {
+    const row: JSONObject = rowFor(combineTabAggregates([tab({})]), null);
+
+    expect(row["customSignalCount"]).toBe(0);
+    expect(row["customSignalFrustrationCount"]).toBe(0);
+    expect(row["customSignalNames"]).toEqual([]);
   });
 
   test("firstErrorOffsetMs is the earliest errored chunk's start across tabs", () => {
@@ -299,6 +391,9 @@ describe("FinalizeSessions engagement aggregates", () => {
       routeCount: 0,
       clickCount: "41",
       customEventCount: "3",
+      customSignalCount: "5",
+      customSignalFrustrationCount: "4",
+      customSignalNames: ["Checkout error"],
       erroredChunkCount: "1",
       firstErrorOffsetMs: "15000",
       activeMs: "30000",
@@ -323,6 +418,9 @@ describe("FinalizeSessions engagement aggregates", () => {
 
     expect(parsed.clickCount).toBe(41);
     expect(parsed.customEventCount).toBe(3);
+    expect(parsed.customSignalCount).toBe(5);
+    expect(parsed.customSignalFrustrationCount).toBe(4);
+    expect(parsed.customSignalNames).toEqual(["Checkout error"]);
     expect(parsed.erroredChunkCount).toBe(1);
     expect(parsed.firstErrorOffsetMs).toBe(15_000);
     expect(parsed.activeMs).toBe(30_000);
@@ -443,6 +541,14 @@ describe("FinalizeSessions aggregate statement", () => {
 
     expect(query).toContain("sum(clickCount) AS clickCount");
     expect(query).toContain("sum(customEventCount) AS customEventCount");
+    expect(query).toContain("sum(customSignalCount) AS customSignalCount");
+    expect(query).toContain(
+      "sum(customSignalFrustrationCount) AS customSignalFrustrationCount",
+    );
+    expect(query).toContain(
+      "arraySlice(arraySort(arrayDistinct(arrayFlatten(groupArray(customSignalNames)))), 1,",
+    );
+    expect(query).toContain(") AS customSignalNames,");
     /*
      * Summed under a different name, or the errorCount / eventCount read
      * by countIf, minIf and sumIf below resolves to the aggregate alias and
@@ -472,6 +578,9 @@ describe("FinalizeSessions aggregate statement", () => {
     expect(query).toContain("chunkStartOffsetMs,");
     expect(query).toContain("clickCount,");
     expect(query).toContain("customEventCount,");
+    expect(query).toContain("customSignalCount,");
+    expect(query).toContain("customSignalFrustrationCount,");
+    expect(query).toContain("customSignalNames,");
 
     expect(query).not.toMatch(/\bpayload\b/);
   });

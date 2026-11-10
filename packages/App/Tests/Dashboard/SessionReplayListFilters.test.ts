@@ -35,6 +35,11 @@ import {
   stringifyTagFilter,
   USER_FILTER_LABEL_STORAGE_KEY_PREFIX,
 } from "../../FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayListFilters";
+import {
+  buildSessionReplayFilterChips,
+  SESSION_REPLAY_FILTER_FIELDS,
+  SessionReplayFilterField,
+} from "../../FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayFilterFields";
 
 /*
  * The list filter model: the one place that translates the table's filter
@@ -245,7 +250,84 @@ describe("buildSessionReplayListFilters", () => {
       urlPrefix: "",
       tags: "",
       search: "",
+      customSignalName: "",
     });
+  });
+
+  test("one of the application's own signals is sent by its exact name, trimmed (issue #6443)", () => {
+    expect(
+      buildSessionReplayListFilters("all", {
+        ...EMPTY_ADVANCED_FILTERS,
+        customSignalName: "  Payment failed ",
+      }),
+    ).toEqual({ customSignalName: "Payment failed" });
+    // Case is kept: the server matches the name exactly.
+    expect(
+      buildSessionReplayListFilters("all", {
+        ...EMPTY_ADVANCED_FILTERS,
+        customSignalName: "payment FAILED",
+      }),
+    ).toEqual({ customSignalName: "payment FAILED" });
+    expect(
+      buildSessionReplayListFilters("all", {
+        ...EMPTY_ADVANCED_FILTERS,
+        customSignalName: "   ",
+      }),
+    ).toEqual({});
+    expect(
+      hasAnyAdvancedFilter({
+        ...EMPTY_ADVANCED_FILTERS,
+        customSignalName: "Payment failed",
+      }),
+    ).toBe(true);
+    // It narrows alongside a quick filter, as every field does.
+    expect(
+      buildSessionReplayListFilters("frustration", {
+        ...EMPTY_ADVANCED_FILTERS,
+        customSignalName: "Payment failed",
+      }),
+    ).toEqual({ hasFrustration: true, customSignalName: "Payment failed" });
+  });
+
+  test("the modal asks for it by name, and the chip says what was sent", () => {
+    const field: SessionReplayFilterField | undefined =
+      SESSION_REPLAY_FILTER_FIELDS.find(
+        (candidate: SessionReplayFilterField): boolean => {
+          return candidate.field === "customSignalName";
+        },
+      );
+
+    expect(field?.title).toBe("Signal of your own");
+    expect(field?.hint).toContain("Frustration Signals page");
+    expect(
+      buildSessionReplayFilterChips({
+        ...EMPTY_ADVANCED_FILTERS,
+        customSignalName: " Payment failed ",
+      }),
+    ).toEqual([
+      {
+        field: "customSignalName",
+        label: "Signal of your own",
+        text: "Payment failed",
+      },
+    ]);
+    expect(
+      buildSessionReplayFilterChips({
+        ...EMPTY_ADVANCED_FILTERS,
+        customSignalName: "  ",
+      }),
+    ).toEqual([]);
+  });
+
+  test("the Frustration quick filter says it counts the application's own frustration signals", () => {
+    const option: { description: string } | undefined =
+      SESSION_REPLAY_SIGNAL_OPTIONS.find((candidate: { value: string }) => {
+        return candidate.value === "frustration";
+      });
+
+    expect(option?.description).toContain(
+      "one of your own signals that counts as frustration",
+    );
   });
 });
 
@@ -331,6 +413,34 @@ describe("filter URL round trip", () => {
     expect(restored.sortBy).toBe("errorCount");
     expect(restored.timeRange).toEqual({ range: TimeRange.PAST_ONE_WEEK });
     expect(restored.page).toBe(1);
+  });
+
+  test("a signal of the application's own round-trips as signalName=", () => {
+    expect(FILTER_URL_KEYS.customSignalName).toBe("signalName");
+
+    const url: string = buildFilteredUrl(
+      "https://dash.example.com/rum/app-1/session-replay",
+      "all",
+      { ...EMPTY_ADVANCED_FILTERS, customSignalName: "Payment failed" },
+      {
+        sortBy: DEFAULT_SESSION_REPLAY_SORT_BY,
+        timeRange: DEFAULT_SESSION_REPLAY_TIME_RANGE,
+      },
+    );
+
+    expect(new URL(url).searchParams.get("signalName")).toBe("Payment failed");
+    expect(
+      readListStateFromSearch(new URL(url).search).advanced.customSignalName,
+    ).toBe("Payment failed");
+    // Cleared, it leaves no empty param behind.
+    expect(
+      new URL(
+        buildFilteredUrl(url, "all", EMPTY_ADVANCED_FILTERS, {
+          sortBy: DEFAULT_SESSION_REPLAY_SORT_BY,
+          timeRange: DEFAULT_SESSION_REPLAY_TIME_RANGE,
+        }),
+      ).searchParams.has("signalName"),
+    ).toBe(false);
   });
 
   test("identifiedUserRef is never written to the URL", () => {

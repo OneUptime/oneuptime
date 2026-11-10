@@ -33,6 +33,7 @@ import {
   SessionReplayCustomDroppedPayload,
   SessionReplayCustomEventTag,
   SessionReplayCustomPayload,
+  SessionReplayCustomSignalPayload,
   SessionReplayIdentifyPayload,
   SessionReplayIdlePausedPayload,
   SessionReplayIdleResumedPayload,
@@ -42,6 +43,11 @@ import {
   SessionReplayVisibilityState,
 } from "Common/Types/Rum/SessionReplayCustomEvents";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
+import {
+  SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENTS_PER_CHUNK,
+  SessionReplayCustomSignalConfig,
+  SessionReplayRefreshRageRule,
+} from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import CommonMasking from "Common/Utils/Rum/Masking";
 import SessionIdentity, {
   SessionIdentifyDecision,
@@ -79,6 +85,7 @@ import ErrorRecorder, {
 } from "./ErrorRecorder";
 import { ExtendedReplayConfig, readExtendedConfig } from "./ExtendedConfig";
 import FrustrationDetector, { FrustrationSignal } from "./FrustrationDetector";
+import CustomSignalDetector, { CustomSignalHit } from "./CustomSignalDetector";
 import Masking, { MaskInputOptionsShape } from "./Masking";
 import NetworkRecorder, { RecordedRequest } from "./NetworkRecorder";
 import OfflineStore from "./OfflineStore";
@@ -451,6 +458,7 @@ export default class Recorder {
   private readonly consoleRecorder: ConsoleRecorder;
   private readonly routeRecorder: RouteRecorder;
   private readonly frustrationDetector: FrustrationDetector;
+  private readonly customSignalDetector: CustomSignalDetector;
   private readonly clickRecorder: ClickRecorder;
 
   private stopRrweb: (() => void) | null = null;
@@ -551,6 +559,14 @@ export default class Recorder {
   /* Per-chunk window for track() events, mirroring ClickRecorder's. */
   private customEventsInChunk: number = 0;
   private customEventsDroppedInChunk: number = 0;
+
+  /*
+   * Per-chunk window for the application's own signals: past
+   * SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENTS_PER_CHUNK a chunk neither marks
+   * nor counts another, so the count on the session is the markers on its
+   * timeline.
+   */
+  private customSignalsInChunk: number = 0;
 
   /*
    * rrweb's first FullSnapshot has been seen on this page. Until then
@@ -736,6 +752,18 @@ export default class Recorder {
       },
     });
 
+    /*
+     * Error signals of the application's own are matched against the raw
+     * text of uncaught errors and console.error, so those two recorders get
+     * a hook for it - only when there is one to look for.
+     */
+    const hasErrorSignals: boolean =
+      this.extendedConfig.frustrationSignals.customSignals.some(
+        (signal: SessionReplayCustomSignalConfig): boolean => {
+          return signal.trigger === "error";
+        },
+      );
+
     const compiledIgnorePatterns: CompiledIgnorePatterns =
       ErrorRecorder.compileIgnorePatterns(
         this.config.ignoreErrorPatterns || [],
@@ -758,6 +786,11 @@ export default class Recorder {
         return this.scrubUrl(url);
       },
       ignorePatterns: compiledIgnorePatterns.patterns,
+      ...(hasErrorSignals && {
+        onErrorText: (atUnixMs: number, rawMessage: string): void => {
+          this.customSignalDetector.notifyErrorText(rawMessage, atUnixMs);
+        },
+      }),
       onCapReached: (): void => {
         this.onSignalCapReached();
       },
@@ -901,6 +934,11 @@ export default class Recorder {
       maskArgument: (value: string): string => {
         return this.masking.maskConsoleArgument(value);
       },
+      ...(hasErrorSignals && {
+        onErrorText: (atUnixMs: number, rawText: string): void => {
+          this.customSignalDetector.notifyErrorText(rawText, atUnixMs);
+        },
+      }),
       onCapReached: (): void => {
         this.onSignalCapReached();
       },
@@ -939,6 +977,15 @@ export default class Recorder {
          */
         this.chunker.addRoute(route.to);
         this.frustrationDetector.notifyActivity(atUnixMs);
+        /*
+         * Matched on the page's own path, read now that it has changed: a
+         * page signal is about the address the visitor is on, and only its
+         * name is recorded.
+         */
+        this.customSignalDetector.notifyPage(
+          CustomSignalDetector.pagePathsOf(this.windowRef.location),
+          atUnixMs,
+        );
         /* A new view: INP is measured per route, not per document. */
         this.performanceRecorder.noteRouteChange(route.from, route.to);
       },
@@ -953,6 +1000,15 @@ export default class Recorder {
       },
       onSignal: (signal: FrustrationSignal): void => {
         this.onFrustrationSignal(signal);
+      },
+      /* The application's rules (its Frustration Signals page). */
+      rules: this.extendedConfig.frustrationSignals,
+    });
+
+    this.customSignalDetector = new CustomSignalDetector({
+      signals: this.extendedConfig.frustrationSignals.customSignals,
+      onSignal: (hit: CustomSignalHit): void => {
+        this.onCustomSignal(hit);
       },
     });
 
@@ -1189,9 +1245,17 @@ export default class Recorder {
 
     this.detectFidelityNotices();
 
+    const refreshRage: SessionReplayRefreshRageRule =
+      this.extendedConfig.frustrationSignals.refreshRage;
+
+    /*
+     * Logged whether or not the rule is on, so switching it back on judges
+     * the loads that came before as well.
+     */
     const refreshRageCount: number = SessionId.recordPageLoad(
       this.windowRef.location.href,
       Date.now(),
+      refreshRage.windowSeconds * 1000,
     );
 
     this.errorRecorder.start(this.windowRef);
@@ -1200,6 +1264,7 @@ export default class Recorder {
     this.consoleRecorder.start();
     this.routeRecorder.start(this.windowRef);
     this.frustrationDetector.start(this.documentRef);
+    this.customSignalDetector.start(this.documentRef);
     this.clickRecorder.start(this.documentRef);
 
     /*
@@ -1271,9 +1336,18 @@ export default class Recorder {
       this.trigger(SessionReplayTriggerReason.Sampled);
     }
 
-    if (SessionId.isRefreshRage(refreshRageCount)) {
+    if (
+      refreshRage.isEnabled &&
+      SessionId.isRefreshRage(refreshRageCount, refreshRage.reloadCount)
+    ) {
       this.frustrationDetector.reportRefreshRage(refreshRageCount, Date.now());
     }
+
+    /* The page this load landed on, for the application's page signals. */
+    this.customSignalDetector.notifyPage(
+      CustomSignalDetector.pagePathsOf(this.windowRef.location),
+      Date.now(),
+    );
 
     /*
      * The single most useful line in this whole file.
@@ -2157,6 +2231,7 @@ export default class Recorder {
     this.identity = { ...this.identity, tabId: tabId };
     this.customEventsInChunk = 0;
     this.customEventsDroppedInChunk = 0;
+    this.customSignalsInChunk = 0;
 
     this.recordOnInSameSession(now);
   }
@@ -2173,6 +2248,48 @@ export default class Recorder {
     }
 
     this.trigger(SessionReplayTriggerReason.Frustration);
+  }
+
+  /*
+   * One of the application's own signals. Marked on the timeline and
+   * counted on the chunk like the built-in four; one that counts as
+   * frustration also starts an upload under "On error or frustration",
+   * exactly as a rage click does. Nothing while paused for idle, like
+   * track(): a background error on an unattended tab is not something the
+   * visitor went through.
+   */
+  private onCustomSignal(hit: CustomSignalHit): void {
+    if (this.stopped || this.pausedForIdle) {
+      return;
+    }
+
+    if (
+      this.customSignalsInChunk >=
+      SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENTS_PER_CHUNK
+    ) {
+      return;
+    }
+
+    this.customSignalsInChunk++;
+
+    const payload: SessionReplayCustomSignalPayload = {
+      name: hit.name,
+      trigger: hit.trigger,
+      isFrustration: hit.isFrustration,
+      atUnixMs: hit.atUnixMs,
+    };
+
+    if (hit.x !== undefined && hit.y !== undefined) {
+      payload.x = hit.x;
+      payload.y = hit.y;
+    }
+
+    this.emitCustomEvent(SessionReplayCustomEventTag.CustomSignal, payload);
+    this.chunker.countCustomSignal(hit.name, hit.isFrustration);
+
+    if (hit.isFrustration) {
+      this.trigger(SessionReplayTriggerReason.Frustration);
+    }
   }
 
   /*
@@ -2706,6 +2823,7 @@ export default class Recorder {
     this.droppedEvents = 0;
     this.customEventsInChunk = 0;
     this.customEventsDroppedInChunk = 0;
+    this.customSignalsInChunk = 0;
 
     this.identity = next;
     this.adoptSessionUser();
@@ -3090,6 +3208,7 @@ export default class Recorder {
     this.identity = { ...this.identity, tabId: tabId };
     this.customEventsInChunk = 0;
     this.customEventsDroppedInChunk = 0;
+    this.customSignalsInChunk = 0;
 
     /*
      * 3. A session that changed while the page was away is a different
@@ -3196,6 +3315,7 @@ export default class Recorder {
 
     this.customEventsInChunk = 0;
     this.customEventsDroppedInChunk = 0;
+    this.customSignalsInChunk = 0;
   }
 
   private buildEnvelope(
@@ -3328,6 +3448,20 @@ export default class Recorder {
     ) {
       delete envelope.meta.tags;
       shed.push("tags");
+    }
+
+    /*
+     * The application's own signal counts, only past everything above:
+     * twenty names of forty characters fit with room to spare, so this is
+     * for names written almost entirely in escaped characters. Their
+     * markers are still in the payload.
+     */
+    if (
+      Recorder.envelopeBytes(envelope) > MAX_ENVELOPE_JSON_BYTES &&
+      envelope.signals.customSignals
+    ) {
+      delete envelope.signals.customSignals;
+      shed.push("customSignals");
     }
 
     if (
@@ -4126,6 +4260,9 @@ export default class Recorder {
       this.customEventsInChunk >= SESSION_REPLAY_MAX_CUSTOM_EVENTS_PER_CHUNK
     ) {
       this.customEventsDroppedInChunk++;
+
+      /* A signal the event names is the application's, not track()'s cap. */
+      this.customSignalDetector.notifyEvent(name, Date.now());
       return;
     }
 
@@ -4150,6 +4287,9 @@ export default class Recorder {
 
     this.chunker.countSignal("customEventCount");
     this.emitCustomEvent(SessionReplayCustomEventTag.Custom, payload);
+
+    /* After the event, so its marker follows the event it names. */
+    this.customSignalDetector.notifyEvent(name, Date.now());
   }
 
   /*
@@ -4416,6 +4556,7 @@ export default class Recorder {
     this.consoleRecorder.stop();
     this.routeRecorder.stop(this.windowRef);
     this.frustrationDetector.stop(this.documentRef);
+    this.customSignalDetector.stop(this.documentRef);
     this.clickRecorder.stop(this.documentRef);
 
     this.documentRef.removeEventListener(

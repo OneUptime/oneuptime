@@ -80,6 +80,7 @@ describe("source hygiene", (): void => {
       "Config.ts",
       "Consent.ts",
       "ConsoleRecorder.ts",
+      "CustomSignalDetector.ts",
       "Debug.ts",
       "EarlyErrors.ts",
       "ErrorRecorder.ts",
