@@ -49113,5 +49113,13 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{window}} वाले इस चंक में {{count}} रूट बदलाव (अनुमानित, चंक अभी लोड नहीं हुआ)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{window}} वाले इस चंक में {{count}} रूट बदलाव (अनुमानित, चंक अभी लोड नहीं हुआ)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{window}} वाले इस चंक में आपके अपने {{count}} सिग्नल (अनुमानित, चंक अभी लोड नहीं हुआ)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{window}} वाले इस चंक में आपका अपना {{count}} सिग्नल (अनुमानित, चंक अभी लोड नहीं हुआ)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{window}} वाले इस चंक में आपका अपना {{count}} सिग्नल (अनुमानित, चंक अभी लोड नहीं हुआ)",
+  "{{count}} bad AI answers": "AI के {{count}} खराब जवाब",
+  "{{count}} bad AI answers_one": "AI का {{count}} खराब जवाब",
+  "{{count}} data points": "{{count}} डेटा पॉइंट",
+  "{{count}} data points_one": "{{count}} डेटा पॉइंट",
+  "{{count}} profiles": "{{count}} प्रोफ़ाइल",
+  "{{count}} profiles_one": "{{count}} प्रोफ़ाइल",
+  "{{count}} security events": "{{count}} सुरक्षा इवेंट",
+  "{{count}} security events_one": "{{count}} सुरक्षा इवेंट"
 }

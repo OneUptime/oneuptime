@@ -49113,5 +49113,13 @@
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} ruttändringar i det här blocket på {{window}} (ungefärligt, blocket är inte inläst ännu)",
   "~{{time}} {{count}} route changes in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} ruttändring i det här blocket på {{window}} (ungefärligt, blocket är inte inläst ännu)",
   "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} egna signaler i det här blocket på {{window}} (ungefärligt, blocket är inte inläst ännu)",
-  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} egen signal i det här blocket på {{window}} (ungefärligt, blocket är inte inläst ännu)"
+  "~{{time}} {{count}} signals of your own in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} egen signal i det här blocket på {{window}} (ungefärligt, blocket är inte inläst ännu)",
+  "{{count}} bad AI answers": "{{count}} dåliga AI-svar",
+  "{{count}} bad AI answers_one": "{{count}} dåligt AI-svar",
+  "{{count}} data points": "{{count}} datapunkter",
+  "{{count}} data points_one": "{{count}} datapunkt",
+  "{{count}} profiles": "{{count}} profiler",
+  "{{count}} profiles_one": "{{count}} profil",
+  "{{count}} security events": "{{count}} säkerhetshändelser",
+  "{{count}} security events_one": "{{count}} säkerhetshändelse"
 }
