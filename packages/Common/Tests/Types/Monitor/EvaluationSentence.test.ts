@@ -215,10 +215,36 @@ describe("EvaluationSentence", () => {
       );
 
       expect(isWhollyWorded(sentence, chinese)).toBe(true);
+      // Its comma is written the way the sentence's language writes it.
       expect(wordEvaluationSentence(sentence, chinese)).toBe(
-        "响应状态码为 200。, 响应状态码为 503。",
+        "响应状态码为 200。，响应状态码为 503。",
       );
     });
+
+    test.each([
+      ["zh-CN", "A，B。 C"],
+      ["zh-TW", "A，B。 C"],
+      ["ja", "A、B。 C"],
+      ["ar", "A، B. C"],
+      ["fa", "A، B. C"],
+      ["de", "A, B. C"],
+      ["en", "A, B. C"],
+    ])(
+      "a wordless template's punctuation reads as %s writes it",
+      (language: string, expected: string) => {
+        const sentence: EvaluationSentence = translatableSentence(
+          "{{first}}, {{second}}. {{third.part}}",
+          { first: "A", second: "B", "third.part": "C" },
+        );
+
+        expect(
+          wordEvaluationSentence(
+            sentence,
+            createTranslator(undefined, language),
+          ),
+        ).toBe(expected);
+      },
+    );
 
     test("a count-dependent sentence is worded under its general form", () => {
       const forms: { one: string; other: string } = {

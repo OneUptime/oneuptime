@@ -354,8 +354,70 @@ export function wordEvaluationSentence(
     );
   }
 
-  return translator.translateTemplate(sentence.template, values);
+  return translator.translateTemplate(
+    hasWords(sentence.template)
+      ? sentence.template
+      : punctuateWordlessTemplate(sentence.template, translator.language),
+    values,
+  );
 }
+
+/*
+ * How a language writes the punctuation OneUptime's wordless templates put
+ * between their parts ("{{observation}}, {{comparison}}."). Such a template
+ * belongs to no language, so no locale words it: its commas and full stop
+ * are written here the way the sentence's language writes them - "响应状态码为
+ * 503，高于阈值 499。", never "503, 高于阈值 499." Languages not listed write
+ * them as English does.
+ */
+const WORDLESS_PUNCTUATION: Readonly<
+  Record<string, ReadonlyArray<[string, string]>>
+> = {
+  zh: [
+    [", ", "，"],
+    ["; ", "；"],
+    [".", "。"],
+  ],
+  ja: [
+    [", ", "、"],
+    ["; ", "；"],
+    [".", "。"],
+  ],
+  ar: [
+    [", ", "، "],
+    ["; ", "؛ "],
+  ],
+  fa: [
+    [", ", "، "],
+    ["; ", "؛ "],
+  ],
+};
+
+const punctuateWordlessTemplate: (
+  template: string,
+  language: string,
+) => string = (template: string, language: string): string => {
+  const marks: ReadonlyArray<[string, string]> | undefined =
+    WORDLESS_PUNCTUATION[(language || "").split("-")[0]!.toLowerCase()];
+
+  if (!marks) {
+    return template;
+  }
+
+  // Only the template's own text: a placeholder's name is left as it is.
+  return template
+    .split(/(\{\{\s*[\w.]+\s*\}\})/)
+    .map((part: string, index: number): string => {
+      if (index % 2 === 1) {
+        return part;
+      }
+
+      return marks.reduce((text: string, [from, to]: [string, string]) => {
+        return text.split(from).join(to);
+      }, part);
+    })
+    .join("");
+};
 
 let englishTranslator: Translator | null = null;
 

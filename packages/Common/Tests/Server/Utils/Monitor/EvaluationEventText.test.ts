@@ -165,7 +165,7 @@ describe("MonitorDependencySuppression.buildSuppressionReasonSentence", () => {
         translator: chinese,
       }),
     ).toBe(
-      "由于父监视器 “Router 0”为 Offline, “Router 1”为 Degraded，已跳过创建事件。此监视器的状态仍会正常更新；未解决的事件仍会自动解决。",
+      "由于父监视器 “Router 0”为 Offline，“Router 1”为 Degraded，已跳过创建事件。此监视器的状态仍会正常更新；未解决的事件仍会自动解决。",
     );
   });
 });
