@@ -26,6 +26,14 @@ import {
   describeOnCallAcknowledgementTimeout,
   getOnCallPageAgainPlaceWithLast,
 } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import {
+  ON_CALL_PAGE_SENT_STATUS_MESSAGE,
+  OnCallPageChannel,
+  OnCallPageNotificationEvent,
+  OnCallPageNotificationNews,
+  getOnCallPageChannelName,
+  sortOnCallPageChannels,
+} from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -48,12 +56,34 @@ import ProductBrandingText from "../ProductBrandingText";
  * (FeedBurstKind.OnCall):
  *
  *   On-call policy PolicyX started paging.
- *   On-call policy PolicyX paged Nitin Kumar at First line (Level 1 of 3,
- *     schedule Primary). Notification sent by SMS.
+ *   On-call policy PolicyX paged Nitin Kumar via push notification and
+ *     email at First line (Level 1 of 3, schedule Primary).
  *   On-call policy PolicyX paged nobody at Night shift (Level 3 of 3): this
  *     escalation rule has no responders.
  *   On-call policy PolicyX stopped paging because the incident is
  *     acknowledged or resolved.
+ *
+ * HOW EACH PAGE REACHED ITS PERSON, AND HOW THEY ANSWERED (OnCallPageChannel).
+ * A page sent names the channels its notifications went out by; a
+ * notification the person's own On-Call Rules send later - a call after
+ * ten minutes, a push repeated until they answer - is an entry of its own,
+ * and so is one that could not be sent; an answer names the channel it
+ * came from. A review after the incident reads who was reached, how, when,
+ * and what they did:
+ *
+ *   On-call policy PolicyX paged Nitin Kumar via push notification and
+ *     email at Level 1 of 3.
+ *   On-call policy PolicyX could not page Nitin Kumar via SMS at Level 1
+ *     of 3.
+ *   On-call policy PolicyX paged Nitin Kumar again via phone call at Level
+ *     1 of 3.
+ *   Nitin Kumar acknowledged the page from on-call policy PolicyX at Level
+ *     1 of 3 via phone call.
+ *
+ * A notification that could not be sent never says why in the feed: the
+ * reasons a provider gives can hold the person's phone number or email
+ * address. The person's own On-Call Logs, and the record's Notification
+ * Logs, say why.
  *
  * A level that pages nobody holds no wait (OnCallEmptyLevel): its own line
  * says the next level was paged at once, after a line for each schedule or
@@ -105,8 +135,8 @@ import ProductBrandingText from "../ProductBrandingText";
  * the page (Types/OnCallDutyPolicy/OnCallDirectPage) - reads the same way,
  * with whoever started it where the policy is, and no escalation rule:
  *
- *   Workflow Page the on-call engineer paged Nitin Kumar, on call in
- *     schedule Primary. Notification sent by SMS.
+ *   Workflow Page the on-call engineer paged Nitin Kumar via SMS, on call
+ *     in schedule Primary.
  *   Workflow Page the on-call engineer paged nobody: nobody was on call in
  *     schedule Secondary.
  *   Workflow Page the on-call engineer stopped paging because the incident
@@ -167,13 +197,20 @@ export interface OnCallStepFeedTextInput {
   recipient?: MarkdownText | undefined;
   // Who the page was meant for, when a user override sent it to someone else.
   overriddenUser?: MarkdownText | undefined;
-  // What the step itself says: "Notification sent by SMS.", why it was skipped.
+  // What the step itself says: why it was skipped, why it failed.
   statusMessage?: string | undefined;
   /*
    * An observer's page (OnCallObserverPage): answered, the person has seen
    * it - the record is not acknowledged by that.
    */
   isObserverPage?: boolean | undefined;
+  /*
+   * How the page reached the person, or how they answered it
+   * (OnCallPageChannel): for a page sent, the channels its notifications
+   * went out by; for one acknowledged or escalated, the channel they
+   * answered from. Empty or unset when no notification says.
+   */
+  channels?: Array<OnCallPageChannel> | undefined;
 }
 
 export interface OnCallRunStatusFeedTextInput {
@@ -205,10 +242,15 @@ export interface OnCallDirectPageStepFeedTextInput {
   recipient?: MarkdownText | undefined;
   // Who the page was meant for, when a user override sent it to someone else.
   overriddenUser?: MarkdownText | undefined;
-  // What the step itself says: "Notification sent by SMS.", why it was skipped.
+  // What the step itself says: why it was skipped, why it failed.
   statusMessage?: string | undefined;
   // An observer's page (OnCallObserverPage): answered, the person has seen it.
   isObserverPage?: boolean | undefined;
+  /*
+   * How the page reached the person, or how they answered it
+   * (OnCallStepFeedTextInput.channels).
+   */
+  channels?: Array<OnCallPageChannel> | undefined;
 }
 
 export interface OnCallDirectPageStatusFeedTextInput {
@@ -248,6 +290,54 @@ const getRuleName: (ruleName: string | undefined) => string = (
   ruleName: string | undefined,
 ): string => {
   return (ruleName || "").trim() || UNNAMED_RULE;
+};
+
+/*
+ * Channels as a sentence lists them, each once and in the list's order
+ * (OnCallPageChannel): "SMS", "SMS and email", "phone call, SMS and email".
+ */
+const getChannelList: (channels: Array<OnCallPageChannel>) => MarkdownText = (
+  channels: Array<OnCallPageChannel>,
+): MarkdownText => {
+  const names: Array<MarkdownText> = sortOnCallPageChannels(channels).map(
+    (channel: OnCallPageChannel): MarkdownText => {
+      return mdText`${getOnCallPageChannelName(channel)}`;
+    },
+  );
+
+  if (names.length <= 1) {
+    return names[0] || FeedMarkdown.empty();
+  }
+
+  return mdText`${FeedMarkdown.join(names.slice(0, -1), ", ")} and ${names[names.length - 1]!}`;
+};
+
+/*
+ * How a page reached its person, or how they answered it, as it follows the
+ * words it is about: " via SMS and email". Nothing when no channel is known.
+ */
+const getVia: (
+  channels: Array<OnCallPageChannel> | undefined,
+) => MarkdownText = (
+  channels: Array<OnCallPageChannel> | undefined,
+): MarkdownText => {
+  if (!channels || sortOnCallPageChannels(channels).length === 0) {
+    return FeedMarkdown.empty();
+  }
+
+  return mdText` via ${getChannelList(channels)}`;
+};
+
+/*
+ * Whether a step's rule clause ends with the team the person was paged as a
+ * member of (getRuleClause): a channel said after it is set apart by a
+ * comma - "as a member of **Payments**, via phone call" - so it is not read
+ * as part of the team.
+ */
+const hasTeamClause: (input: {
+  teamName?: string | undefined;
+}) => boolean = (input: { teamName?: string | undefined }): boolean => {
+  return Boolean((input.teamName || "").trim());
 };
 
 /*
@@ -351,14 +441,20 @@ const asSentence: (message: string) => MarkdownText = (
  * What a step said about itself, as its own sentence, or nothing. A person
  * away with nobody to cover gets their return time as a moment the
  * Dashboard shows in each reader's own zone, rather than the UTC the run
- * writes it in. A page escalated says so in its headline already.
+ * writes it in. A page escalated says so in its headline already, and so
+ * does a page sent: "Alert Sent" said only that it was, under a sentence
+ * that says who it reached and via what.
  */
 const getStepMessageSentence: (
   statusMessage: string | undefined,
 ) => MarkdownText = (statusMessage: string | undefined): MarkdownText => {
   const message: string = (statusMessage || "").trim();
 
-  if (!message || isOnCallPagePassedOnStatusMessage(message)) {
+  if (
+    !message ||
+    isOnCallPagePassedOnStatusMessage(message) ||
+    message.toLowerCase() === ON_CALL_PAGE_SENT_STATUS_MESSAGE.toLowerCase()
+  ) {
     return FeedMarkdown.empty();
   }
 
@@ -369,6 +465,21 @@ const getStepMessageSentence: (
   }
 
   return asSentence(message);
+};
+
+/*
+ * Whether a step's headline is all there is to say of its answer: a page
+ * acknowledged - or, for an observer, seen. Its message only said it again,
+ * with the person's email address in it ("Incident acknowledged by Nitin
+ * Kumar (nitin@example.com)"), under a headline that names them and how
+ * they answered.
+ */
+const isAnswerSaidInHeadline: (
+  status: OnCallDutyExecutionLogTimelineStatus,
+) => boolean = (status: OnCallDutyExecutionLogTimelineStatus): boolean => {
+  return (
+    status === OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged
+  );
 };
 
 /*
@@ -472,6 +583,15 @@ const getStepHeadline: (input: OnCallStepFeedTextInput) => MarkdownText = (
   const recipient: MarkdownText = mdText`**${input.recipient!}**`;
   const rule: MarkdownText = getRuleClause(input);
 
+  /*
+   * How the page reached them, right after their name: "paged **Nitin**
+   * via SMS and email at ...". How they answered, at the end, after the
+   * rule: "... at **Level 1 of 3** via phone call".
+   */
+  const via: MarkdownText = getVia(input.channels);
+  const answeredVia: MarkdownText =
+    hasMarkdown(via) && hasTeamClause(input) ? mdText`,${via}` : via;
+
   switch (input.status) {
     case OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged:
       // An observer saw it: they did not take the record on.
@@ -479,25 +599,25 @@ const getStepHeadline: (input: OnCallStepFeedTextInput) => MarkdownText = (
         return mdText`${recipient} has seen the page from ${getPolicy(
           input.policyLink,
           { isInSentence: true },
-        )} at ${rule}, as an observer.`;
+        )} at ${rule}${answeredVia}, as an observer.`;
       }
 
       return mdText`${recipient} acknowledged the page from ${getPolicy(
         input.policyLink,
         { isInSentence: true },
-      )} at ${rule}.`;
+      )} at ${rule}${answeredVia}.`;
     // They could not take it, and escalated it (OnCallPagePassOn).
     case OnCallDutyExecutionLogTimelineStatus.PassedOn:
       return mdText`${recipient} escalated the page from ${getPolicy(
         input.policyLink,
         { isInSentence: true },
-      )} at ${rule}.`;
+      )} at ${rule}${answeredVia}.`;
     case OnCallDutyExecutionLogTimelineStatus.Error:
       return mdText`${policy} could not page ${recipient} at ${rule}.`;
     case OnCallDutyExecutionLogTimelineStatus.Skipped:
       return mdText`${policy} did not page ${recipient} at ${rule}.`;
     case OnCallDutyExecutionLogTimelineStatus.NotificationSent:
-      return mdText`${policy} paged ${recipient} at ${rule}.`;
+      return mdText`${policy} paged ${recipient}${via} at ${rule}.`;
     default:
       return mdText`${policy} is paging ${recipient} at ${rule}.`;
   }
@@ -676,6 +796,8 @@ const getDirectPageStepHeadline: (
 
   const recipient: MarkdownText = mdText`**${input.recipient!}**`;
   const via: MarkdownText = getDirectPageVia(input);
+  // How the page reached them, or how they answered it (getStepHeadline).
+  const channels: MarkdownText = getVia(input.channels);
 
   switch (input.status) {
     case OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged:
@@ -684,25 +806,25 @@ const getDirectPageStepHeadline: (
         return mdText`${recipient} has seen the page from ${getDirectPagePager(
           input.pager,
           { isInSentence: true },
-        )}, as an observer.`;
+        )}${channels}, as an observer.`;
       }
 
       return mdText`${recipient} acknowledged the page from ${getDirectPagePager(
         input.pager,
         { isInSentence: true },
-      )}.`;
+      )}${channels}.`;
     // They could not take it, and escalated it (OnCallPagePassOn).
     case OnCallDutyExecutionLogTimelineStatus.PassedOn:
       return mdText`${recipient} escalated the page from ${getDirectPagePager(
         input.pager,
         { isInSentence: true },
-      )}.`;
+      )}${channels}.`;
     case OnCallDutyExecutionLogTimelineStatus.Error:
       return mdText`${pager} could not page ${recipient}${via}.`;
     case OnCallDutyExecutionLogTimelineStatus.Skipped:
       return mdText`${pager} did not page ${recipient}${via}.`;
     case OnCallDutyExecutionLogTimelineStatus.NotificationSent:
-      return mdText`${pager} paged ${recipient}${via}.`;
+      return mdText`${pager} paged ${recipient}${channels}${via}.`;
     default:
       return mdText`${pager} is paging ${recipient}${via}.`;
   }
@@ -802,15 +924,90 @@ export default class OnCallFeedText {
       );
     }
 
-    const messageSentence: MarkdownText = getStepMessageSentence(
-      input.statusMessage,
-    );
+    const messageSentence: MarkdownText = isAnswerSaidInHeadline(input.status)
+      ? FeedMarkdown.empty()
+      : getStepMessageSentence(input.statusMessage);
 
     if (hasMarkdown(messageSentence)) {
       sentences.push(messageSentence);
     }
 
     return FeedMarkdown.join(sentences, "\n\n").toString();
+  }
+
+  /*
+   * A notification of a person's page told of after the page's own entry:
+   * one their On-Call Rules sent later, or one that could not be sent
+   * (getOnCallPageNotificationNews says which, and by which channels).
+   *
+   *   On-call policy PolicyX paged Nitin Kumar again via phone call at
+   *     Level 1 of 3.
+   *   On-call policy PolicyX could not page Nitin Kumar via SMS at Level 1
+   *     of 3.
+   *
+   * Never why one could not be sent (see the header). Empty without a
+   * person or a channel: there is nothing to tell.
+   */
+  public static getStepNotificationMarkdown(
+    input: OnCallStepFeedTextInput,
+    notification: OnCallPageNotificationNews,
+  ): string {
+    if (!hasMarkdown(input.recipient)) {
+      return "";
+    }
+
+    const via: MarkdownText = getVia(notification.channels);
+
+    if (!hasMarkdown(via)) {
+      return "";
+    }
+
+    const policy: MarkdownText = getPolicy(input.policyLink);
+    const recipient: MarkdownText = mdText`**${input.recipient!}**`;
+    const rule: MarkdownText = getRuleClause(input);
+
+    if (notification.event === OnCallPageNotificationEvent.Failed) {
+      return mdText`${policy} could not page ${recipient}${via} at ${rule}.`.toString();
+    }
+
+    const again: MarkdownText = notification.isPagedBefore
+      ? mdText` again`
+      : FeedMarkdown.empty();
+
+    return mdText`${policy} paged ${recipient}${again}${via} at ${rule}.`.toString();
+  }
+
+  /*
+   * The same for a direct page: "Workflow Page SRE paged Nitin Kumar again
+   * via phone call, on call in schedule Primary."
+   */
+  public static getDirectPageStepNotificationMarkdown(
+    input: OnCallDirectPageStepFeedTextInput,
+    notification: OnCallPageNotificationNews,
+  ): string {
+    if (!hasMarkdown(input.recipient)) {
+      return "";
+    }
+
+    const channels: MarkdownText = getVia(notification.channels);
+
+    if (!hasMarkdown(channels)) {
+      return "";
+    }
+
+    const pager: MarkdownText = getDirectPagePager(input.pager);
+    const recipient: MarkdownText = mdText`**${input.recipient!}**`;
+    const via: MarkdownText = getDirectPageVia(input);
+
+    if (notification.event === OnCallPageNotificationEvent.Failed) {
+      return mdText`${pager} could not page ${recipient}${channels}${via}.`.toString();
+    }
+
+    const again: MarkdownText = notification.isPagedBefore
+      ? mdText` again`
+      : FeedMarkdown.empty();
+
+    return mdText`${pager} paged ${recipient}${again}${channels}${via}.`.toString();
   }
 
   /*
@@ -956,9 +1153,9 @@ export default class OnCallFeedText {
       );
     }
 
-    const messageSentence: MarkdownText = getStepMessageSentence(
-      input.statusMessage,
-    );
+    const messageSentence: MarkdownText = isAnswerSaidInHeadline(input.status)
+      ? FeedMarkdown.empty()
+      : getStepMessageSentence(input.statusMessage);
 
     if (hasMarkdown(messageSentence)) {
       sentences.push(messageSentence);
