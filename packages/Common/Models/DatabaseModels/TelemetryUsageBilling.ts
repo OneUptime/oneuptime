@@ -198,6 +198,39 @@ export default class TelemetryUsageBilling extends BaseModel {
   })
   public dataIngestedInGB?: Decimal = undefined;
 
+  /*
+   * How much of a Traces row's data was exceptions (issue #6356). Traces are
+   * billed as one product that sums the span rows and the exception rows, so
+   * dataIngestedInGB keeps that sum - what the row is billed for, and the
+   * only figure its cost is worked out from - and this says how much of it
+   * the exceptions were, for the usage pages to show apart. It is never
+   * billed and never adds to anything: the exceptions are inside
+   * dataIngestedInGB already.
+   *
+   * Empty on every other product's row, and on a Traces row counted before
+   * the exceptions were counted apart: its exceptions stay inside Traces.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [...USAGE_READ_PERMISSIONS],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Exceptions Ingested (in GB)",
+    description:
+      "How much of the data ingested was exceptions. Set on a Traces row, which is billed for its spans and exceptions together; empty on a row counted before exceptions were counted apart.",
+    example: 2.5,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: Decimal.getDatabaseTransformer(),
+  })
+  public exceptionDataIngestedInGB?: Decimal = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [...COST_READ_PERMISSIONS],

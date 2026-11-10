@@ -122,6 +122,7 @@ import OneUptimeDate from "../../../Types/Date";
 import ProductType from "../../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
   TelemetryProjectUsagePage,
   TelemetryUsageSummary,
 } from "../../../Types/Telemetry/TelemetryUsage";
@@ -385,6 +386,161 @@ describe("Admin Dashboard > Telemetry Usage", () => {
   });
 });
 
+/*
+ * Issue #6356: the instance admin sees each project's exceptions apart from
+ * the traces they are billed with, sorts by them, and reads them in the
+ * Admin Dashboard's language.
+ */
+describe("Admin Dashboard > Telemetry Usage, exceptions apart", () => {
+  function withExceptions(
+    overrides?: Partial<TelemetryProjectUsagePage>,
+  ): TelemetryProjectUsagePage {
+    return page({
+      total: { dataIngestedInGB: 12 },
+      byProduct: {
+        [ProductType.Traces]: { dataIngestedInGB: 4 },
+        [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 8 },
+      },
+      projects: [
+        {
+          projectId: PROJECT_B,
+          projectName: "Beta Production",
+          byProduct: {
+            [ProductType.Traces]: { dataIngestedInGB: 1 },
+            [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 7 },
+          },
+          total: { dataIngestedInGB: 8 },
+        },
+        {
+          projectId: PROJECT_A,
+          projectName: "Alpha Staging",
+          byProduct: {
+            [ProductType.Traces]: { dataIngestedInGB: 3 },
+            [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 1 },
+          },
+          total: { dataIngestedInGB: 4 },
+        },
+      ],
+      ...overrides,
+    });
+  }
+
+  function headerTexts(): Array<string> {
+    return screen
+      .getAllByRole("columnheader")
+      .map((header: HTMLElement): string => {
+        return header.textContent || "";
+      });
+  }
+
+  test("draws the instance's exceptions apart from its traces, a tile and a column each", async () => {
+    mockFetchUsageByProject.mockResolvedValue(withExceptions() as never);
+
+    await renderInstancePage();
+
+    const tile: HTMLElement = await screen.findByTestId(
+      `telemetry-usage-instance-signal-${TELEMETRY_USAGE_EXCEPTIONS_SIGNAL}`,
+    );
+
+    expect(tile).toHaveTextContent("Exceptions");
+    expect(tile).toHaveTextContent("8 GB");
+    expect(
+      screen.getByTestId(`telemetry-usage-instance-signal-${ProductType.Traces}`),
+    ).toHaveTextContent("4 GB");
+
+    await screen.findAllByTestId("telemetry-usage-project-link");
+
+    const headers: Array<string> = headerTexts();
+    const traces: number = headers.findIndex((header: string): boolean => {
+      return header.includes("Traces");
+    });
+
+    expect(traces).toBeGreaterThan(0);
+    expect(headers[traces + 1]).toContain("Exceptions");
+
+    const beta: HTMLElement = (
+      await screen.findAllByTestId("telemetry-usage-project-link")
+    )[0]!.closest("tr")!;
+
+    expect(beta).toHaveTextContent("7 GB");
+  });
+
+  test("says what the Traces and Exceptions columns count", async () => {
+    mockFetchUsageByProject.mockResolvedValue(withExceptions() as never);
+
+    await renderInstancePage();
+
+    await screen.findAllByTestId("telemetry-usage-project-link");
+
+    expect(
+      screen.getAllByRole("button", { name: "About Traces" }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole("button", { name: "About Exceptions" }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  test("sorts the projects by their exceptions on the server", async () => {
+    mockFetchUsageByProject.mockResolvedValue(withExceptions() as never);
+
+    await renderInstancePage();
+
+    await screen.findAllByTestId("telemetry-usage-project-link");
+
+    const exceptionsHeader: HTMLElement = screen
+      .getAllByRole("columnheader")
+      .find((header: HTMLElement): boolean => {
+        return (header.textContent || "").includes("Exceptions");
+      })!;
+
+    fireEvent.click(within(exceptionsHeader).getByText("Exceptions"));
+
+    await waitFor(() => {
+      expect(mockFetchUsageByProject).toHaveBeenCalledTimes(2);
+    });
+
+    expect(mockFetchUsageByProject.mock.calls[1]![0]).toEqual(
+      expect.objectContaining({
+        sortBy: TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+        skip: 0,
+      }),
+    );
+  });
+
+  test("draws no Exceptions column for a range counted before they were shown apart", async () => {
+    mockFetchUsageByProject.mockResolvedValue(
+      page({
+        byProduct: {
+          [ProductType.Logs]: { dataIngestedInGB: 30 },
+          [ProductType.Traces]: { dataIngestedInGB: 1 },
+        },
+      }) as never,
+    );
+
+    await renderInstancePage();
+
+    await screen.findAllByTestId("telemetry-usage-project-link");
+
+    expect(headerTexts().join("|")).toContain("Traces");
+    expect(headerTexts().join("|")).not.toContain("Exceptions");
+  });
+
+  test("names the exceptions in the admin's language, as that language's Dashboard does", async () => {
+    mockFetchUsageByProject.mockResolvedValue(withExceptions() as never);
+
+    await renderInstancePage("de");
+
+    const german: Record<string, unknown> = readLocale("de");
+
+    expect(german["Exceptions"]).toBe("Ausnahmen");
+    expect(
+      await screen.findByTestId(
+        `telemetry-usage-instance-signal-${TELEMETRY_USAGE_EXCEPTIONS_SIGNAL}`,
+      ),
+    ).toHaveTextContent("Ausnahmen");
+  });
+});
+
 describe("Admin Dashboard > Projects > (project) > Telemetry Usage", () => {
   test("reads that project's usage, as the master admin, and draws it", async () => {
     window.history.pushState(
@@ -442,5 +598,72 @@ describe("Admin Dashboard > Projects > (project) > Telemetry Usage", () => {
 
     // Resources have no pages in the Admin Dashboard: named, never linked.
     expect(screen.queryByTestId("telemetry-usage-resource-link")).toBeNull();
+  });
+
+  test("shows the project's exceptions apart from its traces, in the admin's language", async () => {
+    window.history.pushState(
+      {},
+      "",
+      `/admin/projects/${PROJECT_A}/telemetry-usage`,
+    );
+
+    const usage: TelemetryUsageSummary = {
+      startDay: "2026-10-09",
+      endDay: "2026-11-07",
+      isCostIncluded: false,
+      total: { dataIngestedInGB: 3 },
+      byProduct: {
+        [ProductType.Traces]: { dataIngestedInGB: 1 },
+        [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 2 },
+      },
+      days: [
+        {
+          day: "2026-11-07",
+          byProduct: {
+            [ProductType.Traces]: { dataIngestedInGB: 1 },
+            [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 2 },
+          },
+          total: { dataIngestedInGB: 3 },
+        },
+      ],
+      resources: [
+        {
+          primaryEntityId: "cccccccc-0000-4000-8000-000000000003",
+          primaryEntityType: null,
+          name: "payments",
+          byProduct: {
+            [ProductType.Traces]: { dataIngestedInGB: 1 },
+            [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: { dataIngestedInGB: 2 },
+          },
+          total: { dataIngestedInGB: 3 },
+          retentionInDays: 15,
+          sessionReplayRetentionInDays: null,
+        },
+      ],
+      latestDay: "2026-11-07",
+    };
+
+    mockFetchProjectUsage.mockResolvedValue(usage as never);
+
+    render(
+      <I18nextProvider i18n={await instanceFor("de")}>
+        <ProjectTelemetryUsage />
+      </I18nextProvider>,
+    );
+
+    const tile: HTMLElement = await screen.findByTestId(
+      `telemetry-usage-signal-${TELEMETRY_USAGE_EXCEPTIONS_SIGNAL}`,
+    );
+
+    expect(tile).toHaveTextContent("Ausnahmen");
+    expect(tile).toHaveTextContent("2 GB");
+    expect(
+      screen
+        .getAllByRole("columnheader")
+        .map((header: HTMLElement): string => {
+          return header.textContent || "";
+        })
+        .join("|"),
+    ).toContain("Ausnahmen");
   });
 });

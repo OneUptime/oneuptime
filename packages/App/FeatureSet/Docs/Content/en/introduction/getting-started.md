@@ -93,6 +93,7 @@ The docs are organized like the sidebar, in nine sections. Pick the part you nee
 - [API reference](/docs/api-reference/api-reference): Automate OneUptime with its REST API.
 - [CLI](/docs/cli/index): Manage OneUptime from your terminal and your CI.
 - [Terraform provider](/docs/terraform/index): Manage monitors, status pages and on-call as code.
+- [Crossplane provider](/docs/crossplane/index): Manage your project from Kubernetes, with Crossplane.
 :::
 
 ### Administration

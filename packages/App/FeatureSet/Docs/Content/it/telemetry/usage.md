@@ -1,6 +1,6 @@
 # Utilizzo della telemetria
 
-Vedete quanta telemetria invia ogni progetto, e ogni servizio o risorsa al suo interno: log, metriche, tracce e le loro eccezioni, profili, riproduzioni delle sessioni ed eventi di sicurezza. L'utilizzo viene conteggiato su ogni installazione di OneUptime, con o senza fatturazione, così potete trovare ciò che riempie il vostro storage senza interrogare ClickHouse.
+Vedete quanta telemetria invia ogni progetto, e ogni servizio o risorsa al suo interno: log, metriche, tracce, eccezioni, profili, riproduzioni delle sessioni ed eventi di sicurezza. L'utilizzo viene conteggiato su ogni installazione di OneUptime, con o senza fatturazione, così potete trovare ciò che riempie il vostro storage senza interrogare ClickHouse.
 
 :::cards
 - [Come viene conteggiato l'utilizzo](#come-viene-conteggiato-lutilizzo): Una volta al giorno, per ogni risorsa e ogni segnale.
@@ -24,10 +24,12 @@ flowchart TB
 
 - **Un giorno viene conteggiato quando è finito.** Ogni giorno viene conteggiato entro le 08:00 UTC circa del giorno dopo, quindi l'utilizzo di oggi compare domani. Un giorno che non è stato possibile conteggiare viene ritentato per una settimana.
 - **La dimensione è quella salvata.** Ogni segnale viene conteggiato come la dimensione delle righe in cui è salvato, prima della compressione. Le riproduzioni delle sessioni vengono conteggiate come i byte caricati dai registratori.
-- **Le tracce includono le loro eccezioni, e i profili i loro campioni.**
+- **Le eccezioni vengono mostrate a parte.** Le eccezioni registrate negli span e nei log hanno un proprio totale, una propria colonna e una propria parte del grafico, e **Tracce** conteggia gli span. Non hanno una riga propria: ogni riga delle tracce indica quanta parte di essa era costituita da eccezioni. Un giorno conteggiato prima che le eccezioni venissero mostrate a parte le include ancora in **Tracce**, come prima.
+- **I profili includono i loro campioni.**
 - **La telemetria propria di OneUptime non viene conteggiata.** Le letture di monitor, avvisi, incidenti e SLO, le letture di Osservabilità dei dati e le metriche del budget delle riproduzioni delle sessioni sono scritte da OneUptime stesso.
 - **Su OneUptime Cloud, la telemetria si paga in base a queste righe.** Su un'installazione senza fatturazione, l'utilizzo viene conteggiato senza costi, e non viene addebitato nulla, nemmeno se la fatturazione viene attivata in seguito.
-- **Un budget viene conteggiato a parte rispetto all'utilizzo.** Un [budget di acquisizione](/docs/telemetry/ingestion-budgets) conteggia la telemetria man mano che arriva, decompressa, quindi può fermare la telemetria di un giorno il giorno stesso. Finché ne è impostato uno, questa pagina si apre con i budget di oggi.
+- **Le eccezioni si pagano come parte delle tracce.** Su OneUptime Cloud, le tracce si pagano per i loro span e le loro eccezioni insieme, al prezzo delle tracce, come è sempre stato. Mostrare le eccezioni a parte non cambia nulla di ciò che vi viene addebitato, e non vengono mai addebitate due volte.
+- **Un budget viene conteggiato a parte rispetto all'utilizzo.** Un [budget di acquisizione](/docs/telemetry/ingestion-budgets) conteggia la telemetria man mano che arriva, decompressa, quindi può fermare la telemetria di un giorno il giorno stesso. Finché ne è impostato uno, questa pagina si apre con i budget di oggi. Le eccezioni non hanno un budget proprio: contano nel budget delle tracce o dei log con cui arrivano.
 
 ## Prima di iniziare
 
@@ -56,7 +58,7 @@ La pagina ha tre schede:
 | --- | --- |
 | **Utilizzo della telemetria** | Il **Totale** dell'intervallo, un totale per ogni segnale e un grafico di ogni giorno, con i suoi segnali impilati. |
 | **Utilizzo per risorsa** | Ogni **Risorsa** con il suo tipo, una colonna per ogni segnale, il **Totale** e, in **Conservazione**, per quanto tempo viene conservata la sua telemetria. |
-| **Cronologia di utilizzo della telemetria** | Una riga per segnale, risorsa e giorno, con filtri per **Prodotto**, **Giorno** e **Servizio**. |
+| **Cronologia di utilizzo della telemetria** | Una riga per prodotto, risorsa e giorno, con filtri per **Prodotto**, **Giorno** e **Servizio**. Una riga di **Tracce** contiene insieme i suoi span e le sue eccezioni, così come si pagano le tracce, e indica in **Dati acquisiti (in GB)** quanta parte era costituita da eccezioni. |
 
 La telemetria che non indicava un servizio viene elencata come **Servizio sconosciuto**. Una risorsa eliminata nel frattempo, o il cui tipo il vostro ruolo non legge, viene elencata con il suo tipo e l'inizio del suo ID.
 
@@ -112,7 +114,7 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
   -H "ApiKey: $ONEUPTIME_API_KEY"
 ```
 
-`startDay` ed `endDay` sono giorni scritti `YYYY-MM-DD`, entrambi inclusi, e un intervallo può durare fino a 1095 giorni. La risposta contiene i totali, ogni giorno per segnale e ogni risorsa per segnale, in GB, con il costo solo dove la fatturazione è attiva e la chiave legge la fatturazione.
+`startDay` ed `endDay` sono giorni scritti `YYYY-MM-DD`, entrambi inclusi, e un intervallo può durare fino a 1095 giorni. La risposta contiene i totali, ogni giorno per segnale e ogni risorsa per segnale, in GB, con il costo solo dove la fatturazione è attiva e la chiave legge la fatturazione. Le eccezioni si trovano in `Exceptions`, separate da `Traces`, e un giorno conteggiato prima che le eccezioni venissero mostrate a parte le include in `Traces`.
 
 ## Risoluzione dei problemi
 
@@ -126,6 +128,10 @@ L'utilizzo è la dimensione delle righe prima della compressione. ClickHouse com
 
 :::details Una risorsa viene elencata con il suo tipo e un ID
 La risorsa è stata eliminata dopo aver inviato la telemetria, oppure il vostro ruolo non legge quel tipo di risorsa. Il suo utilizzo viene comunque conteggiato.
+:::
+
+:::details Le Tracce sono scese il giorno in cui sono comparse le Eccezioni
+Prima le eccezioni venivano conteggiate dentro **Tracce**. Dal primo giorno conteggiato con le eccezioni a parte, **Tracce** conteggia gli span ed **Eccezioni** conteggia le eccezioni. Insieme corrispondono a ciò che era **Tracce**, e a ciò per cui si pagano le tracce.
 :::
 
 ## Passaggi successivi

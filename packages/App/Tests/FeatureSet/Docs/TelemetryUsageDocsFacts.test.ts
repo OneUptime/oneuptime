@@ -7,6 +7,7 @@ import {
   startsCollapsed,
 } from "./DocsDashboardMenus";
 import { adminDashboardLabel } from "./DocsAdminDashboard";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { navTitle, toLatinDigits } from "./DocsTranslationChecks";
 import DocsNav from "../../../FeatureSet/Docs/Utils/Nav";
 import {
@@ -16,12 +17,17 @@ import {
 import {
   TELEMETRY_USAGE_DEFAULT_RANGE_IN_DAYS,
   TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS,
+  TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
   TELEMETRY_USAGE_MAX_RANGE_IN_DAYS,
   TELEMETRY_USAGE_MAX_RETENTION_IN_DAYS,
   TELEMETRY_USAGE_MIN_RETENTION_IN_DAYS,
+  TELEMETRY_USAGE_PRODUCT_TYPES,
   TELEMETRY_USAGE_PROJECT_ROUTE,
   TELEMETRY_USAGE_RANGE_OPTIONS_IN_DAYS,
+  TELEMETRY_USAGE_SIGNALS,
 } from "Common/Types/Telemetry/TelemetryUsage";
+import { TELEMETRY_INGESTION_BUDGET_SIGNALS } from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
 import { EVERY_DAY } from "Common/Utils/CronTime";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
@@ -30,6 +36,8 @@ import {
   PROJECT_USAGE_READ_PERMISSIONS,
 } from "Common/Utils/Project/ProjectBilling";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * THE TELEMETRY USAGE PAGE SAYS WHAT THE PRODUCT DOES (issue #5916).
@@ -327,6 +335,180 @@ describe("every translation", () => {
           { language, key, named: true },
         );
       }
+    },
+  );
+});
+
+/*
+ * Issue #6356: exceptions are a signal of their own on the usage pages and
+ * in the API, apart from the traces they are billed with. Each thing the
+ * page says about them is held to the code that makes it so.
+ */
+describe("exceptions, apart from traces", () => {
+  const BILLING_SERVICE: string = readCommonSource(
+    "Server/Services/TelemetryUsageBillingService.ts",
+  );
+  const READS: string = readCommonSource(
+    "Server/Utils/TelemetryUsage/TelemetryUsageReads.ts",
+  );
+  const WORDS: string = readCommonSource(
+    "UI/Components/TelemetryUsage/TelemetryUsageWords.ts",
+  );
+  const METERED_PLAN: string = readCommonSource(
+    "Server/Types/Billing/MeteredPlan/TelemetryMeteredPlan.ts",
+  );
+
+  test("are a signal the pages and the API show, after Traces, and never a product of their own", () => {
+    expect(TELEMETRY_USAGE_EXCEPTIONS_SIGNAL).toBe("Exceptions");
+    expect(
+      TELEMETRY_USAGE_SIGNALS.indexOf(TELEMETRY_USAGE_EXCEPTIONS_SIGNAL),
+    ).toBe(TELEMETRY_USAGE_SIGNALS.indexOf(ProductType.Traces) + 1);
+    expect(TELEMETRY_USAGE_PRODUCT_TYPES).not.toContain(
+      TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+    );
+    expect(Object.values(ProductType)).not.toContain(
+      TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+    );
+
+    expect(ENGLISH).toContain(
+      "sends: logs, metrics, traces, exceptions, profiles, session replays and security events.",
+    );
+    expect(ENGLISH).toContain(
+      "- **Exceptions are shown on their own.** The exceptions recorded from spans and logs have a total, a column and a part of the chart of their own, and **Traces** counts spans.",
+    );
+    // The overview draws a tile, a column and a part of the chart per signal.
+    expect(OVERVIEW).toContain("TELEMETRY_USAGE_SIGNALS.filter(");
+    expect(OVERVIEW).toContain("TELEMETRY_USAGE_EXCEPTIONS_SIGNAL");
+  });
+
+  test("come from spans and logs, as the column's (i) says", () => {
+    expect(WORDS).toContain('"Exceptions recorded from spans and logs."');
+    expect(ENGLISH).toContain("The exceptions recorded from spans and logs");
+
+    /*
+     * Both ingests write the exception rows usage counts: the traces' span
+     * events, and the exceptions found in logs.
+     */
+    for (const ingest of [
+      "OtelTracesIngestService.ts",
+      "OtelLogsIngestService.ts",
+    ]) {
+      expect({
+        ingest,
+        writesExceptionRows: fs
+          .readFileSync(
+            path.resolve(
+              __dirname,
+              "../../../FeatureSet/Telemetry/Services",
+              ingest,
+            ),
+            "utf8",
+          )
+          .includes("ExceptionInstanceService"),
+      }).toEqual({ ingest, writesExceptionRows: true });
+    }
+
+    // What usage counts as exceptions: every row of that one table.
+    expect(BILLING_SERVICE).toContain(
+      "ExceptionInstanceService.groupTelemetryUsageByService(",
+    );
+  });
+
+  test("have no row of their own: the traces row says how much of it was exceptions", () => {
+    expect(ENGLISH).toContain(
+      "They have no row of their own: each traces row says how much of it was exceptions.",
+    );
+    expect(BILLING_SERVICE).toContain("exceptionDataIngestedInGB:");
+    expect(READS).toContain('AS "exceptionDataIngestedInGB"');
+  });
+
+  test("are billed inside Traces, at the traces price, from all the row holds", () => {
+    expect(ENGLISH).toContain(
+      "- **Exceptions are billed as part of Traces.** On OneUptime Cloud, traces are billed for their spans and their exceptions together, at the traces price, as they always were. Showing exceptions apart changes nothing you are billed, and they are never charged twice.",
+    );
+
+    // The cost is the price of everything the row holds; the part is never priced.
+    expect(BILLING_SERVICE.replace(/\s+/g, " ")).toContain(
+      "serverMeteredPlan.getTotalCostInUSD({ dataIngestedInGB: data.dataIngestedInGB, retentionInDays: data.retentionInDays, })",
+    );
+    expect(METERED_PLAN).not.toContain("exceptionDataIngestedInGB");
+    expect(WORDS).toContain(
+      '"Exceptions recorded from spans and logs. They are billed as part of Traces."',
+    );
+  });
+
+  test("days counted before they were shown apart keep them inside Traces", () => {
+    expect(ENGLISH).toContain(
+      "A day counted before exceptions were shown apart still has them inside **Traces**, as it did.",
+    );
+    // Such a row has no part: the reads take none out of its Traces.
+    expect(READS).toContain(`COALESCE(\${alias}"exceptionDataIngestedInGB", 0)`);
+    expect(ENGLISH).toContain(
+      ":::details Traces went down on the day Exceptions appeared",
+    );
+  });
+
+  test("have no ingestion budget of their own", () => {
+    expect([...TELEMETRY_INGESTION_BUDGET_SIGNALS]).not.toContain(
+      TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+    );
+    expect(TELEMETRY_INGESTION_BUDGET_SIGNALS).toContain(ProductType.Traces);
+    expect(TELEMETRY_INGESTION_BUDGET_SIGNALS).toContain(ProductType.Logs);
+    expect(ENGLISH).toContain(
+      "Exceptions have no budget of their own: they count in the budget of the traces or logs they arrive in.",
+    );
+  });
+
+  test("a Traces row of the history says how much of it was exceptions, under Data Ingested (in GB)", () => {
+    expect(USAGE_PAGE).toContain('title: "Data Ingested (in GB)"');
+    expect(USAGE_PAGE).toContain("exceptionDataIngestedInGB: true,");
+    expect(USAGE_PAGE).toContain("formatTelemetryUsageExceptionsPart(");
+    expect(ENGLISH).toContain(
+      "A **Traces** row holds its spans and exceptions together, as traces are billed, and says under **Data Ingested (in GB)** how much of it was exceptions.",
+    );
+  });
+
+  test("the API answers them under Exceptions, apart from Traces", () => {
+    expect(ENGLISH).toContain(
+      "Exceptions are under `Exceptions`, apart from `Traces`, and a day counted before exceptions were shown apart has them inside `Traces`.",
+    );
+    expect(`\`${TELEMETRY_USAGE_EXCEPTIONS_SIGNAL}\``).toBe("`Exceptions`");
+    expect(`\`${ProductType.Traces}\``).toBe("`Traces`");
+  });
+
+  test.each(TRANSLATED_LANGUAGES)(
+    "%s names Traces, Exceptions and the history's column as its Dashboard draws them, and keeps the API's keys",
+    (language: string) => {
+      const page: string = readPage(language, PAGE);
+
+      for (const label of [
+        "Traces",
+        "Exceptions",
+        "Data Ingested (in GB)",
+        "Telemetry Usage History",
+        "Product",
+      ]) {
+        const drawn: string = drawnDashboardLabel(language, label);
+
+        expect({ language, label, named: page.includes(`**${drawn}**`) }).toEqual(
+          { language, label, named: true },
+        );
+      }
+
+      // The answer's keys are code, in English in every language.
+      expect(page).toContain("`Exceptions`");
+      expect(page).toContain("`Traces`");
+
+      // The troubleshooting entry for the day Exceptions appeared, as in English.
+      expect(
+        page.split("\n").filter((line: string): boolean => {
+          return line.startsWith(":::details ");
+        }).length,
+      ).toBe(
+        ENGLISH.split("\n").filter((line: string): boolean => {
+          return line.startsWith(":::details ");
+        }).length,
+      );
     },
   );
 });

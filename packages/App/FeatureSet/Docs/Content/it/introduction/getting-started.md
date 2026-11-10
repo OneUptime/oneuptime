@@ -93,6 +93,7 @@ La documentazione è organizzata come la barra laterale, in nove sezioni. Scegli
 - [Riferimento API](/docs/api-reference/api-reference): Automatizzare OneUptime con la sua API REST.
 - [CLI](/docs/cli/index): Gestire OneUptime dal terminale e dalla CI.
 - [Provider Terraform](/docs/terraform/index): Gestire monitor, pagine di stato e reperibilità come codice.
+- [Provider Crossplane](/docs/crossplane/index): Gestire il progetto da Kubernetes con Crossplane.
 :::
 
 ### Amministrazione

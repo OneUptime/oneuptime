@@ -26,6 +26,7 @@ import {
   TELEMETRY_USAGE_DEFAULT_PROJECTS_PAGE_SIZE,
   TELEMETRY_USAGE_MAX_PROJECTS_PAGE_SIZE,
   TELEMETRY_USAGE_PROJECT_ROUTE,
+  TELEMETRY_USAGE_SIGNALS,
   TelemetryProjectUsagePage,
   TelemetryProjectUsageSortBy,
   TelemetryUsageSummary,
@@ -73,6 +74,9 @@ const READ_OPTIONS: {
 
 export const TELEMETRY_USAGE_READ_REFUSAL: string =
   "You need a role that reads this project's telemetry across the whole project (Project Owner, Project Admin, Project Member, Viewer or a Telemetry role), or a billing role, to see its telemetry usage.";
+
+// What the instance list sorts by: Exceptions among the signals (issue #6356).
+export const TELEMETRY_USAGE_SORT_BY_REFUSAL: string = `sortBy must be total, name or one of the signals (${TELEMETRY_USAGE_SIGNALS.join(", ")}).`;
 
 const readQueryString: (req: ExpressRequest, name: string) => string = (
   req: ExpressRequest,
@@ -207,9 +211,7 @@ router.get(
       const sortByParam: string = readQueryString(req, "sortBy") || "total";
 
       if (!isTelemetryProjectUsageSortBy(sortByParam)) {
-        throw new BadDataException(
-          "sortBy must be total, name or one of the signals (Logs, Metrics, Traces, Profiles, Session Replay, Security Events).",
-        );
+        throw new BadDataException(TELEMETRY_USAGE_SORT_BY_REFUSAL);
       }
 
       const sortOrderParam: string =

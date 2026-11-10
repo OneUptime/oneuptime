@@ -69,6 +69,9 @@ const MIRRORED_JOBS = {
   // The same warm-up, then `npm run dev` brings up postgres, valkey and
   // clickhouse (app and ingress are built from source).
   "terraform-provider-e2e.yml: terraform-e2e-tests": "warm_base_images.sh",
+  // The same warm-up and stack, then kind's node image and the registry the
+  // Crossplane provider's package is installed from (packages/E2E/Crossplane).
+  "crossplane-provider.yml: crossplane-e2e": "warm_base_images.sh",
   // The same warm-up, then the App image it builds is started with the
   // postgres, valkey and clickhouse docker-compose.yml runs
   // (AppImageRuntime.test.js).

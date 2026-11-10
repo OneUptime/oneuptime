@@ -93,6 +93,7 @@ Dokumentationen er opbygget som sidepanelet, i ni afsnit. Vælg den del, du har 
 - [API-reference](/docs/api-reference/api-reference): Automatisér OneUptime med dets REST API.
 - [CLI](/docs/cli/index): Administrér OneUptime fra din terminal og din CI.
 - [Terraform-udbyder](/docs/terraform/index): Administrér monitorer, statussider og vagter som kode.
+- [Crossplane-udbyder](/docs/crossplane/index): Administrér dit projekt fra Kubernetes med Crossplane.
 :::
 
 ### Administration

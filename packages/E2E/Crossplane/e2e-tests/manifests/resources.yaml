@@ -1,0 +1,108 @@
+# What the test creates, updates and deletes. The Monitor names the others by
+# their Kubernetes names, at every depth its references reach: its labels, and
+# in its criteria the statuses, the incident severity and the owner team.
+apiVersion: crossplane.oneuptime.com/v1alpha1
+kind: Label
+metadata:
+  name: production
+  namespace: ${NAMESPACE}
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    name: Production ${RUN_ID}
+    color: "#16a34a"
+    description: Made by the Crossplane end-to-end test
+---
+# Through the ClusterProviderConfig, and its JSON credentials.
+apiVersion: crossplane.oneuptime.com/v1alpha1
+kind: Team
+metadata:
+  name: sre
+  namespace: ${NAMESPACE}
+spec:
+  providerConfigRef:
+    kind: ClusterProviderConfig
+    name: oneuptime
+  forProvider:
+    name: SRE ${RUN_ID}
+    description: Made by the Crossplane end-to-end test
+---
+apiVersion: crossplane.oneuptime.com/v1alpha1
+kind: StatusPage
+metadata:
+  name: public
+  namespace: ${NAMESPACE}
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    name: Public status ${RUN_ID}
+    description: Made by the Crossplane end-to-end test
+---
+# OneUptime makes the key's secret; the provider writes it to a Secret.
+apiVersion: crossplane.oneuptime.com/v1alpha1
+kind: TelemetryIngestionKey
+metadata:
+  name: collector
+  namespace: ${NAMESPACE}
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  writeConnectionSecretToRef:
+    name: collector-telemetry-key
+  forProvider:
+    name: Collector ${RUN_ID}
+    description: Made by the Crossplane end-to-end test
+---
+apiVersion: crossplane.oneuptime.com/v1alpha1
+kind: Monitor
+metadata:
+  name: homepage
+  namespace: ${NAMESPACE}
+spec:
+  providerConfigRef:
+    kind: ProviderConfig
+    name: default
+  forProvider:
+    name: Homepage ${RUN_ID}
+    description: Made by the Crossplane end-to-end test
+    monitorType: Website
+    monitoringInterval: "* * * * *"
+    labelsRefs:
+      - name: production
+    monitorSteps:
+      - monitorDestination: https://example.com
+        monitorDestinationType: URL
+        requestType: GET
+        criteria:
+          - name: Offline
+            description: The website does not answer
+            filterCondition: Any
+            changeMonitorStatus: true
+            monitorStatusIdRef:
+              name: offline
+            createIncidents: true
+            filters:
+              - checkOn: Is Online
+                filterType: "False"
+            incidents:
+              - title: Homepage is down
+                description: The homepage did not answer.
+                incidentSeverityIdRef:
+                  name: critical
+                ownerTeamIdsRefs:
+                  - name: sre
+                autoResolveIncident: true
+          - name: Online
+            description: The website answers
+            filterCondition: All
+            changeMonitorStatus: true
+            monitorStatusIdRef:
+              name: operational
+            filters:
+              - checkOn: Is Online
+                filterType: "True"

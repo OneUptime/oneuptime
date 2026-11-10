@@ -61,8 +61,9 @@ Ping, Port, SSL 인증서, DNS, DNSSEC, SNMP / 네트워크 장치, SQL 쿼리, 
 - 워크플로 **Custom JavaScript** 구성 요소가 보내는 HTTP 요청
 - 프로젝트 웹후크 알림(인시던트, 알림, 모니터, 온콜, 예약된 유지 관리, 상태 페이지 이벤트)
 - 온콜 **사용자 웹후크**
+- 팀이 대시보드에서, API 키로 또는 워크플로로 추가하는 상태 페이지 웹후크 구독자
 
-적용 범위에 포함되지 **않으며** 앞으로도 포함되지 않을 대상은 **상태 페이지 구독자 웹후크**입니다. 공개 상태 페이지의 방문자라면 누구나 이를 등록할 수 있으므로, 이 대상을 완화하면 인터넷의 누구든 서버가 프라이빗 네트워크 안으로 POST 요청을 보내게 할 수 있습니다. 이는 구성할 수 없습니다.
+적용 범위에 포함되지 **않으며** 앞으로도 포함되지 않을 대상은 **상태 페이지에서 가입하는 웹후크 구독자**입니다. 공개 상태 페이지의 방문자라면 누구나 이런 구독자를 등록할 수 있으므로, 이 대상을 완화하면 인터넷의 누구든 서버가 프라이빗 네트워크 안으로 POST 요청을 보내게 할 수 있습니다. 이런 구독자의 웹후크는 팀의 누군가가 편집한 뒤에도 공개 주소로만 전송됩니다. 이는 구성할 수 없습니다.
 
 웹후크가 아닌 아웃바운드 연결(외부 데이터 소스, LLM 공급자, SMTP 서버(프로젝트의 SMTP 설정과 워크플로 **Email** 구성 요소), SMTP OAuth 토큰 엔드포인트, OIDC 검색, 런북 HTTP 단계)은 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`로 별도로 관리되며, 자체 호스팅 설치에서는 이미 프라이빗 범위를 허용합니다. [기타 아웃바운드 연결](#기타-아웃바운드-연결)을 참조하세요.
 
@@ -182,6 +183,7 @@ probes:
 워크플로나 모니터를 다시 실행하세요. 여전히 거부된다면 오류 메시지가 어떤 관문이 닫혀 있는지 알려 줍니다.
 
 - _"...points to a private network address and is not allowed. Self-hosted instances can allow this by setting `ALLOW_PRIVATE_NETWORK_WEBHOOKS`..."_ — API 서버 설정이 빠져 있습니다.
+- _"...is not allowed. This subscriber signed up on the status page, so its webhook must be on the public internet."_ 또는 상태 페이지 자체에서는 _"...is not allowed. Use a webhook URL on the public internet."_ — 이 웹후크는 상태 페이지에서 가입한 구독자의 것이며, 어떤 설정도 이를 적용 범위에 포함하지 않습니다. 대신 팀이 대시보드에서, API 키로 또는 워크플로로 이를 웹후크 구독자로 추가하게 하세요.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ — 프라이빗(사용자 지정) 프로브가 모니터를 실행했고, 그 프로브의 스위치가 꺼져 있습니다. 이 설정은 API 서버가 아니라 프로브에 한다는 점에 유의하세요.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ — 번들(글로벌) 프로브가 모니터를 실행했고, 그 프로브의 스위치가 꺼져 있습니다. 인스턴스의 모든 프로젝트가 그 네트워크에 접근해도 된다면 위에서 설명한 대로 그 프로브에서 켜세요. 그렇지 않다면 모니터에서 프라이빗 프로브를 선택하세요.
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ — 환경에 `BILLING_ENABLED=true`가 있는 글로벌 프로브가 모니터를 실행했습니다. 그곳에서 자동 등록된 글로벌 프로브는 스위치가 무엇이든 공개 전용으로 남습니다. 대상 네트워크 안에 프라이빗 프로브를 배포하고 모니터에서 그 프로브를 선택하세요.
@@ -196,7 +198,7 @@ probes:
 이를 여는 것은 OneUptime 인스턴스가 접근하도록 만들 수 있는 범위를 실제로 바꾸는 일이므로, 신중하게 결정할 가치가 있습니다.
 
 - **일괄 불리언보다 허용 목록을 우선하세요.** `mattermost.internal`을 지정하는 것은 모든 RFC-1918 주소를 여는 것보다 훨씬 작은 권한입니다.
-- **워크플로나 API, Website, External Status Page, Custom JavaScript Code 모니터를 작성할 수 있는 사람은 누구나 허용한 모든 것에 접근할 수 있습니다.** 해당 프로젝트의 멤버십을 그에 맞게 다루세요.
+- **워크플로나 API, Website, External Status Page, Custom JavaScript Code 모니터를 작성하거나 상태 페이지 구독자를 추가할 수 있는 사람은 누구나 허용한 모든 것에 접근할 수 있습니다.** 해당 프로젝트의 멤버십을 그에 맞게 다루세요.
 - **응답 본문이 돌아옵니다.** 워크플로 API 구성 요소는 상태, 헤더, 본문을 워크플로 로그로 돌려주므로, 허용된 호스트는 쓰기뿐 아니라 읽기도 가능합니다.
 - **웹후크 요청에서는 리디렉션을 절대 따르지 않습니다.** 따라서 허용된 공개 호스트가 두 번째 홉에서 서버를 내부 호스트로 튕겨 보낼 수 없습니다.
 - **가능하면 인스턴스 전체가 아니라 프로브 단위로 범위를 정하세요.** 하나의 네트워크 안에 배포한 프로브는 API 서버의 송신 트래픽을 여는 것보다 좁은 권한입니다.

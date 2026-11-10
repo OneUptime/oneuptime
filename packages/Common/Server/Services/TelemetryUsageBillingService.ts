@@ -179,7 +179,14 @@ export const TELEMETRY_USAGE_UNREPORTED_BILLING_RETENTION_IN_DAYS: number =
  */
 export interface TelemetryResourceUsage {
   primaryEntityType: ServiceType;
+  // Everything the product bills: for Traces, the spans and the exceptions.
   bytes: number;
+  /*
+   * For Traces only: how many of those bytes were exception rows, so the
+   * usage pages can show exceptions apart (issue #6356). Already inside
+   * `bytes` - never to be added to it.
+   */
+  exceptionBytes?: number | undefined;
 }
 
 export class Service extends DatabaseService<Model> {
@@ -643,6 +650,12 @@ export class Service extends DatabaseService<Model> {
    * left out (TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES and _METRIC_NAMES), as
    * they are left out of billing. A resource with a legacy row of no type is
    * a real Service (OpenTelemetry).
+   *
+   * Traces are billed for their spans and their exceptions together, so a
+   * resource's traces bytes are both tables' - and, apart, how many of them
+   * the exception rows were (exceptionBytes), for the usage pages to show
+   * exceptions on their own. That part is inside the bytes, not added to
+   * them.
    */
   @CaptureSpan()
   public async getTelemetryUsageByResource(data: {
@@ -696,6 +709,8 @@ export class Service extends DatabaseService<Model> {
     type ServiceUsage = {
       primaryEntityType: string | null;
       bytes: number;
+      // Of `bytes`, those of exception rows (Traces only).
+      exceptionBytes: number;
     };
     const usageByServiceId: Map<string, ServiceUsage> = new Map();
 
@@ -707,6 +722,7 @@ export class Service extends DatabaseService<Model> {
         estimatedBytes: number;
       }>,
       fallbackRowSizeInBytes: number,
+      options?: { isExceptions: boolean },
     ) => void = (
       rows: Array<{
         primaryEntityId: string;
@@ -715,17 +731,25 @@ export class Service extends DatabaseService<Model> {
         estimatedBytes: number;
       }>,
       fallbackRowSizeInBytes: number,
+      options?: { isExceptions: boolean },
     ): void => {
       for (const row of rows) {
         const bytes: number =
           row.estimatedBytes > 0
             ? row.estimatedBytes
             : row.rowCount * fallbackRowSizeInBytes;
+        /*
+         * The same bytes go into the total and, for exception rows, into
+         * the exceptions' part of it: the part is a share of the total,
+         * never more on top of it.
+         */
+        const exceptionBytes: number = options?.isExceptions ? bytes : 0;
         const existing: ServiceUsage | undefined = usageByServiceId.get(
           row.primaryEntityId,
         );
         if (existing) {
           existing.bytes += bytes;
+          existing.exceptionBytes += exceptionBytes;
           if (!existing.primaryEntityType && row.primaryEntityType) {
             existing.primaryEntityType = row.primaryEntityType;
           }
@@ -733,6 +757,7 @@ export class Service extends DatabaseService<Model> {
           usageByServiceId.set(row.primaryEntityId, {
             primaryEntityType: row.primaryEntityType,
             bytes,
+            exceptionBytes,
           });
         }
       }
@@ -759,6 +784,7 @@ export class Service extends DatabaseService<Model> {
             timestampColumnName: "time",
           }),
           averageExceptionRowSizeInBytes,
+          { isExceptions: true },
         );
       } else if (data.productType === ProductType.Logs) {
         addUsage(
@@ -845,12 +871,26 @@ export class Service extends DatabaseService<Model> {
        * treated as OpenTelemetry — historically every billed primaryEntityId
        * was a real Service.
        */
-      usageByResource.set(primaryEntityId, {
+      const resourceUsage: TelemetryResourceUsage = {
         primaryEntityType:
           (usage.primaryEntityType as ServiceType | null) ??
           ServiceType.OpenTelemetry,
         bytes: usage.bytes,
-      });
+      };
+
+      /*
+       * Traces say how much of their bytes were exceptions - none, for a
+       * resource that recorded no exception, which is a part counted all
+       * the same.
+       */
+      if (data.productType === ProductType.Traces) {
+        resourceUsage.exceptionBytes = Math.min(
+          usage.exceptionBytes,
+          usage.bytes,
+        );
+      }
+
+      usageByResource.set(primaryEntityId, resourceUsage);
     }
 
     return usageByResource;
@@ -950,7 +990,13 @@ export class Service extends DatabaseService<Model> {
         productType: data.productType,
         primaryEntityId: new ObjectID(serviceIdStr),
         primaryEntityType: usage.primaryEntityType,
+        // What the row is billed for: for Traces, spans and exceptions.
         dataIngestedInGB: estimatedGigabytes,
+        // Of that, the exceptions' part - shown apart, never billed apart.
+        exceptionDataIngestedInGB:
+          usage.exceptionBytes === undefined
+            ? undefined
+            : DiskSize.byteSizeToGB(usage.exceptionBytes),
         retentionInDays: retentionInDays,
         usageDate: data.usageDate,
         isBillable: data.isBillable,
@@ -1359,7 +1405,18 @@ export class Service extends DatabaseService<Model> {
     productType: ProductType;
     primaryEntityId: ObjectID;
     primaryEntityType?: ServiceType | undefined;
+    /*
+     * Everything the row is billed for. For Traces, the spans and the
+     * exceptions together: the cost is worked out from this alone.
+     */
     dataIngestedInGB: number;
+    /*
+     * For Traces only: how much of dataIngestedInGB was exceptions, kept on
+     * the row for the usage pages to show apart (issue #6356). It is a part
+     * of dataIngestedInGB, never added to it, and nothing is charged for it
+     * - the cost above already covers it. Ignored for any other product.
+     */
+    exceptionDataIngestedInGB?: number | undefined;
     retentionInDays: number;
     usageDate?: Date;
     /*
@@ -1393,6 +1450,11 @@ export class Service extends DatabaseService<Model> {
 
     const usageDayString: string = this.getUsageDayString(usageDate);
 
+    /*
+     * The cost is the product's price for everything the row is billed for
+     * (dataIngestedInGB) - exactly what it was before the exceptions were
+     * counted apart. Their part is never priced on its own.
+     */
     const totalCostOfThisOperationInUSD: number =
       data.isBillable === false
         ? 0
@@ -1400,6 +1462,9 @@ export class Service extends DatabaseService<Model> {
             dataIngestedInGB: data.dataIngestedInGB,
             retentionInDays: data.retentionInDays,
           });
+
+    const exceptionDataIngestedInGB: number | undefined =
+      this.getExceptionPartInGB(data);
 
     const usageBilling: Model | null = await this.findOneBy({
       query: {
@@ -1412,6 +1477,7 @@ export class Service extends DatabaseService<Model> {
       select: {
         _id: true,
         dataIngestedInGB: true,
+        exceptionDataIngestedInGB: true,
         totalCostInUSD: true,
       },
       props: {
@@ -1434,12 +1500,37 @@ export class Service extends DatabaseService<Model> {
         totalCostInUSD = 0;
       }
 
+      /*
+       * The exceptions' part of the row once this is added: both parts
+       * summed when each is known, and none once either is not - a part
+       * that covered only some of the row's bytes would show some of its
+       * exceptions as spans. (Staging never adds to a row it counted: it
+       * skips the resources a day has rows for.)
+       */
+      const existingExceptionDataIngestedInGB: number | null =
+        usageBilling.exceptionDataIngestedInGB instanceof Decimal &&
+        Number.isFinite(usageBilling.exceptionDataIngestedInGB.value)
+          ? usageBilling.exceptionDataIngestedInGB.value
+          : null;
+
       await this.updateOneById({
         id: usageBilling.id,
         data: {
           dataIngestedInGB: new Decimal(
             (usageBilling.dataIngestedInGB?.value || 0) + data.dataIngestedInGB,
           ),
+          ...(data.productType === ProductType.Traces
+            ? {
+                exceptionDataIngestedInGB:
+                  existingExceptionDataIngestedInGB !== null &&
+                  exceptionDataIngestedInGB !== undefined
+                    ? new Decimal(
+                        existingExceptionDataIngestedInGB +
+                          exceptionDataIngestedInGB,
+                      )
+                    : (null as unknown as Decimal),
+              }
+            : {}),
           totalCostInUSD: new Decimal(
             totalCostInUSD + totalCostOfThisOperationInUSD,
           ),
@@ -1454,6 +1545,11 @@ export class Service extends DatabaseService<Model> {
       usageBilling.projectId = data.projectId;
       usageBilling.productType = data.productType;
       usageBilling.dataIngestedInGB = new Decimal(data.dataIngestedInGB);
+      if (exceptionDataIngestedInGB !== undefined) {
+        usageBilling.exceptionDataIngestedInGB = new Decimal(
+          exceptionDataIngestedInGB,
+        );
+      }
       usageBilling.primaryEntityId = data.primaryEntityId;
       if (data.primaryEntityType) {
         usageBilling.primaryEntityType = data.primaryEntityType;
@@ -1473,6 +1569,30 @@ export class Service extends DatabaseService<Model> {
         },
       });
     }
+  }
+
+  /*
+   * The exceptions' part a row records: only a Traces row's, a finite number
+   * of GB, and never more than all the row is billed for (nor less than
+   * none). Undefined - no part at all - for every other product.
+   */
+  private getExceptionPartInGB(data: {
+    productType: ProductType;
+    dataIngestedInGB: number;
+    exceptionDataIngestedInGB?: number | undefined;
+  }): number | undefined {
+    if (
+      data.productType !== ProductType.Traces ||
+      typeof data.exceptionDataIngestedInGB !== "number" ||
+      !Number.isFinite(data.exceptionDataIngestedInGB)
+    ) {
+      return undefined;
+    }
+
+    return Math.min(
+      Math.max(0, data.exceptionDataIngestedInGB),
+      Math.max(0, data.dataIngestedInGB),
+    );
   }
 
   private getUsageDayString(usageDate: Date): string {

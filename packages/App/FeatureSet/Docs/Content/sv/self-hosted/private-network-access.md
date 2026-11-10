@@ -61,8 +61,9 @@ Dessa mål omfattas, eftersom målet är en URL som en autentiserad medlem i dit
 - HTTP-begäranden från arbetsflödeskomponenten **Custom JavaScript**
 - Projektets webhook-aviseringar (incidenter, larm, övervakare, jour, schemalagt underhåll, händelser på statussidor)
 - **Användarwebhooks** för jour
+- Webhook-prenumeranter på statussidor som ditt team lägger till, från instrumentpanelen, med en API-nyckel eller via ett arbetsflöde
 
-**Inte** omfattade, och det kommer de aldrig att bli: **webhooks för prenumeranter på statussidor**. Vilken besökare som helst på en publik statussida kan registrera en, så att lätta på det målet skulle låta vem som helst på internet få din server att POSTa in i ditt privata nätverk. Det går inte att konfigurera.
+**Inte** omfattade, och det kommer de aldrig att bli: **webhook-prenumeranter som registrerar sig på en statussida**. Vilken besökare som helst på en publik statussida kan registrera en, så att lätta på det målet skulle låta vem som helst på internet få din server att POSTa in i ditt privata nätverk. Deras webhooks når bara publika adresser, även efter att någon i ditt team har redigerat en. Det går inte att konfigurera.
 
 Utgående anslutningar som inte är webhooks – externa datakällor, LLM-leverantörer, SMTP-servrar (ett projekts SMTP-inställningar och arbetsflödeskomponenten **Email**), SMTP-OAuth-tokenslutpunkter, OIDC-discovery och HTTP-steg i runbooks – styrs separat, av `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`, och tillåter redan privata områden på egeninstallationer. Se [Andra utgående anslutningar](#andra-utgående-anslutningar).
 
@@ -182,6 +183,7 @@ Att slå på det öppnar **inte** loopback, link-local eller slutpunkten för mo
 Kör arbetsflödet eller övervakaren igen. Om det fortfarande nekas anger felmeddelandet vilken spärr som är stängd:
 
 - _"...points to a private network address and is not allowed. Self-hosted instances can allow this by setting `ALLOW_PRIVATE_NETWORK_WEBHOOKS`..."_ – API-serverns inställning saknas.
+- _"...is not allowed. This subscriber signed up on the status page, so its webhook must be on the public internet."_, eller _"...is not allowed. Use a webhook URL on the public internet."_ på själva statussidan – webhooken tillhör en prenumerant som registrerade sig på statussidan, och sådana omfattas inte av någon inställning. Låt i stället ditt team lägga till den som webhook-prenumerant, från instrumentpanelen, med en API-nyckel eller via ett arbetsflöde.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ – en privat (egen) prob körde övervakaren, och dess reglage är av. Observera att det sätts på proben, inte på API-servern.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ – en medföljande (global) prob körde övervakaren, och dess reglage är av. Slå på det för den proben enligt beskrivningen ovan om alla projekt på instansen får nå det nätverket; välj annars en privat prob för övervakaren.
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ – en global prob med `BILLING_ENABLED=true` i sin miljö körde övervakaren. Automatiskt registrerade globala prober förblir enbart publika där, vad deras reglage än säger; driftsätt en privat prob inne i målets nätverk och välj den för övervakaren.
@@ -196,7 +198,7 @@ Kör arbetsflödet eller övervakaren igen. Om det fortfarande nekas anger felme
 Att öppna för detta ändrar på riktigt vad din OneUptime-instans kan förmås att nå, så det är värt att göra det medvetet:
 
 - **Föredra tillåtelselistan framför det generella reglaget.** Att ange `mattermost.internal` är en mycket mindre behörighet än att öppna varje RFC-1918-adress.
-- **Den som kan skapa ett arbetsflöde eller en övervakare av typen API, Website, External Status Page eller Custom JavaScript Code kan nå allt du har tillåtit.** Behandla medlemskap i de projekten därefter.
+- **Den som kan skapa ett arbetsflöde eller en övervakare av typen API, Website, External Status Page eller Custom JavaScript Code, eller lägga till en prenumerant på en statussida, kan nå allt du har tillåtit.** Behandla medlemskap i de projekten därefter.
 - **Svarets innehåll kommer tillbaka.** En API-komponent i ett arbetsflöde returnerar status, huvuden och innehåll till arbetsflödets logg, så en tillåten värd går att läsa, inte bara skriva till.
 - **Omdirigeringar följs aldrig** för webhook-begäranden, så en tillåten publik värd kan inte studsa servern vidare till en intern värd i ett andra hopp.
 - **Avgränsa per prob i stället för för hela instansen där du kan.** En prob som driftsatts inne i ett nätverk är en snävare behörighet än att öppna API-serverns utgående trafik.

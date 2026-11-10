@@ -32,8 +32,10 @@ import net from "net";
  * BOTH are off by default, so an instance that sets neither behaves exactly as
  * it did before this existed. And neither reaches every sink: a caller has to
  * declare itself eligible (SSRFProtection's `allowPrivateNetworkTargets`),
- * which the sinks whose URL an unauthenticated visitor can choose - status
- * page subscriber webhooks - never do.
+ * which the sinks whose URL an unauthenticated visitor can choose - the
+ * webhook of a subscriber that signed up on a status page - never do. A
+ * webhook subscriber the project's team added does
+ * (StatusPageSubscriberWebhookUtil).
  *
  * These two are read by the API SERVER. The probe's equivalent switch,
  * PROBE_ALLOW_PRIVATE_NETWORK_MONITORS, is read by the probe process from its

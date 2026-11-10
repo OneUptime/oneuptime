@@ -732,6 +732,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
           if (subscriber.subscriberWebhook) {
             StatusPageSubscriberWebhookUtil.sendWebhookNotification({
               webhookUrl: subscriber.subscriberWebhook,
+              isAddedByTeam: subscriber.isAddedByTeam,
               payload: {
                 eventType: "ScheduledMaintenanceCreated",
                 statusPageId: statuspage.id!.toString(),

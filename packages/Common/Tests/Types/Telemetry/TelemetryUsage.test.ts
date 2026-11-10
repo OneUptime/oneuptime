@@ -8,14 +8,17 @@ import {
   getTelemetryUsageWindow,
   isTelemetryProjectUsageSortBy,
   isTelemetryUsageProductType,
+  isTelemetryUsageSignal,
   parseTelemetryUsageDay,
   TELEMETRY_USAGE_DEFAULT_RANGE_IN_DAYS,
   TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS,
+  TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
   TELEMETRY_USAGE_MAX_RANGE_IN_DAYS,
   TELEMETRY_USAGE_MAX_RETENTION_IN_DAYS,
   TELEMETRY_USAGE_MIN_RETENTION_IN_DAYS,
   TELEMETRY_USAGE_PRODUCT_TYPES,
   TELEMETRY_USAGE_RANGE_OPTIONS_IN_DAYS,
+  TELEMETRY_USAGE_SIGNALS,
   toTelemetryUsageDay,
   TelemetryUsageWindow,
 } from "../../../Types/Telemetry/TelemetryUsage";
@@ -29,8 +32,8 @@ import { describe, expect, test } from "@jest/globals";
  * Dashboard all read these, so each is pinned here once.
  */
 
-describe("the signals usage is counted for", () => {
-  test("are every telemetry product, in the order the pages show them", () => {
+describe("the products usage is counted for", () => {
+  test("are every telemetry product, each staged on its own", () => {
     expect([...TELEMETRY_USAGE_PRODUCT_TYPES]).toEqual([
       ProductType.Logs,
       ProductType.Metrics,
@@ -279,5 +282,63 @@ describe("what the project list sorts by", () => {
       false,
     );
     expect(isTelemetryProjectUsageSortBy("projectName; DROP")).toBe(false);
+  });
+
+  test("includes the exceptions, a signal of their own (issue #6356)", () => {
+    for (const signal of TELEMETRY_USAGE_SIGNALS) {
+      expect(isTelemetryProjectUsageSortBy(signal)).toBe(true);
+    }
+
+    expect(isTelemetryProjectUsageSortBy("Exceptions")).toBe(true);
+    expect(isTelemetryProjectUsageSortBy("exceptions")).toBe(false);
+  });
+});
+
+/*
+ * Issue #6356: the usage pages and the API show exceptions as a signal of
+ * their own, apart from the traces they are billed with - a signal, never a
+ * product: it has no metered plan, no price and no usage rows of its own.
+ */
+describe("the signals the usage pages show", () => {
+  test("are every product, and the exceptions right after the traces they are billed with", () => {
+    expect(TELEMETRY_USAGE_EXCEPTIONS_SIGNAL).toBe("Exceptions");
+    expect([...TELEMETRY_USAGE_SIGNALS]).toEqual([
+      ProductType.Logs,
+      ProductType.Metrics,
+      ProductType.Traces,
+      "Exceptions",
+      ProductType.Profiles,
+      ProductType.SessionReplay,
+      ProductType.SecurityEvents,
+    ]);
+
+    // Every product usage is counted for is shown.
+    for (const productType of TELEMETRY_USAGE_PRODUCT_TYPES) {
+      expect(TELEMETRY_USAGE_SIGNALS).toContain(productType);
+    }
+  });
+
+  test("are told apart from what is not one", () => {
+    for (const signal of TELEMETRY_USAGE_SIGNALS) {
+      expect(isTelemetryUsageSignal(signal)).toBe(true);
+    }
+
+    expect(isTelemetryUsageSignal(ProductType.ActiveMonitoring)).toBe(false);
+    expect(isTelemetryUsageSignal(ProductType.WatchedTables)).toBe(false);
+    expect(isTelemetryUsageSignal("Spans")).toBe(false);
+    expect(isTelemetryUsageSignal(undefined)).toBe(false);
+  });
+
+  test("count exceptions as no product: they are billed inside Traces", () => {
+    expect(isTelemetryUsageProductType(TELEMETRY_USAGE_EXCEPTIONS_SIGNAL)).toBe(
+      false,
+    );
+    expect(TELEMETRY_USAGE_PRODUCT_TYPES).not.toContain(
+      TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+    );
+    // Every product type is metered and has a price; exceptions have neither.
+    expect(Object.values(ProductType)).not.toContain(
+      TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+    );
   });
 });

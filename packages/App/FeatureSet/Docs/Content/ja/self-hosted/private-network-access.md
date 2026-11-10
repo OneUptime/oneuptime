@@ -61,8 +61,9 @@ Ping、Port、SSL 証明書、DNS、DNSSEC、SNMP / ネットワークデバイ�
 - ワークフローの **Custom JavaScript** コンポーネントが行う HTTP リクエスト
 - プロジェクトの Webhook 通知 (インシデント、アラート、モニター、オンコール、計画メンテナンス、ステータスページのイベント)
 - オンコールの**ユーザー Webhook**
+- チームがダッシュボード、API キー、またはワークフローで追加したステータスページの Webhook 購読者
 
-**対象外**で、今後も対象にならないのが **ステータスページ購読者の Webhook** です。公開ステータスページの訪問者なら誰でも登録できるため、この送信先を緩めると、インターネット上の誰もがあなたのサーバーにプライベートネットワークへの POST を行わせることができてしまいます。これは設定できません。
+**対象外**で、今後も対象にならないのが **ステータスページで自分で登録した Webhook 購読者** です。公開ステータスページの訪問者なら誰でも登録できるため、この送信先を緩めると、インターネット上の誰もがあなたのサーバーにプライベートネットワークへの POST を行わせることができてしまいます。こうした購読者の Webhook は、チームの誰かが編集した後も公開アドレスにしか届きません。これは設定できません。
 
 Webhook ではない送信接続 (外部データソース、LLM プロバイダー、SMTP サーバー (プロジェクトの SMTP 設定とワークフローの **Email** コンポーネント)、SMTP OAuth トークンのエンドポイント、OIDC ディスカバリー、Runbook の HTTP ステップ) は、`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` によって別途管理されており、セルフホスト環境ではすでにプライベート範囲を許可しています。[その他の送信接続](#その他の送信接続)を参照してください。
 
@@ -182,6 +183,7 @@ probes:
 ワークフローまたはモニターをもう一度実行します。それでも拒否される場合、エラーメッセージがどのゲートが閉じているかを示します。
 
 - _"...points to a private network address and is not allowed. Self-hosted instances can allow this by setting `ALLOW_PRIVATE_NETWORK_WEBHOOKS`..."_ — API サーバーの設定がありません。
+- _"...is not allowed. This subscriber signed up on the status page, so its webhook must be on the public internet."_ または、ステータスページ自体では _"...is not allowed. Use a webhook URL on the public internet."_ — この Webhook はステータスページで自分で登録した購読者のもので、これを対象にできる設定はありません。代わりに、チームにダッシュボード、API キー、またはワークフローで Webhook 購読者として追加してもらってください。
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ — プライベート (カスタム) プローブがモニターを実行し、そのスイッチがオフです。これは API サーバーではなくプローブで設定することに注意してください。
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ — 同梱の (グローバル) プローブがモニターを実行し、そのスイッチがオフです。インスタンス上のすべてのプロジェクトがそのネットワークに到達してよい場合は、上記の説明に従ってそのプローブでオンにします。そうでない場合は、モニターでプライベートプローブを選択します。
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ — 環境に `BILLING_ENABLED=true` を持つグローバルプローブがモニターを実行しました。そこでは、自動登録されたグローバルプローブはスイッチの設定にかかわらず公開専用のままです。宛先のネットワーク内にプライベートプローブをデプロイし、モニターでそれを選択してください。
@@ -196,7 +198,7 @@ probes:
 これを開放すると、OneUptime インスタンスに到達させられる範囲が実際に変わります。そのため、慎重に行う価値があります。
 
 - **包括的なブール値より許可リストを優先してください。** `mattermost.internal` を記載するのは、すべての RFC-1918 アドレスを開放するよりはるかに小さな許可です。
-- **ワークフロー、または API、Website、External Status Page、Custom JavaScript Code のモニターを作成できる人は誰でも、あなたが許可したものすべてに到達できます。** それらのプロジェクトのメンバーシップは、それに応じて扱ってください。
+- **ワークフロー、または API、Website、External Status Page、Custom JavaScript Code のモニターを作成できる人、あるいはステータスページの購読者を追加できる人は誰でも、あなたが許可したものすべてに到達できます。** それらのプロジェクトのメンバーシップは、それに応じて扱ってください。
 - **レスポンス本文が返ってきます。** ワークフローの API コンポーネントはステータス、ヘッダー、本文をワークフローのログに返すため、許可したホストは書き込めるだけでなく読み取ることもできます。
 - **Webhook リクエストではリダイレクトを決してたどりません。** そのため、許可した公開ホストが二回目のホップでサーバーを内部ホストに転送することはできません。
 - **可能な場合は、インスタンス全体ではなくプローブ単位で範囲を絞ってください。** ひとつのネットワーク内にデプロイしたプローブは、API サーバーの送信トラフィックを開放するよりも狭い許可です。

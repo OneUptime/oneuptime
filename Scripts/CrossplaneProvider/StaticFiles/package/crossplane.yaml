@@ -1,0 +1,42 @@
+apiVersion: meta.pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-oneuptime
+  annotations:
+    meta.crossplane.io/maintainer: OneUptime <hello@oneuptime.com>
+    meta.crossplane.io/source: github.com/OneUptime/oneuptime
+    meta.crossplane.io/license: Apache-2.0
+    meta.crossplane.io/description: |
+      Manage your OneUptime project from Kubernetes: monitors, status pages,
+      incidents, on-call policies, teams and every other resource of the
+      OneUptime API, as namespaced managed resources.
+    meta.crossplane.io/readme: |
+      # OneUptime provider
+
+      Declare your OneUptime project's resources - monitors, status pages,
+      on-call policies, teams, labels and the rest of the OneUptime API - as
+      Kubernetes resources, and Crossplane keeps OneUptime the way they say.
+
+      Give a ProviderConfig the API key of the project, in a Secret of its
+      namespace:
+
+          apiVersion: crossplane.oneuptime.com/v1beta1
+          kind: ProviderConfig
+          metadata:
+            name: default
+            namespace: team-a
+          spec:
+            url: https://oneuptime.com
+            credentials:
+              secretRef:
+                name: oneuptime-api-key
+                key: api-key
+
+      Then create resources in that namespace, such as a Monitor or a
+      StatusPage. Self-hosted OneUptime works the same: set url to your own
+      address.
+
+      Documentation: https://oneuptime.com/docs/crossplane/index
+spec:
+  capabilities:
+    - SafeStart

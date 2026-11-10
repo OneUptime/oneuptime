@@ -1,0 +1,28 @@
+{
+  "name": "@oneuptime/crossplane-provider-generator",
+  "version": "14.0.106",
+  "description": "Generates the OneUptime Crossplane provider from the Terraform provider",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OneUptime/oneuptime"
+  },
+  "scripts": {
+    "test": "jest --runInBand",
+    "compile": "tsc --noEmit"
+  },
+  "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.1.1",
+    "jest": "^30.5.2",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^4.3.2"
+    }
+  }
+}
