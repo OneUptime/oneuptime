@@ -282,17 +282,15 @@ describe("a pending receipt as stored (serialize, parse)", () => {
     const member: string = ExpoPushReceiptQueue.serialize(page);
 
     expect(ExpoPushReceiptQueue.parse(member)).toEqual(page);
-    expect(Object.keys(JSON.parse(member) as Record<string, unknown>)).toEqual(
-      [
-        "receiptId",
-        "deviceToken",
-        "via",
-        "sentAt",
-        "attempts",
-        "pushNotificationLogId",
-        "isOnCallPage",
-      ],
-    );
+    expect(Object.keys(JSON.parse(member) as Record<string, unknown>)).toEqual([
+      "receiptId",
+      "deviceToken",
+      "via",
+      "sentAt",
+      "attempts",
+      "pushNotificationLogId",
+      "isOnCallPage",
+    ]);
   });
 
   test("a push that was no page writes nothing of it: the member is as it always was", () => {

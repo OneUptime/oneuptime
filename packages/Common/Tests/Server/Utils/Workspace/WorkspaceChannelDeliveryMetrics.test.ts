@@ -205,15 +205,15 @@ describe("WorkspaceDeliveryMetrics.getChannelPostStart", () => {
   ])(
     "%s: posted as the project's bot, into a channel, never an on-call page",
     (workspaceType: WorkspaceType, name: string) => {
-      expect(WorkspaceDeliveryMetrics.getChannelPostStart(workspaceType)).toEqual(
-        {
-          channel: name,
-          provider: name,
-          providerConfig: "project",
-          isOnCallPage: false,
-          destination: "channel",
-        },
-      );
+      expect(
+        WorkspaceDeliveryMetrics.getChannelPostStart(workspaceType),
+      ).toEqual({
+        channel: name,
+        provider: name,
+        providerConfig: "project",
+        isOnCallPage: false,
+        destination: "channel",
+      });
     },
   );
 
@@ -1082,7 +1082,10 @@ describe("MattermostUtil.sendMessage: a post a channel", () => {
     botUserId: BOT_ID,
   });
 
-  function mattermostChannel(id: string, type: string = "O"): MattermostChannel {
+  function mattermostChannel(
+    id: string,
+    type: string = "O",
+  ): MattermostChannel {
     return {
       id: id,
       name: `channel-${id.substring(0, 1)}`,
@@ -1134,29 +1137,27 @@ describe("MattermostUtil.sendMessage: a post a channel", () => {
             : null;
         },
       );
-    jest
-      .spyOn(API, "post")
-      .mockImplementation((async (args: {
-        url: URL;
-        data: JSONObject;
-      }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
-        const channelId: string = args.data["channel_id"] as string;
+    jest.spyOn(API, "post").mockImplementation((async (args: {
+      url: URL;
+      data: JSONObject;
+    }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+      const channelId: string = args.data["channel_id"] as string;
 
-        posted.push(channelId);
+      posted.push(channelId);
 
-        if (channelId === PRIVATE_CHANNEL_ID) {
-          return new HTTPErrorResponse(
-            403,
-            {
-              id: "api.context.permissions.app_error",
-              message: "You do not have the appropriate permissions.",
-            },
-            {},
-          );
-        }
+      if (channelId === PRIVATE_CHANNEL_ID) {
+        return new HTTPErrorResponse(
+          403,
+          {
+            id: "api.context.permissions.app_error",
+            message: "You do not have the appropriate permissions.",
+          },
+          {},
+        );
+      }
 
-        return new HTTPResponse<JSONObject>(200, { id: POST_ID }, {});
-      }) as never);
+      return new HTTPResponse<JSONObject>(200, { id: POST_ID }, {});
+    }) as never);
   });
 
   function send(
@@ -1376,7 +1377,11 @@ describe("incoming webhooks: a status page subscriber's, the operator's", () => 
 
     test("Teams refused it: a failure, and the refusal is thrown as before", async () => {
       apiPost.mockResolvedValue(
-        new HTTPErrorResponse(400, { error: "bad card" }, {}) as unknown as never,
+        new HTTPErrorResponse(
+          400,
+          { error: "bad card" },
+          {},
+        ) as unknown as never,
       );
 
       await expect(

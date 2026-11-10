@@ -241,8 +241,7 @@ export default class AppMetrics {
    */
 
   private static notificationDeliveryCounter: TelemetryCounter | null = null;
-  private static notificationDeliveryDuration: TelemetryHistogram | null =
-    null;
+  private static notificationDeliveryDuration: TelemetryHistogram | null = null;
 
   /*
    * From half a second to a day: most SMS reach a phone within seconds, a
@@ -252,8 +251,8 @@ export default class AppMetrics {
    */
   public static readonly NOTIFICATION_DELIVERY_DURATION_BUCKETS_IN_MS: ReadonlyArray<number> =
     [
-      500, 1000, 2000, 5000, 10000, 15000, 30000, 60000, 120000, 300000,
-      600000, 1800000, 3600000, 14400000, 86400000,
+      500, 1000, 2000, 5000, 10000, 15000, 30000, 60000, 120000, 300000, 600000,
+      1800000, 3600000, 14400000, 86400000,
     ];
 
   public static getNotificationDeliveryCounter(): TelemetryCounter {

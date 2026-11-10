@@ -260,14 +260,17 @@ describe("each receipt read, as Expo answered it", () => {
     "DeveloperError",
     "ExpoError",
     "ProviderError",
-  ])("%s - Expo, Apple or Google could not send it: failed", async (code: string) => {
-    await keep([pendingReceipt(1)]);
-    expoReceipts.set(receiptIdOf(1), refused(code));
+  ])(
+    "%s - Expo, Apple or Google could not send it: failed",
+    async (code: string) => {
+      await keep([pendingReceipt(1)]);
+      expoReceipts.set(receiptIdOf(1), refused(code));
 
-    await check();
+      await check();
 
-    expect(counted()).toEqual([delivery("expo", "failed")]);
-  });
+      expect(counted()).toEqual([delivery("expo", "failed")]);
+    },
+  );
 
   test("an error receipt that names no code: failed", async () => {
     await keep([pendingReceipt(1)]);
@@ -304,14 +307,16 @@ describe("a push sent through the push relay", () => {
   });
 
   test.each([
-    ["taken", "delivered", { status: "ok" }],
+    ["taken", "delivered", { status: "ok" } as ExpoPushReceipt],
     ["DeviceNotRegistered", "undelivered", refused("DeviceNotRegistered")],
     ["MessageTooBig", "failed", refused("MessageTooBig")],
   ])(
     "its receipt, from the relay - %s: %s, through the push relay",
-    async (_name: string, outcome: string, receipt: object) => {
+    async (_name: string, outcome: string, receipt: ExpoPushReceipt) => {
       await keep([pendingReceipt(1, { via: "relay" })]);
-      relayReceipts = { [receiptIdOf(1)]: receipt as JSONObject };
+      relayReceipts = {
+        [receiptIdOf(1)]: receipt as unknown as JSONObject,
+      };
 
       await check();
 

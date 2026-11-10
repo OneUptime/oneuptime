@@ -395,8 +395,8 @@ describe("AppMetrics catalog", () => {
     const buckets: Array<number> = options.explicitBucketBoundaries || [];
 
     expect(buckets).toEqual([
-      500, 1000, 2000, 5000, 10000, 15000, 30000, 60000, 120000, 300000,
-      600000, 1800000, 3600000, 14400000, 86400000,
+      500, 1000, 2000, 5000, 10000, 15000, 30000, 60000, 120000, 300000, 600000,
+      1800000, 3600000, 14400000, 86400000,
     ]);
 
     for (let i: number = 1; i < buckets.length; i++) {

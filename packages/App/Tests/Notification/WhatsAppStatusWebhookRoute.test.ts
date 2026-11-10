@@ -370,9 +370,7 @@ beforeEach(() => {
   findByMessageId.mockImplementation(((input: {
     query: { whatsAppMessageId: string };
   }) => {
-    return Promise.resolve(
-      snapshot(stored.get(input.query.whatsAppMessageId)),
-    );
+    return Promise.resolve(snapshot(stored.get(input.query.whatsAppMessageId)));
   }) as never);
   findById.mockImplementation(((input: { id: ObjectID }) => {
     return Promise.resolve(snapshot(rowById(input.id)));

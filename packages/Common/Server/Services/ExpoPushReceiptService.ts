@@ -479,7 +479,9 @@ export default class ExpoPushReceiptService {
           : NotificationDeliveryProvider.Expo,
       providerConfig: NotificationProviderConfig.Global,
       // An entry an older version kept says a page only by its timeline row.
-      isOnCallPage: Boolean(entry.isOnCallPage || entry.userOnCallLogTimelineId),
+      isOnCallPage: Boolean(
+        entry.isOnCallPage || entry.userOnCallLogTimelineId,
+      ),
       status: status,
     });
   }

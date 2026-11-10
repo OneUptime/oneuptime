@@ -23,15 +23,15 @@ const CALLBACK_URL: string =
 
 describe("withProviderConfig", () => {
   test("a project's own account says so in the query", () => {
-    expect(withProviderConfig(CALLBACK_URL, NotificationProviderConfig.Project)).toBe(
-      `${CALLBACK_URL}?providerConfig=project`,
-    );
+    expect(
+      withProviderConfig(CALLBACK_URL, NotificationProviderConfig.Project),
+    ).toBe(`${CALLBACK_URL}?providerConfig=project`);
   });
 
   test("the installation's account leaves the address as it was", () => {
-    expect(withProviderConfig(CALLBACK_URL, NotificationProviderConfig.Global)).toBe(
-      CALLBACK_URL,
-    );
+    expect(
+      withProviderConfig(CALLBACK_URL, NotificationProviderConfig.Global),
+    ).toBe(CALLBACK_URL);
   });
 
   test("the query's name is providerConfig", () => {
@@ -58,14 +58,11 @@ describe("getProviderConfigOfCallback", () => {
     ["an object", { providerConfig: { value: "project" } }],
     ["a number", { providerConfig: 1 }],
     ["a string query", "providerConfig=project"],
-  ])(
-    "%s: the installation's account",
-    (_name: string, query: unknown) => {
-      expect(getProviderConfigOfCallback(query)).toBe(
-        NotificationProviderConfig.Global,
-      );
-    },
-  );
+  ])("%s: the installation's account", (_name: string, query: unknown) => {
+    expect(getProviderConfigOfCallback(query)).toBe(
+      NotificationProviderConfig.Global,
+    );
+  });
 
   test("reads back what withProviderConfig wrote, for either account", () => {
     for (const config of [

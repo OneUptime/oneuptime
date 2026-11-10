@@ -1315,9 +1315,9 @@ describe("the spelling of the destination and the final statuses", () => {
 
   test("no final status is spelled as a send's outcome: the two metrics' outcomes are told apart", () => {
     for (const status of Object.values(NotificationDeliveryStatus)) {
-      expect(Object.values(NotificationDeliveryOutcome) as Array<string>).not.toContain(
-        status,
-      );
+      expect(
+        Object.values(NotificationDeliveryOutcome) as Array<string>,
+      ).not.toContain(status);
     }
   });
 });

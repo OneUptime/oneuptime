@@ -177,8 +177,7 @@ const ROUTE: RegisteredRoute | undefined = (
   mockRouter.routes as unknown as Array<RegisteredRoute>
 ).find((route: RegisteredRoute): boolean => {
   return (
-    route.method === "POST" &&
-    route.uri === "/status-callback/:smsLogId/:token"
+    route.method === "POST" && route.uri === "/status-callback/:smsLogId/:token"
   );
 });
 
@@ -774,16 +773,15 @@ describe("isStaleSmsStatus", () => {
     },
   );
 
-  const NOTHING_FINAL_YET: Array<[SmsStatus | null | undefined, SmsStatus]> =
-    [
-      [null, SmsStatus.Sent],
-      [undefined, SmsStatus.Delivered],
-      [SmsStatus.Sending, SmsStatus.Sent],
-      [SmsStatus.Sent, SmsStatus.Sending],
-      [SmsStatus.Sent, SmsStatus.Delivered],
-      [SmsStatus.Success, SmsStatus.Sent],
-      [SmsStatus.Error, SmsStatus.Delivered],
-    ];
+  const NOTHING_FINAL_YET: Array<[SmsStatus | null | undefined, SmsStatus]> = [
+    [null, SmsStatus.Sent],
+    [undefined, SmsStatus.Delivered],
+    [SmsStatus.Sending, SmsStatus.Sent],
+    [SmsStatus.Sent, SmsStatus.Sending],
+    [SmsStatus.Sent, SmsStatus.Delivered],
+    [SmsStatus.Success, SmsStatus.Sent],
+    [SmsStatus.Error, SmsStatus.Delivered],
+  ];
 
   test.each(NOTHING_FINAL_YET)(
     "%s, then %s: not stale - the log said nothing final",
