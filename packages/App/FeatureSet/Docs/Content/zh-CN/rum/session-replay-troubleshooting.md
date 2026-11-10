@@ -285,6 +285,18 @@ OneUptimeReplay.captureSession("installation test");
 | `api-stop` | 调用了 `stop()` 。最后一个分块已上传，会话已封口；在页面的剩余生命周期内不会再录制任何内容。 |
 | `api-no-recorder` | 上面某个调用在没有活动录制器的情况下运行了 — 通常是因为它在录制器构件加载之前就运行了。改为把 `[command, ...arguments]` 条目放入 `window.OneUptimeReplayQueue` ，它们会在构件到达后立即应用。 |
 
+### 产品分析事件
+
+这些来自录制器在录制之外为 [产品分析](/docs/rum/product-analytics#发送事件和指标) 发送的事件。
+
+| 代码 | 含义 |
+| --- | --- |
+| `analytics-started` | 应用程序开启了产品分析事件，因此录制器会发送每个会话的开始、其页面浏览以及你对 `track()` 和 `metric()` 的调用。 `userPropertyKeys` 说明它保留多少个用户属性。 |
+| `analytics-stopped` | 服务器不接受此页面的事件，因此不会再从它发送任何事件。 `status` 为 204 表示应用程序关闭了事件或会话回放，403 表示页面的来源不被允许，400 表示此录制器发送了服务器无法读取的批次； `reason` 说明是哪一种。 |
+| `metric-analytics-off` | 在应用程序关闭了产品分析事件时调用了 `metric()` 。没有发送任何内容：请在 **分析设置** 中开启它们。 |
+| `metric-name-refused` | `metric()` 收到了一个无法发送的名称。名称以字母开头，只包含字母、数字、 `_` 、 `.` 、 `-` 和 `/` ，最多 100 个字符，并且不以 `oneuptime.` 开头。 |
+| `metric-value-refused` | `metric()` 收到了一个不是有限数字的值。没有发送任何内容。 |
+
 ## Network 选项卡中完全没有请求
 
 按顺序检查这份清单；它是按每个原因成为答案的频率排序的。

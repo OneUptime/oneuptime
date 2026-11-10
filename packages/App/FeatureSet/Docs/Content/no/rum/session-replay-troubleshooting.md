@@ -285,6 +285,18 @@ Disse registrerer hva din egen kode ba opptakeren om. De er der for å bekrefte 
 | `api-stop` | `stop()` ble kalt. Den siste chunken ble lastet opp, og økten ble forseglet; ingenting tas opp resten av sidens levetid. |
 | `api-no-recorder` | Et av kallene over kjørte uten noen aktiv opptaker — vanligvis fordi det kjørte før opptakerens artefakt ble lastet inn. Legg i stedet `[command, ...arguments]`-oppføringer i `window.OneUptimeReplayQueue`, så brukes de så snart den kommer. |
 
+### Produktanalysehendelser
+
+Disse kommer fra hendelsene opptakeren sender for [Produktanalyse](/docs/rum/product-analytics#send-hendelser-og-målinger), ved siden av opptaket.
+
+| code | hva det betyr |
+| --- | --- |
+| `analytics-started` | Applikasjonen har produktanalysehendelser slått på, så opptakeren sender starten på hver økt, sidevisningene og kallene dine til `track()` og `metric()`. `userPropertyKeys` sier hvor mange brukeregenskaper den beholder. |
+| `analytics-stopped` | Serveren tar ikke imot hendelsene fra denne siden, så ingen sendes fra den igjen. `status` 204 betyr at applikasjonen har dem eller Øktavspilling slått av, 403 at sidens opprinnelse ikke er tillatt, og 400 at denne opptakeren sendte en pulje serveren ikke kan lese; `reason` sier hvilken. |
+| `metric-analytics-off` | `metric()` ble kalt mens applikasjonen har produktanalysehendelser slått av. Ingenting ble sendt: slå dem på under **Analyseinnstillinger**. |
+| `metric-name-refused` | `metric()` fikk et navn den ikke kan sende. Et navn begynner med en bokstav, inneholder bare bokstaver, sifre, `_`, `.`, `-` og `/`, er høyst 100 tegn langt og begynner ikke med `oneuptime.`. |
+| `metric-value-refused` | `metric()` fikk en verdi som ikke er et endelig tall. Ingenting ble sendt. |
+
 ## Ingen forespørsel på fanen Nettverk
 
 Gå gjennom denne listen; den er sortert etter hvor ofte hver årsak er svaret.

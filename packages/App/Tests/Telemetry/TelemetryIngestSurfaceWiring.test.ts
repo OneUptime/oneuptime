@@ -98,6 +98,11 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
     surfaceMember: "OtelProfiles",
   },
   {
+    file: `${TELEMETRY_API_DIRECTORY}/ProductAnalyticsEventIngest.ts`,
+    routePath: "/session-replay/v1/events",
+    surfaceMember: "SessionReplay",
+  },
+  {
     file: `${TELEMETRY_API_DIRECTORY}/Pyroscope.ts`,
     routePath: "/pyroscope/ingest",
     surfaceMember: "Pyroscope",
@@ -171,6 +176,12 @@ const EXPECTED_BROWSER_REACHABLE_ROUTE_PATHS: Array<string> = [
   "/otlp/v1/traces",
   "/session-replay/v1/chunk",
   "/session-replay/v1/config",
+  /*
+   * Product analytics events (issue #6444): the browser recorder sends a
+   * session's events and metric() points with the same published key it
+   * sends replay chunks with, behind the same application policy.
+   */
+  "/session-replay/v1/events",
 ];
 
 function repoPath(relative: string): string {

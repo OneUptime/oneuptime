@@ -959,6 +959,18 @@ export interface SessionReplayConfigResponse {
    */
   frustrationSignals?: SessionReplayFrustrationSignalsConfig;
 
+  /*
+   * Product analytics events (issue #6444, part two): whether the recorder
+   * also sends its events and metric() points - from every session, sampled
+   * or not - to PRODUCT_ANALYTICS_EVENTS_PATH, and which identify() traits
+   * they may carry (ProductAnalyticsEvents.ts). Optional like the fields
+   * above: absent reads as off, so an older server never gets a batch.
+   */
+  productAnalytics?: {
+    enabled: boolean;
+    userPropertyKeys: Array<string>;
+  };
+
   respectDoNotTrack: boolean;
 
   /*

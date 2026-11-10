@@ -285,6 +285,18 @@ Estos registran lo que tu propio código pidió al grabador. Sirven para confirm
 | `api-stop` | Se llamó a `stop()`. Se subió el último fragmento y se selló la sesión; no se graba nada durante el resto de la vida de la página. |
 | `api-no-recorder` | Una de las llamadas anteriores se ejecutó sin ningún grabador activo — normalmente porque se ejecutó antes de que se cargara el artefacto del grabador. Mete en su lugar entradas `[command, ...arguments]` en `window.OneUptimeReplayQueue`, y se aplican en cuanto llega. |
 
+### Eventos de analítica de producto
+
+Estos vienen de los eventos que el grabador envía para la [Analítica de producto](/docs/rum/product-analytics#enviar-eventos-y-métricas), junto a la grabación.
+
+| code | qué significa |
+| --- | --- |
+| `analytics-started` | La aplicación tiene activados los eventos de analítica de producto, así que el grabador envía el inicio de cada sesión, sus vistas de página y tus llamadas a `track()` y `metric()`. `userPropertyKeys` dice cuántas propiedades de usuario conserva. |
+| `analytics-stopped` | El servidor no acepta los eventos de esta página, así que ya no se envía ninguno desde ella. `status` 204 significa que la aplicación los tiene desactivados, o tiene desactivada la Reproducción de sesiones, 403 que el origen de la página no está permitido, y 400 que este grabador envió un lote que el servidor no puede leer; `reason` dice cuál. |
+| `metric-analytics-off` | Se llamó a `metric()` mientras la aplicación tiene desactivados los eventos de analítica de producto. No se envió nada: actívalos en **Ajustes de analítica**. |
+| `metric-name-refused` | `metric()` recibió un nombre que no puede enviar. Un nombre empieza por una letra, solo tiene letras, dígitos, `_`, `.`, `-` y `/`, tiene 100 caracteres como máximo y no empieza por `oneuptime.`. |
+| `metric-value-refused` | `metric()` recibió un valor que no es un número finito. No se envió nada. |
+
 ## Ninguna solicitud en la pestaña Red
 
 Recorre esta lista; está ordenada según la frecuencia con la que cada causa es la respuesta.

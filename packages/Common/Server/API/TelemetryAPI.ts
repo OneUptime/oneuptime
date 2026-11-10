@@ -275,6 +275,7 @@ import {
   MAX_PRODUCT_ANALYTICS_OFFSET,
   MAX_PRODUCT_ANALYTICS_PEOPLE_LIMIT,
   MAX_PRODUCT_ANALYTICS_PERSON_SESSIONS_LIMIT,
+  PRODUCT_ANALYTICS_BREAKDOWN_LIMIT,
   PRODUCT_ANALYTICS_DIMENSIONS,
   PRODUCT_ANALYTICS_DORMANT_AFTER_DAYS_OPTIONS,
   PRODUCT_ANALYTICS_MAX_RANGE_DAYS,
@@ -290,6 +291,32 @@ import {
   isProductAnalyticsPersonKey,
   toProductAnalyticsTimeZone,
 } from "../../Types/Rum/ProductAnalytics";
+import RumProductAnalyticsEventReadService from "../Utils/RumProductAnalytics/RumProductAnalyticsEventReadService";
+import {
+  PRODUCT_ANALYTICS_EVENT_KINDS,
+  ProductAnalyticsEventKind,
+} from "../../Types/Rum/ProductAnalyticsEvents";
+import {
+  DEFAULT_PRODUCT_ANALYTICS_FUNNEL_WINDOW_MS,
+  PRODUCT_ANALYTICS_FUNNEL_MAX_STEPS,
+  PRODUCT_ANALYTICS_FUNNEL_MIN_STEPS,
+  PRODUCT_ANALYTICS_FUNNEL_WINDOWS_MS,
+  PRODUCT_ANALYTICS_MAX_SEGMENT_FILTERS,
+  PRODUCT_ANALYTICS_RETENTION_PERIODS,
+  ProductAnalyticsEventBreakdownDto,
+  ProductAnalyticsEventNamesDto,
+  ProductAnalyticsEventPropertiesDto,
+  ProductAnalyticsEventRef,
+  ProductAnalyticsEventTrendDto,
+  ProductAnalyticsFieldRef,
+  ProductAnalyticsFunnelDto,
+  ProductAnalyticsRetentionDto,
+  ProductAnalyticsRetentionPeriod,
+  ProductAnalyticsSegmentFilter,
+  toProductAnalyticsEventRef,
+  toProductAnalyticsFieldRef,
+  toProductAnalyticsSegmentFilter,
+} from "../../Types/Rum/ProductAnalyticsEventReads";
 import zlib from "zlib";
 import { promisify } from "util";
 import OldestKeyMap from "../../Utils/OldestKeyMap";
@@ -7812,6 +7839,449 @@ router.post(
         req,
         res,
         person as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * ---- Product analytics events (issue #6444, part two) ----
+ *
+ * Six reads behind a RUM application's Events, Funnels and Retention pages,
+ * over the events the recorders send from every session
+ * (RumProductAnalyticsEventReadService). The same door as the five reads
+ * above: /list's guard, plan gate and label-scoped application check. They
+ * never name who a signed-in user is - a person is counted, not named - so
+ * no identity permission is asked for; the user properties they break down
+ * by are the identify() traits the application's admins chose to keep for
+ * analytics (RumApplication.productAnalyticsUserPropertyKeys).
+ *
+ * Every value the body carries is checked here, so a bad one is a 400 and
+ * never a driver error.
+ */
+
+/* An event the body names under `key`: a kind, and a name for a page or a custom event. */
+type ReadEventRefFromBodyFunction = (
+  body: JSONObject,
+  key: string,
+) => ProductAnalyticsEventRef;
+
+const readEventRefFromBody: ReadEventRefFromBodyFunction = (
+  body: JSONObject,
+  key: string,
+): ProductAnalyticsEventRef => {
+  const event: ProductAnalyticsEventRef | null = toProductAnalyticsEventRef(
+    body[key],
+  );
+
+  if (!event) {
+    throw new BadDataException(
+      `${key} must be an event: a kind (${PRODUCT_ANALYTICS_EVENT_KINDS.join(", ")}) and, for a page or a custom event, its name.`,
+    );
+  }
+
+  return event;
+};
+
+/* The segment: at most PRODUCT_ANALYTICS_MAX_SEGMENT_FILTERS field = value filters. */
+type ReadSegmentFiltersFromBodyFunction = (
+  body: JSONObject,
+) => Array<ProductAnalyticsSegmentFilter>;
+
+const readSegmentFiltersFromBody: ReadSegmentFiltersFromBodyFunction = (
+  body: JSONObject,
+): Array<ProductAnalyticsSegmentFilter> => {
+  const value: unknown = body["filters"];
+
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  if (
+    !Array.isArray(value) ||
+    value.length > PRODUCT_ANALYTICS_MAX_SEGMENT_FILTERS
+  ) {
+    throw new BadDataException(
+      `filters must be a list of at most ${PRODUCT_ANALYTICS_MAX_SEGMENT_FILTERS} filters.`,
+    );
+  }
+
+  return (value as Array<unknown>).map(
+    (entry: unknown): ProductAnalyticsSegmentFilter => {
+      const filter: ProductAnalyticsSegmentFilter | null =
+        toProductAnalyticsSegmentFilter(entry);
+
+      if (!filter) {
+        throw new BadDataException(
+          "Each filter needs a field, a key for a property or a user property, and a value.",
+        );
+      }
+
+      return filter;
+    },
+  );
+};
+
+/* The reader's IANA time zone; UTC when the body names none. */
+type ReadTimeZoneFromBodyFunction = (body: JSONObject) => string;
+
+const readTimeZoneFromBody: ReadTimeZoneFromBodyFunction = (
+  body: JSONObject,
+): string => {
+  const rawTimeZone: unknown = body["timeZone"];
+  const timeZone: string | null =
+    rawTimeZone === undefined || rawTimeZone === null
+      ? DEFAULT_PRODUCT_ANALYTICS_TIME_ZONE
+      : toProductAnalyticsTimeZone(rawTimeZone);
+
+  if (!timeZone) {
+    throw new BadDataException(
+      "timeZone must be an IANA time zone, such as Europe/Berlin.",
+    );
+  }
+
+  return timeZone;
+};
+
+/* The events the application sent in the range, the most frequent first. */
+router.post(
+  "/telemetry/rum/product-analytics/event-names",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const request: ProductAnalyticsRequest =
+        await readProductAnalyticsRequest(req);
+
+      const rawKind: unknown = request.body["kind"];
+
+      if (
+        rawKind !== undefined &&
+        rawKind !== null &&
+        !PRODUCT_ANALYTICS_EVENT_KINDS.includes(
+          rawKind as ProductAnalyticsEventKind,
+        )
+      ) {
+        throw new BadDataException(
+          `kind must be one of ${PRODUCT_ANALYTICS_EVENT_KINDS.join(", ")}.`,
+        );
+      }
+
+      const range: { startTime: Date; endTime: Date } =
+        readProductAnalyticsRange(request.body);
+
+      const names: ProductAnalyticsEventNamesDto =
+        await RumProductAnalyticsEventReadService.listEventNames({
+          projectId: request.projectId,
+          rumApplicationId: request.rumApplicationId,
+          startTime: range.startTime,
+          endTime: range.endTime,
+          kind:
+            rawKind === undefined || rawKind === null
+              ? undefined
+              : (rawKind as ProductAnalyticsEventKind),
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        names as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/* One event day by day in the reader's zone, in a segment. */
+router.post(
+  "/telemetry/rum/product-analytics/event-trend",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const request: ProductAnalyticsRequest =
+        await readProductAnalyticsRequest(req);
+
+      const event: ProductAnalyticsEventRef = readEventRefFromBody(
+        request.body,
+        "event",
+      );
+      const filters: Array<ProductAnalyticsSegmentFilter> =
+        readSegmentFiltersFromBody(request.body);
+      const timeZone: string = readTimeZoneFromBody(request.body);
+      const range: { startTime: Date; endTime: Date } =
+        readProductAnalyticsRange(request.body);
+
+      const trend: ProductAnalyticsEventTrendDto =
+        await RumProductAnalyticsEventReadService.getEventTrend({
+          projectId: request.projectId,
+          rumApplicationId: request.rumApplicationId,
+          startTime: range.startTime,
+          endTime: range.endTime,
+          event: event,
+          filters: filters,
+          timeZone: timeZone,
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        trend as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/* One event by a field: device, browser, system, country, version, page or a property. */
+router.post(
+  "/telemetry/rum/product-analytics/event-breakdown",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const request: ProductAnalyticsRequest =
+        await readProductAnalyticsRequest(req);
+
+      const event: ProductAnalyticsEventRef = readEventRefFromBody(
+        request.body,
+        "event",
+      );
+      const breakdown: ProductAnalyticsFieldRef | null =
+        toProductAnalyticsFieldRef(request.body["breakdown"]);
+
+      if (!breakdown) {
+        throw new BadDataException(
+          "breakdown must name a field, and a key for a property or a user property.",
+        );
+      }
+
+      const filters: Array<ProductAnalyticsSegmentFilter> =
+        readSegmentFiltersFromBody(request.body);
+      const limit: number = readLimitFromBody(
+        request.body,
+        PRODUCT_ANALYTICS_BREAKDOWN_LIMIT,
+        PRODUCT_ANALYTICS_BREAKDOWN_LIMIT,
+      );
+      const range: { startTime: Date; endTime: Date } =
+        readProductAnalyticsRange(request.body);
+
+      const result: ProductAnalyticsEventBreakdownDto =
+        await RumProductAnalyticsEventReadService.getEventBreakdown({
+          projectId: request.projectId,
+          rumApplicationId: request.rumApplicationId,
+          startTime: range.startTime,
+          endTime: range.endTime,
+          event: event,
+          filters: filters,
+          breakdown: breakdown,
+          limit: limit,
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        result as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/* The property and user property keys one event carried: what to break it down by. */
+router.post(
+  "/telemetry/rum/product-analytics/event-properties",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const request: ProductAnalyticsRequest =
+        await readProductAnalyticsRequest(req);
+
+      const event: ProductAnalyticsEventRef = readEventRefFromBody(
+        request.body,
+        "event",
+      );
+      const range: { startTime: Date; endTime: Date } =
+        readProductAnalyticsRange(request.body);
+
+      const properties: ProductAnalyticsEventPropertiesDto =
+        await RumProductAnalyticsEventReadService.getEventProperties({
+          projectId: request.projectId,
+          rumApplicationId: request.rumApplicationId,
+          startTime: range.startTime,
+          endTime: range.endTime,
+          event: event,
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        properties as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/* A funnel of two to six steps, in a window the page offers, in a segment. */
+router.post(
+  "/telemetry/rum/product-analytics/funnel",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const request: ProductAnalyticsRequest =
+        await readProductAnalyticsRequest(req);
+
+      const rawSteps: unknown = request.body["steps"];
+
+      if (
+        !Array.isArray(rawSteps) ||
+        rawSteps.length < PRODUCT_ANALYTICS_FUNNEL_MIN_STEPS ||
+        rawSteps.length > PRODUCT_ANALYTICS_FUNNEL_MAX_STEPS
+      ) {
+        throw new BadDataException(
+          `steps must be a list of ${PRODUCT_ANALYTICS_FUNNEL_MIN_STEPS} to ${PRODUCT_ANALYTICS_FUNNEL_MAX_STEPS} events.`,
+        );
+      }
+
+      const steps: Array<ProductAnalyticsEventRef> = (
+        rawSteps as Array<unknown>
+      ).map((step: unknown, index: number): ProductAnalyticsEventRef => {
+        const event: ProductAnalyticsEventRef | null =
+          toProductAnalyticsEventRef(step);
+
+        if (!event) {
+          throw new BadDataException(
+            `Step ${index + 1} must be an event: a kind (${PRODUCT_ANALYTICS_EVENT_KINDS.join(", ")}) and, for a page or a custom event, its name.`,
+          );
+        }
+
+        return event;
+      });
+
+      const rawWindow: unknown = request.body["windowMs"];
+      const windowMs: number =
+        rawWindow === undefined || rawWindow === null
+          ? DEFAULT_PRODUCT_ANALYTICS_FUNNEL_WINDOW_MS
+          : (rawWindow as number);
+
+      if (
+        typeof windowMs !== "number" ||
+        !PRODUCT_ANALYTICS_FUNNEL_WINDOWS_MS.includes(windowMs)
+      ) {
+        throw new BadDataException(
+          `windowMs must be one of ${PRODUCT_ANALYTICS_FUNNEL_WINDOWS_MS.join(", ")}.`,
+        );
+      }
+
+      const filters: Array<ProductAnalyticsSegmentFilter> =
+        readSegmentFiltersFromBody(request.body);
+      const range: { startTime: Date; endTime: Date } =
+        readProductAnalyticsRange(request.body);
+
+      const funnel: ProductAnalyticsFunnelDto =
+        await RumProductAnalyticsEventReadService.getFunnel({
+          projectId: request.projectId,
+          rumApplicationId: request.rumApplicationId,
+          startTime: range.startTime,
+          endTime: range.endTime,
+          steps: steps,
+          filters: filters,
+          windowMs: windowMs,
+          now: OneUptimeDate.getCurrentDate(),
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        funnel as unknown as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/* Retention: cohorts by the first start event, returning on the return event. */
+router.post(
+  "/telemetry/rum/product-analytics/retention",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const request: ProductAnalyticsRequest =
+        await readProductAnalyticsRequest(req);
+
+      const startEvent: ProductAnalyticsEventRef = readEventRefFromBody(
+        request.body,
+        "startEvent",
+      );
+      const returnEvent: ProductAnalyticsEventRef = readEventRefFromBody(
+        request.body,
+        "returnEvent",
+      );
+
+      const rawPeriod: unknown = request.body["period"];
+      const period: ProductAnalyticsRetentionPeriod =
+        rawPeriod === undefined || rawPeriod === null
+          ? ProductAnalyticsRetentionPeriod.Week
+          : (rawPeriod as ProductAnalyticsRetentionPeriod);
+
+      if (!PRODUCT_ANALYTICS_RETENTION_PERIODS.includes(period)) {
+        throw new BadDataException(
+          `period must be one of ${PRODUCT_ANALYTICS_RETENTION_PERIODS.join(", ")}.`,
+        );
+      }
+
+      const filters: Array<ProductAnalyticsSegmentFilter> =
+        readSegmentFiltersFromBody(request.body);
+      const timeZone: string = readTimeZoneFromBody(request.body);
+      const range: { startTime: Date; endTime: Date } =
+        readProductAnalyticsRange(request.body);
+
+      const retention: ProductAnalyticsRetentionDto =
+        await RumProductAnalyticsEventReadService.getRetention({
+          projectId: request.projectId,
+          rumApplicationId: request.rumApplicationId,
+          startTime: range.startTime,
+          endTime: range.endTime,
+          startEvent: startEvent,
+          returnEvent: returnEvent,
+          filters: filters,
+          period: period,
+          timeZone: timeZone,
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        retention as unknown as JSONObject,
       );
     } catch (err: unknown) {
       next(err);

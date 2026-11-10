@@ -14,7 +14,7 @@ import {
 } from "Common/UI/Components/Table/TableHeaderControls";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
@@ -96,12 +96,24 @@ export function ProductAnalyticsToolbar(props: {
  * in the tables. Said when the range reaches back past that, so a month
  * that is half empty reads as new rather than as a month nobody came.
  */
+export const COUNTING_SINCE_SESSIONS: string = translationKey(
+  "Counting started on {{date}}. Sessions recorded before then are not in these numbers.",
+);
+
+/* The same note on the Events, Funnels and Retention pages, which count events. */
+export const COUNTING_SINCE_EVENTS: string = translationKey(
+  "Counting started on {{date}}. Events sent before then are not in these numbers.",
+);
+
 export const ProductAnalyticsCountingSince: FunctionComponent<{
   dataStartedAt: number | null;
   startTime: Date;
+  // The sentence, with {{date}}; part one's sessions sentence when left out.
+  template?: string | undefined;
 }> = (props: {
   dataStartedAt: number | null;
   startTime: Date;
+  template?: string | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
 
@@ -124,7 +136,7 @@ export const ProductAnalyticsCountingSince: FunctionComponent<{
       />
       <p>
         {translator.translateTemplate(
-          "Counting started on {{date}}. Sessions recorded before then are not in these numbers.",
+          props.template || COUNTING_SINCE_SESSIONS,
           {
             date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
               new Date(props.dataStartedAt),
