@@ -1,4 +1,5 @@
 import Alert from "../../../Models/DatabaseModels/Alert";
+import OnCallPageTiming from "../OnCall/OnCallPageTiming";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -1116,12 +1117,26 @@ export default class MonitorAlert {
             logger.error(error, alertLogAttributes);
           }
 
-          const createdAlert: Alert = await AlertService.create({
-            data: alert,
-            props: {
-              isRoot: true,
-            },
-          });
+          /*
+           * Its pages start when OneUptime received the data that tripped
+           * the monitor, when it knows it (OnCallPageTiming).
+           */
+          const createdAlert: Alert =
+            await OnCallPageTiming.runAsMonitorTriggered(
+              {
+                dataReceivedAt: OnCallPageTiming.getMonitorDataReceivedAt(
+                  input.dataToProcess,
+                ),
+              },
+              (): Promise<Alert> => {
+                return AlertService.create({
+                  data: alert,
+                  props: {
+                    isRoot: true,
+                  },
+                });
+              },
+            );
 
           await OpenStackScopedRules.finishAlert({
             projectId: input.monitor.projectId!,
