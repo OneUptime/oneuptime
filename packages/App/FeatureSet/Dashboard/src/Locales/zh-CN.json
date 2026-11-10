@@ -47662,6 +47662,8 @@
   "Remove after": "多久后删除",
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "删除一段时间内未出现的已发现设备。已监控和已分类的设备，以及有人添加或更改过的设备，始终保留。",
   "Unseen Devices": "未出现的设备",
+  "Incoming Monitor Request As Received": "按原样接收的传入监视器请求",
+  "The monitor keeps no request content: its headers and body are not shown.": "该监视器不保留请求内容：不显示其请求头和请求正文。",
   "1 to 3 minutes": "1 到 3 分钟",
   "10 to 30 minutes": "10 到 30 分钟",
   "10 to 30 seconds": "10 到 30 秒",

@@ -47662,6 +47662,8 @@
   "Remove after": "الإزالة بعد",
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "أزِل الأجهزة المكتشفة التي لم تُرَ منذ مدة. تبقى دائمًا الأجهزة التي تحت المراقبة والمصنَّفة، وتلك التي أضافها أحد أو غيّرها.",
   "Unseen Devices": "الأجهزة الغائبة",
+  "Incoming Monitor Request As Received": "طلب المراقبة الوارد كما استُلم",
+  "The monitor keeps no request content: its headers and body are not shown.": "لا تحتفظ المراقبة بمحتوى الطلب: لا تُعرض ترويساته ولا متنه.",
   "1 to 3 minutes": "من دقيقة إلى 3 دقائق",
   "10 to 30 minutes": "من 10 إلى 30 دقيقة",
   "10 to 30 seconds": "من 10 إلى 30 ثانية",

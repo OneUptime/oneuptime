@@ -47662,6 +47662,8 @@
   "Remove after": "削除するまでの期間",
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "しばらく確認されていない検出済みデバイスを削除します。監視中や分類済みのデバイス、および誰かが追加または変更したデバイスは常に残ります。",
   "Unseen Devices": "確認されていないデバイス",
+  "Incoming Monitor Request As Received": "受信したままの受信モニターのリクエスト",
+  "The monitor keeps no request content: its headers and body are not shown.": "このモニターはリクエストの内容を保持しません。ヘッダーと本文は表示されません。",
   "1 to 3 minutes": "1～3 分",
   "10 to 30 minutes": "10～30 分",
   "10 to 30 seconds": "10～30 秒",

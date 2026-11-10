@@ -128,6 +128,7 @@ import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAnd
 import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
 import RecordApproversAskedAboutWaitingPublicNotes from "./RecordApproversAskedAboutWaitingPublicNotes";
 import RestoreNamespaceMetricMonitorTotals from "./RestoreNamespaceMetricMonitorTotals";
+import RedactLatestIncomingRequests from "./RedactLatestIncomingRequests";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
 import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
@@ -990,6 +991,18 @@ const DataMigrations: Array<DataMigrationBase> = [
    * asserts for itself.
    */
   new AddSessionReplayCustomSignalColumns(),
+  /*
+   * An Incoming Request monitor's latest request is kept twice since #6402:
+   * as it came, for the heartbeat job alone
+   * (Monitor.incomingMonitorRequestAsReceived), and as people read it, cut
+   * as the monitor's logs are, by its Keep request content switch. Each
+   * request kept once, as it came, is split so. After the schema migration
+   * AddIncomingMonitorRequestAsReceived; Postgres-only and idempotent, with
+   * no other order of its own, so it sits above the runbook moves, which
+   * keep their places right before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new RedactLatestIncomingRequests(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

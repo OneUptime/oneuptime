@@ -47662,6 +47662,8 @@
   "Remove after": "حذف پس از",
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "دستگاه‌های کشف‌شده‌ای را که مدتی دیده نشده‌اند حذف کنید. دستگاه‌های پایش‌شده و طبقه‌بندی‌شده، و آن‌هایی که کسی افزوده یا تغییر داده، همیشه می‌مانند.",
   "Unseen Devices": "دستگاه‌های دیده‌نشده",
+  "Incoming Monitor Request As Received": "درخواست ورودی مانیتور به همان شکل دریافت‌شده",
+  "The monitor keeps no request content: its headers and body are not shown.": "این مانیتور محتوای درخواست را نگه نمی‌دارد: سرآیندها و بدنهٔ آن نشان داده نمی‌شوند.",
   "1 to 3 minutes": "۱ تا ۳ دقیقه",
   "10 to 30 minutes": "۱۰ تا ۳۰ دقیقه",
   "10 to 30 seconds": "۱۰ تا ۳۰ ثانیه",

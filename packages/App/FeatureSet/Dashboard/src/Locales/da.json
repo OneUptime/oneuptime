@@ -47662,6 +47662,8 @@
   "Remove after": "Fjern efter",
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "Fjern opdagede enheder, der ikke er set i et stykke tid. Overvågede og klassificerede enheder samt dem, nogen har tilføjet eller ændret, bliver altid.",
   "Unseen Devices": "Usete enheder",
+  "Incoming Monitor Request As Received": "Indgående overvågningsanmodning som modtaget",
+  "The monitor keeps no request content: its headers and body are not shown.": "Overvågningen beholder intet anmodningsindhold: dens headere og brødtekst vises ikke.",
   "1 to 3 minutes": "1 til 3 minutter",
   "10 to 30 minutes": "10 til 30 minutter",
   "10 to 30 seconds": "10 til 30 sekunder",

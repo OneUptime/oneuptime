@@ -47662,6 +47662,8 @@
   "Remove after": "삭제 시점",
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "한동안 확인되지 않은 발견된 장치를 삭제합니다. 모니터링되거나 분류된 장치, 그리고 누군가 추가하거나 변경한 장치는 항상 남아 있습니다.",
   "Unseen Devices": "확인되지 않는 장치",
+  "Incoming Monitor Request As Received": "받은 그대로의 수신 모니터 요청",
+  "The monitor keeps no request content: its headers and body are not shown.": "이 모니터는 요청 내용을 보관하지 않으므로 헤더와 본문이 표시되지 않습니다.",
   "1 to 3 minutes": "1~3분",
   "10 to 30 minutes": "10~30분",
   "10 to 30 seconds": "10~30초",

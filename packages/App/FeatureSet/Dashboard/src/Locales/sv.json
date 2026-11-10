@@ -47662,6 +47662,8 @@
   "Remove after": "Ta bort efter",
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "Ta bort upptäckta enheter som inte har setts på ett tag. Övervakade och klassificerade enheter, och de som någon har lagt till eller ändrat, finns alltid kvar.",
   "Unseen Devices": "Osedda enheter",
+  "Incoming Monitor Request As Received": "Inkommande övervakningsförfrågan som den togs emot",
+  "The monitor keeps no request content: its headers and body are not shown.": "Övervakaren behåller inget av förfrågans innehåll: dess huvuden och brödtext visas inte.",
   "1 to 3 minutes": "1 till 3 minuter",
   "10 to 30 minutes": "10 till 30 minuter",
   "10 to 30 seconds": "10 till 30 sekunder",

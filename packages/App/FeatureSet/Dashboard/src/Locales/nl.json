@@ -47662,6 +47662,8 @@
   "Remove after": "Verwijderen na",
   "Remove discovered devices that haven't been seen for a while. Monitored and classified devices, and ones someone added or changed, always stay.": "Verwijder gedetecteerde apparaten die een tijd niet zijn gezien. Bewaakte en geclassificeerde apparaten, en apparaten die iemand heeft toegevoegd of gewijzigd, blijven altijd.",
   "Unseen Devices": "Niet-geziene apparaten",
+  "Incoming Monitor Request As Received": "Binnenkomend monitorverzoek zoals ontvangen",
+  "The monitor keeps no request content: its headers and body are not shown.": "De monitor bewaart geen verzoekinhoud: de headers en de body worden niet getoond.",
   "1 to 3 minutes": "1 tot 3 minuten",
   "10 to 30 minutes": "10 tot 30 minuten",
   "10 to 30 seconds": "10 tot 30 seconden",

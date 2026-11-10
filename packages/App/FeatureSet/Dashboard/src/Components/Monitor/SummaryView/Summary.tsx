@@ -300,6 +300,11 @@ const Summary: FunctionComponent<ComponentProps> = (
           probeName={selectedProbe?.name?.toString()}
           probeSummaryState={probeSummaryState}
           incomingMonitorRequest={props.incomingMonitorRequest}
+          /*
+           * The monitor's latest request, which the server keeps cut for
+           * readers as the monitor's logs are (#6402).
+           */
+          areIncomingRequestSecretsMasked={true}
           serverMonitorResponse={props.serverMonitorResponse}
           telemetryMonitorSummary={props.telemetryMonitorSummary}
           incomingRequestMonitorHeartbeatCheckedAt={
