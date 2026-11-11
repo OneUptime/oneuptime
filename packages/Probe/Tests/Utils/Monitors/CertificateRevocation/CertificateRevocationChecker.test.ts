@@ -25,6 +25,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
+import { SpyInstance } from "jest-mock";
 import CertificateRevocationChecker, {
   CertificateRevocationCheckResult,
 } from "../../../../Utils/Monitors/CertificateRevocation/CertificateRevocationChecker";
@@ -53,7 +54,7 @@ import CertificateRevocationStatus from "Common/Types/Monitor/SSLMonitor/Certifi
 type Handler = (options: RevocationFetchOptions) => Promise<Buffer>;
 
 let pki: RevocationTestPki;
-let fetchSpy: jest.SpiedFunction<typeof RevocationHttpClient.fetch>;
+let fetchSpy: SpyInstance<typeof RevocationHttpClient.fetch>;
 
 const unreachable: Handler = async (): Promise<Buffer> => {
   throw new RevocationFetchError("could not be reached (Cannot Find Host.)");

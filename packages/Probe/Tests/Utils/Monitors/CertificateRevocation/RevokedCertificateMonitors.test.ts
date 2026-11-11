@@ -37,6 +37,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
+import { SpyInstance } from "jest-mock";
 import CertificateRevocationChecker from "../../../../Utils/Monitors/CertificateRevocation/CertificateRevocationChecker";
 import RevocationHttpClient, {
   RevocationFetchError,
@@ -166,7 +167,7 @@ async function startHttpsServer(data: {
   return testServer;
 }
 
-let fetchSpy: jest.SpiedFunction<typeof RevocationHttpClient.fetch>;
+let fetchSpy: SpyInstance<typeof RevocationHttpClient.fetch>;
 
 // The issuer's responder and CRL, reachable or not.
 function issuerServices(reachable: boolean): void {
