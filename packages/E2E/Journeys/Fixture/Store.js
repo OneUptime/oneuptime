@@ -15,6 +15,11 @@
  * Nothing is timed and nothing is random: ids are counted, and every record
  * is made at the fixture's pinned instant (NOW), so two runs of a journey
  * read the same pages.
+ *
+ * Like a server, it outlives a reload: every write is kept in the tab's
+ * sessionStorage (`journalKey`) and done again when the page loads, so a
+ * page that reloads itself after a save (Navigation.reload) finds what the
+ * journey made.
  */
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -28,6 +33,7 @@ import EqualTo from "Common/Types/BaseDatabase/EqualTo";
 import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
+import JSONFunctions from "Common/Types/JSONFunctions";
 
 // The instant every journey runs at; the spec pins the browser's clock to it.
 export const NOW = new Date("2026-11-11T10:00:00.000Z");
@@ -104,18 +110,82 @@ export function createStore(options) {
   const projectId = options.projectId;
   const tables = new Map();
   const log = options.log;
+  const journalKey = options.journalKey || null;
+  let journal = [];
   let counter = 0;
 
   function tableName(modelType) {
     return String(new modelType().tableName);
   }
 
-  function table(modelType) {
-    const name = tableName(modelType);
+  function tableByName(name) {
     if (!tables.has(name)) {
-      tables.set(name, { modelType, records: [] });
+      tables.set(name, { modelType: null, records: [] });
     }
-    return tables.get(name).records;
+    return tables.get(name);
+  }
+
+  function table(modelType) {
+    const entry = tableByName(tableName(modelType));
+    entry.modelType = entry.modelType || modelType;
+    return entry.records;
+  }
+
+  // Every write, kept for the next load of this tab (see above).
+  function remember(entry) {
+    if (!journalKey) {
+      return;
+    }
+    journal.push(entry);
+    try {
+      window.sessionStorage.setItem(
+        journalKey,
+        JSON.stringify({ counter, journal }),
+      );
+    } catch {
+      // A tab without storage keeps its writes until it reloads.
+    }
+  }
+
+  // Does again, in order, every write this tab made before it reloaded.
+  function restore() {
+    if (!journalKey) {
+      return;
+    }
+    let saved = null;
+    try {
+      saved = JSON.parse(window.sessionStorage.getItem(journalKey) || "null");
+    } catch {
+      saved = null;
+    }
+    if (!saved) {
+      return;
+    }
+    counter = saved.counter;
+    journal = saved.journal;
+    for (const entry of journal) {
+      const records = tableByName(entry.table).records;
+      if (entry.kind === "create") {
+        records.push(JSONFunctions.deserialize(entry.data));
+      } else if (entry.kind === "update") {
+        const record = records.find((candidate) => {
+          return idOf(candidate._id) === idOf(entry.id);
+        });
+        if (record) {
+          Object.assign(record, JSONFunctions.deserialize(entry.data));
+        }
+      } else if (entry.kind === "delete") {
+        const index = records.findIndex((candidate) => {
+          return idOf(candidate._id) === idOf(entry.id);
+        });
+        if (index !== -1) {
+          records.splice(index, 1);
+        }
+      }
+      if (entry.logged) {
+        log.writes.push(entry.logged);
+      }
+    }
   }
 
   // Ids are counted, never random: 90000000-0000-4000-8000-000000000001, ...
@@ -145,6 +215,60 @@ export function createStore(options) {
     full._id = String(full._id);
     table(modelType).push(full);
     return full;
+  }
+
+  /*
+   * A write, as the API makes it: kept, journaled, and logged for the spec
+   * (`logged`, left out for what the server makes on its own).
+   */
+  function create(modelType, record, logged) {
+    const full = insert(modelType, record);
+    const entry = {
+      kind: "create",
+      table: tableName(modelType),
+      data: JSONFunctions.serialize(full),
+    };
+    if (logged) {
+      entry.logged = { ...logged, data: serialize(full) };
+      log.writes.push(entry.logged);
+    }
+    remember(entry);
+    return full;
+  }
+
+  function update(modelType, id, data, logged) {
+    const record = find(modelType, id);
+    if (record) {
+      Object.assign(record, data, { updatedAt: NOW });
+    }
+    const entry = {
+      kind: "update",
+      table: tableName(modelType),
+      id: String(id),
+      data: JSONFunctions.serialize({ ...data }),
+    };
+    if (logged) {
+      entry.logged = { ...logged, id: String(id), data: serialize(data) };
+      log.writes.push(entry.logged);
+    }
+    remember(entry);
+    return record;
+  }
+
+  function remove(modelType, id, logged) {
+    const records = table(modelType);
+    const index = records.findIndex((record) => {
+      return idOf(record._id) === idOf(id);
+    });
+    if (index !== -1) {
+      records.splice(index, 1);
+    }
+    const entry = { kind: "delete", table: tableName(modelType), id: String(id) };
+    if (logged) {
+      entry.logged = { ...logged, id: String(id) };
+      log.writes.push(entry.logged);
+    }
+    remember(entry);
   }
 
   function find(modelType, id) {
@@ -351,6 +475,10 @@ export function createStore(options) {
     tableName,
     table,
     insert,
+    create,
+    update,
+    remove,
+    restore,
     find,
     list,
     toModel,
@@ -366,8 +494,6 @@ export function createStore(options) {
  * does (a new monitor's status, an on-call policy's rules).
  */
 export function installModelApi(ModelAPI, store, hooks) {
-  const writes = store.log.writes;
-
   ModelAPI.getList = async (options) => {
     const records = store.list(options.modelType, options.query, options.sort);
     const skip = Number(options.skip || 0);
@@ -405,15 +531,14 @@ export function installModelApi(ModelAPI, store, hooks) {
     let record;
 
     if (existing) {
-      Object.assign(existing, columns, { updatedAt: NOW });
-      record = existing;
-      writes.push({ kind: "update", table: name, data: serialize(columns) });
+      record = store.update(modelType, columns._id, columns, {
+        kind: "update",
+        table: name,
+      });
     } else {
-      record = store.insert(modelType, columns);
-      writes.push({
+      record = store.create(modelType, columns, {
         kind: "create",
         table: name,
-        data: serialize(record),
         misc: serialize(options.miscDataProps || {}),
       });
       if (hooks[name]) {
@@ -437,30 +562,21 @@ export function installModelApi(ModelAPI, store, hooks) {
 
   ModelAPI.updateById = async (options) => {
     const name = store.tableName(options.modelType);
-    const existing = store.find(options.modelType, options.id);
-    const data = { ...(options.data || {}) };
-    writes.push({
-      kind: "update",
-      table: name,
-      id: String(options.id),
-      data: serialize(data),
-    });
-    if (existing) {
-      Object.assign(existing, data, { updatedAt: NOW });
-    }
+    const existing = store.update(
+      options.modelType,
+      options.id,
+      { ...(options.data || {}) },
+      { kind: "update", table: name },
+    );
     return ok(existing ? serialize(existing) : {});
   };
 
   ModelAPI.deleteItem = async (options) => {
     const name = store.tableName(options.modelType);
-    const records = store.table(options.modelType);
-    const index = records.findIndex((record) => {
-      return idOf(record._id) === idOf(options.id);
+    store.remove(options.modelType, options.id, {
+      kind: "delete",
+      table: name,
     });
-    writes.push({ kind: "delete", table: name, id: String(options.id) });
-    if (index !== -1) {
-      records.splice(index, 1);
-    }
   };
 }
 

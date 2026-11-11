@@ -24,7 +24,8 @@ export default defineConfig({
   timeout: 180000,
   expect: { timeout: 15000 },
   retries: 0,
-  reporter: [["list"]],
+  // The second writes the table of every journey once all have run.
+  reporter: [["list"], ["./Journeys/JourneyReport.ts"]],
   outputDir: "../../output/playwright/journeys-ui/test-results",
   // A project's `use` wins over the top-level one, so the viewport goes here.
   projects: [

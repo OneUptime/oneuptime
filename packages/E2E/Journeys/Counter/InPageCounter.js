@@ -73,9 +73,61 @@
     choices: [],
     steps: {},
     stepOrder: [],
-    lastMutationAt: 0,
+    lastMutationAt: performance.now(),
   };
   const seenDialogs = new WeakSet();
+
+  /*
+   * A page that reloads itself (after a save, say) is still the same
+   * journey: what was counted is kept in the tab's sessionStorage as the
+   * page goes, and read back when the next document starts.
+   */
+  const STORAGE_KEY = "__journeyCounterState";
+  const COUNTS = [
+    "clicks",
+    "keystrokes",
+    "screens",
+    "products",
+    "fieldsTyped",
+    "defaultsKept",
+    "touched",
+    "choices",
+    "steps",
+    "stepOrder",
+  ];
+
+  function save() {
+    try {
+      const saved = { dialogs: dialogTitles().map((title, index) => {
+        return { screen: state.dialogs[index].screen, title };
+      }) };
+      for (const key of COUNTS) {
+        saved[key] = state[key];
+      }
+      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+    } catch {
+      // A tab without storage starts again after a reload.
+    }
+  }
+
+  function load() {
+    try {
+      const saved = JSON.parse(
+        window.sessionStorage.getItem(STORAGE_KEY) || "null",
+      );
+      if (!saved) {
+        return;
+      }
+      for (const key of COUNTS) {
+        state[key] = saved[key];
+      }
+      state.dialogs = saved.dialogs.map((dialog) => {
+        return { screen: dialog.screen, title: dialog.title, element: null };
+      });
+    } catch {
+      // Nothing kept: counting starts here.
+    }
+  }
 
   function now() {
     return performance.now();
@@ -449,12 +501,26 @@
     });
   }
 
+  load();
+  window.addEventListener("pagehide", save);
+
   window.__journeyCounter = {
     screenOf,
     productOf,
     noteSubmit,
-    // Milliseconds since the page last changed: the driver waits for quiet.
+    /*
+     * Milliseconds since the page last changed: the driver waits for quiet.
+     * A document still loading, or whose app has drawn nothing yet, is not
+     * quiet (-1): a full page load would otherwise read as at rest.
+     */
     quietFor() {
+      const root = document.getElementById("root");
+      if (
+        document.readyState !== "complete" ||
+        (root && root.childElementCount === 0)
+      ) {
+        return -1;
+      }
       return now() - state.lastMutationAt;
     },
     // Forget everything: the journey starts here.
@@ -472,6 +538,11 @@
       state.stepOrder = [];
       for (const dialog of openDialogs()) {
         seenDialogs.add(dialog);
+      }
+      try {
+        window.sessionStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // Nothing was kept.
       }
     },
     // Keep each open dialog's title while it is still on screen.

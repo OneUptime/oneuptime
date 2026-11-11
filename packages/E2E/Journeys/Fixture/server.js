@@ -94,8 +94,28 @@ const blankProfilePicture = path.join(
  * request that leaves this server. The Admin Dashboard runs on self-hosted
  * installations, with billing off.
  */
+/*
+ * What the page is told before its bundle runs. The fixture's query
+ * parameters (seed, as, billing) are kept in the tab's sessionStorage, so a
+ * page that reloads itself, or one an in-app link took to an address
+ * without them, is drawn for the same project and person.
+ */
+const BOOT = `(function () {
+  var names = ["seed", "as", "billing"];
+  var query = new URLSearchParams(window.location.search);
+  var kept = {};
+  try { kept = JSON.parse(window.sessionStorage.getItem("__journeyParams") || "{}"); } catch (e) {}
+  names.forEach(function (name) { if (query.has(name)) { kept[name] = query.get(name); } });
+  try { window.sessionStorage.setItem("__journeyParams", JSON.stringify(kept)); } catch (e) {}
+  window.__journeyParams = kept;
+  var billing = window.location.pathname.indexOf("/admin") !== 0 && kept.billing === "on";
+  window.process = { env: { HOST: "oneuptime.acme-commerce.example", HTTP_PROTOCOL: "https", BILLING_ENABLED: billing ? "true" : "false", IS_ENTERPRISE_EDITION: "false", VERSION: "14.0.108", NODE_ENV: "development" } };
+  window.global = window;
+  try { window.localStorage.setItem("oneuptime-dashboard-theme", "light"); } catch (e) {}
+})();`;
+
 function html(bundle, title) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><script>(function(){var query=new URLSearchParams(window.location.search);var billing=${bundle === "dashboard" ? 'query.get("billing")==="on"' : "false"};window.process={env:{HOST:"oneuptime.acme-commerce.example",HTTP_PROTOCOL:"https",BILLING_ENABLED:billing?"true":"false",IS_ENTERPRISE_EDITION:"false",VERSION:"14.0.108",NODE_ENV:"development"}};window.global=window;try{window.localStorage.setItem("oneuptime-dashboard-theme","light");}catch(e){}})();</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}html,body{margin:0;background-color:#f9fafb}*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}</style></head><body class="h-full bg-gray-50"><div id="root"></div><script type="module" src="/dist/${bundle}/${bundle === "dashboard" ? "Dashboard" : "Admin"}.js"></script></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><script>${BOOT}</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}html,body{margin:0;background-color:#f9fafb}*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}</style></head><body class="h-full bg-gray-50"><div id="root"></div><script type="module" src="/dist/${bundle}/${bundle === "dashboard" ? "Dashboard" : "Admin"}.js"></script></body></html>`;
 }
 
 function serveFile(response, file, contentType) {

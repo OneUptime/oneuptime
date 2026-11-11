@@ -6,7 +6,8 @@
  * replaced; every page, form, dialog and menu a journey passes through is
  * the production one.
  *
- * Steered by the query string (read once, as the page loads):
+ * Steered by the query string (kept for the tab, so a reload or a link
+ * that drops it changes nothing):
  *   - seed=<a,b>   what earlier journeys left behind, so each journey can
  *                  start where a newcomer would: `monitor` (the website
  *                  monitor of the first journey)
@@ -38,7 +39,8 @@ import {
 } from "./Store";
 import { seedNewProject, signIn, dashboardRoutes, dashboardHooks } from "./NewProject";
 
-const params = new URLSearchParams(window.location.search);
+// The query parameters, kept for the tab by server.js's boot script.
+const params = window.__journeyParams || {};
 
 const log = {
   writes: [],
@@ -51,10 +53,11 @@ window.__journeyFixture = log;
 const project = seedNewProject({
   createStore,
   log,
-  seeds: (params.get("seed") || "").split(",").filter(Boolean),
+  seeds: String(params.seed || "").split(",").filter(Boolean),
+  billing: params.billing === "on",
 });
 
-signIn(project, params.get("as") === "member" ? "member" : "owner");
+signIn(project, params.as === "member" ? "member" : "owner");
 
 installModelApi(ModelAPI, project.store, dashboardHooks(project));
 installAnalyticsModelApi(AnalyticsModelAPI, project.store);

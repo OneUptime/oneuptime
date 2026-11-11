@@ -89,14 +89,25 @@ export default class Journey {
     }
   }
 
-  // Waits until nothing on the page has changed for QUIET_MS.
+  /*
+   * Waits until nothing on the page has changed for QUIET_MS - through a
+   * full page load, which some links and saves make (Navigation.reload).
+   */
   public async settle(): Promise<void> {
     await expect
       .poll(
         async () => {
-          return await this.page.evaluate(() => {
-            return (window as unknown as CounterWindow).__journeyCounter.quietFor();
-          });
+          try {
+            return await this.page.evaluate(() => {
+              const counter: CounterWindow["__journeyCounter"] | undefined = (
+                window as unknown as Partial<CounterWindow>
+              ).__journeyCounter;
+              return counter ? counter.quietFor() : -1;
+            });
+          } catch {
+            // The page is between two documents.
+            return -1;
+          }
         },
         { intervals: [100, 100, 150, 250], timeout: 20000 },
       )
@@ -123,21 +134,36 @@ export default class Journey {
     return this.page.locator("main");
   }
 
-  // Products in the bar under the header, then the product by its name.
+  /*
+   * The products menu in the bar under the header - "Products" on Home, the
+   * product's own name inside one - then the product by its name.
+   */
   public async openProduct(name: string): Promise<void> {
     await this.step(`open ${name} from the Products menu`, async () => {
       await this.settle();
-      await this.page.getByRole("button", { name: "Products" }).click();
+      await this.page
+        .getByTestId("nav-children")
+        .locator("button")
+        .first()
+        .click();
       // The menu's dialog has no box of its own: its list is what shows.
       const menu: Locator = this.page
         .getByRole("dialog", { name: "Products menu" })
         .getByRole("listbox");
       await expect(menu).toBeVisible();
       await this.settle();
-      await menu
+      const option: Locator = menu
         .getByRole("option", { name: new RegExp(`^${name}\\b`) })
-        .first()
-        .click();
+        .first();
+      // A product in a folded category is found by typing its name.
+      if (!(await option.isVisible())) {
+        await this.page
+          .getByRole("dialog", { name: "Products menu" })
+          .getByRole("combobox")
+          .pressSequentially(name);
+        await this.settle();
+      }
+      await option.click();
       await expect(menu).toBeHidden();
       await this.settle();
     });
@@ -169,6 +195,27 @@ export default class Journey {
     });
   }
 
+  /*
+   * What the person waits for the product to show - "View logs" once the
+   * first logs are in - a link or a button. The product checks every few
+   * seconds (FIRST_RECORD_POLL_INTERVAL_MS is ten), so this waits up to
+   * `seconds`; waiting is not counted.
+   */
+  public async waitUntilShown(
+    name: string | RegExp,
+    seconds: number,
+  ): Promise<void> {
+    await this.step(`wait for "${name}"`, async () => {
+      const area: Locator = await this.workArea();
+      const target: Locator = area
+        .getByRole("link", { name })
+        .or(area.getByRole("button", { name }))
+        .first();
+      await expect(target).toBeVisible({ timeout: seconds * 1000 });
+      await this.settle();
+    });
+  }
+
   // A link, by its words, where the person works now.
   public async follow(name: string | RegExp, exact: boolean = true): Promise<void> {
     await this.step(`follow "${name}"`, async () => {
@@ -182,16 +229,28 @@ export default class Journey {
     });
   }
 
-  // A side menu entry of the page, by its words.
-  public async sideMenu(name: string): Promise<void> {
+  /*
+   * A side menu entry of the page, by its words: its section is opened
+   * first when it is folded.
+   */
+  public async sideMenu(name: string, section?: string): Promise<void> {
     await this.step(`choose "${name}" in the side menu`, async () => {
       await this.settle();
-      await this.page
+      const menu: Locator = this.page
         .locator("main")
-        .getByRole("navigation")
+        .getByRole("navigation", { name: "Main navigation" })
+        .first();
+      const entry: Locator = menu
         .getByRole("link", { name, exact: true })
-        .first()
-        .click();
+        .first();
+      if (section && !(await entry.isVisible())) {
+        await menu
+          .getByRole("button", { name: new RegExp(`^${section}`, "i") })
+          .first()
+          .click();
+        await this.settle();
+      }
+      await entry.click();
       await this.settle();
     });
   }
@@ -227,6 +286,19 @@ export default class Journey {
       await this.settle();
       await this.page
         .getByRole("option", { name: option })
+        .first()
+        .click();
+      await this.settle();
+    });
+  }
+
+  // An option of the list open now (a picker's, a people search's), by name.
+  public async option(name: string | RegExp): Promise<void> {
+    await this.step(`pick "${name}" from the open list`, async () => {
+      await this.settle();
+      await this.page
+        .getByRole("listbox")
+        .getByRole("option", { name })
         .first()
         .click();
       await this.settle();
