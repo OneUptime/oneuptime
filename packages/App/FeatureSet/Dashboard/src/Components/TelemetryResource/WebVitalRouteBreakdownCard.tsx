@@ -11,6 +11,7 @@ import { formatVital, ratingClasses, ratingLabel } from "./WebVitalsCard";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getLineDirection } from "Common/UI/Utils/LineDirection";
 
 /*
  * One web vital, per route, slowest first. On the RUM overview this is
@@ -128,7 +129,7 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
           <thead>
             <tr>
               <ResizableHeaderCell
-                className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                className="py-2 pe-4 text-start text-xs font-medium uppercase tracking-wider text-gray-500"
                 resize={routeColumns.getResize(
                   "route",
                   translator.translateText("Route") || "Route",
@@ -138,14 +139,14 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
                 <span>
                   {translator.translateText("Route")}
                   {props.breakdown?.routeAttribute ? (
-                    <span className="ml-1 font-mono normal-case tracking-normal text-gray-400">
+                    <span className="ms-1 font-mono normal-case tracking-normal text-gray-400">
                       ({props.breakdown.routeAttribute})
                     </span>
                   ) : null}
                 </span>
               </ResizableHeaderCell>
               <ResizableHeaderCell
-                className="py-2 pr-4 text-right text-xs font-medium uppercase tracking-wider text-gray-500"
+                className="py-2 pe-4 text-end text-xs font-medium uppercase tracking-wider text-gray-500"
                 resize={routeColumns.getResize(
                   "average",
                   translator.translateText("Average") || "Average",
@@ -155,7 +156,7 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
                 <span>{translator.translateText("Average")}</span>
               </ResizableHeaderCell>
               <ResizableHeaderCell
-                className="py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500"
+                className="py-2 text-end text-xs font-medium uppercase tracking-wider text-gray-500"
                 resize={routeColumns.getResize(
                   "rating",
                   translator.translateText("Rating") || "Rating",
@@ -178,15 +179,33 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
 
               return (
                 <tr key={route.route} data-testid="web-vital-route-row">
-                  <td className="max-w-md truncate py-2 pr-4 font-mono text-xs text-gray-700">
-                    {route.route}
+                  {/*
+                   * The route and the value read from the left on a page
+                   * read from the right too: "/checkout/:orderId/payment"
+                   * and "640 ms", not "checkout/:orderId/payment/" and
+                   * "ms 640". Each cell keeps the page's sides (pe-4,
+                   * text-end), so the columns line up under their names.
+                   */}
+                  <td className="max-w-md truncate py-2 pe-4 font-mono text-xs text-gray-700">
+                    <span
+                      dir={getLineDirection(route.route, translator.language)}
+                    >
+                      {route.route}
+                    </span>
                   </td>
                   <td
-                    className={`whitespace-nowrap py-2 pr-4 text-right font-semibold ${classes.text}`}
+                    className={`whitespace-nowrap py-2 pe-4 text-end font-semibold ${classes.text}`}
                   >
-                    {formatVital(rated)}
+                    <span
+                      dir={getLineDirection(
+                        formatVital(rated),
+                        translator.language,
+                      )}
+                    >
+                      {formatVital(rated)}
+                    </span>
                   </td>
-                  <td className="whitespace-nowrap py-2 text-right">
+                  <td className="whitespace-nowrap py-2 text-end">
                     <span
                       className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${classes.chip}`}
                     >

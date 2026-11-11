@@ -37,6 +37,11 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "Common/UI/Utils/LineDirection";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 
 /*
  * What the map says about the page or transition that was clicked, and the
@@ -189,7 +194,11 @@ function NeighbourList(props: {
                     style={{ width: `${Math.min(100, share * 100)}%` }}
                     aria-hidden="true"
                   />
-                  <span className="relative truncate font-mono text-xs text-gray-800 group-hover:text-indigo-700">
+                  {/* A path reads from the left on any page: "/home". */}
+                  <span
+                    className="relative truncate font-mono text-xs text-gray-800 group-hover:text-indigo-700"
+                    dir={getLineDirection(item.page, translator.language)}
+                  >
                     {item.page}
                   </span>
                   <span className="relative shrink-0 text-xs text-gray-500">
@@ -240,6 +249,16 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
     title: string,
     subtitle: string,
   ): ReactElement => {
+    /*
+     * A page's path, or two joined by an arrow: read from the left on a
+     * page read from the right too ("/cart → /home", not "home → /cart/"),
+     * and still starting where the page's lines do.
+     */
+    const titleDirection: ReadingDirection | undefined = getLineDirection(
+      title,
+      translator.language,
+    );
+
     return (
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
@@ -247,7 +266,10 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
             {subtitle}
           </p>
           <h3
-            className="break-all font-mono text-base font-semibold text-gray-900"
+            className={`break-all font-mono text-base font-semibold text-gray-900 ${
+              titleDirection ? LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME : ""
+            }`}
+            dir={titleDirection}
             data-testid="user-flow-detail-title"
           >
             {title}

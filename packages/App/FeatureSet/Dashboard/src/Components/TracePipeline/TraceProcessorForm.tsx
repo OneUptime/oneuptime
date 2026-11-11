@@ -100,6 +100,15 @@ interface CategoryRule {
   filterQuery: string;
 }
 
+/*
+ * The arrow between a mapping's match value and what it becomes. A row
+ * reads from the right on an Arabic or Persian page (the match value is
+ * on the right), and "→" is not a character that turns with the line, so
+ * it is turned there.
+ */
+export const MAPPING_ARROW_CLASS_NAME: string =
+  "inline-block text-gray-400 text-sm font-medium rtl:-scale-x-100";
+
 const asString: (value: JSONValue | undefined, fallback: string) => string = (
   value: JSONValue | undefined,
   fallback: string,
@@ -730,9 +739,7 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
                           />
                         </div>
                         <div className="col-span-1 flex justify-center">
-                          <span className="text-gray-400 text-sm font-medium">
-                            →
-                          </span>
+                          <span className={MAPPING_ARROW_CLASS_NAME}>→</span>
                         </div>
                         <div className="col-span-5">
                           <Input
@@ -889,9 +896,7 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
                         />
                       </div>
                       <div className="col-span-1 flex justify-center">
-                        <span className="text-gray-400 text-sm font-medium">
-                          →
-                        </span>
+                        <span className={MAPPING_ARROW_CLASS_NAME}>→</span>
                       </div>
                       <div className="col-span-3">
                         <Dropdown
@@ -1066,9 +1071,7 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
                           />
                         </div>
                         <div className="col-span-1 flex justify-center">
-                          <span className="text-gray-400 text-sm font-medium">
-                            →
-                          </span>
+                          <span className={MAPPING_ARROW_CLASS_NAME}>→</span>
                         </div>
                         <div className="col-span-5">
                           <Dropdown

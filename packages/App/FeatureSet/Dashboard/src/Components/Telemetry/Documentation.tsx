@@ -1539,7 +1539,13 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         </div>
         {/* Step content */}
         <div className={`flex-1 min-w-0 ${isLast ? "pb-0" : "pb-8"}`}>
-          <h4 className="text-sm font-semibold text-gray-900 leading-9">
+          {/*
+           * One line is as tall as the step's circle (py-2 + leading-5 =
+           * h-9), so a short title sits level with its number; a title that
+           * wraps ("Ihre Ingestion-Zugangsdaten abrufen" in a phone's
+           * column) keeps normal line spacing instead of a 36px gap.
+           */}
+          <h4 className="py-2 text-sm font-semibold text-gray-900 leading-5">
             {translate(title)}
           </h4>
           <p className="text-sm text-gray-500 mt-0.5 mb-3 leading-relaxed">

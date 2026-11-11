@@ -6,6 +6,11 @@ import AppLink from "../../AppLink/AppLink";
 import { formatReplayOffsetPrecise } from "../ReplayTimeFormat";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "Common/UI/Utils/LineDirection";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 import { ReplaySignal } from "./ReplaySignalTypes";
 import {
   ReplayRailGlyph,
@@ -135,6 +140,10 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
   const time: string = formatReplayOffsetPrecise(signal.offsetMs);
   const tag: string | null = sourceTag(signal);
   const detailId: string = `${props.domId}-detail`;
+  const titleDirection: ReadingDirection | undefined = getLineDirection(
+    signal.title,
+    translator.language,
+  );
 
   const textClass: string = props.isActive
     ? "text-gray-900"
@@ -201,7 +210,20 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
             {time}
           </span>
 
-          <span className="min-w-0 flex-1 truncate text-xs">
+          {/*
+           * A title is mostly what the page recorded: a path, a request, an
+           * error's message. Read the other way from the page ("/cart ->
+           * /checkout" on an Arabic page), its box reads the way the title
+           * does, so its slashes stay where they were written and a long
+           * title is cut at its own end; aligned to the box's end, it still
+           * starts where the page's lines do.
+           */}
+          <span
+            className={`min-w-0 flex-1 truncate text-xs ${
+              titleDirection ? LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME : ""
+            }`}
+            dir={titleDirection}
+          >
             {signal.title}
           </span>
 

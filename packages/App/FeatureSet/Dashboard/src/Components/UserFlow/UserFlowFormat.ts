@@ -8,6 +8,15 @@ import { translationKey, Translator } from "Common/Types/Translator";
  * English, as the tests pin them.
  */
 
+/*
+ * The map's own name for the pages it folds together at a step: Common's
+ * OTHER_PAGES_LABEL, which the map, its tooltips and the detail panel look
+ * up by its English. Named here, where the Dashboard's locales are drawn
+ * from, so each language words it (a test pins the two equal); before, no
+ * locale held it and every reader saw "Other pages".
+ */
+export const USER_FLOW_OTHER_PAGES_NAME: string = translationKey("Other pages");
+
 export function formatUserFlowCount(
   value: number,
   translator?: Translator | undefined,

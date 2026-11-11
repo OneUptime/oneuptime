@@ -54,6 +54,11 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "Common/UI/Utils/LineDirection";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 
 /*
  * The inline detail under a selected rail row, rendered by kind.
@@ -103,6 +108,17 @@ export interface ReplayRailDetailProps {
 
 /* ---- Small building blocks. ---- */
 
+/*
+ * A fact's label column. In the reader's language a label can be one word
+ * wider than any English one ("Eingabeverzögerung", "Inmatningsfördröjning",
+ * "Длительность"), which ran on under its value: the column is wider than
+ * the longest English label needs, and a word wider still breaks at a
+ * syllable of the page's language (hyphens-auto; PageLanguage sets the
+ * page's lang), or anywhere when the language has no hyphenation rules.
+ */
+export const REPLAY_RAIL_FACT_LABEL_CLASS_NAME: string =
+  "w-24 shrink-0 hyphens-auto break-words text-gray-400";
+
 const Fact: FunctionComponent<{
   label: string;
   children: React.ReactNode;
@@ -119,11 +135,21 @@ const Fact: FunctionComponent<{
   const label: string = props.isLabelAsWritten
     ? props.label
     : translator.translateText(props.label) || props.label;
+  /*
+   * A value that is one text - a page's path, a URL, a selector, "412ms" -
+   * reads the way most of its letters do: on an Arabic page "/checkout",
+   * not "checkout/". It still starts beside its label (text-end), where
+   * the page's own values start.
+   */
+  const valueDirection: ReadingDirection | undefined =
+    typeof props.children === "string"
+      ? getLineDirection(props.children, translator.language)
+      : undefined;
 
   return (
     <div className="flex gap-2 text-[11px] leading-5">
       <dt
-        className="w-20 shrink-0 text-gray-400"
+        className={REPLAY_RAIL_FACT_LABEL_CLASS_NAME}
         dir={props.isLabelAsWritten ? "auto" : undefined}
       >
         {label}
@@ -132,7 +158,8 @@ const Fact: FunctionComponent<{
       <dd
         className={`min-w-0 flex-1 text-pretty break-words text-gray-700 ${
           props.mono ? "font-mono" : ""
-        }`}
+        } ${valueDirection ? LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME : ""}`}
+        dir={valueDirection}
       >
         {props.children}
       </dd>
@@ -681,14 +708,19 @@ const NavigationDetail: FunctionComponent<{
               kind: detail.kind,
             });
 
+  /*
+   * "From" and "To" are a message's sender and recipient in most of the
+   * languages a label is translated into (差出人 / 宛先, От / Кому): the
+   * labels name the pages instead.
+   */
   return (
     <dl>
       {detail.from && (
-        <Fact label="From" mono={true}>
+        <Fact label="Previous page" mono={true}>
           {detail.from}
         </Fact>
       )}
-      <Fact label="To" mono={true}>
+      <Fact label="Page" mono={true}>
         {detail.to}
       </Fact>
       <Fact label="Kind">{kindLabel}</Fact>
@@ -857,13 +889,6 @@ const InteractionDetail: FunctionComponent<{
             {x}, {y}
           </Fact>
         )}
-        {!isFrustration && interaction.isCoordinateOnly && (
-          <Fact label="Note">
-            {translator.translateText(
-              "This recording predates click labels; only the coordinates were captured.",
-            )}
-          </Fact>
-        )}
         {errorAfter && (
           <Fact label="Then">
             <button
@@ -887,6 +912,18 @@ const InteractionDetail: FunctionComponent<{
           </Fact>
         )}
       </dl>
+
+      {/*
+       * A remark on the whole click, not a fact with a label: "Note" as a
+       * label is a memo in most languages (Notiz, メモ, Заметка).
+       */}
+      {!isFrustration && interaction.isCoordinateOnly && (
+        <Note>
+          {translator.translateText(
+            "This recording predates click labels; only the coordinates were captured.",
+          )}
+        </Note>
+      )}
 
       {props.onShowOnStage && x !== null && y !== null && (
         <ActionButton
@@ -983,8 +1020,12 @@ const PerformanceDetail: FunctionComponent<{
       {detail.rating && (
         <Fact label="Rating">{formatVitalRating(detail.rating)}</Fact>
       )}
+      {/*
+       * Whole labels: "Earlier" alone reads as a plural in Spanish
+       * (Anteriores) and "Updated" as a date's label in Arabic.
+       */}
       {reports.earlier && (
-        <Fact label="Earlier">
+        <Fact label="Earlier report">
           <VitalReportLink
             report={reports.earlier}
             testId="rail-vital-earlier"
@@ -993,7 +1034,7 @@ const PerformanceDetail: FunctionComponent<{
         </Fact>
       )}
       {reports.later && (
-        <Fact label="Updated">
+        <Fact label="Later report">
           <VitalReportLink
             report={reports.later}
             testId="rail-vital-updated"
@@ -1011,9 +1052,11 @@ const PerformanceDetail: FunctionComponent<{
        * something (see showsVitalView). A prerendered page is measured
        * from when the visitor opened it, which is why its FCP can read
        * 68 ms when its navigation began seconds before (issue #5181).
+       * Labelled "Navigation": "View" is a verb in most languages
+       * (Anzeigen, Voir, عرض).
        */}
       {showsVitalView(detail) && (
-        <Fact label="View">
+        <Fact label="Navigation">
           {translator.translateText(
             detail.navigationType === "soft"
               ? "Route change (single-page app)"
@@ -1037,19 +1080,23 @@ const PerformanceDetail: FunctionComponent<{
           {detail.interactionTarget}
         </Fact>
       )}
-      {/* Where the time went, in the order it was spent. */}
+      {/*
+       * Where the time went, in the order it was spent. Each part named
+       * whole, as Input delay is: "Processing" alone is a busy state
+       * (Wird verarbeitet, 処理中) and "Presentation" a slide deck.
+       */}
       {isFiniteNumber(detail.inputDelayMs) && (
         <Fact label="Input delay">
           {formatSignalDuration(detail.inputDelayMs)}
         </Fact>
       )}
       {isFiniteNumber(detail.processingDurationMs) && (
-        <Fact label="Processing">
+        <Fact label="Processing time">
           {formatSignalDuration(detail.processingDurationMs)}
         </Fact>
       )}
       {isFiniteNumber(detail.presentationDelayMs) && (
-        <Fact label="Presentation">
+        <Fact label="Presentation delay">
           {formatSignalDuration(detail.presentationDelayMs)}
         </Fact>
       )}
@@ -1159,8 +1206,12 @@ const ErrorDetail: FunctionComponent<{
                 )}
           </Fact>
         )}
+        {/*
+         * "File", not "Location": app.js:12:5 is a place in the code, and
+         * "Location" is a site in most languages (Standort, Ubicación).
+         */}
         {isClient && client.location && (
-          <Fact label="Location" mono={true}>
+          <Fact label="File" mono={true}>
             {client.location}
           </Fact>
         )}
@@ -1410,9 +1461,13 @@ const TraceDetail: FunctionComponent<{
               <span className="w-12 shrink-0 text-end font-mono text-[10px] text-gray-400">
                 {formatSignalDuration(span.durationMs)}
               </span>
+              {/*
+               * "Open span", not "open": alone the word is a status in
+               * most languages (offen, 未解決, مفتوحة).
+               */}
               <LinkOut
                 route={props.links.spanView(detail.traceId, span.spanId)}
-                label="open"
+                label="Open span"
               />
             </div>
           );
@@ -1529,23 +1584,26 @@ const CustomDetail: FunctionComponent<{
   }
 
   return (
-    <dl>
-      <Fact label="Event" mono={true}>
-        {detail.name}
-      </Fact>
-      {keys.length === 0 ? (
-        <Fact label="Properties">{translator.translateText("none")}</Fact>
-      ) : (
-        keys.map((key: string): ReactElement => {
-          return (
-            <Fact key={key} label={key} mono={true} isLabelAsWritten={true}>
-              {detail.properties[key]}
-            </Fact>
-          );
-        })
-      )}
+    <div className="space-y-2">
+      <dl>
+        <Fact label="Event" mono={true}>
+          {detail.name}
+        </Fact>
+        {keys.length === 0 ? (
+          <Fact label="Properties">{translator.translateText("none")}</Fact>
+        ) : (
+          keys.map((key: string): ReactElement => {
+            return (
+              <Fact key={key} label={key} mono={true} isLabelAsWritten={true}>
+                {detail.properties[key]}
+              </Fact>
+            );
+          })
+        )}
+      </dl>
+      {/* A remark under the properties, not a fact labelled "Note" (a memo). */}
       {detail.propertyCount > keys.length && (
-        <Fact label="Note">
+        <Note>
           {translator.translatePlural(
             {
               one: "{{count}} more property was not captured (per-event cap).",
@@ -1554,9 +1612,9 @@ const CustomDetail: FunctionComponent<{
             },
             detail.propertyCount - keys.length,
           )}
-        </Fact>
+        </Note>
       )}
-    </dl>
+    </div>
   );
 };
 

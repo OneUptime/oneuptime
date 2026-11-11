@@ -26,6 +26,7 @@ import {
   UserFlowPageStats,
   UserFlowPath,
 } from "Common/Utils/Rum/UserFlow";
+import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import AppLink from "../AppLink/AppLink";
 import { buildReplayLinkRoute } from "../SessionReplay/ReplayLinkRoute";
 import {
@@ -98,6 +99,8 @@ function PageChip(props: { page: string; onClick: () => void }): ReactElement {
       title={translator.translateTemplate("Show paths from {{page}}", {
         page: props.page,
       })}
+      /* A path reads from the left on any page: "/home", not "home/". */
+      dir={getLineDirection(props.page, translator.language)}
       onClick={props.onClick}
     >
       {props.page}

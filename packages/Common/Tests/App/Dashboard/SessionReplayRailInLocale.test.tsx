@@ -36,6 +36,7 @@ import ReplayRail, {
   ReplayRailProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplayRail";
 import ReplayRailDetail, {
+  REPLAY_RAIL_FACT_LABEL_CLASS_NAME,
   ReplayRailDetailProps,
   ReplayRailLinks,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplayRailDetail";
@@ -855,5 +856,519 @@ describe("the rail detail in German and Arabic", () => {
       }),
     );
     expect(shown(detail)).not.toContain("so far this session");
+  });
+});
+
+/* ---- UI review of #6658 part 3 ---- */
+
+// The labels of an open detail's facts, as drawn.
+function factLabels(): Array<string> {
+  return Array.from(
+    screen.getByTestId("rail-detail").querySelectorAll("dt"),
+  ).map((term: Element): string => {
+    return withoutIsolateMarks(term.textContent || "");
+  });
+}
+
+function inpSignal(): ReplaySignal {
+  return {
+    id: "rec:0:20",
+    kind: "performance",
+    source: "recording",
+    offsetMs: 4000,
+    severity: "warn",
+    title: "INP 480ms",
+    links: {},
+    detail: {
+      kind: "web-vital",
+      durationMs: null,
+      budgetMs: null,
+      isOverBudget: true,
+      metric: "INP",
+      value: 480,
+      rating: "needs-improvement",
+      url: null,
+      atUnixMs: null,
+      navigationType: "soft",
+      interactionType: "pointer",
+      interactionTarget: "nav > a.product-link",
+      inputDelayMs: 5,
+      processingDurationMs: 305,
+      presentationDelayMs: 170,
+    },
+    alignment: "exact",
+  } as ReplaySignal;
+}
+
+function clsSignal(id: string, offsetMs: number, value: number): ReplaySignal {
+  return {
+    id: id,
+    kind: "performance",
+    source: "recording",
+    offsetMs: offsetMs,
+    severity: "info",
+    title: `CLS ${value}`,
+    links: {},
+    detail: {
+      kind: "web-vital",
+      durationMs: null,
+      budgetMs: null,
+      isOverBudget: false,
+      metric: "CLS",
+      value: value,
+      rating: "good",
+      url: null,
+      atUnixMs: null,
+      navigationType: "hard",
+    },
+    alignment: "exact",
+  } as ReplaySignal;
+}
+
+function coordinateOnlyClick(): ReplaySignal {
+  return {
+    id: "rec:0:5",
+    kind: "interaction",
+    source: "recording",
+    offsetMs: 9100,
+    severity: "info",
+    title: "click at 640, 480",
+    links: {},
+    detail: {
+      selector: null,
+      text: null,
+      x: 640,
+      y: 480,
+      isCoordinateOnly: true,
+      atUnixMs: null,
+    },
+    alignment: "exact",
+  } as ReplaySignal;
+}
+
+function customEventSignal(): ReplaySignal {
+  return {
+    id: "rec:0:30",
+    kind: "custom",
+    source: "recording",
+    offsetMs: 7000,
+    severity: "info",
+    title: "checkout_started",
+    links: {},
+    detail: {
+      name: "checkout_started",
+      properties: { plan: "pro" },
+      propertyCount: 4,
+      atUnixMs: null,
+    },
+    alignment: "exact",
+  } as ReplaySignal;
+}
+
+function clientErrorWithLocation(): ReplaySignal {
+  const signal: ReplaySignal = repeatedErrorSignal();
+
+  return {
+    ...signal,
+    detail: {
+      ...(signal.detail as Record<string, unknown>),
+      isRepeat: false,
+      occurrences: null,
+      source: "https://app.example.com/app.js",
+      lineNumber: 12,
+      columnNumber: 5,
+      location: "app.js:12:5",
+    },
+  } as ReplaySignal;
+}
+
+describe("UI review: a fact's label says one thing in every language", () => {
+  test("German: a navigation names its pages, not a message's sender and recipient", () => {
+    renderDetail(navigationSignal());
+
+    const labels: Array<string> = factLabels();
+
+    expect(labels).toContain(worded(DE, "Previous page"));
+    expect(labels).toContain(worded(DE, "Page"));
+    // "Von" / "An" are an e-mail's From and To.
+    expect(labels).not.toContain(DE["From"]);
+    expect(labels).not.toContain(DE["To"]);
+  });
+
+  test("German: an INP's view and the parts of its time are named whole", () => {
+    renderDetail(inpSignal());
+
+    const labels: Array<string> = factLabels();
+
+    expect(labels).toContain(DE["Navigation"]);
+    expect(labels).toContain(worded(DE, "Input delay"));
+    expect(labels).toContain(worded(DE, "Processing time"));
+    expect(labels).toContain(worded(DE, "Presentation delay"));
+    // "Anzeigen" (a verb), "Wird verarbeitet" (busy), "Präsentation" (slides).
+    for (const ambiguous of ["View", "Processing", "Presentation"]) {
+      expect([ambiguous, labels.includes(DE[ambiguous] as string)]).toEqual([
+        ambiguous,
+        false,
+      ]);
+    }
+  });
+
+  test("Spanish and Arabic: a vital reported twice names its earlier and its later report", async () => {
+    const first: ReplaySignal = clsSignal("rec:0:31", 3100, 0.02);
+    const second: ReplaySignal = clsSignal("rec:0:32", 64_200, 0.35);
+    const ES: Record<string, string> = readLocale("es");
+
+    i18next.addResourceBundle("es", "translation", ES);
+    await i18next.changeLanguage("es");
+    renderDetail(second, { signals: [first, second] });
+
+    expect(factLabels()).toContain(worded(ES, "Earlier report"));
+    // "Anteriores" is a plural: the earlier ones.
+    expect(factLabels()).not.toContain(ES["Earlier"]);
+
+    cleanup();
+    await i18next.changeLanguage("ar");
+    renderDetail(first, { signals: [first, second] });
+
+    expect(factLabels()).toContain(worded(AR, "Later report"));
+    // "تاريخ التحديث" is a date's label: "the update date".
+    expect(factLabels()).not.toContain(AR["Updated"]);
+  });
+
+  test("German: an error's place in the code is its file, not a site", () => {
+    renderDetail(clientErrorWithLocation());
+
+    const labels: Array<string> = factLabels();
+
+    expect(labels).toContain(worded(DE, "File"));
+    expect(labels).not.toContain(DE["Location"]);
+    expect(screen.getByText("app.js:12:5")).toBeInTheDocument();
+  });
+
+  test("German: each span of a trace opens with a verb, not the status 'offen'", () => {
+    renderDetail(traceSignal());
+
+    expect(screen.getAllByText(worded(DE, "Open span"))).toHaveLength(3);
+    expect(screen.queryByText(DE["open"] as string)).toBeNull();
+  });
+
+  test("German: a remark is a line under the facts, never a fact labelled 'Notiz'", () => {
+    renderDetail(coordinateOnlyClick());
+
+    expect(factLabels()).not.toContain(DE["Note"]);
+
+    const remark: HTMLElement = screen.getByText(
+      worded(
+        DE,
+        "This recording predates click labels; only the coordinates were captured.",
+      ),
+    );
+
+    expect(remark.tagName).toBe("P");
+    expect(remark.closest("dl")).toBeNull();
+
+    cleanup();
+    renderDetail(customEventSignal());
+
+    expect(factLabels()).not.toContain(DE["Note"]);
+    expect(factLabels()).toContain("plan");
+
+    const capped: HTMLElement = screen.getByText(
+      worded(
+        DE,
+        "{{count}} more properties were not captured (per-event cap).",
+        { count: "3" },
+      ),
+    );
+
+    expect(capped.tagName).toBe("P");
+    expect(capped.closest("dl")).toBeNull();
+  });
+
+  test("a label wider than its column breaks inside it, at a syllable where the language has rules", () => {
+    expect(REPLAY_RAIL_FACT_LABEL_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining([
+        "w-24",
+        "shrink-0",
+        "hyphens-auto",
+        "break-words",
+      ]),
+    );
+
+    renderDetail(inpSignal());
+
+    const terms: Array<Element> = Array.from(
+      screen.getByTestId("rail-detail").querySelectorAll("dt"),
+    );
+
+    expect(terms.length).toBeGreaterThan(4);
+
+    for (const term of terms) {
+      expect(term.getAttribute("class")).toBe(
+        REPLAY_RAIL_FACT_LABEL_CLASS_NAME,
+      );
+    }
+  });
+});
+
+/*
+ * Every detail an empty tab can show, with the values its sentence takes:
+ * each tab of a web and of a React Native recording, filtered, loading,
+ * locked with and without a permission's name, failed, expired, not yet
+ * decoded and from a recorder that predates click labels.
+ */
+function emptyDetails(): Array<string> {
+  const details: Set<string> = new Set();
+  const base: Parameters<typeof getRailEmptyCopy>[0] = {
+    tabId: "all",
+    isFiltering: false,
+    hadRowsBeforeFilter: false,
+    slot: null,
+    isExpiredFootage: false,
+    recorderCapabilities: null,
+    hasLoadedFootage: true,
+  };
+  const add: (args: Parameters<typeof getRailEmptyCopy>[0]) => void = (
+    args: Parameters<typeof getRailEmptyCopy>[0],
+  ): void => {
+    const copy: ReturnType<typeof getRailEmptyCopy> = getRailEmptyCopy(args);
+
+    expect(copy.isDetailAsWritten).toBeFalsy();
+    details.add(copy.detail);
+  };
+
+  for (const tabId of RAIL_TABS) {
+    for (const isMobileReplay of [false, true]) {
+      for (const isExpiredFootage of [false, true]) {
+        for (const hasLoadedFootage of [false, true]) {
+          add({
+            ...base,
+            tabId: tabId,
+            isMobileReplay: isMobileReplay,
+            isExpiredFootage: isExpiredFootage,
+            hasLoadedFootage: hasLoadedFootage,
+          });
+        }
+      }
+    }
+
+    add({
+      ...base,
+      tabId: tabId,
+      isFiltering: true,
+      hadRowsBeforeFilter: true,
+    });
+  }
+
+  for (const tabId of TELEMETRY_TABS) {
+    add({ ...base, tabId: tabId, slot: slot("loading") });
+    add({ ...base, tabId: tabId, slot: slot("locked") });
+    add({
+      ...base,
+      tabId: tabId,
+      slot: { ...slot("locked"), lockedPermission: undefined },
+    });
+    add({ ...base, tabId: tabId, slot: slot("error") });
+  }
+
+  add({ ...base, tabId: "interactions", recorderCapabilities: ["console"] });
+
+  return Array.from(details);
+}
+
+function lockedStore(): ReplayBackendSignalsStore {
+  return new ReplayBackendSignalsStore({
+    sessionId: SESSION_ID,
+    startTimeUnixMs: START_UNIX_MS,
+    endTimeUnixMs: START_UNIX_MS + 60_000,
+    isFinalized: true,
+    fetchList: async <T extends AnalyticsBaseModel>(): Promise<
+      ListResult<T>
+    > => {
+      throw new HTTPErrorResponse(403, { message: "no" }, {});
+    },
+  });
+}
+
+describe("UI review: an empty tab's detail is in the reader's language too", () => {
+  test("every detail is one whole sentence, translated into each of the Dashboard's languages", () => {
+    const details: Array<string> = emptyDetails();
+    const missing: Array<string> = [];
+
+    expect(details).toHaveLength(21);
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      const locale: Record<string, string> = readLocale(language);
+
+      for (const detail of details) {
+        if (!locale[detail] || locale[detail] === EN[detail]) {
+          missing.push(`${language}: ${detail}`);
+        }
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  test("German: a web recording's empty Logs tab explains the link in German, naming the policy's settings as their page does", () => {
+    renderRail({ signals: [], activeTab: "logs", backendStore: null });
+
+    const detail: HTMLElement = screen.getByTestId("rail-empty-detail");
+    const sentence: string = worded(
+      DE,
+      "Requests this page makes to its own origin carry the session's trace context automatically, unless Same-origin trace propagation is turned off in the Replay Policy, so backend logs written inside those requests' traces land here by trace id, on the session clock. For an API on another origin, add it to Trace propagation origins on the Replay Policy page; it must allow traceparent in Access-Control-Allow-Headers, and its requests then match by trace id.",
+    );
+
+    expect(shown(detail)).toBe(sentence);
+    expect(sentence).toContain(
+      `„${worded(DE, "Same-origin trace propagation")}“`,
+    );
+    expect(sentence).toContain(`„${worded(DE, "Trace propagation origins")}“`);
+    expect(sentence).toContain(worded(DE, "Replay Policy"));
+    expect(sentence).toContain("Access-Control-Allow-Headers");
+    expect(detail).not.toHaveAttribute("dir");
+  });
+
+  test("German: a locked tab names the missing permission inside the German sentence", async () => {
+    const store: ReplayBackendSignalsStore = lockedStore();
+
+    renderRail({ backendStore: store, activeTab: "logs" });
+
+    await waitFor((): void => {
+      expect(store.getSnapshot().slots.log.status).toBe("locked");
+    });
+
+    const permission: string = store.getSnapshot().slots.log
+      .lockedPermission as string;
+
+    expect(permission.length).toBeGreaterThan(0);
+    expect(shown(screen.getByTestId("rail-empty-detail"))).toBe(
+      worded(
+        DE,
+        'Your role lacks "{{permission}}". Ask a project admin for that permission to see these rows.',
+        { permission: permission },
+      ),
+    );
+  });
+
+  test("Arabic: a React Native recording's empty Traces tab, in Arabic, read from the right", async () => {
+    await i18next.changeLanguage("ar");
+    renderRail({
+      signals: [],
+      activeTab: "traces",
+      backendStore: null,
+      isMobileReplay: true,
+    });
+
+    const detail: HTMLElement = screen.getByTestId("rail-empty-detail");
+
+    expect(shown(detail)).toBe(
+      worded(
+        AR,
+        "The React Native SDK adds nothing to your app's requests, so nothing links on its own. Stamp session.id on your OpenTelemetry spans with OneUptimeReplay.onSessionChange() and update it whenever the session rotates; those spans then land here on the session clock.",
+      ),
+    );
+    expect(shown(detail)).toContain("OneUptimeReplay.onSessionChange()");
+    expect(detail).not.toHaveAttribute("dir");
+  });
+
+  test("Arabic: a failure line the server words in English reads from the left, its full stop last", async () => {
+    await i18next.changeLanguage("ar");
+
+    // No translator: the store's own line stays English.
+    const store: ReplayBackendSignalsStore = failingStore();
+
+    renderRail({ backendStore: store, activeTab: "logs" });
+
+    await waitFor((): void => {
+      expect(store.getSnapshot().slots.log.status).toBe("error");
+    });
+
+    const detail: HTMLElement = screen.getByTestId("rail-empty-detail");
+
+    expect(shown(detail)).toBe(
+      "Loading backend logs failed (HTTP 502). Retry.",
+    );
+    expect(detail).toHaveAttribute("dir", "ltr");
+  });
+});
+
+describe("UI review: a row's title reads the way it was written", () => {
+  function navigationRow(): ReplaySignal {
+    return {
+      ...navigationSignal(),
+      offsetMs: 1000,
+      chunkIndex: 0,
+    } as ReplaySignal;
+  }
+
+  test("Arabic: a path stays '/cart → /checkout', starting where the page's lines do", async () => {
+    await i18next.changeLanguage("ar");
+    renderRail({ signals: [navigationRow()] });
+
+    const title: HTMLElement = screen.getByText("/cart → /checkout");
+
+    expect(title).toHaveAttribute("dir", "ltr");
+    expect(title.className.split(" ")).toContain("text-end");
+    expect(title.className.split(" ")).toContain("truncate");
+  });
+
+  test("German: the same title reads as the page does, with no direction of its own", () => {
+    renderRail({ signals: [navigationRow()] });
+
+    const title: HTMLElement = screen.getByText("/cart → /checkout");
+
+    expect(title).not.toHaveAttribute("dir");
+    expect(title.className.split(" ")).not.toContain("text-end");
+  });
+});
+
+describe("UI review: a fact's value reads the way it was written", () => {
+  // The value beside the label `label` says, in the open detail.
+  function valueOf(label: string): HTMLElement {
+    const term: Element | undefined = Array.from(
+      screen.getByTestId("rail-detail").querySelectorAll("dt"),
+    ).find((candidate: Element): boolean => {
+      return withoutIsolateMarks(candidate.textContent || "") === label;
+    });
+
+    expect({ label, found: Boolean(term) }).toEqual({ label, found: true });
+
+    return term!.nextElementSibling as HTMLElement;
+  }
+
+  test("Arabic: a navigation's pages read '/cart' and '/checkout', beside their labels", async () => {
+    await i18next.changeLanguage("ar");
+    renderDetail(navigationSignal());
+
+    for (const [label, page] of [
+      ["Previous page", "/cart"],
+      ["Page", "/checkout"],
+    ] as Array<[string, string]>) {
+      const value: HTMLElement = valueOf(worded(AR, label));
+
+      expect(value.tagName).toBe("DD");
+      expect(shown(value)).toBe(page);
+      expect(value).toHaveAttribute("dir", "ltr");
+      expect(value.className.split(" ")).toContain("text-end");
+    }
+
+    // "تحميل كامل للصفحة" is the page's own words: no direction of its own.
+    const kind: HTMLElement = valueOf(worded(AR, "Kind"));
+
+    expect(shown(kind)).toBe(worded(AR, "full page load"));
+    expect(kind).not.toHaveAttribute("dir");
+    expect(kind.className.split(" ")).not.toContain("text-end");
+  });
+
+  test("German: the same values read as the page does", () => {
+    renderDetail(navigationSignal());
+
+    for (const label of ["Previous page", "Page", "Kind"]) {
+      const value: HTMLElement = valueOf(worded(DE, label));
+
+      expect(value).not.toHaveAttribute("dir");
+      expect(value.className.split(" ")).not.toContain("text-end");
+    }
   });
 });

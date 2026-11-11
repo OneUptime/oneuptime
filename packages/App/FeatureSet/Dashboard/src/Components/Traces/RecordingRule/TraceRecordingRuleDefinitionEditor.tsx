@@ -99,7 +99,7 @@ const TraceRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
   return (
     <div className="space-y-6">
       <section>
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-start justify-between gap-3 mb-1">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
               {translator.translateText("Span Sources")}
@@ -115,7 +115,15 @@ const TraceRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
               )}
             </p>
           </div>
-          <span className="text-xs font-medium text-gray-500">
+          {/*
+           * "1 / 4" stays on one line, level with the heading and clear of
+           * a description that wraps: on a phone, where the Arabic
+           * description takes three lines, it broke into "1 /" over "4".
+           */}
+          <span
+            className="shrink-0 whitespace-nowrap text-xs font-medium text-gray-500"
+            data-testid="trace-recording-rule-source-count"
+          >
             {definition.sources.length} / {TRACE_RECORDING_RULE_MAX_SOURCES}
           </span>
         </div>

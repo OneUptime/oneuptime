@@ -5,6 +5,7 @@ import { describeWebVitalThresholds } from "Common/Types/Rum/WebVitals";
 import { WebVital, formatDurationMs } from "./telemetryMetrics";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getLineDirection } from "Common/UI/Utils/LineDirection";
 
 export interface WebVitalsCardProps {
   vitals: Array<WebVital>;
@@ -158,7 +159,15 @@ const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
                     </span>
                   </div>
                   <div className={`text-xl font-semibold ${rc.text}`}>
-                    {formatVital(v)}
+                    {/* "640 ms" on a page read from the right, not "ms 640". */}
+                    <span
+                      dir={getLineDirection(
+                        formatVital(v),
+                        translator.language,
+                      )}
+                    >
+                      {formatVital(v)}
+                    </span>
                   </div>
                   <div className="mt-1 text-[11px] text-gray-400 truncate">
                     {v.label}

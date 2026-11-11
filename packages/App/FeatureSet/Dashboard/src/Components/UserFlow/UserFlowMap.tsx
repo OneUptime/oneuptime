@@ -32,6 +32,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getLineDirection } from "Common/UI/Utils/LineDirection";
 
 /*
  * The flow map itself: an SVG Sankey drawn from UserFlowLayout.
@@ -418,6 +419,16 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
             { sessions: sessionsText(props.graph.sessions) },
           )}
           className="select-none"
+          /*
+           * The map is laid out from the left (a journey's first page, then
+           * each page after it), with every label placed at a point of its
+           * own. On a page read from the right a label's start was its
+           * right end, so each one ran back over its column's left edge
+           * ("صفحة الدخ" cut off) and every path read "home/". Drawn from
+           * the left, a label starts at its point; Arabic words in it still
+           * read from the right.
+           */
+          direction="ltr"
           data-node-width={Math.round(layout.nodeWidth)}
           onMouseMove={(event: MouseEvent<SVGSVGElement>): void => {
             if (!tooltip) {
@@ -544,7 +555,7 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                       x: at.x,
                       y: at.y,
                       title: `${source ? labelOf(source.node) : ""} → ${
-                        target?.node.label || ""
+                        target ? labelOf(target.node) : ""
                       }`,
                       lines: describeLink(band.link),
                     });
@@ -733,7 +744,13 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
           role="tooltip"
           data-testid="user-flow-tooltip"
         >
-          <p className="mb-1 break-all font-semibold">{tooltip.title}</p>
+          {/* "/cart → /home" reads from the left on any page. */}
+          <p
+            className="mb-1 break-all font-semibold"
+            dir={getLineDirection(tooltip.title, translator.language)}
+          >
+            {tooltip.title}
+          </p>
           {tooltip.lines.map((line: string): ReactElement => {
             return (
               <p key={line} className="text-gray-200">

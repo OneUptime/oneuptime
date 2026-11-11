@@ -25,13 +25,17 @@ import {
 } from "../../../Types/Rum/UserFlow";
 import {
   analyzeUserFlow,
+  OTHER_PAGES_LABEL,
   UserFlowAnalysis,
   UserFlowLink,
   UserFlowNode,
 } from "../../../Utils/Rum/UserFlow";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
-import UserFlowOverview from "../../../../App/FeatureSet/Dashboard/src/Components/UserFlow/UserFlowOverview";
+import UserFlowOverview, {
+  USER_FLOW_TILE_HINT_CLASS_NAME,
+  USER_FLOW_TILE_LABEL_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/UserFlow/UserFlowOverview";
 import UserFlowTables from "../../../../App/FeatureSet/Dashboard/src/Components/UserFlow/UserFlowTables";
 import UserFlowDetailPanel from "../../../../App/FeatureSet/Dashboard/src/Components/UserFlow/UserFlowDetailPanel";
 import UserFlowMap, {
@@ -41,6 +45,7 @@ import {
   formatUserFlowCount,
   formatUserFlowSessionsHint,
   pluralizeSessions,
+  USER_FLOW_OTHER_PAGES_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/UserFlow/UserFlowFormat";
 import { describeUserFlowColumn } from "../../../../App/FeatureSet/Dashboard/src/Components/UserFlow/UserFlowLayout";
 
@@ -596,5 +601,241 @@ describe("the user flow tables and overview in German and Arabic", () => {
         total: ARABIC.formatNumber(12000),
       }),
     );
+  });
+});
+
+/* ---- UI review of #6658 part 3 ---- */
+
+// Four landing pages and room for one, so three fold into "Other pages".
+const FOLDED: UserFlowAnalysis = analyzeUserFlow(
+  response([
+    { id: "f1", pages: ["/home", "/cart"] },
+    { id: "f2", pages: ["/home", "/cart"] },
+    { id: "f3", pages: ["/pricing", "/cart"] },
+    { id: "f4", pages: ["/about", "/cart"] },
+    { id: "f5", pages: ["/blog", "/cart"] },
+  ]),
+  { pagesPerStep: 1 },
+);
+
+function renderOverview(): void {
+  render(
+    <UserFlowOverview
+      summary={ANALYSIS.summary}
+      insights={ANALYSIS.insights}
+      sessionsRead={5000}
+      sessionsInWindow={12000}
+      isSampled={true}
+      onFocusPage={(): void => {
+        return;
+      }}
+    />,
+  );
+}
+
+describe("UI review: the user flow map on a page read from the right", () => {
+  test("the map is drawn from the left on any page, so a label starts at its point", async () => {
+    await i18next.changeLanguage("ar");
+    renderMap();
+
+    const svg: SVGElement = screen
+      .getByTestId("user-flow-map")
+      .querySelector("svg") as SVGElement;
+
+    expect(svg.getAttribute("direction")).toBe("ltr");
+
+    cleanup();
+    await i18next.changeLanguage("de");
+    renderMap();
+
+    expect(
+      screen
+        .getByTestId("user-flow-map")
+        .querySelector("svg")
+        ?.getAttribute("direction"),
+    ).toBe("ltr");
+  });
+
+  test("German: a band into the fold names it in German in its tooltip", () => {
+    expect(USER_FLOW_OTHER_PAGES_NAME).toBe(OTHER_PAGES_LABEL);
+
+    renderMap(FOLDED);
+
+    const titles: Array<string> = screen
+      .getAllByTestId("user-flow-link")
+      .map((band: HTMLElement): string => {
+        fireEvent.mouseEnter(band);
+
+        const title: string = shown(
+          screen
+            .getByTestId("user-flow-tooltip")
+            .querySelector("p") as HTMLElement,
+        );
+
+        fireEvent.mouseLeave(band);
+
+        return title;
+      });
+
+    // "Andere Seiten → /cart".
+    expect(titles).toContain(`${worded(DE, "Other pages")} → /cart`);
+    expect(titles.join(" | ")).not.toContain("Other pages");
+  });
+
+  test("Arabic: a band's tooltip reads '/home → /cart' from the left", async () => {
+    await i18next.changeLanguage("ar");
+    renderMap();
+
+    const band: HTMLElement = screen.getAllByTestId("user-flow-link")[0]!;
+
+    fireEvent.mouseEnter(band);
+
+    const title: HTMLElement = screen
+      .getByTestId("user-flow-tooltip")
+      .querySelector("p") as HTMLElement;
+
+    expect(shown(title)).toMatch(/^\/\S* → \/\S*$/);
+    expect(title).toHaveAttribute("dir", "ltr");
+  });
+});
+
+describe("UI review: a page's path reads from the left in the panel and the tables", () => {
+  test("Arabic: a transition's header is '/home → /cart', starting where the page's lines do", async () => {
+    await i18next.changeLanguage("ar");
+
+    const link: UserFlowLink = linkBetween(
+      nodeAt(0, "/home"),
+      nodeAt(1, "/cart"),
+    );
+
+    renderDetail({ kind: "link", id: link.id });
+
+    const title: HTMLElement = screen.getByTestId("user-flow-detail-title");
+
+    expect(shown(title)).toBe("/home → /cart");
+    expect(title).toHaveAttribute("dir", "ltr");
+    expect(title.className.split(" ")).toContain("text-end");
+  });
+
+  test("German: the same header reads as the page does", () => {
+    const link: UserFlowLink = linkBetween(
+      nodeAt(0, "/home"),
+      nodeAt(1, "/cart"),
+    );
+
+    renderDetail({ kind: "link", id: link.id });
+
+    const title: HTMLElement = screen.getByTestId("user-flow-detail-title");
+
+    expect(title).not.toHaveAttribute("dir");
+    expect(title.className.split(" ")).not.toContain("text-end");
+  });
+
+  test("Arabic: the panel's page lists and the tables' page chips read '/cart', not 'cart/'", async () => {
+    await i18next.changeLanguage("ar");
+    renderDetail({ kind: "node", id: nodeAt(1, "/cart").id });
+
+    const listed: Array<HTMLElement> = screen
+      .getAllByText(/^\/[a-z0-9/]*$/)
+      .filter((element: HTMLElement): boolean => {
+        return element.tagName === "SPAN";
+      });
+
+    expect(listed.length).toBeGreaterThan(0);
+
+    for (const page of listed) {
+      expect([page.textContent, page.getAttribute("dir")]).toEqual([
+        page.textContent,
+        "ltr",
+      ]);
+    }
+
+    cleanup();
+    renderTables();
+
+    const pagePath: RegExp = /^\/[a-z0-9/]*$/;
+    const chips: Array<HTMLElement> = screen
+      .getAllByRole("button")
+      .filter((button: HTMLElement): boolean => {
+        return pagePath.test(button.textContent || "");
+      });
+
+    expect(chips.length).toBeGreaterThan(0);
+
+    for (const chip of chips) {
+      expect([chip.textContent, chip.getAttribute("dir")]).toEqual([
+        chip.textContent,
+        "ltr",
+      ]);
+    }
+  });
+});
+
+describe("UI review: the overview's tiles and findings", () => {
+  test("a tile's label and hint wrap to a second line instead of being cut", () => {
+    expect(USER_FLOW_TILE_LABEL_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["line-clamp-2", "hyphens-auto", "break-words"]),
+    );
+    expect(USER_FLOW_TILE_HINT_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["line-clamp-2", "hyphens-auto", "break-words"]),
+    );
+
+    renderOverview();
+
+    const label: HTMLElement = screen.getByTestId(
+      "user-flow-tile-bounce-label",
+    );
+    const hint: HTMLElement = screen.getByTestId(
+      "user-flow-tile-sessions-hint",
+    );
+
+    // "Sitzungen mit nur einer Seite", "neueste 5.000 von 12.000 aufgezeichnet".
+    expect(shown(label)).toBe(worded(DE, "Single-page sessions"));
+    expect(label.className).toBe(USER_FLOW_TILE_LABEL_CLASS_NAME);
+    expect(hint.className).toBe(USER_FLOW_TILE_HINT_CLASS_NAME);
+    expect(label.className.split(" ")).not.toContain("truncate");
+    expect(hint.className.split(" ")).not.toContain("truncate");
+  });
+
+  test("Arabic: the top landing page reads '/home' at the tile's start; a number has no direction of its own", async () => {
+    await i18next.changeLanguage("ar");
+    renderOverview();
+
+    const page: HTMLElement = screen.getByTestId("user-flow-tile-entry-value");
+    const count: HTMLElement = screen.getByTestId(
+      "user-flow-tile-sessions-value",
+    );
+
+    expect(shown(page)).toBe("/home");
+    expect(page).toHaveAttribute("dir", "ltr");
+    expect(page.className.split(" ")).toContain("text-end");
+    expect(count).not.toHaveAttribute("dir");
+    expect(count.className.split(" ")).not.toContain("text-end");
+  });
+
+  test("Arabic: a finding still worded in English reads from the left, its full stop last", async () => {
+    await i18next.changeLanguage("ar");
+    renderOverview();
+
+    const finding: HTMLElement = screen.getAllByTestId("user-flow-insight")[0]!;
+    const lines: Array<HTMLElement> = Array.from(
+      finding.querySelectorAll("p"),
+    ) as Array<HTMLElement>;
+
+    expect(lines).toHaveLength(2);
+
+    for (const line of lines) {
+      expect(line).toHaveAttribute("dir", "ltr");
+    }
+
+    cleanup();
+    await i18next.changeLanguage("de");
+    renderOverview();
+
+    for (const line of Array.from(
+      screen.getAllByTestId("user-flow-insight")[0]!.querySelectorAll("p"),
+    )) {
+      expect(line).not.toHaveAttribute("dir");
+    }
   });
 });

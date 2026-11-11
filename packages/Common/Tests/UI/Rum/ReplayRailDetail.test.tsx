@@ -1158,8 +1158,8 @@ describe("ReplayRailDetail performance wording", () => {
     expect(screen.getByText("Pointer")).toBeInTheDocument();
     expect(screen.getByText("nav > a.product-link")).toBeInTheDocument();
     expect(screen.getByText("Input delay")).toBeInTheDocument();
-    expect(screen.getByText("Processing")).toBeInTheDocument();
-    expect(screen.getByText("Presentation")).toBeInTheDocument();
+    expect(screen.getByText("Processing time")).toBeInTheDocument();
+    expect(screen.getByText("Presentation delay")).toBeInTheDocument();
     expect(screen.getByText("305ms")).toBeInTheDocument();
   });
 
@@ -1204,7 +1204,7 @@ describe("ReplayRailDetail performance wording", () => {
         }),
       );
 
-      expect(screen.getByText("View")).toBeInTheDocument();
+      expect(screen.getByText("Navigation")).toBeInTheDocument();
       expect(screen.getByText(words)).toBeInTheDocument();
       expect(screen.queryByText(navigationType)).toBeNull();
 
@@ -1218,7 +1218,7 @@ describe("ReplayRailDetail performance wording", () => {
    * row that says nothing - and recordings from before #5181 never had
    * it, so a new recording of an ordinary page reads as an old one did.
    */
-  it("leaves the View row off an ordinary page load's FCP, LCP, TTFB and CLS", () => {
+  it("leaves the Navigation row off an ordinary page load's FCP, LCP, TTFB and CLS", () => {
     for (const metric of ["FCP", "LCP", "TTFB", "CLS"]) {
       renderDetail(
         performanceSignal({
@@ -1235,7 +1235,10 @@ describe("ReplayRailDetail performance wording", () => {
         }),
       );
 
-      expect([metric, screen.queryByText("View")]).toEqual([metric, null]);
+      expect([metric, screen.queryByText("Navigation")]).toEqual([
+        metric,
+        null,
+      ]);
       expect([metric, screen.queryByText("Page load")]).toEqual([metric, null]);
       expect(screen.getByText(metric)).toBeInTheDocument();
 
@@ -1256,8 +1259,8 @@ describe("ReplayRailDetail performance wording", () => {
 
     const onFirst: RenderResult = renderDetail(first, { signals: signals });
 
-    expect(screen.getByText("Updated")).toBeInTheDocument();
-    expect(screen.queryByText("Earlier")).toBeNull();
+    expect(screen.getByText("Later report")).toBeInTheDocument();
+    expect(screen.queryByText("Earlier report")).toBeNull();
     expect(screen.getByTestId("rail-vital-updated")).toHaveTextContent(
       "CLS 0.35 poor at 1:04.2",
     );
@@ -1272,8 +1275,8 @@ describe("ReplayRailDetail performance wording", () => {
 
     const onSecond: RenderResult = renderDetail(second, { signals: signals });
 
-    expect(screen.getByText("Earlier")).toBeInTheDocument();
-    expect(screen.queryByText("Updated")).toBeNull();
+    expect(screen.getByText("Earlier report")).toBeInTheDocument();
+    expect(screen.queryByText("Later report")).toBeNull();
     expect(screen.getByTestId("rail-vital-earlier")).toHaveTextContent(
       "CLS 0.02 good at 0:03.1",
     );
@@ -1288,8 +1291,8 @@ describe("ReplayRailDetail performance wording", () => {
 
     renderDetail(only, { signals: [only] });
 
-    expect(screen.queryByText("Earlier")).toBeNull();
-    expect(screen.queryByText("Updated")).toBeNull();
+    expect(screen.queryByText("Earlier report")).toBeNull();
+    expect(screen.queryByText("Later report")).toBeNull();
   });
 
   it("shows none of the INP rows for a recording that predates them", () => {
@@ -1307,7 +1310,7 @@ describe("ReplayRailDetail performance wording", () => {
       }),
     );
 
-    expect(screen.queryByText("View")).toBeNull();
+    expect(screen.queryByText("Navigation")).toBeNull();
     expect(screen.queryByText("Element")).toBeNull();
     expect(screen.queryByText("Input delay")).toBeNull();
   });

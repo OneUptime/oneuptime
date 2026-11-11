@@ -117,7 +117,12 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import AutoRefreshControl from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/AutoRefreshControl";
-import TraceProcessorForm from "../../../../App/FeatureSet/Dashboard/src/Components/TracePipeline/TraceProcessorForm";
+import TraceProcessorForm, {
+  MAPPING_ARROW_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/TracePipeline/TraceProcessorForm";
+import TraceRecordingRuleDefinitionEditor from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/RecordingRule/TraceRecordingRuleDefinitionEditor";
+import TracePipelineProcessor from "../../../Models/DatabaseModels/TracePipelineProcessor";
+import TracePipelineProcessorType from "../../../Types/Trace/TracePipelineProcessorType";
 import TeamsElement from "../../../../App/FeatureSet/Dashboard/src/Components/Team/TeamsElement";
 import UserTimezoneInit from "../../../../App/FeatureSet/Dashboard/src/Components/UserTimezone/UserTimezoneInit";
 import TeamMembershipRemoval from "../../../../App/FeatureSet/Dashboard/src/Utils/TeamMembershipRemoval";
@@ -305,6 +310,102 @@ describe("a trace pipeline's processor form in German and Arabic", () => {
       worded(DE, message);
       worded(AR, message);
     }
+  });
+});
+
+describe("UI review: a processor's mapping arrow on a page read from the right", () => {
+  function renderProcessor(type: TracePipelineProcessorType): void {
+    const processor: TracePipelineProcessor = new TracePipelineProcessor();
+
+    processor.name = "Map";
+    processor.processorType = type;
+    processor.configuration = {
+      sourceKey: "http.status_code",
+      mappings: [
+        { matchValue: "500", newName: "error", statusCode: 2, kind: "server" },
+      ],
+    };
+
+    render(
+      <TraceProcessorForm
+        pipelineId={new ObjectID("5f8b7c1e2d3a4b5c6d7e8f90")}
+        existingProcessor={processor}
+        onProcessorSaved={(): void => {
+          return;
+        }}
+        onCancel={(): void => {
+          return;
+        }}
+      />,
+    );
+  }
+
+  test("the arrow turns on an Arabic or Persian page, where the match value is on the right", () => {
+    expect(MAPPING_ARROW_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["inline-block", "rtl:-scale-x-100"]),
+    );
+  });
+
+  test.each([
+    TracePipelineProcessorType.SpanNameRemapper,
+    TracePipelineProcessorType.StatusRemapper,
+    TracePipelineProcessorType.SpanKindRemapper,
+  ])("Arabic: the %s's mapping row turns its arrow", async (type: string) => {
+    await i18next.changeLanguage("ar");
+    renderProcessor(type as TracePipelineProcessorType);
+
+    const arrows: Array<Element> = Array.from(
+      document.querySelectorAll("span"),
+    ).filter((span: Element): boolean => {
+      return span.textContent?.trim() === "→";
+    });
+
+    expect(arrows).toHaveLength(1);
+    expect(arrows[0]!.className).toBe(MAPPING_ARROW_CLASS_NAME);
+  });
+
+  test("no mapping arrow in the form is drawn without the turning class", () => {
+    const source: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Components/TracePipeline/TraceProcessorForm.tsx",
+      ),
+      "utf8",
+    );
+    const arrows: Array<string> = Array.from(
+      source.matchAll(/<span className=\{?([^>]*)>\s*→\s*<\/span>/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect(arrows).toEqual([
+      "MAPPING_ARROW_CLASS_NAME}",
+      "MAPPING_ARROW_CLASS_NAME}",
+      "MAPPING_ARROW_CLASS_NAME}",
+    ]);
+  });
+});
+
+describe("UI review: a recording rule's source count", () => {
+  test("Arabic: '1 / 4' stays on one line beside the description, which wraps", async () => {
+    await i18next.changeLanguage("ar");
+    render(
+      <TraceRecordingRuleDefinitionEditor
+        value={undefined}
+        onChange={(): void => {
+          return;
+        }}
+      />,
+    );
+
+    const count: HTMLElement = screen.getByTestId(
+      "trace-recording-rule-source-count",
+    );
+
+    expect(shown(count)).toMatch(/^1\s\/\s\d+$/);
+    expect(count.className.split(" ")).toEqual(
+      expect.arrayContaining(["shrink-0", "whitespace-nowrap"]),
+    );
   });
 });
 
