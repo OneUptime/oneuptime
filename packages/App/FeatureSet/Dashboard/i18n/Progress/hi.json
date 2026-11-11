@@ -205,6 +205,7 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} SMS",
     "{{count}} VM",
     "{{count}} vCPU",
     "{{format}} JSON",

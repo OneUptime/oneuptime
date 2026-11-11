@@ -5,6 +5,7 @@ import PageComponentProps from "../PageComponentProps";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import { isOnCallDirectPage } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
+import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -68,6 +69,8 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           statusMessage: true,
           // Read with every row: a row with none is a direct page.
           onCallDutyPolicyId: true,
+          // A test page (OnCallTestPage) says so in place of a policy.
+          userNotificationEventType: true,
         }}
         noItemsMessage={"No notifications sent out so far."}
         viewPageRoute={Navigation.getCurrentRoute()}
@@ -169,6 +172,15 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   <OnCallDutyPolicyView
                     onCallPolicy={item["onCallDutyPolicy"] as OnCallDutyPolicy}
                   />
+                );
+              }
+
+              // A test page sent to this person: no incident, no policy.
+              if (isOnCallTestPage(item)) {
+                return (
+                  <p data-testid="on-call-log-test-page">
+                    {translator.translateText("Test page")}
+                  </p>
                 );
               }
 
