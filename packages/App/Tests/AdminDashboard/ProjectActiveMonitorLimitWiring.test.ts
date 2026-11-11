@@ -181,9 +181,17 @@ describe("Project > Subscription > Active Monitors", () => {
     expect(detailFields).toContain("modelType: Project");
   });
 
-  test("it refreshes with the rest of the page", () => {
+  /*
+   * The page hands the card its refresher once, on the card. It used to hand
+   * the same refresher to modelDetailProps too, which CardModelDetail spread
+   * over its own - so saving the edit form flipped a refresher the card's
+   * fields never saw, and the card kept the old limit until the page was
+   * reloaded (issue #6766). CardModelDetail no longer lets a page's
+   * refresher replace its own; the page no longer passes a second one.
+   */
+  test("it refreshes with the rest of the page, through the card's own refresher", () => {
     expect(card).toContain("refresher={refresher}");
-    expect(detailFields).toContain("refresher: refresher");
+    expect(detailFields).not.toMatch(/\brefresher\s*:/);
   });
 
   test("it is shown on a billed install only: the page bails out before it otherwise", () => {

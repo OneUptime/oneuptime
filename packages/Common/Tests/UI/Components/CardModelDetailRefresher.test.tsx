@@ -297,6 +297,36 @@ describe("CardModelDetail refresher", () => {
     expect(getItemMock).toHaveBeenCalledTimes(2);
   });
 
+  it("REPRO: refetches after saving when the page's refresher rides on modelDetailProps", async () => {
+    render(
+      <ProbeCard
+        isEditable={true}
+        refresher={false}
+        modelDetailRefresher={false}
+      />,
+    );
+
+    await screen.findByText("WBHQ", {}, { timeout: WAIT_TIMEOUT });
+    await flush();
+    expect(countDetailFetches()).toBe(1);
+
+    await userEvent.click(
+      await screen.findByText("Edit Probe", {}, { timeout: WAIT_TIMEOUT }),
+    );
+
+    await waitFor(
+      () => {
+        expect(screen.getByDisplayValue("WBHQ")).toBeDefined();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    probeName = "WBHQ saved";
+    await userEvent.click(screen.getByText("Save Changes"));
+
+    await screen.findByText("WBHQ saved", {}, { timeout: 5000 });
+  });
+
   it("adds no fetch of its own on a StrictMode mount", async () => {
     /*
      * StrictMode runs mount effects twice, so ModelDetail on its own already
