@@ -55,27 +55,26 @@ Out of the box, a form is served at its link, on OneUptime's own address. To ser
 
 Putting the form on your own domain takes three steps, and only the first two are yours:
 
-1. **Add the domain**: a subdomain and one of your verified domains.
-2. **Add its CNAME record** at your DNS provider. The **DNS Setup** dialog opens with the record as soon as you add the domain.
+1. **Add the domain**: type the address people will open, such as `report.acme.com`.
+2. **Add its DNS records** at your DNS provider. The **DNS Setup** dialog shows them: a CNAME record for the address and, the first time the project uses a domain, a TXT record that shows the project owns it.
 3. **The free SSL certificate is issued automatically** once the record is found. There is no button to press.
 
 Once the domain is live, the **Share Link** card lists it above the form's link. Both open the same form.
 
 ### Adding the domain
 
-Click **Create Form Domain**. The dialog is one page:
+Click **Add Custom Domain**. The dialog asks for one thing:
 
-- **Subdomain**: the label only, placeholder `report (leave blank for root)`. Enter just `report`, not the whole hostname. Leave it blank or enter `@` to use the root domain.
-- **Domain**: one of the domains verified under **Project Settings** > **Advanced** > **Domains**, where you prove you own a domain with a TXT record. The **Add a domain** link beside the field opens that page in a new tab.
+- **Domain**: the whole address people will open, placeholder `report.example.com`. A pasted link works too: only its hostname is kept. To use the root of a domain, type the domain itself.
 - **More fields**: folded. Open it only to use a certificate of your own: switch on **Upload Custom Certificate**, and paste the **Certificate** and its **Certificate Private Key**.
 
-Click **Create Form Domain** again to add it. The dialog closes and the new domain's **DNS Setup** opens. A domain's name and its form are fixed once it is added, so **Edit** changes only its certificate: to change either, add the new domain and delete the old one.
+Click **Continue**. If the project has verified the domain the address is on, under **Project Settings** > **Advanced** > **Domains**, the domain is added and its **DNS Setup** opens. If it has not, OneUptime adds that domain to the project and **DNS Setup** opens with its TXT record too, so you verify it right there. A domain's name and its form are fixed once it is added, so **Edit** changes only its certificate: to change either, add the new domain and delete the old one.
 
 One domain shows one status page, dashboard or form, so a name that any of them already has, in any project, is refused: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
 
 ### DNS Setup and Check now
 
-The **DNS Setup** dialog shows the record to add at your DNS provider, each field with a copy button: **Type** `CNAME`, **Name** the full domain you added, and **Value** your installation's CNAME record. For a root domain, many DNS providers do not allow a CNAME record: use your provider's ALIAS, ANAME or CNAME flattening record with the same value instead.
+The **DNS Setup** dialog shows each record to add at your DNS provider, each field with a copy button: **Type** `CNAME`, **Name** the full domain you added, and **Value** your installation's CNAME record, after the domain's TXT record while the project has not verified it. Under each record, **Check now** says what OneUptime looked up and what came back. For a root domain, many DNS providers do not allow a CNAME record: use your provider's ALIAS, ANAME or CNAME flattening record with the same value instead.
 
 OneUptime checks every unverified domain every 15 minutes, and when it finds the record it orders the domain's free Let's Encrypt certificate in the same check. To check right away, click **Check now**. Until a domain is live, its row has a **DNS Setup** action that opens the same dialog, where **Check now** also orders again a certificate that failed or expired, at most once per domain every 15 minutes. Renewal is automatic, well before the certificate expires.
 

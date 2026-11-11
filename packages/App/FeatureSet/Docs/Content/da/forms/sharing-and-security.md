@@ -55,27 +55,26 @@ Som udgangspunkt vises en formular på sit link, på OneUptimes egen adresse. Fo
 
 At lægge formularen på dit eget domæne tager tre trin, og kun de to første er dine:
 
-1. **Tilføj domænet**: et underdomæne og et af dine bekræftede domæner.
-2. **Tilføj dets CNAME-post** hos din DNS-udbyder. Dialogen **DNS-opsætning** åbner med posten, så snart du tilføjer domænet.
+1. **Tilføj domænet**: skriv den adresse, folk skal åbne, såsom `report.acme.com`.
+2. **Tilføj dets DNS-poster** hos din DNS-udbyder. Dialogen **DNS-opsætning** viser dem: en CNAME-post for adressen og, første gang projektet bruger et domæne, en TXT-post, der viser, at projektet ejer det.
 3. **Det gratis SSL-certifikat udstedes automatisk**, så snart posten er fundet. Der er ingen knap at trykke på.
 
 Når domænet er live, viser kortet **Delingslink** det over formularens link. Begge åbner den samme formular.
 
 ### Tilføj et domæne
 
-Klik på **Opret Formulardomæne**. Dialogen er én side:
+Klik på **Tilføj brugerdefineret domæne**. Dialogen beder om én ting:
 
-- **Underdomæne**: kun etiketten, med pladsholderen `report (leave blank for root)`. Skriv bare `report`, ikke hele værtsnavnet. Lad feltet stå tomt, eller skriv `@`, for at bruge roddomænet.
-- **Domæne**: et af de domæner, der er bekræftet under **Projektindstillinger** > **Avanceret** > **Domæner**, hvor du med en TXT-post beviser, at du ejer et domæne. Linket **Tilføj et domæne** ved siden af feltet åbner den side i en ny fane.
+- **Domæne**: hele den adresse, folk skal åbne, med pladsholderen `report.example.com`. Et indsat link virker også: kun dets værtsnavn beholdes. For at bruge roden af et domæne skriver du selve domænet.
 - **Flere felter**: foldet sammen. Åbn det kun for at bruge dit eget certifikat: slå **Upload brugerdefineret certifikat** til, og indsæt **Certifikat** og dets **Privat certifikatnøgle**.
 
-Klik på **Opret Formulardomæne** igen for at tilføje det. Dialogen lukker, og det nye domænes **DNS-opsætning** åbner. Et domænes navn og dets formular ligger fast, når det er tilføjet, så **Rediger** ændrer kun dets certifikat: for at ændre et af dem skal du tilføje det nye domæne og slette det gamle.
+Klik på **Fortsæt**. Hvis projektet har bekræftet det domæne, adressen ligger på, under **Projektindstillinger** > **Avanceret** > **Domæner**, tilføjes domænet, og dets **DNS-opsætning** åbner. Hvis ikke, tilføjer OneUptime det domæne til projektet, og **DNS-opsætning** åbner også med dets TXT-post, så du bekræfter det lige dér. Et domænes navn og dets formular ligger fast, når det er tilføjet, så **Rediger** ændrer kun dets certifikat: for at ændre et af dem skal du tilføje det nye domæne og slette det gamle.
 
 Et domæne viser én statusside, ét dashboard eller én formular, så et navn, som en af dem allerede har, i et hvilket som helst projekt, afvises: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
 
 ### DNS-opsætning og Tjek nu
 
-Dialogen **DNS-opsætning** viser posten, du skal tilføje hos din DNS-udbyder, hvert felt med en kopiknap: **Type** `CNAME`, **Navn** det fulde domæne, du tilføjede, og **Værdi** din installations CNAME-post. For et roddomæne tillader mange DNS-udbydere ikke en CNAME-post: brug i stedet din udbyders ALIAS-, ANAME- eller CNAME-flattening-post med samme værdi.
+Dialogen **DNS-opsætning** viser hver post, du skal tilføje hos din DNS-udbyder, hvert felt med en kopiknap: **Type** `CNAME`, **Navn** det fulde domæne, du tilføjede, og **Værdi** din installations CNAME-post, efter domænets TXT-post, så længe projektet ikke har bekræftet det. Under hver post siger **Tjek nu**, hvad OneUptime slog op, og hvad der kom tilbage. For et roddomæne tillader mange DNS-udbydere ikke en CNAME-post: brug i stedet din udbyders ALIAS-, ANAME- eller CNAME-flattening-post med samme værdi.
 
 OneUptime tjekker hvert ubekræftet domæne hvert 15. minut, og når det finder posten, bestiller det domænets gratis Let's Encrypt-certifikat i samme tjek. Klik på **Tjek nu** for at tjekke med det samme. Indtil et domæne er live, har dets række en handling **DNS-opsætning**, der åbner den samme dialog, hvor **Tjek nu** også bestiller et certifikat igen, som slog fejl eller er udløbet, højst én gang pr. domæne hvert 15. minut. Fornyelsen sker automatisk, i god tid før certifikatet udløber.
 

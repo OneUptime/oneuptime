@@ -187,6 +187,17 @@ export const ROOT_ONLY_SENDING_HEALTH_COLUMNS: ReadonlyArray<keyof Model> = [
   "serverSendingHealth",
 ];
 
+/*
+ * What admins chose on the server's setup checklist (Types/ServerSetup/
+ * ServerSetupChecklist), written only through the checklist's own routes,
+ * which record who chose and when. Through the CRUD API a master admin
+ * could write a choice in someone else's name, or a check the catalogue
+ * does not let anyone skip.
+ */
+export const ROOT_ONLY_SERVER_SETUP_COLUMNS: ReadonlyArray<keyof Model> = [
+  "serverSetupChoices",
+];
+
 const TELEGRAM_WEBHOOK_SECRET_CACHE_NAMESPACE: string =
   "global-config-security";
 const TELEGRAM_WEBHOOK_SECRET_GENERATION_KEY: string =
@@ -765,6 +776,54 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Refuses a write of the setup checklist's choices by anyone but
+   * OneUptime itself (ROOT_ONLY_SERVER_SETUP_COLUMNS): they are made through
+   * the checklist's routes, which say who chose.
+   */
+  public assertServerSetupChoicesWrittenByRootOnly(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const isWritten: boolean = ROOT_ONLY_SERVER_SETUP_COLUMNS.some(
+      (column: keyof Model): boolean => {
+        return (
+          (data as Record<string, unknown> | undefined)?.[column as string] !==
+          undefined
+        );
+      },
+    );
+
+    if (!isWritten) {
+      return;
+    }
+
+    throw new NotAuthorizedException(
+      "serverSetupChoices is changed on the server's setup checklist, and cannot be written here.",
+    );
+  }
+
+  /*
+   * Writes what admins chose on the setup checklist: one statement, no
+   * hooks, updatedAt kept - a choice on a checklist, not a change of the
+   * server's settings.
+   */
+  public async writeServerSetupChoices(choices: JSONObject): Promise<void> {
+    const data: PartialEntity<Model> = {};
+
+    (data as Record<string, unknown>)["serverSetupChoices"] = choices;
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: ObjectID.getZeroObjectID(),
+      data: data,
+      skipUpdateDateColumn: true,
+    });
+  }
+
+  /*
    * Starts channels again at untested (ServerSendingStatus): their settings
    * were saved, and what the server remembers of their sends was learned
    * with the settings before. Never fails the save it follows.
@@ -1125,6 +1184,10 @@ export class Service extends DatabaseService<Model> {
       createBy.props,
     );
     this.assertSendingHealthWrittenByRootOnly(createBy.data, createBy.props);
+    this.assertServerSetupChoicesWrittenByRootOnly(
+      createBy.data,
+      createBy.props,
+    );
     this.assertTwilioSmsNumbersAreValid(createBy.data);
     this.assertTwilioUseIsValid(createBy.data);
     this.assertCallAndSmsProviderIsValid(createBy.data);
@@ -1151,6 +1214,10 @@ export class Service extends DatabaseService<Model> {
       updateBy.props,
     );
     this.assertSendingHealthWrittenByRootOnly(updateBy.data, updateBy.props);
+    this.assertServerSetupChoicesWrittenByRootOnly(
+      updateBy.data,
+      updateBy.props,
+    );
     this.assertTwilioSmsNumbersAreValid(updateBy.data);
     this.assertTwilioUseIsValid(updateBy.data);
     await this.assertTwilioNumbersKeptForUse(updateBy);

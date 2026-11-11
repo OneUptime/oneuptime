@@ -74,7 +74,7 @@ A etapa a fazer primeiro é marcada com **Próxima etapa**. No plano Free do One
 
 Quando você cria um monitor, uma página de status ou uma política de plantão a partir de uma etapa, a página em que você chega diz o que vem a seguir, com **Voltar à configuração**.
 
-Abaixo das etapas, **Como o OneUptime funciona** mostra os quatro produtos principais na ordem em que um problema passa por eles: **Monitores**, **Incidentes e alertas**, **Plantão** e **Páginas de status**. Clique em um para abri-lo.
+Abaixo das etapas, **Como o OneUptime funciona** mostra os quatro produtos principais na ordem em que um problema passa por eles: **Monitores**, **Incidentes e alertas**, **Plantão** e **Páginas de status**. Clique em um para abri-lo. Abaixo, ele diz o que alimenta esse ciclo, a telemetria e a infraestrutura, e leva a [Conceitos básicos](/docs/introduction/core-concepts) e [Glossário](/docs/introduction/glossary).
 
 ```mermaid title="Quando a lista de boas-vindas aparece"
 flowchart TB
@@ -87,7 +87,7 @@ flowchart TB
     done -->|"Não"| shown["A lista, com<br/>as etapas restantes"]
 ```
 
-A lista some para todos quando todas as etapas estão concluídas. Para ocultá-la antes, clique em **Ocultar**: ela fica oculta só para você, em todos os dispositivos, e fica uma linha com **Mostrar** e **Como o OneUptime funciona**. Quem foi convidado ao projeto como membro não vê a lista.
+A lista some para todos quando todas as etapas estão concluídas. Para ocultá-la antes, clique em **Ocultar**: ela fica oculta só para você, em todos os dispositivos, e fica uma linha com **Mostrar** e **Como o OneUptime funciona**. Quem foi convidado ao projeto como membro não vê a lista. **Como o OneUptime funciona** continua a um clique, em qualquer projeto: abra-o em **Ajuda** ou com o botão ao lado de **Explore o OneUptime**.
 
 ### Requer atenção
 
@@ -136,7 +136,9 @@ Duas barras atravessam o topo de cada página.
 | Canto superior direito | **Pesquisar** e **Pergunte à IA**, o sino de notificações com o que precisa de você agora (incidentes e alertas ativos, as políticas de plantão em que você está de turno, convites pendentes), **Ajuda**, e sua foto, que abre o menu da sua [conta](/docs/introduction/your-account). |
 | Abaixo delas | **Início** e **Produtos** à esquerda, **Configurações do usuário** à direita: como o OneUptime contata você neste projeto. |
 
-**Ajuda** abre esta documentação (**Documentação**) e a lista **Keyboard shortcuts**, e oferece suporte por e-mail e no Slack. Em uma tela estreita, como a de um celular, **Pesquisar**, **Pergunte à IA** e **Ajuda** saem para ganhar espaço; o sino e sua foto ficam.
+**Ajuda** começa pelo que ajuda a aprender: **Início rápido**, **Como o OneUptime funciona**, **Glossário** e esta documentação (**Documentação**). Abaixo ficam a lista **Keyboard shortcuts** e o suporte por e-mail e no Slack. Em uma tela estreita, como a de um celular, **Pesquisar**, **Pergunte à IA** e **Ajuda** saem para ganhar espaço; o sino e sua foto ficam.
+
+Uma palavra com uma linha pontilhada embaixo, como **Sondas** no formulário de um novo monitor, diz o que significa quando você aponta para ela, chega a ela com Tab ou toca nela. O **Ler mais** dela abre a palavra no [Glossário](/docs/introduction/glossary).
 
 ### Páginas e listas
 

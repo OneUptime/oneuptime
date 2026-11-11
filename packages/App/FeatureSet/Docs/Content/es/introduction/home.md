@@ -74,7 +74,7 @@ El paso que toca primero está marcado con **Siguiente paso**. En el plan Free d
 
 Cuando creas un monitor, una página de estado o una política de guardia desde un paso, la página a la que llegas dice qué sigue, con **Volver a la configuración**.
 
-Bajo los pasos, **Cómo funciona OneUptime** muestra los cuatro productos principales en el orden en que un problema pasa por ellos: **Monitores**, **Incidentes y alertas**, **Guardia** y **Páginas de estado**. Haz clic en uno para abrirlo.
+Bajo los pasos, **Cómo funciona OneUptime** muestra los cuatro productos principales en el orden en que un problema pasa por ellos: **Monitores**, **Incidentes y alertas**, **Guardia** y **Páginas de estado**. Haz clic en uno para abrirlo. Debajo dice qué alimenta ese ciclo, la telemetría y la infraestructura, y enlaza a [Conceptos básicos](/docs/introduction/core-concepts) y [Glosario](/docs/introduction/glossary).
 
 ```mermaid title="Cuándo aparece la lista de bienvenida"
 flowchart TB
@@ -87,7 +87,7 @@ flowchart TB
     done -->|"No"| shown["La lista, con<br/>los pasos pendientes"]
 ```
 
-La lista desaparece para todos cuando todos los pasos están hechos. Para ocultarla antes, haz clic en **Ocultar**: se oculta solo para ti, en cada dispositivo, y queda una línea con **Mostrarlo** y **Cómo funciona OneUptime**. Las personas invitadas al proyecto como miembros no ven la lista.
+La lista desaparece para todos cuando todos los pasos están hechos. Para ocultarla antes, haz clic en **Ocultar**: se oculta solo para ti, en cada dispositivo, y queda una línea con **Mostrarlo** y **Cómo funciona OneUptime**. Las personas invitadas al proyecto como miembros no ven la lista. **Cómo funciona OneUptime** sigue a un clic, en cualquier proyecto: ábrelo desde **Ayuda** o con el botón junto a **Explora OneUptime**.
 
 ### Requiere atención
 
@@ -136,7 +136,9 @@ Dos barras recorren la parte superior de cada página.
 | Arriba a la derecha | **Buscar** y **Preguntar a la IA**, la campana de notificaciones con lo que te necesita ahora (incidentes y alertas activos, las políticas de guardia en las que estás de turno, invitaciones pendientes), **Ayuda**, y tu foto, que abre el menú de tu [cuenta](/docs/introduction/your-account). |
 | Debajo | **Inicio** y **Productos** a la izquierda, **Ajustes de usuario** a la derecha: cómo te localiza OneUptime en este proyecto. |
 
-**Ayuda** abre esta documentación (**Documentación**) y la lista **Atajos de teclado**, y ofrece soporte por correo y en Slack. En una pantalla estrecha, como la de un teléfono, **Buscar**, **Preguntar a la IA** y **Ayuda** se quitan para ganar espacio; la campana y tu foto se quedan.
+**Ayuda** empieza por lo que te ayuda a aprender: **Inicio rápido**, **Cómo funciona OneUptime**, **Glosario** y esta documentación (**Documentación**). Debajo están la lista **Atajos de teclado** y el soporte por correo y en Slack. En una pantalla estrecha, como la de un teléfono, **Buscar**, **Preguntar a la IA** y **Ayuda** se quitan para ganar espacio; la campana y tu foto se quedan.
+
+Una palabra con una línea de puntos debajo, como **Sondas** en el formulario de un monitor nuevo, dice qué significa cuando la señalas, llegas a ella con Tab o la tocas. Su **Leer más** abre la palabra en el [Glosario](/docs/introduction/glossary).
 
 ### Páginas y listas
 

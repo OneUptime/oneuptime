@@ -1,5 +1,6 @@
 import MasterPage from "./Components/MasterPage/MasterPage";
 import Init from "./Pages/Init/Init";
+import ServerSetup from "./Pages/Setup/Index";
 import Health from "./Pages/Health/Index";
 import HealthQueues from "./Pages/Health/Queues";
 import HealthInstanceLogs from "./Pages/Health/InstanceLogs";
@@ -112,6 +113,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.INIT]?.toString() || ""}
           element={<Init />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.SERVER_SETUP]?.toString() || ""}
+          element={<ServerSetup />}
         />
 
         <PageRoute

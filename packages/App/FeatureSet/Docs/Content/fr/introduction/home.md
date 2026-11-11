@@ -74,7 +74,7 @@ L'étape à faire en premier est marquée **Étape suivante**. Avec l'offre Free
 
 Quand vous créez un moniteur, une page de statut ou une politique d'astreinte depuis une étape, la page où vous arrivez dit ce qui vient ensuite, avec **Retour à la configuration**.
 
-Sous les étapes, **Comment fonctionne OneUptime** montre les quatre produits essentiels dans l'ordre où un problème les traverse : **Moniteurs**, **Incidents et alertes**, **Astreinte** et **Pages de statut**. Cliquez sur l'un d'eux pour l'ouvrir.
+Sous les étapes, **Comment fonctionne OneUptime** montre les quatre produits essentiels dans l'ordre où un problème les traverse : **Moniteurs**, **Incidents et alertes**, **Astreinte** et **Pages de statut**. Cliquez sur l'un d'eux pour l'ouvrir. En dessous, il indique ce qui alimente cette boucle, la télémétrie et l'infrastructure, avec des liens vers [Concepts clés](/docs/introduction/core-concepts) et [Glossaire](/docs/introduction/glossary).
 
 ```mermaid title="Quand la liste de bienvenue s'affiche"
 flowchart TB
@@ -87,7 +87,7 @@ flowchart TB
     done -->|"Non"| shown["La liste, avec<br/>les étapes restantes"]
 ```
 
-La liste disparaît pour tout le monde une fois chaque étape terminée. Pour la masquer plus tôt, cliquez sur **Masquer** : elle n'est masquée que pour vous, sur chaque appareil, et une ligne reste avec **Afficher** et **Comment fonctionne OneUptime**. Les personnes invitées dans le projet comme membres ne voient pas la liste.
+La liste disparaît pour tout le monde une fois chaque étape terminée. Pour la masquer plus tôt, cliquez sur **Masquer** : elle n'est masquée que pour vous, sur chaque appareil, et une ligne reste avec **Afficher** et **Comment fonctionne OneUptime**. Les personnes invitées dans le projet comme membres ne voient pas la liste. **Comment fonctionne OneUptime** reste à un clic, dans n'importe quel projet : ouvrez-le depuis **Aide**, ou avec le bouton à côté de **Explorer OneUptime**.
 
 ### Attention requise
 
@@ -136,7 +136,9 @@ Deux barres traversent le haut de chaque page.
 | En haut à droite | **Rechercher** et **Demander à l'IA**, la cloche de notifications avec ce qui vous attend (incidents et alertes actifs, politiques d'astreinte dont vous êtes de garde, invitations en attente), **Aide**, et votre photo, qui ouvre le menu de votre [compte](/docs/introduction/your-account). |
 | En dessous | **Accueil** et **Produits** à gauche, **Paramètres utilisateur** à droite : comment OneUptime vous joint dans ce projet. |
 
-**Aide** ouvre cette documentation (**Documentation**) et la liste **Raccourcis clavier**, et propose du support par e-mail et sur Slack. Sur un écran étroit, comme un téléphone, **Rechercher**, **Demander à l'IA** et **Aide** disparaissent pour gagner de la place ; la cloche et votre photo restent.
+**Aide** commence par ce qui aide à apprendre : **Démarrage rapide**, **Comment fonctionne OneUptime**, **Glossaire** et cette documentation (**Documentation**). En dessous viennent la liste **Raccourcis clavier** et le support par e-mail et sur Slack. Sur un écran étroit, comme un téléphone, **Rechercher**, **Demander à l'IA** et **Aide** disparaissent pour gagner de la place ; la cloche et votre photo restent.
+
+Un mot souligné de pointillés, comme **Sondes** dans le formulaire d'un nouveau moniteur, dit ce qu'il signifie quand vous le survolez, l'atteignez avec Tab ou le touchez. Son lien **Lire la suite** ouvre le mot dans le [Glossaire](/docs/introduction/glossary).
 
 ### Pages et listes
 

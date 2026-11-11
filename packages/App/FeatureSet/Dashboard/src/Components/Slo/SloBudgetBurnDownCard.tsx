@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
   getSloBurnDownZoomRange,
@@ -434,6 +435,7 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
         className="group/zoomhint"
         bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}
         title="Error budget burn-down"
+        titleGlossaryTerm={GlossaryTerm.ErrorBudget}
         description={description}
         rightElement={
           <div className="flex items-center gap-2">

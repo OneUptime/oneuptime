@@ -24,6 +24,7 @@ import type { PeoplePickerFieldConfig } from "../../PeoplePicker/PeoplePickerTyp
 import type { TemplateVariableGroups } from "../../../../Types/Template/TemplateVariable";
 import type { FoldedSectionVariant } from "../../FoldedSection/FoldedSectionVariant";
 import type IconProp from "../../../../Types/Icon/IconProp";
+import type GlossaryTerm from "../../../../Types/Docs/GlossaryTerm";
 import type { PluralTemplate } from "../../../Utils/TranslateTemplate";
 import { ReactElement, ReactNode } from "react";
 
@@ -265,6 +266,15 @@ export default interface Field<TEntity> {
    */
   keepFilesInBrowser?: boolean | undefined;
   sideLink?: FormFieldSideLink | undefined;
+  /*
+   * The Glossary term the field's title names ("Criteria", "Probes"): the
+   * title is drawn as a defined term (Glossary/DefinedTerm), and hovering,
+   * focusing or tapping it shows what the word means, from the docs'
+   * Glossary in the reader's language. For the field where a page first
+   * uses a word people trip on - at most three marked words on a page, each
+   * once (the Dashboard's GlossaryTermsPerPage guard).
+   */
+  glossaryTerm?: GlossaryTerm | undefined;
   validation?: {
     minLength?: number | undefined;
     maxLength?: number | undefined;
@@ -319,6 +329,14 @@ export default interface Field<TEntity> {
   fieldType?: FormFieldSchemaType;
   overrideFieldKey?: string;
   defaultValue?: boolean | string | Date | number | undefined;
+  /*
+   * An edit form starts this field on its defaultValue when the record
+   * holds nothing for it (null), not only when it holds no key at all:
+   * the server's one settings row, whose SMTP port is empty on a fresh
+   * server, starts on 587 rather than an empty box that looks filled in
+   * by its placeholder (#6875). A value the record holds is kept.
+   */
+  startsOnDefaultWhenEmpty?: boolean | undefined;
   getDefaultValue?:
     | ((item: FormValues<TEntity>) => boolean | string | Date | number)
     | undefined;
