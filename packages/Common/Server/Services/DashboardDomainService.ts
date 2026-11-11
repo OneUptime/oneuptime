@@ -812,10 +812,9 @@ export class Service extends ProjectReferencesService<DashboardDomain> {
         lookUpDnsEvenWhenReached: options?.lookUpDnsEvenWhenReached,
       });
 
-      logger.debug(
-        `CNAME check of ${fullDomain}: ${check.outcome}`,
-        { fullDomain } as LogAttributes,
-      );
+      logger.debug(`CNAME check of ${fullDomain}: ${check.outcome}`, {
+        fullDomain,
+      } as LogAttributes);
 
       await recordResult(isDnsRecordFound(check));
 

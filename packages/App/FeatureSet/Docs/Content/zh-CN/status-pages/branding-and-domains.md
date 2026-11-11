@@ -214,7 +214,7 @@ statusPage:
 
 域名的完整名称在添加时就固定了，因此 **编辑** 只能更改它的证书。若要使用另一个地址，请添加该地址并删除旧的域名。 仪表板或表单已在使用的名称，无论在哪个项目中，都会被拒绝：一个域名只显示一个状态页、仪表板或表单。
 
-向项目添加域名需要创建项目域名的权限（**Create Project Domain**，或 Project Owner 或 Project Admin），验证它则需要 **Edit Project Domain**。没有这些权限时，对话框会说明谁可以执行此操作。
+向项目添加域名需要创建项目域名的权限（**Create Domain**，或 Project Owner 或 Project Admin），验证它则需要 **Edit Domain**。没有这些权限时，对话框会说明谁可以执行此操作。
 
 ### DNS 设置和验证
 

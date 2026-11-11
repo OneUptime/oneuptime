@@ -80,8 +80,9 @@ const CustomDomainRecords: FunctionComponent<ComponentProps> = (
   return (
     <div className="space-y-4">
       {props.records.map((record: CustomDomainRecord): ReactElement => {
-        const description: DnsRecordCheckDescription | undefined =
-          record.check ? describeDnsRecordCheck(record.check) : undefined;
+        const description: DnsRecordCheckDescription | undefined = record.check
+          ? describeDnsRecordCheck(record.check)
+          : undefined;
 
         const fields: Array<{
           label: string;
@@ -111,15 +112,20 @@ const CustomDomainRecords: FunctionComponent<ComponentProps> = (
 
         return (
           <section key={record.testIds.record} className="space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="min-w-0 text-sm leading-6 text-gray-600">
+            {/*
+             * The line wraps beside its status, which keeps to the end of
+             * the first line: a status on a line of its own read as a
+             * heading of the record under it.
+             */}
+            <div className="flex items-start justify-between gap-3">
+              <p className="min-w-0 flex-1 text-sm leading-6 text-gray-600">
                 {translator.translateTemplate(record.purpose, {
                   domain: record.purposeDomain,
                 })}
               </p>
               {record.check ? (
                 <span
-                  className="shrink-0"
+                  className="mt-0.5 shrink-0"
                   data-testid={record.testIds.status}
                   data-outcome={record.check.outcome}
                 >
@@ -138,39 +144,41 @@ const CustomDomainRecords: FunctionComponent<ComponentProps> = (
               className="divide-y divide-gray-200 rounded-md border border-gray-200"
               data-testid={record.testIds.record}
             >
-              {fields.map((field: {
-                label: string;
-                value: string;
-                copyTitle: string;
-                testId: string;
-              }): ReactElement => {
-                return (
-                  <div
-                    key={field.testId}
-                    className="flex items-center justify-between gap-3 px-3 py-2"
-                  >
-                    <div className="min-w-0">
-                      <dt className="text-xs font-medium text-gray-500">
-                        {translator.translateText(field.label)}
-                      </dt>
-                      <dd
-                        className="mt-0.5 break-all font-mono text-sm text-gray-900"
-                        data-testid={field.testId}
-                      >
-                        {field.value}
-                      </dd>
+              {fields.map(
+                (field: {
+                  label: string;
+                  value: string;
+                  copyTitle: string;
+                  testId: string;
+                }): ReactElement => {
+                  return (
+                    <div
+                      key={field.testId}
+                      className="flex items-center justify-between gap-3 px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <dt className="text-xs font-medium text-gray-500">
+                          {translator.translateText(field.label)}
+                        </dt>
+                        <dd
+                          className="mt-0.5 break-all font-mono text-sm text-gray-900"
+                          data-testid={field.testId}
+                        >
+                          {field.value}
+                        </dd>
+                      </div>
+                      <CopyTextButton
+                        textToBeCopied={field.value}
+                        title={field.copyTitle}
+                        size="sm"
+                        variant="ghost"
+                        iconOnly={true}
+                        className="shrink-0"
+                      />
                     </div>
-                    <CopyTextButton
-                      textToBeCopied={field.value}
-                      title={field.copyTitle}
-                      size="sm"
-                      variant="ghost"
-                      iconOnly={true}
-                      className="shrink-0"
-                    />
-                  </div>
-                );
-              })}
+                  );
+                },
+              )}
             </dl>
 
             {description && record.check ? (

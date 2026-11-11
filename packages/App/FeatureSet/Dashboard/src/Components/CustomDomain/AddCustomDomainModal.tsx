@@ -162,7 +162,8 @@ export const getAddCustomDomainFields: (
       required: (values: FormValues<AddValues>): boolean => {
         return Boolean(values.isCustomCertificate);
       },
-      placeholder: "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
+      placeholder:
+        "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
       disableSpellCheck: true,
       showIf: (values: FormValues<AddValues>): boolean => {
         return Boolean(values.isCustomCertificate);
@@ -178,7 +179,8 @@ export const getAddCustomDomainFields: (
       required: (values: FormValues<AddValues>): boolean => {
         return Boolean(values.isCustomCertificate);
       },
-      placeholder: "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
+      placeholder:
+        "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
       disableSpellCheck: true,
       showIf: (values: FormValues<AddValues>): boolean => {
         return Boolean(values.isCustomCertificate);
@@ -274,12 +276,11 @@ const AddCustomDomainModal: FunctionComponent<ComponentProps> = (
       row["customCertificateKey"] = data.values.customCertificateKey || "";
     }
 
-    const response: { data: unknown } = await ModelAPI.create<CustomDomainModel>(
-      {
+    const response: { data: unknown } =
+      await ModelAPI.create<CustomDomainModel>({
         model: model,
         modelType: props.kind.modelType,
-      },
-    );
+      });
 
     const created: CustomDomainModel = BaseModel.fromJSONObject(
       (response.data || {}) as JSONObject,
@@ -391,7 +392,10 @@ const AddCustomDomainModal: FunctionComponent<ComponentProps> = (
 
       setPending({
         fullDomain: parsed.fullDomain,
-        subdomain: getSubdomainOnDomain(parsed.fullDomain, projectDomain.domain),
+        subdomain: getSubdomainOnDomain(
+          parsed.fullDomain,
+          projectDomain.domain,
+        ),
         projectDomain: {
           id: new ObjectID(projectDomain.id),
           domain: projectDomain.domain,
@@ -446,7 +450,9 @@ const AddCustomDomainModal: FunctionComponent<ComponentProps> = (
       error={error}
       submitButtonText={CustomDomainCopy.addSubmit}
       onClose={props.onClose}
-      beforeFormElement={<CustomDomainServerReadinessNotice kind={props.kind} />}
+      beforeFormElement={
+        <CustomDomainServerReadinessNotice kind={props.kind} />
+      }
       onSubmit={(values: AddValues): void => {
         void onSubmit(values);
       }}

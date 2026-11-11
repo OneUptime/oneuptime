@@ -245,8 +245,9 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
               if (!result.isVerified) {
                 const check: DnsRecordCheck | undefined = result.records[0];
-                const description: DnsRecordCheckDescription | undefined =
-                  check ? describeDnsRecordCheck(check) : undefined;
+                const description: DnsRecordCheckDescription | undefined = check
+                  ? describeDnsRecordCheck(check)
+                  : undefined;
                 const parts: Array<DnsRecordCheckSentence> = description
                   ? [
                       description.lookedUp,

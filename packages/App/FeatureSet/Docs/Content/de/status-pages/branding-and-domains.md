@@ -214,7 +214,7 @@ Klicken Sie auf **Weiter**. Hat das Projekt die Domain, auf der die Adresse lieg
 
 Der vollständige Name einer Domain wird beim Hinzufügen festgelegt; **Bearbeiten** ändert daher nur ihr Zertifikat. Um eine andere Adresse zu verwenden, fügen Sie diese hinzu und löschen die alte. Ein Name, den schon ein Dashboard oder ein Formular verwendet, in welchem Projekt auch immer, wird abgelehnt: Eine Domain zeigt eine Statusseite, ein Dashboard oder ein Formular.
 
-Um eine Domain zum Projekt hinzuzufügen, brauchen Sie die Berechtigung, Projektdomains zu erstellen (**Create Project Domain**, oder Project Owner oder Project Admin), und um sie zu verifizieren, **Edit Project Domain**. Fehlen sie, sagt der Dialog, wer es tun kann.
+Um eine Domain zum Projekt hinzuzufügen, brauchen Sie die Berechtigung, Projektdomains zu erstellen (**Create Domain**, oder Project Owner oder Project Admin), und um sie zu verifizieren, **Edit Domain**. Fehlen sie, sagt der Dialog, wer es tun kann.
 
 ### DNS-Einrichtung und Verifizierung
 

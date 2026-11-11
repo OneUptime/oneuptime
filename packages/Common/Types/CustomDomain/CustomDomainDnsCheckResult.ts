@@ -32,9 +32,7 @@ export default class CustomDomainDnsCheckResultJSON {
     };
 
     if (result.certificate) {
-      json["certificate"] = CustomDomainVerification.toJSON(
-        result.certificate,
-      );
+      json["certificate"] = CustomDomainVerification.toJSON(result.certificate);
     }
 
     return json;

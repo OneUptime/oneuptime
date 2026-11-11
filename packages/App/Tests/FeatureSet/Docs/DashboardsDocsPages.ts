@@ -46,7 +46,6 @@ export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> = {
   [DASHBOARDS_INDEX]: ["Create Dashboard"],
   [AUTHORING]: ["Create Dashboard"],
   [DATA_SOURCES]: ["Create Data Source"],
-  [SHARING]: ["Create Dashboard Domain"],
   [PLAYLISTS]: ["Create Playlist"],
 };
 
@@ -162,7 +161,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
   ],
   [SHARING]: [
     "Add the domain",
-    "Add its CNAME record",
+    "Add its DNS records",
     "The free SSL certificate is issued automatically",
     "The record is not found yet.",
     "The record is found.",

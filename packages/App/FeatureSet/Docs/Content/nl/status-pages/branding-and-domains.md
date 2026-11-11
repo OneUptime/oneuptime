@@ -214,7 +214,7 @@ Klik op **Doorgaan**. Als het project het domein waarop het adres staat al heeft
 
 De volledige naam van een domein ligt vast zodra u het toevoegt, dus **Bewerken** wijzigt alleen het certificaat ervan. Om een ander adres te gebruiken, voegt u dat toe en verwijdert u het oude. Een naam die een dashboard of een formulier al gebruikt, in welk project ook, wordt geweigerd: één domein toont één statuspagina, dashboard of formulier.
 
-Een domein aan het project toevoegen vereist de machtiging om projectdomeinen aan te maken (**Create Project Domain**, of Project Owner of Project Admin), en het verifiëren vereist **Edit Project Domain**. Zonder die machtigingen zegt het dialoogvenster wie het kan doen.
+Een domein aan het project toevoegen vereist de machtiging om projectdomeinen aan te maken (**Create Domain**, of Project Owner of Project Admin), en het verifiëren vereist **Edit Domain**. Zonder die machtigingen zegt het dialoogvenster wie het kan doen.
 
 ### DNS-instelling en verificatie
 

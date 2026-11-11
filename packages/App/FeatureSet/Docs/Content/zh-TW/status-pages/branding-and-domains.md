@@ -214,7 +214,7 @@ statusPage:
 
 網域的完整名稱在新增時就固定了，因此 **編輯** 只能變更它的憑證。若要使用另一個位址，請新增該位址並刪除舊的網域。 儀表板或表單已在使用的名稱，無論在哪個專案中，都會被拒絕：一個網域只顯示一個狀態頁、儀表板或表單。
 
-將網域新增到專案需要建立專案網域的權限（**Create Project Domain**，或 Project Owner 或 Project Admin），驗證它則需要 **Edit Project Domain**。沒有這些權限時，對話方塊會說明誰可以執行此操作。
+將網域新增到專案需要建立專案網域的權限（**Create Domain**，或 Project Owner 或 Project Admin），驗證它則需要 **Edit Domain**。沒有這些權限時，對話方塊會說明誰可以執行此操作。
 
 ### DNS 設定與驗證
 

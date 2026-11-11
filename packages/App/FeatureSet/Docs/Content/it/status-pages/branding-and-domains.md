@@ -214,7 +214,7 @@ Fate clic su **Continua**. Se il progetto ha verificato il dominio su cui si tro
 
 Il nome completo di un dominio viene fissato quando lo aggiungete, quindi **Modifica** cambia solo il suo certificato. Per usare un altro indirizzo, aggiungete quello ed eliminate quello vecchio. Un nome che una dashboard o un modulo usa già, in qualsiasi progetto, viene rifiutato: un dominio mostra una sola pagina di stato, una sola dashboard o un solo modulo.
 
-Aggiungere un dominio al progetto richiede il permesso di creare domini di progetto (**Create Project Domain**, oppure Project Owner o Project Admin), e verificarlo richiede **Edit Project Domain**. Senza questi permessi, la finestra di dialogo dice chi può farlo.
+Aggiungere un dominio al progetto richiede il permesso di creare domini di progetto (**Create Domain**, oppure Project Owner o Project Admin), e verificarlo richiede **Edit Domain**. Senza questi permessi, la finestra di dialogo dice chi può farlo.
 
 ### Configurazione DNS e verifica
 

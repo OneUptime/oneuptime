@@ -125,9 +125,7 @@ export default class DnsLookup {
   }
 
   // The name's IPv4 and IPv6 addresses, following any CNAME.
-  public static async resolveAddresses(
-    name: string,
-  ): Promise<DnsLookupAnswer> {
+  public static async resolveAddresses(name: string): Promise<DnsLookupAnswer> {
     const [ipv4, ipv6] = await Promise.all([
       DnsLookup.run(
         name,

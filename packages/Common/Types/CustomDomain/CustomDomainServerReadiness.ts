@@ -112,9 +112,7 @@ export const CustomDomainReadinessWords: {
   port80NoAnswer: translationKey(
     "{{target}} does not answer on port 80. Open port 80 to this server: visitors and Let's Encrypt reach custom domains there.",
   ),
-  port443Answers: translationKey(
-    "{{target}} accepts connections on port 443.",
-  ),
+  port443Answers: translationKey("{{target}} accepts connections on port 443."),
   port443NoAnswer: translationKey(
     "{{target}} does not accept connections on port 443. Open port 443 to this server, so visitors can open custom domains over HTTPS.",
   ),
@@ -126,9 +124,10 @@ export const CustomDomainReadinessWords: {
   ),
 };
 
-export const describeReadinessCheck: (
-  check: CustomDomainReadinessCheck,
-) => { template: string; values: Record<string, string> } = (
+export const describeReadinessCheck: (check: CustomDomainReadinessCheck) => {
+  template: string;
+  values: Record<string, string>;
+} = (
   check: CustomDomainReadinessCheck,
 ): { template: string; values: Record<string, string> } => {
   const isPass: boolean = check.outcome === CustomDomainReadinessOutcome.Pass;
@@ -258,9 +257,7 @@ export default class CustomDomainServerReadiness {
           typeof rawValues === "object" &&
           !Array.isArray(rawValues)
         ) {
-          for (const [key, value] of Object.entries(
-            rawValues as JSONObject,
-          )) {
+          for (const [key, value] of Object.entries(rawValues as JSONObject)) {
             if (typeof value === "string") {
               values[key] = value;
             }

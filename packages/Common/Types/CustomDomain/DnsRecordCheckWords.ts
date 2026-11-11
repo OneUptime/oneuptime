@@ -113,7 +113,9 @@ export const DnsRecordCheckWords: {
   addTxt: translationKey(
     "Add a TXT record with the name {{name}} and the value {{expectedValue}} at your DNS provider. A new record usually shows up within minutes, and at most within 48 hours.",
   ),
-  changeCname: translationKey("Change the record's value to {{expectedValue}}."),
+  changeCname: translationKey(
+    "Change the record's value to {{expectedValue}}.",
+  ),
   addAnotherTxt: translationKey(
     "Add a TXT record with the value {{expectedValue}}. The TXT records already there can stay.",
   ),

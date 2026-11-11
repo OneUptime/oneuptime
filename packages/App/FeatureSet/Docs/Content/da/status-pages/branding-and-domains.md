@@ -214,7 +214,7 @@ Klik på **Fortsæt**. Hvis projektet har bekræftet det domæne, adressen ligge
 
 Et domænes fulde navn ligger fast, når du tilføjer det, så **Rediger** ændrer kun dets certifikat. For at bruge en anden adresse tilføjer du den og sletter den gamle. Et navn, som et dashboard eller en formular allerede bruger, i et hvilket som helst projekt, afvises: ét domæne viser én statusside, ét dashboard eller én formular.
 
-At tilføje et domæne til projektet kræver tilladelse til at oprette projektdomæner (**Create Project Domain**, eller Project Owner eller Project Admin), og at bekræfte det kræver **Edit Project Domain**. Uden dem siger dialogen, hvem der kan gøre det.
+At tilføje et domæne til projektet kræver tilladelse til at oprette projektdomæner (**Create Domain**, eller Project Owner eller Project Admin), og at bekræfte det kræver **Edit Domain**. Uden dem siger dialogen, hvem der kan gøre det.
 
 ### DNS-opsætning og bekræftelse
 

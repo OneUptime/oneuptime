@@ -352,7 +352,8 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   {
-    directory: "packages/Common/Types/CustomDomain/CustomDomainServerReadiness.ts",
+    directory:
+      "packages/Common/Types/CustomDomain/CustomDomainServerReadiness.ts",
     kind: "keys",
   },
   /*

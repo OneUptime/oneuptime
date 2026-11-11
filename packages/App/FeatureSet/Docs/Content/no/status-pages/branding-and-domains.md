@@ -214,7 +214,7 @@ Klikk på **Fortsett**. Hvis prosjektet har verifisert domenet adressen ligger p
 
 Et domenes fulle navn ligger fast når du legger det til, så **Rediger** endrer bare sertifikatet. For å bruke en annen adresse legger du til den og sletter den gamle. Et navn som et dashbord eller et skjema allerede bruker, i hvilket som helst prosjekt, avvises: ett domene viser én statusside, ett dashbord eller ett skjema.
 
-Å legge til et domene i prosjektet krever tillatelse til å opprette prosjektdomener (**Create Project Domain**, eller Project Owner eller Project Admin), og å verifisere det krever **Edit Project Domain**. Uten dem sier dialogen hvem som kan gjøre det.
+Å legge til et domene i prosjektet krever tillatelse til å opprette prosjektdomener (**Create Domain**, eller Project Owner eller Project Admin), og å verifisere det krever **Edit Domain**. Uten dem sier dialogen hvem som kan gjøre det.
 
 ### DNS-oppsett og verifisering
 

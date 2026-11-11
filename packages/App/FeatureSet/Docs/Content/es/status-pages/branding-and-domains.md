@@ -214,7 +214,7 @@ Haz clic en **Continuar**. Si el proyecto ha verificado el dominio en el que est
 
 El nombre completo de un dominio queda fijado al añadirlo, así que **Editar** solo cambia su certificado. Para usar otra dirección, añádela y elimina la antigua. Se rechaza un nombre que ya use un panel o un formulario, en cualquier proyecto: un dominio muestra una sola página de estado, un solo panel o un solo formulario.
 
-Añadir un dominio al proyecto requiere permiso para crear dominios del proyecto (**Create Project Domain**, o Project Owner o Project Admin), y verificarlo requiere **Edit Project Domain**. Sin ellos, el cuadro de diálogo dice quién puede hacerlo.
+Añadir un dominio al proyecto requiere permiso para crear dominios del proyecto (**Create Domain**, o Project Owner o Project Admin), y verificarlo requiere **Edit Domain**. Sin ellos, el cuadro de diálogo dice quién puede hacerlo.
 
 ### Configuración de DNS y verificación
 

@@ -37,6 +37,9 @@ import net from "net";
  * asks whenever it opens, and each answer costs requests out of the server.
  */
 
+// A proof's nonce: 16 random bytes, as hex.
+const NONCE: RegExp = /^[0-9a-f]{32}$/;
+
 export interface ReadinessRequest {
   // The address CNAME records point to: STATUS_PAGE_CNAME_RECORD.
   target: string;
@@ -80,7 +83,7 @@ export default class CustomDomainServerReadiness {
 
     const parts: Array<string> = proof.split(".");
 
-    if (parts.length !== 2 || !/^[0-9a-f]{32}$/.test(parts[0]!)) {
+    if (parts.length !== 2 || !NONCE.test(parts[0]!)) {
       return false;
     }
 
@@ -231,8 +234,7 @@ export default class CustomDomainServerReadiness {
       values: { target, variable: request.variable },
     });
 
-    const addresses: DnsLookupAnswer =
-      await DnsLookup.resolveAddresses(target);
+    const addresses: DnsLookupAnswer = await DnsLookup.resolveAddresses(target);
 
     if (addresses.values.length === 0) {
       checks.push({

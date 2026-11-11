@@ -214,7 +214,7 @@ Klicka på **Fortsätt**. Om projektet har verifierat domänen som adressen ligg
 
 En domäns fullständiga namn ligger fast när du lägger till den, så **Redigera** ändrar bara dess certifikat. För att använda en annan adress lägger du till den och tar bort den gamla. Ett namn som en instrumentpanel eller ett formulär redan använder, i vilket projekt som helst, avvisas: en domän visar en statussida, en instrumentpanel eller ett formulär.
 
-Att lägga till en domän i projektet kräver behörighet att skapa projektdomäner (**Create Project Domain**, eller Project Owner eller Project Admin), och att verifiera den kräver **Edit Project Domain**. Utan dem säger dialogrutan vem som kan göra det.
+Att lägga till en domän i projektet kräver behörighet att skapa projektdomäner (**Create Domain**, eller Project Owner eller Project Admin), och att verifiera den kräver **Edit Domain**. Utan dem säger dialogrutan vem som kan göra det.
 
 ### DNS-inställning och verifiering
 

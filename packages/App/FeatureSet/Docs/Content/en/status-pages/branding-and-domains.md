@@ -214,7 +214,7 @@ Click **Continue**. If the project has verified the domain the address is on, th
 
 A domain's full name is fixed when you add it, so **Edit** changes only its certificate. To use a different address, add that one and delete the old one. A name a dashboard or a form already uses, in any project, is refused: one domain shows one status page, dashboard or form.
 
-Adding a domain to the project takes permission to create project domains (**Create Project Domain**, or Project Owner or Project Admin), and verifying it takes **Edit Project Domain**. Without them, the dialog says who can do it.
+Adding a domain to the project takes permission to create project domains (**Create Domain**, or Project Owner or Project Admin), and verifying it takes **Edit Domain**. Without them, the dialog says who can do it.
 
 ### DNS Setup and verification
 

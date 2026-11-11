@@ -476,8 +476,15 @@ describe("the copy", () => {
    * its folded header, its two DNS Setup sentences (before and after Check
    * now verifies the record) and both kinds' card descriptions.
    */
-  test("brings 36 sentences of its own", () => {
-    expect(NEW_SENTENCES).toHaveLength(36);
+  /*
+   * #6835 brought nine (Add Custom Domain's title, its field's line and the
+   * word for who may add a project domain; DNS Setup's line over each
+   * record, when it last looked, what happens next with two records, and
+   * both kinds' intro for two records) and took two away (the Domain
+   * dropdown's line and its link to Project Settings): 43.
+   */
+  test("brings 43 sentences of its own", () => {
+    expect(NEW_SENTENCES).toHaveLength(43);
   });
 
   test.each(OTHER_LOCALES)(
@@ -857,11 +864,15 @@ describe("the pages ask the installation", () => {
     expect(kinds).toContain("protocol: HTTP_PROTOCOL");
   });
 
-  test("the table's card and folded header change their words with it", () => {
+  // The certificate options fold under Add Custom Domain (AddCustomDomainModal).
+  test("the table's card and Add Custom Domain's folded header change their words with it", () => {
     const table: string = readSource(TABLE);
+    const add: string = readSource(
+      path.join(path.dirname(TABLE), "AddCustomDomainModal.tsx"),
+    );
 
     expect(table).toContain("kind.copy.cardDescriptionWithoutFreeCertificates");
-    expect(table).toContain(
+    expect(add).toContain(
       "CustomDomainCopy.advancedSummaryWithoutFreeCertificate",
     );
   });

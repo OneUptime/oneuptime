@@ -119,9 +119,7 @@ export interface ComponentProps {
   // Whether the viewer may verify the project's domain, and if not, why.
   verifyDomainGate?: PermissionGateResult | undefined;
   // Adds the custom domain once its project domain is verified.
-  createCustomDomain?:
-    | (() => Promise<CustomDomainDnsSetupDomain>)
-    | undefined;
+  createCustomDomain?: (() => Promise<CustomDomainDnsSetupDomain>) | undefined;
   onClose: () => void;
   // Check now found the record: what shows the domain's status is stale.
   onVerified: () => void;
@@ -156,8 +154,9 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
   );
 
   // The custom domain, once it is added (from this dialog, or before it).
-  const [customDomain, setCustomDomain] =
-    useState<CustomDomainDnsSetupDomain>(props.domain);
+  const [customDomain, setCustomDomain] = useState<CustomDomainDnsSetupDomain>(
+    props.domain,
+  );
 
   // What the last Check now found, record by record.
   const [txtCheck, setTxtCheck] = useState<DnsRecordCheck | undefined>(
@@ -194,13 +193,13 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
     ? CustomDomainCopy.dnsSetupWhatHappensNextTwoRecords
     : props.domain.isCustomCertificate
       ? CustomDomainCopy.dnsSetupWhatHappensNextUploaded
-    : !installation.issuesFreeCertificates
-      ? CustomDomainCopy.dnsSetupWhatHappensNextWithoutFreeCertificate
-      : props.domain.isCnameVerified
-        ? props.hasExpiredCertificate
-          ? CustomDomainCopy.dnsSetupVerifiedExpired
-          : CustomDomainCopy.dnsSetupVerifiedNotIssued
-        : CustomDomainCopy.dnsSetupWhatHappensNext;
+      : !installation.issuesFreeCertificates
+        ? CustomDomainCopy.dnsSetupWhatHappensNextWithoutFreeCertificate
+        : props.domain.isCnameVerified
+          ? props.hasExpiredCertificate
+            ? CustomDomainCopy.dnsSetupVerifiedExpired
+            : CustomDomainCopy.dnsSetupVerifiedNotIssued
+          : CustomDomainCopy.dnsSetupWhatHappensNext;
 
   // The subdomain is empty for the domain itself ("@" when it was added).
   const isRootDomain: boolean =
@@ -224,23 +223,24 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
 
   const showsCheckNow: boolean = canCheckNow || Boolean(checkNowLockedReason);
 
-  const getCheckResult: (route: string) => Promise<CustomDomainDnsCheckResult> =
-    async (route: string): Promise<CustomDomainDnsCheckResult> => {
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.get<JSONObject>({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(route),
-          data: {},
-          headers: ModelAPI.getCommonHeaders(),
-        });
+  const getCheckResult: (
+    route: string,
+  ) => Promise<CustomDomainDnsCheckResult> = async (
+    route: string,
+  ): Promise<CustomDomainDnsCheckResult> => {
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.get<JSONObject>({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(route),
+        data: {},
+        headers: ModelAPI.getCommonHeaders(),
+      });
 
-      if (response.isFailure()) {
-        throw response;
-      }
+    if (response.isFailure()) {
+      throw response;
+    }
 
-      return CustomDomainDnsCheckResultJSON.fromJSON(
-        response.data as JSONObject,
-      );
-    };
+    return CustomDomainDnsCheckResultJSON.fromJSON(response.data as JSONObject);
+  };
 
   const checkNow: () => Promise<void> = async (): Promise<void> => {
     if (!canCheckNow) {

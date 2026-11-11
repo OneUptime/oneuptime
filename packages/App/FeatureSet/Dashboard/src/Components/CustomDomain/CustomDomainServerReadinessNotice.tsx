@@ -113,7 +113,10 @@ const CustomDomainServerReadinessNotice: FunctionComponent<ComponentProps> = (
       return check.outcome !== CustomDomainReadinessOutcome.Pass;
     })
     .sort(
-      (a: CustomDomainReadinessCheck, b: CustomDomainReadinessCheck): number => {
+      (
+        a: CustomDomainReadinessCheck,
+        b: CustomDomainReadinessCheck,
+      ): number => {
         const rank: (check: CustomDomainReadinessCheck) => number = (
           check: CustomDomainReadinessCheck,
         ): number => {

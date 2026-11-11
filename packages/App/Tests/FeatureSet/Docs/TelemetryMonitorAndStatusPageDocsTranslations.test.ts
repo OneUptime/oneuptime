@@ -194,6 +194,9 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Scale",
     "Edit Status Page Domain",
     "Read Status Page Domain",
+    // What adding and verifying a project's domain takes.
+    "Create Domain",
+    "Edit Domain",
   ],
 };
 
@@ -435,12 +438,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "There is no brand-color picker.",
     "Custom code in the dark theme.",
     "Add the domain",
-    "Add its CNAME record",
+    "Add its DNS records",
     "The free SSL certificate is issued automatically",
-    "The parent domain must be verified.",
     "Your installation needs a status page CNAME record.",
-    "The record is not found yet.",
-    "The record is found.",
+    "A self-hosted server is checked first.",
   ],
 };
 

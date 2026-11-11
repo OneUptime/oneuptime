@@ -18,6 +18,7 @@ import {
 } from "Common/Types/CustomDomain/DnsRecordCheckWords";
 import { CustomDomainReadinessWords } from "Common/Types/CustomDomain/CustomDomainServerReadiness";
 import { fillTemplate } from "Common/Types/Translator";
+import Permission, { PermissionHelper } from "Common/Types/Permission";
 
 /*
  * The English docs for status page custom domains, held to the flow they
@@ -125,8 +126,13 @@ describe("Status page custom domains (English docs)", () => {
     expect(adding).toContain(`**${CustomDomainCopy.addSubmit}**`);
     expect(adding).toContain("**DNS Setup** opens with both records");
     expect(adding).toContain("without leaving the page");
-    expect(adding).toContain("**Create Project Domain**");
-    expect(adding).toContain("**Edit Project Domain**");
+    // The permissions' own titles, as Project Settings → Roles shows them.
+    expect(adding).toContain(
+      `**${PermissionHelper.getTitle(Permission.CreateProjectDomain)}**`,
+    );
+    expect(adding).toContain(
+      `**${PermissionHelper.getTitle(Permission.EditProjectDomain)}**`,
+    );
     expect(PAGE).not.toContain("Create Status Page Domain");
   });
 

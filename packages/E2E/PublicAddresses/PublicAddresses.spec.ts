@@ -1310,7 +1310,7 @@ test.describe("a status page's Custom Domains page: Add Custom Domain and DNS Se
     await page.waitForTimeout(200);
     await screenshot(page, "custom-domain-cname-proxied-1280");
 
-    await dialog.getByRole("button", { name: "Close" }).click();
+    await dialog.getByTestId("modal-footer-close-button").click();
     await expect(page.getByText("status.acme.com").first()).toBeVisible();
     await expect(
       page.getByText("Waiting for DNS: add the CNAME record.").first(),
@@ -1374,6 +1374,12 @@ test.describe("a status page's Custom Domains page: Add Custom Domain and DNS Se
         name: "de-390",
         lang: "de",
       },
+      // Persian reads right to left: the records and their values still fit.
+      {
+        query: "readiness=notready&txt=missing&lang=fa",
+        name: "fa-390",
+        lang: "fa",
+      },
     ]) {
       await page.setViewportSize({ width: 390, height: 900 });
       await page.goto(`${DOMAINS_PAGE}?${variant.query}`);
@@ -1392,6 +1398,15 @@ test.describe("a status page's Custom Domains page: Add Custom Domain and DNS Se
       await dialog.getByTestId("modal-footer-submit-button").click();
 
       await expect(dialog.getByTestId("dns-setup-txt-record")).toBeVisible();
+      expect(
+        await page.evaluate((): string => {
+          return document.documentElement.dir;
+        }),
+      ).toBe(variant.lang === "fa" ? "rtl" : "ltr");
+      // A record's value is DNS: it reads left to right in every language.
+      await expect(
+        dialog.getByTestId("dns-setup-txt-record-value"),
+      ).toHaveText("oneuptime-verification-3kd8f2hq9x");
       await expectNothingRunsOff(page, `DNS Setup with two records (${variant.name})`);
       await page.waitForTimeout(200);
       await screenshot(page, `custom-domain-two-records-${variant.name}`);

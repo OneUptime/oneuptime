@@ -61,6 +61,7 @@ const COUNTRY_SECOND_LEVEL_LABELS: ReadonlyArray<string> = [
 ];
 
 const LABEL: RegExp = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+const ALL_DIGITS: RegExp = /^\d+$/;
 
 export const CustomDomainAddressCopy: {
   invalidAddress: string;
@@ -116,7 +117,7 @@ export const parseCustomDomainAddress: (
   }
 
   // A top-level domain is never all digits: that is an IP address.
-  if (/^\d+$/.test(labels[labels.length - 1]!)) {
+  if (ALL_DIGITS.test(labels[labels.length - 1]!)) {
     return undefined;
   }
 

@@ -214,7 +214,7 @@ Cliquez sur **Continuer**. Si le projet a vérifié le domaine sur lequel se tro
 
 Le nom complet d'un domaine est fixé quand vous l'ajoutez : **Modifier** ne change donc que son certificat. Pour utiliser une autre adresse, ajoutez-la et supprimez l'ancienne. Un nom déjà utilisé par un tableau de bord ou un formulaire, dans n'importe quel projet, est refusé : un domaine affiche une seule page de statut, un seul tableau de bord ou un seul formulaire.
 
-Ajouter un domaine au projet demande l'autorisation de créer des domaines de projet (**Create Project Domain**, ou Project Owner ou Project Admin), et le vérifier demande **Edit Project Domain**. Sans elles, la boîte de dialogue indique qui peut le faire.
+Ajouter un domaine au projet demande l'autorisation de créer des domaines de projet (**Create Domain**, ou Project Owner ou Project Admin), et le vérifier demande **Edit Domain**. Sans elles, la boîte de dialogue indique qui peut le faire.
 
 ### Configuration DNS et vérification
 

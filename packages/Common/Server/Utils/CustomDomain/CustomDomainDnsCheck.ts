@@ -124,7 +124,11 @@ export default class CustomDomainDnsCheck {
     const chain: Array<string> = [];
     let current: string = name;
 
-    for (let hop: number = 0; hop < CustomDomainDnsCheck.MAX_CNAME_HOPS; hop++) {
+    for (
+      let hop: number = 0;
+      hop < CustomDomainDnsCheck.MAX_CNAME_HOPS;
+      hop++
+    ) {
       const answer: DnsLookupAnswer = await DnsLookup.resolveCname(current);
 
       if (answer.values.length === 0) {
