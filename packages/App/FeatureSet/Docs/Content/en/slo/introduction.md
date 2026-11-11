@@ -1,6 +1,6 @@
 # SLOs Overview
 
-A service level objective (SLO) is a reliability target for the things you monitor, such as "up 99.9% of the time over a rolling 30 days". OneUptime measures every SLO against its target every 5 minutes, so instead of "is it up right now?" you can answer "have we been reliable enough, over a window our users care about, and how much room for failure is left?"
+A service level objective (SLO) is a reliability target for the things you monitor, such as "up 99.9% of the time over a rolling 30 days". OneUptime measures every SLO against its target every 5 minutes, so instead of "is it up right now?" you can answer "have we been reliable enough, over a window our users care about, and how much room for failure is left?" The [Glossary](/docs/introduction/glossary#slo) puts SLOs beside the other words OneUptime uses.
 
 :::cards
 - [Create an SLO](#create-an-slo): A name and a target. Everything else starts from a default.
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 ## Key concepts
+
+The words used across OneUptime are in the [Glossary](/docs/introduction/glossary).
 
 | Term | Meaning |
 | --- | --- |

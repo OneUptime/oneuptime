@@ -1,6 +1,9 @@
+import Alert from "../../../Models/DatabaseModels/Alert";
 import DataAlert from "../../../Models/DatabaseModels/DataAlert";
+import DataCheck from "../../../Models/DatabaseModels/DataCheck";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { getDataCheckColumn } from "../../../Types/DataObservability/DataCheckType";
 import {
   DEFAULT_DATA_LINEAGE_DEPTH,
   DEFAULT_DATA_PIPELINE_LINEAGE_DEPTH,
@@ -15,9 +18,11 @@ import {
   getLineageTableNodeId,
 } from "../../../Types/DataObservability/DataTableLineage";
 import ObjectID from "../../../Types/ObjectID";
+import AlertService from "../../Services/AlertService";
 import DataAlertService, {
   Service as DataAlertServiceType,
 } from "../../Services/DataAlertService";
+import DataCheckService from "../../Services/DataCheckService";
 import Query from "../../Types/Database/Query";
 import { applyAlertRelatedRecordPrivacyFilter } from "../Alert/AlertPrivacyFilter";
 import DataTableLineageReader, {
@@ -56,6 +61,12 @@ import DataTableLineageReader, {
  * that they may not see is neither counted nor picked out. No alert is
  * named here: the drawing says which tables and pipelines, never which
  * alerts.
+ *
+ * An alert from a check on one column of its table - a null rate, a
+ * distinct count on orders.customer_id - is first a question of which
+ * columns feed that column. Its drawing is read with the columns each
+ * arrow carries, as a table's is when asked (withColumns), and says which
+ * column the check reads (column), so the diagram opens with it followed.
  */
 
 // The most alerts it caused that the drawing looks for ways to.
@@ -84,6 +95,12 @@ export interface DataAlertRowReader {
     alertId: string;
     limit: number;
   }): Promise<{ rows: Array<DataAlertLineageRow>; total: number }>;
+  /*
+   * The column the check behind the alert reads (getDataCheckColumn): null
+   * for an alert from no check, or from a check on the whole table. Asked
+   * only of an alert readAlert found theirs to see.
+   */
+  readCheckColumn(alertId: string): Promise<string | null>;
 }
 
 // Where a way ends.
@@ -234,6 +251,7 @@ export default class DataAlertLineageReader {
       isCauseDrawn: false,
       consequenceCount: consequences.total,
       drawnConsequenceCount: 0,
+      column: null,
     };
 
     // An alert about a whole database: no table or pipeline to draw.
@@ -249,6 +267,11 @@ export default class DataAlertLineageReader {
     const focusKey: string = focus.dataAssetId
       ? getLineageTableNodeId(focus.dataAssetId)
       : getLineagePipelineNodeId(focus.dataPipelineId!);
+
+    // A check on one column of its table: the drawing carries its arrows' columns, to follow that one.
+    const column: string | null = focus.dataAssetId
+      ? await data.alerts.readCheckColumn(data.alertId)
+      : null;
 
     // Read only when it was the alert's cause: its reader may see it, so may see what it is about.
     const cause: DataAlertLineageRow | null = own.causeAlertId
@@ -406,6 +429,8 @@ export default class DataAlertLineageReader {
           now: data.now,
           reader: data.reader,
           pins,
+          // Capped as a table's drawing is: the arrows nearest the table first.
+          withColumns: Boolean(column),
         })
       : await DataTableLineageReader.buildForPipeline({
           focusDataPipelineId: focus.dataPipelineId!,
@@ -430,6 +455,7 @@ export default class DataAlertLineageReader {
     }
 
     answer.lineage = lineage;
+    answer.column = column;
     answer.isCauseDrawn = Boolean(causeKey && picked.causes.has(causeKey));
     answer.drawnConsequenceCount = consequences.rows.filter(
       (row: DataAlertLineageRow): boolean => {
@@ -631,6 +657,7 @@ export default class DataAlertLineageReader {
     const causeNodeIds: Set<string> = new Set();
     const consequenceNodeIds: Set<string> = new Set();
     const dataPipelineIds: Set<string> = new Set();
+    const causeDataPipelineIds: Set<string> = new Set();
     const causes: Set<string> = new Set();
     const consequences: Set<string> = new Set();
 
@@ -709,6 +736,11 @@ export default class DataAlertLineageReader {
         }
 
         dataPipelineIds.add(entry.way.dataPipelineId || "");
+
+        // The cause's pipeline: its arrows say Cause, an alert it caused's do not.
+        if (entry.isCause) {
+          causeDataPipelineIds.add(entry.way.dataPipelineId || "");
+        }
       }
 
       for (const card of [...cards, ...(end ? [end] : []), ...arrowEnds]) {
@@ -739,6 +771,8 @@ export default class DataAlertLineageReader {
         causeNodeIds: Array.from(causeNodeIds).sort(compareText),
         consequenceNodeIds: Array.from(consequenceNodeIds).sort(compareText),
         dataPipelineIds: Array.from(dataPipelineIds).sort(compareText),
+        causeDataPipelineIds:
+          Array.from(causeDataPipelineIds).sort(compareText),
       },
       causes,
       consequences,
@@ -819,6 +853,32 @@ export default class DataAlertLineageReader {
               ).toNumber();
 
         return { rows: rows.map(toAlertRow), total };
+      },
+
+      /*
+       * The check whose monitor raised the alert (DataCheckAlerts keeps it
+       * as DataCheck.monitorId), and the column it reads. Asked only once
+       * readAlert found the alert theirs to see: what its check reads is
+       * no more private than the drawing.
+       */
+      readCheckColumn: async (alertId: string): Promise<string | null> => {
+        const alert: Alert | null = await AlertService.findOneBy({
+          query: { projectId, _id: new ObjectID(alertId) },
+          select: { monitorId: true },
+          props: { isRoot: true },
+        });
+
+        if (!alert?.monitorId) {
+          return null;
+        }
+
+        const check: DataCheck | null = await DataCheckService.findOneBy({
+          query: { projectId, monitorId: alert.monitorId },
+          select: { checkType: true, columnName: true },
+          props: { isRoot: true },
+        });
+
+        return check ? getDataCheckColumn(check) : null;
       },
     };
   }

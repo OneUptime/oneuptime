@@ -1,6 +1,6 @@
 # Ingestion Keys
 
-An ingestion key connects your telemetry to your project. Applications, OpenTelemetry collectors and agents send it with every request, and OneUptime files their logs, traces and metrics in the project the key belongs to. This page shows how to create a key, which kind to pick, and how to keep keys safe.
+An ingestion key connects your telemetry to your project. Applications, OpenTelemetry collectors and agents send it with every request, and OneUptime files their logs, traces and metrics in the project the key belongs to. This page shows how to create a key, which kind to pick, and how to keep keys safe. To tell an ingestion key from an API key, see [Which One Do I Use?](/docs/introduction/which-one#ingestion-key-or-api-key).
 
 :::cards
 - [Create an ingestion key](#create-an-ingestion-key): A name, a type and a secret to copy.

@@ -137,7 +137,12 @@ describe("a rule's templates in a row of the table", () => {
 
     for (const item of itemsOf(body)) {
       expect(item.className).toBe(TABLE_LIST_ITEM_CLASS_NAME);
-      expect(item).toHaveClass("truncate");
+      // One line, cut at the column's edge in "...".
+      expect(item).toHaveClass(
+        "whitespace-nowrap",
+        "overflow-x-clip",
+        "text-ellipsis",
+      );
     }
   });
 

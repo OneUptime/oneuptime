@@ -1,6 +1,6 @@
 # Aangepaste probes
 
-Een aangepaste sonde is een kleine agent die u in uw eigen netwerk draait. Hij controleert de monitors waaraan u hem toevoegt, zoals interne websites, API's en servers achter uw firewall, en stuurt de resultaten naar OneUptime. Hij maakt alleen uitgaande verbindingen, via HTTPS, dus niets in uw netwerk hoeft verbindingen vanaf internet te accepteren.
+Een aangepaste sonde is een kleine agent die u in uw eigen netwerk draait. Hij controleert de monitors waaraan u hem toevoegt, zoals interne websites, API's en servers achter uw firewall, en stuurt de resultaten naar OneUptime. Hij maakt alleen uitgaande verbindingen, via HTTPS, dus niets in uw netwerk hoeft verbindingen vanaf internet te accepteren. Om te kiezen tussen een sonde, een agent, een collector en een Runner, zie [Welke gebruik ik?](/docs/introduction/which-one#sonde-agent-collector-of-runner).
 
 :::cards
 - [Hoe het werkt](#hoe-het-werkt): Wat de sonde doet, en hoe OneUptime weet dat hij draait.

@@ -1,6 +1,6 @@
 # Kernbegrippen
 
-OneUptime heeft veel producten, maar ze rusten op een handvol ideeën: projecten, monitoren, incidenten en waarschuwingen, bereikbaarheid, statuspagina's en telemetrie. Deze pagina legt elk idee in een paar zinnen uit, laat zien hoe ze samenhangen en verwijst naar de pagina's die ze uitgebreid behandelen. Lees haar één keer, en elke andere pagina van de documentatie leest makkelijker.
+OneUptime heeft veel producten, maar ze rusten op een handvol ideeën: projecten, monitoren, incidenten en waarschuwingen, bereikbaarheid, statuspagina's en telemetrie. Daaromheen staan wat u bewaakt, wat u installeert en de regels die voor u handelen. Deze pagina legt elk idee in een paar zinnen uit, laat zien hoe ze samenhangen en verwijst naar de pagina's die ze uitgebreid behandelen. Lees haar één keer, en elke andere pagina van de documentatie leest makkelijker. Voor één woord tegelijk, zie de [Woordenlijst](/docs/introduction/glossary); om te kiezen tussen twee dingen die op elkaar lijken, zie [Welke gebruik ik?](/docs/introduction/which-one).
 
 :::cards
 - [Projecten en mensen](#projecten-en-mensen): Waar alles staat, en wie wat mag.
@@ -47,6 +47,41 @@ De **criteria** van een monitor bepalen wat elk resultaat betekent. Ze worden op
 :::cards
 - [Een monitor maken](/docs/monitor/create-monitor): Een type kiezen, zeggen wat er gecontroleerd wordt en hoe vaak.
 - [Aangepaste probes](/docs/probe/custom-probe): Controleren wat alleen uw eigen netwerk bereikt.
+:::
+
+## Wat u bewaakt
+
+Een monitor controleert één ding. Rond uw monitoren houdt OneUptime bij wat u draait, en die records komt u in het menu tegen:
+
+- Een **monitorgroep** voegt meerdere monitoren samen tot één status, zodat een statuspagina iets wat uit veel onderdelen bestaat, zoals Checkout, als één rij kan tonen.
+- Een **service** is een applicatie of microservice die u draait. OneUptime voegt hem toe zodra zijn eerste telemetrie binnenkomt, en brengt zijn logs, traces, metrics, exceptions en incidenten samen op één pagina.
+- **Hosts**, **Kubernetes**-clusters en de rest van **Infrastructuur** zijn de machines en platforms die u draait, gevuld door de agents die u installeert.
+- **Inventaris** is één lijst van dat alles: services, hosts, clusters, apparaten, cloudresources en de dingen die helemaal geen telemetrie sturen.
+
+Ze komen samen waar een probleem zich toont. De monitoren van een service kunnen samen een monitorgroep vormen, een SLO meet ze, en als er een faalt, meldt die een incident. Het incident noemt de service bij de resources die het raakt, en de statuspagina toont de groep en het incident.
+
+```mermaid title="Eén service, wat hem bewaakt en waar hij verschijnt"
+flowchart TB
+    service["Service: Checkout"] -->|"bewaakt door"| monitors["Zijn monitoren"]
+    monitors --> group["Monitorgroep"]
+    monitors --> slo["SLO"]
+    monitors -->|"melden"| incident["Incident"]
+    group --> statuspage["Statuspagina"]
+    incident --> statuspage
+```
+
+:::cards
+- [Monitorgroepen](/docs/monitor/monitor-groups): Meerdere monitoren samenvoegen tot één status.
+- [Servicecatalogus](/docs/telemetry/services): Elke applicatie die u draait, elk op een eigen pagina.
+- [Inventaris – Overzicht](/docs/inventory/overview): Alles wat OneUptime over uw omgeving weet.
+:::
+
+## Betrouwbaarheidsdoelen
+
+Een **SLO** (service level objective) is een betrouwbaarheidsdoel voor wat u bewaakt, zoals 99,9% van de tijd beschikbaar over 30 dagen. OneUptime meet het elke 5 minuten aan de hand van zijn monitoren. De downtime die het doel toestaat, is het foutbudget: met ruim genoeg over kunt u risico's nemen, en met weinig over remt u af en investeert u in stabiliteit.
+
+:::cards
+- [SLO's – Overzicht](/docs/slo/introduction): Een doel stellen en zien hoeveel van het budget er nog over is.
 :::
 
 ## Incidenten en waarschuwingen
@@ -97,11 +132,35 @@ Een **statuspagina** laat uw klanten zien of uw services werken. U kiest welke m
 
 ## Telemetrie
 
-**Telemetrie** is wat uw systemen naar OneUptime sturen: logs, metrics, traces, exceptions en profielen. Applicaties versturen haar met OpenTelemetry, en de agents van OneUptime versturen haar vanaf hosts, Kubernetes-clusters, Docker-hosts en overige infrastructuur. Elke afzender gebruikt een **ingestiesleutel**, aangemaakt onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**. U doorzoekt telemetrie, zet haar op dashboards en bewaakt haar met telemetriemonitoren, die net als elke andere monitor incidenten en waarschuwingen openen.
+**Telemetrie** is wat uw systemen naar OneUptime sturen: logs, metrics, traces, exceptions en profielen. Applicaties versturen haar met OpenTelemetry, en de agents van OneUptime versturen haar vanaf hosts, Kubernetes-clusters, Docker-hosts en overige infrastructuur. Elke afzender gebruikt een **ingestiesleutel**, aangemaakt onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**. U doorzoekt telemetrie, zet haar op dashboards en bewaakt haar met telemetriemonitoren, die net als elke andere monitor incidenten en waarschuwingen openen. In het menu opent elk van **Logboeken**, **Metrieken**, **Traces**, **Prestatieprofielen** en **Uitzonderingen** één soort; **AI / LLM** volgt de gesprekken van uw AI, **Data Observability** bewaakt de tabellen in uw databases, en **Topologie** brengt in kaart hoe alles samenhangt.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Logs, metrics en traces vanuit uw applicaties versturen.
 - [Logs-monitor](/docs/monitor/logs-monitor): Horen wanneer een patroon in uw logs opduikt.
+:::
+
+## Beveiliging
+
+**Beveiligingsgebeurtenissen** bewaart de beveiligingsgebeurtenissen uit uw logs, uw beveiligingstools en alles wat u verder verstuurt. De detectieregels ervan maken van wat ze vinden beveiligingszaken, die uw team in een wachtrij afhandelt en waarop playbooks reageren. **Gegevensbeveiliging** vindt de gevoelige gegevens in uw buckets, databases en telemetrie, en wat er mis is met hoe ze bewaard worden.
+
+:::cards
+- [Aan de slag met beveiliging](/docs/telemetry/security-getting-started): Dreigingen vinden in de gegevens die u al hebt.
+- [Overzicht van Gegevensbeveiliging](/docs/data-security/index): Uw gevoelige gegevens vinden en verbeteren hoe ze bewaard worden.
+:::
+
+## Wat u installeert en de sleutels
+
+Voor het grootste deel van OneUptime hoeft u niets te installeren. U installeert alleen iets om te bereiken wat OneUptime niet van buitenaf kan zien, en elk onderdeel maakt een uitgaande verbinding met OneUptime, met een sleutel:
+
+- Een aangepaste sonde voert de controles van monitoren uit binnen uw netwerk, met een eigen sonde-ID en sleutel.
+- De **OpenTelemetry Collector**, de Kubernetes-agent en de Docker-agent versturen telemetrie met een **ingestiesleutel**. De infrastructuuragent achter een Server- / VM-monitor verstuurt met de geheime sleutel van die monitor.
+- Een **Runner** voert runbook-stappen uit binnen uw infrastructuur, met een eigen Runner-ID en sleutel.
+
+Een ingestiesleutel stuurt alleen telemetrie naar binnen. Een **API-sleutel** is de andere soort: daarmee kan een script, de CLI, Terraform of een AI-assistent uw project lezen en wijzigen, met de machtigingen die u hem geeft. Geen van beide werkt in plaats van de andere.
+
+:::cards
+- [Welke gebruik ik?](/docs/introduction/which-one#sonde-agent-collector-of-runner): Wat u installeert, en welke sleutel elk onderdeel gebruikt.
+- [Ingestiesleutels](/docs/telemetry/ingestion-keys): De sleutels die telemetrie versturen aanmaken, afbakenen en roteren.
 :::
 
 ## Automatisering en AI
@@ -123,11 +182,30 @@ Een **statuspagina** laat uw klanten zien of uw services werken. U kiest welke m
 - [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules): Nieuwe resources automatisch labelen en eigenaren geven.
 :::
 
+## De soorten regels
+
+Veel dingen in OneUptime heten een regel. Elke regel neemt één beslissing voor u wanneer er iets nieuws binnenkomt, en ze vallen in een paar families uiteen. De meeste staan onder **Regels** in de zijmenu's van **Incidenten** en **Waarschuwingen**.
+
+| Wat ze bepalen | Regels |
+| --- | --- |
+| Wie wordt opgeroepen | **Bereikbaarheidsregels** kiezen het bereikbaarheidsbeleid dat een nieuw incident of een nieuwe waarschuwing uitvoert, en de **Escalatieregels** van een beleid roepen niveau voor niveau op |
+| Wie de eigenaar is, en hoe het gelabeld wordt | **Eigenaarsregels**, **Labelregels** en **Privacyregels** |
+| Wat bij elkaar hoort | **Groeperingsregels** openen episodes en voegen er items aan toe |
+| Wat erop draait | **Runbook-regels** starten runbooks, en **AI-regels** bepalen wat OneUptime AI onderzoekt en oplost |
+| Wanneer opvolgen | **SLA-regels** houden reactie- en oplostijden bij, en **Herinneringsregels** herinneren eigenaren eraan zolang het openstaat |
+
+De eigen regels van een monitor zijn zijn criteria. De bereikbaarheidsregels onder **Gebruikersinstellingen** zijn weer iets anders: ze zijn van elke persoon zelf en bepalen hoe een oproep die persoon bereikt.
+
+:::cards
+- [Incidentinstellingen en automatisering](/docs/incidents/settings#regels-die-draaien-als-een-incident-wordt-aangemaakt): De regels die worden uitgevoerd wanneer een incident wordt aangemaakt, op volgorde.
+- [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules): Hoe een oproep u bereikt.
+:::
+
 ## Volgende stappen
 
 :::cards
 - [Snelstart](/docs/introduction/quickstart): Deze ideeën in vijftien minuten in de praktijk brengen.
-- [Startpagina en sneltoetsen](/docs/introduction/home): Elk product in het dashboard vinden.
-- [Een monitor maken](/docs/monitor/create-monitor): Uw eerste monitor, veld voor veld.
+- [Woordenlijst](/docs/introduction/glossary): Elk woord dat OneUptime gebruikt, in een zin of twee.
+- [Welke gebruik ik?](/docs/introduction/which-one): Incident of waarschuwing, workflow of runbook, en de andere dingen die op elkaar lijken.
 - [Incidenten – Overzicht](/docs/incidents/index): Wat er gebeurt nadat een monitor een incident meldt.
 :::

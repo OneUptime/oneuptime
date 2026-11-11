@@ -1,6 +1,6 @@
 # Clés d'ingestion
 
-Une clé d'ingestion relie votre télémétrie à votre projet. Les applications, les OpenTelemetry Collectors et les agents l'envoient avec chaque requête, et OneUptime range leurs journaux, leurs traces et leurs métriques dans le projet auquel la clé appartient. Cette page montre comment créer une clé, quel type choisir et comment garder vos clés en sécurité.
+Une clé d'ingestion relie votre télémétrie à votre projet. Les applications, les OpenTelemetry Collectors et les agents l'envoient avec chaque requête, et OneUptime range leurs journaux, leurs traces et leurs métriques dans le projet auquel la clé appartient. Cette page montre comment créer une clé, quel type choisir et comment garder vos clés en sécurité. Pour distinguer une clé d'ingestion d'une clé API, consultez [Lequel choisir ?](/docs/introduction/which-one#clé-dingestion-ou-clé-api).
 
 :::cards
 - [Créer une clé d'ingestion](#créer-une-clé-dingestion): Un nom, un type et un secret à copier.

@@ -13,6 +13,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import {
   WIDGET_CATALOG,
+  WIDGET_CATEGORY_GROUP_LABELS,
   WidgetCatalogCategory,
   WidgetCatalogItem,
   WidgetCategoryGroupSection,
@@ -230,7 +231,9 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
               return (
                 <div key={section.group} className="contents md:block">
                   <h5 className="mt-4 max-md:hidden px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400 md:block">
-                    {translator.translateText(section.group)}
+                    {translator.translateText(
+                      WIDGET_CATEGORY_GROUP_LABELS[section.group],
+                    )}
                   </h5>
                   {section.categories.map((category: WidgetCatalogCategory) => {
                     return renderRailButton({

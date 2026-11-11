@@ -129,6 +129,22 @@ const POSITION_COLUMN_CLASS_NAME: string =
   "max-sm:hidden w-6 flex-shrink-0 text-right text-xs tabular-nums sm:block";
 const MONITOR_COLUMN_CLASS_NAME: string = "min-w-0 flex-[2_1_0%]";
 /*
+ * The monitor's (or monitor group's) name, on one line that ends in "...".
+ * The record's link draws its name alone inside a flex span, and
+ * text-overflow does not reach the anonymous item a flex container makes
+ * of its text - so a long name was clipped mid-letter with no ellipsis.
+ * Laying that span out as a block puts the name back in an inline
+ * formatting context, where truncation means what it says.
+ *
+ * Only that bare flex span: with monitor groups on, each name is drawn
+ * beside its kind's icon, in a row whose name is a line of its own that
+ * cuts itself short (the Dashboard's RecordLinkName). Laid out as a block
+ * too, that row put its icon on a line of its own above the name, and
+ * every row of the list was two lines tall.
+ */
+export const RESOURCE_ROW_NAME_CLASS_NAME: string =
+  "truncate text-sm font-medium text-gray-900 [&_span[class=flex]]:block [&_span[class=flex]]:truncate";
+/*
  * Its own line on a phone, indented to sit under the monitor it renames rather
  * than out beneath the grip; beside the monitor from sm up.
  *
@@ -363,15 +379,7 @@ const ResourceList: FunctionComponent<ComponentProps> = (
 
         <div className={MONITOR_COLUMN_CLASS_NAME}>
           <div
-            /*
-             * The monitor element draws its name inside a flex span (it may
-             * carry an icon), and text-overflow does not reach the anonymous
-             * item a flex container makes of its text - so a long name was
-             * clipped mid-letter with no ellipsis. Laying that span out as a
-             * block puts the name back in an inline formatting context, where
-             * truncation means what it says.
-             */
-            className="truncate text-sm font-medium text-gray-900 [&_span]:block [&_span]:truncate"
+            className={RESOURCE_ROW_NAME_CLASS_NAME}
             data-testid="status-page-resource-row-name"
           >
             {props.getResourceElement(statusPageResource)}

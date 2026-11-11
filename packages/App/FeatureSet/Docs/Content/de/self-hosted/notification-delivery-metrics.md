@@ -109,14 +109,14 @@ Jedes Attribut enthält einen von wenigen festen Werten, nie ein Projekt, eine P
 | `notification.provider.config` | `global` für das eigene Konto und die Einstellungen der Installation; `project` für das eigene Twilio-Konto, den SMTP-Server, den Webhook oder die Workspace-Verbindung eines Projekts, deren Fehler das Projekt beheben muss |
 | `notification.on_call_page` | `true` für eine Benachrichtigung eines Bereitschaftsalarms, sonst `false` |
 | `outcome` | `success`, `failure` oder `not_sent`, wie unten |
-| `notification.destination` | Nur Slack, Microsoft Teams und Mattermost: `direct_message` an eine Person, `channel` für einen Beitrag in einem Kanal oder einem Teams-Gruppenchat, `incoming_webhook` für einen eingehenden Webhook, etwa den eines Statusseiten-Abonnenten |
+| `notification.destination` | Slack, Microsoft Teams und Mattermost: `direct_message` an eine Person, `channel` für einen Beitrag in einem Kanal oder einem Teams-Gruppenchat, `incoming_webhook` für einen eingehenden Webhook, etwa den eines Statusseiten-Abonnenten. Webhooks: `status_page_subscriber` für den eigenen Webhook eines Statusseiten-Abonnenten. Fehlt beim Webhook einer Person und bei allen anderen Kanälen |
 | `notification.custom_channel.id`, `notification.custom_channel.name` | Nur benutzerdefinierte Kanäle: die ID des Kanals und sein Name, gekürzt auf 100 Zeichen |
 
 - `success`: Der Anbieter hat die Nachricht angenommen.
 - `failure`: Der Anbieter hat sie abgelehnt oder war nicht erreichbar, oder das Senden ist fehlgeschlagen. Ein Chat-Kanal, der nicht gefunden wurde, ist ein Fehlschlag ohne Dauer.
 - `not_sent`: Bewusst nicht gesendet. Das Projekt hat den Kanal ausgeschaltet, hat zu wenig Guthaben oder ist gesperrt, Push ist auf diesem Server ausgeschaltet, oder ein benutzerdefinierter Kanal ist ausgeschaltet, gelöscht oder nicht von der Lizenz abgedeckt. Eine Erfolgsquote lässt diese aus: Hier wirken Einstellungen, keine fehlerhafte Plattform.
 
-Einfache Webhooks von Statusseiten-Abonnenten werden noch nicht gezählt.
+Eine Nachricht an den eigenen Webhook eines Statusseiten-Abonnenten zählt einmal, egal wie oft sie versucht wurde: `success`, wenn der Endpunkt mit einem 2xx-Status antwortete, und `failure`, wenn er mit einem anderen Status antwortete, nicht erreichbar war oder seine Adresse nicht erlaubt ist.
 
 ### Was das Telefon erreicht hat
 
@@ -155,7 +155,7 @@ Status kommen nur dort an, wo der Anbieter sie melden kann:
 | --- | --- |
 | `monitor_data_received` | Wann OneUptime die Daten erhielt, die den Monitor ausgelöst haben: eine eingehende Anfrage, den Bericht eines Server-Agents, eine eingehende E-Mail, die Prüfung einer Probe, einen SNMP-Trap oder die Abfrage eines Netzwerkgeräts. Sie schließt die Zeit ein, die die Daten in der Warteschlange auf ihre Auswertung gewartet haben. |
 | `record_created` | Wann der Vorfall, die Warnung oder die Episode erstellt wurde: von einem Telemetrie-Monitor, einer Regel oder einer Person, und bei einer Prüfung auf Ausbleiben, etwa einem Heartbeat, der aufgehört hat. |
-| `page_started` | Wann ein Alarm später gestartet wurde: Eine Person, ein Workflow oder eine Regel, die jetzt zutrifft, hat ihn gestartet, ein erneuter Alarm, ein direkter Alarm oder ein Alarm, der eine von seiner Bereitschaftsregel verlangte Sperre abgewartet hat. |
+| `page_started` | Wann ein Alarm später gestartet wurde: Eine Person, ein Workflow oder eine Regel, die jetzt zutrifft, hat ihn gestartet, oder es ist ein direkter Alarm. Bei einem Alarm, den seine Bereitschaftsregel oder OneUptime AI zurückgehalten hat, wann die Sperre ablief, oder wann er startete, falls das früher war. Bei einem erneuten Alarm, wann das Bestätigungs-Timeout ablief. So zeigt sich ein Worker, der einen davon zu spät erreichte, in der Zeit. |
 
 Bei einer eingehenden Anfrage läuft die Zeit ab der letzten Anfrage, die der Endpunkt erhalten hat, daher kann sie etwas zu kurz ausfallen.
 
@@ -170,7 +170,7 @@ Bei einer eingehenden Anfrage läuft die Zeit ab der letzten Anfrage, die der En
 | `escalation` | Eine spätere Eskalationsstufe: wenn die Stufe davor ihre Wartezeit beendet hat, oder sofort, wenn eine Person den Alarm weitergibt. |
 | `policy_repeat` | Die Richtlinie, die wieder bei ihrer ersten Stufe beginnt: wenn die Wartezeit ihrer letzten Stufe abgelaufen ist. |
 
-Er trägt außerdem `notification.channel`, `notification.trigger.type` und, bei benutzerdefinierten Kanälen, `notification.custom_channel.id` und `notification.custom_channel.name`. Eine Benachrichtigung, die beim Start ihres Alarms fällig ist, ist nie darin: Sie steht in der Zeit bis zum Versand.
+Er trägt außerdem `notification.channel`, `notification.trigger.type` und, bei benutzerdefinierten Kanälen, `notification.custom_channel.id` und `notification.custom_channel.name`. Eine Benachrichtigung, die beim Start ihres Alarms fällig ist, ist nie darin, auch nicht, wenn ein Worker den Alarm zu spät startete, nach einer Sperre oder als erneuten Alarm: Sie steht in der Zeit bis zum Versand.
 
 ### Histogramm-Buckets
 
@@ -220,7 +220,7 @@ Die Formel `$b / $a * 100` ist der Anteil, der fehlschlug, und das Ziel gilt, so
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-Das Ziel gilt, solange `a` bei oder unter 30000 bleibt. Später gestartete Alarme werden ab ihrem Start gemessen, nicht ab einem Auslöser, daher bleiben sie außen vor. Gruppieren Sie nach `notification.page.start`, um die Warteschlange der Monitore (`monitor_data_received`) getrennt vom Rest zu sehen, oder nach `notification.channel`, um einen langsamen Kanal zu finden.
+Das Ziel gilt, solange `a` bei oder unter 30000 bleibt. Später gestartete Alarme werden ab ihrem Start oder ihrer Fälligkeit gemessen, nicht ab einem Auslöser, daher bleiben sie außen vor. Gruppieren Sie nach `notification.page.start`, um die Warteschlange der Monitore (`monitor_data_received`) getrennt vom Rest zu sehen, oder nach `notification.channel`, um einen langsamen Kanal zu finden.
 
 ### Später gesendete Benachrichtigungen gehen innerhalb von 90 Sekunden hinaus
 

@@ -4,7 +4,7 @@ OneUptime AI 了解你的数据：它从表的写入方、运行和血缘出发�
 
 ## OneUptime AI
 
-- **数据警报的调查。** 当 OneUptime AI 调查某个表、管道或数据库上的警报时，它会从与之相邻的内容入手：表的新鲜度和打开的警报、导致这个警报的那个警报、自前一天以来写入该表的管道的运行（带有错误的失败运行，或者从未到来的运行）、写入该表的服务及其失败的写入、部署和其他更改、该表的血缘（构建该表的表和由该表构建的表，有问题的排在前面，以及导致这个警报的那个警报在其中的位置、它引发的警报位于哪些表上），以及发生变化的列。它会指出警报背后的运行、部署或上游表。请参阅 [AI SRE](/docs/ai/ai-sre)。
+- **数据警报的调查。** 当 OneUptime AI 调查某个表、管道或数据库上的警报时，它会从与之相邻的内容入手：表的新鲜度和打开的警报、导致这个警报的那个警报、自前一天以来写入该表的管道的运行（带有错误的失败运行，或者从未到来的运行）、写入该表的服务及其失败的写入、部署和其他更改、该表的血缘（构建该表的表和由该表构建的表，有问题的排在前面，以及导致这个警报的那个警报在其中的位置、它引发的警报位于哪些表上），以及发生变化的列。对于来自针对单个列的检查的警报，它还会沿血缘追踪该列：上游构建该列的列，以及下游由该列构建的列，逐表列出，名称以血缘来源中的为准。它会指出警报背后的运行、部署或上游表。请参阅 [AI SRE](/docs/ai/ai-sre)。
 - **这个表新鲜吗？** 在 [询问 AI](/docs/ai/ask-ai)、Slack 或 Microsoft Teams 中提问：“orders 表新鲜吗？”。答案会给出按表自身节奏判断的新鲜度、它最后一次更改的时间、打开的警报、写入方的最新运行，以及它所属的数据产品。多个数据库共用的名称会针对每个数据库分别回答，因此不会有人被告知错误的表是新鲜的。
 - **这个表是由什么构建的？** 提问：“什么在给 revenue 表供数？”或“如果 raw.orders 停止加载，什么会坏掉？”。答案会沿着表的血缘每个方向走三步，按要求最多五步，并把有问题的放在前面：延迟、被删除、有打开的警报或其管道上次运行失败的上游和下游表，由近及远，每张表都附上相隔几步以及中间的表。然后是其余的表、从 OneUptime 监视范围之外加载其来源的管道，以及基于它构建的 BI 仪表板。打开的警报只计数、从不点名，并且只计入提问者可以看到的警报。
 - **用一句话编写检查。** 在表的 **检查** 标签页上，**用一句话编写检查** 会把一条规则转换成使用你的引擎 SQL 的自定义 SQL 检查。请参阅 [检查与对账](/docs/data-observability/checks)。
@@ -37,7 +37,7 @@ AI 代理应该在使用数据之前先检查数据是否新鲜，并在更改�
 | `POST /api/data-observability/tables/lineage` | 表在每个方向上几步的血缘，以及每张表的当前状态，与其 **血缘** 标签页所画的相同，请求体为 `{ "dataAssetId": "<table ID>", "depth": 3 }`，加上 `"withColumns": true` 还会返回每个箭头承载的列 | API 密钥 |
 | `POST /api/data-observability/tables/lineage/answer` | 用文字讲述的表的血缘，有问题的表在前，与 MCP 工具的回答相同，请求体为 `{ "table": "public.orders", "depth": 3 }` | API 密钥 |
 | `POST /api/data-observability/pipelines/lineage` | 管道读取和写入的表，以及每张表的当前状态，与其页面所画的相同，请求体为 `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | API 密钥 |
-| `POST /api/data-observability/alerts/<alert ID>/lineage` | 数据警报的血缘，以及通往导致它的警报和它导致的警报的路径，与其页面所画的相同 | API 密钥 |
+| `POST /api/data-observability/alerts/<alert ID>/lineage` | 数据警报的血缘，以及通往导致它的警报和它导致的警报的路径，与其页面所画的相同；对于来自针对单个列的检查的警报，还有其 `column` 以及每个箭头携带的列 | API 密钥 |
 | `POST /api/data-observability/lineage/expand` | 血缘图中某张卡片未绘制的下一批表，与选择其数字时画出的相同：用 `nodeId` 及其 `side` 指明卡片，用 `focusNodeId`、`tables` 和 `dataDashboardIds` 指明已画的内容 | API 密钥 |
 | `POST /api/data-observability/checks/apply` | 让项目的检查与一个文件一致，与 `oneuptime data-checks apply` 的作用相同，请求体为 `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | API 密钥 |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | 数据产品的“data as of”徽章 | 徽章自己的令牌 |

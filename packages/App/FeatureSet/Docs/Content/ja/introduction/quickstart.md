@@ -141,6 +141,7 @@ OneUptime のすべては、プロジェクトの中にあります。モニタ�
 
 :::cards
 - [基本概念](/docs/introduction/core-concepts): いま設定したものの背景にある考え方。
+- [用語集](/docs/introduction/glossary): ここまでに出てきたすべての言葉を、1〜2 文で。
 - [オンコールスケジュール](/docs/on-call/schedules): オンコールをチームで分担します。
 - [ステータス ページのブランディングとドメイン](/docs/status-pages/branding-and-domains): ステータスページを自分たちらしくします。
 - [OpenTelemetry](/docs/telemetry/open-telemetry): アプリからログ、メトリクス、トレースを送信します。

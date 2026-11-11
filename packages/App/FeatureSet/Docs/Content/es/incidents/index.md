@@ -1,6 +1,6 @@
 # Visión general de los incidentes
 
-Un incidente es el registro con el que trabaja tu equipo cuando algo falla: qué está afectado, qué tan grave es, en qué punto está la respuesta, de quién es y todo lo que se anota por el camino. Declarar uno avisa a la rotación de guardia adecuada, informa a sus propietarios y —si así lo quieres— publica la interrupción en tu página de estado, para que los clientes sepan que ya estás en ello.
+Un incidente es el registro con el que trabaja tu equipo cuando algo falla: qué está afectado, qué tan grave es, en qué punto está la respuesta, de quién es y todo lo que se anota por el camino. Declarar uno avisa a la rotación de guardia adecuada, informa a sus propietarios y —si así lo quieres— publica la interrupción en tu página de estado, para que los clientes sepan que ya estás en ello. ¿No sabes si un problema es un incidente o una alerta? [¿Cuál uso?](/docs/introduction/which-one#incidente-alerta-u-otro-tipo-de-problema) los compara lado a lado.
 
 :::cards
 - [Declarar un incidente](/docs/incidents/declaring-incidents): A mano, desde una plantilla, desde un monitor, por la API o mediante un formulario.
@@ -86,7 +86,7 @@ Después puedes escribir un [post mortem](/docs/incidents/postmortems) y, si qui
 
 ## Términos clave
 
-Un puñado de palabras aparece en todas las demás páginas de esta sección. Aclara estas primero.
+Un puñado de palabras aparece en todas las demás páginas de esta sección. Aclara estas primero. Las palabras que se usan en todo OneUptime están en el [Glosario](/docs/introduction/glossary).
 
 | Término                     | Qué significa                                                                                                                                       |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
