@@ -50400,5 +50400,9 @@
   "This server cannot send email yet, so they will not get an invitation email. The invitation is still created: ask your server's admin to set up email, or to send them their invitation link.": "Dieser Server kann noch keine E-Mails senden, daher erhält die Person keine Einladungs-E-Mail. Die Einladung wird trotzdem erstellt: Bitten Sie Ihren Server-Administrator, E-Mail einzurichten oder der Person ihren Einladungslink zu schicken.",
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "Dieser Server kann keine E-Mails senden, daher hat {{email}} keine E-Mail erhalten. Kopieren Sie diesen Link und schicken Sie ihn der Person selbst. Er funktioniert einmal, nur für diese Adresse, 7 Tage lang.",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "Dieser Server kann keine E-Mails senden, daher hat {{email}} keine E-Mail erhalten. Die Person hat bereits ein Konto: Schicken Sie ihr diesen Link zum Anmelden, dort nimmt sie die Einladung an.",
-  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Auf diesem Server ist keine E-Mail eingerichtet, daher wurde diese E-Mail nicht gesendet. Bitten Sie Ihren Server-Administrator, E-Mail einzurichten."
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Auf diesem Server ist keine E-Mail eingerichtet, daher wurde diese E-Mail nicht gesendet. Bitten Sie Ihren Server-Administrator, E-Mail einzurichten.",
+  "Only you see this, as the server's admin.": "Nur Sie sehen das, als Administrator des Servers.",
+  "Server Setup Choices": "Auswahl bei der Server-Einrichtung",
+  "This server is not finished: {{count}} things to set up": "Dieser Server ist nicht fertig: {{count}} Dinge sind noch einzurichten",
+  "This server is not finished: {{count}} things to set up_one": "Dieser Server ist nicht fertig: {{count}} Ding ist noch einzurichten"
 }

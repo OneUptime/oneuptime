@@ -50400,5 +50400,9 @@
   "This server cannot send email yet, so they will not get an invitation email. The invitation is still created: ask your server's admin to set up email, or to send them their invitation link.": "此服务器尚不能发送电子邮件，因此对方不会收到邀请邮件。邀请仍会创建：请联系服务器管理员设置电子邮件，或请其将邀请链接发送给对方。",
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "此服务器不能发送电子邮件，因此未向 {{email}} 发送邮件。请复制此链接并自行发送给对方。该链接仅限此地址使用一次，有效期 7 天。",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "此服务器不能发送电子邮件，因此未向 {{email}} 发送邮件。对方已有账号：请发送此链接让其登录，并在那里接受邀请。",
-  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "此服务器未设置电子邮件，因此此邮件未发送。请联系服务器管理员设置电子邮件。"
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "此服务器未设置电子邮件，因此此邮件未发送。请联系服务器管理员设置电子邮件。",
+  "Only you see this, as the server's admin.": "只有您能看到这条内容，因为您是服务器管理员。",
+  "Server Setup Choices": "服务器设置选择",
+  "This server is not finished: {{count}} things to set up": "此服务器尚未完成设置：还有 {{count}} 项待设置",
+  "This server is not finished: {{count}} things to set up_one": "此服务器尚未完成设置：还有 {{count}} 项待设置"
 }

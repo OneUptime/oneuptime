@@ -50400,5 +50400,9 @@
   "This server cannot send email yet, so they will not get an invitation email. The invitation is still created: ask your server's admin to set up email, or to send them their invitation link.": "این سرور هنوز نمی‌تواند ایمیل بفرستد، پس ایمیل دعوت به دستشان نمی‌رسد. دعوت با این حال ایجاد می‌شود: از مدیر سرور بخواهید ایمیل را راه‌اندازی کند یا پیوند دعوتشان را برایشان بفرستد.",
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "این سرور نمی‌تواند ایمیل بفرستد، پس به {{email}} ایمیلی فرستاده نشد. این پیوند را کپی کنید و خودتان برایشان بفرستید. فقط یک بار، فقط برای همین نشانی و تا ۷ روز کار می‌کند.",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "این سرور نمی‌تواند ایمیل بفرستد، پس به {{email}} ایمیلی فرستاده نشد. آن‌ها از قبل حساب دارند: این پیوند را برای ورود برایشان بفرستید تا دعوت را از همان‌جا بپذیرند.",
-  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "روی این سرور ایمیلی راه‌اندازی نشده است، پس این ایمیل فرستاده نشد. از مدیر سرور بخواهید ایمیل را راه‌اندازی کند."
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "روی این سرور ایمیلی راه‌اندازی نشده است، پس این ایمیل فرستاده نشد. از مدیر سرور بخواهید ایمیل را راه‌اندازی کند.",
+  "Only you see this, as the server's admin.": "فقط شما، به‌عنوان مدیر سرور، این را می‌بینید.",
+  "Server Setup Choices": "انتخاب‌های راه‌اندازی سرور",
+  "This server is not finished: {{count}} things to set up": "راه‌اندازی این سرور تمام نشده است: {{count}} مورد مانده",
+  "This server is not finished: {{count}} things to set up_one": "راه‌اندازی این سرور تمام نشده است: {{count}} مورد مانده"
 }

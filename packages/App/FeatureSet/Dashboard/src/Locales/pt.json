@@ -50400,5 +50400,9 @@
   "This server cannot send email yet, so they will not get an invitation email. The invitation is still created: ask your server's admin to set up email, or to send them their invitation link.": "Este servidor ainda não consegue enviar e-mails, então a pessoa não receberá um e-mail de convite. O convite é criado mesmo assim: peça ao administrador do servidor para configurar o e-mail ou enviar o link de convite a ela.",
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "Este servidor não consegue enviar e-mails, então {{email}} não recebeu nenhum e-mail. Copie este link e envie você mesmo. Ele funciona uma vez, só para este endereço, por 7 dias.",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "Este servidor não consegue enviar e-mails, então {{email}} não recebeu nenhum e-mail. A pessoa já tem uma conta: envie este link para ela entrar, e ela aceita o convite por lá.",
-  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Este servidor não tem e-mail configurado, então este e-mail não foi enviado. Peça ao administrador do servidor para configurar o e-mail."
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Este servidor não tem e-mail configurado, então este e-mail não foi enviado. Peça ao administrador do servidor para configurar o e-mail.",
+  "Only you see this, as the server's admin.": "Só você vê isto, como administrador do servidor.",
+  "Server Setup Choices": "Escolhas de configuração do servidor",
+  "This server is not finished: {{count}} things to set up": "Este servidor não está pronto: {{count}} itens para configurar",
+  "This server is not finished: {{count}} things to set up_one": "Este servidor não está pronto: {{count}} item para configurar"
 }

@@ -50400,5 +50400,9 @@
   "This server cannot send email yet, so they will not get an invitation email. The invitation is still created: ask your server's admin to set up email, or to send them their invitation link.": "Questo server non può ancora inviare email, quindi non riceverà un'email di invito. L'invito viene comunque creato: chiedi all'amministratore del server di configurare l'email o di inviargli il link di invito.",
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "Questo server non può inviare email, quindi {{email}} non ha ricevuto alcuna email. Copia questo link e invialo tu stesso. Funziona una sola volta, solo per questo indirizzo, per 7 giorni.",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "Questo server non può inviare email, quindi {{email}} non ha ricevuto alcuna email. Ha già un account: inviagli questo link per accedere, da lì accetterà l'invito.",
-  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Su questo server non è configurata alcuna email, quindi questa email non è stata inviata. Chiedi all'amministratore del server di configurare l'email."
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Su questo server non è configurata alcuna email, quindi questa email non è stata inviata. Chiedi all'amministratore del server di configurare l'email.",
+  "Only you see this, as the server's admin.": "Lo vedi solo tu, come amministratore del server.",
+  "Server Setup Choices": "Scelte di configurazione del server",
+  "This server is not finished: {{count}} things to set up": "Questo server non è finito: {{count}} cose da configurare",
+  "This server is not finished: {{count}} things to set up_one": "Questo server non è finito: {{count}} cosa da configurare"
 }

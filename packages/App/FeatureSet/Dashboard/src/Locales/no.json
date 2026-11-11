@@ -50400,5 +50400,9 @@
   "This server cannot send email yet, so they will not get an invitation email. The invitation is still created: ask your server's admin to set up email, or to send them their invitation link.": "Denne serveren kan ikke sende e-post ennå, så de får ingen invitasjon på e-post. Invitasjonen opprettes likevel: be serveradministratoren om å sette opp e-post eller sende dem invitasjonslenken.",
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "Denne serveren kan ikke sende e-post, så {{email}} har ikke fått noen e-post. Kopier denne lenken og send den til dem selv. Den virker én gang, bare for denne adressen, i 7 dager.",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "Denne serveren kan ikke sende e-post, så {{email}} har ikke fått noen e-post. De har allerede en konto: send dem denne lenken for å logge på, så godtar de invitasjonen derfra.",
-  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Denne serveren har ikke satt opp e-post, så denne e-posten ble ikke sendt. Be serveradministratoren om å sette opp e-post."
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Denne serveren har ikke satt opp e-post, så denne e-posten ble ikke sendt. Be serveradministratoren om å sette opp e-post.",
+  "Only you see this, as the server's admin.": "Bare du ser dette, som serverens administrator.",
+  "Server Setup Choices": "Valg ved serveroppsett",
+  "This server is not finished: {{count}} things to set up": "Denne serveren er ikke ferdig: {{count}} ting gjenstår å sette opp",
+  "This server is not finished: {{count}} things to set up_one": "Denne serveren er ikke ferdig: {{count}} ting gjenstår å sette opp"
 }
