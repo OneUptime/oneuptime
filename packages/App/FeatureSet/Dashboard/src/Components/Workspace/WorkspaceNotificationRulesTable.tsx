@@ -92,6 +92,7 @@ import {
   NOTIFICATION_RULE_DESTINATION_TITLES,
   NOTIFICATION_RULES_CARD_DESCRIPTIONS,
   getNotificationRulesCardTitle,
+  MattermostRuleTeams,
   RULE_PLURAL_NAMES,
   RULE_SINGULAR_NAMES,
   SlackRuleWorkspaces,
@@ -102,6 +103,10 @@ import {
   readSlackConnectionDescription,
   SlackConnectionDescription,
 } from "../Slack/SlackOrganizationCard";
+import {
+  MattermostTeamsDescription,
+  readMattermostTeamsDescription,
+} from "../Mattermost/MattermostTeamsCard";
 import { canRuleCreateChannel } from "./NotificationRuleForm/NotificationRuleOwnChannel";
 import {
   SecurityCaseValueLists,
@@ -214,6 +219,14 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [mattermostTeams, setMattermostTeams] = React.useState<
     Array<MattermostConnectionTeam>
   >([]);
+  /*
+   * The same connection, with the teams the bot was taken out of: a rule
+   * that still names one says so on its card, and its form still shows the
+   * pick so it can be changed. Undefined for any other connection.
+   */
+  const [mattermostConnection, setMattermostConnection] = React.useState<
+    MattermostRuleTeams | undefined
+  >(undefined);
   const [users, setUsers] = React.useState<Array<User>>([]);
   const [onCallSchedules, setOnCallSchedules] = React.useState<
     Array<OnCallDutyPolicySchedule>
@@ -728,7 +741,11 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
        * or a server OneUptime could not ask - has rules that pick no team.
        */
       if (props.workspaceType === WorkspaceType.Mattermost) {
-        setMattermostTeams(await loadMattermostTeams());
+        const connection: MattermostRuleTeams | undefined =
+          await loadMattermostConnection();
+
+        setMattermostConnection(connection);
+        setMattermostTeams(connection?.teams || []);
       }
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Exception));
@@ -772,51 +789,47 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       }
     };
 
-  type LoadMattermostTeamsFunction = () => Promise<
-    Array<MattermostConnectionTeam>
+  type LoadMattermostConnectionFunction = () => Promise<
+    MattermostRuleTeams | undefined
   >;
 
-  const loadMattermostTeams: LoadMattermostTeamsFunction = async (): Promise<
-    Array<MattermostConnectionTeam>
-  > => {
-    try {
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.get({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
-            `/mattermost/connected-teams`,
-          ),
-          headers: ModelAPI.getCommonHeaders(),
-        });
+  const loadMattermostConnection: LoadMattermostConnectionFunction =
+    async (): Promise<MattermostRuleTeams | undefined> => {
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.get({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              `/mattermost/connected-teams`,
+            ),
+            headers: ModelAPI.getCommonHeaders(),
+          });
 
-      if (response instanceof HTTPErrorResponse) {
-        return [];
-      }
+        if (response instanceof HTTPErrorResponse) {
+          return undefined;
+        }
 
-      const teams: unknown = response.data?.["teams"];
+        const connection: MattermostTeamsDescription =
+          readMattermostTeamsDescription(response.data);
 
-      return Array.isArray(teams)
-        ? (teams as Array<JSONObject>)
-            .filter((team: JSONObject): boolean => {
-              return typeof team["id"] === "string" && Boolean(team["id"]);
-            })
-            .map((team: JSONObject): MattermostConnectionTeam => {
-              const name: string =
-                typeof team["name"] === "string" ? team["name"] : "";
-
+        return {
+          teams: connection.teams.map(
+            (team: MattermostConnectionTeam): MattermostConnectionTeam => {
               return {
-                id: team["id"] as string,
-                name: name,
-                displayName:
-                  (typeof team["displayName"] === "string" &&
-                    team["displayName"]) ||
-                  name,
+                id: team.id,
+                name: team.name,
+                displayName: team.displayName,
               };
-            })
-        : [];
-    } catch {
-      return [];
-    }
-  };
+            },
+          ),
+          removedTeams: connection.removedTeams,
+          defaultTeamId: connection.defaultTeamId || "",
+          isBotInDefaultTeam: connection.isBotInDefaultTeam,
+          areTeamsListed: connection.areTeamsListed,
+        };
+      } catch {
+        return undefined;
+      }
+    };
 
   useEffect(() => {
     loadPage().catch((err: Exception) => {
@@ -883,6 +896,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         slackWorkspaces={slackWorkspaces}
         slackOrganization={slackOrganization}
         mattermostTeams={mattermostTeams}
+        mattermostConnection={mattermostConnection}
         users={users}
         onCallSchedules={onCallSchedules}
         numberPrefixes={numberPrefixes}
@@ -1316,6 +1330,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             slackWorkspaces: slackWorkspaces,
             slackOrganization: slackOrganization,
             mattermostTeams: mattermostTeams,
+            mattermostConnection: mattermostConnection,
             videoCallConnections: videoCallConnections,
             numberPrefixes: numberPrefixes,
             exampleRecordName: exampleRecordName,

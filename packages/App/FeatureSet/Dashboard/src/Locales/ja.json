@@ -50400,5 +50400,7 @@
   "This server cannot send email yet, so they will not get an invitation email. The invitation is still created: ask your server's admin to set up email, or to send them their invitation link.": "このサーバーはまだメールを送信できないため、招待メールは届きません。招待は作成されます。サーバー管理者に、メールの設定か招待リンクの送付を依頼してください。",
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "このサーバーはメールを送信できないため、{{email}} にメールは送られていません。このリンクをコピーして、ご自身で送ってください。このアドレス専用で、7 日以内に 1 回だけ使えます。",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "このサーバーはメールを送信できないため、{{email}} にメールは送られていません。すでにアカウントをお持ちです。このリンクを送ってサインインしてもらうと、そこから招待を承諾できます。",
-  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "このサーバーではメールが設定されていないため、このメールは送信されませんでした。サーバー管理者にメールの設定を依頼してください。"
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "このサーバーではメールが設定されていないため、このメールは送信されませんでした。サーバー管理者にメールの設定を依頼してください。",
+  "OneUptime's bot is no longer a member of the {{team}} team. Add the bot back to the team in Mattermost, or pick another team on the rule.": "OneUptime のボットは、チーム {{team}} のメンバーではなくなりました。Mattermost でボットをチームに追加し直すか、ルールで別のチームを選んでください。",
+  "{{team}} (bot no longer a member)": "{{team}}（ボットはもうメンバーではありません）"
 }
