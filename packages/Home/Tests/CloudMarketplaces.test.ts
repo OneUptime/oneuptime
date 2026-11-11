@@ -17,6 +17,7 @@ import {
   getCloudMarketplaceAnchorId,
   getCloudMarketplacesContent,
   getListingDetail,
+  getProductsSoldOn,
   getPublicListings,
   toCloudMarketplaceCard,
   withSeparators,
@@ -95,7 +96,7 @@ function publicListingUrls(): Array<string> {
 
   for (const entry of CloudMarketplaceEntries) {
     for (const product of CloudMarketplaceProducts) {
-      const url: string | null = entry.listingUrls[product];
+      const url: string | null | undefined = entry.listingUrls[product];
 
       if (url) {
         urls.push(url);
@@ -196,7 +197,8 @@ describe("the buyer's guide's listing row", () => {
         COLUMNS.findIndex(([candidate]: [CloudMarketplace, string]) => {
           return candidate === marketplace;
         });
-      const url: string | null = entryOf(marketplace).listingUrls.enterprise;
+      const url: string | null | undefined =
+        entryOf(marketplace).listingUrls.enterprise;
 
       for (const language of languages) {
         const cell: string = listingCells(language)[column]!;
@@ -258,12 +260,22 @@ describe("the marketplaces", () => {
       cloud: "OneUptime Cloud",
       enterprise: "OneUptime Enterprise",
     });
+  });
 
-    for (const item of CloudMarketplaceEntries) {
-      expect(Object.keys(item.listingUrls).sort()).toEqual(
-        [...CloudMarketplaceProducts].sort(),
-      );
-    }
+  test("sell both on AWS and Microsoft, and only OneUptime Enterprise on Google Cloud", () => {
+    /*
+     * Google lists only SaaS hosted on Google Cloud, and OneUptime Cloud is
+     * moving off it (RELEASING.md, "Google Cloud Marketplace").
+     */
+    expect(
+      CloudMarketplaceEntries.map((item: CloudMarketplaceEntry) => {
+        return [item.marketplace, getProductsSoldOn(item)];
+      }),
+    ).toEqual([
+      [CloudMarketplace.AWS, ["cloud", "enterprise"]],
+      [CloudMarketplace.Azure, ["cloud", "enterprise"]],
+      [CloudMarketplace.GoogleCloud, ["enterprise"]],
+    ]);
   });
 
   test.each([
@@ -296,9 +308,10 @@ describe("the listings' addresses", () => {
     /*
      * AWS: OneUptime Cloud (SaaS) is public; OneUptime Enterprise's
      * container product is Limited. Microsoft: both offers are live, under
-     * the publisher ID Partner Center has for HackerBay. Google Cloud:
-     * neither shows yet. A change here is a listing going public (or
-     * away): open it on the marketplace first.
+     * the publisher ID Partner Center has for HackerBay. Google Cloud: the
+     * Kubernetes app does not show yet, and OneUptime Cloud is not sold
+     * there. A change here is a listing going public (or away): open it on
+     * the marketplace first.
      */
     expect(
       CloudMarketplaceEntries.map((item: CloudMarketplaceEntry) => {
@@ -321,7 +334,7 @@ describe("the listings' addresses", () => {
             "https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-enterprise",
         },
       ],
-      [CloudMarketplace.GoogleCloud, { cloud: null, enterprise: null }],
+      [CloudMarketplace.GoogleCloud, { enterprise: null }],
     ]);
   });
 
@@ -329,7 +342,7 @@ describe("the listings' addresses", () => {
     CloudMarketplaceEntries.flatMap((item: CloudMarketplaceEntry) => {
       return CloudMarketplaceProducts.filter(
         (product: CloudMarketplaceProduct): boolean => {
-          return item.listingUrls[product] !== null;
+          return Boolean(item.listingUrls[product]);
         },
       ).map((product: CloudMarketplaceProduct): [string, string, string] => {
         return [
@@ -404,7 +417,7 @@ describe("the listings' addresses", () => {
     }
   });
 
-  test("each guide says a listing without an address is not public yet, and points at this list", () => {
+  test("each guide says a listing without an address is not public yet, a product a marketplace does not sell is not listed, and points at this list", () => {
     for (const [guide, product] of [
       [CLOUD_GUIDE, "cloud"],
       [SELF_HOSTED_GUIDE, "enterprise"],
@@ -432,9 +445,16 @@ describe("the listings' addresses", () => {
               : "AWS";
         const row: string = tableRowOf(guide, name);
 
-        expect(row.includes("Not public yet")).toBe(
+        expect([name, product, row.includes("Not public yet")]).toEqual([
+          name,
+          product,
           item.listingUrls[product] === null,
-        );
+        ]);
+        expect([name, product, row.includes("Not listed")]).toEqual([
+          name,
+          product,
+          item.listingUrls[product] === undefined,
+        ]);
       }
     }
   });
@@ -600,16 +620,63 @@ describe("a marketplace's card", () => {
     expect(card.hasPublicListing).toBe(false);
   });
 
-  test("lists the products in the same order on every card", () => {
-    for (const item of CloudMarketplaceEntries) {
-      expect(
-        toCloudMarketplaceCard(item).listings.map(
+  test("lists the products it sells, in the same order on every card", () => {
+    expect(
+      CloudMarketplaceEntries.map((item: CloudMarketplaceEntry) => {
+        return toCloudMarketplaceCard(item).listings.map(
           (row: CloudMarketplaceListingRow) => {
             return row.product;
           },
-        ),
-      ).toEqual([...CloudMarketplaceProducts]);
-    }
+        );
+      }),
+    ).toEqual([
+      ["cloud", "enterprise"],
+      ["cloud", "enterprise"],
+      ["enterprise"],
+    ]);
+  });
+
+  test("has no row for a product the marketplace does not sell, not even Coming soon", () => {
+    const comingSoon: CloudMarketplaceCard = toCloudMarketplaceCard(
+      entry({ listingUrls: { enterprise: null } }),
+    );
+
+    expect(
+      comingSoon.listings.map((row: CloudMarketplaceListingRow) => {
+        return [row.product, row.listingUrl];
+      }),
+    ).toEqual([["enterprise", null]]);
+    // The card is one line, the name and "Coming soon", until it is public.
+    expect(comingSoon.hasPublicListing).toBe(false);
+
+    const listed: CloudMarketplaceCard = toCloudMarketplaceCard(
+      entry({ listingUrls: { enterprise: "https://example.com/e" } }),
+    );
+
+    expect(
+      listed.listings.map((row: CloudMarketplaceListingRow) => {
+        return [row.product, row.listingUrl];
+      }),
+    ).toEqual([["enterprise", "https://example.com/e"]]);
+    expect(listed.hasPublicListing).toBe(true);
+    expect(getPublicListings([listed], "cloud")).toEqual([]);
+  });
+
+  test("shows no OneUptime Cloud on Google Cloud Marketplace's card, even once its Kubernetes app is public", () => {
+    const google: CloudMarketplaceEntry = entryOf(CloudMarketplace.GoogleCloud);
+    const card: CloudMarketplaceCard = toCloudMarketplaceCard({
+      ...google,
+      listingUrls: {
+        ...google.listingUrls,
+        enterprise: "https://example.com/g",
+      },
+    });
+
+    expect(
+      card.listings.map((row: CloudMarketplaceListingRow) => {
+        return row.productName;
+      }),
+    ).toEqual(["OneUptime Enterprise"]);
   });
 });
 

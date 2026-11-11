@@ -5,11 +5,13 @@ import CloudMarketplace, {
 /*
  * WHERE ONEUPTIME IS SOLD ON THE CLOUD MARKETPLACES, AS DATA.
  *
- * AWS Marketplace, Microsoft Marketplace and Google Cloud Marketplace each
- * sell two OneUptime products:
+ * AWS Marketplace and Microsoft Marketplace each sell two OneUptime
+ * products, and Google Cloud Marketplace the second only:
  *
  * - OneUptime Cloud, which OneUptime runs, billed through the marketplace at
- *   the prices on /pricing (Common/Server/Utils/Marketplace/RELEASING.md);
+ *   the prices on /pricing (Common/Server/Utils/Marketplace/RELEASING.md).
+ *   Not on Google Cloud Marketplace, which lists only SaaS hosted on Google
+ *   Cloud, while OneUptime Cloud is moving off it (decided on 2026-11-11);
  * - OneUptime Enterprise, which the buyer runs in their own Kubernetes
  *   cluster, billed per user by the hour, its marketplace subscription its
  *   license (SELF_HOSTED_RELEASING.md, /docs/installation/cloud-marketplaces).
@@ -44,8 +46,12 @@ export interface CloudMarketplaceEntry {
    * /docs/installation/cloud-marketplaces names it.
    */
   kubernetesService: string;
-  // Each product's public listing on this marketplace, or null.
-  listingUrls: Record<CloudMarketplaceProduct, string | null>;
+  /*
+   * Each product this marketplace sells, with its public listing, or null
+   * until the listing is public. A product it does not sell has no key: its
+   * card has no row for it, not even "Coming soon".
+   */
+  listingUrls: Partial<Record<CloudMarketplaceProduct, string | null>>;
 }
 
 /*
@@ -89,8 +95,11 @@ export const CloudMarketplaceEntries: ReadonlyArray<CloudMarketplaceEntry> = [
     marketplace: CloudMarketplace.GoogleCloud,
     kubernetesService: "Google Kubernetes Engine",
     listingUrls: {
-      // Neither product shows on Google Cloud Marketplace yet.
-      cloud: null,
+      /*
+       * No OneUptime Cloud: Google lists only SaaS hosted on Google Cloud
+       * (RELEASING.md, "Google Cloud Marketplace"). The Kubernetes app does
+       * not show on Google Cloud Marketplace yet.
+       */
       enterprise: null,
     },
   },
@@ -143,9 +152,9 @@ export interface CloudMarketplaceCard {
   anchorId: string;
   listings: Array<CloudMarketplaceListingRow>;
   /*
-   * False while neither product shows on this marketplace: its card is
-   * then one line, the name and "Coming soon", rather than a row per
-   * product each saying so.
+   * False while none of the products it sells shows on this marketplace:
+   * its card is then one line, the name and "Coming soon", rather than a
+   * row per product each saying so.
    */
   hasPublicListing: boolean;
 }
@@ -202,26 +211,38 @@ export const getListingDetail: (
     : `Self-hosted on ${kubernetesService}`;
 };
 
+// The products a marketplace sells, in the order its card lists them.
+export const getProductsSoldOn: (
+  entry: CloudMarketplaceEntry,
+) => Array<CloudMarketplaceProduct> = (
+  entry: CloudMarketplaceEntry,
+): Array<CloudMarketplaceProduct> => {
+  return CloudMarketplaceProducts.filter(
+    (product: CloudMarketplaceProduct): boolean => {
+      return entry.listingUrls[product] !== undefined;
+    },
+  );
+};
+
 export const toCloudMarketplaceCard: (
   entry: CloudMarketplaceEntry,
 ) => CloudMarketplaceCard = (
   entry: CloudMarketplaceEntry,
 ): CloudMarketplaceCard => {
   const name: string = CloudMarketplaceUtil.getDisplayName(entry.marketplace);
-  const listings: Array<CloudMarketplaceListingRow> =
-    CloudMarketplaceProducts.map(
-      (product: CloudMarketplaceProduct): CloudMarketplaceListingRow => {
-        const productName: string = CloudMarketplaceProductNames[product];
+  const listings: Array<CloudMarketplaceListingRow> = getProductsSoldOn(
+    entry,
+  ).map((product: CloudMarketplaceProduct): CloudMarketplaceListingRow => {
+    const productName: string = CloudMarketplaceProductNames[product];
 
-        return {
-          product: product,
-          productName: productName,
-          detail: getListingDetail(product, entry.kubernetesService),
-          listingUrl: entry.listingUrls[product] || null,
-          label: `${productName} on ${name}`,
-        };
-      },
-    );
+    return {
+      product: product,
+      productName: productName,
+      detail: getListingDetail(product, entry.kubernetesService),
+      listingUrl: entry.listingUrls[product] || null,
+      label: `${productName} on ${name}`,
+    };
+  });
 
   return {
     marketplace: entry.marketplace,
