@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 50340,
+    "keys": 50353,
     "untranslated": 1306
   },
   "sameAsEnglish": [
@@ -51,7 +51,6 @@
     "Apache Kafka · kafka-1:9092",
     "App Store",
     "Atmosphere",
-    "Auth0",
     "Azure AKS",
     "Azure CLI",
     "Azure Functions",
@@ -265,7 +264,6 @@
     "alice@example.com",
     "amd64",
     "amphora",
-    "api.read api.write",
     "arm",
     "arm64",
     "aws_lambda · us-east-1 · nodejs 20",

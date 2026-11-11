@@ -154,11 +154,11 @@ Kortet **Åtkomsttoken** på en OAuth 2.0-variabels sida visar en av de här sta
 
 | Status                     | Vad den betyder                                                                                                                      |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Valid**                  | Den cachade token har inte gått ut ännu.                                                                                             |
+| **Giltig**                 | Den cachade token har inte gått ut ännu.                                                                                             |
 | **Utgången**               | Normalt för en variabel som inget arbetsflöde har använt på sistone. Nästa körning som använder den hämtar en ny token.             |
 | **Inte hämtad ännu**       | Ingen token har hämtats sedan variabeln skapades eller dess inställningar ändrades.                                                 |
-| **No expiry reported**     | Leverantören sa inte när token går ut, så varje körning hämtar en ny.                                                                |
-| **Refresh failed**         | Det senaste försöket att hämta en token misslyckades. Leverantörens orsak visas i sin helhet, med när det hände. Nästa lyckade förnyelse rensar den. |
+| **Ingen utgångstid angiven** | Leverantören sa inte när token går ut, så varje körning hämtar en ny.                                                                |
+| **Uppdateringen misslyckades** | Det senaste försöket att hämta en token misslyckades. Leverantörens orsak visas i sin helhet, med när det hände. Nästa lyckade förnyelse rensar den. |
 
 **Uppdatera nu**, under statusen, hämtar en ny token direkt. Använd den för att kontrollera nya inställningar utan att köra ett arbetsflöde. **Uppdatera inloggningsuppgifter**, på kortet **OAuth 2.0-inställningar**, ersätter klienthemligheten eller refresh token och hämtar sedan en token med dem. Ändrar du en inställning (token-URL, klient-ID, omfattning och så vidare) kasseras den cachade token, så att nästa körning hämtar en med de nya inställningarna.
 

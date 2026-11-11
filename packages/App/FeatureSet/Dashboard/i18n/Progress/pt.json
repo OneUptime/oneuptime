@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50340,
-    "untranslated": 9872
+    "keys": 50353,
+    "untranslated": 9842
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -54,6 +54,7 @@
     "Chats",
     "ClickHouse",
     "Client ID",
+    "Client Secret",
     "CloudKitty",
     "Cluster",
     "Cluster {{cluster}}",

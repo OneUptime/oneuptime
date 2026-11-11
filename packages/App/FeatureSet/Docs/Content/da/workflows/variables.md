@@ -154,11 +154,11 @@ Kortet **Adgangstoken** på en OAuth 2.0-variabels side viser en af disse status
 
 | Status                     | Hvad den betyder                                                                                                                     |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Valid**                  | Det cachede token er endnu ikke udløbet.                                                                                             |
+| **Gyldig**                 | Det cachede token er endnu ikke udløbet.                                                                                             |
 | **Udløbet**                | Normalt for en variabel, som intet workflow har brugt på det seneste. Den næste kørsel, der bruger den, henter et nyt token.          |
 | **Ikke hentet endnu**      | Der er ikke hentet noget token, siden variablen blev oprettet, eller dens indstillinger blev ændret.                                 |
-| **No expiry reported**     | Udbyderen sagde ikke, hvornår tokenet udløber, så hver kørsel henter et nyt.                                                         |
-| **Refresh failed**         | Det seneste forsøg på at hente et token mislykkedes. Udbyderens årsag vises i sin helhed, med hvornår det skete. Den næste vellykkede fornyelse rydder den. |
+| **Intet udløb oplyst**     | Udbyderen sagde ikke, hvornår tokenet udløber, så hver kørsel henter et nyt.                                                         |
+| **Opdatering mislykkedes** | Det seneste forsøg på at hente et token mislykkedes. Udbyderens årsag vises i sin helhed, med hvornår det skete. Den næste vellykkede fornyelse rydder den. |
 
 **Opdater nu**, under statussen, henter et nyt token med det samme. Brug den til at tjekke nye indstillinger uden at køre et workflow. **Opdater legitimationsoplysninger**, på kortet **OAuth 2.0-indstillinger**, erstatter klienthemmeligheden eller refresh tokenet og henter derefter et token med dem. Ændrer du en indstilling (token-URL, klient-ID, omfang og så videre), kasseres det cachede token, så den næste kørsel henter et med de nye indstillinger.
 

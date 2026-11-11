@@ -50378,5 +50378,18 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "No arrow on this diagram says where {{column}} comes from or where it goes."
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "No arrow on this diagram says where {{column}} comes from or where it goes.",
+  "Fetched the first time a workflow uses it": "Fetched the first time a workflow uses it",
+  "Fetched {{date}}. The provider did not say when it expires, so every run fetches a new one": "Fetched {{date}}. The provider did not say when it expires, so every run fetches a new one",
+  "No expiry reported": "No expiry reported",
+  "Refreshes automatically the next time a workflow uses it": "Refreshes automatically the next time a workflow uses it",
+  "Valid until {{date}}": "Valid until {{date}}",
+  "Access Token Fetched": "Access Token Fetched",
+  "Client secret and refresh token saved.": "Client secret and refresh token saved.",
+  "Client secret saved.": "Client secret saved.",
+  "Could Not Fetch an Access Token": "Could Not Fetch an Access Token",
+  "OneUptime could not fetch an access token for \"{{name}}\": {{error}}": "OneUptime could not fetch an access token for \"{{name}}\": {{error}}",
+  "OneUptime fetched a new access token for \"{{name}}\" from your identity provider. It is valid until {{date}}, and a new one is fetched automatically whenever a workflow is about to use it after that.": "OneUptime fetched a new access token for \"{{name}}\" from your identity provider. It is valid until {{date}}, and a new one is fetched automatically whenever a workflow is about to use it after that.",
+  "OneUptime fetched a new access token for \"{{name}}\" from your identity provider. The provider did not say when it expires, so every workflow run fetches a new one.": "OneUptime fetched a new access token for \"{{name}}\" from your identity provider. The provider did not say when it expires, so every workflow run fetches a new one.",
+  "Refresh token saved.": "Refresh token saved."
 }

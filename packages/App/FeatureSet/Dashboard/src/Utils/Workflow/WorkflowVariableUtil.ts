@@ -14,7 +14,6 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
-import { inEnglishDates } from "Common/Types/DateLanguage";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -48,6 +47,15 @@ import {
   getOAuthTokenUrlPlaceholderError,
 } from "./OAuthIdentityProviders";
 import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  DEFAULT_LANGUAGE,
+  Translator,
+  createTranslator,
+  translationKey,
+} from "Common/Types/Translator";
+
+// The words as written, for a caller that has no reader to translate them for.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 export interface OAuthTokenRefreshResult {
   expiresAt: Date | null;
@@ -125,16 +133,49 @@ export async function fetchTokenRefreshOutcome(data: {
   }
 }
 
+// Keys: the modal looks its title up.
 export function getTokenRefreshTitle(outcome: TokenRefreshOutcome): string {
   return outcome.error
-    ? "Could Not Fetch an Access Token"
-    : "Access Token Fetched";
+    ? translationKey("Could Not Fetch an Access Token")
+    : translationKey("Access Token Fetched");
 }
 
+/*
+ * What the credentials modal says it saved, as a whole sentence in the
+ * reader's language: "Client secret saved." A sentence of its own, so each
+ * language can agree the verb with what was saved.
+ */
+const SAVED_SENTENCES: Record<string, string> = {
+  "Client secret": translationKey("Client secret saved."),
+  "Refresh token": translationKey("Refresh token saved."),
+  "Client secret and refresh token": translationKey(
+    "Client secret and refresh token saved.",
+  ),
+};
+
+/*
+ * Worded in the reader's language when the modal passes its translator (#6752);
+ * in English without one, as the tests read it. The variable's name and the
+ * reason a fetch failed are shown as they are.
+ */
 export function getTokenRefreshDescription(
   outcome: TokenRefreshOutcome,
+  translator: Translator = ENGLISH,
 ): string {
-  const saved: string = outcome.savedWhat ? `${outcome.savedWhat} saved. ` : "";
+  const savedSentence: string | undefined = outcome.savedWhat
+    ? SAVED_SENTENCES[outcome.savedWhat]
+    : undefined;
+  const savedWords: string = savedSentence
+    ? translator.translateText(savedSentence) || savedSentence
+    : outcome.savedWhat
+      ? `${outcome.savedWhat} saved.`
+      : "";
+  // A sentence ending in a full-width stop needs no space after it.
+  const saved: string = savedWords
+    ? savedWords.endsWith("\u3002")
+      ? savedWords
+      : `${savedWords} `
+    : "";
 
   /*
    * Worded without blaming anybody. Not every failure is the identity provider
@@ -144,19 +185,28 @@ export function getTokenRefreshDescription(
    * endpoint refused the request (HTTP 400): invalid_grant - ...".
    */
   if (outcome.error) {
-    return `${saved}OneUptime could not fetch an access token for "${outcome.variableName}": ${outcome.error}`;
+    return `${saved}${translator.translateTemplate(
+      'OneUptime could not fetch an access token for "{{name}}": {{error}}',
+      { name: outcome.variableName, error: outcome.error },
+    )}`;
   }
 
-  return `${saved}OneUptime fetched a new access token for "${outcome.variableName}" from your identity provider. ${
-    outcome.expiresAt
-      ? `It is valid until ${inEnglishDates((): string => {
-          // The message is English throughout.
-          return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-            outcome.expiresAt as Date,
-          );
-        })}, and a new one is fetched automatically whenever a workflow is about to use it after that.`
-      : "The provider did not say when it expires, so every workflow run fetches a new one."
-  }`;
+  if (outcome.expiresAt) {
+    return `${saved}${translator.translateTemplate(
+      'OneUptime fetched a new access token for "{{name}}" from your identity provider. It is valid until {{date}}, and a new one is fetched automatically whenever a workflow is about to use it after that.',
+      {
+        name: outcome.variableName,
+        date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+          outcome.expiresAt,
+        ),
+      },
+    )}`;
+  }
+
+  return `${saved}${translator.translateTemplate(
+    'OneUptime fetched a new access token for "{{name}}" from your identity provider. The provider did not say when it expires, so every workflow run fetches a new one.',
+    { name: outcome.variableName },
+  )}`;
 }
 
 /*

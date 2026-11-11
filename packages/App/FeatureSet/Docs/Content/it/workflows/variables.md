@@ -154,11 +154,11 @@ La scheda **Token di accesso** nella pagina di una variabile OAuth 2.0 mostra un
 
 | Stato                      | Cosa significa                                                                                                                       |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Valid**                  | Il token in cache non è ancora scaduto.                                                                                              |
+| **Valido**                 | Il token in cache non è ancora scaduto.                                                                                              |
 | **Scaduto**                | Normale per una variabile che nessun workflow ha usato di recente. La prossima esecuzione che la usa recupera un nuovo token.       |
 | **Non ancora recuperato**  | Non è stato recuperato nessun token da quando la variabile è stata creata o le sue impostazioni sono cambiate.                       |
-| **No expiry reported**     | Il provider non ha detto quando scade il token, quindi ogni esecuzione ne recupera uno nuovo.                                        |
-| **Refresh failed**         | L'ultimo tentativo di ottenere un token non è riuscito. Il motivo del provider viene mostrato per intero, con il momento in cui è successo. Il prossimo rinnovo riuscito lo cancella. |
+| **Nessuna scadenza indicata** | Il provider non ha detto quando scade il token, quindi ogni esecuzione ne recupera uno nuovo.                                        |
+| **Aggiornamento non riuscito** | L'ultimo tentativo di ottenere un token non è riuscito. Il motivo del provider viene mostrato per intero, con il momento in cui è successo. Il prossimo rinnovo riuscito lo cancella. |
 
 **Aggiorna ora**, sotto lo stato, recupera subito un nuovo token. Usalo per verificare nuove impostazioni senza eseguire un workflow. **Aggiorna le credenziali**, nella scheda **Impostazioni OAuth 2.0**, sostituisce il client secret o il refresh token, poi recupera un token con essi. Modificare qualsiasi impostazione (URL del token, client ID, ambito e così via) scarta il token in cache, quindi l'esecuzione successiva ne recupera uno con le nuove impostazioni.
 

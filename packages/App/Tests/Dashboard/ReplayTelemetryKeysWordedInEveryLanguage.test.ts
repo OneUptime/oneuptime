@@ -97,6 +97,11 @@ const SOURCES: Array<string> = [
   "Components/Slack",
   "Components/Workflow",
   "Pages/Settings/TelemetrySettings.tsx",
+  /*
+   * Where the workflow variable dialogs keep their words: the Create OAuth 2.0
+   * Variable form, its provider hints and the token refresh result.
+   */
+  "Utils/Workflow",
 ];
 
 function sourceFiles(): Array<string> {
@@ -634,6 +639,255 @@ describe("the translated docs quote these labels as each language's Dashboard dr
   });
 });
 
+/*
+ * THE UI REVIEW. What the screens still drew in English, or drew so that the
+ * reader could not match it to the control it names, once the keys above were
+ * worded.
+ */
+
+// The Access Token card on a variable's page: its pill and the line under it.
+const TOKEN_CARD_KEYS: Array<string> = [
+  "Not fetched yet",
+  "Valid",
+  "Expired",
+  "No expiry reported",
+  "Refresh failed",
+  "Valid until {{date}}",
+  "Refreshes automatically the next time a workflow uses it",
+  "Fetched {{date}}. The provider did not say when it expires, so every run fetches a new one",
+  "Fetched the first time a workflow uses it",
+];
+
+// The result of Refresh now, or of saving new credentials.
+const TOKEN_REFRESH_KEYS: Array<string> = [
+  "Access Token Fetched",
+  "Could Not Fetch an Access Token",
+  "Client secret saved.",
+  "Refresh token saved.",
+  "Client secret and refresh token saved.",
+  'OneUptime could not fetch an access token for "{{name}}": {{error}}',
+  'OneUptime fetched a new access token for "{{name}}" from your identity provider. It is valid until {{date}}, and a new one is fetched automatically whenever a workflow is about to use it after that.',
+  'OneUptime fetched a new access token for "{{name}}" from your identity provider. The provider did not say when it expires, so every workflow run fetches a new one.',
+];
+
+// Sentences that send the reader to the Update Credentials button.
+const UPDATE_CREDENTIALS_SENTENCES: Array<string> = [
+  "How OneUptime gets a token from your identity provider. Secrets are never shown: use Update Credentials to replace them.",
+  "Never shown again once saved: open the variable and use Update Credentials to replace it. Optional for a public client's Refresh Token grant.",
+];
+
+// Sentences that name the Refresh Token grant.
+const REFRESH_TOKEN_GRANT_SENTENCES: Array<string> = [
+  "Google's OAuth clients cannot use Client Credentials, so use Refresh Token, with a refresh token from Google's OAuth 2.0 Playground or your own sign-in.",
+  "Never shown again once saved: open the variable and use Update Credentials to replace it. Optional for a public client's Refresh Token grant.",
+];
+
+const REFRESH_TOKEN_GRANT: string =
+  "Refresh Token (delegated access for a user)";
+
+// The grant as the Grant Type dropdown draws it, without what follows it.
+function grantName(locale: Record<string, string>): string {
+  return (locale[REFRESH_TOKEN_GRANT] as string).split(/\s*[(（]/)[0]!;
+}
+
+// Each processor's heading, and the type it is named after in the dropdown.
+const PROCESSOR_HEADINGS: Array<{ heading: string; type: string }> = [
+  { heading: "Category Processor Configuration", type: "Category Processor" },
+  { heading: "Span Name Remapper Configuration", type: "Span Name Remapper" },
+  { heading: "Span Kind Remapper Configuration", type: "Span Kind Remapper" },
+  { heading: "Status Remapper Configuration", type: "Status Remapper" },
+];
+
+/*
+ * Whether `heading` names `type`: each of its words, less a last letter a
+ * language may decline ("Обработчик" in "Настройка обработчика").
+ */
+function namesType(heading: string, type: string): boolean {
+  const lowered: string = heading.toLocaleLowerCase();
+
+  return type
+    .toLocaleLowerCase()
+    .split(/\s+/)
+    .every((word: string): boolean => {
+      return lowered.includes(
+        Array.from(word)
+          .slice(0, Math.max(1, Array.from(word).length - 1))
+          .join(""),
+      );
+    });
+}
+
+// The span kinds the Span Kind Remapper's dropdown offers, in its order.
+const SPAN_KINDS: Array<string> = [
+  "Server",
+  "Client",
+  "Producer",
+  "Consumer",
+  "Internal",
+];
+
+// The statuses the Status Remapper's dropdown offers: "Ok (1)" without "(1)".
+const SPAN_STATUSES: Array<string> = ["Ok (1)", "Error (2)", "Unset (0)"];
+
+const SPAN_KIND_SENTENCES: Array<string> = [
+  "Overrides the span kind (Server / Client / Producer / Consumer / Internal) based on an attribute value.",
+  "Override span kind (Server / Client / Producer / Consumer / Internal) based on an attribute value.",
+];
+
+const SPAN_STATUS_SENTENCE: string =
+  "Override span status (Ok / Error / Unset) based on an attribute value.";
+
+function withoutCode(status: string): string {
+  return status.replace(/\s*\([^)]*\)\s*$/, "");
+}
+
+// A letter of the Latin script.
+const LATIN_LETTER: RegExp = /[A-Za-z]/;
+
+describe("what the UI review found on these screens", () => {
+  test("the Access Token card and the token refresh result are worded in every language", () => {
+    const english: Record<string, Array<string>> = {};
+
+    for (const language of LANGUAGES) {
+      const locale: Record<string, string> = readLocale(language);
+      const left: Array<string> = [
+        ...TOKEN_CARD_KEYS,
+        ...TOKEN_REFRESH_KEYS,
+      ].filter((key: string): boolean => {
+        return !locale[key] || locale[key] === ENGLISH[key];
+      });
+
+      if (left.length > 0) {
+        english[language] = left;
+      }
+    }
+
+    expect(english).toEqual({});
+  });
+
+  test("the scan reads the token refresh result's sentences from the workflow utilities", () => {
+    expect(KEYS).toEqual(
+      expect.arrayContaining([...TOKEN_CARD_KEYS, ...TOKEN_REFRESH_KEYS]),
+    );
+  });
+
+  test("a sentence that sends the reader to Update Credentials names the button as their Dashboard draws it", () => {
+    for (const language of LANGUAGES) {
+      const locale: Record<string, string> = readLocale(language);
+      const button: string = locale["Update Credentials"] as string;
+
+      expect(button).not.toBe("Update Credentials");
+      expect({
+        language,
+        unnamed: UPDATE_CREDENTIALS_SENTENCES.filter((key: string): boolean => {
+          return !(locale[key] as string).includes(button);
+        }),
+      }).toEqual({ language, unnamed: [] });
+    }
+  });
+
+  test("a sentence that names the Refresh Token grant, or Other provider, names it as the dropdown draws it", () => {
+    const providerHint: string =
+      "OneUptime fills in the token URL for the provider you pick. Pick Other provider if yours is not listed.";
+
+    for (const language of LANGUAGES) {
+      const locale: Record<string, string> = readLocale(language);
+      const grant: string = grantName(locale);
+
+      expect(grant.length).toBeGreaterThan(3);
+      expect({
+        language,
+        unnamed: [
+          ...REFRESH_TOKEN_GRANT_SENTENCES.filter((key: string): boolean => {
+            return !(locale[key] as string).includes(grant);
+          }),
+          ...(!(locale[providerHint] as string).includes(
+            locale["Other provider"] as string,
+          )
+            ? [providerHint]
+            : []),
+        ],
+      }).toEqual({ language, unnamed: [] });
+    }
+  });
+
+  test("a trace processor's heading names its type as the type dropdown does", () => {
+    for (const language of LANGUAGES) {
+      const locale: Record<string, string> = readLocale(language);
+
+      expect({
+        language,
+        unnamed: PROCESSOR_HEADINGS.filter(
+          (entry: { heading: string; type: string }): boolean => {
+            return !namesType(
+              locale[entry.heading] as string,
+              locale[entry.type] as string,
+            );
+          },
+        ).map((entry: { heading: string; type: string }): string => {
+          return `${locale[entry.heading]} / ${locale[entry.type]}`;
+        }),
+      }).toEqual({ language, unnamed: [] });
+    }
+  });
+
+  /*
+   * A Latin list in a sentence read from the right broke apart where the
+   * line wrapped ("(/ Server"), and named kinds the dropdown beside it draws
+   * in the reader's script.
+   */
+  test("Persian and Arabic list the span kinds and statuses as the dropdowns draw them", () => {
+    for (const language of RIGHT_TO_LEFT_LANGUAGES) {
+      const locale: Record<string, string> = readLocale(language);
+      const kinds: string = SPAN_KINDS.map((kind: string): string => {
+        return locale[kind] as string;
+      }).join(" / ");
+      const statuses: string = SPAN_STATUSES.map((status: string): string => {
+        return withoutCode(locale[status] as string);
+      }).join(" / ");
+
+      for (const key of SPAN_KIND_SENTENCES) {
+        expect({ language, key, says: locale[key] }).toEqual({
+          language,
+          key,
+          says: expect.stringContaining(`(${kinds})`),
+        });
+      }
+
+      expect(locale[SPAN_STATUS_SENTENCE]).toContain(`(${statuses})`);
+      expect(LATIN_LETTER.test(kinds + statuses)).toBe(false);
+    }
+  });
+
+  test("the workflow variables docs name the Access Token card's statuses as each language's Dashboard draws them", () => {
+    for (const language of LANGUAGES) {
+      const text: string | undefined = readPage(
+        language,
+        "workflows/variables.md",
+      );
+
+      if (text === undefined) {
+        continue;
+      }
+
+      const locale: Record<string, string> = readLocale(language);
+
+      expect({
+        language,
+        absent: [
+          "Valid",
+          "Expired",
+          "Not fetched yet",
+          "No expiry reported",
+          "Refresh failed",
+        ].filter((label: string): boolean => {
+          return !text.includes(`| **${locale[label]}**`);
+        }),
+      }).toEqual({ language, absent: [] });
+    }
+  });
+});
+
 describe("the check itself", () => {
   test("a sentence set back to English, or left out, is reported", () => {
     const italian: Record<string, string> = readLocale("it");
@@ -689,6 +943,38 @@ describe("the check itself", () => {
     expect(
       quotedInEnglish("**Hash**", ["Hash"], { ...italian, Hash: "Hash" }),
     ).toEqual([]);
+  });
+
+  test("a heading names a type in any of its forms, but not another type", () => {
+    expect(
+      namesType("Настройка обработчика категорий", "Обработчик категорий"),
+    ).toBe(true);
+    expect(namesType("類別處理器設定", "類別處理器")).toBe(true);
+    expect(
+      namesType(
+        "Configuratie van de spannaam-hertoewijzer",
+        "Span-naam-hertoewijzer",
+      ),
+    ).toBe(false);
+    expect(
+      namesType(
+        "Konfiguration der Span-Kind-Neuzuordnung",
+        "Span-Art-Remapper",
+      ),
+    ).toBe(false);
+  });
+
+  test("the grant is read as the dropdown draws it, without what follows it", () => {
+    expect(
+      grantName({
+        [REFRESH_TOKEN_GRANT]: "Token di aggiornamento (accesso delegato)",
+      }),
+    ).toBe("Token di aggiornamento");
+    expect(
+      grantName({
+        [REFRESH_TOKEN_GRANT]: "リフレッシュトークン（ユーザーの委任アクセス）",
+      }),
+    ).toBe("リフレッシュトークン");
   });
 
   test("a placeholder a translation drops is caught", () => {

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50340,
-    "untranslated": 9855
+    "keys": 50353,
+    "untranslated": 9825
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -28,6 +28,7 @@
     "Canonical Sunbeam",
     "ClickHouse",
     "Client ID",
+    "Client Secret",
     "CloudKitty",
     "CloudWatch Metric Streams",
     "CrowdStrike",

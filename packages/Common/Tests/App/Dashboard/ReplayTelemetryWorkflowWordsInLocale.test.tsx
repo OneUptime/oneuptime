@@ -18,6 +18,11 @@ import fs from "fs";
 import path from "path";
 import * as React from "react";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import OneUptimeDate from "../../../Types/Date";
+import {
+  inEnglishDates,
+  withDateDisplayLanguage,
+} from "../../../Types/DateLanguage";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { createTranslator, Translator } from "../../../Types/Translator";
@@ -97,6 +102,13 @@ import UserFlowJourneys from "../../../../App/FeatureSet/Dashboard/src/Component
 import TeamsElement from "../../../../App/FeatureSet/Dashboard/src/Components/Team/TeamsElement";
 import UpdateWorkflowVariableContentModal from "../../../../App/FeatureSet/Dashboard/src/Components/Workflow/UpdateWorkflowVariableContentModal";
 import UpdateWorkflowVariableCredentialsModal from "../../../../App/FeatureSet/Dashboard/src/Components/Workflow/UpdateWorkflowVariableCredentialsModal";
+import WorkflowVariableTokenStatus from "../../../../App/FeatureSet/Dashboard/src/Components/Workflow/WorkflowVariableTokenStatus";
+import WorkflowVariableTokenRefreshModal from "../../../../App/FeatureSet/Dashboard/src/Components/Workflow/WorkflowVariableTokenRefreshModal";
+import {
+  TokenRefreshOutcome,
+  getTokenRefreshDescription,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/Workflow/WorkflowVariableUtil";
+import UserFlowScopeBanner from "../../../../App/FeatureSet/Dashboard/src/Components/UserFlow/UserFlowScopeBanner";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
@@ -667,6 +679,332 @@ describe("a workflow variable's write-only dialogs in Italian, Korean, Hindi and
   }
 });
 
+/*
+ * THE UI REVIEW. What these screens still drew in English, or drew wrongly,
+ * once their keys were worded.
+ */
+
+const TOKEN_NOW: Date = new Date("2026-09-22T12:00:00.000Z");
+
+function oauthVariable(values: Record<string, unknown>): WorkflowVariable {
+  const variable: WorkflowVariable = new WorkflowVariable();
+
+  variable._id = "33333333-3333-4333-8333-333333333333";
+  variable.name = "API_TOKEN";
+  variable.variableType = WorkflowVariableType.OAuth2;
+  variable.oauthGrantType = OAuth2GrantType.ClientCredentials;
+
+  for (const [key, value] of Object.entries(values)) {
+    (variable as unknown as Record<string, unknown>)[key] = value;
+  }
+
+  return variable;
+}
+
+// Each state of the Access Token card: its pill, the line under it, its date.
+const TOKEN_STATES: Array<{
+  name: string;
+  values: Record<string, unknown>;
+  keys: Array<string>;
+  date?: Date | undefined;
+}> = [
+  {
+    name: "not fetched yet",
+    values: {},
+    keys: ["Not fetched yet", "Fetched the first time a workflow uses it"],
+  },
+  {
+    name: "valid",
+    values: {
+      oauthLastRefreshedAt: new Date("2026-09-22T11:30:00.000Z"),
+      oauthAccessTokenExpiresAt: new Date("2026-09-22T12:30:00.000Z"),
+    },
+    keys: ["Valid", "Valid until {{date}}"],
+    date: new Date("2026-09-22T12:30:00.000Z"),
+  },
+  {
+    name: "expired",
+    values: {
+      oauthLastRefreshedAt: new Date("2026-09-22T10:00:00.000Z"),
+      oauthAccessTokenExpiresAt: new Date("2026-09-22T11:00:00.000Z"),
+    },
+    keys: [
+      "Expired",
+      "Refreshes automatically the next time a workflow uses it",
+    ],
+  },
+  {
+    name: "no expiry reported",
+    values: { oauthLastRefreshedAt: new Date("2026-09-22T11:59:00.000Z") },
+    keys: [
+      "No expiry reported",
+      "Fetched {{date}}. The provider did not say when it expires, so every run fetches a new one",
+    ],
+    date: new Date("2026-09-22T11:59:00.000Z"),
+  },
+  {
+    name: "refresh failed",
+    values: {
+      oauthLastRefreshError:
+        "invalid_grant - Token has been expired or revoked.",
+      oauthLastRefreshErrorAt: new Date("2026-09-22T11:55:00.000Z"),
+      oauthLastRefreshedAt: new Date("2026-09-22T11:30:00.000Z"),
+    },
+    keys: ["Refresh failed"],
+    date: new Date("2026-09-22T11:55:00.000Z"),
+  },
+];
+
+// A date as `language` writes it, and as English does.
+function datesOf(
+  language: string,
+  date: Date,
+): { reader: string; english: string } {
+  return {
+    reader: withDateDisplayLanguage(language, (): string => {
+      return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date);
+    }),
+    english: inEnglishDates((): string => {
+      return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date);
+    }),
+  };
+}
+
+describe("a workflow variable's Access Token card in Italian, Korean, Hindi and Persian", () => {
+  for (const language of LANGUAGES) {
+    for (const state of TOKEN_STATES) {
+      test(`${language}: a token ${state.name} is named and explained in the reader's words and dates`, async () => {
+        await i18next.changeLanguage(language);
+        withDateDisplayLanguage(language, (): void => {
+          render(
+            <WorkflowVariableTokenStatus
+              variable={oauthVariable(state.values)}
+              now={TOKEN_NOW}
+            />,
+          );
+        });
+
+        expectDrawnIn(language, state.keys);
+
+        if (state.date) {
+          const dates: { reader: string; english: string } = datesOf(
+            language,
+            state.date,
+          );
+
+          expect(dates.reader).not.toBe(dates.english);
+          expect(shownOnPage()).toContain(dates.reader);
+          expect(shownOnPage()).not.toContain(dates.english);
+        }
+      });
+    }
+  }
+});
+
+const SAVED_AND_FETCHED: TokenRefreshOutcome = {
+  variableName: "API_TOKEN",
+  savedWhat: "Client secret",
+  expiresAt: new Date("2026-09-22T12:30:00.000Z"),
+};
+
+const SAVED_AND_REFUSED: TokenRefreshOutcome = {
+  variableName: "API_TOKEN",
+  savedWhat: "Client secret and refresh token",
+  error: "invalid_grant - Token has been expired or revoked.",
+};
+
+const FETCHED_WITHOUT_EXPIRY: TokenRefreshOutcome = {
+  variableName: "API_TOKEN",
+  savedWhat: "Refresh token",
+  expiresAt: null,
+};
+
+const TOKEN_REFRESH_RESULTS: Array<{
+  name: string;
+  outcome: TokenRefreshOutcome;
+  keys: Array<string>;
+}> = [
+  {
+    name: "a token fetched after a save",
+    outcome: SAVED_AND_FETCHED,
+    keys: [
+      "Access Token Fetched",
+      "Client secret saved.",
+      'OneUptime fetched a new access token for "{{name}}" from your identity provider. It is valid until {{date}}, and a new one is fetched automatically whenever a workflow is about to use it after that.',
+    ],
+  },
+  {
+    name: "a fetch refused after a save",
+    outcome: SAVED_AND_REFUSED,
+    keys: [
+      "Could Not Fetch an Access Token",
+      "Client secret and refresh token saved.",
+      'OneUptime could not fetch an access token for "{{name}}": {{error}}',
+    ],
+  },
+  {
+    name: "a token with no expiry",
+    outcome: FETCHED_WITHOUT_EXPIRY,
+    keys: [
+      "Access Token Fetched",
+      "Refresh token saved.",
+      'OneUptime fetched a new access token for "{{name}}" from your identity provider. The provider did not say when it expires, so every workflow run fetches a new one.',
+    ],
+  },
+];
+
+describe("what Refresh now, or saving new credentials, says in Italian, Korean, Hindi and Persian", () => {
+  for (const language of LANGUAGES) {
+    for (const result of TOKEN_REFRESH_RESULTS) {
+      test(`${language}: ${result.name} is told in the reader's words, naming the variable and the provider's reason as they are`, async () => {
+        await i18next.changeLanguage(language);
+        withDateDisplayLanguage(language, (): void => {
+          render(
+            <WorkflowVariableTokenRefreshModal
+              variableName="API_TOKEN"
+              outcome={result.outcome}
+              onClose={(): void => {
+                return;
+              }}
+            />,
+          );
+        });
+
+        expectDrawnIn(language, result.keys);
+        expect(shownOnPage()).toContain("API_TOKEN");
+        expect(shownOnPage()).not.toContain("OneUptime fetched");
+        expect(shownOnPage()).not.toContain("saved.");
+
+        if (result.outcome.error) {
+          expect(shownOnPage()).toContain(result.outcome.error);
+        }
+
+        if (result.outcome.expiresAt) {
+          const dates: { reader: string; english: string } = datesOf(
+            language,
+            result.outcome.expiresAt,
+          );
+
+          expect(shownOnPage()).toContain(dates.reader);
+          expect(shownOnPage()).not.toContain(dates.english);
+        }
+      });
+    }
+  }
+
+  test("without a translator the result is the English it always was", () => {
+    expect(getTokenRefreshDescription(FETCHED_WITHOUT_EXPIRY)).toBe(
+      'Refresh token saved. OneUptime fetched a new access token for "API_TOKEN" from your identity provider. The provider did not say when it expires, so every workflow run fetches a new one.',
+    );
+  });
+
+  test("a sentence ending in a full-width stop runs on without a space, one ending in a full stop takes one", () => {
+    const japanese: Record<string, string> = readLocale("ja");
+    const description: string = getTokenRefreshDescription(
+      FETCHED_WITHOUT_EXPIRY,
+      createTranslator((key: string): string | undefined => {
+        return japanese[key];
+      }, "ja"),
+    );
+
+    expect(description.startsWith(japanese["Refresh token saved."]!)).toBe(
+      true,
+    );
+    expect(description).not.toContain("\u3002 ");
+    expect(
+      getTokenRefreshDescription(FETCHED_WITHOUT_EXPIRY, translatorFor("it")),
+    ).toContain(`${LOCALES["it"]!["Refresh token saved."]} OneUptime`);
+  });
+});
+
+/*
+ * Persian writes its zero as a dot. Beside a Persian count, the middle dot
+ * between two facts read as one: "۷ صفحه · ۱ بازگشت" said ten returns, and
+ * "کاربر شناسایی‌شده · ۳ نشست" thirty sessions.
+ */
+describe("facts on one line, set apart as the reader's language does", () => {
+  const MIDDLE_DOT: string = "\u00b7";
+  const BULLET: string = "\u2022";
+
+  function summary(): string {
+    return withoutIsolateMarks(
+      document.querySelector("[data-testid='user-flow-journey-summary']")
+        ?.textContent || "",
+    );
+  }
+
+  function scopeDetail(): string {
+    return withoutIsolateMarks(
+      document.querySelector("[data-testid='user-flow-scope-detail']")
+        ?.textContent || "",
+    );
+  }
+
+  function renderScope(): void {
+    render(
+      <UserFlowScopeBanner
+        scope={{
+          kind: "user",
+          identifiedUserKey: "a".repeat(64),
+          identifiedUserRef: "",
+        }}
+        applied={null}
+        sessionsInWindow={3}
+        onChange={(): void => {
+          return;
+        }}
+      />,
+    );
+  }
+
+  test("fa: a journey's pages and returns are set apart by a bullet, which no Persian digit looks like", async () => {
+    await i18next.changeLanguage("fa");
+    render(
+      <UserFlowJourneys
+        journeys={[JOURNEY]}
+        rumApplicationId={new ObjectID("0193c0de-1111-4aaa-8bbb-000000000001")}
+      />,
+    );
+
+    expect(summary()).toContain(`\u06f4 `);
+    expect(summary()).toContain(` ${BULLET} `);
+    expect(summary()).not.toContain(MIDDLE_DOT);
+    expect(
+      withoutIsolateMarks(
+        document.querySelector("[data-testid='user-flow-journey-facts']")
+          ?.textContent || "",
+      ),
+    ).not.toContain(MIDDLE_DOT);
+  });
+
+  test("fa: who the page is narrowed to and how many sessions are set apart by a bullet", async () => {
+    await i18next.changeLanguage("fa");
+    renderScope();
+
+    expect(scopeDetail()).toContain(` ${BULLET} `);
+    expect(scopeDetail()).toContain("\u06f3");
+    expect(scopeDetail()).not.toContain(MIDDLE_DOT);
+  });
+
+  test("it: a language whose zero is round keeps the middle dot", async () => {
+    await i18next.changeLanguage("it");
+    render(
+      <UserFlowJourneys
+        journeys={[JOURNEY]}
+        rumApplicationId={new ObjectID("0193c0de-1111-4aaa-8bbb-000000000001")}
+      />,
+    );
+
+    expect(summary()).toContain(` ${MIDDLE_DOT} `);
+    expect(summary()).not.toContain(BULLET);
+
+    cleanup();
+    renderScope();
+
+    expect(scopeDetail()).toContain(` ${MIDDLE_DOT} `);
+  });
+});
+
 describe("the check itself", () => {
   test("every key the screens above draw is worded in every language checked, keeping its placeholders", () => {
     const keys: Array<string> = [
@@ -689,6 +1027,14 @@ describe("the check itself", () => {
       "Update Content",
       "New Client Secret",
       "New refresh token",
+      ...TOKEN_STATES.flatMap((state: (typeof TOKEN_STATES)[number]) => {
+        return state.keys;
+      }),
+      ...TOKEN_REFRESH_RESULTS.flatMap(
+        (result: (typeof TOKEN_REFRESH_RESULTS)[number]) => {
+          return result.keys;
+        },
+      ),
     ];
 
     for (const language of LANGUAGES) {

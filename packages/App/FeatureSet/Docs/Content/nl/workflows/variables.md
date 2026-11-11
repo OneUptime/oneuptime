@@ -154,11 +154,11 @@ De kaart **Toegangstoken** op de pagina van een OAuth 2.0-variabele toont een va
 
 | Status                     | Wat het betekent                                                                                                                     |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Valid**                  | Het token in de cache is nog niet verlopen.                                                                                          |
+| **Geldig**                 | Het token in de cache is nog niet verlopen.                                                                                          |
 | **Verlopen**               | Normaal voor een variabele die geen workflow onlangs heeft gebruikt. De volgende uitvoering die haar gebruikt, haalt een nieuw token op. |
 | **Nog niet opgehaald**     | Er is geen token opgehaald sinds de variabele werd gemaakt of de instellingen werden gewijzigd.                                      |
-| **No expiry reported**     | De provider zei niet wanneer het token verloopt, dus elke uitvoering haalt een nieuw token op.                                       |
-| **Refresh failed**         | De laatste poging om een token op te halen mislukte. De reden van de provider staat er volledig, met het moment waarop het gebeurde. De volgende geslaagde vernieuwing wist het. |
+| **Geen verloopdatum opgegeven** | De provider zei niet wanneer het token verloopt, dus elke uitvoering haalt een nieuw token op.                                       |
+| **Vernieuwen mislukt**     | De laatste poging om een token op te halen mislukte. De reden van de provider staat er volledig, met het moment waarop het gebeurde. De volgende geslaagde vernieuwing wist het. |
 
 **Nu vernieuwen**, onder de status, haalt meteen een nieuw token op. Gebruik het om nieuwe instellingen te controleren zonder een workflow uit te voeren. **Inloggegevens bijwerken**, op de kaart **OAuth 2.0-instellingen**, vervangt het client-secret of het refresh token en haalt daarmee daarna een token op. Een instelling wijzigen (token-URL, client-ID, scope enzovoort) gooit het token in de cache weg, zodat de volgende uitvoering er een ophaalt met de nieuwe instellingen.
 

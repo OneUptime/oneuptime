@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50340,
-    "untranslated": 2337
+    "keys": 50353,
+    "untranslated": 2336
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -71,7 +71,6 @@
     "Austria (+43)",
     "Auth, No Priv",
     "Auth, Priv",
-    "Auth0",
     "Azure AKS",
     "Azure CLI",
     "Azure Functions",
@@ -471,7 +470,6 @@
     "amd64",
     "amphora",
     "amphorae",
-    "api.read api.write",
     "arm",
     "arm64",
     "aws_lambda · us-east-1 · nodejs 20",

@@ -154,11 +154,11 @@ O cartão **Token de acesso** na página de uma variável OAuth 2.0 mostra um de
 
 | Status                     | O que significa                                                                                                                      |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Valid**                  | O token em cache ainda não expirou.                                                                                                  |
+| **Válido**                 | O token em cache ainda não expirou.                                                                                                  |
 | **Expirado**               | Normal em uma variável que nenhum workflow usou recentemente. A próxima execução que a usar obtém um token novo.                     |
 | **Ainda não obtido**       | Nenhum token foi obtido desde que a variável foi criada ou as configurações dela mudaram.                                            |
-| **No expiry reported**     | O provedor não disse quando o token expira, então cada execução obtém um novo.                                                       |
-| **Refresh failed**         | A última tentativa de obter um token falhou. O motivo do provedor aparece por inteiro, com quando aconteceu. A próxima renovação bem-sucedida o limpa. |
+| **Nenhuma expiração informada** | O provedor não disse quando o token expira, então cada execução obtém um novo.                                                       |
+| **Falha na atualização**   | A última tentativa de obter um token falhou. O motivo do provedor aparece por inteiro, com quando aconteceu. A próxima renovação bem-sucedida o limpa. |
 
 **Atualizar agora**, abaixo do status, obtém um token novo na hora. Use-o para conferir configurações novas sem rodar um workflow. **Atualizar credenciais**, no cartão **Configurações do OAuth 2.0**, substitui o client secret ou o refresh token e depois obtém um token com eles. Alterar qualquer configuração (URL do token, client ID, escopo e assim por diante) descarta o token em cache, então a próxima execução obtém um com as configurações novas.
 

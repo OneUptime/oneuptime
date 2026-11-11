@@ -154,11 +154,11 @@ Kortet **Tilgangstoken** på siden til en OAuth 2.0-variabel viser en av disse s
 
 | Status                     | Hva den betyr                                                                                                                        |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Valid**                  | Det hurtigbufrede tokenet har ennå ikke utløpt.                                                                                      |
+| **Gyldig**                 | Det hurtigbufrede tokenet har ennå ikke utløpt.                                                                                      |
 | **Utløpt**                 | Normalt for en variabel som ingen arbeidsflyt har brukt i det siste. Den neste kjøringen som bruker den, henter et nytt token.        |
 | **Ikke hentet ennå**       | Det er ikke hentet noe token siden variabelen ble opprettet, eller innstillingene ble endret.                                        |
-| **No expiry reported**     | Leverandøren sa ikke når tokenet utløper, så hver kjøring henter et nytt.                                                            |
-| **Refresh failed**         | Det siste forsøket på å hente et token mislyktes. Årsaken fra leverandøren vises i sin helhet, med når det skjedde. Den neste vellykkede fornyelsen fjerner den. |
+| **Ingen utløpstid oppgitt** | Leverandøren sa ikke når tokenet utløper, så hver kjøring henter et nytt.                                                            |
+| **Oppdatering mislyktes**  | Det siste forsøket på å hente et token mislyktes. Årsaken fra leverandøren vises i sin helhet, med når det skjedde. Den neste vellykkede fornyelsen fjerner den. |
 
 **Oppdater nå**, under statusen, henter et nytt token med en gang. Bruk den til å sjekke nye innstillinger uten å kjøre en arbeidsflyt. **Oppdater påloggingsinformasjon**, på kortet **OAuth 2.0-innstillinger**, erstatter klienthemmeligheten eller refresh-tokenet og henter deretter et token med dem. Endrer du en innstilling (token-URL, klient-ID, omfang og så videre), forkastes det hurtigbufrede tokenet, slik at den neste kjøringen henter et med de nye innstillingene.
 
