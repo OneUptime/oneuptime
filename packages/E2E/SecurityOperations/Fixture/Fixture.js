@@ -4517,6 +4517,24 @@ async function handleApi(method, options) {
   ) {
     return new HTTPResponse(200, { numberPrefixes: {} }, {});
   }
+  /*
+   * The workspaces the Slack page's rules may post in (SlackAPI's
+   * describeConnection): the connected Slack is one workspace, not a whole
+   * Enterprise organization, so its rules pick no workspace.
+   */
+  if (method === "GET" && path.endsWith("/slack/workspaces")) {
+    return new HTTPResponse(
+      200,
+      {
+        isOrganization: false,
+        isInOrganization: false,
+        organizationName: "",
+        workspaces: [],
+        defaultWorkspaceId: null,
+      },
+      {},
+    );
+  }
   if (method === "GET" && path.endsWith(`/project/${PROJECT_ID}/numbering`)) {
     return new HTTPResponse(200, caseSetup.numbering(), {});
   }
