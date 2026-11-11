@@ -293,7 +293,7 @@ const CloudAppAzureMonitorCard: FunctionComponent<ComponentProps> = (
             </span>
             <Icon
               icon={IconProp.ChevronRight}
-              className="h-4 w-4 rtl:rotate-180"
+              className="h-4 w-4"
             />
           </AppLink>
         ) : (
