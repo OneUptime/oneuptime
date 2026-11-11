@@ -242,7 +242,7 @@ describe("every widget type's settings are decided: served or withheld", () => {
 });
 
 describe("the widgets a public dashboard cannot draw", () => {
-  test("are the log, trace and security event widgets, each a type this version draws, and no Data Source widget", () => {
+  test("are the log, trace, security event and product analytics widgets, each a type this version draws, and no Data Source widget", () => {
     expect([...PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES].sort()).toEqual(
       [
         DashboardComponentType.LogChart,
@@ -250,6 +250,9 @@ describe("the widgets a public dashboard cannot draw", () => {
         DashboardComponentType.SecurityEventsList,
         DashboardComponentType.TraceChart,
         DashboardComponentType.TraceTable,
+        // A saved funnel's or retention table's people are end users (#6630).
+        DashboardComponentType.ProductAnalyticsFunnel,
+        DashboardComponentType.ProductAnalyticsRetention,
       ].sort(),
     );
 

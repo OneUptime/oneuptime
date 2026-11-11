@@ -188,6 +188,54 @@ describe("WidgetCatalog", () => {
       ]);
     });
 
+    /*
+     * Issue #6630: a saved funnel and a saved retention table, after the
+     * SLOs. The retention widget is named as its page is, "User Retention":
+     * "Retention" alone reads as how long data is kept.
+     */
+    test("puts the saved funnel and retention table under Product Analytics, after the SLOs", () => {
+      expect(getTypesIn("Product Analytics")).toEqual([
+        DashboardComponentType.ProductAnalyticsFunnel,
+        DashboardComponentType.ProductAnalyticsRetention,
+      ]);
+      expect(
+        getCategory("Product Analytics").items.map(
+          (item: WidgetCatalogItem): string => {
+            return item.label;
+          },
+        ),
+      ).toEqual(["Funnel", "User Retention"]);
+
+      const names: Array<string> = WIDGET_CATALOG.map(
+        (category: WidgetCatalogCategory): string => {
+          return category.name;
+        },
+      );
+
+      expect(names.indexOf("Product Analytics")).toBe(
+        names.indexOf("SLOs") + 1,
+      );
+    });
+
+    test("finds the product analytics widgets by the words people search with", () => {
+      expect(getMatchedTypes("conversion")).toEqual([
+        DashboardComponentType.ProductAnalyticsFunnel,
+      ]);
+      expect(getMatchedTypes("drop off")).toEqual([
+        DashboardComponentType.ProductAnalyticsFunnel,
+      ]);
+      expect(getMatchedTypes("cohort")).toEqual([
+        DashboardComponentType.ProductAnalyticsRetention,
+      ]);
+      expect(getMatchedTypes("churn")).toEqual([
+        DashboardComponentType.ProductAnalyticsRetention,
+      ]);
+      expect(getMatchedTypes("product analytics")).toEqual([
+        DashboardComponentType.ProductAnalyticsFunnel,
+        DashboardComponentType.ProductAnalyticsRetention,
+      ]);
+    });
+
     test("keeps every observability category in the Observability group", () => {
       for (const name of [
         "Logs",
@@ -196,6 +244,7 @@ describe("WidgetCatalog", () => {
         "Alerts",
         "Monitors",
         "SLOs",
+        "Product Analytics",
       ]) {
         expect(getCategory(name).group).toBe(WidgetCategoryGroup.Observability);
       }

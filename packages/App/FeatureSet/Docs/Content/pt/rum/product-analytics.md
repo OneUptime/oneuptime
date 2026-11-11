@@ -111,6 +111,17 @@ O segmento de um funil, e o de uma tabela de retenção, usa os campos que todo 
 
 Cada linha é uma coorte e quantas pessoas ela tem, e cada célula a fatia delas que voltou nesse período, mais escura quanto mais voltaram. Um período que ainda não começou fica vazio.
 
+**Todas as coortes**, acima delas, conta as coortes como uma só: em cada período, as pessoas que voltaram sobre as pessoas das coortes que chegaram a ele, de modo que uma coorte de 200 pessoas pesa quatro vezes mais que uma de 50. Ela aparece assim que duas coortes têm alguém.
+
+## Funis e tabelas de retenção salvos
+
+**Funis salvos**, na página **Funis**, e **Tabelas de retenção salvas**, em **Retenção de usuários**, listam o que a sua equipe salvou para a aplicação, para abrir de novo ou mostrar num painel. Um funil salvo guarda as etapas, o tempo para concluí-las e o segmento, e uma tabela de retenção salva os dois eventos, o período e o segmento. Nenhum dos dois guarda o intervalo de tempo: a página guarda o seu, e um painel lê o seu.
+
+- **+ Salvar funil** ou **+ Salvar tabela de retenção** salva o que a página mostra, com um nome. Uma aplicação guarda no máximo 100 de cada.
+- Escolha um para abri-lo. O endereço da página o nomeia, então um link o abre para todos que podem vê-lo. Quando você muda o que ele mostra, o nome dele avisa, e **Atualizar** salva a mudança.
+- **Editar** renomeia um, e **Excluir** o exclui para todos. **Limpar visualização** fecha o que está aberto e mantém o que a página mostra.
+- Um link para um que foi excluído, ou que você não pode ver, avisa, e a página abre sem ele.
+
 ## Painéis e alertas
 
 Cada evento também é contado, minuto a minuto, como uma métrica da aplicação, e cada chamada a `metric()` é um ponto de uma métrica própria, com o nome que ela dá. Trace-as na página **Métricas** da aplicação, adicione-as a um painel ou crie alertas sobre elas com um monitor de métricas; **Abrir Métricas**, em **Todos os eventos**, abre a página.
@@ -123,6 +134,8 @@ Cada evento também é contado, minuto a minuto, como uma métrica da aplicaçã
 
 Estas três não são cobradas, e `metric()` recusa um nome que começa com `oneuptime.`, por isso nada do que a sua página envia se passa por elas. Os seus pontos de `metric()` são guardados e cobrados como as outras métricas da aplicação.
 
+Um funil ou uma tabela de retenção salvos também vão para um painel: os widgets **Funil** e **Retenção de usuários**, no grupo **Análise de produto** do catálogo de widgets, mostram um no intervalo de tempo do painel, e **Abrir em Funis** ou **Abrir em Retenção de usuários** o abre na sua página (veja [Widgets de painel](/docs/dashboards/widgets#análise-de-produto)).
+
 ## Privacidade e retenção
 
 - **13 meses.** Os números de um mês são removidos no primeiro dia do 13º mês seguinte, por isso os últimos 12 meses completos estão sempre lá, seja qual for a retenção própria das gravações (7 dias por padrão). Os eventos são guardados da mesma forma.
@@ -132,6 +145,8 @@ Estas três não são cobradas, e `metric()` recusa um nome que começa com `one
 ## Quem pode vê-la
 
 Ler estas páginas exige o mesmo que ler a lista de sessões: `ReadRumSessionReplay` (_List Session Replays_) ou `ReadRumSessionReplayPayload` (_Watch Session Replays_), que os proprietários e administradores do projeto têm. Ver quem é um usuário conectado, e pesquisar pessoas por nome, exige a permissão de identidade descrita em [Quem pode assistir a uma gravação](/docs/telemetry/session-replay#quem-pode-assistir-a-uma-gravação).
+
+Salvar, renomear e excluir funis e tabelas de retenção salvos exige as mesmas permissões que ler estas páginas, e um widget de painel só mostra um a quem as tem.
 
 Ativar ou desativar os eventos exige `EditRumApplication` (_Edit RUM Application_) ou a função de proprietário, administrador ou membro do projeto. Listar propriedades de usuário exige `EditRumApplication` ou a função de proprietário ou administrador, já que isso decide o que é guardado sobre as pessoas conectadas.
 

@@ -24,6 +24,7 @@ Partez de la question à laquelle la tuile doit répondre :
 | Que se passe-t-il en ce moment ? | **Flux de journaux**, **Liste des traces**, **Liste des incidents** ou **Liste des alertes** |
 | Tous nos sites sont-ils en ligne ? | **Liste des moniteurs** |
 | Tenons-nous la fiabilité promise ? | **SLO** ou **Liste des SLO** |
+| Les gens vont-ils au bout d'un parcours, et reviennent-ils ? | **Entonnoir** ou **Rétention des utilisateurs** |
 | Dans quel état sont nos clusters et nos hôtes ? | Un widget du groupe Infrastructure |
 | Où est notre réseau dans le monde, et qu'est-ce qui est en panne ? | **Carte du réseau** |
 | Un titre, une note, l'heure dans un autre bureau ? | **Texte** ou **Horloge** |
@@ -170,6 +171,15 @@ Le widget SLO fonctionne sur les [tableaux de bord publics](/docs/dashboards/sha
 
 Chaque SLO avec son statut, son SLI, son budget d'erreur et son burn rate, celui qui a le moins de budget en premier. Filtrez-la par statut ou par étiquettes, ou par une **Variable d'étiquette** que les personnes choisissent dans la barre d'outils. [Métriques et tableaux de bord des SLO](/docs/slo/metrics) montre les deux widgets SLO à l'œuvre.
 
+## Analyse produit
+
+| Widget | Ce qu'il affiche |
+| --- | --- |
+| **Entonnoir** | Un entonnoir enregistré sur la page **Entonnoirs** d'une application RUM : parmi les personnes qui ont fait sa première étape sur la plage temporelle du tableau de bord, combien sont passées à chaque étape suivante. |
+| **Rétention des utilisateurs** | Un tableau de rétention enregistré sur sa page **Rétention des utilisateurs** : les personnes regroupées selon le moment où elles ont fait pour la première fois son événement de départ, et la part de chaque groupe revenue à chaque période suivante, avec **Toutes les cohortes** au-dessus. |
+
+Enregistrez d'abord l'entonnoir ou le tableau de rétention sur sa page (voir [Entonnoirs et tableaux de rétention enregistrés](/docs/rum/product-analytics#entonnoirs-et-tableaux-de-rétention-enregistrés)), puis choisissez-le dans les paramètres du widget. Le widget prend son nom pour titre, sauf si vous lui en donnez un, et le relit à chaque actualisation, si bien qu'une modification enregistrée sur la page apparaît sur le tableau de bord. **Ouvrir dans Entonnoirs** ou **Ouvrir dans Rétention des utilisateurs** l'ouvre sur sa page, sur la plage temporelle du tableau de bord. Le voir demande ce que demande la page.
+
 ## Infrastructure
 
 Chacun de ces widgets liste les ressources qu'un agent ou un collecteur signale à OneUptime. Restreignez-les par cluster, hôte ou namespace dans leurs filtres, et affichez-les en liste ou en nid d'abeilles.
@@ -235,7 +245,7 @@ Par l'API et Terraform, l'ordre est le `arguments.sort` du widget : une colonne 
 
 Un [tableau de bord public](/docs/dashboards/sharing) dessine la plupart des widgets pour ses visiteurs, chacun ne montrant que ce pour quoi il a été configuré. Quelques-uns ne peuvent pas s'afficher sans session connectée :
 
-- **Graphique de journaux**, **Graphique de traces**, **Tableau des traces**, **Événements de sécurité** et **Flux des événements de sécurité** indiquent à leur place qu'ils ne sont pas disponibles sur les tableaux de bord publics.
+- **Graphique de journaux**, **Graphique de traces**, **Tableau des traces**, **Événements de sécurité**, **Flux des événements de sécurité**, **Entonnoir** et **Rétention des utilisateurs** indiquent à leur place qu'ils ne sont pas disponibles sur les tableaux de bord publics.
 - Les widgets du groupe External Data Sources sont entièrement retirés d'un tableau de bord public, car leurs paramètres sont la requête elle-même.
 
 ## Quand un widget ne peut pas être affiché
