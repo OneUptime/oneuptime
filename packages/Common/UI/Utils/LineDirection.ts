@@ -1,6 +1,7 @@
 import {
   getReadingDirection,
   getTextReadingDirectionByMostLetters,
+  hasEnglishWords,
   hasRightToLeftWords,
   ReadingDirection,
   RIGHT_TO_LEFT,
@@ -104,9 +105,11 @@ export const getLineDirection: (
  * their words came out in the wrong order. Such a line is drawn as the
  * page draws its lines. Any other - an English sentence not worded yet, an
  * English answer from the server, a line on a page read from the left -
- * reads the way getLineDirection says. An English sentence round a Persian
- * name it does not set apart has right-to-left letters of its own too, and
- * is drawn the page's way, as a mixed line on a Persian page always was.
+ * reads the way getLineDirection says. So does an English sentence that
+ * quotes a name typed in Arabic or Persian letters, which has right-to-left
+ * letters of its own too: "Runner "قناة الطوارئ" is offline." drawn the
+ * page's way put its full stop first and its words out of order. Its small
+ * English words ("is", "the", "already") tell it apart (hasEnglishWords).
  *
  * A value someone typed - a name, a title, a note - is not the page's
  * words, and reads by most of its letters wherever it is shown.
@@ -120,7 +123,8 @@ export const getTranslatedLineDirection: (
 ): ReadingDirection | undefined => {
   if (
     getReadingDirection(pageLanguage) === RIGHT_TO_LEFT &&
-    hasRightToLeftWords(text)
+    hasRightToLeftWords(text) &&
+    !hasEnglishWords(text)
   ) {
     return undefined;
   }

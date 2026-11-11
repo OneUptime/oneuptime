@@ -274,6 +274,199 @@ export const hasRightToLeftWords: (
 };
 
 /*
+ * WHETHER A TEXT HAS ENGLISH WORDS OF ITS OWN: whether it is an English
+ * sentence, not a name or a label in Latin letters. An answer from the
+ * server is English, and it may quote a name someone typed in Arabic or
+ * Persian ("A custom channel named قناة الطوارئ already exists."), so it
+ * has right-to-left letters of its own too (hasRightToLeftWords). What
+ * tells it from an Arabic sentence that names products ("Microsoft Teams
+ * غير متصل بعد!") are the small words an English sentence is made of: "is",
+ * "the", "already", "not" (ENGLISH_SENTENCE_WORDS). One counts when it is
+ * written in lower case outside what the text sets apart in an isolate,
+ * quotes, marks as code or in bold, or leaves to a value ({{name}}), and
+ * is not inside a name written in Title Case ("Red Hat OpenStack Services
+ * on OpenShift", "Add an Integration"). Only the first
+ * TEXT_DIRECTION_SCAN_LENGTH characters are read.
+ */
+const ENGLISH_SENTENCE_WORDS: ReadonlySet<string> = new Set<string>([
+  "already",
+  "also",
+  "an",
+  "and",
+  "another",
+  "any",
+  "are",
+  "aren't",
+  "as",
+  "at",
+  "be",
+  "been",
+  "but",
+  "by",
+  "can",
+  "can't",
+  "cannot",
+  "could",
+  "couldn't",
+  "did",
+  "do",
+  "does",
+  "doesn't",
+  "don't",
+  "each",
+  "every",
+  "for",
+  "from",
+  "had",
+  "has",
+  "have",
+  "here",
+  "how",
+  "if",
+  "in",
+  "into",
+  "is",
+  "isn't",
+  "it",
+  "it's",
+  "its",
+  "may",
+  "must",
+  "no",
+  "not",
+  "of",
+  "on",
+  "only",
+  "or",
+  "other",
+  "our",
+  "please",
+  "should",
+  "so",
+  "some",
+  "than",
+  "that",
+  "the",
+  "their",
+  "then",
+  "there",
+  "these",
+  "they",
+  "this",
+  "those",
+  "to",
+  "too",
+  "was",
+  "wasn't",
+  "we",
+  "were",
+  "what",
+  "when",
+  "where",
+  "which",
+  "who",
+  "will",
+  "with",
+  "won't",
+  "would",
+  "yet",
+  "you",
+  "your",
+]);
+
+/*
+ * What a text quotes, marks as code or in bold, or leaves to a value: not
+ * its own words. Each kind opens with its own sign and is read no further
+ * than 256 characters for its close.
+ */
+const QUOTED_OR_CODE_REGEX: RegExp =
+  /\{\{[^{}]{0,256}\}\}|`[^`]{0,256}`|\*\*[^*]{0,256}\*\*|\u{00AB}[^\u{00AB}\u{00BB}]{0,256}\u{00BB}|\u{201C}[^\u{201C}\u{201D}]{0,256}\u{201D}|"[^"]{0,256}"/gu;
+
+const SPACES_REGEX: RegExp = /\s+/u;
+
+const CURLY_APOSTROPHE_REGEX: RegExp = /\u{2019}/gu;
+
+// A Latin letter, or an apostrophe inside a word ("isn't", "it’s").
+const isWordCharacter: (character: string) => boolean = (
+  character: string,
+): boolean => {
+  return (
+    (character >= "a" && character <= "z") ||
+    (character >= "A" && character <= "Z") ||
+    character === "'" ||
+    character === "\u{2019}"
+  );
+};
+
+// A piece of text between spaces without the signs round it: "exists." is "exists".
+const getWordOf: (piece: string) => string = (piece: string): string => {
+  let start: number = 0;
+  let end: number = piece.length;
+
+  while (start < end && !isWordCharacter(piece.charAt(start))) {
+    start++;
+  }
+
+  while (end > start && !isWordCharacter(piece.charAt(end - 1))) {
+    end--;
+  }
+
+  return piece.slice(start, end).replace(CURLY_APOSTROPHE_REGEX, "'");
+};
+
+const isTitleCaseWord: (word: string | undefined) => boolean = (
+  word: string | undefined,
+): boolean => {
+  const first: string = word ? word.charAt(0) : "";
+
+  return first >= "A" && first <= "Z";
+};
+
+export const hasEnglishWords: (text: string | null | undefined) => boolean = (
+  text: string | null | undefined,
+): boolean => {
+  if (!text) {
+    return false;
+  }
+
+  /*
+   * The text outside its isolates, with a space where each was. A web
+   * address holds no word of its own: it runs to the next space.
+   */
+  let ownText: string = "";
+  let depth: number = 0;
+
+  for (const character of text.slice(0, TEXT_DIRECTION_SCAN_LENGTH)) {
+    if (ISOLATE_INITIATOR_REGEX.test(character)) {
+      ownText += depth === 0 ? " " : "";
+      depth++;
+      continue;
+    }
+
+    if (character === POP_DIRECTIONAL_ISOLATE) {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+
+    if (depth === 0) {
+      ownText += character;
+    }
+  }
+
+  const words: Array<string> = ownText
+    .replace(QUOTED_OR_CODE_REGEX, " ")
+    .split(SPACES_REGEX)
+    .map(getWordOf);
+
+  return words.some((word: string, index: number): boolean => {
+    return (
+      ENGLISH_SENTENCE_WORDS.has(word) &&
+      !(isTitleCaseWord(words[index - 1]) && isTitleCaseWord(words[index + 1]))
+    );
+  });
+};
+
+/*
  * A VALUE PUT INTO A SENTENCE, SET APART FROM IT.
  *
  * A sentence the product writes around a value - "Read from the Meraki

@@ -88,6 +88,42 @@ describe("getTranslatedLineDirection", () => {
     ).toBe("ltr");
   });
 
+  /*
+   * The server's answers are English and quote names people typed, often
+   * in Arabic or Persian letters on such a page. Drawn the page's way, the
+   * English came out of order, its full stop first.
+   */
+  test("an English answer that quotes a name typed in Arabic or Persian reads by most of its letters", () => {
+    expect(
+      getTranslatedLineDirection(
+        "A custom channel named قناة الطوارئ already exists. Give this one another name, so people can tell them apart.",
+        "ar",
+      ),
+    ).toBe("ltr");
+    expect(
+      getTranslatedLineDirection('Runner "کانال اضطراری" is offline.', "fa"),
+    ).toBe("ltr");
+    expect(
+      getTranslatedLineDirection(
+        '"قناة الطوارئ" is a built-in measurement and cannot be deleted. Disable it instead.',
+        "ar",
+      ),
+    ).toBe("ltr");
+  });
+
+  test("an Arabic or Persian line whose names hold small English words still follows its page", () => {
+    // By most letters, both read left to right.
+    const OPENSTACK: string =
+      "Red Hat OpenStack Services on OpenShift، مع Telemetry Operator الخاص به.";
+    const POLICY: string = "ضمن «Alert on every device and port» فعّلها.";
+
+    expect(getLineDirection(OPENSTACK, "ar")).toBe("ltr");
+    expect(getLineDirection(POLICY, "ar")).toBe("ltr");
+
+    expect(getTranslatedLineDirection(OPENSTACK, "ar")).toBeUndefined();
+    expect(getTranslatedLineDirection(POLICY, "ar")).toBeUndefined();
+  });
+
   test("an English line round a Persian name it sets apart is still English", () => {
     expect(
       getTranslatedLineDirection(

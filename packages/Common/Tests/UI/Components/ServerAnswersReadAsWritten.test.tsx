@@ -189,6 +189,24 @@ describe("a list that could not be read", () => {
     expect(words.closest("bdi")).toBeNull();
   });
 
+  /*
+   * The server's answers quote names people typed, and on a Persian page
+   * those are often in Persian letters: right-to-left words of the
+   * answer's own. Drawn the page's way, the English came out of order with
+   * its full stop first.
+   */
+  test("an English answer that quotes a name typed in Persian still reads left to right", () => {
+    const answer: string =
+      "A custom channel named کانال اضطراری already exists. Give this one another name, so people can tell them apart.";
+
+    inPersian(<ErrorMessage message={answer} />);
+
+    const words: HTMLElement = screen.getByText(answer);
+
+    expect(words.tagName).toBe("BDI");
+    expect(words).toHaveAttribute("dir", "ltr");
+  });
+
   test("a message drawn as an element is drawn as it is", () => {
     inPersian(
       <ErrorMessage message={<span data-testid="own">No monitors.</span>} />,
@@ -289,6 +307,25 @@ describe("a table, or a page drawn like one, that could not load", () => {
       "اتصال به smtp.office365.com (Microsoft 365) ممکن نشد.",
     );
     expect(sentence.querySelector("bdi")).toBeNull();
+  });
+
+  test("an English answer that quotes a name typed in Persian reads left to right too", () => {
+    const answer: string = 'Runner "کانال اضطراری" is offline.';
+
+    inPersian(
+      <TableEmptyState
+        kind={TableEmptyStateKind.Error}
+        title="Couldn't load this node"
+        description={answer}
+      />,
+    );
+
+    const words: HTMLElement | null = screen
+      .getByTestId(`${ROOT}-description`)
+      .querySelector("bdi");
+
+    expect(words).toHaveAttribute("dir", "ltr");
+    expect(words).toHaveTextContent(answer);
   });
 
   test("on an English page the answer is drawn as it always was", () => {

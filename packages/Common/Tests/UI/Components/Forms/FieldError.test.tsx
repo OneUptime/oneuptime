@@ -104,6 +104,18 @@ describe("on a Persian page", () => {
     expect(line().querySelector("bdi")).toBeNull();
   });
 
+  test("an English check from the server that quotes a name typed in Persian still reads left to right", () => {
+    const answer: string =
+      '"کانال اضطراری" is a built-in measurement and cannot be deleted. Disable it instead.';
+
+    draw("fa", <FieldError message={answer} />);
+
+    const isolate: Element | null = line().querySelector("bdi");
+
+    expect(isolate).toHaveAttribute("dir", "ltr");
+    expect(isolate).toHaveTextContent(answer);
+  });
+
   test("the fields draw their server answers with it: a text field, a long text, a switch", () => {
     draw("fa", <Input onChange={() => {}} error="Promo code is invalid." />);
 
