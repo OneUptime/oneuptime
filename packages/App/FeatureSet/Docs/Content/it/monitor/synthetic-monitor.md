@@ -128,7 +128,7 @@ I dati restituiti dallo script vengono serializzati in JSON prima di essere salv
 
 ### Avvisi sui dati restituiti
 
-Ciò che lo script restituisce come `data` è il **Valore del risultato** del monitor, che un criterio può confrontare. Quando `data` è un oggetto o un array, compilate **Percorso del campo (facoltativo)** nel filtro Result Value per confrontare uno dei suoi campi: per esempio `status`, `timings.loadTime` o `errors[0].message`. Il filtro viene controllato sui dati di ogni browser e dimensione dello schermo su cui gira il monitor, e corrisponde quando corrisponde uno qualsiasi di essi. Consultate [Avvisi sui dati restituiti](/docs/monitor/custom-code-monitor#avvisi-sui-dati-restituiti) per come funzionano percorsi e condizioni.
+Ciò che lo script restituisce come `data` è il **Valore del risultato** del monitor, che un criterio può confrontare. Quando `data` è un oggetto o un array, compilate **Percorso del campo (facoltativo)** nel filtro Valore del risultato per confrontare uno dei suoi campi: per esempio `status`, `timings.loadTime` o `errors[0].message`. Il filtro viene controllato sui dati di ogni browser e dimensione dello schermo su cui gira il monitor, e corrisponde quando corrisponde uno qualsiasi di essi. Consultate [Avvisi sui dati restituiti](/docs/monitor/custom-code-monitor#avvisi-sui-dati-restituiti) per come funzionano percorsi e condizioni.
 
 ## Screenshot
 

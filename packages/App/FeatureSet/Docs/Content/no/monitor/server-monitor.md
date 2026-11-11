@@ -215,24 +215,24 @@ Kriterier avgjør når monitoren er tilkoblet, redusert eller frakoblet, og når
 
 | Filtertype | Hva den kontrollerer | Filtervilkår |
 | --- | --- | --- |
-| Is Online | Om agenten har rapportert nylig (som standard de siste 3 minuttene) | Sann, Usann |
-| CPU Usage (in %) | Samlet CPU-bruk | Større enn, Mindre enn, Større enn eller lik, Mindre enn eller lik |
-| Memory Usage (in %) | Minne i bruk | Som for CPU |
-| Disk Usage (in %) | Bruk av disken angitt i **Diskbane** | Som for CPU |
-| Swap Usage (in %) | Swap i bruk | Som for CPU |
-| CPU IO Wait (in %) | Andel av CPU-tiden brukt på å vente på I/O | Som for CPU |
-| Load Average (1 minute) | Belastningsgjennomsnitt det siste minuttet | Som for CPU |
-| Load Average (5 minute) | Belastningsgjennomsnitt de siste 5 minuttene | Som for CPU |
-| Load Average (15 minute) | Belastningsgjennomsnitt de siste 15 minuttene | Som for CPU |
-| Server Process Name | Om en prosess med dette navnet kjører (uten forskjell på store og små bokstaver) | Kjører, Kjører ikke |
-| Server Process Command | Om en prosess med nøyaktig denne kommandolinjen kjører (uten forskjell på store og små bokstaver) | Kjører, Kjører ikke |
-| Server Process PID | Om en prosess med denne PID-en kjører | Kjører, Kjører ikke |
+| Er tilkoblet | Om agenten har rapportert nylig (som standard de siste 3 minuttene) | Sann, Usann |
+| CPU-bruk (i %) | Samlet CPU-bruk | Større enn, Mindre enn, Større enn eller lik, Mindre enn eller lik |
+| Minnebruk (i %) | Minne i bruk | Som for CPU |
+| Diskbruk (i %) | Bruk av disken angitt i **Diskbane** | Som for CPU |
+| Swap-bruk (i %) | Swap i bruk | Som for CPU |
+| CPU IO-ventetid (i %) | Andel av CPU-tiden brukt på å vente på I/O | Som for CPU |
+| Lastgjennomsnitt (1 minutt) | Belastningsgjennomsnitt det siste minuttet | Som for CPU |
+| Lastgjennomsnitt (5 minutter) | Belastningsgjennomsnitt de siste 5 minuttene | Som for CPU |
+| Lastgjennomsnitt (15 minutter) | Belastningsgjennomsnitt de siste 15 minuttene | Som for CPU |
+| Navn på serverprosess | Om en prosess med dette navnet kjører (uten forskjell på store og små bokstaver) | Kjører, Kjører ikke |
+| Kommando for serverprosess | Om en prosess med nøyaktig denne kommandolinjen kjører (uten forskjell på store og små bokstaver) | Kjører, Kjører ikke |
+| PID for serverprosess | Om en prosess med denne PID-en kjører | Kjører, Kjører ikke |
 
 **Diskbane** tar et monteringspunkt eller en enhet, for eksempel `/`, `/mnt/data`, `C:\` eller `/dev/sda1`; tom er den `/`. Skriv inn `*` for å kontrollere hver disk agenten rapporterer: hver disk som krysser terskelen, får sitt eget varsel, slik at en ny disk som fylles opp, ikke skjules bak det åpne varselet for den første. Store og små bokstaver og en avsluttende `/` eller `\` spiller ingen rolle, og en enhet står for disken som er montert fra den. En bane som ikke navngir noen disk agenten rapporterer, samsvarer ikke. Når agenten ikke kan lese serverens prosesser, har rapporten ingen prosessliste, og ingen prosessfilter samsvarer, enten det kontrollerer at en prosess kjører eller at den ikke gjør det.
 
 ### Evaluer over en tidsperiode
 
-**Evaluer disse kriteriene over en tidsperiode** er en egen avmerkingsboks i kriterieskjemaet og ikke et filtervilkår. Den finnes for **Er tilkoblet** og for hver numerisk filtertype. Slå den på for å sammenligne en aggregert verdi – valgt under **Evaluer** (Gjennomsnitt, Sum, Maximum Value, Minimum Value, All Values, Any Value) over vinduet som **For de siste (i minutter)** angir – i stedet for verdien fra den siste kontrollen. På et **Er tilkoblet**-filter er vinduet hvor lenge agenten kan være stille før serveren regnes som frakoblet.
+**Evaluer disse kriteriene over en tidsperiode** er en egen avmerkingsboks i kriterieskjemaet og ikke et filtervilkår. Den finnes for **Er tilkoblet** og for hver numerisk filtertype. Slå den på for å sammenligne en aggregert verdi – valgt under **Evaluer** (Gjennomsnitt, Sum, Maksimumsverdi, Minimumsverdi, Alle verdier, Minst én verdi) over vinduet som **For de siste (i minutter)** angir – i stedet for verdien fra den siste kontrollen. På et **Er tilkoblet**-filter er vinduet hvor lenge agenten kan være stille før serveren regnes som frakoblet.
 
 **Alle verdier** samsvarer først når vinduet faktisk er dekket av data. En monitor som nettopp er opprettet, eller en der kontrollene sluttet å bli registrert, har ikke nok historikk til å si noe om de siste N minuttene, så kriteriet venter i stedet for å samsvare på den ene målingen det har. **Minst én verdi** er innstillingen for «si fra så snart én enkelt kontroll overskrider grensen», og den utløses fortsatt umiddelbart.
 
@@ -251,12 +251,12 @@ Kriterier avgjør når monitoren er tilkoblet, redusert eller frakoblet, og når
 
 | Mål | Filtertype | Filtervilkår | Verdi |
 | --- | --- | --- | --- |
-| Marker serveren som frakoblet når agenten slutter å rapportere | Is Online | Usann | — |
-| Varsle når CPU-bruken er over 90 % | CPU Usage (in %) | Større enn | `90` |
-| Varsle når rotdisken er mer enn 85 % full | Disk Usage (in %), **Diskbane** `/` | Større enn | `85` |
-| Varsle om enhver disk som er mer enn 85 % full, ett varsel per disk | Disk Usage (in %), **Diskbane** `*` | Større enn | `85` |
-| Varsle når minnebruken er over 80 % | Memory Usage (in %) | Større enn | `80` |
-| Varsle når nginx slutter å kjøre | Server Process Name | Kjører ikke | `nginx` |
+| Marker serveren som frakoblet når agenten slutter å rapportere | Er tilkoblet | Usann | — |
+| Varsle når CPU-bruken er over 90 % | CPU-bruk (i %) | Større enn | `90` |
+| Varsle når rotdisken er mer enn 85 % full | Diskbruk (i %), **Diskbane** `/` | Større enn | `85` |
+| Varsle om enhver disk som er mer enn 85 % full, ett varsel per disk | Diskbruk (i %), **Diskbane** `*` | Større enn | `85` |
+| Varsle når minnebruken er over 80 % | Minnebruk (i %) | Større enn | `80` |
+| Varsle når nginx slutter å kjøre | Navn på serverprosess | Kjører ikke | `nginx` |
 
 ## Feilsøking
 

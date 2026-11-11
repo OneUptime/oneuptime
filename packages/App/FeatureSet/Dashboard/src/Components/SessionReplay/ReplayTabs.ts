@@ -442,7 +442,10 @@ export function describeReplayTabCounts(
   if (counts.empty > 0) {
     parts.push(
       translator.translatePlural(
-        { one: "{{count}} without footage", other: "{{count}} without footage" },
+        {
+          one: "{{count}} without footage",
+          other: "{{count}} without footage",
+        },
         counts.empty,
       ),
     );

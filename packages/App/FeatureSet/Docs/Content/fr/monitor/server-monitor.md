@@ -215,26 +215,26 @@ Les critères décident quand le moniteur est en ligne, dégradé ou hors ligne,
 
 | Type de filtre | Ce qu'il vérifie | Conditions de filtre |
 | --- | --- | --- |
-| Is Online | Si l'agent a envoyé un rapport récemment (dans les 3 dernières minutes, par défaut) | Vrai, Faux |
-| CPU Usage (in %) | Utilisation globale du CPU | Supérieur à, Inférieur à, Supérieur ou égal à, Inférieur ou égal à |
-| Memory Usage (in %) | Mémoire utilisée | Comme pour le CPU |
-| Disk Usage (in %) | Utilisation du disque indiqué dans **Chemin du disque** | Comme pour le CPU |
-| Swap Usage (in %) | Swap utilisé | Comme pour le CPU |
-| CPU IO Wait (in %) | Part du temps CPU passée à attendre les E/S | Comme pour le CPU |
-| Load Average (1 minute) | Charge moyenne de la dernière minute | Comme pour le CPU |
-| Load Average (5 minute) | Charge moyenne des 5 dernières minutes | Comme pour le CPU |
-| Load Average (15 minute) | Charge moyenne des 15 dernières minutes | Comme pour le CPU |
-| Server Process Name | Si un processus portant ce nom est en cours d'exécution (sans tenir compte de la casse) | En cours d'exécution, Pas en cours d'exécution |
-| Server Process Command | Si un processus avec exactement cette ligne de commande est en cours d'exécution (sans tenir compte de la casse) | En cours d'exécution, Pas en cours d'exécution |
-| Server Process PID | Si un processus avec ce PID est en cours d'exécution | En cours d'exécution, Pas en cours d'exécution |
+| En ligne | Si l'agent a envoyé un rapport récemment (dans les 3 dernières minutes, par défaut) | Vrai, Faux |
+| Utilisation CPU (en %) | Utilisation globale du CPU | Supérieur à, Inférieur à, Supérieur ou égal à, Inférieur ou égal à |
+| Utilisation de la mémoire (en %) | Mémoire utilisée | Comme pour le CPU |
+| Utilisation du disque (en %) | Utilisation du disque indiqué dans **Chemin du disque** | Comme pour le CPU |
+| Utilisation du swap (en %) | Swap utilisé | Comme pour le CPU |
+| Attente IO du CPU (en %) | Part du temps CPU passée à attendre les E/S | Comme pour le CPU |
+| Charge moyenne (1 minute) | Charge moyenne de la dernière minute | Comme pour le CPU |
+| Charge moyenne (5 minutes) | Charge moyenne des 5 dernières minutes | Comme pour le CPU |
+| Charge moyenne (15 minutes) | Charge moyenne des 15 dernières minutes | Comme pour le CPU |
+| Nom du processus serveur | Si un processus portant ce nom est en cours d'exécution (sans tenir compte de la casse) | En cours d'exécution, Pas en cours d'exécution |
+| Commande du processus serveur | Si un processus avec exactement cette ligne de commande est en cours d'exécution (sans tenir compte de la casse) | En cours d'exécution, Pas en cours d'exécution |
+| PID du processus serveur | Si un processus avec ce PID est en cours d'exécution | En cours d'exécution, Pas en cours d'exécution |
 
 **Chemin du disque** accepte un point de montage ou un périphérique, comme `/`, `/mnt/data`, `C:\` ou `/dev/sda1` ; laissé vide, il vaut `/`. Saisissez `*` pour vérifier chaque disque que l'agent remonte : chaque disque qui dépasse le seuil reçoit sa propre alerte, si bien qu'un deuxième disque qui se remplit n'est pas caché derrière l'alerte ouverte du premier. La casse et un `/` ou un `\` final n'ont pas d'importance, et un périphérique désigne le disque monté à partir de lui. Un chemin qui ne désigne aucun disque remonté par l'agent ne correspond pas. Quand l'agent ne peut pas lire les processus du serveur, son rapport n'a pas de liste de processus, et aucun filtre de processus ne correspond, qu'il vérifie qu'un processus s'exécute ou qu'il ne s'exécute pas.
 
 ### Évaluer sur une période
 
-**Évaluer ce critère sur une période donnée** est une case à cocher distincte dans le formulaire de critère, et non une condition de filtre. Elle est disponible pour **En ligne** et pour chaque type de filtre numérique. Cochez-la pour comparer un agrégat – choisi sous **Évaluer** (Moyenne, Somme, Maximum Value, Minimum Value, All Values, Any Value) sur la fenêtre définie par **Pour les dernières (en minutes)** – au lieu de la valeur de la dernière vérification. Sur un filtre **En ligne**, la fenêtre est la durée pendant laquelle l'agent peut rester silencieux avant que le serveur soit considéré hors ligne.
+**Évaluer ce critère sur une période donnée** est une case à cocher distincte dans le formulaire de critère, et non une condition de filtre. Elle est disponible pour **En ligne** et pour chaque type de filtre numérique. Cochez-la pour comparer un agrégat – choisi sous **Évaluer** (Moyenne, Somme, Valeur maximale, Valeur minimale, Toutes les valeurs, Au moins une valeur) sur la fenêtre définie par **Pour les dernières (en minutes)** – au lieu de la valeur de la dernière vérification. Sur un filtre **En ligne**, la fenêtre est la durée pendant laquelle l'agent peut rester silencieux avant que le serveur soit considéré hors ligne.
 
-**Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes ; le critère attend donc au lieu de correspondre sur la seule mesure dont il dispose. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse » et se déclenche toujours immédiatement.
+L'option **Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes ; le critère attend donc au lieu de correspondre sur la seule mesure dont il dispose. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse » et se déclenche toujours immédiatement.
 
 **En l'absence de données** contrôle ce qui se passe tant que la fenêtre ne peut pas étayer le critère :
 
@@ -251,12 +251,12 @@ Les critères décident quand le moniteur est en ligne, dégradé ou hors ligne,
 
 | Objectif | Type de filtre | Condition de filtre | Valeur |
 | --- | --- | --- | --- |
-| Marquer le serveur hors ligne quand l'agent cesse d'envoyer des rapports | Is Online | Faux | — |
-| Alerter quand l'utilisation du CPU dépasse 90 % | CPU Usage (in %) | Supérieur à | `90` |
-| Alerter quand le disque racine est plein à plus de 85 % | Disk Usage (in %), **Chemin du disque** `/` | Supérieur à | `85` |
-| Alerter pour tout disque plein à plus de 85 %, une alerte par disque | Disk Usage (in %), **Chemin du disque** `*` | Supérieur à | `85` |
-| Alerter quand l'utilisation de la mémoire dépasse 80 % | Memory Usage (in %) | Supérieur à | `80` |
-| Alerter quand nginx cesse de tourner | Server Process Name | Pas en cours d'exécution | `nginx` |
+| Marquer le serveur hors ligne quand l'agent cesse d'envoyer des rapports | En ligne | Faux | — |
+| Alerter quand l'utilisation du CPU dépasse 90 % | Utilisation CPU (en %) | Supérieur à | `90` |
+| Alerter quand le disque racine est plein à plus de 85 % | Utilisation du disque (en %), **Chemin du disque** `/` | Supérieur à | `85` |
+| Alerter pour tout disque plein à plus de 85 %, une alerte par disque | Utilisation du disque (en %), **Chemin du disque** `*` | Supérieur à | `85` |
+| Alerter quand l'utilisation de la mémoire dépasse 80 % | Utilisation de la mémoire (en %) | Supérieur à | `80` |
+| Alerter quand nginx cesse de tourner | Nom du processus serveur | Pas en cours d'exécution | `nginx` |
 
 ## Dépannage
 

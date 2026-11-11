@@ -108,7 +108,7 @@ Los criterios deciden cuándo el puerto cuenta como en línea, degradado o sin c
 
 | Filtro | Condiciones | Qué comprueba |
 | --- | --- | --- |
-| **Is Online** | **Verdadero**, **Falso** | Si el puerto aceptó una conexión. |
+| **En línea** | **Verdadero**, **Falso** | Si el puerto aceptó una conexión. |
 | **Tiempo de conexión total (DNS + TCP) (en ms)** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | El tiempo de conexión completo, incluida la resolución DNS de un nombre de host. |
 | **Tiempo de resolución DNS del puerto (en ms)** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | La resolución DNS antes del primer intento TCP. No tiene valor cuando el destino es una dirección IP. |
 | **Tiempo de conexión TCP del puerto (en ms)** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Desde el primer intento TCP hasta que se acepta la conexión, incluida la alternancia entre IPv6 e IPv4. |
@@ -129,7 +129,7 @@ Los criterios se comprueban de arriba abajo, y el primero que coincide decide qu
 
 ### Evaluar durante un periodo de tiempo
 
-**Evaluar estos criterios durante un periodo de tiempo** es una casilla debajo de un filtro, disponible para **Is Online**, **Tiempo de conexión total (DNS + TCP) (en ms)**, **Tiempo de resolución DNS del puerto (en ms)**, **Tiempo de conexión TCP del puerto (en ms)** y **Tiempo de espera de la solicitud agotado**. Actívela para juzgar una ventana de comprobaciones anteriores en lugar de la última: elija una agregación en **Evaluar** y una ventana, de 2 a 60 minutos, en **Durante los últimos (en minutos)**.
+**Evaluar estos criterios durante un periodo de tiempo** es una casilla debajo de un filtro, disponible para **En línea**, **Tiempo de conexión total (DNS + TCP) (en ms)**, **Tiempo de resolución DNS del puerto (en ms)**, **Tiempo de conexión TCP del puerto (en ms)** y **Tiempo de espera de la solicitud agotado**. Actívela para juzgar una ventana de comprobaciones anteriores en lugar de la última: elija una agregación en **Evaluar** y una ventana, de 2 a 60 minutos, en **Durante los últimos (en minutos)**.
 
 | Agregación | Coincide cuando |
 | --- | --- |
@@ -137,7 +137,7 @@ Los criterios se comprueban de arriba abajo, y el primero que coincide decide qu
 | **Todos los valores** | Cada comprobación de la ventana cumple la condición. |
 | **Cualquier valor** | Al menos una comprobación de la ventana cumple la condición. |
 
-**Todos los valores** solo coincide cuando la ventana está realmente cubierta por datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Cualquier valor** es el ajuste para «avísame en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
+La opción **Todos los valores** solo coincide cuando la ventana está realmente cubierta por datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Cualquier valor** es el ajuste para «avísame en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
 
 **Tiempo de espera de la solicitud agotado** no es un número que OneUptime registre, así que registra si el filtro coincidió en cada comprobación, y juzga la ventana a partir de ese registro con **Todos los valores** o **Cualquier valor**.
 
@@ -155,7 +155,7 @@ Elija una ventana más larga que el intervalo de supervisión, para que contenga
 
 | Objetivo | Filtro | Condición | Valor |
 | --- | --- | --- | --- |
-| Sin conexión cuando el puerto está cerrado | **Is Online** | **Falso** | — |
+| Sin conexión cuando el puerto está cerrado | **En línea** | **Falso** | — |
 | Alertar cuando la conexión es lenta | **Tiempo de conexión total (DNS + TCP) (en ms)** | **Mayor que** | `500` |
 | Marcar el servicio como degradado cuando tarda en conectar | **Tiempo de conexión total (DNS + TCP) (en ms)** | **Mayor que** | `200` |
 | Alertar cuando el DNS es lento | **Tiempo de resolución DNS del puerto (en ms)** | **Mayor que** | `100` |

@@ -24,7 +24,7 @@ flowchart TB
 
 Comme les espaces réservés sont remplacés en texte, `{{responseBody.item}}` devient la valeur brute. Une chaîne doit être entourée de guillemets pour être une chaîne JavaScript ; un nombre ou un booléen non — voir [Règles des guillemets](#règles-des-guillemets). Les expressions s'exécutent sur le serveur OneUptime, dans un bac à sable isolé.
 
-## Ajouter un filtre JavaScript Expression
+## Ajouter un filtre Expression JavaScript
 
 :::steps
 ### Ouvrir les critères

@@ -128,7 +128,7 @@ Gegevens die het script teruggeeft, worden naar JSON geserialiseerd voordat ze w
 
 ### Waarschuwen op de teruggegeven gegevens
 
-Wat het script als `data` teruggeeft, is de **Resultaatwaarde** van de monitor, die een criterium kan vergelijken. Is `data` een object of een array, vul dan **Veldpad (optioneel)** in op het Result Value-filter om één veld ervan te vergelijken, bijvoorbeeld `status`, `timings.loadTime` of `errors[0].message`. Het filter wordt getoetst aan de gegevens van elke browser en elk schermformaat waarop de monitor draait, en komt overeen als een ervan overeenkomt. Zie [Waarschuwen op de teruggegeven gegevens](/docs/monitor/custom-code-monitor#waarschuwen-op-de-teruggegeven-gegevens) voor hoe paden en voorwaarden werken.
+Wat het script als `data` teruggeeft, is de **Resultaatwaarde** van de monitor, die een criterium kan vergelijken. Is `data` een object of een array, vul dan **Veldpad (optioneel)** in op het Resultaatwaarde-filter om één veld ervan te vergelijken, bijvoorbeeld `status`, `timings.loadTime` of `errors[0].message`. Het filter wordt getoetst aan de gegevens van elke browser en elk schermformaat waarop de monitor draait, en komt overeen als een ervan overeenkomt. Zie [Waarschuwen op de teruggegeven gegevens](/docs/monitor/custom-code-monitor#waarschuwen-op-de-teruggegeven-gegevens) voor hoe paden en voorwaarden werken.
 
 ## Schermafbeeldingen
 

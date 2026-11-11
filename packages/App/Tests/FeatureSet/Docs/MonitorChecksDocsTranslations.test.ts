@@ -45,18 +45,18 @@ import path from "path";
  *     pages (drawnActionLabel). "Create Monitor Status Event" and "Create
  *     Monitor Secret" are filled into that language's "Create {{itemName}}".
  *     Menu paths ("A → B → C") are drawn segment by segment.
- *   - The No Data options Ignore and Treat As Zero, the type picker's DNS
- *     Monitoring and Basic Monitoring categories and the RDAP and WHOIS
- *     lookup methods have no Dashboard locale key: every language's
+ *   - The RDAP and WHOIS lookup methods and the If No Data options Ignore
+ *     and Treat As Zero have no Dashboard locale key: every language's
  *     Dashboard shows them in English, so every translation names them in
  *     English (SHOWN_IN_ENGLISH). When the Dashboard gains a key for one, a
  *     test below fails until the pages name it as drawn. The filters'
  *     conditions (Greater Than, Not Contains, Starts With) gained theirs in
- *     adc8421a1b, and the criteria filters (DNS Record Value, Is Valid
- *     Certificate, Domain Expires In Days, JavaScript Expression), their
- *     over-time aggregates (Maximum Value) and Evaluates To True theirs in
- *     #6575 (2026-11-10): they are labels now, drawn like any other
- *     (DocsCriteriaConditions holds every page to the conditions).
+ *     adc8421a1b, and the criteria filters themselves (DNS Record Value, Is
+ *     Valid Certificate, Domain Expires In Days, JavaScript Expression),
+ *     their window aggregates and the rest of their conditions (Evaluates To
+ *     True) theirs in 31eadaee92e, worded in every language in f155e8e0998:
+ *     they are labels now, drawn like any other (DocsCriteriaConditions
+ *     holds every page to the conditions).
  *
  * The incident and alert titles a new monitor's default criteria create are
  * English in every project, so every translation quotes them as created.
@@ -114,12 +114,6 @@ const DEFAULT_CRITERIA_TYPES: Record<string, MonitorType> = {
  * in English, so the reader finds it as the screen shows it.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
-  /*
-   * The criteria filters of every page here (DNS Is Online, DNSSEC Chain Is
-   * Valid, Is Valid Certificate, Domain Expires In Days, JavaScript
-   * Expression), the over-time aggregates and Evaluates To True left this
-   * list on 2026-11-10: #6575 keyed them in every language.
-   */
   // The No Data options without a key.
   [DNS_MONITOR]: ["Ignore", "Treat As Zero"],
   // The Lookup Method dropdown's options other than Auto.

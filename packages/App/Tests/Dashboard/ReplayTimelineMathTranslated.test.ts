@@ -110,7 +110,11 @@ describe("formatReplayDurationInLanguage", () => {
 describe("describeTrackBandLabel and describeTrackBand", () => {
   const kinds: Array<[ReplayTrackLabelledBandKind, string, string]> = [
     ["gap", "18s missing", "{{duration}} missing"],
-    ["background-tab", "tab in background 18s", "tab in background {{duration}}"],
+    [
+      "background-tab",
+      "tab in background 18s",
+      "tab in background {{duration}}",
+    ],
     ["paused", "18s paused", "{{duration}} paused"],
     ["idle", "18s idle", "{{duration}} idle"],
   ];
@@ -236,14 +240,12 @@ describe("marker titles", () => {
       `⟦~0:07 4 route changes in this ${length} chunk (approximate, chunk not loaded yet)⟧`,
     ]);
 
-    expect(titlesOf(buildCoarseMarkers([counters], [], DURATION_MS))).toEqual(
-      [
-        "~0:07 2 errors in this 15s chunk (approximate, chunk not loaded yet)",
-        "~0:07 3 rage clicks · 2 dead clicks in this 15s chunk (approximate, chunk not loaded yet)",
-        "~0:07 5 signals of your own in this 15s chunk (approximate, chunk not loaded yet)",
-        "~0:07 4 route changes in this 15s chunk (approximate, chunk not loaded yet)",
-      ],
-    );
+    expect(titlesOf(buildCoarseMarkers([counters], [], DURATION_MS))).toEqual([
+      "~0:07 2 errors in this 15s chunk (approximate, chunk not loaded yet)",
+      "~0:07 3 rage clicks · 2 dead clicks in this 15s chunk (approximate, chunk not loaded yet)",
+      "~0:07 5 signals of your own in this 15s chunk (approximate, chunk not loaded yet)",
+      "~0:07 4 route changes in this 15s chunk (approximate, chunk not loaded yet)",
+    ]);
   });
 
   test("a count of one reads in the singular in English", () => {
@@ -362,12 +364,12 @@ describe("describeCluster", () => {
         { length: 7 },
         (_unused: unknown, index: number): ReplaySignal => {
           return signal({
-          id: `rec:0:${index}`,
-          kind: "network",
-          severity: "warn",
-          offsetMs: 1000 + index * 500,
-          title: `GET 404 /poll/${index}`,
-          detail: { status: 404 },
+            id: `rec:0:${index}`,
+            kind: "network",
+            severity: "warn",
+            offsetMs: 1000 + index * 500,
+            title: `GET 404 /poll/${index}`,
+            detail: { status: 404 },
           });
         },
       ),

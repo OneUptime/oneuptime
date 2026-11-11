@@ -24,7 +24,7 @@ flowchart TB
 
 Weil Platzhalter als Text ersetzt werden, wird `{{responseBody.item}}` zum rohen Wert. Eine Zeichenkette muss in Anführungszeichen stehen, um eine JavaScript-Zeichenkette zu sein; eine Zahl oder ein boolescher Wert nicht — siehe [Regeln für Anführungszeichen](#regeln-für-anführungszeichen). Ausdrücke laufen auf dem OneUptime-Server, in einer isolierten Sandbox.
 
-## Einen Filter JavaScript Expression hinzufügen
+## Einen Filter JavaScript-Ausdruck hinzufügen
 
 :::steps
 ### Die Kriterien öffnen

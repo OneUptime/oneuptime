@@ -23,7 +23,7 @@ En omstart som tar under 90 sekunder, er ikke et hull: collectorer sender på ny
 
 | Hvor | Hva OneUptime gjør |
 | --- | --- |
-| Server- / VM-monitorer | **Er tilkoblet** teller bare minuttene OneUptime mottok: som standard er en server offline etter 3 minutter med stillhet som OneUptime kunne ha hørt. |
+| Server- / VM-monitorer | Filteret **Er tilkoblet** teller bare minuttene OneUptime mottok: som standard er en server offline etter 3 minutter med stillhet som OneUptime kunne ha hørt. |
 | Monitorer for innkommende forespørsler og innkommende e-post | **Mottatt innen (minutter)** og **Ikke mottatt innen (minutter)** teller bare minuttene OneUptime mottok. Når et slikt kriterium er oppfylt, sier årsaken hvor mange av minuttene som ble utelatt. |
 | Verts-, Kubernetes-, Docker-, metrikk-, logg- og trace-monitorer og de andre monitorene som leser telemetri | En sjekk der vinduet inneholder tid uten mottak, venter til den tiden har forlatt vinduet, og aldri lenger enn 15 minutter etter at den sluttet. Inntil da endres ingenting: ingen statusendring, og ingen hendelse eller varsel åpnes eller løses. Så lenge køen er bak, leser en sjekk fram til der køen er i stedet for fram til nå. |
 | Verter, klynger og resten av inventaret | En ressurs blir først **Frakoblet** når stillhetsterskelen, 15 minutter for de fleste, har gått mens OneUptime mottok. |

@@ -215,24 +215,24 @@ Kriterier afgør, hvornår monitoren er online, forringet eller offline, og hvor
 
 | Filtertype | Hvad den kontrollerer | Filterbetingelser |
 | --- | --- | --- |
-| Is Online | Om agenten har rapporteret for nylig (som standard inden for de sidste 3 minutter) | Sand, Falsk |
-| CPU Usage (in %) | Samlet CPU-forbrug | Større end, Mindre end, Større end eller lig med, Mindre end eller lig med |
-| Memory Usage (in %) | Hukommelse i brug | Som for CPU |
-| Disk Usage (in %) | Forbrug på disken angivet i **Disksti** | Som for CPU |
-| Swap Usage (in %) | Swap i brug | Som for CPU |
-| CPU IO Wait (in %) | Andel af CPU-tiden brugt på at vente på I/O | Som for CPU |
-| Load Average (1 minute) | Belastningsgennemsnit over det seneste minut | Som for CPU |
-| Load Average (5 minute) | Belastningsgennemsnit over de seneste 5 minutter | Som for CPU |
-| Load Average (15 minute) | Belastningsgennemsnit over de seneste 15 minutter | Som for CPU |
-| Server Process Name | Om en proces med dette navn kører (uden forskel på store og små bogstaver) | Kører, Kører ikke |
-| Server Process Command | Om en proces med præcis denne kommandolinje kører (uden forskel på store og små bogstaver) | Kører, Kører ikke |
-| Server Process PID | Om en proces med dette PID kører | Kører, Kører ikke |
+| Er online | Om agenten har rapporteret for nylig (som standard inden for de sidste 3 minutter) | Sand, Falsk |
+| CPU-forbrug (i %) | Samlet CPU-forbrug | Større end, Mindre end, Større end eller lig med, Mindre end eller lig med |
+| Hukommelsesforbrug (i %) | Hukommelse i brug | Som for CPU |
+| Diskforbrug (i %) | Forbrug på disken angivet i **Disksti** | Som for CPU |
+| Swapforbrug (i %) | Swap i brug | Som for CPU |
+| CPU-IO-ventetid (i %) | Andel af CPU-tiden brugt på at vente på I/O | Som for CPU |
+| Gennemsnitlig belastning (1 minut) | Belastningsgennemsnit over det seneste minut | Som for CPU |
+| Gennemsnitlig belastning (5 minutter) | Belastningsgennemsnit over de seneste 5 minutter | Som for CPU |
+| Gennemsnitlig belastning (15 minutter) | Belastningsgennemsnit over de seneste 15 minutter | Som for CPU |
+| Serverprocessens navn | Om en proces med dette navn kører (uden forskel på store og små bogstaver) | Kører, Kører ikke |
+| Serverprocessens kommando | Om en proces med præcis denne kommandolinje kører (uden forskel på store og små bogstaver) | Kører, Kører ikke |
+| Serverprocessens PID | Om en proces med dette PID kører | Kører, Kører ikke |
 
 **Disksti** tager et monteringspunkt eller en enhed, f.eks. `/`, `/mnt/data`, `C:\` eller `/dev/sda1`; tomt er den `/`. Angiv `*` for at kontrollere hver disk, agenten rapporterer: hver disk, der krydser tærsklen, får sin egen advarsel, så en anden disk, der fyldes op, ikke skjules bag den førstes åbne advarsel. Store og små bogstaver og en afsluttende `/` eller `\` er ligegyldige, og en enhed står for den disk, der er monteret fra den. En sti, der ikke navngiver nogen disk, agenten rapporterer, matcher ikke. Kan agenten ikke læse serverens processer, har dens rapport ingen procesliste, og intet procesfilter matcher, hvad enten det kontrollerer, at en proces kører, eller at den ikke gør.
 
 ### Evaluér over en periode
 
-**Evaluér disse kriterier over en periode** er et separat afkrydsningsfelt i kriterieformularen og ikke en filterbetingelse. Det findes for **Er online** og for hver numerisk filtertype. Slå det til for at sammenligne en aggregeret værdi – valgt under **Evaluér** (Gennemsnit, Sum, Maximum Value, Minimum Value, All Values, Any Value) over det vindue, som **For de seneste (i minutter)** angiver – i stedet for værdien fra den seneste kontrol. På et **Er online**-filter er vinduet, hvor længe agenten må være tavs, før serveren regnes for offline.
+**Evaluér disse kriterier over en periode** er et separat afkrydsningsfelt i kriterieformularen og ikke en filterbetingelse. Det findes for **Er online** og for hver numerisk filtertype. Slå det til for at sammenligne en aggregeret værdi – valgt under **Evaluér** (Gennemsnit, Sum, Maksimumværdi, Minimumværdi, Alle værdier, Vilkårlig værdi) over det vindue, som **For de seneste (i minutter)** angiver – i stedet for værdien fra den seneste kontrol. På et **Er online**-filter er vinduet, hvor længe agenten må være tavs, før serveren regnes for offline.
 
 **Alle værdier** matcher først, når vinduet reelt er dækket af data. En monitor, der lige er oprettet, eller en, hvis kontroller er holdt op med at blive registreret, har ikke nok historik til at sige noget om de sidste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Vilkårlig værdi** er indstillingen til "giv mig besked, så snart en enkelt kontrol overskrider grænsen", og den udløses stadig med det samme.
 
@@ -251,12 +251,12 @@ Kriterier afgør, hvornår monitoren er online, forringet eller offline, og hvor
 
 | Mål | Filtertype | Filterbetingelse | Værdi |
 | --- | --- | --- | --- |
-| Markér serveren som offline, når agenten holder op med at rapportere | Is Online | Falsk | — |
-| Advar, når CPU-forbruget er over 90 % | CPU Usage (in %) | Større end | `90` |
-| Advar, når roddisken er mere end 85 % fuld | Disk Usage (in %), **Disksti** `/` | Større end | `85` |
-| Advar om enhver disk, der er mere end 85 % fuld, én advarsel pr. disk | Disk Usage (in %), **Disksti** `*` | Større end | `85` |
-| Advar, når hukommelsesforbruget er over 80 % | Memory Usage (in %) | Større end | `80` |
-| Advar, når nginx holder op med at køre | Server Process Name | Kører ikke | `nginx` |
+| Markér serveren som offline, når agenten holder op med at rapportere | Er online | Falsk | — |
+| Advar, når CPU-forbruget er over 90 % | CPU-forbrug (i %) | Større end | `90` |
+| Advar, når roddisken er mere end 85 % fuld | Diskforbrug (i %), **Disksti** `/` | Større end | `85` |
+| Advar om enhver disk, der er mere end 85 % fuld, én advarsel pr. disk | Diskforbrug (i %), **Disksti** `*` | Større end | `85` |
+| Advar, når hukommelsesforbruget er over 80 % | Hukommelsesforbrug (i %) | Større end | `80` |
+| Advar, når nginx holder op med at køre | Serverprocessens navn | Kører ikke | `nginx` |
 
 ## Fejlfinding
 

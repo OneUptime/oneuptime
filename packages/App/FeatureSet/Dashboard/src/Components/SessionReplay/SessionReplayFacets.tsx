@@ -141,9 +141,12 @@ export const SESSION_REPLAY_FACETS: Array<SessionReplayFacet> = [
  * The others offer names as the recorder writes them (a browser, an
  * operating system) and the countries' list, drawn as they are.
  */
-const FACETS_WITH_OUR_WORDS: ReadonlySet<SessionReplayFacetField> = new Set<
-  SessionReplayFacetField
->(["deviceType", "triggerReason", "minDurationSeconds"]);
+const FACETS_WITH_OUR_WORDS: ReadonlySet<SessionReplayFacetField> =
+  new Set<SessionReplayFacetField>([
+    "deviceType",
+    "triggerReason",
+    "minDurationSeconds",
+  ]);
 
 // English, word for word, for a caller that hands in no translator.
 const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);

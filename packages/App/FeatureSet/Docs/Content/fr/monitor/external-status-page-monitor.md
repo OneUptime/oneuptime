@@ -102,7 +102,7 @@ Sélectionnez les **Sondes** et un **Intervalle de surveillance** — il commenc
 
 ### Composants
 
-Choisissez les composants dont vous dépendez, et le moniteur ne surveille qu'eux : **Statut des composants de la page de statut externe** ne compare que leurs statuts, le statut global est le pire des leurs, et **Incidents actifs de la page de statut externe** ne compte que les incidents qui touchent au moins l'un d'eux. Cela reste une seule vérification de la page, quel que soit le nombre choisi.
+Choisissez les composants dont vous dépendez, et le moniteur ne surveille qu'eux : **Statut des composants de la page de statut externe** ne compare que leurs statuts, le statut global est le pire des leurs, et le filtre **Incidents actifs de la page de statut externe** ne compte que les incidents qui touchent au moins l'un d'eux. Cela reste une seule vérification de la page, quel que soit le nombre choisi.
 
 Quand vous ouvrez **Composants**, votre navigateur lit la liste de la page sur une Atlassian Statuspage, une page incident.io ou une page de statut OneUptime, et l'affiche dans les groupes de la page ; chaque composant qui n'est pas opérationnel dit où il en est. Un nom choisi surveille le composant qui porte exactement ce nom, sans tenir compte de la casse : `Copilot` sur la page de GitHub n'est pas `Copilot AI Model Providers`.
 

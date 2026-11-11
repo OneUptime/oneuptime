@@ -935,7 +935,9 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
         }
       >
         {copyState.status === "copied"
-          ? translator.translateText(COPY_KIND_COPY[copyState.kind].announcement)
+          ? translator.translateText(
+              COPY_KIND_COPY[copyState.kind].announcement,
+            )
           : ""}
       </div>
 

@@ -128,7 +128,7 @@ Los datos que devuelve el script se serializan a JSON antes de guardarse: en obj
 
 ### Alertar sobre los datos devueltos
 
-Lo que el script devuelve como `data` es el **Valor del resultado** del monitor, que un criterio puede comparar. Cuando `data` es un objeto o un array, rellene **Ruta del campo (opcional)** en el filtro Result Value para comparar uno de sus campos; por ejemplo, `status`, `timings.loadTime` o `errors[0].message`. El filtro se comprueba con los datos de cada navegador y tamaño de pantalla en los que se ejecuta el monitor, y coincide cuando coincide cualquiera de ellos. Consulte [Alertar sobre los datos devueltos](/docs/monitor/custom-code-monitor#alertar-sobre-los-datos-devueltos) para ver cómo funcionan las rutas y las condiciones.
+Lo que el script devuelve como `data` es el **Valor del resultado** del monitor, que un criterio puede comparar. Cuando `data` es un objeto o un array, rellene **Ruta del campo (opcional)** en el filtro Valor del resultado para comparar uno de sus campos; por ejemplo, `status`, `timings.loadTime` o `errors[0].message`. El filtro se comprueba con los datos de cada navegador y tamaño de pantalla en los que se ejecuta el monitor, y coincide cuando coincide cualquiera de ellos. Consulte [Alertar sobre los datos devueltos](/docs/monitor/custom-code-monitor#alertar-sobre-los-datos-devueltos) para ver cómo funcionan las rutas y las condiciones.
 
 ## Capturas de pantalla
 

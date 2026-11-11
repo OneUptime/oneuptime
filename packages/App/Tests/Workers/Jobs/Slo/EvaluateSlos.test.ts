@@ -7953,7 +7953,8 @@ describe("Slo:EvaluateSlos worker", () => {
         const writtenAt: number =
           sloService.updateOneById.mock.invocationCallOrder[0]!;
         const feedItemAt: number = Math.max(
-          ...feedService.createServiceLevelObjectiveFeedItem.mock.invocationCallOrder,
+          ...feedService.createServiceLevelObjectiveFeedItem.mock
+            .invocationCallOrder,
         );
 
         expect(postedAt).toBeGreaterThan(writtenAt);
@@ -8001,7 +8002,11 @@ describe("Slo:EvaluateSlos worker", () => {
       });
 
       test("leaving every tier says so, with no agreement to quote", async () => {
-        await evaluate(sloInTier(CAUTION_ID, "Caution"), recommendedPolicy(), 0);
+        await evaluate(
+          sloInTier(CAUTION_ID, "Caution"),
+          recommendedPolicy(),
+          0,
+        );
 
         const posts: Array<WorkspacePost> = workspacePosts();
 
@@ -8059,9 +8064,11 @@ describe("Slo:EvaluateSlos worker", () => {
           BUDGET_23_PERCENT_SECONDS,
         );
 
-        expect(workspacePosts().map((post: WorkspacePost) => {
-          return post.changes;
-        })).toEqual([
+        expect(
+          workspacePosts().map((post: WorkspacePost) => {
+            return post.changes;
+          }),
+        ).toEqual([
           [
             SloErrorBudgetPolicyChange.RecoveredToLessSevereTier,
             SloErrorBudgetPolicyChange.DeploymentsAllowed,
@@ -8284,11 +8291,7 @@ describe("Slo:EvaluateSlos worker", () => {
           recommendedPolicy();
         tiers[2]!.whatWeDo = "Page <!channel> and <@U0123ABC>.";
 
-        await evaluate(
-          sloInTier(null, null),
-          tiers,
-          BUDGET_37_PERCENT_SECONDS,
-        );
+        await evaluate(sloInTier(null, null), tiers, BUDGET_37_PERCENT_SECONDS);
 
         const message: string = workspacePosts()[0]!.markdown.toString();
 

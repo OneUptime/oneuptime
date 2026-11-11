@@ -23,7 +23,7 @@ sequenceDiagram
     O->>O: Salvarla sul monitor
     O->>O: Controllare i criteri
     O->>T: Avviso o incidente,<br/>se uno corrisponde
-    Note over O: Ogni 30 secondi, controllare<br/>i criteri Email Received
+    Note over O: Ogni 30 secondi, controllare<br/>i criteri «Email ricevuta»
 ```
 
 1. Quando create un monitor di email in arrivo, OneUptime gli assegna un indirizzo email univoco.
@@ -143,8 +143,8 @@ Un nuovo monitor di email in arrivo viene creato con due criteri che leggono il 
 
 | Criterio | Tipo di filtro | Condizione del filtro | Valore | Effetto |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
-| Offline  | Email Body  | Contiene | `error` | Segna il monitor offline, apre un incidente |
-| Online   | Email Body  | Non contiene | `error` | Segna il monitor online |
+| Offline  | Corpo dell'email  | Contiene | `error` | Segna il monitor offline, apre un incidente |
+| Online   | Corpo dell'email  | Non contiene | `error` | Segna il monitor online |
 
 È adatto al caso comune in cui un job o uno strumento di terze parti invia per email il proprio risultato: un messaggio il cui corpo menziona `error` porta il monitor offline, e il messaggio successivo senza quella parola lo riporta online e risolve l'incidente. Il confronto sul corpo non distingue maiuscole e minuscole, quindi corrispondono anche `Error` ed `ERROR`.
 
@@ -185,9 +185,7 @@ L'indirizzo del monitor stesso viene mascherato prima che un criterio legga l'em
 
 Tutti questi confronti non distinguono maiuscole e minuscole. Un filtro con un valore vuoto non corrisponde mai.
 
-### Filtri temporali (Email Received)
-
-La dashboard scrive queste condizioni "Recieved".
+### Filtri temporali (Email ricevuta)
 
 | Condizione del filtro | Descrizione | Esempio |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -196,7 +194,7 @@ La dashboard scrive queste condizioni "Recieved".
 
 Un monitor che non ha mai ricevuto un'email conta la propria ora di creazione come ultima email.
 
-### JavaScript Expression
+### Espressione JavaScript
 
 | Condizione del filtro | Descrizione |
 | --------------------- | ------------------------------------- |

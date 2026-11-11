@@ -215,26 +215,26 @@ Os critérios decidem quando o monitor está online, degradado ou offline, e qua
 
 | Tipo de filtro | O que verifica | Condições do filtro |
 | --- | --- | --- |
-| Is Online | Se o agente informou recentemente (nos últimos 3 minutos, por padrão) | Verdadeiro, Falso |
-| CPU Usage (in %) | Uso geral da CPU | Maior que, Menor que, Maior ou igual a, Menor ou igual a |
-| Memory Usage (in %) | Memória em uso | Igual à CPU |
-| Disk Usage (in %) | Uso do disco indicado em **Caminho do disco** | Igual à CPU |
-| Swap Usage (in %) | Swap em uso | Igual à CPU |
-| CPU IO Wait (in %) | Parcela do tempo de CPU gasta esperando E/S | Igual à CPU |
-| Load Average (1 minute) | Média de carga do último minuto | Igual à CPU |
-| Load Average (5 minute) | Média de carga dos últimos 5 minutos | Igual à CPU |
-| Load Average (15 minute) | Média de carga dos últimos 15 minutos | Igual à CPU |
-| Server Process Name | Se um processo com este nome está em execução (sem diferenciar maiúsculas de minúsculas) | Está em execução, Não está em execução |
-| Server Process Command | Se um processo com exatamente esta linha de comando está em execução (sem diferenciar maiúsculas de minúsculas) | Está em execução, Não está em execução |
-| Server Process PID | Se um processo com este PID está em execução | Está em execução, Não está em execução |
+| Online | Se o agente informou recentemente (nos últimos 3 minutos, por padrão) | Verdadeiro, Falso |
+| Uso de CPU (em %) | Uso geral da CPU | Maior que, Menor que, Maior ou igual a, Menor ou igual a |
+| Uso de memória (em %) | Memória em uso | Igual à CPU |
+| Uso de disco (em %) | Uso do disco indicado em **Caminho do disco** | Igual à CPU |
+| Uso de swap (em %) | Swap em uso | Igual à CPU |
+| Espera de E/S da CPU (em %) | Parcela do tempo de CPU gasta esperando E/S | Igual à CPU |
+| Média de carga (1 minuto) | Média de carga do último minuto | Igual à CPU |
+| Média de carga (5 minutos) | Média de carga dos últimos 5 minutos | Igual à CPU |
+| Média de carga (15 minutos) | Média de carga dos últimos 15 minutos | Igual à CPU |
+| Nome do processo do servidor | Se um processo com este nome está em execução (sem diferenciar maiúsculas de minúsculas) | Está em execução, Não está em execução |
+| Comando do processo do servidor | Se um processo com exatamente esta linha de comando está em execução (sem diferenciar maiúsculas de minúsculas) | Está em execução, Não está em execução |
+| PID do processo do servidor | Se um processo com este PID está em execução | Está em execução, Não está em execução |
 
 **Caminho do disco** aceita um ponto de montagem ou um dispositivo, como `/`, `/mnt/data`, `C:\` ou `/dev/sda1`; quando fica vazio, vale `/`. Informe `*` para verificar cada disco que o agente informa: cada disco que ultrapassa o limite recebe seu próprio alerta, então um segundo disco enchendo não fica escondido atrás do alerta aberto do primeiro. Maiúsculas e minúsculas e uma `/` ou `\` no final não importam, e um dispositivo representa o disco montado a partir dele. Um caminho que não indica nenhum disco informado pelo agente não corresponde. Quando o agente não consegue ler os processos do servidor, o relatório não tem lista de processos e nenhum filtro de processo corresponde, seja ele para um processo em execução ou não.
 
 ### Avaliar durante um período de tempo
 
-**Avaliar este critério durante um período de tempo** é uma caixa de seleção separada no formulário de critérios, e não uma condição do filtro. Ela está disponível para **Online** e para todo tipo de filtro numérico. Ative-a para comparar um agregado – escolhido em **Avaliar** (Média, Soma, Maximum Value, Minimum Value, All Values, Any Value) na janela definida em **Nos últimos (em minutos)** – em vez do valor da última verificação. Em um filtro **Online**, a janela é o tempo que o agente pode ficar em silêncio antes de o servidor contar como offline.
+**Avaliar este critério durante um período de tempo** é uma caixa de seleção separada no formulário de critérios, e não uma condição do filtro. Ela está disponível para **Online** e para todo tipo de filtro numérico. Ative-a para comparar um agregado – escolhido em **Avaliar** (Média, Soma, Valor máximo, Valor mínimo, Todos os valores, Qualquer valor) na janela definida em **Nos últimos (em minutos)** – em vez do valor da última verificação. Em um filtro **Online**, a janela é o tempo que o agente pode ficar em silêncio antes de o servidor contar como offline.
 
-**Todos os valores** só corresponde quando a janela está de fato coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder à única leitura que tem. **Qualquer valor** é a configuração para "me avise assim que uma única verificação ultrapassar o limite" e continua disparando na hora.
+A opção **Todos os valores** só corresponde quando a janela está de fato coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder à única leitura que tem. **Qualquer valor** é a configuração para "me avise assim que uma única verificação ultrapassar o limite" e continua disparando na hora.
 
 **Se não houver dados** controla o que acontece enquanto a janela não consegue sustentar o critério:
 
@@ -251,12 +251,12 @@ Os critérios decidem quando o monitor está online, degradado ou offline, e qua
 
 | Objetivo | Tipo de filtro | Condição do filtro | Valor |
 | --- | --- | --- | --- |
-| Marcar o servidor como offline quando o agente para de informar | Is Online | Falso | — |
-| Alertar quando o uso de CPU passar de 90% | CPU Usage (in %) | Maior que | `90` |
-| Alertar quando o disco raiz estiver mais de 85% cheio | Disk Usage (in %), **Caminho do disco** `/` | Maior que | `85` |
-| Alertar para qualquer disco mais de 85% cheio, um alerta por disco | Disk Usage (in %), **Caminho do disco** `*` | Maior que | `85` |
-| Alertar quando o uso de memória passar de 80% | Memory Usage (in %) | Maior que | `80` |
-| Alertar quando o nginx parar de executar | Server Process Name | Não está em execução | `nginx` |
+| Marcar o servidor como offline quando o agente para de informar | Online | Falso | — |
+| Alertar quando o uso de CPU passar de 90% | Uso de CPU (em %) | Maior que | `90` |
+| Alertar quando o disco raiz estiver mais de 85% cheio | Uso de disco (em %), **Caminho do disco** `/` | Maior que | `85` |
+| Alertar para qualquer disco mais de 85% cheio, um alerta por disco | Uso de disco (em %), **Caminho do disco** `*` | Maior que | `85` |
+| Alertar quando o uso de memória passar de 80% | Uso de memória (em %) | Maior que | `80` |
+| Alertar quando o nginx parar de executar | Nome do processo do servidor | Não está em execução | `nginx` |
 
 ## Solução de problemas
 

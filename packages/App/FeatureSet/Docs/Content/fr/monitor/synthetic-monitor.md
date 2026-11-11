@@ -128,7 +128,7 @@ Les données renvoyées par le script sont sérialisées en JSON avant d'être s
 
 ### Alerter sur les données renvoyées
 
-Ce que le script renvoie comme `data` est la **Valeur du résultat** du moniteur, qu'un critère peut comparer. Quand `data` est un objet ou un tableau, renseignez **Chemin du champ (facultatif)** dans le filtre Result Value pour comparer un de ses champs — par exemple `status`, `timings.loadTime` ou `errors[0].message`. Le filtre est vérifié sur les données de chaque navigateur et taille d'écran où le moniteur s'exécute, et correspond dès que l'un d'eux correspond. Voir [Alerter sur les données renvoyées](/docs/monitor/custom-code-monitor#alerter-sur-les-données-renvoyées) pour le fonctionnement des chemins et des conditions.
+Ce que le script renvoie comme `data` est la **Valeur du résultat** du moniteur, qu'un critère peut comparer. Quand `data` est un objet ou un tableau, renseignez **Chemin du champ (facultatif)** dans le filtre Valeur du résultat pour comparer un de ses champs — par exemple `status`, `timings.loadTime` ou `errors[0].message`. Le filtre est vérifié sur les données de chaque navigateur et taille d'écran où le moniteur s'exécute, et correspond dès que l'un d'eux correspond. Voir [Alerter sur les données renvoyées](/docs/monitor/custom-code-monitor#alerter-sur-les-données-renvoyées) pour le fonctionnement des chemins et des conditions.
 
 ## Captures d'écran
 

@@ -24,7 +24,7 @@ flowchart TB
 
 Omdat plaatshouders als tekst worden vervangen, wordt `{{responseBody.item}}` de ruwe waarde. Een tekenreeks moet tussen aanhalingstekens staan om een JavaScript-tekenreeks te zijn; een getal of een boolean niet — zie [Regels voor aanhalingstekens](#regels-voor-aanhalingstekens). Expressies draaien op de OneUptime-server, in een geïsoleerde sandbox.
 
-## Een filter JavaScript Expression toevoegen
+## Een filter JavaScript-expressie toevoegen
 
 :::steps
 ### De criteria openen
@@ -46,7 +46,7 @@ Sla de monitor op. Het filter wordt bij de volgende controle van de monitor geë
 
 ## Variabelen per monitortype
 
-JavaScript-expressies worden aangeboden voor monitoren van het type Website, API, Incoming Request, Incoming Email, SQL Query en Database Health.
+JavaScript-expressies worden aangeboden voor monitoren van het type Website, API, Inkomende aanvraag, Incoming Email, SQL Query en Database Health.
 
 ### Website- en API-monitoren
 

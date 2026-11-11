@@ -104,7 +104,7 @@ Varje statusändring registreras med sin orsak på monitorns **Statustidslinje**
 
 ## Kriterier
 
-En loggmonitors kriterier har en enda **Filtertyp**: **Log Count**, antalet loggar som matchade i fönstret. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och, för ett tröskelvillkor, ett **Värde**.
+En loggmonitors kriterier har en enda **Filtertyp**: **Antal loggar**, antalet loggar som matchade i fönstret. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och, för ett tröskelvillkor, ett **Värde**.
 
 | Filtervillkor | Matchar när antalet loggar är… |
 | --- | --- |
@@ -131,8 +131,8 @@ En loggmonitor som skapats via API:et eller Terraform utan kriterier börjar med
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Lika med** `0` | Markerar monitorn som offline och deklarerar en incident, som löses automatiskt |
-| Check if … is online | **Log Count** **Större än** `0` | Markerar monitorn som online |
+| Check if … is offline | **Antal loggar** **Lika med** `0` | Markerar monitorn som offline och deklarerar en incident, som löses automatiskt |
+| Check if … is online | **Antal loggar** **Större än** `0` | Markerar monitorn som online |
 
 ## Genomgånget exempel: en ökning av fel
 
@@ -244,7 +244,7 @@ Antalet var 0, så filtren matchar inga av de loggar som tjänsten skickar. Öpp
 :::
 
 :::details Det var en ökning, men ingenting varnade
-Kriterierna kontrolleras uppifrån och ned, och den första träffen avgör. Ett brett kriterium ovanför det du väntade dig, som **Log Count** **Större än** `0`, matchar först och stoppar resten. Lägg det allvarligaste kriteriet överst.
+Kriterierna kontrolleras uppifrån och ned, och den första träffen avgör. Ett brett kriterium ovanför det du väntade dig, som **Antal loggar** **Större än** `0`, matchar först och stoppar resten. Lägg det allvarligaste kriteriet överst.
 :::
 
 :::details Ett avvikelsekriterium utlöses aldrig

@@ -139,11 +139,11 @@ Varje serie bär enhetens etikett `device.id` och attributen `iot.device.type` o
 
 ## Övervakningskriterier
 
-Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvärde. Kriterierna för en IoT-enhetsmonitor erbjuder en **Filtertyp**, **Metric Value**: varje regel kontrollerar mätvärdets värde, med de här fälten.
+Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvärde. Kriterierna för en IoT-enhetsmonitor erbjuder en **Filtertyp**, **Mätvärde**: varje regel kontrollerar mätvärdets värde, med de här fälten.
 
 | Fält | Vad det gör |
 | --- | --- |
-| **Filtertyp** | Alltid **Metric Value**, den enda kontrollen som den här monitorn erbjuder. |
+| **Filtertyp** | Alltid **Mätvärde**, den enda kontrollen som den här monitorn erbjuder. |
 | **Select Metric Variable** | Frågan eller formeln som ska kontrolleras, efter variabelnamnet. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maxvärde**, **Minvärde**, **Alla värden** (varje värde måste matcha, i hela fönstret) eller **Minst ett värde** (ett räcker). |
 | **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Onormalt hög**, **Onormalt låg** eller **Avvikande**. **Inga data** stämmer när frågan inte gav något i fönstret, och **Har data** när den gav något. **Väntas stiga över** och **Väntas sjunka under** matchar när mätvärdets trend i fönstret har passerat tröskeln vid slutet av **Tidshorisont**. |

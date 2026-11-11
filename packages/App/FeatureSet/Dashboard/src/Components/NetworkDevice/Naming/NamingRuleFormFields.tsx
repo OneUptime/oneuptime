@@ -194,6 +194,8 @@ export default function getNamingRuleFormFields(): Array<
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       description: "A disabled rule names nothing, and the next rule is tried.",
+      // A rule starts on: the switch is on its edit form only.
+      doNotShowWhenCreating: true,
     },
     {
       field: { ipMatchTarget: true },

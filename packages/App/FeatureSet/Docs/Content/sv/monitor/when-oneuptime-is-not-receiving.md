@@ -23,7 +23,7 @@ En omstart som tar mindre än 90 sekunder är inget avbrott: collectors skickar 
 
 | Var | Vad OneUptime gör |
 | --- | --- |
-| Server- / VM-monitorer | **Är online** räknar bara de minuter då OneUptime tog emot: som standard är en server offline efter 3 minuters tystnad som OneUptime kunde ha hört. |
+| Server- / VM-monitorer | Filtret **Är online** räknar bara de minuter då OneUptime tog emot: som standard är en server offline efter 3 minuters tystnad som OneUptime kunde ha hört. |
 | Monitorer för inkommande förfrågningar och inkommande e-post | **Mottaget inom (minuter)** och **Inte mottaget inom (minuter)** räknar bara de minuter då OneUptime tog emot. När ett sådant kriterium uppfylls anger orsaken hur många av minuterna som utelämnades. |
 | Värd-, Kubernetes-, Docker-, metrik-, logg- och trace-monitorer och de andra monitorerna som läser telemetri | En kontroll vars fönster innehåller tid utan mottagning väntar tills den tiden har lämnat fönstret, och aldrig längre än 15 minuter efter att den tog slut. Till dess ändras ingenting: ingen statusändring, och ingen incident eller larm öppnas eller löses. Så länge kön ligger efter läser en kontroll fram till där kön är i stället för fram till nu. |
 | Värdar, kluster och resten av inventariet | En resurs blir **Frånkopplad** först när dess tystnadströskel, 15 minuter för de flesta, har passerat medan OneUptime tog emot. |

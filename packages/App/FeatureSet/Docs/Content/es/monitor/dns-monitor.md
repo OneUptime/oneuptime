@@ -17,8 +17,8 @@ En cada comprobación, una sonda pide a un servidor DNS un tipo de registro de u
 flowchart TB
     query["Consultar el tipo de registro"] --> answer{"¿Se devolvieron registros?"}
     answer -->|"No, quedan reintentos"| query
-    answer -->|"No, sin reintentos"| offline["DNS Is Online: False"]
-    answer -->|"Sí"| online["DNS Is Online: True"]
+    answer -->|"No, sin reintentos"| offline["DNS en línea: Falso"]
+    answer -->|"Sí"| online["DNS en línea: Verdadero"]
     online --> ad["Comprobar el indicador AD"]
     ad --> criteria["Comprobar los criterios"]
     offline --> criteria
@@ -126,7 +126,7 @@ Los criterios se comprueban de arriba abajo, y el primero que coincide decide qu
 | **Todos los valores** | Cada comprobación de la ventana cumple la condición. |
 | **Cualquier valor** | Al menos una comprobación de la ventana cumple la condición. |
 
-**Todos los valores** solo coincide cuando la ventana está realmente cubierta de datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Cualquier valor** es el ajuste para «avíseme en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
+La opción **Todos los valores** solo coincide cuando la ventana está realmente cubierta de datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Cualquier valor** es el ajuste para «avíseme en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
 
 **Si no hay datos** decide qué ocurre mientras la ventana no puede respaldar el criterio:
 
@@ -164,7 +164,7 @@ dig @8.8.8.8 example.com A
 3. Debajo de ese, añada un criterio con **DNS en línea** / **Verdadero**, que marque el monitor como **Sin conexión** y declare un incidente. Solo coincide con respuestas que no tienen el valor.
 :::
 
-:::details DNSSEC Is Valid nunca coincide
+:::details DNSSEC válido nunca coincide
 El servidor de **Servidor DNS (opcional)** no valida DNSSEC, así que nunca pone el indicador AD, o la sonda no pudo hacer la comprobación. Deje el campo vacío para validar con `8.8.8.8`, o use un [monitor de DNSSEC](/docs/monitor/dnssec-monitor).
 :::
 

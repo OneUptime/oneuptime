@@ -73,8 +73,8 @@ Criteria bepalen wanneer het certificaat telt als in orde, verminderd of kapot, 
 
 | Filter | Voorwaarden | Wat het controleert |
 | --- | --- | --- |
-| **Is Valid Certificate** | **Waar**, **Onwaar** | Het certificaat doorstaat de controles van een browser: een vertrouwde uitgever, een hostnaam die overeenkomt en data die vandaag omvatten. **Onwaar** wanneer het eindpunt niet antwoordde. |
-| **Certificaat is ongeldig** | **Waar**, **Onwaar** | Het tegenovergestelde van **Is Valid Certificate**: **Waar** wanneer het certificaat die controles niet doorstaat of niet kon worden gecontroleerd. |
+| **Certificaat is geldig** | **Waar**, **Onwaar** | Het certificaat doorstaat de controles van een browser: een vertrouwde uitgever, een hostnaam die overeenkomt en data die vandaag omvatten. **Onwaar** wanneer het eindpunt niet antwoordde. |
+| **Certificaat is ongeldig** | **Waar**, **Onwaar** | Het tegenovergestelde van **Certificaat is geldig**: **Waar** wanneer het certificaat die controles niet doorstaat of niet kon worden gecontroleerd. |
 | **Certificaat is verlopen** | **Waar**, **Onwaar** | De vervaldatum van het certificaat is verstreken. |
 | **Certificaat is zelfondertekend** | **Waar**, **Onwaar** | Het certificaat, of een certificaat in de keten, is zelfondertekend. |
 | **Dagen tot verloop** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Dagen totdat het certificaat verloopt. |
@@ -102,7 +102,7 @@ Om eerder gewaarschuwd te worden, wijzigt u de waarde van het filter **Dagen tot
 Monitoren die zijn gemaakt voordat OneUptime deze waarschuwing toevoegde, hebben geen criterium "verloopt binnenkort". Zo voegt u het toe:
 
 1. Open bij de monitor **Configuratie → Criteria** en klik op **Bewakingscriteria bewerken**.
-2. Klik op **Criteria toevoegen**. Zet het filter op **Is Valid Certificate** / **Waar**, klik op **Filter toevoegen** en zet het tweede op **Dagen tot verloop** / **Kleiner dan of gelijk aan** / `14`. Laat **Overeenkomstvoorwaarde** op **Alle** staan (het verschijnt onder de filters zodra er twee zijn).
+2. Klik op **Criteria toevoegen**. Zet het filter op **Certificaat is geldig** / **Waar**, klik op **Filter toevoegen** en zet het tweede op **Dagen tot verloop** / **Kleiner dan of gelijk aan** / `14`. Laat **Overeenkomstvoorwaarde** op **Alle** staan (het verschijnt onder de filters zodra er twee zijn).
 3. Zet onder **Acties** **Wanneer filters overeenkomen, maak een waarschuwing aan.** aan en laat **Wanneer filters overeenkomen, wijzig de monitorstatus.** uit, zodat het een waarschuwing aanmaakt en de monitorstatus niet wijzigt.
 4. Sleep het nieuwe criterium boven het criterium dat de monitor als online markeert, en sla op.
 :::
@@ -136,7 +136,7 @@ Een zelfondertekend certificaat is nooit geldig, dus de standaardcriteria houden
 
 1. Klik in het criterium "niet geldig" op **Filter toevoegen**, zet het nieuwe filter op **Certificaat is zelfondertekend** / **Onwaar** en zet **Overeenkomstvoorwaarde** op **Alle**. Het criterium zet de monitor nog steeds offline wanneer het eindpunt niet antwoordt, of het certificaat op een andere manier fout is.
 2. Voeg een criterium toe met **Certificaat is verlopen** / **Waar** dat de monitor als **Offline** markeert en een incident meldt, en sleep het naar boven.
-3. Vervang in het criterium "verloopt binnenkort" **Is Valid Certificate** / **Waar** door **Certificaat is verlopen** / **Onwaar**, zodat de waarschuwing ook het zelfondertekende certificaat dekt.
+3. Vervang in het criterium "verloopt binnenkort" **Certificaat is geldig** / **Waar** door **Certificaat is verlopen** / **Onwaar**, zodat de waarschuwing ook het zelfondertekende certificaat dekt.
 
 Zolang het certificaat actueel is, komt geen enkel criterium overeen en toont de monitor zijn standaardstatus, **Operationeel**.
 :::

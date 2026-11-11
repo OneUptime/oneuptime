@@ -84,7 +84,7 @@ Klicken Sie auf **Monitor erstellen**. OneUptime öffnet die Seite des Monitors 
 
 Ein Filter grenzt nur eine Serie ein, die sein Label trägt: `openstack_nova_up` hat kein Projekt, daher lässt ein Projektfilter sie unverändert.
 
-Halten Sie das Fenster bei mindestens drei Erfassungen dessen, was Sie lesen: 6 Minuten für Compute, Network, Volume und Placement, 15 für Identity und Image. Ein kürzeres Fenster enthält nicht genug Erfassungen, damit **Alle Werte** eine Dauer bedeutet.
+Halten Sie das Fenster bei mindestens drei Erfassungen dessen, was Sie lesen: 6 Minuten für Compute, Network, Volume und Placement, 15 für Identity und Image. Ein kürzeres Fenster enthält nicht genug Erfassungen, damit die Option **Alle Werte** eine Dauer bedeutet.
 
 ## Identitätsattribute
 

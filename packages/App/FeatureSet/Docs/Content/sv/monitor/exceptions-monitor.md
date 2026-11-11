@@ -116,7 +116,7 @@ Varje statusändring registreras med sin orsak på monitorns **Statustidslinje**
 
 ## Kriterier
 
-En undantagsmonitors kriterier har fyra sorters **Filtertyp**: **Exception Count**, antalet undantag som matchade i fönstret, samt **New Exceptions**, **Undantag med regression** och **Ökning av undantag (i %)**, som beskrivs nedan. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och ett **Värde**.
+En undantagsmonitors kriterier har fyra sorters **Filtertyp**: **Antal undantag**, antalet undantag som matchade i fönstret, samt **Nya undantag**, **Undantag med regression** och **Ökning av undantag (i %)**, som beskrivs nedan. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och ett **Värde**.
 
 | Filtervillkor | Matchar när antalet undantag är… |
 | --- | --- |
@@ -130,7 +130,7 @@ En undantagsmonitors kriterier har fyra sorters **Filtertyp**: **Exception Count
 | **Onormalt låg** | under det intervallet |
 | **Avvikande** | utanför det intervallet, åt vilket håll som helst |
 
-Avvikelsevillkoren har inget **Värde**. Välj en **Känslighet** (Låg, Medel, som är standard, eller Hög) och, i de egna kriterierna, ett **Baslinjefönster** på 14 (standard), 28, 60 eller 90 dagar. Bara **Exception Count** har dem: se [Toppar jämfört med det normala](#toppar-jämfört-med-det-normala).
+Avvikelsevillkoren har inget **Värde**. Välj en **Känslighet** (Låg, Medel, som är standard, eller Hög) och, i de egna kriterierna, ett **Baslinjefönster** på 14 (standard), 28, 60 eller 90 dagar. Bara **Antal undantag** har dem: se [Toppar jämfört med det normala](#toppar-jämfört-med-det-normala).
 
 En undantagsmonitor som skapats i Skapa monitor börjar med regeln för det du valde under **Vad ska den här övervakningen berätta om?**:
 
@@ -146,8 +146,8 @@ En undantagsmonitor som skapats via API:et eller Terraform utan kriterier börja
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Större än** `0` | Markerar monitorn som offline och deklarerar en incident, som löses automatiskt |
-| Check if … has no exceptions | **Exception Count** **Lika med** `0` | Markerar monitorn som online |
+| Check if … has exceptions | **Antal undantag** **Större än** `0` | Markerar monitorn som offline och deklarerar en incident, som löses automatiskt |
+| Check if … has no exceptions | **Antal undantag** **Lika med** `0` | Markerar monitorn som online |
 
 ## Nya, återkomna och stigande undantag
 
@@ -155,7 +155,7 @@ Utöver hur många undantag som inträffade kan en undantagsmonitor larma om det
 
 | Filtertyp | Vad den räknar i fönstret |
 | --- | --- |
-| **New Exceptions** | Matchande undantag som ses för första gången och varken är lösta eller arkiverade. |
+| **Nya undantag** | Matchande undantag som ses för första gången och varken är lösta eller arkiverade. |
 | **Undantag med regression** | Matchande undantag som du har löst, som kom tillbaka och fortfarande är öppna. |
 | **Ökning av undantag (i %)** | Hur långt antalet matchande undantag ligger över det vanliga: dagen före fönstret, per fönster av samma längd, minst ett. Tio undantag efter en lugn dag ger 900 %. |
 
@@ -188,7 +188,7 @@ Du vill ha en incident varje gång API:et kastar ett undantag i produktion, och 
 | `TimeoutError` × 2 | ingen | Aktivt | Nej: ingen miljö |
 | `NullReferenceException` × 4 | `production` | Löst efter att de inträffade | Nej: löst |
 
-**Exception Count** är 3, så **Fler än** `0` matchar: monitorn går offline och en incident deklareras. När fem minuter har gått utan något aktivt produktionsundantag slutar regeln matcha, monitorn går tillbaka till sin standardstatus och incidenten löser sig själv.
+**Antal undantag** är 3, så **Fler än** `0` matchar: monitorn går offline och en incident deklareras. När fem minuter har gått utan något aktivt produktionsundantag slutar regeln matcha, monitorn går tillbaka till sin standardstatus och incidenten löser sig själv.
 
 ## Felsökning
 

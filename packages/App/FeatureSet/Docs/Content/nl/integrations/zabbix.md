@@ -3,7 +3,7 @@
 Stuur [Zabbix](https://www.zabbix.com)-problemen naar OneUptime, zodat elk probleem een incident wordt dat je team met dienst oproept en wordt opgelost wanneer Zabbix herstelt. Kant-en-klare workflowsjablonen houden beide kanten gelijk: wat mensen in Zabbix doen, wordt op het incident genoteerd, en het incident bevestigen of oplossen bevestigt of sluit het probleem in Zabbix. Zabbix stuurt elk probleem via een webhook-mediatype, dus aan geen van beide kanten hoef je iets te installeren.
 
 :::cards
-- [Kiezen hoe OneUptime problemen ontvangt](#kiezen-hoe-oneuptime-problemen-ontvangt): Workflowsjablonen of een Incoming Request-monitor.
+- [Kiezen hoe OneUptime problemen ontvangt](#kiezen-hoe-oneuptime-problemen-ontvangt): Workflowsjablonen of een monitor voor inkomende verzoeken.
 - [Beginnen met de sjablonen](#beginnen-met-de-sjablonen): Zes sjablonen, wat ze doen en wat ze vragen.
 - [Zabbix configureren](#zabbix-configureren): Een mediatype, een gebruiker en een actie.
 - [Problemen oplossen](#problemen-oplossen): Wanneer problemen niet aankomen of incidenten open blijven.
@@ -37,7 +37,7 @@ Stel eerst OneUptime in: dat geeft je de URL waar Zabbix naartoe stuurt.
 | Manier | Gebruik het wanneer |
 | --- | --- |
 | De workflowsjablonen (aanbevolen) | Je wilt elk probleem als een incident of een waarschuwing met de Zabbix-ernst, met de dienst opgeroepen voor High en Disaster, opgelost bij herstel, met wat mensen in Zabbix doen erop genoteerd, en Zabbix bevestigd of gesloten vanuit OneUptime. |
-| Een Incoming Request-monitor | Je wilt incidenten zonder workflow, op elk abonnement, en een monitor waarvan de status Zabbix volgt. Er gaat niets terug naar Zabbix. |
+| Een monitor voor inkomende verzoeken | Je wilt incidenten zonder workflow, op elk abonnement, en een monitor waarvan de status Zabbix volgt. Er gaat niets terug naar Zabbix. |
 
 Beide krijgen dezelfde JSON van hetzelfde mediatype, dus je kunt met de ene beginnen en later overstappen door één URL in Zabbix te wijzigen.
 
@@ -130,7 +130,7 @@ Zabbix 6.0 leest het API-token uit de body van het verzoek, niet uit de header `
 
 ## Problemen ontvangen met een monitor
 
-Een [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) geeft je een URL, en de criteria ervan bepalen wat elk verzoek doet.
+Een [monitor voor inkomende verzoeken](/docs/monitor/incoming-request-monitor) geeft je een URL, en de criteria ervan bepalen wat elk verzoek doet.
 
 :::steps
 ### De monitor maken

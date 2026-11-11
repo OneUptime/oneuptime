@@ -111,8 +111,9 @@ jest.mock("../../../UI/Utils/Permission", () => {
 
 // Every lookup a component makes comes back marked, in German.
 jest.mock("../../../UI/Utils/Translation", () => {
-  const translatorModule: TranslatorModule =
-    jest.requireActual("../../../Types/Translator") as TranslatorModule;
+  const translatorModule: TranslatorModule = jest.requireActual(
+    "../../../Types/Translator",
+  ) as TranslatorModule;
   const translateString: (value: string | undefined) => string | undefined = (
     value: string | undefined,
   ): string | undefined => {

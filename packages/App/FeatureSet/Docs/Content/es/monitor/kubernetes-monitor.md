@@ -107,10 +107,10 @@ Estos monitores siempre evalúan el **Valor de la métrica**: el valor de la con
 | --- | --- |
 | Promedio | Valor medio en la ventana de tiempo |
 | Suma | Suma de todos los valores |
-| Maximum Value | Valor más alto de la ventana de tiempo |
-| Minimum Value | Valor más bajo de la ventana de tiempo |
-| All Values | Todos los valores deben cumplir el criterio y cubrir toda la ventana de tiempo |
-| Any Value | Al menos un valor debe cumplirlo |
+| Valor máximo | Valor más alto de la ventana de tiempo |
+| Valor mínimo | Valor más bajo de la ventana de tiempo |
+| Todos los valores | Todos los valores deben cumplir el criterio y cubrir toda la ventana de tiempo |
+| Cualquier valor | Al menos un valor debe cumplirlo |
 
 ### Condiciones
 

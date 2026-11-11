@@ -86,7 +86,7 @@ Les critères décident quand l'adresse compte comme en ligne, dégradée ou hor
 
 | Filtre | Conditions | Ce qu'il vérifie |
 | --- | --- | --- |
-| **Is Online** | **Vrai**, **Faux** | Si au moins une requête d'écho a reçu une réponse. |
+| **En ligne** | **Vrai**, **Faux** | Si au moins une requête d'écho a reçu une réponse. |
 | **Temps de réponse (en ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Le temps aller-retour moyen des réponses. |
 | **Perte de paquets (en %)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | La part des cinq requêtes d'écho restées sans réponse. |
 | **Gigue (en ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | L'écart type des temps aller-retour sur les paquets envoyés lors d'une vérification. |
@@ -105,7 +105,7 @@ Les critères sont vérifiés de haut en bas, et le premier qui correspond déci
 
 ### Évaluer sur une période
 
-**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **Is Online**, **Temps de réponse (en ms)**, **Perte de paquets (en %)**, **Gigue (en ms)** et **Délai de la requête dépassé**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
+**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **En ligne**, **Temps de réponse (en ms)**, **Perte de paquets (en %)**, **Gigue (en ms)** et **Délai de la requête dépassé**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
 
 | Agrégation | Correspond quand |
 | --- | --- |
@@ -113,7 +113,7 @@ Les critères sont vérifiés de haut en bas, et le premier qui correspond déci
 | **Toutes les valeurs** | Chaque vérification de la fenêtre remplit la condition. |
 | **Au moins une valeur** | Au moins une vérification de la fenêtre remplit la condition. |
 
-**Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
+L'option **Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
 
 **Délai de la requête dépassé** n'est pas un nombre qu'OneUptime enregistre : OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **Toutes les valeurs** ou **Au moins une valeur**.
 
@@ -131,7 +131,7 @@ Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'el
 
 | Objectif | Filtre | Condition | Valeur |
 | --- | --- | --- | --- |
-| Hors ligne quand l'adresse est injoignable | **Is Online** | **Faux** | — |
+| Hors ligne quand l'adresse est injoignable | **En ligne** | **Faux** | — |
 | Alerter quand la latence est élevée | **Temps de réponse (en ms)** | **Supérieur à** | `100` |
 | Marquer l'adresse dégradée sur un lien qui perd des paquets | **Perte de paquets (en %)** | **Supérieur à** | `20` |
 | Alerter sur une connexion instable | **Gigue (en ms)** | **Supérieur à** | `30` |

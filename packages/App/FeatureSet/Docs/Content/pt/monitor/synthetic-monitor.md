@@ -128,7 +128,7 @@ Os dados retornados pelo script são serializados em JSON antes de serem armazen
 
 ### Alertar sobre os dados retornados
 
-O que o script retorna como `data` é o **Valor do resultado** do monitor, que um critério pode comparar. Quando `data` é um objeto ou um array, preencha **Caminho do campo (opcional)** no filtro Result Value para comparar um campo dele: por exemplo `status`, `timings.loadTime` ou `errors[0].message`. O filtro é verificado com os dados de cada navegador e tamanho de tela em que o monitor roda, e corresponde quando qualquer um deles corresponde. Veja [Alertar sobre os dados retornados](/docs/monitor/custom-code-monitor#alertar-sobre-os-dados-retornados) para entender como funcionam caminhos e condições.
+O que o script retorna como `data` é o **Valor do resultado** do monitor, que um critério pode comparar. Quando `data` é um objeto ou um array, preencha **Caminho do campo (opcional)** no filtro Valor do resultado para comparar um campo dele: por exemplo `status`, `timings.loadTime` ou `errors[0].message`. O filtro é verificado com os dados de cada navegador e tamanho de tela em que o monitor roda, e corresponde quando qualquer um deles corresponde. Veja [Alertar sobre os dados retornados](/docs/monitor/custom-code-monitor#alertar-sobre-os-dados-retornados) para entender como funcionam caminhos e condições.
 
 ## Capturas de tela
 

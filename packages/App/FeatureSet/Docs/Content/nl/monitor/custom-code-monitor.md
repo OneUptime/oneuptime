@@ -185,9 +185,9 @@ De standaardcriteria markeren de monitor als online als **Fout** leeg is, en als
 
 ### Waarschuwen op de teruggegeven gegevens
 
-Wat het script als `data` teruggeeft, is de **Resultaatwaarde** van de monitor, en een criterium kan die vergelijken: bijvoorbeeld _Result Value is Gelijk aan `UP`_.
+Wat het script als `data` teruggeeft, is de **Resultaatwaarde** van de monitor, en een criterium kan die vergelijken: bijvoorbeeld _Resultaatwaarde is Gelijk aan `UP`_.
 
-Is `data` een object of een array, vul dan **Veldpad (optioneel)** in op het Result Value-filter om één veld ervan te vergelijken in plaats van de hele waarde. Gebruik punten voor geneste velden en `[n]` voor array-elementen:
+Is `data` een object of een array, vul dan **Veldpad (optioneel)** in op het Resultaatwaarde-filter om één veld ervan te vergelijken in plaats van de hele waarde. Gebruik punten voor geneste velden en `[n]` voor array-elementen:
 
 ```javascript
 const response = await axios.get("https://api.example.com/health");

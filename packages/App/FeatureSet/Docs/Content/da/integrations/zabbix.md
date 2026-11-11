@@ -3,7 +3,7 @@
 Send [Zabbix](https://www.zabbix.com)-problemer til OneUptime, så hvert problem bliver en hændelse, der kalder dit vagthold op og løses, når Zabbix er kommet sig. Færdige workflow-skabeloner holder begge sider i takt: det, folk gør i Zabbix, noteres på hændelsen, og at bekræfte eller løse hændelsen bekræfter eller lukker problemet i Zabbix. Zabbix sender hvert problem via en webhook-medietype, så der er intet at installere på nogen af siderne.
 
 :::cards
-- [Vælg, hvordan OneUptime modtager problemer](#vælg-hvordan-oneuptime-modtager-problemer): Workflow-skabeloner eller en Incoming Request-monitor.
+- [Vælg, hvordan OneUptime modtager problemer](#vælg-hvordan-oneuptime-modtager-problemer): Workflow-skabeloner eller en monitor for indgående anmodninger.
 - [Start med skabelonerne](#start-med-skabelonerne): Seks skabeloner, hvad de gør, og hvad de beder om.
 - [Konfigurer Zabbix](#konfigurer-zabbix): En medietype, en bruger og en handling.
 - [Fejlfinding](#fejlfinding): Når problemer ikke kommer frem, eller hændelser forbliver åbne.
@@ -37,7 +37,7 @@ Sæt OneUptime op først: det giver dig den URL, som Zabbix sender til.
 | Måde | Brug den, når |
 | --- | --- |
 | Workflow-skabelonerne (anbefales) | Du vil have hvert problem som en hændelse eller en advarsel med dets Zabbix-alvorlighed, med vagten kaldt op for High og Disaster, løst ved gendannelse, med det, folk gør i Zabbix, noteret på den, og Zabbix bekræftet eller lukket fra OneUptime. |
-| En Incoming Request-monitor | Du vil have hændelser uden et workflow, på enhver plan, og en monitor, hvis status følger Zabbix. Intet går tilbage til Zabbix. |
+| En monitor for indgående anmodninger | Du vil have hændelser uden et workflow, på enhver plan, og en monitor, hvis status følger Zabbix. Intet går tilbage til Zabbix. |
 
 Begge får den samme JSON fra den samme medietype, så du kan starte med den ene og skifte senere ved at ændre én URL i Zabbix.
 
@@ -130,7 +130,7 @@ Zabbix 6.0 læser API-tokenet fra anmodningens brødtekst, ikke fra headeren `Au
 
 ## Modtag problemer med en monitor
 
-En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) giver dig en URL, og dens kriterier afgør, hvad hver anmodning gør.
+En [monitor for indgående anmodninger](/docs/monitor/incoming-request-monitor) giver dig en URL, og dens kriterier afgør, hvad hver anmodning gør.
 
 :::steps
 ### Opret monitoren

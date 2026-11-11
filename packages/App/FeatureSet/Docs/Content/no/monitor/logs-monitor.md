@@ -104,7 +104,7 @@ Hver statusendring registreres med årsaken på monitorens **Statustidslinje**.
 
 ## Kriterier
 
-Kriteriene til en loggmonitor har én **Filtertype**: **Log Count**, antallet logger som samsvarte i vinduet. **Når det skal varsles** setter opp ett kriterium, der **Betingelse** er **Mer enn**, **Minst**, **Færre enn**, **Høyst**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav** eller **Uvanlig høy eller lav**. For flere kriterier, eller ett med mer enn ett filter, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har et **Filtervilkår** og, for et tersklevilkår, en **Verdi**.
+Kriteriene til en loggmonitor har én **Filtertype**: **Antall logger**, antallet logger som samsvarte i vinduet. **Når det skal varsles** setter opp ett kriterium, der **Betingelse** er **Mer enn**, **Minst**, **Færre enn**, **Høyst**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav** eller **Uvanlig høy eller lav**. For flere kriterier, eller ett med mer enn ett filter, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har et **Filtervilkår** og, for et tersklevilkår, en **Verdi**.
 
 | Filtervilkår | Samsvarer når antallet logger er… |
 | --- | --- |
@@ -131,8 +131,8 @@ En loggmonitor som er opprettet via API-et eller Terraform uten kriterier, start
 
 | Kriterium | Filter | Virkning |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Lik** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
-| Check if … is online | **Log Count** **Større enn** `0` | Setter monitoren som tilkoblet |
+| Check if … is offline | **Antall logger** **Lik** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
+| Check if … is online | **Antall logger** **Større enn** `0` | Setter monitoren som tilkoblet |
 
 ## Gjennomgått eksempel: en økning i feil
 
@@ -244,7 +244,7 @@ Antallet var 0, så filtrene samsvarer ikke med noen av loggene tjenesten sender
 :::
 
 :::details Det var en økning, men ingenting varslet
-Kriteriene sjekkes fra topp til bunn, og det første treffet avgjør. Et bredt kriterium over det du forventet, som **Log Count** **Større enn** `0`, samsvarer først og stopper resten. Legg det mest alvorlige kriteriet øverst.
+Kriteriene sjekkes fra topp til bunn, og det første treffet avgjør. Et bredt kriterium over det du forventet, som **Antall logger** **Større enn** `0`, samsvarer først og stopper resten. Legg det mest alvorlige kriteriet øverst.
 :::
 
 :::details Et avvikskriterium utløses aldri

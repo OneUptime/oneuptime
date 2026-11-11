@@ -344,7 +344,11 @@ describe("who may set up a Security Hunt rule", () => {
 });
 
 describe("the kinds of rule that only post", () => {
-  test("a security case and a hunt, which get no channel of their own; every other kind of record may", () => {
+  /*
+   * An SLO's rules post its error budget policy's changes to channels and
+   * chats that exist (SloWorkspaceNotifications), as a case's and a hunt's do.
+   */
+  test("a security case, a hunt and an SLO's error budget policy, which get no channel of their own; every other kind of record may", () => {
     expect(
       Object.values(NotificationRuleEventType).filter(
         (eventType: NotificationRuleEventType): boolean => {
@@ -354,6 +358,7 @@ describe("the kinds of rule that only post", () => {
     ).toEqual([
       NotificationRuleEventType.SecurityCase,
       NotificationRuleEventType.SecurityHunt,
+      NotificationRuleEventType.ServiceLevelObjective,
     ]);
     expect(isPostOnlyNotificationRuleEventType(undefined)).toBe(false);
   });
