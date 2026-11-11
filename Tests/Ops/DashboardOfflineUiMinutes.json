@@ -119,6 +119,7 @@
     "test-status-timeline-ui": 2.2,
     "test-storage-array-pages-ui": 1.4,
     "test-suite-helpers-ui": 0.5,
+    "test-test-page-ui": 0.7,
     "test-topology-ui": 2.7,
     "test-trace-detail-ui": 2.5,
     "test-traces-ai-ui": 2.0,

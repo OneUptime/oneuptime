@@ -360,8 +360,12 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
           ) || ""
         }
         onClose={props.onClose}
-        submitButtonText={translator.translateText("Done") || "Done"}
-        onSubmit={props.onClose}
+        /*
+         * One button, Done: a Cancel beside it would read as cancelling the
+         * test, which closing the dialog does not do.
+         */
+        closeButtonText="Done"
+        closeButtonStyleType={ButtonStyleType.PRIMARY}
         modalWidth={ModalWidth.Medium}
       >
         <TestPageResult

@@ -1,5 +1,5 @@
 import AppLink from "../AppLink/AppLink";
-import RouteMap from "../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import OnCallTestPageApi from "./OnCallTestPageApi";
 import {
   ACKNOWLEDGED_BY_SENTENCES,
@@ -167,7 +167,7 @@ const DeliveryLine: FunctionComponent<{
       )}
       {fix ? (
         <AppLink
-          to={RouteMap[fix.pageMap] as Route}
+          to={RouteUtil.populateRouteParams(RouteMap[fix.pageMap] as Route)}
           className="inline-flex w-fit items-center gap-1 text-sm font-medium text-indigo-700 hover:text-indigo-800"
         >
           <>

@@ -364,6 +364,7 @@
     "{{count}} Kubernetes",
     "{{count}} MB",
     "{{count}} SLO",
+    "{{count}} SMS",
     "{{count}} VM",
     "{{count}} alarm",
     "{{count}} app",
