@@ -3,7 +3,7 @@
 Stuur waarschuwingen van [Datadog](https://www.datadoghq.com)-monitors naar OneUptime, zodat elke waarschuwing een incident of een waarschuwing wordt, je bereikbaarheidsteam oproept wanneer het urgent is en wordt opgelost wanneer de Datadog-monitor herstelt. Datadog stuurt zijn waarschuwingen via zijn [Webhooks-integratie](https://docs.datadoghq.com/integrations/webhooks/), dus aan geen van beide kanten hoef je iets te installeren.
 
 :::cards
-- [Kiezen hoe OneUptime waarschuwingen ontvangt](#kiezen-hoe-oneuptime-waarschuwingen-ontvangt): Een workflowsjabloon of een Incoming Request-monitor.
+- [Kiezen hoe OneUptime waarschuwingen ontvangt](#kiezen-hoe-oneuptime-waarschuwingen-ontvangt): Een workflowsjabloon of een monitor voor inkomende verzoeken.
 - [Beginnen met het sjabloon](#beginnen-met-het-sjabloon): Kies wie je oproept, kopieer de URL en zie wat elke waarschuwing doet.
 - [Waarschuwingen ontvangen met een monitor](#waarschuwingen-ontvangen-met-een-monitor): Eén incident per waarschuwing, opgelost bij herstel.
 - [Datadog configureren](#datadog-configureren): Een webhook, en de monitors die hem melden.
@@ -36,7 +36,7 @@ Stel eerst OneUptime in: dat geeft je de URL waar Datadog naartoe stuurt.
 | Weg | Gebruik hem als |
 | --- | --- |
 | Het workflowsjabloon (aanbevolen) | Je wilt elke waarschuwing als een incident of een waarschuwing met een ernst die volgt uit de prioriteit van de monitor, met de dienst opgeroepen voor P1 en P2, met waarschuwingsniveaus erop genoteerd, en opgelost bij herstel. Er valt niets te bouwen. |
-| Een Incoming Request-monitor | Je wilt incidenten zonder workflow, op elk abonnement, en een monitor waarvan de status Datadog volgt. |
+| Een monitor voor inkomende verzoeken | Je wilt incidenten zonder workflow, op elk abonnement, en een monitor waarvan de status Datadog volgt. |
 
 Beide krijgen dezelfde JSON van dezelfde webhook, dus je kunt met de ene beginnen en later overstappen door één URL in Datadog te wijzigen.
 
@@ -86,7 +86,7 @@ Met eigen ernstniveaus gaan P1, P2 en geen prioriteit naar je ernstigste, P3 naa
 
 ## Waarschuwingen ontvangen met een monitor
 
-Een [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) geeft je een URL, en zijn criteria bepalen wat elke waarschuwing doet.
+Een [monitor voor inkomende verzoeken](/docs/monitor/incoming-request-monitor) geeft je een URL, en zijn criteria bepalen wat elke waarschuwing doet.
 
 :::steps
 ### De monitor maken

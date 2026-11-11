@@ -73,8 +73,8 @@ Kriterien entscheiden, wann das Zertifikat als in Ordnung, beeinträchtigt oder 
 
 | Filter | Bedingungen | Was er prüft |
 | --- | --- | --- |
-| **Is Valid Certificate** | **Wahr**, **Falsch** | Das Zertifikat besteht die Prüfungen eines Browsers: eine vertrauenswürdige ausstellende Stelle, ein passender Hostname und ein Gültigkeitszeitraum, der heute einschließt. **Falsch**, wenn der Endpunkt nicht geantwortet hat. |
-| **Zertifikat ist ungültig** | **Wahr**, **Falsch** | Das Gegenteil von **Is Valid Certificate**: **Wahr**, wenn das Zertifikat diese Prüfungen nicht besteht oder nicht geprüft werden konnte. |
+| **Zertifikat ist gültig** | **Wahr**, **Falsch** | Das Zertifikat besteht die Prüfungen eines Browsers: eine vertrauenswürdige ausstellende Stelle, ein passender Hostname und ein Gültigkeitszeitraum, der heute einschließt. **Falsch**, wenn der Endpunkt nicht geantwortet hat. |
+| **Zertifikat ist ungültig** | **Wahr**, **Falsch** | Das Gegenteil von **Zertifikat ist gültig**: **Wahr**, wenn das Zertifikat diese Prüfungen nicht besteht oder nicht geprüft werden konnte. |
 | **Zertifikat ist abgelaufen** | **Wahr**, **Falsch** | Das Ablaufdatum des Zertifikats ist überschritten. |
 | **Zertifikat ist selbstsigniert** | **Wahr**, **Falsch** | Das Zertifikat oder eines in seiner Kette ist selbstsigniert. |
 | **Tage bis zum Ablauf** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Tage, bis das Zertifikat abläuft. |
@@ -102,7 +102,7 @@ Um früher gewarnt zu werden, ändern Sie den Wert des Filters **Tage bis zum Ab
 Monitore, die erstellt wurden, bevor OneUptime diese Warnung eingeführt hat, haben kein Kriterium „läuft bald ab“. So fügen Sie es hinzu:
 
 1. Öffnen Sie beim Monitor **Konfiguration → Kriterien** und klicken Sie auf **Überwachungskriterien bearbeiten**.
-2. Klicken Sie auf **Kriterien hinzufügen**. Setzen Sie seinen Filter auf **Is Valid Certificate** / **Wahr**, klicken Sie auf **Filter hinzufügen** und setzen Sie den zweiten auf **Tage bis zum Ablauf** / **Kleiner als oder gleich** / `14`. Lassen Sie **Abgleichsbedingung** auf **Alle** (es erscheint unter den Filtern, sobald es zwei sind).
+2. Klicken Sie auf **Kriterien hinzufügen**. Setzen Sie seinen Filter auf **Zertifikat ist gültig** / **Wahr**, klicken Sie auf **Filter hinzufügen** und setzen Sie den zweiten auf **Tage bis zum Ablauf** / **Kleiner als oder gleich** / `14`. Lassen Sie **Abgleichsbedingung** auf **Alle** (es erscheint unter den Filtern, sobald es zwei sind).
 3. Schalten Sie unter **Aktionen** **Wenn Filter übereinstimmen, eine Warnung erstellen.** ein und lassen Sie **Wenn Filter übereinstimmen, Monitorstatus ändern.** ausgeschaltet, sodass es eine Warnung erstellt und den Monitorstatus nicht ändert.
 4. Ziehen Sie das neue Kriterium über das Kriterium, das den Monitor als online markiert, und speichern Sie dann.
 :::
@@ -136,7 +136,7 @@ Ein selbstsigniertes Zertifikat ist nie gültig, daher halten die Standardkriter
 
 1. Klicken Sie im Kriterium „nicht gültig“ auf **Filter hinzufügen**, setzen Sie den neuen Filter auf **Zertifikat ist selbstsigniert** / **Falsch** und setzen Sie **Abgleichsbedingung** auf **Alle**. Das Kriterium nimmt den Monitor weiterhin offline, wenn der Endpunkt nicht antwortet oder das Zertifikat auf andere Weise fehlerhaft ist.
 2. Fügen Sie ein Kriterium mit **Zertifikat ist abgelaufen** / **Wahr** hinzu, das den Monitor als **Offline** markiert und einen Vorfall meldet, und ziehen Sie es nach oben.
-3. Ersetzen Sie im Kriterium „läuft bald ab“ **Is Valid Certificate** / **Wahr** durch **Zertifikat ist abgelaufen** / **Falsch**, sodass die Warnung auch das selbstsignierte Zertifikat abdeckt.
+3. Ersetzen Sie im Kriterium „läuft bald ab“ **Zertifikat ist gültig** / **Wahr** durch **Zertifikat ist abgelaufen** / **Falsch**, sodass die Warnung auch das selbstsignierte Zertifikat abdeckt.
 
 Solange das Zertifikat aktuell ist, trifft kein Kriterium zu, und der Monitor zeigt seinen Standardstatus, **Betriebsbereit**.
 :::

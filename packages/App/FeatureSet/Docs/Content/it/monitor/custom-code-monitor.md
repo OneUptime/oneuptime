@@ -185,9 +185,9 @@ I criteri predefiniti segnano il monitor online quando **Errore** è vuoto, e of
 
 ### Avvisi sui dati restituiti
 
-Ciò che lo script restituisce come `data` è il **Valore del risultato** del monitor, e un criterio può confrontarlo: per esempio _Result Value è Uguale a `UP`_.
+Ciò che lo script restituisce come `data` è il **Valore del risultato** del monitor, e un criterio può confrontarlo: per esempio _Valore del risultato è Uguale a `UP`_.
 
-Quando `data` è un oggetto o un array, compilate **Percorso del campo (facoltativo)** nel filtro Result Value per confrontare uno dei suoi campi invece del valore intero. Usate i punti per i campi annidati e `[n]` per gli elementi di un array:
+Quando `data` è un oggetto o un array, compilate **Percorso del campo (facoltativo)** nel filtro Valore del risultato per confrontare uno dei suoi campi invece del valore intero. Usate i punti per i campi annidati e `[n]` per gli elementi di un array:
 
 ```javascript
 const response = await axios.get("https://api.example.com/health");

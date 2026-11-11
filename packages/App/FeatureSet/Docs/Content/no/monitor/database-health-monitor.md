@@ -402,7 +402,7 @@ For å lese én metrikk i et uttrykk skriver du serienavnet med punktum inne i k
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
 ```
 
-For en terskel på én enkelt metrikk bør du bruke **Databasemetrikk** fremfor et uttrykk: det slår opp serien for deg, tilbyr bare det motoren din kan levere, og hopper over kontrollen når verdien ikke ble samlet inn, i stedet for å sammenligne med ingenting.
+For en terskel på én enkelt metrikk bør du bruke **Databasemetrikk** fremfor et uttrykk: den slår opp serien for deg, tilbyr bare det motoren din kan levere, og hopper over kontrollen når verdien ikke ble samlet inn, i stedet for å sammenligne med ingenting.
 
 ### Eksempel: en primær PostgreSQL-server
 

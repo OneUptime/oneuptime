@@ -128,7 +128,7 @@ Data, der returneres fra scriptet, serialiseres til JSON, før de gemmes: i almi
 
 ### Advarsler på de returnerede data
 
-Det, scriptet returnerer som `data`, er monitorens **Resultatværdi**, som et kriterium kan sammenligne. Når `data` er et objekt eller et array, skal du udfylde **Feltsti (valgfri)** på Result Value-filteret for at sammenligne ét felt — for eksempel `status`, `timings.loadTime` eller `errors[0].message`. Filteret tjekkes mod dataene fra hver browser og skærmstørrelse, monitoren kører på, og matcher, når en af dem gør. Se [Advarsler på de returnerede data](/docs/monitor/custom-code-monitor#advarsler-på-de-returnerede-data) for, hvordan stier og betingelser virker.
+Det, scriptet returnerer som `data`, er monitorens **Resultatværdi**, som et kriterium kan sammenligne. Når `data` er et objekt eller et array, skal du udfylde **Feltsti (valgfri)** på Resultatværdi-filteret for at sammenligne ét felt — for eksempel `status`, `timings.loadTime` eller `errors[0].message`. Filteret tjekkes mod dataene fra hver browser og skærmstørrelse, monitoren kører på, og matcher, når en af dem gør. Se [Advarsler på de returnerede data](/docs/monitor/custom-code-monitor#advarsler-på-de-returnerede-data) for, hvordan stier og betingelser virker.
 
 ## Skærmbilleder
 

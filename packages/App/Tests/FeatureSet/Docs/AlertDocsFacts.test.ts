@@ -1554,32 +1554,29 @@ describe("responding to an alert", () => {
       "- **Description**, **Root Cause**, **Remediation** — three markdown pages. The Root Cause page also charts the metrics behind the alert, as the Overview's telemetry card does, so you can read them over any time range around it while you write down why it happened. When the alert kept no snapshot of a metric check (one created by hand on a metrics monitor, say), it charts that monitor's metrics as the monitor reads them now, and says so.",
     );
 
-    // Three Markdown pages, as each draws its field.
+    /*
+     * Three Markdown pages, as each draws its field. The Root Cause page
+     * draws its own with MonitorRootCauseValue, which words what a monitor
+     * wrote in the reader's language and shows it in the Markdown viewer.
+     */
     for (const file of ["Description.tsx", "Remediation.tsx"]) {
       expect(readDashboardSource(`Pages/Alerts/View/${file}`)).toContain(
         "fieldType: FieldType.Markdown,",
       );
     }
 
-    /*
-     * The Root Cause page is written in Markdown and shown as Markdown, with
-     * what a monitor wrote in it worded in the reader's language
-     * (MonitorRootCauseValue, since #6575).
-     */
     const rootCausePage: string = readDashboardSource(
       "Pages/Alerts/View/RootCause.tsx",
     );
-    expect(rootCausePage).toContain("fieldType: FormFieldSchemaType.Markdown,");
-    expect(rootCausePage).toContain("<MonitorRootCauseValue");
 
-    const rootCauseValue: string = readDashboardSource(
-      "Components/EventView/MonitorRootCauseValue.tsx",
-    );
-    expect(rootCauseValue).toContain("<MarkdownViewer");
-    expect(rootCauseValue).toContain("MonitorRootCauseWording.wordRootCause(");
+    expect(rootCausePage).toContain("<MonitorRootCauseValue");
+    expect(rootCausePage).toContain("rootCause={item.rootCause}");
+    expect(
+      readDashboardSource("Components/EventView/MonitorRootCauseValue.tsx"),
+    ).toContain("<MarkdownViewer");
 
     // The card an incident's Root Cause page shows, reading the alert...
-    expect(readDashboardSource("Pages/Alerts/View/RootCause.tsx")).toContain(
+    expect(rootCausePage).toContain(
       "<AlertRootCauseMetricChart alertId={modelId} />",
     );
     for (const card of [

@@ -185,9 +185,9 @@ Los criterios predeterminados marcan el monitor en línea cuando **Error** está
 
 ### Alertar sobre los datos devueltos
 
-Lo que el script devuelve como `data` es el **Valor del resultado** del monitor, y un criterio puede compararlo; por ejemplo, _Result Value es Igual a `UP`_.
+Lo que el script devuelve como `data` es el **Valor del resultado** del monitor, y un criterio puede compararlo; por ejemplo, _Valor del resultado es Igual a `UP`_.
 
-Cuando `data` es un objeto o un array, rellene **Ruta del campo (opcional)** en el filtro Result Value para comparar uno de sus campos en lugar del valor completo. Use puntos para los campos anidados y `[n]` para los elementos de un array:
+Cuando `data` es un objeto o un array, rellene **Ruta del campo (opcional)** en el filtro Valor del resultado para comparar uno de sus campos en lugar del valor completo. Use puntos para los campos anidados y `[n]` para los elementos de un array:
 
 ```javascript
 const response = await axios.get("https://api.example.com/health");

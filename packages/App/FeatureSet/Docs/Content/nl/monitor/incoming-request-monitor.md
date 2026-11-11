@@ -47,7 +47,7 @@ Gebruik hem om:
 
 Ga naar **Monitoren** en klik op **Monitor maken**.
 
-### Incoming Request kiezen
+### Inkomende aanvraag kiezen
 
 Kies onder **Monitortype** de optie **Inkomende aanvraag**: dat is een van de gangbare typen bovenaan. Voer een **Naam** in en klik op **Volgende**.
 
@@ -211,11 +211,11 @@ Verander de waarde in wat uw afzender werkelijk stuurt (`"status":"firing"`, `FA
 
 | Filtertype | Controleert | Opmerkingen |
 | --------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| Incoming Request | Of er binnen een tijdvenster een verzoek is ontvangen | De enige controle die kan afgaan als er niets binnenkomt |
+| Inkomende aanvraag | Of er binnen een tijdvenster een verzoek is ontvangen | De enige controle die kan afgaan als er niets binnenkomt |
 | Verzoeklichaam | De body van het verzoek | Zoeken naar een deeltekenreeks. Object-bodies worden als compacte JSON vergeleken |
-| Request Header | De namen van de verzoekheaders | Exacte vergelijking met een hele headernaam, zonder op hoofdletters te letten |
-| Request Header Value | De waarden van de verzoekheaders | Exacte vergelijking met een hele headerwaarde, zonder op hoofdletters te letten |
-| JavaScript Expression | Elke expressie over `requestBody` en `requestHeaders` | De flexibelste optie: zie [JavaScript-expressies](/docs/monitor/javascript-expression) |
+| Aanvraagheader | De namen van de verzoekheaders | Exacte vergelijking met een hele headernaam, zonder op hoofdletters te letten |
+| Waarde van aanvraagheader | De waarden van de verzoekheaders | Exacte vergelijking met een hele headerwaarde, zonder op hoofdletters te letten |
+| JavaScript-expressie | Elke expressie over `requestBody` en `requestHeaders` | De flexibelste optie: zie [JavaScript-expressies](/docs/monitor/javascript-expression) |
 
 ### Filtervoorwaarden
 
@@ -223,7 +223,7 @@ Elk filtertype heeft zijn eigen voorwaarden:
 
 | Filtertype | Voorwaarden |
 | --- | --- |
-| **Inkomende aanvraag** | **Ontvangen in minuten**: binnen het opgegeven aantal minuten is een verzoek ontvangen. **Niet ontvangen in minuten**: binnen het opgegeven aantal minuten is geen verzoek ontvangen. (Het dashboard spelt ze zo.) |
+| **Inkomende aanvraag** | **Ontvangen in minuten**: binnen het opgegeven aantal minuten is een verzoek ontvangen. **Niet ontvangen in minuten**: binnen het opgegeven aantal minuten is geen verzoek ontvangen. |
 | **Verzoeklichaam**, **Aanvraagheader**, **Waarde van aanvraagheader** | **Bevat** en **Bevat niet** |
 | **JavaScript-expressie** | **Resulteert in waar** |
 
@@ -238,7 +238,7 @@ Object-bodies worden vergeleken als compacte JSON zonder spaties, dus een filter
 
 | Veld | Waarde |
 | --- | --- |
-| **Filtertype** | Incoming Request |
+| **Filtertype** | Inkomende aanvraag |
 | **Filtervoorwaarde** | Niet ontvangen in minuten |
 | **Waarde** | `10` |
 
@@ -254,7 +254,7 @@ Object-bodies worden vergeleken als compacte JSON zonder spaties, dus een filter
 > Zet de dodemansknop **boven** de standaardcriteria. Criteria worden van boven af getoetst, en het eerste dat overeenkomt, beslist. De controle op de achtergrond leest het laatste verzoek opnieuw, dus het standaard online-criterium ("Verzoeklichaam Bevat niet `error`") blijft ermee overeenkomen, en een criterium eronder komt nooit aan de beurt. **Criteria toevoegen** voegt een criterium onderaan toe: sleep het omhoog.
 
 > [!WARNING]
-> Een monitor wordt alleen op de achtergrond opnieuw getoetst als ten minste één van zijn criteria **Inkomende aanvraag** controleert. Een monitor waarvan de criteria alleen het verzoeklichaam, Request Header of een JavaScript-expressie controleren, wordt getoetst als er een verzoek binnenkomt en op geen ander moment, dus hij kan nooit vanzelf offline gaan. Wilt u een alarm bij een ontbrekende heartbeat, dan hebt u een criterium **Inkomende aanvraag** nodig.
+> Een monitor wordt alleen op de achtergrond opnieuw getoetst als ten minste één van zijn criteria **Inkomende aanvraag** controleert. Een monitor waarvan de criteria alleen het verzoeklichaam, Aanvraagheader of een JavaScript-expressie controleren, wordt getoetst als er een verzoek binnenkomt en op geen ander moment, dus hij kan nooit vanzelf offline gaan. Wilt u een alarm bij een ontbrekende heartbeat, dan hebt u een criterium **Inkomende aanvraag** nodig.
 
 De controle op de achtergrond telt hele minuten en gaat af zodra er *meer* dan de waarde verstreken is: "Niet ontvangen in minuten: 10" gaat ongeveer 11 minuten na het laatste verzoek af (de controle draait elke 30 seconden). Een monitor die nog nooit een verzoek heeft ontvangen, wordt behandeld alsof zijn aanmaaktijd het laatste verzoek was, dus hetzelfde criterium op een gloednieuwe monitor gaat ongeveer 11 minuten na het aanmaken af, ook als de afzender nooit is aangesloten. Alleen minuten waarin OneUptime ontving, tellen mee: minuten waarin OneUptime zelf herstart, wordt bijgewerkt of een achterstand inhaalt, tellen niet, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.
 
@@ -367,7 +367,7 @@ Alleen een criterium **Inkomende aanvraag** (**Niet ontvangen in minuten**) kan 
 Stuur `Content-Type: application/json`, en schrijf de waarde als compacte JSON: `"status":"firing"`, zonder spatie na de dubbele punt. Zonder JSON- of formuliercontenttype wordt de body niet geparst.
 :::
 
-:::details Een filter Request Header komt nooit overeen
+:::details Een filter Aanvraagheader komt nooit overeen
 Headernamen en -waarden worden in hun geheel vergeleken. Geef de volledige waarde, zoals `application/json; charset=utf-8`, in plaats van een deel ervan.
 :::
 

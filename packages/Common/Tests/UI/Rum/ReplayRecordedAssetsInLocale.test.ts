@@ -127,7 +127,11 @@ describe("formatReplayAssetFailureDescription in the reader's language", () => {
   it("writes the English word for word without a translator", () => {
     expect(
       formatReplayAssetFailureDescription(
-        summary({ images: 1, stylesheets: 1, hosts: ["a.example", "b.example"] }),
+        summary({
+          images: 1,
+          stylesheets: 1,
+          hosts: ["a.example", "b.example"],
+        }),
       ),
     ).toBe(
       "Recordings keep the address of each image, and of each stylesheet the recorder could not read, rather than the file itself, so the replay loads them from the recorded site while you watch. These, from a.example and b.example, did not load in your browser: they may need the user's sign-in, the site may refuse to serve them to other sites, a signed link may have expired, the files are gone, or something in your browser, such as an ad or tracker blocker, refused them. The user may still have seen them.",
@@ -151,9 +155,11 @@ describe("buildReplayPlaybackAssetNotes in the reader's language", () => {
       MARKING,
     );
 
-    expect(notes.map((note: ReplayPlaybackAssetNote): string => {
-      return note.title;
-    })).toEqual([
+    expect(
+      notes.map((note: ReplayPlaybackAssetNote): string => {
+        return note.title;
+      }),
+    ).toEqual([
       "⟦2 images didn't load in this replay⟧",
       "⟦Images and web fonts are not loaded⟧",
     ]);

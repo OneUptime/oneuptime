@@ -104,7 +104,7 @@ Ogni cambio di stato, con il suo motivo, viene registrato nella **Cronologia di 
 
 ## Criteri
 
-I criteri di un monitor log hanno un solo **Tipo di filtro**: **Log Count**, il numero di log che hanno corrisposto nella finestra. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso** o **Insolitamente alto o basso**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e, per una condizione di soglia, un **Valore**.
+I criteri di un monitor log hanno un solo **Tipo di filtro**: **Numero di log**, il numero di log che hanno corrisposto nella finestra. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso** o **Insolitamente alto o basso**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e, per una condizione di soglia, un **Valore**.
 
 | Condizione del filtro | Corrisponde quando il conteggio dei log è… |
 | --- | --- |
@@ -131,8 +131,8 @@ Un monitor log creato tramite l'API o Terraform senza criteri parte con questi c
 
 | Criterio | Filtro | Effetto |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Uguale a** `0` | Mette il monitor offline e dichiara un incidente, risolto automaticamente |
-| Check if … is online | **Log Count** **Maggiore di** `0` | Mette il monitor online |
+| Check if … is offline | **Numero di log** **Uguale a** `0` | Mette il monitor offline e dichiara un incidente, risolto automaticamente |
+| Check if … is online | **Numero di log** **Maggiore di** `0` | Mette il monitor online |
 
 ## Esempio pratico: un picco di errori
 
@@ -244,7 +244,7 @@ Il conteggio era 0, quindi i filtri non corrispondono a nessuno dei log che il s
 :::
 
 :::details C'è stato un picco, ma nessun avviso
-I criteri vengono controllati dall'alto verso il basso e decide la prima corrispondenza. Un criterio ampio sopra quello che vi aspettavate, come **Log Count** **Maggiore di** `0`, corrisponde per primo e ferma gli altri. Mettete in cima il criterio più grave.
+I criteri vengono controllati dall'alto verso il basso e decide la prima corrispondenza. Un criterio ampio sopra quello che vi aspettavate, come **Numero di log** **Maggiore di** `0`, corrisponde per primo e ferma gli altri. Mettete in cima il criterio più grave.
 :::
 
 :::details Un criterio di anomalia non scatta mai

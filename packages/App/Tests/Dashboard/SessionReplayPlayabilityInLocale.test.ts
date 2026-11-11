@@ -179,7 +179,11 @@ describe("the badge's facts in the reader's language", () => {
 
   test("describeTriggerReason words each reason, the sample's share in place", () => {
     expect(
-      describeTriggerReason(SessionReplayTriggerReason.Error, undefined, MARKING),
+      describeTriggerReason(
+        SessionReplayTriggerReason.Error,
+        undefined,
+        MARKING,
+      ),
     ).toBe("⟦On error⟧");
     expect(
       describeTriggerReason(
@@ -196,7 +200,11 @@ describe("the badge's facts in the reader's language", () => {
       ),
     ).toBe("⟦Slow page⟧");
     expect(
-      describeTriggerReason(SessionReplayTriggerReason.Manual, undefined, MARKING),
+      describeTriggerReason(
+        SessionReplayTriggerReason.Manual,
+        undefined,
+        MARKING,
+      ),
     ).toBe("⟦Manual⟧");
     expect(
       describeTriggerReason(SessionReplayTriggerReason.Sampled, 100, MARKING),

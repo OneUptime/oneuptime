@@ -17,8 +17,8 @@ DNS 監測器會依排程查詢一筆 DNS 記錄並檢查回應：名稱能否�
 flowchart TB
     query["查詢記錄類型"] --> answer{"回傳了記錄？"}
     answer -->|"否，還有重試次數"| query
-    answer -->|"否，重試次數用完"| offline["DNS Is Online: False"]
-    answer -->|"是"| online["DNS Is Online: True"]
+    answer -->|"否，重試次數用完"| offline["DNS 是否在線: 否"]
+    answer -->|"是"| online["DNS 是否在線: 是"]
     online --> ad["檢查 AD 旗標"]
     ad --> criteria["檢查條件"]
     offline --> criteria
@@ -164,7 +164,7 @@ dig @8.8.8.8 example.com A
 3. 再在其下方新增一個 **DNS 是否在線** / **是** 的條件，將監測器標記為 **離線** 並宣告事件。它只會符合不含該值的回應。
 :::
 
-:::details DNSSEC Is Valid 從不符合
+:::details 「DNSSEC 是否有效」從不符合
 **DNS 伺服器（選用）** 中的伺服器不驗證 DNSSEC，因此從不設定 AD 旗標；或者探測器無法執行該檢查。將該欄位留空即可用 `8.8.8.8` 驗證，或者使用 [DNSSEC 監控](/docs/monitor/dnssec-monitor)。
 :::
 

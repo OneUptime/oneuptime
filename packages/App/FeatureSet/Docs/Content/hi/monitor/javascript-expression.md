@@ -24,7 +24,7 @@ flowchart TB
 
 क्योंकि प्लेसहोल्डर टेक्स्ट के रूप में बदले जाते हैं, `{{responseBody.item}}` कच्चा मान बन जाता है। किसी स्ट्रिंग को JavaScript स्ट्रिंग बनने के लिए उद्धरण चिह्नों में होना चाहिए; किसी संख्या या boolean को नहीं — [उद्धरण चिह्नों के नियम](#उद्धरण-चिह्नों-के-नियम) देखें। अभिव्यक्तियाँ OneUptime सर्वर पर एक अलग-थलग सैंडबॉक्स में चलती हैं।
 
-## JavaScript Expression फ़िल्टर जोड़ें
+## JavaScript एक्सप्रेशन फ़िल्टर जोड़ें
 
 :::steps
 ### मानदंड खोलें
@@ -46,7 +46,7 @@ flowchart TB
 
 ## मॉनिटर प्रकार के अनुसार वेरिएबल
 
-JavaScript अभिव्यक्तियाँ Website, API, Incoming Request, Incoming Email, SQL Query और Database Health मॉनिटर के लिए उपलब्ध हैं।
+JavaScript अभिव्यक्तियाँ Website, API, इनकमिंग अनुरोध, Incoming Email, SQL Query और Database Health मॉनिटर के लिए उपलब्ध हैं।
 
 ### वेबसाइट और API मॉनिटर
 

@@ -17,8 +17,8 @@ Ved hver kontrol beder en sonde en DNS-server om én posttype for ét navn, for 
 flowchart TB
     query["Slå posttypen op"] --> answer{"Poster returneret?"}
     answer -->|"Nej, genforsøg tilbage"| query
-    answer -->|"Nej, ikke flere genforsøg"| offline["DNS Is Online: False"]
-    answer -->|"Ja"| online["DNS Is Online: True"]
+    answer -->|"Nej, ikke flere genforsøg"| offline["DNS er online: Falsk"]
+    answer -->|"Ja"| online["DNS er online: Sand"]
     online --> ad["Kontroller AD-flaget"]
     ad --> criteria["Kontroller kriterierne"]
     offline --> criteria
@@ -164,7 +164,7 @@ dig @8.8.8.8 example.com A
 3. Tilføj under det igen et kriterium med **DNS er online** / **Sand**, der markerer monitoren som **Offline** og erklærer en hændelse. Det matcher kun svar, der ikke har værdien.
 :::
 
-:::details DNSSEC Is Valid matcher aldrig
+:::details DNSSEC er gyldig matcher aldrig
 Serveren i **DNS-server (valgfri)** validerer ikke DNSSEC og sætter derfor aldrig AD-flaget, eller sonden kunne ikke udføre kontrollen. Lad feltet være tomt for at validere med `8.8.8.8`, eller brug en [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
 :::
 

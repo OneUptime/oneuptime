@@ -102,7 +102,7 @@ Selecteer de **Sondes** en een **Bewakingsinterval** — dat begint op **Elke 5 
 
 ### Componenten
 
-Kies de componenten waarvan u afhankelijk bent, en de monitor volgt alleen die: **Componentstatus van externe statuspagina** vergelijkt alleen hun statussen, de algemene status is de slechtste van hun statussen, en **Actieve incidenten van externe statuspagina** telt alleen de incidenten die minstens één van hen raken. Het blijft één controle van de pagina, hoeveel u er ook kiest.
+Kies de componenten waarvan u afhankelijk bent, en de monitor volgt alleen die: **Componentstatus van externe statuspagina** vergelijkt alleen hun statussen, de algemene status is de slechtste van hun statussen, en het filter **Actieve incidenten van externe statuspagina** telt alleen de incidenten die minstens één van hen raken. Het blijft één controle van de pagina, hoeveel u er ook kiest.
 
 Als u **Componenten** opent, leest uw browser de lijst van de pagina van een Atlassian Statuspage, een incident.io-pagina of een OneUptime-statuspagina, en toont die in de groepen van de pagina; elk component dat niet operationeel is, zegt hoe het ermee staat. Een gekozen naam volgt het component met precies die naam, zonder op hoofdletters te letten: `Copilot` op de pagina van GitHub is niet `Copilot AI Model Providers`.
 

@@ -104,7 +104,7 @@ Chaque changement de statut est enregistré, avec sa raison, dans la **Chronolog
 
 ## Critères
 
-Les critères d'un moniteur de journaux ont un seul **Type de filtre** : **Log Count**, le nombre de journaux qui ont correspondu dans la fenêtre. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus**, **Exactement**, **Anormalement haut**, **Anormalement bas** ou **Anormalement haut ou bas**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et, pour une condition de seuil, une **Valeur**.
+Les critères d'un moniteur de journaux ont un seul **Type de filtre** : **Nombre de journaux**, le nombre de journaux qui ont correspondu dans la fenêtre. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus**, **Exactement**, **Anormalement haut**, **Anormalement bas** ou **Anormalement haut ou bas**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et, pour une condition de seuil, une **Valeur**.
 
 | Condition de filtre | Correspond quand le nombre de journaux est… |
 | --- | --- |
@@ -131,8 +131,8 @@ Un moniteur de journaux créé via l'API ou Terraform sans critères commence av
 
 | Critère | Filtre | Effet |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Égal à** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
-| Check if … is online | **Log Count** **Supérieur à** `0` | Passe le moniteur en ligne |
+| Check if … is offline | **Nombre de journaux** **Égal à** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
+| Check if … is online | **Nombre de journaux** **Supérieur à** `0` | Passe le moniteur en ligne |
 
 ## Exemple : un pic d'erreurs
 
@@ -244,7 +244,7 @@ Le décompte valait 0 : les filtres ne correspondent donc à aucun des journaux 
 :::
 
 :::details Un pic s'est produit, mais rien n'a alerté
-Les critères sont vérifiés de haut en bas et la première correspondance décide. Un critère large placé au-dessus de celui que vous attendiez, comme **Log Count** **Supérieur à** `0`, correspond en premier et arrête les autres. Placez le critère le plus grave en haut.
+Les critères sont vérifiés de haut en bas et la première correspondance décide. Un critère large placé au-dessus de celui que vous attendiez, comme **Nombre de journaux** **Supérieur à** `0`, correspond en premier et arrête les autres. Placez le critère le plus grave en haut.
 :::
 
 :::details Un critère d'anomalie ne se déclenche jamais

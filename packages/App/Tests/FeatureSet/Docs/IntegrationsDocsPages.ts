@@ -791,13 +791,13 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
-    [DYNAMICS]: ["⋯", "Access Token Fetched", "`customFields.dynamicsCaseId`."],
     /*
-     * The Alertmanager page's criteria conditions, Recieved In Minutes and
-     * Not Recieved In Minutes, left this list on 2026-11-10: #6575 keyed
-     * them in every language, so every translation names them as its
-     * criteria form draws them.
+     * (The Alertmanager watchdog's conditions, Recieved In Minutes and Not
+     * Recieved In Minutes, were kept too until 31eadaee92e gave them keys,
+     * worded in every language in f155e8e0998: the criteria form draws them
+     * translated, so the page names them as drawn.)
      */
+    [DYNAMICS]: ["⋯", "Access Token Fetched", "`customFields.dynamicsCaseId`."],
     /*
      * What the Security Events connection pages name that no Dashboard
      * locale words: the providers' titles, the connection form's settings

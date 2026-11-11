@@ -137,7 +137,7 @@ Os critérios são verificados de cima para baixo, e o primeiro que corresponde 
 | **Todos os valores** | Cada verificação na janela atende à condição. |
 | **Qualquer valor** | Pelo menos uma verificação na janela atende à condição. |
 
-**Todos os valores** só corresponde quando a janela está realmente coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder com a única leitura que tem. **Qualquer valor** é a configuração para "me avise no momento em que uma única verificação ultrapassar o limite" e continua disparando imediatamente.
+A opção **Todos os valores** só corresponde quando a janela está realmente coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder com a única leitura que tem. **Qualquer valor** é a configuração para "me avise no momento em que uma única verificação ultrapassar o limite" e continua disparando imediatamente.
 
 **Tempo limite da requisição esgotado** não é um número que o OneUptime registre, por isso ele registra se o filtro correspondeu em cada verificação e avalia a janela a partir desse registro com **Todos os valores** ou **Qualquer valor**.
 

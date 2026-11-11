@@ -402,7 +402,7 @@ Para ler uma métrica em uma expressão, escreva o nome da série, com os pontos
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
 ```
 
-Para um limite em uma única métrica, prefira **Métrica do banco de dados** a uma expressão: ele resolve a série para você, só oferece o que o seu mecanismo consegue produzir e ignora a verificação quando o valor não foi coletado, em vez de comparar com nada.
+Para um limite em uma única métrica, prefira **Métrica do banco de dados** a uma expressão: ela resolve a série para você, só oferece o que o seu mecanismo consegue produzir e ignora a verificação quando o valor não foi coletado, em vez de comparar com nada.
 
 ### Exemplo: um primário PostgreSQL
 

@@ -47,7 +47,7 @@ Brug den til at:
 
 Gå til **Monitorer**, og klik på **Opret monitor**.
 
-### Vælg Incoming Request
+### Vælg Indgående anmodning
 
 Under **Monitortype** skal du vælge **Indgående anmodning** — den er en af de almindelige typer øverst. Angiv et **Navn**, og klik derefter på **Næste**.
 
@@ -211,11 +211,11 @@ Ret værdien til det, din afsender faktisk sender (`"status":"firing"`, `FAILED`
 
 | Filtertype | Tjekker | Bemærkninger |
 | --------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| Incoming Request | Om der er modtaget en anmodning inden for et tidsvindue | Det eneste tjek, der kan udløses, når intet kommer |
+| Indgående anmodning | Om der er modtaget en anmodning inden for et tidsvindue | Det eneste tjek, der kan udløses, når intet kommer |
 | Anmodningsbrødtekst | Anmodningens brødtekst | Søgning efter en delstreng. Objekter som brødtekst sammenlignes som kompakt JSON |
-| Request Header | Navnene på anmodningens headere | Nøjagtig sammenligning med et helt headernavn, uden hensyn til store og små bogstaver |
-| Request Header Value | Værdierne af anmodningens headere | Nøjagtig sammenligning med en hel headerværdi, uden hensyn til store og små bogstaver |
-| JavaScript Expression | Ethvert udtryk over `requestBody` og `requestHeaders` | Den mest fleksible mulighed — se [JavaScript-udtryk](/docs/monitor/javascript-expression) |
+| Anmodningsheader | Navnene på anmodningens headere | Nøjagtig sammenligning med et helt headernavn, uden hensyn til store og små bogstaver |
+| Anmodningsheaderværdi | Værdierne af anmodningens headere | Nøjagtig sammenligning med en hel headerværdi, uden hensyn til store og små bogstaver |
+| JavaScript-udtryk | Ethvert udtryk over `requestBody` og `requestHeaders` | Den mest fleksible mulighed — se [JavaScript-udtryk](/docs/monitor/javascript-expression) |
 
 ### Filterbetingelser
 
@@ -223,7 +223,7 @@ Hver filtertype har sine egne betingelser:
 
 | Filtertype | Betingelser |
 | --- | --- |
-| **Indgående anmodning** | **Modtaget inden for minutter** — der er modtaget en anmodning inden for det angivne antal minutter. **Ikke modtaget inden for minutter** — der er ikke modtaget nogen anmodning inden for det angivne antal minutter. (Dashboardet staver dem sådan.) |
+| **Indgående anmodning** | **Modtaget inden for minutter** — der er modtaget en anmodning inden for det angivne antal minutter. **Ikke modtaget inden for minutter** — der er ikke modtaget nogen anmodning inden for det angivne antal minutter. |
 | **Anmodningsbrødtekst**, **Anmodningsheader**, **Anmodningsheaderværdi** | **Indeholder** og **Indeholder ikke** |
 | **JavaScript-udtryk** | **Evalueres til sand** |
 
@@ -238,7 +238,7 @@ Objekter som brødtekst sammenlignes som kompakt JSON uden mellemrum, så et fil
 
 | Felt | Værdi |
 | --- | --- |
-| **Filtertype** | Incoming Request |
+| **Filtertype** | Indgående anmodning |
 | **Filterbetingelse** | Ikke modtaget inden for minutter |
 | **Værdi** | `10` |
 
@@ -254,7 +254,7 @@ Objekter som brødtekst sammenlignes som kompakt JSON uden mellemrum, så et fil
 > Placér dødmandsknappen **over** standardkriterierne. Kriterier tjekkes oppefra, og det første, der matcher, afgør det. Baggrundstjekket læser den seneste anmodning igen, så standardkriteriet for online — "Anmodningsbrødtekst Indeholder ikke `error`" — bliver ved med at matche den, og et kriterium under det kommer aldrig til. **Tilføj kriterier** tilføjer et kriterium nederst: træk det op.
 
 > [!WARNING]
-> En monitor evalueres kun igen i baggrunden, hvis mindst ét af dens kriterier tjekker **Indgående anmodning**. En monitor, hvis kriterier kun tjekker brødteksten, Request Header eller et JavaScript-udtryk, evalueres, når en anmodning kommer, og på intet andet tidspunkt — så den kan aldrig gå offline af sig selv. Vil du have en alarm for manglende heartbeats, har du brug for et kriterium med **Indgående anmodning**.
+> En monitor evalueres kun igen i baggrunden, hvis mindst ét af dens kriterier tjekker **Indgående anmodning**. En monitor, hvis kriterier kun tjekker brødteksten, Anmodningsheader eller et JavaScript-udtryk, evalueres, når en anmodning kommer, og på intet andet tidspunkt — så den kan aldrig gå offline af sig selv. Vil du have en alarm for manglende heartbeats, har du brug for et kriterium med **Indgående anmodning**.
 
 Baggrundstjekket tæller hele minutter og udløses, så snart *mere* end værdien er gået: "Ikke modtaget inden for minutter: 10" udløses omkring 11 minutter efter den seneste anmodning (tjekket kører hvert 30. sekund). En monitor, der aldrig har modtaget en anmodning, behandles, som om dens oprettelsestidspunkt var den seneste anmodning, så det samme kriterium på en helt ny monitor udløses omkring 11 minutter efter, at du opretter den, også selv om afsenderen aldrig blev koblet på. Kun minutter, hvor OneUptime modtog, tæller med i værdien: minutter, hvor OneUptime selv genstarter, opgraderes eller indhenter et efterslæb, tæller ikke, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
@@ -367,7 +367,7 @@ Kun et kriterium med **Indgående anmodning** (**Ikke modtaget inden for minutte
 Send `Content-Type: application/json`, og skriv værdien som kompakt JSON — `"status":"firing"` uden mellemrum efter kolonet. Uden en indholdstype for JSON eller formularer fortolkes brødteksten ikke.
 :::
 
-:::details Et filter på Request Header matcher aldrig
+:::details Et filter på Anmodningsheader matcher aldrig
 Headernavne og -værdier sammenlignes i deres helhed. Angiv hele værdien, for eksempel `application/json; charset=utf-8`, i stedet for en del af den.
 :::
 

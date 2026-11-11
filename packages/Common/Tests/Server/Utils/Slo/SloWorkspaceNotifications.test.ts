@@ -36,7 +36,10 @@ let send: ReturnType<typeof jest.spyOn>;
 
 beforeEach(() => {
   send = jest
-    .spyOn(WorkspaceNotificationRuleService, "sendWorkspaceMarkdownNotification")
+    .spyOn(
+      WorkspaceNotificationRuleService,
+      "sendWorkspaceMarkdownNotification",
+    )
     .mockResolvedValue(undefined as never);
 });
 

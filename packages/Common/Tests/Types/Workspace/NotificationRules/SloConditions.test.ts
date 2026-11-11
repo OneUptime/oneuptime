@@ -149,9 +149,10 @@ describe("SLO notification rule conditions", () => {
       for (const checkOn of SLO_CHECK_ONS) {
         expect({
           eventType,
-          offered: NotificationRuleConditionUtil.getCheckOnByEventType(
-            eventType,
-          ).includes(checkOn),
+          offered:
+            NotificationRuleConditionUtil.getCheckOnByEventType(
+              eventType,
+            ).includes(checkOn),
         }).toEqual({ eventType, offered: false });
       }
     }
@@ -399,7 +400,10 @@ describe("SLO notification rule conditions", () => {
       ).toBe(false);
       expect(
         matches(
-          byLabels(ConditionType.ContainsAny, [OTHER_LABEL_ID, TIER_1_LABEL_ID]),
+          byLabels(ConditionType.ContainsAny, [
+            OTHER_LABEL_ID,
+            TIER_1_LABEL_ID,
+          ]),
         ),
       ).toBe(true);
       expect(
@@ -412,7 +416,10 @@ describe("SLO notification rule conditions", () => {
       ).toBe(true);
       expect(
         matches(
-          byLabels(ConditionType.ContainsAll, [TIER_1_LABEL_ID, OTHER_LABEL_ID]),
+          byLabels(ConditionType.ContainsAll, [
+            TIER_1_LABEL_ID,
+            OTHER_LABEL_ID,
+          ]),
         ),
       ).toBe(false);
       expect(
@@ -724,8 +731,8 @@ describe("SloErrorBudgetPolicyChange", () => {
     expect(isSloErrorBudgetPolicyChange("Entered a tier")).toBe(false);
     expect(isSloErrorBudgetPolicyChange("")).toBe(false);
     expect(isSloErrorBudgetPolicyChange(undefined)).toBe(false);
-    expect(
-      isSloErrorBudgetPolicyChange(ObjectID.generate().toString()),
-    ).toBe(false);
+    expect(isSloErrorBudgetPolicyChange(ObjectID.generate().toString())).toBe(
+      false,
+    );
   });
 });

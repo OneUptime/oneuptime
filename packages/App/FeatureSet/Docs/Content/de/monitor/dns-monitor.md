@@ -17,8 +17,8 @@ Bei jeder Prüfung fragt eine Sonde einen DNS-Server nach einem Eintragstyp eine
 flowchart TB
     query["Den Eintragstyp abfragen"] --> answer{"Einträge zurückgegeben?"}
     answer -->|"Nein, Wiederholungen übrig"| query
-    answer -->|"Nein, keine Wiederholungen mehr"| offline["DNS Is Online: False"]
-    answer -->|"Ja"| online["DNS Is Online: True"]
+    answer -->|"Nein, keine Wiederholungen mehr"| offline["DNS ist online: Falsch"]
+    answer -->|"Ja"| online["DNS ist online: Wahr"]
     online --> ad["Das AD-Flag prüfen"]
     ad --> criteria["Die Kriterien prüfen"]
     offline --> criteria
@@ -126,7 +126,7 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 | **Alle Werte** | Jede Prüfung im Fenster die Bedingung erfüllt. |
 | **Beliebiger Wert** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
 
-**Alle Werte** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Beliebiger Wert** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
+Die Option **Alle Werte** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Beliebiger Wert** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
 
 **Bei keinen Daten** entscheidet, was passiert, solange das Fenster das Kriterium nicht stützen kann:
 
@@ -164,7 +164,7 @@ dig @8.8.8.8 example.com A
 3. Fügen Sie darunter ein Kriterium mit **DNS ist online** / **Wahr** hinzu, das den Monitor als **Offline** markiert und einen Vorfall meldet. Es trifft nur auf Antworten zu, die den Wert nicht enthalten.
 :::
 
-:::details DNSSEC Is Valid trifft nie zu
+:::details DNSSEC ist gültig trifft nie zu
 Der Server unter **DNS-Server (Optional)** validiert DNSSEC nicht und setzt deshalb nie das AD-Flag, oder die Sonde konnte die Prüfung nicht ausführen. Lassen Sie das Feld leer, um mit `8.8.8.8` zu validieren, oder verwenden Sie einen [DNSSEC-Monitor](/docs/monitor/dnssec-monitor).
 :::
 

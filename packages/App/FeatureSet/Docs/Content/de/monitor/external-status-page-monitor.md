@@ -102,7 +102,7 @@ Wählen Sie die **Sonden** und ein **Überwachungsintervall** — es beginnt bei
 
 ### Komponenten
 
-Wählen Sie die Komponenten, von denen Sie abhängen, und der Monitor beobachtet nur sie: **Komponentenstatus der externen Statusseite** vergleicht nur ihre Status, der Gesamtstatus ist der schlechteste ihrer Status, und **Aktive Vorfälle der externen Statusseite** zählt nur die Vorfälle, die mindestens eine von ihnen betreffen. Es bleibt eine einzige Prüfung der Seite, wie viele Sie auch wählen.
+Wählen Sie die Komponenten, von denen Sie abhängen, und der Monitor beobachtet nur sie: **Komponentenstatus der externen Statusseite** vergleicht nur ihre Status, der Gesamtstatus ist der schlechteste ihrer Status, und der Filter **Aktive Vorfälle der externen Statusseite** zählt nur die Vorfälle, die mindestens eine von ihnen betreffen. Es bleibt eine einzige Prüfung der Seite, wie viele Sie auch wählen.
 
 Wenn Sie **Komponenten** öffnen, liest Ihr Browser die Liste der Seite von einer Atlassian Statuspage, einer incident.io-Seite oder einer OneUptime-Statusseite und zeigt sie in den Gruppen der Seite; jede Komponente, die nicht betriebsbereit ist, sagt, wie es ihr geht. Ein gewählter Name beobachtet die Komponente mit genau diesem Namen, ohne Beachtung der Groß- und Kleinschreibung: `Copilot` auf der Seite von GitHub ist nicht `Copilot AI Model Providers`.
 

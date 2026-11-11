@@ -101,7 +101,7 @@ Hver statusændring registreres med sin årsag på monitorens **Statustidslinje*
 
 ## Kriterier
 
-En trace-monitors kriterier har én **Filtertype**: **Span Count**, antallet af spans, der matchede i vinduet. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og, for en tærskelbetingelse, en **Værdi**.
+En trace-monitors kriterier har én **Filtertype**: **Antal spans**, antallet af spans, der matchede i vinduet. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og, for en tærskelbetingelse, en **Værdi**.
 
 | Filterbetingelse | Matcher, når antallet af spans er… |
 | --- | --- |
@@ -127,8 +127,8 @@ En trace-monitor, der er oprettet via API'et eller Terraform uden kriterier, sta
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Lig med** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
-| Check if … is online | **Span Count** **Større end** `0` | Sætter monitoren online |
+| Check if … is offline | **Antal spans** **Lig med** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
+| Check if … is online | **Antal spans** **Større end** `0` | Sætter monitoren online |
 
 ## Gennemgået eksempel: mislykkede checkout-anmodninger
 

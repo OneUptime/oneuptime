@@ -17,8 +17,8 @@ DNS モニターは、スケジュールに沿って DNS レコードを問い�
 flowchart TB
     query["レコードタイプを問い合わせる"] --> answer{"レコードが返った？"}
     answer -->|"いいえ、再試行が残っている"| query
-    answer -->|"いいえ、再試行を使い切った"| offline["DNS Is Online: False"]
-    answer -->|"はい"| online["DNS Is Online: True"]
+    answer -->|"いいえ、再試行を使い切った"| offline["DNS のオンライン状態: 偽"]
+    answer -->|"はい"| online["DNS のオンライン状態: 真"]
     online --> ad["AD フラグをチェック"]
     ad --> criteria["条件をチェック"]
     offline --> criteria
@@ -164,7 +164,7 @@ dig @8.8.8.8 example.com A
 3. さらにその下に、**DNS のオンライン状態** / **真** の条件を追加し、モニターを **オフライン** にしてインシデントを宣言します。これは値を持たない応答にだけ一致します。
 :::
 
-:::details DNSSEC Is Valid が一度も一致しない
+:::details 「DNSSEC の有効性」が一度も一致しない
 **DNS サーバー（任意）** のサーバーが DNSSEC を検証しないため AD フラグを付けないか、プローブがチェックを実行できませんでした。`8.8.8.8` で検証するには項目を空のままにするか、[DNSSEC モニター](/docs/monitor/dnssec-monitor) を使います。
 :::
 

@@ -1227,7 +1227,9 @@ function getSessionReplayCells(
           text={`+${foldedSignals.length}`}
           type={StatusBadgeType.Neutral}
         />
-        <span className="sr-only">: {formatList(foldedSignals, translator)}</span>
+        <span className="sr-only">
+          : {formatList(foldedSignals, translator)}
+        </span>
       </span>,
     );
   }

@@ -47,7 +47,7 @@ Usatelo per:
 
 Andate in **Monitor** e fate clic su **Crea monitor**.
 
-### Scegliere Incoming Request
+### Scegliere Richiesta in arrivo
 
 In **Tipo di monitor**, scegliete **Richiesta in arrivo**: è uno dei tipi comuni in alto. Inserite un **Nome**, poi fate clic su **Avanti**.
 
@@ -211,11 +211,11 @@ Sostituite il valore con ciò che il vostro mittente emette davvero (`"status":"
 
 | Tipo di filtro | Controlla | Note |
 | --------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| Incoming Request | Se è stata ricevuta una richiesta in una finestra di tempo | L'unico controllo che può scattare quando non arriva nulla |
+| Richiesta in arrivo | Se è stata ricevuta una richiesta in una finestra di tempo | L'unico controllo che può scattare quando non arriva nulla |
 | Corpo della Richiesta | Il corpo della richiesta | Corrispondenza di sottostringa. I corpi oggetto vengono confrontati come JSON compatto |
-| Request Header | I nomi delle intestazioni della richiesta | Corrispondenza esatta con un nome di intestazione intero, senza distinguere maiuscole e minuscole |
-| Request Header Value | I valori delle intestazioni della richiesta | Corrispondenza esatta con un valore di intestazione intero, senza distinguere maiuscole e minuscole |
-| JavaScript Expression | Qualsiasi espressione su `requestBody` e `requestHeaders` | L'opzione più flessibile: vedete [Espressioni JavaScript](/docs/monitor/javascript-expression) |
+| Intestazione della richiesta | I nomi delle intestazioni della richiesta | Corrispondenza esatta con un nome di intestazione intero, senza distinguere maiuscole e minuscole |
+| Valore dell'intestazione della richiesta | I valori delle intestazioni della richiesta | Corrispondenza esatta con un valore di intestazione intero, senza distinguere maiuscole e minuscole |
+| Espressione JavaScript | Qualsiasi espressione su `requestBody` e `requestHeaders` | L'opzione più flessibile: vedete [Espressioni JavaScript](/docs/monitor/javascript-expression) |
 
 ### Condizioni del filtro
 
@@ -223,7 +223,7 @@ Ogni tipo di filtro offre le proprie condizioni:
 
 | Tipo di filtro | Condizioni |
 | --- | --- |
-| **Richiesta in arrivo** | **Ricevuto in minuti**: è stata ricevuta una richiesta entro il numero di minuti indicato. **Non ricevuto in minuti**: non è stata ricevuta alcuna richiesta entro il numero di minuti indicato. (La dashboard le scrive così.) |
+| **Richiesta in arrivo** | **Ricevuto in minuti**: è stata ricevuta una richiesta entro il numero di minuti indicato. **Non ricevuto in minuti**: non è stata ricevuta alcuna richiesta entro il numero di minuti indicato. |
 | **Corpo della Richiesta**, **Intestazione della richiesta**, **Valore dell'intestazione della richiesta** | **Contiene** e **Non contiene** |
 | **Espressione JavaScript** | **Risulta vero** |
 
@@ -238,7 +238,7 @@ I corpi oggetto vengono confrontati come JSON compatto senza spazi, quindi un fi
 
 | Campo | Valore |
 | --- | --- |
-| **Tipo di filtro** | Incoming Request |
+| **Tipo di filtro** | Richiesta in arrivo |
 | **Condizione del filtro** | Non ricevuto in minuti |
 | **Valore** | `10` |
 
@@ -254,7 +254,7 @@ I corpi oggetto vengono confrontati come JSON compatto senza spazi, quindi un fi
 > Mettete l'interruttore a uomo morto **sopra** i criteri predefiniti. I criteri vengono controllati dall'alto, e decide il primo che corrisponde. Il controllo in background rilegge l'ultima richiesta, quindi il criterio online predefinito ("Corpo della Richiesta Non contiene `error`") continua a corrispondervi, e un criterio sotto di esso non arriva mai al suo turno. **Aggiungi criteri** aggiunge un criterio in fondo: trascinatelo in alto.
 
 > [!WARNING]
-> Un monitor viene rivalutato in background solo se almeno uno dei suoi criteri controlla **Richiesta in arrivo**. Un monitor i cui criteri controllano solo il corpo della richiesta, Request Header o un'espressione JavaScript viene valutato quando arriva una richiesta e in nessun altro momento, quindi non può mai andare offline da solo. Se volete un allarme per heartbeat mancante, vi serve un criterio **Richiesta in arrivo**.
+> Un monitor viene rivalutato in background solo se almeno uno dei suoi criteri controlla **Richiesta in arrivo**. Un monitor i cui criteri controllano solo il corpo della richiesta, Intestazione della richiesta o un'espressione JavaScript viene valutato quando arriva una richiesta e in nessun altro momento, quindi non può mai andare offline da solo. Se volete un allarme per heartbeat mancante, vi serve un criterio **Richiesta in arrivo**.
 
 Il controllo in background conta minuti interi e scatta quando è passato *più* del valore: "Non ricevuto in minuti: 10" scatta circa 11 minuti dopo l'ultima richiesta (il controllo gira ogni 30 secondi). Un monitor che non ha mai ricevuto una richiesta viene trattato come se la sua ora di creazione fosse l'ultima richiesta, quindi lo stesso criterio su un monitor appena creato scatta circa 11 minuti dopo la creazione, anche se il mittente non è mai stato collegato. Contano solo i minuti in cui OneUptime stava ricevendo: i minuti in cui OneUptime stesso si riavvia, viene aggiornato o recupera il ritardo non contano, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
 
@@ -367,7 +367,7 @@ Solo un criterio **Richiesta in arrivo** (**Non ricevuto in minuti**) può accor
 Inviate `Content-Type: application/json`, e scrivete il valore come JSON compatto: `"status":"firing"`, senza spazio dopo i due punti. Senza un tipo di contenuto JSON o di modulo, il corpo non viene analizzato.
 :::
 
-:::details Un filtro Request Header non corrisponde mai
+:::details Un filtro Intestazione della richiesta non corrisponde mai
 Nomi e valori delle intestazioni vengono confrontati per intero. Indicate il valore completo, come `application/json; charset=utf-8`, invece di una sua parte.
 :::
 

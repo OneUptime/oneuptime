@@ -215,24 +215,24 @@ Kriterier avgör när monitorn är online, försämrad eller offline, och när d
 
 | Filtertyp | Vad den kontrollerar | Filtervillkor |
 | --- | --- | --- |
-| Is Online | Om agenten har rapporterat nyligen (som standard under de senaste 3 minuterna) | Sant, Falskt |
-| CPU Usage (in %) | Total CPU-användning | Större än, Mindre än, Större än eller lika med, Mindre än eller lika med |
-| Memory Usage (in %) | Minne som används | Som för CPU |
-| Disk Usage (in %) | Användning av disken som anges i **Diskväg** | Som för CPU |
-| Swap Usage (in %) | Swap som används | Som för CPU |
-| CPU IO Wait (in %) | Andel av CPU-tiden som väntar på I/O | Som för CPU |
-| Load Average (1 minute) | Belastningsmedelvärde under den senaste minuten | Som för CPU |
-| Load Average (5 minute) | Belastningsmedelvärde under de senaste 5 minuterna | Som för CPU |
-| Load Average (15 minute) | Belastningsmedelvärde under de senaste 15 minuterna | Som för CPU |
-| Server Process Name | Om en process med det här namnet körs (skiftlägesokänsligt) | Körs, Körs inte |
-| Server Process Command | Om en process med exakt den här kommandoraden körs (skiftlägesokänsligt) | Körs, Körs inte |
-| Server Process PID | Om en process med det här PID:t körs | Körs, Körs inte |
+| Är online | Om agenten har rapporterat nyligen (som standard under de senaste 3 minuterna) | Sant, Falskt |
+| CPU-användning (i %) | Total CPU-användning | Större än, Mindre än, Större än eller lika med, Mindre än eller lika med |
+| Minnesanvändning (i %) | Minne som används | Som för CPU |
+| Diskanvändning (i %) | Användning av disken som anges i **Diskväg** | Som för CPU |
+| Swap-användning (i %) | Swap som används | Som för CPU |
+| CPU IO-väntetid (i %) | Andel av CPU-tiden som väntar på I/O | Som för CPU |
+| Genomsnittlig belastning (1 minut) | Belastningsmedelvärde under den senaste minuten | Som för CPU |
+| Genomsnittlig belastning (5 minuter) | Belastningsmedelvärde under de senaste 5 minuterna | Som för CPU |
+| Genomsnittlig belastning (15 minuter) | Belastningsmedelvärde under de senaste 15 minuterna | Som för CPU |
+| Namn på serverprocess | Om en process med det här namnet körs (skiftlägesokänsligt) | Körs, Körs inte |
+| Kommando för serverprocess | Om en process med exakt den här kommandoraden körs (skiftlägesokänsligt) | Körs, Körs inte |
+| PID för serverprocess | Om en process med det här PID:t körs | Körs, Körs inte |
 
 **Diskväg** tar en monteringspunkt eller en enhet, till exempel `/`, `/mnt/data`, `C:\` eller `/dev/sda1`; tom är den `/`. Ange `*` för att kontrollera varje disk som agenten rapporterar: varje disk som passerar tröskeln får ett eget larm, så att en andra disk som fylls inte döljs bakom den första diskens öppna larm. Versaler och ett avslutande `/` eller `\` spelar ingen roll, och en enhet står för disken som är monterad från den. En sökväg som inte anger någon disk som agenten rapporterar matchar inte. När agenten inte kan läsa serverns processer har dess rapport ingen processlista, och inget processfilter matchar, vare sig det kontrollerar att en process körs eller att den inte gör det.
 
 ### Utvärdera över en tidsperiod
 
-**Utvärdera dessa kriterier över en tidsperiod** är en separat kryssruta i kriterieformuläret och inte ett filtervillkor. Den finns för **Är online** och för varje numerisk filtertyp. Slå på den för att jämföra ett aggregat – valt under **Utvärdera** (Genomsnitt, Summa, Maximum Value, Minimum Value, All Values, Any Value) över fönstret som **Under de senaste (i minuter)** anger – i stället för värdet från den senaste kontrollen. På ett **Är online**-filter är fönstret hur länge agenten får vara tyst innan servern räknas som offline.
+**Utvärdera dessa kriterier över en tidsperiod** är en separat kryssruta i kriterieformuläret och inte ett filtervillkor. Den finns för **Är online** och för varje numerisk filtertyp. Slå på den för att jämföra ett aggregat – valt under **Utvärdera** (Genomsnitt, Summa, Maxvärde, Minvärde, Alla värden, Minst ett värde) över fönstret som **Under de senaste (i minuter)** anger – i stället för värdet från den senaste kontrollen. På ett **Är online**-filter är fönstret hur länge agenten får vara tyst innan servern räknas som offline.
 
 **Alla värden** matchar först när fönstret verkligen täcks av data. En monitor som just har skapats, eller en vars kontroller har slutat registreras, har inte tillräckligt med historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Minst ett värde** är inställningen för "säg till så fort en enda kontroll passerar gränsen" och utlöses fortfarande direkt.
 
@@ -251,12 +251,12 @@ Kriterier avgör när monitorn är online, försämrad eller offline, och när d
 
 | Mål | Filtertyp | Filtervillkor | Värde |
 | --- | --- | --- | --- |
-| Markera servern som offline när agenten slutar rapportera | Is Online | Falskt | — |
-| Varna när CPU-användningen är över 90 % | CPU Usage (in %) | Större än | `90` |
-| Varna när rotdisken är mer än 85 % full | Disk Usage (in %), **Diskväg** `/` | Större än | `85` |
-| Varna för varje disk som är mer än 85 % full, ett larm per disk | Disk Usage (in %), **Diskväg** `*` | Större än | `85` |
-| Varna när minnesanvändningen är över 80 % | Memory Usage (in %) | Större än | `80` |
-| Varna när nginx slutar köras | Server Process Name | Körs inte | `nginx` |
+| Markera servern som offline när agenten slutar rapportera | Är online | Falskt | — |
+| Varna när CPU-användningen är över 90 % | CPU-användning (i %) | Större än | `90` |
+| Varna när rotdisken är mer än 85 % full | Diskanvändning (i %), **Diskväg** `/` | Större än | `85` |
+| Varna för varje disk som är mer än 85 % full, ett larm per disk | Diskanvändning (i %), **Diskväg** `*` | Större än | `85` |
+| Varna när minnesanvändningen är över 80 % | Minnesanvändning (i %) | Större än | `80` |
+| Varna när nginx slutar köras | Namn på serverprocess | Körs inte | `nginx` |
 
 ## Felsökning
 

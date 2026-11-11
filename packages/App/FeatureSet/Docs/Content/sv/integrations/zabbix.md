@@ -3,7 +3,7 @@
 Skicka [Zabbix](https://www.zabbix.com)-problem till OneUptime, så att varje problem blir en incident som larmar ditt jourteam och löses när Zabbix har återhämtat sig. Färdiga arbetsflödesmallar håller båda sidor i takt: det som görs i Zabbix noteras på incidenten, och att bekräfta eller lösa incidenten bekräftar eller stänger problemet i Zabbix. Zabbix skickar varje problem via en webhook-medietyp, så det finns inget att installera på någon av sidorna.
 
 :::cards
-- [Välj hur OneUptime tar emot problem](#välj-hur-oneuptime-tar-emot-problem): Arbetsflödesmallar eller en Incoming Request-monitor.
+- [Välj hur OneUptime tar emot problem](#välj-hur-oneuptime-tar-emot-problem): Arbetsflödesmallar eller en monitor för inkommande förfrågningar.
 - [Börja från mallarna](#börja-från-mallarna): Sex mallar, vad de gör och vad de frågar efter.
 - [Konfigurera Zabbix](#konfigurera-zabbix): En medietyp, en användare och en åtgärd.
 - [Felsökning](#felsökning): När problem inte kommer fram eller incidenter förblir öppna.
@@ -37,7 +37,7 @@ Konfigurera OneUptime först: det ger dig URL:en som Zabbix skickar till.
 | Sätt | Använd det när |
 | --- | --- |
 | Arbetsflödesmallarna (rekommenderas) | Du vill ha varje problem som en incident eller ett larm med dess Zabbix-allvarlighetsgrad, med jouren larmad för High och Disaster, löst vid återhämtning, med det som görs i Zabbix noterat på den, och Zabbix bekräftat eller stängt från OneUptime. |
-| En Incoming Request-monitor | Du vill ha incidenter utan ett arbetsflöde, på vilken plan som helst, och en monitor vars status följer Zabbix. Inget går tillbaka till Zabbix. |
+| En monitor för inkommande förfrågningar | Du vill ha incidenter utan ett arbetsflöde, på vilken plan som helst, och en monitor vars status följer Zabbix. Inget går tillbaka till Zabbix. |
 
 Båda får samma JSON från samma medietyp, så du kan börja med det ena och byta senare genom att ändra en enda URL i Zabbix.
 
@@ -130,7 +130,7 @@ Zabbix 6.0 läser API-token från begärans brödtext, inte från headern `Autho
 
 ## Ta emot problem med en monitor
 
-En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) ger dig en URL, och dess kriterier avgör vad varje begäran gör.
+En [monitor för inkommande förfrågningar](/docs/monitor/incoming-request-monitor) ger dig en URL, och dess kriterier avgör vad varje begäran gör.
 
 :::steps
 ### Skapa monitorn

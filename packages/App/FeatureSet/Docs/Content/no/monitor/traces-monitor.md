@@ -101,7 +101,7 @@ Hver statusendring registreres med årsaken på monitorens **Statustidslinje**.
 
 ## Kriterier
 
-Kriteriene til en trasemonitor har én **Filtertype**: **Span Count**, antallet spans som samsvarte i vinduet. **Når det skal varsles** setter opp ett kriterium, der **Betingelse** er **Mer enn**, **Minst**, **Færre enn**, **Høyst**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav** eller **Uvanlig høy eller lav**. For flere kriterier, eller ett med mer enn ett filter, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har et **Filtervilkår** og, for et tersklevilkår, en **Verdi**.
+Kriteriene til en trasemonitor har én **Filtertype**: **Antall spans**, antallet spans som samsvarte i vinduet. **Når det skal varsles** setter opp ett kriterium, der **Betingelse** er **Mer enn**, **Minst**, **Færre enn**, **Høyst**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav** eller **Uvanlig høy eller lav**. For flere kriterier, eller ett med mer enn ett filter, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har et **Filtervilkår** og, for et tersklevilkår, en **Verdi**.
 
 | Filtervilkår | Samsvarer når antallet spans er… |
 | --- | --- |
@@ -127,8 +127,8 @@ En trasemonitor som er opprettet via API-et eller Terraform uten kriterier, star
 
 | Kriterium | Filter | Virkning |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Lik** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
-| Check if … is online | **Span Count** **Større enn** `0` | Setter monitoren som tilkoblet |
+| Check if … is offline | **Antall spans** **Lik** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
+| Check if … is online | **Antall spans** **Større enn** `0` | Setter monitoren som tilkoblet |
 
 ## Gjennomgått eksempel: mislykkede checkout-forespørsler
 

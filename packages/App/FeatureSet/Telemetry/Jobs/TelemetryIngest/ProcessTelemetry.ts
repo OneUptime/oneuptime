@@ -249,6 +249,13 @@ export async function settleIngestionBudgetCharge(data: {
  * ReplacingMergeTree keyed on (projectId, sessionId, tabId,
  * chunkIndex) plus LIMIT 1 BY chunkIndex at read time, so a
  * re-delivered chunk collapses at merge rather than double-writing.
+ *
+ * ProductAnalyticsEvents stays out for the replay reason: its events
+ * come from every page of every session, recorded or not, so a token
+ * would make one INSERT per job. Its retries are idempotent another
+ * way - ProductAnalyticsEventIngestService remembers by batch id that a
+ * job's events landed, so a retry never files them again - and its
+ * metric points go out untokened with the other metrics.
  */
 const INSERT_DEDUP_TYPES: Array<TelemetryType> = [
   TelemetryType.Profiles,

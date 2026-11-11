@@ -17,8 +17,8 @@ DNS 모니터는 일정에 따라 DNS 레코드를 조회하고 응답을 확인
 flowchart TB
     query["레코드 유형 조회"] --> answer{"레코드가 반환됨?"}
     answer -->|"아니요, 재시도 남음"| query
-    answer -->|"아니요, 재시도 소진"| offline["DNS Is Online: False"]
-    answer -->|"예"| online["DNS Is Online: True"]
+    answer -->|"아니요, 재시도 소진"| offline["DNS 온라인 여부: 거짓"]
+    answer -->|"예"| online["DNS 온라인 여부: 참"]
     online --> ad["AD 플래그 확인"]
     ad --> criteria["기준 확인"]
     offline --> criteria
@@ -164,7 +164,7 @@ dig @8.8.8.8 example.com A
 3. 다시 그 아래에 **DNS 온라인 여부** / **참** 기준을 추가하고, 모니터를 **오프라인**으로 표시하며 인시던트를 선언하게 합니다. 이 기준은 그 값이 없는 응답에만 일치합니다.
 :::
 
-:::details DNSSEC Is Valid가 한 번도 일치하지 않음
+:::details DNSSEC 유효 여부가 한 번도 일치하지 않음
 **DNS 서버(선택 사항)** 항목의 서버가 DNSSEC를 검증하지 않아 AD 플래그를 설정하지 않거나, 프로브가 확인을 실행하지 못했습니다. `8.8.8.8`로 검증하려면 이 필드를 비워 두거나, [DNSSEC 모니터](/docs/monitor/dnssec-monitor)를 사용합니다.
 :::
 

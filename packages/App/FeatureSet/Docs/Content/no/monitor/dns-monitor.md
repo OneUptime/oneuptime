@@ -17,8 +17,8 @@ Ved hver sjekk ber en sonde en DNS-server om én posttype for ett navn, for ekse
 flowchart TB
     query["Slå opp posttypen"] --> answer{"Poster returnert?"}
     answer -->|"Nei, forsøk igjen"| query
-    answer -->|"Nei, ingen forsøk igjen"| offline["DNS Is Online: False"]
-    answer -->|"Ja"| online["DNS Is Online: True"]
+    answer -->|"Nei, ingen forsøk igjen"| offline["DNS er tilkoblet: Usann"]
+    answer -->|"Ja"| online["DNS er tilkoblet: Sann"]
     online --> ad["Sjekk AD-flagget"]
     ad --> criteria["Sjekk kriteriene"]
     offline --> criteria
@@ -164,7 +164,7 @@ dig @8.8.8.8 example.com A
 3. Under det igjen legger du til et kriterium med **DNS er tilkoblet** / **Sann**, som merker monitoren som **Frakoblet** og erklærer en hendelse. Det samsvarer bare med svar som ikke har verdien.
 :::
 
-:::details DNSSEC Is Valid samsvarer aldri
+:::details DNSSEC er gyldig samsvarer aldri
 Serveren i **DNS-server (valgfritt)** validerer ikke DNSSEC og setter derfor aldri AD-flagget, eller sonden kunne ikke kjøre sjekken. La feltet stå tomt for å validere med `8.8.8.8`, eller bruk en [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
 :::
 

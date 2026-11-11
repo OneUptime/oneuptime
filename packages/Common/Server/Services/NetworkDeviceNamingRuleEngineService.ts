@@ -50,6 +50,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 import { RuleRunWriteProps } from "../Utils/Rules/RuleRun/RuleApplication";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import NetworkDeviceNamingRuleService from "./NetworkDeviceNamingRuleService";
@@ -87,12 +88,6 @@ import NetworkSiteService from "./NetworkSiteService";
  * The site's code and the sites above it come from one read of the
  * project's sites, so a rule for a region names every store in it.
  */
-
-/*
- * The most rules one naming pass reads: far more than anyone keeps, and a
- * bound on what one import or plan evaluates per device.
- */
-const MAX_NAMING_RULES: number = MAX_RULES_EVALUATED_PER_PROJECT;
 
 // Devices read per page when the project's names and devices are read.
 const DEVICE_PAGE_SIZE: number = 5000;
@@ -238,7 +233,13 @@ class NetworkDeviceNamingRuleEngineServiceClass {
     lookupEntries: true,
   };
 
-  // The project's enabled naming rules, in the order they are tried.
+  /*
+   * The project's enabled naming rules, in the order they are tried - read
+   * as every rule engine reads its rules, MAX_RULES_EVALUATED_PER_PROJECT of
+   * them at once, and a read that comes back full says so, since the rules
+   * past it are tried by nobody. The site assignment rules are read the same
+   * way.
+   */
   @CaptureSpan()
   public async loadRules(
     projectId: ObjectID,
@@ -254,10 +255,16 @@ class NetworkDeviceNamingRuleEngineServiceClass {
           priority: SortOrder.Descending,
           createdAt: SortOrder.Ascending,
         },
-        limit: MAX_NAMING_RULES,
+        limit: MAX_RULES_EVALUATED_PER_PROJECT,
         skip: 0,
         props: { isRoot: true },
       });
+
+    logIfRuleReadWasTruncated({
+      ruleKind: "NetworkDeviceNamingRule",
+      projectId: projectId,
+      rulesRead: rules.length,
+    });
 
     return prepareNamingRules(rules);
   }
@@ -311,21 +318,30 @@ class NetworkDeviceNamingRuleEngineServiceClass {
   public async loadSiteAssignmentRules(
     projectId: ObjectID,
   ): Promise<Array<NetworkSiteAssignmentRule>> {
-    return await NetworkSiteAssignmentRuleService.findBy({
-      query: { projectId: projectId },
-      select: {
-        _id: true,
-        siteId: true,
-        subnetCidr: true,
-        hostnamePattern: true,
-        criteria: true,
-        priority: true,
-        createdAt: true,
-      },
-      limit: MAX_NAMING_RULES,
-      skip: 0,
-      props: { isRoot: true },
+    const rules: Array<NetworkSiteAssignmentRule> =
+      await NetworkSiteAssignmentRuleService.findBy({
+        query: { projectId: projectId },
+        select: {
+          _id: true,
+          siteId: true,
+          subnetCidr: true,
+          hostnamePattern: true,
+          criteria: true,
+          priority: true,
+          createdAt: true,
+        },
+        limit: MAX_RULES_EVALUATED_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    logIfRuleReadWasTruncated({
+      ruleKind: "NetworkSiteAssignmentRule",
+      projectId: projectId,
+      rulesRead: rules.length,
     });
+
+    return rules;
   }
 
   /**
@@ -381,8 +397,11 @@ class NetworkDeviceNamingRuleEngineServiceClass {
   /*
    * The site the project's site assignment rules put a scan's host in, read
    * the way the rules read the device once it is created: its address, and
-   * the names discovery has for it.
+   * the names discovery has for it. One evaluation of the site assignment
+   * rules for one host, with its own pattern allowance, as
+   * NetworkDeviceService.applySiteAssignmentRulesToDevice has for a device.
    */
+  @RuleEvaluation()
   public predictSiteOfScanHost(data: {
     context: DeviceNamingContext;
     host: DiscoveredNetworkDevice;

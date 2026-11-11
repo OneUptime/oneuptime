@@ -107,10 +107,10 @@ Diese Monitore werten immer den **Metrikwert** aus – den Wert der konfiguriert
 | --- | --- |
 | Durchschnitt | Durchschnittswert über das Zeitfenster |
 | Summe | Summe aller Werte |
-| Maximum Value | Höchster Wert im Zeitfenster |
-| Minimum Value | Niedrigster Wert im Zeitfenster |
-| All Values | Alle Werte müssen das Kriterium erfüllen und das ganze Zeitfenster abdecken |
-| Any Value | Mindestens ein Wert muss zutreffen |
+| Maximalwert | Höchster Wert im Zeitfenster |
+| Minimalwert | Niedrigster Wert im Zeitfenster |
+| Alle Werte | Alle Werte müssen das Kriterium erfüllen und das ganze Zeitfenster abdecken |
+| Beliebiger Wert | Mindestens ein Wert muss zutreffen |
 
 ### Bedingungen
 

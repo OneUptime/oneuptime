@@ -383,7 +383,11 @@ describe("MarketplaceUsageReporter", () => {
       select: Record<string, unknown>;
     };
 
-    expect(asked.select).toEqual({ _id: true, totalCostInUSD: true, day: true });
+    expect(asked.select).toEqual({
+      _id: true,
+      totalCostInUSD: true,
+      day: true,
+    });
     expect(Object.keys(asked.query).sort()).toEqual([
       "isReportedToBillingProvider",
       "projectId",

@@ -23,7 +23,7 @@ sequenceDiagram
     O->>O: Guardarlo en el monitor
     O->>O: Comprobar los criterios
     O->>T: Alerta o incidente,<br/>si alguno coincide
-    Note over O: Cada 30 segundos, comprobar<br/>los criterios Email Received
+    Note over O: Cada 30 segundos, comprobar<br/>los criterios «Correo electrónico recibido»
 ```
 
 1. Cuando crea un monitor de correos entrantes, OneUptime le da una dirección de correo única.
@@ -143,8 +143,8 @@ Un monitor de correos entrantes nuevo se crea con dos criterios que leen el cuer
 
 | Criterio | Tipo de filtro | Condición de filtro | Valor | Efecto |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
-| Sin conexión | Email Body | Contiene | `error` | Marca el monitor sin conexión, abre un incidente |
-| En línea | Email Body | No contiene | `error` | Marca el monitor en línea |
+| Sin conexión | Cuerpo del correo electrónico | Contiene | `error` | Marca el monitor sin conexión, abre un incidente |
+| En línea | Cuerpo del correo electrónico | No contiene | `error` | Marca el monitor en línea |
 
 Esto sirve para el caso habitual en que un trabajo o una herramienta de terceros envía por correo su propio resultado: un mensaje cuyo cuerpo menciona `error` deja el monitor sin conexión, y el siguiente mensaje sin esa palabra lo devuelve a en línea y resuelve el incidente. La coincidencia en el cuerpo no distingue mayúsculas y minúsculas, así que `Error` y `ERROR` también coinciden.
 
@@ -185,9 +185,7 @@ La dirección propia del monitor se enmascara antes de que ningún criterio lea 
 
 Todas estas comparaciones no distinguen mayúsculas y minúsculas. Un filtro con un valor vacío nunca coincide.
 
-### Filtros temporales (Email Received)
-
-El panel escribe estas condiciones "Recieved".
+### Filtros temporales (Correo electrónico recibido)
 
 | Condición de filtro | Descripción | Ejemplo |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -196,7 +194,7 @@ El panel escribe estas condiciones "Recieved".
 
 Un monitor que nunca ha recibido un correo cuenta su hora de creación como el último correo.
 
-### JavaScript Expression
+### Expresión de JavaScript
 
 | Condición de filtro | Descripción |
 | --------------------- | ------------------------------------- |

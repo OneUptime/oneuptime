@@ -116,7 +116,7 @@ Elke statuswijziging wordt, met de reden ervan, vastgelegd op de **Statustijdlij
 
 ## Criteria
 
-De criteria van een uitzonderingen-monitor hebben vier soorten **Filtertype**: **Exception Count**, het aantal uitzonderingen dat in het venster overeenkwam, en **New Exceptions**, **Opnieuw opgetreden uitzonderingen** en **Toename van uitzonderingen (in %)**, die hieronder worden beschreven. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en een **Waarde**.
+De criteria van een uitzonderingen-monitor hebben vier soorten **Filtertype**: **Aantal uitzonderingen**, het aantal uitzonderingen dat in het venster overeenkwam, en **Nieuwe uitzonderingen**, **Opnieuw opgetreden uitzonderingen** en **Toename van uitzonderingen (in %)**, die hieronder worden beschreven. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en een **Waarde**.
 
 | Filtervoorwaarde | Komt overeen wanneer het aantal uitzonderingen… |
 | --- | --- |
@@ -130,7 +130,7 @@ De criteria van een uitzonderingen-monitor hebben vier soorten **Filtertype**: *
 | **Afwijkend laag** | onder dat bereik ligt |
 | **Afwijkend** | buiten dat bereik ligt, in welke richting ook |
 
-De anomaliecondities hebben geen **Waarde**. Kies een **Gevoeligheid** (Laag, Gemiddeld, de standaard, of Hoog) en, in de eigen criteria, een **Baseline-venster** van 14 (de standaard), 28, 60 of 90 dagen. Alleen **Exception Count** heeft ze: zie [Pieken ten opzichte van wat normaal is](#pieken-ten-opzichte-van-wat-normaal-is).
+De anomaliecondities hebben geen **Waarde**. Kies een **Gevoeligheid** (Laag, Gemiddeld, de standaard, of Hoog) en, in de eigen criteria, een **Baseline-venster** van 14 (de standaard), 28, 60 of 90 dagen. Alleen **Aantal uitzonderingen** heeft ze: zie [Pieken ten opzichte van wat normaal is](#pieken-ten-opzichte-van-wat-normaal-is).
 
 Een uitzonderingen-monitor die in Monitor maken is aangemaakt, begint met de regel van wat u onder **Waarover moet deze monitor je informeren?** hebt gekozen:
 
@@ -146,8 +146,8 @@ Een uitzonderingen-monitor die via de API of Terraform zonder criteria is aangem
 
 | Criterium | Filter | Effect |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Groter dan** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
-| Check if … has no exceptions | **Exception Count** **Gelijk aan** `0` | Zet de monitor online |
+| Check if … has exceptions | **Aantal uitzonderingen** **Groter dan** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
+| Check if … has no exceptions | **Aantal uitzonderingen** **Gelijk aan** `0` | Zet de monitor online |
 
 ## Nieuwe, teruggekomen en piekende uitzonderingen
 
@@ -155,7 +155,7 @@ Naast hoeveel uitzonderingen er waren, kan een uitzonderingen-monitor waarschuwe
 
 | Filtertype | Wat het telt in het venster |
 | --- | --- |
-| **New Exceptions** | Overeenkomende uitzonderingen die voor het eerst zijn gezien en niet opgelost of gearchiveerd zijn. |
+| **Nieuwe uitzonderingen** | Overeenkomende uitzonderingen die voor het eerst zijn gezien en niet opgelost of gearchiveerd zijn. |
 | **Opnieuw opgetreden uitzonderingen** | Overeenkomende uitzonderingen die u hebt opgelost, die terugkwamen en nog open zijn. |
 | **Toename van uitzonderingen (in %)** | Hoeveel het aantal overeenkomende uitzonderingen boven het gewone ligt: de dag voor het venster, per venster van dezelfde lengte, minstens één. Tien uitzonderingen na een rustige dag geven 900%. |
 
@@ -188,7 +188,7 @@ U wilt een incident telkens wanneer de API in productie een uitzondering gooit, 
 | `TimeoutError` × 2 | geen | Actief | Nee: geen omgeving |
 | `NullReferenceException` × 4 | `production` | Opgelost nadat ze optraden | Nee: opgelost |
 
-De **Exception Count** is 3, dus **Meer dan** `0` komt overeen: de monitor gaat offline en er wordt een incident gemeld. Zodra er vijf minuten voorbij zijn zonder actieve productie-uitzondering, komt de regel niet meer overeen, gaat de monitor terug naar zijn standaardstatus en lost het incident zichzelf op.
+Het **Aantal uitzonderingen** is 3, dus **Meer dan** `0` komt overeen: de monitor gaat offline en er wordt een incident gemeld. Zodra er vijf minuten voorbij zijn zonder actieve productie-uitzondering, komt de regel niet meer overeen, gaat de monitor terug naar zijn standaardstatus en lost het incident zichzelf op.
 
 ## Problemen oplossen
 

@@ -24,7 +24,7 @@ flowchart TB
 
 Поскольку плейсхолдеры заменяются как текст, `{{responseBody.item}}` становится «сырым» значением. Строку нужно заключить в кавычки, чтобы она стала строкой JavaScript; число или логическое значение — не нужно, см. [Правила кавычек](#правила-кавычек). Выражения выполняются на сервере OneUptime в изолированной песочнице.
 
-## Добавление фильтра JavaScript Expression
+## Добавление фильтра Выражение JavaScript
 
 :::steps
 ### Откройте критерии
@@ -46,7 +46,7 @@ flowchart TB
 
 ## Переменные по типам мониторов
 
-Выражения JavaScript доступны для мониторов типов Website, API, Incoming Request, Incoming Email, SQL Query и Database Health.
+Выражения JavaScript доступны для мониторов типов Website, API, Входящий запрос, Incoming Email, SQL Query и Database Health.
 
 ### Мониторы веб-сайтов и API
 

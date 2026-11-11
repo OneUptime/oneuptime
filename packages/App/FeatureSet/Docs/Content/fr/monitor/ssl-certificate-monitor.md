@@ -73,8 +73,8 @@ Les critères décident quand le certificat compte comme bon, dégradé ou défa
 
 | Filtre | Conditions | Ce qu'il vérifie |
 | --- | --- | --- |
-| **Is Valid Certificate** | **Vrai**, **Faux** | Le certificat passe les vérifications d'un navigateur : un émetteur de confiance, un nom d'hôte qui correspond et des dates qui incluent aujourd'hui. **Faux** quand le point de terminaison n'a pas répondu. |
-| **Is Not A Valid Certificate** | **Vrai**, **Faux** | Le contraire de **Is Valid Certificate** : **Vrai** quand le certificat échoue à ces vérifications ou n'a pas pu être vérifié. |
+| **Certificat valide** | **Vrai**, **Faux** | Le certificat passe les vérifications d'un navigateur : un émetteur de confiance, un nom d'hôte qui correspond et des dates qui incluent aujourd'hui. **Faux** quand le point de terminaison n'a pas répondu. |
+| **Certificat non valide** | **Vrai**, **Faux** | Le contraire de **Certificat valide** : **Vrai** quand le certificat échoue à ces vérifications ou n'a pas pu être vérifié. |
 | **Certificat expiré** | **Vrai**, **Faux** | La date d'expiration du certificat est passée. |
 | **Certificat auto-signé** | **Vrai**, **Faux** | Le certificat, ou l'un de ceux de sa chaîne, est auto-signé. |
 | **Jours avant expiration** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Les jours avant l'expiration du certificat. |
@@ -102,7 +102,7 @@ Pour être averti plus tôt, changez la valeur du filtre **Jours avant expiratio
 Les moniteurs créés avant que OneUptime n'ajoute cet avertissement n'ont pas de critère « bientôt expiré ». Pour l'ajouter :
 
 1. Sur le moniteur, ouvrez **Configuration → Critères** et cliquez sur **Modifier les critères de surveillance**.
-2. Cliquez sur **Ajouter un critère**. Réglez son filtre sur **Is Valid Certificate** / **Vrai**, cliquez sur **Ajouter un filtre** et réglez le second sur **Jours avant expiration** / **Inférieur ou égal à** / `14`. Laissez **Condition de correspondance** sur **Tous** (il apparaît sous les filtres dès qu'il y en a deux).
+2. Cliquez sur **Ajouter un critère**. Réglez son filtre sur **Certificat valide** / **Vrai**, cliquez sur **Ajouter un filtre** et réglez le second sur **Jours avant expiration** / **Inférieur ou égal à** / `14`. Laissez **Condition de correspondance** sur **Tous** (il apparaît sous les filtres dès qu'il y en a deux).
 3. Sous **Actions**, activez **Lorsque les filtres correspondent, créer une alerte.** et laissez **Lorsque les filtres correspondent, modifier le statut du moniteur.** désactivé, pour qu'il crée une alerte sans changer l'état du moniteur.
 4. Faites glisser le nouveau critère au-dessus du critère qui marque le moniteur en ligne, puis enregistrez.
 :::
@@ -136,7 +136,7 @@ Un certificat auto-signé n'est jamais valide, donc les critères par défaut ga
 
 1. Dans le critère « non valide », cliquez sur **Ajouter un filtre**, réglez le nouveau filtre sur **Certificat auto-signé** / **Faux**, et réglez **Condition de correspondance** sur **Tous**. Le critère met toujours le moniteur hors ligne quand le point de terminaison ne répond pas, ou que le certificat est faux d'une autre manière.
 2. Ajoutez un critère avec **Certificat expiré** / **Vrai** qui marque le moniteur **Hors ligne** et déclare un incident, et faites-le glisser tout en haut.
-3. Dans le critère « bientôt expiré », remplacez **Is Valid Certificate** / **Vrai** par **Certificat expiré** / **Faux**, pour que l'avertissement couvre aussi le certificat auto-signé.
+3. Dans le critère « bientôt expiré », remplacez **Certificat valide** / **Vrai** par **Certificat expiré** / **Faux**, pour que l'avertissement couvre aussi le certificat auto-signé.
 
 Tant que le certificat est à jour, aucun critère ne correspond et le moniteur affiche son état par défaut, **Opérationnel**.
 :::

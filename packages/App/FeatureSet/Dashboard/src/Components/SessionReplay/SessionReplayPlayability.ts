@@ -223,7 +223,10 @@ function describePlayable(
   translator: Translator,
 ): string {
   if (!expiry) {
-    return translateLine("Footage is stored and can be played back.", translator);
+    return translateLine(
+      "Footage is stored and can be played back.",
+      translator,
+    );
   }
 
   switch (expiry.kind) {

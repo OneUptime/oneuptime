@@ -23,7 +23,7 @@ sequenceDiagram
     O->>O: Op de monitor opslaan
     O->>O: De criteria toetsen
     O->>T: Waarschuwing of incident,<br/>als er een overeenkomt
-    Note over O: Elke 30 seconden criteria<br/>met Email Received toetsen
+    Note over O: Elke 30 seconden criteria<br/>met “E-mail ontvangen” toetsen
 ```
 
 1. Als u een monitor voor inkomende e-mail maakt, geeft OneUptime hem een uniek e-mailadres.
@@ -143,8 +143,8 @@ Een nieuwe monitor voor inkomende e-mail wordt gemaakt met twee criteria die de 
 
 | Criterium | Filtertype | Filtervoorwaarde | Waarde | Effect |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
-| Offline  | Email Body  | Bevat | `error` | Markeert de monitor als offline, opent een incident |
-| Online   | Email Body  | Bevat niet | `error` | Markeert de monitor als online |
+| Offline  | E-mailtekst  | Bevat | `error` | Markeert de monitor als offline, opent een incident |
+| Online   | E-mailtekst  | Bevat niet | `error` | Markeert de monitor als online |
 
 Dit past bij het gangbare geval waarin een job of een tool van derden zijn eigen resultaat per e-mail meldt: een bericht waarvan de tekst `error` noemt, haalt de monitor neer, en het volgende bericht zonder dat woord brengt de monitor weer online en lost het incident op. Bij het vergelijken van de tekst tellen hoofdletters niet, dus `Error` en `ERROR` komen ook overeen.
 
@@ -185,9 +185,7 @@ Het eigen adres van de monitor wordt gemaskeerd voordat een criterium de e-mail 
 
 Bij al deze vergelijkingen tellen hoofdletters niet. Een filter met een lege waarde komt nooit overeen.
 
-### Tijdgebaseerde filters (Email Received)
-
-Het dashboard spelt deze voorwaarden "Recieved".
+### Tijdgebaseerde filters (E-mail ontvangen)
 
 | Filtervoorwaarde | Beschrijving | Voorbeeld |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -196,7 +194,7 @@ Het dashboard spelt deze voorwaarden "Recieved".
 
 Een monitor die nog nooit een e-mail heeft ontvangen, telt zijn aanmaaktijd als de laatste e-mail.
 
-### JavaScript Expression
+### JavaScript-expressie
 
 | Filtervoorwaarde | Beschrijving |
 | --------------------- | ------------------------------------- |

@@ -181,9 +181,10 @@ export function getDataverseAuthority(host: string): string | null {
   const lower: string = host.toLowerCase();
 
   for (const cloud of CLOUDS) {
-    const match: RegExpMatchArray | null = lower.match(cloud.suffix);
+    // The cloud's own suffix pattern, written above, asked of the host.
+    const match: RegExpExecArray | null = cloud.suffix.exec(lower);
 
-    if (match && match.index !== undefined) {
+    if (match) {
       const organization: string = lower.slice(0, match.index);
 
       return ORGANIZATION_LABEL.test(organization) ? cloud.authority : null;

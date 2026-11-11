@@ -137,7 +137,7 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 | **Alle Werte** | Jede Prüfung im Fenster die Bedingung erfüllt. |
 | **Beliebiger Wert** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
 
-**Alle Werte** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Beliebiger Wert** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
+Die Option **Alle Werte** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Beliebiger Wert** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
 
 **Zeitüberschreitung der Anfrage** ist keine Zahl, die OneUptime aufzeichnet. OneUptime zeichnet deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **Alle Werte** oder **Beliebiger Wert**.
 
