@@ -54,7 +54,7 @@ import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
  * what the API, Terraform, the worker and the server's texts get.
  */
 
-const NO_BREAK_SPACE: string = " ";
+const NO_BREAK_SPACE: string = "\u00A0";
 const MINUS_SIGN: string = "−";
 
 const ENGLISH: Translator = dashboardTranslator("en");
@@ -72,6 +72,15 @@ const ARABIC_INDIC_DIGIT: RegExp = /[٠-٩]/;
 const LATIN_DIGIT: RegExp = /[0-9]/;
 // A figure with an English decimal point: "99.9", "14.4".
 const DECIMAL_POINT: RegExp = /[0-9]\.[0-9]/;
+// The English words of the line under the error budget.
+const BUDGET_LINE_ENGLISH: RegExp = /remaining|over budget/;
+
+// One row per Dashboard language, for a test.each.
+const LANGUAGE_ROWS: Array<[string]> = DASHBOARD_LANGUAGES.map(
+  (language: string): [string] => {
+    return [language];
+  },
+);
 
 // A percentage as the language's own Intl.NumberFormat writes it.
 function percentIn(language: string, value: number, decimals: number): string {
@@ -154,7 +163,7 @@ describe("formatSloPercent in the reader's language", () => {
     expect(written).not.toMatch(ARABIC_INDIC_DIGIT);
   });
 
-  test.each(DASHBOARD_LANGUAGES.map((language: string) => [language]))(
+  test.each(LANGUAGE_ROWS)(
     "%s: the figure is the language's own Intl percentage",
     (language: string) => {
       const translator: Translator = dashboardTranslator(language);
@@ -299,7 +308,7 @@ describe("formatErrorBudgetRemainingSeconds: the line under the error budget", (
     );
   });
 
-  test.each(DASHBOARD_LANGUAGES.map((language: string) => [language]))(
+  test.each(LANGUAGE_ROWS)(
     "%s: every case is the language's own sentence, never the English one",
     (language: string) => {
       const translator: Translator = dashboardTranslator(language);
@@ -318,7 +327,7 @@ describe("formatErrorBudgetRemainingSeconds: the line under the error budget", (
         expect({
           seconds,
           line,
-          isEnglish: line === english || /remaining|over budget/.test(line),
+          isEnglish: line === english || BUDGET_LINE_ENGLISH.test(line),
         }).toEqual({ seconds, line, isEnglish: false });
       }
     },
@@ -529,7 +538,7 @@ describe("the tile's figure and the line under it, per metric", () => {
     }
   });
 
-  test.each(DASHBOARD_LANGUAGES.map((language: string) => [language]))(
+  test.each(LANGUAGE_ROWS)(
     "%s: no figure keeps an English decimal point where the language writes a comma",
     (language: string) => {
       const translator: Translator = dashboardTranslator(language);
@@ -644,7 +653,7 @@ describe("the SLO list widget's row in the reader's language", () => {
     expect(notEvaluated.statusText).toBe(SLO_NOT_EVALUATED_STATUS_LABEL);
   });
 
-  test.each(DASHBOARD_LANGUAGES.map((language: string) => [language]))(
+  test.each(LANGUAGE_ROWS)(
     "%s: the status labels the list draws are worded in the language",
     (language: string) => {
       const words: Record<string, string> = readDashboardLocale(language);

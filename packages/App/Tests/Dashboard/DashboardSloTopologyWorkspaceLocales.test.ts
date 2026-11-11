@@ -129,7 +129,8 @@ const WORDS_INSIDE_THE_SENTENCES: Array<string> = [
   "{{count}} days",
   "{{count}} days_one",
   "Unnamed site",
-  "Target {{target}}%",
+  // The target's line on the SLO charts, its figure written the reader's way.
+  "Target {{target}}",
   "Line {{line}}: {{message}}",
   "Set up {{name}}",
   "sites",
@@ -433,6 +434,106 @@ describe("the two-factor, topology, status page, SLO and workspace texts in ever
         missing: untranslated(language, WORDS_INSIDE_THE_SENTENCES),
       }).toEqual({ language, missing: [] });
     }
+  });
+
+  test("every language words the dashboard SLO widgets' keys, read from the files as the extractor reads them (#6778)", () => {
+    const widgetKeys: Set<string> = new Set<string>();
+
+    for (const file of [
+      "packages/Common/Utils/Slo/SloWidgetFormat.ts",
+      "packages/Common/Utils/Slo/SloListWidgetFormat.ts",
+    ]) {
+      // A SOURCE_ROOTS entry of the extractor, read only for its marked keys.
+      expect({
+        file,
+        isSourceRoot: CONTEXT.sourceRoots.some(
+          (root: { directory: string; kind: string }): boolean => {
+            return root.directory === file && root.kind === "keys";
+          },
+        ),
+      }).toEqual({ file, isSourceRoot: true });
+
+      for (const entry of scanSourceText(
+        file,
+        fs.readFileSync(path.join(REPOSITORY_ROOT, file), "utf8"),
+        { kind: "keys" },
+      ).strings) {
+        widgetKeys.add(entry.text);
+
+        if (entry.pluralOne !== undefined) {
+          widgetKeys.add(`${entry.text}_one`);
+        }
+      }
+    }
+
+    const keys: Array<string> = [...widgetKeys].sort();
+
+    // The words the widgets draw, and nothing the worker or the API reads.
+    expect(keys).toEqual(
+      [
+        "Burn Rate",
+        "Disabled",
+        "Error Budget Remaining",
+        "Not Evaluated",
+        "Not evaluated yet",
+        "SLI",
+        "target {{target}}",
+        "under 1 min over budget",
+        "under 1 min remaining",
+        "{{count}} min remaining",
+        "{{count}} min remaining_one",
+        "\u2212{{count}} min over budget",
+        "\u2212{{count}} min over budget_one",
+      ].sort(),
+    );
+
+    const missing: Record<string, Array<string>> = {};
+
+    for (const language of LANGUAGES) {
+      const locale: Record<string, string> = readLocale(language);
+      const gaps: Array<string> = untranslated(language, keys);
+
+      if (gaps.length > 0) {
+        missing[language] = gaps;
+      }
+
+      for (const key of keys) {
+        expect({
+          language,
+          key,
+          placeholders: placeholders(locale[key] || ""),
+        }).toEqual({
+          language,
+          key,
+          placeholders: placeholders(ENGLISH[key]!),
+        });
+      }
+    }
+
+    expect(missing).toEqual({});
+  });
+
+  test("an overage is said in words in every language, never with the English minus", () => {
+    for (const language of LANGUAGES) {
+      const locale: Record<string, string> = readLocale(language);
+
+      for (const key of [
+        "\u2212{{count}} min over budget",
+        "\u2212{{count}} min over budget_one",
+      ]) {
+        expect({
+          language,
+          key,
+          minus: locale[key]!.includes("\u2212"),
+        }).toEqual({ language, key, minus: false });
+      }
+    }
+
+    // Arabic: the short unit, the same for every count (ARABIC.md).
+    const arabic: Record<string, string> = readLocale("ar");
+
+    expect(arabic["{{count}} min remaining"]).toContain("{{count}} د");
+    expect(arabic["{{count}} min remaining_one"]).toContain("{{count}} د");
   });
 
   test("the Arabic counted sentences read right for every count: a label and its count, or the count of the things", () => {
