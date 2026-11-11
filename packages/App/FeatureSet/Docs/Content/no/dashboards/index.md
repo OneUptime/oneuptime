@@ -1,6 +1,6 @@
 # Oversikt over dashbord
 
-Et dashbord er én side med widgets som du ordner selv: diagrammer over metrikkene, loggene og sporene dine, lister over hendelser, varsler og overvåkinger, SLO-ene og infrastrukturen din, til og med data fra systemer utenfor OneUptime. Lag ett til vaktskjermen, til et teams morgensjekk eller som en side for kundene dine, og del det med prosjektet ditt eller med alle som har lenken.
+Et dashbord er én side med widgets som du ordner selv: diagrammer over metrikkene, loggene og sporene dine, lister over hendelser, varsler og overvåkinger, SLO-ene og infrastrukturen din, til og med data fra systemer utenfor OneUptime. Lag ett til vaktskjermen, til et teams morgensjekk eller som en side for kundene dine, og del det med prosjektet ditt eller med alle som har lenken. Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#dashbord-offentlig-dashbord-eller-statusside) for å velge mellom et dashbord, et offentlig dashbord og en statusside.
 
 :::cards
 - [Slik fungerer et dashbord](#slik-fungerer-et-dashbord): Hvor dataene kommer fra, og hvem som ser dem.

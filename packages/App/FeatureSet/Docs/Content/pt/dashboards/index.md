@@ -1,6 +1,6 @@
 # Visão geral dos painéis
 
-Um painel é uma página de widgets que você mesmo organiza: gráficos das suas métricas, logs e traces, listas de incidentes, alertas e monitores, seus SLOs e sua infraestrutura, e até dados de sistemas fora do OneUptime. Crie um para a tela do plantão, para a checagem matinal de uma equipe ou como página para os seus clientes, e compartilhe-o com o seu projeto ou com qualquer pessoa que tenha o link.
+Um painel é uma página de widgets que você mesmo organiza: gráficos das suas métricas, logs e traces, listas de incidentes, alertas e monitores, seus SLOs e sua infraestrutura, e até dados de sistemas fora do OneUptime. Crie um para a tela do plantão, para a checagem matinal de uma equipe ou como página para os seus clientes, e compartilhe-o com o seu projeto ou com qualquer pessoa que tenha o link. Para escolher entre um painel, um painel público e uma página de status, veja [Qual devo usar?](/docs/introduction/which-one#painel-painel-público-ou-página-de-status).
 
 :::cards
 - [Como um painel funciona](#como-um-painel-funciona): De onde vêm os dados dele, e quem o vê.

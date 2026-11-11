@@ -7,6 +7,8 @@ Start her:
 :::cards
 - [Hurtigstart](/docs/introduction/quickstart): Overvåg et websted, bliv tilkaldt når det går ned, og udgiv en statusside.
 - [Grundbegreber](/docs/introduction/core-concepts): De få idéer, som alt andet bygger på, og hvordan de hænger sammen.
+- [Ordliste](/docs/introduction/glossary): Hvert ord, OneUptime bruger, forklaret med en sætning eller to og med dets andre navne.
+- [Hvilken skal jeg bruge?](/docs/introduction/which-one): Hændelse eller advarsel, arbejdsgang eller runbook, og de andre ting, der ligner hinanden, side om side.
 - [Startside og genveje](/docs/introduction/home): Find rundt i dashboardet, og de taster, der sparer dig for klik.
 - [Din konto](/docs/introduction/your-account): Din profil, din adgangskode, adgangsnøgler og totrinsgodkendelse.
 :::

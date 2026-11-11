@@ -1,6 +1,6 @@
 # Brugerdefinerede probes
 
-En brugerdefineret sonde er en lille agent, som du kører i dit eget netværk. Den tjekker de overvågninger, du føjer den til, for eksempel interne websteder, API'er og servere bag din firewall, og sender resultaterne til OneUptime. Den åbner kun udgående forbindelser over HTTPS, så intet i dit netværk behøver at tage imod forbindelser fra internettet.
+En brugerdefineret sonde er en lille agent, som du kører i dit eget netværk. Den tjekker de overvågninger, du føjer den til, for eksempel interne websteder, API'er og servere bag din firewall, og sender resultaterne til OneUptime. Den åbner kun udgående forbindelser over HTTPS, så intet i dit netværk behøver at tage imod forbindelser fra internettet. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#sonde-agent-collector-eller-runner) for at vælge mellem en sonde, en agent, en collector og en Runner.
 
 :::cards
 - [Sådan virker det](#sådan-virker-det): Hvad sonden gør, og hvordan OneUptime ved, at den kører.

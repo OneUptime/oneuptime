@@ -1,6 +1,6 @@
 # Varsler – Oversikt
 
-Et varsel gjør teamet ditt oppmerksom på et problem som bør undersøkes før brukerne dine merker det: en disk som holder på å bli full, et sertifikat som snart utløper, en feilrate som sniker seg oppover. Varselet kan tilkalle den som har vakt og gi eierne beskjed, men det vises aldri på en statusside og gir aldri abonnentene dine beskjed. Denne siden forklarer hvor varsler kommer fra, hvor de finnes i dashbordet, og hvordan teamet ditt jobber med dem.
+Et varsel gjør teamet ditt oppmerksom på et problem som bør undersøkes før brukerne dine merker det: en disk som holder på å bli full, et sertifikat som snart utløper, en feilrate som sniker seg oppover. Varselet kan tilkalle den som har vakt og gi eierne beskjed, men det vises aldri på en statusside og gir aldri abonnentene dine beskjed. Denne siden forklarer hvor varsler kommer fra, hvor de finnes i dashbordet, og hvordan teamet ditt jobber med dem. Usikker på om et problem er et varsel eller en hendelse? [Hvilken skal jeg bruke?](/docs/introduction/which-one#hendelse-varsel-eller-en-annen-type-problem) stiller dem opp side om side.
 
 :::cards
 - [Varsler og hendelser](#varsler-og-hendelser): Hva et problem bør være, og hvordan de to henger sammen.

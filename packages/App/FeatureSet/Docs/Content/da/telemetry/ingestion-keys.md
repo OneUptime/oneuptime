@@ -1,6 +1,6 @@
 # Indtagelsesnøgler
 
-En indtagelsesnøgle forbinder din telemetri med dit projekt. Applikationer, OpenTelemetry Collectors og agenter sender den med hver anmodning, og OneUptime lægger deres protokoller, spor og metrikker i det projekt, nøglen tilhører. Denne side viser, hvordan du opretter en nøgle, hvilken type du skal vælge, og hvordan du holder nøgler sikre.
+En indtagelsesnøgle forbinder din telemetri med dit projekt. Applikationer, OpenTelemetry Collectors og agenter sender den med hver anmodning, og OneUptime lægger deres protokoller, spor og metrikker i det projekt, nøglen tilhører. Denne side viser, hvordan du opretter en nøgle, hvilken type du skal vælge, og hvordan du holder nøgler sikre. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#indtagelsesnøgle-eller-api-nøgle) for at kende forskel på en indtagelsesnøgle og en API-nøgle.
 
 :::cards
 - [Opret en indtagelsesnøgle](#opret-en-indtagelsesnøgle): Et navn, en type og en hemmelighed at kopiere.
