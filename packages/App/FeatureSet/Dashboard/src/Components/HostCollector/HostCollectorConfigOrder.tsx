@@ -77,7 +77,7 @@ const HostCollectorConfigOrder: FunctionComponent = (): ReactElement => {
                    */
                   <span
                     aria-hidden="true"
-                    className="absolute right-0 top-1 hidden text-gray-300 md:block"
+                    className="absolute right-0 top-1 max-md:hidden text-gray-300 md:block"
                     data-testid="host-collector-config-order-then"
                   >
                     <Icon

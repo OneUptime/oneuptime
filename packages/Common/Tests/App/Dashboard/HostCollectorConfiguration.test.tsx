@@ -441,8 +441,14 @@ describe("how a host gets its config, across the top of the list", () => {
     expect(chevrons).toHaveLength(HOST_COLLECTOR_CONFIG_ORDER_STEPS.length - 1);
     for (const chevron of chevrons) {
       expect(chevron).toHaveAttribute("aria-hidden", "true");
-      // A phone reads the steps top to bottom: the numbers say the order.
-      expect(chevron).toHaveClass("hidden", "md:block");
+      /*
+       * A phone reads the steps top to bottom: the numbers say the order.
+       * Hidden below md without the bare `hidden` class, which a foreign
+       * `.hidden{display:none !important}` rule would keep hidden at every
+       * width (ForeignHiddenRuleGuard).
+       */
+      expect(chevron).toHaveClass("max-md:hidden", "md:block");
+      expect(chevron).not.toHaveClass("hidden");
     }
     expect(
       within(

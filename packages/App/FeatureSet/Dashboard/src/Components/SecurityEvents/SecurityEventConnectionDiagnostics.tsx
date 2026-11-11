@@ -32,6 +32,7 @@ import {
 import { APP_API_URL } from "Common/UI/Config";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -469,8 +470,8 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
               title={translator.translateText(connectorHealthTooltip(health))}
             >
               {translator.translateText(health)}
-            </span>{" "}
-            ·{" "}
+            </span>
+            <InlineSeparator />
             {connection.isEnabled
               ? translator.translatePlural(
                   {
