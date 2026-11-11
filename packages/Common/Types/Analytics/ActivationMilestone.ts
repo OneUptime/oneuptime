@@ -1,3 +1,5 @@
+import UserNotificationStatus from "../UserNotification/UserNotificationStatus";
+
 /*
  * The moments that say a project is getting value from OneUptime (issue
  * #6830): its activation milestones.
@@ -258,4 +260,30 @@ export const ACTIVATION_MILESTONE_OF_TELEMETRY_KIND: Readonly<
     ActivationMilestone.FirstExceptionsReceived,
   [ActivationTelemetryKind.Profiles]:
     ActivationMilestone.FirstProfilesReceived,
+};
+
+/*
+ * The statuses of an on-call notification that say it reached its person:
+ * its provider accepted it (Sent), they answered it (Acknowledged), passed
+ * the page on from it (Passed On), or a call rang and was not picked up
+ * (Not Answered). Not one still Sending, an Error or one Skipped.
+ * FirstNotificationDelivered is reached on the first of these.
+ */
+export const DELIVERED_NOTIFICATION_STATUSES: ReadonlyArray<UserNotificationStatus> =
+  [
+    UserNotificationStatus.Sent,
+    UserNotificationStatus.Acknowledged,
+    UserNotificationStatus.PassedOn,
+    UserNotificationStatus.NotAnswered,
+  ];
+
+export const isNotificationDeliveredStatus: (
+  status: UserNotificationStatus | string | null | undefined,
+) => boolean = (
+  status: UserNotificationStatus | string | null | undefined,
+): boolean => {
+  return (
+    typeof status === "string" &&
+    (DELIVERED_NOTIFICATION_STATUSES as ReadonlyArray<string>).includes(status)
+  );
 };

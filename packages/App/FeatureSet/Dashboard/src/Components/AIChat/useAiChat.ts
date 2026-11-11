@@ -1,3 +1,5 @@
+import ProductEvents from "Common/UI/Utils/ProductEvents";
+import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationMessage, {
   AIConversationMessageFeedback,
@@ -871,6 +873,15 @@ export function useAiChat(options: {
           "conversationId"
         ] as string;
 
+        /*
+         * A question Ask AI took (issue #6830) - never its words: whether it
+         * started a conversation, and the permission mode it runs under.
+         */
+        ProductEvents.send(ProductEventName.AskAiQuestionAsked, {
+          is_new_conversation: !activeConversationIdRef.current,
+          permission_mode: String(permissionModeRef.current || ""),
+        });
+
         if (!activeConversationIdRef.current) {
           activeConversationIdRef.current = conversationId;
           setActiveConversationId(conversationId);
@@ -1065,6 +1076,11 @@ export function useAiChat(options: {
         if (response instanceof HTTPErrorResponse) {
           throw response;
         }
+
+        // How an answer was rated, or that its rating was cleared (issue #6830).
+        ProductEvents.send(ProductEventName.AskAiAnswerRated, {
+          rating: feedback ? String(feedback) : "cleared",
+        });
       } catch (err) {
         setError(API.getFriendlyMessage(err));
         if (activeConversationIdRef.current) {

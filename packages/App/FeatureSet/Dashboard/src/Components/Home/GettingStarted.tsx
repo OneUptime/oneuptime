@@ -1,3 +1,4 @@
+import ChecklistEvents from "Common/UI/Utils/ChecklistEvents";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -225,6 +226,19 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
       setTaskCompletion(null);
       return;
     }
+
+    /*
+     * The steps this browser saw go from not done to done, and the whole
+     * checklist when it finishes (issue #6830): only the click on a step was
+     * recorded before.
+     */
+    ChecklistEvents.noteProgress({
+      projectId: props.projectId.toString(),
+      current: completion,
+      stepKeys: gettingStartedTasks.map((task: GettingStartedTask): string => {
+        return task.key;
+      }),
+    });
 
     const isEveryTaskComplete: boolean = gettingStartedTasks.every(
       (task: GettingStartedTask) => {
