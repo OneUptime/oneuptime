@@ -49816,5 +49816,6 @@
   "{{seconds}} seconds": "{{seconds}} 秒",
   "{{time}} (approximate)": "{{time}}（概算）",
   "{{value}} s": "{{value}} 秒",
-  "{{window}}, the same length": "{{window}}（同じ長さ）"
+  "{{window}}, the same length": "{{window}}（同じ長さ）",
+  "Security Events Ingest Endpoint": "セキュリティイベントの取り込みエンドポイント"
 }

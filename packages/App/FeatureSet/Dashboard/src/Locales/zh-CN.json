@@ -49816,5 +49816,6 @@
   "{{seconds}} seconds": "{{seconds}} 秒",
   "{{time}} (approximate)": "{{time}}（大约）",
   "{{value}} s": "{{value}} 秒",
-  "{{window}}, the same length": "{{window}}，相同长度"
+  "{{window}}, the same length": "{{window}}，相同长度",
+  "Security Events Ingest Endpoint": "安全事件摄取端点"
 }

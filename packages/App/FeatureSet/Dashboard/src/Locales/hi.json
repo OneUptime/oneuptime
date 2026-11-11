@@ -49816,5 +49816,6 @@
   "{{seconds}} seconds": "{{seconds}} सेकंड",
   "{{time}} (approximate)": "{{time}} (लगभग)",
   "{{value}} s": "{{value}} सेकंड",
-  "{{window}}, the same length": "{{window}}, समान अवधि"
+  "{{window}}, the same length": "{{window}}, समान अवधि",
+  "Security Events Ingest Endpoint": "सुरक्षा इवेंट इंजेशन एंडपॉइंट"
 }

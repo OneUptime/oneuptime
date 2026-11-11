@@ -49816,5 +49816,6 @@
   "{{seconds}} seconds": "{{seconds}}초",
   "{{time}} (approximate)": "{{time}}(대략)",
   "{{value}} s": "{{value}}초",
-  "{{window}}, the same length": "{{window}}, 같은 길이"
+  "{{window}}, the same length": "{{window}}, 같은 길이",
+  "Security Events Ingest Endpoint": "보안 이벤트 수집 엔드포인트"
 }

@@ -53,6 +53,8 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import readAsWritten from "Common/UI/Components/IsolatedText/ReadAsWritten";
+import { isRightToLeftLanguage } from "Common/Types/ReadingDirection";
 
 /*
  * A UTC timestamp whose hover text carries the viewer's local time. Every
@@ -78,9 +80,49 @@ export const ConnectionTime: FunctionComponent<ConnectionTimeProps> = (
   const iso: string = new Date(props.value).toISOString();
 
   return (
-    <time dateTime={iso} title={connectionTimeTitle(props.value, translator)}>
+    /*
+     * "2026-11-11 01:51:25 UTC" is written the same in every language, so it
+     * reads left to right on an Arabic or Persian page too: alone in a cell
+     * the page's direction put "UTC" first, while the same time inside a
+     * sentence read as written.
+     */
+    <time
+      dir="ltr"
+      dateTime={iso}
+      title={connectionTimeTitle(props.value, translator)}
+    >
       {formatConnectionDate(props.value, translator)}
     </time>
+  );
+};
+
+export interface ConnectionTimeRangeProps {
+  start: string | Date | undefined;
+  end: string | Date | undefined;
+}
+
+/*
+ * "start → end", the arrow pointing the way the page reads: on an Arabic or
+ * Persian page the start stands on the right, so the arrow points left, as
+ * those languages' sentences write a window ("{{start}} ← {{end}}"). Each
+ * time keeps to one line, so a narrow column breaks the range at the arrow,
+ * never inside a time.
+ */
+export const ConnectionTimeRange: FunctionComponent<
+  ConnectionTimeRangeProps
+> = (props: ConnectionTimeRangeProps): ReactElement => {
+  const translator: Translator = useTranslator();
+  const arrow: string = isRightToLeftLanguage(translator.language) ? "←" : "→";
+
+  return (
+    <span>
+      <span className="whitespace-nowrap">
+        <ConnectionTime value={props.start} /> {arrow}
+      </span>{" "}
+      <span className="whitespace-nowrap">
+        <ConnectionTime value={props.end} />
+      </span>
+    </span>
   );
 };
 
@@ -495,8 +537,10 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                 {translator.translateText("Requested window (UTC)")}
               </dt>
               <dd>
-                <ConnectionTime value={result.windowStart} /> →{" "}
-                <ConnectionTime value={result.windowEnd} />
+                <ConnectionTimeRange
+                  start={result.windowStart}
+                  end={result.windowEnd}
+                />
               </dd>
             </div>
             <div>
@@ -548,9 +592,20 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
               ([label, value]: [string, string | number]): ReactElement => {
                 return (
                   <div key={label} className="rounded-md bg-gray-50 p-3">
-                    <div className="text-xl font-semibold text-gray-900">
-                      {value.toLocaleString(getReaderNumberLocale())}
-                    </div>
+                    {/*
+                     * A count in the tile's large figure; a word in its
+                     * place ("Not checked") is quieter, on the same line
+                     * height, so the tiles stay level.
+                     */}
+                    {typeof value === "number" ? (
+                      <div className="text-xl font-semibold text-gray-900">
+                        {value.toLocaleString(getReaderNumberLocale())}
+                      </div>
+                    ) : (
+                      <div className="text-sm font-medium leading-7 text-gray-500">
+                        {value}
+                      </div>
+                    )}
                     <div className="text-xs text-gray-600">{label}</div>
                   </div>
                 );
@@ -653,15 +708,16 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
               <h4 className="font-medium">
                 {translator.translateText("Warnings")}
               </h4>
-              <ul className="mt-1 list-disc space-y-1 pl-5">
+              <ul className="mt-1 list-disc space-y-1 ps-5">
                 {result.warnings.map(
                   (warning: string, index: number): ReactElement => {
+                    // Written by the server in English: read as written.
                     return (
                       <li
                         key={index}
                         className="whitespace-pre-wrap break-words"
                       >
-                        {warning}
+                        {readAsWritten(warning, translator.language)}
                       </li>
                     );
                   },
@@ -690,14 +746,21 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                     return (
                       <li key={`${check.key}-${index}`}>
                         <span className={checkStatusClassName(status)}>
-                          {check.name}:{" "}
+                          {readAsWritten(check.name, translator.language)}:{" "}
                           {statusLabel
                             ? translator.translateText(statusLabel)
                             : status}
                         </span>
-                        <p className="text-gray-600">{check.message}</p>
+                        <p className="text-gray-600">
+                          {readAsWritten(check.message, translator.language)}
+                        </p>
                         {check.remediation && status !== "pass" && (
-                          <p className="text-gray-800">{check.remediation}</p>
+                          <p className="text-gray-800">
+                            {readAsWritten(
+                              check.remediation,
+                              translator.language,
+                            )}
+                          </p>
                         )}
                       </li>
                     );
@@ -720,13 +783,13 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
               <div className="mt-2 overflow-x-auto">
                 {sampleColumns.styles}
                 <table
-                  className={`${sampleColumns.getTableWidthClassName("min-w-full")} text-left text-sm`}
+                  className={`${sampleColumns.getTableWidthClassName("min-w-full")} text-start text-sm`}
                   {...sampleColumns.tableAttributes}
                 >
                   <thead className="border-b border-gray-200 text-gray-500">
                     <tr>
                       <ResizableHeaderCell
-                        className="py-2 pr-4"
+                        className="py-2 pe-4"
                         resize={sampleColumns.getResize(
                           "record",
                           recordTitle,
@@ -736,7 +799,7 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                         <span>{recordTitle}</span>
                       </ResizableHeaderCell>
                       <ResizableHeaderCell
-                        className="py-2 pr-4"
+                        className="py-2 pe-4"
                         resize={sampleColumns.getResize(
                           "severity",
                           severityTitle,
@@ -746,7 +809,7 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                         <span>{severityTitle}</span>
                       </ResizableHeaderCell>
                       <ResizableHeaderCell
-                        className="py-2 pr-4"
+                        className="py-2 pe-4"
                         resize={sampleColumns.getResize(
                           "eventTime",
                           eventTimeTitle,
@@ -756,7 +819,7 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                         <span>{eventTimeTitle}</span>
                       </ResizableHeaderCell>
                       <ResizableHeaderCell
-                        className={showAlertColumn ? "py-2 pr-4" : "py-2"}
+                        className={showAlertColumn ? "py-2 pe-4" : "py-2"}
                         resize={sampleColumns.getResize(
                           "createdAtSource",
                           createdAtSourceTitle,
@@ -790,18 +853,18 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                             key={`${sample.id}-${index}`}
                             className="border-b border-gray-100"
                           >
-                            <td className="max-w-xs break-words py-2 pr-4">
+                            <td className="max-w-xs break-words py-2 pe-4">
                               {connectorSampleTitle(sample) ||
                                 translator.translateText("Untitled")}
                               <div className="text-xs text-gray-500">
                                 {sample.id}
                               </div>
                             </td>
-                            <td className="py-2 pr-4">
+                            <td className="py-2 pe-4">
                               {sample.severity ||
                                 translator.translateText("Unknown")}
                             </td>
-                            <td className="whitespace-nowrap py-2 pr-4">
+                            <td className="whitespace-nowrap py-2 pe-4">
                               <ConnectionTime
                                 value={connectorSampleEventTime(sample)}
                                 emptyText={translationKey("Not provided")}
@@ -810,7 +873,7 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                             <td
                               className={
                                 showAlertColumn
-                                  ? "whitespace-nowrap py-2 pr-4"
+                                  ? "whitespace-nowrap py-2 pe-4"
                                   : "whitespace-nowrap py-2"
                               }
                             >

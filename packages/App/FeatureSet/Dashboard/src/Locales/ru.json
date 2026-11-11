@@ -49816,5 +49816,6 @@
   "{{seconds}} seconds": "{{seconds}} с",
   "{{time}} (approximate)": "{{time}} (приблизительно)",
   "{{value}} s": "{{value}} с",
-  "{{window}}, the same length": "{{window}}, той же длины"
+  "{{window}}, the same length": "{{window}}, той же длины",
+  "Security Events Ingest Endpoint": "Эндпоинт приёма событий безопасности"
 }

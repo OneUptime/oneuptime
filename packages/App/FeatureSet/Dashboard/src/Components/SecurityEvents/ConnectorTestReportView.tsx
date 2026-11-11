@@ -29,6 +29,7 @@ import {
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import readAsWritten from "Common/UI/Components/IsolatedText/ReadAsWritten";
 
 export interface ComponentProps {
   report: SecurityConnectorTestReport;
@@ -153,8 +154,13 @@ const CheckRow: FunctionComponent<CheckRowProps> = (
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
+          {/*
+           * A check's name, message and remediation are the server's
+           * English: on a right-to-left page they read as written, full
+           * stop at the end.
+           */}
           <span className="text-sm font-medium text-gray-900">
-            {props.check.name}
+            {readAsWritten(props.check.name, translator.language)}
           </span>
           <span
             className={`rounded-full px-2 py-0.5 text-xs font-medium ${style.labelClassName}`}
@@ -168,7 +174,7 @@ const CheckRow: FunctionComponent<CheckRowProps> = (
           )}
         </div>
         <p className="mt-1 whitespace-pre-wrap break-words text-sm text-gray-700">
-          {props.check.message}
+          {readAsWritten(props.check.message, translator.language)}
         </p>
         {props.check.remediation && (
           <div className="mt-2">
@@ -190,7 +196,7 @@ const CheckRow: FunctionComponent<CheckRowProps> = (
                 id={remediationId}
                 className="mt-1 whitespace-pre-wrap break-words rounded-md bg-gray-50 p-3 text-sm text-gray-800"
               >
-                {props.check.remediation}
+                {readAsWritten(props.check.remediation, translator.language)}
               </p>
             )}
           </div>
@@ -307,7 +313,9 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
             <h3 className="text-base font-semibold">
               {translator.translateText(summaryTitle(report.status))}
             </h3>
-            <p className="mt-1 text-sm">{report.summary}</p>
+            <p className="mt-1 text-sm">
+              {readAsWritten(report.summary, translator.language)}
+            </p>
             <p className="mt-2 text-xs opacity-80">
               <TranslatedSentence
                 template="{{provider}} · completed {{time}}"
@@ -315,6 +323,7 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
                 slots={{
                   time: (
                     <time
+                      dir="ltr"
                       dateTime={report.completedAt}
                       title={connectionTimeTitle(
                         report.completedAt,
@@ -393,13 +402,18 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
             {translator.translateText("Availability counts")}
           </h4>
           <div className="mt-2 overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
+            {/*
+             * Each header cell is start-aligned itself: a th under a table
+             * whose alignment is the default "start" is centred by the
+             * browser.
+             */}
+            <table className="min-w-full text-start text-sm">
               <thead className="border-b border-gray-200 text-gray-500">
                 <tr>
-                  <th scope="col" className="py-2 pr-4">
+                  <th scope="col" className="py-2 pe-4 text-start">
                     {translator.translateText("Measure")}
                   </th>
-                  <th scope="col" className="py-2">
+                  <th scope="col" className="py-2 text-start">
                     {translator.translateText("Value")}
                   </th>
                 </tr>
@@ -414,7 +428,7 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
                     >
                       <th
                         scope="row"
-                        className="py-2 pr-4 font-normal text-gray-700"
+                        className="py-2 pe-4 text-start font-normal text-gray-700"
                       >
                         {row.label}
                       </th>
@@ -446,14 +460,14 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
           <div className="mt-2 overflow-x-auto">
             {sampleColumns.styles}
             <table
-              className={`${sampleColumns.getTableWidthClassName("min-w-full")} text-left text-sm`}
+              className={`${sampleColumns.getTableWidthClassName("min-w-full")} text-start text-sm`}
               {...sampleColumns.tableAttributes}
             >
               <thead className="border-b border-gray-200 text-gray-500">
                 <tr>
                   <ResizableHeaderCell
                     scope="col"
-                    className="py-2 pr-4"
+                    className="py-2 pe-4"
                     resize={sampleColumns.getResize(
                       "record",
                       recordTitle,
@@ -464,7 +478,7 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     scope="col"
-                    className="py-2 pr-4"
+                    className="py-2 pe-4"
                     resize={sampleColumns.getResize(
                       "severity",
                       severityTitle,
@@ -475,7 +489,7 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     scope="col"
-                    className="py-2 pr-4"
+                    className="py-2 pe-4"
                     resize={sampleColumns.getResize(
                       "created",
                       createdTitle,
@@ -508,40 +522,53 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
                         key={`${sample.id}-${index}`}
                         className="border-b border-gray-100"
                       >
-                        <td className="max-w-xs break-words py-2 pr-4">
+                        <td className="max-w-xs break-words py-2 pe-4">
                           {sample.title || translator.translateText("Untitled")}
                           <div className="text-xs text-gray-500">
                             {sample.id}
                           </div>
                         </td>
-                        <td className="py-2 pr-4">
+                        <td className="py-2 pe-4">
                           {sample.severity ||
                             translator.translateText("Unknown")}
                         </td>
-                        <td
-                          className="whitespace-nowrap py-2 pr-4"
-                          title={connectionTimeTitle(
-                            sample.createdTime,
-                            translator,
-                          )}
-                        >
-                          {sample.createdTime
-                            ? formatConnectionDate(
+                        <td className="whitespace-nowrap py-2 pe-4">
+                          {sample.createdTime ? (
+                            <time
+                              dir="ltr"
+                              dateTime={sample.createdTime}
+                              title={connectionTimeTitle(
                                 sample.createdTime,
                                 translator,
-                              )
-                            : notProvided}
-                        </td>
-                        <td
-                          className="whitespace-nowrap py-2"
-                          title={connectionTimeTitle(
-                            sample.eventTime,
-                            translator,
+                              )}
+                            >
+                              {formatConnectionDate(
+                                sample.createdTime,
+                                translator,
+                              )}
+                            </time>
+                          ) : (
+                            notProvided
                           )}
-                        >
-                          {sample.eventTime
-                            ? formatConnectionDate(sample.eventTime, translator)
-                            : notProvided}
+                        </td>
+                        <td className="whitespace-nowrap py-2">
+                          {sample.eventTime ? (
+                            <time
+                              dir="ltr"
+                              dateTime={sample.eventTime}
+                              title={connectionTimeTitle(
+                                sample.eventTime,
+                                translator,
+                              )}
+                            >
+                              {formatConnectionDate(
+                                sample.eventTime,
+                                translator,
+                              )}
+                            </time>
+                          ) : (
+                            notProvided
+                          )}
                         </td>
                       </tr>
                     );

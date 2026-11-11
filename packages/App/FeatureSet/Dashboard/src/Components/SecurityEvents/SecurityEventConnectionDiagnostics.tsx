@@ -67,6 +67,7 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export interface ComponentProps {
   connection: SecurityEventConnection;
@@ -413,8 +414,13 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
   const nextPoll: Date | null = connectorNextPoll(connection);
   const rangeError: string | null = validateConnectionRange(startTime, endTime);
   const health: string = connectorHealth(connection);
-  // Each run header names its column, and its resize edge, in the reader's words.
-  const runTitle: string = translator.translateText("Run") || "Run";
+  /*
+   * Each run header names its column, and its resize edge, in the reader's
+   * words. The first column says what kind of run each row is (Poll,
+   * Test connection): "Type", since "Run" is the verb on the product's Run
+   * buttons in most languages ("Ausführen").
+   */
+  const runTitle: string = translator.translateText("Type") || "Type";
   const startedTitle: string =
     translator.translateText("Started (UTC)") || "Started (UTC)";
   const statusTitle: string = translator.translateText("Status") || "Status";
@@ -775,6 +781,8 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
                     end: formatConnectionDate(new Date(endTime)),
                     records,
                   },
+                  // Each time reads as written in a right-to-left sentence.
+                  { setsValuesApart: true },
                 )}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -848,13 +856,13 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
             <div className="overflow-x-auto">
               {runColumns.styles}
               <table
-                className={`${runColumns.getTableWidthClassName("min-w-full")} text-left text-sm`}
+                className={`${runColumns.getTableWidthClassName("min-w-full")} text-start text-sm`}
                 {...runColumns.tableAttributes}
               >
                 <thead className="border-b border-gray-200 text-gray-500">
                   <tr>
                     <ResizableHeaderCell
-                      className="py-2 pr-3"
+                      className="py-2 pe-3"
                       resize={runColumns.getResize(
                         "run",
                         runTitle,
@@ -864,7 +872,7 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
                       <span>{runTitle}</span>
                     </ResizableHeaderCell>
                     <ResizableHeaderCell
-                      className="py-2 pr-3"
+                      className="py-2 pe-3"
                       resize={runColumns.getResize(
                         "started",
                         startedTitle,
@@ -874,7 +882,7 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
                       <span>{startedTitle}</span>
                     </ResizableHeaderCell>
                     <ResizableHeaderCell
-                      className="py-2 pr-3"
+                      className="py-2 pe-3"
                       resize={runColumns.getResize(
                         "status",
                         statusTitle,
@@ -884,7 +892,7 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
                       <span>{statusTitle}</span>
                     </ResizableHeaderCell>
                     <ResizableHeaderCell
-                      className="py-2 pr-3"
+                      className="py-2 pe-3"
                       resize={runColumns.getResize(
                         "returned",
                         returnedTitle,
@@ -916,7 +924,7 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
                         key={run.id?.toString()}
                         className="border-b border-gray-100"
                       >
-                        <td className="py-2 pr-3">
+                        <td className="py-2 pe-3">
                           {translator.translateText(
                             securityEventConnectionRunLabels[
                               run.type || "poll"
@@ -928,21 +936,29 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
                               : translator.translateText("Scheduled")}
                           </div>
                         </td>
-                        <td className="whitespace-nowrap py-2 pr-3">
+                        <td className="whitespace-nowrap py-2 pe-3">
                           <ConnectionTime
                             value={run.startedAt}
                             emptyText={translationKey("Not started")}
                           />
                         </td>
-                        <td className="py-2 pr-3">
+                        <td className="py-2 pe-3">
                           {securityEventConnectionRunStatusLabel(
                             run.status || "queued",
                             translator,
                           )}
                         </td>
-                        <td className="py-2 pr-3">
+                        <td className="py-2 pe-3">
+                          {/*
+                           * Grouped as the run's own figures are ("12.345"
+                           * in German), so a row and its details agree.
+                           */}
                           {result
-                            ? `${result.fetchedCount} / ${result.ingestedCount}`
+                            ? `${result.fetchedCount.toLocaleString(
+                                getReaderNumberLocale(),
+                              )} / ${result.ingestedCount.toLocaleString(
+                                getReaderNumberLocale(),
+                              )}`
                             : "—"}
                         </td>
                         <td className="py-2">

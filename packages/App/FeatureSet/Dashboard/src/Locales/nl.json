@@ -49816,5 +49816,6 @@
   "{{seconds}} seconds": "{{seconds}} seconden",
   "{{time}} (approximate)": "{{time}} (ongeveer)",
   "{{value}} s": "{{value}} s",
-  "{{window}}, the same length": "{{window}}, even lang"
+  "{{window}}, the same length": "{{window}}, even lang",
+  "Security Events Ingest Endpoint": "Ingestie-endpoint voor beveiligings­gebeurtenissen"
 }

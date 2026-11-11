@@ -181,6 +181,8 @@ const SENTENCES_THIS_CHANGE_WORDED: Array<string> = [
   "The start time must be before the end time.",
   "The end time must not be in the future.",
   "Polling, no events imported yet",
+  // Run history's first column: what kind of run a row is ("Typ"), not "Run".
+  "Type",
   "Poll overdue",
   "Schedule paused",
   "Catching up",
@@ -218,7 +220,8 @@ const SENTENCES_THIS_CHANGE_WORDED: Array<string> = [
   // Google SecOps' Data to import control.
   "Alerts and detections",
   "Google's alerts API always includes alerts.",
-  // The setup guide.
+  // The setup guide, and its endpoint's label handed to the key picker.
+  "Security Events Ingest Endpoint",
   "Send Your Events",
   "Verify It Is Working",
   "Put The Events To Work",

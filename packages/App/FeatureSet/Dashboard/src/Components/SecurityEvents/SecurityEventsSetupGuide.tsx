@@ -410,7 +410,13 @@ curl -X POST "${ingestUrl}?format=udm" \\
           {!isLast && <div className="w-0.5 flex-1 bg-gray-200 mt-2 mb-0" />}
         </div>
         <div className={`flex-1 min-w-0 ${isLast ? "pb-0" : "pb-8"}`}>
-          <h4 className="text-sm font-semibold text-gray-900 leading-9">
+          {/*
+           * As tall as the step's 36px number for one line (6px above and
+           * below a 24px line), its first line level with the number; a
+           * title that wraps (German at phone width) goes on at its own line
+           * height, as the shared setup guide steps do (SetupGuideSteps).
+           */}
+          <h4 className="py-1.5 text-sm font-semibold leading-6 text-gray-900">
             {translator.translateText(title)}
           </h4>
           <p className="text-sm text-gray-500 mt-0.5 mb-3 leading-relaxed">
@@ -438,7 +444,7 @@ curl -X POST "${ingestUrl}?format=udm" \\
                 onClick={() => {
                   setSelectedSource(source.key);
                 }}
-                className={`text-left px-4 py-3 rounded-lg border-2 transition-all ${
+                className={`text-start px-4 py-3 rounded-lg border-2 transition-all ${
                   isSelected
                     ? "border-indigo-500 bg-indigo-50"
                     : "border-gray-200 bg-white hover:border-gray-300"
@@ -511,10 +517,10 @@ curl -X POST "${ingestUrl}?format=udm" \\
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-2 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
                 {translator.translateText("Column")}
               </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-2 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
                 {translator.translateText("Recognized source fields")}
               </th>
             </tr>
@@ -805,7 +811,9 @@ curl -X POST "${ingestUrl}?format=udm" \\
                 "Security events authenticate with the same telemetry ingestion key as the rest of your telemetry. Select an existing key or create a new one.",
               ),
               <IngestionKeySelector
-                endpointLabel="Security Events Ingest Endpoint"
+                endpointLabel={translationKey(
+                  "Security Events Ingest Endpoint",
+                )}
                 endpointValue={ingestUrl}
                 endpointHint={translator.translateText(
                   "Send the token in the x-oneuptime-token header. Name the source with x-oneuptime-service-name, or let it be inferred from the payload's product or vendor.",

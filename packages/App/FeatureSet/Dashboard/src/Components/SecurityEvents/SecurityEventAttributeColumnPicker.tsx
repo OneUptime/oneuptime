@@ -221,7 +221,7 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
         <div
           role="dialog"
           aria-label={translator.translateText("Attribute columns")}
-          className="absolute left-0 right-0 z-20 mt-2 rounded-lg border border-gray-200 bg-white p-4 shadow-xl md:left-auto md:w-[26rem]"
+          className="absolute end-0 start-0 z-20 mt-2 rounded-lg border border-gray-200 bg-white p-4 shadow-xl md:start-auto md:w-[26rem]"
           data-testid={SECURITY_EVENT_ATTRIBUTE_COLUMN_PICKER_PANEL_TEST_ID}
         >
           <div className="flex items-start justify-between gap-3">
@@ -392,7 +392,7 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
               }}
             />
 
-            <div className="mt-2 max-h-64 space-y-1 overflow-y-auto pr-1">
+            <div className="mt-2 max-h-64 space-y-1 overflow-y-auto pe-1">
               {canAddTypedKey && (
                 <div className="flex items-center gap-2 rounded-md border border-dashed border-indigo-200 bg-indigo-50/50 px-2.5 py-1.5">
                   <div className="min-w-0 flex-1">

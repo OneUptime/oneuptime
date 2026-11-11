@@ -49816,5 +49816,6 @@
   "{{seconds}} seconds": "{{seconds}} ثانیه",
   "{{time}} (approximate)": "{{time}} (تقریبی)",
   "{{value}} s": "{{value}} ثانیه",
-  "{{window}}, the same length": "{{window}}، با همان طول"
+  "{{window}}, the same length": "{{window}}، با همان طول",
+  "Security Events Ingest Endpoint": "نقطه پایانی دریافت رویدادهای امنیتی"
 }

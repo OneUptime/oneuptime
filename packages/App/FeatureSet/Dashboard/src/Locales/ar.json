@@ -49816,5 +49816,6 @@
   "{{seconds}} seconds": "{{seconds}} ث",
   "{{time}} (approximate)": "{{time}} (تقريبًا)",
   "{{value}} s": "{{value}} ث",
-  "{{window}}, the same length": "{{window}}، بالطول نفسه"
+  "{{window}}, the same length": "{{window}}، بالطول نفسه",
+  "Security Events Ingest Endpoint": "نقطة نهاية استيعاب الأحداث الأمنية"
 }

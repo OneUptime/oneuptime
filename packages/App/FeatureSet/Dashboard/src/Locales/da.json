@@ -49816,5 +49816,6 @@
   "{{seconds}} seconds": "{{seconds}} sekunder",
   "{{time}} (approximate)": "{{time}} (omtrentligt)",
   "{{value}} s": "{{value}} s",
-  "{{window}}, the same length": "{{window}}, samme længde"
+  "{{window}}, the same length": "{{window}}, samme længde",
+  "Security Events Ingest Endpoint": "Indtagelses-endpoint for sikkerhedshændelser"
 }

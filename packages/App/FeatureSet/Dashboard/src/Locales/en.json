@@ -49816,5 +49816,6 @@
   "{{seconds}} seconds": "{{seconds}} seconds",
   "{{time}} (approximate)": "{{time}} (approximate)",
   "{{value}} s": "{{value}} s",
-  "{{window}}, the same length": "{{window}}, the same length"
+  "{{window}}, the same length": "{{window}}, the same length",
+  "Security Events Ingest Endpoint": "Security Events Ingest Endpoint"
 }

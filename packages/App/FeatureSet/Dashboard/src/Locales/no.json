@@ -49816,5 +49816,6 @@
   "{{seconds}} seconds": "{{seconds}} sekunder",
   "{{time}} (approximate)": "{{time}} (omtrentlig)",
   "{{value}} s": "{{value}} s",
-  "{{window}}, the same length": "{{window}}, samme lengde"
+  "{{window}}, the same length": "{{window}}, samme lengde",
+  "Security Events Ingest Endpoint": "Inntaks-endpoint for sikkerhetshendelser"
 }
