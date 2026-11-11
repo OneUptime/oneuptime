@@ -91,6 +91,8 @@ För att ta bort en monitor från gruppen klickar du på **Ta bort** på dess ra
 
 Tillgängligheten på **Översikt** räknar varje status utom den fungerande som driftstopp. En statussida räknar bara statusarna i sin egen lista **Räknas som driftstopp**: se [Välj vad sidan visar](/docs/status-pages/index#välja-vad-som-visas-på-sidan).
 
+Varje stapel i drifttidsgrafen, här och på en statussida, visar hur länge gruppen själv var i varje status den dagen: i varje ögonblick har den den sämsta statusen bland sina monitorer, så en timme då två av dem är offline samtidigt är en timme för gruppen, och en dag blir aldrig mer än en dag. Dagarna är dina egna: instrumentpanelen ritar dem i tidszonen från dina användarinställningar, och en statussida i varje besökares.
+
 Listan **Monitorgrupper** kan filtrera grupper efter ägare och etikett, sätta etiketter och ägare på många grupper på en gång och exportera eller importera grupper som JSON.
 
 ## Stäng av övervakningen för en hel grupp

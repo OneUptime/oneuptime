@@ -74,6 +74,8 @@ Endpointene følger sidens egne indstillinger i kortet **Hvad din statusside vis
 
 Oversigten er én request for hele siden. Det er de samme data, som statussiden tegner, og de er højst 15 sekunder gamle.
 
+Oppetidsbjælkernes dage er UTC-dage, medmindre du angiver en tidszone: tilføj `?timezone=Asia/Shanghai` til en `GET`, eller send `{"timezone": "Asia/Shanghai"}` som body i en `POST`, så deles `uptimeDailyAggregate` og `monitorGroupUptimeDailyAggregate` op i den zones dage, sådan som statussiden beder om for hver besøgende. En zone, serveren ikke kender, er UTC, og begge fortæller i deres `timezone`, hvilken zone de blev delt op i.
+
 :::tabs
 @tab curl
 ```bash
@@ -133,7 +135,7 @@ Den samlede status er den værste aktuelle status blandt sidens monitorer og mon
 | `resourceGroups` | Grupperne, med `parentStatusPageGroupId` for indlejrede grupper. |
 | `monitorStatuses` | Alle projektets monitorstatusser, fra den laveste prioritet til den højeste. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | Den aktuelle status for hver monitorgruppe på siden og monitorerne i den. |
-| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Det, oppetidsbjælkerne tegnes ud fra, og sidens farveregler for bjælkerne. |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Det, oppetidsbjælkerne tegnes ud fra, og sidens farveregler for bjælkerne. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | De uløste hændelser, siden viser, deres offentlige noter og tilstandsskift samt projektets hændelsestilstande. |
 | `timelineIncidents` | Hændelserne i oppetidsbjælkernes tidsvindue, løste hændelser medregnet, til bjælkernes værktøjstip. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Det samme for hændelsesepisoder. |

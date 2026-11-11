@@ -256,7 +256,7 @@ describe("the Notification service sending an SMS", () => {
 
   function finalLogUpdate(): Record<string, unknown> {
     const calls: Array<Array<unknown>> = (
-      SmsLogService.updateColumnsByIdWithoutHooks as unknown as jest.Mock
+      SmsLogService.compareAndSetColumnsByIdWithoutHooks as unknown as jest.Mock
     ).mock.calls as Array<Array<unknown>>;
 
     return (calls[calls.length - 1]![0] as { data: Record<string, unknown> })
@@ -294,6 +294,10 @@ describe("the Notification service sending an SMS", () => {
     jest
       .spyOn(SmsLogService, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined as never);
+    // The send's result is written only while the log still says Sending.
+    jest
+      .spyOn(SmsLogService, "compareAndSetColumnsByIdWithoutHooks")
+      .mockResolvedValue(true as never);
   });
 
   afterEach(() => {

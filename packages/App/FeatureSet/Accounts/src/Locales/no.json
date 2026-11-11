@@ -157,7 +157,8 @@
     "successMessage": "Vi har sendt deg lenken til tilbakestilling av passord på e-post. Ikke glem å sjekke søppelpost.",
     "submitButton": "Send lenke til tilbakestilling",
     "rememberPasswordPrompt": "Husker du passordet ditt?",
-    "loginLink": "Logg inn."
+    "loginLink": "Logg inn.",
+    "cannotEmail": "Denne serveren kan ikke sende e-post ennå, så den kan ikke sende deg en lenke for å tilbakestille passordet ditt. Be serveradministratoren om å tilbakestille passordet ditt."
   },
   "magicLink": {
     "title": "Logg inn med en lenke",
@@ -168,7 +169,8 @@
     "notReceived": "Ikke i innboksen? Sjekk søppelpostmappen, eller kontroller at du skrev adressen du registrerte deg med.",
     "sendAnother": "Send en ny lenke",
     "knowPasswordPrompt": "Kan du passordet ditt?",
-    "loginLink": "Logg inn."
+    "loginLink": "Logg inn.",
+    "cannotEmail": "Denne serveren kan ikke sende e-post ennå, så den kan ikke sende deg en påloggingslenke. Logg på med passordet ditt, eller be serveradministratoren om å gi deg tilgang."
   },
   "resetPassword": {
     "title": "Tilbakestill passordet ditt",

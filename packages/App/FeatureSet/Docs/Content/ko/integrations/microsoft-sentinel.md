@@ -52,7 +52,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ### 워크스페이스 세부 정보 찾기
 
-Azure portal에서 Log Analytics 워크스페이스를 엽니다. 그 **Overview** 페이지에 **구독 ID**, **Resource group**, 워크스페이스 이름이 표시됩니다. 워크스페이스의 리소스 ID에도 같은 세 가지가 들어 있습니다:
+Azure portal에서 Log Analytics 워크스페이스를 엽니다. 그 **Overview** 페이지에 **구독 ID**, **리소스 그룹**, 워크스페이스 이름이 표시됩니다. 워크스페이스의 리소스 ID에도 같은 세 가지가 들어 있습니다:
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -72,8 +72,8 @@ Azure portal에서 Log Analytics 워크스페이스를 엽니다. 그 **Overview
 | **디렉터리(테넌트) ID** | 앱의 **Overview** 페이지. 테넌트의 GUID 또는 `contoso.onmicrosoft.com` 같은 확인된 도메인. |
 | **애플리케이션(클라이언트) ID** | 앱의 **Overview** 페이지. GUID. |
 | **구독 ID** | 워크스페이스의 **Overview** 페이지. GUID. |
-| **Resource group** | 워크스페이스의 **Overview** 페이지. 영문자, 숫자, 밑줄, 하이픈, 마침표, 괄호로 된 1~90자이며, 마침표로 끝나지 않습니다. |
-| **Workspace name** | 워크스페이스의 **Overview** 페이지. 영문자, 숫자, 하이픈으로 된 3~90자이며, 영문자나 숫자로 시작하고 끝납니다. |
+| **리소스 그룹** | 워크스페이스의 **Overview** 페이지. 영문자, 숫자, 밑줄, 하이픈, 마침표, 괄호로 된 1~90자이며, 마침표로 끝나지 않습니다. |
+| **작업 영역 이름** | 워크스페이스의 **Overview** 페이지. 영문자, 숫자, 하이픈으로 된 3~90자이며, 영문자나 숫자로 시작하고 끝납니다. |
 | **클라우드** | **Azure 퍼블릭 클라우드** (`login.microsoftonline.com`, `management.azure.com`) 또는 **Azure Government(미국)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
 | **클라이언트 시크릿** | 시크릿의 **Value**. 암호화되며, API가 반환하지 않고 다시는 표시되지 않습니다. 연결의 **자격 증명 업데이트**로 교체합니다. |
 
@@ -131,7 +131,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 1. **좁히기.** 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽으며, 구간을 끝까지 읽을 수 있게 될 때까지 계속 절반으로 줄이고, 가장 짧게는 1분까지 줄입니다. 실행의 경고에 그렇게 적힙니다: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **다시 늘리기.** 구간을 끝까지 읽은 뒤에는 다음 구간이 다시 두 배가 되며, 최대 24시간까지 늘어납니다.
-3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 인시던트가 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **부분**으로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`가 표시됩니다. 그 1분을 **Import this time range**로 가져오면 한 번의 실행으로 읽을 수 있는 만큼 되찾을 수 있습니다.
+3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 인시던트가 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **부분**으로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`가 표시됩니다. 그 1분을 **이 시간 범위 가져오기**로 가져오면 한 번의 실행으로 읽을 수 있는 만큼 되찾을 수 있습니다.
 
 Microsoft Entra ID나 Azure Resource Manager의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는 그대로 유지되고 다음 폴링이 같은 구간을 다시 읽습니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 커서는 그대로지만 다음 구간은 절반 길이가 됩니다. 제시간에 응답할 수 없을 만큼 무거운 구간은 매번 시간 초과될 것이기 때문입니다. **폴링 간격(분)** 값을 바꿔도 이 중 어느 것도 바뀌지 않습니다. 이 값은 폴링이 얼마나 자주 시작되는지를 정할 뿐, 구간이 어디서 시작되는지는 정하지 않습니다.
 
@@ -140,9 +140,9 @@ Microsoft Entra ID나 Azure Resource Manager의 오류로 실행이 완전히 �
 연결에서 **진단**을 클릭하면 최근 실행을 보고 연결을 직접 다룰 수 있습니다. 연결을 변경할 수 있는 사람은 누구나 이를 시작할 수 있고, 연결을 볼 수 있는 사람은 누구나 기록을 읽을 수 있습니다.
 
 - **지금 실행**은 연결이 **활성화됨** 상태가 아닐 때에도 평소의 커서로 즉시 폴링을 시작합니다.
-- **Preview incidents**는 최대 7일의 시간 범위를 읽으며 아무것도 가져오지 않습니다.
-- **Import this time range**는 확인을 거친 뒤 최대 7일의 범위를 가져오며, 커서는 옮기지 않습니다. 이미 가져온 인시던트는 건너뜁니다.
-- 실행의 **Copy diagnostics**는 지원팀에 보낼 보고서를 복사합니다. 자격 증명은 절대 포함되지 않습니다.
+- **인시던트 미리 보기**는 최대 7일의 시간 범위를 읽으며 아무것도 가져오지 않습니다.
+- **이 시간 범위 가져오기**는 확인을 거친 뒤 최대 7일의 범위를 가져오며, 커서는 옮기지 않습니다. 이미 가져온 인시던트는 건너뜁니다.
+- 실행의 **진단 복사**는 지원팀에 보낼 보고서를 복사합니다. 자격 증명은 절대 포함되지 않습니다.
 
 ## 연결 테스트
 
@@ -155,7 +155,7 @@ Microsoft Entra ID나 Azure Resource Manager의 오류로 실행이 완전히 �
 | **Read incidents** | 지난 24시간 동안 생성된 인시던트 하나를 읽을 수 있는지(`$top=1`). 이로써 역할과 워크스페이스 세부 정보가 확인됩니다. |
 | **Incidents available to import** | 지난 24시간과 지난 7일 동안 생성된 인시던트 수. 각각 50개짜리 한 페이지로 세므로 `50+`는 그보다 많다는 뜻입니다. 7일 동안 하나도 없으면 실패가 아니라 경고입니다. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime 쪽: Worker 큐의 작업을 가져가는 프로세스가 있고, 폴링 작업이 매분 실행되고, 보안 이벤트 저장소가 응답하는지. |
-| **Scheduled polling** | 저장된 연결의 경우: 폴링이 켜져 있고, 워커를 기다리며 멈춘 실행이 없고, 폴링이 제때 실행되는지. |
+| **예약된 폴링** | 저장된 연결의 경우: 폴링이 켜져 있고, 워커를 기다리며 멈춘 실행이 없고, 폴링이 제때 실행되는지. |
 
 테스트의 모든 요청에는 20초 기한이 있습니다. 테스트는 아무것도 가져오지 않고 커서를 옮기지도 않으며, 실패한 각 검사는 무엇을 바꿔야 하는지 알려 줍니다.
 
@@ -246,7 +246,7 @@ Azure Portal에서 작업 영역의 **Tables → Create → New custom log (DCR-
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: Azure Resource Manager가 요청을 거부했습니다.
   - `HTTP 401`: 토큰을 받아들이지 않았습니다. 거의 항상 **클라우드**가 테넌트와 맞지 않거나 앱 등록이 삭제된 경우입니다. 두 페이지 사이에 만료된 토큰은 자동으로 갱신되어 한 번 다시 시도됩니다.
   - `HTTP 403` 또는 `AuthorizationFailed`: 앱이 아직 리소스 그룹에 대한 **Microsoft Sentinel Reader**를 갖고 있지 않습니다. 역할을 할당하고 몇 분 기다립니다.
-  - `HTTP 404`: 그 **구독 ID**, **Resource group**, **Workspace name**을 가진 워크스페이스가 없거나, 거기에 Microsoft Sentinel이 활성화되어 있지 않습니다. 워크스페이스의 **Overview** 페이지에서 복사합니다.
+  - `HTTP 404`: 그 **구독 ID**, **리소스 그룹**, **작업 영역 이름**을 가진 워크스페이스가 없거나, 거기에 Microsoft Sentinel이 활성화되어 있지 않습니다. 워크스페이스의 **Overview** 페이지에서 복사합니다.
   - `HTTP 429` 또는 `HTTP 5xx`: Azure Resource Manager가 요청을 제한하고 있거나 사용할 수 없습니다. 다음 폴링이 다시 시도합니다.
   - `HTTP 400`: Azure Resource Manager가 쿼리를 거부했습니다. 그 쿼리는 설정이 아니라 OneUptime이 만듭니다. 메시지를 OneUptime 지원팀에 보내세요.
 - `Microsoft Sentinel incidents list returned ...`: Azure가 `200`으로 응답했지만 읽을 수 있는 인시던트 페이지가 없거나, 다른 호스트로 가는 `nextLink`가 있었습니다. 커넥터는 토큰이 Azure Resource Manager를 벗어나지 않도록 그런 링크를 거부합니다. 이는 빈 구간으로 간주되지 않고 보고되므로, 커서가 아무도 읽지 않은 인시던트를 건너뛰는 일은 없습니다.
@@ -260,7 +260,7 @@ Azure Portal에서 작업 영역의 **Tables → Create → New custom log (DCR-
 :::details 실행이 Partial임
 - `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`: 구간에 한 번의 실행이 읽는 인시던트 1,000개보다 많은 인시던트가 있었습니다. 잃는 것은 없습니다. 다음 폴링은 마지막으로 읽은 인시던트 다음부터 시작합니다. 폴링할 때마다 계속 **부분**인 연결은 밀린 인시던트를 따라잡는 중이며, 그 **마지막 폴링**과 **마지막으로 가져온 이벤트**는 계속 움직입니다.
 - `Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.`: API가 오래된 것부터라는 순서를 무시했으므로 실행이 커서를 마지막 인시던트로 옮길 수 없고, 다음 폴링은 대신 더 짧은 구간을 읽습니다. 계속 발생하면 실행 보고서를 OneUptime 지원팀에 보내세요.
-- `More records were created in the one minute from ... than one poll can read`: 폴링이 그 1분을 넘어갔습니다. **진단**에서 **Import this time range**로 그 1분을 가져오세요. 가져오기는 한 번의 폴링만큼 읽습니다.
+- `More records were created in the one minute from ... than one poll can read`: 폴링이 그 1분을 넘어갔습니다. **진단**에서 **이 시간 범위 가져오기**로 그 1분을 가져오세요. 가져오기는 한 번의 폴링만큼 읽습니다.
 :::
 
 :::details 테스트는 통과하지만 아무것도 가져오지 않음

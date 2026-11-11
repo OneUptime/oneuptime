@@ -91,6 +91,8 @@ Aprite un gruppo per vederne le pagine nel menu laterale:
 
 La disponibilità nella **Panoramica** conta come inattività ogni stato tranne quello operativo. Una pagina di stato conta solo gli stati nel proprio elenco **Conta come inattività**: vedere [Scegliere cosa mostra la pagina](/docs/status-pages/index#scegliere-che-cosa-compare-sulla-pagina).
 
+Ogni barra del grafico di uptime, qui e su una pagina di stato, mostra per quanto tempo il gruppo stesso è rimasto in ciascuno stato quel giorno: in ogni momento ha lo stato peggiore tra i suoi monitor, quindi un'ora in cui due di essi sono offline insieme è un'ora del gruppo, e un giorno non supera mai un giorno. I giorni sono i vostri: la dashboard li disegna nel fuso orario delle vostre impostazioni utente, e una pagina di stato in quello di ogni visitatore.
+
 L'elenco **Gruppi di monitor** può filtrare i gruppi per proprietario ed etichetta, impostare etichette e proprietari su molti gruppi insieme, ed esportare o importare gruppi in JSON.
 
 ## Disattivare il monitoraggio di un intero gruppo

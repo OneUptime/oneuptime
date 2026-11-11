@@ -91,6 +91,8 @@ Open a group to see its pages in the side menu:
 
 The uptime on **Overview** counts every status but the operational one as downtime. A status page counts only the statuses in its own **Counts as downtime** list: see [Choosing what shows on the page](/docs/status-pages/index#choosing-what-shows-on-the-page).
 
+Each bar of the uptime graph, here and on a status page, is how long the group itself spent in each status that day: at each moment it has the worst status among its monitors, so an hour two of them spend offline together is one hour of the group's, and a day never adds up to more than a day. The days are your own: the Dashboard draws them in the time zone of your user settings, and a status page in each visitor's.
+
 The **Monitor Groups** list can filter groups by owner and label, set labels and owners on many groups at once, and export or import groups as JSON.
 
 ## Turn monitoring off for a whole group

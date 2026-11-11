@@ -2655,4 +2655,30 @@ export default class GlobalConfig extends GlobalConfigModel {
     nullable: true,
   })
   public telemetryIngestionBudgetResetTimezone?: string = undefined;
+
+  /*
+   * What the server remembers of its own last sends, per channel (email,
+   * SMS, calls, push): when one last went out, when one last failed, since
+   * when they have been failing and why (Types/ServerSending/
+   * ServerSendingStatus). Written by the senders as it changes, and started
+   * again when a channel's settings are saved; read for whether the server
+   * can send (ServerSendingStatus). Written by OneUptime only (isRoot):
+   * GlobalConfigService refuses a master admin's write through the CRUD API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Server Sending Health",
+    description:
+      "What this server remembers of its own last emails, SMS, calls and push notifications: when one last went out, when one last failed, since when they have been failing and why.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public serverSendingHealth?: JSONObject = undefined;
 }

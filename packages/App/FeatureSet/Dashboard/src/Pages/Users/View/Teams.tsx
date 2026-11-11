@@ -20,11 +20,20 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamElement from "../../../Components/Team/Team";
+import {
+  SERVER_EMAIL_COPY,
+  ServerEmail,
+  cannotSendEmail,
+  useServerEmail,
+} from "../../../Utils/ServerEmail";
 
 const UserViewTeams: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const userId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  // A server that cannot send email sent no invitation (Utils/ServerEmail).
+  const serverEmail: ServerEmail = useServerEmail();
 
   /*
    * A user is in the project only through their teams, so removing their last
@@ -164,7 +173,16 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
               if (item["hasAcceptedInvitation"]) {
                 return <Pill text="Member" color={Green} />;
               }
-              return <Pill text="Invitation Sent" color={Yellow} />;
+              return (
+                <Pill
+                  text={
+                    cannotSendEmail(serverEmail)
+                      ? SERVER_EMAIL_COPY.invitedPill
+                      : "Invitation Sent"
+                  }
+                  color={Yellow}
+                />
+              );
             },
           },
         ]}

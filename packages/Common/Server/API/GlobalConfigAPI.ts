@@ -13,6 +13,9 @@ import MasterAdminAuthorization from "../Middleware/MasterAdminAuthorization";
 import CallAndSmsGatewayTest, {
   CallAndSmsGatewayTestResult,
 } from "../Utils/CallAndSmsGatewayTest";
+import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
+import { SERVER_CHANNEL_SETUP_SELECT } from "../Utils/ServerSending/ServerChannelSetup";
+import { ServerSendingStatusAnswer } from "../../Types/ServerSending/ServerSendingStatus";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
@@ -107,27 +110,52 @@ export default class GlobalConfigAPI extends BaseAPI<
               select: {
                 disableUserProjectCreation: true,
                 disablePushNotifications: true,
+                // Whether the server can send email: read, never sent on.
+                ...SERVER_CHANNEL_SETUP_SELECT,
+                serverSendingHealth: true,
               },
               props: {
                 isRoot: true,
               },
             });
 
-          return Response.sendJsonObjectResponse(req, res, {
-            disableUserProjectCreation: Boolean(
-              globalConfig?.disableUserProjectCreation,
-            ),
-            /*
-             * Whether push notifications are turned off for the whole
-             * server: the Dashboard says so in place of the push devices,
-             * and offers none in a notification rule.
-             */
-            disablePushNotifications: Boolean(
-              globalConfig?.disablePushNotifications,
-            ),
-          });
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            GlobalConfigAPI.buildVarsResponse(globalConfig),
+          );
         } catch (err) {
           next(err);
+        }
+      },
+    );
+
+    /*
+     * GET /global-config/sending-status - whether this server can send
+     * email, SMS, calls and push notifications (ServerSendingStatus): each
+     * channel's state, since when it fails and why, what its settings are
+     * missing, and whether the server's global probes report. The banner in
+     * the Dashboard and the Admin Dashboard reads it.
+     *
+     * Master admins only: why a mail server refuses mail, and that a server
+     * is not finished, are its admins' business. Anybody else reads only
+     * GET /global-config/vars' canSendEmail.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/sending-status`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const answer: ServerSendingStatusAnswer =
+            await ServerSendingStatus.getAnswer();
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            JSON.parse(JSON.stringify(answer)) as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
         }
       },
     );
@@ -277,6 +305,35 @@ export default class GlobalConfigAPI extends BaseAPI<
         }
       },
     );
+  }
+
+  /*
+   * The body of GET /global-config/vars, which anybody reads, signed in or
+   * not: switches the pages follow, and whether the server can send email -
+   * a yes or no only, never an address, a setting or why a send failed.
+   */
+  public static buildVarsResponse(
+    globalConfig: GlobalConfig | null,
+  ): JSONObject {
+    return {
+      disableUserProjectCreation: Boolean(
+        globalConfig?.disableUserProjectCreation,
+      ),
+      /*
+       * Whether push notifications are turned off for the whole server: the
+       * Dashboard says so in place of the push devices, and offers none in a
+       * notification rule.
+       */
+      disablePushNotifications: Boolean(globalConfig?.disablePushNotifications),
+      /*
+       * False while the server is known not to be able to send email - its
+       * settings are missing, or it has never managed to send one - so no
+       * page promises an email that cannot come (ServerSendingStatus.
+       * canSendEmailPubliclyFrom). Once email has worked, a later failure is
+       * told to master admins only (GET /global-config/sending-status).
+       */
+      canSendEmail: ServerSendingStatus.canSendEmailPubliclyFrom(globalConfig),
+    };
   }
 
   /*

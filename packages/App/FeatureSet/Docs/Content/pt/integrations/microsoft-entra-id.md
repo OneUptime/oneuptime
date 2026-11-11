@@ -118,7 +118,7 @@ Cada log tem um orçamento próprio: 10 páginas de 500 mudanças de diretório,
 
 1. **Reduzir.** A consulta seguinte lê uma janela com a metade do tamanho, a partir do mesmo ponto de partida, e continua dividindo pela metade até que uma janela seja lida por inteiro, até um minuto. O aviso da execução diz isso: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Os registros já importados da janela mais longa são pulados como duplicatas.
 2. **Voltar a crescer.** Depois que uma janela é lida por inteiro, o cursor vai para o fim dela, e a janela seguinte volta a ter o dobro do tamanho, até 24 horas.
-3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que os registros mais novos continuem chegando. A execução continua **Parcial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler.
+3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que os registros mais novos continuem chegando. A execução continua **Parcial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Importar este intervalo de tempo** para recuperar o que uma execução consegue ler.
 
 Mudar o **Intervalo de consulta (minutos)** não muda nada disso: ele decide com que frequência uma consulta começa, não onde a janela dela começa.
 
@@ -127,9 +127,9 @@ Mudar o **Intervalo de consulta (minutos)** não muda nada disso: ele decide com
 Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela e trabalhar com ela manualmente. Quem pode alterar a conexão pode iniciar essas ações; quem pode vê-la pode ler o histórico.
 
 - **Executar agora** inicia uma consulta na hora, com o cursor de sempre, mesmo quando a conexão não está **Habilitado**.
-- **Preview records** lê um intervalo de tempo de até 7 dias e não importa nada.
-- **Import this time range** importa um intervalo de até 7 dias, depois que você confirma, sem mover o cursor. Os registros já importados são pulados. O Microsoft Entra ID guarda 30 dias de logins e mudanças de diretório com P1 ou P2, e 7 dias sem eles.
-- **Copy diagnostics** em uma execução copia o relatório dela para o suporte. Ele nunca inclui credenciais.
+- **Prévia de registros** lê um intervalo de tempo de até 7 dias e não importa nada.
+- **Importar este intervalo de tempo** importa um intervalo de até 7 dias, depois que você confirma, sem mover o cursor. Os registros já importados são pulados. O Microsoft Entra ID guarda 30 dias de logins e mudanças de diretório com P1 ou P2, e 7 dias sem eles.
+- **Copiar diagnóstico** em uma execução copia o relatório dela para o suporte. Ele nunca inclui credenciais.
 
 ## Testar conexão
 
@@ -146,7 +146,7 @@ Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela
 | **Read the Microsoft 365 audit log** | Só com a opção ativada: a Management API responde, e em quais tipos de conteúdo o aplicativo está inscrito. |
 | **Records available to import** | Quantos logins e mudanças de diretório as últimas 24 horas contêm, no máximo 500 de cada, então `500+` significa mais. Nenhum é um aviso. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | O lado do próprio OneUptime: um processo pega os jobs da fila Worker, o job de consulta roda a cada minuto e o armazenamento de eventos de segurança responde. |
-| **Scheduled polling** | Para uma conexão salva: a consulta está ativada, nenhuma execução está presa esperando um worker e as consultas rodam no horário. |
+| **Consulta agendada** | Para uma conexão salva: a consulta está ativada, nenhuma execução está presa esperando um worker e as consultas rodam no horário. |
 
 Cada requisição de um teste tem um prazo de 20 segundos. Um teste nunca importa nada nem move o cursor, e cada verificação que falha diz o que mudar.
 
