@@ -1,0 +1,5 @@
+{
+  "failOn": ["screens", "dialogs", "clicks", "fieldsTyped", "products"],
+  "reported": ["keystrokes", "defaultsKept", "choices", "words"],
+  "journeys": {}
+}
