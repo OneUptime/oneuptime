@@ -102,6 +102,7 @@ const SloErrorBudgetPolicyTierCard: FunctionComponent<ComponentProps> = (
 
   const threshold: string = formatSloPolicyTierThreshold(
     current.thresholdPercentage,
+    translator,
   );
 
   const freeze: SloDeploymentFreeze | null = getSloDeploymentFreeze(props.slo);

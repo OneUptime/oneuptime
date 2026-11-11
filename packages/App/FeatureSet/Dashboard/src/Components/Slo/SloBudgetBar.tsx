@@ -58,12 +58,19 @@ const SloBudgetBar: FunctionComponent<ComponentProps> = (
     atRiskThresholdPercentage: props.atRiskThresholdPercentage,
   });
 
+  // The figures the bar is read out with, written the reader's way.
   const thresholdText: string =
-    formatSloPercent(geometry.atRiskThresholdPercentage) ||
-    `${geometry.atRiskThresholdPercentage}%`;
+    formatSloPercent(
+      geometry.atRiskThresholdPercentage,
+      undefined,
+      translator,
+    ) || `${geometry.atRiskThresholdPercentage}%`;
 
   const remainingText: string =
-    getSloBudgetRemainingText(props.errorBudgetRemainingPercentage) || "";
+    getSloBudgetRemainingText(
+      props.errorBudgetRemainingPercentage,
+      translator,
+    ) || "";
 
   let valueText: string = translator.translateTemplate(
     "Error budget not evaluated yet",

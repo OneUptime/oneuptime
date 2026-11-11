@@ -201,7 +201,7 @@ Verplaatst de waarde van het ene attribuut (**Bronsleutel**) naar een ander (**D
 
 ## Categorieverwerker
 
-Evalueert een lijst regels op volgorde en slaat de naam van de eerste regel waarvan het filter overeenkomt op in een doelattribuut, zodat u in één keer alle "Payment Error"-logboeken vindt. Stel **Doelattribuut** in (standaard `category`) en voeg dan **Categorieregels** toe: een **Category name** en de voorwaarden onder **When logs match**. De eerste overeenkomende regel wint; een logboek dat op geen enkele overeenkomt, blijft ongewijzigd. Op de logboeken van een netwerkapparaat maakt een regel met de naam van een gebeurtenis (`ups.on_battery`) onder het doelattribuut `event.name` van het logboek een [netwerkgebeurtenis](/docs/monitor/network-events#je-eigen-gebeurtenissen).
+Evalueert een lijst regels op volgorde en slaat de naam van de eerste regel waarvan het filter overeenkomt op in een doelattribuut, zodat u in één keer alle "Payment Error"-logboeken vindt. Stel **Doelattribuut** in (standaard `category`) en voeg dan **Categorieregels** toe: een **Categorienaam** en de voorwaarden onder **When logs match**. De eerste overeenkomende regel wint; een logboek dat op geen enkele overeenkomt, blijft ongewijzigd. Op de logboeken van een netwerkapparaat maakt een regel met de naam van een gebeurtenis (`ups.on_battery`) onder het doelattribuut `event.name` van het logboek een [netwerkgebeurtenis](/docs/monitor/network-events#je-eigen-gebeurtenissen).
 
 ## Volgende stappen
 

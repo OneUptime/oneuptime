@@ -3,12 +3,16 @@ import Includes from "../../Types/BaseDatabase/Includes";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import Color from "../../Types/Color";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
+import { translationKey, Translator } from "../../Types/Translator";
 import { getSloStatusColor, getSloStatusText } from "./SloStatusColor";
 import { SLO_METRIC_SLO_NAME_ATTRIBUTE } from "./SloMetricType";
 import {
+  BUDGET_PERCENT_DECIMALS,
   formatErrorBudgetRemainingSeconds,
   formatSloBurnRate,
   formatSloPercent,
+  formatSloTargetSubline,
+  SLI_DECIMALS,
   SloWidgetStateData,
 } from "./SloWidgetFormat";
 
@@ -20,6 +24,11 @@ import {
  * formatting can be unit-tested without a DOM, and so the public-dashboard
  * policy on the server shares the list's sort and variable mapping with the
  * browser instead of keeping a second copy that could drift.
+ *
+ * A row's figures and lines take the reader's Translator, as the single-SLO
+ * widget's do (SloWidgetFormat); its status labels are keys the widget looks
+ * up where it draws them, and stay English here, where the honeycomb and the
+ * summary read them as values.
  */
 
 /*
@@ -61,10 +70,11 @@ export const SLO_LIST_ATTRIBUTE_TO_COLUMN: Record<string, string> = {
 
 export const SLO_LIST_DEFAULT_MAX_ROWS: number = 50;
 
-export const SLO_NOT_EVALUATED_STATUS_LABEL: string = "Not Evaluated";
+export const SLO_NOT_EVALUATED_STATUS_LABEL: string =
+  translationKey("Not Evaluated");
 
 // The same word the SLOs page puts on a disabled SLO's status pill.
-export const SLO_DISABLED_STATUS_LABEL: string = "Disabled";
+export const SLO_DISABLED_STATUS_LABEL: string = translationKey("Disabled");
 
 /*
  * One list row: the single-SLO widget's display fields plus whether the SLO
@@ -202,16 +212,39 @@ export interface SloListRowDisplay {
 /*
  * Same precision rules as the single-SLO widget (SloWidgetFormat): the SLI
  * keeps three decimals because 99.95 and 99.9 are different objectives, the
- * budget percentage one, and the burn rate is a multiplier.
+ * budget percentage one, and the burn rate is a multiplier. With the
+ * reader's Translator, the figures and the target and budget lines are
+ * written in their language; without one, in English as they always were.
  */
 export type GetSloListRowDisplayFunction = (
   slo: SloListRowData,
+  translator?: Translator | undefined,
 ) => SloListRowDisplay;
 
 export const getSloListRowDisplay: GetSloListRowDisplayFunction = (
   slo: SloListRowData,
+  translator?: Translator | undefined,
 ): SloListRowDisplay => {
-  const target: string | null = formatSloPercent(slo.targetPercentage, 3);
+  const figures: Omit<
+    SloListRowDisplay,
+    "burnRateTone" | "statusText" | "statusColor"
+  > = {
+    sli: formatSloPercent(slo.currentSliPercentage, SLI_DECIMALS, translator),
+    target: formatSloTargetSubline(slo.targetPercentage, translator),
+    budget: formatSloPercent(
+      slo.errorBudgetRemainingPercentage,
+      BUDGET_PERCENT_DECIMALS,
+      translator,
+    ),
+    budgetTime: formatErrorBudgetRemainingSeconds(
+      slo.errorBudgetRemainingSeconds,
+      translator,
+    ),
+    budgetFillPercent: getSloBudgetBarFillPercent(
+      slo.errorBudgetRemainingPercentage,
+    ),
+    burnRate: formatSloBurnRate(slo.currentBurnRate, translator),
+  };
 
   /*
    * A disabled SLO is not evaluated, so its status, budget and burn rate are
@@ -223,16 +256,7 @@ export const getSloListRowDisplay: GetSloListRowDisplayFunction = (
    */
   if (isSloListRowDisabled(slo)) {
     return {
-      sli: formatSloPercent(slo.currentSliPercentage, 3),
-      target: target === null ? null : `target ${target}`,
-      budget: formatSloPercent(slo.errorBudgetRemainingPercentage, 1),
-      budgetTime: formatErrorBudgetRemainingSeconds(
-        slo.errorBudgetRemainingSeconds,
-      ),
-      budgetFillPercent: getSloBudgetBarFillPercent(
-        slo.errorBudgetRemainingPercentage,
-      ),
-      burnRate: formatSloBurnRate(slo.currentBurnRate),
+      ...figures,
       burnRateTone: SloBurnRateTone.Unknown,
       statusText: SLO_DISABLED_STATUS_LABEL,
       statusColor: Gray500,
@@ -240,16 +264,7 @@ export const getSloListRowDisplay: GetSloListRowDisplayFunction = (
   }
 
   return {
-    sli: formatSloPercent(slo.currentSliPercentage, 3),
-    target: target === null ? null : `target ${target}`,
-    budget: formatSloPercent(slo.errorBudgetRemainingPercentage, 1),
-    budgetTime: formatErrorBudgetRemainingSeconds(
-      slo.errorBudgetRemainingSeconds,
-    ),
-    budgetFillPercent: getSloBudgetBarFillPercent(
-      slo.errorBudgetRemainingPercentage,
-    ),
-    burnRate: formatSloBurnRate(slo.currentBurnRate),
+    ...figures,
     burnRateTone: getSloBurnRateTone(slo.currentBurnRate),
     /*
      * A NULL status is an SLO the worker has not reached yet. The single-SLO

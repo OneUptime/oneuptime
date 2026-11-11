@@ -972,6 +972,9 @@ import RumSessionPinService, {
 import RumProductAnalyticsSavedViewService, {
   Service as RumProductAnalyticsSavedViewServiceType,
 } from "Common/Server/Services/RumProductAnalyticsSavedViewService";
+import ProjectMilestoneService, {
+  Service as ProjectMilestoneServiceType,
+} from "Common/Server/Services/ProjectMilestoneService";
 import DockerHostService, {
   Service as DockerHostServiceType,
 } from "Common/Server/Services/DockerHostService";
@@ -1705,6 +1708,7 @@ import RumSessionReplayView from "Common/Models/DatabaseModels/RumSessionReplayV
 import RumSessionErasureRequest from "Common/Models/DatabaseModels/RumSessionErasureRequest";
 import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
 import RumProductAnalyticsSavedView from "Common/Models/DatabaseModels/RumProductAnalyticsSavedView";
+import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
@@ -2080,6 +2084,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
+import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
 import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
@@ -5910,6 +5915,19 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    /*
+     * A project's activation milestones (issue #6830): read by its members
+     * (the Welcome checklist, Setup health) and the Admin Dashboard; written
+     * only by the server.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProjectMilestone, ProjectMilestoneServiceType>(
+        ProjectMilestone,
+        ProjectMilestoneService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<DockerHost, DockerHostServiceType>(
@@ -6534,6 +6552,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * code.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallReadinessAPI);
+
+    /*
+     * Test pages (OnCallTestPageAPI): send a test page to yourself, a member
+     * or an on-call policy, see what it will send first and what became of
+     * it after. A bare router for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallTestPageAPI);
 
     /*
      * Telemetry usage (Project Settings > Telemetry & APM > Usage, and the

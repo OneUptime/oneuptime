@@ -28,6 +28,7 @@ Konfigurationen af hændelser ligger under **Hændelser**, ikke under **Projekti
 | **Tilknyttede advarsler**    | Vælge, om de advarsler, der er knyttet til en hændelse, bekræftes og løses sammen med den. Begge er slået til i nye projekter. |
 | **Medlemskab af episoder**   | Vælge, om en hændelse kun kan være i én episode. Slået fra som standard. |
 | **Nummerering**              | Teksten foran hændelses- og episodenumre, som `INC-` i `INC-42`, og det nummer, den næste får. |
+| **Dataopbevaring**           | Hvor længe løste hændelser bevares, før de slettes. Alle bevares, indtil du vælger en periode. |
 
 Det, OneUptime AI gør på egen hånd, sættes ikke her: det har sit eget afsnit, **Hændelser → AI**, på ruter, der begynder med `/dashboard/{projectId}/incidents/ai/`. Dets side **Indstillinger** slår undersøgelse af nye hændelser, automatisk rettelse af dem (slået fra, indtil du slår den til), og udkast til postmortems til eller fra, og hver gemmes, så snart du slår den om; AI-reglerne, der indsnævrer, hvilke hændelser der undersøges og rettes, og med hvilke koderepositorier og pull requests, postmortem-reglerne, der vælger, hvilke løste hændelser der får et udkast, og hvilke skabeloner det følger, og de valgfri grænser, AI arbejder under, er foldet sammen under **Yderligere indstillinger**, og ingen af dem gælder, før du sætter dem. **Indsigter** og **Protokoller** står ved siden af: hvad AI har lært af dine hændelser, og alt, hvad den har gjort. Se [AI SRE](/docs/ai/ai-sre).
 
@@ -593,6 +594,23 @@ Begge er slået til i nye projekter; et projekt, der blev oprettet, før de var 
 ## Medlemskab af episoder
 
 En hændelse kan være i flere episoder på én gang. **Hændelser → Indstillinger → Medlemskab af episoder** (`/dashboard/{projectId}/incidents/settings/episode-membership`) har én kontakt, **En hændelse kan kun være i én episode**: mens den er slået til, bliver en hændelse, der er i en episode, ikke føjet til nogen anden, hverken fra dashboardet eller via API'et, en arbejdsgang eller en grupperingsregel, før den er taget ud af den episode. Den er slået fra, indtil du slår den til, og gemmes, så snart du slår den om. Kun Project Owners og Project Admins kan ændre den; for alle andre er kontakten låst og siger, hvilken tilladelse den kræver. At slå den til tager ingen hændelse ud af en episode. [Én episode pr. hændelse](/docs/incidents/episodes#én-episode-pr-hændelse) beskriver, hvad hver måde at tilføje på gør, mens den er slået til.
+
+## Dataopbevaring
+
+Løste hændelser bliver, indtil nogen sletter dem, hver med sin tilstandstidslinje, sine noter, sit feed og sine notifikationslogs, så databasen i et travlt projekt bliver ved med at vokse. **Hændelser → Indstillinger → Dataopbevaring** (`/dashboard/{projectId}/incidents/settings/data-retention`) sletter dem, når de har været løst længe nok. Kortet **Løste hændelser** spørger om **Slet efter**: **Aldrig**, som alle projekter starter med, eller en periode fra 30 dage til 3 år. Valget gemmes med det samme, og en periode, der sletter mere end før, beder først om bekræftelse med **Slet gamle hændelser**.
+
+Hver time slettes hver hændelse, der har været løst i længere tid end det, med alt, hvad der hører til den: tilstandstidslinje, noter, feed, ejere, notifikationslogs og vagtkørsler. Perioden regnes fra hændelsens seneste tilstandsændring, så en hændelse, der var åben i et år og blev løst i sidste uge, bliver hele perioden. En episode slettes, når den har været løst lige så længe, og ingen af dens hændelser er tilbage. Statussider holder op med at vise slettede hændelser, intet slettet kan gendannes, og hændelsesnumre gives aldrig ud igen. Et projekt med flere års løste hændelser har indhentet det efter nogle få kørsler, én i timen.
+
+Uanset hvor længe siden den blev løst, bliver en hændelse:
+
+- så længe den ikke er løst;
+- så længe dens postmortem er **Fuldført**, og **Behold hændelser med en fuldført postmortem** er slået til. Den kontakt sidder på samme kort, er slået til som standard og beder om bekræftelse, før den slås fra. Så længe den er slået til, bliver en episode med en skrevet postmortem også;
+- så længe den er i en episode, der stadig er åben eller blev løst for kortere tid siden end den valgte periode.
+
+Kun Project Owners og Project Admins kan ændre disse indstillinger. I API'et er de projektets `incidentRetentionInDays`, `0` for **Aldrig**, og `keepIncidentsWithCompletedPostmortem`. Advarsler har deres egen indstilling: se [Advarselsregler og indstillinger](/docs/alerts/settings#dataopbevaring).
+
+> [!NOTE]
+> På en selvhostet installation genbruger PostgreSQL den plads, slettede rækker efterlader, men giver den ikke tilbage til disken. For at gøre databasen mindre efter en stor første oprydning skal du køre `VACUUM FULL` på de største tabeller i et vedligeholdelsesvindue, da den låser hver tabel, mens den skriver den om, eller bruge `pg_repack`, som ikke gør det.
 
 ## Regler, der kører, når en hændelse oprettes
 

@@ -71,22 +71,26 @@ Klicken Sie auf eine Zeile, um die Seite der Ausnahme zu öffnen.
 
 ## Die Seite einer Ausnahme
 
+Jede Seite einer Ausnahme öffnet sich unter demselben Kopfbereich: ihr Typ und ihre Nachricht, ihr Status, ob sie behandelt wurde, ihre Fehlerklasse und Umgebung sowie ihre Eckdaten: wie oft sie auftrat, wann sie zuerst und zuletzt gesehen wurde, ihr Dienst und wem sie zugewiesen ist. Auf jeder Seite außer **Einstellungen**, die eigene Schaltflächen hat, stehen daneben **Beheben** und **Archivieren**, und das Menü ⋯ neben ihnen enthält **Im nächsten Release beheben** und **Monitor erstellen**.
+
 Das Seitenmenü der Seite ordnet, was Sie mit einer Ausnahme tun:
 
 | Seite | Was sie zeigt |
 | --- | --- |
-| **Übersicht** | Die Nachricht, den Dienst, wie oft sie auftrat und wann sie zuerst und zuletzt gesehen wurde, ihren Verlauf über die Zeit und ihr letztes Vorkommen: Release, Umgebung, Span, Trace und Benutzersitzung. Ganz oben die Erklärung von OneUptime AI, was passiert ist, wenn KI aktiviert ist. |
+| **Übersicht** | **Wo es passiert ist**: die Zeile Ihres Codes, in der sie ausgelöst wurde. Ihr Verlauf über die Zeit und ihr letztes Vorkommen: Release, Umgebung, Fingerabdruck, Span, Trace und Benutzersitzung. Ganz oben die Erklärung von OneUptime AI, was passiert ist, wenn KI aktiviert ist. |
 | **Stack-Trace** | Die Frames des Stacks. Bei Browser-Code die ursprünglichen Dateien und Zeilen, sobald Sie [Source Maps](/docs/telemetry/source-maps) für das Release hochladen. |
 | **Vorkommen** | Jedes Vorkommen mit seiner Zeit, seiner Nachricht und dem Trace, in dem es auftrat. |
 | **Kontext** | Die Attribute des letzten Vorkommens, seine Sitzungsaufzeichnung, wenn eine aufgenommen wurde, und die Schritte, die dazu führten. |
 | **Protokolle** | Die Protokolle, die um das letzte Vorkommen herum geschrieben wurden. |
-| **KI-Unterstützung** | KI-Aufgaben, die die Ausnahme beheben oder testen. |
+| **Mit KI beheben** | Eine KI-Aufgabe, die die Ausnahme mit einem Pull Request behebt, und darunter eingeklappt die übrigen. |
 | **Einstellungen** | Die Ausnahme beheben oder archivieren. Sie liegt unter **Verwalten**, das anfangs eingeklappt ist. |
 | **Audit-Protokolle** | Wer die Ausnahme wann behoben, archiviert, zugewiesen oder zusammengeführt hat. Sie liegt ebenfalls unter **Verwalten**. |
 
+**Wo es passiert ist** zeigt den ersten Frame Ihres eigenen Codes, die wahrscheinlichste Stelle, an der der Fehler ausgelöst wurde: seine ursprüngliche Datei und Zeile, sobald eine Source Map ihn aufgelöst hat, den umgebenden Code, wenn die Source Map ihn enthielt, und bis zu drei Frames Ihres Codes, die ihn aufgerufen haben. Ohne Frame in Ihrem eigenen Code zeigt die Karte den innersten Frame des Stack-Traces. **Vollständigen Stack-Trace anzeigen** öffnet alle Frames auf der Seite **Stack-Trace**. Hat das letzte Vorkommen keine strukturierten Frames aufgezeichnet, zeigt die Karte die ersten Zeilen des Stack-Traces, so wie sie sind (bei einem Python-Traceback die letzten Zeilen, in denen der Fehler steht), und eine Ausnahme ohne Stack-Trace hat keine Karte.
+
 ## Beheben, wieder öffnen und archivieren
 
-Die Schaltflächen oben auf der Seite der Ausnahme, ihre Seite **Einstellungen** und das Menü ⋯ in ihrer Zeile in der Liste ändern ihren Status:
+Die Schaltflächen oben auf der Seite der Ausnahme und das Menü ⋯ daneben, ihre Seite **Einstellungen** und das Menü ⋯ in ihrer Zeile in der Liste ändern ihren Status:
 
 | Aktion | Wann Sie sie nutzen | Was danach geschieht |
 | --- | --- | --- |
@@ -96,13 +100,15 @@ Die Schaltflächen oben auf der Seite der Ausnahme, ihre Seite **Einstellungen**
 | **Archivieren** | Es ist Rauschen, das Sie nicht beheben wollen. | Sie verlässt die Liste. Neue Vorkommen werden gezählt, lösen aber keine Benachrichtigungen mehr aus. |
 | **Aus Archiv entfernen** | Sie wollen wieder davon hören. | Sie steht wieder in der Liste, in die sie gehört. |
 
-**Im nächsten Release beheben** steht im Menü neben **Beheben**, im Menü ⋯ der Zeile, unter **Massenaktionen** und auf **Einstellungen**, sofern die Vorkommen der Ausnahme ihr Release nennen: das Ressourcenattribut `service.version`.
+**Im nächsten Release beheben** steht im Menü ⋯ oben auf der Seite der Ausnahme, im Menü ⋯ der Zeile, unter **Massenaktionen** und auf **Einstellungen**, sofern die Vorkommen der Ausnahme ihr Release nennen: das Ressourcenattribut `service.version`.
 
 **Einstellungen** zeigt, wer die Ausnahme zuletzt als behoben markiert oder archiviert hat, und wann. Ihre Schaltflächen lauten **Als gelöst markieren** oder **Als ungelöst markieren** und **Archivieren** oder **Aus Archiv entfernen**.
 
 Um mehrere auf einmal zu ändern, haken Sie ihre Zeilen in der Liste an, oder das Kästchen über den Zeilen für alle Ausnahmen auf der Seite, und nutzen Sie dieselben Aktionen unter **Massenaktionen**. Sind alle Ausnahmen der Seite angehakt, bietet die Leiste über den Zeilen an, alle Ausnahmen auszuwählen, die zur Suche und zu den Filtern der Liste passen, auf allen Seiten und bis zu 10.000 auf einmal; eine Aktion fragt dann nach, bevor sie sie ändert. Das Ergebnis zeigt, welche Ausnahmen geändert wurden, welche unverändert blieben und warum.
 
-**Zuweisen** im Kopf der Ausnahme gibt sie einer Person oder einem Team, und wer die Auswahl entfernt, hebt die Zuweisung auf. Jede Zeile zeigt, wem sie gehört, ihr Menü ⋯ bietet **Mir zuweisen**, und **Zuweisen an…** unter **Massenaktionen** weist mehrere auf einmal zu. Die Person, der sie zugewiesen wird, oder jedes Mitglied des Teams wird benachrichtigt, wie es die Zeile **Mir zugewiesene Ausnahme** in ihren [Benachrichtigungseinstellungen](/docs/notifications/notification-settings) vorgibt; wer sie zugewiesen hat, wird es nicht.
+**Zuweisen** unter **Zuständig** im Kopfbereich der Ausnahme gibt sie einer Person oder einem Team; klicken Sie auf den Namen, um sie jemand anderem zu geben, und auf das × daneben, um die Zuweisung aufzuheben. Jede Zeile zeigt, wem sie gehört, ihr Menü ⋯ bietet **Mir zuweisen**, und **Zuweisen an…** unter **Massenaktionen** weist mehrere auf einmal zu. Die Person, der sie zugewiesen wird, oder jedes Mitglied des Teams wird benachrichtigt, wie es die Zeile **Mir zugewiesene Ausnahme** in ihren [Benachrichtigungseinstellungen](/docs/notifications/notification-settings) vorgibt; wer sie zugewiesen hat, wird es nicht.
+
+**Monitor erstellen** im Menü ⋯ oben auf der Seite der Ausnahme öffnet einen neuen [Ausnahmen-Monitor](/docs/monitor/exceptions-monitor) für den Typ dieser Ausnahme in ihrem Dienst, der Sie benachrichtigt, wenn sie erneut auftritt. Angeboten wird er allen, die Monitore erstellen dürfen.
 
 **Aktivität** unten in der **Übersicht** der Ausnahme zeigt, wer sie wann geändert hat, das Neueste zuerst: wer sie gelöst, wieder geöffnet, archiviert oder zugewiesen, eine andere Ausnahme mit ihr zusammengeführt oder eine getrennt hat, und wann sie nach der Lösung erneut auftrat. Jede Änderung steht dort, ob auf der Seite der Ausnahme, in der Liste, unter **Massenaktionen**, über die API oder von OneUptime selbst gemacht, und eine Änderung mit einem API-Schlüssel trägt den Namen des Schlüssels.
 
@@ -132,7 +138,7 @@ Oben auf der **Übersicht** einer Ausnahme fragt **Mit OneUptime AI erklären** 
 | **Wo nachsehen** | Die Frames des Stack-Traces, die Sie zuerst öffnen sollten. |
 | **Nächste Schritte** | Höchstens drei Schritte, um sie zu bestätigen oder zu beheben. |
 
-Die Erklärung wird an der Ausnahme gespeichert, sodass die nächste Person, die sie öffnet, sie sofort liest, und **Erneut erklären** fordert eine neue an. **Pull Request mit Korrektur öffnen** öffnet die Seite **KI-Unterstützung** der Ausnahme, und **Nachfrage stellen** öffnet Ask AI zu der Ausnahme.
+Die Erklärung wird an der Ausnahme gespeichert, sodass die nächste Person, die sie öffnet, sie sofort liest, und **Erneut erklären** fordert eine neue an. **Mit KI beheben** öffnet die Seite **Mit KI beheben** der Ausnahme, und **Nachfrage stellen** öffnet Ask AI zu der Ausnahme.
 
 IDs, E-Mail- und IP-Adressen sowie Tokens werden aus allem entfernt, was gesendet wird, und von den Attributen eines Spans werden nur wenige gesendet, etwa seine Route und sein Statuscode. Die Erklärung nutzt den LLM-Anbieter und die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist. Jeder, der die Ausnahme lesen kann, kann eine anfordern.
 
@@ -142,13 +148,22 @@ Eine, die OneUptime AI **Wahrscheinlich derselbe Fehler** nennt und die zum selb
 
 ## Mit KI beheben
 
-Die Seite **KI-Unterstützung** bietet drei Aufgaben. Jede läuft als KI-Aufgabe, die einen Pull Request in Ihrem Code-Repository öffnet:
+Die Seite **Mit KI beheben** beginnt mit einer einzigen Aufgabe, die Sie mit **Mit KI beheben** starten. Sie läuft als KI-Aufgabe, die einen Pull Request in Ihrem Code-Repository öffnet, und was der Pull Request tut, hängt von der [Fehlerklasse](#fehlerklassen) der Ausnahme ab:
+
+| Fehlerklasse | Was der Pull Request tut |
+| --- | --- |
+| `user-error` oder `expected-denial` | Behandelt den Fehler besser, ohne zu ändern, was der Code tut: prüft die Eingabe früher mit einer klaren Meldung, hält Benutzerdaten aus der Meldung heraus und markiert den Fehler als behandelt. |
+| Jede andere oder noch nicht eingeordnet | Findet die Grundursache in Ihrem Code und behebt sie. |
+
+Drei Schritte darunter erklären den Ablauf: Die Aufgabe liest den Stack-Trace und findet den Code, der die Ausnahme ausgelöst hat, ändert diesen Code in Ihrem Repository auf einem eigenen Branch und öffnet einen Pull Request, den Sie prüfen. Bis Sie ihn zusammenführen, ändert sich nichts. Ist sie einmal gelaufen, lautet ihre Schaltfläche **Erneut beheben**, oder **Erneut versuchen**, wenn der Versuch fehlschlug oder keine Korrektur fand.
+
+Im darunter eingeklappten Bereich **Weitere KI-Aufgaben** öffnet **Starten** die anderen Pull Requests:
 
 | Aufgabe | Was der Pull Request tut |
 | --- | --- |
-| **Diese Ausnahme mit KI beheben** | Behebt die Ursache. Starten Sie sie über **Mit KI beheben**. |
-| **Regressionstest generieren** | Fügt einen Test hinzu, der fehlschlägt, bis der Fehler behoben ist. |
-| **Fehlerbehandlung verbessern** | Für erwartete Fehler: prüft Eingaben früher, hält Benutzerdaten aus Meldungen heraus und markiert den Fehler als behandelt. |
+| **Code korrigieren** | Behebt die Grundursache. Erscheint, wenn **Mit KI beheben** einen erwarteten Fehler behandelt. |
+| **Fehler besser behandeln** | Behandelt einen erwarteten Fehler besser, wie oben. Erscheint, wenn **Mit KI beheben** den Code korrigiert. |
+| **Regressionstest schreiben** | Fügt einen Test hinzu, der die Ausnahme reproduziert und fehlschlägt, bis der Fehler behoben ist. Den Fehler selbst behebt er nicht. |
 
 Die KI braucht vorher drei Dinge: einen LLM-Anbieter, ein verbundenes Repository (auf GitHub, GitLab, Forgejo oder Gitea oder einem beliebigen Git-Server) und einen KI-Agenten, der online ist und die Aufgabe ausführt. Die Seite prüft jedes davon und verlinkt, was fehlt. Die Aufgaben pausieren, solange die Ausnahme behoben oder archiviert ist. Siehe [Code](/docs/ai/ai-agent). Eine Aufgabe zu starten erfordert die Berechtigung, das Repository zu bearbeiten, in dem sie arbeitet: Wer die Ausnahme nur lesen darf, sieht ihre Aufgaben, kann aber keine starten.
 
@@ -162,7 +177,7 @@ Alle 15 Minuten durchsucht OneUptime Ihre Ausnahmen nach neuen, nach solchen, di
 | **Ausnahme-Anstieg** | Eine Ausnahme, die in der letzten Stunde 10 Mal oder öfter aufgetreten ist, mit dem 5-Fachen oder mehr ihrer stündlichen Rate in den 24 Stunden davor. | Behebt die Ausnahme oder behandelt sie besser. |
 | **Fehlender Stack-Trace** | Die Ausnahmen, die ein Dienst am letzten Tag aufgezeichnet hat, haben keinen Stack-Trace und sind zusammen 20 Mal oder öfter aufgetreten. | Sorgt dafür, dass der Dienst mit jeder Ausnahme einen Stack-Trace aufzeichnet. |
 
-Der Pull Request einer neuen oder zunehmenden Ausnahme ist die eigene KI-Aufgabe der Ausnahme, die ihre Seite **KI-Unterstützung** startet, und er wartet, bis OneUptime AI den Befund untersucht hat. Findet es den schuldigen Code (`code-fault`), behebt der Pull Request ihn, wie es **Diese Ausnahme mit KI beheben** tut. Findet es einen erwarteten Fehler (`user-error` oder `expected-denial`), behandelt der Pull Request den Fehler besser, wie es **Fehlerbehandlung verbessern** tut. Jedes andere Urteil öffnet von sich aus keinen Pull Request. Ist **Erwartete Ausnahmen archivieren** eingeschaltet, wird eine erwartete Ablehnung stattdessen archiviert und bekommt keinen Pull Request.
+Der Pull Request einer neuen oder zunehmenden Ausnahme ist die eigene KI-Aufgabe der Ausnahme, die ihre Seite **Mit KI beheben** startet, und er wartet, bis OneUptime AI den Befund untersucht hat. Findet es den schuldigen Code (`code-fault`), behebt der Pull Request ihn, wie es **Code korrigieren** tut. Findet es einen erwarteten Fehler (`user-error` oder `expected-denial`), behandelt der Pull Request den Fehler besser, wie es **Fehler besser behandeln** tut. Jedes andere Urteil öffnet von sich aus keinen Pull Request. Ist **Erwartete Ausnahmen archivieren** eingeschaltet, wird eine erwartete Ablehnung stattdessen archiviert und bekommt keinen Pull Request.
 
 OneUptime AI öffnet ihn nur dann selbstständig, wenn die Ausnahme in Ihrem eigenen Code ausgelöst wurde: wenn ihr Stack-Trace einen Frame Ihres Codes enthält, nicht nur Frames von Bibliotheken oder der Laufzeitumgebung. Ein Pull Request, den jemand ohne Zusammenführen geschlossen hat, pausiert die automatischen für diese Ausnahme. Jeder kann trotzdem jeden davon mit **Mit KI beheben** am Befund anfordern.
 
@@ -188,7 +203,7 @@ Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server
 
 - **Ausnahmen → KI → Einblicke** listet, was OneUptime gefunden hat, jeden Befund mit seinen Belegen, darunter die Frames Ihres Codes in seinem Stack-Trace. **Ausnahmegruppe anzeigen** öffnet die Ausnahme, und bei fehlenden Stack-Traces eines Dienstes öffnet **In Ausnahmen öffnen** seine nicht behobenen Ausnahmen vom letzten Tag.
 - **Ausnahmen → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand und dem, was jede Untersuchung gefunden hat.
-- Der Pull Request sagt, warum er geöffnet wurde, mit einem Link zu seinem Befund. Der einer neuen oder zunehmenden Ausnahme verlinkt auch die Ausnahme und erscheint auf ihrer Seite **KI-Unterstützung**. In Code nennt seine Aufgabe die Ausnahme, die sie behebt, oder den Befund, aus dem sie kam.
+- Der Pull Request sagt, warum er geöffnet wurde, mit einem Link zu seinem Befund. Der einer neuen oder zunehmenden Ausnahme verlinkt auch die Ausnahme und erscheint auf ihrer Seite **Mit KI beheben**. In Code nennt seine Aufgabe die Ausnahme, die sie behebt, oder den Befund, aus dem sie kam.
 
 ## Ausnahmen-Einblicke
 

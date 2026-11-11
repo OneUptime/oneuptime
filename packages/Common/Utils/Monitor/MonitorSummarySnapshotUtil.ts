@@ -84,9 +84,11 @@ export interface MonitorSummaryInfoProps {
 /*
  * Synthetic monitors carry base64 screenshots, one per browser × screen
  * size, and a single check can run to several megabytes. createdStateLog
- * already stores them unbounded; this column will not. Past the budget we
- * drop the screenshots (the largest thing by far) and flag it, so the row
- * stays a sane size and the view can say why the images are missing.
+ * keeps none of them (StateChangeLogScreenshots), though incidents and
+ * alerts opened before that have them there, unbounded; this column keeps
+ * them while they fit. Past the budget we drop the screenshots (the largest
+ * thing by far) and flag it, so the row stays a sane size and the view can
+ * say why the images are missing.
  */
 export const MonitorSummarySnapshotMaxSizeInBytes: number = 1024 * 1024;
 

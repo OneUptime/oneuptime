@@ -48,7 +48,7 @@ La conexión inicia sesión con la clave de una cuenta de servicio y la [delegac
 
 ### Añadir la conexión en OneUptime
 
-Abre **Productos → Eventos de seguridad → Conexiones** (`/dashboard/{projectId}/security-events/connections`), haz clic en **Añadir conexión**, elige **Google Workspace** en **Identidad** y haz clic en **Siguiente**. Introduce el **Administrator email**, haz clic en **Siguiente** y pega el contenido del archivo de clave en **JSON de la cuenta de servicio**. En el paso **Sondeo**, activa **Actividad de Drive** para leer también Drive.
+Abre **Productos → Eventos de seguridad → Conexiones** (`/dashboard/{projectId}/security-events/connections`), haz clic en **Añadir conexión**, elige **Google Workspace** en **Identidad** y haz clic en **Siguiente**. Introduce el **Correo del administrador**, haz clic en **Siguiente** y pega el contenido del archivo de clave en **JSON de la cuenta de servicio**. En el paso **Sondeo**, activa **Actividad de Drive** para leer también Drive.
 
 ### Probarla antes de guardar
 
@@ -57,7 +57,7 @@ Haz clic en **Probar esta configuración** en **Probar antes de guardar**. La pr
 
 | Ajuste | Qué introducir |
 | --- | --- |
-| **Administrator email** | La dirección del administrador como el que actúa la cuenta de servicio, como `admin@example.com`. Debe tener el privilegio Reports. |
+| **Correo del administrador** | La dirección del administrador como el que actúa la cuenta de servicio, como `admin@example.com`. Debe tener el privilegio Reports. |
 | **Actividad de Drive** | Opcional, desactivado por defecto. Activado, cada sondeo lee también lo que se comparte y se descarga en Drive. |
 | **JSON de la cuenta de servicio** | El archivo de clave entero, que contiene `client_email` y `private_key`. Se cifra, la API nunca lo devuelve y no se vuelve a mostrar. Sustitúyelo con **Actualizar credenciales** en la conexión. |
 
@@ -103,7 +103,7 @@ Cambiar el **Intervalo de sondeo (minutos)** no cambia nada de esto: decide cada
 Haz clic en **Diagnósticos** en una conexión para ver sus ejecuciones recientes y trabajar con ella a mano. Quien puede cambiar la conexión puede iniciar estas acciones; quien puede verla puede leer el historial.
 
 - **Ejecutar ahora** inicia un sondeo de inmediato, con el cursor habitual, incluso cuando la conexión no está **Habilitado**.
-- **Preview audit events** lee un intervalo de tiempo de hasta 7 días y no importa nada.
+- **Vista previa de eventos de auditoría** lee un intervalo de tiempo de hasta 7 días y no importa nada.
 - **Importar este intervalo de tiempo** importa un intervalo de hasta 7 días, después de que lo confirmes, sin mover el cursor. Las actividades ya importadas se omiten. Google conserva 6 meses de registros de auditoría.
 - **Copiar diagnósticos** en una ejecución copia su informe para soporte. Nunca incluye credenciales.
 
@@ -129,7 +129,7 @@ El **Último error** de la conexión guarda el mensaje de error completo, con la
 
 :::details Último error dice `token request failed`
 - `unauthorized_client`: la cuenta de servicio no tiene delegación de todo el dominio para el ámbito. Añade su **Unique ID** con `https://www.googleapis.com/auth/admin.reports.audit.readonly` en **Manage domain-wide delegation**.
-- `invalid_grant` con `Invalid email or User ID`: el **Administrator email** no es un usuario de este Google Workspace.
+- `invalid_grant` con `Invalid email or User ID`: el **Correo del administrador** no es un usuario de este Google Workspace.
 - `invalid_grant` con `Invalid JWT Signature`: la clave se eliminó o se desactivó. Crea una clave nueva y guárdala con **Actualizar credenciales**.
 :::
 

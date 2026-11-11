@@ -221,6 +221,7 @@ import FeedApiKeyActorUtil, {
   FeedApiKeyActor,
 } from "../Utils/Feed/FeedApiKeyActor";
 import FeedWorkspaceNotificationUtil from "../Utils/Feed/FeedWorkspaceNotification";
+import StateChangeLogScreenshots from "../../Utils/Monitor/StateChangeLogScreenshots";
 
 /*
  * How an update changed an incident's status page scope, for its feed item.
@@ -2760,6 +2761,18 @@ export class Service extends ProjectReferencesService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
+
+    /*
+     * The check that opened the incident, without a Synthetic monitor's
+     * screenshots, as its state timeline keeps it: they are megabytes a row,
+     * and nothing shows them - the incident's monitor summary is its own
+     * copy, without them. See StateChangeLogScreenshots.
+     */
+    if (createBy.data.createdStateLog) {
+      createBy.data.createdStateLog = StateChangeLogScreenshots.leaveOut(
+        createBy.data.createdStateLog,
+      );
+    }
 
     /*
      * The owners the declarer picked in the form, as sent: asked about below,
@@ -6942,6 +6955,33 @@ ${incidentSeverity.name}
         }
       }
     }
+
+    return onDelete;
+  }
+
+  /*
+   * A hard delete - the purge of resolved incidents a project no longer
+   * keeps (Utils/Retention/ResolvedRecordRetention, #6903) - runs no
+   * onDeleteSuccess: the incidents it takes are resolved, so they hold no
+   * monitor to give back, and the metrics they wrote stay until their own
+   * retention, as the history the incident charts draw. The approval
+   * messages of their public notes in Slack and Teams still say the notes
+   * were deleted, as they do after a person's delete, so no one is left
+   * approving a note that is gone.
+   */
+  @CaptureSpan()
+  protected override async onHardDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    PublicNoteApprovalEngine.afterRecordsDelete({
+      delete: (
+        onDelete.carryForward as {
+          publicNoteApproval?: PublicNoteApprovalDelete;
+        } | null
+      )?.publicNoteApproval,
+      deletedIds: itemIdsBeforeDelete,
+    });
 
     return onDelete;
   }

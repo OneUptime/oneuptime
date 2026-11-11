@@ -330,6 +330,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Services/PodmanHostService.ts": {
     "Service.attachLabels PodmanHost": Why.Reported,
   },
+  /*
+   * A project's activation milestones (issue #6830): what OneUptime works
+   * out from the monitors, pages, members and telemetry it already records,
+   * kept once with INSERT ... ON CONFLICT DO NOTHING.
+   */
+  "packages/Common/Server/Services/ProjectMilestoneService.ts": {
+    "Service.keep ProjectMilestone": Why.Derived,
+  },
   "packages/Common/Server/Services/ProjectService.ts": {
     "ProjectService.addDefaultProjectTeams TeamMember": Why.Setup,
     "ProjectService.addDefaultProjectTeams TeamPermission": Why.Setup,
@@ -383,6 +391,9 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/AI/SRE/IncidentInvestigationRunner.ts": {
     "AIIncidentInvestigationRunner.runInvestigationEngine IncidentInternalNote":
       Why.Automation,
+  },
+  "packages/Common/Server/Utils/Activation/ProjectMilestoneBackfill.ts": {
+    "ProjectMilestoneBackfill.backfill ProjectMilestone": Why.Migration,
   },
   "packages/Common/Server/Utils/CloudConnection/CloudConnectionResourceSync.ts":
     {

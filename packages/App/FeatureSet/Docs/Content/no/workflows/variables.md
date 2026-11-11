@@ -63,12 +63,12 @@ Listen viser navnet og beskrivelsen til hver variabel. Klikk på **Vis** i en ra
 
 | Knapp                                      | Hva den gjør                                                                                                                                     |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Rediger Variabel**                       | Endrer navnet, beskrivelsen og — for en statisk variabel som ennå ikke er hemmelig — hemmelighetsmarkeringen. Når en variabel først er hemmelig, forblir den hemmelig. |
-| **Update Content**                         | Erstatter en statisk verdi. Det lagrede innholdet kan ikke leses tilbake, så du skriver den nye verdien i sin helhet.                            |
-| **Use in Workflows**                       | Viser den nøyaktige referansen du skal lime inn i blokkene dine, med en kopieringsknapp.                                                         |
+| **Rediger variabel**                       | Endrer navnet, beskrivelsen og — for en statisk variabel som ennå ikke er hemmelig — hemmelighetsmarkeringen. Når en variabel først er hemmelig, forblir den hemmelig. |
+| **Oppdater innhold**                         | Erstatter en statisk verdi. Det lagrede innholdet kan ikke leses tilbake, så du skriver den nye verdien i sin helhet.                            |
+| **Bruk i arbeidsflyter**                       | Viser den nøyaktige referansen du skal lime inn i blokkene dine, med en kopieringsknapp.                                                         |
 | **Slett Workflow Variabel**                | Sletter den etter å ha bedt deg bekrefte. Bekreftelsen nevner variabelen, slik at du kan sjekke at det er den riktige.                            |
 
-For i stedet å opprette en variabel for et **OAuth 2.0-tilgangstoken** åpner du menyen **Mer** (**⋯**) ved siden av **Opprett Workflow Variabel** og velger **Create OAuth 2.0 Variable**. OAuth 2.0-variabler har [sin egen del](#oauth-20-variabler-tokener-som-fornyer-seg-selv) nedenfor. Typen til en variabel kan ikke endres etter at den er lagret.
+For i stedet å opprette en variabel for et **OAuth 2.0-tilgangstoken** åpner du menyen **Mer** (**⋯**) ved siden av **Opprett Workflow Variabel** og velger **Opprett OAuth 2.0-variabel**. OAuth 2.0-variabler har [sin egen del](#oauth-20-variabler-tokener-som-fornyer-seg-selv) nedenfor. Typen til en variabel kan ikke endres etter at den er lagret.
 
 Du kan også oppdatere en variabel via API-et, som er beskrevet [nederst på denne siden](#å-oppdatere-en-variabel-fra-en-arbeidsflyt). Globale variabler og arbeidsflytvariabler er en funksjon i planen Growth.
 
@@ -123,7 +123,7 @@ sequenceDiagram
 
 ### Opprett en
 
-**Create OAuth 2.0 Variable** spør om én ting per trinn:
+**Opprett OAuth 2.0-variabel** spør om én ting per trinn:
 
 1. **Variabel**: navnet arbeidsflyter viser til den med, og en beskrivelse.
 2. **Leverandør**: velg **Identitetsleverandør**, så fyller OneUptime ut **Token-URL**:
@@ -146,7 +146,7 @@ Under noen felt legger skjemaet til en hjelpelinje for leverandøren du valgte, 
 
 Når du lagrer en ny OAuth 2.0-variabel, henter OneUptime det første tokenet med en gang og forteller deg hva leverandøren svarte. En skrivefeil i hemmeligheten eller URL-en viser seg da, ikke timer senere i en mislykket kjøring. Å hente et token skriver til variabelen, så det krever tillatelse til å redigere arbeidsflytvariabler; kan du opprette variabler, men ikke redigere dem, er det den første arbeidsflytkjøringen som bruker variabelen, som henter tokenet.
 
-Siden til variabelen (klikk på **Vis** i raden) har et kort **OAuth 2.0 Settings**. **Rediger innstillinger** går gjennom de samme trinnene **Leverandør** (token-URL), **Påloggingsinformasjon** (klient-ID) og **Avansert** (omfang, ekstra parametere, klientautentisering). **Neste** går videre, og **Lagre endringer** er på det siste trinnet. Hvert trinn er allerede fylt ut, så trinnlisten ved siden av skjemaet åpner hvilket som helst av dem: endre én innstilling på trinnet sitt, åpne så det siste trinnet, og lagre. Tildelingstypen er fast når den er lagret.
+Siden til variabelen (klikk på **Vis** i raden) har et kort **OAuth 2.0-innstillinger**. **Rediger innstillinger** går gjennom de samme trinnene **Leverandør** (token-URL), **Påloggingsinformasjon** (klient-ID) og **Avansert** (omfang, ekstra parametere, klientautentisering). **Neste** går videre, og **Lagre endringer** er på det siste trinnet. Hvert trinn er allerede fylt ut, så trinnlisten ved siden av skjemaet åpner hvilket som helst av dem: endre én innstilling på trinnet sitt, åpne så det siste trinnet, og lagre. Tildelingstypen er fast når den er lagret.
 
 ### Kortet Tilgangstoken
 
@@ -154,13 +154,13 @@ Kortet **Tilgangstoken** på siden til en OAuth 2.0-variabel viser en av disse s
 
 | Status                     | Hva den betyr                                                                                                                        |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Valid**                  | Det hurtigbufrede tokenet har ennå ikke utløpt.                                                                                      |
+| **Gyldig**                 | Det hurtigbufrede tokenet har ennå ikke utløpt.                                                                                      |
 | **Utløpt**                 | Normalt for en variabel som ingen arbeidsflyt har brukt i det siste. Den neste kjøringen som bruker den, henter et nytt token.        |
 | **Ikke hentet ennå**       | Det er ikke hentet noe token siden variabelen ble opprettet, eller innstillingene ble endret.                                        |
-| **No expiry reported**     | Leverandøren sa ikke når tokenet utløper, så hver kjøring henter et nytt.                                                            |
-| **Refresh failed**         | Det siste forsøket på å hente et token mislyktes. Årsaken fra leverandøren vises i sin helhet, med når det skjedde. Den neste vellykkede fornyelsen fjerner den. |
+| **Ingen utløpstid oppgitt** | Leverandøren sa ikke når tokenet utløper, så hver kjøring henter et nytt.                                                            |
+| **Oppdatering mislyktes**  | Det siste forsøket på å hente et token mislyktes. Årsaken fra leverandøren vises i sin helhet, med når det skjedde. Den neste vellykkede fornyelsen fjerner den. |
 
-**Oppdater nå**, under statusen, henter et nytt token med en gang. Bruk den til å sjekke nye innstillinger uten å kjøre en arbeidsflyt. **Oppdater påloggingsinformasjon**, på kortet **OAuth 2.0 Settings**, erstatter klienthemmeligheten eller refresh-tokenet og henter deretter et token med dem. Endrer du en innstilling (token-URL, klient-ID, omfang og så videre), forkastes det hurtigbufrede tokenet, slik at den neste kjøringen henter et med de nye innstillingene.
+**Oppdater nå**, under statusen, henter et nytt token med en gang. Bruk den til å sjekke nye innstillinger uten å kjøre en arbeidsflyt. **Oppdater påloggingsinformasjon**, på kortet **OAuth 2.0-innstillinger**, erstatter klienthemmeligheten eller refresh-tokenet og henter deretter et token med dem. Endrer du en innstilling (token-URL, klient-ID, omfang og så videre), forkastes det hurtigbufrede tokenet, slik at den neste kjøringen henter et med de nye innstillingene.
 
 ### Når leverandøren sier nei
 

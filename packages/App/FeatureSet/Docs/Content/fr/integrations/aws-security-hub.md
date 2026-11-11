@@ -72,9 +72,9 @@ Cliquez sur **Tester ces paramètres** sous **Tester avant d'enregistrer**. Le t
 | **Région** | Le code de la région, par exemple `us-east-1`, `eu-central-1` ou `us-gov-west-1` : pour les constats d'autres comptes, la région d'origine du compte administrateur. |
 | **ID de clé d'accès** | L'ID de la clé : 16 à 128 lettres ou chiffres, en général 20, commençant par `AKIA`, ou par `ASIA` pour des identifiants temporaires. |
 | **Clé d'accès secrète** | Le secret de la clé. Il est chiffré, jamais renvoyé par l'API et jamais réaffiché. Remplacez-le avec **Mettre à jour les identifiants** sur la connexion. |
-| **Session token** | Seulement pour des identifiants temporaires, qui en ont besoin : une clé `ASIA` est refusée sans lui, et une clé `AKIA` est refusée avec lui. |
+| **Jeton de session** | Seulement pour des identifiants temporaires, qui en ont besoin : une clé `ASIA` est refusée sans lui, et une clé `AKIA` est refusée avec lui. |
 
-Les identifiants temporaires de `aws sts assume-role` ou `aws sts get-session-token` expirent, au bout de 12 heures au plus pour un rôle assumé, et l'interrogation s'arrête jusqu'à ce que vous en colliez de nouveaux avec **Mettre à jour les identifiants**. Une clé de longue durée avec cette politique étroite, renouvelée selon votre propre calendrier, continue d'interroger sans intervention. Pour passer d'identifiants temporaires à une clé de longue durée, saisissez la nouvelle clé dans **Mettre à jour les identifiants** et activez **Remove the stored Session token**.
+Les identifiants temporaires de `aws sts assume-role` ou `aws sts get-session-token` expirent, au bout de 12 heures au plus pour un rôle assumé, et l'interrogation s'arrête jusqu'à ce que vous en colliez de nouveaux avec **Mettre à jour les identifiants**. Une clé de longue durée avec cette politique étroite, renouvelée selon votre propre calendrier, continue d'interroger sans intervention. Pour passer d'identifiants temporaires à une clé de longue durée, saisissez la nouvelle clé dans **Mettre à jour les identifiants** et activez **Supprimer le champ Jeton de session enregistré**.
 
 L'étape **Interrogation** contient aussi une **Description** facultative, le **Intervalle d'interrogation (minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
 
@@ -140,7 +140,7 @@ Une exécution qui échoue complètement, avec une erreur d'AWS, garde le curseu
 Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récentes et travailler avec elle à la main. Quiconque peut modifier la connexion peut les lancer ; quiconque peut la voir peut lire l'historique.
 
 - **Exécuter maintenant** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
-- **Preview findings** lit une plage de temps de 7 jours au plus et n'importe rien.
+- **Aperçu des constats** lit une plage de temps de 7 jours au plus et n'importe rien.
 - **Importer cette plage de temps** importe une plage de 7 jours au plus, après votre confirmation, sans déplacer le curseur. Les constats déjà importés sont sautés.
 - **Copier les diagnostics** sur une exécution copie son rapport pour le support. Il ne contient jamais d'identifiants.
 
@@ -169,7 +169,7 @@ AWS a refusé la requête. Le message cite le code d'erreur d'AWS, ou les propre
 - `AccessDeniedException`, ou `is not authorized to perform` : la clé est bonne, mais son identité n'a pas le droit d'appeler `securityhub:GetFindings`. Attachez la politique de [Configurer la connexion](#configurer-la-connexion). Une limite d'autorisations ou une politique de contrôle des services peut aussi la refuser.
 - `InvalidAccessException`, ou `is not subscribed to AWS Security Hub` : Security Hub n'est pas activé pour ce compte dans cette **Région**, ou le compte n'y est pas son administrateur.
 - `InvalidSignatureException` ou `SignatureDoesNotMatch`, ou `The request signature we calculated does not match` : la **Clé d'accès secrète** n'appartient pas à l'**ID de clé d'accès**. Créez une nouvelle clé d'accès, et enregistrez-la avec **Mettre à jour les identifiants**.
-- `UnrecognizedClientException` ou `InvalidClientTokenId`, ou `The security token included in the request is invalid` : AWS ne connaît pas l'**ID de clé d'accès**. Il est mal saisi, supprimé, désactivé ou d'une autre partition, ou c'est une clé temporaire sans son **Session token**.
+- `UnrecognizedClientException` ou `InvalidClientTokenId`, ou `The security token included in the request is invalid` : AWS ne connaît pas l'**ID de clé d'accès**. Il est mal saisi, supprimé, désactivé ou d'une autre partition, ou c'est une clé temporaire sans son **Jeton de session**.
 - `ExpiredTokenException`, ou `The security token included in the request is expired` : les identifiants temporaires ont expiré. Émettez-en de nouveaux, ou passez à une clé de longue durée.
 - `RequestTimeTooSkewed` ou `RequestExpired`, ou `Signature expired` : l'horloge des hôtes OneUptime a plus de 5 minutes d'écart. Corrigez NTP sur les hôtes de l'application et des workers.
 - Aucun code : AWS n'a pas dit si c'est la clé ou la politique qui l'a refusée. Vérifiez d'abord la clé, puis la politique.

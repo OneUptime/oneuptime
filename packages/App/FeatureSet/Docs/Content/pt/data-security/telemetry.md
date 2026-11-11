@@ -90,7 +90,7 @@ A regra recebe o nome do que oculta, como "Data Security: Email address in attri
 | Descoberta | Regra que Limpar cria |
 | --- | --- |
 | Endereço de e-mail, número de cartão, número de Seguro Social dos EUA, número de telefone ou endereço IP | O padrão integrado desse tipo. Números de cartão, números de Seguro Social e números de telefone são mascarados, o resto é suprimido por inteiro. |
-| Um valor sob uma chave que parece sensível, como `password` ou `token` | Uma regra **Sensitive Attribute Keys**, que suprime o valor inteiro de todo atributo desse tipo |
+| Um valor sob uma chave que parece sensível, como `password` ou `token` | Uma regra **Chaves de atributos sensíveis**, que suprime o valor inteiro de todo atributo desse tipo |
 | Qualquer outro tipo de dados que um padrão consegue encontrar | Uma regra **Regex personalizado** feita a partir dos próprios padrões do tipo de dados, que suprime todo valor com esse formato |
 
 Algumas descobertas não podem ser limpas por uma regra, e **Limpar** diz por quê:
@@ -109,7 +109,7 @@ Uma descoberta só é marcada como limpa quando a ingestão executaria sobre ela
 
 - **Os registros certos.** As regras de logs cobrem os logs e os logs de uma aplicação RUM. As regras de traces cobrem spans, exceções e chamadas de IA: uma exceção é uma cópia do evento de exceção do seu span, então as regras que limpam eventos também a limpam.
 - **A parte certa.** Os **Campos a depurar** da regra incluem a parte do registro em que a descoberta está, ou a regra os deixa no padrão.
-- **Um padrão que encontra o tipo.** Um **Tipo de padrão** integrado encontra o próprio tipo de dados: **Endereço de e-mail** encontra endereços de e-mail, **Número do cartão de crédito** números de cartão, **SSN (Número de Seguro Social)** números de Seguro Social dos EUA, **Número de telefone** números de telefone e **Endereço IP** endereços IP. **Sensitive Attribute Keys** cobre todo valor sob uma chave que parece sensível, seja qual for o valor.
+- **Um padrão que encontra o tipo.** Um **Tipo de padrão** integrado encontra o próprio tipo de dados: **Endereço de e-mail** encontra endereços de e-mail, **Número do cartão de crédito** números de cartão, **SSN (Número de Seguro Social)** números de Seguro Social dos EUA, **Número de telefone** números de telefone e **Endereço IP** endereços IP. **Chaves de atributos sensíveis** cobre todo valor sob uma chave que parece sensível, seja qual for o valor.
 - **Os seus próprios padrões personalizados nunca contam.** Um **Regex personalizado** só cobre uma descoberta quando é exatamente o padrão que **Limpar** cria para o tipo dela. Uma descoberta guarda só amostras mascaradas, nas quais nenhum padrão pode ser testado, então o OneUptime não conseguiria provar que o seu padrão oculta os dados, e uma descoberta dada como limpa por engano é um vazamento que ninguém olha.
 
 Uma regra desativada, ou que não limpa nada, nunca conta. A cobertura é calculada de novo depois de cada varredura, então uma regra que você adiciona ou remove manualmente muda o que está marcado como limpo em até uma hora.

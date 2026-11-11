@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50316,
-    "untranslated": 10151
+    "keys": 50430,
+    "untranslated": 9757
   },
   "sameAsEnglish": [
     " is",
@@ -41,6 +41,7 @@
     "Alias",
     "Amphora",
     "Amphorae",
+    "Angular (Browser)",
     "Apache Kafka · kafka-1:9092",
     "App",
     "Appliance",
@@ -156,6 +157,7 @@
     "Flavor",
     "Flavors",
     "Floating IP",
+    "Fluent Bit",
     "Gateway",
     "Gibibytes",
     "Gigabits",
@@ -163,6 +165,7 @@
     "Gigahertz",
     "Golden Signals",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "H1",
     "HA: {{state}}",
@@ -170,6 +173,7 @@
     "HTML, CSS & JavaScript",
     "HTTP {{status}}",
     "Hardware",
+    "Hash",
     "Headers (JSON)",
     "Hertz",
     "Histogram",
@@ -224,6 +228,7 @@
     "Items",
     "Japan (+81)",
     "Jitter (in ms)",
+    "Journeys",
     "Kelvin",
     "Kernel",
     "Keystone",
@@ -352,6 +357,7 @@
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
+    "React (Browser)",
     "Real User Monitoring",
     "Recent",
     "Record",
@@ -425,6 +431,7 @@
     "Tags",
     "Tags ({{count}})",
     "Team",
+    "Team {{name}}",
     "Teams",
     "Tebibytes",
     "Tenancy",

@@ -72,9 +72,9 @@ Klik på **Test disse indstillinger** under **Test, før du gemmer**. Testen sig
 | **Region** | Regionens kode, for eksempel `us-east-1`, `eu-central-1` eller `us-gov-west-1`: for andre kontis fund administratorkontoens hjemmeregion. |
 | **Adgangsnøgle-id** | Nøglens ID: 16 til 128 bogstaver eller cifre, som regel 20, der starter med `AKIA`, eller `ASIA` for midlertidige legitimationsoplysninger. |
 | **Hemmelig adgangsnøgle** | Nøglens hemmelighed. Den krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat den med **Opdater legitimationsoplysninger** på forbindelsen. |
-| **Session token** | Kun til midlertidige legitimationsoplysninger, som har brug for det: en `ASIA`-nøgle afvises uden det, og en `AKIA`-nøgle afvises med det. |
+| **Sessionstoken** | Kun til midlertidige legitimationsoplysninger, som har brug for det: en `ASIA`-nøgle afvises uden det, og en `AKIA`-nøgle afvises med det. |
 
-Midlertidige legitimationsoplysninger fra `aws sts assume-role` eller `aws sts get-session-token` udløber, for en antaget rolle efter højst 12 timer, og pollingen stopper, indtil du indsætter nye med **Opdater legitimationsoplysninger**. En langtidsholdbar nøgle med denne snævre politik, roteret efter din egen tidsplan, bliver ved med at polle uden tilsyn. For at skifte fra midlertidige legitimationsoplysninger til en langtidsholdbar nøgle angiver du den nye nøgle i **Opdater legitimationsoplysninger** og slår **Remove the stored Session token** til.
+Midlertidige legitimationsoplysninger fra `aws sts assume-role` eller `aws sts get-session-token` udløber, for en antaget rolle efter højst 12 timer, og pollingen stopper, indtil du indsætter nye med **Opdater legitimationsoplysninger**. En langtidsholdbar nøgle med denne snævre politik, roteret efter din egen tidsplan, bliver ved med at polle uden tilsyn. For at skifte fra midlertidige legitimationsoplysninger til en langtidsholdbar nøgle angiver du den nye nøgle i **Opdater legitimationsoplysninger** og slår **Fjern det gemte felt Sessionstoken** til.
 
 Trinnet **Hentning** har også en valgfri **Beskrivelse**, **Hentningsinterval (minutter)**, et heltal fra `1` til `1440`, der starter på `5`, og **Aktiveret**, som starter slået til.
 
@@ -131,7 +131,7 @@ Når en kørsel slet ikke kan komme forbi den gemte markør, for eksempel fordi 
 
 1. **Indsnævr.** Den næste poll læser et vindue, der er halvt så langt, fra det samme startpunkt, og bliver ved med at halvere, indtil et vindue læses helt, ned til ét minut. Kørslens advarsel siger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Voks igen.** Når et vindue er læst helt, er det næste igen dobbelt så langt, op til 24 timer.
-3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en poll kan læse, går pollingen forbi det, så nyere fund bliver ved med at komme, og senere pollers overlap når ikke længere tilbage til det. Kørslen forbliver **Delvis**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse.
+3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en poll kan læse, går pollingen forbi det, så nyere fund bliver ved med at komme, og senere pollers overlap når ikke længere tilbage til det. Kørslen forbliver **Delvis**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Importér dette tidsinterval** for at hente det, én kørsel kan læse.
 
 En kørsel, der mislykkes helt, med en fejl fra AWS, beholder markøren og vindueslængden, og den næste poll læser det samme vindue igen. Den eneste undtagelse er en anmodning, der fik timeout: markøren bliver, men det næste vindue er halvt så langt, fordi et vindue, der er for tungt til at blive besvaret i tide, ville få timeout ved hvert forsøg. At ændre **Hentningsinterval (minutter)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
 
@@ -140,9 +140,9 @@ En kørsel, der mislykkes helt, med en fejl fra AWS, beholder markøren og vindu
 Klik på **Diagnosticering** på en forbindelse for at se dens seneste kørsler og arbejde med den manuelt. Alle, der kan ændre forbindelsen, kan starte disse handlinger; alle, der kan se den, kan læse historikken.
 
 - **Kør nu** starter straks en poll med den sædvanlige markør, også når forbindelsen ikke er **Aktiveret**.
-- **Preview findings** læser et tidsinterval på op til 7 dage og importerer intet.
-- **Import this time range** importerer et interval på op til 7 dage, efter at du har bekræftet, uden at flytte markøren. Fund, der allerede er importeret, springes over.
-- **Copy diagnostics** på en kørsel kopierer dens rapport til support. Den indeholder aldrig legitimationsoplysninger.
+- **Forhåndsvis fund** læser et tidsinterval på op til 7 dage og importerer intet.
+- **Importér dette tidsinterval** importerer et interval på op til 7 dage, efter at du har bekræftet, uden at flytte markøren. Fund, der allerede er importeret, springes over.
+- **Kopiér diagnosticering** på en kørsel kopierer dens rapport til support. Den indeholder aldrig legitimationsoplysninger.
 
 ## Test forbindelse
 
@@ -155,7 +155,7 @@ Klik på **Diagnosticering** på en forbindelse for at se dens seneste kørsler 
 | **Read findings** | Security Hub besvarer den anmodning: identiteten må kalde `securityhub:GetFindings`, og Security Hub er aktiveret i regionen. |
 | **Findings available to import** | Hvor mange fund der er oprettet inden for de seneste 24 timer og de seneste 7 dage, én side på 100 hver, så `100+` betyder flere. Ingen på 7 dage er en advarsel, ikke en fejl. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen side: en proces tager jobbene fra Worker-køen, poll-jobbet kører hvert minut, og lageret for sikkerhedsbegivenheder svarer. |
-| **Scheduled polling** | For en gemt forbindelse: polling er slået til, ingen kørsel sidder fast og venter på en worker, og polls kører til tiden. |
+| **Planlagt hentning** | For en gemt forbindelse: polling er slået til, ingen kørsel sidder fast og venter på en worker, og polls kører til tiden. |
 
 Hver anmodning i en test har en frist på 20 sekunder. En test importerer aldrig noget og flytter aldrig markøren, og hver mislykket kontrol siger, hvad du skal ændre.
 
@@ -169,7 +169,7 @@ AWS afviste anmodningen. Meddelelsen citerer AWS' fejlkode eller AWS' egne ord, 
 - `AccessDeniedException`, eller `is not authorized to perform`: nøglen er rigtig, men dens identitet må ikke kalde `securityhub:GetFindings`. Tilknyt politikken fra [Opsæt forbindelsen](#opsæt-forbindelsen). En permissions boundary eller en service control policy kan også nægte den.
 - `InvalidAccessException`, eller `is not subscribed to AWS Security Hub`: Security Hub er ikke aktiveret for denne konto i denne **Region**, eller kontoen er ikke dens administrator dér.
 - `InvalidSignatureException` eller `SignatureDoesNotMatch`, eller `The request signature we calculated does not match`: **Hemmelig adgangsnøgle** hører ikke til **Adgangsnøgle-id**. Opret en ny adgangsnøgle, og gem den med **Opdater legitimationsoplysninger**.
-- `UnrecognizedClientException` eller `InvalidClientTokenId`, eller `The security token included in the request is invalid`: AWS kender ikke **Adgangsnøgle-id**. Det er stavet forkert, slettet, deaktiveret eller fra en anden partition, eller det er en midlertidig nøgle uden sit **Session token**.
+- `UnrecognizedClientException` eller `InvalidClientTokenId`, eller `The security token included in the request is invalid`: AWS kender ikke **Adgangsnøgle-id**. Det er stavet forkert, slettet, deaktiveret eller fra en anden partition, eller det er en midlertidig nøgle uden sit **Sessionstoken**.
 - `ExpiredTokenException`, eller `The security token included in the request is expired`: de midlertidige legitimationsoplysninger er udløbet. Udsted nye, eller skift til en langtidsholdbar nøgle.
 - `RequestTimeTooSkewed` eller `RequestExpired`, eller `Signature expired`: uret på OneUptime-værterne går mere end 5 minutter forkert. Ret NTP på app- og workerværterne.
 - Ingen kode overhovedet: AWS sagde ikke, om det var nøglen eller politikken, der afviste den. Kontrollér nøglen først, derefter politikken.
@@ -193,7 +193,7 @@ Ingen poll er blevet færdig for denne forbindelse. Kør **Test forbindelse**: d
 
 :::details En kørsel er Partial
 - `Stopped after 20 findings requests`: vinduet indeholdt mere end de 2.000 fund, én kørsel læser. Intet går tabt: den næste poll starter efter det sidst læste fund. En forbindelse, der forbliver **Delvis** poll efter poll, er ved at indhente et efterslæb, og dens **Senest hentet** og **Seneste importerede hændelse** bliver ved med at rykke frem. Hvis den aldrig indhenter, opretter kontoen mere end 2.000 fund pr. pollinterval: gør **Hentningsinterval (minutter)** kortere.
-- `More records were created in the one minute from ... than one poll can read`: pollingen gik forbi det minut. Importér det med **Import this time range** i **Diagnosticering**. En import læser lige så meget som en poll.
+- `More records were created in the one minute from ... than one poll can read`: pollingen gik forbi det minut. Importér det med **Importér dette tidsinterval** i **Diagnosticering**. En import læser lige så meget som en poll.
 :::
 
 :::details Testen lykkes, men intet importeres
@@ -201,7 +201,7 @@ Læs **Findings available to import** i testens rapport. `0` inden for de senest
 :::
 
 :::details Et fund i Security Hub-konsollen kom aldrig frem
-Sammenlign dets `CreatedAt` med dets `ProcessedAt`, hvor Security Hub modtog det. Et fund, der ankom mere end 30 minutter efter sit `CreatedAt`, kan havne bag markøren: importér dets `CreatedAt` med **Import this time range**.
+Sammenlign dets `CreatedAt` med dets `ProcessedAt`, hvor Security Hub modtog det. Et fund, der ankom mere end 30 minutter efter sit `CreatedAt`, kan havne bag markøren: importér dets `CreatedAt` med **Importér dette tidsinterval**.
 :::
 
 ## Hvad du får

@@ -736,13 +736,26 @@ export default class MattermostUtil extends WorkspaceBase {
         },
       });
     } catch (err) {
+      if (!MattermostUtil.isForbiddenError(err)) {
+        throw err;
+      }
+
       // Another team than the default: most likely one the bot is not in (any more).
-      if (
-        teamId !== connection.teamId &&
-        MattermostUtil.isForbiddenError(err)
-      ) {
+      if (teamId !== connection.teamId) {
         throw new BadDataException(
           "OneUptime's bot may not create channels in the Mattermost team this rule names. Add the bot to that team in Mattermost, or choose another team in the rule, then try again.",
+        );
+      }
+
+      // The default team: said so only when the bot was taken out of it.
+      if (
+        await MattermostUtil.isBotOutOfTeam({
+          connection: connection,
+          teamId: teamId,
+        })
+      ) {
+        throw new BadDataException(
+          "OneUptime's bot is no longer a member of the project's default Mattermost team, so it may not create channels there. Add the bot back to that team in Mattermost, or make another team the default in Project Settings > Workspace > Mattermost, then try again.",
         );
       }
 
@@ -750,6 +763,31 @@ export default class MattermostUtil extends WorkspaceBase {
     }
 
     return MattermostUtil.readChannel(channel);
+  }
+
+  /*
+   * Whether the server no longer lists the bot in a team: what a refusal
+   * in that team most likely means. False when the server would not say -
+   * the refusal is then passed on as Mattermost gave it.
+   */
+  private static async isBotOutOfTeam(data: {
+    connection: MattermostConnectionData;
+    teamId: string;
+  }): Promise<boolean> {
+    try {
+      return !(
+        await MattermostUtil.getTeamsOfBot({
+          serverUrl: data.connection.serverUrl,
+          accessToken: data.connection.accessToken,
+        })
+      ).some((team: MattermostTeam): boolean => {
+        return team.id === data.teamId;
+      });
+    } catch (err) {
+      logger.debug("The Mattermost server did not list its bot's teams.");
+      logger.debug(err);
+      return false;
+    }
   }
 
   @CaptureSpan()
@@ -837,6 +875,12 @@ export default class MattermostUtil extends WorkspaceBase {
    * default one. A team that is not a Mattermost id names none, and is
    * never sent: a rule's team written through the API before rules could
    * name one, when it was not read.
+   *
+   * A team the bot was taken out of refuses it its channels. The team named
+   * is then an error saying so, rather than Mattermost's refusal. The
+   * default team is looked past to the bot's other teams, and is that error
+   * only when none of them has the channel either - it may be in the
+   * default team, where the bot cannot see it.
    */
   @CaptureSpan()
   public static async findChannelByName(data: {
@@ -862,29 +906,60 @@ export default class MattermostUtil extends WorkspaceBase {
     const handle: string = typed.toLowerCase();
     const firstTeamId: string = namedTeamId || connection.teamId;
 
-    // The bot's other teams, asked for once the first held no such channel.
-    let otherTeamIds: Array<string> | null = namedTeamId ? [] : null;
+    /*
+     * The bot's teams, asked for once: when the first team holds no such
+     * channel and no team is named, or the first team refused the bot.
+     */
+    let botTeamIds: Array<string> | null = null;
 
-    const getOtherTeamIds: () => Promise<Array<string>> = async (): Promise<
+    const getBotTeamIds: () => Promise<Array<string>> = async (): Promise<
       Array<string>
     > => {
-      if (otherTeamIds === null) {
-        otherTeamIds = (
+      if (botTeamIds === null) {
+        botTeamIds = (
           await MattermostUtil.getTeamsOfBot({
             serverUrl: connection.serverUrl,
             accessToken: connection.accessToken,
           })
-        )
-          .map((team: MattermostTeam): string => {
-            return team.id;
-          })
-          .filter((teamId: string): boolean => {
-            return teamId !== firstTeamId;
-          });
+        ).map((team: MattermostTeam): string => {
+          return team.id;
+        });
       }
 
-      return otherTeamIds;
+      return botTeamIds;
     };
+
+    // The bot's other teams: looked in only when no team is named.
+    const getOtherTeamIds: () => Promise<Array<string>> = async (): Promise<
+      Array<string>
+    > => {
+      if (namedTeamId) {
+        return [];
+      }
+
+      return (await getBotTeamIds()).filter((teamId: string): boolean => {
+        return teamId !== firstTeamId;
+      });
+    };
+
+    /*
+     * Whether the server no longer lists the bot in a team. Not known -
+     * false - when it would not say: the refusal is passed on as it is.
+     */
+    const isBotOutOf: (teamId: string) => Promise<boolean> = async (
+      teamId: string,
+    ): Promise<boolean> => {
+      try {
+        return !(await getBotTeamIds()).includes(teamId);
+      } catch (err) {
+        logger.debug("The Mattermost server did not list its bot's teams.");
+        logger.debug(err);
+        return false;
+      }
+    };
+
+    // The first team refused the bot its channels: one it was taken out of.
+    let isBotOutOfFirstTeam: boolean = false;
 
     if (MattermostConnection.isChannelName(handle)) {
       const inFirstTeam: MattermostChannel | null =
@@ -918,8 +993,23 @@ export default class MattermostUtil extends WorkspaceBase {
     ) => Promise<MattermostChannel | null> = async (
       teamId: string,
     ): Promise<MattermostChannel | null> => {
-      const channels: Array<MattermostChannel> =
-        await MattermostUtil.listChannels(connection, teamId);
+      let channels: Array<MattermostChannel>;
+
+      try {
+        channels = await MattermostUtil.listChannels(connection, teamId);
+      } catch (err) {
+        // A refusal the bot's membership does not explain is passed on.
+        if (
+          teamId !== firstTeamId ||
+          !MattermostUtil.isForbiddenError(err) ||
+          !(await isBotOutOf(teamId))
+        ) {
+          throw err;
+        }
+
+        isBotOutOfFirstTeam = true;
+        return null;
+      }
 
       return (
         channels.find((channel: MattermostChannel): boolean => {
@@ -945,6 +1035,14 @@ export default class MattermostUtil extends WorkspaceBase {
       if (shownInTeam) {
         return shownInTeam;
       }
+    }
+
+    if (isBotOutOfFirstTeam) {
+      throw new BadDataException(
+        namedTeamId
+          ? `OneUptime's bot is not a member of the Mattermost team chosen for the channel ${typed}, so it cannot look for the channel there. Add the bot to that team in Mattermost, or choose another team, then try again.`
+          : `OneUptime's bot is no longer a member of the project's default Mattermost team, so it cannot look for the channel ${typed} there, and its other teams do not have it. Add the bot back to that team in Mattermost, then try again.`,
+      );
     }
 
     return null;

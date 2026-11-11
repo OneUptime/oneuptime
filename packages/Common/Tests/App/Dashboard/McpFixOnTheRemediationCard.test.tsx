@@ -183,10 +183,13 @@ describe("the Remediation card", () => {
       );
     });
 
+    // Named for what it is, and for the rule it came from (issue #6860).
     expect(
-      await screen.findByText("AI fix through MCP servers"),
+      await screen.findByText("Fix through MCP servers"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Rule: Fix the API")).toBeInTheDocument();
+    expect(screen.getByTestId("remediation-fix-source")).toHaveTextContent(
+      'From AI rule "Fix the API"',
+    );
     expect(screen.getByText("Waiting for approval")).toBeInTheDocument();
 
     /*

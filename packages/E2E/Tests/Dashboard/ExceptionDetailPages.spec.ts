@@ -52,7 +52,7 @@ const DETAIL_PAGES: ReadonlyArray<ExceptionDetailPage> = [
   { title: "Context", suffix: "/context", section: "Investigate" },
   { title: "Logs", suffix: "/logs", section: "Investigate" },
   {
-    title: "AI Assistance",
+    title: "Fix with AI",
     suffix: "/ai-assistance",
     section: "Resolve",
   },
@@ -168,18 +168,26 @@ const assertPageSpecificContent: (
     await expect(
       ctx.page.getByRole("heading", { name: "Occurrence Trend", exact: true }),
     ).toBeVisible();
+    // Where it happened: no frames were recorded, so the trace's first lines.
     await expect(
-      ctx.page.getByRole("heading", { name: "Details", exact: true }),
+      ctx.page.getByRole("heading", { name: "Where it happened", exact: true }),
     ).toBeVisible();
     await expect(
-      ctx.page.getByTestId("exception-detail-service"),
-    ).toContainText(SERVICE_NAME);
+      ctx.page.getByTestId("exception-crash-point-raw"),
+    ).toContainText("reserveInventory", { timeout: 30000 });
+    // What the header says is not repeated in a Details card.
     await expect(
-      ctx.page.getByTestId("exception-detail-fingerprint"),
-    ).toContainText(EXCEPTION_FINGERPRINT);
+      ctx.page.getByRole("heading", { name: "Details", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      ctx.page.getByTestId("exception-summary-stat-service"),
+    ).toContainText(SERVICE_NAME);
     await expect(
       ctx.page.getByTestId("exception-latest-occurrence-release"),
     ).toContainText(RELEASE, { timeout: 30000 });
+    await expect(
+      ctx.page.getByTestId("exception-latest-occurrence-fingerprint"),
+    ).toContainText(EXCEPTION_FINGERPRINT);
     return;
   }
 
@@ -239,7 +247,7 @@ const assertPageSpecificContent: (
     return;
   }
 
-  if (detailPage.title === "AI Assistance") {
+  if (detailPage.title === "Fix with AI") {
     /*
      * A fresh project normally shows the setup checklist. An environment
      * with global AI defaults may instead be ready immediately, so assert
@@ -249,7 +257,7 @@ const assertPageSpecificContent: (
       ctx.page
         .getByRole("heading")
         .filter({
-          hasText: /Set up AI for this exception|Fix this exception with AI/,
+          hasText: /Set up AI for this exception|Fix with AI/,
         })
         .first(),
     ).toBeVisible({ timeout: 30000 });
@@ -653,11 +661,11 @@ test.describe("Exception detail pages", () => {
     await mobileToggle.click();
     await ctx.page
       .locator("div[role='navigation'][aria-label='Main navigation']:visible")
-      .getByRole("link", { name: "AI Assistance", exact: true })
+      .getByRole("link", { name: "Fix with AI", exact: true })
       .click();
     await expect(ctx.page).toHaveURL(
       urlFor(`${detailBasePath()}/ai-assistance`),
     );
-    await expect(mobileToggle).toContainText("Resolve / AI Assistance");
+    await expect(mobileToggle).toContainText("Resolve / Fix with AI");
   });
 });

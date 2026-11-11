@@ -11,17 +11,30 @@ import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import ExceptionSummary, {
   EXCEPTION_MESSAGE_CLAMP_CHARACTER_COUNT,
+  EXCEPTION_SUMMARY_TEST_IDS,
   getExceptionSummaryStatus,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionSummary";
+import {
+  EVENT_HEADER_CLASS_NAME,
+  getEventHeaderFactsClassName,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventHeaderLayout";
 import Service from "../../../Models/DatabaseModels/Service";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
+import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 
+/*
+ * The exception's header: the product's record header (EventHeaderLayout),
+ * as an incident's is. Pills, then the type as the title, the message under
+ * it, two buttons and a ⋯, and the facts - Assignee among them.
+ */
+
 interface ExceptionStatusTestCase {
   color: string;
+  icon: IconProp;
   isArchived: boolean;
   isResolved: boolean;
   name: string;
@@ -44,7 +57,7 @@ function exceptionWith(
 function renderSummary(
   props: React.ComponentProps<typeof ExceptionSummary>,
 ): ReturnType<typeof render> {
-  // The Service cell links to the service page, which needs a router.
+  // The Service fact links to the service page, which needs a router.
   return render(
     <MemoryRouter>
       <ExceptionSummary {...props} />
@@ -52,8 +65,30 @@ function renderSummary(
   );
 }
 
-function stat(label: string): HTMLElement {
+// A fact of the header, by its label: the label's own box.
+function fact(label: string): HTMLElement {
   return screen.getByText(label, { exact: true }).parentElement as HTMLElement;
+}
+
+const TWO_BUTTONS: React.ReactElement = (
+  <>
+    <button type="button">Resolve</button>
+    <button type="button">Archive</button>
+  </>
+);
+
+const MORE: React.ReactElement = (
+  <button type="button" aria-label="More actions">
+    ⋯
+  </button>
+);
+
+function besideFromRem(): string {
+  return (
+    screen
+      .getByTestId(EXCEPTION_SUMMARY_TEST_IDS.header)
+      .getAttribute("data-actions-beside-from") || ""
+  );
 }
 
 afterEach(() => {
@@ -67,6 +102,7 @@ describe("ExceptionSummary", () => {
       isResolved: false,
       isArchived: false,
       primaryLabel: "Unresolved",
+      icon: IconProp.Error,
       color: "bg-red-50",
       renderedLabels: ["Unresolved"],
     },
@@ -75,6 +111,7 @@ describe("ExceptionSummary", () => {
       isResolved: true,
       isArchived: false,
       primaryLabel: "Resolved",
+      icon: IconProp.CheckCircle,
       color: "bg-emerald-50",
       renderedLabels: ["Resolved"],
     },
@@ -83,6 +120,7 @@ describe("ExceptionSummary", () => {
       isResolved: false,
       isArchived: true,
       primaryLabel: "Archived",
+      icon: IconProp.Archive,
       color: "bg-amber-50",
       renderedLabels: ["Archived"],
     },
@@ -91,15 +129,17 @@ describe("ExceptionSummary", () => {
       isResolved: true,
       isArchived: true,
       primaryLabel: "Resolved",
+      icon: IconProp.CheckCircle,
       color: "bg-emerald-50",
       renderedLabels: ["Resolved", "Archived"],
     },
   ])(
-    "shows the primary status and archive state for a $name exception",
+    "says where a $name exception stands in its first pill, with an icon",
     ({
       isResolved,
       isArchived,
       primaryLabel,
+      icon,
       color,
       renderedLabels,
     }: ExceptionStatusTestCase) => {
@@ -111,20 +151,90 @@ describe("ExceptionSummary", () => {
         getExceptionSummaryStatus(exception);
 
       expect(status.label).toBe(primaryLabel);
-      expect(status.containerClassName).toBe(color);
+      expect(status.icon).toBe(icon);
+      expect(status.pillClassName.split(" ")).toContain(color);
 
       renderSummary({ exception });
 
-      renderedLabels.forEach((label: string) => {
-        expect(screen.getByText(label, { exact: true })).toBeInTheDocument();
-      });
-      expect(screen.getByTestId("exception-summary-status-icon")).toHaveClass(
-        color,
+      const pills: HTMLElement = screen.getByTestId(
+        EXCEPTION_SUMMARY_TEST_IDS.pills,
       );
+      const statusPill: HTMLElement = screen.getByTestId(
+        "exception-summary-status",
+      );
+
+      // The status leads the pills.
+      expect(pills.firstElementChild).toBe(statusPill);
+      expect(statusPill).toHaveTextContent(primaryLabel);
+      expect(statusPill).toHaveClass(color);
+      expect(statusPill.querySelector("svg")).not.toBeNull();
+
+      renderedLabels.forEach((label: string) => {
+        expect(
+          within(pills).getByText(label, { exact: true }),
+        ).toBeInTheDocument();
+      });
     },
   );
 
-  test("renders the exception identity and compact operational metadata", () => {
+  test("draws no status square beside the title: the pill says it", () => {
+    renderSummary({ exception: exceptionWith() });
+
+    expect(
+      screen.queryByTestId("exception-summary-status-icon"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("is the product's record header, sized by its own width", () => {
+    renderSummary({ exception: exceptionWith() });
+
+    const header: HTMLElement = screen.getByRole("region", {
+      name: "Exception summary",
+    });
+
+    expect(header).toHaveAttribute(
+      "data-testid",
+      EXCEPTION_SUMMARY_TEST_IDS.header,
+    );
+    expect(header.className).toBe(EVENT_HEADER_CLASS_NAME);
+    expect(header.className).toContain("[container-type:inline-size]");
+  });
+
+  test("names the exception by its type, as the page's heading, with its message under it in the reading font", () => {
+    renderSummary({
+      exception: exceptionWith({
+        exceptionType: "CheckoutTimeoutError",
+        message: "Payment provider did not respond in time",
+      }),
+    });
+
+    const title: HTMLElement = screen.getByRole("heading", {
+      level: 2,
+      name: "CheckoutTimeoutError",
+    });
+
+    expect(title).toHaveAttribute(
+      "data-testid",
+      EXCEPTION_SUMMARY_TEST_IDS.title,
+    );
+
+    const message: HTMLElement = screen.getByTestId(
+      EXCEPTION_SUMMARY_TEST_IDS.message,
+    );
+
+    expect(message).toHaveTextContent(
+      "Payment provider did not respond in time",
+    );
+    // A sentence, not code: the message reads in the page's own font.
+    expect(message.className).not.toContain("font-mono");
+    expect(message).toHaveClass("text-sm", "text-gray-700");
+    // The title comes before the message, as it is read.
+    expect(
+      title.compareDocumentPosition(message) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("renders the exception's facts: occurrences, first and last seen with their releases", () => {
     const firstSeenAt: Date = new Date(Date.now() - 6 * DAY);
     const lastSeenAt: Date = new Date(Date.now() - 4 * MINUTE);
     const exception: TelemetryException = exceptionWith({
@@ -141,13 +251,6 @@ describe("ExceptionSummary", () => {
     renderSummary({ exception });
 
     expect(
-      screen.getByRole("region", { name: "Exception summary" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("CheckoutTimeoutError")).toBeInTheDocument();
-    expect(
-      screen.getByText("Payment provider did not respond in time"),
-    ).toBeInTheDocument();
-    expect(
       screen.queryByRole("button", {
         name: /(expand|collapse) exception message/i,
       }),
@@ -156,13 +259,17 @@ describe("ExceptionSummary", () => {
       screen.getByTestId("exception-summary-environment"),
     ).toHaveTextContent("production");
 
+    const occurrences: HTMLElement = fact("Occurrences");
+    expect(occurrences).toHaveAttribute(
+      "data-testid",
+      "exception-summary-stat-occurrences",
+    );
     expect(
-      within(stat("Occurrences")).getByText(
-        new Intl.NumberFormat().format(12345),
-      ),
+      within(occurrences).getByText(new Intl.NumberFormat().format(12345)),
     ).toBeInTheDocument();
+    expect(within(occurrences).getByText("all time")).toBeInTheDocument();
 
-    const firstSeen: HTMLElement = stat("First seen");
+    const firstSeen: HTMLElement = fact("First seen");
     expect(within(firstSeen).getByText("6 days ago")).toHaveAttribute(
       "title",
       OneUptimeDate.getDateAsLocalShortDateTimeString(firstSeenAt),
@@ -171,7 +278,7 @@ describe("ExceptionSummary", () => {
       within(firstSeen).getByText("in checkout-api@2026.09.08"),
     ).toBeInTheDocument();
 
-    const lastSeen: HTMLElement = stat("Last seen");
+    const lastSeen: HTMLElement = fact("Last seen");
     expect(within(lastSeen).getByText("4 minutes ago")).toHaveAttribute(
       "title",
       OneUptimeDate.getDateAsLocalShortDateTimeString(lastSeenAt),
@@ -195,9 +302,9 @@ describe("ExceptionSummary", () => {
       services: [service],
     });
 
-    const serviceCell: HTMLElement = stat("Service");
-    expect(within(serviceCell).getByText("checkout-api")).toBeInTheDocument();
-    expect(within(serviceCell).getByRole("link")).toHaveAttribute(
+    const serviceFact: HTMLElement = fact("Service");
+    expect(within(serviceFact).getByText("checkout-api")).toBeInTheDocument();
+    expect(within(serviceFact).getByRole("link")).toHaveAttribute(
       "href",
       expect.stringContaining(SERVICE_ID),
     );
@@ -212,7 +319,7 @@ describe("ExceptionSummary", () => {
     });
 
     expect(
-      within(stat("Service")).getByText("Kubernetes telemetry"),
+      within(fact("Service")).getByText("Kubernetes telemetry"),
     ).toBeInTheDocument();
   });
 
@@ -225,8 +332,9 @@ describe("ExceptionSummary", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Unresolved", { exact: true })).toBeInTheDocument();
     expect(
-      within(stat("Occurrences")).getByText("0", { exact: true }),
+      within(fact("Occurrences")).getByText("0", { exact: true }),
     ).toBeInTheDocument();
+    // First seen, last seen and the service.
     expect(screen.getAllByText("Not recorded", { exact: true })).toHaveLength(
       3,
     );
@@ -261,6 +369,24 @@ describe("ExceptionSummary", () => {
     ).toHaveTextContent("Code fault");
   });
 
+  test("says when it came back after it was resolved, beside its status", () => {
+    renderSummary({
+      exception: exceptionWith({
+        isResolved: false,
+        regressedAt: new Date(Date.now() - 2 * DAY),
+        firstSeenAt: new Date(Date.now() - 30 * DAY),
+      }),
+    });
+
+    const regressed: HTMLElement = screen.getByTestId(
+      "exception-summary-regressed",
+    );
+
+    expect(regressed).toHaveTextContent("Regressed");
+    expect(regressed.getAttribute("title")).toMatch(/after it was resolved/);
+    expect(screen.queryByTestId("exception-summary-new")).toBeNull();
+  });
+
   test.each([
     ["unclassified", "unknown"],
     ["an unrecognised value", "flaky"],
@@ -283,100 +409,219 @@ describe("ExceptionSummary", () => {
     expect(screen.getByTitle("Copy exception message")).toBeInTheDocument();
   });
 
-  test("renders the triage actions it is given and nothing when it is not", () => {
-    const { rerender } = renderSummary({ exception: exceptionWith() });
+  test("offers no actions when it is given none (the Settings page)", () => {
+    renderSummary({ exception: exceptionWith() });
 
     expect(
-      screen.queryByTestId("exception-summary-actions"),
+      screen.queryByTestId(EXCEPTION_SUMMARY_TEST_IDS.actions),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(EXCEPTION_SUMMARY_TEST_IDS.morePlace),
+    ).not.toBeInTheDocument();
+    expect(besideFromRem()).toBe("never");
+  });
 
-    rerender(
-      <MemoryRouter>
-        <ExceptionSummary
-          exception={exceptionWith()}
-          actions={<button type="button">Resolve</button>}
-        />
-      </MemoryRouter>,
+  test("its buttons and its ⋯ form one named group, the buttons in a row of their own", () => {
+    renderSummary({
+      exception: exceptionWith(),
+      actions: { buttons: TWO_BUTTONS, more: MORE },
+    });
+
+    const group: HTMLElement = screen.getByRole("group", {
+      name: "Exception actions",
+    });
+
+    expect(group).toHaveAttribute(
+      "data-testid",
+      EXCEPTION_SUMMARY_TEST_IDS.actions,
+    );
+
+    const buttons: HTMLElement = within(group).getByTestId(
+      EXCEPTION_SUMMARY_TEST_IDS.buttons,
     );
 
     expect(
-      within(screen.getByTestId("exception-summary-actions")).getByRole(
-        "button",
-        { name: "Resolve" },
-      ),
+      within(buttons)
+        .getAllByRole("button")
+        .map((button: HTMLElement) => {
+          return button.textContent;
+        }),
+    ).toEqual(["Resolve", "Archive"]);
+
+    const morePlace: HTMLElement = within(group).getByTestId(
+      EXCEPTION_SUMMARY_TEST_IDS.morePlace,
+    );
+
+    expect(
+      within(morePlace).getByRole("button", { name: "More actions" }),
     ).toBeInTheDocument();
+    // The ⋯ is not one of the buttons that wrap.
+    expect(buttons.contains(morePlace)).toBe(false);
   });
 
-  test("its actions sit beside the exception only when the card is wide enough, not when the window is", () => {
+  test("without a ⋯ it keeps no place for one", () => {
     renderSummary({
-      exception: exceptionWith({ message: "Inventory reservation failed" }),
-      actions: (
-        <>
-          <button type="button">Resolve</button>
-          <button type="button">Archive</button>
-          <button type="button">Create monitor</button>
-        </>
-      ),
+      exception: exceptionWith(),
+      actions: { buttons: TWO_BUTTONS, more: null },
     });
 
-    const actions: HTMLElement = screen.getByTestId(
-      "exception-summary-actions",
-    );
-    const row: HTMLElement = actions.parentElement as HTMLElement;
-    const card: HTMLElement = row.parentElement as HTMLElement;
+    expect(
+      screen.queryByTestId(EXCEPTION_SUMMARY_TEST_IDS.morePlace),
+    ).not.toBeInTheDocument();
+    // The pills keep no room at their end for a ⋯ that is not there.
+    expect(
+      screen.getByTestId(EXCEPTION_SUMMARY_TEST_IDS.pills),
+    ).not.toHaveClass("pe-11");
+  });
 
-    /*
-     * A container query on the card's own width: from lg up beside the side
-     * menu, three buttons left the message a word a line at 1024px.
-     */
-    expect(card.className).toContain("[container-type:inline-size]");
-    expect(row).toHaveClass(
+  test("with a ⋯ the pills keep its corner free until the actions sit beside them", () => {
+    renderSummary({
+      exception: exceptionWith(),
+      actions: { buttons: TWO_BUTTONS, more: MORE },
+    });
+
+    const width: string = besideFromRem();
+
+    expect(width).toMatch(/^\d+rem$/);
+    expect(screen.getByTestId(EXCEPTION_SUMMARY_TEST_IDS.pills)).toHaveClass(
+      "pe-11",
+      `[@container(min-width:${width})]:pe-0`,
+    );
+    expect(
+      screen.getByTestId(EXCEPTION_SUMMARY_TEST_IDS.morePlace),
+    ).toHaveClass("absolute", `[@container(min-width:${width})]:static`);
+  });
+
+  test("its actions move beside the pills at the header's own width, never at the window's", () => {
+    renderSummary({
+      exception: exceptionWith({ message: "Inventory reservation failed" }),
+      actions: { buttons: TWO_BUTTONS, more: MORE },
+    });
+
+    const width: string = besideFromRem();
+    const top: HTMLElement = screen.getByTestId(EXCEPTION_SUMMARY_TEST_IDS.top);
+    const actions: HTMLElement = screen.getByTestId(
+      EXCEPTION_SUMMARY_TEST_IDS.actions,
+    );
+
+    expect(top).toHaveClass(
       "flex",
-      "flex-col",
-      "[@container(min-width:72rem)]:flex-row",
+      "flex-wrap",
+      `[@container(min-width:${width})]:grid`,
     );
-    expect(row.className).not.toContain("lg:flex-row");
-    expect(actions).toHaveClass("[@container(min-width:72rem)]:justify-end");
-    expect(actions.className).not.toContain("lg:justify-end");
-    expect(within(actions).getAllByRole("button")).toHaveLength(3);
+    expect(actions).toHaveClass(
+      "justify-end",
+      `[@container(min-width:${width})]:col-start-2`,
+    );
+    // No window breakpoints: a header beside the side menu is narrower than the window.
+    for (const element of [top, actions]) {
+      expect(element.className).not.toMatch(/(^|\s)(sm|md|lg|xl):/);
+    }
+    // The title takes the whole row under the pills and the actions there.
+    expect(screen.getByTestId(EXCEPTION_SUMMARY_TEST_IDS.title)).toHaveClass(
+      "basis-full",
+      `[@container(min-width:${width})]:col-span-2`,
+    );
   });
 
-  test("under the exception its actions start where its words do, past the status icon, without the buttons' own margin", () => {
+  test("the more there is to fit beside the actions, the wider the header has to be before they go there", () => {
     renderSummary({
-      exception: exceptionWith({ message: "Inventory reservation failed" }),
-      actions: (
-        <>
-          <button type="button">Resolve</button>
-          <button type="button">Create monitor</button>
-        </>
+      exception: exceptionWith(),
+      actions: { buttons: TWO_BUTTONS, more: MORE },
+    });
+
+    const plain: number = parseInt(besideFromRem(), 10);
+
+    cleanup();
+
+    renderSummary({
+      exception: exceptionWith({
+        unhandled: true,
+        errorClass: "code-fault",
+        environment: "production-eu-west-2",
+        regressedAt: new Date(Date.now() - DAY),
+      }),
+      actions: { buttons: TWO_BUTTONS, more: MORE },
+    });
+
+    const busy: string = besideFromRem();
+
+    // Pills too many for the row stay where they are: the actions go under the title.
+    expect(busy === "never" || parseInt(busy, 10) > plain).toBe(true);
+  });
+
+  test("its words for Reopen and Unarchive are measured, not Resolve's and Archive's", () => {
+    renderSummary({
+      exception: exceptionWith(),
+      actions: { buttons: TWO_BUTTONS, more: MORE },
+    });
+
+    const unresolved: string = besideFromRem();
+
+    cleanup();
+
+    renderSummary({
+      exception: exceptionWith({ isResolved: true, isArchived: true }),
+      actions: { buttons: TWO_BUTTONS, more: MORE },
+    });
+
+    // "Reopen" + "Unarchive" and two pills need at least the room "Resolve" + "Archive" and one do.
+    const settled: string = besideFromRem();
+
+    expect(
+      settled === "never" || parseInt(settled, 10) >= parseInt(unresolved, 10),
+    ).toBe(true);
+  });
+
+  test("names who owns it as a fact, drawn as the control it is given", () => {
+    renderSummary({
+      exception: exceptionWith(),
+      assignee: (
+        <button type="button" data-testid="assignee-control">
+          Assign
+        </button>
       ),
     });
 
-    const actions: HTMLElement = screen.getByTestId(
-      "exception-summary-actions",
+    const assignee: HTMLElement = screen.getByTestId(
+      "exception-summary-stat-assignee",
     );
 
-    /*
-     * The status icon (44px and the 16px gap beside it) shows from sm up:
-     * the actions under the words start 3.75rem in, and none at all once
-     * they sit beside the exception.
-     */
-    expect(actions).toHaveClass(
-      "sm:ps-[3.75rem]",
-      "[@container(min-width:72rem)]:ps-0",
+    expect(within(assignee).getByText("Assignee")).toBeInTheDocument();
+
+    const control: HTMLElement =
+      within(assignee).getByTestId("assignee-control");
+
+    // Not inside the box that cuts a long value short (and its focus ring).
+    expect(control.closest(".truncate")).toBeNull();
+    // The fact comes last, after the service.
+    const facts: HTMLElement = screen.getByTestId(
+      EXCEPTION_SUMMARY_TEST_IDS.facts,
     );
-    expect(screen.getByTestId("exception-summary-status-icon")).toHaveClass(
-      "sm:flex",
-      "h-11",
-      "w-11",
+
+    expect(facts.lastElementChild).toBe(assignee);
+    expect(facts.className).toBe(getEventHeaderFactsClassName(5));
+  });
+
+  test("without an assignee control it has the four facts it always has", () => {
+    renderSummary({ exception: exceptionWith() });
+
+    const facts: HTMLElement = screen.getByTestId(
+      EXCEPTION_SUMMARY_TEST_IDS.facts,
     );
-    // Each Button's dialog-footer margin (md:ml-3) is taken off, wrapped or not.
-    expect(actions).toHaveClass(
-      "[&>button]:ml-0",
-      "[&>button]:md:ml-0",
-      "[&>*>button]:ml-0",
-      "[&>*>button]:md:ml-0",
-    );
+
+    expect(
+      Array.from(facts.children).map((child: Element) => {
+        return child.getAttribute("data-testid");
+      }),
+    ).toEqual([
+      "exception-summary-stat-occurrences",
+      "exception-summary-stat-first-seen",
+      "exception-summary-stat-last-seen",
+      "exception-summary-stat-service",
+    ]);
+    expect(facts.className).toBe(getEventHeaderFactsClassName(4));
+    expect(facts.tagName).toBe("DL");
   });
 
   test("expands and collapses long messages without removing their content", () => {
@@ -387,7 +632,7 @@ describe("ExceptionSummary", () => {
     renderSummary({ exception: exceptionWith({ message: longMessage }) });
 
     const message: HTMLElement = screen.getByTestId(
-      "exception-summary-message",
+      EXCEPTION_SUMMARY_TEST_IDS.message,
     );
     const expandButton: HTMLElement = screen.getByRole("button", {
       name: "Expand exception message",
@@ -397,6 +642,7 @@ describe("ExceptionSummary", () => {
     expect(message).toHaveTextContent(longMessage);
     expect(expandButton).toHaveAttribute("aria-expanded", "false");
     expect(expandButton).toHaveAttribute("aria-controls", message.id);
+    expect(expandButton).toHaveTextContent("Show more");
 
     fireEvent.click(expandButton);
 
@@ -406,6 +652,7 @@ describe("ExceptionSummary", () => {
     expect(message).not.toHaveClass("line-clamp-3");
     expect(message.textContent).toBe(longMessage);
     expect(collapseButton).toHaveAttribute("aria-expanded", "true");
+    expect(collapseButton).toHaveTextContent("Show less");
 
     fireEvent.click(collapseButton);
 
@@ -422,32 +669,8 @@ describe("ExceptionSummary", () => {
       }),
     });
 
-    expect(screen.getByTestId("exception-summary-message")).not.toHaveClass(
-      "line-clamp-3",
-    );
-  });
-
-  test("uses explicit cell borders for one, two, and four-column layouts", () => {
-    renderSummary({ exception: exceptionWith() });
-
-    const occurrences: HTMLElement = screen.getByTestId(
-      "exception-summary-stat-occurrences",
-    );
-    const firstSeen: HTMLElement = screen.getByTestId(
-      "exception-summary-stat-first-seen",
-    );
-    const lastSeen: HTMLElement = screen.getByTestId(
-      "exception-summary-stat-last-seen",
-    );
-    const service: HTMLElement = screen.getByTestId(
-      "exception-summary-stat-service",
-    );
-
-    expect(occurrences).not.toHaveClass("border-t");
-    expect(occurrences).not.toHaveClass("border-l");
-    expect(firstSeen).toHaveClass("border-t", "sm:border-l", "sm:border-t-0");
-    expect(lastSeen).toHaveClass("border-t", "xl:border-l", "xl:border-t-0");
-    expect(lastSeen).not.toHaveClass("sm:border-l");
-    expect(service).toHaveClass("border-t", "sm:border-l", "xl:border-t-0");
+    expect(
+      screen.getByTestId(EXCEPTION_SUMMARY_TEST_IDS.message),
+    ).not.toHaveClass("line-clamp-3");
   });
 });

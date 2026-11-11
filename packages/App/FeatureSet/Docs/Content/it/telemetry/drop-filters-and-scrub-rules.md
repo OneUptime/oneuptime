@@ -96,10 +96,10 @@ In **Avanzato**, scegliete l'**Azione di pulizia** e i **Campi da rimuovere**, o
 | --- | --- |
 | **Indirizzo email** | Indirizzi email, come `jane@example.com` |
 | **Numero di carta di credito** | Sedici cifre in gruppi di quattro, come `4111 1111 1111 1111` |
-| **SSN (Social Security Number)** | I numeri di previdenza sociale statunitensi, come `123-45-6789` |
+| **SSN (numero di previdenza sociale USA)** | I numeri di previdenza sociale statunitensi, come `123-45-6789` |
 | **Numero di telefono** | I numeri di telefono nordamericani, come `555-123-4567` |
 | **Indirizzo IP** | Indirizzi IPv4, come `192.168.1.1` |
-| **Sensitive Attribute Keys** | L'intero valore di qualsiasi attributo la cui chiave sembri segreta, come `password`, `token`, `api_key`, `authorization` o `cookie` |
+| **Chiavi di attributi sensibili** | L'intero valore di qualsiasi attributo la cui chiave sembri segreta, come `password`, `token`, `api_key`, `authorization` o `cookie` |
 | **Regex personalizzata** | La vostra espressione regolare, scritta senza barre né flag, e confrontata distinguendo maiuscole e minuscole |
 
 | Azione di pulizia | Che cosa diventa una corrispondenza |
@@ -122,10 +122,10 @@ Mask:   Payment failed for j***@***.com
 Hash:   Payment failed for [HASHED:8c87b489]
 ```
 
-**Campi da rimuovere** vale **Entrambi (corpo e attributi)** per una regola dei log, a meno che non scegliate **Solo corpo** o **Solo attributi**, e **Tutto (nome, attributi ed eventi)** per una regola degli span, a meno che non scegliate **Solo nome dello span**, **Solo attributi** o **Solo attributi dell'evento**. Gli attributi dei link di uno span vengono mascherati insieme agli attributi propri dello span. Una regola **Sensitive Attribute Keys** maschera sempre i valori degli attributi, perché legge le chiavi degli attributi.
+**Campi da rimuovere** vale **Entrambi (corpo e attributi)** per una regola dei log, a meno che non scegliate **Solo corpo** o **Solo attributi**, e **Tutto (nome, attributi ed eventi)** per una regola degli span, a meno che non scegliate **Solo nome dello span**, **Solo attributi** o **Solo attributi dell'evento**. Gli attributi dei link di uno span vengono mascherati insieme agli attributi propri dello span. Una regola **Chiavi di attributi sensibili** maschera sempre i valori degli attributi, perché legge le chiavi degli attributi.
 
-- **Vengono lette anche le liste e i valori annidati.** Una regola legge ogni testo dentro una lista, una lista di liste o una lista chiave-valore, come i valori di un'intestazione HTTP, e mantiene la forma del valore: i numeri e i valori vero o falso restano come sono. Una regola **Sensitive Attribute Keys** legge anche le chiavi dentro un valore, quindi viene nascosto anche il `password` dentro una lista chiave-valore. Il corpo di un log inviato come mappa o come lista viene salvato come il suo testo JSON, che una regola di pattern maschera come qualsiasi altro testo.
-- **Un valore troppo grande per essere letto elemento per elemento viene letto come testo.** Un valore annidato per più di 32 livelli, o uno che porterebbe un record oltre i 10.000 valori nelle sue liste e mappe, viene letto e salvato come il suo testo JSON. Una regola di pattern maschera ciò che trova in quel testo, e una regola **Sensitive Attribute Keys** nasconde l'intero valore quando vi compare una parola come `password` o `token`.
+- **Vengono lette anche le liste e i valori annidati.** Una regola legge ogni testo dentro una lista, una lista di liste o una lista chiave-valore, come i valori di un'intestazione HTTP, e mantiene la forma del valore: i numeri e i valori vero o falso restano come sono. Una regola **Chiavi di attributi sensibili** legge anche le chiavi dentro un valore, quindi viene nascosto anche il `password` dentro una lista chiave-valore. Il corpo di un log inviato come mappa o come lista viene salvato come il suo testo JSON, che una regola di pattern maschera come qualsiasi altro testo.
+- **Un valore troppo grande per essere letto elemento per elemento viene letto come testo.** Un valore annidato per più di 32 livelli, o uno che porterebbe un record oltre i 10.000 valori nelle sue liste e mappe, viene letto e salvato come il suo testo JSON. Una regola di pattern maschera ciò che trova in quel testo, e una regola **Chiavi di attributi sensibili** nasconde l'intero valore quando vi compare una parola come `password` o `token`.
 - **Le eccezioni nascono dal record mascherato.** Un'eccezione trovata in un log viene creata dopo il mascheramento, e le regole che mascherano gli eventi degli span mascherano anche le eccezioni registrate su di essi.
 - **Anche le Session Replay vengono mascherate.** Le regole di mascheramento dei log vengono eseguite anche sulle registrazioni di Session Replay, oltre al mascheramento che il registratore fa nel browser.
 - **Le regole vengono eseguite nell'ordine dell'elenco.** Ogni regola vede ciò che hanno lasciato le regole precedenti.

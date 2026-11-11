@@ -71,22 +71,26 @@ Fate clic su una riga per aprire la pagina dell'eccezione.
 
 ## La pagina di un'eccezione
 
+Ogni pagina di un'eccezione si apre sotto la stessa intestazione: il suo tipo e il suo messaggio, il suo stato, se è stata gestita, la sua classe di errore e il suo ambiente, e i suoi dati principali: quante volte si è verificata, quando è stata vista la prima e l'ultima volta, il suo servizio e a chi è assegnata. Su ogni pagina tranne **Impostazioni**, che ha pulsanti propri, accanto a questi ci sono **Risolvi** e **Archivia**, seguiti da un menu ⋯ che contiene **Risolvi nella prossima release** e **Crea monitor**.
+
 Il menu laterale della pagina raggruppa ciò che fate con un'eccezione:
 
 | Pagina | Cosa mostra |
 | --- | --- |
-| **Panoramica** | Il messaggio, il servizio, quante volte si è verificata e quando è stata vista la prima e l'ultima volta, il suo andamento nel tempo e la sua ultima occorrenza: release, ambiente, span, traccia e sessione utente. In cima, la spiegazione di OneUptime AI di cosa è successo, quando l'IA è attiva. |
+| **Panoramica** | **Dove è successo**: la riga del vostro codice da cui è stata sollevata. Il suo andamento nel tempo e la sua ultima occorrenza: release, ambiente, impronta, span, traccia e sessione utente. In cima, la spiegazione di OneUptime AI di cosa è successo, quando l'IA è attiva. |
 | **Stack trace** | I frame dello stack. Per il codice del browser, i file e le righe originali, una volta caricate le [Source map](/docs/telemetry/source-maps) per la release. |
 | **Occorrenze** | Ogni occorrenza, con l'ora, il messaggio e la traccia in cui si è verificata. |
 | **Contesto** | Gli attributi dell'ultima occorrenza, la sua registrazione della sessione quando c'è, e i passaggi che hanno portato a essa. |
 | **Registri** | I log scritti intorno all'ultima occorrenza. |
-| **Assistenza IA** | Attività di IA che correggono l'eccezione o la testano. |
+| **Correggi con l'IA** | Un'attività di IA che corregge l'eccezione con una pull request e, compresse sotto di essa, le altre. |
 | **Impostazioni** | Risolvere o archiviare l'eccezione. Si trova sotto **Gestisci**, inizialmente compresso. |
 | **Registri di audit** | Chi ha risolto, archiviato, assegnato o unito l'eccezione, e quando. Si trova anch'essa sotto **Gestisci**. |
 
+**Dove è successo** mostra il primo frame del vostro codice, il punto più probabile in cui l'errore è stato sollevato: il file e la riga originali una volta che una source map li ha risolti, il codice intorno quando la source map lo conteneva, e fino a tre frame del vostro codice che lo hanno chiamato. Senza alcun frame nel vostro codice, la scheda mostra il frame più interno dello stack trace. **Visualizza lo stack trace completo** apre tutti i frame nella pagina **Stack trace**. Quando l'ultima occorrenza non ha registrato frame strutturati, la scheda mostra le prime righe dello stack trace così come sono (le ultime righe di un traceback Python, dove si trova l'errore), e un'eccezione senza stack trace non ha la scheda.
+
 ## Risolvere, riaprire e archiviare
 
-I pulsanti in cima alla pagina dell'eccezione, la sua pagina **Impostazioni** e il menu ⋯ della sua riga nell'elenco ne cambiano lo stato:
+I pulsanti in cima alla pagina dell'eccezione e il menu ⋯ accanto a essi, la sua pagina **Impostazioni** e il menu ⋯ della sua riga nell'elenco ne cambiano lo stato:
 
 | Azione | Quando usarla | Che cosa succede dopo |
 | --- | --- | --- |
@@ -96,13 +100,15 @@ I pulsanti in cima alla pagina dell'eccezione, la sua pagina **Impostazioni** e 
 | **Archivia** | È rumore che non intendete correggere. | Lascia l'elenco. Le nuove occorrenze vengono contate ma smettono di generare notifiche. |
 | **Annulla archiviazione** | Volete tornare a sentirne parlare. | Torna nell'elenco a cui appartiene. |
 
-**Risolvi nella prossima release** si trova nel menu accanto a **Risolvi**, nel menu ⋯ della riga, in **Azioni di massa** e in **Impostazioni**, finché le occorrenze dell'eccezione indicano la loro release: l'attributo di risorsa `service.version`.
+**Risolvi nella prossima release** si trova nel menu ⋯ in cima alla pagina dell'eccezione, nel menu ⋯ della riga, in **Azioni di massa** e in **Impostazioni**, finché le occorrenze dell'eccezione indicano la loro release: l'attributo di risorsa `service.version`.
 
 **Impostazioni** mostra chi ha risolto o archiviato l'eccezione per ultimo, e quando. I suoi pulsanti dicono **Segna come risolto** o **Segna come non risolto**, e **Archivia** o **Annulla archiviazione**.
 
 Per cambiarne diverse insieme, spuntate le loro righe nell'elenco, o la casella sopra le righe per tutte le eccezioni della pagina, e usate le stesse azioni in **Azioni di massa**. Quando tutte le eccezioni della pagina sono spuntate, la barra sopra le righe offre di selezionare tutte le eccezioni che corrispondono alla ricerca e ai filtri dell'elenco, su tutte le pagine, fino a 10.000 alla volta; un'azione chiede allora conferma prima di cambiarle. Il risultato dice quali eccezioni sono cambiate, quali sono rimaste com'erano e perché.
 
-**Assegna** nell'intestazione dell'eccezione la affida a una persona o a un team, e togliere la scelta rimuove l'assegnazione. Ogni riga mostra a chi appartiene, il suo menu ⋯ offre **Assegna a me**, e **Assegna a…** in **Azioni di massa** ne assegna diverse insieme. La persona a cui è assegnata, o ciascun membro del team, riceve una notifica come indica la riga **Eccezione assegnata a me** delle sue [Impostazioni notifiche](/docs/notifications/notification-settings); chi l'ha assegnata non la riceve.
+**Assegna**, sotto **Assegnatario** nell'intestazione dell'eccezione, la affida a una persona o a un team; fate clic sul suo nome per affidarla a qualcun altro, e sulla × accanto per rimuovere l'assegnazione. Ogni riga mostra a chi appartiene, il suo menu ⋯ offre **Assegna a me**, e **Assegna a…** in **Azioni di massa** ne assegna diverse insieme. La persona a cui è assegnata, o ciascun membro del team, riceve una notifica come indica la riga **Eccezione assegnata a me** delle sue [Impostazioni notifiche](/docs/notifications/notification-settings); chi l'ha assegnata non la riceve.
+
+**Crea monitor**, nel menu ⋯ in cima alla pagina dell'eccezione, apre un nuovo [monitor eccezioni](/docs/monitor/exceptions-monitor) per il tipo di questa eccezione nel suo servizio, per avvisarvi quando si ripresenta. Viene offerto a chi può creare monitor.
 
 **Attività**, in fondo alla **Panoramica** dell'eccezione, dice chi l'ha modificata e quando, dalle più recenti: chi l'ha risolta, riaperta, archiviata o assegnata, vi ha unito un'altra eccezione o ne ha separata una, e quando si è ripresentata dopo essere stata risolta. Vi compare ogni modifica, fatta sulla pagina dell'eccezione, nell'elenco, in **Azioni di massa**, tramite l'API o da OneUptime stesso, e una modifica fatta con una chiave API porta il nome della chiave.
 
@@ -132,7 +138,7 @@ In cima alla **Panoramica** di un'eccezione, **Spiega con OneUptime AI** chiede 
 | **Dove guardare** | I frame dello stack trace da aprire per primi. |
 | **Prossimi passi** | Al massimo tre passi per confermarla o correggerla. |
 
-La spiegazione resta sull'eccezione, così la persona successiva che la apre la legge subito, e **Spiega di nuovo** ne chiede una nuova. **Apri una pull request con la correzione** apre la pagina **Assistenza IA** dell'eccezione, e **Fai una domanda di approfondimento** apre Ask AI sull'eccezione.
+La spiegazione resta sull'eccezione, così la persona successiva che la apre la legge subito, e **Spiega di nuovo** ne chiede una nuova. **Correggi con l'IA** apre la pagina **Correggi con l'IA** dell'eccezione, e **Fai una domanda di approfondimento** apre Ask AI sull'eccezione.
 
 ID, indirizzi email e IP e token vengono tolti da tutto ciò che viene inviato, e degli attributi di uno span ne vengono inviati solo alcuni, come la route e il codice di stato. La spiegazione usa il provider LLM e i crediti IA del progetto, e non viene offerta finché **Abilita IA** è disattivato. Chiunque possa leggere l'eccezione può chiederne una.
 
@@ -142,13 +148,22 @@ Unite a questa eccezione una che OneUptime AI definisce **Probabilmente lo stess
 
 ## Correggerla con l'IA
 
-La pagina **Assistenza IA** offre tre attività. Ognuna viene eseguita come attività di IA che apre una pull request nel vostro repository di codice:
+La pagina **Correggi con l'IA** si apre con un'unica attività, avviata con **Correggi con l'IA**. Viene eseguita come attività di IA che apre una pull request nel vostro repository di codice, e ciò che fa la pull request dipende dalla [classe di errore](#classi-di-errore) dell'eccezione:
+
+| Classe di errore | Che cosa fa la pull request |
+| --- | --- |
+| `user-error` o `expected-denial` | Gestisce meglio l'errore, senza cambiare ciò che fa il codice: controlla prima l'input con un messaggio chiaro, tiene i dati degli utenti fuori dal messaggio e segna l'errore come gestito. |
+| Qualsiasi altra, o non ancora classificata | Trova la causa principale nel vostro codice e la corregge. |
+
+Tre passaggi sotto di essa spiegano come funziona: l'attività legge lo stack trace e trova il codice che ha sollevato l'eccezione, modifica quel codice nel vostro repository su un branch tutto suo e apre una pull request da revisionare. Non cambia nulla finché non la unite. Una volta eseguita, il suo pulsante diventa **Correggi di nuovo**, oppure **Riprova** quando il tentativo non è riuscito o non ha trovato alcuna correzione.
+
+Nella sezione **Altre attività di IA**, compressa sotto di essa, **Avvia** apre le altre pull request:
 
 | Attività | Che cosa fa la pull request |
 | --- | --- |
-| **Fix this exception with AI** | Corregge la causa principale. Avviatela con **Correggi con l'IA**. |
-| **Generate Regression Test** | Aggiunge un test che fallisce finché il bug non viene corretto. |
-| **Migliora la gestione degli errori** | Per gli errori previsti: convalida prima l'input, tiene i dati degli utenti fuori dai messaggi e segna l'errore come gestito. |
+| **Correggi il codice** | Corregge la causa principale. Compare quando **Correggi con l'IA** gestisce un errore previsto. |
+| **Gestisci meglio l'errore** | Gestisce meglio un errore previsto, come sopra. Compare quando **Correggi con l'IA** corregge il codice. |
+| **Scrivi un test di regressione** | Aggiunge un test che riproduce l'eccezione e fallisce finché il bug non viene corretto. Non corregge il bug. |
 
 Prima l'IA ha bisogno di tre cose: un provider LLM, un repository collegato (su GitHub, GitLab, Forgejo o Gitea, o su qualsiasi server Git) e un agente IA online che esegua l'attività. La pagina controlla ciascuna e rimanda a ciò che manca. Le attività sono in pausa finché l'eccezione è risolta o archiviata. Vedere [Codice](/docs/ai/ai-agent). Avviare un'attività richiede il permesso di modificare il repository in cui lavora: chi può solo leggere l'eccezione ne vede le attività, ma non può avviarne.
 
@@ -162,7 +177,7 @@ Ogni 15 minuti OneUptime esamina le vostre eccezioni alla ricerca di quelle nuov
 | **Picco di eccezioni** | Un'eccezione che si è verificata 10 volte o più nell'ultima ora, a 5 volte o più il suo ritmo orario delle 24 ore precedenti. | Corregge l'eccezione, o la gestisce meglio. |
 | **Stack trace mancante** | Le eccezioni che un servizio ha registrato nell'ultimo giorno non hanno alcuno stack trace e, insieme, si sono verificate 20 volte o più. | Fa sì che il servizio registri uno stack trace con ogni eccezione. |
 
-La pull request di un'eccezione nuova o in aumento è l'attività IA propria dell'eccezione, quella che avvia la sua pagina **Assistenza IA**, e aspetta che OneUptime AI abbia analizzato il rilevamento. Se trova il codice responsabile (`code-fault`), la pull request lo corregge, come fa **Fix this exception with AI**. Se trova un errore previsto (`user-error` o `expected-denial`), la pull request gestisce meglio l'errore, come fa **Migliora la gestione degli errori**. Qualsiasi altro verdetto non apre da solo alcuna pull request. Con **Archivia le eccezioni previste** attivo, un rifiuto previsto viene invece archiviato e non riceve alcuna pull request.
+La pull request di un'eccezione nuova o in aumento è l'attività IA propria dell'eccezione, quella che avvia la sua pagina **Correggi con l'IA**, e aspetta che OneUptime AI abbia analizzato il rilevamento. Se trova il codice responsabile (`code-fault`), la pull request lo corregge, come fa **Correggi il codice**. Se trova un errore previsto (`user-error` o `expected-denial`), la pull request gestisce meglio l'errore, come fa **Gestisci meglio l'errore**. Qualsiasi altro verdetto non apre da solo alcuna pull request. Con **Archivia le eccezioni previste** attivo, un rifiuto previsto viene invece archiviato e non riceve alcuna pull request.
 
 OneUptime AI ne apre una da solo solo per un'eccezione sollevata nel vostro codice: una il cui stack trace contiene un frame del vostro codice, non solo frame di librerie o del runtime. Una pull request che qualcuno ha chiuso senza unirla mette in pausa quelle automatiche per quell'eccezione. Chiunque può comunque chiederne una qualsiasi con **Correggi con l'IA** sul rilevamento.
 
@@ -188,7 +203,7 @@ In **Altri campi** una regola sceglie i repository di codice, i server MCP e il 
 
 - **Eccezioni → IA → Informazioni** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove, compresi i frame del vostro codice nel suo stack trace. **View Exception Group** apre l'eccezione e, sugli stack trace mancanti di un servizio, **Apri in Eccezioni** apre le sue eccezioni non risolte dell'ultimo giorno.
 - **Eccezioni → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato.
-- La pull request spiega perché è stata aperta, con un link al suo rilevamento. Quella di un'eccezione nuova o in aumento rimanda anche all'eccezione e compare sulla sua pagina **Assistenza IA**. In Codice, la sua attività nomina l'eccezione che corregge, o il rilevamento da cui è nata.
+- La pull request spiega perché è stata aperta, con un link al suo rilevamento. Quella di un'eccezione nuova o in aumento rimanda anche all'eccezione e compare sulla sua pagina **Correggi con l'IA**. In Codice, la sua attività nomina l'eccezione che corregge, o il rilevamento da cui è nata.
 
 ## Informazioni sulle eccezioni
 

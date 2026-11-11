@@ -2,7 +2,7 @@
  * Offline fixture for the real exception detail pages.
  *
  * The layout, side menu, summary header and all seven pages (Overview, Stack
- * Trace, Occurrences, Context, Logs, AI Assistance, Settings) are the
+ * Trace, Occurrences, Context, Logs, Fix with AI, Settings) are the
  * production components from this branch. Only the ModelAPI / AnalyticsModelAPI / API
  * data boundary and the synthetic user are replaced.
  *
@@ -20,6 +20,8 @@
  *   ?fail=       comma separated: update, delete, create-task, exception
  *   ?enableAi=   on (default) | off — the project's Enable AI switch, as
  *                the selected project carries it
+ *   ?errorClass= code-fault (default) | user-error | expected-denial | ... —
+ *                OneUptime AI's triage verdict on the exception
  *   ?hold=       exception — keep the exception read pending until
  *                window.__exceptionFixture.releaseException() is called
  *
@@ -87,6 +89,7 @@ const failures = new Set(
 );
 const holdException = params.get("hold") === "exception";
 const isAiOn = params.get("enableAi") !== "off";
+const errorClass = params.get("errorClass") || "code-fault";
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
@@ -298,7 +301,7 @@ function makeException() {
   record.primaryEntityId = new ObjectID(SERVICE_ID);
   record.primaryEntityType = "OpenTelemetry";
   record.unhandled = true;
-  record.errorClass = "code-fault";
+  record.errorClass = errorClass;
   return record;
 }
 

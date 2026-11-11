@@ -402,13 +402,20 @@ describe("SloHistoryCharts", () => {
       expect.objectContaining({ value: 99.9, label: "Target 99.9%" }),
     ]);
 
+    /*
+     * The at-risk line with its figure, as the Overview's burn-down names
+     * it, and as the policy tiers' lines beside it are named.
+     */
     expect(
       (lastChartProps("Budget Remaining %").referenceLines || []).map(
-        (line: ReferenceLine): number => {
-          return line.value;
+        (line: ReferenceLine): [number, string | undefined] => {
+          return [line.value, line.label];
         },
       ),
-    ).toEqual([0, 25]);
+    ).toEqual([
+      [0, "Budget exhausted"],
+      [25, "At risk (25%)"],
+    ]);
 
     // A rule with no threshold draws nothing rather than a line at 0.
     expect(lastChartProps("Burn Rate").referenceLines).toEqual([
@@ -423,11 +430,17 @@ describe("SloHistoryCharts", () => {
 
     expect(
       (lastChartProps("Budget Remaining %").referenceLines || []).map(
-        (line: ReferenceLine): number => {
-          return line.value;
+        (line: ReferenceLine): [number, string | undefined] => {
+          return [line.value, line.label];
         },
       ),
-    ).toEqual([0, DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE]);
+    ).toEqual([
+      [0, "Budget exhausted"],
+      [
+        DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
+        `At risk (${DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE}%)`,
+      ],
+    ]);
   });
 
   test("coerces Decimal strings and skips rows without a timestamp or a finite value", async () => {
@@ -553,7 +566,7 @@ describe("SloHistoryCharts", () => {
         }),
       ).toEqual([
         [0, "Budget exhausted"],
-        [25, "At risk"],
+        [25, "At risk (25%)"],
         // Highest first: the order the budget reaches them.
         [50, "Caution 50%"],
         [30, "Reliability first 30%"],
@@ -584,7 +597,7 @@ describe("SloHistoryCharts", () => {
       ).toEqual([
         // Named like the line: said once.
         [0, "Budget exhausted 0%"],
-        [25, "At risk · Slowdown 25%"],
+        [25, "At risk (25%) · Slowdown 25%"],
       ]);
     });
 

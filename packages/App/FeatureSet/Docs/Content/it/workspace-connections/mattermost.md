@@ -70,9 +70,11 @@ OneUptime funziona in ogni team del tuo server Mattermost di cui il suo bot è m
 2. La scheda **Team Mattermost** in **Impostazioni del progetto** > **Area di lavoro** > **Mattermost** elenca questi team, prima quello predefinito. Fai clic su **Aggiorna** dopo aver aggiunto il bot a un altro team.
 
 - **Quale team usa una regola.** Le regole di notifica scelgono il **Team Mattermost** dei loro canali. Se resta vuoto, la regola crea il suo canale nel team predefinito, e cerca i canali che nomina prima lì, poi negli altri team del bot.
+- **Quale team usa un riepilogo.** Anche i riepiloghi, nella scheda **Riepilogo** di **Incidenti** e **Avvisi**, scelgono il **Team Mattermost** dei loro canali. Se resta vuoto, un riepilogo cerca i suoi canali prima nel team predefinito, poi negli altri team del bot.
 - **Il team predefinito.** È il team a cui hai collegato il progetto. **Imposta come predefinito** sulla scheda rende predefinito un altro team, per un ruolo che può collegare il progetto.
 - **Dove funziona OneUptime.** I pulsanti dei messaggi di OneUptime, e i moduli che aprono, funzionano in ciascuno di questi team. In un team da cui il bot è stato rimosso, un pulsante dice solo che il team non è più collegato.
 - **Un team predefinito da cui il bot è stato rimosso.** La scheda lo segnala. Aggiungi di nuovo il bot in Mattermost, oppure imposta un altro team come predefinito.
+- **Un team indicato da una regola da cui il bot è stato rimosso.** La scheda della regola lo segnala, e la regola non usa un altro team al suo posto. Aggiungi di nuovo il bot al team in Mattermost, oppure scegli un altro team nella regola: il suo modulo mostra ancora la scelta precedente, così puoi cambiarla.
 
 ## Collegare il tuo account Mattermost
 
@@ -171,6 +173,8 @@ Ogni pulsante che OneUptime pubblica porta una firma, verificata quando viene pr
 | Un team a cui hai aggiunto il bot non compare nella scheda **Team Mattermost** | Fai clic su **Aggiorna** nella scheda. |
 | **OneUptime's bot is not a member of this Mattermost team** | Hai scelto un team che il bot ha lasciato. Aggiungi il bot a quel team in Mattermost, poi fai clic su **Aggiorna**. |
 | **OneUptime's bot may not create channels in the Mattermost team this rule names** | Aggiungi il bot a quel team in Mattermost, oppure scegli un altro team nella regola. |
+| **OneUptime's bot is not a member of the Mattermost team chosen for the channel** | Aggiungi il bot a quel team in Mattermost, oppure scegli un altro team nella regola. |
+| **OneUptime's bot is no longer a member of the project's default Mattermost team** | Aggiungi di nuovo il bot a quel team in Mattermost, oppure imposta un altro team come predefinito. |
 | **OneUptime could not reach the Mattermost server** | Controlla l'indirizzo, e che OneUptime possa raggiungerlo. Vedi [Rete e self-hosting](#rete-e-self-hosting). |
 | **The bot is not a member of the private Mattermost channel** | Aggiungi il bot al canale in Mattermost. |
 | Un pulsante non fa nulla, oppure Mattermost dice che non è riuscito a completare l'azione | Mattermost non riesce a raggiungere OneUptime. Vedi [Rete e self-hosting](#rete-e-self-hosting). |

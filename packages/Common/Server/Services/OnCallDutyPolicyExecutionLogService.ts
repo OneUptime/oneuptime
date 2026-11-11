@@ -1,5 +1,11 @@
+import ProjectMilestoneService from "./ProjectMilestoneService";
+import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import {
+  DatabaseTriggerType,
+  OnCreate,
+  OnUpdate,
+} from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
 import OnCallDutyPolicyEscalationRuleService, {
   OnCallPagingOutcome,
@@ -72,6 +78,16 @@ import {
   getOnCallPageAgainStatusMessage,
   isOnCallPageAgainRun,
 } from "../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import {
+  ON_CALL_TEST_PAGE_FIRST_LEVEL_PAGED_MESSAGE,
+  ON_CALL_TEST_PAGE_FIRST_LEVEL_REACHED_NOBODY_MESSAGE,
+  ON_CALL_TEST_PAGE_NOBODY_PAGED_MESSAGE,
+  ON_CALL_TEST_PAGE_STARTED_ELSEWHERE_MESSAGE,
+  OnCallTestPageRecordKind,
+  getOnCallTestPagePagingMessage,
+  isOnCallTestPage,
+} from "../../Types/OnCallDutyPolicy/OnCallTestPage";
+import { JSONObject } from "../../Types/JSON";
 
 /*
  * Who started a direct page, for its run to record: the person, or the
@@ -166,6 +182,16 @@ export class Service extends ProjectReferencesService<Model> {
       )
     ) {
       throw new BadDataException(ON_CALL_POLICY_REQUIRED_MESSAGE);
+    }
+
+    /*
+     * A test page (OnCallTestPage) is OneUptime's own run, started where who
+     * may send it and how often are checked (OnCallTestPageService). An API
+     * call or a workflow that writes one is told where to send it from, so a
+     * test cannot be sent past its limits.
+     */
+    if (!createBy.props.isRoot && isOnCallTestPage(createBy.data)) {
+      throw new BadDataException(ON_CALL_TEST_PAGE_STARTED_ELSEWHERE_MESSAGE);
     }
 
     /*
@@ -475,6 +501,211 @@ export class Service extends ProjectReferencesService<Model> {
       executionLogId: executionLogId,
       outcome: outcome,
     };
+  }
+
+  /*
+   * STARTS A TEST PAGE TO PEOPLE (OnCallTestPage): "Send me a test page",
+   * or an admin's test page to a member. A run with no policy and no
+   * record, whose event type is Test Page, that pages the people it names
+   * at once - as a direct page does (OnCallDutyPolicyEscalationRuleService
+   * .startDirectPage), so a user override, a person who left the project
+   * and nobody paged twice are handled exactly as for a real page - each
+   * through their own On-Call Rules for `recordKind` and `severityId`.
+   *
+   * OneUptime's own write: OnCallTestPageService has checked who may send
+   * it and how often. Credited to `startedByUserId`. Hands back the run
+   * and who it paged; one that reached nobody is over at once, and says so.
+   */
+  @CaptureSpan()
+  public async startTestPage(data: {
+    projectId: ObjectID;
+    userIds: Array<ObjectID>;
+    recordKind: OnCallTestPageRecordKind;
+    severityId: ObjectID;
+    startedByUserId: ObjectID;
+  }): Promise<OnCallDirectPageRun> {
+    if (data.userIds.length === 0) {
+      throw new BadDataException("A test page needs somebody to page.");
+    }
+
+    const log: Model = new Model();
+
+    log.projectId = data.projectId;
+    log.status = OnCallDutyPolicyStatus.Scheduled;
+    log.statusMessage = "Scheduled.";
+    log.userNotificationEventType = UserNotificationEventType.TestPage;
+    log.testPageRecordKind = data.recordKind;
+    log.testPageSeverityId = data.severityId;
+
+    const createdLog: Model = await this.create({
+      data: log,
+      props: {
+        isRoot: true,
+        userId: data.startedByUserId,
+      },
+    });
+
+    const executionLogId: ObjectID = createdLog.id!;
+
+    await this.updateOneById({
+      id: executionLogId,
+      data: {
+        status: OnCallDutyPolicyStatus.Started,
+        statusMessage: "Paging started...",
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    let outcome: OnCallPagingOutcome;
+
+    try {
+      outcome = await OnCallPageTiming.runInPageStart(
+        OnCallPageTiming.startPage(),
+        (): Promise<OnCallPagingOutcome> => {
+          return OnCallDutyPolicyEscalationRuleService.startDirectPage({
+            projectId: data.projectId,
+            userNotificationEventType: UserNotificationEventType.TestPage,
+            onCallPolicyExecutionLogId: executionLogId,
+            targets: {
+              userIds: data.userIds,
+              teamIds: [],
+              onCallScheduleIds: [],
+            },
+          });
+        },
+      );
+    } catch (err) {
+      await this.updateOneById({
+        id: executionLogId,
+        data: {
+          status: OnCallDutyPolicyStatus.Error,
+          statusMessage:
+            (err as Error)?.message ||
+            "Error occurred while sending the test page.",
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      throw err;
+    }
+
+    await this.updateOneById({
+      id: executionLogId,
+      data:
+        outcome.paged.length > 0
+          ? {
+              status: OnCallDutyPolicyStatus.Executing,
+              statusMessage: getOnCallTestPagePagingMessage(
+                outcome.paged.length,
+              ),
+            }
+          : {
+              status: OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+              statusMessage: ON_CALL_TEST_PAGE_NOBODY_PAGED_MESSAGE,
+            },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return {
+      executionLogId: executionLogId,
+      outcome: outcome,
+    };
+  }
+
+  /*
+   * STARTS A TEST OF AN ON-CALL POLICY (OnCallTestPage): "Test this policy".
+   * A run of the policy whose event type is Test Page, with no record: it
+   * pages the policy's first escalation level as a real run does
+   * (onCreateSuccess, startFirstEscalationRule) - its teams, schedules,
+   * overrides and people - through each person's On-Call Rules for
+   * `recordKind` and `severityId`. It walks every level, each after a short
+   * wait, only when asked to (walksEscalation); it never repeats the policy.
+   *
+   * OneUptime's own write: OnCallTestPageService has checked that the caller
+   * may edit the policy, and how often it is tested. An archived policy, or
+   * one without escalation rules, writes the run with the reason, as for any
+   * run. Returns the run's id.
+   */
+  @CaptureSpan()
+  public async startPolicyTest(data: {
+    projectId: ObjectID;
+    onCallDutyPolicyId: ObjectID;
+    recordKind: OnCallTestPageRecordKind;
+    severityId: ObjectID;
+    walksEscalation: boolean;
+    startedByUserId: ObjectID;
+  }): Promise<ObjectID> {
+    const log: Model = new Model();
+
+    log.projectId = data.projectId;
+    log.onCallDutyPolicyId = data.onCallDutyPolicyId;
+    log.status = OnCallDutyPolicyStatus.Scheduled;
+    log.statusMessage = "Scheduled.";
+    log.userNotificationEventType = UserNotificationEventType.TestPage;
+    log.testPageRecordKind = data.recordKind;
+    log.testPageSeverityId = data.severityId;
+    log.testPageWalksEscalation = data.walksEscalation;
+
+    const createdLog: Model = await this.create({
+      data: log,
+      props: {
+        isRoot: true,
+        userId: data.startedByUserId,
+      },
+    });
+
+    return createdLog.id!;
+  }
+
+  /*
+   * A test page (OnCallTestPage) starts none of the customer's workflows:
+   * it is not news about the project, and a workflow that pages, posts or
+   * opens a ticket on every run would turn a test into the real thing. Read
+   * by the run's id, as the workflow is asked for: a run that cannot be read
+   * is not taken for a test.
+   */
+  @CaptureSpan()
+  public override async onTriggerWorkflow(
+    id: ObjectID,
+    projectId: ObjectID,
+    triggerType: DatabaseTriggerType,
+    miscData?: JSONObject | undefined,
+  ): Promise<void> {
+    if (await this.isTestPageRun(id)) {
+      return;
+    }
+
+    return await super.onTriggerWorkflow(id, projectId, triggerType, miscData);
+  }
+
+  // Whether a run is a test page, read by its id as OneUptime.
+  public async isTestPageRun(id: ObjectID): Promise<boolean> {
+    try {
+      const run: Model | null = await this.findOneById({
+        id: id,
+        select: {
+          _id: true,
+          userNotificationEventType: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return isOnCallTestPage(run);
+    } catch (err) {
+      logger.error(
+        `Could not read whether on-call execution log ${id.toString()} is a test page: ${err}`,
+      );
+
+      return false;
+    }
   }
 
   /*
@@ -958,6 +1189,20 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
+     * The project's first on-call policy that ran (issue #6830): a policy's
+     * run that starts its escalation - not an archived policy's, which says
+     * why nobody was paged, nor a direct page, which has no policy, nor a
+     * test of the policy (OnCallTestPage), which has its own milestone once
+     * somebody acknowledges it.
+     */
+    if (!isOnCallTestPage(createdItem)) {
+      ProjectMilestoneService.reachInBackground({
+        projectId: createdItem.projectId,
+        milestone: ActivationMilestone.FirstOnCallPolicyExecuted,
+      });
+    }
+
+    /*
      * A page again starts at the escalation rule that was paging when its
      * record was acknowledged, with the person who acknowledged it, and
      * says why in the feed: whoever created it does that (startPageAgain).
@@ -1278,6 +1523,17 @@ export class Service extends ProjectReferencesService<Model> {
 
     let userNotificationEventType: UserNotificationEventType | null = null;
 
+    /*
+     * A test page (OnCallTestPage) has no record to read its kind from: it
+     * says it is one, and pages its people through the rules of the kind
+     * and severity it stands in for.
+     */
+    const isTestPage: boolean = isOnCallTestPage(run);
+
+    if (isTestPage) {
+      userNotificationEventType = UserNotificationEventType.TestPage;
+    }
+
     if (run.triggeredByIncidentId) {
       userNotificationEventType = UserNotificationEventType.IncidentCreated;
     }
@@ -1329,11 +1585,36 @@ export class Service extends ProjectReferencesService<Model> {
         },
       );
 
+    /*
+     * A test of the policy's first level only (OnCallTestPage) pages nobody
+     * the dialog did not name: a first level that reached nobody ends it,
+     * saying so, rather than moving on to the next level.
+     */
+    const isFirstLevelOnlyTest: boolean =
+      isTestPage && !run.testPageWalksEscalation;
+
+    if (isFirstLevelOnlyTest && firstRuleOutcome?.movesOnAtOnce) {
+      await this.updateOneById({
+        id: run.id!,
+        data: {
+          status: OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+          statusMessage: ON_CALL_TEST_PAGE_FIRST_LEVEL_REACHED_NOBODY_MESSAGE,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return;
+    }
+
     await this.updateOneById({
       id: run.id!,
       data: {
         status: OnCallDutyPolicyStatus.Executing,
-        statusMessage: "First escalation rule executed...",
+        statusMessage: isTestPage
+          ? ON_CALL_TEST_PAGE_FIRST_LEVEL_PAGED_MESSAGE
+          : "First escalation rule executed...",
       },
       props: {
         isRoot: true,

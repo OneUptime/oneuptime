@@ -52,7 +52,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ### 找到工作區的詳細資訊
 
-在 Azure portal 中開啟 Log Analytics 工作區。它的 **Overview** 頁面會顯示 **訂用帳戶 ID**、**Resource group** 和工作區的名稱。工作區的資源 ID 也包含這三項：
+在 Azure portal 中開啟 Log Analytics 工作區。它的 **Overview** 頁面會顯示 **訂用帳戶 ID**、**資源群組** 和工作區的名稱。工作區的資源 ID 也包含這三項：
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -72,8 +72,8 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 | **目錄（租用戶）ID** | 應用程式的 **Overview** 頁面。租用戶的 GUID，或已驗證的網域，例如 `contoso.onmicrosoft.com`。 |
 | **應用程式（用戶端）ID** | 應用程式的 **Overview** 頁面。一個 GUID。 |
 | **訂用帳戶 ID** | 工作區的 **Overview** 頁面。一個 GUID。 |
-| **Resource group** | 工作區的 **Overview** 頁面。1 到 90 個字母、數字、底線、連字元、句點或括號，不能以句點結尾。 |
-| **Workspace name** | 工作區的 **Overview** 頁面。3 到 90 個字母、數字或連字元，以字母或數字開頭和結尾。 |
+| **資源群組** | 工作區的 **Overview** 頁面。1 到 90 個字母、數字、底線、連字元、句點或括號，不能以句點結尾。 |
+| **工作區名稱** | 工作區的 **Overview** 頁面。3 到 90 個字母、數字或連字元，以字母或數字開頭和結尾。 |
 | **雲端** | **Azure 公用雲端**（`login.microsoftonline.com`、`management.azure.com`）或 **Azure Government（美國）** （`login.microsoftonline.us`、`management.usgovcloudapi.net`）。 |
 | **用戶端密碼** | 密碼的 **Value**。它會被加密，API 從不傳回，也不會再次顯示。在連線上用 **更新憑證** 替換它。 |
 
@@ -131,7 +131,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 1. **縮小。** 下一次輪詢從同一個起點讀取長度減半的時間窗，並不斷減半，直到某個時間窗能被完整讀取，最短為一分鐘。執行的警告會說明這一點：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **恢復。** 一個時間窗被完整讀取後，下一個時間窗的長度會再次加倍，最長為 24 小時。
-3. **越過單獨的一分鐘。** 如果連一分鐘內的內容都超過一次輪詢能讀取的量，輪詢會越過這一分鐘，讓更新的事件繼續到達。這次執行仍為 **部分**，**最近的錯誤** 顯示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 匯入這一分鐘，即可找回一次執行能讀取的內容。
+3. **越過單獨的一分鐘。** 如果連一分鐘內的內容都超過一次輪詢能讀取的量，輪詢會越過這一分鐘，讓更新的事件繼續到達。這次執行仍為 **部分**，**最近的錯誤** 顯示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **匯入此時間範圍** 匯入這一分鐘，即可找回一次執行能讀取的內容。
 
 因 Microsoft Entra ID 或 Azure Resource Manager 的錯誤而徹底失敗的執行，會保留游標和時間窗長度，下一次輪詢會再次讀取同一個時間窗。唯一的例外是請求逾時：游標保持不變，但下一個時間窗的長度減半，因為太重而無法及時回應的時間窗每次重試都會逾時。更改 **輪詢間隔（分鐘）** 不會改變以上任何一點：它決定輪詢多久開始一次，而不是時間窗從哪裡開始。
 
@@ -140,9 +140,9 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 在連線上點選 **診斷**，可以檢視它最近的執行，並手動操作它。能更改該連線的人都可以啟動這些操作；能檢視它的人都可以閱讀歷史記錄。
 
 - **立即執行** 會立即開始一次輪詢，使用通常的游標，即使連線未處於 **已啟用** 狀態也可以。
-- **Preview incidents** 讀取最長 7 天的時間範圍，不匯入任何內容。
-- **Import this time range** 在你確認後匯入最長 7 天的範圍，不會移動游標。已匯入的事件會被跳過。
-- 執行上的 **Copy diagnostics** 會複製它的報告以便提供給支援人員。報告從不包含認證資訊。
+- **預覽事件** 讀取最長 7 天的時間範圍，不匯入任何內容。
+- **匯入此時間範圍** 在你確認後匯入最長 7 天的範圍，不會移動游標。已匯入的事件會被跳過。
+- 執行上的 **複製診斷資訊** 會複製它的報告以便提供給支援人員。報告從不包含認證資訊。
 
 ## 測試連線
 
@@ -155,7 +155,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 | **Read incidents** | 可以讀取過去 24 小時內建立的一個事件（`$top=1`）。這證明了角色和工作區的詳細資訊正確。 |
 | **Incidents available to import** | 過去 24 小時和過去 7 天內建立了多少事件，各讀取一頁 50 個，所以 `50+` 表示更多。7 天內一個都沒有是警告，而不是失敗。 |
 | **Background workers**、**Poll scheduler**、**Security event storage** | OneUptime 自身的一側：有程序在處理 Worker 佇列的作業，輪詢作業每分鐘執行一次，安全性事件儲存能夠回應。 |
-| **Scheduled polling** | 針對已儲存的連線：輪詢已開啟，沒有執行卡在等待工作程序的狀態，並且輪詢按時執行。 |
+| **排定的輪詢** | 針對已儲存的連線：輪詢已開啟，沒有執行卡在等待工作程序的狀態，並且輪詢按時執行。 |
 
 測試中的每個請求都有 20 秒的期限。測試從不匯入任何內容，也不移動游標，每個失敗的檢查都會說明需要更改什麼。
 
@@ -246,7 +246,7 @@ OneUptime 也可以透過 Azure Monitor 的 Logs Ingestion API 把它發現的�
 - `Microsoft Sentinel incidents list failed (HTTP ...)`：Azure Resource Manager 拒絕了請求。
   - `HTTP 401`：它不接受該權杖。幾乎總是因為 **雲端** 與租用戶不符合，或者應用程式註冊已被刪除。在兩頁之間過期的權杖會自動續訂並重試一次。
   - `HTTP 403` 或 `AuthorizationFailed`：應用程式在資源群組上還沒有 **Microsoft Sentinel Reader**。指派該角色，並等待幾分鐘。
-  - `HTTP 404`：沒有具有該 **訂用帳戶 ID**、**Resource group** 和 **Workspace name** 的工作區，或者該工作區未啟用 Microsoft Sentinel。請從工作區的 **Overview** 頁面複製它們。
+  - `HTTP 404`：沒有具有該 **訂用帳戶 ID**、**資源群組** 和 **工作區名稱** 的工作區，或者該工作區未啟用 Microsoft Sentinel。請從工作區的 **Overview** 頁面複製它們。
   - `HTTP 429` 或 `HTTP 5xx`：Azure Resource Manager 正在節流或不可用。下一次輪詢會重試。
   - `HTTP 400`：Azure Resource Manager 拒絕了查詢，而查詢是由 OneUptime 建置的，與你的設定無關。請把訊息傳送給 OneUptime 支援人員。
 - `Microsoft Sentinel incidents list returned ...`：Azure 傳回了 `200`，但沒有可讀的事件頁面，或者帶有一個指向其他主機的 `nextLink`，連接器會拒絕這種連結，讓權杖永遠不離開 Azure Resource Manager。這種情況會被報告出來，而不是被當作空時間窗，所以游標永遠不會越過沒人讀過的事件。
@@ -260,7 +260,7 @@ OneUptime 也可以透過 Azure Monitor 的 Logs Ingestion API 把它發現的�
 :::details 執行為 Partial
 - `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`：時間窗中的事件超過了一次執行能讀取的 1,000 個。不會遺失任何內容：下一次輪詢會從讀取的最後一個事件之後開始。一次又一次輪詢都保持 **部分** 的連線正在追趕積壓，它的 **最近輪詢** 和 **最近匯入的事件** 會持續前進。
 - `Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.`：API 忽略了從早到晚的順序，所以這次執行無法把游標移到它的最後一個事件，下一次輪詢會改為讀取更短的時間窗。如果反覆出現，請把這次執行的報告發送給 OneUptime 支援人員。
-- `More records were created in the one minute from ... than one poll can read`：輪詢越過了這一分鐘。請在 **診斷** 中用 **Import this time range** 匯入它。一次匯入讀取的量與一次輪詢相同。
+- `More records were created in the one minute from ... than one poll can read`：輪詢越過了這一分鐘。請在 **診斷** 中用 **匯入此時間範圍** 匯入它。一次匯入讀取的量與一次輪詢相同。
 :::
 
 :::details 測試通過，但沒有匯入任何內容

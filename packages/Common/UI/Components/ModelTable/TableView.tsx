@@ -111,6 +111,26 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
     setCurrentlySelectedView(props.tableView);
   }, [props.tableView]);
 
+  type IsViewInUseFunction = (tableView: TableView) => boolean;
+
+  const isViewInUse: IsViewInUseFunction = (tableView: TableView): boolean => {
+    return Boolean(
+      currentlySelectedView?.id &&
+        tableView.id &&
+        currentlySelectedView.id.toString() === tableView.id.toString(),
+    );
+  };
+
+  /*
+   * The view in use, as the list last read has it. Renaming it from the
+   * menu reads the list again, and the chip shows the new name at once: it
+   * used to show the copy picked from the menu, under its old name, until
+   * the view was picked again (issue #6766).
+   */
+  const viewInUse: TableView | null = currentlySelectedView
+    ? allTableViews.find(isViewInUse) || currentlySelectedView
+    : null;
+
   // load all the filters for this user and for this project.
   const fetchTableViews: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -164,6 +184,15 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
         id: tableViewId,
       });
 
+      /*
+       * The view in use is gone: the table leaves it, as Clear saved view
+       * does, rather than keep naming a view that no longer exists.
+       */
+      if (isViewInUse(tableView)) {
+        setCurrentlySelectedView(null);
+        props.onViewChange?.(null);
+      }
+
       await fetchTableViews();
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Error));
@@ -185,13 +214,25 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
   const getRightElementForTableViewMenuItem: GetRightElementForTableViewMenuItemFunction =
     (item: TableView): ReactElement => {
       return (
-        <div className="flex">
+        /*
+         * Rename and delete sit inside the view's menu item, and a click on
+         * either went on to the item: it applied the view as well. Renaming
+         * a view switched the table to it, and deleting one left the table
+         * on a view that no longer existed. A click here is theirs alone.
+         */
+        <div
+          className="flex"
+          onClick={(event: React.MouseEvent<HTMLDivElement>) => {
+            event.stopPropagation();
+          }}
+        >
           <div className="h-4 w-4 mr-2">
             <Icon
               icon={IconProp.Edit}
               className="text-gray-400 hover:text-gray-600"
               size={SizeProp.Regular}
               thick={ThickProp.Thick}
+              data-testid="table-view-rename"
               onClick={() => {
                 setTableViewToEdit(item);
               }}
@@ -203,6 +244,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
               icon={IconProp.Trash}
               size={SizeProp.Regular}
               thick={ThickProp.Thick}
+              data-testid="table-view-delete"
               onClick={() => {
                 setTableViewToDelete(item);
               }}
@@ -488,12 +530,12 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
       const triggerBase: string =
         "inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium shadow-sm transition-colors";
 
-      if (currentlySelectedView) {
+      if (viewInUse) {
         return (
           <div
             className={`${triggerBase} border-indigo-200 bg-indigo-50 text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100`}
             title={translator.translateTemplate("Saved view: {{name}}", {
-              name: currentlySelectedView.name || "",
+              name: viewInUse.name || "",
             })}
           >
             <Icon
@@ -505,7 +547,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
                 {translator.translateText("View")}
               </span>
               <span className="max-w-[14rem] truncate text-sm font-semibold">
-                {currentlySelectedView.name}
+                {viewInUse.name}
               </span>
             </span>
             <span
@@ -574,7 +616,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
     !isLoading &&
     allTableViews.length === 0 &&
     !hasSavableState &&
-    !currentlySelectedView
+    !viewInUse
   ) {
     return <></>;
   }

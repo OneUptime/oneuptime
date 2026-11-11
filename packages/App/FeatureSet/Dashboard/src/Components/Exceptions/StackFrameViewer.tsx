@@ -90,12 +90,12 @@ const FrameBadge: FunctionComponent<FrameBadgeProps> = (
 
 // --- Original source snippet ---
 
-interface SourceSnippetProps {
+export interface SourceSnippetProps {
   snippet: SourceCodeSnippet;
   fileName: string;
 }
 
-const SourceSnippetBlock: FunctionComponent<SourceSnippetProps> = ({
+export const SourceSnippetBlock: FunctionComponent<SourceSnippetProps> = ({
   snippet,
   fileName,
 }: SourceSnippetProps): ReactElement => {

@@ -1,3 +1,5 @@
+import ProjectMilestoneService from "./ProjectMilestoneService";
+import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import CreateBy from "../Types/Database/CreateBy";
 import IncidentMeasurementValueService from "./IncidentMeasurementValueService";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -59,6 +61,7 @@ import IncidentAlertService from "./IncidentAlertService";
 import ResolvedStateUtil from "../../Utils/ResolvedState";
 import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
+import StateChangeLogScreenshots from "../../Utils/Monitor/StateChangeLogScreenshots";
 import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
 import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import StateMoveCheck from "../Utils/StateMoveCheck";
@@ -153,6 +156,17 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
     createBy: CreateBy<IncidentStateTimeline>,
   ): Promise<OnCreate<IncidentStateTimeline>> {
     await super.onBeforeCreate(createBy);
+
+    /*
+     * The check that caused the change, without a Synthetic monitor's
+     * screenshots: the log is read as JSON text, and they are megabytes a
+     * row. See StateChangeLogScreenshots.
+     */
+    if (createBy.data.stateChangeLog) {
+      createBy.data.stateChangeLog = StateChangeLogScreenshots.leaveOut(
+        createBy.data.stateChangeLog,
+      );
+    }
 
     /*
      * The private note that can come with the change (`privateNote`): what a
@@ -667,6 +681,22 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
       states: incidentStates,
       stateId: createdItem.incidentStateId,
     });
+
+    /*
+     * The project's first incident or alert a person answered (issue
+     * #6830): acknowledged by the rule above, on a row a person made - in
+     * the Dashboard, Slack, Microsoft Teams, or by answering an on-call page
+     * (acknowledgedByUserId). Not a monitor or a workflow moving it.
+     */
+    if (
+      isAcknowledged &&
+      (createdItem.createdByUserId || onCreate.createBy.props.userId)
+    ) {
+      ProjectMilestoneService.reachInBackground({
+        projectId: createdItem.projectId,
+        milestone: ActivationMilestone.FirstIncidentOrAlertAcknowledged,
+      });
+    }
 
     /*
      * This change resolves the incident: it moves the incident's current

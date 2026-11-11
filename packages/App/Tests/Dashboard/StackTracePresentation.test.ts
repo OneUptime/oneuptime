@@ -1,13 +1,17 @@
 import { describe, expect, test } from "@jest/globals";
 import { ResolvedStackFrame } from "Common/Types/Telemetry/SourceMap";
 import {
+  RawStackTraceExcerpt,
   RawStackTraceLine,
+  StackTraceCrashPoint,
   StackTraceDisplayItem,
   StackTraceFrameOrder,
   StackTraceViewMode,
   buildStackTraceDisplayItems,
   formatFrameLocation,
   getFramePackageName,
+  getRawStackTraceExcerpt,
+  getStackTraceCrashPoint,
   getStackTraceHeadline,
   isOutermostFirstStackTrace,
   orderFramesInnermostFirst,
@@ -593,5 +597,234 @@ describe("parseRawStackTraceLines", () => {
 
   test("a blank first line is not treated as the message", () => {
     expect(parseRawStackTraceLines("\nError: later")[0]!.kind).toBe("other");
+  });
+});
+
+/*
+ * The Overview's Where it happened card: the frame the exception was most
+ * likely raised from, and the few frames that called it.
+ */
+describe("getStackTraceCrashPoint", () => {
+  const indexesOf: (point: StackTraceCrashPoint) => Array<number> = (
+    point: StackTraceCrashPoint,
+  ): Array<number> => {
+    return point.callers.map((caller: { originalIndex: number }): number => {
+      return caller.originalIndex;
+    });
+  };
+
+  test("is the first frame of the application's own code, not the runtime frame above it", () => {
+    const point: StackTraceCrashPoint | null = getStackTraceCrashPoint(
+      FRAMES,
+      3,
+    );
+
+    expect(point).not.toBeNull();
+    expect(point!.originalIndex).toBe(1);
+    expect(point!.frame).toBe(FRAMES[1]);
+    expect(point!.frame.functionName).toBe("reserveInventory");
+    expect(point!.isInApp).toBe(true);
+  });
+
+  test("its callers are the application's own frames under it, nearest first, the library frames between left out", () => {
+    const point: StackTraceCrashPoint = getStackTraceCrashPoint(FRAMES, 3)!;
+
+    // The router's frames (2-4) and Node's (0, 6) are not the application's.
+    expect(indexesOf(point)).toEqual([5]);
+    expect(point.callers[0]!.frame).toBe(FRAMES[5]);
+  });
+
+  test("counts every frame, and the application's own", () => {
+    const point: StackTraceCrashPoint = getStackTraceCrashPoint(FRAMES, 3)!;
+
+    expect(point.frameCount).toBe(7);
+    expect(point.appFrameCount).toBe(2);
+  });
+
+  test("shows at most the callers asked for, the nearest ones", () => {
+    const deep: Array<ResolvedStackFrame> = [
+      frame("validate", "/app/a.js", true),
+      frame("parse", "/app/b.js", true),
+      frame("load", "/app/c.js", true),
+      frame("handle", "/app/d.js", true),
+      frame("serve", "/app/e.js", true),
+    ];
+
+    expect(indexesOf(getStackTraceCrashPoint(deep, 3)!)).toEqual([1, 2, 3]);
+    expect(indexesOf(getStackTraceCrashPoint(deep, 1)!)).toEqual([1]);
+    expect(getStackTraceCrashPoint(deep, 0)!.callers).toEqual([]);
+    expect(indexesOf(getStackTraceCrashPoint(deep, 10)!)).toEqual([1, 2, 3, 4]);
+  });
+
+  test("with no frame of the application's own, it is the innermost frame, called from the frames under it whatever code they are", () => {
+    const libraryOnly: Array<ResolvedStackFrame> = [
+      frame("JSON.parse", "<anonymous>", false),
+      frame("readBody", "/app/node_modules/body-parser/read.js", false),
+      frame("next", "/app/node_modules/express/lib/router/index.js", false),
+      frame("handle", "/app/node_modules/express/lib/router/layer.js", false),
+      frame("listOnTimeout", "node:internal/timers", false),
+    ];
+
+    const point: StackTraceCrashPoint = getStackTraceCrashPoint(
+      libraryOnly,
+      3,
+    )!;
+
+    expect(point.originalIndex).toBe(0);
+    expect(point.frame.functionName).toBe("JSON.parse");
+    expect(point.isInApp).toBe(false);
+    expect(indexesOf(point)).toEqual([1, 2, 3]);
+    expect(point.frameCount).toBe(5);
+    expect(point.appFrameCount).toBe(0);
+  });
+
+  test("a crash point in the application's code deep in the trace has no callers when nothing of the application's is under it", () => {
+    const point: StackTraceCrashPoint = getStackTraceCrashPoint(
+      [
+        frame("a", "/lib/a.js", false),
+        frame("b", "/lib/b.js", false),
+        frame("onlyMine", "/app/mine.js", true),
+        frame("c", "/lib/c.js", false),
+      ],
+      3,
+    )!;
+
+    expect(point.originalIndex).toBe(2);
+    expect(point.callers).toEqual([]);
+    expect(point.appFrameCount).toBe(1);
+  });
+
+  test("one frame is its own crash point, with no callers", () => {
+    const only: ResolvedStackFrame = frame("main", "/app/main.js", true);
+    const point: StackTraceCrashPoint = getStackTraceCrashPoint([only], 3)!;
+
+    expect(point.frame).toBe(only);
+    expect(point.callers).toEqual([]);
+    expect(point.frameCount).toBe(1);
+    expect(point.appFrameCount).toBe(1);
+  });
+
+  test("no frames is no crash point", () => {
+    expect(getStackTraceCrashPoint([], 3)).toBeNull();
+  });
+
+  test("leaves the frames it was given alone", () => {
+    const copy: Array<ResolvedStackFrame> = FRAMES.map(
+      (each: ResolvedStackFrame): ResolvedStackFrame => {
+        return { ...each };
+      },
+    );
+
+    getStackTraceCrashPoint(FRAMES, 3);
+
+    expect(FRAMES).toEqual(copy);
+  });
+});
+
+/*
+ * The card's excerpt of a stack trace without structured frames: the part
+ * worth reading first.
+ */
+describe("getRawStackTraceExcerpt", () => {
+  const NODE_TRACE: string = [
+    "TypeError: Cannot read properties of undefined (reading 'sku')",
+    "    at reserveInventory (/app/dist/services/inventory.js:41:17)",
+    "    at handleCheckout (/app/dist/routes/checkout.js:12:5)",
+    "    at Layer.handle (/app/node_modules/express/lib/router/layer.js:95:5)",
+    "    at next (/app/node_modules/express/lib/router/route.js:149:13)",
+    "    at Route.dispatch (/app/node_modules/express/lib/router/route.js:119:3)",
+  ].join("\n");
+
+  test("a short trace is shown whole, nothing hidden", () => {
+    const excerpt: RawStackTraceExcerpt = getRawStackTraceExcerpt(
+      NODE_TRACE,
+      8,
+    );
+
+    expect(excerpt.lines).toEqual(NODE_TRACE.split("\n"));
+    expect(excerpt.hiddenLineCount).toBe(0);
+  });
+
+  test("a trace of exactly as many lines as asked hides none", () => {
+    expect(getRawStackTraceExcerpt(NODE_TRACE, 6)).toEqual({
+      lines: NODE_TRACE.split("\n"),
+      hiddenLineCount: 0,
+    });
+  });
+
+  test("a longer trace shows its first lines, the message and the crash point, and counts the rest", () => {
+    const excerpt: RawStackTraceExcerpt = getRawStackTraceExcerpt(
+      NODE_TRACE,
+      3,
+    );
+
+    expect(excerpt.lines).toEqual([
+      "TypeError: Cannot read properties of undefined (reading 'sku')",
+      "    at reserveInventory (/app/dist/services/inventory.js:41:17)",
+      "    at handleCheckout (/app/dist/routes/checkout.js:12:5)",
+    ]);
+    expect(excerpt.hiddenLineCount).toBe(3);
+  });
+
+  test("a Python traceback, which prints the crash point and the error last, shows its last lines", () => {
+    const python: string = [
+      "Traceback (most recent call last):",
+      '  File "/srv/app/main.py", line 9, in <module>',
+      "    submit(order)",
+      '  File "/srv/app/checkout.py", line 41, in submit',
+      "    reserve(order.sku)",
+      '  File "/srv/app/inventory.py", line 17, in reserve',
+      "    raise ValueError(f'bad sku {sku}')",
+      "ValueError: bad sku 42",
+    ].join("\n");
+
+    const excerpt: RawStackTraceExcerpt = getRawStackTraceExcerpt(python, 3);
+
+    expect(excerpt.lines).toEqual([
+      '  File "/srv/app/inventory.py", line 17, in reserve',
+      "    raise ValueError(f'bad sku {sku}')",
+      "ValueError: bad sku 42",
+    ]);
+    expect(excerpt.hiddenLineCount).toBe(5);
+  });
+
+  test("leaves blank lines out, before it counts, and keeps each line's indent", () => {
+    const excerpt: RawStackTraceExcerpt = getRawStackTraceExcerpt(
+      "\n\nError: boom\n\n   \n    at run (/app/run.js:1:2)\n\t\n    at main (/app/main.js:3:4)\n",
+      2,
+    );
+
+    expect(excerpt.lines).toEqual([
+      "Error: boom",
+      "    at run (/app/run.js:1:2)",
+    ]);
+    expect(excerpt.hiddenLineCount).toBe(1);
+  });
+
+  test("reads Windows line endings without a carriage return left on a line", () => {
+    expect(
+      getRawStackTraceExcerpt(
+        "System.InvalidOperationException: boom\r\n   at Shop.Checkout.Submit() in C:\\src\\Checkout.cs:line 41\r\n",
+        8,
+      ).lines,
+    ).toEqual([
+      "System.InvalidOperationException: boom",
+      "   at Shop.Checkout.Submit() in C:\\src\\Checkout.cs:line 41",
+    ]);
+  });
+
+  test("no trace is no lines", () => {
+    expect(getRawStackTraceExcerpt(undefined, 8)).toEqual({
+      lines: [],
+      hiddenLineCount: 0,
+    });
+    expect(getRawStackTraceExcerpt("", 8)).toEqual({
+      lines: [],
+      hiddenLineCount: 0,
+    });
+    expect(getRawStackTraceExcerpt("\n \n\t", 8)).toEqual({
+      lines: [],
+      hiddenLineCount: 0,
+    });
   });
 });

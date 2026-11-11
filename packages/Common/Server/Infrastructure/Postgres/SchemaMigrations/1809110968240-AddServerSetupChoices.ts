@@ -10,8 +10,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * "Hide" of the card (Types/ServerSetup/ServerSetupChecklist). Nullable:
  * nothing is chosen on a new server.
  */
-export class AddServerSetupChoices1809110500000 implements MigrationInterface {
-  public name: string = "AddServerSetupChoices1809110500000";
+export class AddServerSetupChoices1809110968240 implements MigrationInterface {
+  public name: string = "AddServerSetupChoices1809110968240";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

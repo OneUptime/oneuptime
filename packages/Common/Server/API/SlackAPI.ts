@@ -255,7 +255,12 @@ export default class SlackAPI {
     token: unknown;
     connectRequest: WorkspaceConnectRequestRecord | null;
     userId: ObjectID;
-    projectAuthToken: string | undefined;
+    /*
+     * The project's connection to Slack: its token answers the press, and
+     * for a whole organization's installation it tells which workspace
+     * "Back to Slack" opens the channel in.
+     */
+    projectAuth: WorkspaceProjectAuthToken;
   }): Promise<Dictionary<string>> {
     // Spent once, however many times its sign-in comes back.
     const request: WorkspaceConnectRequestRecord | null = data.connectRequest
@@ -268,6 +273,24 @@ export default class SlackAPI {
       };
     }
 
+    /*
+     * The workspace "Back to Slack" opens the press's channel in. Slack's
+     * press of a whole organization's installation names no workspace for
+     * the channel, so the press kept the person's own when OneUptime did not
+     * know the channel: Slack is asked for the channel's - once, as the
+     * press is spent once - while the press is finished and answered below
+     * (SlackOrganization.getWorkspaceIdToOpenChannelIn, which never throws).
+     * Nobody waits on Slack's three seconds here: the press was answered
+     * when it was made.
+     */
+    const backToTeam: Promise<string | undefined> = request.slack?.channelId
+      ? SlackOrganization.getWorkspaceIdToOpenChannelIn({
+          projectAuth: data.projectAuth,
+          channelId: request.slack.channelId,
+          keptTeamId: request.slack.teamId,
+        })
+      : Promise.resolve(request.slack?.teamId);
+
     const result: WorkspaceConnectCompletionResult =
       await WorkspaceConnectCompletion.complete({
         request: request,
@@ -276,9 +299,9 @@ export default class SlackAPI {
 
     let delivery: SlackAnswerDelivery = SlackAnswerDelivery.None;
 
-    if (data.projectAuthToken) {
+    if (data.projectAuth.authToken) {
       const place: SlackAnswerPlace = {
-        projectAuthToken: data.projectAuthToken,
+        projectAuthToken: data.projectAuth.authToken,
         slackUserId: request.workspaceUserId,
       };
 
@@ -314,20 +337,24 @@ export default class SlackAPI {
 
     /*
      * Where the page's "Back to Slack" goes: the channel the press was in,
-     * or the person's direct messages with the app when they wrote there.
+     * in its workspace (backToTeam), or the person's direct messages with
+     * the app when they wrote there.
      */
     const backTo: string | undefined =
       request.slack?.channelId || request.slack?.directMessageChannelId;
 
+    const team: string | undefined = await backToTeam;
+
     if (
       backTo &&
+      team &&
       ConnectCallbackUtil.getSlackChannelLink({
         channel: backTo,
-        team: request.slack?.teamId,
+        team: team,
       })
     ) {
       params[CONNECT_REQUEST_SLACK_CHANNEL_QUERY_PARAM] = backTo;
-      params[CONNECT_REQUEST_SLACK_TEAM_QUERY_PARAM] = request.slack!.teamId!;
+      params[CONNECT_REQUEST_SLACK_TEAM_QUERY_PARAM] = team;
     }
 
     return params;
@@ -1085,7 +1112,7 @@ export default class SlackAPI {
               token: connectToken,
               connectRequest: connectRequest,
               userId: record.userId,
-              projectAuthToken: projectAuth.authToken,
+              projectAuth: projectAuth,
             }),
           );
         },
@@ -2469,6 +2496,23 @@ export default class SlackAPI {
           "Slack did not list the workspaces of an organization's installation yet.",
         );
         logger.debug(err);
+      }
+
+      /*
+       * The default until another is chosen with Make default: the first
+       * workspace by name, stored, so that adding OneUptime to a workspace
+       * that comes first by name later does not move it. Installed again,
+       * or moved up from one of the organization's workspaces, the default
+       * kept takes its place below. Not listed yet, it is stored when they
+       * are (SlackOrganization.getOfConnection).
+       */
+      const firstWorkspaceId: string | undefined =
+        SlackOrganization.pickDefaultWorkspaceId({
+          workspaces: miscData.workspaces || [],
+        });
+
+      if (firstWorkspaceId) {
+        miscData.defaultWorkspaceId = firstWorkspaceId;
       }
     }
 

@@ -312,6 +312,8 @@
       "dataResidencyFieldDescription": "Un libellé indiquant où les données de ce projet sont hébergées, par exemple \"UE (Francfort)\". Laissez vide pour la masquer aux utilisateurs du projet.",
       "dataResidencyFieldPlaceholder": "UE (Francfort)",
       "dataResidencyNotSet": "Non définie",
+      "milestonesCardTitle": "Progression de la configuration",
+      "milestonesCardDescription": "Ce que ce projet a fait depuis sa création et où il est bloqué. Lu à partir des propres données de ce serveur ; rien n'est envoyé nulle part.",
       "ingestionBudgets": {
         "dailyCardTitle": "Budgets quotidiens de ce projet",
         "dailyCardDescription": "Le budget quotidien propre à ce projet pour chaque signal, à la place de la valeur par défaut de l'instance. Laissez un signal vide pour la valeur par défaut de l'instance, ou saisissez 0 pour n'avoir aucune limite. Les administrateurs du projet les voient mais ne peuvent pas les modifier.",

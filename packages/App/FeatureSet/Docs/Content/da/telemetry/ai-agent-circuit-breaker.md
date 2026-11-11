@@ -193,7 +193,7 @@ Titlen er tom eller matcher ikke. Et felt, der ikke står i udløserens **Fields
 :::
 
 :::details Dit endpoint svarer 401
-Headeren `Authorization` matcher ikke det token, dit endpoint forventer. Tjek navnet i `{{global.variables.AGENT_KILL_TOKEN}}` og værdien, der er gemt i den globale variabel. En hemmelig variabels værdi kan ikke læses tilbage, så skriv den igen med **Update Content**, hvis du er i tvivl.
+Headeren `Authorization` matcher ikke det token, dit endpoint forventer. Tjek navnet i `{{global.variables.AGENT_KILL_TOKEN}}` og værdien, der er gemt i den globale variabel. En hemmelig variabels værdi kan ikke læses tilbage, så skriv den igen med **Opdater indhold**, hvis du er i tvivl.
 :::
 
 :::details Budgetadvarslen åbner og lukker igen og igen

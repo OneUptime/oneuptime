@@ -236,7 +236,7 @@ En AWS-konto, et Google Cloud-prosjekt eller et Azure-abonnement som er [koblet 
 | Microsoft Entra ID | Pålogginger, katalogendringer og risikoregistreringer, om du vil mislykkede bakgrunns- og apppålogginger, og fra Microsoft 365-revisjonsloggen videresending av e-post, deling og phishingdommer | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Pålogginger, Googles egne funn, administratorendringer og apptilgang, og deling i Disk | [Google Workspace](/docs/integrations/google-workspace) |
 
-- Produktets egne varsler på eller over **Open Cases From** (**Høy og høyere** med mindre du velger et annet nivå, eller **Aldri**) åpner [saker](/docs/telemetry/security-cases), gruppert etter brukeren, verten eller adressen de gjelder.
+- Produktets egne varsler på eller over **Åpne saker fra** (**Høy og høyere** med mindre du velger et annet nivå, eller **Aldri**) åpner [saker](/docs/telemetry/security-cases), gruppert etter brukeren, verten eller adressen de gjelder.
 - En tilkobling leser poster etter tidspunktet produktet opprettet dem, ikke etter tidspunktet for aktiviteten de beskriver. En SIEM-regel som kjører hver time, oppretter deteksjoner lenge etter hendelsene den traff, og de importeres likevel.
 - Den første hentingen ser 24 timer tilbake, så en ny tilkobling viser nylige poster med en gang.
 - **Test tilkoblingen**, i tilkoblingens rad, sjekker tilgangen til produktet og at OneUptimes egne workers kjører, og importerer ingenting. **Kjør nå** henter med en gang.
@@ -283,7 +283,7 @@ Et felt er enten et kort navn (`severity`, `class`, `category`, `activity`, `sta
 
 ### Fasetter
 
-Sidepanelet teller vinduets hendelser etter **Kilde**, **Alvorlighetsgrad**, **Request Outcome**, **Hendelsesklasse**, **Kategori**, **Aktivitet**, **Status**, **Leverandør**, **Produkt**, **Deteksjonsregel**, **Kildebruker**, **Kildevert**, **Prosess** og **Overordnet prosess**. Klikk på en verdi for å beholde bare hendelsene med den, eller på minustegnet ved siden av for å utelate dem. Klikk igjen for å angre. Diagrammet og hver telling beskriver nøyaktig hendelsene i listen.
+Sidepanelet teller vinduets hendelser etter **Kilde**, **Alvorlighetsgrad**, **Resultat av forespørsel**, **Hendelsesklasse**, **Kategori**, **Aktivitet**, **Status**, **Leverandør**, **Produkt**, **Deteksjonsregel**, **Kildebruker**, **Kildevert**, **Prosess** og **Overordnet prosess**. Klikk på en verdi for å beholde bare hendelsene med den, eller på minustegnet ved siden av for å utelate dem. Klikk igjen for å angre. Diagrammet og hver telling beskriver nøyaktig hendelsene i listen.
 
 ### Hva som skjedde etterpå
 

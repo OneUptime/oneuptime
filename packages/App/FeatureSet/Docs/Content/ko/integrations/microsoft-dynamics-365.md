@@ -258,7 +258,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 모든 워크플로에서 쓸 토큰을 [OAuth 2.0 변수](/docs/workflows/variables#oauth-20-변수스스로-갱신되는-토큰)로 한 번만 만듭니다:
 
-1. **워크플로 → 전역 변수**로 이동해 **워크플로 변수 만들기** 옆의 **더보기** 메뉴(**⋯**)를 열고 **Create OAuth 2.0 Variable**을 고릅니다. 이름을 `DYNAMICS_TOKEN`으로 정합니다.
+1. **워크플로 → 전역 변수**로 이동해 **워크플로 변수 만들기** 옆의 **더보기** 메뉴(**⋯**)를 열고 **OAuth 2.0 변수 만들기**을 고릅니다. 이름을 `DYNAMICS_TOKEN`으로 정합니다.
 2. **공급자**에서 **Microsoft Entra ID**를 고르고, **토큰 URL**의 `{tenant-id}`를 Directory (tenant) ID로 바꾼 다음 **Client Credentials**를 고릅니다.
 3. **자격 증명**에서 **클라이언트 ID**와 **클라이언트 시크릿**을 입력합니다. **고급**에서 범위를 `https://yourorg.crm.dynamics.com/.default`로 설정한 다음 변수를 만듭니다.
 

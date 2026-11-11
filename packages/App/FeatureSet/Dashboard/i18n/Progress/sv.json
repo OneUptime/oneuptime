@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50316,
-    "untranslated": 10121
+    "keys": 50430,
+    "untranslated": 9728
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -87,6 +87,7 @@
     "Finland (+358)",
     "Flavor",
     "Flavors",
+    "Fluent Bit",
     "Format",
     "Frustration",
     "Gateway",
@@ -94,11 +95,13 @@
     "Global",
     "Golden Signals",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "H1",
     "HA: {{state}}",
     "HAProxy",
     "HTTP {{status}}",
+    "Hash",
     "Hello world",
     "Hertz",
     "Histogram",
@@ -145,6 +148,7 @@
     "MTU",
     "Managers",
     "Markdown",
+    "Mask",
     "Max",
     "Maximum",
     "Median (P50)",
@@ -265,6 +269,7 @@
     "TTL",
     "TX",
     "Team",
+    "Team {{name}}",
     "Tenancy",
     "Text",
     "Token",

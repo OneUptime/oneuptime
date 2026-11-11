@@ -578,6 +578,13 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       channelIds: [],
       messageBlocks: messageBlocks,
       workspaceType: summary.workspaceType!,
+      /*
+       * The team its channels are in: a Microsoft Teams team's name, or a
+       * Mattermost team's id. Mattermost looks for the channels only in
+       * the team named, and for none in the default team first, then in
+       * the bot's other teams; a team that is not a Mattermost id names
+       * none (MattermostUtil.findChannelByName).
+       */
       teamId: summary.teamName || undefined,
     };
 

@@ -312,6 +312,8 @@
       "dataResidencyFieldDescription": "A label for where this project's data is hosted, for example \"EU (Frankfurt)\". Leave it blank to hide it from the project's users.",
       "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
       "dataResidencyNotSet": "Not set",
+      "milestonesCardTitle": "Setup Progress",
+      "milestonesCardDescription": "What this project has done since it was created, and where it is stuck. Read from this server's own data; nothing is sent anywhere.",
       "ingestionBudgets": {
         "dailyCardTitle": "Daily Budgets for This Project",
         "dailyCardDescription": "This project's own daily budget for each signal, in place of the instance default. Leave a signal empty for the instance default, or enter 0 for no limit. The project's admins see these but cannot change them.",
