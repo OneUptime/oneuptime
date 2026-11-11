@@ -4,6 +4,11 @@ import {
   getVisitorLanguage,
   toSupportedLanguage,
 } from "../../Types/ReaderLanguage";
+import {
+  CODE_READS_AS_WRITTEN_POST_PROCESSOR,
+  codeReadsAsWrittenPostProcessor,
+  leaveIsolatesOutOfCopiedText,
+} from "./CodeReadsAsWritten";
 
 /*
  * THE WORDS A PAGE'S VISITOR READS, IN THE BROWSER'S LANGUAGE.
@@ -63,8 +68,13 @@ export const startVisitorTranslation: (locales: VisitorLocales) => string = (
     resources[code] = { translation: locales[code] || {} };
   }
 
-  void i18n.use(initReactI18next).init({
-    lng: language,
+  void i18n
+    .use(initReactI18next)
+    .use(codeReadsAsWrittenPostProcessor)
+    .init({
+      // Code in an Arabic or Persian sentence drawn as it is written.
+      postProcess: [CODE_READS_AS_WRITTEN_POST_PROCESSOR],
+      lng: language,
     fallbackLng: "en",
     supportedLngs: supportedLanguages,
     resources: resources,
@@ -74,6 +84,9 @@ export const startVisitorTranslation: (locales: VisitorLocales) => string = (
       escapeValue: false,
     },
   });
+
+  // Code copied from a sentence pastes without the marks that set it apart.
+  leaveIsolatesOutOfCopiedText();
 
   return language;
 };
