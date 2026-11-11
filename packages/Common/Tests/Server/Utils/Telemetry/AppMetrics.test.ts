@@ -126,6 +126,13 @@ const CATALOG: Array<Instrument> = [
     unit: "ms",
   },
   {
+    getter: "getNotificationSendLag",
+    factory: "getHistogram",
+    kind: "histogram",
+    name: "notification.send.lag",
+    unit: "ms",
+  },
+  {
     getter: "getNotificationDeliveryCounter",
     factory: "getCounter",
     kind: "counter",
@@ -411,6 +418,57 @@ describe("AppMetrics catalog", () => {
         }
       ).NOTIFICATION_DELIVERY_DURATION_BUCKETS_IN_MS,
     ]).toEqual(buckets);
+  });
+
+  test("the send lag histogram's edges sit close around a minute, and reach an hour", async () => {
+    /*
+     * notification.send.lag (issue #6646): the workers that send what a
+     * wait made due run once a minute, so one that keeps up sends within a
+     * minute or so of the moment - an SLO of "within 90 seconds" has an
+     * edge to be read off - and one that fell behind shows by how many
+     * minutes, up to an hour.
+     */
+    const { Telemetry, AppMetrics } = await loadFresh();
+
+    AppMetrics["getNotificationSendLag"]!();
+
+    const options: {
+      name: string;
+      description: string;
+      explicitBucketBoundaries?: Array<number>;
+    } = Telemetry.getHistogram.mock.calls[0]![0] as {
+      name: string;
+      description: string;
+      explicitBucketBoundaries?: Array<number>;
+    };
+
+    expect(options.name).toBe("notification.send.lag");
+
+    const buckets: Array<number> = options.explicitBucketBoundaries || [];
+
+    expect(buckets).toEqual([
+      1000, 5000, 10000, 15000, 30000, 45000, 60000, 75000, 90000, 120000,
+      180000, 300000, 600000, 1800000, 3600000,
+    ]);
+
+    for (let i: number = 1; i < buckets.length; i++) {
+      expect(buckets[i]!).toBeGreaterThan(buckets[i - 1]!);
+    }
+
+    // The catalog's own copy, which the histogram is made from.
+    expect([
+      ...(
+        AppMetrics as unknown as {
+          NOTIFICATION_SEND_LAG_BUCKETS_IN_MS: ReadonlyArray<number>;
+        }
+      ).NOTIFICATION_SEND_LAG_BUCKETS_IN_MS,
+    ]).toEqual(buckets);
+
+    // It says what it times, and how it is told apart.
+    expect(options.description).toContain("was due");
+    expect(options.description).toContain(
+      "Partitioned by channel, schedule and trigger type",
+    );
   });
 
   test("the final status metrics say what they count", async () => {

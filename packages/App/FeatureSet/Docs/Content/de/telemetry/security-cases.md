@@ -49,7 +49,7 @@ Jedes dieser Rechte lässt sich auch einzeln vergeben, vom Erstellen eines Falls
 | --- | --- | --- |
 | Erkennungsregeln | Eine Regel passt | **Bei Treffer einen Fall eröffnen**, im Schritt **Bei Treffer** der Regel |
 | Threat Intelligence | Ein Ereignis einen bekannten Indikator nennt | **Bei Treffer einen Fall eröffnen**, im Schritt **Bei Treffer** des Feeds |
-| Verbundene Produkte | Eine eigene Warnung des Produkts auf oder über dem Schwellenwert der Verbindung importiert wird | **Open Cases From** auf **Nie** gesetzt, im Schritt **Abfrage** der Verbindung |
+| Verbundene Produkte | Eine eigene Warnung des Produkts auf oder über dem Schwellenwert der Verbindung importiert wird | **Fälle eröffnen ab** auf **Nie** gesetzt, im Schritt **Abfrage** der Verbindung |
 | Sicherheitsprodukte in Ihren Logs | Eine Bedrohung, die eine Firewall, ein IDS oder ein Endpunktprodukt in Ihre Logs schreibt, auf oder über dem Schwellenwert der Karte Ihre Protokolle liegt | **Fälle eröffnen ab** auf **Nie** gesetzt, auf **Ihre Protokolle** |
 | Entitätsrisiko | Das Risiko eines Benutzers, Hosts oder einer Adresse den Schwellenwert des Projekts erreicht | **Risikofälle** unter **Einstellungen → Risikobewertung** |
 | Personen | Jemand einen unter **Sicherheitsfälle** eröffnet, oder mit **Fall eröffnen** im Panel eines Ereignisses | Nicht abschaltbar |

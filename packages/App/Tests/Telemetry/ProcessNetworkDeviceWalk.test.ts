@@ -444,3 +444,99 @@ describe("processNetworkDeviceWalkFromQueue", () => {
     });
   });
 });
+
+/*
+ * WHEN ONEUPTIME RECEIVED THE POLL (dataReceivedAt, issue #6647): the route
+ * queues the moment it received a poll as the job's ingestionTimestamp, and
+ * the worker hands it on - read back from the queue as text, never after
+ * now - for every monitor the poll reaches to evaluate it as received then.
+ * The probe's monitoredAt stays its own clock.
+ */
+describe("processNetworkDeviceWalkFromQueue: when OneUptime received the poll", () => {
+  const RECEIVED_AT: Date = new Date("2026-11-10T09:29:20.000Z");
+  const PROBES_CLOCK: string = "2026-11-10T09:29:18.000Z";
+
+  // A job as the worker reads it back from the queue: its moments as text.
+  function fromQueue(
+    receivedAt: unknown,
+    body: JSONObject,
+  ): ProbeIngestJobData {
+    return JSON.parse(
+      JSON.stringify({
+        jobType: "network-device-walk",
+        ingestionTimestamp: receivedAt,
+        networkDeviceWalk: body,
+      }),
+    ) as ProbeIngestJobData;
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    walkUtil.processWalkResult.mockResolvedValue(undefined as never);
+  });
+
+  test("the walk is handed on with the moment the ingest API received it - beside the probe's own clock", async () => {
+    await processNetworkDeviceWalkFromQueue(
+      fromQueue(RECEIVED_AT, makeWalkBody({ monitoredAt: PROBES_CLOCK })),
+    );
+
+    const args: JSONObject = processedArgs();
+
+    expect(args["dataReceivedAt"]).toBeInstanceOf(Date);
+    expect(args["dataReceivedAt"]).toEqual(RECEIVED_AT);
+    expect(args["monitoredAt"]).toEqual(new Date(PROBES_CLOCK));
+  });
+
+  test("a ping's verdict with no walk too", async () => {
+    await processNetworkDeviceWalkFromQueue(
+      fromQueue(RECEIVED_AT, {
+        probeId: probeId.toString(),
+        networkDeviceId: networkDeviceId.toString(),
+        isOnline: false,
+        pollMode: "ping",
+      }),
+    );
+
+    expect(processedArgs()["dataReceivedAt"]).toEqual(RECEIVED_AT);
+  });
+
+  test("a body that says when it was received is not believed", async () => {
+    await processNetworkDeviceWalkFromQueue(
+      fromQueue(
+        RECEIVED_AT,
+        makeWalkBody({ dataReceivedAt: "2020-01-01T00:00:00.000Z" }),
+      ),
+    );
+
+    expect(processedArgs()["dataReceivedAt"]).toEqual(RECEIVED_AT);
+  });
+
+  test.each([
+    ["no stamp", undefined],
+    ["a stamp that is no moment", "soon"],
+  ])(
+    "a job with %s: none, and the page is timed as before",
+    async (_what: string, receivedAt: unknown) => {
+      await processNetworkDeviceWalkFromQueue(
+        fromQueue(receivedAt, makeWalkBody()),
+      );
+
+      expect(processedArgs()["dataReceivedAt"]).toBeUndefined();
+    },
+  );
+
+  test("a stamp after now - the ingest server's clock ahead of the worker's - is now", async () => {
+    const before: number = Date.now();
+
+    await processNetworkDeviceWalkFromQueue(
+      fromQueue(new Date(Date.now() + 60 * 60 * 1000), makeWalkBody()),
+    );
+
+    const stamped: number = (
+      processedArgs()["dataReceivedAt"] as Date
+    ).getTime();
+
+    expect(stamped).toBeGreaterThanOrEqual(before);
+    expect(stamped).toBeLessThanOrEqual(Date.now());
+  });
+});

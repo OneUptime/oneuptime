@@ -114,7 +114,7 @@ GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/provide
 - **De aanmaaktijd is de cursor.** Een geplande analyseregel die elk uur draait, opent zijn incident lang na de activiteit die hij opmerkte, en de `firstActivityTimeUtc` van het incident kan uren of dagen eerder liggen. Een cursor op activiteitstijd zou elk zo'n incident overslaan. De activiteitstijden blijven in `attributes`, en de voorbeelden in de diagnose tonen beide.
 - **De eerste poll kijkt 24 uur terug**, zodat een nieuwe verbinding meteen haar recente incidenten toont.
 - **Elke volgende poll begint 1 minuut voor de opgeslagen cursor**, zodat een incident dat op de grens van twee vensters is gemaakt nooit wordt overgeslagen.
-- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Gezondheid** toont **Catching up**.
+- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Gezondheid** toont **Bezig met inhalen**.
 - **Duplicaten worden verwijderd op de GUID van het incident** (`name`) binnen het project, zodat de overlap, een herhaald venster en een import een incident nooit twee keer opslaan.
 
 ### Wanneer een venster meer bevat dan één poll kan lezen

@@ -49,7 +49,7 @@ Cada uno de estos permisos también se puede conceder por separado, desde crear 
 | --- | --- | --- |
 | Reglas de detección | Una regla coincide | **Abrir un caso al coincidir**, en el paso **Al coincidir** de la regla |
 | Inteligencia de amenazas | Un evento nombra un indicador conocido | **Abrir un caso al coincidir**, en el paso **Al coincidir** del feed |
-| Productos conectados | Se importa una alerta propia del producto con un nivel igual o superior al umbral de la conexión | **Open Cases From** con el valor **Nunca**, en el paso **Sondeo** de la conexión |
+| Productos conectados | Se importa una alerta propia del producto con un nivel igual o superior al umbral de la conexión | **Abrir casos desde** con el valor **Nunca**, en el paso **Sondeo** de la conexión |
 | Productos de seguridad en tus registros | Una amenaza que un firewall, un IDS o un producto de endpoints escribe en tus registros alcanza o supera el umbral de Tus registros | **Abrir casos a partir de** con el valor **Nunca**, en **Tus registros** |
 | Riesgo de entidades | El riesgo de un usuario, host o dirección alcanza el umbral del proyecto | **Casos de riesgo**, en **Ajustes → Puntuación de riesgo** |
 | Personas | Alguien abre uno desde **Casos de seguridad**, o con **Abrir caso** en el panel de un evento | No se puede desactivar |

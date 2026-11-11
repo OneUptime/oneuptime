@@ -101,7 +101,7 @@ POST {Splunk management URL}/services/search/v2/jobs/export
 - **De aanmaaktijd is de cursor.** Het venster gaat over `_time`, wat voor een notable event het moment is waarop de correlatiezoekopdracht het maakte, niet wanneer de gevonden activiteit plaatsvond. Een zoekopdracht die elk uur draait, dateert haar notable events op het tijdstip van haar run, dus er valt er geen achter de cursor.
 - **De eerste poll kijkt 24 uur terug**, zodat een nieuwe verbinding meteen haar recente notable events toont.
 - **Elke volgende poll begint 1 minuut voor de opgeslagen cursor**, zodat een rij die op de grens van twee vensters is gemaakt nooit wordt gemist.
-- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Gezondheid** toont **Catching up**.
+- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Gezondheid** toont **Bezig met inhalen**.
 - **Duplicaten worden verwijderd op `event_id`**, of op de eigen `_bkt` en `_cd` van Splunk, binnen het project, zodat de overlap, een herhaald venster en een import een rij nooit twee keer opslaan.
 
 Een search head van vóór 9.0.1 antwoordt `404` op het verzoek aan `search/v2/jobs/export`. OneUptime stuurt het dan naar het verouderde `search/jobs/export`, en de run zegt dat in een waarschuwing. Werk de search head bij: huidige versies schakelen dat endpoint uit.

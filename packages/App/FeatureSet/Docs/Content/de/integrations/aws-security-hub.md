@@ -114,7 +114,7 @@ POST https://securityhub.{region}.amazonaws.com/findings
 - **Die Erstellungszeit ist der Cursor.** Findings werden nach `CreatedAt` gelistet, nie nach `FirstObservedAt`. GuardDuty erstellt ein Finding, sobald es genug Aktivität gesehen hat, und eine Kontrollprüfung, wenn Security Hub die Ressource zum ersten Mal prüft, Stunden oder Tage nach Beginn der Aktivität. Ein Cursor über die Beobachtungszeit würde sie überspringen.
 - **Die erste Abfrage blickt 24 Stunden zurück**, sodass eine neue Verbindung ihre jüngsten Findings sofort zeigt.
 - **Jede spätere Abfrage beginnt 30 Minuten vor dem gespeicherten Cursor.** `CreatedAt` setzt der Dienst, der das Problem gefunden hat, und das Finding erreicht Security Hub später: GuardDuty sendet neue Findings innerhalb von fünf Minuten, und eine fehlgeschlagene Zustellung über EventBridge wird bis zu 24 Stunden lang wiederholt. Die Überlappung liest solche Findings bei der nächsten Abfrage. Eines, das mehr als 30 Minuten nach seinem `CreatedAt` ankommt, kann hinter den Cursor fallen: Importieren Sie seinen Zeitraum, um es zurückzuholen.
-- **Eine Abfrage liest höchstens 24 Stunden über den Cursor hinaus.** Eine Verbindung, deren Cursor zurückliegt, holt in einer Reihe von 24-Stunden-Fenstern auf, und ihre **Integrität** zeigt **Catching up**.
+- **Eine Abfrage liest höchstens 24 Stunden über den Cursor hinaus.** Eine Verbindung, deren Cursor zurückliegt, holt in einer Reihe von 24-Stunden-Fenstern auf, und ihre **Integrität** zeigt **Holt auf**.
 - **Duplikate werden nach `Id` des Findings verworfen**, innerhalb des Projekts, sodass die Überlappung, ein wiederholtes Zeitfenster und ein Import nie ein Finding doppelt speichern.
 
 ### Wenn ein Zeitfenster mehr enthält, als eine Abfrage lesen kann

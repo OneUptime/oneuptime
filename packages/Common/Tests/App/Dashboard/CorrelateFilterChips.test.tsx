@@ -574,7 +574,11 @@ describe("CorrelateFilterChips field and operator translation", () => {
     "is not": "ist nicht",
     Message: "Nachricht",
     contains: "enthält",
-    // A value that happens to match a key must still not be translated.
+    /*
+     * A severity is picked from the builder's list, which shows it in the
+     * reader's words; a typed value that happens to match a key is never
+     * translated.
+     */
     High: "Hoch",
     "wb-ubuntu-03": "übersetzt",
     "failed password": "falsches Passwort",
@@ -592,7 +596,7 @@ describe("CorrelateFilterChips field and operator translation", () => {
 
     const expectations: Array<[string, string, string]> = [
       ["Hauptrechner", "ist", "wb-ubuntu-03"],
-      ["Schweregrad", "ist nicht", OcsfSeverity.High],
+      ["Schweregrad", "ist nicht", "Hoch"],
       ["Nachricht", "enthält", "failed password"],
     ];
 
@@ -637,20 +641,44 @@ describe("CorrelateFilterChips field and operator translation", () => {
     );
   });
 
-  test("never translates the condition values or their titles", () => {
+  test("never translates a typed value or its title", () => {
     applyGermanLabels();
     renderChips([hostCondition, severityCondition, messageCondition]);
 
     expect(mockTranslationKeys).not.toContain("wb-ubuntu-03");
-    expect(mockTranslationKeys).not.toContain("High");
     expect(mockTranslationKeys).not.toContain("failed password");
     expect(valueSpan(0)).toHaveTextContent(/^wb-ubuntu-03$/);
     expect(valueSpan(0)).toHaveAttribute("title", "wb-ubuntu-03");
-    expect(valueSpan(1)).toHaveTextContent(/^High$/);
     expect(valueSpan(2)).toHaveAttribute("title", "failed password");
-    expect(screen.queryByText("Hoch")).toBeNull();
     expect(screen.queryByText("übersetzt")).toBeNull();
     expect(screen.queryByText("falsches Passwort")).toBeNull();
+  });
+
+  /*
+   * The builder's value dropdown shows a severity in the reader's words
+   * ("Hoch"): the chip above it says the same, not "Schweregrad ist High".
+   */
+  test("shows a value picked from the field's list as the builder's list does", () => {
+    applyGermanLabels();
+    renderChips([severityCondition]);
+
+    expect(mockTranslationKeys).toContain("High");
+    expect(valueSpan(0)).toHaveTextContent(/^Hoch$/);
+    expect(valueSpan(0)).toHaveAttribute("title", "Hoch");
+  });
+
+  test("a typed value on a field without a list is shown as typed, even a severity's word", () => {
+    applyGermanLabels();
+    renderChips([
+      {
+        field: CorrelationFieldKey.Message,
+        operator: CorrelationOperator.Equals,
+        value: OcsfSeverity.High,
+      },
+    ]);
+
+    expect(valueSpan(0)).toHaveTextContent(/^High$/);
+    expect(screen.queryByText("Hoch")).toBeNull();
   });
 
   test("keeps AND/OR literal while the labels around them translate", () => {
@@ -668,7 +696,7 @@ describe("CorrelateFilterChips field and operator translation", () => {
       /^Hauptrechner ist wb-ubuntu-03$/,
     );
     expect(screen.getByTestId("correlate-filter-chip-1")).toHaveTextContent(
-      /^Schweregrad ist nicht High$/,
+      /^Schweregrad ist nicht Hoch$/,
     );
   });
 
@@ -738,7 +766,7 @@ describe("CorrelateFilterChips field and operator translation", () => {
     const locale: Record<string, string> = readFlatLocale("de");
     const expected: Array<string> = [
       `${locale["Observable"]} ${locale["is"]} 10.0.0.5`,
-      `${locale["Severity"]} ${locale["is"]} High`,
+      `${locale["Severity"]} ${locale["is"]} ${locale["High"]}`,
       `${locale["Message"]} ${locale["contains"]} failed password`,
       `${locale["Rule Name"]} ${locale["starts with"]} ssh`,
     ];
@@ -752,6 +780,7 @@ describe("CorrelateFilterChips field and operator translation", () => {
     // Sanity: the locale really differs from English for these words.
     expect(locale["Severity"]).not.toBe("Severity");
     expect(locale["contains"]).not.toBe("contains");
+    expect(locale["High"]).not.toBe("High");
   });
 });
 

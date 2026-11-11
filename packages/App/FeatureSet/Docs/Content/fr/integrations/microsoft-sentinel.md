@@ -114,7 +114,7 @@ GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/provide
 - **L'heure de création est le curseur.** Une règle d'analyse planifiée qui s'exécute toutes les heures ouvre son incident longtemps après l'activité qu'elle a repérée, et le `firstActivityTimeUtc` de l'incident peut être plus ancien de plusieurs heures ou jours. Un curseur sur l'heure d'activité sauterait chacun de ces incidents. Les heures d'activité restent dans `attributes`, et les exemples des diagnostics montrent les deux.
 - **La première interrogation remonte 24 heures en arrière**, pour qu'une nouvelle connexion montre tout de suite ses incidents récents.
 - **Chaque interrogation suivante commence 1 minute avant le curseur enregistré**, pour qu'un incident créé à la frontière entre deux fenêtres ne soit jamais sauté.
-- **Une interrogation lit au plus 24 heures au-delà du curseur.** Une connexion dont le curseur a pris du retard le rattrape en une suite de fenêtres de 24 heures, et sa **Santé** indique **Catching up**.
+- **Une interrogation lit au plus 24 heures au-delà du curseur.** Une connexion dont le curseur a pris du retard le rattrape en une suite de fenêtres de 24 heures, et sa **Santé** indique **Rattrapage en cours**.
 - **Les doublons sont écartés par le GUID de l'incident** (`name`) au sein du projet, pour que le chevauchement, une fenêtre relue et une importation ne stockent jamais un incident deux fois.
 
 ### Quand une fenêtre contient plus qu'une interrogation ne peut lire
@@ -155,7 +155,7 @@ Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récente
 | **Read incidents** | Un incident créé dans les 24 dernières heures peut être lu (`$top=1`). Cela prouve le rôle et les détails de l'espace de travail. |
 | **Incidents available to import** | Combien d'incidents ont été créés dans les 24 dernières heures et les 7 derniers jours, une page de 50 pour chacun, `50+` signifie donc davantage. Aucun en 7 jours est un avertissement, pas un échec. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Le côté de OneUptime lui-même : un processus prend les tâches de la file Worker, la tâche d'interrogation s'exécute chaque minute, et le stockage des événements de sécurité répond. |
-| **Scheduled polling** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
+| **Interrogation planifiée** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
 
 Chaque requête d'un test a un délai de 20 secondes. Un test n'importe jamais rien et ne déplace jamais le curseur, et chaque vérification en échec dit ce qu'il faut changer.
 

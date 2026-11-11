@@ -591,3 +591,293 @@ describe("a kept page start, written and read back", () => {
     expect(OnCallPageTiming.fromCacheValue(value)).toBeNull();
   });
 });
+
+/*
+ * WHEN THE INGEST API RECEIVED A SERVER'S REPORT, AN EMAIL, A PROBE'S
+ * REPORT (dataReceivedAt, issue #6647).
+ *
+ * Each is stamped as OneUptime's ingest API takes it, before the queue it
+ * waits in to be evaluated, and carried on the data the monitor evaluates:
+ * a page it starts is timed from then, so a queue that fell behind shows.
+ * A check of absence is timed from the record's creation as before - its
+ * own moment is the last report's, long before what it found.
+ */
+describe("when OneUptime received a server's report, an email, a probe's report", () => {
+  const RECEIVED_AT: Date = new Date("2026-11-10T09:29:20.000Z");
+  const AGENT_CLOCK: Date = new Date("2026-11-10T09:00:00.000Z");
+
+  test.each([
+    [
+      "a server agent's report",
+      {
+        requestReceivedAt: AGENT_CLOCK,
+        hostname: "web-1",
+        dataReceivedAt: RECEIVED_AT,
+      },
+    ],
+    [
+      "an incoming email",
+      {
+        emailReceivedAt: AGENT_CLOCK,
+        emailSubject: "Backup failed",
+        dataReceivedAt: RECEIVED_AT,
+      },
+    ],
+    [
+      "a probe's check, not the probe's own clock",
+      { monitoredAt: AGENT_CLOCK, probeId: "p", dataReceivedAt: RECEIVED_AT },
+    ],
+    [
+      "an SNMP trap a probe forwarded",
+      {
+        monitoredAt: AGENT_CLOCK,
+        snmpTrapResponse: { trapOid: "1.3.6.1" },
+        dataReceivedAt: RECEIVED_AT,
+      },
+    ],
+    [
+      "a network device's poll",
+      {
+        monitoredAt: AGENT_CLOCK,
+        networkDeviceWalkResponse: {},
+        dataReceivedAt: RECEIVED_AT,
+      },
+    ],
+  ])(
+    "%s: when the ingest API received it",
+    (_what: string, data: Record<string, unknown>) => {
+      expect(OnCallPageTiming.getMonitorDataReceivedAt(data)).toEqual(
+        RECEIVED_AT,
+      );
+    },
+  );
+
+  test("read back from a queue, its time as text: the same", () => {
+    expect(
+      OnCallPageTiming.getMonitorDataReceivedAt({
+        hostname: "web-1",
+        dataReceivedAt: RECEIVED_AT.toISOString(),
+      }),
+    ).toEqual(RECEIVED_AT);
+  });
+
+  test.each([
+    [
+      "a server monitor's check that no report came",
+      {
+        requestReceivedAt: AGENT_CLOCK,
+        onlyCheckRequestReceivedAt: true,
+        dataReceivedAt: RECEIVED_AT,
+      },
+    ],
+    [
+      "an incoming email monitor's check that no email came",
+      {
+        emailReceivedAt: AGENT_CLOCK,
+        onlyCheckForIncomingEmailReceivedAt: true,
+        dataReceivedAt: RECEIVED_AT,
+      },
+    ],
+    [
+      "the heartbeat's check that no request came, whatever else it carries",
+      {
+        incomingRequestReceivedAt: AGENT_CLOCK,
+        onlyCheckForIncomingRequestReceivedAt: true,
+        dataReceivedAt: RECEIVED_AT,
+      },
+    ],
+  ])(
+    "%s: none - its time is the last one's, long before",
+    (_what: string, data: Record<string, unknown>) => {
+      expect(OnCallPageTiming.getMonitorDataReceivedAt(data)).toBeUndefined();
+    },
+  );
+
+  test.each([
+    ["a server's report", { onlyCheckRequestReceivedAt: false }],
+    ["an email", { onlyCheckForIncomingEmailReceivedAt: false }],
+  ])(
+    "%s that is no check of absence says so: its receipt counts",
+    (_what: string, flags: Record<string, unknown>) => {
+      expect(
+        OnCallPageTiming.getMonitorDataReceivedAt({
+          ...flags,
+          dataReceivedAt: RECEIVED_AT,
+        }),
+      ).toEqual(RECEIVED_AT);
+    },
+  );
+
+  test("an incoming request is timed by its own edge receipt, never another field", () => {
+    const requestReceivedAtEdge: Date = new Date("2026-11-10T09:29:05.000Z");
+
+    expect(
+      OnCallPageTiming.getMonitorDataReceivedAt({
+        incomingRequestReceivedAt: requestReceivedAtEdge,
+        dataReceivedAt: RECEIVED_AT,
+      }),
+    ).toEqual(requestReceivedAtEdge);
+  });
+
+  test.each([
+    ["text that is no time", "soon"],
+    ["a Date that is no time", new Date(NaN)],
+    ["a number", RECEIVED_AT.getTime()],
+    ["nothing", undefined],
+    ["null", null],
+  ])("a receipt that is %s: none", (_what: string, value: unknown) => {
+    expect(
+      OnCallPageTiming.getMonitorDataReceivedAt({
+        hostname: "web-1",
+        dataReceivedAt: value,
+      }),
+    ).toBeUndefined();
+  });
+
+  test("a page its record starts is timed from the receipt, as an incoming request's is", async () => {
+    const createdAt: Date = new Date(RECEIVED_AT.getTime() + 95_000);
+
+    const moment: OnCallPageStartMoment =
+      await OnCallPageTiming.runAsMonitorTriggered(
+        {
+          dataReceivedAt: OnCallPageTiming.getMonitorDataReceivedAt({
+            hostname: "web-1",
+            dataReceivedAt: RECEIVED_AT,
+          }),
+        },
+        async (): Promise<OnCallPageStartMoment> => {
+          return await OnCallPageTiming.runAsRecordIsCreated(
+            { recordCreatedAt: createdAt },
+            async (): Promise<OnCallPageStartMoment> => {
+              return OnCallPageTiming.startPage();
+            },
+          );
+        },
+      );
+
+    expect(moment).toEqual({
+      startedAt: RECEIVED_AT,
+      start: OnCallPageStart.MonitorDataReceived,
+    });
+  });
+});
+
+describe("a queued job's stamp, as the data carries it (toMonitorDataReceivedAt)", () => {
+  const NOW: Date = new Date("2026-11-10T09:30:00.000Z");
+  const STAMP: Date = new Date("2026-11-10T09:29:20.000Z");
+
+  test("a Date: a copy of it", () => {
+    const stamp: Date = new Date(STAMP.getTime());
+    const receivedAt: Date | undefined =
+      OnCallPageTiming.toMonitorDataReceivedAt(stamp, NOW);
+
+    expect(receivedAt).toEqual(STAMP);
+    expect(receivedAt).not.toBe(stamp);
+  });
+
+  test("text, as a job read back from the queue carries it: that moment", () => {
+    expect(
+      OnCallPageTiming.toMonitorDataReceivedAt(STAMP.toISOString(), NOW),
+    ).toEqual(STAMP);
+  });
+
+  test("a moment after now - the ingest server's clock ahead of the worker's - is now", () => {
+    expect(
+      OnCallPageTiming.toMonitorDataReceivedAt(
+        new Date(NOW.getTime() + 1_500),
+        NOW,
+      ),
+    ).toEqual(NOW);
+    expect(
+      OnCallPageTiming.toMonitorDataReceivedAt(
+        new Date(NOW.getTime() + 1_500).toISOString(),
+        NOW,
+      ),
+    ).toEqual(NOW);
+  });
+
+  test("this very moment: itself", () => {
+    expect(OnCallPageTiming.toMonitorDataReceivedAt(NOW, NOW)).toEqual(NOW);
+  });
+
+  test("now, by default, is the current moment", () => {
+    const future: Date = new Date(Date.now() + 60 * 60 * 1000);
+    const before: number = Date.now();
+    const receivedAt: Date = OnCallPageTiming.toMonitorDataReceivedAt(future)!;
+
+    expect(receivedAt.getTime()).toBeGreaterThanOrEqual(before);
+    expect(receivedAt.getTime()).toBeLessThanOrEqual(Date.now());
+  });
+
+  test.each([
+    ["nothing", undefined],
+    ["null", null],
+    ["empty text", ""],
+    ["text that is no moment", "soon"],
+    ["a Date that is no moment", new Date(NaN)],
+    ["a number", STAMP.getTime()],
+    ["an object", { value: STAMP.toISOString() }],
+    ["true", true],
+  ])("%s: none", (_what: string, stamp: unknown) => {
+    expect(
+      OnCallPageTiming.toMonitorDataReceivedAt(stamp, NOW),
+    ).toBeUndefined();
+  });
+});
+
+describe("putting the stamp on a monitor's data (stampMonitorDataReceivedAt)", () => {
+  const STAMP: Date = new Date("2026-11-10T09:29:20.000Z");
+  const SENDERS_WORD: Date = new Date("2020-01-01T00:00:00.000Z");
+
+  test("the job's stamp goes on the data", () => {
+    const data: { dataReceivedAt?: Date | undefined; hostname: string } = {
+      hostname: "web-1",
+    };
+
+    OnCallPageTiming.stampMonitorDataReceivedAt(data, STAMP.toISOString());
+
+    expect(data).toEqual({ hostname: "web-1", dataReceivedAt: STAMP });
+  });
+
+  test("what the sender put there is replaced by OneUptime's own stamp", () => {
+    const data: { dataReceivedAt?: Date | undefined } = {
+      dataReceivedAt: SENDERS_WORD,
+    };
+
+    OnCallPageTiming.stampMonitorDataReceivedAt(data, STAMP);
+
+    expect(data.dataReceivedAt).toEqual(STAMP);
+  });
+
+  test.each([
+    ["no stamp", undefined],
+    ["a stamp that is no moment", "soon"],
+  ])(
+    "%s: what the sender put there is taken off - only OneUptime's stamp says when it received the data",
+    (_what: string, stamp: unknown) => {
+      const data: { dataReceivedAt?: Date | undefined; hostname: string } = {
+        hostname: "web-1",
+        dataReceivedAt: SENDERS_WORD,
+      };
+
+      OnCallPageTiming.stampMonitorDataReceivedAt(data, stamp);
+
+      expect(data).toEqual({ hostname: "web-1" });
+      expect("dataReceivedAt" in data).toBe(false);
+      expect(OnCallPageTiming.getMonitorDataReceivedAt(data)).toBeUndefined();
+    },
+  );
+
+  test("a stamp after now is now", () => {
+    const data: { dataReceivedAt?: Date | undefined } = {};
+    const before: number = Date.now();
+
+    OnCallPageTiming.stampMonitorDataReceivedAt(
+      data,
+      new Date(Date.now() + 60 * 60 * 1000),
+    );
+
+    expect(data.dataReceivedAt!.getTime()).toBeGreaterThanOrEqual(before);
+    expect(data.dataReceivedAt!.getTime()).toBeLessThanOrEqual(Date.now());
+  });
+});

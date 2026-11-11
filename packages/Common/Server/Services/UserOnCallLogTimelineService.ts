@@ -39,6 +39,9 @@ import {
 import OnCallPageTiming, {
   OnCallPageStartMoment,
 } from "../Utils/OnCall/OnCallPageTiming";
+import OnCallSendLag, {
+  OnCallScheduledSend,
+} from "../Utils/OnCall/OnCallSendLag";
 import NotificationDeliveryMetrics, {
   NotificationCustomChannelIdentity,
   NotificationDeliveryChannel,
@@ -112,12 +115,20 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Records how long after its page's trigger each notification just
-   * written as sent reached its provider (notification.time_to_send): those
-   * written as their page started, whose start was kept (OnCallPageTiming),
-   * and taken back here so it is recorded once. A notification that names
-   * two channels - a rule written through the API can - is not timed: which
-   * of them was accepted first cannot be told. Never throws.
+   * Records how long each notification just written as sent took to reach
+   * its provider, for the platform's operator:
+   *
+   *   - one written as its page started, whose start was kept
+   *     (OnCallPageTiming): how long after its page's trigger
+   *     (notification.time_to_send);
+   *   - one a worker sent once a wait of the on-call configuration ran out -
+   *     a rule that waits, a repeat, a later escalation level, a policy
+   *     repeat - whose due time was kept (OnCallSendLag): how long after it
+   *     was due (notification.send.lag).
+   *
+   * Each is taken back here so it is recorded once. A notification that
+   * names two channels - a rule written through the API can - is not timed:
+   * which of them was accepted first cannot be told. Never throws.
    */
   private async recordTimeToSend(deliveries: Array<Model>): Promise<void> {
     for (const delivery of deliveries) {
@@ -129,7 +140,12 @@ export class Service extends DatabaseService<Model> {
         const pageStart: OnCallPageStartMoment | null =
           await OnCallPageTiming.takePageStartOf(delivery.id);
 
-        if (!pageStart) {
+        // A page's start wins: nothing else was kept for one written in it.
+        const scheduledSend: OnCallScheduledSend | null = pageStart
+          ? null
+          : await OnCallSendLag.takeDueTimeOf(delivery.id);
+
+        if (!pageStart && !scheduledSend) {
           continue;
         }
 
@@ -148,19 +164,31 @@ export class Service extends DatabaseService<Model> {
           continue;
         }
 
-        NotificationDeliveryMetrics.recordTimeToSend({
-          channel: channel,
-          customChannel:
-            channel === NotificationDeliveryChannel.CustomChannel &&
-            delivery.customNotificationChannelId
-              ? await this.readCustomChannelIdentity(
-                  delivery.customNotificationChannelId,
-                )
-              : undefined,
-          triggerType: NotificationDeliveryMetrics.getTriggerTypeOf(delivery),
-          pageStart: pageStart.start,
-          timeToSendInMs: sentAt.getTime() - pageStart.startedAt.getTime(),
-        });
+        const customChannel: NotificationCustomChannelIdentity | undefined =
+          channel === NotificationDeliveryChannel.CustomChannel &&
+          delivery.customNotificationChannelId
+            ? await this.readCustomChannelIdentity(
+                delivery.customNotificationChannelId,
+              )
+            : undefined;
+
+        if (pageStart) {
+          NotificationDeliveryMetrics.recordTimeToSend({
+            channel: channel,
+            customChannel: customChannel,
+            triggerType: NotificationDeliveryMetrics.getTriggerTypeOf(delivery),
+            pageStart: pageStart.start,
+            timeToSendInMs: sentAt.getTime() - pageStart.startedAt.getTime(),
+          });
+        } else if (scheduledSend) {
+          NotificationDeliveryMetrics.recordSendLag({
+            channel: channel,
+            customChannel: customChannel,
+            triggerType: NotificationDeliveryMetrics.getTriggerTypeOf(delivery),
+            schedule: scheduledSend.schedule,
+            lagInMs: sentAt.getTime() - scheduledSend.dueAt.getTime(),
+          });
+        }
       } catch (err) {
         logger.error(
           `Could not record the time to send of on-call notification ${delivery.id?.toString()}: ${err}`,
@@ -280,10 +308,13 @@ export class Service extends DatabaseService<Model> {
     /*
      * A notification on its way out, written as its page starts: its page's
      * start is kept for whichever server writes that it was sent, before it
-     * is handed to its sender (OnCallPageTiming). Nothing for any other.
+     * is handed to its sender (OnCallPageTiming). Written by a worker once a
+     * wait ran out - a rule that waits, a repeat, a later level - its due
+     * time is (OnCallSendLag). Nothing for any other.
      */
     if (createdItem.status === UserNotificationStatus.Sending) {
       await OnCallPageTiming.rememberPageStartOf(createdItem.id);
+      await OnCallSendLag.rememberDueTimeOf(createdItem.id);
     }
 
     OnCallPolicyRunMessage.refresh(createdItem.onCallDutyPolicyExecutionLogId);
@@ -396,7 +427,8 @@ export class Service extends DatabaseService<Model> {
 
       /*
        * A notification its provider accepted: how long after its page's
-       * trigger, for the platform's operator (notification.time_to_send).
+       * trigger (notification.time_to_send), or after it was due
+       * (notification.send.lag), for the platform's operator.
        */
       if (onUpdate.updateBy.data.status === UserNotificationStatus.Sent) {
         await this.recordTimeToSend(deliveries);

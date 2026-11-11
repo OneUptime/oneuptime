@@ -31,11 +31,12 @@ import ObjectID from "../../../Types/ObjectID";
  *     episode a monitor or a person just opened - starts at the trigger
  *     (runAsRecordIsCreated, around the record's on-call fan-out): the
  *     moment OneUptime received the data that tripped the monitor, when it
- *     knows it - an incoming request is received at the edge and evaluated
- *     from a queue, which can fall behind (runAsMonitorTriggered, around
- *     the monitor's create) - and else the record's creation, which is when
- *     a probe's check, a telemetry monitor's evaluation or a person opened
- *     it;
+ *     knows it - an incoming request, a server agent's report, an incoming
+ *     email and a probe's report are received by the ingest API and
+ *     evaluated from a queue, which can fall behind (runAsMonitorTriggered,
+ *     around the monitor's create; getMonitorDataReceivedAt) - and else the
+ *     record's creation, which is when a telemetry monitor's evaluation or
+ *     a person opened it;
  *   - any other starts when it starts paging: a run a person, a workflow or
  *     a rule that now matches started later, a page again, a direct page,
  *     and a run that waited to page (a hold its on-call rule asked for)
@@ -105,33 +106,54 @@ export default class OnCallPageTiming {
 
   /*
    * When OneUptime received the data a monitor evaluated, for the data a
-   * received moment means the trigger of: an incoming request, received at
-   * the edge. Not the heartbeat's check that no request came - its
-   * received moment is the last request's, long before what it found - and
-   * not a probe's check, timed by the probe's own clock; for those, and
-   * every other monitor, the record's creation is the trigger.
+   * received moment means the trigger of - each stamped as OneUptime's
+   * ingest API took it, before the queue it waits in to be evaluated:
+   *
+   *   - an incoming request (incomingRequestReceivedAt);
+   *   - a server agent's report, an incoming email, a probe's report - of
+   *     a check, an SNMP trap, a network device's poll (dataReceivedAt,
+   *     toMonitorDataReceivedAt; issue #6647).
+   *
+   * Not a check of absence - the heartbeat's that no request came, a
+   * server's that no report came, an incoming email monitor's that no
+   * email came: its moment is the last one's, long before what it found.
+   * And never a probe's own clock (monitoredAt): a custom probe's can be
+   * off. For those, and every other monitor, the record's creation is the
+   * trigger.
    */
   public static getMonitorDataReceivedAt(data: unknown): Date | undefined {
     if (!data || typeof data !== "object") {
       return undefined;
     }
 
-    const request: {
+    const monitored: {
       incomingRequestReceivedAt?: unknown;
+      dataReceivedAt?: unknown;
       onlyCheckForIncomingRequestReceivedAt?: unknown;
+      onlyCheckRequestReceivedAt?: unknown;
+      onlyCheckForIncomingEmailReceivedAt?: unknown;
     } = data as {
       incomingRequestReceivedAt?: unknown;
+      dataReceivedAt?: unknown;
       onlyCheckForIncomingRequestReceivedAt?: unknown;
+      onlyCheckRequestReceivedAt?: unknown;
+      onlyCheckForIncomingEmailReceivedAt?: unknown;
     };
 
+    // A check of absence.
     if (
-      !("incomingRequestReceivedAt" in request) ||
-      request.onlyCheckForIncomingRequestReceivedAt === true
+      monitored.onlyCheckForIncomingRequestReceivedAt === true ||
+      monitored.onlyCheckRequestReceivedAt === true ||
+      monitored.onlyCheckForIncomingEmailReceivedAt === true
     ) {
       return undefined;
     }
 
-    const value: unknown = request.incomingRequestReceivedAt;
+    const value: unknown =
+      "incomingRequestReceivedAt" in monitored
+        ? monitored.incomingRequestReceivedAt
+        : monitored.dataReceivedAt;
+
     const receivedAt: Date | null =
       value instanceof Date
         ? value
@@ -144,6 +166,53 @@ export default class OnCallPageTiming {
     }
 
     return receivedAt;
+  }
+
+  /*
+   * The moment a queued job says OneUptime's ingest API received a
+   * monitor's data (its ingestionTimestamp), as that data carries it
+   * (dataReceivedAt): the job travels as JSON, so it arrives as a string.
+   * A moment in the future - clocks of two servers disagreeing - is now,
+   * as getReceivedAt (ProcessIncomingRequestIngest) reads it; anything
+   * that is no moment is none, and the record's creation is the trigger,
+   * as before.
+   */
+  public static toMonitorDataReceivedAt(
+    stamp: unknown,
+    now: Date = OneUptimeDate.getCurrentDate(),
+  ): Date | undefined {
+    const receivedAt: Date | null =
+      stamp instanceof Date
+        ? new Date(stamp.getTime())
+        : typeof stamp === "string" && stamp
+          ? new Date(stamp)
+          : null;
+
+    if (!receivedAt || isNaN(receivedAt.getTime())) {
+      return undefined;
+    }
+
+    return receivedAt.getTime() > now.getTime() ? now : receivedAt;
+  }
+
+  /*
+   * Puts on a monitor's data when OneUptime's ingest API received it, from
+   * its job's stamp (toMonitorDataReceivedAt) - and takes off any the data
+   * came with: what a probe or an agent sent is the sender's word, and only
+   * OneUptime's own stamp says when OneUptime received it.
+   */
+  public static stampMonitorDataReceivedAt(
+    data: { dataReceivedAt?: Date | undefined },
+    stamp: unknown,
+  ): void {
+    const receivedAt: Date | undefined = this.toMonitorDataReceivedAt(stamp);
+
+    if (receivedAt) {
+      data.dataReceivedAt = receivedAt;
+      return;
+    }
+
+    delete data.dataReceivedAt;
   }
 
   /*

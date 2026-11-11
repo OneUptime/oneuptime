@@ -123,6 +123,12 @@ export default class NetworkDeviceWalkUtil {
      */
     probeCapabilities?: Array<string> | undefined;
     monitoredAt: Date;
+    /*
+     * When OneUptime's ingest API received the poll, before the queue it
+     * waited in: a page the monitors' evaluation starts is timed from then
+     * (OnCallPageTiming). Absent, the record's creation is the trigger.
+     */
+    dataReceivedAt?: Date | undefined;
   }): Promise<void> {
     /*
      * Scope the lookup to the reporting probe (the auth middleware only
@@ -488,6 +494,9 @@ export default class NetworkDeviceWalkUtil {
           failureCause: failureCause,
           monitoredAt: data.monitoredAt,
           ingestedAt: OneUptimeDate.getCurrentDate(),
+          ...(data.dataReceivedAt
+            ? { dataReceivedAt: data.dataReceivedAt }
+            : {}),
         };
 
         try {

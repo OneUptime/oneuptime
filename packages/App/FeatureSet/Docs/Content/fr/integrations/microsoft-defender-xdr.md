@@ -141,7 +141,7 @@ Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récente
 | **Read alerts from Microsoft Graph** | Une alerte créée dans les 24 dernières heures peut être lue (`$top=1`). Un `403` ici signifie que l'autorisation `SecurityAlert.Read.All` ou le consentement administrateur manque, ou que le locataire n'a pas Defender XDR. |
 | **Alerts available to import** | Combien d'alertes ont été créées dans les 24 dernières heures et les 7 derniers jours, une page de 100 pour chacun, `100+` signifie donc davantage. Aucune en 7 jours est un avertissement, pas un échec. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Le côté de OneUptime lui-même : un processus prend les tâches de la file Worker, la tâche d'interrogation s'exécute chaque minute, et le stockage des événements de sécurité répond. |
-| **Scheduled polling** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
+| **Interrogation planifiée** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
 
 Chaque requête d'un test a un délai de 20 secondes. Un test n'importe jamais rien et ne déplace jamais le curseur, et chaque vérification en échec dit ce qu'il faut changer.
 

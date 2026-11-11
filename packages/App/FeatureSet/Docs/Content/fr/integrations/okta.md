@@ -116,7 +116,7 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **L'heure de publication est le curseur.** Un événement du System Log est l'activité elle-même : `published` est donc à la fois le moment où elle s'est produite et ce que lit l'interrogation.
 - **La première interrogation remonte 24 heures en arrière**, si bien qu'une nouvelle connexion montre tout de suite ses événements récents.
 - **Chaque interrogation suivante commence 15 minutes avant le curseur enregistré.** Okta prévient qu'une requête avec une heure de fin peut omettre des événements retardés, ce qu'il dit rare. Le chevauchement les lit à l'interrogation suivante. Un événement retardé de plus de 15 minutes peut passer derrière le curseur : importez sa plage de temps pour le récupérer.
-- **Une interrogation lit au plus 24 heures au-delà du curseur.** Une connexion dont le curseur a pris du retard le rattrape en une suite de fenêtres de 24 heures, et sa **Santé** indique **Catching up**.
+- **Une interrogation lit au plus 24 heures au-delà du curseur.** Une connexion dont le curseur a pris du retard le rattrape en une suite de fenêtres de 24 heures, et sa **Santé** indique **Rattrapage en cours**.
 - **Les doublons sont écartés par `uuid`** au sein du projet, si bien que le chevauchement, une fenêtre relue et un import ne stockent jamais un événement deux fois.
 
 Un lien `next` qui pointe ailleurs que vers votre **Okta organization URL** n'est jamais suivi, puisque le jeton accompagne chaque requête.
@@ -159,7 +159,7 @@ Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récente
 | **Read System Log events** | Un événement des 24 dernières heures peut être lu à travers le filtre qu'utilise l'interrogation, le vôtre ou celui par défaut : un **Event filter** invalide échoue donc ici plutôt qu'à la première interrogation. |
 | **Events available to import** | Combien d'événements ont été publiés dans les 24 dernières heures et les 7 derniers jours, une page de 1 000 pour chacun, si bien que `1000+` signifie davantage. Aucun en 7 jours est un avertissement, pas un échec. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Le côté de OneUptime lui-même : un processus prend les tâches de la file Worker, la tâche d'interrogation s'exécute chaque minute, et le stockage des événements de sécurité répond. |
-| **Scheduled polling** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
+| **Interrogation planifiée** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
 
 Chaque requête d'un test a un délai de 20 secondes. Un test n'importe jamais rien et ne déplace jamais le curseur, et chaque vérification en échec dit ce qu'il faut changer.
 

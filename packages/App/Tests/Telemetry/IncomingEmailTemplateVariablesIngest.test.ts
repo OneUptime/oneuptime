@@ -98,6 +98,7 @@ import {
 } from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import MonitorTemplateUtil from "Common/Server/Utils/Monitor/MonitorTemplateUtil";
+import OnCallPageTiming from "Common/Server/Utils/OnCall/OnCallPageTiming";
 import MonitorService from "Common/Server/Services/MonitorService";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ColumnLength from "Common/Types/Database/ColumnLength";
@@ -398,5 +399,102 @@ describe("An email to a monitor's custom address, rendered into its alert", () =
     );
     expect(rendered.title).toBe(rendered.description);
     expectNoCredential(rendered);
+  });
+});
+
+/*
+ * WHEN ONEUPTIME RECEIVED THE EMAIL (dataReceivedAt, issue #6647).
+ *
+ * The inbound email webhook queues the moment it received an email as the
+ * job's ingestionTimestamp. The worker puts it on the request the monitor
+ * evaluates - read back from the queue as text, never after now - so a
+ * page the evaluation starts is timed from then, however long the email
+ * waited. emailReceivedAt stays the moment it is evaluated: what the
+ * heartbeat check counts from, and what {{emailReceivedAt}} renders.
+ */
+describe("when OneUptime received the email", () => {
+  // generatedAddressJob()'s: the webhook received it then.
+  const RECEIVED_AT: Date = new Date("2026-10-05T09:55:00.000Z");
+
+  // A job as the worker reads it back from the queue: its moments as text.
+  function fromQueue(job: ProbeIngestJobData): ProbeIngestJobData {
+    return JSON.parse(JSON.stringify(job)) as ProbeIngestJobData;
+  }
+
+  beforeEach(() => {
+    findOneBy.mockImplementation(() => {
+      return Promise.resolve(monitorFixture());
+    });
+  });
+
+  it("the email is evaluated as received when the webhook received it", async () => {
+    await processIncomingEmailFromQueue(fromQueue(generatedAddressJob()));
+
+    const payload: IncomingEmailMonitorRequest = evaluatedPayload();
+
+    expect(payload.dataReceivedAt).toBeInstanceOf(Date);
+    expect(payload.dataReceivedAt).toEqual(RECEIVED_AT);
+    expect(OnCallPageTiming.getMonitorDataReceivedAt(payload)).toEqual(
+      RECEIVED_AT,
+    );
+    // The moment it is evaluated, later: what the heartbeat counts from.
+    expect((payload.emailReceivedAt as Date).getTime()).toBeGreaterThan(
+      RECEIVED_AT.getTime(),
+    );
+  });
+
+  it("{{emailReceivedAt}} still renders the moment it was evaluated", async () => {
+    await processIncomingEmailFromQueue(fromQueue(generatedAddressJob()));
+
+    const payload: IncomingEmailMonitorRequest = evaluatedPayload();
+
+    expect(
+      render("{{emailReceivedAt}}", payload, monitorFixture()).description,
+    ).toBe((payload.emailReceivedAt as Date).toISOString());
+  });
+
+  it("the copy a scheduled check reads carries it - and that check of absence is not timed from it", async () => {
+    await processIncomingEmailFromQueue(fromQueue(generatedAddressJob()));
+
+    const stored: JSONObject = JSON.parse(
+      JSON.stringify(storedEmailRequest()),
+    ) as JSONObject;
+
+    expect(new Date(stored["dataReceivedAt"] as string)).toEqual(RECEIVED_AT);
+    expect(
+      OnCallPageTiming.getMonitorDataReceivedAt({
+        ...stored,
+        onlyCheckForIncomingEmailReceivedAt: true,
+      }),
+    ).toBeUndefined();
+  });
+
+  it("a job with no stamp: none, and a page is timed as before", async () => {
+    const job: ProbeIngestJobData = fromQueue(generatedAddressJob());
+
+    delete (job as unknown as JSONObject)["ingestionTimestamp"];
+
+    await processIncomingEmailFromQueue(job);
+
+    const payload: IncomingEmailMonitorRequest = evaluatedPayload();
+
+    expect("dataReceivedAt" in payload).toBe(false);
+    expect(OnCallPageTiming.getMonitorDataReceivedAt(payload)).toBeUndefined();
+  });
+
+  it("a stamp after now - the webhook server's clock ahead of the worker's - is now", async () => {
+    const job: ProbeIngestJobData = fromQueue(generatedAddressJob());
+
+    (job as unknown as JSONObject)["ingestionTimestamp"] = new Date(
+      Date.now() + 60 * 60 * 1000,
+    ).toISOString();
+
+    const before: number = Date.now();
+    await processIncomingEmailFromQueue(job);
+
+    const stamped: number = evaluatedPayload().dataReceivedAt!.getTime();
+
+    expect(stamped).toBeGreaterThanOrEqual(before);
+    expect(stamped).toBeLessThanOrEqual(Date.now());
   });
 });

@@ -8,6 +8,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   securityEvent: SecurityEvent;
@@ -29,6 +31,7 @@ interface DetailRow {
 const SecurityEventDetail: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const event: SecurityEvent = props.securityEvent;
 
   const formatArray: (values: Array<string> | undefined) => string = (
@@ -79,7 +82,10 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
               key={index}
               type="button"
               data-testid={`security-event-observable-chip-${index}`}
-              title={`Correlate "${observable}"`}
+              title={translator.translateTemplate(
+                'Correlate "{{observable}}"',
+                { observable },
+              )}
               className="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 font-mono text-xs text-indigo-700 hover:bg-indigo-100"
               onClick={() => {
                 correlateObservable(observable);
@@ -142,14 +148,18 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
   return (
     <SideOver
       title="Security Event"
-      description={event.message || "Details of the selected security event."}
+      description={
+        event.message ||
+        translator.translateText("Details of the selected security event.") ||
+        ""
+      }
       onClose={props.onClose}
       size={SideOverSize.Large}
     >
       <div className="space-y-6">
         <div>
           <h3 className="text-sm font-semibold text-gray-900 mb-2">
-            Event Fields
+            {translator.translateText("Event Fields")}
           </h3>
           <dl className="divide-y divide-gray-100 border border-gray-200 rounded-md">
             {rows
@@ -162,7 +172,9 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
                     key={index}
                     className="grid grid-cols-3 gap-3 px-3 py-2 text-sm"
                   >
-                    <dt className="font-medium text-gray-500">{row.label}</dt>
+                    <dt className="font-medium text-gray-500">
+                      {translator.translateText(row.label)}
+                    </dt>
                     <dd className="col-span-2 text-gray-900 break-words">
                       {row.value}
                     </dd>
@@ -174,11 +186,13 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
 
         <div>
           <h3 className="text-sm font-semibold text-gray-900 mb-2">
-            Attributes
+            {translator.translateText("Attributes")}
           </h3>
           {attributeKeys.length === 0 ? (
             <p className="text-sm text-gray-500">
-              No attributes recorded for this event.
+              {translator.translateText(
+                "No attributes recorded for this event.",
+              )}
             </p>
           ) : (
             <dl className="divide-y divide-gray-100 border border-gray-200 rounded-md">

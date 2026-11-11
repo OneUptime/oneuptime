@@ -114,7 +114,7 @@ GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/provide
 - **Opprettelsestidspunktet er markøren.** En planlagt analyseregel som kjører hver time, åpner hendelsen sin lenge etter aktiviteten den oppdaget, og hendelsens `firstActivityTimeUtc` kan ligge timer eller dager tidligere. En markør på aktivitetstidspunktet ville hoppet over hver slik hendelse. Aktivitetstidspunktene blir i `attributes`, og eksemplene i diagnostikken viser begge.
 - **Den første pollen ser 24 timer tilbake**, slik at en ny tilkobling viser de nylige hendelsene sine med en gang.
 - **Hver senere poll starter 1 minutt før den lagrede markøren**, slik at en hendelse som er opprettet på grensen mellom to vinduer, aldri hoppes over.
-- **En poll leser høyst 24 timer forbi markøren.** En tilkobling der markøren har kommet på etterskudd, tar igjen i en rekke vinduer på 24 timer, og **Helse** viser **Catching up**.
+- **En poll leser høyst 24 timer forbi markøren.** En tilkobling der markøren har kommet på etterskudd, tar igjen i en rekke vinduer på 24 timer, og **Helse** viser **Tar igjen etterslep**.
 - **Duplikater fjernes etter GUID-en til hendelsen** (`name`) i prosjektet, slik at overlappingen, et gjentatt vindu og en import aldri lagrer en hendelse to ganger.
 
 ### Når et vindu inneholder mer enn én poll kan lese

@@ -134,7 +134,7 @@ Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récente
 | **Read alerts from the Falcon Alerts API** | Une requête d'alertes pour une seule alerte (`limit=1`) sur les 24 dernières heures est acceptée, ce qui prouve l'étendue **Alerts → Read**. |
 | **Alerts available to import** | Combien d'alertes ont été créées dans les 24 dernières heures et les 7 derniers jours. Aucune en 7 jours est un avertissement, pas un échec : l'interrogation importe les nouvelles alertes à mesure que Falcon les crée. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Le côté de OneUptime lui-même : un processus prend les tâches de la file Worker, la tâche d'interrogation s'exécute chaque minute, et le stockage des événements de sécurité répond. |
-| **Scheduled polling** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
+| **Interrogation planifiée** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
 
 Chaque requête d'un test a un délai de 20 secondes. Un test n'importe jamais rien et ne déplace jamais le curseur, et chaque vérification en échec dit ce qu'il faut changer. **Copier le rapport** copie la liste des vérifications en JSON, sans identifiants ni jetons.
 
@@ -175,7 +175,7 @@ Aucune interrogation ne s'est exécutée, rien n'a donc atteint Falcon. **Tester
 :::
 
 :::details Le test réussit, mais aucun événement n'apparaît
-Lisez **Alerts available to import** : un avertissement à cet endroit signifie que Falcon n'a créé aucune alerte dans les 7 derniers jours, il n'y a donc encore rien à importer. Sinon, ouvrez **Diagnostics**, vérifiez la fenêtre et les comptes de la dernière interrogation, et utilisez **View events in this time range** sur une exécution pour ouvrir la plage de temps des alertes qu'elle a importées.
+Lisez **Alerts available to import** : un avertissement à cet endroit signifie que Falcon n'a créé aucune alerte dans les 7 derniers jours, il n'y a donc encore rien à importer. Sinon, ouvrez **Diagnostics**, vérifiez la fenêtre et les comptes de la dernière interrogation, et utilisez **Voir les événements de cette période** sur une exécution pour ouvrir la plage de temps des alertes qu'elle a importées.
 :::
 
 ## Ce que vous obtenez

@@ -27,6 +27,12 @@ import WhatsAppStatus from "../../../Types/WhatsAppStatus";
  *                               name) and outcome (success, failure, not_sent).
  *   notification.time_to_send   how long after its trigger an on-call page was
  *                               accepted by its provider (OnCallPageTiming).
+ *   notification.send.lag       how long after it was due an on-call
+ *                               notification sent later - a rule that waits,
+ *                               a repeat, a later escalation level, a policy
+ *                               repeat - was accepted by its provider: how
+ *                               far behind the workers that send them are
+ *                               (OnCallSendLag, issue #6646).
  *   notification.delivery.count     how a message the provider accepted
  *   notification.delivery.duration  ended, when the provider tells it later:
  *                               an SMS delivered or not, a call answered or
@@ -134,17 +140,34 @@ export enum NotificationTriggerSource {
 /*
  * What an on-call page's time to send is measured from (OnCallPageTiming),
  * for a page that started with its record: the moment OneUptime received
- * the data that tripped the monitor - an incoming request, which waits in a
- * queue before it is evaluated - or else the record's creation, the moment
- * a monitor's own check, a telemetry monitor's evaluation or a person
- * opened it. For a page started later - by a person, a workflow, a rule
- * that now matches, a page again, or after a hold the on-call rules ask
- * for - the moment it started.
+ * the data that tripped the monitor - an incoming request, a server
+ * agent's report, an incoming email, a probe's report, each of which waits
+ * in a queue before it is evaluated (issue #6647) - or else the record's
+ * creation, the moment a telemetry monitor's evaluation or a person opened
+ * it. For a page started later - by a person, a workflow, a rule that now
+ * matches, a page again, or after a hold the on-call rules ask for - the
+ * moment it started.
  */
 export enum OnCallPageStart {
   MonitorDataReceived = "monitor_data_received",
   RecordCreated = "record_created",
   PageStarted = "page_started",
+}
+
+/*
+ * Which wait of the on-call configuration an on-call notification sent
+ * later was due after (notification.send.lag, OnCallSendLag): its lag is
+ * from the moment that wait ran out.
+ */
+export enum NotificationSchedule {
+  // A person's on-call rule that waits: "call me after 10 minutes".
+  RuleWait = "rule_wait",
+  // A push repeated until somebody acknowledges (NotificationRepeat).
+  Repeat = "repeat",
+  // A later escalation level, once the level before waited its "Escalate after".
+  Escalation = "escalation",
+  // The policy starting again from its first level: its Repeat Policy.
+  PolicyRepeat = "policy_repeat",
 }
 
 /*
@@ -198,6 +221,7 @@ export enum NotificationMetricAttribute {
   MonitorType = "monitor.type",
   PageStart = "notification.page.start",
   Destination = "notification.destination",
+  Schedule = "notification.schedule",
 }
 
 // The most of a custom channel's name an attribute carries.
@@ -551,6 +575,35 @@ export default class NotificationDeliveryMetrics {
     }
   }
 
+  /*
+   * An on-call notification the on-call configuration sent later - a rule
+   * that waits, a repeat, a later escalation level, a policy repeat - was
+   * accepted by its provider this long after it was due
+   * (notification.send.lag, OnCallSendLag). Clocks of two servers can
+   * disagree by a little: a lag below zero is recorded as zero. Never
+   * throws.
+   */
+  public static recordSendLag(data: {
+    channel: NotificationDeliveryChannel;
+    customChannel?: NotificationCustomChannelIdentity | undefined;
+    triggerType?: NotificationTriggerType | undefined;
+    schedule: NotificationSchedule;
+    lagInMs: number;
+  }): void {
+    try {
+      if (!Number.isFinite(data.lagInMs)) {
+        return;
+      }
+
+      AppMetrics.getNotificationSendLag().record(
+        Math.max(0, data.lagInMs),
+        this.getSendLagAttributes(data),
+      );
+    } catch (err) {
+      reportRecordingFailure(err);
+    }
+  }
+
   public static getDispatchAttributes(data: {
     channel: NotificationDeliveryChannel;
     provider: NotificationDeliveryProvider;
@@ -695,6 +748,26 @@ export default class NotificationDeliveryMetrics {
     const attributes: NotificationMetricAttributes = {
       [NotificationMetricAttribute.Channel]: data.channel,
       [NotificationMetricAttribute.PageStart]: data.pageStart,
+    };
+
+    if (data.triggerType) {
+      attributes[NotificationMetricAttribute.TriggerType] = data.triggerType;
+    }
+
+    addCustomChannelAttributes(attributes, data.customChannel);
+
+    return attributes;
+  }
+
+  public static getSendLagAttributes(data: {
+    channel: NotificationDeliveryChannel;
+    customChannel?: NotificationCustomChannelIdentity | undefined;
+    triggerType?: NotificationTriggerType | undefined;
+    schedule: NotificationSchedule;
+  }): NotificationMetricAttributes {
+    const attributes: NotificationMetricAttributes = {
+      [NotificationMetricAttribute.Channel]: data.channel,
+      [NotificationMetricAttribute.Schedule]: data.schedule,
     };
 
     if (data.triggerType) {

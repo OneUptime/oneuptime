@@ -116,7 +116,7 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **Publiceringstiden är markören.** En System Log-händelse är själva aktiviteten, så `published` är både när den inträffade och det som avsökningen läser.
 - **Den första avsökningen ser 24 timmar bakåt**, så att en ny anslutning direkt visar sina senaste händelser.
 - **Varje senare avsökning börjar 15 minuter före den sparade markören.** Okta varnar för att en begäran med en sluttid kan utelämna fördröjda händelser, vilket Okta kallar ovanligt. Överlappningen läser dem vid nästa avsökning. En händelse som är fördröjd mer än 15 minuter kan hamna bakom markören: importera dess tidsintervall för att hämta den.
-- **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar, och dess **Hälsa** visar **Catching up**.
+- **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar, och dess **Hälsa** visar **Kommer ikapp**.
 - **Dubbletter tas bort efter `uuid`** inom projektet, så att överlappningen, ett upprepat fönster och en import aldrig sparar en händelse två gånger.
 
 En `next`-länk som pekar någon annanstans än din **Okta organization URL** följs aldrig, eftersom token skickas med varje begäran.

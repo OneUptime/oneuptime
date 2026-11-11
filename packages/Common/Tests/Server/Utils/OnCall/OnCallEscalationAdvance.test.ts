@@ -9,7 +9,17 @@ import OnCallDutyPolicyEscalationRuleService, {
 } from "../../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyExecutionLogService from "../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyExecutionLogTimelineService from "../../../../Server/Services/OnCallDutyPolicyExecutionLogTimelineService";
+import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import logger from "../../../../Server/Utils/Logger";
+import OnCallPageTiming from "../../../../Server/Utils/OnCall/OnCallPageTiming";
+import OnCallSendLag, {
+  OnCallScheduledSend,
+} from "../../../../Server/Utils/OnCall/OnCallSendLag";
+import Telemetry from "../../../../Server/Utils/Telemetry";
+import {
+  NotificationSchedule,
+  OnCallPageStart,
+} from "../../../../Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import OnCallEscalationAdvance, {
   ON_CALL_POLICY_RUN_MOVE_ON_FAILED_MESSAGE,
   ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_MESSAGE,
@@ -1004,5 +1014,276 @@ describe("how a run that went through every rule ends", () => {
       status: true,
     });
     expect(read["limit"]).toBe(LIMIT_PER_PROJECT);
+  });
+});
+
+/*
+ * WHAT A MOVE ON PAGES IS TIMED FROM WHEN IT WAS DUE (OnCallSendLag,
+ * notification.send.lag, issue #6646): each rule a move on starts writes
+ * its notifications inside a scheduled send - due when the wait ran out,
+ * for the worker's; now, for a person passing the page on - as an
+ * escalation, and from the moment the policy starts again, as a policy
+ * repeat.
+ */
+describe("what a move on pages, timed from when it was due", () => {
+  // The rule's wait ran out at 03:15; the worker got to it at 03:30.
+  const WAIT_RAN_OUT: Date = new Date("2026-10-16T03:15:00.000Z");
+
+  const PAGED_BOB: OnCallRuleExecutionOutcome = outcome({
+    paged: [
+      { userId: BOB, coveringForUserId: null, teamId: null, scheduleId: null },
+    ],
+  });
+  const EMPTY: OnCallRuleExecutionOutcome = outcome({ movesOnAtOnce: true });
+
+  // What each rule started was told, in order.
+  let seen: Array<OnCallScheduledSend | null>;
+
+  // Each rule started answers the next outcome; the last one for the rest.
+  function rulesAnswer(outcomes: Array<OnCallRuleExecutionOutcome>): void {
+    let started: number = 0;
+
+    startSpy.mockImplementation((async () => {
+      // What a notification the rule writes later in its call is told.
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
+      seen.push(OnCallSendLag.getScheduledSend());
+
+      const answer: OnCallRuleExecutionOutcome =
+        outcomes[Math.min(started, outcomes.length - 1)]!;
+      started++;
+      return answer;
+    }) as never);
+  }
+
+  beforeEach(() => {
+    seen = [];
+    rulesAnswer([PAGED_BOB]);
+  });
+
+  test("the worker's: the next level's notifications are due when the wait ran out, as an escalation", async () => {
+    await OnCallEscalationAdvance.advance({
+      run: runOn(1),
+      now: NOW,
+      dueAt: WAIT_RAN_OUT,
+    });
+
+    expect(seen).toEqual([
+      { dueAt: WAIT_RAN_OUT, schedule: NotificationSchedule.Escalation },
+    ]);
+  });
+
+  test("a person passing the page on - no due moment - is due now", async () => {
+    await OnCallEscalationAdvance.advance({ run: runOn(1), now: NOW });
+
+    expect(seen).toEqual([
+      { dueAt: NOW, schedule: NotificationSchedule.Escalation },
+    ]);
+  });
+
+  test("a level the person picked, past the next: due now, as an escalation", async () => {
+    // The picked level is read by its id; the levels it skips, all at once.
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy")
+      .mockImplementation((async (data: {
+        query: { order?: number; _id?: string };
+      }) => {
+        return (
+          rules.find((rule: OnCallDutyPolicyEscalationRule) => {
+            return data.query._id
+              ? rule.id!.toString() === data.query._id
+              : rule.order === data.query.order;
+          }) || null
+        );
+      }) as never);
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "findBy")
+      .mockResolvedValue([] as never);
+
+    await OnCallEscalationAdvance.advance({
+      run: runOn(1),
+      now: NOW,
+      toRuleId: rules[2]!.id!,
+    });
+
+    expect(startSpy.mock.calls[0]![0]).toEqual(rules[2]!.id);
+    expect(seen).toEqual([
+      { dueAt: NOW, schedule: NotificationSchedule.Escalation },
+    ]);
+  });
+
+  test.each([
+    ["after now - two servers' clocks apart", new Date(NOW.getTime() + 5_000)],
+    ["that is no moment", new Date(NaN)],
+  ])("a due moment %s is now", async (_what: string, dueAt: Date) => {
+    await OnCallEscalationAdvance.advance({
+      run: runOn(1),
+      now: NOW,
+      dueAt: dueAt,
+    });
+
+    expect(seen).toEqual([
+      { dueAt: NOW, schedule: NotificationSchedule.Escalation },
+    ]);
+  });
+
+  test("a level moved past at once is due at the same moment - and so is the level after it", async () => {
+    rulesAnswer([EMPTY, PAGED_BOB]);
+
+    await OnCallEscalationAdvance.advance({
+      run: runOn(1),
+      now: NOW,
+      dueAt: WAIT_RAN_OUT,
+    });
+
+    expect(seen).toEqual([
+      { dueAt: WAIT_RAN_OUT, schedule: NotificationSchedule.Escalation },
+      { dueAt: WAIT_RAN_OUT, schedule: NotificationSchedule.Escalation },
+    ]);
+  });
+
+  test("the policy starting again: its first level is a policy repeat, due when the last level's wait ran out", async () => {
+    await OnCallEscalationAdvance.advance({
+      run: runOn(3, { pass: 1, repeats: 2 }),
+      now: NOW,
+      dueAt: WAIT_RAN_OUT,
+    });
+
+    expect(startSpy.mock.calls[0]![0]).toEqual(rules[0]!.id);
+    expect(seen).toEqual([
+      { dueAt: WAIT_RAN_OUT, schedule: NotificationSchedule.PolicyRepeat },
+    ]);
+  });
+
+  test("a repeat's first level moved past at once: the level after it is part of the policy repeat", async () => {
+    rulesAnswer([EMPTY, PAGED_BOB]);
+
+    await OnCallEscalationAdvance.advance({
+      run: runOn(3, { pass: 1, repeats: 1 }),
+      now: NOW,
+      dueAt: WAIT_RAN_OUT,
+    });
+
+    expect(seen).toEqual([
+      { dueAt: WAIT_RAN_OUT, schedule: NotificationSchedule.PolicyRepeat },
+      { dueAt: WAIT_RAN_OUT, schedule: NotificationSchedule.PolicyRepeat },
+    ]);
+  });
+
+  test("an empty last level, then the policy again: an escalation, then a policy repeat - each kept as it was told", async () => {
+    rulesAnswer([EMPTY, PAGED_BOB]);
+
+    await OnCallEscalationAdvance.advance({
+      run: runOn(2, { pass: 1, repeats: 1 }),
+      now: NOW,
+      dueAt: WAIT_RAN_OUT,
+    });
+
+    expect(
+      startSpy.mock.calls.map((call: Array<unknown>) => {
+        return String(call[0]);
+      }),
+    ).toEqual([rules[2]!.id!.toString(), rules[0]!.id!.toString()]);
+
+    // Read after the advance finished: the last level's send was not changed under it.
+    expect(seen).toEqual([
+      { dueAt: WAIT_RAN_OUT, schedule: NotificationSchedule.Escalation },
+      { dueAt: WAIT_RAN_OUT, schedule: NotificationSchedule.PolicyRepeat },
+    ]);
+  });
+
+  test("nothing outside the move on is told a send", async () => {
+    await OnCallEscalationAdvance.advance({
+      run: runOn(1),
+      now: NOW,
+      dueAt: WAIT_RAN_OUT,
+    });
+
+    expect(OnCallSendLag.getScheduledSend()).toBeNull();
+  });
+
+  test("a lost claim starts nothing, and tells nothing", async () => {
+    claimSpy.mockResolvedValue(false);
+
+    await OnCallEscalationAdvance.advance({
+      run: runOn(1),
+      now: NOW,
+      dueAt: WAIT_RAN_OUT,
+    });
+
+    expect(seen).toEqual([]);
+  });
+
+  test("a move on inside a page's start - a run starting, its first level empty - keeps no due moment: the page's start times it", async () => {
+    jest.spyOn(Telemetry, "isMetricsEnabled").mockReturnValue(true);
+    const setString: SpyInstance<typeof GlobalCache.setString> = jest
+      .spyOn(GlobalCache, "setString")
+      .mockResolvedValue(undefined as never);
+    const notificationId: ObjectID = ObjectID.generate();
+
+    startSpy.mockImplementation((async () => {
+      await OnCallSendLag.rememberDueTimeOf(notificationId);
+      return PAGED_BOB;
+    }) as never);
+
+    await OnCallPageTiming.runInPageStart(
+      { startedAt: STARTED, start: OnCallPageStart.RecordCreated },
+      async (): Promise<void> => {
+        await OnCallEscalationAdvance.advance({ run: runOn(1), now: NOW });
+      },
+    );
+
+    expect(setString).not.toHaveBeenCalled();
+
+    // The same move on outside a page's start keeps one.
+    await OnCallEscalationAdvance.advance({ run: runOn(1), now: NOW });
+
+    expect(setString).toHaveBeenCalledTimes(1);
+    expect(setString.mock.calls[0]![0]).toBe(OnCallSendLag.CACHE_NAMESPACE);
+  });
+});
+
+describe("when a move on was due (getDueAt)", () => {
+  test("the moment the wait ran out, as a Date of its own", () => {
+    const dueAt: Date = new Date(STARTED.getTime());
+    const result: Date = OnCallEscalationAdvance.getDueAt({
+      dueAt: dueAt,
+      now: NOW,
+    });
+
+    expect(result).toEqual(STARTED);
+    expect(result).not.toBe(dueAt);
+  });
+
+  test("no moment: now", () => {
+    expect(OnCallEscalationAdvance.getDueAt({ now: NOW })).toEqual(NOW);
+    expect(
+      OnCallEscalationAdvance.getDueAt({ dueAt: undefined, now: NOW }),
+    ).toEqual(NOW);
+  });
+
+  test("this very moment: now", () => {
+    expect(
+      OnCallEscalationAdvance.getDueAt({
+        dueAt: new Date(NOW.getTime()),
+        now: NOW,
+      }),
+    ).toEqual(NOW);
+  });
+
+  test("a moment after now - a clock ahead - is now: never later", () => {
+    expect(
+      OnCallEscalationAdvance.getDueAt({
+        dueAt: new Date(NOW.getTime() + 1),
+        now: NOW,
+      }),
+    ).toEqual(NOW);
+  });
+
+  test("a moment that is no moment is now", () => {
+    expect(
+      OnCallEscalationAdvance.getDueAt({ dueAt: new Date(NaN), now: NOW }),
+    ).toEqual(NOW);
   });
 });

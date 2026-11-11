@@ -94,7 +94,7 @@ POST {Kibana URL}/api/detection_engine/signals/search
 - **L'heure de création est le curseur.** Les alertes sont listées par leur propre `@timestamp`, quand l'exécution de la règle les a créées, jamais par l'heure de l'activité qu'elles concernent. Une règle qui tourne toutes les heures crée des alertes sur une activité vieille d'une heure au plus, et un curseur sur l'heure d'activité les sauterait toutes.
 - **La première interrogation remonte 24 heures en arrière**, pour qu'une nouvelle connexion montre tout de suite ses alertes récentes.
 - **Chaque interrogation suivante commence 1 minute avant le curseur enregistré**, si bien qu'une alerte créée à la limite entre deux fenêtres n'est jamais sautée.
-- **Une interrogation lit au plus 24 heures au-delà du curseur.** Une connexion dont le curseur a pris du retard le rattrape en une suite de fenêtres de 24 heures, et sa **Santé** indique **Catching up**.
+- **Une interrogation lit au plus 24 heures au-delà du curseur.** Une connexion dont le curseur a pris du retard le rattrape en une suite de fenêtres de 24 heures, et sa **Santé** indique **Rattrapage en cours**.
 - **Les doublons sont écartés par l'`_id` de l'alerte** au sein du projet, si bien que le chevauchement, une fenêtre relue et un import ne stockent jamais une alerte deux fois.
 
 La recherche d'alertes de Kibana accepte une taille et un tri, mais pas de jeton de page. OneUptime pagine donc en déplaçant le début de la plage sur la dernière alerte de chaque page, et laisse de côté, par `_id`, les alertes déjà lues à cet instant. Une exécution de règle date souvent de nombreuses alertes de la même heure, et un tel groupe est lu page par page, aucune deux fois et aucune sautée.
@@ -139,7 +139,7 @@ Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récente
 | **Read detection alerts** | Une alerte créée dans les 24 dernières heures peut être lue. Cela prouve les privilèges et l'espace. |
 | **Alerts available to import** | Combien d'alertes ont été créées dans les 24 dernières heures et les 7 derniers jours, avec `+` là où Elasticsearch n'en a compté qu'une partie. Aucune en 7 jours est un avertissement, pas un échec. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Le côté de OneUptime lui-même : un processus prend les tâches de la file Worker, la tâche d'interrogation s'exécute chaque minute, et le stockage des événements de sécurité répond. |
-| **Scheduled polling** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
+| **Interrogation planifiée** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
 
 Chaque requête d'un test a un délai de 20 secondes. Un test n'importe jamais rien et ne déplace jamais le curseur, et chaque vérification en échec dit ce qu'il faut changer.
 

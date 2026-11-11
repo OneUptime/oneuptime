@@ -353,7 +353,11 @@ describe("Splunk Enterprise Security", () => {
         return field.title;
       });
 
-    expect(form).toContain("title: `Remove the stored ${field.title}`,");
+    // One sentence around the setting's title, in the reader's language.
+    expect(form).toContain(
+      'title: translator.translateTemplate("Remove the stored {{field}}", {',
+    );
+    expect(form).toContain("field: translatableTerm(field.title),");
     expect(optional).toEqual(["Authentication token", "Password"]);
     expect(englishPage(SPLUNK)).toContain(
       `turn on ${bold("Remove the stored Authentication token")}, or ${bold("Remove the stored Password")}.`,

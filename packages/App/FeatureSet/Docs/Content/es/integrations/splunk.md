@@ -101,7 +101,7 @@ POST {Splunk management URL}/services/search/v2/jobs/export
 - **La hora de creación es el cursor.** La ventana va sobre `_time`, que para un evento notable es cuando la búsqueda de correlación lo creó, no cuando ocurrió la actividad que encontró. Una búsqueda que se ejecuta cada hora fecha sus eventos notables a la hora de su ejecución, así que ninguno queda detrás del cursor.
 - **El primer sondeo mira 24 horas atrás**, para que una conexión nueva muestre enseguida sus eventos notables recientes.
 - **Cada sondeo posterior empieza 1 minuto antes del cursor guardado**, para que nunca se pierda una fila creada en el límite entre dos ventanas.
-- **Un sondeo lee como mucho 24 horas más allá del cursor.** Una conexión cuyo cursor se quedó atrás se pone al día en una serie de ventanas de 24 horas, y su **Salud** indica **Catching up**.
+- **Un sondeo lee como mucho 24 horas más allá del cursor.** Una conexión cuyo cursor se quedó atrás se pone al día en una serie de ventanas de 24 horas, y su **Salud** indica **Poniéndose al día**.
 - **Los duplicados se descartan por `event_id`**, o por los `_bkt` y `_cd` propios de Splunk, dentro del proyecto, para que el solapamiento, una ventana reintentada y una importación nunca guarden una fila dos veces.
 
 Un search head anterior a 9.0.1 responde `404` a la solicitud a `search/v2/jobs/export`. Entonces OneUptime la envía a `search/jobs/export`, que está obsoleto, y la ejecución lo dice en un aviso. Actualiza el search head: las versiones actuales desactivan ese endpoint.
