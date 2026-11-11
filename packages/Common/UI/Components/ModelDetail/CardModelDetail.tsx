@@ -22,9 +22,11 @@ import Fields from "../Forms/Types/Fields";
 import { FormStep } from "../Forms/Types/FormStep";
 import { ModalWidth } from "../Modal/Modal";
 import ModelFormModal from "../ModelFormModal/ModelFormModal";
+import { announceModelHeaderChanged } from "../Page/ModelHeaderEvents";
 import ModelDetail, { ComponentProps as ModeDetailProps } from "./ModelDetail";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "../../../Types/Icon/IconProp";
+import ObjectID from "../../../Types/ObjectID";
 import RuleCriteriaSubject from "../../../Types/Rules/RuleCriteriaSubject";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
@@ -185,6 +187,17 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
    * save that finishes after the page refreshed still makes a change.
    */
   const [readAgainCount, setReadAgainCount] = useState<number>(0);
+
+  /*
+   * The record the Edit dialog updates. Prefer the id the caller already
+   * handed us. Deriving it purely from the loaded item meant that opening the
+   * modal before (or without) a successful detail fetch produced an Update
+   * form with no id: ModelForm silently skipped its fetch, rendered defaults,
+   * and BasicForm coerced every untouched Toggle to false - so saving quietly
+   * wrote blank values over the real record.
+   */
+  const editedModelId: ObjectID | undefined =
+    props.modelDetailProps.modelId || item?.id || undefined;
 
   type ReadAgainFunction = () => void;
 
@@ -415,12 +428,28 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
           }}
           submitButtonText={`Save Changes`}
           onBeforeUpdate={props.onBeforeUpdate}
-          onSuccess={(item: TBaseModel) => {
+          onSuccess={(savedItem: TBaseModel) => {
             setShowModal(false);
             // Read the record again, so the card shows what was just saved.
             readAgain();
+
+            /*
+             * And so does the record's page header. A save can rename the
+             * record, change its labels or the field its page is headed
+             * with (a user's email), and the layout's ModelPage - "Team -
+             * Platform", "Project - Acme" - reads its header once and kept
+             * the old name until a reload. Keyed on this record, so no other
+             * header reads again.
+             */
+            if (editedModelId) {
+              announceModelHeaderChanged({
+                modelType: props.modelDetailProps.modelType,
+                modelId: editedModelId,
+              });
+            }
+
             if (props.onSaveSuccess) {
-              props.onSaveSuccess(item);
+              props.onSaveSuccess(savedItem);
             }
           }}
           name={props.name}
@@ -438,17 +467,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
               : {}),
             onItemFetched: props.onEditFormItemFetched,
           }}
-          /*
-           * Prefer the id the caller already handed us. Deriving it purely
-           * from the loaded item meant that opening the modal before (or
-           * without) a successful detail fetch produced an Update form with
-           * no id: ModelForm silently skipped its fetch, rendered defaults,
-           * and BasicForm coerced every untouched Toggle to false - so
-           * saving quietly wrote blank values over the real record.
-           */
-          modelIdToEdit={
-            props.modelDetailProps.modelId || item?.id || undefined
-          }
+          modelIdToEdit={editedModelId}
         />
       ) : (
         <></>
