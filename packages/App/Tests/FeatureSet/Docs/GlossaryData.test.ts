@@ -338,11 +338,11 @@ describe("docs search, on the Glossary's other names", () => {
   it("finds a term by any other name it goes by, and opens the term", async () => {
     DocsSearchIndex.clearCache();
 
-    const glossary: DocsSearchEntry = (await DocsSearchIndex.getIndex("en")).find(
-      (entry: DocsSearchEntry): boolean => {
-        return entry.u === "/docs/en/introduction/glossary";
-      },
-    ) as DocsSearchEntry;
+    const glossary: DocsSearchEntry = (
+      await DocsSearchIndex.getIndex("en")
+    ).find((entry: DocsSearchEntry): boolean => {
+      return entry.u === "/docs/en/introduction/glossary";
+    }) as DocsSearchEntry;
 
     expect(glossary.h).toEqual(
       expect.arrayContaining([
@@ -372,16 +372,19 @@ describe("docs search, on the Glossary's other names", () => {
   it("finds them in each language by that language's names", async () => {
     DocsSearchIndex.clearCache();
 
-    const glossary: DocsSearchEntry = (await DocsSearchIndex.getIndex("de")).find(
-      (entry: DocsSearchEntry): boolean => {
-        return entry.u === "/docs/de/introduction/glossary";
-      },
-    ) as DocsSearchEntry;
+    const glossary: DocsSearchEntry = (
+      await DocsSearchIndex.getIndex("de")
+    ).find((entry: DocsSearchEntry): boolean => {
+      return entry.u === "/docs/de/introduction/glossary";
+    }) as DocsSearchEntry;
 
     expect(glossary.h).toEqual(
       expect.arrayContaining([
         { t: "Dienstkatalog (Dienst)", a: "service" },
-        { t: "OnCallDutyPolicy (Bereitschaftsrichtlinie)", a: "on-call-policy" },
+        {
+          t: "OnCallDutyPolicy (Bereitschaftsrichtlinie)",
+          a: "on-call-policy",
+        },
       ]),
     );
   });

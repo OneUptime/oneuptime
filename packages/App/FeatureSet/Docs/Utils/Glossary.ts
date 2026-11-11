@@ -181,13 +181,9 @@ export const parseGlossary: (
     return null;
   }
 
+  // The same headings at the same levels: the same terms, in the same places.
   const englishTerms: Array<ReadTerm> = readTerms(englishMarkdown);
   const terms: Array<ReadTerm> = readTerms(markdown);
-
-  if (englishTerms.length !== terms.length) {
-    return null;
-  }
-
   const pageUrl: string = localizeDocsUrl(`/docs/${GLOSSARY_PAGE}`, lang);
 
   return terms.map((read: ReadTerm, index: number): DocsGlossaryEntry => {

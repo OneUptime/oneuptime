@@ -1,9 +1,5 @@
 import { ContentPath } from "./Config";
-import {
-  DocsGlossaryEntry,
-  GLOSSARY_PAGE,
-  parseGlossary,
-} from "./Glossary";
+import { DocsGlossaryEntry, GLOSSARY_PAGE, parseGlossary } from "./Glossary";
 import DocsNav, { NavGroup, NavLink } from "./Nav";
 import {
   DEFAULT_DOCS_LANGUAGE,
