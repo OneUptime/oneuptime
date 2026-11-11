@@ -618,7 +618,7 @@ describe("how much one answer tells", () => {
     );
   });
 
-  test("a lineage larger than one drawing reads says the counts are at least what they say", async () => {
+  test("a lineage larger than one drawing reads says each side has at least the tables it counts", async () => {
     const lineage: DataTableLineage = await lineageOf(revenueWarehouse(), t(1));
     const text: string = formatDataTableLineageAnswer(
       buildDataTableLineageAnswer({ ...lineage, isTruncated: true }),
@@ -626,7 +626,39 @@ describe("how much one answer tells", () => {
     );
 
     expect(text.split("\n").pop()).toBe(
-      "This lineage is larger than one answer reads: what is told is true, and the counts are at least what they say.",
+      "This lineage is larger than one answer reads: what is told is true, and each side has at least the tables it counts.",
+    );
+  });
+
+  test("a table next to two of the tables told is counted on each, so the count says up to", async () => {
+    // raw.events feeds both staging tables, two steps up: past one step, each counts it.
+    const graph: MemoryGraph = newGraph();
+    table(graph, t(0), { assetKey: "public.orders" });
+    table(graph, t(1), { assetKey: "staging.a" });
+    table(graph, t(2), { assetKey: "staging.b" });
+    table(graph, t(3), { assetKey: "raw.events" });
+    table(graph, t(4), { assetKey: "marts.orders" });
+    table(graph, t(5), { assetKey: "marts.daily" });
+    feeds(graph, t(1), t(0));
+    feeds(graph, t(2), t(0));
+    feeds(graph, t(3), t(1));
+    feeds(graph, t(3), t(2));
+    feeds(graph, t(0), t(4));
+    feeds(graph, t(4), t(5));
+
+    const answer: DataTableLineageAnswer = await answerOf(graph, t(0), 1);
+
+    expect(answer.upstream).toMatchObject({
+      hiddenCount: 2,
+      isHiddenCountAtMost: true,
+    });
+    // One table counts the one past it down: exactly that.
+    expect(answer.downstream).toMatchObject({
+      hiddenCount: 1,
+      isHiddenCountAtMost: false,
+    });
+    expect(formatDataTableLineageAnswer(answer, NOW)).toContain(
+      "More lineage lies past what is told: up to 2 more tables further up and 1 more table further down (further than 1 step, or past the 10 nearest to one table).",
     );
   });
 

@@ -179,6 +179,11 @@ export interface DataLineageAnswerSide {
    * past the most drawn next to one table.
    */
   hiddenCount: number;
+  /*
+   * Whether more than one drawn table counts some: a table next to two of
+   * them is counted on each, so there are at most hiddenCount.
+   */
+  isHiddenCountAtMost: boolean;
 }
 
 export interface DataLineageAnswerDashboard {
@@ -588,15 +593,20 @@ export function buildDataTableLineageAnswer(
     );
     const isUpstream: boolean = side === DataLineageSide.Upstream;
     let hiddenCount: number = 0;
+    // The drawn tables that count some: a table next to two of them is counted on each.
+    let countedOn: number = 0;
 
     for (const node of lineage.nodes) {
       if (node.side !== side && node.id !== lineage.focusNodeId) {
         continue;
       }
 
-      hiddenCount += isUpstream
+      const hidden: number = isUpstream
         ? node.hiddenUpstreamCount || 0
         : node.hiddenDownstreamCount || 0;
+
+      hiddenCount += hidden;
+      countedOn += hidden > 0 ? 1 : 0;
     }
 
     return {
@@ -607,6 +617,7 @@ export function buildDataTableLineageAnswer(
       untoldProblemCount: Math.max(0, problems.length - limits.problems),
       untoldOtherCount: Math.max(0, others.length - limits.others),
       hiddenCount,
+      isHiddenCountAtMost: countedOn > 1,
     };
   };
 
@@ -963,16 +974,15 @@ export function describeDataTableLineageSides(
 
   const further: Array<string> = [];
 
-  if (answer.upstream.hiddenCount > 0) {
-    further.push(
-      `${plural(answer.upstream.hiddenCount, "more table", "more tables")} further up`,
-    );
-  }
-
-  if (answer.downstream.hiddenCount > 0) {
-    further.push(
-      `${plural(answer.downstream.hiddenCount, "more table", "more tables")} further down`,
-    );
+  for (const [side, way] of [
+    [answer.upstream, "up"],
+    [answer.downstream, "down"],
+  ] as Array<[DataLineageAnswerSide, string]>) {
+    if (side.hiddenCount > 0) {
+      further.push(
+        `${side.isHiddenCountAtMost ? "up to " : ""}${plural(side.hiddenCount, "more table", "more tables")} further ${way}`,
+      );
+    }
   }
 
   if (further.length > 0) {
@@ -987,7 +997,7 @@ export function describeDataTableLineageSides(
 
   if (answer.isTruncated) {
     lines.push(
-      "This lineage is larger than one answer reads: what is told is true, and the counts are at least what they say.",
+      "This lineage is larger than one answer reads: what is told is true, and each side has at least the tables it counts.",
     );
   }
 
