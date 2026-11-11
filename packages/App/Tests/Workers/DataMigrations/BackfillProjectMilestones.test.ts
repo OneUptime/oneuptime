@@ -7,6 +7,7 @@ import BackfillProjectMilestones from "../../../FeatureSet/Workers/DataMigration
 import fs from "fs";
 import path from "path";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * The one-off backfill of activation milestones (issue #6830) as the
@@ -76,9 +77,7 @@ describe("BackfillProjectMilestones", () => {
       },
     };
 
-    const backfill: jest.SpiedFunction<
-      typeof ProjectMilestoneBackfill.backfill
-    > = jest
+    const backfill: SpyInstance<typeof ProjectMilestoneBackfill.backfill> = jest
       .spyOn(ProjectMilestoneBackfill, "backfill")
       .mockResolvedValue(result);
     const info: Array<string> = [];
