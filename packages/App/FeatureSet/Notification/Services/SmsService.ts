@@ -578,36 +578,39 @@ export default class SmsService {
         }
       }
 
-      // Handed to the gateway or to Twilio from here on.
-      hasReachedProvider = true;
-
       if (gateway) {
         /*
          * The gateway is handed the message as written, as Twilio would
          * be, with its id - the SMS log's, when there is one - and, for an
          * on-call page, the links that act on it (CustomChannelActionToken).
          */
+        const payload: ReturnType<typeof buildCallAndSmsGatewayMessagePayload> =
+          buildCallAndSmsGatewayMessagePayload({
+            event: CallAndSmsGatewayEvent.Sms,
+            id: (smsLogId || ObjectID.generate()).toString(),
+            sentAt: OneUptimeDate.getCurrentDate(),
+            to: to.toString(),
+            message: message,
+            isSensitive: Boolean(options.isSensitive),
+            project:
+              project && project.id
+                ? { id: project.id.toString(), name: project.name || "" }
+                : undefined,
+            actions: options.userOnCallLogTimelineId
+              ? await CustomChannelActionToken.getActionLinks(
+                  options.userOnCallLogTimelineId,
+                )
+              : undefined,
+          });
+
+        // Handed to the gateway from here on.
+        hasReachedProvider = true;
+
         const result: CallAndSmsGatewayResult =
           await CallAndSmsGatewayService.send({
             gateway: gateway,
             event: CallAndSmsGatewayEvent.Sms,
-            payload: buildCallAndSmsGatewayMessagePayload({
-              event: CallAndSmsGatewayEvent.Sms,
-              id: (smsLogId || ObjectID.generate()).toString(),
-              sentAt: OneUptimeDate.getCurrentDate(),
-              to: to.toString(),
-              message: message,
-              isSensitive: Boolean(options.isSensitive),
-              project:
-                project && project.id
-                  ? { id: project.id.toString(), name: project.name || "" }
-                  : undefined,
-              actions: options.userOnCallLogTimelineId
-                ? await CustomChannelActionToken.getActionLinks(
-                    options.userOnCallLogTimelineId,
-                  )
-                : undefined,
-            }),
+            payload: payload,
           });
 
         if (!result.ok) {
@@ -637,6 +640,9 @@ export default class SmsService {
             }),
           ).asUserError();
         }
+
+        // Handed to Twilio from here on.
+        hasReachedProvider = true;
 
         const twillioMessage: MessageInstance = await client.messages.create({
           body: message,

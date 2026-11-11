@@ -590,36 +590,39 @@ export default class CallService {
       // Twilio's answer, which says how long the call took; a gateway's does not.
       let twillioCall: CallInstance | null = null;
 
-      // Handed to the gateway or to Twilio from here on.
-      hasReachedProvider = true;
-
       if (gateway) {
         /*
          * The gateway is told what the call says, and - for an on-call
          * page - given the links that act on it (CustomChannelActionToken),
          * which it can offer as key presses of its own.
          */
+        const payload: ReturnType<typeof buildCallAndSmsGatewayMessagePayload> =
+          buildCallAndSmsGatewayMessagePayload({
+            event: CallAndSmsGatewayEvent.Call,
+            id: ObjectID.generate().toString(),
+            sentAt: OneUptimeDate.getCurrentDate(),
+            to: callRequest.to.toString(),
+            message: getCallGatewayMessage(callRequest),
+            isSensitive: Boolean(options.isSensitive),
+            project:
+              project && project.id
+                ? { id: project.id.toString(), name: project.name || "" }
+                : undefined,
+            actions: options.userOnCallLogTimelineId
+              ? await CustomChannelActionToken.getActionLinks(
+                  options.userOnCallLogTimelineId,
+                )
+              : undefined,
+          });
+
+        // Handed to the gateway from here on.
+        hasReachedProvider = true;
+
         const result: CallAndSmsGatewayResult =
           await CallAndSmsGatewayService.send({
             gateway: gateway,
             event: CallAndSmsGatewayEvent.Call,
-            payload: buildCallAndSmsGatewayMessagePayload({
-              event: CallAndSmsGatewayEvent.Call,
-              id: ObjectID.generate().toString(),
-              sentAt: OneUptimeDate.getCurrentDate(),
-              to: callRequest.to.toString(),
-              message: getCallGatewayMessage(callRequest),
-              isSensitive: Boolean(options.isSensitive),
-              project:
-                project && project.id
-                  ? { id: project.id.toString(), name: project.name || "" }
-                  : undefined,
-              actions: options.userOnCallLogTimelineId
-                ? await CustomChannelActionToken.getActionLinks(
-                    options.userOnCallLogTimelineId,
-                  )
-                : undefined,
-            }),
+            payload: payload,
           });
 
         if (!result.ok) {
@@ -660,8 +663,13 @@ export default class CallService {
             )
           : null;
 
+        const twiml: string = this.generateTwimlForCall(callRequest);
+
+        // Handed to Twilio from here on.
+        hasReachedProvider = true;
+
         twillioCall = await client.calls.create({
-          twiml: this.generateTwimlForCall(callRequest),
+          twiml: twiml,
           to: callRequest.to.toString(),
           from: fromNumber.toString(), // From a valid Twilio number
           ...(statusCallbackUrl

@@ -39,10 +39,19 @@ import Twilio from "twilio";
  * works, the project chose not to send.
  */
 
+// Twilio's client stood in for; its TwiML builder, which a call needs, as it is.
 jest.mock("twilio", () => {
+  const actual: { twiml: unknown } = jest.requireActual("twilio") as {
+    twiml: unknown;
+  };
+  const client: ((...args: Array<unknown>) => unknown) & {
+    twiml?: unknown;
+  } = jest.fn();
+  client.twiml = actual.twiml;
+
   return {
     __esModule: true,
-    default: jest.fn(),
+    default: client,
   };
 });
 
@@ -286,6 +295,23 @@ describe("an SMS", () => {
     expect(outcomes.every((outcome: ServerSendingOutcome) => {
       return outcome.channel === ServerSendingChannel.SMS;
     })).toBe(true);
+  });
+
+  test("one OneUptime could not put together never reached the gateway, and says nothing", async () => {
+    (getCallAndSmsGateway as unknown as jest.Mock).mockResolvedValue(GATEWAY);
+    jest
+      .spyOn(CustomChannelActionToken, "getActionLinks")
+      .mockRejectedValue(new Error("database went away") as never);
+
+    await SmsService.sendSms(TO, "Checkout is down.", {
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: ObjectID.generate(),
+    }).catch(() => {
+      // Thrown or not, the outcome is what is read here.
+    });
+
+    expect(post).not.toHaveBeenCalled();
+    expect(outcomes).toEqual([]);
   });
 
   test("through a project's own Twilio account: nothing, whether it goes out or not", async () => {
