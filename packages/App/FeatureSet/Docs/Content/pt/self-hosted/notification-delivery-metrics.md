@@ -109,14 +109,14 @@ Cada atributo assume um de poucos valores fixos, nunca um projeto, uma pessoa, u
 | `notification.provider.config` | `global` para a conta e as configurações da própria instalação; `project` para a conta do Twilio, o servidor SMTP, o webhook ou a conexão com o workspace de um projeto, cujas falhas cabe ao projeto corrigir |
 | `notification.on_call_page` | `true` para uma notificação de um acionamento de plantão, senão `false` |
 | `outcome` | `success`, `failure` ou `not_sent`, como abaixo |
-| `notification.destination` | Somente Slack, Microsoft Teams e Mattermost: `direct_message` para uma pessoa, `channel` para uma publicação em um canal ou em um chat em grupo do Teams, `incoming_webhook` para um webhook de entrada, como o de um assinante de uma página de status |
+| `notification.destination` | Slack, Microsoft Teams e Mattermost: `direct_message` para uma pessoa, `channel` para uma publicação em um canal ou em um chat em grupo do Teams, `incoming_webhook` para um webhook de entrada, como o de um assinante de uma página de status. Webhooks: `status_page_subscriber` para o webhook próprio de um assinante de uma página de status. Omitido no webhook de uma pessoa e em todos os outros canais |
 | `notification.custom_channel.id`, `notification.custom_channel.name` | Somente canais personalizados: o ID do canal, e o nome dele cortado em 100 caracteres |
 
 - `success`: o provedor aceitou a mensagem.
 - `failure`: o provedor a recusou ou não pôde ser alcançado, ou o envio falhou. Um canal de chat que não foi encontrado é uma falha sem duração.
 - `not_sent`: não enviada de propósito. O projeto desativou o canal, tem saldo insuficiente ou está bloqueado, o push está desativado neste servidor, ou um canal personalizado está desativado, excluído ou não coberto pela licença. Uma taxa de sucesso as deixa de fora: são configurações em ação, não a plataforma falhando.
 
-Os webhooks simples dos assinantes de páginas de status ainda não são contados.
+Uma mensagem para o webhook próprio de um assinante de uma página de status conta uma vez, não importa quantas vezes foi tentada: `success` quando o endpoint respondeu com um status 2xx, e `failure` quando respondeu com outro status, não pôde ser alcançado ou o endereço dele não é permitido.
 
 ### O que chegou ao telefone
 
@@ -155,7 +155,7 @@ Os status só chegam onde o provedor consegue informá-los:
 | --- | --- |
 | `monitor_data_received` | Quando o OneUptime recebeu os dados que dispararam o monitor: uma requisição de entrada, o relatório de um agente de servidor, um e-mail de entrada, a verificação de uma sonda, um trap SNMP ou a consulta a um dispositivo de rede. Inclui o tempo que os dados esperaram na fila para serem avaliados. |
 | `record_created` | Quando o incidente, o alerta ou o episódio foi criado: por um monitor de telemetria, uma regra ou uma pessoa, e numa verificação de ausência, como um heartbeat que parou. |
-| `page_started` | Quando um acionamento começou mais tarde: uma pessoa, um fluxo de trabalho ou uma regra que agora corresponde o iniciou, um novo acionamento, um acionamento direto, ou um acionamento que esperou o fim de uma retenção pedida pela regra de plantão dele. |
+| `page_started` | Quando um acionamento começou mais tarde: uma pessoa, um fluxo de trabalho ou uma regra que agora corresponde o iniciou, ou é um acionamento direto. Para um acionamento retido pela regra de plantão dele ou pela OneUptime AI, quando a retenção terminou, ou quando ele começou, se foi antes. Para um novo acionamento, quando o tempo limite após a confirmação se esgotou. Assim, um worker que chegou atrasado a qualquer um deles aparece no tempo. |
 
 Numa requisição de entrada, o tempo parte da última requisição que o endpoint recebeu, então pode ficar um pouco curto.
 
@@ -170,7 +170,7 @@ Numa requisição de entrada, o tempo parte da última requisição que o endpoi
 | `escalation` | Um nível de escalonamento posterior: quando o nível anterior terminou a espera dele, ou na hora quando uma pessoa repassa o acionamento. |
 | `policy_repeat` | A política recomeçando pelo primeiro nível: quando a espera do último nível dela terminou. |
 
-Ele também carrega `notification.channel`, `notification.trigger.type` e, para canais personalizados, `notification.custom_channel.id` e `notification.custom_channel.name`. Uma notificação devida quando o acionamento dela começa nunca está nele: está no tempo de envio.
+Ele também carrega `notification.channel`, `notification.trigger.type` e, para canais personalizados, `notification.custom_channel.id` e `notification.custom_channel.name`. Uma notificação devida quando o acionamento dela começa nunca está nele, nem quando um worker iniciou o acionamento com atraso, após uma retenção ou como novo acionamento: está no tempo de envio.
 
 ### Buckets dos histogramas
 
@@ -220,7 +220,7 @@ A fórmula `$b / $a * 100` é a parcela que falhou, e o objetivo se mantém enqu
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-O objetivo se mantém enquanto `a` ficar igual ou abaixo de 30000. Acionamentos iniciados mais tarde são cronometrados a partir do início deles, não de um gatilho, por isso ficam de fora. Agrupe por `notification.page.start` para ver a fila dos monitores (`monitor_data_received`) separada do resto, ou por `notification.channel` para encontrar um canal lento.
+O objetivo se mantém enquanto `a` ficar igual ou abaixo de 30000. Acionamentos iniciados mais tarde são cronometrados a partir do início ou do vencimento deles, não de um gatilho, por isso ficam de fora. Agrupe por `notification.page.start` para ver a fila dos monitores (`monitor_data_received`) separada do resto, ou por `notification.channel` para encontrar um canal lento.
 
 ### Notificações enviadas mais tarde saem em até 90 segundos
 

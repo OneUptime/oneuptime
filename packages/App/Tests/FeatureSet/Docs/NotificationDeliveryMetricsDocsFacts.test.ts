@@ -36,6 +36,15 @@ import NotificationDeliveryMetrics, {
   OnCallPageStart,
 } from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import { DICTIONARY_FILTER_OPERATOR_OPTIONS } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
+import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import URL from "Common/Types/API/URL";
+import { JSONObject } from "Common/Types/JSON";
+import API from "Common/Utils/API";
+import OnCallPageTiming from "Common/Server/Utils/OnCall/OnCallPageTiming";
+import { getOnCallAcknowledgementTimeoutDueAt } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import { getOnCallPolicyRunPagingDueAt } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
@@ -45,6 +54,7 @@ import WhatsAppStatus from "Common/Types/WhatsAppStatus";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
 import {
   afterAll,
+  afterEach,
   beforeAll,
   beforeEach,
   describe,
@@ -52,6 +62,8 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
+import dns from "dns";
 import fs from "fs";
 import { createRequire } from "module";
 import path from "path";
@@ -770,15 +782,179 @@ describe("messages handed to a provider", () => {
     ).toBe("none");
   });
 
-  it("say subscribers' plain webhooks are not counted while their sender records nothing", () => {
-    const sender: string = readCommonSource(
-      "Server/Utils/StatusPageSubscriberWebhook.ts",
-    );
+  /*
+   * A status page subscriber's own webhook (issue #6685), sent through its
+   * real sender: the address check is real - a private address refused
+   * with no request, a public name looked up through a stand-in DNS - and
+   * only the post itself is stood in for.
+   */
+  describe("a status page subscriber's own webhook", () => {
+    const PUBLIC_HOOK: string = "https://hooks.example.com/oneuptime";
+    const PRIVATE_HOOK: string = "http://10.0.0.5/oneuptime";
 
-    expect(sender).not.toContain("NotificationDeliveryMetrics");
-    expect(section(heading)).toContain(
-      "Status page subscribers' plain webhooks are not counted yet.",
-    );
+    let lookup: SpyInstance<typeof dns.promises.lookup> | null = null;
+    let post: SpyInstance<typeof API.post> | null = null;
+
+    // Each send's answer from the endpoint, in turn: a response, or a throw.
+    const answers: Array<HTTPResponse<JSONObject> | HTTPErrorResponse | Error> =
+      [];
+
+    beforeEach(() => {
+      answers.length = 0;
+      lookup = jest
+        .spyOn(dns.promises, "lookup")
+        .mockResolvedValue([
+          { address: "93.184.216.34", family: 4 },
+        ] as never) as unknown as SpyInstance<typeof dns.promises.lookup>;
+      post = jest.spyOn(API, "post").mockImplementation((async (): Promise<
+        HTTPResponse<JSONObject> | HTTPErrorResponse
+      > => {
+        const answer: HTTPResponse<JSONObject> | HTTPErrorResponse | Error =
+          answers.shift() || new HTTPResponse<JSONObject>(200, {}, {});
+
+        if (answer instanceof Error) {
+          throw answer;
+        }
+
+        return answer;
+      }) as typeof API.post) as unknown as SpyInstance<typeof API.post>;
+    });
+
+    afterEach(() => {
+      // Only this block's own stand-ins: the instruments' stay.
+      lookup?.mockRestore();
+      post?.mockRestore();
+      lookup = null;
+      post = null;
+    });
+
+    const send: (
+      webhookUrl: string,
+    ) => Promise<HTTPResponse<JSONObject> | HTTPErrorResponse | Error> = async (
+      webhookUrl: string,
+    ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse | Error> => {
+      try {
+        return await StatusPageSubscriberWebhookUtil.sendWebhookNotification({
+          webhookUrl: URL.fromString(webhookUrl),
+          isAddedByTeam: false,
+          payload: {
+            eventType: "Incident Created",
+            statusPageId: "5c1b2d3e-0000-4000-8000-000000000002",
+            statusPageName: "Acme Status",
+            statusPageUrl: "https://status.acme.example.com",
+            unsubscribeUrl: "https://status.acme.example.com/unsubscribe",
+            data: {},
+          },
+        });
+      } catch (err) {
+        return err as Error;
+      }
+    };
+
+    it("is counted as the page's rows say: a webhook on the project's side, to a status page subscriber, never a page", async () => {
+      await send(PUBLIC_HOOK);
+
+      const expected: Record<string, string> = {
+        "notification.channel": NotificationDeliveryChannel.Webhook,
+        "notification.provider": NotificationDeliveryProvider.Webhook,
+        "notification.provider.config": NotificationProviderConfig.Project,
+        "notification.on_call_page": "false",
+        outcome: NotificationDeliveryOutcome.Success,
+        "notification.destination":
+          NotificationDestination.StatusPageSubscriber,
+      };
+
+      expect(recordedOn("notification.send.count")).toEqual([expected]);
+      expect(recordedOn("notification.send.duration")).toEqual([expected]);
+
+      // Every value it carries is one the rows list for it.
+      expect(
+        codeIn(rowOf(rows, "notification.channel")[1] as string),
+      ).toContain(expected["notification.channel"]);
+      expect(
+        codeIn(rowOf(rows, "notification.provider")[1] as string),
+      ).toContain(expected["notification.provider"]);
+      expect(
+        codeIn(rowOf(rows, "notification.provider.config")[1] as string),
+      ).toContain(expected["notification.provider.config"]);
+
+      const destination: string = rowOf(
+        rows,
+        "notification.destination",
+      )[1] as string;
+
+      expect(destination).toContain(
+        "Webhooks: `status_page_subscriber` for a status page subscriber's own webhook. Left out on a person's webhook and on every other channel",
+      );
+    });
+
+    it("leaves the destination out on a person's webhook, as the destination row says", () => {
+      const personsWebhook: string = readAppSource(
+        "FeatureSet/Notification/Services/WebhookService.ts",
+      );
+
+      // The person's sender records a webhook, and names no destination.
+      expect(personsWebhook).toContain("NotificationDeliveryChannel.Webhook");
+      expect(
+        membersNamed(
+          personsWebhook,
+          "NotificationDestination",
+          NotificationDestination as unknown as Record<string, string>,
+        ),
+      ).toEqual([]);
+      expect(personsWebhook).not.toContain("destination:");
+    });
+
+    it("is counted once a message, however many times it was tried: success for a 2xx answer, failure for any other, for none, and for an address that is not allowed", async () => {
+      answers.push(
+        new HTTPResponse<JSONObject>(200, {}, {}),
+        new HTTPResponse<JSONObject>(204, {}, {}),
+        new HTTPResponse<JSONObject>(302, {}, {}),
+        new HTTPErrorResponse(404, { message: "Not Found" }, {}),
+        new HTTPErrorResponse(503, { message: "Unavailable" }, {}),
+        new Error("connect ECONNREFUSED"),
+      );
+
+      for (let index: number = 0; index < 6; index++) {
+        await send(PUBLIC_HOOK);
+      }
+
+      await send(PRIVATE_HOOK);
+
+      expect(
+        recordedOn("notification.send.count").map(
+          (attributes: Record<string, string>): string | undefined => {
+            return attributes["outcome"];
+          },
+        ),
+      ).toEqual([
+        "success",
+        "success",
+        "failure",
+        "failure",
+        "failure",
+        "failure",
+        "failure",
+      ]);
+      // Each was timed, the refused one too: it was handed to the sender.
+      expect(recordedOn("notification.send.duration")).toHaveLength(7);
+
+      // The private address was refused before any request was made.
+      expect(post).toHaveBeenCalledTimes(6);
+
+      // One post a message, which tries again on its own: counted once.
+      for (const call of post!.mock.calls) {
+        const options: { retries?: number } | undefined = (
+          call[0] as { options?: { retries?: number } }
+        ).options;
+
+        expect(options?.retries).toBeGreaterThan(1);
+      }
+
+      expect(section(heading)).toContain(
+        "A message to a status page subscriber's own webhook counts once, however many times it was tried: `success` when the endpoint answered with a 2xx status, and `failure` when it answered with another status, could not be reached, or its address is not allowed.",
+      );
+    });
   });
 });
 
@@ -1132,6 +1308,86 @@ describe("how a page is timed", () => {
         return codeIn(row[0] as string)[0] as string;
       }),
     ).toEqual(valuesOf(OnCallPageStart));
+  });
+
+  /*
+   * Issue #6708: a page a once-a-minute worker starts when it comes due is
+   * timed from when it was due - a held run from when its hold ran out, a
+   * page again from when its acknowledgement timeout ran out - read with
+   * the helpers the workers decide with, and handed to the page's start.
+   */
+  it("times a held page and a page again from when they were due, as the page_started row says", () => {
+    const starts: Array<Array<string>> = tables(
+      section("### Time to send"),
+    )[1]?.slice(1) as Array<Array<string>>;
+    const pageStarted: string = starts.find((row: Array<string>): boolean => {
+      return codeIn(row[0] as string)[0] === OnCallPageStart.PageStarted;
+    })?.[1] as string;
+
+    expect(pageStarted).toContain(
+      "For a page held by its on-call rule or by OneUptime AI, when its hold ran out, or when it started if that was sooner.",
+    );
+    expect(pageStarted).toContain(
+      "For a page again, when its acknowledgement timeout ran out.",
+    );
+    expect(pageStarted).toContain(
+      "So a worker that got to either late shows in the time.",
+    );
+
+    const now: Date = new Date("2026-11-11T09:07:30.000Z");
+    const holdRanOut: Date = new Date("2026-11-11T09:00:00.000Z");
+
+    // A hold that ran out seven minutes before the worker got to it.
+    expect(
+      getOnCallPolicyRunPagingDueAt({ pagingStartsAt: holdRanOut, now: now }),
+    ).toEqual(holdRanOut);
+    // A held page started before its hold ran out: when it started.
+    expect(
+      getOnCallPolicyRunPagingDueAt({
+        pagingStartsAt: new Date("2026-11-11T10:00:00.000Z"),
+        now: now,
+      }),
+    ).toEqual(now);
+    // A page again: the timeout's start and its minutes.
+    expect(
+      getOnCallAcknowledgementTimeoutDueAt({
+        startedAt: new Date("2026-11-11T08:30:00.000Z"),
+        minutes: 30,
+      }),
+    ).toEqual(holdRanOut);
+
+    // Outside a record's creation, a page started with when it was due.
+    expect(OnCallPageTiming.startPage({ dueAt: holdRanOut })).toEqual({
+      startedAt: holdRanOut,
+      start: OnCallPageStart.PageStarted,
+    });
+
+    // Handed over where the workers start them.
+    expect(
+      readCommonSource(
+        "Server/Services/OnCallDutyPolicyExecutionLogService.ts",
+      ).replace(WHITESPACE_RUN, " "),
+    ).toContain(
+      "dueAt: getOnCallPolicyRunPagingDueAt({ pagingStartsAt: run.pagingStartsAt, now: data.now, }),",
+    );
+    expect(
+      readCommonSource(
+        "Server/Utils/OnCall/OnCallAcknowledgementTimeout.ts",
+      ).replace(WHITESPACE_RUN, " "),
+    ).toContain(
+      "dueAt: getOnCallAcknowledgementTimeoutDueAt({ startedAt: startedAt, minutes: minutes, }),",
+    );
+
+    // Neither is in send lag: their notifications are due as the page starts.
+    expect(
+      section("### Send lag")
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.startsWith("It also carries");
+        }),
+    ).toContain(
+      "A notification due as its page starts is never in it, even when a worker started the page late, after a hold or as a page again: it is in time to send.",
+    );
   });
 
   it("send lag carries the attributes recordSendLag records, and every schedule", () => {
