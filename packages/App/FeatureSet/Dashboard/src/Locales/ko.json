@@ -49817,5 +49817,10 @@
   "{{time}} (approximate)": "{{time}}(대략)",
   "{{value}} s": "{{value}}초",
   "{{window}}, the same length": "{{window}}, 같은 길이",
-  "Security Events Ingest Endpoint": "보안 이벤트 수집 엔드포인트"
+  "Security Events Ingest Endpoint": "보안 이벤트 수집 엔드포인트",
+  "Alert on Failed Refreshes": "Alert on Failed Refreshes",
+  "Failed Refreshes": "Failed Refreshes",
+  "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.": "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.",
+  "Refresh Monitor ID": "Refresh Monitor ID",
+  "The alert on failed refreshes was not saved: {{error}}": "The alert on failed refreshes was not saved: {{error}}"
 }

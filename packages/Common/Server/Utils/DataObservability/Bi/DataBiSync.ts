@@ -15,7 +15,7 @@ import {
   getDataDashboardRefreshTime,
 } from "../../../../Types/DataObservability/DataDashboardActivity";
 import OneUptimeDate from "../../../../Types/Date";
-import { JSONArray, JSONObject } from "../../../../Types/JSON";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import DataBiConnectionService from "../../../Services/DataBiConnectionService";
 import DataDashboardService from "../../../Services/DataDashboardService";
@@ -258,7 +258,7 @@ export default class DataBiSync {
                 // None failing is kept as none, so the five-minute check skips the tool.
                 failedRefreshes: (failedRefreshes.length > 0
                   ? failedRefreshes
-                  : null) as unknown as JSONArray,
+                  : null) as never,
               }
             : {}),
         },

@@ -957,6 +957,7 @@ import { AddNetworkDeviceNamingRules1809100066190 } from "./1809100066190-AddNet
 import { AddDataDashboardUsageAndRefreshes1809100612000 } from "./1809100612000-AddDataDashboardUsageAndRefreshes";
 import { AddOnCallTimelineToWhatsAppLog1809100612200 } from "./1809100612200-AddOnCallTimelineToWhatsAppLog";
 import { AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210 } from "./1809100612210-AddOnCallTimelineToWhatsAppLogIndexAndKey";
+import { AddDataBiConnectionRefreshAlerts1809100612300 } from "./1809100612300-AddDataBiConnectionRefreshAlerts";
 
 export default [
   InitialMigration,
@@ -1918,4 +1919,5 @@ export default [
   AddDataDashboardUsageAndRefreshes1809100612000,
   AddOnCallTimelineToWhatsAppLog1809100612200,
   AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210,
+  AddDataBiConnectionRefreshAlerts1809100612300,
 ];

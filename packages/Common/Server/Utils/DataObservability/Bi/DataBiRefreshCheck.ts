@@ -101,10 +101,7 @@ export function getBiRefreshMetricRows(data: {
   const rows: Array<JSONObject> = [];
 
   for (const refresh of readDataBiFailedRefreshes(connection.failedRefreshes)) {
-    const value: number | null = getDataBiRefreshFailedValue(
-      refresh,
-      data.now,
-    );
+    const value: number | null = getDataBiRefreshFailedValue(refresh, data.now);
 
     if (value === null) {
       continue;
