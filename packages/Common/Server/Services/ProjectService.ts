@@ -3214,9 +3214,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
       ProductAnalytics.capture({
         event: "server/project_created",
         distinctId: createdItem.createdOwnerEmail.toString(),
+        /*
+         * No project name: no event carries a name (issue #6830,
+         * Docs/analytics/activation.md). The id joins it to the project.
+         */
         properties: {
           project_id: createdItem.id?.toString() || "",
-          project_name: createdItem.name?.toString() || "",
           plan: createdItem.planName?.toString() || "",
           ...utmAnalyticsProperties(createdItem as unknown as JSONObject),
           click_ids: createdItem.clickIds || {},

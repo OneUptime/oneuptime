@@ -44,7 +44,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ### 在 OneUptime 中新增連線
 
-開啟 **產品 → 安全事件 → 連線**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，選擇 **Splunk Enterprise Security**，然後點選 **下一步**。填寫下表中的設定，點選 **下一步**，然後把權杖貼上到 **Authentication token** 中，或者把密碼貼上到 **密碼** 中。
+開啟 **產品 → 安全事件 → 連線**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，選擇 **Splunk Enterprise Security**，然後點選 **下一步**。填寫下表中的設定，點選 **下一步**，然後把權杖貼上到 **驗證權杖** 中，或者把密碼貼上到 **密碼** 中。
 
 ### 儲存之前先測試
 
@@ -53,13 +53,13 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 | 設定 | 填寫什麼 |
 | --- | --- |
-| **Splunk management URL** | 搜尋頭的 REST API，例如 `https://splunk.example.com:8089`。它必須使用 `https`，且不帶查詢字串。路徑會被保留，以便用於在某個路徑下提供 API 的反向代理。 |
+| **Splunk 管理 URL** | 搜尋頭的 REST API，例如 `https://splunk.example.com:8089`。它必須使用 `https`，且不帶查詢字串。路徑會被保留，以便用於在某個路徑下提供 API 的反向代理。 |
 | **搜尋** | 選擇要匯入什麼內容的搜尋，在你更改之前為 `index=notable`。可以縮小它的範圍，例如 `index=notable urgency IN (high, critical)`。OneUptime 會自己新增時間範圍，所以搜尋不能設定 `earliest` 或 `latest`，也不能以管道符開頭。開頭的 `search` 會被去掉。 |
 | **使用者名稱** | Splunk 使用者的名稱，僅當它使用密碼進行驗證時才需要。 |
-| **Authentication token** | 第一步中的權杖。儲存了權杖時，使用的是權杖，而不是使用者名稱和密碼。 |
+| **驗證權杖** | 第一步中的權杖。儲存了權杖時，使用的是權杖，而不是使用者名稱和密碼。 |
 | **密碼** | Splunk 使用者的密碼，僅當不使用權杖時才需要。 |
 
-**Authentication token** 和 **密碼** 會被加密，API 從不傳回它們，也不會再次顯示。要替換其中一個，請在連線上使用 **更新憑證**。要從一種驗證方式切換到另一種，請在那裡輸入新的方式，並開啟 **Remove the stored Authentication token** 或 **Remove the stored Password**。
+**驗證權杖** 和 **密碼** 會被加密，API 從不傳回它們，也不會再次顯示。要替換其中一個，請在連線上使用 **更新憑證**。要從一種驗證方式切換到另一種，請在那裡輸入新的方式，並開啟 **移除已儲存的 驗證權杖** 或 **移除已儲存的 密碼**。
 
 **輪詢** 步驟還有選用的 **描述**、**輪詢間隔（分鐘）**（`1` 到 `1440` 之間的整數，初始為 `5`），以及初始為開啟的 **已啟用**。
 
@@ -120,7 +120,7 @@ Stopped after collecting 10000 records; the window holds more. Records are read 
 
 1. **縮小。** 下一次輪詢從同一個起點讀取長度減半的時間窗，並不斷減半，直到某個時間窗能被完整讀取，最短為一分鐘。執行的警告會說明這一點：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **恢復。** 一個時間窗被完整讀取後，下一個時間窗的長度會再次加倍，最長為 24 小時。
-3. **越過單獨的一分鐘。** 如果連一分鐘內的內容都超過一次輪詢能讀取的量，輪詢會越過這一分鐘，讓更新的 notable event 繼續到達。這次執行仍為 **部分**，**最近的錯誤** 顯示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 匯入這一分鐘，就能找回一次執行能讀取的內容。
+3. **越過單獨的一分鐘。** 如果連一分鐘內的內容都超過一次輪詢能讀取的量，輪詢會越過這一分鐘，讓更新的 notable event 繼續到達。這次執行仍為 **部分**，**最近的錯誤** 顯示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **匯入此時間範圍** 匯入這一分鐘，就能找回一次執行能讀取的內容。
 
 因 Splunk 的錯誤而徹底失敗的執行，會保留游標和時間窗長度，下一次輪詢會再次讀取同一個時間窗。唯一的例外是請求逾時：游標保持不變，但下一個時間窗的長度減半，因為重到無法及時得到回應的時間窗每次嘗試都會逾時。更改 **輪詢間隔（分鐘）** 不會改變這些：它決定的是輪詢多久開始一次，而不是時間窗從哪裡開始。
 
@@ -129,9 +129,9 @@ Stopped after collecting 10000 records; the window holds more. Records are read 
 在連線上點選 **診斷**，可以檢視它最近的執行，並手動操作它。能更改該連線的人都可以啟動這些操作；能檢視它的人都可以閱讀歷史記錄。
 
 - **立即執行** 會立即開始一次輪詢，使用通常的游標，即使連線未處於 **已啟用** 狀態也可以。
-- **Preview notable events** 讀取最長 7 天的時間範圍，不匯入任何內容。
-- **Import this time range** 在你確認後匯入最長 7 天的範圍，不會移動游標。已匯入的列會被跳過。
-- 執行上的 **Copy diagnostics** 會複製它的報告以便提供給支援人員。報告從不包含認證資訊。
+- **預覽重要事件** 讀取最長 7 天的時間範圍，不匯入任何內容。
+- **匯入此時間範圍** 在你確認後匯入最長 7 天的範圍，不會移動游標。已匯入的列會被跳過。
+- 執行上的 **複製診斷資訊** 會複製它的報告以便提供給支援人員。報告從不包含認證資訊。
 
 ## 測試連線
 
@@ -144,7 +144,7 @@ Stopped after collecting 10000 records; the window holds more. Records are read 
 | **Run the search on Splunk** | **搜尋** 中的搜尋在過去 24 小時上執行，只取一列，並說明是哪個匯出端點作出了回應。 |
 | **Notable events available to import** | **搜尋** 中的搜尋在過去 24 小時和過去 7 天內找到的列數。7 天內一列都沒有是警告，而不是失敗。 |
 | **Background workers**、**Poll scheduler**、**Security event storage** | OneUptime 自身的一側：有程序在處理 Worker 佇列的作業，輪詢作業每分鐘執行一次，安全性事件儲存能夠回應。 |
-| **Scheduled polling** | 針對已儲存的連線：輪詢已開啟，沒有執行卡在等待工作程序的狀態，並且輪詢按時執行。 |
+| **排定的輪詢** | 針對已儲存的連線：輪詢已開啟，沒有執行卡在等待工作程序的狀態，並且輪詢按時執行。 |
 
 測試中的每個請求都有 20 秒的期限。測試從不匯入任何內容，也不移動游標，每個失敗的檢查都會說明需要更改什麼。
 
@@ -177,7 +177,7 @@ OneUptime 也可以透過 Splunk 的 HTTP Event Collector（HEC）把它發現�
 :::details Last Error 以 `Splunk Enterprise Security authentication request` 開頭
 - `Splunk Enterprise Security authentication request failed (HTTP ...)`：Splunk 拒絕說明呼叫者是誰。
   - `HTTP 401`：Splunk 沒有接受認證資訊。權杖錯誤、已過期或已刪除，搜尋頭上關閉了權杖驗證，或者使用者名稱或密碼錯誤。請建立一個新權杖，並用 **更新憑證** 儲存。
-  - `HTTP 404`：**Splunk management URL** 不是 REST API。它指向了連接埠 `8000` 上的 Splunk Web，或者帶有搜尋頭不提供的路徑。
+  - `HTTP 404`：**Splunk 管理 URL** 不是 REST API。它指向了連接埠 `8000` 上的 Splunk Web，或者帶有搜尋頭不提供的路徑。
 - `Splunk Enterprise Security authentication request returned ...`：回應的不是搜尋頭的 REST API，而是其他東西，例如連接埠 `8000` 上 Splunk Web 的 HTML 或某個代理的頁面。請讓 URL 指向管理連接埠。
 :::
 
@@ -202,7 +202,7 @@ OneUptime 也可以透過 Splunk 的 HTTP Event Collector（HEC）把它發現�
 
 :::details 執行為 Partial
 - `Stopped after collecting 10000 records; the window holds more`：時間窗中的行超過了一次執行能讀取的 10,000 列。不會遺失任何內容：下一次輪詢會從讀取的最後一列之後開始。一次又一次輪詢都保持 **部分** 的連線正在追趕積壓的內容，它的 **最近輪詢** 和 **最近匯入的事件** 會不斷前進。如果它始終追不上，說明 **搜尋** 中的搜尋在每個輪詢間隔內找到的行超過 10,000 列：請縮小它的範圍，或者縮短 **輪詢間隔（分鐘）**。
-- `More records were created in the one minute from ... than one poll can read`：輪詢越過了這一分鐘。請在 **診斷** 中用 **Import this time range** 匯入它。一次匯入讀取的量與一次輪詢相同。
+- `More records were created in the one minute from ... than one poll can read`：輪詢越過了這一分鐘。請在 **診斷** 中用 **匯入此時間範圍** 匯入它。一次匯入讀取的量與一次輪詢相同。
 :::
 
 :::details 測試通過，但沒有匯入任何內容

@@ -312,6 +312,8 @@
       "dataResidencyFieldDescription": "En etikett for hvor dataene for dette prosjektet driftes, for eksempel \"EU (Frankfurt)\". La feltet stå tomt for å skjule det for prosjektets brukere.",
       "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
       "dataResidencyNotSet": "Ikke angitt",
+      "milestonesCardTitle": "Oppsettsfremdrift",
+      "milestonesCardDescription": "Hva dette prosjektet har gjort siden det ble opprettet, og hvor det står fast. Lest fra serverens egne data; ingenting sendes noe sted.",
       "ingestionBudgets": {
         "dailyCardTitle": "Daglige budsjetter for dette prosjektet",
         "dailyCardDescription": "Dette prosjektets eget daglige budsjett for hvert signal, i stedet for instansstandarden. La et signal stå tomt for instansstandarden, eller skriv inn 0 for ingen grense. Prosjektets administratorer ser disse, men kan ikke endre dem.",

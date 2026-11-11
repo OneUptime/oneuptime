@@ -79,6 +79,28 @@ describe("in a sentence read right to left (Persian)", () => {
       isolated("داشبورد Meraki"),
     );
   });
+
+  /*
+   * The Tatweel (U+0640) Arabic writes after the article ("الـ") is an
+   * Arabic letter to the bidi algorithm: an Arabic word with one moves
+   * nothing in an Arabic sentence. Read by its script, Common, it was a
+   * Latin letter, and the word was set apart for it.
+   */
+  test("Arabic words with a Tatweel are left as they are", () => {
+    for (const value of ["الـ", "بـ", "لـ", "عدد الـ"]) {
+      expect({
+        value,
+        written: setApartInSentence(value, RIGHT_TO_LEFT),
+      }).toEqual({ value, written: value });
+    }
+
+    // With a Latin name after it, the value is set apart for the name.
+    expect(setApartInSentence("الـ CronJob", RIGHT_TO_LEFT)).toBe(
+      isolated("الـ CronJob"),
+    );
+    // In an English sentence it is set apart, as every Arabic word is.
+    expect(setApartInSentence("الـ", LEFT_TO_RIGHT)).toBe(isolated("الـ"));
+  });
 });
 
 describe("in a sentence read left to right (English, German)", () => {

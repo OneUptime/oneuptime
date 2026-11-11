@@ -27,7 +27,9 @@ import { MemoryRouter } from "react-router-dom";
 import ConnectorTestReportView from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ConnectorTestReportView";
 import SecurityEventAttributeColumnPicker from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventAttributeColumnPicker";
 import SecurityEventConnectionDiagnostics from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionDiagnostics";
-import SecurityEventConnectionRunDetails from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionRunDetails";
+import SecurityEventConnectionRunDetails, {
+  ConnectionWindowProgress,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionRunDetails";
 import {
   CONNECTOR_RECORDS_NAMES,
   connectorRecordsName,
@@ -86,6 +88,7 @@ function readLocale(locale: string): Record<string, string> {
 const EN: Record<string, string> = readLocale("en");
 const DE: Record<string, string> = readLocale("de");
 const AR: Record<string, string> = readLocale("ar");
+const RU: Record<string, string> = readLocale("ru");
 
 // The locale's own words for `key`, which must differ from the English.
 function worded(
@@ -273,6 +276,7 @@ beforeAll(async () => {
     resources: {
       de: { translation: DE },
       ar: { translation: AR },
+      ru: { translation: RU },
       en: { translation: EN },
     },
     interpolation: { escapeValue: false },
@@ -451,6 +455,99 @@ describe("a poll's run details in German and Arabic", () => {
   });
 });
 
+/*
+ * A poll that could not read its window, in Russian (#6781). Russian words
+ * the records a connector imports in the nominative plural ("оповещения",
+ * "записи"); the sentences used to put them after "больше", which wants the
+ * genitive ("больше оповещений"), so the filled sentence read "больше
+ * оповещения". Each now names the records where the nominative is right.
+ */
+describe("a poll's window warnings in Russian", () => {
+  const WINDOW_END: string = "2026-09-10T12:00:00Z";
+  const MORE_THAN_A_MINUTE: string =
+    "More {{records}} were created in one minute than one poll can read. Polling moved past that minute so newer {{records}} keep arriving; the {{records}} from it that this poll did not read were not imported.";
+  const MORE_THAN_A_WINDOW: string =
+    "This window held more {{records}} than one poll can read, so the cursor stayed where it was. The next scheduled poll reads a window of {{window}} from the same starting point and widens it again as polls complete.";
+
+  // Every connector's records, each a case of its own.
+  const RECORDS_NAMES: Array<[string]> = Object.values(
+    CONNECTOR_RECORDS_NAMES,
+  ).map((name: string): [string] => {
+    return [name];
+  });
+
+  beforeEach(async () => {
+    await i18next.changeLanguage("ru");
+  });
+
+  test.each(RECORDS_NAMES)(
+    "%s: polling moved past a minute it could not read",
+    (name: string) => {
+      render(
+        <MemoryRouter>
+          <ConnectionWindowProgress
+            recordsName={name}
+            result={{
+              status: "partial",
+              complete: false,
+              windowEnd: WINDOW_END,
+              chunkMinutes: 1,
+              nextChunkMinutes: 1,
+              forcedAdvance: true,
+            }}
+          />
+        </MemoryRouter>,
+      );
+
+      const records: string = worded(RU, name);
+      const alert: HTMLElement = screen.getByRole("alert");
+      const text: string = plain(alert.textContent);
+
+      expect(text).toContain(
+        worded(RU, MORE_THAN_A_MINUTE, { records: records }),
+      );
+      expect(text).toContain(
+        `Один опрос не может прочитать все ${records}, созданные за одну минуту.`,
+      );
+      expect(text).not.toContain(`больше ${records}`);
+      expectNoEnglish(alert, [
+        "were created in one minute",
+        "Polling moved past",
+      ]);
+    },
+  );
+
+  test.each(RECORDS_NAMES)(
+    "%s: the window held more than one poll can read",
+    (name: string) => {
+      render(
+        <MemoryRouter>
+          <ConnectionWindowProgress
+            recordsName={name}
+            result={{
+              status: "partial",
+              complete: false,
+              windowEnd: WINDOW_END,
+              chunkMinutes: 60,
+              nextChunkMinutes: 30,
+            }}
+          />
+        </MemoryRouter>,
+      );
+
+      const records: string = worded(RU, name);
+      const alert: HTMLElement = screen.getByRole("alert");
+
+      expectSentence(alert, RU, MORE_THAN_A_WINDOW);
+      expect(plain(alert.textContent)).toContain(
+        `Один опрос не может прочитать все ${records} этого окна`,
+      );
+      expect(plain(alert.textContent)).not.toContain(`больше ${records}`);
+      expectNoEnglish(alert, ["This window held more", "the cursor stayed"]);
+    },
+  );
+});
+
 describe("a Google SecOps connection's diagnostics in German", () => {
   beforeEach((): void => {
     jest.useFakeTimers();
@@ -530,6 +627,43 @@ describe("a Google SecOps connection's diagnostics in German", () => {
       "Scheduled polling",
       "Run history",
     ]);
+  });
+
+  test("Russian: the historical import's hint names older detections in the nominative its words are in (#6781)", async () => {
+    await i18next.changeLanguage("ru");
+    render(
+      <MemoryRouter>
+        <SecurityEventConnectionDiagnostics
+          connection={googleConnection()}
+          canRun={true}
+          onClose={(): void => {}}
+          onUpdated={(): void => {}}
+        />
+      </MemoryRouter>,
+    );
+    await screen.findByText(
+      worded(
+        RU,
+        "No runs recorded yet. Older polls may not have diagnostic history.",
+      ),
+    );
+
+    const detections: string = worded(RU, "detections");
+    const text: string = plain(document.body.textContent);
+
+    expect(detections).toBe("обнаружения");
+    expect(text).toContain(
+      worded(
+        RU,
+        "Preview a window before importing. The first scheduled poll looks back 24 hours; older {{records}} need a historical import. Choose up to 7 days per run. When Last Error says polling moved past a minute it could not read in full, import that minute here to recover what one run can read.",
+        { records: detections },
+      ),
+    );
+    expect(text).toContain(
+      "более старые обнаружения требуют исторического импорта",
+    );
+    // The dative the nominative plural cannot give: "более старым обнаружения".
+    expect(text).not.toContain("старым обнаружения");
   });
 
   test("the import confirmation is one German sentence naming what is imported and what is skipped", async () => {

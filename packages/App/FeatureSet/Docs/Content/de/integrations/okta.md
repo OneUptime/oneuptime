@@ -42,7 +42,7 @@ Jedes Token darf einen Anteil am API-Ratenlimit der Organisation nutzen, den sei
 
 ### Die Verbindung in OneUptime hinzufügen
 
-Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen** (`/dashboard/{projectId}/security-events/connections`), klicken Sie auf **Verbindung hinzufügen**, wählen Sie **Okta System Log** und klicken Sie auf **Weiter**. Füllen Sie die Einstellungen aus der Tabelle unten aus, klicken Sie auf **Weiter** und fügen Sie das Token in **API token** ein.
+Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen** (`/dashboard/{projectId}/security-events/connections`), klicken Sie auf **Verbindung hinzufügen**, wählen Sie **Okta System Log** und klicken Sie auf **Weiter**. Füllen Sie die Einstellungen aus der Tabelle unten aus, klicken Sie auf **Weiter** und fügen Sie das Token in **API-Token** ein.
 
 ### Vor dem Speichern testen
 
@@ -51,15 +51,15 @@ Klicken Sie unter **Vor dem Speichern testen** auf **Diese Einstellungen testen*
 
 | Einstellung | Was Sie eintragen |
 | --- | --- |
-| **Okta organization URL** | Die Adresse, an der sich Ihre Benutzer anmelden, etwa `https://acme.okta.com`, `https://acme.oktapreview.com` oder `https://login.example.com`. Sie muss `https` verwenden, ohne Pfad. Nicht die `-admin`-Adresse der Admin Console, die die API nicht bereitstellt. |
-| **Event filter** | Optional. Ein [System-Log-Filter](https://developer.okta.com/docs/reference/core-okta-api/#filter), der die zu importierenden Ereignisse auswählt, etwa `eventType sw "user.session" or eventType sw "security"`. Leer importiert die Familien unten. Höchstens 2.000 Zeichen, auf einer Zeile, und nicht auf `published`: OneUptime setzt den Zeitraum selbst. |
-| **API token** | Der Wert des Tokens, für sich allein: OneUptime fügt das Schema `SSWS` selbst hinzu. Er wird verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie ihn mit **Anmeldedaten aktualisieren** an der Verbindung. |
+| **Okta-Organisations-URL** | Die Adresse, an der sich Ihre Benutzer anmelden, etwa `https://acme.okta.com`, `https://acme.oktapreview.com` oder `https://login.example.com`. Sie muss `https` verwenden, ohne Pfad. Nicht die `-admin`-Adresse der Admin Console, die die API nicht bereitstellt. |
+| **Ereignisfilter** | Optional. Ein [System-Log-Filter](https://developer.okta.com/docs/reference/core-okta-api/#filter), der die zu importierenden Ereignisse auswählt, etwa `eventType sw "user.session" or eventType sw "security"`. Leer importiert die Familien unten. Höchstens 2.000 Zeichen, auf einer Zeile, und nicht auf `published`: OneUptime setzt den Zeitraum selbst. |
+| **API-Token** | Der Wert des Tokens, für sich allein: OneUptime fügt das Schema `SSWS` selbst hinzu. Er wird verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie ihn mit **Anmeldedaten aktualisieren** an der Verbindung. |
 
 Der Schritt **Abfrage** hat außerdem eine optionale **Beschreibung**, das **Abfrageintervall (Minuten)**, eine ganze Zahl von `1` bis `1440`, die mit `5` beginnt, und **Aktiviert**, das eingeschaltet beginnt.
 
 ## Was importiert wird
 
-Ohne **Event filter** importiert OneUptime die Ereignisfamilien, die ein Sicherheitsteam beobachtet, nach Präfix von `eventType`. Ein eigener Filter ersetzt diese Liste, statt sie zu ergänzen:
+Ohne **Ereignisfilter** importiert OneUptime die Ereignisfamilien, die ein Sicherheitsteam beobachtet, nach Präfix von `eventType`. Ein eigener Filter ersetzt diese Liste, statt sie zu ergänzen:
 
 | Präfix | Ereignisse |
 | --- | --- |
@@ -119,7 +119,7 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **Eine Abfrage liest höchstens 24 Stunden über den Cursor hinaus.** Eine Verbindung, deren Cursor zurückliegt, holt in einer Reihe von 24-Stunden-Fenstern auf, und ihre **Integrität** zeigt **Holt auf**.
 - **Duplikate werden nach `uuid` verworfen**, innerhalb des Projekts, sodass die Überlappung, ein wiederholtes Zeitfenster und ein Import nie ein Ereignis doppelt speichern.
 
-Einem Link `next`, der woandershin zeigt als auf Ihre **Okta organization URL**, wird nie gefolgt, da das Token jede Anfrage begleitet.
+Einem Link `next`, der woandershin zeigt als auf Ihre **Okta-Organisations-URL**, wird nie gefolgt, da das Token jede Anfrage begleitet.
 
 ### Wenn ein Zeitfenster mehr enthält, als eine Abfrage lesen kann
 
@@ -135,7 +135,7 @@ Kommt ein Lauf gar nicht über den gespeicherten Cursor hinaus, etwa weil schon 
 
 1. **Verkleinern.** Die nächste Abfrage liest ein halb so langes Zeitfenster ab demselben Startpunkt und halbiert weiter, bis ein Zeitfenster vollständig gelesen wird, bis hinunter zu einer Minute. Die Warnung des Laufs sagt das: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Wieder wachsen.** Nachdem ein Zeitfenster vollständig gelesen wurde, ist das nächste wieder doppelt so lang, bis zu 24 Stunden.
-3. **Über eine einzelne Minute hinweggehen.** Enthält selbst eine Minute mehr, als eine Abfrage lesen kann, geht das Abfragen über sie hinweg, damit neuere Ereignisse weiter ankommen, und die Überlappung späterer Abfragen reicht nicht mehr in sie zurück. Der Lauf bleibt **Teilweise**, und **Letzter Fehler** lautet `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importieren Sie diese Minute mit **Diesen Zeitraum importieren**, um zurückzuholen, was ein Lauf lesen kann, oder schränken Sie den **Event filter** ein.
+3. **Über eine einzelne Minute hinweggehen.** Enthält selbst eine Minute mehr, als eine Abfrage lesen kann, geht das Abfragen über sie hinweg, damit neuere Ereignisse weiter ankommen, und die Überlappung späterer Abfragen reicht nicht mehr in sie zurück. Der Lauf bleibt **Teilweise**, und **Letzter Fehler** lautet `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importieren Sie diese Minute mit **Diesen Zeitraum importieren**, um zurückzuholen, was ein Lauf lesen kann, oder schränken Sie den **Ereignisfilter** ein.
 
 Ein Lauf, der ganz fehlschlägt, mit einem Fehler von Okta, behält den Cursor und die Fensterlänge, und die nächste Abfrage liest dasselbe Zeitfenster erneut. Die einzige Ausnahme ist eine Anfrage, deren Zeit abgelaufen ist: Der Cursor bleibt, aber das nächste Zeitfenster ist halb so lang, denn ein Zeitfenster, das zu schwer ist, um rechtzeitig beantwortet zu werden, würde bei jedem Versuch ablaufen. Ein anderes **Abfrageintervall (Minuten)** ändert nichts davon: Es entscheidet, wie oft eine Abfrage beginnt, nicht, wo ihr Zeitfenster beginnt.
 
@@ -144,7 +144,7 @@ Ein Lauf, der ganz fehlschlägt, mit einem Fehler von Okta, behält den Cursor u
 Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehen und von Hand mit ihr zu arbeiten. Wer die Verbindung ändern darf, kann diese starten; wer sie sehen darf, kann den Verlauf lesen.
 
 - **Jetzt ausführen** startet sofort eine Abfrage, mit dem üblichen Cursor, auch wenn die Verbindung nicht **Aktiviert** ist.
-- **Preview log events** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
+- **Vorschau der Log-Ereignisse** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
 - **Diesen Zeitraum importieren** importiert nach Ihrer Bestätigung einen Zeitraum von bis zu 7 Tagen, ohne den Cursor zu verschieben. Bereits importierte Ereignisse werden übersprungen. Okta bewahrt das System Log 90 Tage lang auf.
 - **Diagnosen kopieren** an einem Lauf kopiert seinen Bericht für den Support. Er enthält nie Anmeldedaten.
 
@@ -156,7 +156,7 @@ Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehe
 | --- | --- |
 | **Konfiguration** | Jede Einstellung ist vorhanden und gültig. Schlägt das fehl, wird nichts kontaktiert. |
 | **Authenticate with Okta** | Okta nimmt das Token für das System Log an, mit einem gelesenen Ereignis und ohne Filter. |
-| **Read System Log events** | Ein Ereignis aus den letzten 24 Stunden lässt sich durch den Filter lesen, den das Abfragen verwendet, Ihren oder den Standardfilter, deshalb schlägt ein ungültiger **Event filter** hier fehl statt bei der ersten Abfrage. |
+| **Read System Log events** | Ein Ereignis aus den letzten 24 Stunden lässt sich durch den Filter lesen, den das Abfragen verwendet, Ihren oder den Standardfilter, deshalb schlägt ein ungültiger **Ereignisfilter** hier fehl statt bei der ersten Abfrage. |
 | **Events available to import** | Wie viele Ereignisse in den letzten 24 Stunden und den letzten 7 Tagen veröffentlicht wurden, je eine Seite mit 1.000, `1000+` heißt also mehr. Keine in 7 Tagen ist eine Warnung, kein Fehler. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Die Seite von OneUptime selbst: Ein Prozess nimmt die Aufträge der Worker-Warteschlange an, der Abfrageauftrag läuft jede Minute, und der Speicher der Sicherheitsereignisse antwortet. |
 | **Geplante Abfrage** | Für eine gespeicherte Verbindung: Das Abfragen ist eingeschaltet, kein Lauf wartet festgefahren auf einen Worker, und die Abfragen laufen pünktlich. |
@@ -168,7 +168,7 @@ Jede Anfrage in einem Test hat eine Frist von 20 Sekunden. Ein Test importiert n
 Der **Letzter Fehler** der Verbindung bewahrt die vollständige Fehlermeldung, mit geschwärzten Anmeldedaten, hinter einem Präfix, das den fehlgeschlagenen Schritt nennt. Hat eine Verbindung einen Fehler, wählen Sie in ihrer Spalte **Aktionen** die Aktion **Fehler anzeigen**, um ihn zu lesen, und im Dialog **Fehler kopieren**, um ihn zu kopieren. Jede Meldung beginnt mit `Okta System Log events request` und zitiert nach dem Status den eigenen Fehlercode von Okta; lesen Sie, was danach folgt.
 
 :::details Letzter Fehler sagt `failed (HTTP 400)`
-Okta hat die Parameter der Anfrage abgelehnt, `E0000053`. Hat das Token funktioniert, ist das fast immer der **Event filter**: Prüfen Sie seine Operatoren, `eq`, `ne`, `co`, `sw`, `ew`, `pr`, `gt`, `ge`, `lt` und `le`, seine Verknüpfungen mit `and` und `or` und die doppelten Anführungszeichen um seine Werte, oder leeren Sie ihn, um die Standardfamilien zu verwenden. Bei einem Import kann es auch heißen, dass der Zeitraum mehr als 180 Tage zurück beginnt.
+Okta hat die Parameter der Anfrage abgelehnt, `E0000053`. Hat das Token funktioniert, ist das fast immer der **Ereignisfilter**: Prüfen Sie seine Operatoren, `eq`, `ne`, `co`, `sw`, `ew`, `pr`, `gt`, `ge`, `lt` und `le`, seine Verknüpfungen mit `and` und `or` und die doppelten Anführungszeichen um seine Werte, oder leeren Sie ihn, um die Standardfamilien zu verwenden. Bei einem Import kann es auch heißen, dass der Zeitraum mehr als 180 Tage zurück beginnt.
 :::
 
 :::details Letzter Fehler sagt `failed (HTTP 401)` oder `failed (HTTP 403)`
@@ -194,12 +194,12 @@ Für diese Verbindung ist noch keine Abfrage fertig geworden. Führen Sie **Verb
 :::
 
 :::details Ein Lauf ist Teilweise
-- `Stopped after collecting 10000 events`: Das Zeitfenster enthielt mehr als die 10.000 Ereignisse, die ein Lauf liest. Nichts geht verloren: Die nächste Abfrage beginnt nach dem letzten gelesenen Ereignis. Eine Verbindung, die Abfrage um Abfrage **Teilweise** bleibt, holt einen Rückstand auf, und ihre Werte **Zuletzt abgefragt** und **Letztes importiertes Ereignis** bewegen sich weiter. Holt sie nie auf, veröffentlicht die Organisation mehr passende Ereignisse, als ein Abfrageintervall fassen kann: Schränken Sie den **Event filter** ein oder verkürzen Sie das **Abfrageintervall (Minuten)**.
+- `Stopped after collecting 10000 events`: Das Zeitfenster enthielt mehr als die 10.000 Ereignisse, die ein Lauf liest. Nichts geht verloren: Die nächste Abfrage beginnt nach dem letzten gelesenen Ereignis. Eine Verbindung, die Abfrage um Abfrage **Teilweise** bleibt, holt einen Rückstand auf, und ihre Werte **Zuletzt abgefragt** und **Letztes importiertes Ereignis** bewegen sich weiter. Holt sie nie auf, veröffentlicht die Organisation mehr passende Ereignisse, als ein Abfrageintervall fassen kann: Schränken Sie den **Ereignisfilter** ein oder verkürzen Sie das **Abfrageintervall (Minuten)**.
 - `More records were created in the one minute from ... than one poll can read`: Das Abfragen ist über diese Minute hinweggegangen. Importieren Sie sie mit **Diesen Zeitraum importieren** in der **Diagnose**. Ein Import liest so viel wie eine Abfrage.
 :::
 
 :::details Der Test besteht, aber nichts wird importiert
-Lesen Sie **Events available to import** im Bericht des Tests. Mit dem Standardfilter veröffentlicht eine Organisation mit Benutzern ständig Anmeldungen, `0` in den letzten 7 Tagen heißt also, dass die URL eine Sandbox oder eine ungenutzte Organisation ist. Mit Ihrem eigenen **Event filter** heißt es, dass der Filter nichts getroffen hat: Vergleichen Sie ihn mit den Ereignistypen im System Log der Admin Console.
+Lesen Sie **Events available to import** im Bericht des Tests. Mit dem Standardfilter veröffentlicht eine Organisation mit Benutzern ständig Anmeldungen, `0` in den letzten 7 Tagen heißt also, dass die URL eine Sandbox oder eine ungenutzte Organisation ist. Mit Ihrem eigenen **Ereignisfilter** heißt es, dass der Filter nichts getroffen hat: Vergleichen Sie ihn mit den Ereignistypen im System Log der Admin Console.
 :::
 
 ## Was Sie davon haben

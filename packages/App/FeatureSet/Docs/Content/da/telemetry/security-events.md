@@ -236,7 +236,7 @@ En AWS-konto, et Google Cloud-projekt eller et Azure-abonnement, der er [forbund
 | Microsoft Entra ID | Logins, mappeændringer og risikoregistreringer, hvis du vælger det mislykkede baggrunds- og app-logins, og fra Microsoft 365-auditloggen videresendelse af mail, deling og phishingdomme | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Logins, Googles egne fund, administratorændringer og app-adgang, og deling i Drev | [Google Workspace](/docs/integrations/google-workspace) |
 
-- Produktets egne advarsler på eller over **Open Cases From** (**Høj og højere**, medmindre du vælger et andet niveau, eller **Aldrig**) åbner [sager](/docs/telemetry/security-cases), grupperet efter den bruger, vært eller adresse, de handler om.
+- Produktets egne advarsler på eller over **Åbn sager fra** (**Høj og højere**, medmindre du vælger et andet niveau, eller **Aldrig**) åbner [sager](/docs/telemetry/security-cases), grupperet efter den bruger, vært eller adresse, de handler om.
 - En forbindelse læser poster efter det tidspunkt, produktet oprettede dem, ikke efter tidspunktet for den aktivitet, de beskriver. En SIEM-regel, der kører hver time, opretter detektioner længe efter de begivenheder, den matchede, og de importeres alligevel.
 - Den første hentning kigger 24 timer tilbage, så en ny forbindelse viser nylige poster med det samme.
 - **Test forbindelse** i forbindelsens række tjekker adgangen til produktet, og at OneUptimes egne workers kører, og importerer intet. **Kør nu** henter med det samme.
@@ -283,7 +283,7 @@ Et felt er enten et kort navn (`severity`, `class`, `category`, `activity`, `sta
 
 ### Facetter
 
-Sidebjælken tæller vinduets begivenheder efter **Kilde**, **Alvorlighed**, **Request Outcome**, **Begivenhedsklasse**, **Kategori**, **Aktivitet**, **Status**, **Leverandør**, **Produkt**, **Detektionsregel**, **Kildebruger**, **Kildevært**, **Proces** og **Overordnet proces**. Klik på en værdi for kun at beholde dens begivenheder, eller på minusset ved siden af for at udelade dem. Klik igen for at fortryde. Diagrammet og hver optælling beskriver præcis begivenhederne på listen.
+Sidebjælken tæller vinduets begivenheder efter **Kilde**, **Alvorlighed**, **Resultat af anmodning**, **Begivenhedsklasse**, **Kategori**, **Aktivitet**, **Status**, **Leverandør**, **Produkt**, **Detektionsregel**, **Kildebruger**, **Kildevært**, **Proces** og **Overordnet proces**. Klik på en værdi for kun at beholde dens begivenheder, eller på minusset ved siden af for at udelade dem. Klik igen for at fortryde. Diagrammet og hver optælling beskriver præcis begivenhederne på listen.
 
 ### Hvad der skete bagefter
 

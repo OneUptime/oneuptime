@@ -16,6 +16,13 @@ import { translationKey } from "../../Translator";
  * Field keys are the keys stored in SecurityEventConnection.config
  * (non-secret, readable) and SecurityEventConnection.secrets (encrypted,
  * write-only) respectively. Connectors read their settings by these keys.
+ *
+ * Words a reader sees in the connection form - a provider's description, a
+ * field's title, description and choices, a placeholder written as words -
+ * are wrapped in translationKey(), so the Dashboard's extractor reads them
+ * into its locales and the form draws them in the reader's language. Names
+ * (Microsoft Sentinel, CrowdStrike Falcon) and placeholders that show a
+ * value to type (a GUID, an address, a query) stay as written.
  */
 
 export type SecurityEventConnectorCategory =
@@ -164,8 +171,8 @@ export interface SecurityEventConnectorDefinition {
 }
 
 const MICROSOFT_CLOUD_OPTIONS: Array<ConnectorFieldOption> = [
-  { label: "Azure public cloud", value: "public" },
-  { label: "Azure Government (US)", value: "usgov" },
+  { label: translationKey("Azure public cloud"), value: "public" },
+  { label: translationKey("Azure Government (US)"), value: "usgov" },
 ];
 
 /*
@@ -174,10 +181,13 @@ const MICROSOFT_CLOUD_OPTIONS: Array<ConnectorFieldOption> = [
  * address, and DoD has addresses of its own (MicrosoftEntraIdClient).
  */
 const MICROSOFT_ENTRA_ID_CLOUD_OPTIONS: Array<ConnectorFieldOption> = [
-  { label: "Azure public cloud", value: "public" },
-  { label: "Azure public cloud, Microsoft 365 GCC", value: "gcc" },
-  { label: "Azure Government (US), GCC High", value: "usgov" },
-  { label: "Azure Government (US), DoD", value: "dod" },
+  { label: translationKey("Azure public cloud"), value: "public" },
+  {
+    label: translationKey("Azure public cloud, Microsoft 365 GCC"),
+    value: "gcc",
+  },
+  { label: translationKey("Azure Government (US), GCC High"), value: "usgov" },
+  { label: translationKey("Azure Government (US), DoD"), value: "dod" },
 ];
 
 export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefinition> =
@@ -187,8 +197,9 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       title: "Microsoft Sentinel",
       vendorName: "Microsoft",
       productName: "Microsoft Sentinel",
-      description:
+      description: translationKey(
         "Import Sentinel incidents from a Log Analytics workspace as Incident Finding events.",
+      ),
       category: "SIEM",
       icon: IconProp.ShieldCheck,
       logo: ProviderLogo.MicrosoftSentinel,
@@ -200,48 +211,57 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       configFields: [
         {
           key: "tenantId",
-          title: "Directory (tenant) ID",
-          description:
+          title: translationKey("Directory (tenant) ID"),
+          description: translationKey(
             "The Microsoft Entra tenant that owns the app registration.",
+          ),
           type: "text",
           required: true,
           placeholder: "00000000-0000-0000-0000-000000000000",
         },
         {
           key: "clientId",
-          title: "Application (client) ID",
-          description:
+          title: translationKey("Application (client) ID"),
+          description: translationKey(
             "The app registration granted the Microsoft Sentinel Reader role on the workspace.",
+          ),
           type: "text",
           required: true,
           placeholder: "00000000-0000-0000-0000-000000000000",
         },
         {
           key: "subscriptionId",
-          title: "Subscription ID",
-          description: "The Azure subscription that contains the workspace.",
+          title: translationKey("Subscription ID"),
+          description: translationKey(
+            "The Azure subscription that contains the workspace.",
+          ),
           type: "text",
           required: true,
         },
         {
           key: "resourceGroup",
-          title: "Resource group",
-          description: "The resource group of the Log Analytics workspace.",
+          title: translationKey("Resource group"),
+          description: translationKey(
+            "The resource group of the Log Analytics workspace.",
+          ),
           type: "text",
           required: true,
         },
         {
           key: "workspaceName",
-          title: "Workspace name",
-          description:
+          title: translationKey("Workspace name"),
+          description: translationKey(
             "The Log Analytics workspace Microsoft Sentinel is enabled on.",
+          ),
           type: "text",
           required: true,
         },
         {
           key: "cloud",
-          title: "Cloud",
-          description: "Which Azure cloud hosts the tenant and workspace.",
+          title: translationKey("Cloud"),
+          description: translationKey(
+            "Which Azure cloud hosts the tenant and workspace.",
+          ),
           type: "dropdown",
           // Left out, the connector reads the public cloud (defaultValue).
           required: false,
@@ -253,8 +273,10 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       secretFields: [
         {
           key: "clientSecret",
-          title: "Client secret",
-          description: "A client secret of the app registration.",
+          title: translationKey("Client secret"),
+          description: translationKey(
+            "A client secret of the app registration.",
+          ),
           type: "password",
           required: true,
         },
@@ -265,8 +287,9 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       title: "Microsoft Defender XDR",
       vendorName: "Microsoft",
       productName: "Microsoft Defender XDR",
-      description:
+      description: translationKey(
         "Import Defender XDR alerts through the Microsoft Graph security API as Detection Finding events.",
+      ),
       category: "EDR / XDR",
       icon: IconProp.ShieldExclamation,
       logo: ProviderLogo.MicrosoftDefender,
@@ -278,26 +301,28 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       configFields: [
         {
           key: "tenantId",
-          title: "Directory (tenant) ID",
-          description:
+          title: translationKey("Directory (tenant) ID"),
+          description: translationKey(
             "The Microsoft Entra tenant that owns the app registration.",
+          ),
           type: "text",
           required: true,
           placeholder: "00000000-0000-0000-0000-000000000000",
         },
         {
           key: "clientId",
-          title: "Application (client) ID",
-          description:
+          title: translationKey("Application (client) ID"),
+          description: translationKey(
             "The app registration granted the SecurityAlert.Read.All application permission.",
+          ),
           type: "text",
           required: true,
           placeholder: "00000000-0000-0000-0000-000000000000",
         },
         {
           key: "cloud",
-          title: "Cloud",
-          description: "Which Azure cloud hosts the tenant.",
+          title: translationKey("Cloud"),
+          description: translationKey("Which Azure cloud hosts the tenant."),
           type: "dropdown",
           // Left out, the connector reads the public cloud (defaultValue).
           required: false,
@@ -309,8 +334,10 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       secretFields: [
         {
           key: "clientSecret",
-          title: "Client secret",
-          description: "A client secret of the app registration.",
+          title: translationKey("Client secret"),
+          description: translationKey(
+            "A client secret of the app registration.",
+          ),
           type: "password",
           required: true,
         },
@@ -321,8 +348,9 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       title: "CrowdStrike Falcon",
       vendorName: "CrowdStrike",
       productName: "Falcon",
-      description:
+      description: translationKey(
         "Import Falcon alerts (endpoint, identity and cloud detections) as Detection Finding events.",
+      ),
       category: "EDR / XDR",
       icon: IconProp.Bolt,
       logo: ProviderLogo.CrowdStrike,
@@ -334,17 +362,19 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       configFields: [
         {
           key: "clientId",
-          title: "Client ID",
-          description:
+          title: translationKey("Client ID"),
+          description: translationKey(
             "The Falcon API client ID. The client needs the Alerts: Read scope.",
+          ),
           type: "text",
           required: true,
         },
         {
           key: "cloud",
-          title: "Falcon cloud",
-          description:
+          title: translationKey("Falcon cloud"),
+          description: translationKey(
             "The CrowdStrike cloud your customer ID (CID) is hosted in; it decides the API hostname.",
+          ),
           type: "dropdown",
           required: true,
           options: [
@@ -362,8 +392,8 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       secretFields: [
         {
           key: "clientSecret",
-          title: "Client secret",
-          description: "The Falcon API client secret.",
+          title: translationKey("Client secret"),
+          description: translationKey("The Falcon API client secret."),
           type: "password",
           required: true,
         },
@@ -374,8 +404,9 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       title: "Splunk Enterprise Security",
       vendorName: "Splunk",
       productName: "Splunk Enterprise Security",
-      description:
+      description: translationKey(
         "Import notable events from Splunk Enterprise Security (or any saved search) as Detection Finding events.",
+      ),
       category: "SIEM",
       icon: IconProp.Search,
       logo: ProviderLogo.Splunk,
@@ -387,18 +418,20 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       configFields: [
         {
           key: "url",
-          title: "Splunk management URL",
-          description:
+          title: translationKey("Splunk management URL"),
+          description: translationKey(
             "The REST API base URL of the search head, usually on port 8089.",
+          ),
           type: "url",
           required: true,
           placeholder: "https://splunk.example.com:8089",
         },
         {
           key: "searchString",
-          title: "Search",
-          description:
+          title: translationKey("Search"),
+          description: translationKey(
             "The SPL that selects the events to import. The connector adds the time range itself; do not include earliest or latest.",
+          ),
           type: "text",
           required: false,
           placeholder: "index=notable",
@@ -406,9 +439,10 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         },
         {
           key: "username",
-          title: "Username",
-          description:
+          title: translationKey("Username"),
+          description: translationKey(
             "Only when authenticating with a password instead of an authentication token.",
+          ),
           type: "text",
           required: false,
         },
@@ -416,17 +450,19 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       secretFields: [
         {
           key: "apiToken",
-          title: "Authentication token",
-          description:
+          title: translationKey("Authentication token"),
+          description: translationKey(
             "A Splunk authentication token (Settings > Tokens). Leave empty when using username and password.",
+          ),
           type: "password",
           required: false,
         },
         {
           key: "password",
-          title: "Password",
-          description:
+          title: translationKey("Password"),
+          description: translationKey(
             "The password for the username above. Leave empty when using an authentication token.",
+          ),
           type: "password",
           required: false,
         },
@@ -437,8 +473,9 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       title: "Elastic Security",
       vendorName: "Elastic",
       productName: "Elastic Security",
-      description:
+      description: translationKey(
         "Import detection alerts from Elastic Security through the Kibana detections API as Detection Finding events.",
+      ),
       category: "SIEM",
       icon: IconProp.Database,
       logo: ProviderLogo.Elastic,
@@ -450,17 +487,20 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       configFields: [
         {
           key: "kibanaUrl",
-          title: "Kibana URL",
-          description: "The base URL of Kibana, without a trailing path.",
+          title: translationKey("Kibana URL"),
+          description: translationKey(
+            "The base URL of Kibana, without a trailing path.",
+          ),
           type: "url",
           required: true,
           placeholder: "https://kibana.example.com",
         },
         {
           key: "space",
-          title: "Kibana space",
-          description:
+          title: translationKey("Kibana space"),
+          description: translationKey(
             "The space that holds the detection rules. Leave empty for the default space.",
+          ),
           type: "text",
           required: false,
         },
@@ -468,9 +508,10 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       secretFields: [
         {
           key: "apiKey",
-          title: "API key",
-          description:
+          title: translationKey("API key"),
+          description: translationKey(
             "A Kibana API key (the base64 encoded id:key value) with read access to detection alerts.",
+          ),
           type: "password",
           required: true,
         },
@@ -481,8 +522,9 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       title: "AWS Security Hub",
       vendorName: "Amazon Web Services",
       productName: "AWS Security Hub",
-      description:
+      description: translationKey(
         "Import Security Hub findings (GuardDuty, Inspector, Macie, IAM Access Analyzer and partner products) as Detection and Compliance Finding events.",
+      ),
       category: "Cloud security",
       icon: IconProp.Cloud,
       logo: ProviderLogo.AwsSecurityHub,
@@ -494,18 +536,20 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       configFields: [
         {
           key: "region",
-          title: "Region",
-          description:
+          title: translationKey("Region"),
+          description: translationKey(
             "The AWS region of the Security Hub administrator or aggregation account.",
+          ),
           type: "text",
           required: true,
           placeholder: "us-east-1",
         },
         {
           key: "accessKeyId",
-          title: "Access key ID",
-          description:
+          title: translationKey("Access key ID"),
+          description: translationKey(
             "An IAM access key with the securityhub:GetFindings permission.",
+          ),
           type: "text",
           required: true,
           placeholder: "AKIA...",
@@ -514,16 +558,19 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       secretFields: [
         {
           key: "secretAccessKey",
-          title: "Secret access key",
-          description: "The secret access key for the access key ID above.",
+          title: translationKey("Secret access key"),
+          description: translationKey(
+            "The secret access key for the access key ID above.",
+          ),
           type: "password",
           required: true,
         },
         {
           key: "sessionToken",
-          title: "Session token",
-          description:
+          title: translationKey("Session token"),
+          description: translationKey(
             "Only for temporary credentials. Leave empty for a long-lived access key.",
+          ),
           type: "password",
           required: false,
         },
@@ -534,8 +581,9 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       title: "Okta System Log",
       vendorName: "Okta",
       productName: "Okta System Log",
-      description:
+      description: translationKey(
         "Import authentication, MFA, account and policy events from the Okta System Log as OCSF identity events.",
+      ),
       category: "Identity",
       icon: IconProp.Key,
       logo: ProviderLogo.Okta,
@@ -547,17 +595,20 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       configFields: [
         {
           key: "orgUrl",
-          title: "Okta organization URL",
-          description: "Your Okta org URL, without a trailing path.",
+          title: translationKey("Okta organization URL"),
+          description: translationKey(
+            "Your Okta org URL, without a trailing path.",
+          ),
           type: "url",
           required: true,
           placeholder: "https://acme.okta.com",
         },
         {
           key: "filter",
-          title: "Event filter",
-          description:
+          title: translationKey("Event filter"),
+          description: translationKey(
             "Optional Okta System Log filter expression. Leave empty to import the security-relevant event families the connector selects by default.",
+          ),
           type: "text",
           required: false,
           placeholder: 'eventType sw "user.session" or eventType sw "security"',
@@ -566,9 +617,10 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       secretFields: [
         {
           key: "apiToken",
-          title: "API token",
-          description:
+          title: translationKey("API token"),
+          description: translationKey(
             "An Okta API token (SSWS) for a read-only administrator.",
+          ),
           type: "password",
           required: true,
         },
@@ -579,8 +631,9 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       title: "Microsoft Entra ID",
       vendorName: "Microsoft",
       productName: "Microsoft Entra ID",
-      description:
+      description: translationKey(
         "Import sign-ins, directory changes and Identity Protection's risk detections from Microsoft Entra ID, and the Microsoft 365 audit log if you choose, as OCSF identity events.",
+      ),
       category: "Identity",
       icon: IconProp.Identification,
       logo: ProviderLogo.MicrosoftEntraId,
@@ -597,27 +650,30 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       configFields: [
         {
           key: "tenantId",
-          title: "Directory (tenant) ID",
-          description:
+          title: translationKey("Directory (tenant) ID"),
+          description: translationKey(
             "The Microsoft Entra tenant to read sign-ins and directory changes from.",
+          ),
           type: "text",
           required: true,
           placeholder: "00000000-0000-0000-0000-000000000000",
         },
         {
           key: "clientId",
-          title: "Application (client) ID",
-          description:
+          title: translationKey("Application (client) ID"),
+          description: translationKey(
             "The app registration granted the AuditLog.Read.All and IdentityRiskEvent.Read.All application permissions.",
+          ),
           type: "text",
           required: true,
           placeholder: "00000000-0000-0000-0000-000000000000",
         },
         {
           key: "cloud",
-          title: "Cloud",
-          description:
+          title: translationKey("Cloud"),
+          description: translationKey(
             "Which Microsoft cloud hosts the tenant, by its Microsoft 365 plan.",
+          ),
           type: "dropdown",
           // Left out, the connector reads the public cloud (defaultValue).
           required: false,
@@ -627,13 +683,14 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         },
         {
           key: ENTRA_BACKGROUND_SIGN_INS_KEY,
-          title: "Background and app sign-ins",
+          title: translationKey("Background and app sign-ins"),
           /*
            * Plain words first, then the names the Entra admin center's
            * Sign-in logs give the two lists.
            */
-          description:
+          description: translationKey(
             "Also import failed sign-ins apps make in the background: non-interactive user sign-ins and service principal sign-ins.",
+          ),
           type: "toggle",
           required: false,
           defaultValue: false,
@@ -641,9 +698,10 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         },
         {
           key: MICROSOFT_365_AUDIT_KEY,
-          title: "Microsoft 365 audit log",
-          description:
+          title: translationKey("Microsoft 365 audit log"),
+          description: translationKey(
             "Also import Exchange, SharePoint, OneDrive and Teams activity. The app registration needs the ActivityFeed.Read permission of the Office 365 Management APIs.",
+          ),
           type: "toggle",
           required: false,
           defaultValue: false,
@@ -653,8 +711,10 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       secretFields: [
         {
           key: "clientSecret",
-          title: "Client secret",
-          description: "A client secret of the app registration.",
+          title: translationKey("Client secret"),
+          description: translationKey(
+            "A client secret of the app registration.",
+          ),
           type: "password",
           required: true,
         },
@@ -665,8 +725,9 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       title: "Google Workspace",
       vendorName: "Google",
       productName: "Google Workspace",
-      description:
+      description: translationKey(
         "Import sign-ins, admin changes, OAuth grants and account security events from Google Workspace's audit logs as OCSF identity events.",
+      ),
       category: "Identity",
       icon: IconProp.BuildingOffice,
       logo: ProviderLogo.GoogleWorkspace,
@@ -684,18 +745,20 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       configFields: [
         {
           key: "adminEmail",
-          title: "Administrator email",
-          description:
+          title: translationKey("Administrator email"),
+          description: translationKey(
             "A Google Workspace administrator who may read the audit logs. The service account reads them as this person, through domain-wide delegation.",
+          ),
           type: "text",
           required: true,
           placeholder: "admin@example.com",
         },
         {
           key: GOOGLE_WORKSPACE_DRIVE_KEY,
-          title: "Drive activity",
-          description:
+          title: translationKey("Drive activity"),
+          description: translationKey(
             "Also import files shared outside the organization, made public or downloaded in Google Drive.",
+          ),
           type: "toggle",
           required: false,
           defaultValue: false,
@@ -705,9 +768,10 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       secretFields: [
         {
           key: "serviceAccountJson",
-          title: "Service account JSON",
-          description:
+          title: translationKey("Service account JSON"),
+          description: translationKey(
             "A Google Cloud service-account key (JSON) whose client ID has domain-wide delegation for the admin.reports.audit.readonly scope.",
+          ),
           type: "json",
           required: true,
           placeholder: '{ "client_email": "...", "private_key": "..." }',
@@ -725,8 +789,9 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
        */
       vendorName: "Google",
       productName: "Google SecOps",
-      description:
+      description: translationKey(
         "Import Google SecOps (Chronicle) alerts and rule detections as Detection Finding events.",
+      ),
       category: "SIEM",
       icon: IconProp.ViewfinderCircle,
       logo: ProviderLogo.GoogleSecurityOperations,
@@ -751,12 +816,13 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       configFields: [
         {
           key: "region",
-          title: "Region",
-          description:
+          title: translationKey("Region"),
+          description: translationKey(
             "The Google SecOps regional endpoint that matches the location in your instance resource name.",
+          ),
           type: "dropdown",
           required: true,
-          placeholder: "Select a region",
+          placeholder: translationKey("Select a region"),
           /*
            * No default on purpose: a preselected "us" would let a tenant in
            * Europe or Asia save the wrong regional endpoint without noticing.
@@ -769,9 +835,10 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         },
         {
           key: "instanceResourceName",
-          title: "Instance resource name",
-          description:
+          title: translationKey("Instance resource name"),
+          description: translationKey(
             "The Chronicle instance resource name, from your SecOps SIEM Settings > Profile.",
+          ),
           type: "text",
           required: true,
           placeholder:
@@ -779,9 +846,10 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         },
         {
           key: CLOSE_ALERTS_WHEN_CASE_CLOSES_KEY,
-          title: "Close alerts when their case closes",
-          description:
+          title: translationKey("Close alerts when their case closes"),
+          description: translationKey(
             "Closing a security case closes its Google SecOps alerts too, with the case's verdict and closing note. The connection's service account needs the Chronicle API Editor role.",
+          ),
           type: "toggle",
           required: false,
           defaultValue: false,
@@ -791,9 +859,10 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       secretFields: [
         {
           key: "serviceAccountJson",
-          title: "Service account JSON",
-          description:
+          title: translationKey("Service account JSON"),
+          description: translationKey(
             "A Google Cloud service-account key (JSON) with the Chronicle API Viewer role.",
+          ),
           type: "json",
           required: true,
           placeholder: '{ "client_email": "...", "private_key": "..." }',

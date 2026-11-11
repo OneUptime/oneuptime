@@ -117,7 +117,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 1. **Indsnævr.** Den næste poll læser et vindue, der er halvt så langt, fra det samme startpunkt, og bliver ved med at halvere, indtil et vindue læses helt, ned til ét minut. Kørslens advarsel siger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Advarsler, der allerede er importeret fra det længere vindue, springes over som dubletter.
 2. **Voks igen.** Når et vindue er læst helt, flyttes markøren til dets slutning, og det næste vindue er igen dobbelt så langt, op til 24 timer.
-3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere end 2.000 advarsler, går pollingen forbi det, så nyere advarsler bliver ved med at komme. Kørslen forbliver **Delvis**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse.
+3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere end 2.000 advarsler, går pollingen forbi det, så nyere advarsler bliver ved med at komme. Kørslen forbliver **Delvis**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Importér dette tidsinterval** for at hente det, én kørsel kan læse.
 
 En kørsel, der er **Delvis** af en anden grund, for eksempel en advarsel, der ikke kunne læses som en sikkerhedsbegivenhed, prøves igen på samme måde fra det samme startpunkt. At ændre **Hentningsinterval (minutter)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
 
@@ -126,9 +126,9 @@ En kørsel, der er **Delvis** af en anden grund, for eksempel en advarsel, der i
 Klik på **Diagnosticering** på en forbindelse for at se dens seneste kørsler og arbejde med den manuelt. Alle, der kan ændre forbindelsen, kan starte disse handlinger; alle, der kan se den, kan læse historikken.
 
 - **Kør nu** starter straks en poll med den sædvanlige markør, også når forbindelsen ikke er **Aktiveret**.
-- **Preview alerts** læser et tidsinterval på op til 7 dage og importerer intet.
-- **Import this time range** importerer et interval på op til 7 dage, efter at du har bekræftet, uden at flytte markøren. Advarsler, der allerede er importeret, springes over.
-- **Copy diagnostics** på en kørsel kopierer dens rapport til support. Den indeholder aldrig legitimationsoplysninger.
+- **Forhåndsvis advarsler** læser et tidsinterval på op til 7 dage og importerer intet.
+- **Importér dette tidsinterval** importerer et interval på op til 7 dage, efter at du har bekræftet, uden at flytte markøren. Advarsler, der allerede er importeret, springes over.
+- **Kopiér diagnosticering** på en kørsel kopierer dens rapport til support. Den indeholder aldrig legitimationsoplysninger.
 
 ## Test forbindelse
 
@@ -141,7 +141,7 @@ Klik på **Diagnosticering** på en forbindelse for at se dens seneste kørsler 
 | **Read alerts from Microsoft Graph** | Én advarsel, der er oprettet inden for de seneste 24 timer, kan læses (`$top=1`). En `403` her er den manglende tilladelse `SecurityAlert.Read.All`, det manglende administratorsamtykke eller en lejer uden Defender XDR. |
 | **Alerts available to import** | Hvor mange advarsler der er oprettet inden for de seneste 24 timer og de seneste 7 dage, én side med 100 for hver, så `100+` betyder flere. Ingen inden for 7 dage er en advarsel, ikke en fejl. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen side: en proces tager jobbene fra Worker-køen, poll-jobbet kører hvert minut, og lageret for sikkerhedsbegivenheder svarer. |
-| **Scheduled polling** | For en gemt forbindelse: polling er slået til, ingen kørsel sidder fast og venter på en worker, og polls kører til tiden. |
+| **Planlagt hentning** | For en gemt forbindelse: polling er slået til, ingen kørsel sidder fast og venter på en worker, og polls kører til tiden. |
 
 Hver anmodning i en test har en frist på 20 sekunder. En test importerer aldrig noget og flytter aldrig markøren, og hver mislykket kontrol siger, hvad du skal ændre.
 
@@ -177,9 +177,9 @@ Poll-jobbet har aldrig kørt. Læs kontrollerne **Background workers** og **Poll
 :::details Polls lykkes, men en advarsel, du kender, mangler
 Sammenlign advarslens `createdDateTime` i Defender-portalen med kørslens vindue i **Diagnosticering**: vinduer går efter oprettelsestidspunkt, ikke aktivitetstidspunkt.
 
-- En advarsel, der blev oprettet, før forbindelsen fandtes, er ældre end det første tilbageblik på 24 timer. Importér den med **Import this time range**.
+- En advarsel, der blev oprettet, før forbindelsen fandtes, er ældre end det første tilbageblik på 24 timer. Importér den med **Importér dette tidsinterval**.
 - En kørsel, der er **Delvis**, blev stoppet af grænsen på 2.000 advarsler. Den næste poll læser et kortere vindue fra den samme start, så advarslen importeres, så snart et vindue, der indeholder den, er læst helt.
-- Hvis **Seneste fejl** navngiver et minut, pollingen gik forbi, så importér det minut med **Import this time range**.
+- Hvis **Seneste fejl** navngiver et minut, pollingen gik forbi, så importér det minut med **Importér dette tidsinterval**.
 :::
 
 :::details Den samme advarsel vises to gange

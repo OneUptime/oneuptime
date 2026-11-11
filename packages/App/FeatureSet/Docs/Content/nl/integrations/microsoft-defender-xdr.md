@@ -117,7 +117,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 1. **Verkleinen.** De volgende poll leest een venster dat half zo lang is, vanaf hetzelfde beginpunt, en blijft halveren tot een venster volledig wordt gelezen, tot één minuut. De waarschuwing van de run zegt het: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Waarschuwingen die al uit het langere venster zijn geïmporteerd, worden als duplicaten overgeslagen.
 2. **Weer groeien.** Nadat een venster volledig is gelezen, gaat de cursor naar het einde ervan, en is het volgende venster weer twee keer zo lang, tot 24 uur.
-3. **Voorbij één minuut gaan.** Als zelfs één minuut meer dan 2.000 waarschuwingen bevat, gaat het pollen eraan voorbij, zodat nieuwere waarschuwingen blijven binnenkomen. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
+3. **Voorbij één minuut gaan.** Als zelfs één minuut meer dan 2.000 waarschuwingen bevat, gaat het pollen eraan voorbij, zodat nieuwere waarschuwingen blijven binnenkomen. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Dit tijdsbereik importeren** om terug te halen wat één run kan lezen.
 
 Een run die om een andere reden **Gedeeltelijk** is, zoals een waarschuwing die niet als beveiligingsgebeurtenis kon worden gelezen, wordt op dezelfde manier opnieuw geprobeerd, vanaf hetzelfde beginpunt. Het **Opvraaginterval (minuten)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll start, niet waar zijn venster begint.
 
@@ -126,9 +126,9 @@ Een run die om een andere reden **Gedeeltelijk** is, zoals een waarschuwing die 
 Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
 
 - **Nu uitvoeren** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
-- **Preview alerts** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
-- **Import this time range** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde waarschuwingen worden overgeslagen.
-- **Copy diagnostics** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
+- **Voorbeeld van waarschuwingen** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
+- **Dit tijdsbereik importeren** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde waarschuwingen worden overgeslagen.
+- **Diagnose kopiëren** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
 
 ## Verbinding testen
 
@@ -141,7 +141,7 @@ Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met d
 | **Read alerts from Microsoft Graph** | Eén waarschuwing die in de afgelopen 24 uur is gemaakt, kan worden gelezen (`$top=1`). Een `403` hier is de ontbrekende machtiging `SecurityAlert.Read.All`, de ontbrekende beheerderstoestemming of een tenant zonder Defender XDR. |
 | **Alerts available to import** | Hoeveel waarschuwingen in de afgelopen 24 uur en de afgelopen 7 dagen zijn gemaakt, één pagina van 100 voor elk, dus `100+` betekent meer. Geen in 7 dagen is een waarschuwing, geen fout. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | De kant van OneUptime zelf: een proces neemt de jobs van de Worker-wachtrij af, de poll-job draait elke minuut en de opslag van beveiligingsgebeurtenissen antwoordt. |
-| **Scheduled polling** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
+| **Geplande opvraging** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
 
 Elk verzoek in een test heeft een deadline van 20 seconden. Een test importeert nooit iets en verplaatst nooit de cursor, en elke mislukte controle zegt wat je moet wijzigen.
 
@@ -177,9 +177,9 @@ De poll-job heeft nog nooit gedraaid. Lees de controles **Background workers** e
 :::details Polls slagen, maar een waarschuwing die je kent ontbreekt
 Vergelijk de `createdDateTime` van de waarschuwing in de Defender-portal met het venster van de run in **Diagnose**: vensters gaan uit van de aanmaaktijd, niet van de activiteitstijd.
 
-- Een waarschuwing die is gemaakt voordat de verbinding bestond, is ouder dan de eerste terugblik van 24 uur. Importeer haar met **Import this time range**.
+- Een waarschuwing die is gemaakt voordat de verbinding bestond, is ouder dan de eerste terugblik van 24 uur. Importeer haar met **Dit tijdsbereik importeren**.
 - Een **Gedeeltelijk** run werd gestopt door de grens van 2.000 waarschuwingen. De volgende poll leest een korter venster vanaf hetzelfde begin, dus de waarschuwing wordt geïmporteerd zodra een venster dat haar bevat volledig is gelezen.
-- Als **Laatste fout** een minuut noemt waar het pollen voorbij is gegaan, importeer die minuut dan met **Import this time range**.
+- Als **Laatste fout** een minuut noemt waar het pollen voorbij is gegaan, importeer die minuut dan met **Dit tijdsbereik importeren**.
 :::
 
 :::details Dezelfde waarschuwing verschijnt twee keer

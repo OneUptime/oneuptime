@@ -48,7 +48,7 @@ Anslutningen loggar in med ett tjänstkontos nyckel och [domänomfattande delege
 
 ### Lägg till anslutningen i OneUptime
 
-Öppna **Produkter → Säkerhetshändelser → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Google Workspace** under **Identitet** och klicka på **Nästa**. Ange **Administrator email**, klicka på **Nästa** och klistra in nyckelfilens innehåll i **Tjänstkontots JSON**. Slå på **Drive-aktivitet** i steget **Hämtning** för att läsa Drive också.
+Öppna **Produkter → Säkerhetshändelser → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Google Workspace** under **Identitet** och klicka på **Nästa**. Ange **Administratörens e-post**, klicka på **Nästa** och klistra in nyckelfilens innehåll i **Tjänstkontots JSON**. Slå på **Drive-aktivitet** i steget **Hämtning** för att läsa Drive också.
 
 ### Testa den innan du sparar
 
@@ -57,7 +57,7 @@ Klicka på **Testa de här inställningarna** under **Testa innan du sparar**. T
 
 | Inställning | Vad du anger |
 | --- | --- |
-| **Administrator email** | Adressen till den administratör som tjänstkontot agerar som, till exempel `admin@example.com`. Den måste ha behörigheten Reports. |
+| **Administratörens e-post** | Adressen till den administratör som tjänstkontot agerar som, till exempel `admin@example.com`. Den måste ha behörigheten Reports. |
 | **Drive-aktivitet** | Valfritt, avstängt som standard. Påslaget läser varje avsökning också delning och nedladdningar i Drive. |
 | **Tjänstkontots JSON** | Hela nyckelfilen, som innehåller `client_email` och `private_key`. Den krypteras, returneras aldrig av API:et och visas aldrig igen. Ersätt den med **Uppdatera inloggningsuppgifter** på anslutningen. |
 
@@ -94,7 +94,7 @@ Varje logg har en egen budget, i sidor med 1 000 aktiviteter: 10 för inloggning
 
 1. **Smalna av.** Nästa avsökning läser ett fönster som är hälften så långt, från samma startpunkt, och fortsätter att halvera tills ett fönster läses helt, ner till en minut. Körningens varning säger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Aktiviteter som redan har importerats från det längre fönstret hoppas över som dubbletter.
 2. **Växa igen.** När ett fönster har lästs helt flyttas markören till dess slut, och nästa fönster är dubbelt så långt igen, upp till 24 timmar.
-3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än en avsökning kan läsa går avsökningen förbi den, så att nyare aktiviteter fortsätter att komma. Körningen förblir **Delvis**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Import this time range** för att hämta det som en körning kan läsa.
+3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än en avsökning kan läsa går avsökningen förbi den, så att nyare aktiviteter fortsätter att komma. Körningen förblir **Delvis**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Importera det här tidsintervallet** för att hämta det som en körning kan läsa.
 
 Att ändra **Hämtningsintervall (minuter)** ändrar inget av detta: det avgör hur ofta en avsökning startar, inte var dess fönster börjar.
 
@@ -103,9 +103,9 @@ Att ändra **Hämtningsintervall (minuter)** ändrar inget av detta: det avgör 
 Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar och arbeta med den manuellt. Alla som kan ändra anslutningen kan starta de här åtgärderna; alla som kan se den kan läsa historiken.
 
 - **Kör nu** startar en avsökning direkt, med den vanliga markören, även när anslutningen inte är **Aktiverad**.
-- **Preview audit events** läser ett tidsintervall på upp till 7 dagar och importerar ingenting.
-- **Import this time range** importerar ett intervall på upp till 7 dagar, efter att du har bekräftat, utan att flytta markören. Aktiviteter som redan har importerats hoppas över. Google sparar 6 månaders granskningsloggar.
-- **Copy diagnostics** på en körning kopierar dess rapport till supporten. Den innehåller aldrig autentiseringsuppgifter.
+- **Förhandsgranska granskningshändelser** läser ett tidsintervall på upp till 7 dagar och importerar ingenting.
+- **Importera det här tidsintervallet** importerar ett intervall på upp till 7 dagar, efter att du har bekräftat, utan att flytta markören. Aktiviteter som redan har importerats hoppas över. Google sparar 6 månaders granskningsloggar.
+- **Kopiera diagnostik** på en körning kopierar dess rapport till supporten. Den innehåller aldrig autentiseringsuppgifter.
 
 ## Testa anslutningen
 
@@ -119,7 +119,7 @@ Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar 
 | **Read Drive activity** | Bara med alternativet påslaget: loggen för Drive kan läsas. |
 | **Activities available to import** | Hur många inloggnings- och administrationsaktiviteter de senaste 24 timmarna innehåller, högst 1 000 av varje, så `1000+` betyder fler. Inga är en varning. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen sida: en process tar jobben från Worker-kön, avsökningsjobbet körs varje minut och lagringen för säkerhetshändelser svarar. |
-| **Scheduled polling** | För en sparad anslutning: avsökningen är påslagen, ingen körning har fastnat i väntan på en worker och avsökningar körs i tid. |
+| **Schemalagd hämtning** | För en sparad anslutning: avsökningen är påslagen, ingen körning har fastnat i väntan på en worker och avsökningar körs i tid. |
 
 Varje begäran i ett test har en tidsgräns på 20 sekunder. Ett test importerar aldrig något och flyttar aldrig markören, och varje kontroll som misslyckas säger vad du ska ändra.
 
@@ -129,7 +129,7 @@ Anslutningens **Senaste fel** sparar hela felmeddelandet, med autentiseringsuppg
 
 :::details Senaste fel säger `token request failed`
 - `unauthorized_client`: tjänstkontot har ingen domänomfattande delegering för omfånget. Lägg till dess **Unique ID** med `https://www.googleapis.com/auth/admin.reports.audit.readonly` under **Manage domain-wide delegation**.
-- `invalid_grant` med `Invalid email or User ID`: **Administrator email** är inte en användare i det här Google Workspace.
+- `invalid_grant` med `Invalid email or User ID`: **Administratörens e-post** är inte en användare i det här Google Workspace.
 - `invalid_grant` med `Invalid JWT Signature`: nyckeln har tagits bort eller inaktiverats. Skapa en ny nyckel och spara den med **Uppdatera inloggningsuppgifter**.
 :::
 

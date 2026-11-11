@@ -117,7 +117,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 1. **Smalna av.** Nästa avsökning läser ett fönster som är hälften så långt, från samma startpunkt, och fortsätter att halvera tills ett fönster läses helt, ner till en minut. Körningens varning säger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Larm som redan har importerats från det längre fönstret hoppas över som dubbletter.
 2. **Växa igen.** När ett fönster har lästs helt flyttas markören till dess slut, och nästa fönster är dubbelt så långt igen, upp till 24 timmar.
-3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än 2 000 larm går avsökningen förbi den, så att nyare larm fortsätter att komma. Körningen förblir **Delvis**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Import this time range** för att hämta det som en körning kan läsa.
+3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än 2 000 larm går avsökningen förbi den, så att nyare larm fortsätter att komma. Körningen förblir **Delvis**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Importera det här tidsintervallet** för att hämta det som en körning kan läsa.
 
 En körning som är **Delvis** av en annan anledning, till exempel ett larm som inte kunde läsas som en säkerhetshändelse, försöks igen på samma sätt, från samma startpunkt. Att ändra **Hämtningsintervall (minuter)** ändrar inget av detta: det avgör hur ofta en avsökning startar, inte var dess fönster börjar.
 
@@ -126,9 +126,9 @@ En körning som är **Delvis** av en annan anledning, till exempel ett larm som 
 Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar och arbeta med den manuellt. Alla som kan ändra anslutningen kan starta de här åtgärderna; alla som kan se den kan läsa historiken.
 
 - **Kör nu** startar en avsökning direkt, med den vanliga markören, även när anslutningen inte är **Aktiverad**.
-- **Preview alerts** läser ett tidsintervall på upp till 7 dagar och importerar ingenting.
-- **Import this time range** importerar ett intervall på upp till 7 dagar, efter att du har bekräftat, utan att flytta markören. Larm som redan har importerats hoppas över.
-- **Copy diagnostics** på en körning kopierar dess rapport till supporten. Den innehåller aldrig autentiseringsuppgifter.
+- **Förhandsgranska larm** läser ett tidsintervall på upp till 7 dagar och importerar ingenting.
+- **Importera det här tidsintervallet** importerar ett intervall på upp till 7 dagar, efter att du har bekräftat, utan att flytta markören. Larm som redan har importerats hoppas över.
+- **Kopiera diagnostik** på en körning kopierar dess rapport till supporten. Den innehåller aldrig autentiseringsuppgifter.
 
 ## Testa anslutningen
 
@@ -141,7 +141,7 @@ Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar 
 | **Read alerts from Microsoft Graph** | Ett larm som har skapats de senaste 24 timmarna kan läsas (`$top=1`). En `403` här är den saknade behörigheten `SecurityAlert.Read.All`, det saknade administratörsmedgivandet eller en klientorganisation utan Defender XDR. |
 | **Alerts available to import** | Hur många larm som har skapats de senaste 24 timmarna och de senaste 7 dagarna, en sida med 100 för var och en, så `100+` betyder fler. Inga på 7 dagar är en varning, inte ett fel. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen sida: en process tar jobben från Worker-kön, avsökningsjobbet körs varje minut och lagringen för säkerhetshändelser svarar. |
-| **Scheduled polling** | För en sparad anslutning: avsökningen är påslagen, ingen körning har fastnat i väntan på en worker och avsökningar körs i tid. |
+| **Schemalagd hämtning** | För en sparad anslutning: avsökningen är påslagen, ingen körning har fastnat i väntan på en worker och avsökningar körs i tid. |
 
 Varje begäran i ett test har en tidsgräns på 20 sekunder. Ett test importerar aldrig något och flyttar aldrig markören, och varje kontroll som misslyckas säger vad du ska ändra.
 
@@ -177,9 +177,9 @@ Avsökningsjobbet har aldrig körts. Läs kontrollerna **Background workers** oc
 :::details Avsökningar lyckas, men ett larm som du känner till saknas
 Jämför larmets `createdDateTime` i Defender-portalen med körningens fönster i **Diagnostik**: fönster utgår från skapandetid, inte aktivitetstid.
 
-- Ett larm som skapades innan anslutningen fanns är äldre än den första tillbakablicken på 24 timmar. Importera det med **Import this time range**.
+- Ett larm som skapades innan anslutningen fanns är äldre än den första tillbakablicken på 24 timmar. Importera det med **Importera det här tidsintervallet**.
 - En körning som är **Delvis** stoppades av gränsen på 2 000 larm. Nästa avsökning läser ett kortare fönster från samma start, så larmet importeras så snart ett fönster som innehåller det har lästs helt.
-- Om **Senaste fel** namnger en minut som avsökningen gick förbi importerar du den minuten med **Import this time range**.
+- Om **Senaste fel** namnger en minut som avsökningen gick förbi importerar du den minuten med **Importera det här tidsintervallet**.
 :::
 
 :::details Samma larm visas två gånger

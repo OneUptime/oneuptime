@@ -25,7 +25,7 @@ Elke minuut pollt OneUptime elke ingeschakelde verbinding waarvan het pollinterv
 
 - In OneUptime de rol Project Owner, Project Admin of Security Admin. Security Member en Security Viewer zien verbindingen en hun runhistorie, maar kunnen ze niet wijzigen.
 - Een Falcon-klant-ID (CID), en een gebruiker van de Falcon-console die API-clients mag beheren: de rol Falcon Administrator, of een aangepaste rol met de machtiging API clients and keys.
-- Uitgaand HTTPS van de OneUptime-app en -workers naar de API-host van je Falcon-cloud, vermeld onder **Falcon cloud** hieronder.
+- Uitgaand HTTPS van de OneUptime-app en -workers naar de API-host van je Falcon-cloud, vermeld onder **Falcon-cloud** hieronder.
 
 ## De verbinding instellen
 
@@ -59,7 +59,7 @@ Klik op **Deze instellingen testen** onder **Testen voor het opslaan**. De test 
 | Instelling | Wat je invult |
 | --- | --- |
 | **Client-ID** | De ID van de API-client, zoals Falcon die toonde toen je de client maakte. |
-| **Falcon cloud** | De cloud van je CID: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** of **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Elk verzoek gaat naar de API-host van die cloud. |
+| **Falcon-cloud** | De cloud van je CID: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** of **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Elk verzoek gaat naar de API-host van die cloud. |
 | **Clientgeheim** | Het geheim van de API-client. Het wordt versleuteld, nooit door de API teruggegeven en nooit meer getoond. Vervang het met **Inloggegevens bijwerken** op de verbinding. |
 
 De stap **Opvragen** heeft ook een optionele **Beschrijving**, het **Opvraaginterval (minuten)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint. Een verbinding die niet is ingeschakeld, kan nog steeds worden getest en met de hand worden gepold.
@@ -110,7 +110,7 @@ Wanneer een run helemaal niet voorbij de opgeslagen cursor komt, bijvoorbeeld om
 
 1. **Verkleinen.** De volgende poll leest een venster dat half zo lang is, vanaf hetzelfde beginpunt, en blijft halveren tot een venster volledig wordt gelezen, tot één minuut. De waarschuwing van de run zegt het: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Weer groeien.** Nadat een venster volledig is gelezen, is het volgende weer twee keer zo lang, tot 24 uur.
-3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere waarschuwingen blijven binnenkomen. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
+3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere waarschuwingen blijven binnenkomen. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Dit tijdsbereik importeren** om terug te halen wat één run kan lezen.
 
 Een run die volledig mislukt, met een fout van Falcon, behoudt de cursor en de vensterlengte, en de volgende poll leest hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen. Het **Opvraaginterval (minuten)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll start, niet waar zijn venster begint.
 
@@ -119,9 +119,9 @@ Een run die volledig mislukt, met een fout van Falcon, behoudt de cursor en de v
 Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
 
 - **Nu uitvoeren** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
-- **Preview alerts** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
-- **Import this time range** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde waarschuwingen worden overgeslagen.
-- **Copy diagnostics** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
+- **Voorbeeld van waarschuwingen** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
+- **Dit tijdsbereik importeren** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde waarschuwingen worden overgeslagen.
+- **Diagnose kopiëren** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
 
 ## Verbinding testen
 
@@ -129,12 +129,12 @@ Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met d
 
 | Controle | Wat ze controleert |
 | --- | --- |
-| **Configuratie** | **Client-ID**, **Falcon cloud** en **Clientgeheim** zijn aanwezig en goed gevormd. Er wordt niets benaderd als dit mislukt. |
+| **Configuratie** | **Client-ID**, **Falcon-cloud** en **Clientgeheim** zijn aanwezig en goed gevormd. Er wordt niets benaderd als dit mislukt. |
 | **Authenticate with CrowdStrike Falcon** | `POST /oauth2/token` met de ID en het geheim van de API-client, op de host van je cloud, geeft een token terug. |
 | **Read alerts from the Falcon Alerts API** | Een waarschuwingsquery voor één waarschuwing (`limit=1`) over de afgelopen 24 uur wordt geaccepteerd, wat het bereik **Alerts → Read** bewijst. |
 | **Alerts available to import** | Hoeveel waarschuwingen in de afgelopen 24 uur en de afgelopen 7 dagen zijn gemaakt. Geen in 7 dagen is een waarschuwing, geen fout: pollen importeert nieuwe waarschuwingen zodra Falcon ze maakt. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | De kant van OneUptime zelf: een proces neemt de jobs van de Worker-wachtrij af, de poll-job draait elke minuut en de opslag van beveiligingsgebeurtenissen antwoordt. |
-| **Scheduled polling** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
+| **Geplande opvraging** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
 
 Elk verzoek in een test heeft een deadline van 20 seconden. Een test importeert nooit iets en verplaatst nooit de cursor, en elke mislukte controle zegt wat je moet wijzigen. **Rapport kopiëren** kopieert de controlelijst als JSON, zonder referenties of tokens.
 
@@ -143,13 +143,13 @@ Elk verzoek in een test heeft een deadline van 20 seconden. Een test importeert 
 De **Laatste fout** van de verbinding, en elke mislukte controle, bewaren de volledige foutmelding, met referenties gemaskeerd, achter een voorvoegsel dat de mislukte stap noemt. Wanneer een verbinding een fout heeft, selecteer je **Fout bekijken** in haar kolom **Acties** om hem te lezen, en **Fout kopiëren** in het dialoogvenster om hem te kopiëren. Lees eerst het voorvoegsel.
 
 :::details Last Error begint met `CrowdStrike Falcon token request`
-- `CrowdStrike Falcon token request failed (HTTP 401)` of `(HTTP 403)`: Falcon weigerde de ID en het geheim van de API-client, voordat de Alerts API werd benaderd. Controleer of **Falcon cloud** de cloud van je CID is, omdat een client uit een andere cloud hier wordt geweigerd, of **Client-ID** die van de client is, en of **Clientgeheim** het geheim is dat ermee is uitgegeven. Is het geheim kwijt, stel het dan opnieuw in in de Falcon-console en sla het op met **Inloggegevens bijwerken**.
+- `CrowdStrike Falcon token request failed (HTTP 401)` of `(HTTP 403)`: Falcon weigerde de ID en het geheim van de API-client, voordat de Alerts API werd benaderd. Controleer of **Falcon-cloud** de cloud van je CID is, omdat een client uit een andere cloud hier wordt geweigerd, of **Client-ID** die van de client is, en of **Clientgeheim** het geheim is dat ermee is uitgegeven. Is het geheim kwijt, stel het dan opnieuw in in de Falcon-console en sla het op met **Inloggegevens bijwerken**.
 - `CrowdStrike Falcon token request returned ...`: Falcon antwoordde met iets onbruikbaars, een body die geen JSON is of geen `access_token` heeft. Dat is meestal een proxy of gateway ertussen, niet de referenties.
 :::
 
 :::details Last Error begint met `CrowdStrike Falcon alerts`
 - `CrowdStrike Falcon alerts query failed (HTTP 403)`: het token werd geaccepteerd, maar de API-client heeft geen bereik **Alerts → Read**. Zet het voor de client aan onder **API clients and keys** en sla op. Het geldt voor het volgende token, dus test na een minuut opnieuw.
-- `CrowdStrike Falcon alerts query failed (HTTP 401)`: de Alerts API weigerde het token, wat bijna altijd betekent dat **Falcon cloud** niet de cloud is die de client heeft uitgegeven.
+- `CrowdStrike Falcon alerts query failed (HTTP 401)`: de Alerts API weigerde het token, wat bijna altijd betekent dat **Falcon-cloud** niet de cloud is die de client heeft uitgegeven.
 - `CrowdStrike Falcon alerts query failed (HTTP 429)` of `CrowdStrike Falcon alerts fetch failed (HTTP 429)`: Falcon beperkt de snelheid van deze API-client. De HTTP-client van OneUptime bewaart bij een fout geen antwoordheaders, dus het bericht eindigt meestal met `the X-RateLimit-RetryAfter header was not available` in plaats van hem te citeren. Geplande polls proberen het vanzelf opnieuw. Blijft het gebeuren, geef OneUptime dan een eigen API-client, in plaats van een die met andere tools wordt gedeeld.
 - `CrowdStrike Falcon alerts query failed (HTTP 400)`: Falcon weigerde de query. De verbinding stuurt een vast FQL-filter op `created_timestamp`, dus kopieer het rapport en stuur het naar de support van OneUptime.
 - `CrowdStrike Falcon alerts query returned ...` of `CrowdStrike Falcon alerts fetch returned ...`: Falcon antwoordde `200`, met een body die geen JSON is, of niet in een vorm die de verbinding kent. Dit wordt gemeld in plaats van als een leeg venster te worden opgevat, zodat de cursor nooit voorbij waarschuwingen gaat die niemand heeft gelezen.
@@ -167,7 +167,7 @@ De **Laatste fout** van de verbinding, en elke mislukte controle, bewaren de vol
 :::details Een run is Partial
 - `Stopped after 19 requests before reading the whole window`: het venster bevatte meer dan de 9.000 waarschuwingen die één run leest. Er gaat niets verloren: de volgende poll begint na de laatst gelezen waarschuwing. Een verbinding die poll na poll **Gedeeltelijk** blijft, haalt een achterstand in, en haar **Laatst opgevraagd** en **Laatst geïmporteerde gebeurtenis** blijven doorschuiven. Het aantal kan iets boven 19 liggen als het token tijdens de run werd vernieuwd.
 - `Falcon returned alerts out of created_timestamp order, so this run cannot name a point to resume from.`: de query negeerde de volgorde van oud naar nieuw, dus de run kan de cursor niet op zijn laatste waarschuwing zetten, en de volgende poll leest in plaats daarvan een korter venster. Gebeurt het steeds weer, stuur dan het rapport van de run naar de support van OneUptime.
-- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Import this time range** in **Diagnose**. Een import leest net zoveel als een poll.
+- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Dit tijdsbereik importeren** in **Diagnose**. Een import leest net zoveel als een poll.
 :::
 
 :::details Last Polled is Never en Last Error is leeg
@@ -175,7 +175,7 @@ Er is geen poll gedraaid, dus er heeft niets Falcon bereikt. **Verbinding testen
 :::
 
 :::details De test slaagt, maar er verschijnen geen gebeurtenissen
-Lees **Alerts available to import**: een waarschuwing daar betekent dat Falcon in de afgelopen 7 dagen geen waarschuwingen heeft gemaakt, dus er valt nog niets te importeren. Open anders **Diagnose**, controleer het venster en de aantallen van de laatste poll, en gebruik **View events in this time range** bij een run om het tijdsbereik te openen van de waarschuwingen die hij importeerde.
+Lees **Alerts available to import**: een waarschuwing daar betekent dat Falcon in de afgelopen 7 dagen geen waarschuwingen heeft gemaakt, dus er valt nog niets te importeren. Open anders **Diagnose**, controleer het venster en de aantallen van de laatste poll, en gebruik **Gebeurtenissen in deze periode bekijken** bij een run om het tijdsbereik te openen van de waarschuwingen die hij importeerde.
 :::
 
 ## Wat je krijgt
