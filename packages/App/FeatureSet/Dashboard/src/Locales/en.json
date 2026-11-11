@@ -50378,5 +50378,14 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "No arrow on this diagram says where {{column}} comes from or where it goes."
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "No arrow on this diagram says where {{column}} comes from or where it goes.",
+  "Not Evaluated": "Not Evaluated",
+  "Target {{target}}": "Target {{target}}",
+  "target {{target}}": "target {{target}}",
+  "under 1 min over budget": "under 1 min over budget",
+  "under 1 min remaining": "under 1 min remaining",
+  "{{count}} min remaining": "{{count}} min remaining",
+  "{{count}} min remaining_one": "{{count}} min remaining",
+  "−{{count}} min over budget": "−{{count}} min over budget",
+  "−{{count}} min over budget_one": "−{{count}} min over budget"
 }

@@ -50378,5 +50378,14 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "第 {{row}} 行：“{{key}}”不是发现的名称，例如 {{example}}。",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "第 {{row}} 行：“{{key}}”不是 IP 地址，例如 {{example}}。",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "第 {{row}} 行：“{{key}}”不是 IP 地址的最后一部分，例如 {{example}}。",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "此图中没有箭头说明 {{column}} 的来源和去向。"
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "此图中没有箭头说明 {{column}} 的来源和去向。",
+  "Not Evaluated": "未评估",
+  "Target {{target}}": "目标 {{target}}",
+  "target {{target}}": "目标 {{target}}",
+  "under 1 min over budget": "超出预算不到 1 分钟",
+  "under 1 min remaining": "剩余不到 1 分钟",
+  "{{count}} min remaining": "剩余 {{count}} 分钟",
+  "{{count}} min remaining_one": "剩余 {{count}} 分钟",
+  "−{{count}} min over budget": "超出预算 {{count}} 分钟",
+  "−{{count}} min over budget_one": "超出预算 {{count}} 分钟"
 }

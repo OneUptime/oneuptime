@@ -50378,5 +50378,14 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "पंक्ति {{row}}: \"{{key}}\" खोजा गया नाम नहीं है, जैसे {{example}}।",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "पंक्ति {{row}}: \"{{key}}\" IP पता नहीं है, जैसे {{example}}।",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "पंक्ति {{row}}: \"{{key}}\" किसी IP पते का आख़िरी हिस्सा नहीं है, जैसे {{example}}।",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "इस आरेख का कोई भी तीर यह नहीं बताता कि {{column}} कहाँ से आता है या कहाँ जाता है।"
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "इस आरेख का कोई भी तीर यह नहीं बताता कि {{column}} कहाँ से आता है या कहाँ जाता है।",
+  "Not Evaluated": "मूल्यांकन नहीं हुआ",
+  "Target {{target}}": "लक्ष्य {{target}}",
+  "target {{target}}": "लक्ष्य {{target}}",
+  "under 1 min over budget": "बजट से 1 मिनट से कम ज़्यादा",
+  "under 1 min remaining": "1 मिनट से कम बचा",
+  "{{count}} min remaining": "{{count}} मिनट बचे",
+  "{{count}} min remaining_one": "{{count}} मिनट बचा",
+  "−{{count}} min over budget": "बजट से {{count}} मिनट ज़्यादा",
+  "−{{count}} min over budget_one": "बजट से {{count}} मिनट ज़्यादा"
 }

@@ -25,8 +25,13 @@ import SloHistory from "Common/Models/AnalyticsModels/SloHistory";
 import { DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE } from "Common/Utils/Slo/SloHealth";
 import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "Common/Utils/Slo/SloEvaluation";
 import {
+  BURN_RATE_DECIMALS,
+  formatSloBurnRate,
+  formatSloNumber,
+  formatSloPercent,
   getSloChartAggregationInterval,
   getSloHistoryMetricName,
+  SLI_DECIMALS,
 } from "Common/Utils/Slo/SloWidgetFormat";
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -48,7 +53,9 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import DataPoint from "Common/UI/Components/Charts/Types/DataPoint";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
-import ChartReferenceLineProps from "Common/UI/Components/Charts/Types/ReferenceLineProps";
+import ChartReferenceLineProps, {
+  ReferenceLineLabelPlacement,
+} from "Common/UI/Components/Charts/Types/ReferenceLineProps";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import {
@@ -534,6 +541,12 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
         sync={true}
         syncid={options.syncId}
         referenceLines={options.referenceLines}
+        /*
+         * Named in a legend under the chart, as on the Overview's burn-down:
+         * a label at the end of its line sat on the series running near it,
+         * and "Budget exhausted", at 0%, on the time axis.
+         */
+        referenceLineLabelPlacement={ReferenceLineLabelPlacement.Legend}
       />,
     );
   };
@@ -545,8 +558,10 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
       ? [
           {
             value: targetPercentage,
-            label: translator.translateTemplate("Target {{target}}%", {
-              target: targetPercentage,
+            label: translator.translateTemplate("Target {{target}}", {
+              target:
+                formatSloPercent(targetPercentage, SLI_DECIMALS, translator) ||
+                "",
             }),
             color: TARGET_LINE_COLOR,
             strokeDasharray: "4 4",
@@ -577,6 +592,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
         },
       ],
       tiers: policyTiers,
+      translator: translator,
     });
 
   const burnRateReferenceLines: Array<ChartReferenceLineProps> = burnRateRules
@@ -592,7 +608,13 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
         value: rule.burnRateThreshold!,
         label: translator.translateTemplate("{{rule}} {{threshold}}×", {
           rule: rule.name || translatableTerm("Rule"),
-          threshold: rule.burnRateThreshold!,
+          // "14,4" in German, as the rule's own card writes it.
+          threshold:
+            formatSloNumber(
+              rule.burnRateThreshold!,
+              BURN_RATE_DECIMALS,
+              translator,
+            ) || "",
         }),
         color: BURN_RULE_LINE_COLOR,
         strokeDasharray: "4 4",
@@ -652,8 +674,9 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
           yAxisLegend: "%",
           yAxisMin: "auto",
           yAxisMax: 100,
+          // The axis and the tooltip in the reader's figures: "99,874 %".
           formatter: (value: number): string => {
-            return `${Math.round(value * 1000) / 1000}%`;
+            return formatSloPercent(value, SLI_DECIMALS, translator) || "";
           },
           referenceLines: sliReferenceLines,
           syncId: syncId,
@@ -673,7 +696,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
           yAxisMin: "auto",
           yAxisMax: 100,
           formatter: (value: number): string => {
-            return `${Math.round(value * 100) / 100}%`;
+            return formatSloPercent(value, 2, translator) || "";
           },
           referenceLines: budgetReferenceLines,
           syncId: syncId,
@@ -696,7 +719,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
           yAxisMin: 0,
           yAxisMax: "auto",
           formatter: (value: number): string => {
-            return `${Math.round(value * 100) / 100}×`;
+            return formatSloBurnRate(value, translator) || "";
           },
           referenceLines: burnRateReferenceLines,
           syncId: syncId,

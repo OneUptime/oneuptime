@@ -50378,5 +50378,14 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "Række {{row}}: \"{{key}}\" er ikke et fundet navn, f.eks. {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "Række {{row}}: \"{{key}}\" er ikke en IP-adresse, f.eks. {{example}}.",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "Række {{row}}: \"{{key}}\" er ikke den sidste del af en IP-adresse, f.eks. {{example}}.",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "Ingen pil i dette diagram siger, hvor {{column}} kommer fra, eller hvor den går hen."
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "Ingen pil i dette diagram siger, hvor {{column}} kommer fra, eller hvor den går hen.",
+  "Not Evaluated": "Ikke evalueret",
+  "Target {{target}}": "Mål {{target}}",
+  "target {{target}}": "mål {{target}}",
+  "under 1 min over budget": "Budget overskredet med under 1 min.",
+  "under 1 min remaining": "Under 1 min. tilbage",
+  "{{count}} min remaining": "{{count}} min. tilbage",
+  "{{count}} min remaining_one": "{{count}} min. tilbage",
+  "−{{count}} min over budget": "Budget overskredet med {{count}} min.",
+  "−{{count}} min over budget_one": "Budget overskredet med {{count}} min."
 }

@@ -50378,5 +50378,14 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "سطر {{row}}: \"{{key}}\" نام کشف‌شده نیست، مانند {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "سطر {{row}}: \"{{key}}\" آدرس IP نیست، مانند {{example}}.",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "سطر {{row}}: \"{{key}}\" بخش آخر یک آدرس IP نیست، مانند {{example}}.",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "هیچ پیکانی در این نمودار نمی‌گوید {{column}} از کجا می‌آید یا به کجا می‌رود."
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "هیچ پیکانی در این نمودار نمی‌گوید {{column}} از کجا می‌آید یا به کجا می‌رود.",
+  "Not Evaluated": "ارزیابی نشده",
+  "Target {{target}}": "هدف {{target}}",
+  "target {{target}}": "هدف {{target}}",
+  "under 1 min over budget": "کمتر از ۱ دقیقه بیش از بودجه",
+  "under 1 min remaining": "کمتر از ۱ دقیقه مانده",
+  "{{count}} min remaining": "{{count}} دقیقه مانده",
+  "{{count}} min remaining_one": "{{count}} دقیقه مانده",
+  "−{{count}} min over budget": "{{count}} دقیقه بیش از بودجه",
+  "−{{count}} min over budget_one": "{{count}} دقیقه بیش از بودجه"
 }

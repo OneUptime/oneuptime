@@ -50378,5 +50378,14 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "{{row}}행: \"{{key}}\"은(는) 검색된 이름이 아닙니다(예: {{example}}).",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "{{row}}행: \"{{key}}\"은(는) IP 주소가 아닙니다(예: {{example}}).",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "{{row}}행: \"{{key}}\"은(는) IP 주소의 마지막 부분이 아닙니다(예: {{example}}).",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "이 다이어그램의 어떤 화살표도 {{column}} 열이 어디에서 와서 어디로 가는지 알려 주지 않습니다."
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "이 다이어그램의 어떤 화살표도 {{column}} 열이 어디에서 와서 어디로 가는지 알려 주지 않습니다.",
+  "Not Evaluated": "평가 안 됨",
+  "Target {{target}}": "목표 {{target}}",
+  "target {{target}}": "목표 {{target}}",
+  "under 1 min over budget": "예산 1분 미만 초과",
+  "under 1 min remaining": "1분 미만 남음",
+  "{{count}} min remaining": "{{count}}분 남음",
+  "{{count}} min remaining_one": "{{count}}분 남음",
+  "−{{count}} min over budget": "예산 {{count}}분 초과",
+  "−{{count}} min over budget_one": "예산 {{count}}분 초과"
 }

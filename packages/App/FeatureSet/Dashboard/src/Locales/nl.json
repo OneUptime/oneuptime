@@ -50378,5 +50378,14 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "Rij {{row}}: \"{{key}}\" is geen ontdekte naam, zoals {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "Rij {{row}}: \"{{key}}\" is geen IP-adres, zoals {{example}}.",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "Rij {{row}}: \"{{key}}\" is niet het laatste deel van een IP-adres, zoals {{example}}.",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "Geen enkele pijl in dit diagram zegt waar {{column}} vandaan komt of waar de kolom naartoe gaat."
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "Geen enkele pijl in dit diagram zegt waar {{column}} vandaan komt of waar de kolom naartoe gaat.",
+  "Not Evaluated": "Niet geëvalueerd",
+  "Target {{target}}": "Doel {{target}}",
+  "target {{target}}": "doel {{target}}",
+  "under 1 min over budget": "Budget minder dan 1 min overschreden",
+  "under 1 min remaining": "Nog minder dan 1 min",
+  "{{count}} min remaining": "Nog {{count}} min",
+  "{{count}} min remaining_one": "Nog {{count}} min",
+  "−{{count}} min over budget": "Budget {{count}} min overschreden",
+  "−{{count}} min over budget_one": "Budget {{count}} min overschreden"
 }

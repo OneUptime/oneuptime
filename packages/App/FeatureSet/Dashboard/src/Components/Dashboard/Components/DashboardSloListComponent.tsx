@@ -354,7 +354,8 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
       const sloId: string = slo._id?.toString() || "";
       const name: string =
         slo.name || (translator.translateText("Unnamed SLO") as string);
-      const display: SloListRowDisplay = getSloListRowDisplay(slo);
+      // The figures as the reader's language writes them: "99,874 %".
+      const display: SloListRowDisplay = getSloListRowDisplay(slo, translator);
 
       return {
         id: sloId || name,
@@ -378,7 +379,11 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
       const sloId: string = slo._id?.toString() || "";
       const name: string =
         slo.name || (translator.translateText("Unnamed SLO") as string);
-      const display: SloListRowDisplay = getSloListRowDisplay(slo);
+      /*
+       * The figures, the target line ("Ziel 99,9 %") and the budget line in
+       * the reader's language.
+       */
+      const display: SloListRowDisplay = getSloListRowDisplay(slo, translator);
       const route: Route | undefined = getSloRoute(sloId);
       const statusColor: string = display.statusColor.toString();
 
@@ -411,7 +416,7 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
                * lighter shade of it that reads on the dark card.
                */}
               <span {...getStatusTextProps(statusColor)}>
-                {display.statusText}
+                {translator.translateText(display.statusText)}
               </span>
             </span>
           </td>

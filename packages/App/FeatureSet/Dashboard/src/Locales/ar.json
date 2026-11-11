@@ -50378,5 +50378,14 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "الصف {{row}}: \"{{key}}\" ليس اسمًا مكتشفًا، مثل {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "الصف {{row}}: \"{{key}}\" ليس عنوان IP، مثل {{example}}.",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "الصف {{row}}: \"{{key}}\" ليس الجزء الأخير من عنوان IP، مثل {{example}}.",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "لا يذكر أي سهم في هذا المخطط مصدر العمود {{column}} أو وجهته."
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "لا يذكر أي سهم في هذا المخطط مصدر العمود {{column}} أو وجهته.",
+  "Not Evaluated": "لم يُقيَّم",
+  "Target {{target}}": "الهدف {{target}}",
+  "target {{target}}": "الهدف {{target}}",
+  "under 1 min over budget": "تجاوز الميزانية بأقل من دقيقة",
+  "under 1 min remaining": "يتبقى أقل من دقيقة",
+  "{{count}} min remaining": "يتبقى {{count}} د",
+  "{{count}} min remaining_one": "يتبقى {{count}} د",
+  "−{{count}} min over budget": "تجاوز الميزانية بمقدار {{count}} د",
+  "−{{count}} min over budget_one": "تجاوز الميزانية بمقدار {{count}} د"
 }

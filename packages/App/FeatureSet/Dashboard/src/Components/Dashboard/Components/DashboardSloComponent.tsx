@@ -49,12 +49,13 @@ import {
 } from "Common/Utils/Slo/SloStatusColor";
 import {
   formatSloChartValue,
+  formatSloPercent,
   getSloChartAggregationInterval,
   getSloHistoryMetricName,
   getSloMetricLabel,
   getSloWidgetTileDisplay,
   getSloWidgetTitle,
-  SLO_NOT_EVALUATED_TEXT,
+  SLI_DECIMALS,
   SloWidgetTileDisplay,
 } from "Common/Utils/Slo/SloWidgetFormat";
 import API from "Common/UI/Utils/API/API";
@@ -424,12 +425,18 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
   const timeRangeZoom: DashboardWidgetTimeRangeZoomHandlers =
     DashboardWidgetTimeRangeZoom.getHandlers(props);
 
-  const metricLabel: string = getSloMetricLabel(sloMetric);
+  /*
+   * In the reader's words: the metric's label, and the title around the
+   * SLO's name, which stays as written - set apart where it reads the other
+   * way, as an English name on an Arabic dashboard does.
+   */
+  const metricLabel: string = getSloMetricLabel(sloMetric, translator);
   const title: string = getSloWidgetTitle({
     widgetTitle: props.component.arguments.widgetTitle,
     sloName: slo?.name,
     sloMetric: sloMetric,
     followsSelection: isFollowingSelection,
+    translator: translator,
   });
   const placeholderTitle: string =
     props.component.arguments.widgetTitle || metricLabel;
@@ -586,8 +593,9 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
         ? [
             {
               value: target,
-              label: translator.translateTemplate("Target {{target}}%", {
-                target: target,
+              label: translator.translateTemplate("Target {{target}}", {
+                target:
+                  formatSloPercent(target, SLI_DECIMALS, translator) || "",
               }),
               color: "#f59e0b",
               strokeDasharray: "4 4",
@@ -617,8 +625,9 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
         min: sloMetric === SloWidgetMetric.BurnRate ? 0 : "auto",
         max: sloMetric === SloWidgetMetric.BurnRate ? "auto" : 100,
         precision: YAxisPrecision.TwoDecimals,
+        // The axis and the tooltip in the reader's figures: "99,874 %".
         formatter: (value: number): string => {
-          return formatSloChartValue(sloMetric, value);
+          return formatSloChartValue(sloMetric, value, translator);
         },
       },
     };
@@ -694,9 +703,11 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
   }
 
   // ── Tile ───────────────────────────────────────────────────────────────
+  // The figure, the line under it and "Not evaluated yet", the reader's way.
   const tile: SloWidgetTileDisplay = getSloWidgetTileDisplay({
     sloMetric: sloMetric,
     slo: slo,
+    translator: translator,
   });
 
   /*
@@ -735,9 +746,7 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
           {tile.value}
         </div>
       ) : (
-        <div className="text-sm text-gray-400 text-center">
-          {SLO_NOT_EVALUATED_TEXT}
-        </div>
+        <div className="text-sm text-gray-400 text-center">{tile.value}</div>
       )}
 
       {tile.subline ? (

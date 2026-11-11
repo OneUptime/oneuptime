@@ -226,8 +226,13 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Target",
               fieldType: FieldType.Element,
               getElement: (item: ServiceLevelObjective): ReactElement => {
+                // "99,9 %" in German: the figures the reader's way.
                 return getValueElement(
-                  formatSloPercent(item.targetPercentage) || EM_DASH,
+                  formatSloPercent(
+                    item.targetPercentage,
+                    undefined,
+                    translator,
+                  ) || EM_DASH,
                 );
               },
             },
@@ -240,6 +245,8 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               getElement: (item: ServiceLevelObjective): ReactElement => {
                 const threshold: string | null = formatSloPercent(
                   item.atRiskThresholdPercentage,
+                  undefined,
+                  translator,
                 );
 
                 return getValueElement(

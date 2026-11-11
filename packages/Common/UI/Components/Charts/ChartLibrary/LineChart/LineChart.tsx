@@ -21,7 +21,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import ChartReferenceLineProps from "../../Types/ReferenceLineProps";
+import ChartReferenceLineProps, {
+  DEFAULT_REFERENCE_LINE_DASH,
+} from "../../Types/ReferenceLineProps";
 import {
   ReferenceLineShade,
   getReferenceLineShade,
@@ -1344,7 +1346,9 @@ const LineChart: React.ForwardRefExoticComponent<
                       <ReferenceLine
                         y={refLine.value}
                         stroke={refLine.color}
-                        strokeDasharray={refLine.strokeDasharray || "4 4"}
+                        strokeDasharray={
+                          refLine.strokeDasharray || DEFAULT_REFERENCE_LINE_DASH
+                        }
                         strokeWidth={1.5}
                         {...(refLine.extendsDomain
                           ? { ifOverflow: "extendDomain" as const }

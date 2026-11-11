@@ -50378,5 +50378,14 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "Linha {{row}}: \"{{key}}\" não é um nome descoberto, como {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "Linha {{row}}: \"{{key}}\" não é um endereço IP, como {{example}}.",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "Linha {{row}}: \"{{key}}\" não é a última parte de um endereço IP, como {{example}}.",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "Nenhuma seta deste diagrama indica de onde {{column}} vem nem para onde vai."
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "Nenhuma seta deste diagrama indica de onde {{column}} vem nem para onde vai.",
+  "Not Evaluated": "Não avaliado",
+  "Target {{target}}": "Meta {{target}}",
+  "target {{target}}": "meta {{target}}",
+  "under 1 min over budget": "Orçamento excedido em menos de 1 min",
+  "under 1 min remaining": "Resta menos de 1 min",
+  "{{count}} min remaining": "Restam {{count}} min",
+  "{{count}} min remaining_one": "Resta {{count}} min",
+  "−{{count}} min over budget": "Orçamento excedido em {{count}} min",
+  "−{{count}} min over budget_one": "Orçamento excedido em {{count}} min"
 }

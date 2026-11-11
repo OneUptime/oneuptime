@@ -50378,5 +50378,14 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "第 {{row}} 列：「{{key}}」不是探索到的名稱，例如 {{example}}。",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "第 {{row}} 列：「{{key}}」不是 IP 位址，例如 {{example}}。",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "第 {{row}} 列：「{{key}}」不是 IP 位址的最後一部分，例如 {{example}}。",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "此圖中沒有箭頭說明 {{column}} 的來源與去向。"
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "此圖中沒有箭頭說明 {{column}} 的來源與去向。",
+  "Not Evaluated": "未評估",
+  "Target {{target}}": "目標 {{target}}",
+  "target {{target}}": "目標 {{target}}",
+  "under 1 min over budget": "超出預算不到 1 分鐘",
+  "under 1 min remaining": "剩餘不到 1 分鐘",
+  "{{count}} min remaining": "剩餘 {{count}} 分鐘",
+  "{{count}} min remaining_one": "剩餘 {{count}} 分鐘",
+  "−{{count}} min over budget": "超出預算 {{count}} 分鐘",
+  "−{{count}} min over budget_one": "超出預算 {{count}} 分鐘"
 }
