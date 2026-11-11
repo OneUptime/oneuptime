@@ -21,6 +21,12 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import IconProp from "Common/Types/Icon/IconProp";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  fillTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import computeLayeredLayout, {
   LayoutPoint,
 } from "../../Utils/LayeredGraphLayout";
@@ -122,16 +128,28 @@ interface CardData {
   footer?: string | undefined;
   stacked: boolean;
   dimmed: boolean;
+  // The overflow card's count: its title, worded in the reader's language.
+  overflowCount?: number | undefined;
 }
+
+// The overflow card's title, one sentence with its count.
+const OVERFLOW_TITLE: string = "{{count}} more";
 
 const InfrastructureCard: FunctionComponent<NodeProps<CardData>> = (
   props: NodeProps<CardData>,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   return (
     <TopologyNodeCard
       testId={`infrastructure-map-node-${props.id}`}
-      title={props.data.title}
+      title={
+        props.data.overflowCount !== undefined
+          ? translator.translateTemplate(OVERFLOW_TITLE, {
+              count: translator.formatNumber(props.data.overflowCount),
+            })
+          : props.data.title
+      }
       subtitle={translateString(props.data.subtitle) || props.data.subtitle}
       icon={props.data.icon}
       color={props.data.color}
@@ -592,12 +610,14 @@ export function layoutInfrastructureMap(data: {
       position: positionOf(OVERFLOW_ID),
       data: {
         kind: "overflow",
-        title: `${overflow} more`,
+        title: fillTemplate(OVERFLOW_TITLE, { count: overflow }),
+        overflowCount: overflow,
         subtitle: "Not drawn",
         icon: IconProp.TableCells,
         color: "#64748b",
         statusColor: "#94a3b8",
-        statusLabel: "Open the list to see everything",
+        // The node looks its status line up in the reader's language.
+        statusLabel: translationKey("Open the list to see everything"),
         stats: [],
         stacked: true,
         dimmed: false,

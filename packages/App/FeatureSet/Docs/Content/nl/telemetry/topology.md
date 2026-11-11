@@ -95,7 +95,7 @@ Een vCenter, een Kubernetes-cluster, een host, een Docker- of Podman-host, een D
 
 **Netwerk** is de live kaart van uw netwerkapparaten, opgebouwd uit de buren die ze via LLDP melden, en via CDP op Cisco-apparaten. Ze heeft geen tijdkiezer: verbindingen vernieuwen zichzelf.
 
-Als u apparaten in sites groepeert, opent de weergave op uw sites: kies er een, of schakel over naar **All devices**. **Map options** ordent de kaart en kiest wat ze bevat, en **PDF exporteren** slaat de kaart op die u ziet. De pagina's van netwerkapparaten tekenen dezelfde kaart: zie [Netwerktopologie](/docs/monitor/network-device-monitor#netwerktopologie).
+Als u apparaten in sites groepeert, opent de weergave op uw sites: kies er een, of schakel over naar **Alle apparaten**. **Map options** ordent de kaart en kiest wat ze bevat, en **PDF exporteren** slaat de kaart op die u ziet. De pagina's van netwerkapparaten tekenen dezelfde kaart: zie [Netwerktopologie](/docs/monitor/network-device-monitor#netwerktopologie).
 
 ## Problemen oplossen
 

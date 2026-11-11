@@ -5,6 +5,8 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { SLO_EVALUATION_CADENCE_MINUTES } from "Common/Utils/Slo/SloEvaluation";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -34,6 +36,7 @@ interface StepOption {
 const SloOverviewGettingStartedCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const monitorsRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.SLO_VIEW_MONITORS] as Route,
     { modelId: props.sloId },
@@ -84,10 +87,17 @@ const SloOverviewGettingStartedCard: FunctionComponent<ComponentProps> = (
 
   const burnRuleText: string =
     props.enabledBurnRateRuleCount > 0
-      ? `${props.enabledBurnRateRuleCount} burn rate rule${
-          props.enabledBurnRateRuleCount === 1 ? " is" : "s are"
-        } ready to alert when the budget burns too fast. Adjust thresholds, severities and who gets paged.`
-      : "No burn rate rule is enabled yet, so nothing will alert when the budget burns too fast.";
+      ? translator.translatePlural(
+          {
+            one: "{{count}} burn rate rule is ready to alert when the budget burns too fast. Adjust thresholds, severities and who gets paged.",
+            other:
+              "{{count}} burn rate rules are ready to alert when the budget burns too fast. Adjust thresholds, severities and who gets paged.",
+          },
+          props.enabledBurnRateRuleCount,
+        )
+      : translator.translateTemplate(
+          "No burn rate rule is enabled yet, so nothing will alert when the budget burns too fast.",
+        );
 
   return (
     <section
@@ -104,11 +114,12 @@ const SloOverviewGettingStartedCard: FunctionComponent<ComponentProps> = (
             id="slo-getting-started-title"
             className="text-lg font-semibold text-gray-900"
           >
-            Choose what this SLO measures
+            {translator.translateText("Choose what this SLO measures")}
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            An SLO tracks uptime across its monitors. It has none yet, so there
-            are no numbers to show.
+            {translator.translateText(
+              "An SLO tracks uptime across its monitors. It has none yet, so there are no numbers to show.",
+            )}
           </p>
         </div>
       </div>
@@ -123,7 +134,7 @@ const SloOverviewGettingStartedCard: FunctionComponent<ComponentProps> = (
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-gray-900">
-              Attach monitors
+              {translator.translateText("Attach monitors")}
             </p>
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
               {monitorOptions.map((option: StepOption) => {
@@ -139,11 +150,11 @@ const SloOverviewGettingStartedCard: FunctionComponent<ComponentProps> = (
                         className="h-4 w-4 flex-shrink-0 text-gray-500"
                       />
                       <p className="text-sm font-medium text-gray-900">
-                        {option.title}
+                        {translator.translateText(option.title)}
                       </p>
                     </div>
                     <p className="mt-1 flex-1 text-sm text-gray-500">
-                      {option.description}
+                      {translator.translateText(option.description)}
                     </p>
                     <div className="mt-3">{option.action}</div>
                   </div>
@@ -162,7 +173,7 @@ const SloOverviewGettingStartedCard: FunctionComponent<ComponentProps> = (
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-gray-900">
-              Check who gets alerted
+              {translator.translateText("Check who gets alerted")}
             </p>
             <p className="mt-1 text-sm text-gray-500">{burnRuleText}</p>
             <div className="mt-2">
@@ -184,10 +195,17 @@ const SloOverviewGettingStartedCard: FunctionComponent<ComponentProps> = (
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-gray-900">
-              Watch the numbers arrive
+              {translator.translateText("Watch the numbers arrive")}
             </p>
             <p className="mt-1 text-sm text-gray-500">
-              {`OneUptime evaluates SLOs every ${SLO_EVALUATION_CADENCE_MINUTES} minutes. The SLI, error budget and burn-down appear on this page after the first evaluation.`}
+              {translator.translatePlural(
+                {
+                  one: "OneUptime evaluates SLOs every {{count}} minute. The SLI, error budget and burn-down appear on this page after the first evaluation.",
+                  other:
+                    "OneUptime evaluates SLOs every {{count}} minutes. The SLI, error budget and burn-down appear on this page after the first evaluation.",
+                },
+                SLO_EVALUATION_CADENCE_MINUTES,
+              )}
             </p>
           </div>
         </li>

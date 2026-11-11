@@ -1127,6 +1127,12 @@ describe("Status Page > Resources", () => {
 
       expect(displayNames.length).toBe(1);
       expect(displayNames[0]!.textContent).toContain("Disk");
+      /*
+       * Cut short on a right-to-left page, a name keeps its own start in
+       * view: it is laid out by its own first letter.
+       */
+      expect(displayNames[0]).toHaveAttribute("dir", "auto");
+      expect(displayNames[0]).toHaveClass("truncate");
     });
 
     test("offer somewhere to start when the group is empty", async () => {

@@ -99,7 +99,9 @@ const TwoFactorAuth: FunctionComponent<
     try {
       if (!item.id) {
         throw new Error(
-          "This authenticator could not be loaded. Close this window and choose Finish setup to try again.",
+          translator.translateText(
+            "This authenticator could not be loaded. Close this window and choose Finish setup to try again.",
+          ),
         );
       }
       const authenticator: UserTotpAuth | null =
@@ -111,7 +113,9 @@ const TwoFactorAuth: FunctionComponent<
         });
       if (!authenticator?.twoFactorOtpUrl) {
         throw new Error(
-          "This authenticator could not be loaded. Close this window and choose Finish setup to try again.",
+          translator.translateText(
+            "This authenticator could not be loaded. Close this window and choose Finish setup to try again.",
+          ),
         );
       }
       if (!controller.signal.aborted) {
@@ -138,7 +142,9 @@ const TwoFactorAuth: FunctionComponent<
     }
     if (!verificationCode.match(/^\d{6}$/)) {
       setVerificationError(
-        "Enter the 6-digit code from your authenticator app.",
+        translator.translateText(
+          "Enter the 6-digit code from your authenticator app.",
+        ) as string,
       );
       return;
     }
@@ -163,7 +169,9 @@ const TwoFactorAuth: FunctionComponent<
       setSelectedTotpAuth(null);
       setVerificationCode("");
       setVerificationSuccess(
-        "Authenticator app added. It is ready to use for two-factor authentication.",
+        translator.translateText(
+          "Authenticator app added. It is ready to use for two-factor authentication.",
+        ) as string,
       );
       setTableRefreshToggle((previous: string) => {
         return String(Number(previous) + 1);
@@ -275,7 +283,9 @@ const TwoFactorAuth: FunctionComponent<
             customValidation: (values: FormValues<UserTotpAuth>) => {
               return String(values.name || "").trim()
                 ? null
-                : "Enter a name for your authenticator app.";
+                : (translator.translateText(
+                    "Enter a name for your authenticator app.",
+                  ) as string);
             },
           },
         ]}

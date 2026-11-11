@@ -1039,17 +1039,6 @@ export default class StatusPageResourceExplorerUtil {
   /* ------------------------------------------------------------------ */
 
   /*
-   * "12 resources", or "1 resource".
-   */
-  public static getResourceCountLabel(data: { count: number }): string {
-    if (data.count === 1) {
-      return "1 resource";
-    }
-
-    return `${data.count.toLocaleString("en-US")} resources`;
-  }
-
-  /*
    * What a navigator row's count badge says, which is not always the same
    * number as the pane it opens.
    *
@@ -1075,38 +1064,5 @@ export default class StatusPageResourceExplorerUtil {
     }
 
     return data.row.ownResourceCount.toLocaleString(getReaderNumberLocale());
-  }
-
-  public static getNavigatorCountTooltip(data: {
-    row: StatusPageResourceNavigatorRow;
-    countIndex: StatusPageResourceCountIndex;
-  }): string | undefined {
-    if (!data.countIndex.isComplete) {
-      return undefined;
-    }
-
-    const own: string = `${data.row.ownResourceCount.toLocaleString("en-US")} ${
-      data.row.ownResourceCount === 1 ? "resource" : "resources"
-    } in this group`;
-
-    if (data.row.subtreeResourceCount === data.row.ownResourceCount) {
-      return own;
-    }
-
-    return `${own} · ${data.row.subtreeResourceCount.toLocaleString("en-US")} including sub groups`;
-  }
-
-  public static getSubGroupCountLabel(data: {
-    subGroupCount: number;
-  }): string | null {
-    if (data.subGroupCount <= 0) {
-      return null;
-    }
-
-    if (data.subGroupCount === 1) {
-      return "1 sub group";
-    }
-
-    return `${data.subGroupCount.toLocaleString("en-US")} sub groups`;
   }
 }

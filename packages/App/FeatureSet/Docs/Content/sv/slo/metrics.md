@@ -58,7 +58,7 @@ Incident- och larmmetriker har två motsvarande attribut, `serviceLevelObjective
 
 `oneuptime.slo.*`-metriker sparas lika länge som monitormetriker: **30 dagar** som standard. På en egenhostad installation kan en huvudadministratör ändra det med **Monitor Metric Retention (Days)** i inställningarna för **Datalagring** i Admin Dashboard.
 
-Det begränsar inte fliken **Error Budget History** på SLO:ets sida **Mätvärden**. Den historiken lagras separat och sparas i 400 dagar.
+Det begränsar inte fliken **Felbudgetens historik** på SLO:ets sida **Mätvärden**. Den historiken lagras separat och sparas i 400 dagar.
 
 ## Sidan Mätvärden
 
@@ -66,12 +66,12 @@ Ett SLO:s sida **Mätvärden** har fyra flikar:
 
 | Flik | Vad den visar |
 | --- | --- |
-| **SLO Metrics** | `oneuptime.slo.*`-serierna i tre kort som delar ett och samma tidsintervall, som standard det senaste dygnet: **Mål** (SLI:n med målet ovanpå, och den återstående budgeten), **Förbrukning** (förbrukningstakt och återstående budgettid) och **Status**. |
-| **Error Budget History** | SLI:n, den återstående budgeten och förbrukningstakten över den långsiktiga historiken, med linjer vid målet, vid gränserna för riskzon och förbrukad budget och vid tröskeln för varje aktiverad regel för förbrukningstakt. |
+| **SLO-mätvärden** | `oneuptime.slo.*`-serierna i tre kort som delar ett och samma tidsintervall, som standard det senaste dygnet: **Mål** (SLI:n med målet ovanpå, och den återstående budgeten), **Förbrukning** (förbrukningstakt och återstående budgettid) och **Status**. |
+| **Felbudgetens historik** | SLI:n, den återstående budgeten och förbrukningstakten över den långsiktiga historiken, med linjer vid målet, vid gränserna för riskzon och förbrukad budget och vid tröskeln för varje aktiverad regel för förbrukningstakt. |
 | **Incidentstatistik** | Antalet, tiden till kvittering, tiden till lösning och varaktigheten för de incidenter som påverkar det här SLO:et, som standard den senaste veckan. Incidenter som dess regler för förbrukningstakt har deklarerat ingår. |
 | **Larmstatistik** | Samma sak för larm. Larm som dess regler för förbrukningstakt har utlöst ingår. |
 
-Flikarna **SLO Metrics**, **Incidentstatistik** och **Larmstatistik** läser metriklagret, vilket kräver behörighet att läsa telemetri. En anpassad roll som får läsa SLO:er men inte telemetri ser de flikarna tomma, medan **Error Budget History** fortfarande fungerar.
+Flikarna **SLO-mätvärden**, **Incidentstatistik** och **Larmstatistik** läser metriklagret, vilket kräver behörighet att läsa telemetri. En anpassad roll som får läsa SLO:er men inte telemetri ser de flikarna tomma, medan **Felbudgetens historik** fortfarande fungerar.
 
 ## SLO:er på instrumentpaneler
 
@@ -123,7 +123,7 @@ Två SLO:er har det namnet. Listan och diagrammen visar båda, och widgetarna un
 :::
 
 :::details Fliken SLO Metrics är tom
-Din roll får inte läsa telemetri, eller så har SLO:et inte utvärderats än. **Error Budget History** läser själva SLO:et och fungerar fortfarande.
+Din roll får inte läsa telemetri, eller så har SLO:et inte utvärderats än. **Felbudgetens historik** läser själva SLO:et och fungerar fortfarande.
 :::
 
 ## Nästa steg

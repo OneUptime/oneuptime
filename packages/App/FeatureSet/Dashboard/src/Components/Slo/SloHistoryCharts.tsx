@@ -28,7 +28,7 @@ import {
   getSloChartAggregationInterval,
   getSloHistoryMetricName,
 } from "Common/Utils/Slo/SloWidgetFormat";
-import { formatDurationCompact } from "Common/Utils/Slo/SloDuration";
+import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -40,7 +40,10 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
 import { withTranslatedSeriesNames } from "Common/UI/Components/Charts/Utils/SeriesNames";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import DataPoint from "Common/UI/Components/Charts/Types/DataPoint";
@@ -542,7 +545,9 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
       ? [
           {
             value: targetPercentage,
-            label: `Target ${targetPercentage}%`,
+            label: translator.translateTemplate("Target {{target}}%", {
+              target: targetPercentage,
+            }),
             color: TARGET_LINE_COLOR,
             strokeDasharray: "4 4",
           },
@@ -560,13 +565,13 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
       lines: [
         {
           value: 0,
-          label: "Budget exhausted",
+          label: translator.translateTemplate("Budget exhausted"),
           color: EXHAUSTED_LINE_COLOR,
         },
         {
           value:
             atRiskThresholdPercentage ?? DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
-          label: "At risk",
+          label: translator.translateTemplate("At risk"),
           color: AT_RISK_LINE_COLOR,
           strokeDasharray: "4 4",
         },
@@ -585,14 +590,18 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
     .map((rule: ServiceLevelObjectiveBurnRateRule) => {
       return {
         value: rule.burnRateThreshold!,
-        label: `${rule.name || "Rule"} ${rule.burnRateThreshold}×`,
+        label: translator.translateTemplate("{{rule}} {{threshold}}×", {
+          rule: rule.name || translatableTerm("Rule"),
+          threshold: rule.burnRateThreshold!,
+        }),
         color: BURN_RULE_LINE_COLOR,
         strokeDasharray: "4 4",
       };
     });
 
-  const burnRateWindowText: string = formatDurationCompact(
+  const burnRateWindowText: string = formatDurationCompactInLanguage(
     SLO_CURRENT_BURN_RATE_WINDOW_MINUTES * 60,
+    translator.language,
   );
 
   /*
@@ -675,7 +684,10 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
         className="group/zoomhint"
         bodyClassName={SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME}
         title="Burn Rate"
-        description={`Error-budget burn measured over the trailing ${burnRateWindowText}. A burn rate of 1 spends the budget exactly over the compliance window. Dashed lines are the thresholds of this SLO's enabled burn rate rules.`}
+        description={translator.translateTemplate(
+          "Error-budget burn measured over the trailing {{window}}. A burn rate of 1 spends the budget exactly over the compliance window. Dashed lines are the thresholds of this SLO's enabled burn rate rules.",
+          { window: burnRateWindowText },
+        )}
       >
         {getChart({
           points: burnRatePoints,

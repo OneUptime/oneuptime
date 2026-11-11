@@ -95,7 +95,7 @@ Un vCenter, un cluster Kubernetes, un host, un host Docker o Podman, un cluster 
 
 **Rete** è la mappa in tempo reale dei vostri dispositivi di rete, costruita dai vicini che segnalano via LLDP, e via CDP sui dispositivi Cisco. Non ha un selettore del tempo: le connessioni si aggiornano da sole.
 
-Se raggruppate i dispositivi in siti, la vista si apre sui vostri siti: sceglietene uno, oppure passate ad **All devices**. **Map options** dispone la mappa e sceglie che cosa include, ed **Esporta PDF** salva la mappa che vedete. Le pagine dei dispositivi di rete disegnano la stessa mappa: vedete [Topologia di rete](/docs/monitor/network-device-monitor#topologia-della-rete).
+Se raggruppate i dispositivi in siti, la vista si apre sui vostri siti: sceglietene uno, oppure passate a **Tutti i dispositivi**. **Map options** dispone la mappa e sceglie che cosa include, ed **Esporta PDF** salva la mappa che vedete. Le pagine dei dispositivi di rete disegnano la stessa mappa: vedete [Topologia di rete](/docs/monitor/network-device-monitor#topologia-della-rete).
 
 ## Risoluzione dei problemi
 

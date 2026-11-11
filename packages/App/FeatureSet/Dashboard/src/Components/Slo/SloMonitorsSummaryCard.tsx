@@ -35,7 +35,15 @@ import {
   SloMonitorStatusSummary,
   SloMonitorStatusTone,
 } from "Common/Utils/Slo/SloMonitorStatusSummary";
-import { getSloMonitorCountText } from "Common/Utils/Slo/SloOverviewText";
+import {
+  getSloMonitorCountInLanguage,
+  sloMonitorCountValue,
+} from "./SloOverviewTextInLanguage";
+import {
+  Translator,
+  translatableTerm,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -103,6 +111,7 @@ const toStatusInput: ToStatusInputFunction = (
 const SloMonitorsSummaryCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [monitors, setMonitors] = useState<Array<Monitor>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(
     props.monitorIds.length > 0,
@@ -252,7 +261,7 @@ const SloMonitorsSummaryCard: FunctionComponent<ComponentProps> = (
       return (
         <div
           role="status"
-          aria-label="Loading monitors"
+          aria-label={translator.translateTemplate("Loading monitors")}
           className="space-y-3 motion-safe:animate-pulse"
         >
           <div className="h-2.5 w-full rounded-full bg-gray-100"></div>
@@ -286,25 +295,44 @@ const SloMonitorsSummaryCard: FunctionComponent<ComponentProps> = (
           value: segment.count,
           label: segment.label,
           color: SEGMENT_COLOR_CLASS[segment.tone],
-          tooltip: `${segment.label}: ${getSloMonitorCountText(segment.count)}`,
+          tooltip: translator.translateTemplate("{{label}}: {{monitors}}", {
+            label: translatableTerm(segment.label),
+            monitors: getSloMonitorCountInLanguage(segment.count, translator),
+          }),
         };
       },
     );
 
-    let summaryText: string = `All ${getSloMonitorCountText(summary.total)} operational`;
+    let summaryText: string = translator.translateTemplate(
+      "All {{monitors}} operational",
+      { monitors: sloMonitorCountValue(summary.total) },
+    );
 
     if (summary.total === 1 && summary.needsAttentionCount === 0) {
-      summaryText = "The monitor is operational";
+      summaryText = translator.translateTemplate("The monitor is operational");
     }
 
     if (summary.needsAttentionCount > 0) {
-      summaryText = `${summary.needsAttentionCount} of ${getSloMonitorCountText(summary.total)} need${
-        summary.needsAttentionCount === 1 ? "s" : ""
-      } attention`;
+      summaryText = translator.translatePlural(
+        {
+          one: "{{count}} of {{monitors}} needs attention",
+          other: "{{count}} of {{monitors}} need attention",
+        },
+        summary.needsAttentionCount,
+        { monitors: sloMonitorCountValue(summary.total) },
+      );
     } else if (summary.pausedCount === summary.total) {
-      summaryText = "Every monitor is paused";
+      summaryText = translator.translateTemplate("Every monitor is paused");
     } else if (summary.pausedCount > 0) {
-      summaryText = `${summary.total - summary.pausedCount} operational, ${summary.pausedCount} paused`;
+      summaryText = translator.translateTemplate(
+        "{{operational}} operational, {{paused}} paused",
+        {
+          operational: translator.formatNumber(
+            summary.total - summary.pausedCount,
+          ),
+          paused: translator.formatNumber(summary.pausedCount),
+        },
+      );
     }
 
     const visibleRows: Array<SloMonitorStatusRow> = summary.rows.slice(
@@ -325,9 +353,13 @@ const SloMonitorsSummaryCard: FunctionComponent<ComponentProps> = (
           </p>
           {props.enabledMonitorRuleCount > 0 ? (
             <SloOverviewActionLink
-              title={`Kept in sync by ${props.enabledMonitorRuleCount} monitor rule${
-                props.enabledMonitorRuleCount === 1 ? "" : "s"
-              }`}
+              title={translator.translatePlural(
+                {
+                  one: "Kept in sync by {{count}} monitor rule",
+                  other: "Kept in sync by {{count}} monitor rules",
+                },
+                props.enabledMonitorRuleCount,
+              )}
               icon={IconProp.Filter}
               to={monitorRulesRoute}
             />
@@ -344,7 +376,9 @@ const SloMonitorsSummaryCard: FunctionComponent<ComponentProps> = (
         />
 
         <ul
-          aria-label="Monitors measured by this SLO"
+          aria-label={translator.translateTemplate(
+            "Monitors measured by this SLO",
+          )}
           className="mt-4 divide-y divide-gray-100 border-t border-gray-100"
         >
           {visibleRows.map((row: SloMonitorStatusRow) => {
@@ -382,7 +416,9 @@ const SloMonitorsSummaryCard: FunctionComponent<ComponentProps> = (
         {summary.total > visibleRows.length ? (
           <div className="mt-3 border-t border-gray-100 pt-3">
             <SloOverviewActionLink
-              title={`View all ${getSloMonitorCountText(summary.total)}`}
+              title={translator.translateTemplate("View all {{monitors}}", {
+                monitors: sloMonitorCountValue(summary.total),
+              })}
               icon={IconProp.ArrowRight}
               to={monitorsRoute}
             />

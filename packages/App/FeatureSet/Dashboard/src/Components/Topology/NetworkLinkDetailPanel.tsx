@@ -7,6 +7,9 @@ import {
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import { getNetworkControllerProviderShortTitle } from "Common/Types/NetworkController/NetworkControllerProvider";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   LINK_STATE_COLORS,
   NetworkLinkState,
@@ -37,11 +40,12 @@ export interface ComponentProps {
   onClose: () => void;
 }
 
+// Looked up in the reader's language where the panel draws them.
 const STATE_LABELS: Record<NetworkLinkState, string> = {
-  down: "Link down",
-  saturated: "High utilization",
-  healthy: "Healthy",
-  unknown: "No operational data",
+  down: translationKey("Link down"),
+  saturated: translationKey("High utilization"),
+  healthy: translationKey("Healthy"),
+  unknown: translationKey("No operational data"),
 };
 
 interface EndpointSectionProps {
@@ -65,7 +69,8 @@ const EndpointSection: FunctionComponent<EndpointSectionProps> = (
   const interfaceLabel: string =
     portLabelForEdgeEnd(endpoint, props.portLabel) ||
     props.unknownLabel ||
-    "Unknown interface";
+    translateString("Unknown interface") ||
+    "";
 
   const rows: Array<{
     label: string;
@@ -74,39 +79,43 @@ const EndpointSection: FunctionComponent<EndpointSectionProps> = (
   }> = [];
   if (endpoint?.isOperationallyUp !== undefined) {
     rows.push({
-      label: translateString("Operational status") || "Operational status",
-      value: endpoint.isOperationallyUp ? "Up" : "Down",
+      label: translateString("Operational status") || "",
+      value: (endpoint.isOperationallyUp
+        ? translateString("Up")
+        : translateString("Down")) as string,
       color: endpoint.isOperationallyUp ? "#16a34a" : "#dc2626",
     });
   }
   if (endpoint?.isAdministrativelyUp !== undefined) {
     rows.push({
-      label: translateString("Admin status") || "Admin status",
-      value: endpoint.isAdministrativelyUp ? "Up" : "Down",
+      label: translateString("Admin status") || "",
+      value: (endpoint.isAdministrativelyUp
+        ? translateString("Up")
+        : translateString("Down")) as string,
     });
   }
   if (endpoint?.utilizationPercent !== undefined) {
     rows.push({
-      label: translateString("Utilization") || "Utilization",
+      label: translateString("Utilization") || "",
       value: formatUtilization(endpoint.utilizationPercent),
       color: endpoint.utilizationPercent >= 80 ? "#f59e0b" : undefined,
     });
   }
   if (endpoint?.inRateMbps !== undefined) {
     rows.push({
-      label: translateString("In rate") || "In rate",
+      label: translateString("In rate") || "",
       value: formatMbps(endpoint.inRateMbps),
     });
   }
   if (endpoint?.outRateMbps !== undefined) {
     rows.push({
-      label: translateString("Out rate") || "Out rate",
+      label: translateString("Out rate") || "",
       value: formatMbps(endpoint.outRateMbps),
     });
   }
   if (endpoint?.errorsPerSecond !== undefined) {
     rows.push({
-      label: translateString("Errors") || "Errors",
+      label: translateString("Errors") || "",
       value: `${endpoint.errorsPerSecond}/s`,
     });
   }
@@ -119,8 +128,7 @@ const EndpointSection: FunctionComponent<EndpointSectionProps> = (
       <p className="mt-0.5 text-xs text-gray-500">{interfaceLabel}</p>
       {rows.length === 0 ? (
         <p className="mt-2 text-sm text-gray-500">
-          {translateString("No interface metrics for this end.") ||
-            "No interface metrics for this end."}
+          {translateString("No interface metrics for this end.")}
         </p>
       ) : (
         <dl className="mt-2 space-y-1 text-sm text-gray-600">
@@ -140,7 +148,8 @@ const EndpointSection: FunctionComponent<EndpointSectionProps> = (
                     className="font-medium"
                     style={row.color ? { color: row.color } : undefined}
                   >
-                    {row.value}
+                    {/* "120 Mbps" and "0/s" keep their order on an Arabic page. */}
+                    <bdi>{row.value}</bdi>
                   </dd>
                 </div>
               );
@@ -156,10 +165,13 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const { edge } = props;
   const state: NetworkLinkState = linkStateForEdge(edge);
-  const fromName: string = props.fromNode?.name || "Unknown device";
-  const toName: string = props.toNode?.name || "Unknown device";
+  const fromName: string =
+    props.fromNode?.name || translateString("Unknown device") || "";
+  const toName: string =
+    props.toNode?.name || translateString("Unknown device") || "";
 
   /*
    * A learned link is one a switch's forwarding table drew: the from end
@@ -232,32 +244,49 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
   const reporter: string | undefined = getNetworkControllerProviderShortTitle(
     edge.reportedBy,
   );
+  const learnedSlots: Record<string, ReactElement> = {
+    learned: <span className="font-medium text-gray-900">{learnedName}</span>,
+    learner: <span className="font-medium text-gray-900">{learnerName}</span>,
+  };
   const learnedAttachmentWords: ReactElement = reporter ? (
-    <>
-      {`${reporter} lists `}
-      <span className="font-medium text-gray-900">{learnedName}</span>
-      {" as a client of "}
-      <span className="font-medium text-gray-900">{learnerName}</span>
-      {learnerPortLabel ? ` on ${learnerPortLabel}` : ""}
-    </>
+    <TranslatedSentence
+      template={
+        learnerPortLabel
+          ? "{{reporter}} lists {{learned}} as a client of {{learner}} on {{port}}"
+          : "{{reporter}} lists {{learned}} as a client of {{learner}}"
+      }
+      values={{ reporter: reporter, port: learnerPortLabel || "" }}
+      slots={learnedSlots}
+    />
   ) : (
-    <>
-      <span className="font-medium text-gray-900">{learnerName}</span>
-      {" learned "}
-      <span className="font-medium text-gray-900">{learnedName}</span>
-      {"'s MAC address"}
-      {learnerPortLabel ? ` on ${learnerPortLabel}` : ""}
-      {" in its forwarding or ARP table"}
-    </>
+    <TranslatedSentence
+      template={
+        learnerPortLabel
+          ? "{{learner}} learned {{learned}}'s MAC address on {{port}} in its forwarding or ARP table"
+          : "{{learner}} learned {{learned}}'s MAC address in its forwarding or ARP table"
+      }
+      values={{ port: learnerPortLabel || "" }}
+      slots={learnedSlots}
+    />
   );
+
+  // The end a learned link's silent device hangs off, by its switch port.
+  const attachedViaLabel: string = learnerPortLabel
+    ? translator.translateTemplate("Attached via {{device}} {{port}}", {
+        device: learnerName,
+        port: learnerPortLabel,
+      })
+    : translator.translateTemplate("Attached via {{device}}", {
+        device: learnerName,
+      });
 
   return (
     <SideOver
       title={`${fromName} ↔ ${toName}`}
       description={
-        isLearned
-          ? translateString("Learned link") || "Learned link"
-          : translateString("Network link") || "Network link"
+        (isLearned
+          ? translateString("Learned link")
+          : translateString("Network link")) || ""
       }
       onClose={props.onClose}
       size={SideOverSize.Small}
@@ -303,12 +332,11 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
                * child's MAC on an access port, which is the table's own
                * statement that the child hangs off it.
                */
-              <>
-                {learnedAttachmentWords}
-                {", so the Parent-Child view draws "}
-                {childName}
-                {" beneath it."}
-              </>
+              <TranslatedSentence
+                template="{{attachment}}, so the Parent-Child view draws {{child}} beneath it."
+                values={{ child: childName }}
+                slots={{ attachment: learnedAttachmentWords }}
+              />
             ) : isLearned ? (
               /*
                * The table placed the cable, but somebody ELSE said which end
@@ -316,23 +344,35 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
                * parent the map keeps over the one the table implied. Both
                * facts are stated, and neither is dressed up as the other.
                */
-              <>
-                {learnedAttachmentWords}
-                {"; "}
-                <span className="font-medium text-gray-900">{parentName}</span>
-                {" is the declared parent, so the Parent-Child view draws "}
-                {childName}
-                {" beneath it."}
-              </>
+              <TranslatedSentence
+                template="{{attachment}}; {{parent}} is the declared parent, so the Parent-Child view draws {{child}} beneath it."
+                values={{ child: childName }}
+                slots={{
+                  attachment: learnedAttachmentWords,
+                  parent: (
+                    <span className="font-medium text-gray-900">
+                      {parentName}
+                    </span>
+                  ),
+                }}
+              />
             ) : (
-              <>
-                <span className="font-medium text-gray-900">{parentName}</span>
-                {" is the parent of "}
-                <span className="font-medium text-gray-900">{childName}</span>
-                {" — declared, not inferred. The Parent-Child view draws "}
-                {childName}
-                {" beneath it."}
-              </>
+              <TranslatedSentence
+                template="{{parent}} is the parent of {{child}} — declared, not inferred. The Parent-Child view draws {{childName}} beneath it."
+                values={{ childName: childName }}
+                slots={{
+                  parent: (
+                    <span className="font-medium text-gray-900">
+                      {parentName}
+                    </span>
+                  ),
+                  child: (
+                    <span className="font-medium text-gray-900">
+                      {childName}
+                    </span>
+                  ),
+                }}
+              />
             )}
           </div>
         ) : isLearned ? (
@@ -348,10 +388,10 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
             className="rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-600"
             data-testid="network-topology-learned-link-note"
           >
-            {learnedAttachmentWords}
-            {
-              ". That places the cable on a port without saying which end is upstream — a switch learns a router's MAC on the port that leads towards it — so the Parent-Child view keeps inferring the hierarchy for this pair."
-            }
+            <TranslatedSentence
+              template="{{attachment}}. That places the cable on a port without saying which end is upstream — a switch learns a router's MAC on the port that leads towards it — so the Parent-Child view keeps inferring the hierarchy for this pair."
+              slots={{ attachment: learnedAttachmentWords }}
+            />
           </p>
         ) : null}
 
@@ -360,11 +400,7 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
           portLabel={edge.fromPort}
           endpoint={edge.fromInterface}
           unknownLabel={
-            isLearned && learnedEndIsFrom
-              ? `Attached via ${learnerName}${
-                  learnerPortLabel ? ` ${learnerPortLabel}` : ""
-                }`
-              : undefined
+            isLearned && learnedEndIsFrom ? attachedViaLabel : undefined
           }
         />
 
@@ -373,11 +409,7 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
           portLabel={edge.toPort}
           endpoint={edge.toInterface}
           unknownLabel={
-            isLearned && !learnedEndIsFrom
-              ? `Attached via ${learnerName}${
-                  learnerPortLabel ? ` ${learnerPortLabel}` : ""
-                }`
-              : undefined
+            isLearned && !learnedEndIsFrom ? attachedViaLabel : undefined
           }
         />
       </div>

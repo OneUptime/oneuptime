@@ -635,13 +635,35 @@ export const isSliBelowTarget: IsSliBelowTargetFunction = (
  * because the tile colours the SLI red on the unrounded comparison and the
  * words must not contradict the colour.
  */
-export type GetSliDeltaTextFunction = (
-  data: SliVersusTargetData,
-) => string | null;
+export enum SliDeltaSide {
+  // Rounds to zero, SLI below the target.
+  JustBelow = "JustBelow",
+  // Rounds to zero, SLI above the target.
+  JustAbove = "JustAbove",
+  OnTarget = "OnTarget",
+  Above = "Above",
+  Below = "Below",
+}
 
-export const getSliDeltaText: GetSliDeltaTextFunction = (
+export interface SliDelta {
+  side: SliDeltaSide;
+  // The gap in percentage points, rounded for display and never negative.
+  percentagePoints: number;
+  // The target as the gap quotes it: "99.9%".
+  targetText: string;
+}
+
+/**
+ * The parts getSliDeltaText words, for a caller that words them in another
+ * language. Null when either number is unknown.
+ */
+export type GetSliDeltaFunction = (
   data: SliVersusTargetData,
-): string | null => {
+) => SliDelta | null;
+
+export const getSliDelta: GetSliDeltaFunction = (
+  data: SliVersusTargetData,
+): SliDelta | null => {
   const delta: number | null = getSliDeltaPercentagePoints(data);
 
   if (delta === null) {
@@ -652,23 +674,50 @@ export const getSliDeltaText: GetSliDeltaTextFunction = (
   const target: number = data.targetPercentage as number;
   const targetText: string = `${roundToDecimals(target, SLI_DELTA_DECIMALS)}%`;
 
+  let side: SliDeltaSide = delta > 0 ? SliDeltaSide.Above : SliDeltaSide.Below;
+
   if (delta === 0) {
-    if (sli < target) {
-      return `Just below the ${targetText} target`;
-    }
-
-    if (sli > target) {
-      return `Just above the ${targetText} target`;
-    }
-
-    return `Exactly on the ${targetText} target`;
+    side =
+      sli < target
+        ? SliDeltaSide.JustBelow
+        : sli > target
+          ? SliDeltaSide.JustAbove
+          : SliDeltaSide.OnTarget;
   }
 
-  if (delta > 0) {
-    return `${delta} pp above the ${targetText} target`;
+  return {
+    side: side,
+    percentagePoints: Math.abs(delta),
+    targetText: targetText,
+  };
+};
+
+export type GetSliDeltaTextFunction = (
+  data: SliVersusTargetData,
+) => string | null;
+
+export const getSliDeltaText: GetSliDeltaTextFunction = (
+  data: SliVersusTargetData,
+): string | null => {
+  const delta: SliDelta | null = getSliDelta(data);
+
+  if (delta === null) {
+    return null;
   }
 
-  return `${Math.abs(delta)} pp below the ${targetText} target`;
+  switch (delta.side) {
+    case SliDeltaSide.JustBelow:
+      return `Just below the ${delta.targetText} target`;
+    case SliDeltaSide.JustAbove:
+      return `Just above the ${delta.targetText} target`;
+    case SliDeltaSide.OnTarget:
+      return `Exactly on the ${delta.targetText} target`;
+    case SliDeltaSide.Above:
+      return `${delta.percentagePoints} pp above the ${delta.targetText} target`;
+    case SliDeltaSide.Below:
+    default:
+      return `${delta.percentagePoints} pp below the ${delta.targetText} target`;
+  }
 };
 
 /*

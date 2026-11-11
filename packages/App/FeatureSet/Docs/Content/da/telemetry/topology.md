@@ -95,7 +95,7 @@ Et vCenter, en Kubernetes-klynge, en vært, en Docker- eller Podman-vært, en Do
 
 **Netværk** er det levende kort over dine netværksenheder, bygget ud fra de naboer, de melder via LLDP, og via CDP på Cisco-enheder. Det har ingen tidsvælger: forbindelserne opdaterer sig selv.
 
-Hvis du grupperer enheder i lokationer, åbner visningen på dine lokationer: vælg en, eller skift til **All devices**. **Map options** arrangerer kortet og vælger, hvad det omfatter, og **Eksportér PDF** gemmer det kort, du ser. Netværksenhedernes sider tegner det samme kort: se [Netværkstopologi](/docs/monitor/network-device-monitor#netværkstopologi).
+Hvis du grupperer enheder i lokationer, åbner visningen på dine lokationer: vælg en, eller skift til **Alle enheder**. **Map options** arrangerer kortet og vælger, hvad det omfatter, og **Eksportér PDF** gemmer det kort, du ser. Netværksenhedernes sider tegner det samme kort: se [Netværkstopologi](/docs/monitor/network-device-monitor#netværkstopologi).
 
 ## Fejlfinding
 

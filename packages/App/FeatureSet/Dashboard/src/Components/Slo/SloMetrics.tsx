@@ -10,6 +10,8 @@ import ObjectID from "Common/Types/ObjectID";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -48,9 +50,11 @@ const SloMetricsElement: FunctionComponent<ComponentProps> = (
   const projectId: string = ProjectUtil.getCurrentProjectId()?.toString() || "";
   const sloIdString: string = props.sloId.toString();
 
+  const translator: Translator = useTranslator();
+
   const categories: Array<SloMetricCategory> = useMemo(() => {
-    return getSloMetricCategories();
-  }, []);
+    return getSloMetricCategories(translator);
+  }, [translator.language]);
 
   /*
    * Memoised on the id STRING: the page hands down a new ObjectID instance on

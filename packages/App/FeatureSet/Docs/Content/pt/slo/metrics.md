@@ -58,7 +58,7 @@ As métricas de incidentes e alertas carregam dois atributos correspondentes, `s
 
 As métricas `oneuptime.slo.*` são mantidas pelo mesmo tempo que as métricas de monitores: **30 dias** por padrão. Em uma instalação auto-hospedada, um administrador master pode mudar isso com **Monitor Metric Retention (Days)** nas configurações de **Retenção de dados** do Admin Dashboard.
 
-Isso não limita a aba **Error Budget History** da página **Métricas** do SLO. Esse histórico é guardado separadamente e mantido por 400 dias.
+Isso não limita a aba **Histórico do orçamento de erros** da página **Métricas** do SLO. Esse histórico é guardado separadamente e mantido por 400 dias.
 
 ## A página Métricas
 
@@ -66,12 +66,12 @@ A página **Métricas** de um SLO tem quatro abas:
 
 | Aba | O que mostra |
 | --- | --- |
-| **SLO Metrics** | As séries `oneuptime.slo.*` em três cartões que compartilham um intervalo de tempo, o último dia por padrão: **Objetivo** (o SLI com a meta por cima, e o orçamento restante), **Consumo** (taxa de consumo e tempo de orçamento restante) e **Status**. |
-| **Error Budget History** | O SLI, o orçamento restante e a taxa de consumo ao longo do histórico de longo prazo, com linhas na meta, nos limites de risco e de esgotamento, e no limite de cada regra de taxa de consumo habilitada. |
+| **Métricas do SLO** | As séries `oneuptime.slo.*` em três cartões que compartilham um intervalo de tempo, o último dia por padrão: **Objetivo** (o SLI com a meta por cima, e o orçamento restante), **Consumo** (taxa de consumo e tempo de orçamento restante) e **Status**. |
+| **Histórico do orçamento de erros** | O SLI, o orçamento restante e a taxa de consumo ao longo do histórico de longo prazo, com linhas na meta, nos limites de risco e de esgotamento, e no limite de cada regra de taxa de consumo habilitada. |
 | **Métricas de incidente** | A contagem, o tempo até o reconhecimento, o tempo até a resolução e a duração dos incidentes que afetam este SLO, a última semana por padrão. Os incidentes declarados pelas regras de taxa de consumo dele estão incluídos. |
 | **Métricas de alerta** | O mesmo para alertas. Os alertas gerados pelas regras de taxa de consumo dele estão incluídos. |
 
-As abas **SLO Metrics**, **Métricas de incidente** e **Métricas de alerta** leem o armazenamento de métricas, o que exige permissão para ler telemetria. Uma função personalizada que pode ler SLOs, mas não telemetria, vê essas abas vazias, enquanto **Error Budget History** continua funcionando.
+As abas **Métricas do SLO**, **Métricas de incidente** e **Métricas de alerta** leem o armazenamento de métricas, o que exige permissão para ler telemetria. Uma função personalizada que pode ler SLOs, mas não telemetria, vê essas abas vazias, enquanto **Histórico do orçamento de erros** continua funcionando.
 
 ## SLOs em painéis
 
@@ -123,7 +123,7 @@ Dois SLOs têm esse nome. A lista e os gráficos mostram os dois, e os widgets d
 :::
 
 :::details A aba SLO Metrics está vazia
-Sua função não pode ler telemetria, ou o SLO ainda não foi avaliado. **Error Budget History** lê o próprio SLO e continua funcionando.
+Sua função não pode ler telemetria, ou o SLO ainda não foi avaliado. **Histórico do orçamento de erros** lê o próprio SLO e continua funcionando.
 :::
 
 ## Próximos passos
