@@ -15,6 +15,7 @@ import {
 } from "../../Types/HtmlMarkup";
 import {
   InlineImageDataUri,
+  isInlineImageDataUriPrefix,
   parseInlineImageDataUri,
 } from "../../Utils/Markdown/InlineImageDataUri";
 import {
@@ -34,6 +35,7 @@ import {
   holdBackSlowMarkdown,
 } from "../../Utils/Markdown/SlowMarkdown";
 import logger from "../Utils/Logger";
+import EmailInlineImages from "../Utils/Mail/EmailInlineImages";
 import EmailSize, {
   EMAIL_TRUNCATED_TEXT_NOTE_HTML,
   MAX_EMAIL_FIELD_HTML_BYTES,
@@ -109,6 +111,35 @@ const HELD_DATA_CLOSE_CODE: number = 0xe006;
 export const MAX_MARKED_EMAIL_MARKDOWN_LENGTH: number = 1024 * 1024;
 
 /*
+ * The most held-back text the copies of addresses an email field's images
+ * and links are given put back, in all (withHeldDataInUrls). marked writes
+ * a link reference definition's address into every reference to it, so a
+ * screenshot defined once can be shown many times - and a screenshot of
+ * 1 MB referenced 200 times was 280 MB of HTML before its images went out
+ * as attachments, took seconds to render, and one of 2.25 MB referenced 200
+ * times made more than V8's longest string: marked failed, and the email
+ * went out as its Markdown in text (issue #6481). The text's own copy of a
+ * held-back text - an image's own address, or the first reference to a
+ * definition - does not count: the text holds it once already.
+ *
+ * Why 8 MiB:
+ *   - an email attaches at most MaxEmailInlineImageBytes (2 MB, about
+ *     2.7 MB of base64) of distinct images, so more than that only shows
+ *     the same images again;
+ *   - one email carries several Markdown fields - a description, a root
+ *     cause, remediation notes - in one request to the notification
+ *     service, whose JSON body may be at most 50 MB (jsonBodyParserOptions
+ *     in Server/Utils/StartServer);
+ *   - and within it, a screenshot of 1 MB still shows six times and one of
+ *     100 KB sixty-two times, every one of them from one attachment.
+ * The dashboard's viewer holds what remark copies the same way
+ * (MAX_HELD_TEXT_IN_REFERENCES, UI/Components/Markdown.tsx/
+ * MarkdownViewerOverLongText.ts), with twice as much: a page shows one
+ * text, where one request carries several.
+ */
+export const MAX_EMAIL_HELD_TEXT_IN_REFERENCES: number = 8 * 1024 * 1024;
+
+/*
  * What marked is given of an email's Markdown at most, once what is too
  * long for it is held back (Utils/Markdown/SlowMarkdown): blocks whose
  * emphasis, code spans, links or escapes would make it look ahead through
@@ -172,7 +203,32 @@ interface HeldBackMarkdown {
    * escaped, as marked escapes text.
    */
   restoreEscaped: (value: string) => string;
+  /*
+   * The held-back texts `value` holds, by index, in the order it holds
+   * them: none when it holds none.
+   */
+  heldIn: (value: string) => Array<number>;
+  // How long restore(value) is, without putting anything back.
+  restoredLength: (value: string) => number;
 }
+
+// A held-back text's token in a value: the text's index, and its length.
+interface HeldToken {
+  index: number;
+  length: number;
+}
+
+/*
+ * What becomes of an image's or a link's address that holds held-back text
+ * (withHeldDataInUrls): put back, the whole address ("kept"); or not put
+ * back, because an email cannot keep the address whatever was held back of
+ * it ("refused"), or because it is a copy past
+ * MAX_EMAIL_HELD_TEXT_IN_REFERENCES ("leftOut").
+ */
+type HeldAddress =
+  | { fate: "kept"; href: string }
+  | { fate: "refused" }
+  | { fate: "leftOut" };
 
 // Puts back what was held back: as it was written, or escaped for HTML.
 type PutBackFunction = (value: string, escape: boolean) => string;
@@ -220,6 +276,21 @@ export const EMAIL_LINK_SCHEMES: ReadonlyArray<string> = [
   "mailto",
 ];
 export const EMAIL_IMAGE_SCHEMES: ReadonlyArray<string> = ["http", "https"];
+
+// A URL's scheme, before its ":".
+const URL_SCHEME_PATTERN: RegExp = /^([a-zA-Z][a-zA-Z0-9+.-]*):/;
+
+/*
+ * The scheme a URL - encoded as getEmailUrl encodes it - starts with, in
+ * lower case; null when it starts with none: a relative URL.
+ */
+const getUrlScheme: (url: string) => string | null = (
+  url: string,
+): string | null => {
+  const scheme: RegExpMatchArray | null = url.match(URL_SCHEME_PATTERN);
+
+  return scheme ? scheme[1]!.toLowerCase() : null;
+};
 
 /*
  * Every image in an email is scaled down to the width of the card it sits
@@ -1040,7 +1111,7 @@ export default class Markdown {
 
     try {
       const emailBody: string = await marked(held.markdown, {
-        renderer: Markdown.withHeldDataInUrls(renderer, held.restore),
+        renderer: Markdown.withHeldDataInUrls(renderer, held),
       });
 
       return held.restoreEscaped(emailBody);
@@ -1295,12 +1366,13 @@ export default class Markdown {
    *   - a token character already in the input leaves it as it is.
    *
    * Links and images get what was held back before their URL is judged
-   * (withHeldDataInUrls), as it was written, and the rendered HTML gets it
-   * back wherever else marked wrote it - text, code, alt text, a title -
-   * escaped, as marked escapes text. So an email whose text is too long for
-   * marked shows it, as text, and the rest of the email is what it would
-   * have been. Markdown of at most 64 KB with no screenshot holds back
-   * nothing, and goes to marked as it is. Markdown with more than
+   * (withHeldDataInUrls), as it was written - within what the copies a link
+   * reference definition's references make may put back - and the rendered
+   * HTML gets it back wherever else marked wrote it - text, code, alt text,
+   * a title - escaped, as marked escapes text. So an email whose text is
+   * too long for marked shows it, as text, and the rest of the email is
+   * what it would have been. Markdown of at most 64 KB with no screenshot
+   * holds back nothing, and goes to marked as it is. Markdown with more than
    * MAX_MARKED_EMAIL_MARKDOWN_LENGTH left - long runs of lines that are not
    * plain - is not given to marked at all: it is sent as text.
    */
@@ -1309,12 +1381,20 @@ export default class Markdown {
       return value;
     };
 
+    const nothingHeld: HeldBackMarkdown = {
+      markdown: markdown,
+      restore: asIs,
+      restoreEscaped: asIs,
+      heldIn: (): Array<number> => {
+        return [];
+      },
+      restoredLength: (value: string): number => {
+        return value.length;
+      },
+    };
+
     if (typeof markdown !== "string" || !markdown) {
-      return {
-        markdown: markdown,
-        restore: asIs,
-        restoreEscaped: asIs,
-      };
+      return nothingHeld;
     }
 
     const held: Array<string> = [];
@@ -1420,11 +1500,7 @@ export default class Markdown {
     );
 
     if (held.length === 0) {
-      return {
-        markdown: markdown,
-        restore: asIs,
-        restoreEscaped: asIs,
-      };
+      return nothingHeld;
     }
 
     return {
@@ -1435,7 +1511,56 @@ export default class Markdown {
       restoreEscaped: (value: string): string => {
         return putBack(value, true);
       },
+      heldIn: (value: string): Array<number> => {
+        return Markdown.getHeldTokens(value).map(
+          (token: HeldToken): number => {
+            return token.index;
+          },
+        );
+      },
+      restoredLength: (value: string): number => {
+        return Markdown.getHeldTokens(value).reduce(
+          (length: number, token: HeldToken): number => {
+            return length - token.length + (held[token.index] ?? "").length;
+          },
+          value.length,
+        );
+      },
     };
+  }
+
+  /*
+   * The tokens of held-back text in `value` (holdBackFromMarked), in order.
+   * Read with indexOf, as putBack reads them.
+   */
+  private static getHeldTokens(value: string): Array<HeldToken> {
+    const tokens: Array<HeldToken> = [];
+
+    if (typeof value !== "string") {
+      return tokens;
+    }
+
+    let readUpTo: number = 0;
+
+    for (
+      let open: number = value.indexOf(HELD_DATA_OPEN);
+      open !== -1;
+      open = value.indexOf(HELD_DATA_OPEN, readUpTo)
+    ) {
+      const close: number = value.indexOf(HELD_DATA_CLOSE, open + 1);
+
+      if (close === -1) {
+        break;
+      }
+
+      tokens.push({
+        index: Number(value.slice(open + 1, close)),
+        length: close + 1 - open,
+      });
+      readUpTo = close + 1;
+    }
+
+    return tokens;
   }
 
   /*
@@ -1492,13 +1617,132 @@ export default class Markdown {
 
   /*
    * `renderer`, with every link and image URL it is given put back together
-   * first (see holdBackFromMarked), so it judges the URL the author wrote.
+   * first (see holdBackFromMarked), so it judges the URL the author wrote -
+   * but never more of it than an email can use:
+   *
+   *   - The text holds each held-back text once, and the first image or
+   *     link to put one back - into its address or its title - puts back
+   *     the text's own: an image's or a link's own address, or the first
+   *     reference to a link reference definition. It renders as it always
+   *     has. Every later one puts back a copy: marked writes a definition's
+   *     address and title into every reference to it.
+   *   - Copies of addresses are put back while they come to at most
+   *     MAX_EMAIL_HELD_TEXT_IN_REFERENCES characters in all, in the order of
+   *     the text, images and links alike. Past that, an image is the note
+   *     an email leaves in place of an image too large to include
+   *     (EmailInlineImages.getTooLargeImageNotice), and a link is its text.
+   *     So two references to a screenshot still show it twice, from one
+   *     attachment, and two hundred show it as often as the budget holds,
+   *     then the note.
+   *   - A copy of a title is not put back: its image or link goes without
+   *     it, as the dashboard's viewer leaves a long title out of the
+   *     references past its budget. A title holds held-back text when it is
+   *     long - most often the middle of a definition's line over 64 KB - and
+   *     each copy would be that much HTML, which an email field holds to
+   *     MAX_EMAIL_FIELD_HTML_BYTES: cut to fit, the text lost its
+   *     definition, and every reference to it showed as Markdown.
+   *   - An address an email cannot keep, whatever was held back of it, is
+   *     not put back at all (isRefusedWhateverFollows): a link to a scheme
+   *     an email does not link to - a data: link, whatever it carries - and
+   *     an image from a scheme it does not load that cannot be an inline
+   *     image. The link is its text and the image its alt text, as they
+   *     always were, and neither takes anything of the budget.
+   *
+   * What it counts is counted for one render: each render starts afresh.
    */
   private static withHeldDataInUrls(
     renderer: Renderer,
-    restore: (value: string) => string,
+    held: HeldBackMarkdown,
   ): Renderer {
     const restoring: Renderer = Object.create(renderer) as Renderer;
+
+    // The held-back texts an address or a title has put back, by index.
+    const putBack: Set<number> = new Set<number>();
+    // What the copies of addresses have put back, in characters.
+    let copied: number = 0;
+
+    const isCopy: (indexes: Array<number>) => boolean = (
+      indexes: Array<number>,
+    ): boolean => {
+      return indexes.some((index: number): boolean => {
+        return putBack.has(index);
+      });
+    };
+
+    const notePutBack: (indexes: Array<number>) => void = (
+      indexes: Array<number>,
+    ): void => {
+      for (const index of indexes) {
+        putBack.add(index);
+      }
+    };
+
+    const takeAddress: (
+      href: string,
+      allowedSchemes: ReadonlyArray<string>,
+      mayBeInlineImage: boolean,
+    ) => HeldAddress = (
+      href: string,
+      allowedSchemes: ReadonlyArray<string>,
+      mayBeInlineImage: boolean,
+    ): HeldAddress => {
+      const indexes: Array<number> = held.heldIn(href);
+
+      if (indexes.length === 0) {
+        return { fate: "kept", href: href };
+      }
+
+      if (
+        Markdown.isRefusedWhateverFollows(
+          href.slice(0, href.indexOf(HELD_DATA_OPEN)),
+          allowedSchemes,
+          mayBeInlineImage,
+        )
+      ) {
+        return { fate: "refused" };
+      }
+
+      if (isCopy(indexes)) {
+        const length: number = held.restoredLength(href);
+
+        if (copied + length > MAX_EMAIL_HELD_TEXT_IN_REFERENCES) {
+          return { fate: "leftOut" };
+        }
+
+        copied += length;
+      } else {
+        notePutBack(indexes);
+      }
+
+      return { fate: "kept", href: held.restore(href) };
+    };
+
+    /*
+     * The title an image or a link is rendered with: as marked gives it,
+     * what was held back of it put back with the rest of the HTML
+     * (restoreEscaped) - or none, for a copy of held-back text.
+     */
+    const takeTitle: (title: string | null | undefined) => string | null = (
+      title: string | null | undefined,
+    ): string | null => {
+      if (!title) {
+        return title ?? null;
+      }
+
+      const indexes: Array<number> = held.heldIn(title);
+
+      if (indexes.length === 0) {
+        return title;
+      }
+
+      if (isCopy(indexes)) {
+        return null;
+      }
+
+      notePutBack(indexes);
+
+      return title;
+    };
 
     restoring.link = function (
       this: Renderer,
@@ -1506,7 +1750,18 @@ export default class Markdown {
       title: string | null | undefined,
       text: string,
     ): string {
-      return renderer.link.call(this, restore(href), title, text);
+      const address: HeldAddress = takeAddress(
+        href,
+        EMAIL_LINK_SCHEMES,
+        false,
+      );
+
+      // Refused or left out: its text, as any link the renderer does not keep.
+      if (address.fate !== "kept") {
+        return text;
+      }
+
+      return renderer.link.call(this, address.href, takeTitle(title), text);
     };
 
     restoring.image = function (
@@ -1515,10 +1770,57 @@ export default class Markdown {
       title: string | null,
       text: string,
     ): string {
-      return renderer.image.call(this, restore(href), title, text);
+      const address: HeldAddress = takeAddress(
+        href,
+        EMAIL_IMAGE_SCHEMES,
+        true,
+      );
+
+      if (address.fate === "refused") {
+        return text;
+      }
+
+      if (address.fate === "leftOut") {
+        return EmailInlineImages.getTooLargeImageNotice(text);
+      }
+
+      return renderer.image.call(this, address.href, takeTitle(title), text);
     };
 
     return restoring;
+  }
+
+  /*
+   * Whether an image or a link whose address starts with `start` - what
+   * comes before the first text held back of it - is one an email cannot
+   * keep, whatever that text is: `start` holds its whole scheme, read as
+   * getEmailUrl reads it, and that is none of `allowedSchemes`. For an
+   * image (`mayBeInlineImage`), a data: URL can still be an inline image
+   * (parseInlineImageDataUri), so it is refused only when `start` holds its
+   * media type and ";base64," whole, as Utils/Markdown/Base64Data leaves
+   * them before its data, and the media type is none an inline image has.
+   * False whenever `start` does not say: the address is put back and
+   * judged whole.
+   */
+  private static isRefusedWhateverFollows(
+    start: string,
+    allowedSchemes: ReadonlyArray<string>,
+    mayBeInlineImage: boolean,
+  ): boolean {
+    const url: string | null = Markdown.encodeEmailUrl(start);
+    const scheme: string | null = url === null ? null : getUrlScheme(url);
+
+    if (scheme === null || allowedSchemes.includes(scheme)) {
+      return false;
+    }
+
+    if (!mayBeInlineImage || scheme !== "data") {
+      return true;
+    }
+
+    return (
+      IMAGE_DATA_URL_PREFIX.test(start) && !isInlineImageDataUriPrefix(start)
+    );
   }
 
   /**
@@ -1565,27 +1867,37 @@ export default class Markdown {
       return null;
     }
 
-    let url: string;
+    const url: string | null = Markdown.encodeEmailUrl(href);
 
-    try {
-      url = encodeURI(Markdown.decodeUrlCharacterReferences(href)).replace(
-        /%25/g,
-        "%",
-      );
-    } catch {
-      // A lone surrogate, which encodeURI refuses: no usable URL.
+    // A lone surrogate, which encodeURI refuses: no usable URL.
+    if (url === null) {
       return null;
     }
 
-    const scheme: RegExpMatchArray | null = url.match(
-      /^([a-zA-Z][a-zA-Z0-9+.-]*):/,
-    );
+    const scheme: string | null = getUrlScheme(url);
 
-    if (scheme && !allowedSchemes.includes(scheme[1]!.toLowerCase())) {
+    if (scheme !== null && !allowedSchemes.includes(scheme)) {
       return null;
     }
 
     return Markdown.escapeHtml(url);
+  }
+
+  /*
+   * A link's or an image's destination as getEmailUrl judges it: the
+   * character references it decodes decoded, then percent-encoded the way
+   * marked does it (encodeURI) - or null when encodeURI cannot encode it (a
+   * lone surrogate).
+   */
+  private static encodeEmailUrl(href: string): string | null {
+    try {
+      return encodeURI(Markdown.decodeUrlCharacterReferences(href)).replace(
+        /%25/g,
+        "%",
+      );
+    } catch {
+      return null;
+    }
   }
 
   /*
