@@ -315,7 +315,7 @@ describe("the page is reachable", () => {
       ["uptime kuma", "Uptime Kuma"],
       ["import from pagerduty", "PagerDuty"],
       ["import aus pagerduty", "PagerDuty"],
-    ]) {
+    ] as Array<[string, string]>) {
       expect({ query, first: firstFound(query, GERMAN_SEARCH_PAGES) }).toEqual({
         query,
         first: `Import aus ${tool} — Projekteinstellungen › Erweitert › Import aus anderem Tool`,
@@ -464,7 +464,7 @@ describe("the page is reachable", () => {
       ["uptime robot", "UptimeRobot"],
       ["betterstack", "Better Stack"],
       ["statuspage.io", "Atlassian Statuspage"],
-    ]) {
+    ] as Array<[string, string]>) {
       expect({ query, first: firstFound(query) }).toEqual({
         query,
         first: `Import from ${tool} — Project Settings › Advanced › ${PAGE_TITLE}`,
