@@ -201,6 +201,10 @@ import TelemetryIngestionBudgetSettings from "../Utils/Telemetry/TelemetryIngest
 import TelemetryIngestionBudgetValidation, {
   isTelemetryIngestionBudgetColumnTouched,
 } from "../Utils/Telemetry/TelemetryIngestionBudgetValidation";
+import {
+  getNewProjectWelcomeChecklistState,
+  toWelcomeChecklistStateJSON,
+} from "../../Types/WelcomeChecklist/WelcomeChecklistState";
 import { IsNull, Repository, UpdateResult } from "typeorm";
 import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
 import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
@@ -942,6 +946,17 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyAuditLogRetentionRules(
       data.data as { auditLogsRetentionInDays?: unknown },
     );
+
+    /*
+     * The Welcome checklist starts here, whatever the caller sent: a new
+     * project never had the checklist before it, so it is never looked at
+     * as one that did (Types/WelcomeChecklist/WelcomeChecklistState), and
+     * nobody has chosen its goals yet.
+     */
+    data.data.welcomeChecklistState = toWelcomeChecklistStateJSON(
+      getNewProjectWelcomeChecklistState(),
+    );
+    delete data.data.goals;
 
     if (data.props.userId) {
       RelationIdUtil.stamp(

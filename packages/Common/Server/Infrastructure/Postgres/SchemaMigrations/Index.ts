@@ -965,6 +965,7 @@ import { AddProjectMilestones1809110500000 } from "./1809110500000-AddProjectMil
 import { AddResolvedRecordRetention1809110600000 } from "./1809110600000-AddResolvedRecordRetention";
 import { AddIndexesForIncidentAndAlertDeletes1809110700000 } from "./1809110700000-AddIndexesForIncidentAndAlertDeletes";
 import { AddOnCallTestPages1809110800000 } from "./1809110800000-AddOnCallTestPages";
+import { AddProjectGoalsAndWelcomeChecklist1809110900000 } from "./1809110900000-AddProjectGoalsAndWelcomeChecklist";
 import { AddServerSetupChoices1809110968240 } from "./1809110968240-AddServerSetupChoices";
 
 export default [
@@ -1935,5 +1936,6 @@ export default [
   AddResolvedRecordRetention1809110600000,
   AddIndexesForIncidentAndAlertDeletes1809110700000,
   AddOnCallTestPages1809110800000,
+  AddProjectGoalsAndWelcomeChecklist1809110900000,
   AddServerSetupChoices1809110968240,
 ];

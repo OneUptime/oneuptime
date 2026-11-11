@@ -76,8 +76,11 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 
 | Event | Sent when | Properties | Sent from |
 | --- | --- | --- | --- |
-| `home/checklist_step_completed` | This browser first sees a step of the Welcome checklist go from not done to done | `step` | `ChecklistEvents`, from Home's checklist |
-| `home/checklist_finished` | The last step does | `step_count` | `ChecklistEvents` |
+| `home/goals_chosen` | Somebody answers "What do you want to do first?" on Home, skips it (no goals), or changes the answer | `goals`, `goal_count`, `is_change` | Home's Welcome card (`GettingStarted`) |
+| `home/checklist_step_started` | A step of the Welcome checklist is opened: its page, its guided setup, or Billing when the plan holds it back | `step`, `goals`, `needs_plan` | `GettingStarted` |
+| `home/checklist_step_completed` | This browser first sees a step of the Welcome checklist go from not done to done | `step`, `goals` | `ChecklistEvents`, from Home's checklist |
+| `home/checklist_finished` | The last step does | `step_count`, `goals` | `ChecklistEvents` |
+| `home/checklist_dismissed` | Somebody hides the Welcome checklist for themselves | `done_count`, `step_count`, `goals` | `GettingStarted` |
 | `how_it_works/opened` | A product's "How it works" is opened | `product` | `ProductAboutButton` |
 | `search/no_results` | A command palette search settles with nothing found. Only searches of 2 characters or more count, after one second, or when the palette closes on them | `source`, `query_length`, and on Cloud `query` (40 characters at most) | `DashboardCommandPalette` |
 | `ask_ai/question_asked` | Ask AI takes a question. The question itself is never sent | `is_new_conversation`, `permission_mode` | `useAiChat` |
@@ -88,6 +91,23 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 | `guided_setup/step_reached` | It moves on to a step | `setup`, `step`, `step_number` | Same |
 | `guided_setup/finished` | It reaches its end: the thing works and was tested | `setup`, `seconds_taken` | Same |
 | `guided_setup/left` | It is left before its end | `setup`, `step`, `step_number` | Same |
+
+### The Welcome checklist and its goals
+
+Home asks a new project's owner once what they came to do (issue #6803). The answer is kept on the project, in `Project.goals`: a list of `uptime`, `on_call`, `status_page`, `telemetry`, `infrastructure`, `import` and `explore`. It is null when nobody has answered, and empty when the question was skipped. The checklist's events carry the goals as `goals`: the values in that order, joined by a dot, such as `uptime.status_page`.
+
+A checklist step is done when the thing works, not when a record exists. Most steps are done by a milestone, and the server sends that milestone's `activation/` event the moment it first becomes true. So a step's completion is recorded on the server even when nobody has Home open:
+
+| Step | Done when | Its server event |
+| --- | --- | --- |
+| `monitor` | A monitor's first check result is stored | `activation/first_check_result_received` |
+| `on_call` | A test page is acknowledged or an on-call page reaches someone. Until either, an enabled incident or alert on-call rule runs a policy with a reachable responder | `activation/first_test_page_acknowledged`, `activation/first_notification_delivered` |
+| `status_page` | A status page shows a monitor | `activation/first_status_page_monitor_added` |
+| `team` | A second person accepts | `activation/second_member_joined` |
+| `telemetry` | The first logs, traces, metrics, exceptions or profiles arrive | `activation/first_logs_received` and the other four |
+| `infrastructure` | The first metrics arrive | `activation/first_metrics_received` |
+| `import` | An import from another tool finishes | None: the import's own run says so |
+| `server_email` | The server can send email (a master admin's step on a self-hosted server) | None |
 
 ## Events sent before the rule
 
@@ -133,7 +153,7 @@ For each stage, the funnel reports:
 - The share of new projects that reach it within a day and within a week.
 - The time from the project's creation to the stage, and between each pair of stages, as a median and a 90th percentile.
 
-Split each by plan, by Cloud signup source (`utmSource`), and by the goal the person chose once #6803 records it.
+Split each by plan, by Cloud signup source (`utmSource`), and by the goals the project chose on Home (`Project.goals`).
 
 ### On the server's own database
 
@@ -166,6 +186,38 @@ ORDER BY "median_seconds";
 ```
 
 To split by plan or signup source, add `p."planName"` or `p."utmSource"` to `reached`, then to the `SELECT` and the `GROUP BY`.
+
+To split by goal, count each project once under every goal it chose, under `skipped` when it chose none, and under `not answered` when nobody answered:
+
+```sql
+WITH "projects" AS (
+  SELECT "_id", "createdAt", "goals"
+  FROM "Project"
+  WHERE "createdAt" >= now() - interval '90 days'
+),
+"project_goals" AS (
+  SELECT p."_id", g."goal"
+  FROM "projects" p
+  CROSS JOIN LATERAL jsonb_array_elements_text(
+    CASE WHEN jsonb_typeof(p."goals") = 'array' THEN p."goals" ELSE '[]'::jsonb END
+  ) AS g("goal")
+  UNION ALL
+  SELECT "_id", CASE WHEN "goals" IS NULL THEN 'not answered' ELSE 'skipped' END
+  FROM "projects"
+  WHERE "goals" IS NULL OR jsonb_typeof("goals") <> 'array' OR "goals" = '[]'::jsonb
+)
+SELECT
+  pg."goal",
+  m."milestone",
+  COUNT(*) AS "projects_reached",
+  ROUND(100.0 * COUNT(*) / NULLIF((SELECT COUNT(*) FROM "project_goals" x WHERE x."goal" = pg."goal"), 0), 1) AS "percent_of_projects_with_goal",
+  percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (m."reachedAt" - p."createdAt"))) AS "median_seconds"
+FROM "project_goals" pg
+JOIN "projects" p ON p."_id" = pg."_id"
+JOIN "ProjectMilestone" m ON m."projectId" = pg."_id"
+GROUP BY pg."goal", m."milestone"
+ORDER BY pg."goal", "median_seconds";
+```
 
 From signing up to creating a project, for the person who created it:
 
@@ -217,7 +269,7 @@ GROUP BY event
 ORDER BY median_seconds
 ```
 
-Split by `properties.plan`. For signup source, join on `properties.project_id` to `server/project_created`'s `utm_source`.
+Split by `properties.plan`. For signup source, join on `properties.project_id` to `server/project_created`'s `utm_source`. For the goals, join on `properties.project_id` to the latest `home/goals_chosen`'s `goals`.
 
 A PostHog funnel insight works too. Use the steps `server/user_created`, `server/project_created`, `activation/first_monitor_created`, `activation/first_check_result_received`, `activation/first_notification_delivered`, `activation/first_test_page_acknowledged` and `activation/first_status_page_monitor_added`. Every step is filed under the project creator's distinct id, so the creator moves through them as one person.
 

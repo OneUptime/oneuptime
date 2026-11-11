@@ -106,6 +106,31 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+/*
+ * The Welcome checklist is one server answer (issue #6803), for the project
+ * Home is on: the busy project finished it, the new one has every step to
+ * do. It counts no records of its own.
+ */
+const welcomeFetchMock: MockFunction = getJestMockFunction();
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistApi",
+  () => {
+    return {
+      __esModule: true,
+      fetchWelcomeChecklist: (...args: Array<unknown>) => {
+        return welcomeFetchMock(...args);
+      },
+      postWelcomeChecklist: () => {
+        return Promise.resolve(null);
+      },
+      sendLegacyBrowserState: () => {
+        return Promise.resolve(null);
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Utils/ModelListCache", () => {
   return {
     __esModule: true,
@@ -543,6 +568,33 @@ beforeEach(() => {
   ]);
   recorded = [];
   answer();
+  welcomeFetchMock.mockImplementation(() => {
+    const isNew: boolean = currentProjectId?.toString() === OTHER_PROJECT_ID;
+
+    return Promise.resolve({
+      audience: "set_up",
+      goals: [],
+      shouldAskForGoals: false,
+      canChooseGoals: true,
+      isHiddenForMe: false,
+      isFinished: !isNew,
+      canSendEmail: true,
+      steps: isNew
+        ? ["monitor", "on_call", "status_page", "team"].map(
+            (step: string, index: number) => {
+              return {
+                step: step,
+                isDone: false,
+                needsPlan: null,
+                isNext: index === 0,
+              };
+            },
+          )
+        : [],
+      doneCount: 0,
+      totalCount: isNew ? 4 : 0,
+    });
+  });
 });
 
 afterEach(() => {
@@ -552,6 +604,7 @@ afterEach(() => {
   cacheListMock.mockReset();
   navigateMock.mockReset();
   analyticsMock.mockReset();
+  welcomeFetchMock.mockReset();
 });
 
 describe("the page", () => {
@@ -610,23 +663,29 @@ describe("the page", () => {
     expect(recordedOf("list", ServiceLevelObjective)).toBe(1);
     // In progress (the batch) and upcoming (its card): one each.
     expect(recordedOf("list", ScheduledMaintenance)).toBe(2);
-    expect(recordedOf("count", Monitor)).toBe(0 + 2);
+    // The batch's total; the Welcome checklist counts nothing (#6803).
+    expect(recordedOf("count", Monitor)).toBe(1);
   });
 
-  test("the resources card and Getting Started count what they need, nothing twice", async () => {
+  test("the resources card counts what it needs, once; the Welcome checklist counts nothing", async () => {
     await renderHome();
 
     // Your project: five counts, the batch has monitors and SLOs.
-    for (const modelType of [Service, Dashboard, Workflow]) {
+    for (const modelType of [
+      Service,
+      Dashboard,
+      Workflow,
+      StatusPage,
+      OnCallDutyPolicy,
+    ]) {
       expect(recordedOf("count", modelType)).toBe(1);
     }
     /*
-     * Getting Started counts monitors, status pages, team members and
-     * on-call policies once to know whether it is finished.
+     * The Welcome checklist is one server answer that ticks on outcomes
+     * (#6803): it counts no team members, status pages or policies.
      */
-    expect(recordedOf("count", TeamMember)).toBe(1);
-    expect(recordedOf("count", StatusPage)).toBe(2);
-    expect(recordedOf("count", OnCallDutyPolicy)).toBe(2);
+    expect(recordedOf("count", TeamMember)).toBe(0);
+    expect(welcomeFetchMock).toHaveBeenCalledTimes(1);
   });
 
   test("every request is for this project", async () => {
@@ -940,8 +999,9 @@ describe("Refresh", () => {
       expect(recordedOf("list", ScheduledMaintenance)).toBe(4);
     });
     expect(recorded.length).toBeGreaterThan(before);
-    // Getting Started is finished, and is not asked again.
-    expect(recordedOf("count", TeamMember)).toBe(1);
+    // The Welcome checklist counts nothing, and is not read again.
+    expect(recordedOf("count", TeamMember)).toBe(0);
+    expect(welcomeFetchMock).toHaveBeenCalledTimes(1);
   });
 
   test("keeps what is on screen while it reads", async () => {
