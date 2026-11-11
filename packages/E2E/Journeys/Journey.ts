@@ -38,6 +38,17 @@ const QUIET_MS: number = 700;
 const DIALOG: string =
   '[data-testid="modal"], [data-testid="side-over"], .full-page-modal';
 
+/*
+ * A name as the person reads it: words given as a string are the whole
+ * name, a pattern matches as it says.
+ */
+function byName(name: string | RegExp): {
+  name: string | RegExp;
+  exact?: boolean;
+} {
+  return typeof name === "string" ? { name, exact: true } : { name };
+}
+
 interface CounterWindow {
   __journeyCounter: {
     reset: () => void;
@@ -81,13 +92,17 @@ export default class Journey {
    * One step of the job, by what the person means to do. A failure says
    * which journey and step it was, and what was on screen.
    */
-  public async step<T>(description: string, action: () => Promise<T>): Promise<T> {
+  public async step<T>(
+    description: string,
+    action: () => Promise<T>,
+  ): Promise<T> {
     this.currentStep = description;
     try {
       return await action();
     } catch (error) {
       const where: string = await this.describeScreen();
-      const reason: string = error instanceof Error ? error.message : String(error);
+      const reason: string =
+        error instanceof Error ? error.message : String(error);
       throw new Error(
         `Journey ${this.id} could not ${description}.\n${where}\nIf the job now takes another screen, dialog or field, write it into this journey in packages/E2E/Journeys/Journeys.spec.ts and raise its budget in Tests/Ops/JourneyBudgets.json, saying why in the pull request. If it takes fewer, take the step out and lower the budget.\n\n${reason}`,
       );
@@ -195,11 +210,9 @@ export default class Journey {
     await this.step(`press "${name}"`, async () => {
       await this.settle();
       const area: Locator = await this.workArea();
-      const exact: boolean | undefined =
-        typeof name === "string" ? true : undefined;
       await area
-        .getByRole("button", { name, exact })
-        .or(area.getByRole("link", { name, exact }))
+        .getByRole("button", byName(name))
+        .or(area.getByRole("link", byName(name)))
         .first()
         .click();
       await this.settle();
@@ -276,16 +289,16 @@ export default class Journey {
   }
 
   // Opens a picker by its label and picks an option by its name.
-  public async pick(label: string | RegExp, option: string | RegExp): Promise<void> {
+  public async pick(
+    label: string | RegExp,
+    option: string | RegExp,
+  ): Promise<void> {
     await this.step(`pick "${option}" for "${label}"`, async () => {
       await this.settle();
       const area: Locator = await this.workArea();
       await area.getByLabel(label).first().click();
       await this.settle();
-      await this.page
-        .getByRole("option", { name: option })
-        .first()
-        .click();
+      await this.page.getByRole("option", { name: option }).first().click();
       await this.settle();
     });
   }
@@ -326,9 +339,7 @@ export default class Journey {
           (window as unknown as CounterWindow).__journeyCounter.noteSubmit();
         });
         const area: Locator = await this.workArea();
-        const button: Locator = area
-          .getByRole("button", { name, exact: typeof name === "string" ? true : undefined })
-          .last();
+        const button: Locator = area.getByRole("button", byName(name)).last();
         await button.click();
         await this.settle();
         const invalid: number = await this.fillWhatTheFormAsksFor();
@@ -346,13 +357,17 @@ export default class Journey {
    */
   private async fillWhatTheFormAsksFor(): Promise<number> {
     const area: Locator = await this.workArea();
-    const invalid: Locator = area.locator('[aria-invalid="true"] >> visible=true');
+    const invalid: Locator = area.locator(
+      '[aria-invalid="true"] >> visible=true',
+    );
     const count: number = await invalid.count();
 
     for (let index: number = 0; index < count; index++) {
       const field: Locator = invalid.nth(index);
       const role: string | null = await field.getAttribute("role");
-      const type: string = ((await field.getAttribute("type")) || "text").toLowerCase();
+      const type: string = (
+        (await field.getAttribute("type")) || "text"
+      ).toLowerCase();
 
       await field.click();
       if (role === "combobox") {
@@ -412,8 +427,24 @@ export default class Journey {
       return [
         `Step: ${this.currentStep}`,
         `Page: ${url}`,
-        `Dialogs open: ${dialogs.length ? dialogs.map((title: string) => `"${title}"`).join(", ") : "none"}`,
-        `Fields in error: ${errors.length ? errors.map((text: string) => `"${text}"`).join(", ") : "none"}`,
+        `Dialogs open: ${
+          dialogs.length
+            ? dialogs
+                .map((title: string) => {
+                  return `"${title}"`;
+                })
+                .join(", ")
+            : "none"
+        }`,
+        `Fields in error: ${
+          errors.length
+            ? errors
+                .map((text: string) => {
+                  return `"${text}"`;
+                })
+                .join(", ")
+            : "none"
+        }`,
       ].join("\n");
     } catch {
       return `Step: ${this.currentStep}`;

@@ -33,7 +33,11 @@ const port = Number(process.env.JOURNEYS_FIXTURE_PORT || 4831);
  * Community Edition's.
  */
 function build(name, frontend, pluginSpecifier, eeSubdir, internalSpecifier) {
-  const frontendDir = path.join(repository, "packages/App/FeatureSet", frontend);
+  const frontendDir = path.join(
+    repository,
+    "packages/App/FeatureSet",
+    frontend,
+  );
   const enterprise = resolveEnterpriseBuild({
     frontendDir,
     pluginSpecifier,
@@ -44,7 +48,10 @@ function build(name, frontend, pluginSpecifier, eeSubdir, internalSpecifier) {
   const config = createConfig({
     serviceName: `journeys-fixture-${name}`,
     publicPath: `/dist/${name}/`,
-    entryPoint: path.join(__dirname, `${frontend === "Dashboard" ? "Dashboard" : "Admin"}.js`),
+    entryPoint: path.join(
+      __dirname,
+      `${frontend === "Dashboard" ? "Dashboard" : "Admin"}.js`,
+    ),
     outdir: path.join(output, name),
     additionalAlias: {
       ...enterprise.alias,

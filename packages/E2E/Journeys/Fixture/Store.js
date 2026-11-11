@@ -263,7 +263,11 @@ export function createStore(options) {
     if (index !== -1) {
       records.splice(index, 1);
     }
-    const entry = { kind: "delete", table: tableName(modelType), id: String(id) };
+    const entry = {
+      kind: "delete",
+      table: tableName(modelType),
+      id: String(id),
+    };
     if (logged) {
       entry.logged = { ...logged, id: String(id) };
       log.writes.push(entry.logged);
@@ -598,7 +602,9 @@ export function installModelApi(ModelAPI, store, hooks) {
  */
 export function installAnalyticsModelApi(AnalyticsModelAPI, store) {
   AnalyticsModelAPI.getList = async (options) => {
-    store.log.reads.push(`analytics ${String(new options.modelType().tableName)}`);
+    store.log.reads.push(
+      `analytics ${String(new options.modelType().tableName)}`,
+    );
     return { data: [], count: 0, skip: 0, limit: Number(options.limit || 10) };
   };
   AnalyticsModelAPI.count = async () => {

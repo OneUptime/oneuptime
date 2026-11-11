@@ -114,11 +114,11 @@ installApi([API, BaseAPI], store, [
 silenceRealtime(Realtime);
 
 /*
- * As the Admin Dashboard's src/Index.tsx renders it, with each navigation
- * at once (Tests/Ops/E2EFixtureRouters).
+ * As the Admin Dashboard's src/Index.tsx renders it: its router keeps React
+ * Router's transitions (Tests/Ops/E2EFixtureRouters).
  */
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter useTransitions={false}>
+  <BrowserRouter>
     <App />
   </BrowserRouter>,
 );

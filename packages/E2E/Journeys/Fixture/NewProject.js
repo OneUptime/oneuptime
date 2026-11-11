@@ -27,7 +27,9 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
-import Probe, { ProbeConnectionStatus } from "Common/Models/DatabaseModels/Probe";
+import Probe, {
+  ProbeConnectionStatus,
+} from "Common/Models/DatabaseModels/Probe";
 import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
@@ -179,7 +181,12 @@ export function seedNewProject(options) {
       order,
       ...flags,
     });
-    store.insert(AlertState, { name, color: new Color(color), order, ...flags });
+    store.insert(AlertState, {
+      name,
+      color: new Color(color),
+      order,
+      ...flags,
+    });
   });
 
   [
@@ -257,7 +264,9 @@ export function seedNewProject(options) {
 export function signIn(project, who) {
   const isMember = who === "member";
   const user = isMember ? project.grace : project.ada;
-  const held = isMember ? [Permission.ProjectMember] : [Permission.ProjectOwner];
+  const held = isMember
+    ? [Permission.ProjectMember]
+    : [Permission.ProjectOwner];
 
   UserUtil.setUserId(new ObjectID(user._id));
   UserUtil.setEmail(user.email);
@@ -442,10 +451,15 @@ export function dashboardRoutes(project) {
           return String(candidate._id) === String(body.itemId);
         });
         if (record) {
-          store.update(ModelType, record._id, { isVerified: true }, {
-            kind: "update",
-            table: store.tableName(ModelType),
-          });
+          store.update(
+            ModelType,
+            record._id,
+            { isVerified: true },
+            {
+              kind: "update",
+              table: store.tableName(ModelType),
+            },
+          );
         }
         return ok({});
       },
@@ -503,7 +517,9 @@ export function dashboardRoutes(project) {
         return ok({
           buckets: [],
           windowInSeconds: 60,
-          startTime: new Date(store.NOW.getTime() - 60 * 60 * 1000).toISOString(),
+          startTime: new Date(
+            store.NOW.getTime() - 60 * 60 * 1000,
+          ).toISOString(),
           endTime: store.NOW.toISOString(),
         });
       },

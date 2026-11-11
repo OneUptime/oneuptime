@@ -34,7 +34,8 @@
     return;
   }
 
-  const DIALOGS = '[data-testid="modal"], [data-testid="side-over"], .full-page-modal';
+  const DIALOGS =
+    '[data-testid="modal"], [data-testid="side-over"], .full-page-modal';
   const CHOICE_ROLES = [
     "option",
     "radio",
@@ -98,9 +99,11 @@
 
   function save() {
     try {
-      const saved = { dialogs: dialogTitles().map((title, index) => {
-        return { screen: state.dialogs[index].screen, title };
-      }) };
+      const saved = {
+        dialogs: dialogTitles().map((title, index) => {
+          return { screen: state.dialogs[index].screen, title };
+        }),
+      };
       for (const key of COUNTS) {
         saved[key] = state[key];
       }
@@ -175,7 +178,9 @@
   }
 
   function textOf(element) {
-    return element ? String(element.innerText || element.textContent || "") : "";
+    return element
+      ? String(element.innerText || element.textContent || "")
+      : "";
   }
 
   function wordsIn(element) {
@@ -201,7 +206,9 @@
     const heading = dialog.querySelector(
       '[data-testid="modal-title"], [data-testid="side-over-title"], h1, h2, h3',
     );
-    return textOf(heading).trim() || dialog.getAttribute("aria-label") || "Dialog";
+    return (
+      textOf(heading).trim() || dialog.getAttribute("aria-label") || "Dialog"
+    );
   }
 
   function topDialog() {
@@ -216,9 +223,7 @@
 
   function stepKey() {
     const dialog = topDialog();
-    return dialog
-      ? `${screenOf()} > ${titleOf(dialog)}`
-      : screenOf();
+    return dialog ? `${screenOf()} > ${titleOf(dialog)}` : screenOf();
   }
 
   function isInWorkArea(element) {
@@ -254,7 +259,8 @@
   }
 
   function labelOf(control) {
-    const labelledBy = control.getAttribute && control.getAttribute("aria-labelledby");
+    const labelledBy =
+      control.getAttribute && control.getAttribute("aria-labelledby");
     if (labelledBy) {
       const text = labelledBy
         .split(/\s+/)
@@ -281,7 +287,9 @@
 
   function fieldKey(control) {
     // The first line of a label is its title; a description may follow.
-    const label = String(labelOf(control) || "").split("\n")[0].trim();
+    const label = String(labelOf(control) || "")
+      .split("\n")[0]
+      .trim();
     return `${stepKey()} > ${label}`;
   }
 
@@ -297,7 +305,9 @@
     }
     return (
       element.tagName === "INPUT" &&
-      TEXT_INPUT_TYPES.includes(String(element.getAttribute("type") || "").toLowerCase()) &&
+      TEXT_INPUT_TYPES.includes(
+        String(element.getAttribute("type") || "").toLowerCase(),
+      ) &&
       element.getAttribute("role") !== "combobox"
     );
   }
@@ -393,7 +403,9 @@
   function hasValue(control) {
     if (control.classList && control.classList.contains("ou-select__control")) {
       return Boolean(
-        control.querySelector(".ou-select__single-value, .ou-select__multi-value"),
+        control.querySelector(
+          ".ou-select__single-value, .ou-select__multi-value",
+        ),
       );
     }
     const role = control.getAttribute("role");
@@ -401,7 +413,9 @@
       return true;
     }
     if (role === "radiogroup") {
-      return Boolean(control.querySelector('[role="radio"][aria-checked="true"]'));
+      return Boolean(
+        control.querySelector('[role="radio"][aria-checked="true"]'),
+      );
     }
     if (control.type === "checkbox" || control.type === "radio") {
       return true;
@@ -421,10 +435,16 @@
       ),
     ).filter((control) => {
       // A picker's own search box is the picker.
-      if (control.tagName === "INPUT" && control.closest(".ou-select__control")) {
+      if (
+        control.tagName === "INPUT" &&
+        control.closest(".ou-select__control")
+      ) {
         return false;
       }
-      if (control.tagName === "INPUT" && control.closest('[role="radiogroup"]')) {
+      if (
+        control.tagName === "INPUT" &&
+        control.closest('[role="radiogroup"]')
+      ) {
         return false;
       }
       return isVisible(control) || isVisible(control.parentElement);

@@ -1,4 +1,4 @@
-import { expect, Page, test } from "@playwright/test";
+import { expect, Page, Route, test } from "@playwright/test";
 import Journey from "./Journey";
 import { JourneyRun, MEASURES } from "./JourneyBudget";
 
@@ -37,7 +37,7 @@ async function open(
   body: string,
   script: string = "",
 ): Promise<void> {
-  await page.route(`${ORIGIN}/**`, async (route) => {
+  await page.route(`${ORIGIN}/**`, async (route: Route) => {
     await route.fulfill({
       contentType: "text/html",
       body: `<!doctype html><html><head><title>Counter</title></head><body><div id="root"><header><button id="products">Products</button></header>${body}</div><script>${script}</script></body></html>`,
@@ -49,8 +49,9 @@ async function open(
 
 async function read(page: Page): Promise<JourneyRun> {
   return await page.evaluate(() => {
-    return (window as unknown as { __journeyCounter: CounterApi })
-      .__journeyCounter.read();
+    return (
+      window as unknown as { __journeyCounter: CounterApi }
+    ).__journeyCounter.read();
   });
 }
 
@@ -79,7 +80,11 @@ test.describe("the journey counter", () => {
     const run: JourneyRun = await read(page);
 
     expect(Object.keys(run.measures)).toEqual(MEASURES);
-    expect(Object.values(run.measures)).toEqual(MEASURES.map(() => 0));
+    expect(Object.values(run.measures)).toEqual(
+      MEASURES.map(() => {
+        return 0;
+      }),
+    );
   });
 
   test("makes a screen of a page acted on in its content, never of a click in the header", async ({
@@ -95,7 +100,11 @@ test.describe("the journey counter", () => {
 
     await page.locator("#products").click();
     let run: JourneyRun = await read(page);
-    expect([run.measures.clicks, run.measures.screens, run.measures.products]).toEqual([1, 0, 0]);
+    expect([
+      run.measures.clicks,
+      run.measures.screens,
+      run.measures.products,
+    ]).toEqual([1, 0, 0]);
 
     await page.locator("#create").click();
     run = await read(page);
@@ -177,7 +186,11 @@ test.describe("the journey counter", () => {
         '<div data-testid="side-over" role="dialog"><h2 data-testid="side-over-title">Filters</h2></div><div class="full-page-modal" role="dialog" aria-modal="true"><h1>Workflow</h1></div>';
       document.getElementById("root")!.appendChild(holder);
     });
-    await expect.poll(async () => (await read(page)).measures.dialogs).toBe(3);
+    await expect
+      .poll(async () => {
+        return (await read(page)).measures.dialogs;
+      })
+      .toBe(3);
 
     expect((await read(page)).details.dialogs).toEqual([
       "Create New Monitor",
@@ -246,11 +259,24 @@ test.describe("the journey counter", () => {
       page,
       `/dashboard/${PROJECT}/monitors/create`,
       `<main>
-        <div role="radiogroup">${["Website", "API", "Ping", "Port", "SSL", "Incoming"]
-          .map((name: string) => `<div role="radio" aria-checked="false">${name}</div>`)
-          .join("")}<div role="radio" style="display:none">Kubernetes</div></div>
+        <div role="radiogroup">${[
+          "Website",
+          "API",
+          "Ping",
+          "Port",
+          "SSL",
+          "Incoming",
+        ]
+          .map((name: string) => {
+            return `<div role="radio" aria-checked="false">${name}</div>`;
+          })
+          .join(
+            "",
+          )}<div role="radio" style="display:none">Kubernetes</div></div>
         <div role="listbox">${["Admins", "Members", "Owners", "Ada", "Grace"]
-          .map((name: string) => `<div role="option">${name}</div>`)
+          .map((name: string) => {
+            return `<div role="option">${name}</div>`;
+          })
           .join("")}</div>
         <button id="next">Next</button>
       </main>`,
@@ -312,7 +338,8 @@ test.describe("the journey counter", () => {
 
     await page.locator("#act").click();
     await page.evaluate(() => {
-      document.querySelector("#text")!.textContent = "one two three four five six";
+      document.querySelector("#text")!.textContent =
+        "one two three four five six";
     });
     await page.locator("#act").click();
     await page.evaluate(() => {
@@ -353,7 +380,10 @@ test.describe("the journey counter", () => {
       "/dashboard/:id/settings/notification-settings",
     ]);
     // The dialog the reloaded page draws again is a new one; the first keeps its title.
-    expect(run.details.dialogs).toEqual(["Recharge Balance", "Recharge Balance"]);
+    expect(run.details.dialogs).toEqual([
+      "Recharge Balance",
+      "Recharge Balance",
+    ]);
 
     await page.evaluate(() => {
       (
@@ -370,7 +400,7 @@ test.describe("the journey counter", () => {
   }: {
     page: Page;
   }) => {
-    await page.route(`${ORIGIN}/**`, async (route) => {
+    await page.route(`${ORIGIN}/**`, async (route: Route) => {
       await route.fulfill({
         contentType: "text/html",
         body: '<!doctype html><html><body><div id="root"></div></body></html>',
@@ -460,7 +490,9 @@ test.describe("the newcomer the journeys are written with", () => {
     );
 
     expect(Object.values((await person.finish()).measures)).toEqual(
-      MEASURES.map(() => 0),
+      MEASURES.map(() => {
+        return 0;
+      }),
     );
   });
 

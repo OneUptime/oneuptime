@@ -37,7 +37,12 @@ import {
   installModelApi,
   silenceRealtime,
 } from "./Store";
-import { seedNewProject, signIn, dashboardRoutes, dashboardHooks } from "./NewProject";
+import {
+  seedNewProject,
+  signIn,
+  dashboardRoutes,
+  dashboardHooks,
+} from "./NewProject";
 
 // The query parameters, kept for the tab by server.js's boot script.
 const params = window.__journeyParams || {};
@@ -53,7 +58,9 @@ window.__journeyFixture = log;
 const project = seedNewProject({
   createStore,
   log,
-  seeds: String(params.seed || "").split(",").filter(Boolean),
+  seeds: String(params.seed || "")
+    .split(",")
+    .filter(Boolean),
   billing: params.billing === "on",
 });
 

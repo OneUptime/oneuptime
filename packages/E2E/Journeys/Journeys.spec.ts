@@ -1,4 +1,4 @@
-import { expect, Page, test } from "@playwright/test";
+import { expect, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import Journey from "./Journey";
@@ -113,7 +113,7 @@ function journey(
       (url: URL) => {
         return url.origin !== ORIGIN;
       },
-      async (route) => {
+      async (route: Route) => {
         leftTheMachine.push(route.request().url());
         await route.abort();
       },
@@ -246,7 +246,11 @@ journey(
     await person.submit("Create Rule");
   },
   (log: FixtureLog) => {
-    expect(writesTo(log, "Project", "update").map((write) => write.data)).toEqual([
+    expect(
+      writesTo(log, "Project", "update").map((write: FixtureWrite) => {
+        return write.data;
+      }),
+    ).toEqual([
       { enableCallNotifications: true },
       { smsOrCallCurrentBalanceInUSDCents: 2000 },
     ]);
@@ -397,8 +401,10 @@ journey(
         return call.path.endsWith("/admin/email/send-test");
       },
     );
-    expect(sent.map((call: FixtureApiCall) => call.body["testEmail"])).toEqual(
-      ["ada@acme-commerce.example"],
-    );
+    expect(
+      sent.map((call: FixtureApiCall) => {
+        return call.body["testEmail"];
+      }),
+    ).toEqual(["ada@acme-commerce.example"]);
   },
 );
