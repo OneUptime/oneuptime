@@ -62,10 +62,14 @@ import { describe, expect, it } from "@jest/globals";
  *     widget titles the SLO Dashboard template writes into a new dashboard.
  *     All of them are data or names the API and Terraform use too, so they
  *     read the same whatever the reader's language.
- *   - SHOWN_IN_ENGLISH: what the SLO pages draw in English in every language,
- *     because the Dashboard has no wording for it: the runway and budget
- *     words of the Overview's tiles, the banners' titles, the window-fill
- *     chip, the Metrics page's tabs, and so on.
+ *   - SHOWN_IN_ENGLISH: what the SLO pages quote in English in every
+ *     language, because the Dashboard has no label of that exact text: the
+ *     banners' titles, the window-fill chip with an example count, the SLO
+ *     Dashboard template's charts, and so on. The runway and budget words of
+ *     the Overview's tiles, the first day's window chip and the Metrics
+ *     page's SLO Metrics and Error Budget History tabs are worded in every
+ *     language since #6658, so each page names them as its language's
+ *     Dashboard draws them.
  *
  * Bold words that are Dashboard labels only by coincidence are PROSE; the
  * pages' own bold leads are PROSE_LEADS. A new bold word on these English
@@ -134,12 +138,17 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   ],
   // The rule the upgrade creates from the old setting (SloDocs pins it).
   [MONITOR_RULES]: ["Auto-add monitors with labels"],
-  // The widget titles the SLO Dashboard template creates.
+  /*
+   * The widget titles the SLO Dashboard template creates. Error Budget
+   * History is one of them, and also the SLO's Metrics tab: the tab is
+   * worded in each language, the chart's title in a new dashboard is not.
+   */
   [METRICS]: [
     "Service Level Objectives",
     "SLI",
     "Error Budget Remaining",
     "Burn Rate",
+    "Error Budget History",
   ],
   // The plan audit logs need.
   [FEED]: ["Enterprise"],
@@ -173,10 +182,8 @@ const PERMISSIONS_THAT_ARE_BUTTONS: Array<string> = [
 // Names the SLO pages draw in English in every language: the Dashboard has no wording for them.
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [INTRODUCTION]: [
-    "Budget exceeded",
     "Archive SLO",
     "Window 23% full",
-    "Window under 1% full",
     "Waiting for SLO evaluation",
     "Measurement is paused",
     "The target is out of range",
@@ -184,21 +191,8 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "This SLO is archived",
   ],
   [MONITOR_RULES]: ["Auto-Add Monitors With Labels"],
-  [ERROR_BUDGET]: [
-    "No budget left",
-    "Budget exceeded",
-    "~2d 5h",
-    "Under 1m",
-    "Not burning",
-    "Sustainable",
-    "Lasts until reset",
-    "Overspent",
-    "Error Budget History",
-    "Window 23% full",
-  ],
+  [ERROR_BUDGET]: ["~2d 5h", "Window 23% full"],
   [METRICS]: [
-    "SLO Metrics",
-    "Error Budget History",
     "Monitor Metric Retention (Days)",
     "Follow SLO Variable",
     "SLO Dashboard",

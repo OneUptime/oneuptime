@@ -44,7 +44,7 @@ Naarmate downtime oploopt, toont het **Overzicht** het resterende budget in zijn
 - als percentage van het totaal, dat ook de status van de SLO bepaalt en de balk vult. De balk heeft een markering op de risicodrempel van de SLO;
 - als duur, bijvoorbeeld "31m 4s left of 43m 12s".
 
-Als het budget op is, toont de tegel **No budget left**. Als downtime het overschrijdt, toont de tegel **Budget exceeded** en de overschrijding als tijd, bijvoorbeeld "4d 23m over budget · 5m 47s allowed": de SLO heeft alle 5 minuten en 47 seconden van zijn budget gebruikt, en nog 4 dagen en 23 minuten meer. De balk blijft leeg en rood.
+Als het budget op is, toont de tegel **Geen budget meer**. Als downtime het overschrijdt, toont de tegel **Budget overschreden** en de overschrijding als tijd, bijvoorbeeld "4d 23m over budget · 5m 47s allowed": de SLO heeft alle 5 minuten en 47 seconden van zijn budget gebruikt, en nog 4 dagen en 23 minuten meer. De balk blijft leeg en rood.
 
 Het resterende budget wordt voor berekeningen en geschiedenisgrafieken als getal met teken opgeslagen, dus daar verschijnt een overschreden budget als negatief percentage. Een sterk negatief percentage betekent dat de overschrijding groot is ten opzichte van het budget; het is niet het deel van de tijd dat de dienst uit de lucht was.
 
@@ -60,11 +60,11 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 | De tegel toont | Wat het betekent |
 | --- | --- |
-| Een duur, zoals **~2d 5h** | In het huidige tempo is het budget over ongeveer zo lang op. Oranje, en rood bij een dag of minder. **Under 1m** betekent minder dan een minuut. |
-| **Not burning** | In de laatste 60 minuten is geen budget uitgegeven. |
-| **Sustainable** | Alleen voortschrijdende vensters: de looptijd is minstens één volledig venster, dus het budget wordt niet sneller uitgegeven dan oude downtime uit het venster valt. In dit tempo raakt het niet op. |
-| **Lasts until reset** | Alleen kalendermaanden: het budget wordt aan het begin van de volgende maand teruggezet voordat het op is. |
-| **Overspent** | Het budget is al op. De tegel zegt met hoeveel het is overschreden. |
+| Een duur, zoals **~2d 5h** | In het huidige tempo is het budget over ongeveer zo lang op. Oranje, en rood bij een dag of minder. **Minder dan 1 min** betekent minder dan een minuut. |
+| **Geen verbruik** | In de laatste 60 minuten is geen budget uitgegeven. |
+| **Houdbaar** | Alleen voortschrijdende vensters: de looptijd is minstens één volledig venster, dus het budget wordt niet sneller uitgegeven dan oude downtime uit het venster valt. In dit tempo raakt het niet op. |
+| **Houdt het tot de reset** | Alleen kalendermaanden: het budget wordt aan het begin van de volgende maand teruggezet voordat het op is. |
+| **Overschreden** | Het budget is al op. De tegel zegt met hoeveel het is overschreden. |
 
 Voor SLO's met een kalendermaand zegt de tegel ook wanneer het budget wordt teruggezet.
 
@@ -80,7 +80,7 @@ De grafiek **Burn-down van foutbudget** op het **Overzicht** zet het resterende 
 - Bij elke evaluatie, elke 5 minuten, wordt een punt vastgelegd, dus de grafiek van een nieuwe SLO blijft leeg tot zijn eerste evaluatie.
 - Sleep over de grafiek om in te zoomen op een deel van het venster. Dubbelklik, of klik op **Zoom herstellen**, om weer het hele venster te zien.
 
-**Metrieken openen** opent de pagina **Metrieken** van de SLO, waarvan het tabblad **Error Budget History** tot 400 dagen teruggaat. Zie [SLO-metrics en -dashboards](/docs/slo/metrics).
+**Metrieken openen** opent de pagina **Metrieken** van de SLO, waarvan het tabblad **Geschiedenis van het foutbudget** tot 400 dagen teruggaat. Zie [SLO-metrics en -dashboards](/docs/slo/metrics).
 
 ## Hoe het budget herstelt
 

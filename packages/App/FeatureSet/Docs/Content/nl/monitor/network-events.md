@@ -11,7 +11,7 @@ Er is op twee plekken een Gebeurtenissen-pagina:
 
 - De gebeurtenissen van de periode, de nieuwste eerst. Elke rij zegt wat er gebeurde, op welk apparaat, waarmee - de interface, de tunnel, de gateway - en in de eigen woorden van het apparaat.
 - **Problemen**, **Herstelmeldingen** en **Informatief**, elk met het aantal in de periode. Klik op één ervan om alleen die te zien.
-- De kiezer **Alle gebeurtenissen** en, op de pagina van het netwerk, de kiezer **All devices** beperken de lijst verder. De periode en de filters staan in het adres van de pagina, dus een link opent precies dezelfde weergave.
+- De kiezer **Alle gebeurtenissen** en, op de pagina van het netwerk, de kiezer **Alle apparaten** beperken de lijst verder. De periode en de filters staan in het adres van de pagina, dus een link opent precies dezelfde weergave.
 - Klik op een gebeurtenis om haar te openen: wanneer ze gebeurde, waar ze over gaat, het bericht zoals het apparaat het stuurde, en elk attribuut dat OneUptime eruit las.
 - **Waarschuwing maken** biedt de waarschuwingen die de meeste netwerken willen, en **Waarschuwing maken voor deze gebeurtenis** maakt er een voor de gebeurtenis die je opende. Zie [Waarschuwingen](#waarschuwingen).
 

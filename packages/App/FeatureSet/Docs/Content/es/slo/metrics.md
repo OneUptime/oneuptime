@@ -58,7 +58,7 @@ Las métricas de incidentes y alertas llevan dos atributos equivalentes, `servic
 
 Las métricas `oneuptime.slo.*` se conservan tanto tiempo como las métricas de monitores: **30 días** de forma predeterminada. En una instalación autoalojada, un administrador maestro puede cambiarlo con **Monitor Metric Retention (Days)** en los ajustes de **Retención de datos** del Admin Dashboard.
 
-Esto no limita la pestaña **Error Budget History** de la página **Métricas** del SLO. Ese historial se guarda aparte y se conserva 400 días.
+Esto no limita la pestaña **Historial del presupuesto de errores** de la página **Métricas** del SLO. Ese historial se guarda aparte y se conserva 400 días.
 
 ## La página Métricas
 
@@ -66,12 +66,12 @@ La página **Métricas** de un SLO tiene cuatro pestañas:
 
 | Pestaña | Qué muestra |
 | --- | --- |
-| **SLO Metrics** | Las series `oneuptime.slo.*` en tres tarjetas que comparten un mismo intervalo de tiempo, el último día de forma predeterminada: **Objetivo** (el SLI con el objetivo encima, y el presupuesto restante), **Consumo** (tasa de consumo y tiempo de presupuesto restante) y **Estado**. |
-| **Error Budget History** | El SLI, el presupuesto restante y la tasa de consumo a lo largo del historial a largo plazo, con líneas en el objetivo, en los límites de riesgo y de agotamiento, y en el umbral de cada regla de tasa de consumo habilitada. |
+| **Métricas del SLO** | Las series `oneuptime.slo.*` en tres tarjetas que comparten un mismo intervalo de tiempo, el último día de forma predeterminada: **Objetivo** (el SLI con el objetivo encima, y el presupuesto restante), **Consumo** (tasa de consumo y tiempo de presupuesto restante) y **Estado**. |
+| **Historial del presupuesto de errores** | El SLI, el presupuesto restante y la tasa de consumo a lo largo del historial a largo plazo, con líneas en el objetivo, en los límites de riesgo y de agotamiento, y en el umbral de cada regla de tasa de consumo habilitada. |
 | **Métricas de incidentes** | El número, el tiempo hasta el reconocimiento, el tiempo hasta la resolución y la duración de los incidentes que afectan a este SLO, la última semana de forma predeterminada. Se incluyen los incidentes declarados por sus reglas de tasa de consumo. |
 | **Métricas de alerta** | Lo mismo para las alertas. Se incluyen las alertas generadas por sus reglas de tasa de consumo. |
 
-Las pestañas **SLO Metrics**, **Métricas de incidentes** y **Métricas de alerta** leen el almacén de métricas, lo que requiere permiso para leer telemetría. Un rol personalizado que puede leer SLO pero no telemetría ve esas pestañas vacías, mientras que **Error Budget History** sigue funcionando.
+Las pestañas **Métricas del SLO**, **Métricas de incidentes** y **Métricas de alerta** leen el almacén de métricas, lo que requiere permiso para leer telemetría. Un rol personalizado que puede leer SLO pero no telemetría ve esas pestañas vacías, mientras que **Historial del presupuesto de errores** sigue funcionando.
 
 ## Los SLO en los paneles
 
@@ -123,7 +123,7 @@ Hay dos SLO con ese nombre. La lista y los gráficos muestran los dos, y los wid
 :::
 
 :::details La pestaña SLO Metrics está vacía
-Tu rol no puede leer telemetría, o el SLO todavía no se ha evaluado. **Error Budget History** lee el propio SLO y sigue funcionando.
+Tu rol no puede leer telemetría, o el SLO todavía no se ha evaluado. **Historial del presupuesto de errores** lee el propio SLO y sigue funcionando.
 :::
 
 ## Próximos pasos

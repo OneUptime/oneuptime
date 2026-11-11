@@ -524,7 +524,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     return [
       {
         value: ALL_VLANS,
-        label: translateString("All VLANs"),
+        label: translateString("All VLANs") || "",
       },
       ...sorted.map((vlanId: number): DropdownOption => {
         return {
@@ -678,7 +678,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
           setDefaultLayoutError(
             translateString(
               "We couldn't change the default layout. Try again.",
-            ),
+            ) || "",
           );
         }
       })
@@ -730,7 +730,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         );
         if (isMounted.current) {
           setExportError(
-            translateString("We couldn't create the PDF. Try again."),
+            translateString("We couldn't create the PDF. Try again.") || "",
           );
         }
       })

@@ -157,6 +157,9 @@ describe("formatLastSeenInLanguage", () => {
     "2026-07-04T10:00:00Z",
   ];
 
+  // A word of formatLastSeen's English.
+  const ENGLISH_WORD: RegExp = /\b(ago|min|days?|just|now)\b/;
+
   test("English reads exactly as formatLastSeen does", () => {
     for (const at of CASES) {
       expect(formatLastSeenInLanguage(new Date(at), now, "en")).toBe(
@@ -208,7 +211,7 @@ describe("formatLastSeenInLanguage", () => {
         expect({
           language,
           at,
-          english: /\b(ago|min|days?|just|now)\b/.test(text),
+          english: ENGLISH_WORD.test(text),
         }).toEqual({
           language,
           at,

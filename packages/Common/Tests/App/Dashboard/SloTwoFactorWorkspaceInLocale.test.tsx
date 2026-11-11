@@ -408,8 +408,10 @@ describe("the SLO overview's burn rate rules card in German", () => {
     expect(firstLine).toHaveTextContent("Fast burn");
     expect(firstLine.contains(badge)).toBe(true);
 
-    // ... and the German sentence, longer than the English, has a line of
-    // its own at the card's whole width.
+    /*
+     * ... and the German sentence, longer than the English, has a line of
+     * its own at the card's whole width.
+     */
     expect(firstLine.contains(threshold)).toBe(false);
     expect(threshold.parentElement).toBe(row);
     expect(threshold.previousElementSibling).toBe(firstLine);
@@ -498,7 +500,7 @@ describe("the SLO overview's KPI strip in German and Arabic", () => {
     errorBudgetRemainingSeconds: -300,
     errorBudgetTotalSeconds: 2592,
     currentBurnRate: 3,
-    sloStatus: SloStatus.Breached,
+    sloStatus: SloStatus.BudgetExhausted,
     lastEvaluatedAt: NOW,
   };
 

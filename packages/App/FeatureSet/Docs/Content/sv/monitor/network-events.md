@@ -11,7 +11,7 @@ Det finns en Händelser-sida på två ställen:
 
 - Tidsintervallets händelser, de nyaste först. Varje rad säger vad som hände, på vilken enhet, med vad - gränssnittet, tunneln, gatewayen - och med enhetens egna ord.
 - **Problem**, **Återställningar** och **Informativa**, var och en med antalet i tidsintervallet. Klicka på en av dem för att bara se dem.
-- Väljaren **Alla händelser** och, på nätverkets sida, väljaren **All devices** smalnar av listan ytterligare. Tidsintervallet och filtren sparas i sidans adress, så en länk öppnar exakt samma vy.
+- Väljaren **Alla händelser** och, på nätverkets sida, väljaren **Alla enheter** smalnar av listan ytterligare. Tidsintervallet och filtren sparas i sidans adress, så en länk öppnar exakt samma vy.
 - Klicka på en händelse för att öppna den: när den hände, vad den handlar om, meddelandet så som enheten skickade det, och varje attribut som OneUptime läste ur det.
 - **Skapa larm** erbjuder de larm som de flesta nätverk vill ha, och **Skapa larm för den här händelsen** skapar en för händelsen du har öppnat. Se [Larm](#larm).
 

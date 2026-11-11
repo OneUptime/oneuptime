@@ -9,8 +9,7 @@ import { getNetworkControllerProviderShortTitle } from "Common/Types/NetworkCont
 import useTranslateValue from "Common/UI/Utils/Translation";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   LINK_STATE_COLORS,
   NetworkLinkState,
@@ -80,7 +79,7 @@ const EndpointSection: FunctionComponent<EndpointSectionProps> = (
   }> = [];
   if (endpoint?.isOperationallyUp !== undefined) {
     rows.push({
-      label: translateString("Operational status"),
+      label: translateString("Operational status") || "",
       value: (endpoint.isOperationallyUp
         ? translateString("Up")
         : translateString("Down")) as string,
@@ -89,7 +88,7 @@ const EndpointSection: FunctionComponent<EndpointSectionProps> = (
   }
   if (endpoint?.isAdministrativelyUp !== undefined) {
     rows.push({
-      label: translateString("Admin status"),
+      label: translateString("Admin status") || "",
       value: (endpoint.isAdministrativelyUp
         ? translateString("Up")
         : translateString("Down")) as string,
@@ -97,26 +96,26 @@ const EndpointSection: FunctionComponent<EndpointSectionProps> = (
   }
   if (endpoint?.utilizationPercent !== undefined) {
     rows.push({
-      label: translateString("Utilization"),
+      label: translateString("Utilization") || "",
       value: formatUtilization(endpoint.utilizationPercent),
       color: endpoint.utilizationPercent >= 80 ? "#f59e0b" : undefined,
     });
   }
   if (endpoint?.inRateMbps !== undefined) {
     rows.push({
-      label: translateString("In rate"),
+      label: translateString("In rate") || "",
       value: formatMbps(endpoint.inRateMbps),
     });
   }
   if (endpoint?.outRateMbps !== undefined) {
     rows.push({
-      label: translateString("Out rate"),
+      label: translateString("Out rate") || "",
       value: formatMbps(endpoint.outRateMbps),
     });
   }
   if (endpoint?.errorsPerSecond !== undefined) {
     rows.push({
-      label: translateString("Errors"),
+      label: translateString("Errors") || "",
       value: `${endpoint.errorsPerSecond}/s`,
     });
   }
@@ -149,7 +148,8 @@ const EndpointSection: FunctionComponent<EndpointSectionProps> = (
                     className="font-medium"
                     style={row.color ? { color: row.color } : undefined}
                   >
-                    {row.value}
+                    {/* "120 Mbps" and "0/s" keep their order on an Arabic page. */}
+                    <bdi>{row.value}</bdi>
                   </dd>
                 </div>
               );
@@ -284,9 +284,9 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
     <SideOver
       title={`${fromName} ↔ ${toName}`}
       description={
-        isLearned
+        (isLearned
           ? translateString("Learned link")
-          : translateString("Network link")
+          : translateString("Network link")) || ""
       }
       onClose={props.onClose}
       size={SideOverSize.Small}

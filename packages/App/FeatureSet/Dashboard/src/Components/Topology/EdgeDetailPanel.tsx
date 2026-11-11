@@ -474,7 +474,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
     return [
       {
         id: "edge-calls",
-        title: translateString("Calls and errors"),
+        title: translateString("Calls and errors") || "",
         description: `${fromName} → ${toName}`,
         type: ChartType.LINE,
         props: {
@@ -499,7 +499,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
       },
       {
         id: "edge-latency",
-        title: translateString("Average latency"),
+        title: translateString("Average latency") || "",
         description: translateString("How long the callee took to answer"),
         type: ChartType.LINE,
         props: {

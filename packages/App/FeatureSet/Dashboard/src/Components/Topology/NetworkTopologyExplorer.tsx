@@ -1003,7 +1003,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
                     )
                   : translator.translateText(
                       "Nothing has been added inside this project yet.",
-                    )
+                    ) || ""
             }
           />
         ) : (

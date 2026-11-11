@@ -44,7 +44,7 @@ Allteftersom driftstoppet ökar visar **Översikt** den återstående budgeten i
 - som en procentandel av totalen, som också avgör SLO:ets status och fyller stapeln. Stapeln har en markering vid SLO:ets tröskel för riskzon;
 - som en varaktighet, till exempel "31m 4s left of 43m 12s".
 
-När budgeten är slut visar rutan **No budget left**. När driftstoppet överskrider den visar rutan **Budget exceeded** och överskridandet som tid, till exempel "4d 23m over budget · 5m 47s allowed": SLO:et har använt alla 5 minuter och 47 sekunder av sin budget, och 4 dagar och 23 minuter till. Stapeln förblir tom och röd.
+När budgeten är slut visar rutan **Ingen budget kvar**. När driftstoppet överskrider den visar rutan **Budgeten överskriden** och överskridandet som tid, till exempel "4d 23m over budget · 5m 47s allowed": SLO:et har använt alla 5 minuter och 47 sekunder av sin budget, och 4 dagar och 23 minuter till. Stapeln förblir tom och röd.
 
 Den återstående budgeten lagras som ett tal med tecken för beräkningar och historikdiagram, så där visas en överskriden budget som en negativ procentandel. En starkt negativ procentandel betyder att överskridandet är stort i förhållande till budgeten; det är inte den andel av tiden som tjänsten var nere.
 
@@ -60,11 +60,11 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 | Rutan visar | Vad det betyder |
 | --- | --- |
-| En varaktighet, som **~2d 5h** | I nuvarande takt tar budgeten slut om ungefär så lång tid. Gul, och röd vid en dag eller mindre. **Under 1m** betyder mindre än en minut. |
-| **Not burning** | Ingen budget har förbrukats under de senaste 60 minuterna. |
-| **Sustainable** | Bara rullande fönster: räckvidden är minst ett helt fönster, så budgeten förbrukas inte snabbare än gammalt driftstopp faller ur fönstret. I den här takten tar den inte slut. |
-| **Lasts until reset** | Bara kalendermånader: budgeten nollställs i början av nästa månad innan den tar slut. |
-| **Overspent** | Budgeten är redan förbrukad. Rutan säger hur mycket den har överskridits med. |
+| En varaktighet, som **~2d 5h** | I nuvarande takt tar budgeten slut om ungefär så lång tid. Gul, och röd vid en dag eller mindre. **Under 1 min** betyder mindre än en minut. |
+| **Ingen förbrukning** | Ingen budget har förbrukats under de senaste 60 minuterna. |
+| **Hållbar** | Bara rullande fönster: räckvidden är minst ett helt fönster, så budgeten förbrukas inte snabbare än gammalt driftstopp faller ur fönstret. I den här takten tar den inte slut. |
+| **Räcker till återställningen** | Bara kalendermånader: budgeten nollställs i början av nästa månad innan den tar slut. |
+| **Överskriden** | Budgeten är redan förbrukad. Rutan säger hur mycket den har överskridits med. |
 
 För SLO:er med kalendermånad säger rutan också när budgeten nollställs.
 
@@ -80,7 +80,7 @@ Diagrammet **Nedbränning av felbudget** i **Översikt** visar den återstående
 - En punkt registreras vid varje utvärdering, var 5:e minut, så ett nytt SLO:s diagram är tomt fram till dess första utvärdering.
 - Dra över diagrammet för att zooma in på en del av fönstret. Dubbelklicka, eller klicka på **Återställ zoom**, för att se hela fönstret igen.
 
-**Öppna mätvärden** öppnar SLO:ets sida **Mätvärden**, vars flik **Error Budget History** går upp till 400 dagar bakåt. Se [SLO-metriker och -instrumentpaneler](/docs/slo/metrics).
+**Öppna mätvärden** öppnar SLO:ets sida **Mätvärden**, vars flik **Felbudgetens historik** går upp till 400 dagar bakåt. Se [SLO-metriker och -instrumentpaneler](/docs/slo/metrics).
 
 ## Hur budgeten återhämtar sig
 

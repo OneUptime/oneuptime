@@ -25,10 +25,10 @@ import PageMap from "../../Utils/PageMap";
 import OneUptimeDate from "Common/Types/Date";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   formatInline,
   translatableTerm,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import {

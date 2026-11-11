@@ -16,6 +16,8 @@ import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   LINK_STATE_COLORS,
   NetworkLinkState,
@@ -106,10 +108,18 @@ const STATUS_COLORS: Record<string, string> = {
   unknown: "#9ca3af",
 };
 
+// The status beside the dot, in the reader's language.
+const STATUS_LABELS: Record<string, string> = {
+  up: translationKey("Up"),
+  down: translationKey("Down"),
+  unknown: translationKey("Unknown"),
+};
+
 const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const { node } = props;
 
   const attachedEdges: Array<NetworkTopologyEdge> = useMemo(() => {
@@ -141,72 +151,83 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
    */
   if (!isUnclassifiedNode(node)) {
     detailRows.push({
-      label: translateString("Type"),
+      label: translateString("Type") || "",
       value: roleLabelForNode(node),
     });
   }
   if (node.macAddress) {
     detailRows.push({
-      label: translateString("MAC address"),
+      label: translateString("MAC address") || "",
       value: node.macAddress,
     });
   }
   if (node.ipAddress) {
     detailRows.push({
-      label: translateString("IP address"),
+      label: translateString("IP address") || "",
       value: node.ipAddress,
     });
   }
   if (node.hostname && node.hostname !== node.name) {
     detailRows.push({
-      label: translateString("Hostname"),
+      label: translateString("Hostname") || "",
       value: node.hostname,
     });
   }
   if (node.classification) {
     detailRows.push({
-      label: translateString("Classification"),
+      label: translateString("Classification") || "",
       value: node.classification,
     });
   }
   if (typeof node.vlanId === "number") {
     detailRows.push({
-      label: translateString("VLAN"),
+      label: translateString("VLAN") || "",
       value: `VLAN ${node.vlanId}`,
     });
   }
   if (node.sysName) {
     detailRows.push({
-      label: translateString("System name"),
+      label: translateString("System name") || "",
       value: node.sysName,
     });
   }
   if (node.vendor) {
     detailRows.push({
-      label: translateString("Vendor"),
+      label: translateString("Vendor") || "",
       value: node.vendor,
     });
   }
   if (node.deviceModel) {
     detailRows.push({
-      label: node.isManaged
-        ? translateString("Model")
-        : translateString("Platform"),
+      label:
+        (node.isManaged
+          ? translateString("Model")
+          : translateString("Platform")) || "",
       value: node.deviceModel,
     });
   }
   if (node.interfacesUp !== undefined || node.interfacesDown !== undefined) {
     detailRows.push({
-      label: translateString("Interfaces"),
-      value: `${node.interfacesUp ?? 0} up / ${node.interfacesDown ?? 0} down`,
+      label: translateString("Interfaces") || "",
+      value: [
+        translator.translatePlural(
+          { one: "{{count}} up", other: "{{count}} up" },
+          node.interfacesUp ?? 0,
+        ),
+        translator.translatePlural(
+          { one: "{{count}} down", other: "{{count}} down" },
+          node.interfacesDown ?? 0,
+        ),
+      ].join(" / "),
     });
   }
 
-  const kindText: string = isEndpoint
-    ? translateString("Discovered endpoint")
-    : node.isManaged
-      ? translateString("Network device")
-      : translateString("Unmanaged neighbor");
+  const kindText: string =
+    (isEndpoint
+      ? translateString("Discovered endpoint")
+      : node.isManaged
+        ? translateString("Network device")
+        : translateString("Unmanaged neighbor")) || "";
 
   return (
     <SideOver
@@ -228,8 +249,13 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
                 STATUS_COLORS[node.status] || STATUS_COLORS["unknown"],
             }}
           />
-          <span className="text-sm font-medium text-gray-900 capitalize">
-            {node.status}
+          <span
+            className="text-sm font-medium text-gray-900"
+            data-testid="network-topology-device-status"
+          >
+            {translateString(
+              STATUS_LABELS[node.status] || STATUS_LABELS["unknown"],
+            )}
           </span>
           {isEndpoint ? (
             <span className="inline-flex items-center rounded-full border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700">
@@ -250,7 +276,7 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
           {props.onHideNode ? (
             <button
               type="button"
-              className="ml-auto text-xs font-medium text-gray-500 underline hover:text-gray-700"
+              className="ms-auto text-xs font-medium text-gray-500 underline hover:text-gray-700"
               data-testid="network-topology-hide-node"
               onClick={() => {
                 props.onHideNode?.(node);
@@ -277,7 +303,10 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
                   return (
                     <div key={index} className="flex justify-between gap-4">
                       <dt>{row.label}</dt>
-                      <dd className="font-medium text-right">{row.value}</dd>
+                      <dd className="font-medium text-end">
+                        {/* A MAC, a port or "120 Mbps" keeps its own order on an Arabic page. */}
+                        <bdi>{row.value}</bdi>
+                      </dd>
                     </div>
                   );
                 },
@@ -437,7 +466,7 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
                   <li key={edgeKeyForEdge(edge)} className="py-2">
                     <button
                       type="button"
-                      className="w-full text-left"
+                      className="w-full text-start"
                       onClick={() => {
                         props.onSelectEdge(edge);
                       }}
@@ -456,8 +485,8 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
                           {other?.name || otherId}
                         </span>
                       </span>
-                      <span className="mt-0.5 block pl-4 text-xs text-gray-500">
-                        {localSummary}
+                      <span className="mt-0.5 block ps-4 text-xs text-gray-500">
+                        <bdi>{localSummary}</bdi>
                       </span>
                     </button>
                   </li>

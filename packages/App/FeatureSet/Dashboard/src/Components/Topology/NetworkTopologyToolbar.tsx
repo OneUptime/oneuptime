@@ -141,7 +141,7 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
-    const savingText: string = translateString("Saving…");
+    const savingText: string = translateString("Saving…") || "";
     const error: ReactElement = controls.error ? (
       <p
         role="alert"

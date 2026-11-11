@@ -808,11 +808,12 @@ describe("the topology's fixed words are keys worded in every language", () => {
       __dirname,
       "../../FeatureSet/Dashboard/src/Components/Topology",
     );
+    const sourceFile: RegExp = /\.tsx?$/;
     // Every source of the folder, with a call's line breaks taken out.
     const sources: string = fs
       .readdirSync(topology)
       .filter((file: string): boolean => {
-        return /\.tsx?$/.test(file);
+        return sourceFile.test(file);
       })
       .map((file: string): string => {
         return fs.readFileSync(path.join(topology, file), "utf8");

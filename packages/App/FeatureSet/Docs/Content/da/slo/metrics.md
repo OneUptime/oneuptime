@@ -58,7 +58,7 @@ Hændelses- og advarselsmetrikker har to tilsvarende attributter, `serviceLevelO
 
 `oneuptime.slo.*`-metrikker gemmes lige så længe som monitormetrikker: **30 dage** som standard. På en selvhostet installation kan en masteradministrator ændre det med **Monitor Metric Retention (Days)** i indstillingerne for **Dataopbevaring** i Admin Dashboard.
 
-Det begrænser ikke fanen **Error Budget History** på SLO'ets side **Metrikker**. Den historik gemmes for sig og opbevares i 400 dage.
+Det begrænser ikke fanen **Fejlbudgettets historik** på SLO'ets side **Metrikker**. Den historik gemmes for sig og opbevares i 400 dage.
 
 ## Siden Metrikker
 
@@ -66,12 +66,12 @@ Et SLO's side **Metrikker** har fire faner:
 
 | Fane | Hvad den viser |
 | --- | --- |
-| **SLO Metrics** | `oneuptime.slo.*`-serierne i tre kort, der deler ét tidsinterval, som standard det seneste døgn: **Mål** (SLI'en med målet over, og det resterende budget), **Forbrug** (forbrugsrate og resterende budgettid) og **Status**. |
-| **Error Budget History** | SLI'en, det resterende budget og forbrugsraten over den langsigtede historik, med linjer ved målet, ved grænserne for risiko og opbrugt budget og ved tærsklen for hver aktiveret forbrugsrateregel. |
+| **SLO-metrikker** | `oneuptime.slo.*`-serierne i tre kort, der deler ét tidsinterval, som standard det seneste døgn: **Mål** (SLI'en med målet over, og det resterende budget), **Forbrug** (forbrugsrate og resterende budgettid) og **Status**. |
+| **Fejlbudgettets historik** | SLI'en, det resterende budget og forbrugsraten over den langsigtede historik, med linjer ved målet, ved grænserne for risiko og opbrugt budget og ved tærsklen for hver aktiveret forbrugsrateregel. |
 | **Hændelsesmetrikker** | Antallet, tiden til kvittering, tiden til løsning og varigheden af de hændelser, der påvirker dette SLO, som standard den seneste uge. Hændelser, som dets forbrugsrateregler har erklæret, er med. |
 | **Advarselsmetrikker** | Det samme for advarsler. Advarsler, som dets forbrugsrateregler har udløst, er med. |
 
-Fanerne **SLO Metrics**, **Hændelsesmetrikker** og **Advarselsmetrikker** læser metriklageret, hvilket kræver tilladelse til at læse telemetri. En tilpasset rolle, der må læse SLO'er, men ikke telemetri, ser de faner tomme, mens **Error Budget History** stadig virker.
+Fanerne **SLO-metrikker**, **Hændelsesmetrikker** og **Advarselsmetrikker** læser metriklageret, hvilket kræver tilladelse til at læse telemetri. En tilpasset rolle, der må læse SLO'er, men ikke telemetri, ser de faner tomme, mens **Fejlbudgettets historik** stadig virker.
 
 ## SLO'er på dashboards
 
@@ -123,7 +123,7 @@ To SLO'er har det navn. Listen og diagrammerne viser begge, og widgetterne under
 :::
 
 :::details Fanen SLO Metrics er tom
-Din rolle må ikke læse telemetri, eller SLO'et er ikke evalueret endnu. **Error Budget History** læser selve SLO'et og virker stadig.
+Din rolle må ikke læse telemetri, eller SLO'et er ikke evalueret endnu. **Fejlbudgettets historik** læser selve SLO'et og virker stadig.
 :::
 
 ## Næste trin
