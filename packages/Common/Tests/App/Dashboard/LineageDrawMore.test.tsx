@@ -152,6 +152,7 @@ import PipelineLineageDiagram from "../../../../App/FeatureSet/Dashboard/src/Com
 import {
   LINEAGE_CARD_HEIGHT,
   LINEAGE_CARD_WIDTH,
+  LINEAGE_READABLE_ZOOM,
   LineageViewport,
   getLineageViewportAfterExpanding,
   layoutLineage,
@@ -160,6 +161,7 @@ import {
 import {
   LINEAGE_CARD_Z_INDEX,
   LINEAGE_DRAWN_ATTRIBUTE,
+  LINEAGE_HIDDEN_COUNT_TAP_AREA_CLASS_NAME,
   getLineageHiddenCountStyle,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageGraph";
 import fs from "fs";
@@ -881,6 +883,11 @@ describe("a pipeline's drawing", () => {
       "calc(100% - 8px)",
     );
     expect(countOn(`table:${RAW}`, "right")).toHaveClass("whitespace-nowrap");
+    // Only a count that can be pressed reaches past its pill.
+    expect(countOn(`table:${RAW}`, "left")).toHaveClass("before:content-['']");
+    expect(countOn(`table:${RAW}`, "right")).not.toHaveClass(
+      "before:content-['']",
+    );
   });
 
   test("the pipeline's count, pressed from the keyboard, draws all it reads: the pipeline opens nothing here, so the drawing takes the focus", async () => {
@@ -949,6 +956,59 @@ describe("where a count sits on its card", () => {
     for (const count of [upstream, downstream]) {
       expect(count).toHaveClass("absolute", "whitespace-nowrap");
     }
+  });
+
+  test("a count that draws is a bigger target than it looks: a finger presses it, not the card under it, and never covers the card's words", async () => {
+    await renderTable();
+
+    const tapArea: Array<string> =
+      LINEAGE_HIDDEN_COUNT_TAP_AREA_CLASS_NAME.split(" ");
+
+    // An invisible margin around the pill, part of the button itself.
+    expect(tapArea).toEqual([
+      "before:absolute",
+      "before:-inset-x-1",
+      "before:-inset-y-1.5",
+      "before:content-['']",
+    ]);
+
+    for (const count of [
+      countOn(`table:${STAGING}`, "left"),
+      countOn(`table:${MART}`, "right"),
+    ]) {
+      expect(count.tagName).toBe("BUTTON");
+      expect(count).toHaveClass(...tapArea);
+    }
+
+    // Tailwind's spacing: a step is 4px.
+    const acrossClass: RegExp = /before:-inset-x-([\d.]+)/u;
+    const alongClass: RegExp = /before:-inset-y-([\d.]+)/u;
+    const pixels: RegExp = /(\d+)px/u;
+    const across: number =
+      Number(acrossClass.exec(LINEAGE_HIDDEN_COUNT_TAP_AREA_CLASS_NAME)?.[1]) *
+      4;
+    const along: number =
+      Number(alongClass.exec(LINEAGE_HIDDEN_COUNT_TAP_AREA_CLASS_NAME)?.[1]) *
+      4;
+    const countReach: number = Number(
+      pixels.exec(String(getLineageHiddenCountStyle("left").right))?.[1],
+    );
+
+    expect({ across, along, countReach }).toEqual({
+      across: 4,
+      along: 6,
+      countReach: 8,
+    });
+    // Over the card, short of its words, which start 13px in.
+    expect(countReach + across).toBeLessThan(13);
+    /*
+     * The pill is 21px high and, for "+3", 27px wide; at the least zoom a
+     * drawing opens at, the area around it is still 24px each way.
+     */
+    expect((21 + 2 * along) * LINEAGE_READABLE_ZOOM).toBeGreaterThanOrEqual(24);
+    expect((27 + 2 * across) * LINEAGE_READABLE_ZOOM).toBeGreaterThanOrEqual(
+      24,
+    );
   });
 });
 

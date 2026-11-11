@@ -576,6 +576,18 @@ const HIDDEN_COUNT_CLASS_NAME: string =
   "absolute top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-gray-300 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-600 shadow-sm";
 
 /*
+ * A count's tap area: the pill (21px high, 27px wide for "+3") with an
+ * invisible margin 6px up and down and 4px either side, so a finger meets
+ * a target of 24px or more even at the least zoom a drawing opens at
+ * (LINEAGE_READABLE_ZOOM, three quarters), and presses the count rather
+ * than the card under it, which would open that table and leave the
+ * drawing. Over the card it reaches 4px further in than the pill, 12px in
+ * all: short of the card's words, which start 13px in.
+ */
+export const LINEAGE_HIDDEN_COUNT_TAP_AREA_CLASS_NAME: string =
+  "before:absolute before:-inset-x-1 before:-inset-y-1.5 before:content-['']";
+
+/*
  * Where a count sits on its card's outer side: across the card's edge,
  * its inner edge HIDDEN_COUNT_REACH_PX in, so a count of any length
  * leaves the card's words clear.
@@ -633,7 +645,7 @@ const HiddenCount: FunctionComponent<HiddenCountProps> = (
     <button
       ref={props.buttonRef}
       type="button"
-      className={`nodrag nopan inline-flex items-center ${HIDDEN_COUNT_CLASS_NAME} focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+      className={`nodrag nopan inline-flex items-center ${HIDDEN_COUNT_CLASS_NAME} ${LINEAGE_HIDDEN_COUNT_TAP_AREA_CLASS_NAME} focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
         {
           isLocked: action.isLocked,
           isBusy: action.isBusy,
