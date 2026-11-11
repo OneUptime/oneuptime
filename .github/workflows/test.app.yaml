@@ -1916,6 +1916,8 @@ jobs:
             output/playwright/vmware-pages-ui/test-results
             output/playwright/acknowledgement-timeout-ui/*.png
             output/playwright/acknowledgement-timeout-ui/test-results
+            output/playwright/test-page-ui/*.png
+            output/playwright/test-page-ui/test-results
             output/playwright/owner-filters-ui/*.png
             output/playwright/owner-filters-ui/test-results
             output/playwright/owners-on-create-ui/*.png

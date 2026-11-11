@@ -12,7 +12,8 @@
  *                        default), paging, or failed (a message that did not
  *                        go out, with where to fix it)
  *   - cost=1             the preview's test sends paid texts and calls
- *   - lang=de            the Dashboard's German words
+ *   - lang=de            the Dashboard's German words (fa: Persian, read
+ *                        from the right)
  *   - theme=dark         dark mode (set before the bundle by server.js)
  *
  * Every request the dialog sends is recorded on window.__fixture.requests,
@@ -47,6 +48,7 @@ import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import Page from "Common/UI/Components/Page/Page";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 
 const PROJECT_ID = "10000000-0000-4000-8000-0000000000e1";
 const POLICY_ID = "20000000-0000-4000-8000-0000000000e1";
@@ -60,7 +62,9 @@ const params = new URLSearchParams(window.location.search);
 const view = params.get("view") === "policy" ? "policy" : "self";
 const resultState = params.get("result") || "acknowledged";
 const isPaid = params.get("cost") === "1";
-const language = params.get("lang") === "de" ? "de" : "en";
+const language = ["de", "fa"].includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
 
 window.__fixture = {
   requests: [],
@@ -360,6 +364,7 @@ await i18next.use(initReactI18next).init({
   resources: {
     en: { translation: {} },
     de: { translation: DE },
+    fa: { translation: FA },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,
@@ -367,6 +372,7 @@ await i18next.use(initReactI18next).init({
 });
 followLanguageForDates(i18next);
 document.documentElement.lang = language;
+document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
 
 function Shell() {
   Navigation.setNavigateHook(useNavigate());

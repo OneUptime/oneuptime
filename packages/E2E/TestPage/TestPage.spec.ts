@@ -349,3 +349,44 @@ test("in German, the dialog and its result are worded in German", async ({
   await expectNoSidewaysScroll(page);
   await screenshot(page, "self-dialog-de-390");
 });
+
+test("in Persian, the dialog and its result read from the right", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  const PERSIAN: Record<string, string> = JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../App/FeatureSet/Dashboard/src/Locales/fa.json",
+      ),
+      "utf8",
+    ),
+  ) as Record<string, string>;
+  const sendLabel: string = PERSIAN["Send test page"]!;
+
+  expect(sendLabel).toBeTruthy();
+  expect(sendLabel).not.toBe("Send test page");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openPage(page, "?lang=fa");
+
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  await page.getByTestId("send-test-page").click();
+  await expect(dialog(page)).toBeVisible();
+  await expect(dialog(page).getByTestId("test-page-preview")).toBeVisible();
+  await expect(
+    dialog(page).getByRole("button", { name: sendLabel }),
+  ).toBeVisible();
+
+  await expectNoSidewaysScroll(page);
+  await screenshot(page, "self-dialog-fa-390");
+
+  await dialog(page).getByRole("button", { name: sendLabel }).click();
+  await expect(dialog(page).getByTestId("test-page-result")).toBeVisible();
+  await expect(dialog(page).getByTestId("test-page-delivery")).toHaveCount(3);
+
+  await expectNoSidewaysScroll(page);
+  await screenshot(page, "self-result-fa-390");
+});
