@@ -664,6 +664,142 @@ describe("Markdown email renderer - addresses an email cannot keep are never put
   });
 });
 
+describe("Markdown email renderer - copies of an address the renderer does not keep (#6481)", () => {
+  /*
+   * An address that says it is a PNG, whose data is no image: the renderer
+   * shows each image of it as its alt text, as it always did. Its start
+   * says nothing against it, so it is put back to be judged; each copy of
+   * it is more than a sixth of the budget.
+   */
+  const NOT_AN_IMAGE_ADDRESS: string = PNG_PREFIX + "A".repeat(4 * 350 * 1024);
+
+  // `count` texts: `label` 1, `label` 2 ...
+  const numbered: (label: string, count: number) => Array<string> = (
+    label: string,
+    count: number,
+  ): Array<string> => {
+    const texts: Array<string> = [];
+
+    for (let index: number = 1; index <= count; index++) {
+      texts.push(`${label} ${index}`);
+    }
+
+    return texts;
+  };
+
+  test("data that is no image, referenced more often than the budget holds copies of it: every reference is its alt text, as it always was", async () => {
+    const judged: SpyInstance<typeof Markdown.getEmailUrl> =
+      watchJudgedAddresses();
+    const alts: Array<string> = numbered("Shot", 30);
+
+    // The arithmetic the test stands on: counted, most copies would not fit.
+    expect(Math.floor(MOST / NOT_AN_IMAGE_ADDRESS.length)).toBeLessThan(10);
+
+    const html: string = await render(
+      `${alts
+        .map((alt: string): string => {
+          return `![${alt}][x]`;
+        })
+        .join("\n")}\n\n[x]: ${NOT_AN_IMAGE_ADDRESS}`,
+    );
+
+    expect(html).toBe(`<p>${alts.join("\n")}</p>\n`);
+    /*
+     * Judged whole twice: the text's own by the renderer, and the first copy
+     * before it took anything of the budget. No later copy was put back.
+     */
+    expect(lengthsJudged(judged)).toEqual([
+      NOT_AN_IMAGE_ADDRESS.length,
+      NOT_AN_IMAGE_ADDRESS.length,
+    ]);
+  });
+
+  test("copies the renderer does not keep take none of the budget: a screenshot's copy after them still shows", async () => {
+    const shot: string = screenshotOfLength(7 * 1024 * 1024);
+    const alts: Array<string> = numbered("Not an image", 10);
+
+    /*
+     * The arithmetic the test stands on: the screenshot's copy fits the
+     * budget alone, and not once a single copy of the data that is no image
+     * has been counted.
+     */
+    expect(PNG_PREFIX.length + shot.length).toBeLessThanOrEqual(MOST);
+    expect(
+      NOT_AN_IMAGE_ADDRESS.length + PNG_PREFIX.length + shot.length,
+    ).toBeGreaterThan(MOST);
+
+    const html: string = await render(
+      [
+        alts
+          .map((alt: string): string => {
+            return `![${alt}][x]`;
+          })
+          .join("\n"),
+        "![Home][home] ![Home again][home]",
+        "",
+        `[x]: ${NOT_AN_IMAGE_ADDRESS}`,
+        `[home]: ${PNG_PREFIX}${shot}`,
+      ].join("\n"),
+    );
+
+    expect(imageSourcesIn(html)).toEqual([
+      fingerprint(PNG_PREFIX + shot),
+      fingerprint(PNG_PREFIX + shot),
+    ]);
+    expect(html.startsWith(`<p>${alts.join("\n")}\n<img `)).toBe(true);
+    expect(html).not.toContain("image too large");
+  });
+
+  test("a link whose address the renderer does not keep once put back - its held-back middle holds a lone surrogate - is its text at every reference, put back as a copy once", async () => {
+    const judged: SpyInstance<typeof Markdown.getEmailUrl> =
+      watchJudgedAddresses();
+    const address: string = `https://status.example.com/${"a".repeat(40000)}${String.fromCharCode(0xd800)}${"a".repeat(40000)}`;
+    const texts: Array<string> = numbered("Open", 20);
+
+    const html: string = await render(
+      `${texts
+        .map((text: string): string => {
+          return `[${text}][s]`;
+        })
+        .join("\n")}\n\n[s]: ${address}`,
+    );
+
+    expect(html).toBe(`<p>${texts.join("\n")}</p>\n`);
+    expect(lengthsJudged(judged)).toEqual([address.length, address.length]);
+  });
+
+  test("images and links are judged apart: an address an image cannot show but a link keeps - a mailto: whose scheme was held back with the rest - is a link at every link", async () => {
+    /*
+     * A label so long, and no space after its colon, that the definition's
+     * line keeps "mail" of its address: the rest of its scheme is held back
+     * with the rest of it.
+     */
+    const label: string = "s".repeat(OVER_LONG_LINE_KEPT_LENGTH - 7);
+    const address: string = `mailto:ops@example.com?body=${"a".repeat(OVER_LONG_LINE_LENGTH)}`;
+    const references: string = [
+      `![Mail 1][${label}]`,
+      `![Mail 2][${label}]`,
+      `[Mail 3][${label}]`,
+      `![Mail 4][${label}]`,
+      `[Mail 5][${label}]`,
+    ].join(" ");
+    const markdown: string = `${references}\n\n[${label}]:${address}`;
+
+    // The arithmetic the test stands on: what marked reads of the address.
+    const heldBack: string = Markdown["holdBackFromMarked"](markdown).markdown;
+
+    expect(heldBack.includes(`s]:mail\u{e005}`)).toBe(true);
+    expect(heldBack.includes(`s]:mailt`)).toBe(false);
+
+    const html: string = await renderOnePiece(markdown);
+    const link: string = `<a href="${address}">`;
+
+    expect(html).toBe(
+      `<p>Mail 1 Mail 2 ${link}Mail 3</a> Mail 4 ${link}Mail 5</a></p>\n`,
+    );
+  });
+});
+
 describe("Markdown email renderer - titles references copy (#6481)", () => {
   test("a definition's title on a line over 64 KB: every reference is an image, the first with the title, the others without", async () => {
     const title: string = "Failed".repeat(20000);

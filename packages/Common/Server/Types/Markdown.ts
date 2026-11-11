@@ -230,6 +230,26 @@ type HeldAddress =
   | { fate: "refused" }
   | { fate: "leftOut" };
 
+/*
+ * How withHeldDataInUrls judges one kind of address - an image's, or a
+ * link's - as the email renderer judges it, and what it has learned of the
+ * copies of that kind in one render.
+ */
+interface HeldAddressRules {
+  // The schemes the renderer keeps an address of this kind with.
+  schemes: ReadonlyArray<string>;
+  // Whether a data: address of this kind can still be an inline image.
+  mayBeInlineImage: boolean;
+  // Whether the renderer keeps an address of this kind, put back whole.
+  isKept: (href: string) => boolean;
+  /*
+   * Whether the renderer keeps the address a copy put back, by the address
+   * as marked gives it: every copy of one definition's address is the
+   * same, so the first copy put back decides for the others.
+   */
+  verdicts: Map<string, boolean>;
+}
+
 // Puts back what was held back: as it was written, or escaped for HTML.
 type PutBackFunction = (value: string, escape: boolean) => string;
 
@@ -1645,6 +1665,13 @@ export default class Markdown {
    *     an image from a scheme it does not load that cannot be an inline
    *     image. The link is its text and the image its alt text, as they
    *     always were, and neither takes anything of the budget.
+   *   - An address the renderer does not keep once it is put back - a
+   *     data:image/png address whose data is no image, a link whose
+   *     scheme was held back with the rest of it - has its first copy put
+   *     back and judged as the renderer judges it, and its later copies
+   *     never put back: each copy is its text or alt text, as the renderer
+   *     makes it, and none takes anything of the budget. (A copy past the
+   *     budget is not put back to be judged: an image is the note.)
    *
    * What it counts is counted for one render: each render starts afresh.
    */
@@ -1658,6 +1685,24 @@ export default class Markdown {
     const putBack: Set<number> = new Set<number>();
     // What the copies of addresses have put back, in characters.
     let copied: number = 0;
+
+    const imageRules: HeldAddressRules = {
+      schemes: EMAIL_IMAGE_SCHEMES,
+      mayBeInlineImage: true,
+      isKept: (href: string): boolean => {
+        return Markdown.getEmailImageSource(href) !== null;
+      },
+      verdicts: new Map<string, boolean>(),
+    };
+
+    const linkRules: HeldAddressRules = {
+      schemes: EMAIL_LINK_SCHEMES,
+      mayBeInlineImage: false,
+      isKept: (href: string): boolean => {
+        return Markdown.getEmailUrl(href, EMAIL_LINK_SCHEMES) !== null;
+      },
+      verdicts: new Map<string, boolean>(),
+    };
 
     const isCopy: (indexes: Array<number>) => boolean = (
       indexes: Array<number>,
@@ -1677,13 +1722,8 @@ export default class Markdown {
 
     const takeAddress: (
       href: string,
-      allowedSchemes: ReadonlyArray<string>,
-      mayBeInlineImage: boolean,
-    ) => HeldAddress = (
-      href: string,
-      allowedSchemes: ReadonlyArray<string>,
-      mayBeInlineImage: boolean,
-    ): HeldAddress => {
+      rules: HeldAddressRules,
+    ) => HeldAddress = (href: string, rules: HeldAddressRules): HeldAddress => {
       const indexes: Array<number> = held.heldIn(href);
 
       if (indexes.length === 0) {
@@ -1693,26 +1733,49 @@ export default class Markdown {
       if (
         Markdown.isRefusedWhateverFollows(
           href.slice(0, href.indexOf(HELD_DATA_OPEN)),
-          allowedSchemes,
-          mayBeInlineImage,
+          rules.schemes,
+          rules.mayBeInlineImage,
         )
       ) {
         return { fate: "refused" };
       }
 
-      if (isCopy(indexes)) {
-        const length: number = held.restoredLength(href);
+      // The text's own: put back, for the renderer to judge as it always has.
+      if (!isCopy(indexes)) {
+        notePutBack(indexes);
 
-        if (copied + length > MAX_EMAIL_HELD_TEXT_IN_REFERENCES) {
-          return { fate: "leftOut" };
-        }
-
-        copied += length;
+        return { fate: "kept", href: held.restore(href) };
       }
 
+      const verdict: boolean | undefined = rules.verdicts.get(href);
+
+      if (verdict === false) {
+        return { fate: "refused" };
+      }
+
+      const length: number = held.restoredLength(href);
+
+      if (copied + length > MAX_EMAIL_HELD_TEXT_IN_REFERENCES) {
+        return { fate: "leftOut" };
+      }
+
+      const restored: string = held.restore(href);
+
+      if (verdict === undefined) {
+        const isKept: boolean = rules.isKept(restored);
+
+        rules.verdicts.set(href, isKept);
+
+        // Nothing of it goes into the HTML, so it takes nothing of the budget.
+        if (!isKept) {
+          return { fate: "refused" };
+        }
+      }
+
+      copied += length;
       notePutBack(indexes);
 
-      return { fate: "kept", href: held.restore(href) };
+      return { fate: "kept", href: restored };
     };
 
     /*
@@ -1748,7 +1811,7 @@ export default class Markdown {
       title: string | null | undefined,
       text: string,
     ): string {
-      const address: HeldAddress = takeAddress(href, EMAIL_LINK_SCHEMES, false);
+      const address: HeldAddress = takeAddress(href, linkRules);
 
       // Refused or left out: its text, as any link the renderer does not keep.
       if (address.fate !== "kept") {
@@ -1764,7 +1827,7 @@ export default class Markdown {
       title: string | null,
       text: string,
     ): string {
-      const address: HeldAddress = takeAddress(href, EMAIL_IMAGE_SCHEMES, true);
+      const address: HeldAddress = takeAddress(href, imageRules);
 
       if (address.fate === "refused") {
         return text;
@@ -1875,6 +1938,21 @@ export default class Markdown {
     }
 
     return Markdown.escapeHtml(url);
+  }
+
+  /*
+   * The src an email's image is written with, ready to go between the
+   * double quotes of the attribute: an inline raster image as its parser
+   * rebuilt it (parseInlineImageDataUri), any other image as getEmailUrl
+   * keeps it for an image - or null when the image is its alt text.
+   */
+  private static getEmailImageSource(href: string): string | null {
+    const inlineImage: InlineImageDataUri | null =
+      parseInlineImageDataUri(href);
+
+    return inlineImage
+      ? Markdown.escapeHtml(inlineImage.dataUri)
+      : Markdown.getEmailUrl(href, EMAIL_IMAGE_SCHEMES);
   }
 
   /*
@@ -2128,12 +2206,7 @@ export default class Markdown {
       title: string | null,
       text: string,
     ): string {
-      const inlineImage: InlineImageDataUri | null =
-        parseInlineImageDataUri(href);
-
-      const url: string | null = inlineImage
-        ? Markdown.escapeHtml(inlineImage.dataUri)
-        : Markdown.getEmailUrl(href, EMAIL_IMAGE_SCHEMES);
+      const url: string | null = Markdown.getEmailImageSource(href);
 
       if (url === null) {
         return text;

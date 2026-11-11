@@ -788,6 +788,34 @@ describe("a screenshot a description references many times, from the probe to th
     expect(email.html.endsWith("<p>Open the screenshot 200</p>\n")).toBe(true);
   });
 
+  /*
+   * A screenshot value whose bytes are no image: one image of it was always
+   * its alt text, and so is every reference to it - none says it was too
+   * large. Its data is put back for the text's own reference and the first
+   * copy alone, so two hundred references take no longer than two.
+   */
+  test("a screenshot value that is no image, referenced 200 times: every reference is its alt text, in good time", async () => {
+    // A megabyte that starts like no image file, as base64.
+    const notAnImage: string = Buffer.alloc(MB, 0x5a).toString("base64");
+    const description: string = describeIncident(templateReferencing(200), [
+      run({ screenshots: { home: notAnImage } }),
+    ]);
+
+    const rendered: FastestRun<RenderedEmail> = await timedEmailFor(
+      description,
+      2000,
+    );
+    const { email } = rendered.result;
+
+    expect(rendered.inMs).toBeLessThan(2000);
+    expect(email.inlineImages).toEqual([]);
+    expect(email.html).toBe(
+      `${STARTS}${referencesTo(200, (index: number): string => {
+        return `Home ${index}`;
+      })}</p>\n`,
+    );
+  });
+
   test("a definition with a long title: the references within the budget are images, the title on the first alone - never the Markdown as text", async () => {
     const shot: string = jpegOfSize(100 * KB);
     const error: string =
