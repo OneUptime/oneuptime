@@ -50511,11 +50511,5 @@
   "{{count}} min remaining": "يتبقى {{count}} د",
   "{{count}} min remaining_one": "يتبقى {{count}} د",
   "−{{count}} min over budget": "تجاوز الميزانية بمقدار {{count}} د",
-  "−{{count}} min over budget_one": "تجاوز الميزانية بمقدار {{count}} د",
-  "Milestone": "Milestone",
-  "Project Milestone": "Project Milestone",
-  "Project Milestones": "Project Milestones",
-  "Reached At": "Reached At",
-  "Was Backfilled": "Was Backfilled",
-  "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.": "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more."
+  "−{{count}} min over budget_one": "تجاوز الميزانية بمقدار {{count}} د"
 }

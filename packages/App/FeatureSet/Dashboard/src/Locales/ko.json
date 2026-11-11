@@ -50511,11 +50511,5 @@
   "{{count}} min remaining": "{{count}}분 남음",
   "{{count}} min remaining_one": "{{count}}분 남음",
   "−{{count}} min over budget": "예산 {{count}}분 초과",
-  "−{{count}} min over budget_one": "예산 {{count}}분 초과",
-  "Milestone": "Milestone",
-  "Project Milestone": "Project Milestone",
-  "Project Milestones": "Project Milestones",
-  "Reached At": "Reached At",
-  "Was Backfilled": "Was Backfilled",
-  "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.": "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more."
+  "−{{count}} min over budget_one": "예산 {{count}}분 초과"
 }

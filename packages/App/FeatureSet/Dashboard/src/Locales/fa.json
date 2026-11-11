@@ -50511,11 +50511,5 @@
   "{{count}} min remaining": "{{count}} دقیقه مانده",
   "{{count}} min remaining_one": "{{count}} دقیقه مانده",
   "−{{count}} min over budget": "{{count}} دقیقه بیش از بودجه",
-  "−{{count}} min over budget_one": "{{count}} دقیقه بیش از بودجه",
-  "Milestone": "Milestone",
-  "Project Milestone": "Project Milestone",
-  "Project Milestones": "Project Milestones",
-  "Reached At": "Reached At",
-  "Was Backfilled": "Was Backfilled",
-  "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.": "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more."
+  "−{{count}} min over budget_one": "{{count}} دقیقه بیش از بودجه"
 }
