@@ -73,6 +73,7 @@ import { PillSize } from "Common/UI/Components/Pill/Pill";
 import Column from "Common/UI/Components/ModelTable/Column";
 import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
@@ -398,6 +399,14 @@ const SecurityCasesList: FunctionComponent<{
       type: FieldType.Element,
       wrapContent: true,
       wrapMaxWidthClassName: "max-w-xl",
+      /*
+       * The case's number beside its title, and the page's own words under
+       * it: the title reads its own way (IsolatedText), the cell the page's.
+       * Read by its title, an English title turned the whole cell round on
+       * a Persian page - the number at the title's left, the source line
+       * laid out from the left.
+       */
+      getLineText: drawsItsOwnLines,
       getElement: (item: SecurityCase): ReactElement => {
         const detections: number = item.detectionCount || 0;
         const entities: Array<SecurityEntity> = readSecurityEntities(

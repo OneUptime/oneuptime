@@ -1503,6 +1503,57 @@ describe("the list a person sees", () => {
   });
 
   /*
+   * Only the title reads its own way: the cell round it - the number, the
+   * line of the page's own words under the title, the entity chips - is
+   * laid out the page's way. Read by its title (Table/ColumnLineText's
+   * default for a column on a record's title), a Persian title turned its
+   * whole cell round on an English page, and an English one did on a
+   * Persian page, where the number went to the title's left
+   * (SecurityOperations.spec.ts measures it there).
+   */
+  test("a case's cell reads the page's way, whichever way its title reads", async () => {
+    listedRows = [
+      unassignedCase(
+        "20000000-0000-4000-8000-000000000158",
+        "CASE-158",
+        "ورود مشکوک به حساب مدیر",
+        undefined,
+      ),
+      unassignedCase(
+        "20000000-0000-4000-8000-000000000159",
+        "CASE-159",
+        "Password spray against Okta from 203.0.113.47",
+        undefined,
+      ),
+    ];
+
+    await drawTable(await capture("open"));
+
+    const persian: HTMLElement = await screen.findByText(
+      "ورود مشکوک به حساب مدیر",
+    );
+    const numbers: Array<HTMLElement> = screen.getAllByTestId(
+      SECURITY_CASE_ROW_NUMBER_TEST_ID,
+    );
+
+    // The title, on this English page, in an isolate read from the right.
+    expect(persian.tagName).toBe("BDI");
+    expect(persian).toHaveAttribute("dir", "rtl");
+    expect(numbers).toHaveLength(2);
+
+    for (const number of numbers) {
+      // The cell's line: the box the table gives a cell's value.
+      const line: HTMLElement | null = number.closest("td > div");
+
+      expect(line).not.toBeNull();
+      expect({
+        case: number.textContent,
+        dir: line!.getAttribute("dir"),
+      }).toEqual({ case: number.textContent, dir: null });
+    }
+  });
+
+  /*
    * "Russian Security case names still cut at 1280" (#5485's follow-up):
    * at the Case column's 14rem floor two lines cut the longer languages'
    * titles at a 1280 laptop. A title has three lines now - one class, on
