@@ -510,3 +510,68 @@ describe("a window is never of no length", () => {
     );
   });
 });
+
+describe("RollingTimeUtil.getUnitsRead", () => {
+  const WEEK_IN_SECONDS: number = 7 * 24 * 60 * 60;
+
+  // How long each unit is, by its first letter: s, m, h, d and w.
+  const SECONDS_BY_LETTER: Record<string, number> = {
+    s: 1,
+    m: 60,
+    h: 60 * 60,
+    d: 24 * 60 * 60,
+    w: WEEK_IN_SECONDS,
+  };
+
+  test("lists each unit a length is read in, once", () => {
+    const units: Array<string> = RollingTimeUtil.getUnitsRead();
+
+    expect(units).toEqual(
+      expect.arrayContaining([
+        "s",
+        "sec",
+        "seconds",
+        "m",
+        "min",
+        "minutes",
+        "h",
+        "hr",
+        "hours",
+        "d",
+        "days",
+        "w",
+        "wk",
+        "weeks",
+      ]),
+    );
+    expect(new Set(units).size).toBe(units.length);
+  });
+
+  test("each unit listed reads a week written in it as Past 7 Days", () => {
+    for (const unit of RollingTimeUtil.getUnitsRead()) {
+      const seconds: number | undefined = SECONDS_BY_LETTER[unit.charAt(0)];
+
+      expect([unit, seconds]).toEqual([unit, expect.any(Number)]);
+      expect([
+        unit,
+        RollingTimeUtil.fromValue(
+          `${WEEK_IN_SECONDS / (seconds as number)} ${unit}`,
+        ),
+      ]).toEqual([unit, RollingTime.Past7Days]);
+    }
+  });
+
+  test.each(["ms", "mo", "month", "months", "yr", "year", "fortnight"])(
+    "%p is not listed, and no length is read in it",
+    (unit: string) => {
+      expect(RollingTimeUtil.getUnitsRead()).not.toContain(unit);
+      expect(RollingTimeUtil.fromValue(`1 ${unit}`)).toBeNull();
+    },
+  );
+
+  test("hands out a copy", () => {
+    RollingTimeUtil.getUnitsRead().push("fortnight");
+
+    expect(RollingTimeUtil.getUnitsRead()).not.toContain("fortnight");
+  });
+});
