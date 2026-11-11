@@ -50539,5 +50539,8 @@
   "{{count}} min remaining": "{{count}} min rimanenti",
   "{{count}} min remaining_one": "{{count}} min rimanente",
   "−{{count}} min over budget": "Budget superato di {{count}} min",
-  "−{{count}} min over budget_one": "Budget superato di {{count}} min"
+  "−{{count}} min over budget_one": "Budget superato di {{count}} min",
+  "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "Riepiloga l'ultimo stato registrato di questo monitor e la sua cronologia di stato fino alla disattivazione del monitoraggio.",
+  "Was it flapping?": "Stava oscillando?",
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Questo monitor stava oscillando prima che il monitoraggio venisse disattivato? Analizza i suoi cambi di stato fino a quel momento."
 }

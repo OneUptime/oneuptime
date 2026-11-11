@@ -50539,5 +50539,8 @@
   "{{count}} min remaining": "{{count}} دقیقه مانده",
   "{{count}} min remaining_one": "{{count}} دقیقه مانده",
   "−{{count}} min over budget": "{{count}} دقیقه بیش از بودجه",
-  "−{{count}} min over budget_one": "{{count}} دقیقه بیش از بودجه"
+  "−{{count}} min over budget_one": "{{count}} دقیقه بیش از بودجه",
+  "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "آخرین وضعیت گزارش‌شده برای این مانیتور و خط زمانی وضعیتش تا پیش از خاموش شدن پایشش را خلاصه کن.",
+  "Was it flapping?": "آیا مدام تغییر وضعیت می‌داد؟",
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "آیا این مانیتور پیش از خاموش شدن پایشش مدام تغییر وضعیت می‌داد؟ تغییرات وضعیتش را تا آن زمان تحلیل کن."
 }

@@ -40,6 +40,7 @@ import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
 import ListStatusScroll from "../components/ListStatusScroll";
 import { matchesSearch } from "../utils/search";
+import { getMonitorHealth, type MonitorHealth } from "../utils/monitorHealth";
 import { useAllProjectMonitors } from "../hooks/useAllProjectMonitors";
 import { useHaptics } from "../hooks/useHaptics";
 import MonitorCard from "../components/MonitorCard";
@@ -374,12 +375,17 @@ export default function MonitorsScreen(): React.JSX.Element {
     let operationalCount: number = 0;
 
     for (const wrapped of allMonitors) {
-      const isDisabled: boolean = wrapped.item.disableActiveMonitoring === true;
-      // Status names are editable. Only the server's semantic flag establishes health.
-      const operationalState: boolean | undefined =
-        wrapped.item.currentMonitorStatus?.isOperationalState;
-      const hasIssue: boolean = operationalState === false;
-      const isHealthy: boolean = operationalState === true && !isDisabled;
+      /*
+       * Status names are editable. Only the server's semantic flag
+       * establishes health, and a monitor whose monitoring is off is
+       * Disabled, never an issue: the status it holds is what its last check
+       * saw (utils/monitorHealth, the web's rule). Home's Monitor issues
+       * count asks the server for the same monitors.
+       */
+      const health: MonitorHealth = getMonitorHealth(wrapped.item);
+      const isDisabled: boolean = health === "disabled";
+      const hasIssue: boolean = health === "issue";
+      const isHealthy: boolean = health === "healthy";
       if (isDisabled) {
         disabledCount++;
       }
@@ -569,8 +575,8 @@ export default function MonitorsScreen(): React.JSX.Element {
       />
       {filter === "issues" ? (
         <HelperNote testID="monitor-issues-note">
-          Includes disabled monitors whose last reported status was
-          non-operational.
+          Monitors with monitoring turned off are not listed. They are under
+          Disabled.
         </HelperNote>
       ) : null}
     </View>

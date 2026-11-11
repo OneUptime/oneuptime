@@ -50539,5 +50539,8 @@
   "{{count}} min remaining": "{{count}} min remaining",
   "{{count}} min remaining_one": "{{count}} min remaining",
   "−{{count}} min over budget": "−{{count}} min over budget",
-  "−{{count}} min over budget_one": "−{{count}} min over budget"
+  "−{{count}} min over budget_one": "−{{count}} min over budget",
+  "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.",
+  "Was it flapping?": "Was it flapping?",
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then."
 }

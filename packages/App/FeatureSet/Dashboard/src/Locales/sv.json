@@ -50539,5 +50539,8 @@
   "{{count}} min remaining": "{{count}} min kvar",
   "{{count}} min remaining_one": "{{count}} min kvar",
   "−{{count}} min over budget": "Budgeten överskriden med {{count}} min",
-  "−{{count}} min over budget_one": "Budgeten överskriden med {{count}} min"
+  "−{{count}} min over budget_one": "Budgeten överskriden med {{count}} min",
+  "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "Sammanfatta den här monitorns senast rapporterade status och dess statustidslinje fram till att övervakningen stängdes av.",
+  "Was it flapping?": "Växlade den hela tiden?",
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Växlade den här monitorn status hela tiden innan övervakningen stängdes av? Analysera dess statusändringar fram till dess."
 }

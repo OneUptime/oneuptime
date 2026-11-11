@@ -18,7 +18,8 @@ the port `DASHBOARD_WIDGET_SORT_FIXTURE_PORT` names (its server, the config and 
 spec all read it).
 
 The dashboard (`Fixture/Boards.js`) has a widget of each way a list or a table sorts: a
-monitor list (a status by its priority), a pod list (a phase read rank by rank), an
+monitor list (a status by its priority, with one monitor whose monitoring is off and one
+archived monitor among its rows), a pod list (a phase read rank by rank), an
 incident list (a severity by the project's order), the security events list
 (ClickHouse), a trace table (groups the server ranks) and a metric table (rows the
 widget sorts itself). Its public copy shows the monitor and pod lists. Every list read
@@ -27,14 +28,19 @@ by the order it asks for (nested fields, `nulls: "LAST"` and Postgres's own null
 placement), cut to its limit - and recorded, so a test reads both what the widget
 asked for and the rows it drew. The public fixture orders a list the way the public
 route does: from the stored widget and the visitor's `widgetSort`, through the same
-registry (`Common/Utils/Dashboard/DashboardWidgetSorts`). Saves are kept for the tab,
+registry (`Common/Utils/Dashboard/DashboardWidgetSorts`), kept to the rows the route's
+policy keeps it to (a monitor list's query from
+`Common/Utils/Dashboard/MonitorListWidgetFormat`). Saves are kept for the tab,
 so a reload opens what was saved. `?theme=dark` and `?lang=de` set the theme and the
 Dashboard's words.
 
 Desktop (1280px) Chromium covers: a list opening in its own order with every sortable
 column a header and the sorted one marked (aria-sort, an arrow, a hint); Status sorting
 the whole list worst first, best first, then back to by name, with the read's order and
-the pick kept in the browser; a reload keeping the pick, for that widget only; a pod
+the pick kept in the browser; a monitor whose monitoring is off saying Disabled in gray
+and coming after every monitor that is checked whichever way Status sorts, and an
+archived monitor never listed (#6476, #6477), inside OneUptime, in German and on the
+public dashboard; a reload keeping the pick, for that widget only; a pod
 list reading its phases rank by rank; an incident list by severity and the security
 events list in ClickHouse; a 6-unit incident list with long titles fitting its widget
 (at 1440px, as below); a trace table asking the server to rank its groups and a

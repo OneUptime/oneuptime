@@ -4,7 +4,8 @@
  * (PublicFixture.js).
  *
  * One dashboard ("Operations wall") with a widget of each way a list or a
- * table sorts (issue #5082): a monitor list (a status by its priority), a
+ * table sorts (issue #5082): a monitor list (a status by its priority, a
+ * monitor whose monitoring is off after every checked one), a
  * pod list (a phase read rank by rank), an incident list (a severity by the
  * project's order), the security events list (ClickHouse), a trace table
  * (groups the server ranks) and a metric table (rows the widget sorts
@@ -211,6 +212,15 @@ const OPERATIONAL = status("Operational", 1, "#10b981");
 const DEGRADED = status("Degraded", 2, "#f59e0b");
 const OFFLINE = status("Offline", 3, "#ef4444");
 
+/*
+ * The monitors as the database stores them: isArchived and
+ * disableActiveMonitoring are NOT NULL columns (Monitor.ts), so every row has
+ * both. legacy-api's monitoring is turned off, its status frozen at the
+ * Offline its last check saw: the list keeps it, saying Disabled, after
+ * every monitor that is checked whichever way Status sorts (#6476, #6477).
+ * archived-cdn is archived, so no monitor list has it - by name it would be
+ * second (Common/Utils/Dashboard/MonitorListWidgetFormat).
+ */
 export const monitors = () => {
   return [
     ["api-gateway", OPERATIONAL, "API"],
@@ -218,11 +228,16 @@ export const monitors = () => {
     ["checkout", DEGRADED, "Website"],
     ["search", OPERATIONAL, "API"],
     ["auth", OFFLINE, "API"],
-  ].map(([name, currentStatus, monitorType], index) => {
+    ["legacy-api", OFFLINE, "API", { disableActiveMonitoring: true }],
+    ["archived-cdn", OFFLINE, "Website", { isArchived: true }],
+  ].map(([name, currentStatus, monitorType, stored], index) => {
     return {
       _id: `b0000000-0000-4000-8000-00000000010${index}`,
       name,
       monitorType,
+      isArchived: false,
+      disableActiveMonitoring: false,
+      ...(stored || {}),
       currentMonitorStatus: { ...currentStatus },
     };
   });

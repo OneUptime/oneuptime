@@ -50539,5 +50539,8 @@
   "{{count}} min remaining": "Nog {{count}} min",
   "{{count}} min remaining_one": "Nog {{count}} min",
   "−{{count}} min over budget": "Budget {{count}} min overschreden",
-  "−{{count}} min over budget_one": "Budget {{count}} min overschreden"
+  "−{{count}} min over budget_one": "Budget {{count}} min overschreden",
+  "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "Vat de laatst gemelde status van deze monitor en de statustijdlijn tot het uitzetten van de bewaking samen.",
+  "Was it flapping?": "Wisselde het steeds?",
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Wisselde deze monitor steeds van status voordat de bewaking werd uitgezet? Analyseer de statuswijzigingen tot dat moment."
 }

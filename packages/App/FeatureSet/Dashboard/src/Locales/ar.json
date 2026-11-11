@@ -50539,5 +50539,8 @@
   "{{count}} min remaining": "يتبقى {{count}} د",
   "{{count}} min remaining_one": "يتبقى {{count}} د",
   "−{{count}} min over budget": "تجاوز الميزانية بمقدار {{count}} د",
-  "−{{count}} min over budget_one": "تجاوز الميزانية بمقدار {{count}} د"
+  "−{{count}} min over budget_one": "تجاوز الميزانية بمقدار {{count}} د",
+  "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "لخّص آخر حالة مسجّلة لهذه المراقبة ومخططها الزمني للحالة حتى إيقاف مراقبتها.",
+  "Was it flapping?": "هل كان يتذبذب؟",
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "هل كانت هذه المراقبة تتذبذب قبل إيقاف مراقبتها؟ حلّل تغيرات حالتها حتى ذلك الحين."
 }

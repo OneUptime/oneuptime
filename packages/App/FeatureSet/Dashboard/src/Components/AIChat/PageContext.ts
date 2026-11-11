@@ -628,7 +628,12 @@ export default class PageContextUtil {
               modelType: Monitor,
               id: id,
               select: { name: true },
+              /*
+               * With whether its monitoring is off: then its status is only
+               * what its last check saw, and it is asked about as such.
+               */
               stateSelect: {
+                disableActiveMonitoring: true,
                 currentMonitorStatus: { isOperationalState: true },
               },
             });
@@ -639,6 +644,7 @@ export default class PageContextUtil {
             title: item.name || null,
             state: getMonitorEntityState(
               item.currentMonitorStatus?.isOperationalState,
+              item.disableActiveMonitoring,
             ),
           };
         }

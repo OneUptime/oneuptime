@@ -50539,5 +50539,8 @@
   "{{count}} min remaining": "剩餘 {{count}} 分鐘",
   "{{count}} min remaining_one": "剩餘 {{count}} 分鐘",
   "−{{count}} min over budget": "超出預算 {{count}} 分鐘",
-  "−{{count}} min over budget_one": "超出預算 {{count}} 分鐘"
+  "−{{count}} min over budget_one": "超出預算 {{count}} 分鐘",
+  "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "摘要此監測器最後回報的狀態，以及關閉監測之前的狀態時間軸。",
+  "Was it flapping?": "狀態是否曾反覆切換？",
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "此監測器在關閉監測之前，狀態是否曾反覆切換？分析它在那之前的狀態變更。"
 }

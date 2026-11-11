@@ -695,17 +695,44 @@ describe("The summary at the top", () => {
     });
   });
 
-  test("a disabled non-operational monitor contributes to both matching Home counters", async () => {
+  test("a disabled monitor whose last status was offline is counted as disabled, not as an issue", async () => {
     /*
-     * The last thing an offline monitor did before someone disabled it was to
-     * be offline, so it satisfies both descriptions. The Home counters and
-     * their destination filters must describe these same overlapping sets.
+     * The last thing an offline monitor did before someone turned its
+     * monitoring off was to be offline - and that is all its status says:
+     * nothing checks it any more. It used to count under both, and Home's
+     * Monitor issues counted it too, so a phone said something was down that
+     * the web did not (issue #6475). Now it is Disabled only, here and in
+     * Home's counts, which ask the server for these same sets
+     * (utils/monitorHealth): the counters and the filters they open still
+     * describe the same monitors.
      */
     mockMonitors.current = stateWith({
       items: [
         wrap(
           makeMonitor({
             ...offlineMonitor("monitor-1", "cache.example.com"),
+            disableActiveMonitoring: true,
+          }),
+        ),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    await waitFor(() => {
+      expect(countsBesideLabel("Has issues")).toEqual(["0"]);
+      expect(countsBesideLabel("Disabled")).toEqual(["1"]);
+      expect(countsBesideLabel("Healthy")).toEqual(["0"]);
+    });
+  });
+
+  test("an offline monitor that is checked is still an issue beside a disabled one", async () => {
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(offlineMonitor("monitor-1", "db.example.com")),
+        wrap(
+          makeMonitor({
+            ...offlineMonitor("monitor-2", "cache.example.com"),
             disableActiveMonitoring: true,
           }),
         ),
@@ -1234,7 +1261,13 @@ describe("Semantic monitor health", () => {
     expect(screen.getByText("No matching monitors")).toBeTruthy();
   });
 
-  test("the Home issue filter includes disabled non-operational monitors and excludes disabled healthy ones", async () => {
+  test("the Home issue filter leaves out every disabled monitor, whatever its last status, and says so", async () => {
+    /*
+     * Reversed on purpose (issue #6475): a disabled monitor whose last status
+     * was Offline used to be listed here, and counted in Home's Monitor
+     * issues. Nothing checks it, so it is no issue anyone can act on; it is
+     * listed under Disabled, and the note says where it went.
+     */
     mockRoute.params = { initialFilter: "issues" };
     mockMonitors.current = stateWith({
       items: [
@@ -1250,29 +1283,40 @@ describe("Semantic monitor health", () => {
             disableActiveMonitoring: true,
           }),
         ),
+        wrap(offlineMonitor("enabled-down", "Failing queue")),
         wrap(healthyMonitor("enabled-up", "Serving API")),
       ],
     });
     await render(<MonitorsScreen />);
     expect(countsBesideLabel("Has issues")).toEqual(["1"]);
-    expect(screen.getByText("Paused database")).toBeTruthy();
+    expect(screen.getByText("Failing queue")).toBeTruthy();
+    expect(screen.queryByText("Paused database")).toBeNull();
     expect(screen.queryByText("Paused API")).toBeNull();
     expect(screen.queryByText("Serving API")).toBeNull();
+    expect(screen.queryByText("Disabled monitors")).toBeNull();
+    expect(screen.getByTestId("monitor-issues-note")).toBeTruthy();
     expect(
       screen.getByText(
-        "Includes disabled monitors whose last reported status was non-operational.",
+        "Monitors with monitoring turned off are not listed. They are under Disabled.",
       ),
     ).toBeTruthy();
+    expect(
+      screen.queryByText(
+        "Includes disabled monitors whose last reported status was non-operational.",
+      ),
+    ).toBeNull();
     await fireEvent.press(screen.getByRole("button", { name: "Healthy" }));
     expect(screen.getByText("Serving API")).toBeTruthy();
     expect(screen.queryByText("Paused API")).toBeNull();
     expect(screen.queryByText("Paused database")).toBeNull();
+    expect(screen.queryByTestId("monitor-issues-note")).toBeNull();
     await fireEvent.press(
       screen.getByRole("button", { name: "Disabled only" }),
     );
     expect(screen.getByText("Paused database")).toBeTruthy();
     expect(screen.getByText("Paused API")).toBeTruthy();
     expect(screen.queryByText("Serving API")).toBeNull();
+    expect(screen.queryByText("Failing queue")).toBeNull();
   });
 });
 
