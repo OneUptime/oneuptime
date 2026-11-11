@@ -59,7 +59,8 @@ const PAGES = [
     // 2026-11-03: 923,776 bytes, loading what it does not draw with where it is used (#5619).
     // 2026-11-04: 883,196 bytes, loading browser telemetry only where it is configured (#5619).
     // 2026-11-04: 786,737 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
-    ceiling: 780 * KIB,
+    // 2026-11-11: 773,606 bytes, hashing with crypto-js's SHA-256 alone, and loading the rules that set code apart in Arabic and Persian sentences only for those languages.
+    ceiling: 770 * KIB,
   },
   {
     frontend: "Accounts",
@@ -70,7 +71,8 @@ const PAGES = [
     // 2026-11-03: 929,191 bytes, loading what it does not draw with where it is used (#5619).
     // 2026-11-04: 887,494 bytes, loading browser telemetry only where it is configured (#5619).
     // 2026-11-04: 791,036 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
-    ceiling: 785 * KIB,
+    // 2026-11-11: 775,116 bytes, hashing with crypto-js's SHA-256 alone, and loading the rules that set code apart in Arabic and Persian sentences only for those languages.
+    ceiling: 770 * KIB,
   },
   {
     frontend: "StatusPage",
