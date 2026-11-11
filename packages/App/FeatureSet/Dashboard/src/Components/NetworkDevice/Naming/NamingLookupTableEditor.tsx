@@ -13,7 +13,7 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import Icon from "Common/UI/Components/Icon/Icon";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   NAMING_LOOKUP_KEY_EXAMPLES,
@@ -49,6 +49,29 @@ export const LOOKUP_ROWS_PER_PAGE: number = 50;
 
 // The file a table is saved as.
 export const LOOKUP_CSV_FILE_NAME: string = "naming-rule-lookup-table.csv";
+
+/*
+ * What an empty table asks for, said whole for each kind of key: the
+ * sentence used to put the key's title inside it, lowercased, so it read
+ * "the last part of the ip address" in English and lowercased German's
+ * nouns ("letzter teil der ip-adresse").
+ */
+export const EMPTY_LOOKUP_TABLE_SENTENCES: Readonly<
+  Record<NamingLookupKey, string>
+> = {
+  [NamingLookupKey.LastIpOctet]: translationKey(
+    "No rows yet. Add one, or paste two columns from a spreadsheet: the last part of each IP address and the value it stands for.",
+  ),
+  [NamingLookupKey.IpAddress]: translationKey(
+    "No rows yet. Add one, or paste two columns from a spreadsheet: each IP address and the value it stands for.",
+  ),
+  [NamingLookupKey.MacAddress]: translationKey(
+    "No rows yet. Add one, or paste two columns from a spreadsheet: each MAC address and the value it stands for.",
+  ),
+  [NamingLookupKey.DiscoveredName]: translationKey(
+    "No rows yet. Add one, or paste two columns from a spreadsheet: each discovered name and the value it stands for.",
+  ),
+};
 
 export interface NamingLookupTableEditorProps {
   kind: NamingLookupKey | undefined;
@@ -283,13 +306,13 @@ const NamingLookupTableEditor: FunctionComponent<
               <tr>
                 <th
                   scope="col"
-                  className="w-2/5 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+                  className="w-2/5 px-3 py-2 text-start text-xs font-medium uppercase tracking-wide text-gray-500"
                 >
                   {keyTitle}
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+                  className="px-3 py-2 text-start text-xs font-medium uppercase tracking-wide text-gray-500"
                 >
                   {translator.translateText("Value")}
                 </th>
@@ -343,7 +366,7 @@ const NamingLookupTableEditor: FunctionComponent<
                           }}
                         />
                       </td>
-                      <td className="px-2 py-1.5 text-right">
+                      <td className="px-2 py-1.5 text-end">
                         <button
                           type="button"
                           className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
@@ -391,10 +414,8 @@ const NamingLookupTableEditor: FunctionComponent<
           className="rounded-lg border border-dashed border-gray-300 px-4 py-5 text-center text-sm text-gray-500"
           data-testid="naming-lookup-empty"
         >
-          {translator.translateTemplate(
-            "No rows yet. Add one, or paste two columns from a spreadsheet: the {{key}} and the value it stands for.",
-            { key: keyTitle.toLowerCase() },
-          )}
+          {translator.translateText(EMPTY_LOOKUP_TABLE_SENTENCES[kind]) ||
+            EMPTY_LOOKUP_TABLE_SENTENCES[kind]}
         </div>
       )}
 
@@ -507,7 +528,7 @@ const NamingLookupTableEditor: FunctionComponent<
           }}
         />
         {entries.length > 0 && (
-          <span className="ml-auto text-xs text-gray-500">
+          <span className="ms-auto text-xs text-gray-500">
             {translator.translatePlural(
               { one: "{{count}} row", other: "{{count}} rows" },
               entries.length,

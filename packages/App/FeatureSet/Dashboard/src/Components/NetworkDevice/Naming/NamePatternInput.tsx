@@ -187,7 +187,7 @@ const NamePatternInput: FunctionComponent<NamePatternInputProps> = (
         aria-label={translator.translateText("Insert into the name pattern")}
         data-testid="name-pattern-chips"
       >
-        <span className="mr-0.5 text-xs font-medium text-gray-500">
+        <span className="me-0.5 text-xs font-medium text-gray-500">
           {translator.translateText("Insert:")}
         </span>
         {chips.map(
