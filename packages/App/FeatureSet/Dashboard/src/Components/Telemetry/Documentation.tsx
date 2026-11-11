@@ -1794,7 +1794,8 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   RouteMap[PageMap.PROFILES] as Route,
                 )}
               >
-                {translator.translateText("Open the Profiler")}
+                {translator.translateText("Open the Profiler") ||
+                  "Open the Profiler"}
               </AppLink>
             </div>
           </div>
@@ -2286,7 +2287,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   >
                     {translator.translateText(
                       "Install it with the Kubernetes setup guide",
-                    )}
+                    ) || "Install it with the Kubernetes setup guide"}
                   </AppLink>
                 </p>
               </div>,
