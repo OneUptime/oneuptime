@@ -37,6 +37,16 @@ import {
   getResourceMeta,
 } from "@oneuptime/dashboard/Components/AuditLogs/AuditLogsTableUtils";
 import { AuditLogsTableProps } from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
+import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
+import {
+  AUDIT_LOG_ACTION_LABELS,
+  getAuditLogActionLabel,
+} from "Common/Types/AuditLog/AuditLogActionLabel";
+import {
+  getSessionEntrySummary,
+  isSessionAuditLogAction,
+} from "Common/Types/AuditLog/AuditLogSessionEvent";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import React, {
   Fragment,
   FunctionComponent,
@@ -103,7 +113,44 @@ const ACTION_STYLES: { [key: string]: ActionStyle } = {
     className: "border-violet-200 bg-violet-50 text-violet-700",
     iconColor: "text-violet-600",
   },
+  /*
+   * A person's sessions (issue #6762): who signed in, signed out, and whose
+   * session OneUptime ended - on time, or because something changed.
+   */
+  SignIn: {
+    label: AUDIT_LOG_ACTION_LABELS[AuditLogAction.SignIn],
+    icon: IconProp.SignIn,
+    className: "border-indigo-200 bg-indigo-50 text-indigo-700",
+    iconColor: "text-indigo-600",
+  },
+  SignOut: {
+    label: AUDIT_LOG_ACTION_LABELS[AuditLogAction.SignOut],
+    icon: IconProp.SignOut,
+    className: "border-slate-200 bg-slate-50 text-slate-700",
+    iconColor: "text-slate-500",
+  },
+  SessionTimeout: {
+    label: AUDIT_LOG_ACTION_LABELS[AuditLogAction.SessionTimeout],
+    icon: IconProp.Clock,
+    className: "border-amber-200 bg-amber-50 text-amber-800",
+    iconColor: "text-amber-600",
+  },
+  SessionRevoked: {
+    label: AUDIT_LOG_ACTION_LABELS[AuditLogAction.SessionRevoked],
+    icon: IconProp.NoSymbol,
+    className: "border-rose-200 bg-rose-50 text-rose-700",
+    iconColor: "text-rose-600",
+  },
 };
+
+/*
+ * The Action filter's choices: every action, by its words, so nobody has
+ * to know that a sign-in is recorded as "SignIn".
+ */
+export const AUDIT_LOG_ACTION_FILTER_OPTIONS: Array<DropdownOption> =
+  Object.values(AuditLogAction).map((action: AuditLogAction): DropdownOption => {
+    return { label: AUDIT_LOG_ACTION_LABELS[action], value: action };
+  });
 
 const AuditLogsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -286,7 +333,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
       </div>
       <div className="text-xs text-gray-500 mt-1 max-w-sm">
         Changes to this project are not being recorded. Turn on audit logging to
-        start keeping a history of who changed what.
+        start keeping a history of who changed what, and who signed in.
       </div>
       <AppLink
         to={auditLogSettingsRoute}
@@ -308,8 +355,9 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
         No audit entries yet
       </div>
       <div className="text-xs text-gray-500 mt-1 max-w-sm">
-        Changes made to resources in this project will appear here
-        automatically. Create, update, or delete a resource to see an entry.
+        Changes made to resources in this project, and every time its members
+        sign in or out, will appear here automatically. Create, update, or
+        delete a resource to see an entry.
       </div>
     </div>
   );
@@ -352,8 +400,9 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: { action: true },
-            type: FieldType.Text,
+            type: FieldType.Dropdown,
             title: "Action",
+            filterDropdownOptions: AUDIT_LOG_ACTION_FILTER_OPTIONS,
           },
           {
             field: { userEmail: true },
@@ -401,7 +450,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
             getElement: (item: AuditLog): ReactElement => {
               const action: string = item.action || "Unknown";
               const style: ActionStyle = ACTION_STYLES[action] || {
-                label: action,
+                label: getAuditLogActionLabel(action),
                 icon: IconProp.Info,
                 className: "border-gray-200 bg-gray-50 text-gray-700",
                 iconColor: "text-gray-500",
@@ -632,6 +681,38 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Element,
             disableSort: true,
             getElement: (item: AuditLog): ReactElement => {
+              /*
+               * A session entry is no change: it says how someone signed
+               * in, or why their session ended, in a few words, and opens
+               * the rest - device, address, times.
+               */
+              if (isSessionAuditLogAction(item.action)) {
+                const summary: string = getSessionEntrySummary({
+                  action: item.action,
+                  changes: item.changes,
+                });
+
+                return (
+                  <button
+                    type="button"
+                    data-testid="audit-log-session-summary"
+                    title={`${summary} - view session details`}
+                    onClick={() => {
+                      setDetailItem(item);
+                    }}
+                    className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                  >
+                    <Icon
+                      icon={IconProp.InformationCircle}
+                      size={SizeProp.Small}
+                      thick={ThickProp.Thick}
+                      className="h-3 w-3 flex-shrink-0 text-gray-500"
+                    />
+                    <span className="truncate">{summary}</span>
+                  </button>
+                );
+              }
+
               const rawChanges: JSONArray | undefined = item.changes;
               const count: number = Array.isArray(rawChanges)
                 ? rawChanges.length

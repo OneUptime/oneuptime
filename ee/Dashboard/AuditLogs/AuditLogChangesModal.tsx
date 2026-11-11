@@ -5,6 +5,16 @@ import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
 import { readAuditLogChange } from "Common/Utils/AuditLog/AuditLogTypedValues";
+import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
+import { getAuditLogActionLabel } from "Common/Types/AuditLog/AuditLogActionLabel";
+import {
+  AUDIT_LOG_SESSION_FIELD_LABELS,
+  AUDIT_LOG_SESSION_FIELDS,
+  AUDIT_LOG_SESSION_TIME_FIELDS,
+  AuditLogSessionField,
+  isSessionAuditLogAction,
+  readSessionEntryFields,
+} from "Common/Types/AuditLog/AuditLogSessionEvent";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export type AuditLogModalAction = "Create" | "Update" | "Delete" | string;
@@ -133,6 +143,52 @@ const formatScalar: (value: JSONValue | undefined) => string = (
   return "";
 };
 
+export interface SessionDetailRow {
+  field: AuditLogSessionField;
+  label: string;
+  value: string;
+}
+
+/*
+ * A session entry's details as the dialog lists them (issue #6762): each
+ * field it recorded, in the order the audit log names them, by its words -
+ * a time in the reader's own zone.
+ */
+export const readSessionDetailRows: (
+  changes: unknown,
+) => Array<SessionDetailRow> = (changes: unknown): Array<SessionDetailRow> => {
+  const fields: Map<AuditLogSessionField, string> =
+    readSessionEntryFields(changes);
+  const rows: Array<SessionDetailRow> = [];
+
+  for (const field of AUDIT_LOG_SESSION_FIELDS) {
+    const value: string | undefined = fields.get(field);
+
+    if (!value) {
+      continue;
+    }
+
+    rows.push({
+      field: field,
+      label: AUDIT_LOG_SESSION_FIELD_LABELS[field],
+      value: AUDIT_LOG_SESSION_TIME_FIELDS.includes(field)
+        ? formatScalar(value)
+        : value,
+    });
+  }
+
+  return rows;
+};
+
+// What a session entry's dialog says it shows.
+export const getSessionDetailsDescription: (action: string) => string = (
+  action: string,
+): string => {
+  return action === AuditLogAction.SignIn
+    ? "How and where they signed in"
+    : "How the session ended";
+};
+
 const renderValue: (value: JSONValue | undefined) => ReactElement = (
   value: JSONValue | undefined,
 ): ReactElement => {
@@ -166,6 +222,53 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
     return null;
   }
 
+  const actionLabel: string = getAuditLogActionLabel(props.action);
+
+  if (isSessionAuditLogAction(props.action)) {
+    const sessionRows: Array<SessionDetailRow> = readSessionDetailRows(
+      props.changes,
+    );
+
+    return (
+      <Modal
+        title={`${actionLabel} · ${props.resourceName || props.resourceType || "User Session"}`}
+        description={getSessionDetailsDescription(props.action)}
+        onClose={props.onClose}
+        closeButtonText="Close"
+        modalWidth={ModalWidth.Medium}
+      >
+        <div className="mt-4">
+          {sessionRows.length === 0 ? (
+            <div className="rounded-md border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
+              No details were recorded for this session.
+            </div>
+          ) : (
+            <dl
+              className="divide-y divide-gray-200 rounded-md border border-gray-200 overflow-hidden"
+              data-testid="audit-log-session-details"
+            >
+              {sessionRows.map((row: SessionDetailRow) => {
+                return (
+                  <div
+                    key={row.field}
+                    className="grid grid-cols-1 gap-1 bg-white px-4 py-3 sm:grid-cols-3 sm:gap-4"
+                  >
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      {row.label}
+                    </dt>
+                    <dd className="text-sm text-gray-900 break-words sm:col-span-2">
+                      {row.value}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+          )}
+        </div>
+      </Modal>
+    );
+  }
+
   const isCreate: boolean = props.action === "Create";
   const isDelete: boolean = props.action === "Delete";
   const isUpdate: boolean = props.action === "Update";
@@ -186,8 +289,8 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
     <Modal
       title={
         props.resourceName
-          ? `${props.action} · ${props.resourceType || "Resource"} — ${props.resourceName}`
-          : `${props.action} · ${props.resourceType || "Resource"}`
+          ? `${actionLabel} · ${props.resourceType || "Resource"} — ${props.resourceName}`
+          : `${actionLabel} · ${props.resourceType || "Resource"}`
       }
       description={header}
       onClose={props.onClose}
