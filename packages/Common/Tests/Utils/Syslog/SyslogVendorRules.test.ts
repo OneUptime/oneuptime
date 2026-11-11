@@ -340,14 +340,18 @@ function slowTextsFor(pattern: RegExp): Array<string> {
   });
 }
 
-// The fastest of a few runs, so a pause of the machine is not mistaken for a slow pattern.
-function fastestRun(pattern: RegExp, text: string): number {
+/*
+ * The fastest of a few runs of some work, in milliseconds, so a pause of the
+ * machine - a garbage collection, another test file's worker - is not
+ * mistaken for slow work. Work that is slow is slow on every run.
+ */
+function fastestOf(work: () => void): number {
   let fastest: number = Number.POSITIVE_INFINITY;
 
   for (let run: number = 0; run < 3; run++) {
     const startedAt: bigint = process.hrtime.bigint();
 
-    pattern.test(text);
+    work();
 
     const elapsed: number =
       Number(process.hrtime.bigint() - startedAt) / 1_000_000;
@@ -356,6 +360,12 @@ function fastestRun(pattern: RegExp, text: string): number {
   }
 
   return fastest;
+}
+
+function fastestRun(pattern: RegExp, text: string): number {
+  return fastestOf((): void => {
+    pattern.test(text);
+  });
 }
 
 // A pattern that needs this long for one message would hold up ingest.
@@ -449,15 +459,13 @@ describe("no message is slow, whatever it holds", () => {
       for (const tail of TAILS) {
         const message: string =
           mark + tail.repeat(Math.ceil(1_000_000 / tail.length));
-        const startedAt: number = Date.now();
-
-        SyslogEventNormalizer.normalize({ message: message });
-
-        const elapsed: number = Date.now() - startedAt;
+        const elapsed: number = fastestOf((): void => {
+          SyslogEventNormalizer.normalize({ message: message });
+        });
 
         if (elapsed > 250) {
           slow.push(
-            `${JSON.stringify(mark)} + ${JSON.stringify(tail)}... took ${elapsed} ms`,
+            `${JSON.stringify(mark)} + ${JSON.stringify(tail)}... took ${elapsed.toFixed(1)} ms`,
           );
         }
       }
@@ -469,13 +477,13 @@ describe("no message is slow, whatever it holds", () => {
   it("reads the same messages as the content of a line with a short body", () => {
     for (const mark of MARKS) {
       const content: string = mark + "a ".repeat(500_000);
-      const startedAt: number = Date.now();
-
-      SyslogEventNormalizer.normalize({ message: "short", content: content });
+      const elapsed: number = fastestOf((): void => {
+        SyslogEventNormalizer.normalize({ message: "short", content: content });
+      });
 
       expect({
         mark,
-        fast: Date.now() - startedAt < 250,
+        fast: elapsed < 250,
       }).toEqual({ mark, fast: true });
     }
   });
