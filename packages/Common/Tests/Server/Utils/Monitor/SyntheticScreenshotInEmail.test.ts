@@ -1,10 +1,12 @@
 import MonitorTemplateUtil from "../../../../Server/Utils/Monitor/MonitorTemplateUtil";
 import Markdown, {
+  MAX_EMAIL_HELD_TEXT_IN_REFERENCES,
   MarkdownContentType,
 } from "../../../../Server/Types/Markdown";
 import EmailInlineImages, {
   EmailHtmlWithInlineImages,
   EmailInlineImage,
+  MaxEmailInlineImageBytes,
 } from "../../../../Server/Utils/Mail/EmailInlineImages";
 import { JSONObject } from "../../../../Types/JSON";
 import BrowserType from "../../../../Types/Monitor/SyntheticMonitors/BrowserType";
@@ -15,7 +17,9 @@ import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
-import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRunAsync } from "../../../Helpers/FastestRun";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * ISSUE #4532: A SYNTHETIC MONITOR'S SCREENSHOT IN THE INCIDENT EMAIL.
@@ -441,5 +445,414 @@ describe("a monitored system's text still cannot make an image", () => {
 
     expect(email.inlineImages).toEqual([]);
     expect(email.html).not.toContain("<img");
+  });
+});
+
+/*
+ * ISSUE #6481: A SCREENSHOT A DESCRIPTION REFERENCES MANY TIMES.
+ *
+ * A description can show one screenshot several times: define it once as a
+ * Markdown reference, and point several images at it - the issue's
+ * template, below. marked writes the definition's address into every
+ * reference, and the renderer put the screenshot's data back into each
+ * one: a screenshot of 1 MB referenced 200 times was 280 MB of HTML before
+ * attach() and took seconds, and one of 2.25 MB more than V8's longest
+ * string, so the email went out as its Markdown, in text. Now the copies a
+ * field's references make put back at most MAX_EMAIL_HELD_TEXT_IN_REFERENCES
+ * of it: the references past that show the note an email leaves for an
+ * image too large, and those within it the one attachment.
+ */
+describe("a screenshot a description references many times, from the probe to the incident email (#6481)", () => {
+  const KB: number = 1024;
+  const MB: number = 1024 * KB;
+  const MOST: number = MAX_EMAIL_HELD_TEXT_IN_REFERENCES;
+  const JPEG_SIGNATURE: ReadonlyArray<number> = [0xff, 0xd8, 0xff, 0xe0];
+  const PNG_SIGNATURE: ReadonlyArray<number> = [
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+  ];
+  const JPEG_PREFIX: string = "data:image/jpeg;base64,";
+  const PNG_PREFIX: string = "data:image/png;base64,";
+  const TOO_LARGE: string = "image too large to include in this email]";
+  const STARTS: string = "<p>Monitor is down - Timeout 30000ms exceeded\n";
+
+  // A JPEG of `byteCount` bytes as the probe reports it: its pixels random.
+  const jpegOfSize: (byteCount: number) => string = (
+    byteCount: number,
+  ): string => {
+    const random: SeededRandom = seededRandom(byteCount);
+    const bytes: Buffer = Buffer.alloc(byteCount);
+
+    Buffer.from(JPEG_SIGNATURE).copy(bytes);
+
+    for (
+      let index: number = JPEG_SIGNATURE.length;
+      index < byteCount;
+      index++
+    ) {
+      bytes[index] = random(256);
+    }
+
+    return bytes.toString("base64");
+  };
+
+  // A PNG whose base64 is exactly `length` characters: a signature, then `filler`.
+  const pngOfBase64Length: (length: number, filler: number) => string = (
+    length: number,
+    filler: number,
+  ): string => {
+    return Buffer.concat([
+      Buffer.from(PNG_SIGNATURE),
+      Buffer.alloc((length / 4) * 3 - PNG_SIGNATURE.length, filler),
+    ]).toString("base64");
+  };
+
+  // How many times `part` is in `text`.
+  const countOf: (text: string, part: string) => number = (
+    text: string,
+    part: string,
+  ): number => {
+    return text.split(part).length - 1;
+  };
+
+  // `count` lines, each a reference to the screenshot `write` makes of its index.
+  const referencesTo: (
+    count: number,
+    write: (index: number) => string,
+  ) => string = (count: number, write: (index: number) => string): string => {
+    const lines: Array<string> = [];
+
+    for (let index: number = 1; index <= count; index++) {
+      lines.push(write(index));
+    }
+
+    return lines.join("\n");
+  };
+
+  // The issue's template, with `count` references to its screenshot.
+  const templateReferencing: (count: number) => string = (
+    count: number,
+  ): string => {
+    return [
+      "Monitor is down - {{syntheticResponses.0.scriptError}}",
+      referencesTo(count, (index: number): string => {
+        return `![Home ${index}][home]`;
+      }),
+      "",
+      "[home]: data:image/jpeg;base64,{{syntheticResponses.0.screenshots.home}}",
+    ].join("\n");
+  };
+
+  interface RenderedEmail {
+    // The HTML before attach(), as the notification service is sent it.
+    html: string;
+    email: EmailHtmlWithInlineImages;
+  }
+
+  // The description as an email sends it, timed: the fastest of a few tries.
+  const timedEmailFor: (
+    description: string,
+    limitInMs: number,
+  ) => Promise<FastestRun<RenderedEmail>> = (
+    description: string,
+    limitInMs: number,
+  ): Promise<FastestRun<RenderedEmail>> => {
+    return fastestRunAsync({
+      run: async (): Promise<RenderedEmail> => {
+        const html: string = await Markdown.convertToHTML(
+          description,
+          MarkdownContentType.Email,
+        );
+
+        return { html: html, email: EmailInlineImages.attach(html) };
+      },
+      limitInMs: limitInMs,
+    });
+  };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the issue's template: two references, the screenshot shown twice from one attachment", async () => {
+    const shot: string = jpegOfSize(30 * KB);
+
+    const email: EmailHtmlWithInlineImages = await emailFor(
+      describeIncident(
+        [
+          "Monitor is down - {{syntheticResponses.0.scriptError}}",
+          "![Home][home]",
+          "![Home, again][home]",
+          "",
+          "[home]: data:image/jpeg;base64,{{syntheticResponses.0.screenshots.home}}",
+        ].join("\n"),
+        [run({ screenshots: { home: shot } })],
+      ),
+    );
+
+    expect(email.inlineImages).toHaveLength(1);
+    expect(email.inlineImages[0]!.base64 === shot).toBe(true);
+
+    const contentId: string = email.inlineImages[0]!.contentId;
+
+    expect(email.html).toBe(
+      `${STARTS}<img src="cid:${contentId}" alt="Home" style="max-width:100%;height:auto;">\n<img src="cid:${contentId}" alt="Home, again" style="max-width:100%;height:auto;"></p>\n`,
+    );
+  });
+
+  /*
+   * The issue's table: each screenshot shown as often as the budget holds
+   * copies of it - every one from one attachment - then the note. One of
+   * 2.25 MB is more than an email attaches, so every reference is the note,
+   * as one reference to it always was.
+   */
+  const ROWS: Array<[string, number, number, number]> = [
+    // The screenshot, its bytes, its references, the images the email shows.
+    ["100 KB", 100 * KB, 200, 62],
+    ["1 MB", MB, 20, 6],
+    ["1 MB", MB, 40, 6],
+    ["1 MB", MB, 200, 6],
+    ["2.25 MB", 2.25 * MB, 20, 0],
+    ["2.25 MB", 2.25 * MB, 200, 0],
+  ];
+
+  for (const [label, byteCount, count, shown] of ROWS) {
+    test(`a JPEG of ${label} referenced ${count} times: HTML in good time, ${shown > 0 ? `the first ${shown} shown from one attachment, then the note` : "the note at every one"}`, async () => {
+      const shot: string = jpegOfSize(byteCount);
+      const description: string = describeIncident(templateReferencing(count), [
+        run({ screenshots: { home: shot } }),
+      ]);
+
+      // The row stands on the budget, and on what an email attaches.
+      expect(shown).toBe(
+        byteCount <= MaxEmailInlineImageBytes
+          ? Math.min(
+              count,
+              1 + Math.floor(MOST / (JPEG_PREFIX.length + shot.length)),
+            )
+          : 0,
+      );
+
+      const rendered: FastestRun<RenderedEmail> = await timedEmailFor(
+        description,
+        2000,
+      );
+      const { html, email } = rendered.result;
+
+      expect(rendered.inMs).toBeLessThan(2000);
+      // The text's own copy, the copies within the budget, and markup.
+      expect(html.length).toBeLessThanOrEqual(
+        description.length + MOST + count * 256,
+      );
+
+      // HTML, never the Markdown as text, nor cut.
+      expect(email.html.startsWith(STARTS)).toBe(true);
+      expect(email.html).not.toContain("![Home");
+      expect(email.html).not.toContain("truncated");
+
+      expect(email.inlineImages).toHaveLength(shown > 0 ? 1 : 0);
+      expect(countOf(email.html, '<img src="cid:')).toBe(shown);
+      expect(countOf(email.html, TOO_LARGE)).toBe(count - shown);
+
+      // In the order of the text: the first references shown, then notes.
+      for (let index: number = 1; index <= count; index++) {
+        expect(
+          email.html.includes(
+            index <= shown
+              ? `alt="Home ${index}"`
+              : EmailInlineImages.getTooLargeImageNotice(`Home ${index}`),
+          ),
+        ).toBe(true);
+      }
+    });
+  }
+
+  /*
+   * Two screenshots, each referenced twice: the second reference to each is
+   * a copy, and the two copies' addresses come to the budget exactly. Each
+   * is more than an email attaches, so the HTML before attach() shows what
+   * the renderer put back; attached with room for both, each shows twice.
+   */
+  describe("the budget's boundary", () => {
+    const HOME: string = pngOfBase64Length(MOST / 2 - 24, 0x41);
+    const LOGIN: string = pngOfBase64Length(MOST / 2 - 20, 0x42);
+
+    // The login screenshot's definition says `loginType`: its bytes decide.
+    const describeBoth: (loginType: string) => string = (
+      loginType: string,
+    ): string => {
+      return describeIncident(
+        [
+          "Monitor is down - {{syntheticResponses.0.scriptError}}",
+          "![Home][home]",
+          "![Login][login]",
+          "![Home, again][home]",
+          "![Login, again][login]",
+          "",
+          "[home]: data:image/png;base64,{{syntheticResponses.0.screenshots.home}}",
+          `[login]: data:image/${loginType};base64,{{syntheticResponses.0.screenshots.login}}`,
+        ].join("\n"),
+        [run({ screenshots: { home: HOME, login: LOGIN } })],
+      );
+    };
+
+    test("the two copies' addresses come to it exactly", () => {
+      expect((PNG_PREFIX + HOME).length + (PNG_PREFIX + LOGIN).length).toBe(
+        MOST,
+      );
+      expect(HOME.length + LOGIN.length + 2 * PNG_PREFIX.length).toBe(MOST);
+    });
+
+    test("exactly at it, both copies are shown", async () => {
+      const html: string = await Markdown.convertToHTML(
+        describeBoth("png"),
+        MarkdownContentType.Email,
+      );
+
+      expect(countOf(html, `<img src="${PNG_PREFIX}`)).toBe(4);
+      expect(html).not.toContain(TOO_LARGE);
+
+      const email: EmailHtmlWithInlineImages = EmailInlineImages.attach(html, {
+        maxTotalBytes: 8 * MB,
+      });
+
+      expect(email.inlineImages).toHaveLength(2);
+      expect(countOf(email.html, '<img src="cid:')).toBe(4);
+      expect(email.html).toContain('alt="Login, again"');
+    });
+
+    test("one character more - the login screenshot's address says image/jpeg - and its copy is the note", async () => {
+      const html: string = await Markdown.convertToHTML(
+        describeBoth("jpeg"),
+        MarkdownContentType.Email,
+      );
+
+      expect(countOf(html, `<img src="${PNG_PREFIX}`)).toBe(3);
+      expect(html).toContain('alt="Home, again"');
+      expect(
+        html.endsWith(
+          `\n${EmailInlineImages.getTooLargeImageNotice("Login, again")}</p>\n`,
+        ),
+      ).toBe(true);
+
+      const email: EmailHtmlWithInlineImages = EmailInlineImages.attach(html, {
+        maxTotalBytes: 8 * MB,
+      });
+
+      expect(email.inlineImages).toHaveLength(2);
+      expect(countOf(email.html, '<img src="cid:')).toBe(3);
+    });
+  });
+
+  test("links to the screenshot are their text: its data is never put back into them", async () => {
+    const shot: string = jpegOfSize(MB);
+    const description: string = describeIncident(
+      [
+        "Monitor is down - {{syntheticResponses.0.scriptError}}",
+        "![Home][home]",
+        "",
+        // A paragraph each: two hundred links in one are text to marked.
+        referencesTo(200, (index: number): string => {
+          return `[Open the screenshot ${index}][home]\n`;
+        }),
+        "",
+        "[home]: data:image/jpeg;base64,{{syntheticResponses.0.screenshots.home}}",
+      ].join("\n"),
+      [run({ screenshots: { home: shot } })],
+    );
+    const judged: SpyInstance<typeof Markdown.getEmailUrl> = jest.spyOn(
+      Markdown,
+      "getEmailUrl",
+    );
+
+    const rendered: FastestRun<RenderedEmail> = await timedEmailFor(
+      description,
+      1000,
+    );
+    const { email } = rendered.result;
+
+    expect(rendered.inMs).toBeLessThan(1000);
+    // No address the renderer judged held the screenshot.
+    expect(
+      judged.mock.calls.every(
+        (call: Parameters<typeof Markdown.getEmailUrl>): boolean => {
+          return String(call[0] ?? "").length < KB;
+        },
+      ),
+    ).toBe(true);
+
+    expect(email.inlineImages).toHaveLength(1);
+    expect(countOf(email.html, '<img src="cid:')).toBe(1);
+    expect(email.html).not.toContain("<a ");
+    expect(email.html).not.toContain("[Open the screenshot");
+    expect(email.html).toContain("</p>\n<p>Open the screenshot 1</p>\n");
+    expect(email.html.endsWith("<p>Open the screenshot 200</p>\n")).toBe(true);
+  });
+
+  /*
+   * A screenshot value whose bytes are no image: one image of it was always
+   * its alt text, and so is every reference to it - none says it was too
+   * large. Its data is put back for the text's own reference and the first
+   * copy alone, so two hundred references take no longer than two.
+   */
+  test("a screenshot value that is no image, referenced 200 times: every reference is its alt text, in good time", async () => {
+    // A megabyte that starts like no image file, as base64.
+    const notAnImage: string = Buffer.alloc(MB, 0x5a).toString("base64");
+    const description: string = describeIncident(templateReferencing(200), [
+      run({ screenshots: { home: notAnImage } }),
+    ]);
+
+    const rendered: FastestRun<RenderedEmail> = await timedEmailFor(
+      description,
+      2000,
+    );
+    const { email } = rendered.result;
+
+    expect(rendered.inMs).toBeLessThan(2000);
+    expect(email.inlineImages).toEqual([]);
+    expect(email.html).toBe(
+      `${STARTS}${referencesTo(200, (index: number): string => {
+        return `Home ${index}`;
+      })}</p>\n`,
+    );
+  });
+
+  test("a definition with a long title: the references within the budget are images, the title on the first alone - never the Markdown as text", async () => {
+    const shot: string = jpegOfSize(100 * KB);
+    const error: string =
+      "Timeout 30000ms exceeded waiting for the login form ".repeat(2500);
+    const description: string = describeIncident(
+      [
+        "Monitor is down",
+        referencesTo(200, (index: number): string => {
+          return `![Home ${index}][home]`;
+        }),
+        "",
+        '[home]: data:image/jpeg;base64,{{syntheticResponses.0.screenshots.home}} "{{syntheticResponses.0.scriptError}}"',
+      ].join("\n"),
+      [run({ scriptError: error, screenshots: { home: shot } })],
+    );
+
+    // The title is the error, whole: over 64 KB of the definition's line.
+    expect(description.includes(` "${error}"`)).toBe(true);
+    expect(error.length).toBeGreaterThan(64 * KB);
+
+    const rendered: FastestRun<RenderedEmail> = await timedEmailFor(
+      description,
+      2000,
+    );
+    const { html, email } = rendered.result;
+
+    expect(rendered.inMs).toBeLessThan(2000);
+    expect(html.length).toBeLessThanOrEqual(
+      description.length + MOST + 200 * 256,
+    );
+    expect(email.html.startsWith("<p>Monitor is down\n")).toBe(true);
+    expect(email.html).not.toContain("![Home");
+    expect(email.html).not.toContain("truncated");
+    expect(email.inlineImages).toHaveLength(1);
+    expect(countOf(email.html, '<img src="cid:')).toBe(62);
+    expect(countOf(email.html, TOO_LARGE)).toBe(138);
+    expect(countOf(email.html, " title=")).toBe(1);
+    expect(email.html).toContain(`alt="Home 1" title="${error}" style=`);
   });
 });
