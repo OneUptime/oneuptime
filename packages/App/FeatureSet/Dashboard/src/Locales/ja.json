@@ -50744,5 +50744,8 @@
   "Import from {{tools}}": "{{tools}} からインポート",
   "Import from {{tools}} and others": "{{tools}} などからインポート",
   "Import from {{tool}}": "{{tool}} からインポート",
-  "Show every tool": "すべてのツールを表示"
+  "Show every tool": "すべてのツールを表示",
+  "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "このモニターの最後に報告されたステータスと、監視がオフになるまでのステータスタイムラインを要約してください。",
+  "Was it flapping?": "フラッピングしていましたか？",
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "このモニターは監視がオフになる前にフラッピングしていましたか？ それまでのステータスの変化を分析してください。"
 }

@@ -50744,5 +50744,8 @@
   "Import from {{tools}}": "الاستيراد من {{tools}}",
   "Import from {{tools}} and others": "الاستيراد من {{tools}} وغيرها",
   "Import from {{tool}}": "الاستيراد من {{tool}}",
-  "Show every tool": "إظهار كل الأدوات"
+  "Show every tool": "إظهار كل الأدوات",
+  "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "لخّص آخر حالة مسجّلة لهذه المراقبة ومخططها الزمني للحالة حتى إيقاف مراقبتها.",
+  "Was it flapping?": "هل كان يتذبذب؟",
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "هل كانت هذه المراقبة تتذبذب قبل إيقاف مراقبتها؟ حلّل تغيرات حالتها حتى ذلك الحين."
 }
