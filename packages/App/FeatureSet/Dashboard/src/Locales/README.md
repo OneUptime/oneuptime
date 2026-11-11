@@ -323,7 +323,10 @@ In Arabic, Persian and any language read from the right that is added later:
 - A help line, an empty state's sentence or an error in the page's language
   is laid out from the right however much code and however many product
   names it gives in Latin letters (`Common/UI/Utils/LineDirection`'s
-  `getTranslatedLineDirection`).
+  `getTranslatedLineDirection`). An English line, such as the server's answer
+  that quotes a name typed in Arabic or Persian, still reads left to right:
+  its small English words (`is`, `the`, `already`) tell it apart, unless they
+  are quoted, in code or inside a Title Case name.
 - The only mark a locale file keeps is an LRM on each side of a lone key's
   sign in brackets, such as the `}` of "Newer session by this user (})", so
   the sign is not drawn mirrored.

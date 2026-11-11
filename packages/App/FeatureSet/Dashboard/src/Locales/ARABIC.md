@@ -97,9 +97,13 @@ language read from the right added later. Copying the sentence leaves the
 isolate marks out. A help line, an empty state's sentence or an error
 worded in Arabic is laid out from the right however much code and however
 many product names it gives in Latin letters
-(`getTranslatedLineDirection` in `Common/UI/Utils/LineDirection`), and
-where a text is read by most of its letters
-(`getTextReadingDirectionByMostLetters`), the code's letters do not count.
+(`getTranslatedLineDirection` in `Common/UI/Utils/LineDirection`). An English
+line, such as the server's answer that quotes a name typed in Arabic, still
+reads left to right: its small English words (`is`, `the`, `already`) outside
+quotes and code tell it apart. So keep a vendor's English label that holds
+such a word in `«»` or in a Title Case name. Where a text is read by most of
+its letters (`getTextReadingDirectionByMostLetters`), the code's letters do
+not count.
 
 The one mark the locale files keep is a left-to-right mark (LRM, U+200E)
 on each side of a lone key's sign in brackets, so the sign is not drawn
