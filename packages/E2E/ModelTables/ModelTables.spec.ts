@@ -524,6 +524,11 @@ test.describe("the Alerts list of the screenshot", () => {
     "oneuptime-test - HPA Saturated at Max Replicas",
   ];
   const CLUSTER: string = "oneuptime-test";
+  // The service ?services=1 links the first alert to as well.
+  const SERVICE: string = "checkout-api";
+  // The first alert's monitor with ?data=long: a name with nowhere to break.
+  const LONG_MONITOR: string =
+    "oneuptime-test - KubeNodeMemoryUtilizationHighOnGeneralPurposePoolNodesInEuWest1";
   const PENDING_MONITOR_ID: string = "60000000-0000-4000-8000-000000000013";
   const FIRST_MONITOR_ID: string = "60000000-0000-4000-8000-000000000011";
 
@@ -761,23 +766,51 @@ test.describe("the Alerts list of the screenshot", () => {
   });
 
   /*
-   * How a resource's name is laid out where it is drawn: whether its box
-   * holds all of it or ends it in "...", the lines its words take, where
-   * each line starts, and where its icon ends.
+   * How a resource's name is laid out where it is drawn: whether it shows
+   * all of itself or ends in "...", the lines its words take, where each
+   * line starts, and where its icon and its item are. A name beside its
+   * icon is a line of its own (the Dashboard's RecordLinkName), which reads
+   * its own way and cuts itself short: it, not its item, draws the "..."
+   * then.
    */
   interface NameLayout {
     text: string;
+    // Its item, or its own line, is narrower than its words.
     isCutShort: boolean;
+    // The box that is narrower than its words draws "..." where it ends.
     endsInEllipsis: boolean;
     lineLefts: Array<number>;
+    iconLeft: number;
     iconRight: number;
+    itemLeft: number;
     itemRight: number;
+    // The name's own line beside its icon: its box and the way it reads.
+    nameLeft: number;
+    nameRight: number;
+    nameDir: string | null;
   }
 
   async function nameLayout(link: Locator): Promise<NameLayout> {
     return await link.evaluate((element: Element): NameLayout => {
       const item: HTMLElement = element.parentElement as HTMLElement;
       const icon: Element | null = element.querySelector("svg");
+      const nameLine: HTMLElement =
+        element.querySelector<HTMLElement>(
+          '[data-testid="record-link-name"]',
+        ) || item;
+      const isBoxCutShort: (box: Element) => boolean = (
+        box: Element,
+      ): boolean => {
+        return box.scrollWidth > box.clientWidth;
+      };
+      const drawsEllipsis: (box: Element) => boolean = (
+        box: Element,
+      ): boolean => {
+        return (
+          isBoxCutShort(box) &&
+          getComputedStyle(box).textOverflow === "ellipsis"
+        );
+      };
       const walker: TreeWalker = document.createTreeWalker(
         element,
         NodeFilter.SHOW_TEXT,
@@ -802,8 +835,8 @@ test.describe("the Alerts list of the screenshot", () => {
 
       return {
         text: text,
-        isCutShort: item.scrollWidth > item.clientWidth,
-        endsInEllipsis: getComputedStyle(item).textOverflow === "ellipsis",
+        isCutShort: isBoxCutShort(item) || isBoxCutShort(nameLine),
+        endsInEllipsis: drawsEllipsis(item) || drawsEllipsis(nameLine),
         lineLefts: Array.from(lefts.keys())
           .sort((a: number, b: number): number => {
             return a - b;
@@ -811,8 +844,13 @@ test.describe("the Alerts list of the screenshot", () => {
           .map((top: number): number => {
             return Math.round(lefts.get(top) as number);
           }),
+        iconLeft: icon ? Math.round(icon.getBoundingClientRect().left) : 0,
         iconRight: icon ? Math.round(icon.getBoundingClientRect().right) : 0,
+        itemLeft: Math.round(item.getBoundingClientRect().left),
         itemRight: Math.round(item.getBoundingClientRect().right),
+        nameLeft: Math.round(nameLine.getBoundingClientRect().left),
+        nameRight: Math.round(nameLine.getBoundingClientRect().right),
+        nameDir: nameLine === item ? null : nameLine.getAttribute("dir"),
       };
     });
   }
@@ -844,6 +882,14 @@ test.describe("the Alerts list of the screenshot", () => {
       Math.abs(layout.lineLefts[0]! - layout.lineLefts[1]!),
     ).toBeLessThanOrEqual(1);
     expect(layout.lineLefts[1]!).toBeGreaterThanOrEqual(layout.iconRight);
+    /*
+     * 8px past the icon, as in a row of the table (a gap, where a card's
+     * name used to stand 4px from it).
+     */
+    expect(layout.lineLefts[0]! - layout.iconRight).toBeGreaterThanOrEqual(7);
+    expect(layout.lineLefts[0]! - layout.iconRight).toBeLessThanOrEqual(9);
+    // An English page's name reads the page's way: no dir of its own.
+    expect(layout.nameDir).toBeNull();
 
     // The cluster, short enough, keeps to one line.
     const cluster: NameLayout = await nameLayout(
@@ -859,9 +905,6 @@ test.describe("the Alerts list of the screenshot", () => {
   }: {
     page: Page;
   }) => {
-    const LONG_MONITOR: string =
-      "oneuptime-test - KubeNodeMemoryUtilizationHighOnGeneralPurposePoolNodesInEuWest1";
-
     await open(page, `${ALERTS}?data=long`, 390, 900);
 
     const layout: NameLayout = await nameLayout(
@@ -896,6 +939,11 @@ test.describe("the Alerts list of the screenshot", () => {
     expect(layout.lineLefts).toHaveLength(1);
     expect(layout.isCutShort).toBe(true);
     expect(layout.endsInEllipsis).toBe(true);
+    // 8px past its icon, as it always stood, and inside its item.
+    expect(layout.lineLefts[0]! - layout.iconRight).toBeGreaterThanOrEqual(7);
+    expect(layout.lineLefts[0]! - layout.iconRight).toBeLessThanOrEqual(9);
+    expect(layout.nameRight).toBeLessThanOrEqual(layout.itemRight + 1);
+    expect(layout.nameDir).toBeNull();
 
     await link.hover();
 
@@ -903,6 +951,414 @@ test.describe("the Alerts list of the screenshot", () => {
       "title",
       FIRST_MONITOR,
     );
+  });
+
+  /*
+   * On a Persian (or an Arabic) page, a row's English monitor name was laid
+   * out as a line of the page's: too long for its column, it was cut at its
+   * start, its "..." on the left and its first words out of sight. Its name
+   * is a line of its own beside its icon now (#6740), read left to right:
+   * cut at its own end, its start in sight, its icon at the line's start -
+   * on the right, as the page's lines start.
+   */
+  test("in Persian, a monitor's English name cut short in its row keeps its start: it reads left to right and ends in '...' at its own end, its icon on its right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${ALERTS}?lang=fa`);
+
+    const link: Locator = rows(page)
+      .first()
+      .getByRole("link", { name: FIRST_MONITOR });
+    const layout: NameLayout = await nameLayout(link);
+
+    expect(layout.text).toBe(FIRST_MONITOR);
+    expect(layout.nameDir).toBe("ltr");
+    // One line, cut at its own end, which draws the "...".
+    expect(layout.lineLefts).toHaveLength(1);
+    expect(layout.isCutShort).toBe(true);
+    expect(layout.endsInEllipsis).toBe(true);
+    // Its first letter in sight: its words start where its line does.
+    expect(layout.lineLefts[0]!).toBeGreaterThanOrEqual(layout.nameLeft - 1);
+    expect(layout.nameLeft).toBeGreaterThanOrEqual(layout.itemLeft - 1);
+    // Its icon at the line's start, on its right, 8px from it.
+    expect(layout.iconLeft - layout.nameRight).toBeGreaterThanOrEqual(7);
+    expect(layout.iconLeft - layout.nameRight).toBeLessThanOrEqual(9);
+    expect(layout.iconRight).toBeLessThanOrEqual(layout.itemRight + 1);
+
+    await link.hover();
+
+    await expect(link.locator("xpath=..")).toHaveAttribute(
+      "title",
+      FIRST_MONITOR,
+    );
+
+    // The cluster's name, short enough, is whole, beside its icon.
+    const cluster: NameLayout = await nameLayout(
+      rows(page).first().getByRole("link", { name: CLUSTER, exact: true }),
+    );
+
+    expect(cluster.nameDir).toBe("ltr");
+    expect(cluster.isCutShort).toBe(false);
+    expect(cluster.endsInEllipsis).toBe(false);
+    expect(cluster.iconLeft - cluster.nameRight).toBeGreaterThanOrEqual(7);
+    expect(cluster.iconLeft - cluster.nameRight).toBeLessThanOrEqual(9);
+
+    await screenshot(page, "alerts-fa-1280");
+  });
+
+  /*
+   * Where a resource's link is, tabbed onto, and what a click beside it
+   * opens: its focus ring and the boxes that could cut it off above or
+   * below, between its item and its cell.
+   */
+  interface FocusedLink {
+    isFocusVisible: boolean;
+    outlineStyle: string;
+    // Each box from its item to its cell that clips above or below it.
+    clippedAboveOrBelow: Array<string>;
+    linkRectCount: number;
+    linkLeft: number;
+    linkRight: number;
+    // Its icon and name: the box the link holds.
+    rowLeft: number;
+    rowRight: number;
+    rowWidth: number;
+    // From the icon's outer edge to the name's: what the box holds.
+    iconToNameWidth: number;
+    itemWidth: number;
+    itemHeight: number;
+    // How the item is laid out: a box of its own (flow-root), clipped across.
+    itemDisplay: string;
+    itemOverflowX: string;
+    // What a click lands on halfway between the name's end and its item's.
+    isPastEndTheLinks: boolean;
+    isPastEndTheItems: boolean;
+  }
+
+  // Tab to a link, as a keyboard does (a focus by script draws no ring).
+  async function tabTo(page: Page, link: Locator): Promise<void> {
+    for (let step: number = 0; step < 150; step++) {
+      await page.keyboard.press("Tab");
+
+      if (
+        await link.evaluate((element: Element): boolean => {
+          return element === document.activeElement;
+        })
+      ) {
+        break;
+      }
+    }
+
+    await expect(link).toBeFocused();
+  }
+
+  // A resource's focused link, its ring and its item (FocusedLink).
+  async function focusedLinkOf(link: Locator): Promise<FocusedLink> {
+    return await link.evaluate((element: Element): FocusedLink => {
+      const holder: Element = element.closest("td") as Element;
+      const item: Element = element.parentElement as Element;
+      const row: Element = element.firstElementChild as Element;
+      const clipped: Array<string> = [];
+      let box: Element | null = item;
+
+      while (box) {
+        const overflowY: string = getComputedStyle(box).overflowY;
+
+        if (overflowY !== "visible") {
+          clipped.push(`${box.tagName.toLowerCase()}: ${overflowY}`);
+        }
+
+        if (box === holder) {
+          break;
+        }
+
+        box = box.parentElement;
+      }
+
+      const rects: Array<DOMRect> = Array.from(element.getClientRects()).filter(
+        (rect: DOMRect): boolean => {
+          return rect.width > 0;
+        },
+      );
+      const itemBox: DOMRect = item.getBoundingClientRect();
+      const rowBox: DOMRect = row.getBoundingClientRect();
+      const parts: Array<DOMRect> = Array.from(row.children).map(
+        (part: Element): DOMRect => {
+          return part.getBoundingClientRect();
+        },
+      );
+      const iconToNameWidth: number =
+        Math.max(
+          ...parts.map((part: DOMRect): number => {
+            return part.right;
+          }),
+        ) -
+        Math.min(
+          ...parts.map((part: DOMRect): number => {
+            return part.left;
+          }),
+        );
+      const pastEnd: number =
+        getComputedStyle(item).direction === "rtl"
+          ? (itemBox.left + rowBox.left) / 2
+          : (rowBox.right + itemBox.right) / 2;
+      const hit: Element | null = document.elementFromPoint(
+        pastEnd,
+        rowBox.top + rowBox.height / 2,
+      );
+
+      return {
+        isFocusVisible: element.matches(":focus-visible"),
+        outlineStyle: getComputedStyle(element).outlineStyle,
+        clippedAboveOrBelow: clipped,
+        linkRectCount: rects.length,
+        linkLeft: rects[0] ? rects[0].left : 0,
+        linkRight: rects[0] ? rects[0].right : 0,
+        rowLeft: rowBox.left,
+        rowRight: rowBox.right,
+        rowWidth: rowBox.width,
+        iconToNameWidth: iconToNameWidth,
+        itemWidth: itemBox.width,
+        itemHeight: itemBox.height,
+        itemDisplay: getComputedStyle(item).display,
+        itemOverflowX: getComputedStyle(item).overflowX,
+        isPastEndTheLinks: hit !== null && element.contains(hit),
+        isPastEndTheItems: hit === item,
+      };
+    });
+  }
+
+  /*
+   * A resource's link with a short name, tabbed onto: its ring shows whole
+   * above and below it, round its icon (or a service's colour) and name and
+   * no wider, on its item's one line; and a click past its name's end is
+   * its row's.
+   */
+  function expectRingRoundIconAndName(focused: FocusedLink): void {
+    expect(focused.isFocusVisible).toBe(true);
+    expect(focused.outlineStyle).not.toBe("none");
+    // Nothing from its item to its cell cuts its ring off above or below.
+    expect(focused.clippedAboveOrBelow).toEqual([]);
+    // Its item still clips across, and is still a box of its own.
+    expect(focused.itemOverflowX).toBe("clip");
+    expect(focused.itemDisplay).toBe("flow-root");
+    // The link - its ring - is its icon (or colour) and name's width, no more.
+    expect(focused.linkRectCount).toBe(1);
+    expect(Math.abs(focused.linkLeft - focused.rowLeft)).toBeLessThanOrEqual(1);
+    expect(Math.abs(focused.linkRight - focused.rowRight)).toBeLessThanOrEqual(
+      1,
+    );
+    expect(
+      Math.abs(focused.rowWidth - focused.iconToNameWidth),
+    ).toBeLessThanOrEqual(1);
+    // A short name leaves room past its end, in its item.
+    expect(focused.rowWidth).toBeLessThan(focused.itemWidth - 4);
+    // On its item's one 24px line, as a name alone is.
+    expect(Math.round(focused.itemHeight)).toBe(24);
+    // A click past its end lands on its item - the row's - not the link.
+    expect(focused.isPastEndTheLinks).toBe(false);
+    expect(focused.isPastEndTheItems).toBe(true);
+  }
+
+  /*
+   * A resource's icon and name are a box of their own on its item's line
+   * (the Dashboard's RecordLinkName). Clipped all round, as truncate clips,
+   * the item would cut off the whole of the focus ring round a box as tall
+   * as its line: a keyboard on a row's Affected Resources could not see
+   * which resource it was on. And a box run the line's whole width would
+   * make its link do so too: a click past a short name's end would open the
+   * resource, not the row. The item clips across only, and the box is as
+   * wide as its icon and name - on the left of an English page, on the
+   * right of a Persian one.
+   */
+  for (const language of ["en", "fa"]) {
+    test(`a resource's link tabbed onto shows its focus ring above and below it, round its icon and name, and a click past a short name's end is not the link's (${language})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(
+        page,
+        language === "en" ? ALERTS : `${ALERTS}?lang=${language}`,
+      );
+
+      const link: Locator = rows(page)
+        .first()
+        .getByRole("link", { name: CLUSTER, exact: true });
+
+      await tabTo(page, link);
+
+      const focused: FocusedLink = await focusedLinkOf(link);
+
+      expectRingRoundIconAndName(focused);
+
+      await screenshot(page, `alerts-${language}-1280-resource-focused`);
+    });
+  }
+
+  /*
+   * A service among a row's resources (?services=1 links the first alert
+   * to one, after its monitor and the cluster). Its colour stands where
+   * their icons do (ServiceElement's alignWithIcons), so its name starts
+   * where theirs do; and its link, tabbed onto, is as wide as its colour
+   * and name. Drawn as a row of its own, its 12px colour and gap put its
+   * name 8px before theirs, and its link ran the column's whole width: its
+   * ring was cut off at the column's edges, and a click past its name's
+   * end opened the service rather than the row.
+   */
+  interface ResourceStart {
+    text: string;
+    // Where its name starts, on the page's side: its icon's.
+    nameStart: number;
+    // The box before its name: its icon, or the room its colour is in.
+    roomLeft: number;
+    roomTop: number;
+    roomWidth: number;
+    roomHeight: number;
+    // How far its icon or colour is from its room's middle.
+    markOffCentreX: number;
+    markOffCentreY: number;
+    markColour: string;
+  }
+
+  for (const language of ["en", "fa"]) {
+    test(`a service's colour stands where the others' icons do, its name starts where theirs do, and its link tabbed onto is as wide as its colour and name (${language})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(
+        page,
+        language === "en"
+          ? `${ALERTS}?services=1`
+          : `${ALERTS}?services=1&lang=${language}`,
+      );
+
+      // The first row's Affected Resources: the cell naming its monitor.
+      const resources: Locator = rows(page)
+        .first()
+        .locator("> td")
+        .filter({
+          has: page.getByRole("link", { name: FIRST_MONITOR, exact: true }),
+        });
+
+      await expect(resources.getByRole("link")).toHaveText([
+        FIRST_MONITOR,
+        CLUSTER,
+        SERVICE,
+      ]);
+
+      const starts: Array<ResourceStart> = await resources
+        .getByTestId("record-link-name")
+        .evaluateAll((names: Array<Element>): Array<ResourceStart> => {
+          return names.map((name: Element): ResourceStart => {
+            const row: Element = name.parentElement as Element;
+            const room: Element = row.firstElementChild!
+              .firstElementChild as Element;
+            const mark: Element =
+              room.tagName.toLowerCase() === "svg"
+                ? room
+                : (room.firstElementChild as Element);
+            const nameBox: DOMRect = name.getBoundingClientRect();
+            const roomBox: DOMRect = room.getBoundingClientRect();
+            const markBox: DOMRect = mark.getBoundingClientRect();
+
+            return {
+              text: name.textContent || "",
+              nameStart:
+                getComputedStyle(row).direction === "rtl"
+                  ? nameBox.right
+                  : nameBox.left,
+              roomLeft: roomBox.left,
+              roomTop: roomBox.top - row.getBoundingClientRect().top,
+              roomWidth: roomBox.width,
+              roomHeight: roomBox.height,
+              markOffCentreX:
+                markBox.left +
+                markBox.width / 2 -
+                (roomBox.left + roomBox.width / 2),
+              markOffCentreY:
+                markBox.top +
+                markBox.height / 2 -
+                (roomBox.top + roomBox.height / 2),
+              markColour: getComputedStyle(mark).backgroundColor,
+            };
+          });
+        });
+
+      expect(
+        starts.map((each: ResourceStart): string => {
+          return each.text;
+        }),
+      ).toEqual([FIRST_MONITOR, CLUSTER, SERVICE]);
+
+      const monitor: ResourceStart = starts[0]!;
+
+      for (const each of starts) {
+        // Every name starts where the monitor's does.
+        expect(Math.abs(each.nameStart - monitor.nameStart)).toBeLessThan(1);
+        // After a 20px room, in one place on its line.
+        expect(Math.abs(each.roomLeft - monitor.roomLeft)).toBeLessThan(1);
+        expect(Math.abs(each.roomTop - monitor.roomTop)).toBeLessThan(1);
+        expect(Math.round(each.roomWidth)).toBe(20);
+        expect(Math.round(each.roomHeight)).toBe(20);
+        // Its icon or colour in its room's middle.
+        expect(Math.abs(each.markOffCentreX)).toBeLessThan(1);
+        expect(Math.abs(each.markOffCentreY)).toBeLessThan(1);
+      }
+
+      // The service's own colour, in the room an icon takes.
+      expect(starts[2]!.markColour).toBe("rgb(99, 102, 241)");
+
+      const link: Locator = resources.getByRole("link", {
+        name: SERVICE,
+        exact: true,
+      });
+
+      await tabTo(page, link);
+
+      expectRingRoundIconAndName(await focusedLinkOf(link));
+
+      await screenshot(page, `alerts-${language}-1280-service-focused`);
+    });
+  }
+
+  test("in Persian, on a phone, a monitor's English name runs onto more lines, each from its own start on the left, its icon on the right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${ALERTS}?lang=fa&data=long`, 390, 900);
+
+    const layout: NameLayout = await nameLayout(
+      page
+        .locator("#alerts-table-body > div")
+        .first()
+        .getByRole("link", { name: LONG_MONITOR }),
+    );
+
+    expect(layout.text).toBe(LONG_MONITOR);
+    expect(layout.nameDir).toBe("ltr");
+    // A card wraps it rather than cut it short.
+    expect(layout.isCutShort).toBe(false);
+    expect(layout.endsInEllipsis).toBe(false);
+    expect(layout.lineLefts.length).toBeGreaterThanOrEqual(3);
+
+    // Every line starts where the first does, on the left: its own start.
+    for (const left of layout.lineLefts) {
+      expect(Math.abs(left - layout.lineLefts[0]!)).toBeLessThanOrEqual(1);
+      expect(left).toBeGreaterThanOrEqual(layout.nameLeft - 1);
+    }
+
+    // Its icon at the line's start, on the right, and nothing off the screen.
+    expect(layout.iconLeft).toBeGreaterThanOrEqual(layout.nameRight);
+    expect(layout.itemLeft).toBeGreaterThanOrEqual(0);
+    expect(layout.itemRight).toBeLessThanOrEqual(390);
+    await expectNoSidewaysScroll(page);
+
+    await screenshot(page, "alerts-fa-long-390");
   });
 
   /*
@@ -1977,32 +2433,61 @@ test.describe("a value too long for its column", () => {
 
     expect(resources).toBeGreaterThan(-1);
 
+    // The list's first item: its first resource's link's holder.
     const resource: Locator = bodyRows(page, "incidents-table")
       .filter({ hasText: "Checkout requests time out" })
       .locator("td")
       .nth(resources)
-      .locator("div.truncate")
-      .first();
+      .getByRole("link")
+      .first()
+      .locator("xpath=..");
 
+    /*
+     * The name is a line of its own beside its icon (the Dashboard's
+     * RecordLinkName): it, not its item, is cut short and draws the "...".
+     */
     const measure: {
       textOverflow: string;
       scrollWidth: number;
       clientWidth: number;
-      iconDisplay: string;
+      isItemCutShort: boolean;
+      itemRight: number;
+      icon: { top: number; bottom: number; right: number };
+      name: { top: number; bottom: number; left: number; right: number };
     } = await resource.evaluate((element: Element) => {
+      const name: Element = element.querySelector(
+        '[data-testid="record-link-name"]',
+      ) as Element;
+      const icon: DOMRect = (
+        element.querySelector("svg") as Element
+      ).getBoundingClientRect();
+      const line: DOMRect = name.getBoundingClientRect();
+
       return {
-        textOverflow: getComputedStyle(element).textOverflow,
-        scrollWidth: element.scrollWidth,
-        clientWidth: element.clientWidth,
-        iconDisplay: getComputedStyle(
-          element.querySelector("span > div") as Element,
-        ).display,
+        textOverflow: getComputedStyle(name).textOverflow,
+        scrollWidth: name.scrollWidth,
+        clientWidth: name.clientWidth,
+        isItemCutShort: element.scrollWidth > element.clientWidth,
+        itemRight: element.getBoundingClientRect().right,
+        icon: { top: icon.top, bottom: icon.bottom, right: icon.right },
+        name: {
+          top: line.top,
+          bottom: line.bottom,
+          left: line.left,
+          right: line.right,
+        },
       };
     });
 
     expect(measure.textOverflow).toBe("ellipsis");
     expect(measure.scrollWidth).toBeGreaterThan(measure.clientWidth);
-    expect(measure.iconDisplay).toBe("inline-block");
+    // Its item holds it: the name ends, in "...", inside the column.
+    expect(measure.isItemCutShort).toBe(false);
+    expect(measure.name.right).toBeLessThanOrEqual(measure.itemRight + 1);
+    // Its icon beside it, on its line.
+    expect(measure.name.left).toBeGreaterThanOrEqual(measure.icon.right);
+    expect(measure.icon.top).toBeGreaterThanOrEqual(measure.name.top - 1);
+    expect(measure.icon.bottom).toBeLessThanOrEqual(measure.name.bottom + 1);
   });
 });
 
@@ -3273,6 +3758,85 @@ test.describe("on a phone", () => {
     await expectNoSidewaysScroll(page);
 
     await screenshot(page, "incidents-rich-390");
+  });
+
+  /*
+   * A card wraps a value rather than cut it short, and on a Persian (or an
+   * Arabic) phone an English title's lines were laid out as the page's:
+   * each lined up on the right, ragged on the left, where it starts. A
+   * card's value reads its own way now, as its cell does in a table
+   * (#6741): each line from its own start, the value still at the card's
+   * start.
+   */
+  test("in Persian, an English title on a card reads left to right, each of its lines from its own start", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const TITLE: string =
+      "Checkout requests time out for customers in every EU region while the payments gateway retries callbacks against the primary database";
+
+    await open(page, `${INCIDENTS}?data=long&lang=fa`, 390, 900);
+
+    const value: Locator = page
+      .locator("#incidents-table-body > div dd")
+      .filter({ hasText: TITLE })
+      .first();
+
+    await expect(value).toHaveAttribute("dir", "ltr");
+
+    const layout: {
+      lineLefts: Array<number>;
+      left: number;
+      right: number;
+      fieldLeft: number;
+      fieldRight: number;
+    } = await value.evaluate((element: Element) => {
+      const walker: TreeWalker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT,
+      );
+      const lefts: Map<number, number> = new Map();
+      let node: Node | null = walker.nextNode();
+
+      while (node) {
+        if ((node.textContent || "").trim()) {
+          const range: Range = document.createRange();
+          range.selectNodeContents(node);
+          for (const rect of Array.from(range.getClientRects())) {
+            const top: number = Math.round(rect.top);
+            lefts.set(top, Math.min(lefts.get(top) ?? rect.left, rect.left));
+          }
+        }
+        node = walker.nextNode();
+      }
+
+      const frame: DOMRect = element.getBoundingClientRect();
+      const field: DOMRect = (
+        element.parentElement as Element
+      ).getBoundingClientRect();
+
+      return {
+        lineLefts: Array.from(lefts.values()),
+        left: frame.left,
+        right: frame.right,
+        fieldLeft: field.left,
+        fieldRight: field.right,
+      };
+    });
+
+    // Too long for one line on a phone: every line starts on the left.
+    expect(layout.lineLefts.length).toBeGreaterThanOrEqual(2);
+    for (const left of layout.lineLefts) {
+      expect(Math.abs(left - layout.left)).toBeLessThanOrEqual(1);
+    }
+
+    // At the card's start, on the right, as the card's other values are.
+    expect(Math.abs(layout.right - layout.fieldRight)).toBeLessThanOrEqual(1);
+    expect(layout.left).toBeGreaterThanOrEqual(layout.fieldLeft - 1);
+    await expectNoSidewaysScroll(page);
+
+    await screenshot(page, "incidents-fa-long-390");
   });
 
   test("a field with nothing to say is left out, even one a page's own element draws empty", async ({

@@ -5,6 +5,7 @@ import { Black } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import ColorSquareCube from "Common/UI/Components/ColorSquareCube/ColorSquareCube";
 import AppLink from "../AppLink/AppLink";
+import RecordLinkName from "../RecordLink/RecordLinkName";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import Service from "Common/Models/DatabaseModels/Service";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -18,6 +19,17 @@ export interface ComponentProps {
   service: Service;
   onNavigateComplete?: (() => void) | undefined;
   serviceNameClassName?: string;
+  /*
+   * Listed among records drawn with their kind's icon (a row's Affected
+   * Resources, AffectedResourcesCell): the colour takes an icon's room and
+   * the name is a line of its own beside it, as theirs are
+   * (RecordLinkName). So its name starts where theirs do, and its link -
+   * its focus ring, its click area - is as wide as its colour and name.
+   * Drawn as a row of its own, the service's name stood 8px before every
+   * other name, and its link ran the list's whole width. The name's class
+   * is RecordLinkName's then (serviceNameClassName is not read).
+   */
+  alignWithIcons?: boolean | undefined;
 }
 
 const ServiceElement: FunctionComponent<ComponentProps> = (
@@ -30,7 +42,20 @@ const ServiceElement: FunctionComponent<ComponentProps> = (
       translator,
     ) || "";
 
+  const color: ReactElement = (
+    <ColorSquareCube
+      color={props.service.serviceColor || Black}
+      tooltip={translator.translateTemplate("{{name}} Service Color", {
+        name: serviceName,
+      })}
+    />
+  );
+
   const getServiceElement: GetReactElementFunction = (): ReactElement => {
+    if (props.alignWithIcons) {
+      return <RecordLinkName name={serviceName} mark={color} />;
+    }
+
     /*
      * gap, not space-x: space-x is a margin at the start of the name, and a
      * name that reads its own way (IsolatedLine's dir) has its start at its
@@ -38,14 +63,7 @@ const ServiceElement: FunctionComponent<ComponentProps> = (
      */
     return (
       <div className="flex gap-2">
-        <div className="mt-1">
-          <ColorSquareCube
-            color={props.service.serviceColor || Black}
-            tooltip={translator.translateTemplate("{{name}} Service Color", {
-              name: serviceName,
-            })}
-          />
-        </div>
+        <div className="mt-1">{color}</div>
         {/*
          * Its name reads the way it is written: an English name on an
          * Arabic page is cut short at its own end (IsolatedLine).
