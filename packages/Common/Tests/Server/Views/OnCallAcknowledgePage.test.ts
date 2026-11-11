@@ -446,3 +446,230 @@ describe("every resource type reaches the page intact", () => {
     });
   }
 });
+
+describe("the acknowledge page's View Incident button", () => {
+  /*
+   * https://github.com/OneUptime/oneuptime/issues/6706: the page had no way
+   * to the incident itself. It now has one, under Acknowledge.
+   */
+  const VIEW_LINK: Record<string, unknown> = {
+    viewDetailsText: "View Incident",
+    viewDetailsUrl: "https://oneuptime.example.com/dashboard/1/incidents/2",
+  };
+
+  // The <a> a data-testid names, as rendered.
+  const anchor: (html: string, testId: string) => string = (
+    html: string,
+    testId: string,
+  ): string => {
+    const at: number = html.indexOf(`data-testid="${testId}"`);
+
+    if (at < 0) {
+      return "";
+    }
+
+    const start: number = html.lastIndexOf("<a ", at);
+
+    return html.slice(start, html.indexOf("</a>", at) + "</a>".length);
+  };
+
+  test("links the record, under the Acknowledge button", () => {
+    const html: string = render(ACKNOWLEDGE_VIEW, {
+      ...ACKNOWLEDGE_BASE,
+      ...ALERT_CONTEXT,
+      ...VIEW_LINK,
+    });
+
+    const link: string = anchor(html, "view-details");
+
+    expect(link).toContain(
+      'href="https://oneuptime.example.com/dashboard/1/incidents/2"',
+    );
+    expect(link).toContain("View Incident");
+    expect(html.indexOf('data-testid="acknowledge"')).toBeGreaterThan(-1);
+    expect(html.indexOf('data-testid="view-details"')).toBeGreaterThan(
+      html.indexOf('data-testid="acknowledge"'),
+    );
+  });
+
+  test("sits above Can't take it? Escalate: the record's own two actions stay together", () => {
+    const html: string = render(ACKNOWLEDGE_VIEW, {
+      ...ACKNOWLEDGE_BASE,
+      ...VIEW_LINK,
+      passOn: {
+        lead: "Can't take it?",
+        explanation: "This will immediately page Level 2.",
+        buttonText: "Escalate",
+        formUrl: "https://oneuptime.example.com/api/pass-on/1",
+        tokenParam: "token",
+        token: "abc",
+      },
+    });
+
+    expect(html.indexOf('data-testid="view-details"')).toBeLessThan(
+      html.indexOf('data-testid="pass-on"'),
+    );
+  });
+
+  test("is a quiet button: Acknowledge stays the one that stands out", () => {
+    const html: string = render(ACKNOWLEDGE_VIEW, {
+      ...ACKNOWLEDGE_BASE,
+      ...VIEW_LINK,
+    });
+
+    const view: string = anchor(html, "view-details");
+    const acknowledge: string = anchor(html, "acknowledge");
+
+    expect(acknowledge).toContain("bg-yellow-600");
+    expect(view).not.toContain("bg-yellow-600");
+    expect(view).toContain("bg-white dark:bg-slate-800");
+    expect(view).toContain("border-gray-300 dark:border-slate-600");
+  });
+
+  test("is left out without a link: a notification that points at nothing", () => {
+    for (const variables of [
+      ACKNOWLEDGE_BASE,
+      {
+        ...ACKNOWLEDGE_BASE,
+        viewDetailsText: "View Alert",
+        viewDetailsUrl: "",
+      },
+    ]) {
+      const html: string = render(ACKNOWLEDGE_VIEW, variables);
+
+      expect(html).not.toContain('data-testid="view-details"');
+      // The page still does what it is for.
+      expect(anchor(html, "acknowledge")).toContain("Acknowledge Alert");
+    }
+  });
+
+  test("escapes what it is handed", () => {
+    const html: string = render(ACKNOWLEDGE_VIEW, {
+      ...ACKNOWLEDGE_BASE,
+      viewDetailsText: "<b>View</b>",
+      viewDetailsUrl: 'https://oneuptime.example.com/x" onclick="alert(1)',
+    });
+
+    expect(html).not.toContain("<b>View</b>");
+    expect(html).toContain("&lt;b&gt;View&lt;/b&gt;");
+    expect(html).not.toContain('onclick="alert(1)"');
+  });
+
+  test("an observer's page has it too, under I've seen it", () => {
+    const html: string = render(ACKNOWLEDGE_VIEW, {
+      ...ACKNOWLEDGE_BASE,
+      title: "I've seen it - CPU above 90% on prod-web-1",
+      acknowledgeText: "I've seen it",
+      viewDetailsText: "View Alert",
+      viewDetailsUrl: "https://oneuptime.example.com/dashboard/1/alerts/2",
+    });
+
+    expect(anchor(html, "acknowledge")).toContain("I&#39;ve seen it");
+    expect(anchor(html, "view-details")).toContain("View Alert");
+  });
+});
+
+describe("the page once it no longer offers Acknowledge", () => {
+  /*
+   * What the acknowledge page draws once the page is over - a colleague
+   * acknowledged it, the person answered another message, it was resolved
+   * (OnCallAcknowledgePage) - in ViewMessage.ejs: why, under a check, what it
+   * is about, and View Incident. No Acknowledge.
+   */
+  const ANSWERED: Record<string, unknown> = {
+    title: "Already acknowledged - CPU above 90% on prod-web-1",
+    message: "Alert ALT-42 was already acknowledged by Ana Lopez.",
+    statusIcon: "check",
+    viewDetailsText: "View Alert",
+    viewDetailsUrl: "https://oneuptime.example.com/dashboard/1/alerts/2",
+    ...ALERT_CONTEXT,
+  };
+
+  test("says who took it, with what it is about and the button that opens it", () => {
+    const html: string = render(VIEW_MESSAGE_VIEW, ANSWERED);
+
+    expect(html).toContain(
+      "Already acknowledged - CPU above 90% on prod-web-1",
+    );
+    expect(html).toContain(
+      "Alert ALT-42 was already acknowledged by Ana Lopez.",
+    );
+    expect(html).toContain("Acme Production");
+    expect(html).toContain('data-testid="view-details"');
+    expect(html).toContain(
+      'href="https://oneuptime.example.com/dashboard/1/alerts/2"',
+    );
+    expect(html).not.toContain("/acknowledge/");
+    expect(html).not.toContain('data-testid="acknowledge"');
+  });
+
+  test("draws a check beside the heading: nothing is asked of the person", () => {
+    const html: string = render(VIEW_MESSAGE_VIEW, ANSWERED);
+
+    expect(html).toContain('data-testid="status-check"');
+    expect(html.indexOf('data-testid="status-check"')).toBeLessThan(
+      html.indexOf('id="message-heading"'),
+    );
+  });
+
+  test("the check is green in either theme", () => {
+    const html: string = render(VIEW_MESSAGE_VIEW, ANSWERED);
+    const at: number = html.indexOf('data-testid="status-check"');
+    const check: string = html.slice(
+      html.lastIndexOf("<span", at),
+      html.indexOf("</span>", at),
+    );
+
+    expect(check).toContain("bg-green-100 dark:bg-green-400/10");
+    expect(check).toContain("text-green-600 dark:text-green-400");
+    expect(check).toContain('aria-hidden="true"');
+  });
+
+  test("draws no check for a message that did not ask for one", () => {
+    for (const statusIcon of [undefined, "", "warning"]) {
+      const html: string = render(VIEW_MESSAGE_VIEW, {
+        ...ANSWERED,
+        statusIcon: statusIcon,
+      });
+
+      expect([statusIcon, html.includes('data-testid="status-check"')]).toEqual(
+        [statusIcon, false],
+      );
+    }
+  });
+
+  test("a message from before still renders as it did, with its button", () => {
+    const html: string = render(VIEW_MESSAGE_VIEW, {
+      title: "Incident escalated - Checkout is down",
+      message: "This immediately paged Level 2.",
+      viewDetailsText: "View Incident",
+      viewDetailsUrl: "https://oneuptime.example.com/dashboard/1/incidents/2",
+    });
+
+    expect(html).not.toContain('data-testid="status-check"');
+    expect(html).toContain("Incident escalated - Checkout is down");
+    expect(html).toContain('data-testid="view-details"');
+  });
+
+  test("leaves the button out without a link to a record", () => {
+    const html: string = render(VIEW_MESSAGE_VIEW, {
+      ...ANSWERED,
+      viewDetailsUrl: "",
+    });
+
+    expect(html).not.toContain('data-testid="view-details"');
+    expect(html).toContain(
+      "Alert ALT-42 was already acknowledged by Ana Lopez.",
+    );
+  });
+
+  test("escapes the sentence: a name is whatever its person chose", () => {
+    const html: string = render(VIEW_MESSAGE_VIEW, {
+      ...ANSWERED,
+      message: "Alert ALT-42 was already acknowledged by <script>x</script>.",
+    });
+
+    expect(html).not.toContain("<script>x</script>");
+    expect(html).toContain("&lt;script&gt;x&lt;/script&gt;");
+  });
+});
