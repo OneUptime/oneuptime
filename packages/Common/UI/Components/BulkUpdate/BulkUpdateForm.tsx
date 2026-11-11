@@ -29,6 +29,7 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import { refreshSideMenuCounts } from "../SideMenu/SideMenuCountRefresh";
 import React, { ReactElement } from "react";
 import { createPortal } from "react-dom";
 
@@ -705,6 +706,15 @@ export const useBulkActionProgress: <T extends GenericObject>(
       },
       onBulkActionEnd: () => {
         setActionInProgress(false);
+        /*
+         * Every bulk run changed records - deleted them, resolved them,
+         * archived them - or tried to, and stopped part-way. The counts
+         * beside the list ("Active Alerts 4") count again now, while the
+         * result is on screen, not once it is closed: bulk deleting the
+         * last four alerts used to leave "4" beside an empty list until
+         * the page was reloaded (SideMenuCountRefresh).
+         */
+        refreshSideMenuCounts();
       },
     };
   };

@@ -42,9 +42,9 @@ Ein Kalendermonat-SLO hat vom ersten Tag an das Budget des ganzen Monats: Ein SL
 Während sich Ausfallzeit ansammelt, zeigt die **Übersicht** das verbleibende Budget auf ihrer Kachel **Verbleibendes Fehlerbudget**:
 
 - als Prozentsatz des Gesamtbudgets, der auch den Status des SLO bestimmt und den Balken füllt. Der Balken hat eine Markierung an der Risikoschwelle des SLO;
-- als Dauer, zum Beispiel "31m 4s left of 43m 12s".
+- als Dauer, zum Beispiel "Noch 31 Min., 4 Sek. von 43 Min., 12 Sek.".
 
-Ist das Budget aufgebraucht, zeigt die Kachel **Kein Budget mehr**. Geht die Ausfallzeit darüber hinaus, zeigt die Kachel **Budget überschritten** und die Überziehung als Zeit, zum Beispiel "4d 23m over budget · 5m 47s allowed": Das SLO hat alle 5 Minuten und 47 Sekunden seines Budgets verbraucht und weitere 4 Tage und 23 Minuten dazu. Der Balken bleibt leer und rot.
+Ist das Budget aufgebraucht, zeigt die Kachel **Kein Budget mehr**. Geht die Ausfallzeit darüber hinaus, zeigt die Kachel **Budget überschritten** und die Überziehung als Zeit, zum Beispiel "4 Tg., 23 Min. über dem Budget · 5 Min., 47 Sek. erlaubt": Das SLO hat alle 5 Minuten und 47 Sekunden seines Budgets verbraucht und weitere 4 Tage und 23 Minuten dazu. Der Balken bleibt leer und rot.
 
 Das verbleibende Budget wird für Berechnungen und Verlaufsdiagramme als Zahl mit Vorzeichen gespeichert, ein überzogenes Budget erscheint dort also als negativer Prozentsatz. Ein großer negativer Prozentsatz bedeutet, dass die Überziehung im Vergleich zum Budget groß ist; er ist nicht der Anteil der Zeit, in der der Dienst ausgefallen war.
 
@@ -60,7 +60,7 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 | Die Kachel zeigt | Bedeutung |
 | --- | --- |
-| Eine Dauer, etwa **~2d 5h** | Beim aktuellen Tempo ist das Budget in etwa dieser Zeit aufgebraucht. Gelb, und rot, sobald es einen Tag oder weniger sind. **Unter 1 Min.** bedeutet weniger als eine Minute. |
+| Eine Dauer, etwa **~2 Tg., 5 Std.** | Beim aktuellen Tempo ist das Budget in etwa dieser Zeit aufgebraucht. Gelb, und rot, sobald es einen Tag oder weniger sind. **Unter 1 Min.** bedeutet weniger als eine Minute. |
 | **Kein Verbrauch** | In den letzten 60 Minuten wurde kein Budget verbraucht. |
 | **Tragfähig** | Nur rollierende Zeitfenster: Die Reichweite ist mindestens ein ganzes Zeitfenster, das Budget wird also nicht schneller verbraucht, als alte Ausfallzeit herausfällt. Bei diesem Tempo kann es nicht aufgebraucht werden. |
 | **Reicht bis zum Zurücksetzen** | Nur Kalendermonate: Das Budget wird zu Beginn des nächsten Monats zurückgesetzt, bevor es aufgebraucht wäre. |
@@ -97,7 +97,7 @@ Ein Kalendermonat-SLO wird am Ersten jedes Monats um Mitternacht in seiner Zeitz
 
 ### Junge SLOs
 
-Ein SLO mit rollierendem Zeitfenster, das jünger ist als sein Fenster, wird über die bisher vorhandenen Daten gemessen, und sein Gesamtbudget wächst mit: Ein 30-Tage-SLO, das vor einer Woche erstellt wurde, hat vorerst ein 7-Tage-Budget. Bis das Fenster voll ist, zeigt die **Übersicht**, wie voll es ist, mit einem Chip **Window 23% full** und demselben Hinweis auf der Kachel **Verbleibendes Fehlerbudget**. Rechnen Sie damit, dass sich die Zahlen beruhigen, während sich das Fenster füllt.
+Ein SLO mit rollierendem Zeitfenster, das jünger ist als sein Fenster, wird über die bisher vorhandenen Daten gemessen, und sein Gesamtbudget wächst mit: Ein 30-Tage-SLO, das vor einer Woche erstellt wurde, hat vorerst ein 7-Tage-Budget. Bis das Fenster voll ist, zeigt die **Übersicht**, wie voll es ist, mit einem Chip **Fenster zu 23 % gefüllt** und demselben Hinweis auf der Kachel **Verbleibendes Fehlerbudget**. Rechnen Sie damit, dass sich die Zahlen beruhigen, während sich das Fenster füllt.
 
 ## Statusänderungen und die Risikoschwelle
 

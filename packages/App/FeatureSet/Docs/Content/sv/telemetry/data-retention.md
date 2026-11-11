@@ -53,7 +53,7 @@ Gå till **Projektinställningar → Telemetri och APM → Datalagring**. **Tele
 
 ### Ange antalet dagar
 
-Klicka på **Edit Retention Settings**, ange antalet dagar, minst 1, och klicka på **Spara ändringar**.
+Klicka på **Redigera lagringsinställningar**, ange antalet dagar, minst 1, och klicka på **Spara ändringar**.
 :::
 
 Det nya talet gäller för varje post som kommer in från och med då och som inte har en egen åsidosättning.

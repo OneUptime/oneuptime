@@ -145,7 +145,11 @@ function toRound(text: string | undefined): number {
   return Number.isFinite(round) && round > 1 ? round : 1;
 }
 
-function parseClusterRoundName(name: unknown): ParsedRoundName | null {
+/*
+ * A cluster round's name read back: the cluster's name and which round,
+ * or null when the name is not a cluster round's.
+ */
+export function parseClusterRoundName(name: unknown): ParsedRoundName | null {
   if (typeof name !== "string") {
     return null;
   }

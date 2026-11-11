@@ -178,7 +178,7 @@ La **Vue d'ensemble** répond à « sommes-nous dans le budget ? », de haut en 
 - **Le résumé** : le statut, une phrase sur ce qu'il signifie, et la description. À côté se trouvent **Actualiser** et la date de la dernière évaluation. En dessous figurent l'objectif, la **Fenêtre de conformité** (avec une pastille de remplissage tant qu'une jeune fenêtre glissante se remplit : voir [Les jeunes SLO et l'indicateur de remplissage de la fenêtre](#les-jeunes-slo-et-lindicateur-de-remplissage-de-la-fenêtre)), le nombre de moniteurs et les propriétaires, avec **Ajouter des propriétaires** pour en ajouter un sur place.
 - **Les chiffres clés** :
   - **SLI** : la part de bon temps dans la fenêtre, et à quelle distance au-dessus ou en dessous de l'objectif elle se trouve.
-  - **Budget d'erreur restant** : un pourcentage, une durée comme "12m 30s left of 43m 12s", et une barre avec un repère au seuil à risque. Une fois le budget dépassé, la tuile affiche **Budget dépassé** et de combien.
+  - **Budget d'erreur restant** : un pourcentage, une durée comme "12 min 30 s restant sur 43 min 12 s", et une barre avec un repère au seuil à risque. Une fois le budget dépassé, la tuile affiche **Budget dépassé** et de combien.
   - **Taux de consommation** : la vitesse à laquelle le budget se consomme sur les 60 dernières minutes, la période qu'utilise la règle de consommation rapide par défaut. Il passe à l'orange au-dessus de 1× et au rouge, avec **Seuil de la règle atteint**, au plus bas seuil des règles de taux de consommation activées du SLO dont la période est de 6 heures ou moins. Une heure en dit peu sur une règle dont la période se compte en jours, comme **Slow leak**, il n'est donc pas comparé à une telle règle.
   - **Autonomie du budget** : combien de temps le budget tient à ce rythme. Voir [Budgets d'erreur](/docs/slo/error-budget#autonomie-du-budget).
 - **Consommation du budget d'erreur** : le budget restant sur la fenêtre actuelle. Voir [Budgets d'erreur](/docs/slo/error-budget#consommation-du-budget-derreur).
@@ -240,7 +240,7 @@ Le menu latéral d'un moniteur a lui aussi une page **SLOs** : les SLO qui mesur
 
 Un SLO à fenêtre glissante plus jeune que sa fenêtre est mesuré sur les données qui existent jusqu'ici : un SLO de 30 jours créé hier a un jour de données. Son budget d'erreur commence petit et grandit à mesure que la fenêtre se remplit, ses premiers chiffres bougent donc plus qu'ils ne le feront ensuite.
 
-Tant que c'est le cas, la **Vue d'ensemble** le dit : le résumé affiche une pastille **Window 23% full** (**Fenêtre remplie à moins de 1 %** le premier jour), et la tuile **Budget d'erreur restant** la reprend sous son chiffre. Les deux disparaissent une fois la fenêtre pleine. Les SLO par mois calendaire ne les affichent jamais, car leur budget couvre tout le mois dès le premier jour, pas plus que les SLO en mode **Moyenne des secondes des moniteurs**, dont le budget est compté sur l'ensemble des moniteurs.
+Tant que c'est le cas, la **Vue d'ensemble** le dit : le résumé affiche une pastille **Fenêtre remplie à 23 %** (**Fenêtre remplie à moins de 1 %** le premier jour), et la tuile **Budget d'erreur restant** la reprend sous son chiffre. Les deux disparaissent une fois la fenêtre pleine. Les SLO par mois calendaire ne les affichent jamais, car leur budget couvre tout le mois dès le premier jour, pas plus que les SLO en mode **Moyenne des secondes des moniteurs**, dont le budget est compté sur l'ensemble des moniteurs.
 
 ## Dépannage
 

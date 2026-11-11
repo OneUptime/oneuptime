@@ -29,7 +29,10 @@ describe("exception detail data ownership", () => {
       ExceptionDetailSection.Overview,
       {
         ...NOTHING_EXTRA,
+        // Where it happened: the trace, its frames, their source maps.
+        loadStackTrace: true,
         loadLatestOccurrence: true,
+        resolveStackFrames: true,
         loadAiExplanation: true,
         loadOccurrenceTrend: true,
       },
@@ -96,14 +99,33 @@ describe("exception detail data ownership", () => {
     }
   });
 
-  test("the full stack trace text is only read by the Stack Trace page", () => {
+  /*
+   * The Overview shows where the exception happened (its Where it happened
+   * card): the crash point, read from the same trace and frames the Stack
+   * Trace page lays out whole. No other page reads the trace's text.
+   */
+  test("the full stack trace text is read by the Overview and the Stack Trace page only", () => {
     const readers: Array<ExceptionDetailSection> = Object.values(
       ExceptionDetailSection,
     ).filter((section: ExceptionDetailSection) => {
       return getExceptionDetailDataPlan(section).loadStackTrace;
     });
 
-    expect(readers).toEqual([ExceptionDetailSection.StackTrace]);
+    expect(readers).toEqual([
+      ExceptionDetailSection.Overview,
+      ExceptionDetailSection.StackTrace,
+    ]);
+  });
+
+  test("a page that reads the trace also resolves its frames, so the crash point is the original line", () => {
+    for (const section of Object.values(ExceptionDetailSection)) {
+      const plan: ExceptionDetailDataPlan = getExceptionDetailDataPlan(section);
+
+      expect({ section, resolves: plan.resolveStackFrames }).toEqual({
+        section,
+        resolves: plan.loadStackTrace,
+      });
+    }
   });
 
   test("Settings owns the resolve and archive buttons, so the header hides its own there", () => {

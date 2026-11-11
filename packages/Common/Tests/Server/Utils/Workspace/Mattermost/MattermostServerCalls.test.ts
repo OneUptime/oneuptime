@@ -2027,6 +2027,233 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
       ).rejects.toBeInstanceOf(MattermostRequestError);
     });
 
+    /*
+     * #6775: a team the bot was taken out of refuses it its channels. A
+     * rule's lookup there says so - in its Test Rule and its Notification
+     * Logs - rather than passing Mattermost's refusal on. The default team
+     * is looked past to the bot's other teams.
+     */
+    describe("a team the bot was taken out of", () => {
+      const NAMED_TEAM_LEFT: string =
+        "OneUptime's bot is not a member of the Mattermost team chosen for the channel incidents, so it cannot look for the channel there. Add the bot to that team in Mattermost, or choose another team, then try again.";
+
+      const DEFAULT_TEAM_LEFT: string =
+        "OneUptime's bot is no longer a member of the project's default Mattermost team, so it cannot look for the channel incidents there, and its other teams do not have it. Add the bot back to that team in Mattermost, then try again.";
+
+      const forbidden: HTTPErrorResponse = refused(
+        403,
+        "api.context.permissions.app_error",
+        "You do not have the appropriate permissions.",
+      );
+
+      // The teams the server lists the bot in now.
+      let botTeams: JSONArray;
+
+      beforeEach(() => {
+        botTeams = BOTH_TEAMS;
+
+        on("GET", "/api/v4/users/me/teams", () => {
+          return ok(botTeams);
+        });
+      });
+
+      // Every read of a team's channels refused, as a team the bot is not in.
+      const refusesChannelsOf: (teamId: string) => void = (
+        teamId: string,
+      ): void => {
+        on("GET", new RegExp(`^/api/v4/teams/${teamId}/channels`), forbidden);
+        on(
+          "GET",
+          `/api/v4/users/${BOT_ID}/teams/${teamId}/channels`,
+          forbidden,
+        );
+      };
+
+      const teamsAskedFor: () => number = (): number => {
+        return calls.filter((call: ServerCall) => {
+          return call.path === "/api/v4/users/me/teams";
+        }).length;
+      };
+
+      test("the team a rule names: said so, and no other team looked in", async () => {
+        botTeams = [BOTH_TEAMS[0]!];
+        refusesChannelsOf(OTHER_TEAM_ID);
+
+        let error: unknown = undefined;
+
+        try {
+          await MattermostUtil.findChannelByName({
+            authToken: AUTH_TOKEN,
+            channelName: "#incidents",
+            teamId: OTHER_TEAM_ID,
+          });
+        } catch (err) {
+          error = err;
+        }
+
+        expect(error).toBeInstanceOf(BadDataException);
+        expect((error as Error).message).toBe(NAMED_TEAM_LEFT);
+        expect(teamsAskedFor()).toBe(1);
+        expect(
+          calls.some((call: ServerCall) => {
+            return call.path.includes(TEAM_ID);
+          }),
+        ).toBe(false);
+      });
+
+      test("a team the bot is still in that refuses it: Mattermost's refusal is passed on", async () => {
+        refusesChannelsOf(OTHER_TEAM_ID);
+
+        await expect(
+          MattermostUtil.findChannelByName({
+            authToken: AUTH_TOKEN,
+            channelName: "incidents",
+            teamId: OTHER_TEAM_ID,
+          }),
+        ).rejects.toBeInstanceOf(MattermostRequestError);
+      });
+
+      test("a server that would not say which teams the bot is in: the refusal is passed on as Mattermost gave it", async () => {
+        routes = [];
+        on(
+          "GET",
+          "/api/v4/users/me/teams",
+          refused(503, "api.server.unavailable", "Unavailable"),
+        );
+        refusesChannelsOf(OTHER_TEAM_ID);
+
+        let error: unknown = undefined;
+
+        try {
+          await MattermostUtil.findChannelByName({
+            authToken: AUTH_TOKEN,
+            channelName: "incidents",
+            teamId: OTHER_TEAM_ID,
+          });
+        } catch (err) {
+          error = err;
+        }
+
+        expect(error).toBeInstanceOf(MattermostRequestError);
+        expect((error as MattermostRequestError).statusCode).toBe(403);
+      });
+
+      test("without a team, the default team is looked past: a channel another team has is still found, the teams asked for once", async () => {
+        botTeams = [BOTH_TEAMS[1]!];
+        refusesChannelsOf(TEAM_ID);
+        on(
+          "GET",
+          `/api/v4/teams/${OTHER_TEAM_ID}/channels`,
+          ok([channel(OTHER_CHANNEL_ID, "help-desk", "O", OTHER_TEAM_ID)]),
+        );
+        on(
+          "GET",
+          `/api/v4/users/${BOT_ID}/teams/${OTHER_TEAM_ID}/channels`,
+          ok([]),
+        );
+
+        expect(
+          (
+            await MattermostUtil.findChannelByName({
+              authToken: AUTH_TOKEN,
+              channelName: "HELP DESK",
+            })
+          )?.id,
+        ).toBe(OTHER_CHANNEL_ID);
+        expect(teamsAskedFor()).toBe(1);
+      });
+
+      test("without a team, and no other team has the channel: said that the bot is no longer in the default team", async () => {
+        botTeams = [BOTH_TEAMS[1]!];
+        refusesChannelsOf(TEAM_ID);
+        on("GET", `/api/v4/teams/${OTHER_TEAM_ID}/channels`, ok([]));
+        on(
+          "GET",
+          `/api/v4/users/${BOT_ID}/teams/${OTHER_TEAM_ID}/channels`,
+          ok([]),
+        );
+
+        await expect(
+          MattermostUtil.findChannelByName({
+            authToken: AUTH_TOKEN,
+            channelName: "incidents",
+          }),
+        ).rejects.toThrow(DEFAULT_TEAM_LEFT);
+
+        // A rule's test asks the same.
+        await expect(
+          MattermostUtil.doesChannelExist({
+            authToken: AUTH_TOKEN,
+            channelName: "incidents",
+            projectId: ObjectID.generate(),
+          }),
+        ).rejects.toThrow(DEFAULT_TEAM_LEFT);
+      });
+
+      test("a message to a channel of the team its rule names: the error Notification Logs show says so, and nothing is posted", async () => {
+        botTeams = [BOTH_TEAMS[0]!];
+        refusesChannelsOf(OTHER_TEAM_ID);
+
+        const response: WorkspaceSendMessageResponse =
+          await MattermostUtil.sendMessage({
+            workspaceMessagePayload: {
+              _type: "WorkspaceMessagePayload",
+              workspaceType: WorkspaceType.Mattermost,
+              messageBlocks: blocks,
+              channelNames: ["incidents"],
+              channelIds: [],
+              teamId: OTHER_TEAM_ID,
+            },
+            authToken: AUTH_TOKEN,
+            userId: "",
+            projectId: ObjectID.generate(),
+          });
+
+        expect(response.errors).toEqual([
+          {
+            channel: {
+              id: "",
+              name: "incidents",
+              workspaceType: WorkspaceType.Mattermost,
+            },
+            error: NAMED_TEAM_LEFT,
+          },
+        ]);
+        expect(postsMade()).toEqual([]);
+      });
+
+      test("a channel created in the default team the bot was taken out of says so; while the bot is in it, Mattermost's refusal is passed on", async () => {
+        on("POST", "/api/v4/channels", forbidden);
+        botTeams = [BOTH_TEAMS[1]!];
+
+        await expect(
+          MattermostUtil.createChannel({
+            authToken: AUTH_TOKEN,
+            channelName: "inc-42",
+            projectId: ObjectID.generate(),
+          }),
+        ).rejects.toThrow(
+          "OneUptime's bot is no longer a member of the project's default Mattermost team, so it may not create channels there. Add the bot back to that team in Mattermost, or make another team the default in Project Settings > Workspace > Mattermost, then try again.",
+        );
+
+        botTeams = BOTH_TEAMS;
+
+        let error: unknown = undefined;
+
+        try {
+          await MattermostUtil.createChannel({
+            authToken: AUTH_TOKEN,
+            channelName: "inc-42",
+            projectId: ObjectID.generate(),
+          });
+        } catch (err) {
+          error = err;
+        }
+
+        expect(error).toBeInstanceOf(MattermostRequestError);
+      });
+    });
+
     test("a channel named in another team is posted to with its buttons signed for that team", async () => {
       on(
         "GET",

@@ -82,6 +82,13 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
   const modelIdString: string = modelId.toString();
 
   const [license, setLicense] = useState<EnterpriseLicense | null>(null);
+  /*
+   * Bumped when the license card saves, so the license is read again: the
+   * seat meter ("of 50 licensed"), the expiry badge, the offline token card
+   * and the Delete card read the company, user limit and expiry from it, and
+   * kept the values from before the edit until a reload (issue #6766).
+   */
+  const [licenseSaveCount, setLicenseSaveCount] = useState<number>(0);
   const [timedUsageSnapshot, setTimedUsageSnapshot] =
     useState<TimedEnterpriseLicenseUsageSnapshot | null>(null);
   const usageSnapshot: EnterpriseLicenseUsageSnapshot | null =
@@ -182,7 +189,7 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
     loadUsage().catch((err: Error) => {
       setUsageError(API.getFriendlyMessage(err));
     });
-  }, [modelIdString, refreshUsageSnapshot]);
+  }, [modelIdString, refreshUsageSnapshot, licenseSaveCount]);
 
   /*
    * Reports can arrive while this page stays open. Polling keeps the headline
@@ -333,6 +340,11 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
               required: false,
             },
           ]}
+          onSaveSuccess={() => {
+            setLicenseSaveCount((count: number): number => {
+              return count + 1;
+            });
+          }}
           modelDetailProps={{
             modelType: EnterpriseLicense,
             id: "model-detail-enterprise-license",

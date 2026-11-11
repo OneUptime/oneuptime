@@ -258,7 +258,7 @@ I modelli coprono i casi comuni. Per costruire una direzione da solo, questa sez
 
 Crea il token una volta, per tutti i workflow, come [variabile OAuth 2.0](/docs/workflows/variables#variabili-oauth-20-token-che-si-rinnovano-da-soli):
 
-1. Vai su **Flussi di lavoro → Variabili globali**, apri il menu **Altro** (**⋯**) accanto a **Crea: Variabile del flusso di lavoro** e scegli **Create OAuth 2.0 Variable**. Chiamala `DYNAMICS_TOKEN`.
+1. Vai su **Flussi di lavoro → Variabili globali**, apri il menu **Altro** (**⋯**) accanto a **Crea: Variabile del flusso di lavoro** e scegli **Crea variabile OAuth 2.0**. Chiamala `DYNAMICS_TOKEN`.
 2. In **Provider**, scegli **Microsoft Entra ID**, sostituisci `{tenant-id}` nell'**URL del token** con il tuo Directory (tenant) ID e scegli **Client Credentials**.
 3. In **Credenziali**, inserisci il **Client ID** e il **Client Secret**. In **Avanzato**, imposta l'ambito su `https://yourorg.crm.dynamics.com/.default`, poi crea la variabile.
 

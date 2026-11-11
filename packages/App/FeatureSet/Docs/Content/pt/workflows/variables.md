@@ -63,12 +63,12 @@ A lista mostra o nome e a descrição de cada variável. Clique em **Ver** em um
 
 | Botão                                          | O que faz                                                                                                                                        |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Editar: Variável**                           | Altera o nome, a descrição e — para uma variável estática que ainda não é secreta — a marca de segredo. Uma vez secreta, uma variável continua secreta. |
-| **Update Content**                             | Substitui um valor estático. O conteúdo salvo não pode ser lido de volta, então você digita o novo valor inteiro.                                |
-| **Use in Workflows**                           | Mostra a referência exata para colar nos seus blocos, com um botão de copiar.                                                                    |
+| **Editar variável**                           | Altera o nome, a descrição e — para uma variável estática que ainda não é secreta — a marca de segredo. Uma vez secreta, uma variável continua secreta. |
+| **Atualizar conteúdo**                             | Substitui um valor estático. O conteúdo salvo não pode ser lido de volta, então você digita o novo valor inteiro.                                |
+| **Usar em fluxos de trabalho**                           | Mostra a referência exata para colar nos seus blocos, com um botão de copiar.                                                                    |
 | **Excluir: Variável do fluxo de trabalho**        | Exclui a variável, depois de pedir confirmação. A confirmação nomeia a variável, para você conferir que é a certa.                               |
 
-Para criar uma variável de **token de acesso OAuth 2.0** em vez disso, abra o menu **Mais** (**⋯**) ao lado de **Criar: Variável do fluxo de trabalho** e escolha **Create OAuth 2.0 Variable**. As variáveis OAuth 2.0 têm [uma seção própria](#variáveis-oauth-20-tokens-que-se-renovam-sozinhos) mais abaixo. O tipo de uma variável não pode ser alterado depois de salvo.
+Para criar uma variável de **token de acesso OAuth 2.0** em vez disso, abra o menu **Mais** (**⋯**) ao lado de **Criar: Variável do fluxo de trabalho** e escolha **Criar variável OAuth 2.0**. As variáveis OAuth 2.0 têm [uma seção própria](#variáveis-oauth-20-tokens-que-se-renovam-sozinhos) mais abaixo. O tipo de uma variável não pode ser alterado depois de salvo.
 
 Você também pode atualizar uma variável pela API, o que é explicado [no fim desta página](#atualizando-uma-variável-a-partir-de-um-workflow). Variáveis globais e de workflow são um recurso do plano Growth.
 
@@ -123,7 +123,7 @@ sequenceDiagram
 
 ### Criar uma
 
-**Create OAuth 2.0 Variable** pede uma coisa por etapa:
+**Criar variável OAuth 2.0** pede uma coisa por etapa:
 
 1. **Variável**: o nome pelo qual os workflows se referem a ela, e uma descrição.
 2. **Provedor**: escolha o seu **Provedor de identidade** e o OneUptime preenche a **URL do token** dele:
@@ -146,7 +146,7 @@ Abaixo de alguns campos, o formulário acrescenta uma linha de ajuda para o prov
 
 Quando você salva uma nova variável OAuth 2.0, o OneUptime obtém o primeiro token dela na hora e diz o que o provedor respondeu. Um erro de digitação no secret ou na URL aparece nesse momento, não horas depois em uma execução com falha. Obter um token grava na variável, então isso exige permissão para editar variáveis de workflow; se você pode criar variáveis mas não editá-las, a primeira execução de workflow que usar a variável obtém o token dela.
 
-A página da variável (clique em **Ver** na linha dela) tem um cartão **OAuth 2.0 Settings**. **Editar definições** percorre as mesmas etapas **Provedor** (URL do token), **Credenciais** (client ID) e **Avançado** (escopo, parâmetros adicionais, autenticação do cliente). **Próximo** avança e **Salvar alterações** fica na última etapa. Todas as etapas já vêm preenchidas, então a lista de etapas ao lado do formulário abre qualquer uma delas: altere uma configuração na etapa dela, depois abra a última etapa e salve. O tipo de concessão fica fixo depois de salvo.
+A página da variável (clique em **Ver** na linha dela) tem um cartão **Configurações do OAuth 2.0**. **Editar definições** percorre as mesmas etapas **Provedor** (URL do token), **Credenciais** (client ID) e **Avançado** (escopo, parâmetros adicionais, autenticação do cliente). **Próximo** avança e **Salvar alterações** fica na última etapa. Todas as etapas já vêm preenchidas, então a lista de etapas ao lado do formulário abre qualquer uma delas: altere uma configuração na etapa dela, depois abra a última etapa e salve. O tipo de concessão fica fixo depois de salvo.
 
 ### O cartão Token de acesso
 
@@ -154,13 +154,13 @@ O cartão **Token de acesso** na página de uma variável OAuth 2.0 mostra um de
 
 | Status                     | O que significa                                                                                                                      |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Valid**                  | O token em cache ainda não expirou.                                                                                                  |
+| **Válido**                 | O token em cache ainda não expirou.                                                                                                  |
 | **Expirado**               | Normal em uma variável que nenhum workflow usou recentemente. A próxima execução que a usar obtém um token novo.                     |
 | **Ainda não obtido**       | Nenhum token foi obtido desde que a variável foi criada ou as configurações dela mudaram.                                            |
-| **No expiry reported**     | O provedor não disse quando o token expira, então cada execução obtém um novo.                                                       |
-| **Refresh failed**         | A última tentativa de obter um token falhou. O motivo do provedor aparece por inteiro, com quando aconteceu. A próxima renovação bem-sucedida o limpa. |
+| **Nenhuma expiração informada** | O provedor não disse quando o token expira, então cada execução obtém um novo.                                                       |
+| **Falha na atualização**   | A última tentativa de obter um token falhou. O motivo do provedor aparece por inteiro, com quando aconteceu. A próxima renovação bem-sucedida o limpa. |
 
-**Atualizar agora**, abaixo do status, obtém um token novo na hora. Use-o para conferir configurações novas sem rodar um workflow. **Atualizar credenciais**, no cartão **OAuth 2.0 Settings**, substitui o client secret ou o refresh token e depois obtém um token com eles. Alterar qualquer configuração (URL do token, client ID, escopo e assim por diante) descarta o token em cache, então a próxima execução obtém um com as configurações novas.
+**Atualizar agora**, abaixo do status, obtém um token novo na hora. Use-o para conferir configurações novas sem rodar um workflow. **Atualizar credenciais**, no cartão **Configurações do OAuth 2.0**, substitui o client secret ou o refresh token e depois obtém um token com eles. Alterar qualquer configuração (URL do token, client ID, escopo e assim por diante) descarta o token em cache, então a próxima execução obtém um com as configurações novas.
 
 ### Quando o provedor diz não
 

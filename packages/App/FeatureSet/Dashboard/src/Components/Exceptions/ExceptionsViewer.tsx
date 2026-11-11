@@ -2934,6 +2934,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
             actionButtons={exceptionRowActions}
             stats={getExceptionRowStats(listStats, exception)}
             isStatsLoading={isListStatsLoading && !listStats}
+            // Only All mixes statuses; a tab of one needs no word on each row.
+            showStatus={status === "all"}
           />
         );
       }}

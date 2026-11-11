@@ -14,6 +14,7 @@ import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import AiRunFailureNotice from "../AI/AiRunFailureNotice";
 import { RemediationFixReasoning } from "./RemediationFixStepDetails";
 import { readRemediationMoment } from "./RemediationFixSteps";
+import { getRemediationReasoningMarkdown } from "./RemediationReasoning";
 import { RemediationRoundView } from "./RemediationRoundView";
 import { REMEDIATION_ROUND_COPY } from "./RemediationStepCopy";
 
@@ -122,7 +123,14 @@ export const RemediationRoundLead: FunctionComponent<LeadProps> = (
     status: props.status,
     isUnfinished: props.isUnfinished,
   });
-  const reasoningMarkdown: string = props.reasoningMarkdown || "";
+  /*
+   * The AI's answer alone: the round posted it as a report, with a heading,
+   * an Evidence checked list and a footer that called the run read-only
+   * (issue #6860) - what it checked is listed under the fix already.
+   */
+  const reasoningMarkdown: string = getRemediationReasoningMarkdown(
+    props.reasoningMarkdown,
+  );
 
   if (!reason) {
     return reasoningMarkdown ? (

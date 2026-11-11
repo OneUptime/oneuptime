@@ -440,7 +440,7 @@ describe("what the Remediation step draws inside a folded AI card", () => {
     renderWithFold("full");
 
     expect(
-      await screen.findByText("Restart the checkout pods"),
+      await screen.findByText('Runbook "Restart the checkout pods"'),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { level: 3, name: "Remediation" }),

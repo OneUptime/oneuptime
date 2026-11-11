@@ -13,13 +13,18 @@ import {
   AI_TASKS_PAUSED_REASON,
   AI_TASKS_SETUP_REASON,
   AI_TASK_PRESENTATION,
+  EXCEPTION_AI_HOW_IT_WORKS_STEPS,
   EXCEPTION_AI_TASK_TYPES,
   ExceptionAITaskType,
+  PRIMARY_AI_TASK_PRESENTATION,
+  PrimaryExceptionAITaskType,
   FIX_PRODUCTION_LABELS,
   findLatestAITask,
   getAIReadinessProgress,
   getAITaskCardState,
   getFixProductionTone,
+  getOtherExceptionAITaskTypes,
+  getPrimaryExceptionAITaskType,
   getReadinessCheckLink,
   isAITaskActive,
   isAITaskCompleted,
@@ -87,11 +92,11 @@ describe("AI task status predicates", () => {
 });
 
 describe("AI task presentation", () => {
-  test("renders the three task types in a stable order", () => {
+  test("has the three task types in a stable order: the two fixes, then the test", () => {
     expect(EXCEPTION_AI_TASK_TYPES).toEqual([
       CodeFixTaskType.FixException,
-      CodeFixTaskType.WriteRegressionTest,
       CodeFixTaskType.ImproveExceptionHandling,
+      CodeFixTaskType.WriteRegressionTest,
     ]);
   });
 
@@ -115,13 +120,107 @@ describe("AI task presentation", () => {
     ).toBe(3);
   });
 
-  test("keeps the fix task's established title and button", () => {
-    expect(AI_TASK_PRESENTATION[CodeFixTaskType.FixException].title).toBe(
-      "Fix this exception with AI",
-    );
+  /*
+   * Folded under Other AI tasks, each says what it does in its title and
+   * starts with a plain Start: the page has one Fix with AI button.
+   */
+  test.each([
+    [CodeFixTaskType.FixException, "Fix the code"],
+    [CodeFixTaskType.ImproveExceptionHandling, "Handle the error better"],
+    [CodeFixTaskType.WriteRegressionTest, "Write a regression test"],
+  ] as Array<[ExceptionAITaskType, string]>)(
+    "folded, %s is called %j and starts with Start",
+    (type: ExceptionAITaskType, title: string) => {
+      expect(AI_TASK_PRESENTATION[type].title).toBe(title);
+      expect(AI_TASK_PRESENTATION[type].startActionName).toBe("Start");
+      expect(AI_TASK_PRESENTATION[type].restartActionName).toBe("Run again");
+      expect(AI_TASK_PRESENTATION[type].retryActionName).toBe("Try again");
+    },
+  );
+
+  test("a regression test says it does not fix the bug", () => {
     expect(
-      AI_TASK_PRESENTATION[CodeFixTaskType.FixException].startActionName,
-    ).toBe("Fix with AI");
+      AI_TASK_PRESENTATION[CodeFixTaskType.WriteRegressionTest].description,
+    ).toContain("It does not fix the bug");
+  });
+
+  test.each([
+    [CodeFixTaskType.FixException],
+    [CodeFixTaskType.ImproveExceptionHandling],
+  ] as Array<[PrimaryExceptionAITaskType]>)(
+    "leading the page, %s is Fix with AI, with its own words for what it will do",
+    (type: PrimaryExceptionAITaskType) => {
+      const presentation: (typeof PRIMARY_AI_TASK_PRESENTATION)[PrimaryExceptionAITaskType] =
+        PRIMARY_AI_TASK_PRESENTATION[type];
+
+      expect(presentation.taskType).toBe(type);
+      expect(presentation.title).toBe("Fix with AI");
+      expect(presentation.startActionName).toBe("Fix with AI");
+      expect(presentation.restartActionName).toBe("Fix again");
+      expect(presentation.retryActionName).toBe("Try again");
+      // Never the folded row's words: it says what this fix does.
+      expect(presentation.description).not.toBe(
+        AI_TASK_PRESENTATION[type].description,
+      );
+      expect(presentation.description).toContain("pull request");
+    },
+  );
+
+  test("the better-handling fix says it was picked because the error is expected", () => {
+    expect(
+      PRIMARY_AI_TASK_PRESENTATION[CodeFixTaskType.ImproveExceptionHandling]
+        .description,
+    ).toMatch(/^OneUptime AI found this is an expected error/);
+  });
+
+  test("how it works is three steps, ending with a pull request nothing changes before", () => {
+    expect(EXCEPTION_AI_HOW_IT_WORKS_STEPS).toHaveLength(3);
+    expect(EXCEPTION_AI_HOW_IT_WORKS_STEPS[2]).toBe(
+      "Opens a pull request for you to review. Nothing changes until you merge it.",
+    );
+  });
+});
+
+describe("the task Fix with AI starts", () => {
+  test.each([
+    ["user-error", CodeFixTaskType.ImproveExceptionHandling],
+    ["expected-denial", CodeFixTaskType.ImproveExceptionHandling],
+    ["code-fault", CodeFixTaskType.FixException],
+    ["infrastructure", CodeFixTaskType.FixException],
+    ["unknown", CodeFixTaskType.FixException],
+    ["", CodeFixTaskType.FixException],
+    [undefined, CodeFixTaskType.FixException],
+    [null, CodeFixTaskType.FixException],
+    ["something-new", CodeFixTaskType.FixException],
+  ] as Array<[unknown, PrimaryExceptionAITaskType]>)(
+    "for the triage verdict %j is %s",
+    (errorClass: unknown, expected: PrimaryExceptionAITaskType) => {
+      expect(getPrimaryExceptionAITaskType(errorClass)).toBe(expected);
+    },
+  );
+
+  test("the others are the other fix, then a regression test", () => {
+    expect(getOtherExceptionAITaskTypes(CodeFixTaskType.FixException)).toEqual([
+      CodeFixTaskType.ImproveExceptionHandling,
+      CodeFixTaskType.WriteRegressionTest,
+    ]);
+    expect(
+      getOtherExceptionAITaskTypes(CodeFixTaskType.ImproveExceptionHandling),
+    ).toEqual([
+      CodeFixTaskType.FixException,
+      CodeFixTaskType.WriteRegressionTest,
+    ]);
+  });
+
+  test("between Fix with AI and the others, every task type is on the page once", () => {
+    for (const primary of [
+      CodeFixTaskType.FixException,
+      CodeFixTaskType.ImproveExceptionHandling,
+    ] as Array<PrimaryExceptionAITaskType>) {
+      expect(
+        [primary, ...getOtherExceptionAITaskTypes(primary)].sort(),
+      ).toEqual([...EXCEPTION_AI_TASK_TYPES].sort());
+    }
   });
 });
 
@@ -403,8 +502,9 @@ describe("getAIReadinessProgress", () => {
 });
 
 describe("getAITaskCardState", () => {
+  // Fix with AI, as the page leads with it.
   const presentation: (typeof AI_TASK_PRESENTATION)[ExceptionAITaskType] =
-    AI_TASK_PRESENTATION[CodeFixTaskType.FixException];
+    PRIMARY_AI_TASK_PRESENTATION[CodeFixTaskType.FixException];
 
   const gates: {
     isResolved: boolean;
@@ -479,7 +579,7 @@ describe("getAITaskCardState", () => {
       expect(result.statusLabel).toBe(label);
       expect(result.primaryAction).toMatchObject({
         kind: "retry",
-        label: "Retry Fix",
+        label: "Try again",
         isDisabled: false,
       });
       expect(result.canViewTask).toBe(true);
@@ -493,7 +593,7 @@ describe("getAITaskCardState", () => {
     expect(result.statusLabel).toBe("Completed");
     expect(result.primaryAction).toMatchObject({
       kind: "restart",
-      label: "Fix Again",
+      label: "Fix again",
     });
     expect(result.canViewTask).toBe(true);
   });
@@ -585,15 +685,25 @@ describe("getAITaskCardState", () => {
     ).toBe(true);
   });
 
-  test("uses each task type's own button wording", () => {
+  test("uses the wording of the presentation it is given: Fix with AI's, or a folded task's", () => {
     const regression: AITaskCardState = getAITaskCardState({
-      task: task(AIRunStatus.NoFixFound, {
+      task: task(AIRunStatus.Completed, {
         taskType: CodeFixTaskType.WriteRegressionTest,
       }),
       presentation: AI_TASK_PRESENTATION[CodeFixTaskType.WriteRegressionTest],
       ...gates,
     });
 
-    expect(regression.primaryAction?.label).toBe("Retry Regression Test");
+    expect(regression.primaryAction?.label).toBe("Run again");
+    expect(state(task(AIRunStatus.Completed)).primaryAction?.label).toBe(
+      "Fix again",
+    );
+    expect(
+      getAITaskCardState({
+        task: undefined,
+        presentation: AI_TASK_PRESENTATION[CodeFixTaskType.WriteRegressionTest],
+        ...gates,
+      }).primaryAction?.label,
+    ).toBe("Start");
   });
 });

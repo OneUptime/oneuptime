@@ -2,7 +2,8 @@ export default interface ChartReferenceLineProps {
   value: number;
   label?: string | undefined;
   color: string; // CSS color, e.g. "#f59e0b" or "red"
-  strokeDasharray?: string | undefined; // e.g. "4 4" for dashed
+  // e.g. "4 4" for dashed; left out, the line takes DEFAULT_REFERENCE_LINE_DASH.
+  strokeDasharray?: string | undefined;
   /*
    * Stretch the value axis to take the line in when it lies past the data
    * (recharts' ifOverflow "extendDomain"). Off by default, so a threshold
@@ -17,4 +18,23 @@ export default interface ChartReferenceLineProps {
    * (ReferenceLineShade). Left out, nothing is shaded.
    */
   shade?: "above" | "below" | undefined;
+}
+
+// The dash a reference line is drawn with when it names none of its own.
+export const DEFAULT_REFERENCE_LINE_DASH: string = "4 4";
+
+/*
+ * Where a chart writes its reference lines' labels.
+ *
+ *   - OnLine: at the right end of each line, inside the plot - where a long
+ *     label, or one in a language that words it longer, can sit on the
+ *     series it marks, and a line at the bottom of the plot puts its label
+ *     on the time axis's ticks.
+ *   - Legend: in a legend under the chart, each label beside a short stroke
+ *     drawn in its line's colour and dash. Nothing is written over the plot,
+ *     and the legend wraps on a phone.
+ */
+export enum ReferenceLineLabelPlacement {
+  OnLine = "OnLine",
+  Legend = "Legend",
 }

@@ -156,6 +156,7 @@ describe("readConnection: the teams a connection works in, as stored", () => {
       isBotInDefaultTeam: true,
       connectedTeamId: ENGINEERING,
       teamsReadAt: undefined,
+      removedTeams: [],
     });
   });
 
@@ -166,6 +167,7 @@ describe("readConnection: the teams a connection works in, as stored", () => {
       isBotInDefaultTeam: true,
       connectedTeamId: ENGINEERING,
       teamsReadAt: undefined,
+      removedTeams: [],
     });
   });
 
@@ -693,5 +695,215 @@ describe("getOfProject: the project's own connection", () => {
     expect(
       await MattermostTeams.getOfProject({ projectId: PROJECT_ID }),
     ).toBeNull();
+  });
+});
+
+/*
+ * #6775: THE TEAMS THE BOT WAS TAKEN OUT OF, BY THE NAMES THEY HAD.
+ *
+ * A rule that names a team the server no longer lists the bot in posts in
+ * no other team instead, and its card says so by the team's name - which
+ * the server, asked as the bot, no longer tells. So a team the server
+ * listed before and lists no more is kept by its name (removedTeams), the
+ * latest first, until the bot is added to it again.
+ */
+
+const finance: MattermostConnectionTeam = {
+  id: FINANCE,
+  name: "finance",
+  displayName: "Finance",
+};
+
+describe("removedTeams: the teams the bot was taken out of, as stored", () => {
+  test("by the names they had, the latest first; none the bot is in now, nor the default team, which isBotInDefaultTeam tells", () => {
+    const teams: MattermostTeamsOfConnection = read(
+      connection({
+        teams: [support],
+        teamsReadAt: minutesAgo(1),
+        removedTeams: [platform, engineering, support, finance],
+      }),
+    );
+
+    expect(teams.removedTeams).toEqual([platform, finance]);
+    expect(teams.isBotInDefaultTeam).toBe(false);
+  });
+
+  test("what is not a team is left out: an id Mattermost did not make, one twice, not an object", () => {
+    const teams: MattermostTeamsOfConnection = read(
+      connection({
+        teams: [engineering],
+        removedTeams: [
+          { id: "../users/me", name: "evil", displayName: "Evil" },
+          platform,
+          { ...platform, displayName: "Platform again" },
+          null as unknown as MattermostConnectionTeam,
+          "finance" as unknown as MattermostConnectionTeam,
+          { id: FINANCE, name: "finance" } as MattermostConnectionTeam,
+        ],
+      }),
+    );
+
+    expect(teams.removedTeams).toEqual([
+      platform,
+      { id: FINANCE, name: "finance", displayName: "finance" },
+    ]);
+  });
+
+  test("a connection that kept none, or a list that is not one: none", () => {
+    expect(read(connection({ teams: [engineering] })).removedTeams).toEqual([]);
+    expect(
+      read(
+        connection({
+          teams: [engineering],
+          removedTeams: "support" as unknown as Array<MattermostConnectionTeam>,
+        }),
+      ).removedTeams,
+    ).toEqual([]);
+  });
+});
+
+describe("getRemovedTeams: what the server stopped listing", () => {
+  test("those listed before and not now, then those removed before - each once, by the name it had, none listed now", () => {
+    expect(
+      MattermostTeams.getRemovedTeams({
+        listedBefore: [engineering, support, platform],
+        removedBefore: [finance, support, engineering],
+        listedNow: [engineering],
+      }),
+    ).toEqual([support, platform, finance]);
+  });
+
+  test("the bot added to a team again: no longer among them", () => {
+    expect(
+      MattermostTeams.getRemovedTeams({
+        listedBefore: [engineering],
+        removedBefore: [support],
+        listedNow: [engineering, support],
+      }),
+    ).toEqual([]);
+  });
+
+  test("a team without a display name keeps its name; one that is not a Mattermost id is not kept", () => {
+    expect(
+      MattermostTeams.getRemovedTeams({
+        listedBefore: [
+          { id: SUPPORT, name: "support", displayName: "" },
+          { id: "../users/me", name: "evil", displayName: "Evil" },
+        ],
+        removedBefore: [],
+        listedNow: [],
+      }),
+    ).toEqual([{ id: SUPPORT, name: "support", displayName: "support" }]);
+  });
+
+  test("at most MAX_REMOVED_TEAMS, the latest kept", () => {
+    const team: (index: number) => MattermostConnectionTeam = (
+      index: number,
+    ): MattermostConnectionTeam => {
+      return {
+        id: ("x".repeat(26) + index.toString()).slice(-26),
+        name: `team-${index}`,
+        displayName: `Team ${index}`,
+      };
+    };
+
+    const removedBefore: Array<MattermostConnectionTeam> = [];
+
+    for (let index: number = 0; index < 60; index++) {
+      removedBefore.push(team(index));
+    }
+
+    const removed: Array<MattermostConnectionTeam> =
+      MattermostTeams.getRemovedTeams({
+        listedBefore: [support],
+        removedBefore: removedBefore,
+        listedNow: [],
+      });
+
+    expect(MattermostTeams.MAX_REMOVED_TEAMS).toBe(50);
+    expect(removed).toHaveLength(50);
+    expect(removed[0]).toEqual(support);
+    expect(removed[49]).toEqual(team(48));
+  });
+});
+
+describe("listNow: a team the server stops listing is kept by its name", () => {
+  let listTeams: SpyInstance<typeof MattermostUtil.getTeamsOfBot>;
+  let keepTeams: SpyInstance<
+    typeof WorkspaceProjectAuthTokenService.updateMattermostTeams
+  >;
+
+  beforeEach(() => {
+    listTeams = jest.spyOn(MattermostUtil, "getTeamsOfBot");
+    keepTeams = jest
+      .spyOn(WorkspaceProjectAuthTokenService, "updateMattermostTeams")
+      .mockResolvedValue(undefined);
+  });
+
+  test("with those kept before, the latest first: kept for the next time, and said", async () => {
+    listTeams.mockResolvedValue([engineering]);
+
+    const teams: MattermostTeamsOfConnection | null =
+      await MattermostTeams.listNow({
+        projectId: PROJECT_ID,
+        projectAuth: connection({
+          teams: [engineering, support],
+          teamsReadAt: minutesAgo(30),
+          removedTeams: [platform],
+        }),
+      });
+
+    expect(teams!.removedTeams).toEqual([support, platform]);
+    expect(keepTeams.mock.calls[0]![0]).toMatchObject({
+      teams: [engineering],
+      removedTeams: [support, platform],
+    });
+  });
+
+  test("the bot added to a team again: no longer kept as one it was taken out of", async () => {
+    listTeams.mockResolvedValue([engineering, support]);
+
+    const teams: MattermostTeamsOfConnection | null =
+      await MattermostTeams.listNow({
+        projectId: PROJECT_ID,
+        projectAuth: connection({
+          teams: [engineering],
+          removedTeams: [support, platform],
+        }),
+      });
+
+    expect(teams!.removedTeams).toEqual([platform]);
+    expect(keepTeams.mock.calls[0]![0]).toMatchObject({
+      removedTeams: [platform],
+    });
+  });
+
+  test("the default team the bot was taken out of is kept by its name too, for when another team is made the default", async () => {
+    listTeams.mockResolvedValue([support]);
+
+    const teams: MattermostTeamsOfConnection | null =
+      await MattermostTeams.listNow({
+        projectId: PROJECT_ID,
+        projectAuth: connection({ teams: [engineering, support] }),
+      });
+
+    expect(keepTeams.mock.calls[0]![0]).toMatchObject({
+      removedTeams: [engineering],
+    });
+    // Still the default, and said so by isBotInDefaultTeam.
+    expect(teams!.isBotInDefaultTeam).toBe(false);
+    expect(teams!.removedTeams).toEqual([]);
+
+    // Support made the default since: Engineering is a team the bot left.
+    expect(
+      read(
+        connection({
+          teamId: SUPPORT,
+          teamName: "support",
+          teams: [support],
+          removedTeams: [engineering],
+        }),
+      ).removedTeams,
+    ).toEqual([engineering]);
   });
 });

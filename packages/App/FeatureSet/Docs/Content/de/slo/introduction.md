@@ -178,7 +178,7 @@ Die **Übersicht** beantwortet „Sind wir im Budget?“, von oben nach unten:
 - **Die Zusammenfassung**: der Status, ein Satz dazu, was er bedeutet, und die Beschreibung. Daneben stehen **Aktualisieren** und wann das SLO zuletzt ausgewertet wurde. Darunter stehen das Ziel, das **Compliance-Zeitfenster** (mit einem Füllstand-Chip, solange sich ein junges rollierendes Fenster füllt: siehe [Junge SLOs und die Füllstandsanzeige des Zeitfensters](#junge-slos-und-die-füllstandsanzeige-des-zeitfensters)), die Zahl der Monitore und die Eigentümer, mit **Eigentümer hinzufügen**, um direkt dort einen hinzuzufügen.
 - **Die wichtigsten Kennzahlen**:
   - **SLI**: der Anteil guter Zeit im Zeitfenster und wie weit er über oder unter dem Ziel liegt.
-  - **Verbleibendes Fehlerbudget**: ein Prozentsatz, eine Dauer wie "12m 30s left of 43m 12s" und ein Balken mit einer Markierung an der Risikoschwelle. Ist das Budget überzogen, zeigt die Kachel **Budget überschritten** und um wie viel.
+  - **Verbleibendes Fehlerbudget**: ein Prozentsatz, eine Dauer wie "Noch 12 Min., 30 Sek. von 43 Min., 12 Sek." und ein Balken mit einer Markierung an der Risikoschwelle. Ist das Budget überzogen, zeigt die Kachel **Budget überschritten** und um wie viel.
   - **Burn-Rate**: wie schnell das Budget in den letzten 60 Minuten verbraucht wird, dem Rückblick, den die standardmäßige Fast-Burn-Regel verwendet. Sie wird über 1× gelb und rot, mit **Regelschwellenwert erreicht**, beim niedrigsten Schwellenwert der aktivierten Burn-Rate-Regeln des SLO, die 6 Stunden oder weniger zurückblicken. Eine Stunde sagt wenig über eine Regel aus, die Tage zurückblickt, etwa **Slow leak**, deshalb wird sie nicht mit einer solchen Regel verglichen.
   - **Budget-Reichweite**: wie lange das Budget bei diesem Tempo reicht. Siehe [Fehlerbudgets](/docs/slo/error-budget#budget-reichweite).
 - **Fehlerbudget-Burn-down**: das verbleibende Budget über das aktuelle Zeitfenster. Siehe [Fehlerbudgets](/docs/slo/error-budget#fehlerbudget-burn-down).
@@ -240,7 +240,7 @@ Auch das Seitenmenü eines Monitors hat eine Seite **SLOs**: die SLOs, die diese
 
 Ein SLO mit rollierendem Zeitfenster, das jünger ist als sein Fenster, wird über die bisher vorhandenen Daten gemessen: Ein 30-Tage-SLO, das gestern erstellt wurde, hat einen Tag Daten. Sein Fehlerbudget beginnt klein und wächst, während sich das Fenster füllt, daher schwanken seine ersten Zahlen stärker als später.
 
-Solange das so ist, sagt die **Übersicht** es: Die Zusammenfassung zeigt einen Chip **Window 23% full** (**Fenster zu unter 1 % gefüllt** am ersten Tag), und die Kachel **Verbleibendes Fehlerbudget** wiederholt ihn unter ihrer Zahl. Beide verschwinden, sobald das Fenster voll ist. Kalendermonat-SLOs zeigen sie nie, weil ihr Budget vom ersten Tag an den ganzen Monat abdeckt, und SLOs im Modus **Durchschnitt der Monitorsekunden** ebenfalls nicht, weil ihr Budget über Monitore hinweg gezählt wird.
+Solange das so ist, sagt die **Übersicht** es: Die Zusammenfassung zeigt einen Chip **Fenster zu 23 % gefüllt** (**Fenster zu unter 1 % gefüllt** am ersten Tag), und die Kachel **Verbleibendes Fehlerbudget** wiederholt ihn unter ihrer Zahl. Beide verschwinden, sobald das Fenster voll ist. Kalendermonat-SLOs zeigen sie nie, weil ihr Budget vom ersten Tag an den ganzen Monat abdeckt, und SLOs im Modus **Durchschnitt der Monitorsekunden** ebenfalls nicht, weil ihr Budget über Monitore hinweg gezählt wird.
 
 ## Fehlerbehebung
 
