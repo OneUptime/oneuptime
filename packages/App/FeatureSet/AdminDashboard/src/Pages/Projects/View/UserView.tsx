@@ -27,6 +27,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import { useServerCanSendEmail } from "Common/UI/Utils/ServerSending";
+import { INVITATION_LINK_COPY } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
 import React, {
   Fragment,
   FunctionComponent,
@@ -38,6 +40,9 @@ import { useTranslation } from "react-i18next";
 
 const ProjectUserView: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+
+  // A server that cannot send email sent no invitation (#6825).
+  const cannotSendEmail: boolean = useServerCanSendEmail() === false;
   const userId: ObjectID = Navigation.getLastParamAsObjectID(0);
   const projectId: ObjectID = Navigation.getLastParamAsObjectID(2);
 
@@ -288,7 +293,16 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
                     if (item.hasAcceptedInvitation) {
                       return <Pill text="Member" color={Green} />;
                     }
-                    return <Pill text="Invitation Sent" color={Yellow} />;
+                    return (
+                      <Pill
+                        text={
+                          cannotSendEmail
+                            ? INVITATION_LINK_COPY.invitedPill
+                            : "Invitation Sent"
+                        }
+                        color={Yellow}
+                      />
+                    );
                   },
                 },
               ]}

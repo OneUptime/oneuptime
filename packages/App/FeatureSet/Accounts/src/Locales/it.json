@@ -157,7 +157,8 @@
     "successMessage": "Ti abbiamo inviato il link per il reset della password tramite e-mail. Non dimenticare di controllare la cartella spam.",
     "submitButton": "Invia link per il reset",
     "rememberPasswordPrompt": "Ricordi la tua password?",
-    "loginLink": "Accedi."
+    "loginLink": "Accedi.",
+    "cannotEmail": "Questo server non può ancora inviare email, quindi non può inviarti un link per reimpostare la password. Chiedi all’amministratore del server di reimpostare la tua password."
   },
   "magicLink": {
     "title": "Accedi con un link",
@@ -168,7 +169,8 @@
     "notReceived": "Non è nella posta in arrivo? Controlla la cartella spam o verifica di aver inserito l'indirizzo con cui ti sei registrato.",
     "sendAnother": "Invia un altro link",
     "knowPasswordPrompt": "Conosci la tua password?",
-    "loginLink": "Accedi."
+    "loginLink": "Accedi.",
+    "cannotEmail": "Questo server non può ancora inviare email, quindi non può inviarti un link di accesso. Accedi con la tua password, oppure chiedi all’amministratore del server di farti entrare."
   },
   "resetPassword": {
     "title": "Reimposta la password",
