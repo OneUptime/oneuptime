@@ -74,6 +74,8 @@ flowchart TB
 
 概覽就是取得整個頁面的一個要求。它與狀態頁繪製的資料相同，最多是 15 秒前的資料。
 
+除非您指定時區，否則運作率長條的日期都是 UTC 日期：在 `GET` 中加上 `?timezone=Asia/Shanghai`，或將 `{"timezone": "Asia/Shanghai"}` 作為 `POST` 的要求本文送出，`uptimeDailyAggregate` 和 `monitorGroupUptimeDailyAggregate` 就會按該時區的日期劃分，就像狀態頁為每位訪客所要求的那樣。伺服器不認得的時區按 UTC 處理，兩者都會在各自的 `timezone` 中說明是按哪個時區劃分的。
+
 :::tabs
 @tab curl
 ```bash
@@ -133,7 +135,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `resourceGroups` | 群組；巢狀群組帶有 `parentStatusPageGroupId`。 |
 | `monitorStatuses` | 專案的所有監控器狀態，依優先順序由低到高排列。 |
 | `monitorGroupCurrentStatuses`、`monitorsInGroup` | 頁面上每個監控器群組的目前狀態，以及其中的監控器。 |
-| `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 繪製運作率長條所用的資料，以及頁面的長條顏色規則。 |
+| `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupUptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 繪製運作率長條所用的資料，以及頁面的長條顏色規則。 |
 | `activeIncidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates` | 頁面顯示的未解決事件、它們的公開備註與狀態變化，以及專案的事件狀態。 |
 | `timelineIncidents` | 運作率長條時間範圍內的事件（包括已解決的），用於長條的提示說明。 |
 | `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | 事件片段的相同內容。 |

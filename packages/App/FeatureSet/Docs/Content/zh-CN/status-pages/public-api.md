@@ -74,6 +74,8 @@ flowchart TB
 
 概览就是取得整个页面的一个请求。它与状态页绘制的数据相同，最多是 15 秒前的数据。
 
+除非您指定时区，否则可用率条的日期都是 UTC 日期：在 `GET` 中加上 `?timezone=Asia/Shanghai`，或将 `{"timezone": "Asia/Shanghai"}` 作为 `POST` 的请求体发送，`uptimeDailyAggregate` 和 `monitorGroupUptimeDailyAggregate` 就会按该时区的日期划分，就像状态页为每位访问者所请求的那样。服务器不认识的时区按 UTC 处理，两者都会在各自的 `timezone` 中说明是按哪个时区划分的。
+
 :::tabs
 @tab curl
 ```bash
@@ -133,7 +135,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `resourceGroups` | 分组；嵌套分组带有 `parentStatusPageGroupId`。 |
 | `monitorStatuses` | 项目的所有监控器状态，按优先级从低到高排列。 |
 | `monitorGroupCurrentStatuses`、`monitorsInGroup` | 页面上每个监控器分组的当前状态，以及其中的监控器。 |
-| `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 绘制可用率条所用的数据，以及页面的条形颜色规则。 |
+| `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupUptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 绘制可用率条所用的数据，以及页面的条形颜色规则。 |
 | `activeIncidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates` | 页面显示的未解决事件、它们的公开备注和状态变化，以及项目的事件状态。 |
 | `timelineIncidents` | 可用率条时间窗口内的事件（包括已解决的），用于条形的提示信息。 |
 | `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | 事件片段的相同内容。 |

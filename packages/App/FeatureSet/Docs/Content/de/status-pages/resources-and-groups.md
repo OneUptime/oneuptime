@@ -119,6 +119,8 @@ Die Farben der Balken des Verlaufsdiagramms werden unter **Weitere Einstellungen
 
 Jeder Balken ist ein Tag. Zeigen Sie auf einen Balken oder klicken Sie ihn an (auf dem Telefon antippen, mit der Tastatur Enter drücken), um den Tag zu lesen: seine Verfügbarkeit, wie lange jeder Status dauerte, die an diesem Tag gemeldeten Vorfälle und die geplante Wartung, die an ihm lief, jeweils mit einem Link auf ihre eigene Seite. Ein Tag mit geplanter Wartung trägt oben an seinem Balken einen blauen Streifen, und solange ein Ereignis läuft, steht neben dem Namen jeder Ressource seiner Monitore „In Wartung“. Wartung ändert weder die Farbe eines Balkens noch die Verfügbarkeit, die beide aus den Status des Monitors kommen: Damit geplante Arbeit nicht in die Verfügbarkeit eingeht, wählen Sie für das Ereignis bei **Monitor-Status ändern in** einen Status, der nicht zu den Status unter **Zählt als Ausfallzeit** der Seite gehört. Siehe [Was ein Ereignis beeinflusst](/docs/scheduled-maintenance/index#was-ein-ereignis-beeinflusst).
 
+Jeder Balken ist ein Tag in der eigenen Zeitzone des Lesers, derselben, in der die Seite alle anderen Zeiten anzeigt, sodass der letzte Balken sein heutiger Tag ist. Der Balken einer Monitor-Gruppe zeigt, wie lange die Gruppe selbst an diesem Tag in jedem Status war: In jedem Moment hat die Gruppe den schlechtesten Status ihrer Monitore, sodass sich die Status eines Tages zu der Zeit addieren, in der mindestens einer ihrer Monitore geprüft wurde, und nie zu mehr als dem Tag.
+
 ## Gruppen
 
 Die meisten Gruppen brauchen nur einen Namen.

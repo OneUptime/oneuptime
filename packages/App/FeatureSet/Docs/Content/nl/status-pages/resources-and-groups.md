@@ -119,6 +119,8 @@ De kleuren van de balken in de geschiedenisgrafiek stelt u in onder **Meer inste
 
 Elke balk is één dag. Wijs een balk aan of klik erop (tik erop op een telefoon, of druk op Enter met het toetsenbord) om de dag te lezen: de beschikbaarheid, hoe lang elke status duurde, de incidenten die die dag zijn gemeld en het geplande onderhoud dat erop liep, elk met een link naar de eigen pagina. Een dag met gepland onderhoud heeft boven aan de balk een blauwe band, en zolang een gebeurtenis loopt, staat bij elke resource van haar monitors "In onderhoud" naast de naam. Onderhoud verandert niets aan de kleur van een balk of aan de beschikbaarheid, die uit de statussen van de monitor komen: om gepland werk buiten de beschikbaarheid te houden, kiest u voor de gebeurtenis bij **Monitorstatus wijzigen naar** een status die niet bij de statussen van **Telt als downtime** van de pagina hoort. Zie [Wat een gebeurtenis beïnvloedt](/docs/scheduled-maintenance/index#wat-een-gebeurtenis-beïnvloedt).
 
+Elke balk is een dag in de eigen tijdzone van de lezer, dezelfde waarin de pagina alle andere tijden toont, zodat de laatste balk zijn vandaag is. De balk van een monitorgroep laat zien hoe lang de groep zelf die dag in elke status was: op elk moment heeft de groep de slechtste status van haar monitoren, zodat de statussen van een dag optellen tot de tijd waarin minstens één van haar monitoren werd gecontroleerd, en nooit tot meer dan de dag.
+
 ## Groepen
 
 De meeste groepen hebben alleen een naam nodig.

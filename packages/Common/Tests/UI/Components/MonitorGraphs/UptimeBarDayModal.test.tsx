@@ -306,11 +306,12 @@ describe("UptimeBarDayModal - translation", () => {
 /*
  * The day is named in the zone its bar was drawn in.
  *
- * The status page's uptime strip is drawn on UTC days (its readings are cut
- * on UTC days, one cached payload for every visitor), so the bar a New York
- * visitor opens at eight in the evening on Sep 21 stands for Sep 22 UTC. The
- * dialog has to name that same day, and say it is a UTC day, or it titles the
- * day with a date the bar does not stand for.
+ * A bar can be drawn in another zone than the visitor's - a status page
+ * whose server could not cut the history in the visitor's zone draws UTC
+ * days - so the bar a New York visitor opens at eight in the evening on Sep
+ * 21 stands for Sep 22 UTC. The dialog has to name that same day, and say it
+ * is a UTC day, or it titles the day with a date the bar does not stand for;
+ * and it lists the day's incidents on that same clock (issue #6697).
  *
  * The visitor's zone is pinned with setUserTimezone so these read the same on
  * any machine. Every test that passes `timezone` fails on the pre-fix dialog:
@@ -441,9 +442,10 @@ describe("UptimeBarDayModal - the day is named in the zone its bar was drawn in"
     },
   );
 
-  test("the zone names the day only: an incident's time is still the visitor's own", () => {
+  test("on a UTC day, an incident's time is on the UTC clock too, named - the day it is listed on (issue #6697)", () => {
     OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
 
+    // 21:30 on Sep 21 in New York, 01:30 on Sep 22 in UTC.
     const declaredAt: Date = new Date("2026-09-22T01:30:00.000Z");
 
     render(
@@ -456,6 +458,36 @@ describe("UptimeBarDayModal - the day is named in the zone its bar was drawn in"
     );
 
     expect(screen.getByText("Sep 22, 2026 (UTC)")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        new RegExp(
+          escapeRegExp(
+            OneUptimeDate.getDateAsFormattedStringInTimezone({
+              date: declaredAt,
+              timezone: "UTC",
+            }),
+          ),
+        ),
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/EDT/)).not.toBeInTheDocument();
+  });
+
+  test("on a day drawn in the visitor's own zone, an incident's time is the visitor's own", () => {
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    const declaredAt: Date = new Date("2026-09-22T01:30:00.000Z");
+
+    render(
+      <UptimeBarDayModal
+        date={new Date("2026-09-21T04:00:00.000Z")}
+        timezone="America/New_York"
+        incidents={[makeIncident({ declaredAt: declaredAt })]}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("Sep 21, 2026")).toBeInTheDocument();
     expect(
       screen.getByText(
         new RegExp(

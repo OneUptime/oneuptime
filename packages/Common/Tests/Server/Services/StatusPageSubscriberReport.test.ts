@@ -977,7 +977,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
       });
     });
 
-    test("the old row merge cut the outage short", () => {
+    test("the row merge counts the whole outage too", () => {
       const period: StatusPageReportPeriod = reportPeriod();
 
       const groupRows: Array<MonitorStatusTimeline> =
@@ -986,18 +986,20 @@ describe("StatusPageService.getReportByStatusPage", () => {
         });
 
       /*
-       * The premise. UptimeUtil.getNonOverlappingMonitorEvents keeps one
-       * event at a time: a row of another monitor that starts later and runs
-       * longer ends the current one. Switch 01's Offline row ends Router's
-       * half a day in, and Router's Operational row ends Switch 01's a day
-       * early - two days of a three day outage, with no row cap involved.
+       * UptimeUtil.getNonOverlappingMonitorEvents used to keep one event at
+       * a time: a row of another monitor that started later and ran longer
+       * ended the current one. Switch 01's Offline row ended Router's half a
+       * day in, and Router's Operational row ended Switch 01's a day early -
+       * two days of a three day outage, with no row cap involved. It now
+       * takes the worst status at every instant (WorstStatusTimeline,
+       * issue #6697), so the rows count the three days the report does.
        */
       expect(
         UptimeUtil.getTotalDowntimeInSeconds(groupRows, [OFFLINE], {
           startDate: period.startDate,
           endDate: period.endDate,
         }).totalDowntimeInSeconds,
-      ).toBe(2 * 86400);
+      ).toBe(3 * 86400);
     });
 
     test("counts the time at least one monitor was down, once", async () => {

@@ -218,6 +218,7 @@ function cappedRowsForEdge(): Array<MonitorStatusTimeline> {
 type Spies = {
   mergedSpy: jest.SpyInstance;
   aggregateSpy: jest.SpyInstance;
+  groupAggregateSpy: jest.SpyInstance;
   timelineSpy: jest.SpyInstance;
 };
 
@@ -229,6 +230,17 @@ type WindowArgs = {
 
 type MergedArgs = WindowArgs & {
   downtimeMonitorStatusIds: Array<ObjectID | string>;
+};
+
+type GroupAggregateArgs = {
+  monitorGroups: Array<{
+    monitorGroupId: ObjectID;
+    monitorIds: Array<ObjectID>;
+  }>;
+  rankedMonitorStatusIds: Array<ObjectID | string>;
+  startDate: Date;
+  endDate: Date;
+  timezone?: string | undefined;
 };
 
 function mockOverview(data: {
@@ -303,12 +315,36 @@ function mockOverview(data: {
     timezone: "UTC",
   };
 
+  // empty, cut in the zone it was asked for, as the server's is.
   const aggregateSpy: jest.SpyInstance = (
     jest.spyOn(
       StatusPageService,
       "getUptimeDailyAggregateForStatusPage",
     ) as unknown as jest.SpyInstance
-  ).mockResolvedValue(emptyAggregate as never);
+  ).mockImplementation((args: unknown) => {
+    return Promise.resolve({
+      ...emptyAggregate,
+      timezone: (args as { timezone?: string }).timezone || "UTC",
+    });
+  });
+
+  const groupAggregateSpy: jest.SpyInstance = (
+    jest.spyOn(
+      StatusPageService,
+      "getMonitorGroupUptimeDailyAggregateForStatusPage",
+    ) as unknown as jest.SpyInstance
+  ).mockImplementation((args: unknown) => {
+    const request: GroupAggregateArgs = args as GroupAggregateArgs;
+
+    return Promise.resolve({
+      monitorGroups: request.monitorGroups.map(
+        (group: { monitorGroupId: ObjectID }) => {
+          return { monitorGroupId: group.monitorGroupId, buckets: [] };
+        },
+      ),
+      timezone: request.timezone || "UTC",
+    });
+  });
 
   const mergedSpy: jest.SpyInstance = (
     jest.spyOn(
@@ -342,7 +378,7 @@ function mockOverview(data: {
     ) as unknown as jest.SpyInstance
   ).mockResolvedValue([] as never);
 
-  return { mergedSpy, aggregateSpy, timelineSpy };
+  return { mergedSpy, aggregateSpy, groupAggregateSpy, timelineSpy };
 }
 
 function mergedRequests(mergedSpy: jest.SpyInstance): Array<MergedArgs> {
@@ -523,5 +559,196 @@ describe("StatusPageAPI overview: monitorGroupMergedDowntime", () => {
         ),
       ),
     ).toBe(99.72);
+  });
+});
+
+/*
+ * The overview's uptime history - every monitor's and every monitor
+ * group's day buckets - is cut in the visitor's zone (issue #6697: the bars
+ * were UTC days for everyone, and a group's day was merged in the browser
+ * from capped rows and could add up to nine days).
+ */
+describe("StatusPageAPI overview: the uptime history, in the visitor's zone", () => {
+  let api: StatusPageAPI;
+
+  beforeAll(() => {
+    mockRouter.routes.length = 0;
+    api = new StatusPageAPI();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function groupRequest(spy: jest.SpyInstance): GroupAggregateArgs {
+    expect(spy).toHaveBeenCalledTimes(1);
+    return spy.mock.calls[0]![0] as GroupAggregateArgs;
+  }
+
+  it("cuts every monitor's and every monitor group's days in the zone the visitor sent", async () => {
+    const spies: Spies = mockOverview({ resources: everyKindOfResource() });
+
+    const payload: JSONObject = await api.buildOverviewResponse(
+      STATUS_PAGE_ID,
+      { timezone: "Asia/Shanghai" },
+    );
+
+    const aggregateRequest: WindowArgs & { timezone?: string } = spies
+      .aggregateSpy.mock.calls[0]![0] as WindowArgs & { timezone?: string };
+
+    expect(aggregateRequest.timezone).toBe("Asia/Shanghai");
+    expect(groupRequest(spies.groupAggregateSpy).timezone).toBe(
+      "Asia/Shanghai",
+    );
+
+    expect((payload["uptimeDailyAggregate"] as JSONObject)["timezone"]).toBe(
+      "Asia/Shanghai",
+    );
+    expect(
+      (payload["monitorGroupUptimeDailyAggregate"] as JSONObject)["timezone"],
+    ).toBe("Asia/Shanghai");
+  });
+
+  it("cuts them in UTC when the visitor sent no zone, or one it cannot use", async () => {
+    for (const timezone of [undefined, "", "Mars/Olympus_Mons", 480]) {
+      jest.restoreAllMocks();
+      const spies: Spies = mockOverview({ resources: everyKindOfResource() });
+
+      await api.buildOverviewResponse(STATUS_PAGE_ID, { timezone });
+
+      expect(
+        (spies.aggregateSpy.mock.calls[0]![0] as { timezone?: string })
+          .timezone,
+      ).toBe("UTC");
+      expect(groupRequest(spies.groupAggregateSpy).timezone).toBe("UTC");
+    }
+  });
+
+  it("asks for a legacy zone a browser reports by its current name", async () => {
+    const spies: Spies = mockOverview({ resources: everyKindOfResource() });
+
+    await api.buildOverviewResponse(STATUS_PAGE_ID, {
+      timezone: "Asia/Calcutta",
+    });
+
+    expect(groupRequest(spies.groupAggregateSpy).timezone).toBe("Asia/Kolkata");
+  });
+
+  it("asks for each monitor group whose resource shows its history or uptime, once, with its monitors", async () => {
+    const spies: Spies = mockOverview({ resources: everyKindOfResource() });
+
+    await api.buildOverviewResponse(STATUS_PAGE_ID);
+
+    const request: GroupAggregateArgs = groupRequest(spies.groupAggregateSpy);
+
+    // Edge is listed twice and asked once; Hidden draws its chart, so it is asked too.
+    expect(
+      request.monitorGroups.map(
+        (group: { monitorGroupId: ObjectID; monitorIds: Array<ObjectID> }) => {
+          return [
+            group.monitorGroupId.toString(),
+            group.monitorIds.map((id: ObjectID) => {
+              return id.toString();
+            }),
+          ];
+        },
+      ),
+    ).toEqual([
+      [EDGE.toString(), [MONITOR_A.toString(), MONITOR_B.toString()]],
+      [EDGE_MIRROR.toString(), [MONITOR_B.toString(), MONITOR_A.toString()]],
+      [PAYMENTS.toString(), [MONITOR_C.toString()]],
+      [HIDDEN.toString(), [MONITOR_D.toString()]],
+    ]);
+  });
+
+  it("ranks the statuses with the page's downtime statuses worst, over the same window as everything else", async () => {
+    const spies: Spies = mockOverview({ resources: everyKindOfResource() });
+
+    await api.buildOverviewResponse(STATUS_PAGE_ID);
+
+    const request: GroupAggregateArgs = groupRequest(spies.groupAggregateSpy);
+    const aggregateRequest: WindowArgs = spies.aggregateSpy.mock
+      .calls[0]![0] as WindowArgs;
+    const mergedRequest: MergedArgs = spies.mergedSpy.mock
+      .calls[0]![0] as MergedArgs;
+
+    expect(
+      request.rankedMonitorStatusIds.map((id: ObjectID | string) => {
+        return id.toString();
+      }),
+    ).toEqual([OPERATIONAL.id!.toString(), OFFLINE.id!.toString()]);
+
+    // one window for the bars, the groups' days and the groups' merged figure.
+    expect(request.startDate).toBe(aggregateRequest.startDate);
+    expect(request.endDate).toBe(aggregateRequest.endDate);
+    expect(mergedRequest.startDate).toBe(aggregateRequest.startDate);
+    expect(mergedRequest.endDate).toBe(aggregateRequest.endDate);
+  });
+
+  it("ships each group's days as plain JSON the browser reads back", async () => {
+    mockOverview({ resources: everyKindOfResource() });
+
+    const payload: JSONObject = await api.buildOverviewResponse(
+      STATUS_PAGE_ID,
+      { timezone: "Europe/Berlin" },
+    );
+
+    const wire: JSONObject = JSON.parse(JSON.stringify(payload)) as JSONObject;
+    const groups: JSONObject = wire[
+      "monitorGroupUptimeDailyAggregate"
+    ] as JSONObject;
+
+    expect(JSON.stringify(groups)).not.toContain("_type");
+    expect(groups["timezone"]).toBe("Europe/Berlin");
+    expect(
+      (groups["monitorGroups"] as JSONArray).map((group: unknown) => {
+        return (group as JSONObject)["monitorGroupId"];
+      }),
+    ).toEqual([
+      EDGE.toString(),
+      EDGE_MIRROR.toString(),
+      PAYMENTS.toString(),
+      HIDDEN.toString(),
+    ]);
+  });
+
+  it("falls back to UTC, and says so, when the database cannot cut days in the zone", async () => {
+    const spies: Spies = mockOverview({ resources: everyKindOfResource() });
+
+    spies.groupAggregateSpy.mockImplementationOnce(() => {
+      return Promise.reject(
+        new Error('time zone "Asia/Shanghai" not recognized'),
+      );
+    });
+
+    const payload: JSONObject = await api.buildOverviewResponse(
+      STATUS_PAGE_ID,
+      { timezone: "Asia/Shanghai" },
+    );
+
+    expect(spies.groupAggregateSpy).toHaveBeenCalledTimes(2);
+    expect(
+      (spies.groupAggregateSpy.mock.calls[1]![0] as GroupAggregateArgs)
+        .timezone,
+    ).toBe("UTC");
+    expect(
+      (payload["monitorGroupUptimeDailyAggregate"] as JSONObject)["timezone"],
+    ).toBe("UTC");
+    expect((payload["uptimeDailyAggregate"] as JSONObject)["timezone"]).toBe(
+      "UTC",
+    );
+  });
+
+  it("does not hide what a UTC history fails on", async () => {
+    const spies: Spies = mockOverview({ resources: everyKindOfResource() });
+
+    spies.groupAggregateSpy.mockImplementation(() => {
+      return Promise.reject(new Error("database went away"));
+    });
+
+    await expect(
+      api.buildOverviewResponse(STATUS_PAGE_ID, { timezone: "UTC" }),
+    ).rejects.toThrow("database went away");
+    expect(spies.groupAggregateSpy).toHaveBeenCalledTimes(1);
   });
 });

@@ -1197,12 +1197,21 @@ describe("UptimeUtil chronological order (grey bars at the end of the status pag
           "2026-09-21T12:47:40.540Z -> 2026-09-22T09:00:00.000Z Operational",
         ]);
 
-        const lastNonOverlappingEvent: Event =
-          UptimeUtil.getNonOverlappingMonitorEvents(rows).pop()!;
+        /*
+         * The zero-length Offline row covers nothing, so in the merged
+         * timeline the two Operational rows meet and are one event, from the
+         * first row's start to now.
+         */
+        const nonOverlappingEvents: Array<Event> =
+          UptimeUtil.getNonOverlappingMonitorEvents(rows);
+
+        expect(nonOverlappingEvents).toHaveLength(1);
+
+        const lastNonOverlappingEvent: Event = nonOverlappingEvents.pop()!;
 
         expect(lastNonOverlappingEvent.label).toBe("Operational");
         expect(toIso(lastNonOverlappingEvent.startDate)).toBe(
-          "2026-09-21T12:47:40.540Z",
+          "2026-09-21T12:00:00.000Z",
         );
         expect(toIso(lastNonOverlappingEvent.endDate)).toBe(NOW.toISOString());
       }
