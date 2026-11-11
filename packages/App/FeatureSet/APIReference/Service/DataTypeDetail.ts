@@ -2589,6 +2589,11 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
           "Whether the SSL certificate is invalid. Use with 'True' or 'False'. Applies to: SSL Certificate monitors.",
       },
       {
+        value: "Is Revoked Certificate",
+        description:
+          "Whether the certificate's issuer has revoked the SSL certificate, as an OCSP response or a CRL the issuer signed says. Use with 'True' or 'False'. A certificate whose revocation could not be checked counts as not revoked. A revoked certificate is also not valid, so 'Is Not A Valid Certificate' catches it too. Applies to: SSL Certificate monitors.",
+      },
+      {
         value: "Result Value",
         description:
           "The return value from custom JavaScript code execution. Use with any FilterType. Applies to: Custom JavaScript Code monitors.",

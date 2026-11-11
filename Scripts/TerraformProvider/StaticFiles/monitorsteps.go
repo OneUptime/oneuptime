@@ -147,6 +147,7 @@ var monitorStepsCheckOnValues = []string{
 	"Is Expired Certificate",
 	"Is Valid Certificate",
 	"Is Not A Valid Certificate",
+	"Is Revoked Certificate",
 	"Is Request Timeout",
 	"Result Value",
 	"Error",

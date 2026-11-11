@@ -25,6 +25,7 @@ import BasicInfrastructureMetrics, {
 } from "../../../Types/Infrastructure/BasicMetrics";
 import Typeof from "../../../Types/Typeof";
 import SslMonitorResponse from "../../../Types/Monitor/SSLMonitor/SslMonitorResponse";
+import CertificateRevocationStatus from "../../../Types/Monitor/SSLMonitor/CertificateRevocationStatus";
 import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import CustomCodeMonitorResponse from "../../../Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
@@ -71,6 +72,7 @@ import ProbeStatusMonitorCriteria from "./Criteria/ProbeStatusMonitorCriteria";
 import ProbeStatusMonitorResponse from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import ProbeStatusMonitorUtil from "../../../Utils/Monitor/ProbeStatusMonitorUtil";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
+import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
 import ExceptionMonitorCriteria from "./Criteria/ExceptionMonitorCriteria";
 import ExceptionLearnedBaselineUtil from "./ExceptionLearnedBaseline";
 import { isExceptionCountAnomaly } from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
@@ -196,11 +198,12 @@ export default class MonitorCriteriaObservationBuilder {
           input,
         );
       case CheckOn.IsValidCertificate:
-        return MonitorCriteriaObservationBuilder.describeIsValidObservation(
+      case CheckOn.IsNotAValidCertificate:
+        return MonitorCriteriaObservationBuilder.describeCertificateValidityObservation(
           input,
         );
-      case CheckOn.IsNotAValidCertificate:
-        return MonitorCriteriaObservationBuilder.describeIsInvalidObservation(
+      case CheckOn.IsRevokedCertificate:
+        return MonitorCriteriaObservationBuilder.describeIsRevokedObservation(
           input,
         );
       case CheckOn.ResultValue:
@@ -1342,64 +1345,79 @@ export default class MonitorCriteriaObservationBuilder {
       : "SSL certificate is not expired.";
   }
 
-  private static describeIsValidObservation(input: {
+  /*
+   * What IsValidCertificate and IsNotAValidCertificate found, judged as the
+   * criteria judge it (SSLMonitorCriteria.isValidCertificate): the probe's
+   * own verdict, and the old inference from the expiry date and the
+   * self-signed flag only for a response written before the probe recorded
+   * one.
+   *
+   * Both used to infer validity from those two alone, so a certificate the
+   * criteria called not valid - revoked by its issuer, issued for another
+   * host name, from an authority browsers do not trust - was described as
+   * valid while the monitor went offline. A certificate that is not valid is
+   * described with the root cause the criteria give, which says why.
+   */
+  private static describeCertificateValidityObservation(input: {
     dataToProcess: DataToProcess;
   }): string | null {
     const probeResponse: ProbeMonitorResponse | null =
       MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
 
-    const sslResponse: SslMonitorResponse | undefined =
-      probeResponse?.sslResponse;
-
-    const isValid: boolean = Boolean(
-      sslResponse &&
-        probeResponse?.isOnline &&
-        sslResponse.expiresAt &&
-        !sslResponse.isSelfSigned &&
-        OneUptimeDate.isAfter(
-          sslResponse.expiresAt,
-          OneUptimeDate.getCurrentDate(),
-        ),
-    );
-
-    if (!sslResponse) {
+    if (
+      !probeResponse ||
+      (probeResponse.isOnline && !probeResponse.sslResponse)
+    ) {
       return "SSL certificate details were unavailable.";
     }
 
-    return isValid
-      ? "SSL certificate is valid."
-      : "SSL certificate is not valid.";
+    if (SSLMonitorCriteria.isValidCertificate(probeResponse)) {
+      return "SSL certificate is valid.";
+    }
+
+    return SSLMonitorCriteria.invalidCertificateReason(probeResponse);
   }
 
-  private static describeIsInvalidObservation(input: {
+  /*
+   * Whether the certificate's issuer has revoked it, as the probe found out
+   * from the issuer's signed OCSP response or CRL. Unknown - no signed answer
+   * could be had - is said with the probe's reason; no status at all means
+   * the check did not run (the certificate failed validation for another
+   * reason, the probe has the check turned off, or it is older than the
+   * check).
+   */
+  private static describeIsRevokedObservation(input: {
     dataToProcess: DataToProcess;
   }): string | null {
-    const probeResponse: ProbeMonitorResponse | null =
-      MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
-
-    const sslResponse: SslMonitorResponse | undefined =
-      probeResponse?.sslResponse;
-
-    const isInvalid: boolean =
-      !sslResponse ||
-      !probeResponse?.isOnline ||
-      Boolean(
-        sslResponse &&
-          sslResponse.expiresAt &&
-          (sslResponse.isSelfSigned ||
-            OneUptimeDate.isBefore(
-              sslResponse.expiresAt,
-              OneUptimeDate.getCurrentDate(),
-            )),
-      );
+    const sslResponse: SslMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getSslResponse(input.dataToProcess);
 
     if (!sslResponse) {
-      return "SSL certificate details were unavailable.";
+      return "SSL certificate revocation status was unavailable.";
     }
 
-    return isInvalid
-      ? "SSL certificate is not valid."
-      : "SSL certificate is valid.";
+    if (SSLMonitorCriteria.isRevokedCertificate(sslResponse)) {
+      return SSLMonitorCriteria.revokedCertificateReason(sslResponse);
+    }
+
+    if (
+      sslResponse.revocationStatus === CertificateRevocationStatus.NotRevoked
+    ) {
+      return "SSL certificate is not revoked.";
+    }
+
+    if (sslResponse.revocationStatus === CertificateRevocationStatus.Unknown) {
+      const problem: string =
+        typeof sslResponse.revocationCheckError === "string"
+          ? sslResponse.revocationCheckError.trim()
+          : "";
+
+      return problem
+        ? `SSL certificate revocation status could not be checked: ${problem}`
+        : "SSL certificate revocation status could not be checked.";
+    }
+
+    return "SSL certificate revocation status was unavailable.";
   }
 
   private static describeExecutionTimeObservation(input: {

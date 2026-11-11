@@ -674,6 +674,7 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.IsSelfSignedCertificate ||
           i.value === CheckOn.IsExpiredCertificate ||
           i.value === CheckOn.IsNotAValidCertificate ||
+          i.value === CheckOn.IsRevokedCertificate ||
           i.value === CheckOn.ExpiresInDays ||
           i.value === CheckOn.ExpiresInHours
         );
@@ -1279,7 +1280,8 @@ export default class CriteriaFilterUtil {
       checkOn === CheckOn.IsValidCertificate ||
       checkOn === CheckOn.IsSelfSignedCertificate ||
       checkOn === CheckOn.IsExpiredCertificate ||
-      checkOn === CheckOn.IsNotAValidCertificate
+      checkOn === CheckOn.IsNotAValidCertificate ||
+      checkOn === CheckOn.IsRevokedCertificate
     ) {
       options = options.filter((i: DropdownOption) => {
         return i.value === FilterType.True || i.value === FilterType.False;

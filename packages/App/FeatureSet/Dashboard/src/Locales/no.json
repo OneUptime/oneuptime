@@ -50003,5 +50003,11 @@
   "Failed Refreshes": "Failed Refreshes",
   "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.": "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.",
   "Refresh Monitor ID": "Refresh Monitor ID",
-  "The alert on failed refreshes was not saved: {{error}}": "The alert on failed refreshes was not saved: {{error}}"
+  "The alert on failed refreshes was not saved: {{error}}": "The alert on failed refreshes was not saved: {{error}}",
+  "Could Not Be Checked": "Kunne ikke kontrolleres",
+  "Is Revoked Certificate": "Er tilbakekalt sertifikat",
+  "Not Revoked": "Ikke tilbakekalt",
+  "Revocation Check Problem": "Problem med kontroll av tilbakekalling",
+  "Revocation Checked With": "Tilbakekalling kontrollert via",
+  "Revocation Status": "Tilbakekallingsstatus"
 }

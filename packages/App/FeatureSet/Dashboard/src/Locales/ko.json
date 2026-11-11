@@ -50003,5 +50003,11 @@
   "Failed Refreshes": "Failed Refreshes",
   "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.": "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.",
   "Refresh Monitor ID": "Refresh Monitor ID",
-  "The alert on failed refreshes was not saved: {{error}}": "The alert on failed refreshes was not saved: {{error}}"
+  "The alert on failed refreshes was not saved: {{error}}": "The alert on failed refreshes was not saved: {{error}}",
+  "Could Not Be Checked": "확인할 수 없음",
+  "Is Revoked Certificate": "취소된 인증서 여부",
+  "Not Revoked": "취소되지 않음",
+  "Revocation Check Problem": "취소 확인 문제",
+  "Revocation Checked With": "취소 확인 방법",
+  "Revocation Status": "취소 상태"
 }

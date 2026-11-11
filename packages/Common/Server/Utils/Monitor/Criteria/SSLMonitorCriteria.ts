@@ -6,6 +6,7 @@ import {
   CriteriaFilter,
   FilterType,
 } from "../../../../Types/Monitor/CriteriaFilter";
+import CertificateRevocationStatus from "../../../../Types/Monitor/SSLMonitor/CertificateRevocationStatus";
 import SslMonitorResponse from "../../../../Types/Monitor/SSLMonitor/SslMonitorResponse";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
@@ -174,6 +175,30 @@ export default class ServerMonitorCriteria {
       }
     }
 
+    if (input.criteriaFilter.checkOn === CheckOn.IsRevokedCertificate) {
+      /*
+       * Only the issuer's signed answer counts. A status of Unknown (no
+       * answer could be had) or none at all (the check did not run) is not
+       * a revocation, as in a browser.
+       */
+      const isRevoked: boolean =
+        ServerMonitorCriteria.isRevokedCertificate(sslResponse);
+
+      const isTrue: boolean =
+        input.criteriaFilter.filterType === FilterType.True;
+
+      const isFalse: boolean =
+        input.criteriaFilter.filterType === FilterType.False;
+
+      if (isRevoked && isTrue) {
+        return ServerMonitorCriteria.revokedCertificateReason(sslResponse!);
+      }
+
+      if (!isRevoked && isFalse) {
+        return "SSL certificate is not revoked.";
+      }
+    }
+
     if (input.criteriaFilter.checkOn === CheckOn.ExpiresInHours) {
       threshold = CompareCriteria.convertToNumber(threshold);
 
@@ -232,7 +257,9 @@ export default class ServerMonitorCriteria {
   /*
    * The single source of truth for "is this certificate trustworthy",
    * shared by IsValidCertificate and IsNotAValidCertificate so the two can
-   * never both be false for the same response.
+   * never both be false for the same response - and by the evaluation's
+   * description of what was found (MonitorCriteriaObservationBuilder), so a
+   * certificate the criteria call not valid is never described as valid.
    *
    * The probe now records the strict-TLS verdict explicitly on
    * sslResponse.isValidCertificate. Responses written before that field
@@ -240,8 +267,12 @@ export default class ServerMonitorCriteria {
    * still running an older build) do not carry it, so the pre-existing
    * heuristic is kept as the fallback rather than treating those as
    * invalid and flipping healthy monitors to Down on upgrade.
+   *
+   * A revoked certificate needs nothing here: the probe records it as not
+   * valid (isValidCertificate false, CERT_REVOKED), like any other
+   * certificate a browser would refuse.
    */
-  private static isValidCertificate(
+  public static isValidCertificate(
     dataToProcess: ProbeMonitorResponse,
   ): boolean {
     const sslResponse: SslMonitorResponse | undefined =
@@ -272,7 +303,7 @@ export default class ServerMonitorCriteria {
    * not valid" on its own is not good enough when the probe knows it was a
    * hostname mismatch.
    */
-  private static invalidCertificateReason(
+  public static invalidCertificateReason(
     dataToProcess: ProbeMonitorResponse,
   ): string {
     const sslResponse: SslMonitorResponse | undefined =
@@ -286,8 +317,13 @@ export default class ServerMonitorCriteria {
       return "SSL certificate is not valid.";
     }
 
+    // The probe names a revocation here too: when, and why.
     if (sslResponse.certificateValidationError) {
       return `SSL certificate is not valid: ${sslResponse.certificateValidationError}`;
+    }
+
+    if (ServerMonitorCriteria.isRevokedCertificate(sslResponse)) {
+      return `SSL certificate is not valid: the certificate ${ServerMonitorCriteria.describeRevocation(sslResponse)}.`;
     }
 
     if (sslResponse.isSelfSigned) {
@@ -305,5 +341,62 @@ export default class ServerMonitorCriteria {
     }
 
     return "SSL certificate is not valid.";
+  }
+
+  /*
+   * Whether the issuer's signed answer (an OCSP response or a CRL) says the
+   * certificate is revoked. Unknown - no signed answer could be had - and
+   * no status at all (the check did not run: the certificate failed
+   * validation for another reason, the probe has the check turned off, or
+   * the probe is older than the check) are not a revocation, as in a
+   * browser.
+   */
+  public static isRevokedCertificate(
+    sslResponse: SslMonitorResponse | undefined | null,
+  ): boolean {
+    return (
+      sslResponse?.revocationStatus === CertificateRevocationStatus.Revoked
+    );
+  }
+
+  // "SSL certificate has been revoked by its issuer on <when> (reason: <why>)."
+  public static revokedCertificateReason(
+    sslResponse: SslMonitorResponse,
+  ): string {
+    return `SSL certificate ${ServerMonitorCriteria.describeRevocation(sslResponse)}.`;
+  }
+
+  /*
+   * "has been revoked by its issuer on 2026-11-10T08:00:00.000Z (reason: Key
+   * Compromise)", leaving out whichever of the two the issuer did not say.
+   * The date reaches the server as an ISO string (the probe's response is
+   * sent as JSON); one that cannot be read is left out rather than shown
+   * as "Invalid Date".
+   */
+  private static describeRevocation(sslResponse: SslMonitorResponse): string {
+    let description: string = "has been revoked by its issuer";
+
+    const revokedAt: string | null = OneUptimeDate.toIsoStringOrNull(
+      sslResponse.revokedAt,
+    );
+
+    if (revokedAt) {
+      /*
+       * Written as the probe writes it in the certificate problem
+       * ("2026-11-10 08:00:00 UTC"), so the two read alike in one incident.
+       */
+      description += ` on ${revokedAt.replace("T", " ").slice(0, 19)} UTC`;
+    }
+
+    const reason: string =
+      typeof sslResponse.revocationReason === "string"
+        ? sslResponse.revocationReason.trim()
+        : "";
+
+    if (reason) {
+      description += ` (reason: ${reason})`;
+    }
+
+    return description;
   }
 }

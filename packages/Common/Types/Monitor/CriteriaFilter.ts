@@ -35,6 +35,7 @@ export enum CheckOn {
   IsExpiredCertificate = "Is Expired Certificate",
   IsValidCertificate = "Is Valid Certificate",
   IsNotAValidCertificate = "Is Not A Valid Certificate",
+  IsRevokedCertificate = "Is Revoked Certificate",
   IsRequestTimeout = "Is Request Timeout",
 
   // Custom code or synthetic monitor.
@@ -643,7 +644,8 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.IsValidCertificate ||
       checkOn === CheckOn.IsSelfSignedCertificate ||
       checkOn === CheckOn.IsExpiredCertificate ||
-      checkOn === CheckOn.IsNotAValidCertificate
+      checkOn === CheckOn.IsNotAValidCertificate ||
+      checkOn === CheckOn.IsRevokedCertificate
     ) {
       return false;
     }
