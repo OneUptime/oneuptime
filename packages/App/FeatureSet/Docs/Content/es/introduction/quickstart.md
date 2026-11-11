@@ -32,7 +32,7 @@ Escribe un **Nombre del proyecto**, por ejemplo el nombre de tu empresa. En OneU
 
 ### Crearlo
 
-Haz clic en **Crear proyecto**. Se abre la página de inicio de tu proyecto, con la lista **Te damos la bienvenida a OneUptime 👋** arriba.
+Haz clic en **Crear proyecto**. Se abre la página de inicio de tu proyecto, con la lista **Te damos la bienvenida a OneUptime 👋** arriba. Primero pregunta **¿Qué quieres hacer primero?**: marca **Saber cuándo cae mi sitio web o mi API**, **Avisar a la persona adecuada cuando algo falle** y **Informar a mis clientes con una página de estado**, y haz clic en **Continuar**.
 :::
 
 ## Monitorizar tu sitio web

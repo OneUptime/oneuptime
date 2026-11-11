@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50583,
-    "untranslated": 9703
+    "keys": 50698,
+    "untranslated": 9696
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -193,6 +193,7 @@
     "{\"version\": \"...\", \"records\": [...]}",
     "{{count}} CPU",
     "{{count}} Kubernetes",
+    "{{count}} SMS",
     "{{in}} in"
   ]
 }

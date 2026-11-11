@@ -87,6 +87,8 @@ const LITERAL_PATTERNS: Array<RegExp> = [
   new RegExp(`\\btitle=${STRING_LITERAL}`, "g"),
   new RegExp(`\\bdescription=${STRING_LITERAL}`, "g"),
   new RegExp(`HOW_IT_WORKS_\\w+: string =\\s*${STRING_LITERAL}`, "g"),
+  // The Welcome checklist's catalog marks its words for translation (#6803).
+  new RegExp(`\\btranslationKey\\(\\s*${STRING_LITERAL}`, "g"),
 ];
 
 const uiLiterals: (source: string) => Array<string> = (
@@ -121,6 +123,9 @@ const NAV_DESCRIPTION_KEYS: Array<string> = [
 const COGNATE_KEYS: Array<string> = [
   "navbar.categories.infrastructure",
   "help.documentation",
+  "help.quickstart",
+  "help.glossary",
+  "help.howOneUptimeWorks",
 ];
 
 // The core list pages and the file holding each one's card description.
@@ -298,6 +303,7 @@ describe("Home orientation copy", () => {
   const FILES: Array<Array<string>> = [
     ["Components", "Home", "HowOneUptimeWorks.tsx"],
     ["Components", "Home", "GettingStarted.tsx"],
+    ["Components", "Home", "WelcomeChecklist", "WelcomeChecklistCatalog.ts"],
   ];
 
   const literals: Array<string> = FILES.flatMap(
@@ -313,13 +319,16 @@ describe("Home orientation copy", () => {
         "Incidents & Alerts",
         "Pages the right person, and escalates if nobody answers.",
         "Welcome to OneUptime 👋",
-        "Dismiss",
+        "Hide",
         "steps completed",
         "Create your first monitor",
-        "Page the right person when an incident or alert opens. Until then, the project's owners get an email.",
+        "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the project's owners get an email.",
+        "What do you want to do first?",
+        "Know when my website or API is down",
+        "Back to setup",
       ]),
     );
-    expect(literals.length).toBeGreaterThanOrEqual(23);
+    expect(literals.length).toBeGreaterThanOrEqual(50);
   });
 
   test("every English literal is a key in en.json that maps to itself", () => {
@@ -365,16 +374,33 @@ describe("Help menu", () => {
     expect(source).not.toContain("oneuptime.com/docs");
   });
 
-  test("the Documentation entry comes before every other entry", () => {
-    const docs: number = source.indexOf('t("help.documentation"');
-    expect(docs).toBeGreaterThan(-1);
+  test("the ways to learn come first: Quickstart, How OneUptime works, Glossary, Documentation", () => {
+    const learn: Array<number> = [
+      't("help.quickstart"',
+      't("help.howOneUptimeWorks"',
+      't("help.glossary"',
+      't("help.documentation"',
+    ].map((call: string): number => {
+      return source.indexOf(call);
+    });
+
+    for (const index of learn) {
+      expect(index).toBeGreaterThan(-1);
+    }
+    expect(
+      [...learn].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(learn);
+
+    const lastLearn: number = learn[learn.length - 1]!;
     for (const other of [
       't("keyboardShortcuts.title"',
       't("help.supportEmail")',
       't("help.chatSlack")',
       't("help.requestDemo")',
     ]) {
-      expect(source.indexOf(other)).toBeGreaterThan(docs);
+      expect(source.indexOf(other)).toBeGreaterThan(lastLearn);
     }
   });
 });

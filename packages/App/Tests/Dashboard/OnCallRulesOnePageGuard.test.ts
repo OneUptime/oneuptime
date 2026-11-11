@@ -288,9 +288,11 @@ describe("the old addresses are named once, and linked from nowhere", () => {
       for (const retired of RETIRED_RULE_PAGE_PATHS) {
         /*
          * As a path segment or a quoted value - not as part of a longer name
-         * such as the incident settings' "incident-on-call-rules-table".
+         * such as the incident settings' "incident-on-call-rules-table", nor
+         * as a docs page's heading after its "#" ("/docs/incidents/settings
+         * #incident-on-call-rules"), which is no address of the old page.
          */
-        const asPath: RegExp = new RegExp(`(^|[^\\w-])${retired}(?![\\w-])`);
+        const asPath: RegExp = new RegExp(`(^|[^\\w#-])${retired}(?![\\w-])`);
 
         if (asPath.test(source)) {
           offenders.push(`${relativeToRepo(file)}: ${retired}`);

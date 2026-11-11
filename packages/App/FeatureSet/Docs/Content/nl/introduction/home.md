@@ -56,27 +56,38 @@ Een getal boven nul toont **Vraagt aandacht**, of **Bezig** en **Budget raakt op
 
 ### De welkomstchecklist
 
-De checklist leidt u langs de vier dingen die een project nodig heeft voordat het nuttig is. Elke stap opent de pagina waar u hem uitvoert, en vinkt zichzelf af zodra het project heeft wat erom wordt gevraagd.
+De eerste keer dat een projecteigenaar of projectbeheerder Home van een nieuw project opent, vraagt de kaart **Wat wil je eerst doen?** Vink een of meer doelen aan, zoals **Weten wanneer mijn website of API plat ligt** of **Ik kijk alleen even rond**, en klik op **Doorgaan**: de checklist bevat dan de stappen die die doelen nodig hebben. **Overslaan** geeft de vier stappen die elk project krijgt. Om later opnieuw te antwoorden, klik je in de checklist op **Wijzigen**. Een project dat al monitors, telemetrie of bereikbaarheid gebruikt, krijgt de vraag niet.
+
+Elke stap vinkt zichzelf af zodra het werkt, niet zodra er een record bestaat, en iedereen die het project inricht ziet dezelfde lijst, op elk apparaat:
 
 | Stap | Klaar wanneer | Opent |
 | --- | --- | --- |
-| **Maak je eerste monitor** | Het project een monitor heeft. | Het formulier **Monitor maken**, of de lijst **Monitoren** voor iemand die geen monitoren mag aanmaken. |
-| **Publiceer een statuspagina** | Het project een statuspagina heeft. | **Statuspagina's** |
-| **Nodig je team uit** | Iemand anders dan u in het project zit, of is uitgenodigd. | **Gebruikers** |
-| **Stel een bereikbaarheidsbeleid in** | Het project een bereikbaarheidsbeleid heeft. | **Bereikbaarheidsdienst** |
+| **Importeer uit je huidige tool** | Een import uit een andere tool is afgerond. | **Importeren uit een andere tool** |
+| **Maak je eerste monitor** | De eerste controle komt binnen. | Het formulier **Monitor maken**, of de lijst **Monitoren** voor wie geen monitors mag maken. |
+| **Verbind een server of cluster** | De eerste metrics komen binnen. | **Hosts** |
+| **Stuur je eerste logs, metrics of traces** | De eerste logs, metrics, traces, uitzonderingen of profielen van het project komen binnen. | **Logboeken** |
+| **Stel een bereikbaarheidsbeleid in** | Een testoproep wordt bevestigd, een oproep bereikt iemand, of een bereikbaarheidsregel voert een beleid uit dat iemand kan bereiken. | **Bereikbaarheidsdienst** |
+| **Publiceer een statuspagina** | Een statuspagina toont een monitor. | **Statuspagina's** |
+| **Nodig je team uit** | Iemand accepteert je uitnodiging. | **Gebruikers** |
 
-Onder de stappen toont **Hoe OneUptime werkt** de vier kernproducten in de volgorde waarin een probleem ze doorloopt: **Monitoren**, **Incidenten & waarschuwingen**, **Bereikbaarheidsdienst** en **Statuspagina's**. Klik op een ervan om het te openen.
+De stap die je eerst doet, is gemarkeerd met **Volgende stap**. In het Free-abonnement van OneUptime Cloud, met één persoon, zegt **Nodig je team uit** dat het het Growth-abonnement nodig heeft, en opent het **Facturering**. Op een zelfgehoste server die nog geen e-mail kan versturen, zien de beheerders van de server eerst **Deze server kan nog geen e-mail versturen**; dat opent het beheerdashboard.
 
-```mermaid title="Wanneer de welkomstchecklist verdwijnt"
+Als je vanuit een stap een monitor, een statuspagina of een bereikbaarheidsbeleid maakt, zegt de pagina waarop je terechtkomt wat er volgt, met **Terug naar de inrichting**.
+
+Onder de stappen toont **Hoe OneUptime werkt** de vier kernproducten in de volgorde waarin een probleem ze doorloopt: **Monitoren**, **Incidenten & waarschuwingen**, **Bereikbaarheidsdienst** en **Statuspagina's**. Klik op een ervan om het te openen. Daaronder staat wat die kringloop voedt, telemetrie en infrastructuur, met links naar [Kernbegrippen](/docs/introduction/core-concepts) en [Woordenlijst](/docs/introduction/glossary).
+
+```mermaid title="Wanneer de welkomstchecklist verschijnt"
 flowchart TB
-    open["Start opent"] --> dismissed{"In deze browser<br/>gesloten?"}
-    dismissed -->|"Nee"| done{"Alle vier stappen<br/>klaar?"}
-    dismissed -->|"Ja"| hidden["Geen checklist"]
-    done -->|"Ja"| hidden
-    done -->|"Nee"| shown["De checklist met de<br/>overgebleven stappen"]
+    open["Home opent"] --> answered{"Doelen gekozen<br/>of overgeslagen?"}
+    answered -->|"Nee"| question["Wat wil je<br/>eerst doen?"]
+    answered -->|"Ja"| hidden{"Door jou<br/>verborgen?"}
+    hidden -->|"Ja"| line["Een regel om hem<br/>weer te tonen"]
+    hidden -->|"Nee"| done{"Alle stappen<br/>klaar?"}
+    done -->|"Ja"| gone["Geen checklist"]
+    done -->|"Nee"| shown["De checklist, met<br/>de resterende stappen"]
 ```
 
-De checklist verdwijnt zodra alle vier stappen klaar zijn. Om hem eerder te verbergen, klikt u op **Verbergen**. Dat wordt onthouden in deze browser, voor dit project; alles wat de stappen openen, staat nog steeds in het menu **Producten**.
+De checklist verdwijnt voor iedereen zodra elke stap klaar is. Om hem eerder te verbergen, klik je op **Verbergen**: hij is dan alleen voor jou verborgen, op elk apparaat, en er blijft een regel met **Tonen** en **Hoe OneUptime werkt**. Wie als lid in het project is uitgenodigd, ziet de checklist niet. **Hoe OneUptime werkt** blijft in elk project één klik verwijderd: open het via **Hulp** of met de knop naast **Verken OneUptime**.
 
 ### Vraagt aandacht
 
@@ -125,7 +136,9 @@ Twee balken lopen bovenaan over elke pagina.
 | Rechtsboven | **Zoeken** en **AI vragen**, de meldingenbel met wat u nu nodig heeft (actieve incidenten en waarschuwingen, het bereikbaarheidsbeleid waarin u dienst hebt, openstaande uitnodigingen), **Hulp**, en uw foto, die het menu van uw [account](/docs/introduction/your-account) opent. |
 | Daaronder | **Start** en **Producten** links, **Gebruikersinstellingen** rechts: hoe OneUptime u in dit project bereikt. |
 
-**Hulp** opent deze documentatie (**Documentatie**) en de lijst **Keyboard shortcuts**, en biedt ondersteuning per e-mail en op Slack. Op een smal scherm, zoals een telefoon, verdwijnen **Zoeken**, **AI vragen** en **Hulp** om ruimte te besparen; de bel en uw foto blijven.
+**Hulp** begint met wat u helpt leren: **Snelstart**, **Hoe OneUptime werkt**, **Woordenlijst** en deze documentatie (**Documentatie**). Daaronder staan de lijst **Keyboard shortcuts** en ondersteuning per e-mail en op Slack. Op een smal scherm, zoals een telefoon, verdwijnen **Zoeken**, **AI vragen** en **Hulp** om ruimte te besparen; de bel en uw foto blijven.
+
+Een woord met een stippellijn eronder, zoals **Sondes** in het formulier van een nieuwe monitor, zegt wat het betekent als u ernaar wijst, er met Tab naartoe gaat of erop tikt. Met **Lees meer** opent u het woord in de [Woordenlijst](/docs/introduction/glossary).
 
 ### Pagina's en lijsten
 

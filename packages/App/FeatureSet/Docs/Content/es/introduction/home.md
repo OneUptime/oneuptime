@@ -56,27 +56,38 @@ Un número mayor que cero muestra **Requiere atención**, o **En curso** y **Pre
 
 ### La lista de bienvenida
 
-La lista te guía por las cuatro cosas que un proyecto necesita antes de ser útil. Cada paso abre la página donde lo haces, y se marca solo cuando el proyecto tiene lo que pide.
+La primera vez que un propietario o un administrador del proyecto abre Inicio en un proyecto nuevo, la tarjeta pregunta **¿Qué quieres hacer primero?** Marca uno o más objetivos, como **Saber cuándo cae mi sitio web o mi API** o **Solo estoy mirando**, y haz clic en **Continuar**: la lista contendrá los pasos que necesitan esos objetivos. **Omitir** da los cuatro pasos que recibe todo proyecto. Para responder de nuevo más tarde, haz clic en **Cambiar** en la lista. A un proyecto que ya usa monitores, telemetría o guardias no se le pregunta.
+
+Cada paso se marca solo cuando la cosa funciona, no cuando existe un registro, y todas las personas que configuran el proyecto ven la misma lista, en cada dispositivo:
 
 | Paso | Completado cuando | Abre |
 | --- | --- | --- |
-| **Crea tu primer monitor** | El proyecto tiene un monitor. | El formulario **Crear monitor**, o la lista **Monitores** para quien no puede crear monitores. |
-| **Publica una página de estado** | El proyecto tiene una página de estado. | **Páginas de estado** |
-| **Invita a tu equipo** | Alguien además de ti está en el proyecto, o invitado a él. | **Usuarios** |
-| **Configura una política de guardia** | El proyecto tiene una política de guardia. | **Guardia** |
+| **Importa desde tu herramienta actual** | Termina una importación desde otra herramienta. | **Importar desde otra herramienta** |
+| **Crea tu primer monitor** | Llega su primera comprobación. | El formulario **Crear monitor**, o la lista **Monitores** para quien no puede crear monitores. |
+| **Conecta un servidor o un clúster** | Llegan sus primeras métricas. | **Hosts** |
+| **Envía tus primeros logs, métricas o trazas** | Llegan los primeros logs, métricas, trazas, excepciones o perfiles del proyecto. | **Registros** |
+| **Configura una política de guardia** | Se confirma un aviso de prueba, un aviso llega a alguien, o una regla de guardia ejecuta una política que puede llegar a alguien. | **Guardia** |
+| **Publica una página de estado** | Una página de estado muestra un monitor. | **Páginas de estado** |
+| **Invita a tu equipo** | Alguien acepta tu invitación. | **Usuarios** |
 
-Bajo los pasos, **Cómo funciona OneUptime** muestra los cuatro productos principales en el orden en que un problema pasa por ellos: **Monitores**, **Incidentes y alertas**, **Guardia** y **Páginas de estado**. Haz clic en uno para abrirlo.
+El paso que toca primero está marcado con **Siguiente paso**. En el plan Free de OneUptime Cloud, que incluye una persona, **Invita a tu equipo** indica que necesita el plan Growth y abre **Facturación**. En un servidor autoalojado que aún no puede enviar correos, los administradores del servidor ven primero **Este servidor aún no puede enviar correos electrónicos**, que abre el panel de administración.
 
-```mermaid title="Cuándo desaparece la lista de bienvenida"
+Cuando creas un monitor, una página de estado o una política de guardia desde un paso, la página a la que llegas dice qué sigue, con **Volver a la configuración**.
+
+Bajo los pasos, **Cómo funciona OneUptime** muestra los cuatro productos principales en el orden en que un problema pasa por ellos: **Monitores**, **Incidentes y alertas**, **Guardia** y **Páginas de estado**. Haz clic en uno para abrirlo. Debajo dice qué alimenta ese ciclo, la telemetría y la infraestructura, y enlaza a [Conceptos básicos](/docs/introduction/core-concepts) y [Glosario](/docs/introduction/glossary).
+
+```mermaid title="Cuándo aparece la lista de bienvenida"
 flowchart TB
-    open["Se abre Inicio"] --> dismissed{"¿Descartada en<br/>este navegador?"}
-    dismissed -->|"No"| done{"¿Los cuatro pasos<br/>completados?"}
-    dismissed -->|"Sí"| hidden["Sin lista"]
-    done -->|"Sí"| hidden
+    open["Se abre Inicio"] --> answered{"¿Objetivos elegidos<br/>u omitidos?"}
+    answered -->|"No"| question["¿Qué quieres<br/>hacer primero?"]
+    answered -->|"Sí"| hidden{"¿La ocultaste<br/>tú?"}
+    hidden -->|"Sí"| line["Una línea para<br/>volver a mostrarla"]
+    hidden -->|"No"| done{"¿Todos los pasos<br/>hechos?"}
+    done -->|"Sí"| gone["Sin lista"]
     done -->|"No"| shown["La lista, con<br/>los pasos pendientes"]
 ```
 
-La lista desaparece cuando los cuatro pasos están completados. Para ocultarla antes, haz clic en **Descartar**. El descarte se recuerda en este navegador, para este proyecto; todo lo que abren los pasos sigue en el menú **Productos**.
+La lista desaparece para todos cuando todos los pasos están hechos. Para ocultarla antes, haz clic en **Ocultar**: se oculta solo para ti, en cada dispositivo, y queda una línea con **Mostrarlo** y **Cómo funciona OneUptime**. Las personas invitadas al proyecto como miembros no ven la lista. **Cómo funciona OneUptime** sigue a un clic, en cualquier proyecto: ábrelo desde **Ayuda** o con el botón junto a **Explora OneUptime**.
 
 ### Requiere atención
 
@@ -125,7 +136,9 @@ Dos barras recorren la parte superior de cada página.
 | Arriba a la derecha | **Buscar** y **Preguntar a la IA**, la campana de notificaciones con lo que te necesita ahora (incidentes y alertas activos, las políticas de guardia en las que estás de turno, invitaciones pendientes), **Ayuda**, y tu foto, que abre el menú de tu [cuenta](/docs/introduction/your-account). |
 | Debajo | **Inicio** y **Productos** a la izquierda, **Ajustes de usuario** a la derecha: cómo te localiza OneUptime en este proyecto. |
 
-**Ayuda** abre esta documentación (**Documentación**) y la lista **Atajos de teclado**, y ofrece soporte por correo y en Slack. En una pantalla estrecha, como la de un teléfono, **Buscar**, **Preguntar a la IA** y **Ayuda** se quitan para ganar espacio; la campana y tu foto se quedan.
+**Ayuda** empieza por lo que te ayuda a aprender: **Inicio rápido**, **Cómo funciona OneUptime**, **Glosario** y esta documentación (**Documentación**). Debajo están la lista **Atajos de teclado** y el soporte por correo y en Slack. En una pantalla estrecha, como la de un teléfono, **Buscar**, **Preguntar a la IA** y **Ayuda** se quitan para ganar espacio; la campana y tu foto se quedan.
+
+Una palabra con una línea de puntos debajo, como **Sondas** en el formulario de un monitor nuevo, dice qué significa cuando la señalas, llegas a ella con Tab o la tocas. Su **Leer más** abre la palabra en el [Glosario](/docs/introduction/glossary).
 
 ### Páginas y listas
 

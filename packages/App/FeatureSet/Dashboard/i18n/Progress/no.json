@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50583,
-    "untranslated": 9744
+    "keys": 50698,
+    "untranslated": 9737
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -235,8 +235,10 @@
     "TTL",
     "TX",
     "Team",
+    "Team {{name}}",
     "Test",
     "Test {{name}}",
+    "Test {{policy}}",
     "Token",
     "Top P",
     "Trace ID: 4e3e0ec6-2938-40b1-8504-09eb1d4b0dee",
@@ -366,6 +368,7 @@
     "{{count}} Kubernetes",
     "{{count}} MB",
     "{{count}} SLO",
+    "{{count}} SMS",
     "{{count}} VM",
     "{{count}} alarm",
     "{{count}} app",

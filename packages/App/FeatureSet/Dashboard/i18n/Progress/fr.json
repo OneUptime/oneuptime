@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50583,
-    "untranslated": 5463
+    "keys": 50698,
+    "untranslated": 5457
   },
   "sameAsEnglish": [
     " incidents",
@@ -690,6 +690,7 @@
     "{{count}} CPU",
     "{{count}} Kubernetes",
     "{{count}} SLO",
+    "{{count}} SMS",
     "{{count}} VM",
     "{{count}} action",
     "{{count}} actions",

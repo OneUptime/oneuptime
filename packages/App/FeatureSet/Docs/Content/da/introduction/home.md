@@ -56,27 +56,38 @@ Et tal over nul viser **Kræver opmærksomhed**, eller **I gang** og **Budgettet
 
 ### Velkomsttjeklisten
 
-Tjeklisten fører dig gennem de fire ting, et projekt har brug for, før det er nyttigt. Hvert trin åbner den side, hvor du gør det, og krydser sig selv af, når projektet har det, trinnet beder om.
+Første gang en projektejer eller projektadministrator åbner Hjem i et nyt projekt, spørger kortet **Hvad vil du gøre først?** Sæt flueben ved et eller flere mål, fx **Vide, når mit website eller API er nede** eller **Jeg kigger bare**, og klik på **Fortsæt**: tjeklisten indeholder så de trin, som målene kræver. **Spring over** giver de fire trin, som alle projekter får. For at svare igen senere skal du klikke på **Skift** i tjeklisten. Et projekt, der allerede bruger overvågninger, telemetri eller vagter, bliver ikke spurgt.
+
+Hvert trin krydser sig selv af, når tingen virker, ikke når en post findes, og alle, der sætter projektet op, ser den samme liste på alle enheder:
 
 | Trin | Gennemført, når | Åbner |
 | --- | --- | --- |
-| **Opret din første overvågning** | Projektet har en monitor. | Formularen **Opret monitor**, eller listen **Monitorer** for den, der ikke må oprette monitorer. |
-| **Udgiv en statusside** | Projektet har en statusside. | **Statussider** |
-| **Inviter dit team** | Andre end dig er i projektet eller inviteret til det. | **Brugere** |
-| **Opsæt en vagtpolitik** | Projektet har en vagtpolitik. | **Vagtordning** |
+| **Importér fra dit nuværende værktøj** | En import fra et andet værktøj er gennemført. | **Importér fra et andet værktøj** |
+| **Opret din første overvågning** | Den første kontrol kommer ind. | Formularen **Opret monitor**, eller listen **Monitorer** for den, der ikke må oprette overvågninger. |
+| **Forbind en server eller en klynge** | De første metrikker kommer ind. | **Værter** |
+| **Send dine første logs, metrikker eller traces** | Projektets første logs, metrikker, traces, undtagelser eller profiler kommer ind. | **Protokoller** |
+| **Opsæt en vagtpolitik** | En testalarm bliver kvitteret, en alarm når nogen, eller en vagtregel kører en politik, der kan nå nogen. | **Vagtordning** |
+| **Udgiv en statusside** | En statusside viser en overvågning. | **Statussider** |
+| **Inviter dit team** | Nogen accepterer din invitation. | **Brugere** |
 
-Under trinene viser **Sådan virker OneUptime** de fire kerneprodukter i den rækkefølge, et problem bevæger sig gennem dem: **Monitorer**, **Hændelser og advarsler**, **Vagtordning** og **Statussider**. Klik på et for at åbne det.
+Det trin, du skal tage først, er markeret med **Næste trin**. På OneUptime Clouds Free-abonnement, der har én person, siger **Inviter dit team**, at det kræver Growth-abonnementet, og åbner **Fakturering**. På en selvhostet server, der endnu ikke kan sende e-mail, ser serverens administratorer først **Denne server kan ikke sende e-mail endnu**; det åbner administrationsdashboardet.
 
-```mermaid title="Hvornår velkomsttjeklisten forsvinder"
+Når du opretter en overvågning, en statusside eller en vagtpolitik fra et trin, siger siden, du lander på, hvad der kommer bagefter, med **Tilbage til opsætningen**.
+
+Under trinene viser **Sådan virker OneUptime** de fire kerneprodukter i den rækkefølge, et problem bevæger sig gennem dem: **Monitorer**, **Hændelser og advarsler**, **Vagtordning** og **Statussider**. Klik på et for at åbne det. Under dem står, hvad der fodrer kredsløbet, telemetri og infrastruktur, med links til [Grundbegreber](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
+
+```mermaid title="Hvornår velkomsttjeklisten vises"
 flowchart TB
-    open["Hjem åbner"] --> dismissed{"Lukket i denne<br/>browser?"}
-    dismissed -->|"Nej"| done{"Alle fire trin<br/>gennemført?"}
-    dismissed -->|"Ja"| hidden["Ingen tjekliste"]
-    done -->|"Ja"| hidden
-    done -->|"Nej"| shown["Tjeklisten med de<br/>resterende trin"]
+    open["Hjem åbner"] --> answered{"Mål valgt<br/>eller sprunget over?"}
+    answered -->|"Nej"| question["Hvad vil du<br/>gøre først?"]
+    answered -->|"Ja"| hidden{"Skjult<br/>af dig?"}
+    hidden -->|"Ja"| line["En linje til at<br/>vise den igen"]
+    hidden -->|"Nej"| done{"Alle trin<br/>færdige?"}
+    done -->|"Ja"| gone["Ingen tjekliste"]
+    done -->|"Nej"| shown["Tjeklisten med<br/>de resterende trin"]
 ```
 
-Tjeklisten forsvinder, når alle fire trin er gennemført. Klik på **Skjul** for at skjule den før. Det huskes i denne browser for dette projekt; alt, hvad trinene åbner, ligger stadig i menuen **Produkter**.
+Tjeklisten forsvinder for alle, når hvert trin er færdigt. For at skjule den før, skal du klikke på **Skjul**: den er så kun skjult for dig, på alle enheder, og en linje bliver stående med **Vis den** og **Sådan virker OneUptime**. Folk, der er inviteret til projektet som medlemmer, ser ikke tjeklisten. **Sådan virker OneUptime** er stadig ét klik væk i alle projekter: åbn det fra **Hjælp** eller med knappen ved siden af **Udforsk OneUptime**.
 
 ### Kræver opmærksomhed
 
@@ -125,7 +136,9 @@ To bjælker løber hen over toppen af hver side.
 | Øverst til højre | **Søg** og **Spørg AI**, notifikationsklokken med det, der kræver dig nu (aktive hændelser og advarsler, de vagtpolitikker, du har vagt i, ventende invitationer), **Hjælp**, og dit billede, som åbner menuen for din [konto](/docs/introduction/your-account). |
 | Under dem | **Hjem** og **Produkter** til venstre, **Brugerindstillinger** til højre: hvordan OneUptime kontakter dig i dette projekt. |
 
-**Hjælp** åbner denne dokumentation (**Dokumentation**) og listen **Keyboard shortcuts** og tilbyder support via e-mail og på Slack. På en smal skærm, som på en telefon, er **Søg**, **Spørg AI** og **Hjælp** udeladt for at spare plads; klokken og dit billede bliver.
+**Hjælp** starter med det, der hjælper dig med at lære: **Hurtigstart**, **Sådan virker OneUptime**, **Ordliste** og denne dokumentation (**Dokumentation**). Under dem ligger listen **Keyboard shortcuts** og support via e-mail og på Slack. På en smal skærm, som på en telefon, er **Søg**, **Spørg AI** og **Hjælp** udeladt for at spare plads; klokken og dit billede bliver.
+
+Et ord med en prikket linje under, som **Sonder** i formularen til en ny monitor, fortæller, hvad det betyder, når du peger på det, tabber til det eller trykker på det. Dets **Læs mere** åbner ordet i [Ordliste](/docs/introduction/glossary).
 
 ### Sider og lister
 

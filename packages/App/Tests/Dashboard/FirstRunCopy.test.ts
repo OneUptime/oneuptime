@@ -776,22 +776,24 @@ describe("Home's overview tiles", () => {
 });
 
 describe("Getting Started", () => {
-  const code: string = readCode("Components/Home/GettingStarted.tsx");
+  // The steps' words and pages, since #6803 in the Welcome checklist's catalog.
+  const code: string = readCode(
+    "Components/Home/WelcomeChecklist/WelcomeChecklistCatalog.ts",
+  );
 
   const taskBlock: (key: string) => string = (key: string): string => {
-    const start: number = code.indexOf(`key: "${key}"`);
+    const start: number = code.indexOf(`step: WelcomeStep.${key},`);
 
     expect(start).toBeGreaterThanOrEqual(0);
 
-    const end: number = code.indexOf("isComplete:", start);
-
-    expect(end).toBeGreaterThan(start);
+    const next: number = code.indexOf("step: WelcomeStep.", start + 1);
+    const end: number = next > start ? next : code.length;
 
     return code.slice(start, end);
   };
 
   test("Invite your team opens Users, where Invite User is", () => {
-    const block: string = taskBlock("invite-team");
+    const block: string = taskBlock("Team");
 
     expect(block).toContain("pageMap: PageMap.USERS");
     expect(block).not.toContain("PageMap.TEAMS");
@@ -806,16 +808,16 @@ describe("Getting Started", () => {
   });
 
   test("Create your first monitor opens the form, gated on the create permission", () => {
-    const block: string = taskBlock("create-monitor");
+    const block: string = taskBlock("Monitor");
 
     expect(block).toContain("pageMap: PageMap.MONITORS");
     expect(block).toMatch(
       /createPage: \{\s*pageMap: PageMap\.MONITOR_CREATE,\s*modelType: Monitor,?\s*\}/,
     );
     expect(code).toMatch(
-      /PermissionGate\.check\(\s*new task\.createPage\.modelType\(\),\s*ModelAction\.Create,?\s*\)\s*\.isAllowed/,
+      /PermissionGate\.check\(\s*new entry\.createPage\.modelType\(\),\s*ModelAction\.Create,?\s*\)\s*\.isAllowed/,
     );
-    expect(code).toContain("RouteMap[getTaskPageMap(task)]");
+    expect(code).toContain("RouteMap[page]");
   });
 });
 

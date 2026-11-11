@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50583,
-    "untranslated": 9734
+    "keys": 50698,
+    "untranslated": 9727
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -269,6 +269,7 @@
     "TTL",
     "TX",
     "Team",
+    "Team {{name}}",
     "Tenancy",
     "Text",
     "Token",

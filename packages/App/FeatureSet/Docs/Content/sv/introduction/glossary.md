@@ -92,6 +92,12 @@ Vem som har jour vid varje tidpunkt: personer turas om, och var och en lämnar �
 
 Kallas även: **Rotation**. Se [Jourscheman](/docs/on-call/schedules).
 
+### Lager
+
+En rotation i ett jourschema: vilka som turas om, hur ofta jouren lämnas över och vilka timmar lagret täcker. Det översta lagret där någon har jour är det som larmar, så huvudrotationen ligger överst och reservtäckningen under den.
+
+Se [Jourscheman](/docs/on-call/schedules#lager).
+
 ### Aviseringsmetod
 
 En adress där OneUptime får nå dig i ett projekt: en e-postadress, ett telefonnummer för SMS eller samtal, ditt Slack- eller Microsoft Teams-konto, eller OneUptime-appen i din telefon. Var och en lägger till sina egna under **Användarinställningar**.

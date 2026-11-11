@@ -92,6 +92,12 @@ Qui est d'astreinte à chaque instant : les personnes se relaient, et chacune pa
 
 Autres noms : **Rotation**. Voir [Plannings d'astreinte](/docs/on-call/schedules).
 
+### Couche
+
+Une rotation au sein d'un planning d'astreinte : les personnes qui se relaient, la fréquence des passations et les heures couvertes. C'est la couche la plus haute où quelqu'un est d'astreinte qui alerte : placez la rotation principale en haut et la couverture de secours en dessous.
+
+Voir [Plannings d'astreinte](/docs/on-call/schedules#couches).
+
 ### Méthode de notification
 
 Une adresse à laquelle OneUptime peut vous joindre dans un projet : une adresse e-mail, un numéro de téléphone pour les SMS ou les appels, votre compte Slack ou Microsoft Teams, ou l'application OneUptime sur votre téléphone. Chaque personne ajoute les siennes sous **Paramètres utilisateur**.
