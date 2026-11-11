@@ -49817,5 +49817,7 @@
   "{{time}} (approximate)": "{{time}}（大约）",
   "{{value}} s": "{{value}} 秒",
   "{{window}}, the same length": "{{window}}，相同长度",
-  "Security Events Ingest Endpoint": "安全事件摄取端点"
+  "Security Events Ingest Endpoint": "安全事件摄取端点",
+  "Read a table's lineage": "读取了某张表的血缘",
+  "Reading a table's lineage": "正在读取表的血缘"
 }

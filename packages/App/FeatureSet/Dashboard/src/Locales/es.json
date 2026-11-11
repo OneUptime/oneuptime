@@ -49817,5 +49817,7 @@
   "{{time}} (approximate)": "{{time}} (aproximado)",
   "{{value}} s": "{{value}} s",
   "{{window}}, the same length": "{{window}}, la misma duración",
-  "Security Events Ingest Endpoint": "Endpoint de ingesta de eventos de seguridad"
+  "Security Events Ingest Endpoint": "Endpoint de ingesta de eventos de seguridad",
+  "Read a table's lineage": "Leyó el linaje de una tabla",
+  "Reading a table's lineage": "Leyendo el linaje de una tabla"
 }

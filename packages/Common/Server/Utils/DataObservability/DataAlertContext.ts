@@ -1,7 +1,6 @@
 import Alert from "../../../Models/DatabaseModels/Alert";
 import ChangeEvent from "../../../Models/AnalyticsModels/ChangeEvent";
 import DataAlert from "../../../Models/DatabaseModels/DataAlert";
-import DataAsset from "../../../Models/DatabaseModels/DataAsset";
 import DataAssetFeed, {
   DataAssetFeedEventType,
 } from "../../../Models/DatabaseModels/DataAssetFeed";
@@ -12,29 +11,30 @@ import DataPipelineRun from "../../../Models/DatabaseModels/DataPipelineRun";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
-import DataAssetKind from "../../../Types/DataObservability/DataAssetKind";
-import {
-  DataAssetFreshness,
-  getDataAssetFreshness,
-} from "../../../Types/DataObservability/DataAssetFreshness";
 import { DataAssetAccessKind } from "../../../Types/DataObservability/DataAssetUsage";
+import { DataAlertLineageAnswer } from "../../../Types/DataObservability/DataTableLineage";
 import ObjectID from "../../../Types/ObjectID";
 import AlertService from "../../Services/AlertService";
 import ChangeEventService from "../../Services/ChangeEventService";
 import DataAlertService from "../../Services/DataAlertService";
 import DataAssetFeedService from "../../Services/DataAssetFeedService";
 import DataAssetLineageService from "../../Services/DataAssetLineageService";
-import DataAssetService from "../../Services/DataAssetService";
 import DataAssetUsageService from "../../Services/DataAssetUsageService";
 import DataPipelineRunService from "../../Services/DataPipelineRunService";
 import DataPipelineService from "../../Services/DataPipelineService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
+import DataAlertLineageReader, {
+  DataAlertLineageRow,
+  DataAlertRowReader,
+} from "./DataAlertLineage";
 import DataTableAnswerer, {
   DataTableAnswer,
   describeDuration,
   formatDataTableAnswer,
 } from "./DataTableAnswer";
+import DataTableLineageReader from "./DataTableLineage";
+import { describeDataAlertLineage } from "./DataTableLineageAnswer";
 
 /*
  * WHAT AN AI INVESTIGATION OF A DATA ALERT NEEDS TO KNOW.
@@ -56,7 +56,14 @@ import DataTableAnswerer, {
  *  - the services seen writing it in their database spans, with how many
  *    of their writes failed, and their deploys and other changes in the
  *    window;
- *  - the tables it is built from, with the ones that are late;
+ *  - its lineage, as the alert's page draws it (DataAlertLineage): the
+ *    tables it is built from and the tables built from it, several steps
+ *    each way, problems first - late, dropped, with open alerts, or a
+ *    pipeline that failed its last run - nearest first with the tables
+ *    between, the pipelines that load them from outside, the dashboards
+ *    built on it, where in that chain the alert it is a consequence of is,
+ *    and which tables the alerts it caused are on (DataTableLineageAnswer);
+ *    for an alert on a pipeline, the tables it reads and writes;
  *  - the columns of the table that changed in the window.
  *
  * Every read is bounded, and one that fails leaves its part out rather
@@ -65,7 +72,8 @@ import DataTableAnswerer, {
  * Nobody in particular reads what this writes: the investigation's report
  * goes to the alert's feed and its Slack and Microsoft Teams channels,
  * which everyone who may see the alert reads. A private alert - seen only
- * by its owners - is never named there, nor its title written.
+ * by its owners - is never named there, nor its title written; nor is it
+ * counted on a table, or placed in the lineage.
  */
 
 const COLUMN_CHANGE_EVENTS: ReadonlyArray<DataAssetFeedEventType> = [
@@ -81,7 +89,6 @@ const CHANGES_AFTER_IN_HOURS: number = 1;
 const MAX_RUNS_PER_PIPELINE: number = 5;
 const MAX_WRITERS: number = 5;
 const MAX_CHANGES: number = 10;
-const MAX_UPSTREAM: number = 10;
 const MAX_ERROR_LENGTH: number = 300;
 
 function clip(text: string | null | undefined, max: number): string {
@@ -186,6 +193,12 @@ export default class DataAlertContext {
     }
 
     let pipelineIds: Array<ObjectID> = [];
+    const lineage: Array<string> = await this.describeLineage({
+      projectId: data.projectId,
+      alertId: data.alertId,
+      dataAlert,
+      now: data.now,
+    });
 
     if (dataAlert.dataAssetId) {
       // For nobody in particular: the table's alerts that are not private.
@@ -238,11 +251,7 @@ export default class DataAlertContext {
           windowEnd,
           now: data.now,
         })),
-        ...(await this.describeUpstream({
-          projectId: data.projectId,
-          dataAssetId: dataAlert.dataAssetId,
-          now: data.now,
-        })),
+        ...lineage,
         ...(await this.describeSchemaChanges({
           projectId: data.projectId,
           dataAssetId: dataAlert.dataAssetId,
@@ -264,9 +273,62 @@ export default class DataAlertContext {
         windowStart,
         now: data.now,
       })),
+      // An alert on a pipeline: the tables it reads and writes, after its runs.
+      ...(dataAlert.dataAssetId ? [] : lineage),
     );
 
     return sections.join("\n");
+  }
+
+  /*
+   * Its lineage, as the alert's page draws it (DataAlertLineage), told
+   * problems first (DataTableLineageAnswer): with where in the chain the
+   * alert it is a consequence of is, and which tables the alerts it caused
+   * are on. Every alert in it is one nobody in particular may see: the
+   * open ones counted on a table, the cause placed, the alerts it caused -
+   * so a private one is neither counted nor placed, and the alerts a
+   * private alert caused are not either. The alert itself was read above:
+   * the report's readers are the people who may see it.
+   */
+  private static async describeLineage(data: {
+    projectId: ObjectID;
+    alertId: ObjectID;
+    dataAlert: DataAlert;
+    now: Date;
+  }): Promise<Array<string>> {
+    const own: DataAlertLineageRow = {
+      alertId: data.alertId.toString(),
+      dataAssetId: data.dataAlert.dataAssetId?.toString() || null,
+      dataPipelineId: data.dataAlert.dataPipelineId?.toString() || null,
+      dataStoreId: data.dataAlert.dataStoreId?.toString() || null,
+      causeAlertId: data.dataAlert.causeAlertId?.toString() || null,
+    };
+
+    // An alert about a whole database: no table or pipeline to draw.
+    if (!own.dataAssetId && !own.dataPipelineId) {
+      return [];
+    }
+
+    // For nobody in particular: the alerts that are not private.
+    const everyone: DataAlertRowReader =
+      DataAlertLineageReader.getDatabaseAlertReader(data.projectId, null);
+    const answer: DataAlertLineageAnswer | null = await orNothing(
+      DataAlertLineageReader.build({
+        alertId: own.alertId,
+        now: data.now,
+        alerts: {
+          readAlert: async (): Promise<DataAlertLineageRow | null> => {
+            return own;
+          },
+          readSubject: everyone.readSubject,
+          readConsequences: everyone.readConsequences,
+        },
+        reader: DataTableLineageReader.getDatabaseReader(data.projectId, null),
+      }),
+      null,
+    );
+
+    return answer ? describeDataAlertLineage(answer, data.now) : [];
   }
 
   // A column that changed just before is often the whole story: a writer still using the old one fails.
@@ -486,75 +548,5 @@ export default class DataAlertContext {
     }
 
     return lines;
-  }
-
-  // The tables this one is built from, the late ones named.
-  private static async describeUpstream(data: {
-    projectId: ObjectID;
-    dataAssetId: ObjectID;
-    now: Date;
-  }): Promise<Array<string>> {
-    const edges: Array<DataAssetLineage> = await orNothing(
-      DataAssetLineageService.findBy({
-        query: {
-          projectId: data.projectId,
-          downstreamDataAssetId: data.dataAssetId,
-          upstreamDataAssetId: QueryHelper.notNull(),
-        },
-        select: { upstreamDataAssetId: true, source: true },
-        limit: 50,
-        skip: 0,
-        props: { isRoot: true },
-      }),
-      [] as Array<DataAssetLineage>,
-    );
-    const ids: Array<ObjectID> = Array.from(
-      new Set(
-        edges.map((edge: DataAssetLineage): string => {
-          return edge.upstreamDataAssetId!.toString();
-        }),
-      ),
-    )
-      .slice(0, MAX_UPSTREAM)
-      .map((id: string): ObjectID => {
-        return new ObjectID(id);
-      });
-
-    if (ids.length === 0) {
-      return [];
-    }
-
-    const tables: Array<DataAsset> = await orNothing(
-      DataAssetService.findBy({
-        query: { projectId: data.projectId, _id: QueryHelper.any(ids) },
-        select: {
-          assetKey: true,
-          dataStoreName: true,
-          assetKind: true,
-          lastChangedAt: true,
-          updateIntervalInSeconds: true,
-        },
-        limit: ids.length,
-        skip: 0,
-        props: { isRoot: true },
-      }),
-      [] as Array<DataAsset>,
-    );
-
-    return [
-      "- Tables this table is built from (lineage):",
-      ...tables.map((table: DataAsset): string => {
-        const freshness: DataAssetFreshness = getDataAssetFreshness({
-          kind: table.assetKind as DataAssetKind,
-          lastChangedAt: table.lastChangedAt
-            ? new Date(table.lastChangedAt)
-            : null,
-          updateIntervalInSeconds: table.updateIntervalInSeconds,
-          now: data.now,
-        }).freshness;
-
-        return `  - ${table.assetKey || ""}${table.dataStoreName ? ` (${table.dataStoreName})` : ""}: ${freshness.toLowerCase()}, last changed ${when(table.lastChangedAt, data.now)}.`;
-      }),
-    ];
   }
 }

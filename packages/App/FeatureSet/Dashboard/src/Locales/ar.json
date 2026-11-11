@@ -49817,5 +49817,7 @@
   "{{time}} (approximate)": "{{time}} (تقريبًا)",
   "{{value}} s": "{{value}} ث",
   "{{window}}, the same length": "{{window}}، بالطول نفسه",
-  "Security Events Ingest Endpoint": "نقطة نهاية استيعاب الأحداث الأمنية"
+  "Security Events Ingest Endpoint": "نقطة نهاية استيعاب الأحداث الأمنية",
+  "Read a table's lineage": "قُرئت سلالة بيانات جدول",
+  "Reading a table's lineage": "جارٍ قراءة سلالة بيانات جدول"
 }

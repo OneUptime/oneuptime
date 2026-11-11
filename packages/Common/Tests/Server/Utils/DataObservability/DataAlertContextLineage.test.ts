@@ -1,0 +1,535 @@
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import AlertService from "../../../../Server/Services/AlertService";
+import DataAlertService from "../../../../Server/Services/DataAlertService";
+import DataAssetFeedService from "../../../../Server/Services/DataAssetFeedService";
+import DataAssetLineageService from "../../../../Server/Services/DataAssetLineageService";
+import DataAssetUsageService from "../../../../Server/Services/DataAssetUsageService";
+import DataPipelineRunService from "../../../../Server/Services/DataPipelineRunService";
+import DataPipelineService from "../../../../Server/Services/DataPipelineService";
+import DataAlertContext from "../../../../Server/Utils/DataObservability/DataAlertContext";
+import DataAlertLineageReader, {
+  DataAlertLineageRow,
+  DataAlertRowReader,
+} from "../../../../Server/Utils/DataObservability/DataAlertLineage";
+import DataTableAnswerer from "../../../../Server/Utils/DataObservability/DataTableAnswer";
+import DataTableLineageReader, {
+  DataLineageTableRow,
+  DataPipelineLineageReader,
+} from "../../../../Server/Utils/DataObservability/DataTableLineage";
+import { describeDataAlertLineage } from "../../../../Server/Utils/DataObservability/DataTableLineageAnswer";
+import Alert from "../../../../Models/DatabaseModels/Alert";
+import DataAlert from "../../../../Models/DatabaseModels/DataAlert";
+import DataPipeline from "../../../../Models/DatabaseModels/DataPipeline";
+import { DataAlertLineageAnswer } from "../../../../Types/DataObservability/DataTableLineage";
+import ObjectID from "../../../../Types/ObjectID";
+import {
+  HOUR,
+  MemoryGraph,
+  NOW,
+  feeds,
+  lateTable,
+  memoryReader,
+  newGraph,
+  p,
+  pipeline,
+  runs,
+  t,
+  table,
+  uuid,
+  writes,
+} from "./LineageMemoryGraph";
+
+/*
+ * WHAT AN INVESTIGATION OF A DATA ALERT IS TOLD OF ITS LINEAGE.
+ *
+ * An investigation reads the alert's lineage as its page draws it
+ * (DataAlertLineage) - the table's, or the pipeline's - told problems
+ * first (describeDataAlertLineage): what it is built from and what is
+ * built from it, where in that chain the alert it is a consequence of is,
+ * and which tables the alerts it caused are on. Its report goes where
+ * everyone who may see the alert reads it, so every other alert in it is
+ * one nobody in particular may see: a private one is neither counted nor
+ * placed. The alert itself is the one investigated, read as OneUptime.
+ *
+ * The lineage and the alerts are held in memory (LineageMemoryGraph); the
+ * context's other reads are stubbed to nothing.
+ */
+
+const PROJECT_ID: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
+
+// An alert's id.
+function a(index: number): string {
+  return uuid(4, index);
+}
+
+interface MemoryAlerts {
+  rows: Map<string, DataAlertLineageRow>;
+  // The private alerts: nobody in particular may see them.
+  hidden: Set<string>;
+  // Every read, in order: "alert:<id>", "subject:<id>", "consequences:<id>".
+  reads: Array<string>;
+}
+
+function newAlerts(): MemoryAlerts {
+  return { rows: new Map(), hidden: new Set(), reads: [] };
+}
+
+function alertOn(
+  alerts: MemoryAlerts,
+  id: string,
+  about: { table?: number; pipeline?: number },
+  causeAlertId: string | null = null,
+): DataAlertLineageRow {
+  const row: DataAlertLineageRow = {
+    alertId: id,
+    dataAssetId: about.table === undefined ? null : t(about.table),
+    dataPipelineId: about.pipeline === undefined ? null : p(about.pipeline),
+    dataStoreId: null,
+    causeAlertId,
+  };
+
+  alerts.rows.set(id, row);
+
+  return row;
+}
+
+// The alerts as the database reads them for nobody in particular: none that is private.
+function alertReader(alerts: MemoryAlerts): DataAlertRowReader {
+  const isSeen: (id: string) => boolean = (id: string): boolean => {
+    return alerts.rows.has(id) && !alerts.hidden.has(id);
+  };
+
+  return {
+    readAlert: async (alertId: string): Promise<DataAlertLineageRow | null> => {
+      alerts.reads.push(`alert:${alertId}`);
+
+      const row: DataAlertLineageRow | undefined = alerts.rows.get(alertId);
+
+      if (
+        !row ||
+        !isSeen(alertId) ||
+        (row.causeAlertId && !isSeen(row.causeAlertId))
+      ) {
+        return null;
+      }
+
+      return row;
+    },
+    readSubject: async (
+      alertId: string,
+    ): Promise<DataAlertLineageRow | null> => {
+      alerts.reads.push(`subject:${alertId}`);
+
+      return isSeen(alertId) ? alerts.rows.get(alertId)! : null;
+    },
+    readConsequences: async (data: {
+      alertId: string;
+      limit: number;
+    }): Promise<{ rows: Array<DataAlertLineageRow>; total: number }> => {
+      alerts.reads.push(`consequences:${data.alertId}`);
+
+      const rows: Array<DataAlertLineageRow> = Array.from(
+        alerts.rows.values(),
+      ).filter((row: DataAlertLineageRow): boolean => {
+        return (
+          row.causeAlertId === data.alertId &&
+          isSeen(row.alertId) &&
+          isSeen(data.alertId)
+        );
+      });
+
+      return { rows: rows.slice(0, data.limit), total: rows.length };
+    },
+  };
+}
+
+/*
+ * raw.orders (loaded by fivetran_orders, which failed) -> staging.orders
+ * -[dbt_build]-> analytics.daily_revenue -> marts.revenue -> marts.kpis.
+ */
+function warehouse(): MemoryGraph {
+  const graph: MemoryGraph = newGraph();
+
+  lateTable(graph, t(1), { assetKey: "analytics.daily_revenue" });
+  table(graph, t(2), { assetKey: "staging.orders" });
+  lateTable(graph, t(3), { assetKey: "raw.orders" });
+  table(graph, t(5), { assetKey: "marts.revenue" });
+  table(graph, t(6), { assetKey: "marts.kpis" });
+  pipeline(graph, p(1), { jobName: "dbt_build", lastRunState: "FAIL" });
+  pipeline(graph, p(2), {
+    jobName: "fivetran_orders",
+    lastRunState: "FAIL",
+    lastRunStartedAt: new Date(NOW.getTime() - 5 * HOUR),
+    lastErrorMessage: "Connection refused",
+  });
+  runs(graph, p(1), { reads: [t(2)], writes: [t(1)] });
+  feeds(graph, t(3), t(2));
+  writes(graph, p(2), t(3));
+  feeds(graph, t(1), t(5));
+  feeds(graph, t(5), t(6));
+
+  return graph;
+}
+
+async function linesFor(
+  graph: MemoryGraph,
+  alerts: MemoryAlerts,
+  alertId: string,
+): Promise<Array<string>> {
+  const answer: DataAlertLineageAnswer | null =
+    await DataAlertLineageReader.build({
+      alertId,
+      now: NOW,
+      alerts: alertReader(alerts),
+      reader: memoryReader(graph),
+    });
+
+  expect(answer).not.toBeNull();
+
+  return describeDataAlertLineage(answer!, NOW);
+}
+
+describe("an alert's lineage, as an investigation is told it", () => {
+  test("the lineage around its table, where its cause is, and the tables of the alerts it caused", async () => {
+    const graph: MemoryGraph = warehouse();
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(0), { table: 3 });
+    alertOn(alerts, a(1), { table: 1 }, a(0));
+    alertOn(alerts, a(2), { table: 5 }, a(1));
+    alertOn(alerts, a(3), { table: 6 }, a(1));
+
+    expect(await linesFor(graph, alerts, a(1))).toEqual([
+      "- Its lineage (the tables it is built from, and the tables built from it), 3 steps each way:",
+      "  Upstream, what it is built from: 2 tables, 1 with a problem.",
+      "  - raw.orders, 2 steps up, through staging.orders: late by 22 hours; the pipeline fivetran_orders that loads it failed its last run 5 hours ago: Connection refused.",
+      "  The rest, nearest first: staging.orders (1 step up, fresh).",
+      "  Loaded from outside what OneUptime watches by: the pipeline fivetran_orders into raw.orders (last run failed 5 hours ago).",
+      "  Downstream, what is built from it: 2 tables, none with a problem.",
+      "  Nearest first: marts.revenue (1 step down, fresh), marts.kpis (2 steps down, fresh).",
+      "- The alert this one is a consequence of is on raw.orders, 2 steps up, through staging.orders: start there.",
+      "- 2 alerts were raised as a consequence of this one, on: marts.revenue, 1 step down; marts.kpis, 2 steps down, through marts.revenue.",
+    ]);
+  });
+
+  test("a private alert it caused is neither counted nor placed", async () => {
+    const graph: MemoryGraph = warehouse();
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(1), { table: 1 });
+    alertOn(alerts, a(2), { table: 5 }, a(1));
+    alertOn(alerts, a(3), { table: 6 }, a(1));
+    alerts.hidden.add(a(3));
+
+    const lines: Array<string> = await linesFor(graph, alerts, a(1));
+
+    expect(lines[lines.length - 1]).toBe(
+      "- 1 alert was raised as a consequence of this one, on: marts.revenue, 1 step down.",
+    );
+    expect(lines.join("\n")).not.toContain("marts.kpis, 2 steps down");
+  });
+
+  test("a private cause is not placed", async () => {
+    const graph: MemoryGraph = warehouse();
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(0), { table: 3 });
+    const own: DataAlertLineageRow = alertOn(alerts, a(1), { table: 1 }, a(0));
+    alerts.hidden.add(a(0));
+
+    // As the investigation reads it: the alert itself is given, its cause read as nobody's.
+    const reader: DataAlertRowReader = alertReader(alerts);
+    const answer: DataAlertLineageAnswer | null =
+      await DataAlertLineageReader.build({
+        alertId: a(1),
+        now: NOW,
+        alerts: {
+          ...reader,
+          readAlert: async (): Promise<DataAlertLineageRow | null> => {
+            return own;
+          },
+        },
+        reader: memoryReader(graph),
+      });
+    const lines: Array<string> = describeDataAlertLineage(answer!, NOW);
+
+    expect(answer!.hasCause).toBe(true);
+    expect(answer!.isCauseDrawn).toBe(false);
+    expect(lines.join("\n")).not.toContain("consequence of is on");
+    // The lineage itself is still told.
+    expect(lines[0]).toBe(
+      "- Its lineage (the tables it is built from, and the tables built from it), 3 steps each way:",
+    );
+  });
+
+  test("a cause on the pipeline loading a table from outside: that pipeline, and what it loads", async () => {
+    const graph: MemoryGraph = warehouse();
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(0), { pipeline: 2 });
+    alertOn(alerts, a(1), { table: 1 }, a(0));
+
+    expect(await linesFor(graph, alerts, a(1))).toContain(
+      "- The alert this one is a consequence of is on the pipeline fivetran_orders, which loads raw.orders: start there.",
+    );
+  });
+
+  test("a cause on the pipeline moving data into the table: that pipeline, and what it builds", async () => {
+    const graph: MemoryGraph = warehouse();
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(0), { pipeline: 1 });
+    alertOn(alerts, a(1), { table: 1 }, a(0));
+
+    expect(await linesFor(graph, alerts, a(1))).toContain(
+      "- The alert this one is a consequence of is on the pipeline dbt_build, which builds analytics.daily_revenue: start there.",
+    );
+  });
+
+  test("an alert it caused further down than the lineage reaches is counted, not placed", async () => {
+    const graph: MemoryGraph = newGraph();
+
+    for (let index: number = 0; index <= 7; index++) {
+      table(graph, t(index), { assetKey: `chain.t${index}` });
+
+      if (index > 0) {
+        feeds(graph, t(index - 1), t(index));
+      }
+    }
+
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(0), { table: 0 });
+    alertOn(alerts, a(1), { table: 7 }, a(0));
+    alertOn(alerts, a(2), { table: 1 }, a(0));
+
+    const lines: Array<string> = await linesFor(graph, alerts, a(0));
+
+    expect(lines[lines.length - 1]).toBe(
+      "- 2 alerts were raised as a consequence of this one, on: chain.t1, 1 step down. The rest are further down than this lineage reaches.",
+    );
+
+    alerts.rows.delete(a(2));
+
+    const alone: Array<string> = await linesFor(graph, alerts, a(0));
+
+    expect(alone[alone.length - 1]).toBe(
+      "- 1 alert was raised as a consequence of this one, further down than this lineage reaches.",
+    );
+  });
+
+  test("an alert on a pipeline: the tables it reads, and the tables it writes", async () => {
+    const graph: MemoryGraph = warehouse();
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(1), { pipeline: 1 });
+
+    const lines: Array<string> = await linesFor(graph, alerts, a(1));
+
+    expect(lines[0]).toBe(
+      "- The pipeline's lineage (the tables it reads, and the tables it writes and what is built from them), 1 step each way:",
+    );
+    expect(lines).toContain(
+      "  Upstream, what it reads: 1 table, none with a problem.",
+    );
+    expect(lines).toContain(
+      "  Downstream, what it writes and what is built from that: 1 table, 1 with a problem.",
+    );
+    expect(lines).toContain(
+      "  - analytics.daily_revenue (Warehouse), 1 step down: late by 22 hours.",
+    );
+  });
+
+  test("an alert about a whole database: nothing to tell", async () => {
+    const graph: MemoryGraph = warehouse();
+    const alerts: MemoryAlerts = newAlerts();
+    alerts.rows.set(a(1), {
+      alertId: a(1),
+      dataAssetId: null,
+      dataPipelineId: null,
+      dataStoreId: uuid(5, 1),
+      causeAlertId: null,
+    });
+
+    expect(await linesFor(graph, alerts, a(1))).toEqual([]);
+  });
+});
+
+describe("an investigation's context section", () => {
+  let graph: MemoryGraph;
+  let alerts: MemoryAlerts;
+  let dataAlert: DataAlert;
+  let alertReaderFor: ReturnType<typeof jest.spyOn>;
+  let lineageReaderFor: ReturnType<typeof jest.spyOn>;
+
+  function stubDataAlert(about: {
+    table?: number;
+    pipeline?: number;
+    causeAlertId?: string;
+  }): void {
+    dataAlert = new DataAlert();
+
+    if (about.table !== undefined) {
+      dataAlert.dataAssetId = new ObjectID(t(about.table));
+    }
+
+    if (about.pipeline !== undefined) {
+      dataAlert.dataPipelineId = new ObjectID(p(about.pipeline));
+    }
+
+    if (about.causeAlertId) {
+      dataAlert.causeAlertId = new ObjectID(about.causeAlertId);
+    }
+  }
+
+  beforeEach(() => {
+    jest.restoreAllMocks();
+
+    graph = warehouse();
+    alerts = newAlerts();
+
+    jest.spyOn(DataAlertService, "findOneBy").mockImplementation((async () => {
+      return dataAlert;
+    }) as never);
+    jest.spyOn(AlertService, "findOneBy").mockImplementation((async (findBy: {
+      query: { _id: ObjectID };
+    }): Promise<Alert> => {
+      const alert: Alert = new Alert();
+      alert._id = findBy.query._id.toString();
+      alert.createdAt = new Date(NOW.getTime() - HOUR);
+      alert.title = "orders load failed";
+      alert.alertNumberWithPrefix = "ALT-9";
+      alert.isPrivate = alerts.hidden.has(findBy.query._id.toString());
+
+      return alert;
+    }) as never);
+    jest.spyOn(DataTableAnswerer, "answer").mockResolvedValue(null as never);
+    jest
+      .spyOn(DataAssetLineageService, "findBy")
+      .mockResolvedValue([] as never);
+    jest.spyOn(DataAssetUsageService, "findBy").mockResolvedValue([] as never);
+    jest.spyOn(DataAssetFeedService, "findBy").mockResolvedValue([] as never);
+    jest
+      .spyOn(DataPipelineService, "findOneBy")
+      .mockImplementation((async (findBy: {
+        query: { _id: ObjectID };
+      }): Promise<DataPipeline> => {
+        const row: DataPipeline = new DataPipeline();
+        row._id = findBy.query._id.toString();
+        row.jobName = graph.pipelines.get(findBy.query._id.toString())?.jobName;
+
+        return row;
+      }) as never);
+    jest.spyOn(DataPipelineRunService, "findBy").mockResolvedValue([] as never);
+
+    alertReaderFor = jest
+      .spyOn(DataAlertLineageReader, "getDatabaseAlertReader")
+      .mockImplementation(((): DataAlertRowReader => {
+        return alertReader(alerts);
+      }) as never);
+    lineageReaderFor = jest
+      .spyOn(DataTableLineageReader, "getDatabaseReader")
+      .mockImplementation(((): DataPipelineLineageReader => {
+        return memoryReader(graph);
+      }) as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function sectionFor(alertId: string): Promise<string> {
+    return await DataAlertContext.buildContextSection({
+      projectId: PROJECT_ID,
+      alertId: new ObjectID(alertId),
+      now: NOW,
+    });
+  }
+
+  test("a table's alert: its lineage told in place of one step of upstream tables, for nobody in particular", async () => {
+    alertOn(alerts, a(0), { table: 3 });
+    alertOn(alerts, a(1), { table: 1 }, a(0));
+    stubDataAlert({ table: 1, causeAlertId: a(0) });
+
+    const section: string = await sectionFor(a(1));
+
+    expect(section).toContain(
+      '- This alert is a consequence of ALT-9 "orders load failed", opened 1 hour ago',
+    );
+    expect(section).toContain(
+      "- Its lineage (the tables it is built from, and the tables built from it), 3 steps each way:\n  Upstream, what it is built from: 2 tables, 1 with a problem.",
+    );
+    expect(section).toContain(
+      "- The alert this one is a consequence of is on raw.orders, 2 steps up, through staging.orders: start there.",
+    );
+    expect(section).not.toContain("Tables this table is built from (lineage):");
+
+    // Read for nobody in particular, never as the investigation's own root props.
+    expect(alertReaderFor).toHaveBeenCalledWith(PROJECT_ID, null);
+    expect(lineageReaderFor).toHaveBeenCalledWith(PROJECT_ID, null);
+    // The alert itself is the one investigated: never read again through a privacy clause.
+    expect(alerts.reads).not.toContain(`alert:${a(1)}`);
+    expect(alerts.reads).toContain(`subject:${a(0)}`);
+  });
+
+  test("a private alert under investigation is still told its lineage: its report's readers may see it", async () => {
+    alertOn(alerts, a(1), { table: 1 });
+    alertOn(alerts, a(2), { table: 5 }, a(1));
+    alerts.hidden.add(a(1));
+    stubDataAlert({ table: 1 });
+
+    const section: string = await sectionFor(a(1));
+
+    expect(section).toContain(
+      "- Its lineage (the tables it is built from, and the tables built from it), 3 steps each way:",
+    );
+    // What it caused is read as nobody's, so the alerts a private alert caused are not counted.
+    expect(section).not.toContain("raised as a consequence of this one");
+  });
+
+  test("a pipeline's alert: its runs, then the tables it reads and writes", async () => {
+    alertOn(alerts, a(1), { pipeline: 1 });
+    stubDataAlert({ pipeline: 1 });
+
+    const section: string = await sectionFor(a(1));
+    const runs: number = section.indexOf(
+      "- The pipeline dbt_build writes this table",
+    );
+    const lineage: number = section.indexOf("- The pipeline's lineage");
+
+    expect(runs).toBeGreaterThan(-1);
+    expect(lineage).toBeGreaterThan(runs);
+  });
+
+  test("a whole database's alert reads no lineage", async () => {
+    stubDataAlert({});
+
+    const section: string = await sectionFor(a(1));
+
+    expect(section).toContain("## Data Observability: this is a data alert");
+    expect(section).not.toContain("lineage");
+    expect(alertReaderFor).not.toHaveBeenCalled();
+    expect(lineageReaderFor).not.toHaveBeenCalled();
+  });
+
+  test("a lineage that cannot be read leaves only itself out", async () => {
+    alertOn(alerts, a(1), { table: 1 });
+    stubDataAlert({ table: 1 });
+
+    lineageReaderFor.mockImplementation(((): DataPipelineLineageReader => {
+      return {
+        ...memoryReader(graph),
+        readTables: async (): Promise<Array<DataLineageTableRow>> => {
+          throw new Error("the database is away");
+        },
+      };
+    }) as never);
+
+    const section: string = await sectionFor(a(1));
+
+    expect(section).toContain("## Data Observability: this is a data alert");
+    expect(section).not.toContain("Its lineage");
+  });
+});

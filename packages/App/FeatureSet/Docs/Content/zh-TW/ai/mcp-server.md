@@ -339,6 +339,8 @@ curl https://oneuptime.com/mcp/tools
 
 **`get_data_table_freshness`** 工具在代理使用資料之前，告訴它 Data Observability 監視的某張表是否新鮮：依表本身的節奏判斷是新鮮還是延遲、最後一次變更的時間、未關閉的警示，以及寫入該表的每條管線最近一次執行的結果。`table` 傳入 `schema.table`、僅表名或其 ID。它不做任何變更。
 
+**`get_data_table_lineage`** 工具在代理變更某張表或信任其資料之前，告訴它 Data Observability 監視的這張表由什麼建置、由它建置了什麼：延遲、被刪除、有未關閉的警示或其管線上次執行失敗的上游和下游表，由近而遠，每張表都附上相隔幾步，接著是其餘的表、從外部載入其來源的管線，以及以它為基礎建置的 BI 儀表板。它每個方向走三步，用 `depth` 最多五步。`table` 的傳法與 `get_data_table_freshness` 相同。它不做任何變更。
+
 ## 查詢遙測
 
 日誌、指標、追蹤（span）、例外、監測器日誌和其他種類的遙測以唯讀的 `list_` 和 `count_` 工具提供（`list_logs`、`list_metrics`、`list_spans`、`list_exception_instances`、`list_monitor_logs` 及其對應的 `count_` 工具）。遙測透過 OpenTelemetry 傳入，因此沒有建立工具。

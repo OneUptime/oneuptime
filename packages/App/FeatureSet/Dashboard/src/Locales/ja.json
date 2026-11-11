@@ -49817,5 +49817,7 @@
   "{{time}} (approximate)": "{{time}}（概算）",
   "{{value}} s": "{{value}} 秒",
   "{{window}}, the same length": "{{window}}（同じ長さ）",
-  "Security Events Ingest Endpoint": "セキュリティイベントの取り込みエンドポイント"
+  "Security Events Ingest Endpoint": "セキュリティイベントの取り込みエンドポイント",
+  "Read a table's lineage": "テーブルのリネージを読み取りました",
+  "Reading a table's lineage": "テーブルのリネージを読み取り中"
 }

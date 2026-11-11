@@ -49817,5 +49817,7 @@
   "{{time}} (approximate)": "{{time}} (ungefär)",
   "{{value}} s": "{{value}} s",
   "{{window}}, the same length": "{{window}}, samma längd",
-  "Security Events Ingest Endpoint": "Intagnings-endpoint för säkerhetshändelser"
+  "Security Events Ingest Endpoint": "Intagnings-endpoint för säkerhetshändelser",
+  "Read a table's lineage": "Läste en tabells härkomst",
+  "Reading a table's lineage": "Läser en tabells härkomst"
 }

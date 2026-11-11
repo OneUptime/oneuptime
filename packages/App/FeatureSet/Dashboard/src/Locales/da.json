@@ -49817,5 +49817,7 @@
   "{{time}} (approximate)": "{{time}} (omtrentligt)",
   "{{value}} s": "{{value}} s",
   "{{window}}, the same length": "{{window}}, samme længde",
-  "Security Events Ingest Endpoint": "Indtagelses-endpoint for sikkerhedshændelser"
+  "Security Events Ingest Endpoint": "Indtagelses-endpoint for sikkerhedshændelser",
+  "Read a table's lineage": "Læste en tabels afstamning",
+  "Reading a table's lineage": "Læser en tabels afstamning"
 }

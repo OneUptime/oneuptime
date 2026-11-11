@@ -49817,5 +49817,7 @@
   "{{time}} (approximate)": "{{time}} (लगभग)",
   "{{value}} s": "{{value}} सेकंड",
   "{{window}}, the same length": "{{window}}, समान अवधि",
-  "Security Events Ingest Endpoint": "सुरक्षा इवेंट इंजेशन एंडपॉइंट"
+  "Security Events Ingest Endpoint": "सुरक्षा इवेंट इंजेशन एंडपॉइंट",
+  "Read a table's lineage": "एक टेबल की वंशावली पढ़ी",
+  "Reading a table's lineage": "किसी टेबल की वंशावली पढ़ी जा रही है"
 }

@@ -49817,5 +49817,7 @@
   "{{time}} (approximate)": "{{time}} (приблизительно)",
   "{{value}} s": "{{value}} с",
   "{{window}}, the same length": "{{window}}, той же длины",
-  "Security Events Ingest Endpoint": "Эндпоинт приёма событий безопасности"
+  "Security Events Ingest Endpoint": "Эндпоинт приёма событий безопасности",
+  "Read a table's lineage": "Прочитал происхождение таблицы",
+  "Reading a table's lineage": "Чтение происхождения таблицы"
 }

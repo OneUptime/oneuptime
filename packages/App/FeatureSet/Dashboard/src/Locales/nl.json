@@ -49817,5 +49817,7 @@
   "{{time}} (approximate)": "{{time}} (ongeveer)",
   "{{value}} s": "{{value}} s",
   "{{window}}, the same length": "{{window}}, even lang",
-  "Security Events Ingest Endpoint": "Ingestie-endpoint voor beveiligings­gebeurtenissen"
+  "Security Events Ingest Endpoint": "Ingestie-endpoint voor beveiligings­gebeurtenissen",
+  "Read a table's lineage": "Las de herkomst van een tabel",
+  "Reading a table's lineage": "De herkomst van een tabel lezen"
 }
