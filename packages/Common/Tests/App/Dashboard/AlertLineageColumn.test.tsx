@@ -39,7 +39,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  * A cause on a pipeline drawn on the arrows it moves data along says
  * Cause under its name on the arrows the way up ends on, as a cause's card
- * does, inside the arrow label's room, in the reader's language.
+ * does, inside the arrow label's room, in the reader's language. The label
+ * sits just over a level arrow and on a curved one's middle, over every
+ * arrow and under every card, in words that read on either page.
+ *
+ * The sentences saying what is picked out are one block over the drawing:
+ * the alert's ways, then the column followed - or, when no arrow names the
+ * check's column, a sentence saying so.
  *
  * The API is mocked and React Flow is the stand-in of LineageFlowStandIn.
  */
@@ -147,6 +153,11 @@ import {
 import AlertLineageDiagram from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/AlertLineageDiagram";
 import { LineageDiagramBody } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageDiagram";
 import {
+  LINEAGE_CARD_Z_INDEX,
+  LINEAGE_EDGE_LABEL_Z_INDEX,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageGraph";
+import {
+  LINEAGE_EDGE_LABEL_CLEARANCE,
   LINEAGE_EDGE_LABEL_MAX_WIDTH,
   LINEAGE_HIGHLIGHT_COLOR,
   LINEAGE_PROBLEM_COLOR,
@@ -154,7 +165,16 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageGraphModel";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
-import { flowProps, resetFlowStandIn } from "./LineageFlowStandIn";
+import {
+  AA_TEXT_CONTRAST,
+  colourOfClass,
+  contrastRatio,
+} from "../../Helpers/TailwindContrast";
+import {
+  flowProps,
+  resetFlowStandIn,
+  setArrowEnds,
+} from "./LineageFlowStandIn";
 
 const ALERT: string = "55555555-5555-4555-8555-000000000001";
 const OTHER_ALERT: string = "55555555-5555-4555-8555-000000000002";
@@ -170,6 +190,8 @@ const OTHER_RUN: string = "33333333-3333-4333-8333-000000000002";
 
 const FOLLOWED: string =
   "{{column}} is highlighted where it comes from and where it goes.";
+const NOT_ON_ARROWS: string =
+  "No arrow on this diagram says where {{column}} comes from or where it goes.";
 
 // The pipeline the cause is on, in the drawings where it is a pipeline's.
 const ORDERS_LOAD: DataTableLineagePipeline = {
@@ -412,15 +434,20 @@ function causeOnPipeline(
   });
 }
 
-// A colour as the browser writes it back: #6366f1 as rgb(99, 102, 241).
-function rgbOf(hex: string): string {
-  const [red, green, blue]: Array<number> = [1, 3, 5].map(
-    (start: number): number => {
-      return parseInt(hex.slice(start, start + 2), 16);
+// A colour class a label's words can be in: text-indigo-600, text-red-600.
+const WORDS_CLASS: RegExp = /^text-(?:indigo|red)-\d{3}$/;
+
+// The colour class a label's words are in.
+function wordsClassOf(label: HTMLElement): string {
+  const classes: Array<string> = Array.from(label.classList).filter(
+    (name: string): boolean => {
+      return WORDS_CLASS.test(name);
     },
   );
 
-  return `rgb(${red}, ${green}, ${blue})`;
+  expect(classes).toHaveLength(1);
+
+  return classes[0]!;
 }
 
 function card(nodeId: string): HTMLElement {
@@ -518,6 +545,25 @@ function wayNotes(): string {
   return withoutIsolateMarks(
     screen.getByTestId("lineage-highlight-notes").textContent || "",
   );
+}
+
+// Every sentence over the drawing, in order, each as [whether it has the mark, whether it keeps the mark's room, its words].
+function sentencesOverTheDrawing(): Array<[boolean, boolean, string]> {
+  return Array.from(
+    screen.getByTestId("lineage-highlights").querySelectorAll("p"),
+  ).map((line: HTMLParagraphElement): [boolean, boolean, string] => {
+    const first: Element | null = line.firstElementChild;
+
+    return [
+      Boolean(line.querySelector('[data-testid="lineage-highlight-mark"]')),
+      Boolean(
+        first &&
+          first.getAttribute("aria-hidden") === "true" &&
+          first.classList.contains("w-7"),
+      ),
+      withoutIsolateMarks(line.textContent || ""),
+    ];
+  });
 }
 
 // The arrow's label, drawn where it is.
@@ -702,17 +748,128 @@ describe("an alert from a check on one column", () => {
     expect(offered()).toEqual(["CUSTOMER_ID", "amount", "order_id"]);
   });
 
-  test("a column no arrow names: nothing followed, and the columns the arrows name still offered", async () => {
+  test("a column no arrow names: nothing followed, a sentence says no arrow names it, and the columns the arrows name still offered", async () => {
     await renderDrawn(anAnswer({ column: "status" }));
 
     expect(
       screen.queryByTestId("lineage-column-notes"),
     ).not.toBeInTheDocument();
+    expect(
+      withoutIsolateMarks(
+        screen.getByTestId("lineage-column-missing").textContent || "",
+      ),
+    ).toBe(NOT_ON_ARROWS.replace("{{column}}", "status"));
     expect(screen.getByTestId("lineage-column")).toHaveTextContent(
       "Follow a column",
     );
     expect(offered()).toEqual(["amount", "customer_id", "order_id"]);
     expect(isFaint(LEGACY)).toBe(true);
+    // Said after the alert's own sentences, lined up with them, with no mark: nothing of it is picked out.
+    expect(sentencesOverTheDrawing()).toEqual([
+      [
+        true,
+        false,
+        "The way up to the alert that caused this one is highlighted.",
+      ],
+      [
+        true,
+        false,
+        "The way down to the alert this one caused is highlighted.",
+      ],
+      [false, true, NOT_ON_ARROWS.replace("{{column}}", "status")],
+    ]);
+  });
+
+  test("a column no arrow names, picked over: the sentence goes once another column is followed, and stays gone once cleared", async () => {
+    await renderDrawn(anAnswer({ column: "status" }));
+
+    follow("order_id");
+
+    expect(
+      screen.queryByTestId("lineage-column-missing"),
+    ).not.toBeInTheDocument();
+    expect(columnNotes()).toEqual([
+      "order_id is highlighted where it comes from and where it goes.",
+    ]);
+
+    stopFollowing();
+
+    expect(
+      screen.queryByTestId("lineage-column-missing"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("lineage-column-notes"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a sentence with a long column name wraps inside the card on a phone: its words may shrink below the longest of them and break inside it", async () => {
+    await renderDrawn(anAnswer({ column: "status" }));
+
+    for (const line of Array.from(
+      screen.getByTestId("lineage-highlights").querySelectorAll("p"),
+    )) {
+      expect(line.lastElementChild).toHaveClass("min-w-0", "break-words");
+    }
+  });
+
+  test("an answer whose arrows carry no columns at all: no picker, and a sentence says no arrow names the check's column", async () => {
+    await renderDrawn(anAnswer({ lineage: aLineage({ withColumns: false }) }));
+
+    expect(screen.queryByTestId("lineage-column")).not.toBeInTheDocument();
+    expect(
+      withoutIsolateMarks(
+        screen.getByTestId("lineage-column-missing").textContent || "",
+      ),
+    ).toBe(NOT_ON_ARROWS.replace("{{column}}", "customer_id"));
+    expect(screen.queryAllByTestId("lineage-card-columns")).toHaveLength(0);
+  });
+
+  test("one block of sentences right over the drawing, under what lies each way: the alert's ways, then the column followed, all lined up", async () => {
+    await renderDrawn(
+      anAnswer({
+        // Its alerts caused further down than the diagram reaches: said with no mark.
+        consequenceCount: 3,
+        drawnConsequenceCount: 0,
+      }),
+    );
+
+    const block: HTMLElement = screen.getByTestId("lineage-highlights");
+    const ways: HTMLElement = screen.getByTestId("lineage-highlight-notes");
+    const column: HTMLElement = screen.getByTestId("lineage-column-notes");
+    const follows: (first: Element, second: Element) => boolean = (
+      first: Element,
+      second: Element,
+    ): boolean => {
+      return Boolean(
+        first.compareDocumentPosition(second) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    };
+
+    expect(block).toContainElement(ways);
+    expect(block).toContainElement(column);
+    expect(follows(ways, column)).toBe(true);
+    // Under the summary and its picker, over the drawing.
+    expect(follows(screen.getByTestId("lineage-summary"), block)).toBe(true);
+    expect(follows(screen.getByTestId("lineage-column"), block)).toBe(true);
+    expect(follows(block, screen.getByTestId("mock-react-flow"))).toBe(true);
+    expect(sentencesOverTheDrawing()).toEqual([
+      [
+        true,
+        false,
+        "The way up to the alert that caused this one is highlighted.",
+      ],
+      [
+        false,
+        true,
+        "The 3 alerts this one caused are further down than the diagram reaches.",
+      ],
+      [
+        true,
+        false,
+        "customer_id is highlighted where it comes from and where it goes.",
+      ],
+    ]);
   });
 
   test("drawing more asks for the columns of the new arrows, and the column goes on into the tables drawn", async () => {
@@ -944,7 +1101,9 @@ describe("the cause's pipeline on its arrows", () => {
     expect(within(label).getByTestId("lineage-edge-cause")).toHaveTextContent(
       "Cause",
     );
-    expect(label.style.color).toBe(rgbOf(LINEAGE_HIGHLIGHT_COLOR));
+    // Indigo words in a class the dark page lightens, never an inline colour it cannot reach.
+    expect(wordsClassOf(label)).toBe("text-indigo-600");
+    expect(label.style.color).toBe("");
   });
 
   test("the same pipeline on the way down to the alert it caused is named there, without Cause", async () => {
@@ -981,10 +1140,100 @@ describe("the cause's pipeline on its arrows", () => {
     const label: HTMLElement = arrowLabel(SOURCE, STAGING);
 
     expect(label).toHaveAttribute("title", "orders_load failed");
-    expect(label.style.color).toBe(rgbOf(LINEAGE_PROBLEM_COLOR));
+    expect(wordsClassOf(label)).toBe("text-red-600");
+    expect(label.style.color).toBe("");
     expect(within(label).getByTestId("lineage-edge-cause")).toHaveTextContent(
       "Cause",
     );
+  });
+
+  test("its words read on the label's white ground: a shade darker than the arrow, whose own colour small words would not read in", async () => {
+    await renderDrawn(causeOnPipeline());
+
+    const named: HTMLElement = arrowLabel(SOURCE, STAGING);
+
+    cleanup();
+    resetFlowStandIn();
+    await renderDrawn(
+      causeOnPipeline({ ...ORDERS_LOAD, lastRunState: "FAIL" }),
+    );
+
+    const failed: HTMLElement = arrowLabel(SOURCE, STAGING);
+
+    for (const [label, arrowColour] of [
+      [named, LINEAGE_HIGHLIGHT_COLOR],
+      [failed, LINEAGE_PROBLEM_COLOR],
+    ] as Array<[HTMLElement, string]>) {
+      const words: string = colourOfClass(wordsClassOf(label));
+
+      /*
+       * The label's ground is the page's surface, white on a light page (jsdom
+       * drops the var() it is given; the browser suite measures both pages).
+       */
+      expect(contrastRatio(words, "#ffffff")).toBeGreaterThanOrEqual(
+        AA_TEXT_CONTRAST,
+      );
+      expect(contrastRatio(arrowColour, "#ffffff")).toBeLessThan(
+        AA_TEXT_CONTRAST,
+      );
+    }
+  });
+
+  test("over a level arrow - its two cards side by side - the label sits just over it, so the arrow and its head still show", async () => {
+    await renderDrawn(causeOnPipeline());
+
+    const label: HTMLElement = arrowLabel(SOURCE, STAGING);
+
+    // The stand-in draws the arrow level and 100 across: its middle is at (50, 0).
+    expect(label).toHaveAttribute("data-lineage-label-place", "over");
+    expect(label.style.transform).toBe(
+      `translate(-50%, -100%) translate(50px, ${-LINEAGE_EDGE_LABEL_CLEARANCE}px)`,
+    );
+  });
+
+  test("on a curved arrow - its cards in different rows - the label sits on its middle, the curve going in and out of it", async () => {
+    setArrowEnds(edgeId(SOURCE, STAGING), { sourceY: 0, targetY: 100 });
+    await renderDrawn(causeOnPipeline());
+
+    const label: HTMLElement = arrowLabel(SOURCE, STAGING);
+
+    expect(label).toHaveAttribute("data-lineage-label-place", "on");
+    expect(label.style.transform).toBe(
+      "translate(-50%, -50%) translate(50px, 50px)",
+    );
+    // An arrow a fraction of a pixel off level is level.
+    cleanup();
+    resetFlowStandIn();
+    setArrowEnds(edgeId(SOURCE, STAGING), { sourceY: 40, targetY: 40.5 });
+    await renderDrawn(causeOnPipeline());
+
+    expect(arrowLabel(SOURCE, STAGING)).toHaveAttribute(
+      "data-lineage-label-place",
+      "over",
+    );
+  });
+
+  test("drawn over every arrow, those along the ways too, and under every card: a highlighted arrow never runs through the name, nor between it and Cause", async () => {
+    await renderDrawn(causeOnPipeline());
+
+    const arrowHeights: Array<number> = (flowProps()?.edges || []).map(
+      (edge: { zIndex?: number }): number => {
+        return edge.zIndex || 0;
+      },
+    );
+
+    // The arrows along the ways are lifted over the faint ones.
+    expect(Math.max(...arrowHeights)).toBeGreaterThan(0);
+
+    for (const label of screen.getAllByTestId("lineage-edge-label")) {
+      expect(label.style.zIndex).toBe(String(LINEAGE_EDGE_LABEL_Z_INDEX));
+    }
+
+    // React Flow draws the labels after the arrows: at the highest arrow's height, a label is still over it.
+    expect(LINEAGE_EDGE_LABEL_Z_INDEX).toBeGreaterThanOrEqual(
+      Math.max(...arrowHeights),
+    );
+    expect(LINEAGE_EDGE_LABEL_Z_INDEX).toBeLessThan(LINEAGE_CARD_Z_INDEX);
   });
 
   test("another pipeline's failed run on the cause's arrow is named first, and says nothing of the cause", async () => {

@@ -70,7 +70,10 @@ import React, {
  * Lineage tab, read with its arrows' columns, one of the table's columns
  * can be followed up and down the drawing (followLineageColumn); on the
  * page of an alert from a check on one column, the drawing opens with
- * that column followed, and another can be picked, or none.
+ * that column followed, and another can be picked, or none. Over the
+ * drawing, one block of sentences says what it picks out - an alert's ways
+ * (highlightNotes), then the column followed - each sentence saying a way
+ * is highlighted after the highlight's own mark.
  */
 
 // The steps each way, as the switch offers them: "1 step", "2 steps".
@@ -131,6 +134,9 @@ const COLUMN_FOLLOWED: string = translationKey(
 );
 const COLUMN_MAY_GO_FURTHER: string = translationKey(
   "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.",
+);
+const COLUMN_NOT_ON_ARROWS: string = translationKey(
+  "No arrow on this diagram says where {{column}} comes from or where it goes.",
 );
 
 export interface LineageRead<T> {
@@ -247,6 +253,18 @@ export interface LineageDiagramBodyProps {
    * another, or clear it.
    */
   initialColumn?: string | null | undefined;
+  /*
+   * What the drawing picks out besides a column, in words - on an alert's
+   * page, its ways - said before the column's own sentences.
+   */
+  highlightNotes?: ReadonlyArray<LineageHighlightNote> | undefined;
+}
+
+// A sentence over the drawing about what it picks out.
+export interface LineageHighlightNote {
+  text: string;
+  // It says a way is highlighted: the highlight's own mark starts it.
+  isHighlighted: boolean;
 }
 
 // The column picked, and the opening column it was picked over: another opening column starts again from it.
@@ -262,24 +280,43 @@ interface GrownLineage {
   growth: LineageGrowth;
 }
 
-// A sentence above the drawing about what it picks out, after the highlight's own mark when it says so.
+/*
+ * One sentence over the drawing. A sentence saying a way is highlighted
+ * starts with the highlight's own mark, which is what tells the reader the
+ * indigo line is that way; the others keep the mark's room when one in the
+ * block has it, so the sentences line up.
+ */
 const HighlightNote: FunctionComponent<{
-  text: string;
-  isHighlighted: boolean;
-}> = (props: { text: string; isHighlighted: boolean }): ReactElement => {
+  note: LineageHighlightNote;
+  hasMarkRoom: boolean;
+  dataTestId?: string | undefined;
+}> = (props: {
+  note: LineageHighlightNote;
+  hasMarkRoom: boolean;
+  dataTestId?: string | undefined;
+}): ReactElement => {
+  let mark: ReactElement = <></>;
+
+  if (props.note.isHighlighted) {
+    mark = (
+      <span
+        className="flex h-5 w-7 shrink-0 items-center"
+        data-testid="lineage-highlight-mark"
+      >
+        <LineageHighlightSwatch />
+      </span>
+    );
+  } else if (props.hasMarkRoom) {
+    mark = <span aria-hidden="true" className="w-7 shrink-0" />;
+  }
+
   return (
-    <p className="flex items-start gap-2">
-      {props.isHighlighted ? (
-        <span
-          className="flex h-5 w-7 shrink-0 items-center"
-          data-testid="lineage-highlight-mark"
-        >
-          <LineageHighlightSwatch />
-        </span>
-      ) : (
-        <span aria-hidden="true" className="w-7 shrink-0" />
-      )}
-      <span>{props.text}</span>
+    <p
+      className="flex items-start gap-2"
+      {...(props.dataTestId ? { "data-testid": props.dataTestId } : {})}
+    >
+      {mark}
+      <span className="min-w-0 break-words">{props.note.text}</span>
     </p>
   );
 };
@@ -434,6 +471,51 @@ export const LineageDiagramBody: FunctionComponent<LineageDiagramBodyProps> = (
       return { value: choice, label: choice, isUserContent: true };
     },
   );
+  const highlightNotes: ReadonlyArray<LineageHighlightNote> =
+    props.highlightNotes || [];
+  const columnNotes: Array<LineageHighlightNote> = columnTrail
+    ? [
+        {
+          text: translator.translateTemplate(
+            COLUMN_FOLLOWED,
+            { column: columnTrail.column },
+            // A column's name in Latin letters keeps its place in a sentence read right to left.
+            { setsValuesApart: true },
+          ),
+          isHighlighted: true,
+        },
+        ...(columnTrail.mayGoFurther
+          ? [
+              {
+                text:
+                  translator.translateText(COLUMN_MAY_GO_FURTHER) ||
+                  COLUMN_MAY_GO_FURTHER,
+                isHighlighted: false,
+              },
+            ]
+          : []),
+      ]
+    : [];
+  /*
+   * The column the drawing opened with - an alert's check's - when no arrow
+   * names it: said, so the reader does not look for it on the drawing.
+   */
+  const unfollowedNote: LineageHighlightNote | null =
+    column && !followed
+      ? {
+          text: translator.translateTemplate(
+            COLUMN_NOT_ON_ARROWS,
+            { column },
+            { setsValuesApart: true },
+          ),
+          isHighlighted: false,
+        }
+      : null;
+  const hasMarkRoom: boolean = [...highlightNotes, ...columnNotes].some(
+    (note: LineageHighlightNote): boolean => {
+      return note.isHighlighted;
+    },
+  );
   const isGrown: boolean = Boolean(grown && grown.base === props.lineage);
   const summary: LineageSummary = summarizeLineage(lineage);
   const pipelineTables: { reads: number; writes: number } | null =
@@ -532,9 +614,10 @@ export const LineageDiagramBody: FunctionComponent<LineageDiagramBodyProps> = (
           })}
         </ul>
         {columnOptions.length > 0 || isGrown ? (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             {columnOptions.length > 0 ? (
-              <div className="w-56 max-w-full" data-testid="lineage-column">
+              // Room for a column's name as long as provider_reference; a phone gives it the whole line.
+              <div className="w-full sm:w-64" data-testid="lineage-column">
                 <Dropdown
                   options={columnOptions}
                   value={columnOptions.find((option: DropdownOption) => {
@@ -575,27 +658,53 @@ export const LineageDiagramBody: FunctionComponent<LineageDiagramBodyProps> = (
           <></>
         )}
       </div>
-      {columnTrail ? (
+      {/*
+       * What the drawing picks out, in words, right over it: the alert's
+       * ways, then the column followed - one block, so the sentences line
+       * up, whichever of them the picker changes.
+       */}
+      {highlightNotes.length > 0 || columnNotes.length > 0 || unfollowedNote ? (
         <div
           className="space-y-1 text-sm text-gray-700"
-          data-testid="lineage-column-notes"
+          data-testid="lineage-highlights"
         >
-          <HighlightNote
-            text={translator.translateTemplate(
-              COLUMN_FOLLOWED,
-              { column: columnTrail.column },
-              // A column's name in Latin letters keeps its place in a sentence read right to left.
-              { setsValuesApart: true },
-            )}
-            isHighlighted={true}
-          />
-          {columnTrail.mayGoFurther ? (
+          {highlightNotes.length > 0 ? (
+            <div className="space-y-1" data-testid="lineage-highlight-notes">
+              {highlightNotes.map(
+                (note: LineageHighlightNote): ReactElement => {
+                  return (
+                    <HighlightNote
+                      key={note.text}
+                      note={note}
+                      hasMarkRoom={hasMarkRoom}
+                    />
+                  );
+                },
+              )}
+            </div>
+          ) : (
+            <></>
+          )}
+          {columnNotes.length > 0 ? (
+            <div className="space-y-1" data-testid="lineage-column-notes">
+              {columnNotes.map((note: LineageHighlightNote): ReactElement => {
+                return (
+                  <HighlightNote
+                    key={note.text}
+                    note={note}
+                    hasMarkRoom={hasMarkRoom}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <></>
+          )}
+          {unfollowedNote ? (
             <HighlightNote
-              text={
-                translator.translateText(COLUMN_MAY_GO_FURTHER) ||
-                COLUMN_MAY_GO_FURTHER
-              }
-              isHighlighted={false}
+              note={unfollowedNote}
+              hasMarkRoom={hasMarkRoom}
+              dataTestId="lineage-column-missing"
             />
           ) : (
             <></>

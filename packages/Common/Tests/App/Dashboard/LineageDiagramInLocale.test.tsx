@@ -133,6 +133,8 @@ const TEXTS: ReadonlyArray<string> = [
   "Column to follow",
   "{{column}} is highlighted where it comes from and where it goes.",
   "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.",
+  // An alert's check's column that no arrow names (#6783).
+  "No arrow on this diagram says where {{column}} comes from or where it goes.",
 ];
 
 // Each count, by its general form: the key whose "_one" key is the one form.
@@ -614,15 +616,22 @@ describe("what pressing a card's count draws, in words", () => {
   test.each(DASHBOARD_LANGUAGES)(
     "%s words the column a reader follows into its sentence, the column's name kept whole",
     (language: string) => {
-      const sentence: string = translatorFor(language).translateTemplate(
+      for (const template of [
         "{{column}} is highlighted where it comes from and where it goes.",
-        { column: "customer_id" },
-      );
+        "No arrow on this diagram says where {{column}} comes from or where it goes.",
+      ]) {
+        const sentence: string = translatorFor(language).translateTemplate(
+          template,
+          { column: "customer_id" },
+        );
 
-      expect({ language, named: sentence.includes("customer_id") }).toEqual({
-        language,
-        named: true,
-      });
+        expect({
+          language,
+          template,
+          named: sentence.includes("customer_id"),
+          once: sentence.split("customer_id").length === 2,
+        }).toEqual({ language, template, named: true, once: true });
+      }
     },
   );
 });

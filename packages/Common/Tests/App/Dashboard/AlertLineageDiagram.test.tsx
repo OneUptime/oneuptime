@@ -234,8 +234,12 @@ import {
   LINEAGE_HIGHLIGHT_WIDTH,
   LINEAGE_PROBLEM_COLOR,
   LINEAGE_READABLE_ZOOM,
+  LineageBox,
   LineageLayout,
   LineagePoint,
+  getLineageArrowLabelBox,
+  getLineageCardsInView,
+  getLineageHighlightSets,
   getLineageViewport,
   layoutLineage,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageGraphModel";
@@ -644,7 +648,9 @@ describe("the ways picked out", () => {
     ).getByTestId("lineage-edge-label");
 
     expect(label).toHaveTextContent("orders_mart");
-    expect(label.style.color).toBe("rgb(99, 102, 241)");
+    // Indigo words in a class the dark page lightens: an inline colour would stay dim there.
+    expect(label).toHaveClass("text-indigo-600");
+    expect(label.style.color).toBe("");
   });
 
   test("a failed run on a way stays red, and says it failed", async () => {
@@ -1264,6 +1270,53 @@ describe("where the drawing opens", () => {
 
     expect(onCanvas(cause.x)).toBeGreaterThanOrEqual(0);
     expect(onCanvas(cause.x + LINEAGE_CARD_WIDTH)).toBeLessThanOrEqual(320);
+  });
+
+  test("on a phone, a cause on the pipeline on an arrow: the label saying Cause is in view, whole, not cut at the canvas's edge", async () => {
+    const lineage: DataTableLineage = aLineage();
+    lineage.edges[0] = arrow(
+      DataLineageEdgeKind.Feeds,
+      `table:${SOURCE}`,
+      `table:${STAGING}`,
+      {
+        pipelines: [
+          { dataPipelineId: ETL, name: "orders_etl", lastRunState: "COMPLETE" },
+        ],
+      },
+    );
+    lineage.highlight = {
+      ...lineage.highlight!,
+      causeNodeIds: [],
+      dataPipelineIds: [ETL, MART_ETL].sort(),
+      causeDataPipelineIds: [ETL],
+    };
+    const layout: LineageLayout = layoutLineage(lineage);
+    const label: LineageBox = getLineageArrowLabelBox(
+      layout,
+      lineage.edges[0]!,
+    )!;
+    canvasBox = { width: 320, height: 400 };
+
+    await renderDrawn(anAnswer({ lineage }));
+
+    expect(screen.getByTestId("lineage-edge-cause")).toHaveTextContent("Cause");
+    expect(onCanvas(label.left)).toBeGreaterThanOrEqual(0);
+    expect(onCanvas(label.right)).toBeLessThanOrEqual(320);
+
+    // Opened on the alert's own card, as before, the label would have been off the canvas.
+    const before: ReturnType<typeof getLineageViewport> = getLineageViewport({
+      layout,
+      focusNodeId: `table:${TABLE}`,
+      width: 320,
+      height: 400,
+      inView: getLineageCardsInView(
+        lineage,
+        layout,
+        getLineageHighlightSets(lineage),
+      ),
+    });
+
+    expect(before!.x + label.right * before!.zoom).toBeLessThan(0);
   });
 
   test("an alert that caused others but has no cause opens on its own card", async () => {

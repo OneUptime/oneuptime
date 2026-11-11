@@ -4,6 +4,7 @@ import {
   LINEAGE_CARD_HEIGHT,
   LINEAGE_CARD_WIDTH,
   LINEAGE_DIMMED_OPACITY,
+  LINEAGE_EDGE_LABEL_CLEARANCE,
   LINEAGE_EDGE_LABEL_MAX_WIDTH,
   LINEAGE_FIT_PADDING,
   LINEAGE_HIGHLIGHT_COLOR,
@@ -24,12 +25,14 @@ import {
   getLineageArrowLook,
   getLineageCardRole,
   getLineageCardsInView,
+  getLineageCauseLabelBoxes,
   getLineageColumnHighlightSets,
   getLineageHighlightSets,
   getLineageViewport,
   getLineageViewportAfterExpanding,
   getLineageNodeTone,
   getLineageToneColor,
+  isLineageArrowLevel,
   isLineageCardDimmed,
   joinLineageHighlightSets,
   layoutLineage,
@@ -134,9 +137,10 @@ import "reactflow/dist/style.css";
  * alerts it caused picked out: its cards and arrows in indigo, the cause
  * and each consequence named on its card, and the rest drawn faint. A
  * cause on a pipeline drawn on the arrows it moves data along says Cause
- * under its name on the arrows the way up ends on. Too
- * wide to read whole, an alert's drawing opens on its cause - or on its
- * own card when nothing caused it - and as much of its ways as fits
+ * under its name on the arrows the way up ends on. Too wide to read whole,
+ * an alert's drawing opens on its cause - its card, or the label saying
+ * Cause on an arrow (getLineageCauseLabelBoxes) - or on its own card when
+ * nothing caused it, and as much of its ways as fits
  * (getLineageCardsInView), not just centred on the alert's own card.
  */
 
@@ -254,9 +258,13 @@ const HANDLE_STYLE: CSSProperties = { opacity: 0, pointerEvents: "none" };
  * around it: an arrowhead never covers a card's count, nor a highlighted
  * arrow a card it passes behind. React Flow draws arrows of one height in
  * a layer of their own, and a card over the arrows only when its height
- * is greater.
+ * is greater. An arrow's label is over every arrow - React Flow draws the
+ * labels after the arrows, so at a highlighted arrow's height they are
+ * still on top - and under the cards: a highlighted arrow never runs
+ * through a pipeline's name, nor between it and Cause under it.
  */
 const HIGHLIGHTED_ARROW_Z_INDEX: number = 1;
+export const LINEAGE_EDGE_LABEL_Z_INDEX: number = HIGHLIGHTED_ARROW_Z_INDEX;
 export const LINEAGE_CARD_Z_INDEX: number = 2;
 
 /*
@@ -968,7 +976,10 @@ interface LineageArrowData {
  * ends in "..." at its own end. When the pipeline is the alert's cause,
  * the card's own small Cause chip sits under the name, inside the same
  * room. An arrow on an alert's way is drawn over a wide, faint indigo
- * halo.
+ * halo. The label sits on a curved arrow's middle and just over a level
+ * one (isLineageArrowLevel), so a level arrow and its head still show; its
+ * words are a shade darker than the arrow, and lighter on a dark page, so
+ * they read on either.
  */
 const LineageArrow: FunctionComponent<EdgeProps<LineageArrowData>> = (
   props: EdgeProps<LineageArrowData>,
@@ -981,6 +992,7 @@ const LineageArrow: FunctionComponent<EdgeProps<LineageArrowData>> = (
     targetY: props.targetY,
     targetPosition: props.targetPosition,
   });
+  const isLevel: boolean = isLineageArrowLevel(props.sourceY, props.targetY);
 
   return (
     <>
@@ -1006,18 +1018,21 @@ const LineageArrow: FunctionComponent<EdgeProps<LineageArrowData>> = (
       {props.data?.label ? (
         <EdgeLabelRenderer>
           <div
-            className="nodrag nopan absolute flex flex-col items-center truncate rounded px-1 text-[10px] font-medium"
+            className={`nodrag nopan absolute flex flex-col items-center truncate rounded px-1 text-[10px] font-medium ${
+              props.data.isLabelHighlighted ? "text-indigo-600" : "text-red-600"
+            }`}
             style={{
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              transform: isLevel
+                ? `translate(-50%, -100%) translate(${labelX}px, ${labelY - LINEAGE_EDGE_LABEL_CLEARANCE}px)`
+                : `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               maxWidth: LINEAGE_EDGE_LABEL_MAX_WIDTH,
-              color: props.data.isLabelHighlighted
-                ? LINEAGE_HIGHLIGHT_COLOR
-                : LINEAGE_PROBLEM_COLOR,
               background: "var(--ou-surface-primary, #ffffff)",
               pointerEvents: "all",
+              zIndex: LINEAGE_EDGE_LABEL_Z_INDEX,
             }}
             title={props.data.title}
             data-testid="lineage-edge-label"
+            data-lineage-label-place={isLevel ? "over" : "on"}
           >
             <IsolatedText
               text={props.data.label}
@@ -1311,6 +1326,12 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
         height: box?.height || 0,
         // On an alert's drawing, its cause first: what the person paged came to see.
         inView: getLineageCardsInView(props.lineage, layout, alertHighlight),
+        // A cause said on an arrow - a pipeline's name with Cause under it - before any card.
+        labelsInView: getLineageCauseLabelBoxes(
+          props.lineage,
+          layout,
+          alertHighlight,
+        ),
       });
     }, [layout, props.lineage, alertHighlight]);
   const readViewportRef: MutableRefObject<() => LineageViewport | null> =

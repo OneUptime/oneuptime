@@ -52,6 +52,10 @@ export const LINEAGE_CARD_HEIGHT: number = 84;
 // Room between columns for a failed pipeline's name on its arrow.
 export const LINEAGE_COLUMN_GAP: number = 96;
 export const LINEAGE_EDGE_LABEL_MAX_WIDTH: number = LINEAGE_COLUMN_GAP - 12;
+// The tallest an arrow's label is: a pipeline's name with Cause under it.
+export const LINEAGE_EDGE_LABEL_MAX_HEIGHT: number = 32;
+// How far over a level arrow its label sits: clear of the arrow's halo.
+export const LINEAGE_EDGE_LABEL_CLEARANCE: number = 6;
 export const LINEAGE_ROW_GAP: number = 16;
 
 // The room around the drawing when it is fitted, as React Flow counts it.
@@ -998,7 +1002,7 @@ export function getLineageCardsInView(
 }
 
 // A box in the drawing's own units.
-interface LineageBox {
+export interface LineageBox {
   left: number;
   top: number;
   right: number;
@@ -1012,6 +1016,96 @@ function getCardBox(point: LineagePoint): LineageBox {
     right: point.x + LINEAGE_CARD_WIDTH,
     bottom: point.y + LINEAGE_CARD_HEIGHT,
   };
+}
+
+/*
+ * An arrow runs level when its two ends are at one height: its two cards
+ * side by side. Its label then sits just over it, not on it - on it, the
+ * label would hide nearly all of the arrow in the column gap, its head
+ * too, and a two-line label (a pipeline's name with Cause under it) would
+ * leave nothing of it. A curved arrow keeps its label on its middle, the
+ * curve going in and out of it.
+ */
+export function isLineageArrowLevel(sourceY: number, targetY: number): boolean {
+  return Math.abs(sourceY - targetY) < 1;
+}
+
+/*
+ * Where an arrow's label sits in the drawing at its tallest (a pipeline's
+ * name with Cause under it), as LineageArrow places it: in the gap between
+ * the two cards, over the arrow when it runs level, on its middle
+ * otherwise. Null when a card of the arrow is not laid out.
+ */
+export function getLineageArrowLabelBox(
+  layout: LineageLayout,
+  edge: DataTableLineageEdge,
+): LineageBox | null {
+  const source: LineagePoint | undefined = layout.positions.get(edge.source);
+  const target: LineagePoint | undefined = layout.positions.get(edge.target);
+
+  if (!source || !target) {
+    return null;
+  }
+
+  // An arrow leaves a card's right side and enters the next card's left, halfway down each.
+  const startY: number = source.y + LINEAGE_CARD_HEIGHT / 2;
+  const endY: number = target.y + LINEAGE_CARD_HEIGHT / 2;
+  const middleX: number = (source.x + LINEAGE_CARD_WIDTH + target.x) / 2;
+  const middleY: number = (startY + endY) / 2;
+  const top: number = isLineageArrowLevel(startY, endY)
+    ? middleY - LINEAGE_EDGE_LABEL_CLEARANCE - LINEAGE_EDGE_LABEL_MAX_HEIGHT
+    : middleY - LINEAGE_EDGE_LABEL_MAX_HEIGHT / 2;
+
+  return {
+    left: middleX - LINEAGE_EDGE_LABEL_MAX_WIDTH / 2,
+    top,
+    right: middleX + LINEAGE_EDGE_LABEL_MAX_WIDTH / 2,
+    bottom: top + LINEAGE_EDGE_LABEL_MAX_HEIGHT,
+  };
+}
+
+/*
+ * What a drawing too wide to read whole keeps in view before any card: an
+ * alert's cause said on the arrows its pipeline moves data along
+ * (causeEdgeIds) - the cause, when no card is - each arrow's label, the
+ * one nearest the alert's own card first. Without it a phone's drawing
+ * opened on the alert's card, the Cause label cut at the canvas's edge.
+ * None when a card is the cause: getLineageCardsInView puts it first.
+ */
+export function getLineageCauseLabelBoxes(
+  lineage: DataTableLineage,
+  layout: LineageLayout,
+  sets: LineageHighlightSets | null,
+): Array<LineageBox> {
+  if (!sets || sets.causeNodeIds.size > 0 || sets.causeEdgeIds.size === 0) {
+    return [];
+  }
+
+  const focusColumn: number = layout.columns.get(lineage.focusNodeId) || 0;
+  const stepsAway: (edge: DataTableLineageEdge) => number = (
+    edge: DataTableLineageEdge,
+  ): number => {
+    return Math.abs(
+      (layout.columns.get(edge.target) ?? focusColumn) - focusColumn,
+    );
+  };
+  const boxes: Array<LineageBox> = [];
+
+  for (const edge of lineage.edges
+    .filter((edge: DataTableLineageEdge): boolean => {
+      return sets.causeEdgeIds.has(edge.id);
+    })
+    .sort((a: DataTableLineageEdge, b: DataTableLineageEdge): number => {
+      return stepsAway(a) - stepsAway(b) || compareText(a.id, b.id);
+    })) {
+    const box: LineageBox | null = getLineageArrowLabelBox(layout, edge);
+
+    if (box) {
+      boxes.push(box);
+    }
+  }
+
+  return boxes;
 }
 
 /*
@@ -1051,11 +1145,12 @@ function getLineageFitZoom(
  * Where the diagram is looked at from on a canvas of a given size: the whole
  * drawing, fitted and centered, when it fits with its cards' names still
  * readable. Otherwise, at the least zoom that keeps names readable, the
- * cards it is asked to keep in view (getLineageCardsInView: the table
- * itself, unless an alert's ways say more), as many as fit, the most wanted
- * first; the view leans toward the first card that did not fit, so the way
- * to it starts on screen. The rest is a drag away, and the fit control shows
- * all of it. Null while the canvas has no size to go by.
+ * arrow labels it is asked to keep in view (getLineageCauseLabelBoxes: an
+ * alert's cause said on an arrow), then the cards (getLineageCardsInView:
+ * the table itself, unless an alert's ways say more), as many as fit, the
+ * most wanted first; the view leans toward the first one that did not fit,
+ * so the way to it starts on screen. The rest is a drag away, and the fit
+ * control shows all of it. Null while the canvas has no size to go by.
  */
 export function getLineageViewport(data: {
   layout: LineageLayout;
@@ -1064,6 +1159,8 @@ export function getLineageViewport(data: {
   height: number;
   // The cards to keep in view, the most wanted first; the drawing's own card when none are named.
   inView?: ReadonlyArray<string> | undefined;
+  // Arrow labels to keep in view before any card, the most wanted first.
+  labelsInView?: ReadonlyArray<LineageBox> | undefined;
 }): LineageViewport | null {
   if (!(data.width > 0) || !(data.height > 0)) {
     return null;
@@ -1089,40 +1186,42 @@ export function getLineageViewport(data: {
   const roomHeight: number = data.height / (zoom * (1 + LINEAGE_FIT_PADDING));
   const wanted: ReadonlyArray<string> =
     data.inView && data.inView.length > 0 ? data.inView : [data.focusNodeId];
-
-  let shown: LineageBox | null = null;
-  // The first card wanted that did not fit: the view leans toward it.
-  let leftOut: LineageBox | null = null;
+  const boxes: Array<LineageBox> = [...(data.labelsInView || [])];
 
   for (const id of wanted) {
     const point: LineagePoint | undefined = data.layout.positions.get(id);
 
-    if (!point) {
-      continue;
+    if (point) {
+      boxes.push(getCardBox(point));
     }
+  }
 
-    const card: LineageBox = getCardBox(point);
+  let shown: LineageBox | null = null;
+  // The first label or card wanted that did not fit: the view leans toward it.
+  let leftOut: LineageBox | null = null;
+
+  for (const box of boxes) {
     const joined: LineageBox = shown
       ? {
-          left: Math.min(shown.left, card.left),
-          top: Math.min(shown.top, card.top),
-          right: Math.max(shown.right, card.right),
-          bottom: Math.max(shown.bottom, card.bottom),
+          left: Math.min(shown.left, box.left),
+          top: Math.min(shown.top, box.top),
+          right: Math.max(shown.right, box.right),
+          bottom: Math.max(shown.bottom, box.bottom),
         }
-      : card;
+      : box;
     const fits: boolean =
       joined.right - joined.left <= roomWidth &&
       joined.bottom - joined.top <= roomHeight;
 
     if (fits || !shown) {
-      // A card that cannot fit even alone is still the one shown.
+      // A label or card that cannot fit even alone is still the one shown.
       shown = joined;
     } else if (!leftOut) {
-      leftOut = card;
+      leftOut = box;
     }
   }
 
-  // Not one card to keep in view: the drawing's middle.
+  // Not one label or card to keep in view: the drawing's middle.
   const centerX: number = shown
     ? getLeaningMiddle({
         low: shown.left,

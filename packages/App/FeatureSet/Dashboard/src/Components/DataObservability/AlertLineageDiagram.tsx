@@ -1,10 +1,11 @@
 import DataObservabilityApi from "./DataObservabilityApi";
 import {
   LineageDiagramBody,
+  LineageHighlightNote,
   LineageRead,
   useLineageRead,
 } from "./LineageDiagram";
-import { LineageHighlightSwatch, getLineageCardRoute } from "./LineageGraph";
+import { getLineageCardRoute } from "./LineageGraph";
 import { LineagePlace, isLineageEmpty } from "./LineageGraphModel";
 import Route from "Common/Types/API/Route";
 import {
@@ -57,11 +58,8 @@ const CONSEQUENCES_NOT_DRAWN: PluralTemplate = {
     "The {{count}} alerts this one caused are further down than the diagram reaches.",
 };
 
-export interface AlertLineageNote {
-  text: string;
-  // It says a way is highlighted: the highlight's own mark starts it.
-  isHighlighted: boolean;
-}
+// A sentence over the drawing; one saying a way is highlighted starts with the highlight's own mark.
+export type AlertLineageNote = LineageHighlightNote;
 
 // What the drawing picks out, in words: the way to the cause, and to the alerts it caused.
 export function getAlertLineageNotes(
@@ -126,58 +124,24 @@ export function getAlertLineageSentences(
 }
 
 /*
- * One sentence under the card's header. A sentence saying a way is
- * highlighted starts with the highlight's own mark, which is what tells the
- * reader the indigo line is that way; the others keep the mark's room when
- * one does, so the sentences line up.
- */
-const AlertLineageNoteLine: FunctionComponent<{
-  note: AlertLineageNote;
-  hasMarkRoom: boolean;
-}> = (props: {
-  note: AlertLineageNote;
-  hasMarkRoom: boolean;
-}): ReactElement => {
-  let mark: ReactElement = <></>;
-
-  if (props.note.isHighlighted) {
-    mark = (
-      <span
-        className="flex h-5 w-7 shrink-0 items-center"
-        data-testid="lineage-highlight-mark"
-      >
-        <LineageHighlightSwatch />
-      </span>
-    );
-  } else if (props.hasMarkRoom) {
-    mark = <span aria-hidden="true" className="w-7 shrink-0" />;
-  }
-
-  return (
-    <p className="flex items-start gap-2">
-      {mark}
-      <span>{props.note.text}</span>
-    </p>
-  );
-};
-
-/*
  * A data alert's lineage, on its page under its Data card: the lineage
  * around its table - as the table's Lineage tab draws it - or around its
  * pipeline, with the way up to the alert that caused it and down to each
  * alert it caused highlighted, so the person paged sees where in the chain
  * the problem started. The drawing opens on the cause (LineageGraph), and
- * the sentences above it say which ways are highlighted, each after the
- * highlight's own mark - the diagram's legend leaves that to them. Nothing
- * when there is nothing to draw: an alert about a whole database, or a
- * table no lineage has been seen for.
+ * the sentences right over it, under what lies each way, say which ways
+ * are highlighted, each after the highlight's own mark - the diagram's
+ * legend leaves that to them. Nothing when there is nothing to draw: an
+ * alert about a whole database, or a table no lineage has been seen for.
  *
  * An alert from a check on one column - a null rate on
  * orders.customer_id - comes with the columns each arrow carries and the
  * column its check reads (DataAlertLineageAnswer.column): the drawing opens
  * with that column followed beside the alert's ways, first in the column
  * picker, as the table's Lineage tab follows it, and another can be picked
- * or none. An alert from a check on the whole table draws as before.
+ * or none; said in a sentence under the alert's own, or, when no arrow
+ * names the column, that no arrow says where it comes from or goes. An
+ * alert from a check on the whole table draws as before.
  */
 const AlertLineageDiagram: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -234,44 +198,15 @@ const AlertLineageDiagram: FunctionComponent<ComponentProps> = (
       <ErrorMessage message={read.error || ""} onRefreshClick={read.retry} />
     );
   } else {
-    const notes: Array<AlertLineageNote> = getAlertLineageNotes(
-      translator,
-      read.answer,
-    );
-    const hasMarkRoom: boolean = notes.some(
-      (note: AlertLineageNote): boolean => {
-        return note.isHighlighted;
-      },
-    );
-
     body = (
-      <div className="space-y-3">
-        {notes.length > 0 ? (
-          <div
-            className="space-y-1 text-sm text-gray-700"
-            data-testid="lineage-highlight-notes"
-          >
-            {notes.map((note: AlertLineageNote): ReactElement => {
-              return (
-                <AlertLineageNoteLine
-                  key={note.text}
-                  note={note}
-                  hasMarkRoom={hasMarkRoom}
-                />
-              );
-            })}
-          </div>
-        ) : (
-          <></>
-        )}
-        <LineageDiagramBody
-          lineage={lineage}
-          place={LineagePlace.Alert}
-          withColumns={Boolean(column)}
-          columnOrder={columnOrder}
-          initialColumn={column}
-        />
-      </div>
+      <LineageDiagramBody
+        lineage={lineage}
+        place={LineagePlace.Alert}
+        withColumns={Boolean(column)}
+        columnOrder={columnOrder}
+        initialColumn={column}
+        highlightNotes={getAlertLineageNotes(translator, read.answer)}
+      />
     );
   }
 

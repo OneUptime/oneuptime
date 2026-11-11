@@ -66,8 +66,8 @@
  *            #1042). "none": no number at all.
  *   ?dir=    auto: <html> takes its language's reading direction as the
  *            Dashboard sets it (Common/UI/Utils/PageLanguage), right to
- *            left for Persian. Left out, every language is laid out left to
- *            right, as the header specs measure it.
+ *            left for Arabic and Persian. Left out, every language is laid
+ *            out left to right, as the header specs measure it.
  *   ?verdict= none (default) | confirmed | rejected
  *            A responder's verdict already saved on the completed runs of
  *            Incident #1042 and Alert #311, as if rated before the page
@@ -582,6 +582,7 @@ import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 const params = new URLSearchParams(window.location.search);
 // Every language the Dashboard has besides English (Dashboard/src/Locales).
 const LANGUAGES = [
+  "ar",
   "da",
   "de",
   "es",
@@ -755,14 +756,15 @@ const dataCheckColumn =
  * ?data=table&cause=pipeline: on #311's page, its cause is on the pipeline
  * that moves payments.provider_callbacks into payments.ledger_entries,
  * drawn on that arrow, its name longer than the arrow's label holds.
- * &run=failed: that pipeline's latest run failed.
+ * &run=failed: that pipeline's latest run failed - FAIL, as OpenLineage
+ * names the run state (isFailedLineageRunState).
  */
 const dataCausePipeline =
   dataMode === "table" && params.get("cause") === "pipeline"
     ? {
         dataPipelineId: uuid("8e000000", 1),
         name: "payments_callbacks_hourly_sync",
-        lastRunState: params.get("run") === "failed" ? "FAILED" : "COMPLETE",
+        lastRunState: params.get("run") === "failed" ? "FAIL" : "COMPLETE",
       }
     : null;
 /*

@@ -21,6 +21,9 @@ import {
   LINEAGE_CARD_HEIGHT,
   LINEAGE_CARD_WIDTH,
   LINEAGE_COLUMN_GAP,
+  LINEAGE_EDGE_LABEL_CLEARANCE,
+  LINEAGE_EDGE_LABEL_MAX_HEIGHT,
+  LINEAGE_EDGE_LABEL_MAX_WIDTH,
   LINEAGE_HIGHLIGHT_COLOR,
   LINEAGE_HIGHLIGHT_WIDTH,
   LINEAGE_NEUTRAL_COLOR,
@@ -32,6 +35,7 @@ import {
   LINEAGE_ROW_GAP,
   LINEAGE_VIEW_DEFINITION_DASH,
   LineageArrowLook,
+  LineageBox,
   LineageCardRole,
   LineageHighlightSets,
   LineageLayout,
@@ -40,15 +44,18 @@ import {
   LineageViewport,
   countPipelineTables,
   fitHeights,
+  getLineageArrowLabelBox,
   getLineageArrowLook,
   getLineageCardRole,
   getLineageCardsInView,
+  getLineageCauseLabelBoxes,
   getLineageColumns,
   getLineageEdgeLabel,
   getLineageEdgeStyle,
   getLineageHighlightSets,
   getLineageNodeTone,
   getLineageViewport,
+  isLineageArrowLevel,
   isLineageCardDimmed,
   isLineageEmpty,
   joinLineageHighlightSets,
@@ -670,6 +677,83 @@ describe("where the drawing is looked at from", () => {
   });
 });
 
+describe("an arrow's label: where it sits", () => {
+  const A: string = getLineageTableNodeId("a");
+  const B: string = getLineageTableNodeId("b");
+
+  // Cards placed by hand.
+  function cardsAt(points: Record<string, [number, number]>): LineageLayout {
+    const positions: Map<string, LineagePoint> = new Map();
+
+    for (const [id, [x, y]] of Object.entries(points)) {
+      positions.set(id, { x, y });
+    }
+
+    return { positions, columns: new Map(), width: 0, height: 0 };
+  }
+
+  test("an arrow is level when its two ends are at one height - its cards side by side - to within a pixel", () => {
+    expect(isLineageArrowLevel(42, 42)).toBe(true);
+    expect(isLineageArrowLevel(42, 42.6)).toBe(true);
+    expect(isLineageArrowLevel(42.6, 42)).toBe(true);
+    expect(isLineageArrowLevel(42, 43)).toBe(false);
+    expect(isLineageArrowLevel(43, 42)).toBe(false);
+    expect(isLineageArrowLevel(42, 142)).toBe(false);
+  });
+
+  test("over a level arrow: centred in the gap, just clear of the arrow, never on a card nor above the cards' tops", () => {
+    const layout: LineageLayout = cardsAt({
+      [A]: [0, 100],
+      [B]: [COLUMN, 100],
+    });
+    const box: LineageBox = getLineageArrowLabelBox(layout, feeds("a", "b"))!;
+    const arrowY: number = 100 + LINEAGE_CARD_HEIGHT / 2;
+
+    expect(box.bottom).toBe(arrowY - LINEAGE_EDGE_LABEL_CLEARANCE);
+    expect(box.bottom - box.top).toBe(LINEAGE_EDGE_LABEL_MAX_HEIGHT);
+    expect(box.right - box.left).toBe(LINEAGE_EDGE_LABEL_MAX_WIDTH);
+    expect((box.left + box.right) / 2).toBe(
+      LINEAGE_CARD_WIDTH + LINEAGE_COLUMN_GAP / 2,
+    );
+    // In the gap: clear of both cards.
+    expect(box.left).toBeGreaterThan(LINEAGE_CARD_WIDTH);
+    expect(box.right).toBeLessThan(COLUMN);
+    // Within the cards' own height: it never reaches into the row above.
+    expect(box.top).toBeGreaterThanOrEqual(100);
+  });
+
+  test("on a curved arrow - its cards in different rows - on its middle", () => {
+    const layout: LineageLayout = cardsAt({
+      [A]: [0, 0],
+      [B]: [COLUMN, 2 * ROW],
+    });
+    const box: LineageBox = getLineageArrowLabelBox(layout, feeds("a", "b"))!;
+
+    expect((box.top + box.bottom) / 2).toBe(
+      (LINEAGE_CARD_HEIGHT / 2 + 2 * ROW + LINEAGE_CARD_HEIGHT / 2) / 2,
+    );
+    expect(box.bottom - box.top).toBe(LINEAGE_EDGE_LABEL_MAX_HEIGHT);
+    expect((box.left + box.right) / 2).toBe(
+      LINEAGE_CARD_WIDTH + LINEAGE_COLUMN_GAP / 2,
+    );
+  });
+
+  test("an arrow one of whose cards is not laid out has no label to place", () => {
+    const layout: LineageLayout = cardsAt({ [A]: [0, 0] });
+
+    expect(getLineageArrowLabelBox(layout, feeds("a", "b"))).toBeNull();
+    expect(getLineageArrowLabelBox(layout, feeds("b", "a"))).toBeNull();
+  });
+
+  test("the room a label is given fits the gap between two columns", () => {
+    expect(LINEAGE_EDGE_LABEL_MAX_WIDTH).toBeLessThan(LINEAGE_COLUMN_GAP);
+    // A name with Cause under it, over a level arrow, stays within a card's height.
+    expect(
+      LINEAGE_EDGE_LABEL_MAX_HEIGHT + LINEAGE_EDGE_LABEL_CLEARANCE,
+    ).toBeLessThanOrEqual(LINEAGE_CARD_HEIGHT / 2);
+  });
+});
+
 describe("an alert's drawing: the cards it opens on", () => {
   const A: string = getLineageTableNodeId("a");
   const B: string = getLineageTableNodeId("b");
@@ -1051,6 +1135,89 @@ describe("an alert's drawing: the cards it opens on", () => {
           height: 900,
         }),
       );
+    });
+
+    test("a label wanted before any card: whole in view first, the view leaning toward the first card that did not fit", () => {
+      // The label over the level arrow from b into the table, in the gap between them.
+      const left: number =
+        COLUMN_X(2) +
+        LINEAGE_CARD_WIDTH +
+        (LINEAGE_COLUMN_GAP - LINEAGE_EDGE_LABEL_MAX_WIDTH) / 2;
+      const label: LineageBox = {
+        left,
+        top: LINEAGE_CARD_HEIGHT / 2 - 38,
+        right: left + LINEAGE_EDGE_LABEL_MAX_WIDTH,
+        bottom: LINEAGE_CARD_HEIGHT / 2 - 6,
+      };
+      // Room for the label and 100 more: not for the table's card beside it.
+      const width: number = canvasFor(LINEAGE_EDGE_LABEL_MAX_WIDTH + 100);
+      const viewport: LineageViewport | null = getLineageViewport({
+        layout: row,
+        focusNodeId: FOCUS,
+        width,
+        height: HEIGHT,
+        inView: [FOCUS, D],
+        labelsInView: [label],
+      });
+
+      expect(viewport!.zoom).toBe(LINEAGE_READABLE_ZOOM);
+      expect(onCanvas(viewport!, label.left)).toBeGreaterThan(0);
+      expect(onCanvas(viewport!, label.right)).toBeLessThan(width);
+      // Toward the table's card by all the room there is: half of the 100.
+      expect(middleOf(viewport!, { width, height: HEIGHT }).x).toBeCloseTo(
+        (label.left + label.right) / 2 + 50,
+        9,
+      );
+
+      // Without it, the table's card alone: the label off the canvas.
+      const plain: LineageViewport = viewOf(row, width, [FOCUS, D]);
+
+      expect(onCanvas(plain, label.right)).toBeLessThan(0);
+    });
+
+    test("a label and the cards after it, as many as fit", () => {
+      const left: number = COLUMN_X(2) + LINEAGE_CARD_WIDTH + 6;
+      const label: LineageBox = {
+        left,
+        top: 4,
+        right: left + LINEAGE_EDGE_LABEL_MAX_WIDTH,
+        bottom: 36,
+      };
+      // Room for the label and the table's card, not for c after it.
+      const span: number = COLUMN_X(3) + LINEAGE_CARD_WIDTH - label.left;
+      const width: number = canvasFor(span + 20);
+      const viewport: LineageViewport | null = getLineageViewport({
+        layout: row,
+        focusNodeId: FOCUS,
+        width,
+        height: HEIGHT,
+        inView: [FOCUS, C],
+        labelsInView: [label],
+      });
+
+      expect(onCanvas(viewport!, label.left)).toBeGreaterThan(0);
+      expect(
+        onCanvas(viewport!, COLUMN_X(3) + LINEAGE_CARD_WIDTH),
+      ).toBeLessThan(width);
+      expect(middleOf(viewport!, { width, height: HEIGHT }).x).toBeCloseTo(
+        label.left + span / 2 + 10,
+        9,
+      );
+    });
+
+    test("no label named: the same view as before", () => {
+      const width: number = canvasFor(600);
+
+      expect(
+        getLineageViewport({
+          layout: row,
+          focusNodeId: FOCUS,
+          width,
+          height: HEIGHT,
+          inView: [A, FOCUS],
+          labelsInView: [],
+        }),
+      ).toEqual(viewOf(row, width, [A, FOCUS]));
     });
 
     test("an alert's drawing laid out as it is drawn: the cause in view", () => {
@@ -1925,6 +2092,108 @@ describe("an alert's drawing: the cause's pipeline says Cause on its arrows", ()
       isFailed: false,
       isCause: false,
     });
+  });
+
+  test("too wide to read whole, the drawing keeps the label saying Cause in view before any card", () => {
+    const lineage: DataTableLineage = withCausePipeline();
+    const layout: LineageLayout = layoutLineage(lineage);
+
+    expect(
+      getLineageCauseLabelBoxes(
+        lineage,
+        layout,
+        getLineageHighlightSets(lineage),
+      ),
+    ).toEqual([getLineageArrowLabelBox(layout, feeds("raw", "staging"))]);
+  });
+
+  test("several arrows say Cause: the label nearest the alert's own card first", () => {
+    const lineage: DataTableLineage = withCausePipeline([
+      feeds("raw", "staging", { pipelines: [causeRun] }),
+      feeds("staging", "focus", { pipelines: [causeRun] }),
+      feeds("focus", "mart"),
+      feeds("c", "focus"),
+    ]);
+    const layout: LineageLayout = layoutLineage(lineage);
+
+    expect(
+      getLineageCauseLabelBoxes(
+        lineage,
+        layout,
+        getLineageHighlightSets(lineage),
+      ),
+    ).toEqual([
+      getLineageArrowLabelBox(layout, feeds("staging", "focus")),
+      getLineageArrowLabelBox(layout, feeds("raw", "staging")),
+    ]);
+  });
+
+  test("no label to keep first: a drawing with no ways, a cause on a card, or an answer naming no cause's pipeline", () => {
+    const lineage: DataTableLineage = withCausePipeline();
+    const layout: LineageLayout = layoutLineage(lineage);
+
+    expect(getLineageCauseLabelBoxes(lineage, layout, null)).toEqual([]);
+
+    // A cause on a card too: the card is the one kept first (getLineageCardsInView).
+    const onCard: DataTableLineage = {
+      ...lineage,
+      highlight: {
+        ...lineage.highlight!,
+        causeNodeIds: [getLineageTableNodeId("raw")],
+      },
+    };
+    const onCardSets: LineageHighlightSets = getLineageHighlightSets(onCard)!;
+
+    expect(onCardSets.causeEdgeIds.size).toBe(1);
+    expect(getLineageCauseLabelBoxes(onCard, layout, onCardSets)).toEqual([]);
+
+    const old: DataTableLineage = withCausePipeline(undefined, null);
+
+    expect(
+      getLineageCauseLabelBoxes(old, layout, getLineageHighlightSets(old)),
+    ).toEqual([]);
+  });
+
+  test("on a phone, laid out as it is drawn: the label saying Cause opens whole on the canvas, where the alert's own card would have left it off", () => {
+    const lineage: DataTableLineage = withCausePipeline();
+    const layout: LineageLayout = layoutLineage(lineage);
+    const sets: LineageHighlightSets | null = getLineageHighlightSets(lineage);
+    const label: LineageBox = getLineageArrowLabelBox(
+      layout,
+      feeds("raw", "staging"),
+    )!;
+    const width: number = 320;
+    const height: number = 400;
+    const viewport: LineageViewport | null = getLineageViewport({
+      layout,
+      focusNodeId: FOCUS,
+      width,
+      height,
+      inView: getLineageCardsInView(lineage, layout, sets),
+      labelsInView: getLineageCauseLabelBoxes(lineage, layout, sets),
+    });
+
+    expect(viewport!.zoom).toBe(LINEAGE_READABLE_ZOOM);
+
+    for (const [x, y] of [
+      [label.left, label.top],
+      [label.right, label.bottom],
+    ] as Array<[number, number]>) {
+      expect(viewport!.x + x * viewport!.zoom).toBeGreaterThanOrEqual(0);
+      expect(viewport!.x + x * viewport!.zoom).toBeLessThanOrEqual(width);
+      expect(viewport!.y + y * viewport!.zoom).toBeGreaterThanOrEqual(0);
+      expect(viewport!.y + y * viewport!.zoom).toBeLessThanOrEqual(height);
+    }
+
+    const before: LineageViewport | null = getLineageViewport({
+      layout,
+      focusNodeId: FOCUS,
+      width,
+      height,
+      inView: getLineageCardsInView(lineage, layout, sets),
+    });
+
+    expect(before!.x + label.right * before!.zoom).toBeLessThan(0);
   });
 
   test("a table's drawing, with no ways: no arrow says Cause", () => {

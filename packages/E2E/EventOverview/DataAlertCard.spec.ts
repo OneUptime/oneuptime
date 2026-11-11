@@ -20,7 +20,10 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * never the rest of the card, and never the page. Under it, the alert's
  * Lineage card (AlertLineageDiagram): its table drawn with the one it is
  * built from, the way to its cause, or to the alert it caused, picked out -
- * and for an alert from a check on one column, that column followed.
+ * and for an alert from a check on one column, that column followed; for a
+ * cause on the pipeline on its arrow, the arrow's label saying Cause, just
+ * over the arrow, in words that read on a light page and a dark one, and in
+ * view when the drawing opens on a phone.
  *
  * On the Event Overview fixture's alerts #311 and #310 (Fixture/Fixture.js,
  * ?data= and ?fail=data-alert / data-writers / data-changes), with the clock
@@ -62,6 +65,35 @@ const SCREENSHOTS: string = path.resolve(
 );
 
 const pageErrors: Map<Page, Array<string>> = new Map();
+
+const COLOUR_CHANNELS: RegExp = /[\d.]+/g;
+
+// WCAG's relative luminance of an rgb()/rgba() colour, its alpha left out.
+function relativeLuminance(color: string): number {
+  const channels: Array<number> = (color.match(COLOUR_CHANNELS) || [])
+    .slice(0, 3)
+    .map((value: string): number => {
+      const channel: number = Number(value) / 255;
+      return channel <= 0.03928
+        ? channel / 12.92
+        : Math.pow((channel + 0.055) / 1.055, 2.4);
+    });
+
+  return (
+    0.2126 * (channels[0] || 0) +
+    0.7152 * (channels[1] || 0) +
+    0.0722 * (channels[2] || 0)
+  );
+}
+
+function contrastRatio(foreground: string, background: string): number {
+  const first: number = relativeLuminance(foreground);
+  const second: number = relativeLuminance(background);
+  return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+}
+
+// What WCAG AA asks of words smaller than 18px: an arrow's label is 10px.
+const AA_TEXT_CONTRAST: number = 4.5;
 
 test.beforeEach(async ({ page }: { page: Page }) => {
   const errors: Array<string> = [];
@@ -492,6 +524,56 @@ test.describe("an alert's Lineage card", () => {
     expect(await lineageReads(page, ALERT_ID)).toBe(1);
     await expectNoSidewaysScroll(page, { tolerance: 1 });
 
+    /*
+     * One block of sentences right over the drawing, under what lies each
+     * way and the picker: the alert's way, then the column's, their marks
+     * one over the other.
+     */
+    const [summary, picker, ways, column, graph] = await boxesInOneFrame([
+      card.getByTestId("lineage-summary"),
+      card.getByTestId("lineage-column"),
+      card.getByTestId("lineage-highlight-notes"),
+      card.getByTestId("lineage-column-notes"),
+      card.getByTestId("lineage-graph"),
+    ]);
+    expect(ways!.y).toBeGreaterThanOrEqual(summary!.y + summary!.height);
+    expect(ways!.y).toBeGreaterThanOrEqual(picker!.y + picker!.height);
+    expect(column!.y).toBeGreaterThanOrEqual(ways!.y + ways!.height);
+    expect(graph!.y).toBeGreaterThanOrEqual(column!.y + column!.height);
+    const marks: Array<{ x: number }> = await boxesInOneFrame([
+      card
+        .getByTestId("lineage-highlight-notes")
+        .getByTestId("lineage-highlight-mark"),
+      card
+        .getByTestId("lineage-column-notes")
+        .getByTestId("lineage-highlight-mark"),
+    ]);
+    expect(Math.abs(marks[0]!.x - marks[1]!.x)).toBeLessThan(1);
+
+    // The picker has room for the check's column's whole name beside its controls.
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return card
+          .getByTestId("lineage-column")
+          .getByTestId("dropdown-value-label")
+          .evaluate((element: HTMLElement): boolean => {
+            return element.scrollWidth <= element.clientWidth;
+          });
+      })
+      .toBe(true);
+    // On a phone it takes the whole line, as wide as the drawing under it.
+    await page.setViewportSize({ width: 390, height: 1000 });
+    await expect
+      .poll(async (): Promise<number> => {
+        const [picker, drawing] = await boxesInOneFrame([
+          card.getByTestId("lineage-column"),
+          card.getByTestId("lineage-graph"),
+        ]);
+        return Math.round(Math.abs(picker!.width - drawing!.width));
+      })
+      .toBe(0);
+    await page.setViewportSize({ width: 1280, height: 1000 });
+
     await fs.mkdir(SCREENSHOTS, { recursive: true });
     await card.scrollIntoViewIfNeeded();
     await page.mouse.move(0, 0);
@@ -521,7 +603,10 @@ test.describe("an alert's Lineage card", () => {
    * label's room (LINEAGE_EDGE_LABEL_MAX_WIDTH, 84px, in LineageGraphModel):
    * the name is cut at its end and the word the cause's card says sits
    * whole under it, inside that room, in the longest of the languages'
-   * words (German) and right to left (Persian), on a phone and dark too.
+   * words (German) and right to left (Persian, Arabic), on a phone and dark
+   * too. The arrow runs level - its two cards side by side - so the label
+   * sits just over it, clear of it; its words read on the page's ground;
+   * and on a phone the drawing opens with the whole label in view.
    */
   const CAUSE_LABEL_ROOM: number = 84;
 
@@ -530,6 +615,7 @@ test.describe("an alert's Lineage card", () => {
     { language: "de", word: "Ursache", width: 1280, theme: "dark" },
     { language: "fa", word: "علت", width: 390, theme: "dark" },
     { language: "en", word: "Cause", width: 390, theme: "light" },
+    { language: "ar", word: "السبب", width: 1024, theme: "light" },
   ] as Array<{
     language: string;
     word: string;
@@ -603,6 +689,42 @@ test.describe("an alert's Lineage card", () => {
       expect(fit.labelWidth).toBeLessThanOrEqual(CAUSE_LABEL_ROOM);
       await expectNoSidewaysScroll(page, { tolerance: 1 });
 
+      // Just over the level arrow, clear of it and of its halo: the arrow and its head still show.
+      await expect(label).toHaveAttribute("data-lineage-label-place", "over");
+      const [labelBox, line] = await boxesInOneFrame([
+        label,
+        page.locator(".react-flow__edge-path"),
+      ]);
+      expect(line!.height).toBeLessThan(1);
+      expect(labelBox!.y + labelBox!.height).toBeLessThanOrEqual(line!.y - 1);
+      expect(labelBox!.x).toBeGreaterThan(line!.x);
+      expect(labelBox!.x + labelBox!.width).toBeLessThan(line!.x + line!.width);
+
+      // Its words read on its ground, on a light page and a dark one.
+      const drawn: { text: string; background: string } = await label.evaluate(
+        (element: HTMLElement): { text: string; background: string } => {
+          const style: CSSStyleDeclaration = getComputedStyle(element);
+          return { text: style.color, background: style.backgroundColor };
+        },
+      );
+      expect(
+        contrastRatio(drawn.text, drawn.background),
+      ).toBeGreaterThanOrEqual(AA_TEXT_CONTRAST);
+
+      // The drawing opens with the whole label in view, on a phone too.
+      const [canvas, opened] = await boxesInOneFrame([
+        page.getByTestId("lineage-graph"),
+        label,
+      ]);
+      expect(opened!.x).toBeGreaterThanOrEqual(canvas!.x);
+      expect(opened!.x + opened!.width).toBeLessThanOrEqual(
+        canvas!.x + canvas!.width,
+      );
+      expect(opened!.y).toBeGreaterThanOrEqual(canvas!.y);
+      expect(opened!.y + opened!.height).toBeLessThanOrEqual(
+        canvas!.y + canvas!.height,
+      );
+
       await fs.mkdir(SCREENSHOTS, { recursive: true });
       await label.scrollIntoViewIfNeeded();
       await page.mouse.move(0, 0);
@@ -615,6 +737,49 @@ test.describe("an alert's Lineage card", () => {
       });
     });
   }
+
+  test("a cause on the pipeline on its arrow whose latest run failed: the arrow red, its name red and said failed under the pointer, Cause still under it (?data=table&cause=pipeline&run=failed)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERT_PATH, "data=table&cause=pipeline&run=failed");
+
+    const label: Locator = page.getByTestId("lineage-edge-label");
+    await expect(label).toBeVisible({ timeout: 30000 });
+    await expect(label).toHaveAttribute(
+      "title",
+      "payments_callbacks_hourly_sync failed",
+    );
+    await expect(label.getByTestId("lineage-edge-cause")).toHaveText("Cause");
+    await expect(label).toHaveClass(/\btext-red-600\b/);
+    await expect(page.locator(".react-flow__edge-path")).toHaveCSS(
+      "stroke",
+      "rgb(239, 68, 68)",
+    );
+
+    const drawn: { text: string; background: string } = await label.evaluate(
+      (element: HTMLElement): { text: string; background: string } => {
+        const style: CSSStyleDeclaration = getComputedStyle(element);
+        return { text: style.color, background: style.backgroundColor };
+      },
+    );
+    expect(drawn.text).toBe("rgb(220, 38, 38)");
+    expect(contrastRatio(drawn.text, drawn.background)).toBeGreaterThanOrEqual(
+      AA_TEXT_CONTRAST,
+    );
+
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await label.scrollIntoViewIfNeeded();
+    await page.mouse.move(0, 0);
+    await page.getByTestId("lineage-graph").screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        "data-alert-lineage-cause-pipeline-failed-en-1280-light.png",
+      ),
+      animations: "disabled",
+    });
+  });
 
   test("the cause's page draws the way down to the alert it caused (?data=table)", async ({
     page,
