@@ -28,6 +28,7 @@ import BaseAPI from "Common/Utils/API";
 import Realtime from "Common/UI/Utils/Realtime";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import UserUtil from "Common/UI/Utils/User";
+import ServerSetupChecklistUtil from "Common/Types/ServerSetup/ServerSetupChecklist";
 import {
   createStore,
   installAnalyticsModelApi,
@@ -91,13 +92,138 @@ PermissionUtil.getGlobalPermissions = () => ({
 
 installModelApi(ModelAPI, store, {});
 installAnalyticsModelApi(AnalyticsModelAPI, store);
+
+/*
+ * Whether the server's email works, as the server would say it (#6825):
+ * not set up until the SMTP server and its sender are saved, then untested
+ * until a test email is accepted, then working.
+ */
+let isTestEmailAccepted = false;
+
+function emailState() {
+  const config = store.table(GlobalConfig)[0] || {};
+  const isSetUp = Boolean(
+    config.smtpHost && config.smtpPort && config.smtpFromEmail && config.smtpFromName,
+  );
+
+  if (!isSetUp) {
+    return "not-set-up";
+  }
+
+  return isTestEmailAccepted ? "working" : "untested";
+}
+
+function emailStatus() {
+  const state = emailState();
+
+  return {
+    channel: "email",
+    state: state,
+    hasWorked: state === "working",
+    lastWorkedAt: state === "working" ? store.NOW.toISOString() : null,
+    failingSince: null,
+    lastFailure: null,
+    setUpProblem:
+      state === "not-set-up"
+        ? "Nothing is set up under Settings > Emails yet."
+        : null,
+  };
+}
+
+const NOT_SET_UP = (channel) => {
+  return {
+    channel: channel,
+    state: "not-set-up",
+    hasWorked: false,
+    lastWorkedAt: null,
+    failingSince: null,
+    lastFailure: null,
+    setUpProblem: "No Twilio account or SMS gateway is set up.",
+  };
+};
+
+/*
+ * The server's setup checklist (#6824), worked out by the same rules the
+ * server uses (Types/ServerSetup), from what this fresh server holds.
+ */
+function setupChecklist() {
+  const config = store.table(GlobalConfig)[0] || {};
+
+  return ServerSetupChecklistUtil.getAnswer({
+    facts: {
+      isHttpsSetUp: false,
+      areSignupsClosed: config.disableSignup === true,
+      email: emailStatus(),
+      sms: NOT_SET_UP("sms"),
+      call: NOT_SET_UP("call"),
+      emailSentThrough: config.smtpHost || null,
+      smsSentThrough: "Twilio",
+      callSentThrough: "Twilio",
+      globalProbes: { total: 1, reporting: 1 },
+      updateChecks: {
+        isDisabled: false,
+        lastCheckedAt: store.NOW.toISOString(),
+        lastFailure: null,
+      },
+      lastBackup: null,
+      hasScheduledBackups: false,
+      isBrowserPushSetUp: false,
+      hasAiProvider: false,
+      hasSingleSignOn: false,
+      choices: { choices: {}, hiddenBy: {} },
+    },
+    readerUserId: ada._id,
+  });
+}
+
 installApi([API, BaseAPI], store, [
   [
-    // The test the admin sends: through the mail server just saved.
+    // Send Email's announcement test, which used to be the only test send.
     "POST",
     "/admin/email/send-test",
     () => {
       return ok({});
+    },
+  ],
+  [
+    // "Send test email": through the mail server just saved, accepted.
+    "POST",
+    "/server-test/email",
+    ({ body }) => {
+      isTestEmailAccepted = true;
+      return ok({
+        channel: "email",
+        result: "accepted",
+        to: body.toEmail,
+        sentThrough: (store.table(GlobalConfig)[0] || {}).smtpHost || null,
+        message: null,
+      });
+    },
+  ],
+  [
+    "GET",
+    "/global-config/sending-status",
+    () => {
+      return ok({
+        channels: [
+          emailStatus(),
+          NOT_SET_UP("sms"),
+          NOT_SET_UP("call"),
+          {
+            ...NOT_SET_UP("push"),
+            state: "untested",
+            setUpProblem: null,
+          },
+        ],
+        globalProbes: { total: 1, reporting: 1 },
+      });
+    },
+  ],
+  [
+    "GET",
+    "/global-config/setup-checklist",
+    () => {
+      return ok(JSON.parse(JSON.stringify(setupChecklist())));
     },
   ],
   [
@@ -107,6 +233,7 @@ installApi([API, BaseAPI], store, [
       return ok({
         disableUserProjectCreation: false,
         disablePushNotifications: false,
+        canSendEmail: emailState() !== "not-set-up",
       });
     },
   ],

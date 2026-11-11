@@ -103,6 +103,26 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
       iconColor: "cyan",
       category: toolsCategory,
     },
+    /*
+     * What a self-hosted server still needs, and the tests that prove it
+     * (the setup checklist). OneUptime Cloud is not set up this way.
+     */
+    ...(BILLING_ENABLED
+      ? []
+      : [
+          {
+            title: "Server Setup",
+            description:
+              "What this server still needs: email, HTTPS, sign-ups and more.",
+            route: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVER_SETUP] as Route,
+            ),
+            activeRoute: RouteMap[PageMap.SERVER_SETUP],
+            icon: IconProp.CheckCircle,
+            iconColor: "green",
+            category: settingsCategory,
+          } as MoreMenuItem,
+        ]),
     {
       title: "Settings",
       description:

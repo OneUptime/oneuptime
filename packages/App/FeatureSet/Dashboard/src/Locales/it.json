@@ -10718,7 +10718,7 @@
   "Finger Print": "Finger Print",
   "Finish reason": "Motivo di fine",
   "Finish setting up AI": "Finish setting up AI",
-  "Finish setup": "Finish setup",
+  "Finish setup": "Completa la configurazione",
   "Finland": "Finland",
   "Fire when a group's count reaches this number within one evaluation window. 1 fires on any match.": "Attiva quando il conteggio di un gruppo raggiunge questo numero in una finestra di valutazione. 1 si attiva a ogni corrispondenza.",
   "Capture a session when a successful request takes at least this many milliseconds. 0 (default) turns it off.": "Acquisisci una sessione quando una richiesta riuscita dura almeno questi millisecondi. 0 (predefinito) lo disattiva.",
@@ -50686,5 +50686,9 @@
   "Read what this means in the glossary": "Leggi nel glossario cosa significa",
   "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}}: per i problemi che i tuoi clienti percepiscono; possono comparire su una pagina di stato. {{alerts}}: per il tuo team; non vi compaiono mai.",
   "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}}: per ogni gravità, quale metodo di notifica prova una chiamata e dopo quanto tempo.",
-  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} e {{infrastructure}} alimentano il ciclo: le regole su log, metriche e trace, o su host, cluster e cloud, aprono anch'esse incidenti e avvisi."
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} e {{infrastructure}} alimentano il ciclo: le regole su log, metriche e trace, o su host, cluster e cloud, aprono anch'esse incidenti e avvisi.",
+  "Only you see this, as the server's admin.": "Lo vedi solo tu, come amministratore del server.",
+  "Server Setup Choices": "Scelte di configurazione del server",
+  "This server is not finished: {{count}} things to set up": "Questo server non è finito: {{count}} cose da configurare",
+  "This server is not finished: {{count}} things to set up_one": "Questo server non è finito: {{count}} cosa da configurare"
 }

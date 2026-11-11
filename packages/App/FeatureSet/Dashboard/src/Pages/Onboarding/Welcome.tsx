@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import ServerSetupCard from "../../Components/ServerSetup/ServerSetupCard";
 import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
 import RouteParams from "../../Utils/RouteParams";
@@ -195,6 +196,11 @@ const Welcome: FunctionComponent<ComponentProps> = (
    */
   return (
     <Page title={""} breadcrumbLinks={[]}>
+      {/*
+       * A new server's first admin lands here, right after signing up:
+       * what the server still needs, while it needs it (master admins only).
+       */}
+      <ServerSetupCard className="mx-auto mt-8 w-full max-w-3xl" />
       <PendingProjectInvitations
         className="mt-16 mb-8 mx-auto w-full max-w-3xl"
         onInvitationAccepted={onInvitationAccepted}

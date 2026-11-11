@@ -50686,5 +50686,9 @@
   "Read what this means in the glossary": "用語集で意味を確認する",
   "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}}は顧客が影響を受ける問題のためのもので、ステータスページに表示できます。{{alerts}}はチーム向けで、ステータスページには表示されません。",
   "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}}は、重大度ごとに、呼び出しがどの通知方法をどれだけ待ってから試すかを決めます。",
-  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}}と{{infrastructure}}もこの流れにつながります。ログ、メトリクス、トレース、またはホスト、クラスター、クラウドに対するルールも、インシデントやアラートを作成します。"
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}}と{{infrastructure}}もこの流れにつながります。ログ、メトリクス、トレース、またはホスト、クラスター、クラウドに対するルールも、インシデントやアラートを作成します。",
+  "Only you see this, as the server's admin.": "サーバーの管理者であるあなたにだけ表示されています。",
+  "Server Setup Choices": "サーバー設定での選択",
+  "This server is not finished: {{count}} things to set up": "このサーバーはまだ準備中です：残り {{count}} 件の設定",
+  "This server is not finished: {{count}} things to set up_one": "このサーバーはまだ準備中です：残り {{count}} 件の設定"
 }

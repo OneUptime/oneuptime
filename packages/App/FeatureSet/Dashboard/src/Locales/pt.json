@@ -10718,7 +10718,7 @@
   "Finger Print": "Finger Print",
   "Finish reason": "Motivo de término",
   "Finish setting up AI": "Finish setting up AI",
-  "Finish setup": "Finish setup",
+  "Finish setup": "Concluir a configuração",
   "Finland": "Finland",
   "Fire when a group's count reaches this number within one evaluation window. 1 fires on any match.": "Disparar quando a contagem de um grupo atingir este número em uma janela de avaliação. 1 dispara a cada correspondência.",
   "Capture a session when a successful request takes at least this many milliseconds. 0 (default) turns it off.": "Capturar uma sessão quando uma solicitação bem-sucedida levar pelo menos estes milissegundos. 0 (padrão) desativa.",
@@ -50686,5 +50686,9 @@
   "Read what this means in the glossary": "Veja no glossário o que isso significa",
   "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}}: para problemas que seus clientes sentem; podem aparecer em uma página de status. {{alerts}}: para sua equipe; nunca aparecem nela.",
   "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}}: para cada severidade, qual método de notificação um acionamento tenta e depois de quanto tempo.",
-  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} e {{infrastructure}} alimentam o ciclo: regras sobre seus logs, métricas e traces, ou sobre seus hosts, clusters e nuvens, também abrem incidentes e alertas."
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} e {{infrastructure}} alimentam o ciclo: regras sobre seus logs, métricas e traces, ou sobre seus hosts, clusters e nuvens, também abrem incidentes e alertas.",
+  "Only you see this, as the server's admin.": "Só você vê isto, como administrador do servidor.",
+  "Server Setup Choices": "Escolhas de configuração do servidor",
+  "This server is not finished: {{count}} things to set up": "Este servidor não está pronto: {{count}} itens para configurar",
+  "This server is not finished: {{count}} things to set up_one": "Este servidor não está pronto: {{count}} item para configurar"
 }

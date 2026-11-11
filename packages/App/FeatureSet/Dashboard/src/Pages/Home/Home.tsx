@@ -7,6 +7,7 @@ import { getHomeCounts } from "../../Components/Home/HomeOverviewData";
 import NeedsAttention from "../../Components/Home/NeedsAttention";
 import ProjectHealthCard from "../../Components/Home/ProjectHealthCard";
 import ProjectResources from "../../Components/Home/ProjectResources";
+import ServerSetupCard from "../../Components/ServerSetup/ServerSetupCard";
 import UpcomingMaintenance from "../../Components/Home/UpcomingMaintenance";
 import useHomeOverview, {
   UseHomeOverviewResult,
@@ -151,6 +152,12 @@ const Home: FunctionComponent<ComponentProps> = (
         onRefresh={refresh}
         canCreateMonitor={gates.canCreateMonitor}
       />
+
+      {/*
+       * Is this server set up? For its master admins only, while email,
+       * HTTPS or the choice about sign-ups is still open.
+       */}
+      <ServerSetupCard />
 
       <GettingStarted projectId={currentProjectId} className="!mb-0" />
 

@@ -50686,5 +50686,9 @@
   "Read what this means in the glossary": "Lire ce que cela signifie dans le glossaire",
   "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} : pour les problèmes que vos clients ressentent ; ils peuvent apparaître sur une page de statut. {{alerts}} : pour votre équipe ; elles n'y apparaissent jamais.",
   "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} : pour chaque gravité, la méthode de notification qu'un appel essaie, et au bout de combien de temps.",
-  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} et {{infrastructure}} alimentent la boucle : des règles sur vos journaux, métriques et traces, ou sur vos hôtes, clusters et clouds, ouvrent aussi des incidents et des alertes."
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} et {{infrastructure}} alimentent la boucle : des règles sur vos journaux, métriques et traces, ou sur vos hôtes, clusters et clouds, ouvrent aussi des incidents et des alertes.",
+  "Only you see this, as the server's admin.": "Vous seul voyez ceci, en tant qu'administrateur du serveur.",
+  "Server Setup Choices": "Choix de configuration du serveur",
+  "This server is not finished: {{count}} things to set up": "Ce serveur n'est pas terminé : {{count}} éléments à configurer",
+  "This server is not finished: {{count}} things to set up_one": "Ce serveur n'est pas terminé : {{count}} élément à configurer"
 }

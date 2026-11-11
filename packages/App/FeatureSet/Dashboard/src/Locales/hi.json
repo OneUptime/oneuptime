@@ -10718,7 +10718,7 @@
   "Finger Print": "Finger Print",
   "Finish reason": "समाप्ति का कारण",
   "Finish setting up AI": "Finish setting up AI",
-  "Finish setup": "Finish setup",
+  "Finish setup": "सेटअप पूरा करें",
   "Finland": "Finland",
   "Fire when a group's count reaches this number within one evaluation window. 1 fires on any match.": "किसी समूह की गिनती एक मूल्यांकन विंडो में इस संख्या तक पहुँचने पर ट्रिगर करें। 1 हर मेल पर ट्रिगर करता है।",
   "Capture a session when a successful request takes at least this many milliseconds. 0 (default) turns it off.": "जब कोई सफल अनुरोध कम से कम इतने मिलीसेकंड ले, तो सत्र रिकॉर्ड करें। 0 (डिफ़ॉल्ट) इसे बंद करता है।",
@@ -50686,5 +50686,9 @@
   "Read what this means in the glossary": "शब्दावली में इसका अर्थ पढ़ें",
   "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} उन समस्याओं के लिए हैं जिन्हें आपके ग्राहक महसूस करते हैं, और ये स्टेटस पेज पर दिख सकती हैं। {{alerts}} आपकी टीम के लिए हैं, और वहाँ कभी नहीं दिखते।",
   "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} हर गंभीरता के लिए तय करते हैं कि कॉल कौन-सी सूचना विधि आज़माएगी, और कितनी देर बाद।",
-  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} और {{infrastructure}} भी इस चक्र को चलाते हैं: आपके लॉग, मेट्रिक्स और ट्रेस, या आपके होस्ट, क्लस्टर और क्लाउड पर बने नियम भी घटनाएं और अलर्ट खोलते हैं।"
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} और {{infrastructure}} भी इस चक्र को चलाते हैं: आपके लॉग, मेट्रिक्स और ट्रेस, या आपके होस्ट, क्लस्टर और क्लाउड पर बने नियम भी घटनाएं और अलर्ट खोलते हैं।",
+  "Only you see this, as the server's admin.": "यह सिर्फ़ आपको दिखता है, क्योंकि आप सर्वर के एडमिन हैं।",
+  "Server Setup Choices": "सर्वर सेटअप के विकल्प",
+  "This server is not finished: {{count}} things to set up": "यह सर्वर अभी पूरा नहीं हुआ: {{count}} चीज़ें सेट अप करनी बाकी हैं",
+  "This server is not finished: {{count}} things to set up_one": "यह सर्वर अभी पूरा नहीं हुआ: {{count}} चीज़ सेट अप करनी बाकी है"
 }
