@@ -672,7 +672,7 @@ La carte des parcours a une colonne par étape. Une page est une boîte dont la 
 | **Depuis le début de la session** | L'étape 1 est la page d'arrivée de chaque session. |
 | **Après une page** | Ancre la carte sur une page et suit les sessions à partir de la première fois qu'elles l'ont atteinte — « où vont les gens après `/pricing` ? » |
 | **Avant une page** | Suit les sessions en remontant depuis la première fois qu'elles ont atteint une page — « comment les gens arrivent-ils à `/checkout` ? » L'ancre est dessinée à droite. |
-| **Étapes** / **Pages par étape** | Combien de colonnes dessiner, et combien de pages une colonne nomme avant que le reste soit replié dans **Other pages** (cliquez dessus pour voir ce qu'il contient). |
+| **Étapes** / **Pages par étape** | Combien de colonnes dessiner, et combien de pages une colonne nomme avant que le reste soit replié dans **Autres pages** (cliquez dessus pour voir ce qu'il contient). |
 | **Sessions** | Toutes les sessions, seulement les sessions avec des erreurs, ou seulement les sessions avec des signaux de frustration (clics de rage, clics morts, clics d'erreur, rage de rechargement). Vos propres signaux y sont inclus quand ils comptent comme frustration. |
 | **Appareil** | Seulement les sessions sur ordinateur, mobile ou tablette. |
 | **Regrouper les ID dans les URL** | Activé par défaut : `/orders/1042` et `/orders/1043` sont une seule page, `/orders/:id`. Les nombres, les ids hexadécimaux et les longs jetons de lettres et de chiffres sont regroupés, tout comme chaque segment que l'enregistreur a déjà remplacé par `[redacted]`. Désactivé par défaut pour un utilisateur ou une session. |

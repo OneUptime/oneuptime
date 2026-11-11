@@ -672,7 +672,7 @@ La mappa dei flussi ha una colonna per passaggio. Una pagina è un riquadro la c
 | **From session start** | Il passaggio 1 è la pagina di atterraggio di ogni sessione. |
 | **After a page** | Ancora la mappa a una pagina e segue le sessioni dalla prima volta che l'hanno raggiunta — «dove va la gente dopo `/pricing`?» |
 | **Before a page** | Segue le sessioni all'indietro dalla prima volta che hanno raggiunto una pagina — «come arriva la gente a `/checkout`?» L'ancora viene disegnata a destra. |
-| **Passaggi** / **Pagine per passaggio** | Quante colonne disegnare e quante pagine una colonna nomina prima che il resto venga raggruppato in **Other pages** (fai clic per vedere cosa contiene). |
+| **Passaggi** / **Pagine per passaggio** | Quante colonne disegnare e quante pagine una colonna nomina prima che il resto venga raggruppato in **Altre pagine** (fai clic per vedere cosa contiene). |
 | **Sessioni** | Tutte le sessioni, solo le sessioni con errori, o solo le sessioni con segnali di frustrazione (rage click, dead click, error click, rage reload). I tuoi segnali sono inclusi quando contano come frustrazione. |
 | **Dispositivo** | Solo sessioni desktop, mobile o tablet. |
 | **Raggruppa gli ID negli URL** | Attivo per impostazione predefinita: `/orders/1042` e `/orders/1043` sono un'unica pagina, `/orders/:id`. Vengono raggruppati numeri, id esadecimali e lunghi token di lettere e cifre, così come ogni segmento che il registratore ha già sostituito con `[redacted]`. Disattivato per impostazione predefinita per un utente o una sessione. |
