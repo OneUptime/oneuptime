@@ -11,7 +11,7 @@ C'è una pagina Eventi in due posti:
 
 - Gli eventi dell'intervallo di tempo, dal più recente. Ogni riga dice cosa è successo, su quale dispositivo, a cosa - l'interfaccia, il tunnel, il gateway - e con le parole del dispositivo stesso.
 - **Problemi**, **Ripristini** e **Informativi**, ciascuno con quanti ce ne sono nell'intervallo di tempo. Fai clic su uno per vedere solo quelli.
-- Il selettore **Tutti gli eventi** e, nella pagina della rete, il selettore **All devices** restringono ulteriormente l'elenco. L'intervallo di tempo e i filtri sono conservati nell'indirizzo della pagina, quindi un link apre esattamente la stessa vista.
+- Il selettore **Tutti gli eventi** e, nella pagina della rete, il selettore **Tutti i dispositivi** restringono ulteriormente l'elenco. L'intervallo di tempo e i filtri sono conservati nell'indirizzo della pagina, quindi un link apre esattamente la stessa vista.
 - Fai clic su un evento per aprirlo: quando è successo, cosa riguarda, il messaggio così come lo ha inviato il dispositivo, e ogni attributo che OneUptime ne ha ricavato.
 - **Crea avviso** propone gli avvisi che la maggior parte delle reti vuole, e **Crea avviso per questo evento** ne crea uno per l'evento che hai aperto. Vedi [Avvisi](#avvisi).
 

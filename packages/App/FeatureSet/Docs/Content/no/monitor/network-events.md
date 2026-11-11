@@ -11,7 +11,7 @@ Det finnes en Hendelser-side to steder:
 
 - Hendelsene i tidsrommet, de nyeste først. Hver rad sier hva som skjedde, på hvilken enhet, med hva - grensesnittet, tunnelen, gatewayen - og med enhetens egne ord.
 - **Problemer**, **Gjenopprettinger** og **Til orientering**, hver med antallet i tidsrommet. Klikk på en av dem for å se bare dem.
-- Velgeren **Alle hendelser** og, på nettverkets side, velgeren **All devices** snevrer listen inn ytterligere. Tidsrommet og filtrene lagres i adressen til siden, så en lenke åpner nøyaktig samme visning.
+- Velgeren **Alle hendelser** og, på nettverkets side, velgeren **Alle enheter** snevrer listen inn ytterligere. Tidsrommet og filtrene lagres i adressen til siden, så en lenke åpner nøyaktig samme visning.
 - Klikk på en hendelse for å åpne den: når den skjedde, hva den handler om, meldingen slik enheten sendte den, og alle attributter OneUptime leste ut av den.
 - **Opprett varsel** tilbyr varslene de fleste nettverk vil ha, og **Opprett varsel for denne hendelsen** lager ett for hendelsen du har åpnet. Se [Varsler](#varsler).
 

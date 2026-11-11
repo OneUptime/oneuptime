@@ -14,6 +14,7 @@ import {
   StatusPageResourceTargetType,
 } from "./StatusPageResourceFormFields";
 import StatusPageResourceTargetSwitch from "./StatusPageResourceTargetSwitch";
+import { gridAxisNameInSentence } from "./StatusPageResourcePanelText";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
@@ -484,7 +485,9 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
           field: {
             rowAxisValue: true,
           },
-          title: `${props.gridPlacement.rowLabel} (Row)`,
+          title: translator.translateTemplate("{{axis}} (Row)", {
+            axis: props.gridPlacement.rowLabel,
+          }),
           description: "Row these resources belong to in the grid.",
           fieldType: FormFieldSchemaType.Dropdown,
           dropdownOptions: props.gridPlacement.rowValues.map(
@@ -493,13 +496,17 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
             },
           ),
           required: true,
-          placeholder: `Select ${props.gridPlacement.rowLabel.toLowerCase()}`,
+          placeholder: translator.translateTemplate("Select {{axis}}", {
+            axis: gridAxisNameInSentence(props.gridPlacement.rowLabel),
+          }),
         },
         {
           field: {
             columnAxisValue: true,
           },
-          title: `${props.gridPlacement.columnLabel} (Column)`,
+          title: translator.translateTemplate("{{axis}} (Column)", {
+            axis: props.gridPlacement.columnLabel,
+          }),
           description: "Column these resources belong to in the grid.",
           fieldType: FormFieldSchemaType.Dropdown,
           dropdownOptions: props.gridPlacement.columnValues.map(
@@ -508,7 +515,9 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
             },
           ),
           required: true,
-          placeholder: `Select ${props.gridPlacement.columnLabel.toLowerCase()}`,
+          placeholder: translator.translateTemplate("Select {{axis}}", {
+            axis: gridAxisNameInSentence(props.gridPlacement.columnLabel),
+          }),
         },
       );
     }

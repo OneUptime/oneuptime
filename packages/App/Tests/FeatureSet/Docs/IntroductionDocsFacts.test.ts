@@ -1787,7 +1787,10 @@ describe("Your Account", () => {
     expect(backupCodes).toContain('submitButtonText="Done"');
     expect(backupCodes).toContain('"Regenerate codes"');
     expect(status).toContain('"Enable two-factor authentication"');
-    expect(status).toContain('{isEnabled ? "Enabled" : "Not enabled"}');
+    // The badge is looked up in the reader's language (#6658).
+    expect(status.replace(/\s+/g, " ")).toContain(
+      '{isEnabled ? translator.translateText("Enabled") : translator.translateText("Not enabled")}',
+    );
 
     // The steps are headings of their own, so read the whole section.
     const turnOn: string = sectionOf(YOUR_ACCOUNT, "## Signing in securely");

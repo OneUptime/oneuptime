@@ -21,6 +21,8 @@ import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -134,6 +136,7 @@ const toDate: DateOrUndefinedFunction = (
 const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [openEvents, setOpenEvents] = useState<OpenEvents | null>(null);
   const [error, setError] = useState<string>("");
 
@@ -145,7 +148,11 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
 
       if (!projectId) {
         // Nothing can be counted outside a project; say so rather than load forever.
-        setError("Select a project to see open alerts and incidents.");
+        setError(
+          translator.translateTemplate(
+            "Select a project to see open alerts and incidents.",
+          ),
+        );
         return;
       }
 
@@ -253,7 +260,9 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
           rows.push({
             key: `incident-${incident._id.toString()}`,
             kind: "Incident",
-            title: incident.title || "Untitled incident",
+            title:
+              incident.title ||
+              translator.translateTemplate("Untitled incident"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.INCIDENT_VIEW] as Route,
               { modelId: new ObjectID(incident._id.toString()) },
@@ -273,7 +282,8 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
           rows.push({
             key: `alert-${alert._id.toString()}`,
             kind: "Alert",
-            title: alert.title || "Untitled alert",
+            title:
+              alert.title || translator.translateTemplate("Untitled alert"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.ALERT_VIEW] as Route,
               { modelId: new ObjectID(alert._id.toString()) },
@@ -342,7 +352,7 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
         className="block rounded-lg border border-gray-200 px-3 py-2.5 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         <span className="block text-xs font-medium uppercase tracking-wide text-gray-500">
-          {data.label}
+          {translator.translateText(data.label)}
         </span>
         <span
           data-testid={data.testId}
@@ -392,7 +402,9 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
         {!openEvents ? (
           <div
             role="status"
-            aria-label="Loading open alerts and incidents"
+            aria-label={translator.translateTemplate(
+              "Loading open alerts and incidents",
+            )}
             className="mt-4 space-y-2 motion-safe:animate-pulse"
           >
             <div className="h-4 w-5/6 rounded bg-gray-100"></div>
@@ -408,7 +420,9 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
           />
         ) : (
           <ul
-            aria-label="Latest open alerts and incidents"
+            aria-label={translator.translateTemplate(
+              "Latest open alerts and incidents",
+            )}
             className="mt-4 divide-y divide-gray-100"
           >
             {openEvents.rows.map((row: OpenEventRow) => {
@@ -441,7 +455,7 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
                     <span className="font-medium text-gray-700">
-                      {row.kind}
+                      {translator.translateText(row.kind)}
                     </span>
                     {row.severityName ? (
                       <span className="inline-flex items-center gap-1">
@@ -469,7 +483,9 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
 
         {openEvents && error ? (
           <p role="alert" className="mt-3 text-xs text-red-700">
-            {`Could not refresh: ${error}`}
+            {translator.translateTemplate("Could not refresh: {{error}}", {
+              error: error,
+            })}
           </p>
         ) : (
           <></>

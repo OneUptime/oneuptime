@@ -2,8 +2,11 @@ import { describe, expect, test } from "@jest/globals";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
+import fs from "fs";
+import path from "path";
 import {
   formatLastSeen,
+  formatLastSeenInLanguage,
   isEntityActive,
   partitionByActivity,
 } from "../../FeatureSet/Dashboard/src/Components/Topology/TopologyActivity";
@@ -134,5 +137,87 @@ describe("formatLastSeen", () => {
 
   test("unknown timestamps render a dash", () => {
     expect(formatLastSeen(undefined, now)).toBe("—");
+  });
+});
+
+/*
+ * The infrastructure list's Last seen column read "65 days ago" on a German
+ * or an Arabic page (#6658, UI review of #6680). It is now worded the
+ * reader's way, counted in the same buckets.
+ */
+describe("formatLastSeenInLanguage", () => {
+  const now: Date = new Date("2026-09-07T10:00:00Z");
+
+  const CASES: Array<string> = [
+    "2026-09-07T09:59:30Z",
+    "2026-09-07T10:05:00Z",
+    "2026-09-07T09:48:00Z",
+    "2026-09-07T05:00:00Z",
+    "2026-09-04T10:00:00Z",
+    "2026-07-04T10:00:00Z",
+  ];
+
+  // A word of formatLastSeen's English.
+  const ENGLISH_WORD: RegExp = /\b(ago|min|days?|just|now)\b/;
+
+  test("English reads exactly as formatLastSeen does", () => {
+    for (const at of CASES) {
+      expect(formatLastSeenInLanguage(new Date(at), now, "en")).toBe(
+        formatLastSeen(new Date(at), now),
+      );
+    }
+    expect(formatLastSeenInLanguage(undefined, now, "de")).toBe("—");
+  });
+
+  test.each([
+    ["2026-09-07T09:48:00Z", "vor 12 Minuten"],
+    ["2026-09-07T05:00:00Z", "vor 5 Stunden"],
+    ["2026-09-04T10:00:00Z", "vor 3 Tagen"],
+    ["2026-07-04T10:00:00Z", "vor 65 Tagen"],
+  ])("German: %s reads %s", (at: string, expected: string) => {
+    expect(formatLastSeenInLanguage(new Date(at), now, "de")).toBe(expected);
+  });
+
+  test("under a minute, and a clock skewed ahead, read as now in German", () => {
+    for (const at of ["2026-09-07T09:59:30Z", "2026-09-07T10:05:00Z"]) {
+      expect(formatLastSeenInLanguage(new Date(at), now, "de")).toBe("jetzt");
+    }
+  });
+
+  test("no language reads English, past the count's digits", () => {
+    const locales: string = path.resolve(
+      __dirname,
+      "../../FeatureSet/Dashboard/src/Locales",
+    );
+    const languages: Array<string> = fs
+      .readdirSync(locales)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json") && file !== "en.json";
+      })
+      .map((file: string): string => {
+        return file.replace(/\.json$/, "");
+      });
+
+    expect(languages.length).toBeGreaterThan(15);
+
+    for (const language of languages) {
+      for (const at of CASES) {
+        const text: string = formatLastSeenInLanguage(
+          new Date(at),
+          now,
+          language,
+        );
+
+        expect({
+          language,
+          at,
+          english: ENGLISH_WORD.test(text),
+        }).toEqual({
+          language,
+          at,
+          english: false,
+        });
+      }
+    }
   });
 });

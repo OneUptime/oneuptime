@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 49494,
-    "untranslated": 10337
+    "keys": 49769,
+    "untranslated": 10291
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -121,6 +121,7 @@
     "Up + Out",
     "VIP",
     "VLAN",
+    "VLAN {{vlanId}}",
     "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",

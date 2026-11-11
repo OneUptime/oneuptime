@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 49494,
-    "untranslated": 3280
+    "keys": 49769,
+    "untranslated": 3265
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -633,6 +633,7 @@
     "V3",
     "VIP",
     "VLAN",
+    "VLAN {{vlanId}}",
     "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",

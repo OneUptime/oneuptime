@@ -190,7 +190,9 @@ describe("the SLO metric cards", () => {
   test("SloMetrics shares ONE time range across every category card", () => {
     const code: string = readCode(...SLO_METRICS);
 
-    expect(code).toContain("getSloMetricCategories()");
+    // Worded in the reader's language, rebuilt only when it changes.
+    expect(code).toContain("getSloMetricCategories(translator)");
+    expect(code).toContain("}, [translator.language]);");
     expect(code).toContain("buildSloMetricQueryConfigs({");
     expect(code).toContain("timeRange={timeRange}");
     expect(code).toContain("onTimeRangeChange={handleTimeRangeChange}");

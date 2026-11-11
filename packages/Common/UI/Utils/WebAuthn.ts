@@ -1,5 +1,6 @@
 /* global PublicKeyCredentialDescriptor, PublicKeyCredentialRequestOptions, PublicKeyCredentialCreationOptions, PublicKeyCredentialUserEntity */
 import { JSONObject } from "../../Types/JSON";
+import { translationKey } from "../../Types/Translator";
 
 type CredentialDescriptorJSON = Omit<PublicKeyCredentialDescriptor, "id"> & {
   id: string;
@@ -21,6 +22,32 @@ type CreationOptionsJSON = Omit<
   user: Omit<PublicKeyCredentialUserEntity, "id"> & { id: string };
   excludeCredentials?: Array<CredentialDescriptorJSON>;
 };
+
+/*
+ * The errors a passkey registration can end in, as English keys: the
+ * Dashboard's passkeys and security keys cards look each one up in the
+ * reader's language (WebAuthnCredentials), and name a security key in a
+ * sentence of its own where these name a passkey.
+ */
+export const WEBAUTHN_NEEDS_SECURE_CONNECTION: string = translationKey(
+  "Passkeys require a secure connection. Open OneUptime using HTTPS, or sign in with your password.",
+);
+
+export const WEBAUTHN_NOT_SUPPORTED: string = translationKey(
+  "This browser does not support passkeys. Use a supported browser or sign in with your password.",
+);
+
+export const WEBAUTHN_REGISTRATION_CANCELED: string = translationKey(
+  "Passkey registration was canceled or timed out. Try again when you are ready.",
+);
+
+export const WEBAUTHN_ALREADY_REGISTERED: string = translationKey(
+  "This authenticator is already registered. Choose a different authenticator or use your existing passkey.",
+);
+
+export const WEBAUTHN_REGISTRATION_FAILED: string = translationKey(
+  "Unable to complete passkey registration. Please try again.",
+);
 
 // Keep binary conversion in the browser: Buffer is not available on all clients.
 export default class WebAuthn {
@@ -45,9 +72,7 @@ export default class WebAuthn {
 
   public static ensureSupported(): void {
     if (typeof window !== "undefined" && window.isSecureContext === false) {
-      throw new Error(
-        "Passkeys require a secure connection. Open OneUptime using HTTPS, or sign in with your password.",
-      );
+      throw new Error(WEBAUTHN_NEEDS_SECURE_CONNECTION);
     }
 
     if (
@@ -56,9 +81,7 @@ export default class WebAuthn {
       !navigator.credentials?.get ||
       !navigator.credentials?.create
     ) {
-      throw new Error(
-        "This browser does not support passkeys. Use a supported browser or sign in with your password.",
-      );
+      throw new Error(WEBAUTHN_NOT_SUPPORTED);
     }
   }
 
@@ -197,11 +220,11 @@ export default class WebAuthn {
       if (error.name === "NotAllowedError" || error.name === "AbortError") {
         return operation === "sign-in"
           ? "Passkey sign-in was canceled or timed out. Try again, or sign in with your password."
-          : "Passkey registration was canceled or timed out. Try again when you are ready.";
+          : WEBAUTHN_REGISTRATION_CANCELED;
       }
 
       if (error.name === "InvalidStateError") {
-        return "This authenticator is already registered. Choose a different authenticator or use your existing passkey.";
+        return WEBAUTHN_ALREADY_REGISTERED;
       }
     }
 
@@ -215,6 +238,8 @@ export default class WebAuthn {
       return error.message;
     }
 
-    return `Unable to complete passkey ${operation}. Please try again.`;
+    return operation === "sign-in"
+      ? "Unable to complete passkey sign-in. Please try again."
+      : WEBAUTHN_REGISTRATION_FAILED;
   }
 }
