@@ -70,9 +70,11 @@ OneUptime fungerer i hvert team på Mattermost-serveren din som boten er medlem 
 2. Kortet **Mattermost-team** under **Prosjektinnstillinger** > **Arbeidsområde** > **Mattermost** viser disse teamene, standardteamet først. Klikk på **Oppdater** etter at du har lagt til boten i et nytt team.
 
 - **Hvilket team en regel bruker.** Varslingsregler velger **Mattermost-team** for kanalene sine. Står feltet tomt, oppretter regelen kanalen sin i standardteamet, og leter først der etter kanalene den nevner, deretter i botens andre team.
+- **Hvilket team et sammendrag bruker.** Sammendrag, på fanen **Sammendrag** i **Hendelser** og **Varsler**, velger også **Mattermost-team** for kanalene sine. Står feltet tomt, leter et sammendrag først etter kanalene sine i standardteamet, deretter i botens andre team.
 - **Standardteamet.** Det er teamet du koblet prosjektet til. **Gjør til standard** på kortet gjør et annet team til standard, for en rolle som kan koble til prosjektet.
 - **Hvor OneUptime fungerer.** Knappene i meldingene fra OneUptime, og skjemaene de åpner, fungerer i hvert av disse teamene. I et team boten er fjernet fra, sier en knapp bare at teamet ikke lenger er koblet til.
 - **Et standardteam boten er fjernet fra.** Kortet sier fra om det. Legg til boten igjen i Mattermost, eller gjør et annet team til standard.
+- **Et team en regel nevner, som boten er fjernet fra.** Kortet til regelen sier fra om det, og regelen bruker ikke et annet team i stedet. Legg boten til i teamet igjen i Mattermost, eller velg et annet team i regelen: skjemaet viser fortsatt det gamle valget, så du kan endre det.
 
 ## Koble til din egen Mattermost-konto
 
@@ -171,6 +173,8 @@ Hver knapp OneUptime publiserer, har en signatur som sjekkes når noen trykker p
 | Et team du har lagt til boten i, står ikke på kortet **Mattermost-team** | Klikk på **Oppdater** på kortet. |
 | **OneUptime's bot is not a member of this Mattermost team** | Du valgte et team boten har forlatt. Legg til boten i teamet i Mattermost, og klikk deretter på **Oppdater**. |
 | **OneUptime's bot may not create channels in the Mattermost team this rule names** | Legg til boten i det teamet i Mattermost, eller velg et annet team i regelen. |
+| **OneUptime's bot is not a member of the Mattermost team chosen for the channel** | Legg til boten i det teamet i Mattermost, eller velg et annet team i regelen. |
+| **OneUptime's bot is no longer a member of the project's default Mattermost team** | Legg til boten i det teamet igjen i Mattermost, eller gjør et annet team til standard. |
 | **OneUptime could not reach the Mattermost server** | Sjekk adressen, og at OneUptime kan nå den. Se [Nettverk og selvhosting](#nettverk-og-selvhosting). |
 | **The bot is not a member of the private Mattermost channel** | Legg til boten i kanalen i Mattermost. |
 | En knapp gjør ingenting, eller Mattermost sier at den ikke kunne fullføre handlingen | Mattermost når ikke OneUptime. Se [Nettverk og selvhosting](#nettverk-og-selvhosting). |

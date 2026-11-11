@@ -163,6 +163,7 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 import ObjectID from "../../../Types/ObjectID";
+import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
 import { DOCS_URL } from "../../../UI/Config";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import { DEFINED_TERM_TEST_ID } from "../../../UI/Components/Glossary/DefinedTerm";
@@ -172,7 +173,6 @@ import Help, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Header/Help";
 import HowOneUptimeWorksDialog, {
   HOW_ONEUPTIME_WORKS_DIALOG_TEST_ID,
-  HOW_ONEUPTIME_WORKS_OPENED_EVENT,
   HowOneUptimeWorksOpenedFrom,
   openHowOneUptimeWorks,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorksDialog";
@@ -225,6 +225,22 @@ const helpEntry: (text: string) => HTMLElement = (
   text: string,
 ): HTMLElement => {
   return screen.getByText(text).closest("a") as HTMLElement;
+};
+
+/*
+ * The activation funnel's "How it works" opened events (#6830), as product
+ * analytics receives them: How OneUptime works is the product "oneuptime".
+ */
+const openedEvents: () => Array<Record<string, unknown>> = (): Array<
+  Record<string, unknown>
+> => {
+  return captureMock.mock.calls
+    .filter((call: Array<unknown>): boolean => {
+      return call[0] === ProductEventName.HowItWorksOpened;
+    })
+    .map((call: Array<unknown>): Record<string, unknown> => {
+      return call[1] as Record<string, unknown>;
+    });
 };
 
 const dialog: () => HTMLElement | null = (): HTMLElement | null => {
@@ -396,10 +412,13 @@ describe("the dialog", () => {
       within(shown).getByTestId("how-oneuptime-works-docs-glossary"),
     ).toHaveAttribute("target", "_blank");
 
-    expect(captureMock).toHaveBeenCalledWith(HOW_ONEUPTIME_WORKS_OPENED_EVENT, {
-      projectId: PROJECT_ID,
-      from: "help",
-    });
+    expect(openedEvents()).toEqual([
+      expect.objectContaining({
+        product: "oneuptime",
+        source: "help",
+        project_id: PROJECT_ID,
+      }),
+    ]);
   });
 
   test("a step opens its product in the current project, and the dialog closes", async () => {
@@ -457,13 +476,10 @@ describe("the dialog", () => {
       expect(dialog()).not.toBeNull();
     });
 
-    expect(
-      captureMock.mock.calls.filter((call: Array<unknown>): boolean => {
-        return call[0] === HOW_ONEUPTIME_WORKS_OPENED_EVENT;
-      }),
-    ).toEqual([
-      [HOW_ONEUPTIME_WORKS_OPENED_EVENT, { projectId: PROJECT_ID, from: "home" }],
-      [HOW_ONEUPTIME_WORKS_OPENED_EVENT, { projectId: PROJECT_ID, from: "home" }],
+    // Each opening is counted.
+    expect(openedEvents()).toEqual([
+      expect.objectContaining({ product: "oneuptime", source: "home" }),
+      expect.objectContaining({ product: "oneuptime", source: "home" }),
     ]);
   });
 
@@ -483,10 +499,10 @@ describe("the dialog", () => {
     expect(step.tagName).not.toBe("BUTTON");
     fireEvent.click(step);
     expect(navigateMock).not.toHaveBeenCalled();
-    expect(captureMock).toHaveBeenCalledWith(HOW_ONEUPTIME_WORKS_OPENED_EVENT, {
-      projectId: "",
-      from: "help",
-    });
+    expect(openedEvents()).toEqual([
+      expect.objectContaining({ product: "oneuptime", source: "help" }),
+    ]);
+    expect(openedEvents()[0]).not.toHaveProperty("project_id");
   });
 
   test("stops listening once it is gone", () => {
@@ -555,10 +571,13 @@ describe("from Home, at any time", () => {
     await waitFor(() => {
       expect(dialog()).not.toBeNull();
     });
-    expect(captureMock).toHaveBeenCalledWith(HOW_ONEUPTIME_WORKS_OPENED_EVENT, {
-      projectId: PROJECT_ID,
-      from: "home",
-    });
+    expect(openedEvents()).toEqual([
+      expect.objectContaining({
+        product: "oneuptime",
+        source: "home",
+        project_id: PROJECT_ID,
+      }),
+    ]);
   });
 
   test("dismissing the Welcome checklist no longer takes the way to it away", async () => {

@@ -45,7 +45,10 @@ export default class UserRegistrationToken {
    * Mint a token for `email` and return it. The caller is responsible for
    * putting it somewhere only the mailbox owner will see -- which in practice
    * means a link in an email addressed to that same mailbox, and nowhere else.
-   * It must never be written into an API response.
+   * It must never be written into an API response, with one exception: a
+   * master admin's (InvitationLink), on a server that cannot send the
+   * email, who could set the account's password from the Admin Dashboard
+   * anyway.
    */
   @CaptureSpan()
   public static async generateRegistrationToken(data: {

@@ -157,7 +157,8 @@
     "successMessage": "我们已通过电子邮件向您发送了密码重置链接。请不要忘记检查垃圾邮件文件夹。",
     "submitButton": "发送密码重置链接",
     "rememberPasswordPrompt": "记得您的密码？",
-    "loginLink": "登录。"
+    "loginLink": "登录。",
+    "cannotEmail": "此服务器尚不能发送电子邮件，因此无法向您发送重置密码的链接。请联系服务器管理员为您重置密码。"
   },
   "magicLink": {
     "title": "使用链接登录",
@@ -168,7 +169,8 @@
     "notReceived": "收件箱中没有？请检查垃圾邮件文件夹，或确认您输入的是注册时使用的地址。",
     "sendAnother": "再发送一个链接",
     "knowPasswordPrompt": "知道您的密码？",
-    "loginLink": "登录。"
+    "loginLink": "登录。",
+    "cannotEmail": "此服务器尚不能发送电子邮件，因此无法向您发送登录链接。请使用密码登录，或联系服务器管理员为您开通访问。"
   },
   "resetPassword": {
     "title": "重置您的密码",

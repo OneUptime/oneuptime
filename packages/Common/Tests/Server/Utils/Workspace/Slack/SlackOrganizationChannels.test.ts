@@ -892,6 +892,76 @@ describe("getWorkspaceChannelByName for an organization's installation", () => {
     expect(listedWorkspaces()).not.toContain(EAST.id);
   });
 
+  /*
+   * #6784: an installation with no default stored - made before installs
+   * stored one - whose default by name OneUptime was removed from. Read
+   * again (Refresh on the card, Slack's team_access_revoked, or a list over
+   * ten minutes old), the default moves to the first workspace left by name
+   * and is stored, which drops the channels cached as the old one's. Before,
+   * nothing was stored, and a rule that names no workspace kept finding its
+   * channel cached in the workspace OneUptime had left.
+   */
+  test("REGRESSION: a default never stored that OneUptime was removed from - a rule naming no workspace finds its channel in the new default, not the one cached in the old", async () => {
+    stored = organizationRow({
+      workspaces: [EAST, NORTH, WEST],
+      defaultWorkspaceId: undefined,
+      channelCache: {
+        general: {
+          id: "C0EGEN",
+          name: "general",
+          lastUpdated: minutesAgo(60),
+          teamId: EAST.id,
+        },
+      },
+    });
+    workspacesSlackLists = [NORTH, WEST];
+
+    // The connection's own write, against the stored row.
+    jest
+      .mocked(WorkspaceProjectAuthTokenService.updateSlackOrganization)
+      .mockRestore();
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "findOneBy")
+      .mockImplementation((async () => {
+        return stored
+          ? ({
+              id: new ObjectID("c4000000-0000-4000-8000-0000000000aa"),
+              miscData: clone(stored.miscData),
+            } as unknown as WorkspaceProjectAuthToken)
+          : null;
+      }) as never);
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "updateOneById")
+      .mockImplementation((async (update: {
+        data: { miscData: SlackMiscData };
+      }) => {
+        stored!.miscData = clone(update.data.miscData);
+        return 1;
+      }) as never);
+
+    await SlackOrganization.getOfConnection({
+      projectId: PROJECT_ID,
+      projectAuth: clone(stored),
+      refresh: true,
+    });
+
+    expect((stored.miscData as SlackMiscData).defaultWorkspaceId).toBe(
+      NORTH.id,
+    );
+    expect(storedCache()["general"]).toBeUndefined();
+
+    const channel: WorkspaceChannel | null =
+      await SlackUtil.getWorkspaceChannelByName({
+        authToken: ORGANIZATION_TOKEN,
+        channelName: "general",
+        projectId: PROJECT_ID,
+      });
+
+    expect(channel?.id).toBe("C0NGEN");
+    expect(channel?.teamId).toBe(NORTH.id);
+    expect(listedWorkspaces()).toEqual([NORTH.id]);
+  });
+
   test("a name no workspace has: none, after every workspace was looked in - and what was read is cached", async () => {
     expect(
       await SlackUtil.getWorkspaceChannelByName({

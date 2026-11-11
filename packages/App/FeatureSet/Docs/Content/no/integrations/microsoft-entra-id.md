@@ -118,7 +118,7 @@ Hver logg har sitt eget budsjett: 10 sider med 500 katalogendringer, 20 sider me
 
 1. **Snevre inn.** Den neste pollen leser et vindu som er halvparten så langt, fra det samme startpunktet, og fortsetter å halvere til et vindu leses helt, ned til ett minutt. Kjøringens advarsel sier det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Oppføringer som allerede er importert fra det lengre vinduet, hoppes over som duplikater.
 2. **Vokse igjen.** Når et vindu er lest helt, flyttes markøren til slutten av det, og det neste vinduet er igjen dobbelt så langt, opptil 24 timer.
-3. **Gå forbi ett enkelt minutt.** Hvis selv ett minutt inneholder mer enn en poll kan lese, går pollingen forbi det, slik at nyere oppføringer fortsetter å komme. Kjøringen forblir **Delvis**, og **Siste feil** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importer det minuttet med **Import this time range** for å hente det én kjøring kan lese.
+3. **Gå forbi ett enkelt minutt.** Hvis selv ett minutt inneholder mer enn en poll kan lese, går pollingen forbi det, slik at nyere oppføringer fortsetter å komme. Kjøringen forblir **Delvis**, og **Siste feil** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importer det minuttet med **Importer dette tidsrommet** for å hente det én kjøring kan lese.
 
 Å endre **Henteintervall (minutter)** endrer ingenting av dette: det avgjør hvor ofte en poll starter, ikke hvor vinduet begynner.
 
@@ -127,9 +127,9 @@ Hver logg har sitt eget budsjett: 10 sider med 500 katalogendringer, 20 sider me
 Klikk på **Diagnostikk** på en tilkobling for å se de siste kjøringene og arbeide med den manuelt. Alle som kan endre tilkoblingen, kan starte disse handlingene; alle som kan se den, kan lese historikken.
 
 - **Kjør nå** starter en poll med en gang, med den vanlige markøren, også når tilkoblingen ikke er **Aktivert**.
-- **Preview records** leser et tidsrom på opptil 7 dager og importerer ingenting.
-- **Import this time range** importerer et tidsrom på opptil 7 dager, etter at du har bekreftet, uten å flytte markøren. Oppføringer som allerede er importert, hoppes over. Microsoft Entra ID beholder 30 dager med pålogginger og katalogendringer med P1 eller P2, og 7 dager uten.
-- **Copy diagnostics** på en kjøring kopierer rapporten for brukerstøtte. Den inneholder aldri legitimasjon.
+- **Forhåndsvis poster** leser et tidsrom på opptil 7 dager og importerer ingenting.
+- **Importer dette tidsrommet** importerer et tidsrom på opptil 7 dager, etter at du har bekreftet, uten å flytte markøren. Oppføringer som allerede er importert, hoppes over. Microsoft Entra ID beholder 30 dager med pålogginger og katalogendringer med P1 eller P2, og 7 dager uten.
+- **Kopier diagnostikk** på en kjøring kopierer rapporten for brukerstøtte. Den inneholder aldri legitimasjon.
 
 ## Test tilkoblingen
 
@@ -146,7 +146,7 @@ Klikk på **Diagnostikk** på en tilkobling for å se de siste kjøringene og ar
 | **Read the Microsoft 365 audit log** | Bare med alternativet slått på: Management API-et svarer, og hvilke innholdstyper appen abonnerer på. |
 | **Records available to import** | Hvor mange pålogginger og katalogendringer de siste 24 timene inneholder, høyst 500 av hver, så `500+` betyr flere. Ingen er en advarsel. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen side: en prosess tar jobbene fra Worker-køen, poll-jobben kjører hvert minutt, og lageret for sikkerhetshendelser svarer. |
-| **Scheduled polling** | For en lagret tilkobling: polling er slått på, ingen kjøring sitter fast og venter på en worker, og poller kjører i tide. |
+| **Planlagt henting** | For en lagret tilkobling: polling er slått på, ingen kjøring sitter fast og venter på en worker, og poller kjører i tide. |
 
 Hver forespørsel i en test har en frist på 20 sekunder. En test importerer aldri noe og flytter aldri markøren, og hver kontroll som mislykkes, sier hva du skal endre.
 

@@ -412,10 +412,11 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * A Mattermost connection's teams: those the server listed its bot in,
-   * when, and the default team (MattermostTeams) - written into the
-   * project's connection and nothing else, while it is still the one stored
-   * under `workspaceProjectId`. A connection removed or replaced meanwhile
-   * is left alone. Every other field is carried over from the stored row.
+   * when, those it no longer lists, and the default team (MattermostTeams) -
+   * written into the project's connection and nothing else, while it is
+   * still the one stored under `workspaceProjectId`. A connection removed or
+   * replaced meanwhile is left alone. Every other field is carried over
+   * from the stored row.
    *
    * Another default team is written into the server-only authToken too:
    * every call that names no team is made in the team it holds
@@ -428,6 +429,11 @@ export class Service extends DatabaseService<Model> {
     workspaceProjectId: string;
     teams?: Array<MattermostConnectionTeam> | undefined;
     teamsReadAt?: Date | undefined;
+    /*
+     * The teams the server no longer lists the bot in, by the names they
+     * had (MattermostTeams.getRemovedTeams).
+     */
+    removedTeams?: Array<MattermostConnectionTeam> | undefined;
     defaultTeam?: MattermostConnectionTeam | undefined;
   }): Promise<void> {
     if (!data.projectId) {
@@ -502,6 +508,18 @@ export class Service extends DatabaseService<Model> {
         miscData.teamDisplayName =
           listedDefault.displayName || listedDefault.name;
       }
+    }
+
+    if (data.removedTeams) {
+      miscData.removedTeams = data.removedTeams.map(
+        (team: MattermostConnectionTeam): MattermostConnectionTeam => {
+          return {
+            id: team.id,
+            name: team.name,
+            displayName: team.displayName || team.name,
+          };
+        },
+      );
     }
 
     if (data.defaultTeam) {

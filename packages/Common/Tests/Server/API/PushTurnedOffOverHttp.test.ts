@@ -262,7 +262,8 @@ describe("GET /global-config/vars", () => {
     const result: HttpResult = await vars();
 
     expect(result.status).toBe(200);
-    expect(result.body).toEqual(row);
+    // And, with no email set up in the row, that the server cannot send email.
+    expect(result.body).toEqual({ ...row, canSendEmail: false });
   });
 
   test("is public: a browser with nobody signed in is answered", async () => {
@@ -274,25 +275,31 @@ describe("GET /global-config/vars", () => {
     expect(result.body?.["disablePushNotifications"]).toBe(true);
   });
 
-  test("says exactly these two things, and nothing else of the settings row", async () => {
+  test("says exactly these three things, and nothing else of the settings row", async () => {
     answerWith(
       settingsRow({
         disablePushNotifications: true,
         disableUserProjectCreation: true,
         twilioAuthToken: "should-never-leave",
         smtpPassword: "should-never-leave",
+        smtpHost: "should-never-leave.example.com",
+        smtpFromEmail: "should-never-leave@example.com",
       }),
     );
 
     const result: HttpResult = await vars();
 
     expect(Object.keys(result.body || {}).sort()).toEqual(
-      ["disablePushNotifications", "disableUserProjectCreation"].sort(),
+      [
+        "canSendEmail",
+        "disablePushNotifications",
+        "disableUserProjectCreation",
+      ].sort(),
     );
     expect(JSON.stringify(result.body)).not.toContain("should-never-leave");
   });
 
-  test("reads the one settings row, those two columns only, as root", async () => {
+  test("reads the one settings row, the switches and whether email is set up, as root", async () => {
     answerWith(settingsRow({ disablePushNotifications: false }));
 
     await vars();
@@ -306,9 +313,13 @@ describe("GET /global-config/vars", () => {
     } = settingsRead.mock.calls[0]![0] as never;
 
     expect(read.id.toString()).toBe(ObjectID.getZeroObjectID().toString());
-    expect(read.select).toEqual({
+    expect(read.select).toMatchObject({
       disableUserProjectCreation: true,
       disablePushNotifications: true,
+      // Read to answer canSendEmail, never sent on (ServerChannelSetup).
+      emailServerType: true,
+      smtpHost: true,
+      serverSendingHealth: true,
     });
     expect(read.props).toEqual({ isRoot: true });
   });
@@ -322,6 +333,7 @@ describe("GET /global-config/vars", () => {
     expect(result.body).toEqual({
       disableUserProjectCreation: false,
       disablePushNotifications: false,
+      canSendEmail: false,
     });
   });
 

@@ -74,6 +74,8 @@ flowchart TB
 
 Обзор — это один запрос на всю страницу. Это те же данные, которые рисует страница статуса, и им не больше 15 секунд.
 
+Дни полос времени работы — это дни по UTC, если вы не укажете часовой пояс: добавьте `?timezone=Asia/Shanghai` к `GET` или отправьте `{"timezone": "Asia/Shanghai"}` в теле `POST`, и `uptimeDailyAggregate` и `monitorGroupUptimeDailyAggregate` будут разбиты на дни этого пояса, как страница статуса запрашивает для каждого посетителя. Неизвестный серверу пояс считается UTC, и оба в своём `timezone` сообщают, в каком поясе они разбиты.
+
 :::tabs
 @tab curl
 ```bash
@@ -133,7 +135,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `resourceGroups` | Группы, с `parentStatusPageGroupId` для вложенных групп. |
 | `monitorStatuses` | Все статусы мониторов проекта, от низшего приоритета к высшему. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | Текущий статус каждой группы мониторов на странице и мониторы в ней. |
-| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Данные, по которым рисуются полосы времени работы, и правила цвета полос на странице. |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Данные, по которым рисуются полосы времени работы, и правила цвета полос на странице. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Нерешённые инциденты, которые показывает страница, их публичные заметки и смены состояний, а также состояния инцидентов проекта. |
 | `timelineIncidents` | Инциденты в окне полос времени работы, включая решённые, — для всплывающих подсказок полос. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | То же для эпизодов инцидентов. |

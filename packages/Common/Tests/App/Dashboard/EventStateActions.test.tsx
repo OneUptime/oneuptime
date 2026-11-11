@@ -278,6 +278,8 @@ function RowHarness<T extends BaseModel>(props: {
   kind: EventStateKind;
   states: Array<BaseModel>;
   item: T;
+  // Rows drawn where no list hands its refresh over (no RowActionContext).
+  isOutsideAList?: boolean | undefined;
 }): ReactElement {
   const { rowActions, modals }: EventStateActionsResult<T> =
     useEventStateActions<T>({ kind: props.kind, states: props.states });
@@ -293,23 +295,34 @@ function RowHarness<T extends BaseModel>(props: {
     <>
       <RowActions<T>
         item={props.item}
-        actionButtons={withRowActionContext<T>([view, ...rowActions], {
-          refresh: () => {
-            refreshCount++;
-          },
-        })}
+        actionButtons={
+          props.isOutsideAList
+            ? [view, ...rowActions]
+            : withRowActionContext<T>([view, ...rowActions], {
+                refresh: () => {
+                  refreshCount++;
+                },
+              })
+        }
       />
       {modals}
     </>
   );
 }
 
-const renderIncident: (item: Incident) => void = (item: Incident): void => {
+const renderIncident: (
+  item: Incident,
+  options?: { isOutsideAList?: boolean | undefined },
+) => void = (
+  item: Incident,
+  options?: { isOutsideAList?: boolean | undefined },
+): void => {
   render(
     <RowHarness<Incident>
       kind={EventStateKind.Incident}
       states={INCIDENT_STATES}
       item={item}
+      isOutsideAList={options?.isOutsideAList}
     />,
   );
 };
@@ -418,7 +431,7 @@ describe("Acknowledge from an incident's row", () => {
     ).toHaveTextContent("Acknowledge");
   });
 
-  test("moves the incident on its timeline, reads the list again, and the side menu's counts follow", async () => {
+  test("moves the incident on its timeline and has the list read again - the list asks the side menu's counts, once", async () => {
     freshForTest[INCIDENT_ID] = {
       currentIncidentState: stateLink(IDENTIFIED, "Identified", 1),
       isPrivate: false,
@@ -448,7 +461,59 @@ describe("Acknowledge from an incident's row", () => {
       },
     ]);
     expect(refreshCount).toBe(1);
+    /*
+     * A list's refresh asks the side menu's counts itself (ModelTable,
+     * BaseModelTableSideMenuCounts.test.tsx): asked here too, they would
+     * count twice for one move.
+     */
+    expect(sidebarRefreshes).toBe(0);
+  });
+
+  test("a row moved where no list hands its refresh over asks the side menu's counts itself", async () => {
+    freshForTest[INCIDENT_ID] = {
+      currentIncidentState: stateLink(IDENTIFIED, "Identified", 1),
+      isPrivate: false,
+    };
+
+    renderIncident(incident({ stateId: IDENTIFIED }), { isOutsideAList: true });
+
+    const modal: HTMLElement = await clickMenuItem("Acknowledge");
+
+    await act(async () => {
+      fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("modal")).toBeNull();
+    });
+    expect(created).toHaveLength(1);
+    expect(refreshCount).toBe(0);
     expect(sidebarRefreshes).toBe(1);
+  });
+
+  test("a move that was refused asks nothing: nothing changed", async () => {
+    // Already acknowledged, as read just before the move.
+    freshForTest[INCIDENT_ID] = {
+      currentIncidentState: stateLink(ACKNOWLEDGED, "Acknowledged", 2),
+      isPrivate: false,
+    };
+
+    renderIncident(incident({ stateId: IDENTIFIED }), { isOutsideAList: true });
+
+    const modal: HTMLElement = await clickMenuItem("Acknowledge");
+
+    await act(async () => {
+      fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("modal")).toHaveTextContent(
+        ALREADY_ACKNOWLEDGED,
+      );
+    });
+    expect(created).toEqual([]);
+    expect(refreshCount).toBe(0);
+    expect(sidebarRefreshes).toBe(0);
   });
 
   test("while the move is written its button is busy, the dialog stays as filled in, and a second press moves nothing more", async () => {

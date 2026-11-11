@@ -62,6 +62,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -324,6 +325,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   ] = useState<boolean>(false);
 
   const [telemetryServices, setServices] = useState<Array<Service>>([]);
+
+  /*
+   * The address field's label names its box and its help describes it, so
+   * the box is read out as "Website URL" (or "Hostname", "Port"...), not as
+   * an unnamed text box, and found by its name.
+   */
+  const destinationFieldId: string = useId();
+  const destinationDescriptionId: string = `${destinationFieldId}-description`;
 
   const isRuleMonitorType: boolean = TelemetryAlertRuleUtil.isRuleMonitorType(
     props.monitorType,
@@ -1061,9 +1070,21 @@ return {
               <FieldLabelElement
                 title={destinationFieldCopy?.title || "URL"}
                 description={destinationFieldCopy?.description}
+                htmlFor={destinationFieldId}
+                descriptionId={
+                  destinationFieldCopy?.description
+                    ? destinationDescriptionId
+                    : undefined
+                }
                 required={true}
               />
               <Input
+                id={destinationFieldId}
+                ariaDescribedby={
+                  destinationFieldCopy?.description
+                    ? destinationDescriptionId
+                    : undefined
+                }
                 initialValue={destinationInputValue}
                 placeholder={destinationFieldCopy?.placeholder}
                 disableSpellCheck={true}

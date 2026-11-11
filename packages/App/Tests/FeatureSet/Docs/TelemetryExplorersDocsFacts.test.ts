@@ -23,9 +23,14 @@ import {
 import { escapeRegExp } from "./DocsTranslationChecks";
 import {
   AI_TASK_PRESENTATION,
+  EXCEPTION_AI_HOW_IT_WORKS_STEPS,
   EXCEPTION_AI_TASK_TYPES,
   ExceptionAITaskType,
+  PRIMARY_AI_TASK_PRESENTATION,
+  getOtherExceptionAITaskTypes,
+  getPrimaryExceptionAITaskType,
 } from "../../../FeatureSet/Dashboard/src/Utils/ExceptionAIAssistance";
+import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import {
   ExceptionTriageAction,
   getExceptionTriageActions,
@@ -2053,7 +2058,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(labels(false, false)).toEqual(["Resolve", "Archive"]);
     expect(labels(true, true)).toEqual(["Reopen", "Unarchive"]);
 
-    // Beside Resolve, while the exception's occurrences name their release.
+    // In the header's ⋯, while the exception's occurrences name their release.
     const nextRelease: ExceptionTriageAction | null =
       getResolveInNextReleaseAction({
         isResolved: false,
@@ -2074,8 +2079,11 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       "Archive",
       "Unarchive",
     ]);
+    expect(
+      readDashboardSource("Components/Exceptions/ExceptionMoreActions.tsx"),
+    ).toContain("getResolveInNextReleaseAction({");
     expect(page).toContain(
-      "**Resolve in next release** is in the menu beside **Resolve**, in the row's ⋯ menu, under **Bulk Actions** and on **Settings**, while the exception's occurrences name their release: the `service.version` resource attribute.",
+      "**Resolve in next release** is in the ⋯ at the top of the exception's page, in the row's ⋯ menu, under **Bulk Actions** and on **Settings**, while the exception's occurrences name their release: the `service.version` resource attribute.",
     );
 
     const settings: string = readDashboardSource(
@@ -2116,7 +2124,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     );
 
     expect(triage).toContain(
-      "The buttons at the top of the exception's page, its **Settings** page and the ⋯ menu on its row in the list change its status:",
+      "The buttons at the top of the exception's page and the ⋯ beside them, its **Settings** page and the ⋯ menu on its row in the list change its status:",
     );
     expect(row).toContain("<RowActions<TelemetryException>");
     expect(viewer).toContain("actionButtons={exceptionRowActions}");
@@ -2203,7 +2211,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       '"Where to look"',
       '"Next steps"',
       '"Explain again"',
-      'title="Open a fix pull request"',
+      'title="Fix with AI"',
       'title="Ask a follow-up"',
     ]) {
       expect(card).toContain(label);
@@ -2220,7 +2228,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       "At the top of an exception's **Overview**, **Explain with OneUptime AI** asks OneUptime AI what went wrong.",
     );
     expect(explain).toContain(
-      "**Open a fix pull request** opens the exception's **AI Assistance** page, and **Ask a follow-up** opens Ask AI on the exception.",
+      "**Fix with AI** opens the exception's **Fix with AI** page, and **Ask a follow-up** opens Ask AI on the exception.",
     );
 
     // What it reads: the latest occurrence, its trace and logs, the deploys.
@@ -2273,15 +2281,20 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     );
     const triage: string = section(page, "## Resolve, reopen and archive");
 
-    // The header's picker: one person or one team.
-    expect(assignee).toContain('addButtonText="Assign"');
-    expect(assignee).toContain("isSinglePick={true}");
+    // The header's Assignee fact: one person or one team.
+    expect(assignee).toContain(
+      '<span>{translator.translateText("Assign")}</span>',
+    );
+    expect(assignee).toContain('selectionMode="single"');
     expect(assignee).toContain("PeoplePickerKind.User,");
     expect(assignee).toContain("PeoplePickerKind.Team,");
+    expect(
+      readDashboardSource("Components/Exceptions/ExceptionSummary.tsx"),
+    ).toContain('label: "Assignee",');
     expect(actions).toContain('translationKey("Assign to me")');
     expect(actions).toContain('translationKey("Assign to…")');
     expect(triage).toContain(
-      "**Assign** in the exception's header gives it to one person or one team, and removing them unassigns it. Each row shows who owns it, its ⋯ menu offers **Assign to me**, and **Assign to…** under **Bulk Actions** assigns several at once.",
+      "**Assign**, under **Assignee** in the exception's header, gives it to one person or one team; click their name to give it to someone else, and the × beside it to unassign it. Each row shows who owns it, its ⋯ menu offers **Assign to me**, and **Assign to…** under **Bulk Actions** assigns several at once.",
     );
 
     // Assigned to me and the sort menu, beside the lenses.
@@ -2750,21 +2763,79 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     );
   });
 
-  it("offers the three AI tasks with their start button, behind three readiness checks, paused while resolved or archived", () => {
-    const titles: Array<string> = EXCEPTION_AI_TASK_TYPES.map(
-      (taskType: ExceptionAITaskType): string => {
-        return AI_TASK_PRESENTATION[taskType].title;
-      },
+  /*
+   * "Why not just one?" - the maintainer (#6855). The page leads with one
+   * task, Fix with AI, making the fix the exception's error class calls
+   * for, and folds the others under Other AI tasks.
+   */
+  it("leads with Fix with AI, the fix the error class calls for, and folds the other tasks under it, behind three readiness checks, paused while resolved or archived", () => {
+    const fix: string = section(page, "## Fix it with AI");
+    const others: string = fix.slice(fix.indexOf("**Other AI tasks**"));
+
+    // One task, started with Fix with AI, whichever fix it makes.
+    for (const taskType of [
+      CodeFixTaskType.FixException,
+      CodeFixTaskType.ImproveExceptionHandling,
+    ] as const) {
+      expect([
+        PRIMARY_AI_TASK_PRESENTATION[taskType].startActionName,
+        PRIMARY_AI_TASK_PRESENTATION[taskType].restartActionName,
+        PRIMARY_AI_TASK_PRESENTATION[taskType].retryActionName,
+      ]).toEqual(["Fix with AI", "Fix again", "Try again"]);
+    }
+    expect(fix).toContain(
+      "The **Fix with AI** page leads with one task, started with **Fix with AI**.",
+    );
+    expect(fix).toContain(
+      "Once it has run, its button reads **Fix again**, or **Try again** when the attempt failed or found no fix.",
     );
 
-    expect(firstColumn(section(page, "## Fix it with AI"))).toEqual(titles);
+    // Which fix: by the error class, as its table says.
+    expect(firstColumn(fix)).toEqual([
+      "`user-error` or `expected-denial`",
+      "Any other, or not classified yet",
+    ]);
+    for (const expected of [ErrorClass.UserError, ErrorClass.ExpectedDenial]) {
+      expect(getPrimaryExceptionAITaskType(expected)).toBe(
+        CodeFixTaskType.ImproveExceptionHandling,
+      );
+    }
+    for (const other of [
+      ErrorClass.CodeFault,
+      ErrorClass.Infrastructure,
+      ErrorClass.Unknown,
+      undefined,
+    ]) {
+      expect(getPrimaryExceptionAITaskType(other)).toBe(
+        CodeFixTaskType.FixException,
+      );
+    }
+
+    // How it works: the three steps under it.
+    expect(EXCEPTION_AI_HOW_IT_WORKS_STEPS).toHaveLength(3);
+    expect(fix).toContain("Three steps under it say how it works:");
+
+    // The others, each with Start: the other kind of fix, then a test.
+    expect(firstColumn(others)).toEqual(
+      EXCEPTION_AI_TASK_TYPES.map((taskType: ExceptionAITaskType): string => {
+        return AI_TASK_PRESENTATION[taskType].title;
+      }),
+    );
+    for (const taskType of EXCEPTION_AI_TASK_TYPES) {
+      expect(AI_TASK_PRESENTATION[taskType].startActionName).toBe("Start");
+    }
+    expect(getOtherExceptionAITaskTypes(CodeFixTaskType.FixException)).toEqual([
+      CodeFixTaskType.ImproveExceptionHandling,
+      CodeFixTaskType.WriteRegressionTest,
+    ]);
     expect(
-      AI_TASK_PRESENTATION[EXCEPTION_AI_TASK_TYPES[0] as ExceptionAITaskType]
-        .startActionName,
-    ).toBe("Fix with AI");
-    expect(page).toContain("Start it with **Fix with AI**.");
-    expect(page).toContain(
-      `The **AI Assistance** page offers ${NUMBER_WORDS[titles.length]} tasks.`,
+      getOtherExceptionAITaskTypes(CodeFixTaskType.ImproveExceptionHandling),
+    ).toEqual([
+      CodeFixTaskType.FixException,
+      CodeFixTaskType.WriteRegressionTest,
+    ]);
+    expect(fix).toContain(
+      "**Other AI tasks**, folded under it, opens the other pull requests with **Start**:",
     );
 
     const readiness: string = readCommonSource("Types/AI/AIFixReadiness.ts");

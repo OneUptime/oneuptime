@@ -92,13 +92,22 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
 
   // ---- SLI -----------------------------------------------------------------
 
-  const sliText: string | null = formatSloPercent(slo.currentSliPercentage);
+  // Every figure on the strip is written the reader's way: "99,874 %" in German.
+  const sliText: string | null = formatSloPercent(
+    slo.currentSliPercentage,
+    undefined,
+    translator,
+  );
   const isBelowTarget: boolean = isSliBelowTarget({
     currentSliPercentage: slo.currentSliPercentage,
     targetPercentage: slo.targetPercentage,
   });
 
-  const targetText: string | null = formatSloPercent(slo.targetPercentage);
+  const targetText: string | null = formatSloPercent(
+    slo.targetPercentage,
+    undefined,
+    translator,
+  );
 
   const sliDescription: string =
     sliText === null
@@ -123,7 +132,7 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
   // ---- Error budget ----------------------------------------------------------
 
   const budgetText: string | null = getSloBudgetRemainingTextInLanguage(
-    getSloBudgetRemainingText(slo.errorBudgetRemainingPercentage),
+    getSloBudgetRemainingText(slo.errorBudgetRemainingPercentage, translator),
     translator,
   );
 
@@ -188,7 +197,10 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
 
   // ---- Burn rate -------------------------------------------------------------
 
-  const burnRateText: string | null = formatSloBurnRate(slo.currentBurnRate);
+  const burnRateText: string | null = formatSloBurnRate(
+    slo.currentBurnRate,
+    translator,
+  );
 
   const isAtOrAboveRuleThreshold: boolean = isBurnRateAtOrAboveThreshold({
     burnRate: slo.currentBurnRate,
@@ -319,6 +331,7 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
                         threshold:
                           formatSloBurnRate(
                             props.lowestEnabledBurnRateThreshold,
+                            translator,
                           ) || "",
                         longWindow: comparableLongWindowText,
                       },

@@ -101,6 +101,13 @@ jest.mock("../../../UI/Utils/Realtime", () => {
   return {
     __esModule: true,
     default: {
+      /*
+       * No live connection: the side menu's counts (UseLiveCount) and lists
+       * (UseLiveRows) join only one the app has started.
+       */
+      isStarted: (): boolean => {
+        return false;
+      },
       listenToModelEvent: () => {
         return () => {
           // no-op unsubscribe

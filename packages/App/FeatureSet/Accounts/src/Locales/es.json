@@ -157,7 +157,8 @@
     "successMessage": "Le hemos enviado el enlace de restablecimiento de contraseña por correo electrónico. No olvide revisar la carpeta de spam.",
     "submitButton": "Enviar enlace de restablecimiento",
     "rememberPasswordPrompt": "¿Recuerda su contraseña?",
-    "loginLink": "Iniciar sesión."
+    "loginLink": "Iniciar sesión.",
+    "cannotEmail": "Este servidor aún no puede enviar correos electrónicos, así que no puede enviarle un enlace para restablecer su contraseña. Pida al administrador del servidor que restablezca su contraseña."
   },
   "magicLink": {
     "title": "Iniciar sesión con un enlace",
@@ -168,7 +169,8 @@
     "notReceived": "¿No está en su bandeja de entrada? Revise la carpeta de spam o asegúrese de haber escrito la dirección con la que se registró.",
     "sendAnother": "Enviar otro enlace",
     "knowPasswordPrompt": "¿Conoce su contraseña?",
-    "loginLink": "Iniciar sesión."
+    "loginLink": "Iniciar sesión.",
+    "cannotEmail": "Este servidor aún no puede enviar correos electrónicos, así que no puede enviarle un enlace de inicio de sesión. Inicie sesión con su contraseña o pida al administrador del servidor que le dé acceso."
   },
   "resetPassword": {
     "title": "Restablezca su contraseña",

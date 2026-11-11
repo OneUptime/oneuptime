@@ -1,3 +1,5 @@
+import ProjectMilestoneService from "./ProjectMilestoneService";
+import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import { PROJECT_SMTP_CONFIG_SEND_SELECT } from "../Utils/Mail/ProjectSmtpConfigSelect";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import DatabaseConfig from "../DatabaseConfig";
@@ -2108,11 +2110,59 @@ export class Service extends ProjectReferencesService<Model> {
     };
   }
 
+  /*
+   * Subscribers who just confirmed: their projects' first subscriber who can
+   * be sent updates, if they have none yet (issue #6830). Read as root, as
+   * the confirmation writes them; a project known to have the milestone
+   * costs nothing more. Never fails the confirmation.
+   */
+  private async noteSubscribersConfirmed(
+    subscriberIds: Array<ObjectID>,
+  ): Promise<void> {
+    try {
+      const subscribers: Array<Model> = await this.findBy({
+        query: {
+          _id: QueryHelper.any(subscriberIds),
+          isSubscriptionConfirmed: true,
+          isUnsubscribed: false,
+        },
+        select: {
+          projectId: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const subscriber of subscribers) {
+        ProjectMilestoneService.reachInBackground({
+          projectId: subscriber.projectId,
+          milestone: ActivationMilestone.FirstStatusPageSubscriberAdded,
+        });
+      }
+    } catch (error) {
+      logger.error(
+        "Could not note a project's first confirmed status page subscriber:",
+      );
+      logger.error(error as Error);
+    }
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    // A subscriber who confirmed: the project's first, maybe (issue #6830).
+    if (
+      onUpdate.updateBy.data.isSubscriptionConfirmed === true &&
+      updatedItemIds.length > 0
+    ) {
+      await this.noteSubscribersConfirmed(updatedItemIds);
+    }
+
     const carryForward: UnsubscribedAtCarryForward | undefined =
       onUpdate.carryForward as UnsubscribedAtCarryForward | undefined;
 
@@ -2806,6 +2856,19 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (onCreate.carryForward) {
       (onCreate.carryForward as SubscriberCreateCarryForward).isSending = true;
+    }
+
+    /*
+     * The project's first status page subscriber who can be sent updates
+     * (issue #6830): confirmed as it is created - a Slack, Microsoft Teams
+     * or webhook subscriber, one the team vouches for. One still to confirm
+     * counts once it does (onUpdateSuccess).
+     */
+    if (createdItem.isSubscriptionConfirmed && !createdItem.isUnsubscribed) {
+      ProjectMilestoneService.reachInBackground({
+        projectId: createdItem.projectId,
+        milestone: ActivationMilestone.FirstStatusPageSubscriberAdded,
+      });
     }
 
     // Not the item itself: it carries the unsubscribe token.

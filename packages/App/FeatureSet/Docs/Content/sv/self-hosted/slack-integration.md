@@ -65,7 +65,7 @@ De här värdena genererar bara URL:er. De skapar inga DNS-poster, certifikat el
 
 ### Kopiera appmanifestet
 
-Öppna **Projektinställningar > Arbetsyta > Slack**. Så länge Slack inte är konfigurerat på servern visar sidan **Integrating Slack with your OneUptime Project** med manifestet som genererats för ditt värdnamn. Det serveras också på `https://oneuptime.example.com/api/slack/app-manifest`.
+Öppna **Projektinställningar > Arbetsyta > Slack**. Så länge Slack inte är konfigurerat på servern visar sidan **Integrera Slack med ditt OneUptime-projekt** med manifestet som genererats för ditt värdnamn. Det serveras också på `https://oneuptime.example.com/api/slack/app-manifest`.
 
 Kontrollera att varje URL i manifestet börjar med ditt offentliga värdnamn. Om inte, rätta först `HOST` och `HTTP_PROTOCOL` och tillämpa ändringen.
 
@@ -112,7 +112,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
 :::
 
-När OneUptime är igång igen visar **Projektinställningar > Arbetsyta > Slack** en knapp **Connect with Slack** i stället för manifestet.
+När OneUptime är igång igen visar **Projektinställningar > Arbetsyta > Slack** en knapp **Anslut med Slack** i stället för manifestet.
 
 ### Verifiera begärande-URL:en för händelser
 
@@ -120,7 +120,7 @@ Verifiera begärande-URL:en under **Event Subscriptions** i Slack-appen. OneUpti
 
 ### Anslut projektet
 
-Välj **Connect with Slack** under **Projektinställningar > Arbetsyta > Slack** och tillåt appen i Slack. Slack skickar tillbaka dig till samma sida, som nu visar din arbetsyta.
+Välj **Anslut med Slack** under **Projektinställningar > Arbetsyta > Slack** och tillåt appen i Slack. Slack skickar tillbaka dig till samma sida, som nu visar din arbetsyta.
 
 ### Anslut ditt eget Slack-konto
 
@@ -131,7 +131,7 @@ Knappar, formulär och kommandon agerar som den OneUptime-användare som är kop
 
 | Docker Compose (`config.env`) | Helm (`values.yaml`) | Obligatorisk | Värde |
 | --- | --- | --- | --- |
-| `SLACK_APP_CLIENT_ID` | `slackApp.clientId` | Ja | Appens **Client ID**. Utan den visar Slack-sidan konfigurationsguiden i stället för **Connect with Slack**. |
+| `SLACK_APP_CLIENT_ID` | `slackApp.clientId` | Ja | Appens **Client ID**. Utan den visar Slack-sidan konfigurationsguiden i stället för **Anslut med Slack**. |
 | `SLACK_APP_CLIENT_SECRET` | `slackApp.clientSecret` | Ja | Appens **Client Secret**, som används för att byta koden som Slack returnerar mot en token. |
 | `SLACK_APP_SIGNING_SECRET` | `slackApp.signingSecret` | Ja | Appens **Signing Secret**. Varje begäran från Slack kontrolleras mot den. |
 | `HOST` | `host` | Ja | Ditt offentliga värdnamn, utan schema. |
@@ -154,19 +154,19 @@ Manifestet konfigurerar de här funktionerna. Var och en når din server via den
 
 Beskrivningar av incidenter och larm kan innehålla skärmbilder, till exempel från en syntetisk monitor (se [Visa en skärmbild](/docs/monitor/incident-alert-templating#visa-en-skärmbild)). OneUptime visar dem i Slack-meddelanden genom att ladda upp var och en till din arbetsyta som en privat fil, vilket kräver bot-scopet `files:write`. Det genererade manifestet innehåller det.
 
-Om du skapade din Slack-app från ett äldre manifest lägger du till `files:write` under **OAuth & Permissions > Bot Token Scopes** (eller uppdaterar appen från det aktuella manifestet). Välj sedan **Connect with Slack** igen under **Projektinställningar > Arbetsyta > Slack**, så att det nya scopet beviljas. Fram till dess visas varje skärmbild som sin alternativa text.
+Om du skapade din Slack-app från ett äldre manifest lägger du till `files:write` under **OAuth & Permissions > Bot Token Scopes** (eller uppdaterar appen från det aktuella manifestet). Välj sedan **Anslut med Slack** igen under **Projektinställningar > Arbetsyta > Slack**, så att det nya scopet beviljas. Fram till dess visas varje skärmbild som sin alternativa text.
 
 ### Jouranvändargrupper
 
 Att hålla ett schemas användargrupp i Slack lika med dem som har jour (se [Jouranvändargrupper](/docs/workspace-connections/slack#jouranvändargrupper)) kräver bot-scopen `usergroups:read` och `usergroups:write`. Det genererade manifestet innehåller dem.
 
-Om du skapade din Slack-app från ett äldre manifest lägger du till `usergroups:read` och `usergroups:write` under **OAuth & Permissions > Bot Token Scopes** (eller uppdaterar appen från det aktuella manifestet). Välj sedan **Connect with Slack** igen under **Projektinställningar > Arbetsyta > Slack**, så att de nya scopen beviljas. Fram till dess säger schemats kort att OneUptimes Slack-app inte får ändra användargrupper än.
+Om du skapade din Slack-app från ett äldre manifest lägger du till `usergroups:read` och `usergroups:write` under **OAuth & Permissions > Bot Token Scopes** (eller uppdaterar appen från det aktuella manifestet). Välj sedan **Anslut med Slack** igen under **Projektinställningar > Arbetsyta > Slack**, så att de nya scopen beviljas. Fram till dess säger schemats kort att OneUptimes Slack-app inte får ändra användargrupper än.
 
 ### Appar skapade från ett äldre manifest
 
 En Slack-app som skapats från ett tidigare OneUptime-manifest registrerar `/incident` och `/maintenance` som egna kommandon, som kan krocka med kommandon med samma namn i andra appar. De fungerar fortfarande och öppnar samma formulär som `/oneuptime incident` och `/oneuptime maintenance`. För att ersätta dem med `/oneuptime` uppdaterar du appen från manifestet som din server genererar: på [api.slack.com/apps](https://api.slack.com/apps) öppnar du appens **App Manifest**, klistrar in manifestet och sparar.
 
-En app som skapades före `/oneuptime page` behöver samma uppdatering: tills den har fått den kan `/oneuptime page` inte känna igen vem du nämner med @, och öppnar ett formulär där du väljer dem i stället för att larma dem direkt. Välj sedan **Connect with Slack** igen under **Projektinställningar > Arbetsyta > Slack**, så att scopet `users:read.email` som manifestet lägger till beviljas: med det hittas en person vars Slack-konto inte är anslutet till OneUptime via sin e-postadress.
+En app som skapades före `/oneuptime page` behöver samma uppdatering: tills den har fått den kan `/oneuptime page` inte känna igen vem du nämner med @, och öppnar ett formulär där du väljer dem i stället för att larma dem direkt. Välj sedan **Anslut med Slack** igen under **Projektinställningar > Arbetsyta > Slack**, så att scopet `users:read.email` som manifestet lägger till beviljas: med det hittas en person vars Slack-konto inte är anslutet till OneUptime via sin e-postadress.
 
 En app som skapades före fliken **Home** behöver samma uppdatering: tills den har den visar Slack ingen flik **Home** för appen, och appen publicerar ingen hälsning i en kanal den läggs till i. Uppdateringen slår på fliken och prenumererar appen på händelserna `app_home_opened` och `member_joined_channel`. Den lägger inte till något scope, så inget behöver anslutas igen.
 

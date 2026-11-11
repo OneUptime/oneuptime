@@ -1,8 +1,9 @@
 import EventName from "../../Utils/EventName";
 import HowOneUptimeWorks, { HOW_IT_WORKS_TITLE } from "./HowOneUptimeWorks";
+import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import UiAnalytics from "Common/UI/Utils/Analytics";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
+import ProductEvents from "Common/UI/Utils/ProductEvents";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, {
   FunctionComponent,
@@ -36,13 +37,11 @@ export enum HowOneUptimeWorksOpenedFrom {
 }
 
 /*
- * The event recorded each time it opens (#6830 lists "How it works opened"
- * among the behaviour events): the project it was opened in and from where.
- * One constant, so the event's name can follow the activation funnel's
- * naming once that is written down.
+ * Each opening is the activation funnel's "How it works" opened (#6830,
+ * ProductEventName.HowItWorksOpened, as a product's own How it works sends
+ * it), for the product "oneuptime", with where it was opened from.
  */
-export const HOW_ONEUPTIME_WORKS_OPENED_EVENT: string =
-  "dashboard/how-oneuptime-works/opened";
+export const HOW_ONEUPTIME_WORKS_PRODUCT: string = "oneuptime";
 
 export const HOW_ONEUPTIME_WORKS_DIALOG_TEST_ID: string =
   "how-oneuptime-works-dialog";
@@ -64,9 +63,10 @@ const HowOneUptimeWorksDialog: FunctionComponent = (): ReactElement => {
       const from: unknown = (event.detail as { from?: unknown } | null)?.from;
 
       setIsOpen(true);
-      UiAnalytics.capture(HOW_ONEUPTIME_WORKS_OPENED_EVENT, {
-        projectId: ProjectUtil.getCurrentProjectId()?.toString() || "",
-        from:
+      // The project, plan and language come with every product event.
+      ProductEvents.send(ProductEventName.HowItWorksOpened, {
+        product: HOW_ONEUPTIME_WORKS_PRODUCT,
+        source:
           typeof from === "string" ? from : HowOneUptimeWorksOpenedFrom.Help,
       });
     };

@@ -70,6 +70,18 @@ Do not run whole test folders or packages - for example all of `packages/App/Tes
 
 Property tests, fuzz sweeps and generated fixtures draw their pseudo-random inputs from `seededRandom(seed)` in `packages/Common/Tests/Helpers/SeededRandom.ts` (`random()` is a fraction, `random(limit)` a whole number below the limit), and texts made of an alphabet's pieces from `generatedTexts` in `packages/Common/Tests/Helpers/GeneratedTexts.ts`, so every run draws the same inputs and a failure can be run again. Shuffle with `shuffled(items, random)` from the same file. Do not write a generator of your own: the copies of `state * 1103515245 + 12345` the tests used to carry repeated within a few thousand draws, and `SeededRandomGuard.test.ts` fails a test file that rolls one of the kinds they carried (an LCG, mulberry32, xorshift).
 
+### Follow-ups
+
+File an issue only for something that is broken; everything else goes in the pull request's description. Between 6 and 11 November 2026 agents filed 463 `follow-up` issues and finished 100 of them. Each finished one filed about 1.7 new ones, and 141 were follow-ups of follow-ups, up to eight deep, so the list could only grow.
+
+- Fix it in this pull request when your change caused it or exposed it, or when it is small and in code you are already changing.
+- File an issue only for something broken that is too big to fix here: a page that errors or shows wrong data, an action that fails or does the wrong thing, a notification that is not sent, a security or data-loss problem, or a red `main`. One problem per issue, labels `follow-up` and `bug`, a title under 80 characters, and a body of a few lines: what is broken, where, how to see it, and the pull request that found it. Whoever picks it up reads that pull request.
+- Everything else is one line under "Not done" in the pull request's description, not an issue: wording, translations, layout, tests beyond your change, docs, a wider scope, a better way to do something. The pull request is the record, and a maintainer turns a line into an issue when it is worth one.
+- File at most one follow-up issue per pull request. A red `main` or a security or data-loss problem always gets its own.
+- When your task is itself a follow-up (its issue has the `follow-up` label), file no follow-up issues, except for a red `main` or a security or data-loss problem.
+- When you are asked to do the follow-ups too, that means the broken ones; list the rest under "Not done".
+- Do not open an epic to hold follow-ups. An epic ends when its own work ships.
+
 ### Helm chart
 
 Two charts are published: the product itself in `HelmChart/Public/oneuptime`, and the

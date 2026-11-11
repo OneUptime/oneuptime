@@ -278,9 +278,13 @@ describe("RemediationStep with a recorded decision", () => {
           stage: "Evaluated",
           createdAt: new Date(),
           entries: [
+            /*
+             * Why the runbook waits instead of running - the rule's hourly
+             * limit - is said by no fix: the line is drawn.
+             */
             {
               lane: "Rule",
-              reason: "RuleRunbookProposed",
+              reason: "RuleRunbookProposedByCircuitBreaker",
               ruleName: "Restart checkout",
               runbookName: "Restart the checkout pods",
             },
@@ -299,9 +303,8 @@ describe("RemediationStep with a recorded decision", () => {
     const decision: HTMLElement = await screen.findByTestId(
       "remediation-decision",
     );
-    const runbook: HTMLElement = screen.getByText("Restart the checkout pods", {
-      selector: "span",
-    });
+    const runbook: HTMLElement = screen.getByTestId("remediation-fix-title");
+    expect(runbook).toHaveTextContent('Runbook "Restart the checkout pods"');
     expect(
       decision.compareDocumentPosition(runbook) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -320,6 +323,94 @@ describe("RemediationStep with a recorded decision", () => {
         screen.getByTestId("remediation-fixes"),
       ) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  /*
+   * Issue #6860: 'Rule "Restart checkout" proposed runbook "Restart the
+   * checkout pods".' over the fix that is that runbook, from that rule, said
+   * the same thing twice. The fix says it: its name, and the rule it came
+   * from under it.
+   */
+  test("a line the fix below tells is not drawn over it", async () => {
+    serve({
+      suggestions: [suggestion()],
+      decisions: [
+        evaluatedDecision([
+          {
+            lane: "Rule",
+            reason: "RuleRunbookProposed",
+            ruleName: "Restart checkout",
+            runbookName: "Restart the checkout pods",
+          },
+        ]),
+      ],
+    });
+
+    render(
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
+    );
+
+    const title: HTMLElement = await screen.findByTestId(
+      "remediation-fix-title",
+    );
+    expect(title).toHaveTextContent('Runbook "Restart the checkout pods"');
+    expect(screen.getByTestId("remediation-fix-source")).toHaveTextContent(
+      'From AI rule "Restart checkout"',
+    );
+    expect(
+      screen.queryByTestId("remediation-decision"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/proposed runbook/)).not.toBeInTheDocument();
+
+    // The step opens with what waits for the reader, as its pill says it.
+    expect(screen.getByTestId("remediation-step-summary")).toHaveTextContent(
+      "A fix is ready for this incident. It runs once you approve it.",
+    );
+    expect(statusPill()).toHaveTextContent("Needs your approval");
+  });
+
+  test("a line about another rule's runbook is still drawn", async () => {
+    serve({
+      suggestions: [suggestion()],
+      decisions: [
+        evaluatedDecision([
+          {
+            lane: "Rule",
+            reason: "RuleRunbookProposed",
+            ruleName: "Restart checkout",
+            runbookName: "Restart the checkout pods",
+          },
+          // No fix on the step is this one: its line is the only word of it.
+          {
+            lane: "Rule",
+            reason: "RuleRunbookProposed",
+            ruleName: "Scale checkout",
+            runbookName: "Scale the checkout pods",
+          },
+        ]),
+      ],
+    });
+
+    render(
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
+    );
+
+    const decision: HTMLElement = await screen.findByTestId(
+      "remediation-decision",
+    );
+    const lines: Array<HTMLElement> = within(decision).getAllByTestId(
+      "remediation-decision-line",
+    );
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toHaveTextContent(
+      'Rule "Scale checkout" proposed runbook "Scale the checkout pods". It starts when you approve it.',
+    );
   });
 
   test("a fix waiting for approval is what the pill says, whatever the decision said", async () => {
@@ -590,10 +681,8 @@ describe("RemediationStep with a recorded decision", () => {
     );
 
     expect(
-      await screen.findByText("Restart the checkout pods", {
-        selector: "span",
-      }),
-    ).toBeInTheDocument();
+      await screen.findByTestId("remediation-fix-title"),
+    ).toHaveTextContent('Runbook "Restart the checkout pods"');
     expect(
       screen.queryByTestId("remediation-decision"),
     ).not.toBeInTheDocument();

@@ -132,7 +132,15 @@ export const getBidiClass: (character: string) => BidiClass = (
       return "L";
     case 0x200f:
       return "R";
+    /*
+     * The Arabic letter mark, semicolon and question mark and the Tatweel:
+     * Arabic letters to the algorithm, though N'Ko, Adlam or Mandaic - whose
+     * letters are right-to-left (R) - use them too.
+     */
+    case 0x061b:
     case 0x061c:
+    case 0x061f:
+    case 0x0640:
       return "AL";
     case 0x200b:
     case 0x200c:

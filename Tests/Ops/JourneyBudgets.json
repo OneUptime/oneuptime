@@ -1,0 +1,132 @@
+{
+  "about": [
+    "What each core job costs a newcomer today, counted by the journeys in packages/E2E/Journeys (npm run test-journeys-ui): each job done in the real Dashboard or Admin Dashboard with only what is on screen, over a project made a minute ago. packages/E2E/Journeys/README.md says how each measure is counted, how to read a failure and how to add a journey.",
+    "A run fails when a measure in failOn moves from its budget, either way. Up: the job got longer - make it short again, or raise the number here and say in the pull request why the job needs it. Down: the job got shorter - lower the number here to what the run counted, so the gain is kept. The measures in reported move with copy edits: the run's table shows them beside their budget, and they never fail it.",
+    "Each journey is one path through its job. When a guided setup ships beside a manual path (#6804, #6805, #6806), its journey gets an entry of its own with path \"guided\", and the guided one is the headline.",
+    "Concepts met along a journey cannot be counted by a machine: the epic #6802 keeps them as a hand count."
+  ],
+  "measuredOn": "2026-11-11",
+  "failOn": ["screens", "dialogs", "clicks", "fieldsTyped", "products"],
+  "reported": ["keystrokes", "defaultsKept", "choices", "words"],
+  "journeys": {
+    "website-monitor": {
+      "title": "Create a website monitor",
+      "path": "manual",
+      "startsAt": "Home, in a new project",
+      "endsWhen": "the monitor's page opens, its probes checking the address",
+      "budget": {
+        "screens": 2,
+        "dialogs": 0,
+        "clicks": 9,
+        "fieldsTyped": 2,
+        "products": 1,
+        "keystrokes": 41,
+        "defaultsKept": 2,
+        "choices": 13,
+        "words": 315
+      }
+    },
+    "told-when-down": {
+      "title": "Make sure I am told when the monitor goes down",
+      "path": "manual",
+      "startsAt": "the website monitor's page",
+      "endsWhen": "an on-call policy pages me for every new incident and alert",
+      "budget": {
+        "screens": 1,
+        "dialogs": 1,
+        "clicks": 7,
+        "fieldsTyped": 1,
+        "products": 1,
+        "keystrokes": 15,
+        "defaultsKept": 1,
+        "choices": 12,
+        "words": 215
+      }
+    },
+    "paged-by-phone": {
+      "title": "Get paged by phone and escalate to a teammate (Cloud)",
+      "path": "manual",
+      "startsAt": "Home, in a new project on OneUptime Cloud",
+      "endsWhen": "calls are on and paid for, my number is verified, and a policy calls me, then pages Grace",
+      "budget": {
+        "screens": 5,
+        "dialogs": 5,
+        "clicks": 25,
+        "fieldsTyped": 4,
+        "products": 3,
+        "keystrokes": 51,
+        "defaultsKept": 2,
+        "choices": 19,
+        "words": 1020
+      }
+    },
+    "status-page": {
+      "title": "Publish a status page that shows the monitor",
+      "path": "manual",
+      "startsAt": "Home, with the website monitor",
+      "endsWhen": "the status page shows the website monitor",
+      "budget": {
+        "screens": 3,
+        "dialogs": 2,
+        "clicks": 10,
+        "fieldsTyped": 1,
+        "products": 1,
+        "keystrokes": 11,
+        "defaultsKept": 1,
+        "choices": 8,
+        "words": 376
+      }
+    },
+    "first-telemetry": {
+      "title": "Send first telemetry and get an alert on it",
+      "path": "manual",
+      "startsAt": "Home, in a new project",
+      "endsWhen": "the first logs are in and a Logs monitor alerts on them",
+      "budget": {
+        "screens": 2,
+        "dialogs": 2,
+        "clicks": 10,
+        "fieldsTyped": 1,
+        "products": 2,
+        "keystrokes": 19,
+        "defaultsKept": 8,
+        "choices": 3,
+        "words": 885
+      }
+    },
+    "member-reachable": {
+      "title": "As an invited member, make myself reachable",
+      "path": "manual",
+      "startsAt": "Home, as a member invited a minute ago, with SMS on for the project",
+      "endsWhen": "my phone number is verified for SMS",
+      "budget": {
+        "screens": 1,
+        "dialogs": 2,
+        "clicks": 6,
+        "fieldsTyped": 2,
+        "products": 1,
+        "keystrokes": 18,
+        "defaultsKept": 0,
+        "choices": 0,
+        "words": 354
+      }
+    },
+    "server-email": {
+      "title": "As a self-hosted admin, make the server able to send email",
+      "path": "manual",
+      "startsAt": "Admin Dashboard > Users, where the first admin lands",
+      "endsWhen": "the SMTP server is saved and a test email has gone out",
+      "budget": {
+        "screens": 3,
+        "dialogs": 2,
+        "clicks": 17,
+        "fieldsTyped": 9,
+        "products": 3,
+        "keystrokes": 175,
+        "defaultsKept": 0,
+        "choices": 6,
+        "words": 464
+      }
+    }
+  }
+}

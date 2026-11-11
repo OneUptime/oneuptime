@@ -11,12 +11,18 @@ import FixProductionStatus, {
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  EXCEPTION_FIX_TASK_TYPE_BY_KIND,
+  getPersonExceptionFixKind,
+} from "Common/Utils/Exceptions/ExceptionInsight";
 import PageMap from "./PageMap";
 
 /*
- * Pure state for the exception AI Assistance page. The page shows one card
- * per task type; everything that decides what a card says and which button
- * it offers lives here so every status can be tested without rendering.
+ * Pure state for the exception's Fix with AI page. The page leads with one
+ * task - Fix with AI, the fix OneUptime AI's triage calls for - and folds
+ * the others under it; everything that decides what a task says and which
+ * button it offers lives here so every status can be tested without
+ * rendering.
  */
 
 /*
@@ -144,46 +150,130 @@ export interface AITaskPresentation {
   retryActionName: string;
 }
 
+/*
+ * Each task as "Other AI tasks" lists it: what it does, in a line, and a
+ * plain Start. The one the page leads with is drawn by
+ * PRIMARY_AI_TASK_PRESENTATION instead.
+ */
 export const AI_TASK_PRESENTATION: {
   [key in ExceptionAITaskType]: AITaskPresentation;
 } = {
   [CodeFixTaskType.FixException]: {
     taskType: CodeFixTaskType.FixException,
-    title: "Fix this exception with AI",
+    title: "Fix the code",
     description:
-      "AI will analyze this exception, identify the root cause, and submit a Pull Request with the fix to your code repository.",
-    icon: IconProp.Bolt,
-    startActionName: "Fix with AI",
-    restartActionName: "Fix Again",
-    retryActionName: "Retry Fix",
+      "OneUptime AI finds the root cause in the code, fixes it, and opens a pull request for you to review.",
+    icon: IconProp.Wrench,
+    startActionName: translationKey("Start"),
+    restartActionName: translationKey("Run again"),
+    retryActionName: translationKey("Try again"),
   },
   [CodeFixTaskType.WriteRegressionTest]: {
     taskType: CodeFixTaskType.WriteRegressionTest,
-    title: "Generate Regression Test",
+    title: "Write a regression test",
     description:
-      "AI will write a failing test that reproduces this exception and open a Pull Request with it. This does not fix the bug — the test should fail until the bug is fixed.",
+      "OneUptime AI writes a test that reproduces this exception and opens a pull request with it, so the bug cannot come back unnoticed. It does not fix the bug: the test fails until the bug is fixed.",
     icon: IconProp.Beaker,
-    startActionName: "Generate Regression Test",
-    restartActionName: "Generate Again",
-    retryActionName: "Retry Regression Test",
+    startActionName: translationKey("Start"),
+    restartActionName: translationKey("Run again"),
+    retryActionName: translationKey("Try again"),
   },
   [CodeFixTaskType.ImproveExceptionHandling]: {
     taskType: CodeFixTaskType.ImproveExceptionHandling,
-    title: "Improve Error Handling",
+    title: "Handle the error better",
     description:
-      "For expected errors (invalid user input, intentional denials): AI will open a Pull Request that parameterizes messages leaking user data, validates input earlier with an actionable error, and marks the error as handled in telemetry — without changing behavior.",
+      "For an expected error, such as invalid input or an intentional denial: OneUptime AI checks the input earlier with a clear message, keeps user data out of the message, and marks the error as handled, without changing what the code does. It opens a pull request for you to review.",
     icon: IconProp.ShieldCheck,
-    startActionName: "Improve Error Handling",
-    restartActionName: "Improve Again",
-    retryActionName: "Retry Error Handling",
+    startActionName: translationKey("Start"),
+    restartActionName: translationKey("Run again"),
+    retryActionName: translationKey("Try again"),
   },
 };
 
-// The order the cards render in.
+// The task types the page can lead with: the two kinds of fix.
+export type PrimaryExceptionAITaskType =
+  | CodeFixTaskType.FixException
+  | CodeFixTaskType.ImproveExceptionHandling;
+
+/*
+ * The one task the page leads with, "Fix with AI": a fix of the code, or -
+ * for an exception OneUptime AI's triage found to be an expected error -
+ * better handling of it (getPersonExceptionFixKind, the kind a person's Fix
+ * with AI opens everywhere). Either way it is called Fix with AI, and says
+ * what it will do.
+ */
+export const PRIMARY_AI_TASK_PRESENTATION: {
+  [key in PrimaryExceptionAITaskType]: AITaskPresentation;
+} = {
+  [CodeFixTaskType.FixException]: {
+    taskType: CodeFixTaskType.FixException,
+    title: "Fix with AI",
+    description:
+      "OneUptime AI finds the root cause of this exception in your code, fixes it, and opens a pull request for you to review.",
+    icon: IconProp.Sparkles,
+    startActionName: translationKey("Fix with AI"),
+    restartActionName: translationKey("Fix again"),
+    retryActionName: translationKey("Try again"),
+  },
+  [CodeFixTaskType.ImproveExceptionHandling]: {
+    taskType: CodeFixTaskType.ImproveExceptionHandling,
+    title: "Fix with AI",
+    description:
+      "OneUptime AI found this is an expected error, so the fix handles it better instead of changing what the code does: it checks the input earlier with a clear message, keeps user data out of the message, and marks the error as handled. It opens a pull request for you to review.",
+    icon: IconProp.Sparkles,
+    startActionName: translationKey("Fix with AI"),
+    restartActionName: translationKey("Fix again"),
+    retryActionName: translationKey("Try again"),
+  },
+};
+
+// Every task type, in the order the page has them.
 export const EXCEPTION_AI_TASK_TYPES: ReadonlyArray<ExceptionAITaskType> = [
   CodeFixTaskType.FixException,
-  CodeFixTaskType.WriteRegressionTest,
   CodeFixTaskType.ImproveExceptionHandling,
+  CodeFixTaskType.WriteRegressionTest,
+];
+
+/*
+ * The task Fix with AI starts for an exception, by OneUptime AI's triage
+ * verdict on it (its errorClass): better handling for an expected error,
+ * a fix of the code for anything else - before there is a verdict too.
+ */
+export function getPrimaryExceptionAITaskType(
+  errorClass: unknown,
+): PrimaryExceptionAITaskType {
+  return EXCEPTION_FIX_TASK_TYPE_BY_KIND[
+    getPersonExceptionFixKind(errorClass)
+  ] as PrimaryExceptionAITaskType;
+}
+
+/*
+ * What "Other AI tasks" lists under Fix with AI: the other kind of fix
+ * first, then a regression test.
+ */
+export function getOtherExceptionAITaskTypes(
+  primary: PrimaryExceptionAITaskType,
+): Array<ExceptionAITaskType> {
+  return [
+    primary === CodeFixTaskType.FixException
+      ? CodeFixTaskType.ImproveExceptionHandling
+      : CodeFixTaskType.FixException,
+    CodeFixTaskType.WriteRegressionTest,
+  ];
+}
+
+/*
+ * How Fix with AI works, in three steps, under its card - true of every
+ * task the page starts.
+ */
+export const EXCEPTION_AI_HOW_IT_WORKS_STEPS: ReadonlyArray<string> = [
+  translationKey("Reads the stack trace and finds the code that threw it."),
+  translationKey(
+    "Changes that code in your repository, on a branch of its own.",
+  ),
+  translationKey(
+    "Opens a pull request for you to review. Nothing changes until you merge it.",
+  ),
 ];
 
 // A task still making progress (not in a terminal status).

@@ -99,7 +99,7 @@ Em **Avançado**, escolha a **Ação de limpeza** e os **Campos a depurar**, ou 
 | **SSN (Número de Seguro Social)** | Números do Seguro Social dos EUA, como `123-45-6789` |
 | **Número de telefone** | Números de telefone norte-americanos, como `555-123-4567` |
 | **Endereço IP** | Endereços IPv4, como `192.168.1.1` |
-| **Sensitive Attribute Keys** | O valor inteiro de qualquer atributo cuja chave pareça secreta, como `password`, `token`, `api_key`, `authorization` ou `cookie` |
+| **Chaves de atributos sensíveis** | O valor inteiro de qualquer atributo cuja chave pareça secreta, como `password`, `token`, `api_key`, `authorization` ou `cookie` |
 | **Regex personalizado** | A sua própria expressão regular, escrita sem barras nem flags, e comparada diferenciando maiúsculas e minúsculas |
 
 | Ação de limpeza | No que uma correspondência se transforma |
@@ -122,10 +122,10 @@ Mask:   Payment failed for j***@***.com
 Hash:   Payment failed for [HASHED:8c87b489]
 ```
 
-**Campos a depurar** é **Ambos (Corpo e atributos)** para uma regra de registros, a menos que você escolha **Apenas o corpo** ou **Apenas atributos**, e **Todos (Nome, Atributos e Eventos)** para uma regra de spans, a menos que você escolha **Somente nome do span**, **Apenas atributos** ou **Apenas atributos do evento**. Os atributos dos links de um span são mascarados junto com os atributos do próprio span. Uma regra de **Sensitive Attribute Keys** sempre mascara valores de atributos, já que lê as chaves dos atributos.
+**Campos a depurar** é **Ambos (Corpo e atributos)** para uma regra de registros, a menos que você escolha **Apenas o corpo** ou **Apenas atributos**, e **Todos (Nome, Atributos e Eventos)** para uma regra de spans, a menos que você escolha **Somente nome do span**, **Apenas atributos** ou **Apenas atributos do evento**. Os atributos dos links de um span são mascarados junto com os atributos do próprio span. Uma regra de **Chaves de atributos sensíveis** sempre mascara valores de atributos, já que lê as chaves dos atributos.
 
-- **Listas e valores aninhados também são lidos.** Uma regra lê cada texto dentro de uma lista, de uma lista de listas ou de uma lista de chave-valor, como os valores de um cabeçalho HTTP, e mantém a forma do valor: números e valores verdadeiro ou falso ficam como estão. Uma regra de **Sensitive Attribute Keys** também lê as chaves dentro de um valor, então o `password` dentro de uma lista de chave-valor também é ocultado. O corpo de um registro enviado como mapa ou como lista é armazenado como seu texto JSON, que uma regra de padrão mascara como qualquer outro texto.
-- **Um valor grande demais para ser lido item por item é lido como texto.** Um valor aninhado a mais de 32 níveis de profundidade, ou que levaria uma entrada a passar de 10.000 valores dentro de suas listas e mapas, é lido e armazenado como seu texto JSON. Uma regra de padrão mascara o que encontra nesse texto, e uma regra de **Sensitive Attribute Keys** oculta o valor inteiro quando uma palavra como `password` ou `token` aparece nele.
+- **Listas e valores aninhados também são lidos.** Uma regra lê cada texto dentro de uma lista, de uma lista de listas ou de uma lista de chave-valor, como os valores de um cabeçalho HTTP, e mantém a forma do valor: números e valores verdadeiro ou falso ficam como estão. Uma regra de **Chaves de atributos sensíveis** também lê as chaves dentro de um valor, então o `password` dentro de uma lista de chave-valor também é ocultado. O corpo de um registro enviado como mapa ou como lista é armazenado como seu texto JSON, que uma regra de padrão mascara como qualquer outro texto.
+- **Um valor grande demais para ser lido item por item é lido como texto.** Um valor aninhado a mais de 32 níveis de profundidade, ou que levaria uma entrada a passar de 10.000 valores dentro de suas listas e mapas, é lido e armazenado como seu texto JSON. Uma regra de padrão mascara o que encontra nesse texto, e uma regra de **Chaves de atributos sensíveis** oculta o valor inteiro quando uma palavra como `password` ou `token` aparece nele.
 - **As exceções vêm da entrada mascarada.** Uma exceção encontrada em um registro é criada depois do mascaramento, e as regras que mascaram os eventos dos spans também mascaram as exceções registradas neles.
 - **As Session Replays também são mascaradas.** As regras de mascaramento de registros também rodam sobre as gravações de Session Replay, além do mascaramento que o gravador faz no navegador.
 - **As regras rodam na ordem da lista.** Cada regra vê o que as regras anteriores deixaram.

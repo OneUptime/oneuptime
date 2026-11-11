@@ -75,14 +75,16 @@ export interface CalendarMonthWindow {
  *
  * Design notes (see SLO design doc paragraph 3.1 / 5):
  *
- * - Multi-monitor downtime must NOT be computed by feeding several monitors into
- *   UptimeUtil.getNonOverlappingMonitorEvents: its priority flatten lets a
- *   better-status event that merely ends later truncate a concurrent worse-status
- *   event (Monitor A Offline 10:00-11:00 + Monitor B Operational 10:30-12:00
- *   silently loses 30 minutes of downtime). That flatten was built for rendering
- *   one status-page bar, not cross-monitor budget math. This util therefore works
- *   per monitor (getMonitorEventsForId is per-monitor and correct) and combines
- *   monitors with explicit semantics (SloMultiMonitorMode).
+ * - Multi-monitor downtime is combined here with explicit semantics
+ *   (SloMultiMonitorMode), working per monitor (getMonitorEventsForId) rather
+ *   than by feeding several monitors into UptimeUtil.getNonOverlappingMonitorEvents.
+ *   That merge used to be a priority flatten that let a better-status event that
+ *   merely ended later truncate a concurrent worse-status event (Monitor A
+ *   Offline 10:00-11:00 + Monitor B Operational 10:30-12:00 lost 30 minutes of
+ *   downtime). It now takes the worst status at every instant (WorstStatusTimeline,
+ *   issue #6697), which is the AnyDown union - but the other modes (an average
+ *   per monitor, all monitors down) are not a merged timeline at all, so the
+ *   per-monitor approach stays.
  *
  * - Every comparison against a threshold uses UNROUNDED values. Round only at
  *   render time (roundForDisplay floors - fine for display, wrong for
@@ -219,7 +221,7 @@ export default class SloUtil {
    * The correctness case this exists for: Monitor A Offline 10:00-11:00 while
    * Monitor B is Operational 10:30-12:00 must yield 3600 seconds of downtime,
    * NOT 1800 - which is what the cross-monitor priority flatten in
-   * UptimeUtil.getNonOverlappingMonitorEvents produces.
+   * UptimeUtil.getNonOverlappingMonitorEvents used to produce.
    */
   public static getUnionDowntimeSeconds(
     perMonitor: Array<MonitorTimelineSet>,

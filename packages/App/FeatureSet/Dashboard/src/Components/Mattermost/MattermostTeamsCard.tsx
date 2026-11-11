@@ -23,6 +23,7 @@ import { JSONObject } from "Common/Types/JSON";
 import { MattermostConnectionTeam } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { MattermostRuleTeams } from "../Workspace/NotificationRuleForm/NotificationRuleCopy";
 
 /*
  * THE MATTERMOST TEAMS ONEUPTIME WORKS IN, ON PROJECT SETTINGS.
@@ -73,6 +74,31 @@ export interface MattermostTeamsDescription {
   defaultTeamId: string | null;
   isBotInDefaultTeam: boolean;
   botUsername: string;
+  // The teams the bot was taken out of, by the names they had.
+  removedTeams: Array<MattermostConnectionTeam>;
+  // Whether the server has listed the bot's teams at all.
+  areTeamsListed: boolean;
+}
+
+// The teams of an answer: each with an id, its name for no display name.
+function readTeams(value: unknown): Array<MattermostConnectionTeam> {
+  return (Array.isArray(value) ? (value as Array<JSONObject | null>) : [])
+    .map((item: JSONObject | null): MattermostConnectionTeam => {
+      const team: JSONObject = item && typeof item === "object" ? item : {};
+      const id: string = typeof team["id"] === "string" ? team["id"] : "";
+      const name: string = typeof team["name"] === "string" ? team["name"] : "";
+
+      return {
+        id: id,
+        name: name,
+        displayName:
+          (typeof team["displayName"] === "string" && team["displayName"]) ||
+          name,
+      };
+    })
+    .filter((team: MattermostConnectionTeam): boolean => {
+      return Boolean(team.id);
+    });
 }
 
 export const readMattermostTeamsDescription: (
@@ -85,25 +111,14 @@ export const readMattermostTeamsDescription: (
       ? (data["defaultTeamId"] as string)
       : null;
 
-  const teams: Array<MattermostTeamOfProject> = (
-    Array.isArray(data?.["teams"]) ? (data?.["teams"] as Array<JSONObject>) : []
-  )
-    .map((team: JSONObject): MattermostTeamOfProject => {
-      const id: string = typeof team["id"] === "string" ? team["id"] : "";
-      const name: string = typeof team["name"] === "string" ? team["name"] : "";
-
+  const teams: Array<MattermostTeamOfProject> = readTeams(data?.["teams"]).map(
+    (team: MattermostConnectionTeam): MattermostTeamOfProject => {
       return {
-        id: id,
-        name: name,
-        displayName:
-          (typeof team["displayName"] === "string" && team["displayName"]) ||
-          name,
-        isDefault: Boolean(defaultTeamId) && id === defaultTeamId,
+        ...team,
+        isDefault: Boolean(defaultTeamId) && team.id === defaultTeamId,
       };
-    })
-    .filter((team: MattermostTeamOfProject): boolean => {
-      return Boolean(team.id);
-    });
+    },
+  );
 
   return {
     teams: teams,
@@ -113,7 +128,55 @@ export const readMattermostTeamsDescription: (
       typeof data?.["botUsername"] === "string"
         ? (data["botUsername"] as string)
         : "",
+    removedTeams: readTeams(data?.["removedTeams"]),
+    areTeamsListed: data?.["areTeamsListed"] === true,
   };
+};
+
+/*
+ * The project's Mattermost connection, for a notification rule or a summary
+ * to pick the team of its channels from (GET /mattermost/connected-teams):
+ * the teams its bot is a member of, the default first, the teams it was
+ * taken out of, by the names they had, and whether the server has listed
+ * them at all. Undefined when it cannot be read: no picker, as before.
+ */
+export const fetchMattermostRuleTeams: () => Promise<
+  MattermostRuleTeams | undefined
+> = async (): Promise<MattermostRuleTeams | undefined> => {
+  try {
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.get({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
+          `/mattermost/connected-teams`,
+        ),
+        headers: ModelAPI.getCommonHeaders(),
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      return undefined;
+    }
+
+    const connection: MattermostTeamsDescription =
+      readMattermostTeamsDescription(response.data);
+
+    return {
+      teams: connection.teams.map(
+        (team: MattermostConnectionTeam): MattermostConnectionTeam => {
+          return {
+            id: team.id,
+            name: team.name,
+            displayName: team.displayName,
+          };
+        },
+      ),
+      removedTeams: connection.removedTeams,
+      defaultTeamId: connection.defaultTeamId || "",
+      isBotInDefaultTeam: connection.isBotInDefaultTeam,
+      areTeamsListed: connection.areTeamsListed,
+    };
+  } catch {
+    return undefined;
+  }
 };
 
 export interface ComponentProps {

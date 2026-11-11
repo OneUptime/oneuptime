@@ -25,9 +25,13 @@ const ExceptionViewLayout: FunctionComponent<
   }
 
   return (
+    /*
+     * The exception says what it is in its own header (ExceptionSummary),
+     * as an incident's page does: no line of words over it that says what
+     * every exception page is for.
+     */
     <Page
       title="Exception"
-      description="Investigate this error, understand its impact, and coordinate a resolution."
       breadcrumbLinks={getExceptionsBreadcrumbs(path)}
       sideMenu={<SideMenu modelId={modelId} />}
     >

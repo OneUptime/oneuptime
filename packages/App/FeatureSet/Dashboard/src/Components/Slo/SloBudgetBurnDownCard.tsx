@@ -34,7 +34,9 @@ import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import DataPoint from "Common/UI/Components/Charts/Types/DataPoint";
-import ChartReferenceLineProps from "Common/UI/Components/Charts/Types/ReferenceLineProps";
+import ChartReferenceLineProps, {
+  ReferenceLineLabelPlacement,
+} from "Common/UI/Components/Charts/Types/ReferenceLineProps";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import {
   XAxis as ChartXAxis,
@@ -338,8 +340,9 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
         min: "auto",
         max: 100,
         precision: YAxisPrecision.OneDecimal,
+        // "42,5 %" in German: the axis and the tooltip in the reader's figures.
         formatter: (value: number): string => {
-          return formatSloPercent(value, 1) || "";
+          return formatSloPercent(value, 1, translator) || "";
         },
       },
     };
@@ -382,13 +385,15 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
           {
             value: atRiskThreshold,
             label: translator.translateTemplate("At risk ({{percent}})", {
-              percent: formatSloPercent(atRiskThreshold) || "",
+              percent:
+                formatSloPercent(atRiskThreshold, undefined, translator) || "",
             }),
             color: AT_RISK_LINE_COLOR,
             strokeDasharray: "4 4",
           },
         ],
         tiers: props.policyTiers || [],
+        translator: translator,
       });
 
     return withSloChartZoomHint(
@@ -413,6 +418,12 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
               : undefined
           }
           referenceLines={referenceLines}
+          /*
+           * The lines are named in a legend under the chart: a label at the
+           * end of its line sat on the budget curve wherever the budget ran
+           * near the line, and "Budget exhausted", at 0%, on the time axis.
+           */
+          referenceLineLabelPlacement={ReferenceLineLabelPlacement.Legend}
         />
       </div>,
     );

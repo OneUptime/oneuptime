@@ -6,7 +6,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import SessionReplayUserAvatar from "../SessionReplay/SessionReplayUserAvatar";
 import { SessionUserDescription } from "../SessionReplay/SessionReplayUserIdentity";
@@ -108,16 +108,25 @@ const UserFlowScopeBanner: FunctionComponent<ComponentProps> = (
             className="truncate text-xs text-gray-600"
             data-testid="user-flow-scope-detail"
           >
-            {kindLabel}
+            {/*
+             * Set apart as the reader's language does: beside a Persian
+             * count, a middle dot read as a zero ("· ۳" as 30).
+             */}
             {props.scope.kind !== "session" && props.sessionsInWindow !== null
-              ? ` · ${translator.translatePlural(
-                  {
-                    one: "{{count}} session in this range",
-                    other: "{{count}} sessions in this range",
-                  },
-                  props.sessionsInWindow,
-                )}`
-              : ""}
+              ? formatInline(
+                  [
+                    kindLabel,
+                    translator.translatePlural(
+                      {
+                        one: "{{count}} session in this range",
+                        other: "{{count}} sessions in this range",
+                      },
+                      props.sessionsInWindow,
+                    ),
+                  ],
+                  translator,
+                )
+              : kindLabel}
           </p>
         </div>
       </div>

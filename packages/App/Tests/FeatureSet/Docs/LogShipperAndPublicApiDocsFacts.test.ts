@@ -2658,8 +2658,13 @@ describe("the Public API page", () => {
 
     expect(handlerStart).toBeGreaterThan(0);
     const readCheck: number = summary.indexOf("await this.checkHasReadAccess(");
+    /*
+     * The overview every visitor shares, without the uptime history a
+     * visitor's overview adds to it in their zone: the summary leaves the
+     * history out, and reads the same cached entry.
+     */
     const cacheRead: number = summary.indexOf(
-      "await this.getCachedOverviewResponse(statusPageId);",
+      "await this.getCachedOverviewBase(statusPageId)",
     );
 
     expect(readCheck).toBeGreaterThan(0);
@@ -2667,8 +2672,12 @@ describe("the Public API page", () => {
     expect(summary).toContain(
       "StatusPageSummaryUtil.toJSON( StatusPageSummaryBuilder.fromOverview(overview), )",
     );
+    // the overview handler: the same cache, its history cut in the visitor's zone.
     expect(oneLine(STATUS_PAGE_API_SOURCE)).toContain(
-      "const response: JSONObject = await this.getCachedOverviewResponse(statusPageId);",
+      "const response: JSONObject = await this.getCachedOverviewResponse( statusPageId, { timezone:",
+    );
+    expect(oneLine(STATUS_PAGE_API_SOURCE)).toContain(
+      "const base: StatusPageOverviewBase = await this.getCachedOverviewBase(statusPageId);",
     );
     expect(englishPage(PUBLIC_API)).toContain(
       "It comes from the same cache as the overview, after the same access rules.",
@@ -2719,9 +2728,39 @@ describe("the Public API page", () => {
   });
 
   it("lists every key of the overview response, and only those", () => {
+    /*
+     * The overview is what every visitor shares (buildOverviewBase) and the
+     * uptime history cut in the visitor's zone (buildUptimeHistory).
+     */
+    const keys: Array<string> = [
+      ...responseKeysOf("buildOverviewBase"),
+      ...responseKeysOf("buildUptimeHistory"),
+    ];
+
     // The first "Key" table is the overview's; the uptime one comes later.
     expect(keysListed(PUBLIC_API, "| Key | What it holds |").sort()).toEqual(
-      responseKeysOf("buildOverviewResponse").sort(),
+      keys.sort(),
+    );
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        "uptimeDailyAggregate",
+        "monitorGroupUptimeDailyAggregate",
+        "monitorGroupMergedDowntime",
+      ]),
+    );
+  });
+
+  it("says how to ask for the uptime history in a time zone", () => {
+    const page: string = englishPage(PUBLIC_API);
+
+    // the handler reads it from the body of a POST or the query of a GET.
+    expect(oneLine(STATUS_PAGE_API_SOURCE)).toContain(
+      '(req.body as JSONObject | undefined)?.["timezone"] ?? req.query?.["timezone"]',
+    );
+    expect(page).toContain("`?timezone=Asia/Shanghai`");
+    expect(page).toContain('`{"timezone": "Asia/Shanghai"}`');
+    expect(page).toContain(
+      "A zone the server does not know is UTC, and both say which zone they were cut in, in their `timezone`.",
     );
   });
 

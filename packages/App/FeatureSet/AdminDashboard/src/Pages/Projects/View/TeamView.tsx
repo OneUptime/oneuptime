@@ -16,18 +16,39 @@ import { JSONObject } from "Common/Types/JSON";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
+import {
+  ModalTableBulkDefaultActions,
+  ModalType,
+} from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { useServerCanSendEmail } from "Common/UI/Utils/ServerSending";
+import InvitationLinkModal, {
+  INVITATION_LINK_COPY,
+} from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 
 const ProjectTeamView: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   const teamId: ObjectID = Navigation.getLastParamAsObjectID(0);
   const projectId: ObjectID = Navigation.getLastParamAsObjectID(2);
+
+  /*
+   * A server that cannot send email sends no invitation (#6825): the form
+   * says so, and this master admin is handed the link to send.
+   */
+  const cannotSendEmail: boolean = useServerCanSendEmail() === false;
+  const [invitationLinkFor, setInvitationLinkFor] = useState<ObjectID | null>(
+    null,
+  );
 
   const { isEmailRegistered, checkEmail } = useUserEmailRegistrationStatus({
     getRequestHeaders: () => {
@@ -168,6 +189,17 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
             item.projectId = projectId;
             return Promise.resolve(item);
           }}
+          onCreateSuccess={async (
+            item: TeamMember,
+            modalType?: ModalType,
+          ): Promise<TeamMember> => {
+            // No email went out: the link to send.
+            if (modalType !== ModalType.Edit && cannotSendEmail && item.id) {
+              setInvitationLinkFor(item.id);
+            }
+
+            return item;
+          }}
           cardProps={{
             title: t("pages.projectTeamView.membersCardTitle"),
             description: t("pages.projectTeamView.membersCardDescription"),
@@ -179,8 +211,9 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
                 user: true,
               },
               title: "Email",
-              description:
-                "Enter the email of the user you would like to invite. We will send them an email letting them know they have been invited to this team.",
+              description: cannotSendEmail
+                ? INVITATION_LINK_COPY.inviteDescriptionForAdmin
+                : "Enter the email of the user you would like to invite. We will send them an email letting them know they have been invited to this team.",
               fieldType: FormFieldSchemaType.Email,
               required: true,
               placeholder: "member@company.com",
@@ -270,11 +303,30 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
                 if (item.hasAcceptedInvitation) {
                   return <Pill text="Member" color={Green} />;
                 }
-                return <Pill text="Invitation Sent" color={Yellow} />;
+                // Nothing was sent by a server that cannot send email.
+                return (
+                  <Pill
+                    text={
+                      cannotSendEmail
+                        ? INVITATION_LINK_COPY.invitedPill
+                        : "Invitation Sent"
+                    }
+                    color={Yellow}
+                  />
+                );
               },
             },
           ]}
         />
+
+        {invitationLinkFor && (
+          <InvitationLinkModal
+            teamMemberId={invitationLinkFor}
+            onClose={() => {
+              setInvitationLinkFor(null);
+            }}
+          />
+        )}
 
         <ModelDelete
           modelType={Team}

@@ -26,13 +26,11 @@ import DefinedTerm, {
   DEFINED_TERM_CLASS_NAME,
   DEFINED_TERM_DEFINITION_TEST_ID,
   DEFINED_TERM_LOADING_TEXT,
-  DEFINED_TERM_OPENED_EVENT,
   DEFINED_TERM_POPOVER_TEST_ID,
   DEFINED_TERM_READ_MORE_TEST_ID,
   DEFINED_TERM_READ_MORE_TEXT,
   DEFINED_TERM_TEST_ID,
   DEFINED_TERM_UNAVAILABLE_TEXT,
-  clearRecordedDefinedTerms,
 } from "../../../../UI/Components/Glossary/DefinedTerm";
 import { clearGlossaryReads } from "../../../../UI/Utils/Glossary";
 
@@ -177,7 +175,6 @@ const okAnswer: (body: unknown) => Promise<unknown> = (
 beforeEach(() => {
   language = "en";
   clearGlossaryReads();
-  clearRecordedDefinedTerms();
   captureMock.mockReset();
   fetchMock = jest.fn((url: string): Promise<unknown> => {
     return okAnswer(GLOSSARIES[url]);
@@ -476,7 +473,7 @@ describe("opening the definition", () => {
     await waitHidden();
   });
 
-  test("records an opened definition once per term", async () => {
+  test("every word on a page shares one read of the glossary, and sends nothing to analytics", async () => {
     render(
       <div>
         <DefinedTerm term={GlossaryTerm.Criteria} dataTestId="first">
@@ -499,15 +496,18 @@ describe("opening the definition", () => {
     await waitHidden();
     fireEvent.mouseEnter(screen.getByTestId("second"));
     await waitFor(() => {
-      expect(captureMock).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId(DEFINED_TERM_DEFINITION_TEST_ID)).toHaveTextContent(
+        "A machine that runs monitors' checks.",
+      );
     });
 
-    expect(captureMock.mock.calls).toEqual([
-      [DEFINED_TERM_OPENED_EVENT, { term: "criteria" }],
-      [DEFINED_TERM_OPENED_EVENT, { term: "probe" }],
-    ]);
     // Both definitions came from one read of the glossary.
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    /*
+     * A shared component sends no event of its own: #6830's catalog holds
+     * every event to a page that sends it.
+     */
+    expect(captureMock).not.toHaveBeenCalled();
   });
 });
 

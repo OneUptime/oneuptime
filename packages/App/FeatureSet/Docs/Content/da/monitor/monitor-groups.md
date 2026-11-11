@@ -91,6 +91,8 @@ For at tage en monitor ud af gruppen klikker du på **Fjern** i dens række unde
 
 Oppetiden på **Oversigt** tæller enhver status undtagen den driftsklare som nedetid. En statusside tæller kun statusserne på sin egen liste **Tæller som nedetid**: se [Vælg, hvad siden viser](/docs/status-pages/index#at-vælge-hvad-der-vises-på-siden).
 
+Hver søjle i oppetidsgrafen, her og på en statusside, viser, hvor længe gruppen selv var i hver status den dag: i hvert øjeblik har den den værste status blandt sine monitorer, så en time, hvor to af dem er offline samtidig, er én time for gruppen, og en dag bliver aldrig til mere end en dag. Dagene er dine egne: dashboardet tegner dem i tidszonen fra dine brugerindstillinger, og en statusside i hver besøgendes.
+
 Listen **Monitorgrupper** kan filtrere grupper efter ejer og etiket, sætte etiketter og ejere på mange grupper på én gang og eksportere eller importere grupper som JSON.
 
 ## Slå overvågning fra for en hel gruppe

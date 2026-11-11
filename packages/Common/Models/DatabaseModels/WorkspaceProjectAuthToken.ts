@@ -214,6 +214,12 @@ export interface MattermostMiscData extends MiscData {
   teams?: Array<MattermostConnectionTeam> | undefined;
   // When the server last listed `teams`.
   teamsReadAt?: string | undefined;
+  /*
+   * The teams the server listed the bot in once and lists no more - the bot
+   * was taken out of them - by the names they had, the latest first, so a
+   * rule that still names one can say which (MattermostTeams).
+   */
+  removedTeams?: Array<MattermostConnectionTeam> | undefined;
 }
 
 export type WorkspaceMiscData =

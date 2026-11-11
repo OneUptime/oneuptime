@@ -48,7 +48,7 @@ De verbinding meldt zich aan met de sleutel van een serviceaccount en [domeinbre
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Beveiligingsgebeurtenissen → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Google Workspace** onder **Identiteit** en klik op **Volgende**. Vul het **Administrator email** in, klik op **Volgende** en plak de inhoud van het sleutelbestand in **JSON van het serviceaccount**. Zet in de stap **Opvragen** **Drive-activiteit** aan om ook Drive te lezen.
+Open **Producten → Beveiligingsgebeurtenissen → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Google Workspace** onder **Identiteit** en klik op **Volgende**. Vul het **E-mailadres van beheerder** in, klik op **Volgende** en plak de inhoud van het sleutelbestand in **JSON van het serviceaccount**. Zet in de stap **Opvragen** **Drive-activiteit** aan om ook Drive te lezen.
 
 ### Testen voordat je opslaat
 
@@ -57,7 +57,7 @@ Klik op **Deze instellingen testen** onder **Testen voor het opslaan**. De test 
 
 | Instelling | Wat je invult |
 | --- | --- |
-| **Administrator email** | Het adres van de beheerder als wie het serviceaccount optreedt, zoals `admin@example.com`. Die moet het privilege Reports hebben. |
+| **E-mailadres van beheerder** | Het adres van de beheerder als wie het serviceaccount optreedt, zoals `admin@example.com`. Die moet het privilege Reports hebben. |
 | **Drive-activiteit** | Optioneel, standaard uit. Aan leest elke poll ook het delen en de downloads in Drive. |
 | **JSON van het serviceaccount** | Het volledige sleutelbestand, met `client_email` en `private_key`. Het wordt versleuteld, nooit door de API teruggegeven en nooit meer getoond. Vervang het met **Inloggegevens bijwerken** op de verbinding. |
 
@@ -94,7 +94,7 @@ Elk logboek heeft een eigen budget, in pagina's van 1.000 activiteiten: 10 voor 
 
 1. **Verkleinen.** De volgende poll leest een venster dat half zo lang is, vanaf hetzelfde beginpunt, en blijft halveren tot een venster volledig wordt gelezen, tot één minuut. De waarschuwing van de run zegt het: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Activiteiten die al uit het langere venster zijn geïmporteerd, worden als duplicaten overgeslagen.
 2. **Weer groeien.** Nadat een venster volledig is gelezen, gaat de cursor naar het einde ervan, en is het volgende venster weer twee keer zo lang, tot 24 uur.
-3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere activiteiten blijven binnenkomen. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
+3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere activiteiten blijven binnenkomen. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Dit tijdsbereik importeren** om terug te halen wat één run kan lezen.
 
 Het **Opvraaginterval (minuten)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll begint, niet waar zijn venster begint.
 
@@ -103,9 +103,9 @@ Het **Opvraaginterval (minuten)** wijzigen verandert hier niets aan: het bepaalt
 Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
 
 - **Nu uitvoeren** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
-- **Preview audit events** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
-- **Import this time range** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde activiteiten worden overgeslagen. Google bewaart 6 maanden auditlogboeken.
-- **Copy diagnostics** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
+- **Voorbeeld van auditgebeurtenissen** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
+- **Dit tijdsbereik importeren** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde activiteiten worden overgeslagen. Google bewaart 6 maanden auditlogboeken.
+- **Diagnose kopiëren** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
 
 ## Verbinding testen
 
@@ -119,7 +119,7 @@ Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met d
 | **Read Drive activity** | Alleen met de optie aan: het logboek van Drive kan worden gelezen. |
 | **Activities available to import** | Hoeveel aanmeldings- en beheeractiviteiten de afgelopen 24 uur bevatten, elk maximaal 1.000, dus `1000+` betekent meer. Geen enkele is een waarschuwing. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | De kant van OneUptime zelf: een proces neemt de jobs van de Worker-wachtrij af, de poll-job draait elke minuut en de opslag van beveiligingsgebeurtenissen antwoordt. |
-| **Scheduled polling** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
+| **Geplande opvraging** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
 
 Elk verzoek in een test heeft een deadline van 20 seconden. Een test importeert nooit iets en verplaatst nooit de cursor, en elke mislukte controle zegt wat je moet wijzigen.
 
@@ -129,7 +129,7 @@ De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met refe
 
 :::details Laatste fout zegt `token request failed`
 - `unauthorized_client`: het serviceaccount heeft geen domeinbrede delegatie voor het bereik. Voeg zijn **Unique ID** toe met `https://www.googleapis.com/auth/admin.reports.audit.readonly` onder **Manage domain-wide delegation**.
-- `invalid_grant` met `Invalid email or User ID`: het **Administrator email** is geen gebruiker van deze Google Workspace.
+- `invalid_grant` met `Invalid email or User ID`: het **E-mailadres van beheerder** is geen gebruiker van deze Google Workspace.
 - `invalid_grant` met `Invalid JWT Signature`: de sleutel is verwijderd of uitgeschakeld. Maak een nieuwe sleutel en sla die op met **Inloggegevens bijwerken**.
 :::
 

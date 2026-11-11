@@ -3,6 +3,7 @@ import { describe, expect, test } from "@jest/globals";
 import { generatedTexts } from "Common/Tests/Helpers/GeneratedTexts";
 import {
   getFramePackageName,
+  getRawStackTraceExcerpt,
   getStackTraceHeadline,
   isOutermostFirstStackTrace,
   orderFramesInnermostFirst,
@@ -153,6 +154,8 @@ describe("a stack trace built to be slow is shown quickly", () => {
         orderFramesInnermostFirst([1, 2, 3], stackTrace);
         getStackTraceHeadline(stackTrace);
         parseRawStackTraceLines(stackTrace);
+        // The Overview's Where it happened card, without structured frames.
+        getRawStackTraceExcerpt(stackTrace, 8);
       }),
     ).toBeLessThan(2000);
   });

@@ -30,7 +30,10 @@ import {
 import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
 import NotificationRuleSummary from "../NotificationRuleForm/NotificationRuleSummary";
 import {
+  getRuleTeamsNotJoined,
   getRuleWorkspacesNotAdded,
+  MATTERMOST_TEAM_NOT_JOINED_NOTE,
+  MattermostRuleTeams,
   NO_CONDITIONS_SENTENCES,
   NOTIFICATION_RULE_CONDITIONS_TITLES,
   RULE_THEN_TITLE,
@@ -145,10 +148,34 @@ export interface NotificationRuleThenProps {
   slackOrganization?: SlackRuleWorkspaces | undefined;
   // The Mattermost teams the project's bot is in, to name the one a rule picks.
   mattermostTeams?: Array<MattermostConnectionTeam> | undefined;
+  /*
+   * The same connection, with the teams the bot was taken out of, to say
+   * when the rule names one of those. Undefined for any other connection.
+   */
+  mattermostConnection?: MattermostRuleTeams | undefined;
   // For the example of the name of the channel the rule creates.
   numberPrefixes?: WorkspaceChannelNumberPrefixes | undefined;
   exampleRecordName?: string | undefined;
 }
+
+// What stops a rule from doing what it says, under what it does.
+const RuleWarning: FunctionComponent<{
+  dataTestId: string;
+  text: string;
+}> = (props: { dataTestId: string; text: string }): ReactElement => {
+  return (
+    <p
+      data-testid={props.dataTestId}
+      className="mt-2 flex items-start gap-2 text-sm text-amber-900"
+    >
+      <Icon
+        icon={IconProp.Alert}
+        className="mt-0.5 h-4 w-4 flex-none text-amber-600"
+      />
+      <span className="min-w-0 text-pretty">{props.text}</span>
+    </p>
+  );
+};
 
 export const NotificationRuleThen: FunctionComponent<
   NotificationRuleThenProps
@@ -168,6 +195,13 @@ export const NotificationRuleThen: FunctionComponent<
     props.slackOrganization?.organizationName ||
     translator.translateText("Slack") ||
     "Slack";
+
+  // The Mattermost teams the rule names that the project's bot is no longer in.
+  const notJoined: Array<MattermostConnectionTeam> = getRuleTeamsNotJoined({
+    rule: props.rule,
+    workspaceType: props.workspaceType,
+    connection: props.mattermostConnection,
+  });
 
   return (
     <div>
@@ -189,22 +223,26 @@ export const NotificationRuleThen: FunctionComponent<
       />
       {notAdded.map((workspace: SlackOrganizationWorkspace) => {
         return (
-          <p
+          <RuleWarning
             key={workspace.id}
-            data-testid="notification-rule-slack-workspace-not-added"
-            className="mt-2 flex items-start gap-2 text-sm text-amber-900"
-          >
-            <Icon
-              icon={IconProp.Alert}
-              className="mt-0.5 h-4 w-4 flex-none text-amber-600"
-            />
-            <span className="min-w-0 text-pretty">
-              {translator.translateTemplate(SLACK_WORKSPACE_NOT_ADDED_NOTE, {
-                workspace: workspace.name,
-                organization: organizationName,
-              })}
-            </span>
-          </p>
+            dataTestId="notification-rule-slack-workspace-not-added"
+            text={translator.translateTemplate(SLACK_WORKSPACE_NOT_ADDED_NOTE, {
+              workspace: workspace.name,
+              organization: organizationName,
+            })}
+          />
+        );
+      })}
+      {notJoined.map((team: MattermostConnectionTeam) => {
+        return (
+          <RuleWarning
+            key={team.id}
+            dataTestId="notification-rule-mattermost-team-not-joined"
+            text={translator.translateTemplate(
+              MATTERMOST_TEAM_NOT_JOINED_NOTE,
+              { team: team.displayName || team.name || team.id },
+            )}
+          />
         );
       })}
     </div>
@@ -312,6 +350,7 @@ export function getNotificationRuleCardColumns(
             slackWorkspaces={data.slackWorkspaces}
             slackOrganization={data.slackOrganization}
             mattermostTeams={data.mattermostTeams}
+            mattermostConnection={data.mattermostConnection}
             numberPrefixes={data.numberPrefixes}
             exampleRecordName={data.exampleRecordName}
           />

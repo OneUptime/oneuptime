@@ -14,7 +14,6 @@ import React, {
 } from "react";
 import GlossaryTerm from "../../../Types/Docs/GlossaryTerm";
 import IconProp from "../../../Types/Icon/IconProp";
-import UiAnalytics from "../../Utils/Analytics";
 import {
   GlossaryDefinition,
   LoadedGlossary,
@@ -78,9 +77,6 @@ export const DEFINED_TERM_UNAVAILABLE_TEXT: string = translationKey(
   "Read what this means in the glossary",
 );
 
-// What an opened definition is recorded as, once per term and page load.
-export const DEFINED_TERM_OPENED_EVENT: string = "glossary/definition-opened";
-
 /*
  * The word: its own font and colour, with a dotted line under it that
  * darkens on hover, and the focus ring every control has.
@@ -90,14 +86,6 @@ export const DEFINED_TERM_CLASS_NAME: string =
 
 export const DEFINED_TERM_POPOVER_CLASS_NAME: string =
   "w-72 max-w-full space-y-1.5 px-1 py-1 text-start text-sm focus:outline-none";
-
-// Terms whose definition this page load has already recorded as opened.
-const recordedTerms: Set<string> = new Set<string>();
-
-// Forgets which terms were recorded, for tests.
-export const clearRecordedDefinedTerms: () => void = (): void => {
-  recordedTerms.clear();
-};
 
 type ReadState =
   | { status: "idle" }
@@ -323,13 +311,6 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
           }
 
           startReading();
-
-          if (!recordedTerms.has(props.term)) {
-            recordedTerms.add(props.term);
-            UiAnalytics.capture(DEFINED_TERM_OPENED_EVENT, {
-              term: props.term,
-            });
-          }
 
           return undefined;
         }}

@@ -140,6 +140,7 @@ import {
   FIRST_STRONG_ISOLATE,
   POP_DIRECTIONAL_ISOLATE,
 } from "../../../Types/ReadingDirection";
+import { getNumberLocale } from "../../../Types/DateLanguage";
 import UserUtil from "../../../UI/Utils/User";
 import { formatDurationCompactInLanguage } from "../../../Utils/Slo/SloDuration";
 
@@ -147,6 +148,30 @@ import { formatDurationCompactInLanguage } from "../../../Utils/Slo/SloDuration"
 function setApart(value: string): string {
   return `${FIRST_STRONG_ISOLATE}${value}${POP_DIRECTIONAL_ISOLATE}`;
 }
+
+/*
+ * German writes a decimal comma and sets its percent sign apart with a
+ * no-break space (U+00A0): "99,9 %" (#6695).
+ */
+const NO_BREAK_SPACE: string = "\u00A0";
+
+function germanPercent(figure: string): string {
+  return `${figure}${NO_BREAK_SPACE}%`;
+}
+
+/*
+ * A percentage as the language's own Intl.NumberFormat writes it: Latin
+ * digits in Arabic (getNumberLocale), with the marks its pattern holds.
+ */
+function percentIn(language: string, value: number): string {
+  return new Intl.NumberFormat(getNumberLocale(language), {
+    style: "percent",
+    maximumFractionDigits: 3,
+  }).format(value / 100);
+}
+
+// A figure with an English decimal point: "99.9", "14.4".
+const DECIMAL_POINT: RegExp = /[0-9]\.[0-9]/;
 
 // A tile's text with its label taken off and its isolates' marks left in.
 function tileText(id: string): string {
@@ -241,11 +266,22 @@ describe("the SLO overview's configuration card in German and Arabic", () => {
     expect(screen.getByTestId("slo-configuration-window")).toHaveTextContent(
       worded(DE, "Rolling {{count}} days", { count: "30" }),
     );
-    expect(screen.getByTestId("slo-configuration-at-risk")).toHaveTextContent(
+    expect(
+      screen.getByTestId("slo-configuration-at-risk").textContent,
+    ).toContain(
       worded(DE, "When {{percent}} or less of the error budget is left", {
-        percent: "25%",
+        percent: germanPercent("25"),
       }),
     );
+    // The objective's figure too: "99,9 % Verfügbarkeit", never "99.9%".
+    expect(
+      screen.getByTestId("slo-configuration-objective").textContent,
+    ).toContain(
+      worded(DE, "{{percent}} uptime", { percent: germanPercent("99,9") }),
+    );
+    expect(
+      screen.getByTestId("slo-configuration-summary").textContent,
+    ).not.toMatch(DECIMAL_POINT);
     expect(
       screen.getByTestId("slo-configuration-downtime-statuses"),
     ).toHaveTextContent(worded(DE, "Every non-operational status"));
@@ -366,12 +402,14 @@ describe("the SLO overview's burn rate rules card in German", () => {
         DE,
         "At {{rate}} or faster over {{longWindow}} and {{shortWindow}}",
         {
-          rate: "14.4×",
+          rate: "14,4×",
           longWindow: formatDurationCompactInLanguage(3600, "de"),
           shortWindow: formatDurationCompactInLanguage(300, "de"),
         },
       ),
     );
+    // The rate in German figures, never with the English point.
+    expect(row.textContent).not.toMatch(DECIMAL_POINT);
     // The windows are German durations, never the English "1h" and "5m".
     expect(formatDurationCompactInLanguage(3600, "de")).not.toBe("1h");
     expect(row.textContent).not.toContain("or faster");
@@ -420,7 +458,7 @@ describe("the SLO overview's burn rate rules card in German", () => {
         DE,
         "At {{rate}} or faster over {{longWindow}} and {{shortWindow}}",
         {
-          rate: "14.4×",
+          rate: "14,4×",
           longWindow: formatDurationCompactInLanguage(3600, "de"),
           shortWindow: formatDurationCompactInLanguage(300, "de"),
         },
@@ -531,8 +569,8 @@ describe("the SLO overview's KPI strip in German and Arabic", () => {
 
     expect(tileText("slo-kpi-sli")).toContain(
       worded(DE, "{{delta}} pp above the {{target}} target", {
-        delta: "0.05",
-        target: "99.9%",
+        delta: "0,05",
+        target: germanPercent("99,9"),
       }),
     );
     expect(tileText("slo-kpi-budget")).toContain(
@@ -557,8 +595,8 @@ describe("the SLO overview's KPI strip in German and Arabic", () => {
 
     expect(tileText("slo-kpi-sli")).toContain(
       worded(DE, "{{delta}} pp below the {{target}} target", {
-        delta: "0.088",
-        target: "99.9%",
+        delta: "0,088",
+        target: germanPercent("99,9"),
       }),
     );
     expect(tileText("slo-kpi-runway")).toContain(
@@ -580,11 +618,42 @@ describe("the SLO overview's KPI strip in German and Arabic", () => {
 
     expect(tileText("slo-kpi-sli")).toContain(
       worded(DE, "Target {{target}} · not evaluated yet", {
-        target: "99.9%",
+        target: germanPercent("99,9"),
       }),
     );
     expectNoEnglishNotes();
   });
+
+  test.each([
+    ["a healthy", HEALTHY, ["99,95", "62,5", "0,5×"]],
+    ["a burning", BURNING, ["99,812", "15", "14,4×"]],
+    ["an overspent", OVERSPENT, ["99,5", "3×"]],
+    ["a not-yet-evaluated", {}, ["99,9"]],
+  ])(
+    "German: %s SLO's strip writes no figure with an English decimal point",
+    (
+      _name: string,
+      overrides: Partial<Record<keyof ServiceLevelObjective, unknown>>,
+      figures: Array<string>,
+    ) => {
+      renderStrip(overrides);
+
+      const text: string = KPI_TILES.map(tileText).join("\n");
+
+      // "99,812 %", "14,4×" and "0,088": the figures German writes (#6695).
+      expect(text).not.toMatch(DECIMAL_POINT);
+
+      for (const figure of figures) {
+        expect({ figure, shown: text.includes(figure) }).toEqual({
+          figure,
+          shown: true,
+        });
+      }
+
+      // Each percentage has the no-break space German puts before its sign.
+      expect(text).not.toMatch(/[0-9]%/);
+    },
+  );
 
   test("German: an overspent budget says so, with how far over", () => {
     renderStrip(OVERSPENT);
@@ -641,7 +710,7 @@ describe("the SLO overview's KPI strip in German and Arabic", () => {
     expect(tileText("slo-kpi-sli")).toContain(
       worded(AR, "{{delta}} pp below the {{target}} target", {
         delta: setApart("0.088"),
-        target: setApart("99.9%"),
+        target: setApart(percentIn("ar", 99.9)),
       }),
     );
     expect(tileText("slo-kpi-budget")).toContain(
@@ -676,9 +745,11 @@ describe("the SLO overview's KPI strip in German and Arabic", () => {
 
     expect(tileText("slo-kpi-sli")).toContain(
       worded(AR, "Target {{target}} · not evaluated yet", {
-        target: setApart("99.9%"),
+        target: setApart(percentIn("ar", 99.9)),
       }),
     );
+    // Arabic writes Latin digits, as the rest of OneUptime does.
+    expect(tileText("slo-kpi-sli")).not.toMatch(/[\u0660-\u0669]/);
   });
 });
 

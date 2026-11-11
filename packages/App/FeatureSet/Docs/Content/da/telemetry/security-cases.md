@@ -49,7 +49,7 @@ Hver af disse rettigheder kan også tildeles for sig, fra at oprette en sag til 
 | --- | --- | --- |
 | Detektionsregler | En regel matcher | **Åbn en sag ved match** i regelens trin **Ved match** |
 | Trusselsintelligens | En begivenhed nævner en kendt indikator | **Åbn en sag ved match** i feedets trin **Ved match** |
-| Forbundne produkter | En advarsel fra selve produktet importeres på eller over forbindelsens tærskel | **Open Cases From** sat til **Aldrig** i forbindelsens trin **Hentning** |
+| Forbundne produkter | En advarsel fra selve produktet importeres på eller over forbindelsens tærskel | **Åbn sager fra** sat til **Aldrig** i forbindelsens trin **Hentning** |
 | Sikkerhedsprodukter i dine logs | En trussel, som en firewall, et IDS eller et endpointprodukt skriver i dine logs, ligger på eller over tærsklen for Dine logs | **Åbn sager fra** sat til **Aldrig** på **Dine logs** |
 | Entitetsrisiko | En brugers, værts eller adresses risiko når projektets tærskel | **Risikosager** under **Indstillinger → Risikoscoring** |
 | Personer | Nogen åbner en fra **Sikkerhedssager** eller med **Åbn sag** i en begivenheds panel | Ingen |
