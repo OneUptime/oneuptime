@@ -155,20 +155,20 @@ På OneUptime Cloud kræver det planen **Growth** at tilføje eller ændre nogen
 
 Som standard kan en statusside nås på forhåndsvisnings-URL'en på dens skærm **Oversigt**. For at lægge den på dit eget værtsnavn går du til **Statussider → din side → Branding → Brugerdefinerede domæner** (`{id}/domains`).
 
-Kortet **Brugerdefinerede domæner** siger, hvad du skal gøre: peg hvert domænes CNAME-post mod din installations CNAME-post til statussider, så udsteder OneUptime domænets SSL-certifikat og fornyer det for dig. Uden noget sat op siger tabellen **Ingen tilpassede domæner fundet** med **Opret Statussidedomæne** nedenunder. Tabellen har to kolonner, **Domæne** og **Status**, og filtre for **Domæne**, **CNAME gyldig** og **SSL provisioneret**.
+Kortet **Brugerdefinerede domæner** siger, hvad du skal gøre: peg hvert domænes CNAME-post mod din installations CNAME-post til statussider, så udsteder OneUptime domænets SSL-certifikat og fornyer det for dig. Uden noget sat op siger tabellen **Ingen tilpassede domæner fundet** med **Tilføj brugerdefineret domæne** nedenunder. Tabellen har to kolonner, **Domæne** og **Status**, og filtre for **Domæne**, **CNAME gyldig** og **SSL provisioneret**.
 
-At lægge siden på dit domæne tager tre trin, og kun de to første er dine:
+At lægge siden på dit domæne tager tre trin, alle på denne side, og kun de to første er dine:
 
-1. **Tilføj domænet**: et underdomæne og et af dine bekræftede domæner.
-2. **Tilføj dets CNAME-post** hos din DNS-udbyder. Dialogen **DNS-opsætning** viser posten, så snart du tilføjer domænet.
-3. **Det gratis SSL-certifikat udstedes automatisk**, så snart posten er fundet. Der er ingen knap at trykke på.
+1. **Tilføj domænet**: skriv den adresse, folk skal åbne, såsom `status.yourcompany.com`.
+2. **Tilføj dets DNS-poster** hos din DNS-udbyder. Dialogen **DNS-opsætning** viser dem: en CNAME-post for adressen og, første gang projektet bruger et domæne, en TXT-post, der viser, at projektet ejer det.
+3. **Det gratis SSL-certifikat udstedes automatisk**, så snart posterne er fundet. Der er ingen knap at trykke på.
 
 ```mermaid title="Fra et nyt brugerdefineret domæne til HTTPS"
 flowchart TB
-    A["Tilføj domænet"] --> B["DNS-opsætning viser CNAME-posten"]
-    B --> C["Tilføj posten hos din DNS-udbyder"]
-    C --> D{"Post fundet?"}
-    D -->|"Ikke endnu"| E["Tjek nu, eller tjekket hvert 15. minut"]
+    A["Skriv adressen"] --> B["DNS-opsætning viser posterne"]
+    B --> C["Tilføj dem hos din DNS-udbyder"]
+    C --> D{"Poster fundet?"}
+    D -->|"Ikke endnu"| E["Tjek nu siger, hvad det fandt"]
     E --> D
     D -->|"Ja"| F["Domæne bekræftet"]
     F --> G["Gratis certifikat bestilt hos Let's Encrypt"]
@@ -177,8 +177,8 @@ flowchart TB
 
 ### Før du starter
 
-- **Det overordnede domæne skal være bekræftet.** Rullelisten **Domæne** viser kun de domæner, der er bekræftet under **Projektindstillinger → Avanceret → Domæner**, hvor du med en TXT-post beviser, at du ejer et domæne. Linket **Tilføj et domæne** ved siden af feltet åbner den side i en ny fane.
-- **Din installation skal have en CNAME-post til statussider.** OneUptime Cloud har en. På en selvhostet installation sætter du den til et værtsnavn, der peger på din OneUptime-server (en A-post), og sørger for, at serveren svarer på port 80, hvor Let's Encrypt tjekker den. Uden den siger kortet og dialogen **DNS-opsætning** "Custom Domains not enabled for this OneUptime installation" i stedet for at vise en post.
+- **Din installation skal have en CNAME-post til statussider.** OneUptime Cloud har en. På en selvhostet installation sætter du den til et værtsnavn, der peger på din OneUptime-server (en A-post), og sørger for, at serveren svarer på port 80 og 443: besøgende og Let's Encrypt når hvert brugerdefineret domæne dér. Uden den siger kortet og dialogen **DNS-opsætning** "Custom Domains not enabled for this OneUptime installation" i stedet for at vise en post.
+- **En selvhostet server tjekkes først.** **Tilføj brugerdefineret domæne** og **DNS-opsætning** siger, hvad serveren stadig mangler, før et brugerdefineret domæne kan virke, under "Denne server er endnu ikke klar til brugerdefinerede domæner": om indstillingen for CNAME-posten er sat, om dens værtsnavn kan slås op, om det når denne OneUptime-installation på port 80 og tager imod forbindelser på port 443, og om serveren udsteder gratis certifikater. Hver linje siger, hvad der skal ændres, og hvor. Tjekkene kører fra selve serveren, så folk uden for dit netværk skal kunne nå værtsnavnet på de samme porte.
 
 :::tabs
 @tab Docker Compose
@@ -195,48 +195,52 @@ statusPage:
 ### Tilføj domænet
 
 :::steps
-#### Åbn Opret Statusside Domæne
+#### Åbn Tilføj brugerdefineret domæne
 
-Klik på **Opret Statussidedomæne** under **Brugerdefinerede domæner**. Dialogen består af én side.
+Klik på **Tilføj brugerdefineret domæne** under **Brugerdefinerede domæner**. Dialogen beder om én ting.
 
-#### Angiv underdomænet
+#### Skriv adressen
 
-I **Underdomæne** (pladsholder `status (leave blank for root)`) angiver du kun etiketten, såsom `status`, ikke hele værtsnavnet. Lad det stå tomt, eller angiv `@`, for at bruge roddomænet (apex).
-
-#### Vælg domænet
-
-I **Domæne** (pladsholder `Select domain`) vælger du et af dine bekræftede domæner. Et domæne, du ikke har bekræftet, vises ikke, fordi det ville blive afvist.
+I **Domæne** (pladsholder `status.example.com`) skriver du hele den adresse, folk skal åbne, såsom `status.yourcompany.com`. Et indsat link virker også: kun dets værtsnavn beholdes. For at bruge roden af et domæne skriver du selve domænet.
 
 #### Behold det gratis certifikat, eller upload dit eget
 
 **Flere felter** er foldet sammen, og dets overskrift siger, hvilket certifikat domænet vil bruge: "Vi udsteder et gratis SSL-certifikat til dette domæne og fornyer det automatisk." Åbn det kun for at bruge dit eget certifikat: slå **Upload brugerdefineret certifikat** til, og indsæt derefter **Certifikat** og **Privat certifikatnøgle** i PEM-format. Begge er så påkrævede.
 
-#### Opret domænet
+#### Fortsæt
 
-Klik på **Opret Statussidedomæne**. Dialogen lukker, og det nye domænes **DNS-opsætning** åbner med den post, der skal tilføjes.
+Klik på **Fortsæt**. Hvis projektet har bekræftet det domæne, adressen ligger på, tilføjes domænet, og dets **DNS-opsætning** åbner med den CNAME-post, der skal tilføjes. Hvis ikke, tilføjer OneUptime det domæne under **Projektindstillinger → Avanceret → Domæner**, og **DNS-opsætning** åbner med begge poster, så du bekræfter domænet lige dér uden at forlade siden.
 :::
 
-Et domænes fulde navn ligger fast, når du tilføjer det, så **Rediger** ændrer kun dets certifikat. For at bruge et andet underdomæne tilføjer du det domæne og sletter det gamle. Et navn, som et dashboard eller en formular allerede bruger, i et hvilket som helst projekt, afvises: ét domæne viser én statusside, ét dashboard eller én formular.
+Et domænes fulde navn ligger fast, når du tilføjer det, så **Rediger** ændrer kun dets certifikat. For at bruge en anden adresse tilføjer du den og sletter den gamle. Et navn, som et dashboard eller en formular allerede bruger, i et hvilket som helst projekt, afvises: ét domæne viser én statusside, ét dashboard eller én formular.
+
+At tilføje et domæne til projektet kræver tilladelse til at oprette projektdomæner (**Create Project Domain**, eller Project Owner eller Project Admin), og at bekræfte det kræver **Edit Project Domain**. Uden dem siger dialogen, hvem der kan gøre det.
 
 ### DNS-opsætning og bekræftelse
 
-Dialogen **DNS-opsætning** viser den post, der skal tilføjes hos din DNS-udbyder, ét felt pr. række, hvert med en kopiknap:
+Dialogen **DNS-opsætning** viser hver post, der stadig mangler hos din DNS-udbyder, ét felt pr. række, hvert med en kopiknap:
 
-| Felt | Hvad du skal angive |
-| ----- | ------------- |
-| **Type** | `CNAME` |
-| **Navn** | Det fulde domæne, du tilføjede, for eksempel `status.yourcompany.com` |
-| **Værdi** | Din installations CNAME-post til statussider |
+| Post | **Type** | **Navn** | **Værdi** |
+| ------ | -------- | -------- | --------- |
+| Viser, at projektet ejer domænet, indtil det er bekræftet | `TXT` | Domænet, for eksempel `yourcompany.com` | Dets bekræftelsestekst, `oneuptime-verification-…` |
+| Peger adressen mod OneUptime | `CNAME` | Den fulde adresse, for eksempel `status.yourcompany.com` | Din installations CNAME-post til statussider |
+
+Du tilføjer TXT-posten én gang pr. domæne: hver senere adresse på det behøver kun sin CNAME-post. De to ligger aldrig på samme navn, fordi et navn med en CNAME-post ikke kan have nogen anden post.
 
 > [!NOTE]
 > For et roddomæne, uden underdomæne, tilføjer dialogen en bemærkning: mange DNS-udbydere tillader ikke en CNAME-post der. Brug i stedet din udbyders ALIAS-, ANAME- eller CNAME-flattening-post med samme værdi.
 
-OneUptime tjekker hvert ubekræftet domæne hvert 15. minut og bekræfter dit, så snart dets post er live, uanset om du vender tilbage eller ej. For at tjekke med det samme klikker du på **Tjek nu**:
+Klik på **Tjek nu** for at slå posterne op med det samme. Den tjekker TXT-posten først, og så snart den er fundet, tilføjer den domænet til statussiden og tjekker dets CNAME-post. Hver post viser derefter sin egen status, **Fundet**, **Forkert værdi**, **Ikke fundet endnu** eller **Kunne ikke tjekke**, og under den, hvad OneUptime slog op, og hvad der kom tilbage, med hvad der skal ændres:
 
-- **Posten er ikke fundet endnu.** Dialogen forbliver åben og siger, hvilken post den ledte efter. En ny DNS-post kan være et stykke tid om at dukke op: klik på **Tjek nu** igen senere, eller overlad det til tjekket hvert 15. minut.
-- **Posten er fundet.** Dialogen siger "Din CNAME-post er bekræftet." og hvad der derefter sker med certifikatet. Det gratis certifikat bestilles i det øjeblik.
+- "Vi slog CNAME-posten for status.yourcompany.com op og fik intet." Posten er der ikke endnu, eller den er ikke synlig endnu: en ny post kan være et stykke tid om at dukke op.
+- "Vi slog CNAME-posten for status.yourcompany.com op og fik other.example.net, men forventede oneuptime.yourcompany.com." Posten peger et andet sted hen: ret dens værdi.
+- "Vi slog CNAME-posten for status.yourcompany.com op og fik intet, men navnet svarer med adressen 203.0.113.10." Navnet har en A-post, eller dets DNS-udbyder proxyer eller flader det ud (det gør Cloudflares orange sky), hvilket skjuler CNAME-posten for alle: erstat A-posten, eller sæt navnet til kun DNS.
 
-Indtil et domæne er bekræftet, og dets certifikat er på plads, har dets række handlingen **DNS-opsætning**, der åbner den samme dialog. På et bekræftet domæne, hvis certifikatbestilling bliver ved med at mislykkes, eller hvis certifikat er udløbet, bestiller **Tjek nu** der igen og viser, hvorfor den sidste bestilling mislykkedes. Den bestiller højst én gang pr. domæne hvert 15. minut; ind imellem bliver OneUptime selv ved med at prøve igen.
+OneUptime følger hele CNAME-kæden, så en post, der peger på et af dine egne navne, som igen peger på din installations post, tæller med. Det gør et navn, hvis forespørgsler når OneUptime, også, selv når dets DNS-udbyder skjuler CNAME-posten.
+
+Så snart CNAME-posten er fundet, siger dialogen "Din CNAME-post er bekræftet." og hvad der derefter sker med certifikatet. Det gratis certifikat bestilles i det øjeblik. Hvis forespørgsler til adressen stadig ikke når OneUptime, for eksempel fordi en proxy foran en selvhostet server ikke sender adressen videre, siger dialogen det: certifikatet kan ikke udstedes, før de gør.
+
+OneUptime tjekker CNAME-posten for hvert ubekræftet domæne hvert 15. minut og bekræfter dit, så snart den er live, uanset om du vender tilbage eller ej. Indtil et domæne er bekræftet, og dets certifikat er på plads, har dets række handlingen **DNS-opsætning**, der åbner den samme dialog. På et bekræftet domæne, hvis certifikatbestilling bliver ved med at mislykkes, eller hvis certifikat er udløbet, bestiller **Tjek nu** der igen og viser, hvorfor den sidste bestilling mislykkedes. Den bestiller højst én gang pr. domæne hvert 15. minut; ind imellem bliver OneUptime selv ved med at prøve igen.
 
 ### SSL-certifikater
 
@@ -285,7 +289,7 @@ Kolonnen **Status** siger, hvor langt hvert domæne er på vej mod HTTPS, i en a
 | Bekræftet. Bruger din egen proxys HTTPS. | På en selvhostet installation uden en Let's Encrypt-kontonøgle er posten bekræftet, og domænet er live. Dets HTTPS klarer din egen proxy, medmindre du uploader et certifikat. |
 
 :::details Et domæne bliver stående på "Venter på DNS" længe efter, at jeg har tilføjet posten
-Tjek, at postens navn er det fulde domæne, såsom `status.yourcompany.com`, og at dens værdi matcher din installations CNAME-post præcist. På et roddomæne bruger du en ALIAS-, ANAME- eller flattened CNAME-post. Klik derefter på **Tjek nu** i **DNS-opsætning**.
+Åbn **DNS-opsætning**, og klik på **Tjek nu**: under posten står, hvad OneUptime slog op, og hvad der kom tilbage. Tjek, at postens navn er det fulde domæne, såsom `status.yourcompany.com`, og at dens værdi matcher din installations CNAME-post. Hvis der står, at navnet svarer med en adresse, har navnet en A-post eller er proxyet af sin DNS-udbyder: erstat A-posten, eller sæt navnet til kun DNS. På et roddomæne bruger du en ALIAS-, ANAME- eller flattened CNAME-post.
 :::
 
 :::details Kolonnen Status siger, at den ikke kunne udstede et gratis certifikat
@@ -298,7 +302,7 @@ Se efter en CAA-post på dit domæne, der udelader `letsencrypt.org`, og tjek p�
 
 Den, der kun kan læse domænet, såsom en Viewer eller en Status Page Viewer, ser stadig kolonnen **Status** og den post, der skal tilføjes, i **DNS-opsætning**. For dem er **Tjek nu** og **Reissue SSL** låst og siger, hvilken tilladelse der kræves. OneUptime bliver under alle omstændigheder selv ved med at tjekke hvert domæne og bestille dets certifikat.
 
-Det samme gælder API-nøgler. En nøgle, der kun kan læse statussidedomæner, kan ikke kalde `verify-cname`, `order-ssl` eller `reissue-ssl` på `/status-page-domain`. Giv den **Read Status Page Domain** og **Edit Status Page Domain**, hvis den har brug for det.
+Det samme gælder API-nøgler. En nøgle, der kun kan læse statussidedomæner, kan ikke kalde `verify-cname`, `check-dns`, `order-ssl` eller `reissue-ssl` på `/status-page-domain`. Giv den **Read Status Page Domain** og **Edit Status Page Domain**, hvis den har brug for det. Når posten ikke er fundet, afviser `verify-cname` med, hvad den slog op, og hvad der kom tilbage, med de samme ord, som **DNS-opsætning** viser; `check-dns` svarer for hver post, den slog op, uanset udfaldet.
 
 ## Powered by OneUptime
 

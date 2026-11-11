@@ -313,7 +313,10 @@ const AddCustomDomainModal: FunctionComponent<ComponentProps> = (
       parseCustomDomainAddress(values.address);
 
     if (!parsed) {
-      setError(translator.translateText(CustomDomainAddressCopy.invalidAddress));
+      setError(
+        translator.translateText(CustomDomainAddressCopy.invalidAddress) ||
+          CustomDomainAddressCopy.invalidAddress,
+      );
       return;
     }
 

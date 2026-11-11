@@ -86,29 +86,28 @@ La carte s'intitule **Domaines personnalisés** et dit quoi faire : faites point
 
 Mettre le tableau de bord sur votre propre domaine se fait en trois étapes, et seules les deux premières vous reviennent :
 
-1. **Ajouter le domaine** : un sous-domaine et l'un de vos domaines vérifiés.
-2. **Ajouter son enregistrement CNAME** chez votre fournisseur DNS. La boîte de dialogue **Configuration DNS** s'ouvre avec l'enregistrement dès que vous ajoutez le domaine.
+1. **Ajouter le domaine** : saisissez l'adresse que les gens ouvriront, comme `dashboard.acme.com`.
+2. **Ajouter ses enregistrements DNS** chez votre fournisseur DNS. La boîte de dialogue **Configuration DNS** les affiche : un enregistrement CNAME pour l'adresse et, la première fois que le projet utilise un domaine, un enregistrement TXT qui montre que le projet en est propriétaire.
 3. **Le certificat SSL gratuit est émis automatiquement** dès que l'enregistrement est trouvé. Il n'y a aucun bouton à presser.
 
 Une fois vérifié, le tableau de bord est accessible à la fois sur votre domaine personnalisé et sur l'URL d'origine.
 
 ### Ajouter le domaine
 
-Cliquez sur **Créer : Domaine du tableau de bord**. La boîte de dialogue tient sur une page :
+Cliquez sur **Ajouter un domaine personnalisé**. La boîte de dialogue ne demande qu'une chose :
 
-- **Sous-domaine** : le libellé seul, avec l'exemple `dashboard (leave blank for root)`. Saisissez seulement `dashboard`, pas le nom d'hôte complet. Laissez-le vide ou saisissez `@` pour utiliser le domaine racine (apex).
-- **Domaine** : les domaines vérifiés sous **Paramètres du projet → Avancé → Domaines**, où vous prouvez qu'un domaine vous appartient avec un enregistrement TXT. Un domaine que vous n'avez pas vérifié n'est pas listé, car il serait refusé. Le lien **Ajouter un domaine** à côté du champ ouvre cette page dans un nouvel onglet.
+- **Domaine** : l'adresse complète que les gens ouvriront, avec l'exemple `dashboard.example.com`. Un lien collé fonctionne aussi : seul son nom d'hôte est conservé. Pour utiliser la racine d'un domaine, saisissez le domaine lui-même.
 - **Plus de champs** : replié. Tant qu'il est replié, son en-tête indique quel certificat le domaine utilisera : « Nous émettons un certificat SSL gratuit pour ce domaine et le renouvelons automatiquement. » Ouvrez-le seulement pour utiliser votre propre certificat (voir plus bas).
 
-Cliquez sur **Créer : Domaine du tableau de bord**. La boîte de dialogue se ferme et la **Configuration DNS** du nouveau domaine s'ouvre. Le nom complet d'un domaine est fixé quand vous l'ajoutez : **Modifier** ne change donc que son certificat. Pour utiliser un autre sous-domaine, ajoutez ce domaine et supprimez l'ancien.
+Cliquez sur **Continuer**. Si le projet a vérifié le domaine sur lequel se trouve l'adresse, sous **Paramètres du projet → Avancé → Domaines**, le domaine est ajouté et sa **Configuration DNS** s'ouvre. Sinon, OneUptime ajoute ce domaine au projet et la **Configuration DNS** s'ouvre avec aussi son enregistrement TXT, pour que vous le vérifiiez sur place. Le nom complet d'un domaine est fixé quand vous l'ajoutez : **Modifier** ne change donc que son certificat. Pour utiliser une autre adresse, ajoutez-la et supprimez l'ancienne.
 
 ### Configuration DNS et Vérifier maintenant
 
-La boîte de dialogue **Configuration DNS** affiche l'enregistrement à ajouter chez votre fournisseur DNS, un champ par ligne, chacun avec un bouton de copie : **Type** `CNAME`, **Nom** le domaine complet que vous avez ajouté, et **Valeur** l'enregistrement CNAME de tableau de bord de votre installation. Pour un domaine racine, sans sous-domaine, la boîte de dialogue ajoute une note : de nombreux fournisseurs DNS n'y autorisent pas d'enregistrement CNAME, utilisez donc plutôt l'enregistrement ALIAS, ANAME ou d'aplatissement CNAME de votre fournisseur, avec la même valeur.
+La boîte de dialogue **Configuration DNS** affiche chaque enregistrement à ajouter chez votre fournisseur DNS, un champ par ligne, chacun avec un bouton de copie : **Type** `CNAME`, **Nom** le domaine complet que vous avez ajouté, et **Valeur** l'enregistrement CNAME de tableau de bord de votre installation, après l'enregistrement TXT du domaine tant que le projet ne l'a pas vérifié. Pour un domaine racine, sans sous-domaine, la boîte de dialogue ajoute une note : de nombreux fournisseurs DNS n'y autorisent pas d'enregistrement CNAME, utilisez donc plutôt l'enregistrement ALIAS, ANAME ou d'aplatissement CNAME de votre fournisseur, avec la même valeur.
 
 OneUptime vérifie chaque domaine non vérifié toutes les 15 minutes, et quand la vérification trouve l'enregistrement, elle commande le certificat Let's Encrypt gratuit du domaine dans la même vérification, que vous reveniez ou non. Pour vérifier tout de suite, cliquez sur **Vérifier maintenant** :
 
-- **L'enregistrement n'est pas encore trouvé.** La boîte de dialogue reste ouverte et indique quel enregistrement elle a cherché. Un nouvel enregistrement DNS peut mettre un moment à apparaître. Cliquez de nouveau sur **Vérifier maintenant** plus tard, ou laissez faire la vérification toutes les 15 minutes.
+- **L'enregistrement n'est pas encore trouvé.** La boîte de dialogue reste ouverte et, sous chaque enregistrement, indique ce que OneUptime a recherché et ce qui est revenu : rien, une autre valeur, ou une adresse là où un enregistrement CNAME était attendu. Un nouvel enregistrement DNS peut mettre un moment à apparaître. Cliquez de nouveau sur **Vérifier maintenant** plus tard, ou laissez faire la vérification toutes les 15 minutes.
 - **L'enregistrement est trouvé.** La boîte de dialogue indique « Votre enregistrement CNAME est vérifié. » et ce qu'il advient ensuite du certificat. Le certificat gratuit est commandé à ce moment-là, et il est généralement actif en moins de 15 minutes.
 
 Tant qu'un domaine n'est pas vérifié et que son certificat n'est pas en place, sa ligne propose une action **Configuration DNS** qui ouvre la même boîte de dialogue. Sur un domaine vérifié dont la commande de certificat échoue sans cesse, ou dont le certificat a expiré, **Vérifier maintenant** y recommande et montre pourquoi la dernière commande a échoué. Il commande au plus une fois par domaine toutes les 15 minutes ; entre-temps, OneUptime continue d'essayer de lui-même, en attendant un peu plus après chaque échec consécutif. Le renouvellement est automatique, bien avant l'expiration du certificat, et une vérification DNS échouée ne retire jamais un certificat encore valide.

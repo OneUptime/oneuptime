@@ -155,20 +155,20 @@ In OneUptime Cloud braucht das Hinzufügen oder Ändern eines davon den Tarif **
 
 Standardmäßig ist eine Statusseite unter der Vorschau-URL auf ihrem Bildschirm **Übersicht** erreichbar. Um sie unter Ihren eigenen Hostnamen zu bringen, gehen Sie zu **Statusseiten → Ihre Seite → Branding → Benutzerdefinierte Domains** (`{id}/domains`).
 
-Die Karte **Benutzerdefinierte Domains** sagt, was zu tun ist: Lassen Sie den CNAME-Eintrag jeder Domain auf den CNAME-Eintrag für Statusseiten Ihrer Installation zeigen, und OneUptime stellt das SSL-Zertifikat der Domain aus und erneuert es für Sie. Ist nichts eingerichtet, sagt die Tabelle **Keine benutzerdefinierten Domains gefunden**, mit **Statusseite Domain erstellen** darunter. Die Tabelle hat zwei Spalten, **Domäne** und **Status**, und Filter für **Domäne**, **CNAME gültig** und **SSL bereitgestellt**.
+Die Karte **Benutzerdefinierte Domains** sagt, was zu tun ist: Lassen Sie den CNAME-Eintrag jeder Domain auf den CNAME-Eintrag für Statusseiten Ihrer Installation zeigen, und OneUptime stellt das SSL-Zertifikat der Domain aus und erneuert es für Sie. Ist nichts eingerichtet, sagt die Tabelle **Keine benutzerdefinierten Domains gefunden**, mit **Benutzerdefinierte Domain hinzufügen** darunter. Die Tabelle hat zwei Spalten, **Domäne** und **Status**, und Filter für **Domäne**, **CNAME gültig** und **SSL bereitgestellt**.
 
-Die Seite auf Ihre Domain zu bringen dauert drei Schritte, und nur die ersten beiden sind Ihre:
+Die Seite auf Ihre Domain zu bringen dauert drei Schritte, alle auf dieser Seite, und nur die ersten beiden sind Ihre:
 
-1. **Die Domain hinzufügen**: eine Subdomain und eine Ihrer verifizierten Domains.
-2. **Ihren CNAME-Eintrag hinzufügen** bei Ihrem DNS-Anbieter. Der Dialog **DNS-Einrichtung** zeigt den Eintrag, sobald Sie die Domain hinzufügen.
-3. **Das kostenlose SSL-Zertifikat wird automatisch ausgestellt**, sobald der Eintrag gefunden ist. Es gibt keine Schaltfläche dafür.
+1. **Die Domain hinzufügen**: Geben Sie die Adresse ein, die Leute öffnen werden, etwa `status.yourcompany.com`.
+2. **Ihre DNS-Einträge hinzufügen** bei Ihrem DNS-Anbieter. Der Dialog **DNS-Einrichtung** zeigt sie: einen CNAME-Eintrag für die Adresse und, wenn das Projekt eine Domain zum ersten Mal verwendet, einen TXT-Eintrag, der zeigt, dass die Domain dem Projekt gehört.
+3. **Das kostenlose SSL-Zertifikat wird automatisch ausgestellt**, sobald die Einträge gefunden sind. Es gibt keine Schaltfläche dafür.
 
 ```mermaid title="Von einer neuen eigenen Domain zu HTTPS"
 flowchart TB
-    A["Die Domain hinzufügen"] --> B["DNS-Einrichtung zeigt den CNAME-Eintrag"]
-    B --> C["Den Eintrag beim DNS-Anbieter hinzufügen"]
-    C --> D{"Eintrag gefunden?"}
-    D -->|"Noch nicht"| E["Jetzt prüfen, oder die Prüfung alle 15 Minuten"]
+    A["Die Adresse eingeben"] --> B["DNS-Einrichtung zeigt die Einträge"]
+    B --> C["Die Einträge beim DNS-Anbieter hinzufügen"]
+    C --> D{"Einträge gefunden?"}
+    D -->|"Noch nicht"| E["Jetzt prüfen sagt, was es gefunden hat"]
     E --> D
     D -->|"Ja"| F["Domain verifiziert"]
     F --> G["Kostenloses Zertifikat bei Let's Encrypt bestellt"]
@@ -177,8 +177,8 @@ flowchart TB
 
 ### Bevor Sie anfangen
 
-- **Die übergeordnete Domain muss verifiziert sein.** Die Auswahlliste **Domäne** führt nur die Domains, die unter **Projekteinstellungen → Erweitert → Domänen** verifiziert sind, wo Sie mit einem TXT-Eintrag beweisen, dass eine Domain Ihnen gehört. Der Link **Domain hinzufügen** neben dem Feld öffnet diese Seite in einem neuen Tab.
-- **Ihre Installation braucht einen CNAME-Eintrag für Statusseiten.** OneUptime Cloud hat einen. Setzen Sie ihn bei einer selbst gehosteten Installation auf einen Hostnamen, der auf Ihren OneUptime-Server zeigt (einen A-Eintrag), und sorgen Sie dafür, dass der Server auf Port 80 antwortet, wo Let's Encrypt ihn prüft. Ohne ihn sagen die Karte und der Dialog **DNS-Einrichtung** „Custom Domains not enabled for this OneUptime installation“, statt einen Eintrag zu zeigen.
+- **Ihre Installation braucht einen CNAME-Eintrag für Statusseiten.** OneUptime Cloud hat einen. Setzen Sie ihn bei einer selbst gehosteten Installation auf einen Hostnamen, der auf Ihren OneUptime-Server zeigt (einen A-Eintrag), und sorgen Sie dafür, dass der Server auf den Ports 80 und 443 antwortet: Dort erreichen Besucher und Let's Encrypt jede benutzerdefinierte Domain. Ohne ihn sagen die Karte und der Dialog **DNS-Einrichtung** „Custom Domains not enabled for this OneUptime installation“, statt einen Eintrag zu zeigen.
+- **Ein selbst gehosteter Server wird zuerst geprüft.** **Benutzerdefinierte Domain hinzufügen** und **DNS-Einrichtung** sagen unter „This server is not ready for custom domains yet“, was der Server noch braucht, bevor irgendeine benutzerdefinierte Domain funktionieren kann: ob die Einstellung für den CNAME-Eintrag gesetzt ist, ob ihr Hostname aufgelöst wird, ob er diese OneUptime-Installation auf Port 80 erreicht und Verbindungen auf Port 443 annimmt, und ob der Server kostenlose Zertifikate ausstellt. Jede Zeile sagt, was wo zu ändern ist. Die Prüfungen laufen auf dem Server selbst, daher müssen Leute außerhalb Ihres Netzwerks den Hostnamen über dieselben Ports erreichen.
 
 :::tabs
 @tab Docker Compose
@@ -195,48 +195,52 @@ statusPage:
 ### Die Domain hinzufügen
 
 :::steps
-#### Statusseite Domain erstellen öffnen
+#### Benutzerdefinierte Domain hinzufügen öffnen
 
-Klicken Sie unter **Benutzerdefinierte Domains** auf **Statusseite Domain erstellen**. Der Dialog ist eine Seite.
+Klicken Sie unter **Benutzerdefinierte Domains** auf **Benutzerdefinierte Domain hinzufügen**. Der Dialog fragt nach einer einzigen Sache.
 
-#### Die Subdomain eingeben
+#### Die Adresse eingeben
 
-Geben Sie in **Subdomain** (Platzhalter `status (leave blank for root)`) nur die Bezeichnung ein, etwa `status`, nicht den ganzen Hostnamen. Lassen Sie es leer oder geben Sie `@` ein, um die Stammdomain (Apex) zu verwenden.
-
-#### Die Domain wählen
-
-Wählen Sie in **Domäne** (Platzhalter `Select domain`) eine Ihrer verifizierten Domains. Eine Domain, die Sie nicht verifiziert haben, wird nicht aufgeführt, weil sie abgelehnt würde.
+Geben Sie in **Domäne** (Platzhalter `status.example.com`) die ganze Adresse ein, die Leute öffnen werden, etwa `status.yourcompany.com`. Ein eingefügter Link funktioniert auch: Nur sein Hostname wird übernommen. Um die Stammdomain zu verwenden, geben Sie die Domain selbst ein.
 
 #### Das kostenlose Zertifikat behalten oder ein eigenes hochladen
 
 **Weitere Felder** ist eingeklappt, und sein Kopf sagt, welches Zertifikat die Domain verwenden wird: „Wir stellen ein kostenloses SSL-Zertifikat für diese Domain aus und erneuern es automatisch.“ Öffnen Sie es nur, um ein eigenes Zertifikat zu verwenden: Schalten Sie **Benutzerdefiniertes Zertifikat hochladen** ein und fügen Sie dann **Zertifikat** und **Privater Schlüssel des Zertifikats** im PEM-Format ein. Beide sind dann Pflicht.
 
-#### Die Domain erstellen
+#### Weiter
 
-Klicken Sie auf **Statusseite Domain erstellen**. Der Dialog schließt sich, und die **DNS-Einrichtung** der neuen Domain öffnet sich, mit dem hinzuzufügenden Eintrag.
+Klicken Sie auf **Weiter**. Hat das Projekt die Domain, auf der die Adresse liegt, bereits verifiziert, wird die Domain hinzugefügt und ihre **DNS-Einrichtung** öffnet sich, mit dem hinzuzufügenden CNAME-Eintrag. Wenn nicht, fügt OneUptime diese Domain zu **Projekteinstellungen → Erweitert → Domänen** hinzu, und die **DNS-Einrichtung** öffnet sich mit beiden Einträgen, sodass Sie die Domain direkt dort verifizieren, ohne die Seite zu verlassen.
 :::
 
-Der vollständige Name einer Domain wird beim Hinzufügen festgelegt; **Bearbeiten** ändert daher nur ihr Zertifikat. Um eine andere Subdomain zu verwenden, fügen Sie diese Domain hinzu und löschen die alte. Ein Name, den schon ein Dashboard oder ein Formular verwendet, in welchem Projekt auch immer, wird abgelehnt: Eine Domain zeigt eine Statusseite, ein Dashboard oder ein Formular.
+Der vollständige Name einer Domain wird beim Hinzufügen festgelegt; **Bearbeiten** ändert daher nur ihr Zertifikat. Um eine andere Adresse zu verwenden, fügen Sie diese hinzu und löschen die alte. Ein Name, den schon ein Dashboard oder ein Formular verwendet, in welchem Projekt auch immer, wird abgelehnt: Eine Domain zeigt eine Statusseite, ein Dashboard oder ein Formular.
+
+Um eine Domain zum Projekt hinzuzufügen, brauchen Sie die Berechtigung, Projektdomains zu erstellen (**Create Project Domain**, oder Project Owner oder Project Admin), und um sie zu verifizieren, **Edit Project Domain**. Fehlen sie, sagt der Dialog, wer es tun kann.
 
 ### DNS-Einrichtung und Verifizierung
 
-Der Dialog **DNS-Einrichtung** zeigt den Eintrag, den Sie bei Ihrem DNS-Anbieter hinzufügen, ein Feld pro Zeile, jedes mit einer Schaltfläche zum Kopieren:
+Der Dialog **DNS-Einrichtung** zeigt jeden Eintrag, der bei Ihrem DNS-Anbieter noch nötig ist, ein Feld pro Zeile, jedes mit einer Schaltfläche zum Kopieren:
 
-| Feld | Was Sie eingeben |
-| ----- | ------------- |
-| **Typ** | `CNAME` |
-| **Name** | Die vollständige Domain, die Sie hinzugefügt haben, zum Beispiel `status.yourcompany.com` |
-| **Wert** | Den CNAME-Eintrag für Statusseiten Ihrer Installation |
+| Eintrag | **Typ** | **Name** | **Wert** |
+| ------ | -------- | -------- | --------- |
+| Zeigt, dass die Domain dem Projekt gehört, bis sie verifiziert ist | `TXT` | Die Domain, zum Beispiel `yourcompany.com` | Ihr Verifizierungstext, `oneuptime-verification-…` |
+| Lässt die Adresse auf OneUptime zeigen | `CNAME` | Die vollständige Adresse, zum Beispiel `status.yourcompany.com` | Der CNAME-Eintrag für Statusseiten Ihrer Installation |
+
+Den TXT-Eintrag fügen Sie einmal pro Domain hinzu: Jede spätere Adresse darauf braucht nur ihren CNAME-Eintrag. Die beiden liegen nie auf demselben Namen, denn ein Name mit einem CNAME-Eintrag kann keinen anderen Eintrag haben.
 
 > [!NOTE]
 > Für eine Stammdomain, eine ohne Subdomain, fügt der Dialog einen Hinweis hinzu: Viele DNS-Anbieter erlauben dort keinen CNAME-Eintrag. Verwenden Sie stattdessen den ALIAS-, ANAME- oder CNAME-Flattening-Eintrag Ihres Anbieters mit demselben Wert.
 
-OneUptime prüft jede nicht verifizierte Domain alle 15 Minuten und verifiziert Ihre, sobald ihr Eintrag aktiv ist, ob Sie zurückkommen oder nicht. Um sofort zu prüfen, klicken Sie auf **Jetzt prüfen**:
+Klicken Sie auf **Jetzt prüfen**, um die Einträge sofort nachzuschlagen. Es prüft zuerst den TXT-Eintrag, und sobald dieser gefunden ist, fügt es die Domain der Statusseite hinzu und prüft ihren CNAME-Eintrag. Jeder Eintrag zeigt dann seinen eigenen Status, **Gefunden**, **Falscher Wert**, **Noch nicht gefunden** oder **Konnte nicht geprüft werden**, und darunter, was OneUptime nachgeschlagen hat und was zurückkam, mit dem, was zu ändern ist:
 
-- **Der Eintrag ist noch nicht gefunden.** Der Dialog bleibt offen und sagt, nach welchem Eintrag er gesucht hat. Ein neuer DNS-Eintrag kann eine Weile brauchen, bis er erscheint: Klicken Sie später erneut auf **Jetzt prüfen**, oder überlassen Sie es der Prüfung alle 15 Minuten.
-- **Der Eintrag ist gefunden.** Der Dialog sagt „Ihr CNAME-Eintrag ist verifiziert.“ und was als Nächstes mit dem Zertifikat geschieht. Das kostenlose Zertifikat wird in diesem Moment bestellt.
+- „Wir haben den CNAME-Eintrag von status.yourcompany.com nachgeschlagen und nichts erhalten.“ Der Eintrag ist noch nicht da oder noch nicht sichtbar: Ein neuer Eintrag kann eine Weile brauchen, bis er erscheint.
+- „Wir haben den CNAME-Eintrag von status.yourcompany.com nachgeschlagen und other.example.net erhalten, aber oneuptime.yourcompany.com erwartet.“ Der Eintrag zeigt woandershin: Ändern Sie seinen Wert.
+- „Wir haben den CNAME-Eintrag von status.yourcompany.com nachgeschlagen und nichts erhalten, aber der Name antwortet mit der Adresse 203.0.113.10.“ Der Name hat einen A-Eintrag, oder sein DNS-Anbieter leitet ihn über einen Proxy oder flacht ihn ab (die orange Wolke von Cloudflare tut das), was den CNAME-Eintrag vor allen verbirgt: Ersetzen Sie den A-Eintrag, oder stellen Sie den Namen auf DNS only.
 
-Bis eine Domain verifiziert ist und ihr Zertifikat bereitsteht, hat ihre Zeile eine Aktion **DNS-Einrichtung**, die denselben Dialog öffnet. Bei einer verifizierten Domain, deren Zertifikatsbestellung immer wieder fehlschlägt oder deren Zertifikat abgelaufen ist, bestellt **Jetzt prüfen** dort erneut und zeigt, warum die letzte Bestellung fehlgeschlagen ist. Es bestellt höchstens einmal pro Domain alle 15 Minuten; dazwischen versucht OneUptime es von selbst weiter.
+OneUptime folgt der ganzen CNAME-Kette, daher zählt auch ein Eintrag, der auf einen eigenen Namen zeigt, der wiederum auf den Eintrag Ihrer Installation zeigt. Ebenso ein Name, dessen Anfragen OneUptime erreichen, auch wenn sein DNS-Anbieter den CNAME-Eintrag verbirgt.
+
+Sobald der CNAME-Eintrag gefunden ist, sagt der Dialog „Ihr CNAME-Eintrag ist verifiziert.“ und was als Nächstes mit dem Zertifikat geschieht. Das kostenlose Zertifikat wird in diesem Moment bestellt. Erreichen Anfragen an die Adresse OneUptime trotzdem nicht, etwa weil ein Proxy vor einem selbst gehosteten Server die Adresse nicht weitergibt, sagt der Dialog das: Das Zertifikat kann erst ausgestellt werden, wenn sie es tun.
+
+OneUptime prüft den CNAME-Eintrag jeder nicht verifizierten Domain alle 15 Minuten und verifiziert Ihre, sobald er aktiv ist, ob Sie zurückkommen oder nicht. Bis eine Domain verifiziert ist und ihr Zertifikat bereitsteht, hat ihre Zeile eine Aktion **DNS-Einrichtung**, die denselben Dialog öffnet. Bei einer verifizierten Domain, deren Zertifikatsbestellung immer wieder fehlschlägt oder deren Zertifikat abgelaufen ist, bestellt **Jetzt prüfen** dort erneut und zeigt, warum die letzte Bestellung fehlgeschlagen ist. Es bestellt höchstens einmal pro Domain alle 15 Minuten; dazwischen versucht OneUptime es von selbst weiter.
 
 ### SSL-Zertifikate
 
@@ -285,7 +289,7 @@ Die Spalte **Status** sagt, wo jede Domain auf ihrem Weg zu HTTPS steht, in eine
 | Verifiziert. Verwendet das HTTPS Ihres eigenen Proxys. | Bei einer selbst gehosteten Installation ohne Let's-Encrypt-Kontoschlüssel ist der Eintrag verifiziert und die Domain erreichbar. Ihr HTTPS übernimmt Ihr eigener Proxy, es sei denn, Sie laden ein Zertifikat hoch. |
 
 :::details Eine Domain bleibt lange nach dem Hinzufügen des Eintrags auf „Warten auf DNS“
-Prüfen Sie, dass der Name des Eintrags die vollständige Domain ist, etwa `status.yourcompany.com`, und dass sein Wert genau dem CNAME-Eintrag Ihrer Installation entspricht. Verwenden Sie bei einer Stammdomain einen ALIAS-, ANAME- oder geflachten CNAME-Eintrag. Klicken Sie dann in **DNS-Einrichtung** auf **Jetzt prüfen**.
+Öffnen Sie **DNS-Einrichtung** und klicken Sie auf **Jetzt prüfen**: Unter dem Eintrag steht, was OneUptime nachgeschlagen hat und was zurückkam. Prüfen Sie, dass der Name des Eintrags die vollständige Domain ist, etwa `status.yourcompany.com`, und dass sein Wert dem CNAME-Eintrag Ihrer Installation entspricht. Steht dort, dass der Name mit einer Adresse antwortet, hat der Name einen A-Eintrag oder wird von seinem DNS-Anbieter über einen Proxy geleitet: Ersetzen Sie den A-Eintrag, oder stellen Sie den Namen auf DNS only. Verwenden Sie bei einer Stammdomain einen ALIAS-, ANAME- oder geflachten CNAME-Eintrag.
 :::
 
 :::details Die Spalte Status sagt, dass kein kostenloses Zertifikat ausgestellt werden konnte
@@ -298,7 +302,7 @@ Suchen Sie nach einem CAA-Eintrag Ihrer Domain, der `letsencrypt.org` auslässt,
 
 Wer die Domain nur lesen kann, etwa ein Viewer oder ein Status Page Viewer, sieht trotzdem die Spalte **Status** und den hinzuzufügenden Eintrag in **DNS-Einrichtung**. Für ihn sind **Jetzt prüfen** und **SSL neu ausstellen** gesperrt und sagen, welche Berechtigung er braucht. OneUptime prüft jede Domain und bestellt ihr Zertifikat so oder so von selbst weiter.
 
-Dasselbe gilt für API-Schlüssel. Ein Schlüssel, der Statusseiten-Domains nur lesen kann, kann `verify-cname`, `order-ssl` oder `reissue-ssl` auf `/status-page-domain` nicht aufrufen. Geben Sie ihm **Read Status Page Domain** und **Edit Status Page Domain**, wenn er das braucht.
+Dasselbe gilt für API-Schlüssel. Ein Schlüssel, der Statusseiten-Domains nur lesen kann, kann `verify-cname`, `check-dns`, `order-ssl` oder `reissue-ssl` auf `/status-page-domain` nicht aufrufen. Geben Sie ihm **Read Status Page Domain** und **Edit Status Page Domain**, wenn er das braucht. Wird der Eintrag nicht gefunden, lehnt `verify-cname` ab und nennt, was es nachgeschlagen hat und was zurückkam, in den Worten, die **DNS-Einrichtung** zeigt; `check-dns` beantwortet so oder so jeden Eintrag, den es nachgeschlagen hat.
 
 ## Powered by OneUptime
 

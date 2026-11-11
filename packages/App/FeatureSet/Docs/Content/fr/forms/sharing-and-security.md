@@ -55,27 +55,26 @@ Par défaut, un formulaire est servi à son lien, sur l'adresse de OneUptime. Po
 
 Placer le formulaire sur votre propre domaine se fait en trois étapes, et seules les deux premières vous reviennent :
 
-1. **Ajouter le domaine** : un sous-domaine et l'un de vos domaines vérifiés.
-2. **Ajouter son enregistrement CNAME** chez votre fournisseur DNS. La boîte de dialogue **Configuration DNS** s'ouvre avec l'enregistrement dès que vous ajoutez le domaine.
+1. **Ajouter le domaine** : saisissez l'adresse que les gens ouvriront, comme `report.acme.com`.
+2. **Ajouter ses enregistrements DNS** chez votre fournisseur DNS. La boîte de dialogue **Configuration DNS** les affiche : un enregistrement CNAME pour l'adresse et, la première fois que le projet utilise un domaine, un enregistrement TXT qui montre que le projet en est propriétaire.
 3. **Le certificat SSL gratuit est émis automatiquement** une fois l'enregistrement trouvé. Il n'y a aucun bouton à presser.
 
 Une fois le domaine en service, la carte **Lien de partage** le liste au-dessus du lien du formulaire. Les deux ouvrent le même formulaire.
 
 ### Ajouter un domaine
 
-Cliquez sur **Créer : Domaine de formulaire**. La boîte de dialogue tient sur une page :
+Cliquez sur **Ajouter un domaine personnalisé**. La boîte de dialogue ne demande qu'une chose :
 
-- **Sous-domaine** : le libellé seul, avec le texte indicatif `report (leave blank for root)`. Saisissez juste `report`, pas le nom d'hôte complet. Laissez-le vide ou saisissez `@` pour utiliser le domaine racine.
-- **Domaine** : l'un des domaines vérifiés sous **Paramètres du projet** > **Avancé** > **Domaines**, où vous prouvez qu'un domaine vous appartient avec un enregistrement TXT. Le lien **Ajouter un domaine** à côté du champ ouvre cette page dans un nouvel onglet.
+- **Domaine** : l'adresse complète que les gens ouvriront, avec le texte indicatif `report.example.com`. Un lien collé fonctionne aussi : seul son nom d'hôte est conservé. Pour utiliser la racine d'un domaine, saisissez le domaine lui-même.
 - **Plus de champs** : replié. Ne l'ouvrez que pour utiliser votre propre certificat : activez **Téléverser un certificat personnalisé**, puis collez le **Certificat** et sa **Clé privée du certificat**.
 
-Cliquez de nouveau sur **Créer : Domaine de formulaire** pour l'ajouter. La boîte de dialogue se ferme et la **Configuration DNS** du nouveau domaine s'ouvre. Le nom d'un domaine et son formulaire sont fixés dès qu'il est ajouté, donc **Modifier** ne change que son certificat : pour changer l'un ou l'autre, ajoutez le nouveau domaine et supprimez l'ancien.
+Cliquez sur **Continuer**. Si le projet a vérifié le domaine sur lequel se trouve l'adresse, sous **Paramètres du projet** > **Avancé** > **Domaines**, le domaine est ajouté et sa **Configuration DNS** s'ouvre. Sinon, OneUptime ajoute ce domaine au projet et la **Configuration DNS** s'ouvre avec aussi son enregistrement TXT, pour que vous le vérifiiez sur place. Le nom d'un domaine et son formulaire sont fixés dès qu'il est ajouté, donc **Modifier** ne change que son certificat : pour changer l'un ou l'autre, ajoutez le nouveau domaine et supprimez l'ancien.
 
 Un domaine affiche une seule page de statut, un seul tableau de bord ou un seul formulaire, donc un nom que l'un d'eux a déjà, dans n'importe quel projet, est refusé : "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
 
 ### Configuration DNS et Vérifier maintenant
 
-La boîte de dialogue **Configuration DNS** montre l'enregistrement à ajouter chez votre fournisseur DNS, chaque champ avec un bouton de copie : **Type** `CNAME`, **Nom** le domaine complet que vous avez ajouté, et **Valeur** l'enregistrement CNAME de votre installation. Pour un domaine racine, beaucoup de fournisseurs DNS n'acceptent pas d'enregistrement CNAME : utilisez plutôt l'enregistrement ALIAS, ANAME ou CNAME aplati de votre fournisseur, avec la même valeur.
+La boîte de dialogue **Configuration DNS** montre chaque enregistrement à ajouter chez votre fournisseur DNS, chaque champ avec un bouton de copie : **Type** `CNAME`, **Nom** le domaine complet que vous avez ajouté, et **Valeur** l'enregistrement CNAME de votre installation, après l'enregistrement TXT du domaine tant que le projet ne l'a pas vérifié. Sous chaque enregistrement, **Vérifier maintenant** indique ce que OneUptime a recherché et ce qui est revenu. Pour un domaine racine, beaucoup de fournisseurs DNS n'acceptent pas d'enregistrement CNAME : utilisez plutôt l'enregistrement ALIAS, ANAME ou CNAME aplati de votre fournisseur, avec la même valeur.
 
 OneUptime vérifie chaque domaine non vérifié toutes les 15 minutes, et quand il trouve l'enregistrement, il commande le certificat Let's Encrypt gratuit du domaine lors de la même vérification. Pour vérifier tout de suite, cliquez sur **Vérifier maintenant**. Tant qu'un domaine n'est pas en service, sa ligne a une action **Configuration DNS** qui ouvre la même boîte de dialogue, où **Vérifier maintenant** commande aussi de nouveau un certificat qui a échoué ou expiré, au plus une fois par domaine toutes les 15 minutes. Le renouvellement est automatique, bien avant l'expiration du certificat.
 

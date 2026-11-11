@@ -55,27 +55,26 @@ Di base, un modulo è pubblicato al suo link, sull'indirizzo di OneUptime. Per p
 
 Portare il modulo sul tuo dominio richiede tre passaggi, e solo i primi due spettano a te:
 
-1. **Aggiungere il dominio**: un sottodominio e uno dei tuoi domini verificati.
-2. **Aggiungere il suo record CNAME** presso il tuo provider DNS. La finestra di dialogo **Configurazione DNS** si apre con il record appena aggiungi il dominio.
+1. **Aggiungere il dominio**: digita l'indirizzo che le persone apriranno, come `report.acme.com`.
+2. **Aggiungere i suoi record DNS** presso il tuo provider DNS. La finestra di dialogo **Configurazione DNS** li mostra: un record CNAME per l'indirizzo e, la prima volta che il progetto usa un dominio, un record TXT che dimostra che il dominio appartiene al progetto.
 3. **Il certificato SSL gratuito viene emesso automaticamente** non appena il record viene trovato. Non c'è nessun pulsante da premere.
 
 Quando il dominio funziona, la scheda **Link di condivisione** lo elenca sopra il link del modulo. Entrambi aprono lo stesso modulo.
 
 ### Aggiungere un dominio
 
-Fai clic su **Crea: Dominio del modulo**. La finestra di dialogo è una sola pagina:
+Fai clic su **Aggiungi dominio personalizzato**. La finestra di dialogo chiede una sola cosa:
 
-- **Sottodominio**: solo l'etichetta, con il testo segnaposto `report (leave blank for root)`. Inserisci solo `report`, non il nome host completo. Lascialo vuoto o inserisci `@` per usare il dominio radice.
-- **Dominio**: uno dei domini verificati in **Impostazioni del progetto** > **Avanzato** > **Domini**, dove dimostri con un record TXT che un dominio è tuo. Il link **Aggiungi un dominio** accanto al campo apre quella pagina in una nuova scheda.
+- **Dominio**: l'indirizzo completo che le persone apriranno, con il testo segnaposto `report.example.com`. Funziona anche un link incollato: viene tenuto solo il suo nome host. Per usare la radice di un dominio, digita il dominio stesso.
 - **Altri campi**: chiuso. Aprilo solo per usare un certificato tuo: attiva **Carica certificato personalizzato** e incolla il **Certificato** e la sua **Chiave privata del certificato**.
 
-Fai di nuovo clic su **Crea: Dominio del modulo** per aggiungerlo. La finestra si chiude e si apre la **Configurazione DNS** del nuovo dominio. Il nome di un dominio e il suo modulo sono fissati appena viene aggiunto, quindi **Modifica** cambia solo il suo certificato: per cambiare l'uno o l'altro, aggiungi il nuovo dominio ed elimina quello vecchio.
+Fai clic su **Continua**. Se il progetto ha verificato il dominio su cui si trova l'indirizzo, in **Impostazioni del progetto** > **Avanzato** > **Domini**, il dominio viene aggiunto e si apre la sua **Configurazione DNS**. Altrimenti, OneUptime aggiunge quel dominio al progetto e la **Configurazione DNS** si apre anche con il suo record TXT, così lo verifichi lì stesso. Il nome di un dominio e il suo modulo sono fissati appena viene aggiunto, quindi **Modifica** cambia solo il suo certificato: per cambiare l'uno o l'altro, aggiungi il nuovo dominio ed elimina quello vecchio.
 
 Un dominio mostra una sola pagina di stato, una sola dashboard o un solo modulo, quindi un nome che uno di essi ha già, in qualsiasi progetto, viene rifiutato: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
 
 ### Configurazione DNS e Verifica ora
 
-La finestra di dialogo **Configurazione DNS** mostra il record da aggiungere presso il tuo provider DNS, ogni campo con un pulsante per copiarlo: **Tipo** `CNAME`, **Nome** il dominio completo che hai aggiunto, e **Valore** il record CNAME della tua installazione. Per un dominio radice, molti provider DNS non permettono un record CNAME: usa invece il record ALIAS, ANAME o CNAME flattening del tuo provider, con lo stesso valore.
+La finestra di dialogo **Configurazione DNS** mostra ogni record da aggiungere presso il tuo provider DNS, ogni campo con un pulsante per copiarlo: **Tipo** `CNAME`, **Nome** il dominio completo che hai aggiunto, e **Valore** il record CNAME della tua installazione, dopo il record TXT del dominio finché il progetto non l'ha verificato. Sotto ogni record, **Verifica ora** dice cosa ha cercato OneUptime e cosa ha ottenuto. Per un dominio radice, molti provider DNS non permettono un record CNAME: usa invece il record ALIAS, ANAME o CNAME flattening del tuo provider, con lo stesso valore.
 
 OneUptime controlla ogni dominio non verificato ogni 15 minuti, e quando trova il record ordina il certificato Let's Encrypt gratuito del dominio nello stesso controllo. Per controllare subito, fai clic su **Verifica ora**. Finché un dominio non funziona, la sua riga ha un'azione **Configurazione DNS** che apre la stessa finestra, dove **Verifica ora** ordina di nuovo anche un certificato non riuscito o scaduto, al massimo una volta per dominio ogni 15 minuti. Il rinnovo è automatico, molto prima che il certificato scada.
 
