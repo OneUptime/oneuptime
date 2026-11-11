@@ -4,6 +4,9 @@ import UserOnCallLogTimeline from "../../../../Models/DatabaseModels/UserOnCallL
 import OnCallDutyPolicyExecutionLogService from "../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import UserOnCallLogService from "../../../../Server/Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "../../../../Server/Services/UserOnCallLogTimelineService";
+import OnCallAcknowledgementTimeout, {
+  OnCallTimeoutRecordState,
+} from "../../../../Server/Utils/OnCall/OnCallAcknowledgementTimeout";
 import { OnCallEscalationAdvanceKind } from "../../../../Server/Utils/OnCall/OnCallEscalationAdvance";
 import OnCallPagePassOn from "../../../../Server/Utils/OnCall/OnCallPagePassOn";
 import ObjectID from "../../../../Types/ObjectID";
@@ -758,6 +761,200 @@ describe("a direct page", () => {
         return status === OnCallDutyPolicyStatus.Completed;
       }),
     ).toHaveLength(1);
+  });
+});
+
+describe("a page a person asked for, about an incident somebody is on already (#6710)", () => {
+  /*
+   * Dana pages Ana - and Bob - into an incident from its Slack channel
+   * (OnCallPersonPage): a direct page, started by a person, no workflow.
+   * Somebody else acknowledged the incident already, as is usual for a page
+   * from an incident's own channel. The page goes on until one of them
+   * answers it or the incident is resolved, so each of them can still say
+   * they cannot take it.
+   */
+  // Where the incident stands, as the run reads it (readRecordState).
+  let standing: OnCallTimeoutRecordState | null;
+
+  async function startPersonPage(userIds: Array<ObjectID>): Promise<void> {
+    await world.startDirectPage(userIds);
+    world.run.triggeredByUserId = DANA;
+    world.isRecordAcknowledged = true;
+  }
+
+  beforeEach(() => {
+    standing = { isAcknowledged: true, isResolved: false };
+
+    jest
+      .spyOn(OnCallAcknowledgementTimeout, "readRecordState")
+      .mockImplementation(async () => {
+        return standing;
+      });
+  });
+
+  test("is not refused as acknowledged: escalating it stops paging the one person it paged", async () => {
+    await startPersonPage([ANA]);
+
+    expect(passed(await world.passOn(ANA))).toBe(
+      OnCallPassOnOutcome.PagingStopped,
+    );
+    expect(world.logsOf(ANA)[0]!.status).toBe(
+      UserNotificationExecutionStatus.PassedOn,
+    );
+    expect(world.run.status).toBe(OnCallDutyPolicyStatus.Completed);
+  });
+
+  test("with others it paged, says who is still being paged", async () => {
+    await startPersonPage([ANA, BOB]);
+
+    const answer: OnCallPassOnAnswer = await world.passOn(ANA);
+
+    expect(passed(answer)).toBe(OnCallPassOnOutcome.OthersStillPaged);
+    expect(answer.result!.stillPagedNames).toEqual(["Bob Smith"]);
+    expect(world.run.status).toBe(OnCallDutyPolicyStatus.Executing);
+  });
+
+  test("what escalating would do is offered first, as for any page", async () => {
+    await startPersonPage([ANA, BOB]);
+
+    const preview: OnCallPassOnAnswer = await world.preview(ANA);
+
+    expect(preview.refusal).toBeUndefined();
+    expect(preview.result).toMatchObject({
+      outcome: OnCallPassOnOutcome.OthersStillPaged,
+      isPreview: true,
+      isDirectPage: true,
+    });
+    expect(world.logsOf(ANA)[0]!.status).toBe(
+      UserNotificationExecutionStatus.Executing,
+    );
+  });
+
+  test("the Dashboard and the app list it among the person's pages, so they offer Escalate", async () => {
+    await startPersonPage([ANA, BOB]);
+
+    const pages: Array<OnCallOpenPage> =
+      await OnCallPagePassOn.getOpenPagesForRecord({
+        userId: ANA,
+        projectId: PROJECT_ID,
+        recordType: OnCallPageRecordType.Incident,
+        recordId: INCIDENT_ID,
+      });
+
+    expect(pages).toHaveLength(1);
+    expect(pages[0]!.executionLogId).toBe(RUN_ID.toString());
+    expect(pages[0]!.preview.outcome).toBe(
+      OnCallPassOnOutcome.OthersStillPaged,
+    );
+    // It is no page again: the header offers no Acknowledge for it.
+    expect("isPageAgain" in pages[0]!).toBe(false);
+  });
+
+  test("once one of its people answered it, it is taken - and says who", async () => {
+    await startPersonPage([ANA, BOB]);
+    world.run.acknowledgedAt = new Date(START);
+    world.run.acknowledgedByUserId = BOB;
+    world.run.acknowledgedByUser = { name: "Bob Smith" } as never;
+
+    expect(await world.passOn(ANA)).toEqual({
+      passedOn: false,
+      refusal: OnCallPassOnRefusal.RecordAcknowledged,
+      acknowledgedByName: "Bob Smith",
+    });
+    expect(world.logsOf(ANA)[0]!.status).toBe(
+      UserNotificationExecutionStatus.Executing,
+    );
+  });
+
+  test("once its incident is resolved, it is over", async () => {
+    await startPersonPage([ANA]);
+    standing = { isAcknowledged: true, isResolved: true };
+
+    expect(await world.passOn(ANA)).toEqual({
+      passedOn: false,
+      refusal: OnCallPassOnRefusal.RecordAcknowledged,
+    });
+  });
+
+  test("once its incident is gone, it is over", async () => {
+    await startPersonPage([ANA]);
+    standing = null;
+
+    expect((await world.passOn(ANA)).refusal).toBe(
+      OnCallPassOnRefusal.RecordAcknowledged,
+    );
+  });
+
+  test("its record's standing is read for the record the run pages about", async () => {
+    await startPersonPage([ANA]);
+
+    await world.preview(ANA);
+
+    expect(OnCallAcknowledgementTimeout.readRecordState).toHaveBeenCalledWith({
+      kind: "incident",
+      recordId: INCIDENT_ID,
+    });
+  });
+
+  test("the run is read with every column that tells a person's page apart", async () => {
+    await startPersonPage([ANA]);
+
+    await world.preview(ANA);
+
+    const calls: Array<Array<unknown>> = jest.mocked(
+      OnCallDutyPolicyExecutionLogService.findOneById,
+    ).mock.calls as unknown as Array<Array<unknown>>;
+
+    expect(calls.length).toBeGreaterThan(0);
+    expect((calls[calls.length - 1]![0] as { select: unknown }).select).toEqual(
+      expect.objectContaining({
+        onCallDutyPolicyId: true,
+        triggeredByUserId: true,
+        triggeredByWorkflowId: true,
+      }),
+    );
+  });
+
+  test("a direct page a workflow started still ends with its record's acknowledgement", async () => {
+    await startPersonPage([ANA]);
+    world.run.triggeredByWorkflowId = nextId();
+
+    expect(await world.passOn(ANA)).toEqual({
+      passedOn: false,
+      refusal: OnCallPassOnRefusal.RecordAcknowledged,
+    });
+    expect(OnCallAcknowledgementTimeout.readRecordState).not.toHaveBeenCalled();
+  });
+
+  test("a policy's page still ends with its record's acknowledgement", async () => {
+    world.addRule({ order: 1, users: [ANA] });
+    await world.startRun();
+    world.run.triggeredByUserId = DANA;
+    world.isRecordAcknowledged = true;
+
+    expect((await world.passOn(ANA)).refusal).toBe(
+      OnCallPassOnRefusal.RecordAcknowledged,
+    );
+  });
+
+  test("an observer's page about an acknowledged record is left as it was: nothing to escalate", async () => {
+    await startPersonPage([ANA]);
+    world.run.isObserverPage = true;
+    delete world.run.triggeredByUserId;
+
+    expect((await world.passOn(ANA)).refusal).toBe(
+      OnCallPassOnRefusal.RecordAcknowledged,
+    );
+  });
+
+  test("about an incident nobody has acknowledged, it is escalated as before", async () => {
+    await startPersonPage([ANA]);
+    world.isRecordAcknowledged = false;
+    standing = { isAcknowledged: false, isResolved: false };
+
+    expect(passed(await world.passOn(ANA))).toBe(
+      OnCallPassOnOutcome.PagingStopped,
+    );
   });
 });
 
