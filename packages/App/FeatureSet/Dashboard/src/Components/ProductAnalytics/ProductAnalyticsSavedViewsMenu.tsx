@@ -84,6 +84,7 @@ export interface ComponentProps<T extends ProductAnalyticsSavedViewType> {
    * Whether the address the page opened on said what to read itself: then
    * the saved view it names is not put over it.
    */
+  // eslint-disable-next-line react/no-unused-prop-types -- read through propsRef
   isDefinitionInAddress: boolean;
   // Show a saved view: what it keeps, and it as the open one.
   onOpen: (view: ProductAnalyticsSavedView<T>) => void;
@@ -95,11 +96,13 @@ export interface ComponentProps<T extends ProductAnalyticsSavedViewType> {
    * Called once the saved view the address named is open or let go (as
    * soon as the list is read when it names none): the page reads from then.
    */
+  // eslint-disable-next-line react/no-unused-prop-types -- read through propsRef
   onSettled: () => void;
   /*
    * Whether the page has had its onSettled: a menu drawn again (a toolbar
    * that moves) lists, and leaves what the page shows as it is.
    */
+  // eslint-disable-next-line react/no-unused-prop-types -- read through propsRef
   isSettled: boolean;
   dataTestId: string;
 }
