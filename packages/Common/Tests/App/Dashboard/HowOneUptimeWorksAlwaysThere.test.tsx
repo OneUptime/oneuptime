@@ -514,6 +514,33 @@ describe("the dialog", () => {
     ]);
   });
 
+  /*
+   * Search (Cmd/Ctrl+K: "how it works") and Help in the phone's menu open
+   * it too (#6936, #6816), and the event says which: the palette's own
+   * suite (DashboardCommandPaletteFindsMore) and the phone menu's
+   * (DashboardPhoneMenuSearchAndHelp) open it the way a person does.
+   */
+  test.each([
+    [HowOneUptimeWorksOpenedFrom.CommandPalette, "command-palette"],
+    [HowOneUptimeWorksOpenedFrom.PhoneMenu, "phone-menu"],
+  ])(
+    "opened from %s, the event says so",
+    async (from: HowOneUptimeWorksOpenedFrom, source: string) => {
+      render(<HowOneUptimeWorksDialog />);
+
+      act(() => {
+        openHowOneUptimeWorks(from);
+      });
+      await waitFor(() => {
+        expect(dialog()).not.toBeNull();
+      });
+
+      expect(openedEvents()).toEqual([
+        expect.objectContaining({ product: "oneuptime", source: source }),
+      ]);
+    },
+  );
+
   test("with no project picked yet, the steps say what each product does and open nothing", async () => {
     currentProjectId = null;
     render(<HowOneUptimeWorksDialog />);
