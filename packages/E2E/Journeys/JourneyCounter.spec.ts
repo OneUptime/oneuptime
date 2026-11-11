@@ -207,7 +207,7 @@ test.describe("the journey counter", () => {
     await open(
       page,
       `/dashboard/${PROJECT}/monitors/create`,
-      '<main><label for="name">Name</label><input id="name" /><label for="url">Website URL<span>The page to check.</span></label><input id="url" type="url" /><input id="search" role="combobox" aria-label="Search monitor types" /></main>',
+      '<main><label for="name">Name</label><input id="name" /><label for="url">Website URL<span>The page to check.</span></label><input id="url" type="url" /><input id="search" role="combobox" aria-label="Search monitor types" /><label for="notes">Notes</label><input id="notes" /></main>',
     );
 
     await page.locator("#name").pressSequentially("Acme");
@@ -216,7 +216,7 @@ test.describe("the journey counter", () => {
     await page.locator("#search").pressSequentially("ssl");
     await page.keyboard.press("Shift");
     await page.evaluate(() => {
-      const input: HTMLInputElement = document.querySelector("#name")!;
+      const input: HTMLInputElement = document.querySelector("#notes")!;
       input.value = "typed by the page";
       input.dispatchEvent(new InputEvent("input", { bubbles: true }));
     });
@@ -340,6 +340,11 @@ test.describe("the journey counter", () => {
     await page.evaluate(() => {
       document.querySelector("#text")!.textContent =
         "one two three four five six";
+    });
+    await page.locator("#act").click();
+    // Fewer words later: the step is read at its most.
+    await page.evaluate(() => {
+      document.querySelector("#text")!.textContent = "one";
     });
     await page.locator("#act").click();
     await page.evaluate(() => {
