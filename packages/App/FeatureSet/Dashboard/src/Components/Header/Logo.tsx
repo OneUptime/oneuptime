@@ -8,13 +8,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   /*
-   * Where the logo goes: the project's Home (getLogoDestination). It was
-   * drawn as something to click, with a pointer and a hover, and did
-   * nothing (#6816).
+   * Called as the logo is followed. It goes to the project's Home either
+   * way (getLogoDestination): it was drawn as something to click, with a
+   * pointer and a hover, and did nothing (#6816).
    */
-  to: Route;
-  // What the link says to a screen reader and in its tooltip: "Home".
-  title: string;
+  onClick?: (() => void) | undefined;
 }
 
 export const HEADER_LOGO_TEST_ID: string = "header-logo";
@@ -49,13 +47,15 @@ const Logo: FunctionComponent<ComponentProps> = (
      * logo.
      *
      * A link, not an image with a click handler: it is reached with Tab,
-     * opened with Enter, opened in a new tab with a middle click, and named
-     * "Home" for a screen reader.
+     * opened with Enter, and opened in a new tab with a middle click. A
+     * screen reader names it by the logo, the product's name, as sites
+     * name their logo's link: the nav bar's Home, just below, is the link
+     * named Home.
      */
     <div className="relative z-10 flex items-center border-r border-gray-200 pr-2 mr-2 -ml-2 sm:pr-4 sm:mr-4 sm:-ml-5">
       <Link
-        to={props.to}
-        title={props.title}
+        to={getLogoDestination()}
+        onClick={props.onClick}
         dataTestId={HEADER_LOGO_TEST_ID}
         className="flex flex-shrink-0 items-center rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
       >

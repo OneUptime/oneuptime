@@ -9,7 +9,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AskAI from "./AskAI";
 import Help from "./Help";
 import Search from "./Search";
-import Logo, { getLogoDestination } from "./Logo";
+import Logo from "./Logo";
 import ProjectPicker from "./ProjectPicker";
 import Upgrade from "./Upgrade";
 import UserProfile from "./UserProfile";
@@ -920,7 +920,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       <Header
         leftComponents={
           <>
-            <Logo to={getLogoDestination()} title="Home" />
+            <Logo />
 
             <ProjectPicker
               showProjectModal={props.showProjectModal}

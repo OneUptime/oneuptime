@@ -156,18 +156,19 @@ afterEach(() => {
 });
 
 describe("the logo goes Home", () => {
-  test("it is a link to the project's Home, named Home", () => {
-    render(<Logo to={getLogoDestination()} title="Home" />);
+  test("it is a link to the project's Home, named by the product's name, not a second link named Home", () => {
+    render(<Logo />);
 
     const logo: HTMLElement = screen.getByTestId(HEADER_LOGO_TEST_ID);
     expect(logo.tagName).toBe("A");
     expect(logo).toHaveAttribute("href", routeFor(PageMap.HOME));
     expect(logo).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/home/`);
-    expect(screen.getByRole("link", { name: "Home" })).toBe(logo);
+    expect(screen.getByRole("link", { name: "OneUptime" })).toBe(logo);
+    expect(screen.queryByRole("link", { name: "Home" })).toBeNull();
   });
 
   test("a click opens Home in the app, without reloading the page", () => {
-    render(<Logo to={getLogoDestination()} title="Home" />);
+    render(<Logo />);
 
     fireEvent.click(screen.getByTestId(HEADER_LOGO_TEST_ID));
 
@@ -177,7 +178,7 @@ describe("the logo goes Home", () => {
   });
 
   test("it is reached with Tab: a link with an address, not an image with a click handler", () => {
-    render(<Logo to={getLogoDestination()} title="Home" />);
+    render(<Logo />);
 
     const logo: HTMLElement = screen.getByTestId(HEADER_LOGO_TEST_ID);
     logo.focus();
