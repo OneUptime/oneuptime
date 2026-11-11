@@ -52,7 +52,7 @@ A função permite que o aplicativo leia incidentes (`Microsoft.SecurityInsights
 
 ### Encontrar os dados do workspace
 
-Abra o workspace do Log Analytics no portal do Azure. A página **Overview** dele mostra o **ID da assinatura**, o **Resource group** e o nome do workspace. O ID de recurso do workspace contém os três:
+Abra o workspace do Log Analytics no portal do Azure. A página **Overview** dele mostra o **ID da assinatura**, o **Grupo de recursos** e o nome do workspace. O ID de recurso do workspace contém os três:
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -72,8 +72,8 @@ Clique em **Testar estas configurações** em **Testar antes de salvar**. O test
 | **ID do diretório (tenant)** | A página **Overview** do aplicativo. O GUID do locatário, ou um domínio verificado como `contoso.onmicrosoft.com`. |
 | **ID do aplicativo (cliente)** | A página **Overview** do aplicativo. Um GUID. |
 | **ID da assinatura** | A página **Overview** do workspace. Um GUID. |
-| **Resource group** | A página **Overview** do workspace. De 1 a 90 letras, dígitos, sublinhados, hifens, pontos ou parênteses, sem terminar em ponto. |
-| **Workspace name** | A página **Overview** do workspace. De 3 a 90 letras, dígitos ou hifens, começando e terminando com uma letra ou um dígito. |
+| **Grupo de recursos** | A página **Overview** do workspace. De 1 a 90 letras, dígitos, sublinhados, hifens, pontos ou parênteses, sem terminar em ponto. |
+| **Nome do espaço de trabalho** | A página **Overview** do workspace. De 3 a 90 letras, dígitos ou hifens, começando e terminando com uma letra ou um dígito. |
 | **Nuvem** | **Nuvem pública do Azure** (`login.microsoftonline.com`, `management.azure.com`) ou **Azure Government (EUA)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
 | **Segredo do cliente** | O **Value** do segredo. Ele é criptografado, nunca devolvido pela API e nunca mais mostrado. Substitua-o com **Atualizar credenciais** na conexão. |
 
@@ -131,7 +131,7 @@ Quando uma execução não consegue passar do cursor salvo de jeito nenhum, o On
 
 1. **Reduzir.** A consulta seguinte lê uma janela com a metade do tamanho, a partir do mesmo ponto de partida, e continua dividindo pela metade até que uma janela seja lida por inteiro, até um minuto. O aviso da execução diz isso: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Voltar a crescer.** Depois que uma janela é lida por inteiro, a seguinte volta a ter o dobro do tamanho, até 24 horas.
-3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que os incidentes mais novos continuem chegando. A execução continua **Parcial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler.
+3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que os incidentes mais novos continuem chegando. A execução continua **Parcial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Importar este intervalo de tempo** para recuperar o que uma execução consegue ler.
 
 Uma execução que falha por completo, com um erro do Microsoft Entra ID ou do Azure Resource Manager, mantém o cursor e o tamanho da janela, e a consulta seguinte relê a mesma janela. A única exceção é uma requisição que expirou: o cursor fica, mas a janela seguinte tem a metade do tamanho, porque uma janela pesada demais para ser respondida a tempo expiraria a cada tentativa. Mudar o **Intervalo de consulta (minutos)** não muda nada disso: ele decide com que frequência uma consulta começa, não onde a janela dela começa.
 
@@ -140,9 +140,9 @@ Uma execução que falha por completo, com um erro do Microsoft Entra ID ou do A
 Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela e trabalhar com ela manualmente. Quem pode alterar a conexão pode iniciar essas ações; quem pode vê-la pode ler o histórico.
 
 - **Executar agora** inicia uma consulta na hora, com o cursor de sempre, mesmo quando a conexão não está **Habilitado**.
-- **Preview incidents** lê um intervalo de tempo de até 7 dias e não importa nada.
-- **Import this time range** importa um intervalo de até 7 dias, depois que você confirma, sem mover o cursor. Os incidentes já importados são pulados.
-- **Copy diagnostics** em uma execução copia o relatório dela para o suporte. Ele nunca inclui credenciais.
+- **Prévia de incidentes** lê um intervalo de tempo de até 7 dias e não importa nada.
+- **Importar este intervalo de tempo** importa um intervalo de até 7 dias, depois que você confirma, sem mover o cursor. Os incidentes já importados são pulados.
+- **Copiar diagnóstico** em uma execução copia o relatório dela para o suporte. Ele nunca inclui credenciais.
 
 ## Testar conexão
 
@@ -155,7 +155,7 @@ Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela
 | **Read incidents** | Um incidente criado nas últimas 24 horas pode ser lido (`$top=1`). Isso comprova a função e os dados do workspace. |
 | **Incidents available to import** | Quantos incidentes foram criados nas últimas 24 horas e nos últimos 7 dias, uma página de 50 para cada, então `50+` significa mais. Nenhum em 7 dias é um aviso, não uma falha. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | O lado do próprio OneUptime: um processo pega os jobs da fila Worker, o job de consulta roda a cada minuto e o armazenamento de eventos de segurança responde. |
-| **Scheduled polling** | Para uma conexão salva: a consulta está ativada, nenhuma execução está presa esperando um worker e as consultas rodam no horário. |
+| **Consulta agendada** | Para uma conexão salva: a consulta está ativada, nenhuma execução está presa esperando um worker e as consultas rodam no horário. |
 
 Cada requisição de um teste tem um prazo de 20 segundos. Um teste nunca importa nada nem move o cursor, e cada verificação que falha diz o que mudar.
 
@@ -246,7 +246,7 @@ O **Último erro** da conexão guarda a mensagem de erro completa, com as creden
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: o Azure Resource Manager recusou a requisição.
   - `HTTP 401`: ele não aceitou o token. Quase sempre a **Nuvem** não corresponde ao locatário, ou o registro de aplicativo foi excluído. Um token que expira entre duas páginas é renovado e tentado de novo uma vez sozinho.
   - `HTTP 403` ou `AuthorizationFailed`: o aplicativo ainda não tem **Microsoft Sentinel Reader** no grupo de recursos. Atribua a função e espere alguns minutos.
-  - `HTTP 404`: nenhum workspace tem esse **ID da assinatura**, esse **Resource group** e esse **Workspace name**, ou o Microsoft Sentinel não está habilitado nele. Copie-os da página **Overview** do workspace.
+  - `HTTP 404`: nenhum workspace tem esse **ID da assinatura**, esse **Grupo de recursos** e esse **Nome do espaço de trabalho**, ou o Microsoft Sentinel não está habilitado nele. Copie-os da página **Overview** do workspace.
   - `HTTP 429` ou `HTTP 5xx`: o Azure Resource Manager está limitando as requisições ou está indisponível. A consulta seguinte tenta de novo.
   - `HTTP 400`: o Azure Resource Manager recusou a requisição, que o OneUptime monta, e não as suas configurações. Envie a mensagem para o suporte do OneUptime.
 - `Microsoft Sentinel incidents list returned ...`: o Azure respondeu `200`, mas sem uma página de incidentes legível, ou com um `nextLink` para outro host, que a conexão recusa para que o token nunca saia do Azure Resource Manager. Isso é relatado em vez de tratado como uma janela vazia, para que o cursor nunca passe de incidentes que ninguém leu.
@@ -260,7 +260,7 @@ Nenhuma consulta terminou para essa conexão. Rode **Testar conexão**: as verif
 :::details Uma execução está Partial
 - `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`: a janela continha mais do que os 1.000 incidentes que uma execução lê. Nada se perde: a consulta seguinte começa depois do último incidente lido. Uma conexão que continua **Parcial** consulta após consulta está se atualizando de um atraso, e o **Última consulta** e o **Último evento importado** dela continuam avançando.
 - `Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.`: a API ignorou a ordem do mais antigo para o mais novo, então a execução não consegue mover o cursor para o último incidente dela, e a consulta seguinte lê uma janela mais curta em vez disso. Se isso se repetir, envie o relatório da execução para o suporte do OneUptime.
-- `More records were created in the one minute from ... than one poll can read`: a consulta passou desse minuto. Importe-o com **Import this time range** em **Diagnóstico**. Uma importação lê tanto quanto uma consulta.
+- `More records were created in the one minute from ... than one poll can read`: a consulta passou desse minuto. Importe-o com **Importar este intervalo de tempo** em **Diagnóstico**. Uma importação lê tanto quanto uma consulta.
 :::
 
 :::details O teste passa, mas nada é importado

@@ -65,7 +65,7 @@ httpProtocol: https
 
 ### 复制应用清单
 
-打开 **项目设置 > 工作区 > Slack**。在服务器上设置好 Slack 之前，该页面显示 **Integrating Slack with your OneUptime Project**，以及为你的主机名生成的清单。清单也可以在 `https://oneuptime.example.com/api/slack/app-manifest` 获取。
+打开 **项目设置 > 工作区 > Slack**。在服务器上设置好 Slack 之前，该页面显示 **将 Slack 与你的 OneUptime 项目集成**，以及为你的主机名生成的清单。清单也可以在 `https://oneuptime.example.com/api/slack/app-manifest` 获取。
 
 检查清单中的每个 URL 是否都以你的公共主机名开头。如果不是，请先修正 `HOST` 和 `HTTP_PROTOCOL` 并应用更改。
 
@@ -112,7 +112,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
 :::
 
-OneUptime 恢复运行后，**项目设置 > 工作区 > Slack** 会显示 **Connect with Slack** 按钮，而不是清单。
+OneUptime 恢复运行后，**项目设置 > 工作区 > Slack** 会显示 **通过 Slack 连接** 按钮，而不是清单。
 
 ### 验证事件请求 URL
 
@@ -120,7 +120,7 @@ OneUptime 恢复运行后，**项目设置 > 工作区 > Slack** 会显示 **Con
 
 ### 连接项目
 
-在 **项目设置 > 工作区 > Slack** 中选择 **Connect with Slack**，并在 Slack 中允许该应用。Slack 会把你送回同一页面，页面上现在会显示你的工作区。
+在 **项目设置 > 工作区 > Slack** 中选择 **通过 Slack 连接**，并在 Slack 中允许该应用。Slack 会把你送回同一页面，页面上现在会显示你的工作区。
 
 ### 连接你自己的 Slack 账号
 
@@ -131,7 +131,7 @@ OneUptime 恢复运行后，**项目设置 > 工作区 > Slack** 会显示 **Con
 
 | Docker Compose (`config.env`) | Helm (`values.yaml`) | 必需 | 值 |
 | --- | --- | --- | --- |
-| `SLACK_APP_CLIENT_ID` | `slackApp.clientId` | 是 | 应用的 **Client ID**。没有它时，Slack 页面会显示设置指南，而不是 **Connect with Slack**。 |
+| `SLACK_APP_CLIENT_ID` | `slackApp.clientId` | 是 | 应用的 **Client ID**。没有它时，Slack 页面会显示设置指南，而不是 **通过 Slack 连接**。 |
 | `SLACK_APP_CLIENT_SECRET` | `slackApp.clientSecret` | 是 | 应用的 **Client Secret**，用于把 Slack 返回的代码换成令牌。 |
 | `SLACK_APP_SIGNING_SECRET` | `slackApp.signingSecret` | 是 | 应用的 **Signing Secret**。来自 Slack 的每个请求都用它校验。 |
 | `HOST` | `host` | 是 | 你的公共主机名，不含协议。 |
@@ -154,19 +154,19 @@ OneUptime 恢复运行后，**项目设置 > 工作区 > Slack** 会显示 **Con
 
 事件和告警的描述可以包含截图，例如合成监控器的截图（请参阅 [显示截图](/docs/monitor/incident-alert-templating#显示截图)）。OneUptime 会把每张截图作为私有文件上传到你的工作区，从而在 Slack 消息中显示它们，这需要机器人权限范围 `files:write`。生成的清单包含它。
 
-如果你的 Slack 应用是用较旧的清单创建的，请在 **OAuth & Permissions > Bot Token Scopes** 下添加 `files:write`（或用当前清单更新应用）。然后在 **项目设置 > 工作区 > Slack** 中再次选择 **Connect with Slack**，以授予新的权限范围。在此之前，每张截图都会显示为其替代文本。
+如果你的 Slack 应用是用较旧的清单创建的，请在 **OAuth & Permissions > Bot Token Scopes** 下添加 `files:write`（或用当前清单更新应用）。然后在 **项目设置 > 工作区 > Slack** 中再次选择 **通过 Slack 连接**，以授予新的权限范围。在此之前，每张截图都会显示为其替代文本。
 
 ### 值班用户组
 
 要让值班计划的 Slack 用户组与正在值班的人保持一致（请参阅 [值班用户组](/docs/workspace-connections/slack#值班用户组)），需要机器人权限范围 `usergroups:read` 和 `usergroups:write`。生成的清单包含它们。
 
-如果你的 Slack 应用是用较旧的清单创建的，请在 **OAuth & Permissions > Bot Token Scopes** 下添加 `usergroups:read` 和 `usergroups:write`（或用当前清单更新应用）。然后在 **项目设置 > 工作区 > Slack** 中再次选择 **Connect with Slack**，以授予新的权限范围。在此之前，值班计划的卡片会显示 OneUptime 的 Slack 应用尚无权更改用户组。
+如果你的 Slack 应用是用较旧的清单创建的，请在 **OAuth & Permissions > Bot Token Scopes** 下添加 `usergroups:read` 和 `usergroups:write`（或用当前清单更新应用）。然后在 **项目设置 > 工作区 > Slack** 中再次选择 **通过 Slack 连接**，以授予新的权限范围。在此之前，值班计划的卡片会显示 OneUptime 的 Slack 应用尚无权更改用户组。
 
 ### 用较旧清单创建的应用
 
 用较早的 OneUptime 清单创建的 Slack 应用会把 `/incident` 和 `/maintenance` 注册为独立的命令，它们可能与其他应用的同名命令冲突。它们仍然可用，并打开与 `/oneuptime incident` 和 `/oneuptime maintenance` 相同的表单。要用 `/oneuptime` 替换它们，请用你的服务器生成的清单更新应用：在 [api.slack.com/apps](https://api.slack.com/apps) 中打开应用的 **App Manifest**，粘贴清单并保存。
 
-在 `/oneuptime page` 推出之前创建的应用也需要同样的更新：在更新之前，`/oneuptime page` 无法识别你 @提及的人，会打开一个表单让你选择他们，而不是立即呼叫他们。然后在 **项目设置 > 工作区 > Slack** 中再次选择 **Connect with Slack**，以授予清单新增的 `users:read.email` 权限范围：有了它，Slack 账户未连接到 OneUptime 的人也能通过其电子邮件地址找到。
+在 `/oneuptime page` 推出之前创建的应用也需要同样的更新：在更新之前，`/oneuptime page` 无法识别你 @提及的人，会打开一个表单让你选择他们，而不是立即呼叫他们。然后在 **项目设置 > 工作区 > Slack** 中再次选择 **通过 Slack 连接**，以授予清单新增的 `users:read.email` 权限范围：有了它，Slack 账户未连接到 OneUptime 的人也能通过其电子邮件地址找到。
 
 在 **Home** 标签页之前创建的应用也需要同样的更新：在更新之前，Slack 不会为该应用显示 **Home** 标签页，应用也不会在它被添加到的频道中发布问候。更新会打开该标签页，并让应用订阅 `app_home_opened` 和 `member_joined_channel` 事件。它不会添加任何 scope，因此无需重新连接。
 

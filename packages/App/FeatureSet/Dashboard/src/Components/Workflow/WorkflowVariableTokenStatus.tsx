@@ -2,7 +2,6 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Amber500, Gray500, Green500, Red500 } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
-import { inEnglishDates } from "Common/Types/DateLanguage";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   OAuth2TokenStatus,
@@ -13,7 +12,10 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import readAsWritten from "Common/UI/Components/IsolatedText/ReadAsWritten";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 
 /*
@@ -31,6 +33,10 @@ import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
  * and little else - the part that says what to do about it (replace the
  * refresh token, check the client secret) came last and never showed. The
  * server already caps the stored message.
+ *
+ * Every line is the reader's (#6752): the status, the sentence under it and
+ * its date. The provider's own error message is shown as the provider wrote
+ * it.
  */
 
 export interface RefreshAction {
@@ -50,16 +56,27 @@ export interface ComponentProps {
 
 type FormatDateFunction = (date: Date) => string;
 
-// In English, as the status sentences around it are.
+// In the reader's language, as the sentences around it are.
 const formatDate: FormatDateFunction = (date: Date): string => {
-  return inEnglishDates((): string => {
-    return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date);
-  });
+  return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date);
+};
+
+/*
+ * What the pill calls each status. The pill looks its text up, so these are
+ * the keys it finds.
+ */
+export const OAUTH2_TOKEN_STATUS_LABELS: Record<OAuth2TokenStatus, string> = {
+  [OAuth2TokenStatus.NotFetched]: translationKey("Not fetched yet"),
+  [OAuth2TokenStatus.Valid]: translationKey("Valid"),
+  [OAuth2TokenStatus.Expired]: translationKey("Expired"),
+  [OAuth2TokenStatus.NoExpiry]: translationKey("No expiry reported"),
+  [OAuth2TokenStatus.RefreshFailed]: translationKey("Refresh failed"),
 };
 
 const WorkflowVariableTokenStatus: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const summary: OAuth2TokenStatusSummary = getOAuth2TokenStatus({
     accessTokenExpiresAt: props.variable.oauthAccessTokenExpiresAt,
     lastRefreshedAt: props.variable.oauthLastRefreshedAt,
@@ -71,32 +88,47 @@ const WorkflowVariableTokenStatus: FunctionComponent<ComponentProps> = (
   let color: Color = Gray500;
   let icon: IconProp = IconProp.Clock;
   let detail: string = "";
+  // The provider's own words, shown as it wrote them after the detail.
+  let reason: string = "";
 
   switch (summary.status) {
     case OAuth2TokenStatus.Valid:
       color = Green500;
       icon = IconProp.CheckCircle;
-      detail = `Valid until ${formatDate(summary.expiresAt!)}`;
+      detail = translator.translateTemplate(
+        "Valid until {{date}}",
+        { date: formatDate(summary.expiresAt!) },
+        { setsValuesApart: true },
+      );
       break;
     case OAuth2TokenStatus.Expired:
       color = Amber500;
       icon = IconProp.Refresh;
-      detail = "Refreshes automatically the next time a workflow uses it";
+      detail =
+        translator.translateText(
+          "Refreshes automatically the next time a workflow uses it",
+        ) || "";
       break;
     case OAuth2TokenStatus.NoExpiry:
       color = Green500;
       icon = IconProp.CheckCircle;
-      detail = `Fetched ${formatDate(
-        summary.lastRefreshedAt!,
-      )}. The provider did not say when it expires, so every run fetches a new one`;
+      detail = translator.translateTemplate(
+        "Fetched {{date}}. The provider did not say when it expires, so every run fetches a new one",
+        { date: formatDate(summary.lastRefreshedAt!) },
+        { setsValuesApart: true },
+      );
       break;
     case OAuth2TokenStatus.RefreshFailed: {
       color = Red500;
       icon = IconProp.Error;
-      detail = summary.lastRefreshError || "";
+      /*
+       * On a page read from the right, the provider's English kept its full
+       * stop at its own end only when drawn apart from the date before it.
+       */
+      reason = summary.lastRefreshError || "";
 
       if (summary.lastRefreshErrorAt) {
-        detail = `${formatDate(summary.lastRefreshErrorAt)}: ${detail}`;
+        detail = `${formatDate(summary.lastRefreshErrorAt)}: `;
       }
 
       break;
@@ -105,7 +137,9 @@ const WorkflowVariableTokenStatus: FunctionComponent<ComponentProps> = (
     default:
       color = Gray500;
       icon = IconProp.Clock;
-      detail = "Fetched the first time a workflow uses it";
+      detail =
+        translator.translateText("Fetched the first time a workflow uses it") ||
+        "";
       break;
   }
 
@@ -115,14 +149,19 @@ const WorkflowVariableTokenStatus: FunctionComponent<ComponentProps> = (
       data-testid="workflow-variable-token-status"
       data-status={summary.status}
     >
-      <Pill text={summary.status} color={color} icon={icon} />
-      {detail ? (
+      <Pill
+        text={OAUTH2_TOKEN_STATUS_LABELS[summary.status]}
+        color={color}
+        icon={icon}
+      />
+      {detail || reason ? (
         // A refresh error is a sentence or two, so let it wrap.
         <span
           className="whitespace-normal break-words text-sm text-gray-500"
           data-testid="workflow-variable-token-status-detail"
         >
           {detail}
+          {reason ? readAsWritten(reason, translator.language) : <></>}
         </span>
       ) : (
         <></>

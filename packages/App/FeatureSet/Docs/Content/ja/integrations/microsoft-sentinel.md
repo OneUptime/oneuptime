@@ -52,7 +52,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 ### ワークスペースの詳細を確認する
 
-Azure portal で Log Analytics ワークスペースを開きます。その **Overview** ページに、**サブスクリプション ID**、**Resource group**、ワークスペースの名前が表示されます。ワークスペースのリソース ID にも同じ 3 つが含まれます。
+Azure portal で Log Analytics ワークスペースを開きます。その **Overview** ページに、**サブスクリプション ID**、**リソース グループ**、ワークスペースの名前が表示されます。ワークスペースのリソース ID にも同じ 3 つが含まれます。
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -72,8 +72,8 @@ Azure portal で Log Analytics ワークスペースを開きます。その **O
 | **ディレクトリ (テナント) ID** | アプリの **Overview** ページ。テナントの GUID、または `contoso.onmicrosoft.com` のような検証済みドメイン。 |
 | **アプリケーション (クライアント) ID** | アプリの **Overview** ページ。GUID。 |
 | **サブスクリプション ID** | ワークスペースの **Overview** ページ。GUID。 |
-| **Resource group** | ワークスペースの **Overview** ページ。1～90 文字の英字、数字、アンダースコア、ハイフン、ピリオド、かっこで、末尾はピリオド以外。 |
-| **Workspace name** | ワークスペースの **Overview** ページ。3～90 文字の英字、数字、ハイフンで、先頭と末尾は英字または数字。 |
+| **リソース グループ** | ワークスペースの **Overview** ページ。1～90 文字の英字、数字、アンダースコア、ハイフン、ピリオド、かっこで、末尾はピリオド以外。 |
+| **ワークスペース名** | ワークスペースの **Overview** ページ。3～90 文字の英字、数字、ハイフンで、先頭と末尾は英字または数字。 |
 | **クラウド** | **Azure パブリック クラウド**（`login.microsoftonline.com`、`management.azure.com`）または **Azure Government (米国)**（`login.microsoftonline.us`、`management.usgovcloudapi.net`）。 |
 | **クライアントシークレット** | シークレットの **Value**。暗号化され、API から返されることはなく、二度と表示されません。接続の **認証情報を更新** で置き換えます。 |
 
@@ -140,7 +140,7 @@ Microsoft Entra ID や Azure Resource Manager のエラーで完全に失敗し�
 接続の **診断** をクリックすると、最近の実行を確認し、手動で操作できます。これらを開始できるのは接続を変更できるユーザーで、履歴は接続を見られるユーザーなら誰でも読めます。
 
 - **今すぐ実行** は、接続が **有効** でなくても、通常のカーソルでただちにポーリングを開始します。
-- **Preview incidents** は最大 7 日間の時間範囲を読み取り、何もインポートしません。
+- **インシデントをプレビュー** は最大 7 日間の時間範囲を読み取り、何もインポートしません。
 - **この時間範囲をインポート** は、確認後、カーソルを動かさずに最大 7 日間の範囲をインポートします。インポート済みのインシデントはスキップされます。
 - 実行の **診断情報をコピー** は、サポート向けにその実行のレポートをコピーします。認証情報は含まれません。
 
@@ -246,7 +246,7 @@ Azure portal で、ワークスペースの **Tables → Create → New custom l
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: Azure Resource Manager がリクエストを拒否しました。
   - `HTTP 401`: トークンが受け入れられませんでした。ほとんどの場合、**クラウド** がテナントと一致していないか、アプリの登録が削除されています。2 つのページの間で期限切れになったトークンは、自動的に更新され 1 回だけ再試行されます。
   - `HTTP 403` または `AuthorizationFailed`: アプリにまだリソースグループの **Microsoft Sentinel Reader** がありません。割り当ててから数分待ちます。
-  - `HTTP 404`: その **サブスクリプション ID**、**Resource group**、**Workspace name** を持つワークスペースがないか、そこで Microsoft Sentinel が有効になっていません。ワークスペースの **Overview** ページからコピーします。
+  - `HTTP 404`: その **サブスクリプション ID**、**リソース グループ**、**ワークスペース名** を持つワークスペースがないか、そこで Microsoft Sentinel が有効になっていません。ワークスペースの **Overview** ページからコピーします。
   - `HTTP 429` または `HTTP 5xx`: Azure Resource Manager がリクエストを制限しているか、利用できません。次のポーリングで再試行されます。
   - `HTTP 400`: Azure Resource Manager がリクエストを拒否しました。リクエストを組み立てているのはあなたの設定ではなく OneUptime です。メッセージを OneUptime サポートに送ってください。
 - `Microsoft Sentinel incidents list returned ...`: Azure は `200` を返しましたが、読み取れるインシデントのページがないか、別のホストへの `nextLink` が含まれていました。接続はこのリンクを拒否し、トークンが Azure Resource Manager の外に出ないようにします。誰も読んでいないインシデントをカーソルが飛び越えないよう、空の時間枠とは見なさずに報告します。

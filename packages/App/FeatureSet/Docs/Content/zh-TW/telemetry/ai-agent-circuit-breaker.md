@@ -193,7 +193,7 @@ API 區塊的 **Request Headers** ：
 :::
 
 :::details 你的端點回應 401
-`Authorization` 標頭與你的端點預期的權杖不一致。檢查 `{{global.variables.AGENT_KILL_TOKEN}}` 中的名稱，以及全域變數中儲存的值。機密變數的值無法讀回，如有疑慮，請用 **Update Content** 重新輸入。
+`Authorization` 標頭與你的端點預期的權杖不一致。檢查 `{{global.variables.AGENT_KILL_TOKEN}}` 中的名稱，以及全域變數中儲存的值。機密變數的值無法讀回，如有疑慮，請用 **更新內容** 重新輸入。
 :::
 
 :::details 預算警示反覆開啟又解決

@@ -52,7 +52,7 @@ Die Rolle erlaubt der App, Vorfälle zu lesen (`Microsoft.SecurityInsights/incid
 
 ### Die Angaben des Arbeitsbereichs finden
 
-Öffnen Sie den Log-Analytics-Arbeitsbereich im Azure-Portal. Seine Seite **Overview** zeigt die **Abonnement-ID**, die **Resource group** und den Namen des Arbeitsbereichs. Die Ressourcen-ID des Arbeitsbereichs enthält dieselben drei:
+Öffnen Sie den Log-Analytics-Arbeitsbereich im Azure-Portal. Seine Seite **Overview** zeigt die **Abonnement-ID**, die **Ressourcengruppe** und den Namen des Arbeitsbereichs. Die Ressourcen-ID des Arbeitsbereichs enthält dieselben drei:
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -72,8 +72,8 @@ Klicken Sie unter **Vor dem Speichern testen** auf **Diese Einstellungen testen*
 | **Verzeichnis-ID (Tenant)** | Die Seite **Overview** der App. Die GUID des Mandanten oder eine verifizierte Domäne wie `contoso.onmicrosoft.com`. |
 | **Anwendungs-ID (Client)** | Die Seite **Overview** der App. Eine GUID. |
 | **Abonnement-ID** | Die Seite **Overview** des Arbeitsbereichs. Eine GUID. |
-| **Resource group** | Die Seite **Overview** des Arbeitsbereichs. 1 bis 90 Buchstaben, Ziffern, Unterstriche, Bindestriche, Punkte oder Klammern, nicht mit einem Punkt am Ende. |
-| **Workspace name** | Die Seite **Overview** des Arbeitsbereichs. 3 bis 90 Buchstaben, Ziffern oder Bindestriche, mit einem Buchstaben oder einer Ziffer am Anfang und am Ende. |
+| **Ressourcengruppe** | Die Seite **Overview** des Arbeitsbereichs. 1 bis 90 Buchstaben, Ziffern, Unterstriche, Bindestriche, Punkte oder Klammern, nicht mit einem Punkt am Ende. |
+| **Name des Arbeitsbereichs** | Die Seite **Overview** des Arbeitsbereichs. 3 bis 90 Buchstaben, Ziffern oder Bindestriche, mit einem Buchstaben oder einer Ziffer am Anfang und am Ende. |
 | **Cloud** | **Öffentliche Azure-Cloud** (`login.microsoftonline.com`, `management.azure.com`) oder **Azure Government (USA)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
 | **Client-Secret** | Der **Value** des Geheimnisses. Es wird verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie es mit **Anmeldedaten aktualisieren** an der Verbindung. |
 
@@ -140,7 +140,7 @@ Ein Lauf, der ganz fehlschlägt, mit einem Fehler von Microsoft Entra ID oder Az
 Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehen und von Hand mit ihr zu arbeiten. Wer die Verbindung ändern darf, kann diese starten; wer sie sehen darf, kann den Verlauf lesen.
 
 - **Jetzt ausführen** startet sofort eine Abfrage, mit dem üblichen Cursor, auch wenn die Verbindung nicht **Aktiviert** ist.
-- **Preview incidents** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
+- **Vorschau der Vorfälle** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
 - **Diesen Zeitraum importieren** importiert nach Ihrer Bestätigung einen Zeitraum von bis zu 7 Tagen, ohne den Cursor zu verschieben. Bereits importierte Vorfälle werden übersprungen.
 - **Diagnosen kopieren** an einem Lauf kopiert seinen Bericht für den Support. Er enthält nie Anmeldedaten.
 
@@ -246,7 +246,7 @@ Der **Letzter Fehler** der Verbindung bewahrt die vollständige Fehlermeldung, m
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: Azure Resource Manager hat die Anfrage abgelehnt.
   - `HTTP 401`: Es hat das Token nicht angenommen. Fast immer passt **Cloud** nicht zum Mandanten, oder die App-Registrierung wurde gelöscht. Ein Token, das zwischen zwei Seiten abläuft, wird von selbst erneuert und einmal wiederholt.
   - `HTTP 403` oder `AuthorizationFailed`: Die App hat **Microsoft Sentinel Reader** für die Ressourcengruppe noch nicht. Weisen Sie die Rolle zu und warten Sie einige Minuten.
-  - `HTTP 404`: Kein Arbeitsbereich hat diese **Abonnement-ID**, **Resource group** und diesen **Workspace name**, oder Microsoft Sentinel ist darauf nicht aktiviert. Kopieren Sie sie von der Seite **Overview** des Arbeitsbereichs.
+  - `HTTP 404`: Kein Arbeitsbereich hat diese **Abonnement-ID**, **Ressourcengruppe** und diesen **Name des Arbeitsbereichs**, oder Microsoft Sentinel ist darauf nicht aktiviert. Kopieren Sie sie von der Seite **Overview** des Arbeitsbereichs.
   - `HTTP 429` oder `HTTP 5xx`: Azure Resource Manager drosselt oder ist nicht verfügbar. Die nächste Abfrage versucht es erneut.
   - `HTTP 400`: Azure Resource Manager hat die Abfrage abgelehnt, die OneUptime baut, nicht Ihre Einstellungen. Senden Sie die Meldung an den OneUptime-Support.
 - `Microsoft Sentinel incidents list returned ...`: Azure hat mit `200` geantwortet, aber ohne lesbare Seite mit Vorfällen oder mit einem `nextLink` auf einen anderen Host, den die Verbindung ablehnt, damit das Token Azure Resource Manager nie verlässt. Das wird gemeldet statt als leeres Zeitfenster genommen, damit der Cursor nie über Vorfälle hinwegrückt, die niemand gelesen hat.

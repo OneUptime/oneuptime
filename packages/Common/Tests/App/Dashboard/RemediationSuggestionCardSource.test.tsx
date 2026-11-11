@@ -36,9 +36,10 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
  * Who a runbook suggestion on the Remediation card is from. With no rule set
  * up, OneUptime AI proposes the project's runbook that fits each new
  * incident or alert itself: that pick is OneUptime AI's, and the card says
- * so - never "Rule: OneUptime AI", as if a rule of that name had made it. A
- * rule's pick names its rule, and so does one whose rule was deleted since
- * (its suggestion keeps the rule's name).
+ * so - "From OneUptime AI", never 'From AI rule "OneUptime AI"', as if a
+ * rule of that name had made it. A rule's pick names its rule, and so does
+ * one whose rule was deleted since (its suggestion keeps the rule's name).
+ * The fix is named for its runbook (issue #6860).
  */
 
 const INCIDENT_ID: ObjectID = new ObjectID(
@@ -71,7 +72,11 @@ async function renderCard(row: AutoRemediationSuggestion): Promise<void> {
   render(
     <RemediationStep investigationStage="reported" incidentId={INCIDENT_ID} />,
   );
-  await screen.findByText("Restart checkout");
+  await screen.findByText('Runbook "Restart checkout"');
+}
+
+function source(): HTMLElement {
+  return screen.getByTestId("remediation-fix-source");
 }
 
 beforeEach(() => {
@@ -87,8 +92,8 @@ describe("who a runbook suggestion is from", () => {
   test("the project's own pick is OneUptime AI's, not a rule's", async () => {
     await renderCard(runbookPick());
 
-    expect(screen.getByText("OneUptime AI")).toBeInTheDocument();
-    expect(screen.queryByText("Rule: OneUptime AI")).not.toBeInTheDocument();
+    expect(source()).toHaveTextContent(/^From OneUptime AI$/);
+    expect(source()).not.toHaveTextContent("AI rule");
   });
 
   test("a rule's pick names its rule", async () => {
@@ -99,9 +104,9 @@ describe("who a runbook suggestion is from", () => {
       }),
     );
 
-    expect(
-      screen.getByText("Rule: Fix database incidents"),
-    ).toBeInTheDocument();
+    expect(source()).toHaveTextContent(
+      /^From AI rule "Fix database incidents"$/,
+    );
   });
 
   test("a pick whose rule was deleted still names the rule it was for", async () => {
@@ -112,9 +117,20 @@ describe("who a runbook suggestion is from", () => {
       }),
     );
 
-    expect(
-      screen.getByText("Rule: Fix database incidents"),
-    ).toBeInTheDocument();
+    expect(source()).toHaveTextContent(
+      /^From AI rule "Fix database incidents"$/,
+    );
+  });
+
+  test("a pick whose rule and its name are both gone says so, never an empty name", async () => {
+    await renderCard(
+      runbookPick({
+        autoRemediationRuleId: undefined,
+        ruleNameSnapshot: undefined,
+      }),
+    );
+
+    expect(source()).toHaveTextContent(/^From AI rule "Unknown"$/);
   });
 
   test("the card reads which rule a suggestion is for", async () => {

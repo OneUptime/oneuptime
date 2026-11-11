@@ -48,7 +48,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 在 OneUptime 中添加连接
 
-打开 **产品 → 安全事件 → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，在 **身份** 下选择 **Google Workspace**，然后点击 **下一步**。填写 **Administrator email**，点击 **下一步**，并把密钥文件的内容粘贴到 **服务账户 JSON** 中。在 **轮询** 步骤中开启 **云端硬盘活动**，即可同时读取云端硬盘。
+打开 **产品 → 安全事件 → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，在 **身份** 下选择 **Google Workspace**，然后点击 **下一步**。填写 **管理员邮箱**，点击 **下一步**，并把密钥文件的内容粘贴到 **服务账户 JSON** 中。在 **轮询** 步骤中开启 **云端硬盘活动**，即可同时读取云端硬盘。
 
 ### 保存之前先测试
 
@@ -57,7 +57,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 | 设置 | 填写什么 |
 | --- | --- |
-| **Administrator email** | 服务账户代为行事的管理员的地址，例如 `admin@example.com`。该管理员必须拥有 Reports 权限。 |
+| **管理员邮箱** | 服务账户代为行事的管理员的地址，例如 `admin@example.com`。该管理员必须拥有 Reports 权限。 |
 | **云端硬盘活动** | 可选，默认关闭。开启后，每次轮询也会读取云端硬盘的共享和下载。 |
 | **服务账户 JSON** | 整个密钥文件，其中包含 `client_email` 和 `private_key`。它会被加密，API 从不返回，也不会再次显示。在连接上用 **更新凭据** 替换它。 |
 
@@ -94,7 +94,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 1. **缩小。** 下一次轮询从同一个起点读取长度减半的窗口，并不断减半，直到某个窗口能被完整读取，最短为一分钟。运行的警告会说明这一点：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` 已从较长窗口导入的活动会作为重复项被跳过。
 2. **恢复。** 一个窗口被完整读取后，游标会移到它的末尾，下一个窗口的长度会再次加倍，最长为 24 小时。
-3. **越过单独的一分钟。** 如果连一分钟内的活动都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的活动继续到达。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
+3. **越过单独的一分钟。** 如果连一分钟内的活动都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的活动继续到达。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **导入此时间范围** 导入这一分钟，即可找回一次运行能读取的内容。
 
 更改 **轮询间隔（分钟）** 不会改变这些：它决定的是轮询多久开始一次，而不是窗口从哪里开始。
 
@@ -103,9 +103,9 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 在连接上点击 **诊断**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
 
 - **立即运行** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
-- **Preview audit events** 读取最长 7 天的时间范围，不导入任何内容。
-- **Import this time range** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的活动会被跳过。Google 会保留 6 个月的审计日志。
-- 运行上的 **Copy diagnostics** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
+- **预览审计事件** 读取最长 7 天的时间范围，不导入任何内容。
+- **导入此时间范围** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的活动会被跳过。Google 会保留 6 个月的审计日志。
+- 运行上的 **复制诊断信息** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
 
 ## 测试连接
 
@@ -119,7 +119,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 | **Read Drive activity** | 仅在开启该选项时：可以读取云端硬盘的日志。 |
 | **Activities available to import** | 过去 24 小时内有多少登录活动和管理活动，每种最多数到 1,000，因此 `1000+` 表示更多。一个都没有时为警告。 |
 | **Background workers**、**Poll scheduler**、**Security event storage** | OneUptime 自身的一侧：有进程在处理 Worker 队列的作业，轮询作业每分钟运行一次，安全事件存储能够响应。 |
-| **Scheduled polling** | 针对已保存的连接：轮询已开启，没有运行卡在等待工作进程的状态，并且轮询按时运行。 |
+| **计划轮询** | 针对已保存的连接：轮询已开启，没有运行卡在等待工作进程的状态，并且轮询按时运行。 |
 
 测试中的每个请求都有 20 秒的期限。测试从不导入任何内容，也不移动游标，每个失败的检查都会说明需要更改什么。
 
@@ -129,7 +129,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 :::details 最近错误 显示 `token request failed`
 - `unauthorized_client`：服务账户没有针对该范围的全网域授权。请在 **Manage domain-wide delegation** 中，用 `https://www.googleapis.com/auth/admin.reports.audit.readonly` 添加它的 **Unique ID**。
-- 带有 `Invalid email or User ID` 的 `invalid_grant`：**Administrator email** 不是此 Google Workspace 的用户。
+- 带有 `Invalid email or User ID` 的 `invalid_grant`：**管理员邮箱** 不是此 Google Workspace 的用户。
 - 带有 `Invalid JWT Signature` 的 `invalid_grant`：密钥已被删除或停用。请创建一个新密钥，并用 **更新凭据** 保存。
 :::
 

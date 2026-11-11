@@ -201,7 +201,7 @@ date=2024-01-01 time=10:00:00 devname="FG100" logid="0100032001" type="event" su
 
 ## 類別處理器
 
-依序評估規則清單，並把第一個篩選器符合的規則名稱儲存到目標屬性中，讓你可以一次搜尋所有 "Payment Error" 日誌。設定 **目標屬性**（預設為 `category`），然後新增 **類別規則**：每條規則包含一個 **Category name** 與 **When logs match** 下的條件。第一個符合的規則生效；不符合任何規則的日誌會保持不變。在網路設備的日誌上，一條以事件形式命名的規則（`ups.on_battery`），放在目標屬性 `event.name` 下，會使該日誌成為[網路事件](/docs/monitor/network-events#你自己的事件)。
+依序評估規則清單，並把第一個篩選器符合的規則名稱儲存到目標屬性中，讓你可以一次搜尋所有 "Payment Error" 日誌。設定 **目標屬性**（預設為 `category`），然後新增 **類別規則**：每條規則包含一個 **類別名稱** 與 **When logs match** 下的條件。第一個符合的規則生效；不符合任何規則的日誌會保持不變。在網路設備的日誌上，一條以事件形式命名的規則（`ups.on_battery`），放在目標屬性 `event.name` 下，會使該日誌成為[網路事件](/docs/monitor/network-events#你自己的事件)。
 
 ## 後續步驟
 

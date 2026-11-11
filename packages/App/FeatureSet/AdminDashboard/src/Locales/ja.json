@@ -312,6 +312,8 @@
       "dataResidencyFieldDescription": "このプロジェクトのデータがホストされている場所を示すラベルです（例: \"EU (Frankfurt)\"）。プロジェクトのユーザーに表示しない場合は空欄のままにしてください。",
       "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
       "dataResidencyNotSet": "未設定",
+      "milestonesCardTitle": "セットアップの進捗",
+      "milestonesCardDescription": "このプロジェクトが作成されてから行ったことと、止まっている箇所です。このサーバー自身のデータから読み取り、どこにも送信しません。",
       "ingestionBudgets": {
         "dailyCardTitle": "このプロジェクトの 1 日の予算",
         "dailyCardDescription": "インスタンスのデフォルトに代わる、このプロジェクト独自のシグナルごとの 1 日の予算です。インスタンスのデフォルトを使うシグナルは空欄のままにし、制限しない場合は 0 を入力します。プロジェクトの管理者はこれらを確認できますが、変更はできません。",

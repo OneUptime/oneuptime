@@ -1,3 +1,5 @@
+import ProjectMilestoneService from "./ProjectMilestoneService";
+import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -417,6 +419,18 @@ export class Service extends ProjectReferencesService<Model> {
         }),
         createdItemId: createdItem.id,
         order: createdItem.order,
+      });
+    }
+
+    /*
+     * The project's first status page that shows a monitor (issue #6830): a
+     * monitor, or a monitor group, put on a page. A resource that shows
+     * something else does not count.
+     */
+    if (createdItem.monitorId || createdItem.monitorGroupId) {
+      ProjectMilestoneService.reachInBackground({
+        projectId: createdItem.projectId,
+        milestone: ActivationMilestone.FirstStatusPageMonitorAdded,
       });
     }
 

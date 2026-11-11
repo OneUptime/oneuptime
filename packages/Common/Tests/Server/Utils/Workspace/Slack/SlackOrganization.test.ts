@@ -872,29 +872,17 @@ describe("getOfConnection: the organization, its workspaces read again when stal
     });
   });
 
-  test("a default Slack still lists, one never chosen, or one kept while Slack lists none: not stored again", async () => {
-    // Still listed: stays, and is not written.
+  test("a default Slack still lists, or one kept while Slack lists none: not stored again", async () => {
+    // Still listed - even with one that comes first by name: stays, and is not written.
     answer(
       "auth.teams.list",
       teamsPage([WEST, LABS, EAST] as unknown as Array<JSONObject>),
     );
 
-    await SlackOrganization.getOfConnection({
-      projectId: PROJECT_ID,
-      projectAuth: organizationAuth(),
-      refresh: true,
-    });
-
-    // Never chosen: the first by name, read so each time, not fixed.
-    answer(
-      "auth.teams.list",
-      teamsPage([WEST, LABS] as unknown as Array<JSONObject>),
-    );
-
-    const unchosen: SlackOrganizationConnection | null =
+    const listed: SlackOrganizationConnection | null =
       await SlackOrganization.getOfConnection({
         projectId: PROJECT_ID,
-        projectAuth: organizationAuth({ defaultWorkspaceId: undefined }),
+        projectAuth: organizationAuth({ defaultWorkspaceId: LABS.id }),
         refresh: true,
       });
 
@@ -908,13 +896,118 @@ describe("getOfConnection: the organization, its workspaces read again when stal
         refresh: true,
       });
 
-    expect(unchosen?.defaultWorkspaceId).toBe(LABS.id);
+    expect(listed?.defaultWorkspaceId).toBe(LABS.id);
     expect(none?.defaultWorkspaceId).toBe(EAST.id);
-    expect(updateSpy).toHaveBeenCalledTimes(3);
+    expect(updateSpy).toHaveBeenCalledTimes(2);
 
     for (const call of updateSpy.mock.calls) {
       expect(Object.keys(call[0]!)).not.toContain("defaultWorkspaceId");
     }
+  });
+
+  /*
+   * #6784: an installation with no default stored - made before installs
+   * stored the first workspace by name - has it stored once Slack lists
+   * them. Left to be read each time, OneUptime added to a workspace that
+   * comes first by name took it over, and OneUptime removed from it moved it
+   * without dropping its cached channels: a rule that names no workspace
+   * kept finding its channel in the workspace OneUptime left.
+   */
+  test("a default never stored: the first workspace by name is stored", async () => {
+    answer(
+      "auth.teams.list",
+      teamsPage([WEST, EAST] as unknown as Array<JSONObject>),
+    );
+
+    const connection: SlackOrganizationConnection | null =
+      await SlackOrganization.getOfConnection({
+        projectId: PROJECT_ID,
+        projectAuth: organizationAuth({ defaultWorkspaceId: undefined }),
+        refresh: true,
+      });
+
+    expect(connection?.defaultWorkspaceId).toBe(EAST.id);
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      workspaceProjectId: "E0ACME",
+      workspaces: [WEST, EAST],
+      workspacesReadAt: NOW,
+      removedWorkspaces: [],
+      defaultWorkspaceId: EAST.id,
+    });
+  });
+
+  test("a default never stored that OneUptime was removed from: the first workspace left by name is stored, with the one it left", async () => {
+    // Listed before: East and West, so East was the default, read by name.
+    answer(
+      "auth.teams.list",
+      teamsPage([WEST, LABS] as unknown as Array<JSONObject>),
+    );
+
+    const connection: SlackOrganizationConnection | null =
+      await SlackOrganization.getOfConnection({
+        projectId: PROJECT_ID,
+        projectAuth: organizationAuth({
+          defaultWorkspaceId: undefined,
+          workspacesReadAt: minutesAgo(30),
+        }),
+      });
+
+    expect(connection?.defaultWorkspaceId).toBe(LABS.id);
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      workspaceProjectId: "E0ACME",
+      workspaces: [WEST, LABS],
+      workspacesReadAt: NOW,
+      removedWorkspaces: [EAST],
+      defaultWorkspaceId: LABS.id,
+    });
+  });
+
+  test("a default stored where it moved stays there when OneUptime is added to the old one again", async () => {
+    // Removed from East: the default moves to Labs, and is stored there.
+    answer(
+      "auth.teams.list",
+      teamsPage([WEST, LABS] as unknown as Array<JSONObject>),
+    );
+
+    await SlackOrganization.getOfConnection({
+      projectId: PROJECT_ID,
+      projectAuth: organizationAuth({ defaultWorkspaceId: undefined }),
+      refresh: true,
+    });
+
+    const moved: string | undefined = (
+      updateSpy.mock.calls[0]![0] as { defaultWorkspaceId?: string }
+    ).defaultWorkspaceId;
+
+    expect(moved).toBe(LABS.id);
+
+    // Added to East again, which comes first by name: Labs stays the default.
+    answer(
+      "auth.teams.list",
+      teamsPage([WEST, LABS, EAST] as unknown as Array<JSONObject>),
+    );
+
+    const connection: SlackOrganizationConnection | null =
+      await SlackOrganization.getOfConnection({
+        projectId: PROJECT_ID,
+        projectAuth: organizationAuth({
+          workspaces: [WEST, LABS],
+          removedWorkspaces: [EAST],
+          defaultWorkspaceId: moved,
+        }),
+        refresh: true,
+      });
+
+    expect(connection?.defaultWorkspaceId).toBe(LABS.id);
+    expect(idsOf(connection!.workspaces)).toEqual([LABS.id, EAST.id, WEST.id]);
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+    expect(Object.keys(updateSpy.mock.calls[1]![0]!)).not.toContain(
+      "defaultWorkspaceId",
+    );
   });
 
   test.each([

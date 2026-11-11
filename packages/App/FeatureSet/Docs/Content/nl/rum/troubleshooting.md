@@ -146,9 +146,9 @@ De pagina **Clients** toont `browser.platform` op het web en `device.model.ident
 - **Safari en Firefox.** `browserDetector` leest de UA Client Hints-API, die alleen Chromium-browsers hebben. Op de andere stelt hij `browser.language` in, wat genoeg is om de telemetrie als RUM te archiveren, maar geen `browser.platform`. Stel `browser.platform` zelf in om die clients te laten verschijnen.
 - **Een mobiele SDK die alleen `device.manufacturer` instelt.** Dat archiveert de telemetrie als mobiele RUM, maar de pagina **Clients** heeft `device.model.identifier` nodig.
 
-## Core Web Vitals toont «No web vitals reported yet»
+## Core Web Vitals toont «Nog geen web vitals gemeld»
 
-De kaart vult zich alleen met metrieken die je app verstuurt, dus traces alleen vullen haar nooit. Controleer of je metrieken exporteert, of de namen ervan bij de namen horen die OneUptime leest en of ze op de pagina **Metrieken** van de applicatie verschijnen. [De kaart zegt «No web vitals reported yet»](/docs/rum/web-vitals#probleemoplossing) loopt elke controle door, inclusief waarden die verloren gaan wanneer een bezoeker het tabblad sluit voor de volgende export.
+De kaart vult zich alleen met metrieken die je app verstuurt, dus traces alleen vullen haar nooit. Controleer of je metrieken exporteert, of de namen ervan bij de namen horen die OneUptime leest en of ze op de pagina **Metrieken** van de applicatie verschijnen. [De kaart zegt «Nog geen web vitals gemeld»](/docs/rum/web-vitals#probleemoplossing) loopt elke controle door, inclusief waarden die verloren gaan wanneer een bezoeker het tabblad sluit voor de volgende export.
 
 ## De status zegt Geen recent verkeer terwijl mensen de app gebruiken
 

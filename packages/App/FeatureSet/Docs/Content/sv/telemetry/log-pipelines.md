@@ -201,7 +201,7 @@ Flyttar värdet från ett attribut (**Källnyckel**) till ett annat (**Målnycke
 
 ## Kategoriprocessor
 
-Utvärderar en lista med regler i ordning och lagrar namnet på den första regel vars filter matchar i ett målattribut, så att du kan hitta alla "Payment Error"-loggar på en gång. Sätt **Målattribut** (`category` som standard) och lägg sedan till **Kategoriregler**: ett **Category name** och villkoren under **When logs match**. Den första regeln som matchar vinner; en logg som inte matchar någon lämnas oförändrad. På en nätverksenhets loggar gör en regel som är namngiven som en händelse (`ups.on_battery`) under målattributet `event.name` loggen till en [nätverkshändelse](/docs/monitor/network-events#dina-egna-händelser).
+Utvärderar en lista med regler i ordning och lagrar namnet på den första regel vars filter matchar i ett målattribut, så att du kan hitta alla "Payment Error"-loggar på en gång. Sätt **Målattribut** (`category` som standard) och lägg sedan till **Kategoriregler**: ett **Kategorinamn** och villkoren under **When logs match**. Den första regeln som matchar vinner; en logg som inte matchar någon lämnas oförändrad. På en nätverksenhets loggar gör en regel som är namngiven som en händelse (`ups.on_battery`) under målattributet `event.name` loggen till en [nätverkshändelse](/docs/monitor/network-events#dina-egna-händelser).
 
 ## Nästa steg
 

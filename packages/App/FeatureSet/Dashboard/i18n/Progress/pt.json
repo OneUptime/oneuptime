@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50316,
-    "untranslated": 10108
+    "keys": 50430,
+    "untranslated": 9714
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -53,6 +53,8 @@
     "Chat",
     "Chats",
     "ClickHouse",
+    "Client ID",
+    "Client Secret",
     "CloudKitty",
     "Cluster",
     "Cluster {{cluster}}",
@@ -96,6 +98,7 @@
     "Flags",
     "Flavor",
     "Flavors",
+    "Fluent Bit",
     "Gateway",
     "Gibibytes",
     "Gigabits",
@@ -104,6 +107,7 @@
     "Global",
     "Golden Signals",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "H1",
     "HA: {{state}}",
@@ -111,6 +115,7 @@
     "HH",
     "HTTP {{status}}",
     "Hardware",
+    "Hash",
     "Hertz",
     "Hong Kong (+852)",
     "Host",
@@ -229,6 +234,7 @@
     "Red Hat OpenStack on OpenShift",
     "RegionOne",
     "Runbook",
+    "Runbook \"{{name}}\"",
     "Runbook: {{name}}",
     "Runbooks",
     "Runner",

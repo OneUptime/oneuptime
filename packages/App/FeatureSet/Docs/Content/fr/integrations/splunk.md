@@ -44,7 +44,7 @@ Pour vous authentifier plutôt avec un mot de passe, sautez cette étape et gard
 
 ### Ajouter la connexion dans OneUptime
 
-Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{projectId}/security-events/connections`), cliquez sur **Ajouter une connexion**, choisissez **Splunk Enterprise Security**, puis cliquez sur **Suivant**. Remplissez les paramètres du tableau ci-dessous, cliquez sur **Suivant**, et collez le jeton dans **Authentication token**, ou le mot de passe dans **Mot de passe**.
+Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{projectId}/security-events/connections`), cliquez sur **Ajouter une connexion**, choisissez **Splunk Enterprise Security**, puis cliquez sur **Suivant**. Remplissez les paramètres du tableau ci-dessous, cliquez sur **Suivant**, et collez le jeton dans **Jeton d'authentification**, ou le mot de passe dans **Mot de passe**.
 
 ### La tester avant d'enregistrer
 
@@ -53,13 +53,13 @@ Cliquez sur **Tester ces paramètres** sous **Tester avant d'enregistrer**. Le t
 
 | Réglage | Ce qu'il faut saisir |
 | --- | --- |
-| **Splunk management URL** | L'API REST du search head, par exemple `https://splunk.example.com:8089`. Elle doit utiliser `https`, sans chaîne de requête. Un chemin est conservé, pour un proxy inverse qui sert l'API sous un chemin. |
+| **URL de gestion de Splunk** | L'API REST du search head, par exemple `https://splunk.example.com:8089`. Elle doit utiliser `https`, sans chaîne de requête. Un chemin est conservé, pour un proxy inverse qui sert l'API sous un chemin. |
 | **Rechercher** | La recherche qui choisit ce qu'il faut importer, `index=notable` tant que vous ne la changez pas. Restreignez-la, par exemple avec `index=notable urgency IN (high, critical)`. OneUptime ajoute lui-même la plage de temps : la recherche ne peut donc fixer ni `earliest` ni `latest`, ni commencer par un pipe. Un `search` en tête est retiré. |
 | **Nom d'utilisateur** | Le nom de l'utilisateur Splunk, seulement s'il s'authentifie avec un mot de passe. |
-| **Authentication token** | Le jeton de la première étape. Quand un jeton est enregistré, c'est lui qui est utilisé, et pas le nom d'utilisateur ni le mot de passe. |
+| **Jeton d'authentification** | Le jeton de la première étape. Quand un jeton est enregistré, c'est lui qui est utilisé, et pas le nom d'utilisateur ni le mot de passe. |
 | **Mot de passe** | Le mot de passe de l'utilisateur Splunk, seulement quand aucun jeton n'est utilisé. |
 
-**Authentication token** et **Mot de passe** sont chiffrés, jamais renvoyés par l'API et jamais réaffichés. Remplacez-en un avec **Mettre à jour les identifiants** sur la connexion. Pour passer d'une authentification à l'autre, saisissez-y la nouvelle et activez **Remove the stored Authentication token** ou **Remove the stored Password**.
+**Jeton d'authentification** et **Mot de passe** sont chiffrés, jamais renvoyés par l'API et jamais réaffichés. Remplacez-en un avec **Mettre à jour les identifiants** sur la connexion. Pour passer d'une authentification à l'autre, saisissez-y la nouvelle et activez **Supprimer le champ Jeton d'authentification enregistré** ou **Supprimer le champ Mot de passe enregistré**.
 
 L'étape **Interrogation** contient aussi une **Description** facultative, le **Intervalle d'interrogation (minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
 
@@ -129,7 +129,7 @@ Une exécution qui échoue complètement, avec une erreur de Splunk, garde le cu
 Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récentes et travailler avec elle à la main. Quiconque peut modifier la connexion peut les lancer ; quiconque peut la voir peut lire l'historique.
 
 - **Exécuter maintenant** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
-- **Preview notable events** lit une plage de temps de 7 jours au plus et n'importe rien.
+- **Aperçu des événements notables** lit une plage de temps de 7 jours au plus et n'importe rien.
 - **Importer cette plage de temps** importe une plage de 7 jours au plus, après votre confirmation, sans déplacer le curseur. Les lignes déjà importées sont sautées.
 - **Copier les diagnostics** sur une exécution copie son rapport pour le support. Il ne contient jamais d'identifiants.
 
@@ -177,7 +177,7 @@ La **Dernière erreur** de la connexion conserve le message d'erreur complet, id
 :::details Dernière erreur commence par `Splunk Enterprise Security authentication request`
 - `Splunk Enterprise Security authentication request failed (HTTP ...)` : Splunk a refusé de dire qui est l'appelant.
   - `HTTP 401` : Splunk n'a pas accepté les identifiants. Le jeton est faux, expiré ou supprimé, l'authentification par jeton est désactivée sur le search head, ou le nom d'utilisateur ou le mot de passe est faux. Créez un nouveau jeton et enregistrez-le avec **Mettre à jour les identifiants**.
-  - `HTTP 404` : la **Splunk management URL** n'est pas l'API REST. Elle pointe vers Splunk Web sur le port `8000`, ou elle a un chemin que le search head ne sert pas.
+  - `HTTP 404` : la **URL de gestion de Splunk** n'est pas l'API REST. Elle pointe vers Splunk Web sur le port `8000`, ou elle a un chemin que le search head ne sert pas.
 - `Splunk Enterprise Security authentication request returned ...` : autre chose que l'API REST du search head a répondu, par exemple le HTML de Splunk Web sur le port `8000` ou la page d'un proxy. Faites pointer l'URL vers le port de gestion.
 :::
 
