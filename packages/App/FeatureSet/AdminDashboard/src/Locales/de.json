@@ -312,6 +312,8 @@
       "dataResidencyFieldDescription": "Eine Bezeichnung dafür, wo die Daten dieses Projekts gehostet werden, zum Beispiel \"EU (Frankfurt)\". Leer lassen, um sie vor den Benutzern des Projekts auszublenden.",
       "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
       "dataResidencyNotSet": "Nicht festgelegt",
+      "milestonesCardTitle": "Einrichtungsfortschritt",
+      "milestonesCardDescription": "Was dieses Projekt seit seiner Erstellung erreicht hat und wo es feststeckt. Aus den eigenen Daten dieses Servers gelesen; nichts wird irgendwohin gesendet.",
       "ingestionBudgets": {
         "dailyCardTitle": "Tagesbudgets für dieses Projekt",
         "dailyCardDescription": "Das eigene Tagesbudget dieses Projekts für jedes Signal, anstelle des Standards der Instanz. Lassen Sie ein Signal leer für den Standard der Instanz, oder geben Sie 0 für kein Limit ein. Die Administratoren des Projekts sehen diese Werte, können sie aber nicht ändern.",

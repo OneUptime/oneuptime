@@ -312,6 +312,8 @@
       "dataResidencyFieldDescription": "En etikett för var det här projektets data lagras, till exempel \"EU (Frankfurt)\". Lämna tomt för att dölja den för projektets användare.",
       "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
       "dataResidencyNotSet": "Inte angiven",
+      "milestonesCardTitle": "Konfigurationsförlopp",
+      "milestonesCardDescription": "Vad det här projektet har gjort sedan det skapades och var det har fastnat. Läses från serverns egna data; ingenting skickas någonstans.",
       "ingestionBudgets": {
         "dailyCardTitle": "Dagliga budgetar för det här projektet",
         "dailyCardDescription": "Det här projektets egen dagliga budget för varje signal, i stället för instansens standard. Lämna en signal tom för instansens standard, eller ange 0 för ingen gräns. Projektets administratörer ser dessa men kan inte ändra dem.",

@@ -312,6 +312,8 @@
       "dataResidencyFieldDescription": "Een label voor waar de gegevens van dit project worden gehost, bijvoorbeeld \"EU (Frankfurt)\". Laat leeg om het te verbergen voor de gebruikers van het project.",
       "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
       "dataResidencyNotSet": "Niet ingesteld",
+      "milestonesCardTitle": "Voortgang van de inrichting",
+      "milestonesCardDescription": "Wat dit project heeft gedaan sinds het is aangemaakt en waar het vastzit. Gelezen uit de eigen gegevens van deze server; er wordt niets verzonden.",
       "ingestionBudgets": {
         "dailyCardTitle": "Dagbudgetten voor dit project",
         "dailyCardDescription": "Het eigen dagbudget van dit project voor elk signaal, in plaats van de instantiestandaard. Laat een signaal leeg voor de instantiestandaard, of vul 0 in voor geen limiet. De beheerders van het project zien deze, maar kunnen ze niet wijzigen.",

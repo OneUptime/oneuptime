@@ -238,6 +238,31 @@ export const getActivationStuckAt: (
   return null;
 };
 
+// What a list of projects says about one: where it is stuck, or that it is set up.
+export interface ActivationSetupSummary {
+  stuckAt: ActivationMilestone | null;
+  isSetUp: boolean;
+  text: string;
+}
+
+export const ACTIVATION_SET_UP_TEXT: string = "Set up";
+
+export const getActivationSetupSummary: (
+  reached: ReadonlyArray<ActivationMilestone> | Set<ActivationMilestone>,
+) => ActivationSetupSummary = (
+  reached: ReadonlyArray<ActivationMilestone> | Set<ActivationMilestone>,
+): ActivationSetupSummary => {
+  const stuckAt: ActivationMilestone | null = getActivationStuckAt(reached);
+
+  return {
+    stuckAt: stuckAt,
+    isSetUp: stuckAt === null,
+    text: stuckAt
+      ? getActivationMilestoneDetail(stuckAt).missingText
+      : ACTIVATION_SET_UP_TEXT,
+  };
+};
+
 /*
  * The telemetry milestone of each kind ClickHouse stores it as. Every table
  * the fan-in writer fills for a kind is listed: a profile is stored in two.
