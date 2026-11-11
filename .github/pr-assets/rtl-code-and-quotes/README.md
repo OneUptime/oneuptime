@@ -33,3 +33,11 @@ sentence is one the Dashboard shows today.
   out in the wrong order ("اسم مضيف خادم" at the left end). After, each reads from the right.
   The before picture was made by turning the new rule off in
   `Common/UI/Utils/LineDirection.ts` (`getTranslatedLineDirection`) for one run.
+- `server-answers-ar.png` and `server-answers-fa.png` are English answers from the server that
+  quote a channel name typed in Arabic or Persian, on an Arabic and a Persian page, at twice the
+  size: `ErrorMessage` (the first line), `FieldError` (in red) and `TableEmptyState` (under its
+  title in the page's words). Each reads left to right, its full stop at its end, as on main.
+  The rule that draws a translated line the page's way leaves a line with English words of its
+  own (`hasEnglishWords` in `Common/Types/ReadingDirection.ts`) to most of its letters. They
+  were drawn by a page that bundles the production components with the app's esbuild config,
+  as the fixture does, and the Dashboard's real `ar.json` and `fa.json`.
