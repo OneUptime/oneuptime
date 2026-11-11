@@ -429,6 +429,21 @@ describe("a channel OneUptime cannot list", () => {
     );
   });
 
+  /*
+   * #6749: Slack installed for a whole Enterprise organization, removed from
+   * the workspace the channel is in - its other workspaces still work.
+   */
+  test.each(["conversations.info", "conversations.members"])(
+    "the channel's workspace no longer has OneUptime (%s answers team_access_not_granted): said so, not that Slack is not connected",
+    async (method: string) => {
+      world.slackRefuses[method] = "team_access_not_granted";
+
+      expect((await read()).channels[0]!.state).toBe(
+        WorkspaceChannelState.WorkspaceNotAdded,
+      );
+    },
+  );
+
   test("Slack down or limiting the rate: unavailable, to ask again later", async () => {
     world.slackHttpStatus["conversations.info"] = 429;
 

@@ -570,6 +570,62 @@ describe("SlackConnectPrompt.prompt", () => {
   });
 
   /*
+   * #6749: a press made for a whole Slack Enterprise organization's
+   * installation names the person's own workspace (user.team_id), which
+   * need not be the channel's. The channel's, when OneUptime knows it
+   * (SlackRequest.slackChannelTeamId), is kept: the settings page's "Back
+   * to Slack" opens the channel in it.
+   */
+  test("a press in a channel of another workspace of the organization: kept with the channel's workspace, not the person's", async () => {
+    await SlackConnectPrompt.prompt({
+      projectId: PROJECT_ID,
+      place: placeOfPress(),
+      slackTeamId: "T0WEST",
+      slackChannelTeamId: "T0EAST",
+      description: SlackConnectPrompt.describe({
+        actionType: SlackActionType.AcknowledgeIncident,
+        actionValue: RECORD_ID,
+      }),
+    });
+
+    const request: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.peek(
+        new globalThis.URL(theAnswer().connectUrl || "").searchParams.get(
+          "connect",
+        ),
+      );
+
+    expect(request!.slack).toEqual({
+      teamId: "T0EAST",
+      channelId: "C0INC2",
+      threadTs: "1760000000.000100",
+      responseUrl: "https://hooks.slack.com/actions/T0TEAM/1/abc",
+    });
+  });
+
+  test("a channel whose workspace is not known: kept with the press's own workspace, as before", async () => {
+    await SlackConnectPrompt.prompt({
+      projectId: PROJECT_ID,
+      place: placeOfPress(),
+      slackTeamId: "T0WEST",
+      slackChannelTeamId: undefined,
+      description: SlackConnectPrompt.describe({
+        actionType: SlackActionType.AcknowledgeIncident,
+        actionValue: RECORD_ID,
+      }),
+    });
+
+    const request: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.peek(
+        new globalThis.URL(theAnswer().connectUrl || "").searchParams.get(
+          "connect",
+        ),
+      );
+
+    expect(request!.slack!.teamId).toBe("T0WEST");
+  });
+
+  /*
    * A question in the app's direct messages: the place names no channel to
    * answer in, and the kept press keeps the direct messages as where the
    * settings page's "Back to Slack" goes.

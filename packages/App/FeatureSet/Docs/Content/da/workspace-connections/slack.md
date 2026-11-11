@@ -67,6 +67,7 @@ Med Slack Enterprise Grid kan ét projekt arbejde i flere workspaces i din organ
 3. Kortet **Slack-arbejdsområder** viser disse workspaces. Klik på **Opdater**, når OneUptime er føjet til et nyt workspace.
 
 - **Hvilket workspace en regel bruger.** Notifikationsregler vælger det **Slack-arbejdsområde**, deres kanaler ligger i. Står feltet tomt, bruger reglen standard-workspacet og leder først dér efter de kanaler, den nævner. **Gør til standard** på kortet ændrer standarden.
+- **Et workspace, OneUptime er fjernet fra.** En regel, der vælger det, poster ikke i et andet workspace i stedet: reglens kort, **Testregel** og notifikationslogs siger, at OneUptime ikke længere er føjet til det. Kortet **Slack-kanal** siger det også, når kanalen ligger i det workspace. Føj OneUptime til det workspace igen i Slacks organisationsindstillinger, eller vælg et andet workspace i reglen.
 - **Hvor OneUptime virker.** Knapper, kommandoer, fanen Home og OneUptime AI virker i hvert af disse workspaces, og medlemmer forbinder deres egen Slack-konto fra et hvilket som helst af dem.
 - **Et projekt, der er forbundet med ét workspace.** Hører det workspace til organisationen, beholder projektet sine regler, kanaler og forbundne konti, når det installeres for hele organisationen med **Installer for organisationen** på samme side. Det workspace bliver standard.
 - **På en selvhostet server** tillader en Slack-app, der er oprettet ud fra OneUptimes manifest, det allerede: manifestet sætter `org_deploy_enabled`.
@@ -268,6 +269,7 @@ Til en gruppe med både den primære og den sekundære vagt forbinder du den sam
 - **Tilkald gruppen.** `/oneuptime page @payments-oncall The checkout API is down` tilkalder dem, der har vagt i de vagtplaner, gruppen følger. Se [Tilkald nogen fra Slack](#tilkald-nogen-fra-slack).
 - **Hvad Slack kræver.** Brugergrupper hører til Slacks betalte abonnementer, og et arbejdsområde kan nøjes med at lade sine ejere og administratorer ændre dem: kortet siger hvilket, og hvad du skal gøre. Hvis Slack blev forbundet, før OneUptime kunne holde brugergrupper opdateret, så forbind det igen én gang under **Projektindstillinger** > **Arbejdsområde** > **Slack**.
 - **Hvem der må forbinde en.** De roller, der må redigere vagtplaner: **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Edit On-Call Duty Policy Schedule** i en brugerdefineret rolle. På OneUptime Cloud kræver det abonnementet **Growth** at forbinde en.
+- **I en Slack Enterprise-organisation.** Når OneUptime er føjet til to eller flere af dens workspaces, spørger **Forbind brugergruppe** først, hvilket **Slack-arbejdsområde** gruppen er i, og viser derefter det workspaces brugergrupper. Kortet nævner hver gruppes workspace, og OneUptime holder gruppen opdateret dér.
 - **Afbryd forbindelsen.** OneUptime holder op med at ændre gruppen. Gruppen og dens medlemmer bliver i Slack, som de er.
 
 ## Håndter en hændelse fra Slack

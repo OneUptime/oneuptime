@@ -279,8 +279,56 @@ describe("a project's Slack Enterprise organization, over HTTP", () => {
         organizationName: ORG_NAME,
         workspaces: [WEST, EAST, LAB],
         defaultWorkspaceId: WEST.id,
+        removedWorkspaces: [],
       });
       expect(slack.calls).toEqual([]);
+    });
+
+    test("a workspace Slack no longer lists - OneUptime was removed from it - is answered among the removed, by the name it had, and kept", async () => {
+      connectToOrganization({
+        workspacesReadAt: minutesAgo(
+          SlackOrganization.WORKSPACES_FRESH_FOR_SECONDS / 60 + 1,
+        ),
+        defaultWorkspaceId: WEST.id,
+      });
+      slack.workspacesOfToken.set(ORG_TOKEN, [EAST, WEST]);
+
+      const response: ProbeResponse = await getWorkspaces();
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        workspaces: [WEST, EAST],
+        removedWorkspaces: [LAB],
+      });
+      expect(stored().miscData["removedWorkspaces"]).toEqual([LAB]);
+
+      // Read again while fresh: as kept, Slack not asked.
+      const again: ProbeResponse = await getWorkspaces();
+
+      expect((again.body as JSONObject)["removedWorkspaces"]).toEqual([LAB]);
+      expect(tokensOf("auth.teams.list")).toEqual([ORG_TOKEN]);
+    });
+
+    test("a workspace OneUptime was added to again leaves the removed: listed as Slack names it now", async () => {
+      connectToOrganization({
+        workspaces: [EAST, WEST],
+        removedWorkspaces: [{ id: LAB.id, name: "Acme Lab, as it was" }],
+      });
+      slack.workspacesOfToken.set(ORG_TOKEN, [EAST, LAB, WEST]);
+
+      const before: ProbeResponse = await getWorkspaces();
+
+      expect((before.body as JSONObject)["removedWorkspaces"]).toEqual([
+        { id: LAB.id, name: "Acme Lab, as it was" },
+      ]);
+
+      const response: ProbeResponse = await getWorkspaces("?refresh=true");
+
+      expect(response.body).toMatchObject({
+        workspaces: [EAST, LAB, WEST],
+        removedWorkspaces: [],
+      });
+      expect(stored().miscData["removedWorkspaces"]).toEqual([]);
     });
 
     test("with no default chosen, the first by name is the default", async () => {
@@ -384,6 +432,7 @@ describe("a project's Slack Enterprise organization, over HTTP", () => {
         organizationName: ORG_NAME,
         workspaces: [],
         defaultWorkspaceId: null,
+        removedWorkspaces: [],
       });
     });
 
@@ -404,6 +453,7 @@ describe("a project's Slack Enterprise organization, over HTTP", () => {
         organizationName: ORG_NAME,
         workspaces: [],
         defaultWorkspaceId: null,
+        removedWorkspaces: [],
       });
       expect(slack.calls).toEqual([]);
     });
@@ -563,6 +613,7 @@ describe("a project's Slack Enterprise organization, over HTTP", () => {
         organizationName: ORG_NAME,
         workspaces: [WEST, EAST, LAB],
         defaultWorkspaceId: WEST.id,
+        removedWorkspaces: [],
       });
       // Only the default changed: the workspaces and everything else as they were.
       expect(stored().miscData).toMatchObject({

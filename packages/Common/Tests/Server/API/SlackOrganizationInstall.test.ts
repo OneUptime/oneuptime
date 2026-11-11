@@ -701,6 +701,62 @@ describe("Slack install callback: a whole Enterprise organization", () => {
         },
       });
     });
+
+    test("keeps the workspaces OneUptime was removed from by the names they had - one Slack no longer lists joins them, one it lists again leaves", async () => {
+      const OLD: JSONObject = { id: "T0OLD", name: "Acme Old" };
+
+      connections.add({
+        projectId: projectId,
+        workspaceProjectId: ORG_ID,
+        authToken: "xoxb-acme-organization-old",
+        miscData: {
+          teamId: ORG_ID,
+          teamName: ORG_NAME,
+          botUserId: BOT_USER_ID,
+          enterpriseId: ORG_ID,
+          enterpriseName: ORG_NAME,
+          isEnterpriseInstall: true,
+          workspaces: [EAST, WEST],
+          workspacesReadAt: "2026-10-01T00:00:00.000Z",
+          removedWorkspaces: [OLD, LAB],
+        },
+      });
+      // West removed since; Lab added again.
+      slack.workspacesOfToken.set(ORG_TOKEN, [EAST, LAB]);
+
+      expectInstalled(await install(organizationInstall()));
+
+      expect(stored().miscData["workspaces"]).toEqual([EAST, LAB]);
+      expect(stored().miscData["removedWorkspaces"]).toEqual([WEST, OLD]);
+    });
+
+    test("Slack not listing the workspaces at install: those removed stay as they were", async () => {
+      const OLD: JSONObject = { id: "T0OLD", name: "Acme Old" };
+
+      connections.add({
+        projectId: projectId,
+        workspaceProjectId: ORG_ID,
+        authToken: "xoxb-acme-organization-old",
+        miscData: {
+          teamId: ORG_ID,
+          teamName: ORG_NAME,
+          botUserId: BOT_USER_ID,
+          enterpriseId: ORG_ID,
+          enterpriseName: ORG_NAME,
+          isEnterpriseInstall: true,
+          workspaces: [EAST, WEST],
+          workspacesReadAt: "2026-10-01T00:00:00.000Z",
+          removedWorkspaces: [OLD],
+        },
+      });
+      slack.answers.set("auth.teams.list", (): JSONObject => {
+        return { ok: false, error: "ratelimited" };
+      });
+
+      expectInstalled(await install(organizationInstall()));
+
+      expect(stored().miscData["removedWorkspaces"]).toEqual([OLD]);
+    });
   });
 
   describe("connected back to one workspace of the organization", () => {

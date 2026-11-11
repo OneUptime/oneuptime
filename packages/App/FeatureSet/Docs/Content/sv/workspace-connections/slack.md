@@ -67,6 +67,7 @@ Med Slack Enterprise Grid kan ett projekt arbeta i flera arbetsytor i din organi
 3. Kortet **Slack-arbetsytor** listar de arbetsytorna. Klicka på **Uppdatera** när OneUptime har lagts till i en ny arbetsyta.
 
 - **Vilken arbetsyta en regel använder.** Aviseringsregler väljer den **Slack-arbetsyta** som deras kanaler finns i. Lämnas fältet tomt använder regeln standardarbetsytan och letar först där efter kanalerna den anger. **Gör till standard** på kortet ändrar standarden.
+- **En arbetsyta som OneUptime har tagits bort från.** En regel som väljer den postar inte i en annan arbetsyta i stället: regelns kort, **Testregel** och aviseringsloggarna säger att OneUptime inte längre är tillagt i den. Kortet **Slack-kanal** säger det också när kanalen ligger i den arbetsytan. Lägg till OneUptime i den arbetsytan igen i Slacks organisationsinställningar, eller välj en annan arbetsyta i regeln.
 - **Var OneUptime fungerar.** Knappar, kommandon, fliken Home och OneUptime AI fungerar i var och en av de arbetsytorna, och medlemmar ansluter sitt eget Slack-konto från vilken som helst av dem.
 - **Ett projekt som är anslutet till en enda arbetsyta.** Hör den arbetsytan till organisationen behåller projektet sina regler, kanaler och anslutna konton när det installeras för hela organisationen med **Installera för organisationen** på samma sida. Den arbetsytan blir standard.
 - **På en egen server** tillåter en Slack-app som skapats från OneUptimes manifest redan detta: manifestet sätter `org_deploy_enabled`.
@@ -268,6 +269,7 @@ För en grupp med både den primära och den sekundära jouren ansluter du samma
 - **Larma gruppen.** `/oneuptime page @payments-oncall The checkout API is down` larmar dem som har jour i de scheman gruppen följer. Se [Larma någon från Slack](#larma-någon-från-slack).
 - **Vad Slack kräver.** Användargrupper ingår i Slacks betalda abonnemang, och en arbetsyta kan låta bara sina ägare och administratörer ändra dem: kortet säger vilket, och vad du gör. Om Slack anslöts innan OneUptime kunde hålla användargrupper uppdaterade, ansluter du det igen en gång under **Projektinställningar** > **Arbetsyta** > **Slack**.
 - **Vem som får ansluta en.** De roller som får redigera scheman: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem**, eller **Edit On-Call Duty Policy Schedule** i en anpassad roll. På OneUptime Cloud kräver det abonnemanget **Growth** att ansluta en.
+- **I en Slack Enterprise-organisation.** När OneUptime är tillagt i två eller fler av dess arbetsytor frågar **Anslut användargrupp** först vilken **Slack-arbetsyta** gruppen finns i, och listar sedan den arbetsytans användargrupper. Kortet anger varje grupps arbetsyta, och OneUptime håller gruppen uppdaterad där.
 - **Koppla från.** OneUptime slutar ändra gruppen. Gruppen och dess medlemmar stannar i Slack som de är.
 
 ## Hantera en incident från Slack

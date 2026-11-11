@@ -50003,5 +50003,10 @@
   "Failed Refreshes": "Failed Refreshes",
   "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.": "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.",
   "Refresh Monitor ID": "Refresh Monitor ID",
-  "The alert on failed refreshes was not saved: {{error}}": "The alert on failed refreshes was not saved: {{error}}"
+  "The alert on failed refreshes was not saved: {{error}}": "The alert on failed refreshes was not saved: {{error}}",
+  "In the {{workspace}} workspace": "ワークスペース {{workspace}}",
+  "OneUptime is no longer added to the {{workspace}} workspace of {{organization}}. Add it again in Slack's organization settings, or pick another workspace on the rule.": "OneUptime は {{organization}} のワークスペース {{workspace}} にもう追加されていません。Slack の組織設定でもう一度追加するか、ルールで別のワークスペースを選んでください。",
+  "People mention the group in this workspace. Only workspaces OneUptime was added to are listed.": "メンバーはこのワークスペースでグループをメンションします。OneUptime が追加されているワークスペースだけが表示されます。",
+  "{{workspace}} (OneUptime no longer added)": "{{workspace}}（OneUptime はもう追加されていません）",
+  "OneUptime is no longer added to the Slack workspace this channel is in. Add it again in Slack's organization settings.": "OneUptime は、このチャンネルがある Slack ワークスペースにもう追加されていません。Slack の組織設定でもう一度追加してください。"
 }

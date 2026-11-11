@@ -285,11 +285,12 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * A Slack connection to a whole Enterprise organization: the workspaces
-   * Slack listed OneUptime as added to, when, and the default workspace
-   * (SlackOrganization) - written into the project's connection and nothing
-   * else, while it is still that organization's (`workspaceProjectId`). A
-   * connection removed or replaced meanwhile is left alone. Every other
-   * miscData field is carried over from the stored row.
+   * Slack listed OneUptime as added to, when, those it no longer lists, and
+   * the default workspace (SlackOrganization) - written into the project's
+   * connection and nothing else, while it is still that organization's
+   * (`workspaceProjectId`). A connection removed or replaced meanwhile is
+   * left alone. Every other miscData field is carried over from the stored
+   * row.
    */
   @CaptureSpan()
   public async updateSlackOrganization(data: {
@@ -297,6 +298,11 @@ export class Service extends DatabaseService<Model> {
     workspaceProjectId: string;
     workspaces?: Array<SlackOrganizationWorkspace> | undefined;
     workspacesReadAt?: Date | undefined;
+    /*
+     * The workspaces Slack no longer lists, by the names they had
+     * (SlackOrganization.getRemovedWorkspaces).
+     */
+    removedWorkspaces?: Array<SlackOrganizationWorkspace> | undefined;
     defaultWorkspaceId?: string | undefined;
     /*
      * A connection to one workspace: the Enterprise organization it is part
@@ -345,6 +351,14 @@ export class Service extends DatabaseService<Model> {
       );
       miscData.workspacesReadAt = OneUptimeDate.toString(
         data.workspacesReadAt || OneUptimeDate.getCurrentDate(),
+      );
+    }
+
+    if (data.removedWorkspaces) {
+      miscData.removedWorkspaces = data.removedWorkspaces.map(
+        (workspace: SlackOrganizationWorkspace): SlackOrganizationWorkspace => {
+          return { id: workspace.id, name: workspace.name };
+        },
       );
     }
 

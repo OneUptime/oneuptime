@@ -889,6 +889,30 @@ describe("a group's row", () => {
     expect(textOf(id, "left-out")).toBe(
       "Bob Lee is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the Payments team. Add them to it in Microsoft Teams.",
     );
+    expect(textOf(id, "team")).toBe("In the Payments team");
+  });
+
+  // #6749: Slack installed for a whole Enterprise organization.
+  test("a Slack group of an Enterprise organization names its workspace under it; one of a single workspace names none", async () => {
+    const west: string = "8a000000-0000-4000-8000-000000000023";
+    const single: string = "8a000000-0000-4000-8000-000000000024";
+
+    views = [
+      viewOf({ workspaceUserGroupId: west, teamName: "Acme West" }),
+      viewOf({
+        workspaceUserGroupId: single,
+        name: "Database on-call",
+        handle: "db-oncall",
+        teamName: null,
+      }),
+    ];
+
+    await renderCard();
+
+    expect(textOf(west, "team")).toBe("In the Acme West workspace");
+    expect(
+      within(row(single)).queryByTestId(`user-group-${single}-team`),
+    ).toBeNull();
   });
 });
 
@@ -1381,6 +1405,225 @@ describe("connecting", () => {
           "User groups need a paid Slack plan. Upgrade your Slack workspace to use them.",
         ),
       ).toBeInTheDocument();
+    });
+  });
+
+  /*
+   * #6749: Slack installed for a whole Enterprise organization and added to
+   * two or more of its workspaces. A user group is in one workspace - people
+   * mention it there, and OneUptime keeps it up to date there - so the
+   * dialog asks first which one, the default one to start with (the server
+   * lists it first), and lists that workspace's groups.
+   */
+  describe("in a Slack Enterprise organization added to two workspaces", () => {
+    const WORKSPACES: Array<JSONObject> = [
+      { teamId: "T0EAST", name: "Acme East" },
+      { teamId: "T0WEST", name: "Acme West" },
+    ];
+
+    function groupOf(id: string, handle: string): WorkspaceAvailableUserGroup {
+      return {
+        workspaceGroupId: id,
+        name: handle,
+        handle: handle,
+        userCount: 3,
+        isTurnedOff: false,
+        workspaceUserGroupId: null,
+        followsScheduleNames: [],
+      };
+    }
+
+    // The dialog's dropdowns: the workspace first, then the user group.
+    function comboboxes(): Array<HTMLElement> {
+      return Array.from(
+        document.querySelectorAll<HTMLElement>("[role=combobox]"),
+      );
+    }
+
+    function optionsOf(combobox: HTMLElement): Array<string> {
+      fireEvent.keyDown(combobox, { key: "ArrowDown", code: 40, keyCode: 40 });
+
+      const options: Array<string> = screen
+        .queryAllByRole("option")
+        .map((option: HTMLElement): string => {
+          return option.textContent || "";
+        });
+
+      fireEvent.keyDown(combobox, { key: "Escape", code: 27, keyCode: 27 });
+
+      return options;
+    }
+
+    // Which workspace each list of groups was asked for.
+    function askedFor(): Array<string> {
+      return getMock.mock.calls
+        .map(pathOf)
+        .filter((url: string): boolean => {
+          return url.includes("/workspace-user-group/available");
+        })
+        .map((url: string): string => {
+          return new globalThis.URL(url).searchParams.get("teamId") || "";
+        });
+    }
+
+    let workspaces: Array<JSONObject>;
+
+    beforeEach(() => {
+      workspaces = WORKSPACES;
+
+      getMock.mockImplementation((async (options: {
+        url: { toString: () => string };
+      }) => {
+        const url: string = options.url.toString();
+
+        if (url.includes("/workspace-user-group/schedule/")) {
+          return ok({
+            userGroups: views as unknown as Array<JSONObject>,
+          } as JSONObject);
+        }
+
+        if (url.includes("/workspace-user-group/available")) {
+          const isWest: boolean = url.includes("teamId=T0WEST");
+
+          return ok({
+            groups: [
+              isWest
+                ? groupOf("S0WESTSRE", "west-sre")
+                : groupOf("S0EASTSRE", "east-sre"),
+            ],
+            teams: workspaces,
+          } as unknown as JSONObject);
+        }
+
+        return ok({});
+      }) as never);
+    });
+
+    test("asks which Slack workspace first - the default one to start with - and lists its groups", async () => {
+      await renderCard();
+      await openConnect();
+
+      expect(document.body.textContent).toContain("Slack workspace");
+      expect(document.body.textContent).toContain(
+        "People mention the group in this workspace. Only workspaces OneUptime was added to are listed.",
+      );
+      expect(comboboxes()).toHaveLength(2);
+      expect(optionsOf(comboboxes()[0]!)).toEqual(["Acme East", "Acme West"]);
+      expect(optionsOf(comboboxes()[1]!)).toEqual([
+        "Create a new user group",
+        "@east-sre · east-sre · 3 people",
+      ]);
+      // The default one's, asked for by the server's default.
+      expect(askedFor()).toEqual([""]);
+    });
+
+    test("another workspace picked: its groups listed instead, and the group connected there", async () => {
+      await renderCard();
+      await openConnect();
+
+      fireEvent.keyDown(comboboxes()[0]!, {
+        key: "ArrowDown",
+        code: 40,
+        keyCode: 40,
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("option", { name: "Acme West" }));
+      });
+
+      await waitFor(() => {
+        expect(askedFor()).toEqual(["", "T0WEST"]);
+      });
+      await waitFor(() => {
+        expect(comboboxes()).toHaveLength(2);
+      });
+
+      expect(optionsOf(comboboxes()[1]!)).toEqual([
+        "Create a new user group",
+        "@west-sre · west-sre · 3 people",
+      ]);
+
+      fireEvent.keyDown(comboboxes()[1]!, {
+        key: "ArrowDown",
+        code: 40,
+        keyCode: 40,
+      });
+      fireEvent.click(
+        screen.getByRole("option", {
+          name: "@west-sre · west-sre · 3 people",
+        }),
+      );
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+      });
+
+      await waitFor(() => {
+        expect(posted("/workspace-user-group/connect")).toHaveLength(1);
+      });
+      expect(posted("/workspace-user-group/connect")[0]).toEqual({
+        onCallDutyPolicyScheduleId: PRIMARY_ID,
+        workspaceType: WorkspaceType.Slack,
+        workspaceTeamId: "T0WEST",
+        workspaceGroupId: "S0WESTSRE",
+      });
+    });
+
+    test("left on the default one: sent with it", async () => {
+      await renderCard();
+      await openConnect();
+
+      fireEvent.keyDown(comboboxes()[1]!, {
+        key: "ArrowDown",
+        code: 40,
+        keyCode: 40,
+      });
+      fireEvent.click(
+        screen.getByRole("option", {
+          name: "@east-sre · east-sre · 3 people",
+        }),
+      );
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+      });
+
+      await waitFor(() => {
+        expect(posted("/workspace-user-group/connect")).toHaveLength(1);
+      });
+      expect(posted("/workspace-user-group/connect")[0]).toEqual({
+        onCallDutyPolicyScheduleId: PRIMARY_ID,
+        workspaceType: WorkspaceType.Slack,
+        workspaceTeamId: "T0EAST",
+        workspaceGroupId: "S0EASTSRE",
+      });
+    });
+
+    test("added to one workspace only: nothing to pick, and none sent - the server's default", async () => {
+      workspaces = [WORKSPACES[0]!];
+
+      await renderCard();
+      await openConnect();
+
+      expect(comboboxes()).toHaveLength(1);
+      expect(document.body.textContent).not.toContain(
+        "People mention the group in this workspace.",
+      );
+
+      chooseGroup("@east-sre · east-sre · 3 people");
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+      });
+
+      await waitFor(() => {
+        expect(posted("/workspace-user-group/connect")).toHaveLength(1);
+      });
+      expect(posted("/workspace-user-group/connect")[0]).toEqual({
+        onCallDutyPolicyScheduleId: PRIMARY_ID,
+        workspaceType: WorkspaceType.Slack,
+        workspaceGroupId: "S0EASTSRE",
+      });
     });
   });
 });

@@ -141,6 +141,14 @@ export const DISCONNECT_MANY_OTHERS: PluralTemplate = {
 // A Microsoft Teams tag's team, under its name.
 export const TEAM_SUBTITLE: string = translationKey("In the {{team}} team");
 
+/*
+ * The workspace of a Slack user group, under its name: Slack installed for
+ * a whole Enterprise organization keeps a group in one of its workspaces.
+ */
+export const WORKSPACE_SUBTITLE: string = translationKey(
+  "In the {{workspace}} workspace",
+);
+
 // The labels the card's rows use.
 export const USER_GROUP_LABELS: Readonly<{
   alsoFollows: string;
@@ -442,6 +450,8 @@ export const CONNECT_FORM_TEXT: Readonly<{
   team: string;
   teamPlaceholder: string;
   teamDescription: string;
+  slackWorkspace: string;
+  slackWorkspaceDescription: string;
   tag: string;
   tagDescription: string;
   noTeams: string;
@@ -464,6 +474,11 @@ export const CONNECT_FORM_TEXT: Readonly<{
   teamPlaceholder: translationKey("Pick a team"),
   teamDescription: translationKey(
     "Only teams that have the OneUptime app are listed.",
+  ),
+  // Slack installed for a whole Enterprise organization, added to two or more workspaces.
+  slackWorkspace: translationKey("Slack workspace"),
+  slackWorkspaceDescription: translationKey(
+    "People mention the group in this workspace. Only workspaces OneUptime was added to are listed.",
   ),
   tag: translationKey("Tag"),
   tagDescription: translationKey(
