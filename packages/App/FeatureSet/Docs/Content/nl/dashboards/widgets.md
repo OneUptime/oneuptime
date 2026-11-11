@@ -24,6 +24,7 @@ Begin bij de vraag die de tegel moet beantwoorden:
 | Wat gebeurt er op dit moment? | **Logstroom**, **Tracelijst**, **Incidentenlijst** of **Waarschuwingslijst** |
 | Zijn al onze sites in de lucht? | **Monitorlijst** |
 | Halen we de betrouwbaarheid die we hebben beloofd? | **SLO** of **SLO-lijst** |
+| Komen mensen door een flow heen, en komen ze terug? | **Trechter** of **Gebruikersretentie** |
 | In welke toestand zijn onze clusters en hosts? | Een widget uit de groep Infrastructuur |
 | Waar ter wereld ligt ons netwerk, en wat ligt er plat? | **Netwerkkaart** |
 | Een kop, een notitie, de tijd op een ander kantoor? | **Tekst** of **Klok** |
@@ -170,6 +171,15 @@ De SLO-widget werkt op [openbare dashboards](/docs/dashboards/sharing). Wat er w
 
 Elke SLO met zijn status, SLI, error budget en burn rate, met het minste resterende budget bovenaan. Filter hem op status of labels, of met een **Labelvariabele** die kijkers in de werkbalk kiezen. [SLO-metrics en -dashboards](/docs/slo/metrics) laat beide SLO-widgets in actie zien.
 
+## Productanalyse
+
+| Widget | Wat hij toont |
+| --- | --- |
+| **Trechter** | Een trechter die is opgeslagen op de pagina **Trechters** van een RUM-applicatie: van de mensen die de eerste stap deden in het tijdsbereik van het dashboard, hoeveel er doorgingen naar elke volgende stap. |
+| **Gebruikersretentie** | Een retentietabel die is opgeslagen op haar pagina **Gebruikersretentie**: mensen gegroepeerd naar wanneer ze haar startgebeurtenis voor het eerst deden, en het aandeel van elke groep dat in elk tijdvak daarna terugkwam, met **Alle cohorten** erboven. |
+
+Sla de trechter of de retentietabel eerst op haar pagina op (zie [Opgeslagen trechters en retentietabellen](/docs/rum/product-analytics#opgeslagen-trechters-en-retentietabellen)) en kies hem dan in de instellingen van de widget. De widget neemt zijn naam als titel, tenzij je hem er een geeft, en leest hem bij elke verversing opnieuw, zodat een wijziging die op de pagina is opgeslagen op het dashboard verschijnt. **Openen in Trechters** of **Openen in Gebruikersretentie** opent hem op zijn pagina, in het tijdsbereik van het dashboard. Hem zien vraagt wat de pagina zien vraagt.
+
 ## Infrastructuur
 
 Elk van deze widgets toont de resources die een agent of een collector aan OneUptime rapporteert. Verfijn ze in hun filters op cluster, host of naamruimte, en toon ze als lijst of als honingraat.
@@ -235,7 +245,7 @@ Via de API en Terraform is de volgorde de `arguments.sort` van de widget: een ko
 
 Een [openbaar dashboard](/docs/dashboards/sharing) tekent de meeste widgets voor zijn bezoekers, en elk toont alleen wat hij moest tonen. Een paar kunnen niet worden weergegeven zonder aangemelde sessie:
 
-- **Logboekgrafiek**, **Tracegrafiek**, **Tracetabel**, **Beveiligingsgebeurtenissen** en **Stroom van beveiligingsgebeurtenissen** melden op hun plek dat ze niet beschikbaar zijn op openbare dashboards.
+- **Logboekgrafiek**, **Tracegrafiek**, **Tracetabel**, **Beveiligingsgebeurtenissen**, **Stroom van beveiligingsgebeurtenissen**, **Trechter** en **Gebruikersretentie** melden op hun plek dat ze niet beschikbaar zijn op openbare dashboards.
 - De widgets van Externe gegevensbronnen worden helemaal weggelaten uit een openbaar dashboard, omdat hun instellingen de query zelf zijn.
 
 ## Als een widget niet kan worden weergegeven

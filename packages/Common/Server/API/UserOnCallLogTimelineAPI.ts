@@ -12,7 +12,7 @@ import {
 import Response from "../Utils/Response";
 import Select from "../Types/Database/Select";
 import BaseAPI from "./BaseAPI";
-import { AppApiRoute, DashboardRoute } from "../../ServiceRoute";
+import { DashboardRoute } from "../../ServiceRoute";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";
@@ -31,7 +31,14 @@ import {
   getResourceReference,
 } from "../Utils/OnCallNotificationContext";
 import OnCallPagePassOn from "../Utils/OnCall/OnCallPagePassOn";
-import OnCallDutyPolicyExecutionLogService from "../Services/OnCallDutyPolicyExecutionLogService";
+import OnCallAcknowledgePageAnswerReader from "../Utils/OnCall/OnCallAcknowledgePageAnswer";
+import OnCallDutyPolicyExecutionLog from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import {
+  OnCallAcknowledgePageAnswer,
+  getOnCallAcknowledgePageAnsweredHeading,
+  getOnCallAcknowledgePageAnsweredSentence,
+  isOnCallAcknowledgePageOpen,
+} from "../../Types/OnCallDutyPolicy/OnCallAcknowledgePage";
 import {
   ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL,
   isOnCallObserverPage,
@@ -77,6 +84,8 @@ const NOTIFICATION_PAGE_SELECT: Select<UserOnCallLogTimeline> = {
   userId: true,
   onCallDutyPolicyExecutionLogId: true,
   isAcknowledged: true,
+  // When it was answered from its own link: "You already acknowledged ... at 5:28 AM UTC."
+  acknowledgedAt: true,
   triggeredByIncidentId: true,
   triggeredByIncident: {
     title: true,
@@ -307,6 +316,12 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
      * We have this ack page to show the user a confirmation page before acknowledging the notification.
      * this is because email clients automatically make a get request to the url in the email and ack the notification automatically which is not what we want.
      * so we need to create this page for the user to confirm that they want to acknowledge the notification.
+     *
+     * It offers Acknowledge only while the person's page still waits for an
+     * answer (OnCallAcknowledgePage): once they answered it some other way,
+     * somebody else took the record, or it is resolved, it says so instead
+     * (https://github.com/OneUptime/oneuptime/issues/6706). Either way it
+     * links the record in the Dashboard.
      */
     this.router.get(
       `${new this.entityType()
@@ -327,43 +342,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           const itemId: ObjectID = new ObjectID(req.params["itemId"]);
 
           const timelineItem: UserOnCallLogTimeline | null =
-            await this.service.findOneById({
-              id: itemId,
-              select: {
-                _id: true,
-                projectId: true,
-                // Whose page it is, for "Can't take it? Escalate" below.
-                userId: true,
-                onCallDutyPolicyExecutionLogId: true,
-                triggeredByIncidentId: true,
-                triggeredByIncident: {
-                  title: true,
-                },
-                triggeredByAlertId: true,
-                triggeredByAlert: {
-                  title: true,
-                },
-                triggeredByAlertEpisodeId: true,
-                triggeredByAlertEpisode: {
-                  title: true,
-                },
-                triggeredByIncidentEpisodeId: true,
-                triggeredByIncidentEpisode: {
-                  title: true,
-                },
-                /*
-                 * The timestamps below are rendered in the recipient's own
-                 * timezone. Formatting them in the container's zone would tell
-                 * an on-call engineer nothing.
-                 */
-                user: {
-                  timezone: true,
-                },
-              },
-              props: {
-                isRoot: true,
-              },
-            });
+            await this.readNotification(itemId);
 
           if (!timelineItem) {
             return Response.sendErrorResponse(
@@ -373,13 +352,6 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             );
           }
 
-          const reference: OnCallNotificationResourceReference | null =
-            getResourceReference(timelineItem);
-
-          const notificationType: string = reference
-            ? reference.resourceType.toString()
-            : "Alert";
-
           /*
            * The context read is what puts severity, state, project, monitors
            * and the time it was raised on the page. It is best effort on
@@ -387,31 +359,40 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
            * longer points at, must still leave a page the engineer can
            * acknowledge from.
            */
-          const context: OnCallNotificationContext | null =
-            await getOnCallNotificationContext({
-              timelineItem: timelineItem,
-              timezone: timelineItem.user?.timezone?.toString(),
-            });
-
-          const notificationTitle: string =
-            context?.resourceTitle ||
-            timelineItem.triggeredByIncident?.title ||
-            timelineItem.triggeredByIncidentEpisode?.title ||
-            timelineItem.triggeredByAlertEpisode?.title ||
-            timelineItem.triggeredByAlert?.title ||
-            "";
-
-          const host: Hostname = await DatabaseConfig.getHost();
-          const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+          const record: NotificationRecord =
+            await this.readNotificationRecord(timelineItem);
 
           /*
-           * An observer's page (OnCallObserverPage) is answered by saying
-           * they have seen it: the record is not acknowledged, and there is
-           * nothing to escalate.
+           * The run says what kind of page this is - an observer's page
+           * (OnCallObserverPage) is answered by saying they have seen it:
+           * the record is not acknowledged, and there is nothing to
+           * escalate - and whether, and by whom, it was answered.
            */
-          const isObserverPage: boolean = await this.isObserverPage(
-            timelineItem.onCallDutyPolicyExecutionLogId,
-          );
+          const run: OnCallDutyPolicyExecutionLog | null =
+            await OnCallAcknowledgePageAnswerReader.readRun(
+              timelineItem.onCallDutyPolicyExecutionLogId,
+            );
+
+          const isObserverPage: boolean = isOnCallObserverPage(run);
+
+          const answer: OnCallAcknowledgePageAnswer =
+            await OnCallAcknowledgePageAnswerReader.read({
+              timelineItem: timelineItem,
+              reference: record.reference,
+              run: run,
+            });
+
+          if (!isOnCallAcknowledgePageOpen(answer)) {
+            return this.renderAcknowledgePageAnswered({
+              req: req,
+              res: res,
+              record: record,
+              answer: answer,
+              isObserverPage: isObserverPage,
+            });
+          }
+
+          const notificationType: string = record.notificationType;
 
           /*
            * "Can't take it? Escalate" beside Acknowledge - for a link that
@@ -425,7 +406,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                 token: req.query?.[ON_CALL_PAGE_LINK_TOKEN_PARAM],
                 itemId: itemId,
                 timelineItem: timelineItem,
-                timezone: timelineItem.user?.timezone?.toString(),
+                timezone: record.timezone,
                 recordNoun: notificationType,
               });
 
@@ -437,25 +418,24 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             "/usr/src/Common/Server/Views/AcknowledgeUserOnCallNotification.ejs",
             {
               title: isObserverPage
-                ? `${ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL} - ${notificationTitle}`
-                : `Acknowledge ${notificationType} - ${notificationTitle}`,
+                ? `${ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL} - ${record.title}`
+                : `Acknowledge ${notificationType} - ${record.title}`,
               message: isObserverPage
                 ? `You're paged as an observer: the people responding stay on this ${recordNoun}. Saying you've seen it does not acknowledge the ${recordNoun}.`
                 : `Do you want to acknowledge this ${notificationType}?`,
               acknowledgeText: isObserverPage
                 ? ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL
                 : `Acknowledge ${notificationType}`,
-              acknowledgeUrl: new URL(
-                httpProtocol,
-                host,
-                new Route(AppApiRoute.toString())
-                  .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-                  .addRoute("/acknowledge/" + itemId.toString()),
+              acknowledgeUrl: (
+                await OnCallPageLinks.getAcknowledgeUrl(itemId)
               ).toString(),
-              resourceNumber: context?.resourceNumber || "",
-              resourceTitle: notificationTitle,
-              resourceDescription: context?.resourceDescription || "",
-              details: detailsToJSON(context?.details || []),
+              // "View Incident": the record in the Dashboard, under Acknowledge.
+              viewDetailsText: record.viewDetailsText,
+              viewDetailsUrl: record.viewDetailsUrl,
+              resourceNumber: record.context?.resourceNumber || "",
+              resourceTitle: record.title,
+              resourceDescription: record.context?.resourceDescription || "",
+              details: detailsToJSON(record.context?.details || []),
               ...(passOn ? { passOn: passOn } : {}),
             },
           );
@@ -485,39 +465,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           const itemId: ObjectID = new ObjectID(req.params["itemId"]);
 
           const timelineItem: UserOnCallLogTimeline | null =
-            await this.service.findOneById({
-              id: itemId,
-              select: {
-                _id: true,
-                projectId: true,
-                triggeredByIncidentId: true,
-                triggeredByAlertId: true,
-                triggeredByAlertEpisodeId: true,
-                triggeredByIncidentEpisodeId: true,
-                triggeredByAlert: {
-                  title: true,
-                },
-                triggeredByIncident: {
-                  title: true,
-                },
-                triggeredByAlertEpisode: {
-                  title: true,
-                },
-                triggeredByIncidentEpisode: {
-                  title: true,
-                },
-                acknowledgedAt: true,
-                isAcknowledged: true,
-                // An observer's page is answered as seen (OnCallObserverPage).
-                onCallDutyPolicyExecutionLogId: true,
-                user: {
-                  timezone: true,
-                },
-              },
-              props: {
-                isRoot: true,
-              },
-            });
+            await this.readNotification(itemId);
 
           if (!timelineItem) {
             return Response.sendErrorResponse(
@@ -534,65 +482,40 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           const reference: OnCallNotificationResourceReference | null =
             getResourceReference(timelineItem);
 
-          const fallbackTitle: string =
-            timelineItem.triggeredByIncident?.title ||
-            timelineItem.triggeredByIncidentEpisode?.title ||
-            timelineItem.triggeredByAlertEpisode?.title ||
-            timelineItem.triggeredByAlert?.title ||
-            "";
+          // An observer's page is answered as seen (OnCallObserverPage).
+          const run: OnCallDutyPolicyExecutionLog | null =
+            await OnCallAcknowledgePageAnswerReader.readRun(
+              timelineItem.onCallDutyPolicyExecutionLogId,
+            );
 
-          const isObserverPage: boolean = await this.isObserverPage(
-            timelineItem.onCallDutyPolicyExecutionLogId,
-          );
+          const isObserverPage: boolean = isOnCallObserverPage(run);
 
-          if (timelineItem.isAcknowledged) {
-            // already acknowledged. Then show already acknowledged page with view details button.
+          /*
+           * Asked again as the button is pressed, not only as the page was
+           * drawn: a page left open while a colleague acknowledged the
+           * incident - or after the person answered another of their
+           * messages - says so, and acknowledges nothing a second time.
+           */
+          const answer: OnCallAcknowledgePageAnswer =
+            await OnCallAcknowledgePageAnswerReader.read({
+              timelineItem: timelineItem,
+              reference: reference,
+              run: run,
+            });
 
+          if (!isOnCallAcknowledgePageOpen(answer)) {
             /*
              * Same context the acknowledge page shows. Someone who follows the
              * link twice - or whose colleague got there first - still needs to
              * know what the page they are looking at is about.
              */
-            const context: OnCallNotificationContext | null =
-              await getOnCallNotificationContext({
-                timelineItem: timelineItem,
-                timezone: timelineItem.user?.timezone?.toString(),
-              });
-
-            const acknowledgedTitle: string =
-              context?.resourceTitle || fallbackTitle;
-
-            const viewDetailsRoute: Route = new Route(
-              DashboardRoute.toString(),
-            ).addRoute(
-              `/${timelineItem.projectId?.toString()}/${reference?.dashboardPath || ""}/${reference?.resourceId.toString() || ""}`,
-            );
-
-            const viewDetailsUrl: URL = new URL(
-              httpProtocol,
-              host,
-              viewDetailsRoute,
-            );
-
-            return Response.render(
-              req,
-              res,
-              "/usr/src/Common/Server/Views/ViewMessage.ejs",
-              {
-                title: isObserverPage
-                  ? `Already Marked as Seen - ${acknowledgedTitle}`
-                  : `Notification Already Acknowledged - ${acknowledgedTitle}`,
-                message: isObserverPage
-                  ? `This page has already been marked as seen.`
-                  : `This notification has already been acknowledged.`,
-                viewDetailsText: `View ${reference?.resourceType.toString() || ""}`,
-                viewDetailsUrl: viewDetailsUrl.toString(),
-                resourceNumber: context?.resourceNumber || "",
-                resourceTitle: acknowledgedTitle,
-                resourceDescription: context?.resourceDescription || "",
-                details: detailsToJSON(context?.details || []),
-              },
-            );
+            return this.renderAcknowledgePageAnswered({
+              req: req,
+              res: res,
+              record: await this.readNotificationRecord(timelineItem),
+              answer: answer,
+              isObserverPage: isObserverPage,
+            });
           }
 
           await this.service.updateOneById({
@@ -874,51 +797,72 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       labelInSentence: resourceNumber
         ? `${notificationType} ${resourceNumber}`
         : `this ${notificationType.toLowerCase()}`,
-      viewDetailsUrl: new URL(
-        httpProtocol,
-        host,
-        new Route(DashboardRoute.toString()).addRoute(
-          `/${timelineItem.projectId?.toString()}/${reference?.dashboardPath || ""}/${reference?.resourceId.toString() || ""}`,
-        ),
-      ).toString(),
+      // None for a notification that points at nothing: no button to a page that is not there.
+      viewDetailsUrl: reference
+        ? new URL(
+            httpProtocol,
+            host,
+            new Route(DashboardRoute.toString()).addRoute(
+              `/${timelineItem.projectId?.toString()}/${reference.dashboardPath}/${reference.resourceId.toString()}`,
+            ),
+          ).toString()
+        : "",
       viewDetailsText: `View ${notificationType}`,
       timezone: timezone,
     };
   }
 
   /*
+   * The acknowledge page once it no longer offers Acknowledge
+   * (OnCallAcknowledgePage): why - "Incident INC-42 was already acknowledged
+   * by Ana Lopez at 5:28 AM UTC." - under a check, with what it is about and
+   * the button that opens it in the Dashboard. The time is on the person's
+   * own clock. The address its button opens says the same when it is
+   * pressed too late.
+   */
+  private renderAcknowledgePageAnswered(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    record: NotificationRecord;
+    answer: OnCallAcknowledgePageAnswer;
+    isObserverPage: boolean;
+  }): void {
+    const record: NotificationRecord = data.record;
+
+    const heading: string = getOnCallAcknowledgePageAnsweredHeading({
+      state: data.answer.state,
+      isObserverPage: data.isObserverPage,
+    });
+
+    return Response.render(
+      data.req,
+      data.res,
+      "/usr/src/Common/Server/Views/ViewMessage.ejs",
+      {
+        title: record.title ? `${heading} - ${record.title}` : heading,
+        message: getOnCallAcknowledgePageAnsweredSentence({
+          answer: data.answer,
+          isObserverPage: data.isObserverPage,
+          recordLabel: record.label,
+          recordLabelInSentence: record.labelInSentence,
+          timezone: record.timezone,
+        }),
+        // Nothing is asked of the person: the heading wears a check.
+        statusIcon: "check",
+        viewDetailsText: record.viewDetailsText,
+        viewDetailsUrl: record.viewDetailsUrl,
+        resourceNumber: record.context?.resourceNumber || "",
+        resourceTitle: record.title,
+        resourceDescription: record.context?.resourceDescription || "",
+        details: detailsToJSON(record.context?.details || []),
+      },
+    );
+  }
+
+  /*
    * The acknowledge page's "Can't take it? Escalate", or null: for a link
    * with the page's own token, while the page is the person's to escalate.
    */
-  /*
-   * Whether a page's run pages its people as observers (OnCallObserverPage).
-   * Best effort: a run that cannot be read is answered as a responder's.
-   */
-  private async isObserverPage(
-    executionLogId: ObjectID | null | undefined,
-  ): Promise<boolean> {
-    if (!executionLogId) {
-      return false;
-    }
-
-    try {
-      return isOnCallObserverPage(
-        await OnCallDutyPolicyExecutionLogService.findOneById({
-          id: executionLogId,
-          select: {
-            _id: true,
-            isObserverPage: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        }),
-      );
-    } catch {
-      return false;
-    }
-  }
-
   private async getPassOnBlock(data: {
     token: unknown;
     itemId: ObjectID;

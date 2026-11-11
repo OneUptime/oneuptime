@@ -35,6 +35,9 @@ import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
+import RumProductAnalyticsSavedView from "Common/Models/DatabaseModels/RumProductAnalyticsSavedView";
+import { ProductAnalyticsSavedViewType } from "Common/Types/Rum/ProductAnalyticsSavedViews";
+import { describeProductAnalyticsSavedViewOptions } from "../../ProductAnalytics/ProductAnalyticsSavedViews";
 import { EntityFilterModelType } from "Common/Types/Dashboard/DashboardComponents/ComponentArgument";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -61,6 +64,19 @@ interface EntityModelDef<T extends BaseModel> {
   unpickableSelect?: Record<string, true> | undefined;
   isUnpickable?: ((item: T) => boolean) | undefined;
   unpickableLabelSuffix?: string | undefined;
+  /*
+   * Columns an option is worded from beside its name, and a step that
+   * words the options once they are read - a saved funnel's application
+   * under its name. Best effort: a step that fails leaves the names.
+   */
+  optionSelect?: Record<string, true> | undefined;
+  describeOptions?:
+    | ((data: {
+        items: Array<T>;
+        options: Array<DropdownOption>;
+        projectId: ObjectID;
+      }) => Promise<void>)
+    | undefined;
 }
 
 type ToDropdownOptionFunction = (
@@ -251,6 +267,32 @@ function getEntityModelDef(
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
       };
+    case EntityFilterModelType.ProductAnalyticsSavedFunnel:
+    case EntityFilterModelType.ProductAnalyticsSavedRetention:
+      /*
+       * A Funnel widget picks one of the project's saved funnels, a
+       * Retention widget one of its saved retention tables, each named
+       * with its RUM application under it.
+       */
+      return {
+        modelType:
+          RumProductAnalyticsSavedView as unknown as ModelTypeOf<BaseModel>,
+        sortField: "name" as keyof BaseModel,
+        sortOrder: SortOrder.Ascending,
+        pickableQuery: {
+          viewType:
+            entityFilterModelType ===
+            EntityFilterModelType.ProductAnalyticsSavedFunnel
+              ? ProductAnalyticsSavedViewType.Funnel
+              : ProductAnalyticsSavedViewType.Retention,
+        } as Query<BaseModel>,
+        optionSelect: { rumApplicationId: true },
+        describeOptions: describeProductAnalyticsSavedViewOptions as (data: {
+          items: Array<BaseModel>;
+          options: Array<DropdownOption>;
+          projectId: ObjectID;
+        }) => Promise<void>,
+      };
     case EntityFilterModelType.NetworkSiteType:
       /*
        * `order` places a type in the hierarchy (lower is higher up), so
@@ -314,7 +356,10 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
             } as Query<BaseModel>,
             limit: 1000,
             skip: 0,
-            select: getOptionSelect(colorColumnName),
+            select: {
+              ...(def.optionSelect || {}),
+              ...getOptionSelect(colorColumnName),
+            },
             sort: { [def.sortField]: def.sortOrder } as Record<
               string,
               SortOrder
@@ -326,6 +371,8 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
             return toDropdownOption(item, colorColumnName);
           },
         );
+        // The rows the options were built from, in the same order.
+        const optionItems: Array<BaseModel> = [...listResult.data];
 
         /*
          * A saved selection can be missing from the list above: past its row
@@ -368,6 +415,7 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
                 skip: 0,
                 select: {
                   ...(def.unpickableSelect || {}),
+                  ...(def.optionSelect || {}),
                   ...getOptionSelect(colorColumnName),
                 } as Record<string, true>,
                 sort: { [def.sortField]: def.sortOrder } as Record<
@@ -387,12 +435,25 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
               }
 
               newOptions.push(option);
+              optionItems.push(item);
             }
           } catch {
             /*
              * This lookup only labels a selection the list is missing. Failing
              * it must not take the pickable list down with it.
              */
+          }
+        }
+
+        if (def.describeOptions) {
+          try {
+            await def.describeOptions({
+              items: optionItems,
+              options: newOptions,
+              projectId: projectId,
+            });
+          } catch {
+            // The options keep their names: wording them is no reason to fail.
           }
         }
 
