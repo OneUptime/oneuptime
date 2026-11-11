@@ -80,23 +80,61 @@ full stop at its end. Product names, protocols and plan names stay Latin
 (`خطة Free`, `Slack`, `OpenTelemetry`); the browser lays them out left to
 right inside the Arabic line.
 
-The locale files hold no direction marks, so a string is worded so the
-browser's own rules lay it out right:
+### Code in a sentence
 
-- A Latin word that starts with a dot, a dash, a slash or a hash right after
-  Arabic shows that sign at its far end (`.env` reads `env.`). Put a Latin
-  word before it (`شبكة CIDR /24`, `الأمر helm upgrade --reuse-values`,
-  `regex ^api-.*`), or name the format without its dot (`ملف VTT`,
-  `ملف env`).
+Code is written exactly as `en.json` writes it: `.env` with its dot,
+`--help` with its dashes, `/.well-known/openid-configuration` with its slash,
+a function with its brackets (`استدعِ الدالة grantConsent()`), a cron line as
+`0 9 * * 1-5`. Do not reword code to dodge the bidi algorithm (no `ملف env`,
+no Latin word put in front of a flag), and put no direction mark beside it.
+
+The page draws it as written: every frontend's i18next sets each piece of
+code in a sentence of a language read from the right apart in a
+left-to-right isolate (LRI ... PDI) as it hands the sentence to the page
+(`Common/UI/Utils/CodeReadsAsWritten`, which finds the code with
+`Common/Types/CodeInSentence`). It does this for Arabic, Persian and any
+language read from the right added later. Copying the sentence leaves the
+isolate marks out. A help line, an empty state's sentence or an error
+worded in Arabic is laid out from the right however much code and however
+many product names it gives in Latin letters
+(`getTranslatedLineDirection` in `Common/UI/Utils/LineDirection`). An English
+line, such as the server's answer that quotes a name typed in Arabic, still
+reads left to right: its small English words (`is`, `the`, `already`) outside
+quotes and code tell it apart. So keep a vendor's English label that holds
+such a word in `«»` or in a Title Case name. Where a text is read by most of
+its letters (`getTextReadingDirectionByMostLetters`), the code's letters do
+not count.
+
+The one mark the locale files keep is a left-to-right mark (LRM, U+200E)
+on each side of a lone key's sign in brackets, so the sign is not drawn
+mirrored: the brace of `جلسة أحدث لهذا المستخدم (})` is written as LRM, `}`,
+LRM. The guard
+`Common/Tests/App/CodeInRightToLeftSentences.test.ts` lays every Arabic and
+Persian sentence out with a copy of the bidi algorithm, fails on a mark
+beside code and on code written without the sign the English gives it.
+
+The server's texts (`Common/Server/Locales`: emails, chat messages) are not
+set apart. Whatever shows them lays them out, so wording around code still
+matters there.
+
+### Other text
+
 - A negative number is written out: `سالب 70 dBm`.
-- A function keeps its brackets, as the English writes it and as the suites
-  that hold code to its written form expect: `استدعِ الدالة grantConsent()`.
-  A right-to-left line can draw the brackets on the name's left; keeping code
-  in its own direction inside a line is the page's job, not the locale's.
 - A Latin aside in brackets right after a Latin name reads before the name:
   write `{{file}} في VS Code`, or put an Arabic word inside the brackets
   (`(السمات {{attributes}})`).
 - A range is written out: `من 5 إلى 15 دقيقة`.
+
+### Quoting what the page shows
+
+A label, a state or a button quoted in `«»` is quoted as the page draws it.
+If the page translates it, quote the Arabic the page shows
+(`«متوقف عن التشغيل»`, not `«Powered off»`). If the page draws it in English
+(a vendor's column or state, a template's name, a permission title that is
+not a translation key), quote the English (`«Manage Billing»`, `«TX Power»`).
+The guard `Common/Tests/App/QuotedWordsInRightToLeftSentences.test.ts`
+fails on a quoted Latin phrase that the Dashboard translates, unless its
+allowlist gives the reason the page shows it in English.
 
 ## Fonts
 

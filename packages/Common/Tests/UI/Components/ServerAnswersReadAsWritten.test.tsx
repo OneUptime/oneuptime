@@ -46,6 +46,9 @@ beforeAll(async () => {
             "Couldn't load this node": "بارگیری این گره ممکن نشد",
             "Ask your administrator for access.":
               "از سرپرست خود دسترسی بخواهید.",
+            // More Latin letters in its names than Persian ones in its words.
+            "Could not reach smtp.office365.com (Microsoft 365).":
+              "اتصال به smtp.office365.com (Microsoft 365) ممکن نشد.",
           },
         },
       },
@@ -81,6 +84,22 @@ describe("an alert above a form", () => {
       .querySelector("bdi");
 
     expect(words).toHaveTextContent(/^Promo code is invalid\.$/);
+    expect(words).toHaveAttribute("dir", "ltr");
+  });
+
+  test("an English answer that quotes a name typed in Persian reads left to right too", () => {
+    const answer: string =
+      'Runner "کانال اضطراری" is a cluster\'s in-cluster Runner: it runs kubectl through its cluster only.';
+
+    inPersian(
+      <Alert title={answer} type={AlertType.DANGER} dataTestId="form-error" />,
+    );
+
+    const words: HTMLElement | null = screen
+      .getByTestId("form-error")
+      .querySelector("bdi");
+
+    expect(words).toHaveTextContent(answer);
     expect(words).toHaveAttribute("dir", "ltr");
   });
 
@@ -160,6 +179,18 @@ describe("a dialog's refusal", () => {
       screen.getByTestId("modal-error").querySelector("bdi"),
     ).toHaveAttribute("dir", "ltr");
   });
+
+  test("so does an answer that quotes a name typed in Persian", () => {
+    inPersian(
+      <ModalBody error="A custom channel named کانال اضطراری already exists.">
+        <p>Fields</p>
+      </ModalBody>,
+    );
+
+    expect(
+      screen.getByTestId("modal-error").querySelector("bdi"),
+    ).toHaveAttribute("dir", "ltr");
+  });
 });
 
 describe("a list that could not be read", () => {
@@ -169,6 +200,36 @@ describe("a list that could not be read", () => {
     const words: HTMLElement = screen.getByText(
       "Request failed with status 502.",
     );
+
+    expect(words.tagName).toBe("BDI");
+    expect(words).toHaveAttribute("dir", "ltr");
+  });
+
+  test("a message the product translated reads as the page does, however many names it gives in Latin letters", () => {
+    inPersian(
+      <ErrorMessage message="Could not reach smtp.office365.com (Microsoft 365)." />,
+    );
+
+    const words: HTMLElement = screen.getByText(
+      "اتصال به smtp.office365.com (Microsoft 365) ممکن نشد.",
+    );
+
+    expect(words.closest("bdi")).toBeNull();
+  });
+
+  /*
+   * The server's answers quote names people typed, and on a Persian page
+   * those are often in Persian letters: right-to-left words of the
+   * answer's own. Drawn the page's way, the English came out of order with
+   * its full stop first.
+   */
+  test("an English answer that quotes a name typed in Persian still reads left to right", () => {
+    const answer: string =
+      "A custom channel named کانال اضطراری already exists. Give this one another name, so people can tell them apart.";
+
+    inPersian(<ErrorMessage message={answer} />);
+
+    const words: HTMLElement = screen.getByText(answer);
 
     expect(words.tagName).toBe("BDI");
     expect(words).toHaveAttribute("dir", "ltr");
@@ -257,6 +318,42 @@ describe("a table, or a page drawn like one, that could not load", () => {
 
     expect(sentence).toHaveTextContent("از سرپرست خود دسترسی بخواهید.");
     expect(sentence.querySelector("bdi")).toBeNull();
+  });
+
+  test("so does one that names more in Latin letters than it has Persian words", () => {
+    inPersian(
+      <TableEmptyState
+        kind={TableEmptyStateKind.Error}
+        title="Couldn't load this node"
+        description="Could not reach smtp.office365.com (Microsoft 365)."
+      />,
+    );
+
+    const sentence: HTMLElement = screen.getByTestId(`${ROOT}-description`);
+
+    expect(sentence).toHaveTextContent(
+      "اتصال به smtp.office365.com (Microsoft 365) ممکن نشد.",
+    );
+    expect(sentence.querySelector("bdi")).toBeNull();
+  });
+
+  test("an English answer that quotes a name typed in Persian reads left to right too", () => {
+    const answer: string = 'Runner "کانال اضطراری" is offline.';
+
+    inPersian(
+      <TableEmptyState
+        kind={TableEmptyStateKind.Error}
+        title="Couldn't load this node"
+        description={answer}
+      />,
+    );
+
+    const words: HTMLElement | null = screen
+      .getByTestId(`${ROOT}-description`)
+      .querySelector("bdi");
+
+    expect(words).toHaveAttribute("dir", "ltr");
+    expect(words).toHaveTextContent(answer);
   });
 
   test("on an English page the answer is drawn as it always was", () => {
