@@ -381,8 +381,11 @@ class NetworkDeviceNamingRuleEngineServiceClass {
   /*
    * The site the project's site assignment rules put a scan's host in, read
    * the way the rules read the device once it is created: its address, and
-   * the names discovery has for it.
+   * the names discovery has for it. One evaluation of the site assignment
+   * rules for one host, with its own pattern allowance, as
+   * NetworkDeviceService.applySiteAssignmentRulesToDevice has for a device.
    */
+  @RuleEvaluation()
   public predictSiteOfScanHost(data: {
     context: DeviceNamingContext;
     host: DiscoveredNetworkDevice;
