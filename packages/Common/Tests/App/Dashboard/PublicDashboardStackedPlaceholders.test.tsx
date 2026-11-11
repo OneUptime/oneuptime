@@ -420,6 +420,15 @@ describe("the widgets a public dashboard cannot draw", () => {
     "DataSourceWidgetPlaceholder.tsx";
   const LIST_BASE_FILE: string = "DashboardResourceListBase.tsx";
 
+  /*
+   * The Funnel and User Retention widgets (issue #6630) say it through the
+   * frame they share: a widget drawn in ProductAnalyticsWidgetFrame is read
+   * with the frame's source, whose words and placeholder it draws.
+   */
+  const PRODUCT_ANALYTICS_FRAME: string = "<ProductAnalyticsWidgetFrame";
+  const PRODUCT_ANALYTICS_FRAME_FILE: string =
+    "DashboardProductAnalyticsWidget.tsx";
+
   function widgetSourcesByType(): Map<string, string> {
     const registry: string = fs.readFileSync(
       path.join(COMPONENTS_DIR, "DashboardBaseComponent.tsx"),
@@ -437,9 +446,20 @@ describe("the widgets a public dashboard cannot draw", () => {
       const file: string | undefined = fileByIdentifier.get(match[2]!);
 
       if (file) {
+        const source: string = fs.readFileSync(
+          path.join(COMPONENTS_DIR, file),
+          "utf8",
+        );
+
         sources.set(
           match[1]!,
-          fs.readFileSync(path.join(COMPONENTS_DIR, file), "utf8"),
+          source.includes(PRODUCT_ANALYTICS_FRAME)
+            ? `${source}
+${fs.readFileSync(
+  path.join(COMPONENTS_DIR, PRODUCT_ANALYTICS_FRAME_FILE),
+  "utf8",
+)}`
+            : source,
         );
       }
     }
@@ -489,7 +509,11 @@ describe("the widgets a public dashboard cannot draw", () => {
       });
     }
 
-    for (const file of [DATA_SOURCE_PLACEHOLDER_FILE, LIST_BASE_FILE]) {
+    for (const file of [
+      DATA_SOURCE_PLACEHOLDER_FILE,
+      LIST_BASE_FILE,
+      PRODUCT_ANALYTICS_FRAME_FILE,
+    ]) {
       expect([
         file,
         fs

@@ -24,6 +24,7 @@ import OnCallAcknowledgementTimeout, {
   OnCallPageAgainOutcome,
   OnCallPageAgainResult,
   OnCallTimeoutRecordKind,
+  OnCallTimeoutRecordStanding,
   OnCallTimeoutRecordState,
 } from "../../../../Server/Utils/OnCall/OnCallAcknowledgementTimeout";
 import OneUptimeDate from "../../../../Types/Date";
@@ -60,6 +61,8 @@ const RECORD_ID: ObjectID = new ObjectID(
 const POLICY_A: ObjectID = new ObjectID("7a000000-0000-4000-8000-0000000000a1");
 const POLICY_B: ObjectID = new ObjectID("7a000000-0000-4000-8000-0000000000b1");
 const ANA: ObjectID = new ObjectID("7a000000-0000-4000-8000-0000000000c1");
+const BOB: ObjectID = new ObjectID("7a000000-0000-4000-8000-0000000000c2");
+const CARL: ObjectID = new ObjectID("7a000000-0000-4000-8000-0000000000c3");
 
 const CREATED: string = "7a000000-0000-4000-8000-0000000000d1";
 const ACKNOWLEDGED: string = "7a000000-0000-4000-8000-0000000000d2";
@@ -314,6 +317,161 @@ function runOf(data: {
 
   return run;
 }
+
+/*
+ * WHERE A RECORD STANDS, AND WHO TOOK IT THERE (readRecordStanding): what a
+ * message's acknowledge page says once somebody took the record - "Incident
+ * INC-42 was already acknowledged by Ana Lopez at 5:28 AM UTC." (issue
+ * #6711). Each kind reads its own timeline; the rows come back oldest first
+ * here, a second apart from NOW.
+ */
+describe.each(KINDS)(
+  "a $kind's standing, with who took it there and when",
+  (kindCase: KindCase) => {
+    const at: (index: number) => Date = (index: number): Date => {
+      return new Date(NOW.getTime() + index * 1000);
+    };
+
+    const stand: () => Promise<OnCallTimeoutRecordStanding | null> =
+      (): Promise<OnCallTimeoutRecordStanding | null> => {
+        return OnCallAcknowledgementTimeout.readRecordStanding({
+          kind: kindCase.kind,
+          recordId: RECORD_ID,
+        });
+      };
+
+    test("acknowledged: who acknowledged it, and when", async () => {
+      kindCase.readRecord(ACKNOWLEDGED);
+      kindCase.readTimeline([
+        { stateId: CREATED, userId: CARL },
+        { stateId: ACKNOWLEDGED, userId: ANA },
+      ]);
+
+      expect(await stand()).toEqual({
+        isAcknowledged: true,
+        isResolved: false,
+        acknowledgement: { createdByUserId: ANA, startsAt: at(1) },
+      });
+    });
+
+    test("resolved: who resolved it, and when - and who acknowledged it", async () => {
+      kindCase.readRecord(RESOLVED);
+      kindCase.readTimeline([
+        { stateId: CREATED, userId: CARL },
+        { stateId: ACKNOWLEDGED, userId: ANA },
+        { stateId: RESOLVED, userId: BOB },
+      ]);
+
+      expect(await stand()).toEqual({
+        isAcknowledged: true,
+        isResolved: true,
+        acknowledgement: { createdByUserId: ANA, startsAt: at(1) },
+        resolution: { createdByUserId: BOB, startsAt: at(2) },
+      });
+    });
+
+    test("resolved straight from created: that resolve acknowledged it too", async () => {
+      kindCase.readRecord(RESOLVED);
+      kindCase.readTimeline([
+        { stateId: CREATED, userId: CARL },
+        { stateId: RESOLVED, userId: BOB },
+      ]);
+
+      expect(await stand()).toEqual({
+        isAcknowledged: true,
+        isResolved: true,
+        acknowledgement: { createdByUserId: BOB, startsAt: at(1) },
+        resolution: { createdByUserId: BOB, startsAt: at(1) },
+      });
+    });
+
+    test("reopened and acknowledged again: the latest acknowledgement", async () => {
+      kindCase.readRecord(ACKNOWLEDGED);
+      kindCase.readTimeline([
+        { stateId: CREATED, userId: CARL },
+        { stateId: ACKNOWLEDGED, userId: ANA },
+        { stateId: CREATED, userId: CARL },
+        { stateId: ACKNOWLEDGED, userId: BOB },
+      ]);
+
+      expect((await stand())?.acknowledgement).toEqual({
+        createdByUserId: BOB,
+        startsAt: at(3),
+      });
+    });
+
+    test("a change nobody made by name: when, and nobody", async () => {
+      kindCase.readRecord(ACKNOWLEDGED);
+      kindCase.readTimeline([
+        { stateId: CREATED, userId: CARL },
+        { stateId: ACKNOWLEDGED, userId: undefined as never },
+      ]);
+
+      expect((await stand())?.acknowledgement).toEqual({
+        createdByUserId: null,
+        startsAt: at(1),
+      });
+    });
+
+    test("created: neither, and no timeline is read", async () => {
+      kindCase.readRecord(CREATED);
+      const findBy: SpyInstance<() => Promise<Array<unknown>>> = jest
+        .spyOn(kindCase.timelineService as never, "findBy" as never)
+        .mockImplementation((async () => {
+          return [];
+        }) as never) as never;
+
+      expect(await stand()).toEqual({
+        isAcknowledged: false,
+        isResolved: false,
+      });
+      expect(findBy).not.toHaveBeenCalled();
+    });
+
+    test("a timeline that cannot be read: where it stands, with who and when unknown - never a throw", async () => {
+      kindCase.readRecord(RESOLVED);
+      jest
+        .spyOn(kindCase.timelineService as never, "findBy" as never)
+        .mockImplementation((async () => {
+          throw new Error("the database is away");
+        }) as never);
+
+      expect(await stand()).toEqual({
+        isAcknowledged: true,
+        isResolved: true,
+        acknowledgement: null,
+        resolution: null,
+      });
+    });
+
+    test("a timeline that shows no acknowledgement leaves who and when out", async () => {
+      kindCase.readRecord(ACKNOWLEDGED);
+      kindCase.readTimeline([]);
+
+      expect(await stand()).toEqual({
+        isAcknowledged: true,
+        isResolved: false,
+      });
+    });
+
+    test("a record that is gone has no standing", async () => {
+      const services: Record<string, unknown> = {
+        incident: IncidentService,
+        alert: AlertService,
+        "incident episode": IncidentEpisodeService,
+        "alert episode": AlertEpisodeService,
+      };
+
+      jest
+        .spyOn(services[kindCase.kind] as never, "findOneById" as never)
+        .mockImplementation((async () => {
+          return null;
+        }) as never);
+
+      expect(await stand()).toBeNull();
+    });
+  },
+);
 
 describe.each(KINDS)(
   "a $kind's state, read for the clock",

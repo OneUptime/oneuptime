@@ -365,6 +365,30 @@ export interface OnCallTimeoutRecordState {
   isResolved: boolean;
 }
 
+// A change of a record's state timeline: who made it, and when.
+export interface OnCallTimeoutRecordChange {
+  // Nobody by name: an API key, a workflow, a monitor.
+  createdByUserId: ObjectID | null;
+  startsAt: Date | null;
+}
+
+/*
+ * Where a record stands, and who took it there, and when
+ * (readRecordStanding). Each change is undefined when the record is not
+ * there yet - not acknowledged, not resolved - or its timeline shows no such
+ * change, and null when its timeline could not be read.
+ */
+export interface OnCallTimeoutRecordStanding extends OnCallTimeoutRecordState {
+  /*
+   * Its latest acknowledgement: the latest move into a state that counts as
+   * acknowledged from one that did not - a resolve straight from a state
+   * before Acknowledged is one too (AcknowledgedState).
+   */
+  acknowledgement?: OnCallTimeoutRecordChange | null | undefined;
+  // Its latest move into a resolved state from one that was not.
+  resolution?: OnCallTimeoutRecordChange | null | undefined;
+}
+
 // Why a clock stopped without paging again.
 export enum OnCallAcknowledgementTimeoutStop {
   PolicyGone = "PolicyGone",
@@ -486,6 +510,105 @@ export default class OnCallAcknowledgementTimeout {
         states: states,
         stateId: record.stateId,
       }),
+    };
+  }
+
+  /*
+   * Where a record stands (readRecordState), and who took it there, and
+   * when, by its state timeline: its latest acknowledgement, and - when it
+   * is resolved - its latest resolve. What a page about the record says once
+   * somebody took it, as Slack and Microsoft Teams say it of a press that
+   * came too late: "Incident INC-42 was already acknowledged by Ana Lopez at
+   * 5:28 AM UTC." (OnCallAcknowledgePage). The timeline is read only for a
+   * record that is acknowledged. Null when the record is gone; a timeline
+   * that cannot be read leaves the changes null, and the standing stands.
+   */
+  @CaptureSpan()
+  public static async readRecordStanding(data: {
+    kind: OnCallTimeoutRecordKind;
+    recordId: ObjectID;
+  }): Promise<OnCallTimeoutRecordStanding | null> {
+    const access: TimeoutRecordAccess = RECORD_ACCESS[data.kind];
+    const record: TimeoutRecord | null = await access.readRecord(data.recordId);
+
+    if (!record) {
+      return null;
+    }
+
+    const states: Array<unknown> = await access.readStates(record.projectId);
+
+    const isAcknowledged: boolean = AcknowledgedStateUtil.isAcknowledged({
+      list: access.list,
+      states: states,
+      stateId: record.stateId,
+    });
+    const isResolved: boolean = ResolvedStateUtil.isResolved({
+      list: access.list,
+      states: states,
+      stateId: record.stateId,
+    });
+
+    if (!isAcknowledged) {
+      return { isAcknowledged: isAcknowledged, isResolved: isResolved };
+    }
+
+    let timeline: Array<TimeoutTimelineRow>;
+
+    try {
+      timeline = await access.readTimeline(data.recordId);
+    } catch (err) {
+      logger.error(
+        `Could not read the state timeline of ${data.kind} ${data.recordId.toString()}; saying where it stands without who took it there.`,
+      );
+      logger.error(err as Error);
+
+      return {
+        isAcknowledged: isAcknowledged,
+        isResolved: isResolved,
+        acknowledgement: null,
+        ...(isResolved ? { resolution: null } : {}),
+      };
+    }
+
+    // The latest of the rows, as who and when; undefined for none.
+    const latest: (
+      rows: Array<TimeoutTimelineRow>,
+    ) => OnCallTimeoutRecordChange | undefined = (
+      rows: Array<TimeoutTimelineRow>,
+    ): OnCallTimeoutRecordChange | undefined => {
+      const row: TimeoutTimelineRow | undefined = rows[rows.length - 1];
+
+      return row
+        ? {
+            createdByUserId: row.createdByUserId || null,
+            startsAt: row.startsAt || null,
+          }
+        : undefined;
+    };
+
+    const acknowledgement: OnCallTimeoutRecordChange | undefined = latest(
+      AcknowledgedStateUtil.getAcknowledgementRows({
+        list: access.list,
+        states: states,
+        timeline: timeline,
+      }),
+    );
+
+    const resolution: OnCallTimeoutRecordChange | undefined = isResolved
+      ? latest(
+          ResolvedStateUtil.getResolutionRows({
+            list: access.list,
+            states: states,
+            timeline: timeline,
+          }),
+        )
+      : undefined;
+
+    return {
+      isAcknowledged: isAcknowledged,
+      isResolved: isResolved,
+      ...(acknowledgement ? { acknowledgement: acknowledgement } : {}),
+      ...(resolution ? { resolution: resolution } : {}),
     };
   }
 

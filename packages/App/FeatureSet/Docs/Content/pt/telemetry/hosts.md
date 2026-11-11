@@ -126,7 +126,7 @@ curl -fsSL https://oneuptime.com/docs/static/scripts/host-collector/install.sh |
 :::steps
 ### Crie uma configuração do coletor
 
-Abra **Produtos → Infraestrutura → Hosts → Configurações do coletor** e selecione **Criar: Configuração do coletor**. Dê a ela um nome, o sistema dos hosts aos quais ela se destina e, para alcançar apenas alguns deles, os rótulos deles. A configuração começa como o padrão do OneUptime para esse sistema.
+Abra **Produtos → Infraestrutura → Hosts → Configuração → Configurações do coletor** e selecione **Criar: Configuração do coletor**. Dê a ela um nome, o sistema dos hosts aos quais ela se destina e, para alcançar apenas alguns deles, os rótulos deles. A configuração começa como o padrão do OneUptime para esse sistema.
 
 ### Edite o config.yaml dela
 
@@ -134,14 +134,14 @@ Na página da configuração, selecione **Editar configuração**, mude o YAML e
 
 ### Acompanhe a chegada aos hosts
 
-Cada alteração salva é uma nova versão, e os hosts aos quais ela se aplica a recebem em até um minuto. A lista **Hosts** da configuração mostra cada host, o estado do coletor dele e a versão que ele executa.
+Cada alteração salva é uma nova versão, e os hosts aos quais ela se aplica a recebem em até um minuto. A aba **Hosts** da configuração mostra cada host, o estado do coletor dele e a versão que ele executa.
 :::
 
-Um host executa a primeira configuração da lista que se aplica a ele: arraste as linhas em **Configurações do coletor** para mudar a ordem. Coloque primeiro as configurações mais específicas, como uma para servidores web com `env:production`, e as amplas, como uma para todos os hosts Linux, depois delas. O cartão **Padrões do OneUptime** abaixo da lista mostra o que um host executa quando nenhuma configuração se aplica.
+Um host executa a primeira configuração da lista que se aplica a ele: arraste as linhas em **Configurações do coletor** para mudar a ordem. Coloque primeiro as configurações mais específicas, como uma para servidores web com `env:production`, e as amplas, como uma para todos os hosts Linux, depois delas. Cada linha diz quantos hosts executam a configuração e em quantos ela falhou. O cartão **Padrões do OneUptime** abaixo da lista mostra o que um host executa quando nenhuma configuração se aplica, e quantos hosts o executam. Para mudar isso em um sistema, selecione **Ver configuração** no padrão dele e depois **Criar uma configuração a partir dele**.
 
 ### Versões e restauração
 
-A lista **Versões** de uma configuração guarda cada alteração salva, a mais recente primeiro, com quem salvou e quando. Selecione **Ver** para ler uma versão e **Restaurar** para enviá-la de novo aos hosts: ela é salva como uma nova versão que diz qual restaurou, então a lista sempre mostra o que cada host recebeu.
+A aba **Versões** de uma configuração guarda cada alteração salva, a mais recente primeiro, com quem salvou e quando. Selecione **Ver** para ler uma versão e **Restaurar** para enviá-la de novo aos hosts: ela é salva como uma nova versão que diz qual restaurou, então a lista sempre mostra o que cada host recebeu.
 
 ### Escolha uma configuração para um único host
 

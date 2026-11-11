@@ -111,6 +111,17 @@ Das Segment eines Trichters und das einer Bindungstabelle nehmen die Felder, die
 
 Jede Zeile ist eine Kohorte mit der Anzahl ihrer Personen, und jede Zelle der Anteil von ihnen, der in dieser Periode zurückkam, dunkler, je mehr es waren. Eine Periode, die noch nicht begonnen hat, bleibt leer.
 
+**Alle Kohorten**, darüber, zählt die Kohorten als eine: in jeder Periode die Personen, die zurückkamen, von den Personen der Kohorten, die sie erreicht haben, sodass eine Kohorte von 200 Personen viermal so viel wiegt wie eine von 50. Die Zeile erscheint, sobald zwei Kohorten jemanden enthalten.
+
+## Gespeicherte Trichter und Bindungstabellen
+
+**Gespeicherte Trichter** auf der Seite **Trichter** und **Gespeicherte Bindungstabellen** auf **Benutzerbindung** listen, was Ihr Team für die Anwendung gespeichert hat, um es wieder zu öffnen oder auf einem Dashboard zu zeigen. Ein gespeicherter Trichter behält seine Schritte, seine Zeit zum Abschließen und sein Segment, eine gespeicherte Bindungstabelle ihre beiden Ereignisse, ihre Periode und ihr Segment. Keiner von beiden behält den Zeitraum: Die Seite behält ihren eigenen, und ein Dashboard liest seinen eigenen.
+
+- **+ Trichter speichern** oder **+ Bindungstabelle speichern** speichert, was die Seite zeigt, unter einem Namen. Eine Anwendung behält höchstens 100 von jeder Art.
+- Wählen Sie einen Eintrag, um ihn zu öffnen. Die Adresse der Seite nennt ihn, sodass ein Link ihn für alle öffnet, die ihn sehen dürfen. Sobald Sie ändern, was er zeigt, sagt es sein Name, und **Aktualisieren** speichert die Änderung.
+- **Bearbeiten** benennt einen um, und **Löschen** löscht ihn für alle. **Ansicht zurücksetzen** schließt den geöffneten und behält, was die Seite zeigt.
+- Ein Link zu einem, der gelöscht wurde oder den Sie nicht sehen dürfen, sagt es, und die Seite öffnet sich ohne ihn.
+
 ## Dashboards und Alarme
 
 Jedes Ereignis wird außerdem Minute für Minute als Metrik der Anwendung gezählt, und jeder Aufruf von `metric()` ist ein Punkt einer eigenen Metrik unter dem Namen, den er angibt. Stellen Sie sie auf der Seite **Metriken** der Anwendung dar, fügen Sie sie einem Dashboard hinzu oder lassen Sie einen Metriken-Monitor darauf alarmieren; **Metriken öffnen** unter **Alle Ereignisse** öffnet die Seite.
@@ -123,6 +134,8 @@ Jedes Ereignis wird außerdem Minute für Minute als Metrik der Anwendung gezäh
 
 Diese drei werden nicht abgerechnet, und `metric()` lehnt einen Namen ab, der mit `oneuptime.` beginnt, sodass nichts, was Ihre Seite sendet, als eine von ihnen durchgeht. Ihre `metric()`-Punkte werden aufbewahrt und abgerechnet wie die anderen Metriken der Anwendung.
 
+Ein gespeicherter Trichter oder eine gespeicherte Bindungstabelle kommt auch auf ein Dashboard: Die Widgets **Trichter** und **Benutzerbindung** in der Gruppe **Produktanalyse** des Widget-Katalogs zeigen sie im Zeitbereich des Dashboards, und **In „Trichter“ öffnen** oder **In „Benutzerbindung“ öffnen** öffnet sie auf ihrer Seite (siehe [Dashboard-Widgets](/docs/dashboards/widgets#produktanalyse)).
+
 ## Datenschutz und Aufbewahrung
 
 - **13 Monate.** Die Zahlen eines Monats werden am ersten Tag des 13. Monats danach entfernt, sodass die letzten 12 vollen Monate immer da sind, unabhängig von der eigenen Aufbewahrung der Aufzeichnungen (standardmäßig 7 Tage). Ereignisse werden ebenso aufbewahrt.
@@ -132,6 +145,8 @@ Diese drei werden nicht abgerechnet, und `metric()` lehnt einen Namen ab, der mi
 ## Wer sie sehen kann
 
 Diese Seiten zu lesen erfordert dasselbe wie das Lesen der Sitzungsliste: `ReadRumSessionReplay` (_List Session Replays_) oder `ReadRumSessionReplayPayload` (_Watch Session Replays_), die Projektinhaber und Administratoren haben. Zu sehen, wer ein angemeldeter Benutzer ist, und Personen nach Namen zu suchen, erfordert die Identitätsberechtigung, die [Wer eine Aufzeichnung ansehen kann](/docs/telemetry/session-replay#wer-eine-aufzeichnung-ansehen-kann) beschreibt.
+
+Gespeicherte Trichter und Bindungstabellen zu speichern, umzubenennen und zu löschen erfordert dieselben Berechtigungen wie das Lesen dieser Seiten, und ein Dashboard-Widget zeigt sie nur einem Leser, der sie hat.
 
 Die Ereignisse ein- oder auszuschalten erfordert `EditRumApplication` (_Edit RUM Application_) oder die Rolle eines Projektinhabers, Administrators oder Mitglieds. Benutzereigenschaften aufzulisten erfordert `EditRumApplication` oder die Rolle eines Inhabers oder Administrators, da es festlegt, was über angemeldete Personen aufbewahrt wird.
 

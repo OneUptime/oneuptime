@@ -24,6 +24,7 @@ Start med spørsmålet flisen skal svare på:
 | Hva skjer akkurat nå? | **Loggstrøm**, **Sporliste**, **Hendelsesliste** eller **Varselliste** |
 | Er alle nettstedene våre oppe? | **Overvåkingsliste** |
 | Holder vi påliteligheten vi har lovet? | **SLO** eller **SLO-liste** |
+| Kommer folk gjennom en flyt, og kommer de tilbake? | **Trakt** eller **Brukerlojalitet** |
 | Hvilken tilstand er klyngene og vertene våre i? | En widget fra gruppen Infrastruktur |
 | Hvor i verden er nettverket vårt, og hva er nede? | **Nettverkskart** |
 | En overskrift, et notat, klokka på et annet kontor? | **Tekst** eller **Klokke** |
@@ -170,6 +171,15 @@ SLO-widgeten fungerer på [offentlige dashbord](/docs/dashboards/sharing). Det s
 
 Hvert SLO med status, SLI, feilbudsjett og burn rate, med minst gjenstående budsjett først. Filtrer den etter status eller etiketter, eller med en **Etikettvariabel** som seerne velger i verktøylinjen. [SLO-metrikker og -dashbord](/docs/slo/metrics) viser begge SLO-widgetene i bruk.
 
+## Produktanalyse
+
+| Widget | Hva den viser |
+| --- | --- |
+| **Trakt** | En trakt lagret på siden **Trakter** i en RUM-applikasjon: av personene som utførte det første trinnet i dashbordets tidsintervall, hvor mange som gikk videre til hvert neste trinn. |
+| **Brukerlojalitet** | En lojalitetstabell lagret på siden **Brukerlojalitet**: personer gruppert etter når de første gang utførte starthendelsen, og andelen av hver gruppe som kom tilbake i hver periode etter, med **Alle kohorter** over dem. |
+
+Lagre trakten eller lojalitetstabellen på siden dens først (se [Lagrede trakter og lojalitetstabeller](/docs/rum/product-analytics#lagrede-trakter-og-lojalitetstabeller)), og velg den så i widgetens innstillinger. Widgeten bruker navnet som tittel med mindre du gir den en, og leser den på nytt ved hver oppdatering, så en endring som lagres på siden, vises på dashbordet. **Åpne i Trakter** eller **Åpne i Brukerlojalitet** åpner den på siden dens, i dashbordets tidsintervall. Å se den krever det samme som å se siden.
+
 ## Infrastruktur
 
 Hver av disse widgetene viser ressursene som en agent eller en collector rapporterer til OneUptime. Snevre dem inn etter klynge, vert eller navnerom i filtrene, og vis dem som en liste eller som en bikube.
@@ -235,7 +245,7 @@ Gjennom API-et og Terraform er rekkefølgen widgetens `arguments.sort`: en kolon
 
 Et [offentlig dashbord](/docs/dashboards/sharing) tegner de fleste widgets for de besøkende, og hver viser bare det den er satt opp til å vise. Noen få kan ikke vises uten en pålogget økt:
 
-- **Loggdiagram**, **Spordiagram**, **Sportabell**, **Sikkerhetshendelser** og **Flyt av sikkerhetshendelser** sier på sin plass at de ikke er tilgjengelige på offentlige dashbord.
+- **Loggdiagram**, **Spordiagram**, **Sportabell**, **Sikkerhetshendelser**, **Flyt av sikkerhetshendelser**, **Trakt** og **Brukerlojalitet** sier på sin plass at de ikke er tilgjengelige på offentlige dashbord.
 - Widgetene fra Eksterne datakilder utelates helt fra et offentlig dashbord, fordi innstillingene deres er selve spørringen.
 
 ## Når en widget ikke kan vises

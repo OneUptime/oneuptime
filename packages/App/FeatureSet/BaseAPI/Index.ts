@@ -969,6 +969,9 @@ import RumSessionErasureRequestService, {
 import RumSessionPinService, {
   Service as RumSessionPinServiceType,
 } from "Common/Server/Services/RumSessionPinService";
+import RumProductAnalyticsSavedViewService, {
+  Service as RumProductAnalyticsSavedViewServiceType,
+} from "Common/Server/Services/RumProductAnalyticsSavedViewService";
 import DockerHostService, {
   Service as DockerHostServiceType,
 } from "Common/Server/Services/DockerHostService";
@@ -1701,6 +1704,7 @@ import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationCli
 import RumSessionReplayView from "Common/Models/DatabaseModels/RumSessionReplayView";
 import RumSessionErasureRequest from "Common/Models/DatabaseModels/RumSessionErasureRequest";
 import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
+import RumProductAnalyticsSavedView from "Common/Models/DatabaseModels/RumProductAnalyticsSavedView";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
@@ -5891,6 +5895,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<RumSessionPin, RumSessionPinServiceType>(
         RumSessionPin,
         RumSessionPinService,
+      ).getRouter(),
+    );
+
+    // Saved funnels and retention tables (issue #6630).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        RumProductAnalyticsSavedView,
+        RumProductAnalyticsSavedViewServiceType
+      >(
+        RumProductAnalyticsSavedView,
+        RumProductAnalyticsSavedViewService,
       ).getRouter(),
     );
 

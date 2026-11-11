@@ -369,8 +369,21 @@ describe("surfaces that count or offer SLOs leave archived ones out", () => {
     );
     expect(sloCase).toContain('unpickableLabelSuffix: " (archived)",');
 
-    // Only SLOs narrow what can be picked; every other entity type is as it was.
-    expect(dropdown.split("pickableQuery: {").length - 1).toBe(1);
+    /*
+     * Only SLOs narrow what can be picked to the live ones, and a saved
+     * product analytics view to its kind (a Funnel widget lists saved
+     * funnels, a User Retention widget saved retention tables); every other
+     * entity type is as it was.
+     */
+    const savedViewCase: string = between(
+      dropdown,
+      "case EntityFilterModelType.ProductAnalyticsSavedFunnel:",
+      "case EntityFilterModelType.NetworkSiteType:",
+    );
+
+    expect(savedViewCase).toContain("pickableQuery: { viewType:");
+    expect(savedViewCase).not.toContain("isArchived");
+    expect(dropdown.split("pickableQuery: {").length - 1).toBe(2);
 
     expect(dropdown).toContain(
       squash(

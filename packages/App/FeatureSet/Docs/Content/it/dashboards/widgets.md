@@ -24,6 +24,7 @@ Parti dalla domanda a cui deve rispondere il riquadro:
 | Che cosa sta succedendo in questo momento? | **Flusso di log**, **Elenco delle tracce**, **Elenco incidenti** o **Elenco avvisi** |
 | I nostri siti sono tutti attivi? | **Elenco monitor** |
 | Stiamo mantenendo l'affidabilità che abbiamo promesso? | **SLO** o **Elenco SLO** |
+| Le persone completano un percorso, e tornano? | **Funnel** o **Fidelizzazione degli utenti** |
 | In che stato sono i nostri cluster e i nostri host? | Un widget del gruppo Infrastruttura |
 | Dove si trova nel mondo la nostra rete, e che cosa è inattivo? | **Mappa di rete** |
 | Un titolo, una nota, l'ora in un altro ufficio? | **Testo** o **Orologio** |
@@ -170,6 +171,15 @@ Il widget SLO funziona sulle [dashboard pubbliche](/docs/dashboards/sharing). Ci
 
 Ogni SLO con il suo stato, lo SLI, l'error budget e il burn rate, a partire da quello con meno budget rimasto. Filtralo per stato o etichette, oppure con una **Variabile etichetta** che i visualizzatori scelgono nella barra degli strumenti. [Metriche e dashboard degli SLO](/docs/slo/metrics) mostra entrambi i widget SLO all'opera.
 
+## Analisi del prodotto
+
+| Widget | Che cosa mostra |
+| --- | --- |
+| **Funnel** | Un funnel salvato nella pagina **Funnel** di un'applicazione RUM: delle persone che hanno fatto il suo primo passaggio nell'intervallo di tempo della dashboard, quante sono andate avanti a ogni passaggio successivo. |
+| **Fidelizzazione degli utenti** | Una tabella di fidelizzazione salvata nella sua pagina **Fidelizzazione degli utenti**: le persone raggruppate in base a quando hanno fatto per la prima volta il suo evento iniziale, e la quota di ogni gruppo tornata in ogni periodo successivo, con **Tutte le coorti** sopra. |
+
+Salva prima il funnel o la tabella di fidelizzazione nella sua pagina (vedi [Funnel e tabelle di fidelizzazione salvati](/docs/rum/product-analytics#funnel-e-tabelle-di-fidelizzazione-salvati)), poi sceglilo nelle impostazioni del widget. Il widget prende il suo nome come titolo, a meno che tu non gliene dia uno, e lo rilegge a ogni aggiornamento, così una modifica salvata nella pagina compare sulla dashboard. **Apri in Funnel** o **Apri in Fidelizzazione degli utenti** lo apre nella sua pagina, nell'intervallo di tempo della dashboard. Vederlo richiede ciò che richiede vedere la pagina.
+
 ## Infrastruttura
 
 Ognuno di questi widget elenca le risorse che un agent o un collector comunica a OneUptime. Restringili per cluster, host o namespace nei loro filtri, e mostrali come elenco o come alveare.
@@ -235,7 +245,7 @@ Tramite l'API e Terraform, l'ordine è l'`arguments.sort` del widget: una colonn
 
 Una [dashboard pubblica](/docs/dashboards/sharing) disegna la maggior parte dei widget per i suoi visitatori, e ciascuno mostra solo ciò per cui è stato configurato. Alcuni non possono essere mostrati senza una sessione con accesso:
 
-- **Grafico dei log**, **Grafico delle tracce**, **Tabella delle tracce**, **Eventi di sicurezza** e **Flusso degli eventi di sicurezza** indicano al loro posto che non sono disponibili sulle dashboard pubbliche.
+- **Grafico dei log**, **Grafico delle tracce**, **Tabella delle tracce**, **Eventi di sicurezza**, **Flusso degli eventi di sicurezza**, **Funnel** e **Fidelizzazione degli utenti** indicano al loro posto che non sono disponibili sulle dashboard pubbliche.
 - I widget di Fonti di dati esterne vengono esclusi del tutto da una dashboard pubblica, perché le loro impostazioni sono la query stessa.
 
 ## Quando un widget non può essere mostrato

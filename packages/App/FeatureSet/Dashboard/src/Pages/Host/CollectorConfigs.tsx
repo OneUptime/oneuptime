@@ -6,31 +6,28 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import IconProp from "Common/Types/Icon/IconProp";
+import { HostCollectorOsType } from "Common/Types/HostCollector/HostCollector";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Card from "Common/UI/Components/Card/Card";
-import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
-import CodeEditor from "Common/UI/Components/CodeEditor/CodeEditor";
-import CodeType from "Common/Types/Code/CodeType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import {
-  HOST_COLLECTOR_INSTALLABLE_OS_TYPES,
-  HostCollectorOsType,
-} from "Common/Types/HostCollector/HostCollector";
-import { getHostCollectorDefaultConfig } from "Common/Utils/HostCollector/HostCollectorDefaultConfig";
 import {
   describeHostCollectorConfigTarget,
   getHostCollectorConfigFormFields,
 } from "../../Components/HostCollector/HostCollectorConfigForm";
-import { DEFAULT_CONFIG_NAMES } from "../../Components/HostCollector/HostCollectorStatus";
+import HostCollectorConfigOrder from "../../Components/HostCollector/HostCollectorConfigOrder";
+import HostCollectorDefaultsCard from "../../Components/HostCollector/HostCollectorDefaultsCard";
+import HostCollectorHostCount from "../../Components/HostCollector/HostCollectorHostCount";
+import {
+  HostCollectorConfigHostCounts,
+  useHostCollectorConfigHostCounts,
+} from "../../Components/HostCollector/UseHostCollectorHostCounts";
 import React, {
   Fragment,
   FunctionComponent,
@@ -39,12 +36,17 @@ import React, {
 } from "react";
 
 /*
- * Hosts > Collector Configs: the config.yaml OneUptime sends to the hosts
- * whose collector it manages. A host runs the first config of this list
- * that is for its system and, when the config names labels, for a host with
- * one of them - drag the rows to change the order. A host no config applies
- * to runs OneUptime's default for its system, which the card under the list
- * shows.
+ * Hosts > Configuration > Collector Configs: the config.yaml OneUptime sends
+ * to the hosts whose collector it manages.
+ *
+ *   - The top of the list says how a host gets its config, in three steps:
+ *     a config picked for the host, else the first config of this list that
+ *     applies to it, else OneUptime's default for its system.
+ *   - Each row says who the config is for and how many hosts run it, with
+ *     the ones it did not start on in red. Drag the rows to change the order.
+ *   - The card under the list is OneUptime's defaults: what each system's
+ *     hosts run when no config applies, and how many do. A default is where
+ *     a config starts: "Create a config from it" opens Create on its system.
  *
  * Creating one asks only for a name, a system and labels; its YAML starts as
  * that system's default, and the config's own page edits it.
@@ -52,13 +54,18 @@ import React, {
 
 // The dialog's title says "How Collector Configs work": the text starts below it.
 const documentationMarkdown: string = `
-Every host you add with the one-command install runs a config that OneUptime sends it: the first config in this list that applies to it.
+Every host you add with the one-command install runs a config that OneUptime sends it. A host gets its config in this order:
+
+1. **Picked for the host**: a config someone picked on the host's **Collector** page.
+2. **The first config that applies**: checked from the top of this list.
+3. **OneUptime's default** for the host's system, when no config applies.
+
+A config applies to a host by:
 
 - **System**: a config is for Linux, Windows or macOS hosts, or for hosts on any system.
 - **Host labels**: a config with labels is only for hosts with at least one of them. Label hosts when you install them (\`--label env=production\`), on the Hosts page, or with label rules.
-- **Order**: a host runs the first config that applies to it. Drag the rows to change the order.
 
-A host no config applies to runs **OneUptime's default** for its system. You can also pick a config for one host on its **Collector** page.
+Drag the rows to change the order.
 
 ### Changing a config
 
@@ -73,8 +80,25 @@ const CollectorConfigs: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const [defaultShown, setDefaultShown] = useState<HostCollectorOsType | null>(
-    null,
+
+  // How many hosts run each config of the page, and on how many it failed.
+  const hostCounts: HostCollectorConfigHostCounts =
+    useHostCollectorConfigHostCounts();
+
+  // Every load of the list: the defaults card counts its hosts again with it.
+  const [listLoads, setListLoads] = useState<number>(0);
+
+  /*
+   * The system of the default a Create was asked from ("Create a config
+   * from it"): the form opens on it. Back to null once the form closes, so
+   * the card's own Create starts empty, and the next one opens again.
+   */
+  const [createFromOsType, setCreateFromOsType] =
+    useState<HostCollectorOsType | null>(null);
+
+  const createGate: PermissionGateResult = PermissionGate.check(
+    new HostCollectorConfig(),
+    ModelAction.Create,
   );
 
   return (
@@ -100,7 +124,7 @@ const CollectorConfigs: FunctionComponent<
         cardProps={{
           title: "Collector Configs",
           description:
-            "The config OneUptime sends to the hosts it manages. A host runs the first one that applies to it; drag to change the order.",
+            "The config OneUptime sends to the hosts it manages. Each host runs the first config that applies to it, from the top: drag the rows to change the order.",
         }}
         helpContent={{
           title: "How Collector Configs work",
@@ -108,8 +132,21 @@ const CollectorConfigs: FunctionComponent<
             "Which hosts get which config, how changes reach them, and what a config may do.",
           markdown: documentationMarkdown,
         }}
-        noItemsMessage="No Collector Configs yet. Every host runs OneUptime's default for its system."
+        /*
+         * How a host gets its config, over the rows it explains. An empty
+         * list leaves it out: its empty state says what every host runs.
+         */
+        topContent={<HostCollectorConfigOrder />}
+        emptyState={{ hideTopContentWhileEmpty: true }}
+        noItemsMessage="No Collector Configs yet. Every host runs OneUptime's default for its system, shown below."
         formFields={getHostCollectorConfigFormFields()}
+        showCreateForm={createFromOsType !== null}
+        createInitialValues={
+          createFromOsType ? { osType: createFromOsType } : undefined
+        }
+        onCreateEditModalClose={() => {
+          setCreateFromOsType(null);
+        }}
         onCreateSuccess={(
           item: HostCollectorConfig,
         ): Promise<HostCollectorConfig> => {
@@ -121,6 +158,16 @@ const CollectorConfigs: FunctionComponent<
             ),
           );
           return Promise.resolve(item);
+        }}
+        onFetchSuccess={(data: Array<HostCollectorConfig>) => {
+          hostCounts.load(
+            data.map((item: HostCollectorConfig): string => {
+              return item._id?.toString() || "";
+            }),
+          );
+          setListLoads((count: number): number => {
+            return count + 1;
+          });
         }}
         selectMoreFields={{
           osType: true,
@@ -147,8 +194,7 @@ const CollectorConfigs: FunctionComponent<
           {
             /*
              * "Linux hosts with env:production": which hosts the config is
-             * for. Not "Hosts", which a config's page uses for the hosts
-             * that run it.
+             * for. Hosts, beside it, is how many run it now.
              */
             field: { osType: true },
             title: "Applies to",
@@ -173,85 +219,38 @@ const CollectorConfigs: FunctionComponent<
             },
           },
           {
-            field: { currentVersionNumber: true },
-            title: "Version",
+            /*
+             * Counted by the server for each config, so it cannot be sorted
+             * or filtered on: keyed on the id the count is read by.
+             */
+            field: { _id: true },
+            id: "hosts",
+            title: "Hosts",
             type: FieldType.Element,
-            hideOnMobile: true,
+            disableSort: true,
             getElement: (item: HostCollectorConfig): ReactElement => {
+              const configId: string = item._id?.toString() || "";
               return (
-                <span className="text-sm text-gray-700">
-                  {translator.translateTemplate("Version {{number}}", {
-                    number: String(item.currentVersionNumber || 1),
-                  })}
-                </span>
+                <HostCollectorHostCount
+                  count={hostCounts.counts[configId]}
+                  dataTestId={`host-collector-config-hosts-${configId}`}
+                />
               );
             },
           },
         ]}
       />
 
-      <Card
-        title="OneUptime defaults"
-        description="What a host runs when no config here applies to it. On Linux it reads the journal and systemd units where the host has them."
-      >
-        <ul
-          className="divide-y divide-gray-100"
-          data-testid="host-collector-defaults"
-        >
-          {HOST_COLLECTOR_INSTALLABLE_OS_TYPES.map(
-            (osType: HostCollectorOsType): ReactElement => {
-              return (
-                <li
-                  key={osType}
-                  /*
-                   * On a phone the button goes under the name (a Button is
-                   * as wide as its row there), instead of squeezing the name
-                   * into a column a word wide.
-                   */
-                  className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
-                  data-testid={`host-collector-default-row-${osType}`}
-                >
-                  <span className="text-sm text-gray-900">
-                    {translator.translateText(DEFAULT_CONFIG_NAMES[osType])}
-                  </span>
-                  <div className="sm:flex-none [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
-                    <Button
-                      title="View config"
-                      icon={IconProp.Code}
-                      buttonStyle={ButtonStyleType.NORMAL}
-                      buttonSize={ButtonSize.Small}
-                      dataTestId={`host-collector-default-${osType}`}
-                      onClick={() => {
-                        setDefaultShown(osType);
-                      }}
-                    />
-                  </div>
-                </li>
-              );
-            },
-          )}
-        </ul>
-      </Card>
-
-      {defaultShown && (
-        <Modal
-          title={DEFAULT_CONFIG_NAMES[defaultShown]}
-          description="To change what these hosts collect, create a Collector Config: it starts as this config. The default itself follows OneUptime's releases."
-          modalWidth={ModalWidth.Large}
-          onClose={() => {
-            setDefaultShown(null);
-          }}
-          closeButtonText="Close"
-        >
-          <CodeEditor
-            type={CodeType.YAML}
-            value={getHostCollectorDefaultConfig(defaultShown)}
-            readOnly={true}
-            dataTestId="host-collector-default-yaml"
-            maxHeight="min(70vh, 36rem)"
-          />
-        </Modal>
-      )}
+      <HostCollectorDefaultsCard
+        onCreateFromDefault={
+          createGate.isAllowed
+            ? (osType: HostCollectorOsType) => {
+                setCreateFromOsType(osType);
+              }
+            : undefined
+        }
+        refreshToken={listLoads}
+      />
     </Fragment>
   );
 };
