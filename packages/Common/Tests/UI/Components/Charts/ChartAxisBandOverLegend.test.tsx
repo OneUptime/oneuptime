@@ -135,10 +135,13 @@ describe("the band under a line chart's time axis", () => {
       />,
     );
 
-    expect(container.innerHTML).not.toMatch(/isfollowedbylegend/i);
+    const propName: RegExp = /isFollowedByLegend/i;
+
+    expect(container.innerHTML).not.toMatch(propName);
+    // React warns of a prop it does not know handed to a DOM element.
     expect(
       errors.filter((error: string): boolean => {
-        return /isFollowedByLegend/i.test(error);
+        return propName.test(error);
       }),
     ).toEqual([]);
   });
