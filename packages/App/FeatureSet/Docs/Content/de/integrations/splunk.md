@@ -44,7 +44,7 @@ Um sich stattdessen mit einem Passwort anzumelden, überspringen Sie diesen Schr
 
 ### Die Verbindung in OneUptime hinzufügen
 
-Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen** (`/dashboard/{projectId}/security-events/connections`), klicken Sie auf **Verbindung hinzufügen**, wählen Sie **Splunk Enterprise Security** und klicken Sie auf **Weiter**. Füllen Sie die Einstellungen aus der Tabelle unten aus, klicken Sie auf **Weiter** und fügen Sie das Token in **Authentication token** ein, oder das Passwort in **Passwort**.
+Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen** (`/dashboard/{projectId}/security-events/connections`), klicken Sie auf **Verbindung hinzufügen**, wählen Sie **Splunk Enterprise Security** und klicken Sie auf **Weiter**. Füllen Sie die Einstellungen aus der Tabelle unten aus, klicken Sie auf **Weiter** und fügen Sie das Token in **Authentifizierungstoken** ein, oder das Passwort in **Passwort**.
 
 ### Vor dem Speichern testen
 
@@ -53,13 +53,13 @@ Klicken Sie unter **Vor dem Speichern testen** auf **Diese Einstellungen testen*
 
 | Einstellung | Was Sie eintragen |
 | --- | --- |
-| **Splunk management URL** | Die REST-API des Search Heads, etwa `https://splunk.example.com:8089`. Sie muss `https` verwenden, ohne Abfragezeichenfolge. Ein Pfad bleibt erhalten, für einen Reverse Proxy, der die API unter einem Pfad bereitstellt. |
+| **Splunk-Verwaltungs-URL** | Die REST-API des Search Heads, etwa `https://splunk.example.com:8089`. Sie muss `https` verwenden, ohne Abfragezeichenfolge. Ein Pfad bleibt erhalten, für einen Reverse Proxy, der die API unter einem Pfad bereitstellt. |
 | **Suchen** | Die Suche, die auswählt, was importiert wird, `index=notable`, solange Sie sie nicht ändern. Schränken Sie sie ein, etwa mit `index=notable urgency IN (high, critical)`. OneUptime fügt den Zeitraum selbst hinzu, die Suche kann also weder `earliest` noch `latest` setzen und nicht mit einer Pipe beginnen. Ein führendes `search` wird entfernt. |
 | **Benutzername** | Der Name des Splunk-Benutzers, nur wenn er sich mit einem Passwort anmeldet. |
-| **Authentication token** | Das Token aus dem ersten Schritt. Ist ein Token gespeichert, wird es verwendet, und Benutzername und Passwort nicht. |
+| **Authentifizierungstoken** | Das Token aus dem ersten Schritt. Ist ein Token gespeichert, wird es verwendet, und Benutzername und Passwort nicht. |
 | **Passwort** | Das Passwort des Splunk-Benutzers, nur wenn kein Token verwendet wird. |
 
-**Authentication token** und **Passwort** werden verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie eines davon mit **Anmeldedaten aktualisieren** an der Verbindung. Um von einer Anmeldung zur anderen zu wechseln, tragen Sie dort die neue ein und schalten Sie **Remove the stored Authentication token** oder **Remove the stored Password** ein.
+**Authentifizierungstoken** und **Passwort** werden verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie eines davon mit **Anmeldedaten aktualisieren** an der Verbindung. Um von einer Anmeldung zur anderen zu wechseln, tragen Sie dort die neue ein und schalten Sie **Gespeichertes Feld „Authentifizierungstoken“ entfernen** oder **Gespeichertes Feld „Passwort“ entfernen** ein.
 
 Der Schritt **Abfrage** hat außerdem eine optionale **Beschreibung**, das **Abfrageintervall (Minuten)**, eine ganze Zahl von `1` bis `1440`, die mit `5` beginnt, und **Aktiviert**, das eingeschaltet beginnt.
 
@@ -129,7 +129,7 @@ Ein Lauf, der ganz fehlschlägt, mit einem Fehler von Splunk, behält den Cursor
 Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehen und von Hand mit ihr zu arbeiten. Wer die Verbindung ändern darf, kann diese starten; wer sie sehen darf, kann den Verlauf lesen.
 
 - **Jetzt ausführen** startet sofort eine Abfrage, mit dem üblichen Cursor, auch wenn die Verbindung nicht **Aktiviert** ist.
-- **Preview notable events** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
+- **Vorschau der Notable Events** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
 - **Diesen Zeitraum importieren** importiert nach Ihrer Bestätigung einen Zeitraum von bis zu 7 Tagen, ohne den Cursor zu verschieben. Bereits importierte Zeilen werden übersprungen.
 - **Diagnosen kopieren** an einem Lauf kopiert seinen Bericht für den Support. Er enthält nie Anmeldedaten.
 
@@ -177,7 +177,7 @@ Der **Letzter Fehler** der Verbindung bewahrt die vollständige Fehlermeldung, m
 :::details Letzter Fehler beginnt mit `Splunk Enterprise Security authentication request`
 - `Splunk Enterprise Security authentication request failed (HTTP ...)`: Splunk hat sich geweigert zu sagen, wer der Aufrufer ist.
   - `HTTP 401`: Splunk hat die Anmeldedaten nicht angenommen. Das Token ist falsch, abgelaufen oder gelöscht, die Token-Authentifizierung ist auf dem Search Head deaktiviert, oder der Benutzername oder das Passwort ist falsch. Erstellen Sie ein neues Token und speichern Sie es mit **Anmeldedaten aktualisieren**.
-  - `HTTP 404`: Die **Splunk management URL** ist nicht die REST-API. Sie zeigt auf Splunk Web auf Port `8000`, oder sie hat einen Pfad, den der Search Head nicht bereitstellt.
+  - `HTTP 404`: Die **Splunk-Verwaltungs-URL** ist nicht die REST-API. Sie zeigt auf Splunk Web auf Port `8000`, oder sie hat einen Pfad, den der Search Head nicht bereitstellt.
 - `Splunk Enterprise Security authentication request returned ...`: Etwas anderes als die REST-API des Search Heads hat geantwortet, etwa das HTML von Splunk Web auf Port `8000` oder die Seite eines Proxys. Richten Sie die URL auf den Management-Port.
 :::
 

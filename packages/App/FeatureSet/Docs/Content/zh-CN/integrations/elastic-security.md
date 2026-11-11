@@ -54,7 +54,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 | 设置 | 填写什么 |
 | --- | --- |
 | **Kibana URL** | 提供 Kibana 的地址，例如 `https://kibana.example.com` 或 `https://<deployment>.kb.<region>.cloud.es.io`。不带路径：没有 `/app/security`，没有 `/api`，也没有 `/s/<space>` 部分。 |
-| **Kibana space** | 空间的 ID，而不是它的名称：字母、数字、连字符和下划线。默认空间请留空。 |
+| **Kibana 空间** | 空间的 ID，而不是它的名称：字母、数字、连字符和下划线。默认空间请留空。 |
 | **API 密钥** | 密钥的 **Base64** 值本身：OneUptime 会自己加上 `ApiKey` 方案。它会被加密，API 从不返回它，也不会再次显示。要替换它，请在连接上使用 **更新凭据**。 |
 
 **轮询** 步骤还有可选的 **描述**、**轮询间隔（分钟）**（`1` 到 `1440` 之间的整数，初始为 `5`），以及初始为开启的 **已启用**。
@@ -115,7 +115,7 @@ Stopped after collecting 10000 alerts; the window holds more.
 
 1. **缩小。** 下一次轮询从同一个起点读取长度减半的窗口，并不断减半，直到某个窗口能被完整读取，最短为一分钟。运行的警告会说明这一点：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **恢复。** 一个窗口被完整读取后，下一个窗口的长度会再次加倍，最长为 24 小时。
-3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的警报继续到达。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
+3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的警报继续到达。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **导入此时间范围** 导入这一分钟，即可找回一次运行能读取的内容。
 
 因 Kibana 的错误而彻底失败的运行，会保留游标和窗口长度，下一次轮询会再次读取同一个窗口。唯一的例外是请求超时：游标保持不变，但下一个窗口的长度减半，因为重到无法及时得到响应的窗口每次尝试都会超时。更改 **轮询间隔（分钟）** 不会改变这些：它决定的是轮询多久开始一次，而不是窗口从哪里开始。
 
@@ -124,9 +124,9 @@ Stopped after collecting 10000 alerts; the window holds more.
 在连接上点击 **诊断**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
 
 - **立即运行** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
-- **Preview alerts** 读取最长 7 天的时间范围，不导入任何内容。
-- **Import this time range** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的警报会被跳过。
-- 运行上的 **Copy diagnostics** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
+- **预览警报** 读取最长 7 天的时间范围，不导入任何内容。
+- **导入此时间范围** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的警报会被跳过。
+- 运行上的 **复制诊断信息** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
 
 ## 测试连接
 
@@ -139,7 +139,7 @@ Stopped after collecting 10000 alerts; the window holds more.
 | **Read detection alerts** | 能读取过去 24 小时内创建的一个警报。这证明了权限和空间都没问题。 |
 | **Alerts available to import** | 过去 24 小时和过去 7 天内创建了多少个警报，Elasticsearch 只统计了一部分时会带有 `+`。7 天内一个都没有是警告，而不是失败。 |
 | **Background workers**、**Poll scheduler**、**Security event storage** | OneUptime 自身的一侧：有进程在处理 Worker 队列的作业，轮询作业每分钟运行一次，安全事件存储能够响应。 |
-| **Scheduled polling** | 针对已保存的连接：轮询已开启，没有运行卡在等待工作进程的状态，并且轮询按时运行。 |
+| **计划轮询** | 针对已保存的连接：轮询已开启，没有运行卡在等待工作进程的状态，并且轮询按时运行。 |
 
 测试中的每个请求都有 20 秒的期限。测试从不导入任何内容，也不移动游标，每个失败的检查都会说明需要更改什么。
 
@@ -202,7 +202,7 @@ OneUptime 也可以把它发现的内容作为数据流中的 Elastic Common Sch
 :::details Last Error 以 `Elastic Security alerts search` 开头
 - `Elastic Security alerts search failed (HTTP ...)`：Kibana 拒绝了警报搜索。
   - `HTTP 403`：密钥能登录，但无法读取该空间的警报。请授予它 [开始之前](#开始之前) 中列出的权限。
-  - `HTTP 404`：没有空间使用该 **Kibana space** ID，或者该空间中没有启用 Elastic Security。
+  - `HTTP 404`：没有空间使用该 **Kibana 空间** ID，或者该空间中没有启用 Elastic Security。
   - `HTTP 429` 或 `HTTP 5xx`：Kibana 或 Elasticsearch 正在限制请求或出现故障。下一次轮询会重试。
 - `Elastic Security alerts search returned ...`：Kibana 以 `200` 作出了响应，但没有可读的警报页面，例如返回了它自己的错误。消息中会引用该内容。这会被报告出来，而不是当作空窗口处理，所以游标永远不会越过没人读过的警报。
 :::
@@ -217,11 +217,11 @@ OneUptime 也可以把它发现的内容作为数据流中的 Elastic Common Sch
 
 :::details 运行为 Partial
 - `Stopped after collecting 10000 alerts; the window holds more`：窗口中的警报超过了一次运行能读取的 10,000 个。不会丢失任何内容：下一次轮询会从读取的最后一个警报之后开始。一次又一次轮询都保持 **部分** 的连接正在追赶积压的内容，它的 **最近轮询** 和 **最近导入的事件** 会不断前进。如果它始终追不上，说明该空间在每个轮询间隔内创建的警报超过 10,000 个：请缩短 **轮询间隔（分钟）**。
-- `More records were created in the one minute from ... than one poll can read`：轮询越过了这一分钟。请在 **诊断** 中用 **Import this time range** 导入它。一次导入读取的量与一次轮询相同。
+- `More records were created in the one minute from ... than one poll can read`：轮询越过了这一分钟。请在 **诊断** 中用 **导入此时间范围** 导入它。一次导入读取的量与一次轮询相同。
 :::
 
 :::details 测试通过，但没有导入任何内容
-阅读测试报告中的 **Alerts available to import**。过去 7 天为 `0` 表示该空间中没有任何规则创建过警报：请检查那里是否启用了规则，以及 **Kibana space** 是否就是它们运行的空间。如果警报存在，请在安全事件资源管理器中扩大时间范围：警报显示在其活动的时间下，而活动可能远早于警报的创建时间。
+阅读测试报告中的 **Alerts available to import**。过去 7 天为 `0` 表示该空间中没有任何规则创建过警报：请检查那里是否启用了规则，以及 **Kibana 空间** 是否就是它们运行的空间。如果警报存在，请在安全事件资源管理器中扩大时间范围：警报显示在其活动的时间下，而活动可能远早于警报的创建时间。
 :::
 
 ## 你会得到什么

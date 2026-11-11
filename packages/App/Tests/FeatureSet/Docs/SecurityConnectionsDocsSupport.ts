@@ -1,5 +1,10 @@
-import { scanMarkdown } from "./DocsContentSupport";
+import { readPage, scanMarkdown } from "./DocsContentSupport";
+import {
+  DashboardTemplateLabel,
+  drawnTemplateLabel,
+} from "./DocsDashboardLabels";
 import { escapeRegExp } from "./DocsTranslationChecks";
+import { TEMPLATE_LABELS } from "./IntegrationsDocsPages";
 import { boldIn, codeIn, englishPage } from "./InventoryAndApiDocsSupport";
 import {
   DataSourceHttpRequest,
@@ -211,4 +216,51 @@ export function quotedBlock(page: string, start: string): string {
 // A text with the times it names put aside, so two runs compare.
 export function withoutTimes(value: string): string {
   return value.replace(ISO_TIME, "<time>");
+}
+
+/*
+ * The labels a connection page names that the Dashboard builds from a
+ * sentence and a value (#6703): all of them, or those of one template.
+ */
+export function templateLabelsOf(
+  page: string,
+  template?: string,
+): Array<DashboardTemplateLabel> {
+  return (TEMPLATE_LABELS[page] || []).filter(
+    (label: DashboardTemplateLabel): boolean => {
+      return template === undefined || label.template === template;
+    },
+  );
+}
+
+/*
+ * Where a page in a language quotes a template-built label other than as
+ * that language's Dashboard draws it: the drawn label missing, or the
+ * English label left where the Dashboard draws it otherwise ("Preview
+ * detections" on a German page, whose button reads "Vorschau der
+ * Erkennungen"). The page's text can be handed in, to try a broken one.
+ */
+export function templateLabelQuoteProblems(
+  language: string,
+  page: string,
+  options: { template?: string; markdown?: string } = {},
+): Array<string> {
+  const markdown: string = options.markdown ?? readPage(language, page);
+  const problems: Array<string> = [];
+
+  for (const label of templateLabelsOf(page, options.template)) {
+    const drawn: string = drawnTemplateLabel(language, label);
+
+    if (!markdown.includes(`**${drawn}**`)) {
+      problems.push(`${language} ${page}: quotes no **${drawn}**`);
+    }
+
+    if (drawn !== label.label && markdown.includes(`**${label.label}**`)) {
+      problems.push(
+        `${language} ${page}: quotes the English **${label.label}**`,
+      );
+    }
+  }
+
+  return problems;
 }

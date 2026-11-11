@@ -53,8 +53,8 @@ Cliquez sur **Tester ces paramètres** sous **Tester avant d'enregistrer**. Le t
 
 | Réglage | Ce qu'il faut saisir |
 | --- | --- |
-| **Kibana URL** | L'adresse depuis laquelle Kibana est servi, par exemple `https://kibana.example.com` ou `https://<deployment>.kb.<region>.cloud.es.io`. Sans chemin : ni `/app/security`, ni `/api`, ni la partie `/s/<space>`. |
-| **Kibana space** | L'ID de l'espace, pas son nom : lettres, chiffres, tirets et traits de soulignement. Laissez-le vide pour l'espace par défaut. |
+| **URL de Kibana** | L'adresse depuis laquelle Kibana est servi, par exemple `https://kibana.example.com` ou `https://<deployment>.kb.<region>.cloud.es.io`. Sans chemin : ni `/app/security`, ni `/api`, ni la partie `/s/<space>`. |
+| **Espace Kibana** | L'ID de l'espace, pas son nom : lettres, chiffres, tirets et traits de soulignement. Laissez-le vide pour l'espace par défaut. |
 | **Clé API** | La valeur **Base64** de la clé, seule : OneUptime ajoute lui-même le schéma `ApiKey`. Elle est chiffrée, jamais renvoyée par l'API et jamais réaffichée. Remplacez-la avec **Mettre à jour les identifiants** sur la connexion. |
 
 L'étape **Interrogation** contient aussi une **Description** facultative, le **Intervalle d'interrogation (minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
@@ -124,7 +124,7 @@ Une exécution qui échoue complètement, avec une erreur de Kibana, garde le cu
 Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récentes et travailler avec elle à la main. Quiconque peut modifier la connexion peut les lancer ; quiconque peut la voir peut lire l'historique.
 
 - **Exécuter maintenant** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
-- **Preview alerts** lit une plage de temps de 7 jours au plus et n'importe rien.
+- **Aperçu des alertes** lit une plage de temps de 7 jours au plus et n'importe rien.
 - **Importer cette plage de temps** importe une plage de 7 jours au plus, après votre confirmation, sans déplacer le curseur. Les alertes déjà importées sont sautées.
 - **Copier les diagnostics** sur une exécution copie son rapport pour le support. Il ne contient jamais d'identifiants.
 
@@ -192,7 +192,7 @@ La **Dernière erreur** de la connexion conserve le message d'erreur complet, id
 :::details Dernière erreur commence par `Elastic Security status request`
 - `Elastic Security status request failed (HTTP ...)` : Kibana a refusé la requête de statut.
   - `HTTP 401` : Kibana n'a pas accepté la clé d'API. Ce n'est pas la valeur **Base64**, ou elle a expiré ou a été invalidée. Créez une nouvelle clé, et enregistrez-la avec **Mettre à jour les identifiants**.
-  - `HTTP 404` : la **Kibana URL** a un chemin, ou n'est pas Kibana.
+  - `HTTP 404` : la **URL de Kibana** a un chemin, ou n'est pas Kibana.
   - `HTTP 503` : Kibana se déclare indisponible, en général parce qu'il ne peut pas joindre Elasticsearch.
   - `HTTP 3xx` : Kibana a redirigé la requête, et les redirections sont refusées. Utilisez l'adresse depuis laquelle Kibana est servi.
 - `Elastic Security status request returned ...` : autre chose que Kibana a répondu, par exemple une page de connexion ou un proxy.
@@ -202,7 +202,7 @@ La **Dernière erreur** de la connexion conserve le message d'erreur complet, id
 :::details Dernière erreur commence par `Elastic Security alerts search`
 - `Elastic Security alerts search failed (HTTP ...)` : Kibana a refusé la recherche d'alertes.
   - `HTTP 403` : la clé se connecte, mais ne peut pas lire les alertes de l'espace. Donnez-lui les privilèges indiqués dans [Avant de commencer](#avant-de-commencer).
-  - `HTTP 404` : aucun espace n'a cet ID **Kibana space**, ou Elastic Security n'y est pas activé.
+  - `HTTP 404` : aucun espace n'a cet ID **Espace Kibana**, ou Elastic Security n'y est pas activé.
   - `HTTP 429` ou `HTTP 5xx` : Kibana ou Elasticsearch limite les requêtes ou échoue. L'interrogation suivante réessaie.
 - `Elastic Security alerts search returned ...` : Kibana a répondu `200`, mais sans page d'alertes lisible, par exemple avec sa propre erreur. Le message la cite. C'est signalé au lieu d'être pris pour une fenêtre vide, pour que le curseur ne dépasse jamais des alertes que personne n'a lues.
 :::
@@ -221,7 +221,7 @@ Aucune interrogation ne s'est terminée pour cette connexion. Lancez **Tester la
 :::
 
 :::details Le test réussit, mais rien n'est importé
-Lisez **Alerts available to import** dans le rapport du test. `0` sur les 7 derniers jours signifie qu'aucune règle n'a créé d'alerte dans cet espace : vérifiez que des règles y sont activées, et que **Kibana space** est l'espace où elles tournent. S'il existe des alertes, élargissez la plage de temps dans l'explorateur des événements de sécurité : les alertes apparaissent à l'heure de leur activité, qui peut être bien antérieure à leur création.
+Lisez **Alerts available to import** dans le rapport du test. `0` sur les 7 derniers jours signifie qu'aucune règle n'a créé d'alerte dans cet espace : vérifiez que des règles y sont activées, et que **Espace Kibana** est l'espace où elles tournent. S'il existe des alertes, élargissez la plage de temps dans l'explorateur des événements de sécurité : les alertes apparaissent à l'heure de leur activité, qui peut être bien antérieure à leur création.
 :::
 
 ## Ce que vous obtenez

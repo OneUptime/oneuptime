@@ -72,9 +72,9 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 | **지역** | 리전 코드. 예: `us-east-1`, `eu-central-1`, `us-gov-west-1`. 다른 계정의 검색 결과를 읽을 때는 관리자 계정의 홈 리전입니다. |
 | **액세스 키 ID** | 키의 ID. 16~128자의 영문자나 숫자로, 보통 `AKIA`로 시작하는 20자이며, 임시 자격 증명이면 `ASIA`로 시작합니다. |
 | **비밀 액세스 키** | 키의 시크릿. 암호화되며, API가 반환하지 않고 다시 표시되지도 않습니다. 교체하려면 연결의 **자격 증명 업데이트**를 사용합니다. |
-| **Session token** | 임시 자격 증명에만 필요합니다. `ASIA` 키는 이것이 없으면 거부되고, `AKIA` 키는 이것이 있으면 거부됩니다. |
+| **세션 토큰** | 임시 자격 증명에만 필요합니다. `ASIA` 키는 이것이 없으면 거부되고, `AKIA` 키는 이것이 있으면 거부됩니다. |
 
-`aws sts assume-role`이나 `aws sts get-session-token`에서 받은 임시 자격 증명은 만료되며(수임한 역할은 최대 12시간), 만료되면 **자격 증명 업데이트**로 새 값을 붙여 넣을 때까지 폴링이 멈춥니다. 이 좁은 정책을 가진 장기 키를 자체 일정에 따라 교체하면 사람이 지켜보지 않아도 폴링이 계속됩니다. 임시 자격 증명에서 장기 키로 바꾸려면 **자격 증명 업데이트**에 새 키를 입력하고 **Remove the stored Session token**을 켭니다.
+`aws sts assume-role`이나 `aws sts get-session-token`에서 받은 임시 자격 증명은 만료되며(수임한 역할은 최대 12시간), 만료되면 **자격 증명 업데이트**로 새 값을 붙여 넣을 때까지 폴링이 멈춥니다. 이 좁은 정책을 가진 장기 키를 자체 일정에 따라 교체하면 사람이 지켜보지 않아도 폴링이 계속됩니다. 임시 자격 증명에서 장기 키로 바꾸려면 **자격 증명 업데이트**에 새 키를 입력하고 **저장된 세션 토큰 제거**를 켭니다.
 
 **폴링** 단계에는 선택 사항인 **설명**, `1`부터 `1440`까지의 정수이며 처음 값이 `5`인 **폴링 간격(분)**, 그리고 처음에 켜져 있는 **활성화됨**도 있습니다.
 
@@ -131,7 +131,7 @@ Stopped after 20 findings requests (the per-run request limit) before the window
 
 1. **좁히기.** 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽으며, 구간을 끝까지 읽을 수 있게 될 때까지 계속 절반으로 줄이고, 가장 짧게는 1분까지 줄입니다. 실행의 경고에 그렇게 적힙니다: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **다시 늘리기.** 구간을 끝까지 읽은 뒤에는 다음 구간이 다시 두 배가 되며, 최대 24시간까지 늘어납니다.
-3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 검색 결과가 계속 도착하도록 폴링이 그 1분을 넘어가며, 이후 폴링의 겹치는 부분도 더 이상 그 1분까지 거슬러 가지 않습니다. 실행은 **부분**으로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`라고 나옵니다. 한 번의 실행이 읽을 수 있는 만큼 되찾으려면 **Import this time range**로 그 1분을 가져오세요.
+3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 검색 결과가 계속 도착하도록 폴링이 그 1분을 넘어가며, 이후 폴링의 겹치는 부분도 더 이상 그 1분까지 거슬러 가지 않습니다. 실행은 **부분**으로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`라고 나옵니다. 한 번의 실행이 읽을 수 있는 만큼 되찾으려면 **이 시간 범위 가져오기**로 그 1분을 가져오세요.
 
 AWS의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는 그대로 유지되고 다음 폴링이 같은 구간을 다시 읽습니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 커서는 그대로지만 다음 구간은 절반 길이가 됩니다. 제시간에 응답하기에는 너무 무거운 구간은 시도할 때마다 시간이 초과되기 때문입니다. **폴링 간격(분)** 값을 바꿔도 이 중 어느 것도 달라지지 않습니다. 이 설정은 폴링이 얼마나 자주 시작하는지를 정할 뿐, 구간이 어디서 시작하는지는 정하지 않습니다.
 
@@ -140,9 +140,9 @@ AWS의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는 �
 연결에서 **진단**을 클릭하면 최근 실행을 보고 연결을 직접 다룰 수 있습니다. 연결을 변경할 수 있는 사람은 누구나 이를 시작할 수 있고, 연결을 볼 수 있는 사람은 누구나 기록을 읽을 수 있습니다.
 
 - **지금 실행**은 연결이 **활성화됨** 상태가 아닐 때에도 평소의 커서로 즉시 폴링을 시작합니다.
-- **Preview findings**는 최대 7일의 시간 범위를 읽으며 아무것도 가져오지 않습니다.
-- **Import this time range**는 확인을 거친 뒤 최대 7일의 범위를 가져오며, 커서는 옮기지 않습니다. 이미 가져온 검색 결과는 건너뜁니다.
-- 실행의 **Copy diagnostics**는 지원팀에 보낼 보고서를 복사합니다. 자격 증명은 절대 포함되지 않습니다.
+- **발견 사항 미리 보기**는 최대 7일의 시간 범위를 읽으며 아무것도 가져오지 않습니다.
+- **이 시간 범위 가져오기**는 확인을 거친 뒤 최대 7일의 범위를 가져오며, 커서는 옮기지 않습니다. 이미 가져온 검색 결과는 건너뜁니다.
+- 실행의 **진단 복사**는 지원팀에 보낼 보고서를 복사합니다. 자격 증명은 절대 포함되지 않습니다.
 
 ## 연결 테스트
 
@@ -155,7 +155,7 @@ AWS의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는 �
 | **Read findings** | Security Hub가 그 요청에 응답합니다. 자격 증명이 `securityhub:GetFindings`를 호출할 수 있고, 그 리전에서 Security Hub가 활성화되어 있습니다. |
 | **Findings available to import** | 지난 24시간과 지난 7일 동안 생성된 검색 결과의 수. 각각 100개짜리 한 페이지만 세므로 `100+`는 그보다 많다는 뜻입니다. 7일 동안 하나도 없으면 실패가 아니라 경고입니다. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime 쪽: Worker 큐의 작업을 가져가는 프로세스가 있고, 폴링 작업이 매분 실행되고, 보안 이벤트 저장소가 응답하는지. |
-| **Scheduled polling** | 저장된 연결의 경우: 폴링이 켜져 있고, 워커를 기다리며 멈춘 실행이 없고, 폴링이 제때 실행되는지. |
+| **예약된 폴링** | 저장된 연결의 경우: 폴링이 켜져 있고, 워커를 기다리며 멈춘 실행이 없고, 폴링이 제때 실행되는지. |
 
 테스트의 모든 요청에는 20초 기한이 있습니다. 테스트는 아무것도 가져오지 않고 커서를 옮기지도 않으며, 실패한 각 검사는 무엇을 바꿔야 하는지 알려 줍니다.
 
@@ -169,7 +169,7 @@ AWS가 요청을 거부했습니다. 메시지에는 AWS의 오류 코드가 인
 - `AccessDeniedException` 또는 `is not authorized to perform`: 키는 올바르지만 그 자격 증명이 `securityhub:GetFindings`를 호출할 수 없습니다. [연결 설정](#연결-설정)의 정책을 연결하세요. 권한 경계나 서비스 제어 정책이 거부할 수도 있습니다.
 - `InvalidAccessException` 또는 `is not subscribed to AWS Security Hub`: **지역**에 지정한 리전에서 이 계정에 대해 Security Hub가 활성화되어 있지 않거나, 그곳에서 이 계정이 관리자가 아닙니다.
 - `InvalidSignatureException` 또는 `SignatureDoesNotMatch`, 또는 `The request signature we calculated does not match`: **비밀 액세스 키**가 **액세스 키 ID**에 속하지 않습니다. 새 액세스 키를 만들어 **자격 증명 업데이트**로 저장하세요.
-- `UnrecognizedClientException` 또는 `InvalidClientTokenId`, 또는 `The security token included in the request is invalid`: AWS가 **액세스 키 ID**를 알지 못합니다. 잘못 입력했거나, 삭제되었거나, 비활성화되었거나, 다른 파티션의 것이거나, **Session token** 없는 임시 키입니다.
+- `UnrecognizedClientException` 또는 `InvalidClientTokenId`, 또는 `The security token included in the request is invalid`: AWS가 **액세스 키 ID**를 알지 못합니다. 잘못 입력했거나, 삭제되었거나, 비활성화되었거나, 다른 파티션의 것이거나, **세션 토큰** 없는 임시 키입니다.
 - `ExpiredTokenException` 또는 `The security token included in the request is expired`: 임시 자격 증명이 만료되었습니다. 새로 발급하거나 장기 키로 바꾸세요.
 - `RequestTimeTooSkewed` 또는 `RequestExpired`, 또는 `Signature expired`: OneUptime 호스트의 시계가 5분 넘게 어긋나 있습니다. 앱과 워커 호스트의 NTP를 바로잡으세요.
 - 코드가 전혀 없음: AWS가 키와 정책 중 무엇이 거부했는지 알려 주지 않았습니다. 먼저 키를, 그다음 정책을 확인하세요.
@@ -193,7 +193,7 @@ AWS가 요청을 거부했습니다. 메시지에는 AWS의 오류 코드가 인
 
 :::details 실행이 Partial임
 - `Stopped after 20 findings requests`: 구간에 한 번의 실행이 읽는 2,000개보다 많은 검색 결과가 있었습니다. 잃는 것은 없습니다. 다음 폴링은 마지막으로 읽은 검색 결과 다음부터 시작합니다. 폴링할 때마다 **부분**으로 남는 연결은 밀린 분량을 따라잡는 중이며, **마지막 폴링**과 **마지막으로 가져온 이벤트**는 계속 앞으로 나아갑니다. 끝내 따라잡지 못한다면 계정이 폴링 간격마다 2,000개가 넘는 검색 결과를 만들고 있는 것입니다. **폴링 간격(분)** 값을 줄이세요.
-- `More records were created in the one minute from ... than one poll can read`: 폴링이 그 1분을 넘어갔습니다. **진단**에서 **Import this time range**로 그 1분을 가져오세요. 가져오기는 한 번의 폴링만큼 읽습니다.
+- `More records were created in the one minute from ... than one poll can read`: 폴링이 그 1분을 넘어갔습니다. **진단**에서 **이 시간 범위 가져오기**로 그 1분을 가져오세요. 가져오기는 한 번의 폴링만큼 읽습니다.
 :::
 
 :::details 테스트는 통과하지만 아무것도 가져오지 않음
@@ -201,7 +201,7 @@ AWS가 요청을 거부했습니다. 메시지에는 AWS의 오류 코드가 인
 :::
 
 :::details Security Hub 콘솔의 검색 결과가 도착하지 않음
-그 `CreatedAt`을 Security Hub가 받은 시각인 `ProcessedAt`과 비교하세요. `CreatedAt`보다 30분 넘게 늦게 도착한 검색 결과는 커서 뒤로 떨어질 수 있으니, **Import this time range**로 그 `CreatedAt`을 가져오세요.
+그 `CreatedAt`을 Security Hub가 받은 시각인 `ProcessedAt`과 비교하세요. `CreatedAt`보다 30분 넘게 늦게 도착한 검색 결과는 커서 뒤로 떨어질 수 있으니, **이 시간 범위 가져오기**로 그 `CreatedAt`을 가져오세요.
 :::
 
 ## 얻을 수 있는 것
