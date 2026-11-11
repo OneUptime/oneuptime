@@ -13,6 +13,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectService from "Common/Server/Services/ProjectService";
 import { stripAgentCredentials } from "Common/Server/Utils/Monitor/MonitorPayloadRedaction";
+import OnCallPageTiming from "Common/Server/Utils/OnCall/OnCallPageTiming";
 
 export async function processServerMonitorFromQueue(
   jobData: ServerMonitorIngestJobData,
@@ -72,6 +73,17 @@ export async function processServerMonitorFromQueue(
   serverMonitorResponse.monitorId = monitor.id;
   serverMonitorResponse.requestReceivedAt = OneUptimeDate.getCurrentDate();
   serverMonitorResponse.timeNow = OneUptimeDate.getCurrentDate();
+
+  /*
+   * When the ingest API received the report, before the queue it waited
+   * in: a page its evaluation starts is timed from then (OnCallPageTiming).
+   * requestReceivedAt stays the moment it is evaluated - what the online
+   * check counts from.
+   */
+  OnCallPageTiming.stampMonitorDataReceivedAt(
+    serverMonitorResponse,
+    jobData.ingestionTimestamp,
+  );
 
   // process probe response here.
   await MonitorResourceUtil.monitorResource(serverMonitorResponse);

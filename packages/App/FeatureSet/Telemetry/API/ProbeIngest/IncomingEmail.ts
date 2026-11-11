@@ -17,6 +17,7 @@ import InboundEmailProvider, {
   getInboundEmailRecipientAddresses,
 } from "Common/Server/Services/InboundEmail/InboundEmailProvider";
 import { JSONObject } from "Common/Types/JSON";
+import OneUptimeDate from "Common/Types/Date";
 import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
 import MultipartFormDataMiddleware from "Common/Server/Middleware/MultipartFormData";
 import IncomingEmailMonitorAddress, {
@@ -118,6 +119,14 @@ router.post(
   MultipartFormDataMiddleware,
   async (req: ExpressRequest, res: ExpressResponse) => {
     try {
+      /*
+       * The moment OneUptime received this email, before any queueing - one
+       * moment for every address it went to: a page its evaluation starts is
+       * timed from it (OnCallPageTiming), and a workflow it starts is told
+       * it.
+       */
+      const receivedAt: Date = OneUptimeDate.getCurrentDate();
+
       logger.debug(
         "Received incoming email webhook",
         getLogAttributesFromRequest(req as any),
@@ -204,6 +213,7 @@ router.post(
           emailBodyHtml: parsedEmail.bodyHtml,
           emailHeaders: parsedEmail.headers,
           attachments: parsedEmail.attachments,
+          receivedAt: receivedAt,
         });
       }
 
