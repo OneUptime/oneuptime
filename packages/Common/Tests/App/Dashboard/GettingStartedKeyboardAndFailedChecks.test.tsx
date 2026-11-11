@@ -13,38 +13,44 @@ import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * The welcome checklist on Home - the four steps that set a new project up -
- * failed two kinds of people:
+ * The Welcome checklist on Home (issue #6803), from the keyboard and when
+ * its read fails:
  *
- *  - Keyboard users. Each step was a box with an onClick and role="button",
- *    but no tabindex and no key handler: Tab went past every step, and
- *    nothing pressed one. A step to do is now a real button; a step done is
- *    a record, not a control.
- *  - Anybody one of whose four checks failed. They ran in one Promise.all, so
- *    a single count that was refused (a role that may not read on-call
- *    policies) or that never came back hid the whole checklist. Each check
- *    now stands on its own: a step that could not be checked is left out of
- *    this visit, and the checklist goes only when no step could be checked -
- *    and it is never remembered as finished on a step nobody could check.
+ *  - Keyboard users. A step to do is a real button: Tab reaches it in the
+ *    order listed, Enter and Space open it. A step done is a record, not a
+ *    control.
+ *  - A read that fails. The checklist is one server answer now (no more
+ *    four counts, one of which could take the rest with it): an answer that
+ *    did not come back, or is not one, draws nothing - the card is a help,
+ *    never a broken box - and nothing is remembered from it.
  *
- * The real component; ModelAPI.count answers per model, and may refuse.
+ * The real component; the Welcome checklist's reads answer per test.
  */
 
 const navigateMock: MockFunction = getJestMockFunction();
-const countMock: MockFunction = getJestMockFunction();
 const captureMock: MockFunction = getJestMockFunction();
-const getCurrentProjectIdMock: MockFunction = getJestMockFunction();
+const sendMock: MockFunction = getJestMockFunction();
+const fetchMock: MockFunction = getJestMockFunction();
+const postMock: MockFunction = getJestMockFunction();
+const legacyMock: MockFunction = getJestMockFunction();
 
-jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
-  return {
-    __esModule: true,
-    default: {
-      count: (...args: Array<unknown>) => {
-        return countMock(...args);
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistApi",
+  () => {
+    return {
+      __esModule: true,
+      fetchWelcomeChecklist: (...args: Array<unknown>) => {
+        return fetchMock(...args);
       },
-    },
-  };
-});
+      postWelcomeChecklist: (...args: Array<unknown>) => {
+        return postMock(...args);
+      },
+      sendLegacyBrowserState: (...args: Array<unknown>) => {
+        return legacyMock(...args);
+      },
+    };
+  },
+);
 
 jest.mock("../../../UI/Utils/Navigation", () => {
   return {
@@ -74,12 +80,12 @@ jest.mock("../../../UI/Utils/Analytics", () => {
   };
 });
 
-jest.mock("../../../UI/Utils/Project", () => {
+jest.mock("../../../UI/Utils/ProductEvents", () => {
   return {
     __esModule: true,
     default: {
-      getCurrentProjectId: (...args: Array<unknown>) => {
-        return getCurrentProjectIdMock(...args);
+      send: (...args: Array<unknown>) => {
+        return sendMock(...args);
       },
     },
   };
@@ -89,6 +95,16 @@ import GettingStarted from "../../../../App/FeatureSet/Dashboard/src/Components/
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import ObjectID from "../../../Types/ObjectID";
+import ProjectUtil from "../../../UI/Utils/Project";
+import {
+  WelcomeAudience,
+  WelcomeChecklistStepState,
+  WelcomeStep,
+} from "../../../Types/WelcomeChecklist/WelcomeChecklist";
+import {
+  WelcomeChecklistAnswer,
+  getEmptyWelcomeChecklistAnswer,
+} from "../../../Types/WelcomeChecklist/WelcomeChecklistAnswer";
 import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
@@ -97,48 +113,50 @@ type UserEventController = ReturnType<typeof userEvent.setup>;
 
 const PROJECT_ID: string = "65f00000000000000000eeee";
 
-const STEP_KEYS: Array<string> = [
-  "create-monitor",
-  "create-status-page",
-  "invite-team",
-  "create-on-call-policy",
+const STEP_KEYS: Array<WelcomeStep> = [
+  WelcomeStep.Monitor,
+  WelcomeStep.OnCall,
+  WelcomeStep.StatusPage,
+  WelcomeStep.Team,
 ];
 
-// The model each step counts.
-const MODEL_OF_STEP: Record<string, string> = {
-  "create-monitor": "Monitor",
-  "create-status-page": "StatusPage",
-  "invite-team": "TeamMember",
-  "create-on-call-policy": "OnCallDutyPolicy",
-};
-
-// What each model's count says: a number, or a refusal.
-type CountAnswer = number | "refused";
-
-function answerCounts(answers: Record<string, CountAnswer>): void {
-  countMock.mockImplementation((...args: Array<unknown>) => {
-    const request: { modelType: { name: string } } = args[0] as {
-      modelType: { name: string };
-    };
-    const answer: CountAnswer = answers[request.modelType.name] ?? 0;
-
-    if (answer === "refused") {
-      return Promise.reject(
-        new Error("You do not have permission to read this resource."),
-      );
-    }
-
-    return Promise.resolve(answer);
-  });
+function step(
+  key: WelcomeStep,
+  extra?: Partial<WelcomeChecklistStepState>,
+): WelcomeChecklistStepState {
+  return { step: key, isDone: false, needsPlan: null, isNext: false, ...extra };
 }
 
-// Every step still to do: no monitor, no status page, one member, no policy.
-const NOTHING_DONE: Record<string, CountAnswer> = {
-  Monitor: 0,
-  StatusPage: 0,
-  TeamMember: 1,
-  OnCallDutyPolicy: 0,
-};
+function answer(
+  steps: Array<WelcomeChecklistStepState>,
+  extra?: Partial<WelcomeChecklistAnswer>,
+): WelcomeChecklistAnswer {
+  const counted: Array<WelcomeChecklistStepState> = steps.filter(
+    (state: WelcomeChecklistStepState): boolean => {
+      return state.needsPlan === null;
+    },
+  );
+
+  return {
+    ...getEmptyWelcomeChecklistAnswer(),
+    audience: WelcomeAudience.SetUp,
+    goals: [],
+    canChooseGoals: true,
+    steps: steps,
+    doneCount: counted.filter((state: WelcomeChecklistStepState): boolean => {
+      return state.isDone;
+    }).length,
+    totalCount: counted.length,
+    ...extra,
+  };
+}
+
+const NOTHING_DONE: WelcomeChecklistAnswer = answer([
+  step(WelcomeStep.Monitor, { isNext: true }),
+  step(WelcomeStep.OnCall),
+  step(WelcomeStep.StatusPage),
+  step(WelcomeStep.Team),
+]);
 
 async function renderGettingStarted(): Promise<void> {
   await act(async () => {
@@ -150,29 +168,18 @@ function stepTile(key: string): HTMLElement | null {
   return screen.queryByTestId(`getting-started-task-${key}`);
 }
 
-function shownStepKeys(): Array<string> {
-  return STEP_KEYS.filter((key: string): boolean => {
-    return stepTile(key) !== null;
-  });
-}
-
-function progressText(): string {
-  return (
-    within(screen.getByTestId("getting-started")).getByText(/steps completed/)
-      .textContent || ""
-  );
-}
-
 function routeOf(pageMap: PageMap): string {
   return RouteMap[pageMap]!.toString().replace(":projectId", PROJECT_ID);
 }
 
-const COMPLETE_KEY: string = `getting-started-complete-${PROJECT_ID}`;
-
 beforeEach(() => {
   window.localStorage.clear();
-  getCurrentProjectIdMock.mockReturnValue(new ObjectID(PROJECT_ID));
-  answerCounts(NOTHING_DONE);
+  window.sessionStorage.clear();
+  jest
+    .spyOn(ProjectUtil, "getCurrentProjectId")
+    .mockReturnValue(new ObjectID(PROJECT_ID));
+  legacyMock.mockResolvedValue(null);
+  fetchMock.mockResolvedValue(NOTHING_DONE);
   jest
     .spyOn(PermissionGate, "check")
     .mockImplementation((): PermissionGateResult => {
@@ -184,9 +191,11 @@ afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
   navigateMock.mockReset();
-  countMock.mockReset();
   captureMock.mockReset();
-  getCurrentProjectIdMock.mockReset();
+  sendMock.mockReset();
+  fetchMock.mockReset();
+  postMock.mockReset();
+  legacyMock.mockReset();
 });
 
 describe("the steps, from the keyboard", () => {
@@ -205,9 +214,9 @@ describe("the steps, from the keyboard", () => {
 
     expect(
       screen.getByRole("button", { name: /^Create your first monitor/ }),
-    ).toBe(stepTile("create-monitor"));
+    ).toBe(stepTile(WelcomeStep.Monitor));
     expect(screen.getByRole("button", { name: /^Invite your team/ })).toBe(
-      stepTile("invite-team"),
+      stepTile(WelcomeStep.Team),
     );
   });
 
@@ -217,8 +226,8 @@ describe("the steps, from the keyboard", () => {
 
     const reached: Array<string> = [];
 
-    // Dismiss comes first in the card's header; then the steps.
-    for (let press: number = 0; press < 12; press++) {
+    // Hide and Change come first; then the steps.
+    for (let press: number = 0; press < 14; press++) {
       await user.tab();
       const key: string | undefined = STEP_KEYS.find((candidate: string) => {
         return document.activeElement === stepTile(candidate);
@@ -235,7 +244,7 @@ describe("the steps, from the keyboard", () => {
     const user: UserEventController = userEvent.setup();
     await renderGettingStarted();
 
-    stepTile("invite-team")!.focus();
+    stepTile(WelcomeStep.Team)!.focus();
     await user.keyboard("{Enter}");
 
     expect(navigateMock).toHaveBeenCalledTimes(1);
@@ -246,7 +255,7 @@ describe("the steps, from the keyboard", () => {
     const user: UserEventController = userEvent.setup();
     await renderGettingStarted();
 
-    stepTile("create-monitor")!.focus();
+    stepTile(WelcomeStep.Monitor)!.focus();
     await user.keyboard(" ");
 
     expect(navigateMock).toHaveBeenCalledTimes(1);
@@ -255,21 +264,28 @@ describe("the steps, from the keyboard", () => {
     );
     expect(captureMock).toHaveBeenCalledWith(
       "dashboard/home/getting-started-task",
-      { projectId: PROJECT_ID, task: "create-monitor" },
+      { projectId: PROJECT_ID, task: WelcomeStep.Monitor },
     );
   });
 
   test("a done step is a record, not a control: no button, no tab stop", async () => {
-    answerCounts({ ...NOTHING_DONE, Monitor: 2 });
+    fetchMock.mockResolvedValue(
+      answer([
+        step(WelcomeStep.Monitor, { isDone: true }),
+        step(WelcomeStep.OnCall, { isNext: true }),
+        step(WelcomeStep.StatusPage),
+        step(WelcomeStep.Team),
+      ]),
+    );
     const user: UserEventController = userEvent.setup();
     await renderGettingStarted();
 
-    const done: HTMLElement = stepTile("create-monitor")!;
+    const done: HTMLElement = stepTile(WelcomeStep.Monitor)!;
     expect(done.tagName).toBe("DIV");
     expect(done).not.toHaveAttribute("role");
     expect(done).toHaveTextContent("Done");
 
-    for (let press: number = 0; press < 12; press++) {
+    for (let press: number = 0; press < 14; press++) {
       await user.tab();
       expect(document.activeElement).not.toBe(done);
     }
@@ -277,112 +293,117 @@ describe("the steps, from the keyboard", () => {
     await user.click(done);
     expect(navigateMock).not.toHaveBeenCalled();
   });
+
+  test("the next step is marked, once, and said to a screen reader as part of its name", async () => {
+    await renderGettingStarted();
+
+    expect(screen.getAllByTestId("getting-started-next")).toHaveLength(1);
+    expect(
+      within(stepTile(WelcomeStep.Monitor)!).getByTestId(
+        "getting-started-next",
+      ),
+    ).toHaveTextContent("Next");
+    expect(stepTile(WelcomeStep.Monitor)).toHaveAttribute("data-next", "true");
+    expect(stepTile(WelcomeStep.OnCall)).toHaveAttribute("data-next", "false");
+  });
+
+  test("the progress counts what the server counted", async () => {
+    fetchMock.mockResolvedValue(
+      answer([
+        step(WelcomeStep.Monitor, { isDone: true }),
+        step(WelcomeStep.OnCall, { isDone: true }),
+        step(WelcomeStep.StatusPage, { isNext: true }),
+      ]),
+    );
+    await renderGettingStarted();
+
+    const progress: string =
+      within(screen.getByTestId("getting-started")).getByText(
+        /steps completed/,
+      ).textContent || "";
+
+    expect(progress).toContain("2");
+    expect(progress).toContain("3");
+  });
 });
 
-describe("a check that fails no longer takes the checklist with it", () => {
-  test("a refused count leaves its step out, and the other three are shown", async () => {
-    answerCounts({ ...NOTHING_DONE, OnCallDutyPolicy: "refused" });
+describe("a read that fails draws nothing, and remembers nothing", () => {
+  test("an answer that did not come back: no card", async () => {
+    fetchMock.mockResolvedValue(null);
     await renderGettingStarted();
 
-    expect(screen.getByTestId("getting-started")).toBeInTheDocument();
-    expect(shownStepKeys()).toEqual([
-      "create-monitor",
-      "create-status-page",
-      "invite-team",
-    ]);
+    expect(screen.queryByTestId("getting-started")).toBeNull();
+    expect(screen.queryByTestId("welcome-question")).toBeNull();
+    expect(sendMock).not.toHaveBeenCalled();
   });
 
-  test("the progress counts the steps shown", async () => {
-    answerCounts({
-      ...NOTHING_DONE,
-      Monitor: 1,
-      OnCallDutyPolicy: "refused",
-    });
+  test("a read that throws: no card, and no error on the page", async () => {
+    fetchMock.mockRejectedValue(new Error("network"));
     await renderGettingStarted();
 
-    expect(progressText()).toContain("1");
-    expect(progressText()).toContain("3");
-    expect(progressText()).not.toContain("4");
+    expect(screen.queryByTestId("getting-started")).toBeNull();
   });
 
-  test.each(STEP_KEYS)(
-    "whichever step's check fails (%s), the rest are still there",
-    async (failingStep: string) => {
-      answerCounts({
-        ...NOTHING_DONE,
-        [MODEL_OF_STEP[failingStep]!]: "refused",
-      });
-      await renderGettingStarted();
+  test("an answer with no steps: no card", async () => {
+    fetchMock.mockResolvedValue(answer([]));
+    await renderGettingStarted();
 
-      expect(shownStepKeys()).toEqual(
-        STEP_KEYS.filter((key: string): boolean => {
-          return key !== failingStep;
+    expect(screen.queryByTestId("getting-started")).toBeNull();
+  });
+
+  test("a finished checklist: no card, for anyone", async () => {
+    fetchMock.mockResolvedValue(
+      answer(
+        STEP_KEYS.map((key: WelcomeStep) => {
+          return step(key, { isDone: true });
         }),
-      );
-    },
-  );
-
-  test("two failed checks leave two steps", async () => {
-    answerCounts({
-      ...NOTHING_DONE,
-      StatusPage: "refused",
-      TeamMember: "refused",
-    });
-    await renderGettingStarted();
-
-    expect(shownStepKeys()).toEqual([
-      "create-monitor",
-      "create-on-call-policy",
-    ]);
-  });
-
-  test("when no step could be checked, there is no checklist", async () => {
-    answerCounts({
-      Monitor: "refused",
-      StatusPage: "refused",
-      TeamMember: "refused",
-      OnCallDutyPolicy: "refused",
-    });
+        { isFinished: true },
+      ),
+    );
     await renderGettingStarted();
 
     expect(screen.queryByTestId("getting-started")).toBeNull();
-    expect(window.localStorage.getItem(COMPLETE_KEY)).toBeNull();
+    expect(screen.queryByTestId("welcome-checklist-hidden")).toBeNull();
   });
 
-  test("every step it could check is done: it goes for this visit, and is not remembered as finished", async () => {
-    answerCounts({
-      Monitor: 1,
-      StatusPage: 1,
-      TeamMember: 2,
-      OnCallDutyPolicy: "refused",
-    });
+  test("an invited member: no card - their own first hour plugs in there (#6807)", async () => {
+    fetchMock.mockResolvedValue(
+      answer([], {
+        audience: WelcomeAudience.InvitedMember,
+        canChooseGoals: false,
+        shouldAskForGoals: true,
+      }),
+    );
     await renderGettingStarted();
 
     expect(screen.queryByTestId("getting-started")).toBeNull();
-    // The next visit checks again: the on-call step was never seen done.
-    expect(window.localStorage.getItem(COMPLETE_KEY)).toBeNull();
+    expect(screen.queryByTestId("welcome-question")).toBeNull();
   });
 
-  test("every step checked and done is still remembered as finished", async () => {
-    answerCounts({
-      Monitor: 1,
-      StatusPage: 1,
-      TeamMember: 2,
-      OnCallDutyPolicy: 1,
-    });
+  test("nothing is kept in this browser but what the events saw: the old keys are gone", async () => {
     await renderGettingStarted();
 
-    expect(screen.queryByTestId("getting-started")).toBeNull();
-    expect(window.localStorage.getItem(COMPLETE_KEY)).not.toBeNull();
-  });
-
-  test("a step whose check failed opens nothing, because it is not there to open", async () => {
-    answerCounts({ ...NOTHING_DONE, Monitor: "refused" });
-    await renderGettingStarted();
-
-    expect(stepTile("create-monitor")).toBeNull();
     expect(
-      screen.queryByRole("button", { name: /^Create your first monitor/ }),
+      window.localStorage.getItem(`getting-started-complete-${PROJECT_ID}`),
     ).toBeNull();
+    expect(
+      window.localStorage.getItem(`getting-started-dismissed-${PROJECT_ID}`),
+    ).toBeNull();
+  });
+
+  test("the card is read once per project, however often the page draws it", async () => {
+    let rerender: (ui: React.ReactElement) => void = () => {};
+
+    await act(async () => {
+      rerender = render(
+        <GettingStarted projectId={new ObjectID(PROJECT_ID)} />,
+      ).rerender;
+    });
+
+    await act(async () => {
+      rerender(<GettingStarted projectId={new ObjectID(PROJECT_ID)} />);
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

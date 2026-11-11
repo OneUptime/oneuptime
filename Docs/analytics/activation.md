@@ -189,12 +189,13 @@ WITH "projects" AS (
 "project_goals" AS (
   SELECT p."_id", g."goal"
   FROM "projects" p
-  CROSS JOIN LATERAL jsonb_array_elements_text(p."goals") AS g("goal")
-  WHERE jsonb_typeof(p."goals") = 'array' AND jsonb_array_length(p."goals") > 0
+  CROSS JOIN LATERAL jsonb_array_elements_text(
+    CASE WHEN jsonb_typeof(p."goals") = 'array' THEN p."goals" ELSE '[]'::jsonb END
+  ) AS g("goal")
   UNION ALL
   SELECT "_id", CASE WHEN "goals" IS NULL THEN 'not answered' ELSE 'skipped' END
   FROM "projects"
-  WHERE "goals" IS NULL OR jsonb_array_length("goals") = 0
+  WHERE "goals" IS NULL OR jsonb_typeof("goals") <> 'array' OR "goals" = '[]'::jsonb
 )
 SELECT
   pg."goal",
