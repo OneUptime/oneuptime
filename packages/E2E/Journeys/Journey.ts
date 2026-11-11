@@ -27,8 +27,13 @@ const COUNTER_SCRIPT: string = path.join(
   "InPageCounter.js",
 );
 
-// How long the page must stay unchanged to be at rest.
-const QUIET_MS: number = 250;
+/*
+ * How long the page must stay unchanged to be at rest: longer than the
+ * pauses pages wait before they read (a telemetry rule's preview waits
+ * 600ms, PREVIEW_READ_DELAY_IN_MS), so a step is read as it ends up and
+ * the words it shows are the same on every run.
+ */
+const QUIET_MS: number = 700;
 
 const DIALOG: string =
   '[data-testid="modal"], [data-testid="side-over"], .full-page-modal';
@@ -182,13 +187,19 @@ export default class Journey {
     });
   }
 
-  // A button, by its words, where the person works now.
-  public async press(name: string | RegExp, exact: boolean = true): Promise<void> {
+  /*
+   * A button or a link, by its words, where the person works now: to a
+   * person they are the same thing.
+   */
+  public async press(name: string | RegExp): Promise<void> {
     await this.step(`press "${name}"`, async () => {
       await this.settle();
       const area: Locator = await this.workArea();
+      const exact: boolean | undefined =
+        typeof name === "string" ? true : undefined;
       await area
-        .getByRole("button", { name, exact: typeof name === "string" ? exact : undefined })
+        .getByRole("button", { name, exact })
+        .or(area.getByRole("link", { name, exact }))
         .first()
         .click();
       await this.settle();
@@ -212,19 +223,6 @@ export default class Journey {
         .or(area.getByRole("button", { name }))
         .first();
       await expect(target).toBeVisible({ timeout: seconds * 1000 });
-      await this.settle();
-    });
-  }
-
-  // A link, by its words, where the person works now.
-  public async follow(name: string | RegExp, exact: boolean = true): Promise<void> {
-    await this.step(`follow "${name}"`, async () => {
-      await this.settle();
-      const area: Locator = await this.workArea();
-      await area
-        .getByRole("link", { name, exact: typeof name === "string" ? exact : undefined })
-        .first()
-        .click();
       await this.settle();
     });
   }
@@ -361,14 +359,24 @@ export default class Journey {
         await this.settle();
         await this.page.getByRole("option").first().click();
       } else {
+        /*
+         * What the box's example shows, as a person copies it ("587",
+         * "https://example.com"), else a value of the box's kind - over
+         * whatever was typed there before.
+         */
+        const placeholder: string = (
+          (await field.getAttribute("placeholder")) || ""
+        ).trim();
+        await field.fill("");
         await field.pressSequentially(
-          type === "url"
-            ? "https://acme-commerce.example"
-            : type === "email"
-              ? "someone@acme-commerce.example"
-              : type === "number"
-                ? "1"
-                : "Journey value",
+          placeholder ||
+            (type === "url"
+              ? "https://acme-commerce.example"
+              : type === "email"
+                ? "someone@acme-commerce.example"
+                : type === "number"
+                  ? "1"
+                  : "Journey value"),
         );
       }
       await this.settle();

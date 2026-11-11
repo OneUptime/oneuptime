@@ -465,6 +465,18 @@ export function createStore(options) {
         out[key] = value;
       }
     }
+    /*
+     * As DatabaseService does before any hook (fillIdColumnsFromRelations):
+     * a record a form names by its relation - Add Monitor sends
+     * `monitor: { _id }` - gets the id in its id column too.
+     */
+    for (const [key, value] of Object.entries(out)) {
+      const relation = relationOf(modelType, key);
+      const idColumn = relation && relation.manyToOneRelationColumn;
+      if (idColumn && !out[idColumn] && value && idOf(value)) {
+        out[idColumn] = new ObjectID(idOf(value));
+      }
+    }
     return out;
   }
 

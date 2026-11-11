@@ -50,6 +50,16 @@ function build(name, frontend, pluginSpecifier, eeSubdir, internalSpecifier) {
       ...enterprise.alias,
       // One copy of Common for the pages and the fixture.
       Common: path.join(repository, "packages/Common"),
+      /*
+       * The Admin Dashboard's own i18n (its src/Utils/i18n.ts) detects the
+       * reader's language with this package. CI installs the Dashboard's
+       * packages for the offline suites, not the Admin Dashboard's, and
+       * both name the same one.
+       */
+      "i18next-browser-languagedetector": path.join(
+        repository,
+        "packages/App/FeatureSet/Dashboard/node_modules/i18next-browser-languagedetector",
+      ),
       react: path.join(repository, "packages/Common/node_modules/react"),
       "react-dom": path.join(
         repository,
