@@ -157,7 +157,8 @@
     "successMessage": "Wir haben Ihnen den Link zum Zurücksetzen des Passworts per E-Mail gesendet. Vergessen Sie nicht, den Spam-Ordner zu überprüfen.",
     "submitButton": "Link zum Zurücksetzen senden",
     "rememberPasswordPrompt": "Erinnern Sie sich an Ihr Passwort?",
-    "loginLink": "Anmelden."
+    "loginLink": "Anmelden.",
+    "cannotEmail": "Dieser Server kann noch keine E-Mails senden und Ihnen deshalb keinen Link zum Zurücksetzen Ihres Passworts schicken. Bitten Sie Ihren Server-Administrator, Ihr Passwort zurückzusetzen."
   },
   "magicLink": {
     "title": "Mit einem Link anmelden",
@@ -168,7 +169,8 @@
     "notReceived": "Nicht in Ihrem Posteingang? Prüfen Sie Ihren Spam-Ordner oder vergewissern Sie sich, dass Sie die Adresse eingegeben haben, mit der Sie sich registriert haben.",
     "sendAnother": "Weiteren Link senden",
     "knowPasswordPrompt": "Kennen Sie Ihr Passwort?",
-    "loginLink": "Anmelden."
+    "loginLink": "Anmelden.",
+    "cannotEmail": "Dieser Server kann noch keine E-Mails senden und Ihnen deshalb keinen Anmeldelink schicken. Melden Sie sich mit Ihrem Passwort an, oder bitten Sie Ihren Server-Administrator, Ihnen Zugang zu geben."
   },
   "resetPassword": {
     "title": "Passwort zurücksetzen",

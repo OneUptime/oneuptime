@@ -118,7 +118,7 @@ Ogni log ha un budget proprio: 10 pagine da 500 modifiche alla directory, 20 pag
 
 1. **Restringere.** L'interrogazione successiva legge una finestra lunga la metà, dallo stesso punto di partenza, e continua a dimezzarla finché una finestra non viene letta per intero, fino a un minuto. L'avviso dell'esecuzione lo dice: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` I record già importati dalla finestra più lunga vengono saltati come duplicati.
 2. **Tornare a crescere.** Dopo che una finestra è stata letta per intero, il cursore passa alla sua fine, e la finestra successiva è di nuovo lunga il doppio, fino a 24 ore.
-3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così i record più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
+3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così i record più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Importa questo intervallo di tempo** per recuperare ciò che un'esecuzione può leggere.
 
 Cambiare l'**Intervallo di interrogazione (minuti)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
 
@@ -127,9 +127,9 @@ Cambiare l'**Intervallo di interrogazione (minuti)** non cambia nulla di tutto q
 Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti e lavorarci a mano. Chi può modificare la connessione può avviare queste azioni; chi può vederla può leggerne la cronologia.
 
 - **Esegui ora** avvia subito un'interrogazione, con il cursore abituale, anche quando la connessione non è **Abilitato**.
-- **Preview records** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
-- **Import this time range** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. I record già importati vengono saltati. Microsoft Entra ID conserva 30 giorni di accessi e modifiche alla directory con P1 o P2, e 7 giorni senza.
-- **Copy diagnostics** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
+- **Anteprima dei record** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
+- **Importa questo intervallo di tempo** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. I record già importati vengono saltati. Microsoft Entra ID conserva 30 giorni di accessi e modifiche alla directory con P1 o P2, e 7 giorni senza.
+- **Copia diagnostica** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
 
 ## Testare la connessione
 
@@ -146,7 +146,7 @@ Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti
 | **Read the Microsoft 365 audit log** | Solo con l'opzione attiva: la Management API risponde, e a quali tipi di contenuto è iscritta l'app. |
 | **Records available to import** | Quanti accessi e modifiche alla directory contengono le ultime 24 ore, al massimo 500 ciascuno, quindi `500+` significa di più. Nessuno è un avviso. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Il lato di OneUptime stesso: un processo prende i job della coda Worker, il job di polling gira ogni minuto e l'archivio degli eventi di sicurezza risponde. |
-| **Scheduled polling** | Per una connessione salvata: il polling è attivo, nessuna esecuzione è bloccata in attesa di un worker e le interrogazioni girano in orario. |
+| **Interrogazione pianificata** | Per una connessione salvata: il polling è attivo, nessuna esecuzione è bloccata in attesa di un worker e le interrogazioni girano in orario. |
 
 Ogni richiesta di un test ha una scadenza di 20 secondi. Un test non importa mai nulla e non sposta mai il cursore, e ogni controllo fallito dice cosa cambiare.
 

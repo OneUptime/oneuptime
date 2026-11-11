@@ -52,7 +52,7 @@ Il ruolo permette all'app di leggere gli incidenti (`Microsoft.SecurityInsights/
 
 ### Trovare i dati dell'area di lavoro
 
-Apri l'area di lavoro Log Analytics nel portale di Azure. La sua pagina **Overview** mostra il **ID sottoscrizione**, il **Resource group** e il nome dell'area di lavoro. L'ID risorsa dell'area di lavoro contiene gli stessi tre:
+Apri l'area di lavoro Log Analytics nel portale di Azure. La sua pagina **Overview** mostra il **ID sottoscrizione**, il **Gruppo di risorse** e il nome dell'area di lavoro. L'ID risorsa dell'area di lavoro contiene gli stessi tre:
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -72,8 +72,8 @@ Fai clic su **Prova queste impostazioni** in **Testa prima di salvare**. Il test
 | **ID directory (tenant)** | La pagina **Overview** dell'app. Il GUID del tenant, o un dominio verificato come `contoso.onmicrosoft.com`. |
 | **ID applicazione (client)** | La pagina **Overview** dell'app. Un GUID. |
 | **ID sottoscrizione** | La pagina **Overview** dell'area di lavoro. Un GUID. |
-| **Resource group** | La pagina **Overview** dell'area di lavoro. Da 1 a 90 lettere, cifre, trattini bassi, trattini, punti o parentesi, senza un punto finale. |
-| **Workspace name** | La pagina **Overview** dell'area di lavoro. Da 3 a 90 lettere, cifre o trattini, che iniziano e finiscono con una lettera o una cifra. |
+| **Gruppo di risorse** | La pagina **Overview** dell'area di lavoro. Da 1 a 90 lettere, cifre, trattini bassi, trattini, punti o parentesi, senza un punto finale. |
+| **Nome dell'area di lavoro** | La pagina **Overview** dell'area di lavoro. Da 3 a 90 lettere, cifre o trattini, che iniziano e finiscono con una lettera o una cifra. |
 | **Cloud** | **Cloud pubblico di Azure** (`login.microsoftonline.com`, `management.azure.com`) o **Azure Government (USA)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
 | **Segreto client** | Il **Value** del segreto. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Aggiorna le credenziali** sulla connessione. |
 
@@ -131,7 +131,7 @@ Quando un'esecuzione non riesce affatto a superare il cursore salvato, OneUptime
 
 1. **Restringere.** L'interrogazione successiva legge una finestra lunga la metà, dallo stesso punto di partenza, e continua a dimezzarla finché una finestra non viene letta per intero, fino a un minuto. L'avviso dell'esecuzione lo dice: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Tornare a crescere.** Dopo che una finestra è stata letta per intero, la successiva è di nuovo lunga il doppio, fino a 24 ore.
-3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così gli incidenti più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
+3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così gli incidenti più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Importa questo intervallo di tempo** per recuperare ciò che un'esecuzione può leggere.
 
 Un'esecuzione che fallisce del tutto, con un errore di Microsoft Entra ID o di Azure Resource Manager, mantiene il cursore e la lunghezza della finestra, e l'interrogazione successiva rilegge la stessa finestra. L'unica eccezione è una richiesta scaduta: il cursore resta, ma la finestra successiva è lunga la metà, perché una finestra troppo pesante per ricevere risposta in tempo scadrebbe a ogni tentativo. Cambiare il **Intervallo di interrogazione (minuti)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
 
@@ -140,9 +140,9 @@ Un'esecuzione che fallisce del tutto, con un errore di Microsoft Entra ID o di A
 Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti e lavorarci a mano. Chi può modificare la connessione può avviare queste azioni; chi può vederla può leggerne la cronologia.
 
 - **Esegui ora** avvia subito un'interrogazione, con il cursore abituale, anche quando la connessione non è **Abilitato**.
-- **Preview incidents** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
-- **Import this time range** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. Gli incidenti già importati vengono saltati.
-- **Copy diagnostics** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
+- **Anteprima dei incidenti** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
+- **Importa questo intervallo di tempo** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. Gli incidenti già importati vengono saltati.
+- **Copia diagnostica** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
 
 ## Testare la connessione
 
@@ -155,7 +155,7 @@ Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti
 | **Read incidents** | Si può leggere un incidente creato nelle ultime 24 ore (`$top=1`). Questo dimostra il ruolo e i dati dell'area di lavoro. |
 | **Incidents available to import** | Quanti incidenti sono stati creati nelle ultime 24 ore e negli ultimi 7 giorni, una pagina da 50 ciascuno, quindi `50+` significa di più. Nessuno in 7 giorni è un avviso, non un errore. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Il lato di OneUptime stesso: un processo prende i job della coda Worker, il job di polling gira ogni minuto e l'archivio degli eventi di sicurezza risponde. |
-| **Scheduled polling** | Per una connessione salvata: il polling è attivo, nessuna esecuzione è bloccata in attesa di un worker e le interrogazioni girano in orario. |
+| **Interrogazione pianificata** | Per una connessione salvata: il polling è attivo, nessuna esecuzione è bloccata in attesa di un worker e le interrogazioni girano in orario. |
 
 Ogni richiesta di un test ha una scadenza di 20 secondi. Un test non importa mai nulla e non sposta mai il cursore, e ogni controllo fallito dice cosa cambiare.
 
@@ -246,7 +246,7 @@ Il **Ultimo errore** della connessione conserva il messaggio di errore completo,
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: Azure Resource Manager ha rifiutato la richiesta.
   - `HTTP 401`: non ha accettato il token. Quasi sempre **Cloud** non corrisponde al tenant, oppure la registrazione dell'app è stata eliminata. Un token che scade tra due pagine viene rinnovato e riprovato una volta da solo.
   - `HTTP 403` o `AuthorizationFailed`: l'app non ha ancora **Microsoft Sentinel Reader** sul gruppo di risorse. Assegnalo e attendi qualche minuto.
-  - `HTTP 404`: nessuna area di lavoro ha quel **ID sottoscrizione**, quel **Resource group** e quel **Workspace name**, oppure Microsoft Sentinel non è abilitato lì. Copiali dalla pagina **Overview** dell'area di lavoro.
+  - `HTTP 404`: nessuna area di lavoro ha quel **ID sottoscrizione**, quel **Gruppo di risorse** e quel **Nome dell'area di lavoro**, oppure Microsoft Sentinel non è abilitato lì. Copiali dalla pagina **Overview** dell'area di lavoro.
   - `HTTP 429` o `HTTP 5xx`: Azure Resource Manager sta limitando le richieste o non è disponibile. L'interrogazione successiva riprova.
   - `HTTP 400`: Azure Resource Manager ha rifiutato la richiesta, che costruisce OneUptime e non le tue impostazioni. Invia il messaggio al supporto di OneUptime.
 - `Microsoft Sentinel incidents list returned ...`: Azure ha risposto `200`, ma senza una pagina di incidenti leggibile, o con un `nextLink` verso un altro host, che la connessione rifiuta così il token non lascia mai Azure Resource Manager. Viene segnalato invece di essere preso per una finestra vuota, così il cursore non supera mai incidenti che nessuno ha letto.
@@ -260,7 +260,7 @@ Nessuna interrogazione è terminata per questa connessione. Esegui **Testa la co
 :::details Un'esecuzione è Partial
 - `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`: la finestra conteneva più dei 1.000 incidenti che legge un'esecuzione. Non si perde nulla: l'interrogazione successiva parte dopo l'ultimo incidente letto. Una connessione che resta **Parziale** un'interrogazione dopo l'altra sta recuperando un arretrato, e il suo **Ultima interrogazione** e il suo **Ultimo evento importato** continuano ad avanzare.
 - `Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.`: l'API ha ignorato l'ordine dal più vecchio al più recente, quindi l'esecuzione non può spostare il cursore sul suo ultimo incidente, e l'interrogazione successiva legge invece una finestra più corta. Se si ripete, invia il rapporto dell'esecuzione al supporto di OneUptime.
-- `More records were created in the one minute from ... than one poll can read`: il polling ha superato quel minuto. Importalo con **Import this time range** in **Diagnostica**. Un'importazione legge quanto un'interrogazione.
+- `More records were created in the one minute from ... than one poll can read`: il polling ha superato quel minuto. Importalo con **Importa questo intervallo di tempo** in **Diagnostica**. Un'importazione legge quanto un'interrogazione.
 :::
 
 :::details Il test riesce, ma non viene importato nulla

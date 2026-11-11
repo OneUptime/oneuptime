@@ -1,6 +1,6 @@
 # Grupos de monitores
 
-Un grupo de monitores reúne varios monitores en un solo estado. Agrupe los monitores que juntos forman un servicio, como Checkout: su API, su servicio de pagos y su aplicación web. El grupo muestra el peor estado entre ellos, tiene su propia disponibilidad, y una página de estado puede mostrar todo el grupo como una sola fila.
+Un grupo de monitores reúne varios monitores en un solo estado. Agrupe los monitores que juntos forman un servicio, como Checkout: su API, su servicio de pagos y su aplicación web. El grupo muestra el peor estado entre ellos, tiene su propia disponibilidad, y una página de estado puede mostrar todo el grupo como una sola fila. Para elegir entre un grupo de monitores, un servicio y una etiqueta, consulte [¿Cuál uso?](/docs/introduction/which-one#grupo-de-monitores-servicio-o-etiqueta).
 
 :::cards
 - [Cómo se calcula el estado de un grupo](#cómo-se-calcula-el-estado-de-un-grupo): El peor estado entre sus monitores.
@@ -90,6 +90,8 @@ Abra un grupo para ver sus páginas en el menú lateral:
 | **Eliminar grupo** | Elimina el grupo, también en **Avanzado**. |
 
 La disponibilidad de la **Vista general** cuenta como tiempo de inactividad cualquier estado salvo el operativo. Una página de estado solo cuenta los estados de su propia lista **Cuenta como tiempo de inactividad**: consulte [Elegir qué se muestra en la página](/docs/status-pages/index#elegir-qué-se-muestra-en-la-página).
+
+Cada barra del gráfico de tiempo de actividad, aquí y en una página de estado, es cuánto tiempo pasó el propio grupo en cada estado ese día: en cada momento tiene el peor estado de sus monitores, así que una hora en la que dos de ellos están sin conexión a la vez es una hora del grupo, y un día nunca suma más que un día. Los días son los suyos: el panel los dibuja en la zona horaria de su configuración de usuario, y una página de estado en la de cada visitante.
 
 La lista **Grupos de monitores** puede filtrar grupos por propietario y etiqueta, fijar etiquetas y propietarios en muchos grupos a la vez, y exportar o importar grupos como JSON.
 

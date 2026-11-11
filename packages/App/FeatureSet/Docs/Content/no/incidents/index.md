@@ -1,6 +1,6 @@
 # Hendelser – Oversikt
 
-En hendelse er posten teamet ditt jobber ut fra når noe ryker: hva som er berørt, hvor ille det er, hvor langt responsen har kommet, hvem som eier den, og alt som skrives ned underveis. Å erklære én tilkaller riktig vaktrotasjon, gir eierne beskjed og — hvis du vil — legger avbruddet ut på statussiden din, slik at kundene vet at du jobber med saken.
+En hendelse er posten teamet ditt jobber ut fra når noe ryker: hva som er berørt, hvor ille det er, hvor langt responsen har kommet, hvem som eier den, og alt som skrives ned underveis. Å erklære én tilkaller riktig vaktrotasjon, gir eierne beskjed og — hvis du vil — legger avbruddet ut på statussiden din, slik at kundene vet at du jobber med saken. Usikker på om et problem er en hendelse eller et varsel? [Hvilken skal jeg bruke?](/docs/introduction/which-one#hendelse-varsel-eller-en-annen-type-problem) stiller dem opp side om side.
 
 :::cards
 - [Opprette en hendelse](/docs/incidents/declaring-incidents): For hånd, fra en mal, fra en monitor, via API-et eller via et skjema.
@@ -86,7 +86,7 @@ Deretter kan du skrive en [etteranalyse](/docs/incidents/postmortems) og eventue
 
 ## Nøkkelbegreper
 
-En håndfull ord går igjen på hver annen side i denne delen. Få dem på plass først.
+En håndfull ord går igjen på hver annen side i denne delen. Få dem på plass først. Se [Ordliste](/docs/introduction/glossary) for ordene som brukes på tvers av OneUptime.
 
 | Begrep                 | Hva det betyr                                                                                                                                       |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -1,6 +1,6 @@
 # Panoramica dei Runbook
 
-Un runbook è una procedura di risposta riutilizzabile: un elenco ordinato di passaggi manuali e automatici che esegui su un incidente, un avviso o un evento di manutenzione programmata. Trasforma il thread «e adesso che facciamo?» in una checklist che chiunque sia reperibile può seguire alle 3 di notte, con script, chiamate API e approvazioni già scritti. I runbook sono pensati per gli ingegneri reperibili che rispondono agli incidenti e per i team di piattaforma che automatizzano quella risposta.
+Un runbook è una procedura di risposta riutilizzabile: un elenco ordinato di passaggi manuali e automatici che esegui su un incidente, un avviso o un evento di manutenzione programmata. Trasforma il thread «e adesso che facciamo?» in una checklist che chiunque sia reperibile può seguire alle 3 di notte, con script, chiamate API e approvazioni già scritti. I runbook sono pensati per gli ingegneri reperibili che rispondono agli incidenti e per i team di piattaforma che automatizzano quella risposta. Per scegliere tra un runbook, un workflow, un playbook e una regola IA, vedi [Quale usare?](/docs/introduction/which-one#workflow-runbook-playbook-o-regola-ia).
 
 :::cards
 - [Scrivere un runbook](/docs/runbooks/authoring): Creare un runbook e scriverne i passaggi.
@@ -39,6 +39,8 @@ Ogni esecuzione di un runbook è un'**esecuzione**. All'avvio, i passaggi del ru
 I passaggi HTTP e IA vengono eseguiti sul Worker di OneUptime. I passaggi Bash, SSH e kubectl vengono eseguiti su un [Runner](/docs/runbooks/agents) che installi nella tua infrastruttura, quindi quegli script non girano mai sui server di OneUptime. Un passaggio JavaScript viene eseguito anch'esso su uno dei tuoi Runner oppure, se non ne sceglie nessuno e il progetto non ha un [Runner predefinito](/docs/runbooks/agents#il-runner-predefinito-del-progetto), su un [Runner globale](/docs/runbooks/agents#runner-globali), in una sandbox che raggiunge solo internet. Lo stato, l'output e il messaggio di errore di ogni passaggio vengono registrati sull'esecuzione, che resta legata all'incidente, all'avviso o all'evento per cui è stata eseguita.
 
 ## Concetti chiave
+
+Le parole usate in tutto OneUptime sono nel [Glossario](/docs/introduction/glossary).
 
 | Termine | Significato |
 | --- | --- |

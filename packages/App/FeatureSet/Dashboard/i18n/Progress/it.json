@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50353,
-    "untranslated": 9852
+    "keys": 50430,
+    "untranslated": 9724
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -112,6 +112,7 @@
     "Flame graph",
     "Flavor",
     "Floating IP",
+    "Fluent Bit",
     "Formula",
     "Formula: {{formula}}",
     "Funnel",
@@ -120,6 +121,7 @@
     "Golden Signals",
     "Google Calendar",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "Guest",
     "H1",

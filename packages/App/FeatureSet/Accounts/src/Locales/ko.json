@@ -157,7 +157,8 @@
     "successMessage": "비밀번호 재설정 링크를 이메일로 보냈습니다. 스팸 폴더도 확인해 주세요.",
     "submitButton": "비밀번호 재설정 링크 보내기",
     "rememberPasswordPrompt": "비밀번호를 기억하시나요?",
-    "loginLink": "로그인."
+    "loginLink": "로그인.",
+    "cannotEmail": "이 서버는 아직 이메일을 보낼 수 없어 비밀번호 재설정 링크를 보내 드릴 수 없습니다. 서버 관리자에게 비밀번호 재설정을 요청하세요."
   },
   "magicLink": {
     "title": "링크로 로그인",
@@ -168,7 +169,8 @@
     "notReceived": "받은편지함에 없나요? 스팸 폴더를 확인하거나 가입할 때 사용한 주소를 입력했는지 확인하세요.",
     "sendAnother": "다른 링크 보내기",
     "knowPasswordPrompt": "비밀번호를 알고 계신가요?",
-    "loginLink": "로그인."
+    "loginLink": "로그인.",
+    "cannotEmail": "이 서버는 아직 이메일을 보낼 수 없어 로그인 링크를 보내 드릴 수 없습니다. 비밀번호로 로그인하거나 서버 관리자에게 접근 권한을 요청하세요."
   },
   "resetPassword": {
     "title": "비밀번호 재설정",

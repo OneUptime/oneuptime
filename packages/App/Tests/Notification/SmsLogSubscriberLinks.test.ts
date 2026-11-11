@@ -407,6 +407,25 @@ beforeEach(() => {
     .mockImplementation((async (data: { id: ObjectID; data: JSONObject }) => {
       Object.assign(smsLogs.get(data.id)!, data.data);
     }) as never);
+  // The send's result: written only while the log still says what is expected.
+  jest
+    .spyOn(SmsLogService, "compareAndSetColumnsByIdWithoutHooks")
+    .mockImplementation((async (data: {
+      id: ObjectID;
+      data: JSONObject;
+      expectedData: JSONObject;
+    }) => {
+      const row: JSONObject = smsLogs.get(data.id)! as JSONObject;
+
+      for (const [column, value] of Object.entries(data.expectedData)) {
+        if (row[column] !== value) {
+          return false;
+        }
+      }
+
+      Object.assign(row, data.data);
+      return true;
+    }) as never);
 
   useInMemoryTable(StatusPageService, [
     {

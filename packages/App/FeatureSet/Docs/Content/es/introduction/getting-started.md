@@ -7,6 +7,8 @@ Empieza aquí:
 :::cards
 - [Inicio rápido](/docs/introduction/quickstart): Monitorizar un sitio web, recibir un aviso cuando falle y publicar una página de estado.
 - [Conceptos básicos](/docs/introduction/core-concepts): Las pocas ideas sobre las que se construye todo lo demás, y cómo se relacionan.
+- [Glosario](/docs/introduction/glossary): Cada palabra que usa OneUptime, en una o dos frases, con sus otros nombres.
+- [¿Cuál uso?](/docs/introduction/which-one): Incidente o alerta, flujo de trabajo o runbook, y las demás cosas que se parecen, lado a lado.
 - [Página de inicio y atajos](/docs/introduction/home): Orientarte en el panel, y las teclas que te ahorran clics.
 - [Su cuenta](/docs/introduction/your-account): Tu perfil, tu contraseña, tus llaves de acceso y la autenticación de dos factores.
 :::

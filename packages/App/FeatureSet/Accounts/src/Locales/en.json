@@ -157,7 +157,8 @@
     "successMessage": "We have emailed you the password reset link. Please do not forget to check spam.",
     "submitButton": "Send Password Reset Link",
     "rememberPasswordPrompt": "Remember your password?",
-    "loginLink": "Sign in."
+    "loginLink": "Sign in.",
+    "cannotEmail": "This server cannot send email yet, so it cannot email you a link to reset your password. Ask your server's admin to reset your password."
   },
   "magicLink": {
     "title": "Sign in with a link",
@@ -168,7 +169,8 @@
     "notReceived": "Not in your inbox? Check your spam folder, or make sure you typed the address you signed up with.",
     "sendAnother": "Send another link",
     "knowPasswordPrompt": "Know your password?",
-    "loginLink": "Sign in."
+    "loginLink": "Sign in.",
+    "cannotEmail": "This server cannot send email yet, so it cannot email you a sign-in link. Sign in with your password, or ask your server's admin to let you in."
   },
   "resetPassword": {
     "title": "Reset your password",

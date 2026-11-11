@@ -49,22 +49,7 @@ export default class UptimeDailyAggregateUtil {
         (monitor: MonitorUptimeDailyAggregate): JSONObject => {
           return {
             monitorId: monitor.monitorId.toString(),
-            buckets: monitor.buckets.map((bucket: UptimeDayBucket) => {
-              return {
-                bucketStart: bucket.bucketStart.toISOString(),
-                bucketEnd: bucket.bucketEnd.toISOString(),
-                daySeconds: bucket.daySeconds,
-                coveredSeconds: bucket.coveredSeconds,
-                statusDurations: bucket.statusDurations.map(
-                  (duration: UptimeStatusDuration) => {
-                    return {
-                      monitorStatusId: duration.monitorStatusId.toString(),
-                      seconds: duration.seconds,
-                    };
-                  },
-                ),
-              };
-            }),
+            buckets: UptimeDailyAggregateUtil.bucketsToJSON(monitor.buckets),
           };
         },
       ) as JSONArray,
@@ -74,6 +59,90 @@ export default class UptimeDailyAggregateUtil {
         : null,
       timezone: UptimeDailyAggregateUtil.getTimezone(aggregate),
     };
+  }
+
+  /*
+   * Day buckets in the wire format: ISO strings and id strings. A monitor
+   * group's buckets (MonitorGroupUptimeDailyAggregateUtil) are written the
+   * same way, so both read back through bucketsFromJSON.
+   */
+  public static bucketsToJSON(buckets: Array<UptimeDayBucket>): JSONArray {
+    return buckets.map((bucket: UptimeDayBucket): JSONObject => {
+      return {
+        bucketStart: bucket.bucketStart.toISOString(),
+        bucketEnd: bucket.bucketEnd.toISOString(),
+        daySeconds: bucket.daySeconds,
+        coveredSeconds: bucket.coveredSeconds,
+        statusDurations: bucket.statusDurations.map(
+          (duration: UptimeStatusDuration): JSONObject => {
+            return {
+              monitorStatusId: duration.monitorStatusId.toString(),
+              seconds: duration.seconds,
+            };
+          },
+        ),
+      };
+    });
+  }
+
+  /*
+   * Day buckets from the wire format. Total: anything that is not a list
+   * reads as no buckets, and a bucket with a date it cannot read, or a
+   * duration with no status, is skipped.
+   */
+  public static bucketsFromJSON(rawBuckets: unknown): Array<UptimeDayBucket> {
+    const buckets: Array<UptimeDayBucket> = [];
+
+    if (!Array.isArray(rawBuckets)) {
+      return buckets;
+    }
+
+    for (const rawBucket of rawBuckets) {
+      if (!rawBucket || typeof rawBucket !== "object") {
+        continue;
+      }
+
+      const bucket: JSONObject = rawBucket as JSONObject;
+
+      const bucketStart: Date = new Date(bucket["bucketStart"] as string);
+      const bucketEnd: Date = new Date(bucket["bucketEnd"] as string);
+
+      if (
+        Number.isNaN(bucketStart.getTime()) ||
+        Number.isNaN(bucketEnd.getTime())
+      ) {
+        continue;
+      }
+
+      const rawDurations: unknown = bucket["statusDurations"];
+      const statusDurations: Array<UptimeStatusDuration> = [];
+
+      if (Array.isArray(rawDurations)) {
+        for (const rawDuration of rawDurations) {
+          const duration: JSONObject = (rawDuration || {}) as JSONObject;
+          const statusId: unknown = duration["monitorStatusId"];
+
+          if (typeof statusId !== "string" || !statusId) {
+            continue;
+          }
+
+          statusDurations.push({
+            monitorStatusId: new ObjectID(statusId),
+            seconds: Number(duration["seconds"]) || 0,
+          });
+        }
+      }
+
+      buckets.push({
+        bucketStart: bucketStart,
+        bucketEnd: bucketEnd,
+        daySeconds: Number(bucket["daySeconds"]) || 0,
+        coveredSeconds: Number(bucket["coveredSeconds"]) || 0,
+        statusDurations: statusDurations,
+      });
+    }
+
+    return buckets;
   }
 
   /**
@@ -142,55 +211,9 @@ export default class UptimeDailyAggregateUtil {
         continue;
       }
 
-      const rawBuckets: unknown = monitor["buckets"];
-      const buckets: Array<UptimeDayBucket> = [];
-
-      if (Array.isArray(rawBuckets)) {
-        for (const rawBucket of rawBuckets) {
-          const bucket: JSONObject = rawBucket as JSONObject;
-
-          const bucketStart: Date = new Date(bucket["bucketStart"] as string);
-          const bucketEnd: Date = new Date(bucket["bucketEnd"] as string);
-
-          if (
-            Number.isNaN(bucketStart.getTime()) ||
-            Number.isNaN(bucketEnd.getTime())
-          ) {
-            continue;
-          }
-
-          const rawDurations: unknown = bucket["statusDurations"];
-          const statusDurations: Array<UptimeStatusDuration> = [];
-
-          if (Array.isArray(rawDurations)) {
-            for (const rawDuration of rawDurations) {
-              const duration: JSONObject = rawDuration as JSONObject;
-              const statusId: unknown = duration["monitorStatusId"];
-
-              if (typeof statusId !== "string" || !statusId) {
-                continue;
-              }
-
-              statusDurations.push({
-                monitorStatusId: new ObjectID(statusId),
-                seconds: Number(duration["seconds"]) || 0,
-              });
-            }
-          }
-
-          buckets.push({
-            bucketStart: bucketStart,
-            bucketEnd: bucketEnd,
-            daySeconds: Number(bucket["daySeconds"]) || 0,
-            coveredSeconds: Number(bucket["coveredSeconds"]) || 0,
-            statusDurations: statusDurations,
-          });
-        }
-      }
-
       monitors.push({
         monitorId: new ObjectID(monitorId),
-        buckets: buckets,
+        buckets: UptimeDailyAggregateUtil.bucketsFromJSON(monitor["buckets"]),
       });
     }
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50353,
-    "untranslated": 9866
+    "keys": 50430,
+    "untranslated": 9738
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -85,6 +85,7 @@
     "Finland (+358)",
     "Flat",
     "Flavor",
+    "Fluent Bit",
     "Format",
     "Gateway",
     "Gemini for Google Workspace",
@@ -92,6 +93,7 @@
     "Global",
     "Golden Signals",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "H1",
     "HA: {{state}}",

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50353,
-    "untranslated": 9813
+    "keys": 50430,
+    "untranslated": 9685
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -48,9 +48,11 @@
     "Down + Out",
     "Edge",
     "Floating IP",
+    "Fluent Bit",
     "Full view",
     "Google Calendar",
     "Google SecOps",
+    "Google UDM",
     "H1",
     "HA: {{state}}",
     "HAProxy",

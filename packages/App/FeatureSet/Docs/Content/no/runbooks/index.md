@@ -1,6 +1,6 @@
 # Runbooks – Oversikt
 
-Et runbook er en gjenbrukbar responsprosedyre: en ordnet liste med manuelle og automatiserte trinn som du kjører på en hendelse, et varsel eller en planlagt vedlikeholdshendelse. Det gjør tråden "hva gjør vi nå?" om til en sjekkliste som alle på vakt kan følge klokken 3 om natten, med skript, API-kall og godkjenninger allerede skrevet. Runbooks er for vakthavende ingeniører som håndterer hendelser, og for plattformteam som automatiserer den håndteringen.
+Et runbook er en gjenbrukbar responsprosedyre: en ordnet liste med manuelle og automatiserte trinn som du kjører på en hendelse, et varsel eller en planlagt vedlikeholdshendelse. Det gjør tråden "hva gjør vi nå?" om til en sjekkliste som alle på vakt kan følge klokken 3 om natten, med skript, API-kall og godkjenninger allerede skrevet. Runbooks er for vakthavende ingeniører som håndterer hendelser, og for plattformteam som automatiserer den håndteringen. Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#arbeidsflyt-runbook-playbook-eller-ai-regel) for å velge mellom et runbook, en arbeidsflyt, en playbook og en AI-regel.
 
 :::cards
 - [Skrive et runbook](/docs/runbooks/authoring): Opprett et runbook, og skriv trinnene.
@@ -39,6 +39,8 @@ Hver gang et runbook kjøres, opprettes en **kjøring**. Når den starter, kopie
 HTTP- og AI-trinn kjører på OneUptime Worker. Bash-, SSH- og kubectl-trinn kjører på en [Runner](/docs/runbooks/agents) som du installerer i din egen infrastruktur, slik at disse skriptene aldri kjører på OneUptimes servere. Et JavaScript-trinn kjører også på en av dine Runnere eller, hvis det ikke velger noen og prosjektet ikke har noen [standard-Runner](/docs/runbooks/agents#prosjektets-standard-runner), på en [global Runner](/docs/runbooks/agents#globale-runnere), i en sandkasse som bare når internett. Hvert trinns status, output og feilmelding registreres på kjøringen, som blir liggende på hendelsen, varselet eller begivenheten den kjørte for.
 
 ## Sentrale begreper
+
+Se [Ordliste](/docs/introduction/glossary) for ordene som brukes på tvers av OneUptime.
 
 | Begrep | Betydning |
 | --- | --- |

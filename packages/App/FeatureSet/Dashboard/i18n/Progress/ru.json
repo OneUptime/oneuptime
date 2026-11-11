@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50353,
-    "untranslated": 9825
+    "keys": 50430,
+    "untranslated": 9697
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -43,8 +43,10 @@
     "Edge",
     "Flavor",
     "Flavors",
+    "Fluent Bit",
     "Golden Signals",
     "Google SecOps",
+    "Google UDM",
     "H1",
     "HA: {{state}}",
     "HAProxy",

@@ -1,6 +1,6 @@
 # Catálogo de servicios
 
-El catálogo de servicios enumera las aplicaciones y los microservicios que ejecuta. OneUptime añade un servicio la primera vez que llega su telemetría y luego reúne sus registros, trazas, métricas, excepciones, incidentes y propietarios en una sola página, para que cualquiera sepa qué hace un servicio, quién es su responsable y cómo está.
+El catálogo de servicios enumera las aplicaciones y los microservicios que ejecuta. OneUptime añade un servicio la primera vez que llega su telemetría y luego reúne sus registros, trazas, métricas, excepciones, incidentes y propietarios en una sola página, para que cualquiera sepa qué hace un servicio, quién es su responsable y cómo está. Para elegir entre un servicio, un grupo de monitores y una etiqueta, consulte [¿Cuál uso?](/docs/introduction/which-one#grupo-de-monitores-servicio-o-etiqueta).
 
 :::cards
 - [Cómo entra un servicio en el catálogo](#cómo-entra-un-servicio-en-el-catálogo): Su `service.name`, con su primera telemetría.

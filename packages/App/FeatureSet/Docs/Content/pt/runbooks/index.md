@@ -1,6 +1,6 @@
 # Visão geral dos Runbooks
 
-Um runbook é um procedimento de resposta reutilizável: uma lista ordenada de etapas manuais e automatizadas que você executa em um incidente, um alerta ou um evento de manutenção programada. Ele transforma a conversa de "e agora, o que fazemos?" em uma checklist que qualquer pessoa de plantão consegue seguir às 3 da manhã, com os scripts, as chamadas de API e as aprovações já escritos. Os runbooks são para os engenheiros de plantão que respondem a incidentes e para as equipes de plataforma que automatizam essa resposta.
+Um runbook é um procedimento de resposta reutilizável: uma lista ordenada de etapas manuais e automatizadas que você executa em um incidente, um alerta ou um evento de manutenção programada. Ele transforma a conversa de "e agora, o que fazemos?" em uma checklist que qualquer pessoa de plantão consegue seguir às 3 da manhã, com os scripts, as chamadas de API e as aprovações já escritos. Os runbooks são para os engenheiros de plantão que respondem a incidentes e para as equipes de plataforma que automatizam essa resposta. Para escolher entre um runbook, um workflow, um playbook e uma regra de IA, veja [Qual devo usar?](/docs/introduction/which-one#fluxo-de-trabalho-runbook-playbook-ou-regra-de-ia).
 
 :::cards
 - [Escrever um runbook](/docs/runbooks/authoring): Criar um runbook e escrever suas etapas.
@@ -39,6 +39,8 @@ Cada execução de um runbook é uma **execução**. Quando ela começa, as etap
 As etapas HTTP e de IA são executadas no Worker do OneUptime. As etapas Bash, SSH e kubectl são executadas em um [Runner](/docs/runbooks/agents) que você instala na sua própria infraestrutura, então esses scripts nunca rodam nos servidores do OneUptime. Uma etapa JavaScript também roda em um dos seus Runners ou, se não escolher nenhum e o projeto não tiver um [Runner padrão](/docs/runbooks/agents#o-runner-padrão-do-projeto), em um [Runner global](/docs/runbooks/agents#runners-globais), em um sandbox que só alcança a internet. O status, a saída e a mensagem de erro de cada etapa ficam registrados na execução, que permanece ligada ao incidente, alerta ou evento para o qual ela rodou.
 
 ## Conceitos principais
+
+As palavras usadas em todo o OneUptime estão no [Glossário](/docs/introduction/glossary).
 
 | Termo | Significado |
 | --- | --- |

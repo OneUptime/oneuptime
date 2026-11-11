@@ -141,6 +141,7 @@ En statussida visar en incident när en av incidentens monitorer finns på sidan
 
 :::cards
 - [Grundbegrepp](/docs/introduction/core-concepts): Idéerna bakom det du just har konfigurerat.
+- [Ordlista](/docs/introduction/glossary): Varje ord som du stötte på längs vägen, med en eller två meningar.
 - [Jourscheman](/docs/on-call/schedules): Dela jouren med ditt team.
 - [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains): Gör statussidan till din egen.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Skicka loggar, mätvärden och spår från dina appar.

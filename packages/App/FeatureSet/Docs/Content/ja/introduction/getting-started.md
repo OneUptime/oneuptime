@@ -7,6 +7,8 @@ OneUptime はオープンソースのオブザーバビリティプラットフ�
 :::cards
 - [クイックスタート](/docs/introduction/quickstart): ウェブサイトを監視し、障害時に呼び出しを受け、ステータスページを公開します。
 - [基本概念](/docs/introduction/core-concepts): ほかのすべての土台となるいくつかの考え方と、そのつながり。
+- [用語集](/docs/introduction/glossary): OneUptime で使われるすべての言葉を、ほかの呼び名とともに 1〜2 文で。
+- [どれを使うべきか](/docs/introduction/which-one): インシデントかアラートか、ワークフローか Runbook かなど、似たものを並べて比較します。
 - [ホーム画面とショートカット](/docs/introduction/home): ダッシュボードの歩き方と、クリックを減らすキー。
 - [アカウント](/docs/introduction/your-account): プロフィール、パスワード、パスキー、2 要素認証。
 :::

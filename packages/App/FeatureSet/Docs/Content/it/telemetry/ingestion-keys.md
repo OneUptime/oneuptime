@@ -1,6 +1,6 @@
 # Chiavi di acquisizione
 
-Una chiave di acquisizione collega la vostra telemetria al vostro progetto. Applicazioni, OpenTelemetry Collector e agenti la inviano con ogni richiesta, e OneUptime archivia i loro log, tracce e metriche nel progetto a cui la chiave appartiene. Questa pagina mostra come creare una chiave, quale tipo scegliere e come tenere al sicuro le chiavi.
+Una chiave di acquisizione collega la vostra telemetria al vostro progetto. Applicazioni, OpenTelemetry Collector e agenti la inviano con ogni richiesta, e OneUptime archivia i loro log, tracce e metriche nel progetto a cui la chiave appartiene. Questa pagina mostra come creare una chiave, quale tipo scegliere e come tenere al sicuro le chiavi. Per distinguere una chiave di acquisizione da una chiave API, consultate [Quale usare?](/docs/introduction/which-one#chiave-di-acquisizione-o-chiave-api).
 
 :::cards
 - [Creare una chiave di acquisizione](#creare-una-chiave-di-acquisizione): Un nome, un tipo e un segreto da copiare.

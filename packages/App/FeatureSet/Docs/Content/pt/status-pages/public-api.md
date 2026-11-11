@@ -74,6 +74,8 @@ Os endpoints seguem as próprias configurações da página, no cartão **O que 
 
 A visão geral é uma requisição para a página inteira. São os mesmos dados que a página de status desenha, e eles têm no máximo 15 segundos.
 
+Os dias das barras de disponibilidade são dias UTC, a menos que você indique um fuso horário: acrescente `?timezone=Asia/Shanghai` a um `GET`, ou envie `{"timezone": "Asia/Shanghai"}` como corpo de um `POST`, e `uptimeDailyAggregate` e `monitorGroupUptimeDailyAggregate` são divididos nos dias desse fuso, como a página de status pede para cada visitante. Um fuso que o servidor não conhece vale UTC, e os dois dizem no seu `timezone` em qual fuso foram divididos.
+
 :::tabs
 @tab curl
 ```bash
@@ -133,7 +135,7 @@ O status geral é o pior status atual dos monitores e grupos de monitores da pá
 | `resourceGroups` | Os grupos, com `parentStatusPageGroupId` para os grupos aninhados. |
 | `monitorStatuses` | Todo status de monitor do projeto, da menor prioridade para a maior. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | O status atual de cada grupo de monitores da página e os monitores dentro dele. |
-| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | A partir de que as barras de disponibilidade são desenhadas, e as regras de cor das barras da página. |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | A partir de que as barras de disponibilidade são desenhadas, e as regras de cor das barras da página. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Os incidentes não resolvidos que a página mostra, as suas notas públicas e mudanças de estado, e os estados de incidente do projeto. |
 | `timelineIncidents` | Os incidentes dentro da janela das barras de disponibilidade, inclusive os resolvidos, para as dicas das barras. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | O mesmo para os episódios de incidentes. |

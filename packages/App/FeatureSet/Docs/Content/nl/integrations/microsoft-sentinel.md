@@ -52,7 +52,7 @@ Met de rol kan de app incidenten lezen (`Microsoft.SecurityInsights/incidents/re
 
 ### De gegevens van de werkruimte vinden
 
-Open de Log Analytics-werkruimte in de Azure-portal. De pagina **Overview** toont de **Abonnements-ID**, de **Resource group** en de naam van de werkruimte. De resource-ID van de werkruimte bevat dezelfde drie:
+Open de Log Analytics-werkruimte in de Azure-portal. De pagina **Overview** toont de **Abonnements-ID**, de **Resourcegroep** en de naam van de werkruimte. De resource-ID van de werkruimte bevat dezelfde drie:
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -72,8 +72,8 @@ Klik op **Deze instellingen testen** onder **Testen voor het opslaan**. De test 
 | **Directory-ID (tenant)** | De pagina **Overview** van de app. De GUID van de tenant, of een geverifieerd domein zoals `contoso.onmicrosoft.com`. |
 | **Applicatie-ID (client)** | De pagina **Overview** van de app. Een GUID. |
 | **Abonnements-ID** | De pagina **Overview** van de werkruimte. Een GUID. |
-| **Resource group** | De pagina **Overview** van de werkruimte. 1 tot 90 letters, cijfers, underscores, koppeltekens, punten of haakjes, niet eindigend op een punt. |
-| **Workspace name** | De pagina **Overview** van de werkruimte. 3 tot 90 letters, cijfers of koppeltekens, beginnend en eindigend met een letter of cijfer. |
+| **Resourcegroep** | De pagina **Overview** van de werkruimte. 1 tot 90 letters, cijfers, underscores, koppeltekens, punten of haakjes, niet eindigend op een punt. |
+| **Naam van werkruimte** | De pagina **Overview** van de werkruimte. 3 tot 90 letters, cijfers of koppeltekens, beginnend en eindigend met een letter of cijfer. |
 | **Cloud** | **Openbare Azure-cloud** (`login.microsoftonline.com`, `management.azure.com`) of **Azure Government (VS)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
 | **Clientgeheim** | De **Value** van het geheim. Het wordt versleuteld, nooit door de API teruggegeven en nooit meer getoond. Vervang het met **Inloggegevens bijwerken** op de verbinding. |
 
@@ -131,7 +131,7 @@ Wanneer een run helemaal niet voorbij de opgeslagen cursor komt, maakt OneUptime
 
 1. **Verkleinen.** De volgende poll leest een venster dat half zo lang is, vanaf hetzelfde beginpunt, en blijft halveren tot een venster volledig wordt gelezen, tot één minuut. De waarschuwing van de run zegt het: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Weer groeien.** Nadat een venster volledig is gelezen, is het volgende weer twee keer zo lang, tot 24 uur.
-3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere incidenten blijven binnenkomen. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
+3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere incidenten blijven binnenkomen. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Dit tijdsbereik importeren** om terug te halen wat één run kan lezen.
 
 Een run die volledig mislukt, met een fout van Microsoft Entra ID of Azure Resource Manager, behoudt de cursor en de vensterlengte, en de volgende poll leest hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen. Het **Opvraaginterval (minuten)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll start, niet waar zijn venster begint.
 
@@ -140,9 +140,9 @@ Een run die volledig mislukt, met een fout van Microsoft Entra ID of Azure Resou
 Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
 
 - **Nu uitvoeren** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
-- **Preview incidents** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
-- **Import this time range** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde incidenten worden overgeslagen.
-- **Copy diagnostics** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
+- **Voorbeeld van incidenten** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
+- **Dit tijdsbereik importeren** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde incidenten worden overgeslagen.
+- **Diagnose kopiëren** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
 
 ## Verbinding testen
 
@@ -155,7 +155,7 @@ Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met d
 | **Read incidents** | Eén incident dat in de afgelopen 24 uur is gemaakt, kan worden gelezen (`$top=1`). Dat bewijst de rol en de gegevens van de werkruimte. |
 | **Incidents available to import** | Hoeveel incidenten in de afgelopen 24 uur en de afgelopen 7 dagen zijn gemaakt, één pagina van 50 voor elk, dus `50+` betekent meer. Geen in 7 dagen is een waarschuwing, geen fout. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | De kant van OneUptime zelf: een proces neemt de jobs van de Worker-wachtrij af, de poll-job draait elke minuut en de opslag van beveiligingsgebeurtenissen antwoordt. |
-| **Scheduled polling** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
+| **Geplande opvraging** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
 
 Elk verzoek in een test heeft een deadline van 20 seconden. Een test importeert nooit iets en verplaatst nooit de cursor, en elke mislukte controle zegt wat je moet wijzigen.
 
@@ -246,7 +246,7 @@ De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met refe
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: Azure Resource Manager weigerde het verzoek.
   - `HTTP 401`: hij accepteerde het token niet. Bijna altijd past **Cloud** niet bij de tenant, of is de app-registratie verwijderd. Een token dat tussen twee pagina's verloopt, wordt vanzelf vernieuwd en één keer opnieuw geprobeerd.
   - `HTTP 403` of `AuthorizationFailed`: de app heeft nog geen **Microsoft Sentinel Reader** op de resourcegroep. Wijs die toe en wacht een paar minuten.
-  - `HTTP 404`: geen enkele werkruimte heeft die **Abonnements-ID**, **Resource group** en **Workspace name**, of Microsoft Sentinel is daar niet ingeschakeld. Kopieer ze van de pagina **Overview** van de werkruimte.
+  - `HTTP 404`: geen enkele werkruimte heeft die **Abonnements-ID**, **Resourcegroep** en **Naam van werkruimte**, of Microsoft Sentinel is daar niet ingeschakeld. Kopieer ze van de pagina **Overview** van de werkruimte.
   - `HTTP 429` of `HTTP 5xx`: Azure Resource Manager beperkt verzoeken of is niet beschikbaar. De volgende poll probeert het opnieuw.
   - `HTTP 400`: Azure Resource Manager weigerde het verzoek, dat OneUptime opbouwt en niet je instellingen. Stuur het bericht naar de support van OneUptime.
 - `Microsoft Sentinel incidents list returned ...`: Azure antwoordde `200`, maar zonder leesbare pagina met incidenten, of met een `nextLink` naar een andere host, die de verbinding weigert zodat het token Azure Resource Manager nooit verlaat. Dit wordt gemeld in plaats van als een leeg venster te worden opgevat, zodat de cursor nooit voorbij incidenten gaat die niemand heeft gelezen.
@@ -260,7 +260,7 @@ Er is voor deze verbinding nog geen poll voltooid. Voer **Verbinding testen** ui
 :::details Een run is Partial
 - `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`: het venster bevatte meer dan de 1.000 incidenten die één run leest. Er gaat niets verloren: de volgende poll begint na het laatst gelezen incident. Een verbinding die poll na poll **Gedeeltelijk** blijft, haalt een achterstand in, en haar **Laatst opgevraagd** en **Laatst geïmporteerde gebeurtenis** blijven doorschuiven.
 - `Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.`: de API negeerde de volgorde van oud naar nieuw, dus de run kan de cursor niet op zijn laatste incident zetten, en de volgende poll leest in plaats daarvan een korter venster. Gebeurt het steeds weer, stuur dan het rapport van de run naar de support van OneUptime.
-- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Import this time range** in **Diagnose**. Een import leest net zoveel als een poll.
+- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Dit tijdsbereik importeren** in **Diagnose**. Een import leest net zoveel als een poll.
 :::
 
 :::details De test slaagt, maar er wordt niets geïmporteerd

@@ -48,7 +48,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ### 在 OneUptime 中新增連線
 
-開啟 **產品 → 安全事件 → 連線**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，在 **身分** 下選擇 **Google Workspace**，然後點選 **下一步**。填寫 **Administrator email**，點選 **下一步**，並把金鑰檔案的內容貼上到 **服務帳戶 JSON** 中。在 **輪詢** 步驟中開啟 **雲端硬碟活動**，即可同時讀取雲端硬碟。
+開啟 **產品 → 安全事件 → 連線**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，在 **身分** 下選擇 **Google Workspace**，然後點選 **下一步**。填寫 **管理員電子郵件**，點選 **下一步**，並把金鑰檔案的內容貼上到 **服務帳戶 JSON** 中。在 **輪詢** 步驟中開啟 **雲端硬碟活動**，即可同時讀取雲端硬碟。
 
 ### 儲存之前先測試
 
@@ -57,7 +57,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 | 設定 | 填寫什麼 |
 | --- | --- |
-| **Administrator email** | 服務帳戶代為行事的管理員的地址，例如 `admin@example.com`。該管理員必須擁有 Reports 權限。 |
+| **管理員電子郵件** | 服務帳戶代為行事的管理員的地址，例如 `admin@example.com`。該管理員必須擁有 Reports 權限。 |
 | **雲端硬碟活動** | 選用，預設關閉。開啟後，每次輪詢也會讀取雲端硬碟的共用和下載。 |
 | **服務帳戶 JSON** | 整個金鑰檔案，其中包含 `client_email` 和 `private_key`。它會被加密，API 從不傳回，也不會再次顯示。在連線上用 **更新憑證** 替換它。 |
 
@@ -94,7 +94,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 1. **縮小。** 下一次輪詢從同一個起點讀取長度減半的時間窗，並不斷減半，直到某個時間窗能被完整讀取，最短為一分鐘。執行的警告會說明這一點：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` 已從較長時間窗匯入的活動會作為重複項目被跳過。
 2. **恢復。** 一個時間窗被完整讀取後，游標會移到它的末尾，下一個時間窗的長度會再次加倍，最長為 24 小時。
-3. **越過單獨的一分鐘。** 如果連一分鐘內的活動都超過一次輪詢能讀取的量，輪詢會越過這一分鐘，讓更新的活動繼續到達。這次執行仍為 **部分**，**最近的錯誤** 顯示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 匯入這一分鐘，即可找回一次執行能讀取的內容。
+3. **越過單獨的一分鐘。** 如果連一分鐘內的活動都超過一次輪詢能讀取的量，輪詢會越過這一分鐘，讓更新的活動繼續到達。這次執行仍為 **部分**，**最近的錯誤** 顯示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **匯入此時間範圍** 匯入這一分鐘，即可找回一次執行能讀取的內容。
 
 更改 **輪詢間隔（分鐘）** 不會改變這些：它決定的是輪詢多久開始一次，而不是時間窗從哪裡開始。
 
@@ -103,9 +103,9 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 在連線上點選 **診斷**，可以檢視它最近的執行，並手動操作它。能更改該連線的人都可以啟動這些操作；能檢視它的人都可以閱讀歷史記錄。
 
 - **立即執行** 會立即開始一次輪詢，使用通常的游標，即使連線未處於 **已啟用** 狀態也可以。
-- **Preview audit events** 讀取最長 7 天的時間範圍，不匯入任何內容。
-- **Import this time range** 在你確認後匯入最長 7 天的範圍，不會移動游標。已匯入的活動會被跳過。Google 會保留 6 個月的稽核日誌。
-- 執行上的 **Copy diagnostics** 會複製它的報告以便提供給支援人員。報告從不包含認證資訊。
+- **預覽稽核事件** 讀取最長 7 天的時間範圍，不匯入任何內容。
+- **匯入此時間範圍** 在你確認後匯入最長 7 天的範圍，不會移動游標。已匯入的活動會被跳過。Google 會保留 6 個月的稽核日誌。
+- 執行上的 **複製診斷資訊** 會複製它的報告以便提供給支援人員。報告從不包含認證資訊。
 
 ## 測試連線
 
@@ -119,7 +119,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 | **Read Drive activity** | 僅在開啟該選項時：可以讀取雲端硬碟的日誌。 |
 | **Activities available to import** | 過去 24 小時內有多少登入活動和管理活動，每種最多數到 1,000，因此 `1000+` 表示更多。一個都沒有時為警告。 |
 | **Background workers**、**Poll scheduler**、**Security event storage** | OneUptime 自身的一側：有程序在處理 Worker 佇列的作業，輪詢作業每分鐘執行一次，安全性事件儲存能夠回應。 |
-| **Scheduled polling** | 針對已儲存的連線：輪詢已開啟，沒有執行卡在等待工作程序的狀態，並且輪詢按時執行。 |
+| **排定的輪詢** | 針對已儲存的連線：輪詢已開啟，沒有執行卡在等待工作程序的狀態，並且輪詢按時執行。 |
 
 測試中的每個請求都有 20 秒的期限。測試從不匯入任何內容，也不移動游標，每個失敗的檢查都會說明需要更改什麼。
 
@@ -129,7 +129,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 :::details 最近的錯誤 顯示 `token request failed`
 - `unauthorized_client`：服務帳戶沒有針對該範圍的全網域委派。請在 **Manage domain-wide delegation** 中，用 `https://www.googleapis.com/auth/admin.reports.audit.readonly` 新增它的 **Unique ID**。
-- 帶有 `Invalid email or User ID` 的 `invalid_grant`：**Administrator email** 不是此 Google Workspace 的使用者。
+- 帶有 `Invalid email or User ID` 的 `invalid_grant`：**管理員電子郵件** 不是此 Google Workspace 的使用者。
 - 帶有 `Invalid JWT Signature` 的 `invalid_grant`：金鑰已被刪除或停用。請建立一個新金鑰，並用 **更新憑證** 儲存。
 :::
 

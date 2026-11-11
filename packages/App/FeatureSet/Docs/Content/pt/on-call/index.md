@@ -1,6 +1,6 @@
 # Visão geral do plantão
 
-O plantão é a forma como o OneUptime coloca uma pessoa diante de um problema, a qualquer hora. Quando um incidente, um alerta ou um episódio precisa de alguém, suas políticas de plantão acionam pessoas nível a nível até que alguém confirme, e cada pessoa é contatada como escolheu: notificação push, SMS, ligação, e-mail ou mensagem de chat. Esta página mostra como as peças se encaixam e onde fica cada uma.
+O plantão é a forma como o OneUptime coloca uma pessoa diante de um problema, a qualquer hora. Quando um incidente, um alerta ou um episódio precisa de alguém, suas políticas de plantão acionam pessoas nível a nível até que alguém confirme, e cada pessoa é contatada como escolheu: notificação push, SMS, ligação, e-mail ou mensagem de chat. Esta página mostra como as peças se encaixam e onde fica cada uma. O [Glossário](/docs/introduction/glossary#política-de-plantão) explica em uma ou duas frases cada palavra que o plantão usa.
 
 :::cards
 - [Como um acionamento chega a alguém](#como-um-acionamento-chega-a-alguém): De um novo incidente até a pessoa que responde.
@@ -36,6 +36,8 @@ Na primeira vez que um acionamento chega a alguém, o OneUptime registra isso no
 > Um incidente, alerta ou episódio criado já confirmado ou resolvido não executa nenhuma das suas políticas, e o feed dele diz isso. Veja [Criado já confirmado ou resolvido](/docs/alerts/index#criado-já-confirmado-ou-resolvido).
 
 ## As peças
+
+As palavras usadas em todo o OneUptime estão no [Glossário](/docs/introduction/glossary).
 
 | Peça | O que decide | Saiba mais |
 | --- | --- | --- |

@@ -117,7 +117,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 1. **Restringere.** L'interrogazione successiva legge una finestra lunga la metà, dallo stesso punto di partenza, e continua a dimezzarla finché una finestra non viene letta per intero, fino a un minuto. L'avviso dell'esecuzione lo dice: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Gli avvisi già importati dalla finestra più lunga vengono saltati come duplicati.
 2. **Tornare a crescere.** Dopo che una finestra è stata letta per intero, il cursore passa alla sua fine, e la finestra successiva è di nuovo lunga il doppio, fino a 24 ore.
-3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di 2.000 avvisi, il polling lo supera, così gli avvisi più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
+3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di 2.000 avvisi, il polling lo supera, così gli avvisi più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Importa questo intervallo di tempo** per recuperare ciò che un'esecuzione può leggere.
 
 Un'esecuzione **Parziale** per un altro motivo, come un avviso che non è stato possibile leggere come evento di sicurezza, viene riprovata allo stesso modo, dallo stesso punto di partenza. Cambiare il **Intervallo di interrogazione (minuti)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
 
@@ -126,9 +126,9 @@ Un'esecuzione **Parziale** per un altro motivo, come un avviso che non è stato 
 Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti e lavorarci a mano. Chi può modificare la connessione può avviare queste azioni; chi può vederla può leggerne la cronologia.
 
 - **Esegui ora** avvia subito un'interrogazione, con il cursore abituale, anche quando la connessione non è **Abilitato**.
-- **Preview alerts** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
-- **Import this time range** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. Gli avvisi già importati vengono saltati.
-- **Copy diagnostics** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
+- **Anteprima dei avvisi** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
+- **Importa questo intervallo di tempo** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. Gli avvisi già importati vengono saltati.
+- **Copia diagnostica** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
 
 ## Testare la connessione
 
@@ -141,7 +141,7 @@ Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti
 | **Read alerts from Microsoft Graph** | Si può leggere un avviso creato nelle ultime 24 ore (`$top=1`). Un `403` qui è l'autorizzazione `SecurityAlert.Read.All` mancante, il consenso dell'amministratore mancante o un tenant senza Defender XDR. |
 | **Alerts available to import** | Quanti avvisi sono stati creati nelle ultime 24 ore e negli ultimi 7 giorni, una pagina da 100 ciascuno, quindi `100+` significa di più. Nessuno in 7 giorni è un avviso, non un errore. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Il lato di OneUptime stesso: un processo prende i job della coda Worker, il job di polling gira ogni minuto e l'archivio degli eventi di sicurezza risponde. |
-| **Scheduled polling** | Per una connessione salvata: il polling è attivo, nessuna esecuzione è bloccata in attesa di un worker e le interrogazioni girano in orario. |
+| **Interrogazione pianificata** | Per una connessione salvata: il polling è attivo, nessuna esecuzione è bloccata in attesa di un worker e le interrogazioni girano in orario. |
 
 Ogni richiesta di un test ha una scadenza di 20 secondi. Un test non importa mai nulla e non sposta mai il cursore, e ogni controllo fallito dice cosa cambiare.
 
@@ -177,9 +177,9 @@ Il job di polling non è mai stato eseguito. Leggi i controlli **Background work
 :::details Le interrogazioni riescono, ma manca un avviso che conosci
 Confronta il `createdDateTime` dell'avviso nel portale di Defender con la finestra dell'esecuzione in **Diagnostica**: le finestre si basano sull'ora di creazione, non sull'ora di attività.
 
-- Un avviso creato prima che la connessione esistesse è più vecchio del primo sguardo indietro di 24 ore. Importalo con **Import this time range**.
+- Un avviso creato prima che la connessione esistesse è più vecchio del primo sguardo indietro di 24 ore. Importalo con **Importa questo intervallo di tempo**.
 - Un'esecuzione **Parziale** è stata fermata dal limite di 2.000 avvisi. L'interrogazione successiva legge una finestra più corta dallo stesso inizio, quindi l'avviso viene importato non appena una finestra che lo contiene viene letta per intero.
-- Se **Ultimo errore** nomina un minuto che il polling ha superato, importa quel minuto con **Import this time range**.
+- Se **Ultimo errore** nomina un minuto che il polling ha superato, importa quel minuto con **Importa questo intervallo di tempo**.
 :::
 
 :::details Lo stesso avviso compare due volte

@@ -78,8 +78,20 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
    * first paint instead of painting empty bars and rebuilding them in effects.
    */
   const events: Array<Event> = useMemo(() => {
-    return UptimeUtil.getNonOverlappingMonitorEvents(props.items);
-  }, [props.items]);
+    /*
+     * One timeline for every monitor in `items` - several, for a monitor
+     * group - in the worst status recorded at each instant, with the
+     * downtime statuses outranking the rest, so a day adds up to at most
+     * the day and its downtime is the time at least one monitor was down.
+     */
+    return UptimeUtil.getNonOverlappingMonitorEvents(props.items, undefined, {
+      downtimeMonitorStatusIds: (props.downtimeMonitorStatuses || [])
+        .map((status: MonitorStatus): string => {
+          return status.id?.toString() || "";
+        })
+        .filter(Boolean),
+    });
+  }, [props.items, props.downtimeMonitorStatuses]);
 
   const barColorRules: Array<BarChartRule> = useMemo(() => {
     return (props.barColorRules || []).map(

@@ -119,6 +119,8 @@ Fargene på historikkdiagrammets søyler angis under **Flere innstillinger** på
 
 Hver søyle er én dag. Pek på en søyle, eller klikk på den (trykk på den på en telefon, eller trykk Enter med tastaturet), for å lese dagen: oppetiden, hvor lenge hver status varte, hendelsene som ble erklært den dagen, og det planlagte vedlikeholdet som foregikk på den, hver med en lenke til sin egen side. En dag med planlagt vedlikehold har et blått bånd øverst på søylen, og mens et planlagt vedlikehold pågår, står det «Under vedlikehold» ved navnet på hver ressurs for monitorene det gjelder. Vedlikehold endrer verken fargen på en søyle eller oppetiden, som kommer fra monitorens statuser: for å holde planlagt arbeid utenfor oppetiden velger du en **Endre overvåkingsstatus til** for vedlikeholdet som ikke er en av sidens statuser under **Teller som nedetid**. Se [Hva en hendelse påvirker](/docs/scheduled-maintenance/index#hva-en-hendelse-påvirker).
 
+Hver søyle er en dag i leserens egen tidssone, den samme som siden viser alle andre tidspunkter i, så den siste søylen er leserens i dag. Søylen til en monitorgruppe viser hvor lenge gruppen selv var i hver status den dagen: i hvert øyeblikk har gruppen den verste statusen blant monitorene sine, så statusene for en dag summerer seg til tiden da minst én av monitorene ble sjekket, og aldri til mer enn dagen.
+
 ## Grupper
 
 De fleste grupper trenger bare et navn.

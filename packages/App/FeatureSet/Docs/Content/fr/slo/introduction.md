@@ -1,6 +1,6 @@
 # Vue d'ensemble des SLO
 
-Un objectif de niveau de service (SLO) est un objectif de fiabilité pour ce que vous surveillez, par exemple « disponible 99,9 % du temps sur 30 jours glissants ». OneUptime mesure chaque SLO par rapport à son objectif toutes les 5 minutes : au lieu de « est-ce que ça marche en ce moment ? », vous pouvez répondre à « avons-nous été assez fiables, sur une fenêtre qui compte pour nos utilisateurs, et quelle marge d'échec nous reste-t-il ? »
+Un objectif de niveau de service (SLO) est un objectif de fiabilité pour ce que vous surveillez, par exemple « disponible 99,9 % du temps sur 30 jours glissants ». OneUptime mesure chaque SLO par rapport à son objectif toutes les 5 minutes : au lieu de « est-ce que ça marche en ce moment ? », vous pouvez répondre à « avons-nous été assez fiables, sur une fenêtre qui compte pour nos utilisateurs, et quelle marge d'échec nous reste-t-il ? » Le [Glossaire](/docs/introduction/glossary#slo) place les SLO à côté des autres mots qu'utilise OneUptime.
 
 :::cards
 - [Créer un SLO](#créer-un-slo): Un nom et un objectif. Tout le reste part d'une valeur par défaut.
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 ## Notions clés
+
+Les mots utilisés dans tout OneUptime se trouvent dans le [Glossaire](/docs/introduction/glossary).
 
 | Terme | Signification |
 | --- | --- |

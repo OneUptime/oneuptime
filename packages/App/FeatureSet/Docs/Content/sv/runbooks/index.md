@@ -1,6 +1,6 @@
 # Runbooks – Översikt
 
-Ett runbook är en återanvändbar responsprocedur: en ordnad lista med manuella och automatiserade steg som du kör på en incident, ett larm eller en schemalagd underhållshändelse. Det gör tråden "vad gör vi nu?" till en checklista som alla i jouren kan följa klockan 3 på natten, med skript, API-anrop och godkännanden redan skrivna. Runbooks är till för jourhavande ingenjörer som hanterar incidenter och för plattformsteam som automatiserar den hanteringen.
+Ett runbook är en återanvändbar responsprocedur: en ordnad lista med manuella och automatiserade steg som du kör på en incident, ett larm eller en schemalagd underhållshändelse. Det gör tråden "vad gör vi nu?" till en checklista som alla i jouren kan följa klockan 3 på natten, med skript, API-anrop och godkännanden redan skrivna. Runbooks är till för jourhavande ingenjörer som hanterar incidenter och för plattformsteam som automatiserar den hanteringen. För att välja mellan ett runbook, ett arbetsflöde, en playbook och en AI-regel, se [Vilken ska jag använda?](/docs/introduction/which-one#arbetsflöde-runbook-playbook-eller-ai-regel).
 
 :::cards
 - [Skriva ett runbook](/docs/runbooks/authoring): Skapa ett runbook och skriv dess steg.
@@ -39,6 +39,8 @@ Varje gång ett runbook körs skapas en **körning**. När den startar kopieras 
 HTTP- och AI-steg körs på OneUptime Worker. Bash-, SSH- och kubectl-steg körs på en [Runner](/docs/runbooks/agents) som du installerar i din egen infrastruktur, så att de skripten aldrig körs på OneUptimes servrar. Ett JavaScript-steg körs också på en av dina Runners eller, om det inte väljer någon och projektet inte har någon [standard-Runner](/docs/runbooks/agents#projektets-standard-runner), på en [global Runner](/docs/runbooks/agents#globala-runners), i en sandlåda som bara når internet. Varje stegs status, output och felmeddelande registreras på körningen, som stannar kvar på den incident, det larm eller den händelse den kördes för.
 
 ## Centrala begrepp
+
+Orden som används i hela OneUptime finns samlade på sidan [Ordlista](/docs/introduction/glossary).
 
 | Begrepp | Betydelse |
 | --- | --- |

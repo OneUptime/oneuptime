@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50353,
-    "untranslated": 9842
+    "keys": 50430,
+    "untranslated": 9714
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -98,6 +98,7 @@
     "Flags",
     "Flavor",
     "Flavors",
+    "Fluent Bit",
     "Gateway",
     "Gibibytes",
     "Gigabits",
@@ -106,6 +107,7 @@
     "Global",
     "Golden Signals",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "H1",
     "HA: {{state}}",

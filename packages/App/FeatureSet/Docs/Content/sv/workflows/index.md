@@ -1,6 +1,6 @@
 # Översikt över arbetsflöden
 
-Arbetsflöden automatiserar arbete i OneUptime utan kod. Du placerar block på en arbetsyta, kopplar ihop dem, och arbetsflödet körs av sig självt varje gång dess utlösare aktiveras: en incident skapas, ett schema infaller, ett annat verktyg anropar en URL eller ett e-postmeddelande kommer in. Använd dem för att koppla OneUptime till resten av din stack och för att ta hand om den rutinmässiga uppföljningen medan du arbetar med själva problemet.
+Arbetsflöden automatiserar arbete i OneUptime utan kod. Du placerar block på en arbetsyta, kopplar ihop dem, och arbetsflödet körs av sig självt varje gång dess utlösare aktiveras: en incident skapas, ett schema infaller, ett annat verktyg anropar en URL eller ett e-postmeddelande kommer in. Använd dem för att koppla OneUptime till resten av din stack och för att ta hand om den rutinmässiga uppföljningen medan du arbetar med själva problemet. För att välja mellan ett arbetsflöde, ett runbook, en playbook och en AI-regel, se [Vilken ska jag använda?](/docs/introduction/which-one#arbetsflöde-runbook-playbook-eller-ai-regel).
 
 :::cards
 - [Skapa ett arbetsflöde](/docs/workflows/authoring): Skapa ett arbetsflöde och lägg sedan till, koppla ihop och ställ in blocken på arbetsytan.
@@ -47,6 +47,8 @@ Du bygger allt detta visuellt på en arbetsyta. De flesta arbetsflöden behöver
 - **Återanvänd gemensam automatisering** — bygg den en gång och starta den från vilket annat arbetsflöde som helst med ett **Execute Workflow**-block.
 
 ## Viktiga begrepp
+
+Orden som används i hela OneUptime finns samlade på sidan [Ordlista](/docs/introduction/glossary).
 
 | Begrepp             | Vad det betyder                                                                                                |
 | ------------------- | -------------------------------------------------------------------------------------------------------------- |

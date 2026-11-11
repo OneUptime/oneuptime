@@ -7,6 +7,8 @@ Beginnen Sie hier:
 :::cards
 - [Schnellstart](/docs/introduction/quickstart): Eine Website überwachen, bei einem Ausfall alarmiert werden und eine Statusseite veröffentlichen.
 - [Grundkonzepte](/docs/introduction/core-concepts): Die wenigen Ideen, auf denen alles andere aufbaut, und wie sie zusammenhängen.
+- [Glossar](/docs/introduction/glossary): Jedes Wort, das OneUptime verwendet, in ein oder zwei Sätzen, mit seinen anderen Namen.
+- [Was nehme ich wann?](/docs/introduction/which-one): Vorfall oder Warnung, Workflow oder Runbook und die anderen Doppelgänger nebeneinander.
 - [Startseite & Tastenkürzel](/docs/introduction/home): Sich im Dashboard zurechtfinden, und die Tasten, die Ihnen Klicks sparen.
 - [Ihr Konto](/docs/introduction/your-account): Ihr Profil, Ihr Passwort, Passkeys und die Zwei-Faktor-Authentifizierung.
 :::

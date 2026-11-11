@@ -123,3 +123,32 @@ export interface UptimeDailyAggregate {
    */
   timezone?: string | undefined;
 }
+
+/**
+ * One monitor group's reading for each day bucket: how long the GROUP spent
+ * in each status that day, in the same shape as a monitor's.
+ *
+ * A group is in the worst status among its monitors recorded at each
+ * instant, the page's downtime statuses outranking the rest (see
+ * MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate). So a
+ * bucket's durations add up to its coveredSeconds - the time at least one
+ * of the group's monitors was recorded that day - and never to more than
+ * the day. Summing every monitor's buckets instead would count an hour two
+ * monitors spent Offline as two hours of the group's (issue #6697).
+ */
+export interface MonitorGroupUptimeDaily {
+  monitorGroupId: ObjectID;
+  buckets: Array<UptimeDayBucket>;
+}
+
+/**
+ * Every monitor group's day buckets, for a status page request. Cut on the
+ * same day grid, in the same zone, as the monitors' UptimeDailyAggregate,
+ * so a group's bars line up with every monitor's.
+ */
+export interface MonitorGroupUptimeDailyAggregate {
+  monitorGroups: Array<MonitorGroupUptimeDaily>;
+
+  /* The IANA zone the day buckets were cut in. Absent means UTC. */
+  timezone?: string | undefined;
+}

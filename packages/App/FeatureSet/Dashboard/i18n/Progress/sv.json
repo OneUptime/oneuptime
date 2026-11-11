@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50353,
-    "untranslated": 9856
+    "keys": 50430,
+    "untranslated": 9728
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -87,6 +87,7 @@
     "Finland (+358)",
     "Flavor",
     "Flavors",
+    "Fluent Bit",
     "Format",
     "Frustration",
     "Gateway",
@@ -94,6 +95,7 @@
     "Global",
     "Golden Signals",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "H1",
     "HA: {{state}}",

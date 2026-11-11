@@ -4,9 +4,13 @@ import SmsLogService, {
 import WorkflowLogService, {
   Service as WorkflowLogServiceClass,
 } from "../../../Server/Services/WorkflowLogService";
+import WhatsAppLogService, {
+  Service as WhatsAppLogServiceClass,
+} from "../../../Server/Services/WhatsAppLogService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import SmsLog from "../../../Models/DatabaseModels/SmsLog";
 import WorkflowLog from "../../../Models/DatabaseModels/WorkflowLog";
+import WhatsAppLog from "../../../Models/DatabaseModels/WhatsAppLog";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -24,13 +28,19 @@ import { describe, expect, test } from "@jest/globals";
  *       WorkflowLog.workflowStatus/logs/started-completed-resume stamps
  *   - App/FeatureSet/Workers/Jobs/Workflow/TimeoutJobs.ts
  *       WorkflowLog.workflowStatus/completedAt/logs on stalled runs
+ *   - App/FeatureSet/Notification/Services/WhatsAppService.ts
+ *       WhatsAppLog.status/statusMessage/whatsAppCostInUSDCents/
+ *       whatsAppMessageId after send - the log is created (full pipeline)
+ *       Queued just before the message is handed to Meta (issue #6684)
+ *   - App/FeatureSet/Notification/API/WhatsApp.ts
+ *       WhatsAppLog.status/statusMessage on Meta's status webhooks
  *
- * These conversions dropped NOTHING: neither model has update workflows,
- * audit logging, or realtime events, and neither service overrides the
- * update hooks — so the old pipeline's hook stages were inert for these
+ * These conversions dropped NOTHING: none of these models has update
+ * workflows, audit logging, or realtime events, and none of the services
+ * overrides the update hooks — so the old pipeline's hook stages were inert for these
  * writes. But the fast path skips hooks UNCONDITIONALLY: if someone later
- * adds a decorator to SmsLog/WorkflowLog or an onUpdateSuccess override to
- * their services, nothing at the call sites fails — the new hook is just
+ * adds a decorator to SmsLog/WorkflowLog/WhatsAppLog or an onUpdateSuccess
+ * override to their services, nothing at the call sites fails — the new hook is just
  * silently never fired for these status stamps. This suite turns that
  * silent drift into a loud test failure: when an assertion here starts
  * failing, revisit the fast-path call sites above before changing it.
@@ -62,6 +72,30 @@ describe("second-pass hookless write safety preconditions", () => {
     test("has no realtime events", () => {
       const smsLog: SmsLog = new SmsLog();
       expect(smsLog.enableRealtimeEventsOn).toBeFalsy();
+    });
+  });
+
+  describe("WhatsAppLog model (send result in WhatsAppService.ts, status webhooks in WhatsApp.ts)", () => {
+    /*
+     * Like SmsLog: @EnableWorkflow on create only. A workflow triggered on
+     * a WhatsApp Log's creation sees it Queued - the send's result is a
+     * hookless write that triggers nothing - so update must stay off.
+     */
+    test("declares @EnableWorkflow with update explicitly disabled", () => {
+      const whatsAppLog: WhatsAppLog = new WhatsAppLog();
+      expect(whatsAppLog.enableWorkflowOn).toBeDefined();
+      expect(whatsAppLog.enableWorkflowOn?.create).toBe(true);
+      expect(whatsAppLog.enableWorkflowOn?.update).toBe(false);
+    });
+
+    test("has no on-update audit log", () => {
+      const whatsAppLog: WhatsAppLog = new WhatsAppLog();
+      expect(whatsAppLog.enableAuditLogOn?.update).toBeFalsy();
+    });
+
+    test("has no realtime events", () => {
+      const whatsAppLog: WhatsAppLog = new WhatsAppLog();
+      expect(whatsAppLog.enableRealtimeEventsOn).toBeFalsy();
     });
   });
 
@@ -112,6 +146,20 @@ describe("second-pass hookless write safety preconditions", () => {
       expect(smsLog.isTableColumn("notARealColumn")).toBe(false);
     });
 
+    test("WhatsAppLog has every column the send's result and the status webhooks write", () => {
+      const whatsAppLog: WhatsAppLog = new WhatsAppLog();
+      const fastPathColumns: Array<string> = [
+        "status",
+        "statusMessage",
+        "whatsAppCostInUSDCents",
+        "whatsAppMessageId",
+      ];
+      for (const column of fastPathColumns) {
+        expect(whatsAppLog.isTableColumn(column)).toBe(true);
+      }
+      expect(whatsAppLog.isTableColumn("notARealColumn")).toBe(false);
+    });
+
     test("WorkflowLog has every column the workflow status stamps write", () => {
       const workflowLog: WorkflowLog = new WorkflowLog();
       const fastPathColumns: Array<string> = [
@@ -134,7 +182,7 @@ describe("second-pass hookless write safety preconditions", () => {
      * DatabaseService's base onBeforeUpdate/onUpdateSuccess are no-op
      * pass-throughs; a service only gets update behavior by OVERRIDING them.
      * Own-property checks on the concrete service prototypes pin that
-     * neither SmsLogService nor WorkflowLogService does — so the fast path
+     * none of SmsLogService, WhatsAppLogService and WorkflowLogService does — so the fast path
      * skips nothing. If an override appears, these fail loudly and the
      * call sites above must be re-evaluated.
      */
@@ -151,6 +199,18 @@ describe("second-pass hookless write safety preconditions", () => {
       }
       // The default export is an instance of the class checked above.
       expect(SmsLogService).toBeInstanceOf(SmsLogServiceClass);
+    });
+
+    test("WhatsAppLogService does not override onBeforeUpdate/onUpdateSuccess", () => {
+      for (const hook of updateHooks) {
+        expect(
+          Object.prototype.hasOwnProperty.call(
+            WhatsAppLogServiceClass.prototype,
+            hook,
+          ),
+        ).toBe(false);
+      }
+      expect(WhatsAppLogService).toBeInstanceOf(WhatsAppLogServiceClass);
     });
 
     test("WorkflowLogService does not override onBeforeUpdate/onUpdateSuccess", () => {

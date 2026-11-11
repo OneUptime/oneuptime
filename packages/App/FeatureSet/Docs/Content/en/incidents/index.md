@@ -1,6 +1,6 @@
 # Incidents Overview
 
-An incident is the record your team works from when something breaks: what is affected, how bad it is, where the response stands, who owns it, and everything written down along the way. Declaring one pages the right on-call rotation, tells its owners and — if you want it to — puts the outage on your status page, so customers know you are on it.
+An incident is the record your team works from when something breaks: what is affected, how bad it is, where the response stands, who owns it, and everything written down along the way. Declaring one pages the right on-call rotation, tells its owners and — if you want it to — puts the outage on your status page, so customers know you are on it. Not sure whether a problem is an incident or an alert? [Which One Do I Use?](/docs/introduction/which-one#incident-alert-or-another-kind-of-problem) puts them side by side.
 
 :::cards
 - [Declaring an Incident](/docs/incidents/declaring-incidents): By hand, from a template, from a monitor, over the API or through a form.
@@ -86,7 +86,7 @@ After that you can write a [postmortem](/docs/incidents/postmortems) and, option
 
 ## Key terms
 
-A handful of words show up on every other page in this section. Get these straight first.
+A handful of words show up on every other page in this section. Get these straight first. The words used across OneUptime are in the [Glossary](/docs/introduction/glossary).
 
 | Term                   | What it means                                                                                                                                       |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
