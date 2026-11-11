@@ -147,6 +147,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 import UserModel from "Common/Models/DatabaseModels/User";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import Service from "Common/Models/DatabaseModels/Service";
 import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import Color from "Common/Types/Color";
@@ -184,6 +185,11 @@ const isRich = dataKind === "rich" || dataKind === "long";
 const isLong = dataKind === "long";
 const isEmpty = dataKind === "empty";
 const isNumberedLabels = dataKind === "labels";
+/*
+ * ?services=1: the first alert is linked to a service too, listed after its
+ * monitor and the cluster, beside its colour (the UI review of #6740).
+ */
+const isWithService = params.get("services") === "1";
 const extraRows = Math.max(0, Number(params.get("rows") || 0));
 const role = params.get("role") || "owner";
 const delay = Number(params.get("delay") || 40);
@@ -522,6 +528,16 @@ const VALKEY = databaseServer(
 );
 const TEST_CLUSTER = kubernetesCluster(1, "oneuptime-test");
 
+function service(index, name, color) {
+  const record = withProject(new Service());
+  record._id = uuid("64000000", index);
+  record.name = name;
+  record.serviceColor = new Color(color);
+  return record;
+}
+
+const CHECKOUT_SERVICE = service(1, "checkout-api", "#6366f1");
+
 function incident(index, data) {
   const record = withProject(new Incident());
   record._id = uuid("40000000", index);
@@ -730,7 +746,7 @@ function alertRecord(index, data) {
   record.storageArrays = [];
   record.dockerSwarmClusters = [];
   record.iotFleets = [];
-  record.services = [];
+  record.services = data.services || [];
   record.serviceLevelObjectives = [];
   record.labels = data.labels || [];
   record.createdAt = new Date(data.createdAt);
@@ -753,6 +769,7 @@ const ALERTS = isEmpty
         severity: HIGH_ALERT,
         monitor: ALERT_MONITORS[0],
         kubernetesClusters: [TEST_CLUSTER],
+        services: isWithService ? [CHECKOUT_SERVICE] : [],
         createdAt: "2026-10-16T05:20:00.000Z",
       }),
       alertRecord(9, {

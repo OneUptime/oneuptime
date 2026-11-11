@@ -4,7 +4,7 @@ OneUptime AI 了解你的資料：它從資料表的寫入者、執行和血緣�
 
 ## OneUptime AI
 
-- **資料警示的調查。** 當 OneUptime AI 調查某個資料表、管線或資料庫上的警示時，它會從與之相鄰的內容著手：資料表的新鮮度和開啟的警示、造成這個警示的那個警示、自前一天以來寫入該資料表的管線的執行（帶有錯誤的失敗執行，或從未到來的執行）、寫入該資料表的服務及其失敗的寫入、部署和其他變更、該資料表的血緣（建置該資料表的資料表和由該資料表建置的資料表，有問題的排在前面，以及造成這個警示的那個警示在其中的位置、它引發的警示位於哪些資料表上），以及變更過的欄。它會指出警示背後的執行、部署或上游資料表。請參閱 [AI SRE](/docs/ai/ai-sre)。
+- **資料警示的調查。** 當 OneUptime AI 調查某個資料表、管線或資料庫上的警示時，它會從與之相鄰的內容著手：資料表的新鮮度和開啟的警示、造成這個警示的那個警示、自前一天以來寫入該資料表的管線的執行（帶有錯誤的失敗執行，或從未到來的執行）、寫入該資料表的服務及其失敗的寫入、部署和其他變更、該資料表的血緣（建置該資料表的資料表和由該資料表建置的資料表，有問題的排在前面，以及造成這個警示的那個警示在其中的位置、它引發的警示位於哪些資料表上），以及變更過的欄。對於來自針對單一欄位的檢查的警示，它還會沿血緣追蹤該欄位：上游建置該欄位的欄位，以及下游由該欄位建置的欄位，逐一列出各資料表，名稱以血緣來源中的為準。它會指出警示背後的執行、部署或上游資料表。請參閱 [AI SRE](/docs/ai/ai-sre)。
 - **這個資料表新鮮嗎？** 在 [詢問 AI](/docs/ai/ask-ai)、Slack 或 Microsoft Teams 中提問：「orders 資料表新鮮嗎？」。答案會提供依資料表本身節奏判斷的新鮮度、它最後一次變更的時間、開啟的警示、寫入者的最新執行，以及它所屬的資料產品。多個資料庫共用的名稱會針對每個資料庫分別回答，因此不會有人被告知錯誤的資料表是新鮮的。
 - **這個資料表是由什麼建置的？** 提問：「什麼在供資料給 revenue 資料表？」或「如果 raw.orders 停止載入，什麼會壞掉？」。答案會沿著資料表的血緣每個方向走三步，依要求最多五步，並把有問題的放在前面：延遲、被刪除、有開啟的警示或其管線上次執行失敗的上游和下游資料表，由近而遠，每張資料表都附上相隔幾步以及中間的資料表。接著是其餘的資料表、從 OneUptime 監看範圍之外載入其來源的管線，以及以它為基礎建置的 BI 儀表板。開啟的警示只計數、從不點名，而且只計入提問者可以看到的警示。
 - **用一句話撰寫檢查。** 在資料表的 **檢查** 索引標籤上，**用一句話撰寫檢查** 會把一條規則轉換成使用你的引擎 SQL 的自訂 SQL 檢查。請參閱 [檢查與對帳](/docs/data-observability/checks)。
@@ -37,7 +37,7 @@ AI 代理應該在使用資料之前，先檢查資料是否新鮮，並在變�
 | `POST /api/data-observability/tables/lineage` | 資料表在每個方向上幾步的血緣，以及每張資料表的目前狀態，與其 **血緣** 索引標籤所畫的相同，要求內容為 `{ "dataAssetId": "<table ID>", "depth": 3 }`，加上 `"withColumns": true` 還會傳回每個箭頭承載的欄位 | API 金鑰 |
 | `POST /api/data-observability/tables/lineage/answer` | 以文字講述的資料表血緣，有問題的資料表在前，與 MCP 工具的回答相同，要求內容為 `{ "table": "public.orders", "depth": 3 }` | API 金鑰 |
 | `POST /api/data-observability/pipelines/lineage` | 管線讀取和寫入的資料表，以及每張資料表的目前狀態，與其頁面所畫的相同，要求內容為 `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | API 金鑰 |
-| `POST /api/data-observability/alerts/<alert ID>/lineage` | 資料警示的血緣，以及通往造成它的警示和它造成的警示的路徑，與其頁面所畫的相同 | API 金鑰 |
+| `POST /api/data-observability/alerts/<alert ID>/lineage` | 資料警示的血緣，以及通往造成它的警示和它造成的警示的路徑，與其頁面所畫的相同；對於來自針對單一欄位的檢查的警示，還有其 `column` 以及每個箭頭攜帶的欄位 | API 金鑰 |
 | `POST /api/data-observability/lineage/expand` | 血緣圖中某張卡片未繪製的下一批資料表，與選取其數字時畫出的相同：以 `nodeId` 及其 `side` 指明卡片，以 `focusNodeId`、`tables` 和 `dataDashboardIds` 指明已畫的內容 | API 金鑰 |
 | `POST /api/data-observability/checks/apply` | 讓專案的檢查與一個檔案一致，如同 `oneuptime data-checks apply` 所做的，要求內容為 `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | API 金鑰 |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | 資料產品的「data as of」徽章 | 徽章本身的權杖 |

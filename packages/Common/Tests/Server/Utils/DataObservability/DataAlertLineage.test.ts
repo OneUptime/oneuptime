@@ -80,10 +80,20 @@ interface MemoryAlerts {
   hidden: Set<string>;
   // Every read, in order: "alert:<id>", "subject:<id>", "consequences:<id>".
   reads: Array<string>;
+  // By alert, the column its check reads: an alert from a check on one column.
+  columns: Map<string, string>;
+  // Every alert whose check's column was asked for, in order.
+  columnReads: Array<string>;
 }
 
 function newAlerts(): MemoryAlerts {
-  return { rows: new Map(), hidden: new Set(), reads: [] };
+  return {
+    rows: new Map(),
+    hidden: new Set(),
+    reads: [],
+    columns: new Map(),
+    columnReads: [],
+  };
 }
 
 // A data alert about a table, a pipeline or a whole database, caused by another when one is named.
@@ -152,6 +162,11 @@ function alertReader(alerts: MemoryAlerts): DataAlertRowReader {
       });
 
       return { rows: rows.slice(0, data.limit), total: rows.length };
+    },
+    readCheckColumn: async (alertId: string): Promise<string | null> => {
+      alerts.columnReads.push(alertId);
+
+      return alerts.columns.get(alertId) || null;
     },
   };
 }
@@ -275,6 +290,7 @@ describe("the alerts a lineage is drawn for", () => {
       isCauseDrawn: false,
       consequenceCount: 2,
       drawnConsequenceCount: 0,
+      column: null,
     });
     // No table or pipeline to walk from: no lineage read, nor its cause's subject.
     expect(graph.edgeReads).toEqual([]);
@@ -295,6 +311,7 @@ describe("the alerts a lineage is drawn for", () => {
       isCauseDrawn: false,
       consequenceCount: 1,
       drawnConsequenceCount: 0,
+      column: null,
     });
   });
 
@@ -393,6 +410,7 @@ describe("the way up to the alert that caused it", () => {
       causeNodeIds: [tn(2)],
       consequenceNodeIds: [],
       dataPipelineIds: [],
+      causeDataPipelineIds: [],
     });
     expect(nodeOf(lineage, tn(3))).toBeDefined();
     expect(lineage.depth).toBe(DEFAULT_DATA_LINEAGE_DEPTH);
@@ -537,6 +555,7 @@ describe("the way up to the alert that caused it", () => {
       causeNodeIds: [pn(1)],
       consequenceNodeIds: [],
       dataPipelineIds: [],
+      causeDataPipelineIds: [],
     });
     expect(drawnNode(lineage, pn(1))).toMatchObject({
       kind: DataLineageNodeKind.Pipeline,
@@ -574,6 +593,7 @@ describe("the way up to the alert that caused it", () => {
       causeNodeIds: [],
       consequenceNodeIds: [],
       dataPipelineIds: [p(1)],
+      causeDataPipelineIds: [p(1)],
     });
     // Named on its arrows, as the drawing names a pipeline.
     expect(
@@ -744,6 +764,7 @@ describe("the ways down to the alerts it caused", () => {
       causeNodeIds: [],
       consequenceNodeIds: [],
       dataPipelineIds: [p(2)],
+      causeDataPipelineIds: [],
     });
   });
 
@@ -919,6 +940,7 @@ describe("an alert on a pipeline", () => {
       causeNodeIds: [],
       consequenceNodeIds: sorted([tn(2), tn(3)]),
       dataPipelineIds: [],
+      causeDataPipelineIds: [],
     });
     // Upstream keeps its one step; t4 is counted on t3's card.
     expect(nodeOf(lineage, tn(0))).toBeUndefined();
@@ -946,6 +968,7 @@ describe("an alert on a pipeline", () => {
       causeNodeIds: [tn(0)],
       consequenceNodeIds: [],
       dataPipelineIds: [],
+      causeDataPipelineIds: [],
     });
     expect(drawnNode(lineage, tn(0)).depth).toBe(-2);
   });
@@ -966,6 +989,7 @@ describe("an alert on a pipeline", () => {
       causeNodeIds: [tn(1)],
       consequenceNodeIds: [],
       dataPipelineIds: [],
+      causeDataPipelineIds: [],
     });
   });
 
@@ -989,6 +1013,7 @@ describe("an alert on a pipeline", () => {
       causeNodeIds: [pn(1)],
       consequenceNodeIds: [],
       dataPipelineIds: [],
+      causeDataPipelineIds: [],
     });
   });
 
@@ -1014,7 +1039,160 @@ describe("an alert on a pipeline", () => {
       causeNodeIds: [],
       consequenceNodeIds: [],
       dataPipelineIds: [p(2)],
+      causeDataPipelineIds: [],
     });
+  });
+});
+
+/*
+ * THE CAUSE'S PIPELINE, NAMED APART (#6687).
+ *
+ * A cause on a pipeline the drawing has no card for ends its way on the
+ * arrows that pipeline moves data along (DataLineageWayEnd.Arrow). Those
+ * arrows name it - as they name a pipeline an alert it caused is on - so
+ * the drawing names the cause's apart (causeDataPipelineIds), and its
+ * arrows can say Cause as a cause's card does.
+ */
+describe("the cause's pipeline, named apart from the other pipelines on the ways", () => {
+  test("a cause on the pipeline moving data into the table, and an alert it caused on one building from it: only the first is the cause", async () => {
+    const graph: MemoryGraph = newGraph();
+    const alerts: MemoryAlerts = newAlerts();
+
+    for (const index of [0, 2, 8]) {
+      table(graph, t(index));
+    }
+
+    pipeline(graph, p(1), { jobName: "orders_etl" });
+    pipeline(graph, p(2), { jobName: "orders_mart" });
+    feeds(graph, t(2), t(0), { dataPipelineId: p(1) });
+    feeds(graph, t(0), t(8), { dataPipelineId: p(2) });
+    alertOn(alerts, a(1), { pipeline: 1 });
+    alertOn(alerts, a(0), { table: 0 }, a(1));
+    alertOn(alerts, a(5), { pipeline: 2 }, a(0));
+
+    const { answer, lineage } = await drawingFor(graph, alerts);
+
+    expect(answer).toMatchObject({
+      isCauseDrawn: true,
+      drawnConsequenceCount: 1,
+    });
+    expect(lineage.highlight).toEqual({
+      nodeIds: [tn(0), tn(2), tn(8)],
+      edgeIds: sorted([
+        edgeId(lineage, tn(2), tn(0)),
+        edgeId(lineage, tn(0), tn(8)),
+      ]),
+      causeNodeIds: [],
+      consequenceNodeIds: [],
+      dataPipelineIds: sorted([p(1), p(2)]),
+      causeDataPipelineIds: [p(1)],
+    });
+  });
+
+  test("a run that builds the table and a table built from it: the cause, though it also moves data down a way", async () => {
+    const graph: MemoryGraph = newGraph();
+    const alerts: MemoryAlerts = newAlerts();
+
+    for (const index of [0, 2, 5]) {
+      table(graph, t(index));
+    }
+
+    pipeline(graph, p(1), { jobName: "dbt_build", lastRunState: "FAIL" });
+    feeds(graph, t(2), t(0), { dataPipelineId: p(1) });
+    feeds(graph, t(0), t(5), { dataPipelineId: p(1) });
+    alertOn(alerts, a(1), { pipeline: 1 });
+    alertOn(alerts, a(0), { table: 0 }, a(1));
+    alertOn(alerts, a(5), { table: 5 }, a(0));
+
+    const { lineage } = await drawingFor(graph, alerts);
+    const highlight: DataLineageHighlight = highlightOf(lineage);
+
+    // Both arrows carry it; which of them say Cause is the drawing's to tell, by the way each is on.
+    expect(highlight.dataPipelineIds).toEqual([p(1)]);
+    expect(highlight.causeDataPipelineIds).toEqual([p(1)]);
+    expect(highlight.consequenceNodeIds).toEqual([tn(5)]);
+    expect(highlight.edgeIds).toEqual(
+      sorted([edgeId(lineage, tn(2), tn(0)), edgeId(lineage, tn(0), tn(5))]),
+    );
+  });
+
+  test("an alert it caused on a pipeline is never named the cause", async () => {
+    const graph: MemoryGraph = newGraph();
+    const alerts: MemoryAlerts = newAlerts();
+
+    for (const index of [0, 8]) {
+      table(graph, t(index));
+    }
+
+    pipeline(graph, p(2), { jobName: "orders_mart" });
+    feeds(graph, t(0), t(8), { dataPipelineId: p(2) });
+    alertOn(alerts, a(0), { table: 0 });
+    alertOn(alerts, a(5), { pipeline: 2 }, a(0));
+
+    const highlight: DataLineageHighlight = highlightOf(
+      (await drawingFor(graph, alerts)).lineage,
+    );
+
+    expect(highlight.dataPipelineIds).toEqual([p(2)]);
+    expect(highlight.causeDataPipelineIds).toEqual([]);
+  });
+
+  test("a cause on the pipeline loading the table from outside is its card: it names no arrow's pipeline", async () => {
+    const graph: MemoryGraph = newGraph();
+    const alerts: MemoryAlerts = newAlerts();
+    table(graph, t(0));
+    pipeline(graph, p(1), { jobName: "fivetran_orders", lastRunState: "FAIL" });
+    writes(graph, p(1), t(0));
+    alertOn(alerts, a(1), { pipeline: 1 });
+    alertOn(alerts, a(0), { table: 0 }, a(1));
+
+    const highlight: DataLineageHighlight = highlightOf(
+      (await drawingFor(graph, alerts)).lineage,
+    );
+
+    expect(highlight.causeNodeIds).toEqual([pn(1)]);
+    expect(highlight.dataPipelineIds).toEqual([]);
+    expect(highlight.causeDataPipelineIds).toEqual([]);
+  });
+
+  test("a cause on a table: a pipeline on the arrows of its way is not the cause", async () => {
+    const graph: MemoryGraph = newGraph();
+    const alerts: MemoryAlerts = newAlerts();
+    table(graph, t(0));
+    table(graph, t(2));
+    pipeline(graph, p(1), { jobName: "orders_etl", lastRunState: "FAIL" });
+    feeds(graph, t(2), t(0), { dataPipelineId: p(1) });
+    alertOn(alerts, a(1), { table: 2 });
+    alertOn(alerts, a(0), { table: 0 }, a(1));
+
+    const highlight: DataLineageHighlight = highlightOf(
+      (await drawingFor(graph, alerts)).lineage,
+    );
+
+    expect(highlight.causeNodeIds).toEqual([tn(2)]);
+    expect(highlight.causeDataPipelineIds).toEqual([]);
+  });
+
+  test("an alert on a pipeline, its cause on another pipeline moving data into a table it reads", async () => {
+    const graph: MemoryGraph = newGraph();
+    const alerts: MemoryAlerts = newAlerts();
+
+    for (let index: number = 0; index < 3; index++) {
+      table(graph, t(index));
+    }
+
+    pipeline(graph, p(0), { jobName: "orders_mart" });
+    pipeline(graph, p(1), { jobName: "orders_etl", lastRunState: "FAIL" });
+    feeds(graph, t(0), t(1), { dataPipelineId: p(1) });
+    runs(graph, p(0), { reads: [t(1)], writes: [t(2)] });
+    alertOn(alerts, a(1), { pipeline: 1 });
+    alertOn(alerts, a(0), { pipeline: 0 }, a(1));
+
+    const { answer, lineage } = await drawingFor(graph, alerts);
+
+    expect(answer.isCauseDrawn).toBe(true);
+    expect(highlightOf(lineage).causeDataPipelineIds).toEqual([p(1)]);
+    expect(highlightOf(lineage).dataPipelineIds).toEqual([p(1)]);
   });
 });
 
@@ -1239,6 +1417,7 @@ describe("any alert's lineage", () => {
     let causesDrawn: number = 0;
     let consequencesDrawn: number = 0;
     let arrowsDrawn: number = 0;
+    let causeArrowsDrawn: number = 0;
 
     for (let round: number = 0; round < 120; round++) {
       const graph: MemoryGraph = newGraph();
@@ -1521,9 +1700,49 @@ describe("any alert's lineage", () => {
         expect(node.depth).toBe(down.get(node.dataAssetId!)!);
       }
 
+      /*
+       * The cause's pipeline is named apart only when the way up ends on
+       * the arrows it moves data along - picked out, into the drawing's own
+       * card or a card upstream of it - never a pipeline an alert it caused
+       * is on, nor one drawn as a card.
+       */
+      expect(highlight.causeDataPipelineIds).toEqual(
+        sorted(highlight.causeDataPipelineIds),
+      );
+
+      for (const pipelineId of highlight.causeDataPipelineIds) {
+        expect(highlight.dataPipelineIds).toContain(pipelineId);
+        expect(
+          highlight.edgeIds.some((id: string): boolean => {
+            const edge: DataTableLineageEdge = edges.get(id)!;
+
+            return (
+              (edge.target === focusNodeId ||
+                nodes.get(edge.target)?.side === DataLineageSide.Upstream) &&
+              edge.pipelines.some(
+                (entry: DataTableLineagePipeline): boolean => {
+                  return entry.dataPipelineId === pipelineId;
+                },
+              )
+            );
+          }),
+        ).toBe(true);
+      }
+
+      expect(highlight.causeDataPipelineIds).toEqual(
+        cause?.dataPipelineId &&
+          answer!.isCauseDrawn &&
+          !highlight.causeNodeIds.includes(
+            getLineagePipelineNodeId(cause.dataPipelineId),
+          )
+          ? [cause.dataPipelineId]
+          : [],
+      );
+
       causesDrawn += answer!.isCauseDrawn ? 1 : 0;
       consequencesDrawn += answer!.drawnConsequenceCount > 0 ? 1 : 0;
       arrowsDrawn += highlight.dataPipelineIds.length > 0 ? 1 : 0;
+      causeArrowsDrawn += highlight.causeDataPipelineIds.length > 0 ? 1 : 0;
 
       // What the answer says was drawn is what is picked out.
       if (cause?.dataAssetId) {
@@ -1564,5 +1783,6 @@ describe("any alert's lineage", () => {
     expect(causesDrawn).toBeGreaterThan(5);
     expect(consequencesDrawn).toBeGreaterThan(5);
     expect(arrowsDrawn).toBeGreaterThan(0);
+    expect(causeArrowsDrawn).toBeGreaterThan(0);
   });
 });

@@ -6,10 +6,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import { FindOperator } from "typeorm";
+import CommonAPI from "../../../../Server/API/CommonAPI";
+import DataObservabilityAPI from "../../../../Server/API/DataObservabilityAPI";
+import AlertService from "../../../../Server/Services/AlertService";
 import DataAlertService from "../../../../Server/Services/DataAlertService";
 import DataAssetLineageService from "../../../../Server/Services/DataAssetLineageService";
 import DataAssetService from "../../../../Server/Services/DataAssetService";
+import DataCheckService from "../../../../Server/Services/DataCheckService";
 import DataDashboardService from "../../../../Server/Services/DataDashboardService";
 import DataPipelineService from "../../../../Server/Services/DataPipelineService";
 import DataAlertLineageReader, {
@@ -18,17 +23,34 @@ import DataAlertLineageReader, {
 import DataTableLineageReader, {
   DataLineageEdgeRow,
 } from "../../../../Server/Utils/DataObservability/DataTableLineage";
+import {
+  ExpressRequest,
+  ExpressResponse,
+  ExpressRouter,
+  NextFunction,
+} from "../../../../Server/Utils/Express";
+import Response from "../../../../Server/Utils/Response";
+import Alert from "../../../../Models/DatabaseModels/Alert";
 import DataAlert from "../../../../Models/DatabaseModels/DataAlert";
 import DataAsset from "../../../../Models/DatabaseModels/DataAsset";
 import DataAssetLineage from "../../../../Models/DatabaseModels/DataAssetLineage";
+import DataCheck from "../../../../Models/DatabaseModels/DataCheck";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import DataAssetKind from "../../../../Types/DataObservability/DataAssetKind";
 import DataAssetLineageSource from "../../../../Types/DataObservability/DataAssetLineageSource";
 import {
+  COLUMN_CHECK_TYPES,
+  DataCheckType,
+} from "../../../../Types/DataObservability/DataCheckType";
+import { DATA_OBSERVABILITY_API_ROUTES } from "../../../../Types/DataObservability/DataObservabilityApiTypes";
+import {
   DataAlertLineageAnswer,
+  DataTableLineageEdge,
   getLineageTableNodeId,
 } from "../../../../Types/DataObservability/DataTableLineage";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import PositiveNumber from "../../../../Types/PositiveNumber";
@@ -43,6 +65,10 @@ import UserType from "../../../../Types/UserType";
  * caused by an alert they may not see, is never read for them: its table is
  * never picked out, nor counted among what an alert caused. For nobody in
  * particular, or a read as root, the clause of no one: no private alert.
+ *
+ * The column an alert's check reads is read only once the alert was found
+ * theirs to see: the alert's monitor, then the check on that monitor
+ * (DataCheckAlerts keeps DataCheck.monitorId), each the project's own.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -540,6 +566,168 @@ describe("a pipeline's rows", () => {
   });
 });
 
+const MONITOR: string = "66666666-6666-4666-8666-000000000001";
+
+function alertOfMonitor(monitorId: string | null): Alert {
+  const alert: Alert = new Alert();
+
+  if (monitorId) {
+    alert.monitorId = new ObjectID(monitorId);
+  }
+
+  return alert;
+}
+
+function check(fields: {
+  checkType: DataCheckType;
+  columnName?: string;
+}): DataCheck {
+  const row: DataCheck = new DataCheck();
+  row.checkType = fields.checkType;
+
+  if (fields.columnName !== undefined) {
+    row.columnName = fields.columnName;
+  }
+
+  return row;
+}
+
+describe("the column its check reads", () => {
+  test("the alert's monitor, then the check on that monitor: each the project's own, read as OneUptime", async () => {
+    const monitorRead: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(AlertService, "findOneBy")
+      .mockResolvedValue(alertOfMonitor(MONITOR) as never);
+    const checkRead: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataCheckService, "findOneBy")
+      .mockResolvedValue(
+        check({
+          checkType: DataCheckType.NullPercent,
+          columnName: "customer_id",
+        }) as never,
+      );
+
+    expect(
+      await DataAlertLineageReader.getDatabaseAlertReader(
+        PROJECT_ID,
+        person(MEMBER, Permission.ProjectMember),
+      ).readCheckColumn(ALERT),
+    ).toBe("customer_id");
+
+    const monitorCall: FindCall = calls(monitorRead)[0]!;
+
+    expect(monitorCall.query["projectId"]).toBe(PROJECT_ID);
+    expect(String(monitorCall.query["_id"])).toBe(ALERT);
+    expect(Object.keys(monitorCall.query).sort()).toEqual(["_id", "projectId"]);
+    expect(monitorCall.select).toEqual({ monitorId: true });
+    expect(monitorCall.props).toEqual({ isRoot: true });
+
+    const checkCall: FindCall = calls(checkRead)[0]!;
+
+    expect(checkCall.query["projectId"]).toBe(PROJECT_ID);
+    expect(String(checkCall.query["monitorId"])).toBe(MONITOR);
+    expect(Object.keys(checkCall.query).sort()).toEqual([
+      "monitorId",
+      "projectId",
+    ]);
+    expect(checkCall.select).toEqual({ checkType: true, columnName: true });
+    expect(checkCall.props).toEqual({ isRoot: true });
+  });
+
+  test("every check on one column names it; a check on the whole table does not, whatever column it kept", async () => {
+    const reader: ReturnType<
+      typeof DataAlertLineageReader.getDatabaseAlertReader
+    > = DataAlertLineageReader.getDatabaseAlertReader(PROJECT_ID, null);
+
+    jest
+      .spyOn(AlertService, "findOneBy")
+      .mockResolvedValue(alertOfMonitor(MONITOR) as never);
+
+    const checkRead: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      DataCheckService,
+      "findOneBy",
+    );
+
+    for (const checkType of Object.values(DataCheckType)) {
+      checkRead.mockResolvedValueOnce(
+        check({ checkType, columnName: "customer_id" }) as never,
+      );
+
+      const expected: string | null =
+        COLUMN_CHECK_TYPES.includes(checkType) ||
+        checkType === DataCheckType.DbtTest
+          ? "customer_id"
+          : null;
+
+      expect({
+        checkType,
+        column: await reader.readCheckColumn(ALERT),
+      }).toEqual({ checkType, column: expected });
+    }
+  });
+
+  test("a dbt test of no one column, and a check that names none: no column", async () => {
+    const reader: ReturnType<
+      typeof DataAlertLineageReader.getDatabaseAlertReader
+    > = DataAlertLineageReader.getDatabaseAlertReader(PROJECT_ID, null);
+
+    jest
+      .spyOn(AlertService, "findOneBy")
+      .mockResolvedValue(alertOfMonitor(MONITOR) as never);
+    jest
+      .spyOn(DataCheckService, "findOneBy")
+      .mockResolvedValueOnce(
+        check({ checkType: DataCheckType.DbtTest }) as never,
+      )
+      .mockResolvedValueOnce(
+        check({ checkType: DataCheckType.Maximum, columnName: "   " }) as never,
+      );
+
+    expect(await reader.readCheckColumn(ALERT)).toBeNull();
+    expect(await reader.readCheckColumn(ALERT)).toBeNull();
+  });
+
+  test("the column as the check names it, without the spaces around it", async () => {
+    jest
+      .spyOn(AlertService, "findOneBy")
+      .mockResolvedValue(alertOfMonitor(MONITOR) as never);
+    jest.spyOn(DataCheckService, "findOneBy").mockResolvedValue(
+      check({
+        checkType: DataCheckType.DistinctCount,
+        columnName: "  CUSTOMER_ID ",
+      }) as never,
+    );
+
+    expect(
+      await DataAlertLineageReader.getDatabaseAlertReader(
+        PROJECT_ID,
+        null,
+      ).readCheckColumn(ALERT),
+    ).toBe("CUSTOMER_ID");
+  });
+
+  test("an alert from no monitor, one not the project's, or a monitor no check is on: no column", async () => {
+    const reader: ReturnType<
+      typeof DataAlertLineageReader.getDatabaseAlertReader
+    > = DataAlertLineageReader.getDatabaseAlertReader(PROJECT_ID, null);
+    const monitorRead: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(AlertService, "findOneBy")
+      .mockResolvedValueOnce(alertOfMonitor(null) as never)
+      .mockResolvedValueOnce(null as never)
+      .mockResolvedValueOnce(alertOfMonitor(MONITOR) as never);
+    const checkRead: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataCheckService, "findOneBy")
+      .mockResolvedValue(null as never);
+
+    expect(await reader.readCheckColumn(ALERT)).toBeNull();
+    expect(await reader.readCheckColumn(ALERT)).toBeNull();
+    // No check was read for the two with no monitor.
+    expect(checkRead).not.toHaveBeenCalled();
+    expect(await reader.readCheckColumn(ALERT)).toBeNull();
+    expect(checkRead).toHaveBeenCalledTimes(1);
+    expect(monitorRead).toHaveBeenCalledTimes(3);
+  });
+});
+
 describe("an alert's lineage, read from the database", () => {
   test("an alert its reader may not see is no answer, and nothing else is read", async () => {
     jest.spyOn(DataAlertService, "findOneBy").mockResolvedValue(null as never);
@@ -556,6 +744,15 @@ describe("an alert's lineage, read from the database", () => {
       DataAssetService,
       "findBy",
     );
+    // Nor what its check reads: that is asked only of an alert theirs to see.
+    const monitorRead: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      AlertService,
+      "findOneBy",
+    );
+    const checkRead: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      DataCheckService,
+      "findOneBy",
+    );
 
     expect(
       await DataAlertLineageReader.read({
@@ -568,6 +765,8 @@ describe("an alert's lineage, read from the database", () => {
     expect(consequenceRead).not.toHaveBeenCalled();
     expect(edgeRead).not.toHaveBeenCalled();
     expect(tableRead).not.toHaveBeenCalled();
+    expect(monitorRead).not.toHaveBeenCalled();
+    expect(checkRead).not.toHaveBeenCalled();
   });
 
   test("reads its alerts, then its table's lineage, and picks out the way to its cause", async () => {
@@ -594,6 +793,10 @@ describe("an alert's lineage, read from the database", () => {
         : null;
     }) as never);
     jest.spyOn(DataAlertService, "findBy").mockResolvedValue([] as never);
+    // Its alert came from no check: no column, and no column read.
+    jest
+      .spyOn(AlertService, "findOneBy")
+      .mockResolvedValue(new Alert() as never);
 
     const tables: Array<DataAsset> = [1, 2].map((index: number): DataAsset => {
       const asset: DataAsset = new DataAsset();
@@ -653,6 +856,7 @@ describe("an alert's lineage, read from the database", () => {
       isCauseDrawn: true,
       consequenceCount: 0,
       drawnConsequenceCount: 0,
+      column: null,
     });
     expect(answer!.lineage!.focusNodeId).toBe(getLineageTableNodeId(id(1)));
     expect(answer!.lineage!.highlight!.causeNodeIds).toEqual([
@@ -665,5 +869,301 @@ describe("an alert's lineage, read from the database", () => {
     for (const call of calls(edgeRead)) {
       expect(call.query["projectId"]).toBe(PROJECT_ID);
     }
+  });
+});
+
+/*
+ * A WAREHOUSE IN THE DATABASE'S SHAPE: the alert on analytics.table_1, its
+ * monitor's check reading customer_id, built from analytics.table_2 whose
+ * arrow names cust_id -> customer_id. Every read answers what it was
+ * asked; the reads of the lineage rows that name columns are kept apart.
+ */
+interface StoredWarehouse {
+  edgeRead: ReturnType<typeof jest.spyOn>;
+  // The reads of the rows that name columns (columnMappings: not null).
+  columnQueries: Array<FindCall>;
+  checkRead: ReturnType<typeof jest.spyOn>;
+}
+
+// The one alert a read asks for, whether or not a privacy clause sits beside it.
+function askedAlertId(value: unknown): string {
+  return value instanceof FindOperator ? idAndClause(value).id : String(value);
+}
+
+function storeWarehouse(check: DataCheck | null): StoredWarehouse {
+  jest.spyOn(DataAlertService, "findOneBy").mockImplementation((async (
+    findOne: FindCall,
+  ): Promise<DataAlert | null> => {
+    return askedAlertId(findOne.query["alertId"]) === ALERT
+      ? dataAlert({ alertId: ALERT, dataAssetId: id(1) })
+      : null;
+  }) as never);
+  jest.spyOn(DataAlertService, "findBy").mockResolvedValue([] as never);
+
+  const monitored: Alert = new Alert();
+  monitored.monitorId = new ObjectID(MONITOR);
+
+  jest.spyOn(AlertService, "findOneBy").mockResolvedValue(monitored as never);
+
+  const checkRead: ReturnType<typeof jest.spyOn> = jest
+    .spyOn(DataCheckService, "findOneBy")
+    .mockResolvedValue(check as never);
+
+  const tables: Array<DataAsset> = [1, 2].map((index: number): DataAsset => {
+    const asset: DataAsset = new DataAsset();
+    asset._id = id(index);
+    asset.assetKey = `analytics.table_${index}`;
+    asset.assetKind = DataAssetKind.Table;
+
+    return asset;
+  });
+
+  jest.spyOn(DataAssetService, "findBy").mockImplementation((async (
+    findBy: FindCall,
+  ): Promise<Array<DataAsset>> => {
+    const asked: string = JSON.stringify(findBy.query["_id"]);
+
+    return tables.filter((asset: DataAsset): boolean => {
+      return asked.includes(asset._id!);
+    });
+  }) as never);
+
+  const columnQueries: Array<FindCall> = [];
+  const edgeRead: ReturnType<typeof jest.spyOn> = jest
+    .spyOn(DataAssetLineageService, "findBy")
+    .mockImplementation((async (
+      findBy: FindCall,
+    ): Promise<Array<DataAssetLineage>> => {
+      const row: DataAssetLineage = new DataAssetLineage();
+      row.upstreamDataAssetId = new ObjectID(id(2));
+      row.downstreamDataAssetId = new ObjectID(id(1));
+
+      if (findBy.query["columnMappings"] !== undefined) {
+        columnQueries.push(findBy);
+        row.columnMappings = [
+          { upstreamColumn: "cust_id", downstreamColumn: "customer_id" },
+        ] as never;
+
+        return [row];
+      }
+
+      const into: string = JSON.stringify(
+        findBy.query["downstreamDataAssetId"] || null,
+      );
+
+      return into.includes(id(1)) ? [row] : [];
+    }) as never);
+
+  jest.spyOn(DataPipelineService, "findBy").mockResolvedValue([] as never);
+  jest.spyOn(DataDashboardService, "findBy").mockResolvedValue([] as never);
+  jest
+    .spyOn(DataDashboardService, "countBy")
+    .mockResolvedValue(new PositiveNumber(0) as never);
+
+  return { edgeRead, columnQueries, checkRead };
+}
+
+function arrowInto(answer: DataAlertLineageAnswer): DataTableLineageEdge {
+  const edge: DataTableLineageEdge | undefined = answer.lineage!.edges.find(
+    (candidate: DataTableLineageEdge): boolean => {
+      return (
+        candidate.source === getLineageTableNodeId(id(2)) &&
+        candidate.target === getLineageTableNodeId(id(1))
+      );
+    },
+  );
+
+  expect(edge).toBeDefined();
+
+  return edge!;
+}
+
+describe("a column check's alert, read from the database", () => {
+  test("its lineage carries the columns of each arrow it draws, read for the project, with the column its check reads", async () => {
+    const stored: StoredWarehouse = storeWarehouse(
+      check({
+        checkType: DataCheckType.NullPercent,
+        columnName: "customer_id",
+      }),
+    );
+
+    const answer: DataAlertLineageAnswer | null =
+      await DataAlertLineageReader.read({
+        projectId: PROJECT_ID,
+        alertId: new ObjectID(ALERT),
+        now: new Date("2026-11-10T12:00:00.000Z"),
+        reader: person(MEMBER, Permission.ProjectAdmin),
+      });
+
+    expect(answer?.column).toBe("customer_id");
+    expect(arrowInto(answer!).columnMappings).toEqual([
+      { upstreamColumn: "cust_id", downstreamColumn: "customer_id" },
+    ]);
+    expect(stored.columnQueries).toHaveLength(1);
+
+    const query: Record<string, unknown> = stored.columnQueries[0]!.query;
+
+    expect(query["projectId"]).toBe(PROJECT_ID);
+    expect(JSON.stringify(query["upstreamDataAssetId"])).toContain(id(2));
+    expect(JSON.stringify(query["downstreamDataAssetId"])).toContain(id(1));
+    expect(stored.columnQueries[0]!.props).toEqual({ isRoot: true });
+  });
+
+  test("a check on the whole table: the lineage as before, and no row's columns read", async () => {
+    const stored: StoredWarehouse = storeWarehouse(
+      check({ checkType: DataCheckType.RowCount, columnName: "customer_id" }),
+    );
+
+    const answer: DataAlertLineageAnswer | null =
+      await DataAlertLineageReader.read({
+        projectId: PROJECT_ID,
+        alertId: new ObjectID(ALERT),
+        now: new Date("2026-11-10T12:00:00.000Z"),
+        reader: person(MEMBER, Permission.ProjectAdmin),
+      });
+
+    expect(answer?.column).toBeNull();
+    expect(arrowInto(answer!).columnMappings).toBeUndefined();
+    expect(stored.columnQueries).toEqual([]);
+    expect(stored.edgeRead).toHaveBeenCalled();
+  });
+});
+
+type RouteHandler = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void>;
+
+type RouterLayer = {
+  route?: {
+    path: string;
+    methods: Record<string, boolean>;
+    stack: Array<{ handle: RouteHandler }>;
+  };
+};
+
+// The alert-lineage route's own handler, past its session middleware, as the API builds it.
+function alertLineageHandler(): RouteHandler {
+  const path: string = DATA_OBSERVABILITY_API_ROUTES.alertLineage(":id");
+  const router: ExpressRouter = new DataObservabilityAPI().getRouter();
+  const layer: RouterLayer | undefined = (
+    router as unknown as { stack: Array<RouterLayer> }
+  ).stack.find((candidate: RouterLayer): boolean => {
+    return (
+      candidate.route?.path === path && candidate.route.methods["post"] === true
+    );
+  });
+
+  expect(layer?.route?.stack).toHaveLength(3);
+
+  return layer!.route!.stack[2]!.handle;
+}
+
+// Asks the route as the Dashboard does: what it sent, or the error it passed on.
+async function askRoute(props: DatabaseCommonInteractionProps): Promise<{
+  sent: JSONObject | null;
+  error: Error | null;
+}> {
+  jest
+    .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+    .mockResolvedValue(props);
+
+  const sent: Mock<(...args: Array<unknown>) => unknown> = jest.fn();
+  const next: Mock<(...args: Array<unknown>) => unknown> = jest.fn();
+
+  jest
+    .spyOn(Response, "sendJsonObjectResponse")
+    .mockImplementation(sent as never);
+
+  await alertLineageHandler()(
+    { body: {}, params: { id: ALERT } } as unknown as ExpressRequest,
+    {} as ExpressResponse,
+    next as unknown as NextFunction,
+  );
+
+  return {
+    sent: sent.mock.calls[0] ? (sent.mock.calls[0][2] as JSONObject) : null,
+    error: next.mock.calls[0] ? (next.mock.calls[0][0] as Error) : null,
+  };
+}
+
+describe("POST /data-observability/alerts/:id/lineage, read from the database", () => {
+  test("a column check's alert answers with its column and the columns each arrow carries", async () => {
+    storeWarehouse(
+      check({
+        checkType: DataCheckType.DistinctCount,
+        columnName: "customer_id",
+      }),
+    );
+
+    const alertRead: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      DataAlertService,
+      "findOneBy",
+    );
+
+    const asked: { sent: JSONObject | null; error: Error | null } =
+      await askRoute(person(MEMBER, Permission.ReadDataAsset));
+
+    expect(asked.error).toBeNull();
+
+    const answer: DataAlertLineageAnswer =
+      asked.sent as unknown as DataAlertLineageAnswer;
+
+    expect(answer.column).toBe("customer_id");
+    expect(arrowInto(answer).columnMappings).toEqual([
+      { upstreamColumn: "cust_id", downstreamColumn: "customer_id" },
+    ]);
+    // Read for the member who asked: their own clause on the alert itself.
+    expect(idAndClause(calls(alertRead)[0]!.query["alertId"]).id).toBe(ALERT);
+    expectOwnerClause(
+      idAndClause(calls(alertRead)[0]!.query["alertId"]).clause,
+    );
+  });
+
+  test("a check on the whole table: no column, and no arrow carries any", async () => {
+    const stored: StoredWarehouse = storeWarehouse(
+      check({ checkType: DataCheckType.CustomSql }),
+    );
+
+    const asked: { sent: JSONObject | null; error: Error | null } =
+      await askRoute(person(MEMBER, Permission.ProjectMember));
+    const answer: DataAlertLineageAnswer =
+      asked.sent as unknown as DataAlertLineageAnswer;
+
+    expect(answer.column).toBeNull();
+    expect(arrowInto(answer).columnMappings).toBeUndefined();
+    expect(stored.columnQueries).toEqual([]);
+  });
+
+  test("an alert they may not see is not found: its privacy clause asked first, and no check, column or lineage read", async () => {
+    const stored: StoredWarehouse = storeWarehouse(
+      check({
+        checkType: DataCheckType.NullPercent,
+        columnName: "customer_id",
+      }),
+    );
+    const alertRead: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataAlertService, "findOneBy")
+      .mockResolvedValue(null as never);
+    const monitorRead: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      AlertService,
+      "findOneBy",
+    );
+
+    const asked: { sent: JSONObject | null; error: Error | null } =
+      await askRoute(person(MEMBER, Permission.ProjectMember));
+
+    expect(asked.sent).toBeNull();
+    expect(asked.error).toBeInstanceOf(BadDataException);
+    expect(asked.error!.message).toBe("Alert not found.");
+    // The member's own clause on the alert they asked about.
+    expectOwnerClause(
+      idAndClause(calls(alertRead)[0]!.query["alertId"]).clause,
+    );
+    expect(monitorRead).not.toHaveBeenCalled();
+    expect(stored.checkRead).not.toHaveBeenCalled();
+    expect(stored.edgeRead).not.toHaveBeenCalled();
+    expect(stored.columnQueries).toEqual([]);
   });
 });

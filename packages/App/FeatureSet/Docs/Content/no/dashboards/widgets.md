@@ -178,7 +178,7 @@ Hvert SLO med status, SLI, feilbudsjett og burn rate, med minst gjenstående bud
 | **Trakt** | En trakt lagret på siden **Trakter** i en RUM-applikasjon: av personene som utførte det første trinnet i dashbordets tidsintervall, hvor mange som gikk videre til hvert neste trinn. |
 | **Brukerlojalitet** | En lojalitetstabell lagret på siden **Brukerlojalitet**: personer gruppert etter når de første gang utførte starthendelsen, og andelen av hver gruppe som kom tilbake i hver periode etter, med **Alle kohorter** over dem. |
 
-Lagre trakten eller lojalitetstabellen på siden dens først (se [Lagrede trakter og lojalitetstabeller](/docs/rum/product-analytics#lagrede-trakter-og-lojalitetstabeller)), og velg den så i widgetens innstillinger. Widgeten bruker navnet som tittel med mindre du gir den en, og leser den på nytt ved hver oppdatering, så en endring som lagres på siden, vises på dashbordet. **Åpne i Trakter** eller **Åpne i Brukerlojalitet** åpner den på siden dens, i dashbordets tidsintervall. Å se den krever det samme som å se siden.
+Lagre trakten eller lojalitetstabellen på siden dens først (se [Lagrede trakter og lojalitetstabeller](/docs/rum/product-analytics#lagrede-trakter-og-lojalitetstabeller)), og velg den så i widgetens innstillinger. Widgeten bruker navnet som tittel med mindre du gir den en, og leser den på nytt ved hver oppdatering, så en endring som lagres på siden, vises på dashbordet. **Åpne i Trakter** eller **Åpne i Brukerlojalitet** åpner den på siden dens, i dashbordets tidsintervall. Å se den krever det samme som å se siden. Er widgeten for smal for alle periodene i tabellen, viser den de første som får plass, og sier under tabellen hvor mange flere det er; også den linjen åpner tabellen på siden dens.
 
 ## Infrastruktur
 
