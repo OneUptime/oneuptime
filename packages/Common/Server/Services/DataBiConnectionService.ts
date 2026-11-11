@@ -1,8 +1,13 @@
 import ProjectReferencesService from "./ProjectReferencesService";
+import MonitorService from "./MonitorService";
 import Model from "../../Models/DatabaseModels/DataBiConnection";
 import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import logger from "../Utils/Logger";
+import ObjectID from "../../Types/ObjectID";
 import {
   isDataBiTool,
   needsBaseUrl,
@@ -13,8 +18,14 @@ import BadDataException from "../../Types/Exception/BadDataException";
  * The BI tools Data Observability reads dashboards from. A tool is checked
  * as it is saved: a tool OneUptime reads, an address for every tool but
  * Power BI, and credentials that are JSON. Its dashboards are read by
- * DataBiSync, and go with it when it is deleted.
+ * DataBiSync, and go with it when it is deleted - and so does the monitor
+ * that alerts on its failed refreshes (DataBiRefreshAlerts).
  */
+
+interface DeletedTools {
+  tools: Array<Model>;
+}
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
@@ -74,6 +85,58 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { updateBy, carryForward: undefined };
+  }
+
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    const tools: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { _id: true, projectId: true, refreshMonitorId: true },
+    );
+    const carryForward: DeletedTools = { tools };
+
+    return { deleteBy, carryForward };
+  }
+
+  // A deleted tool's monitor on failed refreshes goes with it: nobody's is left over.
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    const carried: DeletedTools | undefined = onDelete.carryForward as
+      | DeletedTools
+      | undefined;
+
+    if (!carried) {
+      return onDelete;
+    }
+
+    for (const tool of Service.getRowsDeleted<Model>({
+      rows: carried.tools,
+      deletedIds,
+    })) {
+      if (!tool.refreshMonitorId) {
+        continue;
+      }
+
+      try {
+        await MonitorService.deleteBy({
+          query: { _id: tool.refreshMonitorId, projectId: tool.projectId! },
+          limit: 1,
+          skip: 0,
+          props: { isRoot: true },
+        });
+      } catch (error) {
+        logger.error(
+          `Data Observability: could not delete the monitor on failed refreshes of BI tool ${tool.id?.toString()}`,
+        );
+        logger.error(error);
+      }
+    }
+
+    return onDelete;
   }
 
   // An address as the connectors call it: http(s), with no trailing slash.

@@ -49998,5 +49998,10 @@
   "“{{settingName}}” is off, so no new investigation can start.": "\"{{settingName}}\"이(가) 꺼져 있어서 새 조사를 시작할 수 없습니다.",
   "“{{settingName}}” is set to 0, which pauses automatic AI work.": "\"{{settingName}}\"이(가) 0으로 설정되어 있어 자동 AI 작업이 일시 중지됩니다.",
   "“{{settingName}}” was off, so no investigation started.": "\"{{settingName}}\"이(가) 꺼져 있어서 조사가 시작되지 않았습니다.",
-  "“{{settingName}}” was set to 0, which pauses automatic AI work, so no investigation started.": "\"{{settingName}}\"이(가) 0으로 설정되어 자동 AI 작업이 일시 중지되었기 때문에 조사가 시작되지 않았습니다."
+  "“{{settingName}}” was set to 0, which pauses automatic AI work, so no investigation started.": "\"{{settingName}}\"이(가) 0으로 설정되어 자동 AI 작업이 일시 중지되었기 때문에 조사가 시작되지 않았습니다.",
+  "Alert on Failed Refreshes": "Alert on Failed Refreshes",
+  "Failed Refreshes": "Failed Refreshes",
+  "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.": "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.",
+  "Refresh Monitor ID": "Refresh Monitor ID",
+  "The alert on failed refreshes was not saved: {{error}}": "The alert on failed refreshes was not saved: {{error}}"
 }

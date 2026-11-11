@@ -285,6 +285,12 @@ const FriendlyLabelNames: Record<string, string> = {
   "oneuptime.data.pipeline.name": "Pipeline",
   "oneuptime.data.pipeline.namespace": "Pipeline Namespace",
   "oneuptime.data.pipeline.id": "Pipeline ID",
+  // Each Power BI dataset whose refresh failed (DataBiRefreshCheck) is its BI tool's.
+  "oneuptime.data.bi.dataset.name": "Dataset",
+  "oneuptime.data.bi.workspace.name": "Workspace",
+  "oneuptime.data.bi.connection.name": "BI Tool",
+  "oneuptime.data.bi.dataset.id": "Dataset ID",
+  "oneuptime.data.bi.connection.id": "BI Tool ID",
 
   // --- Services / RUM / telemetry ---
   "service.name": "Service",
@@ -462,9 +468,14 @@ const LabelPriority: Record<string, number> = {
   "oneuptime.data.store.name": 40,
   "oneuptime.data.pipeline.name": 25,
   "oneuptime.data.pipeline.namespace": 35,
+  "oneuptime.data.bi.dataset.name": 25,
+  "oneuptime.data.bi.workspace.name": 35,
+  "oneuptime.data.bi.connection.name": 40,
   "oneuptime.data.table.id": 95,
   "oneuptime.data.store.id": 95,
   "oneuptime.data.pipeline.id": 95,
+  "oneuptime.data.bi.dataset.id": 95,
+  "oneuptime.data.bi.connection.id": 95,
   "k8s.namespace.name": 50,
   "service.namespace": 50,
   "k8s.node.name": 60,

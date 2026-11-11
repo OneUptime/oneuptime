@@ -68,6 +68,12 @@ enum ServiceType {
    */
   DataReconciliation = "DataReconciliation",
   /*
+   * Data Observability's BI tool rows (oneuptime.data.bi.*): which of a
+   * Power BI tool's datasets failed their last refresh. Like table health,
+   * never billed as ingested telemetry.
+   */
+  DataBiConnection = "DataBiConnection",
+  /*
    * Telemetry that arrived without an OTel service.name and with no
    * host / docker / k8s resource signal. Instead of synthesising a
    * placeholder "Unknown Service" Postgres row (which collected every

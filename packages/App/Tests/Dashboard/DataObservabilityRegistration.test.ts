@@ -283,6 +283,66 @@ describe("Data Observability registry wiring", () => {
     );
   });
 
+  test("alerts on failed Power BI refreshes - migration, five-minute check, route and page - are wired", () => {
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDataBiConnectionRefreshAlerts1809110200000 } from "./1809110200000-AddDataBiConnectionRefreshAlerts";',
+    );
+    expect(
+      migrations.indexOf("AddDataBiConnectionRefreshAlerts1809110200000,"),
+    ).toBeGreaterThan(
+      migrations.indexOf("AddDataDashboardUsageAndRefreshes1809100612000,"),
+    );
+
+    const migration: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809110200000-AddDataBiConnectionRefreshAlerts.ts",
+    );
+
+    expect(migration).toContain(
+      'ALTER TABLE "DataBiConnection" ADD "alertOnFailedRefreshes" boolean DEFAULT false',
+    );
+    expect(migration).toContain(
+      'ALTER TABLE "DataBiConnection" ADD "refreshMonitorId" uuid',
+    );
+    expect(migration).toContain(
+      'ALTER TABLE "DataBiConnection" ADD "failedRefreshes" jsonb',
+    );
+
+    const jobs: string = readSquashed(
+      "App/FeatureSet/Workers/Jobs/DataObservability/DataObservabilityJobs.ts",
+    );
+
+    expect(jobs).toContain('"DataObservability:CheckBiRefreshes"');
+    expect(jobs).toContain(
+      "await DataBiRefreshCheck.checkAll(OneUptimeDate.getCurrentDate());",
+    );
+
+    expect(DATA_OBSERVABILITY_API_ROUTES.biRefreshAlert("abc")).toBe(
+      "/data-observability/bi-connections/abc/refresh-alert",
+    );
+
+    const api: string = readSquashed(
+      "Common/Server/API/DataObservabilityAPI.ts",
+    );
+
+    expect(api).toContain(
+      'DATA_OBSERVABILITY_API_ROUTES.biRefreshAlert(":id")',
+    );
+    expect(api).toContain("await DataBiRefreshAlerts.sync({");
+
+    // Saving a BI tool - Add or Edit - keeps its monitor as saved.
+    expect(
+      readSquashed(
+        "App/FeatureSet/Dashboard/src/Pages/DataObservability/BiDashboards.tsx",
+      ),
+    ).toContain(
+      "await keepRefreshAlert(connection); await readTool(connection);",
+    );
+  });
+
   test("dbt artifacts - migration, ingest route and CLI command - are wired", () => {
     const migrations: string = readSquashed(
       "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
