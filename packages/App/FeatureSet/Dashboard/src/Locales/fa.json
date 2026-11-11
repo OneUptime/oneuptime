@@ -21953,7 +21953,7 @@
   "Create, change and delete monitors, incidents, status pages and other resources.": "ایجاد، تغییر و حذف مانیتورها، حوادث، صفحات وضعیت و منابع دیگر.",
   "No access yet. Add a narrower role, such as Incident Member, or single permissions on the key's page.": "هنوز دسترسی ندارد. در صفحه کلید نقشی محدودتر مانند عضو حادثه یا دسترسی‌های تکی اضافه کنید.",
   "Read everything in the project. Change nothing.": "خواندن همه چیز در پروژه. بدون هیچ تغییری.",
-  "{{width}} x {{height}} units": "{{width}} x {{height}} units",
+  "{{width}} x {{height}} units": "{{width}} × {{height}} واحد",
   "Docker host": "میزبان Docker",
   "Each bar is a function, and its width is its share of everything profiled for this service in the time window picked beside it - CPU time by default, bytes for Memory, lock contention for Locks, and every type added together for Everything. The functions a bar calls sit below it.": "Each bar is a function, and its width is its share of everything profiled for this service in the time window picked beside it - CPU time by default, bytes for Memory, lock contention for Locks, and every type added together for Everything. The functions a bar calls sit below it.",
   "Each child site's health, rolled up from the devices at that site and at every site beneath it. No Data means nothing below it has reported yet.": "سلامت هر سایت زیرمجموعه، تجمیع‌شده از دستگاه‌های همان سایت و همه سایت‌های زیر آن. «بدون داده» یعنی هنوز هیچ چیزی زیر آن گزارش نداده است.",

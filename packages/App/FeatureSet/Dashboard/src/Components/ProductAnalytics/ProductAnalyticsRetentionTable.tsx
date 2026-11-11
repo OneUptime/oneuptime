@@ -403,29 +403,29 @@ export const RETENTION_TABLE_DENSITY: Readonly<
 };
 
 /*
- * How many of a table's periods fit in a width (issue #6721): all when the
- * whole table does, else the most of them, from the first, that fit beside
- * the cohort and people columns - never fewer than one, so a narrow widget
- * still shows a period and scrolls rather than showing none. The widths are
- * the table's as drawn with every period (readProductAnalyticsRetention-
- * TableWidths): each column's, and the space the table keeps around each
- * cell (its border-spacing), before the first, between and after the last.
+ * A width to fit a table to, and the table's widths as drawn with every
+ * period (readProductAnalyticsRetentionTableWidths): each column's, and the
+ * space the table keeps around each cell (its border-spacing), before the
+ * first, between and after the last.
  */
-export function countProductAnalyticsRetentionPeriodsThatFit(data: {
+export interface ProductAnalyticsRetentionTableColumnWidths {
   widthInPx: number;
   // The cohort and the people columns.
   labelColumnsInPx: ReadonlyArray<number>;
   // Each period's column, first to last.
   periodColumnsInPx: ReadonlyArray<number>;
   spacingInPx: number;
-}): number {
-  const periods: number = data.periodColumnsInPx.length;
+}
 
-  // Nothing to measure against: every period, as the page draws them.
-  if (!Number.isFinite(data.widthInPx) || data.widthInPx <= 0) {
-    return periods;
-  }
+// Whether a width is one to fit to: no width, or none known, draws every period.
+function isWidthToFitTo(widthInPx: number): boolean {
+  return Number.isFinite(widthInPx) && widthInPx > 0;
+}
 
+// The periods that fit whole beside the label columns, from the first: none, if not even the first does.
+function countPeriodsThatFitWhole(
+  data: ProductAnalyticsRetentionTableColumnWidths,
+): number {
   // A fraction of a pixel of rounding is no reason to leave a period out.
   const roomInPx: number = data.widthInPx + 0.01;
   let usedInPx: number = data.spacingInPx;
@@ -446,7 +446,68 @@ export function countProductAnalyticsRetentionPeriodsThatFit(data: {
     fit += 1;
   }
 
-  return Math.min(periods, Math.max(fit, 1));
+  return fit;
+}
+
+/*
+ * How many of a table's periods fit in a width (issue #6721): all when the
+ * whole table does, else the most of them, from the first, that fit beside
+ * the label columns given - never fewer than one, so a narrow widget still
+ * shows a period rather than none.
+ */
+export function countProductAnalyticsRetentionPeriodsThatFit(
+  data: ProductAnalyticsRetentionTableColumnWidths,
+): number {
+  const periods: number = data.periodColumnsInPx.length;
+
+  // Nothing to measure against: every period, as the page draws them.
+  if (!isWidthToFitTo(data.widthInPx)) {
+    return periods;
+  }
+
+  return Math.min(periods, Math.max(countPeriodsThatFitWhole(data), 1));
+}
+
+/* What a table fitted to a width draws: how many periods, and whether its People column. */
+export interface ProductAnalyticsRetentionTableFit {
+  periods: number;
+  showsPeople: boolean;
+}
+
+/*
+ * What of a table fits in a width: the periods that fit beside the cohort
+ * and people columns (countProductAnalyticsRetentionPeriodsThatFit) - or,
+ * where not even the first does, the table without its People column
+ * (issue #6841) and the periods that fit beside the cohort column alone,
+ * still never fewer than one. The cohort and a period are what a reader
+ * reads a retention table for; each cell still says its cohort's people
+ * ("Week 0: 1,240 of 1,240 came back"), and the line under the table
+ * opens the whole table on its page.
+ */
+export function fitProductAnalyticsRetentionTable(
+  data: ProductAnalyticsRetentionTableColumnWidths,
+): ProductAnalyticsRetentionTableFit {
+  const periods: number = data.periodColumnsInPx.length;
+
+  if (
+    periods === 0 ||
+    data.labelColumnsInPx.length < 2 ||
+    !isWidthToFitTo(data.widthInPx) ||
+    countPeriodsThatFitWhole(data) > 0
+  ) {
+    return {
+      periods: countProductAnalyticsRetentionPeriodsThatFit(data),
+      showsPeople: true,
+    };
+  }
+
+  return {
+    periods: countProductAnalyticsRetentionPeriodsThatFit({
+      ...data,
+      labelColumnsInPx: data.labelColumnsInPx.slice(0, 1),
+    }),
+    showsPeople: false,
+  };
 }
 
 /* The widths of a table as drawn: each column's (its heading's) and the spacing around its cells. */
@@ -500,10 +561,9 @@ export interface ProductAnalyticsRetentionTableProps {
   renderPeriodsLeftOut?: ((leftOut: number) => ReactNode) | undefined;
 }
 
-interface RetentionTableFit {
+interface RetentionTableFit extends ProductAnalyticsRetentionTableFit {
   // What it was measured for: the width and everything drawn.
   key: string;
-  periods: number;
 }
 
 interface RetentionTableSize {
@@ -605,10 +665,13 @@ const ProductAnalyticsRetentionTable: FunctionComponent<
         ]);
   const fitKey: string = contentKey === "" ? "" : `${remeasures}:${contentKey}`;
   const isMeasuring: boolean = fitKey !== "" && fit?.key !== fitKey;
-  const shownColumns: number =
-    fitKey !== "" && fit && fit.key === fitKey
-      ? Math.min(fit.periods, columns)
-      : columns;
+  const currentFit: RetentionTableFit | null =
+    fitKey !== "" && fit && fit.key === fitKey ? fit : null;
+  const shownColumns: number = currentFit
+    ? Math.min(currentFit.periods, columns)
+    : columns;
+  // Drawn while measured, and wherever a period fits beside it.
+  const showsPeople: boolean = currentFit ? currentFit.showsPeople : true;
   const leftOut: number = columns - shownColumns;
   const columnIndexes: Array<number> = Array.from(
     { length: shownColumns },
@@ -653,7 +716,7 @@ const ProductAnalyticsRetentionTable: FunctionComponent<
 
     setFit({
       key: fitKey,
-      periods: countProductAnalyticsRetentionPeriodsThatFit({
+      ...fitProductAnalyticsRetentionTable({
         widthInPx: widthInPx,
         labelColumnsInPx: widths.columnsInPx.slice(0, 2),
         periodColumnsInPx: widths.columnsInPx.slice(2),
@@ -747,13 +810,17 @@ const ProductAnalyticsRetentionTable: FunctionComponent<
         >
           {row.cohort}
         </th>
-        <td
-          className={`whitespace-nowrap ${density.label} text-end tabular-nums ${
-            isAverage ? "font-semibold text-gray-900" : "text-gray-700"
-          }`}
-        >
-          {row.people}
-        </td>
+        {showsPeople ? (
+          <td
+            className={`whitespace-nowrap ${density.label} text-end tabular-nums ${
+              isAverage ? "font-semibold text-gray-900" : "text-gray-700"
+            }`}
+          >
+            {row.people}
+          </td>
+        ) : (
+          <></>
+        )}
         {columnIndexes.map((index: number): ReactElement => {
           const cell: ProductAnalyticsRetentionCell | null | undefined =
             row.cells[index];
@@ -815,12 +882,16 @@ const ProductAnalyticsRetentionTable: FunctionComponent<
               >
                 {translator.translateText("Cohort")}
               </th>
-              <th
-                scope="col"
-                className={`whitespace-nowrap ${density.header} text-end font-medium uppercase text-gray-500`}
-              >
-                {translator.translateText("People")}
-              </th>
+              {showsPeople ? (
+                <th
+                  scope="col"
+                  className={`whitespace-nowrap ${density.header} text-end font-medium uppercase text-gray-500`}
+                >
+                  {translator.translateText("People")}
+                </th>
+              ) : (
+                <></>
+              )}
               {columnIndexes.map((index: number): ReactElement => {
                 return (
                   <th
@@ -842,7 +913,10 @@ const ProductAnalyticsRetentionTable: FunctionComponent<
             <tbody>
               {renderRow(averageRow, true)}
               <tr aria-hidden="true">
-                <td colSpan={shownColumns + 2} className="h-1.5 p-0" />
+                <td
+                  colSpan={shownColumns + (showsPeople ? 2 : 1)}
+                  className="h-1.5 p-0"
+                />
               </tr>
             </tbody>
           ) : (

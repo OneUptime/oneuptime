@@ -21953,7 +21953,7 @@
   "Create, change and delete monitors, incidents, status pages and other resources.": "Monitore, Vorfälle, Statusseiten und andere Ressourcen erstellen, ändern und löschen.",
   "No access yet. Add a narrower role, such as Incident Member, or single permissions on the key's page.": "Noch kein Zugriff. Fügen Sie auf der Seite des Schlüssels eine engere Rolle wie Vorfallsmitglied oder einzelne Berechtigungen hinzu.",
   "Read everything in the project. Change nothing.": "Alles im Projekt lesen. Nichts ändern.",
-  "{{width}} x {{height}} units": "{{width}} x {{height}} units",
+  "{{width}} x {{height}} units": "{{width}} × {{height}} Einheiten",
   "Docker host": "Docker-Host",
   "Each bar is a function, and its width is its share of everything profiled for this service in the time window picked beside it - CPU time by default, bytes for Memory, lock contention for Locks, and every type added together for Everything. The functions a bar calls sit below it.": "Each bar is a function, and its width is its share of everything profiled for this service in the time window picked beside it - CPU time by default, bytes for Memory, lock contention for Locks, and every type added together for Everything. The functions a bar calls sit below it.",
   "Each child site's health, rolled up from the devices at that site and at every site beneath it. No Data means nothing below it has reported yet.": "Die Integrität jedes untergeordneten Standorts, zusammengefasst aus den Geräten an diesem Standort und an jedem Standort darunter. „Keine Daten“ bedeutet, dass darunter noch nichts gemeldet hat.",

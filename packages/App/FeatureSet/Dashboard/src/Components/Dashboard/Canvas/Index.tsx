@@ -774,7 +774,6 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         <ComponentSettingsModal
           variables={props.variables}
           title="Component Settings"
-          description="Edit the settings of this component"
           dashboardViewConfig={props.dashboardViewConfig}
           onClose={() => {
             props.onComponentUnselected();

@@ -21953,7 +21953,7 @@
   "Create, change and delete monitors, incidents, status pages and other resources.": "Opret, ændr og slet monitorer, hændelser, statussider og andre ressourcer.",
   "No access yet. Add a narrower role, such as Incident Member, or single permissions on the key's page.": "Ingen adgang endnu. Tilføj en snævrere rolle, for eksempel Hændelse Medlem, eller enkelte tilladelser på nøglens side.",
   "Read everything in the project. Change nothing.": "Læs alt i projektet. Ændr intet.",
-  "{{width}} x {{height}} units": "{{width}} x {{height}} units",
+  "{{width}} x {{height}} units": "{{width}} × {{height}} enheder",
   "Docker host": "Docker-vært",
   "Each bar is a function, and its width is its share of everything profiled for this service in the time window picked beside it - CPU time by default, bytes for Memory, lock contention for Locks, and every type added together for Everything. The functions a bar calls sit below it.": "Each bar is a function, and its width is its share of everything profiled for this service in the time window picked beside it - CPU time by default, bytes for Memory, lock contention for Locks, and every type added together for Everything. The functions a bar calls sit below it.",
   "Each child site's health, rolled up from the devices at that site and at every site beneath it. No Data means nothing below it has reported yet.": "Hver underordnet lokations tilstand, samlet ud fra enhederne på den lokation og på alle lokationer under den. Ingen data betyder, at intet under den har rapporteret endnu.",

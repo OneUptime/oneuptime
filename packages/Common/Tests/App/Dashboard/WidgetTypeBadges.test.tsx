@@ -23,13 +23,21 @@ import { initReactI18next } from "react-i18next";
  * THE WIDGET'S BADGES SAY WHAT IT IS, BY ITS NAME, IN THE READER'S LANGUAGE
  * (issue #6720).
  *
- * Two badges say which kind of widget one is: the one beside its size in
+ * Two badges say which kind of widget one is: the one before its size in
  * its settings dialog, and the one on it while the board is edited, under
  * its handles. Both printed the stored type, through Tailwind's
  * `capitalize`: "ProductAnalyticsFunnel", "DockerHostList",
  * "DataSourceChart" - in English in every language. Both now print the
  * widget's name from the widget catalog, looked up in the reader's
  * language, and a type OneUptime has no widget of as it was stored.
+ *
+ * The settings dialog's badge and size sat beside its title, and on a
+ * phone squeezed the title into a column a word wide ("Kompo / nenten /
+ * einstell..."); they are now the line under the title, in place of a
+ * description that said nothing ("Edit the settings of this component"),
+ * and the size is in the reader's language and digits ("۸ × ۵ واحد"),
+ * where 15 languages said "units" in English and Persian drew it back to
+ * front ("x 5 units 8").
  *
  * Drawn here for real: the settings dialog (its form a stub, its live
  * preview never measured - jsdom lays nothing out) and the widget's card,
@@ -85,6 +93,9 @@ jest.mock(
 );
 
 import ComponentSettingsModal, {
+  WIDGET_SETTINGS_SIZE_TEST_ID,
+  WIDGET_SETTINGS_SUMMARY_CLASS_NAME,
+  WIDGET_SETTINGS_TYPE_BADGE_CLASS_NAME,
   WIDGET_SETTINGS_TYPE_BADGE_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/ComponentSettingsModal";
 import DashboardBaseComponentElement, {
@@ -99,7 +110,11 @@ import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import TimeRange from "../../../Types/Time/TimeRange";
-import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import {
+  DASHBOARD_LANGUAGES,
+  isWordedInDashboardLocale,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 import {
   EmittedRule,
   addClassNames,
@@ -191,7 +206,6 @@ function renderSettings(componentType: unknown): ReturnType<typeof render> {
   return render(
     <ComponentSettingsModal
       title="Component Settings"
-      description="Edit the settings of this component"
       onClose={() => {}}
       onComponentUpdate={() => {}}
       onComponentDelete={() => {}}
@@ -251,6 +265,13 @@ function cardBadge(): HTMLElement {
   return screen.getByTestId(WIDGET_TYPE_BADGE_TEST_ID);
 }
 
+function settingsSize(): HTMLElement {
+  return screen.getByTestId(WIDGET_SETTINGS_SIZE_TEST_ID);
+}
+
+// The size's sentence, the key every locale words.
+const SIZE_KEY: string = "{{width}} x {{height}} units";
+
 // A lower-case letter then a capital: an identifier's hump.
 const HUMP: RegExp = /[a-z][A-Z]/;
 
@@ -292,14 +313,122 @@ describe("the settings dialog's badge", () => {
     },
   );
 
-  test("is no longer capitalized by its class, and is cut at its end rather than pushing the size out", () => {
+  test("is no longer capitalized by its class, and is cut at its end only when wider than the whole line", () => {
     renderSettings(DashboardComponentType.ProductAnalyticsFunnel);
 
     expect(settingsBadge()).not.toHaveClass("capitalize");
-    expect(settingsBadge()).toHaveClass("truncate");
-    expect(settingsBadge()).toHaveClass("max-w-[11rem]");
-    expect(screen.getByText("8 x 5 units")).toHaveClass("whitespace-nowrap");
+    expect(settingsBadge().className).toBe(
+      WIDGET_SETTINGS_TYPE_BADGE_CLASS_NAME,
+    );
+    expect(settingsBadge()).toHaveClass("truncate", "min-w-0", "max-w-full");
+    // No fixed cap of its own: a long name in a long language is read whole on a wide screen.
+    expect(settingsBadge().className).not.toMatch(/max-w-\[/);
+    expect(settingsSize()).toHaveClass("whitespace-nowrap");
   });
+
+  test("the line under the title: the kind, then the size, in place of a description that said nothing", () => {
+    renderSettings(DashboardComponentType.ProductAnalyticsRetention);
+
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Component Settings",
+    });
+    const description: HTMLElement = screen.getByTestId("modal-description");
+    const line: HTMLElement = settingsBadge().parentElement!;
+
+    // Under the title, not beside it: nothing at the header's end but the close button.
+    expect(screen.queryByTestId("right-element")).not.toBeInTheDocument();
+    expect(description).toContainElement(settingsBadge());
+    expect(description).toContainElement(settingsSize());
+    expect(line.className).toBe(WIDGET_SETTINGS_SUMMARY_CLASS_NAME);
+    expect(line).toHaveClass("flex", "flex-wrap", "min-w-0");
+    expect(line).toBe(settingsSize().parentElement);
+    // The kind first, then its size.
+    expect(Array.from(line.children)).toEqual([
+      settingsBadge(),
+      settingsSize(),
+    ]);
+    expect(settingsSize().textContent).toBe("8 x 5 units");
+
+    // What the dialog is described by, to a screen reader: what it edits.
+    expect(dialog.getAttribute("aria-describedby")).toBe(description.id);
+    expect(description.textContent).toBe("User Retention8 x 5 units");
+    expect(description.textContent).not.toContain(
+      "Edit the settings of this component",
+    );
+  });
+
+  test("the size is the widget's own: another widget's numbers are not borrowed", () => {
+    const config: DashboardViewConfig = viewConfig(
+      DashboardComponentType.ProductAnalyticsFunnel,
+    );
+
+    config.components[0]!.widthInDashboardUnits = 12;
+    config.components[0]!.heightInDashboardUnits = 3;
+
+    render(
+      <ComponentSettingsModal
+        title="Component Settings"
+        onClose={() => {}}
+        onComponentUpdate={() => {}}
+        onComponentDelete={() => {}}
+        onComponentDuplicate={() => {}}
+        componentId={COMPONENT_ID}
+        dashboardViewConfig={config}
+        dashboardStartAndEndDate={{ range: TimeRange.PAST_ONE_HOUR }}
+        totalCurrentDashboardWidthInPx={1200}
+        metrics={{ metricTypes: [], telemetryAttributes: [] }}
+      />,
+    );
+
+    expect(settingsSize().textContent).toBe("12 x 3 units");
+  });
+
+  test("its size in German and Persian: their words, and Persian's digits in Persian's order", async () => {
+    await act(async () => {
+      await i18next.changeLanguage("de");
+    });
+
+    renderSettings(DashboardComponentType.ProductAnalyticsFunnel);
+    expect(settingsSize().textContent).toBe("8 × 5 Einheiten");
+    cleanup();
+
+    await act(async () => {
+      await i18next.changeLanguage("fa");
+    });
+
+    renderSettings(DashboardComponentType.ProductAnalyticsFunnel);
+    // Its words the page's own way: never "8 x 5 units", which Persian drew as "x 5 units 8".
+    expect(settingsSize().textContent).toBe("۸ × ۵ واحد");
+    expect(settingsSize().textContent).not.toMatch(/[0-9]/);
+    expect(settingsSize().textContent).not.toContain("units");
+  });
+
+  test.each(["ar", "fa"])(
+    "in %s, read from the right: a multiplication sign between the numbers, never a Latin x, which made the numbers read back to front",
+    (language: string) => {
+      const value: string = readDashboardLocale(language)[SIZE_KEY] || "";
+
+      // A Latin x is a letter read from the left: "6 x 3" drew as "x 3 6".
+      expect(value).toContain("{{width}} × {{height}}");
+      expect(value).not.toMatch(/\{\{width\}\}\s*x\s*\{\{height\}\}/);
+      expect(value).not.toContain("units");
+    },
+  );
+
+  test.each(DASHBOARD_LANGUAGES)(
+    "the size is worded in %s, with both numbers",
+    (language: string) => {
+      const value: string | undefined = readDashboardLocale(language)[SIZE_KEY];
+
+      expect(isWordedInDashboardLocale(SIZE_KEY, language)).toBe(true);
+      expect(value).toContain("{{width}}");
+      expect(value).toContain("{{height}}");
+      // Width before height, as the board counts them.
+      expect(value!.indexOf("{{width}}")).toBeLessThan(
+        value!.indexOf("{{height}}"),
+      );
+    },
+  );
 
   test("a type OneUptime has no widget of: as it was stored, beside the reason there are no settings", () => {
     renderSettings("HostMetricChart");
@@ -538,7 +667,11 @@ describe("the CSS the page writes for the badge's box", () => {
       config: DASHBOARD_CONFIG,
     });
 
-    rules = await addClassNames([WIDGET_TYPE_BADGE_BOX_CLASS_NAME]);
+    rules = await addClassNames([
+      WIDGET_TYPE_BADGE_BOX_CLASS_NAME,
+      WIDGET_SETTINGS_SUMMARY_CLASS_NAME,
+      WIDGET_SETTINGS_TYPE_BADGE_CLASS_NAME,
+    ]);
   }, 60000);
 
   afterAll(() => {
@@ -560,6 +693,23 @@ describe("the CSS the page writes for the badge's box", () => {
     });
     expect(declarationsForSelector(rules, ".pointer-events-none")).toEqual({
       "pointer-events": "none",
+    });
+  });
+
+  test("the settings dialog's line wraps the size under the kind before it cuts either; the kind is cut only at the line's width", () => {
+    expect(declarationsForSelector(rules, ".flex-wrap")).toEqual({
+      "flex-wrap": "wrap",
+    });
+    expect(declarationsForSelector(rules, ".min-w-0")).toEqual({
+      "min-width": "0px",
+    });
+    expect(declarationsForSelector(rules, ".max-w-full")).toEqual({
+      "max-width": "100%",
+    });
+    expect(declarationsForSelector(rules, ".truncate")).toEqual({
+      overflow: "hidden",
+      "text-overflow": "ellipsis",
+      "white-space": "nowrap",
     });
   });
 });

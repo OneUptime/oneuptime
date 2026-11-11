@@ -21953,7 +21953,7 @@
   "Create, change and delete monitors, incidents, status pages and other resources.": "إنشاء المراقبات والحوادث وصفحات الحالة والموارد الأخرى وتغييرها وحذفها.",
   "No access yet. Add a narrower role, such as Incident Member, or single permissions on the key's page.": "لا وصول بعد. أضف دورًا أضيق، مثل «عضو الحادثة»، أو أذونات منفردة في صفحة المفتاح.",
   "Read everything in the project. Change nothing.": "قراءة كل شيء في المشروع. دون تغيير أي شيء.",
-  "{{width}} x {{height}} units": "{{width}} x {{height}} وحدة",
+  "{{width}} x {{height}} units": "{{width}} × {{height}} وحدة",
   "Docker host": "مضيف Docker",
   "Each bar is a function, and its width is its share of everything profiled for this service in the time window picked beside it - CPU time by default, bytes for Memory, lock contention for Locks, and every type added together for Everything. The functions a bar calls sit below it.": "كل شريط دالة، وعرضه هو حصتها من كل ما حُلِّل أداؤه لهذه الخدمة في النافذة الزمنية المحددة بجانبه - وقت CPU افتراضيًا، والبايتات لـ «الذاكرة»، والتنازع على الأقفال لـ «الأقفال»، وكل الأنواع مجتمعة لـ «كل شيء». وتقع الدوال التي يستدعيها الشريط أسفله.",
   "Each child site's health, rolled up from the devices at that site and at every site beneath it. No Data means nothing below it has reported yet.": "صحة كل موقع فرعي، مجمّعةً من الأجهزة الموجودة في ذلك الموقع وفي كل موقع تحته. وتعني «لا توجد بيانات» أنه لم يُبلغ أي شيء تحته بعد.",

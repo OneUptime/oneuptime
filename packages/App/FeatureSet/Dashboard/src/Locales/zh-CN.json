@@ -21953,7 +21953,7 @@
   "Create, change and delete monitors, incidents, status pages and other resources.": "创建、更改和删除监视器、事件、状态页面及其他资源。",
   "No access yet. Add a narrower role, such as Incident Member, or single permissions on the key's page.": "暂无访问权限。可在密钥页面上添加范围更小的角色（例如事件 成员）或单项权限。",
   "Read everything in the project. Change nothing.": "读取项目中的所有内容。不能更改任何内容。",
-  "{{width}} x {{height}} units": "{{width}} x {{height}} units",
+  "{{width}} x {{height}} units": "{{width}} × {{height}} 单位",
   "Docker host": "Docker 主机",
   "Each bar is a function, and its width is its share of everything profiled for this service in the time window picked beside it - CPU time by default, bytes for Memory, lock contention for Locks, and every type added together for Everything. The functions a bar calls sit below it.": "Each bar is a function, and its width is its share of everything profiled for this service in the time window picked beside it - CPU time by default, bytes for Memory, lock contention for Locks, and every type added together for Everything. The functions a bar calls sit below it.",
   "Each child site's health, rolled up from the devices at that site and at every site beneath it. No Data means nothing below it has reported yet.": "每个子站点的健康状况，根据该站点及其下所有站点的设备汇总得出。“无数据”表示其下尚无任何设备上报。",

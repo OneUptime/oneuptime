@@ -75,13 +75,21 @@ import {
  * keeps to the widget's foot, where a widget of many cohorts scrolled it
  * out of sight.
  *
+ * Where not even the first period fits beside the cohort and people
+ * columns - a widget at its least, four units, beside the side menu at
+ * 1024, or German's longer headings at 1280 - the People column gives way
+ * (issue #6841): the cohort and the periods that fit beside it, never a
+ * table that scrolls by a period cut in half. Each cell still says its
+ * cohort's people, and the page keeps its People column.
+ *
  * jsdom lays nothing out, so a table is measured here as a browser would
- * lay it out: the cohort column 90px, the people column 50px, each period
- * column as wide as its longest text at 7px a character and 12px of
- * padding, and 2px of border-spacing around every cell (border-spacing-0.5).
- * "Week 0" is 6 characters: 54px a period, 56 with its spacing, and the
- * table's other columns take 146px. A 521px widget (the default eight
- * units at 1280) leaves 495px for its table: six of eight weeks.
+ * lay it out: the cohort column 90px, the people column (its heading set
+ * to the line's end, text-end) 50px, each period column as wide as its
+ * longest text at 7px a character and 12px of padding, and 2px of
+ * border-spacing around every cell (border-spacing-0.5). "Week 0" is 6
+ * characters: 54px a period, 56 with its spacing, and the table's other
+ * columns take 146px. A 521px widget (the default eight units at 1280)
+ * leaves 495px for its table: six of eight weeks.
  */
 
 const postMock: MockFunction = getJestMockFunction();
@@ -130,9 +138,11 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardProductAnalyticsWidget";
 import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
 import ProductAnalyticsRetentionTable, {
+  ProductAnalyticsRetentionTableFit,
   RETENTION_COHORT_COLUMN_CLASS_NAME,
   RETENTION_TABLE_MAX_REMEASURES,
   countProductAnalyticsRetentionPeriodsThatFit,
+  fitProductAnalyticsRetentionTable,
   readProductAnalyticsRetentionTableWidths,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductAnalytics/ProductAnalyticsRetentionTable";
 import {
@@ -189,12 +199,19 @@ let periodShortfallPx: number = 0;
 // A row's height, as a browser draws the compact table.
 const ROW_PX: number = 20;
 
+// The People column: the one heading the table sets to the line's end.
+function isPeopleColumn(table: HTMLTableElement, index: number): boolean {
+  return Boolean(
+    table.tHead?.rows[0]?.cells[index]?.classList.contains("text-end"),
+  );
+}
+
 function columnWidth(table: HTMLTableElement, index: number): number {
   if (index === 0) {
     return COHORT_COLUMN_PX;
   }
 
-  if (index === 1) {
+  if (isPeopleColumn(table, index)) {
     return PEOPLE_COLUMN_PX;
   }
 
@@ -586,17 +603,41 @@ function headings(): Array<string> {
     });
 }
 
-// Each row's cells after its cohort: its people, then a cell a period drawn.
-function periodCellsPerRow(): Array<number> {
+// The table's rows under its headings: All cohorts, then each cohort's.
+function bodyRows(): Array<HTMLElement> {
   return within(screen.getByTestId(TABLE_TEST_ID))
     .getAllByRole("row")
     .filter((row: HTMLElement): boolean => {
       return row.getAttribute("aria-hidden") !== "true";
     })
-    .slice(1)
-    .map((row: HTMLElement): number => {
-      return row.querySelectorAll("td").length - 1;
-    });
+    .slice(1);
+}
+
+// A row's people cell, set to the line's end as its heading is; null where the column gave way.
+function peopleCell(row: HTMLElement): HTMLTableCellElement | null {
+  return (
+    Array.from(row.querySelectorAll("td")).find(
+      (cell: HTMLTableCellElement): boolean => {
+        return cell.classList.contains("text-end");
+      },
+    ) || null
+  );
+}
+
+// Each row's cells after its cohort and its people: a cell a period drawn.
+function periodCellsPerRow(): Array<number> {
+  return bodyRows().map((row: HTMLElement): number => {
+    return (
+      row.querySelectorAll("td").length - (peopleCell(row) === null ? 0 : 1)
+    );
+  });
+}
+
+// The table as it is drawn, as wide as the layout above lays it out.
+function drawnTable(): HTMLTableElement {
+  return within(screen.getByTestId(TABLE_TEST_ID)).getByRole(
+    "table",
+  ) as HTMLTableElement;
 }
 
 function leftOutText(): string {
@@ -706,20 +747,29 @@ describe("the Retention widget's periods in its width", () => {
   });
 
   test.each([
-    // [widget width, periods drawn, words under the table]
-    [620, 8, null],
+    // [widget width, periods drawn, words under the table, its People column]
+    [620, 8, null, true],
     // One pixel less than the whole table.
-    [619, 7, "1 more week"],
-    [521, 6, "2 more weeks"],
-    [400, 4, "4 more weeks"],
-    [300, 2, "6 more weeks"],
-    // Too narrow for even one period beside the cohorts: one, scrolled to.
-    [150, 1, "7 more weeks"],
+    [619, 7, "1 more week", true],
+    [521, 6, "2 more weeks", true],
+    [400, 4, "4 more weeks", true],
+    [300, 2, "6 more weeks", true],
+    // One period beside both columns, to the pixel: 2 + 92 + 52 + 56 = 202 of table.
+    [228, 1, "7 more weeks", true],
+    // A pixel short of it: the People column gives way to the period.
+    [227, 1, "7 more weeks", false],
+    // Too narrow for a period beside the cohorts alone: still one, scrolled to.
+    [150, 1, "7 more weeks", false],
     // Not laid out yet (no width at all): nothing to fit to, every period.
-    [0, 8, null],
+    [0, 8, null, true],
   ])(
     "a %dpx widget draws %d periods",
-    async (width: number, drawn: number, words: string | null) => {
+    async (
+      width: number,
+      drawn: number,
+      words: string | null,
+      showsPeople: boolean,
+    ) => {
       getItemMock.mockResolvedValue(
         savedRetention(ProductAnalyticsRetentionPeriod.Week),
       );
@@ -728,7 +778,11 @@ describe("the Retention widget's periods in its width", () => {
       renderWidget({ dashboardComponentWidthInPx: width });
       await waitForTable();
 
-      expect(headings()).toEqual(["Cohort", "People", ...weeks(drawn)]);
+      expect(headings()).toEqual([
+        "Cohort",
+        ...(showsPeople ? ["People"] : []),
+        ...weeks(drawn),
+      ]);
 
       if (words === null) {
         expect(screen.queryByTestId(LEFT_OUT_TEST_ID)).not.toBeInTheDocument();
@@ -948,6 +1002,173 @@ describe("the Retention widget's periods in its width", () => {
     );
     expect(leftOutText()).toContain(persianCount);
     expect(leftOutText()).not.toMatch(/[0-9]/);
+  });
+});
+
+describe("where not even one period fits beside the People column, it gives way (issue #6841)", () => {
+  async function renderAt(
+    width: number,
+    overrides?: Partial<DashboardBaseComponentProps>,
+  ): Promise<ReturnType<typeof render>> {
+    getItemMock.mockResolvedValue(
+      savedRetention(ProductAnalyticsRetentionPeriod.Week),
+    );
+    answerReads(8);
+
+    const view: ReturnType<typeof render> = renderWidget({
+      dashboardComponentWidthInPx: width,
+      ...overrides,
+    });
+    await waitForTable();
+
+    return view;
+  }
+
+  test("the cohort and its first period, with no People column in any row, and nothing that scrolls", async () => {
+    // 201px of table: 202 with the People column, 150 without it.
+    await renderAt(227);
+
+    expect(headings()).toEqual(["Cohort", "Week 0"]);
+    expect(
+      bodyRows().map((row: HTMLElement): HTMLTableCellElement | null => {
+        return peopleCell(row);
+      }),
+    ).toEqual([null, null, null, null]);
+    expect(periodCellsPerRow()).toEqual([1, 1, 1, 1]);
+    expect(drawnTable().offsetWidth).toBeLessThanOrEqual(
+      getRetentionWidgetTableWidthInPx(227),
+    );
+    expect(leftOutText()).toBe("7 more weeks");
+    // The spacer under All cohorts spans the cohort and the one period.
+    expect(
+      screen
+        .getByTestId(TABLE_TEST_ID)
+        .querySelector('tr[aria-hidden="true"] td'),
+    ).toHaveAttribute("colspan", "2");
+    // All cohorts still first.
+    expect(screen.getByTestId(`${TABLE_TEST_ID}-average-row`)).toBe(
+      bodyRows()[0],
+    );
+  });
+
+  test("each cell still says how many people its cohort has, to the pointer and to a screen reader", async () => {
+    await renderAt(227);
+
+    const cohortCells: Array<HTMLElement> = screen.getAllByTestId(
+      `${TABLE_TEST_ID}-cell`,
+    );
+
+    expect(cohortCells[0]).toHaveAttribute(
+      "title",
+      expect.stringContaining("of 200 came back"),
+    );
+    expect(cohortCells[0]).toHaveAttribute(
+      "aria-label",
+      cohortCells[0]!.getAttribute("title"),
+    );
+    expect(cohortCells[1]).toHaveAttribute(
+      "title",
+      expect.stringContaining("of 100 came back"),
+    );
+  });
+
+  test("one period beside both columns, to the pixel: the People column stays", async () => {
+    await renderAt(228);
+
+    expect(headings()).toEqual(["Cohort", "People", "Week 0"]);
+    expect(peopleCell(bodyRows()[1]!)).toHaveTextContent("200");
+  });
+
+  test("made wide enough for the whole table, the People column comes back with every period; made narrow again, it gives way again", async () => {
+    const view: ReturnType<typeof render> = await renderAt(227);
+
+    expect(headings()).toEqual(["Cohort", "Week 0"]);
+
+    rerenderWidget(view, { dashboardComponentWidthInPx: 620 });
+
+    await waitFor(() => {
+      expect(headings()).toEqual(["Cohort", "People", ...weeks(8)]);
+    });
+    expect(screen.queryByTestId(LEFT_OUT_TEST_ID)).not.toBeInTheDocument();
+    expect(peopleCell(bodyRows()[1]!)).toHaveTextContent("200");
+
+    rerenderWidget(view, { dashboardComponentWidthInPx: 227 });
+
+    await waitFor(() => {
+      expect(headings()).toEqual(["Cohort", "Week 0"]);
+    });
+  });
+
+  test("measured again with its People column after giving it way: the periods that fit beside it, to the pixel", async () => {
+    const view: ReturnType<typeof render> = await renderAt(227);
+
+    /*
+     * 482px of table: 146 + 6 x 56, six weeks beside the People column. A
+     * table measured without it would count its first week as a label
+     * column and draw five.
+     */
+    rerenderWidget(view, { dashboardComponentWidthInPx: 508 });
+
+    await waitFor(() => {
+      expect(headings()).toEqual(["Cohort", "People", ...weeks(6)]);
+    });
+    expect(leftOutText()).toBe("2 more weeks");
+  });
+
+  test("a refresh measures it again, by the same rule", async () => {
+    const view: ReturnType<typeof render> = await renderAt(227);
+
+    answerReads(4);
+    rerenderWidget(view, {
+      dashboardComponentWidthInPx: 227,
+      refreshTick: 1,
+    });
+
+    await waitFor(() => {
+      expect(leftOutText()).toBe("3 more weeks");
+    });
+    expect(headings()).toEqual(["Cohort", "Week 0"]);
+  });
+
+  test("while the board is edited, and on a playlist: the same table", async () => {
+    await renderAt(227, { isEditMode: true });
+
+    expect(headings()).toEqual(["Cohort", "Week 0"]);
+    expect(leftOutText()).toBe("7 more weeks");
+    cleanup();
+
+    await renderAt(227, { isPlayback: true });
+
+    expect(headings()).toEqual(["Cohort", "Week 0"]);
+  });
+
+  test("in German: its own words", async () => {
+    await act(async () => {
+      await i18next.changeLanguage("de");
+    });
+
+    await renderAt(150);
+
+    expect(headings()).toEqual(["Kohorte", "Woche 0"]);
+    expect(leftOutText()).toBe("7 weitere Wochen");
+  });
+
+  test("the User Retention page keeps its People column, however narrow its box", () => {
+    boxClientWidth = 100;
+
+    const retention: ProductAnalyticsRetentionDto = retentionAnswer(8)({
+      period: ProductAnalyticsRetentionPeriod.Week,
+    }) as unknown as ProductAnalyticsRetentionDto;
+
+    render(
+      <ProductAnalyticsRetentionTable
+        retention={retention}
+        dataTestId={TABLE_TEST_ID}
+      />,
+    );
+
+    expect(headings()).toEqual(["Cohort", "People", ...weeks(8)]);
+    expect(peopleCell(bodyRows()[1]!)).toHaveTextContent("200");
   });
 });
 
@@ -1347,6 +1568,163 @@ describe("how many periods fit", () => {
   });
 });
 
+describe("what of a table fits: its periods, and whether its People column", () => {
+  // The default widget's table: 90 + 50, then 54 a period, 2px around each.
+  const LABELS: ReadonlyArray<number> = [90, 50];
+  const EIGHT_WEEKS: ReadonlyArray<number> = [54, 54, 54, 54, 54, 54, 54, 54];
+
+  function fitTable(
+    widthInPx: number,
+    options?: {
+      labels?: ReadonlyArray<number>;
+      periods?: ReadonlyArray<number>;
+    },
+  ): ProductAnalyticsRetentionTableFit {
+    return fitProductAnalyticsRetentionTable({
+      widthInPx: widthInPx,
+      labelColumnsInPx: options?.labels || LABELS,
+      periodColumnsInPx: options?.periods || EIGHT_WEEKS,
+      spacingInPx: 2,
+    });
+  }
+
+  test("a period fits beside both columns: the People column stays, and the count is the periods that fit", () => {
+    expect(fitTable(594)).toEqual({ periods: 8, showsPeople: true });
+    expect(fitTable(495)).toEqual({ periods: 6, showsPeople: true });
+    // 2 + 92 + 52 + 56: one, to the pixel.
+    expect(fitTable(202)).toEqual({ periods: 1, showsPeople: true });
+    expect(fitTable(201.995)).toEqual({ periods: 1, showsPeople: true });
+  });
+
+  test("not even the first: the People column gives way, and the periods that fit beside the cohort alone", () => {
+    expect(fitTable(201)).toEqual({ periods: 1, showsPeople: false });
+    // Where the People column is wider than a period, two fit in its place.
+    expect(fitTable(200, { labels: [90, 80], periods: [40, 40, 40] })).toEqual({
+      periods: 2,
+      showsPeople: false,
+    });
+    expect(fitTable(218, { labels: [90, 80], periods: [40, 40, 40] })).toEqual({
+      periods: 1,
+      showsPeople: true,
+    });
+  });
+
+  test("not even one beside the cohort alone: still one period, without the People column", () => {
+    expect(fitTable(150)).toEqual({ periods: 1, showsPeople: false });
+    expect(fitTable(1)).toEqual({ periods: 1, showsPeople: false });
+  });
+
+  test.each([
+    ["nothing", 0],
+    ["less than nothing", -20],
+    ["no number", Number.NaN],
+    ["no end", Number.POSITIVE_INFINITY],
+  ])(
+    "a width of %s is nothing to fit to: every period and the People column",
+    (_name: string, width: number) => {
+      expect(fitTable(width)).toEqual({ periods: 8, showsPeople: true });
+    },
+  );
+
+  test("a table with no periods, or no People column to give: as it is", () => {
+    expect(fitTable(100, { periods: [] })).toEqual({
+      periods: 0,
+      showsPeople: true,
+    });
+    expect(fitTable(100, { labels: [90] })).toEqual({
+      periods: 1,
+      showsPeople: true,
+    });
+  });
+
+  test("seeded: the People column gives way only where no period fits beside it, what is drawn fits unless it is the one period always drawn, and a wider width never takes it away", () => {
+    const random: SeededRandom = seededRandom(6841);
+
+    const used: (
+      labels: ReadonlyArray<number>,
+      periods: ReadonlyArray<number>,
+      spacing: number,
+    ) => number = (
+      labels: ReadonlyArray<number>,
+      periods: ReadonlyArray<number>,
+      spacing: number,
+    ): number => {
+      let total: number = spacing;
+
+      for (const width of [...labels, ...periods]) {
+        total += width + spacing;
+      }
+
+      return total;
+    };
+
+    for (let run: number = 0; run < 2000; run++) {
+      const labels: Array<number> = [20 + random(150), 20 + random(80)];
+      const periods: Array<number> = Array.from(
+        { length: 1 + random(16) },
+        (): number => {
+          return 30 + random(70) + random();
+        },
+      );
+      const spacing: number = random(5);
+      const width: number = 1 + random(800) + random();
+      const data: {
+        widthInPx: number;
+        labelColumnsInPx: Array<number>;
+        periodColumnsInPx: Array<number>;
+        spacingInPx: number;
+      } = {
+        widthInPx: width,
+        labelColumnsInPx: labels,
+        periodColumnsInPx: periods,
+        spacingInPx: spacing,
+      };
+      const fit: ProductAnalyticsRetentionTableFit =
+        fitProductAnalyticsRetentionTable(data);
+      const firstBesideBoth: boolean =
+        used(labels, periods.slice(0, 1), spacing) <= width + 0.01;
+
+      expect(fit.showsPeople).toBe(firstBesideBoth);
+      expect(fit.periods).toBeGreaterThanOrEqual(1);
+      expect(fit.periods).toBeLessThanOrEqual(periods.length);
+
+      const drawnLabels: Array<number> = fit.showsPeople
+        ? labels
+        : labels.slice(0, 1);
+
+      if (fit.periods > 1) {
+        expect(
+          used(drawnLabels, periods.slice(0, fit.periods), spacing),
+        ).toBeLessThanOrEqual(width + 0.01);
+      }
+
+      if (fit.periods < periods.length) {
+        expect(
+          used(drawnLabels, periods.slice(0, fit.periods + 1), spacing),
+        ).toBeGreaterThan(width + 0.01);
+      }
+
+      // With its People column, the count is the one the widget always counted.
+      if (fit.showsPeople) {
+        expect(fit.periods).toBe(
+          countProductAnalyticsRetentionPeriodsThatFit(data),
+        );
+      }
+
+      const wider: ProductAnalyticsRetentionTableFit =
+        fitProductAnalyticsRetentionTable({
+          ...data,
+          widthInPx: width + random(200),
+        });
+
+      if (fit.showsPeople) {
+        expect(wider.showsPeople).toBe(true);
+        expect(wider.periods).toBeGreaterThanOrEqual(fit.periods);
+      }
+    }
+  });
+});
+
 describe("a table's widths, as drawn", () => {
   function table(headings: Array<string>): HTMLTableElement {
     const element: HTMLTableElement = document.createElement("table");
@@ -1357,6 +1735,8 @@ describe("a table's widths, as drawn", () => {
       const cell: HTMLTableCellElement = document.createElement("th");
 
       cell.textContent = heading;
+      // At the line's end, as the table sets its People heading.
+      cell.className = heading === "People" ? "text-end" : "";
       row.appendChild(cell);
     }
 

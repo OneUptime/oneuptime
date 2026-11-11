@@ -21953,7 +21953,7 @@
   "Create, change and delete monitors, incidents, status pages and other resources.": "建立、變更和刪除監測器、事件、狀態頁面及其他資源。",
   "No access yet. Add a narrower role, such as Incident Member, or single permissions on the key's page.": "尚無存取權限。可在金鑰頁面上新增範圍更小的角色（例如事件 成員）或單項權限。",
   "Read everything in the project. Change nothing.": "讀取專案中的所有內容。無法變更任何內容。",
-  "{{width}} x {{height}} units": "{{width}} x {{height}} units",
+  "{{width}} x {{height}} units": "{{width}} × {{height}} 單位",
   "Docker host": "Docker 主機",
   "Each bar is a function, and its width is its share of everything profiled for this service in the time window picked beside it - CPU time by default, bytes for Memory, lock contention for Locks, and every type added together for Everything. The functions a bar calls sit below it.": "Each bar is a function, and its width is its share of everything profiled for this service in the time window picked beside it - CPU time by default, bytes for Memory, lock contention for Locks, and every type added together for Everything. The functions a bar calls sit below it.",
   "Each child site's health, rolled up from the devices at that site and at every site beneath it. No Data means nothing below it has reported yet.": "每個子站點的健康狀況，由該站點及其下每個站點的裝置彙總而來。「無資料」表示其下尚未有任何回報。",

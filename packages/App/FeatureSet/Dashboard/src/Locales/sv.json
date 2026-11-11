@@ -21953,7 +21953,7 @@
   "Create, change and delete monitors, incidents, status pages and other resources.": "Skapa, ändra och ta bort monitorer, incidenter, statussidor och andra resurser.",
   "No access yet. Add a narrower role, such as Incident Member, or single permissions on the key's page.": "Ingen åtkomst än. Lägg till en snävare roll, till exempel Incident Medlem, eller enskilda behörigheter på nyckelns sida.",
   "Read everything in the project. Change nothing.": "Läsa allt i projektet. Ändra ingenting.",
-  "{{width}} x {{height}} units": "{{width}} x {{height}} units",
+  "{{width}} x {{height}} units": "{{width}} × {{height}} enheter",
   "Docker host": "Docker-värd",
   "Each bar is a function, and its width is its share of everything profiled for this service in the time window picked beside it - CPU time by default, bytes for Memory, lock contention for Locks, and every type added together for Everything. The functions a bar calls sit below it.": "Each bar is a function, and its width is its share of everything profiled for this service in the time window picked beside it - CPU time by default, bytes for Memory, lock contention for Locks, and every type added together for Everything. The functions a bar calls sit below it.",
   "Each child site's health, rolled up from the devices at that site and at every site beneath it. No Data means nothing below it has reported yet.": "Hälsan för varje underordnad plats, sammanställd från enheterna på den platsen och på alla platser under den. Inga data betyder att inget under den har rapporterat än.",
