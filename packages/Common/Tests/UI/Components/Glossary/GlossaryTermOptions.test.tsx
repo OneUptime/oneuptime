@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import React from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { DOCS_URL } from "../../../../UI/Config";
@@ -114,9 +120,7 @@ describe("a form field's glossaryTerm", () => {
       <FieldLabelElement title="Labels" glossaryTerm={GlossaryTerm.Label} />,
     );
 
-    expect(screen.getByTestId(DEFINED_TERM_TEST_ID).textContent).toBe(
-      "Labels",
-    );
+    expect(screen.getByTestId(DEFINED_TERM_TEST_ID).textContent).toBe("Labels");
     expect(screen.getByText("(Optional)")).toBeInTheDocument();
   });
 
@@ -147,9 +151,8 @@ describe("a form field's glossaryTerm", () => {
       />,
     );
 
-    const words: Array<HTMLElement> = screen.getAllByTestId(
-      DEFINED_TERM_TEST_ID,
-    );
+    const words: Array<HTMLElement> =
+      screen.getAllByTestId(DEFINED_TERM_TEST_ID);
 
     expect(words).toHaveLength(1);
     expect(words[0]).toHaveTextContent("Probes");
@@ -160,7 +163,10 @@ describe("a form field's glossaryTerm", () => {
 describe("a card's titleGlossaryTerm", () => {
   test("draws a title of words as a defined term, in the card's heading", () => {
     render(
-      <Card title="Escalation Rules" titleGlossaryTerm={GlossaryTerm.EscalationRule}>
+      <Card
+        title="Escalation Rules"
+        titleGlossaryTerm={GlossaryTerm.EscalationRule}
+      >
         <p>Body</p>
       </Card>,
     );
@@ -204,10 +210,7 @@ describe("Learn more", () => {
     const link: HTMLElement = screen.getByTestId(LEARN_MORE_LINK_TEST_ID);
 
     expect(link).toHaveTextContent(LEARN_MORE_TEXT);
-    expect(link).toHaveAttribute(
-      "href",
-      `${DOCS}/en/on-call/escalation-rules`,
-    );
+    expect(link).toHaveAttribute("href", `${DOCS}/en/on-call/escalation-rules`);
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });

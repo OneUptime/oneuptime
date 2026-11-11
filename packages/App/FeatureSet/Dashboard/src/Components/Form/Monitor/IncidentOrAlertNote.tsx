@@ -42,7 +42,9 @@ const IncidentOrAlertNote: FunctionComponent<ComponentProps> = (
   const incidents: string = translator.translateText(
     INCIDENT_OR_ALERT_NOTE_INCIDENTS,
   );
-  const alerts: string = translator.translateText(INCIDENT_OR_ALERT_NOTE_ALERTS);
+  const alerts: string = translator.translateText(
+    INCIDENT_OR_ALERT_NOTE_ALERTS,
+  );
 
   return (
     <p

@@ -129,10 +129,18 @@ jest.mock("../../../UI/Utils/Navigation", () => {
         return navigateMock(...args);
       },
       getCurrentRoute: () => {
-        return { toString: () => "/" };
+        return {
+          toString: () => {
+            return "/";
+          },
+        };
       },
       getCurrentPath: () => {
-        return { toString: () => "/" };
+        return {
+          toString: () => {
+            return "/";
+          },
+        };
       },
     },
   };
@@ -260,8 +268,7 @@ describe("Help starts with learning", () => {
         .getAllByRole("link")
         .concat(within(learn).queryAllByRole("button"))
         .sort((a: HTMLElement, b: HTMLElement): number => {
-          return a.compareDocumentPosition(b) &
-            Node.DOCUMENT_POSITION_FOLLOWING
+          return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING
             ? -1
             : 1;
         })
@@ -331,7 +338,9 @@ describe("Help starts with learning", () => {
     language = "ar";
     render(<Help />);
     fireEvent.click(
-      screen.getByRole("button", { name: lookupNested(LOCALES["ar"]!, "help.label")! }),
+      screen.getByRole("button", {
+        name: lookupNested(LOCALES["ar"]!, "help.label")!,
+      }),
     );
 
     expect(
@@ -618,9 +627,7 @@ describe("the strip in the Welcome checklist", () => {
 
     expect(strip).toHaveTextContent(HOW_IT_WORKS_TITLE);
     expect(strip.className).toContain("border");
-    expect(
-      within(strip).getAllByTestId(DEFINED_TERM_TEST_ID),
-    ).toHaveLength(2);
+    expect(within(strip).getAllByTestId(DEFINED_TERM_TEST_ID)).toHaveLength(2);
     expect(
       within(strip).getByTestId("how-oneuptime-works-docs-core-concepts"),
     ).toBeInTheDocument();

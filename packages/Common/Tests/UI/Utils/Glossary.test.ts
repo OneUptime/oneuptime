@@ -18,7 +18,14 @@ import {
   readGlossaryData,
   shortenDefinition,
 } from "../../../UI/Utils/Glossary";
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 
 /*
  * The product's definitions read the docs' Glossary as data

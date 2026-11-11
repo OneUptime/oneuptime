@@ -156,9 +156,7 @@ const GLOSSARIES: Record<string, unknown> = {
 type FetchMock = jest.Mock<(url: string) => Promise<unknown>>;
 
 let fetchMock: FetchMock;
-const originalFetch: unknown = (globalThis as Record<string, unknown>)[
-  "fetch"
-];
+const originalFetch: unknown = (globalThis as Record<string, unknown>)["fetch"];
 
 const okAnswer: (body: unknown) => Promise<unknown> = (
   body: unknown,
@@ -496,9 +494,9 @@ describe("opening the definition", () => {
     await waitHidden();
     fireEvent.mouseEnter(screen.getByTestId("second"));
     await waitFor(() => {
-      expect(screen.getByTestId(DEFINED_TERM_DEFINITION_TEST_ID)).toHaveTextContent(
-        "A machine that runs monitors' checks.",
-      );
+      expect(
+        screen.getByTestId(DEFINED_TERM_DEFINITION_TEST_ID),
+      ).toHaveTextContent("A machine that runs monitors' checks.");
     });
 
     // Both definitions came from one read of the glossary.
@@ -651,9 +649,9 @@ describe("in the reader's language", () => {
     expect(block).toHaveAttribute("dir", "ltr");
     expect(block).toHaveAttribute("lang", "en");
     // Read more is in the reader's own language, and opens the English page.
-    expect(screen.getByTestId(DEFINED_TERM_READ_MORE_TEST_ID)).toHaveTextContent(
-      LOCALES["ar"]![DEFINED_TERM_READ_MORE_TEXT] as string,
-    );
+    expect(
+      screen.getByTestId(DEFINED_TERM_READ_MORE_TEST_ID),
+    ).toHaveTextContent(LOCALES["ar"]![DEFINED_TERM_READ_MORE_TEXT] as string);
     expect(screen.getByTestId(DEFINED_TERM_READ_MORE_TEST_ID)).toHaveAttribute(
       "href",
       `${DOCS}/en/introduction/glossary#criteria`,

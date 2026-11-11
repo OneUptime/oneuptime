@@ -52,7 +52,10 @@ const LearnMoreLink: FunctionComponent<ComponentProps> = (
       className={`${LEARN_MORE_LINK_CLASS_NAME} ${props.className || ""}`}
     >
       {translator.translateText(LEARN_MORE_TEXT)}
-      <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5 flex-shrink-0" />
+      <Icon
+        icon={IconProp.ExternalLink}
+        className="h-3.5 w-3.5 flex-shrink-0"
+      />
     </a>
   );
 };

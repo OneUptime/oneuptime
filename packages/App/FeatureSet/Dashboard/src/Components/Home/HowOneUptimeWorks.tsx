@@ -159,7 +159,9 @@ const HowOneUptimeWorks: FunctionComponent<ComponentProps> = (
   return (
     <div
       className={
-        props.isInDialog ? "" : "rounded-lg border border-gray-200 bg-gray-50 p-4"
+        props.isInDialog
+          ? ""
+          : "rounded-lg border border-gray-200 bg-gray-50 p-4"
       }
       data-testid="how-oneuptime-works"
     >
@@ -170,9 +172,7 @@ const HowOneUptimeWorks: FunctionComponent<ComponentProps> = (
       )}
       <ol
         className={
-          props.isInDialog
-            ? DIALOG_GRID_CLASS_NAME
-            : STRIP_GRID_CLASS_NAME
+          props.isInDialog ? DIALOG_GRID_CLASS_NAME : STRIP_GRID_CLASS_NAME
         }
       >
         {HOW_IT_WORKS_STEPS.map((step: HowItWorksStep, index: number) => {

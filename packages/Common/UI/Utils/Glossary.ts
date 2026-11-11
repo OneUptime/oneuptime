@@ -6,7 +6,9 @@ import {
   getDocsPagePath,
   isSupportedDocsLanguage,
 } from "../../Types/Docs/DocsLanguage";
-import GlossaryTerm, { getGlossaryTermPath } from "../../Types/Docs/GlossaryTerm";
+import GlossaryTerm, {
+  getGlossaryTermPath,
+} from "../../Types/Docs/GlossaryTerm";
 
 /*
  * A TERM'S DEFINITION, WHERE THE WORD IS USED.

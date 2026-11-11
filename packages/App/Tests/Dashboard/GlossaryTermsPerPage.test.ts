@@ -71,6 +71,8 @@ const marksIn: (source: string) => Array<string> = (
     });
 };
 
+const SOURCE_FILE: RegExp = /\.tsx?$/;
+
 const sourceFiles: (directory: string) => Array<string> = (
   directory: string,
 ): Array<string> => {
@@ -81,7 +83,7 @@ const sourceFiles: (directory: string) => Array<string> = (
 
     if (entry.isDirectory()) {
       files.push(...sourceFiles(full));
-    } else if (/\.tsx?$/.test(entry.name)) {
+    } else if (SOURCE_FILE.test(entry.name)) {
       files.push(full);
     }
   }

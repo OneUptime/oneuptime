@@ -107,7 +107,9 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
           "Page on-call policies automatically for new alerts that match.",
         titleGlossaryTerm: GlossaryTerm.OnCallRules,
       }}
-      documentationLink={Route.fromString("/docs/alerts/settings#on-call-rules")}
+      documentationLink={Route.fromString(
+        "/docs/alerts/settings#on-call-rules",
+      )}
       helpContent={{
         title: "How Alert On-Call Rules Work",
         description: "Which new alerts page which on-call policies.",

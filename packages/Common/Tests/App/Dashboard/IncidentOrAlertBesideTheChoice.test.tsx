@@ -57,33 +57,32 @@ for (const code of SUPPORTED_DASHBOARD_LANGUAGE_CODES) {
   ) as Record<string, string>;
 }
 
-const criteria: () => MonitorCriteriaInstance =
-  (): MonitorCriteriaInstance => {
-    const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+const criteria: () => MonitorCriteriaInstance = (): MonitorCriteriaInstance => {
+  const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
 
-    instance.data = {
-      id: ObjectID.generate().toString(),
-      monitorStatusId: undefined,
-      filterCondition: FilterCondition.All,
-      filters: [
-        {
-          checkOn: CheckOn.IsOnline,
-          filterType: FilterType.False,
-          value: undefined,
-        },
-      ],
-      incidents: [],
-      alerts: [],
-      changeMonitorStatus: false,
-      createIncidents: false,
-      createAlerts: false,
-      isEnabled: true,
-      name: "Offline",
-      description: "",
-    };
-
-    return instance;
+  instance.data = {
+    id: ObjectID.generate().toString(),
+    monitorStatusId: undefined,
+    filterCondition: FilterCondition.All,
+    filters: [
+      {
+        checkOn: CheckOn.IsOnline,
+        filterType: FilterType.False,
+        value: undefined,
+      },
+    ],
+    incidents: [],
+    alerts: [],
+    changeMonitorStatus: false,
+    createIncidents: false,
+    createAlerts: false,
+    isEnabled: true,
+    name: "Offline",
+    description: "",
   };
+
+  return instance;
+};
 
 const renderCriteria: (isFirstCriteria: boolean) => void = (
   isFirstCriteria: boolean,
@@ -134,7 +133,9 @@ describe("the note", () => {
   test("says the difference in one line, with both words defined", () => {
     render(<IncidentOrAlertNote marksTerms={true} />);
 
-    const note: HTMLElement = screen.getByTestId(INCIDENT_OR_ALERT_NOTE_TEST_ID);
+    const note: HTMLElement = screen.getByTestId(
+      INCIDENT_OR_ALERT_NOTE_TEST_ID,
+    );
 
     expect(note).toHaveTextContent(
       "Incidents are for problems your customers feel, and can show on a status page. Alerts are for your team, and never do.",
@@ -151,7 +152,9 @@ describe("the note", () => {
   test("says the same without marking the words, where a page already has", () => {
     render(<IncidentOrAlertNote marksTerms={false} />);
 
-    const note: HTMLElement = screen.getByTestId(INCIDENT_OR_ALERT_NOTE_TEST_ID);
+    const note: HTMLElement = screen.getByTestId(
+      INCIDENT_OR_ALERT_NOTE_TEST_ID,
+    );
 
     expect(note).toHaveTextContent("Alerts are for your team, and never do.");
     expect(within(note).queryByTestId(DEFINED_TERM_TEST_ID)).toBeNull();
@@ -161,29 +164,36 @@ describe("the note", () => {
     SUPPORTED_DASHBOARD_LANGUAGE_CODES.filter((code: string): boolean => {
       return code !== "en";
     }),
-  )("%s says it in its own words, the two words its Dashboard's", async (code: string) => {
-    await i18next.changeLanguage(code);
-    render(<IncidentOrAlertNote marksTerms={true} />);
+  )(
+    "%s says it in its own words, the two words its Dashboard's",
+    async (code: string) => {
+      await i18next.changeLanguage(code);
+      render(<IncidentOrAlertNote marksTerms={true} />);
 
-    const translated: string | undefined = LOCALES[code]![INCIDENT_OR_ALERT_NOTE];
+      const translated: string | undefined =
+        LOCALES[code]![INCIDENT_OR_ALERT_NOTE];
 
-    expect(translated).toBeTruthy();
-    expect(translated).not.toBe(INCIDENT_OR_ALERT_NOTE);
-    expect(translated).toContain("{{incidents}}");
-    expect(translated).toContain("{{alerts}}");
+      expect(translated).toBeTruthy();
+      expect(translated).not.toBe(INCIDENT_OR_ALERT_NOTE);
+      expect(translated).toContain("{{incidents}}");
+      expect(translated).toContain("{{alerts}}");
 
-    const words: Array<HTMLElement> = screen.getAllByTestId(DEFINED_TERM_TEST_ID);
+      const words: Array<HTMLElement> =
+        screen.getAllByTestId(DEFINED_TERM_TEST_ID);
 
-    expect(words[0]).toHaveTextContent(LOCALES[code]!["Incidents"]!);
-    expect(words[1]).toHaveTextContent(LOCALES[code]!["Alerts"]!);
-  });
+      expect(words[0]).toHaveTextContent(LOCALES[code]!["Incidents"]!);
+      expect(words[1]).toHaveTextContent(LOCALES[code]!["Alerts"]!);
+    },
+  );
 });
 
 describe("a monitor's criteria", () => {
   test("say the difference before the two switches, and the first criteria defines the words", () => {
     renderCriteria(true);
 
-    const note: HTMLElement = screen.getByTestId(INCIDENT_OR_ALERT_NOTE_TEST_ID);
+    const note: HTMLElement = screen.getByTestId(
+      INCIDENT_OR_ALERT_NOTE_TEST_ID,
+    );
     const alertSwitch: HTMLElement = screen.getByRole("switch", {
       name: "When filters match, create an alert.",
     });
@@ -198,9 +208,13 @@ describe("a monitor's criteria", () => {
   test("every later criteria says it too, without marking the words again", () => {
     renderCriteria(false);
 
-    const note: HTMLElement = screen.getByTestId(INCIDENT_OR_ALERT_NOTE_TEST_ID);
+    const note: HTMLElement = screen.getByTestId(
+      INCIDENT_OR_ALERT_NOTE_TEST_ID,
+    );
 
-    expect(note).toHaveTextContent("Incidents are for problems your customers feel");
+    expect(note).toHaveTextContent(
+      "Incidents are for problems your customers feel",
+    );
     expect(within(note).queryByTestId(DEFINED_TERM_TEST_ID)).toBeNull();
   });
 });

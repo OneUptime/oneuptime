@@ -78,7 +78,10 @@ const glossaryFor: (lang: string) => Array<GlossaryEntry> = (
     readFileSync(path.join(CONTENT, "en/introduction/glossary.md"), "utf8"),
   );
   const translated: Array<{ term: string; text: string }> = termsOf(
-    readFileSync(path.join(CONTENT, `${lang}/introduction/glossary.md`), "utf8"),
+    readFileSync(
+      path.join(CONTENT, `${lang}/introduction/glossary.md`),
+      "utf8",
+    ),
   );
 
   return translated.map(
@@ -354,9 +357,11 @@ test.describe("How OneUptime works, from Home", () => {
     await page.getByTestId("home-how-oneuptime-works").click();
     await expect(dialog(page)).toBeVisible();
 
-    await word(page, "infrastructure").tap().catch(async () => {
-      await word(page, "infrastructure").click();
-    });
+    await word(page, "infrastructure")
+      .tap()
+      .catch(async () => {
+        await word(page, "infrastructure").click();
+      });
 
     await expect(page.getByTestId("defined-term-definition")).toBeVisible();
 

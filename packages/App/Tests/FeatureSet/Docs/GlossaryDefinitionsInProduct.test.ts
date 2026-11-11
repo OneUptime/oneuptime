@@ -47,6 +47,8 @@ const DASHBOARD_SRC: string = path.resolve(
 );
 
 // Every term the Dashboard marks, by its GlossaryTerm name.
+const SOURCE_FILE: RegExp = /\.tsx?$/;
+
 const markedTermNames: () => Set<string> = (): Set<string> => {
   const names: Set<string> = new Set();
   const walk: (directory: string) => void = (directory: string): void => {
@@ -55,7 +57,7 @@ const markedTermNames: () => Set<string> = (): Set<string> => {
 
       if (entry.isDirectory()) {
         walk(full);
-      } else if (/\.tsx?$/.test(entry.name)) {
+      } else if (SOURCE_FILE.test(entry.name)) {
         const source: string = fs.readFileSync(full, "utf8");
 
         for (const match of source.matchAll(
@@ -97,9 +99,10 @@ describe("what the Dashboard marks", () => {
     expect(MARKED.length).toBeGreaterThanOrEqual(21);
 
     for (const term of MARKED) {
-      expect({ term: term, known: ALL_GLOSSARY_TERMS.includes(term) }).toEqual(
-        { term: term, known: true },
-      );
+      expect({ term: term, known: ALL_GLOSSARY_TERMS.includes(term) }).toEqual({
+        term: term,
+        known: true,
+      });
     }
   });
 });
@@ -130,11 +133,13 @@ describe.each(SUPPORTED_DOCS_LANGUAGE_CODES)("in %s", (lang: string) => {
 
   it("every word the Dashboard marks has a definition, and the popover shows the page's own words", () => {
     const byId: Map<string, DocsGlossaryEntry> = new Map(
-      glossaries.get(lang)!.entries.map(
-        (entry: DocsGlossaryEntry): [string, DocsGlossaryEntry] => {
-          return [entry.id, entry];
-        },
-      ),
+      glossaries
+        .get(lang)!
+        .entries.map(
+          (entry: DocsGlossaryEntry): [string, DocsGlossaryEntry] => {
+            return [entry.id, entry];
+          },
+        ),
     );
 
     for (const term of MARKED) {
@@ -165,19 +170,22 @@ describe.each(SUPPORTED_DOCS_LANGUAGE_CODES)("in %s", (lang: string) => {
 describe("in English", () => {
   it("every marked definition fits the popover whole: three sentences at most", () => {
     const byId: Map<string, DocsGlossaryEntry> = new Map(
-      glossaries.get("en")!.entries.map(
-        (entry: DocsGlossaryEntry): [string, DocsGlossaryEntry] => {
-          return [entry.id, entry];
-        },
-      ),
+      glossaries
+        .get("en")!
+        .entries.map(
+          (entry: DocsGlossaryEntry): [string, DocsGlossaryEntry] => {
+            return [entry.id, entry];
+          },
+        ),
     );
 
     for (const term of MARKED) {
       const definition: string = byId.get(term)!.definition;
 
-      expect({ term: term, shown: client.shortenDefinition(definition) }).toEqual(
-        { term: term, shown: definition },
-      );
+      expect({
+        term: term,
+        shown: client.shortenDefinition(definition),
+      }).toEqual({ term: term, shown: definition });
     }
   });
 

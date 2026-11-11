@@ -74,7 +74,10 @@ const HowOneUptimeWorksDialog: FunctionComponent = (): ReactElement => {
     GlobalEvents.addEventListener(EventName.HOW_ONEUPTIME_WORKS_OPEN, open);
 
     return () => {
-      GlobalEvents.removeEventListener(EventName.HOW_ONEUPTIME_WORKS_OPEN, open);
+      GlobalEvents.removeEventListener(
+        EventName.HOW_ONEUPTIME_WORKS_OPEN,
+        open,
+      );
     };
   }, []);
 
