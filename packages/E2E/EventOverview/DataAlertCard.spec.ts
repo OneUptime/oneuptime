@@ -5,6 +5,7 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
 import { cardBodyMisfits } from "../SuiteHelpers/CardBodyFit";
@@ -941,10 +942,8 @@ async function chipWordsOf(
   });
 }
 
-const REGEXP_SPECIAL_CHARACTERS: RegExp = /[.*+?^${}()|[\]\\]/g;
-
 function literally(text: string): RegExp {
-  return new RegExp(text.replace(REGEXP_SPECIAL_CHARACTERS, "\\$&"));
+  return new RegExp(escapeRegExp(text));
 }
 
 /*
