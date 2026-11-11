@@ -717,27 +717,59 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
 
   it("names each term as this language's Dashboard draws it, and no two terms alike", () => {
     const misnamed: Array<string> = [];
+    const englishAnchors: Array<string> = TERMS.map(
+      (block: GlossaryTermBlock): string => {
+        return block.anchor;
+      },
+    );
 
     translatedTerms.forEach((block: GlossaryTermBlock, index: number) => {
-      const english: string = TERMS[index]!.term;
+      const english: GlossaryTermBlock = TERMS[index]!;
 
-      if (isActionLabel(english)) {
-        const drawn: string = drawnActionLabel(language, english);
+      if (isActionLabel(english.term)) {
+        const drawn: string = drawnActionLabel(language, english.term);
+        /*
+         * A word the Dashboard draws that is another term's English anchor
+         * would take that term's address on this page (Italian draws
+         * Queues as "Code", the anchor of Code): such a term says more
+         * after the Dashboard's word.
+         */
+        const takesAnAddress: boolean =
+          englishAnchors.includes(anchorOfHeading(drawn)) &&
+          anchorOfHeading(drawn) !== english.anchor;
+        const named: boolean = takesAnAddress
+          ? block.term.startsWith(`${drawn} `)
+          : block.term === drawn;
 
-        if (block.term !== drawn) {
-          misnamed.push(`${english}: "${block.term}", the Dashboard draws "${drawn}"`);
+        if (!named) {
+          misnamed.push(
+            `${english.term}: "${block.term}", the Dashboard draws "${drawn}"${takesAnAddress ? ` (then more words: "${anchorOfHeading(drawn)}" is another term's address)` : ""}`,
+          );
         }
+      }
+
+      // No term's own anchor is another term's English address.
+      if (
+        englishAnchors.includes(block.anchor) &&
+        block.anchor !== english.anchor
+      ) {
+        misnamed.push(
+          `${english.term}: "${block.term}" takes the address of ${block.anchor}`,
+        );
       }
     });
 
     expect(misnamed).toEqual([]);
     expect(
-      new Set(
-        translatedTerms.map((block: GlossaryTermBlock): string => {
+      new Set([
+        ...translatedTerms.map((block: GlossaryTermBlock): string => {
           return block.anchor;
         }),
-      ).size,
-    ).toBe(TERMS.length);
+        ...sectionHeadings(translated).map((heading: string): string => {
+          return anchorOfHeading(heading.slice(3));
+        }),
+      ]).size,
+    ).toBe(TERMS.length + GROUPS.length + 1);
   });
 
   it("defines every term in its own words, on one paragraph, and ends it on a names line", () => {

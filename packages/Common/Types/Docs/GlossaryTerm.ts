@@ -18,8 +18,8 @@ import { DEFAULT_DOCS_LANGUAGE, SUPPORTED_DOCS_LANGUAGES } from "./DocsLanguage"
  * here and every link to it in the same change.
  *
  * The same entries, with their definitions and other names in each
- * language, are served as JSON at /docs/glossary/<lang>.json
- * (App/FeatureSet/Docs/Utils/Glossary.ts).
+ * language, are served as JSON by the docs' glossary route, one file per
+ * language (App/FeatureSet/Docs/Utils/Glossary.ts).
  */
 enum GlossaryTerm {
   // Start here

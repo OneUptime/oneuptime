@@ -6,6 +6,7 @@ import DocsGlossaryData, {
 } from "../../../FeatureSet/Docs/Utils/Glossary";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { readPage } from "./DocsContentSupport";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { GLOSSARY } from "./GlossaryDocsSupport";
 import GlossaryTerm, {
   ALL_GLOSSARY_TERMS,
@@ -405,6 +406,27 @@ describe("the Glossary page, as the docs draw it", () => {
           id: id,
           onHeading: true,
         });
+      }
+
+      /*
+       * And on its own term: a translated heading names the English anchor
+       * it answers, and that anchor is its own id or the mark at its top -
+       * never another term's heading that happens to have that id.
+       */
+      if (language !== "en") {
+        const wrong: Array<string> = ALL_GLOSSARY_TERMS.filter(
+          (id: GlossaryTerm): boolean => {
+            const tag: RegExpMatchArray | null = html.match(
+              new RegExp(
+                `<h3 id="([^"]*)" data-english-anchor="${escapeRegExp(id)}"[^>]*>(<span id="${escapeRegExp(id)}")?`,
+              ),
+            );
+
+            return !tag || (tag[1] !== id && !tag[2]);
+          },
+        );
+
+        expect(wrong).toEqual([]);
       }
     },
   );
