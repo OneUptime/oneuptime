@@ -87,6 +87,22 @@ describe("an alert above a form", () => {
     expect(words).toHaveAttribute("dir", "ltr");
   });
 
+  test("an English answer that quotes a name typed in Persian reads left to right too", () => {
+    const answer: string =
+      'Runner "کانال اضطراری" is a cluster\'s in-cluster Runner: it runs kubectl through its cluster only.';
+
+    inPersian(
+      <Alert title={answer} type={AlertType.DANGER} dataTestId="form-error" />,
+    );
+
+    const words: HTMLElement | null = screen
+      .getByTestId("form-error")
+      .querySelector("bdi");
+
+    expect(words).toHaveTextContent(answer);
+    expect(words).toHaveAttribute("dir", "ltr");
+  });
+
   test("words the product translated read as the page does, drawn as they always were", () => {
     inPersian(<Alert title="Could not save." dataTestId="form-error" />);
 
@@ -155,6 +171,18 @@ describe("a dialog's refusal", () => {
   test("ModalBody's alert reads the server's answer as written", () => {
     inPersian(
       <ModalBody error="Name is already taken.">
+        <p>Fields</p>
+      </ModalBody>,
+    );
+
+    expect(
+      screen.getByTestId("modal-error").querySelector("bdi"),
+    ).toHaveAttribute("dir", "ltr");
+  });
+
+  test("so does an answer that quotes a name typed in Persian", () => {
+    inPersian(
+      <ModalBody error="A custom channel named کانال اضطراری already exists.">
         <p>Fields</p>
       </ModalBody>,
     );
