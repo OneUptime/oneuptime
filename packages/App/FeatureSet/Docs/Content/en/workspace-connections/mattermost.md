@@ -70,6 +70,7 @@ OneUptime works in every team of your Mattermost server its bot is a member of:
 2. The **Mattermost teams** card on **Project Settings** > **Workspace** > **Mattermost** lists those teams, the default one first. Click **Refresh** after adding the bot to another one.
 
 - **Which team a rule uses.** Notification rules pick the **Mattermost team** their channels are in. Left empty, a rule creates its channel in the default team, and looks for the channels it names there first, then in the bot's other teams.
+- **Which team a summary uses.** Summaries, on the **Summary** tab of **Incidents** and **Alerts**, pick the **Mattermost team** their channels are in too. Left empty, a summary looks for its channels in the default team first, then in the bot's other teams.
 - **The default team.** It is the team you connected the project to. **Make default** on the card makes another team the default, for a role that may connect the project.
 - **Where OneUptime works.** The buttons on OneUptime's messages, and the forms they open, work in each of those teams. In a team the bot was taken out of, a button only says that the team is no longer connected.
 - **A default team the bot was taken out of.** The card says so. Add the bot back in Mattermost, or make another team the default.

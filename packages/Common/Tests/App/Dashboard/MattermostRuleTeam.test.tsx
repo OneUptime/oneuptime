@@ -43,6 +43,8 @@ import NotificationRuleForm, {
   NotificationRuleFormPart,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleForm";
 import {
+  getMattermostTeamOptions,
+  getMattermostTeamsNotJoined,
   getNotificationRuleSummary,
   getRuleTeamsNotJoined,
   MattermostRuleTeams,
@@ -895,6 +897,86 @@ describe("getRuleTeamsNotJoined", () => {
         connection: SUPPORT_LEFT,
       }),
     ).toEqual([]);
+  });
+});
+
+/*
+ * #6776: a summary picks the team of its channels as a rule does - the
+ * same picker, from the same two helpers.
+ */
+describe("a Mattermost team picker - a rule's, a summary's", () => {
+  // English, as written: no locale file read.
+  const ENGLISH: Translator = createTranslator((): string | undefined => {
+    return undefined;
+  }, "en");
+
+  test("the picks the bot is no longer in, each once, by name - the id when no name was kept; a team it is in, none, or what is not an id: not one", () => {
+    const gone: string = "g".repeat(26);
+
+    expect(
+      getMattermostTeamsNotJoined({
+        connection: SUPPORT_LEFT,
+        teamIds: [
+          undefined,
+          "",
+          ENGINEERING.id,
+          SUPPORT.id,
+          "support",
+          gone,
+          SUPPORT.id,
+        ],
+      }),
+    ).toEqual([SUPPORT, { id: gone, name: gone, displayName: gone }]);
+
+    expect(
+      getMattermostTeamsNotJoined({
+        connection: undefined,
+        teamIds: [SUPPORT.id],
+      }),
+    ).toEqual([]);
+  });
+
+  test("its options: the bot's teams by name, then the picks of teams it left, said to be so - each team once", () => {
+    expect(
+      getMattermostTeamOptions({
+        connection: SUPPORT_LEFT,
+        teams: SUPPORT_LEFT.teams,
+        notJoined: [SUPPORT, ENGINEERING],
+        translator: ENGLISH,
+      }),
+    ).toEqual([
+      { label: "Engineering", value: ENGINEERING.id },
+      { label: SUPPORT_NOT_JOINED, value: SUPPORT.id },
+    ]);
+  });
+
+  test("the default team the bot was taken out of is said so among the teams; a team without a display name goes by its name, or its id", () => {
+    const nameless: MattermostConnectionTeam = {
+      id: "n".repeat(26),
+      name: "",
+      displayName: "",
+    };
+
+    const defaultLeft: MattermostRuleTeams = {
+      teams: [ENGINEERING, { ...SUPPORT, displayName: "" }, nameless],
+      removedTeams: [],
+      defaultTeamId: ENGINEERING.id,
+      isBotInDefaultTeam: false,
+      areTeamsListed: true,
+    };
+
+    expect(
+      getMattermostTeamOptions({
+        connection: defaultLeft,
+        teams: defaultLeft.teams,
+        notJoined: [],
+        translator: ENGLISH,
+      }),
+    ).toEqual([
+      { label: "Engineering (bot no longer a member)", value: ENGINEERING.id },
+      { label: "support", value: SUPPORT.id },
+      { label: nameless.id, value: nameless.id },
+    ]);
   });
 });
 

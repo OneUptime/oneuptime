@@ -850,35 +850,23 @@ export function isMattermostTeamNotJoined(data: {
 }
 
 /*
- * The Mattermost teams a rule names that the project's bot is no longer a
- * member of - for the channels it posts in, and for the channel it creates
- * - each once, by name (the id when its name was never known).
+ * The Mattermost teams of `teamIds` the project's bot is no longer a member
+ * of - the picks of a rule, or of a summary - each once, by name (the id
+ * when its name was never known).
  */
-export function getRuleTeamsNotJoined(data: {
-  rule: IncidentNotificationRule | undefined;
-  workspaceType: WorkspaceType;
+export function getMattermostTeamsNotJoined(data: {
   connection: MattermostRuleTeams | undefined;
+  teamIds: Array<string | undefined>;
 }): Array<MattermostConnectionTeam> {
   const connection: MattermostRuleTeams | undefined = data.connection;
 
-  if (
-    data.workspaceType !== WorkspaceType.Mattermost ||
-    !data.rule ||
-    !connection
-  ) {
+  if (!connection) {
     return [];
   }
 
-  const picked: Array<string | undefined> = [
-    data.rule.shouldPostToExistingChannel ? data.rule.existingTeam : undefined,
-    data.rule.shouldCreateNewChannel
-      ? data.rule.teamToCreateChannelIn
-      : undefined,
-  ];
-
   const notJoined: Array<MattermostConnectionTeam> = [];
 
-  for (const id of picked) {
+  for (const id of data.teamIds) {
     if (
       !id ||
       !isMattermostTeamNotJoined({ connection: connection, teamId: id }) ||
@@ -906,6 +894,68 @@ export function getRuleTeamsNotJoined(data: {
   }
 
   return notJoined;
+}
+
+/*
+ * The Mattermost teams a rule names that the project's bot is no longer a
+ * member of - for the channels it posts in, and for the channel it creates
+ * - each once, by name (the id when its name was never known).
+ */
+export function getRuleTeamsNotJoined(data: {
+  rule: IncidentNotificationRule | undefined;
+  workspaceType: WorkspaceType;
+  connection: MattermostRuleTeams | undefined;
+}): Array<MattermostConnectionTeam> {
+  if (data.workspaceType !== WorkspaceType.Mattermost || !data.rule) {
+    return [];
+  }
+
+  return getMattermostTeamsNotJoined({
+    connection: data.connection,
+    teamIds: [
+      data.rule.shouldPostToExistingChannel
+        ? data.rule.existingTeam
+        : undefined,
+      data.rule.shouldCreateNewChannel
+        ? data.rule.teamToCreateChannelIn
+        : undefined,
+    ],
+  });
+}
+
+/*
+ * A Mattermost team picker's options - a rule's, a summary's: the teams the
+ * project's bot is a member of, then the picks `notJoined` of teams it was
+ * taken out of, each such team said to be so, the default one included.
+ */
+export function getMattermostTeamOptions(data: {
+  connection: MattermostRuleTeams | undefined;
+  teams: Array<MattermostConnectionTeam>;
+  notJoined: Array<MattermostConnectionTeam>;
+  translator: Translator;
+}): Array<{ label: string; value: string }> {
+  return [
+    ...data.teams,
+    ...data.notJoined.filter((team: MattermostConnectionTeam): boolean => {
+      return !data.teams.some((listed: MattermostConnectionTeam): boolean => {
+        return listed.id === team.id;
+      });
+    }),
+  ].map((team: MattermostConnectionTeam): { label: string; value: string } => {
+    const name: string = team.displayName || team.name || team.id;
+
+    return {
+      label: isMattermostTeamNotJoined({
+        connection: data.connection,
+        teamId: team.id,
+      })
+        ? data.translator.translateTemplate(MATTERMOST_TEAM_NOT_JOINED_OPTION, {
+            team: name,
+          })
+        : name,
+      value: team.id,
+    };
+  });
 }
 
 export const POST_TO_CHATS_TITLE: string = translationKey("Post to chats");
