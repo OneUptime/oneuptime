@@ -533,7 +533,7 @@ export default class OnCallTestPageDelivery {
 
         const row: UserOnCallLogTimeline = await this.writeSendingRow({
           row: data.newTimelineRow(),
-          statusMessage: "Sending push notification.",
+          statusMessage: "Sending push notification to device.",
           method: { userPushId: rule.userPush.id! },
         });
 

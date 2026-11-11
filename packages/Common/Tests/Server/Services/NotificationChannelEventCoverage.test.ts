@@ -14,6 +14,14 @@ import TelegramService from "../../../Server/Services/TelegramService";
 import WorkspaceUserNotificationService from "../../../Server/Services/WorkspaceUserNotificationService";
 import WebhookService from "../../../Server/Services/WebhookService";
 import PushNotificationService from "../../../Server/Services/PushNotificationService";
+import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
+import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
+import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import UserService from "../../../Server/Services/UserService";
+import ShortLinkService from "../../../Server/Services/ShortLinkService";
+import OnCallPageLinks from "../../../Server/Utils/OnCall/OnCallPageLinks";
+import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import logger from "../../../Server/Utils/Logger";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
@@ -119,6 +127,13 @@ const ALERT_EPISODE_ID: ObjectID = new ObjectID(
 );
 const INCIDENT_EPISODE_ID: ObjectID = new ObjectID(
   "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+);
+// A test page's run (OnCallTestPage), and the severity it stands in for.
+const TEST_PAGE_RUN_ID: ObjectID = new ObjectID(
+  "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+);
+const TEST_PAGE_SEVERITY_ID: ObjectID = new ObjectID(
+  "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
 );
 
 const RESPONDER_EMAIL: string = "responder@company.com";
@@ -761,6 +776,71 @@ const EVENT_SPECS: Record<string, EventSpec> = {
     generatorSuffix: "IncidentEpisodeCreated",
     webhookEventType: "on-call.incidentEpisode.created",
   },
+  /*
+   * A test page (OnCallTestPage): no record behind it, so no finder is armed.
+   * Its run says what it stands in for, and every channel gets the test's own
+   * message from OnCallTestPageDelivery - so it has no generator of this
+   * service to name (it is left out of the generator matrix, and its bodies
+   * are pinned in OnCallTestPageDelivery.test.ts).
+   */
+  TestPage: {
+    eventType: UserNotificationEventType.TestPage,
+    makeOptions: (): ExecuteOptions => {
+      return {
+        projectId: PROJECT_ID,
+        userNotificationEventType: UserNotificationEventType.TestPage,
+        onCallPolicyId: POLICY_ID,
+        onCallPolicyExecutionLogId: TEST_PAGE_RUN_ID,
+        userNotificationLogId: LOG_ID,
+      };
+    },
+    arm: (): void => {
+      jest
+        .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+        .mockResolvedValue({
+          id: TEST_PAGE_RUN_ID,
+          testPageRecordKind: OnCallTestPageRecordKind.Incident,
+          testPageSeverityId: TEST_PAGE_SEVERITY_ID,
+          onCallDutyPolicyId: POLICY_ID,
+        } as never);
+      jest
+        .spyOn(IncidentSeverityService, "findOneById")
+        .mockResolvedValue({ name: "Sev1" } as never);
+      jest
+        .spyOn(OnCallDutyPolicyService, "findOneById")
+        .mockResolvedValue({ name: "Primary" } as never);
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockResolvedValue({ name: "Acme" } as never);
+      jest
+        .spyOn(UserService, "findOneById")
+        .mockResolvedValue({ name: "Alice", email: RESPONDER_EMAIL } as never);
+      jest
+        .spyOn(ShortLinkService, "saveShortLinkFor")
+        .mockResolvedValue({} as never);
+      jest
+        .spyOn(ShortLinkService, "getShortenedUrl")
+        .mockResolvedValue(URL.fromString("https://oneuptime.test/l/a") as never);
+      jest
+        .spyOn(OnCallPageLinks, "getAcknowledgePageUrl")
+        .mockResolvedValue(
+          URL.fromString("https://oneuptime.test/acknowledge-page") as never,
+        );
+      jest
+        .spyOn(OnCallPageLinks, "getEmailAcknowledgePageUrl")
+        .mockResolvedValue(
+          URL.fromString("https://oneuptime.test/acknowledge-page") as never,
+        );
+      jest
+        .spyOn(OnCallPageLinks, "getCallResponseUrl")
+        .mockResolvedValue(
+          URL.fromString("https://oneuptime.test/call-response") as never,
+        );
+    },
+    generatorSuffix: "",
+    // The documented test event: an endpoint ready for Send Test takes it.
+    webhookEventType: "test",
+  },
 };
 
 /*
@@ -780,12 +860,15 @@ const CHANNEL_NAMES: Array<string> = [
   "Push",
 ];
 
-const EVENT_NAMES: Array<string> = [
+// The event types about a record: each resolves one through its finder.
+const RECORD_EVENT_NAMES: Array<string> = [
   "IncidentCreated",
   "AlertCreated",
   "AlertEpisodeCreated",
   "IncidentEpisodeCreated",
 ];
+
+const EVENT_NAMES: Array<string> = [...RECORD_EVENT_NAMES, "TestPage"];
 
 /* Channels whose body comes from a generator that takes the timeline row id. */
 const GENERATOR_CHANNEL_NAMES: Array<string> = [
@@ -812,11 +895,14 @@ const VERIFIABLE_CHANNEL_NAMES: Array<string> = [
   "Push",
 ];
 
-function buildMatrix(channelNames: Array<string>): Array<[string, string]> {
+function buildMatrix(
+  channelNames: Array<string>,
+  eventNames: Array<string> = EVENT_NAMES,
+): Array<[string, string]> {
   const rows: Array<[string, string]> = [];
 
   for (const channelName of channelNames) {
-    for (const eventName of EVENT_NAMES) {
+    for (const eventName of eventNames) {
       rows.push([channelName, eventName]);
     }
   }
@@ -825,8 +911,13 @@ function buildMatrix(channelNames: Array<string>): Array<[string, string]> {
 }
 
 const FULL_MATRIX: Array<[string, string]> = buildMatrix(CHANNEL_NAMES);
+/*
+ * Only the event types about a record render through this service's
+ * generators; a test page's bodies come from OnCallTestPageDelivery.
+ */
 const GENERATOR_MATRIX: Array<[string, string]> = buildMatrix(
   GENERATOR_CHANNEL_NAMES,
+  RECORD_EVENT_NAMES,
 );
 const UNVERIFIED_MATRIX: Array<[string, string]> = buildMatrix(
   VERIFIABLE_CHANNEL_NAMES,
@@ -1252,7 +1343,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
       expect(FULL_MATRIX).toHaveLength(
         CHANNEL_NAMES.length * EVENT_NAMES.length,
       );
-      expect(FULL_MATRIX).toHaveLength(40);
+      expect(FULL_MATRIX).toHaveLength(50);
     });
   });
 
@@ -1410,8 +1501,13 @@ describe("UserNotificationRuleService channel x event coverage", () => {
           },
         );
 
-        // The event type, not the ids on the options bag, picks the entity.
-        expect(called).toHaveLength(1);
+        /*
+         * The event type, not the ids on the options bag, picks the entity -
+         * and a test page (OnCallTestPage) is about none, so it reads none.
+         */
+        expect(called).toHaveLength(
+          event.eventType === UserNotificationEventType.TestPage ? 0 : 1,
+        );
       },
     );
   });
