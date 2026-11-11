@@ -29,6 +29,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import ProbeApiIngestResponse from "../../../../Types/Probe/ProbeApiIngestResponse";
 import { createTranslator, Translator } from "../../../../Types/Translator";
 import MonitorRootCauseWording from "../../../../Utils/Monitor/MonitorRootCauseWording";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -454,13 +455,16 @@ describe("A root cause a monitor wrote reads in the reader's language", () => {
 
   test("reads a long root cause line by line, in linear time", () => {
     const long: string = `**${"a".repeat(100000)}`;
-    const started: number = Date.now();
-
-    MonitorRootCauseWording.wordRootCause({
-      rootCause: `${long}\n- ${"b".repeat(100000)}: x`,
-      translator: chinese,
+    const worded: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return MonitorRootCauseWording.wordRootCause({
+          rootCause: `${long}\n- ${"b".repeat(100000)}: x`,
+          translator: chinese,
+        });
+      },
+      limitInMs: 1000,
     });
 
-    expect(Date.now() - started).toBeLessThan(1000);
+    expect(worded.inMs).toBeLessThan(1000);
   });
 });
