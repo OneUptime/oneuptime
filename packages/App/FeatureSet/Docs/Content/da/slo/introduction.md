@@ -176,7 +176,7 @@ Når noget forhindrer et SLO i at måle, fortæller et banner øverst på hver a
 - **Opsummeringen**: status, en sætning om, hvad den betyder, og beskrivelsen. Ved siden af står **Opdater** og hvornår SLO'et sidst blev evalueret. Nedenunder står målet, **Overholdelsesvindue** (med en fyldningsindikator, mens et ungt rullende vindue fyldes op: se [Unge SLO'er og vinduets fyldningsindikator](#unge-sloer-og-vinduets-fyldningsindikator)), antallet af monitorer og ejerne, med **Tilføj ejere** til at tilføje en lige der.
 - **Nøgletallene**:
   - **SLI**: andelen af god tid i vinduet, og hvor meget den ligger over eller under målet.
-  - **Fejlbudget tilbage**: en procentdel, en varighed som "12m 30s left of 43m 12s" og en bjælke med et mærke ved risikotærsklen. Når budgettet er overskredet, viser den **Budget overskredet** og med hvor meget.
+  - **Fejlbudget tilbage**: en procentdel, en varighed som "12 min. og 30 sek. tilbage af 43 min. og 12 sek." og en bjælke med et mærke ved risikotærsklen. Når budgettet er overskredet, viser den **Budget overskredet** og med hvor meget.
   - **Forbrugsrate**: hvor hurtigt budgettet bruges over de seneste 60 minutter, den periode, standardreglen for hurtigt forbrug bruger. Bliver gul over 1× og rød, med **Regeltærskel nået**, ved den laveste tærskel blandt SLO'ets aktiverede forbrugsrateregler, der ser 6 timer eller mindre tilbage. En time siger ikke meget om en regel, der ser flere dage tilbage, som **Slow leak**, så den sammenlignes ikke med sådan en regel.
   - **Budgettets rækkevidde**: hvor længe budgettet holder i det tempo. Se [Fejlbudgetter](/docs/slo/error-budget#budgettets-rækkevidde).
 - **Burn-down af fejlbudget**: det resterende budget over det aktuelle vindue. Se [Fejlbudgetter](/docs/slo/error-budget#fejlbudgettets-forbrug).
@@ -238,7 +238,7 @@ En monitors sidemenu har også en side **SLOs**: de SLO'er, der måler den monit
 
 Et SLO med rullende vindue, der er yngre end sit vindue, måles over de data, der findes indtil videre: et SLO på 30 dage, der blev oprettet i går, har én dags data. Dets fejlbudget starter småt og vokser, efterhånden som vinduet fyldes, så dets første tal svinger mere, end de vil gøre senere.
 
-Så længe det er tilfældet, siger **Oversigt** det: opsummeringen viser en indikator **Window 23% full** (**Vinduet er under 1 % fyldt** den første dag), og feltet **Fejlbudget tilbage** gentager det under sit tal. Begge forsvinder, når vinduet er fyldt. SLO'er med kalendermåned viser dem aldrig, fordi deres budget dækker hele måneden fra første dag, og det gør SLO'er i tilstanden **Gennemsnit af monitorsekunder** heller ikke, fordi deres budget tælles på tværs af monitorerne.
+Så længe det er tilfældet, siger **Oversigt** det: opsummeringen viser en indikator **Vinduet er 23 % fyldt** (**Vinduet er under 1 % fyldt** den første dag), og feltet **Fejlbudget tilbage** gentager det under sit tal. Begge forsvinder, når vinduet er fyldt. SLO'er med kalendermåned viser dem aldrig, fordi deres budget dækker hele måneden fra første dag, og det gør SLO'er i tilstanden **Gennemsnit af monitorsekunder** heller ikke, fordi deres budget tælles på tværs af monitorerne.
 
 ## Fejlfinding
 

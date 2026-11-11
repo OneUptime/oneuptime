@@ -176,7 +176,7 @@ Het **Overzicht** beantwoordt "zitten we binnen het budget?", van boven naar ben
 - **De samenvatting**: de status, een zin over wat die betekent en de beschrijving. Ernaast staan **Vernieuwen** en wanneer de SLO voor het laatst is geëvalueerd. Daaronder staan het doel, het **Nalevingsvenster** (met een vulindicator zolang een jong voortschrijdend venster zich vult: zie [Jonge SLO's en de vulindicator van het venster](#jonge-slos-en-de-vulindicator-van-het-venster)), het aantal monitoren en de eigenaren, met **Eigenaren toevoegen** om er daar meteen een toe te voegen.
 - **De kerncijfers**:
   - **SLI**: het deel goede tijd in het venster, en hoeveel het boven of onder het doel zit.
-  - **Foutbudget over**: een percentage, een duur zoals "12m 30s left of 43m 12s" en een balk met een markering op de risicodrempel. Als het budget is overschreden, toont het **Budget overschreden** en met hoeveel.
+  - **Foutbudget over**: een percentage, een duur zoals "12 min, 30 sec over van 43 min, 12 sec" en een balk met een markering op de risicodrempel. Als het budget is overschreden, toont het **Budget overschreden** en met hoeveel.
   - **Verbruikssnelheid**: hoe snel het budget wordt uitgegeven over de laatste 60 minuten, de periode die de standaardregel voor snel verbruik gebruikt. Wordt oranje boven 1× en rood, met **Regeldrempel bereikt**, bij de laagste drempel van de ingeschakelde regels voor verbruikssnelheid van de SLO die 6 uur of minder terugkijken. Een uur zegt weinig over een regel die dagen terugkijkt, zoals **Slow leak**, dus wordt ze niet met zo'n regel vergeleken.
   - **Resterende looptijd van budget**: hoelang het budget in dit tempo meegaat. Zie [Foutbudgetten](/docs/slo/error-budget#looptijd-van-het-budget).
 - **Burn-down van foutbudget**: het resterende budget over het huidige venster. Zie [Foutbudgetten](/docs/slo/error-budget#verbranding-van-het-foutbudget).
@@ -238,7 +238,7 @@ Het zijmenu van een monitor heeft ook een pagina **SLOs**: de SLO's die die moni
 
 Een SLO met een voortschrijdend venster die jonger is dan zijn venster, wordt gemeten over de gegevens die er tot nu toe zijn: een SLO van 30 dagen die gisteren is aangemaakt, heeft één dag aan gegevens. Zijn foutbudget begint klein en groeit naarmate het venster zich vult, dus zijn eerste cijfers schommelen meer dan later.
 
-Zolang dat zo is, zegt het **Overzicht** het: de samenvatting toont een indicator **Window 23% full** (**Venster minder dan 1% gevuld** op de eerste dag), en de tegel **Foutbudget over** herhaalt het onder zijn getal. Beide verdwijnen als het venster vol is. SLO's met een kalendermaand tonen ze nooit, omdat hun budget vanaf de eerste dag de hele maand dekt, en SLO's in de modus **Gemiddelde monitorseconden** ook niet, omdat hun budget over de monitoren heen wordt geteld.
+Zolang dat zo is, zegt het **Overzicht** het: de samenvatting toont een indicator **Venster 23% gevuld** (**Venster minder dan 1% gevuld** op de eerste dag), en de tegel **Foutbudget over** herhaalt het onder zijn getal. Beide verdwijnen als het venster vol is. SLO's met een kalendermaand tonen ze nooit, omdat hun budget vanaf de eerste dag de hele maand dekt, en SLO's in de modus **Gemiddelde monitorseconden** ook niet, omdat hun budget over de monitoren heen wordt geteld.
 
 ## Problemen oplossen
 

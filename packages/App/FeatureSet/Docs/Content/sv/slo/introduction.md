@@ -176,7 +176,7 @@ När något hindrar ett SLO från att mäta talar en banner högst upp på var o
 - **Sammanfattningen**: statusen, en mening om vad den betyder och beskrivningen. Bredvid finns **Uppdatera** och när SLO:et senast utvärderades. Under finns målet, **Efterlevnadsfönster** (med en fyllnadsindikator medan ett ungt rullande fönster fylls: se [Unga SLO:er och fönstrets fyllnadsindikator](#unga-sloer-och-fönstrets-fyllnadsindikator)), antalet monitorer och ägarna, med **Lägg till ägare** för att lägga till en direkt där.
 - **Nyckeltalen**:
   - **SLI**: andelen bra tid i fönstret, och hur mycket den ligger över eller under målet.
-  - **Felbudget kvar**: en procentandel, en varaktighet som "12m 30s left of 43m 12s" och en stapel med en markering vid tröskeln för riskzon. När budgeten är överskriden visar den **Budgeten överskriden** och med hur mycket.
+  - **Felbudget kvar**: en procentandel, en varaktighet som "12 min 30 s kvar av 43 min 12 s" och en stapel med en markering vid tröskeln för riskzon. När budgeten är överskriden visar den **Budgeten överskriden** och med hur mycket.
   - **Förbrukningstakt**: hur snabbt budgeten används under de senaste 60 minuterna, den period som standardregeln för snabb förbrukning använder. Blir gul över 1× och röd, med **Regeltröskel nådd**, vid den lägsta tröskeln bland SLO:ets aktiverade regler för förbrukningstakt som ser högst 6 timmar bakåt. En timme säger lite om en regel som ser flera dagar bakåt, som **Slow leak**, så den jämförs inte med en sådan regel.
   - **Budgetens räckvidd**: hur länge budgeten räcker i den takten. Se [Felbudgetar](/docs/slo/error-budget#budgetens-räckvidd).
 - **Nedbränning av felbudget**: den återstående budgeten över det aktuella fönstret. Se [Felbudgetar](/docs/slo/error-budget#felbudgetens-förbrukning).
@@ -238,7 +238,7 @@ En monitors sidomeny har också en sida **SLOs**: de SLO:er som mäter den monit
 
 Ett SLO med rullande fönster som är yngre än sitt fönster mäts över de data som finns hittills: ett SLO på 30 dagar som skapades i går har en dags data. Dess felbudget börjar liten och växer när fönstret fylls, så dess första siffror svänger mer än de kommer att göra senare.
 
-Så länge det är så säger **Översikt** det: sammanfattningen visar en indikator **Window 23% full** (**Fönstret är under 1 % fyllt** den första dagen), och rutan **Felbudget kvar** upprepar det under sin siffra. Båda försvinner när fönstret är fullt. SLO:er med kalendermånad visar dem aldrig, eftersom deras budget täcker hela månaden från första dagen, och det gör inte heller SLO:er i läget **Genomsnitt av monitorsekunder**, vars budget räknas över alla monitorer.
+Så länge det är så säger **Översikt** det: sammanfattningen visar en indikator **Fönstret är 23 % fyllt** (**Fönstret är under 1 % fyllt** den första dagen), och rutan **Felbudget kvar** upprepar det under sin siffra. Båda försvinner när fönstret är fullt. SLO:er med kalendermånad visar dem aldrig, eftersom deras budget täcker hela månaden från första dagen, och det gör inte heller SLO:er i läget **Genomsnitt av monitorsekunder**, vars budget räknas över alla monitorer.
 
 ## Felsökning
 

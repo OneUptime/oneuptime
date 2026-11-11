@@ -42,9 +42,9 @@ Un SLO par mois calendaire dispose du budget de tout le mois dès le premier jou
 À mesure que l'indisponibilité s'accumule, la **Vue d'ensemble** affiche le budget restant sur sa tuile **Budget d'erreur restant** :
 
 - en pourcentage du total, qui décide aussi du statut du SLO et remplit la barre. La barre a un repère au seuil à risque du SLO ;
-- en durée, par exemple "31m 4s left of 43m 12s".
+- en durée, par exemple "31 min 4 s restant sur 43 min 12 s".
 
-Une fois le budget épuisé, la tuile affiche **Plus de budget**. Quand l'indisponibilité le dépasse, la tuile affiche **Budget dépassé** et le dépassement en durée, par exemple "4d 23m over budget · 5m 47s allowed" : le SLO a utilisé les 5 minutes et 47 secondes de son budget, plus 4 jours et 23 minutes. La barre reste vide et rouge.
+Une fois le budget épuisé, la tuile affiche **Plus de budget**. Quand l'indisponibilité le dépasse, la tuile affiche **Budget dépassé** et le dépassement en durée, par exemple "4 j 23 min au-delà du budget · 5 min 47 s autorisé" : le SLO a utilisé les 5 minutes et 47 secondes de son budget, plus 4 jours et 23 minutes. La barre reste vide et rouge.
 
 Le budget restant est conservé comme un nombre signé pour les calculs et les graphiques d'historique, un budget dépassé y apparaît donc comme un pourcentage négatif. Un grand pourcentage négatif signifie que le dépassement est grand par rapport au budget ; ce n'est pas la part du temps pendant laquelle le service était indisponible.
 
@@ -60,7 +60,7 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 | La tuile affiche | Signification |
 | --- | --- |
-| Une durée, comme **~2d 5h** | Le budget s'épuise dans environ ce délai au rythme actuel. En orange, et en rouge dès qu'il reste un jour ou moins. **Moins de 1 min** signifie moins d'une minute. |
+| Une durée, comme **~2 j 5 h** | Le budget s'épuise dans environ ce délai au rythme actuel. En orange, et en rouge dès qu'il reste un jour ou moins. **Moins de 1 min** signifie moins d'une minute. |
 | **Aucune consommation** | Aucun budget n'a été consommé dans les 60 dernières minutes. |
 | **Soutenable** | Fenêtres glissantes uniquement : l'autonomie atteint au moins une fenêtre entière, le budget n'est donc pas consommé plus vite que l'ancienne indisponibilité ne sort de la fenêtre. À ce rythme, il ne peut pas s'épuiser. |
 | **Tient jusqu'à la réinitialisation** | Mois calendaires uniquement : le budget est remis à zéro au début du mois suivant avant de s'épuiser. |
@@ -97,7 +97,7 @@ Un SLO par mois calendaire est remis à zéro à minuit le premier de chaque moi
 
 ### Les jeunes SLO
 
-Un SLO à fenêtre glissante plus jeune que sa fenêtre est mesuré sur les données qui existent jusqu'ici, et son budget total grandit avec elles : un SLO de 30 jours créé il y a une semaine a pour l'instant un budget de 7 jours. Tant que la fenêtre n'est pas pleine, la **Vue d'ensemble** indique son taux de remplissage, avec une pastille **Window 23% full** et la même note sur la tuile **Budget d'erreur restant**. Attendez-vous à ce que les chiffres se stabilisent à mesure que la fenêtre se remplit.
+Un SLO à fenêtre glissante plus jeune que sa fenêtre est mesuré sur les données qui existent jusqu'ici, et son budget total grandit avec elles : un SLO de 30 jours créé il y a une semaine a pour l'instant un budget de 7 jours. Tant que la fenêtre n'est pas pleine, la **Vue d'ensemble** indique son taux de remplissage, avec une pastille **Fenêtre remplie à 23 %** et la même note sur la tuile **Budget d'erreur restant**. Attendez-vous à ce que les chiffres se stabilisent à mesure que la fenêtre se remplit.
 
 ## Changements de statut et seuil à risque
 
