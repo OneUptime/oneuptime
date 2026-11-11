@@ -291,10 +291,7 @@ const CloudAppAzureMonitorCard: FunctionComponent<ComponentProps> = (
               {translator.translateText(AZURE_MONITOR_OPEN_RESOURCE) ||
                 AZURE_MONITOR_OPEN_RESOURCE}
             </span>
-            <Icon
-              icon={IconProp.ChevronRight}
-              className="h-4 w-4 rtl:rotate-180"
-            />
+            <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
           </AppLink>
         ) : (
           <></>

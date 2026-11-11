@@ -179,6 +179,219 @@ describe("when a page starts", () => {
   });
 });
 
+/*
+ * A PAGE A WORKER STARTS WHEN IT COMES DUE (issue #6708): a run held by its
+ * on-call rule or by OneUptime AI, a page again. The worker names the
+ * moment it was due, and the page starts then - so the minutes a worker
+ * that fell behind added are in its time to send.
+ */
+describe("a page started with the moment it was due", () => {
+  test.each([
+    ["a second", 1000],
+    ["a minute", 60 * 1000],
+    ["an hour", 60 * 60 * 1000],
+    ["a day", 24 * 60 * 60 * 1000],
+  ])(
+    "due %s ago: starts at that moment, not now",
+    (_name: string, agoInMs: number) => {
+      const dueAt: Date = new Date(Date.now() - agoInMs);
+
+      expect(OnCallPageTiming.startPage({ dueAt: dueAt })).toEqual({
+        startedAt: dueAt,
+        start: OnCallPageStart.PageStarted,
+      });
+    },
+  );
+
+  test("a moment read back as text counts the same", () => {
+    const dueAt: Date = new Date(Date.now() - 5 * 60000);
+
+    const moment: OnCallPageStartMoment = OnCallPageTiming.startPage({
+      dueAt: dueAt.toISOString(),
+    });
+
+    expect(moment.startedAt.getTime()).toBe(dueAt.getTime());
+    expect(moment.start).toBe(OnCallPageStart.PageStarted);
+  });
+
+  test("a moment ahead of now - two servers' clocks apart - is now", () => {
+    const before: number = Date.now();
+    const moment: OnCallPageStartMoment = OnCallPageTiming.startPage({
+      dueAt: new Date(Date.now() + 30 * 1000),
+    });
+    const after: number = Date.now();
+
+    expect(moment.startedAt.getTime()).toBeGreaterThanOrEqual(before);
+    expect(moment.startedAt.getTime()).toBeLessThanOrEqual(after);
+    expect(moment.start).toBe(OnCallPageStart.PageStarted);
+  });
+
+  test.each([
+    ["no moment", undefined],
+    ["null", null],
+    ["empty text", ""],
+    ["text that is no moment", "not a date"],
+    ["a Date that is no moment", new Date(NaN)],
+  ])(
+    "%s: now, as before",
+    (_name: string, dueAt: Date | string | null | undefined) => {
+      const before: number = Date.now();
+      const moment: OnCallPageStartMoment = OnCallPageTiming.startPage({
+        dueAt: dueAt,
+      });
+      const after: number = Date.now();
+
+      expect(moment.start).toBe(OnCallPageStart.PageStarted);
+      expect(isNaN(moment.startedAt.getTime())).toBe(false);
+      expect(moment.startedAt.getTime()).toBeGreaterThanOrEqual(before);
+      expect(moment.startedAt.getTime()).toBeLessThanOrEqual(after);
+    },
+  );
+
+  test("the moment is copied: changing the Date it was handed later moves no page", () => {
+    const dueAt: Date = new Date(Date.now() - 60000);
+    const at: number = dueAt.getTime();
+
+    const moment: OnCallPageStartMoment = OnCallPageTiming.startPage({
+      dueAt: dueAt,
+    });
+
+    dueAt.setTime(0);
+
+    expect(moment.startedAt.getTime()).toBe(at);
+  });
+
+  test("inside a record's creation, the record's trigger wins over the moment it is handed", async () => {
+    const moment: OnCallPageStartMoment =
+      await OnCallPageTiming.runAsRecordIsCreated(
+        { recordCreatedAt: RECORD_CREATED_AT },
+        async (): Promise<OnCallPageStartMoment> => {
+          await nextTick();
+          return OnCallPageTiming.startPage({
+            dueAt: new Date(RECORD_CREATED_AT.getTime() + 60000),
+          });
+        },
+      );
+
+    expect(moment).toEqual({
+      startedAt: RECORD_CREATED_AT,
+      start: OnCallPageStart.RecordCreated,
+    });
+  });
+
+  test("after the record's fan-out, the moment it is handed counts again", async () => {
+    await OnCallPageTiming.runAsRecordIsCreated(
+      { recordCreatedAt: RECORD_CREATED_AT },
+      async (): Promise<void> => {
+        await nextTick();
+      },
+    );
+
+    const dueAt: Date = new Date(Date.now() - 2 * 60000);
+
+    expect(OnCallPageTiming.startPage({ dueAt: dueAt })).toEqual({
+      startedAt: dueAt,
+      start: OnCallPageStart.PageStarted,
+    });
+  });
+
+  test("its notifications are told the moment, kept to the millisecond, and taken back once", async () => {
+    const dueAt: Date = new Date(Date.now() - 7 * 60000 - 123);
+
+    await OnCallPageTiming.runInPageStart(
+      OnCallPageTiming.startPage({ dueAt: dueAt }),
+      async (): Promise<void> => {
+        await nextTick();
+        await OnCallPageTiming.rememberPageStartOf(NOTIFICATION_ID);
+      },
+    );
+
+    expect(await OnCallPageTiming.takePageStartOf(NOTIFICATION_ID)).toEqual({
+      startedAt: dueAt,
+      start: OnCallPageStart.PageStarted,
+    });
+    expect(await OnCallPageTiming.takePageStartOf(NOTIFICATION_ID)).toBeNull();
+  });
+
+  test("without a metrics exporter, a late page keeps nothing either", async () => {
+    metricsEnabled.mockReturnValue(false);
+
+    await OnCallPageTiming.runInPageStart(
+      OnCallPageTiming.startPage({ dueAt: new Date(Date.now() - 60000) }),
+      async (): Promise<void> => {
+        await OnCallPageTiming.rememberPageStartOf(NOTIFICATION_ID);
+      },
+    );
+
+    expect(setString).not.toHaveBeenCalled();
+    expect(cache.size).toBe(0);
+  });
+});
+
+describe("the moment a page was due, as its start (getDueMoment)", () => {
+  const NOW: Date = new Date("2026-11-11T09:07:30.000Z");
+
+  test("a moment before now: itself, as a copy", () => {
+    const dueAt: Date = new Date("2026-11-11T09:00:00.000Z");
+    const moment: Date = OnCallPageTiming.getDueMoment({
+      dueAt: dueAt,
+      now: NOW,
+    });
+
+    expect(moment).toEqual(dueAt);
+    expect(moment).not.toBe(dueAt);
+  });
+
+  test("now itself: now", () => {
+    expect(OnCallPageTiming.getDueMoment({ dueAt: NOW, now: NOW })).toEqual(
+      NOW,
+    );
+  });
+
+  test("a millisecond after now: now", () => {
+    expect(
+      OnCallPageTiming.getDueMoment({
+        dueAt: new Date(NOW.getTime() + 1),
+        now: NOW,
+      }),
+    ).toEqual(NOW);
+  });
+
+  test("text: the moment it names, before now; now, after", () => {
+    expect(
+      OnCallPageTiming.getDueMoment({
+        dueAt: "2026-11-11T09:00:00.000Z",
+        now: NOW,
+      }),
+    ).toEqual(new Date("2026-11-11T09:00:00.000Z"));
+    expect(
+      OnCallPageTiming.getDueMoment({
+        dueAt: "2026-11-11T10:00:00.000Z",
+        now: NOW,
+      }),
+    ).toEqual(NOW);
+  });
+
+  test.each([
+    ["undefined", undefined],
+    ["null", null],
+    ["empty text", ""],
+    ["text that is no moment", "soon"],
+    ["an invalid Date", new Date(NaN)],
+  ])(
+    "%s: now, never the same Date as the now it was handed",
+    (_name: string, dueAt: Date | string | null | undefined) => {
+      const moment: Date = OnCallPageTiming.getDueMoment({
+        dueAt: dueAt,
+        now: NOW,
+      });
+
+      expect(moment).toEqual(NOW);
+      expect(moment).not.toBe(NOW);
+    },
+  );
+});
+
 describe("a record a monitor's data tripped", () => {
   // The request arrived 40 seconds before its queued job opened the incident.
   const REQUEST_RECEIVED_AT: Date = new Date(
