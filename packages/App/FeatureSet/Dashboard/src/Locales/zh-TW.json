@@ -50675,5 +50675,9 @@
   "{{name}} acknowledged it in Mattermost after {{time}}.": "{{name}} 在 {{time}} 後於 Mattermost 中確認。",
   "{{name}} acknowledged it in Microsoft Teams after {{time}}.": "{{name}} 在 {{time}} 後於 Microsoft Teams 中確認。",
   "{{name}} acknowledged it in Slack after {{time}}.": "{{name}} 在 {{time}} 後於 Slack 中確認。",
-  "{{name}} acknowledged it.": "{{name}} 已確認。"
+  "{{name}} acknowledged it.": "{{name}} 已確認。",
+  "Import from {{tools}}": "從 {{tools}} 匯入",
+  "Import from {{tools}} and others": "從 {{tools}} 等工具匯入",
+  "Import from {{tool}}": "從 {{tool}} 匯入",
+  "Show every tool": "顯示所有工具"
 }

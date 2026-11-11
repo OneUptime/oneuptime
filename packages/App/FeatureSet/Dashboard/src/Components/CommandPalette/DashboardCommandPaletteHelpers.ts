@@ -257,6 +257,26 @@ const englishUnlessShown: (shown: string, english: string) => Array<string> = (
 };
 
 /*
+ * A title with its {{placeholders}} filled, after it is translated: the
+ * values are brands ("PagerDuty"), the same in every language.
+ */
+export const fillPageSearchTitle: (
+  title: string,
+  values: Record<string, string> | undefined,
+) => string = (
+  title: string,
+  values: Record<string, string> | undefined,
+): string => {
+  let filled: string = title;
+
+  for (const name of Object.keys(values || {})) {
+    filled = filled.split(`{{${name}}}`).join(values![name]!);
+  }
+
+  return filled;
+};
+
+/*
  * The settings of a page that are there for this person, each as its card
  * or switch names it, in the order the page lists them: Customer Support
  * Access only where billing is on, as its card is. A setting that would
@@ -397,12 +417,24 @@ export function buildPageSearchCommandDescriptors(
             continue;
           }
 
-          const actionTitle: string = input.translate(action.title);
+          const actionTitle: string = fillPageSearchTitle(
+            input.translate(action.title),
+            action.titleValues,
+          );
+          const englishActionTitle: string = fillPageSearchTitle(
+            action.title,
+            action.titleValues,
+          );
+          // Its own query string, where it opens the page on itself.
+          const actionRoutePath: string =
+            action.queryString !== undefined
+              ? path + action.queryString
+              : routePath;
 
           descriptors.push({
             id: slugifyPaletteCommandId("page-action", action.id),
             title: actionTitle,
-            titleAliases: englishUnlessShown(actionTitle, action.title),
+            titleAliases: englishUnlessShown(actionTitle, englishActionTitle),
             keywords: action.keywords || [],
             breadcrumb: onPageBreadcrumb,
             breadcrumbKeywords: [...breadcrumbKeywords, page.title],
@@ -413,8 +445,8 @@ export function buildPageSearchCommandDescriptors(
              * More settings opens there.
              */
             routePath: action.anchor
-              ? `${routePath}#${action.anchor}`
-              : routePath,
+              ? `${actionRoutePath}#${action.anchor}`
+              : actionRoutePath,
             areaId: area.id,
             isAction: true,
             isSetting: false,

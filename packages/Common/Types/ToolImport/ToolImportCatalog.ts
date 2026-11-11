@@ -1,6 +1,6 @@
 import Dictionary from "../Dictionary";
 import ToolImportResourceKind from "./ToolImportResourceKind";
-import ToolImportSource from "./ToolImportSource";
+import ToolImportSource, { AllToolImportSources } from "./ToolImportSource";
 
 /*
  * What OneUptime knows about each tool it imports from that is not code and
@@ -396,6 +396,32 @@ export function getToolImportSourceDefinition(
   source: ToolImportSource,
 ): ToolImportSourceDefinition {
   return ToolImportCatalog[source];
+}
+
+/*
+ * The tools whose import fills a list of one kind of record, in the order
+ * the page offers them: what the Monitors, On-Call and Status Pages lists
+ * name when they offer the importer while empty, and the tools the
+ * importer opens on from there (Dashboard Components/ToolImport/
+ * ToolImportOffer). A tool that hosts status pages and checks nothing
+ * (Atlassian Statuspage) brings what its pages show as manual monitors,
+ * not checks, so it fills the Status Pages list and not the Monitors one.
+ */
+export function getToolImportSourcesThatFill(
+  kind: ToolImportResourceKind,
+): Array<ToolImportSource> {
+  return AllToolImportSources.filter((source: ToolImportSource): boolean => {
+    const definition: ToolImportSourceDefinition = ToolImportCatalog[source];
+
+    if (
+      kind === ToolImportResourceKind.Monitor &&
+      definition.isStatusPageHost === true
+    ) {
+      return false;
+    }
+
+    return definition.kinds.includes(kind);
+  });
 }
 
 // Whether the person gives the tool's address (it is not fixed here).

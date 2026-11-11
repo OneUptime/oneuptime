@@ -50675,5 +50675,9 @@
   "{{name}} acknowledged it in Mattermost after {{time}}.": "{{name}} подтвердил в Mattermost через {{time}}.",
   "{{name}} acknowledged it in Microsoft Teams after {{time}}.": "{{name}} подтвердил в Microsoft Teams через {{time}}.",
   "{{name}} acknowledged it in Slack after {{time}}.": "{{name}} подтвердил в Slack через {{time}}.",
-  "{{name}} acknowledged it.": "{{name}} подтвердил."
+  "{{name}} acknowledged it.": "{{name}} подтвердил.",
+  "Import from {{tools}}": "Импорт из {{tools}}",
+  "Import from {{tools}} and others": "Импорт из {{tools}} и других",
+  "Import from {{tool}}": "Импорт из {{tool}}",
+  "Show every tool": "Показать все инструменты"
 }

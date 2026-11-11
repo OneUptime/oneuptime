@@ -50675,5 +50675,9 @@
   "{{name}} acknowledged it in Mattermost after {{time}}.": "{{name}} hat sie nach {{time}} in Mattermost bestätigt.",
   "{{name}} acknowledged it in Microsoft Teams after {{time}}.": "{{name}} hat sie nach {{time}} in Microsoft Teams bestätigt.",
   "{{name}} acknowledged it in Slack after {{time}}.": "{{name}} hat sie nach {{time}} in Slack bestätigt.",
-  "{{name}} acknowledged it.": "{{name}} hat sie bestätigt."
+  "{{name}} acknowledged it.": "{{name}} hat sie bestätigt.",
+  "Import from {{tools}}": "Import aus {{tools}}",
+  "Import from {{tools}} and others": "Import aus {{tools}} und anderen",
+  "Import from {{tool}}": "Import aus {{tool}}",
+  "Show every tool": "Alle Tools anzeigen"
 }

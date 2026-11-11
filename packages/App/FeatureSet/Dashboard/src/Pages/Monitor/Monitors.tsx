@@ -13,8 +13,15 @@ import useCreatePageFirstRun, {
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 import PageMap from "../../Utils/PageMap";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import {
+  MONITORS_IMPORT_OFFER,
+  withToolImportOffer,
+} from "../../Components/ToolImport/ToolImportOffer";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const MonitorPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   // Until the first one, the page explains the product under the empty table.
   const firstRun: CreatePageFirstRun = useCreatePageFirstRun<Monitor>({
     modelType: Monitor,
@@ -44,7 +51,15 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           tableId: ALL_MONITORS_TABLE_ID,
         }}
         videoLink={URL.fromString("https://youtu.be/_fQ_F4EisBQ")}
-        emptyState={firstRun.emptyState}
+        /*
+         * Beside the empty list's Create, a link to bring the monitors over
+         * from UptimeRobot, Pingdom and the rest (ToolImportOffer).
+         */
+        emptyState={withToolImportOffer({
+          emptyState: firstRun.emptyState,
+          offer: MONITORS_IMPORT_OFFER,
+          translator: translator,
+        })}
         refreshToggle={firstRun.refreshToken}
       />
       {firstRun.showcase}

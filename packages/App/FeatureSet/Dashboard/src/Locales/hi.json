@@ -50675,5 +50675,9 @@
   "{{name}} acknowledged it in Mattermost after {{time}}.": "{{name}} ने {{time}} बाद Mattermost में स्वीकार किया।",
   "{{name}} acknowledged it in Microsoft Teams after {{time}}.": "{{name}} ने {{time}} बाद Microsoft Teams में स्वीकार किया।",
   "{{name}} acknowledged it in Slack after {{time}}.": "{{name}} ने {{time}} बाद Slack में स्वीकार किया।",
-  "{{name}} acknowledged it.": "{{name}} ने स्वीकार किया।"
+  "{{name}} acknowledged it.": "{{name}} ने स्वीकार किया।",
+  "Import from {{tools}}": "{{tools}} से इंपोर्ट करें",
+  "Import from {{tools}} and others": "{{tools}} और अन्य से इंपोर्ट करें",
+  "Import from {{tool}}": "{{tool}} से इंपोर्ट करें",
+  "Show every tool": "सभी टूल दिखाएं"
 }

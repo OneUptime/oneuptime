@@ -1,4 +1,10 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import {
+  ON_CALL_POLICIES_IMPORT_OFFER,
+  withToolImportOffer,
+} from "../../Components/ToolImport/ToolImportOffer";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import PageComponentProps from "../PageComponentProps";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -56,6 +62,7 @@ const canAddEscalationRules: () => boolean = (): boolean => {
 const OnCallDutyPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   // Until the first one, the page explains the product under the empty table.
   const firstRun: ProductFirstRun = useProductFirstRun<OnCallDutyPolicy>({
     modelType: OnCallDutyPolicy,
@@ -146,7 +153,15 @@ const OnCallDutyPage: FunctionComponent<
         userPreferencesKey="on-call-duty-table"
         customFieldsModelType={OnCallDutyPolicyCustomField}
         topContent={firstRun.getTopContent(filterBar)}
-        emptyState={firstRun.getEmptyState(facetEmptyState)}
+        /*
+         * Beside the empty list's Create, a link to bring the policies over
+         * from PagerDuty, Opsgenie and the rest (ToolImportOffer).
+         */
+        emptyState={withToolImportOffer({
+          emptyState: firstRun.getEmptyState(facetEmptyState),
+          offer: ON_CALL_POLICIES_IMPORT_OFFER,
+          translator: translator,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}

@@ -50675,5 +50675,9 @@
   "{{name}} acknowledged it in Mattermost after {{time}}.": "{{name}} پس از {{time}} در Mattermost آن را تأیید کرد.",
   "{{name}} acknowledged it in Microsoft Teams after {{time}}.": "{{name}} پس از {{time}} در Microsoft Teams آن را تأیید کرد.",
   "{{name}} acknowledged it in Slack after {{time}}.": "{{name}} پس از {{time}} در Slack آن را تأیید کرد.",
-  "{{name}} acknowledged it.": "{{name}} آن را تأیید کرد."
+  "{{name}} acknowledged it.": "{{name}} آن را تأیید کرد.",
+  "Import from {{tools}}": "درون‌ریزی از {{tools}}",
+  "Import from {{tools}} and others": "درون‌ریزی از {{tools}} و ابزارهای دیگر",
+  "Import from {{tool}}": "درون‌ریزی از {{tool}}",
+  "Show every tool": "نمایش همهٔ ابزارها"
 }

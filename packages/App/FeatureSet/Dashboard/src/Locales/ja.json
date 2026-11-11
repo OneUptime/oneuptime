@@ -50675,5 +50675,9 @@
   "{{name}} acknowledged it in Mattermost after {{time}}.": "{{name}} さんが {{time}} 後に Mattermost で確認しました。",
   "{{name}} acknowledged it in Microsoft Teams after {{time}}.": "{{name}} さんが {{time}} 後に Microsoft Teams で確認しました。",
   "{{name}} acknowledged it in Slack after {{time}}.": "{{name}} さんが {{time}} 後に Slack で確認しました。",
-  "{{name}} acknowledged it.": "{{name}} さんが確認しました。"
+  "{{name}} acknowledged it.": "{{name}} さんが確認しました。",
+  "Import from {{tools}}": "{{tools}} からインポート",
+  "Import from {{tools}} and others": "{{tools}} などからインポート",
+  "Import from {{tool}}": "{{tool}} からインポート",
+  "Show every tool": "すべてのツールを表示"
 }

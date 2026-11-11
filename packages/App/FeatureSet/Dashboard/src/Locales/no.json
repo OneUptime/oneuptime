@@ -50675,5 +50675,9 @@
   "{{name}} acknowledged it in Mattermost after {{time}}.": "{{name}} bekreftet den i Mattermost etter {{time}}.",
   "{{name}} acknowledged it in Microsoft Teams after {{time}}.": "{{name}} bekreftet den i Microsoft Teams etter {{time}}.",
   "{{name}} acknowledged it in Slack after {{time}}.": "{{name}} bekreftet den i Slack etter {{time}}.",
-  "{{name}} acknowledged it.": "{{name}} bekreftet den."
+  "{{name}} acknowledged it.": "{{name}} bekreftet den.",
+  "Import from {{tools}}": "Importer fra {{tools}}",
+  "Import from {{tools}} and others": "Importer fra {{tools}} og andre",
+  "Import from {{tool}}": "Importer fra {{tool}}",
+  "Show every tool": "Vis alle verktøy"
 }

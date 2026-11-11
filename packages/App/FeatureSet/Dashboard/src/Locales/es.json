@@ -50675,5 +50675,9 @@
   "{{name}} acknowledged it in Mattermost after {{time}}.": "{{name}} lo reconoció en Mattermost tras {{time}}.",
   "{{name}} acknowledged it in Microsoft Teams after {{time}}.": "{{name}} lo reconoció en Microsoft Teams tras {{time}}.",
   "{{name}} acknowledged it in Slack after {{time}}.": "{{name}} lo reconoció en Slack tras {{time}}.",
-  "{{name}} acknowledged it.": "{{name}} lo reconoció."
+  "{{name}} acknowledged it.": "{{name}} lo reconoció.",
+  "Import from {{tools}}": "Importar desde {{tools}}",
+  "Import from {{tools}} and others": "Importar desde {{tools}} y otras",
+  "Import from {{tool}}": "Importar desde {{tool}}",
+  "Show every tool": "Mostrar todas las herramientas"
 }

@@ -10,8 +10,16 @@ import {
   getDeveloperDocsPageKey,
 } from "../DeveloperDocs/DeveloperDocsPages";
 import { buildInventoryScopeQueryString } from "../Inventory/InventoryScope";
+import {
+  getToolImportQueryString,
+  ToolImportEntryPoint,
+} from "../ToolImport/ToolImportLinks";
 import IconProp from "Common/Types/Icon/IconProp";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
+import { getToolImportSourceDefinition } from "Common/Types/ToolImport/ToolImportCatalog";
+import ToolImportSource, {
+  AllToolImportSources,
+} from "Common/Types/ToolImport/ToolImportSource";
 
 /*
  * Every page Search (Cmd/Ctrl+K) can open, as the menus show them.
@@ -86,6 +94,18 @@ export interface PageSearchAction {
    * never lands on a page with what it was for hidden.
    */
   anchor?: string | undefined;
+  /*
+   * A query string the page reads to open on the action, with its "?", in
+   * place of the page's own: "Import from PagerDuty" opens the importer on
+   * PagerDuty's connect step.
+   */
+  queryString?: string | undefined;
+  /*
+   * Names put into the title's {{placeholders}} once it is translated -
+   * brands, never translated themselves: "Import from {{tool}}" with
+   * { tool: "PagerDuty" }.
+   */
+  titleValues?: Record<string, string> | undefined;
 }
 
 /*
@@ -184,6 +204,48 @@ const customFields: (page: PageMap, cardTitle?: string) => PageSearchPage = (
     ...(cardTitle ? { settings: [cardTitle] } : {}),
   };
 };
+
+/*
+ * "Import from PagerDuty": one action per tool on the importer's page, so
+ * typing the name of the tool a team is leaving finds the way to bring it
+ * over, and opens the importer on that tool's connect step (#6809). A
+ * tool's other names find it too. A tool whose name starts like another
+ * product's pages ("incident.io", Incidents) is left out: its action would
+ * come before those pages for "incident settings" (ToolImportWiring holds
+ * each one left out to that).
+ */
+export const TOOL_IMPORT_SEARCH_LEAVES_OUT: ReadonlyArray<ToolImportSource> = [
+  ToolImportSource.IncidentIo,
+];
+
+const TOOL_IMPORT_SEARCH_KEYWORDS: Partial<
+  Record<ToolImportSource, Array<string>>
+> = {
+  [ToolImportSource.SplunkOnCall]: ["victorops"],
+  [ToolImportSource.GrafanaOnCall]: ["grafana irm"],
+  [ToolImportSource.UptimeRobot]: ["uptime robot"],
+  [ToolImportSource.BetterStack]: ["betterstack", "better uptime"],
+  [ToolImportSource.AtlassianStatuspage]: ["statuspage.io"],
+};
+
+export const getToolImportSearchActions: () => Array<PageSearchAction> =
+  (): Array<PageSearchAction> => {
+    return AllToolImportSources.filter((source: ToolImportSource): boolean => {
+      return !TOOL_IMPORT_SEARCH_LEAVES_OUT.includes(source);
+    }).map((source: ToolImportSource): PageSearchAction => {
+      return {
+        id: `import-from-${source.toLowerCase()}`,
+        title: "Import from {{tool}}",
+        titleValues: { tool: getToolImportSourceDefinition(source).title },
+        icon: IconProp.InboxArrowDown,
+        keywords: TOOL_IMPORT_SEARCH_KEYWORDS[source] || [],
+        queryString: getToolImportQueryString({
+          from: ToolImportEntryPoint.Search,
+          tool: source,
+        }),
+      };
+    });
+  };
 
 const archived: PageFunction = (page: PageMap): PageSearchPage => {
   return { page, title: "Archived", icon: IconProp.Archive };
@@ -775,6 +837,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "uptime kuma",
             ],
             settings: ["Start a new import", "Earlier imports"],
+            actions: getToolImportSearchActions(),
           },
         ],
       },
