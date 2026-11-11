@@ -206,6 +206,7 @@ export default class RumProductAnalyticsSavedView extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ProductAnalyticsSavedViewType),
     canReadOnRelationQuery: true,
     title: "View Type",
     description:

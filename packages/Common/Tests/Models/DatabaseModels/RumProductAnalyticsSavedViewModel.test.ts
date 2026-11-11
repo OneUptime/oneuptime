@@ -176,6 +176,18 @@ describe("RumProductAnalyticsSavedView", () => {
     }
   });
 
+  /*
+   * The API reference, MCP's schemas and the Terraform provider offer a
+   * text column's values when it says them (ColumnAllowedValues): a saved
+   * view is a funnel or a retention table, and nothing else is kept.
+   */
+  test("says the two kinds it can be, as the API offers them", () => {
+    expect(model.getTableColumnMetadata("viewType").allowedValues).toEqual([
+      "funnel",
+      "retention",
+    ]);
+  });
+
   test("goes with its project and its application, and outlives who saved it", () => {
     expect(findRelation("project")?.options.onDelete).toBe("CASCADE");
     expect(findRelation("rumApplication")?.options.onDelete).toBe("CASCADE");
