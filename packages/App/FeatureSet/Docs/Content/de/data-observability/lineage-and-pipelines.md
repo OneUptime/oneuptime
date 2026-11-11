@@ -128,5 +128,5 @@ Wer die Warnung, die sie verursacht hat, nicht sehen darf, bekommt weder die Kar
 
 :::cards
 - [Datenprodukte](/docs/data-observability/data-products): Aktualitäts-SLAs für die Tabellen, die Menschen nutzen.
-- [OneUptime AI und die API](/docs/data-observability/ai-and-api): Untersuchungen, die bei dem beginnen, was in eine Tabelle schreibt, und bei ihren Läufen.
+- [OneUptime AI und die API](/docs/data-observability/ai-and-api): Untersuchungen, die bei dem beginnen, was in eine Tabelle schreibt, und bei ihren Läufen. In KI fragen und über KI-Agenten lässt sich fragen, woraus eine Tabelle erstellt wird.
 :::

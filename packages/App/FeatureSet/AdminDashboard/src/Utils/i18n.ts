@@ -4,6 +4,11 @@ import { initReactI18next } from "react-i18next";
 import { toDetectedLanguage } from "Common/Types/ReaderLanguage";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
+import {
+  CODE_READS_AS_WRITTEN_POST_PROCESSOR,
+  codeReadsAsWrittenPostProcessor,
+  leaveIsolatesOutOfCopiedText,
+} from "Common/UI/Utils/CodeReadsAsWritten";
 
 import {
   AdminDashboardLanguage,
@@ -74,7 +79,14 @@ const convertDetectedLanguage: (lng: string) => string = (
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
+  .use(codeReadsAsWrittenPostProcessor)
   .init({
+    /*
+     * Code in an Arabic or Persian sentence drawn as it is written. Not
+     * the installation's own name: the license this dashboard manages
+     * names its licensor (ProductNameTranslation).
+     */
+    postProcess: [CODE_READS_AS_WRITTEN_POST_PROCESSOR],
     resources: {
       en: { translation: en },
       de: { translation: de },
@@ -117,5 +129,8 @@ followLanguageForDates(i18n);
  * reads the page in it, and a Persian or Arabic page reads right to left.
  */
 followLanguageForPage(i18n);
+
+// Code copied from a sentence pastes without the marks that set it apart.
+leaveIsolatesOutOfCopiedText();
 
 export default i18n;

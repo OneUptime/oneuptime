@@ -49934,6 +49934,8 @@
   "Raise or remove the limit under More settings, or wait until midnight UTC, when it resets.": "在“更多设置”中提高或清除上限，或等到上限重置的 UTC 午夜。",
   "Raise “{{settingName}}” above 0 under More settings, or clear it.": "在“更多设置”中将“{{settingName}}”提高到 0 以上，或清空该字段。",
   "Raise “{{settingName}}” under More settings, or wait until midnight UTC, when usage resets.": "在“更多设置”中提高“{{settingName}}”，或等到用量重置的 UTC 午夜。",
+  "Read a table's lineage": "读取了某张表的血缘",
+  "Reading a table's lineage": "正在读取表的血缘",
   "Resolved before the investigation started": "在调查开始前已解决",
   "Set up an LLM provider for the project.": "为项目设置 LLM 提供商。",
   "Severity is below the minimum for AI investigation": "严重程度低于 AI 调查的最低要求",

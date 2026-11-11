@@ -37,7 +37,7 @@ flowchart TB
 - **不需逐一設定資料表。** 節奏、排程和通常的執行時間，都從每個資料表和管線的實際行為中學習而來；為某個資料庫建議的監測器會涵蓋其中的每個資料表，包括日後建立的資料表。
 - **一個原因只有一個警示。** 如果某個警示的上游資料表、管線或資料庫已有一個開啟的警示，它會作為後果加入該警示，並且已被確認，因此一次失敗的載入只會呼叫一次。
 - **每個警示都會自行說明。** 它會對可能的原因排序，說明有哪些項目依賴該資料表以及誰擁有它，並從你對它的回應中學習：把某個警示標示為 **不是問題**，下一次同樣的情況就會保持安靜。
-- **OneUptime AI 了解你的資料。** 資料警示的調查從資料表的寫入者、執行和上游資料表開始；詢問 AI、Slack、Microsoft Teams 和 AI 代理都能查詢某個資料表是否新鮮；還能用一句話撰寫檢查。請參閱 [OneUptime AI 與 API](/docs/data-observability/ai-and-api)。
+- **OneUptime AI 了解你的資料。** 資料警示的調查從資料表的寫入者、執行和血緣開始；詢問 AI、Slack、Microsoft Teams 和 AI 代理都能查詢某個資料表是否新鮮、由什麼建置；還能用一句話撰寫檢查。請參閱 [OneUptime AI 與 API](/docs/data-observability/ai-and-api)。
 
 ## 開始之前
 
@@ -80,5 +80,5 @@ flowchart TB
 - [檢查與對帳](/docs/data-observability/checks): 針對資料表值的規則、資料表與其複本的比較，以及 dbt 的測試。
 - [血緣與管線](/docs/data-observability/lineage-and-pipelines): OpenLineage、dbt、Fivetran 和 Airbyte，以及一個原因只有一個警示。
 - [資料產品](/docs/data-observability/data-products): 為使用資料的人提供的新鮮度 SLA，顯示在狀態頁面上並作為 SLO 追蹤。
-- [OneUptime AI 與 API](/docs/data-observability/ai-and-api): 調查、用一句話撰寫檢查、供 AI 代理使用的新鮮度，以及每個端點。
+- [OneUptime AI 與 API](/docs/data-observability/ai-and-api): 調查、用一句話撰寫檢查、供 AI 代理使用的新鮮度與血緣，以及每個端點。
 :::

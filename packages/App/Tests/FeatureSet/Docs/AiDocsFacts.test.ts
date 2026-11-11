@@ -2195,6 +2195,7 @@ describe("MCP Server", () => {
           "add_incident_note",
           "add_alert_note",
           "get_data_table_freshness",
+          "get_data_table_lineage",
           "oneuptime_whoami",
         ],
       ],

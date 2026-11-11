@@ -49934,6 +49934,8 @@
   "Raise or remove the limit under More settings, or wait until midnight UTC, when it resets.": "Aumente ou remova o limite em Mais configurações, ou espere até a meia-noite UTC, quando ele é reiniciado.",
   "Raise “{{settingName}}” above 0 under More settings, or clear it.": "Aumente \"{{settingName}}\" para acima de 0 em Mais configurações, ou deixe o campo vazio.",
   "Raise “{{settingName}}” under More settings, or wait until midnight UTC, when usage resets.": "Aumente \"{{settingName}}\" em Mais configurações, ou espere até a meia-noite UTC, quando o uso é reiniciado.",
+  "Read a table's lineage": "Leu a linhagem de uma tabela",
+  "Reading a table's lineage": "Lendo a linhagem de uma tabela",
   "Resolved before the investigation started": "Resolvido antes de a investigação começar",
   "Set up an LLM provider for the project.": "Configure um provedor de LLM para o projeto.",
   "Severity is below the minimum for AI investigation": "A gravidade está abaixo do mínimo para a investigação com IA",

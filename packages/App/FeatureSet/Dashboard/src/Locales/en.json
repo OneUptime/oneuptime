@@ -49934,6 +49934,8 @@
   "Raise or remove the limit under More settings, or wait until midnight UTC, when it resets.": "Raise or remove the limit under More settings, or wait until midnight UTC, when it resets.",
   "Raise “{{settingName}}” above 0 under More settings, or clear it.": "Raise “{{settingName}}” above 0 under More settings, or clear it.",
   "Raise “{{settingName}}” under More settings, or wait until midnight UTC, when usage resets.": "Raise “{{settingName}}” under More settings, or wait until midnight UTC, when usage resets.",
+  "Read a table's lineage": "Read a table's lineage",
+  "Reading a table's lineage": "Reading a table's lineage",
   "Resolved before the investigation started": "Resolved before the investigation started",
   "Set up an LLM provider for the project.": "Set up an LLM provider for the project.",
   "Severity is below the minimum for AI investigation": "Severity is below the minimum for AI investigation",

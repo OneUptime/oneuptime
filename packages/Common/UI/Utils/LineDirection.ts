@@ -1,7 +1,10 @@
 import {
   getReadingDirection,
   getTextReadingDirectionByMostLetters,
+  hasEnglishWords,
+  hasRightToLeftWords,
   ReadingDirection,
+  RIGHT_TO_LEFT,
 } from "../../Types/ReadingDirection";
 
 /*
@@ -85,4 +88,46 @@ export const getLineDirection: (
   }
 
   return direction;
+};
+
+/*
+ * A LINE OF THE PRODUCT'S OWN WORDS - a help line, the sentence under a
+ * title, an error - in the reader's language or, not worded in it yet, in
+ * English: the dir a box that holds it needs.
+ *
+ * On a page read from the right, a line with right-to-left words of its
+ * own (hasRightToLeftWords) is in the page's language: an Arabic or Persian
+ * sentence, however many names it gives in Latin letters. Read by most of
+ * their letters (getLineDirection), the SMTP server's help that names
+ * smtp.office365.com (Microsoft 365) and smtp.gmail.com (Google), and the
+ * Arabic two-factor card's line that names 1Password, Google Authenticator
+ * and Microsoft Authenticator, read left to right: laid out from the left,
+ * their words came out in the wrong order. Such a line is drawn as the
+ * page draws its lines. Any other - an English sentence not worded yet, an
+ * English answer from the server, a line on a page read from the left -
+ * reads the way getLineDirection says. So does an English sentence that
+ * quotes a name typed in Arabic or Persian letters, which has right-to-left
+ * letters of its own too: "Runner "قناة الطوارئ" is offline." drawn the
+ * page's way put its full stop first and its words out of order. Its small
+ * English words ("is", "the", "already") tell it apart (hasEnglishWords).
+ *
+ * A value someone typed - a name, a title, a note - is not the page's
+ * words, and reads by most of its letters wherever it is shown.
+ */
+export const getTranslatedLineDirection: (
+  text: string | null | undefined,
+  pageLanguage: string | null | undefined,
+) => ReadingDirection | undefined = (
+  text: string | null | undefined,
+  pageLanguage: string | null | undefined,
+): ReadingDirection | undefined => {
+  if (
+    getReadingDirection(pageLanguage) === RIGHT_TO_LEFT &&
+    hasRightToLeftWords(text) &&
+    !hasEnglishWords(text)
+  ) {
+    return undefined;
+  }
+
+  return getLineDirection(text, pageLanguage);
 };

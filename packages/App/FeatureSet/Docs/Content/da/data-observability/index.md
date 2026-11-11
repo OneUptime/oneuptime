@@ -37,7 +37,7 @@ flowchart TB
 - **Intet at konfigurere pr. tabel.** Rytmer, tidsplaner og sædvanlige kørselstider læres ud fra det, hver tabel og pipeline gør, og en monitor, der anbefales for en database, dækker hver tabel i den, også dem, der oprettes senere.
 - **Én advarsel pr. årsag.** En advarsel, hvis opstrøms tabel, pipeline eller database allerede har en åben advarsel, slutter sig til den advarsel som dens følge, allerede bekræftet, så en mislykket indlæsning kun tilkalder nogen én gang.
 - **Hver advarsel forklarer sig selv.** Den rangerer den sandsynlige årsag, siger, hvad der afhænger af tabellen, og hvem der ejer den, og lærer af det, du siger om den: marker en som **Ikke et problem**, og det samme forbliver stille næste gang.
-- **OneUptime AI kender dine data.** Undersøgelser af dataadvarsler tager udgangspunkt i tabellens skrivere, kørsler og opstrøms tabeller; i Spørg AI, Slack, Microsoft Teams og via AI-agenter kan du spørge, om en tabel er opdateret; og et tjek kan skrives ud fra en sætning. Se [OneUptime AI og API'et](/docs/data-observability/ai-and-api).
+- **OneUptime AI kender dine data.** Undersøgelser af dataadvarsler tager udgangspunkt i tabellens skrivere, kørsler og afstamning; i Spørg AI, Slack, Microsoft Teams og via AI-agenter kan du spørge, om en tabel er opdateret, og hvad den er bygget af; og et tjek kan skrives ud fra en sætning. Se [OneUptime AI og API'et](/docs/data-observability/ai-and-api).
 
 ## Før du begynder
 
@@ -80,5 +80,5 @@ En selvhostet OneUptime betaler ikke for tabeller.
 - [Kontroller og afstemninger](/docs/data-observability/checks): Regler for en tabels værdier, sammenligning af en tabel med dens kopi og dbt's tests.
 - [Afstamning og pipelines](/docs/data-observability/lineage-and-pipelines): OpenLineage, dbt, Fivetran og Airbyte og én advarsel pr. årsag.
 - [Dataprodukter](/docs/data-observability/data-products): Aktualitets-SLA'er for dem, der bruger data, på statussider og som SLO'er.
-- [OneUptime AI og API'et](/docs/data-observability/ai-and-api): Undersøgelser, et tjek ud fra en sætning, aktualitet for AI-agenter og hvert endpoint.
+- [OneUptime AI og API'et](/docs/data-observability/ai-and-api): Undersøgelser, et tjek ud fra en sætning, aktualitet og afstamning for AI-agenter og hvert endpoint.
 :::

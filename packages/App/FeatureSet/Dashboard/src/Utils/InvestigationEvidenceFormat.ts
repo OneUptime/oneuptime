@@ -363,6 +363,15 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       category: "Data observability",
     },
   ],
+  // What a watched table is built from, and what is built from it.
+  [
+    "get_data_table_lineage",
+    {
+      description: "Read a table's lineage",
+      icon: IconProp.Workflow,
+      category: "Data observability",
+    },
+  ],
   // Real user monitoring: the applications, and their web vitals.
   [
     "query_rum_applications",
@@ -926,6 +935,8 @@ const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
   [AIChatCitationTargetType.DataStores]: translationKey("Data stores"),
   [AIChatCitationTargetType.DataStoreView]: translationKey("Data store"),
   [AIChatCitationTargetType.DataTableView]: translationKey("Data table"),
+  // The table's Lineage tab, by the tab's own name.
+  [AIChatCitationTargetType.DataTableLineageView]: translationKey("Lineage"),
   [AIChatCitationTargetType.DataSecurityIssues]: translationKey(
     "Data security issues",
   ),

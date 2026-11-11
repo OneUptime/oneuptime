@@ -49934,6 +49934,8 @@
   "Raise or remove the limit under More settings, or wait until midnight UTC, when it resets.": "추가 설정에서 한도를 높이거나 지우세요. 아니면 한도가 초기화되는 UTC 자정까지 기다리세요.",
   "Raise “{{settingName}}” above 0 under More settings, or clear it.": "추가 설정에서 \"{{settingName}}\"을(를) 0보다 크게 설정하거나 비워 두세요.",
   "Raise “{{settingName}}” under More settings, or wait until midnight UTC, when usage resets.": "추가 설정에서 \"{{settingName}}\"을(를) 높이세요. 아니면 사용량이 초기화되는 UTC 자정까지 기다리세요.",
+  "Read a table's lineage": "테이블의 계보를 읽음",
+  "Reading a table's lineage": "테이블의 계보를 읽는 중",
   "Resolved before the investigation started": "조사가 시작되기 전에 해결됨",
   "Set up an LLM provider for the project.": "프로젝트에 LLM 공급자를 설정하세요.",
   "Severity is below the minimum for AI investigation": "심각도가 AI 조사 최소 기준보다 낮습니다",

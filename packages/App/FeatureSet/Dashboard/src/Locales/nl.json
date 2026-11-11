@@ -49934,6 +49934,8 @@
   "Raise or remove the limit under More settings, or wait until midnight UTC, when it resets.": "Verhoog of wis de limiet onder Meer instellingen, of wacht tot middernacht UTC, wanneer die wordt teruggezet.",
   "Raise “{{settingName}}” above 0 under More settings, or clear it.": "Verhoog ‘{{settingName}}’ tot boven 0 onder Meer instellingen, of maak het veld leeg.",
   "Raise “{{settingName}}” under More settings, or wait until midnight UTC, when usage resets.": "Verhoog ‘{{settingName}}’ onder Meer instellingen, of wacht tot middernacht UTC, wanneer het gebruik wordt teruggezet.",
+  "Read a table's lineage": "Las de herkomst van een tabel",
+  "Reading a table's lineage": "De herkomst van een tabel lezen",
   "Resolved before the investigation started": "Opgelost voordat het onderzoek begon",
   "Set up an LLM provider for the project.": "Stel een LLM-provider in voor het project.",
   "Severity is below the minimum for AI investigation": "De ernst ligt onder het minimum voor AI-onderzoek",

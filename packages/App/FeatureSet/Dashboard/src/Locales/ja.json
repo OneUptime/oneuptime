@@ -49934,6 +49934,8 @@
   "Raise or remove the limit under More settings, or wait until midnight UTC, when it resets.": "「その他の設定」で上限を引き上げるか解除するか、上限がリセットされる UTC の午前 0 時まで待ちます。",
   "Raise “{{settingName}}” above 0 under More settings, or clear it.": "「その他の設定」で「{{settingName}}」を 0 より大きくするか、空欄にします。",
   "Raise “{{settingName}}” under More settings, or wait until midnight UTC, when usage resets.": "「その他の設定」で「{{settingName}}」を引き上げるか、使用量がリセットされる UTC の午前 0 時まで待ちます。",
+  "Read a table's lineage": "テーブルのリネージを読み取りました",
+  "Reading a table's lineage": "テーブルのリネージを読み取り中",
   "Resolved before the investigation started": "調査の開始前に解決済み",
   "Set up an LLM provider for the project.": "プロジェクトに LLM プロバイダーを設定します。",
   "Severity is below the minimum for AI investigation": "重大度が AI 調査の最小値を下回っています",

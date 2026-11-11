@@ -2,10 +2,12 @@ import i18n, { BackendModule, ReadCallback, ResourceKey } from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
 import { toDetectedLanguage } from "Common/Types/ReaderLanguage";
+import { productNamePostProcessor } from "Common/UI/Utils/ProductNameTranslation";
 import {
-  getProductNamePostProcess,
-  productNamePostProcessor,
-} from "Common/UI/Utils/ProductNameTranslation";
+  codeReadsAsWrittenPostProcessor,
+  getTranslationPostProcess,
+  leaveIsolatesOutOfCopiedText,
+} from "Common/UI/Utils/CodeReadsAsWritten";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 
@@ -112,9 +114,13 @@ export const i18nReady: Promise<void> = i18n
   .use(lazyLocaleBackend)
   .use(initReactI18next)
   .use(productNamePostProcessor)
+  .use(codeReadsAsWrittenPostProcessor)
   .init({
-    // The installation's own name in every sentence, when it has one.
-    postProcess: getProductNamePostProcess(),
+    /*
+     * The installation's own name in every sentence, when it has one, and
+     * code in an Arabic or Persian sentence drawn as it is written.
+     */
+    postProcess: getTranslationPostProcess(),
     resources: {
       en: { translation: en },
     },
@@ -147,6 +153,9 @@ followLanguageForPage(i18n);
 
 // Dates, times and durations in the reader's language too.
 followLanguageForDates(i18n);
+
+// Code copied from a sentence pastes without the marks that set it apart.
+leaveIsolatesOutOfCopiedText();
 
 export const applyStatusPageLanguageSettings: (settings: {
   defaultLanguage?: string | null | undefined;

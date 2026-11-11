@@ -128,5 +128,5 @@ När en pull request ändrar en bevakad tabell säger [Produktionsgranskning](/d
 
 :::cards
 - [Dataprodukter](/docs/data-observability/data-products): Aktualitets-SLA:er över de tabeller som människor använder.
-- [OneUptime AI och API:t](/docs/data-observability/ai-and-api): Utredningar som utgår från en tabells skrivare och körningar.
+- [OneUptime AI och API:t](/docs/data-observability/ai-and-api): Utredningar som utgår från en tabells skrivare och körningar. I Fråga AI och via AI-agenter kan du fråga vad en tabell byggs av.
 :::

@@ -49934,6 +49934,8 @@
   "Raise or remove the limit under More settings, or wait until midnight UTC, when it resets.": "Повысьте или уберите лимит в разделе «Дополнительные настройки» или дождитесь полуночи по UTC, когда он сбрасывается.",
   "Raise “{{settingName}}” above 0 under More settings, or clear it.": "Повысьте «{{settingName}}» выше 0 в разделе «Дополнительные настройки» или очистите это поле.",
   "Raise “{{settingName}}” under More settings, or wait until midnight UTC, when usage resets.": "Повысьте «{{settingName}}» в разделе «Дополнительные настройки» или дождитесь полуночи по UTC, когда расход сбрасывается.",
+  "Read a table's lineage": "Прочитал происхождение таблицы",
+  "Reading a table's lineage": "Чтение происхождения таблицы",
   "Resolved before the investigation started": "Устранено до начала расследования",
   "Set up an LLM provider for the project.": "Настройте провайдера LLM для проекта.",
   "Severity is below the minimum for AI investigation": "Серьёзность ниже минимальной для расследования ИИ",

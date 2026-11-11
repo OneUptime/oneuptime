@@ -49934,6 +49934,8 @@
   "Raise or remove the limit under More settings, or wait until midnight UTC, when it resets.": "Hev eller fjern grensen under Flere innstillinger, eller vent til midnatt UTC, når den nullstilles.",
   "Raise “{{settingName}}” above 0 under More settings, or clear it.": "Hev «{{settingName}}» til over 0 under Flere innstillinger, eller tøm feltet.",
   "Raise “{{settingName}}” under More settings, or wait until midnight UTC, when usage resets.": "Hev «{{settingName}}» under Flere innstillinger, eller vent til midnatt UTC, når forbruket nullstilles.",
+  "Read a table's lineage": "Leste opphavet til en tabell",
+  "Reading a table's lineage": "Leser opphavet til en tabell",
   "Resolved before the investigation started": "Løst før undersøkelsen startet",
   "Set up an LLM provider for the project.": "Konfigurer en LLM-leverandør for prosjektet.",
   "Severity is below the minimum for AI investigation": "Alvorlighetsgraden er under minimum for AI-undersøkelse",

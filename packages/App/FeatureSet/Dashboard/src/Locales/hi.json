@@ -49934,6 +49934,8 @@
   "Raise or remove the limit under More settings, or wait until midnight UTC, when it resets.": "\"और सेटिंग्स\" में सीमा बढ़ाएं या हटाएं, या UTC आधी रात तक प्रतीक्षा करें, जब यह रीसेट होती है।",
   "Raise “{{settingName}}” above 0 under More settings, or clear it.": "\"और सेटिंग्स\" में \"{{settingName}}\" को 0 से ऊपर करें, या फ़ील्ड खाली कर दें।",
   "Raise “{{settingName}}” under More settings, or wait until midnight UTC, when usage resets.": "\"और सेटिंग्स\" में \"{{settingName}}\" बढ़ाएं, या UTC आधी रात तक प्रतीक्षा करें, जब उपयोग रीसेट होता है।",
+  "Read a table's lineage": "एक टेबल की वंशावली पढ़ी",
+  "Reading a table's lineage": "किसी टेबल की वंशावली पढ़ी जा रही है",
   "Resolved before the investigation started": "जांच शुरू होने से पहले सुलझ गया",
   "Set up an LLM provider for the project.": "प्रोजेक्ट के लिए कोई LLM प्रदाता सेट करें।",
   "Severity is below the minimum for AI investigation": "गंभीरता AI जांच के न्यूनतम स्तर से कम है",

@@ -339,6 +339,8 @@ Das Tool **`oneuptime_whoami`** gibt das Projekt zurück, zu dem Ihre Zugangsdat
 
 Das Tool **`get_data_table_freshness`** sagt einem Agenten, ob eine Tabelle, die Data Observability überwacht, aktuell ist, bevor er ihre Daten verwendet: aktuell oder verspätet gemessen am eigenen Rhythmus der Tabelle, wann sie sich zuletzt geändert hat, ihre offenen Alerts und wie der letzte Lauf jeder Pipeline verlief, die sie schreibt. Übergeben Sie `table` als `schema.table`, nur den Namen der Tabelle oder ihre ID. Es ändert nichts.
 
+Das Tool **`get_data_table_lineage`** sagt einem Agenten, woraus eine überwachte Tabelle erstellt wird und was aus ihr erstellt wird, bevor er die Tabelle ändert oder ihren Daten vertraut: die vor- und nachgelagerten Tabellen, die verspätet oder gelöscht sind, offene Alerts haben oder deren Pipeline beim letzten Lauf fehlgeschlagen ist, die nächsten zuerst, jede mit der Zahl der Schritte bis zu ihr, dann die übrigen, die Pipelines, die ihre Quellen von außerhalb laden, und die BI-Dashboards, die auf ihr aufbauen. Es geht drei Schritte in jede Richtung, mit `depth` bis zu fünf. Übergeben Sie `table` wie für `get_data_table_freshness`. Es ändert nichts.
+
 ## Telemetrie abfragen
 
 Logs, Metriken, Traces (Spans), Ausnahmen, Monitor-Logs und die anderen Arten von Telemetrie gibt es als nur lesende Tools `list_` und `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` und ihre `count_`-Gegenstücke). Telemetrie kommt über OpenTelemetry herein, daher gibt es keine Tools zum Anlegen.
