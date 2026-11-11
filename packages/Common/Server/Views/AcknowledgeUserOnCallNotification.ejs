@@ -32,11 +32,21 @@
 
                                     <div>
                                         <div class="mt-6">
-                                            <a href="<%= acknowledgeUrl %>"
+                                            <a href="<%= acknowledgeUrl %>" data-testid="acknowledge"
                                                 class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-yellow-500">
                                                 <%= acknowledgeText %>
                                             </a>
                                         </div>
+
+                                        <%# "View Incident": the record in the Dashboard, to look at before acknowledging - or after. None for a notification that points at nothing. -%>
+                                        <% if (typeof viewDetailsUrl !== 'undefined' && viewDetailsUrl) { %>
+                                        <div class="mt-3">
+                                            <a href="<%= viewDetailsUrl %>" data-testid="view-details"
+                                                class="w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-gray-500">
+                                                <%= viewDetailsText %>
+                                            </a>
+                                        </div>
+                                        <% } %>
                                     </div>
 
                                     <%# "Can't take it? Escalate": only for a link that carries the page's own token, while the page is the person's to escalate. -%>

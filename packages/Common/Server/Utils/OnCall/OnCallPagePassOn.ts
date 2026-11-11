@@ -55,6 +55,7 @@ import OnCallAcknowledgementTimeout, {
 } from "./OnCallAcknowledgementTimeout";
 import { isOnCallPageAgainRun } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { isOnCallObserverPage } from "../../../Types/OnCallDutyPolicy/OnCallObserverPage";
+import { isOnCallPersonPage } from "../../../Types/OnCallDutyPolicy/OnCallPersonPage";
 
 /*
  * PASSING A PAGE ON - THE SERVER SIDE OF "CAN'T TAKE IT? ESCALATE."
@@ -119,6 +120,12 @@ const RUN_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
   // A page again is taken when it is acknowledged, not its record.
   pageAgainNumber: true,
   acknowledgedAt: true,
+  /*
+   * So is a page a person asked for (OnCallPersonPage), told apart by these
+   * two with onCallDutyPolicyId above: all three, as isOnCallPersonPage asks.
+   */
+  triggeredByUserId: true,
+  triggeredByWorkflowId: true,
   // An observer's page says so in the open pages (OnCallObserverPage).
   isObserverPage: true,
   onCallDutyPolicy: {
@@ -714,11 +721,21 @@ export default class OnCallPagePassOn {
    * was acknowledged all along: it is taken once somebody acknowledges the
    * page again itself, or the record is resolved (or gone). Until then its
    * people can escalate it like any page.
+   *
+   * So is a page a person asked for from Slack or Microsoft Teams
+   * (OnCallPersonPage): it is mostly a page into an incident somebody is on
+   * already, and the workers keep paging its people until one of them
+   * answers it or the record is resolved (endsWhenAnsweredOrResolved).
+   * Read as taken because the record was acknowledged, its people were
+   * refused "already acknowledged, so there is nothing to escalate" while
+   * it went on calling them (https://github.com/OneUptime/oneuptime/issues/6710).
+   * An observer's page is left as it was: observers are told, not asked to
+   * take it, and are offered nothing to escalate.
    */
   private static async isRecordAcknowledged(
     run: OnCallDutyPolicyExecutionLog,
   ): Promise<boolean> {
-    if (isOnCallPageAgainRun(run)) {
+    if (isOnCallPageAgainRun(run) || isOnCallPersonPage(run)) {
       if (run.acknowledgedAt) {
         return true;
       }
