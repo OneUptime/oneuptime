@@ -11,6 +11,7 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
   DATA_OBSERVABILITY_API_ROUTES,
+  DataObservabilityBiRefreshAlertResponse,
   DataObservabilityBiSyncResponse,
   DataObservabilityCheckAlertResponse,
   DataObservabilityCheckHealthRequest,
@@ -198,6 +199,17 @@ export default class DataObservabilityApi {
       dataAssetId: dataAssetId.toString(),
       sentence,
     })) as unknown as DataObservabilityCheckSuggestion;
+  }
+
+  // Makes the BI tool's monitor on failed refreshes match it, as the person who saved it.
+  public static async syncBiRefreshAlert(
+    dataBiConnectionId: ObjectID,
+  ): Promise<DataObservabilityBiRefreshAlertResponse> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.biRefreshAlert(
+        dataBiConnectionId.toString(),
+      ),
+    )) as unknown as DataObservabilityBiRefreshAlertResponse;
   }
 
   // Reads a BI tool's dashboards now, and says how it went.
