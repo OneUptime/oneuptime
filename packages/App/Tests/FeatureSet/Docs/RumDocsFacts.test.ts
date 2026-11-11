@@ -1226,11 +1226,18 @@ describe("Core Web Vitals", () => {
     }
 
     /*
-     * No translation lookup in the card: every language's card draws its
-     * ratings in English, whatever words another screen gave the locales
-     * (a showcase's Good, #5289).
+     * No translation lookup in the ratings: every language's card draws
+     * them in English, whatever words another screen gave the locales (a
+     * showcase's Good, #5289). The card's own title and empty state are
+     * the reader's language (#6658); the chips are not.
      */
-    expect(card).not.toMatch(/useTranslat|translateString|translateTerm/);
+    const ratingLabelBody: string =
+      card.split("export const ratingLabel")[1]?.split("\n};")[0] || "";
+
+    expect(ratingLabelBody).toContain('return "Good";');
+    expect(ratingLabelBody).not.toMatch(
+      /useTranslat|translateString|translateTerm|translateText|translator/,
+    );
 
     for (const row of table.slice(1)) {
       const vital: WebVitalDefinition = definition(
@@ -1362,8 +1369,12 @@ describe("Core Web Vitals", () => {
     const card: string = source("routeBreakdownCard");
 
     expect(WebVitalRouteAttributeKeys).toEqual(["app.route", "url.template"]);
+    // The card's title, "INP by route", in the reader's language (#6658).
     expect(card).toContain(
-      "const title: string = `${props.vital.key.toUpperCase()} by route`;",
+      "const vitalName: string = props.vital.key.toUpperCase();",
+    );
+    expect(card).toContain(
+      'const title: string = translator.translateTemplate("{{vital}} by route", {',
     );
     expect(card).toContain(
       `export const WEB_VITALS_DOCS_URL: string =\n  "/docs/${WEB_VITALS}#single-page-apps";`,

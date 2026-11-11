@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 49779,
-    "untranslated": 5845
+    "keys": 50206,
+    "untranslated": 5693
   },
   "sameAsEnglish": [
     " incidents",
@@ -58,6 +58,7 @@
     "Agenda",
     "Agent",
     "Agents",
+    "Airbyte",
     "Alias",
     "Amazon EKS",
     "Amphora",
@@ -210,6 +211,7 @@
     "Fatal",
     "Favicon",
     "First Contentful Paint",
+    "Fivetran",
     "Fluent Bit",
     "Format",
     "Frames",
@@ -242,6 +244,7 @@
     "H3",
     "HAProxy",
     "HH",
+    "HTTP {{status}}",
     "HackerBay, Inc.",
     "Hello world",
     "Hertz",
@@ -399,6 +402,7 @@
     "PVC",
     "Page",
     "Page {{current}}",
+    "Page {{number}}",
     "Page {{page}}",
     "Pages",
     "Parent",
@@ -477,6 +481,7 @@
     "Source",
     "Source Map",
     "Source Maps",
+    "Source {{alias}}",
     "Sources",
     "Span",
     "Spans",
@@ -500,6 +505,7 @@
     "Trace {{traceId}}",
     "Traces",
     "Traits",
+    "Transition",
     "Transport",
     "Tunnel",
     "Type",
@@ -579,6 +585,7 @@
     "frustration",
     "goroutines",
     "govc",
+    "history {{kind}}",
     "horizontal pod autoscaler",
     "id",
     "image",
@@ -630,6 +637,7 @@
     "prod-eu",
     "prod-vcenter",
     "public",
+    "rage click",
     "ratio",
     "ratio {{ratio}}",
     "recordset",

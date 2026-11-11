@@ -8,6 +8,8 @@ import MonitorSummaryProbeUtil, {
   AttachedProbe,
 } from "Common/Utils/Monitor/MonitorSummaryProbeUtil";
 import React, { FunctionComponent, ReactElement, useId } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * How the picker sits in the Monitor Summary card's header.
@@ -57,6 +59,7 @@ const ProbePicker: FunctionComponent<ComponentProps> = (
    * accessible name at all.
    */
   const fieldLabelId: string = useId();
+  const translator: Translator = useTranslator();
 
   const disabledProbeIdSet: Set<string> = new Set(props.disabledProbeIds || []);
 
@@ -71,6 +74,7 @@ const ProbePicker: FunctionComponent<ComponentProps> = (
           isEnabled: !disabledProbeIdSet.has(id),
         };
       }),
+      translator: translator,
     });
 
   return (

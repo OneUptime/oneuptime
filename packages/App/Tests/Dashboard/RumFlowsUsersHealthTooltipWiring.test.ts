@@ -186,10 +186,11 @@ const USAGE_METER_PATTERN: RegExp =
   /<UsageMeterRow\s+label="([^"]+)"\s+tooltip=\{\s*RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS\.(\w+)\s*\}/g;
 /*
  * A detail-panel figure: <Stat label="..." or label={...}, then its tooltip.
- * The label is captured raw, so a template label reads as its source.
+ * The label is captured raw, so a template label reads as its source; it is
+ * matched in the squashed source, as a translated label spans lines.
  */
 const DETAIL_STAT_PATTERN: RegExp =
-  /<Stat\s+label=(\{[^\n]+\}|"[^"]+")\s+tooltip=\{RUM_USER_FLOW_METRIC_DESCRIPTIONS\.(\w+)\}/g;
+  /<Stat label=(\{[^<>]*?\}|"[^"]+") tooltip=\{RUM_USER_FLOW_METRIC_DESCRIPTIONS\.(\w+)\}/g;
 const DETAIL_LIST_PATTERN: RegExp =
   /<NeighbourList\s+title="([^"]+)"\s+tooltip=\{RUM_USER_FLOW_METRIC_DESCRIPTIONS\.(\w+)\}/g;
 
@@ -233,8 +234,12 @@ describe("User Flows overview tiles carry their own text", () => {
 
     expect(tile).toContain("tooltip: string;");
     expect(tile).not.toContain("tooltip?:");
+    // The label is drawn, and named to the (i), in the reader's language.
     expect(tile).toContain(
-      "<InfoTooltip label={props.label} text={props.tooltip} dataTestId={`${props.testId}-info`} />",
+      "const label: string = translator.translateText(props.label) || props.label;",
+    );
+    expect(tile).toContain(
+      "<InfoTooltip label={label} text={props.tooltip} dataTestId={`${props.testId}-info`} />",
     );
   });
 
@@ -291,7 +296,10 @@ describe("User Flows tables carry their own text", () => {
     );
 
     expect(helper).toContain(
-      "{props.children ?? props.label} <InfoTooltip label={props.label} text={props.tooltip}",
+      "const label: string = translator.translateText(props.label) || props.label;",
+    );
+    expect(helper).toContain(
+      "{props.children ?? label} <InfoTooltip label={label} text={props.tooltip}",
     );
 
     const pagesHeader: string = squash(
@@ -365,10 +373,16 @@ describe("the User Flows detail panel carries its own text", () => {
     expect(DETAIL_PANEL).toContain(
       'import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";',
     );
-    expect(pairs(DETAIL_PANEL, DETAIL_STAT_PATTERN)).toEqual([
+    expect(pairs(squash(DETAIL_PANEL), DETAIL_STAT_PATTERN)).toEqual([
       ['"Sessions"', "detailTransitionSessions"],
-      ["{`Share of ${sourceLabel}`}", "detailShareOfSource"],
-      ["{`Share of ${targetLabel}`}", "detailShareOfTarget"],
+      [
+        '{translator.translateTemplate("Share of {{page}}", { page: sourceLabel, })}',
+        "detailShareOfSource",
+      ],
+      [
+        '{translator.translateTemplate("Share of {{page}}", { page: targetLabel, })}',
+        "detailShareOfTarget",
+      ],
       ['"Returning to a seen page"', "detailReturning"],
       ['"Sessions at this step"', "detailStepSessions"],
       [
@@ -409,15 +423,22 @@ describe("the User Flows detail panel carries its own text", () => {
     expect(stat).toContain("tooltip: string;");
     expect(stat).not.toContain("tooltip?:");
     expect(stat).toContain(
-      "<InfoTooltip label={props.label} text={props.tooltip} />",
+      "const label: string = translator.translateText(props.label) || props.label;",
+    );
+    expect(stat).toContain(
+      "<InfoTooltip label={label} text={props.tooltip} />",
     );
     expect(stat).not.toContain("<button");
     expect(list).toContain("tooltip: string;");
     expect(list).not.toContain("tooltip?:");
 
+    expect(list).toContain(
+      "const title: string = translator.translateText(props.title) || props.title;",
+    );
+
     const info: number = indexOfOrFail(
       list,
-      "<InfoTooltip label={props.title} text={props.tooltip}",
+      "<InfoTooltip label={title} text={props.tooltip}",
     );
     const rows: number = indexOfOrFail(list, "props.items.map(");
 
@@ -804,10 +825,10 @@ describe("User Flows detail panel texts match the map it explains", () => {
     const panel: string = squash(DETAIL_PANEL);
 
     expect(panel).toContain(
-      "label={`Share of ${sourceLabel}`} tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfSource} value={formatUserFlowShare( source && source.sessions > 0 ? link.sessions / source.sessions : 0, )}",
+      'label={translator.translateTemplate("Share of {{page}}", { page: sourceLabel, })} tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfSource} value={formatUserFlowShare( source && source.sessions > 0 ? link.sessions / source.sessions : 0, )}',
     );
     expect(panel).toContain(
-      "label={`Share of ${targetLabel}`} tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfTarget} value={formatUserFlowShare( target && target.sessions > 0 ? link.sessions / target.sessions : 0, )}",
+      'label={translator.translateTemplate("Share of {{page}}", { page: targetLabel, })} tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfTarget} value={formatUserFlowShare( target && target.sessions > 0 ? link.sessions / target.sessions : 0, )}',
     );
     // Source and target are in lived order, whichever way the map runs.
     expect(USER_FLOW_ENGINE).toContain(
@@ -850,7 +871,7 @@ describe("User Flows detail panel texts match the map it explains", () => {
       "graph.sessions > 0 ? node.sessions / graph.sessions : 0;",
     );
     expect(panel).toContain(
-      "columnTotal > 0 ? node.sessions / columnTotal : 0, )} of the step`",
+      'hint={translator.translateTemplate("{{share}} of the step", { share: formatUserFlowShare( columnTotal > 0 ? node.sessions / columnTotal : 0, ), })}',
     );
     // graph.sessions: the journeys the map draws, those with the anchor.
     expect(USER_FLOW_ENGINE).toContain("sessions: slices.length,");

@@ -3,6 +3,8 @@ import Team from "Common/Models/DatabaseModels/Team";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
 import { MORE_TEAMS_TEMPLATE } from "../TableColumnList/MoreItemsTemplates";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   teams: Array<Team>;
@@ -12,8 +14,10 @@ export interface ComponentProps {
 const TeamsElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (!props.teams || props.teams.length === 0) {
-    return <p>No teams.</p>;
+    return <p>{translator.translateText("No teams.")}</p>;
   }
 
   return (

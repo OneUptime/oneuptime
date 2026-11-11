@@ -193,7 +193,7 @@ Le titre est vide ou ne correspond pas. Un champ qui n'est pas dans **Fields to 
 :::
 
 :::details Votre endpoint répond 401
-L'en-tête `Authorization` ne correspond pas au jeton qu'attend votre endpoint. Vérifiez le nom dans `{{global.variables.AGENT_KILL_TOKEN}}` et la valeur enregistrée dans la variable globale. La valeur d'une variable secrète ne peut pas être relue, donc en cas de doute, saisissez-la de nouveau avec **Update Content**.
+L'en-tête `Authorization` ne correspond pas au jeton qu'attend votre endpoint. Vérifiez le nom dans `{{global.variables.AGENT_KILL_TOKEN}}` et la valeur enregistrée dans la variable globale. La valeur d'une variable secrète ne peut pas être relue, donc en cas de doute, saisissez-la de nouveau avec **Mettre à jour le contenu**.
 :::
 
 :::details L'alerte de budget s'ouvre et se résout sans arrêt

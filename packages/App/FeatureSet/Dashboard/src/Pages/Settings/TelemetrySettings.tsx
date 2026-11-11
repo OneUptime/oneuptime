@@ -18,6 +18,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
@@ -103,7 +104,11 @@ const TelemetrySettings: FunctionComponent<PageComponentProps> = (
             onRetentionChange: retentionFold.onRetentionChange,
           }}
           requiredPlan={TELEMETRY_RETENTION_REQUIRED_PLAN}
-          upsell={getTelemetryRetentionUpsell("of each type")}
+          upsell={getTelemetryRetentionUpsell(
+            translationKey(
+              "Keep telemetry of each type for longer or shorter than the project's default retention.",
+            ),
+          )}
           belowPlan={
             <RetentionOverrideLeftover<Project>
               modelType={Project}
