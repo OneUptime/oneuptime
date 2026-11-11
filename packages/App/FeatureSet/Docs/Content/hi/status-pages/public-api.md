@@ -74,6 +74,8 @@ flowchart TB
 
 अवलोकन पूरे पृष्ठ के लिए एक रिक्वेस्ट है। यह वही डेटा है जिसे स्थिति पृष्ठ बनाता है, और यह ज़्यादा से ज़्यादा 15 सेकंड पुराना होता है।
 
+अपटाइम बार के दिन UTC दिन होते हैं, जब तक आप कोई टाइम ज़ोन न बताएँ: किसी `GET` में `?timezone=Asia/Shanghai` जोड़ें, या किसी `POST` की बॉडी के रूप में `{"timezone": "Asia/Shanghai"}` भेजें, तो `uptimeDailyAggregate` और `monitorGroupUptimeDailyAggregate` उस ज़ोन के दिनों में बाँटे जाते हैं, जैसे स्थिति पृष्ठ हर आगंतुक के लिए माँगता है। जिस ज़ोन को सर्वर नहीं जानता वह UTC माना जाता है, और दोनों अपने `timezone` में बताते हैं कि उन्हें किस ज़ोन में बाँटा गया।
+
 :::tabs
 @tab curl
 ```bash
@@ -133,7 +135,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `resourceGroups` | समूह, नेस्टेड समूहों के लिए `parentStatusPageGroupId` के साथ। |
 | `monitorStatuses` | प्रोजेक्ट की हर मॉनिटर स्थिति, सबसे कम प्राथमिकता से सबसे ऊंची तक। |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | पृष्ठ पर हर मॉनिटर समूह की मौजूदा स्थिति, और उसमें शामिल मॉनिटर। |
-| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | वह डेटा जिससे अपटाइम बार बनते हैं, और पृष्ठ के बार रंग नियम। |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | वह डेटा जिससे अपटाइम बार बनते हैं, और पृष्ठ के बार रंग नियम। |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | पृष्ठ पर दिखने वाली अनसुलझी घटनाएं, उनके सार्वजनिक नोट और स्थिति बदलाव, और प्रोजेक्ट की घटना स्थितियां। |
 | `timelineIncidents` | अपटाइम बार की अवधि की घटनाएं, सुलझी हुई भी, बार के टूलटिप के लिए। |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | घटना एपिसोड के लिए यही सब। |

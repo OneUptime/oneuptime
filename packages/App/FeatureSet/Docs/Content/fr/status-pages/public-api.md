@@ -74,6 +74,8 @@ Les points de terminaison suivent les réglages propres à la page, dans la cart
 
 La vue d'ensemble, c'est une requête pour toute la page. Ce sont les mêmes données que celles que dessine la page de statut, et elles ont au plus 15 secondes.
 
+Les jours des barres de disponibilité sont des jours UTC, sauf si vous indiquez un fuseau horaire : ajoutez `?timezone=Asia/Shanghai` à un `GET`, ou envoyez `{"timezone": "Asia/Shanghai"}` comme corps d'un `POST`, et `uptimeDailyAggregate` et `monitorGroupUptimeDailyAggregate` sont découpés selon les jours de ce fuseau, comme la page de statut le demande pour chaque visiteur. Un fuseau que le serveur ne connaît pas vaut UTC, et les deux indiquent dans leur `timezone` le fuseau dans lequel ils ont été découpés.
+
 :::tabs
 @tab curl
 ```bash
@@ -133,7 +135,7 @@ Le statut global est le pire statut actuel des moniteurs et groupes de moniteurs
 | `resourceGroups` | Les groupes, avec `parentStatusPageGroupId` pour les groupes imbriqués. |
 | `monitorStatuses` | Chaque statut de moniteur du projet, de la priorité la plus basse à la plus élevée. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | Le statut actuel de chaque groupe de moniteurs de la page, et les moniteurs qu'il contient. |
-| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Ce à partir de quoi les barres de disponibilité sont dessinées, et les règles de couleur des barres de la page. |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Ce à partir de quoi les barres de disponibilité sont dessinées, et les règles de couleur des barres de la page. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Les incidents non résolus que la page montre, leurs notes publiques et leurs changements d'état, et les états d'incident du projet. |
 | `timelineIncidents` | Les incidents de la fenêtre des barres de disponibilité, résolus compris, pour les infobulles des barres. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | La même chose pour les épisodes d'incidents. |

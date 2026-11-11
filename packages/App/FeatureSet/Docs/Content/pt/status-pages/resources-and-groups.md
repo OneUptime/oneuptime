@@ -119,6 +119,8 @@ As cores das barras do gráfico de histórico são definidas em **Mais configura
 
 Cada barra é um dia. Aponte para uma barra ou clique nela (toque nela no telefone, ou pressione Enter no teclado) para ler o dia: seu tempo de atividade, quanto durou cada status, os incidentes declarados naquele dia e a manutenção programada que ocorreu nele, cada um com um link para a própria página. Um dia com manutenção programada tem uma faixa azul no topo da barra e, enquanto um evento está em andamento, cada recurso dos seus monitores mostra "Em manutenção" ao lado do nome. A manutenção não muda nem a cor de uma barra nem o tempo de atividade, que vêm dos status do monitor: para deixar o trabalho planejado fora do tempo de atividade, escolha para o evento em **Alterar status do monitor para** um status que não esteja entre os de **Conta como indisponibilidade** da página. Veja [O que um evento afeta](/docs/scheduled-maintenance/index#o-que-um-evento-afeta).
 
+Cada barra é um dia no fuso horário do próprio leitor, o mesmo em que a página mostra todos os outros horários, então a última barra é o hoje dele. A barra de um grupo de monitores mostra quanto tempo o próprio grupo passou em cada status naquele dia: a cada momento o grupo tem o pior status entre seus monitores, então os status de um dia somam o tempo em que pelo menos um dos seus monitores estava sendo verificado, e nunca mais do que o dia.
+
 ## Grupos
 
 A maioria dos grupos só precisa de um nome.

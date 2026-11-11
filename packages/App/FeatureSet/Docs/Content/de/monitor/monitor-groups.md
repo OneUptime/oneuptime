@@ -91,6 +91,8 @@ Um einen Monitor aus der Gruppe zu nehmen, klicken Sie in **Monitore in der Grup
 
 Die Verfügbarkeit in der **Übersicht** zählt jeden Status außer dem betriebsbereiten als Ausfallzeit. Eine Statusseite zählt nur die Status in ihrer eigenen Liste **Zählt als Ausfallzeit**: siehe [Auswählen, was auf der Seite angezeigt wird](/docs/status-pages/index#auswählen-was-auf-der-seite-erscheint).
 
+Jeder Balken des Verfügbarkeits-Diagramms, hier und auf einer Statusseite, zeigt, wie lange die Gruppe selbst an diesem Tag in jedem Status war: In jedem Moment hat sie den schlechtesten Status ihrer Monitore, sodass eine Stunde, in der zwei von ihnen gleichzeitig offline sind, eine Stunde der Gruppe ist und ein Tag nie mehr als einen Tag ergibt. Die Tage sind Ihre eigenen: Das Dashboard zeichnet sie in der Zeitzone Ihrer Benutzereinstellungen, eine Statusseite in der jedes Besuchers.
+
 Die Liste **Monitor-Gruppen** kann Gruppen nach Eigentümer und Label filtern, Labels und Eigentümer für viele Gruppen auf einmal setzen und Gruppen als JSON exportieren oder importieren.
 
 ## Überwachung für eine ganze Gruppe ausschalten

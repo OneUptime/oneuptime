@@ -5966,17 +5966,17 @@ export default class StatusPageAPI extends BaseAPI<
         }),
       ]);
 
-      return {
-        json: {
-          uptimeDailyAggregate:
-            UptimeDailyAggregateUtil.toJSON(uptimeDailyAggregate),
-          monitorGroupUptimeDailyAggregate:
-            MonitorGroupUptimeDailyAggregateUtil.toJSON(
-              monitorGroupUptimeDailyAggregate,
-            ),
-        },
-        cutIn: timezone,
+      // the overview's keys this adds to what every visitor shares.
+      const response: JSONObject = {
+        uptimeDailyAggregate:
+          UptimeDailyAggregateUtil.toJSON(uptimeDailyAggregate),
+        monitorGroupUptimeDailyAggregate:
+          MonitorGroupUptimeDailyAggregateUtil.toJSON(
+            monitorGroupUptimeDailyAggregate,
+          ),
       };
+
+      return { json: response, cutIn: timezone };
     };
 
     if (data.timezone === DEFAULT_UPTIME_AGGREGATE_TIMEZONE) {

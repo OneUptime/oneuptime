@@ -91,6 +91,8 @@ Ouvrez un groupe pour voir ses pages dans le menu latéral :
 
 La disponibilité de la **Vue d'ensemble** compte tout statut autre que l'opérationnel comme indisponibilité. Une page de statut ne compte que les statuts de sa propre liste **Compte comme indisponibilité** : voir [Choisir ce qui s'affiche sur la page](/docs/status-pages/index#choisir-ce-qui-saffiche-sur-la-page).
 
+Chaque barre du graphique de disponibilité, ici comme sur une page de statut, montre combien de temps le groupe lui-même est resté dans chaque statut ce jour-là : à chaque instant, il a le pire statut parmi ses moniteurs, si bien qu'une heure pendant laquelle deux d'entre eux sont hors ligne en même temps compte pour une heure du groupe, et qu'une journée ne fait jamais plus d'une journée. Les jours sont les vôtres : le tableau de bord les dessine dans le fuseau horaire de vos paramètres utilisateur, et une page de statut dans celui de chaque visiteur.
+
 La liste **Groupes de moniteurs** peut filtrer les groupes par propriétaire et par libellé, définir les libellés et les propriétaires de nombreux groupes à la fois, et exporter ou importer des groupes en JSON.
 
 ## Désactiver la surveillance de tout un groupe

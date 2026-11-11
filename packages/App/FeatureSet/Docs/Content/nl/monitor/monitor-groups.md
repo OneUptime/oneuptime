@@ -91,6 +91,8 @@ Open een groep om haar pagina's in het zijmenu te zien:
 
 De beschikbaarheid in het **Overzicht** telt elke status behalve de operationele als downtime. Een statuspagina telt alleen de statussen in haar eigen lijst **Telt als downtime**: zie [Kiezen wat de pagina toont](/docs/status-pages/index#kiezen-wat-er-op-de-pagina-komt).
 
+Elke balk van de uptime grafiek, hier en op een statuspagina, laat zien hoe lang de groep zelf die dag in elke status was: op elk moment heeft ze de slechtste status van haar monitoren, zodat een uur waarin twee ervan tegelijk offline zijn één uur van de groep is, en een dag nooit meer dan een dag wordt. De dagen zijn uw eigen dagen: het dashboard tekent ze in de tijdzone van uw gebruikersinstellingen, en een statuspagina in die van elke bezoeker.
+
 De lijst **Monitorgroepen** kan groepen filteren op eigenaar en label, labels en eigenaren voor veel groepen tegelijk instellen, en groepen als JSON exporteren of importeren.
 
 ## Bewaking uitzetten voor een hele groep

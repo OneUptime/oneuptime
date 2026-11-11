@@ -91,6 +91,8 @@ Abra un grupo para ver sus páginas en el menú lateral:
 
 La disponibilidad de la **Vista general** cuenta como tiempo de inactividad cualquier estado salvo el operativo. Una página de estado solo cuenta los estados de su propia lista **Cuenta como tiempo de inactividad**: consulte [Elegir qué se muestra en la página](/docs/status-pages/index#elegir-qué-se-muestra-en-la-página).
 
+Cada barra del gráfico de tiempo de actividad, aquí y en una página de estado, es cuánto tiempo pasó el propio grupo en cada estado ese día: en cada momento tiene el peor estado de sus monitores, así que una hora en la que dos de ellos están sin conexión a la vez es una hora del grupo, y un día nunca suma más que un día. Los días son los suyos: el panel los dibuja en la zona horaria de su configuración de usuario, y una página de estado en la de cada visitante.
+
 La lista **Grupos de monitores** puede filtrar grupos por propietario y etiqueta, fijar etiquetas y propietarios en muchos grupos a la vez, y exportar o importar grupos como JSON.
 
 ## Desactivar el monitoreo de todo un grupo

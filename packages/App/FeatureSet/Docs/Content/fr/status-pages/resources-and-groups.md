@@ -119,6 +119,8 @@ Les couleurs des barres du graphique d'historique se règlent sous **Plus de par
 
 Chaque barre correspond à un jour. Survolez une barre ou cliquez dessus (touchez-la sur un téléphone, ou appuyez sur Entrée au clavier) pour lire la journée : sa disponibilité, la durée de chaque statut, les incidents déclarés ce jour-là et la maintenance planifiée qui s'y est déroulée, chacun avec un lien vers sa propre page. Un jour de maintenance planifiée porte une bande bleue en haut de sa barre, et tant qu'un événement est en cours, chaque ressource de ses moniteurs affiche « En maintenance » à côté de son nom. La maintenance ne change ni la couleur d'une barre ni la disponibilité, qui viennent des statuts du moniteur : pour que les travaux planifiés ne comptent pas dans la disponibilité, choisissez pour l'événement, dans **Changer le statut du moniteur en**, un statut qui ne fait pas partie de ceux de **Compte comme indisponibilité** sur la page. Voir [Ce qu'un événement affecte](/docs/scheduled-maintenance/index#ce-quun-événement-affecte).
 
+Chaque barre est une journée dans le fuseau horaire du lecteur, celui dans lequel la page affiche toutes les autres heures, si bien que la dernière barre est son aujourd'hui. La barre d'un groupe de moniteurs montre combien de temps le groupe lui-même est resté dans chaque statut ce jour-là : à chaque instant, le groupe a le pire statut parmi ses moniteurs, si bien que les statuts d'une journée totalisent le temps pendant lequel au moins un de ses moniteurs était vérifié, et jamais plus que la journée.
+
 ## Groupes
 
 La plupart des groupes n'ont besoin que d'un nom.
