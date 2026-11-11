@@ -10,14 +10,18 @@ import {
   buildEntitySearchQuery,
   buildEntitySearchSelect,
   buildEntitySearchSort,
+  buildGlossaryTermDescriptors,
   buildNavigationCommandDescriptors,
   buildPageSearchCommandDescriptors,
+  buildProjectSwitchDescriptors,
   canDeleteProject,
+  canSearchRecordsOf,
   computeCreateActionGates,
   getEntitySearchResultTitle,
   getEntitySearchSpecs,
   getPageSearchCommandRanking,
   getVisibleActionIds,
+  isQuestion,
   isRoutePathNavigable,
   PageSearchAvailability,
   PageSearchCommandDescriptor,
@@ -26,11 +30,22 @@ import {
   PALETTE_SEARCH_PRIORITY,
   PaletteActionId,
   PaletteEntitySearchSpec,
+  PaletteGlossaryEntry,
+  PaletteGlossaryTermDescriptor,
   PaletteNavigationCatalogEntry,
   PaletteNavigationCommandDescriptor,
+  PaletteProjectSwitchDescriptor,
+  PROJECT_SWITCH_KEYWORDS,
 } from "./DashboardCommandPaletteHelpers";
+import { openAskAi } from "../AIChat/AskAiEvents";
+import {
+  HowOneUptimeWorksOpenedFrom,
+  openHowOneUptimeWorks,
+} from "../Home/HowOneUptimeWorksDialog";
 import { getPageSearchAreas } from "./PageSearchIndex";
 import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
@@ -38,6 +53,13 @@ import Sort from "Common/Types/BaseDatabase/Sort";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { HeldPermissions } from "Common/Types/HeldPermissions";
+import {
+  GLOSSARY_INDEX_DOCS_PAGE,
+  getDocsPageUrl,
+  getGlossaryTermUrl,
+  LoadedGlossary,
+  loadGlossary,
+} from "Common/UI/Utils/Glossary";
 import CommandPalette from "Common/UI/Components/CommandPalette/CommandPalette";
 import { MoreMenuItem, NavItem } from "Common/UI/Components/Navbar/NavBar";
 import {
@@ -61,12 +83,20 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import User from "Common/UI/Utils/User";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Host from "Common/Models/DatabaseModels/Host";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Project from "Common/Models/DatabaseModels/Project";
+import Runbook from "Common/Models/DatabaseModels/Runbook";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import Service from "Common/Models/DatabaseModels/Service";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import Team from "Common/Models/DatabaseModels/Team";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -89,8 +119,86 @@ import PermissionGate from "Common/UI/Utils/PermissionGate";
  *    On-Call Schedules, Delete Project...), from PageSearchIndex.ts. These
  *    are offered while searching only, each with the breadcrumb of where it
  *    lives,
- *  - live entity search across monitors/incidents/alerts/status pages/on-call.
+ *  - live entity search across monitors, incidents, alerts, status pages,
+ *    on-call policies, and (#6816) services, hosts, on-call schedules,
+ *    scheduled maintenance, dashboards, workflows, runbooks and teams - each
+ *    kind only where the person may read it,
+ *  - the person's other projects ("Switch to Acme Staging"),
+ *  - How OneUptime works, the Glossary and its terms (#6936),
+ *  - "Ask AI: ..." for a question nothing else answers.
  */
+
+/*
+ * The kinds of record Search looks for, in the order their sections are
+ * listed, each with its model (for the request and the read permission)
+ * and its section's name, in English: the reader's words come from the
+ * locale (translateText).
+ */
+interface EntitySearchKind {
+  specId: string;
+  modelType: { new (): DatabaseBaseModel };
+  sectionTitle: string;
+  // The five kinds Search always found keep their own locale keys.
+  sectionKey?: string | undefined;
+}
+
+export const ENTITY_SEARCH_KINDS: ReadonlyArray<EntitySearchKind> = [
+  {
+    specId: "monitors",
+    modelType: Monitor,
+    sectionTitle: "Monitors",
+    sectionKey: "commandPalette.sections.monitors",
+  },
+  {
+    specId: "incidents",
+    modelType: Incident,
+    sectionTitle: "Incidents",
+    sectionKey: "commandPalette.sections.incidents",
+  },
+  {
+    specId: "alerts",
+    modelType: Alert,
+    sectionTitle: "Alerts",
+    sectionKey: "commandPalette.sections.alerts",
+  },
+  {
+    specId: "status-pages",
+    modelType: StatusPage,
+    sectionTitle: "Status Pages",
+    sectionKey: "commandPalette.sections.statusPages",
+  },
+  {
+    specId: "on-call-policies",
+    modelType: OnCallDutyPolicy,
+    sectionTitle: "On-Call Policies",
+    sectionKey: "commandPalette.sections.onCallPolicies",
+  },
+  { specId: "services", modelType: Service, sectionTitle: "Services" },
+  { specId: "hosts", modelType: Host, sectionTitle: "Hosts" },
+  {
+    specId: "on-call-schedules",
+    modelType: OnCallDutyPolicySchedule,
+    sectionTitle: "On-Call Schedules",
+  },
+  {
+    specId: "scheduled-maintenance",
+    modelType: ScheduledMaintenance,
+    sectionTitle: "Scheduled Maintenance",
+  },
+  { specId: "dashboards", modelType: Dashboard, sectionTitle: "Dashboards" },
+  { specId: "workflows", modelType: Workflow, sectionTitle: "Workflows" },
+  { specId: "runbooks", modelType: Runbook, sectionTitle: "Runbooks" },
+  { specId: "teams", modelType: Team, sectionTitle: "Teams" },
+];
+
+export interface ComponentProps {
+  /*
+   * The person's projects and how to switch to one, as the project picker
+   * has them: each other project is a result ("Switch to Acme Staging").
+   */
+  projects?: Array<Project> | undefined;
+  onProjectSelected?: ((project: Project) => void) | undefined;
+}
 
 /*
  * One async search provider per entity type. Generic so ModelAPI keeps its
@@ -176,8 +284,12 @@ const isMonitorGroupsEnabled: () => boolean = (): boolean => {
   }
 };
 
-const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
-  const { t } = useTranslation();
+const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const { t, i18n } = useTranslation();
+  const language: string | undefined =
+    i18n?.resolvedLanguage || i18n?.language || undefined;
   const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const theme: Theme = useTheme();
@@ -186,6 +298,49 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
   const closePalette: () => void = useCallback((): void => {
     setIsOpen(false);
   }, []);
+
+  /*
+   * The Glossary's terms, read once per language the first time Search
+   * opens (loadGlossary keeps the read). Search works the same without
+   * them: a read that fails leaves the terms out.
+   */
+  const [glossaryEntries, setGlossaryEntries] = useState<
+    Array<PaletteGlossaryEntry>
+  >([]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined;
+    }
+
+    let isCurrent: boolean = true;
+
+    loadGlossary(language)
+      .then((glossary: LoadedGlossary): void => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setGlossaryEntries(
+          Array.from(glossary.definitions.values()).map(
+            (definition: { id: string; term: string }): PaletteGlossaryEntry => {
+              return {
+                id: definition.id,
+                term: definition.term,
+                alsoCalled: glossary.alsoCalled?.get(definition.id) || [],
+              };
+            },
+          ),
+        );
+      })
+      .catch((): void => {
+        // No terms: everything else is still found.
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [isOpen, language]);
 
   // Toggle from anywhere via the global event bus.
   useEffect(() => {
@@ -497,6 +652,54 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
           GlobalEvents.dispatchEvent(EventName.KEYBOARD_SHORTCUTS_TOGGLE);
         },
       },
+      /*
+       * The map of the product, from the keyboard (#6936). The dialog
+       * records that it was opened from here.
+       */
+      "action-how-oneuptime-works": {
+        id: "action-how-oneuptime-works",
+        title: t("help.howOneUptimeWorks", "How OneUptime works"),
+        icon: IconProp.Map,
+        iconColor: "indigo",
+        category: actionsCategory,
+        keywords: [
+          "how it works",
+          "overview",
+          "getting started",
+          "concepts",
+          "introduction",
+          "tour",
+          "help",
+        ],
+        onSelect: () => {
+          closePalette();
+          openHowOneUptimeWorks(HowOneUptimeWorksOpenedFrom.CommandPalette);
+        },
+      },
+      // Every word OneUptime uses, on the docs, in the reader's language.
+      "action-glossary": {
+        id: "action-glossary",
+        title: t("help.glossary", "Glossary"),
+        icon: IconProp.BookOpen,
+        iconColor: "slate",
+        category: actionsCategory,
+        keywords: [
+          "terms",
+          "definitions",
+          "dictionary",
+          "vocabulary",
+          "words",
+          "meaning",
+          "help",
+        ],
+        onSelect: () => {
+          closePalette();
+          Navigation.navigate(
+            URL.fromString(getDocsPageUrl(GLOSSARY_INDEX_DOCS_PAGE, language)),
+            { openInNewTab: true },
+          );
+        },
+      },
       "action-active-incidents": {
         id: "action-active-incidents",
         title: t("commandPalette.actions.activeIncidents", "Active Incidents"),
@@ -577,56 +780,128 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
         canDeleteProject({ held: heldPermissions, isMasterAdmin }),
     };
 
-    commands = [...actionCommands, ...navigationCommands];
+    /*
+     * --- the person's other projects (#6816) -----------------------------
+     * "Switch to Acme Staging", found by the project's name or "switch
+     * project", through the project picker's own switch.
+     */
+    const onProjectSelected: ((project: Project) => void) | undefined =
+      props.onProjectSelected;
+    const projectsCategory: string =
+      translator.translateText("Projects") || "Projects";
+    const projectCommands: Array<PaletteCommand> = onProjectSelected
+      ? buildProjectSwitchDescriptors({
+          projects: (props.projects || []).map(
+            (project: Project): { id: string; name: string } => {
+              return {
+                id: project._id?.toString() || project.id?.toString() || "",
+                name: project.name?.toString() || "",
+              };
+            },
+          ),
+          currentProjectId: currentProjectId,
+        }).map((descriptor: PaletteProjectSwitchDescriptor): PaletteCommand => {
+          return {
+            id: descriptor.id,
+            title: translator.translateTemplate("Switch to {{projectName}}", {
+              projectName: descriptor.name,
+            }),
+            keywords: [descriptor.name, ...PROJECT_SWITCH_KEYWORDS],
+            icon: IconProp.Folder,
+            iconColor: "slate",
+            category: projectsCategory,
+            isSearchOnly: true,
+            searchPriority: PALETTE_SEARCH_PRIORITY.action,
+            onSelect: () => {
+              const project: Project | undefined = (props.projects || []).find(
+                (candidate: Project): boolean => {
+                  return (
+                    (candidate._id?.toString() ||
+                      candidate.id?.toString()) === descriptor.projectId
+                  );
+                },
+              );
 
-    // --- live entity search (project-scoped, so project required) ---------
+              closePalette();
+
+              if (project) {
+                onProjectSelected(project);
+              }
+            },
+          };
+        })
+      : [];
+
+    /*
+     * --- the Glossary's terms (#6936) ------------------------------------
+     * "probe" offers Probe, opened on the Glossary page in a new tab.
+     */
+    const glossaryCategory: string = t("help.glossary", "Glossary");
+    const glossaryCommands: Array<PaletteCommand> =
+      buildGlossaryTermDescriptors(glossaryEntries).map(
+        (descriptor: PaletteGlossaryTermDescriptor): PaletteCommand => {
+          return {
+            id: descriptor.id,
+            title: descriptor.title,
+            keywords: descriptor.keywords,
+            breadcrumb: [glossaryCategory],
+            breadcrumbKeywords: ["Glossary"],
+            icon: IconProp.BookOpen,
+            iconColor: "slate",
+            category: glossaryCategory,
+            isSearchOnly: true,
+            searchPriority: PALETTE_SEARCH_PRIORITY.action,
+            onSelect: () => {
+              closePalette();
+              Navigation.navigate(
+                URL.fromString(
+                  getGlossaryTermUrl(
+                    descriptor.termId as GlossaryTerm,
+                    language,
+                  ),
+                ),
+                { openInNewTab: true },
+              );
+            },
+          };
+        },
+      );
+
+    commands = [
+      ...actionCommands,
+      ...navigationCommands,
+      ...projectCommands,
+      ...glossaryCommands,
+    ];
+
+    /*
+     * --- live entity search (project-scoped, so project required) ---------
+     * One provider per kind the person may read: a kind they may not would
+     * only send a request the server refuses.
+     */
     if (hasProjectSelected) {
-      const findSpec: (id: string) => PaletteEntitySearchSpec = (
-        id: string,
-      ): PaletteEntitySearchSpec => {
-        return getEntitySearchSpecs().find((spec: PaletteEntitySearchSpec) => {
-          return spec.id === id;
-        }) as PaletteEntitySearchSpec;
-      };
+      const specs: Array<PaletteEntitySearchSpec> = getEntitySearchSpecs();
 
-      searchProviders = [
-        createEntitySearchProvider<Monitor>({
-          spec: findSpec("monitors"),
-          modelType: Monitor,
-          sectionTitle: t("commandPalette.sections.monitors", "Monitors"),
+      searchProviders = ENTITY_SEARCH_KINDS.filter(
+        (kind: EntitySearchKind): boolean => {
+          return canSearchRecordsOf({
+            model: new kind.modelType(),
+            held: heldPermissions,
+            isMasterAdmin,
+          });
+        },
+      ).map((kind: EntitySearchKind): PaletteSearchProvider => {
+        return createEntitySearchProvider<DatabaseBaseModel>({
+          spec: specs.find((spec: PaletteEntitySearchSpec): boolean => {
+            return spec.id === kind.specId;
+          }) as PaletteEntitySearchSpec,
+          modelType: kind.modelType,
+          sectionTitle: kind.sectionKey
+            ? t(kind.sectionKey, kind.sectionTitle)
+            : translator.translateText(kind.sectionTitle) || kind.sectionTitle,
           onNavigate: closePalette,
-        }),
-        createEntitySearchProvider<Incident>({
-          spec: findSpec("incidents"),
-          modelType: Incident,
-          sectionTitle: t("commandPalette.sections.incidents", "Incidents"),
-          onNavigate: closePalette,
-        }),
-        createEntitySearchProvider<Alert>({
-          spec: findSpec("alerts"),
-          modelType: Alert,
-          sectionTitle: t("commandPalette.sections.alerts", "Alerts"),
-          onNavigate: closePalette,
-        }),
-        createEntitySearchProvider<StatusPage>({
-          spec: findSpec("status-pages"),
-          modelType: StatusPage,
-          sectionTitle: t(
-            "commandPalette.sections.statusPages",
-            "Status Pages",
-          ),
-          onNavigate: closePalette,
-        }),
-        createEntitySearchProvider<OnCallDutyPolicy>({
-          spec: findSpec("on-call-policies"),
-          modelType: OnCallDutyPolicy,
-          sectionTitle: t(
-            "commandPalette.sections.onCallPolicies",
-            "On-Call Policies",
-          ),
-          onNavigate: closePalette,
-        }),
-      ];
+        });
+      });
     }
   }
 
@@ -738,6 +1013,38 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
     });
   };
 
+  /*
+   * A question nothing answers (#6816): "how do I add a phone number" finds
+   * no page or record, so Search offers to ask it, as the last row. Ask AI
+   * opens on a new conversation with the question in its composer, unsent.
+   * The search still counts as one that found nothing.
+   */
+  const getFallbackCommands: (query: string) => Array<PaletteCommand> = (
+    query: string,
+  ): Array<PaletteCommand> => {
+    if (!isQuestion(query)) {
+      return [];
+    }
+
+    const question: string = query.trim();
+
+    return [
+      {
+        id: "ask-ai-question",
+        title: translator.translateTemplate("Ask AI: {{question}}", {
+          question: question,
+        }),
+        icon: IconProp.Sparkles,
+        iconColor: "violet",
+        category: translator.translateText("Ask AI") || "Ask AI",
+        onSelect: () => {
+          closePalette();
+          openAskAi({ prompt: question });
+        },
+      },
+    ];
+  };
+
   return (
     <CommandPalette
       commands={commands}
@@ -746,6 +1053,7 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
       onClose={closePalette}
       recentStorageKey={PALETTE_RECENTS_STORAGE_KEY}
       onSearchFoundNothing={recordSearchFoundNothing}
+      getFallbackCommands={getFallbackCommands}
     />
   );
 };

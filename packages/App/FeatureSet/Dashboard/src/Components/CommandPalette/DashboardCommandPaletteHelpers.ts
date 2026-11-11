@@ -523,6 +523,8 @@ export type PaletteActionId =
   | "action-system-theme"
   | "action-ask-ai"
   | "action-keyboard-shortcuts"
+  | "action-how-oneuptime-works"
+  | "action-glossary"
   | "action-log-out"
   | "action-project-invitations"
   | "action-active-incidents"
@@ -604,6 +606,36 @@ export function computeCreateActionGates(data: {
 }
 
 /*
+ * Whether Search looks for a kind of record at all (#6816): only when the
+ * person may read it, by the rule the server follows for a list - one of
+ * the model's read permissions held and not blocked, or the operational
+ * resource wildcard. A kind they may not read would only send a request
+ * the server refuses. A master admin reads everything. A snapshot that
+ * holds nothing at all - missing, or not read yet, right after SSO login -
+ * leaves it to the server, as Search did for every kind before: what the
+ * server will not list, it does not send.
+ */
+export function canSearchRecordsOf(data: {
+  model: {
+    isOperationalResource?: boolean | undefined;
+    getReadPermissions: () => Array<Permission>;
+  };
+  // What the user holds, blocks included (PermissionGate.getHeldPermissions).
+  held: HeldPermissions | null;
+  isMasterAdmin: boolean;
+}): boolean {
+  if (data.isMasterAdmin || !data.held || data.held.allowed.length === 0) {
+    return true;
+  }
+
+  return HeldPermissionsUtil.holdsModelPermission(data.held, {
+    isOperationalResource: data.model.isOperationalResource,
+    operation: "read",
+    modelPermissions: data.model.getReadPermissions() || [],
+  });
+}
+
+/*
  * The same rule for the actions the page index offers: Delete Project needs
  * the project's delete permission (Project Owner or Delete Project), or a
  * master admin. A missing permission snapshot hides it.
@@ -681,6 +713,12 @@ export function getVisibleActionIds(
    * someone who has just met the palette is exactly who needs to find it.
    */
   actionIds.push("action-keyboard-shortcuts");
+  /*
+   * Never gated either (#6936): the map of the product and the Glossary
+   * are for whoever is lost, which is anyone, in any project or none.
+   */
+  actionIds.push("action-how-oneuptime-works");
+  actionIds.push("action-glossary");
   actionIds.push("action-active-incidents");
   actionIds.push("action-my-on-call-policies");
   actionIds.push("action-project-invitations");
@@ -732,8 +770,15 @@ function getNumberSearchFields(
 /*
  * Field lists mirror the searchableFields of the corresponding table
  * components (MonitorTable, IncidentsTable, AlertsTable, StatusPages,
- * OnCallDutyPolicies) — every column below exists on the model class -
- * and a numbered entity's number with its prefix besides.
+ * OnCallDutyPolicies, and the lists of the kinds below them) - every column
+ * below exists on the model class - and a numbered entity's number with its
+ * prefix besides.
+ *
+ * The first five are the kinds Search always found. Then the next most
+ * opened (#6816): services, hosts, on-call schedules, scheduled
+ * maintenance, dashboards, workflows, runbooks and teams. Each is searched
+ * only where the person may read it (canSearchRecordsOf), all in the one
+ * debounced round, PALETTE_ENTITY_SEARCH_LIMIT rows each.
  */
 export function getEntitySearchSpecs(): Array<PaletteEntitySearchSpec> {
   // The columns that number incidents and alerts (Utils/Project/RecordNumber).
@@ -743,6 +788,8 @@ export function getEntitySearchSpecs(): Array<PaletteEntitySearchSpec> {
   const alertNumbers: RecordNumberColumns | null = getRecordNumberColumns(
     new Alert(),
   );
+  const maintenanceNumbers: RecordNumberColumns | null =
+    getRecordNumberColumns(new ScheduledMaintenance());
 
   return [
     {
@@ -794,6 +841,75 @@ export function getEntitySearchSpecs(): Array<PaletteEntitySearchSpec> {
       viewPageMap: PageMap.ON_CALL_DUTY_POLICY_VIEW,
       icon: IconProp.Call,
       iconColor: "stone",
+    },
+    {
+      id: "services",
+      titleField: "name",
+      searchFields: ["name", "description"],
+      viewPageMap: PageMap.SERVICE_VIEW,
+      icon: IconProp.SquareStack3D,
+      iconColor: "indigo",
+    },
+    {
+      id: "hosts",
+      titleField: "name",
+      searchFields: ["name", "description"],
+      viewPageMap: PageMap.HOST_VIEW,
+      icon: IconProp.Server,
+      iconColor: "slate",
+    },
+    {
+      id: "on-call-schedules",
+      titleField: "name",
+      searchFields: ["name", "description"],
+      viewPageMap: PageMap.ON_CALL_DUTY_SCHEDULE_VIEW,
+      icon: IconProp.Calendar,
+      iconColor: "stone",
+    },
+    {
+      id: "scheduled-maintenance",
+      titleField: "title",
+      searchFields: [
+        "title",
+        "description",
+        ...getNumberSearchFields(maintenanceNumbers),
+      ],
+      viewPageMap: PageMap.SCHEDULED_MAINTENANCE_VIEW,
+      numberFields: maintenanceNumbers || undefined,
+      icon: IconProp.Clock,
+      iconColor: "cyan",
+    },
+    {
+      id: "dashboards",
+      titleField: "name",
+      searchFields: ["name", "description"],
+      viewPageMap: PageMap.DASHBOARD_VIEW,
+      icon: IconProp.ChartBar,
+      iconColor: "violet",
+    },
+    {
+      id: "workflows",
+      titleField: "name",
+      searchFields: ["name", "description"],
+      viewPageMap: PageMap.WORKFLOW_VIEW,
+      icon: IconProp.Workflow,
+      iconColor: "pink",
+    },
+    {
+      id: "runbooks",
+      titleField: "name",
+      searchFields: ["name", "description"],
+      viewPageMap: PageMap.RUNBOOK_VIEW,
+      icon: IconProp.Book,
+      iconColor: "amber",
+    },
+    {
+      id: "teams",
+      titleField: "name",
+      searchFields: ["name", "description"],
+      viewPageMap: PageMap.TEAM_VIEW,
+      icon: IconProp.Team,
+      iconColor: "blue",
     },
   ];
 }
@@ -866,4 +982,151 @@ export function buildEntitySearchSort(
   return {
     [spec.titleField]: SortOrder.Ascending,
   } as unknown as JSONObject;
+}
+
+// ---- switching project (#6816) ---------------------------------------------
+
+export interface PaletteProject {
+  id: string;
+  name: string;
+}
+
+export interface PaletteProjectSwitchDescriptor {
+  // Stable across languages: recents remember it.
+  id: string;
+  projectId: string;
+  name: string;
+}
+
+/*
+ * One result for each of the person's other projects ("Switch to Acme
+ * Staging"), in the project picker's order, each once: not the project
+ * they are in, nor one with no id or no name to show.
+ */
+export function buildProjectSwitchDescriptors(data: {
+  projects: ReadonlyArray<PaletteProject>;
+  currentProjectId: string;
+}): Array<PaletteProjectSwitchDescriptor> {
+  const seen: Set<string> = new Set();
+  const descriptors: Array<PaletteProjectSwitchDescriptor> = [];
+
+  for (const project of data.projects) {
+    const name: string = project.name.trim();
+
+    if (
+      !project.id ||
+      !name ||
+      project.id === data.currentProjectId ||
+      seen.has(project.id)
+    ) {
+      continue;
+    }
+
+    seen.add(project.id);
+    descriptors.push({
+      id: `project-switch-${project.id}`,
+      projectId: project.id,
+      name: name,
+    });
+  }
+
+  return descriptors;
+}
+
+// Words that find every "Switch to ..." result, never shown.
+export const PROJECT_SWITCH_KEYWORDS: Array<string> = [
+  "switch project",
+  "change project",
+  "other project",
+  "project",
+];
+
+// ---- the Glossary's terms (#6936) -----------------------------------------
+
+export interface PaletteGlossaryEntry {
+  // The term's anchor on the Glossary page: a GlossaryTerm value.
+  id: string;
+  // The term, in the Glossary's language.
+  term: string;
+  // Its other names ("Also called"), in the same language.
+  alsoCalled: Array<string>;
+}
+
+export interface PaletteGlossaryTermDescriptor {
+  id: string;
+  termId: string;
+  title: string;
+  keywords: Array<string>;
+}
+
+/*
+ * One result for each of the Glossary's terms, found by the term and its
+ * other names: "probe" offers Probe, "escalation" Escalation Rule. Each
+ * opens the term on the Glossary page (getGlossaryTermUrl).
+ */
+export function buildGlossaryTermDescriptors(
+  entries: ReadonlyArray<PaletteGlossaryEntry>,
+): Array<PaletteGlossaryTermDescriptor> {
+  return entries
+    .filter((entry: PaletteGlossaryEntry): boolean => {
+      return Boolean(entry.id && entry.term.trim());
+    })
+    .map((entry: PaletteGlossaryEntry): PaletteGlossaryTermDescriptor => {
+      return {
+        id: `glossary-term-${entry.id}`,
+        termId: entry.id,
+        title: entry.term.trim(),
+        keywords: entry.alsoCalled,
+      };
+    });
+}
+
+// ---- a question nothing answers (#6816) -----------------------------------
+
+/*
+ * The words a question starts with, in English: "how do I add a phone
+ * number" is a question though it has no question mark.
+ */
+const QUESTION_WORDS: ReadonlyArray<string> = [
+  "how",
+  "what",
+  "why",
+  "where",
+  "when",
+  "who",
+  "which",
+  "can",
+  "could",
+  "should",
+  "is",
+  "are",
+  "does",
+  "do",
+  "will",
+  "would",
+];
+
+// A question mark in any script: Latin, Arabic and Persian, full width.
+const QUESTION_MARKS: RegExp = /[?\u061F\uFF1F]\s*$/;
+
+/*
+ * Whether what was typed into Search reads as a question: it ends with a
+ * question mark, or it is at least three words and starts with a question
+ * word. "how do I add a phone number" is; "how", "status pages" and
+ * "monitor?" with nothing before the mark are not worth asking.
+ */
+export function isQuestion(text: string): boolean {
+  const trimmed: string = text.trim();
+
+  if (!trimmed) {
+    return false;
+  }
+
+  if (QUESTION_MARKS.test(trimmed)) {
+    return trimmed.replace(QUESTION_MARKS, "").trim().length > 0;
+  }
+
+  const words: Array<string> = trimmed.toLowerCase().split(/\s+/);
+
+  return words.length >= 3 && QUESTION_WORDS.includes(words[0] || "");
 }

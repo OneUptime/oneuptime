@@ -50686,5 +50686,7 @@
   "Read what this means in the glossary": "在詞彙表中查看含義",
   "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}}用於客戶感受得到的問題，可以顯示在狀態頁面上。{{alerts}}用於你的團隊，永遠不會顯示在狀態頁面上。",
   "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}}決定每個嚴重程度下，呼叫會嘗試哪種通知方式，以及等待多久。",
-  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}}和{{infrastructure}}也會匯入這個流程：針對日誌、指標和追蹤，或針對主機、叢集和雲端的規則，同樣會建立事件和警示。"
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}}和{{infrastructure}}也會匯入這個流程：針對日誌、指標和追蹤，或針對主機、叢集和雲端的規則，同樣會建立事件和警示。",
+  "Switch to {{projectName}}": "切換到 {{projectName}}",
+  "Ask AI: {{question}}": "詢問 AI：{{question}}"
 }

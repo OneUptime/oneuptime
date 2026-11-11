@@ -50686,5 +50686,7 @@
   "Read what this means in the glossary": "Im Glossar nachlesen, was das bedeutet",
   "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} sind für Probleme, die Ihre Kunden spüren, und können auf einer Statusseite erscheinen. {{alerts}} sind für Ihr Team und erscheinen dort nie.",
   "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} legen für jeden Schweregrad fest, welche Benachrichtigungsmethode eine Alarmierung versucht und nach welcher Wartezeit.",
-  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} und {{infrastructure}} speisen den Kreislauf: Regeln für Ihre Logs, Metriken und Traces oder für Ihre Hosts, Cluster und Clouds öffnen ebenfalls Vorfälle und Warnungen."
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} und {{infrastructure}} speisen den Kreislauf: Regeln für Ihre Logs, Metriken und Traces oder für Ihre Hosts, Cluster und Clouds öffnen ebenfalls Vorfälle und Warnungen.",
+  "Switch to {{projectName}}": "Zu {{projectName}} wechseln",
+  "Ask AI: {{question}}": "KI fragen: {{question}}"
 }

@@ -50686,5 +50686,7 @@
   "Read what this means in the glossary": "용어집에서 의미 보기",
   "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}}는 고객이 체감하는 문제를 위한 것으로, 상태 페이지에 표시될 수 있습니다. {{alerts}}은 팀을 위한 것으로, 상태 페이지에는 표시되지 않습니다.",
   "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}}은 심각도별로 호출이 어떤 알림 방법을 얼마 후에 시도할지 정합니다.",
-  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}}와 {{infrastructure}}도 이 흐름에 이어집니다. 로그, 메트릭, 트레이스나 호스트, 클러스터, 클라우드에 대한 규칙도 인시던트와 알림을 엽니다."
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}}와 {{infrastructure}}도 이 흐름에 이어집니다. 로그, 메트릭, 트레이스나 호스트, 클러스터, 클라우드에 대한 규칙도 인시던트와 알림을 엽니다.",
+  "Switch to {{projectName}}": "{{projectName}}(으)로 전환",
+  "Ask AI: {{question}}": "AI에게 질문: {{question}}"
 }

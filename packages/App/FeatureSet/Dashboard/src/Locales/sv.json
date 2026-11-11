@@ -50686,5 +50686,7 @@
   "Read what this means in the glossary": "Läs i ordlistan vad det betyder",
   "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} är för problem som dina kunder märker, och kan visas på en statussida. {{alerts}} är för ditt team, och visas aldrig där.",
   "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} avgör för varje allvarlighetsgrad vilken aviseringsmetod ett larm provar, och efter hur lång tid.",
-  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} och {{infrastructure}} matar kretsloppet: regler för dina loggar, mätvärden och spårningar, eller för dina värdar, kluster och moln, öppnar också incidenter och larm."
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} och {{infrastructure}} matar kretsloppet: regler för dina loggar, mätvärden och spårningar, eller för dina värdar, kluster och moln, öppnar också incidenter och larm.",
+  "Switch to {{projectName}}": "Byt till {{projectName}}",
+  "Ask AI: {{question}}": "Fråga AI: {{question}}"
 }

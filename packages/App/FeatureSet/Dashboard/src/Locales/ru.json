@@ -50686,5 +50686,7 @@
   "Read what this means in the glossary": "Прочитать значение в глоссарии",
   "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} — для проблем, которые замечают ваши клиенты; они могут появляться на статус-странице. {{alerts}} — для вашей команды; там они не появляются никогда.",
   "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} определяют для каждой серьёзности, какой способ уведомления пробует вызов и через сколько времени.",
-  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} и {{infrastructure}} питают этот цикл: правила для ваших логов, метрик и трассировок или для хостов, кластеров и облаков тоже открывают инциденты и оповещения."
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} и {{infrastructure}} питают этот цикл: правила для ваших логов, метрик и трассировок или для хостов, кластеров и облаков тоже открывают инциденты и оповещения.",
+  "Switch to {{projectName}}": "Перейти в {{projectName}}",
+  "Ask AI: {{question}}": "Спросить ИИ: {{question}}"
 }
