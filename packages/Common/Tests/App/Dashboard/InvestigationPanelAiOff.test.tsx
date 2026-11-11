@@ -78,6 +78,10 @@ import InvestigationPanel, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationPanel";
 import { RemediationFoldState } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiOffSummaryData";
 import {
+  getInvestigationNotStartedWords,
+  InvestigationNotStartedWords,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationNotStartedWords";
+import {
   lastAiCardFold,
   lastRemediationStepProps,
   resetRemediationStepStub,
@@ -93,6 +97,7 @@ import InvestigationNotStartedReason, {
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import { createTranslator } from "../../../Types/Translator";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { goTo } from "./SideMenuHarness";
@@ -119,6 +124,24 @@ function reasonFor(
     source: "recorded",
     evaluatedAt: EVALUATED_AT,
   };
+}
+
+/*
+ * The title the whole card draws for a reason: its own words, in English
+ * here (InvestigationNotStartedWords), or the server's where it has none.
+ */
+function cardTitle(
+  code: InvestigationNotStartedCode,
+  subjectType: InvestigationSubjectType,
+): string {
+  const words: InvestigationNotStartedWords | null =
+    getInvestigationNotStartedWords({
+      reason: reasonFor(code),
+      subjectType,
+      translator: createTranslator(undefined, "en"),
+    });
+
+  return words?.title || reasonFor(code).title;
 }
 
 function noRun(code: InvestigationNotStartedCode): HTTPResponse<JSONObject> {
@@ -455,7 +478,9 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
         screen.getByTestId("ai-card-step-investigation-pill"),
       ).toHaveTextContent("Not investigated");
       expect(
-        screen.getByText("Server title for automatic_investigation_disabled"),
+        screen.getByText(
+          cardTitle("automatic_investigation_disabled", subjectType),
+        ),
       ).toBeVisible();
       expect(lastAiCardFold()).toBe("full");
       expect(lastSlot().fold).toBeUndefined();
@@ -518,7 +543,7 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
         await flush();
 
         expect(screen.queryByTestId("ai-off-summary")).toBeNull();
-        expect(screen.getByText(`Server title for ${code}`)).toBeVisible();
+        expect(screen.getByText(cardTitle(code, subjectType))).toBeVisible();
         expect(lastAiCardFold()).toBe("full");
       },
     );
