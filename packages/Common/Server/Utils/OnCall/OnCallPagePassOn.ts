@@ -57,6 +57,7 @@ import OnCallAcknowledgementTimeout, {
 import { isOnCallPageAgainRun } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { isOnCallObserverPage } from "../../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import { isOnCallPersonPage } from "../../../Types/OnCallDutyPolicy/OnCallPersonPage";
+import { isOnCallTestPage } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 
 /*
  * PASSING A PAGE ON - THE SERVER SIDE OF "CAN'T TAKE IT? ESCALATE."
@@ -621,6 +622,17 @@ export default class OnCallPagePassOn {
     if (!run || !run.id || !run.projectId) {
       return {
         answer: { passedOn: false, refusal: OnCallPassOnRefusal.NotPaged },
+      };
+    }
+
+    /*
+     * A test page (OnCallTestPage) is acknowledged, never escalated: its
+     * messages offer no Escalate, and a test of a policy's first level
+     * pages nobody the person who sent it did not name.
+     */
+    if (isOnCallTestPage(run)) {
+      return {
+        answer: { passedOn: false, refusal: OnCallPassOnRefusal.PageOver },
       };
     }
 

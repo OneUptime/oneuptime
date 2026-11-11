@@ -552,12 +552,19 @@ jobs:
           # each half 98 tests, about 5.6 minutes locally with CI=1, about
           # 7.0 on a runner by its 88 tests' 6.3 - this group 22.7. Global
           # Runners (2.2) moved to group 19: about 20.5.
+          # Test Page (9 tests, about 35 seconds locally with its bundle,
+          # Chromium only: sending a test page from User Settings and a
+          # policy - the preview, its cost, what a send asks for and the
+          # result with where to fix a message - at 1280 and 390 pixels, dark
+          # and German) joined it on 2026-11-11, the group with the most room:
+          # about 21.2.
           - group: 4
             workflow_builder_shard: 1/2
             model_tables_shard: 1/2
             suites: >-
               test-workflow-builder-ui
               test-model-tables-ui
+              test-test-page-ui
           # The Chromium-only suites that ran after Event Overview in group 1.
           # Topology is one of them (about 2.5 minutes) since the Workflow
           # Builder suite grew again with its UI review: group 2 had reached
@@ -1926,6 +1933,8 @@ jobs:
             output/playwright/vmware-pages-ui/test-results
             output/playwright/acknowledgement-timeout-ui/*.png
             output/playwright/acknowledgement-timeout-ui/test-results
+            output/playwright/test-page-ui/*.png
+            output/playwright/test-page-ui/test-results
             output/playwright/owner-filters-ui/*.png
             output/playwright/owner-filters-ui/test-results
             output/playwright/owners-on-create-ui/*.png

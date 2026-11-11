@@ -42,13 +42,13 @@ Each milestone is set once per project, on the server, the first time it becomes
 | --- | --- | --- | --- |
 | `activation/first_monitor_created` | The project's first monitor is created, of any type, by anyone | `MonitorService.onCreateSuccess` | `Monitor` |
 | `activation/first_check_result_received` | A monitor's check result is first stored. Only a result that passed every refusal is stored: an archived, disabled or missing monitor, a probe not assigned to it, and a blocked project are all refused first | `MonitorLogUtil.saveMonitorLog` | `MonitorProbe.lastPingAt`, and monitors that have received a heartbeat, request, email or server report |
-| `activation/first_notification_delivered` | An on-call page reaches a member through any channel: the provider accepted it, they acknowledged it, passed it on, or the call rang | `UserOnCallLogTimelineService` (create and update) | `UserOnCallLogTimeline` |
-| `activation/first_test_page_acknowledged` | A member acknowledges a test page | The test page, #6811 | Nothing (new) |
+| `activation/first_notification_delivered` | An on-call page reaches a member through any channel: the provider accepted it, they acknowledged it, passed it on, or the call rang. A test page's message counts: it reached them | `UserOnCallLogTimelineService` (create and update) | `UserOnCallLogTimeline` |
+| `activation/first_test_page_acknowledged` | A member acknowledges a test page (#6811), from any of its messages | `OnCallTestPageEvents.onTestPageAcknowledged`, from `UserOnCallLogTimelineService.acknowledgePage` | Nothing (new) |
 | `activation/first_incident_or_alert_acknowledged` | A person moves an incident or alert to acknowledged, a later state, or resolved (the product's one rule, `AcknowledgedState`). A monitor or workflow doing it does not count | `IncidentStateTimelineService`, `AlertStateTimelineService` | The state timelines a person wrote |
 | `activation/second_member_joined` | A second person accepts to be in the project | `TeamMemberService` (create and update) | `TeamMember` |
 | `activation/first_status_page_monitor_added` | A status page first shows a monitor or a monitor group | `StatusPageResourceService.onCreateSuccess` | `StatusPageResource` |
 | `activation/first_status_page_subscriber_added` | A status page has its first subscriber who can be sent updates (confirmed) | `StatusPageSubscriberService` (create and confirmation) | Confirmed `StatusPageSubscriber` rows |
-| `activation/first_on_call_policy_executed` | An on-call policy runs for the first time. A direct page, or an archived policy's log, does not count | `OnCallDutyPolicyExecutionLogService.onCreateSuccess` | `OnCallDutyPolicyExecutionLog` |
+| `activation/first_on_call_policy_executed` | An on-call policy runs for the first time. A direct page, a test of the policy, or an archived policy's log, does not count | `OnCallDutyPolicyExecutionLogService.onCreateSuccess` | `OnCallDutyPolicyExecutionLog` |
 | `activation/first_logs_received` | ClickHouse accepts the project's first logs | `TelemetryFanInWriter.submit` | `TelemetryUsageBilling` (billing on) |
 | `activation/first_traces_received` | ClickHouse accepts the project's first spans | `TelemetryFanInWriter.submit` | `TelemetryUsageBilling` (billing on) |
 | `activation/first_metrics_received` | ClickHouse accepts the project's first metrics | `TelemetryFanInWriter.submit` | `TelemetryUsageBilling` (billing on) |
@@ -60,6 +60,15 @@ Each milestone is set once per project, on the server, the first time it becomes
 - Monitors, status pages, subscribers, acknowledgements, on-call runs and pages: exact, unless the record has since been deleted.
 - Check results: approximate. A stored result is kept for only about a day.
 - Telemetry: the first day it was metered, which only an installation with billing on keeps.
+
+## Server events
+
+These are sent from the server, each time the thing happens, with `project_id`, `plan` and `edition`.
+
+| Event | Sent when | Properties | Sent from |
+| --- | --- | --- | --- |
+| `test_page/sent` | Somebody sends a test page: to themselves, to a member, or a test of an on-call policy | `execution_log_id`, `kind` (`Self`, `Member`, `Policy`), `record_kind` (`Incident`, `Alert`) | `OnCallTestPageEvents.onTestPageSent`, from `OnCallTestPageService` |
+| `test_page/acknowledged` | Somebody acknowledges a test page | `execution_log_id`, `channel` (the message they acknowledged from, when there was one) | `OnCallTestPageEvents.onTestPageAcknowledged` |
 
 ## Behaviour events
 

@@ -93,6 +93,8 @@ enum EmailTemplateType {
   AcknowledgeAlert = "AcknowledgeAlert.hbs",
   AcknowledgeAlertEpisode = "AcknowledgeAlertEpisode.hbs",
   AcknowledgeIncidentEpisode = "AcknowledgeIncidentEpisode.hbs",
+  // A test page (Types/OnCallDutyPolicy/OnCallTestPage): TEST first, and Acknowledge.
+  OnCallTestPage = "OnCallTestPage.hbs",
 
   UserAddedToOnCallPolicy = "UserAddedToOnCallPolicy.hbs",
   UserRemovedFromOnCallPolicy = "UserRemovedFromOnCallPolicy.hbs",

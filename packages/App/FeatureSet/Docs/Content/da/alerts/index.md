@@ -61,7 +61,7 @@ Udløs en advarsel, når dit team bør kigge, før nogen udenfor opdager noget, 
 | **AI**            | **Indsigter**, **Protokoller** og **Indstillinger**: hvad OneUptime AI har lært af dine advarsler, alt, hvad den har gjort, og hvad den må gøre. |
 | **Arbejdsområde** | **Slack**, **Microsoft Teams** og **Mattermost**, alt efter hvad projektet har forbundet, eller **Forbind et arbejdsområde**, når det har ingen af dem. |
 | **Regler**        | **Grupperingsregler**, **Vagtregler**, **Hændelsesregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **Påmindelsesregler**. |
-| **Indstillinger** | **Advarselsstatus**, **Advarselsalvor**, **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Medlemskab af episoder**, **Nummerering**. |
+| **Indstillinger** | **Advarselsstatus**, **Advarselsalvor**, **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Medlemskab af episoder**, **Nummerering**, **Dataopbevaring**. |
 
 **Advarsler** og **Episoder** er åbne; **AI**, **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** er foldet sammen fra start, og en sektion åbner af sig selv, når du er på en af dens sider. Konfigurationen af advarsler ligger her, ikke i **Projektindstillinger**.
 
