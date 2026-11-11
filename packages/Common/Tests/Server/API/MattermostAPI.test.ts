@@ -84,6 +84,7 @@ jest.mock("../../../Server/Services/WorkspaceProjectAuthTokenService", () => {
       findOneBy: jest.fn(),
       getProjectAuth: jest.fn(),
       refreshAuthToken: jest.fn(),
+      updateMattermostTeams: jest.fn(),
     },
   };
 });
@@ -158,6 +159,8 @@ describe("MattermostAPI", () => {
     WorkspaceProjectAuthTokenService.refreshAuthToken as unknown as jest.Mock;
   const refreshUserAuth: jest.Mock =
     WorkspaceUserAuthTokenService.refreshAuthToken as unknown as jest.Mock;
+  const updateTeams: jest.Mock =
+    WorkspaceProjectAuthTokenService.updateMattermostTeams as unknown as jest.Mock;
 
   let getBot: jest.SpyInstance;
   let getTeams: jest.SpyInstance;
@@ -203,6 +206,7 @@ describe("MattermostAPI", () => {
     findProjectAuth.mockResolvedValue({ workspaceProjectId: TEAM_ID });
     refreshProjectAuth.mockResolvedValue(undefined);
     refreshUserAuth.mockResolvedValue(undefined);
+    updateTeams.mockResolvedValue(undefined);
 
     getBot = jest.spyOn(MattermostUtil, "getBotAccount").mockResolvedValue({
       id: BOT_ID,
@@ -427,7 +431,18 @@ describe("MattermostAPI", () => {
         teamDisplayName: "Engineering",
         botUserId: BOT_ID,
         botUsername: "oneuptime",
+        // The teams the bot is in, read now, for rules to name (MattermostTeams).
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+        ],
+        teamsReadAt: expect.any(String),
       });
+      expect(
+        Date.now() -
+          new Date(
+            (written["miscData"] as JSONObject)["teamsReadAt"] as string,
+          ).getTime(),
+      ).toBeLessThan(60 * 1000);
       expect(JSON.stringify(written["miscData"])).not.toContain(ACCESS_TOKEN);
       expect(
         MattermostConnection.fromAuthToken(written["authToken"] as string),
@@ -439,7 +454,7 @@ describe("MattermostAPI", () => {
       });
     });
 
-    test("a bot in several teams connects only to the one chosen", async () => {
+    test("a bot in several teams is connected with the one chosen as the default, the others kept beside it", async () => {
       getTeams.mockResolvedValue([
         { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
         { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
@@ -469,6 +484,22 @@ describe("MattermostAPI", () => {
       expect(refreshProjectAuth.mock.calls[0][0]["workspaceProjectId"]).toBe(
         OTHER_TEAM_ID,
       );
+
+      const written: JSONObject = refreshProjectAuth.mock.calls[0][0];
+
+      expect(written["miscData"]).toMatchObject({
+        teamId: OTHER_TEAM_ID,
+        teamName: "support",
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+          { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+        ],
+      });
+      // Every call that names no team is made in the chosen one.
+      expect(
+        MattermostConnection.fromAuthToken(written["authToken"] as string)
+          .teamId,
+      ).toBe(OTHER_TEAM_ID);
     });
 
     test("a team the bot is not in is refused, whatever the form says", async () => {
@@ -539,6 +570,432 @@ describe("MattermostAPI", () => {
 
       expect(response.status).toBe(400);
       expect(message(response)).toContain("already connected to a different");
+    });
+  });
+
+  /*
+   * The teams of the server the project's bot works in (MattermostTeams):
+   * Project Settings' Mattermost teams card, and the rule form's picker.
+   */
+  describe("GET /mattermost/connected-teams", () => {
+    const LISTED_NOW: string = new Date().toISOString();
+    const LISTED_AN_HOUR_AGO: string = new Date(
+      Date.now() - 60 * 60 * 1000,
+    ).toISOString();
+
+    function connectedWith(miscData: JSONObject): void {
+      getProjectAuth.mockResolvedValue({
+        authToken: authToken,
+        workspaceProjectId: TEAM_ID,
+        miscData: {
+          serverUrl: SERVER,
+          teamId: TEAM_ID,
+          teamName: "engineering",
+          teamDisplayName: "Engineering",
+          botUserId: BOT_ID,
+          botUsername: "oneuptime",
+          ...miscData,
+        },
+      });
+    }
+
+    test("lists the bot's teams to any member, the default first and marked, without asking the server again", async () => {
+      connectedWith({
+        teams: [
+          { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+        ],
+        teamsReadAt: LISTED_NOW,
+      });
+
+      const response: ProbeResponse = await call(
+        "GET",
+        "/mattermost/connected-teams",
+        { headers: headers([Permission.Viewer]) },
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        teams: [
+          {
+            id: TEAM_ID,
+            name: "engineering",
+            displayName: "Engineering",
+            isDefault: true,
+          },
+          {
+            id: OTHER_TEAM_ID,
+            name: "support",
+            displayName: "Support",
+            isDefault: false,
+          },
+        ],
+        defaultTeamId: TEAM_ID,
+        isBotInDefaultTeam: true,
+        botUsername: "oneuptime",
+      });
+      expect(getTeams).not.toHaveBeenCalled();
+      expect(updateTeams).not.toHaveBeenCalled();
+    });
+
+    test("teams listed more than ten minutes ago are asked for again, and kept for the next time", async () => {
+      connectedWith({
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+        ],
+        teamsReadAt: LISTED_AN_HOUR_AGO,
+      });
+      getTeams.mockResolvedValue([
+        { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+        { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+      ]);
+
+      const response: ProbeResponse = await call(
+        "GET",
+        "/mattermost/connected-teams",
+      );
+
+      expect(response.status).toBe(200);
+      expect(
+        ((response.body as JSONObject)["teams"] as Array<JSONObject>).map(
+          (team: JSONObject) => {
+            return team["id"];
+          },
+        ),
+      ).toEqual([TEAM_ID, OTHER_TEAM_ID]);
+      expect(getTeams).toHaveBeenCalledWith({
+        serverUrl: SERVER,
+        accessToken: ACCESS_TOKEN,
+      });
+      expect(updateTeams).toHaveBeenCalledWith({
+        projectId: projectId,
+        workspaceProjectId: TEAM_ID,
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+          { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+        ],
+        teamsReadAt: expect.any(Date),
+      });
+    });
+
+    test("without Refresh, a server that does not answer leaves the teams it listed last", async () => {
+      connectedWith({
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+          { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+        ],
+        teamsReadAt: LISTED_AN_HOUR_AGO,
+      });
+      getTeams.mockRejectedValue(new Error("connect ECONNREFUSED"));
+
+      const response: ProbeResponse = await call(
+        "GET",
+        "/mattermost/connected-teams",
+      );
+
+      expect(response.status).toBe(200);
+      expect(
+        ((response.body as JSONObject)["teams"] as Array<JSONObject>).length,
+      ).toBe(2);
+      expect(updateTeams).not.toHaveBeenCalled();
+    });
+
+    test("Refresh asks the server now, however fresh the teams are", async () => {
+      connectedWith({
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+        ],
+        teamsReadAt: LISTED_NOW,
+      });
+      getTeams.mockResolvedValue([
+        { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+        { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+      ]);
+
+      const response: ProbeResponse = await call(
+        "GET",
+        "/mattermost/connected-teams?refresh=true",
+      );
+
+      expect(response.status).toBe(200);
+      expect(getTeams).toHaveBeenCalledTimes(1);
+      expect(
+        ((response.body as JSONObject)["teams"] as Array<JSONObject>).length,
+      ).toBe(2);
+    });
+
+    test("Refresh says when the server no longer takes the bot's token", async () => {
+      connectedWith({ teamsReadAt: LISTED_NOW });
+      getTeams.mockRejectedValue(
+        new MattermostRequestError({
+          message: "Error from Mattermost: Invalid or expired session",
+          statusCode: 401,
+          errorId: "api.context.session_expired.app_error",
+        }),
+      );
+
+      const response: ProbeResponse = await call(
+        "GET",
+        "/mattermost/connected-teams?refresh=true",
+      );
+
+      expect(response.status).toBe(400);
+      expect(message(response)).toBe(
+        "Mattermost no longer accepts the bot's access token. Disconnect Mattermost and connect it again with a new token.",
+      );
+    });
+
+    test("Refresh says when the server could not be asked", async () => {
+      connectedWith({ teamsReadAt: LISTED_NOW });
+      getTeams.mockRejectedValue(new Error("connect ECONNREFUSED"));
+
+      const response: ProbeResponse = await call(
+        "GET",
+        "/mattermost/connected-teams?refresh=true",
+      );
+
+      expect(response.status).toBe(400);
+      expect(message(response)).toContain(
+        "OneUptime could not ask the Mattermost server for its bot's teams",
+      );
+    });
+
+    test("a default team the bot is no longer in is said so", async () => {
+      connectedWith({
+        teams: [{ id: OTHER_TEAM_ID, name: "support", displayName: "Support" }],
+        teamsReadAt: LISTED_NOW,
+      });
+
+      const response: ProbeResponse = await call(
+        "GET",
+        "/mattermost/connected-teams",
+      );
+
+      expect(response.status).toBe(200);
+      expect((response.body as JSONObject)["isBotInDefaultTeam"]).toBe(false);
+      // Still listed, first: rules that name no team still go there.
+      expect(
+        ((response.body as JSONObject)["teams"] as Array<JSONObject>)[0],
+      ).toMatchObject({ id: TEAM_ID, isDefault: true });
+    });
+
+    test("a project not connected is told how to connect it", async () => {
+      getProjectAuth.mockResolvedValue(null);
+
+      const response: ProbeResponse = await call(
+        "GET",
+        "/mattermost/connected-teams",
+      );
+
+      expect(response.status).toBe(400);
+      expect(message(response)).toContain(
+        "Mattermost is not connected to this project",
+      );
+    });
+
+    test("is refused to somebody who is not signed in", async () => {
+      const response: ProbeResponse = await call(
+        "GET",
+        "/mattermost/connected-teams",
+        { headers: { tenantid: projectId.toString() } },
+      );
+
+      expect(response.status).toBeGreaterThanOrEqual(400);
+      expect(getProjectAuth).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("PUT /mattermost/default-team", () => {
+    const BOTH_TEAMS: Array<JSONObject> = [
+      { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+      { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+    ];
+
+    beforeEach(() => {
+      getTeams.mockResolvedValue(BOTH_TEAMS);
+    });
+
+    function defaultTeamCalls(): Array<JSONObject> {
+      return updateTeams.mock.calls
+        .map((args: Array<unknown>) => {
+          return args[0] as JSONObject;
+        })
+        .filter((update: JSONObject) => {
+          return Boolean(update["defaultTeam"]);
+        });
+    }
+
+    test("makes another team the bot is in now the default, for a member who may manage the connection", async () => {
+      // As stored before, then as stored after the change.
+      getProjectAuth
+        .mockResolvedValueOnce({
+          authToken: authToken,
+          workspaceProjectId: TEAM_ID,
+          miscData: {
+            serverUrl: SERVER,
+            teamId: TEAM_ID,
+            teamName: "engineering",
+            botUsername: "oneuptime",
+          },
+        })
+        .mockResolvedValueOnce({
+          authToken: authToken,
+          workspaceProjectId: TEAM_ID,
+          miscData: {
+            serverUrl: SERVER,
+            teamId: OTHER_TEAM_ID,
+            teamName: "support",
+            teamDisplayName: "Support",
+            botUsername: "oneuptime",
+            teams: BOTH_TEAMS,
+            teamsReadAt: new Date().toISOString(),
+          },
+        });
+
+      const response: ProbeResponse = await call(
+        "PUT",
+        "/mattermost/default-team",
+        {
+          body: { teamId: OTHER_TEAM_ID },
+          headers: headers([Permission.ProjectMember]),
+        },
+      );
+
+      expect(response.status).toBe(200);
+      expect(defaultTeamCalls()).toEqual([
+        {
+          projectId: projectId,
+          // The connection stays stored under the team it was made for.
+          workspaceProjectId: TEAM_ID,
+          defaultTeam: {
+            id: OTHER_TEAM_ID,
+            name: "support",
+            displayName: "Support",
+          },
+        },
+      ]);
+      expect(response.body).toMatchObject({
+        defaultTeamId: OTHER_TEAM_ID,
+        teams: [
+          { id: OTHER_TEAM_ID, isDefault: true },
+          { id: TEAM_ID, isDefault: false },
+        ],
+      });
+    });
+
+    test("is refused to a Viewer, and nothing is asked or changed", async () => {
+      const response: ProbeResponse = await call(
+        "PUT",
+        "/mattermost/default-team",
+        {
+          body: { teamId: OTHER_TEAM_ID },
+          headers: headers([Permission.Viewer]),
+        },
+      );
+
+      expect(response.status).toBeGreaterThanOrEqual(400);
+      expect(message(response)).toBe(
+        "You do not have permission to change this project's Mattermost settings. Ask a project admin to change the default team.",
+      );
+      expect(getTeams).not.toHaveBeenCalled();
+      expect(updateTeams).not.toHaveBeenCalled();
+    });
+
+    test.each<[string, unknown]>([
+      ["no team", undefined],
+      ["a path", "../../users/me"],
+      ["a number", 42],
+      ["a team's name rather than its id", "support"],
+    ])(
+      "%s is refused before the server is asked",
+      async (_kind: string, teamId: unknown) => {
+        const response: ProbeResponse = await call(
+          "PUT",
+          "/mattermost/default-team",
+          { body: teamId === undefined ? {} : { teamId: teamId } },
+        );
+
+        expect(response.status).toBe(400);
+        expect(message(response)).toBe("Choose a Mattermost team.");
+        expect(getTeams).not.toHaveBeenCalled();
+        expect(updateTeams).not.toHaveBeenCalled();
+      },
+    );
+
+    test("a team the server does not list the bot in now is refused, saying to add the bot", async () => {
+      getTeams.mockResolvedValue([BOTH_TEAMS[0]]);
+      getProjectAuth.mockResolvedValue({
+        authToken: authToken,
+        workspaceProjectId: TEAM_ID,
+        miscData: {
+          teamId: TEAM_ID,
+          // Listed before, left since.
+          teams: BOTH_TEAMS,
+          teamsReadAt: new Date().toISOString(),
+        },
+      });
+
+      const response: ProbeResponse = await call(
+        "PUT",
+        "/mattermost/default-team",
+        { body: { teamId: OTHER_TEAM_ID } },
+      );
+
+      expect(response.status).toBe(400);
+      expect(message(response)).toBe(
+        "OneUptime's bot is not a member of this Mattermost team. Add the bot to the team in Mattermost, then click Refresh.",
+      );
+      expect(defaultTeamCalls()).toEqual([]);
+    });
+
+    test("the default team made the default again changes nothing", async () => {
+      const response: ProbeResponse = await call(
+        "PUT",
+        "/mattermost/default-team",
+        { body: { teamId: TEAM_ID } },
+      );
+
+      expect(response.status).toBe(200);
+      expect(defaultTeamCalls()).toEqual([]);
+      expect((response.body as JSONObject)["defaultTeamId"]).toBe(TEAM_ID);
+    });
+
+    test("a token the server no longer takes is said so, and nothing is changed", async () => {
+      getTeams.mockRejectedValue(
+        new MattermostRequestError({
+          message: "Error from Mattermost: Invalid or expired session",
+          statusCode: 401,
+          errorId: "api.context.session_expired.app_error",
+        }),
+      );
+
+      const response: ProbeResponse = await call(
+        "PUT",
+        "/mattermost/default-team",
+        { body: { teamId: OTHER_TEAM_ID } },
+      );
+
+      expect(response.status).toBe(400);
+      expect(message(response)).toContain(
+        "Mattermost no longer accepts the bot's access token",
+      );
+      expect(updateTeams).not.toHaveBeenCalled();
+    });
+
+    test("a project not connected is told how to connect it", async () => {
+      getProjectAuth.mockResolvedValue(null);
+
+      const response: ProbeResponse = await call(
+        "PUT",
+        "/mattermost/default-team",
+        { body: { teamId: OTHER_TEAM_ID } },
+      );
+
+      expect(response.status).toBe(400);
+      expect(message(response)).toContain(
+        "Mattermost is not connected to this project",
+      );
+      expect(getTeams).not.toHaveBeenCalled();
     });
   });
 

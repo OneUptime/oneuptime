@@ -96,14 +96,20 @@ import {
   getNotificationRuleCardColumns,
   NOTIFICATION_RULE_CARD_COLUMN_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleViewElement/NotificationRuleViewElement";
-import { NOTIFICATION_RULE_CONDITIONS_TITLES } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCopy";
+import {
+  NOTIFICATION_RULE_CONDITIONS_TITLES,
+  SlackRuleWorkspaces,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCopy";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import VideoCallConnection from "../../../Models/DatabaseModels/VideoCallConnection";
-import { MicrosoftTeamsTeam } from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import {
+  MicrosoftTeamsTeam,
+  SlackOrganizationWorkspace,
+} from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../../Types/JSON";
@@ -184,6 +190,8 @@ function columnsFor(data: {
   onCallSchedules?: Array<OnCallDutyPolicySchedule> | undefined;
   microsoftTeamsTeams?: Array<MicrosoftTeamsTeam> | undefined;
   canStartVideoCall?: boolean | undefined;
+  slackWorkspaces?: Array<SlackOrganizationWorkspace> | undefined;
+  slackOrganization?: SlackRuleWorkspaces | undefined;
 }): Columns<WorkspaceNotificationRule> {
   return getNotificationRuleCardColumns({
     eventType: data.eventType || NotificationRuleEventType.Incident,
@@ -202,6 +210,8 @@ function columnsFor(data: {
     onCallSchedules: data.onCallSchedules || [],
     microsoftTeamsTeams: data.microsoftTeamsTeams || [],
     microsoftTeamsChats: [],
+    slackWorkspaces: data.slackWorkspaces,
+    slackOrganization: data.slackOrganization,
     videoCallConnections: [zoom()],
     numberPrefixes: PREFIXES,
     exampleRecordName: undefined,
@@ -586,6 +596,58 @@ describe("a rule's card, row by row", () => {
       "Everyone in Ops can open the channel.",
     ]);
     expect(card!.textContent).not.toContain("MicrosoftTeams");
+  });
+
+  /*
+   * #6749: Slack installed for a whole Enterprise organization, and the
+   * workspace a rule picks no longer has OneUptime. The rule posts nowhere
+   * else instead; its card says so, under what it does - the rules beside
+   * it, in a workspace OneUptime is added to, say nothing.
+   */
+  test("a Slack organization's rule that picks a workspace OneUptime was removed from: its Then says so, by name", async () => {
+    const cards: Array<HTMLElement> = await renderCards(
+      [
+        {
+          id: "1a8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+          name: "West incidents",
+          rule: ruleJson({ teamToCreateChannelIn: "T0WEST" }),
+        },
+        {
+          id: "2a8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+          name: "East incidents",
+          rule: ruleJson({ teamToCreateChannelIn: "T0EAST" }),
+        },
+      ],
+      {
+        slackWorkspaces: [{ id: "T0EAST", name: "Acme East" }],
+        slackOrganization: {
+          workspaces: [{ id: "T0EAST", name: "Acme East" }],
+          removedWorkspaces: [{ id: "T0WEST", name: "Acme West" }],
+          organizationName: "Acme Corp",
+        },
+      },
+    );
+
+    const notesOf: (card: HTMLElement) => Array<string> = (
+      card: HTMLElement,
+    ): Array<string> => {
+      return within(card)
+        .queryAllByTestId("notification-rule-slack-workspace-not-added")
+        .map((note: HTMLElement): string => {
+          return note.textContent || "";
+        });
+    };
+
+    expect(cards.map(notesOf)).toEqual([
+      [
+        "OneUptime is no longer added to the Acme West workspace of Acme Corp. Add it again in Slack's organization settings, or pick another workspace on the rule.",
+      ],
+      [],
+    ]);
+    // Under what the rule does, which is as before.
+    expect(thenSentences(cards[0]!)[0]).toBe(
+      "Creates a channel like #inc-42 for each incident.",
+    );
   });
 });
 

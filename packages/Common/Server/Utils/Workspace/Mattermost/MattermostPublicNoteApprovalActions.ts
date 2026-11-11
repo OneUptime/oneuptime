@@ -116,6 +116,7 @@ export default class MattermostPublicNoteApprovalActions {
             : "",
         modalBlock: reject.form,
         directMessageChannelId: data.press.channelId,
+        teamId: data.press.teamId,
       });
 
       return {};

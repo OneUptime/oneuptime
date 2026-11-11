@@ -21,6 +21,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import Select from "Common/Types/BaseDatabase/Select";
 import { Gray500, Green500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -126,6 +128,7 @@ export function getVariableScopeError(data: {
 const WorkflowVariableView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isGlobal: boolean = !props.workflowId;
 
   const [variable, setVariable] = useState<WorkflowVariable | null>(null);
@@ -477,8 +480,12 @@ const WorkflowVariableView: FunctionComponent<ComponentProps> = (
             data-testid="workflow-variable-content-note"
           >
             {contentUpdated
-              ? "Content updated. Every workflow that refers to this variable uses the new content from its next run."
-              : "Hidden. The content cannot be viewed once saved."}
+              ? translator.translateText(
+                  "Content updated. Every workflow that refers to this variable uses the new content from its next run.",
+                )
+              : translator.translateText(
+                  "Hidden. The content cannot be viewed once saved.",
+                )}
           </p>
         </Card>
       ) : (

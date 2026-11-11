@@ -651,7 +651,8 @@ function listedAddresses(
   return entries.flatMap((entry: CloudMarketplaceEntry): Array<string> => {
     return CloudMarketplaceProducts.map(
       (product: CloudMarketplaceProduct): string | null => {
-        return entry.listingUrls[product];
+        // A product the marketplace does not sell has no address either.
+        return entry.listingUrls[product] ?? null;
       },
     ).filter((url: string | null): url is string => {
       return url !== null;

@@ -52,6 +52,10 @@ import UninstallWorkspaceConfirm, {
 } from "../Workspace/UninstallWorkspaceConfirm";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import MattermostTeamsCard, {
+  MattermostTeamOfProject,
+  MattermostTeamsDescription,
+} from "./MattermostTeamsCard";
 
 /*
  * What each card of the Mattermost settings says. The project's card
@@ -70,6 +74,11 @@ export const MATTERMOST_CONNECTED_TITLE: string = translationKey(
   "OneUptime is connected to the {{team}} team in Mattermost",
 );
 
+// Its bot in two or more teams: the teams card under it names them (MattermostTeamsCard).
+export const MATTERMOST_CONNECTED_TO_TEAMS_TITLE: string = translationKey(
+  "OneUptime is connected to Mattermost",
+);
+
 export const MATTERMOST_CONNECTED_DESCRIPTION: string = translationKey(
   "It posts as @{{bot}} on {{server}}: what your notification rules send, a channel for each incident with its people added. Each member connects their own Mattermost account to act as themselves.",
 );
@@ -82,9 +91,16 @@ export const CONNECT_FORM_DESCRIPTION: string = translationKey(
 
 export const CHOOSE_TEAM_TITLE: string = translationKey("Choose a team");
 
+/*
+ * A bot in several teams: OneUptime works in each of them, and the one
+ * chosen is the default - where a notification rule that names no team
+ * posts. Another can be made the default later (MattermostTeamsCard).
+ */
 export const CHOOSE_TEAM_DESCRIPTION: string = translationKey(
-  "The bot account is in more than one team. Choose the team OneUptime posts in.",
+  "The bot account is in several teams, and OneUptime works in each. Choose the default team, where a rule that names no team creates its channels.",
 );
+
+export const DEFAULT_TEAM_TITLE: string = translationKey("Default team");
 
 export const YOUR_MATTERMOST_ACCOUNT_CONNECTED_TITLE: string = translationKey(
   "Your Mattermost account is connected",
@@ -169,6 +185,9 @@ const MattermostIntegration: FunctionComponent<ComponentProps> = (
     null,
   );
   const [miscData, setMiscData] = useState<MattermostMiscData | null>(null);
+  // The teams the project's bot works in, as the teams card last read them.
+  const [connectedTeams, setConnectedTeams] =
+    useState<MattermostTeamsDescription | null>(null);
   const [userAuthTokenId, setUserAuthTokenId] = useState<ObjectID | null>(null);
 
   // Connecting the project: the form, then - for a bot in several teams - the team.
@@ -534,6 +553,7 @@ const MattermostIntegration: FunctionComponent<ComponentProps> = (
       setIsUninstallConfirmOpen(false);
       setProjectAuthTokenId(null);
       setMiscData(null);
+      setConnectedTeams(null);
       setUserAuthTokenId(null);
       setSentToUsername(null);
 
@@ -568,6 +588,27 @@ const MattermostIntegration: FunctionComponent<ComponentProps> = (
       Navigation.navigate(MATTERMOST_DOCS_ROUTE, { openInNewTab: true });
     },
   };
+
+  /*
+   * The project's card names the team OneUptime works in - while there is
+   * one. A bot in several teams works in each of them, and the teams card
+   * names them, the default first.
+   */
+  const defaultTeam: MattermostTeamOfProject | undefined =
+    connectedTeams?.teams.find((team: MattermostTeamOfProject): boolean => {
+      return team.isDefault;
+    });
+
+  const projectCardTitle: string =
+    (connectedTeams?.teams.length || 0) > 1
+      ? MATTERMOST_CONNECTED_TO_TEAMS_TITLE
+      : translator.translateTemplate(MATTERMOST_CONNECTED_TITLE, {
+          team:
+            defaultTeam?.displayName ||
+            miscData?.teamDisplayName ||
+            miscData?.teamName ||
+            "",
+        });
 
   let accountTitle: string;
   let accountDescription: string;
@@ -664,9 +705,7 @@ const MattermostIntegration: FunctionComponent<ComponentProps> = (
       {isProjectConnected && !props.hideProjectCards && (
         <div data-testid="mattermost-project-connection">
           <Card
-            title={translator.translateTemplate(MATTERMOST_CONNECTED_TITLE, {
-              team: miscData?.teamDisplayName || miscData?.teamName || "",
-            })}
+            title={projectCardTitle}
             description={translator.translateTemplate(
               MATTERMOST_CONNECTED_DESCRIPTION,
               {
@@ -729,6 +768,19 @@ const MattermostIntegration: FunctionComponent<ComponentProps> = (
           <></>
         )}
       </div>
+
+      {/*
+       * The teams of the server OneUptime works in: every team its bot is a
+       * member of, the default one marked (MattermostTeams).
+       */}
+      {isProjectConnected && !props.hideProjectCards && (
+        <MattermostTeamsCard
+          className="mt-6"
+          onTeamsChange={(description: MattermostTeamsDescription) => {
+            setConnectedTeams(description);
+          }}
+        />
+      )}
 
       {isConnectFormOpen ? (
         <BasicFormModal<JSONObject>
@@ -797,7 +849,7 @@ const MattermostIntegration: FunctionComponent<ComponentProps> = (
             fields: [
               {
                 field: { teamId: true },
-                title: "Team",
+                title: DEFAULT_TEAM_TITLE,
                 fieldType: FormFieldSchemaType.Dropdown,
                 required: true,
                 dropdownOptions: teams.map((team: MattermostTeamOption) => {

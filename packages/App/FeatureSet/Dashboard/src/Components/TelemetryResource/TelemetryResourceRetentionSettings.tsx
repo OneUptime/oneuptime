@@ -12,6 +12,11 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import React, { ReactElement } from "react";
 import RetentionOverrideLeftover from "./RetentionOverrideLeftover";
+import {
+  Translator,
+  translatableTerm,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { RetentionOverrideLeftoverKind } from "./RetentionOverrideLeftoverCopy";
 
 export type TelemetryRetentionModel = ContractTelemetryRetentionModel;
@@ -41,15 +46,20 @@ export interface ComponentProps<TModel extends TelemetryRetentionModel> {
  * The upsell shown in place of the retention cards, on Settings > Telemetry
  * too. Only retention OVERRIDES are Enterprise: the project's default
  * retention is part of every edition and stays on Settings > Telemetry.
+ *
+ * `description` is the card's whole sentence, written by the caller: a key
+ * (translationKey) the card looks up, or a sentence the caller has already
+ * filled in the reader's language - never English words around a
+ * translated name.
  */
 export const getTelemetryRetentionUpsell: (
-  scope: string,
+  description: string,
 ) => EnterprisePluginUpsellProps = (
-  scope: string,
+  description: string,
 ): EnterprisePluginUpsellProps => {
   return {
     title: "Retention Overrides",
-    description: `Keep telemetry ${scope} for longer or shorter than the project's default retention.`,
+    description: description,
     featureName: "Retention Overrides",
     featureDescription:
       "Set retention by telemetry type, log severity and trace status, for the whole project or for one service or resource. Without it, all telemetry is kept for the project's default retention.",
@@ -99,6 +109,7 @@ const TelemetryResourceRetentionSettings: <
 ) => ReactElement = <TModel extends TelemetryRetentionModel>(
   props: ComponentProps<TModel>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const pluginProps: TelemetryResourceRetentionSettingsProps = {
     modelType: props.modelType,
     modelId: props.modelId,
@@ -114,7 +125,14 @@ const TelemetryResourceRetentionSettings: <
       pluginProps={pluginProps}
       requiredPlan={TELEMETRY_RETENTION_REQUIRED_PLAN}
       upsell={getTelemetryRetentionUpsell(
-        `collected from this ${props.resourceName}`,
+        translator.translateTemplate(
+          "Keep telemetry collected from this {{resource}} for longer or shorter than the project's default retention.",
+          {
+            resource: translatableTerm(props.resourceName, {
+              inSentence: true,
+            }),
+          },
+        ),
       )}
       belowPlan={
         <RetentionOverrideLeftover<TModel>

@@ -170,6 +170,8 @@ Eine App, die vor `/oneuptime page` erstellt wurde, braucht dieselbe Aktualisier
 
 Eine App, die vor dem Tab **Home** erstellt wurde, braucht dieselbe Aktualisierung: Bis sie sie hat, zeigt Slack für die App keinen Tab **Home**, und die App postet keine Begrüßung in einem Kanal, zu dem sie hinzugefügt wird. Die Aktualisierung schaltet den Tab ein und abonniert für die App die Ereignisse `app_home_opened` und `member_joined_channel`. Sie fügt keinen Scope hinzu, daher muss nichts erneut verbunden werden.
 
+Eine App, die für eine ganze Organisation in Slack Enterprise Grid installiert ist, braucht dieselbe Aktualisierung, um zu erfahren, wenn ein Administrator OneUptime einem Workspace der Organisation hinzufügt oder daraus entfernt. Die Aktualisierung abonniert für die App die Ereignisse `team_access_granted` und `team_access_revoked`, und OneUptime liest die Workspaces dann sofort neu ein. Bis dahin liest es sie neu ein, wenn sie gebraucht werden und zuletzt vor mehr als 10 Minuten gelesen wurden, oder wenn jemand auf der Karte **Slack-Arbeitsbereiche** auf **Aktualisieren** klickt. Sie fügt keinen Scope hinzu, daher muss nichts erneut verbunden werden.
+
 ## Netzwerkzugriff für selbst gehostete Installationen
 
 ### Verkehrsrichtung und Endpunkte

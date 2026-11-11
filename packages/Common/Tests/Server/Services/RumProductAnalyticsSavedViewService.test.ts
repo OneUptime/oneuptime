@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import Model from "../../../Models/DatabaseModels/RumProductAnalyticsSavedView";
 import { Service as RumProductAnalyticsSavedViewServiceType } from "../../../Server/Services/RumProductAnalyticsSavedViewService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import { ProjectScopedReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../../../Server/Utils/Database/RelationIdUtil";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
@@ -18,6 +22,10 @@ import {
   PRODUCT_ANALYTICS_SAVED_VIEW_PROBLEMS,
   ProductAnalyticsSavedViewType,
 } from "../../../Types/Rum/ProductAnalyticsSavedViews";
+import {
+  ProjectDirectoryStub,
+  stubProjectDirectory,
+} from "../TestingUtils/ProjectDirectory";
 
 /*
  * Saved funnels and retention tables (issue #6630), as
@@ -26,7 +34,9 @@ import {
  * would take it, so a dashboard widget never meets a definition the read
  * refuses, and nothing a caller sent beside the definition's own fields
  * is stored. A name is kept trimmed and is never blank; a saved funnel
- * stays a funnel; an application keeps at most 100 of each kind.
+ * stays a funnel; an application keeps at most 100 of each kind. The RUM
+ * application a saved view reads is its project's own, under either of its
+ * names: another project's is answered as one that does not exist.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -38,6 +48,23 @@ const APPLICATION_ID: ObjectID = new ObjectID(
 const SAVED_VIEW_ID: ObjectID = new ObjectID(
   "6a300000-0000-4000-8000-000000000003",
 );
+// Another of the project's own applications.
+const OTHER_APPLICATION_ID: ObjectID = new ObjectID(
+  "6a300000-0000-4000-8000-000000000004",
+);
+// An application of another project.
+const FOREIGN_APPLICATION_ID: ObjectID = new ObjectID(
+  "6a300000-0000-4000-8000-0000000000f1",
+);
+// An id no application has, in any project.
+const MISSING_APPLICATION_ID: ObjectID = new ObjectID(
+  "6a300000-0000-4000-8000-0000000000d1",
+);
+
+// How a refusal of the application reads: the words a missing one gets too.
+function notInProject(applicationId: ObjectID): string {
+  return `This saved product analytics view references records that are not in this project: RUM Application "${applicationId.toString()}". Please pick values from this project and try again.`;
+}
 
 const DAY_MS: number = 24 * 60 * 60 * 1000;
 
@@ -99,7 +126,7 @@ function buildService(existing: number = 0): Harness {
 
 function createBy(
   payload: Record<string, unknown>,
-  props?: Record<string, unknown>,
+  props?: DatabaseCommonInteractionProps,
 ): CreateBy<Model> {
   return {
     data: Object.assign(new Model(), {
@@ -114,11 +141,14 @@ function createBy(
   } as CreateBy<Model>;
 }
 
-function updateBy(payload: Record<string, unknown>): UpdateBy<Model> {
+function updateBy(
+  payload: Record<string, unknown>,
+  props?: DatabaseCommonInteractionProps,
+): UpdateBy<Model> {
   return {
     query: { _id: SAVED_VIEW_ID.toString() },
     data: payload,
-    props: { tenantId: PROJECT_ID, userId: ObjectID.generate() },
+    props: props || { tenantId: PROJECT_ID, userId: ObjectID.generate() },
     limit: LIMIT_PER_PROJECT,
     skip: 0,
   } as unknown as UpdateBy<Model>;
@@ -162,9 +192,34 @@ async function updateRefusal(
   throw new Error("The update was not refused.");
 }
 
+let directory: ProjectDirectoryStub;
+
 beforeEach(() => {
   jest.restoreAllMocks();
+
+  // The project's applications; the foreign one is another project's.
+  directory = stubProjectDirectory({
+    projectId: PROJECT_ID,
+    records: {
+      RumApplication: [
+        APPLICATION_ID.toString(),
+        OTHER_APPLICATION_ID.toString(),
+      ],
+    },
+    elsewhere: [FOREIGN_APPLICATION_ID.toString()],
+  });
 });
+
+// What a hook threw, or null when it went through.
+async function refusalOf(promise: Promise<unknown>): Promise<unknown> {
+  try {
+    await promise;
+  } catch (error: unknown) {
+    return error;
+  }
+
+  return null;
+}
 
 describe("saving a funnel or a retention table", () => {
   test("keeps the name trimmed and the definition as the reads take it, nothing else", async () => {
@@ -497,5 +552,196 @@ describe("changing a saved funnel or retention table", () => {
       harness.internals.onBeforeUpdate(updateBy({ definition: FUNNEL })),
     ).resolves.toBeDefined();
     expect(harness.rowsOfUpdate.mock.calls).toHaveLength(1);
+  });
+});
+
+/*
+ * Saved under another project's application, a view would show that
+ * application's name back through the relation, which a read joins without
+ * asking whose it is. So the application is the project's own, whichever of
+ * its two names a write uses, and another project's is answered exactly as
+ * one that does not exist - before anything else the create reads.
+ */
+describe("the RUM application a saved view reads is its project's own", () => {
+  test("another project's is refused, naming it, before the name, the definition or the count", async () => {
+    const harness: Harness = buildService();
+
+    const thrown: unknown = await refusalOf(
+      harness.internals.onBeforeCreate(
+        createBy({
+          rumApplicationId: FOREIGN_APPLICATION_ID,
+          name: "  ",
+          definition: undefined,
+        }),
+      ),
+    );
+
+    expect(thrown).toBeInstanceOf(ProjectScopedReferenceException);
+    expect((thrown as Error).message).toBe(
+      notInProject(FOREIGN_APPLICATION_ID),
+    );
+    expect(harness.countBy.mock.calls).toHaveLength(0);
+  });
+
+  test("named by the relation alone, another project's is refused all the same", async () => {
+    const harness: Harness = buildService();
+
+    const thrown: unknown = await refusalOf(
+      harness.internals.onBeforeCreate(
+        createBy({
+          rumApplicationId: undefined,
+          rumApplication: { _id: FOREIGN_APPLICATION_ID.toString() },
+        }),
+      ),
+    );
+
+    expect(thrown).toBeInstanceOf(ProjectScopedReferenceException);
+    expect((thrown as Error).message).toBe(
+      notInProject(FOREIGN_APPLICATION_ID),
+    );
+    expect(harness.countBy.mock.calls).toHaveLength(0);
+  });
+
+  test("one that does not exist is answered word for word as another project's", async () => {
+    const foreign: unknown = await refusalOf(
+      buildService().internals.onBeforeCreate(
+        createBy({ rumApplicationId: FOREIGN_APPLICATION_ID }),
+      ),
+    );
+    const missing: unknown = await refusalOf(
+      buildService().internals.onBeforeCreate(
+        createBy({ rumApplicationId: MISSING_APPLICATION_ID }),
+      ),
+    );
+
+    expect(foreign).toBeInstanceOf(ProjectScopedReferenceException);
+    expect(missing).toBeInstanceOf(ProjectScopedReferenceException);
+    expect((foreign as Error).message).toBe(
+      notInProject(FOREIGN_APPLICATION_ID),
+    );
+    expect((missing as Error).message).toBe(
+      notInProject(MISSING_APPLICATION_ID),
+    );
+  });
+
+  test("OneUptime's own creates, in the project or with none on the request, are held to the project too", async () => {
+    const rootWrites: Array<DatabaseCommonInteractionProps> = [
+      { isRoot: true, tenantId: PROJECT_ID },
+      { isRoot: true },
+    ];
+
+    for (const props of rootWrites) {
+      const harness: Harness = buildService();
+
+      const thrown: unknown = await refusalOf(
+        harness.internals.onBeforeCreate(
+          createBy({ rumApplicationId: FOREIGN_APPLICATION_ID }, props),
+        ),
+      );
+
+      expect(thrown).toBeInstanceOf(ProjectScopedReferenceException);
+      expect(harness.countBy.mock.calls).toHaveLength(0);
+    }
+  });
+
+  test("the project's own, named by the relation alone, is looked up in the project, kept in its ID column and counted against", async () => {
+    const harness: Harness = buildService();
+
+    const result: OnCreate<Model> = await harness.internals.onBeforeCreate(
+      createBy({
+        rumApplicationId: undefined,
+        rumApplication: { _id: APPLICATION_ID.toString() },
+      }),
+    );
+
+    expect(directory.recordLookups).toEqual([
+      {
+        model: "RumApplication",
+        projectId: PROJECT_ID.toString(),
+        ids: [APPLICATION_ID.toString()],
+      },
+    ]);
+    expect(String(result.createBy.data.rumApplicationId)).toBe(
+      APPLICATION_ID.toString(),
+    );
+
+    const count: JSONObject = harness.countBy.mock.calls[0]![0] as JSONObject;
+
+    expect(
+      (
+        (count["query"] as JSONObject)["rumApplicationId"] as ObjectID
+      ).toString(),
+    ).toBe(APPLICATION_ID.toString());
+  });
+
+  test("two of the project's applications under its two names are refused: they disagree", async () => {
+    const harness: Harness = buildService();
+
+    expect(
+      await createRefusal(
+        harness,
+        createBy({
+          rumApplicationId: APPLICATION_ID,
+          rumApplication: { _id: OTHER_APPLICATION_ID.toString() },
+        }),
+      ),
+    ).toBe(
+      RelationIdUtil.getConflictMessage("RUM Application", [
+        "rumApplicationId",
+        "rumApplication",
+      ]),
+    );
+    expect(harness.countBy.mock.calls).toHaveLength(0);
+  });
+
+  test("an update that points a saved view at another project's application is refused, a teammate's or OneUptime's own", async () => {
+    const teammate: Harness = buildService();
+
+    const byTeammate: unknown = await refusalOf(
+      teammate.internals.onBeforeUpdate(
+        updateBy({ rumApplicationId: FOREIGN_APPLICATION_ID }),
+      ),
+    );
+
+    expect(byTeammate).toBeInstanceOf(ProjectScopedReferenceException);
+    expect((byTeammate as Error).message).toBe(
+      notInProject(FOREIGN_APPLICATION_ID),
+    );
+
+    // A row of the project, saved under one of the project's applications.
+    const server: Harness = buildService();
+    const row: Model = new Model(SAVED_VIEW_ID);
+
+    row.projectId = PROJECT_ID;
+    row.rumApplication = new RumApplication(APPLICATION_ID);
+    server.rowsOfUpdate.mockResolvedValue([row] as never);
+
+    const byServer: unknown = await refusalOf(
+      server.internals.onBeforeUpdate(
+        updateBy(
+          { rumApplicationId: FOREIGN_APPLICATION_ID },
+          { isRoot: true },
+        ),
+      ),
+    );
+
+    expect(byServer).toBeInstanceOf(ProjectScopedReferenceException);
+    expect((byServer as Error).message).toBe(
+      notInProject(FOREIGN_APPLICATION_ID),
+    );
+  });
+
+  test("a rename or a new definition names no application, and looks nothing up", async () => {
+    const harness: Harness = buildService();
+
+    harness.rowsOfUpdate.mockResolvedValue([
+      savedRow(ProductAnalyticsSavedViewType.Funnel),
+    ] as never);
+
+    await harness.internals.onBeforeUpdate(
+      updateBy({ name: "Weekly return", definition: FUNNEL }),
+    );
+
+    expect(directory.recordLookups).toEqual([]);
   });
 });

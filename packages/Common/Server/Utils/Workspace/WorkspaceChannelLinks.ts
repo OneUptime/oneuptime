@@ -25,6 +25,7 @@ import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceServ
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
 import logger from "../Logger";
 import MicrosoftTeamsHosts from "./MicrosoftTeams/MicrosoftTeamsHosts";
+import MattermostTeams from "./Mattermost/MattermostTeams";
 
 /*
  * THE LINKS TO A RECORD'S OWN SLACK, MICROSOFT TEAMS AND MATTERMOST CHANNELS.
@@ -242,7 +243,10 @@ export default class WorkspaceChannelLinks {
     const teamsTenantId: string | null = hasTeams
       ? await WorkspaceChannelLinks.getMicrosoftTeamsTenantId(data.projectId)
       : null;
-    const mattermost: MattermostMiscData | null = hasMattermost
+    const mattermost: Pick<
+      WorkspaceProjectAuthToken,
+      "miscData" | "workspaceProjectId"
+    > | null = hasMattermost
       ? await WorkspaceChannelLinks.getMattermostConnection(data.projectId)
       : null;
 
@@ -270,10 +274,15 @@ export default class WorkspaceChannelLinks {
         });
       }
 
+      // On the server, in the team the channel is in (MattermostTeams).
       return mattermost
         ? WorkspaceChannelLinkUtil.getMattermostChannelUrl({
-            serverUrl: mattermost.serverUrl,
-            teamName: mattermost.teamName,
+            serverUrl: (mattermost.miscData as MattermostMiscData | undefined)
+              ?.serverUrl,
+            teamName: MattermostTeams.getTeamNameOfChannel({
+              projectAuth: mattermost,
+              teamId: channel.teamId,
+            }),
             channelName: channel.name,
           })
         : null;
@@ -364,13 +373,17 @@ export default class WorkspaceChannelLinks {
   }
 
   /*
-   * The Mattermost server and team the project's bot was connected to, if
-   * any. Only OneUptime's connect flow writes them (MattermostAPI): miscData
-   * cannot be changed through the API.
+   * The Mattermost server the project's bot was connected to, and the teams
+   * it works in, if any. Only OneUptime's connect flow and its own reads of
+   * the server write them (MattermostAPI, MattermostTeams): miscData cannot
+   * be changed through the API.
    */
   public static async getMattermostConnection(
     projectId: ObjectID,
-  ): Promise<MattermostMiscData | null> {
+  ): Promise<Pick<
+    WorkspaceProjectAuthToken,
+    "miscData" | "workspaceProjectId"
+  > | null> {
     try {
       const projectAuth: WorkspaceProjectAuthToken | null =
         await WorkspaceProjectAuthTokenService.getProjectAuth({
@@ -378,7 +391,7 @@ export default class WorkspaceChannelLinks {
           workspaceType: WorkspaceType.Mattermost,
         });
 
-      return (projectAuth?.miscData as MattermostMiscData | undefined) || null;
+      return projectAuth?.miscData ? projectAuth : null;
     } catch (err) {
       logger.error(err);
       return null;

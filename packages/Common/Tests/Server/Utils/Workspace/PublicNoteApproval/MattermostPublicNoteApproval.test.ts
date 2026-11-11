@@ -160,9 +160,10 @@ async function approve(
 beforeEach(() => {
   startWorld();
 
-  jest
-    .spyOn(WorkspaceProjectAuthTokenService, "findOneBy")
-    .mockResolvedValue({ authToken: AUTH_TOKEN } as never);
+  jest.spyOn(WorkspaceProjectAuthTokenService, "findOneBy").mockResolvedValue({
+    authToken: AUTH_TOKEN,
+    workspaceProjectId: TEAM_ID,
+  } as never);
   jest
     .spyOn(WorkspaceProjectAuthTokenService, "countBy")
     .mockResolvedValue(new PositiveNumber(1));
@@ -456,7 +457,7 @@ describe("forged, replayed and stale presses", () => {
       .spyOn(WorkspaceProjectAuthTokenService, "findOneBy")
       .mockImplementation((async (find: { query: { projectId: ObjectID } }) => {
         return find.query.projectId.toString() === PROJECT_ID.toString()
-          ? { authToken: AUTH_TOKEN }
+          ? { authToken: AUTH_TOKEN, workspaceProjectId: TEAM_ID }
           : null;
       }) as never);
 

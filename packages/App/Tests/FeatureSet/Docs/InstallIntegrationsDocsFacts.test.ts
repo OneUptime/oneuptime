@@ -151,6 +151,7 @@ const SOURCES: Record<string, string> = {
   slackApi: `${COMMON_SERVER}/API/SlackAPI.ts`,
   slackAuthorization: `${COMMON_SERVER}/Middleware/SlackAuthorization.ts`,
   slackManifest: `${COMMON_SERVER}/Utils/Workspace/Slack/app-manifest.json`,
+  slackOrganization: `${COMMON_SERVER}/Utils/Workspace/Slack/SlackOrganization.ts`,
   slackIntegration: `${DASHBOARD}/Components/Slack/SlackIntegration.tsx`,
   slackDocumentation: `${DASHBOARD}/Components/Slack/SlackIntegrationDocumentation.tsx`,
   teamsApi: `${COMMON_SERVER}/API/MicrosoftTeamsAPI.ts`,
@@ -2496,6 +2497,35 @@ describe("Slack Integration, against the manifest and the server", () => {
       sectionOf(page, "### Apps created from an older manifest"),
     ).toContain(
       "The update turns the tab on and subscribes the app to the `app_home_opened` and `member_joined_channel` events. It adds no scope, so nothing needs connecting again.",
+    );
+  });
+
+  /*
+   * #6748: an app installed for a whole Slack Enterprise organization hears
+   * when an admin adds OneUptime to a workspace or removes it once its
+   * manifest subscribes to the two events, and the events route reads the
+   * workspaces again then. Until an app is updated, the list is read again
+   * when it is older than the 10 minutes the page names, or on Refresh.
+   */
+  it("an organization's app hears its workspaces change once it is updated, and the page says what happens until then", () => {
+    const events: Array<string> = valueAt(
+      manifest,
+      "settings.event_subscriptions.bot_events",
+    ) as Array<string>;
+    const route: string = readSource("slackApi");
+
+    expect(events).toContain("team_access_granted");
+    expect(events).toContain("team_access_revoked");
+    expect(route).toContain('event["type"] === "team_access_granted"');
+    expect(route).toContain('event["type"] === "team_access_revoked"');
+    expect(route).toContain("SlackOrganization.refreshOrganization(");
+    expect(readSource("slackOrganization")).toContain(
+      "WORKSPACES_FRESH_FOR_SECONDS: number = 10 * 60;",
+    );
+    expect(
+      sectionOf(page, "### Apps created from an older manifest"),
+    ).toContain(
+      "The update subscribes the app to the `team_access_granted` and `team_access_revoked` events, and OneUptime then reads the workspaces again at once. Until then, it reads them again when they are needed and were last read more than 10 minutes ago, or when someone clicks **Refresh** on the **Slack workspaces** card. It adds no scope, so nothing needs connecting again.",
     );
   });
 

@@ -170,6 +170,8 @@ OneUptime 恢复运行后，**项目设置 > 工作区 > Slack** 会显示 **Con
 
 在 **Home** 标签页之前创建的应用也需要同样的更新：在更新之前，Slack 不会为该应用显示 **Home** 标签页，应用也不会在它被添加到的频道中发布问候。更新会打开该标签页，并让应用订阅 `app_home_opened` 和 `member_joined_channel` 事件。它不会添加任何 scope，因此无需重新连接。
 
+在 Slack Enterprise Grid 上为整个组织安装的应用，也需要同样的更新，才能得知管理员何时将 OneUptime 添加到组织的某个工作区或从中移除。更新会让应用订阅 `team_access_granted` 和 `team_access_revoked` 事件，之后 OneUptime 会立即重新读取工作区。在此之前，它会在需要工作区且上次读取已超过 10 分钟时重新读取，也会在有人点击 **Slack 工作区列表** 卡片上的 **刷新** 时重新读取。它不会添加任何 scope，因此无需重新连接。
+
 ## 自托管部署的网络访问
 
 ### 流量方向和端点

@@ -34,10 +34,11 @@ OneUptime AI знает ваши данные: он расследует опо�
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Вебхуки синхронизаций Fivetran | Ключ приёма как секрет подписи Fivetran |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Вебхуки синхронизаций Airbyte | Ключ приёма в URL |
 | `POST /api/data-observability/tables/freshness` | Актуальность таблицы в том виде, в каком её возвращает инструмент MCP, с `{ "table": "public.orders" }` | API-ключ |
-| `POST /api/data-observability/tables/lineage` | Происхождение таблицы на несколько шагов в каждую сторону, с состоянием каждой таблицы, как его рисует вкладка **Происхождение**, с `{ "dataAssetId": "<table ID>", "depth": 3 }` | API-ключ |
+| `POST /api/data-observability/tables/lineage` | Происхождение таблицы на несколько шагов в каждую сторону, с состоянием каждой таблицы, как его рисует вкладка **Происхождение**, с `{ "dataAssetId": "<table ID>", "depth": 3 }`, а с `"withColumns": true` ещё и столбцы, которые несёт каждая стрелка | API-ключ |
 | `POST /api/data-observability/tables/lineage/answer` | Происхождение таблицы, рассказанное словами, сначала таблицы с проблемой, в том виде, в каком его возвращает инструмент MCP, с `{ "table": "public.orders", "depth": 3 }` | API-ключ |
 | `POST /api/data-observability/pipelines/lineage` | Таблицы, которые пайплайн читает и пишет, с состоянием каждой таблицы, как их рисует его страница, с `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | API-ключ |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | Происхождение оповещения о данных, как его рисует страница оповещения, с путём к оповещению, которое его вызвало, и к оповещениям, которые вызвало оно | API-ключ |
+| `POST /api/data-observability/lineage/expand` | Следующие таблицы, которые карточка диаграммы происхождения не рисует, как их дорисовывает выбор её числа: карточка как `nodeId` с её `side`, а нарисованное как `focusNodeId`, `tables` и `dataDashboardIds` | API-ключ |
 | `POST /api/data-observability/checks/apply` | Приводит проверки проекта в соответствие с файлом, как это делает `oneuptime data-checks apply`, с `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | API-ключ |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | Значок «data as of» продукта данных | Собственный токен значка |
 

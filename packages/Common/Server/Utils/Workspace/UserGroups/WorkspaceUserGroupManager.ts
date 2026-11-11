@@ -3,6 +3,7 @@ import User from "../../../../Models/DatabaseModels/User";
 import WorkspaceProjectAuthToken, {
   MicrosoftTeamsInstalledTeam,
   MicrosoftTeamsMiscData,
+  SlackOrganizationWorkspace,
 } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserGroup from "../../../../Models/DatabaseModels/WorkspaceUserGroup";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -48,7 +49,9 @@ import SlackUserGroups, {
   SLACK_USER_GROUP_DESCRIPTION,
   SlackUserGroupInfo,
 } from "../Slack/SlackUserGroups";
-import SlackOrganization from "../Slack/SlackOrganization";
+import SlackOrganization, {
+  SlackOrganizationConnection,
+} from "../Slack/SlackOrganization";
 import { WorkspaceUserGroupError } from "./WorkspaceUserGroupProvider";
 import WorkspaceUserGroupSync from "./WorkspaceUserGroupSync";
 
@@ -72,6 +75,18 @@ export const NOT_FOUND_SCHEDULE_MESSAGE: string =
 
 export const NOT_FOUND_GROUP_MESSAGE: string =
   "This user group was not found in this project, or you do not have access to it.";
+
+/*
+ * The Slack workspace user groups are in (WorkspaceUserGroupManager
+ * .getSlackWorkspace): its team id - empty for an organization OneUptime is
+ * added to no workspace of - and, for a whole Enterprise organization's
+ * installation, the workspaces to pick from.
+ */
+interface SlackUserGroupWorkspace {
+  teamId: string;
+  isOrganization: boolean;
+  workspaces: Array<WorkspaceUserGroupTeam>;
+}
 
 export default class WorkspaceUserGroupManager {
   /*
@@ -300,7 +315,10 @@ export default class WorkspaceUserGroupManager {
               projectId: data.projectId,
               teamId: group.workspaceTeamId || "",
             })
-          : null,
+          : await WorkspaceUserGroupManager.getSlackWorkspaceName({
+              projectId: data.projectId,
+              teamId: group.workspaceTeamId || "",
+            }),
       schedules: scheduleViews,
       members: (state?.members || []).map(
         (member: WorkspaceUserGroupMember): WorkspaceUserGroupPersonView => {
@@ -326,8 +344,11 @@ export default class WorkspaceUserGroupManager {
   /*
    * What the Connect form offers for a schedule. Slack: the workspace's user
    * groups, each saying who is in it now and which schedules it follows
-   * already. Microsoft Teams: the teams OneUptime's app is in and, once one
-   * is picked, its tags.
+   * already - for Slack installed for a whole Enterprise organization, the
+   * groups of the workspace `teamId` picks, else of the default one, with
+   * the workspaces OneUptime was added to, to pick from (teams). Microsoft
+   * Teams: the teams OneUptime's app is in and, once one is picked, its
+   * tags.
    */
   @CaptureSpan()
   public static async getAvailable(data: {
@@ -404,12 +425,18 @@ export default class WorkspaceUserGroupManager {
     };
 
     if (data.workspaceType === WorkspaceType.Slack) {
+      const workspace: SlackUserGroupWorkspace =
+        await WorkspaceUserGroupManager.getSlackWorkspace({
+          projectId: data.projectId,
+          projectAuth: projectAuth,
+          teamId: data.teamId,
+        });
+
       const groups: Array<SlackUserGroupInfo> =
         await WorkspaceUserGroupManager.askWorkspace(data.workspaceType, () => {
           return SlackUserGroups.list({
             authToken: projectAuth.authToken || "",
-            // A whole Slack Enterprise organization's: its default workspace's groups.
-            teamId: SlackOrganization.getWorkspaceIdForCalls(projectAuth),
+            teamId: workspace.teamId,
           });
         });
 
@@ -432,7 +459,7 @@ export default class WorkspaceUserGroupManager {
               return (a.handle || a.name).localeCompare(b.handle || b.name);
             },
           ),
-        teams: [],
+        teams: workspace.workspaces,
       };
     }
 
@@ -548,6 +575,7 @@ export default class WorkspaceUserGroupManager {
         ? await WorkspaceUserGroupManager.pickSlackGroup({
             request: request,
             projectAuth: projectAuth,
+            projectId: data.projectId,
           })
         : await WorkspaceUserGroupManager.pickTeamsTag({
             request: request,
@@ -815,6 +843,7 @@ export default class WorkspaceUserGroupManager {
   private static async pickSlackGroup(data: {
     request: WorkspaceUserGroupConnectRequest;
     projectAuth: WorkspaceProjectAuthToken;
+    projectId: ObjectID;
   }): Promise<{
     workspaceGroupId: string;
     workspaceTeamId: string | null;
@@ -825,15 +854,19 @@ export default class WorkspaceUserGroupManager {
 
     /*
      * The workspace the group is in: the project's own, or - for Slack
-     * installed for a whole Enterprise organization - its default one,
-     * which the group keeps (workspaceTeamId) to be kept in step there.
+     * installed for a whole Enterprise organization - the one picked, else
+     * the default one, which the group keeps (workspaceTeamId) to be kept
+     * in step there.
      */
-    const teamId: string = SlackOrganization.getWorkspaceIdForCalls(
-      data.projectAuth,
-    );
-    const workspaceTeamId: string | null = SlackOrganization.isOrganization(
-      data.projectAuth.miscData,
-    )
+    const workspace: SlackUserGroupWorkspace =
+      await WorkspaceUserGroupManager.getSlackWorkspace({
+        projectId: data.projectId,
+        projectAuth: data.projectAuth,
+        teamId: data.request.workspaceTeamId,
+      });
+
+    const teamId: string = workspace.teamId;
+    const workspaceTeamId: string | null = workspace.isOrganization
       ? teamId || null
       : null;
 
@@ -1246,6 +1279,93 @@ export default class WorkspaceUserGroupManager {
       .sort((a: WorkspaceUserGroupTeam, b: WorkspaceUserGroupTeam): number => {
         return a.name.localeCompare(b.name);
       });
+  }
+
+  /*
+   * The Slack workspace user groups are listed, made and kept in step in:
+   * the project's own - or, for Slack installed for a whole Enterprise
+   * organization (SlackOrganization), the one `teamId` picks, else the
+   * default one - with the organization's workspaces, to pick from. A
+   * workspace picked that OneUptime is not added to is refused: Slack
+   * would refuse it, and another workspace is not the one picked.
+   */
+  private static async getSlackWorkspace(data: {
+    projectId: ObjectID;
+    projectAuth: WorkspaceProjectAuthToken;
+    teamId?: string | null | undefined;
+  }): Promise<SlackUserGroupWorkspace> {
+    const organization: SlackOrganizationConnection | null =
+      await SlackOrganization.getOfConnection({
+        projectId: data.projectId,
+        projectAuth: data.projectAuth,
+      });
+
+    if (!organization) {
+      return {
+        teamId: SlackOrganization.getWorkspaceIdForCalls(data.projectAuth),
+        isOrganization: false,
+        workspaces: [],
+      };
+    }
+
+    const workspaces: Array<WorkspaceUserGroupTeam> =
+      organization.workspaces.map(
+        (workspace: SlackOrganizationWorkspace): WorkspaceUserGroupTeam => {
+          return { teamId: workspace.id, name: workspace.name };
+        },
+      );
+
+    const picked: string = (data.teamId || "").trim();
+
+    if (
+      picked &&
+      !workspaces.some((workspace: WorkspaceUserGroupTeam): boolean => {
+        return workspace.teamId === picked;
+      })
+    ) {
+      throw new BadDataException(
+        `${ProductBrandingText.getProductName()} is not added to this Slack workspace any more. Pick another workspace.`,
+      );
+    }
+
+    return {
+      teamId: picked || organization.defaultWorkspaceId || "",
+      isOrganization: true,
+      workspaces: workspaces,
+    };
+  }
+
+  /*
+   * The name of the Slack workspace a group of a whole Enterprise
+   * organization's installation is in - as it was named when OneUptime was
+   * removed from it, if it was. Null for a group of one workspace's
+   * connection, which keeps no workspace.
+   */
+  private static async getSlackWorkspaceName(data: {
+    projectId: ObjectID;
+    teamId: string;
+  }): Promise<string | null> {
+    if (!data.teamId) {
+      return null;
+    }
+
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.Slack,
+      });
+
+    const organization: SlackOrganizationConnection | null =
+      SlackOrganization.readConnection(projectAuth);
+
+    if (!organization) {
+      return null;
+    }
+
+    return SlackOrganization.getWorkspaceName({
+      organization: organization,
+      teamId: data.teamId,
+    });
   }
 
   private static async getTeamName(data: {

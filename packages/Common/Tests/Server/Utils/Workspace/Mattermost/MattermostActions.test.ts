@@ -167,7 +167,10 @@ describe("MattermostActions", () => {
 
     findProjectConnection = jest
       .spyOn(WorkspaceProjectAuthTokenService, "findOneBy")
-      .mockResolvedValue({ authToken: AUTH_TOKEN } as never);
+      .mockResolvedValue({
+        authToken: AUTH_TOKEN,
+        workspaceProjectId: TEAM_ID,
+      } as never);
     jest
       .spyOn(WorkspaceProjectAuthTokenService, "countBy")
       .mockResolvedValue(new PositiveNumber(1));
@@ -304,25 +307,62 @@ describe("MattermostActions", () => {
       );
     });
 
-    test("the record's project must be connected to the team the press came from", async () => {
+    test("the record's project must be connected to Mattermost", async () => {
       findProjectConnection.mockResolvedValue(null);
 
       const answer: MattermostPressAnswer = await MattermostActions.handlePress(
         press(SlackActionType.AcknowledgeIncident),
       );
 
+      /*
+       * Read by the project alone: which teams it works in is the
+       * connection's to say (MattermostTeams), below.
+       */
       expect(findProjectConnection).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {
             projectId: projectId,
             workspaceType: WorkspaceType.Mattermost,
-            workspaceProjectId: TEAM_ID,
           },
         }),
       );
       expect(answer.ephemeral_text).toContain(
         "no longer connected to the OneUptime project",
       );
+      expect(acknowledge).not.toHaveBeenCalled();
+    });
+
+    test("the record's project must work in the team the press came from", async () => {
+      findProjectConnection.mockResolvedValue({
+        authToken: AUTH_TOKEN,
+        workspaceProjectId: OTHER_TEAM_ID,
+        miscData: {
+          teamId: OTHER_TEAM_ID,
+          teams: [
+            { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+          ],
+          teamsReadAt: new Date().toISOString(),
+        },
+      } as never);
+      const listTeams: jest.SpyInstance = jest
+        .spyOn(MattermostUtil, "getTeamsOfBot")
+        .mockResolvedValue([
+          { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+        ]);
+      jest
+        .spyOn(WorkspaceProjectAuthTokenService, "updateMattermostTeams")
+        .mockResolvedValue(undefined);
+
+      const answer: MattermostPressAnswer = await MattermostActions.handlePress(
+        press(SlackActionType.AcknowledgeIncident),
+      );
+
+      expect(answer.ephemeral_text).toBe(
+        "This Mattermost team is no longer connected to the OneUptime project this message is from.",
+      );
+      // Asked once whether the bot was added to the team since.
+      expect(listTeams).toHaveBeenCalledTimes(1);
+      expect(findUserLink).not.toHaveBeenCalled();
       expect(acknowledge).not.toHaveBeenCalled();
     });
 
@@ -389,6 +429,325 @@ describe("MattermostActions", () => {
         "You are not a member of this project.",
       );
       expect(acknowledge).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * One project, several teams of its Mattermost server (MattermostTeams):
+   * a press is acted on from any team the project's bot is a member of -
+   * signed, as every press is, for the team it came from.
+   */
+  describe("a project in several teams of its server", () => {
+    const LISTED_NOW: string = new Date().toISOString();
+    // Older than the ten minutes the teams a server listed are used for.
+    const LISTED_LONG_AGO: string = new Date(
+      Date.now() - 60 * 60 * 1000,
+    ).toISOString();
+
+    let listTeams: jest.SpyInstance;
+    let keepTeams: jest.SpyInstance;
+
+    function pressFrom(teamId: string, actionId: string): JSONObject {
+      return press(actionId, {
+        team_id: teamId,
+        context: MattermostActionContext.toContext({
+          teamId: teamId,
+          actions: [{ actionId: actionId, value: recordId.toString() }],
+        }),
+      });
+    }
+
+    function connectedWith(miscData: JSONObject): void {
+      findProjectConnection.mockResolvedValue({
+        authToken: AUTH_TOKEN,
+        workspaceProjectId: TEAM_ID,
+        miscData: {
+          teamId: TEAM_ID,
+          teamName: "engineering",
+          ...miscData,
+        },
+      } as never);
+    }
+
+    beforeEach(() => {
+      listTeams = jest.spyOn(MattermostUtil, "getTeamsOfBot");
+      keepTeams = jest
+        .spyOn(WorkspaceProjectAuthTokenService, "updateMattermostTeams")
+        .mockResolvedValue(undefined);
+    });
+
+    test("a press from another team the bot is in is acted on, nothing asked of the server", async () => {
+      connectedWith({
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+          { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+        ],
+        teamsReadAt: LISTED_NOW,
+      });
+
+      const answer: MattermostPressAnswer = await MattermostActions.handlePress(
+        pressFrom(OTHER_TEAM_ID, SlackActionType.AcknowledgeIncident),
+      );
+
+      expect(acknowledge).toHaveBeenCalledWith({ event: event, props: props });
+      expect(answer.ephemeral_text).toBe("✅ **INC-42** acknowledged by you.");
+      expect(listTeams).not.toHaveBeenCalled();
+    });
+
+    test("a press from a team the bot was added to since its teams were listed: asked once, then acted on", async () => {
+      connectedWith({
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+        ],
+        teamsReadAt: LISTED_NOW,
+      });
+      listTeams.mockResolvedValue([
+        { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+        { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+      ]);
+
+      await MattermostActions.handlePress(
+        pressFrom(OTHER_TEAM_ID, SlackActionType.AcknowledgeIncident),
+      );
+
+      expect(listTeams).toHaveBeenCalledTimes(1);
+      // Kept for the next press.
+      expect(keepTeams).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projectId: projectId,
+          workspaceProjectId: TEAM_ID,
+          teams: [
+            { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+            { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+          ],
+        }),
+      );
+      expect(acknowledge).toHaveBeenCalledTimes(1);
+    });
+
+    test("a press from a team the bot is not in is refused, the server asked once", async () => {
+      connectedWith({
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+        ],
+        teamsReadAt: LISTED_NOW,
+      });
+      listTeams.mockResolvedValue([
+        { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+      ]);
+
+      const answer: MattermostPressAnswer = await MattermostActions.handlePress(
+        pressFrom(OTHER_TEAM_ID, SlackActionType.AcknowledgeIncident),
+      );
+
+      expect(answer.ephemeral_text).toBe(
+        "This Mattermost team is no longer connected to the OneUptime project this message is from.",
+      );
+      expect(listTeams).toHaveBeenCalledTimes(1);
+      expect(acknowledge).not.toHaveBeenCalled();
+    });
+
+    test("a server that does not answer leaves a press from a team never listed refused, never failed", async () => {
+      connectedWith({
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+        ],
+        teamsReadAt: LISTED_NOW,
+      });
+      listTeams.mockRejectedValue(new Error("connect ECONNREFUSED"));
+
+      const answer: MattermostPressAnswer = await MattermostActions.handlePress(
+        pressFrom(OTHER_TEAM_ID, SlackActionType.AcknowledgeIncident),
+      );
+
+      expect(answer.ephemeral_text).toBe(
+        "This Mattermost team is no longer connected to the OneUptime project this message is from.",
+      );
+      expect(acknowledge).not.toHaveBeenCalled();
+    });
+
+    test("a press from another team, its teams listed long ago: asked again, and acted on while the bot is still in it", async () => {
+      connectedWith({
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+          { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+        ],
+        teamsReadAt: LISTED_LONG_AGO,
+      });
+      listTeams.mockResolvedValue([
+        { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+        { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+      ]);
+
+      await MattermostActions.handlePress(
+        pressFrom(OTHER_TEAM_ID, SlackActionType.AcknowledgeIncident),
+      );
+
+      expect(listTeams).toHaveBeenCalledTimes(1);
+      expect(acknowledge).toHaveBeenCalledTimes(1);
+    });
+
+    test("REGRESSION: a team the bot was taken out of: its buttons stop working once its teams are listed again", async () => {
+      connectedWith({
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+          { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+        ],
+        teamsReadAt: LISTED_LONG_AGO,
+      });
+      listTeams.mockResolvedValue([
+        { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+      ]);
+
+      const answer: MattermostPressAnswer = await MattermostActions.handlePress(
+        pressFrom(OTHER_TEAM_ID, SlackActionType.AcknowledgeIncident),
+      );
+
+      expect(answer.ephemeral_text).toBe(
+        "This Mattermost team is no longer connected to the OneUptime project this message is from.",
+      );
+      expect(listTeams).toHaveBeenCalledTimes(1);
+      expect(acknowledge).not.toHaveBeenCalled();
+    });
+
+    test("presses from the default team and the team it was connected to never ask the server, however old the teams", async () => {
+      connectedWith({
+        teamId: OTHER_TEAM_ID,
+        teamName: "support",
+        teams: [{ id: OTHER_TEAM_ID, name: "support", displayName: "Support" }],
+        teamsReadAt: LISTED_LONG_AGO,
+      });
+      listTeams.mockResolvedValue([
+        { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+      ]);
+
+      await MattermostActions.handlePress(
+        pressFrom(TEAM_ID, SlackActionType.AcknowledgeIncident),
+      );
+      await MattermostActions.handlePress(
+        pressFrom(OTHER_TEAM_ID, SlackActionType.AcknowledgeIncident),
+      );
+
+      expect(acknowledge).toHaveBeenCalledTimes(2);
+      expect(listTeams).not.toHaveBeenCalled();
+    });
+
+    test("a press from the team the project was connected to still acts once another team is the default", async () => {
+      connectedWith({
+        teamId: OTHER_TEAM_ID,
+        teamName: "support",
+        teams: [{ id: OTHER_TEAM_ID, name: "support", displayName: "Support" }],
+        teamsReadAt: LISTED_NOW,
+      });
+
+      await MattermostActions.handlePress(
+        pressFrom(TEAM_ID, SlackActionType.AcknowledgeIncident),
+      );
+
+      expect(acknowledge).toHaveBeenCalledTimes(1);
+      expect(listTeams).not.toHaveBeenCalled();
+    });
+
+    test("the form a press opens is opened in the team the press came from", async () => {
+      jest.spyOn(WorkspaceNoteForm, "isPrivateRecord").mockResolvedValue(false);
+      connectedWith({
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+          { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+        ],
+        teamsReadAt: LISTED_NOW,
+      });
+
+      await MattermostActions.handlePress(
+        pressFrom(OTHER_TEAM_ID, SlackActionType.ViewAddIncidentNote),
+      );
+
+      expect(showModal).toHaveBeenCalledTimes(1);
+      expect(showModal.mock.calls[0][0]).toMatchObject({
+        authToken: AUTH_TOKEN,
+        teamId: OTHER_TEAM_ID,
+      });
+    });
+
+    test("a form sent from another team the bot is in is acted on", async () => {
+      jest.spyOn(WorkspaceNoteForm, "isPrivateRecord").mockResolvedValue(false);
+      jest
+        .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
+        .mockResolvedValue(undefined);
+      const addPublic: jest.SpyInstance = jest
+        .spyOn(IncidentPublicNoteService, "addNote")
+        .mockResolvedValue({} as never);
+      connectedWith({
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+          { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+        ],
+        teamsReadAt: LISTED_NOW,
+      });
+
+      await MattermostActions.handleDialogSubmission(
+        submission(
+          SlackActionType.SubmitIncidentNote,
+          {
+            [MATTERMOST_NOTE_FIELD]: "Rolled back.",
+            [MATTERMOST_NOTE_TYPE_FIELD]: "public",
+          },
+          {
+            team_id: OTHER_TEAM_ID,
+            state: MattermostActionContext.toDialogState({
+              teamId: OTHER_TEAM_ID,
+              actionId: SlackActionType.SubmitIncidentNote,
+              value: recordId.toString(),
+            }),
+          },
+        ),
+      );
+
+      expect(addPublic).toHaveBeenCalledWith(
+        expect.objectContaining({ incidentId: recordId, note: "Rolled back." }),
+      );
+    });
+
+    test("in another team than the one it was connected to, the connect prompt names the project", async () => {
+      findUserLink.mockResolvedValue(null);
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockResolvedValue({ name: "Production" } as never);
+      connectedWith({
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+          { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+        ],
+        teamsReadAt: LISTED_NOW,
+      });
+
+      const answer: MattermostPressAnswer = await MattermostActions.handlePress(
+        pressFrom(OTHER_TEAM_ID, SlackActionType.AcknowledgeIncident),
+      );
+
+      // Another project may be connected to that team: which one is said.
+      expect(answer.ephemeral_text).toContain(
+        "Connect your Mattermost account in Production to acknowledge this incident.",
+      );
+    });
+
+    test("in the team it was connected to, alone there, the prompt names no project", async () => {
+      findUserLink.mockResolvedValue(null);
+      connectedWith({
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+          { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+        ],
+        teamsReadAt: LISTED_NOW,
+      });
+
+      const answer: MattermostPressAnswer = await MattermostActions.handlePress(
+        pressFrom(TEAM_ID, SlackActionType.AcknowledgeIncident),
+      );
+
+      expect(answer.ephemeral_text).toContain(
+        "Connect your Mattermost account to acknowledge this incident.",
+      );
     });
   });
 

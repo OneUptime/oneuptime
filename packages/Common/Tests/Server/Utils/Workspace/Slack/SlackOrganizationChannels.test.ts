@@ -17,6 +17,7 @@ import logger from "../../../../../Server/Utils/Logger";
 import SlackUtil from "../../../../../Server/Utils/Workspace/Slack/Slack";
 import SlackOrganization, {
   SlackOrganizationConnection,
+  SlackWorkspaceNotAddedException,
 } from "../../../../../Server/Utils/Workspace/Slack/SlackOrganization";
 import {
   WorkspaceChannel,
@@ -69,6 +70,10 @@ const SOUTH: SlackOrganizationWorkspace = { id: "T0SOUTH", name: "Acme South" };
 // The workspace a request without team_id is for: a connection to one workspace.
 const OWN_WORKSPACE: string = "";
 
+// What a rule picking Acme East is told once OneUptime is removed from it.
+const NOT_ADDED_TO_EAST: string =
+  "OneUptime is no longer added to the Acme East workspace of Acme Corp. Add it again in Slack's organization settings, or pick another workspace on the rule.";
+
 interface SlackCall {
   method: string;
   body: JSONObject;
@@ -84,6 +89,8 @@ let refusals: Map<string, string>;
 let workspacesSlackLists: Array<SlackOrganizationWorkspace>;
 // What conversations.create answers.
 let createAnswer: JSONObject | null;
+// What chat.postMessage is refused with, if anything.
+let postRefusal: string | null;
 
 // The project's connection, as stored.
 let stored: WorkspaceProjectAuthToken | null;
@@ -196,6 +203,7 @@ beforeEach(() => {
   calls = [];
   refusals = new Map();
   createAnswer = null;
+  postRefusal = null;
   cacheWrites = 0;
   workspacesSlackLists = [EAST, NORTH, WEST];
   channelPages = {
@@ -263,11 +271,13 @@ beforeEach(() => {
         ),
       };
     } else if (method === "chat.postMessage") {
-      answer = {
-        ok: true,
-        ts: "1762851600.000100",
-        channel: body["channel"],
-      };
+      answer = postRefusal
+        ? { ok: false, error: postRefusal }
+        : {
+            ok: true,
+            ts: "1762851600.000100",
+            channel: body["channel"],
+          };
     } else {
       answer = { ok: false, error: "unknown_method" };
     }
@@ -803,8 +813,26 @@ describe("getWorkspaceChannelByName for an organization's installation", () => {
     );
   });
 
-  test("the rule's workspace refusing: no channel, and nothing thrown", async () => {
+  test("the rule's workspace refusing OneUptime (removed since Slack listed it): said plainly - no other workspace is looked in", async () => {
     refusals.set(EAST.id, "team_access_not_granted");
+
+    const looking: Promise<WorkspaceChannel | null> =
+      SlackUtil.getWorkspaceChannelByName({
+        authToken: ORGANIZATION_TOKEN,
+        channelName: "east-only",
+        projectId: PROJECT_ID,
+        teamId: EAST.id,
+      });
+
+    await expect(looking).rejects.toBeInstanceOf(
+      SlackWorkspaceNotAddedException,
+    );
+    await expect(looking).rejects.toThrow(NOT_ADDED_TO_EAST);
+    expect(listedWorkspaces()).toEqual([EAST.id]);
+  });
+
+  test("the rule's workspace refusing for another reason: no channel, and nothing thrown", async () => {
+    refusals.set(EAST.id, "ratelimited");
 
     expect(
       await SlackUtil.getWorkspaceChannelByName({
@@ -814,6 +842,54 @@ describe("getWorkspaceChannelByName for an organization's installation", () => {
         teamId: EAST.id,
       }),
     ).toBeNull();
+    expect(listedWorkspaces()).toEqual([EAST.id]);
+  });
+
+  test("a rule's workspace Slack no longer lists: refused by the name it had, before the cache or Slack is asked", async () => {
+    stored = organizationRow({
+      workspaces: [NORTH, WEST],
+      removedWorkspaces: [EAST],
+      channelCache: {
+        "east-only": {
+          id: "C0EONLY",
+          name: "east-only",
+          lastUpdated: minutesAgo(60),
+          teamId: EAST.id,
+        },
+      },
+    });
+
+    const looking: Promise<WorkspaceChannel | null> =
+      SlackUtil.getWorkspaceChannelByName({
+        authToken: ORGANIZATION_TOKEN,
+        channelName: "east-only",
+        projectId: PROJECT_ID,
+        teamId: EAST.id,
+      });
+
+    await expect(looking).rejects.toBeInstanceOf(
+      SlackWorkspaceNotAddedException,
+    );
+    await expect(looking).rejects.toThrow(NOT_ADDED_TO_EAST);
+    expect(calls).toEqual([]);
+  });
+
+  test("a rule naming no workspace, with one removed: the others are looked in as before", async () => {
+    stored = organizationRow({
+      workspaces: [NORTH, WEST],
+      removedWorkspaces: [EAST],
+    });
+
+    expect(
+      (
+        await SlackUtil.getWorkspaceChannelByName({
+          authToken: ORGANIZATION_TOKEN,
+          channelName: "north-only",
+          projectId: PROJECT_ID,
+        })
+      )?.id,
+    ).toBe("C0NONLY");
+    expect(listedWorkspaces()).not.toContain(EAST.id);
   });
 
   test("a name no workspace has: none, after every workspace was looked in - and what was read is cached", async () => {
@@ -1135,6 +1211,135 @@ describe("createChannel for an organization's installation", () => {
       EAST.id,
     );
   });
+
+  test("the organization its caller read is used: the project's connection is read once fewer", async () => {
+    const reads: SpyInstance<
+      typeof WorkspaceProjectAuthTokenService.getProjectAuth
+    > = jest.mocked(WorkspaceProjectAuthTokenService.getProjectAuth);
+
+    await SlackUtil.createChannel({
+      authToken: ORGANIZATION_TOKEN,
+      channelName: "inc-16",
+      projectId: PROJECT_ID,
+      teamId: EAST.id,
+    });
+
+    const readsWhenNotGiven: number = reads.mock.calls.length;
+    reads.mockClear();
+
+    const channel: WorkspaceChannel = await SlackUtil.createChannel({
+      authToken: ORGANIZATION_TOKEN,
+      channelName: "inc-17",
+      projectId: PROJECT_ID,
+      teamId: EAST.id,
+      organization: organization(),
+    });
+
+    expect(reads.mock.calls.length).toBe(readsWhenNotGiven - 1);
+    expect(channel.teamId).toBe(EAST.id);
+    expect(methodCalls("conversations.create")[1]!.body["team_id"]).toBe(
+      EAST.id,
+    );
+  });
+
+  test("no organization given by its caller (null): one workspace's channel - no team_id, nothing read for it", async () => {
+    const reads: SpyInstance<
+      typeof WorkspaceProjectAuthTokenService.getProjectAuth
+    > = jest.mocked(WorkspaceProjectAuthTokenService.getProjectAuth);
+
+    stored = workspaceRow();
+    reads.mockClear();
+
+    const channel: WorkspaceChannel = await SlackUtil.createChannel({
+      authToken: WORKSPACE_TOKEN,
+      channelName: "inc-18",
+      projectId: PROJECT_ID,
+      organization: null,
+    });
+
+    expect(methodCalls("conversations.create")[0]!.body).toEqual({
+      name: "inc-18",
+    });
+    expect(channel.teamId).toBeUndefined();
+    // Only the channel cache's write reads it.
+    expect(reads.mock.calls.length).toBeLessThanOrEqual(1);
+  });
+
+  test("a workspace the rule names that Slack no longer lists: refused by its name before Slack is asked - not created in another", async () => {
+    stored = organizationRow({
+      workspaces: [NORTH, WEST],
+      removedWorkspaces: [EAST],
+    });
+
+    const creating: Promise<WorkspaceChannel> = SlackUtil.createChannel({
+      authToken: ORGANIZATION_TOKEN,
+      channelName: "inc-19",
+      projectId: PROJECT_ID,
+      teamId: EAST.id,
+    });
+
+    await expect(creating).rejects.toBeInstanceOf(
+      SlackWorkspaceNotAddedException,
+    );
+    await expect(creating).rejects.toThrow(NOT_ADDED_TO_EAST);
+    expect(methodCalls("conversations.create")).toHaveLength(0);
+  });
+
+  test("Slack refusing the workspace at create (removed since it listed it): refused in plain words", async () => {
+    createAnswer = { ok: false, error: "team_access_not_granted" };
+
+    const creating: Promise<WorkspaceChannel> = SlackUtil.createChannel({
+      authToken: ORGANIZATION_TOKEN,
+      channelName: "inc-20",
+      projectId: PROJECT_ID,
+      teamId: EAST.id,
+    });
+
+    await expect(creating).rejects.toBeInstanceOf(
+      SlackWorkspaceNotAddedException,
+    );
+    await expect(creating).rejects.toThrow(NOT_ADDED_TO_EAST);
+    expect(methodCalls("conversations.create")).toHaveLength(1);
+  });
+
+  test("a default chosen before, with Slack listing no workspace now: refused as added to none - Slack is not asked to create", async () => {
+    stored = organizationRow({
+      workspaces: [],
+      defaultWorkspaceId: WEST.id,
+      workspacesReadAt: minutesAgo(1),
+    });
+
+    await expect(
+      SlackUtil.createChannel({
+        authToken: ORGANIZATION_TOKEN,
+        channelName: "inc-21",
+        projectId: PROJECT_ID,
+      }),
+    ).rejects.toThrow(
+      "OneUptime is installed for the Acme Corp organization but has not been added to any of its workspaces yet.",
+    );
+    expect(methodCalls("conversations.create")).toHaveLength(0);
+  });
+
+  test("a default chosen before Slack listed any workspace: created in it - Slack decides", async () => {
+    stored = organizationRow({
+      workspaces: undefined,
+      workspacesReadAt: undefined,
+      defaultWorkspaceId: WEST.id,
+    });
+
+    const channel: WorkspaceChannel = await SlackUtil.createChannel({
+      authToken: ORGANIZATION_TOKEN,
+      channelName: "inc-22",
+      projectId: PROJECT_ID,
+      organization: SlackOrganization.readConnection(stored),
+    });
+
+    expect(methodCalls("conversations.create")[0]!.body["team_id"]).toBe(
+      WEST.id,
+    );
+    expect(channel.teamId).toBe(WEST.id);
+  });
 });
 
 describe("createChannel for one workspace (as before)", () => {
@@ -1288,5 +1493,126 @@ describe("sendMessage", () => {
     ]);
     // North's channel is not the East rule's: not posted in.
     expect(postedIn()).toEqual(["C0EGEN", "C0EONLY"]);
+  });
+
+  test("a rule's workspace OneUptime was removed from: nothing posted - not in another workspace either - and each channel's Notification Logs row says so plainly", async () => {
+    stored = organizationRow({
+      workspaces: [NORTH, WEST],
+      removedWorkspaces: [EAST],
+      channelCache: {
+        general: {
+          id: "C0WGEN",
+          name: "general",
+          lastUpdated: minutesAgo(60),
+          teamId: WEST.id,
+        },
+      },
+    });
+
+    const response: WorkspaceSendMessageResponse = await SlackUtil.sendMessage({
+      workspaceMessagePayload: payload({
+        channelNames: ["#general", "east-only"],
+        teamId: EAST.id,
+      }),
+      authToken: ORGANIZATION_TOKEN,
+      userId: "",
+      projectId: PROJECT_ID,
+    });
+
+    expect(postedIn()).toEqual([]);
+    expect(methodCalls("conversations.list")).toHaveLength(0);
+    expect(response.threads).toEqual([]);
+    expect(response.errors).toEqual([
+      {
+        channel: {
+          id: "",
+          name: "general",
+          workspaceType: WorkspaceType.Slack,
+          teamId: EAST.id,
+        },
+        error: NOT_ADDED_TO_EAST,
+      },
+      {
+        channel: {
+          id: "",
+          name: "east-only",
+          workspaceType: WorkspaceType.Slack,
+          teamId: EAST.id,
+        },
+        error: NOT_ADDED_TO_EAST,
+      },
+    ]);
+  });
+
+  test("Slack refusing a post in the rule's workspace (removed since it was listed): the row says so plainly", async () => {
+    postRefusal = "team_access_not_granted";
+
+    const response: WorkspaceSendMessageResponse = await SlackUtil.sendMessage({
+      workspaceMessagePayload: payload({
+        channelNames: ["general"],
+        teamId: EAST.id,
+      }),
+      authToken: ORGANIZATION_TOKEN,
+      userId: "",
+      projectId: PROJECT_ID,
+    });
+
+    expect(postedIn()).toEqual(["C0EGEN"]);
+    expect(response.errors).toHaveLength(1);
+    expect(response.errors![0]!.channel.id).toBe("C0EGEN");
+    expect(response.errors![0]!.error).toBe(NOT_ADDED_TO_EAST);
+  });
+
+  test("any other refusal of a post is Slack's own words, as before", async () => {
+    postRefusal = "is_archived";
+
+    const response: WorkspaceSendMessageResponse = await SlackUtil.sendMessage({
+      workspaceMessagePayload: payload({
+        channelNames: ["general"],
+        teamId: EAST.id,
+      }),
+      authToken: ORGANIZATION_TOKEN,
+      userId: "",
+      projectId: PROJECT_ID,
+    });
+
+    expect(response.errors![0]!.error).toBe("Error from Slack is_archived");
+  });
+
+  test("a project connected to one workspace refused team_access_not_granted: Slack's own words - there is no organization to name", async () => {
+    stored = workspaceRow();
+    postRefusal = "team_access_not_granted";
+
+    const response: WorkspaceSendMessageResponse = await SlackUtil.sendMessage({
+      workspaceMessagePayload: payload({ channelNames: ["general"] }),
+      authToken: WORKSPACE_TOKEN,
+      userId: "",
+      projectId: PROJECT_ID,
+    });
+
+    expect(response.errors![0]!.error).toBe(
+      "Error from Slack team_access_not_granted",
+    );
+  });
+});
+
+describe("isWorkspaceNotAddedError", () => {
+  test("Slack's team_access_not_granted, as any call throws it - and nothing else", () => {
+    expect(
+      SlackUtil.isWorkspaceNotAddedError(
+        new BadRequestException("Error from Slack team_access_not_granted"),
+      ),
+    ).toBe(true);
+
+    for (const other of [
+      new BadRequestException("Error from Slack channel_not_found"),
+      new BadRequestException("Error from Slack team_access_not_granted_x"),
+      new Error("team_access_not_granted"),
+      "Error from Slack ratelimited",
+      null,
+      undefined,
+    ]) {
+      expect(SlackUtil.isWorkspaceNotAddedError(other)).toBe(false);
+    }
   });
 });

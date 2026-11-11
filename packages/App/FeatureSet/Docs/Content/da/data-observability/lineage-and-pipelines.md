@@ -17,7 +17,11 @@ En tabels fane **Afstamning** viser de tabeller, den er bygget af, de pipelines,
 
 Øverst på fanen tegner et diagram den afstamning nogle trin i hver retning (tre, eller vælg 1, 2 eller 5): til venstre det, tabellen er bygget af, til højre de tabeller og dashboards, der er bygget af den, og de pipelines, der indlæser data udefra, der hvor de kommer ind. Hvert kort viser, hvordan det står til nu - forsinket, en åben advarsel, en mislykket kørsel - og en pil bliver rød, når den seneste kørsel af dens pipeline mislykkedes, så en forsinket tabel kan følges op til den kørsel, der stoppede den. Åbn en hvilken som helst tabel for at centrere diagrammet på den.
 
+Et kort tegner højst ti tabeller i hver retning og tæller resten, for eksempel **+14**. Vælg tallet for at tegne op til ti flere af dem, hvor de er, problemer først, med hver pil mellem dem og det, der allerede er tegnet. **Nulstil diagram** går tilbage til diagrammet, som det først blev tegnet. Når en side rummer så mange tabeller, som et diagram kan, så åbn en tabel for at centrere diagrammet på den.
+
 Hvor kilden nævner kolonner, viser en tabels fane **Kolonner**, hvor hver kolonne kommer fra, og hvad den føder: Snowflakes adgangshistorik (Enterprise-udgaven, som kræver `IMPORTED PRIVILEGES` på databasen `SNOWFLAKE`) og OpenLineages facet `columnLineage`.
+
+Vælg på fanen **Afstamning** en af tabellens kolonner i **Følg en kolonne** for at fremhæve, hvor den kommer fra, og hvor den går hen: op gennem diagrammet til de kolonner, den er bygget af, ned til de kolonner, der er bygget af den, hver navngivet på sin tabel, også hvor kolonnen blev omdøbt undervejs. En pil, hvis kilder ikke nævner kolonner, kan føre den længere end det fremhævede, og diagrammet siger det.
 
 ## OpenLineage
 
@@ -117,7 +121,7 @@ Hvert job, dbt-projekt og hver synkronisering vises under **Pipelines**, med sin
 - **Pipeline Run Unusually Long**: en kørsel har taget dobbelt så lang tid som normalt eller mere, tjekket hvert femte minut, mens den kører, så en kørsel, der hænger, opdages, før den slutter.
 - **Pipeline Is Late**: ingen kørsel er startet i længere tid, end tidsplanen tillader.
 
-En pipelines side tegner dens **Afstamning**, det første sted at kigge, når en kørsel mislykkes eller er forsinket: til venstre de tabeller, den læser, til højre de tabeller, den skriver, pipelinen imellem, og hvert kort viser, hvordan det står til nu. Vælg flere trin for at se, hvad tabellerne er bygget af, og hvad der er bygget af dem, og åbn en hvilken som helst tabel for at se dens egen fane **Afstamning**.
+En pipelines side tegner dens **Afstamning**, det første sted at kigge, når en kørsel mislykkes eller er forsinket: til venstre de tabeller, den læser, til højre de tabeller, den skriver, pipelinen imellem, og hvert kort viser, hvordan det står til nu. Vælg flere trin for at se, hvad tabellerne er bygget af, og hvad der er bygget af dem, og åbn en hvilken som helst tabel for at se dens egen fane **Afstamning**. Et tal for tabeller, der ikke er tegnet, på pipelinens kort eller på en tabels, tegner også her flere af dem på stedet.
 
 ## Én advarsel pr. årsag
 
