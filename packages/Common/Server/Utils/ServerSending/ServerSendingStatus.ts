@@ -313,9 +313,7 @@ export default class ServerSendingStatus {
 
     const known: ServerSendingHealth = await ServerSendingStatus.readHealth();
 
-    if (
-      !isNews(ServerSendingStatusUtil.getEntry(known, outcome.channel))
-    ) {
+    if (!isNews(ServerSendingStatusUtil.getEntry(known, outcome.channel))) {
       return;
     }
 

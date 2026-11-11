@@ -120,7 +120,8 @@ describe("email", () => {
       smtpFromName: "OneUptime",
       smtpClientId: "client",
       smtpClientSecret: "client-secret",
-      smtpTokenUrl: "https://login.microsoftonline.com/tenant/oauth2/v2.0/token",
+      smtpTokenUrl:
+        "https://login.microsoftonline.com/tenant/oauth2/v2.0/token",
       smtpScope: "https://graph.microsoft.com/.default",
     };
 
@@ -215,9 +216,21 @@ describe("email", () => {
   });
 
   test.each([
-    [EmailServerType.Postmark, "postmarkServerToken", "postmarkFromEmail", "Server API Token"],
+    [
+      EmailServerType.Postmark,
+      "postmarkServerToken",
+      "postmarkFromEmail",
+      "Server API Token",
+    ],
     [EmailServerType.Resend, "resendApiKey", "resendFromEmail", "API Key"],
-  ] as Array<[EmailServerType, keyof ServerChannelSetupSettings, keyof ServerChannelSetupSettings, string]>)(
+  ] as Array<
+    [
+      EmailServerType,
+      keyof ServerChannelSetupSettings,
+      keyof ServerChannelSetupSettings,
+      string,
+    ]
+  >)(
     "%s needs its key and a sender",
     (
       type: EmailServerType,
@@ -350,12 +363,9 @@ describe("which channels a settings save starts again", () => {
     },
   );
 
-  test.each([null, undefined, "text"])(
-    "%p writes nothing",
-    (data: unknown) => {
-      expect(ServerChannelSetup.getChannelsWrittenBy(data)).toEqual([]);
-    },
-  );
+  test.each([null, undefined, "text"])("%p writes nothing", (data: unknown) => {
+    expect(ServerChannelSetup.getChannelsWrittenBy(data)).toEqual([]);
+  });
 
   test("every email setting GlobalConfig holds is one that starts email again", () => {
     const model: string = fs.readFileSync(

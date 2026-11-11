@@ -107,9 +107,12 @@ describe("what a page says about who is emailed", () => {
     [false, true],
     [true, false],
     [null, false],
-  ])("cannot send email is said only once the server says false (%p: %p)", (canSend: boolean | null, expected: boolean) => {
-    expect(cannotSendEmail(server(canSend, false))).toBe(expected);
-  });
+  ])(
+    "cannot send email is said only once the server says false (%p: %p)",
+    (canSend: boolean | null, expected: boolean) => {
+      expect(cannotSendEmail(server(canSend, false))).toBe(expected);
+    },
+  );
 
   test("Set up email goes to the Admin Dashboard's Settings > Emails", () => {
     expect(ADMIN_EMAIL_SETTINGS_ROUTE).toBe("/settings/smtp");
@@ -126,9 +129,7 @@ describe("the invitation link a master admin is handed", () => {
 
   let fetch: jest.SpyInstance;
 
-  function answerWith(
-    data: JSONObject | HTTPErrorResponse | Error,
-  ): void {
+  function answerWith(data: JSONObject | HTTPErrorResponse | Error): void {
     fetch = jest
       .spyOn(API, "fetch")
       .mockImplementation(async (): Promise<never> => {
@@ -180,11 +181,14 @@ describe("the invitation link a master admin is handed", () => {
     [new Error("Network Error")],
     [{ link: "", isRegistered: false }],
     [{ isRegistered: true }],
-  ])("an answer that is not a link reads as none: %p", async (data: JSONObject | HTTPErrorResponse | Error) => {
-    answerWith(data);
+  ])(
+    "an answer that is not a link reads as none: %p",
+    async (data: JSONObject | HTTPErrorResponse | Error) => {
+      answerWith(data);
 
-    await expect(fetchInvitationLink(TEAM_MEMBER_ID)).resolves.toBeNull();
-  });
+      await expect(fetchInvitationLink(TEAM_MEMBER_ID)).resolves.toBeNull();
+    },
+  );
 
   test("someone new: the link, to copy, and its rules", async () => {
     answerWith({
@@ -204,7 +208,9 @@ describe("the invitation link a master admin is handed", () => {
       );
     });
 
-    expect(screen.getByText(SERVER_EMAIL_COPY.invitationLinkTitle)).toBeInTheDocument();
+    expect(
+      screen.getByText(SERVER_EMAIL_COPY.invitationLinkTitle),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("invitation-link-value")).toHaveTextContent(
       "/accounts/register?email=new%40example.com&token=",
     );

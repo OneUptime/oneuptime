@@ -279,18 +279,21 @@ describe("GET /global-config/vars: canSendEmail", () => {
       },
       true,
     ],
-  ])("%s: %p", async (_name: string, row: Record<string, unknown>, expected: boolean) => {
-    answerWith(row);
+  ])(
+    "%s: %p",
+    async (_name: string, row: Record<string, unknown>, expected: boolean) => {
+      answerWith(row);
 
-    const result: HttpResult = await send({
-      port: port,
-      method: "GET",
-      path: "/api/global-config/vars",
-    });
+      const result: HttpResult = await send({
+        port: port,
+        method: "GET",
+        path: "/api/global-config/vars",
+      });
 
-    expect(result.status).toBe(200);
-    expect(result.body?.["canSendEmail"]).toBe(expected);
-  });
+      expect(result.status).toBe(200);
+      expect(result.body?.["canSendEmail"]).toBe(expected);
+    },
+  );
 
   test("anybody is answered, and told nothing of the settings or of why a send failed", async () => {
     answerWith({

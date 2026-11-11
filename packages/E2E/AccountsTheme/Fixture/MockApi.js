@@ -34,8 +34,12 @@
  *   brand=name|logo|logos  an installation that goes by a name of its own:
  *                          with no logo, with a logo for light backgrounds
  *                          only, or with logos for light and dark ones
+ *   email=none             a server that cannot send email yet
+ *                          (GET /global-config/vars' canSendEmail): Forgot
+ *                          password and the sign-in link page say so
  */
 import API from "Common/UI/Utils/API/API";
+import BaseAPI from "Common/Utils/API";
 import User from "Common/UI/Utils/User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -373,6 +377,28 @@ const answer = (method, apiPath, data) => {
   }
 
   return null;
+};
+
+/*
+ * The server's public settings (GET /global-config/vars), which the pages
+ * read through the plain client rather than the session's: whether the
+ * server can send email. Answered for every scenario, so no page reaches
+ * the fixture's server for it; not recorded, as no page waits on it.
+ */
+const baseFetch = BaseAPI.fetch.bind(BaseAPI);
+
+BaseAPI.fetch = async (options) => {
+  const url = new URL(options.url.toString());
+
+  if (url.pathname === "/api/global-config/vars") {
+    return ok({
+      disableUserProjectCreation: false,
+      disablePushNotifications: false,
+      canSendEmail: scenario["email"] !== "none",
+    });
+  }
+
+  return baseFetch(options);
 };
 
 API.fetch = async (options) => {

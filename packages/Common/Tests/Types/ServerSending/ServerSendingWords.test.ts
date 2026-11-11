@@ -75,29 +75,21 @@ describe("a stored status message, as a project's owners read it", () => {
     "SMTP OAuth Scope not found. Please set this in the Admin Dashboard: http://localhost/admin",
     "Email is configured to use Amazon SES, but its Access Key ID is not set. Please set it in the Admin Dashboard, under Settings > Emails: http://localhost/admin",
     `  ${SERVER_EMAIL_NOT_SET_UP_MESSAGE}  `,
-  ])(
-    "the server's settings refusing %p read the same",
-    (stored: string) => {
-      expect(ServerSendingWords.toProjectEmailLogMessage(stored)).toBe(
-        SERVER_EMAIL_NOT_SET_UP_MESSAGE,
-      );
-    },
-  );
+  ])("the server's settings refusing %p read the same", (stored: string) => {
+    expect(ServerSendingWords.toProjectEmailLogMessage(stored)).toBe(
+      SERVER_EMAIL_NOT_SET_UP_MESSAGE,
+    );
+  });
 
   test.each([
     "Email sent successfully.",
     "Email failed to send. Unexpected socket close. This could mean various things, such as your SMTP server is unreachble.",
     "535 5.7.8 Username and Password not accepted",
     "SendGrid needs an API Key.",
-  ])(
-    "anything else - %p - is shown as it is",
-    (stored: string) => {
-      expect(ServerSendingWords.isServerEmailNotSetUpMessage(stored)).toBe(
-        false,
-      );
-      expect(ServerSendingWords.toProjectEmailLogMessage(stored)).toBe(stored);
-    },
-  );
+  ])("anything else - %p - is shown as it is", (stored: string) => {
+    expect(ServerSendingWords.isServerEmailNotSetUpMessage(stored)).toBe(false);
+    expect(ServerSendingWords.toProjectEmailLogMessage(stored)).toBe(stored);
+  });
 
   test.each([null, undefined, ""])(
     "%p is nothing to say",

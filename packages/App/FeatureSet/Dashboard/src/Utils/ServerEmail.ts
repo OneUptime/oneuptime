@@ -58,7 +58,8 @@ export const SERVER_EMAIL_COPY: {
   inviteEmailDescription: translationKey(
     "This server cannot send email yet, so they will not get an invitation email. The invitation is still created: ask your server's admin to set up email, or to send them their invitation link.",
   ),
-  inviteEmailDescriptionForAdmin: INVITATION_LINK_COPY.inviteDescriptionForAdmin,
+  inviteEmailDescriptionForAdmin:
+    INVITATION_LINK_COPY.inviteDescriptionForAdmin,
   invitedPill: INVITATION_LINK_COPY.invitedPill,
   // The invitation link's dialog, which the Admin Dashboard draws too.
   invitationLinkTitle: INVITATION_LINK_COPY.title,

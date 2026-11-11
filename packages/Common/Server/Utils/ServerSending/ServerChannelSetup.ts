@@ -288,7 +288,10 @@ export default class ServerChannelSetup {
     const region: string = text(config.amazonSesRegion).toLowerCase();
 
     if (!region || !isAwsRegion(region)) {
-      return notSet("Amazon SES", "Region (an AWS Region code, such as us-east-1)");
+      return notSet(
+        "Amazon SES",
+        "Region (an AWS Region code, such as us-east-1)",
+      );
     }
 
     if (!text(config.amazonSesFromEmail)) {
@@ -309,7 +312,10 @@ export default class ServerChannelSetup {
     const domain: string = text(config.mailgunDomain).toLowerCase();
 
     if (!domain || !isMailgunDomain(domain)) {
-      return notSet("Mailgun", "Domain (the sending domain, such as mg.example.com)");
+      return notSet(
+        "Mailgun",
+        "Domain (the sending domain, such as mg.example.com)",
+      );
     }
 
     if (!text(config.mailgunFromEmail)) {

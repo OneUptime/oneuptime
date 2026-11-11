@@ -32,7 +32,8 @@ export const MAGIC_LINK_FORM_TEST_ID: string = "magic-link-form";
 export const MAGIC_LINK_SENT_TEST_ID: string = "magic-link-sent";
 export const MAGIC_LINK_SEND_ANOTHER_TEST_ID: string =
   "magic-link-send-another";
-export const MAGIC_LINK_CANNOT_EMAIL_TEST_ID: string = "magic-link-cannot-email";
+export const MAGIC_LINK_CANNOT_EMAIL_TEST_ID: string =
+  "magic-link-cannot-email";
 
 /*
  * "Sign in with a link", reached from the sign-in page's "Email me a sign-in
@@ -166,82 +167,82 @@ const MagicLinkPage: () => JSX.Element = () => {
             text={t("magicLink.cannotEmail")}
           />
         ) : (
-        <div className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10">
-          {sentTo ? (
-            <div
-              className="space-y-4 text-center text-sm text-gray-600"
-              data-testid={MAGIC_LINK_SENT_TEST_ID}
-              role="status"
-            >
-              <p className="break-words">
-                {t("magicLink.sent", {
-                  email: sentTo,
-                  minutes: MAGIC_LINK_EXPIRY_MINUTES,
-                })}
-              </p>
-              <p>{t("magicLink.notReceived")}</p>
-              <Button
-                title={t("magicLink.sendAnother")}
-                buttonStyle={ButtonStyleType.OUTLINE}
-                dataTestId={MAGIC_LINK_SEND_ANOTHER_TEST_ID}
-                style={{ width: "100%", marginInlineStart: "0px" }}
-                onClick={() => {
-                  setSentTo(null);
-                  setFormKey(formKey + 1);
-                }}
-              />
-            </div>
-          ) : (
-            <div data-testid={MAGIC_LINK_FORM_TEST_ID}>
-              <ModelForm<User>
-                key={formKey}
-                modelType={User}
-                id="magic-link-form"
-                name="Sign-In Link"
-                createOrUpdateApiUrl={SEND_MAGIC_LINK_API_URL}
-                fields={fields}
-                onBeforeCreate={(data: User, miscDataProps: JSONObject) => {
-                  if (isCaptchaEnabled) {
-                    const captchaToken: string | undefined = (
-                      miscDataProps["captchaToken"] as string | undefined
-                    )
-                      ?.toString()
-                      .trim();
+          <div className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10">
+            {sentTo ? (
+              <div
+                className="space-y-4 text-center text-sm text-gray-600"
+                data-testid={MAGIC_LINK_SENT_TEST_ID}
+                role="status"
+              >
+                <p className="break-words">
+                  {t("magicLink.sent", {
+                    email: sentTo,
+                    minutes: MAGIC_LINK_EXPIRY_MINUTES,
+                  })}
+                </p>
+                <p>{t("magicLink.notReceived")}</p>
+                <Button
+                  title={t("magicLink.sendAnother")}
+                  buttonStyle={ButtonStyleType.OUTLINE}
+                  dataTestId={MAGIC_LINK_SEND_ANOTHER_TEST_ID}
+                  style={{ width: "100%", marginInlineStart: "0px" }}
+                  onClick={() => {
+                    setSentTo(null);
+                    setFormKey(formKey + 1);
+                  }}
+                />
+              </div>
+            ) : (
+              <div data-testid={MAGIC_LINK_FORM_TEST_ID}>
+                <ModelForm<User>
+                  key={formKey}
+                  modelType={User}
+                  id="magic-link-form"
+                  name="Sign-In Link"
+                  createOrUpdateApiUrl={SEND_MAGIC_LINK_API_URL}
+                  fields={fields}
+                  onBeforeCreate={(data: User, miscDataProps: JSONObject) => {
+                    if (isCaptchaEnabled) {
+                      const captchaToken: string | undefined = (
+                        miscDataProps["captchaToken"] as string | undefined
+                      )
+                        ?.toString()
+                        .trim();
 
-                    if (!captchaToken) {
-                      throw new Error(t("captcha.errorOnSignIn"));
+                      if (!captchaToken) {
+                        throw new Error(t("captcha.errorOnSignIn"));
+                      }
+
+                      miscDataProps["captchaToken"] = captchaToken;
+                      setShouldResetCaptcha(true);
                     }
 
-                    miscDataProps["captchaToken"] = captchaToken;
-                    setShouldResetCaptcha(true);
-                  }
+                    askingFor.current = data.email?.toString() || "";
+                    return Promise.resolve(data);
+                  }}
+                  onLoadingChange={(loading: boolean) => {
+                    if (!isCaptchaEnabled) {
+                      return;
+                    }
 
-                  askingFor.current = data.email?.toString() || "";
-                  return Promise.resolve(data);
-                }}
-                onLoadingChange={(loading: boolean) => {
-                  if (!isCaptchaEnabled) {
-                    return;
-                  }
-
-                  // A captcha answer works once: a new one for the next request.
-                  if (!loading && shouldResetCaptcha) {
-                    setShouldResetCaptcha(false);
-                    setCaptchaResetSignal((current: number) => {
-                      return current + 1;
-                    });
-                  }
-                }}
-                onSuccess={() => {
-                  setSentTo(askingFor.current);
-                }}
-                submitButtonText={t("magicLink.submitButton")}
-                formType={FormType.Create}
-                maxPrimaryButtonWidth={true}
-              />
-            </div>
-          )}
-        </div>
+                    // A captcha answer works once: a new one for the next request.
+                    if (!loading && shouldResetCaptcha) {
+                      setShouldResetCaptcha(false);
+                      setCaptchaResetSignal((current: number) => {
+                        return current + 1;
+                      });
+                    }
+                  }}
+                  onSuccess={() => {
+                    setSentTo(askingFor.current);
+                  }}
+                  submitButtonText={t("magicLink.submitButton")}
+                  formType={FormType.Create}
+                  maxPrimaryButtonWidth={true}
+                />
+              </div>
+            )}
+          </div>
         )}
 
         {/*

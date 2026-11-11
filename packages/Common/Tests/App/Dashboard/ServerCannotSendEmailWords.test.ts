@@ -127,10 +127,14 @@ describe("in every language", () => {
           isString: true,
         });
         // "Invited" was translated before; everything else is new and said anew.
-        expect({ code, translated }).not.toEqual({ code, translated: sentence });
-        expect({ code, placeholders: placeholders(String(translated)) }).toEqual(
-          { code, placeholders: placeholders(sentence) },
-        );
+        expect({ code, translated }).not.toEqual({
+          code,
+          translated: sentence,
+        });
+        expect({
+          code,
+          placeholders: placeholders(String(translated)),
+        }).toEqual({ code, placeholders: placeholders(sentence) });
       }
     },
   );
@@ -147,10 +151,14 @@ describe("in every language", () => {
           code,
           isString: true,
         });
-        expect({ code, translated }).not.toEqual({ code, translated: sentence });
-        expect({ code, placeholders: placeholders(String(translated)) }).toEqual(
-          { code, placeholders: placeholders(sentence) },
-        );
+        expect({ code, translated }).not.toEqual({
+          code,
+          translated: sentence,
+        });
+        expect({
+          code,
+          placeholders: placeholders(String(translated)),
+        }).toEqual({ code, placeholders: placeholders(sentence) });
         // The two dashboards say a shared sentence alike.
         expect({ code, translated }).toEqual({
           code,
@@ -231,16 +239,19 @@ describe("where the pages say them", () => {
     [["Pages", "Users", "Index.tsx"]],
     [["Pages", "Users", "View", "Teams.tsx"]],
     [["Pages", "Teams", "View", "Members.tsx"]],
-  ])("%j says Invited, not Invitation Sent, when nothing was sent", (file: Array<string>) => {
-    const source: string = read(...file);
-    const pill: string = source.slice(
-      source.indexOf("SERVER_EMAIL_COPY.invitedPill") - 200,
-      source.indexOf("SERVER_EMAIL_COPY.invitedPill") + 200,
-    );
+  ])(
+    "%j says Invited, not Invitation Sent, when nothing was sent",
+    (file: Array<string>) => {
+      const source: string = read(...file);
+      const pill: string = source.slice(
+        source.indexOf("SERVER_EMAIL_COPY.invitedPill") - 200,
+        source.indexOf("SERVER_EMAIL_COPY.invitedPill") + 200,
+      );
 
-    expect(pill).toContain("cannotSendEmail(serverEmail)");
-    expect(pill).toContain('"Invitation Sent"');
-  });
+      expect(pill).toContain("cannotSendEmail(serverEmail)");
+      expect(pill).toContain('"Invitation Sent"');
+    },
+  );
 
   test("the invite dialogs hand a master admin the link once the invitation is made", () => {
     for (const file of [
@@ -288,7 +299,9 @@ describe("where the pages say them", () => {
     for (const file of ["Users.tsx", "TeamView.tsx"]) {
       const source: string = adminPage(file);
 
-      expect(source).toContain("INVITATION_LINK_COPY.inviteDescriptionForAdmin");
+      expect(source).toContain(
+        "INVITATION_LINK_COPY.inviteDescriptionForAdmin",
+      );
       expect(source).toContain("<InvitationLinkModal");
       expect(source).toContain("useServerCanSendEmail() === false");
     }

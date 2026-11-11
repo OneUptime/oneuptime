@@ -166,7 +166,9 @@ beforeEach(() => {
   (getTwilioConfig as unknown as jest.Mock).mockReset();
   (getTwilioConfig as unknown as jest.Mock).mockResolvedValue(SERVER_TWILIO);
 
-  createMessage = jest.fn().mockResolvedValue({ status: "queued", sid: "SM-1" });
+  createMessage = jest
+    .fn()
+    .mockResolvedValue({ status: "queued", sid: "SM-1" });
   createCall = jest.fn().mockResolvedValue({ sid: "CA-1", duration: "0" });
   (Twilio as unknown as jest.Mock).mockReset();
   (Twilio as unknown as jest.Mock).mockImplementation(() => {
@@ -289,12 +291,16 @@ describe("an SMS", () => {
       // Thrown or not, the outcome is what is read here.
     });
 
-    expect(outcomes.map((outcome: ServerSendingOutcome) => {
-      return outcome.succeeded;
-    })).toEqual([true, false]);
-    expect(outcomes.every((outcome: ServerSendingOutcome) => {
-      return outcome.channel === ServerSendingChannel.SMS;
-    })).toBe(true);
+    expect(
+      outcomes.map((outcome: ServerSendingOutcome) => {
+        return outcome.succeeded;
+      }),
+    ).toEqual([true, false]);
+    expect(
+      outcomes.every((outcome: ServerSendingOutcome) => {
+        return outcome.channel === ServerSendingChannel.SMS;
+      }),
+    ).toBe(true);
   });
 
   test("one OneUptime could not put together never reached the gateway, and says nothing", async () => {

@@ -80,7 +80,9 @@ export const fetchInvitationLink: (
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.fetch<JSONObject>({
         method: HTTPMethod.POST,
-        url: URL.fromURL(APP_API_URL).addRoute(new Route(INVITATION_LINK_ROUTE)),
+        url: URL.fromURL(APP_API_URL).addRoute(
+          new Route(INVITATION_LINK_ROUTE),
+        ),
         data: {
           teamMemberId: teamMemberId.toString(),
         },

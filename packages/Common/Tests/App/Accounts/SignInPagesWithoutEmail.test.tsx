@@ -169,16 +169,19 @@ describe("Forgot password", () => {
   test.each([
     ["can send email", { canSendEmail: true }],
     ["an older server that does not say", {}],
-  ])("a server that %s: the form, as it always was", async (_name: string, vars: Partial<GlobalConfigVars>) => {
-    serverSays(vars);
+  ])(
+    "a server that %s: the form, as it always was",
+    async (_name: string, vars: Partial<GlobalConfigVars>) => {
+      serverSays(vars);
 
-    await draw(<ForgotPasswordPage />);
+      await draw(<ForgotPasswordPage />);
 
-    expect(screen.getByTestId("forgot-password-card")).toBeInTheDocument();
-    expect(
-      screen.queryByTestId(FORGOT_PASSWORD_CANNOT_EMAIL_TEST_ID),
-    ).toBeNull();
-  });
+      expect(screen.getByTestId("forgot-password-card")).toBeInTheDocument();
+      expect(
+        screen.queryByTestId(FORGOT_PASSWORD_CANNOT_EMAIL_TEST_ID),
+      ).toBeNull();
+    },
+  );
 
   test("an answer that cannot be read: the form, as it always was", async () => {
     serverSays(new Error("Network Error"));
@@ -195,9 +198,9 @@ describe("Sign in with a link", () => {
 
     await draw(<MagicLinkPage />);
 
-    expect(screen.getByTestId(MAGIC_LINK_CANNOT_EMAIL_TEST_ID)).toHaveTextContent(
-      en.magicLink.cannotEmail,
-    );
+    expect(
+      screen.getByTestId(MAGIC_LINK_CANNOT_EMAIL_TEST_ID),
+    ).toHaveTextContent(en.magicLink.cannotEmail);
     expect(screen.queryByTestId(MAGIC_LINK_FORM_TEST_ID)).toBeNull();
     expect(screen.queryByText(en.magicLink.subtitle)).toBeNull();
     expect(screen.getByTestId("magic-link-sign-in")).toBeInTheDocument();
@@ -222,12 +225,16 @@ describe("the words, in every language", () => {
     expect(en.forgotPassword.cannotEmail).toBe(
       PASSWORD_RESET_CANNOT_BE_EMAILED_MESSAGE,
     );
-    expect(en.magicLink.cannotEmail).toBe(SIGN_IN_LINK_CANNOT_BE_EMAILED_MESSAGE);
+    expect(en.magicLink.cannotEmail).toBe(
+      SIGN_IN_LINK_CANNOT_BE_EMAILED_MESSAGE,
+    );
   });
 
-  test.each(LANGUAGES.filter((language: string) => {
-    return language !== "en";
-  }))("%s says both in its own words", (language: string) => {
+  test.each(
+    LANGUAGES.filter((language: string) => {
+      return language !== "en";
+    }),
+  )("%s says both in its own words", (language: string) => {
     const data: Json = locale(language);
     const forgot: unknown = (data["forgotPassword"] as Json)["cannotEmail"];
     const link: unknown = (data["magicLink"] as Json)["cannotEmail"];

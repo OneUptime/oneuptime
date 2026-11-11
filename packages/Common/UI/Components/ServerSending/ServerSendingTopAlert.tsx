@@ -146,19 +146,26 @@ const ServerSendingTopAlert: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const link: (to: Route | URL, text: string, testId: string) => ReactElement =
-    (to: Route | URL, text: string, testId: string): ReactElement => {
-      return (
-        <Link
-          to={to}
-          openInNewTab={props.openLinksInNewTab}
-          className="font-semibold underline"
-          dataTestId={testId}
-        >
-          {translator.translateText(text)}
-        </Link>
-      );
-    };
+  const link: (
+    to: Route | URL,
+    text: string,
+    testId: string,
+  ) => ReactElement = (
+    to: Route | URL,
+    text: string,
+    testId: string,
+  ): ReactElement => {
+    return (
+      <Link
+        to={to}
+        openInNewTab={props.openLinksInNewTab}
+        className="font-semibold underline"
+        dataTestId={testId}
+      >
+        {translator.translateText(text)}
+      </Link>
+    );
+  };
 
   let title: string = SERVER_SENDING_ALERT_COPY.emailNotSetUpTitle;
   let description: string = "";

@@ -377,7 +377,9 @@ describe("the server's own settings missing or incomplete", () => {
         (getEmailServerType as unknown as jest.Mock).mockResolvedValue(
           "Resend" as never,
         );
-        (getGlobalEmailProviderServer as unknown as jest.Mock).mockRejectedValue(
+        (
+          getGlobalEmailProviderServer as unknown as jest.Mock
+        ).mockRejectedValue(
           new BadDataException(
             "Email is configured to use Resend, but its API Key is not set. Please set it in the Admin Dashboard, under Settings > Emails: http://localhost/admin",
           ).asUserError() as never,

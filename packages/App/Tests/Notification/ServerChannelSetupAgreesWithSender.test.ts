@@ -84,7 +84,10 @@ function pagesSaySetUp(row: Record<string, unknown>): boolean {
 
 const NAMED_ROWS: Array<[string, Record<string, unknown>]> = [
   ["a fresh server", {}],
-  ["Custom SMTP picked, nothing filled in", { emailServerType: EmailServerType.CustomSMTP }],
+  [
+    "Custom SMTP picked, nothing filled in",
+    { emailServerType: EmailServerType.CustomSMTP },
+  ],
   [
     "a mail server, complete",
     {
@@ -103,10 +106,7 @@ const NAMED_ROWS: Array<[string, Record<string, unknown>]> = [
       smtpFromName: "OneUptime",
     },
   ],
-  [
-    "only a username typed",
-    { smtpUsername: "mailer" },
-  ],
+  ["only a username typed", { smtpUsername: "mailer" }],
   [
     "Microsoft Graph, complete",
     {
@@ -209,10 +209,16 @@ function generatedRow(random: SeededRandom): Record<string, unknown> {
     sendgridFromName: maybe(random, "OneUptime"),
     amazonSesAccessKeyId: maybe(random, pick(random, ["AKIA", "   "])),
     amazonSesSecretAccessKey: maybe(random, "secret"),
-    amazonSesRegion: maybe(random, pick(random, ["us-east-1", " EU-WEST-1 ", "moon-1"])),
+    amazonSesRegion: maybe(
+      random,
+      pick(random, ["us-east-1", " EU-WEST-1 ", "moon-1"]),
+    ),
     amazonSesFromEmail: maybe(random, new Email("alerts@example.com")),
     mailgunApiKey: maybe(random, "key"),
-    mailgunDomain: maybe(random, pick(random, ["mg.example.com", "not a domain"])),
+    mailgunDomain: maybe(
+      random,
+      pick(random, ["mg.example.com", "not a domain"]),
+    ),
     mailgunFromEmail: maybe(random, new Email("alerts@example.com")),
     postmarkServerToken: maybe(random, "token"),
     postmarkFromEmail: maybe(random, new Email("alerts@example.com")),

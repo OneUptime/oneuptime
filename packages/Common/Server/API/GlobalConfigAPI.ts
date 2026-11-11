@@ -312,7 +312,9 @@ export default class GlobalConfigAPI extends BaseAPI<
    * not: switches the pages follow, and whether the server can send email -
    * a yes or no only, never an address, a setting or why a send failed.
    */
-  public static buildVarsResponse(globalConfig: GlobalConfig | null): JSONObject {
+  public static buildVarsResponse(
+    globalConfig: GlobalConfig | null,
+  ): JSONObject {
     return {
       disableUserProjectCreation: Boolean(
         globalConfig?.disableUserProjectCreation,

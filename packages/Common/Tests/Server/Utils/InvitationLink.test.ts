@@ -1,10 +1,4 @@
-import {
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * THE INVITATION LINK, FOR A MASTER ADMIN TO SEND (#6825).

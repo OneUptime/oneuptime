@@ -164,14 +164,15 @@ describe("what a page anybody can open may say", () => {
 
 describe("what the senders write down", () => {
   test("a send that went out clears the failing streak and keeps the last reason", () => {
-    const next: ServerSendingHealthEntry = ServerSendingStatusUtil.withSucceeded(
-      entry({
-        failingSince: minutesBefore(30),
-        lastFailedAt: minutesBefore(2),
-        lastFailure: "timeout",
-      }),
-      NOW,
-    );
+    const next: ServerSendingHealthEntry =
+      ServerSendingStatusUtil.withSucceeded(
+        entry({
+          failingSince: minutesBefore(30),
+          lastFailedAt: minutesBefore(2),
+          lastFailure: "timeout",
+        }),
+        NOW,
+      );
 
     expect(next).toEqual({
       lastSucceededAt: NOW.toISOString(),
@@ -196,8 +197,11 @@ describe("what the senders write down", () => {
     });
 
     const later: Date = new Date(NOW.getTime() + 5 * 60 * 1000);
-    const second: ServerSendingHealthEntry =
-      ServerSendingStatusUtil.withFailed(first, "Timed out", later);
+    const second: ServerSendingHealthEntry = ServerSendingStatusUtil.withFailed(
+      first,
+      "Timed out",
+      later,
+    );
 
     expect(second.failingSince).toBe(NOW.toISOString());
     expect(second.lastFailedAt).toBe(later.toISOString());
@@ -220,9 +224,9 @@ describe("what the senders write down", () => {
 
   describe("a send that went out is news", () => {
     test("the first ever, and the first after failures", () => {
-      expect(
-        ServerSendingStatusUtil.shouldWriteSucceeded(entry(), NOW),
-      ).toBe(true);
+      expect(ServerSendingStatusUtil.shouldWriteSucceeded(entry(), NOW)).toBe(
+        true,
+      );
       expect(
         ServerSendingStatusUtil.shouldWriteSucceeded(
           entry({
@@ -277,14 +281,17 @@ describe("what the senders write down", () => {
       const intervalInMinutes: number =
         SERVER_SENDING_HEALTH_REWRITE_INTERVAL_MS / 60000;
 
-      const failing: (lastFailedMinutesAgo: number) => ServerSendingHealthEntry =
-        (lastFailedMinutesAgo: number): ServerSendingHealthEntry => {
-          return entry({
-            failingSince: minutesBefore(intervalInMinutes * 5),
-            lastFailedAt: minutesBefore(lastFailedMinutesAgo),
-            lastFailure: "refused",
-          });
-        };
+      const failing: (
+        lastFailedMinutesAgo: number,
+      ) => ServerSendingHealthEntry = (
+        lastFailedMinutesAgo: number,
+      ): ServerSendingHealthEntry => {
+        return entry({
+          failingSince: minutesBefore(intervalInMinutes * 5),
+          lastFailedAt: minutesBefore(lastFailedMinutesAgo),
+          lastFailure: "refused",
+        });
+      };
 
       expect(
         ServerSendingStatusUtil.shouldWriteFailed(
@@ -488,7 +495,10 @@ describe("what a browser reads of GET /global-config/sending-status", () => {
     [{ total: 2, reporting: 0 }, true],
   ])(
     "global probes %j are silent: %p",
-    (probes: { total: number; reporting: number } | null, expected: boolean) => {
+    (
+      probes: { total: number; reporting: number } | null,
+      expected: boolean,
+    ) => {
       expect(ServerSendingStatusUtil.areGlobalProbesSilent(probes)).toBe(
         expected,
       );

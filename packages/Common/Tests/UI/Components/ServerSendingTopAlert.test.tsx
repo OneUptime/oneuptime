@@ -109,9 +109,9 @@ describe("what the banner says", () => {
   ])(
     "email %p: %p",
     (state: ServerSendingState, expected: ServerSendingAlertKind | null) => {
-      expect(getServerSendingAlert(answer({ email: state }))?.kind || null).toBe(
-        expected,
-      );
+      expect(
+        getServerSendingAlert(answer({ email: state }))?.kind || null,
+      ).toBe(expected);
     },
   );
 
@@ -167,7 +167,9 @@ describe("as drawn", () => {
       "data-kind",
       ServerSendingAlertKind.EmailNotSetUp,
     );
-    expect(banner).toHaveTextContent(SERVER_SENDING_ALERT_COPY.emailNotSetUpTitle);
+    expect(banner).toHaveTextContent(
+      SERVER_SENDING_ALERT_COPY.emailNotSetUpTitle,
+    );
     expect(banner).toHaveTextContent(
       SERVER_SENDING_ALERT_COPY.emailNotSetUpDescription,
     );
@@ -191,7 +193,9 @@ describe("as drawn", () => {
 
     const banner: HTMLElement = screen.getByTestId("server-sending-alert");
 
-    expect(banner).toHaveTextContent(SERVER_SENDING_ALERT_COPY.emailFailingTitle);
+    expect(banner).toHaveTextContent(
+      SERVER_SENDING_ALERT_COPY.emailFailingTitle,
+    );
     expect(banner).toHaveTextContent("535 5.7.8 Authentication failed");
     expect(banner).toHaveTextContent("2026");
     expect(screen.getByTestId("server-sending-alert-action")).toHaveTextContent(
@@ -255,11 +259,14 @@ describe("as drawn", () => {
     ["all works", answer({ email: ServerSendingState.Working })],
     ["nothing sent yet", answer({ email: ServerSendingState.Untested })],
     ["no answer", null],
-  ])("draws nothing when %s", (_name: string, value: ServerSendingStatusAnswer | null) => {
-    draw(value);
+  ])(
+    "draws nothing when %s",
+    (_name: string, value: ServerSendingStatusAnswer | null) => {
+      draw(value);
 
-    expect(screen.queryByTestId("server-sending-alert")).toBeNull();
-  });
+      expect(screen.queryByTestId("server-sending-alert")).toBeNull();
+    },
+  );
 });
 
 describe("who it is read for", () => {

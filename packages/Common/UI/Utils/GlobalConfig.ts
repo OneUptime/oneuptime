@@ -59,7 +59,9 @@ export default class GlobalConfigUtil {
   }
 
   // The vars in an answer: booleans only, each from its own field.
-  public static readVars(data: JSONObject | null | undefined): GlobalConfigVars {
+  public static readVars(
+    data: JSONObject | null | undefined,
+  ): GlobalConfigVars {
     return {
       disableUserProjectCreation: Boolean(data?.["disableUserProjectCreation"]),
       disablePushNotifications: Boolean(data?.["disablePushNotifications"]),
