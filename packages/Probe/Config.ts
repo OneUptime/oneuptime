@@ -200,6 +200,20 @@ export const PROBE_PRIVATE_NETWORK_HINT: string =
   PROBE_PRIVATE_NETWORK_MONITOR_POLICY.refusalHint;
 
 /*
+ * Whether SSL Certificate, Website and API monitors ask a certificate's
+ * issuer if it has revoked the certificate (OCSP, then the CRL), the way a
+ * browser does. Node's TLS validation never asks, so without this a revoked
+ * certificate reads as valid while browsers refuse it.
+ *
+ * On by default. An issuer that cannot be reached is never taken as a
+ * revocation, so a probe with no internet access still works - it waits for
+ * each unreachable responder once in a while. Set
+ * PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED=false to stop asking at all.
+ */
+export const PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED: boolean =
+  process.env["PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED"] !== "false";
+
+/*
  * Whether this process is a GLOBAL probe — one registered with the
  * server-issued REGISTER_PROBE_KEY rather than deployed by a customer inside
  * their own network.

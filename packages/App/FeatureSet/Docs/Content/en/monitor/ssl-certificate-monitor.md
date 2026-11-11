@@ -1,17 +1,21 @@
 # SSL Certificate Monitor
 
-An SSL Certificate monitor checks the TLS certificates your sites and services present, the way a browser does, and alerts you before they expire. It also takes the monitor offline when a certificate is no longer valid: expired, self-signed, issued for another host name, or from an authority browsers do not trust.
+An SSL Certificate monitor checks the TLS certificates your sites and services present, the way a browser does, and alerts you before they expire. It also takes the monitor offline when a certificate is no longer valid: expired, revoked by its issuer, self-signed, issued for another host name, or from an authority browsers do not trust.
 
 :::cards
 - [Create the monitor](#create-an-ssl-certificate-monitor): Six steps in the dashboard.
 - [Default criteria](#default-criteria): An expiry warning 14 days ahead, with no setup.
-- [Monitoring criteria](#monitoring-criteria): Validity, expiry and self-signed certificates.
-- [Troubleshooting](#troubleshooting): Self-signed and internal certificates.
+- [Monitoring criteria](#monitoring-criteria): Validity, expiry, revocation and self-signed certificates.
+- [Troubleshooting](#troubleshooting): Self-signed and internal certificates, and revocation checks.
 :::
 
 ## How it works
 
 On each check, a probe opens a TLS connection to the host and port in the URL, port `443` unless the URL names another, and verifies the certificate as a browser would: a trusted issuer, a host name that matches, and dates that include today. If the certificate fails verification, the probe still reads it, so its expiry date, issuer and fingerprints are recorded either way. A connection that fails, times out or presents an invalid certificate is tried again, up to the number of retries you allow. OneUptime then runs the result through the monitor's criteria.
+
+A certificate that passes those checks is also checked for revocation, as a browser does. The probe reads the OCSP response the server sends with its certificate, if there is one, then asks the issuer's OCSP responder named in the certificate and, only if that gives no answer, reads the issuer's certificate revocation list (CRL). It trusts only a current answer signed by the issuer or by a responder the issuer authorized, and it checks the server's own certificate, not the intermediate ones. A revoked certificate is not valid. When no signed answer can be had, the revocation status is unknown and, as in a browser, the certificate is not treated as revoked.
+
+An answer is kept until the issuer's next update, for at most an hour, and a lookup that failed is tried again after 5 minutes. So a new certificate is checked at once, and a certificate revoked while it is in use is caught within an hour.
 
 ```mermaid title="How the default criteria judge a certificate"
 flowchart TB
@@ -73,9 +77,10 @@ Criteria decide when the certificate counts as fine, degraded or broken, and whe
 
 | Filter | Conditions | What it checks |
 | --- | --- | --- |
-| **Is Valid Certificate** | **True**, **False** | The certificate passes a browser's checks: a trusted issuer, a matching host name and dates that include today. **False** when the endpoint did not answer. |
+| **Is Valid Certificate** | **True**, **False** | The certificate passes a browser's checks: a trusted issuer, a matching host name, dates that include today, and no revocation by its issuer. **False** when the endpoint did not answer. |
 | **Is Not A Valid Certificate** | **True**, **False** | The opposite of **Is Valid Certificate**: **True** when the certificate fails those checks or could not be checked. |
 | **Is Expired Certificate** | **True**, **False** | The certificate's expiry date has passed. |
+| **Is Revoked Certificate** | **True**, **False** | The certificate's issuer has revoked it. **False** when the issuer says it is not revoked, and when that could not be checked. |
 | **Is Self Signed Certificate** | **True**, **False** | The certificate, or one in its chain, is self-signed. |
 | **Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Days until the certificate expires. |
 | **Expires In Hours** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hours until the certificate expires. |
@@ -88,7 +93,7 @@ With two or more filters, **Match Condition** decides whether **All** of them or
 
 A new SSL certificate monitor starts with three criteria, so it warns you before a certificate expires without any setup:
 
-1. **Certificate is not valid** — the certificate has expired, is self-signed, was issued for another host name or by an untrusted authority, or could not be checked because the endpoint did not answer. The monitor is marked **Offline** and an incident called "_monitor name_ certificate is not valid" is created. Its root cause says which of these it was. The incident resolves itself once the certificate is valid again.
+1. **Certificate is not valid** — the certificate has expired, has been revoked by its issuer, is self-signed, was issued for another host name or by an untrusted authority, or could not be checked because the endpoint did not answer. The monitor is marked **Offline** and an incident called "_monitor name_ certificate is not valid" is created. Its root cause says which of these it was, and for a revoked certificate, when and why its issuer revoked it. The incident resolves itself once the certificate is valid again.
 2. **Certificate expires soon** — the certificate is valid but expires in 14 days or less. An **alert** called "_monitor name_ certificate expires soon" is created.
 3. **Certificate is valid** — the monitor is marked **Operational**.
 
@@ -115,8 +120,9 @@ Monitors created before OneUptime added this warning have no "expires soon" crit
 | Page someone on the last day | **Expires In Hours** | **Less Than** | `24` |
 | Offline only once the certificate has expired | **Is Expired Certificate** | **True** | — |
 | Flag a self-signed certificate | **Is Self Signed Certificate** | **True** | — |
+| Page the security team when the issuer revokes the certificate | **Is Revoked Certificate** | **True** | — |
 
-A criteria about expiry has to sit above the criteria that marks the certificate valid: a certificate about to expire is still valid, and the first criteria that matches wins.
+A criteria about expiry has to sit above the criteria that marks the certificate valid: a certificate about to expire is still valid, and the first criteria that matches wins. In the same way, a revoked certificate is also not valid, so a criteria on **Is Revoked Certificate** has to sit above the "not valid" criteria.
 
 ## Best Practices
 
@@ -143,6 +149,12 @@ While the certificate is current, no criteria matches and the monitor shows its 
 
 :::details The monitor is offline with "could not be checked because the endpoint is not reachable"
 The probe could not open a TLS connection to the host and port. Check the port in the URL, and that a firewall lets the probes through. A host on a private network needs a [custom probe](/docs/probe/custom-probe).
+:::
+
+:::details The certificate's revocation status could not be checked
+When the probe cannot get a signed answer from the certificate's issuer, the monitor's summary shows **Revocation Status** as **Could Not Be Checked**, and **Revocation Check Problem**, under **Show More Details**, says why: the certificate names no OCSP responder or CRL, the issuer did not answer in time, or its answer could not be verified. As in a browser, such a certificate is not treated as revoked, and the probe asks again after 5 minutes.
+
+A [custom probe](/docs/probe/custom-probe) with no internet access cannot reach any issuer. It still checks certificates: it waits a few seconds for each responder it cannot reach, about once every 5 minutes. To stop it asking, set `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` to `false` on the probe and restart it.
 :::
 
 ## Next steps

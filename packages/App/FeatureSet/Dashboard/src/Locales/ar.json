@@ -50314,5 +50314,11 @@
   "Follow a column": "تتبّع عمود",
   "Reset diagram": "إعادة تعيين المخطط",
   "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.": "بعض الأسهم في طريقه لا تذكر الأعمدة التي تحملها، لذا قد يمتد أبعد مما هو مميَّز.",
-  "{{column}} is highlighted where it comes from and where it goes.": "مُيِّز مصدر العمود {{column}} ووجهته."
+  "{{column}} is highlighted where it comes from and where it goes.": "مُيِّز مصدر العمود {{column}} ووجهته.",
+  "Could Not Be Checked": "تعذّر التحقق",
+  "Is Revoked Certificate": "الشهادة مُبطَلة",
+  "Not Revoked": "غير مُبطَل",
+  "Revocation Check Problem": "مشكلة في التحقق من الإبطال",
+  "Revocation Checked With": "طريقة التحقق من الإبطال",
+  "Revocation Status": "حالة الإبطال"
 }

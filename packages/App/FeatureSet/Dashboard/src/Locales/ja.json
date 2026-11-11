@@ -50314,5 +50314,11 @@
   "Follow a column": "列をたどる",
   "Reset diagram": "図をリセット",
   "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.": "経路上の一部の矢印はどの列を運ぶかを示していないため、ハイライト表示より先まで続いている可能性があります。",
-  "{{column}} is highlighted where it comes from and where it goes.": "{{column}} の取得元と行き先をハイライト表示しています。"
+  "{{column}} is highlighted where it comes from and where it goes.": "{{column}} の取得元と行き先をハイライト表示しています。",
+  "Could Not Be Checked": "確認できませんでした",
+  "Is Revoked Certificate": "失効した証明書",
+  "Not Revoked": "未失効",
+  "Revocation Check Problem": "失効確認の問題",
+  "Revocation Checked With": "失効の確認方法",
+  "Revocation Status": "失効ステータス"
 }

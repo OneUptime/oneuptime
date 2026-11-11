@@ -50314,5 +50314,11 @@
   "Follow a column": "कोई कॉलम फ़ॉलो करें",
   "Reset diagram": "आरेख रीसेट करें",
   "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.": "इसके रास्ते के कुछ तीर यह नहीं बताते कि वे कौन-से कॉलम ले जाते हैं, इसलिए यह हाइलाइट किए गए हिस्से से आगे भी जा सकता है।",
-  "{{column}} is highlighted where it comes from and where it goes.": "{{column}} कहाँ से आता है और कहाँ जाता है, यह हाइलाइट किया गया है।"
+  "{{column}} is highlighted where it comes from and where it goes.": "{{column}} कहाँ से आता है और कहाँ जाता है, यह हाइलाइट किया गया है।",
+  "Could Not Be Checked": "जाँच नहीं की जा सकी",
+  "Is Revoked Certificate": "प्रमाणपत्र रद्द किया गया है",
+  "Not Revoked": "रद्द नहीं किया गया",
+  "Revocation Check Problem": "रद्दीकरण जाँच की समस्या",
+  "Revocation Checked With": "रद्दीकरण की जाँच का तरीका",
+  "Revocation Status": "रद्दीकरण स्थिति"
 }

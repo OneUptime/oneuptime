@@ -50314,5 +50314,11 @@
   "Follow a column": "Проследить столбец",
   "Reset diagram": "Сбросить диаграмму",
   "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.": "Некоторые стрелки на его пути не указывают, какие столбцы они переносят, поэтому он может идти дальше, чем выделено.",
-  "{{column}} is highlighted where it comes from and where it goes.": "Выделено, откуда берётся столбец {{column}} и куда он идёт."
+  "{{column}} is highlighted where it comes from and where it goes.": "Выделено, откуда берётся столбец {{column}} и куда он идёт.",
+  "Could Not Be Checked": "Не удалось проверить",
+  "Is Revoked Certificate": "Сертификат отозван",
+  "Not Revoked": "Не отозван",
+  "Revocation Check Problem": "Проблема проверки отзыва",
+  "Revocation Checked With": "Отзыв проверен через",
+  "Revocation Status": "Статус отзыва"
 }

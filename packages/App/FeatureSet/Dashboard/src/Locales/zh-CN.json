@@ -50314,5 +50314,11 @@
   "Follow a column": "追踪列",
   "Reset diagram": "重置图",
   "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.": "其路径上的部分箭头未说明承载哪些列，因此它可能延伸得比高亮部分更远。",
-  "{{column}} is highlighted where it comes from and where it goes.": "已高亮 {{column}} 的来源和去向。"
+  "{{column}} is highlighted where it comes from and where it goes.": "已高亮 {{column}} 的来源和去向。",
+  "Could Not Be Checked": "无法检查",
+  "Is Revoked Certificate": "是否为已吊销证书",
+  "Not Revoked": "未吊销",
+  "Revocation Check Problem": "吊销检查问题",
+  "Revocation Checked With": "吊销检查方式",
+  "Revocation Status": "吊销状态"
 }

@@ -302,7 +302,7 @@ criteria = [
 | 網站 / API | `Is Online`、`Response Time (in ms)`、`Response Status Code`、`Response Body`、`Response Header`、`Response Header Value`、`JavaScript Expression`、`Is Request Timeout` |
 | Ping / IP | `Is Online`、`Response Time (in ms)`、`Packet Loss (in %)`、`Jitter (in ms)`、`Is Request Timeout` |
 | 連接埠 | `Is Online`、`Response Time (in ms)`（儀表板中的總連線時間）、`Port DNS Lookup Time (in ms)`、`Port TCP Connect Time (in ms)`、`Is Request Timeout` |
-| SSL 憑證 | `Is Valid Certificate`、`Is Not A Valid Certificate`、`Is Self Signed Certificate`、`Is Expired Certificate`、`Expires In Days`、`Expires In Hours` |
+| SSL 憑證 | `Is Valid Certificate`、`Is Not A Valid Certificate`、`Is Self Signed Certificate`、`Is Expired Certificate`、`Is Revoked Certificate`、`Expires In Days`、`Expires In Hours` |
 | 傳入請求 | `Incoming Request`、`Request Body`、`Request Header`、`Request Header Value`、`JavaScript Expression` |
 | 傳入郵件 | `Email Received`、`Email Subject`、`Email From Address`、`Email To Address`、`Email Body` |
 | 伺服器 | `Is Online`、`CPU Usage (in %)`、`Memory Usage (in %)`、`Disk Usage (in %)`（配合 `disk_path`）、`Server Process Name` |

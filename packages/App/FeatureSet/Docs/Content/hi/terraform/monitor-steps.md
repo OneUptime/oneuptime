@@ -302,7 +302,7 @@ criteria = [
 | वेबसाइट / API | `Is Online`, `Response Time (in ms)`, `Response Status Code`, `Response Body`, `Response Header`, `Response Header Value`, `JavaScript Expression`, `Is Request Timeout` |
 | Ping / IP | `Is Online`, `Response Time (in ms)`, `Packet Loss (in %)`, `Jitter (in ms)`, `Is Request Timeout` |
 | पोर्ट | `Is Online`, `Response Time (in ms)` (डैशबोर्ड का कुल कनेक्शन समय), `Port DNS Lookup Time (in ms)`, `Port TCP Connect Time (in ms)`, `Is Request Timeout` |
-| SSL प्रमाणपत्र | `Is Valid Certificate`, `Is Not A Valid Certificate`, `Is Self Signed Certificate`, `Is Expired Certificate`, `Expires In Days`, `Expires In Hours` |
+| SSL प्रमाणपत्र | `Is Valid Certificate`, `Is Not A Valid Certificate`, `Is Self Signed Certificate`, `Is Expired Certificate`, `Is Revoked Certificate`, `Expires In Days`, `Expires In Hours` |
 | आने वाला अनुरोध | `Incoming Request`, `Request Body`, `Request Header`, `Request Header Value`, `JavaScript Expression` |
 | आने वाला ईमेल | `Email Received`, `Email Subject`, `Email From Address`, `Email To Address`, `Email Body` |
 | सर्वर | `Is Online`, `CPU Usage (in %)`, `Memory Usage (in %)`, `Disk Usage (in %)` (`disk_path` के साथ), `Server Process Name` |

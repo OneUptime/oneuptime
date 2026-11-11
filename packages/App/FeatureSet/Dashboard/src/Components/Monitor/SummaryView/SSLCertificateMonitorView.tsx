@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import CertificateRevocationStatus from "Common/Types/Monitor/SSLMonitor/CertificateRevocationStatus";
 import SslMonitorResponse from "Common/Types/Monitor/SSLMonitor/SslMonitorResponse";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
@@ -47,6 +48,28 @@ export function sslStatusLabel(sslResponse: SslMonitorResponse): string {
     : translateTemplate("Signed by a CA");
 }
 
+/*
+ * Whether the certificate's issuer has revoked it, as the probe found out
+ * from the issuer's signed OCSP response or CRL. Null when no check ran -
+ * the certificate failed validation for another reason, the probe has the
+ * check turned off, or it is older than the check - so nothing is shown.
+ */
+export function revocationStatusLabel(
+  sslResponse: SslMonitorResponse,
+): string | null {
+  switch (sslResponse.revocationStatus) {
+    case CertificateRevocationStatus.NotRevoked:
+      return translateTemplate("Not Revoked");
+    case CertificateRevocationStatus.Revoked:
+      return translateTemplate("Revoked");
+    // No signed answer could be had; like a browser, not taken as revoked.
+    case CertificateRevocationStatus.Unknown:
+      return translateTemplate("Could Not Be Checked");
+    default:
+      return null;
+  }
+}
+
 interface CertificateSummaryProps extends ComponentProps {
   sslResponse: SslMonitorResponse;
 }
@@ -78,7 +101,12 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
     props.probeMonitorResponse.totalAttempts ?? probeAttempts.length;
   const hadRetries: boolean = totalAttempts > 1;
 
-  // Only what the certificate says (Show More Details).
+  const revocationStatus: string | null = revocationStatusLabel(sslResponse);
+
+  /*
+   * What the certificate says, and how its revocation was checked (Show
+   * More Details).
+   */
   const certificateDetails: Array<CertificateDetail> = [
     { title: translationKey("Common Name"), value: sslResponse.commonName },
     { title: translationKey("Organization"), value: sslResponse.organization },
@@ -108,6 +136,20 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
     {
       title: translationKey("Fingerprint 256"),
       value: sslResponse.fingerprint256,
+      isWide: true,
+    },
+    // Where the issuer's answer came from: "Stapled OCSP", "OCSP" or "CRL".
+    {
+      title: translationKey("Revocation Checked With"),
+      value: sslResponse.revocationCheckMethod,
+    },
+    // Why no signed answer could be had, as the probe says it.
+    {
+      title: translationKey("Revocation Check Problem"),
+      value:
+        sslResponse.revocationStatus === CertificateRevocationStatus.Unknown
+          ? sslResponse.revocationCheckError
+          : undefined,
       isWide: true,
     },
   ]
@@ -152,6 +194,16 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
          * as reassuring - see issue #3225.
          */}
         <SummaryFact title="SSL Status" value={sslStatusLabel(sslResponse)} />
+        {/*
+         * Whether the issuer has revoked the certificate - what a browser
+         * asks and the TLS library alone never does. Shown only when the
+         * probe checked.
+         */}
+        {revocationStatus ? (
+          <SummaryFact title="Revocation Status" value={revocationStatus} />
+        ) : (
+          <></>
+        )}
         <SummaryFact
           title="Issued At"
           value={

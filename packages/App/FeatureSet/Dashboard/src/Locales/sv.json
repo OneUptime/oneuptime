@@ -50314,5 +50314,11 @@
   "Follow a column": "Följ en kolumn",
   "Reset diagram": "Återställ diagram",
   "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.": "Vissa pilar på vägen säger inte vilka kolumner de bär, så den kan gå längre än det som är markerat.",
-  "{{column}} is highlighted where it comes from and where it goes.": "Det är markerat var {{column}} kommer ifrån och vart den går."
+  "{{column}} is highlighted where it comes from and where it goes.": "Det är markerat var {{column}} kommer ifrån och vart den går.",
+  "Could Not Be Checked": "Kunde inte kontrolleras",
+  "Is Revoked Certificate": "Är återkallat certifikat",
+  "Not Revoked": "Inte återkallad",
+  "Revocation Check Problem": "Problem med återkallelsekontrollen",
+  "Revocation Checked With": "Återkallelse kontrollerad via",
+  "Revocation Status": "Återkallelsestatus"
 }

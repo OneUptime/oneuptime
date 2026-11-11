@@ -302,7 +302,7 @@ Os valores de `check_on` que cada tipo de monitor mais usa. O editor de critéri
 | Site / API | `Is Online`, `Response Time (in ms)`, `Response Status Code`, `Response Body`, `Response Header`, `Response Header Value`, `JavaScript Expression`, `Is Request Timeout` |
 | Ping / IP | `Is Online`, `Response Time (in ms)`, `Packet Loss (in %)`, `Jitter (in ms)`, `Is Request Timeout` |
 | Porta | `Is Online`, `Response Time (in ms)` (o tempo total de conexão do painel), `Port DNS Lookup Time (in ms)`, `Port TCP Connect Time (in ms)`, `Is Request Timeout` |
-| Certificado SSL | `Is Valid Certificate`, `Is Not A Valid Certificate`, `Is Self Signed Certificate`, `Is Expired Certificate`, `Expires In Days`, `Expires In Hours` |
+| Certificado SSL | `Is Valid Certificate`, `Is Not A Valid Certificate`, `Is Self Signed Certificate`, `Is Expired Certificate`, `Is Revoked Certificate`, `Expires In Days`, `Expires In Hours` |
 | Requisição recebida | `Incoming Request`, `Request Body`, `Request Header`, `Request Header Value`, `JavaScript Expression` |
 | E-mail recebido | `Email Received`, `Email Subject`, `Email From Address`, `Email To Address`, `Email Body` |
 | Servidor | `Is Online`, `CPU Usage (in %)`, `Memory Usage (in %)`, `Disk Usage (in %)` (com `disk_path`), `Server Process Name` |

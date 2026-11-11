@@ -27,6 +27,8 @@ flowchart TB
 
 Wenn keines der Kriterien des Monitors den Antworttext liest (ein Filter **Antworttext** oder **JavaScript-Ausdruck**), sendet die Sonde statt eines `GET` eine Anfrage `HEAD` und wiederholt sie als `GET`, wenn der Server `HEAD` ablehnt. In den Zugriffsprotokollen Ihres Servers kann beides auftauchen.
 
+Die Sonde prüft das Zertifikat der Website so, wie ein Browser es tut, auch ob seine ausstellende Stelle es widerrufen hat. Ein widerrufenes Zertifikat lässt die Prüfung wie ein abgelaufenes fehlschlagen: Der Monitor geht offline, und die Fehlerursache sagt, dass das Zertifikat widerrufen wurde. **Selbstsignierte Zertifikate zulassen** schaltet diese Prüfungen für den eigenen Hostnamen des Monitors ab.
+
 Eine Sonde, die ihre eigene Netzwerkverbindung verloren hat, meldet kein Ergebnis und kann Ihre Website daher nicht als offline markieren.
 
 ## Bevor Sie beginnen

@@ -25,6 +25,8 @@ sequenceDiagram
     O->>O: Vérifier les critères,<br/>de haut en bas
 ```
 
+La sonde vérifie le certificat de l'API comme le fait un navigateur, y compris si son émetteur l'a révoqué. Un certificat révoqué fait échouer la vérification comme un certificat expiré : le moniteur passe hors ligne, et la cause de l'échec indique que le certificat a été révoqué. **Autoriser les certificats auto-signés** désactive ces vérifications pour le nom d'hôte du moniteur lui-même.
+
 Une sonde qui a perdu sa propre connexion réseau ne rapporte aucun résultat, elle ne peut donc pas marquer votre API hors ligne.
 
 ## Avant de commencer

@@ -288,6 +288,7 @@ Docker Engine 27 이상은 네트워크에 쓸 IPv6 서브넷을 고르고, 프�
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | `true`로 설정하면 합성 모니터의 Chromium을 자체 샌드박스 안에서 실행합니다. 프로브의 컨테이너가 Playwright의 프로필처럼 샌드박스를 허용하는 seccomp 프로필로 실행될 때만 켜세요. 그런 프로필이 없으면 Chromium이 시작되지 않습니다. 꺼져 있는 동안에는 프로브가 시작할 때 경고를 로그에 남깁니다. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Custom Code 모니터 스크립트의 제한 시간(밀리초). |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | `true`로 설정하면 이 프로브의 Website, API, External Status Page, Custom Code 모니터가 사설 주소에 닿을 수 있습니다. [프라이빗 네트워크 접근](/docs/self-hosted/private-network-access)을 참조하세요. |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | 이 프로브의 SSL Certificate, Website, API 모니터는 브라우저처럼 인증서 발급 기관에 인증서를 취소했는지 묻습니다. `false`로 설정하면 묻지 않습니다. 인터넷에 접근할 수 없는 프로브 등에 쓰세요. 프로브가 닿을 수 없는 발급 기관은 절대 취소로 간주되지 않습니다. 프로브는 닿을 수 없는 응답자마다 몇 초씩 기다리며, 이는 대략 5분에 한 번입니다. [SSL 인증서 모니터](/docs/monitor/ssl-certificate-monitor)를 참조하세요. |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | 프로브가 한 번에 폴링하는 네트워크 장치의 수. 많은 장치를 폴링하는 프로브라면 값을 높이세요. |
 
 합성 모니터가 실행되는 한도(동시에 실행되는 수, 메모리, 디스크)는 [합성 모니터](/docs/monitor/synthetic-monitor) 페이지에 있습니다.

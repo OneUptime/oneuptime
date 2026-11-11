@@ -50314,5 +50314,11 @@
   "Follow a column": "دنبال کردن یک ستون",
   "Reset diagram": "بازنشانی نمودار",
   "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.": "برخی پیکان‌های مسیر آن نمی‌گویند کدام ستون‌ها را می‌برند، پس ممکن است فراتر از بخش برجسته‌شده برود.",
-  "{{column}} is highlighted where it comes from and where it goes.": "اینکه {{column}} از کجا می‌آید و به کجا می‌رود برجسته شده است."
+  "{{column}} is highlighted where it comes from and where it goes.": "اینکه {{column}} از کجا می‌آید و به کجا می‌رود برجسته شده است.",
+  "Could Not Be Checked": "بررسی ممکن نشد",
+  "Is Revoked Certificate": "لغوشده بودن گواهی",
+  "Not Revoked": "لغونشده",
+  "Revocation Check Problem": "مشکل بررسی لغو",
+  "Revocation Checked With": "روش بررسی لغو",
+  "Revocation Status": "وضعیت لغو"
 }

@@ -50314,5 +50314,11 @@
   "Follow a column": "Seguir uma coluna",
   "Reset diagram": "Redefinir diagrama",
   "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.": "Algumas setas no seu caminho não indicam quais colunas transportam, então ela pode ir além do que está destacado.",
-  "{{column}} is highlighted where it comes from and where it goes.": "Está destacado de onde {{column}} vem e para onde vai."
+  "{{column}} is highlighted where it comes from and where it goes.": "Está destacado de onde {{column}} vem e para onde vai.",
+  "Could Not Be Checked": "Não foi possível verificar",
+  "Is Revoked Certificate": "Certificado revogado",
+  "Not Revoked": "Não revogado",
+  "Revocation Check Problem": "Problema na verificação de revogação",
+  "Revocation Checked With": "Revogação verificada via",
+  "Revocation Status": "Status de revogação"
 }

@@ -2,6 +2,11 @@ import OnlineCheck from "../../OnlineCheck";
 import MonitorRetry from "../MonitorRetry";
 import ProxyConfig from "../../ProxyConfig";
 import ProbeDnsLookup from "../ProbeDnsLookup";
+import CertificateRevocationChecker, {
+  CertificateRevocationCheckResult,
+  DEFAULT_REVOCATION_CHECK_TIMEOUT_IN_MS,
+} from "../CertificateRevocation/CertificateRevocationChecker";
+import CertificateRevocationStatus from "Common/Types/Monitor/SSLMonitor/CertificateRevocationStatus";
 import URL from "Common/Types/API/URL";
 import Hostname from "Common/Types/API/Hostname";
 import type { HttpsProxyAgent } from "https-proxy-agent";
@@ -328,6 +333,9 @@ export default class SSLMonitor {
     let validationErrorCode: string = "";
     let validationErrorMessage: string = "";
 
+    const checkRevocation: boolean = CertificateRevocationChecker.isEnabled();
+    let stapledOcspResponse: Buffer | null = null;
+
     /*
      * Two passes, and the FIRST one is the one that produces the verdict.
      * The strict pass answers "would a browser trust this?"; the lenient
@@ -343,6 +351,11 @@ export default class SSLMonitor {
         timeoutInMs,
         // ping() owns the monitor's retry budget; do not multiply it here.
         retry: 0,
+        onStapledOcspResponse: checkRevocation
+          ? (response: Buffer | null): void => {
+              stapledOcspResponse = response;
+            }
+          : undefined,
       });
     } catch (strictError) {
       validationErrorCode = SSLMonitor.getErrorCode(strictError);
@@ -428,6 +441,26 @@ export default class SSLMonitor {
       };
     }
 
+    /*
+     * Node checked everything but revocation. Ask the issuer about a
+     * certificate that passed the rest; one that failed is already not
+     * valid, and its revocation status changes nothing.
+     */
+    let revocation: CertificateRevocationCheckResult | undefined = undefined;
+
+    if (checkRevocation && !validationErrorCode) {
+      revocation = await SSLMonitor.checkRevocation(
+        certificate as tls.DetailedPeerCertificate,
+        stapledOcspResponse,
+      );
+
+      if (revocation.status === CertificateRevocationStatus.Revoked) {
+        validationErrorCode = "CERT_REVOKED";
+        validationErrorMessage =
+          CertificateRevocationChecker.describeRevocation(revocation);
+      }
+    }
+
     const isValidCertificate: boolean = !validationErrorCode;
 
     const issuer: string | undefined = SSLMonitor.distinguishedName(
@@ -458,6 +491,11 @@ export default class SSLMonitor {
       isSelfSigned: isSelfSigned,
       certificateValidationError: validationErrorMessage,
       certificateValidationErrorCode: validationErrorCode,
+      revocationStatus: revocation?.status,
+      revocationCheckMethod: revocation?.method,
+      revokedAt: revocation?.revokedAt,
+      revocationReason: revocation?.reason,
+      revocationCheckError: revocation?.error,
       createdAt: OneUptimeDate.fromString(certificate.valid_from),
       expiresAt: OneUptimeDate.fromString(certificate.valid_to),
       commonName: SSLMonitor.certificateField(certificate.subject?.CN),
@@ -479,6 +517,38 @@ export default class SSLMonitor {
     };
 
     return res;
+  }
+
+  /*
+   * Asks the issuer of a certificate that passed strict validation whether
+   * it has revoked it. Node links the chain it verified through
+   * issuerCertificate; a certificate that links to itself has no issuer to
+   * ask. Never throws: no answer is an Unknown status, never a revocation.
+   */
+  private static async checkRevocation(
+    certificate: tls.DetailedPeerCertificate,
+    stapledOcspResponse: Buffer | null,
+  ): Promise<CertificateRevocationCheckResult> {
+    const issuerDer: Buffer | undefined = certificate.issuerCertificate?.raw;
+
+    if (
+      !Buffer.isBuffer(certificate.raw) ||
+      !Buffer.isBuffer(issuerDer) ||
+      issuerDer.equals(certificate.raw)
+    ) {
+      return {
+        status: CertificateRevocationStatus.Unknown,
+        error:
+          "The certificate that issued this one was not available, so its issuer could not be asked.",
+      };
+    }
+
+    return await CertificateRevocationChecker.check({
+      certificate: certificate.raw,
+      issuer: issuerDer,
+      stapledOcspResponse: stapledOcspResponse,
+      timeoutInMs: DEFAULT_REVOCATION_CHECK_TIMEOUT_IN_MS,
+    });
   }
 
   /*
@@ -615,6 +685,11 @@ export default class SSLMonitor {
     retry?: number | undefined;
     // 1-based number of this attempt.
     currentRetryCount?: number | undefined;
+    /*
+     * Set to ask the server to staple its OCSP response to the handshake,
+     * and to be handed it (null when the server staples none).
+     */
+    onStapledOcspResponse?: ((response: Buffer | null) => void) | undefined;
   }): Promise<tls.PeerCertificate> {
     const { host, rejectUnauthorized, retry } = data;
 
@@ -659,6 +734,10 @@ export default class SSLMonitor {
           timeoutInMs,
         );
 
+        if (data.onStapledOcspResponse) {
+          (requestOptions as tls.ConnectionOptions).requestOCSP = true;
+        }
+
         let isResolvedOrRejected: boolean = false;
 
         const settleWithError: (err: Error) => void = (err: Error): void => {
@@ -672,9 +751,13 @@ export default class SSLMonitor {
         const req: ClientRequest = https.get(
           requestOptions,
           (res: IncomingMessage) => {
+            /*
+             * Detailed, so the certificate links to the one that issued it
+             * (issuerCertificate): the revocation check needs the issuer.
+             */
             const certificate: tls.PeerCertificate = (
               res.socket as TLSSocket
-            ).getPeerCertificate();
+            ).getPeerCertificate(true);
 
             /*
              * Null-check FIRST. ObjectUtil.isEmpty(null) would throw a
@@ -702,6 +785,20 @@ export default class SSLMonitor {
         // Captured so a timeout can close the connection itself.
         req.on("socket", (socket: Socket) => {
           requestSocket = socket;
+
+          /*
+           * 'socket' is emitted on the next tick, long before the server's
+           * half of the handshake arrives, so the stapled response is not
+           * missed.
+           */
+          if (data.onStapledOcspResponse) {
+            const onStapledOcspResponse: (response: Buffer | null) => void =
+              data.onStapledOcspResponse;
+
+            socket.on("OCSPResponse", (response: Buffer | null) => {
+              onStapledOcspResponse(response);
+            });
+          }
         });
 
         req.on("error", (err: Error) => {
@@ -778,6 +875,7 @@ export default class SSLMonitor {
           timeoutInMs,
           retry,
           currentRetryCount: currentRetryCount + 1,
+          onStapledOcspResponse: data.onStapledOcspResponse,
         });
       }
       throw err;

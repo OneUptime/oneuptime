@@ -1205,8 +1205,8 @@ describe("SSL Certificate monitor", () => {
   it("counts a certificate the probe could not reach as not valid", () => {
     const valid: string = sourceBetween(
       readRepoFile(SSL_CRITERIA_FILE),
-      "private static isValidCertificate(",
-      "private static invalidCertificateReason(",
+      "public static isValidCertificate(",
+      "public static invalidCertificateReason(",
     );
 
     expect(valid).toContain("if (!sslResponse || !dataToProcess.isOnline) {");
@@ -1216,6 +1216,35 @@ describe("SSL Certificate monitor", () => {
         CheckOn.IsValidCertificate,
       )![2],
     ).toContain("**False** when the endpoint did not answer.");
+  });
+
+  it("counts only the issuer's revocation, and a certificate it could not check as not revoked", () => {
+    const revoked: string = sourceBetween(
+      readRepoFile(SSL_CRITERIA_FILE),
+      "public static isRevokedCertificate(",
+      "public static revokedCertificateReason(",
+    );
+
+    expect(revoked).toContain(
+      "sslResponse?.revocationStatus === CertificateRevocationStatus.Revoked",
+    );
+    expect(
+      rowFor(
+        tableRows(section(page, "## Monitoring Criteria")),
+        CheckOn.IsRevokedCertificate,
+      )![2],
+    ).toContain(
+      "**False** when the issuer says it is not revoked, and when that could not be checked.",
+    );
+  });
+
+  it("names the probe setting that stops the revocation check, on unless set to false", () => {
+    expect(readRepoFile(PROBE_CONFIG_FILE)).toContain(
+      'process.env["PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED"] !== "false"',
+    );
+    expect(page).toContain(
+      "set `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` to `false` on the probe",
+    );
   });
 });
 

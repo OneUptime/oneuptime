@@ -25,6 +25,8 @@ sequenceDiagram
     O->>O: Controllare i criteri,<br/>dall'alto verso il basso
 ```
 
+La sonda controlla il certificato dell'API come fa un browser, compreso se il suo emittente lo ha revocato. Un certificato revocato fa fallire il controllo come uno scaduto: il monitor va offline e la causa dell'errore dice che il certificato è stato revocato. **Consenti certificati autofirmati** disattiva questi controlli per il nome host del monitor stesso.
+
 Una sonda che ha perso la propria connessione di rete non riporta alcun risultato, quindi non può segnare la vostra API come offline.
 
 ## Prima di iniziare

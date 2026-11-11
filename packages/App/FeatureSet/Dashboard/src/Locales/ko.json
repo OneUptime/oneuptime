@@ -50314,5 +50314,11 @@
   "Follow a column": "열 따라가기",
   "Reset diagram": "다이어그램 재설정",
   "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.": "경로의 일부 화살표는 어떤 열을 전달하는지 알려 주지 않으므로, 강조 표시된 것보다 더 멀리 이어질 수 있습니다.",
-  "{{column}} is highlighted where it comes from and where it goes.": "{{column}} 열이 어디에서 와서 어디로 가는지 강조 표시되어 있습니다."
+  "{{column}} is highlighted where it comes from and where it goes.": "{{column}} 열이 어디에서 와서 어디로 가는지 강조 표시되어 있습니다.",
+  "Could Not Be Checked": "확인할 수 없음",
+  "Is Revoked Certificate": "취소된 인증서 여부",
+  "Not Revoked": "취소되지 않음",
+  "Revocation Check Problem": "취소 확인 문제",
+  "Revocation Checked With": "취소 확인 방법",
+  "Revocation Status": "취소 상태"
 }

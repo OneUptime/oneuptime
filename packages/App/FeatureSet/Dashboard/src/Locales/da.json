@@ -50314,5 +50314,11 @@
   "Follow a column": "Følg en kolonne",
   "Reset diagram": "Nulstil diagram",
   "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.": "Nogle pile på dens vej siger ikke, hvilke kolonner de bærer, så den kan gå længere end det fremhævede.",
-  "{{column}} is highlighted where it comes from and where it goes.": "Det er fremhævet, hvor {{column}} kommer fra, og hvor den går hen."
+  "{{column}} is highlighted where it comes from and where it goes.": "Det er fremhævet, hvor {{column}} kommer fra, og hvor den går hen.",
+  "Could Not Be Checked": "Kunne ikke kontrolleres",
+  "Is Revoked Certificate": "Certifikatet er tilbagekaldt",
+  "Not Revoked": "Ikke tilbagekaldt",
+  "Revocation Check Problem": "Problem med kontrol af tilbagekaldelse",
+  "Revocation Checked With": "Tilbagekaldelse kontrolleret via",
+  "Revocation Status": "Tilbagekaldelsesstatus"
 }

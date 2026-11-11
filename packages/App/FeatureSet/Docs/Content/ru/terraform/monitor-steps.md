@@ -302,7 +302,7 @@ criteria = [
 | Веб-сайт / API | `Is Online`, `Response Time (in ms)`, `Response Status Code`, `Response Body`, `Response Header`, `Response Header Value`, `JavaScript Expression`, `Is Request Timeout` |
 | Ping / IP | `Is Online`, `Response Time (in ms)`, `Packet Loss (in %)`, `Jitter (in ms)`, `Is Request Timeout` |
 | Порт | `Is Online`, `Response Time (in ms)` (общее время подключения в панели управления), `Port DNS Lookup Time (in ms)`, `Port TCP Connect Time (in ms)`, `Is Request Timeout` |
-| SSL-сертификат | `Is Valid Certificate`, `Is Not A Valid Certificate`, `Is Self Signed Certificate`, `Is Expired Certificate`, `Expires In Days`, `Expires In Hours` |
+| SSL-сертификат | `Is Valid Certificate`, `Is Not A Valid Certificate`, `Is Self Signed Certificate`, `Is Expired Certificate`, `Is Revoked Certificate`, `Expires In Days`, `Expires In Hours` |
 | Входящий запрос | `Incoming Request`, `Request Body`, `Request Header`, `Request Header Value`, `JavaScript Expression` |
 | Входящая почта | `Email Received`, `Email Subject`, `Email From Address`, `Email To Address`, `Email Body` |
 | Сервер | `Is Online`, `CPU Usage (in %)`, `Memory Usage (in %)`, `Disk Usage (in %)` (с `disk_path`), `Server Process Name` |

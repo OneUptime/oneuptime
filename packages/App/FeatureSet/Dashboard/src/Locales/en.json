@@ -50314,5 +50314,11 @@
   "Follow a column": "Follow a column",
   "Reset diagram": "Reset diagram",
   "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.": "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.",
-  "{{column}} is highlighted where it comes from and where it goes.": "{{column}} is highlighted where it comes from and where it goes."
+  "{{column}} is highlighted where it comes from and where it goes.": "{{column}} is highlighted where it comes from and where it goes.",
+  "Could Not Be Checked": "Could Not Be Checked",
+  "Is Revoked Certificate": "Is Revoked Certificate",
+  "Not Revoked": "Not Revoked",
+  "Revocation Check Problem": "Revocation Check Problem",
+  "Revocation Checked With": "Revocation Checked With",
+  "Revocation Status": "Revocation Status"
 }

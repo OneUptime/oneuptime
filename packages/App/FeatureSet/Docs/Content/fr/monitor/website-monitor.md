@@ -27,6 +27,8 @@ flowchart TB
 
 Quand aucun des critères du moniteur ne lit le corps de la réponse (un filtre **Corps de la réponse** ou **Expression JavaScript**), la sonde envoie une requête `HEAD` au lieu d'un `GET`, et la répète en `GET` si le serveur refuse `HEAD`. Les journaux d'accès de votre serveur peuvent montrer l'un ou l'autre.
 
+La sonde vérifie le certificat du site comme le fait un navigateur, y compris si son émetteur l'a révoqué. Un certificat révoqué fait échouer la vérification comme un certificat expiré : le moniteur passe hors ligne, et la cause de l'échec indique que le certificat a été révoqué. **Autoriser les certificats auto-signés** désactive ces vérifications pour le nom d'hôte du moniteur lui-même.
+
 Une sonde qui a perdu sa propre connexion réseau ne rapporte aucun résultat, elle ne peut donc pas marquer votre site hors ligne.
 
 ## Avant de commencer

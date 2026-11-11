@@ -50314,5 +50314,11 @@
   "Follow a column": "Einer Spalte folgen",
   "Reset diagram": "Diagramm zurücksetzen",
   "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.": "Einige Pfeile auf ihrem Weg geben nicht an, welche Spalten sie tragen, daher kann die Spalte weiter reichen, als hervorgehoben ist.",
-  "{{column}} is highlighted where it comes from and where it goes.": "Woher {{column}} stammt und wohin die Spalte fließt, ist hervorgehoben."
+  "{{column}} is highlighted where it comes from and where it goes.": "Woher {{column}} stammt und wohin die Spalte fließt, ist hervorgehoben.",
+  "Could Not Be Checked": "Konnte nicht geprüft werden",
+  "Is Revoked Certificate": "Zertifikat ist widerrufen",
+  "Not Revoked": "Nicht widerrufen",
+  "Revocation Check Problem": "Problem bei der Widerrufsprüfung",
+  "Revocation Checked With": "Widerruf geprüft über",
+  "Revocation Status": "Widerrufsstatus"
 }

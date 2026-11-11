@@ -50314,5 +50314,11 @@
   "Follow a column": "Een kolom volgen",
   "Reset diagram": "Diagram opnieuw instellen",
   "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.": "Sommige pijlen op de weg zeggen niet welke kolommen ze dragen, dus de kolom kan verder gaan dan gemarkeerd is.",
-  "{{column}} is highlighted where it comes from and where it goes.": "Gemarkeerd is waar {{column}} vandaan komt en waar de kolom naartoe gaat."
+  "{{column}} is highlighted where it comes from and where it goes.": "Gemarkeerd is waar {{column}} vandaan komt en waar de kolom naartoe gaat.",
+  "Could Not Be Checked": "Kon niet worden gecontroleerd",
+  "Is Revoked Certificate": "Certificaat is ingetrokken",
+  "Not Revoked": "Niet ingetrokken",
+  "Revocation Check Problem": "Probleem bij intrekkingscontrole",
+  "Revocation Checked With": "Intrekking gecontroleerd via",
+  "Revocation Status": "Intrekkingsstatus"
 }

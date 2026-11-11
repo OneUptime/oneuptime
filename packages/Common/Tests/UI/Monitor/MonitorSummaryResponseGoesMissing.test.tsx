@@ -6,6 +6,9 @@ import React, { ReactElement } from "react";
 import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import Hostname from "../../../Types/API/Hostname";
 import CustomCodeMonitorResponse from "../../../Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
+import CertificateRevocationCheckMethod from "../../../Types/Monitor/SSLMonitor/CertificateRevocationCheckMethod";
+import CertificateRevocationStatus from "../../../Types/Monitor/SSLMonitor/CertificateRevocationStatus";
+import SslMonitorResponse from "../../../Types/Monitor/SSLMonitor/SslMonitorResponse";
 import ObjectID from "../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import CustomMonitorSummaryView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/CustomMonitorSummaryView";
@@ -38,7 +41,20 @@ beforeAll(async () => {
   await i18next.use(initReactI18next).init({
     lng: "de",
     fallbackLng: false,
-    resources: { de: { translation: { No: "Nein" } } },
+    resources: {
+      de: {
+        translation: {
+          No: "Nein",
+          // The certificate summary's revocation facts, as de.json words them.
+          "Revocation Status": "Widerrufsstatus",
+          Revoked: "Widerrufen",
+          "Not Revoked": "Nicht widerrufen",
+          "Could Not Be Checked": "Konnte nicht geprüft werden",
+          "Revocation Checked With": "Widerruf geprüft über",
+          "Revocation Check Problem": "Problem bei der Widerrufsprüfung",
+        },
+      },
+    },
     interpolation: { escapeValue: false },
     keySeparator: false,
     nsSeparator: false,
@@ -143,5 +159,121 @@ describe("SSLCertificateMonitorView", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Show More Details" }));
     expect(screen.getByText("Example Shop")).toBeInTheDocument();
+  });
+
+  /*
+   * Whether the issuer has revoked the certificate: a fact of the summary
+   * once the probe checked, in the reader's language, with how it was
+   * checked - or why it could not be - under Show More Details.
+   */
+  describe("revocation", () => {
+    function withRevocation(
+      revocation: Partial<SslMonitorResponse>,
+    ): ProbeMonitorResponse {
+      return probeResponse({
+        sslResponse: {
+          isValidCertificate: true,
+          isSelfSigned: false,
+          commonName: "shop.example.com",
+          ...revocation,
+        },
+      });
+    }
+
+    test("a certificate the issuer did not revoke says so, and how it was checked", () => {
+      render(
+        summary(
+          withRevocation({
+            revocationStatus: CertificateRevocationStatus.NotRevoked,
+            revocationCheckMethod: CertificateRevocationCheckMethod.StapledOcsp,
+          }),
+        ),
+      );
+
+      expect(screen.getByText("Widerrufsstatus")).toBeInTheDocument();
+      expect(screen.getByText("Nicht widerrufen")).toBeInTheDocument();
+      expect(screen.queryByText("Stapled OCSP")).not.toBeInTheDocument();
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Show More Details" }),
+      );
+
+      // The method is the probe's own English name, shown as it is.
+      expect(screen.getByText("Widerruf geprüft über")).toBeInTheDocument();
+      expect(screen.getByText("Stapled OCSP")).toBeInTheDocument();
+      expect(
+        screen.queryByText("Problem bei der Widerrufsprüfung"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("a revoked certificate says it was revoked", () => {
+      render(
+        summary(
+          withRevocation({
+            isValidCertificate: false,
+            certificateValidationErrorCode: "CERT_REVOKED",
+            certificateValidationError:
+              "certificate has been revoked by its issuer (reason: Key Compromise)",
+            revocationStatus: CertificateRevocationStatus.Revoked,
+            revocationCheckMethod: CertificateRevocationCheckMethod.Ocsp,
+          }),
+        ),
+      );
+
+      expect(screen.getByText("Widerrufsstatus")).toBeInTheDocument();
+      expect(screen.getByText("Widerrufen")).toBeInTheDocument();
+    });
+
+    test("a status that could not be checked says why under Show More Details", () => {
+      render(
+        summary(
+          withRevocation({
+            revocationStatus: CertificateRevocationStatus.Unknown,
+            revocationCheckError:
+              "No OCSP responder or CRL answered within 5 seconds",
+          }),
+        ),
+      );
+
+      expect(
+        screen.getByText("Konnte nicht geprüft werden"),
+      ).toBeInTheDocument();
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Show More Details" }),
+      );
+
+      expect(
+        screen.getByText("Problem bei der Widerrufsprüfung"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText("No OCSP responder or CRL answered within 5 seconds"),
+      ).toBeInTheDocument();
+      // No answer, so no method to name.
+      expect(
+        screen.queryByText("Widerruf geprüft über"),
+      ).not.toBeInTheDocument();
+    });
+
+    /*
+     * The check did not run: the certificate failed validation for another
+     * reason, the probe has it turned off, or it is older than the check.
+     */
+    test("a certificate whose revocation was not checked shows no revocation fact", () => {
+      render(summary(withRevocation({})));
+
+      expect(screen.queryByText("Widerrufsstatus")).not.toBeInTheDocument();
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Show More Details" }),
+      );
+
+      expect(
+        screen.queryByText("Widerruf geprüft über"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Problem bei der Widerrufsprüfung"),
+      ).not.toBeInTheDocument();
+    });
   });
 });
