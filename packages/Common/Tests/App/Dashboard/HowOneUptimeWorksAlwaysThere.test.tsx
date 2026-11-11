@@ -159,6 +159,27 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 let currentProjectId: ObjectID | null = null;
 
+// The Welcome checklist is one server answer (#6803).
+const welcomeFetchMock: MockFunction = getJestMockFunction();
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistApi",
+  () => {
+    return {
+      __esModule: true,
+      fetchWelcomeChecklist: (...args: Array<unknown>) => {
+        return welcomeFetchMock(...args);
+      },
+      postWelcomeChecklist: () => {
+        return Promise.resolve(null);
+      },
+      sendLegacyBrowserState: () => {
+        return Promise.resolve(null);
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Utils/Project", () => {
   return {
     __esModule: true,
@@ -171,6 +192,7 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 import ObjectID from "../../../Types/ObjectID";
+import { getEmptyWelcomeChecklistAnswer } from "../../../Types/WelcomeChecklist/WelcomeChecklistAnswer";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
 import { DOCS_URL } from "../../../UI/Config";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
@@ -589,27 +611,28 @@ describe("from Home, at any time", () => {
     ]);
   });
 
-  test("dismissing the Welcome checklist no longer takes the way to it away", async () => {
-    render(
-      <MemoryRouter>
-        <GettingStarted projectId={new ObjectID(PROJECT_ID)} />
-        <ExploreProducts projectId={PROJECT_ID} />
-        <HowOneUptimeWorksDialog />
-      </MemoryRouter>,
-    );
-
-    // The checklist shows the strip to a new project ...
-    await waitFor(() => {
-      expect(screen.getByTestId("how-oneuptime-works")).toBeInTheDocument();
+  test("a project whose Welcome checklist is finished still opens it from Home", async () => {
+    // An old project: every step done, so the checklist and its strip are gone.
+    welcomeFetchMock.mockResolvedValue({
+      ...getEmptyWelcomeChecklistAnswer(),
+      isFinished: true,
+      steps: [],
     });
 
-    // ... and dismissing it takes the strip with it ...
-    fireEvent.click(screen.getByTestId("getting-started-dismiss"));
-    await waitFor(() => {
-      expect(screen.queryByTestId("how-oneuptime-works")).toBeNull();
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <GettingStarted projectId={new ObjectID(PROJECT_ID)} />
+          <ExploreProducts projectId={PROJECT_ID} />
+          <HowOneUptimeWorksDialog />
+        </MemoryRouter>,
+      );
     });
 
-    // ... but Home still opens it.
+    expect(screen.queryByTestId("getting-started")).toBeNull();
+    expect(screen.queryByTestId("how-oneuptime-works")).toBeNull();
+
+    // Home still opens it.
     fireEvent.click(screen.getByTestId(HOME_HOW_ONEUPTIME_WORKS_TEST_ID));
 
     await waitFor(() => {
