@@ -135,6 +135,12 @@ export interface WorkspacePressDescription {
 
 // Where Slack answers the press: the channel, its thread, the press's response_url.
 export interface WorkspaceConnectRequestSlackPlace {
+  /*
+   * The workspace "Back to Slack" opens the channel in. For a whole Slack
+   * Enterprise organization's installation it is the channel's when
+   * OneUptime knew the channel, else the person's own until they come back
+   * connected (SlackOrganization.getWorkspaceIdToOpenChannelIn).
+   */
   teamId?: string | undefined;
   channelId?: string | undefined;
   threadTs?: string | undefined;

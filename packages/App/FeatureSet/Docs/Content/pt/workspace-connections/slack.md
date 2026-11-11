@@ -43,7 +43,7 @@ Um workspace do Slack pode estar conectado a mais de um projeto, como produção
 :::steps
 ### Instalar o OneUptime no seu workspace do Slack
 
-Vá para **Configurações do projeto** > **Espaço de trabalho** > **Slack** e clique em **Connect with Slack**. Escolha o workspace e autorize o OneUptime. O Slack devolve você à mesma página, que agora mostra o workspace ao qual o projeto está conectado. Enquanto nenhum workspace estiver conectado, a seção **Espaço de trabalho** dos menus Incidentes, Alertas, Manutenção programada, Monitores e Plantão contém **Conectar um espaço de trabalho**, que também leva até aqui.
+Vá para **Configurações do projeto** > **Espaço de trabalho** > **Slack** e clique em **Conectar com o Slack**. Escolha o workspace e autorize o OneUptime. O Slack devolve você à mesma página, que agora mostra o workspace ao qual o projeto está conectado. Enquanto nenhum workspace estiver conectado, a seção **Espaço de trabalho** dos menus Incidentes, Alertas, Manutenção programada, Monitores e Plantão contém **Conectar um espaço de trabalho**, que também leva até aqui.
 
 ### Conectar a sua própria conta do Slack
 
@@ -62,11 +62,11 @@ Clique em **Regra de teste** na linha da regra. Uma mensagem de teste chega aos 
 
 Com o Slack Enterprise Grid, um projeto pode funcionar em vários workspaces da sua organização. Instale o OneUptime para a organização inteira em vez de um único workspace:
 
-1. Um administrador ou proprietário da organização clica em **Connect with Slack** em **Configurações do projeto** > **Espaço de trabalho** > **Slack**, escolhe a organização em vez de um dos workspaces dela na página de instalação do Slack e autoriza o OneUptime.
+1. Um administrador ou proprietário da organização clica em **Conectar com o Slack** em **Configurações do projeto** > **Espaço de trabalho** > **Slack**, escolhe a organização em vez de um dos workspaces dela na página de instalação do Slack e autoriza o OneUptime.
 2. Nas configurações da organização no Slack, um administrador adiciona o OneUptime a cada workspace que deve usá-lo.
 3. O cartão **Espaços de trabalho do Slack** lista esses workspaces. Clique em **Atualizar** depois de adicionar o OneUptime a outro workspace.
 
-- **Qual workspace uma regra usa.** As regras de notificação escolhem o **Espaço de trabalho do Slack** dos seus canais. Se ficar em branco, a regra usa o workspace padrão e procura primeiro ali os canais que nomeia. **Tornar padrão** no cartão muda o padrão.
+- **Qual workspace uma regra usa.** As regras de notificação escolhem o **Espaço de trabalho do Slack** dos seus canais. Se ficar em branco, a regra usa o workspace padrão e procura primeiro ali os canais que nomeia. **Tornar padrão** no cartão muda o padrão. Se o OneUptime for removido do workspace padrão, o primeiro dos workspaces restantes em ordem alfabética passa a ser o padrão. Ele continua sendo o padrão quando o OneUptime é adicionado de novo ao workspace antigo.
 - **Um workspace do qual o OneUptime foi removido.** Uma regra que o escolhe não publica em outro workspace no lugar dele: o cartão da regra, **Regra de teste** e os logs de notificação dizem que o OneUptime não está mais adicionado a ele. O cartão **Canal do Slack** também diz isso quando o canal está nesse workspace. Adicione o OneUptime de novo a esse workspace nas configurações da organização do Slack, ou escolha outro workspace na regra.
 - **Onde o OneUptime funciona.** Botões, comandos, a aba Home e o OneUptime AI funcionam em cada um desses workspaces, e os membros conectam a própria conta do Slack a partir de qualquer um deles.
 - **Um projeto conectado a um único workspace.** Se esse workspace faz parte da organização, o projeto mantém suas regras, canais e contas conectadas quando é instalado para a organização inteira com **Instalar para a organização** na mesma página. Esse workspace passa a ser o padrão.
@@ -313,7 +313,7 @@ Quando as notas públicas do seu projeto precisam de aprovação e você ativa o
 ## Desconectar
 
 - **Desconectar** desvincula apenas a sua própria conta do Slack, e remove com ela o seu método de notificação do Slack.
-- **Uninstall OneUptime from Slack**, em **Configurações do projeto** > **Espaço de trabalho** > **Slack**, desconecta o projeto. O OneUptime para de publicar no Slack, e os menus **Espaço de trabalho** deixam de listá-lo. As regras de notificação e os resumos são mantidos para quando você conectar de novo.
+- **Desinstalar o OneUptime do Slack**, em **Configurações do projeto** > **Espaço de trabalho** > **Slack**, desconecta o projeto. O OneUptime para de publicar no Slack, e os menus **Espaço de trabalho** deixam de listá-lo. As regras de notificação e os resumos são mantidos para quando você conectar de novo.
 
 > [!WARNING]
 > Desinstalar também desvincula a conta do Slack de cada membro do projeto, e remove os métodos de notificação do Slack e as regras de plantão que os usavam. Quem era acionado no Slack passa a ser acionado nos seus outros métodos de notificação até adicionar o Slack de novo.

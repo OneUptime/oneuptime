@@ -764,7 +764,9 @@ export default class MattermostAPI {
    * The teams of a project's connection, as GET /mattermost/connected-teams
    * answers: the default first, then by name, the default marked, with
    * whether the bot is still in it and the bot's username - what Project
-   * Settings says to add to a team.
+   * Settings says to add to a team. With the teams the bot was taken out
+   * of, by the names they had, and whether the server has listed the teams
+   * at all: before it has, no rule's team is known to be one the bot left.
    */
   public static describeTeams(data: {
     connection: MattermostTeamsOfConnection | null;
@@ -792,6 +794,16 @@ export default class MattermostAPI {
       defaultTeamId: connection.defaultTeam.id,
       isBotInDefaultTeam: connection.isBotInDefaultTeam,
       botUsername: miscData?.botUsername || "",
+      removedTeams: connection.removedTeams.map(
+        (team: MattermostConnectionTeam): JSONObject => {
+          return {
+            id: team.id,
+            name: team.name,
+            displayName: team.displayName || team.name,
+          };
+        },
+      ),
+      areTeamsListed: Boolean(connection.teamsReadAt),
     };
   }
 

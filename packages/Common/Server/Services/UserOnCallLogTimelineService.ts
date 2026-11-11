@@ -1,3 +1,7 @@
+import ProjectMilestoneService from "./ProjectMilestoneService";
+import ActivationMilestone, {
+  isNotificationDeliveredStatus,
+} from "../../Types/Analytics/ActivationMilestone";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -319,6 +323,8 @@ export class Service extends DatabaseService<Model> {
 
     OnCallPolicyRunMessage.refresh(createdItem.onCallDutyPolicyExecutionLogId);
 
+    this.noteDelivered(createdItem.status, [createdItem]);
+
     await this.refreshStepNotificationChannels([createdItem]);
 
     if (createdItem.status === UserNotificationStatus.Error) {
@@ -334,6 +340,24 @@ export class Service extends DatabaseService<Model> {
     }
 
     return createdItem;
+  }
+
+  /*
+   * The project's first on-call page that reached a person (issue #6830):
+   * its provider accepted it - a status that says it went out to them, not
+   * one still on its way (isNotificationDeliveredStatus). Any channel.
+   */
+  private noteDelivered(status: unknown, deliveries: Array<Model>): void {
+    if (typeof status !== "string" || !isNotificationDeliveredStatus(status)) {
+      return;
+    }
+
+    for (const delivery of deliveries) {
+      ProjectMilestoneService.reachInBackground({
+        projectId: delivery.projectId,
+        milestone: ActivationMilestone.FirstNotificationDelivered,
+      });
+    }
   }
 
   /*
@@ -406,6 +430,8 @@ export class Service extends DatabaseService<Model> {
             triggeredByAlertId: true,
             triggeredByIncidentEpisodeId: true,
             triggeredByAlertEpisodeId: true,
+            // Whose first on-call page reached somebody (noteDelivered).
+            projectId: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
@@ -433,6 +459,8 @@ export class Service extends DatabaseService<Model> {
       if (onUpdate.updateBy.data.status === UserNotificationStatus.Sent) {
         await this.recordTimeToSend(deliveries);
       }
+
+      this.noteDelivered(onUpdate.updateBy.data.status, deliveries);
 
       /*
        * A status can take a channel off its step's list - one that could

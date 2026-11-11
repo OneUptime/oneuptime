@@ -778,7 +778,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getExceptionsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/exceptions/:id/ai-assistance",
-    titles: ["Project", "Exceptions", "Exception", "AI Assistance"],
+    titles: ["Project", "Exceptions", "Exception", "Fix with AI"],
   },
   {
     getter: "getExceptionsBreadcrumbs",

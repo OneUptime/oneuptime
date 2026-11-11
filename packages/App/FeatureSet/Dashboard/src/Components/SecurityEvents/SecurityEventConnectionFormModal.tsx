@@ -1121,11 +1121,12 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
     }
   }
 
+  // Keys, so the extractor finds them: the modal draws them translated.
   const finalButtonText: string = credentialsOnly
-    ? "Update credentials"
+    ? translationKey("Update credentials")
     : isEditing
-      ? "Save changes"
-      : "Create connection";
+      ? translationKey("Save changes")
+      : translationKey("Create connection");
 
   const title: string = credentialsOnly
     ? translator.translateTemplate("Update credentials: {{name}}", {

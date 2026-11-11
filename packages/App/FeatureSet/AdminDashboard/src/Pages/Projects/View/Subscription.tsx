@@ -499,7 +499,6 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
             onItemLoaded: (item: Project) => {
               setProject(item);
             },
-            refresher: refresher,
             fields: [
               {
                 field: {
@@ -605,7 +604,6 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
           modelDetailProps={{
             modelType: Project,
             id: "model-detail-project-active-monitors",
-            refresher: refresher,
             fields: [
               {
                 field: {
@@ -718,7 +716,6 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
           modelDetailProps={{
             modelType: Project,
             id: "model-detail-project-balances",
-            refresher: refresher,
             fields: [
               {
                 field: {

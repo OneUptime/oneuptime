@@ -4,7 +4,15 @@ import {
   OKTA,
   SPLUNK,
 } from "./IntegrationsDocsPages";
-import { scanMarkdown } from "./DocsContentSupport";
+import {
+  TRANSLATED_LANGUAGES,
+  readPage,
+  scanMarkdown,
+} from "./DocsContentSupport";
+import {
+  DashboardTemplateLabel,
+  drawnTemplateLabel,
+} from "./DocsDashboardLabels";
 import {
   bold,
   codeIn,
@@ -27,6 +35,8 @@ import {
   quotedBlock,
   quotedMessages,
   quotes,
+  templateLabelQuoteProblems,
+  templateLabelsOf,
   text,
   unreachable,
   withoutTimes,
@@ -221,6 +231,69 @@ function splunkRow(index: number): string {
   });
 }
 
+/*
+ * The connection form's switch to remove a stored secret is one sentence
+ * around the setting's title, "Remove the stored {{field}}" (#6703). Each
+ * language's page names the switches as its form draws them, for exactly
+ * the optional secrets the catalog lists, and a page that kept the English
+ * switch fails.
+ */
+const REMOVE_STORED: string = "Remove the stored {{field}}";
+
+function expectRemoveSwitchesInEveryLanguage(
+  page: string,
+  provider: SecurityEventConnectorProvider,
+): void {
+  const optional: Array<string> = definitionOf(provider)
+    .secretFields.filter((field: { required: boolean }): boolean => {
+      return !field.required;
+    })
+    .map((field: { title: string }): string => {
+      return field.title;
+    });
+  const switches: Array<DashboardTemplateLabel> = templateLabelsOf(
+    page,
+    REMOVE_STORED,
+  );
+
+  expect(
+    switches.map((label: DashboardTemplateLabel): unknown => {
+      return [label.label, label.values["field"]];
+    }),
+  ).toEqual(
+    optional.map((title: string): unknown => {
+      return [
+        `Remove the stored ${title}`,
+        { translatableTerm: title, inSentence: false },
+      ];
+    }),
+  );
+
+  for (const language of TRANSLATED_LANGUAGES) {
+    expect(
+      templateLabelQuoteProblems(language, page, { template: REMOVE_STORED }),
+    ).toEqual([]);
+
+    // The page as it read before #6703, with each switch in English, fails.
+    const markdown: string = readPage(language, page);
+
+    for (const label of switches) {
+      const drawn: string = drawnTemplateLabel(language, label);
+
+      expect(drawn).not.toBe(label.label);
+      expect(
+        templateLabelQuoteProblems(language, page, {
+          template: REMOVE_STORED,
+          markdown: markdown.split(bold(drawn)).join(bold(label.label)),
+        }),
+      ).toEqual([
+        `${language} ${page}: quotes no **${drawn}**`,
+        `${language} ${page}: quotes the English **${label.label}**`,
+      ]);
+    }
+  }
+}
+
 describe("Splunk Enterprise Security", () => {
   it("runs the export search the page shows: your Search, every field, oldest first, one row past the 10,000 a poll reads", async () => {
     const peer: FakePeer = fakePeer((): DataSourceHttpResponse => {
@@ -361,6 +434,16 @@ describe("Splunk Enterprise Security", () => {
     expect(optional).toEqual(["Authentication token", "Password"]);
     expect(englishPage(SPLUNK)).toContain(
       `turn on ${bold("Remove the stored Authentication token")}, or ${bold("Remove the stored Password")}.`,
+    );
+  });
+
+  it("names the remove switches in every language as its form draws them, the German page included", () => {
+    expectRemoveSwitchesInEveryLanguage(
+      SPLUNK,
+      SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
+    );
+    expect(readPage("de", SPLUNK)).toContain(
+      bold("Gespeichertes Feld „Authentifizierungstoken“ entfernen"),
     );
   });
 
@@ -1326,6 +1409,13 @@ describe("AWS Security Hub", () => {
     );
     expect(page).toContain(
       `enter the new key in ${bold("Update credentials")} and turn on ${bold("Remove the stored Session token")}.`,
+    );
+  });
+
+  it("names the Session token's remove switch in every language as its form draws it", () => {
+    expectRemoveSwitchesInEveryLanguage(
+      AWS_SECURITY_HUB,
+      SecurityEventConnectorProvider.AwsSecurityHub,
     );
   });
 

@@ -126,7 +126,7 @@ Ein Lauf, der aus einem anderen Grund **Teilweise** ist, etwa wegen einer Warnun
 Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehen und von Hand mit ihr zu arbeiten. Wer die Verbindung ändern darf, kann diese starten; wer sie sehen darf, kann den Verlauf lesen.
 
 - **Jetzt ausführen** startet sofort eine Abfrage, mit dem üblichen Cursor, auch wenn die Verbindung nicht **Aktiviert** ist.
-- **Preview alerts** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
+- **Vorschau der Warnungen** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
 - **Diesen Zeitraum importieren** importiert nach Ihrer Bestätigung einen Zeitraum von bis zu 7 Tagen, ohne den Cursor zu verschieben. Bereits importierte Warnungen werden übersprungen.
 - **Diagnosen kopieren** an einem Lauf kopiert seinen Bericht für den Support. Er enthält nie Anmeldedaten.
 

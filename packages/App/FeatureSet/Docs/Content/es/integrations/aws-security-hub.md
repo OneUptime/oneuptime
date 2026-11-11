@@ -72,9 +72,9 @@ Haz clic en **Probar esta configuración** en **Probar antes de guardar**. La pr
 | **Región** | El código de la región, por ejemplo `us-east-1`, `eu-central-1` o `us-gov-west-1`: para los hallazgos de otras cuentas, la región de origen de la cuenta de administrador. |
 | **ID de clave de acceso** | El ID de la clave: de 16 a 128 letras o cifras, normalmente 20, que empiezan por `AKIA`, o por `ASIA` para credenciales temporales. |
 | **Clave de acceso secreta** | El secreto de la clave. Se cifra, la API nunca lo devuelve y nunca se vuelve a mostrar. Sustitúyelo con **Actualizar credenciales** en la conexión. |
-| **Session token** | Solo para credenciales temporales, que lo necesitan: una clave `ASIA` se rechaza sin él, y una clave `AKIA` se rechaza con él. |
+| **Token de sesión** | Solo para credenciales temporales, que lo necesitan: una clave `ASIA` se rechaza sin él, y una clave `AKIA` se rechaza con él. |
 
-Las credenciales temporales de `aws sts assume-role` o `aws sts get-session-token` caducan, tras 12 horas como mucho para un rol asumido, y el sondeo se detiene hasta que pegues unas nuevas con **Actualizar credenciales**. Una clave de larga duración con esta política acotada, rotada según tu propio calendario, sigue sondeando sin intervención. Para pasar de credenciales temporales a una clave de larga duración, escribe la clave nueva en **Actualizar credenciales** y activa **Remove the stored Session token**.
+Las credenciales temporales de `aws sts assume-role` o `aws sts get-session-token` caducan, tras 12 horas como mucho para un rol asumido, y el sondeo se detiene hasta que pegues unas nuevas con **Actualizar credenciales**. Una clave de larga duración con esta política acotada, rotada según tu propio calendario, sigue sondeando sin intervención. Para pasar de credenciales temporales a una clave de larga duración, escribe la clave nueva en **Actualizar credenciales** y activa **Eliminar el campo Token de sesión almacenado**.
 
 El paso **Sondeo** también tiene una **Descripción** opcional, el **Intervalo de sondeo (minutos)**, un número entero de `1` a `1440` que empieza en `5`, y **Habilitado**, que empieza activado.
 
@@ -140,7 +140,7 @@ Una ejecución que falla del todo, con un error de AWS, conserva el cursor y la 
 Haz clic en **Diagnósticos** en una conexión para ver sus ejecuciones recientes y trabajar con ella a mano. Quien puede cambiar la conexión puede iniciar estas acciones; quien puede verla puede leer el historial.
 
 - **Ejecutar ahora** inicia un sondeo de inmediato, con el cursor habitual, incluso cuando la conexión no está **Habilitado**.
-- **Preview findings** lee un intervalo de tiempo de hasta 7 días y no importa nada.
+- **Vista previa de hallazgos** lee un intervalo de tiempo de hasta 7 días y no importa nada.
 - **Importar este intervalo de tiempo** importa un intervalo de hasta 7 días, después de que lo confirmes, sin mover el cursor. Los hallazgos ya importados se omiten.
 - **Copiar diagnósticos** en una ejecución copia su informe para soporte. Nunca incluye credenciales.
 
@@ -169,7 +169,7 @@ AWS rechazó la solicitud. El mensaje cita el código de error de AWS, o las pro
 - `AccessDeniedException`, o `is not authorized to perform`: la clave es correcta, pero su identidad no puede llamar a `securityhub:GetFindings`. Adjunta la política de [Configurar la conexión](#configurar-la-conexión). Un límite de permisos o una política de control de servicios también puede denegarlo.
 - `InvalidAccessException`, o `is not subscribed to AWS Security Hub`: Security Hub no está habilitado para esta cuenta en esta **Región**, o la cuenta no es su administradora allí.
 - `InvalidSignatureException` o `SignatureDoesNotMatch`, o `The request signature we calculated does not match`: la **Clave de acceso secreta** no pertenece al **ID de clave de acceso**. Crea una clave de acceso nueva y guárdala con **Actualizar credenciales**.
-- `UnrecognizedClientException` o `InvalidClientTokenId`, o `The security token included in the request is invalid`: AWS no conoce el **ID de clave de acceso**. Está mal escrito, eliminado, desactivado o es de otra partición, o es una clave temporal sin su **Session token**.
+- `UnrecognizedClientException` o `InvalidClientTokenId`, o `The security token included in the request is invalid`: AWS no conoce el **ID de clave de acceso**. Está mal escrito, eliminado, desactivado o es de otra partición, o es una clave temporal sin su **Token de sesión**.
 - `ExpiredTokenException`, o `The security token included in the request is expired`: las credenciales temporales caducaron. Emite unas nuevas, o cambia a una clave de larga duración.
 - `RequestTimeTooSkewed` o `RequestExpired`, o `Signature expired`: el reloj de los hosts de OneUptime tiene más de 5 minutos de desfase. Corrige NTP en los hosts de la aplicación y de los workers.
 - Ningún código: AWS no dijo si lo rechazó la clave o la política. Comprueba primero la clave, luego la política.

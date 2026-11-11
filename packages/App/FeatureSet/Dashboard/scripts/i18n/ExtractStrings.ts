@@ -241,12 +241,14 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "ui",
   },
   /*
-   * A Security Events connection's own words for what it imports - Google
+   * A Security Events connection's own words: what it imports - Google
    * SecOps' Data to import, Alerts, Detections, Alerts only - which the
    * connection form, the connections list and the diagnostics put in the
-   * reader's language and into their sentences (#6658). Only the words the
-   * file marks are read: provider names, vendor names and field keys stay
-   * as written.
+   * reader's language and into their sentences (#6658), and every field's
+   * title, description and choices plus each provider's description, which
+   * the connection form draws (#6700). Only the words the file marks are
+   * read: provider names, vendor names, field keys and placeholders that
+   * show a value to type (an ID, an address, a query) stay as written.
    */
   {
     directory:
@@ -369,6 +371,21 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Utils/SessionReplay/SessionReplayHealth.ts",
+    kind: "keys",
+  },
+  /*
+   * A dashboard's SLO widgets: the single SLO's metric labels, "Not
+   * evaluated yet", the line under its error budget ("43 min remaining")
+   * and under its SLI ("target 99.9%"), and the SLO list's Not Evaluated
+   * and Disabled. Only the words each file marks are read: the metric names
+   * the worker writes and the API's values stay as written.
+   */
+  {
+    directory: "packages/Common/Utils/Slo/SloWidgetFormat.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Utils/Slo/SloListWidgetFormat.ts",
     kind: "keys",
   },
   /*

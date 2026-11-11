@@ -117,7 +117,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 1. **缩小。** 下一次轮询从同一个起点读取长度减半的窗口，并不断减半，直到某个窗口能被完整读取，最短为一分钟。运行的警告会说明这一点：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` 已从较长窗口导入的警报会作为重复项被跳过。
 2. **恢复。** 一个窗口被完整读取后，游标会移到它的末尾，下一个窗口的长度会再次加倍，最长为 24 小时。
-3. **越过单独的一分钟。** 如果连一分钟内都有超过 2,000 个警报，轮询会越过这一分钟，让更新的警报继续到达。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
+3. **越过单独的一分钟。** 如果连一分钟内都有超过 2,000 个警报，轮询会越过这一分钟，让更新的警报继续到达。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **导入此时间范围** 导入这一分钟，即可找回一次运行能读取的内容。
 
 因其他原因而为 **部分** 的运行，例如某个警报无法被读取为安全事件，也会以同样的方式从同一个起点重试。更改 **轮询间隔（分钟）** 不会改变以上任何一点：它决定轮询多久开始一次，而不是窗口从哪里开始。
 
@@ -126,9 +126,9 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 在连接上点击 **诊断**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
 
 - **立即运行** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
-- **Preview alerts** 读取最长 7 天的时间范围，不导入任何内容。
-- **Import this time range** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的警报会被跳过。
-- 运行上的 **Copy diagnostics** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
+- **预览警报** 读取最长 7 天的时间范围，不导入任何内容。
+- **导入此时间范围** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的警报会被跳过。
+- 运行上的 **复制诊断信息** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
 
 ## 测试连接
 
@@ -141,7 +141,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 | **Read alerts from Microsoft Graph** | 可以读取过去 24 小时内创建的一个警报（`$top=1`）。这里出现 `403` 表示缺少 `SecurityAlert.Read.All` 权限、缺少管理员同意，或者租户没有 Defender XDR。 |
 | **Alerts available to import** | 过去 24 小时和过去 7 天内创建了多少警报，各读取一页 100 个，所以 `100+` 表示更多。7 天内一个都没有是警告，而不是失败。 |
 | **Background workers**、**Poll scheduler**、**Security event storage** | OneUptime 自身的一侧：有进程在处理 Worker 队列的作业，轮询作业每分钟运行一次，安全事件存储能够响应。 |
-| **Scheduled polling** | 针对已保存的连接：轮询已开启，没有运行卡在等待工作进程的状态，并且轮询按时运行。 |
+| **计划轮询** | 针对已保存的连接：轮询已开启，没有运行卡在等待工作进程的状态，并且轮询按时运行。 |
 
 测试中的每个请求都有 20 秒的期限。测试从不导入任何内容，也不移动游标，每个失败的检查都会说明需要更改什么。
 
@@ -177,9 +177,9 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 :::details 轮询成功，但你知道的某个警报不见了
 在 Defender 门户中把该警报的 `createdDateTime` 与 **诊断** 中运行的窗口进行比较：窗口基于创建时间，而不是活动时间。
 
-- 在连接存在之前创建的警报早于第一次 24 小时回溯。请用 **Import this time range** 导入它。
+- 在连接存在之前创建的警报早于第一次 24 小时回溯。请用 **导入此时间范围** 导入它。
 - **部分** 运行是被 2,000 个警报的上限停下的。下一次轮询会从同一个起点读取更短的窗口，所以一旦包含该警报的窗口被完整读取，它就会被导入。
-- 如果 **最近错误** 指出了轮询越过的某一分钟，请用 **Import this time range** 导入那一分钟。
+- 如果 **最近错误** 指出了轮询越过的某一分钟，请用 **导入此时间范围** 导入那一分钟。
 :::
 
 :::details 同一个警报出现了两次

@@ -70,10 +70,11 @@ const DETAIL_PAGES: ReadonlyArray<DetailPage> = [
     title: "Logs",
   },
   {
+    // Fix with AI keeps the address the page had as AI Assistance.
     key: "EXCEPTIONS_VIEW_AI_ASSISTANCE",
     section: "AIAssistance",
     suffix: "/ai-assistance",
-    title: "AI Assistance",
+    title: "Fix with AI",
   },
   {
     key: "EXCEPTIONS_VIEW_SETTINGS",
@@ -188,8 +189,9 @@ describe("exception detail page wiring", () => {
       [
         "Overview",
         [
+          "<ExceptionAIExplanation",
+          "<ExceptionCrashPoint",
           "<ExceptionOccurrenceTrend",
-          "<ExceptionDetail",
           "<ExceptionLatestOccurrence",
         ],
       ],
@@ -243,19 +245,76 @@ describe("exception detail page wiring", () => {
     );
 
     /*
-     * Assign, then Resolve and Archive, then Create monitor (an Exceptions
-     * monitor for this exception), all only where the data plan shows them.
+     * Two buttons - Resolve and Archive - and the ⋯ with Resolve in next
+     * release and Create monitor (an Exceptions monitor for this
+     * exception), all only where the data plan shows them.
      */
     expect(exceptionExplorer).toContain(
-      "{...(dataPlan.showHeaderActions?{actions:(<><ExceptionAssigneeexception={telemetryException}isSaving={isAssigning}onAssign={onAssign}/><ExceptionTriageActions",
+      "{...(dataPlan.showHeaderActions?{actions:{buttons:(<ExceptionTriageActionsisResolved={isResolved}isArchived={isArchived}pendingActionId={pendingActionId}onAction={onTriageAction}/>),more:(<ExceptionMoreActionsisResolved={isResolved}isArchived={isArchived}lastSeenInRelease={telemetryException.lastSeenInRelease}pendingActionId={pendingActionId}onAction={onTriageAction}onCreateMonitor={canCreateMonitor?navigateToCreateMonitor:undefined}/>),},}:{})}",
     );
-    expect(exceptionExplorer).toContain("onAction={onTriageAction}");
+    // No third button beside them: Create monitor waits in the ⋯.
+    expect(exceptionExplorer).not.toContain('<Buttontitle="Createmonitor"');
+  });
+
+  test("who owns it is a fact of the header on every page, changed in place", () => {
+    const exceptionExplorer: string = dense(
+      readSource("Components", "Exceptions", "ExceptionExplorer.tsx"),
+    );
+
     expect(exceptionExplorer).toContain(
-      '/>{canCreateMonitor?(<Buttontitle="Createmonitor"',
+      "assignee={<ExceptionAssigneeexception={telemetryException}isSaving={isAssigning}onAssign={onAssign}/>}",
+    );
+    expect(exceptionExplorer.split("<ExceptionAssignee")).toHaveLength(2);
+  });
+
+  test("the Overview no longer repeats the header in a Details card", () => {
+    const exceptionExplorer: string = readSource(
+      "Components",
+      "Exceptions",
+      "ExceptionExplorer.tsx",
+    );
+
+    expect(exceptionExplorer).not.toMatch(/<ExceptionDetail[\s/>]/);
+    expect(exceptionExplorer).not.toContain("CardGrid");
+    expect(
+      fs.existsSync(
+        path.join(
+          DASHBOARD_SRC,
+          "Components",
+          "Exceptions",
+          "ExceptionDetail.tsx",
+        ),
+      ),
+    ).toBe(false);
+    // The latest occurrence takes the page's width, in three columns.
+    expect(dense(exceptionExplorer)).toContain(
+      "<ExceptionLatestOccurrenceinstance={latestInstance}isLoading={isOccurrenceLoading}columns={3}",
     );
   });
 
-  test("the AI Assistance page no longer carries its own data fetching in the explorer", () => {
+  test("Fix with AI starts the fix the exception's triage verdict calls for", () => {
+    const exceptionExplorer: string = dense(
+      readSource("Components", "Exceptions", "ExceptionExplorer.tsx"),
+    );
+
+    expect(exceptionExplorer).toContain(
+      "<ExceptionAIAssistancetelemetryExceptionId={props.telemetryExceptionId}isResolved={isResolved}isArchived={isArchived}errorClass={telemetryException.errorClass}/>",
+    );
+    // The verdict is read with the exception itself, on every page.
+    expect(exceptionExplorer).toMatch(/[{,]errorClass:true,/);
+  });
+
+  test("Where it happened gets the stack trace, the latest occurrence's frames and their source maps", () => {
+    const exceptionExplorer: string = dense(
+      readSource("Components", "Exceptions", "ExceptionExplorer.tsx"),
+    );
+
+    expect(exceptionExplorer).toContain(
+      "<ExceptionCrashPointstackTrace={telemetryException.stackTrace}{...(latestInstance?.parsedFrames?{parsedFrames:latestInstance.parsedFrames}:{})}{...(resolvedFrames?{resolvedFrames:resolvedFrames}:{})}isLoading={isOccurrenceLoading}stackTraceRoute={getExceptionRoute(PageMap.EXCEPTIONS_VIEW_STACK_TRACE,)}/>",
+    );
+  });
+
+  test("the Fix with AI page no longer carries its own data fetching in the explorer", () => {
     const exceptionExplorer: string = readSource(
       "Components",
       "Exceptions",

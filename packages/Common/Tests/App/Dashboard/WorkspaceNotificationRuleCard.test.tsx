@@ -97,6 +97,7 @@ import {
   NOTIFICATION_RULE_CARD_COLUMN_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleViewElement/NotificationRuleViewElement";
 import {
+  MattermostRuleTeams,
   NOTIFICATION_RULE_CONDITIONS_TITLES,
   SlackRuleWorkspaces,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCopy";
@@ -192,6 +193,7 @@ function columnsFor(data: {
   canStartVideoCall?: boolean | undefined;
   slackWorkspaces?: Array<SlackOrganizationWorkspace> | undefined;
   slackOrganization?: SlackRuleWorkspaces | undefined;
+  mattermostConnection?: MattermostRuleTeams | undefined;
 }): Columns<WorkspaceNotificationRule> {
   return getNotificationRuleCardColumns({
     eventType: data.eventType || NotificationRuleEventType.Incident,
@@ -212,6 +214,8 @@ function columnsFor(data: {
     microsoftTeamsChats: [],
     slackWorkspaces: data.slackWorkspaces,
     slackOrganization: data.slackOrganization,
+    mattermostTeams: data.mattermostConnection?.teams,
+    mattermostConnection: data.mattermostConnection,
     videoCallConnections: [zoom()],
     numberPrefixes: PREFIXES,
     exampleRecordName: undefined,
@@ -647,6 +651,72 @@ describe("a rule's card, row by row", () => {
     // Under what the rule does, which is as before.
     expect(thenSentences(cards[0]!)[0]).toBe(
       "Creates a channel like #inc-42 for each incident.",
+    );
+  });
+});
+
+describe("a Mattermost rule's card (#6775)", () => {
+  /*
+   * The team a rule names, the project's bot was taken out of. The rule
+   * posts in no other team instead; its card says so, under what it does -
+   * the rule beside it, in a team the bot is in, says nothing.
+   */
+  test("a rule naming a team the bot was taken out of: its Then says so, by the team's name", async () => {
+    const ENGINEERING_ID: string = "e".repeat(26);
+    const SUPPORT_ID: string = "s".repeat(26);
+
+    const cards: Array<HTMLElement> = await renderCards(
+      [
+        {
+          id: "3a8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+          name: "Support incidents",
+          rule: ruleJson({ teamToCreateChannelIn: SUPPORT_ID }),
+        },
+        {
+          id: "4a8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+          name: "Engineering incidents",
+          rule: ruleJson({ teamToCreateChannelIn: ENGINEERING_ID }),
+        },
+      ],
+      {
+        workspaceType: WorkspaceType.Mattermost,
+        mattermostConnection: {
+          teams: [
+            {
+              id: ENGINEERING_ID,
+              name: "engineering",
+              displayName: "Engineering",
+            },
+          ],
+          removedTeams: [
+            { id: SUPPORT_ID, name: "support", displayName: "Support" },
+          ],
+          defaultTeamId: ENGINEERING_ID,
+          isBotInDefaultTeam: true,
+          areTeamsListed: true,
+        },
+      },
+    );
+
+    const notesOf: (card: HTMLElement) => Array<string> = (
+      card: HTMLElement,
+    ): Array<string> => {
+      return within(card)
+        .queryAllByTestId("notification-rule-mattermost-team-not-joined")
+        .map((note: HTMLElement): string => {
+          return note.textContent || "";
+        });
+    };
+
+    expect(cards.map(notesOf)).toEqual([
+      [
+        "OneUptime's bot is no longer a member of the Support team. Add the bot back to the team in Mattermost, or pick another team on the rule.",
+      ],
+      [],
+    ]);
+    // Under what the rule does, which is as before.
+    expect(thenSentences(cards[0]!)[0]).toBe(
+      "Creates a channel like inc-42 for each incident.",
     );
   });
 });

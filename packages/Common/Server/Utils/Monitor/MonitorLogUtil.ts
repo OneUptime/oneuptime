@@ -1,3 +1,5 @@
+import ProjectMilestoneService from "../../Services/ProjectMilestoneService";
+import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
 import MonitorLogService from "../../Services/MonitorLogService";
 import GlobalConfigService from "../../Services/GlobalConfigService";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
@@ -134,6 +136,18 @@ export default class MonitorLogUtil {
     if (!data.dataToProcess) {
       return;
     }
+
+    /*
+     * The project's first check result (issue #6830). Every stored result
+     * comes through here, and only once monitorResource() has accepted it:
+     * past an archived, disabled or missing monitor, a probe not assigned to
+     * it and a blocked project, which are refused before any is stored.
+     * After the first, a memo lookup.
+     */
+    ProjectMilestoneService.reachInBackground({
+      projectId: data.projectId,
+      milestone: ActivationMilestone.FirstCheckResultReceived,
+    });
 
     // Fire-and-forget: fetch retention config then enqueue
     this.getRetentionDays()

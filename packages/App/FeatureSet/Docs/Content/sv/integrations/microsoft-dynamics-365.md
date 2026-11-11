@@ -258,7 +258,7 @@ Mallarna täcker de vanliga fallen. För att bygga en riktning själv bygger det
 
 Skapa token en gång, för alla arbetsflöden, som en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-token-som-förnyar-sig-själva):
 
-1. Gå till **Arbetsflöden → Globala variabler**, öppna menyn **Mer** (**⋯**) bredvid **Skapa Arbetsflödesvariabel** och välj **Create OAuth 2.0 Variable**. Ge den namnet `DYNAMICS_TOKEN`.
+1. Gå till **Arbetsflöden → Globala variabler**, öppna menyn **Mer** (**⋯**) bredvid **Skapa Arbetsflödesvariabel** och välj **Skapa OAuth 2.0-variabel**. Ge den namnet `DYNAMICS_TOKEN`.
 2. Välj **Microsoft Entra ID** under **Leverantör**, ersätt `{tenant-id}` i **Token-URL** med ditt Directory (tenant) ID och välj **Client Credentials**.
 3. Ange **Klient-ID** och **Klienthemlighet** under **Autentiseringsuppgifter**. Ställ in scopet på `https://yourorg.crm.dynamics.com/.default` under **Avancerad** och skapa sedan variabeln.
 

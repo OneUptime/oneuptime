@@ -70,9 +70,11 @@ OneUptime works in every team of your Mattermost server its bot is a member of:
 2. The **Mattermost teams** card on **Project Settings** > **Workspace** > **Mattermost** lists those teams, the default one first. Click **Refresh** after adding the bot to another one.
 
 - **Which team a rule uses.** Notification rules pick the **Mattermost team** their channels are in. Left empty, a rule creates its channel in the default team, and looks for the channels it names there first, then in the bot's other teams.
+- **Which team a summary uses.** Summaries, on the **Summary** tab of **Incidents** and **Alerts**, pick the **Mattermost team** their channels are in too. Left empty, a summary looks for its channels in the default team first, then in the bot's other teams.
 - **The default team.** It is the team you connected the project to. **Make default** on the card makes another team the default, for a role that may connect the project.
 - **Where OneUptime works.** The buttons on OneUptime's messages, and the forms they open, work in each of those teams. In a team the bot was taken out of, a button only says that the team is no longer connected.
 - **A default team the bot was taken out of.** The card says so. Add the bot back in Mattermost, or make another team the default.
+- **A team a rule names that the bot was taken out of.** The rule's card says so, and the rule does not use another team instead. Add the bot back to the team in Mattermost, or pick another team on the rule: its form still shows the old pick, so you can change it.
 
 ## Connect your own Mattermost account
 
@@ -171,6 +173,8 @@ Every button OneUptime posts carries a signature, checked when it is pressed, fo
 | A team you added the bot to is not on the **Mattermost teams** card | Click **Refresh** on the card. |
 | **OneUptime's bot is not a member of this Mattermost team** | You chose a team the bot has left. Add the bot to it in Mattermost, then click **Refresh**. |
 | **OneUptime's bot may not create channels in the Mattermost team this rule names** | Add the bot to that team in Mattermost, or choose another team in the rule. |
+| **OneUptime's bot is not a member of the Mattermost team chosen for the channel** | Add the bot to that team in Mattermost, or choose another team in the rule. |
+| **OneUptime's bot is no longer a member of the project's default Mattermost team** | Add the bot back to that team in Mattermost, or make another team the default. |
 | **OneUptime could not reach the Mattermost server** | Check the address, and that OneUptime can reach it. See [Network and self-hosting](#network-and-self-hosting). |
 | **The bot is not a member of the private Mattermost channel** | Add the bot to the channel in Mattermost. |
 | A button does nothing, or Mattermost says it could not complete the action | Mattermost cannot reach OneUptime. See [Network and self-hosting](#network-and-self-hosting). |

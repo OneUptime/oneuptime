@@ -306,7 +306,7 @@ Deze monitors lezen alleen de namen `web_vital.*`. Verstuurt je app een vital on
 
 ## Probleemoplossing
 
-:::details De kaart zegt 'No web vitals reported yet'
+:::details De kaart zegt 'Nog geen web vitals gemeld'
 De kaart vult zich alleen met metrieken die je app verstuurt. Controleer op volgorde:
 
 1. Of je überhaupt een metriekpipeline hebt: traces alleen vullen deze kaart nooit.

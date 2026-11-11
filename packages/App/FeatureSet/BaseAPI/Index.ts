@@ -972,6 +972,9 @@ import RumSessionPinService, {
 import RumProductAnalyticsSavedViewService, {
   Service as RumProductAnalyticsSavedViewServiceType,
 } from "Common/Server/Services/RumProductAnalyticsSavedViewService";
+import ProjectMilestoneService, {
+  Service as ProjectMilestoneServiceType,
+} from "Common/Server/Services/ProjectMilestoneService";
 import DockerHostService, {
   Service as DockerHostServiceType,
 } from "Common/Server/Services/DockerHostService";
@@ -1705,6 +1708,7 @@ import RumSessionReplayView from "Common/Models/DatabaseModels/RumSessionReplayV
 import RumSessionErasureRequest from "Common/Models/DatabaseModels/RumSessionErasureRequest";
 import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
 import RumProductAnalyticsSavedView from "Common/Models/DatabaseModels/RumProductAnalyticsSavedView";
+import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
@@ -5907,6 +5911,19 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         RumProductAnalyticsSavedView,
         RumProductAnalyticsSavedViewService,
+      ).getRouter(),
+    );
+
+    /*
+     * A project's activation milestones (issue #6830): read by its members
+     * (the Welcome checklist, Setup health) and the Admin Dashboard; written
+     * only by the server.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProjectMilestone, ProjectMilestoneServiceType>(
+        ProjectMilestone,
+        ProjectMilestoneService,
       ).getRouter(),
     );
 

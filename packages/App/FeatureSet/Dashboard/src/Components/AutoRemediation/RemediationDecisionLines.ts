@@ -14,6 +14,11 @@ import {
 } from "Common/Types/AutoRemediation/AutoRemediationDecision";
 import { KubernetesAiRemediationMode } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import ObjectID from "Common/Types/ObjectID";
+import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
+import AutoRemediationSuggestionType from "Common/Types/AutoRemediation/AutoRemediationSuggestionType";
+import { isProjectRunbookPick } from "Common/Types/AutoRemediation/AutoRemediationFix";
+import { parseClusterRoundName } from "Common/Types/AutoRemediation/RemediationRoundName";
+import { isRemediationRoundFix } from "./RemediationFixHeader";
 import {
   AI_RESOURCE_TYPE_INFO,
   isAiResourceType,
@@ -97,7 +102,30 @@ export interface RemediationDecisionLine {
   // A place on the same page the line sends the reader to, first.
   place?: RemediationDecisionPlace | undefined;
   links: Array<RemediationDecisionLink>;
+  /*
+   * A fix on the step tells what this line says, better (issue #6860): the
+   * line that a cluster's round started, a rule matched or OneUptime AI is
+   * picking a runbook, beside the fix that round, rule or pick made. The
+   * step does not draw it - the fix's name and the rule it came from say
+   * it - and its pill and Try again still read it.
+   */
+  isToldByFix?: boolean | undefined;
 }
+
+/*
+ * A fix on the step, as a decision's line is matched to it: what it is,
+ * the rule, cluster or resource it came from, and the runbook it names.
+ */
+export type RemediationDecisionFix = Pick<
+  AutoRemediationSuggestion,
+  | "suggestionType"
+  | "autoRemediationRuleId"
+  | "ruleNameSnapshot"
+  | "runbookId"
+  | "runbookNameSnapshot"
+  | "kubernetesClusterId"
+  | "resourceId"
+>;
 
 /*
  * The incident's and the alert's Affected Resources card, by its id: the
@@ -472,6 +500,134 @@ export const TURN_ON_FIXING_LINKS: Record<RemediationDecisionSignal, string> = {
   alert: translationKey("Turn on for alerts"),
 };
 
+// The fix came from the entry's rule: by its id, else by its name.
+function isFixOfRule(
+  fix: RemediationDecisionFix,
+  entry: AutoRemediationDecisionEntry,
+): boolean {
+  if (entry.ruleId) {
+    return fix.autoRemediationRuleId?.toString() === entry.ruleId;
+  }
+
+  return (
+    Boolean(entry.ruleName) &&
+    !isRemediationRoundFix(fix) &&
+    !isProjectRunbookPick(fix) &&
+    fix.ruleNameSnapshot === entry.ruleName
+  );
+}
+
+function isRunbookFix(fix: RemediationDecisionFix): boolean {
+  return (
+    fix.suggestionType !== AutoRemediationSuggestionType.CommandPlan &&
+    fix.suggestionType !== AutoRemediationSuggestionType.McpToolCalls
+  );
+}
+
+function isMcpFix(fix: RemediationDecisionFix): boolean {
+  return fix.suggestionType === AutoRemediationSuggestionType.McpToolCalls;
+}
+
+// The fix is the round OneUptime AI ran on the entry's cluster.
+function isRoundOnCluster(
+  fix: RemediationDecisionFix,
+  entry: AutoRemediationDecisionEntry,
+): boolean {
+  if (fix.kubernetesClusterId) {
+    return fix.kubernetesClusterId.toString() === entry.kubernetesClusterId;
+  }
+
+  // Its cluster was deleted since: its name is all that is left.
+  return (
+    !fix.autoRemediationRuleId &&
+    Boolean(entry.kubernetesClusterName) &&
+    parseClusterRoundName(fix.ruleNameSnapshot)?.name ===
+      entry.kubernetesClusterName
+  );
+}
+
+/*
+ * Whether a fix on the step tells what a decision's entry says (issue
+ * #6860): the round a cluster's or resource's line says started is the fix
+ * named for that cluster or resource; the rule a line says matched is the
+ * one the fix says it came from; the runbook a rule proposed or started,
+ * the fix that names it. Such a line, over its fix, said the same thing
+ * twice - in the present tense, long after the fix ended. A line that says
+ * something no fix does - a limit, an agent that is not ready, a runbook
+ * proposed because the rule started too many - is never told by one.
+ */
+export function isRemediationDecisionEntryToldByFixes(
+  entry: AutoRemediationDecisionEntry,
+  fixes: Array<RemediationDecisionFix>,
+): boolean {
+  const some: (matches: (fix: RemediationDecisionFix) => boolean) => boolean = (
+    matches: (fix: RemediationDecisionFix) => boolean,
+  ): boolean => {
+    return fixes.some(matches);
+  };
+
+  switch (entry.reason) {
+    case AutoRemediationDecisionReason.ClusterRoundStarted:
+    case AutoRemediationDecisionReason.ClusterAlreadyHasRound:
+      return some((fix: RemediationDecisionFix): boolean => {
+        return isRoundOnCluster(fix, entry);
+      });
+    case AutoRemediationDecisionReason.ResourceRoundStarted:
+      return some((fix: RemediationDecisionFix): boolean => {
+        return (
+          Boolean(fix.resourceId) &&
+          fix.resourceId?.toString() === entry.resourceId
+        );
+      });
+    // The rule is named on the cluster's or resource's round it started.
+    case AutoRemediationDecisionReason.RuleMatchedAiFix:
+    case AutoRemediationDecisionReason.RuleMatchedAiFixAsks:
+      return some(isRemediationRoundFix);
+    case AutoRemediationDecisionReason.RuleAiPickingRunbook:
+      return some((fix: RemediationDecisionFix): boolean => {
+        return isFixOfRule(fix, entry) && isRunbookFix(fix);
+      });
+    case AutoRemediationDecisionReason.RuleAiComposingCommands:
+      return some((fix: RemediationDecisionFix): boolean => {
+        return (
+          isFixOfRule(fix, entry) &&
+          fix.suggestionType === AutoRemediationSuggestionType.CommandPlan
+        );
+      });
+    case AutoRemediationDecisionReason.RuleAiFixingThroughMcpServers:
+      return some((fix: RemediationDecisionFix): boolean => {
+        return isFixOfRule(fix, entry) && isMcpFix(fix);
+      });
+    case AutoRemediationDecisionReason.RuleRunbookProposed:
+    case AutoRemediationDecisionReason.RuleRunbookStarted:
+      return some((fix: RemediationDecisionFix): boolean => {
+        return (
+          isFixOfRule(fix, entry) &&
+          isRunbookFix(fix) &&
+          (entry.runbookId
+            ? fix.runbookId?.toString() === entry.runbookId
+            : Boolean(entry.runbookName) &&
+              fix.runbookNameSnapshot === entry.runbookName)
+        );
+      });
+    case AutoRemediationDecisionReason.RuleAlreadyProposed:
+      return some((fix: RemediationDecisionFix): boolean => {
+        return isFixOfRule(fix, entry);
+      });
+    // No rule: the project's own pick, or its own fix through MCP servers.
+    case AutoRemediationDecisionReason.AiPickingRunbook:
+      return some((fix: RemediationDecisionFix): boolean => {
+        return isProjectRunbookPick(fix) && isRunbookFix(fix);
+      });
+    case AutoRemediationDecisionReason.AiFixingThroughMcpServers:
+      return some((fix: RemediationDecisionFix): boolean => {
+        return isProjectRunbookPick(fix) && isMcpFix(fix);
+      });
+    default:
+      return false;
+  }
+}
+
 export function getRemediationDecisionLines(input: {
   decision: RemediationDecision;
   signal: RemediationDecisionSignal;
@@ -482,6 +638,11 @@ export function getRemediationDecisionLines(input: {
    * so no line says it tries again, and none needs the reader for it.
    */
   isRecordResolved?: boolean | undefined;
+  /*
+   * The fixes on the step: a line one of them tells is marked
+   * (isToldByFix), and the step does not draw it (issue #6860).
+   */
+  fixes?: Array<RemediationDecisionFix> | undefined;
 }): Array<RemediationDecisionLine> {
   const { decision, signal, translator } = input;
   const signalTerm: TranslatableTerm = getSignalTerm(signal);
@@ -540,6 +701,15 @@ export function getRemediationDecisionLines(input: {
 
   entries.forEach((entry: AutoRemediationDecisionEntry, index: number) => {
     const key: string = `${entry.lane}-${entry.reason}-${index}`;
+    const isToldByFix: boolean = isRemediationDecisionEntryToldByFixes(
+      entry,
+      input.fixes || [],
+    );
+    const push: (line: RemediationDecisionLine) => void = (
+      line: RemediationDecisionLine,
+    ): void => {
+      lines.push(isToldByFix ? { ...line, isToldByFix: true } : line);
+    };
 
     if (SILENT_REASONS.includes(entry.reason)) {
       return;
@@ -555,7 +725,7 @@ export function getRemediationDecisionLines(input: {
       case AutoRemediationDecisionReason.EnableAiOff:
         if (switchesNow.isAiOn === true) {
           // Turned on since: decided again with Try again, not turned on.
-          lines.push({
+          push({
             key,
             tone: toneWhileOpen,
             text:
@@ -571,7 +741,7 @@ export function getRemediationDecisionLines(input: {
           return;
         }
 
-        lines.push({
+        push({
           key,
           tone: "attention",
           text: translator.translateTemplate(
@@ -591,7 +761,7 @@ export function getRemediationDecisionLines(input: {
            * and nothing reaches back on its own. It is on now - Try again
            * fixes this one.
            */
-          lines.push({
+          push({
             key,
             tone: toneWhileOpen,
             text:
@@ -608,7 +778,7 @@ export function getRemediationDecisionLines(input: {
         }
 
         // A choice, not a fault: fixing starts off until a project turns it on.
-        lines.push({
+        push({
           key,
           tone: "info",
           text:
@@ -627,7 +797,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.SuggestionLimitReached:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translateTemplate(
@@ -638,7 +808,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.EvaluationFailed:
-        lines.push({
+        push({
           key,
           tone: "attention",
           text: translator.translateTemplate(
@@ -650,7 +820,7 @@ export function getRemediationDecisionLines(input: {
         return;
       // No rule set up: OneUptime AI may pick any of the project's runbooks.
       case AutoRemediationDecisionReason.AiPickingRunbook:
-        lines.push({
+        push({
           key,
           tone: "acted",
           text: translator.translateTemplate(
@@ -661,7 +831,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.AiRunbookPickNotStarted:
-        lines.push({
+        push({
           key,
           tone: "attention",
           text: translator.translateTemplate(
@@ -673,7 +843,7 @@ export function getRemediationDecisionLines(input: {
         return;
       // No rule set up: OneUptime AI may fix through any of the project's MCP servers.
       case AutoRemediationDecisionReason.AiFixingThroughMcpServers:
-        lines.push({
+        push({
           key,
           tone: "acted",
           text: translator.translateTemplate(
@@ -684,7 +854,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.AiMcpFixNotStarted:
-        lines.push({
+        push({
           key,
           tone: "attention",
           text: translator.translateTemplate(
@@ -725,7 +895,7 @@ export function getRemediationDecisionLines(input: {
            * one is linked, without a place to go for this one.
            */
           if (!isOpen) {
-            lines.push({
+            push({
               key: "linked-to-nothing",
               tone: "info",
               text: translator.translateTemplate(
@@ -745,7 +915,7 @@ export function getRemediationDecisionLines(input: {
             return;
           }
 
-          lines.push({
+          push({
             key: "linked-to-nothing",
             tone: "attention",
             text: translator.translateTemplate(
@@ -780,7 +950,7 @@ export function getRemediationDecisionLines(input: {
           return;
         }
 
-        lines.push({
+        push({
           key,
           tone: "info",
           text:
@@ -800,7 +970,7 @@ export function getRemediationDecisionLines(input: {
 
       // --- Kubernetes cluster ---
       case AutoRemediationDecisionReason.ClusterLookupFailed:
-        lines.push({
+        push({
           key,
           tone: "attention",
           text: translator.translateTemplate(
@@ -816,7 +986,7 @@ export function getRemediationDecisionLines(input: {
        * (AutoRemediationRuleEngineService.onFixesTurnedOn): the line says so.
        */
       case AutoRemediationDecisionReason.ClusterFixesOff:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translateTemplate(
@@ -832,7 +1002,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.ClusterNotReady:
-        lines.push({
+        push({
           key,
           tone: "attention",
           text: translator.translateTemplate(
@@ -844,7 +1014,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.ClusterAlreadyHasRound:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translateTemplate(
@@ -855,7 +1025,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.ClusterRoundStarted:
-        lines.push({
+        push({
           key,
           tone: "acted",
           text: translator.translateTemplate(
@@ -866,7 +1036,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.ClusterRoundNotStarted:
-        lines.push({
+        push({
           key,
           tone: "attention",
           text: translator.translateTemplate(
@@ -877,7 +1047,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.ClusterSkippedLimit:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translateTemplate(
@@ -890,7 +1060,7 @@ export function getRemediationDecisionLines(input: {
 
       // --- Infrastructure resource ---
       case AutoRemediationDecisionReason.ResourceSkippedForOtherRound:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translateTemplate(
@@ -901,7 +1071,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.ResourceSkippedLimit:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translateTemplate(
@@ -912,7 +1082,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.ResourceLookupFailed:
-        lines.push({
+        push({
           key,
           tone: "attention",
           text: translator.translateTemplate(
@@ -923,7 +1093,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.ResourceFixesOff:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translateTemplate(
@@ -939,7 +1109,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.ResourceNotReady:
-        lines.push({
+        push({
           key,
           tone: "attention",
           text: translator.translateTemplate(
@@ -951,7 +1121,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.ResourceRoundStarted:
-        lines.push({
+        push({
           key,
           tone: "acted",
           text: translator.translateTemplate(
@@ -966,7 +1136,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.ResourceRoundNotStarted:
-        lines.push({
+        push({
           key,
           tone: "attention",
           text: translator.translateTemplate(
@@ -977,7 +1147,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.ResourceNotChosen:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translateTemplate(
@@ -998,7 +1168,7 @@ export function getRemediationDecisionLines(input: {
 
       // --- AI rules ---
       case AutoRemediationDecisionReason.RulesSkippedLimit:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translateTemplate(
@@ -1009,7 +1179,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.NoRulesConfigured:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translateTemplate(
@@ -1020,7 +1190,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.NoRuleMatched:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translatePlural(
@@ -1036,7 +1206,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.NotMatchedByAnyRule:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translatePlural(
@@ -1056,7 +1226,7 @@ export function getRemediationDecisionLines(input: {
        * fixed only when a rule that fixes matches it. Named by the first.
        */
       case AutoRemediationDecisionReason.MatchedRulesDoNotFix:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translatePlural(
@@ -1072,7 +1242,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.NoAiFixRuleMatched:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translateTemplate(
@@ -1083,7 +1253,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.RuleMatchedAiFix:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translateTemplate(
@@ -1094,7 +1264,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.RuleMatchedAiFixAsks:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translateTemplate(
@@ -1105,7 +1275,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.RuleAlreadyProposed:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translateTemplate(
@@ -1116,7 +1286,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.RuleSkippedNoLlmProvider:
-        lines.push({
+        push({
           key,
           tone: "attention",
           text: translator.translateTemplate(
@@ -1131,7 +1301,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.RuleAiComposingCommands:
-        lines.push({
+        push({
           key,
           tone: "acted",
           text: translator.translateTemplate(
@@ -1142,7 +1312,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.RuleAiPickingRunbook:
-        lines.push({
+        push({
           key,
           tone: "acted",
           text: translator.translateTemplate(
@@ -1153,7 +1323,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.RuleAiFixingThroughMcpServers:
-        lines.push({
+        push({
           key,
           tone: "acted",
           text: translator.translateTemplate(
@@ -1164,7 +1334,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.RuleAiRunNotStarted:
-        lines.push({
+        push({
           key,
           tone: "attention",
           text: translator.translateTemplate(
@@ -1175,7 +1345,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.RuleRunbookProposed:
-        lines.push({
+        push({
           key,
           tone: "acted",
           text: translator.translateTemplate(
@@ -1186,7 +1356,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.RuleRunbookProposedByCircuitBreaker:
-        lines.push({
+        push({
           key,
           tone: "acted",
           text: translator.translateTemplate(
@@ -1197,7 +1367,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.RuleRunbookStarted:
-        lines.push({
+        push({
           key,
           tone: "acted",
           text: translator.translateTemplate(
@@ -1208,7 +1378,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.RuleRunbookNotStarted:
-        lines.push({
+        push({
           key,
           tone: "attention",
           text: translator.translateTemplate(
@@ -1219,7 +1389,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.RuleHasNoRunbooks:
-        lines.push({
+        push({
           key,
           tone: "attention",
           text: translator.translateTemplate(
@@ -1230,7 +1400,7 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.RuleSkippedLimit:
-        lines.push({
+        push({
           key,
           tone: "info",
           text: translator.translateTemplate(

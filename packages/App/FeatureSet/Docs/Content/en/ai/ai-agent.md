@@ -104,18 +104,18 @@ A run makes as many LLM calls and production telemetry queries as its work needs
 
 | Where | Click | The pull request |
 | --- | --- | --- |
-| An exception's **AI Assistance** page | **Fix with AI** | Fixes the bug behind the exception. |
-| An exception's **AI Assistance** page | **Generate Regression Test** | Adds a test that reproduces the exception and fails until the bug is fixed. |
-| An exception's **AI Assistance** page | **Improve Error Handling** | For an expected error, such as invalid input: takes user data out of the message, validates the input earlier and marks the error as handled, without changing behaviour. |
+| An exception's **Fix with AI** page | **Fix with AI** | Fixes the bug behind the exception. For an expected error, such as invalid input, it handles the error better instead: takes user data out of the message, validates the input earlier and marks the error as handled, without changing behaviour. |
+| **Other AI tasks** on an exception's **Fix with AI** page | **Start** on **Write a regression test** | Adds a test that reproduces the exception and fails until the bug is fixed. |
+| **Other AI tasks** on an exception's **Fix with AI** page | **Start** on **Fix the code** or **Handle the error better** | The kind of fix that **Fix with AI** does not make for the exception. |
 | The **Remediation** step of an incident's or alert's **OneUptime AI** card | **Open fix pull request** | Fixes the root cause the investigation posted (see [Automatic code fixes from investigations](#automatic-code-fixes-from-investigations)). |
 | A trace worth fixing | **Fix performance with AI** | Fixes the slow pattern the button names, such as an N+1 query or calls that could run in parallel. |
 | A service's **Logs** page | **Improve Logging** | Makes the service's logs structured, at the right severity and tied to its traces, without changing behaviour. |
 | A service's **Traces** page | **Improve Tracing** | Adds spans and attributes where the service's tracing is missing, without changing behaviour. |
 | A function in **Performance Profiles** | **Fix with AI** | Makes the function do the same work with less time or memory, with its profile as the evidence. |
 
-These buttons show only where they can start a task. With AI switched off for the project, none of them is shown and an exception's side menu has no **AI Assistance**. **Improve Logging** and **Improve Tracing** show once a repository is connected and nothing stops AI working in it (such as the plan, used-up AI credits or no Runner online), and **Fix performance with AI** only on a trace worth fixing (see [Traces Explorer](/docs/telemetry/traces-explorer)). A function's **Fix with AI** shows only on the application's own code that takes at least 5% of the profile's time or memory, or whose share grew by 3 points or more since the window it is compared with (see [Continuous Profiling](/docs/telemetry/profiles)).
+These buttons show only where they can start a task. With AI switched off for the project, none of them is shown and an exception's side menu has no **Fix with AI**. **Improve Logging** and **Improve Tracing** show once a repository is connected and nothing stops AI working in it (such as the plan, used-up AI credits or no Runner online), and **Fix performance with AI** only on a trace worth fixing (see [Traces Explorer](/docs/telemetry/traces-explorer)). A function's **Fix with AI** shows only on the application's own code that takes at least 5% of the profile's time or memory, or whose share grew by 3 points or more since the window it is compared with (see [Continuous Profiling](/docs/telemetry/profiles)).
 
-To open an exception's **AI Assistance** page, open the exception under **Products → Observability → Exceptions** and choose **AI Assistance** in its side menu. A resolved or archived exception has to be marked unresolved first.
+To open an exception's **Fix with AI** page, open the exception under **Products → Observability → Exceptions** and choose **Fix with AI** in its side menu. A resolved or archived exception has to be marked unresolved first.
 
 OneUptime AI also starts fix tasks on its own: from an investigation that finds a code change, from one that ends inconclusive because telemetry was missing, and from AI Insights about exceptions and slow traces. Each has its own switch; see [Automatic code fixes](/docs/ai/ai-sre#automatic-code-fixes).
 
@@ -202,7 +202,7 @@ The commands are repository settings your team writes, run on your own Runner: t
 
 ## After a fix merges
 
-Merging a fix fixes nothing until it runs. Once a fix pull request merges, OneUptime waits for a recorded deploy that contains it (see [Deploys and Changes](/docs/telemetry/change-events)) and watches what the fix was for in that deploy. The task's pull request in Code says how it went, and so do the exception's **AI Assistance** page, the incident's AI Logs and the AI insight the fix came from:
+Merging a fix fixes nothing until it runs. Once a fix pull request merges, OneUptime waits for a recorded deploy that contains it (see [Deploys and Changes](/docs/telemetry/change-events)) and watches what the fix was for in that deploy. The task's pull request in Code says how it went, and so do the exception's **Fix with AI** page, the incident's AI Logs and the AI insight the fix came from:
 
 | A fix of | What is watched | It worked | It did not |
 | --- | --- | --- | --- |
@@ -242,7 +242,7 @@ OneUptime Cloud reaches Git servers on the internet only, never a private, loopb
 
 ## Before you begin
 
-A task needs three things. Code's request box and the exception's **AI Assistance** page check all three before they offer to start, and say what is missing.
+A task needs three things. Code's request box and the exception's **Fix with AI** page check all three before they offer to start, and say what is missing.
 
 | What | OneUptime Cloud | Self-hosted |
 | --- | --- | --- |
@@ -263,7 +263,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 
 Any supported provider works: see [LLM Providers](/docs/ai/llm-provider) for all of them and every environment variable.
 
-You do not map repositories to services. When a task starts, OneUptime finds the repository by matching the file paths of the exception's stack trace against your connected repositories. When nothing matches, it falls back to a repository named like the service, and then to the project's only repository when there is just one. The **AI Assistance** page shows which repository it found.
+You do not map repositories to services. When a task starts, OneUptime finds the repository by matching the file paths of the exception's stack trace against your connected repositories. When nothing matches, it falls back to a repository named like the service, and then to the project's only repository when there is just one. The exception's **Fix with AI** page shows which repository it found.
 
 ### Pick the repository's Runner
 

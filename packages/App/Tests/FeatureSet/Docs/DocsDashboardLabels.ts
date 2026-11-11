@@ -1,9 +1,20 @@
 import {
+  TemplateValues,
+  Translator,
   createTranslator,
   translateNamedAction,
 } from "Common/UI/Utils/TranslateTemplate";
+import {
+  SloBudgetRunwayKind,
+  SloProjectionTone,
+} from "Common/Utils/Slo/SloProjection";
 import fs from "fs";
 import path from "path";
+import {
+  getErrorBudgetRemainingOfTotalInLanguage,
+  getRollingWindowFillTextInLanguage,
+  getSloBudgetRunwayTextInLanguage,
+} from "../../../FeatureSet/Dashboard/src/Components/Slo/SloOverviewTextInLanguage";
 
 /*
  * How each docs language names a piece of the Dashboard.
@@ -208,6 +219,176 @@ export const drawnActionLabel: DashboardLabelFunction = (
   return english;
 };
 
+/*
+ * The Dashboard's translator in this language, reading its locale file: a
+ * value that is still the English is no wording at all, as on the screen.
+ */
+export const dashboardTranslator: (language: string) => Translator = (
+  language: string,
+): Translator => {
+  const locale: Record<string, unknown> = dashboardLocale(language);
+
+  return createTranslator((text: string): string | undefined => {
+    const value: unknown = locale[text];
+
+    return typeof value === "string" ? value : undefined;
+  }, language);
+};
+
+// The seconds of each unit of an English compact duration: "4d 23m", "12m 30s".
+const COMPACT_UNIT_SECONDS: Record<string, number> = {
+  d: 86400,
+  h: 3600,
+  m: 60,
+  s: 1,
+};
+
+// One part of an English compact duration: "23m".
+const COMPACT_PART: RegExp = /^(\d+)([dhms])$/;
+
+// The seconds an English compact duration says, or null for any other text.
+const compactDurationSeconds: (text: string | undefined) => number | null = (
+  text: string | undefined,
+): number | null => {
+  const parts: Array<string> = (text || "").split(" ");
+  let seconds: number = 0;
+
+  for (const part of parts) {
+    const match: RegExpExecArray | null = COMPACT_PART.exec(part);
+
+    if (!match) {
+      return null;
+    }
+
+    seconds += Number(match[1]) * (COMPACT_UNIT_SECONDS[match[2]!] || 0);
+  }
+
+  return seconds;
+};
+
+interface TextWithFigures {
+  // The text in English, each figure in it caught.
+  english: RegExp;
+  // The Dashboard's own drawing of it from those figures, or null when they are none.
+  draw: (figures: Array<string>, translator: Translator) => string | null;
+}
+
+/*
+ * The Dashboard's texts with figures in them that the docs quote: the SLO
+ * Overview's window chip, "Window 23% full" - the locale's "Window
+ * {{percent}}% full" with 23 put in - its error budget lines, "12m 30s left
+ * of 43m 12s" and "4d 23m over budget · 5m 47s allowed", and its runway,
+ * "~2d 5h". Each is drawn by the Dashboard's own helper
+ * (SloOverviewTextInLanguage), handed the figures of the English text.
+ */
+const TEXTS_WITH_FIGURES: ReadonlyArray<TextWithFigures> = [
+  {
+    english: /^Window (\d+)% full$/,
+    draw: (figures: Array<string>, translator: Translator): string => {
+      const percent: number = Number(figures[0]);
+
+      return getRollingWindowFillTextInLanguage(
+        {
+          fraction: percent / 100,
+          percent: percent,
+          label: `Window ${percent}% full`,
+          isNotYetFull: true,
+        },
+        translator,
+      );
+    },
+  },
+  {
+    english: /^(\d+[dhms](?: \d+[dhms])*) left of (\d+[dhms](?: \d+[dhms])*)$/,
+    draw: (figures: Array<string>, translator: Translator): string | null => {
+      const remaining: number | null = compactDurationSeconds(figures[0]);
+      const total: number | null = compactDurationSeconds(figures[1]);
+
+      if (remaining === null || total === null) {
+        return null;
+      }
+
+      return getErrorBudgetRemainingOfTotalInLanguage(
+        { remainingSeconds: remaining, totalSeconds: total },
+        translator,
+      );
+    },
+  },
+  {
+    english:
+      /^(\d+[dhms](?: \d+[dhms])*) over budget · (\d+[dhms](?: \d+[dhms])*) allowed$/,
+    draw: (figures: Array<string>, translator: Translator): string | null => {
+      const overage: number | null = compactDurationSeconds(figures[0]);
+      const total: number | null = compactDurationSeconds(figures[1]);
+
+      if (overage === null || total === null) {
+        return null;
+      }
+
+      // The tile is handed the budget left, which is negative once it is overspent.
+      return getErrorBudgetRemainingOfTotalInLanguage(
+        { remainingSeconds: -overage, totalSeconds: total },
+        translator,
+      );
+    },
+  },
+  {
+    english: /^~(\d+[dhms](?: \d+[dhms])*)$/,
+    draw: (figures: Array<string>, translator: Translator): string | null => {
+      const runway: number | null = compactDurationSeconds(figures[0]);
+
+      if (runway === null) {
+        return null;
+      }
+
+      return getSloBudgetRunwayTextInLanguage(
+        {
+          runway: {
+            kind: SloBudgetRunwayKind.RunsOut,
+            tone: SloProjectionTone.Warning,
+            value: `~${figures[0]}`,
+            description: "",
+            runwaySeconds: runway,
+            secondsUntilReset: null,
+          },
+          errorBudgetRemainingSeconds: null,
+          windowDays: null,
+        },
+        translator,
+      ).value;
+    },
+  },
+];
+
+/*
+ * What this language's Dashboard draws for a text with figures written in
+ * English (TEXTS_WITH_FIGURES): its words, its units and its digits - "۲۳"
+ * in Persian. Null when the Dashboard draws no such text, or draws it in
+ * English other than as written, as a figure it would never write.
+ */
+export const drawnTextWithFigures: (
+  language: string,
+  english: string,
+) => string | null = (language: string, english: string): string | null => {
+  for (const text of TEXTS_WITH_FIGURES) {
+    const match: RegExpExecArray | null = text.english.exec(english);
+
+    if (!match) {
+      continue;
+    }
+
+    const figures: Array<string> = match.slice(1);
+
+    if (text.draw(figures, dashboardTranslator("en")) !== english) {
+      continue;
+    }
+
+    return text.draw(figures, dashboardTranslator(language));
+  }
+
+  return null;
+};
+
 // What a page in this language calls the Dashboard label written in English.
 export const dashboardLabel: DashboardLabelFunction = (
   language: string,
@@ -296,5 +477,46 @@ export const drawnCreateButton: DashboardLabelFunction = (
       template: "Create {{itemName}}",
       itemName: english.slice(CREATE_PREFIX.length),
     },
+  );
+};
+
+/*
+ * A label the Dashboard builds from a sentence and a value (#6703): the
+ * Security Events diagnostics' "Preview {{records}}" with the records a
+ * connector imports, the run details' "Returned by {{provider}}" with the
+ * provider's name, the connection form's "Remove the stored {{field}}" with
+ * a setting's title. The English label is no key, so a page cannot look it
+ * up: it names the template and the values the Dashboard fills it with.
+ */
+export interface DashboardTemplateLabel {
+  // The label as the English Dashboard draws it: "Preview detections".
+  label: string;
+  // The key it is drawn from: "Preview {{records}}".
+  template: string;
+  /*
+   * What the Dashboard puts in each placeholder: a word it translates with
+   * the sentence is a translatableTerm(), a name is a string.
+   */
+  values: TemplateValues;
+}
+
+type DrawnTemplateLabelFunction = (
+  language: string,
+  label: DashboardTemplateLabel,
+) => string;
+
+/*
+ * What the Dashboard draws for a template-built label in this language: the
+ * locale's whole sentence, filled with the same values, a word among them in
+ * this language too; the English sentence where the locale has no wording of
+ * it, as the Dashboard falls back.
+ */
+export const drawnTemplateLabel: DrawnTemplateLabelFunction = (
+  language: string,
+  label: DashboardTemplateLabel,
+): string => {
+  return dashboardTranslator(language).translateTemplate(
+    label.template,
+    label.values,
   );
 };

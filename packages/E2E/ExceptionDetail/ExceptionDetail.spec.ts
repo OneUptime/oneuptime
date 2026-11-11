@@ -1,12 +1,8 @@
 import { expect, Locator, Page, test } from "@playwright/test";
-import {
-  CARD_GRID_GAP_IN_PX,
-  getCardGridColumnsAt,
-} from "Common/UI/Components/Card/CardGridLayout";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
-import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 
 /*
  * Renders the real exception detail pages against the offline fixture
@@ -19,7 +15,12 @@ import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const EXCEPTION_ID: string = "50000000-0000-4000-8000-000000000001";
 const SERVICE_ID: string = "60000000-0000-4000-8000-000000000001";
-const TASK_ID: string = "70000000-0000-4000-8000-000000000002";
+// The task the fixture's API opens for each kind (Fixture.js TASK_IDS).
+const TASK_IDS: Record<string, string> = {
+  FixException: "70000000-0000-4000-8000-000000000001",
+  WriteRegressionTest: "70000000-0000-4000-8000-000000000002",
+  ImproveExceptionHandling: "70000000-0000-4000-8000-000000000003",
+};
 const FINGERPRINT: string =
   "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
 const TRACE_ID: string = "4bf92f3577b34da6a3ce929d0e0e4736";
@@ -85,7 +86,7 @@ const DETAIL_PAGES: ReadonlyArray<DetailPage> = [
   { title: "Occurrences", suffix: "/occurrences", section: "Investigate" },
   { title: "Context", suffix: "/context", section: "Investigate" },
   { title: "Logs", suffix: "/logs", section: "Investigate" },
-  { title: "AI Assistance", suffix: "/ai-assistance", section: "Resolve" },
+  { title: "Fix with AI", suffix: "/ai-assistance", section: "Resolve" },
   { title: "Settings", suffix: "/settings", section: "Manage" },
 ];
 
@@ -166,57 +167,6 @@ function card(page: Page, heading: string): Locator {
     .filter({ has: page.getByRole("heading", { name: heading, exact: true }) });
 }
 
-/*
- * A row of cards (CardGrid) as the browser draws it: the grid's box, and each
- * cell's box with where its card's frame - its border - ends.
- */
-interface CardRowCell {
-  title: string;
-  top: number;
-  left: number;
-  right: number;
-  bottom: number;
-  frameBottom: number;
-}
-
-interface CardRowBoxes {
-  left: number;
-  right: number;
-  cells: Array<CardRowCell>;
-}
-
-async function cardRowBoxes(page: Page, testId: string): Promise<CardRowBoxes> {
-  return page
-    .getByTestId(testId)
-    .evaluate((container: Element): CardRowBoxes => {
-      const grid: Element = container.firstElementChild as Element;
-      const box: DOMRect = grid.getBoundingClientRect();
-
-      return {
-        left: box.left,
-        right: box.right,
-        cells: Array.from(grid.children).map((cell: Element): CardRowCell => {
-          const cellBox: DOMRect = cell.getBoundingClientRect();
-          const frame: Element = cell.querySelector(
-            '[data-testid="card"] > div',
-          ) as Element;
-
-          return {
-            title: (
-              cell.querySelector('[data-testid="card-details-heading"]')
-                ?.textContent || ""
-            ).trim(),
-            top: cellBox.top + window.scrollY,
-            left: cellBox.left,
-            right: cellBox.right,
-            bottom: cellBox.bottom + window.scrollY,
-            frameBottom: frame.getBoundingClientRect().bottom + window.scrollY,
-          };
-        }),
-      };
-    });
-}
-
 test.describe("header", () => {
   test("names the exception, its state, where it runs and how often", async ({
     page,
@@ -263,7 +213,10 @@ test.describe("header", () => {
       summary.getByRole("button", { name: "Copy exception message" }),
     ).toBeVisible();
 
-    // Only what the header needs is read up front.
+    /*
+     * One read of the exception: what the header needs, and - on the
+     * Overview, for Where it happened - its stack trace.
+     */
     const state: FixtureState = await fixture(page);
     const exceptionReads: Array<{ select: Record<string, unknown> }> =
       state.getItemRequests.filter((request: { modelName: string }) => {
@@ -276,10 +229,8 @@ test.describe("header", () => {
     expect(headerRead?.select).toMatchObject({
       unhandled: true,
       errorClass: true,
+      stackTrace: true,
     });
-    for (const read of exceptionReads) {
-      expect(read.select).not.toHaveProperty("stackTrace");
-    }
     /*
      * Besides it, nothing reads the exception: the security events above the
      * overview ask once for the fingerprints its occurrences carry, its own
@@ -305,6 +256,33 @@ test.describe("header", () => {
           return request.body;
         }),
     ).toEqual([{ telemetryExceptionIds: [EXCEPTION_ID] }]);
+  });
+
+  test("a page that does not show the stack trace does not read it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const suffix of ["/occurrences", "/logs", "/settings"]) {
+      await open(page, suffix);
+
+      const reads: Array<{
+        modelName: string;
+        select: Record<string, unknown>;
+      }> = (await fixture(page)).getItemRequests.filter(
+        (request: { modelName: string }) => {
+          return request.modelName === "TelemetryException";
+        },
+      );
+
+      expect(reads.length, `the exception read on ${suffix}`).toBeGreaterThan(
+        0,
+      );
+
+      for (const read of reads) {
+        expect([suffix, "stackTrace" in read.select]).toEqual([suffix, false]);
+      }
+    }
   });
 
   test("a long message is clamped until expanded", async ({
@@ -509,10 +487,10 @@ test.describe("navigation", () => {
     await toggle.click();
     await page
       .locator("div[role='navigation'][aria-label='Main navigation']:visible")
-      .getByRole("link", { name: "AI Assistance", exact: true })
+      .getByRole("link", { name: "Fix with AI", exact: true })
       .click();
     await expect(page).toHaveURL(new RegExp(`${BASE}/ai-assistance$`));
-    await expect(toggle).toContainText("Resolve / AI Assistance");
+    await expect(toggle).toContainText("Resolve / Fix with AI");
   });
 
   test("no page scrolls sideways on a phone", async ({
@@ -570,84 +548,110 @@ test.describe("overview", () => {
   });
 
   /*
-   * "Gap between cards dont look nice. Please fix it." - the maintainer, of
-   * cards of different heights side by side. The exception's details and its
-   * latest occurrence share a row where the page has the room for both
-   * (CardGrid): the shorter card runs to the row's bottom - with long
-   * details, minimal ones, and no occurrence stored - and beside the side
-   * menu of a smaller screen, or on a phone, one is above the other.
+   * The Overview reads top to bottom, one card a row: where the exception
+   * happened, how often, then its latest occurrence - each as wide as the
+   * page, so no card stands beside a shorter one over blank page.
    */
-  test("the details and the latest occurrence end on one line side by side, and stack where there is no room for both", async ({
+  test("reads where it happened, how often, then the latest occurrence, each card as wide as the page", async ({
     page,
   }: {
     page: Page;
   }) => {
-    // Cards side by side at each window width, beside the side menu.
+    for (const width of [1440, 1024, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await open(page, "");
+      await expect(card(page, "Latest Occurrence")).toBeVisible();
+      await expect(card(page, "Where it happened")).toBeVisible();
+
+      const headings: Array<string> = (
+        await page.getByTestId("card-details-heading").allTextContents()
+      ).map((text: string): string => {
+        return text.trim();
+      });
+      const order: Array<string> = [
+        "Where it happened",
+        "Occurrence Trend",
+        "Latest Occurrence",
+      ];
+
+      expect([
+        width,
+        headings.filter((heading: string): boolean => {
+          return order.includes(heading);
+        }),
+      ]).toEqual([width, order]);
+      // The facts the header already gives are not a card of their own.
+      expect([width, headings.includes("Details")]).toEqual([width, false]);
+
+      const boxes: Array<FrameBox> = await boxesInOneFrame(
+        order.map((title: string): Locator => {
+          return card(page, title);
+        }),
+      );
+
+      for (const [index, box] of boxes.entries()) {
+        expect([
+          width,
+          order[index],
+          Math.round(box.x - boxes[0]!.x),
+          Math.round(box.width - boxes[0]!.width),
+        ]).toEqual([width, order[index], 0, 0]);
+      }
+
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+    }
+  });
+
+  /*
+   * Across the page, the latest occurrence's facts run three a row on a
+   * wide screen, two beside the side menu of a smaller one and one on a
+   * phone. The long ones - the trace and the fingerprint - take a row of
+   * their own.
+   */
+  test("the latest occurrence's facts run three a row on a wide screen, two on a smaller one, one on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     const ACROSS: Record<number, number> = {
-      1440: 2,
-      1280: 2,
-      1024: 1,
-      768: 1,
+      1440: 3,
+      1024: 3,
+      768: 2,
       390: 1,
     };
 
-    for (const width of [1440, 1280, 1024, 768, 390]) {
+    for (const width of [1440, 1024, 768, 390]) {
       await page.setViewportSize({ width, height: 1000 });
+      await open(page, "");
 
-      for (const query of [
-        "",
-        "exception=long",
-        "exception=minimal",
-        "occurrence=none",
-      ]) {
-        await open(page, "", query);
-        await expect(card(page, "Latest Occurrence")).toBeVisible();
+      const latest: Locator = card(page, "Latest Occurrence");
+      const fingerprint: Locator = latest.getByTestId(
+        "exception-latest-occurrence-fingerprint",
+      );
 
-        const label: string = `${width}px ${query || "full"}`;
-        const row: CardRowBoxes = await cardRowBoxes(
-          page,
-          "exception-overview-cards",
-        );
-        const [details, latest] = row.cells as [CardRowCell, CardRowCell];
-        const across: number = getCardGridColumnsAt(
-          { columns: 2, cardWidth: "wide" },
-          row.right - row.left,
-        );
+      await expect(fingerprint).toBeVisible();
 
-        expect([
-          label,
-          row.cells.map((cell: CardRowCell) => {
-            return cell.title;
-          }),
-        ]).toEqual([label, ["Details", "Latest Occurrence"]]);
-        expect([label, across]).toEqual([label, ACROSS[width]]);
+      const lefts: Array<number> = await latest
+        .locator("dl > div")
+        .evaluateAll((items: Array<Element>): Array<number> => {
+          return items.map((item: Element): number => {
+            return Math.round(item.getBoundingClientRect().left);
+          });
+        });
 
-        if (across === 2) {
-          // One line, each frame to its bottom, the grid's 20px between them.
-          expect([
-            label,
-            Math.round(latest.top - details.top),
-            Math.round(details.bottom - details.frameBottom),
-            Math.round(latest.bottom - latest.frameBottom),
-            Math.round(details.bottom - latest.bottom),
-            Math.round(latest.left - details.right),
-            Math.round(details.left - row.left),
-            Math.round(row.right - latest.right),
-          ]).toEqual([label, 0, 0, 0, 0, CARD_GRID_GAP_IN_PX, 0, 0]);
-        } else {
-          // One above the other, each the grid's width, the grid's 20px between.
-          expect([
-            label,
-            Math.round(latest.top - details.bottom),
-            Math.round(details.left - row.left),
-            Math.round(row.right - details.right),
-            Math.round(latest.left - row.left),
-            Math.round(row.right - latest.right),
-          ]).toEqual([label, CARD_GRID_GAP_IN_PX, 0, 0, 0, 0]);
-        }
+      expect([width, new Set(lefts).size]).toEqual([width, ACROSS[width]]);
 
-        await expectNoSidewaysScroll(page, { tolerance: 1 });
-      }
+      const [fingerprintBox, listBox] = await boxesInOneFrame([
+        fingerprint,
+        latest.locator("dl"),
+      ]);
+
+      expect([
+        width,
+        Math.round(fingerprintBox!.width - listBox!.width),
+      ]).toEqual([width, 0]);
+
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     }
 
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -655,22 +659,13 @@ test.describe("overview", () => {
     await screenshot(page, "overview-cards-long");
   });
 
-  /*
-   * With no occurrence stored, the latest occurrence's card is as tall as
-   * the details beside it: its dashed box takes the card's room under its
-   * header, the clock and the words in the middle of it, rather than
-   * sitting at the card's top over blank card. Stacked under the details
-   * (beside the side menu of a smaller screen) the box is as tall as its
-   * words, as it always was.
-   */
-  test("with no occurrence stored, the empty box takes the card's room beside the details, its words in the middle", async ({
+  // Alone on its row, the empty box is as tall as its words: no blank card.
+  test("with no occurrence stored, the latest occurrence says so, its box as tall as its words", async ({
     page,
   }: {
     page: Page;
   }) => {
     interface EmptyBoxes {
-      contentBottom: number;
-      paddingBottom: number;
       headerBottom: number;
       boxTop: number;
       boxBottom: number;
@@ -680,20 +675,21 @@ test.describe("overview", () => {
       boxBorderY: number;
     }
 
-    for (const width of [1440, 1280, 1024]) {
+    for (const width of [1440, 1024, 390]) {
       await page.setViewportSize({ width, height: 1000 });
       await open(page, "", "occurrence=none");
 
       const latest: Locator = card(page, "Latest Occurrence");
-      await expect(
-        latest.getByTestId("exception-latest-occurrence-empty"),
-      ).toBeVisible();
+      const empty: Locator = latest.getByTestId(
+        "exception-latest-occurrence-empty",
+      );
+
+      await expect(empty).toContainText(
+        "No individual occurrence is stored for this exception yet.",
+      );
 
       const boxes: EmptyBoxes = await latest.evaluate(
         (element: Element): EmptyBoxes => {
-          // The card's box > its frame > the padded content: header, then body.
-          const content: Element = element.firstElementChild!
-            .firstElementChild as Element;
           const header: Element = element.querySelector(
             '[data-testid="card-header"]',
           ) as Element;
@@ -704,8 +700,6 @@ test.describe("overview", () => {
           const boxStyle: CSSStyleDeclaration = getComputedStyle(box);
 
           return {
-            contentBottom: content.getBoundingClientRect().bottom,
-            paddingBottom: parseFloat(getComputedStyle(content).paddingBottom),
             headerBottom: header.getBoundingClientRect().bottom,
             boxTop: box.getBoundingClientRect().top,
             boxBottom: box.getBoundingClientRect().bottom,
@@ -720,54 +714,19 @@ test.describe("overview", () => {
           };
         },
       );
-      const row: CardRowBoxes = await cardRowBoxes(
-        page,
-        "exception-overview-cards",
-      );
-      const across: number = getCardGridColumnsAt(
-        { columns: 2, cardWidth: "wide" },
-        row.right - row.left,
-      );
-      const label: string = `${width}px, ${across} across`;
+      const label: string = `${width}px`;
 
-      if (across === 2) {
-        // The box runs to the card's bottom padding: no blank card under it...
-        expect([
-          label,
-          Math.round(
-            boxes.contentBottom - boxes.paddingBottom - boxes.boxBottom,
-          ),
-        ]).toEqual([label, 0]);
-        // ...taller than its words need, as tall as the details make the card...
-        expect(boxes.boxBottom - boxes.boxTop).toBeGreaterThan(
-          boxes.wordsBottom -
-            boxes.wordsTop +
-            boxes.boxPaddingY +
-            boxes.boxBorderY +
-            40,
-        );
-        // ...and its words in its middle.
-        expect([
-          label,
-          Math.abs(
-            (boxes.wordsTop + boxes.wordsBottom) / 2 -
-              (boxes.boxTop + boxes.boxBottom) / 2,
-          ) <= 1.5,
-        ]).toEqual([label, true]);
-      } else {
-        // One card above the other: the box is as tall as its words.
-        expect([
-          label,
-          Math.round(
-            boxes.boxBottom -
-              boxes.boxTop -
-              (boxes.wordsBottom - boxes.wordsTop) -
-              boxes.boxPaddingY -
-              boxes.boxBorderY,
-          ),
-        ]).toEqual([label, 0]);
-      }
-      // Under the card's header, wherever the card is.
+      expect([
+        label,
+        Math.round(
+          boxes.boxBottom -
+            boxes.boxTop -
+            (boxes.wordsBottom - boxes.wordsTop) -
+            boxes.boxPaddingY -
+            boxes.boxBorderY,
+        ),
+      ]).toEqual([label, 0]);
+      // Under the card's header.
       expect(boxes.boxTop).toBeGreaterThan(boxes.headerBottom);
     }
 
@@ -790,34 +749,180 @@ test.describe("overview", () => {
     await expect(page.getByTestId("exception-trend-error")).toContainText(
       "Could not load the occurrence trend",
     );
-    await expect(card(page, "Details")).toBeVisible();
+    await expect(card(page, "Latest Occurrence")).toBeVisible();
+    await expect(card(page, "Where it happened")).toBeVisible();
   });
 
-  test("details and the latest occurrence lead into the investigation", async ({
+  test("the latest occurrence names its fingerprint and leads into the investigation", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, "");
+    const latest: Locator = card(page, "Latest Occurrence");
 
     await expect(
-      page.getByTestId("exception-detail-fingerprint"),
+      latest.getByTestId("exception-latest-occurrence-fingerprint"),
     ).toContainText(FINGERPRINT);
-    await expect(page.getByTestId("exception-detail-active-for")).toContainText(
-      "6 days",
-    );
     await expect(
-      page.getByTestId("exception-latest-occurrence-release"),
+      latest.getByTestId("exception-latest-occurrence-release"),
     ).toContainText("checkout-api@2026.09.14");
     await expect(
-      page.getByTestId("exception-latest-occurrence-trace").getByRole("link"),
+      latest.getByTestId("exception-latest-occurrence-trace").getByRole("link"),
     ).toHaveAttribute("href", new RegExp(TRACE_ID));
+    await expect(
+      latest.getByRole("link", { name: "All occurrences" }),
+    ).toHaveAttribute("href", `${BASE}/occurrences`);
 
-    await card(page, "Latest Occurrence")
-      .getByRole("link", { name: "View stack trace" })
-      .click();
+    await latest.getByRole("link", { name: "View context" }).click();
+    await expect(page).toHaveURL(new RegExp(`${BASE}/context$`));
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Where it happened, on the Overview
+ * ---------------------------------------------------------------------------
+ * What a person opening an exception reads first: the line it was most
+ * likely raised from - where the release's source map put it, with the
+ * source around it - and the frames of their own code that called it,
+ * without opening the Stack Trace page.
+ */
+test.describe("where it happened", () => {
+  test("names the crash point where the source map put it, its source, and the application's frames that called it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "");
+    const crash: Locator = card(page, "Where it happened");
+
+    await expect(crash).toContainText(
+      "The first frame in your own code: the most likely place the error was raised.",
+    );
+    await expect(
+      crash.getByTestId("exception-crash-point-frame"),
+    ).toHaveAttribute("data-in-app", "true");
+    await expect(
+      crash.getByTestId("exception-crash-point-function"),
+    ).toHaveText("InventoryService.reserveInventory");
+    await expect(
+      crash.getByTestId("exception-crash-point-location"),
+    ).toHaveText("src/services/inventory.ts:187:13");
+    await expect(crash.locator("tr[data-highlighted='true']")).toContainText(
+      "throw new InventoryReservationError",
+    );
+
+    // The application's own frames under it, the runtime's and Express's left out.
+    const callers: Locator = crash.getByTestId("exception-crash-point-caller");
+
+    await expect(callers).toHaveCount(2);
+    await expect(callers.nth(0)).toContainText("OrderService.submitOrder");
+    await expect(callers.nth(0)).toContainText("src/services/order.ts:64:9");
+    await expect(callers.nth(1)).toContainText("handleCheckout");
+    await expect(crash.getByTestId("exception-crash-point-summary")).toHaveText(
+      "10 frames · 3 in your code",
+    );
+
+    // Resolved through the same source map the Stack Trace page reads.
+    const resolve: RecordedApiRequest | undefined = (
+      await fixture(page)
+    ).apiRequests.find((request: RecordedApiRequest) => {
+      return request.url.includes("/telemetry/exceptions/resolve-stack-trace");
+    });
+    expect(resolve?.body).toMatchObject({
+      serviceId: SERVICE_ID,
+      serviceVersion: "checkout-api@2026.09.14",
+    });
+
+    await screenshot(page, "overview-where-it-happened");
+
+    await crash.getByRole("link", { name: "View full stack trace" }).click();
     await expect(page).toHaveURL(new RegExp(`${BASE}/stack-trace$`));
     await expect(card(page, "Stack Trace")).toBeVisible();
+  });
+
+  test("without source maps it keeps the minified location, and draws no source", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "", "frames=unmapped");
+    const crash: Locator = card(page, "Where it happened");
+
+    await expect(
+      crash.getByTestId("exception-crash-point-function"),
+    ).toHaveText("reserveInventory");
+    await expect(
+      crash.getByTestId("exception-crash-point-location"),
+    ).toHaveAttribute("title", "/app/dist/services/inventory.js:212:17");
+    await expect(crash.getByTestId("stack-frame-source-snippet")).toHaveCount(
+      0,
+    );
+  });
+
+  test("without structured frames it shows the trace's first lines, and counts the rest", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "", "frames=raw");
+    const crash: Locator = card(page, "Where it happened");
+
+    await expect(crash).toContainText(
+      "Structured frames were not recorded for the latest occurrence.",
+    );
+
+    const raw: Locator = crash.getByTestId("exception-crash-point-raw");
+
+    await expect(raw).toContainText(
+      `${EXCEPTION_TYPE}: Could not reserve 3 units`,
+    );
+    await expect(raw).toContainText("at reserveInventory");
+    await expect(raw).not.toContainText(
+      "/app/node_modules/express/lib/router/index.js",
+    );
+    await expect(crash.getByTestId("exception-crash-point-summary")).toHaveText(
+      "3 more lines",
+    );
+    await expect(crash.getByTestId("exception-crash-point-frame")).toHaveCount(
+      0,
+    );
+  });
+
+  test("an exception without a stack trace has no card for it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "", "exception=minimal");
+    await expect(card(page, "Latest Occurrence")).toBeVisible();
+    await expect(card(page, "Where it happened")).toHaveCount(0);
+  });
+
+  test("on a phone the crash point's long location stays inside the card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, "");
+    const crash: Locator = card(page, "Where it happened");
+
+    await expect(
+      crash.getByTestId("exception-crash-point-function"),
+    ).toBeVisible();
+
+    const [cardBox, frameBox] = await boxesInOneFrame([
+      crash,
+      crash.getByTestId("exception-crash-point-frame"),
+    ]);
+
+    expect(frameBox!.x).toBeGreaterThanOrEqual(cardBox!.x);
+    expect(frameBox!.x + frameBox!.width).toBeLessThanOrEqual(
+      cardBox!.x + cardBox!.width + 0.5,
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 });
 
@@ -1199,8 +1304,20 @@ test.describe("logs", () => {
   });
 });
 
-test.describe("AI assistance", () => {
-  test("starts a task after confirmation and opens it", async ({
+/*
+ * "Why not just one?" - the maintainer, of three AI tasks side by side. The
+ * page leads with one, Fix with AI: a fix of the code, or - for an exception
+ * OneUptime AI's triage found to be an expected error - better handling of
+ * it. The other two wait folded under it, as Other AI tasks.
+ */
+test.describe("Fix with AI", () => {
+  function otherTasksToggle(page: Page): Locator {
+    return page
+      .getByTestId("exception-ai-other-tasks")
+      .getByTestId("folded-section-header");
+  }
+
+  test("leads with Fix with AI, which fixes the code after confirmation and opens the task", async ({
     page,
   }: {
     page: Page;
@@ -1208,25 +1325,143 @@ test.describe("AI assistance", () => {
     await open(page, "/ai-assistance");
 
     await expect(page.getByTestId("exception-ai-ready")).toBeVisible();
-    const regression: Locator = page.getByTestId(
-      "exception-ai-task-WriteRegressionTest",
+    const fix: Locator = page.getByTestId("exception-ai-task-FixException");
+
+    await expect(fix).toHaveAttribute("data-primary", "true");
+    await expect(
+      fix.getByRole("heading", { name: "Fix with AI", exact: true }),
+    ).toBeVisible();
+    await expect(fix.getByTestId("exception-ai-task-description")).toHaveText(
+      "OneUptime AI finds the root cause of this exception in your code, fixes it, and opens a pull request for you to review.",
     );
-    await expect(regression.getByTestId("exception-ai-task-status")).toHaveText(
-      "Not started",
+    // How it works, in three steps, over the line saying AI is ready.
+    const howItWorks: Locator = fix.getByTestId("exception-ai-how-it-works");
+
+    await expect(
+      howItWorks.locator("ol").first().locator(":scope > li"),
+    ).toHaveCount(3);
+    await expect(howItWorks).toContainText(
+      "Reads the stack trace and finds the code that threw it.",
+    );
+    await expect(howItWorks).toContainText(
+      "Opens a pull request for you to review. Nothing changes until you merge it.",
+    );
+    // One button to press: the rest wait folded, out of sight.
+    await expect(
+      page.locator("[data-testid='exception-ai-task-start']:visible"),
+    ).toHaveCount(1);
+    await expect(otherTasksToggle(page)).toHaveAttribute(
+      "aria-expanded",
+      "false",
     );
 
     await screenshot(page, "ai-assistance-ready");
 
-    await regression.getByTestId("exception-ai-task-start").click();
+    const start: Locator = fix.getByTestId("exception-ai-task-start");
+
+    await expect(start).toHaveText("Fix with AI");
+    await start.click();
+
     const modal: Locator = page.getByTestId("modal");
     await expect(
-      modal.getByRole("heading", { name: "Confirm Generate Regression Test" }),
+      modal.getByRole("heading", { name: "Fix with AI", exact: true }),
     ).toBeVisible();
     await modal.getByTestId("modal-footer-submit-button").click();
 
-    await expect(page.getByTestId("ai-task-page")).toHaveText(TASK_ID);
+    await expect(page.getByTestId("ai-task-page")).toHaveText(
+      TASK_IDS["FixException"]!,
+    );
+    // A fix of the code is the server's default task: the request names none.
+    expect((await fixture(page)).createdTasks).toEqual([{}]);
+  });
+
+  test("the other tasks wait folded under it, and start the same way", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "/ai-assistance");
+
+    const toggle: Locator = otherTasksToggle(page);
+
+    await expect(toggle).toContainText("Other AI tasks");
+    await expect(
+      page.getByTestId("exception-ai-task-WriteRegressionTest"),
+    ).toBeHidden();
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+
+    const handling: Locator = page.getByTestId(
+      "exception-ai-task-ImproveExceptionHandling",
+    );
+    const regression: Locator = page.getByTestId(
+      "exception-ai-task-WriteRegressionTest",
+    );
+
+    await expect(handling).toContainText("Handle the error better");
+    await expect(regression).toContainText("Write a regression test");
+    await expect(regression).toContainText("It does not fix the bug");
+
+    await screenshot(page, "ai-assistance-other-tasks");
+
+    const start: Locator = regression.getByTestId("exception-ai-task-start");
+
+    await expect(start).toHaveText("Start");
+    await start.click();
+
+    const modal: Locator = page.getByTestId("modal");
+    await expect(
+      modal.getByRole("heading", { name: "Write a regression test" }),
+    ).toBeVisible();
+    await modal.getByTestId("modal-footer-submit-button").click();
+
+    await expect(page.getByTestId("ai-task-page")).toHaveText(
+      TASK_IDS["WriteRegressionTest"]!,
+    );
     expect((await fixture(page)).createdTasks).toEqual([
       { taskType: "WriteRegressionTest" },
+    ]);
+  });
+
+  test("for an expected error, Fix with AI handles it better, and a fix of the code waits folded", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "/ai-assistance", "errorClass=user-error");
+
+    const handling: Locator = page.getByTestId(
+      "exception-ai-task-ImproveExceptionHandling",
+    );
+
+    await expect(handling).toHaveAttribute("data-primary", "true");
+    await expect(
+      handling.getByRole("heading", { name: "Fix with AI", exact: true }),
+    ).toBeVisible();
+    await expect(
+      handling.getByTestId("exception-ai-task-description"),
+    ).toContainText("OneUptime AI found this is an expected error");
+
+    await otherTasksToggle(page).click();
+    await expect(
+      page.getByTestId("exception-ai-task-FixException"),
+    ).toContainText("Fix the code");
+    await expect(
+      page.getByTestId("exception-ai-task-FixException"),
+    ).not.toHaveAttribute("data-primary", "true");
+
+    await handling.getByTestId("exception-ai-task-start").click();
+    await page
+      .getByTestId("modal")
+      .getByTestId("modal-footer-submit-button")
+      .click();
+
+    await expect(page.getByTestId("ai-task-page")).toHaveText(
+      TASK_IDS["ImproveExceptionHandling"]!,
+    );
+    expect((await fixture(page)).createdTasks).toEqual([
+      { taskType: "ImproveExceptionHandling" },
     ]);
   });
 
@@ -1276,7 +1511,12 @@ test.describe("AI assistance", () => {
       "Completed",
     );
     await expect(fix.getByTestId("exception-ai-task-start")).toHaveText(
-      "Fix Again",
+      "Fix again",
+    );
+    // Another task has run: the fold is open, so it is seen.
+    await expect(otherTasksToggle(page)).toHaveAttribute(
+      "aria-expanded",
+      "true",
     );
     await expect(regression.getByTestId("exception-ai-task-status")).toHaveText(
       "Queued",
@@ -1288,7 +1528,7 @@ test.describe("AI assistance", () => {
       "Failed",
     );
     await expect(handling.getByTestId("exception-ai-task-start")).toHaveText(
-      "Retry Error Handling",
+      "Try again",
     );
     await expect(
       handling.getByTestId("exception-ai-task-message"),
@@ -1317,7 +1557,7 @@ test.describe("AI assistance", () => {
     await expect(page).toHaveURL(new RegExp(`${BASE}/ai-assistance`));
   });
 
-  test("with AI switched off: no AI Assistance in the menu, and its page says so, with Turn AI on", async ({
+  test("with AI switched off: no Fix with AI in the menu, and its page says so, with Turn AI on", async ({
     page,
   }: {
     page: Page;
@@ -1326,7 +1566,7 @@ test.describe("AI assistance", () => {
 
     // Nothing on it could start: the menu does not offer it.
     await expect(
-      sideMenu(page).getByRole("link", { name: "AI Assistance", exact: true }),
+      sideMenu(page).getByRole("link", { name: "Fix with AI", exact: true }),
     ).toHaveCount(0);
     await expect(sideMenuSectionToggle(page, "Resolve")).toHaveCount(0);
 
@@ -1436,8 +1676,14 @@ test.describe("settings", () => {
  * from lg up beside the side menu they left the message a word a line at
  * 1024px.
  */
-test.describe("Create monitor on an exception", () => {
-  test("sits beside Resolve and leads to an Exceptions monitor for this type in its service", async ({
+/*
+ * "There are so many buttons in the header" - the maintainer. The header
+ * keeps two: Resolve (or Reopen) and Archive (or Unarchive). What an
+ * exception takes now and then - Resolve in next release, Create monitor -
+ * waits in its ⋯, and who it is assigned to is one of its facts.
+ */
+test.describe("the header's actions", () => {
+  test("are two buttons and a ⋯, which holds Create monitor, leading to an Exceptions monitor for this type in its service", async ({
     page,
   }: {
     page: Page;
@@ -1445,12 +1691,25 @@ test.describe("Create monitor on an exception", () => {
     await open(page, "");
 
     const actions: Locator = page.getByTestId("exception-summary-actions");
-    const button: Locator = actions.getByTestId("exception-create-monitor");
 
-    await expect(button).toHaveText("Create monitor");
-    await expect(actions.getByTestId("exception-triage-resolve")).toBeVisible();
+    await expect(
+      actions.getByTestId("exception-summary-buttons").getByRole("button"),
+    ).toHaveText(["Resolve", "Archive"]);
+    await expect(actions.getByTestId("exception-create-monitor")).toHaveCount(
+      0,
+    );
 
-    await button.click();
+    await actions.getByTestId("exception-more-actions").click();
+
+    const menu: Locator = page.getByRole("menu");
+
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "Resolve in next release",
+      "Create monitor",
+    ]);
+    await screenshot(page, "exception-header-more");
+
+    await menu.getByTestId("exception-create-monitor").click();
     await page.waitForURL(
       (url: URL): boolean => {
         return url.pathname === `/dashboard/${PROJECT_ID}/monitors/create`;
@@ -1468,88 +1727,131 @@ test.describe("Create monitor on an exception", () => {
     );
   });
 
-  test("the message stays readable beside the side menu: the actions go under it until the card is wide enough", async ({
+  test("Resolve in next release, from the ⋯, resolves it for occurrences after the release it was last seen in", async ({
     page,
   }: {
     page: Page;
   }) => {
-    /*
-     * Since the assignee and Assign (#5422) and Resolve's menu (#5416)
-     * joined them, the actions take some 40rem: they sit beside the message
-     * only on a card whose content is 72rem wide, so it keeps 26rem to be
-     * read in. The page's own width stops short of that today, so they go
-     * under it at every width here, 1920px too.
-     */
-    for (const width of [1024, 1280, 1440, 1920]) {
+    await open(page, "");
+
+    await page
+      .getByTestId("exception-summary-actions")
+      .getByTestId("exception-more-actions")
+      .click();
+    await page
+      .getByRole("menu")
+      .getByTestId("exception-triage-resolve-next-release")
+      .click();
+
+    await expect(page.getByTestId("exception-summary-status")).toHaveText(
+      "Resolved",
+    );
+
+    const update: RecordedUpdate | undefined = (
+      await fixture(page)
+    ).updates.find((each: RecordedUpdate) => {
+      return each.modelName === "TelemetryException";
+    });
+
+    expect(update?.data).toMatchObject({
+      isResolved: true,
+      resolvedInReleaseAfter: "checkout-api@2026.09.14",
+    });
+  });
+
+  test("who it is assigned to is one of the header's facts, not a button among the actions", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "");
+
+    const fact: Locator = page.getByTestId("exception-summary-stat-assignee");
+
+    await expect(fact).toContainText("Assignee");
+    await expect(fact.getByTestId("exception-assignee-assign")).toHaveText(
+      "Assign",
+    );
+    await expect(
+      page
+        .getByTestId("exception-summary-actions")
+        .getByTestId("exception-assignee"),
+    ).toHaveCount(0);
+  });
+
+  /*
+   * Two buttons and a ⋯ fit beside the pills on a desktop's header, beside
+   * the side menu: the header works out the width they need from their
+   * words (data-actions-beside-from) and puts them under the title on a
+   * narrower one. The message keeps a reading width at every width.
+   */
+  test("sit beside the pills on a header wide enough for them, under the title on a narrower one, and the message stays readable", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [390, 768, 1024, 1280, 1440, 1920]) {
       await page.setViewportSize({ width, height: 1000 });
       await open(page, "", "exception=long");
 
-      const message: Locator = page.getByTestId("exception-summary-message");
-      const actions: Locator = page.getByTestId("exception-summary-actions");
-      await expect(
-        actions.getByTestId("exception-create-monitor"),
-      ).toBeVisible();
+      const header: Locator = page.getByTestId("exception-summary");
+      const from: string | null = await header.getAttribute(
+        "data-actions-beside-from",
+      );
 
-      const [messageBox, actionsBox] = await boxesInOneFrame([
-        message,
-        actions,
+      expect(from, `where the actions go at ${width}px`).toMatch(/^\d+rem$/);
+
+      const headerWidth: number = await header.evaluate(
+        (element: Element): number => {
+          return (element as HTMLElement).clientWidth;
+        },
+      );
+      const isBeside: boolean =
+        headerWidth >= Number((from || "").replace("rem", "")) * 16;
+      const [pills, title, actions, message] = await boxesInOneFrame([
+        page.getByTestId("exception-summary-pills"),
+        page.getByTestId("exception-summary-type"),
+        page.getByTestId("exception-summary-actions"),
+        page.getByTestId("exception-summary-message"),
       ]);
-      expect(messageBox).not.toBeNull();
-      expect(actionsBox).not.toBeNull();
 
-      // Never a word a line: the message keeps a reading width.
-      expect(
-        messageBox!.width,
-        `the message's width at ${width}px`,
-      ).toBeGreaterThan(420);
+      if (width >= 1280) {
+        // A desktop's header holds them beside the pills.
+        expect([width, isBeside]).toEqual([width, true]);
+      }
 
-      // The header's own width, which the container query reads.
-      const contentWidth: number = await page
-        .getByTestId("exception-summary")
-        .locator(":scope > div")
-        .first()
-        .evaluate((element: Element): number => {
-          const style: CSSStyleDeclaration = getComputedStyle(element);
-          return (
-            element.clientWidth -
-            parseFloat(style.paddingLeft) -
-            parseFloat(style.paddingRight)
-          );
-        });
-
-      if (contentWidth >= 72 * 16) {
-        // A wide card: the actions beside the exception, at its top.
-        expect(actionsBox!.x).toBeGreaterThan(
-          messageBox!.x + messageBox!.width,
-        );
-        expect(actionsBox!.y).toBeLessThan(messageBox!.y);
-      } else {
-        // A narrower one: the actions under the message.
-        expect(actionsBox!.y, `the actions at ${width}px`).toBeGreaterThan(
-          messageBox!.y,
-        );
-
-        /*
-         * ... and the first of them where the exception's words start,
-         * past its status icon: it started under the icon, 12px further in
-         * (each Button's own md:ml-3). Whichever comes first - since #5422
-         * the assignee, then Resolve.
-         */
-        const firstButton: { x: number } | null = await actions
-          .locator(":scope > *")
-          .first()
-          .boundingBox();
-        expect(firstButton).not.toBeNull();
+      if (isBeside) {
+        // On the pills' line, after them; the title under both.
         expect(
-          Math.abs(firstButton!.x - messageBox!.x),
-          `the first action against the words at ${width}px`,
-        ).toBeLessThan(2);
+          actions!.x,
+          `the actions after the pills at ${width}px`,
+        ).toBeGreaterThan(pills!.x + pills!.width);
+        expect(
+          actions!.y,
+          `the actions above the title at ${width}px`,
+        ).toBeLessThan(title!.y);
+      } else {
+        expect(
+          actions!.y,
+          `the actions under the title at ${width}px`,
+        ).toBeGreaterThanOrEqual(title!.y + title!.height - 1);
+      }
+
+      if (width >= 1024) {
+        // Never a word a line: the message keeps a reading width.
+        expect(
+          message!.width,
+          `the message's width at ${width}px`,
+        ).toBeGreaterThan(420);
       }
 
       await expectNoSidewaysScroll(page, { tolerance: 1 });
     }
 
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await open(page, "");
+    await screenshot(page, "exception-header-1440");
     await page.setViewportSize({ width: 1024, height: 1000 });
-    await screenshot(page, "exception-header-create-monitor-1024");
+    await screenshot(page, "exception-header-1024");
   });
 });

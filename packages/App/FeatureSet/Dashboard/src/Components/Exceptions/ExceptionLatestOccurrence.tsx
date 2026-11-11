@@ -4,6 +4,7 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement } from "react";
 import PageMap from "../../Utils/PageMap";
@@ -25,6 +26,8 @@ export interface ComponentProps {
   // Links under the card, e.g. to the Occurrences and Stack Trace pages.
   links?: Array<{ title: string; to: Route; icon: IconProp }> | undefined;
   description?: string | undefined;
+  // 3 when the card is as wide as the page (the Overview); 2 by default.
+  columns?: 2 | 3 | undefined;
 }
 
 const NotRecorded: FunctionComponent = (): ReactElement => {
@@ -73,11 +76,12 @@ const ExceptionLatestOccurrence: FunctionComponent<ComponentProps> = (
   const occurredAt: Date | undefined = toDate(props.instance?.time);
   const traceId: string = props.instance?.traceId?.toString().trim() || "";
   const sessionId: string = props.instance?.sessionId?.toString().trim() || "";
+  const fingerprint: string =
+    props.instance?.fingerprint?.toString().trim() || "";
 
   /*
-   * Beside the exception's details on the Overview the card is as tall as
-   * they are (CardGrid): the loader and the empty box take the room it has
-   * under its header, so neither sits at its top over blank card.
+   * The loader and the empty box take the room the card has under its
+   * header, so neither sits at its top over blank card.
    */
   const renderBody: () => ReactElement = (): ReactElement => {
     if (props.isLoading && !props.instance) {
@@ -202,9 +206,43 @@ const ExceptionLatestOccurrence: FunctionComponent<ComponentProps> = (
       });
     }
 
+    /*
+     * How the occurrence was grouped: every occurrence with this
+     * fingerprint is this exception's (a merged exception's keep theirs).
+     */
+    if (fingerprint) {
+      items.push({
+        label: "Fingerprint",
+        isWide: true,
+        value: (
+          <span className="flex min-w-0 items-center gap-2">
+            <code
+              title={translator.translateText(
+                "Occurrences with this fingerprint are grouped into this exception.",
+              )}
+              className="min-w-0 truncate rounded bg-gray-50 px-1.5 py-0.5 font-mono text-xs text-gray-700 ring-1 ring-inset ring-gray-200"
+            >
+              {fingerprint}
+            </code>
+            <CopyTextButton
+              textToBeCopied={fingerprint}
+              iconOnly={true}
+              size="xs"
+              title="Copy fingerprint"
+            />
+          </span>
+        ),
+        testId: "exception-latest-occurrence-fingerprint",
+      });
+    }
+
     return (
       <div>
-        <ExceptionDetailList items={items} label="Latest occurrence" />
+        <ExceptionDetailList
+          items={items}
+          label="Latest occurrence"
+          columns={props.columns || 2}
+        />
         {props.links && props.links.length > 0 && (
           <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-gray-100 pt-4">
             {props.links.map(

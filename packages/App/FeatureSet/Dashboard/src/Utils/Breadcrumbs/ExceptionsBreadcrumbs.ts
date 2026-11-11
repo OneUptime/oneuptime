@@ -65,7 +65,7 @@ export function getExceptionsBreadcrumbs(
       "Project",
       "Exceptions",
       "Exception",
-      "AI Assistance",
+      "Fix with AI",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_VIEW_SETTINGS, [
       "Project",

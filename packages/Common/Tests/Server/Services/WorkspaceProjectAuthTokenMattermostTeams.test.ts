@@ -210,6 +210,50 @@ describe("the teams the server listed", () => {
   });
 });
 
+describe("the teams the bot was taken out of (#6775)", () => {
+  test("are kept by the names they had, beside the teams listed", async () => {
+    await WorkspaceProjectAuthTokenService.updateMattermostTeams({
+      projectId: PROJECT_ID,
+      workspaceProjectId: ENGINEERING,
+      teams: [
+        { id: ENGINEERING, name: "engineering", displayName: "Engineering" },
+      ],
+      teamsReadAt: LISTED_AT,
+      removedTeams: [{ id: SUPPORT, name: "support", displayName: "" }],
+    });
+
+    expect(writtenMiscData()).toEqual({
+      ...STORED_MISC_DATA,
+      teams: [
+        { id: ENGINEERING, name: "engineering", displayName: "Engineering" },
+      ],
+      teamsReadAt: "2026-11-11T09:00:00.000Z",
+      // No display name: its name stands for it.
+      removedTeams: [{ id: SUPPORT, name: "support", displayName: "support" }],
+    });
+  });
+
+  test("a write that does not give them keeps those kept before", async () => {
+    stored!.miscData = {
+      ...STORED_MISC_DATA,
+      removedTeams: [{ id: SUPPORT, name: "support", displayName: "Support" }],
+    };
+
+    await WorkspaceProjectAuthTokenService.updateMattermostTeams({
+      projectId: PROJECT_ID,
+      workspaceProjectId: ENGINEERING,
+      teams: [
+        { id: ENGINEERING, name: "engineering", displayName: "Engineering" },
+      ],
+      teamsReadAt: LISTED_AT,
+    });
+
+    expect(writtenMiscData().removedTeams).toEqual([
+      { id: SUPPORT, name: "support", displayName: "Support" },
+    ]);
+  });
+});
+
 describe("the default team", () => {
   test("is written into miscData and into the bot's token, its server, token and bot kept", async () => {
     await WorkspaceProjectAuthTokenService.updateMattermostTeams({

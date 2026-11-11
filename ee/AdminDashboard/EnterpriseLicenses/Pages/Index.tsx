@@ -585,6 +585,17 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
                 placeholder: `${EnterpriseLicenseUsageUtil.defaultExpiryReminderDays}`,
               },
             ]}
+            /*
+             * The expiry reminder decides which licenses are expiring soon -
+             * the tiles above and each row's status - so they are counted
+             * again with the one just saved, not kept on the old one until
+             * a reload (issue #6766).
+             */
+            onSaveSuccess={() => {
+              setTableRefreshToggle((value: boolean) => {
+                return !value;
+              });
+            }}
             modelDetailProps={{
               modelType: GlobalConfig,
               id: "model-detail-license-notification-settings",

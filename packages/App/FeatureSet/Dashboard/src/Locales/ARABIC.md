@@ -117,6 +117,27 @@ The server's texts (`Common/Server/Locales`: emails, chat messages) are not
 set apart. Whatever shows them lays them out, so wording around code still
 matters there.
 
+### Numbers in a sentence
+
+A sentence the page draws sets each value apart in an isolate (FSI ... PDI)
+where it could move the words round it: a Latin name, a time, a count
+(`setsValuesApart` in `Common/Types/Translator.ts`). Two counts joined by
+one slash or colon (`{{online}}/{{count}}`, `{{hours}}:{{minutes}}`) and a
+number after `#` (`#{{number}}`) are left as the sentence writes them, so
+the bidi algorithm draws them as one number: `3/5`, never `5/3`. After
+Arabic words `الحادثة #{{number}}` is drawn `42#`, the sign read first;
+Persian writes a right-to-left mark (U+200F) before the `#` to draw `#۴۲`.
+A number with `%` or a currency sign stays set apart, so every percent in
+a sentence is drawn the same way (`%45`). The guard
+`Common/Tests/App/NumbersInRightToLeftSentences.test.ts` lays every such
+sentence of every frontend out.
+
+The Tatweel (`ـ`, as in `الـ CronJob` and `لـ SMTP`) is an Arabic letter
+wherever a text is read by most of its letters
+(`getTextReadingDirectionByMostLetters`), as the bidi algorithm reads it.
+`Common/Tests/App/TatweelInArabicSentences.test.ts` reads every Arabic text
+that writes one.
+
 ### Other text
 
 - A negative number is written out: `سالب 70 dBm`.

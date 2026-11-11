@@ -306,7 +306,7 @@ Disse monitorer læser kun navnene `web_vital.*`. Hvis din app sender en vital u
 
 ## Fejlfinding
 
-:::details Kortet siger "No web vitals reported yet"
+:::details Kortet siger "Ingen web vitals rapporteret endnu"
 Kortet udfyldes kun ud fra metrikker, som din app sender. Tjek i rækkefølge:
 
 1. At du overhovedet har en metrikpipeline: Spor alene udfylder aldrig dette kort.

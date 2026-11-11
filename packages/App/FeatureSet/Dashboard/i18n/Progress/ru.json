@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50316,
-    "untranslated": 10089
+    "keys": 50430,
+    "untranslated": 9697
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -27,6 +27,8 @@
     "CPU Ready {{percent}}",
     "Canonical Sunbeam",
     "ClickHouse",
+    "Client ID",
+    "Client Secret",
     "CloudKitty",
     "CloudWatch Metric Streams",
     "CrowdStrike",
@@ -41,8 +43,10 @@
     "Edge",
     "Flavor",
     "Flavors",
+    "Fluent Bit",
     "Golden Signals",
     "Google SecOps",
+    "Google UDM",
     "H1",
     "HA: {{state}}",
     "HAProxy",

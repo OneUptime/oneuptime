@@ -193,7 +193,7 @@ API 块的 **Request Headers** ：
 :::
 
 :::details 你的端点返回 401
-`Authorization` 标头与你的端点期望的令牌不一致。检查 `{{global.variables.AGENT_KILL_TOKEN}}` 中的名称，以及全局变量中保存的值。秘密变量的值无法读回，如有疑问，请用 **Update Content** 重新输入。
+`Authorization` 标头与你的端点期望的令牌不一致。检查 `{{global.variables.AGENT_KILL_TOKEN}}` 中的名称，以及全局变量中保存的值。秘密变量的值无法读回，如有疑问，请用 **更新内容** 重新输入。
 :::
 
 :::details 预算警报反复打开又解决

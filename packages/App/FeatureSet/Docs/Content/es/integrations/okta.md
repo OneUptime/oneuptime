@@ -42,7 +42,7 @@ Cada token puede usar una parte del límite de frecuencia de la API de la organi
 
 ### Añadir la conexión en OneUptime
 
-Abre **Productos → Eventos de seguridad → Conexiones** (`/dashboard/{projectId}/security-events/connections`), haz clic en **Añadir conexión**, elige **Okta System Log** y haz clic en **Siguiente**. Rellena los ajustes de la tabla de abajo, haz clic en **Siguiente** y pega el token en **API token**.
+Abre **Productos → Eventos de seguridad → Conexiones** (`/dashboard/{projectId}/security-events/connections`), haz clic en **Añadir conexión**, elige **Okta System Log** y haz clic en **Siguiente**. Rellena los ajustes de la tabla de abajo, haz clic en **Siguiente** y pega el token en **Token de API**.
 
 ### Probarla antes de guardar
 
@@ -51,15 +51,15 @@ Haz clic en **Probar esta configuración** en **Probar antes de guardar**. La pr
 
 | Ajuste | Qué introducir |
 | --- | --- |
-| **Okta organization URL** | La dirección en la que inician sesión tus usuarios, por ejemplo `https://acme.okta.com`, `https://acme.oktapreview.com` o `https://login.example.com`. Debe usar `https`, sin ruta. No la dirección `-admin` de la Admin Console, que no sirve la API. |
-| **Event filter** | Opcional. Un [filtro del System Log](https://developer.okta.com/docs/reference/core-okta-api/#filter) que elige los eventos que se importan, por ejemplo `eventType sw "user.session" or eventType sw "security"`. Vacío importa las familias de abajo. Como mucho 2.000 caracteres, en una sola línea, y no sobre `published`: OneUptime fija el intervalo de tiempo por sí mismo. |
-| **API token** | El valor del token, por sí solo: OneUptime añade él mismo el esquema `SSWS`. Se cifra, la API nunca lo devuelve y nunca se vuelve a mostrar. Sustitúyelo con **Actualizar credenciales** en la conexión. |
+| **URL de la organización de Okta** | La dirección en la que inician sesión tus usuarios, por ejemplo `https://acme.okta.com`, `https://acme.oktapreview.com` o `https://login.example.com`. Debe usar `https`, sin ruta. No la dirección `-admin` de la Admin Console, que no sirve la API. |
+| **Filtro de eventos** | Opcional. Un [filtro del System Log](https://developer.okta.com/docs/reference/core-okta-api/#filter) que elige los eventos que se importan, por ejemplo `eventType sw "user.session" or eventType sw "security"`. Vacío importa las familias de abajo. Como mucho 2.000 caracteres, en una sola línea, y no sobre `published`: OneUptime fija el intervalo de tiempo por sí mismo. |
+| **Token de API** | El valor del token, por sí solo: OneUptime añade él mismo el esquema `SSWS`. Se cifra, la API nunca lo devuelve y nunca se vuelve a mostrar. Sustitúyelo con **Actualizar credenciales** en la conexión. |
 
 El paso **Sondeo** también tiene una **Descripción** opcional, el **Intervalo de sondeo (minutos)**, un número entero de `1` a `1440` que empieza en `5`, y **Habilitado**, que empieza activado.
 
 ## Qué se importa
 
-Sin **Event filter**, OneUptime importa las familias de eventos que vigila un equipo de seguridad, por prefijo de `eventType`. Un filtro propio sustituye esta lista, en lugar de ampliarla:
+Sin **Filtro de eventos**, OneUptime importa las familias de eventos que vigila un equipo de seguridad, por prefijo de `eventType`. Un filtro propio sustituye esta lista, en lugar de ampliarla:
 
 | Prefijo | Eventos |
 | --- | --- |
@@ -119,7 +119,7 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **Un sondeo lee como mucho 24 horas más allá del cursor.** Una conexión cuyo cursor se quedó atrás se pone al día en una serie de ventanas de 24 horas, y su **Salud** indica **Poniéndose al día**.
 - **Los duplicados se descartan por `uuid`** dentro del proyecto, para que el solapamiento, una ventana reintentada y una importación nunca guarden un evento dos veces.
 
-Un enlace `next` que apunta a cualquier sitio que no sea tu **Okta organization URL** nunca se sigue, porque el token va con cada solicitud.
+Un enlace `next` que apunta a cualquier sitio que no sea tu **URL de la organización de Okta** nunca se sigue, porque el token va con cada solicitud.
 
 ### Cuando una ventana contiene más de lo que un sondeo puede leer
 
@@ -135,7 +135,7 @@ Cuando una ejecución no consigue avanzar en absoluto más allá del cursor guar
 
 1. **Reducir.** El siguiente sondeo lee una ventana de la mitad de largo, desde el mismo punto de partida, y sigue reduciéndola a la mitad hasta que una ventana se lee entera, hasta un minuto. El aviso de la ejecución lo dice: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Volver a crecer.** Cuando una ventana se lee entera, la siguiente vuelve a ser el doble de larga, hasta 24 horas.
-3. **Pasar más allá de un único minuto.** Si incluso un minuto contiene más de lo que un sondeo puede leer, el sondeo lo pasa de largo, para que sigan llegando los eventos más nuevos, y el solapamiento de los sondeos posteriores ya no vuelve a él. La ejecución sigue siendo **Parcial**, y **Último error** indica `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa ese minuto con **Importar este intervalo de tiempo** para recuperar lo que una ejecución puede leer, o restringe el **Event filter**.
+3. **Pasar más allá de un único minuto.** Si incluso un minuto contiene más de lo que un sondeo puede leer, el sondeo lo pasa de largo, para que sigan llegando los eventos más nuevos, y el solapamiento de los sondeos posteriores ya no vuelve a él. La ejecución sigue siendo **Parcial**, y **Último error** indica `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa ese minuto con **Importar este intervalo de tiempo** para recuperar lo que una ejecución puede leer, o restringe el **Filtro de eventos**.
 
 Una ejecución que falla del todo, con un error de Okta, conserva el cursor y la longitud de ventana, y el siguiente sondeo vuelve a leer la misma ventana. La única excepción es una solicitud que agotó el tiempo: el cursor se queda, pero la siguiente ventana es la mitad de larga, porque una ventana demasiado pesada para responder a tiempo agotaría el tiempo en cada intento. Cambiar el **Intervalo de sondeo (minutos)** no cambia nada de esto: decide cada cuánto empieza un sondeo, no dónde empieza su ventana.
 
@@ -144,7 +144,7 @@ Una ejecución que falla del todo, con un error de Okta, conserva el cursor y la
 Haz clic en **Diagnósticos** en una conexión para ver sus ejecuciones recientes y trabajar con ella a mano. Quien puede cambiar la conexión puede iniciar estas acciones; quien puede verla puede leer el historial.
 
 - **Ejecutar ahora** inicia un sondeo de inmediato, con el cursor habitual, incluso cuando la conexión no está **Habilitado**.
-- **Preview log events** lee un intervalo de tiempo de hasta 7 días y no importa nada.
+- **Vista previa de eventos de registro** lee un intervalo de tiempo de hasta 7 días y no importa nada.
 - **Importar este intervalo de tiempo** importa un intervalo de hasta 7 días, después de que lo confirmes, sin mover el cursor. Los eventos ya importados se omiten. Okta conserva 90 días de System Log.
 - **Copiar diagnósticos** en una ejecución copia su informe para soporte. Nunca incluye credenciales.
 
@@ -156,7 +156,7 @@ Haz clic en **Diagnósticos** en una conexión para ver sus ejecuciones reciente
 | --- | --- |
 | **Configuración** | Cada ajuste está presente y bien formado. No se contacta con nada cuando esto falla. |
 | **Authenticate with Okta** | Okta acepta el token para el System Log, con un evento leído y sin filtro. |
-| **Read System Log events** | Se puede leer un evento de las últimas 24 horas a través del filtro que usa el sondeo, el tuyo o el predeterminado, así que un **Event filter** no válido falla aquí y no en el primer sondeo. |
+| **Read System Log events** | Se puede leer un evento de las últimas 24 horas a través del filtro que usa el sondeo, el tuyo o el predeterminado, así que un **Filtro de eventos** no válido falla aquí y no en el primer sondeo. |
 | **Events available to import** | Cuántos eventos se publicaron en las últimas 24 horas y en los últimos 7 días, una página de 1.000 cada uno, así que `1000+` significa más. Ninguno en 7 días es un aviso, no un fallo. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | El lado del propio OneUptime: un proceso toma los trabajos de la cola Worker, el trabajo de sondeo se ejecuta cada minuto y el almacén de eventos de seguridad responde. |
 | **Sondeo programado** | Para una conexión guardada: el sondeo está activado, ninguna ejecución está atascada esperando a un worker y los sondeos se ejecutan a tiempo. |
@@ -168,7 +168,7 @@ Cada solicitud de una prueba tiene un plazo de 20 segundos. Una prueba nunca imp
 El **Último error** de la conexión guarda el mensaje de error completo, con las credenciales ocultas, tras un prefijo que nombra el paso que falló. Cuando una conexión tiene un error, selecciona **Ver error** en su columna **Acciones** para leerlo, y **Copiar error** en el cuadro de diálogo para copiarlo. Cada mensaje empieza por `Okta System Log events request`, y cita el propio código de error de Okta tras el estado; lee lo que sigue.
 
 :::details Último error dice `failed (HTTP 400)`
-Okta rechazó los parámetros de la solicitud, `E0000053`. Cuando el token funcionó, casi siempre es el **Event filter**: revisa sus operadores, `eq`, `ne`, `co`, `sw`, `ew`, `pr`, `gt`, `ge`, `lt` y `le`, sus `and` y `or`, y las comillas dobles alrededor de sus valores, o vacíalo para usar las familias predeterminadas. En una importación, también puede significar que el intervalo empieza hace más de 180 días.
+Okta rechazó los parámetros de la solicitud, `E0000053`. Cuando el token funcionó, casi siempre es el **Filtro de eventos**: revisa sus operadores, `eq`, `ne`, `co`, `sw`, `ew`, `pr`, `gt`, `ge`, `lt` y `le`, sus `and` y `or`, y las comillas dobles alrededor de sus valores, o vacíalo para usar las familias predeterminadas. En una importación, también puede significar que el intervalo empieza hace más de 180 días.
 :::
 
 :::details Último error dice `failed (HTTP 401)` o `failed (HTTP 403)`
@@ -194,12 +194,12 @@ Ningún sondeo ha terminado para esta conexión. Ejecuta **Probar conexión**: s
 :::
 
 :::details Una ejecución es Parcial
-- `Stopped after collecting 10000 events`: la ventana contenía más que los 10.000 eventos que lee una ejecución. No se pierde nada: el siguiente sondeo empieza después del último evento leído. Una conexión que sigue **Parcial** sondeo tras sondeo se está poniendo al día con un atraso, y su **Último sondeo** y su **Último evento importado** siguen avanzando. Si nunca se pone al día, la organización publica más eventos coincidentes de los que cabe en un intervalo de sondeo: restringe el **Event filter**, o acorta el **Intervalo de sondeo (minutos)**.
+- `Stopped after collecting 10000 events`: la ventana contenía más que los 10.000 eventos que lee una ejecución. No se pierde nada: el siguiente sondeo empieza después del último evento leído. Una conexión que sigue **Parcial** sondeo tras sondeo se está poniendo al día con un atraso, y su **Último sondeo** y su **Último evento importado** siguen avanzando. Si nunca se pone al día, la organización publica más eventos coincidentes de los que cabe en un intervalo de sondeo: restringe el **Filtro de eventos**, o acorta el **Intervalo de sondeo (minutos)**.
 - `More records were created in the one minute from ... than one poll can read`: el sondeo pasó de largo ese minuto. Impórtalo con **Importar este intervalo de tiempo** en **Diagnósticos**. Una importación lee tanto como un sondeo.
 :::
 
 :::details La prueba pasa, pero no se importa nada
-Lee **Events available to import** en el informe de la prueba. Con el filtro predeterminado, una organización con usuarios publica inicios de sesión todo el tiempo, así que `0` en los últimos 7 días significa que la URL es un sandbox o una organización sin uso. Con tu propio **Event filter**, significa que el filtro no encontró nada: compáralo con los tipos de evento del System Log de la Admin Console.
+Lee **Events available to import** en el informe de la prueba. Con el filtro predeterminado, una organización con usuarios publica inicios de sesión todo el tiempo, así que `0` en los últimos 7 días significa que la URL es un sandbox o una organización sin uso. Con tu propio **Filtro de eventos**, significa que el filtro no encontró nada: compáralo con los tipos de evento del System Log de la Admin Console.
 :::
 
 ## Qué obtienes

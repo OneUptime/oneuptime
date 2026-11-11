@@ -104,6 +104,7 @@ const SloRecommendedPolicyTiersModal: FunctionComponent<ComponentProps> = (
                       {
                         threshold: formatSloPolicyTierThreshold(
                           tier.thresholdPercentage,
+                          translator,
                         ),
                       },
                     )}

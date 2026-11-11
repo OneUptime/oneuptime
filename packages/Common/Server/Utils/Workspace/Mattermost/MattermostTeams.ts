@@ -33,7 +33,10 @@ import MattermostConnection, {
  * - the teams the bot is a member of, as the server listed them
  *   (GET /api/v4/users/me/teams), read again when they are needed and older
  *   than TEAMS_FRESH_FOR_SECONDS: a Mattermost admin adds the bot to a team
- *   in Mattermost, which tells OneUptime nothing.
+ *   in Mattermost, which tells OneUptime nothing;
+ * - the teams the server listed the bot in once and lists no more - it was
+ *   taken out of them - by the names they had (removedTeams): a rule that
+ *   still names one says so on its card, by the team's name.
  *
  * The connection stays stored under the team the project was connected to
  * (workspaceProjectId), whichever team is the default: a member's sign-in
@@ -63,6 +66,13 @@ export interface MattermostTeamsOfConnection {
   connectedTeamId: string;
   // When the server last listed the teams; undefined for never.
   teamsReadAt: Date | undefined;
+  /*
+   * The teams the server listed the bot in once and lists no more, by the
+   * names they had, the latest first: a rule that still names one says so.
+   * None in `teams` - the default team the bot was taken out of is told by
+   * isBotInDefaultTeam.
+   */
+  removedTeams: Array<MattermostConnectionTeam>;
 }
 
 export default class MattermostTeams {
@@ -71,6 +81,9 @@ export default class MattermostTeams {
    * again, when they are needed.
    */
   public static readonly TEAMS_FRESH_FOR_SECONDS: number = 10 * 60;
+
+  // The teams the bot was taken out of that are kept, the latest first.
+  public static readonly MAX_REMOVED_TEAMS: number = 50;
 
   /*
    * What a project's connection says of the teams it works in, as stored -
@@ -122,19 +135,19 @@ export default class MattermostTeams {
       ? OneUptimeDate.fromString(miscData.teamsReadAt)
       : undefined;
 
+    const teams: Array<MattermostConnectionTeam> = MattermostTeams.orderTeams({
+      teams: [
+        defaultTeam,
+        ...(listed || []).filter((team: MattermostConnectionTeam): boolean => {
+          return team.id !== defaultTeamId;
+        }),
+      ],
+      defaultTeamId: defaultTeamId,
+    });
+
     return {
       defaultTeam: defaultTeam,
-      teams: MattermostTeams.orderTeams({
-        teams: [
-          defaultTeam,
-          ...(listed || []).filter(
-            (team: MattermostConnectionTeam): boolean => {
-              return team.id !== defaultTeamId;
-            },
-          ),
-        ],
-        defaultTeamId: defaultTeamId,
-      }),
+      teams: teams,
       isBotInDefaultTeam:
         listed === null ||
         listed.some((team: MattermostConnectionTeam): boolean => {
@@ -142,6 +155,14 @@ export default class MattermostTeams {
         }),
       connectedTeamId: connectedTeamId || defaultTeamId,
       teamsReadAt: readAt && !isNaN(readAt.getTime()) ? readAt : undefined,
+      // One the bot was added to again is listed, not removed.
+      removedTeams: MattermostTeams.readTeams(miscData?.removedTeams).filter(
+        (removed: MattermostConnectionTeam): boolean => {
+          return !teams.some((team: MattermostConnectionTeam): boolean => {
+            return team.id === removed.id;
+          });
+        },
+      ),
     };
   }
 
@@ -222,10 +243,10 @@ export default class MattermostTeams {
     projectId: ObjectID;
     projectAuth: WorkspaceProjectAuthToken;
   }): Promise<MattermostTeamsOfConnection | null> {
-    if (
-      !MattermostTeams.readConnection(data.projectAuth) ||
-      !data.projectAuth.authToken
-    ) {
+    const before: MattermostTeamsOfConnection | null =
+      MattermostTeams.readConnection(data.projectAuth);
+
+    if (!before || !data.projectAuth.authToken) {
       return null;
     }
 
@@ -244,12 +265,21 @@ export default class MattermostTeams {
 
     const readAt: Date = OneUptimeDate.getCurrentDate();
 
+    // Those listed before and not now keep their names, for rules that name them.
+    const removedTeams: Array<MattermostConnectionTeam> =
+      MattermostTeams.getRemovedTeams({
+        listedBefore: before.teams,
+        removedBefore: before.removedTeams,
+        listedNow: teams,
+      });
+
     try {
       await WorkspaceProjectAuthTokenService.updateMattermostTeams({
         projectId: data.projectId,
         workspaceProjectId: data.projectAuth.workspaceProjectId || "",
         teams: teams,
         teamsReadAt: readAt,
+        removedTeams: removedTeams,
       });
     } catch (err) {
       logger.debug("Could not keep the teams of a Mattermost connection.", {
@@ -264,8 +294,45 @@ export default class MattermostTeams {
         ...((data.projectAuth.miscData || {}) as MattermostMiscData),
         teams: teams,
         teamsReadAt: OneUptimeDate.toString(readAt),
+        removedTeams: removedTeams,
       },
     });
+  }
+
+  /*
+   * The teams the bot was taken out of, once the server lists `listedNow`:
+   * those it listed before and not now, the latest first, then those
+   * removed before - each once, by the name it had, none listed now, at
+   * most MAX_REMOVED_TEAMS of them.
+   */
+  public static getRemovedTeams(data: {
+    listedBefore: Array<MattermostConnectionTeam>;
+    removedBefore: Array<MattermostConnectionTeam>;
+    listedNow: Array<MattermostConnectionTeam>;
+  }): Array<MattermostConnectionTeam> {
+    const removed: Array<MattermostConnectionTeam> = [];
+
+    for (const team of [...data.listedBefore, ...data.removedBefore]) {
+      const isListedNow: boolean = data.listedNow.some(
+        (listed: MattermostConnectionTeam): boolean => {
+          return listed.id === team.id;
+        },
+      );
+
+      const isKept: boolean = removed.some(
+        (kept: MattermostConnectionTeam): boolean => {
+          return kept.id === team.id;
+        },
+      );
+
+      if (!MattermostTeams.idOf(team.id) || isListedNow || isKept) {
+        continue;
+      }
+
+      removed.push(MattermostTeams.toConnectionTeam(team));
+    }
+
+    return removed.slice(0, MattermostTeams.MAX_REMOVED_TEAMS);
   }
 
   /*

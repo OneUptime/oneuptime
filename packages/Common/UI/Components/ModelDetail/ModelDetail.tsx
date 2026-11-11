@@ -34,7 +34,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   modelAPI?: typeof ModelAPI | undefined;
   onError?: ((error: string) => void) | undefined;
   onItemLoaded?: ((item: TBaseModel) => void) | undefined;
-  refresher?: undefined | boolean;
+  /*
+   * The record is read again whenever this changes. A boolean flipped, or a
+   * count that only goes up: CardModelDetail counts, because two flips that
+   * land in one render cancel out and read nothing, where two counts still
+   * make a change.
+   */
+  refresher?: undefined | boolean | number;
   showDetailsInNumberOfColumns?: number | undefined;
   onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
   selectMoreFields?: Select<TBaseModel>;

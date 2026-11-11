@@ -70,9 +70,11 @@ OneUptime fonctionne dans chaque équipe de votre serveur Mattermost dont son bo
 2. La carte **Équipes Mattermost** dans **Paramètres du projet** > **Espace de travail** > **Mattermost** liste ces équipes, l'équipe par défaut en premier. Cliquez sur **Actualiser** après avoir ajouté le bot à une autre équipe.
 
 - **L'équipe qu'une règle utilise.** Les règles de notification choisissent l'**Équipe Mattermost** de leurs canaux. Si elle est laissée vide, une règle crée son canal dans l'équipe par défaut, et cherche les canaux qu'elle nomme d'abord dans celle-ci, puis dans les autres équipes du bot.
+- **L'équipe qu'un résumé utilise.** Les résumés, dans l'onglet **Résumé** de **Incidents** et des **Alertes**, choisissent eux aussi l'**Équipe Mattermost** de leurs canaux. Si elle est laissée vide, un résumé cherche ses canaux d'abord dans l'équipe par défaut, puis dans les autres équipes du bot.
 - **L'équipe par défaut.** C'est l'équipe à laquelle vous avez connecté le projet. **Définir par défaut** sur la carte fait d'une autre équipe l'équipe par défaut, pour un rôle qui peut connecter le projet.
 - **Où OneUptime fonctionne.** Les boutons des messages de OneUptime, et les formulaires qu'ils ouvrent, fonctionnent dans chacune de ces équipes. Dans une équipe dont le bot a été retiré, un bouton indique seulement que l'équipe n'est plus connectée.
 - **Une équipe par défaut dont le bot a été retiré.** La carte le signale. Rajoutez le bot dans Mattermost, ou définissez une autre équipe par défaut.
+- **Une équipe qu'une règle nomme et dont le bot a été retiré.** La carte de la règle le signale, et la règle n'utilise pas une autre équipe à la place. Rajoutez le bot à l'équipe dans Mattermost, ou choisissez une autre équipe dans la règle : son formulaire affiche toujours l'ancien choix, pour que vous puissiez le changer.
 
 ## Connecter votre propre compte Mattermost
 
@@ -171,6 +173,8 @@ Chaque bouton que OneUptime publie porte une signature, vérifiée quand on le p
 | Une équipe à laquelle vous avez ajouté le bot n'apparaît pas sur la carte **Équipes Mattermost** | Cliquez sur **Actualiser** sur la carte. |
 | **OneUptime's bot is not a member of this Mattermost team** | Vous avez choisi une équipe que le bot a quittée. Ajoutez-y le bot dans Mattermost, puis cliquez sur **Actualiser**. |
 | **OneUptime's bot may not create channels in the Mattermost team this rule names** | Ajoutez le bot à cette équipe dans Mattermost, ou choisissez une autre équipe dans la règle. |
+| **OneUptime's bot is not a member of the Mattermost team chosen for the channel** | Ajoutez le bot à cette équipe dans Mattermost, ou choisissez une autre équipe dans la règle. |
+| **OneUptime's bot is no longer a member of the project's default Mattermost team** | Rajoutez le bot à cette équipe dans Mattermost, ou définissez une autre équipe par défaut. |
 | **OneUptime could not reach the Mattermost server** | Vérifiez l'adresse, et que OneUptime peut la joindre. Voir [Réseau et auto-hébergement](#réseau-et-auto-hébergement). |
 | **The bot is not a member of the private Mattermost channel** | Ajoutez le bot au canal dans Mattermost. |
 | Un bouton ne fait rien, ou Mattermost dit qu'il n'a pas pu terminer l'action | Mattermost ne peut pas joindre OneUptime. Voir [Réseau et auto-hébergement](#réseau-et-auto-hébergement). |
