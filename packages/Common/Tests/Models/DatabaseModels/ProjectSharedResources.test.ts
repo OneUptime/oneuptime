@@ -39,6 +39,13 @@ const PROJECT_SHARED_MODELS: Array<string> = [
   "TableView",
   "Team",
   "TeamMember",
+  /*
+   * A team's owners (3c943ea4e5b), read by whoever may read the team, as its
+   * members are: the Teams list draws an Owners column and an Owner chip,
+   * and a team's page an Owners card, for every member who opens them.
+   */
+  "TeamOwnerTeam",
+  "TeamOwnerUser",
 ];
 
 /*
