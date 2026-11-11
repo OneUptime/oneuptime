@@ -144,7 +144,12 @@ test.describe("First run: a brand-new project", () => {
       timeout: 30000,
     });
 
-    const create: Locator = page.getByTestId("empty-table-create-button");
+    /*
+     * The list explains Monitors under its empty table, and the
+     * explanation's Create Monitor is the one to press: the table does not
+     * repeat it (ProductOnboarding).
+     */
+    const create: Locator = page.getByTestId("resource-showcase-add-button");
     await expect(create).toHaveText("Create Monitor", { timeout: 30000 });
     await create.click();
     await expect(page).toHaveURL(exactPath(projectId, "/monitors/create"), {
