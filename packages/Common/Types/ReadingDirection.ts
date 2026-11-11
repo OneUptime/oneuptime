@@ -185,15 +185,16 @@ const getDirectionByCount: (count: LetterCount) => ReadingDirection | null = (
   return count.rightToLeft > count.leftToRight ? RIGHT_TO_LEFT : LEFT_TO_RIGHT;
 };
 
-export const getTextReadingDirectionByMostLetters: (
-  text: string | null | undefined,
-) => ReadingDirection | null = (
-  text: string | null | undefined,
-): ReadingDirection | null => {
-  if (!text) {
-    return null;
-  }
+interface LetterCounts {
+  // The text's own words: its letters outside isolates and addresses.
+  outside: LetterCount;
+  // The letters inside them.
+  inside: LetterCount;
+}
 
+const countLetters: (text: string) => LetterCounts = (
+  text: string,
+): LetterCounts => {
   const outside: LetterCount = { rightToLeft: 0, leftToRight: 0, first: null };
   const inside: LetterCount = { rightToLeft: 0, leftToRight: 0, first: null };
   // How many isolates the scan is in.
@@ -238,7 +239,38 @@ export const getTextReadingDirectionByMostLetters: (
     count.first = count.first || direction;
   }
 
-  return getDirectionByCount(outside) || getDirectionByCount(inside);
+  return { outside, inside };
+};
+
+export const getTextReadingDirectionByMostLetters: (
+  text: string | null | undefined,
+) => ReadingDirection | null = (
+  text: string | null | undefined,
+): ReadingDirection | null => {
+  if (!text) {
+    return null;
+  }
+
+  const counts: LetterCounts = countLetters(text);
+
+  return (
+    getDirectionByCount(counts.outside) || getDirectionByCount(counts.inside)
+  );
+};
+
+/*
+ * WHETHER A TEXT HAS WORDS OF A RIGHT-TO-LEFT SCRIPT OF ITS OWN: a letter
+ * of one outside what it sets apart - an isolate, a web address - counted
+ * as getTextReadingDirectionByMostLetters counts. An Arabic or Persian
+ * sentence has, however many names, paths and commands it gives in Latin
+ * letters ("Microsoft Teams غير متصل بعد!"); an English sentence has not,
+ * nor one that sets a Persian name apart. Only the first
+ * TEXT_DIRECTION_SCAN_LENGTH characters are read.
+ */
+export const hasRightToLeftWords: (
+  text: string | null | undefined,
+) => boolean = (text: string | null | undefined): boolean => {
+  return Boolean(text) && countLetters(text as string).outside.rightToLeft > 0;
 };
 
 /*

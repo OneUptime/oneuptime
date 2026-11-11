@@ -2402,13 +2402,7 @@ test.describe("an Arabic page", () => {
  */
 test.describe("code in a sentence read from the right", () => {
   const CODE_IN_HELP: Array<{ testId: string; codes: Array<string> }> = [
-    {
-      testId: "code-path",
-      codes: [
-        "/.well-known/openid-configuration",
-        "https://sso.example.com/.well-known/openid-configuration",
-      ],
-    },
+    { testId: "code-path", codes: ["/var/lib/docker/containers"] },
     { testId: "code-flag-help", codes: ["--help"] },
     {
       testId: "code-flag-metric",
@@ -2419,6 +2413,19 @@ test.describe("code in a sentence read from the right", () => {
     { testId: "code-file", codes: [".env"] },
     { testId: "code-call", codes: ["OneUptimeReplay.grantConsent()"] },
     { testId: "code-template", codes: ["https://oneuptime.example.com/otlp"] },
+  ];
+
+  const CODE_HELP_IDS: Array<string> = CODE_IN_HELP.map(
+    (item: { testId: string }): string => {
+      return item.testId;
+    },
+  );
+
+  // Help texts that name more products in Latin letters than they have words.
+  const NAMES_HELP_IDS: Array<string> = [
+    "names-smtp",
+    "names-authenticator",
+    "names-provider",
   ];
 
   interface CharacterBox {
@@ -2549,14 +2556,18 @@ test.describe("code in a sentence read from the right", () => {
    * Where each help's sentence starts, for the helps worded in the page's
    * own letters (Persian leaves a few in English, which read from the left).
    */
-  const sentenceStarts: (page: Page) => Promise<Array<SentenceStart>> = async (
+  const sentenceStarts: (
     page: Page,
+    testIds: Array<string>,
+  ) => Promise<Array<SentenceStart>> = async (
+    page: Page,
+    testIds: Array<string>,
   ): Promise<Array<SentenceStart>> => {
     const starts: Array<SentenceStart> = [];
 
-    for (const item of CODE_IN_HELP) {
+    for (const testId of testIds) {
       const start: Omit<SentenceStart, "testId"> | null = await page
-        .locator(`#${item.testId}-help`)
+        .locator(`#${testId}-help`)
         .evaluate((element: Element): Omit<SentenceStart, "testId"> | null => {
           const ARABIC_LETTER: RegExp = /\p{Script=Arabic}/u;
           // A space, or a mark that draws nothing: LRM, RLM, an isolate's.
@@ -2620,7 +2631,7 @@ test.describe("code in a sentence read from the right", () => {
         });
 
       if (start) {
-        starts.push({ testId: item.testId, ...start });
+        starts.push({ testId, ...start });
       }
     }
 
@@ -2649,10 +2660,10 @@ test.describe("code in a sentence read from the right", () => {
      * Each piece of code, each character right of the one before it; the
      * sentence round it still read from the right. The code an Arabic
      * sentence names is in Latin letters, and they may outnumber its
-     * Arabic ones: a help line reads the way most of its letters do
-     * (readAsWritten), and counted, the code laid the whole sentence out
-     * from the left, its words in the wrong order. Set apart, it is not
-     * counted. Copied, a sentence is the locale file's again.
+     * Arabic ones: counted, the code laid the whole sentence out from the
+     * left, its words in the wrong order. Set apart, it is not counted, and
+     * a help text in the page's language reads as the page does
+     * (readAsWritten). Copied, a sentence is the locale file's again.
      */
     test(`${language}: code reads as written, the sentence round it from the right, and a copy pastes as written`, async ({
       page,
@@ -2682,7 +2693,10 @@ test.describe("code in a sentence read from the right", () => {
         }).toEqual({ code: piece.code, backwards: 0 });
       }
 
-      const starts: Array<SentenceStart> = await sentenceStarts(page);
+      const starts: Array<SentenceStart> = await sentenceStarts(
+        page,
+        CODE_HELP_IDS,
+      );
 
       // Arabic words all eight; Persian leaves two in English.
       expect(starts.length).toBeGreaterThanOrEqual(6);
@@ -2734,17 +2748,59 @@ test.describe("code in a sentence read from the right", () => {
       expect(copy.prevented).toBe(true);
       expect(copy.copied).toBe(
         locale[
-          "OIDC discovery document URL — usually ends in /.well-known/openid-configuration."
+          "Make sure the Docker agent's filelog receiver is collecting logs from /var/lib/docker/containers."
         ],
       );
     });
 
     /*
-     * The negative control, with the sentences as the locale files hold
-     * them (code=raw): code read backwards, and a sentence with more code
-     * than words laid out from the left.
+     * A help text worded in the page's language that names more products
+     * in Latin letters than it has words of its own: read by most of its
+     * letters, it was drawn in an isolate read from the left, its words in
+     * the wrong order - the SMTP server's help on both pages, and Arabic's
+     * authenticator and provider ones. It reads as the page does.
      */
-    test(`${language}: as the locale file holds the sentences, code reads backwards and a sentence with more code than words from the left`, async ({
+    test(`${language}: a help text that names more products in Latin letters than it has words reads from the right`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `lang=${language}`);
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+      });
+
+      const starts: Array<SentenceStart> = await sentenceStarts(
+        page,
+        NAMES_HELP_IDS,
+      );
+
+      // Arabic words all three; Persian leaves the authenticator in English.
+      expect(
+        starts.map((start: SentenceStart): string => {
+          return start.testId;
+        }),
+      ).toEqual(
+        language === "fa" ? ["names-smtp", "names-provider"] : NAMES_HELP_IDS,
+      );
+      expect(starts).toEqual(
+        starts.map((start: SentenceStart): SentenceStart => {
+          return {
+            testId: start.testId,
+            readFromTheLeft: false,
+            startsAtTheRight: true,
+          };
+        }),
+      );
+    });
+
+    /*
+     * The negative control, with the sentences as the locale files hold
+     * them (code=raw): code read backwards. (A sentence with more code than
+     * words still reads from the right: a help text in the page's language
+     * reads as the page does, whatever it names.)
+     */
+    test(`${language}: as the locale file holds the sentences, code reads backwards`, async ({
       page,
     }: {
       page: Page;
@@ -2769,19 +2825,6 @@ test.describe("code in a sentence read from the right", () => {
             ? ["--help"]
             : ["--disable-metric=neutron-quota_network", ".env"],
         ),
-      );
-
-      const turned: Array<string> = (await sentenceStarts(page))
-        .filter((start: SentenceStart): boolean => {
-          return start.readFromTheLeft && !start.startsAtTheRight;
-        })
-        .map((start: SentenceStart): string => {
-          return start.testId;
-        });
-
-      // Persian's OIDC help; Arabic's replay call.
-      expect(turned).toEqual(
-        expect.arrayContaining([language === "fa" ? "code-path" : "code-call"]),
       );
     });
   }

@@ -2,6 +2,7 @@ import {
   getReadingDirection,
   getTextReadingDirection,
   getTextReadingDirectionByMostLetters,
+  hasRightToLeftWords,
   isRightToLeftLanguage,
   LEFT_TO_RIGHT,
   ReadingDirection,
@@ -501,5 +502,69 @@ describe("which way a text shown on a page is read", () => {
 
     expect(read.result).toBe(LEFT_TO_RIGHT);
     expect(read.inMs).toBeLessThan(2000);
+  });
+});
+
+/*
+ * Whether a text has right-to-left words of its own: a translated line on
+ * an Arabic or Persian page is drawn the page's way however many names it
+ * gives in Latin letters (UI/Utils/LineDirection's
+ * getTranslatedLineDirection), and an English one is not.
+ */
+describe("whether a text has right-to-left words of its own", () => {
+  const LRI: string = String.fromCharCode(0x2066);
+  const FSI: string = String.fromCharCode(0x2068);
+  const PDI: string = String.fromCharCode(0x2069);
+
+  test.each([
+    // The 2FA help: 31 Arabic letters, 49 Latin ones in its product names.
+    "احصل على رمز لمرة واحدة من تطبيق مثل Google Authenticator، 1Password أو Microsoft Authenticator.",
+    // Its product's name first.
+    "Microsoft Teams غير متصل بعد!",
+    "نام میزبان سرور SMTP. نمونه‌ها: smtp.office365.com (Microsoft 365)، smtp.gmail.com (Google)",
+    "שלום world peace",
+  ])(
+    "a sentence in a right-to-left script that names more in Latin letters has: %p",
+    (text: string) => {
+      expect(getTextReadingDirectionByMostLetters(text)).toBe(LEFT_TO_RIGHT);
+      expect(hasRightToLeftWords(text)).toBe(true);
+    },
+  );
+
+  test("an English sentence has none", () => {
+    expect(hasRightToLeftWords("Turn this on to page the team.")).toBe(false);
+    expect(hasRightToLeftWords("Привет")).toBe(false);
+  });
+
+  test("what a text sets apart is not its own words: an English sentence round a Persian name set apart has none", () => {
+    expect(hasRightToLeftWords(`Paged ${FSI}سارا احمدی${PDI} again.`)).toBe(
+      false,
+    );
+    expect(hasRightToLeftWords(`${LRI}پرداخت${PDI}`)).toBe(false);
+    // Nor is an address, Persian letters and all.
+    expect(hasRightToLeftWords("Open https://وضعیت.example.com/حوادث")).toBe(
+      false,
+    );
+    // Past the isolate, the words count again.
+    expect(hasRightToLeftWords(`${FSI}abc${PDI} ب`)).toBe(true);
+  });
+
+  test("an English sentence round a Persian name that is not set apart has", () => {
+    expect(hasRightToLeftWords("Paged the پرداخت team about it.")).toBe(true);
+  });
+
+  test.each([undefined, null, "", "   ", "12:30 - 99.9%", "۱۲:۳۰"])(
+    "a text with no letter (%p) has none",
+    (text: string | null | undefined) => {
+      expect(hasRightToLeftWords(text)).toBe(false);
+    },
+  );
+
+  test("only the start of a text is read", () => {
+    expect(
+      hasRightToLeftWords(
+        `${"a".repeat(TEXT_DIRECTION_SCAN_LENGTH)}${"ف".repeat(10)}`,
+      ),
+    ).toBe(false);
   });
 });

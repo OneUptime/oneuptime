@@ -36,8 +36,9 @@
  * events are cut short to their blocks (Calendar). A week with two blocks
  * at once on a day, and a chart whose time axis names the hours with their
  * day (LineChart). Help texts that name code - a path, a flag, a function,
- * a cron line, a file, an address a value fills in - and a key's sign in
- * brackets, in the Dashboard's words (FieldLabel).
+ * a cron line, a file, an address a value fills in - help texts that name
+ * products, and a key's sign in brackets, in the Dashboard's words
+ * (FieldLabel).
  */
 import "Common/UI/Styles/Theme.css";
 import React, { useState } from "react";
@@ -426,14 +427,15 @@ function Section(props) {
 /*
  * Help texts that name code, from the Dashboard's locale files: a path, two
  * flags, two functions, a cron line, a file and an address a value fills
- * in. Under them, a key's sign in brackets, which a mark keeps unmirrored,
- * and two sentences that quote a state as the page names it (#6659).
+ * in. Under them, help texts that name products (NAMES_HELP), a key's sign
+ * in brackets, which a mark keeps unmirrored, and two sentences that quote
+ * a state as the page names it (#6659).
  */
 const CODE_HELP = [
   {
     id: "code-path",
-    title: "Discovery URL",
-    help: "OIDC discovery document URL — usually ends in /.well-known/openid-configuration.",
+    title: "Logs",
+    help: "Make sure the Docker agent's filelog receiver is collecting logs from /var/lib/docker/containers.",
   },
   {
     id: "code-flag-help",
@@ -448,7 +450,7 @@ const CODE_HELP = [
   {
     id: "code-function",
     title: "Consent",
-    help: "Require Explicit uploads nothing until your page calls grantConsent(). Not Required (default) means you have another lawful basis.",
+    help: "Nothing uploads until your page calls grantConsent().",
   },
   {
     id: "code-cron",
@@ -471,6 +473,32 @@ const CODE_HELP = [
   },
 ];
 
+/*
+ * Help texts worded in Arabic or Persian that name more products in Latin
+ * letters than they have words of their own. Read by most of their
+ * letters, they were laid out from the left, their words in the wrong
+ * order; they read as the page does (Common/UI/Utils/LineDirection's
+ * getTranslatedLineDirection). Persian leaves the authenticator one in
+ * English.
+ */
+const NAMES_HELP = [
+  {
+    id: "names-smtp",
+    title: "Hostname",
+    help: "SMTP server hostname. Examples: smtp.office365.com (Microsoft 365), smtp.gmail.com (Google)",
+  },
+  {
+    id: "names-authenticator",
+    title: "Authenticator apps",
+    help: "Get a one-time code from an app such as 1Password, Google Authenticator, or Microsoft Authenticator.",
+  },
+  {
+    id: "names-provider",
+    title: "Provider",
+    help: "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).",
+  },
+];
+
 const KEY_SIGNS = [
   { id: "key-sign-newer", text: "Newer session by this user (})" },
   { id: "key-sign-older", text: "Older session by this user ({)" },
@@ -483,8 +511,8 @@ const QUOTED_STATES = [
     text: "Running, Powered off or Template, inferred from whether the VM sent CPU data in the latest collection. Running turns amber or red, with why under it, while the host swaps, balloons or makes the VM wait for a CPU.",
   },
   {
-    id: "quoted-state-replay",
-    text: "Always uploads every sampled session. On error or frustration uploads only sessions where something went wrong, at a fraction of the cost.",
+    id: "quoted-state-health",
+    text: "The component's latest health as the FlashBlade reports it: Healthy, Unused for an empty position, or Unhealthy when the part needs a person.",
   },
 ];
 
@@ -514,6 +542,18 @@ function CodeInSentences() {
           )}
         </p>
       </div>
+      {NAMES_HELP.map((item) => {
+        return (
+          <div key={item.id} data-testid={item.id}>
+            <FieldLabelElement
+              title={item.title}
+              description={item.help}
+              descriptionId={`${item.id}-help`}
+              hideOptionalLabel={true}
+            />
+          </div>
+        );
+      })}
       <ul className="space-y-1 text-sm text-gray-700">
         {KEY_SIGNS.map((item) => {
           return (

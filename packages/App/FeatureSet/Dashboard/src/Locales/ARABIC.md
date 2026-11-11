@@ -94,9 +94,12 @@ left-to-right isolate (LRI ... PDI) as it hands the sentence to the page
 (`Common/UI/Utils/CodeReadsAsWritten`, which finds the code with
 `Common/Types/CodeInSentence`). It does this for Arabic, Persian and any
 language read from the right added later. Copying the sentence leaves the
-isolate marks out. The code's letters do not count when a help line works
-out which way it reads (`getTextReadingDirectionByMostLetters`), so a
-sentence naming a long path is still laid out from the right.
+isolate marks out. A help line, an empty state's sentence or an error
+worded in Arabic is laid out from the right however much code and however
+many product names it gives in Latin letters
+(`getTranslatedLineDirection` in `Common/UI/Utils/LineDirection`), and
+where a text is read by most of its letters
+(`getTextReadingDirectionByMostLetters`), the code's letters do not count.
 
 The one mark the locale files keep is a left-to-right mark (LRM, U+200E)
 on each side of a lone key's sign in brackets, so the sign is not drawn

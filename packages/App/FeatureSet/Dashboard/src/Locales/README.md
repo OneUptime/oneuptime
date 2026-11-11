@@ -319,8 +319,11 @@ In Arabic, Persian and any language read from the right that is added later:
   the page. That sets each piece of code the bidi algorithm would draw wrong
   (a function's brackets, a path's slash, a flag's dashes, a file's dot, a
   cron line) apart in a left-to-right isolate (`Common/Types/CodeInSentence`).
-  Copying the sentence leaves the marks out, and the code's letters do not
-  count when a help line works out which way it reads.
+  Copying the sentence leaves the marks out.
+- A help line, an empty state's sentence or an error in the page's language
+  is laid out from the right however much code and however many product
+  names it gives in Latin letters (`Common/UI/Utils/LineDirection`'s
+  `getTranslatedLineDirection`).
 - The only mark a locale file keeps is an LRM on each side of a lone key's
   sign in brackets, such as the `}` of "Newer session by this user (})", so
   the sign is not drawn mirrored.

@@ -46,6 +46,9 @@ beforeAll(async () => {
             "Couldn't load this node": "بارگیری این گره ممکن نشد",
             "Ask your administrator for access.":
               "از سرپرست خود دسترسی بخواهید.",
+            // More Latin letters in its names than Persian ones in its words.
+            "Could not reach smtp.office365.com (Microsoft 365).":
+              "اتصال به smtp.office365.com (Microsoft 365) ممکن نشد.",
           },
         },
       },
@@ -174,6 +177,18 @@ describe("a list that could not be read", () => {
     expect(words).toHaveAttribute("dir", "ltr");
   });
 
+  test("a message the product translated reads as the page does, however many names it gives in Latin letters", () => {
+    inPersian(
+      <ErrorMessage message="Could not reach smtp.office365.com (Microsoft 365)." />,
+    );
+
+    const words: HTMLElement = screen.getByText(
+      "اتصال به smtp.office365.com (Microsoft 365) ممکن نشد.",
+    );
+
+    expect(words.closest("bdi")).toBeNull();
+  });
+
   test("a message drawn as an element is drawn as it is", () => {
     inPersian(
       <ErrorMessage message={<span data-testid="own">No monitors.</span>} />,
@@ -256,6 +271,23 @@ describe("a table, or a page drawn like one, that could not load", () => {
     const sentence: HTMLElement = screen.getByTestId(`${ROOT}-description`);
 
     expect(sentence).toHaveTextContent("از سرپرست خود دسترسی بخواهید.");
+    expect(sentence.querySelector("bdi")).toBeNull();
+  });
+
+  test("so does one that names more in Latin letters than it has Persian words", () => {
+    inPersian(
+      <TableEmptyState
+        kind={TableEmptyStateKind.Error}
+        title="Couldn't load this node"
+        description="Could not reach smtp.office365.com (Microsoft 365)."
+      />,
+    );
+
+    const sentence: HTMLElement = screen.getByTestId(`${ROOT}-description`);
+
+    expect(sentence).toHaveTextContent(
+      "اتصال به smtp.office365.com (Microsoft 365) ممکن نشد.",
+    );
     expect(sentence.querySelector("bdi")).toBeNull();
   });
 

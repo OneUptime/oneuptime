@@ -56,6 +56,15 @@ const ENGLISH_LINE: string =
   "Turn this on to page the team when a monitor goes down.";
 const PERSIAN_LINE: string =
   "این را روشن کنید تا وقتی مانیتوری از کار افتاد، تیم خبردار شود.";
+/*
+ * A line worded in Persian that names more in Latin letters than it has
+ * Persian words: read by most of its letters, it was drawn in an isolate
+ * read left to right, its Persian words in the wrong order.
+ */
+const ENGLISH_NAMES_LINE: string =
+  "SMTP server hostname. Examples: smtp.office365.com (Microsoft 365), smtp.gmail.com (Google)";
+const PERSIAN_NAMES_LINE: string =
+  "نام میزبان سرور SMTP. نمونه‌ها: smtp.office365.com (Microsoft 365)، smtp.gmail.com (Google)";
 
 type PageName = "en" | "de" | "fa" | "faWorded";
 
@@ -77,7 +86,12 @@ beforeAll(async () => {
       resources: {
         [code]: {
           translation:
-            name === "faWorded" ? { [ENGLISH_LINE]: PERSIAN_LINE } : {},
+            name === "faWorded"
+              ? {
+                  [ENGLISH_LINE]: PERSIAN_LINE,
+                  [ENGLISH_NAMES_LINE]: PERSIAN_NAMES_LINE,
+                }
+              : {},
         },
       },
       interpolation: { escapeValue: false },
@@ -408,6 +422,13 @@ describe("readAsWritten, the helper every shared help line goes through", () => 
     expect(readAsWritten(ENGLISH_LINE, "ja")).toBe(ENGLISH_LINE);
   });
 
+  test("a line worded in Arabic or Persian that names more in Latin letters than it has words of its own is handed back as the very same string", () => {
+    const ARABIC_TEAMS: string = "Microsoft Teams غير متصل بعد!";
+
+    expect(readAsWritten(PERSIAN_NAMES_LINE, "fa")).toBe(PERSIAN_NAMES_LINE);
+    expect(readAsWritten(ARABIC_TEAMS, "ar")).toBe(ARABIC_TEAMS);
+  });
+
   test("no language yet reads as an English page", () => {
     expect(readAsWritten(ENGLISH_LINE, undefined)).toBe(ENGLISH_LINE);
     expect(readAsWritten(ENGLISH_LINE, null)).toBe(ENGLISH_LINE);
@@ -460,6 +481,22 @@ describe.each(HELP_LINE_CASES)("$component", (helpLine: HelpLineCase) => {
 
     expect(nodes.length).toBeGreaterThan(0);
     expect(textNodesHolding(ENGLISH_LINE)).toHaveLength(0);
+
+    for (const node of nodes) {
+      expect(isolateAround(node)).toBeNull();
+    }
+  });
+
+  test("on a Persian page, a Persian line that names more in Latin letters than it has Persian words is drawn as part of the page's line, with no isolate", () => {
+    if (helpLine.wordedByCaller) {
+      renderOn("fa", helpLine.draw(PERSIAN_NAMES_LINE));
+    } else {
+      renderOn("faWorded", helpLine.draw(ENGLISH_NAMES_LINE));
+    }
+
+    const nodes: Array<Text> = textNodesHolding(PERSIAN_NAMES_LINE);
+
+    expect(nodes.length).toBeGreaterThan(0);
 
     for (const node of nodes) {
       expect(isolateAround(node)).toBeNull();

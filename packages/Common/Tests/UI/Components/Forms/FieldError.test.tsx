@@ -40,7 +40,12 @@ beforeAll(async () => {
       resources: {
         en: { translation: {} },
         fa: {
-          translation: { "Description is required": "توضیحات الزامی است" },
+          translation: {
+            "Description is required": "توضیحات الزامی است",
+            // More Latin letters in its names than Persian ones in its words.
+            "Could not reach smtp.office365.com (Microsoft 365).":
+              "اتصال به smtp.office365.com (Microsoft 365) ممکن نشد.",
+          },
         },
       },
       interpolation: { escapeValue: false },
@@ -85,6 +90,18 @@ describe("on a Persian page", () => {
 
     expect(line()).toHaveTextContent(/^توضیحات الزامی است$/);
     expect(line().firstElementChild).toBeNull();
+  });
+
+  test("a check in the page's words that names more in Latin letters is drawn in Persian too, as the page draws its lines", () => {
+    draw(
+      "fa",
+      <FieldError message="Could not reach smtp.office365.com (Microsoft 365)." />,
+    );
+
+    expect(line()).toHaveTextContent(
+      "اتصال به smtp.office365.com (Microsoft 365) ممکن نشد.",
+    );
+    expect(line().querySelector("bdi")).toBeNull();
   });
 
   test("the fields draw their server answers with it: a text field, a long text, a switch", () => {

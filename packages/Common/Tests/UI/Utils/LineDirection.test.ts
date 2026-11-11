@@ -1,5 +1,6 @@
 import {
   getLineDirection,
+  getTranslatedLineDirection,
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
 } from "../../../UI/Utils/LineDirection";
 import { describe, expect, test } from "@jest/globals";
@@ -48,6 +49,81 @@ describe("getLineDirection", () => {
   test("a page whose language is not known reads left to right", () => {
     expect(getLineDirection("سارا", undefined)).toBe("rtl");
     expect(getLineDirection("Sara", undefined)).toBeUndefined();
+  });
+});
+
+/*
+ * A line of the product's own words - a help line, an empty state's
+ * sentence, an error - in the reader's language. Read by most of its
+ * letters, an Arabic or Persian line that names more products in Latin
+ * letters than it has words of its own read left to right, and laid out
+ * from the left its words came out in the wrong order.
+ */
+describe("getTranslatedLineDirection", () => {
+  const FSI: string = String.fromCharCode(0x2068);
+  const PDI: string = String.fromCharCode(0x2069);
+  const ARABIC_TEAMS: string = "Microsoft Teams غير متصل بعد!";
+  const PERSIAN_SMTP: string =
+    "نام میزبان سرور SMTP. نمونه‌ها: smtp.office365.com (Microsoft 365)، smtp.gmail.com (Google)";
+
+  test("an Arabic or Persian line follows its page, however many names it gives in Latin letters", () => {
+    // By most letters, both read left to right.
+    expect(getLineDirection(ARABIC_TEAMS, "ar")).toBe("ltr");
+    expect(getLineDirection(PERSIAN_SMTP, "fa")).toBe("ltr");
+
+    expect(getTranslatedLineDirection(ARABIC_TEAMS, "ar")).toBeUndefined();
+    expect(getTranslatedLineDirection(PERSIAN_SMTP, "fa")).toBeUndefined();
+    expect(getTranslatedLineDirection(PERSIAN_SMTP, "fa-IR")).toBeUndefined();
+  });
+
+  test("an English line not worded yet reads left to right on a page read from the right", () => {
+    expect(
+      getTranslatedLineDirection("Turn this on to page the team.", "fa"),
+    ).toBe("ltr");
+    expect(
+      getTranslatedLineDirection(
+        "Something went wrong on the server. Please try again.",
+        "ar",
+      ),
+    ).toBe("ltr");
+  });
+
+  test("an English line round a Persian name it sets apart is still English", () => {
+    expect(
+      getTranslatedLineDirection(
+        `Paged ${FSI}سرویس پرداخت فروشگاه اینترنتی مرکزی${PDI} again.`,
+        "fa",
+      ),
+    ).toBe("ltr");
+  });
+
+  test("on a page read from the left, a line reads by most of its letters, as getLineDirection says", () => {
+    for (const text of [
+      ARABIC_TEAMS,
+      PERSIAN_SMTP,
+      "سارا احمدی",
+      "API پرداخت از کار افتاده",
+      "Checkout API",
+    ]) {
+      for (const language of ["en", "de", undefined]) {
+        expect({
+          text,
+          language,
+          direction: getTranslatedLineDirection(text, language),
+        }).toEqual({
+          text,
+          language,
+          direction: getLineDirection(text, language),
+        });
+      }
+    }
+  });
+
+  test("a line with no letters, or none at all, follows the page", () => {
+    expect(getTranslatedLineDirection("8080", "fa")).toBeUndefined();
+    expect(getTranslatedLineDirection("", "ar")).toBeUndefined();
+    expect(getTranslatedLineDirection(undefined, "fa")).toBeUndefined();
+    expect(getTranslatedLineDirection(null, "en")).toBeUndefined();
   });
 });
 

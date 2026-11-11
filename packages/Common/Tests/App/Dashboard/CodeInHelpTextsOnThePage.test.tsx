@@ -34,10 +34,10 @@ import {
  * right lays it out (Tests/Helpers/BidiLayout): the path, the flag and the
  * address it names are drawn as they are written. Laid out as the locale
  * file holds the sentence, none of them was - the test's negative control.
- * The sentence round the code is still laid out from the right: a help
- * line reads the way most of its letters do (readAsWritten), and the code
- * set apart is not counted. Copied from the page, the sentence is the
- * locale file's again.
+ * The sentence round the code is laid out from the right: a help line
+ * worded in the page's language reads as the page does (readAsWritten),
+ * however many Latin letters its code and the names it gives have. Copied
+ * from the page, the sentence is the locale file's again.
  */
 
 const LRI: string = String.fromCharCode(0x2066);
@@ -67,10 +67,13 @@ const REPLAY_HELP: string =
  * A sentence of each language whose code has more Latin letters than its
  * words have Arabic or Persian ones.
  */
-const TURNED_BY_ITS_CODE: Record<string, string> = {
+const MORE_CODE_THAN_WORDS: Record<string, string> = {
   ar: REPLAY_HELP,
   fa: OIDC_HELP,
 };
+// The SMTP server's help: more Latin letters in the names it gives than words.
+const SMTP_HELP: string =
+  "SMTP server hostname. Examples: smtp.office365.com (Microsoft 365), smtp.gmail.com (Google)";
 
 const LOCALES: Record<string, Record<string, unknown>> = {
   ar: arabicLocale as Record<string, unknown>,
@@ -261,10 +264,10 @@ describe.each(["ar", "fa"])("a field's help in %s", (language: string) => {
   });
 
   /*
-   * A help line is drawn in a box read from the left when most of its
-   * letters read that way (readAsWritten): an English line left on the
-   * page. The code it names is set apart, and its letters are not counted,
-   * so the sentence round it is still read from the right.
+   * A help line is drawn in a box read from the left only when it has no
+   * words of the page's own (readAsWritten): an English line left on the
+   * page. One worded in Arabic or Persian is read from the right, however
+   * many letters its code has.
    */
   test("is laid out from the right, however many letters its code has", () => {
     for (const help of [
@@ -294,27 +297,41 @@ describe.each(["ar", "fa"])("a field's help in %s", (language: string) => {
     }
   });
 
-  test("as the locale file holds it, a sentence with more code than words was laid out from the left", () => {
-    const help: string = TURNED_BY_ITS_CODE[language] as string;
+  /*
+   * Read by most of its letters, a line with more Latin letters than words
+   * of its own was drawn in a box read from the left, its words in the
+   * wrong order: a sentence's code as the locale file holds it, and the
+   * product names the SMTP server's help gives. It reads as the page does
+   * whatever it names (getTranslatedLineDirection).
+   */
+  test("is laid out from the right with more Latin letters than words of its own: code as the locale file holds it, or names", () => {
+    const helps: Array<[string, i18n]> = [
+      [MORE_CODE_THAN_WORDS[language] as string, rawI18n],
+      [SMTP_HELP, dashboardI18n],
+    ];
 
-    inLanguage(
-      language,
-      <FieldLabelElement
-        title="Help"
-        description={help}
-        descriptionId="code-help"
-      />,
-      rawI18n,
-    );
+    for (const [help, instance] of helps) {
+      inLanguage(
+        language,
+        <FieldLabelElement
+          title="Help"
+          description={help}
+          descriptionId="code-help"
+        />,
+        instance,
+      );
 
-    const element: HTMLElement = document.getElementById(
-      "code-help",
-    ) as HTMLElement;
+      const element: HTMLElement = document.getElementById(
+        "code-help",
+      ) as HTMLElement;
 
-    expect(element.textContent).toBe(locale[help]);
-    expect(element.querySelector('bdi[dir="ltr"]')?.textContent).toBe(
-      locale[help],
-    );
+      expect(withoutIsolates(element.textContent || "")).toBe(locale[help]);
+      expect({ help, box: element.querySelector("bdi")?.outerHTML }).toEqual({
+        help,
+        box: undefined,
+      });
+      cleanup();
+    }
   });
 
   test("is copied from the page as the locale file words it", () => {
