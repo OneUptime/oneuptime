@@ -672,7 +672,7 @@ Die Flusskarte hat eine Spalte pro Schritt. Eine Seite ist ein Kasten, dessen H�
 | **Ab Sitzungsbeginn** | Schritt 1 ist die Einstiegsseite jeder Sitzung. |
 | **Nach einer Seite** | Verankert die Karte an einer Seite und folgt Sitzungen ab dem ersten Erreichen — „wohin gehen Menschen nach `/pricing`?“ |
 | **Vor einer Seite** | Folgt Sitzungen rückwärts ab dem ersten Erreichen einer Seite — „wie kommen Menschen zu `/checkout`?“ Der Anker wird rechts gezeichnet. |
-| **Schritte** / **Seiten pro Schritt** | Wie viele Spalten gezeichnet werden und wie viele Seiten eine Spalte nennt, bevor der Rest unter **Other pages** zusammengefasst wird (klicken Sie darauf, um zu sehen, was es enthält). |
+| **Schritte** / **Seiten pro Schritt** | Wie viele Spalten gezeichnet werden und wie viele Seiten eine Spalte nennt, bevor der Rest unter **Andere Seiten** zusammengefasst wird (klicken Sie darauf, um zu sehen, was es enthält). |
 | **Sitzungen** | Alle Sitzungen, nur Sitzungen mit Fehlern oder nur Sitzungen mit Frustrationssignalen (Wutklicks, tote Klicks, Fehlerklicks, Wut-Neuladen). Ihre eigenen Signale zählen mit, wenn sie als Frustration zählen. |
 | **Gerät** | Nur Desktop-, Mobil- oder Tablet-Sitzungen. |
 | **IDs in URLs gruppieren** | Standardmäßig ein: `/orders/1042` und `/orders/1043` sind eine Seite, `/orders/:id`. Zahlen, Hex-IDs und lange Tokens aus Buchstaben und Ziffern werden gruppiert, ebenso jedes Segment, das der Recorder bereits durch `[redacted]` ersetzt hat. Für einen Benutzer oder eine Sitzung standardmäßig aus. |

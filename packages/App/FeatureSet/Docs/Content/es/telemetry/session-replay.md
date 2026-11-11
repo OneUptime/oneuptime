@@ -672,7 +672,7 @@ El mapa de flujos tiene una columna por paso. Una página es una caja cuya altur
 | **Desde el inicio de la sesión** | El paso 1 es la página de aterrizaje de cada sesión. |
 | **Después de una página** | Ancla el mapa en una página y sigue las sesiones desde la primera vez que llegaron a ella — «¿adónde va la gente después de `/pricing`?» |
 | **Antes de una página** | Sigue las sesiones hacia atrás desde la primera vez que llegaron a una página — «¿cómo llega la gente a `/checkout`?» El ancla se dibuja a la derecha. |
-| **Pasos** / **Páginas por paso** | Cuántas columnas dibujar y cuántas páginas nombra una columna antes de que el resto se agrupe en **Other pages** (haz clic en él para ver lo que contiene). |
+| **Pasos** / **Páginas por paso** | Cuántas columnas dibujar y cuántas páginas nombra una columna antes de que el resto se agrupe en **Otras páginas** (haz clic en él para ver lo que contiene). |
 | **Sesiones** | Todas las sesiones, solo las sesiones con errores, o solo las sesiones con señales de frustración (clics de rabia, clics muertos, clics de error, rabia de recarga). Tus propias señales se incluyen cuando cuentan como frustración. |
 | **Dispositivo** | Solo sesiones de escritorio, móvil o tableta. |
 | **ID de grupo en las URL** | Activado por defecto: `/orders/1042` y `/orders/1043` son una sola página, `/orders/:id`. Se agrupan los números, los ids hexadecimales y los tokens largos de letras y dígitos, al igual que cada segmento que el grabador ya sustituyó por `[redacted]`. Desactivado por defecto para un usuario o una sesión. |
