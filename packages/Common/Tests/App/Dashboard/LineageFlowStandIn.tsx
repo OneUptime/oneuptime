@@ -14,7 +14,10 @@ import type { ReactFlowProps } from "reactflow";
  * is written down (viewportsSet), getViewport says where it is, starting
  * where the drawing opened (defaultViewport). moveView moves it as the
  * reader would, by dragging. A click that reaches a card's own wrapper is
- * counted (cardClicks), as React Flow's onNodeClick would see it.
+ * counted (cardClicks), as React Flow's onNodeClick would see it. Every
+ * arrow is drawn level, 100 across, unless a suite gives its ends other
+ * heights (setArrowEnds); getBezierPath puts its label on its middle, as
+ * React Flow's does.
  */
 
 interface Viewport {
@@ -23,10 +26,16 @@ interface Viewport {
   zoom: number;
 }
 
+interface ArrowEnds {
+  sourceY: number;
+  targetY: number;
+}
+
 let latestProps: ReactFlowProps | null = null;
 let shownViewport: Viewport = { x: 0, y: 0, zoom: 1 };
 const viewportsSet: Array<Viewport> = [];
 const cardClicks: Array<string> = [];
+const arrowEnds: Map<string, ArrowEnds> = new Map();
 
 export function flowProps(): ReactFlowProps | null {
   return latestProps;
@@ -49,6 +58,12 @@ export function resetFlowStandIn(): void {
   shownViewport = { x: 0, y: 0, zoom: 1 };
   viewportsSet.length = 0;
   cardClicks.length = 0;
+  arrowEnds.clear();
+}
+
+// Draws an arrow with its ends at these heights: one not level curves, as between two rows.
+export function setArrowEnds(edgeId: string, ends: ArrowEnds): void {
+  arrowEnds.set(edgeId, ends);
 }
 
 // The reader drags the view: React Flow's own move, with the event it carries.
@@ -105,9 +120,9 @@ const StandInFlow: (props: ReactFlowProps) => ReactElement = (
               style: edge.style,
               markerEnd: "url(#arrow)",
               sourceX: 0,
-              sourceY: 0,
+              sourceY: arrowEnds.get(edge.id)?.sourceY ?? 0,
               targetX: 100,
-              targetY: 0,
+              targetY: arrowEnds.get(edge.id)?.targetY ?? 0,
               sourcePosition: "right",
               targetPosition: "left",
             }),
@@ -186,10 +201,24 @@ export const EdgeLabelRenderer: (props: {
   return React.createElement(React.Fragment, null, props.children);
 };
 
-export const getBezierPath: () => [string, number, number] = (): [
-  string,
-  number,
-  number,
-] => {
-  return ["M0,0 C50,0 50,0 100,0", 50, 0];
+// The arrow's path, and its middle, where React Flow puts its label.
+export const getBezierPath: (ends: {
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+}) => [string, number, number] = (ends: {
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+}): [string, number, number] => {
+  const middleX: number = (ends.sourceX + ends.targetX) / 2;
+  const middleY: number = (ends.sourceY + ends.targetY) / 2;
+
+  return [
+    `M${ends.sourceX},${ends.sourceY} C${middleX},${ends.sourceY} ${middleX},${ends.targetY} ${ends.targetX},${ends.targetY}`,
+    middleX,
+    middleY,
+  ];
 };

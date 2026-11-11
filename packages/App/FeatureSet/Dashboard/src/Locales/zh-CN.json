@@ -50354,5 +50354,6 @@
   "Row {{row}}: \"{{key}}\" is not a MAC address, such as {{example}}.": "第 {{row}} 行：“{{key}}”不是 MAC 地址，例如 {{example}}。",
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "第 {{row}} 行：“{{key}}”不是发现的名称，例如 {{example}}。",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "第 {{row}} 行：“{{key}}”不是 IP 地址，例如 {{example}}。",
-  "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "第 {{row}} 行：“{{key}}”不是 IP 地址的最后一部分，例如 {{example}}。"
+  "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "第 {{row}} 行：“{{key}}”不是 IP 地址的最后一部分，例如 {{example}}。",
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "此图中没有箭头说明 {{column}} 的来源和去向。"
 }

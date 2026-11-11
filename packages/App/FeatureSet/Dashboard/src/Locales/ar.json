@@ -50354,5 +50354,6 @@
   "Row {{row}}: \"{{key}}\" is not a MAC address, such as {{example}}.": "الصف {{row}}: \"{{key}}\" ليس عنوان MAC، مثل {{example}}.",
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "الصف {{row}}: \"{{key}}\" ليس اسمًا مكتشفًا، مثل {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "الصف {{row}}: \"{{key}}\" ليس عنوان IP، مثل {{example}}.",
-  "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "الصف {{row}}: \"{{key}}\" ليس الجزء الأخير من عنوان IP، مثل {{example}}."
+  "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "الصف {{row}}: \"{{key}}\" ليس الجزء الأخير من عنوان IP، مثل {{example}}.",
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "لا يذكر أي سهم في هذا المخطط مصدر العمود {{column}} أو وجهته."
 }

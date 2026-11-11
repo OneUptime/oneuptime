@@ -50354,5 +50354,6 @@
   "Row {{row}}: \"{{key}}\" is not a MAC address, such as {{example}}.": "Ligne {{row}} : « {{key}} » n'est pas une adresse MAC, comme {{example}}.",
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "Ligne {{row}} : « {{key}} » n'est pas un nom découvert, comme {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "Ligne {{row}} : « {{key}} » n'est pas une adresse IP, comme {{example}}.",
-  "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "Ligne {{row}} : « {{key}} » n'est pas la dernière partie d'une adresse IP, comme {{example}}."
+  "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "Ligne {{row}} : « {{key}} » n'est pas la dernière partie d'une adresse IP, comme {{example}}.",
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "Aucune flèche de ce diagramme n'indique d'où vient {{column}} ni où elle va."
 }

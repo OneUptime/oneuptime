@@ -50354,5 +50354,6 @@
   "Row {{row}}: \"{{key}}\" is not a MAC address, such as {{example}}.": "Строка {{row}}: «{{key}}» — не MAC-адрес, например {{example}}.",
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "Строка {{row}}: «{{key}}» — не обнаруженное имя, например {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "Строка {{row}}: «{{key}}» — не IP-адрес, например {{example}}.",
-  "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "Строка {{row}}: «{{key}}» — не последняя часть IP-адреса, например {{example}}."
+  "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "Строка {{row}}: «{{key}}» — не последняя часть IP-адреса, например {{example}}.",
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "Ни одна стрелка на этой диаграмме не указывает, откуда берётся столбец {{column}} и куда он идёт."
 }

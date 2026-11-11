@@ -50354,5 +50354,6 @@
   "Row {{row}}: \"{{key}}\" is not a MAC address, such as {{example}}.": "पंक्ति {{row}}: \"{{key}}\" MAC पता नहीं है, जैसे {{example}}।",
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "पंक्ति {{row}}: \"{{key}}\" खोजा गया नाम नहीं है, जैसे {{example}}।",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "पंक्ति {{row}}: \"{{key}}\" IP पता नहीं है, जैसे {{example}}।",
-  "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "पंक्ति {{row}}: \"{{key}}\" किसी IP पते का आख़िरी हिस्सा नहीं है, जैसे {{example}}।"
+  "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "पंक्ति {{row}}: \"{{key}}\" किसी IP पते का आख़िरी हिस्सा नहीं है, जैसे {{example}}।",
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "इस आरेख का कोई भी तीर यह नहीं बताता कि {{column}} कहाँ से आता है या कहाँ जाता है।"
 }
