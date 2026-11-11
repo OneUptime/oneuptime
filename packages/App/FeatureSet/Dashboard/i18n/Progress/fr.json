@@ -690,6 +690,7 @@
     "{{count}} CPU",
     "{{count}} Kubernetes",
     "{{count}} SLO",
+    "{{count}} SMS",
     "{{count}} VM",
     "{{count}} action",
     "{{count}} actions",

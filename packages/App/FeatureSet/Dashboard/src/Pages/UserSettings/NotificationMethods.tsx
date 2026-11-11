@@ -1,4 +1,5 @@
 import NotificationMethodTabs from "../../Components/NotificationMethods/NotificationMethodTabs";
+import TestPageCard from "../../Components/OnCallTestPage/TestPageCard";
 import PageComponentProps from "../PageComponentProps";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
@@ -17,10 +18,15 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * restated in a standing panel above the tabs: the same warning shown on every
  * visit is the warning people learn to skim, and it arrives there long before
  * anyone can act on it.
+ *
+ * Above the methods: "Send me a test page" (OnCallTestPage), the one way to
+ * prove each of them works before a real incident does - an action, not a
+ * warning.
  */
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
+      <TestPageCard dataTestId="notification-methods-test-page-card" />
       <NotificationMethodTabs />
     </Fragment>
   );

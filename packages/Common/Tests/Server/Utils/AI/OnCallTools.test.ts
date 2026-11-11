@@ -35,6 +35,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import UserNotificationExecutionStatus from "../../../../Types/UserNotification/UserNotificationExecutionStatus";
+import UserNotificationEventType from "../../../../Types/UserNotification/UserNotificationEventType";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -574,6 +575,42 @@ describe("query_on_call_pages", () => {
     const callArgs: JSONObject = findBySpy.mock.calls[0]?.[0] as JSONObject;
     expect(callArgs["props"]).toBe(ctx.props);
     expect(callArgs["limit"]).toBe(10);
+  });
+
+  /*
+   * A test page (OnCallTestPage) is not a page about anything: OneUptime AI
+   * neither counts nor lists one as on-call history, so "how often were we
+   * paged last night?" is not answered with somebody's test.
+   */
+  test("test pages are left out of what it counts and lists", async () => {
+    const countBySpy: jest.SpyInstance = jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0) as never);
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findBy")
+      .mockResolvedValue([] as never);
+    jest.spyOn(UserOnCallLogService, "findBy").mockResolvedValue([] as never);
+
+    await QueryOnCallPagesTool.execute({}, ctx);
+
+    for (const spy of [countBySpy, findBySpy]) {
+      const query: Record<string, unknown> = (
+        spy.mock.calls[0]?.[0] as { query: Record<string, unknown> }
+      ).query;
+
+      const condition: {
+        getSql: (alias: string) => string;
+        objectLiteralParameters: Record<string, unknown>;
+      } = query["userNotificationEventType"] as {
+        getSql: (alias: string) => string;
+        objectLiteralParameters: Record<string, unknown>;
+      };
+
+      expect(condition.getSql("eventType")).toMatch(/^\(eventType != :\w+\)$/);
+      expect(Object.values(condition.objectLiteralParameters)).toEqual([
+        UserNotificationEventType.TestPage,
+      ]);
+    }
   });
 
   /*

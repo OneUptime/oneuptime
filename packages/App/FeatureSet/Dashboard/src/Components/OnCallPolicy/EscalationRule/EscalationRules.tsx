@@ -1,3 +1,5 @@
+import SendTestPageButton from "../../OnCallTestPage/SendTestPageButton";
+import { getTestPolicyGate } from "../../OnCallTestPage/OnCallTestPageAccess";
 import {
   ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME,
   ON_CALL_TAG_TEXT_CLASS_NAME,
@@ -2081,6 +2083,25 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                 loadData().catch(() => {});
               }}
             />
+            {/*
+              Test this policy (OnCallTestPage): pages its first level - or
+              walks every level - with a test page through each person's own
+              rules. Offered once there is a level to page, to whoever may
+              edit the policy, as the server asks.
+            */}
+            {rules.length > 0 && getTestPolicyGate().isAllowed ? (
+              <SendTestPageButton
+                target={{
+                  kind: "policy",
+                  policyId: props.onCallDutyPolicyId.toString(),
+                }}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                buttonSize={ButtonSize.Small}
+                dataTestId="test-on-call-policy"
+              />
+            ) : (
+              <></>
+            )}
             <Button
               title="Add Escalation Rule"
               icon={IconProp.Add}

@@ -3991,6 +3991,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "contact methods",
             ],
             settings: [
+              "Test your pages",
               "Emails for Notifications",
               "Phone Numbers for SMS Notifications",
               "Phone Numbers for Call Notifications",
@@ -3998,6 +3999,21 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "Telegram Accounts for Notifications",
               "Push Notifications",
               "Webhooks",
+            ],
+            // A test page through the person's own rules (OnCallTestPage).
+            actions: [
+              {
+                id: "send-me-a-test-page",
+                title: "Send me a test page",
+                icon: IconProp.Beaker,
+                keywords: [
+                  "test page",
+                  "test notification",
+                  "test my phone",
+                  "fire drill",
+                  "will it wake me",
+                ],
+              },
             ],
           },
           {

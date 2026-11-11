@@ -92,6 +92,8 @@ export const SERVER_TEXT_SOURCES: ReadonlyArray<string> = [
   "packages/Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout.ts",
   "packages/Common/Types/OnCallDutyPolicy/OnCallPersonPage.ts",
   "packages/Common/Types/OnCallDutyPolicy/OnCallObserverPage.ts",
+  // A test page (OnCallTestPage), in the language of the person it pages.
+  "packages/Common/Types/OnCallDutyPolicy/OnCallTestPageWords.ts",
   "packages/App/FeatureSet/Workers/Jobs",
   "packages/App/FeatureSet/Notification/Templates",
 ];
