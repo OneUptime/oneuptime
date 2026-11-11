@@ -573,7 +573,7 @@ describe("Project Settings > Slack, connected to one workspace", () => {
       "Use OneUptime in every workspace of your Slack organization",
     );
     expect(within(card).getByTestId("card-description")).toHaveTextContent(
-      "Acme East is part of a Slack Enterprise organization. An organization admin can install OneUptime for the whole organization, so this project works in each workspace they add it to. Notification rules, channels and connected accounts stay as they are, and new channels are still created in Acme East unless a rule names another workspace.",
+      "Acme East is in a Slack Enterprise organization. An organization admin can install OneUptime for the whole organization. Rules, channels and connected accounts stay, and Acme East becomes the default workspace.",
     );
     expect(screen.queryByTestId("slack-organization-workspaces")).toBeNull();
 

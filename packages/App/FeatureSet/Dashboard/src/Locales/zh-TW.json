@@ -49897,7 +49897,7 @@
   "Those channels are in the {{workspace}} workspace.": "這些頻道位於 {{workspace}} 工作區中。",
   "To use OneUptime in another workspace, an organization admin adds it in Slack: Organization settings → Integrations → Installed apps → OneUptime → Add to more workspaces. Then click Refresh.": "若要在其他工作區中使用 OneUptime，需由組織管理員在 Slack 中新增：組織設定 → 整合 → 已安裝的應用程式 → OneUptime → 新增至更多工作區。然後點選「重新整理」。",
   "Use OneUptime in every workspace of your Slack organization": "在 Slack 組織的每個工作區中使用 OneUptime",
-  "{{team}} is part of a Slack Enterprise organization. An organization admin can install OneUptime for the whole organization, so this project works in each workspace they add it to. Notification rules, channels and connected accounts stay as they are, and new channels are still created in {{team}} unless a rule names another workspace.": "{{team}} 屬於一個 Slack Enterprise 組織。組織管理員可以為整個組織安裝 OneUptime，讓此專案在其被新增到的每個工作區中運作。通知規則、頻道和已連接的帳戶維持不變；除非規則指定了其他工作區，新頻道仍會在 {{team}} 中建立。",
+  "{{team}} is in a Slack Enterprise organization. An organization admin can install OneUptime for the whole organization. Rules, channels and connected accounts stay, and {{team}} becomes the default workspace.": "{{team}} 屬於一個 Slack Enterprise 組織。組織管理員可以為整個組織安裝 OneUptime。規則、頻道和已連接的帳戶都會保留，{{team}} 將成為預設工作區。",
   "AI was off for this project": "此專案的 AI 當時已關閉",
   "AI work had used up the day's “{{settingName}}”, so no investigation started.": "AI 工作已用完當天的「{{settingName}}」，因此沒有開始調查。",
   "AI work has used up today's “{{settingName}}”, so no new investigation can start before midnight UTC.": "AI 工作已用完今天的「{{settingName}}」，因此在 UTC 午夜之前無法開始新的調查。",

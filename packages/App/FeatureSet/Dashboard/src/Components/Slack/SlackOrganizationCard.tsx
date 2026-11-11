@@ -73,7 +73,7 @@ export const SLACK_INSTALL_FOR_ORGANIZATION_TITLE: string = translationKey(
 
 export const SLACK_INSTALL_FOR_ORGANIZATION_DESCRIPTION: string =
   translationKey(
-    "{{team}} is part of a Slack Enterprise organization. An organization admin can install OneUptime for the whole organization, so this project works in each workspace they add it to. Notification rules, channels and connected accounts stay as they are, and new channels are still created in {{team}} unless a rule names another workspace.",
+    "{{team}} is in a Slack Enterprise organization. An organization admin can install OneUptime for the whole organization. Rules, channels and connected accounts stay, and {{team}} becomes the default workspace.",
   );
 
 export const SLACK_INSTALL_FOR_ORGANIZATION_BUTTON: string = translationKey(
