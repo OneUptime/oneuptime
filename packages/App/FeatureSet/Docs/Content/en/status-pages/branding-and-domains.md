@@ -1,6 +1,6 @@
 # Status Page Branding & Domains
 
-Your status page is the one OneUptime screen your customers look at, so it should look like yours and live on your own domain, such as `status.yourcompany.com`. This page walks the **Branding** page card by card, then puts the page on your domain: add the domain, add one DNS record, and the free SSL certificate follows on its own.
+Your status page is the one OneUptime screen your customers look at, so it should look like yours and live on your own domain, such as `status.yourcompany.com`. This page walks the **Branding** page card by card, then puts the page on your domain: add the domain, add its DNS records, and the free SSL certificate follows on its own.
 
 :::cards
 - [The Branding page](#the-branding-page): Logo, theme, title, favicon, links, footer, colors and languages.
@@ -225,7 +225,7 @@ The **DNS Setup** dialog shows each record still needed at your DNS provider, on
 | Shows the project owns the domain, until it is verified | `TXT` | The domain, for example `yourcompany.com` | Its verification text, `oneuptime-verification-…` |
 | Points the address to OneUptime | `CNAME` | The full address, for example `status.yourcompany.com` | Your installation's status page CNAME record |
 
-You add the TXT record once per domain: every later address on it needs only its CNAME record. The two are never on the same name, because a name with a CNAME record can have no other record.
+You add the TXT record once per domain: every later address on it needs only its CNAME record. For an address under the domain the two sit on different names, because a name with a CNAME record can have no other record; for the root of the domain, the ALIAS or flattened CNAME record sits beside the TXT record.
 
 > [!NOTE]
 > For a root domain, one with no subdomain, the dialog adds a note: many DNS providers do not allow a CNAME record there. Use your provider's ALIAS, ANAME or CNAME flattening record with the same value instead.
