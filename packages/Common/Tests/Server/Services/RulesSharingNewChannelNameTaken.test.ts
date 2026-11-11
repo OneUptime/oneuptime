@@ -17,12 +17,15 @@ import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/M
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleWorkspaceChannel from "../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import BaseNotificationRule from "../../../Types/Workspace/NotificationRules/BaseNotificationRule";
+import { WorkspaceChannel } from "../../../Server/Utils/Workspace/WorkspaceBase";
 import IncidentNotificationRule from "../../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import WorkspaceMessagePayload from "../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
@@ -115,6 +118,14 @@ const INCIDENT_CHANNEL_NAME_PARTS: WorkspaceChannelNameParts =
 const TEAM_X: string = "aaaaaaaa-1111-2222-3333-444444444444";
 const TEAM_Y: string = "bbbbbbbb-5555-6666-7777-888888888888";
 
+/*
+ * A Slack Enterprise organization OneUptime is installed for, added to two
+ * of its workspaces; East is the default one (SlackOrganization).
+ */
+const ORGANIZATION_ID: string = "E0ACME";
+const EAST: string = "T0EAST";
+const WEST: string = "T0WEST";
+
 interface RuleSwitches {
   workspaceType?: WorkspaceType;
   template?: string;
@@ -197,12 +208,17 @@ class FakeSlack {
 
       let answer: JSONObject = { ok: true };
 
+      // The workspace of an organization it is asked in: each has names of its own.
+      const team: string = String(body["team_id"] || "");
+
       if (method === "conversations.create") {
         const name: string = String(body["name"]);
 
         const isTaken: boolean = this.channels.some(
           (created: JSONObject): boolean => {
-            return created["name"] === name;
+            return (
+              created["name"] === name && String(created["team"] || "") === team
+            );
           },
         );
 
@@ -212,6 +228,7 @@ class FakeSlack {
           const created: JSONObject = {
             id: `C0NEW${this.channels.length + 1}`,
             name: name,
+            ...(team ? { team: team } : {}),
           };
           this.channels.push(created);
           answer = { ok: true, channel: created };
@@ -221,7 +238,9 @@ class FakeSlack {
       if (method === "conversations.list") {
         answer = {
           ok: true,
-          channels: this.channels,
+          channels: this.channels.filter((created: JSONObject): boolean => {
+            return !team || created["team"] === team;
+          }),
           response_metadata: { next_cursor: "" },
         };
       }
@@ -257,6 +276,20 @@ class FakeSlack {
       })
       .map((request: SlackRequest): string => {
         return String(request.body["name"]);
+      });
+  }
+
+  // Each name Slack was asked to create, with the workspace it was asked in.
+  public askedToCreateIn(): Array<{ team: string; name: string }> {
+    return this.requests
+      .filter((request: SlackRequest): boolean => {
+        return request.method === "conversations.create";
+      })
+      .map((request: SlackRequest): { team: string; name: string } => {
+        return {
+          team: String(request.body["team_id"] || ""),
+          name: String(request.body["name"]),
+        };
       });
   }
 
@@ -394,6 +427,34 @@ function slackProjectAuth(): WorkspaceProjectAuthToken {
     teamId: "T0WORKSPACE",
     teamName: "Ops",
     channelCache: channelCache,
+  } as never;
+
+  return auth;
+}
+
+// OneUptime installed for the whole organization, added to East and West.
+function slackOrganizationAuth(): WorkspaceProjectAuthToken {
+  const auth: WorkspaceProjectAuthToken = new WorkspaceProjectAuthToken();
+  auth.projectId = PROJECT_ID;
+  auth.workspaceType = WorkspaceType.Slack;
+  auth.authToken = "xoxb-organization";
+  auth.workspaceProjectId = ORGANIZATION_ID;
+
+  auth.miscData = {
+    botUserId: BOT_SLACK_USER_ID,
+    teamId: ORGANIZATION_ID,
+    teamName: "Acme",
+    channelCache: channelCache,
+    isEnterpriseInstall: true,
+    enterpriseId: ORGANIZATION_ID,
+    enterpriseName: "Acme",
+    workspaces: [
+      { id: EAST, name: "Acme East" },
+      { id: WEST, name: "Acme West" },
+    ],
+    // Listed just now: Slack is not asked for them again.
+    workspacesReadAt: OneUptimeDate.toString(OneUptimeDate.getCurrentDate()),
+    defaultWorkspaceId: EAST,
   } as never;
 
   return auth;
@@ -844,6 +905,374 @@ describe("Microsoft Teams: a rule whose template gives the name of a channel cre
   });
 });
 
+describe("Slack Enterprise organization: one name in two of its workspaces", () => {
+  beforeEach(() => {
+    slack.install();
+    projectAuths = [slackOrganizationAuth()];
+  });
+
+  function teamsAndRulesOf(
+    channels: Array<NotificationRuleWorkspaceChannel>,
+  ): Array<Array<unknown>> {
+    return channels.map(
+      (channel: NotificationRuleWorkspaceChannel): Array<unknown> => {
+        return [channel.teamId, channel.notificationRuleIds];
+      },
+    );
+  }
+
+  test("REGRESSION: rules asking for one name in two workspaces get a channel in each, each with its own rule", async () => {
+    storedRules = [
+      incidentRule(FIRST_RULE_ID, { teamToCreateChannelIn: EAST }),
+      incidentRule(SECOND_RULE_ID, { teamToCreateChannelIn: WEST }),
+    ];
+
+    const result: WorkspaceChannelsCreated = await createIncidentChannels();
+
+    expect(slack.askedToCreateIn()).toEqual([
+      { team: EAST, name: CHANNEL_NAME },
+      { team: WEST, name: CHANNEL_NAME },
+    ]);
+    expect(teamsAndRulesOf(result.channelsCreated)).toEqual([
+      [EAST, [FIRST_RULE_ID.toString()]],
+      [WEST, [SECOND_RULE_ID.toString()]],
+    ]);
+  });
+
+  test("a rule naming no workspace and one naming the default share the default workspace's channel", async () => {
+    storedRules = [
+      incidentRule(FIRST_RULE_ID),
+      incidentRule(SECOND_RULE_ID, { teamToCreateChannelIn: EAST }),
+    ];
+
+    const result: WorkspaceChannelsCreated = await createIncidentChannels();
+
+    // Asked for once, in the default workspace: no name_taken, no -2 channel.
+    expect(slack.askedToCreateIn()).toEqual([
+      { team: EAST, name: CHANNEL_NAME },
+    ]);
+    expect(teamsAndRulesOf(result.channelsCreated)).toEqual([
+      [EAST, [FIRST_RULE_ID.toString(), SECOND_RULE_ID.toString()]],
+    ]);
+  });
+
+  test("a rule naming no workspace and one naming another get a channel each: in the default and in the other", async () => {
+    storedRules = [
+      incidentRule(FIRST_RULE_ID),
+      incidentRule(SECOND_RULE_ID, { teamToCreateChannelIn: WEST }),
+    ];
+
+    const result: WorkspaceChannelsCreated = await createIncidentChannels();
+
+    expect(slack.askedToCreateIn()).toEqual([
+      { team: EAST, name: CHANNEL_NAME },
+      { team: WEST, name: CHANNEL_NAME },
+    ]);
+    expect(teamsAndRulesOf(result.channelsCreated)).toEqual([
+      [EAST, [FIRST_RULE_ID.toString()]],
+      [WEST, [SECOND_RULE_ID.toString()]],
+    ]);
+  });
+
+  test("names Slack creates as one in the same workspace still share it, with every rule", async () => {
+    storedRules = [
+      incidentRule(FIRST_RULE_ID, { teamToCreateChannelIn: WEST }),
+      incidentRule(SECOND_RULE_ID, {
+        template: "Incidents -",
+        teamToCreateChannelIn: WEST,
+      }),
+    ];
+
+    const result: WorkspaceChannelsCreated = await createIncidentChannels();
+
+    expect(slack.askedToCreateIn()).toEqual([
+      { team: WEST, name: CHANNEL_NAME },
+    ]);
+    expect(teamsAndRulesOf(result.channelsCreated)).toEqual([
+      [WEST, [FIRST_RULE_ID.toString(), SECOND_RULE_ID.toString()]],
+    ]);
+  });
+});
+
+describe("Slack connected to one workspace: a team a rule once named is not read", () => {
+  beforeEach(() => {
+    slack.install();
+    projectAuths = [slackProjectAuth()];
+  });
+
+  test("rules naming two teams share one channel, created naming no workspace", async () => {
+    storedRules = [
+      incidentRule(FIRST_RULE_ID, { teamToCreateChannelIn: "T0ONCE1" }),
+      incidentRule(SECOND_RULE_ID, { teamToCreateChannelIn: "T0ONCE2" }),
+    ];
+
+    const result: WorkspaceChannelsCreated = await createIncidentChannels();
+
+    expect(slack.askedToCreateIn()).toEqual([{ team: "", name: CHANNEL_NAME }]);
+    expect(ruleIdsOf(result.channelsCreated)).toEqual([
+      [FIRST_RULE_ID.toString(), SECOND_RULE_ID.toString()],
+    ]);
+    expect(result.channelsCreated[0]?.teamId).toBeUndefined();
+  });
+});
+
+describe("a record's channel of a rule, by its name, in the rule's Slack workspace", () => {
+  type RulesWithoutTheirChannel = (data: {
+    rules: Array<WorkspaceNotificationRule>;
+    record: { channels: Array<NotificationRuleWorkspaceChannel> };
+    projectAuth: WorkspaceProjectAuthToken;
+    workspaceType: WorkspaceType;
+  }) => Array<WorkspaceNotificationRule>;
+
+  // Which of the rules INC-9 has no channel for, in the project's Slack.
+  function rulesWithoutTheirChannel(data: {
+    rules: Array<WorkspaceNotificationRule>;
+    channels: Array<NotificationRuleWorkspaceChannel>;
+    projectAuth: WorkspaceProjectAuthToken;
+  }): Array<string> {
+    const service: { getRulesWithoutTheirChannel: RulesWithoutTheirChannel } =
+      WorkspaceNotificationRuleService as unknown as {
+        getRulesWithoutTheirChannel: RulesWithoutTheirChannel;
+      };
+
+    return service
+      .getRulesWithoutTheirChannel({
+        rules: data.rules,
+        record: {
+          channels: data.channels,
+          channelNameParts: INCIDENT_CHANNEL_NAME_PARTS,
+        } as never,
+        projectAuth: data.projectAuth,
+        workspaceType: WorkspaceType.Slack,
+      })
+      .map((rule: WorkspaceNotificationRule): string => {
+        return rule.id!.toString();
+      });
+  }
+
+  // A channel INC-9 has, opened by a rule that is not among these.
+  function channelOfAnotherRule(
+    teamId?: string,
+  ): NotificationRuleWorkspaceChannel {
+    return {
+      id: "C0HAD",
+      name: CHANNEL_NAME,
+      workspaceType: WorkspaceType.Slack,
+      notificationRuleId: OTHER_RULE_ID.toString(),
+      ...(teamId ? { teamId: teamId } : {}),
+    };
+  }
+
+  test("a channel created before the project moved to its organization is the default workspace's", () => {
+    expect(
+      rulesWithoutTheirChannel({
+        rules: [
+          incidentRule(FIRST_RULE_ID),
+          incidentRule(SECOND_RULE_ID, { teamToCreateChannelIn: EAST }),
+          incidentRule(THIRD_RULE_ID, { teamToCreateChannelIn: WEST }),
+        ],
+        channels: [channelOfAnotherRule()],
+        projectAuth: slackOrganizationAuth(),
+      }),
+    ).toEqual([THIRD_RULE_ID.toString()]);
+  });
+
+  test("a channel of the name in another workspace is not the rule's", () => {
+    expect(
+      rulesWithoutTheirChannel({
+        rules: [
+          incidentRule(FIRST_RULE_ID),
+          incidentRule(SECOND_RULE_ID, { teamToCreateChannelIn: WEST }),
+        ],
+        channels: [channelOfAnotherRule(WEST)],
+        projectAuth: slackOrganizationAuth(),
+      }),
+    ).toEqual([FIRST_RULE_ID.toString()]);
+  });
+
+  test("connected to one workspace, the name is the channel whatever team a rule once named", () => {
+    expect(
+      rulesWithoutTheirChannel({
+        rules: [
+          incidentRule(FIRST_RULE_ID),
+          incidentRule(SECOND_RULE_ID, { teamToCreateChannelIn: "T0ONCE" }),
+        ],
+        channels: [channelOfAnotherRule()],
+        projectAuth: slackProjectAuth(),
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("the existing channels rules post to, each once", () => {
+  // A rule that posts to existing channels, in a team or workspace it names.
+  function postingRule(
+    channelNames: string,
+    team?: string,
+  ): BaseNotificationRule {
+    return {
+      _type: "IncidentNotificationRule",
+      filterCondition: FilterCondition.All,
+      filters: [],
+      shouldPostToExistingChannel: true,
+      existingChannelNames: channelNames,
+      ...(team ? { existingTeam: team } : {}),
+    } as unknown as BaseNotificationRule;
+  }
+
+  function existingChannels(data: {
+    workspaceType: WorkspaceType;
+    rules: Array<BaseNotificationRule>;
+    projectAuth?: WorkspaceProjectAuthToken | null;
+  }): Array<Array<string | undefined>> {
+    return WorkspaceNotificationRuleService.getExistingChannelNamesFromNotificationRules(
+      {
+        notificationRules: data.rules,
+        workspaceType: data.workspaceType,
+        projectAuth: data.projectAuth,
+      },
+    ).map((channel: WorkspaceChannel): Array<string | undefined> => {
+      return [channel.name, channel.teamId];
+    });
+  }
+
+  test("REGRESSION: Slack organization - one name in two workspaces is two channels", () => {
+    expect(
+      existingChannels({
+        workspaceType: WorkspaceType.Slack,
+        rules: [postingRule("incidents", EAST), postingRule("incidents", WEST)],
+        projectAuth: slackOrganizationAuth(),
+      }),
+    ).toEqual([
+      ["incidents", EAST],
+      ["incidents", WEST],
+    ]);
+  });
+
+  test("Slack organization - a rule naming no workspace and one naming the default post once, as the first rule asked", () => {
+    expect(
+      existingChannels({
+        workspaceType: WorkspaceType.Slack,
+        rules: [postingRule("incidents"), postingRule("incidents", EAST)],
+        projectAuth: slackOrganizationAuth(),
+      }),
+    ).toEqual([["incidents", undefined]]);
+  });
+
+  test("Slack organization - a rule naming no workspace and one naming another: two channels", () => {
+    expect(
+      existingChannels({
+        workspaceType: WorkspaceType.Slack,
+        rules: [postingRule("incidents"), postingRule("incidents", WEST)],
+        projectAuth: slackOrganizationAuth(),
+      }),
+    ).toEqual([
+      ["incidents", undefined],
+      ["incidents", WEST],
+    ]);
+  });
+
+  test("Slack connected to one workspace - a name is one channel, whatever team a rule once named", () => {
+    expect(
+      existingChannels({
+        workspaceType: WorkspaceType.Slack,
+        rules: [
+          postingRule("incidents,alerts", "T0ONCE1"),
+          postingRule("incidents", "T0ONCE2"),
+        ],
+        projectAuth: slackProjectAuth(),
+      }),
+    ).toEqual([
+      ["incidents", "T0ONCE1"],
+      ["alerts", "T0ONCE1"],
+    ]);
+  });
+
+  test("Slack, its connection not read - a name is one channel", () => {
+    expect(
+      existingChannels({
+        workspaceType: WorkspaceType.Slack,
+        rules: [postingRule("incidents", EAST), postingRule("incidents", WEST)],
+      }),
+    ).toEqual([["incidents", EAST]]);
+  });
+
+  test("REGRESSION: Microsoft Teams - General in two teams is two channels; in one team, one", () => {
+    expect(
+      existingChannels({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        rules: [
+          postingRule("General", TEAM_X),
+          postingRule("General", TEAM_Y),
+          postingRule("General", TEAM_X),
+        ],
+      }),
+    ).toEqual([
+      ["General", TEAM_X],
+      ["General", TEAM_Y],
+    ]);
+  });
+
+  test("the project's Slack connection is read only when a rule names a workspace", async () => {
+    const getProjectAuth: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      WorkspaceProjectAuthTokenService,
+      "getProjectAuth",
+    );
+
+    projectAuths = [slackOrganizationAuth()];
+
+    const read: (
+      rules: Array<BaseNotificationRule>,
+    ) => Promise<Array<Array<string | undefined>>> = async (
+      rules: Array<BaseNotificationRule>,
+    ): Promise<Array<Array<string | undefined>>> => {
+      storedRules = rules.map(
+        (
+          rule: BaseNotificationRule,
+          index: number,
+        ): WorkspaceNotificationRule => {
+          const stored: WorkspaceNotificationRule = incidentRule(
+            [FIRST_RULE_ID, SECOND_RULE_ID][index]!,
+          );
+          stored.notificationRule = rule as never;
+          return stored;
+        },
+      );
+
+      return (
+        await WorkspaceNotificationRuleService.getExistingChannelNamesBasedOnEventType(
+          {
+            projectId: PROJECT_ID,
+            workspaceType: WorkspaceType.Slack,
+            notificationRuleEventType: NotificationRuleEventType.Incident,
+            notificationFor: { incidentId: INCIDENT_ID },
+          },
+        )
+      ).map((channel: WorkspaceChannel): Array<string | undefined> => {
+        return [channel.name, channel.teamId];
+      });
+    };
+
+    // No rule names a workspace: one name is one channel, the connection unread.
+    expect(
+      await read([postingRule("incidents"), postingRule("incidents")]),
+    ).toEqual([["incidents", undefined]]);
+    expect(getProjectAuth).not.toHaveBeenCalled();
+
+    // Rules name two workspaces: read, and a channel in each.
+    expect(
+      await read([
+        postingRule("incidents", EAST),
+        postingRule("incidents", WEST),
+      ]),
+    ).toEqual([
+      ["incidents", EAST],
+      ["incidents", WEST],
+    ]);
+    expect(getProjectAuth).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("getnotificationChannelssFromNotificationRules, told the workspace", () => {
   function channelsFor(
     workspaceType: WorkspaceType,
@@ -918,6 +1347,32 @@ describe("getnotificationChannelssFromNotificationRules, told the workspace", ()
     ]);
   });
 
+  test("Slack - one name asked for in two workspaces of an organization is asked for in each", () => {
+    expect(
+      channelsFor(WorkspaceType.Slack, [
+        incidentRule(FIRST_RULE_ID, { teamToCreateChannelIn: EAST }),
+        incidentRule(SECOND_RULE_ID, { teamToCreateChannelIn: WEST }),
+        incidentRule(THIRD_RULE_ID, {
+          template: "Incidents-",
+          teamToCreateChannelIn: EAST,
+        }),
+      ]).map((channel: NotificationRuleChannelToCreate): Array<unknown> => {
+        return [
+          channel.channelName,
+          channel.teamId,
+          channel.notificationRuleIds,
+        ];
+      }),
+    ).toEqual([
+      [
+        CHANNEL_NAME,
+        EAST,
+        [FIRST_RULE_ID.toString(), THIRD_RULE_ID.toString()],
+      ],
+      [CHANNEL_NAME, WEST, [SECOND_RULE_ID.toString()]],
+    ]);
+  });
+
   test("Microsoft Teams keeps a space: a template with one asks for a name of its own", () => {
     expect(
       channelsFor(WorkspaceType.MicrosoftTeams, [
@@ -957,6 +1412,34 @@ describe("the name a workspace creates a channel by", () => {
       SlackUtil.isSameChannelToCreate(
         { channelName: "incident-inc-9" },
         { channelName: CHANNEL_NAME },
+      ),
+    ).toBe(false);
+  });
+
+  test("Slack: the same name in another workspace of an organization is another channel", () => {
+    expect(
+      SlackUtil.isSameChannelToCreate(
+        { channelName: "Incidents -INC-9", teamId: EAST },
+        { channelName: CHANNEL_NAME, teamId: EAST },
+      ),
+    ).toBe(true);
+    expect(
+      SlackUtil.isSameChannelToCreate(
+        { channelName: CHANNEL_NAME, teamId: EAST },
+        { channelName: CHANNEL_NAME, teamId: WEST },
+      ),
+    ).toBe(false);
+    // As the rules service reads them: none for a project in one workspace.
+    expect(
+      SlackUtil.isSameChannelToCreate(
+        { channelName: CHANNEL_NAME, teamId: "" },
+        { channelName: CHANNEL_NAME },
+      ),
+    ).toBe(true);
+    expect(
+      SlackUtil.isSameChannelToCreate(
+        { channelName: CHANNEL_NAME },
+        { channelName: CHANNEL_NAME, teamId: WEST },
       ),
     ).toBe(false);
   });

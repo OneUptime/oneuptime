@@ -20,6 +20,7 @@ import WorkspaceProjectResolver, {
   WorkspaceProjectResolution,
 } from "../WorkspaceProjectResolution";
 import logger from "../../Logger";
+import SlackRequestWorkspaceUtil from "./SlackRequestWorkspace";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import WorkspaceCommands from "../WorkspaceCommands";
@@ -58,6 +59,13 @@ const WELCOMED_FOR_SECONDS: number = 24 * 60 * 60;
 
 export interface SlackChannelJoin {
   teamId: string;
+  /*
+   * In a Slack Enterprise organization: the organization, and whether it
+   * came to OneUptime's installation in the whole organization
+   * (SlackRequestWorkspace) - what finds a project connected to it.
+   */
+  enterpriseId?: string | undefined;
+  isEnterpriseInstall?: boolean | undefined;
   // Who joined: the app's bot, for a welcome.
   joinedUserId: string;
   channelId: string;
@@ -88,7 +96,7 @@ export default class SlackWelcome {
       const resolution: WorkspaceProjectResolution =
         await WorkspaceProjectResolver.resolve({
           workspaceType: WorkspaceType.Slack,
-          workspaceId: join.teamId,
+          workspaceId: SlackRequestWorkspaceUtil.getConnectionIds(join),
           clues: {
             channelId: join.channelId,
             workspaceUserId: join.inviterUserId,

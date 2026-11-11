@@ -26,6 +26,7 @@ import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { MicrosoftTeamsTagProvider } from "../MicrosoftTeams/MicrosoftTeamsTags";
 import { SlackUserGroupProvider } from "../Slack/SlackUserGroups";
+import SlackOrganization from "../Slack/SlackOrganization";
 import {
   WorkspaceUserGroupError,
   WorkspaceUserGroupPerson,
@@ -412,6 +413,8 @@ export default class WorkspaceUserGroupSync {
     let state: WorkspaceUserGroupSyncState;
     let result: WorkspaceUserGroupProviderResult | null = null;
     let retryAfterSeconds: number | undefined = undefined;
+    // A Slack group that says no workspace: the one it was kept in step in (below).
+    let slackWorkspaceToKeep: string | null = null;
 
     if (!projectAuth || !projectAuth.authToken || !provider) {
       state = WorkspaceUserGroupSync.keep(previous, {
@@ -419,12 +422,26 @@ export default class WorkspaceUserGroupSync {
         checkedAt: now,
       });
     } else {
+      /*
+       * Slack: the workspace the group is in when it does not say
+       * (workspaceTeamId) - the project's own, or, for OneUptime installed
+       * for a whole Enterprise organization, its default workspace: never
+       * the organization's own id, which no workspace call takes. A project
+       * that moved from one workspace to its organization keeps that
+       * workspace as the default, so a group linked before the move is
+       * still kept in step there.
+       */
+      const workspaceProjectId: string =
+        group.workspaceType === WorkspaceType.Slack
+          ? SlackOrganization.getWorkspaceIdForCalls(projectAuth)
+          : projectAuth.workspaceProjectId || "";
+
       try {
         result = await provider.sync({
           target: {
             projectId: group.projectId,
             authToken: projectAuth.authToken,
-            workspaceProjectId: projectAuth.workspaceProjectId || "",
+            workspaceProjectId: workspaceProjectId,
             workspaceGroupId: group.workspaceGroupId || "",
             workspaceTeamId: group.workspaceTeamId || null,
             name: group.name || "",
@@ -441,6 +458,22 @@ export default class WorkspaceUserGroupSync {
           problem: result.problem,
           checkedAt: now.toISOString(),
         };
+
+        /*
+         * A Slack group linked before its project moved to its Enterprise
+         * organization's installation says no workspace: it was found in
+         * the default one - the workspace the project was connected to -
+         * and keeps it once in step there (below), so choosing another
+         * default later does not lose it.
+         */
+        if (
+          group.workspaceType === WorkspaceType.Slack &&
+          !group.workspaceTeamId &&
+          workspaceProjectId &&
+          SlackOrganization.isOrganization(projectAuth.miscData)
+        ) {
+          slackWorkspaceToKeep = workspaceProjectId;
+        }
       } catch (err) {
         const error: WorkspaceUserGroupError =
           WorkspaceUserGroupError.read(err) ||
@@ -481,6 +514,10 @@ export default class WorkspaceUserGroupSync {
         state.problem === WorkspaceUserGroupProblem.TurnedOffInWorkspace)
     ) {
       data["syncedAt"] = now;
+
+      if (slackWorkspaceToKeep) {
+        data["workspaceTeamId"] = slackWorkspaceToKeep;
+      }
     }
 
     if (result?.name && result.name !== group.name) {

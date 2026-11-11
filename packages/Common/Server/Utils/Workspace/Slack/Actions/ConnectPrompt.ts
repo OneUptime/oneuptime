@@ -32,6 +32,9 @@ import SlackActionAnswer, {
   SlackAnswerPlace,
 } from "./Answer";
 import WorkspacePublicNoteApproval from "../../WorkspacePublicNoteApproval";
+import SlackRequestWorkspaceUtil, {
+  SlackRequestWorkspace,
+} from "../SlackRequestWorkspace";
 
 /*
  * "CONNECT YOUR SLACK ACCOUNT TO ACKNOWLEDGE THIS INCIDENT."
@@ -507,6 +510,13 @@ export default class SlackConnectPrompt {
     projectId: ObjectID;
     place: SlackAnswerPlace;
     slackTeamId?: string | undefined;
+    /*
+     * The workspace and, in a Slack Enterprise organization, the
+     * organization the press was made in: the projects connected to either
+     * are the ones it could be about (SlackRequestWorkspace). Without it,
+     * the workspace alone.
+     */
+    slackWorkspace?: SlackRequestWorkspace | undefined;
     description: SlackPressDescription;
   }): Promise<SlackAnswerDelivery> {
     const link: WorkspaceConnectLink =
@@ -535,7 +545,10 @@ export default class SlackConnectPrompt {
       projectName: await WorkspaceProjectResolver.getSharedWorkspaceProjectName(
         {
           workspaceType: WorkspaceType.Slack,
-          workspaceId: data.slackTeamId,
+          workspaceId: SlackRequestWorkspaceUtil.getConnectionIds(
+            data.slackWorkspace ||
+              SlackRequestWorkspaceUtil.ofTeam(data.slackTeamId),
+          ),
           projectId: data.projectId,
         },
       ),
@@ -563,6 +576,7 @@ export default class SlackConnectPrompt {
     projectId: ObjectID;
     place: SlackAnswerPlace;
     slackTeamId?: string | undefined;
+    slackWorkspace?: SlackRequestWorkspace | undefined;
     description: SlackPressDescription;
     // The conversation, and who is asking in it.
     conversation: WorkspaceConversationPerson;
@@ -578,6 +592,7 @@ export default class SlackConnectPrompt {
       projectId: data.projectId,
       place: data.place,
       slackTeamId: data.slackTeamId,
+      slackWorkspace: data.slackWorkspace,
       description: data.description,
     });
 

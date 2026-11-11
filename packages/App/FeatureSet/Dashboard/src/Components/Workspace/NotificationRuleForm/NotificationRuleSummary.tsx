@@ -1,6 +1,7 @@
 import {
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
+  SlackOrganizationWorkspace,
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Team from "Common/Models/DatabaseModels/Team";
@@ -46,6 +47,11 @@ export interface RuleSummarySource {
   onCallSchedules?: Array<OnCallDutyPolicySchedule> | undefined;
   microsoftTeamsTeams?: Array<MicrosoftTeamsTeam> | undefined;
   microsoftTeamsChats?: Array<MicrosoftTeamsChat> | undefined;
+  /*
+   * Slack installed for a whole Enterprise organization: the workspaces
+   * OneUptime was added to, to name the one a rule picks.
+   */
+  slackWorkspaces?: Array<SlackOrganizationWorkspace> | undefined;
   numberPrefixes?: WorkspaceChannelNumberPrefixes | undefined;
   exampleRecordName?: string | undefined;
 }
@@ -97,6 +103,21 @@ export const getRuleSummarySentences: (
 
   const chatIds: Array<string> = toPeoplePickerIds(rule.existingChatIds);
 
+  // A workspace of a Slack organization the rule picks, by its name.
+  const slackWorkspaceName: (id: string | undefined) => string | undefined = (
+    id: string | undefined,
+  ): string | undefined => {
+    if (props.workspaceType !== WorkspaceType.Slack || !id) {
+      return undefined;
+    }
+
+    return (props.slackWorkspaces || []).find(
+      (workspace: SlackOrganizationWorkspace): boolean => {
+        return workspace.id === id;
+      },
+    )?.name;
+  };
+
   return getNotificationRuleSummary({
     rule: rule,
     eventType: props.eventType,
@@ -127,6 +148,8 @@ export const getRuleSummarySentences: (
       },
     }),
     channelTeamName: channelTeam?.name,
+    channelWorkspaceName: slackWorkspaceName(rule.teamToCreateChannelIn),
+    existingChannelsWorkspaceName: slackWorkspaceName(rule.existingTeam),
     chatNames: chatIds
       .map((chatId: string): string => {
         return (
@@ -157,6 +180,7 @@ const NotificationRuleSummary: FunctionComponent<
     onCallSchedules: props.onCallSchedules,
     microsoftTeamsTeams: props.microsoftTeamsTeams,
     microsoftTeamsChats: props.microsoftTeamsChats,
+    slackWorkspaces: props.slackWorkspaces,
     numberPrefixes: props.numberPrefixes,
     exampleRecordName: props.exampleRecordName,
     translator: translator,

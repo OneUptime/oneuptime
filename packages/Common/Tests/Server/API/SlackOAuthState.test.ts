@@ -94,6 +94,10 @@ jest.mock("../../../Server/Services/WorkspaceProjectAuthTokenService", () => {
     __esModule: true,
     default: {
       findOneBy: jest.fn(),
+      // The project's connection before this install: none.
+      getProjectAuth: jest.fn(async () => {
+        return null;
+      }),
       refreshAuthToken: jest.fn(),
     },
   };

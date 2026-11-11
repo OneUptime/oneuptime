@@ -179,61 +179,98 @@ const CHANNEL_RECORD_SERVICES: ReadonlyArray<
 // How many records owning one channel are read: one is the usual.
 const CHANNEL_OWNERS_READ_LIMIT: number = 20;
 
+/*
+ * The id, or ids, a request's projects are connected under: a Slack
+ * workspace's team id, a Microsoft 365 tenant id - and, for a request from a
+ * workspace of a Slack Enterprise organization, the organization's id too
+ * (SlackRequestWorkspace.getConnectionIds), the one it says it is for first.
+ */
+export type WorkspaceConnectionIds = string | ReadonlyArray<string>;
+
 export default class WorkspaceProjectResolver {
+  // The ids of `workspaceId`, each once, in order, without the empty ones.
+  public static getConnectionIdList(
+    workspaceId: WorkspaceConnectionIds | undefined,
+  ): Array<string> {
+    const ids: ReadonlyArray<string> =
+      typeof workspaceId === "string"
+        ? [workspaceId]
+        : Array.isArray(workspaceId)
+          ? workspaceId
+          : [];
+
+    const list: Array<string> = [];
+
+    for (const id of ids) {
+      if (typeof id === "string" && id && !list.includes(id)) {
+        list.push(id);
+      }
+    }
+
+    return list;
+  }
+
   /*
    * Every project connected to the workspace, one connection each (a
    * project connected twice is one project), oldest connection first, so
    * whatever is listed is listed in the same order every time.
+   *
+   * With more than one id - a workspace and its Slack Enterprise
+   * organization - the projects connected under each are read in turn, and
+   * those of the first id come first: a project connected to the workspace
+   * and one connected to the whole organization are both connected to it.
    */
   @CaptureSpan()
   public static async findConnections(data: {
     workspaceType: WorkspaceType;
-    workspaceId: string;
+    workspaceId: WorkspaceConnectionIds;
   }): Promise<Array<WorkspaceProjectAuthToken>> {
-    if (!data.workspaceId) {
-      return [];
-    }
-
-    const rows: Array<WorkspaceProjectAuthToken> =
-      await WorkspaceProjectAuthTokenService.findBy({
-        query: {
-          workspaceType: data.workspaceType,
-          workspaceProjectId: data.workspaceId,
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          authToken: true,
-          workspaceProjectId: true,
-          miscData: true,
-          createdAt: true,
-        },
-        sort: {
-          createdAt: SortOrder.Ascending,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+    const ids: Array<string> = WorkspaceProjectResolver.getConnectionIdList(
+      data.workspaceId,
+    );
 
     const seen: Set<string> = new Set<string>();
     const connections: Array<WorkspaceProjectAuthToken> = [];
 
-    for (const row of rows) {
-      if (!row.projectId) {
-        continue;
+    for (const id of ids) {
+      const rows: Array<WorkspaceProjectAuthToken> =
+        await WorkspaceProjectAuthTokenService.findBy({
+          query: {
+            workspaceType: data.workspaceType,
+            workspaceProjectId: id,
+          },
+          select: {
+            _id: true,
+            projectId: true,
+            authToken: true,
+            workspaceProjectId: true,
+            miscData: true,
+            createdAt: true,
+          },
+          sort: {
+            createdAt: SortOrder.Ascending,
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      for (const row of rows) {
+        if (!row.projectId) {
+          continue;
+        }
+
+        const key: string = row.projectId.toString().toLowerCase();
+
+        if (seen.has(key)) {
+          continue;
+        }
+
+        seen.add(key);
+        connections.push(row);
       }
-
-      const key: string = row.projectId.toString().toLowerCase();
-
-      if (seen.has(key)) {
-        continue;
-      }
-
-      seen.add(key);
-      connections.push(row);
     }
 
     return connections;
@@ -247,7 +284,7 @@ export default class WorkspaceProjectResolver {
   @CaptureSpan()
   public static async resolve(data: {
     workspaceType: WorkspaceType;
-    workspaceId: string;
+    workspaceId: WorkspaceConnectionIds;
     clues?: WorkspaceProjectClues | undefined;
   }): Promise<WorkspaceProjectResolution> {
     const connections: Array<WorkspaceProjectAuthToken> =
@@ -821,10 +858,13 @@ export default class WorkspaceProjectResolver {
   @CaptureSpan()
   public static async getSharedWorkspaceProjectName(data: {
     workspaceType: WorkspaceType;
-    workspaceId: string | undefined;
+    workspaceId: WorkspaceConnectionIds | undefined;
     projectId: ObjectID;
   }): Promise<string | null> {
-    if (!data.workspaceId) {
+    const workspaceIds: Array<string> =
+      WorkspaceProjectResolver.getConnectionIdList(data.workspaceId);
+
+    if (workspaceIds.length === 0) {
       return null;
     }
 
@@ -832,7 +872,7 @@ export default class WorkspaceProjectResolver {
       const connections: Array<WorkspaceProjectAuthToken> =
         await WorkspaceProjectResolver.findConnections({
           workspaceType: data.workspaceType,
-          workspaceId: data.workspaceId,
+          workspaceId: workspaceIds,
         });
 
       if (connections.length < 2) {

@@ -24,6 +24,7 @@ import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnectio
 import {
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
+  SlackOrganizationWorkspace,
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
 import NotificationRuleSummary from "../NotificationRuleForm/NotificationRuleSummary";
@@ -128,6 +129,8 @@ export interface NotificationRuleThenProps {
   onCallSchedules?: Array<OnCallDutyPolicySchedule> | undefined;
   microsoftTeamsTeams?: Array<MicrosoftTeamsTeam> | undefined;
   microsoftTeamsChats?: Array<MicrosoftTeamsChat> | undefined;
+  // A Slack Enterprise organization's workspaces, to name the one a rule picks.
+  slackWorkspaces?: Array<SlackOrganizationWorkspace> | undefined;
   // For the example of the name of the channel the rule creates.
   numberPrefixes?: WorkspaceChannelNumberPrefixes | undefined;
   exampleRecordName?: string | undefined;
@@ -146,6 +149,7 @@ export const NotificationRuleThen: FunctionComponent<
       onCallSchedules={props.onCallSchedules}
       microsoftTeamsTeams={props.microsoftTeamsTeams}
       microsoftTeamsChats={props.microsoftTeamsChats}
+      slackWorkspaces={props.slackWorkspaces}
       numberPrefixes={props.numberPrefixes}
       exampleRecordName={props.exampleRecordName}
       showWhenEmpty={true}
@@ -252,6 +256,7 @@ export function getNotificationRuleCardColumns(
             onCallSchedules={data.onCallSchedules}
             microsoftTeamsTeams={data.microsoftTeamsTeams}
             microsoftTeamsChats={data.microsoftTeamsChats}
+            slackWorkspaces={data.slackWorkspaces}
             numberPrefixes={data.numberPrefixes}
             exampleRecordName={data.exampleRecordName}
           />

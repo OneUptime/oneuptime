@@ -643,6 +643,34 @@ export const NEW_CHANNEL_TEAM_DESCRIPTION: string = translationKey(
   "The team the channel is created in.",
 );
 
+/*
+ * Slack installed for a whole Enterprise organization, added to two or
+ * more of its workspaces: which workspace a rule's channels are in. Left
+ * empty, OneUptime uses the organization's default workspace
+ * (SlackOrganization).
+ */
+export const SLACK_WORKSPACE_TITLE: string = translationKey("Slack workspace");
+
+export const SLACK_WORKSPACE_PLACEHOLDER: string =
+  translationKey("Default workspace");
+
+export const EXISTING_CHANNELS_SLACK_WORKSPACE_DESCRIPTION: string =
+  translationKey(
+    "The workspace these channels are in. Leave it empty to look in the default workspace first, then in the others.",
+  );
+
+export const NEW_CHANNEL_SLACK_WORKSPACE_DESCRIPTION: string = translationKey(
+  "The workspace the channel is created in. Leave it empty to use the default workspace.",
+);
+
+export const CREATED_IN_SLACK_WORKSPACE_SENTENCE: string = translationKey(
+  "The channel is created in the {{workspace}} workspace.",
+);
+
+export const POSTS_IN_SLACK_WORKSPACE_SENTENCE: string = translationKey(
+  "Those channels are in the {{workspace}} workspace.",
+);
+
 export const POST_TO_CHATS_TITLE: string = translationKey("Post to chats");
 
 export const POST_TO_CHATS_DESCRIPTION: string = translationKey(
@@ -912,6 +940,13 @@ export interface NotificationRuleSummaryInput {
   scheduleNames?: Array<string> | undefined;
   // The Microsoft Teams team the channel is created in, by its name.
   channelTeamName?: string | undefined;
+  /*
+   * Slack installed for a whole Enterprise organization: the workspace the
+   * channel is created in, and the one the channels it posts in are in, by
+   * name - when the rule names them.
+   */
+  channelWorkspaceName?: string | undefined;
+  existingChannelsWorkspaceName?: string | undefined;
   chatNames: Array<string>;
 }
 
@@ -986,6 +1021,14 @@ export function getNotificationRuleSummary(
         );
       }
     } else {
+      if (input.channelWorkspaceName) {
+        sentences.push(
+          translator.translateTemplate(CREATED_IN_SLACK_WORKSPACE_SENTENCE, {
+            workspace: input.channelWorkspaceName,
+          }),
+        );
+      }
+
       sentences.push(...getInvitesSentences(input));
 
       // Slack only: OneUptime cannot archive a Microsoft Teams channel.
@@ -1010,6 +1053,17 @@ export function getNotificationRuleSummary(
           }),
         }),
       );
+
+      if (
+        input.workspaceType === WorkspaceType.Slack &&
+        input.existingChannelsWorkspaceName
+      ) {
+        sentences.push(
+          translator.translateTemplate(POSTS_IN_SLACK_WORKSPACE_SENTENCE, {
+            workspace: input.existingChannelsWorkspaceName,
+          }),
+        );
+      }
     }
   }
 

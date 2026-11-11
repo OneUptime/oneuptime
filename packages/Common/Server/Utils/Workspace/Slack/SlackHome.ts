@@ -30,6 +30,7 @@ import WorkspaceProjectResolver, {
 import SlackModalMetadata from "./SlackModalMetadata";
 import WorkspaceUserAuthTokenService from "../../../Services/WorkspaceUserAuthTokenService";
 import logger from "../../Logger";
+import SlackRequestWorkspaceUtil from "./SlackRequestWorkspace";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import WorkspaceActionAuthorization from "../WorkspaceActionAuthorization";
 import WorkspaceHome, {
@@ -161,6 +162,13 @@ export default class SlackHome {
   @CaptureSpan()
   public static async handleHomeOpened(event: {
     teamId: string;
+    /*
+     * In a Slack Enterprise organization: the organization, and whether it
+     * came to OneUptime's installation in the whole organization
+     * (SlackRequestWorkspace) - what finds a project connected to it.
+     */
+    enterpriseId?: string | undefined;
+    isEnterpriseInstall?: boolean | undefined;
     slackUserId: string;
     tab?: string | undefined;
     // The Home's view as Slack had it when it was opened: its hash.
@@ -177,6 +185,8 @@ export default class SlackHome {
     try {
       const home: SlackPersonHome | null = await SlackHome.getPersonHome({
         teamId: event.teamId,
+        enterpriseId: event.enterpriseId,
+        isEnterpriseInstall: event.isEnterpriseInstall,
         slackUserId: event.slackUserId,
       });
 
@@ -230,6 +240,8 @@ export default class SlackHome {
   @CaptureSpan()
   public static async switchProject(data: {
     teamId: string | undefined;
+    enterpriseId?: string | undefined;
+    isEnterpriseInstall?: boolean | undefined;
     slackUserId: string | undefined;
     // What the chosen option names (readProjectSwitch); null for none.
     projectId: ObjectID | null;
@@ -241,6 +253,8 @@ export default class SlackHome {
     try {
       const home: SlackPersonHome | null = await SlackHome.getPersonHome({
         teamId: data.teamId,
+        enterpriseId: data.enterpriseId,
+        isEnterpriseInstall: data.isEnterpriseInstall,
         slackUserId: data.slackUserId,
         chosenProjectId: data.projectId || undefined,
       });
@@ -349,6 +363,13 @@ export default class SlackHome {
   @CaptureSpan()
   public static async getPersonHome(data: {
     teamId: string;
+    /*
+     * In a Slack Enterprise organization: the organization, and whether it
+     * came to OneUptime's installation in the whole organization
+     * (SlackRequestWorkspace) - what finds a project connected to it.
+     */
+    enterpriseId?: string | undefined;
+    isEnterpriseInstall?: boolean | undefined;
     slackUserId: string;
     // A project they just chose for it, or just connected their account in.
     chosenProjectId?: ObjectID | undefined;
@@ -356,7 +377,7 @@ export default class SlackHome {
     const resolution: WorkspaceProjectResolution =
       await WorkspaceProjectResolver.resolve({
         workspaceType: WorkspaceType.Slack,
-        workspaceId: data.teamId,
+        workspaceId: SlackRequestWorkspaceUtil.getConnectionIds(data),
         clues: {
           workspaceUserId: data.slackUserId,
         },
