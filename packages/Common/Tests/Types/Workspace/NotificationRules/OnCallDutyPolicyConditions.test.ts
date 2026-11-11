@@ -18,6 +18,7 @@ import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "../../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import SecurityCasePriority from "../../../../Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "../../../../Models/DatabaseModels/SecurityCaseStatus";
+import ServiceLevelObjective from "../../../../Models/DatabaseModels/ServiceLevelObjective";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 import {
   buildDefaultTestPriorities,
@@ -77,6 +78,7 @@ function dropdownData(): {
   monitors: Array<Monitor>;
   securityCasePriorities: Array<SecurityCasePriority>;
   securityCaseStatuses: Array<SecurityCaseStatus>;
+  serviceLevelObjectives: Array<ServiceLevelObjective>;
 } {
   return {
     alertSeverities: [
@@ -109,6 +111,17 @@ function dropdownData(): {
     // A security case rule's: a new project's case priorities and statuses.
     securityCasePriorities: buildDefaultTestPriorities(),
     securityCaseStatuses: buildDefaultTestStatuses(),
+    /*
+     * A Service Level Objective rule's SLOs condition (ff8cd72861f): the
+     * project's SLOs, which the rules table fetches for that event type.
+     */
+    serviceLevelObjectives: [
+      named(
+        new ServiceLevelObjective(),
+        "c8c8c8c8c8c8c8c8c8c8c8c8",
+        "Checkout availability",
+      ),
+    ],
   };
 }
 
