@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50364,
-    "untranslated": 10228
+    "keys": 50394,
+    "untranslated": 10041
   },
   "sameAsEnglish": [
     " is",
@@ -10,6 +10,7 @@
     "\"GET\"",
     "\"WARNING\"",
     "0 (kiss-o'-death {{kissCode}})",
+    "00:05:0b*",
     "1 week",
     "12 nodes · 248 pods · 9 namespaces",
     "14 containers · RHEL 9.4",

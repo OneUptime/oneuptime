@@ -1,12 +1,13 @@
 {
   "baseline": {
-    "keys": 50364,
-    "untranslated": 9931
+    "keys": 50394,
+    "untranslated": 9756
   },
   "sameAsEnglish": [
     "\"Error\"",
     "\"GET\"",
     "\"WARNING\"",
+    "00:05:0b*",
     "2xx",
     "3xx",
     "412 GB",

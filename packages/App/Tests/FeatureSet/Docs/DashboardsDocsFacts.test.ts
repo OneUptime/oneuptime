@@ -1774,6 +1774,39 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
     );
   });
 
+  /*
+   * Issue #6721: a User Retention widget too narrow for its table draws the
+   * periods that fit, from the first, and says under the table how many it
+   * leaves out - a link to the table on its page, like the corner's.
+   */
+  it("says a narrow User Retention widget draws the periods that fit and how many more there are", () => {
+    const section: string = sectionOf(page, "## Product analytics");
+    const widget: string = readSource(
+      `${WIDGET_COMPONENTS_DIR}/DashboardProductAnalyticsRetentionComponent.tsx`,
+    );
+    const table: string = readSource(
+      `${DASHBOARD_APP}/Components/ProductAnalytics/ProductAnalyticsRetentionTable.tsx`,
+    );
+
+    expect(table).toContain(
+      "export function countProductAnalyticsRetentionPeriodsThatFit(",
+    );
+    expect(widget).toContain(
+      "fitToWidthInPx={getRetentionWidgetTableWidthInPx(",
+    );
+    for (const words of [
+      '"{{count}} more days"',
+      '"{{count}} more weeks"',
+      '"{{count}} more months"',
+    ]) {
+      expect(widget).toContain(`other: ${words},`);
+    }
+    expect(widget).toContain("<ProductAnalyticsWidgetPageLink");
+    expect(section).toContain(
+      "A widget too narrow for every period of its table draws the first ones that fit and says under the table how many more there are; that line opens the table on its page too.",
+    );
+  });
+
   it("gives the Log Chart's and the Trace Chart's choices as their settings offer them", () => {
     const table: Array<Array<string>> = rowsOf(
       tables(sectionOf(page, "## Logs, traces and security"))[0],
