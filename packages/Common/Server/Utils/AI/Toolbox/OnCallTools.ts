@@ -15,6 +15,7 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import { sortLabelNames } from "../../../../Utils/LabelOrder";
 import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
+import UserNotificationEventType from "../../../../Types/UserNotification/UserNotificationEventType";
 import {
   AIChatCitationTargetType,
   AIChatWidgetColumn,
@@ -1132,6 +1133,14 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
 
     const query: Query<OnCallDutyPolicyExecutionLog> = {
       createdAt: QueryHelper.inBetween(startTime, endTime),
+      /*
+       * Test pages (OnCallTestPage) are not pages about anything: they are
+       * left out of what OneUptime AI counts and lists as the on-call
+       * history, as they are left out of every on-call report.
+       */
+      userNotificationEventType: QueryHelper.notEquals(
+        UserNotificationEventType.TestPage,
+      ),
     };
     if (onCallPolicyId) {
       query.onCallDutyPolicyId = onCallPolicyId;
