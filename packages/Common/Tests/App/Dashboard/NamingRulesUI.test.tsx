@@ -321,9 +321,20 @@ describe("the lookup table", () => {
   test("the table's columns and buttons sit at the reading start and end, on a page read either way", () => {
     render(<TableHarness initial={[{ key: "51", value: "MNUPLR01" }]} />);
 
+    // The key's column and the value's; the remove buttons' is read out only.
+    const titled: Array<HTMLElement> = [
+      screen.getByRole("columnheader", {
+        name: "Last part of the IP address",
+      }),
+      screen.getByRole("columnheader", { name: "Value" }),
+    ];
+
     for (const header of screen.getAllByRole("columnheader")) {
-      expect(header.className).toContain("text-start");
       expect(header.className).not.toMatch(/\btext-(left|right)\b/);
+    }
+
+    for (const header of titled) {
+      expect(header.className).toContain("text-start");
     }
 
     const removeCell: HTMLElement = screen

@@ -52,6 +52,12 @@ const ONE_FORM_LANGUAGES: ReadonlySet<string> = new Set([
   "zh-TW",
 ]);
 
+// A letter of any script.
+const LETTER: RegExp = /\p{L}/u;
+
+// The marks that set a run's direction: LRM, RLM and ALM.
+const DIRECTION_MARK: RegExp = /[\u200E\u200F\u061C]/;
+
 // Languages read from the right.
 const RIGHT_TO_LEFT_LANGUAGES: Array<string> = ["ar", "fa"];
 
@@ -259,7 +265,7 @@ function untranslated(
     }
 
     // An English without letters ("{{count}}") reads the same everywhere.
-    if (!/\p{L}/u.test(english.replace(/\{\{?[^}]*\}\}?/g, ""))) {
+    if (!LETTER.test(english.replace(/\{\{?[^}]*\}\}?/g, ""))) {
       return false;
     }
 
@@ -383,7 +389,7 @@ describe("network naming rules and Power BI views and refreshes in every languag
       expect({
         language,
         marked: ALL_KEYS.filter((key: string): boolean => {
-          return /[‎‏؜]/.test(locale[key] || "");
+          return DIRECTION_MARK.test(locale[key] || "");
         }),
       }).toEqual({ language, marked: [] });
     }
