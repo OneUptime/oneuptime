@@ -11,6 +11,7 @@ import useArchivableValues, {
 } from "../../Components/ArchivableValue/UseArchivableValues";
 import { ArchivableValueType } from "Common/Utils/ArchivableValues";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
   // Archive and Unarchive, and the folded Archived section. See the hook.
@@ -116,6 +117,8 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Name",
             type: FieldType.Text,
 
+            // A badge: its words read their own way (Pill), its dot the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (item: Label): ReactElement => {
               return <LabelElement label={item} />;
             },

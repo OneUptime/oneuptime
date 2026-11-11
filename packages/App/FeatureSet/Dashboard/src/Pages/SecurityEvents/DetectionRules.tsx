@@ -110,6 +110,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
  * How often a new rule runs, as the form starts it: the
@@ -781,6 +782,8 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             wrapContent: true,
             wrapMaxWidthClassName:
               SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
+            // Each of its lines already reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: DetectionRule): ReactElement => {
               const count: number =
                 exceptionCounts.counts.get(item._id?.toString() || "") || 0;

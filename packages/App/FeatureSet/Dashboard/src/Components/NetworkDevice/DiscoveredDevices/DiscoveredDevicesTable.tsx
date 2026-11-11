@@ -793,6 +793,10 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
       type: FieldType.Element,
       wrapContent: true,
       wrapMaxWidthClassName: "max-w-xs",
+      // Its name, and its own data under it: the cell reads the name's way.
+      getLineText: (item: DiscoveredDeviceItem): string | undefined => {
+        return item.name;
+      },
       getElement: (item: DiscoveredDeviceItem): ReactElement => {
         const hostname: string | undefined = getHostnameUnderName(item);
 

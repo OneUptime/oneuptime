@@ -147,6 +147,10 @@ const CloudAccounts: FunctionComponent<
             title: "Name",
             type: FieldType.Element,
             isNotCustomizable: true,
+            // Its name, and its own data under it: the cell reads the name's way.
+            getLineText: (item: CloudAccount): string | undefined => {
+              return item.name || item.accountId;
+            },
             /*
              * The account's cloud and its id there under its name - not a
              * column of their own: an Azure subscription's id is 36

@@ -26,6 +26,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
  * Security Events > Settings > Response Targets: how fast a case at each of
@@ -131,6 +132,8 @@ const SecurityResponseTargetsPage: FunctionComponent<
           isNotCustomizable: true,
           // A phone's card opens with the priority's pill: it names itself.
           hideTitleOnMobile: true,
+          // A badge: its words read their own way (Pill), its dot the page's.
+          getLineText: drawsItsOwnLines,
           getElement: (item: SecurityCasePriority): ReactElement => {
             return <SecurityCasePriorityPill value={item} />;
           },

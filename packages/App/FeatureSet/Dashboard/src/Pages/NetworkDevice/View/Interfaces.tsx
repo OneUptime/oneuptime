@@ -323,6 +323,10 @@ const NetworkDeviceInterfaces: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Element,
+            // Its name, and its own data under it: the cell reads the name's way.
+            getLineText: (item: NetworkInterface): string | undefined => {
+              return item.name;
+            },
             getElement: (item: NetworkInterface): ReactElement => {
               return (
                 <div>

@@ -72,6 +72,9 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
  * THE RUNBOOK VARIABLES LIST - the project's own (Runbooks > Settings >
@@ -447,6 +450,8 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-md",
+            // A description under the name: each reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: RunbookVariable): ReactElement => {
               const reference: string = getVariableReferenceText({
                 name: item.name || "",
@@ -468,7 +473,7 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
                       className="min-w-0 font-medium text-gray-900 [overflow-wrap:anywhere]"
                       data-testid="runbook-variable-name"
                     >
-                      {item.name}
+                      <IsolatedText text={item.name || ""} />
                     </span>
                     <span className="mt-0.5 flex shrink-0">
                       <CopyTextButton
@@ -482,13 +487,13 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
                     </span>
                   </div>
                   {item.description ? (
-                    <p
+                    <IsolatedLine
+                      as="p"
+                      text={item.description}
                       className="line-clamp-2 text-sm font-normal text-gray-500 [overflow-wrap:anywhere]"
                       title={item.description}
-                      data-testid="runbook-variable-description"
-                    >
-                      {item.description}
-                    </p>
+                      dataTestId="runbook-variable-description"
+                    />
                   ) : null}
                 </div>
               );

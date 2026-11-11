@@ -53,6 +53,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
  * Scheduled Maintenance > Settings > Calendar Settings (issue #5084): the
@@ -398,6 +400,8 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
             },
             title: "Calendar",
             type: FieldType.Element,
+            // A mark beside the name: the name reads its own way, the cell the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (
               item: ScheduledMaintenanceExternalCalendar,
             ): ReactElement => {
@@ -414,13 +418,15 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
                     aria-hidden="true"
                   ></span>
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-medium text-gray-900">
-                      {item.name}
-                    </div>
+                    <IsolatedLine
+                      text={item.name || ""}
+                      className="truncate text-sm font-medium text-gray-900"
+                    />
                     {item.calendarHost ? (
-                      <div className="truncate text-xs text-gray-500">
-                        {item.calendarHost}
-                      </div>
+                      <IsolatedLine
+                        text={item.calendarHost}
+                        className="truncate text-xs text-gray-500"
+                      />
                     ) : (
                       <></>
                     )}
