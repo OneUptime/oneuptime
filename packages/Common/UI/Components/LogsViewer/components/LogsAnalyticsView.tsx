@@ -69,6 +69,7 @@ import {
   resolveChartTimeRangeZoom,
   useChartTimeRangeZoom,
 } from "../../Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { getReaderNumberLocale } from "../../../../Types/DateLanguage";
 
 type AnalyticsChartType = "timeseries" | "toplist" | "table";
 type AnalyticsAggregation = "count" | "unique";
@@ -337,7 +338,7 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
                 </span>
               </div>
               <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">
-                {entry.value.toLocaleString()}
+                {entry.value.toLocaleString(getReaderNumberLocale())}
               </span>
             </div>
           );
@@ -349,7 +350,7 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
             {translator.translateText("Total")}
           </span>
           <span className="font-mono text-xs font-bold tabular-nums text-gray-900">
-            {total.toLocaleString()}
+            {total.toLocaleString(getReaderNumberLocale())}
           </span>
         </div>
       )}
@@ -1191,7 +1192,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <span className="font-mono text-sm font-semibold tabular-nums text-gray-800">
-                    {item.count.toLocaleString()}
+                    {item.count.toLocaleString(getReaderNumberLocale())}
                   </span>
                   <span className="w-10 text-right font-mono text-[11px] tabular-nums text-gray-400">
                     {sharePercent}%
@@ -1308,7 +1309,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                       );
                     })}
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm font-semibold tabular-nums text-gray-800">
-                      {row.count.toLocaleString()}
+                      {row.count.toLocaleString(getReaderNumberLocale())}
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="h-5 w-full overflow-hidden rounded bg-gray-50">

@@ -1,3 +1,9 @@
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  Translator,
+} from "Common/Types/Translator";
+
 /*
  * The recording-health failure vocabulary, split out of
  * useSessionReplayHealth so it can be read without React.
@@ -26,35 +32,52 @@ export interface SessionReplayHealthError {
   message: string;
 }
 
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
 /*
  * Honest copy per failure class. The raw server string is kept as a
  * secondary line, never as the headline: "Please upgrade your plan" and
  * "Not authorized" do not tell the person which permission or plan they
  * are missing, and both used to be printed bare in red.
+ *
+ * In the reader's language when the caller hands its Translator in, and in
+ * English, word for word, without one.
  */
-export function describeHealthError(error: SessionReplayHealthError): {
+export function describeHealthError(
+  error: SessionReplayHealthError,
+  translator: Translator = ENGLISH,
+): {
   title: string;
   detail: string;
 } {
+  const translateLine: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
+
   if (error.kind === "permission") {
     return {
-      title: "You cannot see recording health",
-      detail:
+      title: translateLine("You cannot see recording health"),
+      detail: translateLine(
         "Reading recording health needs the Read Session Replay permission (project owners, admins and telemetry admins have it). Ask a project admin to grant it, or to run this check for you.",
+      ),
     };
   }
 
   if (error.kind === "plan") {
     return {
-      title: "Recording health is not included in this project's plan",
-      detail:
+      title: translateLine(
+        "Recording health is not included in this project's plan",
+      ),
+      detail: translateLine(
         "Session replay needs a plan that includes it. Once the plan is upgraded, this check and the recordings themselves become available. The project-wide master switch is never plan-gated.",
+      ),
     };
   }
 
   return {
-    title: "Recording health could not be loaded",
-    detail:
+    title: translateLine("Recording health could not be loaded"),
+    detail: translateLine(
       "The health request failed, so nothing here says whether recording works. It retries on its own; the next poll may succeed.",
+    ),
   };
 }

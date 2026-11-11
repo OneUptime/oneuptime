@@ -54,7 +54,7 @@ Hver enhet knyttes til én lokasjon. En lokasjons undertre er lokasjonen selv pl
 Gå til **Nettverk → Lokasjoner** og klikk på **Legg til Lokasjon**.
 
 ### Si hva lokasjonen er
-I trinnet **Site Details** velger du **Site Type** (hva slags sted det er: en region, en butikk, et datasenter) og skriver et **Navn**. Beskrivelsen, adressen og breddegraden og lengdegraden som fester lokasjonen på kartet, er foldet sammen under **Flere felt**: fyll dem ut nå eller senere.
+I trinnet **Site Details** velger du **Site Type** (hva slags sted det er: en region, en butikk, et datasenter) og skriver et **Navn**. Feltet **Lokasjonskode**, beskrivelsen, adressen og breddegraden og lengdegraden som fester lokasjonen på kartet, er foldet sammen under **Flere felt**: fyll dem ut nå eller senere. En lokasjonskode er en kort kode, for eksempel et butikk- eller avdelingsnummer (`1216`); [navneregler](/docs/monitor/network-device-monitor#gi-enheter-navn-etter-navnekonvensjonen-din) setter den inn i enhetsnavn med `{site.code}`.
 
 ### Plasser den i treet
 I trinnet **Hierarchy** velger du **Parent Site** hvis lokasjonen ligger under en annen. La det stå tomt for å holde lokasjonen på øverste nivå.
@@ -171,7 +171,7 @@ En lokasjon uten noen tidslinjerader i det hele tatt viser `—` i stedet for 10
 
 ### Daglig oppetid
 
-Ved siden av tallet for 30 dager viser hver lokasjons oversikt **Uptime (24h)**, og siden **Statustidslinje** viser de siste 24 timene, 7, 30 og 90 dagene, og én stolpe per dag for de siste 30.
+Ved siden av tallet for 30 dager viser hver lokasjons oversikt **Oppetid (24 t)**, og siden **Statustidslinje** viser de siste 24 timene, 7, 30 og 90 dagene, og én stolpe per dag for de siste 30.
 
 Et gjennomsnitt over 30 dager kan ikke vise en dårlig dag. En hel dags avbrudd i et vindu på 30 dager koster 3,3 prosentpoeng, så en lokasjon som var mørk en hel tirsdag, rapporterer likevel 96,7 % for måneden, et tall som ser ut som en avrunding. De daglige stolpene plasserer de samme dataene der én dårlig dag er én dårlig stolpe.
 

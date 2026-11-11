@@ -12,6 +12,7 @@ import CurrentlyActiveIndicator, {
 import { getPillColors } from "../../../../UI/Components/Pill/PillColors";
 import { PillSize } from "../../../../UI/Components/Pill/Pill";
 import { Indigo500 } from "../../../../Types/BrandColors";
+import { DASHBOARD_LANGUAGES } from "../../../Helpers/TranslatedLanguages";
 
 /*
  * The marker on the timeline row that has not ended: a pill reading
@@ -33,25 +34,7 @@ const LOCALES_DIR: string = path.join(
   "Locales",
 );
 
-const LOCALES: Array<string> = [
-  "en",
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LOCALES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
 
 function readShippedTranslation(locale: string): string {
   const resource: Record<string, unknown> = JSON.parse(

@@ -12,6 +12,7 @@ import {
   createTranslator,
   Translator,
 } from "../../../../UI/Utils/TranslateTemplate";
+import { DASHBOARD_LANGUAGES } from "../../../Helpers/TranslatedLanguages";
 
 /*
  * A metric chart's unit badge, a metric's row and its details said the unit
@@ -28,24 +29,7 @@ const DASHBOARD: string = path.resolve(
   "../../../../../App/FeatureSet/Dashboard",
 );
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 // The legend toolbar's and the series list's words (Components/Metrics/MetricCharts).
 const TOOLBAR_WORDS: ReadonlyArray<string> = [

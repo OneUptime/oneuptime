@@ -82,6 +82,7 @@ import LlmSpanPanel from "../LlmSpanPanel";
 import TraceScopedFlamegraph from "../TraceScopedFlamegraph";
 import SpanPodExceptions from "./SpanPodExceptions";
 import SpanPodLogs from "./SpanPodLogs";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export interface ComponentProps {
   traceId: string;
@@ -1218,7 +1219,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                 {translator.translateText("Children")}
               </dt>
               <dd className="tabular-nums text-gray-900">
-                {props.childCount.toLocaleString()}
+                {props.childCount.toLocaleString(getReaderNumberLocale())}
               </dd>
             </div>
           </dl>
@@ -1360,7 +1361,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                       <span
                         className={`rounded-full px-1.5 text-[10px] tabular-nums ${isActive ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-600"}`}
                       >
-                        {tab.count.toLocaleString()}
+                        {tab.count.toLocaleString(getReaderNumberLocale())}
                       </span>
                     )}
                   </button>

@@ -1,6 +1,6 @@
 # JavaScript-uttrykk
 
-Et kriteriefilter **JavaScript Expression** avgjør med én linje JavaScript i stedet for en fast sammenligning om en monitors kriterium er oppfylt. Bruk det når de innebygde filtrene ikke kan uttrykke betingelsen — et felt dypt inne i et JSON-svar, to verdier som sammenlignes med hverandre, eller flere sjekker kombinert med `&&` og `||`.
+Et kriteriefilter **JavaScript-uttrykk** avgjør med én linje JavaScript i stedet for en fast sammenligning om en monitors kriterium er oppfylt. Bruk det når de innebygde filtrene ikke kan uttrykke betingelsen — et felt dypt inne i et JSON-svar, to verdier som sammenlignes med hverandre, eller flere sjekker kombinert med `&&` og `||`.
 
 :::cards
 - [Slik fungerer det](#slik-fungerer-det): Plassholderne fylles inn, deretter kjører uttrykket.
@@ -24,7 +24,7 @@ flowchart TB
 
 Fordi plassholderne erstattes som tekst, blir `{{responseBody.item}}` til den rå verdien. En streng må stå i anførselstegn for å være en JavaScript-streng; et tall eller en boolsk verdi skal ikke det — se [Regler for anførselstegn](#regler-for-anførselstegn). Uttrykk kjører på OneUptime-serveren, i en isolert sandkasse.
 
-## Legg til et filter av typen JavaScript Expression
+## Legg til et filter av typen JavaScript-uttrykk
 
 :::steps
 ### Åpne kriteriene
@@ -33,7 +33,7 @@ Fordi plassholderne erstattes som tekst, blir `{{responseBody.item}}` til den r�
 
 ### Legg til et filter
 
-Klikk på **Legg til filter** under **Filtre**, og sett **Filtertype** til **JavaScript Expression**. **Filtervilkår** er **Evaluates To True**.
+Klikk på **Legg til filter** under **Filtre**, og sett **Filtertype** til **JavaScript-uttrykk**. **Filtervilkår** er **Evalueres til sann**.
 
 ### Skriv uttrykket
 
@@ -46,7 +46,7 @@ Lagre monitoren. Filteret evalueres ved monitorens neste sjekk.
 
 ## Variabler etter monitortype
 
-JavaScript-uttrykk tilbys for monitorer av typen Website, API, Incoming Request, Incoming Email, SQL Query og Database Health.
+JavaScript-uttrykk tilbys for monitorer av typen Website, API, Innkommende forespørsel, Incoming Email, SQL Query og Database Health.
 
 ### Nettsted- og API-monitorer
 

@@ -393,13 +393,43 @@ describe("a rule that creates no channel", () => {
       ],
     ).toBeUndefined();
   });
+
+  test("an SLO rule has no name to preview either, and no words for one", () => {
+    expect(
+      getChannelNameExample({
+        workspaceType: WorkspaceType.Slack,
+        eventType: NotificationRuleEventType.ServiceLevelObjective,
+        prefix: "slo-",
+        numberPrefixes: PREFIXES,
+        exampleRecordName: "Checkout availability",
+      }),
+    ).toBeNull();
+
+    renderPreview({
+      prefix: "slo-",
+      eventType: NotificationRuleEventType.ServiceLevelObjective,
+    });
+
+    expect(screen.queryByTestId("preview")).toBeNull();
+    expect(screen.queryByTestId("channel-name-preview")).toBeNull();
+    expect(
+      (CHANNEL_NAME_PREFIX_DESCRIPTIONS as Record<string, string>)[
+        NotificationRuleEventType.ServiceLevelObjective
+      ],
+    ).toBeUndefined();
+    expect(
+      (CHANNEL_NAME_EXAMPLE_RECORD_SENTENCES as Record<string, string>)[
+        NotificationRuleEventType.ServiceLevelObjective
+      ],
+    ).toBeUndefined();
+  });
 });
 
 describe("the words", () => {
   test("one description, one record sentence for every kind of record a rule can create a channel for", () => {
-    // Every kind but the two that only post: a security case and a hunt.
+    // Every kind but the three that only post: a security case, a hunt and an SLO.
     expect(CHANNEL_EVENT_TYPES).toHaveLength(
-      Object.values(NotificationRuleEventType).length - 2,
+      Object.values(NotificationRuleEventType).length - 3,
     );
 
     for (const eventType of CHANNEL_EVENT_TYPES) {

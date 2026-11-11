@@ -99,7 +99,7 @@ La pestaña **Custom Metric** ofrece estas métricas, agrupadas por tipo de recu
 
 ### Qué se evalúa
 
-Estos monitores siempre evalúan el **Metric Value**: el valor de la consulta de métricas o de la fórmula configurada. El formulario de criterios no tiene selector de tipo de filtro; muestra **Métrica**, **Agregación**, **Condición** y **Umbral**.
+Estos monitores siempre evalúan el **Valor de la métrica**: el valor de la consulta de métricas o de la fórmula configurada. El formulario de criterios no tiene selector de tipo de filtro; muestra **Métrica**, **Agregación**, **Condición** y **Umbral**.
 
 ### Tipos de agregación
 
@@ -107,10 +107,10 @@ Estos monitores siempre evalúan el **Metric Value**: el valor de la consulta de
 | --- | --- |
 | Promedio | Valor medio en la ventana de tiempo |
 | Suma | Suma de todos los valores |
-| Maximum Value | Valor más alto de la ventana de tiempo |
-| Minimum Value | Valor más bajo de la ventana de tiempo |
-| All Values | Todos los valores deben cumplir el criterio y cubrir toda la ventana de tiempo |
-| Any Value | Al menos un valor debe cumplirlo |
+| Valor máximo | Valor más alto de la ventana de tiempo |
+| Valor mínimo | Valor más bajo de la ventana de tiempo |
+| Todos los valores | Todos los valores deben cumplir el criterio y cubrir toda la ventana de tiempo |
+| Cualquier valor | Al menos un valor debe cumplirlo |
 
 ### Condiciones
 
@@ -120,9 +120,9 @@ La detección de anomalías frente a una referencia no necesita umbral. Elija un
 
 | Condición | Coincide cuando el valor |
 | --- | --- |
-| **Anomalously High** | Sube por encima del rango esperado |
-| **Anomalously Low** | Baja por debajo del rango esperado |
-| **Anomalous** | Sale del rango esperado en cualquier dirección |
+| **Anómalamente alto** | Sube por encima del rango esperado |
+| **Anómalamente bajo** | Baja por debajo del rango esperado |
+| **Anómalo** | Sale del rango esperado en cualquier dirección |
 
 Cada muestra se compara con una referencia de la misma hora de la semana construida a partir de la **Ventana de referencia** (14 días de forma predeterminada; 28, 60 o 90 días). **Sensibilidad** fija la anchura del rango esperado: **Bajo (4σ — solo desviaciones flagrantes)**, **Medio (3σ — recomendado)**, el predeterminado, o **Alto (2σ — con más ruido, servicios muy estables)**. Las condiciones de anomalía permanecen en un estado «Learning» y no producen alertas hasta que esa hora de la semana tiene dos semanas de historial. Este monitor filtra sus consultas por atributos, así que cada consulta, y cada serie de una consulta agrupada, se compara con su propio historial, tan atrás como se conserven tus métricas. Si es menos de dos semanas, una suma, un recuento o una consulta sobre un histograma permanece en ese estado para siempre, y todo lo demás se compara con todas las series de la métrica. Un percentil de un histograma siempre permanece en ese estado.
 

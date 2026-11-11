@@ -21,6 +21,7 @@ import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupView
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { STATUS_PAGE_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * The status pages simplicity audit: switches whose help explained two
@@ -45,24 +46,7 @@ const DASHBOARD_SRC: string = path.join(
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 const I18N_DIR: string = path.join(DASHBOARD_SRC, "..", "i18n");
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...STATUS_PAGE_LANGUAGES];
 
 // Without its comments, collapsed to one line.
 function readCode(relative: string): string {

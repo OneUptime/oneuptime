@@ -152,10 +152,14 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Channel",
     "Port",
     "Username",
-    // Send Email.
+    /*
+     * Send Email. Email Body is a Dashboard label too since 31eadaee92e
+     * (the Incoming Email monitor's check): here it is the step's setting.
+     */
     "From Email",
     "To Email",
     "Subject",
+    "Email Body",
     "SMTP Port",
     "SMTP Username",
     "SMTP Password",
@@ -270,11 +274,21 @@ const PROSE: Record<string, Array<string>> = {
     "Create",
     "Add components",
     "Test",
+    // (A Dashboard label too since #6369: Session Replay's button that turns recording on.)
+    "Turn it on",
     // "How workflows fit": the products, in a sentence.
     "Monitors",
     "Incidents",
     "alerts",
     "Runbooks",
+  ],
+  "workflows/authoring": [
+    /*
+     * The block table's "Input": the dot on a block's top edge, which the
+     * workflow editor draws without a label. (A Dashboard label since #6369
+     * only on Session Replay's rail, for what a user typed into a field.)
+     */
+    "Input",
   ],
   "workflows/configuration": [
     // "Mark a global variable as a secret": the word, not the switch.

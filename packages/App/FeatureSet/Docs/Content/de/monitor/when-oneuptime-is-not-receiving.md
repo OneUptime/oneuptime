@@ -23,8 +23,8 @@ Ein Neustart, der weniger als 90 Sekunden dauert, ist keine Lücke: Collectors s
 
 | Wo | Was OneUptime tut |
 | --- | --- |
-| Server- / VM-Monitore | **Is Online** zählt nur die Minuten, in denen OneUptime empfing: Standardmäßig ist ein Server nach 3 Minuten Stille offline, die OneUptime hätte hören können. |
-| Monitore für eingehende Anfragen und eingehende E-Mails | **Recieved In Minutes** und **Not Recieved In Minutes** zählen nur die Minuten, in denen OneUptime empfing. Ist ein solches Kriterium erfüllt, nennt seine Begründung, wie viele der Minuten außen vor blieben. |
+| Server- / VM-Monitore | Der Filter **Ist online** zählt nur die Minuten, in denen OneUptime empfing: Standardmäßig ist ein Server nach 3 Minuten Stille offline, die OneUptime hätte hören können. |
+| Monitore für eingehende Anfragen und eingehende E-Mails | **Empfangen in Minuten** und **Nicht empfangen in Minuten** zählen nur die Minuten, in denen OneUptime empfing. Ist ein solches Kriterium erfüllt, nennt seine Begründung, wie viele der Minuten außen vor blieben. |
 | Host-, Kubernetes-, Docker-, Metrik-, Log- und Trace-Monitore und die anderen Monitore, die Telemetrie lesen | Eine Prüfung, deren Zeitfenster Zeit ohne Empfang enthält, wartet, bis diese Zeit das Fenster verlassen hat, und nie länger als 15 Minuten nach ihrem Ende. Bis dahin ändert sich nichts: kein Statuswechsel, und kein Vorfall und keine Warnung wird eröffnet oder aufgelöst. Solange die Warteschlange im Rückstand ist, liest eine Prüfung bis dorthin, wo die Warteschlange steht, statt bis jetzt. |
 | Hosts, Cluster und der Rest des Inventars | Eine Ressource wird erst als **Getrennt** markiert, wenn ihre Stilleschwelle, bei den meisten 15 Minuten, verstrichen ist, während OneUptime empfing. |
 | Sonden und KI-Agenten | Werden nach 3 Minuten Stille, während OneUptime empfing, als **Getrennt** markiert. |

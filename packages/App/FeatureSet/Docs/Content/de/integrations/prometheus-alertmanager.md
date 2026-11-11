@@ -222,7 +222,7 @@ Keiner der beiden Wege bemerkt, wenn Prometheus oder Alertmanager nicht mehr arb
 :::steps
 ### Den Watchdog-Monitor anlegen
 
-Legen Sie einen zweiten Monitor für eingehende Anfragen an, namens `Alertmanager watchdog`. Setzen Sie den Filter seines ersten Kriteriums, das den Monitor als offline markiert, auf **Eingehende Anfrage**, **Not Recieved In Minutes**, `10`, und den Filter seines zweiten Kriteriums auf **Eingehende Anfrage**, **Recieved In Minutes**, `10`. Das Dashboard schreibt beide so. Kopieren Sie die **Heartbeat-URL** des neuen Monitors.
+Legen Sie einen zweiten Monitor für eingehende Anfragen an, namens `Alertmanager watchdog`. Setzen Sie den Filter seines ersten Kriteriums, das den Monitor als offline markiert, auf **Eingehende Anfrage**, **Nicht empfangen in Minuten**, `10`, und den Filter seines zweiten Kriteriums auf **Eingehende Anfrage**, **Empfangen in Minuten**, `10`. Das Dashboard schreibt beide so. Kopieren Sie die **Heartbeat-URL** des neuen Monitors.
 
 ### Die Watchdog-Warnung dorthin leiten
 

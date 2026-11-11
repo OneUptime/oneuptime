@@ -178,16 +178,16 @@ Kriterierna för en monitor med anpassad kod kan kontrollera:
 | Filtertyp | Vad den kontrollerar | Filtervillkor |
 | --- | --- | --- |
 | **Fel** | Felet som skriptet kastade, om något. | Innehåller, Innehåller inte, Lika med, Inte lika med, Är tom, Är inte tom |
-| **Result Value** | `data` som skriptet returnerade. Jämförs som ett tal när det är ett tal. | Samma, plus Större än, Mindre än, Större än eller lika med, Mindre än eller lika med, Sant och Falskt |
+| **Resultatvärde** | `data` som skriptet returnerade. Jämförs som ett tal när det är ett tal. | Samma, plus Större än, Mindre än, Större än eller lika med, Mindre än eller lika med, Sant och Falskt |
 | **Körningstid (i ms)** | Hur länge skriptet körde. | Numeriska jämförelser |
 
 Standardkriterierna markerar monitorn som online när **Fel** är tomt, och som offline — med en incident som löser sig själv när skriptet lyckas igen — när det inte är det. I incident- och larmmallar finns körningen tillgänglig som `{{result}}`, `{{scriptError}}`, `{{logMessages}}` och `{{executionTimeInMs}}`: se [Incident- och larmmallar](/docs/monitor/incident-alert-templating).
 
 ### Larma på returnerade data
 
-Det som skriptet returnerar som `data` är monitorns **Result Value**, och ett kriterium kan jämföra det — till exempel _Result Value är Lika med `UP`_.
+Det som skriptet returnerar som `data` är monitorns **Resultatvärde**, och ett kriterium kan jämföra det — till exempel _Resultatvärde är Lika med `UP`_.
 
-När `data` är ett objekt eller en matris fyller du i **Fältsökväg (valfritt)** på Result Value-filtret för att jämföra ett fält i stället för hela värdet. Använd punkter för nästlade fält och `[n]` för element i en matris:
+När `data` är ett objekt eller en matris fyller du i **Fältsökväg (valfritt)** på Resultatvärde-filtret för att jämföra ett fält i stället för hela värdet. Använd punkter för nästlade fält och `[n]` för element i en matris:
 
 ```javascript
 const response = await axios.get("https://api.example.com/health");

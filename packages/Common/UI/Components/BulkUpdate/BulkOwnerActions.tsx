@@ -65,6 +65,14 @@ export interface BulkOwnerActionsConfig<T extends BaseModel = BaseModel> {
   isOwnedByMe?: ((item: T) => boolean | undefined) | undefined;
   // How a row's Add Owner dialog names the row; its name column otherwise.
   getItemName?: ((item: T) => string) | undefined;
+  /*
+   * Why a row takes no owners, or undefined when it does - a team that comes
+   * with every project, which the server refuses an owner for. Such a row is
+   * sent nothing: a bulk Add Owner, Remove Owner or Assign to Me lists it as
+   * left alone with this reason (a translation key), and its row actions stay
+   * in the menu, locked, saying why.
+   */
+  getOwnersDisabledReason?: ((item: T) => string | undefined) | undefined;
 }
 
 export interface BulkOwnerActionsResult<T extends BaseModel> {
@@ -608,11 +616,16 @@ function useBulkOwnerActions<T extends BaseModel>(
   }): Promise<void> => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
+    // A row that takes no owners is not read either.
+    const takesOwners: (item: T) => boolean = (item: T): boolean => {
+      return !config.getOwnersDisabledReason?.(item);
+    };
+
     const reader: BulkReadAhead<T, PickedOwnerRows> = new BulkReadAhead<
       T,
       PickedOwnerRows
     >({
-      items: data.actionProps.items,
+      items: data.actionProps.items.filter(takesOwners),
       getKey: (item: T): string => {
         return item.id?.toString() || "";
       },
@@ -650,6 +663,16 @@ function useBulkOwnerActions<T extends BaseModel>(
       actionProps: data.actionProps,
       concurrency: BULK_ACTION_CONCURRENCY,
       step: async (item: T): Promise<BulkItemOutcome> => {
+        const ownersDisabledReason: string | undefined =
+          config.getOwnersDisabledReason?.(item);
+
+        if (ownersDisabledReason) {
+          return bulkItemUnchanged(
+            translator.translateText(ownersDisabledReason) ||
+              ownersDisabledReason,
+          );
+        }
+
         if (!item.id) {
           throw new BadDataException("Item ID not found");
         }
@@ -852,6 +875,7 @@ function useBulkOwnerActions<T extends BaseModel>(
       return config.isOwnedByMe?.(item) !== true;
     },
     ...lockFor(addGate),
+    getDisabledReason: config.getOwnersDisabledReason,
     onClick: async (
       item: T,
       onCompleteAction: VoidFunction,
@@ -875,6 +899,7 @@ function useBulkOwnerActions<T extends BaseModel>(
     menuGroup: ActionMenuGroup.People,
     placement: ActionButtonPlacement.MoreMenu,
     ...lockFor(addGate),
+    getDisabledReason: config.getOwnersDisabledReason,
     onClick: (
       item: T,
       onCompleteAction: VoidFunction,

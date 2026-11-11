@@ -32,6 +32,7 @@ Det virker med et skrivebeskyttet login og svarer som den person eller API-nøgl
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Fivetrans synkroniseringswebhooks | Indtagelsesnøglen som Fivetrans signeringshemmelighed |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Airbytes synkroniseringswebhooks | Indtagelsesnøglen i URL'en |
 | `POST /api/data-observability/tables/freshness` | En tabels aktualitet, som MCP-værktøjet besvarer den, med `{ "table": "public.orders" }` | En API-nøgle |
+| `POST /api/data-observability/tables/lineage` | En tabels afstamning nogle trin i hver retning, med hvordan hver tabel står nu, som dens fane **Afstamning** tegner den, med `{ "dataAssetId": "<table ID>", "depth": 3 }` | En API-nøgle |
 | `POST /api/data-observability/checks/apply` | Få projektets tjek til at matche en fil, som `oneuptime data-checks apply` gør, med `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | En API-nøgle |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | Et dataprodukts "data as of"-badge | Badgets eget token |
 

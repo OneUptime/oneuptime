@@ -61,8 +61,9 @@ Ping、Port、SSL 证书、DNS、DNSSEC、SNMP / 网络设备、SQL 查询、数
 - 工作流 **Custom JavaScript** 组件发出的 HTTP 请求
 - 项目 Webhook 通知（事件、告警、监视器、值班、计划维护、状态页事件）
 - 值班**用户 Webhook**
+- 你的团队从仪表板、用 API 密钥或由工作流添加的状态页 Webhook 订阅者
 
-**不**受此管控、将来也不会受此管控的是 **状态页订阅者 Webhook**。任何访问公开状态页的人都可以注册一个，因此放宽这一目标会让互联网上的任何人都能让你的服务器向你的私有网络发送 POST 请求。这一点不可配置。
+**不**受此管控、将来也不会受此管控的是 **在状态页上自行注册的 Webhook 订阅者**。任何访问公开状态页的人都可以注册一个，因此放宽这一目标会让互联网上的任何人都能让你的服务器向你的私有网络发送 POST 请求。即使你团队中有人编辑过其中一个，它们的 Webhook 也只能访问公网地址。这一点不可配置。
 
 不是 Webhook 的出站连接（外部数据源、LLM 提供商、SMTP 服务器（项目的 SMTP 设置和工作流 **Email** 组件）、SMTP OAuth 令牌端点、OIDC 发现和 Runbook HTTP 步骤）由 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 单独管理，在自托管安装中已经允许私有范围。请参阅[其他出站连接](#其他出站连接)。
 
@@ -182,6 +183,7 @@ probes:
 再次运行工作流或监视器。如果仍被拒绝，错误消息会指出是哪道关卡关闭了：
 
 - _"...points to a private network address and is not allowed. Self-hosted instances can allow this by setting `ALLOW_PRIVATE_NETWORK_WEBHOOKS`..."_ — 缺少 API 服务器设置。
+- _"...is not allowed. This subscriber signed up on the status page, so its webhook must be on the public internet."_ 或者，状态页本身显示的 _"...is not allowed. Use a webhook URL on the public internet."_ — 该 Webhook 属于在状态页上自行注册的订阅者，没有任何设置能涵盖它。请改为由你的团队从仪表板、用 API 密钥或通过工作流把它添加为 Webhook 订阅者。
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ — 运行该监视器的是私有（自定义）探测器，且它的开关是关闭的。注意，这一设置是在探测器上，而不是在 API 服务器上。
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ — 运行该监视器的是自带（全局）探测器，且它的开关是关闭的。如果实例上的每个项目都可以访问那个网络，请按上文所述为该探测器打开开关；否则，请在监视器上选择一个私有探测器。
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ — 运行该监视器的是环境中有 `BILLING_ENABLED=true` 的全局探测器。在那里，自动注册的全局探测器无论开关如何设置都只访问公网；请在目标网络内部署一个私有探测器，并在监视器上选择它。
@@ -196,7 +198,7 @@ probes:
 开放这项访问会实实在在地改变你的 OneUptime 实例能被用来访问的范围，因此值得慎重对待：
 
 - **优先使用允许列表，而不是笼统的布尔开关。** 写明 `mattermost.internal` 的授权范围，远小于开放所有 RFC-1918 地址。
-- **任何能创建工作流，或创建 API、Website、External Status Page、Custom JavaScript Code 监视器的人，都能访问你允许的一切。** 请相应地对待这些项目的成员资格。
+- **任何能创建工作流，或创建 API、Website、External Status Page、Custom JavaScript Code 监视器，或添加状态页订阅者的人，都能访问你允许的一切。** 请相应地对待这些项目的成员资格。
 - **响应正文会被返回。** 工作流 API 组件会把状态、标头和正文返回到工作流日志中，因此被允许的主机不仅可写，也可读。
 - **Webhook 请求从不跟随重定向。** 因此被允许的公共主机无法在第二跳把服务器转向内部主机。
 - **尽可能按探测器划定范围，而不是整个实例。** 部署在单个网络内的探测器，比开放 API 服务器的出站流量授权范围更窄。

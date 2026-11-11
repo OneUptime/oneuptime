@@ -42,8 +42,8 @@ Le menu latéral d'une application regroupe ses pages ainsi ; **Paramètres**, *
 | --- | --- |
 | **Basique** | **Vue d'ensemble**, **Recommandations**, **Documentation** |
 | **Observabilité** | **Métriques**, **Journaux**, **Traces**, **Clients** |
-| **Analyse produit** | **Utilisateurs**, **Sessions** |
-| **Relecture de session** | **Relecture de session**, **Parcours utilisateur**, **Utilisateurs des relectures**, **Santé**, **Politique de relecture**, **Signaux de frustration**, **Journal d'accès aux relectures**, **Documentation** |
+| **Analyse produit** | **Utilisateurs**, **Sessions**, **Événements**, **Entonnoirs**, **Rétention des utilisateurs**, **Parcours utilisateur**, **Paramètres d'analyse** |
+| **Relecture de session** | **Relecture de session**, **Utilisateurs des relectures**, **Santé**, **Politique de relecture**, **Signaux de frustration**, **Journal d'accès aux relectures**, **Documentation** |
 | **Paramètres** | **Paramètres** |
 | **Développeurs** | **Terraform**, **API**, **CLI**, **Assistants IA** |
 | **Avancé** | **Journaux d'audit**, **Supprimer l'application** |
@@ -78,11 +78,11 @@ OneUptime retrouve l'application par son `service.name`, sans tenir compte de la
 
 | Où | Ce qui s'affiche |
 | --- | --- |
-| **Vue d'ensemble** | Des tuiles pour **Chargements de page**, **Temps de chargement de la page (p95)**, **Événements**, **Taux d'erreur**, **Durée des événements (p95)**, **Exceptions**, **Clients** et **Sessions recorded**, et des graphiques de tendance sur la période choisie. |
+| **Vue d'ensemble** | Des tuiles pour **Chargements de page**, **Temps de chargement de la page (p95)**, **Événements**, **Taux d'erreur**, **Durée des événements (p95)**, **Exceptions**, **Clients** et **Sessions enregistrées**, et des graphiques de tendance sur la période choisie. |
 | **Core Web Vitals** | Une carte de la vue d'ensemble avec LCP, INP, CLS, FCP et TTFB, chacun évalué selon les seuils de Google, et l'INP de chaque route d'une application monopage. Voir [Core Web Vitals](/docs/rum/web-vitals) et [Applications monopages](/docs/rum/web-vitals#applications-monopages). |
 | **Métriques**, **Journaux**, **Traces** | Les explorateurs de télémétrie, limités à cette application. |
 | **Clients** | Les plateformes de navigateur et les modèles d'appareil sur lesquels l'application a été utilisée : une courte liste par plateforme, jamais une ligne par utilisateur. |
-| **Analyse produit** | Utilisateurs actifs, nouveaux, récurrents et inactifs, et sessions par appareil, navigateur, pays et page, comptés à partir des sessions enregistrées : voir [Analyse produit](/docs/rum/product-analytics). |
+| **Analyse produit** | Utilisateurs actifs, nouveaux, récurrents et inactifs et sessions par appareil, navigateur, pays et page, comptés à partir des sessions enregistrées, et les événements que votre app envoie, en tendances, entonnoirs et rétention : voir [Analyse produit](/docs/rum/product-analytics). |
 | **Relecture de session** | Des enregistrements de vraies sessions, à côté de leurs erreurs, traces et journaux : voir [Relecture de session](/docs/telemetry/session-replay). |
 | **Recommandations** | Des moniteurs prêts à l'emploi pour l'application : Core Web Vitals dégradés, requêtes en échec, exceptions du navigateur et, dès qu'elle enregistre, budgets de relecture de session. |
 

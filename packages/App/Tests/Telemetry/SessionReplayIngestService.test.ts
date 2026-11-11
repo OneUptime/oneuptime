@@ -395,6 +395,8 @@ function buildPolicy(
     longTaskBudgetMs: 0,
     slowRequestBudgetMs: 0,
     frustrationSignals: readSessionReplayFrustrationSignalsConfig(null),
+    isProductAnalyticsEnabled: false,
+    productAnalyticsUserPropertyKeys: [],
     configEpoch: 1234,
     ...overrides,
   };

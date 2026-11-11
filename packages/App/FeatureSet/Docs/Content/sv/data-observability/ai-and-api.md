@@ -31,6 +31,7 @@ Det fungerar med en inloggning med enbart läsbehörighet, och svarar som den pe
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Fivetrans synkroniseringswebhooks | Intagningsnyckeln, som Fivetrans signeringshemlighet |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Airbytes synkroniseringswebhooks | Intagningsnyckeln i URL:en |
 | `POST /api/data-observability/tables/freshness` | En tabells aktualitet, som MCP-verktyget besvarar den, med `{ "table": "public.orders" }` | En API-nyckel |
+| `POST /api/data-observability/tables/lineage` | En tabells härkomst några steg åt varje håll, med hur varje tabell står till nu, som fliken **Härkomst** ritar den, med `{ "dataAssetId": "<table ID>", "depth": 3 }` | En API-nyckel |
 | `POST /api/data-observability/checks/apply` | Gör projektets kontroller likadana som en fil, som `oneuptime data-checks apply` gör, med `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | En API-nyckel |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | En dataprodukts "data as of"-märke | Märkets egen token |
 

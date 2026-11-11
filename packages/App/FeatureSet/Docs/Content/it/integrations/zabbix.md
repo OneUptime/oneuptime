@@ -3,7 +3,7 @@
 Invia i problemi di [Zabbix](https://www.zabbix.com) a OneUptime, così ogni problema diventa un incidente che chiama il tuo team reperibile e si risolve quando Zabbix rientra. Modelli di workflow pronti all'uso mantengono allineate le due parti: ciò che le persone fanno in Zabbix viene annotato sull'incidente, e riconoscere o risolvere l'incidente riconosce o chiude il problema in Zabbix. Zabbix invia ogni problema tramite un tipo di media webhook, quindi non c'è nulla da installare né da una parte né dall'altra.
 
 :::cards
-- [Scegliere come OneUptime riceve i problemi](#scegliere-come-oneuptime-riceve-i-problemi): Modelli di workflow o un monitor Incoming Request.
+- [Scegliere come OneUptime riceve i problemi](#scegliere-come-oneuptime-riceve-i-problemi): Modelli di workflow o un monitor di richieste in arrivo.
 - [Partire dai modelli](#partire-dai-modelli): Sei modelli, cosa fanno e cosa chiedono.
 - [Configurare Zabbix](#configurare-zabbix): Un tipo di media, un utente e un'azione.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Quando i problemi non arrivano o gli incidenti restano aperti.
@@ -37,7 +37,7 @@ Configura prima OneUptime: ti dà l'URL a cui invia Zabbix.
 | Modo | Usalo quando |
 | --- | --- |
 | I modelli di workflow (consigliati) | Vuoi ogni problema come un incidente o un avviso alla sua gravità di Zabbix, con i reperibili chiamati per High e Disaster, risolto al rientro, con ciò che le persone fanno in Zabbix annotato sopra, e Zabbix riconosciuto o chiuso da OneUptime. |
-| Un monitor Incoming Request | Vuoi incidenti senza un workflow, con qualsiasi piano, e un monitor il cui stato segue Zabbix. Nulla torna a Zabbix. |
+| Un monitor di richieste in arrivo | Vuoi incidenti senza un workflow, con qualsiasi piano, e un monitor il cui stato segue Zabbix. Nulla torna a Zabbix. |
 
 Entrambi ricevono lo stesso JSON dallo stesso tipo di media, quindi puoi iniziare con uno e passare all'altro in seguito cambiando un solo URL in Zabbix.
 
@@ -130,12 +130,12 @@ Zabbix 6.0 legge il token API dal corpo della richiesta, non dal suo header `Aut
 
 ## Ricevere i problemi con un monitor
 
-Un [monitor Incoming Request](/docs/monitor/incoming-request-monitor) ti dà un URL, e i suoi criteri decidono cosa fa ogni richiesta.
+Un [monitor di richieste in arrivo](/docs/monitor/incoming-request-monitor) ti dà un URL, e i suoi criteri decidono cosa fa ogni richiesta.
 
 :::steps
 ### Creare il monitor
 
-Vai su **Monitor** e fai clic su **Crea monitor**. Scegli **Incoming Request** in **Tipo di monitor**, chiamalo `Zabbix` e fai clic su **Avanti**.
+Vai su **Monitor** e fai clic su **Crea monitor**. Scegli **Richiesta in arrivo** in **Tipo di monitor**, chiamalo `Zabbix` e fai clic su **Avanti**.
 
 ### Dichiarare un incidente per ogni problema
 

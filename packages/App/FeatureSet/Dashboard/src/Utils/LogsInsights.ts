@@ -1084,7 +1084,7 @@ export function describeOccurrenceCount(
   const safeCount: number = Number.isFinite(count) ? Math.max(0, count) : 0;
   const noun: string = safeCount === 1 ? "time" : "times";
 
-  return `${safeCount.toLocaleString()} ${noun} in ${describeTimeRange(timeRange)}`;
+  return `${safeCount.toLocaleString("en-US")} ${noun} in ${describeTimeRange(timeRange)}`;
 }
 
 // --- Deep links ---

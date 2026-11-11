@@ -2,6 +2,7 @@ import {
   SessionReplayChunkManifestEntry,
   SessionReplayGap,
 } from "Common/Types/Rum/SessionReplay";
+import { ComposedValue } from "Common/Types/Translator";
 import ChunkLoader, { SessionReplayRecordedEvent } from "../ChunkLoader";
 
 /*
@@ -134,9 +135,20 @@ export interface ReplayRecordedSize {
   height: number;
 }
 
+/*
+ * The engine never knows the reader's language: it says things in English
+ * (`message`, what the tests and the "Copy diagnostic" action read). A
+ * sentence with values in it - the offset it failed at, the attempts, a
+ * server's reason - also carries its `wording`, which whoever draws it
+ * composes with the reader's translator, so the sentence is looked up whole
+ * when it is drawn. A fixed sentence carries none: it is looked up by its
+ * English, as is the message of an error or notice built without one (a
+ * test's).
+ */
 export interface ReplayEngineError {
   /* Domain copy, never a bare rrweb or HTTP string. */
   message: string;
+  wording?: ComposedValue | undefined;
   retryable: boolean;
 }
 
@@ -149,6 +161,7 @@ export interface ReplayEngineError {
 export interface ReplayEngineNotice {
   kind: "seek-clamped";
   message: string;
+  wording?: ComposedValue | undefined;
   requestedMs: number;
   landedAtMs: number;
 }

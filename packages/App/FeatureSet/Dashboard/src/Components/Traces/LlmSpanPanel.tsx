@@ -30,6 +30,7 @@ import {
   mergeSpanMessages,
   nanosToMs,
 } from "./LlmSpanLogEvents";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export interface ComponentProps {
   attributes: JSONObject | undefined;
@@ -291,15 +292,15 @@ const LlmSpanPanel: FunctionComponent<ComponentProps> = (
   const metrics: Array<{ label: string; value: string }> = [];
   metrics.push({
     label: "Input tokens",
-    value: display.inputTokens.toLocaleString(),
+    value: display.inputTokens.toLocaleString(getReaderNumberLocale()),
   });
   metrics.push({
     label: "Output tokens",
-    value: display.outputTokens.toLocaleString(),
+    value: display.outputTokens.toLocaleString(getReaderNumberLocale()),
   });
   metrics.push({
     label: "Total tokens",
-    value: display.totalTokens.toLocaleString(),
+    value: display.totalTokens.toLocaleString(getReaderNumberLocale()),
   });
   metrics.push({
     label: "Cost",

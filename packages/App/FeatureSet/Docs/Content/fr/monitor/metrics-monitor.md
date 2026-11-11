@@ -116,7 +116,7 @@ Plus la fenêtre est longue, plus chaque intervalle de temps est large, si bien 
 
 ## Critères
 
-Ces moniteurs évaluent toujours la **Metric Value** – la valeur agrégée de la requête de métriques ou de la formule configurée. **Quand alerter** configure un critère à partir de **Mesuré comme**, **Fenêtre de temps**, **Condition** et **Valeur**. Quand la métrique a une unité, choisissez l'unité de la valeur à côté. Sa **Condition** est **Au-dessus de**, **Supérieur ou égal à**, **En dessous de**, **Inférieur ou égal à**, **Exactement**, **Anormalement haut**, **Anormalement bas**, **Anormalement haut ou bas**, **Devrait dépasser** ou **Devrait passer sous**. Pour plusieurs critères, comme des paliers de gravité, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Métrique**, une **Agrégation**, une **Condition** et un **Seuil**.
+Ces moniteurs évaluent toujours la **Valeur de la métrique** – la valeur agrégée de la requête de métriques ou de la formule configurée. **Quand alerter** configure un critère à partir de **Mesuré comme**, **Fenêtre de temps**, **Condition** et **Valeur**. Quand la métrique a une unité, choisissez l'unité de la valeur à côté. Sa **Condition** est **Au-dessus de**, **Supérieur ou égal à**, **En dessous de**, **Inférieur ou égal à**, **Exactement**, **Anormalement haut**, **Anormalement bas**, **Anormalement haut ou bas**, **Devrait dépasser** ou **Devrait passer sous**. Pour plusieurs critères, comme des paliers de gravité, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Métrique**, une **Agrégation**, une **Condition** et un **Seuil**.
 
 | Condition | Correspond quand la valeur est… |
 | --- | --- |
@@ -125,9 +125,9 @@ Ces moniteurs évaluent toujours la **Metric Value** – la valeur agrégée de 
 | **Inférieur à** | en dessous du seuil |
 | **Inférieur ou égal à** | égale ou inférieure au seuil |
 | **Égal à** | exactement le seuil |
-| **Anomalously High** | au-dessus de la plage attendue pour cette heure de la semaine |
-| **Anomalously Low** | en dessous de cette plage |
-| **Anomalous** | hors de cette plage, dans un sens ou dans l'autre |
+| **Anormalement élevé** | au-dessus de la plage attendue pour cette heure de la semaine |
+| **Anormalement bas** | en dessous de cette plage |
+| **Anormal** | hors de cette plage, dans un sens ou dans l'autre |
 | **Devrait dépasser** | se dirige au-dessus du seuil : sa tendance le dépasse d'ici la fin de **Horizon** |
 | **Devrait passer sous** | se dirige sous le seuil, d'ici la fin de **Horizon** |
 | **Aucune donnée** | absente, car la requête n'a rien envoyé dans la fenêtre |
@@ -148,7 +148,7 @@ Une somme ou un décompte n'est considéré comme bas que sur un point de donné
 
 Un moniteur de métriques créé dans « Créer un moniteur » commence avec une règle sur sa première requête : **La moyenne** sur **Dernières 5 minutes**, **Au-dessus de** la **Valeur** saisie, et **Créer une alerte**.
 
-Un nouveau moniteur de métriques créé via l'API ou Terraform sans critères commence avec deux critères sur sa première requête, tous deux avec l'agrégation **Any Value** :
+Un nouveau moniteur de métriques créé via l'API ou Terraform sans critères commence avec deux critères sur sa première requête, tous deux avec l'agrégation **Au moins une valeur** :
 
 | Critère | Condition | Effet |
 | --- | --- | --- |

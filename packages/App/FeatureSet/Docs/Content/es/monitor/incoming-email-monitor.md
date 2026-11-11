@@ -23,7 +23,7 @@ sequenceDiagram
     O->>O: Guardarlo en el monitor
     O->>O: Comprobar los criterios
     O->>T: Alerta o incidente,<br/>si alguno coincide
-    Note over O: Cada 30 segundos, comprobar<br/>los criterios Email Received
+    Note over O: Cada 30 segundos, comprobar<br/>los criterios «Correo electrónico recibido»
 ```
 
 1. Cuando crea un monitor de correos entrantes, OneUptime le da una dirección de correo única.
@@ -143,15 +143,15 @@ Un monitor de correos entrantes nuevo se crea con dos criterios que leen el cuer
 
 | Criterio | Tipo de filtro | Condición de filtro | Valor | Efecto |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
-| Sin conexión | Email Body | Contiene | `error` | Marca el monitor sin conexión, abre un incidente |
-| En línea | Email Body | No contiene | `error` | Marca el monitor en línea |
+| Sin conexión | Cuerpo del correo electrónico | Contiene | `error` | Marca el monitor sin conexión, abre un incidente |
+| En línea | Cuerpo del correo electrónico | No contiene | `error` | Marca el monitor en línea |
 
 Esto sirve para el caso habitual en que un trabajo o una herramienta de terceros envía por correo su propio resultado: un mensaje cuyo cuerpo menciona `error` deja el monitor sin conexión, y el siguiente mensaje sin esa palabra lo devuelve a en línea y resuelve el incidente. La coincidencia en el cuerpo no distingue mayúsculas y minúsculas, así que `Error` y `ERROR` también coinciden.
 
 Cambie el valor por lo que su emisor escribe de verdad (`FAILED`, `exit code 1`, etc.).
 
 > [!NOTE]
-> Estos criterios predeterminados **no** son un interruptor de hombre muerto: nada aquí se activa cuando dejan de llegar correos. Los criterios que solo leen el asunto, el remitente, el cuerpo o el destinatario se evalúan cuando llega un correo y en ningún otro momento. Para que se le avise del silencio, añada un criterio **Email Received** / **Not Recieved In Minutes**; consulte el [Ejemplo 3](#ejemplo-3-monitor-de-latido-sin-correo-alerta).
+> Estos criterios predeterminados **no** son un interruptor de hombre muerto: nada aquí se activa cuando dejan de llegar correos. Los criterios que solo leen el asunto, el remitente, el cuerpo o el destinatario se evalúan cuando llega un correo y en ningún otro momento. Para que se le avise del silencio, añada un criterio **Correo electrónico recibido** / **No recibido en minutos**; consulte el [Ejemplo 3](#ejemplo-3-monitor-de-latido-sin-correo-alerta).
 
 ## Tipos de filtro disponibles
 
@@ -160,13 +160,13 @@ Puede crear criterios a partir de estos campos del correo:
 | Tipo de filtro | Descripción |
 | ------------------------- | ----------------------------------------------------------------------------------- |
 | **Asunto del correo electrónico** | La línea de asunto del correo entrante |
-| **Email From Address** | La dirección del remitente: solo la dirección, en minúsculas, sin nombre visible |
-| **Email Body** | La parte de texto sin formato del cuerpo del correo |
-| **Email To Address** | La dirección de correo del destinatario |
-| **Email Received** | Criterios temporales sobre cuándo se reciben los correos |
-| **JavaScript Expression** | Una expresión de JavaScript personalizada que debe dar verdadero |
+| **Dirección del remitente del correo electrónico** | La dirección del remitente: solo la dirección, en minúsculas, sin nombre visible |
+| **Cuerpo del correo electrónico** | La parte de texto sin formato del cuerpo del correo |
+| **Dirección del destinatario del correo electrónico** | La dirección de correo del destinatario |
+| **Correo electrónico recibido** | Criterios temporales sobre cuándo se reciben los correos |
+| **Expresión de JavaScript** | Una expresión de JavaScript personalizada que debe dar verdadero |
 
-La dirección propia del monitor se enmascara antes de que ningún criterio lea el correo, así que en **Email To Address**, **Asunto del correo electrónico** y **Email Body** aparece como `[REDACTED]`.
+La dirección propia del monitor se enmascara antes de que ningún criterio lea el correo, así que en **Dirección del destinatario del correo electrónico**, **Asunto del correo electrónico** y **Cuerpo del correo electrónico** aparece como `[REDACTED]`.
 
 ## Condiciones de filtro
 
@@ -185,24 +185,22 @@ La dirección propia del monitor se enmascara antes de que ningún criterio lea 
 
 Todas estas comparaciones no distinguen mayúsculas y minúsculas. Un filtro con un valor vacío nunca coincide.
 
-### Filtros temporales (Email Received)
-
-El panel escribe estas condiciones "Recieved".
+### Filtros temporales (Correo electrónico recibido)
 
 | Condición de filtro | Descripción | Ejemplo |
 | --------------------------- | ----------------------------------- | -------------------------------- |
-| **Recieved In Minutes** | Se recibió un correo en X minutos | Correo recibido en 30 minutos |
-| **Not Recieved In Minutes** | No se recibió ningún correo en X minutos | Ningún correo recibido en 60 minutos |
+| **Recibido en minutos** | Se recibió un correo en X minutos | Correo recibido en 30 minutos |
+| **No recibido en minutos** | No se recibió ningún correo en X minutos | Ningún correo recibido en 60 minutos |
 
 Un monitor que nunca ha recibido un correo cuenta su hora de creación como el último correo.
 
-### JavaScript Expression
+### Expresión de JavaScript
 
 | Condición de filtro | Descripción |
 | --------------------- | ------------------------------------- |
-| **Evaluates To True** | La expresión devuelve un valor verdadero |
+| **Se evalúa como verdadero** | La expresión devuelve un valor verdadero |
 
-La expresión se ejecuta en un sandbox sin campos de correo vinculados, así que no puede leer el asunto, el remitente, el cuerpo ni el destinatario del mensaje que activó la comprobación. Use los tipos de filtro **Asunto del correo electrónico**, **Email From Address**, **Email Body** y **Email To Address** para comparar el contenido del correo.
+La expresión se ejecuta en un sandbox sin campos de correo vinculados, así que no puede leer el asunto, el remitente, el cuerpo ni el destinatario del mensaje que activó la comprobación. Use los tipos de filtro **Asunto del correo electrónico**, **Dirección del remitente del correo electrónico**, **Cuerpo del correo electrónico** y **Dirección del destinatario del correo electrónico** para comparar el contenido del correo.
 
 ## Configuraciones de ejemplo
 
@@ -221,15 +219,15 @@ Ponga el criterio crítico el primero: los criterios se comprueban desde arriba,
 
 | Criterio | Filtros | Condición de coincidencia | Acciones |
 | --- | --- | --- | --- |
-| Trabajo fallido | **Email From Address** Igual a `monitoring@legacy-system.com`; **Asunto del correo electrónico** Contiene `Failed` | **Todos** | Cambiar el estado a sin conexión; declarar un incidente |
-| Trabajo correcto | **Email From Address** Igual a `monitoring@legacy-system.com`; **Asunto del correo electrónico** Contiene `Success` | **Todos** | Cambiar el estado a en línea |
+| Trabajo fallido | **Dirección del remitente del correo electrónico** Igual a `monitoring@legacy-system.com`; **Asunto del correo electrónico** Contiene `Failed` | **Todos** | Cambiar el estado a sin conexión; declarar un incidente |
+| Trabajo correcto | **Dirección del remitente del correo electrónico** Igual a `monitoring@legacy-system.com`; **Asunto del correo electrónico** Contiene `Success` | **Todos** | Cambiar el estado a en línea |
 
 ### Ejemplo 3: monitor de latido (sin correo = alerta)
 
 | Criterio | Filtros | Acciones |
 | --- | --- | --- |
-| El correo se retrasa | **Email Received** Not Recieved In Minutes `60` | Cambiar el estado a sin conexión; crear una alerta |
-| El correo llegó | **Email Received** Recieved In Minutes `60` | Cambiar el estado a en línea |
+| El correo se retrasa | **Correo electrónico recibido** No recibido en minutos `60` | Cambiar el estado a sin conexión; crear una alerta |
+| El correo llegó | **Correo electrónico recibido** Recibido en minutos `60` | Cambiar el estado a en línea |
 
 El primer criterio se activa cuando no ha llegado ningún correo en 60 minutos: útil para trabajos programados o procesos por lotes que envían un correo al terminar. El segundo resuelve la alerta en cuanto llega uno. Los minutos en los que el propio OneUptime no estaba recibiendo correo no cuentan para los 60, como explica [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
 
@@ -240,7 +238,7 @@ Un criterio mantiene abierto un solo incidente a la vez: mientras está abierto,
 :::steps
 ### Elegir los correos
 
-Dé al criterio un filtro que coincida con los correos para los que abrir incidentes. Para aceptar solo avisos de su propia gente, use **Email From Address** con **Termina en** y su dominio, por ejemplo `@example.com`.
+Dé al criterio un filtro que coincida con los correos para los que abrir incidentes. Para aceptar solo avisos de su propia gente, use **Dirección del remitente del correo electrónico** con **Termina en** y su dominio, por ejemplo `@example.com`.
 
 ### Declarar el incidente
 
@@ -263,7 +261,7 @@ A partir de entonces, el criterio trata cada correo por separado:
 
 Cada correo sigue teniendo una fila en **Registros de monitoreo**, y **Ver resumen** en esa fila dice qué abrió el correo o por qué no abrió nada. Cuando el criterio también crea alertas, el interruptor se llama **Abrir un incidente y una alerta nuevos por cada correo**, y cada correo abre su propia alerta de la misma manera.
 
-Estos incidentes siguen abiertos hasta que alguien los resuelve. Con **Resolver incidente automáticamente** activado, también se resuelven cuando un correo posterior coincide con otro criterio, como cualquier incidente; un correo posterior que coincide con el mismo criterio nunca resuelve los anteriores. Una comprobación de correo que falta (**Email Received**) no es un correo, así que sigue abriendo un solo incidente a la vez.
+Estos incidentes siguen abiertos hasta que alguien los resuelve. Con **Resolver incidente automáticamente** activado, también se resuelven cuando un correo posterior coincide con otro criterio, como cualquier incidente; un correo posterior que coincide con el mismo criterio nunca resuelve los anteriores. Una comprobación de correo que falta (**Correo electrónico recibido**) no es un correo, así que sigue abriendo un solo incidente a la vez.
 
 > [!WARNING]
 > **Cualquiera que conozca la dirección puede abrir incidentes.** Mantenga la dirección en privado, filtre por el remitente como arriba y [restablezca la dirección](#restablecer-o-personalizar-la-dirección-de-correo) si se filtra. La dirección de un remitente se puede falsificar, así que el filtro deja fuera el correo perdido, no a alguien decidido a entrar.
@@ -294,7 +292,7 @@ Los títulos, descripciones y notas de corrección de las alertas e incidentes q
 
 - **Un título recibe una línea de cada una.** En un título, cada variable se recorta a una línea de como máximo 150 caracteres, y termina en `...` cuando era más larga. Un título no puede superar los 500 caracteres, y una alerta o un incidente con un título demasiado largo no se crea, así que citar un correo entero impediría que el monitor alertara sobre correos largos. Las descripciones y las notas de corrección reciben el valor completo.
 - **La dirección de este monitor está enmascarada.** La dirección funciona como una contraseña, así que se enmascara antes de guardar el correo, y `{{emailTo}}` se muestra como `monitor-[REDACTED]@{inbound-domain}` (o `[REDACTED]@{inbound-domain}` en una dirección personalizada).
-- **Una comprobación de correo ausente usa el último correo.** Cuando un criterio **Email Received** abre una alerta porque no llegó ningún correo a tiempo, las variables describen el último correo que recibió el monitor. Están vacías si todavía no ha llegado ninguno.
+- **Una comprobación de correo ausente usa el último correo.** Cuando un criterio **Correo electrónico recibido** abre una alerta porque no llegó ningún correo a tiempo, las variables describen el último correo que recibió el monitor. Están vacías si todavía no ha llegado ninguno.
 
 ## Vista Resumen del monitor
 
@@ -312,7 +310,7 @@ Haga clic en **Mostrar más detalles** para ver el resto:
 
 ### Correos anteriores
 
-La tarjeta solo muestra el correo más reciente. Cada correo que evalúa el monitor también se escribe en **Registros de monitoreo**: la columna **Correo electrónico** muestra su asunto y su remitente, y **Ver resumen** en su fila muestra el correo entero igual que la tarjeta. Un monitor con el monitoreo desactivado no evalúa nada, así que los correos que recibe no tienen filas. Si uno de sus criterios comprueba **Email Received**, el monitor también escribe una fila cada vez que busca correos ausentes. La columna **Correo electrónico** dice "Scheduled check" en esas filas, y su **Ver resumen** muestra el correo más reciente en el momento de la comprobación, o "No email yet" si no había llegado ninguno. Los registros de monitoreo se conservan un día de forma predeterminada. En un servidor autoalojado, un administrador puede cambiarlo con **Retención de registros del monitor (días)** en los ajustes del panel de administración.
+La tarjeta solo muestra el correo más reciente. Cada correo que evalúa el monitor también se escribe en **Registros de monitoreo**: la columna **Correo electrónico** muestra su asunto y su remitente, y **Ver resumen** en su fila muestra el correo entero igual que la tarjeta. Un monitor con el monitoreo desactivado no evalúa nada, así que los correos que recibe no tienen filas. Si uno de sus criterios comprueba **Correo electrónico recibido**, el monitor también escribe una fila cada vez que busca correos ausentes. La columna **Correo electrónico** dice "Scheduled check" en esas filas, y su **Ver resumen** muestra el correo más reciente en el momento de la comprobación, o "No email yet" si no había llegado ninguno. Los registros de monitoreo se conservan un día de forma predeterminada. En un servidor autoalojado, un administrador puede cambiarlo con **Retención de registros del monitor (días)** en los ajustes del panel de administración.
 
 ## Configuración autoalojada
 

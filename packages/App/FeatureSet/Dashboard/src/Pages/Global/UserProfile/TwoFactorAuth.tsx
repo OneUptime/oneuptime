@@ -18,7 +18,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import QRCodeElement from "Common/UI/Components/QR/QR";
+import AuthenticatorAppSetupCode from "Common/UI/Components/AuthenticatorAppSetupCode/AuthenticatorAppSetupCode";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -370,8 +370,14 @@ const TwoFactorAuth: FunctionComponent<
               <ComponentLoader />
             ) : selectedTotpAuth.twoFactorOtpUrl ? (
               <>
-                <div className="mb-6 flex justify-center rounded-xl border border-gray-200 bg-white p-5">
-                  <QRCodeElement text={selectedTotpAuth.twoFactorOtpUrl} />
+                {/*
+                 * The code and, for whoever cannot scan it, its setup key
+                 * (issue #6638).
+                 */}
+                <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5">
+                  <AuthenticatorAppSetupCode
+                    otpUrl={selectedTotpAuth.twoFactorOtpUrl}
+                  />
                 </div>
                 <label
                   htmlFor="authenticator-verification-code"

@@ -25,6 +25,10 @@ import {
 } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
+  ON_CALL_PAGE_CHANNELS,
+  OnCallPageChannelInfo,
+} from "../../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import {
   isOnCallPolicyRunEndedWhileWaiting,
   isOnCallPolicyRunWaitingForWorkingHours,
 } from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
@@ -91,23 +95,22 @@ const TRAILING_FULL_STOP: RegExp = /\.\s*$/;
  */
 const YOU_HAVE_PREFIX: RegExp = /^you have\s+/i;
 
-// How each notification method reads in a list, in the order it is listed.
+/*
+ * How each notification method reads in a list, in the order it is listed:
+ * the channels' short names, which the record's feed names in full
+ * (OnCallPageChannel) - "by call and push" here, "via phone call and push
+ * notification" there.
+ */
 const METHOD_LABELS: Array<{
   field: keyof UserOnCallLogTimeline;
   label: string;
-}> = [
-  { field: "userCallId", label: "call" },
-  { field: "userSmsId", label: "SMS" },
-  { field: "userWhatsAppId", label: "WhatsApp" },
-  { field: "userTelegramId", label: "Telegram" },
-  { field: "userPushId", label: "push" },
-  { field: "userEmailId", label: "email" },
-  { field: "userSlackId", label: "Slack" },
-  { field: "userMicrosoftTeamsId", label: "Microsoft Teams" },
-  { field: "userMattermostId", label: "Mattermost" },
-  { field: "userWebhookId", label: "webhook" },
-  { field: "customNotificationChannelId", label: "custom channel" },
-];
+}> = ON_CALL_PAGE_CHANNELS.map(
+  (
+    info: OnCallPageChannelInfo,
+  ): { field: keyof UserOnCallLogTimeline; label: string } => {
+    return { field: info.field, label: info.shortName };
+  },
+);
 
 /*
  * What one escalation rule's steps came to (buildRun). "nobody next" is a
@@ -1601,13 +1604,17 @@ export default class OnCallPolicyRunMessage {
       }
     }
 
-    // How each person's pages reached them.
+    /*
+     * How each person's pages reached them. A call that rang and was not
+     * picked up reached them too: "paged once · by call".
+     */
     for (const delivery of data.deliveries) {
       if (
         !delivery.userId ||
         (delivery.status !== UserNotificationStatus.Sent &&
           delivery.status !== UserNotificationStatus.Acknowledged &&
-          delivery.status !== UserNotificationStatus.PassedOn)
+          delivery.status !== UserNotificationStatus.PassedOn &&
+          delivery.status !== UserNotificationStatus.NotAnswered)
       ) {
         continue;
       }

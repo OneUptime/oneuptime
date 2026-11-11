@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import Dictionary from "../../../Types/Dictionary";
+import { isRightToLeftLanguage } from "../../../Types/ReadingDirection";
 import {
   createTranslator,
   getTemplatePlaceholders,
@@ -419,10 +420,15 @@ describe("which way a change's title reads", () => {
     failed: false,
   };
 
-  test("a worded title reads the reader's way: right to left in Persian, left to right in every other language", () => {
+  test("a worded title reads the reader's way: right to left in Persian and Arabic, left to right in every other language", () => {
     for (const language of DASHBOARD_LANGUAGES) {
       const reader: Translator = dashboardTranslator(language);
-      const way: string = language === "fa" ? "rtl" : "ltr";
+      const way: string = isRightToLeftLanguage(language) ? "rtl" : "ltr";
+
+      expect([language, way === "rtl"]).toEqual([
+        language,
+        language === "fa" || language === "ar",
+      ]);
 
       expect({
         language,
@@ -1017,16 +1023,16 @@ describe("a health event's title", () => {
   /*
    * #6149's UI review: a resource's states, before and now, with the arrow
    * pointing the way its language reads - a health title is laid out the
-   * reader's way (getChangeTitleDirection), so a Persian title read from
-   * the right needs "←" to lead from the state before to the state now.
-   * An arrow is never mirrored by the browser.
+   * reader's way (getChangeTitleDirection), so a Persian or Arabic title
+   * read from the right needs "←" to lead from the state before to the
+   * state now. An arrow is never mirrored by the browser.
    */
   test("the arrow between a resource's states points the way its language reads", () => {
     for (const language of [...DASHBOARD_LANGUAGES, "en"]) {
       const sentence: string =
         readDashboardLocale(language)[AZURE_RESOURCE_HEALTH_CHANGE_SENTENCE] ||
         "";
-      const isRightToLeft: boolean = language === "fa";
+      const isRightToLeft: boolean = isRightToLeftLanguage(language);
 
       expect({
         language,
@@ -1047,6 +1053,19 @@ describe("a health event's title", () => {
         ),
       ),
     ).toBe("Azure Resource Health: در دسترس ← در دسترس نیست");
+
+    expect(
+      withoutIsolateMarks(
+        getCloudHealthTitle(
+          factsOf(
+            "Azure Resource Health: Available → Unavailable",
+            "ResourceHealth Unavailable",
+          ),
+          dashboardTranslator("ar"),
+          { setsValuesApart: true },
+        ),
+      ),
+    ).toBe("Azure Resource Health: متاح ← غير متاح");
   });
 
   test("every language has each sentence with its values, worded its own way", () => {

@@ -36,6 +36,7 @@ import { PluralTemplate } from "../../../../UI/Utils/TranslateTemplate";
 import { describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "../../../Helpers/TranslatedLanguages";
 
 const LOCALES_DIR: string = path.join(
   __dirname,
@@ -65,24 +66,7 @@ const PROGRESS_DIR: string = path.join(
   "Progress",
 );
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // Languages with no "one" form, whose `_one` keys are never read.
 const NO_ONE_FORM: Array<string> = ["ja", "ko", "zh-CN", "zh-TW"];

@@ -13,13 +13,15 @@
  * suite that never runs never fails, so nothing noticed. This fails the next
  * one.
  *
- * A suite is a test file that reads a RUN_POSTGRES_ flag (as a quoted string:
- * a comment naming the flag does not make a suite). It runs when a workflow
- * step sets every flag it reads to "true" - in its own `env`, its job's or
- * its workflow's - and either names the file in its `run`, relative to the
- * step's working directory, or runs the whole test script (`npm test`, `npm
- * run test`) of the package the file is in, as Common Test does for the
- * suites that need only the Postgres its test-setup.sh starts.
+ * A suite is a test file that reads a RUN_POSTGRES_ flag (as a quoted
+ * string: a comment naming the flag does not make a suite, nor a template
+ * literal - a test that checks another suite's code quotes that code, flag
+ * and all). It runs when a workflow step sets every flag it reads to "true"
+ * - in its own `env`, its job's or its workflow's - and either names the
+ * file in its `run`, relative to the step's working directory, or runs the
+ * whole test script (`npm test`, `npm run test`) of the package the file is
+ * in, as Common Test does for the suites that need only the Postgres its
+ * test-setup.sh starts.
  */
 
 const fs = require("fs");
@@ -31,6 +33,8 @@ const WORKFLOWS_DIR = ".github/workflows";
 const TEST_ROOTS = ["packages/Common/Tests", "packages/App/Tests", "ee/Tests"];
 const TEST_FILE = /\.test\.[jt]sx?$/;
 const FLAG_READ = /["'](RUN_POSTGRES_[A-Z0-9_]+)["']/g;
+// Template literals, emptied before the flags are read: they quote code.
+const TEMPLATE_LITERAL = /`(?:\\[\s\S]|[^`\\])*`/g;
 const PACKAGE_TEST_SCRIPT = /\bnpm (?:run )?test\b/;
 const WHITESPACE = /\s+/;
 
@@ -55,7 +59,9 @@ function testFilesUnder(relativeDirectory) {
 // Each opt-in Postgres suite, with the flags it reads.
 const SUITES = TEST_ROOTS.flatMap(testFilesUnder)
   .map((file) => {
-    const source = fs.readFileSync(path.join(REPO_ROOT, file), "utf8");
+    const source = fs
+      .readFileSync(path.join(REPO_ROOT, file), "utf8")
+      .replace(TEMPLATE_LITERAL, "``");
 
     return {
       file,
@@ -189,6 +195,26 @@ describe("the helpers this suite reads the tests and workflows with", () => {
     ).not.toContain(
       "packages/Common/Tests/Server/Utils/CustomField/CustomFieldRename.test.ts",
     );
+  });
+
+  test("read a suite's flag from its code, not from a template literal quoting another suite's", () => {
+    /*
+     * The exceptions part migration's test checks that its Postgres suite
+     * reads RUN_POSTGRES_TELEMETRY_USAGE_EXCEPTIONS_TESTS and that a step
+     * sets it, quoting both in template literals. It runs everywhere; the
+     * suite it checks is the one the flag switches on.
+     */
+    expect(
+      SUITES.map((suite) => {
+        return suite.file;
+      }),
+    ).not.toContain(
+      "packages/Common/Tests/Server/Infrastructure/Postgres/AddTelemetryUsageExceptionsPartMigration.test.ts",
+    );
+    expect(suiteEndingWith("TelemetryUsageExceptionsPostgres.test.ts")).toEqual({
+      file: "packages/Common/Tests/Server/Services/TelemetryUsageExceptionsPostgres.test.ts",
+      flags: ["RUN_POSTGRES_TELEMETRY_USAGE_EXCEPTIONS_TESTS"],
+    });
   });
 
   test("match a step by its working directory, its flag and the file it names", () => {

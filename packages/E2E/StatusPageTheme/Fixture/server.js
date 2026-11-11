@@ -10,11 +10,19 @@
  * applies) are given. `seoTheme` gives the template another one, as a
  * server whose /seo lookup failed would (`none`: no theme at all).
  *
+ * The page's default language is the query's `lang` (English without
+ * one): the template is sent in it, <html lang dir> as the servers write
+ * them (getStatusPageLanguageHead), and the app shows it to a visitor who
+ * never chose another - an Arabic page reads right to left from its first
+ * paint.
+ *
  * The page answers at its OneUptime address, /status-page/<id> (the
  * Dashboard's preview), and at / as if this host were its custom domain.
  *
- * Inter and the production Tailwind are served where index.ejs asks for
- * them, so what the browser lays out is what a visitor gets.
+ * Inter, Vazirmatn (its Arabic and Persian letters), the production
+ * Tailwind and the reading-direction config index.ejs loads after it are
+ * served where index.ejs asks for them, so what the browser lays out is
+ * what a visitor gets.
  */
 const fs = require("fs");
 const http = require("http");
@@ -37,9 +45,18 @@ const tailwind = path.join(
   common,
   "Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
+// Left and right utilities that follow the page's reading direction.
+const readingDirection = path.join(
+  common,
+  "UI/Styles/TailwindReadingDirection.js",
+);
 const inter = path.join(
   common,
   "Server/Static/Vendor/fonts/InterVariable.woff2",
+);
+const arabicScriptFont = path.join(
+  common,
+  "Server/Static/Vendor/fonts/VazirmatnArabicVariable.woff2",
 );
 const logo = path.join(__dirname, "logo.svg");
 const darkLogo = path.join(__dirname, "logo-dark.svg");
@@ -83,13 +100,17 @@ config.nodePaths = [
   path.join(statusPage, "node_modules"),
 ];
 
-// The real StatusPageTheme module, for the head the servers hand the template.
+/*
+ * The real StatusPageTheme and StatusPageLanguage modules, for the head and
+ * the <html lang dir> the servers hand the template.
+ */
 let themeModule = null;
+let languageModule = null;
 
-const loadThemeModule = async () => {
-  const file = path.join(output, "theme-module.cjs");
+const loadNodeModule = async (entry, name) => {
+  const file = path.join(output, name);
   await esbuild.build({
-    entryPoints: [path.join(common, "Types/StatusPage/StatusPageTheme.ts")],
+    entryPoints: [path.join(common, entry)],
     bundle: true,
     platform: "node",
     format: "cjs",
@@ -97,7 +118,18 @@ const loadThemeModule = async () => {
     logLevel: "warning",
   });
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  themeModule = require(file);
+  return require(file);
+};
+
+const loadThemeModule = async () => {
+  themeModule = await loadNodeModule(
+    "Types/StatusPage/StatusPageTheme.ts",
+    "theme-module.cjs",
+  );
+  languageModule = await loadNodeModule(
+    "Types/StatusPage/StatusPageLanguage.ts",
+    "language-module.cjs",
+  );
 };
 
 /*
@@ -116,11 +148,16 @@ const environment = {
 const render = (search) => {
   const params = new URLSearchParams(search);
   const seoTheme = params.get("seoTheme") || params.get("theme") || "Light";
+  // The page's default language and the way it reads (Serve.ts).
+  const languageHead = languageModule.getStatusPageLanguageHead(
+    params.get("lang"),
+  );
   const variables = {
     title: "Acme Cloud Status",
     description: "How Acme Cloud is doing right now.",
     faviconUrl: "/status-page/assets/images/favicon.png",
-    lang: "en",
+    lang: languageHead.lang,
+    dir: languageHead.dir,
     rssFeedPath: "/rss",
     isSearchEngineIndexingEnabled: false,
   };
@@ -192,8 +229,24 @@ async function main() {
       return;
     }
 
+    if (
+      url.pathname === "/status-page/assets/js/tailwind-reading-direction.js"
+    ) {
+      void held.then(() => {
+        send(response, readingDirection, "application/javascript");
+      });
+      return;
+    }
+
     if (url.pathname === "/status-page/assets/fonts/InterVariable.woff2") {
       send(response, inter, "font/woff2");
+      return;
+    }
+
+    if (
+      url.pathname === "/status-page/assets/fonts/VazirmatnArabicVariable.woff2"
+    ) {
+      send(response, arabicScriptFont, "font/woff2");
       return;
     }
 

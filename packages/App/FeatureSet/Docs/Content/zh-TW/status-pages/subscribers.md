@@ -513,7 +513,7 @@ Webhook 訂閱者在每個狀態頁面事件發生時都會收到一個 JSON `PO
 
 由於訂閱是公開頁面上的公開操作，OneUptime 會保護目標位址：
 
-- 一般的 **Webhook URL** 在被接受之前會經過驗證，私人、迴路、連結本機和雲端中繼資料位址會被拒絕。你無法把訂閱指向 OneUptime 部署本身網路內部的任何東西。
+- 一般的 **Webhook URL** 會在儲存時、變更時以及每次傳送前再次接受檢查。迴路、連結本機和雲端中繼資料位址一律會被拒絕。對於在狀態頁面上自行註冊的訂閱者，私人位址（例如 `10.0.0.0/8` 或 `192.168.0.0/16`）無論你的執行個體允許什麼都會被拒絕。你的團隊從儀表板、用 API 金鑰或由工作流程新增的 Webhook 訂閱者，在自行託管的執行個體允許之後可以使用私人位址（請參閱 [私有網路存取](/docs/self-hosted/private-network-access)）；在此之前它也會被拒絕。
 - **Slack 傳入 Webhook URL** 必須以 `https://hooks.slack.com/services/` 開頭。
 - **Microsoft Teams 傳入 Webhook URL** 必須是位於 `office.com`、`office365.com`、`logic.azure.com` 或 `environment.api.powerplatform.com` 或其子網域上的 `https` 位址。
 

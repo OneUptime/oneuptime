@@ -58,13 +58,13 @@ Efter næste polling viser enhedens side **SNMP-tabeller** hver IPsec-forbindels
 
 ### Advar om hver IPsec-tunnel
 
-Klik på **Opret monitor** på enhedens side. De anbefalede advarsler omfatter **IPsec Tunnels: row unhealthy**, et kriterie **SNMP Table Row Is Unhealthy** på tabellen `ipsec_tunnels` med Row `*`: det opretter én hændelse pr. tunnel, der ikke er aktiv, opkaldt efter tunnelen, og løser hver af dem, når dens tunnel kommer tilbage.
+Klik på **Opret monitor** på enhedens side. De anbefalede advarsler omfatter **IPsec Tunnels: row unhealthy**, et kriterie **SNMP-tabelrække er usund** på tabellen `ipsec_tunnels` med Row `*`: det opretter én hændelse pr. tunnel, der ikke er aktiv, opkaldt efter tunnelen, og løser hver af dem, når dens tunnel kommer tilbage.
 
 En tunnel, som Sophos rapporterer som aktiv, har kun sine security associations oppe. For at bevise, at trafik krydser den, tilføjer du en [Ping-monitor](/docs/monitor/ping-monitor) fra en sonde på én lokation til en vært på den anden side af hver tunnel og tegner tunnelen som en lokationsforbindelse under **Netværk → Topologi → Lokationslinks** mellem de to [lokationer](/docs/monitor/network-sites), bundet til den monitor: forbindelsen på kortet får så monitorens farve.
 
 ### WAN-forbindelser
 
-- **Porttilstand.** Interface-walket måler allerede hver WAN-ports status, bits ind og ud, udnyttelse og fejl. På firewallens monitor advarer et kriterie **SNMP Interface Is Down** eller **SNMP Interface Utilization (in %)** med **Interface** sat til WAN-portens navn, eller `*` for hver port, pr. forbindelse.
+- **Porttilstand.** Interface-walket måler allerede hver WAN-ports status, bits ind og ud, udnyttelse og fejl. På firewallens monitor advarer et kriterie **SNMP-interface er nede** eller **SNMP-interfaceudnyttelse (i %)** med **Interface** sat til WAN-portens navn, eller `*` for hver port, pr. forbindelse.
 - **Stiens kvalitet.** Hver forbindelses latens, pakketab og jitter måles uden for firewallen: en Ping-monitor fra OneUptimes cloud-sonder til hver WAN-forbindelses offentlige adresse, og en Ping-monitor fra en sonde på lokationen til hver udbyders gateway. Kriterier for pakketab og jitter på de monitorer advarer pr. forbindelse, og **Netværk → Topologi → Latensmatrix** viser hver sonde mod hver monitor med ét blik.
 - **Trafik.** SFOS eksporterer NetFlow v5. Send det til sonden på UDP 2055, hvor sondens flow-collector lytter som standard, så viser enhedens side **Trafik**, hvem der taler med hvem over hver WAN-forbindelse; [Netværkstrafik](/docs/monitor/network-traffic) har detaljerne.
 
@@ -88,7 +88,7 @@ De to første står på listen under **Opret advarsel**; til den tredje åbner d
 
 ### Traps
 
-Hver Sophos-meddelelse er den samme trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), med begivenheden som tekst i `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). For at advare om én slags begivenhed kombinerer du **SNMP Trap Received (Trap OID)** Lig med `1.3.6.1.4.1.2604.5.1.8.1.1` med **SNMP Trap Varbind Value** på den varbind, Indeholder `IPSec` for eksempel. Sæt firewallens trapdestination til SNMP v2c: sondens trapmodtager tager imod v1- og v2c-traps.
+Hver Sophos-meddelelse er den samme trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), med begivenheden som tekst i `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). For at advare om én slags begivenhed kombinerer du **SNMP-trap modtaget (trap-OID)** Lig med `1.3.6.1.4.1.2604.5.1.8.1.1` med **Varbind-værdi for SNMP-trap** på den varbind, Indeholder `IPSec` for eksempel. Sæt firewallens trapdestination til SNMP v2c: sondens trapmodtager tager imod v1- og v2c-traps.
 
 ## Extreme Networks (EXOS / Switch Engine og Fabric Engine / VOSS)
 
@@ -105,7 +105,7 @@ Fabric Engine på Extremes universelle hardware (5000- og 7000-serierne) rapport
 
 ### Advarsler for fabric og hardware
 
-De anbefalede advarsler på en Fabric Engine-switch omfatter **Fabric Adjacencies (IS-IS): row unhealthy**, en hændelse pr. nabo, hvis adjacency ikke er oppe. Fabric Engine sender også en trap, når en adjacency ændres, `rcnIsisPlsbAdjStateTrap` (`1.3.6.1.4.1.2272.1.21.0.281`), og et kriterie **SNMP Trap Received (Trap OID)** på den advarer inden for sekunder, før næste polling.
+De anbefalede advarsler på en Fabric Engine-switch omfatter **Fabric Adjacencies (IS-IS): row unhealthy**, en hændelse pr. nabo, hvis adjacency ikke er oppe. Fabric Engine sender også en trap, når en adjacency ændres, `rcnIsisPlsbAdjStateTrap` (`1.3.6.1.4.1.2272.1.21.0.281`), og et kriterie **SNMP-trap modtaget (trap-OID)** på den advarer inden for sekunder, før næste polling.
 
 Strømforsyninger, blæsere, temperatursensorer og stakmedlemmer er tabeller, der erklærer deres sunde værdier, så hver får en advarsel pr. række i de anbefalede advarsler.
 
@@ -129,10 +129,10 @@ Nyttige advarsler, alle på tabellen `wifi_radios` med Row `*`, så hver radio a
 
 | Advarsel | Kriterie |
 | --- | --- |
-| En radio slukket | **SNMP Table Row Is Unhealthy**, en del af de anbefalede advarsler |
-| Sendestyrken ændret | **SNMP Table Value**, kolonnen TX Power, Ikke lig med din planlagte styrke |
-| En overfyldt radio | **SNMP Table Value**, kolonnen Clients, Større end din grænse |
-| En støjende kanal | **SNMP Table Value**, kolonnen Noise Floor, Større end `-80` |
+| En radio slukket | **SNMP-tabelrække er usund**, en del af de anbefalede advarsler |
+| Sendestyrken ændret | **SNMP-tabelværdi**, kolonnen TX Power, Ikke lig med din planlagte styrke |
+| En overfyldt radio | **SNMP-tabelværdi**, kolonnen Clients, Større end din grænse |
+| En støjende kanal | **SNMP-tabelværdi**, kolonnen Noise Floor, Større end `-80` |
 
 Hver numerisk radioværdi er også en metrik (`oneuptime.monitor.snmp.table.value`, én serie pr. radio og kolonne), så kanal, styrke og klienter kan vises i grafer over tid på et dashboard; en kanal, der bliver ved med at skifte, er DFS på arbejde.
 

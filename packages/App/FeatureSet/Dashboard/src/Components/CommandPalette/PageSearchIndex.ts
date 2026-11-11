@@ -1646,6 +1646,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Service Level Objectives",
         pages: [{ page: PageMap.SLOS, title: "SLOs", icon: IconProp.Gauge }],
       },
+      // The rules that post SLOs' error budget policy changes to chat.
+      workspaceSection({
+        slack: PageMap.SLOS_WORKSPACE_CONNECTION_SLACK,
+        microsoftTeams: PageMap.SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+        mattermost: PageMap.SLOS_WORKSPACE_CONNECTION_MATTERMOST,
+      }),
       ...resourceSettingsSections({
         ownerRules: PageMap.SLOS_SETTINGS_OWNER_RULES,
         labelRules: PageMap.SLOS_SETTINGS_LABEL_RULES,
@@ -3573,6 +3579,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.NETWORK_SITE_ASSIGNMENT_RULES,
             title: "Site Assignment Rules",
             icon: IconProp.Filter,
+          },
+          {
+            page: PageMap.NETWORK_DEVICE_SETTINGS_NAMING_RULES,
+            title: "Naming Rules",
+            icon: IconProp.Pencil,
+            keywords: [
+              "naming convention",
+              "device names",
+              "rename devices",
+              "hostname",
+            ],
           },
           ownerRules(PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES),
           labelRules(PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES),

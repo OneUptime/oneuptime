@@ -67,6 +67,7 @@ import EntitySource from "../../../Types/Telemetry/EntitySource";
 import EntityType from "../../../Types/Telemetry/EntityType";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import UserUtil from "../../../UI/Utils/User";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const ITEM_ID: string = "40000000-0000-4000-8000-000000000002";
 const DEVICE_ID: string = "50000000-0000-4000-8000-000000000002";
@@ -937,24 +938,7 @@ describe("the device's own Inventory card says where each value came from (issue
   });
 
   test("the line is in every Dashboard language", () => {
-    for (const code of [
-      "de",
-      "fr",
-      "es",
-      "it",
-      "pt",
-      "nl",
-      "da",
-      "no",
-      "sv",
-      "ru",
-      "ja",
-      "ko",
-      "zh-CN",
-      "zh-TW",
-      "hi",
-      "fa",
-    ]) {
+    for (const code of [...DASHBOARD_LANGUAGES]) {
       const locale: Record<string, unknown> = JSON.parse(
         fs.readFileSync(
           path.join(

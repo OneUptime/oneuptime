@@ -141,6 +141,7 @@ describe("the Intl locale a language writes dates in", () => {
       "zh-CN",
       "zh-TW",
       "hi",
+      "ar",
     ]) {
       const text: string = new Intl.DateTimeFormat(getDateLocale(language), {
         year: "numeric",

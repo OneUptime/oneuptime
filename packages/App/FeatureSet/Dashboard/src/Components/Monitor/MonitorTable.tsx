@@ -64,6 +64,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import MonitorElement from "./Monitor";
 import MonitorTemplateElement from "./MonitorTemplateElement";
+import MonitorTypeTitle from "./MonitorTypeTitle";
 import {
   MONITOR_TEMPLATE_FACET_KEY,
   MONITOR_TEMPLATE_FACET_QUERY_FIELD,
@@ -447,9 +448,10 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
       searchPlaceholder: "Search monitor types...",
       options: MonitorTypeUtil.monitorTypesAsDropdownOptions().map(
         (o: DropdownOption): FilterChipDropdownOption => {
+          // Named as the Monitor Type column and the type picker name it.
           return {
             value: o.value.toString(),
-            label: o.label,
+            label: translator.translateText(o.label) || o.label,
           };
         },
       ),
@@ -775,6 +777,10 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             getElement: (item: Monitor): ReactElement => {
               return <MonitorElement monitor={item} />;
             },
+            // An English name on an Arabic page is cut short at its own end.
+            getLineText: (item: Monitor): string | undefined => {
+              return item.name;
+            },
           },
           {
             field: {
@@ -783,6 +789,10 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             title: "Monitor Type",
             type: FieldType.Text,
             hideOnMobile: true,
+            // The type's name in the reader's language, not its stored English.
+            getElement: (item: Monitor): ReactElement => {
+              return <MonitorTypeTitle monitorType={item.monitorType} />;
+            },
           },
           {
             field: {

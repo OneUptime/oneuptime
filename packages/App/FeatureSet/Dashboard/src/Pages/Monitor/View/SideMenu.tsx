@@ -31,10 +31,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     props.monitorType,
   );
 
-  const isTelemetryMonitor: boolean = MonitorTypeHelper.isTelemetryMonitor(
-    props.monitorType,
-  );
-
   // Overview section items
   const overviewItems: SideMenuItemProps[] = [
     {
@@ -116,7 +112,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     },
   ];
 
-  if (!isManualMonitor && !isTelemetryMonitor) {
+  /*
+   * Every check of every monitor but a Manual one is logged - the telemetry
+   * worker's checks of a Metrics, Logs or Kubernetes monitor too - so every
+   * monitor but a Manual one has its Monitoring Logs.
+   */
+  if (MonitorTypeHelper.hasMonitoringLogs(props.monitorType)) {
     activityItems.push({
       link: {
         title: "Monitoring Logs",

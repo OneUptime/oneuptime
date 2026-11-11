@@ -27,6 +27,7 @@ import {
   shouldPollProbeSetup,
   shouldSayProbePlanNeeded,
 } from "../../FeatureSet/Dashboard/src/Components/Network/NetworkProbeSetup";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * The first step of the Network first-run path: is there a probe on the
@@ -342,48 +343,34 @@ describe("the step's words", () => {
    * The plan's name is the model's (Growth), never a translation: every
    * language keeps the placeholder, and translates the rest.
    */
-  test.each([
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ])("the plan sentence names the plan in %s too", (language: string) => {
-    const locale: Record<string, unknown> = JSON.parse(
-      fs.readFileSync(
-        path.join(
-          __dirname,
-          "..",
-          "..",
-          "FeatureSet",
-          "Dashboard",
-          "src",
-          "Locales",
-          `${language}.json`,
+  test.each([...DASHBOARD_LANGUAGES])(
+    "the plan sentence names the plan in %s too",
+    (language: string) => {
+      const locale: Record<string, unknown> = JSON.parse(
+        fs.readFileSync(
+          path.join(
+            __dirname,
+            "..",
+            "..",
+            "FeatureSet",
+            "Dashboard",
+            "src",
+            "Locales",
+            `${language}.json`,
+          ),
+          "utf8",
         ),
-        "utf8",
-      ),
-    ) as Record<string, unknown>;
-    const sentence: string = String(locale[PROBE_STEP_PLAN_NEEDED] || "");
+      ) as Record<string, unknown>;
+      const sentence: string = String(locale[PROBE_STEP_PLAN_NEEDED] || "");
 
-    expect(sentence.match(/\{\{planName\}\}/g)).toEqual(["{{planName}}"]);
-    expect(sentence).not.toBe(PROBE_STEP_PLAN_NEEDED);
-    expect(String(locale[PROBE_PLAN_UPGRADE_BUTTON] || "")).not.toBe("");
-    expect(locale[PROBE_PLAN_UPGRADE_BUTTON]).not.toBe(
-      PROBE_PLAN_UPGRADE_BUTTON,
-    );
-  });
+      expect(sentence.match(/\{\{planName\}\}/g)).toEqual(["{{planName}}"]);
+      expect(sentence).not.toBe(PROBE_STEP_PLAN_NEEDED);
+      expect(String(locale[PROBE_PLAN_UPGRADE_BUTTON] || "")).not.toBe("");
+      expect(locale[PROBE_PLAN_UPGRADE_BUTTON]).not.toBe(
+        PROBE_PLAN_UPGRADE_BUTTON,
+      );
+    },
+  );
 
   test("the plan sentence names the plan, and says what works meanwhile", () => {
     expect(PROBE_STEP_PLAN_NEEDED).toContain("needs the {{planName}} plan");

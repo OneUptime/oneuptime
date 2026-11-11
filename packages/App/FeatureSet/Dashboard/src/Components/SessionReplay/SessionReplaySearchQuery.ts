@@ -5,6 +5,14 @@ import {
 } from "Common/Types/Rum/SessionReplay";
 import { SearchHelpRow } from "Common/UI/Components/TelemetryViewer/types";
 import {
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  formatList,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
+import {
   EMPTY_ADVANCED_FILTERS,
   SessionReplayAdvancedFilters,
   normalizeUrlPrefix,
@@ -182,9 +190,58 @@ export interface SessionReplaySearchParseResult {
   advanced: SessionReplayAdvancedFilters;
   /* Set when an id: token names a plausible session id. Acted on by Enter only. */
   navigateToSessionId: string | null;
-  /* One sentence per token that was dropped or rewritten, for the hint line. */
+  /*
+   * One sentence per token that was dropped or rewritten, for the hint
+   * line, in the language of the translator the box was parsed with
+   * (English without one).
+   */
   warnings: Array<string>;
 }
+
+// English, word for word, for a caller that hands in no translator.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+// A fixed sentence in the translator's language.
+function translateLine(text: string, translator: Translator): string {
+  return translator.translateText(text) || text;
+}
+
+/*
+ * "Only one ... filter applies at a time", one whole sentence for each
+ * field a token sets, so a language can word each filter's name its own
+ * way.
+ */
+const ONLY_ONE_FILTER: Partial<
+  Record<keyof SessionReplayAdvancedFilters, string>
+> = {
+  urlPrefix: translationKey(
+    'Only one URL filter applies at a time; using "{{value}}".',
+  ),
+  identifiedUserRef: translationKey(
+    'Only one user filter applies at a time; using "{{value}}".',
+  ),
+  browserName: translationKey(
+    'Only one browser filter applies at a time; using "{{value}}".',
+  ),
+  osName: translationKey(
+    'Only one OS filter applies at a time; using "{{value}}".',
+  ),
+  deviceType: translationKey(
+    'Only one device filter applies at a time; using "{{value}}".',
+  ),
+  countryCode: translationKey(
+    'Only one country filter applies at a time; using "{{value}}".',
+  ),
+  triggerReason: translationKey(
+    'Only one trigger filter applies at a time; using "{{value}}".',
+  ),
+  minDurationSeconds: translationKey(
+    'Only one minimum duration filter applies at a time; using "{{value}}".',
+  ),
+  visitorId: translationKey(
+    'Only one visitor filter applies at a time; using "{{value}}".',
+  ),
+};
 
 export function isLikelySessionId(value: string): boolean {
   return SESSION_ID_PATTERN.test(value.trim());
@@ -310,6 +367,7 @@ function isUrlLike(value: string): boolean {
 export function parseSessionReplaySearch(
   query: string,
   base?: SessionReplayAdvancedFilters,
+  translator: Translator = ENGLISH,
 ): SessionReplaySearchParseResult {
   const advanced: SessionReplayAdvancedFilters = {
     ...EMPTY_ADVANCED_FILTERS,
@@ -333,16 +391,14 @@ export function parseSessionReplaySearch(
   const setOnce: (
     field: keyof SessionReplayAdvancedFilters,
     value: string,
-    label: string,
   ) => void = (
     field: keyof SessionReplayAdvancedFilters,
     value: string,
-    label: string,
   ): void => {
-    if (advanced[field] && advanced[field] !== value) {
-      warnings.push(
-        `Only one ${label} filter applies at a time; using "${value}".`,
-      );
+    const onlyOne: string | undefined = ONLY_ONE_FILTER[field];
+
+    if (advanced[field] && advanced[field] !== value && onlyOne) {
+      warnings.push(translator.translateTemplate(onlyOne, { value: value }));
     }
 
     advanced[field] = value;
@@ -361,11 +417,14 @@ export function parseSessionReplaySearch(
 
     if (normalized !== value.trim()) {
       warnings.push(
-        `A URL filter matches from the start of the address, so "${value.trim()}" was applied as "${normalized}". Type a path like /checkout, or paste a full URL to pin one origin.`,
+        translator.translateTemplate(
+          'A URL filter matches from the start of the address, so "{{typed}}" was applied as "{{applied}}". Type a path like /checkout, or paste a full URL to pin one origin.',
+          { typed: value.trim(), applied: normalized },
+        ),
       );
     }
 
-    setOnce("urlPrefix", normalized, "URL");
+    setOnce("urlPrefix", normalized);
   };
 
   for (const rawToken of tokenize(query)) {
@@ -386,7 +445,10 @@ export function parseSessionReplaySearch(
       if (key === "error") {
         /* error:<text> is not a filter the endpoint has; say so, drop it. */
         warnings.push(
-          'error: is not a filter. Use the "Errors" quick filter, then search the error text inside the replay.',
+          translateLine(
+            'error: is not a filter. Use the "Errors" quick filter, then search the error text inside the replay.',
+            translator,
+          ),
         );
         continue;
       }
@@ -400,7 +462,7 @@ export function parseSessionReplaySearch(
       if (isUrlLike(bare)) {
         setUrlPrefix(bare);
       } else if (bare.includes("@")) {
-        setOnce("identifiedUserRef", bare, "user");
+        setOnce("identifiedUserRef", bare);
       } else {
         searchWords.push(bare);
       }
@@ -411,13 +473,15 @@ export function parseSessionReplaySearch(
     const value: string = unquote(token.substring(separatorIndex + 1));
 
     if (!value) {
-      warnings.push(`${key}: needs a value.`);
+      warnings.push(
+        translator.translateTemplate("{{key}}: needs a value.", { key: key }),
+      );
       continue;
     }
 
     switch (key) {
       case "user":
-        setOnce("identifiedUserRef", value, "user");
+        setOnce("identifiedUserRef", value);
         break;
       case "url":
       case "page":
@@ -427,7 +491,12 @@ export function parseSessionReplaySearch(
         const pair: Record<string, string> = parseTagFilter(value);
 
         if (Object.keys(pair).length === 0) {
-          warnings.push(`tag: takes key=value, not "${value}".`);
+          warnings.push(
+            translator.translateTemplate(
+              'tag: takes key=value, not "{{value}}".',
+              { value: value },
+            ),
+          );
           break;
         }
 
@@ -435,26 +504,35 @@ export function parseSessionReplaySearch(
         break;
       }
       case "browser":
-        setOnce("browserName", value, "browser");
+        setOnce("browserName", value);
         break;
       case "os":
-        setOnce("osName", value, "OS");
+        setOnce("osName", value);
         break;
       case "device": {
         const device: string = value.toLowerCase();
 
         if (!DEVICE_TYPES.includes(device)) {
           warnings.push(
-            `device: takes ${DEVICE_TYPES.join(", ")}, not "${value}".`,
+            translator.translateTemplate(
+              'device: takes {{types}}, not "{{value}}".',
+              {
+                // The tokens as typed, listed the sentence's way.
+                types: composedValue((sentence: Translator): string => {
+                  return formatList(DEVICE_TYPES, sentence);
+                }),
+                value: value,
+              },
+            ),
           );
           break;
         }
 
-        setOnce("deviceType", device, "device");
+        setOnce("deviceType", device);
         break;
       }
       case "country":
-        setOnce("countryCode", value.toUpperCase(), "country");
+        setOnce("countryCode", value.toUpperCase());
         break;
       case "trigger": {
         const reason: SessionReplayTriggerReason | undefined =
@@ -462,12 +540,15 @@ export function parseSessionReplaySearch(
 
         if (!reason) {
           warnings.push(
-            `trigger: takes error, frustration, slow, sampled or manual, not "${value}".`,
+            translator.translateTemplate(
+              'trigger: takes error, frustration, slow, sampled or manual, not "{{value}}".',
+              { value: value },
+            ),
           );
           break;
         }
 
-        setOnce("triggerReason", reason, "trigger");
+        setOnce("triggerReason", reason);
         break;
       }
       case "min": {
@@ -475,12 +556,15 @@ export function parseSessionReplaySearch(
 
         if (seconds === null || seconds <= 0) {
           warnings.push(
-            `min: takes a duration like 90s or 2m, not "${value}".`,
+            translator.translateTemplate(
+              'min: takes a duration like 90s or 2m, not "{{value}}".',
+              { value: value },
+            ),
           );
           break;
         }
 
-        setOnce("minDurationSeconds", String(seconds), "minimum duration");
+        setOnce("minDurationSeconds", String(seconds));
         break;
       }
       case "id":
@@ -506,12 +590,15 @@ export function parseSessionReplaySearch(
 
         if (!SESSION_REPLAY_VISITOR_ID_PATTERN.test(visitorId)) {
           warnings.push(
-            `visitor: takes the whole 32-character visitor id from a session's user cell, not "${value}".`,
+            translator.translateTemplate(
+              'visitor: takes the whole 32-character visitor id from a session\'s user cell, not "{{value}}".',
+              { value: value },
+            ),
           );
           break;
         }
 
-        setOnce("visitorId", visitorId, "visitor");
+        setOnce("visitorId", visitorId);
         break;
       }
       default:
@@ -527,7 +614,13 @@ export function parseSessionReplaySearch(
 
   if (search.length > SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH) {
     warnings.push(
-      `Search text is capped at ${SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH} characters.`,
+      translator.translatePlural(
+        {
+          one: "Search text is capped at {{count}} character.",
+          other: "Search text is capped at {{count}} characters.",
+        },
+        SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH,
+      ),
     );
   }
 
@@ -629,10 +722,12 @@ export function stringifySessionReplaySearchBox(
 export function parseSessionReplaySearchBox(
   query: string,
   base: SessionReplayAdvancedFilters,
+  translator: Translator = ENGLISH,
 ): SessionReplaySearchParseResult {
   const parsed: SessionReplaySearchParseResult = parseSessionReplaySearch(
     query,
     base,
+    translator,
   );
   const advanced: SessionReplayAdvancedFilters = { ...parsed.advanced };
 

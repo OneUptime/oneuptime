@@ -101,7 +101,7 @@ Hver statusændring registreres med sin årsag på monitorens **Statustidslinje*
 
 ## Kriterier
 
-En trace-monitors kriterier har én **Filtertype**: **Span Count**, antallet af spans, der matchede i vinduet. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og, for en tærskelbetingelse, en **Værdi**.
+En trace-monitors kriterier har én **Filtertype**: **Antal spans**, antallet af spans, der matchede i vinduet. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og, for en tærskelbetingelse, en **Værdi**.
 
 | Filterbetingelse | Matcher, når antallet af spans er… |
 | --- | --- |
@@ -110,9 +110,9 @@ En trace-monitors kriterier har én **Filtertype**: **Span Count**, antallet af 
 | **Mindre end** | under værdien |
 | **Mindre end eller lig med** | lig med værdien eller derunder |
 | **Lig med** | præcis værdien |
-| **Anomalously High** | over det forventede interval for denne time på ugen |
-| **Anomalously Low** | under det interval |
-| **Anomalous** | uden for det interval, i begge retninger |
+| **Unormalt høj** | over det forventede interval for denne time på ugen |
+| **Unormalt lav** | under det interval |
+| **Unormal** | uden for det interval, i begge retninger |
 
 Anomalibetingelserne har ingen **Værdi**. Vælg en **Følsomhed** (Lav, Middel, som er standard, eller Høj) og, i de egne kriterier, et **Baseline-vindue** på 14 (standard), 28, 60 eller 90 dage. OneUptime omregner antallet til en rate pr. minut og sammenligner den med vinduer af samme længde omkring samme tidspunkt i tidligere uger, så langt tilbage som **Baseline-vindue** rækker; det, der sker nu, indgår aldrig i sammenligningen. Baselinen dækker kun monitorens tjenester og span-statusser: dens filtre på span-navn og attributter indgår ikke. Minutter uden spans tæller også med, så en tjeneste, der ofte er stille, ikke regnes for usædvanligt lav, fordi den er stille. Et vindue regnes kun for usædvanligt højt i forhold til de vinduer, der indeholdt spans, og kun med mindst 20, 10 eller 5 spans ved følsomheden Lav, Middel eller Høj, så hverken et jobs sædvanlige udbrud eller en stille tjenestes første få spans udløser det. Indtil monitorens tjenester har to ugers historik, er kriteriet stadig ved at lære og udløses ikke.
 
@@ -127,8 +127,8 @@ En trace-monitor, der er oprettet via API'et eller Terraform uden kriterier, sta
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Lig med** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
-| Check if … is online | **Span Count** **Større end** `0` | Sætter monitoren online |
+| Check if … is offline | **Antal spans** **Lig med** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
+| Check if … is online | **Antal spans** **Større end** `0` | Sætter monitoren online |
 
 ## Gennemgået eksempel: mislykkede checkout-anmodninger
 

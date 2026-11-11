@@ -18,6 +18,10 @@ import TelemetryIngestionBudgetMetricTypeUtil, {
 import SessionReplayBudgetMetricTypeUtil, {
   SESSION_REPLAY_METRIC_NAME_PREFIX,
 } from "../../Utils/SessionReplay/SessionReplayBudgetMetricType";
+import {
+  PRODUCT_ANALYTICS_DERIVED_METRIC_PREFIX,
+  isProductAnalyticsDerivedMetricName,
+} from "../../Types/Rum/ProductAnalyticsEvents";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -38,6 +42,13 @@ export class Service extends DatabaseService<Model> {
     ) {
       throw new BadDataException(
         `Metric names that start with "${SESSION_REPLAY_METRIC_NAME_PREFIX}" are reserved for OneUptime's session replay budget metrics. Choose another output metric name.`,
+      );
+    }
+
+    // And the product analytics event counts the event pipeline writes.
+    if (typeof name === "string" && isProductAnalyticsDerivedMetricName(name)) {
+      throw new BadDataException(
+        `Metric names that start with "${PRODUCT_ANALYTICS_DERIVED_METRIC_PREFIX}" are reserved for OneUptime's product analytics event counts. Choose another output metric name.`,
       );
     }
 

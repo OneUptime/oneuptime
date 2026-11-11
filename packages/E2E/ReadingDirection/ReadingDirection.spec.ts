@@ -6,12 +6,14 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 /*
  * The reading direction, in real Chromium. A Persian page sets <html
  * lang="fa" dir="rtl"> through the production helper (Common/UI/Utils/
- * PageLanguage), Tailwind's left and right utilities follow it (Common/UI/
- * Styles/TailwindReadingDirection.js), and the shared components that
- * place things themselves turn with it: the switch's knob, the status dot,
- * the table's stuck Actions column, a dialog's words, a note in the reader's
- * way or its own, chevrons and arrows. A German or English page is laid
- * out exactly as before.
+ * PageLanguage), and an Arabic one <html lang="ar" dir="rtl">; Tailwind's
+ * left and right utilities follow it (Common/UI/Styles/
+ * TailwindReadingDirection.js), and the shared components that place
+ * things themselves turn with it: the switch's knob, the status dot, the
+ * table's stuck Actions column, a dialog's words, a note in the reader's
+ * way or its own, chevrons and arrows. An Arabic page also writes its
+ * dates, its pages and its calendar in Latin digits, and draws its letters
+ * in Vazirmatn. A German or English page is laid out exactly as before.
  *
  * Every box is measured against the box it sits in, in both directions.
  */
@@ -132,7 +134,17 @@ const LANGUAGES: Array<{ lang: string; dir: "ltr" | "rtl" }> = [
   { lang: "en", dir: "ltr" },
   { lang: "de", dir: "ltr" },
   { lang: "fa", dir: "rtl" },
+  { lang: "ar", dir: "rtl" },
 ];
+
+// The languages that read right to left, each laid out the same way.
+const RIGHT_TO_LEFT: Array<string> = LANGUAGES.filter(
+  (language: { lang: string; dir: "ltr" | "rtl" }): boolean => {
+    return language.dir === "rtl";
+  },
+).map((language: { lang: string; dir: "ltr" | "rtl" }): string => {
+  return language.lang;
+});
 
 test.describe("the page says its language and which way it reads", () => {
   for (const language of LANGUAGES) {
@@ -164,7 +176,7 @@ test.describe("left and right utilities follow the reading direction", () => {
   }: {
     page: Page;
   }) => {
-    for (const language of ["en", "fa"]) {
+    for (const language of ["en", ...RIGHT_TO_LEFT]) {
       await open(page, `lang=${language}`);
 
       const box: Locator = page.getByTestId("spacing-box");
@@ -217,7 +229,7 @@ test.describe("left and right utilities follow the reading direction", () => {
 });
 
 test.describe("the switch", () => {
-  for (const language of ["en", "fa"]) {
+  for (const language of ["en", ...RIGHT_TO_LEFT]) {
     test(`${language}: the knob stays inside its track, at the start when off and the end when on`, async ({
       page,
     }: {
@@ -243,7 +255,7 @@ test.describe("the switch", () => {
         const isAtRight: boolean =
           knobBox.left - trackBox.left > trackBox.right - knobBox.right;
         // On sits at the end: the right left to right, the left right to left.
-        expect(isAtRight).toBe(language === "fa" ? !isOn : isOn);
+        expect(isAtRight).toBe(language === "en" ? isOn : !isOn);
       }
     });
   }
@@ -343,7 +355,7 @@ test.describe("the product bar", () => {
 });
 
 test.describe("the status dot", () => {
-  for (const language of ["en", "fa"]) {
+  for (const language of ["en", ...RIGHT_TO_LEFT]) {
     test(`${language}: the dot starts the line and keeps 10px from the words`, async ({
       page,
     }: {
@@ -377,7 +389,7 @@ test.describe("the status dot", () => {
 
 test.describe("a table whose rows scroll sideways", () => {
   for (const theme of ["light", "dark"]) {
-    for (const language of ["en", "fa"]) {
+    for (const language of ["en", ...RIGHT_TO_LEFT]) {
       test(`${language}, ${theme}: the Actions column sticks at the table's end, ruled and shadowed on its start side`, async ({
         page,
       }: {
@@ -466,7 +478,7 @@ test.describe("a table whose rows scroll sideways", () => {
 });
 
 test.describe("a dialog", () => {
-  for (const language of ["en", "fa"]) {
+  for (const language of ["en", ...RIGHT_TO_LEFT]) {
     test(`${language}: its words start where the page's do, and the close button sits at the end`, async ({
       page,
     }: {
@@ -497,7 +509,7 @@ test.describe("a dialog", () => {
 });
 
 test.describe("a side panel", () => {
-  for (const language of ["en", "fa"]) {
+  for (const language of ["en", ...RIGHT_TO_LEFT]) {
     test(`${language}: it stands at the end of the page, its words at its start and its close button at its end`, async ({
       page,
     }: {
@@ -935,7 +947,7 @@ test.describe("what a page says back", () => {
   }: {
     page: Page;
   }) => {
-    for (const language of ["en", "fa"]) {
+    for (const language of ["en", ...RIGHT_TO_LEFT]) {
       await open(page, `lang=${language}`);
 
       const field: Locator = page.getByTestId("error-server-field");
@@ -954,7 +966,7 @@ test.describe("what a page says back", () => {
       );
 
       // The icon sits at the field's end; the field keeps it clear of what is typed.
-      if (language === "fa") {
+      if (language !== "en") {
         expect(icon.left - box.left).toBeLessThan(box.right - icon.right);
         expect(box.left + paddings.left).toBeGreaterThanOrEqual(icon.right);
       } else {
@@ -1909,8 +1921,11 @@ test.describe("a canvas", () => {
       expect(stepStop.left).toBeGreaterThan(stepWord.right);
 
       if (language.dir === "rtl") {
-        // A Persian one reads from the right: its full stop is at its left.
-        const word: Box = await boxOfText(node, "درگاه");
+        // A Persian or Arabic one reads from the right: its full stop is at its left.
+        const word: Box = await boxOfText(
+          node,
+          language.lang === "ar" ? "بوابة" : "درگاه",
+        );
         const stop: Box = await boxOfText(node, ".");
 
         expect(stop.right).toBeLessThanOrEqual(word.left + 0.5);
@@ -2224,6 +2239,11 @@ test.describe("Korean keeps its words whole", () => {
   }
 });
 
+// ٠-٩ and the Persian ۰-۹: an Arabic page writes neither (Locales/ARABIC.md).
+const ARABIC_INDIC_DIGIT: RegExp = /[٠-٩۰-۹]/;
+const EVERY_ARABIC_INDIC_DIGIT: RegExp = /[٠-٩۰-۹]/g;
+const LATIN_DIGIT: RegExp = /[0-9]/;
+
 test.describe("dates in the reader's digits", () => {
   test("fa: a date is written in Persian digits on the Gregorian calendar", async ({
     page,
@@ -2240,6 +2260,21 @@ test.describe("dates in the reader's digits", () => {
     expect(text).not.toMatch(/[0-9]/);
   });
 
+  test("ar: a date is written in Arabic on the Gregorian calendar, in Latin digits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=ar");
+
+    const text: string =
+      (await page.getByTestId("date-text").textContent()) || "";
+
+    expect(text).toContain("2026");
+    expect(text).toContain("أكتوبر");
+    expect(text).not.toMatch(ARABIC_INDIC_DIGIT);
+  });
+
   test("de and en: Latin digits, as ever", async ({ page }: { page: Page }) => {
     for (const language of ["de", "en"]) {
       await open(page, `lang=${language}`);
@@ -2254,31 +2289,112 @@ test.describe("dates in the reader's digits", () => {
 test.describe("a phone", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test("fa: nothing runs past the page's edge", async ({
+  for (const language of RIGHT_TO_LEFT) {
+    test(`${language}: nothing runs past the page's edge`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      // A phone draws a table's rows as cards: no cells to wait for.
+      await open(page, `lang=${language}&width=340`, false);
+
+      await expectNoSidewaysScroll(page);
+
+      // The switch's knob stays in its track at this width too.
+      const track: Box = await boxOf(page.getByTestId("toggle-on"));
+      const knob: Box = await boxOf(
+        page.getByTestId("toggle-on").locator("[data-ou-toggle-knob]"),
+      );
+
+      expect(knob.left).toBeGreaterThanOrEqual(track.left);
+      expect(knob.right).toBeLessThanOrEqual(track.right);
+    });
+  }
+});
+
+/*
+ * An Arabic page: the Dashboard's own Arabic words, its letters in the
+ * product's Arabic font, and Latin digits wherever the product writes a
+ * number - a date, a page of a list, a month's days, a chart's axis.
+ */
+test.describe("an Arabic page", () => {
+  test("ar: the product bar names Home in the Dashboard's Arabic", async ({
     page,
   }: {
     page: Page;
   }) => {
-    // A phone draws a table's rows as cards: no cells to wait for.
-    await open(page, "lang=fa&width=340", false);
+    await open(page, "lang=ar");
 
-    await expectNoSidewaysScroll(page);
+    await expect(
+      page.locator("[data-testid=product-bar-home-only] #home-nav-bar-item"),
+    ).toContainText("الرئيسية");
+  });
 
-    // The switch's knob stays in its track at this width too.
-    const track: Box = await boxOf(page.getByTestId("toggle-on"));
-    const knob: Box = await boxOf(
-      page.getByTestId("toggle-on").locator("[data-ou-toggle-knob]"),
-    );
+  test("ar: its Arabic letters are drawn in Vazirmatn, Inter's face for them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=ar");
 
-    expect(knob.left).toBeGreaterThanOrEqual(track.left);
-    expect(knob.right).toBeLessThanOrEqual(track.right);
+    const faces: Array<{ family: string; unicodeRange: string }> =
+      await page.evaluate(
+        async (): Promise<Array<{ family: string; unicodeRange: string }>> => {
+          await document.fonts.ready;
+
+          return Array.from(document.fonts)
+            .filter((face: FontFace): boolean => {
+              return face.status === "loaded";
+            })
+            .map((face: FontFace): { family: string; unicodeRange: string } => {
+              return {
+                family: face.family.replace(/["']/g, ""),
+                unicodeRange: face.unicodeRange,
+              };
+            });
+        },
+      );
+
+    expect(faces).toContainEqual({
+      family: "Inter",
+      unicodeRange: expect.stringContaining("U+600-6FF"),
+    });
+  });
+
+  test("ar: the product writes Latin digits - a date, a page of a list, a month's days, a chart's axis", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=ar");
+
+    for (const testId of [
+      "section-dates",
+      "section-pagination",
+      "section-calendar",
+      "section-chart",
+    ]) {
+      const text: string = await page.getByTestId(testId).innerText();
+
+      expect({ testId, hasLatinDigit: LATIN_DIGIT.test(text) }).toEqual({
+        testId,
+        hasLatinDigit: true,
+      });
+      expect({
+        testId,
+        arabicIndic: text.match(EVERY_ARABIC_INDIC_DIGIT) || [],
+      }).toEqual({
+        testId,
+        arabicIndic: [],
+      });
+    }
   });
 });
 
 /*
- * The whole fixture, for a person to look at: Persian beside English and
- * German, light and dark, a laptop and a phone, and the dialog and the side
- * panel over it.
+ * The whole fixture, for a person to look at: Persian and Arabic beside
+ * English and German, light and dark, a laptop and a phone, and the dialog
+ * and the side panel over it.
  */
 test.describe("screens for review", () => {
   const SCREENS: Array<{ name: string; query: string; width: number }> = [
@@ -2292,6 +2408,16 @@ test.describe("screens for review", () => {
     {
       name: "fa-phone-dark",
       query: "lang=fa&width=340&theme=dark",
+      width: 390,
+    },
+    { name: "ar", query: "lang=ar", width: 1280 },
+    { name: "ar-dark", query: "lang=ar&theme=dark", width: 1280 },
+    { name: "ar-dialog", query: "lang=ar&dialog=open", width: 1280 },
+    { name: "ar-drawer", query: "lang=ar&drawer=open", width: 1280 },
+    { name: "ar-phone", query: "lang=ar&width=340", width: 390 },
+    {
+      name: "ar-phone-dark",
+      query: "lang=ar&width=340&theme=dark",
       width: 390,
     },
   ];

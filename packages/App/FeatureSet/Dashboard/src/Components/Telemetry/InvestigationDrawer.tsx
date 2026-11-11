@@ -76,6 +76,7 @@ import { TimeRangeZoom } from "Common/UI/Components/Charts/TimeRangeZoom/UseTime
 import TimeRangeZoomUtil from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomUtil";
 import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import { computeBucketSizeInMinutes } from "../Dashboard/Components/LogChartData";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export interface ComponentProps {
   /** What the user is investigating, e.g. `CPU by host · 12:01–12:14`. */
@@ -850,12 +851,16 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                 {[
                   {
                     label: "Log lines",
-                    value: logVolume ? logVolume.total.toLocaleString() : "…",
+                    value: logVolume
+                      ? logVolume.total.toLocaleString(getReaderNumberLocale())
+                      : "…",
                   },
                   {
                     label: "Errors",
                     value: logVolume
-                      ? logVolume.errorCount.toLocaleString()
+                      ? logVolume.errorCount.toLocaleString(
+                          getReaderNumberLocale(),
+                        )
                       : "…",
                   },
                   {
@@ -913,7 +918,9 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                             }}
                           >
                             <span className="shrink-0 rounded bg-red-50 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-red-700">
-                              {pattern.count.toLocaleString()}
+                              {pattern.count.toLocaleString(
+                                getReaderNumberLocale(),
+                              )}
                             </span>
                             <span className="min-w-0 flex-1 truncate font-mono text-xs text-gray-700 group-hover:text-gray-900">
                               {pattern.sampleBody || pattern.pattern}

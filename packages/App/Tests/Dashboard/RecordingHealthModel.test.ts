@@ -8,7 +8,7 @@ import {
   SESSION_REPLAY_REFUSAL_ALERT_THRESHOLD,
   SESSION_REPLAY_STALE_CHUNK_MS,
   diagnoseRecordingHealth,
-} from "Common/Utils/Rum/SessionReplayHealth";
+} from "Common/Utils/SessionReplay/SessionReplayHealth";
 import {
   HealthCounterBreakdown,
   RecordingPipelineStage,
@@ -617,15 +617,21 @@ describe("buildUsageMeter", () => {
   });
 });
 
+/*
+ * The whole phrase the header draws after "Updated 12s ago ·", one key per
+ * cadence (RecordingHealthModelInLocale.test.ts reads it in a locale).
+ */
 describe("describePollInterval", () => {
   test("names the cadence the page refreshes at", () => {
-    expect(describePollInterval(60 * 1000)).toBe("every minute");
-    expect(describePollInterval(10 * 1000)).toBe("every 10s");
-    expect(describePollInterval(5 * 60 * 1000)).toBe("every 5m");
+    expect(describePollInterval(60 * 1000)).toBe("refreshes every minute");
+    expect(describePollInterval(10 * 1000)).toBe("refreshes every 10s");
+    expect(describePollInterval(5 * 60 * 1000)).toBe("refreshes every 5m");
   });
 
-  test("a non-positive or non-finite interval is 'manually'", () => {
-    expect(describePollInterval(0)).toBe("manually");
-    expect(describePollInterval(Number.POSITIVE_INFINITY)).toBe("manually");
+  test("a non-positive or non-finite interval is 'refreshes manually'", () => {
+    expect(describePollInterval(0)).toBe("refreshes manually");
+    expect(describePollInterval(Number.POSITIVE_INFINITY)).toBe(
+      "refreshes manually",
+    );
   });
 });

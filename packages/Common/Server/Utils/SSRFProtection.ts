@@ -44,9 +44,11 @@ import net from "net";
  * The tier only widens for callers that pass
  * `allowPrivateNetworkTargets: true`, which means "this URL was authored by an
  * authenticated member of a project". Sinks whose target can be chosen by an
- * unauthenticated visitor — status page subscriber webhooks — pass nothing and
- * get the strict policy, so the exception can never be reached from outside
- * the tenant however the instance is configured.
+ * unauthenticated visitor — the webhook of a subscriber that signed up on a
+ * status page — pass nothing and get the strict policy, so the exception can
+ * never be reached from outside the tenant however the instance is
+ * configured. A subscriber the team added is the project's own URL and opts
+ * in (StatusPageSubscriberWebhookUtil).
  */
 
 export enum WebhookAddressTier {
@@ -101,6 +103,13 @@ export interface WebhookTargetValidationOptions {
    * monitor lives on the probe — usually a different machine, often owned by
    * a different person. Naming the wrong one is how an operator ends up
    * filing the bug this feature came from.
+   *
+   * Absent, the refusal names the API server's webhook settings only where
+   * they decide the answer: for a caller that passes
+   * `allowPrivateNetworkTargets: true` and no `privateNetworkAccessIsAllowed`.
+   * Any other caller is not widened by those settings, so naming them would
+   * send an operator to change something that changes nothing (issue
+   * #6589) - its refusal ends at "is not allowed." unless it says more here.
    */
   privateNetworkHint?: string | undefined;
 
@@ -134,7 +143,11 @@ export interface ValidatedWebhookTarget {
 
 const DEFAULT_TARGET_LABEL: string = "Webhook URL";
 
-const DEFAULT_PRIVATE_NETWORK_HINT: string =
+/*
+ * Named only for a caller the webhook settings can widen (see
+ * `privateNetworkHint`).
+ */
+export const WEBHOOK_PRIVATE_NETWORK_HINT: string =
   " Self-hosted instances can allow this by setting ALLOW_PRIVATE_NETWORK_WEBHOOKS or PRIVATE_NETWORK_WEBHOOK_ALLOWLIST.";
 
 export default class SSRFProtection {
@@ -230,8 +243,6 @@ export default class SSRFProtection {
     returnValidatedTarget: boolean,
   ): Promise<ValidatedWebhookTarget | null> {
     const label: string = options?.targetLabel || DEFAULT_TARGET_LABEL;
-    const privateNetworkHint: string =
-      options?.privateNetworkHint ?? DEFAULT_PRIVATE_NETWORK_HINT;
     const includeResolutionDetail: boolean =
       DataSourceEgressGuard.shouldIncludeResolutionDetail(
         options?.includeResolutionDetailInError,
@@ -335,6 +346,15 @@ export default class SSRFProtection {
       (shouldUseWebhookPolicy
         ? PrivateNetworkWebhookConfig.isPrivateNetworkAllowed()
         : options?.privateNetworkAccessIsAllowed === true);
+
+    /*
+     * The webhook settings are named only where they would change this
+     * answer. A strict caller - a status page sign-up's webhook, a Runbook's
+     * JavaScript sandbox - says what applies to it, or nothing.
+     */
+    const privateNetworkHint: string =
+      options?.privateNetworkHint ??
+      (isOptedIn && shouldUseWebhookPolicy ? WEBHOOK_PRIVATE_NETWORK_HINT : "");
 
     /*
      * A host the operator named outright needs no further inspection — not the

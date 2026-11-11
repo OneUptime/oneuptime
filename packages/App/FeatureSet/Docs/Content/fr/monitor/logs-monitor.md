@@ -104,7 +104,7 @@ Chaque changement de statut est enregistré, avec sa raison, dans la **Chronolog
 
 ## Critères
 
-Les critères d'un moniteur de journaux ont un seul **Type de filtre** : **Log Count**, le nombre de journaux qui ont correspondu dans la fenêtre. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus**, **Exactement**, **Anormalement haut**, **Anormalement bas** ou **Anormalement haut ou bas**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et, pour une condition de seuil, une **Valeur**.
+Les critères d'un moniteur de journaux ont un seul **Type de filtre** : **Nombre de journaux**, le nombre de journaux qui ont correspondu dans la fenêtre. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus**, **Exactement**, **Anormalement haut**, **Anormalement bas** ou **Anormalement haut ou bas**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et, pour une condition de seuil, une **Valeur**.
 
 | Condition de filtre | Correspond quand le nombre de journaux est… |
 | --- | --- |
@@ -113,9 +113,9 @@ Les critères d'un moniteur de journaux ont un seul **Type de filtre** : **Log C
 | **Inférieur à** | en dessous de la valeur |
 | **Inférieur ou égal à** | égal ou inférieur à la valeur |
 | **Égal à** | exactement la valeur |
-| **Anomalously High** | au-dessus de la plage attendue pour cette heure de la semaine |
-| **Anomalously Low** | en dessous de cette plage |
-| **Anomalous** | hors de cette plage, dans un sens ou dans l'autre |
+| **Anormalement élevé** | au-dessus de la plage attendue pour cette heure de la semaine |
+| **Anormalement bas** | en dessous de cette plage |
+| **Anormal** | hors de cette plage, dans un sens ou dans l'autre |
 
 Les conditions d'anomalie ne prennent pas de **Valeur**. Choisissez une **Sensibilité** – Faible, Moyen (la valeur par défaut) ou Élevé – et, dans les critères personnalisés, une **Fenêtre de référence** de 14 (la valeur par défaut), 28, 60 ou 90 jours. OneUptime convertit le décompte en taux par minute et le compare à des fenêtres de même durée autour de la même heure des semaines précédentes, aussi loin que remonte la **Fenêtre de référence** ; ce qui se passe maintenant n'entre jamais dans cette comparaison. La référence ne couvre que les services et les gravités du moniteur : ses filtres de texte et d'attributs n'en font pas partie. Les minutes sans logs comptent aussi : un service souvent silencieux ne passe donc pas pour anormalement bas parce qu'il se tait. Une fenêtre ne passe pour anormalement haute que face aux fenêtres qui contenaient des logs, et seulement avec au moins 20, 10 ou 5 logs en sensibilité Faible, Moyen ou Élevé, de sorte que ni la rafale habituelle d'une tâche ni les premières lignes d'un service silencieux ne le déclenchent. Tant que les services du moniteur n'ont pas deux semaines d'historique, le critère est encore en apprentissage et ne se déclenche pas.
 
@@ -131,8 +131,8 @@ Un moniteur de journaux créé via l'API ou Terraform sans critères commence av
 
 | Critère | Filtre | Effet |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Égal à** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
-| Check if … is online | **Log Count** **Supérieur à** `0` | Passe le moniteur en ligne |
+| Check if … is offline | **Nombre de journaux** **Égal à** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
+| Check if … is online | **Nombre de journaux** **Supérieur à** `0` | Passe le moniteur en ligne |
 
 ## Exemple : un pic d'erreurs
 
@@ -234,7 +234,7 @@ La valeur de chaque attribut de Group By est une [variable de modèle](/docs/mon
 
 - **Chaque critère est évalué**, comme sur un moniteur de métriques regroupé, si bien que différents groupes peuvent remplir différents critères en même temps. Un groupe qui remplit deux critères ne reçoit toujours qu'une alerte, celle du premier ; ordonnez donc les critères du plus grave au moins grave.
 - **Un groupe n'existe que s'il a journalisé quelque chose dans la fenêtre de temps.** Les critères **Égal à 0** et **Inférieur à** ne se déclenchent donc que pour les groupes qui ont journalisé au moins une fois ; pour alerter quand les journaux cessent complètement d'arriver, utilisez un moniteur sans Group By.
-- **La détection d'anomalies** (**Anomalously High**, **Anomalously Low**, **Anomalous**) n'est pas évaluée par groupe – sa référence couvre tout le moniteur –, si bien que ces filtres ne correspondent jamais sur un moniteur regroupé.
+- **La détection d'anomalies** (**Anormalement élevé**, **Anormalement bas**, **Anormal**) n'est pas évaluée par groupe – sa référence couvre tout le moniteur –, si bien que ces filtres ne correspondent jamais sur un moniteur regroupé.
 - Le statut du moniteur suit le premier critère que remplit un groupe. Quand aucun groupe ne remplit de critère, le moniteur revient à son statut par défaut.
 
 ## Dépannage
@@ -244,7 +244,7 @@ Le décompte valait 0 : les filtres ne correspondent donc à aucun des journaux 
 :::
 
 :::details Un pic s'est produit, mais rien n'a alerté
-Les critères sont vérifiés de haut en bas et la première correspondance décide. Un critère large placé au-dessus de celui que vous attendiez, comme **Log Count** **Supérieur à** `0`, correspond en premier et arrête les autres. Placez le critère le plus grave en haut.
+Les critères sont vérifiés de haut en bas et la première correspondance décide. Un critère large placé au-dessus de celui que vous attendiez, comme **Nombre de journaux** **Supérieur à** `0`, correspond en premier et arrête les autres. Placez le critère le plus grave en haut.
 :::
 
 :::details Un critère d'anomalie ne se déclenche jamais

@@ -17,8 +17,8 @@ En cada comprobación, una sonda pide a un servidor DNS un tipo de registro de u
 flowchart TB
     query["Consultar el tipo de registro"] --> answer{"¿Se devolvieron registros?"}
     answer -->|"No, quedan reintentos"| query
-    answer -->|"No, sin reintentos"| offline["DNS Is Online: False"]
-    answer -->|"Sí"| online["DNS Is Online: True"]
+    answer -->|"No, sin reintentos"| offline["DNS en línea: Falso"]
+    answer -->|"Sí"| online["DNS en línea: Verdadero"]
     online --> ad["Comprobar el indicador AD"]
     ad --> criteria["Comprobar los criterios"]
     offline --> criteria
@@ -52,7 +52,7 @@ Haga clic en **Probar monitor**, elija una sonda en **Seleccionar sonda** y haga
 
 ### Revisar los criterios
 
-**Criterios del monitor** empieza con los [criterios predeterminados](#criterios-predeterminados): sin conexión cuando el nombre no se resuelve, en línea cuando se resuelve. Para comprobar qué dicen los registros, añada un filtro **DNS Record Value** y haga clic en **Siguiente**.
+**Criterios del monitor** empieza con los [criterios predeterminados](#criterios-predeterminados): sin conexión cuando el nombre no se resuelve, en línea cuando se resuelve. Para comprobar qué dicen los registros, añada un filtro **Valor del registro DNS** y haga clic en **Siguiente**.
 
 ### Elegir sondas y crear
 
@@ -72,7 +72,7 @@ Mantenga o cambie las **Sondas** y el **Intervalo de monitoreo** (empieza en **C
 
 ### Tipos de registro
 
-Un criterio **DNS Record Value** compara su texto con cada registro tal como lo escribe la sonda, así que respete este formato:
+Un criterio **Valor del registro DNS** compara su texto con cada registro tal como lo escribe la sonda, así que respete este formato:
 
 | Tipo de registro | Qué contiene | Formato del valor, para los criterios |
 | --- | --- | --- |
@@ -95,15 +95,15 @@ Los criterios deciden cuándo el nombre cuenta como en línea, degradado o sin c
 
 | Filtro | Condiciones | Qué comprueba |
 | --- | --- | --- |
-| **DNS Is Online** | **Verdadero**, **Falso** | Si la consulta devolvió al menos un registro del tipo. |
-| **DNS Response Time (in ms)** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Cuánto tardó la consulta. |
-| **DNS Record Exists** | **Verdadero**, **Falso** | Si volvió algún registro del tipo. |
-| **DNS Record Value** | **Contiene**, **No contiene**, **Empieza por**, **Termina en**, **Igual a**, **Distinto de** | Los valores de los registros. El filtro coincide cuando coincide un solo registro. |
-| **DNSSEC Is Valid** | **Verdadero**, **Falso** | Si un resolutor validador pone el indicador AD en la respuesta. |
+| **DNS en línea** | **Verdadero**, **Falso** | Si la consulta devolvió al menos un registro del tipo. |
+| **Tiempo de respuesta de DNS (en ms)** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Cuánto tardó la consulta. |
+| **Registro DNS presente** | **Verdadero**, **Falso** | Si volvió algún registro del tipo. |
+| **Valor del registro DNS** | **Contiene**, **No contiene**, **Empieza por**, **Termina en**, **Igual a**, **Distinto de** | Los valores de los registros. El filtro coincide cuando coincide un solo registro. |
+| **DNSSEC válido** | **Verdadero**, **Falso** | Si un resolutor validador pone el indicador AD en la respuesta. |
 
-**DNS Record Value** coincide cuando coincide _cualquiera_ de los registros. Con varios registros `A`, **Igual a** `93.184.216.34` coincide cuando uno de ellos es esa dirección, y **Distinto de** coincide cuando uno de ellos no lo es.
+**Valor del registro DNS** coincide cuando coincide _cualquiera_ de los registros. Con varios registros `A`, **Igual a** `93.184.216.34` coincide cuando uno de ellos es esa dirección, y **Distinto de** coincide cuando uno de ellos no lo es.
 
-**DNSSEC Is Valid** pregunta al servidor de **Servidor DNS (opcional)**, en su **Puerto**, o a Google Public DNS (`8.8.8.8`) cuando está vacío, así que el servidor que indique debe validar DNSSEC. El filtro no tiene valor, y no coincide en ningún sentido, cuando la sonda no puede hacer esa comprobación. Para una comprobación completa de una zona firmada, use un [monitor de DNSSEC](/docs/monitor/dnssec-monitor).
+**DNSSEC válido** pregunta al servidor de **Servidor DNS (opcional)**, en su **Puerto**, o a Google Public DNS (`8.8.8.8`) cuando está vacío, así que el servidor que indique debe validar DNSSEC. El filtro no tiene valor, y no coincide en ningún sentido, cuando la sonda no puede hacer esa comprobación. Para una comprobación completa de una zona firmada, use un [monitor de DNSSEC](/docs/monitor/dnssec-monitor).
 
 Con dos o más filtros, **Condición de coincidencia** decide si deben coincidir **Todos** o basta con **Cualquiera**. Las **Acciones** de un criterio deciden qué hace: cambiar el estado del monitor, crear una alerta, declarar un incidente, o varias de estas cosas.
 
@@ -118,15 +118,15 @@ Los criterios se comprueban de arriba abajo, y el primero que coincide decide qu
 
 ### Evaluar durante un periodo de tiempo
 
-**Evaluar estos criterios durante un periodo de tiempo** es una casilla bajo un filtro, disponible para **DNS Is Online** y **DNS Response Time (in ms)**. Actívela para juzgar una ventana de comprobaciones pasadas en lugar de la última: elija una agregación en **Evaluar** y una ventana, de 2 a 60 minutos, en **Durante los últimos (en minutos)**.
+**Evaluar estos criterios durante un periodo de tiempo** es una casilla bajo un filtro, disponible para **DNS en línea** y **Tiempo de respuesta de DNS (en ms)**. Actívela para juzgar una ventana de comprobaciones pasadas en lugar de la última: elija una agregación en **Evaluar** y una ventana, de 2 a 60 minutos, en **Durante los últimos (en minutos)**.
 
 | Agregación | Coincide cuando |
 | --- | --- |
-| **Promedio**, **Suma**, **Maximum Value**, **Minimum Value** | Ese valor, en la ventana, cumple la condición. Solo **DNS Response Time (in ms)**. |
-| **All Values** | Cada comprobación de la ventana cumple la condición. |
-| **Any Value** | Al menos una comprobación de la ventana cumple la condición. |
+| **Promedio**, **Suma**, **Valor máximo**, **Valor mínimo** | Ese valor, en la ventana, cumple la condición. Solo **Tiempo de respuesta de DNS (en ms)**. |
+| **Todos los valores** | Cada comprobación de la ventana cumple la condición. |
+| **Cualquier valor** | Al menos una comprobación de la ventana cumple la condición. |
 
-**All Values** solo coincide cuando la ventana está realmente cubierta de datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Any Value** es el ajuste para «avíseme en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
+La opción **Todos los valores** solo coincide cuando la ventana está realmente cubierta de datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Cualquier valor** es el ajuste para «avíseme en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
 
 **Si no hay datos** decide qué ocurre mientras la ventana no puede respaldar el criterio:
 
@@ -140,11 +140,11 @@ Los criterios se comprueban de arriba abajo, y el primero que coincide decide qu
 
 | Objetivo | Filtro | Condición | Valor |
 | --- | --- | --- | --- |
-| Sin conexión cuando el nombre deja de resolverse | **DNS Is Online** | **Falso** | — |
-| Alertar cuando cambia el único registro `A` de un nombre | **DNS Record Value** | **Distinto de** | `93.184.216.34` |
-| Alertar cuando un registro `MX` apunta fuera de su dominio | **DNS Record Value** | **No contiene** | `example.com` |
-| Marcar el DNS como degradado cuando es lento | **DNS Response Time (in ms)** | **Mayor que** | `500` |
-| Alertar cuando falla la validación de DNSSEC | **DNSSEC Is Valid** | **Falso** | — |
+| Sin conexión cuando el nombre deja de resolverse | **DNS en línea** | **Falso** | — |
+| Alertar cuando cambia el único registro `A` de un nombre | **Valor del registro DNS** | **Distinto de** | `93.184.216.34` |
+| Alertar cuando un registro `MX` apunta fuera de su dominio | **Valor del registro DNS** | **No contiene** | `example.com` |
+| Marcar el DNS como degradado cuando es lento | **Tiempo de respuesta de DNS (en ms)** | **Mayor que** | `500` |
+| Alertar cuando falla la validación de DNSSEC | **DNSSEC válido** | **Falso** | — |
 
 ## Solución de problemas
 
@@ -157,14 +157,14 @@ dig @8.8.8.8 example.com A
 :::
 
 :::details Un criterio Distinto de se dispara aunque la dirección correcta está ahí
-**DNS Record Value** coincide cuando coincide un solo registro. Con varios registros, **Distinto de** se dispara en cuanto uno de ellos es distinto. Para comprobar que un valor concreto está entre los registros, apóyese en el orden de los criterios, ya que gana el primero que coincide:
+**Valor del registro DNS** coincide cuando coincide un solo registro. Con varios registros, **Distinto de** se dispara en cuanto uno de ellos es distinto. Para comprobar que un valor concreto está entre los registros, apóyese en el orden de los criterios, ya que gana el primero que coincide:
 
-1. Mantenga arriba el criterio sin conexión predeterminado: **DNS Is Online** / **Falso**.
-2. Debajo, añada un criterio con **DNS Record Value** / **Igual a** / el valor que espera, que marque el monitor como **Operativo**.
-3. Debajo de ese, añada un criterio con **DNS Is Online** / **Verdadero**, que marque el monitor como **Sin conexión** y declare un incidente. Solo coincide con respuestas que no tienen el valor.
+1. Mantenga arriba el criterio sin conexión predeterminado: **DNS en línea** / **Falso**.
+2. Debajo, añada un criterio con **Valor del registro DNS** / **Igual a** / el valor que espera, que marque el monitor como **Operativo**.
+3. Debajo de ese, añada un criterio con **DNS en línea** / **Verdadero**, que marque el monitor como **Sin conexión** y declare un incidente. Solo coincide con respuestas que no tienen el valor.
 :::
 
-:::details DNSSEC Is Valid nunca coincide
+:::details DNSSEC válido nunca coincide
 El servidor de **Servidor DNS (opcional)** no valida DNSSEC, así que nunca pone el indicador AD, o la sonda no pudo hacer la comprobación. Deje el campo vacío para validar con `8.8.8.8`, o use un [monitor de DNSSEC](/docs/monitor/dnssec-monitor).
 :::
 

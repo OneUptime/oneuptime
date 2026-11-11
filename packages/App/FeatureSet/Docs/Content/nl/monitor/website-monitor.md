@@ -25,7 +25,7 @@ flowchart TB
     criteria -->|"2xx of 3xx"| up["Operationeel"]
 ```
 
-Wanneer geen van de criteria van de monitor de body van het antwoord leest (een filter **Antwoordlichaam** of **JavaScript Expression**), stuurt de sonde een aanvraag `HEAD` in plaats van een `GET`, en herhaalt die als `GET` als de server `HEAD` weigert. De toegangslogboeken van uw server kunnen beide tonen.
+Wanneer geen van de criteria van de monitor de body van het antwoord leest (een filter **Antwoordlichaam** of **JavaScript-expressie**), stuurt de sonde een aanvraag `HEAD` in plaats van een `GET`, en herhaalt die als `GET` als de server `HEAD` weigert. De toegangslogboeken van uw server kunnen beide tonen.
 
 Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat, en kan uw site dus niet als offline markeren.
 
@@ -142,14 +142,14 @@ Criteria bepalen wanneer de website als online, verminderd of offline telt, en o
 
 | Filter | Voorwaarden | Wat het controleert |
 | --- | --- | --- |
-| **Is Online** | **Waar**, **Onwaar** | Of de site überhaupt antwoordde, ongeacht de statuscode. |
+| **Is online** | **Waar**, **Onwaar** | Of de site überhaupt antwoordde, ongeacht de statuscode. |
 | **Reactiestatuscode** | **Gelijk aan**, **Niet gelijk aan**, **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | De HTTP-statuscode. |
 | **Reactietijd (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Hoe lang de aanvraag duurde, omleidingen inbegrepen. |
 | **Antwoordlichaam** | **Bevat**, **Bevat niet** | Tekst in de body van het antwoord. De vergelijking is hoofdlettergevoelig. |
-| **Response Header** | **Bevat**, **Bevat niet** | Of het antwoord een header met deze naam heeft. Vul de naam in kleine letters in, zoals `x-cache`. |
-| **Response Header Value** | **Bevat**, **Bevat niet** | Of een header precies deze waarde heeft, vergeleken in kleine letters, zoals `no-store`. |
-| **JavaScript Expression** | **Evaluates To True** | Een expressie over het antwoord. Zie [JavaScript-expressies](/docs/monitor/javascript-expression). |
-| **Is Request Timeout** | **Waar**, **Onwaar** | Of de aanvraag bij elke poging een time-out bereikte. |
+| **Reactieheader** | **Bevat**, **Bevat niet** | Of het antwoord een header met deze naam heeft. Vul de naam in kleine letters in, zoals `x-cache`. |
+| **Waarde van reactieheader** | **Bevat**, **Bevat niet** | Of een header precies deze waarde heeft, vergeleken in kleine letters, zoals `no-store`. |
+| **JavaScript-expressie** | **Resulteert in waar** | Een expressie over het antwoord. Zie [JavaScript-expressies](/docs/monitor/javascript-expression). |
+| **Time-out van aanvraag** | **Waar**, **Onwaar** | Of de aanvraag bij elke poging een time-out bereikte. |
 
 **Criteria toevoegen** voegt een criterium toe dat al naar zijn filter is genoemd, bijvoorbeeld _Response Time (in ms) is above 3000_. De naam verandert mee met de filters totdat u zelf een naam typt. Een beschrijving is optioneel: om er een toe te voegen, opent u de **Instellingen** van het criterium.
 
@@ -174,17 +174,17 @@ Monitoren die zijn gemaakt voordat OneUptime deze standaarden wijzigde, houden d
 
 ### Over een periode evalueren
 
-**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **Is Online**, **Reactiestatuscode**, **Reactietijd (in ms)**, **Antwoordlichaam**, **Response Header**, **Response Header Value**, **JavaScript Expression** en **Is Request Timeout**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**.
+**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **Is online**, **Reactiestatuscode**, **Reactietijd (in ms)**, **Antwoordlichaam**, **Reactieheader**, **Waarde van reactieheader**, **JavaScript-expressie** en **Time-out van aanvraag**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**.
 
 | Aggregatie | Komt overeen wanneer |
 | --- | --- |
-| **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value** | Dat getal, over het venster, aan de voorwaarde voldoet. Alleen numerieke filters. |
-| **All Values** | Elke controle in het venster aan de voorwaarde voldoet. |
-| **Any Value** | Minstens één controle in het venster aan de voorwaarde voldoet. |
+| **Gemiddelde**, **Som**, **Maximale waarde**, **Minimale waarde** | Dat getal, over het venster, aan de voorwaarde voldoet. Alleen numerieke filters. |
+| **Alle waarden** | Elke controle in het venster aan de voorwaarde voldoet. |
+| **Willekeurige waarde** | Minstens één controle in het venster aan de voorwaarde voldoet. |
 
-**All Values** komt pas overeen wanneer het venster echt met gegevens gevuld is. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Any Value** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en slaat nog steeds meteen aan.
+De optie **Alle waarden** komt pas overeen wanneer het venster echt met gegevens gevuld is. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Willekeurige waarde** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en slaat nog steeds meteen aan.
 
-Een body, een header, een headerwaarde of een expressie is geen getal dat OneUptime vastlegt. Voor die filters en voor **Is Request Timeout** legt OneUptime daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **All Values** of **Any Value**. Zo doorstaat een monitor een herstart. Een app die opstart, antwoordt misschien met `200` en een tijdelijke pagina zoals `Application starting...`; met **All Values** zet een filter **Antwoordlichaam** dat naar de titel van de app zoekt de monitor pas offline als de tijdelijke pagina het hele venster heeft geduurd.
+Een body, een header, een headerwaarde of een expressie is geen getal dat OneUptime vastlegt. Voor die filters en voor **Time-out van aanvraag** legt OneUptime daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **Alle waarden** of **Willekeurige waarde**. Zo doorstaat een monitor een herstart. Een app die opstart, antwoordt misschien met `200` en een tijdelijke pagina zoals `Application starting...`; met **Alle waarden** zet een filter **Antwoordlichaam** dat naar de titel van de app zoekt de monitor pas offline als de tijdelijke pagina het hele venster heeft geduurd.
 
 Maak het venster langer dan het monitoringinterval, zodat het meerdere controles bevat: een monitor die elke 5 minuten wordt gecontroleerd, heeft in elk venster van 5 minuten maar één controle.
 
@@ -202,10 +202,10 @@ Maak het venster langer dan het monitoringinterval, zodat het meerdere controles
 | --- | --- | --- | --- |
 | De site als verminderd markeren wanneer hij traag is | **Reactietijd (in ms)** | **Groter dan** | `3000` |
 | Een foutpagina opvangen die met `200` wordt geleverd | **Antwoordlichaam** | **Bevat niet** | `Welcome` |
-| Controleren of een CDN-header aanwezig is | **Response Header** | **Bevat** | `x-cache` |
+| Controleren of een CDN-header aanwezig is | **Reactieheader** | **Bevat** | `x-cache` |
 | Alleen `200` als gezond accepteren | **Reactiestatuscode** | **Gelijk aan** | `200` |
 
-Zet om een herstart te doorstaan **Evalueer deze criteria over een bepaalde periode** aan voor het filter op de antwoordbody en kies **All Values** over 15 minuten.
+Zet om een herstart te doorstaan **Evalueer deze criteria over een bepaalde periode** aan voor het filter op de antwoordbody en kies **Alle waarden** over 15 minuten.
 
 ## Problemen oplossen
 
@@ -218,7 +218,7 @@ De sonde kreeg een ander antwoord dan uw browser. De hoofdoorzaak van het incide
 :::
 
 :::details De controle mislukt met "Remote response exceeded the allowed size."
-De sonde leest hoogstens 512 KiB van een antwoord, en deze pagina is groter. Richt de monitor op een kleinere pagina, zoals een health-endpoint, of verwijder de filters **Antwoordlichaam** en **JavaScript Expression** zodat de sonde alleen de headers nodig heeft.
+De sonde leest hoogstens 512 KiB van een antwoord, en deze pagina is groter. Richt de monitor op een kleinere pagina, zoals een health-endpoint, of verwijder de filters **Antwoordlichaam** en **JavaScript-expressie** zodat de sonde alleen de headers nodig heeft.
 :::
 
 :::details De controle mislukt met "Monitor target exceeded 10 redirects."

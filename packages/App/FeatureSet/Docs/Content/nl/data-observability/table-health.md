@@ -57,7 +57,7 @@ Elke verzamelronde schrijft deze voor elke tabel, zodat je ze in grafieken kunt 
 | `oneuptime.data.table.schema_changes` | Kolommen die sinds de vorige verzamelronde zijn gewijzigd |
 | `oneuptime.data.table.breaking_schema_changes` | Kolommen die sinds de vorige verzamelronde zijn verwijderd, hernoemd of van type veranderd |
 
-Elke rij heeft `oneuptime.data.store.id`, `oneuptime.data.store.name`, `oneuptime.data.table.id`, `oneuptime.data.table.schema`, `oneuptime.data.table.name` en `oneuptime.data.table.key` (`schema.table`). Een [metrics-monitor](/docs/monitor/metrics-monitor) gegroepeerd op `oneuptime.data.table.key` waarschuwt één keer per tabel, en zijn filters **Anomalously High** en **Anomalously Low** vergelijken elke tabel met haar eigen gebruikelijke waarde voor dat uur van de week. Deze metrieken zijn de eigen operationele gegevens van OneUptime en worden niet als telemetrie gefactureerd.
+Elke rij heeft `oneuptime.data.store.id`, `oneuptime.data.store.name`, `oneuptime.data.table.id`, `oneuptime.data.table.schema`, `oneuptime.data.table.name` en `oneuptime.data.table.key` (`schema.table`). Een [metrics-monitor](/docs/monitor/metrics-monitor) gegroepeerd op `oneuptime.data.table.key` waarschuwt één keer per tabel, en zijn filters **Afwijkend hoog** en **Afwijkend laag** vergelijken elke tabel met haar eigen gebruikelijke waarde voor dat uur van de week. Deze metrieken zijn de eigen operationele gegevens van OneUptime en worden niet als telemetrie gefactureerd.
 
 ## Ongebruikte tabellen
 

@@ -151,9 +151,13 @@ describe("Product Analytics: its place in the docs", () => {
       );
 
       expect(markdown.split("\n")[0]).toBe(`# ${entry.navTitle}`);
+      /*
+       * Users and Sessions, and since the Events, Funnels and User Retention
+       * pages (cc9dc46fc1c) the sections on sending events and reading them.
+       */
       expect(
         cardLines(markdown.slice(0, markdown.indexOf("\n## "))).length,
-      ).toBe(4);
+      ).toBe(6);
       expect(headings[headings.length - 1]).toBe("Next steps");
       // The title, then the sections the opening cards point at, and more.
       expect(headings).toEqual([
@@ -161,6 +165,12 @@ describe("Product Analytics: its place in the docs", () => {
         "How people are counted",
         "Users",
         "Sessions",
+        "Send events and metrics",
+        "User properties",
+        "Events",
+        "Funnels",
+        "User Retention",
+        "Dashboards and alerts",
         "Privacy and retention",
         "Who can see it",
         "Next steps",
@@ -172,16 +182,30 @@ describe("Product Analytics: its place in the docs", () => {
 describe("Product Analytics: where it lives and what it counts", () => {
   const counted: string = section("## How people are counted");
 
-  it("names the side menu section and its two pages as SideMenu.tsx draws them", () => {
+  it("names the side menu section and its pages as SideMenu.tsx draws them, in its order", () => {
     const menu: string = between(
       source("sideMenu"),
       '<SideMenuSection title="Product Analytics">',
       "</SideMenuSection>",
     );
+    const pages: Array<string> = allMatches(menu, TITLE);
 
-    expect(allMatches(menu, TITLE)).toEqual(["Users", "Sessions"]);
+    expect(pages).toEqual([
+      "Users",
+      "Sessions",
+      "Events",
+      "Funnels",
+      "User Retention",
+      "User Flows",
+      "Analytics Settings",
+    ]);
     expect(counted).toContain(
-      "An application's side menu has a **Product Analytics** section with two pages, **Users** and **Sessions**.",
+      `An application's side menu has a **Product Analytics** section: ${listedWith(
+        pages.map((page: string): string => {
+          return `**${page}**`;
+        }),
+        "and",
+      )}.`,
     );
   });
 
@@ -192,7 +216,9 @@ describe("Product Analytics: where it lives and what it counts", () => {
       );
     }
 
-    expect(counted).toContain("Both count the sessions Session Replay records");
+    expect(counted).toContain(
+      "**Users** and **Sessions** count the sessions Session Replay records",
+    );
   });
 
   it("files a session under its signed-in user, else its browser's visitor, else nobody, as the diagram draws it", () => {

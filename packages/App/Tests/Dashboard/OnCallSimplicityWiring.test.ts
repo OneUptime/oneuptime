@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * The On-Call simplicity audit, held in the source.
@@ -346,24 +347,7 @@ describe("an incoming call policy that is not answering calls", () => {
 
 describe("words the UI review added or retired", () => {
   const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
-  const LANGUAGES: Array<string> = [
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ];
+  const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
   const ADDED: Array<string> = [
     "Not answering calls",

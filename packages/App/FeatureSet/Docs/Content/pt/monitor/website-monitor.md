@@ -25,7 +25,7 @@ flowchart TB
     criteria -->|"2xx ou 3xx"| up["Operacional"]
 ```
 
-Quando nenhum dos critérios do monitor lê o corpo da resposta (um filtro **Corpo da Resposta** ou **JavaScript Expression**), a sonda envia uma requisição `HEAD` em vez de um `GET`, e a repete como `GET` se o servidor rejeitar `HEAD`. Os logs de acesso do seu servidor podem mostrar qualquer uma das duas.
+Quando nenhum dos critérios do monitor lê o corpo da resposta (um filtro **Corpo da Resposta** ou **Expressão JavaScript**), a sonda envia uma requisição `HEAD` em vez de um `GET`, e a repete como `GET` se o servidor rejeitar `HEAD`. Os logs de acesso do seu servidor podem mostrar qualquer uma das duas.
 
 Uma sonda que perdeu a própria conexão de rede não informa nenhum resultado, então não pode marcar o seu site como offline.
 
@@ -142,14 +142,14 @@ Os critérios decidem quando o site conta como online, degradado ou offline, e s
 
 | Filtro | Condições | O que verifica |
 | --- | --- | --- |
-| **Is Online** | **Verdadeiro**, **Falso** | Se o site respondeu, seja qual for o código de status. |
+| **Online** | **Verdadeiro**, **Falso** | Se o site respondeu, seja qual for o código de status. |
 | **Código de status da resposta** | **Igual a**, **Diferente de**, **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | O código de status HTTP. |
 | **Tempo de resposta (em ms)** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | Quanto a requisição demorou, redirecionamentos incluídos. |
 | **Corpo da Resposta** | **Contém**, **Não contém** | Texto no corpo da resposta. A comparação diferencia maiúsculas de minúsculas. |
-| **Response Header** | **Contém**, **Não contém** | Se a resposta tem um cabeçalho com este nome. Informe o nome em minúsculas, como `x-cache`. |
-| **Response Header Value** | **Contém**, **Não contém** | Se um cabeçalho tem exatamente este valor, comparado em minúsculas, como `no-store`. |
-| **JavaScript Expression** | **Evaluates To True** | Uma expressão sobre a resposta. Veja [Expressões JavaScript](/docs/monitor/javascript-expression). |
-| **Is Request Timeout** | **Verdadeiro**, **Falso** | Se a requisição excedeu o tempo limite em todas as tentativas. |
+| **Cabeçalho da resposta** | **Contém**, **Não contém** | Se a resposta tem um cabeçalho com este nome. Informe o nome em minúsculas, como `x-cache`. |
+| **Valor do cabeçalho da resposta** | **Contém**, **Não contém** | Se um cabeçalho tem exatamente este valor, comparado em minúsculas, como `no-store`. |
+| **Expressão JavaScript** | **Resulta em verdadeiro** | Uma expressão sobre a resposta. Veja [Expressões JavaScript](/docs/monitor/javascript-expression). |
+| **Tempo limite da requisição esgotado** | **Verdadeiro**, **Falso** | Se a requisição excedeu o tempo limite em todas as tentativas. |
 
 **Adicionar critérios** adiciona um critério que já leva o nome do filtro, por exemplo _Response Time (in ms) is above 3000_. O nome muda com os filtros até você digitar um nome seu. A descrição é opcional: para adicionar uma, abra as **Configurações** do critério.
 
@@ -174,17 +174,17 @@ Os monitores criados antes de o OneUptime mudar esses padrões mantêm os crité
 
 ### Avaliar durante um período de tempo
 
-**Avaliar este critério durante um período de tempo** é uma caixa de seleção abaixo de um filtro, oferecida para **Is Online**, **Código de status da resposta**, **Tempo de resposta (em ms)**, **Corpo da Resposta**, **Response Header**, **Response Header Value**, **JavaScript Expression** e **Is Request Timeout**. Ative-a para avaliar uma janela de verificações anteriores em vez da última: escolha uma agregação em **Avaliar** e uma janela, de 2 a 60 minutos, em **Nos últimos (em minutos)**.
+**Avaliar este critério durante um período de tempo** é uma caixa de seleção abaixo de um filtro, oferecida para **Online**, **Código de status da resposta**, **Tempo de resposta (em ms)**, **Corpo da Resposta**, **Cabeçalho da resposta**, **Valor do cabeçalho da resposta**, **Expressão JavaScript** e **Tempo limite da requisição esgotado**. Ative-a para avaliar uma janela de verificações anteriores em vez da última: escolha uma agregação em **Avaliar** e uma janela, de 2 a 60 minutos, em **Nos últimos (em minutos)**.
 
 | Agregação | Corresponde quando |
 | --- | --- |
-| **Média**, **Soma**, **Maximum Value**, **Minimum Value** | Esse valor, na janela, atende à condição. Somente filtros numéricos. |
-| **All Values** | Cada verificação na janela atende à condição. |
-| **Any Value** | Pelo menos uma verificação na janela atende à condição. |
+| **Média**, **Soma**, **Valor máximo**, **Valor mínimo** | Esse valor, na janela, atende à condição. Somente filtros numéricos. |
+| **Todos os valores** | Cada verificação na janela atende à condição. |
+| **Qualquer valor** | Pelo menos uma verificação na janela atende à condição. |
 
-**All Values** só corresponde quando a janela está realmente coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder com a única leitura que tem. **Any Value** é a configuração para "me avise no momento em que uma única verificação ultrapassar o limite" e continua disparando imediatamente.
+A opção **Todos os valores** só corresponde quando a janela está realmente coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder com a única leitura que tem. **Qualquer valor** é a configuração para "me avise no momento em que uma única verificação ultrapassar o limite" e continua disparando imediatamente.
 
-Um corpo, um cabeçalho, um valor de cabeçalho ou uma expressão não é um número que o OneUptime registre, por isso, para esses filtros e para **Is Request Timeout**, ele registra se o filtro correspondeu em cada verificação e avalia a janela a partir desse registro com **All Values** ou **Any Value**. É assim que um monitor atravessa uma reinicialização. Um app que está iniciando pode responder `200` com uma página provisória como `Application starting...`; com **All Values**, um filtro **Corpo da Resposta** que procura o título do app só deixa o monitor offline quando a página provisória durou a janela inteira.
+Um corpo, um cabeçalho, um valor de cabeçalho ou uma expressão não é um número que o OneUptime registre, por isso, para esses filtros e para **Tempo limite da requisição esgotado**, ele registra se o filtro correspondeu em cada verificação e avalia a janela a partir desse registro com **Todos os valores** ou **Qualquer valor**. É assim que um monitor atravessa uma reinicialização. Um app que está iniciando pode responder `200` com uma página provisória como `Application starting...`; com **Todos os valores**, um filtro **Corpo da Resposta** que procura o título do app só deixa o monitor offline quando a página provisória durou a janela inteira.
 
 Escolha uma janela mais longa que o intervalo de monitoramento, para que ela contenha várias verificações: um monitor verificado a cada 5 minutos tem uma única verificação em qualquer janela de 5 minutos.
 
@@ -202,10 +202,10 @@ Escolha uma janela mais longa que o intervalo de monitoramento, para que ela con
 | --- | --- | --- | --- |
 | Marcar o site como degradado quando estiver lento | **Tempo de resposta (em ms)** | **Maior que** | `3000` |
 | Detectar uma página de erro servida com `200` | **Corpo da Resposta** | **Não contém** | `Welcome` |
-| Verificar se um cabeçalho do CDN está presente | **Response Header** | **Contém** | `x-cache` |
+| Verificar se um cabeçalho do CDN está presente | **Cabeçalho da resposta** | **Contém** | `x-cache` |
 | Aceitar apenas `200` como saudável | **Código de status da resposta** | **Igual a** | `200` |
 
-Para atravessar uma reinicialização, ative **Avaliar este critério durante um período de tempo** no filtro do corpo da resposta e escolha **All Values** em 15 minutos.
+Para atravessar uma reinicialização, ative **Avaliar este critério durante um período de tempo** no filtro do corpo da resposta e escolha **Todos os valores** em 15 minutos.
 
 ## Solução de problemas
 
@@ -218,7 +218,7 @@ A sonda recebeu uma resposta diferente da do seu navegador. A causa raiz do inci
 :::
 
 :::details A verificação falha com "Remote response exceeded the allowed size."
-A sonda lê no máximo 512 KiB de uma resposta, e esta página é maior. Aponte o monitor para uma página menor, como um endpoint de saúde, ou remova os filtros **Corpo da Resposta** e **JavaScript Expression** para que a sonda só precise dos cabeçalhos.
+A sonda lê no máximo 512 KiB de uma resposta, e esta página é maior. Aponte o monitor para uma página menor, como um endpoint de saúde, ou remova os filtros **Corpo da Resposta** e **Expressão JavaScript** para que a sonda só precise dos cabeçalhos.
 :::
 
 :::details A verificação falha com "Monitor target exceeded 10 redirects."

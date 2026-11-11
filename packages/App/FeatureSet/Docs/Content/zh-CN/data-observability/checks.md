@@ -13,7 +13,7 @@
 | **Distinct Count** | 该列包含多少个不同的值 |
 | **最小值**、**最大值**、**平均值**、**总和** | 数值列的相应值（没有行时总和为 0） |
 | **Invalid Percent** | 不在你给出的列表中的值所占的百分比 |
-| **Format Mismatch Percent** | 不在你选择的格式中的值所占的百分比，例如 Email、UUID 或 Country Code，或者不匹配你自己的正则表达式的值所占的百分比（SQL Server 以外的所有引擎） |
+| **Format Mismatch Percent** | 不在你选择的格式中的值所占的百分比，例如 Email、UUID 或 Country Code，或者不匹配你自己的正则表达式的值所占的百分比（SQL Server 和 Dataverse 以外的所有引擎） |
 | **Orphan Count** | 其值在另一个表的列中没有匹配项的行 |
 | **Row Count** | 表中的行数，与 **分段依据** 搭配使用最有用 |
 | **自定义 SQL** | 你的一条只读 SELECT 返回的、名为 `value` 的数字（在 MongoDB 中为聚合管道返回的数字） |
@@ -48,7 +48,7 @@
 
 检查会与你的应用程序争用数据库，而在按查询读取量计费的数据仓库上，检查还会产生费用。有三个设置可以控制这一点：
 
-- **采样百分比** 只读取一部分行，而不是全部行，适用于读取比率的检查：Null Percent、平均值、Invalid Percent 和 Format Mismatch Percent。大多数引擎会跳过表的整页数据；MySQL、Redshift、ClickHouse 和 MongoDB 仍会读取每一行，只是省去了对其余行的处理。视图可能会拒绝该设置，检查会说明这一点。
+- **采样百分比** 只读取一部分行，而不是全部行，适用于读取比率的检查：Null Percent、平均值、Invalid Percent 和 Format Mismatch Percent。大多数引擎会跳过表的整页数据；MySQL、Redshift、ClickHouse 和 MongoDB 仍会读取每一行，只是省去了对其余行的处理。Dataverse 不进行采样：其上的检查会读取每一行。视图可能会拒绝该设置，检查会说明这一点。
 - **设置** 下的 **单次检查最多读取量（GB）** 会在 BigQuery 或 Athena 上的检查读取超过该吉字节数之前将其停止。在你更改之前，它是 10。
 - **设置** 下的 **数据库繁忙时等待** 会在 PostgreSQL、MySQL 或 SQL Server 数据库看起来繁忙时，把到期的检查留到下一次采集。它默认开启，直到你将其关闭，数据库会说明检查何时进行了等待。
 

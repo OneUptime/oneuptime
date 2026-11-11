@@ -1,6 +1,6 @@
 # Dataobserverbarhet
 
-Dataobserverbarhet håller koll på tabellerna som ditt företag är beroende av, i PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks och Athena, och berättar när deras data är försenade, saknas, är felaktiga eller trasiga, innan de som använder dem märker det. Den lär sig varje tabells rytm på egen hand, läser varje databas katalog så att inget värde lämnar den, och kopplar varje dataproblem till den pipelinekörning, den driftsättning eller den uppströms tabell som ligger bakom det.
+Dataobserverbarhet håller koll på tabellerna som ditt företag är beroende av, i PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks, Athena och Microsoft Dataverse, och berättar när deras data är försenade, saknas, är felaktiga eller trasiga, innan de som använder dem märker det. Den lär sig varje tabells rytm på egen hand, läser varje databas katalog så att inget värde lämnar den, och kopplar varje dataproblem till den pipelinekörning, den driftsättning eller den uppströms tabell som ligger bakom det.
 
 Den svarar på fyra frågor:
 

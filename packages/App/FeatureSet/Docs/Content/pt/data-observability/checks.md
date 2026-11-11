@@ -13,7 +13,7 @@ Adicione uma verificação na aba **Verificações** de uma tabela:
 | **Distinct Count** | Quantos valores diferentes a coluna contém |
 | **Mínimo**, **Máximo**, **Média**, **Soma** | De uma coluna numérica (uma Soma sem linhas é 0) |
 | **Invalid Percent** | Porcentagem de valores fora de uma lista que você informa |
-| **Format Mismatch Percent** | Porcentagem de valores que não estão em um formato que você escolhe, como Email, UUID ou Country Code, ou que não correspondem a uma expressão regular sua (todos os mecanismos, exceto o SQL Server) |
+| **Format Mismatch Percent** | Porcentagem de valores que não estão em um formato que você escolhe, como Email, UUID ou Country Code, ou que não correspondem a uma expressão regular sua (todos os mecanismos, exceto o SQL Server e o Dataverse) |
 | **Orphan Count** | Linhas cujo valor não tem correspondência na coluna de outra tabela |
 | **Row Count** | Linhas na tabela, mais útil com **Segmentar por** |
 | **SQL personalizado** | O número que um SELECT somente leitura seu retorna, chamado `value` (no MongoDB, o de um pipeline de agregação) |
@@ -48,7 +48,7 @@ O **Status** de uma verificação, em **Verificações** e na aba **Verificaçõ
 
 Uma verificação compete com a sua aplicação pelo banco de dados e, em um warehouse que cobra pelo que uma consulta lê, custa dinheiro. Três coisas mantêm isso sob controle:
 
-- **Porcentagem da amostra** lê uma parte das linhas em vez de todas, para uma verificação que lê uma taxa: Null Percent, Média, Invalid Percent e Format Mismatch Percent. A maioria dos mecanismos pula páginas inteiras da tabela; o MySQL, o Redshift, o ClickHouse e o MongoDB ainda leem todas as linhas, e poupam o trabalho nas demais. Uma view pode recusá-la, e a verificação avisa.
+- **Porcentagem da amostra** lê uma parte das linhas em vez de todas, para uma verificação que lê uma taxa: Null Percent, Média, Invalid Percent e Format Mismatch Percent. A maioria dos mecanismos pula páginas inteiras da tabela; o MySQL, o Redshift, o ClickHouse e o MongoDB ainda leem todas as linhas, e poupam o trabalho nas demais. O Dataverse não tira amostras: uma verificação ali lê todas as linhas. Uma view pode recusá-la, e a verificação avisa.
 - **Máximo que uma verificação pode ler (GB)**, em **Configurações**, interrompe uma verificação no BigQuery ou no Athena antes que ela leia mais do que esse número de gigabytes. É 10 até você mudar.
 - **Esperar quando um banco de dados está ocupado**, em **Configurações**, deixa as verificações pendentes para a próxima coleta quando um banco de dados PostgreSQL, MySQL ou SQL Server parece ocupado. Fica ativado até você desativar, e o banco de dados diz quando as verificações esperaram.
 

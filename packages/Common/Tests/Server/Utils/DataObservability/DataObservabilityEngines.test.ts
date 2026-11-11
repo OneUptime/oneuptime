@@ -9,9 +9,9 @@ import { getDatabaseEngineOfKind } from "../../../../Server/Utils/DataSecurity/D
 
 /*
  * Data Observability collects every database Data Security samples, and
- * the warehouses Data Security does not sample - Amazon Redshift,
- * Snowflake, BigQuery, ClickHouse and Databricks: its own mapping is left
- * as it is.
+ * the warehouses and environments Data Security does not sample - Amazon
+ * Redshift, Snowflake, BigQuery, ClickHouse, Databricks and Microsoft
+ * Dataverse among them: its own mapping is left as it is.
  */
 
 describe("DataObservabilityEngines", () => {
@@ -28,6 +28,7 @@ describe("DataObservabilityEngines", () => {
       DataStoreKind.AwsAthena,
       DataStoreKind.Oracle,
       DataStoreKind.MongoDb,
+      DataStoreKind.Dataverse,
     ]);
   });
 
@@ -51,6 +52,9 @@ describe("DataObservabilityEngines", () => {
       "databricks",
     );
     expect(getCollectorEngineOfKind(DataStoreKind.AwsAthena)).toBe("athena");
+    expect(getCollectorEngineOfKind(DataStoreKind.Oracle)).toBe("oracle");
+    expect(getCollectorEngineOfKind(DataStoreKind.MongoDb)).toBe("mongodb");
+    expect(getCollectorEngineOfKind(DataStoreKind.Dataverse)).toBe("dataverse");
     expect(getCollectorEngineOfKind(DataStoreKind.AwsS3Bucket)).toBe(null);
   });
 
@@ -64,12 +68,14 @@ describe("DataObservabilityEngines", () => {
     );
     expect(getDatabaseEngineOfKind(DataStoreKind.ClickHouse)).toBe(null);
     expect(getDatabaseEngineOfKind(DataStoreKind.Databricks)).toBe(null);
+    expect(getDatabaseEngineOfKind(DataStoreKind.Dataverse)).toBe(null);
   });
 
   test("a probe's snapshot may come from any engine collected", () => {
     expect(isCollectorEngine("redshift")).toBe(true);
     expect(isCollectorEngine("clickhouse")).toBe(true);
     expect(isCollectorEngine("databricks")).toBe(true);
+    expect(isCollectorEngine("dataverse")).toBe(true);
     expect(isCollectorEngine("postgresql")).toBe(true);
     expect(isCollectorEngine("db2")).toBe(false);
     expect(isCollectorEngine(undefined)).toBe(false);

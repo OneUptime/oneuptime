@@ -178,16 +178,16 @@ Kriterierne for en monitor med brugerdefineret kode kan tjekke:
 | Filtertype | Hvad den tjekker | Filterbetingelser |
 | --- | --- | --- |
 | **Fejl** | Den fejl, scriptet kastede, hvis nogen. | Indeholder, Indeholder ikke, Lig med, Ikke lig med, Er tom, Er ikke tom |
-| **Result Value** | De `data`, scriptet returnerede. Sammenlignes som et tal, når det er et. | De samme plus Større end, Mindre end, Større end eller lig med, Mindre end eller lig med, Sand og Falsk |
+| **Resultatværdi** | De `data`, scriptet returnerede. Sammenlignes som et tal, når det er et. | De samme plus Større end, Mindre end, Større end eller lig med, Mindre end eller lig med, Sand og Falsk |
 | **Udførelsestid (i ms)** | Hvor længe scriptet kørte. | Numeriske sammenligninger |
 
 Standardkriterierne markerer monitoren som online, når **Fejl** er tom, og som offline — med en hændelse, der løser sig selv, når scriptet lykkes igen — når den ikke er. I hændelses- og advarselsskabeloner er kørslen tilgængelig som `{{result}}`, `{{scriptError}}`, `{{logMessages}}` og `{{executionTimeInMs}}`: se [Hændelse- og advarselsskabeloner](/docs/monitor/incident-alert-templating).
 
 ### Advarsler på de returnerede data
 
-Det, scriptet returnerer som `data`, er monitorens **Result Value**, og et kriterium kan sammenligne det — for eksempel _Result Value er Lig med `UP`_.
+Det, scriptet returnerer som `data`, er monitorens **Resultatværdi**, og et kriterium kan sammenligne det — for eksempel _Resultatværdi er Lig med `UP`_.
 
-Når `data` er et objekt eller et array, skal du udfylde **Feltsti (valgfri)** på Result Value-filteret for at sammenligne ét felt i stedet for hele værdien. Brug punktummer til indlejrede felter og `[n]` til elementer i et array:
+Når `data` er et objekt eller et array, skal du udfylde **Feltsti (valgfri)** på Resultatværdi-filteret for at sammenligne ét felt i stedet for hele værdien. Brug punktummer til indlejrede felter og `[n]` til elementer i et array:
 
 ```javascript
 const response = await axios.get("https://api.example.com/health");

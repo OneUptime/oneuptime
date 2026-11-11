@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * The per-type "Retries" field on the DNS, DNSSEC, Domain and External Status
@@ -26,25 +27,7 @@ const DASHBOARD_SRC: string = path.join(
   "src",
 );
 
-const LOCALES: Array<string> = [
-  "en",
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LOCALES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
 
 const RETRIES_DESCRIPTION: string =
   "Number of times to retry after the first attempt fails. For example, 2 means up to 3 attempts in total. Set to 0 for no retries. Defaults to 3.";

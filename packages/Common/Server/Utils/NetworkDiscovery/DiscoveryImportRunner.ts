@@ -40,6 +40,7 @@ import {
   summarizeDiscoveryImportResults,
 } from "../../../Types/NetworkDevice/DiscoveryImport";
 import { NetworkDeviceMonitoringMethodUtil } from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import { DeviceNamingPreview } from "../../../Types/NetworkDevice/DeviceNaming";
 import ObjectID from "../../../Types/ObjectID";
 import DeviceMonitorTemplateUtil, {
   DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL,
@@ -75,6 +76,11 @@ import MonitorTemplateService from "../../Services/MonitorTemplateService";
 import { AUTO_IMPORT_SCAN_BUILDER_SELECT } from "../../Services/NetworkDeviceAutoImportRuleEngineService";
 import NetworkDeviceDiscoveryImportService from "../../Services/NetworkDeviceDiscoveryImportService";
 import NetworkDeviceDiscoveryScanService from "../../Services/NetworkDeviceDiscoveryScanService";
+import NetworkDeviceNamingRuleEngineService, {
+  ImportNaming,
+  ImportNamingSession,
+  nameDeviceByRule,
+} from "../../Services/NetworkDeviceNamingRuleEngineService";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import NetworkDeviceRoleService from "../../Services/NetworkDeviceRoleService";
 import NetworkSnmpCredentialProfileService from "../../Services/NetworkSnmpCredentialProfileService";
@@ -309,6 +315,11 @@ interface ImportRunState {
   lastMonitorFailure: string;
   // Set once monitors stop being tried: the reason every one left fails with.
   monitorHaltReason: string | null;
+  /*
+   * The project's naming rules for this run (issue #6619), or null when it
+   * has none: each device is created under the name they give it.
+   */
+  naming: ImportNamingSession | null;
 }
 
 export type DiscoveryImportFinish = "done" | "stopped" | "handover";
@@ -654,6 +665,10 @@ export default class DiscoveryImportRunner {
 
         if (probeId) {
           facts.probeId = probeId;
+        }
+
+        if (row.vendor) {
+          facts.vendor = row.vendor;
         }
 
         return {
@@ -1777,7 +1792,102 @@ export default class DiscoveryImportRunner {
       consecutiveMonitorFailures: 0,
       lastMonitorFailure: "",
       monitorHaltReason: null,
+      naming: await this.startNaming(row.projectId!),
     };
+  }
+
+  /*
+   * The project's naming rules, read once for this run of the import - and
+   * again on a later run of the same import, with the devices the earlier
+   * one created among the names taken. A failure to read them never stops
+   * an import: its devices are created under their discovered names, as
+   * before the rules existed, and the failure is logged.
+   */
+  private static async startNaming(
+    projectId: ObjectID,
+  ): Promise<ImportNamingSession | null> {
+    try {
+      return await NetworkDeviceNamingRuleEngineService.startImportSession(
+        projectId,
+      );
+    } catch (error) {
+      logger.error(
+        `Discovery import: could not read the naming rules, so devices are created under their discovered names: ${toText(error)}`,
+        { projectId: projectId.toString() } as LogAttributes,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * What the naming rules call each host an import would create (issue
+   * #6619), for the Choose step: read as the person, exactly as start reads
+   * the scan, so nobody learns a name of a scan they may not import from.
+   */
+  public static async previewScanNames(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    scanId: unknown;
+    ipAddresses: unknown;
+  }): Promise<DeviceNamingPreview> {
+    const scanId: ObjectID = this.readId(
+      data.scanId,
+      "Pick the discovery scan to import from.",
+    );
+    const addresses: Array<string> = this.readAddresses(data.ipAddresses);
+    const scan: NetworkDeviceDiscoveryScan = await this.readScanAsPerson({
+      scanId: scanId,
+      projectId: data.projectId,
+      props: data.props,
+      withHosts: true,
+    });
+
+    return await NetworkDeviceNamingRuleEngineService.previewScanHosts({
+      projectId: data.projectId,
+      hosts: this.pickHosts({ scan: scan, addresses: addresses }),
+      scan: scan,
+    });
+  }
+
+  // The same, for devices the Discovered Devices list adds.
+  public static async previewDiscoveredDeviceNames(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    endpointIds: unknown;
+  }): Promise<DeviceNamingPreview> {
+    const endpointIds: Array<string> = readDiscoveredDeviceIds(
+      data.endpointIds,
+    );
+
+    DiscoveredDevices.assertCanRead(data.props);
+
+    const rows: Array<ClassifiedDiscoveredDevice> =
+      await DiscoveredDevices.classify({
+        projectId: data.projectId,
+        endpointIds: endpointIds,
+      });
+    const hosts: Array<DiscoveredNetworkDevice> =
+      await this.hostsFromDiscoveredDevices({
+        projectId: data.projectId,
+        endpointIds: endpointIds,
+        rows: rows,
+      });
+
+    return await NetworkDeviceNamingRuleEngineService.previewDiscoveredDevices({
+      projectId: data.projectId,
+      hosts: hosts
+        .map((host: DiscoveredNetworkDevice) => {
+          return { ipAddress: host.ipAddress, facts: this.factsOf(host) };
+        })
+        .filter(
+          (host: {
+            ipAddress: string;
+            facts: DiscoveredDeviceImportFacts | null;
+          }): boolean => {
+            return Boolean(host.facts);
+          },
+        ) as Array<{ ipAddress: string; facts: DiscoveredDeviceImportFacts }>,
+    });
   }
 
   private static async readPersonProps(
@@ -1988,9 +2098,9 @@ export default class DiscoveryImportRunner {
 
   /*
    * One host's device: found at its address, or created - under the name
-   * the dialog showed, then once more with the address added when another
-   * device already has that name (two hosts sharing a name is ordinary: a
-   * wildcard reverse zone, a cloned config). A refusal names its reason.
+   * its naming rules give it, else the name the dialog showed, then once
+   * more with the address added when another device already has that name.
+   * A refusal names its reason.
    */
   private static async ensureDevice(
     state: ImportRunState,
@@ -2052,57 +2162,117 @@ export default class DiscoveryImportRunner {
       });
     };
 
-    let created: NetworkDevice;
+    /*
+     * The naming rules' name first (issue #6619), when they name the host:
+     * the device is created under it, with the name discovery found kept as
+     * its discovered name. A create under it that fails - another device
+     * took the name meanwhile - is tried under the discovered name below, as
+     * an import without naming rules does, unless the host itself was added
+     * meanwhile.
+     */
+    const naming: ImportNaming | null = state.naming
+      ? facts
+        ? state.naming.nameDiscoveredDevice(host.ipAddress, facts)
+        : state.naming.nameScanHost(host, state.scan!)
+      : null;
+
+    let created: NetworkDevice | null = null;
     let attempted: NetworkDevice = build();
 
-    try {
-      created = await NetworkDeviceService.create({
-        data: attempted,
-        props: state.props,
+    if (naming?.name) {
+      attempted = nameDeviceByRule({
+        device: build(naming.name),
+        naming: naming,
+        address: host.ipAddress,
+        isDiscoveredDevice: Boolean(facts),
       });
-    } catch (firstError) {
-      /*
-       * A refusal of the person is the same for every name: it is not
-       * retried under another one.
-       */
-      if (isRefusalOfThePerson(firstError)) {
-        result.device = DiscoveryImportDeviceOutcome.Failed;
-        result.deviceError = toText(firstError);
-        return null;
-      }
-
-      // Another import, a rule or a person created it meanwhile.
-      const meanwhile: NetworkDevice | null = await findExisting();
-
-      if (meanwhile?.id) {
-        result.device = DiscoveryImportDeviceOutcome.AlreadyAdded;
-        result.deviceId = meanwhile.id.toString();
-        result.name = meanwhile.name || result.name;
-        state.devicesById.set(meanwhile.id.toString(), meanwhile);
-        return meanwhile;
-      }
-
-      attempted = build(
-        facts
-          ? buildDiscoveredDeviceFallbackName(
-              facts.name || host.ipAddress,
-              host.ipAddress,
-            )
-          : buildFallbackDeviceName(host, state.scan!),
-      );
 
       try {
         created = await NetworkDeviceService.create({
           data: attempted,
           props: state.props,
         });
-      } catch {
-        // The first refusal says why; the second is usually its consequence.
-        result.device = DiscoveryImportDeviceOutcome.Failed;
-        result.deviceError = toText(firstError);
-        return null;
+      } catch (ruleNameError) {
+        // A refusal of the person is the same for every name.
+        if (isRefusalOfThePerson(ruleNameError)) {
+          result.device = DiscoveryImportDeviceOutcome.Failed;
+          result.deviceError = toText(ruleNameError);
+          return null;
+        }
+
+        const meanwhile: NetworkDevice | null = await findExisting();
+
+        if (meanwhile?.id) {
+          result.device = DiscoveryImportDeviceOutcome.AlreadyAdded;
+          result.deviceId = meanwhile.id.toString();
+          result.name = meanwhile.name || result.name;
+          state.devicesById.set(meanwhile.id.toString(), meanwhile);
+          return meanwhile;
+        }
       }
     }
+
+    /*
+     * Under the name discovery found - the name the dialog showed - then once
+     * more with the address added when another device already has it (two
+     * hosts sharing a name is ordinary: a wildcard reverse zone, a cloned
+     * config).
+     */
+    if (!created) {
+      attempted = build();
+
+      try {
+        created = await NetworkDeviceService.create({
+          data: attempted,
+          props: state.props,
+        });
+      } catch (firstError) {
+        /*
+         * A refusal of the person is the same for every name: it is not
+         * retried under another one.
+         */
+        if (isRefusalOfThePerson(firstError)) {
+          result.device = DiscoveryImportDeviceOutcome.Failed;
+          result.deviceError = toText(firstError);
+          return null;
+        }
+
+        // Another import, a rule or a person created it meanwhile.
+        const meanwhile: NetworkDevice | null = await findExisting();
+
+        if (meanwhile?.id) {
+          result.device = DiscoveryImportDeviceOutcome.AlreadyAdded;
+          result.deviceId = meanwhile.id.toString();
+          result.name = meanwhile.name || result.name;
+          state.devicesById.set(meanwhile.id.toString(), meanwhile);
+          return meanwhile;
+        }
+
+        attempted = build(
+          facts
+            ? buildDiscoveredDeviceFallbackName(
+                facts.name || host.ipAddress,
+                host.ipAddress,
+              )
+            : buildFallbackDeviceName(host, state.scan!),
+        );
+
+        try {
+          created = await NetworkDeviceService.create({
+            data: attempted,
+            props: state.props,
+          });
+        } catch {
+          // The first refusal says why; the second is usually its consequence.
+          result.device = DiscoveryImportDeviceOutcome.Failed;
+          result.deviceError = toText(firstError);
+          return null;
+        }
+      }
+    }
+
+    // Held, so a later host's rule name never takes it.
+    state.naming?.hold(created?.name || attempted.name);
 
     const device: NetworkDevice = created || attempted;
 

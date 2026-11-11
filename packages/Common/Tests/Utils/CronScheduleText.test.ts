@@ -5,6 +5,7 @@ import { createTranslator, Translator } from "../../UI/Utils/TranslateTemplate";
 import CronTab, { CronScheduleShape } from "../../Utils/CronTab";
 import { describeCronSchedule } from "../../Utils/CronScheduleText";
 import MonitorCheckScheduleUtil from "../../Utils/Monitor/MonitorCheckScheduleUtil";
+import { DASHBOARD_LANGUAGES } from "../Helpers/TranslatedLanguages";
 
 /*
  * A cron schedule in words in the reader's language: the monitor's
@@ -20,24 +21,7 @@ const LOCALES_DIRECTORY: string = path.join(
   "../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const readLocale: (language: string) => Record<string, unknown> = (
   language: string,

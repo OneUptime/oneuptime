@@ -56,7 +56,13 @@ import {
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  formatInline,
+  formatList,
   translatableTerm,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -81,6 +87,7 @@ import SessionReplaySearchBar from "./SessionReplaySearchBar";
 import SessionReplayEmptyState, {
   describeSessionReplayListError,
   SessionReplayListErrorCopy,
+  SessionReplayListFailure,
 } from "./SessionReplayEmptyState";
 import {
   buildSessionReplayFilterChips,
@@ -566,13 +573,21 @@ export interface SessionReplaySignalBadge {
   severity: SessionReplayPlayabilitySeverity;
   /* undefined = not measured on this row: no badge, never "0". */
   getCount: (row: SessionReplaySummary) => number | undefined;
-  getText: (count: number) => string;
+  /*
+   * The badge's words for a count, in the language of the translator handed
+   * in; English, word for word, without one.
+   */
+  getText: (count: number, translator?: Translator) => string;
   /*
    * The text when the row knows more than a count - the names of the
    * application's own signals. getText stays the fallback.
    */
   getRowText?:
-    | ((row: SessionReplaySummary, count: number) => string)
+    | ((
+        row: SessionReplaySummary,
+        count: number,
+        translator?: Translator,
+      ) => string)
     | undefined;
   /* The severity when it depends on the row; severity stays the fallback. */
   getRowSeverity?:
@@ -584,7 +599,11 @@ export interface SessionReplaySignalBadge {
    * Their words joined are getRowText's.
    */
   getRowParts?:
-    | ((row: SessionReplaySummary, count: number) => SessionReplayBadgeParts)
+    | ((
+        row: SessionReplaySummary,
+        count: number,
+        translator?: Translator,
+      ) => SessionReplayBadgeParts)
     | undefined;
   /*
    * What the badge says on hover when its own text can be cut short: every
@@ -600,6 +619,11 @@ export interface SessionReplaySignalBadge {
   isRowTextUserContent?: ((row: SessionReplaySummary) => boolean) | undefined;
   /* The rail tab the badge links into. */
   rail: string;
+  /*
+   * The link's hover when no names are on it: which rail it opens. English,
+   * a key the link looks up in the reader's language.
+   */
+  railTitle: string;
 }
 
 /*
@@ -624,6 +648,17 @@ export interface SessionReplayBadgeParts {
 }
 
 /*
+ * English, word for word, for a caller that hands in no translator: the
+ * node tests, and anything that reads a badge's words outside the list.
+ */
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+// A fixed line in the translator's language.
+function translateLine(text: string, translator: Translator): string {
+  return translator.translateText(text) || text;
+}
+
+/*
  * The badge of the application's own signals: the name when one fired,
  * the first name and how many more when several did, so a row says
  * "Payment failed" rather than "2 signals". Amber when any of them counted
@@ -633,11 +668,18 @@ export interface SessionReplayBadgeParts {
 export function getCustomSignalBadgeParts(
   row: SessionReplaySummary,
   count: number,
+  translator: Translator = ENGLISH,
 ): SessionReplayBadgeParts {
   const names: Array<string> = getCustomSignalNames(row);
 
   if (names.length === 0) {
-    return { text: `${count} ${plural(count, "signal")}`, suffix: undefined };
+    return {
+      text: translator.translatePlural(
+        { one: "{{count}} signal", other: "{{count}} signals" },
+        count,
+      ),
+      suffix: undefined,
+    };
   }
 
   return {
@@ -649,8 +691,13 @@ export function getCustomSignalBadgeParts(
 export function getCustomSignalBadgeText(
   row: SessionReplaySummary,
   count: number,
+  translator: Translator = ENGLISH,
 ): string {
-  const parts: SessionReplayBadgeParts = getCustomSignalBadgeParts(row, count);
+  const parts: SessionReplayBadgeParts = getCustomSignalBadgeParts(
+    row,
+    count,
+    translator,
+  );
 
   return parts.suffix ? `${parts.text} ${parts.suffix}` : parts.text;
 }
@@ -670,10 +717,6 @@ function getCustomSignalNames(row: SessionReplaySummary): Array<string> {
 export const SESSION_REPLAY_ONE_LINE_BADGE_MAX_WIDTH_CLASS_NAME: string =
   "max-w-[10rem]";
 
-function plural(count: number, singular: string, pluralWord?: string): string {
-  return count === 1 ? singular : pluralWord ?? `${singular}s`;
-}
-
 export const SESSION_REPLAY_SIGNAL_BADGES: Array<SessionReplaySignalBadge> = [
   {
     key: "errors",
@@ -681,10 +724,14 @@ export const SESSION_REPLAY_SIGNAL_BADGES: Array<SessionReplaySignalBadge> = [
     getCount: (row: SessionReplaySummary): number => {
       return row.errorCount;
     },
-    getText: (count: number): string => {
-      return `${count} ${plural(count, "error")}`;
+    getText: (count: number, translator: Translator = ENGLISH): string => {
+      return translator.translatePlural(
+        { one: "{{count}} error", other: "{{count}} errors" },
+        count,
+      );
     },
     rail: "errors",
+    railTitle: translationKey("Open the errors rail of this session"),
   },
   {
     key: "rage",
@@ -692,10 +739,14 @@ export const SESSION_REPLAY_SIGNAL_BADGES: Array<SessionReplaySignalBadge> = [
     getCount: (row: SessionReplaySummary): number => {
       return row.rageClickCount;
     },
-    getText: (count: number): string => {
-      return `${count} rage`;
+    getText: (count: number, translator: Translator = ENGLISH): string => {
+      return translator.translatePlural(
+        { one: "{{count}} rage", other: "{{count}} rage" },
+        count,
+      );
     },
     rail: "interactions",
+    railTitle: translationKey("Open the interactions rail of this session"),
   },
   {
     key: "dead",
@@ -703,10 +754,14 @@ export const SESSION_REPLAY_SIGNAL_BADGES: Array<SessionReplaySignalBadge> = [
     getCount: (row: SessionReplaySummary): number => {
       return row.deadClickCount;
     },
-    getText: (count: number): string => {
-      return `${count} dead`;
+    getText: (count: number, translator: Translator = ENGLISH): string => {
+      return translator.translatePlural(
+        { one: "{{count}} dead", other: "{{count}} dead" },
+        count,
+      );
     },
     rail: "interactions",
+    railTitle: translationKey("Open the interactions rail of this session"),
   },
   {
     key: "error-clicks",
@@ -714,10 +769,14 @@ export const SESSION_REPLAY_SIGNAL_BADGES: Array<SessionReplaySignalBadge> = [
     getCount: (row: SessionReplaySummary): number => {
       return row.errorClickCount;
     },
-    getText: (count: number): string => {
-      return `${count} error ${plural(count, "click")}`;
+    getText: (count: number, translator: Translator = ENGLISH): string => {
+      return translator.translatePlural(
+        { one: "{{count}} error click", other: "{{count}} error clicks" },
+        count,
+      );
     },
     rail: "interactions",
+    railTitle: translationKey("Open the interactions rail of this session"),
   },
   {
     key: "refresh",
@@ -725,10 +784,14 @@ export const SESSION_REPLAY_SIGNAL_BADGES: Array<SessionReplaySignalBadge> = [
     getCount: (row: SessionReplaySummary): number => {
       return row.refreshRageCount;
     },
-    getText: (count: number): string => {
-      return `${count} refresh rage`;
+    getText: (count: number, translator: Translator = ENGLISH): string => {
+      return translator.translatePlural(
+        { one: "{{count}} refresh rage", other: "{{count}} refresh rage" },
+        count,
+      );
     },
     rail: "interactions",
+    railTitle: translationKey("Open the interactions rail of this session"),
   },
   {
     key: "custom-signals",
@@ -750,8 +813,11 @@ export const SESSION_REPLAY_SIGNAL_BADGES: Array<SessionReplaySignalBadge> = [
         row.customSignalFrustrationCount ?? 0,
       );
     },
-    getText: (count: number): string => {
-      return `${count} ${plural(count, "signal")}`;
+    getText: (count: number, translator: Translator = ENGLISH): string => {
+      return translator.translatePlural(
+        { one: "{{count}} signal", other: "{{count}} signals" },
+        count,
+      );
     },
     getRowText: getCustomSignalBadgeText,
     getRowParts: getCustomSignalBadgeParts,
@@ -771,6 +837,7 @@ export const SESSION_REPLAY_SIGNAL_BADGES: Array<SessionReplaySignalBadge> = [
         : "neutral";
     },
     rail: "interactions",
+    railTitle: translationKey("Open the interactions rail of this session"),
   },
   {
     key: "traces",
@@ -778,10 +845,14 @@ export const SESSION_REPLAY_SIGNAL_BADGES: Array<SessionReplaySignalBadge> = [
     getCount: (row: SessionReplaySummary): number | undefined => {
       return row.traceCount;
     },
-    getText: (count: number): string => {
-      return `${count} ${plural(count, "trace")}`;
+    getText: (count: number, translator: Translator = ENGLISH): string => {
+      return translator.translatePlural(
+        { one: "{{count}} trace", other: "{{count}} traces" },
+        count,
+      );
     },
     rail: "traces",
+    railTitle: translationKey("Open the traces rail of this session"),
   },
   {
     key: "exception-groups",
@@ -789,10 +860,17 @@ export const SESSION_REPLAY_SIGNAL_BADGES: Array<SessionReplaySignalBadge> = [
     getCount: (row: SessionReplaySummary): number | undefined => {
       return row.exceptionGroupCount;
     },
-    getText: (count: number): string => {
-      return `${count} exception ${plural(count, "group")}`;
+    getText: (count: number, translator: Translator = ENGLISH): string => {
+      return translator.translatePlural(
+        {
+          one: "{{count}} exception group",
+          other: "{{count}} exception groups",
+        },
+        count,
+      );
     },
     rail: "errors",
+    railTitle: translationKey("Open the errors rail of this session"),
   },
 ];
 
@@ -941,6 +1019,8 @@ interface SessionReplayRowProps {
    * table applies it in place of any other identity filter.
    */
   onFilterByUser: (filter: Partial<SessionReplayAdvancedFilters>) => void;
+  // The reader's: every word the row draws is looked up with it.
+  translator: Translator;
 }
 
 function routeForSession(
@@ -964,7 +1044,7 @@ function routeForSession(
 function getSessionReplayCells(
   props: SessionReplayRowProps,
 ): Array<ReactElement> {
-  const { row } = props;
+  const { row, translator } = props;
   const route: Route | null = routeForSession(
     props.rumApplicationId,
     row.sessionId,
@@ -1018,8 +1098,8 @@ function getSessionReplayCells(
         }
 
         const text: string = badge.getRowText
-          ? badge.getRowText(row, count)
-          : badge.getText(count);
+          ? badge.getRowText(row, count, translator)
+          : badge.getText(count, translator);
         const severity: SessionReplayPlayabilitySeverity = badge.getRowSeverity
           ? badge.getRowSeverity(row)
           : badge.severity;
@@ -1029,7 +1109,7 @@ function getSessionReplayCells(
           rail: badge.rail,
         });
         const parts: SessionReplayBadgeParts | null = badge.getRowParts
-          ? badge.getRowParts(row, count)
+          ? badge.getRowParts(row, count, translator)
           : null;
         const isUserContent: boolean =
           badge.isRowTextUserContent?.(row) ?? false;
@@ -1092,10 +1172,7 @@ function getSessionReplayCells(
                 key={badge.key}
                 to={badgeRoute}
                 className={boxClassName}
-                title={
-                  badge.getRowHoverText?.(row) ??
-                  `Open the ${badge.rail} rail of this session`
-                }
+                title={badge.getRowHoverText?.(row) ?? badge.railTitle}
               >
                 {element}
               </Link>
@@ -1111,7 +1188,8 @@ function getSessionReplayCells(
 
   if (row.triggerReason === SessionReplayTriggerReason.Performance) {
     signalEntries.push({
-      text: "Slow",
+      // For the "+N" fold's list; the badge looks "Slow" up itself.
+      text: translateLine("Slow", translator),
       element: (
         <span key="slow" className="inline-flex">
           <StatusBadge text="Slow" type={StatusBadgeType.Warning} />
@@ -1142,14 +1220,16 @@ function getSessionReplayCells(
       <span
         key="more"
         className="inline-flex"
-        title={foldedSignals.join(", ")}
+        title={formatList(foldedSignals, translator)}
         data-testid="session-row-more-signals"
       >
         <StatusBadge
           text={`+${foldedSignals.length}`}
           type={StatusBadgeType.Neutral}
         />
-        <span className="sr-only">: {foldedSignals.join(", ")}</span>
+        <span className="sr-only">
+          : {formatList(foldedSignals, translator)}
+        </span>
       </span>,
     );
   }
@@ -1161,20 +1241,30 @@ function getSessionReplayCells(
   const activityParts: Array<string> = [];
 
   if (row.pageCount > 0) {
-    activityParts.push(`${row.pageCount} ${plural(row.pageCount, "page")}`);
+    activityParts.push(
+      translator.translatePlural(
+        { one: "{{count}} page", other: "{{count}} pages" },
+        row.pageCount,
+      ),
+    );
   }
 
   if (row.clickCount !== undefined && row.clickCount > 0) {
-    activityParts.push(`${row.clickCount} ${plural(row.clickCount, "click")}`);
+    activityParts.push(
+      translator.translatePlural(
+        { one: "{{count}} click", other: "{{count}} clicks" },
+        row.clickCount,
+      ),
+    );
   }
 
   // "3 pages · 9 clicks", or why there is nothing to count yet.
   const activityText: string =
     activityParts.length > 0
-      ? activityParts.join(" · ")
+      ? formatInline(activityParts, translator)
       : row.isFinalized
-        ? "no pages counted"
-        : "counting";
+        ? translateLine("no pages counted", translator)
+        : translateLine("counting", translator);
 
   /*
    * Who this session belongs to, ranked the one way every cell ranks it
@@ -1183,12 +1273,15 @@ function getSessionReplayCells(
    * row can select this person's other sessions - which is the question a
    * support engineer opens this list to answer.
    */
-  const user: SessionUserDescription = describeSessionUser({
-    identifiedUserLabel: row.identifiedUserLabel,
-    isIdentityVisible: row.isIdentityVisible !== false,
-    identifiedUserKey: row.identifiedUserKey,
-    visitorId: row.visitorId,
-  });
+  const user: SessionUserDescription = describeSessionUser(
+    {
+      identifiedUserLabel: row.identifiedUserLabel,
+      isIdentityVisible: row.isIdentityVisible !== false,
+      identifiedUserKey: row.identifiedUserKey,
+      visitorId: row.visitorId,
+    },
+    translator,
+  );
 
   const userNameClassName: string =
     user.kind === "identified"
@@ -1230,8 +1323,14 @@ function getSessionReplayCells(
         tabIndex={0}
         aria-label={
           user.kind === "hidden"
-            ? "User hidden: your role cannot read end-user identity"
-            : `${user.text}: ${user.title}`
+            ? translateLine(
+                "User hidden: your role cannot read end-user identity",
+                translator,
+              )
+            : translator.translateTemplate("{{label}}: {{description}}", {
+                label: user.text,
+                description: user.title,
+              })
         }
       >
         {userName}
@@ -1293,7 +1392,7 @@ function getSessionReplayCells(
               <span
                 className="h-2 w-2 flex-none animate-pulse rounded-full bg-red-500"
                 role="img"
-                aria-label="Recording now"
+                aria-label={translateLine("Recording now", translator)}
                 data-testid="session-row-live"
               />
             )}
@@ -1303,11 +1402,11 @@ function getSessionReplayCells(
               className="truncate text-sm font-semibold text-gray-900 group-hover:text-indigo-700"
               title={row.entryUrl || undefined}
             >
-              {entryPath || "Unknown page"}
+              {entryPath || translateLine("Unknown page", translator)}
             </Link>
           ) : (
             <span className="truncate text-sm font-semibold text-gray-900">
-              {entryPath || "Unknown page"}
+              {entryPath || translateLine("Unknown page", translator)}
             </span>
           )}
         </div>
@@ -1401,8 +1500,8 @@ function getSessionReplayCells(
             />
             <span className="truncate">
               {deviceParts.length > 0
-                ? deviceParts.join(" · ")
-                : "Unknown device"}
+                ? formatInline(deviceParts, translator)
+                : translateLine("Unknown device", translator)}
             </span>
           </div>
         </div>
@@ -1428,7 +1527,13 @@ function getSessionReplayCells(
           {activePercent !== null && (
             <div
               className="h-1 w-12 flex-none overflow-hidden rounded-full bg-gray-100"
-              title={`active ${activePercent}% · idle ${100 - activePercent}%`}
+              title={translator.translateTemplate(
+                "active {{active}}% · idle {{idle}}%",
+                {
+                  active: translator.formatNumber(activePercent),
+                  idle: translator.formatNumber(100 - activePercent),
+                },
+              )}
               data-testid="session-row-activity-bar"
             >
               <div
@@ -1452,14 +1557,18 @@ function getSessionReplayCells(
       {badges.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">{badges}</div>
       ) : row.isFinalized ? (
-        <span className="text-sm text-gray-500">Clean</span>
+        <span className="text-sm text-gray-500">
+          {translateLine("Clean", translator)}
+        </span>
       ) : (
         /*
          * "Clean" is a claim, and it is only true once the finalizer has
          * counted every chunk. Before that the header carries chunk 0's
          * signals only.
          */
-        <span className="text-sm text-gray-400">Not counted yet</span>
+        <span className="text-sm text-gray-400">
+          {translateLine("Not counted yet", translator)}
+        </span>
       )}
     </div>,
     <div key="4" className="grid grid-cols-1">
@@ -1468,7 +1577,13 @@ function getSessionReplayCells(
           <span
             className="inline-flex"
             tabIndex={0}
-            aria-label={`${playability.text}: ${playability.tooltip}`}
+            aria-label={translator.translateTemplate(
+              "{{label}}: {{description}}",
+              {
+                label: translateLine(playability.text, translator),
+                description: translateLine(playability.tooltip, translator),
+              },
+            )}
             data-testid="session-row-playability"
             data-kind={playability.kind}
           >
@@ -1498,7 +1613,10 @@ function getSessionReplayCells(
       })}
       <div
         className={`mt-0.5 text-xs text-gray-500 ${SESSION_REPLAY_CELL_LINE_CLASS_NAME}`}
-        title={`Why this session was uploaded: ${triggerLabel}`}
+        title={translator.translateTemplate(
+          "Why this session was uploaded: {{trigger}}",
+          { trigger: triggerLabel },
+        )}
         data-testid="session-row-trigger"
       >
         {triggerLabel}
@@ -1507,8 +1625,13 @@ function getSessionReplayCells(
         <div
           className={`mt-0.5 text-xs text-amber-700 ${SESSION_REPLAY_CELL_LINE_CLASS_NAME}`}
         >
-          {row.fidelityNotices.length} fidelity{" "}
-          {plural(row.fidelityNotices.length, "notice")}
+          {translator.translatePlural(
+            {
+              one: "{{count}} fidelity notice",
+              other: "{{count}} fidelity notices",
+            },
+            row.fidelityNotices.length,
+          )}
         </div>
       )}
     </div>,
@@ -1524,18 +1647,31 @@ function getSessionReplayCells(
           <Link
             to={route}
             className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-indigo-600 hover:text-white hover:ring-indigo-600"
-            title={`Watch session ${row.sessionId.slice(0, 8)}`}
+            title={translator.translateTemplate("Watch session {{id}}", {
+              id: row.sessionId.slice(0, 8),
+            })}
           >
             <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
-            <span data-testid="session-row-watch">Watch</span>
+            <span data-testid="session-row-watch">
+              {translateLine("Watch", translator)}
+            </span>
           </Link>
         ) : (
           <Link
             to={route}
             className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-500 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 hover:text-gray-800"
-            title={`${playability.text}: open the session's signals without footage`}
+            title={translator.translateTemplate(
+              "{{status}}: open the session's signals without footage",
+              {
+                status: composedValue((sentence: Translator): string => {
+                  return translateLine(playability.text, sentence);
+                }),
+              },
+            )}
           >
-            <span data-testid="session-row-signals-only">Signals only</span>
+            <span data-testid="session-row-signals-only">
+              {translateLine("Signals only", translator)}
+            </span>
           </Link>
         ))}
     </div>,
@@ -1577,7 +1713,7 @@ export function getSessionReplayFirstErrorRoute(
 function getSessionReplayRowProps(
   props: SessionReplayRowProps,
 ): React.HTMLAttributes<HTMLElement> {
-  const { row } = props;
+  const { row, translator } = props;
   const route: Route | null = routeForSession(
     props.rumApplicationId,
     row.sessionId,
@@ -1631,7 +1767,15 @@ function getSessionReplayRowProps(
       : "",
     tabIndex: route ? 0 : undefined,
     "aria-label": route
-      ? `Open session ${row.sessionId.slice(0, 8)} from ${pathOf(row.entryUrl) || "an unknown page"}`
+      ? pathOf(row.entryUrl)
+        ? translator.translateTemplate("Open session {{id}} from {{page}}", {
+            id: row.sessionId.slice(0, 8),
+            page: pathOf(row.entryUrl),
+          })
+        : translator.translateTemplate(
+            "Open session {{id}} from an unknown page",
+            { id: row.sessionId.slice(0, 8) },
+          )
       : undefined,
     onClick: openRow,
     onKeyDown: (event: React.KeyboardEvent<HTMLElement>): void => {
@@ -1830,7 +1974,12 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
   const [rows, setRows] = useState<Array<SessionReplaySummary>>([]);
   const [hasMore, setHasMore] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<SessionReplayListErrorCopy | null>(null);
+  /*
+   * What failed, as the server said it; worded where it is drawn
+   * (describeSessionReplayListError), so the words follow the reader's
+   * language.
+   */
+  const [error, setError] = useState<SessionReplayListFailure | null>(null);
   const [signal, setSignal] = useState<string>(initialState.signal);
   /*
    * Applied filters drive the fetch. The search box and the modal both
@@ -2076,12 +2225,11 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
         setHasMore(result.nextCursor !== null);
       } catch (err) {
         if (generation === loadGenerationRef.current && !isSilent) {
-          setError(
-            describeSessionReplayListError(
-              API.getFriendlyMessage(err),
+          setError({
+            message: API.getFriendlyMessage(err),
+            statusCode:
               err instanceof HTTPErrorResponse ? err.statusCode : undefined,
-            ),
-          );
+          });
         }
       } finally {
         if (inFlightGenerationRef.current === generation) {
@@ -2468,6 +2616,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             nowUnixMs,
             onOpen: openSession,
             onFilterByUser: filterByUser,
+            translator: translator,
           }),
           firstErrorRoute: getSessionReplayFirstErrorRoute({
             row,
@@ -2490,6 +2639,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
       openSession,
       filterByUser,
       timeRange,
+      translator.language,
     ]);
 
   const rowActions: Array<ActionButtonSchema<SessionReplayTableRow>> =
@@ -2499,6 +2649,13 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
 
   const showIdentityNudge: boolean =
     !error && shouldShowIdentityNudge(rows, isLoading, advancedFilters);
+  const errorCopy: SessionReplayListErrorCopy | null = error
+    ? describeSessionReplayListError(
+        error.message,
+        error.statusCode,
+        translator,
+      )
+    : null;
   const appliedBoxChips: Array<SessionReplayFilterChip> = chips.filter(
     (chip: SessionReplayFilterChip): boolean => {
       return SESSION_REPLAY_APPLIED_BOX_FIELDS.includes(chip.field);
@@ -2652,7 +2809,10 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
                 type={AlertType.WARNING}
                 dataTestId="identity-filter-ignored"
                 strongTitle="User filter ignored"
-                title={`Your role cannot read end-user identity, so the server dropped the user filter "${advancedFilters.identifiedUserRef.trim()}" and this list is NOT narrowed to that user. Ask a project admin for the session replay identity permission, or filter by URL, tag or device instead.`}
+                title={translator.translateTemplate(
+                  'Your role cannot read end-user identity, so the server dropped the user filter "{{user}}" and this list is NOT narrowed to that user. Ask a project admin for the session replay identity permission, or filter by URL, tag or device instead.',
+                  { user: advancedFilters.identifiedUserRef.trim() },
+                )}
               />
             )}
 
@@ -2713,17 +2873,17 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             />
           )}
 
-          {error ? (
+          {errorCopy ? (
             <div
               role="alert"
               data-testid="list-error"
-              data-kind={error.kind}
+              data-kind={errorCopy.kind}
               className="rounded-xl border border-red-200 bg-red-50 p-4"
             >
               <p className="text-sm font-semibold text-red-800">
-                {error.title}
+                {errorCopy.title}
               </p>
-              <p className="mt-1 text-sm text-red-700">{error.detail}</p>
+              <p className="mt-1 text-sm text-red-700">{errorCopy.detail}</p>
               {/*
                * Button's own left margin (md:ml-3, a dialog footer's) put
                * Retry 12px right of the words above it.
@@ -2736,7 +2896,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
                   dataTestId="list-error-retry"
                   onClick={reload}
                 />
-                {error.kind === "narrow-range" && (
+                {errorCopy.kind === "narrow-range" && (
                   <Button
                     title="Clear the search text"
                     buttonStyle={ButtonStyleType.SECONDARY_LINK}
@@ -2772,6 +2932,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
                     nowUnixMs,
                     onOpen: openSession,
                     onFilterByUser: filterByUser,
+                    translator: translator,
                   });
                 }}
                 isLoading={isLoading}

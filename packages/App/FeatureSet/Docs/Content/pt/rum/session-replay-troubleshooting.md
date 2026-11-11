@@ -108,7 +108,7 @@ Isso retorna a versão do gravador, o id da sessão, o seu `state` (`recording`,
 copy(JSON.stringify(window.__ONEUPTIME_SESSION_REPLAY_DEBUG__.records, null, 2));
 ```
 
-Cole qualquer um dos dois no seu ticket de suporte — ou em **Ask the browser** na página **Integridade** da aplicação, que explica cada código que ele contém. Muitas vezes isso basta sozinho.
+Cole qualquer um dos dois no seu ticket de suporte — ou em **Pergunte ao navegador** na página **Integridade** da aplicação, que explica cada código que ele contém. Muitas vezes isso basta sozinho.
 
 ## Quando o silêncio é normal: a política acionada por erros
 
@@ -185,7 +185,7 @@ Cada linha carrega um `code` estável. Procure o seu aqui.
 | `disabled-by-default` | `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` neste deployment. Mude para `true` — e defina antes `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` se você hospeda, porque a reprodução é a tabela mais pesada que você tem. |
 | `ingest-disabled` | `SESSION_REPLAY_INGEST_ENABLED=false` neste deployment. |
 | `policy-unavailable` | O servidor não conseguiu resolver a política — normalmente Redis ou Postgres. Falha de forma fechada de propósito. Verifique os logs do app OneUptime. |
-| `not-reported` | O servidor é mais antigo que este campo. Use em vez disso o painel **Test your installation** do painel de controle, na página **Política de reprodução**. |
+| `not-reported` | O servidor é mais antigo que este campo. Use em vez disso o painel **Teste sua instalação** do painel de controle, na página **Política de reprodução**. |
 
 ### O artefato
 
@@ -285,6 +285,18 @@ Estes registram o que o seu próprio código pediu ao gravador. Servem para conf
 | `api-stop` | `stop()` foi chamado. O último fragmento foi enviado e a sessão foi selada; nada é gravado pelo resto da vida da página. |
 | `api-no-recorder` | Uma das chamadas acima rodou sem nenhum gravador ativo — normalmente porque rodou antes de o artefato do gravador carregar. Coloque entradas `[command, ...arguments]` em `window.OneUptimeReplayQueue` em vez disso, e elas são aplicadas assim que ele chega. |
 
+### Eventos de análise de produto
+
+Estes vêm dos eventos que o gravador envia para a [Análise de produto](/docs/rum/product-analytics#enviar-eventos-e-métricas), ao lado da gravação.
+
+| code | o que significa |
+| --- | --- |
+| `analytics-started` | A aplicação tem os eventos de análise de produto ativados, por isso o gravador envia o início de cada sessão, as suas visualizações de página e as suas chamadas a `track()` e `metric()`. `userPropertyKeys` diz quantas propriedades de usuário ele mantém. |
+| `analytics-stopped` | O servidor não aceita os eventos desta página, por isso nenhum é enviado dela de novo. `status` 204 significa que a aplicação os desativou, ou desativou a Reprodução de sessões, 403 que a origem da página não é permitida, e 400 que este gravador enviou um lote que o servidor não consegue ler; `reason` diz qual. |
+| `metric-analytics-off` | `metric()` foi chamado enquanto a aplicação tem os eventos de análise de produto desativados. Nada foi enviado: ative-os em **Configurações de análise**. |
+| `metric-name-refused` | `metric()` recebeu um nome que não pode enviar. Um nome começa por uma letra, só tem letras, dígitos, `_`, `.`, `-` e `/`, tem no máximo 100 caracteres e não começa por `oneuptime.`. |
+| `metric-value-refused` | `metric()` recebeu um valor que não é um número finito. Nada foi enviado. |
+
 ## Nenhuma requisição na aba Rede
 
 Siga esta lista; ela está ordenada pela frequência com que cada causa é a resposta.
@@ -358,7 +370,7 @@ Lacunas não são a mesma coisa que trechos ociosos: um trecho ocioso é gravaç
 
 ## O reprodutor diz Buffering, ou um fragmento não carregou
 
-O reprodutor busca a gravação em segmentos de 15 segundos à medida que a agulha se aproxima deles. _Buffering_ significa que o próximo segmento ainda não chegou; depois de oito segundos ele oferece **Tentar novamente**. Um segmento que falha de vez mostra um erro com **Tentar novamente** e **Copy diagnostic** — este último traz o id da sessão, a aba, o segmento e a geração, que é o que o suporte precisa. Uma sessão cuja gravação expirou mostra uma explicação no lugar do palco, enquanto as abas Logs, Traces e Errors continuam funcionando com a sua telemetria.
+O reprodutor busca a gravação em segmentos de 15 segundos à medida que a agulha se aproxima deles. _Buffering_ significa que o próximo segmento ainda não chegou; depois de oito segundos ele oferece **Tentar novamente**. Um segmento que falha de vez mostra um erro com **Tentar novamente** e **Copiar diagnóstico** — este último traz o id da sessão, a aba, o segmento e a geração, que é o que o suporte precisa. Uma sessão cuja gravação expirou mostra uma explicação no lugar do palco, enquanto as abas Logs, Traces e Errors continuam funcionando com a sua telemetria.
 
 ## Faltam imagens, ícones ou estilos na reprodução
 
@@ -373,7 +385,7 @@ Uma gravação guarda o endereço de cada imagem, e de cada folha de estilos que
 
 ### Verifique isto primeiro
 
-1. **Leia as notas de captura abaixo do reprodutor.** Quando imagens ou folhas de estilos não puderam carregar no seu navegador, a primeira nota diz isso — por exemplo _2 images didn't load in this replay_ — e indica os sites de onde vieram. Ela cobre todas as abas que o reprodutor tocou desde que você abriu a sessão. **Detalhes da sessão** (`I`) → **Fidelity** → **Missing assets** lista cada endereço, até os 200 primeiros. Fontes web, imagens de fundo CSS e imagens que a sua página criou no navegador (endereços `blob:`) não estão nessa lista; procure-as no DevTools (abaixo).
+1. **Leia as notas de captura abaixo do reprodutor.** Quando imagens ou folhas de estilos não puderam carregar no seu navegador, a primeira nota diz isso — por exemplo _2 images didn't load in this replay_ — e indica os sites de onde vieram. Ela cobre todas as abas que o reprodutor tocou desde que você abriu a sessão. **Detalhes da sessão** (`I`) → **Fidelidade** → **Recursos ausentes** lista cada endereço, até os 200 primeiros. Fontes web, imagens de fundo CSS e imagens que a sua página criou no navegador (endereços `blob:`) não estão nessa lista; procure-as no DevTools (abaixo).
 2. **Verifique o modo de mascaramento.** Uma sessão gravada com _Mask all text_ não carrega nem as imagens nem as fontes web dela, por design (uma imagem que a página tinha como URL `data:` faz parte da gravação, e continua aparecendo), e as notas de captura dela dizem _Images and web fonts are not loaded_. O mesmo vale para uma sessão cujo modo de mascaramento não foi informado, ou não é um que o painel reconhece. As folhas de estilos carregam mesmo assim nos dois casos. **Detalhes da sessão** → **Privacidade** mostra o modo que a sessão informa, que é o modo do carregamento de página mais recente dela.
 3. **Verifique se também falhou para o seu usuário.** Abra a aba **Erros** do painel de eventos nesse momento: uma linha _Resource failed to load_ para o mesmo arquivo significa que ele também estava quebrado na tela do seu usuário, e a reprodução o mostra fielmente.
 
@@ -467,8 +479,8 @@ Reúna isto antes de pedir ajuda:
 
 - A saída de `OneUptimeReplay.getDiagnostics()`.
 - O status da requisição `session-replay/v1/config`.
-- O que dizem a página **Integridade** da aplicação e o painel **Test your installation** de **Política de reprodução**. Eles respondem pelo lado do servidor, que é a metade que um navegador não consegue ver.
-- Para imagens, ícones ou estilos faltando: o endereço de um arquivo que não carregou (**Missing assets** os lista) e a linha que o console do navegador imprimiu para ele.
+- O que dizem a página **Integridade** da aplicação e o painel **Teste sua instalação** de **Política de reprodução**. Eles respondem pelo lado do servidor, que é a metade que um navegador não consegue ver.
+- Para imagens, ícones ou estilos faltando: o endereço de um arquivo que não carregou (**Recursos ausentes** os lista) e a linha que o console do navegador imprimiu para ele.
 
 Depois escreva para support@oneuptime.com ou abra uma issue no [GitHub](https://github.com/OneUptime/oneuptime).
 

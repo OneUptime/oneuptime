@@ -16,7 +16,7 @@ Un monitor de servidor / VM vigila una máquina a través del agente de infraest
 
 El agente se ejecuta como servicio del sistema. Cada 30 segundos recopila un informe y lo envía a su URL de OneUptime, firmado con la clave secreta del monitor. OneUptime guarda los valores como métricas del monitor y comprueba el informe con los criterios del monitor.
 
-El silencio se comprueba por separado. Cada minuto, OneUptime vuelve a evaluar los criterios **Is Online** de cada monitor de servidor / VM que no ha informado durante 3 minutos o más, y un servidor en silencio durante más tiempo del que permiten sus criterios (3 minutos de forma predeterminada) cuenta como sin conexión. Un monitor sin criterios **Is Online** nunca se marca como sin conexión solo porque el agente se haya quedado callado. Solo cuenta para ese silencio el tiempo en que OneUptime estaba recibiendo: el tiempo en que el propio OneUptime se reiniciaba, se actualizaba o se ponía al día no cuenta, como explica [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
+El silencio se comprueba por separado. Cada minuto, OneUptime vuelve a evaluar los criterios **En línea** de cada monitor de servidor / VM que no ha informado durante 3 minutos o más, y un servidor en silencio durante más tiempo del que permiten sus criterios (3 minutos de forma predeterminada) cuenta como sin conexión. Un monitor sin criterios **En línea** nunca se marca como sin conexión solo porque el agente se haya quedado callado. Solo cuenta para ese silencio el tiempo en que OneUptime estaba recibiendo: el tiempo en que el propio OneUptime se reiniciaba, se actualizaba o se ponía al día no cuenta, como explica [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ```mermaid title="Cómo obtiene sus datos un monitor de servidor / VM"
 flowchart TB
@@ -215,26 +215,26 @@ Los criterios deciden cuándo el monitor está en línea, degradado o sin conexi
 
 | Tipo de filtro | Qué comprueba | Condiciones de filtro |
 | --- | --- | --- |
-| Is Online | Si el agente ha informado recientemente (en los últimos 3 minutos, de forma predeterminada) | Verdadero, Falso |
-| CPU Usage (in %) | Uso global de la CPU | Mayor que, Menor que, Mayor o igual que, Menor o igual que |
-| Memory Usage (in %) | Memoria en uso | Igual que la CPU |
-| Disk Usage (in %) | Uso del disco indicado en **Ruta del disco** | Igual que la CPU |
-| Swap Usage (in %) | Swap en uso | Igual que la CPU |
-| CPU IO Wait (in %) | Parte del tiempo de CPU dedicada a esperar E/S | Igual que la CPU |
-| Load Average (1 minute) | Promedio de carga del último minuto | Igual que la CPU |
-| Load Average (5 minute) | Promedio de carga de los últimos 5 minutos | Igual que la CPU |
-| Load Average (15 minute) | Promedio de carga de los últimos 15 minutos | Igual que la CPU |
-| Server Process Name | Si se está ejecutando un proceso con este nombre (sin distinguir mayúsculas) | Is Executing, Is Not Executing |
-| Server Process Command | Si se está ejecutando un proceso con exactamente esta línea de comandos (sin distinguir mayúsculas) | Is Executing, Is Not Executing |
-| Server Process PID | Si se está ejecutando un proceso con este PID | Is Executing, Is Not Executing |
+| En línea | Si el agente ha informado recientemente (en los últimos 3 minutos, de forma predeterminada) | Verdadero, Falso |
+| Uso de CPU (en %) | Uso global de la CPU | Mayor que, Menor que, Mayor o igual que, Menor o igual que |
+| Uso de memoria (en %) | Memoria en uso | Igual que la CPU |
+| Uso de disco (en %) | Uso del disco indicado en **Ruta del disco** | Igual que la CPU |
+| Uso de swap (en %) | Swap en uso | Igual que la CPU |
+| Espera de E/S de la CPU (en %) | Parte del tiempo de CPU dedicada a esperar E/S | Igual que la CPU |
+| Carga media (1 minuto) | Promedio de carga del último minuto | Igual que la CPU |
+| Carga media (5 minutos) | Promedio de carga de los últimos 5 minutos | Igual que la CPU |
+| Carga media (15 minutos) | Promedio de carga de los últimos 15 minutos | Igual que la CPU |
+| Nombre del proceso del servidor | Si se está ejecutando un proceso con este nombre (sin distinguir mayúsculas) | Está en ejecución, No está en ejecución |
+| Comando del proceso del servidor | Si se está ejecutando un proceso con exactamente esta línea de comandos (sin distinguir mayúsculas) | Está en ejecución, No está en ejecución |
+| PID del proceso del servidor | Si se está ejecutando un proceso con este PID | Está en ejecución, No está en ejecución |
 
 **Ruta del disco** admite un punto de montaje o un dispositivo, como `/`, `/mnt/data`, `C:\` o `/dev/sda1`; si se deja vacía, es `/`. Introduzca `*` para comprobar cada disco que informa el agente: cada disco que supera el umbral recibe su propia alerta, de modo que un segundo disco que se llena no queda oculto tras la alerta abierta del primero. Las mayúsculas y una `/` o `\` final no importan, y un dispositivo representa el disco montado desde él. Una ruta que no nombra ningún disco del que informe el agente no coincide. Cuando el agente no puede leer los procesos del servidor, su informe no tiene lista de procesos y ningún filtro de procesos coincide, compruebe que un proceso se está ejecutando o que no.
 
 ### Evaluar durante un periodo de tiempo
 
-**Evaluar estos criterios durante un periodo de tiempo** es una casilla aparte en el formulario de criterios, no una condición de filtro. Está disponible para **Is Online** y para cada tipo de filtro numérico. Actívela para comparar un agregado – elegido en **Evaluar** (Promedio, Suma, Maximum Value, Minimum Value, All Values, Any Value) sobre la ventana fijada en **Durante los últimos (en minutos)** – en lugar del valor de la última comprobación. En un filtro **Is Online**, la ventana es el tiempo que el agente puede estar en silencio antes de que el servidor cuente como sin conexión.
+**Evaluar estos criterios durante un periodo de tiempo** es una casilla aparte en el formulario de criterios, no una condición de filtro. Está disponible para **En línea** y para cada tipo de filtro numérico. Actívela para comparar un agregado – elegido en **Evaluar** (Promedio, Suma, Valor máximo, Valor mínimo, Todos los valores, Cualquier valor) sobre la ventana fijada en **Durante los últimos (en minutos)** – en lugar del valor de la última comprobación. En un filtro **En línea**, la ventana es el tiempo que el agente puede estar en silencio antes de que el servidor cuente como sin conexión.
 
-**All Values** solo coincide cuando la ventana está realmente cubierta por datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Any Value** es el ajuste para «avíseme en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
+La opción **Todos los valores** solo coincide cuando la ventana está realmente cubierta por datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Cualquier valor** es el ajuste para «avíseme en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
 
 **Si no hay datos** controla qué ocurre mientras la ventana no puede respaldar el criterio:
 
@@ -245,18 +245,18 @@ Los criterios deciden cuándo el monitor está en línea, degradado o sin conexi
 | **Treat As Zero** | La ventana se compara como un único cero. | Contadores, en los que «sin eventos» significa realmente cero. |
 
 > [!TIP]
-> La CPU y la carga tienen picos breves todo el tiempo. Evalúelas durante unos minutos con **Promedio** o **All Values** en lugar de alertar por un solo informe.
+> La CPU y la carga tienen picos breves todo el tiempo. Evalúelas durante unos minutos con **Promedio** o **Todos los valores** en lugar de alertar por un solo informe.
 
 ### Criterios de ejemplo
 
 | Objetivo | Tipo de filtro | Condición de filtro | Valor |
 | --- | --- | --- | --- |
-| Marcar el servidor como sin conexión cuando el agente deja de informar | Is Online | Falso | — |
-| Alertar cuando el uso de CPU supera el 90 % | CPU Usage (in %) | Mayor que | `90` |
-| Alertar cuando el disco raíz está lleno en más del 85 % | Disk Usage (in %), **Ruta del disco** `/` | Mayor que | `85` |
-| Alertar por cualquier disco lleno en más del 85 %, una alerta por disco | Disk Usage (in %), **Ruta del disco** `*` | Mayor que | `85` |
-| Alertar cuando el uso de memoria supera el 80 % | Memory Usage (in %) | Mayor que | `80` |
-| Alertar cuando nginx deja de ejecutarse | Server Process Name | Is Not Executing | `nginx` |
+| Marcar el servidor como sin conexión cuando el agente deja de informar | En línea | Falso | — |
+| Alertar cuando el uso de CPU supera el 90 % | Uso de CPU (en %) | Mayor que | `90` |
+| Alertar cuando el disco raíz está lleno en más del 85 % | Uso de disco (en %), **Ruta del disco** `/` | Mayor que | `85` |
+| Alertar por cualquier disco lleno en más del 85 %, una alerta por disco | Uso de disco (en %), **Ruta del disco** `*` | Mayor que | `85` |
+| Alertar cuando el uso de memoria supera el 80 % | Uso de memoria (en %) | Mayor que | `80` |
+| Alertar cuando nginx deja de ejecutarse | Nombre del proceso del servidor | No está en ejecución | `nginx` |
 
 ## Solución de problemas
 
@@ -280,7 +280,7 @@ curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install
 :::
 
 :::details El monitor nunca pasa a sin conexión cuando el servidor está caído
-Solo un criterio **Is Online** marca un servidor en silencio como sin conexión. Añada uno con la **Condición de filtro** en **Falso** y elija el estado de monitor que aplica.
+Solo un criterio **En línea** marca un servidor en silencio como sin conexión. Añada uno con la **Condición de filtro** en **Falso** y elija el estado de monitor que aplica.
 :::
 
 :::details Los informes no pasan por el proxy

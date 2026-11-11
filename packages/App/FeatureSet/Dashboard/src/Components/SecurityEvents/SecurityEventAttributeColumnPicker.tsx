@@ -448,9 +448,9 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
 
             {searchResult.total > searchResult.keys.length && (
               <p className="mt-2 text-[11px] text-gray-400">
-                Showing {searchResult.keys.length.toLocaleString()} of{" "}
-                {searchResult.total.toLocaleString()} matching attributes. Keep
-                typing to narrow.
+                Showing {searchResult.keys.length.toLocaleString("en-US")} of{" "}
+                {searchResult.total.toLocaleString("en-US")} matching
+                attributes. Keep typing to narrow.
               </p>
             )}
           </div>

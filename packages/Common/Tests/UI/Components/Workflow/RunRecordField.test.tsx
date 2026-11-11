@@ -1409,6 +1409,62 @@ describe("the words around it", () => {
       formatRunRecordCreatedAt(new Date("2025-12-31T15:25:00.000Z"), clock),
     ).toBe("Dec 31, 2025, 3:25 PM");
   });
+
+  /*
+   * The day and the time are written apart and joined: in Arabic and
+   * Persian with their own comma, as the day is written ("اليوم، 9:30 ص"),
+   * never English's ("اليوم, 9:30 ص"). Other languages keep the comma.
+   */
+  test.each<[string, Array<string>]>([
+    [
+      "ar",
+      [
+        "اليوم، 9:30 ص",
+        "أمس، 9:05 م",
+        "2 أكتوبر، 3:25 م",
+        "31 ديسمبر 2025، 3:25 م",
+      ],
+    ],
+    [
+      "fa",
+      [
+        "امروز، ۹:۳۰ ق.ظ.",
+        "دیروز، ۹:۰۵ ب.ظ.",
+        "۲ اکتبر، ۳:۲۵ ب.ظ.",
+        "۳۱ دسامبر ۲۰۲۵، ۳:۲۵ ب.ظ.",
+      ],
+    ],
+    [
+      "de",
+      [
+        "Heute, 9:30 AM",
+        "Gestern, 9:05 PM",
+        "2. Okt., 3:25 PM",
+        "31. Dez. 2025, 3:25 PM",
+      ],
+    ],
+  ])(
+    "when a record was created, short, in %s",
+    (language: string, expected: Array<string>) => {
+      const clock: FeedClock = {
+        timezone: "UTC",
+        language,
+        use12HourClock: true,
+        now: NOW,
+      };
+
+      expect(
+        [
+          "2026-10-13T09:30:00.000Z",
+          "2026-10-12T21:05:00.000Z",
+          "2026-10-02T15:25:00.000Z",
+          "2025-12-31T15:25:00.000Z",
+        ].map((iso: string): string => {
+          return formatRunRecordCreatedAt(new Date(iso), clock);
+        }),
+      ).toEqual(expected);
+    },
+  );
 });
 
 /*

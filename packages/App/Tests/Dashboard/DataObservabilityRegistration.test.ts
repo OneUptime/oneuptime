@@ -348,25 +348,32 @@ describe("Data Observability registry wiring", () => {
       ),
     ).toContain('CREATE TABLE "DataAlert"');
 
-    // The cause is looked for before the alert is created, and recorded after.
+    /*
+     * The cause is looked for before the alert is created, and recorded
+     * after. The alert is created inside
+     * OnCallPageTiming.runAsMonitorTriggered, so its pages start when the
+     * data that tripped the monitor came in.
+     */
     const monitorAlert: string = readSquashed(
       "Common/Server/Utils/Monitor/MonitorAlert.ts",
     );
+    const createsAlert: number = monitorAlert.indexOf(
+      "const createdAlert: Alert = await OnCallPageTiming.runAsMonitorTriggered(",
+    );
 
+    expect(createsAlert).toBeGreaterThan(-1);
+    expect(
+      monitorAlert.indexOf("return AlertService.create({"),
+    ).toBeGreaterThan(createsAlert);
     expect(
       monitorAlert.indexOf("await DataAlertCause.findCause({"),
-    ).toBeLessThan(
-      monitorAlert.indexOf(
-        "const createdAlert: Alert = await AlertService.create({",
-      ),
-    );
+    ).toBeGreaterThan(-1);
+    expect(
+      monitorAlert.indexOf("await DataAlertCause.findCause({"),
+    ).toBeLessThan(createsAlert);
     expect(
       monitorAlert.indexOf("await DataAlertCause.record({"),
-    ).toBeGreaterThan(
-      monitorAlert.indexOf(
-        "const createdAlert: Alert = await AlertService.create({",
-      ),
-    );
+    ).toBeGreaterThan(createsAlert);
     expect(
       readSquashed("App/FeatureSet/Dashboard/src/Pages/Alerts/View/Index.tsx"),
     ).toContain("<DataAlertLineage alertId={modelId} />");

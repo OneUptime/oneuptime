@@ -204,6 +204,34 @@ describe("what the page draws", () => {
     ).toBeGreaterThan(0);
   });
 
+  /*
+   * Issue #6356: a Traces row is billed for its spans and exceptions
+   * together, so its Data Ingested stays what it is billed for and says,
+   * under it, how much of it was exceptions - the overview shows them apart.
+   */
+  test("says under a Traces row's data ingested how much of it was exceptions", () => {
+    const columns: string = page.slice(page.indexOf("columns={["));
+    const dataIngested: string = columns.slice(
+      columns.lastIndexOf(
+        "{",
+        columns.indexOf('title: "Data Ingested (in GB)"'),
+      ),
+      columns.indexOf('title: "Data Retention (in Days)"'),
+    );
+
+    expect(dataIngested).toContain("dataIngestedInGB: true,");
+    expect(dataIngested).toContain("exceptionDataIngestedInGB: true,");
+    expect(dataIngested).toContain(
+      'item["productType"] === ProductType.Traces &&',
+    );
+    expect(dataIngested).toContain("exceptionDataIngestedInGB > 0");
+    expect(dataIngested).toContain("formatTelemetryUsageExceptionsPart(");
+    // What the row is billed for is still the first line, unchanged.
+    expect(dataIngested).toContain(
+      '(item["dataIngestedInGB"] as Decimal).value as number,',
+    );
+  });
+
   test("and says what the rows cost only where billing is on", () => {
     const cardProps: string = page.slice(
       page.indexOf("cardProps={{"),

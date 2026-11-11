@@ -23,6 +23,7 @@ import {
   createTranslator,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * WHAT AN INVESTIGATION READ ABOUT ITS INFRASTRUCTURE, IN ITS ACTIVITY
@@ -74,24 +75,7 @@ function serverKindNouns(): Array<{ kind: string; noun: string }> {
   );
 }
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 function translatorFor(language: string): Translator {
   const locale: Record<string, string> = JSON.parse(

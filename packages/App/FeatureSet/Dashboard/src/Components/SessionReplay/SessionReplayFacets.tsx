@@ -3,6 +3,12 @@ import IconProp from "Common/Types/Icon/IconProp";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import { Countries, CountryOption } from "Common/UI/Utils/Countries";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import FacetFilterBar from "../ResourceOwners/FacetFilterBar";
 import FilterChipDropdown from "../ResourceOwners/FilterChipDropdown";
 import { FilterChipDropdownOption } from "../ResourceOwners/FilterChipDropdownTypes";
@@ -129,6 +135,22 @@ export const SESSION_REPLAY_FACETS: Array<SessionReplayFacet> = [
   },
 ];
 
+/*
+ * The chips whose choices are OneUptime's own words - a device type, a
+ * trigger, a minimum duration - and are drawn in the reader's language.
+ * The others offer names as the recorder writes them (a browser, an
+ * operating system) and the countries' list, drawn as they are.
+ */
+const FACETS_WITH_OUR_WORDS: ReadonlySet<SessionReplayFacetField> =
+  new Set<SessionReplayFacetField>([
+    "deviceType",
+    "triggerReason",
+    "minDurationSeconds",
+  ]);
+
+// English, word for word, for a caller that hands in no translator.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
 /** Match the normalization and signal precedence of the list endpoint. */
 export function getSessionReplayFacetValue(
   field: SessionReplayFacetField,
@@ -149,18 +171,33 @@ export function getSessionReplayFacetValue(
   return value;
 }
 
-/** Suggestions supplement known values; they never claim counts for an entire query. */
+/*
+ * Suggestions supplement known values; they never claim counts for an entire
+ * query. A choice of OneUptime's own is in the language of the translator
+ * handed in (FilterChipDropdown draws a choice as it is given); a value from
+ * the rows is as the recorder wrote it.
+ */
 export function getSessionReplayFacetOptions(
   facet: SessionReplayFacet,
   rows: Array<SessionReplaySummary>,
   selected: string,
+  translator: Translator = ENGLISH,
 ): Array<FilterChipDropdownOption> {
+  const isOurWords: boolean = FACETS_WITH_OUR_WORDS.has(facet.field);
   const options: Map<string, FilterChipDropdownOption> = new Map(
     facet.options.map(
       (
         option: FilterChipDropdownOption,
       ): [string, FilterChipDropdownOption] => {
-        return [option.value, option];
+        return [
+          option.value,
+          isOurWords
+            ? {
+                ...option,
+                label: translator.translateText(option.label) || option.label,
+              }
+            : option,
+        ];
       },
     ),
   );
@@ -180,7 +217,9 @@ export function getSessionReplayFacetOptions(
         value,
         label:
           facet.field === "minDurationSeconds"
-            ? `At least ${value} seconds`
+            ? translator.translateTemplate("At least {{value}} seconds", {
+                value: value,
+              })
             : value,
       });
     }
@@ -231,6 +270,7 @@ const SIGNAL_OPTIONS: Array<FilterChipDropdownOption> =
 const SessionReplayFacets: FunctionComponent<SessionReplayFacetsProps> = (
   props: SessionReplayFacetsProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const facets: Array<SessionReplayFacet> =
     useMemo((): Array<SessionReplayFacet> => {
       return SESSION_REPLAY_FACETS.map(
@@ -245,11 +285,25 @@ const SessionReplayFacets: FunctionComponent<SessionReplayFacetsProps> = (
                 props.filters,
                 props.signal,
               ),
+              translator,
             ),
           };
         },
       );
-    }, [props.rows, props.filters, props.signal]);
+    }, [props.rows, props.filters, props.signal, translator.language]);
+  // The quick filters' names and what each selects, in the reader's language.
+  const signalOptions: Array<FilterChipDropdownOption> =
+    useMemo((): Array<FilterChipDropdownOption> => {
+      return SIGNAL_OPTIONS.map(
+        (option: FilterChipDropdownOption): FilterChipDropdownOption => {
+          return {
+            ...option,
+            label: translator.translateText(option.label) || option.label,
+            sublabel: translator.translateText(option.sublabel),
+          };
+        },
+      );
+    }, [translator.language]);
   const activeCount: number = countActiveSessionReplayChips(
     props.filters,
     props.signal,
@@ -270,7 +324,7 @@ const SessionReplayFacets: FunctionComponent<SessionReplayFacetsProps> = (
         <FilterChipDropdown
           label="Signal"
           emptyIcon={IconProp.Bolt}
-          options={SIGNAL_OPTIONS}
+          options={signalOptions}
           value={props.signal === "all" ? null : props.signal}
           supportedOperators={["is"]}
           onChange={(value: string | Array<string> | null): void => {

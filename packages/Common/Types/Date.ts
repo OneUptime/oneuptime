@@ -102,6 +102,19 @@ const FRIENDLY_TIME_ENGLISH_UNITS: Readonly<
 };
 
 /*
+ * A date written in the Arabic script - Arabic or Persian, whose comma is
+ * turned ("،"). Read from the text rather than from the reader's language,
+ * so a date a locale still writes in English keeps English's comma.
+ */
+const ARABIC_SCRIPT_DATE_REGEX: RegExp = /\p{Script=Arabic}/u;
+
+// What goes between a date and its time: "Sep 14, 06:01 PM".
+export const DATE_TIME_SEPARATOR: string = ", ";
+
+// The same in a date written in the Arabic script: "14 سبتمبر، 06:01 م".
+export const ARABIC_DATE_TIME_SEPARATOR: string = "، ";
+
+/*
  * BigInt(1000000), made the first time fromUnixNano reads an integer string
  * rather than when this module loads: every frontend bundle loads Date.ts,
  * and a browser without BigInt must still load it. Only that one read needs
@@ -143,6 +156,26 @@ export default class OneUptimeDate {
 
   private static padDatePart(value: number): string {
     return value.toString().padStart(2, "0");
+  }
+
+  /*
+   * The comma between a date and its time, as the date is written: "، " in
+   * the Arabic script ("14 سبتمبر، 06:01 م" in Arabic, "۱۴ سپتامبر، ۰۶:۰۱"
+   * in Persian), ", " in every other ("Sep 14, 06:01 PM", "14. Sept.,
+   * 06:01"). A caller that writes a date and a time apart, each from a
+   * fixed pattern, joins them with this - joined with English's comma, an
+   * Arabic tile read "14 سبتمبر, 06:01 م". The helpers that write both at
+   * once (Intl) already join them as each language does.
+   */
+  public static getDateTimeSeparator(datePart: string): string {
+    return ARABIC_SCRIPT_DATE_REGEX.test(datePart)
+      ? ARABIC_DATE_TIME_SEPARATOR
+      : DATE_TIME_SEPARATOR;
+  }
+
+  // A date and its time, joined as the date is written (getDateTimeSeparator).
+  public static joinDateAndTime(datePart: string, timePart: string): string {
+    return `${datePart}${this.getDateTimeSeparator(datePart)}${timePart}`;
   }
 
   /*
@@ -457,10 +490,37 @@ export default class OneUptimeDate {
     }
 
     const instant: Date = date;
-
-    return this.inReaderDigits((): string => {
+    const english: () => string = (): string => {
       return this.inCurrentTimezone(instant).format(timeFormat);
-    });
+    };
+
+    if (!use12HourFormat) {
+      return this.inReaderDigits(english);
+    }
+
+    /*
+     * A 12-hour clock's half of the day in the reader's words, as Intl
+     * writes it: "2:30 م", "午後2:30", "۲:۳۰ ب.ظ.". Written by moment it
+     * was English's "PM" on every page - the one English word in an Arabic
+     * monitor's "Refreshed at" and under a histogram's bars.
+     */
+    return writeInDateDisplayLanguage(
+      english,
+      (_language: string, locale: string): string | null => {
+        const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+          locale,
+          timezones: this.getCurrentTimezoneNames(),
+          options: {
+            hour: "numeric",
+            ...(includeMinutes ? { minute: "2-digit" } : {}),
+            ...(includeMinutes && includeSeconds ? { second: "2-digit" } : {}),
+            hour12: true,
+          },
+        });
+
+        return format ? format.format(instant) : null;
+      },
+    );
   }
 
   /*

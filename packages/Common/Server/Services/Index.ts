@@ -87,6 +87,7 @@ import NetworkDeviceLinkService from "./NetworkDeviceLinkService";
 import NetworkDeviceLinkRuleService from "./NetworkDeviceLinkRuleService";
 import NetworkTopologySuppressionService from "./NetworkTopologySuppressionService";
 import NetworkSiteAssignmentRuleService from "./NetworkSiteAssignmentRuleService";
+import NetworkDeviceNamingRuleService from "./NetworkDeviceNamingRuleService";
 import NetworkControllerConnectionService from "./NetworkControllerConnectionService";
 import NetworkAddressNameService from "./NetworkAddressNameService";
 import PodmanHostService from "./PodmanHostService";
@@ -254,6 +255,7 @@ import RumApplicationOwnerTeamService from "./RumApplicationOwnerTeamService";
 import RumSessionChunkService from "./RumSessionChunkService";
 import RumProductAnalyticsSessionService from "./RumProductAnalyticsSessionService";
 import RumProductAnalyticsUserService from "./RumProductAnalyticsUserService";
+import RumProductAnalyticsEventService from "./RumProductAnalyticsEventService";
 import RumSessionReplayViewService from "./RumSessionReplayViewService";
 import RumSessionErasureRequestService from "./RumSessionErasureRequestService";
 import RumSessionPinService from "./RumSessionPinService";
@@ -574,6 +576,8 @@ import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumbe
 import PushNotificationLogService from "./PushNotificationLogService";
 import RunnerOwnerTeamService from "./RunnerOwnerTeamService";
 import RunnerOwnerUserService from "./RunnerOwnerUserService";
+import TeamOwnerTeamService from "./TeamOwnerTeamService";
+import TeamOwnerUserService from "./TeamOwnerUserService";
 import CloudAccountService from "./CloudAccountService";
 import CloudAccountFeedService from "./CloudAccountFeedService";
 import CloudBudgetService from "./CloudBudgetService";
@@ -716,6 +720,7 @@ const services: Array<BaseService> = [
   NetworkDeviceLinkRuleService,
   NetworkTopologySuppressionService,
   NetworkSiteAssignmentRuleService,
+  NetworkDeviceNamingRuleService,
   NetworkControllerConnectionService,
   NetworkAddressNameService,
   PodmanHostService,
@@ -1188,6 +1193,8 @@ const services: Array<BaseService> = [
   PushNotificationLogService,
   RunnerOwnerTeamService,
   RunnerOwnerUserService,
+  TeamOwnerTeamService,
+  TeamOwnerUserService,
   ServerlessFunctionLabelRuleService,
   ServerlessFunctionOwnerRuleService,
   ServerlessFunctionOwnerTeamService,
@@ -1247,6 +1254,7 @@ export const AnalyticsServices: Array<
    */
   RumProductAnalyticsSessionService,
   RumProductAnalyticsUserService,
+  RumProductAnalyticsEventService,
   AuditLogService,
   SecurityEventService,
   ThreatIntelIndicatorService,

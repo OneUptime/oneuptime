@@ -178,16 +178,16 @@ Kriteriene til en monitor med egendefinert kode kan sjekke:
 | Filtertype | Hva den sjekker | Filtervilkår |
 | --- | --- | --- |
 | **Feil** | Feilen skriptet kastet, hvis noen. | Inneholder, Inneholder ikke, Lik, Ikke lik, Er tom, Er ikke tom |
-| **Result Value** | `data` som skriptet returnerte. Sammenlignes som et tall når det er et. | De samme, pluss Større enn, Mindre enn, Større enn eller lik, Mindre enn eller lik, Sann og Usann |
+| **Resultatverdi** | `data` som skriptet returnerte. Sammenlignes som et tall når det er et. | De samme, pluss Større enn, Mindre enn, Større enn eller lik, Mindre enn eller lik, Sann og Usann |
 | **Kjøretid (i ms)** | Hvor lenge skriptet kjørte. | Numeriske sammenligninger |
 
 Standardkriteriene markerer monitoren som online når **Feil** er tom, og som frakoblet — med en hendelse som løser seg selv når skriptet lykkes igjen — når den ikke er det. I hendelses- og varslingsmaler er kjøringen tilgjengelig som `{{result}}`, `{{scriptError}}`, `{{logMessages}}` og `{{executionTimeInMs}}`: se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating).
 
 ### Varsling på de returnerte dataene
 
-Det skriptet returnerer som `data`, er monitorens **Result Value**, og et kriterium kan sammenligne det — for eksempel _Result Value er Lik `UP`_.
+Det skriptet returnerer som `data`, er monitorens **Resultatverdi**, og et kriterium kan sammenligne det — for eksempel _Resultatverdi er Lik `UP`_.
 
-Når `data` er et objekt eller en matrise, fyller du inn **Feltsti (valgfritt)** på Result Value-filteret for å sammenligne ett felt i stedet for hele verdien. Bruk punktum for nestede felt og `[n]` for elementer i en matrise:
+Når `data` er et objekt eller en matrise, fyller du inn **Feltsti (valgfritt)** på Resultatverdi-filteret for å sammenligne ett felt i stedet for hele verdien. Bruk punktum for nestede felt og `[n]` for elementer i en matrise:
 
 ```javascript
 const response = await axios.get("https://api.example.com/health");

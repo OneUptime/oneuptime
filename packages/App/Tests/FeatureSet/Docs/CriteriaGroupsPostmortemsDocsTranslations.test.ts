@@ -77,10 +77,11 @@ import { describe, expect, it } from "@jest/globals";
  * segment (drawnPath: one bold span joined by " → "; in Persian a bold span
  * per segment joined by " > ", with no "→" left in the prose). Where a
  * language's Dashboard still draws a label in English, the page writes it in
- * English too. The words a page keeps as written - the filter names and
- * built-in outlines no locale words - stay in English (KEPT_AS_WRITTEN). A
- * new bold word on these English pages fails "know every bold word" until it
- * is a label or listed.
+ * English too. The words a page keeps as written - the row menu's "⋯" and
+ * the built-in outlines no locale words - stay in English (KEPT_AS_WRITTEN);
+ * the criteria filter names are labels since 31eadaee92e, drawn like any
+ * other. A new bold word on these English pages fails "know every bold
+ * word" until it is a label or listed.
  */
 
 const LANGUAGES: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
@@ -876,7 +877,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         expect(leftover).toEqual([]);
       });
 
-      it("keeps the words no Dashboard locale words in English as written: filter names and built-in outlines", () => {
+      it("keeps the words no Dashboard locale words in English as written: the row menu and built-in outlines", () => {
         const translated: string = readPage(language, entry.page);
         const missing: Array<string> = keptWords(entry.page).filter(
           (kept: string): boolean => {
@@ -926,8 +927,12 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("tell the Dashboard's labels from the words a page keeps", () => {
-    // A filter name no locale words is kept, not drawn.
-    expect(dashboardLabels(CRITERIA_AND_STATUSES)).not.toContain("Is Online");
+    // A filter name is drawn: every locale words it since 31eadaee92e.
+    expect(dashboardLabels(CRITERIA_AND_STATUSES)).toContain("Is Online");
+    expect(drawnActionLabel("de", "Is Online")).not.toBe("Is Online");
+    // The row menu's ⋯ is kept, not drawn.
+    expect(keptWords(CRITERIA_AND_STATUSES)).toContain("**⋯**");
+    expect(dashboardLabels(CRITERIA_AND_STATUSES)).not.toContain("⋯");
     // A built-in outline is kept.
     expect(dashboardLabels(POSTMORTEMS)).not.toContain("Standard Postmortem");
     // A seeded status is drawn.

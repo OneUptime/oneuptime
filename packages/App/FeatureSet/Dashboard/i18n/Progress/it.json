@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47694,
-    "untranslated": 11075
+    "keys": 49075,
+    "untranslated": 10195
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -147,6 +147,7 @@
     "Insight",
     "Internet",
     "IoT",
+    "Jitter (in ms)",
     "Job",
     "Kelvin",
     "Kernel",
@@ -321,11 +322,13 @@
     "VM · esx-04",
     "VMID {{vmid}}",
     "VMware vCenter",
+    "Viewport",
     "Vital",
     "Volume",
     "Web",
     "Web, iOS, Android, React Native",
     "Webhook",
+    "Working set",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",
@@ -446,6 +449,7 @@
     "writesets",
     "x86",
     "z",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{controlPlane}} control plane, {{workers}}",
     "{{count}} B",
     "{{count}} CPU",
@@ -470,6 +474,7 @@
     "{{count}} host",
     "{{count}} hypervisor",
     "{{count}} load balancer",
+    "{{count}} log",
     "{{count}} manager",
     "{{count}} mon",
     "{{count}} placement group",
@@ -492,7 +497,9 @@
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
+    "{{observation}} in {{readings}}",
     "{{size}} in {{duration}}",
-    "{{up}}/{{count}} OSD up"
+    "{{up}}/{{count}} OSD up",
+    "{{value}} ms"
   ]
 }

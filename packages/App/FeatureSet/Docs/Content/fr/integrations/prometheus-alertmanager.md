@@ -86,7 +86,7 @@ Une installation auto-hébergée a son propre hôte à la place de `oneuptime.co
 > [!WARNING]
 > Regroupez selon une valeur qui change d'une alerte à l'autre au sein d'une notification. Le `fingerprint` d'Alertmanager est un hachage de l'ensemble des labels d'une alerte, il change donc toujours. Un label du `group_by` de votre route ne change jamais : c'est lui qui met les alertes dans une seule notification. Regrouper selon `requestBody.alerts[*].labels.alertname` avec la route ci-dessous réunit toutes les alertes d'une notification en un seul incident, qui prend le statut de la première alerte.
 
-Sur un cloud OpenStack, liez aussi le moniteur au cloud. Les paramètres propres d'un moniteur Incoming Request ne nomment aucun cloud : ses incidents atteindraient donc **Incidents** sans atteindre le cloud. Ouvrez **Vue d'ensemble → Ressources liées** du moniteur et ajoutez le cloud OpenStack : chaque incident figure alors aussi sur la page **Incidents** de ce cloud. [OpenStack par outil de déploiement](/docs/telemetry/openstack-deployment-tools) donne le récepteur de chaque outil qui exécute un Alertmanager, à l'endroit où cet outil le lit.
+Sur un cloud OpenStack, liez aussi le moniteur au cloud. Les paramètres propres d'un moniteur de requêtes entrantes ne nomment aucun cloud : ses incidents atteindraient donc **Incidents** sans atteindre le cloud. Ouvrez **Vue d'ensemble → Ressources liées** du moniteur et ajoutez le cloud OpenStack : chaque incident figure alors aussi sur la page **Incidents** de ce cloud. [OpenStack par outil de déploiement](/docs/telemetry/openstack-deployment-tools) donne le récepteur de chaque outil qui exécute un Alertmanager, à l'endroit où cet outil le lit.
 
 ## Nommer les incidents
 
@@ -222,7 +222,7 @@ Aucune des deux façons ne remarque quand Prometheus ou Alertmanager cesse de fo
 :::steps
 ### Créer le moniteur de surveillance
 
-Créez un second moniteur de requêtes entrantes, nommé `Alertmanager watchdog`. Réglez le filtre de son premier critère, celui qui marque le moniteur hors ligne, sur **Requête entrante**, **Not Recieved In Minutes**, `10`, et le filtre de son second critère sur **Requête entrante**, **Recieved In Minutes**, `10`. Le tableau de bord écrit les deux ainsi. Copiez l'**URL de heartbeat** du nouveau moniteur.
+Créez un second moniteur de requêtes entrantes, nommé `Alertmanager watchdog`. Réglez le filtre de son premier critère, celui qui marque le moniteur hors ligne, sur **Requête entrante**, **Non reçu dans le délai (minutes)**, `10`, et le filtre de son second critère sur **Requête entrante**, **Reçu dans le délai (minutes)**, `10`. Le tableau de bord écrit les deux ainsi. Copiez l'**URL de heartbeat** du nouveau moniteur.
 
 ### Y diriger l'alerte de surveillance
 

@@ -99,7 +99,7 @@ A aba **Custom Metric** oferece estas métricas, agrupadas por tipo de recurso:
 
 ### O que é avaliado
 
-Esses monitores sempre avaliam o **Metric Value** – o valor da consulta de métricas ou da fórmula configurada. O formulário de critérios não tem seletor de tipo de filtro; ele mostra **Métrica**, **Agregação**, **Condição** e **Limite**.
+Esses monitores sempre avaliam o **Valor da métrica** – o valor da consulta de métricas ou da fórmula configurada. O formulário de critérios não tem seletor de tipo de filtro; ele mostra **Métrica**, **Agregação**, **Condição** e **Limite**.
 
 ### Tipos de agregação
 
@@ -107,10 +107,10 @@ Esses monitores sempre avaliam o **Metric Value** – o valor da consulta de mé
 | --- | --- |
 | Média | Valor médio na janela de tempo |
 | Soma | Soma de todos os valores |
-| Maximum Value | Valor mais alto na janela de tempo |
-| Minimum Value | Valor mais baixo na janela de tempo |
-| All Values | Todos os valores precisam atender ao critério e cobrir toda a janela de tempo |
-| Any Value | Pelo menos um valor precisa corresponder |
+| Valor máximo | Valor mais alto na janela de tempo |
+| Valor mínimo | Valor mais baixo na janela de tempo |
+| Todos os valores | Todos os valores precisam atender ao critério e cobrir toda a janela de tempo |
+| Qualquer valor | Pelo menos um valor precisa corresponder |
 
 ### Condições
 
@@ -120,9 +120,9 @@ A detecção de anomalias por linha de base não precisa de limite. Escolha uma 
 
 | Condição | Corresponde quando o valor |
 | --- | --- |
-| **Anomalously High** | Sobe acima da faixa esperada |
-| **Anomalously Low** | Cai abaixo da faixa esperada |
-| **Anomalous** | Sai da faixa esperada em qualquer direção |
+| **Anomalamente alto** | Sobe acima da faixa esperada |
+| **Anomalamente baixo** | Cai abaixo da faixa esperada |
+| **Anômalo** | Sai da faixa esperada em qualquer direção |
 
 Cada amostra é comparada com uma linha de base da mesma hora da semana construída a partir da **Janela de linha de base** (14 dias por padrão; 28, 60 ou 90 dias). **Sensibilidade** define a largura da faixa esperada: **Baixo (4σ — apenas desvios graves)**, **Médio (3σ — recomendado)**, o padrão, ou **Alto (2σ — mais ruidoso, serviços muito estáveis)**. As condições de anomalia ficam em um estado "Learning" e não produzem alertas até essa hora da semana ter duas semanas de histórico. Este monitor filtra suas consultas por atributos, então cada consulta, e cada série de uma consulta agrupada, é comparada com o próprio histórico, até onde suas métricas são mantidas. Se isso for menos de duas semanas, uma soma, uma contagem ou uma consulta sobre um histograma permanece nesse estado para sempre, e todo o resto é comparado com todas as séries da métrica. Um percentil de um histograma sempre permanece nesse estado.
 

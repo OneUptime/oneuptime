@@ -185,6 +185,12 @@ describe("AiRunFailureNotice", () => {
     expect(toggle).toHaveAttribute("aria-controls", details.id);
     expect(details).toHaveTextContent(PROVIDER_ERROR);
     expect(details).not.toBeVisible();
+    /*
+     * The provider's words are English in every language: laid out by
+     * their own first letter, an Arabic page does not put their full stop
+     * at the start of the line.
+     */
+    expect(details).toHaveAttribute("dir", "auto");
 
     fireEvent.click(toggle);
 
@@ -749,6 +755,8 @@ describe("AiRunTryAgainButton", () => {
     expect(error).toHaveTextContent(
       "This incident's investigation is queued or running already.",
     );
+    // The server's words are English in every language: their own direction.
+    expect(error).toHaveAttribute("dir", "auto");
     expect(screen.getByTestId("retry")).not.toBeDisabled();
 
     // Pressed again, the last refusal goes.
@@ -781,6 +789,8 @@ describe("AiRunTryAgainButton", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "The run could not start again. Try again in a moment.",
     );
+    // The button's own words, translated, read in their own direction too.
+    expect(screen.getByRole("alert")).toHaveAttribute("dir", "auto");
   });
 
   test("a card can name it", () => {

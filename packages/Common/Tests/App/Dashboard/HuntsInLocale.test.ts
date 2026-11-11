@@ -30,6 +30,8 @@ import {
   SECURITY_HUNT_RUN_ERRORS,
 } from "../../../Types/SecurityEvent/SecurityHunt";
 import { PluralTemplate } from "../../../UI/Utils/TranslateTemplate";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
+import { foldedArabic } from "../../Helpers/ArabicWords";
 
 /*
  * EVERY WORD OF HUNTS IS EVERY LANGUAGE'S OWN: the list, a hunt's page and
@@ -52,24 +54,7 @@ const PROGRESS_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/i18n/Progress",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // Japanese, Korean and Chinese read no "one" form: theirs may say the same.
 const WITHOUT_ONE_FORM: Array<string> = ["ja", "ko", "zh-CN", "zh-TW"];
@@ -340,7 +325,14 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
   });
 
   test("names a hunt one way throughout", () => {
-    const hunt: string = (locale["Hunt"] || "").toLowerCase();
+    /*
+     * Arabic's noun drops its article after "كـ": the list's "عملية
+     * التقصي" is "حفظ كعملية تقصٍّ", save as a hunt.
+     */
+    const folded: (text: string) => string = (text: string): string => {
+      return language === "ar" ? foldedArabic(text) : text.toLowerCase();
+    };
+    const hunt: string = folded(locale["Hunt"] || "");
 
     expect(hunt.length).toBeGreaterThan(0);
 
@@ -350,9 +342,10 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
       "Save Hunt",
       "Save as Hunt",
     ]) {
-      expect([text, (locale[text] || "").toLowerCase().includes(hunt)]).toEqual(
-        [text, true],
-      );
+      expect([text, folded(locale[text] || "").includes(hunt)]).toEqual([
+        text,
+        true,
+      ]);
     }
 
     if (HUNT_KEPT_AS_WRITTEN.includes(language)) {

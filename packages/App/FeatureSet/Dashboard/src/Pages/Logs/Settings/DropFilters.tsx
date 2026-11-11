@@ -22,6 +22,7 @@ import {
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 const documentationMarkdown: string = `
 ### How Log Drop Filters Work
@@ -295,7 +296,7 @@ const LogDropFilters: FunctionComponent<
 
             return (
               <span className="text-sm text-gray-900">
-                {dropped.toLocaleString()}
+                {dropped.toLocaleString(getReaderNumberLocale())}
               </span>
             );
           },

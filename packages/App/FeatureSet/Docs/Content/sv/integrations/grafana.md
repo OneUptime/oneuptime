@@ -3,7 +3,7 @@
 Skicka larm från [Grafana](https://grafana.com) till OneUptime, så att varje larm som utlöses blir en incident som larmar ditt jourteam och löses när larmet har återhämtat sig. Grafana skickar sina larm genom en webhook-kontaktpunkt, så det finns inget att installera på någon av sidorna.
 
 :::cards
-- [Välj hur OneUptime tar emot larm](#välj-hur-oneuptime-tar-emot-larm): En Incoming Request-monitor eller ett eget arbetsflöde.
+- [Välj hur OneUptime tar emot larm](#välj-hur-oneuptime-tar-emot-larm): En monitor för inkommande förfrågningar eller ett eget arbetsflöde.
 - [Ta emot larm med en monitor](#ta-emot-larm-med-en-monitor): En incident per larm, löst vid återhämtning.
 - [Konfigurera Grafana](#konfigurera-grafana): En webhook-kontaktpunkt och den policy som använder den.
 - [Felsökning](#felsökning): När larm inte kommer fram eller incidenter förblir öppna.
@@ -33,19 +33,19 @@ Konfigurera OneUptime först: det ger dig den URL som Grafana skickar till.
 
 | Väg | Använd den när |
 | --- | --- |
-| En Incoming Request-monitor (rekommenderas) | Du vill att varje larm ska bli en incident som larmar jouren och löses när larmet har återhämtat sig. Det finns inget att bygga. |
+| En monitor för inkommande förfrågningar (rekommenderas) | Du vill att varje larm ska bli en incident som larmar jouren och löses när larmet har återhämtat sig. Det finns inget att bygga. |
 | Ett arbetsflöde med en Webhook-utlösare | Du behöver egen logik: filtrera larm, forma om dem eller anropa andra system först. Ett arbetsflöde öppnar en incident per avisering, inte per larm, och löser den inte vid återhämtning. |
 
 Båda får samma JSON från samma kontaktpunkt, så du kan börja med det ena och byta senare genom att ändra en URL i Grafana.
 
 ## Ta emot larm med en monitor
 
-En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) ger dig en URL, och dess kriterier avgör vad varje avisering gör.
+En [monitor för inkommande förfrågningar](/docs/monitor/incoming-request-monitor) ger dig en URL, och dess kriterier avgör vad varje avisering gör.
 
 :::steps
 ### Skapa monitorn
 
-Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Incoming Request** under **Monitortyp**, ge den namnet `Grafana` och klicka på **Nästa**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Inkommande begäran** under **Monitortyp**, ge den namnet `Grafana` och klicka på **Nästa**.
 
 ### Deklarera en incident för varje utlöst larm
 

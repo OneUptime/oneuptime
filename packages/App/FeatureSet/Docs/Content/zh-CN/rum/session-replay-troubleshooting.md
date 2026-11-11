@@ -108,7 +108,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 copy(JSON.stringify(window.__ONEUPTIME_SESSION_REPLAY_DEBUG__.records, null, 2));
 ```
 
-把其中任意一个粘贴到你的支持工单中 — 或粘贴到应用程序 **健康状况** 页面上的 **Ask the browser** 中，它会解释其中的每个代码。通常仅靠这些就足够了。
+把其中任意一个粘贴到你的支持工单中 — 或粘贴到应用程序 **健康状况** 页面上的 **询问浏览器** 中，它会解释其中的每个代码。通常仅靠这些就足够了。
 
 ## 何时静默是正常的：错误触发的策略
 
@@ -185,7 +185,7 @@ OneUptimeReplay.captureSession("installation test");
 | `disabled-by-default` | 此部署上设置了 `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` 。将其设为 `true` — 如果是自托管，请先设置 `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` ，因为回放是你最重的表。 |
 | `ingest-disabled` | 此部署上设置了 `SESSION_REPLAY_INGEST_ENABLED=false` 。 |
 | `policy-unavailable` | 服务器无法确定策略 — 通常是 Redis 或 Postgres 的问题。这是有意的失败即关闭。检查 OneUptime 应用的日志。 |
-| `not-reported` | 服务器比这个字段旧。改用仪表板中 **回放策略** 页面上的 **Test your installation** 面板。 |
+| `not-reported` | 服务器比这个字段旧。改用仪表板中 **回放策略** 页面上的 **测试你的安装** 面板。 |
 
 ### 构件
 
@@ -285,6 +285,18 @@ OneUptimeReplay.captureSession("installation test");
 | `api-stop` | 调用了 `stop()` 。最后一个分块已上传，会话已封口；在页面的剩余生命周期内不会再录制任何内容。 |
 | `api-no-recorder` | 上面某个调用在没有活动录制器的情况下运行了 — 通常是因为它在录制器构件加载之前就运行了。改为把 `[command, ...arguments]` 条目放入 `window.OneUptimeReplayQueue` ，它们会在构件到达后立即应用。 |
 
+### 产品分析事件
+
+这些来自录制器在录制之外为 [产品分析](/docs/rum/product-analytics#发送事件和指标) 发送的事件。
+
+| 代码 | 含义 |
+| --- | --- |
+| `analytics-started` | 应用程序开启了产品分析事件，因此录制器会发送每个会话的开始、其页面浏览以及你对 `track()` 和 `metric()` 的调用。 `userPropertyKeys` 说明它保留多少个用户属性。 |
+| `analytics-stopped` | 服务器不接受此页面的事件，因此不会再从它发送任何事件。 `status` 为 204 表示应用程序关闭了事件或会话回放，403 表示页面的来源不被允许，400 表示此录制器发送了服务器无法读取的批次； `reason` 说明是哪一种。 |
+| `metric-analytics-off` | 在应用程序关闭了产品分析事件时调用了 `metric()` 。没有发送任何内容：请在 **分析设置** 中开启它们。 |
+| `metric-name-refused` | `metric()` 收到了一个无法发送的名称。名称以字母开头，只包含字母、数字、 `_` 、 `.` 、 `-` 和 `/` ，最多 100 个字符，并且不以 `oneuptime.` 开头。 |
+| `metric-value-refused` | `metric()` 收到了一个不是有限数字的值。没有发送任何内容。 |
+
 ## Network 选项卡中完全没有请求
 
 按顺序检查这份清单；它是按每个原因成为答案的频率排序的。
@@ -358,7 +370,7 @@ OpenTelemetry 浏览器 SDK 的 OTLP/HTTP 导出器发送 `application/json` ，
 
 ## 播放器显示 Buffering，或者某个片段加载失败
 
-播放器会在播放头接近时，按 15 秒一段获取录制。 _Buffering_ 表示下一段还没有到达；八秒后它会提供 **重试** 。最终失败的片段会显示一个带有 **重试** 和 **Copy diagnostic** 的错误 — 后者包含会话 ID、选项卡、片段和代数，这正是支持团队需要的信息。录制已过期的会话会显示一段说明来代替舞台，而 Logs、Traces 和 Errors 选项卡仍会基于你的遥测数据工作。
+播放器会在播放头接近时，按 15 秒一段获取录制。 _Buffering_ 表示下一段还没有到达；八秒后它会提供 **重试** 。最终失败的片段会显示一个带有 **重试** 和 **复制诊断信息** 的错误 — 后者包含会话 ID、选项卡、片段和代数，这正是支持团队需要的信息。录制已过期的会话会显示一段说明来代替舞台，而 Logs、Traces 和 Errors 选项卡仍会基于你的遥测数据工作。
 
 ## 回放中缺少图片、图标或样式
 
@@ -373,7 +385,7 @@ OpenTelemetry 浏览器 SDK 的 OTLP/HTTP 导出器发送 `application/json` ，
 
 ### 先检查这些
 
-1. **阅读播放器下方的录制说明。** 当图片或样式表无法在你的浏览器中加载时，第一条说明会指出这一点 — 例如 _2 images didn't load in this replay_ — 并列出它们来自哪些网站。它涵盖自你打开会话以来播放器播放过的每个选项卡。 **会话详情** （ `I` ）→ **Fidelity** → **Missing assets** 会列出每个地址，最多列出前 200 个。Web 字体、CSS 背景图片以及你的页面在浏览器中创建的图片（ `blob:` 地址）不在该列表中；请在 DevTools 中查找它们（见下文）。
+1. **阅读播放器下方的录制说明。** 当图片或样式表无法在你的浏览器中加载时，第一条说明会指出这一点 — 例如 _2 images didn't load in this replay_ — 并列出它们来自哪些网站。它涵盖自你打开会话以来播放器播放过的每个选项卡。 **会话详情** （ `I` ）→ **保真度** → **缺失的资源** 会列出每个地址，最多列出前 200 个。Web 字体、CSS 背景图片以及你的页面在浏览器中创建的图片（ `blob:` 地址）不在该列表中；请在 DevTools 中查找它们（见下文）。
 2. **检查遮盖模式。** 在 _Mask all text_ 下录制的会话按设计既不加载图片也不加载 Web 字体（页面以 `data:` URL 形式持有的图片是录制的一部分，仍会显示），其录制说明会写着 _Images and web fonts are not loaded_ 。遮盖模式未被上报、或不是仪表板能识别的模式的会话也是如此。两种情况下样式表仍会加载。 **会话详情** → **隐私** 会显示会话上报的模式，即其最近一次页面加载的模式。
 3. **检查用户那里是否也失败了。** 在那个时刻打开事件面板的 **错误** 选项卡：如果同一文件有一行 _Resource failed to load_ ，说明它在用户的屏幕上也是坏的，回放只是如实地展示了这一点。
 
@@ -467,8 +479,8 @@ OpenTelemetry 浏览器 SDK 的 OTLP/HTTP 导出器发送 `application/json` ，
 
 - `OneUptimeReplay.getDiagnostics()` 的输出。
 - `session-replay/v1/config` 请求的状态。
-- 应用程序的 **健康状况** 页面以及 **回放策略** 上的 **Test your installation** 面板显示的内容。它们从服务器端回答，也就是浏览器看不到的那一半。
-- 对于缺失的图片、图标或样式：一个未能加载的文件的地址（ **Missing assets** 会列出它们），以及浏览器控制台为它输出的那一行。
+- 应用程序的 **健康状况** 页面以及 **回放策略** 上的 **测试你的安装** 面板显示的内容。它们从服务器端回答，也就是浏览器看不到的那一半。
+- 对于缺失的图片、图标或样式：一个未能加载的文件的地址（ **缺失的资源** 会列出它们），以及浏览器控制台为它输出的那一行。
 
 然后联系 support@oneuptime.com，或在 [GitHub](https://github.com/OneUptime/oneuptime) 上提交 issue。
 

@@ -139,14 +139,14 @@ Cada serie lleva la etiqueta `device.id` del dispositivo, y los atributos `iot.d
 
 ## Criterios de monitorización
 
-Un criterio compara una de las consultas o fórmulas del monitor con un umbral. Los criterios de un monitor de dispositivos IoT ofrecen un único **Tipo de filtro**, **Metric Value**: cada regla comprueba el valor de la métrica, con estos campos.
+Un criterio compara una de las consultas o fórmulas del monitor con un umbral. Los criterios de un monitor de dispositivos IoT ofrecen un único **Tipo de filtro**, **Valor de la métrica**: cada regla comprueba el valor de la métrica, con estos campos.
 
 | Campo | Qué hace |
 | --- | --- |
-| **Tipo de filtro** | Siempre **Metric Value**, la única comprobación que ofrece este monitor. |
+| **Tipo de filtro** | Siempre **Valor de la métrica**, la única comprobación que ofrece este monitor. |
 | **Seleccionar variable de métrica** | La consulta o fórmula que se comprueba, por su nombre de variable. |
-| **Agregación** | Cómo se convierten los valores de la ventana en una sola respuesta: **Promedio**, **Suma**, **Maximum Value**, **Minimum Value**, **All Values** (todos los valores deben coincidir, en toda la ventana) o **Any Value** (basta con uno). |
-| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a** — o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Sin datos** se cumple cuando la consulta no devolvió nada en la ventana, y **Con datos** cuando devolvió algo. **Previsto por encima de** y **Previsto por debajo de** coinciden cuando la tendencia de la métrica en la ventana habrá cruzado el umbral al final de **Plazo**. |
+| **Agregación** | Cómo se convierten los valores de la ventana en una sola respuesta: **Promedio**, **Suma**, **Valor máximo**, **Valor mínimo**, **Todos los valores** (todos los valores deben coincidir, en toda la ventana) o **Cualquier valor** (basta con uno). |
+| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a** — o una condición de anomalía: **Anómalamente alto**, **Anómalamente bajo** o **Anómalo**. **Sin datos** se cumple cuando la consulta no devolvió nada en la ventana, y **Con datos** cuando devolvió algo. **Previsto por encima de** y **Previsto por debajo de** coinciden cuando la tendencia de la métrica en la ventana habrá cruzado el umbral al final de **Plazo**. |
 | **Umbral** | El valor con el que se compara. Junto a él hay una lista de unidades cuando la métrica tiene unidad. No se muestra para las condiciones de anomalía. |
 | **Sensibilidad** | Solo condiciones de anomalía. **Bajo** (4σ), **Medio** (3σ, el predeterminado) o **Alto** (2σ). |
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (el predeterminado), 28, 60 o 90 días de historial. |

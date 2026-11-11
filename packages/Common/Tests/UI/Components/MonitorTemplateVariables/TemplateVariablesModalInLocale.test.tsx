@@ -9,6 +9,7 @@ import { I18nextProvider } from "react-i18next";
 import TemplateVariablesModal from "../../../../UI/Components/MonitorTemplateVariables/TemplateVariablesModal";
 import TemplateVariablesCatalog from "../../../../UI/Components/MonitorTemplateVariables/TemplateVariablesCatalog";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
+import { DASHBOARD_LANGUAGES } from "../../../Helpers/TranslatedLanguages";
 
 /*
  * The Dynamic Template Variables dialog in the reader's language. #5323
@@ -24,24 +25,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 // The dialog's own words, which every language words.
 const DIALOG_WORDS: ReadonlyArray<string> = [

@@ -7,6 +7,7 @@ import {
   Translator,
   createTranslator,
 } from "../../../../UI/Utils/TranslateTemplate";
+import { DASHBOARD_LANGUAGES } from "../../../Helpers/TranslatedLanguages";
 
 /*
  * The charts draw a series' name as they are handed it. A page whose series
@@ -65,24 +66,7 @@ const PRODUCT_SERIES: ReadonlyArray<string> = [
   "Peak Memory %",
 ];
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 describe("withTranslatedSeriesNames", () => {
   test("names the product's own series in the reader's language", () => {

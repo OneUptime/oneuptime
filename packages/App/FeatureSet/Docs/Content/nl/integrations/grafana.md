@@ -3,7 +3,7 @@
 Stuur waarschuwingen van [Grafana](https://grafana.com) naar OneUptime, zodat elke afgaande waarschuwing een incident wordt dat je team met dienst oproept en wordt opgelost wanneer de waarschuwing herstelt. Grafana stuurt zijn waarschuwingen via een webhook-contactpunt, dus aan geen van beide kanten hoef je iets te installeren.
 
 :::cards
-- [Kiezen hoe OneUptime waarschuwingen ontvangt](#kiezen-hoe-oneuptime-waarschuwingen-ontvangt): Een Incoming Request-monitor of een eigen workflow.
+- [Kiezen hoe OneUptime waarschuwingen ontvangt](#kiezen-hoe-oneuptime-waarschuwingen-ontvangt): Een monitor voor inkomende verzoeken of een eigen workflow.
 - [Waarschuwingen ontvangen met een monitor](#waarschuwingen-ontvangen-met-een-monitor): Eén incident per waarschuwing, opgelost bij herstel.
 - [Grafana configureren](#grafana-configureren): Een webhook-contactpunt en het beleid dat het gebruikt.
 - [Problemen oplossen](#problemen-oplossen): Wanneer waarschuwingen niet aankomen of incidenten open blijven.
@@ -33,19 +33,19 @@ Stel eerst OneUptime in: dat geeft je de URL waar Grafana naartoe stuurt.
 
 | Weg | Gebruik hem als |
 | --- | --- |
-| Een Incoming Request-monitor (aanbevolen) | Je wilt dat elke waarschuwing een incident is dat de dienst oproept en wordt opgelost wanneer de waarschuwing herstelt. Er valt niets te bouwen. |
+| Een monitor voor inkomende verzoeken (aanbevolen) | Je wilt dat elke waarschuwing een incident is dat de dienst oproept en wordt opgelost wanneer de waarschuwing herstelt. Er valt niets te bouwen. |
 | Een workflow met een Webhook-trigger | Je hebt eigen logica nodig: waarschuwingen filteren, ze omvormen of eerst andere systemen aanroepen. Een workflow opent één incident per melding, niet per waarschuwing, en lost het niet op bij herstel. |
 
 Beide krijgen dezelfde JSON van hetzelfde contactpunt, dus je kunt met de ene beginnen en later overstappen door één URL in Grafana te wijzigen.
 
 ## Waarschuwingen ontvangen met een monitor
 
-Een [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) geeft je een URL, en zijn criteria bepalen wat elke melding doet.
+Een [monitor voor inkomende verzoeken](/docs/monitor/incoming-request-monitor) geeft je een URL, en zijn criteria bepalen wat elke melding doet.
 
 :::steps
 ### De monitor maken
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Kies **Incoming Request** onder **Monitortype**, noem hem `Grafana` en klik op **Volgende**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Kies **Inkomende aanvraag** onder **Monitortype**, noem hem `Grafana` en klik op **Volgende**.
 
 ### Een incident declareren voor elke afgaande waarschuwing
 

@@ -67,7 +67,7 @@ Netværk-menuen holder det, du åbner hver dag, synligt: **Oversigt**, **Enheder
 | Sektion | Sider |
 | --- | --- |
 | **Topologi** | **Enhedstopologi**, **Opdagede enheder**, **Latensmatrix**, **Lokationslinks**, **Enhedslinks** |
-| **Regler** | **Regler for automatisk import**, **Regler for lokationstildeling**, **Ejerregler**, **Etiketregler**, **Linkregler** |
+| **Regler** | **Regler for automatisk import**, **Regler for lokationstildeling**, **Navngivningsregler**, **Ejerregler**, **Etiketregler**, **Linkregler** |
 | **Indstillinger** | **Advarselspolitikker**, **SNMP-loginoplysninger**, **Enhedsroller**, **Lokationstyper**, **Adressenavne**, **Skabeloner til OID-indsamling** |
 | **Avanceret** | **SNMP-walk**, **Arkiverede enheder** |
 
@@ -378,7 +378,7 @@ Tilføj de OID'er, du vil have indsamlet ved hver polling, på en skabelon eller
 | Navn | Et genkendeligt navn til OID'en, såsom sysDescr. | Nej |
 | Beskrivelse | Hvad OID'en repræsenterer. | Nej |
 
-Indsamlede værdier vises i grafer på enhedens side **Metrikker**, og kriterierne **SNMP OID Value**, **SNMP OID Exists** og **SNMP OID Rate (per second)** advarer om dem. En tæller (Counter32 eller Counter64) vokser kun, så advar på, hvor hurtigt den er vokset siden den forrige polling. OID-vælgeren på de kriterier viser de OID'er, den valgte enhed indsamler, dens skabelons og dens egne, så der er intet at skrive.
+Indsamlede værdier vises i grafer på enhedens side **Metrikker**, og kriterierne **SNMP-OID-værdi**, **SNMP-OID findes** og **SNMP-OID-rate (pr. sekund)** advarer om dem. En tæller (Counter32 eller Counter64) vokser kun, så advar på, hvor hurtigt den er vokset siden den forrige polling. OID-vælgeren på de kriterier viser de OID'er, den valgte enhed indsamler, dens skabelons og dens egne, så der er intet at skrive.
 
 Lange OID-lister deles over flere SNMP GET-forespørgsler, så hver passer i ét UDP-datagram. Hvis du holdt dine OID-lister korte, fordi en ældre version rapporterede en enhed, der svarede `tooBig`, som offline, behøver du ikke længere.
 
@@ -391,7 +391,7 @@ Skriv et numerisk OID under **Start-OID**, eller tryk på et af startpunkterne u
 Hver række fortæller, hvor dens OID er kendt: en værdi, som en leverandørs sundhedsskabelon indsamler, en kolonne i en leverandørskabelons SNMP-tabel, en tæller, som interface-walk allerede viser i diagrammer for hver port, eller et OID under leverandørens MIB. Fra en række:
 
 - **Indsaml** føjer OID'et til enhedens **Device-Specific Health OIDs**: hver polling indsamler det fra den næste, og enhedens side **Metrikker** viser det i et diagram. På en enhed, der er knyttet til en OID Collection Template, kan rækkens menu i stedet føje det til skabelonen, for hver enhed, der bruger den.
-- **Opret advarsel** vises, når OID'et indsamles, og åbner en ny netværksenheds-monitor for enheden med ét kriterium på OID'et. En tæller starter på **SNMP OID Rate (per second)** og en måler på **SNMP OID Value**, begge over en grænse, du selv sætter; en oppetid advarer under ti minutter (enheden er genstartet), alt andet når det ændrer sig fra den læste værdi.
+- **Opret advarsel** vises, når OID'et indsamles, og åbner en ny netværksenheds-monitor for enheden med ét kriterium på OID'et. En tæller starter på **SNMP-OID-rate (pr. sekund)** og en måler på **SNMP-OID-værdi**, begge over en grænse, du selv sætter; en oppetid advarer under ti minutter (enheden er genstartet), alt andet når det ændrer sig fra den læste værdi.
 - **Kopiér OID**, i rækkens menu, kopierer OID'et.
 
 **Download**, ved siden af walkens opsummering, gemmer det, walken læste, som en fil: **snmpwalk-tekst (.txt)**, ét OID pr. linje, som `snmpwalk -On` skriver det, og som ethvert SNMP-værktøj og enhver leverandørsupport kan læse, eller **CSV-regneark (.csv)** med hvert OID's navn, MIB, type og værdi. Filen rummer hvert OID, walken læste, også fortsatte walks, uanset hvad filteret viser, og er opkaldt efter enheden, undertræet og tidspunktet, den blev gemt. Alle, der kan læse enhedens seneste walk, kan downloade den.
@@ -425,7 +425,7 @@ Noget af det, en enhed ved, er en liste: én række pr. IPsec-tunnel, Wi-Fi-radi
 | Rækkenavne | Valgfrie kolonner, hvis værdier navngiver hver række, såsom en tunnels forbindelsesnavn. Uden dem navngives rækker efter deres indeks. Et navn kan komme fra en søstertabel, der deler indekset (Fabric Engine navngiver IS-IS-adjacencies ud fra `rcIsisAdjHostName`), eller fra en overordnet tabel, hvis indeks indleder denne tabels (Aruba Instant navngiver hver radio efter dens access point). En tabel, der er indekseret efter et navn (ArubaOS indekserer sine SSID'er efter SSID'en), navngives efter sit afkodede indeks. |
 | Rækkegrænse | Hvor mange rækker der gemmes: 100 som standard, højst 250. |
 
-Tal læses som tal, og tekst, der starter med et tal, læses som det tal (`"36"`, `"-95 dBm"`, `"80MHz"`), fordi mange producenter lægger tal i strenge. Sæt en kolonnes værditype til **Text only** for værdier, der kun ser numeriske ud. **Value labels** gør koder til ord (`0=inactive, 1=active`): den rå værdi er stadig det, der vises i grafer og sammenlignes, etiketten er det, der vises. **Healthy values** (`1`) siger, hvilke værdier der betyder, at alt er godt: de farver rækken på enhedens side **SNMP-tabeller** og driver kriteriet **SNMP Table Row Is Unhealthy**.
+Tal læses som tal, og tekst, der starter med et tal, læses som det tal (`"36"`, `"-95 dBm"`, `"80MHz"`), fordi mange producenter lægger tal i strenge. Sæt en kolonnes værditype til **Text only** for værdier, der kun ser numeriske ud. **Value labels** gør koder til ord (`0=inactive, 1=active`): den rå værdi er stadig det, der vises i grafer og sammenlignes, etiketten er det, der vises. **Healthy values** (`1`) siger, hvilke værdier der betyder, at alt er godt: de farver rækken på enhedens side **SNMP-tabeller** og driver kriteriet **SNMP-tabelrække er usund**.
 
 Nogle kolonner i producentskabeloner **justerer** også det tal, de læser, til MIB'er, der gemmer en værdi i en enhed for sig: ArubaOS rapporterer sendestyrken fordoblet (læst × 0.5), Aruba Instant støjgulvet uden fortegn (× −1), Aerohive støjgulvet plus 256 (− 256) og Extremes controller kanalbredden i trin på 20 MHz (× 20). Det justerede tal er det, der vises, sættes i grafer og sammenlignes, så **Noise Floor Større end -80** betyder det samme hos hver producent, og tabeleditoren viser regnestykket under kolonnen.
 
@@ -494,7 +494,7 @@ Enhedens side **Interfaces** åbner med et kort **Transceivere**: problemerne f�
 | Advarsel | En måling er ved eller forbi en advarselstærskel. |
 | Alarm | En måling er ved eller forbi en alarmtærskel, eller enheden melder signaltab eller senderfejl. |
 | Ikke registreret | Porten havde et modul og rapporterer ikke længere noget, mens porten stadig er aktiveret. Siden nævner stadig, hvad der sad der. |
-| Ingen tærskler | Modulet rapporterer målinger, men enheden rapporterer ingen grænser at vurdere dem efter. Advar om dem med **SNMP Transceiver Reading**. |
+| Ingen tærskler | Modulet rapporterer målinger, men enheden rapporterer ingen grænser at vurdere dem efter. Advar om dem med **SNMP-transceiver-måling**. |
 | Registreret | Modulet rapporterer slet ingen diagnostik: almindeligt for kobber-SFP'er og direct-attach-kabler. |
 | Port deaktiveret | Porten er lukket, så dens laser er slukket med vilje: dens målinger vises, men vurderes aldrig. |
 
@@ -691,8 +691,33 @@ En scanning finder ikke altid en værts bedste navn første gang. De delresultat
 
 Derfor husker en enhed, som discovery navngav, hvor dens navn kom fra. Når en færdig scanning af dens adresse finder et bedre navn — dens SNMP-systemnavn eller NetBIOS-navn i stedet for dens reverse DNS-navn, et hvilket som helst navn i stedet for dens IP-adresse —, omdøbes enheden til det navn, en import ville give den nu, og dens DNS Name udfyldes, hvis den ikke har et. Hvis en anden enhed allerede har det navn, navngives enheden med sin adresse i parentes (`FILESRV01 (10.0.0.5)`), og hvis det også er optaget, beholder den sit navn.
 
-Et navn bliver kun bedre: en enhed beholder sit navn, når dens DNS-post ændres, eller når en senere scanning ikke får noget NetBIOS-svar. En enhed med et DNS-navn omdøbes kun af en scanning, der finder det samme DNS-navn på dens adresse, så når adressen nu tilhører en anden maskine (et DHCP-lease, der er flyttet, for eksempel), overtager enheden ikke den maskines navn. En enhed, du har omdøbt — på dens side Indstillinger, via API'et eller med **Shorten Names to Hostname** — omdøbes aldrig af en scanning. Enheder, der blev importeret, før discovery registrerede, hvor navne kom fra, beholder deres navne, bortset fra en, som en stadig kørende scanning importerede med dens IP-adresse; den omdøbes, når scanningen er færdig.
+Et navn bliver kun bedre: en enhed beholder sit navn, når dens DNS-post ændres, eller når en senere scanning ikke får noget NetBIOS-svar. En enhed med et DNS-navn omdøbes kun af en scanning, der finder det samme DNS-navn på dens adresse, så når adressen nu tilhører en anden maskine (et DHCP-lease, der er flyttet, for eksempel), overtager enheden ikke den maskines navn. En enhed, du har omdøbt — på dens side Indstillinger, via API'et eller med **Shorten Names to Hostname** — omdøbes aldrig af en scanning, og det samme gælder en enhed, som en [navngivningsregel](#navngiv-enheder-efter-din-navngivningskonvention) har navngivet. Enheder, der blev importeret, før discovery registrerede, hvor navne kom fra, beholder deres navne, bortset fra en, som en stadig kørende scanning importerede med dens IP-adresse; den omdøbes, når scanningen er færdig.
 :::
+
+### Navngiv enheder efter din navngivningskonvention
+
+Når dine enheder følger en navngivningskonvention, du selv har fastlagt — `UN1216MNUPLR01` er menuafspilleren i afdeling 1216 —, skriver du den ned som **navngivningsregler** under **Netværk → Regler → Navngivningsregler**, og så navngiver discovery enhederne efter den i stedet for efter det, den finder. En regel siger, hvilke enheder (et IP-område, det fundne navn, MAC-adressen, producenten og lokationen, med de samme betingelser som i alle netværksregler) og hvad de hedder: et **navnemønster**, tekst, hvor de dele, der varierer fra enhed til enhed, står i krøllede parenteser.
+
+| Pladsholder | Erstattes af | Eksempel |
+| --- | --- | --- |
+| `{site.code}` | **Lokationskode** for enhedens lokation (angiv den i lokationens indstillinger) | `1216` |
+| `{site}` | Navnet på enhedens lokation | `Unit 1216` |
+| `{discoveredName}` | Det navn, discovery fandt, som beskrevet ovenfor | `dmb-5` |
+| `{ip}`, `{ip.1}` … `{ip.4}` | IP-adressen eller en af dens fire dele | `51` |
+| `{mac}` | MAC-adressen, 12 cifre og bogstaver | `00050BB07FFC` |
+| `{vendor}` | Hvem der har fremstillet enheden | `SICOM Systems` |
+| `{lookup}` | Den værdi, reglens opslagstabel giver enheden | `MNUPLR01` |
+| `{n}`, `{nn}`, `{nnn}` | Det laveste tal, der gør navnet unikt: `1`, `01`, `001` | `01` |
+
+En pladsholder kan efterfølges af filtre, det ene efter det andet: `upper`, `lower`, `first:N`, `last:N`, `digits` og `nospaces`. `{vendor|first:3|upper}` er `SIC`, og `{site|digits}` er `1216` for en lokation, der hedder "Unit 1216". Regelformularen tilbyder hver pladsholder som en knap og navngiver en eksempelenhed, mens du skriver.
+
+Nogle konventioner er en tabel snarere end en formel: i hver afdelings subnet er enheden på `.51` menuafspilleren `MNUPLR01` og den på `.151` den venstre skærm `MNUSCR01`. Åbn **Opslagstabel** i reglens trin **Navn**, vælg, hvad tabellen slår op efter — den sidste del af IP-adressen, IP-adressen, MAC-adressen eller det fundne navn — og skriv rækkerne, indsæt to kolonner fra et regneark, eller importér en CSV-fil (**Eksportér CSV** gemmer den som fil igen). Så navngiver `UN{site.code}{lookup}` alle afdelingers menutavler med én regel.
+
+Reglerne prøves fra toppen af listen, og du trækker i dem for at ændre rækkefølgen. Den første aktiverede regel, der matcher en enhed og har alle de værdier, dens mønster skal bruge, navngiver den. En enhed, som en regel ikke kan navngive — dens lokation har ingen kode, dens adresse har ingen række i opslagstabellen — overlades til den næste regel. Enhedsnavne er unikke i et projekt, så et mønster med et tal tager det laveste tal, der stadig er ledigt — `UN{site.code}DRTPLR{nn}` tæller fra `01` i hver afdeling — og et mønster uden tal, hvis navn en anden enhed allerede har, lader enheden beholde sit fundne navn.
+
+Regler navngiver en enhed, når den importeres: fra **Gennemgå resultater**, fra **Opdagede enheder** med **Føj til overvågning** og af auto-importregler. **Gennemgå resultater** viser under hver vært det navn, enheden bliver oprettet med — **Får navnet** `UN1216DRTPLR02` — eller hvorfor en regel ikke kan navngive den, og **Føj til overvågning** viser navnene på samme måde. En enhed, som en regel navngiver, beholder det navn, discovery fandt, som sit **Fundet navn** og oprettes i den lokation, lokationstildelingsreglerne giver den, så dens navn og dens lokation altid stemmer overens. En senere scanning omdøber den aldrig, heller ikke når den finder et bedre navn.
+
+For at bringe de enheder, du allerede har, i overensstemmelse med reglerne, trykker du på **Anvend på eksisterende enheder** på siden Navngivningsregler eller markerer enheder på listen **Enheder** og bruger **Anvend navngivningsregler**. Intet omdøbes, før du bekræfter: forhåndsvisningen viser hver enhed, hvis navn ikke følger reglerne, med det navn, den ville få, og de enheder, en regel endnu ikke kan navngive, med årsagen, og tæller de enheder, der allerede følger dem. Enheder, som discovery eller en regel har navngivet, er afkrydset; enheder, hvis navne nogen har skrevet, vises uden kryds, så et navn, en person har valgt, kun ændres, når du sætter kryds ved det. En enhed, der allerede har et tal fra sit mønster, beholder det tal. At anvende reglerne kræver ret til at redigere navngivningsreglerne og til at redigere alle netværksenheder i projektet.
 
 ### Importér automatisk med auto-importregler
 
@@ -780,7 +805,7 @@ For at oprette en fra **Monitorer** i stedet:
 
 En netværksenheds-monitor har intet eget interval: den vurderes, hver gang enhedens pollingresultater ankommer, og hver gang en trap fra enheden ankommer.
 
-Når pollingen stopper, vurderes monitoren stadig. Når en enhed har været tre pollingintervaller, og mindst ti minutter, uden polling, vurderes dens monitorer hvert femte minut som en polling, der ikke kunne nå den: et kriterium, der matcher, at **SNMP Device Is Online** er False, for eksempel **Device unreachable**, udløses, og hændelsen siger, hvorfor der ikke kom nogen polling, for eksempel at sonden er nede, eller at enheden ingen sonde har. En enhed med polling slået fra eller med [tilsidesættelsen med bundet monitor](#tilsidesættelsen-med-bundet-monitor) lades i fred. Den næste polling vurderer monitoren som normalt.
+Når pollingen stopper, vurderes monitoren stadig. Når en enhed har været tre pollingintervaller, og mindst ti minutter, uden polling, vurderes dens monitorer hvert femte minut som en polling, der ikke kunne nå den: et kriterium, der matcher, at **SNMP-enhed er online** er False, for eksempel **Device unreachable**, udløses, og hændelsen siger, hvorfor der ikke kom nogen polling, for eksempel at sonden er nede, eller at enheden ingen sonde har. En enhed med polling slået fra eller med [tilsidesættelsen med bundet monitor](#tilsidesættelsen-med-bundet-monitor) lades i fred. Den næste polling vurderer monitoren som normalt.
 
 ### En enheds hændelser og advarsler
 
@@ -850,7 +875,7 @@ Klik på **Add Recommended Alerts** på kriterieformularen for at tilføje et f�
 | Transceiver past its alarm threshold | Et moduls måling er forbi en alarmtærskel, som enheden rapporterer, eller enheden melder signaltab eller senderfejl. | Advarsel |
 | Transceiver RX power dropping | Et modul modtager mindst 2 dB mindre lys end på sin bedste dag i de seneste 30. | Advarsel |
 
-Når enheden walker [SNMP-tabeller](#snmp-tabeller), der erklærer sunde værdier, tilføjer pakken også ét kriterie **SNMP Table Row Is Unhealthy** pr. sådan tabel, med Row `*`: en hændelse pr. række for tunneler, routingnaboer og en controllers access points ("IPsec Tunnels: row unhealthy", eller "Access Points: row unhealthy" for et access point, der er forsvundet fra sin controller), og en advarsel pr. række for hardwaretabeller og radioer.
+Når enheden walker [SNMP-tabeller](#snmp-tabeller), der erklærer sunde værdier, tilføjer pakken også ét kriterie **SNMP-tabelrække er usund** pr. sådan tabel, med Row `*`: en hændelse pr. række for tunneler, routingnaboer og en controllers access points ("IPsec Tunnels: row unhealthy", eller "Access Points: row unhealthy" for et access point, der er forsvundet fra sin controller), og en advarsel pr. række for hardwaretabeller og radioer.
 
 SNMP walk failing er med vilje en advarsel og ikke en hændelse: enheden er ikke nede, så det ville være forkert at vække nogen klokken 2 om natten for det, men dens inventar er holdt op med at blive opdateret, og nogen bør rette loginoplysningerne. Den udløses aldrig på en enhed kun med ping, fordi kriteriet ikke vurderes, når der ikke kørte noget walk.
 
@@ -905,7 +930,7 @@ Traps matches gennem enhedsinventaret:
 
 1. En trap ankommer til en sondes modtager og videresendes til OneUptime.
 2. OneUptime leder efter de netværksenheder, der er tildelt den sonde, hvis værtsnavn, eller en af hvis **Andre adresser**, er trappens kilde-IP-adresse.
-3. Trappen logges i enhedens traphistorik, og hver netværksenheds-monitor på en matchende enhed vurderer den mod sine kriterier, typisk et filter **SNMP Trap Received (Trap OID)**.
+3. Trappen logges i enhedens traphistorik, og hver netværksenheds-monitor på en matchende enhed vurderer den mod sine kriterier, typisk et filter **SNMP-trap modtaget (trap-OID)**.
 
 Matchning sker på adresse, ikke på loginoplysninger, så en enhed kun med ping kan stadig modtage traps: en enhed, du ikke har læseloginoplysninger til, kan stadig sende dem. Registrér enheden med den adresse, den sender traps fra, eller tilføj den adresse til dens **Andre adresser** på dens side **Indstillinger**. Generiske SNMPv1-traps (coldStart, linkDown, linkUp og så videre) omsættes til deres standard-SNMPv2-notifikations-OID'er, så linkDown matcher trap-OID `1.3.6.1.6.3.1.1.5.3` uanset SNMP-version.
 
@@ -921,8 +946,8 @@ Filteret tilbyder også Indeholder, Starter med og Slutter med, så ét kriterie
 
 Nogle producenter sender hver begivenhed som den samme trap og lægger begivenheden i en tekst-varbind: hver meddelelse fra en Sophos Firewall er `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`) med beskeden i `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Kombinér de to i ét kriterie:
 
-- **SNMP Trap Received (Trap OID)**: Lig med `1.3.6.1.4.1.2604.5.1.8.1.1`
-- **SNMP Trap Varbind Value**: varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Indeholder `IPSec`
+- **SNMP-trap modtaget (trap-OID)**: Lig med `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **Varbind-værdi for SNMP-trap**: varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Indeholder `IPSec`
 
 Et negativt filter (Indeholder ikke, Ikke lig med, Er tom) er kun opfyldt, når ingen varbind inden for omfanget matcher dets positive form. Lad varbind-OID'en være tom for at søge i hver varbind, trappen bærer.
 

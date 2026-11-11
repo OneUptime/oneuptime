@@ -3,7 +3,7 @@
 Send advarsler fra [Datadog](https://www.datadoghq.com)-monitorer til OneUptime, så hver af dem bliver en hændelse eller en advarsel, kalder dit vagthold op, når det er presserende, og løses, når Datadog-monitoren er kommet sig. Datadog sender sine advarsler via sin [Webhooks-integration](https://docs.datadoghq.com/integrations/webhooks/), så der er intet at installere på nogen af siderne.
 
 :::cards
-- [Vælg, hvordan OneUptime modtager advarsler](#vælg-hvordan-oneuptime-modtager-advarsler): En workflow-skabelon eller en Incoming Request-monitor.
+- [Vælg, hvordan OneUptime modtager advarsler](#vælg-hvordan-oneuptime-modtager-advarsler): En workflow-skabelon eller en monitor for indgående anmodninger.
 - [Start med skabelonen](#start-med-skabelonen): Vælg, hvem der skal kaldes op, kopiér URL'en, og se, hvad hver advarsel gør.
 - [Modtag advarsler med en monitor](#modtag-advarsler-med-en-monitor): Én hændelse pr. advarsel, løst ved genopretning.
 - [Konfigurer Datadog](#konfigurer-datadog): En webhook og de monitorer, der underretter den.
@@ -36,7 +36,7 @@ Sæt OneUptime op først: det giver dig den URL, Datadog sender til.
 | Vej | Brug den, når |
 | --- | --- |
 | Workflow-skabelonen (anbefales) | Du vil have hver advarsel som en hændelse eller en advarsel med en alvorlighed ud fra monitorens prioritet, med vagten kaldt op for P1 og P2, med advarselsniveauer noteret på den og løst ved genopretning. Der er intet at bygge. |
-| En Incoming Request-monitor | Du vil have hændelser uden et workflow, på enhver plan, og en monitor, hvis status følger Datadog. |
+| En monitor for indgående anmodninger | Du vil have hændelser uden et workflow, på enhver plan, og en monitor, hvis status følger Datadog. |
 
 Begge får den samme JSON fra den samme webhook, så du kan begynde med den ene og skifte senere ved at ændre én URL i Datadog.
 
@@ -86,12 +86,12 @@ Med egne alvorligheder går P1, P2 og ingen prioritet til din mest alvorlige, P3
 
 ## Modtag advarsler med en monitor
 
-En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) giver dig en URL, og dens kriterier afgør, hvad hver advarsel gør.
+En [monitor for indgående anmodninger](/docs/monitor/incoming-request-monitor) giver dig en URL, og dens kriterier afgør, hvad hver advarsel gør.
 
 :::steps
 ### Opret monitoren
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Vælg **Incoming Request** under **Monitortype**, kald den `Datadog`, og klik på **Næste**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Vælg **Indgående anmodning** under **Monitortype**, kald den `Datadog`, og klik på **Næste**.
 
 ### Erklær en hændelse for hver advarsel
 

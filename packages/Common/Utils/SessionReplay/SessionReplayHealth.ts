@@ -17,6 +17,15 @@ import {
   readDtoString,
   readDtoStringArray,
 } from "../../Types/Rum/SessionReplayApi";
+import {
+  ComposedValue,
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "../../Types/Translator";
 
 /*
  * diagnoseRecordingHealth: one pure function that turns the ingest-status
@@ -28,6 +37,12 @@ import {
  * enforces are the product's, not decoration: name the cause, quantify
  * it, offer ONE action, never render a counter that was not read as 0,
  * and never say "disconnected" without saying why.
+ *
+ * It lives here rather than in Utils/Rum because it speaks the reader's
+ * language (Types/Translator). Utils/Rum and Types/Rum hold what the
+ * browser recorder inlines into the pages it is served on, and may import
+ * nothing outside those two folders (BrowserRecorder's SourceHygiene test);
+ * the recorder never draws a health sentence.
  */
 
 /*
@@ -61,6 +76,27 @@ const HOUR_MS: number = 60 * MINUTE_MS;
 const DAY_MS: number = 24 * HOUR_MS;
 
 /*
+ * The words below are the reader's when the caller hands its Translator in
+ * (the Dashboard passes useTranslator()), and English, word for word as
+ * they always were, without one: what a unit test and the server get. Each
+ * is a key of the Dashboard's locales, read from this file by the
+ * extractor (SOURCE_ROOTS in scripts/i18n/ExtractStrings.ts), which reads
+ * only what the file marks: the text of a translate…() call, a
+ * translationKey(), and a count's two sentences marked as keys.
+ *
+ * Every sentence is looked up whole with its values in place: an age, a
+ * duration or a byte figure goes in as a composedValue, so it is written in
+ * the language the sentence is read in, and a refusal's label as a
+ * translatableTerm, translated along with the sentence.
+ */
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+// A fixed word, label or sentence in the translator's language.
+function translateWord(text: string, translator: Translator): string {
+  return translator.translateText(text) || text;
+}
+
+/*
  * "12s ago", "5m ago", "7h ago", "3d ago". A future or sub-second time is
  * "just now" (clock skew between the browser and the server is normal); a
  * non-finite input is "unknown" so a bad timestamp can never render as
@@ -69,64 +105,92 @@ const DAY_MS: number = 24 * HOUR_MS;
 export function formatRelativeAge(
   fromUnixMs: number,
   nowUnixMs: number,
+  translator: Translator = ENGLISH,
 ): string {
   if (!Number.isFinite(fromUnixMs) || !Number.isFinite(nowUnixMs)) {
-    return "unknown";
+    return translateWord("unknown", translator);
   }
 
   const ageMs: number = nowUnixMs - fromUnixMs;
 
   if (ageMs < SECOND_MS) {
-    return "just now";
+    return translateWord("just now", translator);
   }
 
   if (ageMs < MINUTE_MS) {
-    return `${Math.floor(ageMs / SECOND_MS)}s ago`;
+    return translator.translateTemplate("{{count}}s ago", {
+      count: Math.floor(ageMs / SECOND_MS),
+    });
   }
 
   if (ageMs < HOUR_MS) {
-    return `${Math.floor(ageMs / MINUTE_MS)}m ago`;
+    return translator.translateTemplate("{{count}}m ago", {
+      count: Math.floor(ageMs / MINUTE_MS),
+    });
   }
 
   if (ageMs < DAY_MS) {
-    return `${Math.floor(ageMs / HOUR_MS)}h ago`;
+    return translator.translateTemplate("{{count}}h ago", {
+      count: Math.floor(ageMs / HOUR_MS),
+    });
   }
 
-  return `${Math.floor(ageMs / DAY_MS)}d ago`;
+  return translator.translateTemplate("{{count}}d ago", {
+    count: Math.floor(ageMs / DAY_MS),
+  });
 }
 
 /* "1h", "6h", "3d" - a duration rather than an age, for "no chunk for 7h". */
-export function formatDurationForCopy(durationMs: number): string {
+export function formatDurationForCopy(
+  durationMs: number,
+  translator: Translator = ENGLISH,
+): string {
   if (!Number.isFinite(durationMs) || durationMs < 0) {
-    return "unknown";
+    return translateWord("unknown", translator);
   }
 
   if (durationMs < MINUTE_MS) {
-    return `${Math.floor(durationMs / SECOND_MS)}s`;
+    return translator.translateTemplate("{{count}}s", {
+      count: Math.floor(durationMs / SECOND_MS),
+    });
   }
 
   if (durationMs < HOUR_MS) {
-    return `${Math.floor(durationMs / MINUTE_MS)}m`;
+    return translator.translateTemplate("{{count}}m", {
+      count: Math.floor(durationMs / MINUTE_MS),
+    });
   }
 
   if (durationMs < DAY_MS) {
-    return `${Math.floor(durationMs / HOUR_MS)}h`;
+    return translator.translateTemplate("{{count}}h", {
+      count: Math.floor(durationMs / HOUR_MS),
+    });
   }
 
-  return `${Math.floor(durationMs / DAY_MS)}d`;
+  return translator.translateTemplate("{{count}}d", {
+    count: Math.floor(durationMs / DAY_MS),
+  });
 }
 
 /*
- * A count for copy: "1,234", or "unknown" for null. Formatted by hand
- * rather than toLocaleString so the sentence is identical in every
- * browser locale and in tests.
+ * A count for copy: "1,234", or "unknown" for null. Without a translator it
+ * is formatted by hand rather than toLocaleString, so the sentence is
+ * identical in every browser locale and in tests; with one, in the digits
+ * and grouping of the reader's language ("1.234" in German).
  */
-export function formatCountForCopy(count: number | null): string {
+export function formatCountForCopy(
+  count: number | null,
+  translator?: Translator,
+): string {
   if (count === null || !Number.isFinite(count)) {
-    return "unknown";
+    return translateWord("unknown", translator || ENGLISH);
   }
 
   const rounded: number = Math.max(0, Math.floor(count));
+
+  if (translator) {
+    return translator.formatNumber(rounded);
+  }
   const digits: string = String(rounded);
   let formatted: string = "";
 
@@ -143,21 +207,30 @@ export function formatCountForCopy(count: number | null): string {
   return formatted;
 }
 
-/* "1 GB", "512 MB", "2.5 GB". Byte budgets are set in whole GB or MB. */
-export function formatBytesForCopy(bytes: number): string {
+/*
+ * "1 GB", "512 MB", "2.5 GB". Byte budgets are set in whole GB or MB. The
+ * unit is written as it is in every language; with a translator the
+ * figure is the reader's ("2,5 GB" in German).
+ */
+export function formatBytesForCopy(
+  bytes: number,
+  translator?: Translator,
+): string {
   if (!Number.isFinite(bytes) || bytes < 0) {
-    return "unknown";
+    return translateWord("unknown", translator || ENGLISH);
   }
 
   const gb: number = bytes / (1024 * 1024 * 1024);
 
   if (gb >= 1) {
-    return `${Number.isInteger(gb) ? gb : gb.toFixed(1)} GB`;
+    const figure: number = Number.isInteger(gb) ? gb : Math.round(gb * 10) / 10;
+
+    return `${translator ? translator.formatNumber(figure) : Number.isInteger(gb) ? String(gb) : gb.toFixed(1)} GB`;
   }
 
-  const mb: number = bytes / (1024 * 1024);
+  const mb: number = Math.round(bytes / (1024 * 1024));
 
-  return `${Math.round(mb)} MB`;
+  return `${translator ? translator.formatNumber(mb) : String(mb)} MB`;
 }
 
 /* ISO string -> unix ms, or null when absent or unparseable. */
@@ -349,86 +422,123 @@ interface RefusalCopy {
  * code. Deployment-level causes (ingest switched off, no artifact, Redis
  * down) have no action: nothing on a settings page fixes them, and
  * offering a link that cannot help is worse than saying so.
+ *
+ * Each label, detail and action label is an English key, looked up where
+ * the diagnosis and describeRefusalReason write it. The label goes into
+ * the diagnosis's title as a term ("212 uploads refused in 24h: origin not
+ * allowed"), so it is worded for the middle of a sentence.
  */
 const REFUSAL_COPY: Record<SessionReplayRefusalReason, RefusalCopy> = {
   "ingest-disabled": {
-    label: "ingest is switched off on this deployment",
-    detail:
+    label: translationKey("ingest is switched off on this deployment"),
+    detail: translationKey(
       "SESSION_REPLAY_INGEST_ENABLED is false on the server, so every chunk is refused. Only the operator of this deployment can change that.",
+    ),
   },
   "instance-not-offering-replay": {
-    label: "this deployment publishes no recorder",
-    detail:
+    label: translationKey("this deployment publishes no recorder"),
+    detail: translationKey(
       "No recorder artifact is built on this deployment, so chunks from a cached recorder are refused. Only the operator of this deployment can change that.",
+    ),
   },
   "policy-unavailable": {
-    label: "the policy lookup failed",
-    detail:
+    label: translationKey("the policy lookup failed"),
+    detail: translationKey(
       "The server could not load this application's replay policy and refused rather than guess. This clears on its own once the database is reachable.",
+    ),
   },
   "not-enabled": {
-    label: "replay was switched off when they arrived",
-    detail:
+    label: translationKey("replay was switched off when they arrived"),
+    detail: translationKey(
       "Chunks arrived while the application or project had session replay switched off.",
-    action: { label: "Check the switch", target: "app-settings" },
+    ),
+    action: {
+      label: translationKey("Check the switch"),
+      target: "app-settings",
+    },
   },
   "origin-not-allowed": {
-    label: "origin not allowed",
-    detail: "Requests came from an origin that is not in your allowed origins.",
-    action: { label: "Edit allowed origins", target: "allowed-origins" },
+    label: translationKey("origin not allowed"),
+    detail: translationKey(
+      "Requests came from an origin that is not in your allowed origins.",
+    ),
+    action: {
+      label: translationKey("Edit allowed origins"),
+      target: "allowed-origins",
+    },
   },
   "session-chunk-cap": {
-    label: "sessions hit the chunk cap",
-    detail:
+    label: translationKey("sessions hit the chunk cap"),
+    detail: translationKey(
       "Some sessions reached the per-session chunk cap and stopped uploading; the recording up to that point is kept.",
+    ),
   },
   "not-sampled": {
-    label: "not sampled",
-    detail:
+    label: translationKey("not sampled"),
+    detail: translationKey(
       "The server's sampling draw refused chunks the recorder sent, which happens when the sample percentage was lowered while sessions were live.",
-    action: { label: "Review sampling", target: "app-settings" },
+    ),
+    action: {
+      label: translationKey("Review sampling"),
+      target: "app-settings",
+    },
   },
   "rate-limited": {
-    label: "rate limited",
-    detail:
+    label: translationKey("rate limited"),
+    detail: translationKey(
       "Uploads exceeded the per-application rate limit and were refused. A burst of page loads clears on its own.",
+    ),
   },
   "rate-counter-unavailable": {
-    label: "the rate counter was unreachable",
-    detail:
+    label: translationKey("the rate counter was unreachable"),
+    detail: translationKey(
       "The server could not reach its rate counter and refused rather than guess. This clears on its own once the counter store is reachable.",
+    ),
   },
   "budget-exhausted": {
-    label: "the project's daily budget is spent",
-    detail: "This project used its daily byte budget for session replay.",
-    action: { label: "Review the budget", target: "budget" },
+    label: translationKey("the project's daily budget is spent"),
+    detail: translationKey(
+      "This project used its daily byte budget for session replay.",
+    ),
+    action: { label: translationKey("Review the budget"), target: "budget" },
   },
   "budget-counter-unavailable": {
-    label: "the budget counter was unreachable",
-    detail:
+    label: translationKey("the budget counter was unreachable"),
+    detail: translationKey(
       "The server could not reach its budget counter and refused rather than guess. This clears on its own once the counter store is reachable.",
+    ),
   },
   "app-monthly-budget-exhausted": {
-    label: "the monthly budget is spent",
-    detail: "This application used its monthly byte budget for session replay.",
-    action: { label: "Raise the budget", target: "budget" },
+    label: translationKey("the monthly budget is spent"),
+    detail: translationKey(
+      "This application used its monthly byte budget for session replay.",
+    ),
+    action: { label: translationKey("Raise the budget"), target: "budget" },
   },
   "consent-required": {
-    label: "consent was not granted",
-    detail:
+    label: translationKey("consent was not granted"),
+    detail: translationKey(
       "Uploads arrived before your page called OneUptimeReplay.grantConsent(). The recorder keeps recording in memory; nothing is stored until consent is granted.",
-    action: { label: "How consent works", target: "docs-consent" },
+    ),
+    action: {
+      label: translationKey("How consent works"),
+      target: "docs-consent",
+    },
   },
 };
 
 /*
  * The short human label for a refusal reason ("origin not allowed"), or
  * null for a string this build has no copy for. The health page prints it
- * beside the reason code so the counter reads as a cause, not a slug.
+ * beside the reason code so the counter reads as a cause, not a slug. In
+ * the translator's language; English without one.
  */
-export function describeRefusalReason(reason: string): string | null {
+export function describeRefusalReason(
+  reason: string,
+  translator: Translator = ENGLISH,
+): string | null {
   return isSessionReplayRefusalReason(reason)
-    ? REFUSAL_COPY[reason].label
+    ? translateWord(REFUSAL_COPY[reason].label, translator)
     : null;
 }
 
@@ -439,9 +549,32 @@ function action(
   return { label: label, target: target };
 }
 
-/* "for acme-web" when the identifier is known, "" otherwise. */
-function appSuffix(status: RecordingHealthStatus): string {
-  return status.appIdentifier ? ` for ${status.appIdentifier}` : "";
+// An age ("5m ago") in the language of the sentence it goes into.
+function ageIn(fromUnixMs: number, nowUnixMs: number): ComposedValue {
+  return composedValue((sentence: Translator): string => {
+    return formatRelativeAge(fromUnixMs, nowUnixMs, sentence);
+  });
+}
+
+// A duration ("7h") in the language of the sentence it goes into.
+function durationIn(durationMs: number): ComposedValue {
+  return composedValue((sentence: Translator): string => {
+    return formatDurationForCopy(durationMs, sentence);
+  });
+}
+
+// A byte figure ("1 GB") as the sentence's language writes a number.
+function bytesIn(bytes: number): ComposedValue {
+  return composedValue((sentence: Translator): string => {
+    return formatBytesForCopy(bytes, sentence);
+  });
+}
+
+// A number ("100", "2.5") as the sentence's language writes it.
+function numberIn(value: number): ComposedValue {
+  return composedValue((sentence: Translator): string => {
+    return sentence.formatNumber(value);
+  });
 }
 
 /*
@@ -451,7 +584,10 @@ function appSuffix(status: RecordingHealthStatus): string {
  * the error/frustration trigger uploads nothing on a quiet day. When
  * none applies, the generic explanation points at the request path.
  */
-function explainLoadedNeverUploaded(status: RecordingHealthStatus): {
+function explainLoadedNeverUploaded(
+  status: RecordingHealthStatus,
+  translator: Translator = ENGLISH,
+): {
   detail: string;
   action: RecordingHealthAction;
 } {
@@ -459,17 +595,27 @@ function explainLoadedNeverUploaded(status: RecordingHealthStatus): {
 
   if (policy.samplePercentage <= 0) {
     return {
-      detail:
+      detail: translateWord(
         "Your sample percentage is 0%, so no session is recorded. Raise it to record the next visitor.",
-      action: action("Set sampling to 100%", "app-settings"),
+        translator,
+      ),
+      action: action(
+        translateWord("Set sampling to 100%", translator),
+        "app-settings",
+      ),
     };
   }
 
   if (policy.consentMode === SessionReplayConsentMode.RequireExplicit) {
     return {
-      detail:
+      detail: translateWord(
         "Waiting for consent: the page has not called OneUptimeReplay.grantConsent(), and nothing uploads until it does.",
-      action: action("How consent works", "docs-consent"),
+        translator,
+      ),
+      action: action(
+        translateWord("How consent works", translator),
+        "docs-consent",
+      ),
     };
   }
 
@@ -477,16 +623,26 @@ function explainLoadedNeverUploaded(status: RecordingHealthStatus): {
     policy.captureTrigger === SessionReplayCaptureTrigger.OnErrorOrFrustration
   ) {
     return {
-      detail:
+      detail: translateWord(
         "Uploads only start when an error or frustration signal fires; a quiet day looks like nothing. Switch the trigger to Always to record every session.",
-      action: action("Record every session", "app-settings"),
+        translator,
+      ),
+      action: action(
+        translateWord("Record every session", translator),
+        "app-settings",
+      ),
     };
   }
 
   return {
-    detail:
+    detail: translateWord(
       "The policy fetch succeeds but no chunk has arrived. Uploads flush every 15s, so a request is being blocked on the way: check the browser console for a CSP or ad-blocker refusal of the ingest URL.",
-    action: action("Allow the recorder through your CSP", "docs-csp"),
+      translator,
+    ),
+    action: action(
+      translateWord("Allow the recorder through your CSP", translator),
+      "docs-csp",
+    ),
   };
 }
 
@@ -521,20 +677,47 @@ function isMonthlyBudgetPaused(status: RecordingHealthStatus): boolean {
   return true;
 }
 
-/* "143 sessions in 24h (120 playable)", with unknown counters said so. */
-function describeSessions(status: RecordingHealthStatus): string {
-  const sessions: string = formatCountForCopy(status.sessionsLast24h);
-
+/*
+ * "143 sessions in 24h (120 playable)", with unknown counters said so, in
+ * the translator's language: each case is a whole phrase of its own.
+ */
+function describeSessions(
+  status: RecordingHealthStatus,
+  translator: Translator = ENGLISH,
+): string {
   if (status.sessionsLast24h === null) {
-    return "sessions in 24h: unknown";
+    return translateWord("sessions in 24h: unknown", translator);
   }
 
-  const playable: string =
-    status.playableSessionsLast24h === null
-      ? ""
-      : ` (${formatCountForCopy(status.playableSessionsLast24h)} playable)`;
+  const sessions: string = formatCountForCopy(
+    status.sessionsLast24h,
+    translator,
+  );
 
-  return `${sessions} session${status.sessionsLast24h === 1 ? "" : "s"} in 24h${playable}`;
+  if (status.playableSessionsLast24h === null) {
+    return translator.translatePlural(
+      {
+        one: translationKey("{{count}} session in 24h"),
+        other: translationKey("{{count}} sessions in 24h"),
+      },
+      status.sessionsLast24h,
+      { count: sessions },
+    );
+  }
+
+  return translator.translatePlural(
+    {
+      one: translationKey("{{count}} session in 24h ({{playable}} playable)"),
+      other: translationKey(
+        "{{count}} sessions in 24h ({{playable}} playable)",
+      ),
+    },
+    status.sessionsLast24h,
+    {
+      count: sessions,
+      playable: formatCountForCopy(status.playableSessionsLast24h, translator),
+    },
+  );
 }
 
 /*
@@ -555,18 +738,25 @@ function describeSessions(status: RecordingHealthStatus): string {
  * signal moot, a spent budget explains any refusal, a refusal explains a
  * missing chunk, and only a recorder that is loading and uploading can be
  * stale or healthy.
+ *
+ * The title, the detail and the action's label are in the translator's
+ * language (the Dashboard hands in the reader's: useSessionReplayHealth),
+ * each sentence whole; without one they are English, word for word.
  */
 export function diagnoseRecordingHealth(
   status: RecordingHealthStatus | null,
   nowUnixMs: number,
+  translator: Translator = ENGLISH,
 ): RecordingHealthDiagnosis {
   if (status === null) {
     return {
       state: "unknown",
       severity: "info",
-      title: "Recording health is unknown",
-      detail:
+      title: translateWord("Recording health is unknown", translator),
+      detail: translateWord(
         "The health status could not be loaded, so nothing here says whether recording works. Reload to try again.",
+        translator,
+      ),
     };
   }
 
@@ -576,10 +766,18 @@ export function diagnoseRecordingHealth(
     return {
       state: "disabled-project",
       severity: "error",
-      title: "Session replay is switched off for this project",
-      detail:
+      title: translateWord(
+        "Session replay is switched off for this project",
+        translator,
+      ),
+      detail: translateWord(
         "Nothing is recorded for any application while the project switch is off, whatever the application settings say.",
-      action: action("Turn it on", "project-settings"),
+        translator,
+      ),
+      action: action(
+        translateWord("Turn it on", translator),
+        "project-settings",
+      ),
     };
   }
 
@@ -587,28 +785,44 @@ export function diagnoseRecordingHealth(
     return {
       state: "disabled-app",
       severity: "error",
-      title: `Session replay is switched off${appSuffix(status)}`,
-      detail:
+      title: status.appIdentifier
+        ? translator.translateTemplate(
+            "Session replay is switched off for {{application}}",
+            { application: status.appIdentifier },
+          )
+        : translateWord("Session replay is switched off", translator),
+      detail: translateWord(
         "Recorders on this application's pages fetch a disabled policy and record nothing.",
-      action: action("Turn it on", "app-settings"),
+        translator,
+      ),
+      action: action(translateWord("Turn it on", translator), "app-settings"),
     };
   }
 
   if (isMonthlyBudgetPaused(status)) {
     const since: number | null = parseHealthTimestamp(status.budgetExceededAt);
-    const sinceCopy: string =
-      since === null ? "" : ` ${formatRelativeAge(since, nowUnixMs)}`;
-    const budgetCopy: string =
-      status.monthlyBudgetInGB === null
-        ? "its monthly budget"
-        : `its ${status.monthlyBudgetInGB} GB monthly budget`;
+    const budgetInGB: number | null = status.monthlyBudgetInGB;
 
     return {
       state: "budget-paused",
       severity: "error",
-      title: `Uploads paused${sinceCopy}`,
-      detail: `This application used ${budgetCopy}. Uploads resume next month, or as soon as the budget is raised.`,
-      action: action("Raise the budget", "budget"),
+      title:
+        since === null
+          ? translateWord("Uploads paused", translator)
+          : translator.translateTemplate("Uploads paused {{age}}", {
+              age: ageIn(since, nowUnixMs),
+            }),
+      detail:
+        budgetInGB === null
+          ? translateWord(
+              "This application used its monthly budget. Uploads resume next month, or as soon as the budget is raised.",
+              translator,
+            )
+          : translator.translateTemplate(
+              "This application used its {{budget}} GB monthly budget. Uploads resume next month, or as soon as the budget is raised.",
+              { budget: numberIn(budgetInGB) },
+            ),
+      action: action(translateWord("Raise the budget", translator), "budget"),
     };
   }
 
@@ -616,9 +830,15 @@ export function diagnoseRecordingHealth(
     return {
       state: "budget-paused",
       severity: "error",
-      title: "Uploads paused for today",
-      detail: `This project used its ${formatBytesForCopy(status.dailyByteLimit)} daily budget for session replay (${formatBytesForCopy(status.projectBytesUsedToday as number)} used). Uploads resume tomorrow.`,
-      action: action("Review the budget", "budget"),
+      title: translateWord("Uploads paused for today", translator),
+      detail: translator.translateTemplate(
+        "This project used its {{limit}} daily budget for session replay ({{used}} used). Uploads resume tomorrow.",
+        {
+          limit: bytesIn(status.dailyByteLimit),
+          used: bytesIn(status.projectBytesUsedToday as number),
+        },
+      ),
+      action: action(translateWord("Review the budget", translator), "budget"),
     };
   }
 
@@ -635,9 +855,24 @@ export function diagnoseRecordingHealth(
     return {
       state: "refusing",
       severity: "warning",
-      title: `${formatCountForCopy(topRefusal.count)} uploads refused in 24h: ${copy.label}`,
-      detail: copy.detail,
-      ...(copy.action && { action: copy.action }),
+      title: translator.translatePlural(
+        {
+          one: translationKey("{{count}} upload refused in 24h: {{reason}}"),
+          other: translationKey("{{count}} uploads refused in 24h: {{reason}}"),
+        },
+        topRefusal.count,
+        {
+          count: formatCountForCopy(topRefusal.count, translator),
+          reason: translatableTerm(copy.label),
+        },
+      ),
+      detail: translateWord(copy.detail, translator),
+      ...(copy.action && {
+        action: action(
+          translateWord(copy.action.label, translator),
+          copy.action.target,
+        ),
+      }),
     };
   }
 
@@ -657,21 +892,34 @@ export function diagnoseRecordingHealth(
     return {
       state: "never-loaded",
       severity: "warning",
-      title: `The recorder has never loaded${appSuffix(status)}`,
-      detail:
+      title: status.appIdentifier
+        ? translator.translateTemplate(
+            "The recorder has never loaded for {{application}}",
+            { application: status.appIdentifier },
+          )
+        : translateWord("The recorder has never loaded", translator),
+      detail: translateWord(
         "No page has fetched this application's replay policy and no chunk has arrived. Add the script tag to your site, then reload a page that uses it.",
-      action: action("Open the setup guide", "setup-guide"),
+        translator,
+      ),
+      action: action(
+        translateWord("Open the setup guide", translator),
+        "setup-guide",
+      ),
     };
   }
 
   if (lastChunkUnixMs === null) {
     const explanation: { detail: string; action: RecordingHealthAction } =
-      explainLoadedNeverUploaded(status);
+      explainLoadedNeverUploaded(status, translator);
 
     return {
       state: "loaded-never-uploaded",
       severity: "warning",
-      title: `The recorder loaded ${formatRelativeAge(lastConfigFetchUnixMs as number, nowUnixMs)} but nothing has been uploaded`,
+      title: translator.translateTemplate(
+        "The recorder loaded {{age}} but nothing has been uploaded",
+        { age: ageIn(lastConfigFetchUnixMs as number, nowUnixMs) },
+      ),
       detail: explanation.detail,
       action: explanation.action,
     };
@@ -685,13 +933,29 @@ export function diagnoseRecordingHealth(
 
   if (chunkAgeMs > SESSION_REPLAY_STALE_CHUNK_MS && isRecorderStillLoading) {
     const explanation: { detail: string; action: RecordingHealthAction } =
-      explainLoadedNeverUploaded(status);
+      explainLoadedNeverUploaded(status, translator);
 
     return {
       state: "stale",
       severity: "warning",
-      title: `No chunk for ${formatDurationForCopy(chunkAgeMs)} while the recorder keeps loading`,
-      detail: `The recorder last fetched its policy ${formatRelativeAge(lastConfigFetchUnixMs as number, nowUnixMs)}, but the last chunk arrived ${formatRelativeAge(lastChunkUnixMs, nowUnixMs)}. ${explanation.detail}`,
+      title: translator.translateTemplate(
+        "No chunk for {{duration}} while the recorder keeps loading",
+        { duration: durationIn(chunkAgeMs) },
+      ),
+      /*
+       * The explanation is a sentence of its own, written in the language
+       * this one is read in.
+       */
+      detail: translator.translateTemplate(
+        "The recorder last fetched its policy {{fetchAge}}, but the last chunk arrived {{chunkAge}}. {{explanation}}",
+        {
+          fetchAge: ageIn(lastConfigFetchUnixMs as number, nowUnixMs),
+          chunkAge: ageIn(lastChunkUnixMs, nowUnixMs),
+          explanation: composedValue((sentence: Translator): string => {
+            return explainLoadedNeverUploaded(status, sentence).detail;
+          }),
+        },
+      ),
       action: explanation.action,
     };
   }
@@ -708,8 +972,10 @@ export function diagnoseRecordingHealth(
    * the install check as the single next step.
    */
   if (chunkAgeMs > SESSION_REPLAY_STALE_CHUNK_MS) {
-    const quietTitle: string = `No session recorded in the past ${formatDurationForCopy(chunkAgeMs)}`;
-    const chunkAgeCopy: string = formatRelativeAge(lastChunkUnixMs, nowUnixMs);
+    const quietTitle: string = translator.translateTemplate(
+      "No session recorded in the past {{duration}}",
+      { duration: durationIn(chunkAgeMs) },
+    );
 
     /*
      * No action in this branch: an older server sends no lastConfigFetchAt
@@ -721,7 +987,13 @@ export function diagnoseRecordingHealth(
         state: "healthy-quiet",
         severity: "info",
         title: quietTitle,
-        detail: `The last chunk arrived ${chunkAgeCopy} and this server does not report policy fetches, so whether a recorder is still loading on your pages cannot be told from here. The policy is healthy (sampling ${policy.samplePercentage}%).`,
+        detail: translator.translateTemplate(
+          "The last chunk arrived {{chunkAge}} and this server does not report policy fetches, so whether a recorder is still loading on your pages cannot be told from here. The policy is healthy (sampling {{percent}}%).",
+          {
+            chunkAge: ageIn(lastChunkUnixMs, nowUnixMs),
+            percent: numberIn(policy.samplePercentage),
+          },
+        ),
       };
     }
 
@@ -729,15 +1001,34 @@ export function diagnoseRecordingHealth(
       state: "healthy-quiet",
       severity: "info",
       title: quietTitle,
-      detail: `The last chunk arrived ${chunkAgeCopy} and no page has fetched the policy for ${formatDurationForCopy(nowUnixMs - lastConfigFetchUnixMs)} either, so no recorder is running on this application right now - quiet traffic on a low-traffic or staging app, or a snippet that is no longer on the page. The policy is healthy (sampling ${policy.samplePercentage}%).`,
-      action: action("Check the install", "setup-guide"),
+      detail: translator.translateTemplate(
+        "The last chunk arrived {{chunkAge}} and no page has fetched the policy for {{fetchSilence}} either, so no recorder is running on this application right now - quiet traffic on a low-traffic or staging app, or a snippet that is no longer on the page. The policy is healthy (sampling {{percent}}%).",
+        {
+          chunkAge: ageIn(lastChunkUnixMs, nowUnixMs),
+          fetchSilence: durationIn(nowUnixMs - lastConfigFetchUnixMs),
+          percent: numberIn(policy.samplePercentage),
+        },
+      ),
+      action: action(
+        translateWord("Check the install", translator),
+        "setup-guide",
+      ),
     };
   }
 
   return {
     state: "healthy",
     severity: "ok",
-    title: "Recording healthy",
-    detail: `Last chunk ${formatRelativeAge(lastChunkUnixMs, nowUnixMs)} - ${describeSessions(status)} - sampling ${policy.samplePercentage}%.`,
+    title: translateWord("Recording healthy", translator),
+    detail: translator.translateTemplate(
+      "Last chunk {{age}} - {{sessions}} - sampling {{percent}}%.",
+      {
+        age: ageIn(lastChunkUnixMs, nowUnixMs),
+        sessions: composedValue((sentence: Translator): string => {
+          return describeSessions(status, sentence);
+        }),
+        percent: numberIn(policy.samplePercentage),
+      },
+    ),
   };
 }

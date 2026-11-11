@@ -22,6 +22,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueOverviewPresentation";
 import { getDatabaseEngineMetricChartTitle } from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DatabaseEngineMetricsSection";
 import { getDatabaseMetricListCaption } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerTelemetryQueries";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * THE CURATED METRICS' NAMES IN THE READER'S LANGUAGE.
@@ -42,24 +43,7 @@ const DASHBOARD: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard",
 );
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 const CATALOG_FILES: ReadonlyArray<string> = [
   "packages/Common/Types/DatabaseServer/DatabaseServerMetricCatalog.ts",

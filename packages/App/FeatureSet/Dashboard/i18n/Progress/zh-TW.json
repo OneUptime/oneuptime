@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47694,
-    "untranslated": 10811
+    "keys": 49075,
+    "untranslated": 9940
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -49,6 +49,7 @@
     "INP 540 ms",
     "IP",
     "IoT",
+    "JVM CPU",
     "JavaScript API",
     "K8s Pod",
     "Keystone",
@@ -177,6 +178,7 @@
     "vSphere Client",
     "x86",
     "z",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",

@@ -57,7 +57,7 @@ Chaque collecte écrit ces métriques pour chaque table, afin que vous puissiez 
 | `oneuptime.data.table.schema_changes` | Colonnes modifiées depuis la collecte précédente |
 | `oneuptime.data.table.breaking_schema_changes` | Colonnes supprimées, renommées ou changées de type depuis la collecte précédente |
 
-Chaque ligne porte `oneuptime.data.store.id`, `oneuptime.data.store.name`, `oneuptime.data.table.id`, `oneuptime.data.table.schema`, `oneuptime.data.table.name` et `oneuptime.data.table.key` (`schema.table`). Un [moniteur de métrique](/docs/monitor/metrics-monitor) groupé par `oneuptime.data.table.key` alerte une fois par table, et ses filtres **Anomalously High** et **Anomalously Low** comparent chaque table à sa propre valeur habituelle pour cette heure de la semaine. Ces métriques sont des données opérationnelles propres à OneUptime et ne sont pas facturées comme de la télémétrie.
+Chaque ligne porte `oneuptime.data.store.id`, `oneuptime.data.store.name`, `oneuptime.data.table.id`, `oneuptime.data.table.schema`, `oneuptime.data.table.name` et `oneuptime.data.table.key` (`schema.table`). Un [moniteur de métrique](/docs/monitor/metrics-monitor) groupé par `oneuptime.data.table.key` alerte une fois par table, et ses filtres **Anormalement élevé** et **Anormalement bas** comparent chaque table à sa propre valeur habituelle pour cette heure de la semaine. Ces métriques sont des données opérationnelles propres à OneUptime et ne sont pas facturées comme de la télémétrie.
 
 ## Tables inutilisées
 

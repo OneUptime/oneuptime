@@ -15,6 +15,8 @@ Avstamning viser hvilke tabeller hver tabell er bygget fra, og hvilke pipelines 
 
 Fanen **Opphav** for en tabell viser tabellene den er bygget fra, pipelinene som skriver til den med siste kjøring, og tabellene som er bygget fra den. Hver forbindelse viser hvor den ble sett.
 
+Øverst i fanen tegner et diagram dette opphavet noen trinn i hver retning (tre, eller velg 1, 2 eller 5): til venstre det tabellen er bygget fra, til høyre tabellene og dashbordene som er bygget fra den, og pipelinene som laster inn data utenfra, der dataene kommer inn. Hvert kort viser hvordan det står til nå - forsinket, et åpent varsel, en mislykket kjøring - og en pil blir rød når siste kjøring av pipelinen feilet, slik at en forsinket tabell kan følges opp til kjøringen som stanset den. Åpne en hvilken som helst tabell for å sentrere diagrammet på den.
+
 Der kilden oppgir kolonner, sier fanen **Kolonner** for en tabell hvor hver kolonne kommer fra og hva den mater: tilgangshistorikken i Snowflake (Enterprise-utgaven, som trenger `IMPORTED PRIVILEGES` på databasen `SNOWFLAKE`), og `columnLineage`-fasetten i OpenLineage.
 
 ## OpenLineage
@@ -76,13 +78,24 @@ Den virkelige følgen av dårlige data er dashbordet noen åpner. Under **BI-das
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, en tjenestekontohaver (service principal) som kan bruke Power BIs administrator-API-er |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, en tjenestekontohaver (service principal) som kan bruke Power BIs skrivebeskyttede administrator-API-er. Både rapporter og dashbord leses, med visninger og oppdateringer (nedenfor) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (eller `eu`) |
 
 Hightouch og Census er reverse ETL-verktøy: en synkronisering som kopierer en tabell inn i et CRM, avhenger av den tabellen slik et dashbord gjør, så den leses på samme måte og nevnes på varslene til tabellen.
 
-Bare dashbordenes navn og lenker, og tabellene de spør mot, leses: aldri dataene deres.
+Bare dashbordenes navn og lenker, tabellene de spør mot, og for Power BI hvem som åpner dem og hvordan oppdateringene deres gikk, leses: aldri dataene deres.
+
+### Visninger og oppdateringer i Power BI
+
+For hver Power BI-rapport og hvert Power BI-dashbord viser **BI-dashbord** først hvor mange ganger det ble åpnet de siste 28 dagene, når det sist ble åpnet, og hvordan den siste oppdateringen av dataene gikk, med feilen fra en mislykket oppdatering. Hvor mange som åpnet det, hvem som åpnet det mest, og de siste oppdateringene er kolonner du kan slå på. Fanen **Opphav** for en tabell sier det samme om hvert dashbord som bygger på den, med eier og seere under **Mer**.
+
+- **Visninger** kommer fra aktivitetsloggen i Power BI, lest gjennom administrator-API-et for aktivitetshendelser. Power BI tar vare på 28 dager av den, svarer på 200 forespørsler i timen og deler hver forespørsel opp i timer, så OneUptime leser den én time om gangen: hver lesing hver time legger til timene siden forrige og går så bakover gjennom de 28 dagene, nyeste først, med høyst 100 forespørsler. Et nytt Power BI-verktøy viser de siste dagene med en gang og alle 28 dagene innen et døgn; frem til da sier visningene fra når de telles. En hendelse kan bruke opptil en time på å komme inn i loggen, så visningene ligger opptil to timer etter. Seere navngis slik Power BI navngir dem: med e-postadressen.
+- **Oppdateringer** av datasett på en kapasitet (Premium, Premium per bruker eller Fabric) kommer fra administratorlisten over oppdaterbare elementer i Power BI: den siste oppdateringen av hvert datasett med feilen, og hvor mange oppdateringer som kjørte og mislyktes i de sju dagene Power BI tar vare på.
+- **Oppdateringer av datasett på delt kapasitet** er ikke med i den listen. Power BI viser oppdateringsloggen til et datasett bare til dem som kan endre datasettet, så legg til tjenestekontohaveren i arbeidsområdet som **Bidragsyter**, **Medlem** eller **Administrator**, og slå på **Service principals can call Fabric public APIs** for den i utviklerinnstillingene i Fabric-administrasjonsportalen. Da leser OneUptime hver oppdatering med feilen. Frem til da sier BI-verktøyet hvor mange datasett det ikke fikk lest oppdateringene til.
+- Et Power BI-dashbord med fliser fra flere datasett viser den siste oppdateringen som mislyktes, eller den eldste hvis ingen mislyktes: dataene er bare så ferske som den.
+
+Visninger, og oppdateringer på kapasiteter, trenger ikke noe mer enn administrator-API-tilgangen ovenfor: tjenestekontohaveren i en sikkerhetsgruppe som **Service principals can access read-only admin APIs** tillater, uten Power BI-tillatelser på appen som krever administratorsamtykke. Når visninger eller oppdateringer ikke kan leses, blir dashbordene likevel lest og beholdt, BI-verktøyet sier hva som ble hoppet over og hvorfor, og neste lesing prøver igjen.
 
 ## Pipelines
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47694,
-    "untranslated": 11074
+    "keys": 49075,
+    "untranslated": 10195
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -202,6 +202,7 @@
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
     "Precision",
+    "Presentation",
     "Problem",
     "Process",
     "Prompt",
@@ -240,6 +241,7 @@
     "Server",
     "Service Mesh",
     "Session",
+    "Session {{id}}",
     "Shares",
     "Signal",
     "Singapore (+65)",
@@ -267,6 +269,7 @@
     "Tokens",
     "Top P",
     "Trace ID: 4e3e0ec6-2938-40b1-8504-09eb1d4b0dee",
+    "Trend",
     "Tunnel",
     "UID",
     "USD",
@@ -326,6 +329,7 @@
     "ip",
     "kubectl set image deployment/web * -n web",
     "libvirt",
+    "live",
     "main",
     "max",
     "median",
@@ -335,6 +339,7 @@
     "monitor",
     "ms",
     "name",
+    "neutral",
     "nova-compute",
     "ns",
     "null",
@@ -388,6 +393,7 @@
     "writesets",
     "x86",
     "z",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{capacity}} CPU",
     "{{count}} B",
     "{{count}} CPU",
@@ -407,6 +413,7 @@
     "{{count}} hunts",
     "{{count}} hypervisor",
     "{{count}} incident",
+    "{{count}} live",
     "{{count}} manager",
     "{{count}} managers",
     "{{count}} mon",
@@ -424,8 +431,10 @@
     "{{count}} s",
     "{{count}} sample",
     "{{count}} samples",
+    "{{count}} session",
     "{{count}} share",
     "{{count}} shares",
+    "{{count}} signal",
     "{{count}} stack",
     "{{count}} team",
     "{{count}} token",
@@ -435,6 +444,7 @@
     "{{minutes}} min",
     "{{percent}} full",
     "{{size}} disk",
-    "{{tokens}} tokens"
+    "{{tokens}} tokens",
+    "{{value}} ms"
   ]
 }

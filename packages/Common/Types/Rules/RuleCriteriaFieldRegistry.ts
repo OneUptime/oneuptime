@@ -357,6 +357,18 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "sysDescrPattern",
     "sysObjectIdPattern",
   ],
+  /*
+   * Which devices a naming rule names (issue #6619): read by
+   * NamingRuleMatcher, on the facts the naming engine gathers for a device
+   * being imported or already in the project.
+   */
+  NetworkDeviceNamingRule: [
+    "ipMatchTarget",
+    "discoveredNamePattern",
+    "macAddressPattern",
+    "vendorPattern",
+    "sites",
+  ],
   NetworkDeviceLabelRule: [
     "networkDeviceLabels",
     "networkDeviceNamePattern",

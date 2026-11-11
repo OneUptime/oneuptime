@@ -53,7 +53,10 @@ import SqlMonitorCriteria from "./Criteria/SqlMonitorCriteria";
 import DatabaseMonitorCriteria from "./Criteria/DatabaseMonitorCriteria";
 import ExternalStatusPageMonitorCriteria from "./Criteria/ExternalStatusPageMonitorCriteria";
 import ProbeStatusMonitorCriteria from "./Criteria/ProbeStatusMonitorCriteria";
-import MonitorCriteriaMessageBuilder from "./MonitorCriteriaMessageBuilder";
+import MonitorCriteriaMessageBuilder, {
+  CriteriaFilterText,
+} from "./MonitorCriteriaMessageBuilder";
+import EvaluationSentenceMemo from "./EvaluationSentenceMemo";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
 import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
 import AffectedResourceList, {
@@ -1425,16 +1428,27 @@ ${incomingRequestGrouping.rootCauseNote}
 
       const didMeetCriteria: boolean = Boolean(rootCause);
 
-      const filterMessage: string =
-        matchHistoryMessage ||
-        MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage({
-          monitor: input.monitor,
-          criteriaFilter: criteriaFilter,
-          dataToProcess: input.dataToProcess,
-          monitorStep: input.monitorStep,
-          didMeetCriteria: didMeetCriteria,
-          matchMessage: rootCause,
-        });
+      /*
+       * The message, and the sentence it was filled from when the check
+       * wrote it from one: the Dashboard words the sentence in each
+       * reader's language (EvaluationSentence), and shows the English of
+       * any other message as stored.
+       */
+      const filterText: CriteriaFilterText = matchHistoryMessage
+        ? {
+            message: matchHistoryMessage,
+            sentence: EvaluationSentenceMemo.find(matchHistoryMessage),
+          }
+        : MonitorCriteriaMessageBuilder.buildCriteriaFilterText({
+            monitor: input.monitor,
+            criteriaFilter: criteriaFilter,
+            dataToProcess: input.dataToProcess,
+            monitorStep: input.monitorStep,
+            didMeetCriteria: didMeetCriteria,
+            matchMessage: rootCause,
+          });
+
+      const filterMessage: string = filterText.message;
 
       const filterSummary: MonitorEvaluationFilterResult = {
         checkOn: criteriaFilter.checkOn,
@@ -1443,6 +1457,10 @@ ${incomingRequestGrouping.rootCauseNote}
         met: didMeetCriteria,
         message: filterMessage,
       };
+
+      if (filterText.sentence) {
+        filterSummary.messageSentence = filterText.sentence;
+      }
 
       input.criteriaResult.filters.push(filterSummary);
 

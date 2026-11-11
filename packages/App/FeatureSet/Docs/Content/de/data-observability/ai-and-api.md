@@ -32,6 +32,7 @@ Es funktioniert mit einer schreibgeschützten Anmeldung und antwortet als die Pe
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Die Sync-Webhooks von Fivetran | Dem Ingestion-Schlüssel, als Signatur-Secret von Fivetran |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Die Sync-Webhooks von Airbyte | Dem Ingestion-Schlüssel in der URL |
 | `POST /api/data-observability/tables/freshness` | Die Aktualität einer Tabelle, wie das MCP-Werkzeug sie beantwortet, mit `{ "table": "public.orders" }` | Einem API-Schlüssel |
+| `POST /api/data-observability/tables/lineage` | Die Datenherkunft einer Tabelle einige Schritte in jede Richtung, mit dem Zustand jeder Tabelle, wie ihr Tab **Datenherkunft** sie zeichnet, mit `{ "dataAssetId": "<table ID>", "depth": 3 }` | Einem API-Schlüssel |
 | `POST /api/data-observability/checks/apply` | Die Prüfungen des Projekts mit einer Datei in Übereinstimmung bringen, wie es `oneuptime data-checks apply` tut, mit `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | Einem API-Schlüssel |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | Das Badge „data as of“ eines Datenprodukts | Dem eigenen Token des Badges |
 

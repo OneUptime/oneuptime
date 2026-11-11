@@ -67,6 +67,7 @@ import {
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
 import { StateListType } from "../../../Utils/StateOrder";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * "(LEVEL 2 OF 3)" STAYS ON ONE LINE (UI review of escalate-incident-copy).
@@ -92,24 +93,7 @@ const LOCALES_DIRECTORY: string = path.join(
 );
 
 // Every language the Dashboard ships, besides English.
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 function translatorFor(language: string): Translator {
   const locale: Record<string, string> = JSON.parse(

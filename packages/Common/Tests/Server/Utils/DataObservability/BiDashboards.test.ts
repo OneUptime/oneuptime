@@ -316,66 +316,68 @@ describe("each tool's reader", () => {
 
   test("Power BI: a report charts its dataset's tables, from a workspace scan", async () => {
     let polls: number = 0;
-    const dashboards: Array<BiDashboardRead> = await PowerBiConnector.read({
-      baseUrl: "",
-      credentials: { tenantId: "t", clientId: "c", clientSecret: "s" },
-      wait: async (): Promise<void> => {},
-      transport: async (
-        request: DataSourceHttpRequest,
-      ): Promise<DataSourceHttpResponse> => {
-        const url: string = request.url;
+    const dashboards: Array<BiDashboardRead> = (
+      await PowerBiConnector.read({
+        baseUrl: "",
+        credentials: { tenantId: "t", clientId: "c", clientSecret: "s" },
+        wait: async (): Promise<void> => {},
+        transport: async (
+          request: DataSourceHttpRequest,
+        ): Promise<DataSourceHttpResponse> => {
+          const url: string = request.url;
 
-        if (url.includes("login.microsoftonline.com")) {
-          return json({ access_token: "aad" });
-        }
+          if (url.startsWith("https://login.microsoftonline.com/")) {
+            return json({ access_token: "aad" });
+          }
 
-        if (url.includes("/admin/workspaces/modified")) {
-          return json([{ id: "w1" }]);
-        }
+          if (url.includes("/admin/workspaces/modified")) {
+            return json([{ id: "w1" }]);
+          }
 
-        if (url.includes("/admin/workspaces/getInfo")) {
-          return json({ id: "scan1" });
-        }
+          if (url.includes("/admin/workspaces/getInfo")) {
+            return json({ id: "scan1" });
+          }
 
-        if (url.includes("/scanStatus/")) {
-          polls++;
-          return json({ status: polls < 2 ? "Running" : "Succeeded" });
-        }
+          if (url.includes("/scanStatus/")) {
+            polls++;
+            return json({ status: polls < 2 ? "Running" : "Succeeded" });
+          }
 
-        return json({
-          workspaces: [
-            {
-              id: "w1",
-              name: "Finance",
-              reports: [
-                {
-                  id: "r1",
-                  name: "Revenue",
-                  datasetId: "ds1",
-                  modifiedBy: "kim@acme.com",
-                },
-              ],
-              datasets: [
-                {
-                  id: "ds1",
-                  tables: [
-                    {
-                      name: "Orders",
-                      source: [
-                        {
-                          expression:
-                            'let Source = Sql.Database("db.acme.com", "orders"), T = Source{[Schema="dbo",Item="Orders"]}[Data] in T',
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        });
-      },
-    });
+          return json({
+            workspaces: [
+              {
+                id: "w1",
+                name: "Finance",
+                reports: [
+                  {
+                    id: "r1",
+                    name: "Revenue",
+                    datasetId: "ds1",
+                    modifiedBy: "kim@acme.com",
+                  },
+                ],
+                datasets: [
+                  {
+                    id: "ds1",
+                    tables: [
+                      {
+                        name: "Orders",
+                        source: [
+                          {
+                            expression:
+                              'let Source = Sql.Database("db.acme.com", "orders"), T = Source{[Schema="dbo",Item="Orders"]}[Data] in T',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          });
+        },
+      })
+    ).dashboards;
 
     expect(polls).toBe(2);
     expect(dashboards[0]).toMatchObject({

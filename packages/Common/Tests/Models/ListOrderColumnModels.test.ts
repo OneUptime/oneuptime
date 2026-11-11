@@ -109,6 +109,12 @@ const EXPECTED: Record<string, ListOrderSettings> = {
     scopeColumns: ["projectId"],
     sortOrder: SortOrder.Descending,
   },
+  // The first rule from the top that names a device wins: the highest number.
+  NetworkDeviceNamingRule: {
+    column: "priority",
+    scopeColumns: ["projectId"],
+    sortOrder: SortOrder.Descending,
+  },
   /*
    * A project's Collector Configs: a host runs the first config in the list
    * that applies to it (HostCollectorConfigResolution), so their order is

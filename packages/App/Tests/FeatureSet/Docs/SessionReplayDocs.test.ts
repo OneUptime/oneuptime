@@ -20,7 +20,7 @@ import {
 import {
   SESSION_REPLAY_RECORDER_ACTIVE_WINDOW_MS,
   SESSION_REPLAY_STALE_CHUNK_MS,
-} from "Common/Utils/Rum/SessionReplayHealth";
+} from "Common/Utils/SessionReplay/SessionReplayHealth";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1028,7 +1028,9 @@ describe("Session Replay docs page", (): void => {
     expect(SESSION_REPLAY_STALE_CHUNK_MS).toBe(6 * 60 * 60 * 1000);
     expect(SESSION_REPLAY_RECORDER_ACTIVE_WINDOW_MS).toBe(24 * 60 * 60 * 1000);
 
-    const health: string = readRepo("Common/Utils/Rum/SessionReplayHealth.ts");
+    const health: string = readRepo(
+      "Common/Utils/SessionReplay/SessionReplayHealth.ts",
+    );
 
     /* A recorder that IS still loading is "stale", not "healthy-quiet". */
     const staleBranch: string =

@@ -224,16 +224,16 @@ Fügen Sie Kriterien hinzu, um festzulegen, wann der Monitor als online, beeintr
 
 | Filtertyp | Was er prüft |
 |---|---|
-| **SQL Is Online** | Ob die Datenbank erreichbar war und die Abfrage erfolgreich lief. |
-| **SQL Query Row Count** | Die Zahl der zurückgegebenen Zeilen. Vergleichen Sie mit Operatoren wie größer als, kleiner als oder gleich. |
-| **SQL Query Scalar Value** | Die erste Spalte der ersten Zeile. Als Zahl verglichen, wenn der eingegebene Wert eine Zahl ist, sonst als Zeichenkette. Das ist die Prüfung für Abfragen im Stil von `COUNT(*)`. |
-| **SQL Query Execution Time (in ms)** | Wie lange die Abfrage dauerte. Nützlich, um eine langsame Datenbank zu erkennen. |
-| **SQL Query Error** | Die Fehlermeldung der Abfrage. Alarmieren, wenn sie leer (oder nicht leer) ist oder einer bestimmten Zeichenkette entspricht. |
-| **JavaScript Expression** | Einen eigenen JavaScript-Ausdruck über `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` und `isOnline` auswerten. Siehe [JavaScript-Ausdrücke](/docs/monitor/javascript-expression#sql-abfrage-monitore). |
+| **SQL ist online** | Ob die Datenbank erreichbar war und die Abfrage erfolgreich lief. |
+| **Zeilenanzahl der SQL-Abfrage** | Die Zahl der zurückgegebenen Zeilen. Vergleichen Sie mit Operatoren wie größer als, kleiner als oder gleich. |
+| **Skalarwert der SQL-Abfrage** | Die erste Spalte der ersten Zeile. Als Zahl verglichen, wenn der eingegebene Wert eine Zahl ist, sonst als Zeichenkette. Das ist die Prüfung für Abfragen im Stil von `COUNT(*)`. |
+| **Ausführungszeit der SQL-Abfrage (in ms)** | Wie lange die Abfrage dauerte. Nützlich, um eine langsame Datenbank zu erkennen. |
+| **SQL-Abfragefehler** | Die Fehlermeldung der Abfrage. Alarmieren, wenn sie leer (oder nicht leer) ist oder einer bestimmten Zeichenkette entspricht. |
+| **JavaScript-Ausdruck** | Einen eigenen JavaScript-Ausdruck über `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` und `isOnline` auswerten. Siehe [JavaScript-Ausdrücke](/docs/monitor/javascript-expression#sql-abfrage-monitore). |
 
 Zahlenschwellen sind ganze Zahlen: Schreiben Sie `10`, nicht `10.5`. SQL-Abfrage-Filter lassen sich nicht über einen Zeitraum auswerten; jede Prüfung steht für sich.
 
-Ein neuer SQL-Abfrage-Monitor beginnt mit zwei Kriterien: **SQL Is Online** ist falsch — der Monitor geht offline und eröffnet einen Vorfall, der sich selbst behebt — und **SQL Is Online** ist wahr, was ihn als online markiert. **Kriterien hinzufügen** fügt eines unten an; ziehen Sie es über das Online-Kriterium, denn Kriterien werden von oben geprüft, und das erste, das zutrifft, entscheidet.
+Ein neuer SQL-Abfrage-Monitor beginnt mit zwei Kriterien: **SQL ist online** ist falsch — der Monitor geht offline und eröffnet einen Vorfall, der sich selbst behebt — und **SQL ist online** ist wahr, was ihn als online markiert. **Kriterien hinzufügen** fügt eines unten an; ziehen Sie es über das Online-Kriterium, denn Kriterien werden von oben geprüft, und das erste, das zutrifft, entscheidet.
 
 ### Beispiel: alarmieren, wenn Stornierungen sprunghaft steigen
 

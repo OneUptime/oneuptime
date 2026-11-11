@@ -42,8 +42,8 @@ En applikations egen sidomeny grupperar dess sidor så här; **Inställningar**,
 | --- | --- |
 | **Grundläggande** | **Översikt**, **Rekommendationer**, **Dokumentation** |
 | **Observerbarhet** | **Mätvärden**, **Loggar**, **Spår**, **Klienter** |
-| **Produktanalys** | **Användare**, **Sessioner** |
-| **Sessionsuppspelning** | **Sessionsuppspelning**, **Användarflöden**, **Användare i uppspelningar**, **Hälsa**, **Uppspelningspolicy**, **Frustrationssignaler**, **Åtkomstlogg för uppspelningar**, **Dokumentation** |
+| **Produktanalys** | **Användare**, **Sessioner**, **Händelser**, **Trattar**, **Kvarhållning av användare**, **Användarflöden**, **Analysinställningar** |
+| **Sessionsuppspelning** | **Sessionsuppspelning**, **Användare i uppspelningar**, **Hälsa**, **Uppspelningspolicy**, **Frustrationssignaler**, **Åtkomstlogg för uppspelningar**, **Dokumentation** |
 | **Inställningar** | **Inställningar** |
 | **Utvecklare** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
 | **Avancerad** | **Granskningsloggar**, **Radera applikation** |
@@ -78,11 +78,11 @@ OneUptime hittar applikationen utifrån `service.name`, utan hänsyn till skiftl
 
 | Var | Vad det visar |
 | --- | --- |
-| **Översikt** | Rutor för **Sidladdningar**, **Sidladdningstid (p95)**, **Händelser**, **Felfrekvens**, **Event duration (p95)**, **Undantag**, **Klienter** och **Sessions recorded**, och trenddiagram över det tidsintervall du väljer. |
+| **Översikt** | Rutor för **Sidladdningar**, **Sidladdningstid (p95)**, **Händelser**, **Felfrekvens**, **Händelsevaraktighet (p95)**, **Undantag**, **Klienter** och **Inspelade sessioner**, och trenddiagram över det tidsintervall du väljer. |
 | **Core Web Vitals** | Ett kort i översikten med LCP, INP, CLS, FCP och TTFB, var och en bedömd mot Googles gränser, och INP för varje route i en ensidesapp. Se [Core Web Vitals](/docs/rum/web-vitals) och [Ensidesappar](/docs/rum/web-vitals#ensidesappar). |
 | **Mätvärden**, **Loggar**, **Spår** | Telemetriutforskarna, begränsade till den här applikationen. |
 | **Klienter** | De webbläsarplattformar och enhetsmodeller som applikationen har använts på: en kort lista per plattform, aldrig en rad per användare. |
-| **Produktanalys** | Aktiva, nya, återkommande och inaktiva användare, och sessioner per enhet, webbläsare, land och sida, räknade från de inspelade sessionerna: se [Produktanalys](/docs/rum/product-analytics). |
+| **Produktanalys** | Aktiva, nya, återkommande och inaktiva användare och sessioner per enhet, webbläsare, land och sida, räknade från de inspelade sessionerna, och de händelser din app skickar, som trender, trattar och kvarhållning: se [Produktanalys](/docs/rum/product-analytics). |
 | **Sessionsuppspelning** | Inspelningar av riktiga sessioner, bredvid deras fel, spår och loggar: se [Sessionsuppspelning](/docs/telemetry/session-replay). |
 | **Rekommendationer** | Färdiga övervakare för applikationen: dåliga Core Web Vitals, misslyckade förfrågningar, webbläsarundantag och, så snart den spelar in, budgetar för Session Replay. |
 

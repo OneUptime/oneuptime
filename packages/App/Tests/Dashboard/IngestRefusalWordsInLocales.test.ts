@@ -8,6 +8,7 @@ import TelemetryIngestionKeyRefusal from "Common/Models/DatabaseModels/Telemetry
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * WHAT WAS REFUSED, IN EVERY LANGUAGE (issue #6378).
@@ -25,24 +26,7 @@ import path from "path";
 const DASHBOARD: string = path.resolve(__dirname, "../../FeatureSet/Dashboard");
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../..");
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 type Locale = Record<string, unknown>;
 

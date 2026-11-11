@@ -6,6 +6,7 @@ import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel
 import RumSession from "Common/Models/AnalyticsModels/RumSession";
 import RumProductAnalyticsSession from "Common/Models/AnalyticsModels/RumProductAnalyticsSession";
 import RumProductAnalyticsUser from "Common/Models/AnalyticsModels/RumProductAnalyticsUser";
+import RumProductAnalyticsEvent from "Common/Models/AnalyticsModels/RumProductAnalyticsEvent";
 import { ClickHouseClientConfigOptions } from "Common/Server/Infrastructure/ClickhouseConfig";
 import ClickhouseDatabase, {
   ClickhouseClient,
@@ -655,10 +656,15 @@ integration("Product analytics against ClickHouse", () => {
     /* connect() creates the database before opening the pool on it. */
     client = await clickhouse.connect(options);
 
+    /*
+     * The events table too: the erasure filters below name it, as the
+     * erasure job deletes a session's events with its summary.
+     */
     for (const modelType of [
       RumSession,
       RumProductAnalyticsSession,
       RumProductAnalyticsUser,
+      RumProductAnalyticsEvent,
     ]) {
       await createTable(
         client,

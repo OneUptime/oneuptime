@@ -17,8 +17,8 @@ Vid varje kontroll ber en sond en DNS-server om en posttyp för ett namn, till e
 flowchart TB
     query["Fråga efter posttypen"] --> answer{"Poster returnerade?"}
     answer -->|"Nej, återförsök kvar"| query
-    answer -->|"Nej, inga återförsök kvar"| offline["DNS Is Online: False"]
-    answer -->|"Ja"| online["DNS Is Online: True"]
+    answer -->|"Nej, inga återförsök kvar"| offline["DNS är online: Falskt"]
+    answer -->|"Ja"| online["DNS är online: Sant"]
     online --> ad["Kontrollera AD-flaggan"]
     ad --> criteria["Kontrollera kriterierna"]
     offline --> criteria
@@ -52,7 +52,7 @@ Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på 
 
 ### Gå igenom kriterierna
 
-**Monitorkriterier** börjar med [standardkriterierna](#standardkriterier): offline när namnet inte går att slå upp, online när det går. För att kontrollera vad posterna säger lägger du till ett filter **DNS Record Value** och klickar sedan på **Nästa**.
+**Monitorkriterier** börjar med [standardkriterierna](#standardkriterier): offline när namnet inte går att slå upp, online när det går. För att kontrollera vad posterna säger lägger du till ett filter **Värde för DNS-post** och klickar sedan på **Nästa**.
 
 ### Välj sonder och skapa
 
@@ -72,7 +72,7 @@ Behåll eller ändra **Sonder** och **Övervakningsintervall** (det börjar på 
 
 ### Posttyper
 
-Ett kriterium med **DNS Record Value** jämför din text med varje post så som sonden skriver den, så följ det här formatet:
+Ett kriterium med **Värde för DNS-post** jämför din text med varje post så som sonden skriver den, så följ det här formatet:
 
 | Posttyp | Vad den innehåller | Värdets format, för kriterier |
 | --- | --- | --- |
@@ -95,15 +95,15 @@ Kriterier avgör när namnet räknas som online, försämrat eller offline, och 
 
 | Filter | Villkor | Vad det kontrollerar |
 | --- | --- | --- |
-| **DNS Is Online** | **Sant**, **Falskt** | Om frågan returnerade minst en post av typen. |
-| **DNS Response Time (in ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Hur lång tid frågan tog. |
-| **DNS Record Exists** | **Sant**, **Falskt** | Om någon post av typen kom tillbaka. |
-| **DNS Record Value** | **Innehåller**, **Innehåller inte**, **Börjar med**, **Slutar med**, **Lika med**, **Inte lika med** | Posternas värden. Filtret matchar när en enda post matchar. |
-| **DNSSEC Is Valid** | **Sant**, **Falskt** | Om en validerande upplösare sätter AD-flaggan på svaret. |
+| **DNS är online** | **Sant**, **Falskt** | Om frågan returnerade minst en post av typen. |
+| **DNS-svarstid (i ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Hur lång tid frågan tog. |
+| **DNS-post finns** | **Sant**, **Falskt** | Om någon post av typen kom tillbaka. |
+| **Värde för DNS-post** | **Innehåller**, **Innehåller inte**, **Börjar med**, **Slutar med**, **Lika med**, **Inte lika med** | Posternas värden. Filtret matchar när en enda post matchar. |
+| **DNSSEC är giltig** | **Sant**, **Falskt** | Om en validerande upplösare sätter AD-flaggan på svaret. |
 
-**DNS Record Value** matchar när _någon_ av posterna matchar. Med flera `A`-poster matchar **Lika med** `93.184.216.34` när en av dem är den adressen, och **Inte lika med** matchar när en av dem inte är det.
+**Värde för DNS-post** matchar när _någon_ av posterna matchar. Med flera `A`-poster matchar **Lika med** `93.184.216.34` när en av dem är den adressen, och **Inte lika med** matchar när en av dem inte är det.
 
-**DNSSEC Is Valid** frågar servern i **DNS-server (valfritt)**, på dess **Port**, eller Google Public DNS (`8.8.8.8`) när fältet är tomt, så servern du anger bör vara en som validerar DNSSEC. Filtret har inget värde och matchar inte åt något håll när sonden inte kan köra den kontrollen. För en fullständig kontroll av en signerad zon använder du en [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
+**DNSSEC är giltig** frågar servern i **DNS-server (valfritt)**, på dess **Port**, eller Google Public DNS (`8.8.8.8`) när fältet är tomt, så servern du anger bör vara en som validerar DNSSEC. Filtret har inget värde och matchar inte åt något håll när sonden inte kan köra den kontrollen. För en fullständig kontroll av en signerad zon använder du en [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
 
 Med två eller fler filter avgör **Matchningsvillkor** om **Alla** måste matcha eller om **Valfri** av dem räcker. Ett kriteriums **Åtgärder** avgör vad det gör: ändrar monitorns status, skapar ett larm, deklarerar en incident eller flera av dessa.
 
@@ -118,15 +118,15 @@ Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad
 
 ### Utvärdering över en tidsperiod
 
-**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **DNS Is Online** och **DNS Response Time (in ms)**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för den senaste: välj en aggregering under **Utvärdera** och ett fönster, från 2 till 60 minuter, under **Under de senaste (i minuter)**.
+**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **DNS är online** och **DNS-svarstid (i ms)**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för den senaste: välj en aggregering under **Utvärdera** och ett fönster, från 2 till 60 minuter, under **Under de senaste (i minuter)**.
 
 | Aggregering | Matchar när |
 | --- | --- |
-| **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value** | Det värdet över fönstret uppfyller villkoret. Bara **DNS Response Time (in ms)**. |
-| **All Values** | Varje kontroll i fönstret uppfyller villkoret. |
-| **Any Value** | Minst en kontroll i fönstret uppfyller villkoret. |
+| **Genomsnitt**, **Summa**, **Maxvärde**, **Minvärde** | Det värdet över fönstret uppfyller villkoret. Bara **DNS-svarstid (i ms)**. |
+| **Alla värden** | Varje kontroll i fönstret uppfyller villkoret. |
+| **Minst ett värde** | Minst en kontroll i fönstret uppfyller villkoret. |
 
-**All Values** matchar först när fönstret verkligen täcks av data. En monitor som just skapats, eller en vars kontroller slutade registreras, har inte tillräcklig historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Any Value** är inställningen för "säg till direkt när en enda kontroll går över gränsen" och utlöses fortfarande omedelbart.
+**Alla värden** matchar först när fönstret verkligen täcks av data. En monitor som just skapats, eller en vars kontroller slutade registreras, har inte tillräcklig historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Minst ett värde** är inställningen för "säg till direkt när en enda kontroll går över gränsen" och utlöses fortfarande omedelbart.
 
 **Om ingen data** avgör vad som händer så länge fönstret inte kan bära kriteriet:
 
@@ -140,11 +140,11 @@ Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad
 
 | Mål | Filter | Villkor | Värde |
 | --- | --- | --- | --- |
-| Offline när namnet slutar gå att slå upp | **DNS Is Online** | **Falskt** | — |
-| Larma när ett namns enda `A`-post ändras | **DNS Record Value** | **Inte lika med** | `93.184.216.34` |
-| Larma när en `MX`-post pekar utanför din domän | **DNS Record Value** | **Innehåller inte** | `example.com` |
-| Markera DNS som försämrad när den är långsam | **DNS Response Time (in ms)** | **Större än** | `500` |
-| Larma när DNSSEC-valideringen misslyckas | **DNSSEC Is Valid** | **Falskt** | — |
+| Offline när namnet slutar gå att slå upp | **DNS är online** | **Falskt** | — |
+| Larma när ett namns enda `A`-post ändras | **Värde för DNS-post** | **Inte lika med** | `93.184.216.34` |
+| Larma när en `MX`-post pekar utanför din domän | **Värde för DNS-post** | **Innehåller inte** | `example.com` |
+| Markera DNS som försämrad när den är långsam | **DNS-svarstid (i ms)** | **Större än** | `500` |
+| Larma när DNSSEC-valideringen misslyckas | **DNSSEC är giltig** | **Falskt** | — |
 
 ## Felsökning
 
@@ -157,14 +157,14 @@ dig @8.8.8.8 example.com A
 :::
 
 :::details Ett kriterium med Inte lika med utlöses fast rätt adress finns där
-**DNS Record Value** matchar när en enda post matchar. Med flera poster utlöses **Inte lika med** så snart en av dem skiljer sig. För att kontrollera att ett visst värde finns bland posterna förlitar du dig på kriteriernas ordning, eftersom den första träffen vinner:
+**Värde för DNS-post** matchar när en enda post matchar. Med flera poster utlöses **Inte lika med** så snart en av dem skiljer sig. För att kontrollera att ett visst värde finns bland posterna förlitar du dig på kriteriernas ordning, eftersom den första träffen vinner:
 
-1. Behåll standardkriteriet för offline överst: **DNS Is Online** / **Falskt**.
-2. Lägg under det till ett kriterium med **DNS Record Value** / **Lika med** / värdet du förväntar dig, som markerar monitorn som **Fungerar**.
-3. Lägg under det i sin tur till ett kriterium med **DNS Is Online** / **Sant**, som markerar monitorn som **Offline** och deklarerar en incident. Det matchar bara svar som inte har värdet.
+1. Behåll standardkriteriet för offline överst: **DNS är online** / **Falskt**.
+2. Lägg under det till ett kriterium med **Värde för DNS-post** / **Lika med** / värdet du förväntar dig, som markerar monitorn som **Fungerar**.
+3. Lägg under det i sin tur till ett kriterium med **DNS är online** / **Sant**, som markerar monitorn som **Offline** och deklarerar en incident. Det matchar bara svar som inte har värdet.
 :::
 
-:::details DNSSEC Is Valid matchar aldrig
+:::details DNSSEC är giltig matchar aldrig
 Servern i **DNS-server (valfritt)** validerar inte DNSSEC och sätter därför aldrig AD-flaggan, eller så kunde sonden inte köra kontrollen. Lämna fältet tomt för att validera med `8.8.8.8`, eller använd en [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
 :::
 

@@ -2899,7 +2899,6 @@ describe("the four pages together", () => {
 
   it("keep in English only the labels no Dashboard locale has, where the Dashboard draws them so", () => {
     const drawnIn: Record<string, string> = {
-      "Service Map": "Pages/Topology/TopologyPage.tsx",
       "Entry point": "Components/Topology/ServiceMapViewModel.ts",
       "No calls observed": "Components/Topology/ServiceMapViewModel.ts",
     };

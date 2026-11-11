@@ -22,6 +22,8 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import readAsWritten from "Common/UI/Components/IsolatedText/ReadAsWritten";
+import { getReaderDateLocale } from "Common/Types/DateLanguage";
 
 interface ComponentProps {
   subjectType: "incident" | "alert";
@@ -315,7 +317,7 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
         : "No recorded decision",
   ) as string;
   const checkedAt: string | null = reason
-    ? new Date(reason.evaluatedAt).toLocaleString(undefined, {
+    ? new Date(reason.evaluatedAt).toLocaleString(getReaderDateLocale(), {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -331,8 +333,16 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
       className="space-y-6"
     >
       <div>
-        <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-        <p className="mt-1 text-sm leading-6 text-gray-600">{description}</p>
+        {/*
+         * The reason's own copy is the server's English: on an Arabic page
+         * it reads as written, its full stop at its end (ReadAsWritten).
+         */}
+        <h3 className="text-sm font-semibold text-gray-900">
+          {readAsWritten(title, translator.language)}
+        </h3>
+        <p className="mt-1 text-sm leading-6 text-gray-600">
+          {readAsWritten(description, translator.language)}
+        </p>
         {!isLoading && !isUnavailable ? (
           <div className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-relaxed text-gray-500">
             <Icon icon={IconProp.Clock} className="h-3.5 w-3.5" />
@@ -365,7 +375,9 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
           <h3 className="text-sm font-semibold text-gray-900">
             {translator.translateText("What you can do")}
           </h3>
-          <p className="mt-1 text-sm leading-6 text-gray-600">{nextStep}</p>
+          <p className="mt-1 text-sm leading-6 text-gray-600">
+            {readAsWritten(nextStep, translator.language)}
+          </p>
           {action && canReviewSettings ? (
             <Link
               to={RouteUtil.populateRouteParams(RouteMap[action.page] as Route)}

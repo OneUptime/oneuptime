@@ -5,6 +5,7 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * A QUEUE'S BROKER HEALTH SECTION SAYS ALL ITS WORDS IN THE READER'S
@@ -55,24 +56,7 @@ const SHARED_FILE_STRINGS: ReadonlyArray<string> = [
   "Server send latency",
 ];
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 type Locale = Record<string, unknown>;
 

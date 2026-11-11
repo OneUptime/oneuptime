@@ -104,7 +104,7 @@ Elke statuswijziging wordt, met de reden ervan, vastgelegd op de **Statustijdlij
 
 ## Criteria
 
-De criteria van een logs-monitor hebben één **Filtertype**: **Log Count**, het aantal logs dat in het venster overeenkwam. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en, bij een drempelvoorwaarde, een **Waarde**.
+De criteria van een logs-monitor hebben één **Filtertype**: **Aantal logs**, het aantal logs dat in het venster overeenkwam. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en, bij een drempelvoorwaarde, een **Waarde**.
 
 | Filtervoorwaarde | Komt overeen wanneer het aantal logs… |
 | --- | --- |
@@ -113,9 +113,9 @@ De criteria van een logs-monitor hebben één **Filtertype**: **Log Count**, het
 | **Kleiner dan** | onder de waarde ligt |
 | **Kleiner dan of gelijk aan** | gelijk is aan de waarde of lager |
 | **Gelijk aan** | precies de waarde is |
-| **Anomalously High** | boven het verwachte bereik voor dit uur van de week ligt |
-| **Anomalously Low** | onder dat bereik ligt |
-| **Anomalous** | buiten dat bereik ligt, in welke richting ook |
+| **Afwijkend hoog** | boven het verwachte bereik voor dit uur van de week ligt |
+| **Afwijkend laag** | onder dat bereik ligt |
+| **Afwijkend** | buiten dat bereik ligt, in welke richting ook |
 
 De anomaliecondities hebben geen **Waarde**. Kies een **Gevoeligheid** (Laag, Gemiddeld, de standaard, of Hoog) en, in de eigen criteria, een **Baseline-venster** van 14 (de standaard), 28, 60 of 90 dagen. OneUptime zet het aantal om in een tempo per minuut en vergelijkt dat met vensters van dezelfde lengte rond hetzelfde tijdstip in eerdere weken, zo ver als het **Baseline-venster** teruggaat; wat er nu gebeurt, hoort nooit bij die vergelijking. De baseline omvat alleen de services en ernstniveaus van de monitor: de tekst- en attribuutfilters horen er niet bij. Minuten zonder logs tellen ook mee, dus een service die vaak stil is, telt niet als ongewoon laag omdat hij stil is. Een venster telt alleen als ongewoon hoog ten opzichte van de vensters met logs, en alleen met minstens 20, 10 of 5 logs bij de gevoeligheid Laag, Gemiddeld of Hoog, zodat noch de gebruikelijke piek van een taak noch de eerste paar regels van een stille service het laten afgaan. Zolang de services van de monitor geen twee weken geschiedenis hebben, is het criterium nog aan het leren en gaat het niet af.
 
@@ -131,8 +131,8 @@ Een logs-monitor die via de API of Terraform zonder criteria is aangemaakt, begi
 
 | Criterium | Filter | Effect |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Gelijk aan** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
-| Check if … is online | **Log Count** **Groter dan** `0` | Zet de monitor online |
+| Check if … is offline | **Aantal logs** **Gelijk aan** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
+| Check if … is online | **Aantal logs** **Groter dan** `0` | Zet de monitor online |
 
 ## Uitgewerkt voorbeeld: een piek in fouten
 
@@ -234,7 +234,7 @@ De waarde van elk Group By-attribuut is een [templatevariabele](/docs/monitor/in
 
 - **Elk criterium wordt geëvalueerd**, net als bij een gegroepeerde metrics-monitor, dus verschillende groepen kunnen tegelijk aan verschillende criteria voldoen. Een groep die aan twee criteria voldoet, krijgt nog steeds één waarschuwing, van het eerste; zet de criteria dus op volgorde van ernstigst naar minst ernstig.
 - **Een groep bestaat alleen als hij in het tijdvenster iets heeft gelogd.** Criteria als **Gelijk aan 0** en **Kleiner dan** gaan daarom alleen af voor groepen die minstens één keer hebben gelogd; om gewaarschuwd te worden wanneer logs helemaal niet meer binnenkomen, gebruikt u een monitor zonder Group By.
-- **Anomaliedetectie** (**Anomalously High**, **Anomalously Low**, **Anomalous**) wordt niet per groep geëvalueerd (de baseline omvat de hele monitor), dus die filters komen bij een gegroepeerde monitor nooit overeen.
+- **Anomaliedetectie** (**Afwijkend hoog**, **Afwijkend laag**, **Afwijkend**) wordt niet per groep geëvalueerd (de baseline omvat de hele monitor), dus die filters komen bij een gegroepeerde monitor nooit overeen.
 - De status van de monitor volgt het eerste criterium waaraan een groep voldoet. Voldoet geen enkele groep aan een criterium, dan gaat de monitor terug naar zijn standaardstatus.
 
 ## Problemen oplossen
@@ -244,7 +244,7 @@ Het aantal was 0, dus de filters komen met geen enkele log van de service overee
 :::
 
 :::details Er was een piek, maar er kwam geen waarschuwing
-De criteria worden van boven naar beneden gecontroleerd en de eerste overeenkomst beslist. Een breed criterium boven het criterium dat u verwachtte, zoals **Log Count** **Groter dan** `0`, komt eerst overeen en houdt de rest tegen. Zet het ernstigste criterium bovenaan.
+De criteria worden van boven naar beneden gecontroleerd en de eerste overeenkomst beslist. Een breed criterium boven het criterium dat u verwachtte, zoals **Aantal logs** **Groter dan** `0`, komt eerst overeen en houdt de rest tegen. Zet het ernstigste criterium bovenaan.
 :::
 
 :::details Een anomaliecriterium gaat nooit af

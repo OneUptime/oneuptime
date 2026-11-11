@@ -137,6 +137,15 @@ export default class MonitorEvaluationDetailsBuilder {
         ),
       };
 
+      /*
+       * The sentence the message was filled from, for the incident's page
+       * to word in each reader's language - only beside the whole message:
+       * a message cut to its bound says less than its sentence would.
+       */
+      if (result.messageSentence && filter.message === (result.message || "")) {
+        filter.messageSentence = result.messageSentence;
+      }
+
       if (result.filterType) {
         filter.filterType = result.filterType;
       }
@@ -265,6 +274,8 @@ export default class MonitorEvaluationDetailsBuilder {
       },
       (filter: MonitorEvaluationFilterDetails): void => {
         filter.message = MonitorEvaluationEvidence.bound(filter.message, 200);
+        // Its sentence says the whole message: it goes with it.
+        delete filter.messageSentence;
 
         if (filter.actual) {
           filter.actual = MonitorEvaluationEvidence.bound(filter.actual, 100);

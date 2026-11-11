@@ -42,18 +42,23 @@ import { describe, expect, it } from "@jest/globals";
  *     language's Dashboard locale, Persian included, as on the on-call,
  *     runbook, workflow and introduction pages (drawnActionLabel). Menu
  *     paths ("A → B → C") are drawn segment by segment.
- *   - The criteria filters, a few of their conditions and options (Is
- *     Online, Evaluates To True, Treat As Zero), the HTTP methods, two
- *     template sync field names and a few more have no Dashboard locale key
- *     at all: every language's Dashboard shows them in English, so every
- *     translation names them in English (SHOWN_IN_ENGLISH). When the
- *     Dashboard gains a key for one, a test below fails until the pages name
- *     it as drawn. The comparisons (Greater Than, Equal To, Not Contains)
- *     gained theirs in adc8421a1b: they are labels now, drawn like any other
- *     (DocsCriteriaConditions holds every page to them).
- *   - The request headers' Add button is drawn from the "Add {{itemName}}"
- *     template around an item name that has no translation
- *     (TEMPLATED_LABELS).
+ *   - The If No Data options (Ignore, Treat As Zero), the HTTP methods, two
+ *     template sync field names and the sync button have no Dashboard
+ *     locale key at all: every language's Dashboard shows them in English,
+ *     so every translation names them in English (SHOWN_IN_ENGLISH). When
+ *     the Dashboard gains a key for one, a test below fails until the pages
+ *     name it as drawn. The comparisons (Greater Than, Equal To, Not
+ *     Contains) gained theirs in adc8421a1b, and the criteria filters (Is
+ *     Online, Response Header, Packet Loss (in %)), their window aggregates
+ *     and the rest of their conditions (Evaluates To True) theirs in
+ *     31eadaee92e, worded in every language in f155e8e0998: they are labels
+ *     now, drawn like any other (DocsCriteriaConditions holds every page to
+ *     the conditions).
+ *   - A button drawn from a template such as "Add {{itemName}}" around an
+ *     item name that has no translation keeps that name in English
+ *     (TEMPLATED_LABELS). The request headers' Add button was one until
+ *     31eadaee92e keyed "Request Header": it is drawn like any other Add
+ *     button now, the item name translated.
  *
  * Bold words that are Dashboard labels only by coincidence - a list item's
  * lead, a keyboard key - are PROSE, with why.
@@ -103,35 +108,13 @@ const PROBE_CHECK_PAGES: Array<string> = [
 ];
 
 /*
- * The criteria filters and the over-time aggregates the criteria form offers
- * without a locale key (CheckOn, EvaluateOverTimeType and NoDataPolicy
- * values), on every probe check page that names them. Their conditions
- * (FilterType) have keys, and are drawn.
+ * The If No Data options the criteria form offers without a locale key
+ * (NoDataPolicy values), on every probe check page that names them. The
+ * criteria filters, their over-time aggregates and their conditions
+ * (CheckOn, EvaluateOverTimeType and FilterType values) have keys, and are
+ * drawn.
  */
-const CRITERIA_NAMES_IN_ENGLISH: Array<string> = [
-  "Is Online",
-  "Is Request Timeout",
-  "Maximum Value",
-  "Minimum Value",
-  "All Values",
-  "Any Value",
-  "Ignore",
-  "Treat As Zero",
-];
-
-// The HTTP criteria the Website and API monitors add, but their conditions.
-const HTTP_CRITERIA_IN_ENGLISH: Array<string> = [
-  "Response Header",
-  "Response Header Value",
-  "JavaScript Expression",
-  "Evaluates To True",
-];
-
-// The ping measurements Ping and IP monitors add.
-const PING_CRITERIA_IN_ENGLISH: Array<string> = [
-  "Packet Loss (in %)",
-  "Jitter (in ms)",
-];
+const CRITERIA_NAMES_IN_ENGLISH: Array<string> = ["Ignore", "Treat As Zero"];
 
 /*
  * Bold names every language's Dashboard shows in English, because its
@@ -149,13 +132,9 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Monitor destination",
     "Request headers",
   ],
-  [WEBSITE_MONITOR]: [
-    ...CRITERIA_NAMES_IN_ENGLISH,
-    ...HTTP_CRITERIA_IN_ENGLISH,
-  ],
+  [WEBSITE_MONITOR]: CRITERIA_NAMES_IN_ENGLISH,
   [API_MONITOR]: [
     ...CRITERIA_NAMES_IN_ENGLISH,
-    ...HTTP_CRITERIA_IN_ENGLISH,
     // The API Request Type's options: HTTP methods.
     "GET",
     "POST",
@@ -164,33 +143,28 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "DELETE",
     "HEAD",
   ],
-  [PING_MONITOR]: [...CRITERIA_NAMES_IN_ENGLISH, ...PING_CRITERIA_IN_ENGLISH],
-  [IP_MONITOR]: [...CRITERIA_NAMES_IN_ENGLISH, ...PING_CRITERIA_IN_ENGLISH],
-  [PORT_MONITOR]: [
-    ...CRITERIA_NAMES_IN_ENGLISH,
-    "Port DNS Lookup Time (in ms)",
-    "Port TCP Connect Time (in ms)",
-  ],
+  [PING_MONITOR]: CRITERIA_NAMES_IN_ENGLISH,
+  [IP_MONITOR]: CRITERIA_NAMES_IN_ENGLISH,
+  [PORT_MONITOR]: CRITERIA_NAMES_IN_ENGLISH,
 };
 
 /*
  * Buttons drawn from a Dashboard template around a name the locale does not
- * translate: the request headers' Add button is "Add {{itemName}}" with
- * "Request Header" (MonitorStep's DictionaryOfStrings), which German draws
- * "Request Header hinzufügen".
+ * translate, by page: "Add {{itemName}}" around such a name keeps the name
+ * in English ("... hinzufügen" in German). None is left on these pages: the
+ * request headers' Add button (MonitorStep's DictionaryOfStrings, "Add
+ * {{itemName}}" with "Request Header") is a label since 31eadaee92e keyed
+ * its item name, and is drawn whole, as German draws "Anfrage-Header
+ * hinzufügen".
  */
 const TEMPLATED_LABELS: Record<
   string,
   Array<{ english: string; template: string; itemName: string }>
-> = {
-  [API_MONITOR]: [
-    {
-      english: "Add Request Header",
-      template: "Add {{itemName}}",
-      itemName: "Request Header",
-    },
-  ],
-};
+> = {};
+
+// The Add button the API page names, and the item name it is drawn around.
+const REQUEST_HEADER_BUTTON: string = "Add Request Header";
+const REQUEST_HEADER: string = "Request Header";
 
 /*
  * Bold words that are Dashboard labels by coincidence but are prose where the
@@ -361,7 +335,6 @@ describe("the lists this test keeps", () => {
             !BEFORE_YOU_BEGIN_LEAD.test(span) &&
             ![
               "Credentials as monitor secrets.",
-              "Add Request Header",
               "DNS lookup",
               "TCP connect",
               "5",
@@ -391,6 +364,19 @@ describe("the lists this test keeps", () => {
         expect(isActionLabel(entry.english)).toBe(false);
       }
     }
+  });
+
+  it("draw the request headers' Add button as a label: its item name has a key since 31eadaee92e", () => {
+    expect(boldLabels(englishPage(API_MONITOR))).toContain(
+      REQUEST_HEADER_BUTTON,
+    );
+    expect(isActionLabel(REQUEST_HEADER)).toBe(true);
+    expect(isActionLabel(REQUEST_HEADER_BUTTON)).toBe(true);
+    // German fills its Add template with the item's own German name.
+    expect(drawnActionLabel("de", REQUEST_HEADER_BUTTON)).toBe(
+      filled("de", "Add {{itemName}}", drawnActionLabel("de", REQUEST_HEADER)),
+    );
+    expect(drawnActionLabel("de", REQUEST_HEADER)).not.toBe(REQUEST_HEADER);
   });
 
   it("find plenty to check on every page", () => {
@@ -695,11 +681,13 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("fill a template around an untranslated name, as German draws it", () => {
-    expect(filled("en", "Add {{itemName}}", "Request Header")).toBe(
-      "Add Request Header",
+    // A template sync field's name, which no locale words.
+    expect(isActionLabel("Request headers")).toBe(false);
+    expect(filled("en", "Add {{itemName}}", "Request headers")).toBe(
+      "Add Request headers",
     );
-    expect(filled("de", "Add {{itemName}}", "Request Header")).toBe(
-      "Request Header hinzufügen",
+    expect(filled("de", "Add {{itemName}}", "Request headers")).toBe(
+      "Request headers hinzufügen",
     );
   });
 

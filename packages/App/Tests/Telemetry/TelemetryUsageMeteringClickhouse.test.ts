@@ -273,6 +273,8 @@ interface StagedRow {
   primaryEntityId: string;
   primaryEntityType: ServiceType | undefined;
   dataIngestedInGB: number;
+  // Of that, the exceptions (issue #6356): Traces rows only, else null.
+  exceptionDataIngestedInGB: number | null;
   totalCostInUSD: number;
   isReportedToBillingProvider: boolean;
 }
@@ -480,6 +482,10 @@ integration("Metering without billing against ClickHouse", () => {
           dataIngestedInGB: Number(
             (args.data.dataIngestedInGB as Decimal).value,
           ),
+          exceptionDataIngestedInGB:
+            args.data.exceptionDataIngestedInGB instanceof Decimal
+              ? Number(args.data.exceptionDataIngestedInGB.value)
+              : null,
           totalCostInUSD: Number((args.data.totalCostInUSD as Decimal).value),
           isReportedToBillingProvider: Boolean(
             args.data.isReportedToBillingProvider,
@@ -582,6 +588,35 @@ integration("Metering without billing against ClickHouse", () => {
     expect(usage.get(SERVICE_ID)!.bytes).toBe(
       spans[SERVICE_ID]! + exceptions[SERVICE_ID]!,
     );
+
+    /*
+     * Issue #6356: and how many of those bytes the exception rows were,
+     * exactly as ClickHouse holds them - a part of the bytes the traces are
+     * billed for, never more on top of them.
+     */
+    expect(usage.get(SERVICE_ID)!.exceptionBytes).toBe(exceptions[SERVICE_ID]);
+    expect(
+      usage.get(SERVICE_ID)!.bytes - usage.get(SERVICE_ID)!.exceptionBytes!,
+    ).toBe(spans[SERVICE_ID]);
+  });
+
+  test("gives no other signal an exceptions part, though the exception table has rows that day", async () => {
+    const usage: Map<string, TelemetryResourceUsage> =
+      await TelemetryUsageBillingService.getTelemetryUsageByResource({
+        projectId: PROJECT_ID,
+        productType: ProductType.Logs,
+        startDate: YESTERDAY,
+        endDate: OneUptimeDate.getEndOfDay(YESTERDAY, "UTC"),
+      });
+
+    expect(usage.size).toBeGreaterThan(0);
+
+    for (const [entityId, resource] of usage) {
+      expect({ entityId, exceptionBytes: resource.exceptionBytes }).toEqual({
+        entityId,
+        exceptionBytes: undefined,
+      });
+    }
   });
 
   test("meters the week's days that have telemetry, at no cost, and never today, an older day or another project", async () => {
@@ -638,6 +673,42 @@ integration("Metering without billing against ClickHouse", () => {
 
     expect(serviceYesterday.dataIngestedInGB).toBe(
       logBytes[SERVICE_ID]! / (1024 * 1024 * 1024),
+    );
+    // A logs row records no exceptions part.
+    expect(serviceYesterday.exceptionDataIngestedInGB).toBeNull();
+
+    /*
+     * The traces row keeps everything its spans and exceptions take, as it
+     * is billed, and records the exceptions' part of it (issue #6356).
+     */
+    const spanBytes: Record<string, number> = await bytesByEntity(
+      client,
+      new Span().tableName,
+      "startTime",
+      PROJECT_ID,
+      YESTERDAY,
+    );
+    const exceptionBytes: Record<string, number> = await bytesByEntity(
+      client,
+      new ExceptionInstance().tableName,
+      "time",
+      PROJECT_ID,
+      YESTERDAY,
+    );
+    const tracesYesterday: StagedRow = staged.find((row: StagedRow) => {
+      return (
+        row.productType === ProductType.Traces &&
+        row.day === yesterdayDay &&
+        row.primaryEntityId === SERVICE_ID
+      );
+    })!;
+
+    expect(tracesYesterday.dataIngestedInGB).toBe(
+      (spanBytes[SERVICE_ID]! + exceptionBytes[SERVICE_ID]!) /
+        (1024 * 1024 * 1024),
+    );
+    expect(tracesYesterday.exceptionDataIngestedInGB).toBe(
+      exceptionBytes[SERVICE_ID]! / (1024 * 1024 * 1024),
     );
 
     for (const row of staged) {

@@ -58,13 +58,13 @@ flowchart TB
 
 ### 為每條 IPsec 通道發出警示
 
-在裝置頁面上按一下**建立監測器**。建議警示包括 **IPsec Tunnels: row unhealthy**，也就是在 `ipsec_tunnels` 表格上 Row 為 `*` 的 **SNMP Table Row Is Unhealthy** 條件：它會為每條非 active 的通道開啟一個以通道命名的事件，並在通道恢復時逐一解決。
+在裝置頁面上按一下**建立監測器**。建議警示包括 **IPsec Tunnels: row unhealthy**，也就是在 `ipsec_tunnels` 表格上 Row 為 `*` 的 **SNMP 表格列是否不健康** 條件：它會為每條非 active 的通道開啟一個以通道命名的事件，並在通道恢復時逐一解決。
 
 Sophos 回報為 active 的通道只表示其安全關聯已建立。若要證明有流量通過，請從一個站點的探測器向每條通道另一端的主機新增 [Ping 監測器](/docs/monitor/ping-monitor)，並在**網路 → 拓撲 → 站點鏈路** 下把通道繪製為兩個[站點](/docs/monitor/network-sites)之間的站點連結，綁定到該監測器：地圖上的連結隨後會顯示該監測器的顏色。
 
 ### WAN 連結
 
-- **連接埠健康狀況。** 介面遍歷已經測量了每個 WAN 連接埠的狀態、輸入和輸出位元、使用率和錯誤。在防火牆的監測器上，將**介面**設為 WAN 連接埠名稱（或設為 `*` 表示每個連接埠）的 **SNMP Interface Is Down** 或 **SNMP Interface Utilization (in %)** 條件會依連結發出警示。
+- **連接埠健康狀況。** 介面遍歷已經測量了每個 WAN 連接埠的狀態、輸入和輸出位元、使用率和錯誤。在防火牆的監測器上，將**介面**設為 WAN 連接埠名稱（或設為 `*` 表示每個連接埠）的 **SNMP 介面是否停擺** 或 **SNMP 介面使用率（%）** 條件會依連結發出警示。
 - **路徑品質。** 每條連結的延遲、封包遺失率和抖動從防火牆外部測量：從 OneUptime 雲端探測器到每條 WAN 連結公用位址的 Ping 監測器，以及從站點的探測器到每個 ISP 閘道的 Ping 監測器。這些監測器上的封包遺失率和抖動條件會依連結發出警示，**網路 → 拓撲 → 延遲矩陣** 則可以一眼看到每個探測器與每個監測器的對照。
 - **流量。** SFOS 會匯出 NetFlow v5。把它傳送到探測器的 UDP 2055（探測器的流收集器預設在此監聽），裝置的 **流量** 頁面就會顯示每條 WAN 連結上誰在跟誰通訊；詳情請見[網路流量](/docs/monitor/network-traffic)。
 
@@ -88,7 +88,7 @@ Sophos 回報為 active 的通道只表示其安全關聯已建立。若要證�
 
 ### Trap
 
-每則 Sophos 通知都是同一個 Trap `sfosNotification`（`1.3.6.1.4.1.2604.5.1.8.1.1`），事件以文字形式放在 `sfosTrapMessage`（`1.3.6.1.4.1.2604.5.1.8.1.2`）中。若要為某一類事件發出警示，請把 **SNMP Trap Received (Trap OID)** 等於 `1.3.6.1.4.1.2604.5.1.8.1.1` 與針對該 varbind 的 **SNMP Trap Varbind Value** 結合起來，例如包含 `IPSec`。把防火牆的 Trap 目的地設為 SNMP v2c：探測器的 Trap 接收器接收 v1 和 v2c Trap。
+每則 Sophos 通知都是同一個 Trap `sfosNotification`（`1.3.6.1.4.1.2604.5.1.8.1.1`），事件以文字形式放在 `sfosTrapMessage`（`1.3.6.1.4.1.2604.5.1.8.1.2`）中。若要為某一類事件發出警示，請把 **收到的 SNMP Trap（Trap OID）** 等於 `1.3.6.1.4.1.2604.5.1.8.1.1` 與針對該 varbind 的 **SNMP Trap Varbind 值** 結合起來，例如包含 `IPSec`。把防火牆的 Trap 目的地設為 SNMP v2c：探測器的 Trap 接收器接收 v1 和 v2c Trap。
 
 ## Extreme Networks (EXOS / Switch Engine 和 Fabric Engine / VOSS)
 
@@ -105,7 +105,7 @@ Sophos 回報為 active 的通道只表示其安全關聯已建立。若要證�
 
 ### Fabric 和硬體警示
 
-Fabric Engine 交換器上的建議警示包括 **Fabric Adjacencies (IS-IS): row unhealthy**，為相鄰關係未建立的每個鄰居開啟一個事件。Fabric Engine 還會在相鄰關係變化時傳送一個 Trap，也就是 `rcnIsisPlsbAdjStateTrap`（`1.3.6.1.4.1.2272.1.21.0.281`），針對它的 **SNMP Trap Received (Trap OID)** 條件能在幾秒內、趕在下一次輪詢之前發出警示。
+Fabric Engine 交換器上的建議警示包括 **Fabric Adjacencies (IS-IS): row unhealthy**，為相鄰關係未建立的每個鄰居開啟一個事件。Fabric Engine 還會在相鄰關係變化時傳送一個 Trap，也就是 `rcnIsisPlsbAdjStateTrap`（`1.3.6.1.4.1.2272.1.21.0.281`），針對它的 **收到的 SNMP Trap（Trap OID）** 條件能在幾秒內、趕在下一次輪詢之前發出警示。
 
 電源供應器、風扇、溫度感測器和堆疊成員都是宣告了健康值的表格，所以它們在建議警示中各有一個依列警示。
 
@@ -129,10 +129,10 @@ IQ Engine（HiveOS）存取點和 ExtremeCloud IQ Controller 有各自的廠商�
 
 | 警示 | 條件 |
 | --- | --- |
-| 射頻被關閉 | **SNMP Table Row Is Unhealthy**，屬於建議警示 |
-| 發射功率發生變化 | **SNMP Table Value**，欄 TX Power，不等於你規劃的功率 |
-| 擁擠的射頻 | **SNMP Table Value**，欄 Clients，大於你的上限 |
-| 雜訊多的頻道 | **SNMP Table Value**，欄 Noise Floor，大於 `-80` |
+| 射頻被關閉 | **SNMP 表格列是否不健康**，屬於建議警示 |
+| 發射功率發生變化 | **SNMP 表格值**，欄 TX Power，不等於你規劃的功率 |
+| 擁擠的射頻 | **SNMP 表格值**，欄 Clients，大於你的上限 |
+| 雜訊多的頻道 | **SNMP 表格值**，欄 Noise Floor，大於 `-80` |
 
 每個數值型射頻值也是一個指標（`oneuptime.monitor.snmp.table.value`，每個射頻和每一欄一個序列），所以頻道、功率和用戶端可以在儀表板上隨時間繪製圖表；不斷變化的頻道表示 DFS 正在運作。
 

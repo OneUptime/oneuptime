@@ -370,14 +370,14 @@ Zähler, die auf `total` enden, sind seit dem Serverstart kumulativ. Vergleichen
 
 | Filtertyp | Was er prüft |
 |---|---|
-| **Database Is Online** | Ob die Datenbank erreichbar war und die Testabfrage gelang. Das ist das Offline-Kriterium, mit dem der Monitor angelegt wird, und die einzige Prüfung, die die Erreichbarkeit widerspiegelt. |
-| **Database Metric** | Wählen Sie eine Metrik und vergleichen Sie sie: Größer als, Kleiner als, Größer als oder gleich, Kleiner als oder gleich, Gleich oder Ungleich. Die Metrikauswahl bietet nur die Metriken an, die Ihre gewählte Engine liefern kann, sodass Sie kein Kriterium bauen können, das dauerhaft unerfüllt bliebe (eine Ausnahme: Die für Microsoft SQL Server angebotenen Replication-Metriken werden auf Azure SQL Database nie erfasst). Wurde die Metrik bei einer Prüfung nicht erfasst — die Gruppe ist fehlgeschlagen oder die Engine meldet sie nicht —, trifft der Filter nicht zu, und er trifft auch nicht als „false“ zu: Er wird übersprungen. Ein Berechtigungsproblem kann niemanden alarmieren. |
-| **Database Collection Error** | Die Zusammenfassung der Erfassungsprobleme der Prüfung, eine Zeile „Gruppe: Meldung“ je nicht verfügbarer Gruppe. Alarmieren Sie, wenn sie nicht leer ist, um verlorene Sicht zu bemerken, oder nutzen Sie Enthält, um auf eine bestimmte Gruppe zu achten. |
-| **JavaScript Expression** | Volle Kontrolle. Siehe [JavaScript-Ausdrücke](/docs/monitor/javascript-expression). |
+| **Datenbank ist online** | Ob die Datenbank erreichbar war und die Testabfrage gelang. Das ist das Offline-Kriterium, mit dem der Monitor angelegt wird, und die einzige Prüfung, die die Erreichbarkeit widerspiegelt. |
+| **Datenbankmetrik** | Wählen Sie eine Metrik und vergleichen Sie sie: Größer als, Kleiner als, Größer als oder gleich, Kleiner als oder gleich, Gleich oder Ungleich. Die Metrikauswahl bietet nur die Metriken an, die Ihre gewählte Engine liefern kann, sodass Sie kein Kriterium bauen können, das dauerhaft unerfüllt bliebe (eine Ausnahme: Die für Microsoft SQL Server angebotenen Replication-Metriken werden auf Azure SQL Database nie erfasst). Wurde die Metrik bei einer Prüfung nicht erfasst — die Gruppe ist fehlgeschlagen oder die Engine meldet sie nicht —, trifft der Filter nicht zu, und er trifft auch nicht als „false“ zu: Er wird übersprungen. Ein Berechtigungsproblem kann niemanden alarmieren. |
+| **Datenbank-Erfassungsfehler** | Die Zusammenfassung der Erfassungsprobleme der Prüfung, eine Zeile „Gruppe: Meldung“ je nicht verfügbarer Gruppe. Alarmieren Sie, wenn sie nicht leer ist, um verlorene Sicht zu bemerken, oder nutzen Sie Enthält, um auf eine bestimmte Gruppe zu achten. |
+| **JavaScript-Ausdruck** | Volle Kontrolle. Siehe [JavaScript-Ausdrücke](/docs/monitor/javascript-expression). |
 
 Schwellenwerte sind ganze Zahlen. Schreiben Sie `90`, nicht `90.5` — Prozentwerte und Sekunden werden als Ganzzahlen verglichen.
 
-**Database Is Online** und **Database Metric** lassen sich über einen Zeitraum prüfen: Aktivieren Sie **Diese Kriterien über einen Zeitraum hinweg auswerten**, wählen Sie dann unter **Auswerten**, wie die Werte ausgewertet werden (zum Beispiel **All Values**), und **Für die letzten (in Minuten)**. Über einen Zeitraum entscheidet die Einstellung **Bei keinen Daten** des Filters, was ein fehlender Wert bedeutet; lassen Sie sie auf **Ignore**, damit eine fehlende Berechtigung weiterhin niemanden alarmieren kann.
+**Datenbank ist online** und **Datenbankmetrik** lassen sich über einen Zeitraum prüfen: Aktivieren Sie **Diese Kriterien über einen Zeitraum hinweg auswerten**, wählen Sie dann unter **Auswerten**, wie die Werte ausgewertet werden (zum Beispiel **Alle Werte**), und **Für die letzten (in Minuten)**. Über einen Zeitraum entscheidet die Einstellung **Bei keinen Daten** des Filters, was ein fehlender Wert bedeutet; lassen Sie sie auf **Ignore**, damit eine fehlende Berechtigung weiterhin niemanden alarmieren kann.
 
 ### Variablen für JavaScript-Ausdrücke
 
@@ -402,7 +402,7 @@ Um eine Metrik in einem Ausdruck zu lesen, setzen Sie den Zeitreihennamen mit se
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
 ```
 
-Für einen Schwellenwert auf eine einzelne Metrik greifen Sie zu **Database Metric** statt zu einem Ausdruck: Es löst die Zeitreihe für Sie auf, bietet nur an, was Ihre Engine liefern kann, und überspringt die Prüfung, wenn der Wert nicht erfasst wurde, statt mit nichts zu vergleichen.
+Für einen Schwellenwert auf eine einzelne Metrik greifen Sie zu **Datenbankmetrik** statt zu einem Ausdruck: Sie löst die Zeitreihe für Sie auf, bietet nur an, was Ihre Engine liefern kann, und überspringt die Prüfung, wenn der Wert nicht erfasst wurde, statt mit nichts zu vergleichen.
 
 ### Beispiel: ein PostgreSQL-Primärserver
 

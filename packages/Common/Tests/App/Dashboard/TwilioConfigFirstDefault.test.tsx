@@ -16,6 +16,8 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import fs from "fs";
+import path from "path";
 import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { JSONObject } from "../../../Types/JSON";
@@ -38,11 +40,21 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     and so does the form while the project's configs are not known.
  *   - The card says which config the SMS and calls to people in the project
  *     go through: the project default, the first config added, or - when
- *     the project has configs but none is the default - none of them.
- *   - Every row but the default's has "Set as Project Default" in its menu.
+ *     the project has configs but none is the default - none of them. A
+ *     project has a default for SMS and one for calls (#6574), so the card
+ *     also says when a config could send SMS, or calls, that no config is
+ *     the default for.
+ *   - Every row that is not the default for everything it sends has "Set as
+ *     Project Default" in its menu, named for what it would take: "... for
+ *     SMS" on a config for SMS only, "... for Calls" on one for calls only.
+ *     A default has "Stop Using as Project Default", which asks first.
+ *   - The Project Default column says what each config is the default for.
+ *   - The Edit form has no default switch: it would send it back as it read
+ *     it, and a default for calls alone would take the SMS on every save.
  *
  * The server side, and why an explicit false is kept, is pinned in
- * Server/Services/ProjectCallSMSConfigFirstDefault.test.ts.
+ * Server/Services/ProjectCallSMSConfigFirstDefault.test.ts, and the rule
+ * for SMS and calls in Server/Services/ProjectCallSMSConfigDefaultPerKind.
  */
 
 jest.setTimeout(60000);
@@ -52,10 +64,16 @@ const OTHER_CONFIG_ID: string = "1d000000-0000-4000-8000-000000000002";
 
 let configCount: number;
 let defaultCount: number;
-let countsFail: boolean;
-// Counts asked while this is set never answer, as a slow network.
-let countsHang: boolean;
-let countQueries: Array<Record<string, unknown>>;
+/*
+ * What each of the project's configs sends and is the default for, as the
+ * card reads them, when a test says; else configCount configs for calls
+ * and SMS, the first defaultCount of them the default for both.
+ */
+let listedConfigs: Array<JSONObject> | undefined;
+let listFails: boolean;
+// Lists asked for while this is set never answer, as a slow network.
+let listHangs: boolean;
+let listReads: Array<Record<string, unknown>>;
 let stored: JSONObject;
 let capturedModels: Array<Record<string, unknown>>;
 let updates: Array<{ id: string; data: JSONObject; modelName: string }>;
@@ -158,21 +176,6 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
-      count: async (data: {
-        query: Record<string, unknown>;
-      }): Promise<number> => {
-        countQueries.push(data.query);
-
-        if (countsHang) {
-          return await new Promise<number>(() => {});
-        }
-
-        if (countsFail) {
-          throw new Error("Could not count the Twilio configs.");
-        }
-
-        return "isProjectDefault" in data.query ? defaultCount : configCount;
-      },
       getItem: async (data: {
         modelType: { new (): Record<string, unknown> };
       }): Promise<unknown> => {
@@ -180,13 +183,40 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
         Object.assign(item, { _id: CONFIG_ID, ...stored });
         return item;
       },
-      getList: async (): Promise<{
+      getList: async (data: {
+        query: Record<string, unknown>;
+        select: Record<string, unknown>;
+        limit: number;
+        skip: number;
+      }): Promise<{
         data: Array<unknown>;
         count: number;
         skip: number;
         limit: number;
       }> => {
-        return { data: [], count: 0, skip: 0, limit: 0 };
+        listReads.push({
+          query: data.query,
+          select: data.select,
+          limit: data.limit,
+          skip: data.skip,
+        });
+
+        if (listHangs) {
+          return await new Promise<never>(() => {});
+        }
+
+        if (listFails) {
+          throw new Error("Could not list the Twilio configs.");
+        }
+
+        const configs: Array<JSONObject> = projectConfigs();
+
+        return {
+          data: configs,
+          count: configs.length,
+          skip: 0,
+          limit: data.limit,
+        };
       },
       getCommonHeaders: (): JSONObject => {
         return { tenantid: "99999999-9999-4999-8999-999999999999" };
@@ -263,14 +293,63 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 import CustomCallSMSTable from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/CallSMSConfigTable";
-import TwilioConfigDefaultCopy from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigDefaultCopy";
+import TwilioConfigDefaultCopy, {
+  TwilioConfigDefaultRow,
+  TwilioConfigDefaultState,
+  getProjectDefaultPillText,
+  getSetDefaultTitle,
+  getStopDefaultConfirmDescription,
+  getTwilioConfigCardDescription,
+  getTwilioConfigDefaultState,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigDefaultCopy";
+import { TwilioConfigUse } from "../../../Types/CallAndSMS/TwilioConfigUse";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import Column from "../../../UI/Components/ModelTable/Column";
 import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSConfig";
 import IconProp from "../../../Types/Icon/IconProp";
 import ActionButtonSchema, {
   ActionButtonPlacement,
+  RowActionConfirmation,
 } from "../../../UI/Components/ActionButton/ActionButtonSchema";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const SWITCH_TITLE: string = "Set as Project Default";
+const SMS_TITLE: string = "Set as Project Default for SMS";
+const CALLS_TITLE: string = "Set as Project Default for Calls";
+const STOP_TITLE: string = "Stop Using as Project Default";
+
+// What a config is the default for, as the tests write it.
+type DefaultFor = "" | "sms" | "calls" | "sms+calls";
+
+// A config as the card and the table read it.
+function listed(use: TwilioConfigUse, defaultFor: DefaultFor): JSONObject {
+  return {
+    usedFor: use,
+    isProjectDefault: defaultFor !== "",
+    isProjectDefaultForSms: defaultFor.includes("sms"),
+    isProjectDefaultForCalls: defaultFor.includes("calls"),
+  };
+}
+
+// What getList answers the card with (see listedConfigs).
+function projectConfigs(): Array<JSONObject> {
+  if (listedConfigs) {
+    return listedConfigs;
+  }
+
+  const configs: Array<JSONObject> = [];
+
+  for (let index: number = 0; index < configCount; index++) {
+    configs.push(
+      listed(
+        TwilioConfigUse.CallsAndSms,
+        index < defaultCount ? "sms+calls" : "",
+      ),
+    );
+  }
+
+  return configs;
+}
 
 function dialog(): HTMLElement {
   return screen.getByTestId("modal");
@@ -380,7 +459,7 @@ function lastTableProps(): Record<string, unknown> {
   return tableProps[tableProps.length - 1]!;
 }
 
-function setDefaultAction(): ActionButtonSchema<ProjectCallSMSConfig> {
+function actionTitled(title: string): ActionButtonSchema<ProjectCallSMSConfig> {
   const actions: Array<ActionButtonSchema<ProjectCallSMSConfig>> =
     lastTableProps()["actionButtons"] as Array<
       ActionButtonSchema<ProjectCallSMSConfig>
@@ -388,7 +467,7 @@ function setDefaultAction(): ActionButtonSchema<ProjectCallSMSConfig> {
 
   const action: ActionButtonSchema<ProjectCallSMSConfig> | undefined =
     actions.find((button: ActionButtonSchema<ProjectCallSMSConfig>) => {
-      return button.title === SWITCH_TITLE;
+      return button.title === title;
     });
 
   expect(action).toBeDefined();
@@ -396,20 +475,81 @@ function setDefaultAction(): ActionButtonSchema<ProjectCallSMSConfig> {
   return action!;
 }
 
-function row(id: string, isProjectDefault: boolean): ProjectCallSMSConfig {
+function setDefaultAction(): ActionButtonSchema<ProjectCallSMSConfig> {
+  return actionTitled(SWITCH_TITLE);
+}
+
+/*
+ * The titles of the default actions a row's ⋯ menu shows: the set action
+ * that names what the config would take, and Stop on a default.
+ */
+function defaultActionsOn(config: ProjectCallSMSConfig): Array<string> {
+  return [SWITCH_TITLE, SMS_TITLE, CALLS_TITLE, STOP_TITLE].filter(
+    (title: string): boolean => {
+      return Boolean(actionTitled(title).isVisible!(config));
+    },
+  );
+}
+
+/*
+ * A row as the table lists it: what it is used for - calls and SMS unless
+ * a test says - and what it is the default for: everything it sends while
+ * it is a default, unless a test says.
+ */
+function row(
+  id: string,
+  isProjectDefault: boolean,
+  use: TwilioConfigUse = TwilioConfigUse.CallsAndSms,
+  defaultFor?: DefaultFor,
+): ProjectCallSMSConfig {
+  const sends: DefaultFor =
+    use === TwilioConfigUse.SmsOnly
+      ? "sms"
+      : use === TwilioConfigUse.CallsOnly
+        ? "calls"
+        : "sms+calls";
+  const holds: DefaultFor =
+    defaultFor !== undefined ? defaultFor : isProjectDefault ? sends : "";
+
   const config: ProjectCallSMSConfig = new ProjectCallSMSConfig();
   config._id = id;
   config.name = isProjectDefault ? "Production Twilio" : "Status page Twilio";
+  config.usedFor = use;
   config.isProjectDefault = isProjectDefault;
+  config.isProjectDefaultForSms = holds.includes("sms");
+  config.isProjectDefaultForCalls = holds.includes("calls");
   return config;
+}
+
+// The Project Default column, and what it draws for a row.
+function projectDefaultColumn(): Column<ProjectCallSMSConfig> {
+  const column: Column<ProjectCallSMSConfig> | undefined = (
+    lastTableProps()["columns"] as Array<Column<ProjectCallSMSConfig>>
+  ).find((candidate: Column<ProjectCallSMSConfig>): boolean => {
+    return candidate.title === "Project Default";
+  });
+
+  expect(column).toBeDefined();
+
+  return column!;
+}
+
+function projectDefaultCell(config: ProjectCallSMSConfig): string {
+  const cell: ReturnType<typeof render> = render(
+    projectDefaultColumn().getElement!(config) as ReactElement,
+  );
+  const text: string = cell.container.textContent || "";
+  cell.unmount();
+  return text;
 }
 
 beforeEach(() => {
   configCount = 0;
   defaultCount = 0;
-  countsFail = false;
-  countsHang = false;
-  countQueries = [];
+  listedConfigs = undefined;
+  listFails = false;
+  listHangs = false;
+  listReads = [];
   stored = {};
   capturedModels = [];
   updates = [];
@@ -456,26 +596,222 @@ describe("what the Twilio Config card says", () => {
     expect(cardDescription()).toContain(SWITCH_TITLE);
   });
 
-  test("before the configs are counted, and when counting fails, it only says the rule", async () => {
-    countsHang = true;
+  test("before the configs are read, and when reading them fails, it only says the rule", async () => {
+    listHangs = true;
 
     await renderCard();
 
     expect(cardDescription()).toBe(TwilioConfigDefaultCopy.cardDescription);
 
     cleanup();
-    countsHang = false;
-    countsFail = true;
+    listHangs = false;
+    listFails = true;
 
     await renderCard();
 
     expect(cardDescription()).toBe(TwilioConfigDefaultCopy.cardDescription);
   });
 
-  test("counts every config of the project, and the ones that are its default", async () => {
+  test("reads every config of the project: what each sends and is the default for, and nothing else", async () => {
     await renderCard();
 
-    expect(countQueries).toEqual([{}, { isProjectDefault: true }]);
+    expect(listReads).toEqual([
+      {
+        query: {},
+        select: {
+          _id: true,
+          usedFor: true,
+          isProjectDefault: true,
+          isProjectDefaultForSms: true,
+          isProjectDefaultForCalls: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      },
+    ]);
+  });
+
+  /*
+   * The customer's project (#6574) once this shipped: its config for SMS
+   * only was the default, and its config for calls only could not be the
+   * default beside it. Now it can, and the card says what is missing.
+   */
+  test("a config makes calls, but none is the default for them: says so, and how to change that", async () => {
+    listedConfigs = [
+      listed(TwilioConfigUse.SmsOnly, "sms"),
+      listed(TwilioConfigUse.CallsOnly, ""),
+    ];
+
+    await renderCard();
+
+    expect(cardDescription()).toBe(
+      TwilioConfigDefaultCopy.noCallsDefaultCardDescription,
+    );
+    expect(cardDescription()).toContain(SWITCH_TITLE);
+  });
+
+  test("a config sends SMS, but none is the default for them: says so, and how to change that", async () => {
+    listedConfigs = [
+      listed(TwilioConfigUse.CallsAndSms, ""),
+      listed(TwilioConfigUse.CallsOnly, "calls"),
+    ];
+
+    await renderCard();
+
+    expect(cardDescription()).toBe(
+      TwilioConfigDefaultCopy.noSmsDefaultCardDescription,
+    );
+    expect(cardDescription()).toContain(SWITCH_TITLE);
+  });
+
+  test("the customer's project, with a default for SMS and one for calls: nothing is missing", async () => {
+    listedConfigs = [
+      listed(TwilioConfigUse.SmsOnly, "sms"),
+      listed(TwilioConfigUse.CallsOnly, "calls"),
+    ];
+
+    await renderCard();
+
+    expect(cardDescription()).toBe(TwilioConfigDefaultCopy.cardDescription);
+  });
+
+  test("no config makes calls: the default for SMS is all a project can have, and nothing is missing", async () => {
+    listedConfigs = [
+      listed(TwilioConfigUse.SmsOnly, "sms"),
+      listed(TwilioConfigUse.SmsOnly, ""),
+    ];
+
+    await renderCard();
+
+    expect(cardDescription()).toBe(TwilioConfigDefaultCopy.cardDescription);
+  });
+});
+
+describe("what the card and the rows say, config by config", () => {
+  test.each([
+    ["no config", [], TwilioConfigDefaultState.NoConfigs],
+    [
+      "a default for SMS and calls",
+      [listed(TwilioConfigUse.CallsAndSms, "sms+calls")],
+      TwilioConfigDefaultState.HasDefault,
+    ],
+    [
+      "configs, none a default",
+      [
+        listed(TwilioConfigUse.CallsAndSms, ""),
+        listed(TwilioConfigUse.SmsOnly, ""),
+      ],
+      TwilioConfigDefaultState.NoDefault,
+    ],
+    [
+      "a default for SMS beside a config for calls",
+      [
+        listed(TwilioConfigUse.SmsOnly, "sms"),
+        listed(TwilioConfigUse.CallsOnly, ""),
+      ],
+      TwilioConfigDefaultState.NoCallsDefault,
+    ],
+    [
+      "a default for calls beside a config for SMS",
+      [
+        listed(TwilioConfigUse.CallsOnly, "calls"),
+        listed(TwilioConfigUse.SmsOnly, ""),
+      ],
+      TwilioConfigDefaultState.NoSmsDefault,
+    ],
+    [
+      "a default for calls and no config for SMS",
+      [listed(TwilioConfigUse.CallsOnly, "calls")],
+      TwilioConfigDefaultState.HasDefault,
+    ],
+    [
+      "a default for each",
+      [
+        listed(TwilioConfigUse.CallsOnly, "calls"),
+        listed(TwilioConfigUse.SmsOnly, "sms"),
+      ],
+      TwilioConfigDefaultState.HasDefault,
+    ],
+    [
+      "a config saved before the choice, the default: calls and SMS",
+      [
+        {
+          isProjectDefault: true,
+          isProjectDefaultForSms: true,
+          isProjectDefaultForCalls: true,
+        },
+      ],
+      TwilioConfigDefaultState.HasDefault,
+    ],
+  ])(
+    "%s",
+    (
+      _label: string,
+      configs: Array<TwilioConfigDefaultRow>,
+      state: TwilioConfigDefaultState,
+    ) => {
+      expect(getTwilioConfigDefaultState(configs)).toBe(state);
+    },
+  );
+
+  test("each state has its own sentence on the card", () => {
+    expect(
+      [
+        TwilioConfigDefaultState.Unknown,
+        TwilioConfigDefaultState.NoConfigs,
+        TwilioConfigDefaultState.HasDefault,
+        TwilioConfigDefaultState.NoDefault,
+        TwilioConfigDefaultState.NoSmsDefault,
+        TwilioConfigDefaultState.NoCallsDefault,
+      ].map(getTwilioConfigCardDescription),
+    ).toEqual([
+      TwilioConfigDefaultCopy.cardDescription,
+      TwilioConfigDefaultCopy.firstConfigCardDescription,
+      TwilioConfigDefaultCopy.cardDescription,
+      TwilioConfigDefaultCopy.noDefaultCardDescription,
+      TwilioConfigDefaultCopy.noSmsDefaultCardDescription,
+      TwilioConfigDefaultCopy.noCallsDefaultCardDescription,
+    ]);
+  });
+
+  test.each([
+    [TwilioConfigUse.CallsAndSms, "sms+calls", "Default", undefined],
+    [TwilioConfigUse.CallsAndSms, "sms", "Default for SMS", CALLS_TITLE],
+    [TwilioConfigUse.CallsAndSms, "calls", "Default for calls", SMS_TITLE],
+    [TwilioConfigUse.CallsAndSms, "", undefined, SWITCH_TITLE],
+    [TwilioConfigUse.SmsOnly, "sms", "Default for SMS", undefined],
+    [TwilioConfigUse.SmsOnly, "", undefined, SMS_TITLE],
+    [TwilioConfigUse.CallsOnly, "calls", "Default for calls", undefined],
+    [TwilioConfigUse.CallsOnly, "", undefined, CALLS_TITLE],
+  ])(
+    "used for %s, the default for '%s': the pill and the menu's set action it has",
+    (
+      use: TwilioConfigUse,
+      defaultFor: string,
+      pill: string | undefined,
+      setTitle: string | undefined,
+    ) => {
+      const config: JSONObject = listed(use, defaultFor as DefaultFor);
+
+      expect(getProjectDefaultPillText(config)).toBe(pill);
+      expect(getSetDefaultTitle(config)).toBe(setTitle);
+    },
+  );
+
+  test("Stop Using as Project Default names what stops going through the config", () => {
+    expect(
+      getStopDefaultConfirmDescription(
+        listed(TwilioConfigUse.CallsAndSms, "sms+calls"),
+      ),
+    ).toBe(TwilioConfigDefaultCopy.stopDefaultConfirmDescription);
+    expect(
+      getStopDefaultConfirmDescription(listed(TwilioConfigUse.SmsOnly, "sms")),
+    ).toBe(TwilioConfigDefaultCopy.stopSmsDefaultConfirmDescription);
+    expect(
+      getStopDefaultConfirmDescription(
+        listed(TwilioConfigUse.CallsAndSms, "calls"),
+      ),
+    ).toBe(TwilioConfigDefaultCopy.stopCallsDefaultConfirmDescription);
   });
 });
 
@@ -582,8 +918,8 @@ describe("creating a later Twilio config", () => {
     expect(model["isProjectDefault"]).toBe(false);
   });
 
-  test("while the configs cannot be counted, the form claims nothing: the switch starts off", async () => {
-    countsFail = true;
+  test("while the configs cannot be read, the form claims nothing: the switch starts off", async () => {
+    listFails = true;
 
     await renderCard();
     await openForm("create");
@@ -597,7 +933,7 @@ describe("creating a later Twilio config", () => {
     ).toBeVisible();
   });
 
-  test("a row on screen ends the first-config form at once, before the counts answer again", async () => {
+  test("a row on screen ends the first-config form at once, before the card's read answers again", async () => {
     configCount = 0;
 
     await renderCard();
@@ -606,9 +942,9 @@ describe("creating a later Twilio config", () => {
       isProjectDefault: true,
     });
 
-    // The first config was just added: the table lists it, the counts lag.
+    // The first config was just added: the table lists it, the card's read lags.
     configCount = 1;
-    countsHang = true;
+    listHangs = true;
 
     await act(async (): Promise<void> => {
       (
@@ -626,15 +962,27 @@ describe("creating a later Twilio config", () => {
 });
 
 describe("editing a Twilio config", () => {
-  test("shows whether it is the default, with the switch's usual help", async () => {
-    configCount = 1;
-    defaultCount = 1;
+  /*
+   * The form would send the switch back as it read it, and a write of
+   * isProjectDefault: true makes a config the default for everything it
+   * sends: a config for calls and SMS that is the default for calls alone,
+   * beside a default for SMS only, would take the SMS on every save of a
+   * new name. The row's ⋯ menu changes the default instead.
+   */
+  test("has no default switch, and a save says nothing of the default", async () => {
+    listedConfigs = [
+      listed(TwilioConfigUse.CallsAndSms, "calls"),
+      listed(TwilioConfigUse.SmsOnly, "sms"),
+    ];
     stored = {
       name: "Production Twilio",
+      usedFor: TwilioConfigUse.CallsAndSms,
       twilioAccountSID: "AC00000000000000000000000000000001",
       twilioAuthToken: "00000000000000000000000000000001",
       twilioPrimaryPhoneNumber: "+15551234567",
       isProjectDefault: true,
+      isProjectDefaultForSms: false,
+      isProjectDefaultForCalls: true,
     };
 
     await renderCard();
@@ -645,12 +993,45 @@ describe("editing a Twilio config", () => {
     });
     await settle();
 
-    expect(defaultSwitch()).toHaveAttribute("aria-checked", "true");
+    // On the Twilio step, with the account read back - and no switch.
+    expect(within(dialog()).getByLabelText("Twilio Account SID")).toHaveValue(
+      "AC00000000000000000000000000000001",
+    );
     expect(
-      within(dialog()).getByText(
+      within(dialog()).queryByRole("switch", { name: SWITCH_TITLE }),
+    ).toBeNull();
+    expect(
+      within(dialog()).queryByText(
         TwilioConfigDefaultCopy.defaultSwitchDescription,
       ),
-    ).toBeVisible();
+    ).toBeNull();
+
+    await clickFooter();
+
+    const model: Record<string, unknown> = await saved();
+
+    expect(model["name"]).toBe("Production Twilio");
+    expect(model["isProjectDefault"]).toBeUndefined();
+    expect(model["isProjectDefaultForSms"]).toBeUndefined();
+    expect(model["isProjectDefaultForCalls"]).toBeUndefined();
+  });
+
+  test("the create form keeps the switch: it is where a new config says whether it is the default", async () => {
+    await renderCard();
+
+    const switches: Array<ModelField<ProjectCallSMSConfig>> = (
+      lastTableProps()["formFields"] as Array<ModelField<ProjectCallSMSConfig>>
+    ).filter((field: ModelField<ProjectCallSMSConfig>): boolean => {
+      return Boolean(field.field && "isProjectDefault" in field.field);
+    });
+
+    // One for each answer to what the account is used for.
+    expect(switches).toHaveLength(3);
+
+    for (const field of switches) {
+      expect(field.doNotShowWhenEditing).toBe(true);
+      expect(field.doNotShowWhenCreating).toBeFalsy();
+    }
   });
 });
 
@@ -661,30 +1042,135 @@ describe("Set as Project Default on a row", () => {
 
     await renderCard();
 
-    const action: ActionButtonSchema<ProjectCallSMSConfig> = setDefaultAction();
+    for (const title of [SWITCH_TITLE, SMS_TITLE, CALLS_TITLE]) {
+      const action: ActionButtonSchema<ProjectCallSMSConfig> =
+        actionTitled(title);
 
-    expect(action.placement).toBe(ActionButtonPlacement.MoreMenu);
-    expect(action.icon).toBe(IconProp.Check);
-    expect(action.disabled).toBe(false);
-    expect(action.isVisible!(row(OTHER_CONFIG_ID, false))).toBe(true);
-    expect(action.isVisible!(row(CONFIG_ID, true))).toBe(false);
+      expect(action.placement).toBe(ActionButtonPlacement.MoreMenu);
+      expect(action.icon).toBe(IconProp.Check);
+      expect(action.disabled).toBe(false);
+    }
+
+    expect(defaultActionsOn(row(OTHER_CONFIG_ID, false))).toEqual([
+      SWITCH_TITLE,
+    ]);
+    expect(defaultActionsOn(row(CONFIG_ID, true))).toEqual([STOP_TITLE]);
+  });
+
+  /*
+   * One "Set as Project Default" a row, named for what the config would
+   * take: the customer's config for calls only says it takes the calls -
+   * the default for SMS keeps the SMS.
+   */
+  test("names what the config would take: the SMS, the calls, or both", async () => {
+    await renderCard();
+
+    expect(
+      defaultActionsOn(row(OTHER_CONFIG_ID, false, TwilioConfigUse.SmsOnly)),
+    ).toEqual([SMS_TITLE]);
+    expect(
+      defaultActionsOn(row(OTHER_CONFIG_ID, false, TwilioConfigUse.CallsOnly)),
+    ).toEqual([CALLS_TITLE]);
+    expect(
+      defaultActionsOn(
+        row(OTHER_CONFIG_ID, false, TwilioConfigUse.CallsAndSms),
+      ),
+    ).toEqual([SWITCH_TITLE]);
+    // The default for calls alone, beside a default for SMS only.
+    expect(
+      defaultActionsOn(
+        row(CONFIG_ID, true, TwilioConfigUse.CallsAndSms, "calls"),
+      ),
+    ).toEqual([SMS_TITLE, STOP_TITLE]);
+    expect(
+      defaultActionsOn(
+        row(CONFIG_ID, true, TwilioConfigUse.CallsAndSms, "sms"),
+      ),
+    ).toEqual([CALLS_TITLE, STOP_TITLE]);
+    // The default for everything it sends: nothing to take.
+    expect(
+      defaultActionsOn(row(CONFIG_ID, true, TwilioConfigUse.SmsOnly)),
+    ).toEqual([STOP_TITLE]);
+    expect(
+      defaultActionsOn(row(CONFIG_ID, true, TwilioConfigUse.CallsOnly)),
+    ).toEqual([STOP_TITLE]);
+  });
+
+  test("the customer's config for calls only is made the default with the same one write", async () => {
+    listedConfigs = [
+      listed(TwilioConfigUse.SmsOnly, "sms"),
+      listed(TwilioConfigUse.CallsOnly, ""),
+    ];
+
+    await renderCard();
+
+    expect(cardDescription()).toBe(
+      TwilioConfigDefaultCopy.noCallsDefaultCardDescription,
+    );
+
+    const onComplete: MockFunction = getJestMockFunction();
+    const onError: MockFunction = getJestMockFunction();
+
+    // The server makes it the default for calls; the SMS default keeps the SMS.
+    listedConfigs = [
+      listed(TwilioConfigUse.SmsOnly, "sms"),
+      listed(TwilioConfigUse.CallsOnly, "calls"),
+    ];
+
+    await act(async (): Promise<void> => {
+      // Typed as returning nothing; the table's own action is async.
+      await Promise.resolve(
+        actionTitled(CALLS_TITLE).onClick(
+          row(OTHER_CONFIG_ID, false, TwilioConfigUse.CallsOnly),
+          onComplete as unknown as () => void,
+          onError as unknown as (error: Error) => void,
+        ),
+      );
+    });
+    await settle();
+
+    expect(updates).toEqual([
+      {
+        id: OTHER_CONFIG_ID,
+        data: { isProjectDefault: true },
+        modelName: "ProjectCallSMSConfig",
+      },
+    ]);
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(onError).not.toHaveBeenCalled();
+    expect(cardDescription()).toBe(TwilioConfigDefaultCopy.cardDescription);
   });
 
   test("leaves the test buttons as the row's own", async () => {
     await renderCard();
 
-    const titles: Array<string> = (
+    const actions: Array<ActionButtonSchema<ProjectCallSMSConfig>> =
       lastTableProps()["actionButtons"] as Array<
         ActionButtonSchema<ProjectCallSMSConfig>
-      >
-    ).map((button: ActionButtonSchema<ProjectCallSMSConfig>): string => {
-      return button.title;
-    });
+      >;
 
-    expect(titles).toEqual(["Send Test SMS", "Send Test Call", SWITCH_TITLE]);
+    expect(
+      actions.map(
+        (button: ActionButtonSchema<ProjectCallSMSConfig>): string => {
+          return button.title;
+        },
+      ),
+    ).toEqual([
+      "Send Test SMS",
+      "Send Test Call",
+      SWITCH_TITLE,
+      SMS_TITLE,
+      CALLS_TITLE,
+      STOP_TITLE,
+    ]);
+
+    // Every default action waits in the ⋯ menu.
+    for (const button of actions.slice(2)) {
+      expect(button.placement).toBe(ActionButtonPlacement.MoreMenu);
+    }
   });
 
-  test("makes that config the default, then lists and counts again", async () => {
+  test("makes that config the default, then lists and reads again", async () => {
     configCount = 2;
     defaultCount = 0;
 
@@ -766,11 +1252,18 @@ describe("Set as Project Default on a row", () => {
 
     await renderCard();
 
-    const action: ActionButtonSchema<ProjectCallSMSConfig> = setDefaultAction();
+    for (const title of [SWITCH_TITLE, SMS_TITLE, CALLS_TITLE, STOP_TITLE]) {
+      const action: ActionButtonSchema<ProjectCallSMSConfig> =
+        actionTitled(title);
 
-    expect(action.disabled).toBe(true);
-    expect(action.tooltip).toContain("You do not have permission to update");
-    expect(action.isVisible!(row(OTHER_CONFIG_ID, false))).toBe(true);
+      expect(action.disabled).toBe(true);
+      expect(action.tooltip).toContain("You do not have permission to update");
+    }
+
+    expect(defaultActionsOn(row(OTHER_CONFIG_ID, false))).toEqual([
+      SWITCH_TITLE,
+    ]);
+    expect(defaultActionsOn(row(CONFIG_ID, true))).toEqual([STOP_TITLE]);
   });
 
   test("is not offered while the permissions are still loading", async () => {
@@ -779,8 +1272,225 @@ describe("Set as Project Default on a row", () => {
 
     await renderCard();
 
-    expect(setDefaultAction().isVisible!(row(OTHER_CONFIG_ID, false))).toBe(
-      false,
+    expect(defaultActionsOn(row(OTHER_CONFIG_ID, false))).toEqual([]);
+    expect(
+      defaultActionsOn(row(OTHER_CONFIG_ID, false, TwilioConfigUse.SmsOnly)),
+    ).toEqual([]);
+    expect(defaultActionsOn(row(CONFIG_ID, true))).toEqual([]);
+  });
+});
+
+describe("Stop Using as Project Default on a row", () => {
+  test("asks first, naming the config and what stops going through it", async () => {
+    await renderCard();
+
+    const action: ActionButtonSchema<ProjectCallSMSConfig> =
+      actionTitled(STOP_TITLE);
+
+    expect(action.icon).toBe(IconProp.Close);
+
+    const both: RowActionConfirmation | undefined = action.getConfirmation!(
+      row(CONFIG_ID, true),
+    );
+
+    expect(both).toEqual({
+      title: "Stop using Production Twilio as the project default?",
+      description: TwilioConfigDefaultCopy.stopDefaultConfirmDescription,
+      submitButtonText: "Stop Using as Default",
+    });
+    expect(
+      action.getConfirmation!(row(CONFIG_ID, true, TwilioConfigUse.SmsOnly))
+        ?.description,
+    ).toBe(TwilioConfigDefaultCopy.stopSmsDefaultConfirmDescription);
+    expect(
+      action.getConfirmation!(
+        row(CONFIG_ID, true, TwilioConfigUse.CallsAndSms, "calls"),
+      )?.description,
+    ).toBe(TwilioConfigDefaultCopy.stopCallsDefaultConfirmDescription);
+  });
+
+  test("stops it being the default, then lists and reads again", async () => {
+    configCount = 2;
+    defaultCount = 1;
+
+    await renderCard();
+
+    expect(cardDescription()).toBe(TwilioConfigDefaultCopy.cardDescription);
+
+    const reportsBefore: number = fetchReports;
+    const onComplete: MockFunction = getJestMockFunction();
+    const onError: MockFunction = getJestMockFunction();
+
+    // No other config is a default to take the SMS and calls.
+    defaultCount = 0;
+
+    await act(async (): Promise<void> => {
+      // Typed as returning nothing; the table's own action is async.
+      await Promise.resolve(
+        actionTitled(STOP_TITLE).onClick(
+          row(CONFIG_ID, true),
+          onComplete as unknown as () => void,
+          onError as unknown as (error: Error) => void,
+        ),
+      );
+    });
+    await settle();
+
+    expect(updates).toEqual([
+      {
+        id: CONFIG_ID,
+        data: { isProjectDefault: false },
+        modelName: "ProjectCallSMSConfig",
+      },
+    ]);
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(onError).not.toHaveBeenCalled();
+    expect(fetchReports).toBe(reportsBefore + 1);
+    expect(cardDescription()).toBe(
+      TwilioConfigDefaultCopy.noDefaultCardDescription,
     );
   });
+
+  test("a refusal is shown in the dialog, and nothing is listed again", async () => {
+    updateFails = true;
+
+    await renderCard();
+
+    const reportsBefore: number = fetchReports;
+    const onComplete: MockFunction = getJestMockFunction();
+    const onError: MockFunction = getJestMockFunction();
+
+    await act(async (): Promise<void> => {
+      await Promise.resolve(
+        actionTitled(STOP_TITLE).onClick(
+          row(CONFIG_ID, true),
+          onComplete as unknown as () => void,
+          onError as unknown as (error: Error) => void,
+        ),
+      );
+    });
+    await settle();
+
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect((onError.mock.calls[0]![0] as Error).message).toBe(
+      "You do not have permission to do this.",
+    );
+    expect(fetchReports).toBe(reportsBefore);
+  });
+});
+
+describe("the Project Default column", () => {
+  test("says what each config is the default for", async () => {
+    await renderCard();
+
+    expect(projectDefaultCell(row(CONFIG_ID, true))).toBe("Default");
+    expect(
+      projectDefaultCell(row(CONFIG_ID, true, TwilioConfigUse.SmsOnly)),
+    ).toBe("Default for SMS");
+    expect(
+      projectDefaultCell(row(CONFIG_ID, true, TwilioConfigUse.CallsOnly)),
+    ).toBe("Default for calls");
+    expect(
+      projectDefaultCell(
+        row(CONFIG_ID, true, TwilioConfigUse.CallsAndSms, "calls"),
+      ),
+    ).toBe("Default for calls");
+    expect(projectDefaultCell(row(OTHER_CONFIG_ID, false))).toBe("-");
+  });
+
+  test("exports what the row says", async () => {
+    await renderCard();
+
+    const column: Column<ProjectCallSMSConfig> = projectDefaultColumn();
+
+    expect(column.getExportValue!(row(CONFIG_ID, true))).toBe("Default");
+    expect(
+      column.getExportValue!(row(CONFIG_ID, true, TwilioConfigUse.SmsOnly)),
+    ).toBe("Default for SMS");
+    expect(column.getExportValue!(row(OTHER_CONFIG_ID, false))).toBe("");
+  });
+});
+
+/*
+ * The words a default for SMS and one for calls add (#6574): Dashboard
+ * keys, translated in every language the Dashboard is translated into -
+ * Arabic, partly translated, keeps its sibling Twilio strings in English
+ * (Locales/ARABIC.md) - with the Stop question's {{config}} in each, and
+ * the card quoting the row action as the language's menu names it.
+ */
+describe("the strings a default for SMS and one for calls add", () => {
+  const LOCALES_DIR: string = path.join(
+    __dirname,
+    "../../../../App/FeatureSet/Dashboard/src/Locales",
+  );
+
+  const KEYS: Array<string> = [
+    TwilioConfigDefaultCopy.noSmsDefaultCardDescription,
+    TwilioConfigDefaultCopy.noCallsDefaultCardDescription,
+    TwilioConfigDefaultCopy.setSmsDefaultTitle,
+    TwilioConfigDefaultCopy.setCallsDefaultTitle,
+    TwilioConfigDefaultCopy.smsDefaultPillText,
+    TwilioConfigDefaultCopy.callsDefaultPillText,
+    TwilioConfigDefaultCopy.stopDefaultConfirmTitle,
+    TwilioConfigDefaultCopy.stopDefaultConfirmDescription,
+    TwilioConfigDefaultCopy.stopSmsDefaultConfirmDescription,
+    TwilioConfigDefaultCopy.stopCallsDefaultConfirmDescription,
+    TwilioConfigDefaultCopy.defaultSwitchDescription,
+    TwilioConfigDefaultCopy.smsOnlyDefaultSwitchDescription,
+    TwilioConfigDefaultCopy.callsOnlyDefaultSwitchDescription,
+    // The Dashboard's already: the Runners' own default actions use them.
+    TwilioConfigDefaultCopy.setDefaultTitle,
+    TwilioConfigDefaultCopy.defaultPillText,
+    TwilioConfigDefaultCopy.stopDefaultTitle,
+    TwilioConfigDefaultCopy.stopDefaultConfirmButton,
+  ];
+
+  function readLocale(language: string): Record<string, string> {
+    return JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
+    ) as Record<string, string>;
+  }
+
+  test("are Dashboard keys, and none says one config is the project default any more", () => {
+    const english: Record<string, string> = readLocale("en");
+
+    for (const key of KEYS) {
+      expect({ key, inEnglish: english[key] }).toEqual({ key, inEnglish: key });
+    }
+
+    expect(
+      Object.keys(english).filter((key: string): boolean => {
+        return key.startsWith("One config is the project default");
+      }),
+    ).toEqual([]);
+  });
+
+  test.each([...DASHBOARD_LANGUAGES])(
+    "are translated in %s",
+    (language: string) => {
+      const words: Record<string, string> = readLocale(language);
+
+      for (const key of KEYS) {
+        expect({
+          language,
+          key,
+          translated: Boolean(words[key]) && words[key] !== key,
+        }).toEqual({ language, key, translated: true });
+      }
+
+      expect(words[TwilioConfigDefaultCopy.stopDefaultConfirmTitle]).toContain(
+        "{{config}}",
+      );
+
+      for (const sentence of [
+        TwilioConfigDefaultCopy.noSmsDefaultCardDescription,
+        TwilioConfigDefaultCopy.noCallsDefaultCardDescription,
+      ]) {
+        expect(words[sentence]).toContain(
+          words[TwilioConfigDefaultCopy.setDefaultTitle],
+        );
+      }
+    },
+  );
 });

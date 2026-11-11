@@ -29,6 +29,10 @@ import SloAuditLogs from "../Pages/Slo/View/AuditLogs";
 import SloOwners from "../Pages/Slo/View/Owners";
 import SloSettings from "../Pages/Slo/View/Settings";
 import SloDelete from "../Pages/Slo/View/Delete";
+import SloWorkspaceConnectionSlack from "../Pages/Slo/WorkspaceConnectionSlack";
+import SloWorkspaceConnectionMicrosoftTeams from "../Pages/Slo/WorkspaceConnectionMicrosoftTeams";
+import SloWorkspaceConnectionMattermost from "../Pages/Slo/WorkspaceConnectionMattermost";
+import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
@@ -105,6 +109,67 @@ const SloRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[PageMap.SLOS_SETTINGS_LABEL_RULE_VIEW] as Route
               }
               ruleViewModelType={ServiceLevelObjectiveLabelRule}
+            />
+          }
+        />
+
+        {/*
+         * The rules that post SLOs' error budget policy changes to Slack,
+         * Microsoft Teams and Mattermost, and the page that connects one:
+         * list-layout pages, whose static segments outrank the view's `:id`.
+         */}
+        <PageRoute
+          path={SloRoutePath[PageMap.SLOS_WORKSPACE_CONNECTION_SLACK] || ""}
+          element={
+            <SloWorkspaceConnectionSlack
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SLOS_WORKSPACE_CONNECTION_SLACK] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            SloRoutePath[PageMap.SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS] ||
+            ""
+          }
+          element={
+            <SloWorkspaceConnectionMicrosoftTeams
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            SloRoutePath[PageMap.SLOS_WORKSPACE_CONNECTION_MATTERMOST] || ""
+          }
+          element={
+            <SloWorkspaceConnectionMattermost
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SLOS_WORKSPACE_CONNECTION_MATTERMOST] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={SloRoutePath[PageMap.SLOS_WORKSPACE_CONNECTIONS] || ""}
+          element={
+            <WorkspaceConnectionsOverview
+              slackPage={PageMap.SLOS_WORKSPACE_CONNECTION_SLACK}
+              microsoftTeamsPage={
+                PageMap.SLOS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              }
+              mattermostPage={PageMap.SLOS_WORKSPACE_CONNECTION_MATTERMOST}
             />
           }
         />

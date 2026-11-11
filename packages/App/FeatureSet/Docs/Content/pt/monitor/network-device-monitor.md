@@ -67,7 +67,7 @@ O menu Rede mantém à vista o que você abre todos os dias: **Visão geral**, *
 | Seção | Páginas |
 | --- | --- |
 | **Topologia** | **Topologia do dispositivo**, **Dispositivos descobertos**, **Matriz de latência**, **Links do site**, **Links do dispositivo** |
-| **Regras** | **Regras de importação automática**, **Regras de atribuição de sites**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de links** |
+| **Regras** | **Regras de importação automática**, **Regras de atribuição de sites**, **Regras de nomenclatura**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de links** |
 | **Configurações** | **Políticas de alerta**, **Credenciais SNMP**, **Funções de dispositivo**, **Tipos de site**, **Nomes de endereço**, **Modelos de coleta de OID** |
 | **Avançado** | **Walk SNMP**, **Dispositivos arquivados** |
 
@@ -378,7 +378,7 @@ Adicione os OIDs que você quiser coletar a cada sondagem, em um modelo ou como 
 | Nome | Um nome amigável para o OID, como sysDescr. | Não |
 | Descrição | O que o OID representa. | Não |
 
-Os valores coletados aparecem em gráficos na página **Métricas** do dispositivo, e os critérios **SNMP OID Value**, **SNMP OID Exists** e **SNMP OID Rate (per second)** alertam sobre eles. Um contador (Counter32 ou Counter64) só cresce, então alerte sobre a rapidez com que ele cresceu desde a sondagem anterior. O seletor de OIDs desses critérios lista os OIDs que o dispositivo escolhido coleta, os do modelo e os dele, então não há nada para digitar.
+Os valores coletados aparecem em gráficos na página **Métricas** do dispositivo, e os critérios **Valor do OID SNMP**, **OID SNMP presente** e **Taxa do OID SNMP (por segundo)** alertam sobre eles. Um contador (Counter32 ou Counter64) só cresce, então alerte sobre a rapidez com que ele cresceu desde a sondagem anterior. O seletor de OIDs desses critérios lista os OIDs que o dispositivo escolhido coleta, os do modelo e os dele, então não há nada para digitar.
 
 Listas longas de OIDs são divididas em várias requisições SNMP GET para que cada uma caiba em um único datagrama UDP. Se você mantinha suas listas de OIDs curtas porque uma versão anterior informava como offline um dispositivo que respondia `tooBig`, não precisa mais.
 
@@ -391,7 +391,7 @@ Digite um OID numérico em **OID inicial** ou clique em um dos pontos de partida
 Cada linha diz onde o OID dela é conhecido: um valor que um modelo de saúde de um fabricante coleta, uma coluna da tabela SNMP de um modelo de fabricante, um contador que o walk das interfaces já exibe em gráfico para cada porta, ou um OID sob a MIB do fabricante. A partir de uma linha:
 
 - **Coletar** adiciona o OID aos **Device-Specific Health OIDs** do dispositivo: cada sondagem o coleta a partir da próxima, e a página **Métricas** do dispositivo o exibe em gráfico. Em um dispositivo vinculado a um OID Collection Template, o menu da linha pode adicioná-lo ao modelo em vez disso, para cada dispositivo que o usa.
-- **Criar alerta**, que aparece quando o OID passa a ser coletado, abre um novo monitor de dispositivo de rede para o dispositivo com um critério no OID. Um contador começa em **SNMP OID Rate (per second)** e um medidor em **SNMP OID Value**, ambos acima de um limite que você define; um tempo de atividade alerta abaixo de dez minutos (o dispositivo reiniciou), qualquer outro valor quando muda em relação ao lido.
+- **Criar alerta**, que aparece quando o OID passa a ser coletado, abre um novo monitor de dispositivo de rede para o dispositivo com um critério no OID. Um contador começa em **Taxa do OID SNMP (por segundo)** e um medidor em **Valor do OID SNMP**, ambos acima de um limite que você define; um tempo de atividade alerta abaixo de dez minutos (o dispositivo reiniciou), qualquer outro valor quando muda em relação ao lido.
 - **Copiar OID**, no menu da linha, copia o OID.
 
 **Baixar**, ao lado do resumo do walk, salva o que o walk leu em um arquivo: **Texto do snmpwalk (.txt)**, um OID por linha como o `snmpwalk -On` imprime, que qualquer ferramenta SNMP e o suporte de qualquer fabricante leem, ou **Planilha CSV (.csv)**, com o nome, a MIB, o tipo e o valor de cada OID. O arquivo traz cada OID que o walk leu, incluindo os walks continuados, seja o que for que o filtro mostre, e recebe o nome do dispositivo, da subárvore e do horário em que foi salvo. Quem pode ler o último walk do dispositivo pode baixá-lo.
@@ -425,7 +425,7 @@ Parte do que um dispositivo sabe é uma lista: uma linha por túnel IPsec, rádi
 | Nomes das linhas | Colunas opcionais cujos valores dão nome a cada linha, como o nome da conexão de um túnel. Sem elas, as linhas recebem o nome do seu índice. Um nome pode vir de uma tabela irmã que compartilha o índice (o Fabric Engine nomeia as adjacências IS-IS a partir de `rcIsisAdjHostName`), ou de uma tabela mãe cujo índice começa o desta tabela (o Aruba Instant nomeia cada rádio pelo seu access point). Uma tabela indexada por um nome (o ArubaOS indexa os seus SSIDs pelo SSID) recebe o nome do seu índice decodificado. |
 | Limite de linhas | Quantas linhas manter: 100 por padrão, 250 no máximo. |
 
-Números são lidos como números, e um texto que começa com um número é lido como esse número (`"36"`, `"-95 dBm"`, `"80MHz"`), porque muitos fabricantes colocam números dentro de strings. Defina o tipo de valor de uma coluna como **Text only** para valores que só parecem numéricos. Os **Value labels** transformam códigos em palavras (`0=inactive, 1=active`): o valor bruto continua sendo o que vai para os gráficos e as comparações, o rótulo é o que é exibido. Os **Healthy values** (`1`) dizem quais valores significam que está tudo bem: eles colorem a linha na página **Tabelas SNMP** do dispositivo e alimentam o critério **SNMP Table Row Is Unhealthy**.
+Números são lidos como números, e um texto que começa com um número é lido como esse número (`"36"`, `"-95 dBm"`, `"80MHz"`), porque muitos fabricantes colocam números dentro de strings. Defina o tipo de valor de uma coluna como **Text only** para valores que só parecem numéricos. Os **Value labels** transformam códigos em palavras (`0=inactive, 1=active`): o valor bruto continua sendo o que vai para os gráficos e as comparações, o rótulo é o que é exibido. Os **Healthy values** (`1`) dizem quais valores significam que está tudo bem: eles colorem a linha na página **Tabelas SNMP** do dispositivo e alimentam o critério **Linha da tabela SNMP não íntegra**.
 
 Algumas colunas dos modelos dos fabricantes também **ajustam** o número que leem, para MIBs que guardam um valor em uma unidade própria: o ArubaOS informa a potência de transmissão dobrada (lida × 0.5), o Aruba Instant o ruído de fundo sem o sinal (× −1), o Aerohive o ruído de fundo mais 256 (− 256), e o controlador da Extreme a largura do canal em passos de 20 MHz (× 20). O número ajustado é o que é exibido, colocado em gráficos e comparado, então **Noise Floor Maior que -80** significa o mesmo em todos os fabricantes, e o editor de tabelas mostra a conta embaixo da coluna.
 
@@ -494,7 +494,7 @@ A página **Interfaces** do dispositivo abre com um cartão **Transceptores**: p
 | Aviso | Uma leitura está no limite de aviso ou além dele. |
 | Alarme | Uma leitura está no limite de alarme ou além dele, ou o dispositivo sinaliza perda de sinal ou falha do transmissor. |
 | Não detectado | A porta tinha um óptico e não informa mais nenhum, enquanto a porta continua habilitada. A página continua mostrando o que havia ali. |
-| Sem limites | O óptico informa leituras, mas o dispositivo não informa limites para avaliá-las. Alerte sobre elas com **SNMP Transceiver Reading**. |
+| Sem limites | O óptico informa leituras, mas o dispositivo não informa limites para avaliá-las. Alerte sobre elas com **Leitura do transceptor SNMP**. |
 | Detectado | O óptico não informa nenhum diagnóstico: comum em SFPs de cobre e cabos direct-attach. |
 | Porta desabilitada | A porta está desligada, então o laser está apagado de propósito: as leituras aparecem, mas nunca são avaliadas. |
 
@@ -691,8 +691,33 @@ Uma varredura nem sempre encontra o melhor nome de um host na primeira vez. Os r
 
 Por isso, um dispositivo que a descoberta nomeou lembra de onde o nome dele veio. Quando uma varredura concluída do endereço dele encontra um nome melhor — o nome de sistema SNMP ou o nome NetBIOS em vez do nome de DNS reverso, qualquer nome em vez do endereço IP —, o dispositivo é renomeado com o nome que uma importação daria a ele agora, e o DNS Name dele é preenchido se não houver um. Se outro dispositivo já tiver esse nome, o dispositivo recebe o nome com o endereço entre parênteses (`FILESRV01 (10.0.0.5)`), e se esse também estiver ocupado, ele mantém o nome.
 
-Um nome só melhora: um dispositivo mantém o nome quando o registro DNS dele muda, ou quando uma varredura posterior não recebe resposta NetBIOS. Um dispositivo com nome DNS só é renomeado por uma varredura que encontra esse mesmo nome DNS no endereço dele, então, quando o endereço agora pertence a outra máquina (uma concessão DHCP que mudou, por exemplo), o dispositivo não assume o nome dessa máquina. Um dispositivo que você renomeou — na página de Configurações dele, pela API ou com **Shorten Names to Hostname** — nunca é renomeado por uma varredura. Os dispositivos importados antes de a descoberta registrar de onde vinham os nomes mantêm os seus nomes, exceto um que uma varredura ainda em andamento importou pelo endereço IP, que é renomeado quando essa varredura é concluída.
+Um nome só melhora: um dispositivo mantém o nome quando o registro DNS dele muda, ou quando uma varredura posterior não recebe resposta NetBIOS. Um dispositivo com nome DNS só é renomeado por uma varredura que encontra esse mesmo nome DNS no endereço dele, então, quando o endereço agora pertence a outra máquina (uma concessão DHCP que mudou, por exemplo), o dispositivo não assume o nome dessa máquina. Um dispositivo que você renomeou — na página de Configurações dele, pela API ou com **Shorten Names to Hostname** — nunca é renomeado por uma varredura, nem um dispositivo que uma [regra de nomenclatura](#nomear-dispositivos-pela-sua-convenção-de-nomenclatura) nomeou. Os dispositivos importados antes de a descoberta registrar de onde vinham os nomes mantêm os seus nomes, exceto um que uma varredura ainda em andamento importou pelo endereço IP, que é renomeado quando essa varredura é concluída.
 :::
+
+### Nomear dispositivos pela sua convenção de nomenclatura
+
+Quando os seus dispositivos seguem uma convenção de nomenclatura própria — `UN1216MNUPLR01` é o player de menu da unidade 1216 —, escreva-a como **regras de nomenclatura** em **Rede → Regras → Regras de nomenclatura**, e a descoberta passa a dar nome aos dispositivos por ela, e não pelo que encontra. Uma regra diz quais dispositivos (uma faixa de IPs, o nome descoberto, o endereço MAC, o fabricante e o site, com as mesmas condições de todas as regras de rede) e como eles se chamam: um **padrão de nome**, um texto em que as partes que mudam de um dispositivo para outro ficam entre chaves.
+
+| Marcador | É substituído por | Exemplo |
+| --- | --- | --- |
+| `{site.code}` | O **Código do site** do site a que o dispositivo pertence (defina-o nas configurações do site) | `1216` |
+| `{site}` | O nome do site do dispositivo | `Unit 1216` |
+| `{discoveredName}` | O nome que a descoberta encontrou, como descrito acima | `dmb-5` |
+| `{ip}`, `{ip.1}` … `{ip.4}` | O endereço IP, ou uma das suas quatro partes | `51` |
+| `{mac}` | O endereço MAC, 12 dígitos e letras | `00050BB07FFC` |
+| `{vendor}` | Quem fabricou o dispositivo | `SICOM Systems` |
+| `{lookup}` | O valor que a tabela de consulta da regra dá ao dispositivo | `MNUPLR01` |
+| `{n}`, `{nn}`, `{nnn}` | O menor número que torna o nome único: `1`, `01`, `001` | `01` |
+
+Um marcador pode ser seguido de filtros, um depois do outro: `upper`, `lower`, `first:N`, `last:N`, `digits` e `nospaces`. `{vendor|first:3|upper}` é `SIC`, e `{site|digits}` é `1216` para um site chamado "Unit 1216". O formulário da regra oferece cada marcador como um botão e dá nome a um dispositivo de exemplo enquanto você digita.
+
+Algumas convenções são uma tabela, e não uma fórmula: na sub-rede de cada unidade, o dispositivo em `.51` é o player de menu `MNUPLR01`, e o que está em `.151` é a tela esquerda `MNUSCR01`. Abra **Tabela de consulta** na etapa **Nome** da regra, escolha qual é a chave da tabela — a última parte do endereço IP, o endereço IP, o endereço MAC ou o nome descoberto — e digite as linhas, cole duas colunas de uma planilha ou importe um arquivo CSV (**Exportar CSV** salva a tabela de volta em um arquivo). Assim, `UN{site.code}{lookup}` dá nome aos painéis de menu de todas as unidades com uma única regra.
+
+As regras são testadas a partir do topo da lista, e você as arrasta para mudar a ordem. A primeira regra habilitada que corresponde a um dispositivo, e que tem todos os valores de que o padrão dela precisa, dá nome a ele. Um dispositivo que uma regra não consegue nomear — o site dele não tem código, o endereço dele não tem linha na tabela de consulta — fica para a próxima regra. Os nomes de dispositivos são únicos em um projeto, então um padrão com número pega o menor número ainda livre — `UN{site.code}DRTPLR{nn}` conta a partir de `01` em cada unidade — e um padrão sem número cujo nome outro dispositivo já tem deixa o dispositivo com o nome descoberto.
+
+As regras dão nome a um dispositivo quando ele é importado: de **Revisar resultados**, de **Dispositivos descobertos** com **Adicionar ao monitoramento** e pelas regras de importação automática. **Revisar resultados** mostra, sob cada host, o nome com que o dispositivo será criado — **Será chamado** `UN1216DRTPLR02` — ou por que uma regra não consegue nomeá-lo, e **Adicionar ao monitoramento** lista os nomes da mesma forma. Um dispositivo que uma regra nomeia guarda o nome que a descoberta encontrou como seu **Nome descoberto** e é criado no site que as regras de atribuição de site dão a ele, então o nome e o site dele sempre combinam. Uma varredura posterior nunca o renomeia, mesmo quando encontra um nome melhor.
+
+Para adequar às regras os dispositivos que você já tem, aperte **Aplicar aos dispositivos existentes** na página Regras de nomenclatura, ou selecione dispositivos na lista **Dispositivos** e use **Aplicar regras de nomenclatura**. Nada é renomeado até você confirmar: a prévia lista cada dispositivo cujo nome não segue as regras, com o nome que ele receberia, os dispositivos que uma regra ainda não consegue nomear, com o motivo, e conta os dispositivos que já as seguem. Os dispositivos nomeados pela descoberta ou por uma regra vêm marcados; os dispositivos cujos nomes alguém digitou aparecem desmarcados, então um nome que uma pessoa escolheu só muda quando você o marca. Um dispositivo que já leva um número do seu padrão mantém esse número. Aplicar as regras exige permissão para editar as regras de nomenclatura e para editar todos os dispositivos de rede do projeto.
 
 ### Importar automaticamente com regras de importação automática
 
@@ -780,7 +805,7 @@ Para criar um a partir de **Monitores**:
 
 Um monitor de dispositivo de rede não tem intervalo próprio: ele é avaliado sempre que chegam os resultados de sondagem do dispositivo, e sempre que chega um trap do dispositivo.
 
-Quando as sondagens param, o monitor continua sendo avaliado. Quando um dispositivo passa três intervalos de sondagem, e pelo menos dez minutos, sem uma sondagem, seus monitores são avaliados a cada cinco minutos como uma sondagem que não conseguiu alcançá-lo: um critério que corresponde a **SNMP Device Is Online** como False, como **Device unreachable**, dispara, e o incidente diz por que nenhuma sondagem chegou, por exemplo que a sonda está fora do ar ou que o dispositivo não tem sonda. Um dispositivo com a sondagem desativada, ou com a [substituição por monitor vinculado](#a-substituição-por-monitor-vinculado), fica de fora. A próxima sondagem avalia o monitor como de costume.
+Quando as sondagens param, o monitor continua sendo avaliado. Quando um dispositivo passa três intervalos de sondagem, e pelo menos dez minutos, sem uma sondagem, seus monitores são avaliados a cada cinco minutos como uma sondagem que não conseguiu alcançá-lo: um critério que corresponde a **Dispositivo SNMP online** como False, como **Device unreachable**, dispara, e o incidente diz por que nenhuma sondagem chegou, por exemplo que a sonda está fora do ar ou que o dispositivo não tem sonda. Um dispositivo com a sondagem desativada, ou com a [substituição por monitor vinculado](#a-substituição-por-monitor-vinculado), fica de fora. A próxima sondagem avalia o monitor como de costume.
 
 ### Incidentes e alertas de um dispositivo
 
@@ -850,7 +875,7 @@ Clique em **Add Recommended Alerts** no formulário de critérios para adicionar
 | Transceiver past its alarm threshold | A leitura de um óptico está além de um limite de alarme que o dispositivo informa, ou o dispositivo sinaliza perda de sinal ou falha do transmissor. | Alerta |
 | Transceiver RX power dropping | Um óptico recebe pelo menos 2 dB a menos de luz do que no melhor dia dos últimos 30. | Alerta |
 
-Quando o dispositivo faz walk de [tabelas SNMP](#tabelas-snmp) que declaram valores saudáveis, o pacote também adiciona um critério **SNMP Table Row Is Unhealthy** para cada tabela assim, com Row `*`: um incidente por linha para túneis, vizinhos de roteamento e os access points de um controlador ("IPsec Tunnels: row unhealthy", ou "Access Points: row unhealthy" para um access point que sumiu do seu controlador), e um alerta por linha para tabelas de hardware e rádios.
+Quando o dispositivo faz walk de [tabelas SNMP](#tabelas-snmp) que declaram valores saudáveis, o pacote também adiciona um critério **Linha da tabela SNMP não íntegra** para cada tabela assim, com Row `*`: um incidente por linha para túneis, vizinhos de roteamento e os access points de um controlador ("IPsec Tunnels: row unhealthy", ou "Access Points: row unhealthy" para um access point que sumiu do seu controlador), e um alerta por linha para tabelas de hardware e rádios.
 
 SNMP walk failing é um alerta, e não um incidente, de propósito: o dispositivo não está fora do ar, então acordar alguém às 2 da manhã por isso seria errado, mas o inventário dele parou de ser atualizado e alguém deveria corrigir as credenciais. Ele nunca dispara em um dispositivo só com ping, porque o critério não é avaliado quando não houve walk.
 
@@ -905,7 +930,7 @@ Os traps são associados pelo inventário de dispositivos:
 
 1. Um trap chega ao receptor de uma sonda e é encaminhado ao OneUptime.
 2. O OneUptime procura os dispositivos de rede atribuídos a essa sonda cujo nome do host, ou um dos **Outros endereços**, é o endereço IP de origem do trap.
-3. O trap é registrado no histórico de traps do dispositivo, e cada monitor de dispositivo de rede de um dispositivo correspondente o avalia contra os seus critérios, normalmente um filtro **SNMP Trap Received (Trap OID)**.
+3. O trap é registrado no histórico de traps do dispositivo, e cada monitor de dispositivo de rede de um dispositivo correspondente o avalia contra os seus critérios, normalmente um filtro **Trap SNMP recebido (OID do trap)**.
 
 A associação é feita pelo endereço, não pelas credenciais, então um dispositivo só com ping também pode receber traps: um dispositivo para o qual você não tem credenciais de leitura ainda pode enviá-los. Registre o dispositivo com o endereço de onde ele envia traps, ou adicione esse endereço aos **Outros endereços** dele na página **Configurações**. Os traps genéricos SNMPv1 (coldStart, linkDown, linkUp e assim por diante) são convertidos nos OIDs de notificação SNMPv2 padrão, então o linkDown corresponde ao OID de trap `1.3.6.1.6.3.1.1.5.3` qualquer que seja a versão do SNMP.
 
@@ -921,8 +946,8 @@ O filtro também oferece Contém, Começa com e Termina com, então um único cr
 
 Alguns fabricantes enviam todo evento como o mesmo trap e colocam o evento em um varbind de texto: toda notificação de um Sophos Firewall é `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`) com a mensagem em `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Combine os dois em um critério:
 
-- **SNMP Trap Received (Trap OID)**: Igual a `1.3.6.1.4.1.2604.5.1.8.1.1`
-- **SNMP Trap Varbind Value**: OID do varbind `1.3.6.1.4.1.2604.5.1.8.1.2`, Contém `IPSec`
+- **Trap SNMP recebido (OID do trap)**: Igual a `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **Valor do varbind do trap SNMP**: OID do varbind `1.3.6.1.4.1.2604.5.1.8.1.2`, Contém `IPSec`
 
 Um filtro negativo (Não contém, Diferente de, Está vazio) só é atendido quando nenhum varbind no escopo corresponde à sua forma positiva. Deixe o OID do varbind vazio para buscar em todos os varbinds que o trap carrega.
 

@@ -1,6 +1,6 @@
 # Expressões JavaScript
 
-Um filtro de critério **JavaScript Expression** decide se o critério de um monitor é atendido com uma linha de JavaScript em vez de uma comparação fixa. Use-o quando os filtros prontos não conseguem expressar a condição — um campo dentro de uma resposta JSON, dois valores comparados entre si, ou várias verificações combinadas com `&&` e `||`.
+Um filtro de critério **Expressão JavaScript** decide se o critério de um monitor é atendido com uma linha de JavaScript em vez de uma comparação fixa. Use-o quando os filtros prontos não conseguem expressar a condição — um campo dentro de uma resposta JSON, dois valores comparados entre si, ou várias verificações combinadas com `&&` e `||`.
 
 :::cards
 - [Como funciona](#como-funciona): Os marcadores são preenchidos e depois a expressão é executada.
@@ -24,7 +24,7 @@ flowchart TB
 
 Como os marcadores são substituídos como texto, `{{responseBody.item}}` vira o valor bruto. Uma string precisa estar entre aspas para ser uma string JavaScript; um número ou um booleano não — veja [Regras de aspas](#regras-de-aspas). As expressões são executadas no servidor do OneUptime, num sandbox isolado.
 
-## Adicionar um filtro JavaScript Expression
+## Adicionar um filtro Expressão JavaScript
 
 :::steps
 ### Abrir os critérios
@@ -33,7 +33,7 @@ No monitor, abra **Configuração → Critérios** e clique em **Editar critéri
 
 ### Adicionar um filtro
 
-Em **Filtros**, clique em **Adicionar filtro** e defina o **Tipo de filtro** dele como **JavaScript Expression**. A **Condição do filtro** é **Evaluates To True**.
+Em **Filtros**, clique em **Adicionar filtro** e defina o **Tipo de filtro** dele como **Expressão JavaScript**. A **Condição do filtro** é **Resulta em verdadeiro**.
 
 ### Escrever a expressão
 
@@ -46,7 +46,7 @@ Salve o monitor. O filtro é avaliado na próxima verificação do monitor.
 
 ## Variáveis por tipo de monitor
 
-As expressões JavaScript são oferecidas para monitores do tipo Site, API, Incoming Request, Incoming Email, SQL Query e Database Health.
+As expressões JavaScript são oferecidas para monitores do tipo Site, API, Requisição recebida, Incoming Email, SQL Query e Database Health.
 
 ### Monitores de site e de API
 

@@ -1,5 +1,6 @@
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import UpdateBy from "../Types/Database/UpdateBy";
 import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import DatabaseService from "./DatabaseService";
 import IncidentService from "./IncidentService";
@@ -29,6 +30,41 @@ import {
   getOnCallObserverPageSeenMessage,
   isOnCallObserverPage,
 } from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
+import {
+  OnCallPageChannel,
+  OnCallPageNotificationEvent,
+  getOnCallPageChannelsOf,
+  isOnCallPageNotificationOut,
+} from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import OnCallPageTiming, {
+  OnCallPageStartMoment,
+} from "../Utils/OnCall/OnCallPageTiming";
+import NotificationDeliveryMetrics, {
+  NotificationCustomChannelIdentity,
+  NotificationDeliveryChannel,
+} from "../Utils/Telemetry/NotificationDeliveryMetrics";
+import CustomNotificationChannelService from "./CustomNotificationChannelService";
+import CustomNotificationChannel from "../../Models/DatabaseModels/CustomNotificationChannel";
+
+/*
+ * What the record's feed is told of a notification that an update gives
+ * this status: one that could not be sent, or a call not answered. Null for
+ * every other status - the feed hears of none of those from an update.
+ */
+export const getFeedEventOfStatus: (
+  status: unknown,
+) => OnCallPageNotificationEvent | null = (
+  status: unknown,
+): OnCallPageNotificationEvent | null => {
+  switch (status) {
+    case UserNotificationStatus.Error:
+      return OnCallPageNotificationEvent.Failed;
+    case UserNotificationStatus.NotAnswered:
+      return OnCallPageNotificationEvent.NotAnswered;
+    default:
+      return null;
+  }
+};
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -76,19 +112,233 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Records how long after its page's trigger each notification just
+   * written as sent reached its provider (notification.time_to_send): those
+   * written as their page started, whose start was kept (OnCallPageTiming),
+   * and taken back here so it is recorded once. A notification that names
+   * two channels - a rule written through the API can - is not timed: which
+   * of them was accepted first cannot be told. Never throws.
+   */
+  private async recordTimeToSend(deliveries: Array<Model>): Promise<void> {
+    for (const delivery of deliveries) {
+      try {
+        if (delivery.status !== UserNotificationStatus.Sent) {
+          continue;
+        }
+
+        const pageStart: OnCallPageStartMoment | null =
+          await OnCallPageTiming.takePageStartOf(delivery.id);
+
+        if (!pageStart) {
+          continue;
+        }
+
+        const sentAt: Date = OneUptimeDate.getCurrentDate();
+        const channels: Array<OnCallPageChannel> =
+          getOnCallPageChannelsOf(delivery);
+
+        if (channels.length !== 1) {
+          continue;
+        }
+
+        const channel: NotificationDeliveryChannel | null =
+          NotificationDeliveryMetrics.getChannelOfOnCallPage(channels[0]!);
+
+        if (!channel) {
+          continue;
+        }
+
+        NotificationDeliveryMetrics.recordTimeToSend({
+          channel: channel,
+          customChannel:
+            channel === NotificationDeliveryChannel.CustomChannel &&
+            delivery.customNotificationChannelId
+              ? await this.readCustomChannelIdentity(
+                  delivery.customNotificationChannelId,
+                )
+              : undefined,
+          triggerType: NotificationDeliveryMetrics.getTriggerTypeOf(delivery),
+          pageStart: pageStart.start,
+          timeToSendInMs: sentAt.getTime() - pageStart.startedAt.getTime(),
+        });
+      } catch (err) {
+        logger.error(
+          `Could not record the time to send of on-call notification ${delivery.id?.toString()}: ${err}`,
+        );
+      }
+    }
+  }
+
+  // A custom channel's id and name, as the metrics name it; its id alone when it cannot be read.
+  private async readCustomChannelIdentity(
+    customNotificationChannelId: ObjectID,
+  ): Promise<NotificationCustomChannelIdentity> {
+    const identity: NotificationCustomChannelIdentity = {
+      id: customNotificationChannelId.toString(),
+    };
+
+    try {
+      const customChannel: CustomNotificationChannel | null =
+        await CustomNotificationChannelService.findOneById({
+          id: customNotificationChannelId,
+          select: {
+            name: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (customChannel?.name) {
+        identity.name = customChannel.name;
+      }
+    } catch (err) {
+      logger.debug(
+        `Could not read the name of custom channel ${customNotificationChannelId.toString()}: ${err}`,
+      );
+    }
+
+    return identity;
+  }
+
+  /*
+   * Tells the record's feed of one notification of a page, after the page's
+   * own entry (OnCallDutyPolicyExecutionLogTimelineService
+   * .addNotificationToFeed, which decides whether it is news): only one that
+   * belongs to a page, and names the channel it went out by. Never throws.
+   */
+  private async addNotificationToFeed(
+    notification: Model,
+    event: OnCallPageNotificationEvent,
+  ): Promise<void> {
+    if (
+      !notification.id ||
+      !notification.onCallDutyPolicyExecutionLogTimelineId ||
+      getOnCallPageChannelsOf(notification).length === 0
+    ) {
+      return;
+    }
+
+    await OnCallDutyPolicyExecutionLogTimelineService.addNotificationToFeed({
+      onCallDutyPolicyExecutionLogTimelineId:
+        notification.onCallDutyPolicyExecutionLogTimelineId,
+      userOnCallLogTimelineId: notification.id,
+      event: event,
+    });
+  }
+
+  /*
+   * The step of a page keeps the channels its page went out by, for the
+   * run's Execution Timeline - which anybody who can read the run can read,
+   * where these notifications are their person's own
+   * (OnCallDutyPolicyExecutionLogTimelineService.refreshNotificationChannels).
+   * Asked for once a step, of notifications written or given a status:
+   * only of ones that belong to a page and name a channel. Never throws.
+   */
+  private async refreshStepNotificationChannels(
+    notifications: Array<Model>,
+  ): Promise<void> {
+    const stepIds: Array<string> = [];
+
+    for (const notification of notifications) {
+      const stepId: string | undefined =
+        notification.onCallDutyPolicyExecutionLogTimelineId?.toString();
+
+      if (
+        stepId &&
+        !stepIds.includes(stepId) &&
+        getOnCallPageChannelsOf(notification).length > 0
+      ) {
+        stepIds.push(stepId);
+      }
+    }
+
+    for (const stepId of stepIds) {
+      await OnCallDutyPolicyExecutionLogTimelineService.refreshNotificationChannels(
+        new ObjectID(stepId),
+      );
+    }
+  }
+
+  /*
    * How a page reached somebody - a call, an SMS, an email - is named in the
    * on-call run's Slack / Microsoft Teams message (OnCallPolicyRunMessage):
    * each delivery that is written, or changes status, asks for it to be
    * brought up to date. Never waits on Slack or Teams.
+   *
+   * The record's feed names it too: the page's own entry names the
+   * notifications that went out with it, and one that goes out later - a
+   * call ten minutes on, by the person's own On-Call Rules - or that could
+   * not be sent at all is an entry of its own. So does the run's Execution
+   * Timeline, on the page's step ("Notified Via").
    */
   @CaptureSpan()
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    /*
+     * A notification on its way out, written as its page starts: its page's
+     * start is kept for whichever server writes that it was sent, before it
+     * is handed to its sender (OnCallPageTiming). Nothing for any other.
+     */
+    if (createdItem.status === UserNotificationStatus.Sending) {
+      await OnCallPageTiming.rememberPageStartOf(createdItem.id);
+    }
+
     OnCallPolicyRunMessage.refresh(createdItem.onCallDutyPolicyExecutionLogId);
 
+    await this.refreshStepNotificationChannels([createdItem]);
+
+    if (createdItem.status === UserNotificationStatus.Error) {
+      await this.addNotificationToFeed(
+        createdItem,
+        OnCallPageNotificationEvent.Failed,
+      );
+    } else if (isOnCallPageNotificationOut(createdItem.status)) {
+      await this.addNotificationToFeed(
+        createdItem,
+        OnCallPageNotificationEvent.SentLater,
+      );
+    }
+
     return createdItem;
+  }
+
+  /*
+   * The status each notification had before an update that marks it as not
+   * sent, or as a call not answered, so the record's feed hears of it once -
+   * not again when a second write says the same (onUpdateSuccess).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    const statusBeforeUpdate: Record<
+      string,
+      UserNotificationStatus | undefined
+    > = {};
+
+    if (getFeedEventOfStatus(updateBy.data.status)) {
+      const itemsBeforeUpdate: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
+          _id: true,
+          status: true,
+        });
+
+      for (const item of itemsBeforeUpdate) {
+        if (item.id) {
+          statusBeforeUpdate[item.id.toString()] = item.status;
+        }
+      }
+    }
+
+    return {
+      updateBy: updateBy,
+      carryForward: {
+        statusBeforeUpdate: statusBeforeUpdate,
+      },
+    };
   }
 
   @CaptureSpan()
@@ -97,14 +347,34 @@ export class Service extends DatabaseService<Model> {
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
     if (onUpdate.updateBy.data.status && updatedItemIds.length > 0) {
+      let deliveries: Array<Model> = [];
+
       try {
-        const deliveries: Array<Model> = await this.findBy({
+        deliveries = await this.findBy({
           query: {
             _id: QueryHelper.any(updatedItemIds),
           },
           select: {
             _id: true,
+            status: true,
             onCallDutyPolicyExecutionLogId: true,
+            onCallDutyPolicyExecutionLogTimelineId: true,
+            userCallId: true,
+            userSmsId: true,
+            userWhatsAppId: true,
+            userTelegramId: true,
+            userPushId: true,
+            userEmailId: true,
+            userSlackId: true,
+            userMicrosoftTeamsId: true,
+            userMattermostId: true,
+            userWebhookId: true,
+            customNotificationChannelId: true,
+            // The record it pages about, for its time to send (recordTimeToSend).
+            triggeredByIncidentId: true,
+            triggeredByAlertId: true,
+            triggeredByIncidentEpisodeId: true,
+            triggeredByAlertEpisodeId: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
@@ -122,6 +392,61 @@ export class Service extends DatabaseService<Model> {
         logger.error(
           `Could not ask for the on-call run's chat message to be updated: ${err}`,
         );
+      }
+
+      /*
+       * A notification its provider accepted: how long after its page's
+       * trigger, for the platform's operator (notification.time_to_send).
+       */
+      if (onUpdate.updateBy.data.status === UserNotificationStatus.Sent) {
+        await this.recordTimeToSend(deliveries);
+      }
+
+      /*
+       * A status can take a channel off its step's list - one that could
+       * not be sent after all - or put it back.
+       */
+      await this.refreshStepNotificationChannels(deliveries);
+
+      /*
+       * A notification that could not be sent after all - its provider
+       * refused it, its push token is gone - or a call that rang and was
+       * not picked up is told of in the record's feed, once: a second write
+       * saying the same is no news. A status not read before the update
+       * counts as a change.
+       */
+      const event: OnCallPageNotificationEvent | null = getFeedEventOfStatus(
+        onUpdate.updateBy.data.status,
+      );
+
+      if (event) {
+        const status: UserNotificationStatus = onUpdate.updateBy.data
+          .status as UserNotificationStatus;
+
+        const statusBeforeUpdate:
+          | Record<string, UserNotificationStatus | undefined>
+          | undefined = (
+          onUpdate.carryForward as {
+            statusBeforeUpdate?: Record<
+              string,
+              UserNotificationStatus | undefined
+            >;
+          } | null
+        )?.statusBeforeUpdate;
+
+        for (const delivery of deliveries) {
+          const id: string = delivery.id?.toString() || "";
+
+          const wasSoBefore: boolean = Boolean(
+            statusBeforeUpdate &&
+              id in statusBeforeUpdate &&
+              statusBeforeUpdate[id] === status,
+          );
+
+          if (delivery.status === status && !wasSoBefore) {
+            await this.addNotificationToFeed(delivery, event);
+          }
+        }
       }
     }
 

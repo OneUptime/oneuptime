@@ -1,0 +1,215 @@
+name: Crossplane Provider
+
+# Generates the Crossplane provider (Scripts/CrossplaneProvider) from the
+# Terraform provider, tests its generator and the Go it generates, builds its
+# package, and runs packages/E2E/Crossplane: that package installed by
+# Crossplane in a kind cluster, managing a OneUptime this job brings up.
+#
+# The concurrency group is the one terraform-provider-e2e.yml explains: a
+# pull request's group is "<workflow name>-<PR number>", the group
+# cancel-closed-pr-runs.yml joins to stop it; release.yml passes its run id as
+# release_run_id, so every release run has a group of its own; and the nightly
+# run has its own as well.
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.release_run_id || github.event.pull_request.number || github.event.schedule || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+on:
+  # The provider is made from every resource of the API, so a change anywhere
+  # can change it. A pull request or a push runs this when it changes the
+  # generators, the test or this workflow; main runs it every night for the
+  # rest, and every release runs it before publishing the package. The
+  # English docs pages count too: the test checks their manifests.
+  pull_request:
+    paths:
+      - "Scripts/CrossplaneProvider/**"
+      - "Scripts/TerraformProvider/**"
+      - "packages/E2E/Crossplane/**"
+      - "packages/App/FeatureSet/Docs/Content/en/crossplane/**"
+      - "packages/E2E/Terraform/e2e-tests/scripts/setup-test-account.sh"
+      - ".github/actions/setup-crossplane-tools/**"
+      - ".github/workflows/crossplane-provider.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "Scripts/CrossplaneProvider/**"
+      - "Scripts/TerraformProvider/**"
+      - "packages/E2E/Crossplane/**"
+      - "packages/App/FeatureSet/Docs/Content/en/crossplane/**"
+      - "packages/E2E/Terraform/e2e-tests/scripts/setup-test-account.sh"
+      - ".github/actions/setup-crossplane-tools/**"
+      - ".github/workflows/crossplane-provider.yml"
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+  # release.yml calls this as the gate of publish-crossplane-provider. Nothing
+  # below may rely on pull_request-only context.
+  workflow_call:
+    inputs:
+      # The calling release run's id, for the concurrency group above.
+      release_run_id:
+        type: string
+        required: false
+
+jobs:
+  crossplane-e2e:
+    name: Crossplane provider
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+      APP_TAG: latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Before the OneUptime stack, kind's node image and the test registry
+      # are pulled: through mirror.gcr.io, not anonymously from Docker Hub.
+      - uses: ./.github/actions/docker-hub-mirror
+
+      - name: Free disk space if the runner is short of it
+        uses: ./.github/actions/free-disk-space
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: 'npm'
+
+      # No Go cache: the provider's modules and build cache come to several
+      # GB, in a repository whose cache space the npm and pinned-tool caches
+      # share.
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache: false
+
+      - name: Set up the Crossplane tools
+        uses: ./.github/actions/setup-crossplane-tools
+
+      # Both are on ubuntu-latest; installed the way the Helm chart tests do
+      # where an image lacks them.
+      - name: Install helm and kubectl if missing
+        run: |
+          set -euo pipefail
+          command -v helm >/dev/null || curl -fsSL --retry 5 https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          if ! command -v kubectl >/dev/null; then
+            ver="$(curl -fsSL --retry 5 https://dl.k8s.io/release/stable.txt)"
+            curl -fsSL --retry 5 -o "$RUNNER_TEMP/kubectl" "https://dl.k8s.io/release/${ver}/bin/linux/amd64/kubectl"
+            sudo install -m 0755 "$RUNNER_TEMP/kubectl" /usr/local/bin/kubectl
+          fi
+          helm version --short
+          kubectl version --client
+
+      # Generation runs both generators through the root's ts-node, against
+      # Common's sources; the Crossplane generator's own install is for its
+      # type check and tests.
+      - name: Install root dependencies
+        uses: ./.github/actions/npm-install
+
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      - name: Install Script dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Scripts
+
+      - name: Install Crossplane generator dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Scripts/CrossplaneProvider
+
+      - name: Type-check the Crossplane generator
+        working-directory: Scripts/CrossplaneProvider
+        run: npm run compile
+
+      # Runs even when the type check failed, so one run reports both.
+      - name: Run Crossplane generator unit tests
+        if: ${{ !cancelled() }}
+        working-directory: Scripts/CrossplaneProvider
+        run: npm test
+
+      # Before the OneUptime stack starts: generation loads the whole codebase
+      # through ts-node and builds a large Go program, and overlapping that
+      # with the running services is more than a runner's memory.
+      - name: Generate Terraform provider
+        run: npm run generate-terraform-provider
+
+      - name: Generate Crossplane provider
+        run: npm run generate-crossplane-provider
+
+      - name: Vet and unit test the generated Crossplane provider
+        working-directory: Crossplane/provider-oneuptime
+        run: |
+          set -euo pipefail
+          go vet ./...
+          go test ./...
+
+      # The runner's platform only: the release builds both (release.yml).
+      - name: Build the provider's package
+        run: |
+          set -euo pipefail
+          bash ./Scripts/CrossplaneProvider/build-package.sh \
+            --version "$(head -n 1 VERSION)" --platforms linux/amd64
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
+      # The App and Nginx images build FROM public.ecr.aws's node image; seeded
+      # first, from Docker Hub when ECR will not serve it, as the Terraform
+      # E2E job does (terraform-provider-e2e.yml explains why).
+      - name: Warm base images
+        run: |
+          set -euo pipefail
+          npm run config-to-dev
+          npm run prerun
+          bash ./Scripts/GHA/warm_base_images.sh ./packages/App/Dockerfile ./packages/Nginx/Dockerfile
+
+      # Only the bring-up is retried; the test runs once. `app` and `ingress`
+      # are the services the API needs (terraform-provider-e2e.yml explains
+      # the choice and the chaining).
+      - name: Start OneUptime services
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          retry_wait_seconds: 60
+          command: npm run dev --services="app ingress" && npm run status-check
+
+      # A user, a project and a ProjectOwner API key, written to the Terraform
+      # suite's test-env.sh, which the next step reads.
+      - name: Set up test account
+        run: bash ./packages/E2E/Terraform/e2e-tests/scripts/setup-test-account.sh
+
+      - name: Run Crossplane E2E tests
+        run: |
+          set -euo pipefail
+          # ONEUPTIME_URL and ONEUPTIME_API_KEY, from "Set up test account".
+          source ./packages/E2E/Terraform/e2e-tests/test-env.sh
+          bash ./packages/E2E/Crossplane/e2e-tests/scripts/run-tests.sh
+
+      - name: Dump container logs on failure
+        if: failure()
+        run: |
+          # The compose file, project directory and exported config.env that
+          # `npm run dev` used (terraform-provider-e2e.yml explains why).
+          set +e
+          export $(grep -v '^#' config.env | xargs) 2>/dev/null
+          COMPOSE="docker compose --project-directory . -f Scripts/Dev/docker-compose.dev.yml"
+          $COMPOSE ps -a
+          for service in app ingress postgres clickhouse valkey; do
+            echo ""
+            echo "===== ${service} (last 300 lines) ====="
+            $COMPOSE logs --tail=300 --no-color "${service}" 2>&1
+          done

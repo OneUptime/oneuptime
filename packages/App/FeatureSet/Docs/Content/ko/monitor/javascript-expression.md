@@ -1,6 +1,6 @@
 # JavaScript 표현식
 
-**JavaScript Expression** 기준 필터는 고정된 비교 대신 JavaScript 한 줄로 모니터의 기준이 충족되었는지를 판단합니다. 기본 제공 필터로는 조건을 표현할 수 없을 때 사용하세요. JSON 응답 깊숙한 곳의 필드, 서로 비교하는 두 값, `&&`와 `||`로 묶은 여러 확인 같은 경우입니다.
+**JavaScript 표현식** 기준 필터는 고정된 비교 대신 JavaScript 한 줄로 모니터의 기준이 충족되었는지를 판단합니다. 기본 제공 필터로는 조건을 표현할 수 없을 때 사용하세요. JSON 응답 깊숙한 곳의 필드, 서로 비교하는 두 값, `&&`와 `||`로 묶은 여러 확인 같은 경우입니다.
 
 :::cards
 - [작동 방식](#작동-방식): 자리 표시자가 채워진 다음 표현식이 실행됩니다.
@@ -24,7 +24,7 @@ flowchart TB
 
 자리 표시자는 텍스트로 바뀌므로 `{{responseBody.item}}`은 원시 값이 됩니다. 문자열은 JavaScript 문자열이 되도록 따옴표로 감싸야 하고, 숫자나 불리언은 감싸지 않습니다. [따옴표 규칙](#따옴표-규칙)을 참고하세요. 표현식은 OneUptime 서버의 격리된 샌드박스에서 실행됩니다.
 
-## JavaScript Expression 필터 추가
+## JavaScript 표현식 필터 추가
 
 :::steps
 ### 기준 열기
@@ -33,7 +33,7 @@ flowchart TB
 
 ### 필터 추가
 
-**필터** 아래에서 **필터 추가**를 클릭하고 **필터 유형**을 **JavaScript Expression**으로 설정합니다. **필터 조건**은 **Evaluates To True**입니다.
+**필터** 아래에서 **필터 추가**를 클릭하고 **필터 유형**을 **JavaScript 표현식**으로 설정합니다. **필터 조건**은 **참으로 평가됨**입니다.
 
 ### 표현식 작성
 
@@ -46,7 +46,7 @@ flowchart TB
 
 ## 모니터 유형별 변수
 
-JavaScript 표현식은 Website, API, Incoming Request, Incoming Email, SQL Query, Database Health 모니터에서 사용할 수 있습니다.
+JavaScript 표현식은 Website, API, 수신 요청, Incoming Email, SQL Query, Database Health 모니터에서 사용할 수 있습니다.
 
 ### 웹사이트 및 API 모니터
 

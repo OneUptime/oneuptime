@@ -10,6 +10,12 @@ import TwilioConfigUses, {
 import TwilioConfigWrite, {
   TwilioUseAndNumbers,
 } from "../../Types/CallAndSMS/TwilioConfigWrite";
+import TwilioConfigDefaults, {
+  ProjectTwilioConfigDefaultRow,
+  TwilioConfigDefaultChange,
+  TwilioConfigDefaultColumn,
+  TwilioConfigDefaultFlags,
+} from "../../Types/CallAndSMS/TwilioConfigDefaults";
 import { TwilioMessageKind } from "../../Utils/Project/TwilioAccount";
 import Phone from "../../Types/Phone";
 import CreateBy from "../Types/Database/CreateBy";
@@ -19,16 +25,18 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import IncomingCallPolicyService from "./IncomingCallPolicyService";
 import IncomingCallPolicy from "../../Models/DatabaseModels/IncomingCallPolicy";
 import releaseIncomingCallPhoneNumber from "../Utils/IncomingCallPhoneNumber";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import logger from "../Utils/Logger";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumberService";
 import IncomingCallPolicyPhoneNumber from "../../Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import PositiveNumber from "../../Types/PositiveNumber";
-import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
 import {
-  PROJECT_TWILIO_CONFIG_SELECT,
+  PROJECT_DEFAULT_TWILIO_CONFIG_SELECT,
   PROJECT_TWILIO_CONFIG_USE_SELECT,
 } from "../Utils/TwilioConfigSelect";
 
@@ -57,6 +65,56 @@ const useAndNumbersOf: (config: UseAndNumberColumns) => TwilioUseAndNumbers = (
     primaryPhoneNumber: config.twilioPrimaryPhoneNumber,
     smsPhoneNumbers: config.twilioSmsPhoneNumbers,
   };
+};
+
+/*
+ * What the project-default rule (Types/CallAndSMS/TwilioConfigDefaults)
+ * reads of each of a project's configs.
+ */
+const PROJECT_DEFAULTS_RULE_SELECT: {
+  _id: true;
+  usedFor: true;
+  isProjectDefault: true;
+  isProjectDefaultForSms: true;
+  isProjectDefaultForCalls: true;
+} = {
+  _id: true,
+  usedFor: true,
+  isProjectDefault: true,
+  isProjectDefaultForSms: true,
+  isProjectDefaultForCalls: true,
+};
+
+/*
+ * The columns only the rule writes. A write that holds one is the rule's
+ * own - nobody else may write them - and is not settled again.
+ */
+const RULE_COLUMNS: ReadonlyArray<string> = [
+  "isProjectDefaultForSms",
+  "isProjectDefaultForCalls",
+];
+
+/*
+ * The columns whose change can move a project's defaults: the switch
+ * itself, and what a config is used for - a default made "SMS only" stops
+ * being the default for calls, and one made "Calls and SMS" takes the calls
+ * when no config has them.
+ */
+const COLUMNS_THE_DEFAULTS_FOLLOW: ReadonlyArray<string> = [
+  "isProjectDefault",
+  "usedFor",
+];
+
+// What a delete carries to onDeleteSuccess: the projects that lose a default.
+interface DeleteCarryForward {
+  projectIdsLosingADefault: Array<ObjectID>;
+}
+
+const isWritten: (data: Record<string, unknown>, column: string) => boolean = (
+  data: Record<string, unknown>,
+  column: string,
+): boolean => {
+  return data[column] !== undefined;
 };
 
 export class Service extends DatabaseService<Model> {
@@ -109,24 +167,52 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    /*
+     * What the config is the default for - its SMS, its calls - is the
+     * rule's to say once the config is saved (onCreateSuccess), never the
+     * create's: the columns are computed, which a create's column check
+     * lets through, so a value a create gives is dropped here.
+     */
+    createBy.data.isProjectDefaultForSms = false;
+    createBy.data.isProjectDefaultForCalls = false;
+
     return { createBy, carryForward: [] };
   }
 
   /*
-   * A config saved as the project default takes the default from the
-   * project's other configs - only now that it exists, so a create that is
-   * refused or fails leaves the project's default where it was.
+   * A config saved as the project default becomes the default for
+   * everything it is used for, taking that from the project's other
+   * configs - only now that it exists, so a create that is refused or fails
+   * leaves the project's defaults where they were. The config handed back
+   * says what it became the default for.
    */
   @CaptureSpan()
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    await ProjectDefaultRow.afterCreate({
-      service: this,
-      defaultColumn: "isProjectDefault",
-      createdItem: createdItem,
-    });
+    const id: ObjectID | null = createdItem.id;
+    const projectId: ObjectID | undefined = createdItem.projectId;
+
+    if (createdItem.isProjectDefault !== true || !id || !projectId) {
+      return createdItem;
+    }
+
+    const defaults: Map<string, TwilioConfigDefaultFlags> =
+      await this.settleProjectDefaults({
+        projectId: projectId,
+        madeDefaultIds: [id],
+      });
+
+    const flags: TwilioConfigDefaultFlags | undefined = defaults.get(
+      id.toString(),
+    );
+
+    if (flags) {
+      createdItem.isProjectDefault = flags.isProjectDefault;
+      createdItem.isProjectDefaultForSms = flags.isProjectDefaultForSms;
+      createdItem.isProjectDefaultForCalls = flags.isProjectDefaultForCalls;
+    }
 
     return createdItem;
   }
@@ -217,23 +303,187 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Making a config the default takes it from the others in its project, once
-   * the update has made it (so after every permission check), and only for
-   * the configs the update actually wrote.
+   * Once an update that sets whether configs are the project default, or
+   * what they are used for, has been saved (so after every permission
+   * check), the projects of the configs it actually wrote are settled by
+   * the rule: Set as Project Default makes them the default for everything
+   * they are used for; Stop Using as Project Default leaves what they were
+   * the default for to another default used for it, or to nobody; a default
+   * made "SMS only" stops being the default for calls. The rule's own
+   * writes - the only ones that write what a config is the default for -
+   * are not settled again.
    */
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    await ProjectDefaultRow.afterUpdate({
-      service: this,
-      defaultColumn: "isProjectDefault",
-      updatedData: onUpdate.updateBy.data,
-      updatedItemIds: updatedItemIds,
+    const data: Record<string, unknown> = onUpdate.updateBy.data as Record<
+      string,
+      unknown
+    >;
+
+    if (
+      updatedItemIds.length === 0 ||
+      RULE_COLUMNS.some((column: string): boolean => {
+        return isWritten(data, column);
+      }) ||
+      !COLUMNS_THE_DEFAULTS_FOLLOW.some((column: string): boolean => {
+        return isWritten(data, column);
+      })
+    ) {
+      return onUpdate;
+    }
+
+    const updatedConfigs: Array<Model> = await this.findBy({
+      query: {
+        _id: QueryHelper.any(updatedItemIds),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+      },
+      limit: updatedItemIds.length,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
     });
 
+    // The configs the update wrote, by their project.
+    const idsByProject: Map<string, Array<ObjectID>> = new Map();
+
+    for (const config of updatedConfigs) {
+      if (!config.id || !config.projectId) {
+        continue;
+      }
+
+      const projectKey: string = config.projectId.toString();
+      const ids: Array<ObjectID> = idsByProject.get(projectKey) || [];
+      ids.push(config.id);
+      idsByProject.set(projectKey, ids);
+    }
+
+    for (const [projectKey, ids] of idsByProject) {
+      await this.settleProjectDefaults({
+        projectId: new ObjectID(projectKey),
+        madeDefaultIds: data["isProjectDefault"] === true ? ids : [],
+      });
+    }
+
     return onUpdate;
+  }
+
+  /*
+   * Settles one project's defaults by the rule (Types/CallAndSMS/
+   * TwilioConfigDefaults): reads every config of the project as it stands
+   * now that a write has been saved, and writes the flags the rule changes,
+   * the configs that give something up first. Written as root - the caller
+   * may not be able to read every config - and through the normal update
+   * path, so each config's workflows, live updates and audit log run as for
+   * any other change.
+   *
+   * Held to the project's lock while it reads and writes, so two writes
+   * settled at once do not both read the configs before either has written
+   * them and leave two configs the default for SMS. Without Valkey it
+   * settles unlocked, as a project's default always was.
+   *
+   * Returns what each of the project's configs is the default for, once
+   * settled.
+   */
+  private async settleProjectDefaults(data: {
+    projectId: ObjectID;
+    madeDefaultIds: Array<ObjectID>;
+  }): Promise<Map<string, TwilioConfigDefaultFlags>> {
+    let mutex: SemaphoreMutex | null = null;
+
+    try {
+      mutex = await Semaphore.lock({
+        key: data.projectId.toString(),
+        namespace: "ProjectCallSMSConfigService.settleProjectDefaults",
+        lockTimeout: 15000,
+        acquireTimeout: 15000,
+        retryInterval: 100,
+      });
+    } catch (err) {
+      logger.debug(
+        "Settling the project's default Twilio configs without the project's lock (could not take it) for projectId: " +
+          data.projectId.toString(),
+      );
+      logger.debug(err);
+    }
+
+    try {
+      const configs: Array<Model> = await this.findBy({
+        query: {
+          projectId: data.projectId,
+        },
+        select: PROJECT_DEFAULTS_RULE_SELECT,
+        sort: {
+          createdAt: SortOrder.Ascending,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const rows: Array<ProjectTwilioConfigDefaultRow> = [];
+
+      for (const config of configs) {
+        if (!config.id) {
+          continue;
+        }
+
+        rows.push({
+          id: config.id.toString(),
+          use: config.usedFor,
+          isProjectDefault: config.isProjectDefault,
+          isProjectDefaultForSms: config.isProjectDefaultForSms,
+          isProjectDefaultForCalls: config.isProjectDefaultForCalls,
+        });
+      }
+
+      const madeDefaultIds: Array<string> = data.madeDefaultIds.map(
+        (id: ObjectID): string => {
+          return id.toString();
+        },
+      );
+
+      const changes: Array<TwilioConfigDefaultChange> =
+        TwilioConfigDefaults.getProjectDefaultChanges({
+          configs: rows,
+          madeDefaultIds: madeDefaultIds,
+        });
+
+      for (const change of changes) {
+        await this.updateOneById({
+          id: new ObjectID(change.id),
+          data: {
+            isProjectDefault: change.flags.isProjectDefault,
+            isProjectDefaultForSms: change.flags.isProjectDefaultForSms,
+            isProjectDefaultForCalls: change.flags.isProjectDefaultForCalls,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+
+      return TwilioConfigDefaults.getProjectDefaults({
+        configs: rows,
+        madeDefaultIds: madeDefaultIds,
+      });
+    } finally {
+      if (mutex) {
+        try {
+          await Semaphore.release(mutex);
+        } catch (err) {
+          logger.error(err);
+        }
+      }
+    }
   }
 
   @CaptureSpan()
@@ -255,8 +505,37 @@ export class Service extends DatabaseService<Model> {
       deleteBy,
       {
         _id: true,
+        projectId: true,
+        isProjectDefault: true,
       },
     );
+
+    /*
+     * The projects that lose a default with these configs: once they are
+     * gone, what they were the default for goes to another default used for
+     * it, or to nobody (onDeleteSuccess).
+     */
+    const carryForward: DeleteCarryForward = {
+      projectIdsLosingADefault: [],
+    };
+
+    for (const config of configs) {
+      if (config.isProjectDefault !== true || !config.projectId) {
+        continue;
+      }
+
+      const projectId: ObjectID = config.projectId;
+
+      if (
+        !carryForward.projectIdsLosingADefault.some(
+          (losing: ObjectID): boolean => {
+            return losing.toString() === projectId.toString();
+          },
+        )
+      ) {
+        carryForward.projectIdsLosingADefault.push(projectId);
+      }
+    }
 
     for (const config of configs) {
       if (!config.id) {
@@ -426,47 +705,99 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    return { deleteBy, carryForward: null };
+    return { deleteBy, carryForward: carryForward };
   }
 
   /*
-   * The project's default Twilio config, as the senders take it - or
-   * undefined when it has none, or none that can send: the message then
-   * goes through the OneUptime server's own account. Given a kind of
-   * message, the default only when it is used for that kind (TwilioConfigUse):
-   * a default used for SMS only is no config at all to a call, which goes
-   * as a call of a project without a config goes - and is paid for as one.
+   * Once a project's default is deleted, what it was the default for goes
+   * to another of the project's defaults that is used for it - the config
+   * that is the default for calls takes the SMS back, when it is used for
+   * calls and SMS - or to nobody.
+   */
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    _itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    const carryForward: DeleteCarryForward | null | undefined =
+      onDelete.carryForward as DeleteCarryForward | null | undefined;
+
+    for (const projectId of carryForward?.projectIdsLosingADefault || []) {
+      await this.settleProjectDefaults({
+        projectId: projectId,
+        madeDefaultIds: [],
+      });
+    }
+
+    return onDelete;
+  }
+
+  /*
+   * The project's default Twilio config for one kind of message, as the
+   * senders take it: the config that is the project default for SMS, for
+   * an SMS - and for calls, for a call (Types/CallAndSMS/
+   * TwilioConfigDefaults).
+   *
+   * When no config is the default for that kind but one is the default for
+   * the other, that one: it is not used for this kind (a default used for
+   * it would be its default too), so it cannot send it
+   * (TwilioPhoneNumbers.canSend), and the message goes as a project
+   * without a config sends it - through the OneUptime server's own account,
+   * paid for from the project's balance - with a note that says what the
+   * project's config is used for (getNoTwilioAccountMessage).
+   *
+   * Undefined when the project has no default, or its default lacks its
+   * account or numbers: the message goes through the server's own account.
    */
   @CaptureSpan()
   public async getProjectDefaultTwilioConfig(
     projectId: ObjectID | undefined,
-    kind?: TwilioMessageKind | undefined,
+    kind: TwilioMessageKind,
   ): Promise<TwilioConfig | undefined> {
     if (!projectId) {
       return undefined;
     }
 
-    const config: Model | null = await this.findOneBy({
-      query: {
+    const config: Model | null =
+      (await this.findProjectDefault({
         projectId: projectId,
-        isProjectDefault: true,
-      },
-      select: PROJECT_TWILIO_CONFIG_SELECT,
-      props: {
-        isRoot: true,
-      },
-    });
+        defaultColumn: TwilioConfigDefaults.getDefaultColumn(kind),
+      })) ||
+      (await this.findProjectDefault({
+        projectId: projectId,
+        defaultColumn: "isProjectDefault",
+      }));
 
     if (!config) {
       return undefined;
     }
 
     try {
-      return this.toTwilioConfig(config, kind);
+      return this.toTwilioConfig(config);
     } catch {
       // If the default config is incomplete, fall back to global by returning undefined.
       return undefined;
     }
+  }
+
+  // The project's first config (by when it was made) that is a default of this kind.
+  private async findProjectDefault(data: {
+    projectId: ObjectID;
+    defaultColumn: "isProjectDefault" | TwilioConfigDefaultColumn;
+  }): Promise<Model | null> {
+    return await this.findOneBy({
+      query: {
+        projectId: data.projectId,
+        [data.defaultColumn]: true,
+      },
+      select: PROJECT_DEFAULT_TWILIO_CONFIG_SELECT,
+      sort: {
+        createdAt: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   /*

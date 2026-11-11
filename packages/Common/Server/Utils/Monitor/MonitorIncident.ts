@@ -1,4 +1,5 @@
 import Incident from "../../../Models/DatabaseModels/Incident";
+import OnCallPageTiming from "../OnCall/OnCallPageTiming";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import IncidentMember from "../../../Models/DatabaseModels/IncidentMember";
@@ -47,6 +48,8 @@ import MonitorDependencySuppression, {
 import MonitorDependencyRule from "../../../Utils/Monitor/MonitorDependencyRule";
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
+import EvaluationEventText from "./EvaluationEventText";
+import { translatableSentence } from "../../../Types/Monitor/EvaluationSentence";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
 import MonitorSummarySnapshotUtil from "../../../Utils/Monitor/MonitorSummarySnapshotUtil";
@@ -215,9 +218,14 @@ export default class MonitorIncident {
 
         input.evaluationSummary?.events.push({
           type: "incident-resolved",
-          title: `Incident resolved: ${openIncident.title || openIncident.id?.toString()}`,
-          message:
-            "Incident auto-resolved because autoresolve is enabled for this criteria.",
+          ...EvaluationEventText.from({
+            title: translatableSentence("Incident resolved: {{title}}", {
+              title: String(openIncident.title || openIncident.id?.toString()),
+            }),
+            message: translatableSentence(
+              "Incident auto-resolved because autoresolve is enabled for this criteria.",
+            ),
+          }),
           relatedIncidentId: openIncident.id?.toString(),
           relatedIncidentNumber: openIncident.incidentNumber,
           relatedIncidentNumberWithPrefix:
@@ -363,12 +371,25 @@ export default class MonitorIncident {
 
       input.evaluationSummary?.events.push({
         type: "incident-resolved",
-        title: `Incident resolved: ${openIncident.title || openIncident.id?.toString()}`,
-        message:
-          isRecoveredValue || !input.wholeMonitor
-            ? input.resolvedMessage ||
-              "Incident auto-resolved because the incoming payload reported this key as resolved."
-            : "Incident auto-resolved because a request with no value to group by reported recovered.",
+        ...EvaluationEventText.from({
+          title: translatableSentence("Incident resolved: {{title}}", {
+            title: String(openIncident.title || openIncident.id?.toString()),
+          }),
+          /*
+           * A caller's own message is one of its fixed sentences
+           * (LogGroupCriteriaFanOut): a template without values.
+           */
+          message:
+            isRecoveredValue || !input.wholeMonitor
+              ? input.resolvedMessage
+                ? translatableSentence(input.resolvedMessage)
+                : translatableSentence(
+                    "Incident auto-resolved because the incoming payload reported this key as resolved.",
+                  )
+              : translatableSentence(
+                  "Incident auto-resolved because a request with no value to group by reported recovered.",
+                ),
+        }),
         relatedIncidentId: openIncident.id?.toString(),
         relatedIncidentNumber: openIncident.incidentNumber,
         relatedIncidentNumberWithPrefix: openIncident.incidentNumberWithPrefix,
@@ -522,9 +543,12 @@ export default class MonitorIncident {
     if (DisableAutomaticIncidentCreation) {
       input.evaluationSummary?.events.push({
         type: "incident-skipped",
-        title: "Incident creation skipped",
-        message:
-          "Automatic incident creation is disabled by environment configuration.",
+        ...EvaluationEventText.from({
+          title: translatableSentence("Incident creation skipped"),
+          message: translatableSentence(
+            "Automatic incident creation is disabled by environment configuration.",
+          ),
+        }),
         relatedCriteriaId: input.criteriaInstance.data?.id,
         at: OneUptimeDate.getCurrentDate(),
       });
@@ -556,8 +580,20 @@ export default class MonitorIncident {
 
       input.evaluationSummary?.events.push({
         type: "incident-skipped",
-        title: "Incident suppressed by monitor dependency",
-        message: `Skipped creating incidents because ${suppressionReason}. This monitor's status still updates normally; open incidents still auto-resolve.`,
+        ...EvaluationEventText.from({
+          title: translatableSentence(
+            "Incident suppressed by monitor dependency",
+          ),
+          message: translatableSentence(
+            "Skipped creating incidents because {{reason}}. This monitor's status still updates normally; open incidents still auto-resolve.",
+            {
+              reason:
+                MonitorDependencySuppression.buildSuppressionReasonSentence(
+                  input.dependencySuppression!.suppressingParents,
+                ),
+            },
+          ),
+        }),
         relatedCriteriaId: input.criteriaInstance.data?.id,
         at: OneUptimeDate.getCurrentDate(),
       });
@@ -656,9 +692,14 @@ export default class MonitorIncident {
 
             input.evaluationSummary?.events.push({
               type: "incident-skipped",
-              title: "Incident suppressed by scheduled maintenance",
-              message:
-                "Skipped creating an incident because the resource for this series is under an active scheduled maintenance window.",
+              ...EvaluationEventText.from({
+                title: translatableSentence(
+                  "Incident suppressed by scheduled maintenance",
+                ),
+                message: translatableSentence(
+                  "Skipped creating an incident because the resource for this series is under an active scheduled maintenance window.",
+                ),
+              }),
               relatedCriteriaId: input.criteriaInstance.data?.id,
               at: OneUptimeDate.getCurrentDate(),
             });
@@ -677,10 +718,20 @@ export default class MonitorIncident {
           ) {
             input.evaluationSummary?.events.push({
               type: "incident-skipped",
-              title: "Incident suppressed by monitor dependency",
-              message: `Skipped creating an incident for this series because ${MonitorDependencySuppression.buildSuppressionReason(
-                input.dependencySuppression!.suppressingParents,
-              )}. This monitor's status still updates normally; open incidents still auto-resolve.`,
+              ...EvaluationEventText.from({
+                title: translatableSentence(
+                  "Incident suppressed by monitor dependency",
+                ),
+                message: translatableSentence(
+                  "Skipped creating an incident for this series because {{reason}}. This monitor's status still updates normally; open incidents still auto-resolve.",
+                  {
+                    reason:
+                      MonitorDependencySuppression.buildSuppressionReasonSentence(
+                        input.dependencySuppression!.suppressingParents,
+                      ),
+                  },
+                ),
+              }),
               relatedCriteriaId: input.criteriaInstance.data?.id,
               at: OneUptimeDate.getCurrentDate(),
             });
@@ -743,9 +794,17 @@ export default class MonitorIncident {
 
             input.evaluationSummary?.events.push({
               type: "incident-skipped",
-              title: `Incident already active: ${renderedTitle}`,
-              message:
-                "Skipped creating a new incident because an active incident exists for this criteria.",
+              ...EvaluationEventText.from({
+                title: translatableSentence(
+                  "Incident already active: {{title}}",
+                  {
+                    title: String(renderedTitle),
+                  },
+                ),
+                message: translatableSentence(
+                  "Skipped creating a new incident because an active incident exists for this criteria.",
+                ),
+              }),
               relatedCriteriaId: input.criteriaInstance.data?.id,
               relatedIncidentId: alreadyOpenIncident?.id?.toString(),
               relatedIncidentNumber: alreadyOpenIncident?.incidentNumber,
@@ -881,9 +940,12 @@ export default class MonitorIncident {
 
               input.evaluationSummary?.events.push({
                 type: "incident-skipped",
-                title: "Incident creation skipped",
-                message:
-                  "Skipped creating an incident because the project has no incident severity configured.",
+                ...EvaluationEventText.from({
+                  title: translatableSentence("Incident creation skipped"),
+                  message: translatableSentence(
+                    "Skipped creating an incident because the project has no incident severity configured.",
+                  ),
+                }),
                 relatedCriteriaId: input.criteriaInstance.data?.id,
                 at: OneUptimeDate.getCurrentDate(),
               });
@@ -1098,12 +1160,26 @@ export default class MonitorIncident {
               });
           }
 
-          const createdIncident: Incident = await IncidentService.create({
-            data: incident,
-            props: {
-              isRoot: true,
-            },
-          });
+          /*
+           * Its pages start when OneUptime received the data that tripped
+           * the monitor, when it knows it (OnCallPageTiming).
+           */
+          const createdIncident: Incident =
+            await OnCallPageTiming.runAsMonitorTriggered(
+              {
+                dataReceivedAt: OnCallPageTiming.getMonitorDataReceivedAt(
+                  input.dataToProcess,
+                ),
+              },
+              (): Promise<Incident> => {
+                return IncidentService.create({
+                  data: incident,
+                  props: {
+                    isRoot: true,
+                  },
+                });
+              },
+            );
 
           await OpenStackScopedRules.finishIncident({
             projectId: input.monitor.projectId!,
@@ -1236,8 +1312,19 @@ export default class MonitorIncident {
 
           input.evaluationSummary?.events.push({
             type: "incident-created",
-            title: `Incident created: ${createdIncident.title || criteriaIncident.title}`,
-            message: `Incident triggered from criteria "${input.criteriaInstance.data?.name || "Unnamed criteria"}".`,
+            ...EvaluationEventText.from({
+              title: translatableSentence("Incident created: {{title}}", {
+                title: String(createdIncident.title || criteriaIncident.title),
+              }),
+              message: translatableSentence(
+                'Incident triggered from criteria "{{criteria}}".',
+                {
+                  criteria: EvaluationEventText.criteriaName(
+                    input.criteriaInstance.data?.name,
+                  ),
+                },
+              ),
+            }),
             relatedCriteriaId: input.criteriaInstance.data?.id,
             relatedIncidentId: createdIncident.id?.toString(),
             relatedIncidentNumber: createdIncident.incidentNumber,
@@ -1263,14 +1350,24 @@ export default class MonitorIncident {
           );
           logger.error(err);
 
+          // The error is said as it was thrown, in English.
+          const error: string =
+            err instanceof Error ? err.message : String(err);
+
           input.evaluationSummary?.events.push({
             type: "incident-skipped",
-            title: "Incident creation failed",
-            message: `Could not create an incident${
-              seriesMatch?.fingerprint
-                ? ` for series ${seriesMatch.fingerprint}`
-                : ""
-            }: ${err instanceof Error ? err.message : String(err)}`,
+            ...EvaluationEventText.from({
+              title: translatableSentence("Incident creation failed"),
+              message: seriesMatch?.fingerprint
+                ? translatableSentence(
+                    "Could not create an incident for series {{series}}: {{error}}",
+                    { series: seriesMatch.fingerprint, error: error },
+                  )
+                : translatableSentence(
+                    "Could not create an incident: {{error}}",
+                    { error: error },
+                  ),
+            }),
             relatedCriteriaId: input.criteriaInstance.data?.id,
             at: OneUptimeDate.getCurrentDate(),
           });

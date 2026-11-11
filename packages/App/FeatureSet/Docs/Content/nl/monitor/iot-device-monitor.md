@@ -139,14 +139,14 @@ Elke reeks draagt het label `device.id` van het apparaat, en de attributen `iot.
 
 ## Monitoringcriteria
 
-Een criterium vergelijkt een van de queries of formules van de monitor met een drempel. De criteria van een IoT-apparaat-monitor bieden één **Filtertype**, **Metric Value**: elke regel controleert de waarde van de metriek, met deze velden.
+Een criterium vergelijkt een van de queries of formules van de monitor met een drempel. De criteria van een IoT-apparaat-monitor bieden één **Filtertype**, **Metriekwaarde**: elke regel controleert de waarde van de metriek, met deze velden.
 
 | Veld | Wat het doet |
 | --- | --- |
-| **Filtertype** | Altijd **Metric Value**, de enige controle die deze monitor biedt. |
+| **Filtertype** | Altijd **Metriekwaarde**, de enige controle die deze monitor biedt. |
 | **Select Metric Variable** | De query of formule om te controleren, op haar variabelenaam. |
-| **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet overeenkomen, over het hele venster) of **Any Value** (één is genoeg). |
-| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. **Geen gegevens** klopt als de query in het venster niets opleverde, **Gegevens aanwezig** als hij iets opleverde. **Verwacht boven** en **Verwacht onder** komen overeen wanneer de trend van de metriek in het venster aan het eind van **Termijn** voorbij de drempel is. |
+| **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximale waarde**, **Minimale waarde**, **Alle waarden** (elke waarde moet overeenkomen, over het hele venster) of **Willekeurige waarde** (één is genoeg). |
+| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Afwijkend hoog**, **Afwijkend laag** of **Afwijkend**. **Geen gegevens** klopt als de query in het venster niets opleverde, **Gegevens aanwezig** als hij iets opleverde. **Verwacht boven** en **Verwacht onder** komen overeen wanneer de trend van de metriek in het venster aan het eind van **Termijn** voorbij de drempel is. |
 | **Drempel** | De waarde om mee te vergelijken. Er staat een eenhedenlijst naast als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, de standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen geschiedenis. |

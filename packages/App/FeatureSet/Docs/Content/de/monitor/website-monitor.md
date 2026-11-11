@@ -25,7 +25,7 @@ flowchart TB
     criteria -->|"2xx oder 3xx"| up["Betriebsbereit"]
 ```
 
-Wenn keines der Kriterien des Monitors den Antworttext liest (ein Filter **Antworttext** oder **JavaScript Expression**), sendet die Sonde statt eines `GET` eine Anfrage `HEAD` und wiederholt sie als `GET`, wenn der Server `HEAD` ablehnt. In den Zugriffsprotokollen Ihres Servers kann beides auftauchen.
+Wenn keines der Kriterien des Monitors den Antworttext liest (ein Filter **Antworttext** oder **JavaScript-Ausdruck**), sendet die Sonde statt eines `GET` eine Anfrage `HEAD` und wiederholt sie als `GET`, wenn der Server `HEAD` ablehnt. In den Zugriffsprotokollen Ihres Servers kann beides auftauchen.
 
 Eine Sonde, die ihre eigene Netzwerkverbindung verloren hat, meldet kein Ergebnis und kann Ihre Website daher nicht als offline markieren.
 
@@ -142,14 +142,14 @@ Kriterien entscheiden, wann die Website als online, beeinträchtigt oder offline
 
 | Filter | Bedingungen | Was er prüft |
 | --- | --- | --- |
-| **Is Online** | **Wahr**, **Falsch** | Ob die Website überhaupt geantwortet hat, egal mit welchem Statuscode. |
+| **Ist online** | **Wahr**, **Falsch** | Ob die Website überhaupt geantwortet hat, egal mit welchem Statuscode. |
 | **Antwort-Statuscode** | **Gleich**, **Ungleich**, **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Den HTTP-Statuscode. |
 | **Antwortzeit (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Wie lange die Anfrage gedauert hat, Weiterleitungen eingeschlossen. |
 | **Antworttext** | **Enthält**, **Enthält nicht** | Text im Antworttext. Groß- und Kleinschreibung wird unterschieden. |
-| **Response Header** | **Enthält**, **Enthält nicht** | Ob die Antwort einen Header mit diesem Namen hat. Geben Sie den Namen kleingeschrieben ein, etwa `x-cache`. |
-| **Response Header Value** | **Enthält**, **Enthält nicht** | Ob ein Header genau diesen Wert hat, kleingeschrieben verglichen, etwa `no-store`. |
-| **JavaScript Expression** | **Evaluates To True** | Ein Ausdruck über die Antwort. Siehe [JavaScript-Ausdrücke](/docs/monitor/javascript-expression). |
-| **Is Request Timeout** | **Wahr**, **Falsch** | Ob die Anfrage bei jedem Versuch in ein Zeitlimit gelaufen ist. |
+| **Antwort-Header** | **Enthält**, **Enthält nicht** | Ob die Antwort einen Header mit diesem Namen hat. Geben Sie den Namen kleingeschrieben ein, etwa `x-cache`. |
+| **Antwort-Header-Wert** | **Enthält**, **Enthält nicht** | Ob ein Header genau diesen Wert hat, kleingeschrieben verglichen, etwa `no-store`. |
+| **JavaScript-Ausdruck** | **Ergibt wahr** | Ein Ausdruck über die Antwort. Siehe [JavaScript-Ausdrücke](/docs/monitor/javascript-expression). |
+| **Zeitüberschreitung der Anfrage** | **Wahr**, **Falsch** | Ob die Anfrage bei jedem Versuch in ein Zeitlimit gelaufen ist. |
 
 **Kriterien hinzufügen** fügt ein Kriterium hinzu, das bereits nach seinem Filter benannt ist, zum Beispiel _Response Time (in ms) is above 3000_. Der Name ändert sich mit den Filtern, bis Sie einen eigenen eingeben. Eine Beschreibung ist optional: Um eine hinzuzufügen, öffnen Sie die **Einstellungen** des Kriteriums.
 
@@ -174,17 +174,17 @@ Monitore, die erstellt wurden, bevor OneUptime diese Standards geändert hat, be
 
 ### Über einen Zeitraum auswerten
 
-**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Is Online**, **Antwort-Statuscode**, **Antwortzeit (in ms)**, **Antworttext**, **Response Header**, **Response Header Value**, **JavaScript Expression** und **Is Request Timeout**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
+**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Ist online**, **Antwort-Statuscode**, **Antwortzeit (in ms)**, **Antworttext**, **Antwort-Header**, **Antwort-Header-Wert**, **JavaScript-Ausdruck** und **Zeitüberschreitung der Anfrage**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
 
 | Aggregation | Trifft zu, wenn |
 | --- | --- |
-| **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value** | Dieser Wert über das Fenster die Bedingung erfüllt. Nur für numerische Filter. |
-| **All Values** | Jede Prüfung im Fenster die Bedingung erfüllt. |
-| **Any Value** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
+| **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert** | Dieser Wert über das Fenster die Bedingung erfüllt. Nur für numerische Filter. |
+| **Alle Werte** | Jede Prüfung im Fenster die Bedingung erfüllt. |
+| **Beliebiger Wert** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
 
-**All Values** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Any Value** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
+Die Option **Alle Werte** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Beliebiger Wert** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
 
-Ein Body, ein Header, ein Header-Wert oder ein Ausdruck ist keine Zahl, die OneUptime aufzeichnet. Für diese Filter und für **Is Request Timeout** zeichnet OneUptime deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **All Values** oder **Any Value**. So übersteht ein Monitor einen Neustart. Eine App, die gerade startet, antwortet womöglich mit `200` und einem Platzhalter wie `Application starting...`; mit **All Values** nimmt ein Filter **Antworttext**, der nach dem Titel der App sucht, den Monitor erst offline, wenn der Platzhalter das ganze Fenster über bestanden hat.
+Ein Body, ein Header, ein Header-Wert oder ein Ausdruck ist keine Zahl, die OneUptime aufzeichnet. Für diese Filter und für **Zeitüberschreitung der Anfrage** zeichnet OneUptime deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **Alle Werte** oder **Beliebiger Wert**. So übersteht ein Monitor einen Neustart. Eine App, die gerade startet, antwortet womöglich mit `200` und einem Platzhalter wie `Application starting...`; mit **Alle Werte** nimmt ein Filter **Antworttext**, der nach dem Titel der App sucht, den Monitor erst offline, wenn der Platzhalter das ganze Fenster über bestanden hat.
 
 Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere Prüfungen enthält: Ein Monitor, der alle 5 Minuten geprüft wird, hat in jedem 5-Minuten-Fenster nur eine einzige Prüfung.
 
@@ -202,10 +202,10 @@ Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere
 | --- | --- | --- | --- |
 | Die Website als beeinträchtigt markieren, wenn sie langsam ist | **Antwortzeit (in ms)** | **Größer als** | `3000` |
 | Eine Fehlerseite erkennen, die mit `200` ausgeliefert wird | **Antworttext** | **Enthält nicht** | `Welcome` |
-| Prüfen, ob ein CDN-Header vorhanden ist | **Response Header** | **Enthält** | `x-cache` |
+| Prüfen, ob ein CDN-Header vorhanden ist | **Antwort-Header** | **Enthält** | `x-cache` |
 | Nur `200` als gesund akzeptieren | **Antwort-Statuscode** | **Gleich** | `200` |
 
-Um einen Neustart zu überstehen, schalten Sie für den Antworttext-Filter **Diese Kriterien über einen Zeitraum hinweg auswerten** ein und wählen Sie **All Values** über 15 Minuten.
+Um einen Neustart zu überstehen, schalten Sie für den Antworttext-Filter **Diese Kriterien über einen Zeitraum hinweg auswerten** ein und wählen Sie **Alle Werte** über 15 Minuten.
 
 ## Fehlerbehebung
 
@@ -218,7 +218,7 @@ Die Sonde hat eine andere Antwort bekommen als Ihr Browser. Die Ursache des Vorf
 :::
 
 :::details Die Prüfung schlägt fehl mit „Remote response exceeded the allowed size.“
-Die Sonde liest höchstens 512 KiB einer Antwort, und diese Seite ist größer. Richten Sie den Monitor auf eine kleinere Seite, etwa einen Health-Endpunkt, oder entfernen Sie die Filter **Antworttext** und **JavaScript Expression**, damit die Sonde nur die Header braucht.
+Die Sonde liest höchstens 512 KiB einer Antwort, und diese Seite ist größer. Richten Sie den Monitor auf eine kleinere Seite, etwa einen Health-Endpunkt, oder entfernen Sie die Filter **Antworttext** und **JavaScript-Ausdruck**, damit die Sonde nur die Header braucht.
 :::
 
 :::details Die Prüfung schlägt fehl mit „Monitor target exceeded 10 redirects.“

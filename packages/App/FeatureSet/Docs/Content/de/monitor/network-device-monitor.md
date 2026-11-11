@@ -67,7 +67,7 @@ Das Netzwerkmenü zeigt, was Sie täglich öffnen: **Übersicht**, **Geräte**, 
 | Abschnitt | Seiten |
 | --- | --- |
 | **Topologie** | **Gerätetopologie**, **Erkannte Geräte**, **Latenzmatrix**, **Standortverbindungen**, **Geräteverbindungen** |
-| **Regeln** | **Regeln für automatischen Import**, **Standortzuweisungsregeln**, **Eigentümerregeln**, **Beschriftungsregeln**, **Verbindungsregeln** |
+| **Regeln** | **Regeln für automatischen Import**, **Standortzuweisungsregeln**, **Benennungsregeln**, **Eigentümerregeln**, **Beschriftungsregeln**, **Verbindungsregeln** |
 | **Einstellungen** | **Warnungsrichtlinien**, **SNMP-Anmeldedaten**, **Geräterollen**, **Standorttypen**, **Adressnamen**, **OID-Erfassungsvorlagen** |
 | **Erweitert** | **SNMP-Walk**, **Archivierte Geräte** |
 
@@ -378,7 +378,7 @@ Fügen Sie beliebige OIDs hinzu, die bei jeder Abfrage erfasst werden sollen, au
 | Name | Ein sprechender Name für die OID, etwa sysDescr. | Nein |
 | Beschreibung | Wofür die OID steht. | Nein |
 
-Die erfassten Werte erscheinen als Diagramme auf der **Metriken**-Seite des Geräts, und die Kriterien **SNMP OID Value**, **SNMP OID Exists** und **SNMP OID Rate (per second)** warnen dafür. Ein Zähler (Counter32 oder Counter64) wächst nur, warnen Sie also darauf, wie schnell er seit der vorigen Abfrage gewachsen ist. Die OID-Auswahl dieser Kriterien listet die OIDs, die das gewählte Gerät erfasst, die seiner Vorlage und seine eigenen, Sie müssen also nichts eintippen.
+Die erfassten Werte erscheinen als Diagramme auf der **Metriken**-Seite des Geräts, und die Kriterien **SNMP-OID-Wert**, **SNMP-OID existiert** und **SNMP-OID-Rate (pro Sekunde)** warnen dafür. Ein Zähler (Counter32 oder Counter64) wächst nur, warnen Sie also darauf, wie schnell er seit der vorigen Abfrage gewachsen ist. Die OID-Auswahl dieser Kriterien listet die OIDs, die das gewählte Gerät erfasst, die seiner Vorlage und seine eigenen, Sie müssen also nichts eintippen.
 
 Lange OID-Listen werden auf mehrere SNMP-GET-Anfragen verteilt, sodass jede in ein UDP-Datagramm passt. Wenn Sie Ihre OID-Listen kurz gehalten haben, weil eine ältere Version ein Gerät, das mit `tooBig` antwortete, als offline meldete, ist das nicht mehr nötig.
 
@@ -391,7 +391,7 @@ Geben Sie unter **Start-OID** eine numerische OID ein, oder klicken Sie auf eine
 Jede Zeile sagt, wo ihre OID bekannt ist: als Wert, den eine Hersteller-Integritätsvorlage erfasst, als Spalte der SNMP-Tabelle einer Herstellervorlage, als Zähler, den der Schnittstellen-Walk bereits für jeden Port als Diagramm zeigt, oder als OID unter der MIB ihres Herstellers. Aus einer Zeile heraus:
 
 - **Erfassen** fügt die OID den **Gerätespezifische Integritäts-OIDs** des Geräts hinzu: Ab der nächsten Abfrage erfasst jede Abfrage sie, und die Seite **Metriken** des Geräts zeigt sie als Diagramm. Bei einem Gerät, das mit einer OID-Erfassungsvorlage verknüpft ist, kann das Menü der Zeile sie stattdessen der Vorlage hinzufügen, für jedes Gerät, das sie nutzt.
-- **Warnung einrichten** erscheint, sobald die OID erfasst wird, und öffnet einen neuen Netzwerkgerät-Monitor für das Gerät mit einem Kriterium für die OID. Ein Zähler beginnt mit **SNMP OID Rate (per second)** und ein Messwert mit **SNMP OID Value**, jeweils oberhalb eines Schwellenwerts, den Sie festlegen; eine Betriebszeit warnt unter zehn Minuten (das Gerät wurde neu gestartet), alles andere, wenn es sich gegenüber dem gelesenen Wert ändert.
+- **Warnung einrichten** erscheint, sobald die OID erfasst wird, und öffnet einen neuen Netzwerkgerät-Monitor für das Gerät mit einem Kriterium für die OID. Ein Zähler beginnt mit **SNMP-OID-Rate (pro Sekunde)** und ein Messwert mit **SNMP-OID-Wert**, jeweils oberhalb eines Schwellenwerts, den Sie festlegen; eine Betriebszeit warnt unter zehn Minuten (das Gerät wurde neu gestartet), alles andere, wenn es sich gegenüber dem gelesenen Wert ändert.
 - **OID kopieren**, im Menü der Zeile, kopiert die OID.
 
 **Herunterladen**, neben der Zusammenfassung des Walks, speichert, was der Walk gelesen hat, als Datei: **snmpwalk-Text (.txt)**, eine OID pro Zeile, so wie `snmpwalk -On` sie ausgibt, was jedes SNMP-Werkzeug und jeder Hersteller-Support liest, oder **CSV-Tabelle (.csv)** mit Name, MIB, Typ und Wert jeder OID. Die Datei enthält jede OID, die der Walk gelesen hat, fortgesetzte Walks eingeschlossen, unabhängig davon, was der Filter zeigt, und ist nach dem Gerät, dem Teilbaum und dem Zeitpunkt des Speicherns benannt. Wer den letzten Walk des Geräts lesen kann, kann ihn herunterladen.
@@ -425,7 +425,7 @@ Manches, was ein Gerät weiß, ist eine Liste: eine Zeile pro IPsec-Tunnel, WLAN
 | Zeilennamen | Optionale Spalten, deren Werte jede Zeile benennen, etwa der Verbindungsname eines Tunnels. Ohne sie werden Zeilen nach ihrem Index benannt. Ein Name kann aus einer Nachbartabelle mit demselben Index kommen (Fabric Engine benennt IS-IS-Nachbarschaften aus `rcIsisAdjHostName`) oder aus einer übergeordneten Tabelle, deren Index den dieser Tabelle beginnt (Aruba Instant benennt jedes Funkmodul nach seinem Access Point). Eine nach einem Namen indizierte Tabelle (ArubaOS indiziert seine SSIDs nach der SSID) wird nach ihrem dekodierten Index benannt. |
 | Zeilenlimit | Wie viele Zeilen behalten werden: standardmäßig 100, höchstens 250. |
 
-Zahlen werden als Zahlen gelesen, und Text, der mit einer Zahl beginnt, als diese Zahl (`"36"`, `"-95 dBm"`, `"80MHz"`), weil viele Hersteller Zahlen in Zeichenketten schreiben. Setzen Sie den Werttyp einer Spalte auf **Text only** für Werte, die nur numerisch aussehen. **Value labels** machen aus Codes Wörter (`0=inactive, 1=active`): Der Rohwert ist weiterhin das, was in Diagrammen gezeigt und verglichen wird, die Bezeichnung das, was angezeigt wird. **Healthy values** (`1`) sagen, welche Werte bedeuten, dass alles in Ordnung ist: Sie färben die Zeile auf der Seite **SNMP-Tabellen** des Geräts und steuern das Kriterium **SNMP Table Row Is Unhealthy**.
+Zahlen werden als Zahlen gelesen, und Text, der mit einer Zahl beginnt, als diese Zahl (`"36"`, `"-95 dBm"`, `"80MHz"`), weil viele Hersteller Zahlen in Zeichenketten schreiben. Setzen Sie den Werttyp einer Spalte auf **Text only** für Werte, die nur numerisch aussehen. **Value labels** machen aus Codes Wörter (`0=inactive, 1=active`): Der Rohwert ist weiterhin das, was in Diagrammen gezeigt und verglichen wird, die Bezeichnung das, was angezeigt wird. **Healthy values** (`1`) sagen, welche Werte bedeuten, dass alles in Ordnung ist: Sie färben die Zeile auf der Seite **SNMP-Tabellen** des Geräts und steuern das Kriterium **SNMP-Tabellenzeile ist fehlerhaft**.
 
 Manche Spalten von Hersteller-Vorlagen **passen** die gelesene Zahl außerdem **an**, für MIBs, die einen Wert in einer eigenen Einheit halten: ArubaOS meldet die Sendeleistung verdoppelt (gelesen × 0.5), Aruba Instant das Grundrauschen ohne Vorzeichen (× −1), Aerohive das Grundrauschen plus 256 (− 256) und der Controller von Extreme die Kanalbreite in 20-MHz-Schritten (× 20). Die angepasste Zahl ist das, was angezeigt, in Diagrammen gezeigt und verglichen wird, **Noise Floor Größer als -80** bedeutet also bei jedem Hersteller dasselbe, und der Tabelleneditor zeigt die Rechnung unter der Spalte.
 
@@ -494,7 +494,7 @@ Die Seite **Schnittstellen** des Geräts beginnt mit einer Karte **Transceiver**
 | Warnung | Ein Messwert liegt auf oder über einem Warnschwellenwert. |
 | Alarm | Ein Messwert liegt auf oder über einem Alarmschwellenwert, oder das Gerät meldet einen Signalverlust oder einen Senderfehler. |
 | Nicht erkannt | Der Port hatte eine Optik und meldet keine mehr, während der Port noch aktiviert ist. Die Seite nennt weiterhin, was dort war. |
-| Keine Schwellenwerte | Die Optik meldet Messwerte, aber das Gerät meldet keine Grenzen, an denen sie zu messen wären. Warnen Sie dafür mit **SNMP Transceiver Reading**. |
+| Keine Schwellenwerte | Die Optik meldet Messwerte, aber das Gerät meldet keine Grenzen, an denen sie zu messen wären. Warnen Sie dafür mit **SNMP-Transceiver-Messwert**. |
 | Erkannt | Die Optik meldet gar keine Diagnosedaten: üblich bei Kupfer-SFPs und Direct-Attach-Kabeln. |
 | Port deaktiviert | Der Port ist abgeschaltet, sein Laser ist also absichtlich aus: Seine Messwerte werden angezeigt, aber nie beurteilt. |
 
@@ -691,8 +691,33 @@ Ein Scan findet nicht immer beim ersten Mal den besten Namen eines Hosts. Die Te
 
 Ein Gerät, das die Erkennung benannt hat, merkt sich deshalb, woher sein Name kam. Wenn ein abgeschlossener Scan seiner Adresse einen besseren Namen findet — seinen SNMP-Systemnamen oder NetBIOS-Namen statt seines Reverse-DNS-Namens, irgendeinen Namen statt seiner IP-Adresse —, wird das Gerät auf den Namen umbenannt, den ein Import ihm jetzt geben würde, und sein DNS-Name wird ergänzt, wenn es keinen hat. Hat schon ein anderes Gerät diesen Namen, wird das Gerät mit seiner Adresse in Klammern benannt (`FILESRV01 (10.0.0.5)`), und ist auch das vergeben, behält es seinen Namen.
 
-Ein Name wird immer nur verbessert: Ein Gerät behält seinen Namen, wenn sich sein DNS-Eintrag ändert oder ein späterer Scan keine NetBIOS-Antwort bekommt. Ein Gerät mit DNS-Namen wird nur von einem Scan umbenannt, der genau diesen DNS-Namen unter seiner Adresse findet; wenn die Adresse inzwischen zu einer anderen Maschine gehört (etwa ein umgezogenes DHCP-Lease), übernimmt das Gerät also nicht den Namen dieser Maschine. Ein Gerät, das Sie umbenannt haben — auf seiner Einstellungen-Seite, über die API oder mit **Shorten Names to Hostname** —, wird nie von einem Scan umbenannt. Geräte, die importiert wurden, bevor die Erkennung die Herkunft von Namen festhielt, behalten ihre Namen, außer dass eines, das ein noch laufender Scan unter seiner IP-Adresse importiert hat, umbenannt wird, wenn dieser Scan abschließt.
+Ein Name wird immer nur verbessert: Ein Gerät behält seinen Namen, wenn sich sein DNS-Eintrag ändert oder ein späterer Scan keine NetBIOS-Antwort bekommt. Ein Gerät mit DNS-Namen wird nur von einem Scan umbenannt, der genau diesen DNS-Namen unter seiner Adresse findet; wenn die Adresse inzwischen zu einer anderen Maschine gehört (etwa ein umgezogenes DHCP-Lease), übernimmt das Gerät also nicht den Namen dieser Maschine. Ein Gerät, das Sie umbenannt haben — auf seiner Einstellungen-Seite, über die API oder mit **Shorten Names to Hostname** —, wird nie von einem Scan umbenannt, und ebenso wenig ein Gerät, das von einer [Benennungsregel](#geräte-nach-ihrer-namenskonvention-benennen) benannt wurde. Geräte, die importiert wurden, bevor die Erkennung die Herkunft von Namen festhielt, behalten ihre Namen, außer dass eines, das ein noch laufender Scan unter seiner IP-Adresse importiert hat, umbenannt wird, wenn dieser Scan abschließt.
 :::
+
+### Geräte nach Ihrer Namenskonvention benennen
+
+Wenn Ihre Geräte einer eigenen Namenskonvention folgen — `UN1216MNUPLR01` ist der Menü-Player der Filiale 1216 —, halten Sie sie als **Benennungsregeln** unter **Netzwerk → Regeln → Benennungsregeln** fest, und die Erkennung benennt Geräte danach statt nach dem, was sie findet. Eine Regel sagt, welche Geräte gemeint sind (ein IP-Bereich, der erkannte Name, die MAC-Adresse, der Hersteller und der Standort, mit denselben Bedingungen wie bei jeder Netzwerkregel) und wie sie heißen: ein **Namensmuster**, ein Text, in dem die Teile, die sich von Gerät zu Gerät unterscheiden, in geschweiften Klammern stehen.
+
+| Platzhalter | Wird ersetzt durch | Beispiel |
+| --- | --- | --- |
+| `{site.code}` | Den **Standortcode** des Standorts, zu dem das Gerät gehört (legen Sie ihn in den Einstellungen des Standorts fest) | `1216` |
+| `{site}` | Den Namen des Standorts des Geräts | `Unit 1216` |
+| `{discoveredName}` | Den Namen, den die Erkennung gefunden hat, wie oben beschrieben | `dmb-5` |
+| `{ip}`, `{ip.1}` … `{ip.4}` | Die IP-Adresse oder einen ihrer vier Teile | `51` |
+| `{mac}` | Die MAC-Adresse, 12 Ziffern und Buchstaben | `00050BB07FFC` |
+| `{vendor}` | Den Hersteller des Geräts | `SICOM Systems` |
+| `{lookup}` | Den Wert, den die Nachschlagetabelle der Regel dem Gerät zuordnet | `MNUPLR01` |
+| `{n}`, `{nn}`, `{nnn}` | Die niedrigste Zahl, die den Namen eindeutig macht: `1`, `01`, `001` | `01` |
+
+Auf einen Platzhalter können Filter folgen, einer nach dem anderen: `upper`, `lower`, `first:N`, `last:N`, `digits` und `nospaces`. `{vendor|first:3|upper}` ergibt `SIC`, und `{site|digits}` ergibt `1216` für einen Standort namens „Unit 1216“. Das Regelformular bietet jeden Platzhalter als Schaltfläche an und zeigt schon beim Tippen, wie ein Beispielgerät heißen würde.
+
+Manche Konventionen sind eher eine Tabelle als eine Formel: Im Subnetz jeder Filiale ist das Gerät unter `.51` der Menü-Player `MNUPLR01`, das unter `.151` der linke Bildschirm `MNUSCR01`. Öffnen Sie im Schritt **Name** der Regel den Abschnitt **Nachschlagetabelle**, wählen Sie, was ihr Schlüssel ist — der letzte Teil der IP-Adresse, die IP-Adresse, die MAC-Adresse oder der erkannte Name —, und tippen Sie die Zeilen ein, fügen Sie zwei Spalten aus einer Tabellenkalkulation ein oder importieren Sie eine CSV-Datei (**CSV exportieren** speichert sie wieder als Datei). Dann benennt `UN{site.code}{lookup}` die Menütafeln aller Filialen mit einer einzigen Regel.
+
+Die Regeln werden der Reihe nach von oben in der Liste geprüft, und Sie ändern ihre Reihenfolge per Ziehen. Die erste aktivierte Regel, die auf ein Gerät passt und jeden Wert hat, den ihr Muster braucht, benennt es. Ein Gerät, das eine Regel nicht benennen kann — sein Standort hat keinen Code, seine Adresse hat keine Zeile in der Nachschlagetabelle —, wird der nächsten Regel überlassen. Gerätenamen sind in einem Projekt eindeutig: Ein Muster mit einer Nummer nimmt deshalb die niedrigste noch freie Nummer — `UN{site.code}DRTPLR{nn}` zählt in jeder Filiale ab `01` —, und wenn ein Muster ohne Nummer einen Namen ergibt, den schon ein anderes Gerät trägt, behält das Gerät seinen erkannten Namen.
+
+Regeln benennen ein Gerät, wenn es importiert wird: aus **Ergebnisse prüfen**, aus **Erkannte Geräte** mit **Zur Überwachung hinzufügen** und durch Regeln für den automatischen Import. **Ergebnisse prüfen** zeigt unter jedem Host den Namen, unter dem sein Gerät angelegt wird — **Wird benannt als** `UN1216DRTPLR02` —, oder warum eine Regel ihn nicht benennen kann, und **Zur Überwachung hinzufügen** listet die Namen auf dieselbe Weise. Ein Gerät, das von einer Regel benannt wird, behält den Namen, den die Erkennung gefunden hat, als **Erkannter Name** und wird an dem Standort angelegt, den ihm die Standortzuweisungsregeln geben, sodass sein Name und sein Standort immer zusammenpassen. Ein späterer Scan benennt es nie um, auch wenn er einen besseren Namen findet.
+
+Um die Geräte, die Sie schon haben, an die Konvention anzupassen, klicken Sie auf der Seite Benennungsregeln auf **Auf vorhandene Geräte anwenden** oder wählen Sie Geräte in der Liste **Geräte** aus und verwenden Sie **Benennungsregeln anwenden**. Nichts wird umbenannt, bevor Sie bestätigen: Die Vorschau listet jedes Gerät, dessen Name den Regeln nicht folgt, mit dem Namen, den es bekäme, die Geräte, die eine Regel noch nicht benennen kann, mit dem Grund, und zählt die Geräte, die ihnen schon folgen. Geräte, die von der Erkennung oder einer Regel benannt wurden, sind angekreuzt; Geräte, deren Namen jemand eingetippt hat, stehen nicht angekreuzt in der Liste, ein Name, den ein Mensch gewählt hat, wird also nur geändert, wenn Sie das Gerät ankreuzen. Ein Gerät, das schon eine Nummer seines Musters trägt, behält diese Nummer. Zum Anwenden der Regeln brauchen Sie die Berechtigung, die Benennungsregeln zu bearbeiten und jedes Netzwerkgerät im Projekt zu bearbeiten.
 
 ### Automatisch importieren mit Regeln für den automatischen Import
 
@@ -780,7 +805,7 @@ Um einen stattdessen unter **Monitore** anzulegen:
 
 Ein Netzwerkgerät-Monitor hat kein eigenes Intervall: Er wird jedes Mal ausgewertet, wenn die Abfrageergebnisse des Geräts eintreffen, und jedes Mal, wenn ein Trap vom Gerät eintrifft.
 
-Wenn die Abfragen ausbleiben, wird der Monitor trotzdem ausgewertet. Sobald ein Gerät drei Abfrageintervalle lang, mindestens aber zehn Minuten, nicht abgefragt wurde, werden seine Monitore alle fünf Minuten wie eine Abfrage ausgewertet, die das Gerät nicht erreichen konnte: Ein Kriterium, das auf **SNMP Device Is Online** gleich False passt, etwa **Device unreachable**, löst aus, und der Vorfall nennt den Grund, warum keine Abfrage kam, zum Beispiel dass die Sonde ausgefallen ist oder das Gerät keine Sonde hat. Ein Gerät mit ausgeschalteter Abfrage oder mit der [Überschreibung mit gebundenem Monitor](#die-überschreibung-mit-gebundenem-monitor) bleibt unberührt. Die nächste Abfrage wertet den Monitor wie gewohnt aus.
+Wenn die Abfragen ausbleiben, wird der Monitor trotzdem ausgewertet. Sobald ein Gerät drei Abfrageintervalle lang, mindestens aber zehn Minuten, nicht abgefragt wurde, werden seine Monitore alle fünf Minuten wie eine Abfrage ausgewertet, die das Gerät nicht erreichen konnte: Ein Kriterium, das auf **SNMP-Gerät ist online** gleich False passt, etwa **Device unreachable**, löst aus, und der Vorfall nennt den Grund, warum keine Abfrage kam, zum Beispiel dass die Sonde ausgefallen ist oder das Gerät keine Sonde hat. Ein Gerät mit ausgeschalteter Abfrage oder mit der [Überschreibung mit gebundenem Monitor](#die-überschreibung-mit-gebundenem-monitor) bleibt unberührt. Die nächste Abfrage wertet den Monitor wie gewohnt aus.
 
 ### Vorfälle und Warnungen eines Geräts
 
@@ -850,7 +875,7 @@ Klicken Sie im Kriterienformular auf **Empfohlene Warnungen hinzufügen**, um ei
 | Transceiver past its alarm threshold | Ein Messwert einer Optik liegt über einem Alarmschwellenwert, den das Gerät meldet, oder das Gerät meldet einen Signalverlust oder einen Senderfehler. | Warnung |
 | Transceiver RX power dropping | Eine Optik empfängt mindestens 2 dB weniger Licht als an ihrem besten Tag der letzten 30. | Warnung |
 
-Wenn das Gerät [SNMP-Tabellen](#snmp-tabellen) abfragt, die gesunde Werte deklarieren, fügt das Paket außerdem ein Kriterium **SNMP Table Row Is Unhealthy** pro solcher Tabelle hinzu, mit Row `*`: einen Vorfall pro Zeile für Tunnel, Routing-Nachbarn und die Access Points eines Controllers („IPsec Tunnels: row unhealthy“, oder „Access Points: row unhealthy“ für einen Access Point, der von seinem Controller verschwunden ist), und eine Warnung pro Zeile für Hardwaretabellen und Funkmodule.
+Wenn das Gerät [SNMP-Tabellen](#snmp-tabellen) abfragt, die gesunde Werte deklarieren, fügt das Paket außerdem ein Kriterium **SNMP-Tabellenzeile ist fehlerhaft** pro solcher Tabelle hinzu, mit Row `*`: einen Vorfall pro Zeile für Tunnel, Routing-Nachbarn und die Access Points eines Controllers („IPsec Tunnels: row unhealthy“, oder „Access Points: row unhealthy“ für einen Access Point, der von seinem Controller verschwunden ist), und eine Warnung pro Zeile für Hardwaretabellen und Funkmodule.
 
 SNMP walk failing ist bewusst eine Warnung statt eines Vorfalls: Das Gerät ist nicht ausgefallen, jemanden um 2 Uhr nachts deswegen zu wecken, wäre also falsch, aber sein Inventar wird nicht mehr aktualisiert, und jemand sollte die Anmeldedaten in Ordnung bringen. Bei einem nur angepingten Gerät löst es nie aus, weil das Kriterium nicht ausgewertet wird, wenn kein Walk lief.
 
@@ -905,7 +930,7 @@ Traps werden über das Geräteinventar zugeordnet:
 
 1. Ein Trap trifft beim Empfänger einer Sonde ein und wird an OneUptime weitergeleitet.
 2. OneUptime sucht die dieser Sonde zugewiesenen Netzwerkgeräte, deren Hostname, oder eine ihrer **Weitere Adressen**, die Quell-IP-Adresse des Traps ist.
-3. Der Trap wird im Trap-Verlauf des Geräts protokolliert, und jeder Netzwerkgerät-Monitor auf einem passenden Gerät wertet ihn gegen seine Kriterien aus, typischerweise einen Filter **SNMP Trap Received (Trap OID)**.
+3. Der Trap wird im Trap-Verlauf des Geräts protokolliert, und jeder Netzwerkgerät-Monitor auf einem passenden Gerät wertet ihn gegen seine Kriterien aus, typischerweise einen Filter **SNMP-Trap empfangen (Trap-OID)**.
 
 Die Zuordnung erfolgt über die Adresse, nicht über Anmeldedaten, ein nur angepingtes Gerät kann also trotzdem Traps empfangen: Ein Gerät, für das Sie keine Leseberechtigungen haben, kann sie trotzdem senden. Registrieren Sie das Gerät mit der Adresse, von der es Traps sendet, oder fügen Sie diese Adresse auf seiner **Einstellungen**-Seite zu seinen **Weitere Adressen** hinzu. Generische SNMPv1-Traps (coldStart, linkDown, linkUp und so weiter) werden in ihre Standard-SNMPv2-Benachrichtigungs-OIDs umgewandelt, linkDown passt also unabhängig von der SNMP-Version auf die Trap-OID `1.3.6.1.6.3.1.1.5.3`.
 
@@ -921,8 +946,8 @@ Der Filter bietet auch Enthält, Beginnt mit und Endet mit an, ein Kriterium kan
 
 Manche Hersteller senden jedes Ereignis als denselben Trap und legen das Ereignis in einen Text-Varbind: Jede Benachrichtigung einer Sophos Firewall ist `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`) mit der Nachricht in `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Kombinieren Sie beides in einem Kriterium:
 
-- **SNMP Trap Received (Trap OID)**: Gleich `1.3.6.1.4.1.2604.5.1.8.1.1`
-- **SNMP Trap Varbind Value**: Varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Enthält `IPSec`
+- **SNMP-Trap empfangen (Trap-OID)**: Gleich `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **SNMP-Trap-Varbind-Wert**: Varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Enthält `IPSec`
 
 Ein negativer Filter (Enthält nicht, Ungleich, Ist leer) ist nur erfüllt, wenn kein Varbind im Geltungsbereich auf seine positive Form passt. Lassen Sie die Varbind-OID leer, um jeden Varbind zu durchsuchen, den der Trap trägt.
 

@@ -513,7 +513,7 @@ Gli iscritti webhook ricevono una richiesta JSON `POST` a ogni evento della pagi
 
 Poiché iscriversi è un'operazione pubblica su una pagina pubblica, OneUptime protegge la destinazione:
 
-- Un **URL del webhook** generico viene convalidato prima di essere accettato, e gli indirizzi privati, di loopback, link-local e dei metadati cloud vengono rifiutati. Non potete puntare un'iscrizione a qualcosa all'interno della rete dell'installazione OneUptime stessa.
+- Un **URL del webhook** generico viene controllato quando viene salvato, quando viene modificato e di nuovo prima di ogni invio. Gli indirizzi di loopback, link-local e dei metadati cloud vengono sempre rifiutati. Gli indirizzi privati, come `10.0.0.0/8` o `192.168.0.0/16`, vengono rifiutati per chi si iscrive dalla pagina di stato, qualunque cosa consenta la vostra istanza. Un iscritto webhook aggiunto dal vostro team, dalla dashboard, con una chiave API o tramite un workflow, può usare un indirizzo privato una volta che un'istanza self-hosted lo consente (vedete [Accesso alla rete privata](/docs/self-hosted/private-network-access)); fino ad allora viene rifiutato anch'esso.
 - Un **URL del webhook in entrata Slack** deve iniziare con `https://hooks.slack.com/services/`.
 - Un **URL del webhook in entrata Microsoft Teams** deve essere un indirizzo `https` su `office.com`, `office365.com`, `logic.azure.com` o `environment.api.powerplatform.com`, o su un loro sottodominio.
 

@@ -46,7 +46,7 @@ Slik legger du til en prosjektkonfigurasjon:
 2. Velg **Opprett Twilio-konfigurasjon** i **Twilio-konfigurasjon**.
 3. Skriv inn et navn, og velg under **Bruk denne kontoen til** hva kontoen sender: **Anrop og SMS**, **Bare SMS** eller **Bare anrop**. Skriv deretter inn **Twilio-konto-SID**, **Twilio-autentiseringstoken** og nummeret valget ber om: **Twilio primært telefonnummer** for anrop, eller **Twilio SMS-telefonnumre** for **Bare SMS**. Under **Flere felt** kan du også skrive inn kommaseparerte **Twilio sekundære telefonnumre** for andre land, og **Twilio SMS-telefonnumre** hvis numrene dine ikke kan sende SMS.
 4. **Angi som prosjektstandard** er slått på for prosjektets første konfigurasjon, så SMS og anrop til prosjektets medlemmer, også vaktvarsler, går gjennom den med en gang du lagrer. Slå den av hvis kontoen bare er for statussider eller innkommende anrop. En senere konfigurasjon starter med bryteren av: Slå den på, eller velg **Angi som prosjektstandard** i konfigurasjonens radmeny for å flytte disse meldingene dit. En API-forespørsel som utelater `isProjectDefault`, behandles på samme måte.
-5. Lagre. Bare én konfigurasjon kan være prosjektstandarden. Statussider bruker konfigurasjonen som er uttrykkelig tildelt hver statusside.
+5. Lagre. Et prosjekt har én standard for SMS og én for anrop, så en konfigurasjon satt til **Bare SMS** og en satt til **Bare anrop** kan begge være standard: se [En konto bare for SMS, eller bare for anrop](#en-konto-bare-for-sms-eller-bare-for-anrop). Statussider bruker konfigurasjonen som er uttrykkelig tildelt hver statusside.
 
 > [!IMPORTANT]
 > **SMS** og **Telefonanrop** er av fra start i hvert prosjekt, og så lenge de er av, kan ingen i prosjektet legge til et telefonnummer for dem. En prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår dem på i kortet **Varslingskanaler** på samme side.
@@ -81,13 +81,15 @@ En konto du bare bruker til SMS, eller bare til anrop, trenger ikke noe nummer f
 | **Bare SMS** | **Twilio SMS-telefonnumre** | Anrop |
 | **Bare anrop** | **Twilio primært telefonnummer** | SMS |
 
-Det en konfigurasjon ikke sender, går ut slik det ville gjort uten konfigurasjonen: når prosjektets standard er satt til **Bare SMS**, går anrop til prosjektets medlemmer gjennom konfigurasjonen for hele installasjonen. Kan ingen konfigurasjon sende en melding, står det i meldingens logg at prosjektets konfigurasjon ikke brukes til den, og hvem som kan endre det.
+Et prosjekt har en standard for SMS og en standard for anrop, og en konfigurasjon er standard for det den sender. I radmenyen til en konfigurasjon gjør **Angi som prosjektstandard for SMS** eller **Angi som prosjektstandard for anrop** den til standard for det den sender, og lar den andre standarden være som den er, så en konfigurasjon satt til **Bare SMS** og en satt til **Bare anrop** kan begge være standard. En konfigurasjon satt til **Anrop og SMS** tar begge deler. Kolonnen **Prosjektstandard** viser hva hver konfigurasjon er standard for, og **Slutt å bruke som prosjektstandard** i radmenyen avslutter det.
+
+Det ingen standard sender, går ut slik det ville gjort uten en konfigurasjon: så lenge den eneste standarden er satt til **Bare SMS**, går anrop til prosjektets medlemmer gjennom konfigurasjonen for hele installasjonen. Kan ingen konfigurasjon sende en melding, står det i meldingens logg at prosjektets konfigurasjon ikke brukes til den, og hvem som kan endre det.
 
 Statussider tilbyr bare konfigurasjonene som sender SMS, og **Send test-SMS** og **Send testanrop** vises bare for det en konfigurasjon sender. Alle eksisterende konfigurasjoner er som før satt til **Anrop og SMS**. Gjennom API-et og Terraform er valget feltet `usedFor`, og en konfigurasjon uten numrene valget trenger, blir avvist.
 
 ## 3. Konfigurer nettverkstilgang
 
-Sending fungerer med bare utgående tilgang. Leveringsoppdateringer, bekreftelse med tastene og innkommende anrop krever at Twilio når serveren din.
+Sending fungerer med bare utgående tilgang. Leveringsoppdateringer, anropsresultater, bekreftelse med tastene og innkommende anrop krever at Twilio når serveren din.
 
 ```mermaid title="Utgående sending, innkommende tilbakekall"
 sequenceDiagram
@@ -109,6 +111,7 @@ Innkommende tilgang avhenger av funksjonen:
 | --- | --- |
 | Sending av SMS | Nei. Oppdateringer av leveringsstatus trenger likevel et tilbakekall. |
 | Et enkelt testanrop med tale | Nei. OneUptime sender de talte instruksjonene med i den utgående API-forespørselen. |
+| Vite om et vaktanrop ble besvart | Ja. Twilio melder hvordan hvert anrop endte, slik at hendelsens feed kan si når noen ikke svarte. Anrop går ut også uten dette. |
 | Trykke 1 for å bekrefte et vaktvarsel | Ja. Twilio sender tasteinndataene til OneUptime. |
 | Retningslinjer for innkommende anrop | Ja. Twilio henter anropsinstruksjoner og rapporterer resultatene av oppringingen. |
 
@@ -117,13 +120,14 @@ Dette er de eksterne stiene gjennom OneUptimes Nginx-gateway. Plassholderne er f
 | Metode | Sti | Formål |
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | Leveringsstatus for SMS |
+| POST | `/notification/call/status-callback/:callLogId/:token` | Anropsresultat |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Bekreftelse med tastene |
 | POST | `/notification/incoming-call/voice` | Valgfrie instruksjoner for innkommende anrop |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Valgfrie resultater av ruting av innkommende anrop |
 
-OneUptime genererer URL-ene for SMS og bekreftelse automatisk. Ikke erstatt tokenene deres med en fast webhook-URL. For innkommende anrop følger du [retningslinjer for innkommende anrop](/docs/on-call/incoming-call-policy), som konfigurerer webhooken til nummeret når du knytter til et nummer.
+OneUptime genererer URL-ene for SMS, anropsresultater og bekreftelse automatisk. Ikke erstatt tokenene deres med en fast webhook-URL. For innkommende anrop følger du [retningslinjer for innkommende anrop](/docs/on-call/incoming-call-policy), som konfigurerer webhooken til nummeret når du knytter til et nummer.
 
-Twilio krever [offentlig tilgjengelige webhook-URL-er](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Bruk et offentlig klarert TLS-sertifikat, og bevar den opprinnelige verten, protokollen, stien, spørringsparameterne, kroppen og headeren `X-Twilio-Signature` gjennom proxyer. Behandlerne for innkommende anrop validerer Twilios signaturer; SMS-levering bruker et URL-token per melding, og bekreftelse med tastene et signert spørringstoken. Ikke vis tokener i delte logger eller skjermbilder. Se [Twilios webhook-sikkerhet](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio krever [offentlig tilgjengelige webhook-URL-er](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Bruk et offentlig klarert TLS-sertifikat, og bevar den opprinnelige verten, protokollen, stien, spørringsparameterne, kroppen og headeren `X-Twilio-Signature` gjennom proxyer. Behandlerne for innkommende anrop validerer Twilios signaturer; SMS-levering og anropsresultater bruker et URL-token per melding eller anrop, og bekreftelse med tastene et signert spørringstoken. Ikke vis tokener i delte logger eller skjermbilder. Se [Twilios webhook-sikkerhet](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
 ### Publiser tilbakekall fra en privat installasjon
 
@@ -142,7 +146,7 @@ Dashbordet kan bli værende på en privat ingress: Med delt DNS slår ansatte op
 De vanlige kildeadressene for Twilios webhooker endres, så ikke bruk SIP- eller medie-IP-områder som tillatelsesliste for tilbakekall. Kvalifiserte Twilio-utgaver tilbyr [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Bekreft at utgaven din er kvalifisert, og hvilke produkter som støttes, og konfigurer brannmuren med områdene Twilio publiserer nå; fortsett å validere tilbakekall også når du bruker det.
 
 > [!WARNING]
-> Hvis en retningslinje forbyr innkommende tilkoblinger, kan sending av SMS og enkel innebygd taleavspilling fungere med utgående HTTPS. Oppdateringer av SMS-levering, bekreftelse med tastene og ruting av innkommende anrop fungerer ikke uten tilgjengelige tilbakekall. En helt frakoblet installasjon kan ikke bruke Twilio.
+> Hvis en retningslinje forbyr innkommende tilkoblinger, kan sending av SMS og enkel innebygd taleavspilling fungere med utgående HTTPS. Oppdateringer av SMS-levering, anropsresultater, bekreftelse med tastene og ruting av innkommende anrop fungerer ikke uten tilgjengelige tilbakekall. En helt frakoblet installasjon kan ikke bruke Twilio.
 
 For utvikling beskriver Twilios [veiledning for testing av webhooker](https://www.twilio.com/docs/usage/webhooks/webhook-testing) bruk av en offentlig tunnel: Send den videre til en proxy som bare tillater de nødvendige rutene, konfigurer vertsnavnet du får, som ovenfor, og stopp tunnelen etter testingen. En tunnel åpner likevel for innkommende tilgang.
 
@@ -159,7 +163,7 @@ For utvikling beskriver Twilios [veiledning for testing av webhooker](https://ww
 | --- | --- |
 | Ingenting blir sendt | Påloggingsinformasjon, nummerets funksjoner, kontoens begrensninger og den utgående tilkoblingen. |
 | Twilio avviser SMS med feil 21606 | Nummeret kan ikke sende SMS. Legg til et som kan, under **Twilio SMS-telefonnumre**: se [Egne numre for anrop og SMS](#egne-numre-for-anrop-og-sms). |
-| Anrop eller SMS går gjennom en annen konto enn prosjektets | Prosjektets standard er satt til **Bare SMS** eller **Bare anrop**: se [En konto bare for SMS, eller bare for anrop](#en-konto-bare-for-sms-eller-bare-for-anrop). |
+| Anrop eller SMS går gjennom en annen konto enn prosjektets | Ingen konfigurasjon er prosjektets standard for dem: kolonnen **Prosjektstandard** viser hva hver konfigurasjon er standard for. Se [En konto bare for SMS, eller bare for anrop](#en-konto-bare-for-sms-eller-bare-for-anrop). |
 | SMS-en eller anropet kommer fram, men statusen eller bekreftelsen oppdateres ikke | URL-en for tilbakekall og loggene fra den offentlige ingressen. Twilios [veiledning om feil ved HTTP-henting](https://www.twilio.com/docs/api/errors/11200) hjelper med tilbakekall som ikke kan nås, TLS-problemer og HTTP-feil. |
 
 Et vellykket testanrop alene beviser ikke at tilbakekall kan nås.

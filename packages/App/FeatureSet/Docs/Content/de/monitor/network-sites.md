@@ -54,7 +54,7 @@ Jedes Gerät gehört zu einem Standort. Der Teilbaum eines Standorts ist der Sta
 Gehen Sie zu **Netzwerk → Standorte** und klicken Sie auf **Standort hinzufügen**.
 
 ### Sagen, was der Standort ist
-Wählen Sie im Schritt **Standortdetails** den **Standorttyp** (was für ein Ort das ist: eine Region, eine Filiale, ein Rechenzentrum) und geben Sie einen **Name** ein. Die Beschreibung, die Straßenadresse sowie Breiten- und Längengrad, die den Standort auf der Karte festlegen, sind unter **Weitere Felder** eingeklappt: Füllen Sie sie jetzt oder später aus.
+Wählen Sie im Schritt **Standortdetails** den **Standorttyp** (was für ein Ort das ist: eine Region, eine Filiale, ein Rechenzentrum) und geben Sie einen **Name** ein. Der **Standortcode**, die Beschreibung, die Straßenadresse sowie Breiten- und Längengrad, die den Standort auf der Karte festlegen, sind unter **Weitere Felder** eingeklappt: Füllen Sie sie jetzt oder später aus. Ein Standortcode ist ein kurzer Code wie eine Filial- oder Betriebsnummer (`1216`); [Benennungsregeln](/docs/monitor/network-device-monitor#geräte-nach-ihrer-namenskonvention-benennen) setzen ihn mit `{site.code}` in Gerätenamen ein.
 
 ### Ihn in den Baum einordnen
 Wählen Sie im Schritt **Hierarchie** den **Übergeordneter Standort**, wenn der Standort unter einem anderen liegt. Lassen Sie ihn leer, um den Standort auf der obersten Ebene zu halten.
@@ -171,7 +171,7 @@ Ein Standort ganz ohne Zeilen in der Zeitachse zeigt `—` statt 100%: Ein Stand
 
 ### Tägliche Verfügbarkeit
 
-Neben dem 30-Tage-Wert zeigt die Übersicht jedes Standorts **Uptime (24h)**, und seine Seite **Status-Zeitachse** zeigt die letzten 24 Stunden, 7, 30 und 90 Tage sowie einen Balken pro Tag für die letzten 30.
+Neben dem 30-Tage-Wert zeigt die Übersicht jedes Standorts **Verfügbarkeit (24 Std.)**, und seine Seite **Status-Zeitachse** zeigt die letzten 24 Stunden, 7, 30 und 90 Tage sowie einen Balken pro Tag für die letzten 30.
 
 Ein 30-Tage-Durchschnitt kann keinen schlechten Tag zeigen. Ein voller Ausfalltag in einem 30-Tage-Fenster kostet 3.3 Punkte, ein Standort, der einen ganzen Dienstag dunkel war, meldet für den Monat also immer noch 96.7%, eine Zahl, die wie Rundung aussieht. Die täglichen Balken legen dieselben Daten dorthin, wo ein schlechter Tag ein schlechter Balken ist.
 

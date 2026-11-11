@@ -128,7 +128,7 @@ Data som returneres fra skriptet, serialiseres til JSON før de lagres: i vanlig
 
 ### Varsling på de returnerte dataene
 
-Det skriptet returnerer som `data`, er monitorens **Result Value**, som et kriterium kan sammenligne. Når `data` er et objekt eller en matrise, fyller du inn **Feltsti (valgfritt)** på Result Value-filteret for å sammenligne ett felt — for eksempel `status`, `timings.loadTime` eller `errors[0].message`. Filteret sjekkes mot dataene fra hver nettleser og skjermstørrelse monitoren kjører på, og samsvarer når én av dem gjør det. Se [Varsling på de returnerte dataene](/docs/monitor/custom-code-monitor#varsling-på-de-returnerte-dataene) for hvordan stier og vilkår fungerer.
+Det skriptet returnerer som `data`, er monitorens **Resultatverdi**, som et kriterium kan sammenligne. Når `data` er et objekt eller en matrise, fyller du inn **Feltsti (valgfritt)** på Resultatverdi-filteret for å sammenligne ett felt — for eksempel `status`, `timings.loadTime` eller `errors[0].message`. Filteret sjekkes mot dataene fra hver nettleser og skjermstørrelse monitoren kjører på, og samsvarer når én av dem gjør det. Se [Varsling på de returnerte dataene](/docs/monitor/custom-code-monitor#varsling-på-de-returnerte-dataene) for hvordan stier og vilkår fungerer.
 
 ## Skjermbilder
 
@@ -232,10 +232,10 @@ En kjøring kan samle inn høyst 100 metrikker, bare med numeriske verdier, og O
 | Filtertype | Hva den sjekker |
 | --- | --- |
 | **Feil** | Feilen en kjøring kastet, hvis noen. |
-| **Result Value** | `data` som en kjøring returnerte. |
+| **Resultatverdi** | `data` som en kjøring returnerte. |
 | **Kjøretid (i ms)** | Hvor lang tid en kjøring tok. |
 | **Nettlesertype** | Nettleseren en kjøring brukte: **Lik** eller **Ikke lik**. |
-| **Screen Size** | Skjermstørrelsen en kjøring brukte: **Lik** eller **Ikke lik**. |
+| **Skjermstørrelse** | Skjermstørrelsen en kjøring brukte: **Lik** eller **Ikke lik**. |
 
 Hvert filter sjekkes mot hver kjøring og samsvarer når én kjøring samsvarer med det. Filtrene sjekkes hver for seg, ikke kjøring for kjøring: **Feil** Er ikke tom sammen med **Nettlesertype** Lik `Firefox` samsvarer når en kjøring mislyktes og en av kjøringene brukte Firefox — ikke bare når Firefox-kjøringen mislyktes. For å følge med på én nettleser for seg gir du den en egen monitor.
 

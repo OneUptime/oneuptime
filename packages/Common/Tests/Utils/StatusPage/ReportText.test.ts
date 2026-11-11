@@ -29,6 +29,7 @@ import StatusPageReportText, {
 } from "../../../Utils/StatusPage/ReportText";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { describe, expect, test } from "@jest/globals";
+import { STATUS_PAGE_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * A STATUS PAGE'S UPTIME REPORT, IN ITS READER'S LANGUAGE.
@@ -441,24 +442,7 @@ describe("StatusPageReportText.getPeriodTexts in a reader's language", () => {
   });
 
   test("every language words the rolling period apart from English", () => {
-    for (const language of [
-      "de",
-      "fr",
-      "es",
-      "it",
-      "pt",
-      "nl",
-      "da",
-      "no",
-      "sv",
-      "ru",
-      "ja",
-      "ko",
-      "zh-CN",
-      "zh-TW",
-      "hi",
-      "fa",
-    ]) {
+    for (const language of [...STATUS_PAGE_LANGUAGES]) {
       const texts: StatusPageReportPeriodTexts = textsIn(language, rolling(30));
 
       expect([language, texts.periodName]).not.toEqual([

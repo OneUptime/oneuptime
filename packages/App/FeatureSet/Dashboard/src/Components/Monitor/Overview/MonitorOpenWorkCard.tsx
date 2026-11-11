@@ -16,10 +16,11 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -131,7 +132,7 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
             value > 0 ? data.activeClassName : "text-gray-900"
           }`}
         >
-          {value}
+          {translator.formatNumber(value)}
         </span>
       );
     } else if (data.state === "forbidden" || data.state === "error") {
@@ -151,7 +152,7 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
         className="block rounded-lg border border-gray-200 px-3 py-2.5 hover:bg-gray-50"
       >
         <span className="block text-xs font-medium uppercase tracking-wide text-gray-500">
-          {data.label}
+          {translator.translateText(data.label) || data.label}
         </span>
         {count}
       </Link>
@@ -168,7 +169,10 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
       { modelId: new ObjectID(row.id) },
     );
 
-    const metaParts: Array<string> = [row.kind];
+    // The kind in the reader's words: "حادثة", "Warnung".
+    const metaParts: Array<string> = [
+      translator.translateText(row.kind) || row.kind,
+    ];
 
     /*
      * The severity in words, next to its kind. The dot beside the title is
@@ -200,7 +204,21 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
               {row.title}
             </Link>
             <p className="mt-0.5 text-xs text-gray-500">
-              {metaParts.join(" · ")}
+              {/*
+               * Each fact its own isolate, set apart the reader's way: the
+               * severity and state are the project's own names, often
+               * English on an Arabic page, and joined into one string two
+               * English names read as one English run - the state stood
+               * before the severity for a right-to-left reader.
+               */}
+              {metaParts.map((part: string, index: number): ReactElement => {
+                return (
+                  <Fragment key={index}>
+                    {index > 0 ? <InlineSeparator /> : <></>}
+                    <IsolatedText text={part} />
+                  </Fragment>
+                );
+              })}
               {row.startedAt ? <InlineSeparator /> : null}
               {row.startedAt ? <RelativeTime date={row.startedAt} /> : <></>}
             </p>

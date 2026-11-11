@@ -680,6 +680,60 @@ export default class NetworkDevice extends BaseModel {
   public discoveredNameSource?: string = undefined;
 
   /*
+   * The name a naming rule gave this device (OneUptime issue #6619), kept so
+   * the rules can tell their own names from a person's: while the device is
+   * still called exactly this, the rules decide its name - applying them
+   * again after a rule changes renames it, and a later scan's better
+   * discovered name leaves it alone. Rename the device yourself and it is
+   * yours: the rules list it as named by a person, unticked.
+   *
+   * Created with the same access as `discoveredName`, for the same reason:
+   * the import names a device with its operator's permissions. Never UPDATED
+   * by anyone but the server: applying the rules writes it beside the name as
+   * root, after asking the person may rename every device. Were it editable,
+   * a user could mark a name they typed as the rules' own. Left out of the
+   * Terraform configuration the dashboard writes: it is the server's record,
+   * not a setting.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    // Server-managed after create: see above.
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Rule-Assigned Name",
+    description:
+      "The name a naming rule gave this device. While the device is still called exactly this, applying the naming rules again may rename it when the rules change. Rename the device yourself and the naming rules leave it alone unless you choose to rename it.",
+    example: "UN1216MNUPLR01",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public ruleAssignedName?: string = undefined;
+
+  /*
    * What discovery found out about this device, where and when (OneUptime
    * issue #5185) - see Types/NetworkDevice/NetworkDeviceDiscoveredDetails.
    *

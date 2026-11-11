@@ -38,30 +38,55 @@ import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { fitWhatsAppTemplateVariables } from "Common/Utils/WhatsAppTemplateFit";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+  NotificationDeliveryProvider,
+  NotificationDispatch,
+} from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 
 const SENSITIVE_MESSAGE_PLACEHOLDER: string =
   "This message is sensitive and is not logged";
 
+export interface WhatsAppSendOptions {
+  projectId?: ObjectID | undefined;
+  isSensitive?: boolean | undefined;
+  userOnCallLogTimelineId?: ObjectID | undefined;
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
+  monitorId?: ObjectID | undefined;
+  scheduledMaintenanceId?: ObjectID | undefined;
+  statusPageId?: ObjectID | undefined;
+  statusPageAnnouncementId?: ObjectID | undefined;
+  userId?: ObjectID | undefined;
+  onCallPolicyId?: ObjectID | undefined;
+  onCallPolicyEscalationRuleId?: ObjectID | undefined;
+  onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+  onCallScheduleId?: ObjectID | undefined;
+  teamId?: ObjectID | undefined;
+}
+
 export default class WhatsAppService {
   public static async sendWhatsApp(
     message: WhatsAppMessage,
-    options: {
-      projectId?: ObjectID | undefined;
-      isSensitive?: boolean | undefined;
-      userOnCallLogTimelineId?: ObjectID | undefined;
-      incidentId?: ObjectID | undefined;
-      alertId?: ObjectID | undefined;
-      monitorId?: ObjectID | undefined;
-      scheduledMaintenanceId?: ObjectID | undefined;
-      statusPageId?: ObjectID | undefined;
-      statusPageAnnouncementId?: ObjectID | undefined;
-      userId?: ObjectID | undefined;
-      onCallPolicyId?: ObjectID | undefined;
-      onCallPolicyEscalationRuleId?: ObjectID | undefined;
-      onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
-      onCallScheduleId?: ObjectID | undefined;
-      teamId?: ObjectID | undefined;
-    } = {},
+    options: WhatsAppSendOptions = {},
+  ): Promise<void> {
+    // How it went, for the platform's operator (NotificationDeliveryMetrics).
+    await NotificationDeliveryMetrics.measureDispatch(
+      {
+        channel: NotificationDeliveryChannel.WhatsApp,
+        provider: NotificationDeliveryProvider.MetaWhatsApp,
+        isOnCallPage: Boolean(options.userOnCallLogTimelineId),
+      },
+      (dispatch: NotificationDispatch): Promise<void> => {
+        return this.sendWhatsAppMessage(message, options, dispatch);
+      },
+    );
+  }
+
+  private static async sendWhatsAppMessage(
+    message: WhatsAppMessage,
+    options: WhatsAppSendOptions,
+    dispatch: NotificationDispatch,
   ): Promise<void> {
     let sendError: Error | null = null;
     const whatsAppLog: WhatsAppLog = new WhatsAppLog();
@@ -185,6 +210,7 @@ export default class WhatsAppService {
             userOnCallLogTimelineId: options.userOnCallLogTimelineId,
             reason: whatsAppLog.statusMessage!,
           });
+          dispatch.markNotSent();
           return;
         }
 
@@ -265,6 +291,7 @@ export default class WhatsAppService {
               userOnCallLogTimelineId: options.userOnCallLogTimelineId,
               reason: whatsAppLog.statusMessage!,
             });
+            dispatch.markNotSent();
             return;
           }
         }
@@ -443,6 +470,8 @@ export default class WhatsAppService {
       if (messageId) {
         whatsAppLog.whatsAppMessageId = messageId;
       }
+
+      dispatch.markSucceeded();
 
       whatsAppLog.status = WhatsAppStatus.Sent;
       whatsAppLog.statusMessage = messageId

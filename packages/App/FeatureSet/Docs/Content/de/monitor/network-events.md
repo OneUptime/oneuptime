@@ -246,7 +246,7 @@ Eine Pipeline gehört zu ihrem Projekt. Um eine in einem anderen Projekt zu verw
 
 - **Syslog über TLS** (RFC 5425). Die Sonde nimmt einfaches UDP und TCP an; halten Sie den Weg zwischen den Geräten und der Sonde in einem Netzwerk, dem Sie vertrauen.
 - **Parser zwischen Projekten teilen.** Eine Pipeline lässt sich noch nicht exportieren und importieren.
-- **Ereignisse aus anderen SNMP-Traps als den vier Standard-Traps.** Die eigenen Traps eines Herstellers werden als Logs gespeichert, und Warnungen dazu richten Sie mit dem Kriterium **SNMP Trap Received (Trap OID)** des [Network-Device-Monitors](/docs/monitor/network-device-monitor) ein.
+- **Ereignisse aus anderen SNMP-Traps als den vier Standard-Traps.** Die eigenen Traps eines Herstellers werden als Logs gespeichert, und Warnungen dazu richten Sie mit dem Kriterium **SNMP-Trap empfangen (Trap-OID)** des [Network-Device-Monitors](/docs/monitor/network-device-monitor) ein.
 - **Cambium-cnMatrix-Switches, Aruba Mobility Controller und FortiGate im CEF-Modus.** Ihre Nachrichten werden gespeichert und sind durchsuchbar; Ereignisse werden daraus noch nicht gelesen.
 - **Eine Live-Ansicht.** Die Ereignisseite zeigt, was beim Öffnen angekommen war; verwenden Sie ihre Schaltfläche zum Aktualisieren oder die Live-Ansicht unter **Protokolle**.
 

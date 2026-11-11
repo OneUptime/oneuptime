@@ -116,7 +116,7 @@ Hver statusændring registreres med sin årsag på monitorens **Statustidslinje*
 
 ## Kriterier
 
-En undtagelse-monitors kriterier har fire slags **Filtertype**: **Exception Count**, antallet af undtagelser, der matchede i vinduet, samt **New Exceptions**, **Regressed Exceptions** og **Exception Increase (in %)**, som beskrives nedenfor. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og en **Værdi**.
+En undtagelse-monitors kriterier har fire slags **Filtertype**: **Antal undtagelser**, antallet af undtagelser, der matchede i vinduet, samt **Nye undtagelser**, **Genopståede undtagelser** og **Stigning i undtagelser (i %)**, som beskrives nedenfor. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og en **Værdi**.
 
 | Filterbetingelse | Matcher, når antallet af undtagelser er… |
 | --- | --- |
@@ -126,11 +126,11 @@ En undtagelse-monitors kriterier har fire slags **Filtertype**: **Exception Coun
 | **Mindre end eller lig med** | lig med værdien eller derunder |
 | **Lig med** | præcis værdien |
 | **Ikke lig med** | alt andet end værdien |
-| **Anomalously High** | over det forventede interval for denne time på ugen |
-| **Anomalously Low** | under det interval |
-| **Anomalous** | uden for det interval, i begge retninger |
+| **Unormalt høj** | over det forventede interval for denne time på ugen |
+| **Unormalt lav** | under det interval |
+| **Unormal** | uden for det interval, i begge retninger |
 
-Anomalibetingelserne har ingen **Værdi**. Vælg en **Følsomhed** (Lav, Middel, som er standard, eller Høj) og, i de egne kriterier, et **Baseline-vindue** på 14 (standard), 28, 60 eller 90 dage. Kun **Exception Count** har dem: se [Toppe i forhold til det normale](#toppe-i-forhold-til-det-normale).
+Anomalibetingelserne har ingen **Værdi**. Vælg en **Følsomhed** (Lav, Middel, som er standard, eller Høj) og, i de egne kriterier, et **Baseline-vindue** på 14 (standard), 28, 60 eller 90 dage. Kun **Antal undtagelser** har dem: se [Toppe i forhold til det normale](#toppe-i-forhold-til-det-normale).
 
 En undtagelse-monitor, der er oprettet i Opret monitor, starter med reglen for det, du valgte under **Hvad skal denne overvågning fortælle dig om?**:
 
@@ -146,8 +146,8 @@ En undtagelse-monitor, der er oprettet via API'et eller Terraform uden kriterier
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Større end** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
-| Check if … has no exceptions | **Exception Count** **Lig med** `0` | Sætter monitoren online |
+| Check if … has exceptions | **Antal undtagelser** **Større end** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
+| Check if … has no exceptions | **Antal undtagelser** **Lig med** `0` | Sætter monitoren online |
 
 ## Nye, tilbagevendte og stigende undtagelser
 
@@ -155,9 +155,9 @@ Ud over hvor mange undtagelser der skete, kan en undtagelse-monitor advare ved d
 
 | Filtertype | Hvad den tæller i vinduet |
 | --- | --- |
-| **New Exceptions** | Matchende undtagelser, der ses for første gang og hverken er løst eller arkiveret. |
-| **Regressed Exceptions** | Matchende undtagelser, du har løst, som kom tilbage og stadig er åbne. |
-| **Exception Increase (in %)** | Hvor langt antallet af matchende undtagelser ligger over det sædvanlige: dagen før vinduet, pr. vindue af samme længde, mindst én. Ti undtagelser efter en rolig dag giver 900 %. |
+| **Nye undtagelser** | Matchende undtagelser, der ses for første gang og hverken er løst eller arkiveret. |
+| **Genopståede undtagelser** | Matchende undtagelser, du har løst, som kom tilbage og stadig er åbne. |
+| **Stigning i undtagelser (i %)** | Hvor langt antallet af matchende undtagelser ligger over det sædvanlige: dagen før vinduet, pr. vindue af samme længde, mindst én. Ti undtagelser efter en rolig dag giver 900 %. |
 
 Nye og tilbagevendte undtagelser filtreres efter tjeneste, undtagelsestype, miljø og meddelelse og også efter infrastrukturentitet: en undtagelse tæller med, når en af dens forekomster i vinduet kom fra en af de valgte entiteter.
 
@@ -188,7 +188,7 @@ Du vil have en hændelse, hver gang API'et kaster en undtagelse i produktion, og
 | `TimeoutError` × 2 | intet | Aktiv | Nej: intet miljø |
 | `NullReferenceException` × 4 | `production` | Løst, efter at de opstod | Nej: løst |
 
-**Exception Count** er 3, så **Mere end** `0` matcher: monitoren går offline, og der erklæres en hændelse. Når der er gået fem minutter uden nogen aktiv produktionsundtagelse, holder reglen op med at matche, monitoren går tilbage til sin standardstatus, og hændelsen løser sig selv.
+**Antal undtagelser** er 3, så **Mere end** `0` matcher: monitoren går offline, og der erklæres en hændelse. Når der er gået fem minutter uden nogen aktiv produktionsundtagelse, holder reglen op med at matche, monitoren går tilbage til sin standardstatus, og hændelsen løser sig selv.
 
 ## Fejlfinding
 

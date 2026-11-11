@@ -116,7 +116,7 @@ Hver statusendring registreres med årsaken på monitorens **Statustidslinje**.
 
 ## Kriterier
 
-Kriteriene til en unntaksmonitor har fire slags **Filtertype**: **Exception Count**, antallet unntak som samsvarte i vinduet, og **New Exceptions**, **Regressed Exceptions** og **Exception Increase (in %)**, som beskrives nedenfor. **Når det skal varsles** setter opp ett kriterium, der **Betingelse** er **Mer enn**, **Minst**, **Færre enn**, **Høyst**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav** eller **Uvanlig høy eller lav**. For flere kriterier, eller ett med mer enn ett filter, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har et **Filtervilkår** og en **Verdi**.
+Kriteriene til en unntaksmonitor har fire slags **Filtertype**: **Antall unntak**, antallet unntak som samsvarte i vinduet, og **Nye unntak**, **Unntak med regresjon** og **Økning i unntak (i %)**, som beskrives nedenfor. **Når det skal varsles** setter opp ett kriterium, der **Betingelse** er **Mer enn**, **Minst**, **Færre enn**, **Høyst**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav** eller **Uvanlig høy eller lav**. For flere kriterier, eller ett med mer enn ett filter, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har et **Filtervilkår** og en **Verdi**.
 
 | Filtervilkår | Samsvarer når antallet unntak er… |
 | --- | --- |
@@ -126,11 +126,11 @@ Kriteriene til en unntaksmonitor har fire slags **Filtertype**: **Exception Coun
 | **Mindre enn eller lik** | lik verdien eller lavere |
 | **Lik** | nøyaktig verdien |
 | **Ikke lik** | alt annet enn verdien |
-| **Anomalously High** | over det forventede området for denne timen i uken |
-| **Anomalously Low** | under det området |
-| **Anomalous** | utenfor det området, i hvilken som helst retning |
+| **Unormalt høy** | over det forventede området for denne timen i uken |
+| **Unormalt lav** | under det området |
+| **Avvikende** | utenfor det området, i hvilken som helst retning |
 
-Avviksvilkårene har ingen **Verdi**. Velg en **Følsomhet** (Lav, Middels, som er standard, eller Høy) og, i de egne kriteriene, et **Grunnlinjevindu** på 14 (standard), 28, 60 eller 90 dager. Bare **Exception Count** har dem: se [Topper sammenlignet med det normale](#topper-sammenlignet-med-det-normale).
+Avviksvilkårene har ingen **Verdi**. Velg en **Følsomhet** (Lav, Middels, som er standard, eller Høy) og, i de egne kriteriene, et **Grunnlinjevindu** på 14 (standard), 28, 60 eller 90 dager. Bare **Antall unntak** har dem: se [Topper sammenlignet med det normale](#topper-sammenlignet-med-det-normale).
 
 En unntaksmonitor som er opprettet i Opprett monitor, starter med regelen for det du valgte under **Hva skal denne overvåkingen fortelle deg om?**:
 
@@ -146,8 +146,8 @@ En unntaksmonitor som er opprettet via API-et eller Terraform uten kriterier, st
 
 | Kriterium | Filter | Virkning |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Større enn** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
-| Check if … has no exceptions | **Exception Count** **Lik** `0` | Setter monitoren som tilkoblet |
+| Check if … has exceptions | **Antall unntak** **Større enn** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
+| Check if … has no exceptions | **Antall unntak** **Lik** `0` | Setter monitoren som tilkoblet |
 
 ## Nye, tilbakevendte og stigende unntak
 
@@ -155,9 +155,9 @@ I tillegg til hvor mange unntak som skjedde, kan en unntaksmonitor varsle ved de
 
 | Filtertype | Hva den teller i vinduet |
 | --- | --- |
-| **New Exceptions** | Samsvarende unntak som ses for første gang og verken er løst eller arkivert. |
-| **Regressed Exceptions** | Samsvarende unntak du har løst, som kom tilbake og fortsatt er åpne. |
-| **Exception Increase (in %)** | Hvor langt antallet samsvarende unntak ligger over det vanlige: dagen før vinduet, per vindu av samme lengde, minst ett. Ti unntak etter en rolig dag gir 900 %. |
+| **Nye unntak** | Samsvarende unntak som ses for første gang og verken er løst eller arkivert. |
+| **Unntak med regresjon** | Samsvarende unntak du har løst, som kom tilbake og fortsatt er åpne. |
+| **Økning i unntak (i %)** | Hvor langt antallet samsvarende unntak ligger over det vanlige: dagen før vinduet, per vindu av samme lengde, minst ett. Ti unntak etter en rolig dag gir 900 %. |
 
 Nye og tilbakevendte unntak filtreres etter tjeneste, unntakstype, miljø og melding, og også etter infrastrukturenhet: et unntak telles når en av forekomstene i vinduet kom fra en av de valgte enhetene.
 
@@ -188,7 +188,7 @@ Du vil ha en hendelse hver gang API-et kaster et unntak i produksjon, og ingenti
 | `TimeoutError` × 2 | ingen | Aktivt | Nei: intet miljø |
 | `NullReferenceException` × 4 | `production` | Løst etter at de oppsto | Nei: løst |
 
-**Exception Count** er 3, så **Mer enn** `0` samsvarer: monitoren blir frakoblet, og en hendelse erklæres. Når det har gått fem minutter uten noe aktivt produksjonsunntak, slutter regelen å samsvare, monitoren går tilbake til standardstatusen sin, og hendelsen løser seg selv.
+**Antall unntak** er 3, så **Mer enn** `0` samsvarer: monitoren blir frakoblet, og en hendelse erklæres. Når det har gått fem minutter uten noe aktivt produksjonsunntak, slutter regelen å samsvare, monitoren går tilbake til standardstatusen sin, og hendelsen løser seg selv.
 
 ## Feilsøking
 

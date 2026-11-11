@@ -3,6 +3,10 @@ import NetworkDeviceDiscoveryScan, {
 } from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import IconProp from "Common/Types/Icon/IconProp";
 import { DeviceNameSource } from "Common/Types/NetworkDevice/DeviceNameSource";
+import {
+  DeviceNamingOutcome,
+  DeviceNamingPreviewItem,
+} from "Common/Types/NetworkDevice/DeviceNaming";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -30,6 +34,10 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  describeNamingProblem,
+  isNamingProblem,
+} from "../Naming/DeviceNamingCopy";
 import React, {
   Fragment,
   FunctionComponent,
@@ -109,6 +117,12 @@ export interface DiscoveredHostTableProps {
     update: (current: Record<string, boolean>) => Record<string, boolean>,
   ) => void;
   isDisabled?: boolean | undefined;
+  /*
+   * What the project's naming rules call each selected host (issue #6619),
+   * by address, when it has rules: each row says the name it will be
+   * created under, or why a rule could not name it.
+   */
+  namingPreview?: ReadonlyMap<string, DeviceNamingPreviewItem> | undefined;
 }
 
 const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
@@ -515,6 +529,7 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
                     })
                   }
                   isDisabled={Boolean(props.isDisabled)}
+                  naming={props.namingPreview?.get(shown.host.ipAddress)}
                   onCheckedChange={(value: boolean) => {
                     props.onSelectionChange(
                       (current: Record<string, boolean>) => {
@@ -561,7 +576,82 @@ export interface DiscoveredHostRowProps {
   isChecked: boolean;
   isDisabled: boolean;
   onCheckedChange: (value: boolean) => void;
+  // What the naming rules call the host, when the project has rules.
+  naming?: DeviceNamingPreviewItem | undefined;
 }
+
+/*
+ * The name the project's naming rules give a host (issue #6619), under its
+ * address: "Will be named UN1216DRTPLR02", the rule's name beside it - or,
+ * when a rule matched but could not name it, that it keeps the name
+ * discovery found, and why. The line above it stays the name discovery
+ * found, which the device keeps as its Discovered Name: the original and the
+ * proposed name, side by side, as the issue asks.
+ */
+export const DiscoveredHostNamingLine: FunctionComponent<{
+  naming?: DeviceNamingPreviewItem | undefined;
+  ipAddress: string;
+}> = (props: {
+  naming?: DeviceNamingPreviewItem | undefined;
+  ipAddress: string;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const naming: DeviceNamingPreviewItem | undefined = props.naming;
+
+  if (!naming) {
+    return <></>;
+  }
+
+  if (naming.outcome === DeviceNamingOutcome.Named && naming.name) {
+    return (
+      <div
+        className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm"
+        data-testid={`discovered-host-rule-name-${props.ipAddress}`}
+      >
+        <Icon
+          icon={IconProp.Pencil}
+          className="h-3.5 w-3.5 flex-shrink-0 text-indigo-500"
+        />
+        <span className="flex-shrink-0 text-gray-500">
+          {translator.translateText("Will be named")}
+        </span>
+        <span
+          dir="ltr"
+          className="truncate font-mono font-medium text-indigo-700"
+          title={naming.name}
+        >
+          {naming.name}
+        </span>
+        {naming.ruleName && (
+          <span className="max-sm:hidden flex-shrink-0 truncate text-xs text-gray-400 sm:inline">
+            <InlineSeparator />
+            {naming.ruleName}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  if (isNamingProblem(naming)) {
+    return (
+      <div
+        className="mt-0.5 flex min-w-0 items-start gap-1.5 text-xs text-amber-700"
+        data-testid={`discovered-host-rule-problem-${props.ipAddress}`}
+      >
+        <Icon
+          icon={IconProp.Alert}
+          className="mt-px h-3.5 w-3.5 flex-shrink-0"
+        />
+        <span>
+          {translator.translateText("Keeps the name discovery found.")}{" "}
+          {describeNamingProblem(naming, translator)}
+        </span>
+      </div>
+    );
+  }
+
+  return <></>;
+};
 
 /*
  * One host. Everything the row says about a host's names comes from the
@@ -739,6 +829,10 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
               </span>
             )}
           </div>
+          <DiscoveredHostNamingLine
+            naming={props.naming}
+            ipAddress={entry.ipAddress}
+          />
         </div>
       </div>
       {props.hasVendorColumn && (

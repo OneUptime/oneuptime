@@ -52,6 +52,14 @@ import {
   ProductAnalyticsPeopleFilter,
 } from "../../../Types/Rum/ProductAnalytics";
 import {
+  PRODUCT_ANALYTICS_EVENT_BREAKDOWN_ROUTE,
+  PRODUCT_ANALYTICS_EVENT_NAMES_ROUTE,
+  PRODUCT_ANALYTICS_EVENT_PROPERTIES_ROUTE,
+  PRODUCT_ANALYTICS_EVENT_TREND_ROUTE,
+  PRODUCT_ANALYTICS_FUNNEL_ROUTE,
+  PRODUCT_ANALYTICS_RETENTION_ROUTE,
+} from "../../../Types/Rum/ProductAnalyticsEventReads";
+import {
   isTestBillingEnabled,
   setTestBillingEnabled,
 } from "../Enterprise/TestBillingFlag";
@@ -499,7 +507,18 @@ describe("Product analytics API", () => {
           return uri.startsWith("/telemetry/rum/product-analytics/");
         });
 
-      expect([...registered].sort()).toEqual([...ALL_ROUTES].sort());
+      /* Part two's event reads: RumProductAnalyticsEventsAPI.test.ts pins them. */
+      expect([...registered].sort()).toEqual(
+        [
+          ...ALL_ROUTES,
+          PRODUCT_ANALYTICS_EVENT_NAMES_ROUTE,
+          PRODUCT_ANALYTICS_EVENT_TREND_ROUTE,
+          PRODUCT_ANALYTICS_EVENT_BREAKDOWN_ROUTE,
+          PRODUCT_ANALYTICS_EVENT_PROPERTIES_ROUTE,
+          PRODUCT_ANALYTICS_FUNNEL_ROUTE,
+          PRODUCT_ANALYTICS_RETENTION_ROUTE,
+        ].sort(),
+      );
     });
   });
 

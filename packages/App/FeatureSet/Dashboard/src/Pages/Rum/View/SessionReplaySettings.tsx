@@ -35,7 +35,7 @@ import {
 } from "../../../Components/SessionReplay/SessionReplayPolicyChoices";
 import {
   formatSessionReplayRetention,
-  SESSION_REPLAY_RETENTION_OPTIONS,
+  getSessionReplayRetentionOptions,
 } from "../../../Components/SessionReplay/SessionReplayRetention";
 import useSessionReplayHealth, {
   SESSION_REPLAY_HEALTH_POLL_SLOW_MS,
@@ -49,7 +49,11 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * THE settings page for one application's session replay.
@@ -70,7 +74,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  * switch is on unless someone turned it off (Project.isSessionReplayAllowed
  * defaults to true), and when it is off the health card says "Session replay
  * is switched off for this project" with a "Turn it on" action - the
- * disabled-project diagnosis in Common/Utils/Rum/SessionReplayHealth.ts. A
+ * disabled-project diagnosis in Common/Utils/SessionReplay/SessionReplayHealth.ts. A
  * blue "Recording must also be allowed for the project" banner used to sit
  * here on every visit, saying so in the case nothing was wrong.
  *
@@ -81,6 +85,12 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /* The in-page anchor the privacy summary's "Change" links jump to. */
 export const REPLAY_POLICY_ANCHOR_ID: string = "replay-policy";
+
+/*
+ * What the read view's helpers say without a translator: English, word for
+ * word, as a test reads them. The page hands its reader's translator in.
+ */
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 /*
  * settings-setup-4: the pill used to say "On" from the application's own
@@ -153,7 +163,8 @@ export function EffectiveRecordingStatePill(props: {
 
 function Chips(props: {
   values: Array<string> | undefined;
-  emptyCopy: string;
+  // Already in the reader's language.
+  emptyCopy: string | undefined;
 }): ReactElement {
   const values: Array<string> = (props.values ?? []).filter(
     (value: string): boolean => {
@@ -181,8 +192,14 @@ function Chips(props: {
   );
 }
 
-function describeBudgetMs(value: number | undefined): string {
-  return value && value > 0 ? `${value} ms` : "Off";
+// A performance budget, in the reader's language: "4000 ms", or "Off".
+function describeBudgetMs(
+  value: number | undefined,
+  translator: Translator,
+): string {
+  return value && value > 0
+    ? translator.translateTemplate("{{value}} ms", { value: value })
+    : translator.translateText("Off") || "Off";
 }
 
 export const SAME_ORIGIN_TRACE_PROPAGATION_TITLE: string =
@@ -191,13 +208,21 @@ export const SAME_ORIGIN_TRACE_PROPAGATION_TITLE: string =
 /*
  * The column is NOT NULL DEFAULT true, and the gate reads anything but an
  * explicit false as on, so an unset value is described as the "on" it is.
+ * In the reader's language when the page hands its translator in.
  */
 export function describeSameOriginTracePropagation(
   value: boolean | null | undefined,
+  translator: Translator = ENGLISH,
 ): string {
+  const translateLine: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
+
   return value === false
-    ? "Off: nothing is added to requests to your own origin"
-    : "On: requests to your own origin carry a traceparent and this session's id";
+    ? translateLine("Off: nothing is added to requests to your own origin")
+    : translateLine(
+        "On: requests to your own origin carry a traceparent and this session's id",
+      );
 }
 
 const RumApplicationSessionReplaySettings: FunctionComponent<
@@ -500,7 +525,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               title: "Retention",
               stepId: "limits",
               fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions: SESSION_REPLAY_RETENTION_OPTIONS,
+              dropdownOptions: getSessionReplayRetentionOptions(translator),
               required: true,
               description:
                 "How long recordings and their session rows are kept, 7 days by default. A session's logs, spans and exceptions follow the telemetry retention.",
@@ -553,11 +578,10 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                        * The words Edit Policy's choices use, in the reader's
                        * language like those choices.
                        */}
-                      {translator.translateText(
-                        labelEnum(
-                          CAPTURE_TRIGGER_LABELS,
-                          item.sessionReplayCaptureTrigger ?? "",
-                        ),
+                      {labelEnum(
+                        CAPTURE_TRIGGER_LABELS,
+                        item.sessionReplayCaptureTrigger ?? "",
+                        translator,
                       )}
                     </span>
                   );
@@ -625,7 +649,9 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                   return (
                     <Chips
                       values={item.sessionReplayIgnoreErrorPatterns}
-                      emptyCopy="None: every uncaught error can trigger an upload"
+                      emptyCopy={translator.translateText(
+                        "None: every uncaught error can trigger an upload",
+                      )}
                     />
                   );
                 },
@@ -674,11 +700,10 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                 getElement: (item: RumApplication): ReactElement => {
                   return (
                     <span className="text-sm text-gray-900">
-                      {translator.translateText(
-                        labelEnum(
-                          CONSENT_MODE_LABELS,
-                          item.sessionReplayConsentMode ?? "",
-                        ),
+                      {labelEnum(
+                        CONSENT_MODE_LABELS,
+                        item.sessionReplayConsentMode ?? "",
+                        translator,
                       )}
                     </span>
                   );
@@ -692,7 +717,9 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                   return (
                     <Chips
                       values={item.sessionReplayMaskSelectors}
-                      emptyCopy="None beyond the masking mode"
+                      emptyCopy={translator.translateText(
+                        "None beyond the masking mode",
+                      )}
                     />
                   );
                 },
@@ -705,7 +732,9 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                   return (
                     <Chips
                       values={item.sessionReplayBlockSelectors}
-                      emptyCopy="None: every element is recorded (subject to masking)"
+                      emptyCopy={translator.translateText(
+                        "None: every element is recorded (subject to masking)",
+                      )}
                     />
                   );
                 },
@@ -732,7 +761,10 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                 getElement: (item: RumApplication): ReactElement => {
                   return (
                     <span className="text-sm text-gray-900">
-                      {describeBudgetMs(item.sessionReplayLcpBudgetMs)}
+                      {describeBudgetMs(
+                        item.sessionReplayLcpBudgetMs,
+                        translator,
+                      )}
                     </span>
                   );
                 },
@@ -744,7 +776,10 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                 getElement: (item: RumApplication): ReactElement => {
                   return (
                     <span className="text-sm text-gray-900">
-                      {describeBudgetMs(item.sessionReplayLongTaskBudgetMs)}
+                      {describeBudgetMs(
+                        item.sessionReplayLongTaskBudgetMs,
+                        translator,
+                      )}
                     </span>
                   );
                 },
@@ -756,7 +791,10 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                 getElement: (item: RumApplication): ReactElement => {
                   return (
                     <span className="text-sm text-gray-900">
-                      {describeBudgetMs(item.sessionReplaySlowRequestBudgetMs)}
+                      {describeBudgetMs(
+                        item.sessionReplaySlowRequestBudgetMs,
+                        translator,
+                      )}
                     </span>
                   );
                 },
@@ -770,6 +808,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                     <span className="text-sm text-gray-900">
                       {describeSameOriginTracePropagation(
                         item.sessionReplaySameOriginTracePropagation,
+                        translator,
                       )}
                     </span>
                   );
@@ -783,7 +822,9 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                   return (
                     <Chips
                       values={item.sessionReplayTracePropagationOrigins}
-                      emptyCopy="None: no cross-origin request gets a traceparent"
+                      emptyCopy={translator.translateText(
+                        "None: no cross-origin request gets a traceparent",
+                      )}
                     />
                   );
                 },
@@ -798,7 +839,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
 
                   return (
                     <span className="text-sm text-gray-900">
-                      {formatSessionReplayRetention(days)}
+                      {formatSessionReplayRetention(days, translator)}
                     </span>
                   );
                 },
@@ -814,7 +855,9 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                   return (
                     <span className="text-sm text-gray-900">
                       {gb && gb > 0
-                        ? `${gb} GB`
+                        ? translator.translateTemplate("{{gigabytes}} GB", {
+                            gigabytes: gb,
+                          })
                         : translator.translateText("No ceiling (0 or blank)")}
                     </span>
                   );

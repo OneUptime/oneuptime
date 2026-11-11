@@ -16,7 +16,16 @@ import {
   formatRelativeAge,
   getTopRefusal,
   parseHealthTimestamp,
-} from "Common/Utils/Rum/SessionReplayHealth";
+} from "Common/Utils/SessionReplay/SessionReplayHealth";
+import {
+  ComposedValue,
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
 
 /*
  * The Replay Health page's reading of one status, as data.
@@ -29,7 +38,33 @@ import {
  * The rules are the diagnosis's rules, applied per stage: a counter that was
  * not read says "unknown" and is neutral rather than green, and a stage is
  * only amber or red when the status actually shows something wrong with it.
+ *
+ * Every value and caption is in the language of the Translator the page
+ * hands in (useTranslator()), each sentence looked up whole with its ages,
+ * durations and counts in place; without one it is English, word for word
+ * as it always was, which is what the node tests read.
  */
+
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+// A fixed word or sentence in the translator's language.
+function translateLine(text: string, translator: Translator): string {
+  return translator.translateText(text) || text;
+}
+
+// An age ("5m ago") in the language of the sentence it goes into.
+function ageIn(fromUnixMs: number, nowUnixMs: number): ComposedValue {
+  return composedValue((sentence: Translator): string => {
+    return formatRelativeAge(fromUnixMs, nowUnixMs, sentence);
+  });
+}
+
+// A duration ("7h") in the language of the sentence it goes into.
+function durationIn(durationMs: number): ComposedValue {
+  return composedValue((sentence: Translator): string => {
+    return formatDurationForCopy(durationMs, sentence);
+  });
+}
 
 export type HealthTone = "ok" | "warning" | "error" | "neutral";
 
@@ -41,6 +76,11 @@ export type RecordingPipelineStageKey =
 
 export interface RecordingPipelineStage {
   key: RecordingPipelineStageKey;
+  /*
+   * The stage's name as its English key: the view looks it up where it
+   * draws it, and hands it as it is to the (i) beside it, which looks it up
+   * itself.
+   */
   label: string;
   /* The one big value: "2m ago", "143", "Off". */
   value: string;
@@ -49,30 +89,41 @@ export interface RecordingPipelineStage {
   tone: HealthTone;
 }
 
+/*
+ * The capture trigger by the words the settings page gives it, put into the
+ * policy stage's caption with the sentence (translatableTerm).
+ */
 const CAPTURE_TRIGGER_SHORT_LABELS: Record<string, string> = {
-  [SessionReplayCaptureTrigger.Always]: "Always",
-  [SessionReplayCaptureTrigger.OnErrorOrFrustration]: "On error or frustration",
+  [SessionReplayCaptureTrigger.Always]: translationKey("Always"),
+  [SessionReplayCaptureTrigger.OnErrorOrFrustration]: translationKey(
+    "On error or frustration",
+  ),
 };
 
 function describeTrigger(captureTrigger: string): string {
-  return CAPTURE_TRIGGER_SHORT_LABELS[captureTrigger] ?? "Uploads";
+  return (
+    CAPTURE_TRIGGER_SHORT_LABELS[captureTrigger] ?? translationKey("Uploads")
+  );
 }
 
 /* Stage 1: has a page on the customer's site loaded the recorder lately? */
 function buildRecorderStage(
   status: RecordingHealthStatus,
   nowUnixMs: number,
+  translator: Translator,
 ): RecordingPipelineStage {
-  const label: string = "Recorder loaded";
+  const label: string = translationKey("Recorder loaded");
 
   if (status.lastConfigFetchAt === null) {
     if (status.lastChunkReceivedAt !== null) {
       return {
         key: "recorder",
         label,
-        value: "not reported",
-        caption:
+        value: translateLine("not reported", translator),
+        caption: translateLine(
           "This server does not report policy fetches, but a chunk has arrived, so a recorder has loaded.",
+          translator,
+        ),
         tone: "neutral",
       };
     }
@@ -80,8 +131,11 @@ function buildRecorderStage(
     return {
       key: "recorder",
       label,
-      value: "Never",
-      caption: "No page has fetched this application's replay policy yet.",
+      value: translateLine("Never", translator),
+      caption: translateLine(
+        "No page has fetched this application's replay policy yet.",
+        translator,
+      ),
       tone: "warning",
     };
   }
@@ -94,8 +148,11 @@ function buildRecorderStage(
     return {
       key: "recorder",
       label,
-      value: "unknown",
-      caption: "The server sent a policy-fetch time that could not be read.",
+      value: translateLine("unknown", translator),
+      caption: translateLine(
+        "The server sent a policy-fetch time that could not be read.",
+        translator,
+      ),
       tone: "neutral",
     };
   }
@@ -106,8 +163,11 @@ function buildRecorderStage(
     return {
       key: "recorder",
       label,
-      value: formatRelativeAge(fetchedAtUnixMs, nowUnixMs),
-      caption: `No page has loaded the recorder for ${formatDurationForCopy(ageMs)}.`,
+      value: formatRelativeAge(fetchedAtUnixMs, nowUnixMs, translator),
+      caption: translator.translateTemplate(
+        "No page has loaded the recorder for {{duration}}.",
+        { duration: durationIn(ageMs) },
+      ),
       tone: "warning",
     };
   }
@@ -115,8 +175,11 @@ function buildRecorderStage(
   return {
     key: "recorder",
     label,
-    value: formatRelativeAge(fetchedAtUnixMs, nowUnixMs),
-    caption: "Last time a page on your site fetched the replay policy.",
+    value: formatRelativeAge(fetchedAtUnixMs, nowUnixMs, translator),
+    caption: translateLine(
+      "Last time a page on your site fetched the replay policy.",
+      translator,
+    ),
     tone: "ok",
   };
 }
@@ -125,16 +188,20 @@ function buildRecorderStage(
 function buildPolicyStage(
   status: RecordingHealthStatus,
   diagnosis: RecordingHealthDiagnosis,
+  translator: Translator,
 ): RecordingPipelineStage {
-  const label: string = "Recording allowed";
+  const label: string = translationKey("Recording allowed");
   const { policy } = status;
 
   if (!policy.isProjectEnabled) {
     return {
       key: "policy",
       label,
-      value: "Off",
-      caption: "Session replay is switched off for the whole project.",
+      value: translateLine("Off", translator),
+      caption: translateLine(
+        "Session replay is switched off for the whole project.",
+        translator,
+      ),
       tone: "error",
     };
   }
@@ -143,8 +210,11 @@ function buildPolicyStage(
     return {
       key: "policy",
       label,
-      value: "Off",
-      caption: "Session replay is switched off for this application.",
+      value: translateLine("Off", translator),
+      caption: translateLine(
+        "Session replay is switched off for this application.",
+        translator,
+      ),
       tone: "error",
     };
   }
@@ -153,32 +223,53 @@ function buildPolicyStage(
     return {
       key: "policy",
       label,
-      value: "Paused",
-      caption: "The upload budget is spent, so recorders are told to stop.",
+      value: translateLine("Paused", translator),
+      caption: translateLine(
+        "The upload budget is spent, so recorders are told to stop.",
+        translator,
+      ),
       tone: "error",
     };
   }
+
+  /*
+   * The share as the sentence's language writes a number ("12.5", "12,5");
+   * at or below zero it reads 0, as it always did.
+   */
+  const sampled: number = Math.max(0, policy.samplePercentage);
+  const percent: ComposedValue = composedValue(
+    (sentence: Translator): string => {
+      return sentence.formatNumber(sampled);
+    },
+  );
 
   if (policy.samplePercentage <= 0) {
     return {
       key: "policy",
       label,
-      value: "0% sampled",
-      caption: "A sample percentage of 0% records no session at all.",
+      value: translator.translateTemplate("{{percent}}% sampled", {
+        percent: percent,
+      }),
+      caption: translateLine(
+        "A sample percentage of 0% records no session at all.",
+        translator,
+      ),
       tone: "error",
     };
   }
 
-  const consentCopy: string =
-    policy.consentMode === SessionReplayConsentMode.RequireExplicit
-      ? "uploads wait for grantConsent()"
-      : "no consent prompt required";
-
   return {
     key: "policy",
     label,
-    value: `${policy.samplePercentage}% sampled`,
-    caption: `${describeTrigger(policy.captureTrigger)}; ${consentCopy}.`,
+    value: translator.translateTemplate("{{percent}}% sampled", {
+      percent: percent,
+    }),
+    caption: translator.translateTemplate(
+      policy.consentMode === SessionReplayConsentMode.RequireExplicit
+        ? "{{trigger}}; uploads wait for grantConsent()."
+        : "{{trigger}}; no consent prompt required.",
+      { trigger: translatableTerm(describeTrigger(policy.captureTrigger)) },
+    ),
     tone: "ok",
   };
 }
@@ -187,8 +278,9 @@ function buildPolicyStage(
 function buildUploadsStage(
   status: RecordingHealthStatus,
   nowUnixMs: number,
+  translator: Translator,
 ): RecordingPipelineStage {
-  const label: string = "Chunks received";
+  const label: string = translationKey("Chunks received");
 
   const topRefusal: SessionReplayRefusalCount | null = getTopRefusal(
     status.refusalsLast24h,
@@ -204,14 +296,24 @@ function buildUploadsStage(
       },
       0,
     );
+    const topReason: string = topRefusal.reason;
 
     return {
       key: "uploads",
       label,
-      value: `${formatCountForCopy(total)} refused`,
-      caption: `In the last 24h, mostly ${
-        describeRefusalReason(topRefusal.reason) ?? topRefusal.reason
-      }.`,
+      value: translator.translatePlural(
+        { one: "{{count}} refused", other: "{{count}} refused" },
+        total,
+        { count: formatCountForCopy(total, translator) },
+      ),
+      caption: translator.translateTemplate(
+        "In the last 24h, mostly {{reason}}.",
+        {
+          reason: composedValue((sentence: Translator): string => {
+            return describeRefusalReason(topReason, sentence) ?? topReason;
+          }),
+        },
+      ),
       tone: "warning",
     };
   }
@@ -222,10 +324,13 @@ function buildUploadsStage(
     return {
       key: "uploads",
       label,
-      value: "Never",
-      caption: hasLoaded
-        ? "The recorder loaded, but no chunk has reached this server."
-        : "Nothing can arrive until a page loads the recorder.",
+      value: translateLine("Never", translator),
+      caption: translateLine(
+        hasLoaded
+          ? "The recorder loaded, but no chunk has reached this server."
+          : "Nothing can arrive until a page loads the recorder.",
+        translator,
+      ),
       tone: hasLoaded ? "warning" : "neutral",
     };
   }
@@ -238,8 +343,11 @@ function buildUploadsStage(
     return {
       key: "uploads",
       label,
-      value: "unknown",
-      caption: "The server sent a last-chunk time that could not be read.",
+      value: translateLine("unknown", translator),
+      caption: translateLine(
+        "The server sent a last-chunk time that could not be read.",
+        translator,
+      ),
       tone: "neutral",
     };
   }
@@ -250,8 +358,11 @@ function buildUploadsStage(
     return {
       key: "uploads",
       label,
-      value: formatRelativeAge(chunkAtUnixMs, nowUnixMs),
-      caption: `No chunk has arrived for ${formatDurationForCopy(ageMs)}.`,
+      value: formatRelativeAge(chunkAtUnixMs, nowUnixMs, translator),
+      caption: translator.translateTemplate(
+        "No chunk has arrived for {{duration}}.",
+        { duration: durationIn(ageMs) },
+      ),
       tone: "warning",
     };
   }
@@ -259,26 +370,75 @@ function buildUploadsStage(
   return {
     key: "uploads",
     label,
-    value: formatRelativeAge(chunkAtUnixMs, nowUnixMs),
-    caption:
+    value: formatRelativeAge(chunkAtUnixMs, nowUnixMs, translator),
+    caption: translateLine(
       "The end-to-end proof: a recorder on your site reached this server.",
+      translator,
+    ),
     tone: "ok",
   };
+}
+
+/*
+ * Stage 4's caption: how many of the sessions are playable, and when the
+ * newest started - one whole sentence for each of the four cases.
+ */
+function describePlayable(
+  status: RecordingHealthStatus,
+  nowUnixMs: number,
+  translator: Translator,
+): string {
+  const startedAtUnixMs: number | null = parseHealthTimestamp(
+    status.lastSessionStartedAt,
+  );
+  const playable: number | null = status.playableSessionsLast24h;
+
+  if (playable === null) {
+    return startedAtUnixMs === null
+      ? translateLine("Playable count not reported.", translator)
+      : translator.translateTemplate(
+          "Playable count not reported; the newest started {{age}}.",
+          { age: ageIn(startedAtUnixMs, nowUnixMs) },
+        );
+  }
+
+  const count: string = formatCountForCopy(playable, translator);
+
+  if (startedAtUnixMs === null) {
+    return translator.translatePlural(
+      { one: "{{count}} playable.", other: "{{count}} playable." },
+      playable,
+      { count: count },
+    );
+  }
+
+  return translator.translatePlural(
+    {
+      one: "{{count}} playable; the newest started {{age}}.",
+      other: "{{count}} playable; the newest started {{age}}.",
+    },
+    playable,
+    { count: count, age: ageIn(startedAtUnixMs, nowUnixMs) },
+  );
 }
 
 /* Stage 4: did those chunks become sessions someone can watch? */
 function buildSessionsStage(
   status: RecordingHealthStatus,
   nowUnixMs: number,
+  translator: Translator,
 ): RecordingPipelineStage {
-  const label: string = "Sessions in 24h";
+  const label: string = translationKey("Sessions in 24h");
 
   if (status.sessionsLast24h === null) {
     return {
       key: "sessions",
       label,
-      value: "unknown",
-      caption: "The session count could not be read.",
+      value: translateLine("unknown", translator),
+      caption: translateLine(
+        "The session count could not be read.",
+        translator,
+      ),
       tone: "neutral",
     };
   }
@@ -287,8 +447,11 @@ function buildSessionsStage(
     return {
       key: "sessions",
       label,
-      value: "0",
-      caption: "No session started in the last 24 hours.",
+      value: formatCountForCopy(0, translator),
+      caption: translateLine(
+        "No session started in the last 24 hours.",
+        translator,
+      ),
       tone: "neutral",
     };
   }
@@ -297,28 +460,20 @@ function buildSessionsStage(
     return {
       key: "sessions",
       label,
-      value: formatCountForCopy(status.sessionsLast24h),
-      caption: "None of them has playable footage yet.",
+      value: formatCountForCopy(status.sessionsLast24h, translator),
+      caption: translateLine(
+        "None of them has playable footage yet.",
+        translator,
+      ),
       tone: "warning",
     };
   }
 
-  const startedAtUnixMs: number | null = parseHealthTimestamp(
-    status.lastSessionStartedAt,
-  );
-  const lastStartedCopy: string =
-    startedAtUnixMs === null
-      ? ""
-      : `; the newest started ${formatRelativeAge(startedAtUnixMs, nowUnixMs)}`;
-
   return {
     key: "sessions",
     label,
-    value: formatCountForCopy(status.sessionsLast24h),
-    caption:
-      status.playableSessionsLast24h === null
-        ? `Playable count not reported${lastStartedCopy}.`
-        : `${formatCountForCopy(status.playableSessionsLast24h)} playable${lastStartedCopy}.`,
+    value: formatCountForCopy(status.sessionsLast24h, translator),
+    caption: describePlayable(status, nowUnixMs, translator),
     tone: "ok",
   };
 }
@@ -332,18 +487,22 @@ export function buildRecordingPipeline(
   status: RecordingHealthStatus,
   diagnosis: RecordingHealthDiagnosis,
   nowUnixMs: number,
+  translator: Translator = ENGLISH,
 ): Array<RecordingPipelineStage> {
   return [
-    buildRecorderStage(status, nowUnixMs),
-    buildPolicyStage(status, diagnosis),
-    buildUploadsStage(status, nowUnixMs),
-    buildSessionsStage(status, nowUnixMs),
+    buildRecorderStage(status, nowUnixMs, translator),
+    buildPolicyStage(status, diagnosis, translator),
+    buildUploadsStage(status, nowUnixMs, translator),
+    buildSessionsStage(status, nowUnixMs, translator),
   ];
 }
 
 export interface HealthCounterRow {
   reason: string;
-  /* Human copy for a known refusal reason; null for an open-vocabulary one. */
+  /*
+   * Human copy for a known refusal reason, in the translator's language;
+   * null for an open-vocabulary one.
+   */
   label: string | null;
   count: number;
   /* 0-100, of the largest row, for the bar. */
@@ -358,6 +517,7 @@ export type HealthCounterBreakdown =
 /* Refusals or drops by reason: largest first, unknown kept apart from none. */
 export function buildCounterBreakdown(
   entries: Array<{ reason: string; count: number }> | null | undefined,
+  translator: Translator = ENGLISH,
 ): HealthCounterBreakdown {
   if (entries === null || entries === undefined) {
     return { kind: "unknown" };
@@ -393,7 +553,7 @@ export function buildCounterBreakdown(
       (entry: { reason: string; count: number }): HealthCounterRow => {
         return {
           reason: entry.reason,
-          label: describeRefusalReason(entry.reason),
+          label: describeRefusalReason(entry.reason, translator),
           count: entry.count,
           sharePercent: Math.max(2, Math.round((entry.count / largest) * 100)),
         };
@@ -416,16 +576,24 @@ export type UsageMeter =
       tone: HealthTone;
     };
 
-/* Bytes against a ceiling; a missing or non-positive ceiling is "no limit". */
+/*
+ * Bytes against a ceiling; a missing or non-positive ceiling is "no limit".
+ * The figures are written as the translator's language writes a number
+ * ("2,5 GB" in German).
+ */
 export function buildUsageMeter(
   usedBytes: number | null,
   limitBytes: number | null,
+  translator: Translator = ENGLISH,
 ): UsageMeter {
   if (usedBytes === null || !Number.isFinite(usedBytes)) {
     return { kind: "unknown" };
   }
 
-  const usedCopy: string = formatBytesForCopy(Math.max(0, usedBytes));
+  const usedCopy: string = formatBytesForCopy(
+    Math.max(0, usedBytes),
+    translator,
+  );
 
   if (limitBytes === null || !Number.isFinite(limitBytes) || limitBytes <= 0) {
     return { kind: "unlimited", usedCopy };
@@ -445,21 +613,30 @@ export function buildUsageMeter(
   return {
     kind: "limited",
     usedCopy,
-    limitCopy: formatBytesForCopy(limitBytes),
+    limitCopy: formatBytesForCopy(limitBytes, translator),
     percent,
     tone,
   };
 }
 
-/* "every minute", "every 10s": how often the page reads the status again. */
-export function describePollInterval(intervalMs: number): string {
+/*
+ * "refreshes every minute", "refreshes every 10s": how often the page reads
+ * the status again, as the whole phrase the Health page's header draws
+ * after the time it was last read.
+ */
+export function describePollInterval(
+  intervalMs: number,
+  translator: Translator = ENGLISH,
+): string {
   if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
-    return "manually";
+    return translateLine("refreshes manually", translator);
   }
 
   if (intervalMs === 60 * 1000) {
-    return "every minute";
+    return translateLine("refreshes every minute", translator);
   }
 
-  return `every ${formatDurationForCopy(intervalMs)}`;
+  return translator.translateTemplate("refreshes every {{duration}}", {
+    duration: durationIn(intervalMs),
+  });
 }

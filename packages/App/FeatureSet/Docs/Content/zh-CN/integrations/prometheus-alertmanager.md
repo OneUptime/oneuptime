@@ -3,7 +3,7 @@
 把 [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) 告警发送到 OneUptime，让每个触发的告警都成为一个呼叫值班团队的事件，并在告警恢复时解决。Alertmanager 把通知发布到 Webhook 接收器，因此两边都无需安装任何东西。
 
 :::cards
-- [选择 OneUptime 接收告警的方式](#选择-oneuptime-接收告警的方式): Incoming Request 监视器，或你自己的工作流。
+- [选择 OneUptime 接收告警的方式](#选择-oneuptime-接收告警的方式): 入站请求监视器，或你自己的工作流。
 - [用监视器接收告警](#用监视器接收告警): 每个告警一个事件，恢复时自动解决。
 - [配置 Alertmanager](#配置-alertmanager): 一个 Webhook 接收器，以及使用它的路由。
 - [故障排除](#故障排除): 告警没有到达，或事件一直未关闭时。
@@ -33,19 +33,19 @@ Prometheus 评估你的告警规则，并把触发的告警发送给 Alertmanage
 
 | 方式 | 适用情况 |
 | --- | --- |
-| Incoming Request 监视器（推荐） | 你希望每个告警都成为一个呼叫值班人员的事件，并在告警恢复时解决。无需构建任何东西。 |
+| 入站请求监视器（推荐） | 你希望每个告警都成为一个呼叫值班人员的事件，并在告警恢复时解决。无需构建任何东西。 |
 | 带 Webhook 触发器的工作流 | 你需要自己的逻辑：先过滤告警、转换格式或调用其他系统。工作流为每个通知（而不是每个告警）打开一个事件，并且不会在恢复时解决它。 |
 
 两者从同一个接收器收到相同的 JSON，所以你可以先用其中一种，之后只需修改 `alertmanager.yml` 中的一个 URL 就能切换。
 
 ## 用监视器接收告警
 
-[Incoming Request 监视器](/docs/monitor/incoming-request-monitor) 会给你一个 URL，它的条件决定每个通知做什么。
+[入站请求监视器](/docs/monitor/incoming-request-monitor) 会给你一个 URL，它的条件决定每个通知做什么。
 
 :::steps
 ### 创建监视器
 
-前往 **监视器**，点击 **创建监视器**。在 **监视器类型** 下选择 **Incoming Request**，将其命名为 `Alertmanager`，然后点击 **下一步**。
+前往 **监视器**，点击 **创建监视器**。在 **监视器类型** 下选择 **传入请求**，将其命名为 `Alertmanager`，然后点击 **下一步**。
 
 ### 为每个触发的告警声明事件
 
@@ -86,7 +86,7 @@ https://oneuptime.com/heartbeat/<secret key>
 > [!WARNING]
 > 请按同一个通知内各告警之间互不相同的值分组。Alertmanager 的 `fingerprint` 是告警整个标签集的哈希，所以总是不同。路由 `group_by` 中的标签则永远相同：正是它们把告警放进了同一个通知。在下面的路由中按 `requestBody.alerts[*].labels.alertname` 分组，会把通知中的所有告警合并成一个事件，而该事件会跟随第一个告警的状态。
 
-在 OpenStack 云上，还要把监视器关联到该云。Incoming Request 监视器自身的设置不指明任何云，因此它的事件只会出现在 **事件** 中，而不会出现在云上。打开监视器的 **概览 → 已关联资源** 并添加该 OpenStack 云：之后每个事件也会出现在该云的 **事件** 页面上。[按部署工具配置 OpenStack](/docs/telemetry/openstack-deployment-tools) 为每个运行 Alertmanager 的工具提供了接收器，位于该工具读取它的位置。
+在 OpenStack 云上，还要把监视器关联到该云。入站请求监视器自身的设置不指明任何云，因此它的事件只会出现在 **事件** 中，而不会出现在云上。打开监视器的 **概览 → 已关联资源** 并添加该 OpenStack 云：之后每个事件也会出现在该云的 **事件** 页面上。[按部署工具配置 OpenStack](/docs/telemetry/openstack-deployment-tools) 为每个运行 Alertmanager 的工具提供了接收器，位于该工具读取它的位置。
 
 ## 为事件命名
 
@@ -222,7 +222,7 @@ amtool alert add test_alert severity=warning \
 :::steps
 ### 创建看门狗监视器
 
-创建第二个 Incoming Request 监视器，命名为 `Alertmanager watchdog`。把它第一个条件（把监视器标记为离线的那个）的过滤器设为 **Incoming Request**、**Not Recieved In Minutes**、`10`，把第二个条件的过滤器设为 **Incoming Request**、**Recieved In Minutes**、`10`。仪表板上这两项就是这样拼写的。复制新监视器的 **Heartbeat URL**。
+创建第二个入站请求监视器，命名为 `Alertmanager watchdog`。把它第一个条件（把监视器标记为离线的那个）的过滤器设为 **传入请求**、**在指定分钟内未收到**、`10`，把第二个条件的过滤器设为 **传入请求**、**在指定分钟内收到**、`10`。仪表板上这两项就是这样拼写的。复制新监视器的 **Heartbeat URL**。
 
 ### 把看门狗告警路由到它
 

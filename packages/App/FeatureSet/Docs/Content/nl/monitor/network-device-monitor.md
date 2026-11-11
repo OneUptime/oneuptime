@@ -67,7 +67,7 @@ Het menu Netwerk houdt in beeld wat je elke dag opent: **Overzicht**, **Apparate
 | Sectie | Pagina's |
 | --- | --- |
 | **Topologie** | **Apparaattopologie**, **Gedetecteerde apparaten**, **Latentiematrix**, **Locatiekoppelingen**, **Apparaatkoppelingen** |
-| **Regels** | **Regels voor automatisch importeren**, **Regels voor locatietoewijzing**, **Eigenaarsregels**, **Labelregels**, **Koppelingsregels** |
+| **Regels** | **Regels voor automatisch importeren**, **Regels voor locatietoewijzing**, **Naamgevingsregels**, **Eigenaarsregels**, **Labelregels**, **Koppelingsregels** |
 | **Instellingen** | **Waarschuwingsbeleid**, **SNMP-inloggegevens**, **Apparaatrollen**, **Locatietypen**, **Adresnamen**, **Sjablonen voor OID-verzameling** |
 | **Geavanceerd** | **SNMP-walk**, **Gearchiveerde apparaten** |
 
@@ -378,7 +378,7 @@ Voeg alle OID's toe die je bij elke poll wilt verzamelen, op een sjabloon of als
 | Naam | Een herkenbare naam voor de OID, zoals sysDescr. | Nee |
 | Beschrijving | Wat de OID voorstelt. | Nee |
 
-Verzamelde waarden worden in grafieken getoond op de pagina **Metrieken** van het apparaat, en de criteria **SNMP OID Value**, **SNMP OID Exists** en **SNMP OID Rate (per second)** waarschuwen erop. Een teller (Counter32 of Counter64) groeit alleen maar, dus waarschuw op hoe snel hij sinds de vorige poll is gegroeid. De OID-kiezer van die criteria toont de OID's die het gekozen apparaat verzamelt, die van zijn sjabloon en zijn eigen, dus er valt niets te typen.
+Verzamelde waarden worden in grafieken getoond op de pagina **Metrieken** van het apparaat, en de criteria **SNMP-OID-waarde**, **SNMP-OID bestaat** en **SNMP-OID-snelheid (per seconde)** waarschuwen erop. Een teller (Counter32 of Counter64) groeit alleen maar, dus waarschuw op hoe snel hij sinds de vorige poll is gegroeid. De OID-kiezer van die criteria toont de OID's die het gekozen apparaat verzamelt, die van zijn sjabloon en zijn eigen, dus er valt niets te typen.
 
 Lange OID-lijsten worden over meerdere SNMP GET-verzoeken verdeeld, zodat elk in één UDP-datagram past. Als je je OID-lijsten kort hield omdat een oudere versie een apparaat dat `tooBig` antwoordde als offline meldde, hoeft dat niet meer.
 
@@ -391,7 +391,7 @@ Typ een numerieke OID bij **Start-OID** of klik op een van de startpunten eronde
 Elke rij zegt waar zijn OID bekend is: een waarde die een gezondheidssjabloon van een leverancier verzamelt, een kolom van de SNMP-tabel van een leverancierssjabloon, een teller die de interface-walk al voor elke poort in een grafiek toont, of een OID onder de MIB van zijn leverancier. Vanuit een rij:
 
 - **Verzamelen** voegt de OID toe aan de **Device-Specific Health OIDs** van het apparaat: elke poll verzamelt hem vanaf de volgende, en de pagina **Metrieken** van het apparaat toont hem in een grafiek. Op een apparaat dat aan een OID Collection Template is gekoppeld, kan het menu van de rij hem in plaats daarvan aan het sjabloon toevoegen, voor elk apparaat dat het gebruikt.
-- **Waarschuwing instellen** verschijnt zodra de OID wordt verzameld en opent een nieuwe netwerkapparaat-monitor voor het apparaat met één criterium op de OID. Een teller begint op **SNMP OID Rate (per second)** en een meter op **SNMP OID Value**, elk boven een zelf gekozen drempel; een uptime waarschuwt onder tien minuten (het apparaat is herstart), al het andere wanneer het afwijkt van de gelezen waarde.
+- **Waarschuwing instellen** verschijnt zodra de OID wordt verzameld en opent een nieuwe netwerkapparaat-monitor voor het apparaat met één criterium op de OID. Een teller begint op **SNMP-OID-snelheid (per seconde)** en een meter op **SNMP-OID-waarde**, elk boven een zelf gekozen drempel; een uptime waarschuwt onder tien minuten (het apparaat is herstart), al het andere wanneer het afwijkt van de gelezen waarde.
 - **OID kopiëren**, in het menu van de rij, kopieert de OID.
 
 **Downloaden**, naast de samenvatting van de walk, slaat op wat de walk heeft gelezen als bestand: **snmpwalk-tekst (.txt)**, één OID per regel zoals `snmpwalk -On` die afdrukt, die elk SNMP-hulpmiddel en elke leverancierssupport leest, of **CSV-spreadsheet (.csv)**, met de naam, MIB, het type en de waarde van elke OID. Het bestand bevat elke OID die de walk heeft gelezen, voortgezette walks inbegrepen, wat het filter ook toont, en is genoemd naar het apparaat, de subboom en het tijdstip waarop het is opgeslagen. Iedereen die de laatste walk van het apparaat kan lezen, kan hem downloaden.
@@ -425,7 +425,7 @@ Een deel van wat een apparaat weet, is een lijst: één rij per IPsec-tunnel, wi
 | Rijnamen | Optionele kolommen waarvan de waarden elke rij een naam geven, zoals de verbindingsnaam van een tunnel. Zonder die kolommen worden rijen naar hun index genoemd. Een naam kan komen uit een zustertabel die de index deelt (Fabric Engine noemt IS-IS-adjacencies naar `rcIsisAdjHostName`), of uit een oudertabel waarvan de index het begin is van die van deze tabel (Aruba Instant noemt elke radio naar zijn access point). Een tabel die op een naam is geïndexeerd (ArubaOS indexeert zijn SSID's op de SSID) wordt genoemd naar haar gedecodeerde index. |
 | Rijlimiet | Hoeveel rijen er bewaard blijven: standaard 100, maximaal 250. |
 
-Getallen worden als getallen gelezen, en tekst die met een getal begint, wordt als dat getal gelezen (`"36"`, `"-95 dBm"`, `"80MHz"`), omdat veel leveranciers getallen in strings zetten. Zet het waardetype van een kolom op **Text only** voor waarden die alleen numeriek lijken. **Value labels** maken van codes woorden (`0=inactive, 1=active`): de ruwe waarde blijft wat in grafieken komt en wordt vergeleken, het label is wat wordt getoond. **Healthy values** (`1`) zeggen welke waarden betekenen dat alles goed is: ze kleuren de rij op de pagina **SNMP-tabellen** van het apparaat en sturen het criterium **SNMP Table Row Is Unhealthy** aan.
+Getallen worden als getallen gelezen, en tekst die met een getal begint, wordt als dat getal gelezen (`"36"`, `"-95 dBm"`, `"80MHz"`), omdat veel leveranciers getallen in strings zetten. Zet het waardetype van een kolom op **Text only** voor waarden die alleen numeriek lijken. **Value labels** maken van codes woorden (`0=inactive, 1=active`): de ruwe waarde blijft wat in grafieken komt en wordt vergeleken, het label is wat wordt getoond. **Healthy values** (`1`) zeggen welke waarden betekenen dat alles goed is: ze kleuren de rij op de pagina **SNMP-tabellen** van het apparaat en sturen het criterium **SNMP-tabelrij is ongezond** aan.
 
 Sommige kolommen van leverancierssjablonen **passen** ook het getal aan dat ze lezen, voor MIB's die een waarde in een eigen eenheid bewaren: ArubaOS meldt het zendvermogen verdubbeld (gelezen × 0.5), Aruba Instant de ruisvloer zonder teken (× −1), Aerohive de ruisvloer plus 256 (− 256), en de controller van Extreme de kanaalbreedte in stappen van 20 MHz (× 20). Het aangepaste getal is wat wordt getoond, in grafieken gezet en vergeleken, dus **Noise Floor Groter dan -80** betekent bij elke leverancier hetzelfde, en de tabeleditor toont de berekening onder de kolom.
 
@@ -494,7 +494,7 @@ De pagina **Interfaces** van het apparaat opent met een kaart **Transceivers**: 
 | Waarschuwing | Een meting zit op of voorbij een waarschuwingsdrempel. |
 | Alarm | Een meting zit op of voorbij een alarmdrempel, of het apparaat meldt signaalverlies of een zenderfout. |
 | Niet gedetecteerd | De poort had een optic en meldt er geen meer, terwijl de poort nog ingeschakeld is. De pagina noemt nog wat er zat. |
-| Geen drempels | De optic meldt metingen, maar het apparaat meldt geen grenzen om ze aan te toetsen. Waarschuw erop met **SNMP Transceiver Reading**. |
+| Geen drempels | De optic meldt metingen, maar het apparaat meldt geen grenzen om ze aan te toetsen. Waarschuw erop met **SNMP-transceiver-meetwaarde**. |
 | Gedetecteerd | De optic meldt helemaal geen diagnostiek: gebruikelijk bij koper-SFP's en direct-attach-kabels. |
 | Poort uitgeschakeld | De poort is dicht, dus de laser staat bewust uit: de metingen worden getoond maar nooit beoordeeld. |
 
@@ -691,8 +691,33 @@ Een scan vindt niet altijd de eerste keer de beste naam van een host. De deelres
 
 Daarom onthoudt een apparaat dat door discovery een naam kreeg, waar die naam vandaan kwam. Als een voltooide scan van zijn adres een betere naam vindt — zijn SNMP-systeemnaam of NetBIOS-naam in plaats van zijn reverse-DNS-naam, welke naam dan ook in plaats van zijn IP-adres —, wordt het apparaat hernoemd naar de naam die een import het nu zou geven, en wordt zijn DNS Name ingevuld als het er geen heeft. Als een ander apparaat die naam al heeft, krijgt het apparaat de naam met zijn adres tussen haakjes (`FILESRV01 (10.0.0.5)`), en als die ook bezet is, houdt het zijn naam.
 
-Een naam wordt alleen verbeterd: een apparaat houdt zijn naam als zijn DNS-record verandert, of als een latere scan geen NetBIOS-antwoord krijgt. Een apparaat met een DNS-naam wordt alleen hernoemd door een scan die diezelfde DNS-naam op zijn adres vindt, dus als het adres nu bij een andere machine hoort (een DHCP-lease die is verschoven, bijvoorbeeld), neemt het apparaat de naam van die machine niet over. Een apparaat dat jij hebt hernoemd — op zijn pagina Instellingen, via de API of met **Shorten Names to Hostname** — wordt nooit door een scan hernoemd. Apparaten die zijn geïmporteerd voordat discovery bijhield waar namen vandaan kwamen, houden hun naam, behalve een apparaat dat een nog lopende scan op zijn IP-adres importeerde; dat wordt hernoemd als die scan voltooid is.
+Een naam wordt alleen verbeterd: een apparaat houdt zijn naam als zijn DNS-record verandert, of als een latere scan geen NetBIOS-antwoord krijgt. Een apparaat met een DNS-naam wordt alleen hernoemd door een scan die diezelfde DNS-naam op zijn adres vindt, dus als het adres nu bij een andere machine hoort (een DHCP-lease die is verschoven, bijvoorbeeld), neemt het apparaat de naam van die machine niet over. Een apparaat dat jij hebt hernoemd — op zijn pagina Instellingen, via de API of met **Shorten Names to Hostname** — wordt nooit door een scan hernoemd, en een apparaat dat een [naamgevingsregel](#apparaten-een-naam-geven-volgens-je-naamgevingsconventie) een naam gaf evenmin. Apparaten die zijn geïmporteerd voordat discovery bijhield waar namen vandaan kwamen, houden hun naam, behalve een apparaat dat een nog lopende scan op zijn IP-adres importeerde; dat wordt hernoemd als die scan voltooid is.
 :::
+
+### Apparaten een naam geven volgens je naamgevingsconventie
+
+Als je apparaten een naamgevingsconventie volgen die je zelf hebt bedacht — `UN1216MNUPLR01` is de menuspeler van vestiging 1216 —, leg die dan vast als **naamgevingsregels** onder **Netwerk → Regels → Naamgevingsregels**, en discovery geeft apparaten een naam volgens die conventie in plaats van volgens wat de scan vindt. Een regel zegt welke apparaten (een IP-bereik, de ontdekte naam, het MAC-adres, de leverancier en de locatie, met dezelfde voorwaarden als elke netwerkregel) en hoe ze heten: een **naampatroon**, tekst waarin de delen die per apparaat verschillen tussen accolades staan.
+
+| Plaatshouder | Wordt vervangen door | Voorbeeld |
+| --- | --- | --- |
+| `{site.code}` | De **Locatiecode** van de locatie van het apparaat (stel die in bij de instellingen van de locatie) | `1216` |
+| `{site}` | De naam van de locatie van het apparaat | `Unit 1216` |
+| `{discoveredName}` | De naam die discovery vond, zoals hierboven beschreven | `dmb-5` |
+| `{ip}`, `{ip.1}` … `{ip.4}` | Het IP-adres, of een van zijn vier delen | `51` |
+| `{mac}` | Het MAC-adres, 12 cijfers en letters | `00050BB07FFC` |
+| `{vendor}` | Wie het apparaat heeft gemaakt | `SICOM Systems` |
+| `{lookup}` | De waarde die de opzoektabel van de regel aan het apparaat geeft | `MNUPLR01` |
+| `{n}`, `{nn}`, `{nnn}` | Het laagste nummer dat de naam uniek maakt: `1`, `01`, `001` | `01` |
+
+Een plaatshouder kan worden gevolgd door filters, de een na de ander: `upper`, `lower`, `first:N`, `last:N`, `digits` en `nospaces`. `{vendor|first:3|upper}` is `SIC`, en `{site|digits}` is `1216` voor een locatie die "Unit 1216" heet. Het regelformulier biedt elke plaatshouder aan als knop en geeft een voorbeeldapparaat een naam terwijl je typt.
+
+Sommige conventies zijn eerder een tabel dan een formule: in het subnet van elke vestiging is het apparaat op `.51` de menuspeler `MNUPLR01`, en dat op `.151` het linkerscherm `MNUSCR01`. Open **Opzoektabel** in de stap **Naam** van de regel, kies wat de sleutel van de tabel is — het laatste deel van het IP-adres, het IP-adres, het MAC-adres of de ontdekte naam — en typ de rijen, plak twee kolommen uit een spreadsheet of importeer een CSV-bestand (**CSV exporteren** slaat de tabel weer als bestand op). Dan geeft `UN{site.code}{lookup}` met één regel de menuborden van elke vestiging een naam.
+
+Regels worden vanaf de bovenkant van de lijst geprobeerd, en je sleept ze om de volgorde te veranderen. De eerste ingeschakelde regel waaraan een apparaat voldoet, en die elke waarde heeft die zijn patroon nodig heeft, geeft het een naam. Een apparaat dat een regel geen naam kan geven — zijn locatie heeft geen code, zijn adres heeft geen rij in de opzoektabel — wordt aan de volgende regel overgelaten. Apparaatnamen zijn uniek binnen een project, dus een patroon met een nummer neemt het laagste nummer dat nog vrij is — `UN{site.code}DRTPLR{nn}` telt in elke vestiging vanaf `01` — en een patroon zonder nummer waarvan een ander apparaat de naam al heeft, laat het apparaat zijn ontdekte naam houden.
+
+Regels geven een apparaat een naam wanneer het wordt geïmporteerd: vanuit **Resultaten bekijken**, vanuit **Gedetecteerde apparaten** met **Toevoegen aan bewaking**, en door auto-importregels. **Resultaten bekijken** toont onder elke host de naam waaronder het apparaat wordt gemaakt — **Krijgt de naam** `UN1216DRTPLR02` — of waarom een regel het geen naam kan geven, en **Toevoegen aan bewaking** toont de namen op dezelfde manier. Een apparaat dat een regel een naam geeft, bewaart de naam die discovery vond als zijn **Ontdekte naam**, en wordt gemaakt in de locatie die de locatietoewijzingsregels het geven, zodat zijn naam en zijn locatie altijd overeenkomen. Een latere scan hernoemt het nooit, ook niet als die een betere naam vindt.
+
+Om de apparaten die je al hebt met de regels in lijn te brengen, druk je op **Toepassen op bestaande apparaten** op de pagina Naamgevingsregels, of selecteer je apparaten in de lijst **Apparaten** en gebruik je **Naamgevingsregels toepassen**. Er wordt niets hernoemd tot je bevestigt: de voorvertoning toont elk apparaat waarvan de naam de regels niet volgt, met de naam die het zou krijgen, en de apparaten die een regel nog geen naam kan geven, met de reden, en telt de apparaten die ze al volgen. Apparaten die door discovery of door een regel een naam kregen, zijn aangevinkt; apparaten waarvan iemand de naam heeft getypt, staan er niet aangevinkt bij, zodat een naam die iemand heeft gekozen alleen verandert als je hem aanvinkt. Een apparaat dat al een nummer van zijn patroon draagt, houdt dat nummer. De regels toepassen vereist recht om de naamgevingsregels te bewerken en om elk netwerkapparaat in het project te bewerken.
 
 ### Automatisch importeren met auto-importregels
 
@@ -780,7 +805,7 @@ Om er een te maken vanuit **Monitoren**:
 
 Een netwerkapparaat-monitor heeft geen eigen interval: hij wordt beoordeeld telkens als de pollresultaten van het apparaat binnenkomen, en telkens als er een trap van het apparaat binnenkomt.
 
-Als de polls stoppen, wordt de monitor toch beoordeeld. Zodra een apparaat drie pollintervallen, en minstens tien minuten, geen poll heeft gehad, worden zijn monitors elke vijf minuten beoordeeld als een poll die het apparaat niet kon bereiken: een criterium dat past bij **SNMP Device Is Online** op False, zoals **Device unreachable**, gaat af, en het incident zegt waarom er geen poll kwam, bijvoorbeeld dat de sonde uitgevallen is of dat het apparaat geen sonde heeft. Een apparaat waarvan het pollen uit staat, of dat de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) gebruikt, blijft buiten beschouwing. De volgende poll beoordeelt de monitor zoals altijd.
+Als de polls stoppen, wordt de monitor toch beoordeeld. Zodra een apparaat drie pollintervallen, en minstens tien minuten, geen poll heeft gehad, worden zijn monitors elke vijf minuten beoordeeld als een poll die het apparaat niet kon bereiken: een criterium dat past bij **SNMP-apparaat is online** op False, zoals **Device unreachable**, gaat af, en het incident zegt waarom er geen poll kwam, bijvoorbeeld dat de sonde uitgevallen is of dat het apparaat geen sonde heeft. Een apparaat waarvan het pollen uit staat, of dat de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) gebruikt, blijft buiten beschouwing. De volgende poll beoordeelt de monitor zoals altijd.
 
 ### Incidenten en waarschuwingen van een apparaat
 
@@ -850,7 +875,7 @@ Klik op **Add Recommended Alerts** in het criteriaformulier om een kant-en-klare
 | Transceiver past its alarm threshold | Een meting van een optic zit voorbij een alarmdrempel die het apparaat meldt, of het apparaat meldt signaalverlies of een zenderfout. | Waarschuwing |
 | Transceiver RX power dropping | Een optic ontvangt minstens 2 dB minder licht dan op zijn beste dag van de laatste 30. | Waarschuwing |
 
-Als het apparaat [SNMP-tabellen](#snmp-tabellen) walkt die gezonde waarden declareren, voegt het pakket ook één criterium **SNMP Table Row Is Unhealthy** toe per zo'n tabel, met Row `*`: een incident per rij voor tunnels, routeringsburen en de access points van een controller ("IPsec Tunnels: row unhealthy", of "Access Points: row unhealthy" voor een access point dat van zijn controller verdwenen is), en een waarschuwing per rij voor hardwaretabellen en radio's.
+Als het apparaat [SNMP-tabellen](#snmp-tabellen) walkt die gezonde waarden declareren, voegt het pakket ook één criterium **SNMP-tabelrij is ongezond** toe per zo'n tabel, met Row `*`: een incident per rij voor tunnels, routeringsburen en de access points van een controller ("IPsec Tunnels: row unhealthy", of "Access Points: row unhealthy" voor een access point dat van zijn controller verdwenen is), en een waarschuwing per rij voor hardwaretabellen en radio's.
 
 SNMP walk failing is bewust een waarschuwing en geen incident: het apparaat is niet uitgevallen, dus iemand er om 2 uur 's nachts voor wakker maken zou verkeerd zijn, maar zijn inventaris wordt niet meer ververst en iemand moet de inloggegevens repareren. Het gaat nooit af op een apparaat met alleen ping, omdat het criterium niet wordt beoordeeld als er geen walk draaide.
 
@@ -905,7 +930,7 @@ Traps worden gekoppeld via de apparaatinventaris:
 
 1. Een trap komt aan bij de ontvanger van een sonde en wordt doorgestuurd naar OneUptime.
 2. OneUptime zoekt de netwerkapparaten die aan die sonde zijn toegewezen en waarvan de hostnaam, of een van de **Overige adressen**, het bron-IP-adres van de trap is.
-3. De trap wordt vastgelegd in de trapgeschiedenis van het apparaat, en elke netwerkapparaat-monitor op een passend apparaat beoordeelt hem tegen zijn criteria, meestal een filter **SNMP Trap Received (Trap OID)**.
+3. De trap wordt vastgelegd in de trapgeschiedenis van het apparaat, en elke netwerkapparaat-monitor op een passend apparaat beoordeelt hem tegen zijn criteria, meestal een filter **SNMP-trap ontvangen (trap-OID)**.
 
 Het koppelen gebeurt op adres, niet op inloggegevens, dus ook een apparaat met alleen ping kan traps ontvangen: een apparaat waarvoor je geen leesrechten hebt, kan ze nog steeds sturen. Registreer het apparaat met het adres waarvandaan het traps stuurt, of voeg dat adres toe aan zijn **Overige adressen** op zijn pagina **Instellingen**. Generieke SNMPv1-traps (coldStart, linkDown, linkUp enzovoort) worden omgezet naar hun standaard-SNMPv2-notificatie-OID's, dus linkDown past op trap-OID `1.3.6.1.6.3.1.1.5.3`, welke SNMP-versie ook.
 
@@ -921,8 +946,8 @@ Het filter biedt ook Bevat, Begint met en Eindigt op, dus één criterium kan ee
 
 Sommige leveranciers sturen elke gebeurtenis als dezelfde trap en zetten de gebeurtenis in een tekst-varbind: elke melding van een Sophos Firewall is `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`) met het bericht in `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Combineer de twee in één criterium:
 
-- **SNMP Trap Received (Trap OID)**: Gelijk aan `1.3.6.1.4.1.2604.5.1.8.1.1`
-- **SNMP Trap Varbind Value**: varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Bevat `IPSec`
+- **SNMP-trap ontvangen (trap-OID)**: Gelijk aan `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **Varbindwaarde van SNMP-trap**: varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Bevat `IPSec`
 
 Een negatief filter (Bevat niet, Niet gelijk aan, Is leeg) is alleen vervuld als geen enkele varbind binnen het bereik op zijn positieve vorm past. Laat de varbind-OID leeg om in elke varbind te zoeken die de trap meedraagt.
 

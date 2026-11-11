@@ -178,16 +178,16 @@ De criteria van een Custom Code-monitor kunnen controleren:
 | Filtertype | Wat het controleert | Filtervoorwaarden |
 | --- | --- | --- |
 | **Fout** | De fout die het script gooide, als die er is. | Bevat, Bevat niet, Gelijk aan, Niet gelijk aan, Is leeg, Is niet leeg |
-| **Result Value** | De `data` die het script teruggaf. Als getal vergeleken als het er een is. | Dezelfde, plus Groter dan, Kleiner dan, Groter dan of gelijk aan, Kleiner dan of gelijk aan, Waar en Onwaar |
+| **Resultaatwaarde** | De `data` die het script teruggaf. Als getal vergeleken als het er een is. | Dezelfde, plus Groter dan, Kleiner dan, Groter dan of gelijk aan, Kleiner dan of gelijk aan, Waar en Onwaar |
 | **Uitvoeringstijd (in ms)** | Hoe lang het script liep. | Numerieke vergelijkingen |
 
 De standaardcriteria markeren de monitor als online als **Fout** leeg is, en als offline (met een incident dat zichzelf oplost zodra het script weer slaagt) als dat niet zo is. In incident- en waarschuwingssjablonen is de uitvoering beschikbaar als `{{result}}`, `{{scriptError}}`, `{{logMessages}}` en `{{executionTimeInMs}}`: zie [Incident- en waarschuwingstemplates](/docs/monitor/incident-alert-templating).
 
 ### Waarschuwen op de teruggegeven gegevens
 
-Wat het script als `data` teruggeeft, is de **Result Value** van de monitor, en een criterium kan die vergelijken: bijvoorbeeld _Result Value is Gelijk aan `UP`_.
+Wat het script als `data` teruggeeft, is de **Resultaatwaarde** van de monitor, en een criterium kan die vergelijken: bijvoorbeeld _Resultaatwaarde is Gelijk aan `UP`_.
 
-Is `data` een object of een array, vul dan **Veldpad (optioneel)** in op het Result Value-filter om één veld ervan te vergelijken in plaats van de hele waarde. Gebruik punten voor geneste velden en `[n]` voor array-elementen:
+Is `data` een object of een array, vul dan **Veldpad (optioneel)** in op het Resultaatwaarde-filter om één veld ervan te vergelijken in plaats van de hele waarde. Gebruik punten voor geneste velden en `[n]` voor array-elementen:
 
 ```javascript
 const response = await axios.get("https://api.example.com/health");

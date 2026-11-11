@@ -54,7 +54,7 @@ Cada dispositivo se liga a um site. A subárvore de um site é o próprio site m
 Acesse **Rede → Sites** e clique em **Adicionar: Site**.
 
 ### Dizer o que o site é
-Na etapa **Site Details**, escolha o **Site Type** (que tipo de lugar é: uma região, uma loja, um data center) e digite um **Nome**. A descrição, o endereço e a latitude e a longitude que posicionam o site no mapa ficam recolhidos em **Mais campos**: preencha agora ou depois.
+Na etapa **Site Details**, escolha o **Site Type** (que tipo de lugar é: uma região, uma loja, um data center) e digite um **Nome**. O **Código do site**, a descrição, o endereço e a latitude e a longitude que posicionam o site no mapa ficam recolhidos em **Mais campos**: preencha agora ou depois. Um código de site é um código curto, como o número de uma loja ou de uma unidade (`1216`); as [regras de nomenclatura](/docs/monitor/network-device-monitor#nomear-dispositivos-pela-sua-convenção-de-nomenclatura) o colocam nos nomes dos dispositivos com `{site.code}`.
 
 ### Posicioná-lo na árvore
 Na etapa **Hierarchy**, escolha o **Parent Site** se o site fica abaixo de outro. Deixe vazio para manter o site no nível mais alto.
@@ -171,7 +171,7 @@ Um site sem nenhuma linha na linha do tempo mostra `—` em vez de 100%: um site
 
 ### Tempo de atividade diário
 
-Ao lado do número de 30 dias, a visão geral de cada site mostra **Uptime (24h)**, e a página **Linha do tempo de status** dele mostra as últimas 24 horas, 7, 30 e 90 dias, e uma barra por dia para os últimos 30.
+Ao lado do número de 30 dias, a visão geral de cada site mostra **Tempo de atividade (24h)**, e a página **Linha do tempo de status** dele mostra as últimas 24 horas, 7, 30 e 90 dias, e uma barra por dia para os últimos 30.
 
 Uma média de 30 dias não consegue mostrar um dia ruim. Um dia inteiro de interrupção em uma janela de 30 dias custa 3,3 pontos, então um site que ficou apagado durante uma terça-feira inteira ainda informa 96,7% no mês, um número que parece arredondamento. As barras diárias colocam os mesmos dados onde um dia ruim é uma barra ruim.
 

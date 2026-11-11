@@ -8,6 +8,7 @@ import React from "react";
 import { I18nextProvider } from "react-i18next";
 import ts from "typescript";
 import FieldLabelElement from "../../../UI/Components/Forms/Fields/FieldLabel";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * The one line of help under a Markdown field - "Describe the incident
@@ -29,24 +30,7 @@ const DASHBOARD_SRC: string = path.join(
 );
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // Every Markdown field's help, as the fields hand it over.
 const MARKDOWN_FIELD_HELP: Array<string> = [

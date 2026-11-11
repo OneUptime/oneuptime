@@ -104,15 +104,15 @@ I criteri decidono quando il dominio conta come buono o guasto, e se questo dich
 
 | Filtro | Condizioni | Cosa controlla |
 | --- | --- | --- |
-| **Is Online** | **Vero**, **Falso** | Se la ricerca della registrazione in sé è riuscita. |
-| **Is Request Timeout** | **Vero**, **Falso** | Se la ricerca è andata in timeout, a ogni tentativo. |
-| **Domain Expires In Days** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | I giorni che mancano alla scadenza della registrazione, arrotondati per eccesso a un giorno intero. |
-| **Domain Is Expired** | **Vero**, **Falso** | Se la data di scadenza è passata. |
-| **Domain Registrar** | **Contiene**, **Non contiene**, **Inizia con**, **Finisce con**, **Uguale a**, **Diverso da** | Il nome del registrar. |
-| **Domain Name Server** | **Contiene**, **Non contiene**, **Inizia con**, **Finisce con**, **Uguale a**, **Diverso da** | I nameserver del dominio. Corrisponde quando corrisponde uno qualsiasi di essi. |
-| **Domain Status Code** | **Contiene**, **Non contiene**, **Inizia con**, **Finisce con**, **Uguale a**, **Diverso da** | I codici di stato EPP del dominio. Corrisponde quando corrisponde uno qualsiasi di essi. |
+| **Online** | **Vero**, **Falso** | Se la ricerca della registrazione in sé è riuscita. |
+| **Timeout della richiesta** | **Vero**, **Falso** | Se la ricerca è andata in timeout, a ogni tentativo. |
+| **Giorni alla scadenza del dominio** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | I giorni che mancano alla scadenza della registrazione, arrotondati per eccesso a un giorno intero. |
+| **Dominio scaduto** | **Vero**, **Falso** | Se la data di scadenza è passata. |
+| **Registrar del dominio** | **Contiene**, **Non contiene**, **Inizia con**, **Finisce con**, **Uguale a**, **Diverso da** | Il nome del registrar. |
+| **Nameserver del dominio** | **Contiene**, **Non contiene**, **Inizia con**, **Finisce con**, **Uguale a**, **Diverso da** | I nameserver del dominio. Corrisponde quando corrisponde uno qualsiasi di essi. |
+| **Codice di stato del dominio** | **Contiene**, **Non contiene**, **Inizia con**, **Finisce con**, **Uguale a**, **Diverso da** | I codici di stato EPP del dominio. Corrisponde quando corrisponde uno qualsiasi di essi. |
 
-I codici di stato vengono normalizzati nei loro nomi EPP (`clientTransferProhibited`) qualunque protocollo abbia risposto, quindi un criterio continua a corrispondere quando **Auto** passa tra RDAP e WHOIS. I _nomi_ dei registrar sono quelli pubblicati dal servizio che risponde e possono differire leggermente tra i due protocolli, quindi per un criterio **Domain Registrar** preferite **Contiene** a **Uguale a**.
+I codici di stato vengono normalizzati nei loro nomi EPP (`clientTransferProhibited`) qualunque protocollo abbia risposto, quindi un criterio continua a corrispondere quando **Auto** passa tra RDAP e WHOIS. I _nomi_ dei registrar sono quelli pubblicati dal servizio che risponde e possono differire leggermente tra i due protocolli, quindi per un criterio **Registrar del dominio** preferite **Contiene** a **Uguale a**.
 
 Le date vengono normalizzate in ISO 8601. Una data che un registro pubblica in una forma non interpretabile viene omessa invece di essere salvata, quindi un criterio di scadenza non può decidere, e non corrisponde, invece di rispondere in silenzio «non scaduto» per sempre.
 
@@ -130,13 +130,13 @@ L'avviso «scade presto» è un avviso, non un incidente: non compare sulle vost
 
 I criteri vengono controllati dall'alto verso il basso, e il primo che corrisponde decide cosa succede. Per questo «scade presto» sta sopra «non è scaduto»: un dominio in scadenza non è ancora scaduto, quindi corrisponderebbe a entrambi.
 
-Per essere avvisati prima, cambiate il valore del filtro **Domain Expires In Days** nel criterio «scade presto», per esempio in `60`. Per far chiamare qualcuno invece, aprite le **Azioni** di quel criterio: attivate **Quando i filtri corrispondono, dichiara un incidente.**, oppure tenete l'avviso e aggiungetegli una policy di reperibilità in **Policy di reperibilità**.
+Per essere avvisati prima, cambiate il valore del filtro **Giorni alla scadenza del dominio** nel criterio «scade presto», per esempio in `60`. Per far chiamare qualcuno invece, aprite le **Azioni** di quel criterio: attivate **Quando i filtri corrispondono, dichiara un incidente.**, oppure tenete l'avviso e aggiungetegli una policy di reperibilità in **Policy di reperibilità**.
 
 :::details Aggiungere l'avviso a un monitor creato prima che esistesse
 I monitor creati prima che OneUptime aggiungesse questo avviso non hanno un criterio «scade presto». Per aggiungerlo:
 
 1. Sul monitor, aprite **Configurazione → Criteri** e fate clic su **Modifica criteri di monitoraggio**.
-2. Fate clic su **Aggiungi criteri**. Impostate il suo filtro su **Domain Is Expired** / **Falso**, fate clic su **Aggiungi filtro** e impostate il secondo su **Domain Expires In Days** / **Minore o uguale a** / `30`. Lasciate **Condizione di corrispondenza** su **Tutti** (compare sotto i filtri quando ce ne sono due).
+2. Fate clic su **Aggiungi criteri**. Impostate il suo filtro su **Dominio scaduto** / **Falso**, fate clic su **Aggiungi filtro** e impostate il secondo su **Giorni alla scadenza del dominio** / **Minore o uguale a** / `30`. Lasciate **Condizione di corrispondenza** su **Tutti** (compare sotto i filtri quando ce ne sono due).
 3. In **Azioni**, attivate **Quando i filtri corrispondono, crea un avviso.** e lasciate disattivato **Quando i filtri corrispondono, modifica lo stato del monitor.**, così crea un avviso e non cambia lo stato del monitor.
 4. Trascinate il nuovo criterio sopra il criterio che segna il monitor come online, poi salvate.
 :::
@@ -145,20 +145,20 @@ I monitor creati prima che OneUptime aggiungesse questo avviso non hanno un crit
 
 | Obiettivo | Filtro | Condizione | Valore |
 | --- | --- | --- | --- |
-| Avvisare quando il dominio scade entro 30 giorni (uno predefinito) | **Domain Expires In Days** | **Minore o uguale a** | `30` |
-| Offline quando il dominio è scaduto | **Domain Is Expired** | **Vero** | — |
-| Offline quando la registrazione non si può leggere | **Is Online** | **Falso** | — |
-| Avvisare quando cambiano i nameserver | **Domain Name Server** | **Non contiene** | `ns1.example.com` |
-| Avvisare quando il dominio viene sbloccato per un trasferimento | **Domain Status Code** | **Non contiene** | `clientTransferProhibited` |
+| Avvisare quando il dominio scade entro 30 giorni (uno predefinito) | **Giorni alla scadenza del dominio** | **Minore o uguale a** | `30` |
+| Offline quando il dominio è scaduto | **Dominio scaduto** | **Vero** | — |
+| Offline quando la registrazione non si può leggere | **Online** | **Falso** | — |
+| Avvisare quando cambiano i nameserver | **Nameserver del dominio** | **Non contiene** | `ns1.example.com` |
+| Avvisare quando il dominio viene sbloccato per un trasferimento | **Codice di stato del dominio** | **Non contiene** | `clientTransferProhibited` |
 
-**Domain Name Server** e **Domain Status Code** corrispondono quando corrisponde _un_ valore qualsiasi, quindi **Non contiene** corrisponde appena un nameserver, o un codice di stato, non contiene il testo.
+**Nameserver del dominio** e **Codice di stato del dominio** corrispondono quando corrisponde _un_ valore qualsiasi, quindi **Non contiene** corrisponde appena un nameserver, o un codice di stato, non contiene il testo.
 
 ## Buone pratiche
 
 1. **Datevi il tempo di rinnovare** — L'avviso predefinito arriva 30 giorni prima della scadenza. Se il rinnovo richiede approvazioni o un pagamento che richiede più tempo, portatelo a 60 giorni.
-2. **Coprite le ricerche fallite** — Includete un filtro **Is Online** / **Falso** nel vostro criterio offline così una registrazione illeggibile non viene scambiata per una sana. I nuovi monitor lo hanno nei loro criteri predefiniti; un monitor creato prima che fosse aggiunto ne ha bisogno a mano. Per reggere un server WHOIS che ogni tanto limita la sonda, spuntate **Valuta questo criterio su un periodo di tempo** sotto quel filtro e scegliete **All Values**: il dominio va offline solo quando è fallita ogni ricerca della finestra.
+2. **Coprite le ricerche fallite** — Includete un filtro **Online** / **Falso** nel vostro criterio offline così una registrazione illeggibile non viene scambiata per una sana. I nuovi monitor lo hanno nei loro criteri predefiniti; un monitor creato prima che fosse aggiunto ne ha bisogno a mano. Per reggere un server WHOIS che ogni tanto limita la sonda, spuntate **Valuta questo criterio su un periodo di tempo** sotto quel filtro e scegliete **Tutti i valori**: il dominio va offline solo quando è fallita ogni ricerca della finestra.
 3. **Monitorate tutti i domini critici** — Includete i domini principali, i sottodomini registrati separatamente e ogni dominio usato per email o API.
-4. **Seguite i cambi di registrar** — Aggiungete un criterio con **Domain Registrar** / **Non contiene** / il nome del vostro registrar, per accorgervi di un trasferimento non autorizzato.
+4. **Seguite i cambi di registrar** — Aggiungete un criterio con **Registrar del dominio** / **Non contiene** / il nome del vostro registrar, per accorgervi di un trasferimento non autorizzato.
 
 ## Risoluzione dei problemi
 
@@ -179,7 +179,7 @@ RDAP passa dalle impostazioni proxy della sonda, WHOIS no. Consentite la porta T
 :::
 
 :::details La data di scadenza è vuota, e i criteri di scadenza non scattano mai
-Il registro non pubblica una data di scadenza, o ne pubblica una in una forma non interpretabile. I criteri di scadenza non possono decidere senza una data, quindi restano silenziosi. **Is Online** vi dice comunque se la registrazione si può leggere.
+Il registro non pubblica una data di scadenza, o ne pubblica una in una forma non interpretabile. I criteri di scadenza non possono decidere senza una data, quindi restano silenziosi. **Online** vi dice comunque se la registrazione si può leggere.
 :::
 
 ## Passaggi successivi

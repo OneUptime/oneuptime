@@ -24,6 +24,7 @@ import FlamegraphView, {
 } from "./FlamegraphView";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export interface FunctionFocusPanelProps {
   functionName: string;
@@ -297,7 +298,9 @@ const FunctionFocusPanel: FunctionComponent<FunctionFocusPanelProps> = (
                     />
                     <FocusStat
                       label="Samples"
-                      value={data.sampleCount.toLocaleString()}
+                      value={data.sampleCount.toLocaleString(
+                        getReaderNumberLocale(),
+                      )}
                     />
                     <FocusStat
                       label="% of window"

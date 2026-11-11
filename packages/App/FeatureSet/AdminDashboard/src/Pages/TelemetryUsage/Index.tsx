@@ -11,11 +11,13 @@ import {
   getTelemetryUsageRangeOfLastDays,
   TELEMETRY_USAGE_DEFAULT_PROJECTS_PAGE_SIZE,
   TELEMETRY_USAGE_DEFAULT_RANGE_IN_DAYS,
-  TELEMETRY_USAGE_PRODUCT_TYPES,
+  TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
   TELEMETRY_USAGE_RANGE_OPTIONS_IN_DAYS,
+  TELEMETRY_USAGE_SIGNALS,
   TelemetryProjectUsagePage,
   TelemetryProjectUsageSortBy,
   TelemetryProjectUsageSummary,
+  TelemetryUsageSignal,
 } from "Common/Types/Telemetry/TelemetryUsage";
 import { PluralTemplate, Translator } from "Common/Types/Translator";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -36,6 +38,7 @@ import Column from "Common/UI/Components/Table/Types/Column";
 import {
   formatTelemetryUsageCost,
   formatTelemetryUsageSize,
+  getTelemetryUsageSignalTooltip,
   TELEMETRY_USAGE_SIGNAL_TITLES,
 } from "Common/UI/Components/TelemetryUsage/TelemetryUsageWords";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -73,6 +76,7 @@ interface ProjectUsageRow {
   logs: number;
   metrics: number;
   traces: number;
+  exceptions: number;
   profiles: number;
   sessionReplays: number;
   securityEvents: number;
@@ -82,6 +86,7 @@ type SignalKey =
   | "logs"
   | "metrics"
   | "traces"
+  | "exceptions"
   | "profiles"
   | "sessionReplays"
   | "securityEvents";
@@ -90,6 +95,7 @@ const SIGNAL_KEYS: Record<string, SignalKey> = {
   [ProductType.Logs]: "logs",
   [ProductType.Metrics]: "metrics",
   [ProductType.Traces]: "traces",
+  [TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]: "exceptions",
   [ProductType.Profiles]: "profiles",
   [ProductType.SessionReplay]: "sessionReplays",
   [ProductType.SecurityEvents]: "securityEvents",
@@ -102,6 +108,7 @@ const SORT_BY_KEY: Record<string, TelemetryProjectUsageSortBy> = {
   logs: ProductType.Logs,
   metrics: ProductType.Metrics,
   traces: ProductType.Traces,
+  exceptions: TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
   profiles: ProductType.Profiles,
   sessionReplays: ProductType.SessionReplay,
   securityEvents: ProductType.SecurityEvents,
@@ -110,10 +117,10 @@ const SORT_BY_KEY: Record<string, TelemetryProjectUsageSortBy> = {
 const toRow: (project: TelemetryProjectUsageSummary) => ProjectUsageRow = (
   project: TelemetryProjectUsageSummary,
 ): ProjectUsageRow => {
-  const gbOf: (productType: ProductType) => number = (
-    productType: ProductType,
+  const gbOf: (signal: TelemetryUsageSignal) => number = (
+    signal: TelemetryUsageSignal,
   ): number => {
-    return project.byProduct[productType]?.dataIngestedInGB || 0;
+    return project.byProduct[signal]?.dataIngestedInGB || 0;
   };
 
   return {
@@ -124,6 +131,7 @@ const toRow: (project: TelemetryProjectUsageSummary) => ProjectUsageRow = (
     logs: gbOf(ProductType.Logs),
     metrics: gbOf(ProductType.Metrics),
     traces: gbOf(ProductType.Traces),
+    exceptions: gbOf(TELEMETRY_USAGE_EXCEPTIONS_SIGNAL),
     profiles: gbOf(ProductType.Profiles),
     sessionReplays: gbOf(ProductType.SessionReplay),
     securityEvents: gbOf(ProductType.SecurityEvents),
@@ -199,11 +207,22 @@ const TelemetryUsagePage: FunctionComponent = (): ReactElement => {
     );
 
   // The signals any project sent in the range: the others get no column.
-  const signals: Array<ProductType> = TELEMETRY_USAGE_PRODUCT_TYPES.filter(
-    (productType: ProductType): boolean => {
-      return (page?.byProduct[productType]?.dataIngestedInGB || 0) > 0;
+  const signals: Array<TelemetryUsageSignal> = TELEMETRY_USAGE_SIGNALS.filter(
+    (signal: TelemetryUsageSignal): boolean => {
+      return (page?.byProduct[signal]?.dataIngestedInGB || 0) > 0;
     },
   );
+
+  // A signal's (i), in the admin's language: what it counts besides its name.
+  const tooltipOf: (signal: TelemetryUsageSignal) => string | undefined = (
+    signal: TelemetryUsageSignal,
+  ): string | undefined => {
+    const tooltip: string | undefined = getTelemetryUsageSignalTooltip(signal, {
+      isCostIncluded: Boolean(page?.isCostIncluded),
+    });
+
+    return tooltip ? translator.translateText(tooltip) || tooltip : undefined;
+  };
 
   const sizeCell: (gigabytes: number) => ReactElement = (
     gigabytes: number,
@@ -236,16 +255,17 @@ const TelemetryUsagePage: FunctionComponent = (): ReactElement => {
         );
       },
     },
-    ...signals.map((productType: ProductType): Column<ProjectUsageRow> => {
-      const key: SignalKey = SIGNAL_KEYS[productType]!;
+    ...signals.map((signal: TelemetryUsageSignal): Column<ProjectUsageRow> => {
+      const key: SignalKey = SIGNAL_KEYS[signal]!;
+      const headerTooltip: string | undefined = tooltipOf(signal);
 
       return {
         id: key,
         key: key,
-        title:
-          TELEMETRY_USAGE_SIGNAL_TITLES[productType] || productType.toString(),
+        title: TELEMETRY_USAGE_SIGNAL_TITLES[signal] || String(signal),
         type: FieldType.Element,
         hideOnMobile: true,
+        ...(headerTooltip ? { headerTooltip: headerTooltip } : {}),
         getElement: (row: ProjectUsageRow): ReactElement => {
           return sizeCell(row[key]);
         },
@@ -364,19 +384,20 @@ const TelemetryUsagePage: FunctionComponent = (): ReactElement => {
             ) : (
               <></>
             )}
-            {signals.map((productType: ProductType): ReactElement => {
+            {signals.map((signal: TelemetryUsageSignal): ReactElement => {
               const title: string =
-                TELEMETRY_USAGE_SIGNAL_TITLES[productType] ||
-                productType.toString();
+                TELEMETRY_USAGE_SIGNAL_TITLES[signal] || String(signal);
 
               return (
                 <InfoCard
-                  key={productType}
+                  key={signal}
                   title={translator.translateText(title) || title}
                   value={formatTelemetryUsageSize(
-                    page.byProduct[productType]?.dataIngestedInGB || 0,
+                    page.byProduct[signal]?.dataIngestedInGB || 0,
                     translator,
                   )}
+                  tooltip={tooltipOf(signal)}
+                  dataTestId={`telemetry-usage-instance-signal-${signal}`}
                 />
               );
             })}

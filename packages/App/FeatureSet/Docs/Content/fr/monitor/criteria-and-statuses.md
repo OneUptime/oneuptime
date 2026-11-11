@@ -25,7 +25,7 @@ flowchart TB
     A --> L["Crée une<br/>alerte"]
 ```
 
-L'ordre fait partie de la règle. Un nouveau moniteur liste ses critères du pire au meilleur : hors ligne, puis un avertissement quand son type en a un (un certificat ou un domaine qui expire bientôt), puis en ligne. Un critère sain et large, comme **Is Online** réglé sur **Vrai**, correspond à presque toutes les vérifications ; il vient donc en dernier : placé au-dessus des autres, il correspondrait le premier à chaque fois et les autres n'agiraient jamais.
+L'ordre fait partie de la règle. Un nouveau moniteur liste ses critères du pire au meilleur : hors ligne, puis un avertissement quand son type en a un (un certificat ou un domaine qui expire bientôt), puis en ligne. Un critère sain et large, comme **En ligne** réglé sur **Vrai**, correspond à presque toutes les vérifications ; il vient donc en dernier : placé au-dessus des autres, il correspondrait le premier à chaque fois et les autres n'agiraient jamais.
 
 Un critère qui correspond sans changer de statut décide quand même de la vérification : le moniteur garde son statut, et les critères en dessous attendent la vérification suivante. L'**État du moniteur par défaut** ne s'applique que si aucun critère ne correspond. Pour un nouveau moniteur, c'est **Opérationnel** ; modifiez-le sous **Plus de champs**, sous les critères.
 
@@ -49,7 +49,7 @@ Un filtre lit une donnée de la vérification et la compare : un **Type de filtr
 
 À partir de deux filtres, la **Condition de correspondance** apparaît en dessous : **Tous** signifie que chaque filtre doit correspondre, **Au moins un** qu'un seul suffit. Un nouveau critère commence sur **Tous**.
 
-Les filtres qui mesurent chaque vérification, comme **Is Online**, **Code de statut de la réponse** et **Temps de réponse (en ms)**, proposent **Évaluer ce critère sur une période donnée**. Il juge une fenêtre de vérifications récentes au lieu de la dernière seule, et commence sur les 5 dernières minutes avec **All Values**, qui ne correspond qu'une fois que chaque vérification de la fenêtre a correspondu. Voir [Évaluer sur une période](/docs/monitor/website-monitor#évaluer-sur-une-période).
+Les filtres qui mesurent chaque vérification, comme **En ligne**, **Code de statut de la réponse** et **Temps de réponse (en ms)**, proposent **Évaluer ce critère sur une période donnée**. Il juge une fenêtre de vérifications récentes au lieu de la dernière seule, et commence sur les 5 dernières minutes avec **Toutes les valeurs**, qui ne correspond qu'une fois que chaque vérification de la fenêtre a correspondu. Voir [Évaluer sur une période](/docs/monitor/website-monitor#évaluer-sur-une-période).
 
 ### Actions
 
@@ -97,8 +97,8 @@ Pour voir comment une vérification a été jugée, ouvrez la **Vue d'ensemble**
 
 Un incident ou une alerte qu'un moniteur ouvre conserve la vérification qui l'a ouvert, pour que vous puissiez voir pourquoi bien après la disparition des journaux du moniteur. Sous sa cause racine, la section **Détails de l'évaluation** nomme le critère qui a correspondu et, pour chaque filtre qui a correspondu, ce que la vérification a trouvé. **Afficher les détails** ajoute le reste des éléments, les filtres qui n'ont pas correspondu et la vérification elle-même : la requête, quand elle a eu lieu, depuis quelle sonde et ce qui a été renvoyé. Ce qu'un filtre a trouvé peut être :
 
-- **Le champ.** L'endroit d'un corps JSON où un filtre **Corps de la réponse** a correspondu, par exemple `checks[1].status`, ou l'en-tête dans lequel un filtre **Response Header Value** a correspondu.
-- **Les valeurs.** Ce que contenait chaque valeur lue par une **JavaScript Expression** lors de son évaluation, par exemple `responseBody.status = "down"`.
+- **Le champ.** L'endroit d'un corps JSON où un filtre **Corps de la réponse** a correspondu, par exemple `checks[1].status`, ou l'en-tête dans lequel un filtre **Valeur de l'en-tête de réponse** a correspondu.
+- **Les valeurs.** Ce que contenait chaque valeur lue par une **Expression JavaScript** lors de son évaluation, par exemple `responseBody.status = "down"`.
 - **Un extrait.** Un court passage de la réponse autour de la correspondance, mise en évidence : jamais le corps entier.
 
 Les secrets et les données personnelles sont masqués avant que quoi que ce soit ne soit conservé : les en-têtes comme `Authorization`, `Cookie` et `Set-Cookie`, les champs dont le nom dit `password`, `token`, `key`, `session` ou `email`, et le texte qui ressemble à un jeton bearer, un JWT, un numéro de carte ou une adresse e-mail. L'URL de la requête est celle avec laquelle le moniteur a été configuré : `{{monitorSecrets.NAME}}` reste un nom, et une valeur de requête secrète est masquée. Les **Journaux de surveillance** du moniteur, et toute valeur qu'une cause racine cite, sont masqués de la même façon. Un incident ou une alerte ouverts à la main, ou avant que les détails de l'évaluation ne soient conservés, n'en ont pas.

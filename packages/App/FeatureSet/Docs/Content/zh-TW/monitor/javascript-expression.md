@@ -1,6 +1,6 @@
 # JavaScript 運算式
 
-**JavaScript Expression** 條件篩選器會以一行 JavaScript 而不是固定的比較，來判斷監測器的條件是否成立。當內建篩選器無法表達條件時使用它——例如 JSON 回應深處的某個欄位、兩個值之間的比較，或以 `&&` 和 `||` 組合的多項檢查。
+**JavaScript 運算式** 條件篩選器會以一行 JavaScript 而不是固定的比較，來判斷監測器的條件是否成立。當內建篩選器無法表達條件時使用它——例如 JSON 回應深處的某個欄位、兩個值之間的比較，或以 `&&` 和 `||` 組合的多項檢查。
 
 :::cards
 - [運作方式](#運作方式): 先填入預留位置，再執行運算式。
@@ -24,7 +24,7 @@ flowchart TB
 
 由於預留位置是以文字形式替換，`{{responseBody.item}}` 會變成原始值。字串必須以引號括住才會是 JavaScript 字串；數字或布林值則不需要——請參閱 [引號規則](#引號規則)。運算式會在 OneUptime 伺服器上的隔離沙箱中執行。
 
-## 新增 JavaScript Expression 篩選器
+## 新增 JavaScript 運算式篩選器
 
 :::steps
 ### 開啟條件
@@ -33,7 +33,7 @@ flowchart TB
 
 ### 新增篩選器
 
-在 **篩選器** 下點選 **新增篩選器**，將其 **篩選器類型** 設為 **JavaScript Expression**。**篩選條件** 為 **Evaluates To True**。
+在 **篩選器** 下點選 **新增篩選器**，將其 **篩選器類型** 設為 **JavaScript 運算式**。**篩選條件** 為 **計算結果為真**。
 
 ### 撰寫運算式
 
@@ -46,7 +46,7 @@ flowchart TB
 
 ## 各監測器類型的變數
 
-JavaScript 運算式適用於 Website、API、Incoming Request、Incoming Email、SQL Query 和 Database Health 監測器。
+JavaScript 運算式適用於 Website、API、傳入請求、Incoming Email、SQL Query 和 Database Health 監測器。
 
 ### 網站和 API 監測器
 

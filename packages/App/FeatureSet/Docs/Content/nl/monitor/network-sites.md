@@ -54,7 +54,7 @@ Elk apparaat hangt aan één locatie. De subboom van een locatie is de locatie z
 Ga naar **Netwerk → Locaties** en klik op **Locatie toevoegen**.
 
 ### Zeggen wat de locatie is
-Kies in de stap **Site Details** het **Site Type** (wat voor plaats het is: een regio, een winkel, een datacenter) en typ een **Naam**. De beschrijving, het adres, en de breedte- en lengtegraad die de locatie op de kaart vastzetten, zijn ingeklapt onder **Meer velden**: vul ze nu of later in.
+Kies in de stap **Site Details** het **Site Type** (wat voor plaats het is: een regio, een winkel, een datacenter) en typ een **Naam**. De **Locatiecode**, de beschrijving, het adres, en de breedte- en lengtegraad die de locatie op de kaart vastzetten, zijn ingeklapt onder **Meer velden**: vul ze nu of later in. Een locatiecode is een korte code, zoals een winkel- of vestigingsnummer (`1216`); [naamgevingsregels](/docs/monitor/network-device-monitor#apparaten-een-naam-geven-volgens-je-naamgevingsconventie) zetten hem met `{site.code}` in apparaatnamen.
 
 ### Haar in de boom plaatsen
 Kies in de stap **Hierarchy** de **Parent Site** als de locatie onder een andere valt. Laat het leeg om de locatie op het hoogste niveau te houden.
@@ -171,7 +171,7 @@ Een locatie zonder enige tijdlijnrij toont `—` in plaats van 100%: een locatie
 
 ### Dagelijkse uptime
 
-Naast het cijfer over 30 dagen toont het overzicht van elke locatie **Uptime (24h)**, en haar pagina **Statustijdlijn** toont de laatste 24 uur, 7, 30 en 90 dagen, en een balk per dag voor de laatste 30.
+Naast het cijfer over 30 dagen toont het overzicht van elke locatie **Uptime (24u)**, en haar pagina **Statustijdlijn** toont de laatste 24 uur, 7, 30 en 90 dagen, en een balk per dag voor de laatste 30.
 
 Een gemiddelde over 30 dagen kan geen slechte dag laten zien. Een volle dag storing in een venster van 30 dagen kost 3,3 punt, dus een locatie die een hele dinsdag donker was, meldt nog steeds 96,7% voor de maand, een getal dat leest als een afronding. De dagbalken zetten dezelfde gegevens neer waar één slechte dag één slechte balk is.
 

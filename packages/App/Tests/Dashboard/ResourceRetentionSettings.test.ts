@@ -486,7 +486,7 @@ function rumReplaySettingsSource(): ReplaySettingsSource {
 
   const optionsImport: string | null = importSpecifierFor(
     fieldOwner,
-    "SESSION_REPLAY_RETENTION_OPTIONS",
+    "getSessionReplayRetentionOptions",
   );
   const optionsSource: string = optionsImport
     ? readFile(resolveImport(fieldOwnerFilename, optionsImport))
@@ -537,7 +537,7 @@ describe("RUM session replay retention Settings", () => {
     const policy: string = readFile(REPLAY_POLICY_FILENAME);
     const optionsImport: string | null = importSpecifierFor(
       policy,
-      "SESSION_REPLAY_RETENTION_OPTIONS",
+      "getSessionReplayRetentionOptions",
     );
 
     expect(optionsImport).not.toBeNull();

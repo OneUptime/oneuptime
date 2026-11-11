@@ -1,4 +1,7 @@
-import { getNumberLocale } from "Common/Types/DateLanguage";
+import {
+  getNumberLocale,
+  getReaderNumberLocale,
+} from "Common/Types/DateLanguage";
 import AdminModelAPI from "../../../Utils/ModelAPI";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -59,7 +62,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
     try {
       return value.toLocaleString(getNumberLocale(i18n.language || undefined));
     } catch {
-      return value.toLocaleString();
+      return value.toLocaleString(getReaderNumberLocale());
     }
   };
 

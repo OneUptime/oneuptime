@@ -86,6 +86,11 @@ const BOUNDED_DEFAULT_LISTS: Record<string, boolean> = {
   NetworkTrafficUsageV1: true,
   ProfileItemV3: true,
   ProfileSampleItemV3: true,
+  /*
+   * Product analytics' events (issue #6444, part two): no _id, and only
+   * ever read by its own statements, never listed.
+   */
+  RumProductAnalyticsEventV1: false,
   // Product analytics' aggregate targets (issue #6444): no _id either.
   RumProductAnalyticsSessionV1: false,
   RumProductAnalyticsUserV1: false,

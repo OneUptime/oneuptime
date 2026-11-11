@@ -3,7 +3,7 @@
 Send varsler fra [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) til OneUptime, slik at hvert varsel som utløses, blir en hendelse som varsler vaktteamet ditt og løses når varselet er gjenopprettet. Alertmanager poster varslingene sine til en webhook-mottaker, så det er ingenting å installere på noen av sidene.
 
 :::cards
-- [Velg hvordan OneUptime mottar varsler](#velg-hvordan-oneuptime-mottar-varsler): En Incoming Request-monitor eller en egen arbeidsflyt.
+- [Velg hvordan OneUptime mottar varsler](#velg-hvordan-oneuptime-mottar-varsler): En monitor for innkommende forespørsler eller en egen arbeidsflyt.
 - [Motta varsler med en monitor](#motta-varsler-med-en-monitor): Én hendelse per varsel, løst ved gjenoppretting.
 - [Konfigurer Alertmanager](#konfigurer-alertmanager): En webhook-mottaker og ruten som bruker den.
 - [Feilsøking](#feilsøking): Når varsler ikke kommer frem, eller hendelser blir stående åpne.
@@ -33,19 +33,19 @@ Sett opp OneUptime først: det gir deg URL-en som Alertmanager sender til.
 
 | Vei | Bruk den når |
 | --- | --- |
-| En Incoming Request-monitor (anbefalt) | Du vil at hvert varsel skal bli en hendelse som varsler vakten og løses når varselet er gjenopprettet. Det er ingenting å bygge. |
+| En monitor for innkommende forespørsler (anbefalt) | Du vil at hvert varsel skal bli en hendelse som varsler vakten og løses når varselet er gjenopprettet. Det er ingenting å bygge. |
 | En arbeidsflyt med en Webhook-trigger | Du trenger din egen logikk: filtrere varsler, omforme dem eller kalle andre systemer først. En arbeidsflyt åpner én hendelse per varsling, ikke per varsel, og løser den ikke ved gjenoppretting. |
 
 Begge får den samme JSON-en fra den samme mottakeren, så du kan begynne med den ene og bytte senere ved å endre én URL i `alertmanager.yml`.
 
 ## Motta varsler med en monitor
 
-En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) gir deg en URL, og kriteriene dens avgjør hva hver varsling gjør.
+En [monitor for innkommende forespørsler](/docs/monitor/incoming-request-monitor) gir deg en URL, og kriteriene dens avgjør hva hver varsling gjør.
 
 :::steps
 ### Opprett monitoren
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Incoming Request** under **Monitortype**, gi den navnet `Alertmanager`, og klikk på **Neste**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Innkommende forespørsel** under **Monitortype**, gi den navnet `Alertmanager`, og klikk på **Neste**.
 
 ### Erklær en hendelse for hvert utløst varsel
 
@@ -86,7 +86,7 @@ En selvdriftet installasjon har sin egen vert i stedet for `oneuptime.com`.
 > [!WARNING]
 > Grupper etter en verdi som varierer fra varsel til varsel innenfor én varsling. Alertmanagers `fingerprint` er en hash av hele etikettsettet til et varsel, så den varierer alltid. En etikett i `group_by` for ruten din varierer aldri: det er nettopp den som samler varslene i én varsling. Gruppering etter `requestBody.alerts[*].labels.alertname` med ruten nedenfor slår sammen hvert varsel i en varsling til én hendelse, som får statusen til det første varselet.
 
-På en OpenStack-sky kobler du monitoren til skyen også. Innstillingene til en Incoming Request-monitor navngir ingen sky, så hendelsene dens ville havnet under **Hendelser** og ikke i skyen. Åpne monitorens **Oversikt → Tilkoblede ressurser** og legg til OpenStack-skyen: hver hendelse er da også på skyens side **Hendelser**. [OpenStack etter distribusjonsverktøy](/docs/telemetry/openstack-deployment-tools) har mottakeren for hvert verktøy som kjører en Alertmanager, på stedet verktøyet leser den fra.
+På en OpenStack-sky kobler du monitoren til skyen også. Innstillingene til en monitor for innkommende forespørsler navngir ingen sky, så hendelsene dens ville havnet under **Hendelser** og ikke i skyen. Åpne monitorens **Oversikt → Tilkoblede ressurser** og legg til OpenStack-skyen: hver hendelse er da også på skyens side **Hendelser**. [OpenStack etter distribusjonsverktøy](/docs/telemetry/openstack-deployment-tools) har mottakeren for hvert verktøy som kjører en Alertmanager, på stedet verktøyet leser den fra.
 
 ## Navngi hendelsene
 
@@ -222,7 +222,7 @@ Ingen av veiene merker det når Prometheus eller Alertmanager slutter å virke: 
 :::steps
 ### Opprett watchdog-monitoren
 
-Opprett en andre Incoming Request-monitor, kalt `Alertmanager watchdog`. Sett filteret for det første kriteriet, det som markerer monitoren som frakoblet, til **Incoming Request**, **Not Recieved In Minutes**, `10`, og filteret for det andre kriteriet til **Incoming Request**, **Recieved In Minutes**, `10`. Dashbordet staver begge slik. Kopier **Heartbeat URL** for den nye monitoren.
+Opprett en andre monitor for innkommende forespørsler, kalt `Alertmanager watchdog`. Sett filteret for det første kriteriet, det som markerer monitoren som frakoblet, til **Innkommende forespørsel**, **Ikke mottatt innen (minutter)**, `10`, og filteret for det andre kriteriet til **Innkommende forespørsel**, **Mottatt innen (minutter)**, `10`. Dashbordet staver begge slik. Kopier **Heartbeat URL** for den nye monitoren.
 
 ### Send watchdog-varselet dit
 

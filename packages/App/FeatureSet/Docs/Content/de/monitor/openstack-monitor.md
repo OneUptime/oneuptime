@@ -84,7 +84,7 @@ Klicken Sie auf **Monitor erstellen**. OneUptime öffnet die Seite des Monitors 
 
 Ein Filter grenzt nur eine Serie ein, die sein Label trägt: `openstack_nova_up` hat kein Projekt, daher lässt ein Projektfilter sie unverändert.
 
-Halten Sie das Fenster bei mindestens drei Erfassungen dessen, was Sie lesen: 6 Minuten für Compute, Network, Volume und Placement, 15 für Identity und Image. Ein kürzeres Fenster enthält nicht genug Erfassungen, damit **All Values** eine Dauer bedeutet.
+Halten Sie das Fenster bei mindestens drei Erfassungen dessen, was Sie lesen: 6 Minuten für Compute, Network, Volume und Placement, 15 für Identity und Image. Ein kürzeres Fenster enthält nicht genug Erfassungen, damit die Option **Alle Werte** eine Dauer bedeutet.
 
 ## Identitätsattribute
 
@@ -752,8 +752,8 @@ Ein Kriterium vergleicht eine der Abfragen oder Formeln des Monitors mit einem S
 | Feld | Was es bewirkt |
 | --- | --- |
 | **Metrik** | Die zu prüfende Abfrage oder Formel, mit ihrem Variablennamen. |
-| **Aggregation** | Wie die Werte im Fenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value**, **All Values** (jeder Wert muss passen, über das ganze Fenster) oder **Any Value** (einer genügt). |
-| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. **Keine Daten** trifft zu, wenn die Abfrage im Fenster nichts gesendet hat, **Daten vorhanden**, wenn sie irgendetwas gesendet hat. **Steigt voraussichtlich über** und **Fällt voraussichtlich unter** treffen zu, wenn der Trend der Metrik über das Fenster bis zum Ende von **Prognosezeitraum** den Schwellenwert überschritten haben wird. |
+| **Aggregation** | Wie die Werte im Fenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert**, **Alle Werte** (jeder Wert muss passen, über das ganze Fenster) oder **Beliebiger Wert** (einer genügt). |
+| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomal hoch**, **Anomal niedrig** oder **Anomal**. **Keine Daten** trifft zu, wenn die Abfrage im Fenster nichts gesendet hat, **Daten vorhanden**, wenn sie irgendetwas gesendet hat. **Steigt voraussichtlich über** und **Fällt voraussichtlich unter** treffen zu, wenn der Trend der Metrik über das Fenster bis zum Ende von **Prognosezeitraum** den Schwellenwert überschritten haben wird. |
 | **Schwellenwert** | Der Wert, mit dem verglichen wird. Daneben steht eine Einheitenliste, wenn die Metrik eine Einheit hat. Bei Anomaliebedingungen nicht angezeigt. |
 | **Empfindlichkeit** | Nur Anomaliebedingungen. **Niedrig** (4σ), **Mittel** (3σ, der Standard) oder **Hoch** (2σ). |
 | **Baseline-Fenster** | Nur Anomaliebedingungen. 14 Tage (der Standard), 28, 60 oder 90 Tage Verlauf. |

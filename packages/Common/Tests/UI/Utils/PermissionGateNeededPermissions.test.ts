@@ -72,6 +72,7 @@ import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "../../../Types/Permission";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const DASHBOARD_LOCALES: string = path.join(
   __dirname,
@@ -508,24 +509,7 @@ describe("every database model's lists", () => {
  * it is (the permission picker keeps them in English).
  */
 describe("in the reader's language", () => {
-  const LANGUAGES: Array<string> = [
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ];
+  const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
   test.each(LANGUAGES)("%s translates the four sentences", (code: string) => {
     const locale: Locale = readLocale(code);

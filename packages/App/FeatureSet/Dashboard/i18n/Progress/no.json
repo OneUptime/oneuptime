@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47694,
-    "untranslated": 11081
+    "keys": 49075,
+    "untranslated": 10203
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -235,6 +235,7 @@
     "Token",
     "Top P",
     "Trace ID: 4e3e0ec6-2938-40b1-8504-09eb1d4b0dee",
+    "Trend",
     "Tunnel",
     "Type",
     "UID",
@@ -349,6 +350,7 @@
     "writesets",
     "x86",
     "z",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{capacity}} CPU",
     "{{count}} B",
     "{{count}} CPU",
@@ -387,17 +389,22 @@
     "{{count}} s",
     "{{count}} sample",
     "{{count}} samples",
+    "{{count}} signal",
     "{{count}} stack",
     "{{count}} team",
     "{{count}} token",
     "{{count}} tokens",
     "{{count}} vCPU",
     "{{count}} worker",
+    "{{count}}d",
+    "{{count}}m",
+    "{{count}}s",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
     "{{percent}} full",
     "{{size}} disk",
-    "{{tokens}} tokens"
+    "{{tokens}} tokens",
+    "{{value}} ms"
   ]
 }

@@ -2,6 +2,14 @@ import SessionReplayMaskingMode, {
   doesMaskingModeRecordReadableContent,
   parseSessionReplayMaskingMode,
 } from "Common/Types/Rum/SessionReplayMaskingMode";
+import {
+  ComposedValue,
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  formatList,
+  Translator,
+} from "Common/Types/Translator";
 import { isMobileSessionReplay } from "./ReplayRecorderKind";
 
 /*
@@ -28,7 +36,17 @@ import { isMobileSessionReplay } from "./ReplayRecorderKind";
  * the browser (blob: addresses, which never load outside it), and elements
  * inside a shadow root or a nested frame (the error event does not leave
  * them).
+ *
+ * The notes are written in the language of the translator they are asked
+ * for with, each sentence looked up whole, and in English without one.
  */
+
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+// A fixed sentence in `translator`'s language.
+function translateLine(text: string, translator: Translator): string {
+  return translator.translateText(text) ?? text;
+}
 
 export type ReplayAssetKind = "image" | "stylesheet";
 
@@ -234,46 +252,122 @@ export function summarizeReplayAssetFailures(
   };
 }
 
-function countWord(count: number, singular: string): string {
-  return `${count} ${singular}${count === 1 ? "" : "s"}`;
-}
-
-/* "2 images and 1 stylesheet didn't load in this replay" */
+/*
+ * "2 images and 1 stylesheet didn't load in this replay". A count of one
+ * kind is the whole sentence's plural; both kinds name each count in the
+ * sentence's language ("{{images}} and {{stylesheets}} ...").
+ */
 export function formatReplayAssetFailureTitle(
   summary: ReplayAssetFailureSummary,
+  translator: Translator = ENGLISH,
 ): string {
-  const parts: Array<string> = [];
+  const images: number = summary.images;
+  const stylesheets: number = summary.stylesheets;
 
-  if (summary.images > 0) {
-    parts.push(countWord(summary.images, "image"));
+  if (images > 0 && stylesheets > 0) {
+    const counts: { images: ComposedValue; stylesheets: ComposedValue } = {
+      images: composedValue((sentence: Translator): string => {
+        return sentence.translatePlural(
+          { one: "{{count}} image", other: "{{count}} images" },
+          images,
+        );
+      }),
+      stylesheets: composedValue((sentence: Translator): string => {
+        return sentence.translatePlural(
+          { one: "{{count}} stylesheet", other: "{{count}} stylesheets" },
+          stylesheets,
+        );
+      }),
+    };
+
+    return summary.isTruncated
+      ? translator.translateTemplate(
+          "At least {{images}} and {{stylesheets}} didn't load in this replay",
+          counts,
+        )
+      : translator.translateTemplate(
+          "{{images}} and {{stylesheets}} didn't load in this replay",
+          counts,
+        );
   }
 
-  if (summary.stylesheets > 0) {
-    parts.push(countWord(summary.stylesheets, "stylesheet"));
+  if (stylesheets > 0) {
+    return summary.isTruncated
+      ? translator.translatePlural(
+          {
+            one: "At least {{count}} stylesheet didn't load in this replay",
+            other: "At least {{count}} stylesheets didn't load in this replay",
+          },
+          stylesheets,
+        )
+      : translator.translatePlural(
+          {
+            one: "{{count}} stylesheet didn't load in this replay",
+            other: "{{count}} stylesheets didn't load in this replay",
+          },
+          stylesheets,
+        );
   }
 
-  return `${summary.isTruncated ? "At least " : ""}${parts.join(
-    " and ",
-  )} didn't load in this replay`;
+  return summary.isTruncated
+    ? translator.translatePlural(
+        {
+          one: "At least {{count}} image didn't load in this replay",
+          other: "At least {{count}} images didn't load in this replay",
+        },
+        images,
+      )
+    : translator.translatePlural(
+        {
+          one: "{{count}} image didn't load in this replay",
+          other: "{{count}} images didn't load in this replay",
+        },
+        images,
+      );
 }
 
-/* "a.com", "a.com and b.com", "a.com, b.com and c.com", "a.com, b.com, c.com and 2 other sites" */
+/*
+ * "a.com", "a.com and b.com", "a.com, b.com and c.com", "a.com, b.com,
+ * c.com and 2 other sites": the hosts as written, joined the way
+ * `translator`'s language lists names.
+ */
 export function formatReplayAssetFailureHosts(
   hosts: ReadonlyArray<string>,
+  translator: Translator = ENGLISH,
 ): string {
   if (hosts.length <= 1) {
     return hosts[0] ?? "";
   }
 
-  if (hosts.length <= MAX_NAMED_HOSTS) {
-    return `${hosts.slice(0, -1).join(", ")} and ${hosts[hosts.length - 1]}`;
+  if (hosts.length === 2) {
+    return translator.translateTemplate("{{first}} and {{second}}", {
+      first: hosts[0] as string,
+      second: hosts[1] as string,
+    });
   }
 
-  const rest: number = hosts.length - MAX_NAMED_HOSTS;
+  if (hosts.length <= MAX_NAMED_HOSTS) {
+    return translator.translateTemplate("{{first}}, {{second}} and {{third}}", {
+      first: hosts[0] as string,
+      second: hosts[1] as string,
+      third: hosts[2] as string,
+    });
+  }
 
-  return `${hosts.slice(0, MAX_NAMED_HOSTS).join(", ")} and ${rest} other site${
-    rest === 1 ? "" : "s"
-  }`;
+  const named: ReadonlyArray<string> = hosts.slice(0, MAX_NAMED_HOSTS);
+
+  return translator.translatePlural(
+    {
+      one: "{{names}} and {{count}} other site",
+      other: "{{names}} and {{count}} other sites",
+    },
+    hosts.length - MAX_NAMED_HOSTS,
+    {
+      names: composedValue((sentence: Translator): string => {
+        return formatList(named, sentence);
+      }),
+    },
+  );
 }
 
 /*
@@ -283,36 +377,63 @@ export function formatReplayAssetFailureHosts(
  */
 function describeWhyAssetsAreFetched(
   summary: ReplayAssetFailureSummary,
+  translator: Translator,
 ): string {
   if (summary.stylesheets === 0) {
-    return "Recordings keep each image's address rather than the file itself, so the replay loads images from the recorded site while you watch.";
+    return translateLine(
+      "Recordings keep each image's address rather than the file itself, so the replay loads images from the recorded site while you watch.",
+      translator,
+    );
   }
 
   if (summary.images === 0) {
     return summary.stylesheets === 1
-      ? "The recorder could not read this stylesheet, so the recording keeps its address and the replay loads it from the recorded site while you watch."
-      : "The recorder could not read these stylesheets, so the recording keeps their addresses and the replay loads them from the recorded site while you watch.";
+      ? translateLine(
+          "The recorder could not read this stylesheet, so the recording keeps its address and the replay loads it from the recorded site while you watch.",
+          translator,
+        )
+      : translateLine(
+          "The recorder could not read these stylesheets, so the recording keeps their addresses and the replay loads them from the recorded site while you watch.",
+          translator,
+        );
   }
 
-  return "Recordings keep the address of each image, and of each stylesheet the recorder could not read, rather than the file itself, so the replay loads them from the recorded site while you watch.";
+  return translateLine(
+    "Recordings keep the address of each image, and of each stylesheet the recorder could not read, rather than the file itself, so the replay loads them from the recorded site while you watch.",
+    translator,
+  );
 }
 
+/*
+ * Why they were fetched, then what can stop them: one whole paragraph for
+ * a single asset and one for several - a list cut short speaks of several
+ * even when it holds one - with the explanation and the hosts in the
+ * paragraph's language.
+ */
 export function formatReplayAssetFailureDescription(
   summary: ReplayAssetFailureSummary,
+  translator: Translator = ENGLISH,
 ): string {
   const isOne: boolean =
     summary.images + summary.stylesheets === 1 && !summary.isTruncated;
-  const subject: string = isOne ? "it" : "they";
-  const object: string = isOne ? "it" : "them";
+  const values: { explanation: ComposedValue; hosts: ComposedValue } = {
+    explanation: composedValue((sentence: Translator): string => {
+      return describeWhyAssetsAreFetched(summary, sentence);
+    }),
+    hosts: composedValue((sentence: Translator): string => {
+      return formatReplayAssetFailureHosts(summary.hosts, sentence);
+    }),
+  };
 
-  return (
-    `${describeWhyAssetsAreFetched(summary)} ` +
-    `${isOne ? "This one" : "These"}, from ${formatReplayAssetFailureHosts(
-      summary.hosts,
-    )}, did not load in your browser: ${subject} may need the user's sign-in, the site may refuse to serve ${object} to other sites, a signed link may have expired, the file${
-      isOne ? " is" : "s are"
-    } gone, or something in your browser, such as an ad or tracker blocker, refused ${object}. The user may still have seen ${object}.`
-  );
+  return isOne
+    ? translator.translateTemplate(
+        "{{explanation}} This one, from {{hosts}}, did not load in your browser: it may need the user's sign-in, the site may refuse to serve it to other sites, a signed link may have expired, the file is gone, or something in your browser, such as an ad or tracker blocker, refused it. The user may still have seen it.",
+        values,
+      )
+    : translator.translateTemplate(
+        "{{explanation}} These, from {{hosts}}, did not load in your browser: they may need the user's sign-in, the site may refuse to serve them to other sites, a signed link may have expired, the files are gone, or something in your browser, such as an ad or tracker blocker, refused them. The user may still have seen them.",
+        values,
+      );
 }
 
 export interface ReplayPlaybackAssetNotesInput {
@@ -327,16 +448,29 @@ export interface ReplayPlaybackAssetNotesInput {
 }
 
 /* What the masked note says, for what the player knows of the mode. */
-function describeMaskedReplay(maskingMode: string): string {
+function describeMaskedReplay(
+  maskingMode: string,
+  translator: Translator,
+): string {
   if (maskingMode === SessionReplayMaskingMode.MaskAllText) {
-    return "This session was recorded under Mask all text, which plays back as a wireframe: the recording keeps the addresses of the page's images and web fonts, but the player never loads them. An image the page held as a data: URL is part of the recording itself, and still shows.";
+    return translateLine(
+      "This session was recorded under Mask all text, which plays back as a wireframe: the recording keeps the addresses of the page's images and web fonts, but the player never loads them. An image the page held as a data: URL is part of the recording itself, and still shows.",
+      translator,
+    );
   }
 
   if (!maskingMode.trim()) {
-    return "This session's masking mode was not reported, so, to be safe, the player does not load the page's images or web fonts.";
+    return translateLine(
+      "This session's masking mode was not reported, so, to be safe, the player does not load the page's images or web fonts.",
+      translator,
+    );
   }
 
-  return `This session's masking mode (${maskingMode}) is not one this dashboard recognises, so, to be safe, the player does not load the page's images or web fonts.`;
+  // The mode as the recorder wrote it: a value, not one of our words.
+  return translator.translateTemplate(
+    "This session's masking mode ({{mode}}) is not one this dashboard recognises, so, to be safe, the player does not load the page's images or web fonts.",
+    { mode: maskingMode },
+  );
 }
 
 /*
@@ -345,10 +479,11 @@ function describeMaskedReplay(maskingMode: string): string {
  * the failures this browser met while playing, and - for a masked replay
  * - the fact that its images and web fonts are never loaded at all. A
  * React Native recording never carries an address to load, so it gets
- * neither.
+ * neither. In `translator`'s language, and in English without one.
  */
 export function buildReplayPlaybackAssetNotes(
   input: ReplayPlaybackAssetNotesInput,
+  translator: Translator = ENGLISH,
 ): Array<ReplayPlaybackAssetNote> {
   const notes: Array<ReplayPlaybackAssetNote> = [];
 
@@ -361,8 +496,8 @@ export function buildReplayPlaybackAssetNotes(
     notes.push({
       key: "assets-failed",
       testId: "replay-capture-note-assets",
-      title: formatReplayAssetFailureTitle(summary),
-      description: formatReplayAssetFailureDescription(summary),
+      title: formatReplayAssetFailureTitle(summary, translator),
+      description: formatReplayAssetFailureDescription(summary, translator),
       docsHref: getReplayAssetFailureDocsHref(input.docsRoot),
     });
   }
@@ -374,8 +509,8 @@ export function buildReplayPlaybackAssetNotes(
     notes.push({
       key: "images-off",
       testId: "replay-capture-note-images-off",
-      title: "Images and web fonts are not loaded",
-      description: describeMaskedReplay(input.maskingMode),
+      title: translateLine("Images and web fonts are not loaded", translator),
+      description: describeMaskedReplay(input.maskingMode, translator),
       docsHref: null,
     });
   }

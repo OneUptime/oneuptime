@@ -285,6 +285,18 @@ These record what your own code asked the recorder to do. They are useful for co
 | `api-stop` | `stop()` was called. The last chunk was uploaded and the session sealed; nothing records for the rest of the page's life. |
 | `api-no-recorder` | One of the calls above ran while no recorder was active — usually because it ran before the recorder artifact loaded. Push `[command, ...arguments]` entries onto `window.OneUptimeReplayQueue` instead, and they are applied as soon as it arrives. |
 
+### Product analytics events
+
+These come from the events the recorder sends for [Product Analytics](/docs/rum/product-analytics#send-events-and-metrics), beside the recording.
+
+| code | what it means |
+| --- | --- |
+| `analytics-started` | The application has product analytics events on, so the recorder sends each session's start, its page views and your `track()` and `metric()` calls. `userPropertyKeys` says how many user properties it keeps. |
+| `analytics-stopped` | The server will not take this page's events, so none are sent from it again. `status` 204 means the application has them or Session Replay off, 403 that the page's origin is not allowed, and 400 that this recorder sent a batch the server cannot read; `reason` says which. |
+| `metric-analytics-off` | `metric()` was called while the application has product analytics events off. Nothing was sent: turn them on under **Analytics Settings**. |
+| `metric-name-refused` | `metric()` was given a name it cannot send. A name starts with a letter, holds only letters, digits, `_`, `.`, `-` and `/`, is at most 100 characters, and does not start with `oneuptime.`. |
+| `metric-value-refused` | `metric()` was given a value that is not a finite number. Nothing was sent. |
+
 ## No request at all in the Network tab
 
 Work down this list; it is ordered by how often each one is the answer.

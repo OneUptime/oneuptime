@@ -128,7 +128,7 @@ Data, der returneres fra scriptet, serialiseres til JSON, før de gemmes: i almi
 
 ### Advarsler på de returnerede data
 
-Det, scriptet returnerer som `data`, er monitorens **Result Value**, som et kriterium kan sammenligne. Når `data` er et objekt eller et array, skal du udfylde **Feltsti (valgfri)** på Result Value-filteret for at sammenligne ét felt — for eksempel `status`, `timings.loadTime` eller `errors[0].message`. Filteret tjekkes mod dataene fra hver browser og skærmstørrelse, monitoren kører på, og matcher, når en af dem gør. Se [Advarsler på de returnerede data](/docs/monitor/custom-code-monitor#advarsler-på-de-returnerede-data) for, hvordan stier og betingelser virker.
+Det, scriptet returnerer som `data`, er monitorens **Resultatværdi**, som et kriterium kan sammenligne. Når `data` er et objekt eller et array, skal du udfylde **Feltsti (valgfri)** på Resultatværdi-filteret for at sammenligne ét felt — for eksempel `status`, `timings.loadTime` eller `errors[0].message`. Filteret tjekkes mod dataene fra hver browser og skærmstørrelse, monitoren kører på, og matcher, når en af dem gør. Se [Advarsler på de returnerede data](/docs/monitor/custom-code-monitor#advarsler-på-de-returnerede-data) for, hvordan stier og betingelser virker.
 
 ## Skærmbilleder
 
@@ -232,10 +232,10 @@ En kørsel kan indsamle højst 100 metrikker, kun med numeriske værdier, og One
 | Filtertype | Hvad den tjekker |
 | --- | --- |
 | **Fejl** | Den fejl, en kørsel kastede, hvis nogen. |
-| **Result Value** | De `data`, en kørsel returnerede. |
+| **Resultatværdi** | De `data`, en kørsel returnerede. |
 | **Udførelsestid (i ms)** | Hvor længe en kørsel tog. |
 | **Browsertype** | Den browser, en kørsel brugte: **Lig med** eller **Ikke lig med**. |
-| **Screen Size** | Den skærmstørrelse, en kørsel brugte: **Lig med** eller **Ikke lig med**. |
+| **Skærmstørrelse** | Den skærmstørrelse, en kørsel brugte: **Lig med** eller **Ikke lig med**. |
 
 Hvert filter tjekkes mod hver kørsel og matcher, når blot én kørsel matcher det. Filtrene tjekkes hver for sig, ikke kørsel for kørsel: **Fejl** Er ikke tom sammen med **Browsertype** Lig med `Firefox` matcher, når en kørsel mislykkedes, og en af kørslerne brugte Firefox — ikke kun når Firefox-kørslen mislykkedes. Vil du holde øje med én browser for sig, så giv den sin egen monitor.
 

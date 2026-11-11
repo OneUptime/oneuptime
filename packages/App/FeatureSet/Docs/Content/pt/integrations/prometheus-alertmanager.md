@@ -3,7 +3,7 @@
 Envie os alertas do [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) para o OneUptime, para que cada alerta disparado vire um incidente que chama a sua equipe de plantão e seja resolvido quando o alerta se recuperar. O Alertmanager publica as notificações em um receptor webhook, então não há nada a instalar em nenhum dos lados.
 
 :::cards
-- [Escolher como o OneUptime recebe os alertas](#escolher-como-o-oneuptime-recebe-os-alertas): Um monitor Incoming Request ou um workflow próprio.
+- [Escolher como o OneUptime recebe os alertas](#escolher-como-o-oneuptime-recebe-os-alertas): Um monitor de requisições recebidas ou um workflow próprio.
 - [Receber alertas com um monitor](#receber-alertas-com-um-monitor): Um incidente por alerta, resolvido na recuperação.
 - [Configurar o Alertmanager](#configurar-o-alertmanager): Um receptor webhook e a rota que o usa.
 - [Solução de problemas](#solução-de-problemas): Quando os alertas não chegam ou os incidentes continuam abertos.
@@ -33,19 +33,19 @@ Configure primeiro o OneUptime: ele lhe dá a URL para a qual o Alertmanager env
 
 | Caminho | Use quando |
 | --- | --- |
-| Um monitor Incoming Request (recomendado) | Você quer que cada alerta seja um incidente que chama o plantão e é resolvido quando o alerta se recupera. Não há nada a construir. |
+| Um monitor de requisições recebidas (recomendado) | Você quer que cada alerta seja um incidente que chama o plantão e é resolvido quando o alerta se recupera. Não há nada a construir. |
 | Um workflow com um gatilho Webhook | Você precisa de uma lógica própria: filtrar alertas, remodelá-los ou chamar outros sistemas antes. Um workflow abre um incidente por notificação, não por alerta, e não o resolve na recuperação. |
 
 Os dois recebem o mesmo JSON do mesmo receptor, então você pode começar com um e trocar depois mudando uma URL no `alertmanager.yml`.
 
 ## Receber alertas com um monitor
 
-Um [monitor Incoming Request](/docs/monitor/incoming-request-monitor) lhe dá uma URL, e os critérios dele decidem o que cada notificação faz.
+Um [monitor de requisições recebidas](/docs/monitor/incoming-request-monitor) lhe dá uma URL, e os critérios dele decidem o que cada notificação faz.
 
 :::steps
 ### Criar o monitor
 
-Vá em **Monitores** e clique em **Criar monitor**. Escolha **Incoming Request** em **Tipo de monitor**, dê o nome `Alertmanager` e clique em **Próximo**.
+Vá em **Monitores** e clique em **Criar monitor**. Escolha **Requisição recebida** em **Tipo de monitor**, dê o nome `Alertmanager` e clique em **Próximo**.
 
 ### Declarar um incidente para cada alerta disparado
 
@@ -86,7 +86,7 @@ Uma instalação auto-hospedada tem o próprio host no lugar de `oneuptime.com`.
 > [!WARNING]
 > Agrupe por um valor que muda de um alerta para outro dentro de uma notificação. O `fingerprint` do Alertmanager é um hash do conjunto inteiro de rótulos de um alerta, então ele sempre muda. Um rótulo do `group_by` da sua rota nunca muda: é ele que põe os alertas em uma mesma notificação. Agrupar por `requestBody.alerts[*].labels.alertname` com a rota abaixo junta todos os alertas de uma notificação em um incidente, que assume o status do primeiro alerta.
 
-Em uma nuvem OpenStack, vincule o monitor também à nuvem. As configurações de um monitor Incoming Request não nomeiam nenhuma nuvem, então os incidentes dele chegariam a **Incidentes** e não à nuvem. Abra **Visão geral → Recursos Vinculados** do monitor e adicione a nuvem OpenStack: cada incidente passa a aparecer também na página **Incidentes** dessa nuvem. [OpenStack por ferramenta de implantação](/docs/telemetry/openstack-deployment-tools) traz o receptor de cada ferramenta que executa um Alertmanager, no lugar de onde essa ferramenta o lê.
+Em uma nuvem OpenStack, vincule o monitor também à nuvem. As configurações de um monitor de requisições recebidas não nomeiam nenhuma nuvem, então os incidentes dele chegariam a **Incidentes** e não à nuvem. Abra **Visão geral → Recursos Vinculados** do monitor e adicione a nuvem OpenStack: cada incidente passa a aparecer também na página **Incidentes** dessa nuvem. [OpenStack por ferramenta de implantação](/docs/telemetry/openstack-deployment-tools) traz o receptor de cada ferramenta que executa um Alertmanager, no lugar de onde essa ferramenta o lê.
 
 ## Dar nome aos incidentes
 
@@ -222,7 +222,7 @@ Nenhum dos dois caminhos percebe quando o Prometheus ou o Alertmanager param de 
 :::steps
 ### Criar o monitor watchdog
 
-Crie um segundo monitor Incoming Request, chamado `Alertmanager watchdog`. Defina o filtro do primeiro critério dele, o que marca o monitor como offline, como **Incoming Request**, **Not Recieved In Minutes**, `10`, e o filtro do segundo critério como **Incoming Request**, **Recieved In Minutes**, `10`. O painel escreve os dois assim. Copie o **Heartbeat URL** do novo monitor.
+Crie um segundo monitor de requisições recebidas, chamado `Alertmanager watchdog`. Defina o filtro do primeiro critério dele, o que marca o monitor como offline, como **Requisição recebida**, **Não recebido em minutos**, `10`, e o filtro do segundo critério como **Requisição recebida**, **Recebido em minutos**, `10`. O painel escreve os dois assim. Copie o **Heartbeat URL** do novo monitor.
 
 ### Direcionar o alerta watchdog para ele
 

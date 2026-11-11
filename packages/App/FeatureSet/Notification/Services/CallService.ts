@@ -26,7 +26,11 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
-import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import {
+  Host,
+  HttpProtocol,
+  IsBillingEnabled,
+} from "Common/Server/EnvironmentConfig";
 import CallLogService from "Common/Server/Services/CallLogService";
 import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
@@ -46,7 +50,12 @@ import {
   getProjectNotificationChannelOffMessage,
   ProjectNotificationChannel,
 } from "Common/Utils/Project/NotificationChannels";
-import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+  NotificationDeliveryProvider,
+  NotificationDispatch,
+  NotificationProviderConfig,
+} from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import {
   getNoTwilioAccountMessage,
   TwilioMessageKind,
@@ -182,36 +191,32 @@ export default class CallService {
       failIfNotSent?: boolean | undefined;
     },
   ): Promise<void> {
-    const startNs: bigint = process.hrtime.bigint();
-    let outcome: "success" | "failure" = "success";
+    // How it went, for the platform's operator (NotificationDeliveryMetrics).
+    await NotificationDeliveryMetrics.measureDispatch(
+      {
+        channel: NotificationDeliveryChannel.Call,
+        isOnCallPage: Boolean(options.userOnCallLogTimelineId),
+      },
+      async (dispatch: NotificationDispatch): Promise<void> => {
+        const notPlacedReason: string | null = await this.makeCallInternal(
+          // The installation's own name in what the call says, when it goes by one.
+          ProductBrandingText.brandCallRequest(callRequest),
+          options,
+          dispatch,
+        );
 
-    try {
-      const notPlacedReason: string | null = await this.makeCallInternal(
-        // The installation's own name in what the call says, when it goes by one.
-        ProductBrandingText.brandCallRequest(callRequest),
-        options,
-      );
+        if (notPlacedReason !== null) {
+          dispatch.markNotSent();
+        }
 
-      if (notPlacedReason !== null && options.failIfNotSent) {
-        // The tenant's settings or balance, not a defect: a user error.
-        throw new BadDataException(
-          `Call not placed: ${notPlacedReason}`,
-        ).asUserError();
-      }
-    } catch (err) {
-      outcome = "failure";
-      throw err;
-    } finally {
-      const elapsedNs: bigint = process.hrtime.bigint() - startNs;
-      const durationMs: number = Number(elapsedNs) / 1e6;
-      const attributes: Record<string, string> = {
-        "notification.channel": "call",
-        outcome,
-      };
-
-      AppMetrics.getNotificationCounter().add(1, attributes);
-      AppMetrics.getNotificationDuration().record(durationMs, attributes);
-    }
+        if (notPlacedReason !== null && options.failIfNotSent) {
+          // The tenant's settings or balance, not a defect: a user error.
+          throw new BadDataException(
+            `Call not placed: ${notPlacedReason}`,
+          ).asUserError();
+        }
+      },
+    );
   }
 
   private static async makeCallInternal(
@@ -236,11 +241,13 @@ export default class CallService {
       teamId?: ObjectID | undefined;
       failIfNotSent?: boolean | undefined;
     },
+    dispatch: NotificationDispatch,
   ): Promise<string | null> {
     /*
      * Returns why the call was deliberately not placed (the project was not
      * found, has calls turned off, or has too little balance), after logging
      * it; null when it was handed to Twilio. A failure to place it throws.
+     * `dispatch` is told what it goes out through, and that it went.
      */
     let callError: Error | null = null;
     const callLog: CallLog = new CallLog();
@@ -292,6 +299,17 @@ export default class CallService {
       const twilioConfig: TwilioConfig | null = gateway
         ? null
         : customTwilioConfig || (await getTwilioConfig(TwilioMessageKind.Call));
+
+      if (gateway) {
+        dispatch.setProvider(NotificationDeliveryProvider.SmsAndCallGateway);
+      } else if (twilioConfig) {
+        dispatch.setProvider(
+          NotificationDeliveryProvider.Twilio,
+          customTwilioConfig
+            ? NotificationProviderConfig.Project
+            : NotificationProviderConfig.Global,
+        );
+      }
 
       if (!gateway && !twilioConfig) {
         /*
@@ -374,6 +392,15 @@ export default class CallService {
 
       if (options.teamId) {
         callLog.teamId = options.teamId;
+      }
+
+      /*
+       * The on-call notification this call is made for: how the call ends -
+       * answered, not answered, busy, failed - is written back onto it
+       * (API/Call.ts's status callback).
+       */
+      if (options.userOnCallLogTimelineId) {
+        callLog.userOnCallLogTimelineId = options.userOnCallLogTimelineId;
       }
 
       // Set OnCall-related fields
@@ -584,6 +611,8 @@ export default class CallService {
           throw new BadDataException(result.message).asUserError();
         }
 
+        dispatch.markSucceeded();
+
         callLog.status = CallStatus.Success;
         callLog.statusMessage = result.message;
       } else {
@@ -596,11 +625,30 @@ export default class CallService {
           ).asUserError();
         }
 
+        /*
+         * How the call ends - answered, not answered, busy, failed - Twilio
+         * tells this call's own status callback (API/Call.ts) once it does,
+         * for a project's call, whose log is kept, from a server Twilio can
+         * reach (HOST).
+         */
+        const statusCallbackUrl: string | null = options.projectId
+          ? this.prepareStatusCallback(callLog)
+          : null;
+
         twillioCall = await client.calls.create({
           twiml: this.generateTwimlForCall(callRequest),
           to: callRequest.to.toString(),
           from: fromNumber.toString(), // From a valid Twilio number
+          ...(statusCallbackUrl
+            ? {
+                statusCallback: statusCallbackUrl,
+                statusCallbackEvent: ["completed"],
+                statusCallbackMethod: "POST",
+              }
+            : {}),
         });
+
+        dispatch.markSucceeded();
 
         callLog.status = CallStatus.Success;
         callLog.statusMessage = "Call ID: " + twillioCall.sid;
@@ -684,6 +732,29 @@ export default class CallService {
     }
 
     return null;
+  }
+
+  /*
+   * The URL Twilio tells how a call ended at - its status callback - or
+   * null when this server has no public host to be called back on. The
+   * call's log is given its id now, as it is written only once the call is
+   * placed, and an unguessable token the URL carries: the callback is a
+   * public webhook, and the token is what says it is Twilio's (the same as
+   * an SMS's delivery status, SmsService). Nginx serves the external
+   * /notification path from /api/notification, where the call router is.
+   */
+  public static prepareStatusCallback(callLog: CallLog): string | null {
+    if (!Host) {
+      return null;
+    }
+
+    if (!callLog.id) {
+      callLog.id = ObjectID.generate();
+    }
+
+    callLog.statusCallbackToken = ObjectID.generate().toString();
+
+    return `${HttpProtocol}${Host}/notification/call/status-callback/${callLog.id!.toString()}/${callLog.statusCallbackToken}`;
   }
 
   /*

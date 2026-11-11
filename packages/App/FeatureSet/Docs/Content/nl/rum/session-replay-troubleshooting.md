@@ -108,7 +108,7 @@ Dat geeft de versie van de recorder terug, de sessie-id, de `state` (`recording`
 copy(JSON.stringify(window.__ONEUPTIME_SESSION_REPLAY_DEBUG__.records, null, 2));
 ```
 
-Plak een van beide in je supportticket — of in **Ask the browser** op de pagina **Gezondheid** van de applicatie, die elke code erin uitlegt. Vaak is dat op zich al genoeg.
+Plak een van beide in je supportticket — of in **Vraag het aan de browser** op de pagina **Gezondheid** van de applicatie, die elke code erin uitlegt. Vaak is dat op zich al genoeg.
 
 ## Wanneer stilte normaal is: het foutgestuurde beleid
 
@@ -185,7 +185,7 @@ Elke regel draagt een stabiele `code`. Zoek de jouwe hier op.
 | `disabled-by-default` | `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` op deze deployment. Zet het op `true` — en stel eerst `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` in als je zelf host, want herhaling is de zwaarste tabel die je hebt. |
 | `ingest-disabled` | `SESSION_REPLAY_INGEST_ENABLED=false` op deze deployment. |
 | `policy-unavailable` | De server kon het beleid niet bepalen — meestal Redis of Postgres. Faalt bewust gesloten. Controleer de logs van de OneUptime-app. |
-| `not-reported` | De server is ouder dan dit veld. Gebruik in plaats daarvan het paneel **Test your installation** in het dashboard, op de pagina **Herhalingsbeleid**. |
+| `not-reported` | De server is ouder dan dit veld. Gebruik in plaats daarvan het paneel **Uw installatie testen** in het dashboard, op de pagina **Herhalingsbeleid**. |
 
 ### Het artefact
 
@@ -285,6 +285,18 @@ Deze leggen vast wat je eigen code aan de recorder vroeg. Ze zijn er om te beves
 | `api-stop` | `stop()` werd aangeroepen. De laatste chunk is geüpload en de sessie is afgesloten; er wordt niets meer opgenomen zolang de pagina bestaat. |
 | `api-no-recorder` | Een van de aanroepen hierboven werd uitgevoerd zonder actieve recorder — meestal omdat ze werd uitgevoerd voordat het recorderartefact was geladen. Zet in plaats daarvan `[command, ...arguments]`-items in `window.OneUptimeReplayQueue`, dan worden ze toegepast zodra hij er is. |
 
+### Productanalysegebeurtenissen
+
+Deze komen van de gebeurtenissen die de recorder voor [Productanalyse](/docs/rum/product-analytics#gebeurtenissen-en-metrieken-verzenden) verzendt, naast de opname.
+
+| code | wat het betekent |
+| --- | --- |
+| `analytics-started` | De applicatie heeft productanalysegebeurtenissen aan staan, dus de recorder verzendt het begin van elke sessie, de paginaweergaven en je aanroepen van `track()` en `metric()`. `userPropertyKeys` zegt hoeveel gebruikerseigenschappen hij bewaart. |
+| `analytics-stopped` | De server neemt de gebeurtenissen van deze pagina niet aan, dus er worden er geen meer vanaf verzonden. `status` 204 betekent dat de applicatie ze of Sessieherhaling uit heeft staan, 403 dat de origin van de pagina niet is toegestaan, en 400 dat deze recorder een batch verzond die de server niet kan lezen; `reason` zegt welke. |
+| `metric-analytics-off` | `metric()` werd aangeroepen terwijl de applicatie productanalysegebeurtenissen uit heeft staan. Er is niets verzonden: zet ze aan onder **Analyse-instellingen**. |
+| `metric-name-refused` | `metric()` kreeg een naam die hij niet kan verzenden. Een naam begint met een letter, bevat alleen letters, cijfers, `_`, `.`, `-` en `/`, is hooguit 100 tekens lang en begint niet met `oneuptime.`. |
+| `metric-value-refused` | `metric()` kreeg een waarde die geen eindig getal is. Er is niets verzonden. |
+
 ## Geen verzoek op het tabblad Netwerk
 
 Loop deze lijst door; hij is gesorteerd op hoe vaak elke oorzaak het antwoord is.
@@ -358,7 +370,7 @@ Gaten zijn niet hetzelfde als inactieve stukken: een inactief stuk is opname waa
 
 ## De speler zegt Buffering, of een segment kon niet worden geladen
 
-De speler haalt de opname op in segmenten van 15 seconden naarmate de afspeelkop ze nadert. _Buffering_ betekent dat het volgende segment nog niet is aangekomen; na acht seconden biedt hij **Opnieuw proberen** aan. Een segment dat definitief mislukt, toont een fout met **Opnieuw proberen** en **Copy diagnostic** — dat laatste bevat de sessie-id, het tabblad, het segment en de generatie, en dat is wat support nodig heeft. Een sessie waarvan de opname is verlopen, toont een uitleg in plaats van het podium, terwijl de tabbladen Logs, Traces en Errors op je telemetrie blijven werken.
+De speler haalt de opname op in segmenten van 15 seconden naarmate de afspeelkop ze nadert. _Buffering_ betekent dat het volgende segment nog niet is aangekomen; na acht seconden biedt hij **Opnieuw proberen** aan. Een segment dat definitief mislukt, toont een fout met **Opnieuw proberen** en **Diagnose kopiëren** — dat laatste bevat de sessie-id, het tabblad, het segment en de generatie, en dat is wat support nodig heeft. Een sessie waarvan de opname is verlopen, toont een uitleg in plaats van het podium, terwijl de tabbladen Logs, Traces en Errors op je telemetrie blijven werken.
 
 ## Afbeeldingen, pictogrammen of stijlen ontbreken in de herhaling
 
@@ -373,7 +385,7 @@ Een opname bewaart het adres van elke afbeelding, en van elke stylesheet die de 
 
 ### Controleer dit eerst
 
-1. **Lees de vastleggingsnotities onder de speler.** Wanneer afbeeldingen of stylesheets niet in je browser konden laden, zegt de eerste notitie dat — bijvoorbeeld _2 images didn't load in this replay_ — en noemt ze de sites waar ze vandaan kwamen. Ze dekt elk tabblad dat de speler heeft afgespeeld sinds je de sessie opende. **Sessiedetails** (`I`) → **Fidelity** → **Missing assets** noemt elk adres, tot de eerste 200. Weblettertypen, CSS-achtergrondafbeeldingen en afbeeldingen die je pagina in de browser heeft gemaakt (`blob:`-adressen) staan niet in die lijst; zoek ze op in DevTools (hieronder).
+1. **Lees de vastleggingsnotities onder de speler.** Wanneer afbeeldingen of stylesheets niet in je browser konden laden, zegt de eerste notitie dat — bijvoorbeeld _2 images didn't load in this replay_ — en noemt ze de sites waar ze vandaan kwamen. Ze dekt elk tabblad dat de speler heeft afgespeeld sinds je de sessie opende. **Sessiedetails** (`I`) → **Getrouwheid** → **Ontbrekende bestanden** noemt elk adres, tot de eerste 200. Weblettertypen, CSS-achtergrondafbeeldingen en afbeeldingen die je pagina in de browser heeft gemaakt (`blob:`-adressen) staan niet in die lijst; zoek ze op in DevTools (hieronder).
 2. **Controleer de maskeringsmodus.** Een sessie die met _Mask all text_ is opgenomen, laadt haar afbeeldingen en weblettertypen helemaal niet, met opzet (een afbeelding die de pagina als `data:`-URL had, hoort bij de opname en wordt nog steeds getoond), en haar vastleggingsnotities zeggen _Images and web fonts are not loaded_. Hetzelfde geldt voor een sessie waarvan de maskeringsmodus niet is gemeld, of niet een is die het dashboard herkent. Stylesheets laden in beide gevallen nog wel. **Sessiedetails** → **Privacy** toont de modus die de sessie meldt, en dat is de modus van haar meest recente paginalading.
 3. **Controleer of het ook voor je gebruiker misging.** Open op dat moment het tabblad **Fouten** van het gebeurtenissenpaneel: een rij _Resource failed to load_ voor hetzelfde bestand betekent dat het ook op het scherm van je gebruiker kapot was, en dat de herhaling het getrouw weergeeft.
 
@@ -467,8 +479,8 @@ Verzamel dit voordat je om hulp vraagt:
 
 - De uitvoer van `OneUptimeReplay.getDiagnostics()`.
 - De status van het verzoek `session-replay/v1/config`.
-- Wat de pagina **Gezondheid** van de applicatie en het paneel **Test your installation** op **Herhalingsbeleid** zeggen. Ze antwoorden vanaf de serverkant, de helft die een browser niet kan zien.
-- Voor ontbrekende afbeeldingen, pictogrammen of stijlen: het adres van een bestand dat niet laadde (**Missing assets** noemt ze) en de regel die de browserconsole ervoor afdrukte.
+- Wat de pagina **Gezondheid** van de applicatie en het paneel **Uw installatie testen** op **Herhalingsbeleid** zeggen. Ze antwoorden vanaf de serverkant, de helft die een browser niet kan zien.
+- Voor ontbrekende afbeeldingen, pictogrammen of stijlen: het adres van een bestand dat niet laadde (**Ontbrekende bestanden** noemt ze) en de regel die de browserconsole ervoor afdrukte.
 
 Schrijf daarna naar support@oneuptime.com of open een issue op [GitHub](https://github.com/OneUptime/oneuptime).
 

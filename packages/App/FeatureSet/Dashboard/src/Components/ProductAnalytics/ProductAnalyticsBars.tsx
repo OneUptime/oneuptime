@@ -27,6 +27,16 @@ export interface ProductAnalyticsBarsProps {
   // What each figure is ("Users", "Percent"), as English the list translates.
   figureTitles: Array<string>;
   dataTestId: string;
+  /*
+   * Rows that do something when their label is pressed: open an event, add
+   * a value to the segment. The label is then a button, its title the
+   * action written for that row.
+   */
+  onSelect?: ((key: string) => void) | undefined;
+  // The action, with {{value}} for the row's label ("Show only {{value}}").
+  selectTemplate?: string | undefined;
+  // The row that is open now, marked as pressed.
+  selectedKey?: string | undefined;
 }
 
 const ProductAnalyticsBars: FunctionComponent<ProductAnalyticsBarsProps> = (
@@ -76,14 +86,46 @@ const ProductAnalyticsBars: FunctionComponent<ProductAnalyticsBarsProps> = (
             data-testid={`${props.dataTestId}-row`}
             data-key={row.key}
           >
-            <span
-              role="cell"
-              className="min-w-0 truncate text-sm text-gray-900"
-              title={row.label}
-              dir="auto"
-            >
-              {row.label}
-            </span>
+            {props.onSelect ? (
+              <span role="cell" className="min-w-0">
+                <button
+                  type="button"
+                  className={`block max-w-full truncate rounded text-start text-sm hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                    props.selectedKey === row.key
+                      ? "font-medium text-indigo-700"
+                      : "text-gray-900"
+                  }`}
+                  title={
+                    props.selectTemplate
+                      ? translator.translateTemplate(props.selectTemplate, {
+                          value: row.label,
+                        })
+                      : row.label
+                  }
+                  aria-pressed={
+                    props.selectedKey === undefined
+                      ? undefined
+                      : props.selectedKey === row.key
+                  }
+                  dir="auto"
+                  data-testid={`${props.dataTestId}-select`}
+                  onClick={(): void => {
+                    props.onSelect?.(row.key);
+                  }}
+                >
+                  {row.label}
+                </button>
+              </span>
+            ) : (
+              <span
+                role="cell"
+                className="min-w-0 truncate text-sm text-gray-900"
+                title={row.label}
+                dir="auto"
+              >
+                {row.label}
+              </span>
+            )}
             {row.figures.map((figure: string, index: number): ReactElement => {
               return (
                 <span

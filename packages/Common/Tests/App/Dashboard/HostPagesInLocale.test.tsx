@@ -14,6 +14,7 @@ import {
   HostStatusCell,
   HostUsageCell,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Host/HostListCells";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * The words the Hosts pages add - the Hosts list's Status, CPU, Memory and
@@ -32,24 +33,7 @@ const DASHBOARD_SRC: string = path.join(
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 const PROGRESS_DIR: string = path.resolve(DASHBOARD_SRC, "../i18n/Progress");
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 function readJson<T>(file: string): T {
   return JSON.parse(fs.readFileSync(file, "utf8")) as T;

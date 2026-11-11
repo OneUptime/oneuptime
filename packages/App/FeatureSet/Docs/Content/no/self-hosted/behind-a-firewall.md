@@ -73,7 +73,7 @@ Etter at en vakthavende har bekreftet, åpner siden varselet i dashbordet, som b
 
 ### Twilio
 
-Når en vakthavende trykker 1 under et anrop for å bekrefte varslingen, sender Twilio tasten til `POST /api/user-notification-log-timeline/call/gather-input/*`. Twilios webhook-adresser endres, med mindre Twilio-utgaven din inkluderer [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Oppdateringer om SMS-levering og innkommende anrop er beskrevet i [Twilio-integrasjon](/docs/self-hosted/twilio-integration).
+Når en vakthavende trykker 1 under et anrop for å bekrefte varslingen, sender Twilio tasten til `POST /api/user-notification-log-timeline/call/gather-input/*`. Twilios webhook-adresser endres, med mindre Twilio-utgaven din inkluderer [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Oppdateringer om SMS-levering, anropsresultater og innkommende anrop er beskrevet i [Twilio-integrasjon](/docs/self-hosted/twilio-integration).
 
 ### WhatsApp
 

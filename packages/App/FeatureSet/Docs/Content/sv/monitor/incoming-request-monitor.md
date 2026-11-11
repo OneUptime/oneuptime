@@ -47,13 +47,13 @@ Använd den för att:
 
 Gå till **Monitorer** och klicka på **Skapa monitor**.
 
-### Välj Incoming Request
+### Välj Inkommande begäran
 
-Under **Monitortyp** väljer du **Incoming Request** — den är en av de vanliga typerna överst. Ange ett **Namn** och klicka sedan på **Nästa**.
+Under **Monitortyp** väljer du **Inkommande begäran** — den är en av de vanliga typerna överst. Ange ett **Namn** och klicka sedan på **Nästa**.
 
 ### Gå igenom kriterierna
 
-Steget **Kriterier** börjar med [standardkriterierna](#vad-du-får-från-början). För ett heartbeat klickar du på **Lägg till kriterier** och ger det nya kriteriet ett filter **Incoming Request** / **Not Recieved In Minutes** som ändrar statusen till offline och deklarerar en incident, med **Lös incident automatiskt** påslaget. Dra det sedan överst i listan — se [Exempel på kriterier](#exempel-på-kriterier) för varför.
+Steget **Kriterier** börjar med [standardkriterierna](#vad-du-får-från-början). För ett heartbeat klickar du på **Lägg till kriterier** och ger det nya kriteriet ett filter **Inkommande begäran** / **Inte mottaget inom (minuter)** som ändrar statusen till offline och deklarerar en incident, med **Lös incident automatiskt** påslaget. Dra det sedan överst i listan — se [Exempel på kriterier](#exempel-på-kriterier) för varför.
 
 ### Skapa monitorn
 
@@ -205,17 +205,17 @@ Det passar det vanliga fallet där avsändaren rapporterar sin egen hälsa i nyt
 Ändra värdet till det som din avsändare faktiskt skickar (`"status":"firing"`, `FAILED` och så vidare) — jämförelsen är en sökning efter en delsträng i hela kroppen, nycklar inräknade, som skiljer på versaler och gemener, så även `{"error":null}` matchar `error`.
 
 > [!NOTE]
-> De här standardinställningarna är **inte** ett dödmansgrepp: ingenting här utlöses när förfrågningarna slutar komma. Om du vill larmas vid tystnad lägger du till ett kriterium **Incoming Request** / **Not Recieved In Minutes** enligt beskrivningen nedan.
+> De här standardinställningarna är **inte** ett dödmansgrepp: ingenting här utlöses när förfrågningarna slutar komma. Om du vill larmas vid tystnad lägger du till ett kriterium **Inkommande begäran** / **Inte mottaget inom (minuter)** enligt beskrivningen nedan.
 
 ### Tillgängliga filtertyper
 
 | Filtertyp | Kontrollerar | Anteckningar |
 | --------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| Incoming Request | Om en förfrågan har tagits emot inom ett tidsfönster | Den enda kontrollen som kan utlösas när ingenting kommer |
+| Inkommande begäran | Om en förfrågan har tagits emot inom ett tidsfönster | Den enda kontrollen som kan utlösas när ingenting kommer |
 | Begärandekropp | Förfrågans kropp | Sökning efter en delsträng. Objekt som kropp jämförs som kompakt JSON |
-| Request Header | Namnen på förfrågans headers | Exakt jämförelse med ett helt headernamn, utan hänsyn till versaler och gemener |
-| Request Header Value | Värdena i förfrågans headers | Exakt jämförelse med ett helt headervärde, utan hänsyn till versaler och gemener |
-| JavaScript Expression | Alla uttryck över `requestBody` och `requestHeaders` | Det flexiblaste alternativet — se [JavaScript-uttryck](/docs/monitor/javascript-expression) |
+| Begärandehuvud | Namnen på förfrågans headers | Exakt jämförelse med ett helt headernamn, utan hänsyn till versaler och gemener |
+| Värde för begärandehuvud | Värdena i förfrågans headers | Exakt jämförelse med ett helt headervärde, utan hänsyn till versaler och gemener |
+| JavaScript-uttryck | Alla uttryck över `requestBody` och `requestHeaders` | Det flexiblaste alternativet — se [JavaScript-uttryck](/docs/monitor/javascript-expression) |
 
 ### Filtervillkor
 
@@ -223,9 +223,9 @@ Varje filtertyp har sina egna villkor:
 
 | Filtertyp | Villkor |
 | --- | --- |
-| **Incoming Request** | **Recieved In Minutes** — en förfrågan har tagits emot inom det angivna antalet minuter. **Not Recieved In Minutes** — ingen förfrågan har tagits emot inom det angivna antalet minuter. (Instrumentpanelen stavar dem så.) |
-| **Begärandekropp**, **Request Header**, **Request Header Value** | **Innehåller** och **Innehåller inte** |
-| **JavaScript Expression** | **Evaluates To True** |
+| **Inkommande begäran** | **Mottaget inom (minuter)** — en förfrågan har tagits emot inom det angivna antalet minuter. **Inte mottaget inom (minuter)** — ingen förfrågan har tagits emot inom det angivna antalet minuter. |
+| **Begärandekropp**, **Begärandehuvud**, **Värde för begärandehuvud** | **Innehåller** och **Innehåller inte** |
+| **JavaScript-uttryck** | **Utvärderas till sant** |
 
 > [!NOTE]
 > Headernamn och headervärden jämförs med gemener och mot hela namnet eller hela värdet, inte som delsträng: `application/json` matchar inte `application/json; charset=utf-8`. Bara **Begärandekropp** söker efter en delsträng. Headers som din proxy eller OneUptimes egen lastbalanserare lägger till (`x-forwarded-for`, `x-real-ip`) lagras också.
@@ -238,8 +238,8 @@ Objekt som kropp jämförs som kompakt JSON utan mellanslag, så ett filter **Be
 
 | Fält | Värde |
 | --- | --- |
-| **Filtertyp** | Incoming Request |
-| **Filtervillkor** | Not Recieved In Minutes |
+| **Filtertyp** | Inkommande begäran |
+| **Filtervillkor** | Inte mottaget inom (minuter) |
 | **Värde** | `10` |
 
 #### Markera som försämrad utifrån innehållet i förfrågans kropp
@@ -254,9 +254,9 @@ Objekt som kropp jämförs som kompakt JSON utan mellanslag, så ett filter **Be
 > Lägg dödmansgreppet **ovanför** standardkriterierna. Kriterierna kontrolleras uppifrån, och det första som matchar avgör. Bakgrundskontrollen läser den senaste förfrågan igen, så standardkriteriet för online — "Begärandekropp Innehåller inte `error`" — fortsätter att matcha den, och ett kriterium under det kommer aldrig till tals. **Lägg till kriterier** lägger till ett kriterium längst ned: dra upp det.
 
 > [!WARNING]
-> En monitor utvärderas bara på nytt i bakgrunden om minst ett av dess kriterier kontrollerar **Incoming Request**. En monitor vars kriterier bara kontrollerar kroppen, Request Header eller ett JavaScript-uttryck utvärderas när en förfrågan kommer och vid ingen annan tidpunkt — så den kan aldrig bli offline av sig själv. Om du vill ha ett larm för uteblivna heartbeats behöver du ett kriterium med **Incoming Request**.
+> En monitor utvärderas bara på nytt i bakgrunden om minst ett av dess kriterier kontrollerar **Inkommande begäran**. En monitor vars kriterier bara kontrollerar kroppen, Begärandehuvud eller ett JavaScript-uttryck utvärderas när en förfrågan kommer och vid ingen annan tidpunkt — så den kan aldrig bli offline av sig själv. Om du vill ha ett larm för uteblivna heartbeats behöver du ett kriterium med **Inkommande begäran**.
 
-Bakgrundskontrollen räknar hela minuter och utlöses så fort *mer* än värdet har gått: "Not Recieved In Minutes: 10" utlöses ungefär 11 minuter efter den senaste förfrågan (kontrollen körs var 30:e sekund). En monitor som aldrig har tagit emot en förfrågan behandlas som om tidpunkten då den skapades var den senaste förfrågan, så samma kriterium på en helt ny monitor utlöses ungefär 11 minuter efter att du skapat den, även om avsändaren aldrig kopplades in. Bara minuter då OneUptime tog emot räknas: minuter då OneUptime själv startar om, uppgraderas eller hämtar ikapp räknas inte, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
+Bakgrundskontrollen räknar hela minuter och utlöses så fort *mer* än värdet har gått: "Inte mottaget inom (minuter): 10" utlöses ungefär 11 minuter efter den senaste förfrågan (kontrollen körs var 30:e sekund). En monitor som aldrig har tagit emot en förfrågan behandlas som om tidpunkten då den skapades var den senaste förfrågan, så samma kriterium på en helt ny monitor utlöses ungefär 11 minuter efter att du skapat den, även om avsändaren aldrig kopplades in. Bara minuter då OneUptime tog emot räknas: minuter då OneUptime själv startar om, uppgraderas eller hämtar ikapp räknas inte, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ## Ta emot larm från ett annat system
 
@@ -347,10 +347,10 @@ En fullständig Alertmanager-konfiguration finns under [Prometheus Alertmanager]
 
 ## Bästa praxis
 
-1. **Ställ in tidsfönstret rätt** — Om ditt cron-jobb körs var 5:e minut sätter du tröskeln för "Not Recieved In Minutes" till 10–15 minuter för att ge utrymme för enstaka fördröjningar, och lägger det kriteriet först.
+1. **Ställ in tidsfönstret rätt** — Om ditt cron-jobb körs var 5:e minut sätter du tröskeln för "Inte mottaget inom (minuter)" till 10–15 minuter för att ge utrymme för enstaka fördröjningar, och lägger det kriteriet först.
 2. **Skicka med meningsfulla data** — Skicka statusinformation i förfrågans kropp så att du kan ställa in detaljerade kriterier.
 3. **Använd POST med `Content-Type: application/json`** — allt som läser i kroppen är beroende av det.
-4. **Blanda inte de två uppgifterna på en monitor** — en monitor som tar emot händelsestyrda larm har ingen fast rytm, så ett kriterium "Not Recieved In Minutes" på den kommer att slå fram och tillbaka. Använd en separat monitor för dödmansgreppet.
+4. **Blanda inte de två uppgifterna på en monitor** — en monitor som tar emot händelsestyrda larm har ingen fast rytm, så ett kriterium "Inte mottaget inom (minuter)" på den kommer att slå fram och tillbaka. Använd en separat monitor för dödmansgreppet.
 5. **Övervaka övervakningen** — Se till att tjänsten som skickar förfrågningarna hanterar fel ordentligt, så att misslyckade förfrågningar inte går obemärkta förbi.
 
 ## Felsökning
@@ -360,14 +360,14 @@ En fullständig Alertmanager-konfiguration finns under [Prometheus Alertmanager]
 :::
 
 :::details Monitorn blir aldrig offline när heartbeats upphör
-Bara ett kriterium med **Incoming Request** (**Not Recieved In Minutes**) kan märka tystnad. Lägg till ett om det saknas, och dra det ovanför standardkriterierna: standardkriteriet för online matchar den senaste förfrågan vid varje bakgrundskontroll, och det första kriteriet som matchar avgör.
+Bara ett kriterium med **Inkommande begäran** (**Inte mottaget inom (minuter)**) kan märka tystnad. Lägg till ett om det saknas, och dra det ovanför standardkriterierna: standardkriteriet för online matchar den senaste förfrågan vid varje bakgrundskontroll, och det första kriteriet som matchar avgör.
 :::
 
 :::details Ett filter på Begärandekropp matchar aldrig
 Skicka `Content-Type: application/json`, och skriv värdet som kompakt JSON — `"status":"firing"`, utan mellanslag efter kolonet. Utan en innehållstyp för JSON eller formulär tolkas kroppen inte.
 :::
 
-:::details Ett filter på Request Header matchar aldrig
+:::details Ett filter på Begärandehuvud matchar aldrig
 Headernamn och headervärden jämförs i sin helhet. Ange hela värdet, som `application/json; charset=utf-8`, i stället för en del av det.
 :::
 

@@ -134,6 +134,22 @@ db.createUser({
 ```
 
 MongoDB wird über seinen eigenen Treiber gelesen: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/` oder `mongodb://` mit den Hosts eines Replica Sets. Eine Datenbank im Pfad ist die einzige, die überwacht wird; ohne eine wird jede Datenbank überwacht, die der Login lesen darf, und `{ role: "read", db: "orders" }` anstelle von `readAnyDatabase` beschränkt ihn auf eine. Dokumente, Größe und Schreibvorgänge jeder Collection kommen aus `$collStats`, und wann sie zuletzt ein Dokument aufgenommen hat, aus ihrer neuesten `_id`. Ihre Felder kommen aus dem JSON-Schema ihres Validators oder sonst aus den Namen und Typen der Felder ihrer 100 neuesten Dokumente, in der Datenbank ermittelt, sodass kein Wert sie verlässt. Dokumente werden auf einem Secondary gelesen, wo es einen gibt, und eine benutzerdefinierte Prüfung ist eine Aggregations-Pipeline als JSON.
+@tab Microsoft Dataverse
+OneUptime meldet sich bei der Umgebung als App an. Registrieren Sie eine in Microsoft Entra ID und geben Sie ihr ein Client-Secret. Fügen Sie sie dann der Umgebung als Anwendungsbenutzer hinzu: Öffnen Sie im Power Platform admin center die Umgebung und dann **Settings** > **Users + permissions** > **Application users** > **New app user**. Geben Sie ihr eine Sicherheitsrolle, die die Tabellen lesen darf, die Sie überwachen.
+
+Verbinden Sie sich mit JSON:
+
+```json
+{ "environmentUrl": "https://contoso.crm.dynamics.com", "tenantId": "72f988bf-86f1-41af-91ab-2d7cd011db47", "clientId": "11111111-2222-3333-4444-555555555555", "clientSecret": "..." }
+```
+
+Oder mit einer Dataverse-Verbindungszeichenfolge, wie die SDKs von Dataverse sie erwarten: `AuthType=ClientSecret;Url=https://contoso.crm.dynamics.com;ClientId=...;ClientSecret=...`. Lassen Sie den Mandanten weg, und die Umgebung sagt, in welchem sie liegt.
+
+Eine Umgebung enthält Hunderte eigener Tabellen, daher werden nur diese überwacht: die zentralen Geschäftstabellen (`account`, `contact`, `lead`, `opportunity`, `quote`, `salesorder`, `invoice`, `product`, `incident`, `email`, `phonecall`, `appointment`, `task` und `annotation`) und Ihre eigenen benutzerdefinierten Tabellen. Die Tabellen der Microsoft-Apps, deren Namen mit `msdyn_`, `adx_` oder einem anderen `ms`-Präfix beginnen, werden ausgelassen. Nennen Sie jede andere Tabelle mit ihrem logischen Namen, um auch sie zu überwachen: `"tables": ["msdyn_workorder", "systemuser"]`.
+
+Alle fünf Minuten liefert die Web API die Definition jeder Tabelle, ihre Zeilen und den neuesten Wert von `modifiedon`, also wann sie sich zuletzt geändert hat. Die Zeilen stammen aus der Zählung, die Dataverse einmal pro Tag vornimmt, und hinken daher bis zu einem Tag hinterher. Die Spalten werden einmal pro Stunde gelesen. Jede Erfassung stellt zwei Anfragen und eine weitere pro überwachte Tabelle, angerechnet auf das Limit der App von 6.000 Anfragen in fünf Minuten. Wenn Dataverse darum bittet, langsamer zu werden, warten die übrigen Lesevorgänge auf die nächste Erfassung. Schließen Sie eine Tabelle aus, damit sie nicht mehr gelesen wird.
+
+Prüfungen laufen als schreibgeschütztes SQL auf dem TDS-Endpunkt der Umgebung, auf Port 1433 oder 5558, angemeldet als dieselbe App. Der Endpunkt ist eingeschaltet, es sei denn, ein Administrator hat ihn ausgeschaltet. Wo dafür die Zugriffssteuerung auf Benutzerebene eingeschaltet ist, braucht die Rolle der App die Berechtigung **Allow user to access TDS endpoint**. Sein SQL kennt keine regulären Ausdrücke, kein `WITH` und keine Stichproben, sodass eine Prüfung dort jede Zeile liest.
 :::
 
 ## Was gelesen wird, und wie oft
@@ -162,6 +178,8 @@ Jeder Pfad erscheint dann unter **Tabellen**: Sein neuestes Objekt ist seine let
 - **Tabellen zeigen keine letzte Änderung.** Das Login kann die Statistiken der Engine nicht lesen: Gewähren Sie, was der Tab Ihrer Engine auflistet, oder warten Sie, bis sich die Zeilen einer Tabelle zweimal geändert haben.
 - **Eine Tabelle fehlt.** Sie liegt in einem Schema, das das Login nicht nutzen kann, oder sie ist an der Datenbank ausgeschlossen. Gewähren Sie `USAGE` auf ihr Schema oder entfernen Sie den Ausschluss.
 - **Eine MySQL-Tabelle hat keine Spalten.** Das Login braucht `REFERENCES`, wie oben: Es zeigt die Spalten einer Tabelle, ohne irgendeinen Lesezugriff auf ihre Zeilen zu geben.
+- **Eine Dataverse-Umgebung sagt, dass sie die App abgelehnt hat.** Fügen Sie die App der Umgebung als Anwendungsbenutzer hinzu, mit einer Sicherheitsrolle, die die Tabellen lesen darf, wie im Tab Microsoft Dataverse beschrieben.
+- **Eine Dataverse-Tabelle fehlt.** Überwacht werden nur die zentralen Geschäftstabellen und Ihre eigenen benutzerdefinierten Tabellen. Nennen Sie sie in `tables`, mit ihrem logischen Namen.
 
 ## Nächste Schritte
 

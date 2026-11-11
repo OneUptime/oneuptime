@@ -513,7 +513,7 @@ Les abonnés webhook reçoivent une requête JSON `POST` à chaque événement d
 
 Comme l'abonnement est une opération publique sur une page publique, OneUptime protège la cible :
 
-- Une **URL du webhook** générique est validée avant d'être acceptée, et les adresses privées, de bouclage, de liaison locale et de métadonnées cloud sont refusées. Vous ne pouvez pas pointer un abonnement vers quelque chose à l'intérieur du réseau propre au déploiement OneUptime.
+- Une **URL du webhook** générique est vérifiée lorsqu'elle est enregistrée, lorsqu'elle est modifiée et de nouveau avant chaque envoi. Les adresses de bouclage, de liaison locale et de métadonnées cloud sont toujours refusées. Les adresses privées, comme `10.0.0.0/8` ou `192.168.0.0/16`, sont refusées pour un abonné qui s'inscrit sur la page de statut, quoi que votre instance autorise. Un abonné webhook que votre équipe ajoute, depuis le tableau de bord, avec une clé d'API ou par un workflow, peut utiliser une adresse privée dès qu'une instance auto-hébergée l'autorise (voir [Accès au réseau privé](/docs/self-hosted/private-network-access)) ; jusque-là, elle est refusée elle aussi.
 - Une **URL du webhook entrant Slack** doit commencer par `https://hooks.slack.com/services/`.
 - Une **URL du webhook entrant Microsoft Teams** doit être une adresse `https` sur `office.com`, `office365.com`, `logic.azure.com` ou `environment.api.powerplatform.com`, ou un sous-domaine de l'un d'eux.
 

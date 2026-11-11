@@ -970,12 +970,17 @@ test.describe("metric tables on the dashboard inside OneUptime", () => {
       "CPU",
     );
 
-    await expect(critical).toHaveAttribute("title", "بحرانی: 90% و بالاتر");
+    /*
+     * In Persian digits, as Persian writes every number in the product
+     * (Common/Types/DateLanguage): the threshold 90, and the value 93.0 with
+     * Persian's decimal separator.
+     */
+    await expect(critical).toHaveAttribute("title", "بحرانی: ۹۰% و بالاتر");
 
     // Right to left, the start of the line is its right.
     const [iconBox, numberBox] = await boxesInOneFrame([
       critical.getByRole("img"),
-      critical.getByText("93.0%"),
+      critical.getByText("۹۳٫۰%"),
     ]);
     expect(iconBox!.x).toBeGreaterThan(numberBox!.x);
 

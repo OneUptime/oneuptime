@@ -162,6 +162,16 @@ db.createUser({
 
 To watch one database only, grant \`{ role: "read", db: "orders" }\` in place of \`readAnyDatabase\`.
 
+Microsoft Dataverse: one environment is a database, its tables in \`dbo\`, as its SQL endpoint names them. OneUptime signs in as an app: register one in Microsoft Entra ID with a client secret, and add it to the environment as an application user (Power Platform admin center > the environment > Settings > Users + permissions > Application users) with a security role that may read the tables. Connect with JSON, or with a Dataverse connection string that says \`AuthType=ClientSecret\`. The tenant may be left out: the environment says which one it is in.
+
+\`\`\`json
+{ "environmentUrl": "https://contoso.crm.dynamics.com", "tenantId": "...", "clientId": "...", "clientSecret": "..." }
+\`\`\`
+
+Every five minutes the Web API gives each table's definition, its rows, from the snapshot Dataverse takes once a day (so they lag by up to a day), and its newest \`modifiedon\`, which is when it last changed. Its columns are read once an hour. Every read counts against the app's Dataverse request limits, and a collection that is asked to slow down leaves the rest to the next one. An environment holds hundreds of tables of its own, so only the core business tables (accounts, contacts, leads, opportunities, quotes, orders, invoices, products, cases, emails, phone calls, appointments, tasks and notes) and your own custom tables are watched. Tables of Microsoft's apps (\`msdyn_\`, \`adx_\` and the other \`ms\` prefixes) are left out: name any other table to watch, as in \`"tables": ["msdyn_workorder"]\`.
+
+Data checks run as read-only SQL on the environment's TDS endpoint, on port 1433 or 5558. It is on unless an admin turned it off; where user level access control for it is on, the app's role needs the **Allow user to access TDS endpoint** privilege. Its SQL has no regular expressions, no \`WITH\` and no sample.
+
 ## Metrics every table writes
 
 Each collection writes these for every table, so you can chart them, put them on dashboards and alert on them like any other metric:
@@ -357,6 +367,8 @@ Lineage does not need a pipeline that sends OpenLineage. Each database says some
 Lineage is read once an hour, back to the last read, and a week back at a database's first collection, so it is there from the start. A BigQuery read is billed for the hours of jobs it reads, mostly BigQuery's 10 MB minimum.
 
 Each edge on a table's **Lineage** tab says where it was seen: a pipeline's run, the query history (with a login whose queries moved the data), or a view's definition. Lineage from every source counts for **One issue per cause**.
+
+At the top of a table's **Lineage** tab, a diagram draws its lineage a few steps each way (three, or pick 1, 2 or 5): what it is built from on the left, the tables and dashboards built from it on the right, and the pipelines that load data from outside where it comes in. Each card says how it is now - late, an open alert, a failed run - and an arrow turns red when its pipeline's latest run failed, so a late table can be followed up to the run that broke it. Open any table to center the diagram on it. The same lineage is at \`POST /api/data-observability/tables/lineage\`, for your own tools.
 
 ## dbt
 

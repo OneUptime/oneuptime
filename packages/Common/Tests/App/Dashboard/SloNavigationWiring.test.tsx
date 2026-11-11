@@ -35,6 +35,7 @@ import {
 import Link from "../../../Types/Link";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
+import { WORKSPACE_MENU_ENTRY_TITLES } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceSideMenuSection";
 import {
   DESKTOP_WIDTH,
   MenuLink,
@@ -187,6 +188,37 @@ async function renderSideMenuFor(key: string): Promise<void> {
  * API calls) into this suite.
  */
 function stubSloRoutePages(): void {
+  /*
+   * The Workspace section's own page is the page every product mounts with
+   * its Slack, Microsoft Teams and Mattermost pages: stubbed to show the
+   * route of the product's page it was mounted for, read from those pages.
+   */
+  jest.doMock(
+    path.join(
+      DASHBOARD_SRC,
+      "Components",
+      "Workspace",
+      "WorkspaceConnectionsOverview",
+    ),
+    () => {
+      return {
+        __esModule: true,
+        default: (props: { slackPage: string }): React.ReactElement => {
+          return (
+            <div data-testid="slo-page">
+              {RouteUtil.getRouteString(
+                props.slackPage.replace(
+                  "_WORKSPACE_CONNECTION_SLACK",
+                  "_WORKSPACE_CONNECTIONS",
+                ),
+              )}
+            </div>
+          );
+        },
+      };
+    },
+  );
+
   const source: string = fs.readFileSync(SLO_ROUTES_FILE, "utf8");
   const importPattern: RegExp =
     /(?:from\s+|import\(\s*)"(\.\.\/Pages\/Slo\/[^"]+)"/g;
@@ -397,9 +429,14 @@ describe("SLO navigation wiring", () => {
       /*
        * The overview is the one page named differently on purpose: "Overview"
        * among its siblings in the menu, "View SLO" as the parent crumb every
-       * other SLO page's trail runs through.
+       * other SLO page's trail runs through. And the Workspace section's own
+       * page, as in every product: "Connect a workspace" in the menu, while
+       * nothing is connected, and "Workspace" at the end of its trail.
        */
-      if (key !== PageMap.SLO_VIEW) {
+      if (key === PageMap.SLOS_WORKSPACE_CONNECTIONS) {
+        expect(link!.title).toBe(WORKSPACE_MENU_ENTRY_TITLES.Connect);
+        expect(leafTitle).toBe("Workspace");
+      } else if (key !== PageMap.SLO_VIEW) {
         expect(link!.title).toBe(leafTitle);
       }
     },

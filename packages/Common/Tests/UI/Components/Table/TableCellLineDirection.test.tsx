@@ -7,7 +7,10 @@ import { I18nextProvider } from "react-i18next";
 import TableBody from "../../../../UI/Components/Table/TableBody";
 import Columns from "../../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../../UI/Components/Types/FieldType";
-import { LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../../UI/Utils/LineDirection";
+import {
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+  LINE_OR_CLAMPED_LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "../../../../UI/Utils/LineDirection";
 
 /*
  * A table's plain value is cut short with "..." at its cell's edge, and a
@@ -171,7 +174,8 @@ describe("on an English page", () => {
     const box: HTMLElement = cutBoxOf(ROW.owner);
 
     expect(box).toHaveAttribute("dir", "rtl");
-    expect(box).toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    // The row's name: lined up by its last line (below).
+    expect(box).toHaveClass("text-start", "[text-align-last:end]");
   });
 
   test("an English value's box is drawn as it always was", () => {
@@ -181,5 +185,100 @@ describe("on an English page", () => {
 
     expect(box).not.toHaveAttribute("dir");
     expect(box).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+  });
+});
+
+/*
+ * A row's name may be cut short to its first line (line-clamp, while its
+ * table fits its card). Aligned to its end, that line's "..." was drawn
+ * past the box's edge and cut ("Customer notifications worker (queue
+ * co.." on an Arabic monitor list); only its last line is aligned to its
+ * end, so a name that fits still starts where the page's lines do. Any
+ * other column's value stays on one line and keeps its end alignment.
+ */
+describe("a row's name that reads the other way", () => {
+  test("is lined up by its last line, so a line cut short keeps its whole ellipsis", () => {
+    drawRow({
+      language: "fa",
+      columns: [
+        { title: "Last Poll Summary", type: FieldType.Text, key: "summary" },
+        { title: "Owner", type: FieldType.Text, key: "owner" },
+      ],
+    });
+
+    const box: HTMLElement = cutBoxOf(ROW.summary);
+
+    expect(box).toHaveAttribute("dir", "ltr");
+    expect(box).toHaveClass("text-start", "[text-align-last:end]");
+    expect(box).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    expect(LINE_OR_CLAMPED_LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME).toBe(
+      "text-start [text-align-last:end]",
+    );
+  });
+
+  test("an element that names its words (getLineText) reads their way", () => {
+    drawRow({
+      language: "fa",
+      columns: [
+        {
+          title: "Summary",
+          type: FieldType.Element,
+          key: "summary",
+          getElement: (row: Row): ReactElement => {
+            return (
+              <a href="#summary">
+                <span className="flex">{row.summary}</span>
+              </a>
+            );
+          },
+          getLineText: (row: Row): string => {
+            return row.summary;
+          },
+        },
+        {
+          title: "Owner",
+          type: FieldType.Element,
+          key: "owner",
+          getElement: (row: Row): ReactElement => {
+            return <span>{row.owner}</span>;
+          },
+          getLineText: (row: Row): string => {
+            return row.owner;
+          },
+        },
+      ],
+    });
+
+    const name: HTMLElement = cutBoxOf(ROW.summary);
+
+    expect(name).toHaveAttribute("dir", "ltr");
+    expect(name).toHaveClass("text-start", "[text-align-last:end]");
+
+    // A Persian value on a Persian page is drawn as it always was.
+    expect(cutBoxOf(ROW.owner)).not.toHaveAttribute("dir");
+  });
+
+  test("an English element on an English page is drawn as it always was", () => {
+    drawRow({
+      language: "en",
+      columns: [
+        {
+          title: "Summary",
+          type: FieldType.Element,
+          key: "summary",
+          getElement: (row: Row): ReactElement => {
+            return <span>{row.summary}</span>;
+          },
+          getLineText: (row: Row): string => {
+            return row.summary;
+          },
+        },
+      ],
+    });
+
+    const box: HTMLElement = cutBoxOf(ROW.summary);
+
+    expect(box).not.toHaveAttribute("dir");
+    expect(box).not.toHaveClass("[text-align-last:end]");
   });
 });

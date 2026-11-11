@@ -48,6 +48,7 @@ import useDashboardWidgetColumns, {
   DashboardWidgetColumns,
 } from "./DashboardWidgetColumns";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDataSourceTableComponentType;
@@ -252,14 +253,16 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
         typeof value === "number"
       ) {
         return Number.isInteger(value)
-          ? value.toLocaleString()
-          : value.toLocaleString(undefined, { maximumFractionDigits: 4 });
+          ? value.toLocaleString(getReaderNumberLocale())
+          : value.toLocaleString(getReaderNumberLocale(), {
+              maximumFractionDigits: 4,
+            });
       }
       if (column.type === DataSourceTableColumnType.Date) {
         const parsed: Date = new Date(String(value));
         return isNaN(parsed.getTime())
           ? String(value)
-          : parsed.toLocaleString();
+          : parsed.toLocaleString(getReaderNumberLocale());
       }
       return String(value);
     },

@@ -134,6 +134,22 @@ db.createUser({
 ```
 
 MongoDB 通过其自有驱动读取：`mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/`，或带副本集主机列表的 `mongodb://`。路径中指定的数据库是唯一被监控的；未指定时，监控该登录可读取的每个数据库，用 `{ role: "read", db: "orders" }` 代替 `readAnyDatabase` 可将其限制为一个。每个集合的文档、大小和写入来自 `$collStats`，最后一次收到文档的时间来自其最新的 `_id`。字段来自其验证器的 JSON 模式，否则来自其最新 100 个文档的字段名称和类型，均在数据库内计算，任何值都不会离开数据库。有从节点时在从节点上读取文档，自定义检查是 JSON 格式的聚合管道。
+@tab Microsoft Dataverse
+OneUptime 以应用身份登录到环境。在 Microsoft Entra ID 中注册一个应用，并为它创建客户端密钥。接着把它作为应用程序用户添加到环境中：在 Power Platform admin center 中打开该环境，然后依次选择 **Settings** > **Users + permissions** > **Application users** > **New app user**。为它分配一个能够读取你所监视的表的安全角色。
+
+使用 JSON 连接：
+
+```json
+{ "environmentUrl": "https://contoso.crm.dynamics.com", "tenantId": "72f988bf-86f1-41af-91ab-2d7cd011db47", "clientId": "11111111-2222-3333-4444-555555555555", "clientSecret": "..." }
+```
+
+或者使用 Dataverse 连接字符串，格式与其 SDK 接受的相同：`AuthType=ClientSecret;Url=https://contoso.crm.dynamics.com;ClientId=...;ClientSecret=...`。省略租户时，环境会说明它所在的租户。
+
+一个环境自带数百个表，因此只监视以下这些：核心业务表（`account`、`contact`、`lead`、`opportunity`、`quote`、`salesorder`、`invoice`、`product`、`incident`、`email`、`phonecall`、`appointment`、`task` 和 `annotation`）以及你自己的自定义表。Microsoft 应用的表会被排除，它们的名称以 `msdyn_`、`adx_` 或其他 `ms` 前缀开头。要同时监视其他任何表，请用它的逻辑名称指定它：`"tables": ["msdyn_workorder", "systemuser"]`。
+
+Web API 每五分钟提供每个表的定义、行数和最新的 `modifiedon`，也就是它最后一次更改的时间。行数来自 Dataverse 每天进行一次的计数，因此最多滞后一天。列每小时读取一次。每次采集会发出两个请求，每个被监视的表再加一个，这些请求计入该应用每五分钟 6,000 个请求的限制。当 Dataverse 要求放慢速度时，其余的读取会等到下一次采集。排除某个表即可停止读取它。
+
+检查以只读 SQL 的形式在环境的 TDS 端点上运行，端口为 1433 或 5558，并以同一个应用身份登录。除非管理员已将其关闭，否则该端点处于开启状态。如果该端点启用了用户级访问控制，该应用的角色需要 **Allow user to access TDS endpoint** 权限。它的 SQL 不支持正则表达式、`WITH` 和采样，因此 Dataverse 上的检查会读取每一行。
 :::
 
 ## 读取的内容和频率
@@ -162,6 +178,8 @@ PostgreSQL 或 SQL Server 的只读副本不会移动其写入计数器，因此
 - **表没有显示最后更改时间。** 该登录无法读取引擎的统计信息：请授予你的引擎标签页中列出的权限，或者等待表的行数更改两次。
 - **缺少某个表。** 它位于该登录无法使用的架构中，或者在该数据库上被排除。请授予对其架构的 `USAGE` 权限，或者移除该排除项。
 - **MySQL 表没有列。** 该登录需要 `REFERENCES`，如上所述：它可以显示表的列，而不授予对其行的任何读取权限。
+- **Dataverse 环境提示它拒绝了该应用。** 把该应用作为应用程序用户添加到环境中，并为它分配能够读取这些表的安全角色，如 Microsoft Dataverse 标签页所述。
+- **缺少某个 Dataverse 表。** 只有核心业务表和你自己的自定义表会被监视。请在 `tables` 中用它的逻辑名称指定它。
 
 ## 后续步骤
 

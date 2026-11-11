@@ -236,8 +236,9 @@ const RETENTION_FIELD_PATTERN: RegExp = new RegExp(
   "field\\s*:\\s*\\{\\s*sessionReplayRetentionInDays\\s*:\\s*true\\s*,?\\s*\\}",
   "g",
 );
+/* The choices are the closed set, worded in the reader's language. */
 const LIMITS_RETENTION_FIELD_PATTERN: RegExp = new RegExp(
-  '\\{\\s*field:\\s*\\{\\s*sessionReplayRetentionInDays:\\s*true\\s*\\},\\s*title:\\s*"Retention",\\s*stepId:\\s*"limits",\\s*fieldType:\\s*FormFieldSchemaType\\.Dropdown,\\s*dropdownOptions:\\s*SESSION_REPLAY_RETENTION_OPTIONS,',
+  '\\{\\s*field:\\s*\\{\\s*sessionReplayRetentionInDays:\\s*true\\s*\\},\\s*title:\\s*"Retention",\\s*stepId:\\s*"limits",\\s*fieldType:\\s*FormFieldSchemaType\\.Dropdown,\\s*dropdownOptions:\\s*getSessionReplayRetentionOptions\\(\\s*translator\\s*\\),',
 );
 const RETENTION_READ_PATTERN: RegExp = new RegExp(
   "select:\\s*\\{\\s*sessionReplayRetentionInDays:\\s*true,?\\s*\\}",
@@ -311,20 +312,25 @@ describe("Application replay settings page composition", () => {
     const health: string = fs.readFileSync(
       nodePath.join(
         __dirname,
-        "../../../Common/Utils/Rum/SessionReplayHealth.ts",
+        "../../../Common/Utils/SessionReplay/SessionReplayHealth.ts",
       ),
       "utf8",
     );
-    const projectOff: string = health.slice(
-      indexOfOrFail(health, "if (!policy.isProjectEnabled) {"),
-      indexOfOrFail(health, "if (!policy.isApplicationEnabled) {"),
-    );
+    // Whitespace-insensitive: the title and the label are looked up whole.
+    const projectOff: string = health
+      .slice(
+        indexOfOrFail(health, "if (!policy.isProjectEnabled) {"),
+        indexOfOrFail(health, "if (!policy.isApplicationEnabled) {"),
+      )
+      .replace(/\s+/g, " ");
 
     expect(projectOff).toContain('state: "disabled-project"');
     expect(projectOff).toContain(
-      'title: "Session replay is switched off for this project"',
+      'title: translateWord( "Session replay is switched off for this project", translator, )',
     );
-    expect(projectOff).toContain('action("Turn it on", "project-settings")');
+    expect(projectOff).toContain(
+      'action( translateWord("Turn it on", translator), "project-settings", )',
+    );
   });
 
   test("composes health -> policy -> privacy summary -> install test -> targeted capture, in that order", () => {

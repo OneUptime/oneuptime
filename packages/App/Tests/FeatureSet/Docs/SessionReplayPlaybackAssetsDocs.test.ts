@@ -1959,8 +1959,8 @@ describe("the Persian mirrors carry the playback sections", (): void => {
     );
 
     for (const token of [
-      "**Copy image**",
-      // Download, as the Persian Dashboard draws it.
+      // Copy image and Download, as the Persian Dashboard draws them.
+      `**${drawnDashboardLabel("fa", "Copy image")}**`,
       "**دانلود**",
       "`session-replay-<session>-<offset>.png`",
       "(`https`)",

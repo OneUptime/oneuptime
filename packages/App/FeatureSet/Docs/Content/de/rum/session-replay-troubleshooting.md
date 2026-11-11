@@ -285,6 +285,18 @@ Diese halten fest, was Ihr eigener Code vom Recorder verlangt hat. Sie sind nüt
 | `api-stop` | `stop()` wurde aufgerufen. Das letzte Chunk wurde hochgeladen und die Sitzung abgeschlossen; für den Rest des Lebens der Seite wird nichts aufgezeichnet. |
 | `api-no-recorder` | Einer der obigen Aufrufe lief, während kein Recorder aktiv war — meist weil er lief, bevor das Recorder-Artefakt geladen war. Legen Sie stattdessen Einträge `[command, ...arguments]` in `window.OneUptimeReplayQueue` ab; sie werden angewendet, sobald es da ist. |
 
+### Produktanalyse-Ereignisse
+
+Diese stammen von den Ereignissen, die der Recorder neben der Aufzeichnung für die [Produktanalyse](/docs/rum/product-analytics#ereignisse-und-metriken-senden) sendet.
+
+| Code | Was er bedeutet |
+| --- | --- |
+| `analytics-started` | Die Anwendung hat Produktanalyse-Ereignisse eingeschaltet, daher sendet der Recorder den Start jeder Sitzung, ihre Seitenaufrufe und Ihre Aufrufe von `track()` und `metric()`. `userPropertyKeys` sagt, wie viele Benutzereigenschaften er aufbewahrt. |
+| `analytics-stopped` | Der Server nimmt die Ereignisse dieser Seite nicht an, daher werden von ihr keine mehr gesendet. `status` 204 bedeutet, dass die Anwendung sie oder die Sitzungswiedergabe ausgeschaltet hat, 403, dass der Ursprung der Seite nicht zugelassen ist, und 400, dass dieser Recorder einen Stapel gesendet hat, den der Server nicht lesen kann; `reason` sagt, was zutrifft. |
+| `metric-analytics-off` | `metric()` wurde aufgerufen, während die Anwendung Produktanalyse-Ereignisse ausgeschaltet hat. Nichts wurde gesendet: Schalten Sie sie unter **Analyseeinstellungen** ein. |
+| `metric-name-refused` | `metric()` hat einen Namen erhalten, den es nicht senden kann. Ein Name beginnt mit einem Buchstaben, enthält nur Buchstaben, Ziffern, `_`, `.`, `-` und `/`, ist höchstens 100 Zeichen lang und beginnt nicht mit `oneuptime.`. |
+| `metric-value-refused` | `metric()` hat einen Wert erhalten, der keine endliche Zahl ist. Nichts wurde gesendet. |
+
 ## Gar keine Anfrage im Tab „Netzwerk“
 
 Arbeiten Sie diese Liste ab; sie ist danach sortiert, wie oft der jeweilige Punkt die Antwort ist.

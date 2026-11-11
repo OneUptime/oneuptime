@@ -128,7 +128,7 @@ Vom Skript zurückgegebene Daten werden vor dem Speichern nach JSON serialisiert
 
 ### Auf die zurückgegebenen Daten alarmieren
 
-Was das Skript als `data` zurückgibt, ist der **Result Value** des Monitors, den ein Kriterium vergleichen kann. Ist `data` ein Objekt oder ein Array, füllen Sie im Result-Value-Filter **Feldpfad (optional)** aus, um ein Feld daraus zu vergleichen — zum Beispiel `status`, `timings.loadTime` oder `errors[0].message`. Der Filter wird an den Daten jedes Browsers und jeder Bildschirmgröße geprüft, auf denen der Monitor läuft, und trifft zu, wenn einer davon zutrifft. Wie Pfade und Bedingungen funktionieren, steht unter [Auf die zurückgegebenen Daten alarmieren](/docs/monitor/custom-code-monitor#auf-die-zurückgegebenen-daten-alarmieren).
+Was das Skript als `data` zurückgibt, ist der **Ergebniswert** des Monitors, den ein Kriterium vergleichen kann. Ist `data` ein Objekt oder ein Array, füllen Sie im Ergebniswert-Filter **Feldpfad (optional)** aus, um ein Feld daraus zu vergleichen — zum Beispiel `status`, `timings.loadTime` oder `errors[0].message`. Der Filter wird an den Daten jedes Browsers und jeder Bildschirmgröße geprüft, auf denen der Monitor läuft, und trifft zu, wenn einer davon zutrifft. Wie Pfade und Bedingungen funktionieren, steht unter [Auf die zurückgegebenen Daten alarmieren](/docs/monitor/custom-code-monitor#auf-die-zurückgegebenen-daten-alarmieren).
 
 ## Screenshots
 
@@ -232,10 +232,10 @@ Ein Lauf kann höchstens 100 Metriken erfassen, nur mit numerischen Werten, und 
 | Filtertyp | Was er prüft |
 | --- | --- |
 | **Fehler** | Den Fehler, den ein Lauf geworfen hat, falls vorhanden. |
-| **Result Value** | Die `data`, die ein Lauf zurückgegeben hat. |
+| **Ergebniswert** | Die `data`, die ein Lauf zurückgegeben hat. |
 | **Ausführungszeit (in ms)** | Wie lange ein Lauf dauerte. |
 | **Browser-Typ** | Der Browser, den ein Lauf verwendet hat: **Gleich** oder **Ungleich**. |
-| **Screen Size** | Die Bildschirmgröße, die ein Lauf verwendet hat: **Gleich** oder **Ungleich**. |
+| **Bildschirmgröße** | Die Bildschirmgröße, die ein Lauf verwendet hat: **Gleich** oder **Ungleich**. |
 
 Jeder Filter wird an jedem Lauf geprüft und trifft zu, wenn ein einziger Lauf zutrifft. Filter werden getrennt geprüft, nicht Lauf für Lauf: **Fehler** Ist nicht leer zusammen mit **Browser-Typ** Gleich `Firefox` trifft zu, wenn irgendein Lauf fehlschlug und einer der Läufe Firefox verwendete — nicht nur, wenn der Firefox-Lauf fehlschlug. Um einen Browser für sich zu beobachten, geben Sie ihm einen eigenen Monitor.
 

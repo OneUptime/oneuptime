@@ -128,7 +128,7 @@ Os dados retornados pelo script são serializados em JSON antes de serem armazen
 
 ### Alertar sobre os dados retornados
 
-O que o script retorna como `data` é o **Result Value** do monitor, que um critério pode comparar. Quando `data` é um objeto ou um array, preencha **Caminho do campo (opcional)** no filtro Result Value para comparar um campo dele: por exemplo `status`, `timings.loadTime` ou `errors[0].message`. O filtro é verificado com os dados de cada navegador e tamanho de tela em que o monitor roda, e corresponde quando qualquer um deles corresponde. Veja [Alertar sobre os dados retornados](/docs/monitor/custom-code-monitor#alertar-sobre-os-dados-retornados) para entender como funcionam caminhos e condições.
+O que o script retorna como `data` é o **Valor do resultado** do monitor, que um critério pode comparar. Quando `data` é um objeto ou um array, preencha **Caminho do campo (opcional)** no filtro Valor do resultado para comparar um campo dele: por exemplo `status`, `timings.loadTime` ou `errors[0].message`. O filtro é verificado com os dados de cada navegador e tamanho de tela em que o monitor roda, e corresponde quando qualquer um deles corresponde. Veja [Alertar sobre os dados retornados](/docs/monitor/custom-code-monitor#alertar-sobre-os-dados-retornados) para entender como funcionam caminhos e condições.
 
 ## Capturas de tela
 
@@ -232,10 +232,10 @@ Uma execução pode capturar no máximo 100 métricas, só com valores numérico
 | Tipo de filtro | O que verifica |
 | --- | --- |
 | **Erro** | O erro que uma execução lançou, se houver. |
-| **Result Value** | Os `data` que uma execução retornou. |
+| **Valor do resultado** | Os `data` que uma execução retornou. |
 | **Tempo de execução (em ms)** | Quanto tempo uma execução levou. |
 | **Tipo de navegador** | O navegador que uma execução usou: **Igual a** ou **Diferente de**. |
-| **Screen Size** | O tamanho de tela que uma execução usou: **Igual a** ou **Diferente de**. |
+| **Tamanho de tela** | O tamanho de tela que uma execução usou: **Igual a** ou **Diferente de**. |
 
 Cada filtro é verificado em cada execução, e corresponde quando uma única execução corresponde. Os filtros são verificados separadamente, não execução por execução: **Erro** Não está vazio junto com **Tipo de navegador** Igual a `Firefox` corresponde quando qualquer execução falhou e uma das execuções usou o Firefox, não só quando a execução do Firefox falhou. Para acompanhar um navegador sozinho, dê a ele um monitor próprio.
 

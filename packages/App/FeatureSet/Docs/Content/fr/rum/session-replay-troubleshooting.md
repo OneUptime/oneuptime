@@ -185,7 +185,7 @@ Chaque ligne porte un `code` stable. Cherchez le vôtre ici.
 | `disabled-by-default` | `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` sur ce déploiement. Passez-le à `true` — et définissez d'abord `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` si vous êtes auto-hébergé, car la relecture est votre plus grosse table. |
 | `ingest-disabled` | `SESSION_REPLAY_INGEST_ENABLED=false` sur ce déploiement. |
 | `policy-unavailable` | Le serveur n'a pas pu résoudre la politique — en général Redis ou Postgres. Il échoue en position fermée à dessein. Consultez les journaux de l'application OneUptime. |
-| `not-reported` | Le serveur est plus ancien que ce champ. Utilisez plutôt le panneau **Test your installation** du tableau de bord, sur la page **Politique de relecture**. |
+| `not-reported` | Le serveur est plus ancien que ce champ. Utilisez plutôt le panneau **Testez votre installation** du tableau de bord, sur la page **Politique de relecture**. |
 
 ### L'artefact
 
@@ -284,6 +284,18 @@ Ces lignes consignent ce que votre propre code a demandé à l'enregistreur. Ell
 | `api-revoke-consent` | `revokeConsent()` a été appelé. Tout ce qui était en tampon a été jeté et l'envoi s'est arrêté ; l'enregistreur continue de tourner en mémoire seulement, donc un `grantConsent()` ultérieur continue sur une session neuve. |
 | `api-stop` | `stop()` a été appelé. Le dernier fragment a été envoyé et la session scellée ; plus rien n'est enregistré pour le reste de la vie de la page. |
 | `api-no-recorder` | L'un des appels ci-dessus s'est exécuté alors qu'aucun enregistreur n'était actif — en général parce qu'il s'est exécuté avant le chargement de l'artefact de l'enregistreur. Poussez plutôt des entrées `[command, ...arguments]` dans `window.OneUptimeReplayQueue`, et elles sont appliquées dès son arrivée. |
+
+### Événements d'analyse produit
+
+Ces codes viennent des événements que l'enregistreur envoie pour l'[Analyse produit](/docs/rum/product-analytics#envoyer-des-événements-et-des-métriques), à côté de l'enregistrement.
+
+| code | signification |
+| --- | --- |
+| `analytics-started` | L'application a les événements d'analyse produit activés : l'enregistreur envoie donc le début de chaque session, ses pages vues et vos appels à `track()` et `metric()`. `userPropertyKeys` indique combien de propriétés utilisateur il garde. |
+| `analytics-stopped` | Le serveur n'accepte pas les événements de cette page, donc elle n'en envoie plus. `status` 204 signifie que l'application les a désactivés, ou a désactivé la Relecture de session, 403 que l'origine de la page n'est pas autorisée, et 400 que cet enregistreur a envoyé un lot que le serveur ne sait pas lire ; `reason` précise lequel. |
+| `metric-analytics-off` | `metric()` a été appelé alors que l'application a les événements d'analyse produit désactivés. Rien n'a été envoyé : activez-les dans **Paramètres d'analyse**. |
+| `metric-name-refused` | `metric()` a reçu un nom qu'il ne peut pas envoyer. Un nom commence par une lettre, ne contient que des lettres, des chiffres, `_`, `.`, `-` et `/`, fait 100 caractères au plus et ne commence pas par `oneuptime.`. |
+| `metric-value-refused` | `metric()` a reçu une valeur qui n'est pas un nombre fini. Rien n'a été envoyé. |
 
 ## Aucune requête dans l'onglet Réseau
 
@@ -467,7 +479,7 @@ Rassemblez ces éléments avant de demander de l'aide :
 
 - La sortie de `OneUptimeReplay.getDiagnostics()`.
 - Le statut de la requête `session-replay/v1/config`.
-- Ce que disent la page **Santé** de l'application et le panneau **Test your installation** de **Politique de relecture**. Ils répondent côté serveur, c'est-à-dire la moitié qu'un navigateur ne peut pas voir.
+- Ce que disent la page **Santé** de l'application et le panneau **Testez votre installation** de **Politique de relecture**. Ils répondent côté serveur, c'est-à-dire la moitié qu'un navigateur ne peut pas voir.
 - Pour des images, icônes ou styles manquants : l'adresse d'un fichier qui ne s'est pas chargé (**Ressources manquantes** les liste) et la ligne que la console du navigateur a affichée pour lui.
 
 Contactez ensuite support@oneuptime.com, ou ouvrez un ticket sur [GitHub](https://github.com/OneUptime/oneuptime).

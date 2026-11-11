@@ -513,7 +513,7 @@ Webhook 订阅者在每个状态页事件发生时都会收到一个 JSON `POST`
 
 由于订阅是公开页面上的公开操作，OneUptime 会保护目标地址：
 
-- 通用的 **Webhook URL** 在被接受之前会经过验证，私有、环回、链路本地和云元数据地址会被拒绝。你无法把订阅指向 OneUptime 部署自身网络内部的任何东西。
+- 通用的 **Webhook URL** 会在保存时、更改时以及每次发送前再次接受检查。环回、链路本地和云元数据地址始终会被拒绝。对于在状态页上自行注册的订阅者，私有地址（例如 `10.0.0.0/8` 或 `192.168.0.0/16`）无论你的实例允许什么都会被拒绝。你的团队从仪表板、用 API 密钥或由工作流添加的 Webhook 订阅者，在自托管实例允许之后可以使用私有地址（参见 [私有网络访问](/docs/self-hosted/private-network-access)）；在此之前它也会被拒绝。
 - **Slack 传入 Webhook URL** 必须以 `https://hooks.slack.com/services/` 开头。
 - **Microsoft Teams 传入 Webhook URL** 必须是位于 `office.com`、`office365.com`、`logic.azure.com` 或 `environment.api.powerplatform.com` 或其子域名上的 `https` 地址。
 

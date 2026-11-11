@@ -102,7 +102,7 @@ Seleccione las **Sondas** y un **Intervalo de monitoreo** —empieza en **Cada 5
 
 ### Componentes
 
-Elija los componentes de los que depende y el monitor vigilará solo esos: **External Status Page Component Status** compara solo sus estados, el estado general es el peor de los suyos y **External Status Page Active Incidents** cuenta solo los incidentes que afectan al menos a uno de ellos. Sigue siendo una sola comprobación de la página, elija cuantos elija.
+Elija los componentes de los que depende y el monitor vigilará solo esos: **Estado del componente de la página de estado externa** compara solo sus estados, el estado general es el peor de los suyos y el filtro **Incidentes activos de la página de estado externa** cuenta solo los incidentes que afectan al menos a uno de ellos. Sigue siendo una sola comprobación de la página, elija cuantos elija.
 
 Al abrir **Componentes**, su navegador lee la lista de la página desde una Atlassian Statuspage, una página de incident.io o una página de estado de OneUptime, y la muestra en los grupos de la página; cada componente que no está operativo dice cómo está. Un nombre que elija vigila el componente con exactamente ese nombre, sin distinguir mayúsculas y minúsculas: `Copilot` en la página de GitHub no es `Copilot AI Model Providers`.
 
@@ -129,13 +129,13 @@ Puede configurar criterios para decidir cuándo el servicio externo se considera
 
 | Tipo de filtro | Qué comprueba | Condiciones del filtro |
 | --- | --- | --- |
-| **External Status Page Is Online** | Si la página de estado es accesible y devuelve datos de estado | Verdadero o Falso |
-| **External Status Page Overall Status** | El estado general que indica la página | Igual a, Distinto de, Contiene, No contiene, Empieza por, Termina en |
-| **External Status Page Component Status** | El estado de cada componente del alcance (los componentes elegidos, o los del grupo, si los hay): Operativo, En mantenimiento, Rendimiento degradado, Interrupción parcial, Interrupción grave o Interrupción total | Igual a, Distinto de, Contiene, No contiene, Empieza por, Termina en |
-| **External Status Page Active Incidents** | El número de incidentes activos que muestra la página de estado (solo los que afectan a un componente del alcance, cuando hay componentes o un grupo elegidos) | Igual a, Distinto de y las comparaciones numéricas |
-| **External Status Page Response Time (in ms)** | Cuánto se tarda en descargar los datos de la página de estado | Mayor que, Menor que, Mayor o igual que, Menor o igual que |
+| **Página de estado externa en línea** | Si la página de estado es accesible y devuelve datos de estado | Verdadero o Falso |
+| **Estado general de la página de estado externa** | El estado general que indica la página | Igual a, Distinto de, Contiene, No contiene, Empieza por, Termina en |
+| **Estado del componente de la página de estado externa** | El estado de cada componente del alcance (los componentes elegidos, o los del grupo, si los hay): Operativo, En mantenimiento, Rendimiento degradado, Interrupción parcial, Interrupción grave o Interrupción total | Igual a, Distinto de, Contiene, No contiene, Empieza por, Termina en |
+| **Incidentes activos de la página de estado externa** | El número de incidentes activos que muestra la página de estado (solo los que afectan a un componente del alcance, cuando hay componentes o un grupo elegidos) | Igual a, Distinto de y las comparaciones numéricas |
+| **Tiempo de respuesta de la página de estado externa (en ms)** | Cuánto se tarda en descargar los datos de la página de estado | Mayor que, Menor que, Mayor o igual que, Menor o igual que |
 
-El estado general es lo que dice la página, así que sus valores dependen del proveedor: una Atlassian Statuspage informa de su propia descripción, como `All Systems Operational`; una página de estado de OneUptime, del peor estado entre sus componentes en el alcance, como `under_maintenance`; un feed informa de `operational` o `degraded_performance`; la comprobación de accesibilidad informa de `reachable` o `unreachable`. Con componentes o un grupo elegidos, es el peor estado entre ellos, en cualquier página. Estas comparaciones distinguen mayúsculas y minúsculas. El resumen del monitor muestra el estado general con palabras y color, como el de cada componente (`under_maintenance` se lee **En mantenimiento**), mientras que los criterios comparan el valor que informa la página. Para alertar de interrupciones, **External Status Page Active Incidents** y **External Status Page Component Status** suelen ser más fiables.
+El estado general es lo que dice la página, así que sus valores dependen del proveedor: una Atlassian Statuspage informa de su propia descripción, como `All Systems Operational`; una página de estado de OneUptime, del peor estado entre sus componentes en el alcance, como `under_maintenance`; un feed informa de `operational` o `degraded_performance`; la comprobación de accesibilidad informa de `reachable` o `unreachable`. Con componentes o un grupo elegidos, es el peor estado entre ellos, en cualquier página. Estas comparaciones distinguen mayúsculas y minúsculas. El resumen del monitor muestra el estado general con palabras y color, como el de cada componente (`under_maintenance` se lee **En mantenimiento**), mientras que los criterios comparan el valor que informa la página. Para alertar de interrupciones, **Incidentes activos de la página de estado externa** y **Estado del componente de la página de estado externa** suelen ser más fiables.
 
 En un feed RSS o Atom, los elementos de las últimas 24 horas cuentan como incidentes activos: un elemento RSS por su fecha de publicación, una entrada Atom por su fecha de actualización. Un elemento con fecha futura no cuenta hasta esa fecha.
 
@@ -178,7 +178,7 @@ Los [criterios predeterminados](#criterios-predeterminados) nunca toman un mante
 :::steps
 ### Añadir el criterio
 
-En los criterios del monitor, haga clic en **Añadir criterios**. Dele el filtro **External Status Page Component Status**, **Igual a**, **En mantenimiento**, y elija su estado de mantenimiento en **Cambiar estado del monitor a**.
+En los criterios del monitor, haga clic en **Añadir criterios**. Dele el filtro **Estado del componente de la página de estado externa**, **Igual a**, **En mantenimiento**, y elija su estado de mantenimiento en **Cambiar estado del monitor a**.
 
 ### Subirlo al principio
 

@@ -3,7 +3,7 @@
 Envie os alertas do [Grafana](https://grafana.com) para o OneUptime, para que cada alerta disparado vire um incidente que chama a sua equipe de plantão e seja resolvido quando o alerta se recuperar. O Grafana envia os alertas por um ponto de contato webhook, então não há nada a instalar em nenhum dos lados.
 
 :::cards
-- [Escolher como o OneUptime recebe os alertas](#escolher-como-o-oneuptime-recebe-os-alertas): Um monitor Incoming Request ou um workflow próprio.
+- [Escolher como o OneUptime recebe os alertas](#escolher-como-o-oneuptime-recebe-os-alertas): Um monitor de requisições recebidas ou um workflow próprio.
 - [Receber alertas com um monitor](#receber-alertas-com-um-monitor): Um incidente por alerta, resolvido na recuperação.
 - [Configurar o Grafana](#configurar-o-grafana): Um ponto de contato webhook e a política que o usa.
 - [Solução de problemas](#solução-de-problemas): Quando os alertas não chegam ou os incidentes continuam abertos.
@@ -33,19 +33,19 @@ Configure primeiro o OneUptime: ele lhe dá a URL para a qual o Grafana envia.
 
 | Caminho | Use quando |
 | --- | --- |
-| Um monitor Incoming Request (recomendado) | Você quer que cada alerta seja um incidente que chama o plantão e é resolvido quando o alerta se recupera. Não há nada a construir. |
+| Um monitor de requisições recebidas (recomendado) | Você quer que cada alerta seja um incidente que chama o plantão e é resolvido quando o alerta se recupera. Não há nada a construir. |
 | Um workflow com um gatilho Webhook | Você precisa de uma lógica própria: filtrar alertas, remodelá-los ou chamar outros sistemas antes. Um workflow abre um incidente por notificação, não por alerta, e não o resolve na recuperação. |
 
 Os dois recebem o mesmo JSON do mesmo ponto de contato, então você pode começar com um e trocar depois mudando uma URL no Grafana.
 
 ## Receber alertas com um monitor
 
-Um [monitor Incoming Request](/docs/monitor/incoming-request-monitor) lhe dá uma URL, e os critérios dele decidem o que cada notificação faz.
+Um [monitor de requisições recebidas](/docs/monitor/incoming-request-monitor) lhe dá uma URL, e os critérios dele decidem o que cada notificação faz.
 
 :::steps
 ### Criar o monitor
 
-Vá em **Monitores** e clique em **Criar monitor**. Escolha **Incoming Request** em **Tipo de monitor**, dê o nome `Grafana` e clique em **Próximo**.
+Vá em **Monitores** e clique em **Criar monitor**. Escolha **Requisição recebida** em **Tipo de monitor**, dê o nome `Grafana` e clique em **Próximo**.
 
 ### Declarar um incidente para cada alerta disparado
 

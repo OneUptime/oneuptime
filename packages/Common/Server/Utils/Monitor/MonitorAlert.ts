@@ -1,4 +1,5 @@
 import Alert from "../../../Models/DatabaseModels/Alert";
+import OnCallPageTiming from "../OnCall/OnCallPageTiming";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -58,6 +59,8 @@ import DataAlertCause, {
 } from "../DataObservability/DataAlertCause";
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
+import EvaluationEventText from "./EvaluationEventText";
+import { translatableSentence } from "../../../Types/Monitor/EvaluationSentence";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
 import MonitorSummarySnapshotUtil from "../../../Utils/Monitor/MonitorSummarySnapshotUtil";
@@ -198,9 +201,14 @@ export default class MonitorAlert {
 
         input.evaluationSummary?.events.push({
           type: "alert-resolved",
-          title: `Alert resolved: ${openAlert.title || openAlert.id?.toString()}`,
-          message:
-            "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          ...EvaluationEventText.from({
+            title: translatableSentence("Alert resolved: {{title}}", {
+              title: String(openAlert.title || openAlert.id?.toString()),
+            }),
+            message: translatableSentence(
+              "Alert auto-resolved because autoresolve is enabled for this criteria.",
+            ),
+          }),
           relatedAlertId: openAlert.id?.toString(),
           relatedAlertNumber: openAlert.alertNumber,
           relatedAlertNumberWithPrefix: openAlert.alertNumberWithPrefix,
@@ -338,12 +346,25 @@ export default class MonitorAlert {
 
       input.evaluationSummary?.events.push({
         type: "alert-resolved",
-        title: `Alert resolved: ${openAlert.title || openAlert.id?.toString()}`,
-        message:
-          isRecoveredValue || !input.wholeMonitor
-            ? input.resolvedMessage ||
-              "Alert auto-resolved because the incoming payload reported this key as resolved."
-            : "Alert auto-resolved because a request with no value to group by reported recovered.",
+        ...EvaluationEventText.from({
+          title: translatableSentence("Alert resolved: {{title}}", {
+            title: String(openAlert.title || openAlert.id?.toString()),
+          }),
+          /*
+           * A caller's own message is one of its fixed sentences
+           * (LogGroupCriteriaFanOut): a template without values.
+           */
+          message:
+            isRecoveredValue || !input.wholeMonitor
+              ? input.resolvedMessage
+                ? translatableSentence(input.resolvedMessage)
+                : translatableSentence(
+                    "Alert auto-resolved because the incoming payload reported this key as resolved.",
+                  )
+              : translatableSentence(
+                  "Alert auto-resolved because a request with no value to group by reported recovered.",
+                ),
+        }),
         relatedAlertId: openAlert.id?.toString(),
         relatedAlertNumber: openAlert.alertNumber,
         relatedAlertNumberWithPrefix: openAlert.alertNumberWithPrefix,
@@ -482,9 +503,12 @@ export default class MonitorAlert {
     if (DisableAutomaticAlertCreation) {
       input.evaluationSummary?.events.push({
         type: "alert-skipped",
-        title: "Alert creation skipped",
-        message:
-          "Automatic alert creation is disabled by environment configuration.",
+        ...EvaluationEventText.from({
+          title: translatableSentence("Alert creation skipped"),
+          message: translatableSentence(
+            "Automatic alert creation is disabled by environment configuration.",
+          ),
+        }),
         relatedCriteriaId: input.criteriaInstance.data?.id,
         at: OneUptimeDate.getCurrentDate(),
       });
@@ -516,8 +540,18 @@ export default class MonitorAlert {
 
       input.evaluationSummary?.events.push({
         type: "alert-skipped",
-        title: "Alert suppressed by monitor dependency",
-        message: `Skipped creating alerts because ${suppressionReason}. This monitor's status still updates normally; open alerts still auto-resolve.`,
+        ...EvaluationEventText.from({
+          title: translatableSentence("Alert suppressed by monitor dependency"),
+          message: translatableSentence(
+            "Skipped creating alerts because {{reason}}. This monitor's status still updates normally; open alerts still auto-resolve.",
+            {
+              reason:
+                MonitorDependencySuppression.buildSuppressionReasonSentence(
+                  input.dependencySuppression!.suppressingParents,
+                ),
+            },
+          ),
+        }),
         relatedCriteriaId: input.criteriaInstance.data?.id,
         at: OneUptimeDate.getCurrentDate(),
       });
@@ -607,9 +641,14 @@ export default class MonitorAlert {
 
             input.evaluationSummary?.events.push({
               type: "alert-skipped",
-              title: "Alert suppressed by scheduled maintenance",
-              message:
-                "Skipped creating an alert because the resource for this series is under an active scheduled maintenance window.",
+              ...EvaluationEventText.from({
+                title: translatableSentence(
+                  "Alert suppressed by scheduled maintenance",
+                ),
+                message: translatableSentence(
+                  "Skipped creating an alert because the resource for this series is under an active scheduled maintenance window.",
+                ),
+              }),
               relatedCriteriaId: input.criteriaInstance.data?.id,
               at: OneUptimeDate.getCurrentDate(),
             });
@@ -628,10 +667,20 @@ export default class MonitorAlert {
           ) {
             input.evaluationSummary?.events.push({
               type: "alert-skipped",
-              title: "Alert suppressed by monitor dependency",
-              message: `Skipped creating an alert for this series because ${MonitorDependencySuppression.buildSuppressionReason(
-                input.dependencySuppression!.suppressingParents,
-              )}. This monitor's status still updates normally; open alerts still auto-resolve.`,
+              ...EvaluationEventText.from({
+                title: translatableSentence(
+                  "Alert suppressed by monitor dependency",
+                ),
+                message: translatableSentence(
+                  "Skipped creating an alert for this series because {{reason}}. This monitor's status still updates normally; open alerts still auto-resolve.",
+                  {
+                    reason:
+                      MonitorDependencySuppression.buildSuppressionReasonSentence(
+                        input.dependencySuppression!.suppressingParents,
+                      ),
+                  },
+                ),
+              }),
               relatedCriteriaId: input.criteriaInstance.data?.id,
               at: OneUptimeDate.getCurrentDate(),
             });
@@ -674,9 +723,14 @@ export default class MonitorAlert {
 
             input.evaluationSummary?.events.push({
               type: "alert-skipped",
-              title: `Alert already active: ${renderedAlertTitle}`,
-              message:
-                "Skipped creating a new alert because an active alert exists for this criteria.",
+              ...EvaluationEventText.from({
+                title: translatableSentence("Alert already active: {{title}}", {
+                  title: String(renderedAlertTitle),
+                }),
+                message: translatableSentence(
+                  "Skipped creating a new alert because an active alert exists for this criteria.",
+                ),
+              }),
               relatedCriteriaId: input.criteriaInstance.data?.id,
               relatedAlertId: alreadyOpenAlert?.id?.toString(),
               relatedAlertNumber: alreadyOpenAlert?.alertNumber,
@@ -811,9 +865,12 @@ export default class MonitorAlert {
 
               input.evaluationSummary?.events.push({
                 type: "alert-skipped",
-                title: "Alert creation skipped",
-                message:
-                  "Skipped creating an alert because the project has no alert severity configured.",
+                ...EvaluationEventText.from({
+                  title: translatableSentence("Alert creation skipped"),
+                  message: translatableSentence(
+                    "Skipped creating an alert because the project has no alert severity configured.",
+                  ),
+                }),
                 relatedCriteriaId: input.criteriaInstance.data?.id,
                 at: OneUptimeDate.getCurrentDate(),
               });
@@ -1060,12 +1117,26 @@ export default class MonitorAlert {
             logger.error(error, alertLogAttributes);
           }
 
-          const createdAlert: Alert = await AlertService.create({
-            data: alert,
-            props: {
-              isRoot: true,
-            },
-          });
+          /*
+           * Its pages start when OneUptime received the data that tripped
+           * the monitor, when it knows it (OnCallPageTiming).
+           */
+          const createdAlert: Alert =
+            await OnCallPageTiming.runAsMonitorTriggered(
+              {
+                dataReceivedAt: OnCallPageTiming.getMonitorDataReceivedAt(
+                  input.dataToProcess,
+                ),
+              },
+              (): Promise<Alert> => {
+                return AlertService.create({
+                  data: alert,
+                  props: {
+                    isRoot: true,
+                  },
+                });
+              },
+            );
 
           await OpenStackScopedRules.finishAlert({
             projectId: input.monitor.projectId!,
@@ -1130,8 +1201,19 @@ export default class MonitorAlert {
 
           input.evaluationSummary?.events.push({
             type: "alert-created",
-            title: `Alert created: ${createdAlert.title || criteriaAlert.title}`,
-            message: `Alert triggered from criteria "${input.criteriaInstance.data?.name || "Unnamed criteria"}".`,
+            ...EvaluationEventText.from({
+              title: translatableSentence("Alert created: {{title}}", {
+                title: String(createdAlert.title || criteriaAlert.title),
+              }),
+              message: translatableSentence(
+                'Alert triggered from criteria "{{criteria}}".',
+                {
+                  criteria: EvaluationEventText.criteriaName(
+                    input.criteriaInstance.data?.name,
+                  ),
+                },
+              ),
+            }),
             relatedCriteriaId: input.criteriaInstance.data?.id,
             relatedAlertId: createdAlert.id?.toString(),
             relatedAlertNumber: createdAlert.alertNumber,
@@ -1156,14 +1238,23 @@ export default class MonitorAlert {
           );
           logger.error(err);
 
+          // The error is said as it was thrown, in English.
+          const error: string =
+            err instanceof Error ? err.message : String(err);
+
           input.evaluationSummary?.events.push({
             type: "alert-skipped",
-            title: "Alert creation failed",
-            message: `Could not create an alert${
-              seriesMatch?.fingerprint
-                ? ` for series ${seriesMatch.fingerprint}`
-                : ""
-            }: ${err instanceof Error ? err.message : String(err)}`,
+            ...EvaluationEventText.from({
+              title: translatableSentence("Alert creation failed"),
+              message: seriesMatch?.fingerprint
+                ? translatableSentence(
+                    "Could not create an alert for series {{series}}: {{error}}",
+                    { series: seriesMatch.fingerprint, error: error },
+                  )
+                : translatableSentence("Could not create an alert: {{error}}", {
+                    error: error,
+                  }),
+            }),
             relatedCriteriaId: input.criteriaInstance.data?.id,
             at: OneUptimeDate.getCurrentDate(),
           });

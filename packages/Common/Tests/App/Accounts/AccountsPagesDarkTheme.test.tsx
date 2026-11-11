@@ -103,6 +103,28 @@ jest.mock("../../../UI/Config", () => {
   };
 });
 
+/*
+ * The QR code's image is the real one, but for the test that draws the
+ * setup screen as it looks when the code cannot be made (issue #6638).
+ */
+const mockQRCodeImage: { shouldFail: boolean } = { shouldFail: false };
+
+jest.mock("../../../UI/Components/QR/QRCodeImage", () => {
+  const actual: { default: (text: string) => Promise<string> } =
+    jest.requireActual("../../../UI/Components/QR/QRCodeImage") as {
+      default: (text: string) => Promise<string>;
+    };
+
+  return {
+    __esModule: true,
+    default: (text: string): Promise<string> => {
+      return mockQRCodeImage.shouldFail
+        ? Promise.reject(new Error("The QR code could not be drawn."))
+        : actual.default(text);
+    },
+  };
+});
+
 // Page chrome that reads the instance's license on mount.
 jest.mock("../../../UI/Components/EditionLabel/EditionLabel", () => {
   return {
@@ -234,6 +256,7 @@ const lightOnlyColours: () => Array<string> = (): Array<string> => {
 };
 
 beforeEach(() => {
+  mockQRCodeImage.shouldFail = false;
   mockSignInMethods = {
     isSsoRequired: false,
     ssoProviders: [],
@@ -409,6 +432,46 @@ describe("signing in", () => {
     await signInWithPassword();
 
     expect(await screen.findByTestId("enrolment-code")).toBeInTheDocument();
+    expect(lightOnlyColours()).toEqual([]);
+  });
+
+  test("a second step the administrator requires: the setup key unfolded under the QR code", async () => {
+    loginAnswer = {
+      twoFactorEnrolmentRequired: true,
+      twoFactorAuthId: TOTP["_id"] as string,
+      twoFactorOtpUrl: "otpauth://totp/OneUptime:ada?secret=ABCDEFGH",
+    };
+    draw(<LoginPage />, "/accounts/login");
+
+    await signInWithPassword();
+
+    expect(await screen.findByTestId("qr-code")).toBeInTheDocument();
+
+    const user: UserEvent = setupUser();
+
+    await user.click(screen.getByTestId("authenticator-setup-key-toggle"));
+
+    expect(
+      screen.getByTestId("authenticator-setup-key-panel"),
+    ).toBeInTheDocument();
+    expect(lightOnlyColours()).toEqual([]);
+  });
+
+  test("a second step the administrator requires: the setup key in place of a QR code that cannot be drawn", async () => {
+    mockQRCodeImage.shouldFail = true;
+    loginAnswer = {
+      twoFactorEnrolmentRequired: true,
+      twoFactorAuthId: TOTP["_id"] as string,
+      twoFactorOtpUrl: "otpauth://totp/OneUptime:ada?secret=ABCDEFGH",
+    };
+    draw(<LoginPage />, "/accounts/login");
+
+    await signInWithPassword();
+
+    expect(await screen.findByTestId("qr-code-failed")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("authenticator-setup-key-panel"),
+    ).toBeInTheDocument();
     expect(lightOnlyColours()).toEqual([]);
   });
 

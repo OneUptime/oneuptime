@@ -40,6 +40,7 @@ import {
 } from "../../../Utils/ProfilesEntityDisplay";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 const ProfileViewPage: FunctionComponent<
   PageComponentProps
@@ -403,7 +404,9 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
             {translator.translateText("Samples")}
           </div>
           <div className="text-sm font-medium text-gray-900 mt-0.5">
-            {(p.sampleCount ? Number(p.sampleCount) : 0).toLocaleString()}
+            {(p.sampleCount ? Number(p.sampleCount) : 0).toLocaleString(
+              getReaderNumberLocale(),
+            )}
           </div>
         </div>
 

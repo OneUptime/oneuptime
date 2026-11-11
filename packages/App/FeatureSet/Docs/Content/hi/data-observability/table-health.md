@@ -57,7 +57,7 @@
 | `oneuptime.data.table.schema_changes` | पिछले संग्रह के बाद से बदले कॉलम |
 | `oneuptime.data.table.breaking_schema_changes` | पिछले संग्रह के बाद से हटाए, नाम बदले या प्रकार बदले गए कॉलम |
 
-हर पंक्ति में `oneuptime.data.store.id`, `oneuptime.data.store.name`, `oneuptime.data.table.id`, `oneuptime.data.table.schema`, `oneuptime.data.table.name` और `oneuptime.data.table.key` (`schema.table`) होते हैं। `oneuptime.data.table.key` के आधार पर समूहित किया गया [मेट्रिक्स मॉनिटर](/docs/monitor/metrics-monitor) हर टेबल के लिए एक बार अलर्ट करता है, और उसके **Anomalously High** और **Anomalously Low** फ़िल्टर हर टेबल की तुलना हफ़्ते के उस घंटे के उसके अपने सामान्य मान से करते हैं। ये मेट्रिक OneUptime का अपना परिचालन डेटा हैं और इनका बिल टेलीमेट्री के रूप में नहीं बनता।
+हर पंक्ति में `oneuptime.data.store.id`, `oneuptime.data.store.name`, `oneuptime.data.table.id`, `oneuptime.data.table.schema`, `oneuptime.data.table.name` और `oneuptime.data.table.key` (`schema.table`) होते हैं। `oneuptime.data.table.key` के आधार पर समूहित किया गया [मेट्रिक्स मॉनिटर](/docs/monitor/metrics-monitor) हर टेबल के लिए एक बार अलर्ट करता है, और उसके **असामान्य रूप से अधिक** और **असामान्य रूप से कम** फ़िल्टर हर टेबल की तुलना हफ़्ते के उस घंटे के उसके अपने सामान्य मान से करते हैं। ये मेट्रिक OneUptime का अपना परिचालन डेटा हैं और इनका बिल टेलीमेट्री के रूप में नहीं बनता।
 
 ## अप्रयुक्त टेबल
 

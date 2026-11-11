@@ -126,7 +126,7 @@ export function pluralize(
   singular: string,
   plural?: string,
 ): string {
-  return `${count.toLocaleString()} ${count === 1 ? singular : plural || `${singular}s`}`;
+  return `${count.toLocaleString("en-US")} ${count === 1 ? singular : plural || `${singular}s`}`;
 }
 
 /*

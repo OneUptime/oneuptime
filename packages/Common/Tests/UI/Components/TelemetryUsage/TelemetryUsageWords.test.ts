@@ -1,19 +1,27 @@
 import ProductType from "../../../../Types/MeteredPlan/ProductType";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
-import { TELEMETRY_USAGE_PRODUCT_TYPES } from "../../../../Types/Telemetry/TelemetryUsage";
+import {
+  TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+  TELEMETRY_USAGE_PRODUCT_TYPES,
+  TELEMETRY_USAGE_SIGNALS,
+} from "../../../../Types/Telemetry/TelemetryUsage";
 import { Translator } from "../../../../Types/Translator";
 import { TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES } from "../../../../Server/Services/TelemetryUsageBillingService";
 import {
   formatTelemetryUsageAmount,
   formatTelemetryUsageCost,
+  formatTelemetryUsageExceptionsPart,
   formatTelemetryUsageRetention,
   formatTelemetryUsageSize,
   getTelemetryUsageResourceName,
   getTelemetryUsageResourceTypeLabel,
   getTelemetryUsageSignalTitle,
+  getTelemetryUsageSignalTooltip,
+  TELEMETRY_USAGE_EXCEPTIONS_BILLED_TOOLTIP,
   TELEMETRY_USAGE_RESOURCE_TYPE_LABELS,
   TELEMETRY_USAGE_SIGNAL_COLORS,
   TELEMETRY_USAGE_SIGNAL_TITLES,
+  TELEMETRY_USAGE_SIGNAL_TOOLTIPS,
 } from "../../../../UI/Components/TelemetryUsage/TelemetryUsageWords";
 import { TELEMETRY_ENTITY_TYPES } from "../../../../UI/Utils/Telemetry/TelemetryEntityNames";
 import { createTranslator } from "../../../../UI/Utils/TranslateTemplate";
@@ -32,15 +40,84 @@ const english: Translator = createTranslator(undefined, "en");
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 
 describe("the signals", () => {
-  test("each has a title and a colour of its own", () => {
+  test("each has a title and a colour of its own, the exceptions among them", () => {
+    for (const signal of TELEMETRY_USAGE_SIGNALS) {
+      expect(TELEMETRY_USAGE_SIGNAL_TITLES[signal]).toBeTruthy();
+      expect(TELEMETRY_USAGE_SIGNAL_COLORS[signal]).toBeTruthy();
+    }
+
     for (const productType of TELEMETRY_USAGE_PRODUCT_TYPES) {
       expect(TELEMETRY_USAGE_SIGNAL_TITLES[productType]).toBeTruthy();
-      expect(TELEMETRY_USAGE_SIGNAL_COLORS[productType]).toBeTruthy();
     }
 
     expect(new Set(Object.values(TELEMETRY_USAGE_SIGNAL_COLORS)).size).toBe(
-      TELEMETRY_USAGE_PRODUCT_TYPES.length,
+      TELEMETRY_USAGE_SIGNALS.length,
     );
+    expect(Object.keys(TELEMETRY_USAGE_SIGNAL_COLORS).sort()).toEqual(
+      [...TELEMETRY_USAGE_SIGNALS].sort(),
+    );
+  });
+
+  test("call the exceptions what the Exceptions pages call them (issue #6356)", () => {
+    expect(
+      getTelemetryUsageSignalTitle(TELEMETRY_USAGE_EXCEPTIONS_SIGNAL, english),
+    ).toBe("Exceptions");
+    expect(
+      TELEMETRY_USAGE_SIGNAL_COLORS[TELEMETRY_USAGE_EXCEPTIONS_SIGNAL],
+    ).toBe("violet");
+  });
+
+  test("say that Traces count spans, and exceptions only on the days counted before they were shown apart", () => {
+    expect(
+      getTelemetryUsageSignalTooltip(ProductType.Traces, {
+        isCostIncluded: false,
+      }),
+    ).toBe(
+      "Spans. Days counted before exceptions were shown apart include their exceptions too.",
+    );
+    // The same words whoever reads them: what Traces count is not billing.
+    expect(
+      getTelemetryUsageSignalTooltip(ProductType.Traces, {
+        isCostIncluded: true,
+      }),
+    ).toBe(TELEMETRY_USAGE_SIGNAL_TOOLTIPS[ProductType.Traces]);
+  });
+
+  test("say where exceptions come from, and how they are billed only to who sees what usage cost", () => {
+    expect(
+      getTelemetryUsageSignalTooltip(TELEMETRY_USAGE_EXCEPTIONS_SIGNAL, {
+        isCostIncluded: false,
+      }),
+    ).toBe("Exceptions recorded from spans and logs.");
+    expect(
+      getTelemetryUsageSignalTooltip(TELEMETRY_USAGE_EXCEPTIONS_SIGNAL, {
+        isCostIncluded: true,
+      }),
+    ).toBe(
+      "Exceptions recorded from spans and logs. They are billed as part of Traces.",
+    );
+    expect(TELEMETRY_USAGE_EXCEPTIONS_BILLED_TOOLTIP).toContain(
+      TELEMETRY_USAGE_SIGNAL_TOOLTIPS[TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]!,
+    );
+  });
+
+  test("say nothing more for a signal its name says all of", () => {
+    for (const productType of [
+      ProductType.Logs,
+      ProductType.Metrics,
+      ProductType.SessionReplay,
+      ProductType.SecurityEvents,
+    ]) {
+      expect(
+        getTelemetryUsageSignalTooltip(productType, { isCostIncluded: true }),
+      ).toBeUndefined();
+    }
+
+    expect(
+      getTelemetryUsageSignalTooltip(ProductType.Profiles, {
+        isCostIncluded: false,
+      }),
+    ).toBe("Profiles, and the samples recorded with them.");
   });
 
   test("are named as the explorers name them", () => {
@@ -79,6 +156,33 @@ describe("a size", () => {
     const german: Translator = createTranslator(undefined, "de");
 
     expect(formatTelemetryUsageSize(1234.5, german)).toBe("1.234,5 GB");
+  });
+});
+
+describe("a Traces row's exceptions", () => {
+  test("read as a size, under the GB the row is billed for", () => {
+    expect(formatTelemetryUsageExceptionsPart(0.5, english)).toBe(
+      "Exceptions: 512 MB",
+    );
+    expect(formatTelemetryUsageExceptionsPart(12.345, english)).toBe(
+      "Exceptions: 12.35 GB",
+    );
+  });
+
+  test("in the reader's language", () => {
+    const words: Record<string, string> = {
+      "Exceptions: {{size}}": "Ausnahmen: {{size}}",
+    };
+    const german: Translator = createTranslator(
+      (key: string): string | undefined => {
+        return words[key];
+      },
+      "de",
+    );
+
+    expect(formatTelemetryUsageExceptionsPart(1234.5, german)).toBe(
+      "Ausnahmen: 1.234,5 GB",
+    );
   });
 });
 

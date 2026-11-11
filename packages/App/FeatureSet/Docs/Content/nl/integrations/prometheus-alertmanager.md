@@ -3,7 +3,7 @@
 Stuur waarschuwingen van [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) naar OneUptime, zodat elke afgaande waarschuwing een incident wordt dat je team met dienst oproept en wordt opgelost wanneer de waarschuwing herstelt. Alertmanager post zijn meldingen naar een webhook-ontvanger, dus aan geen van beide kanten hoef je iets te installeren.
 
 :::cards
-- [Kiezen hoe OneUptime waarschuwingen ontvangt](#kiezen-hoe-oneuptime-waarschuwingen-ontvangt): Een Incoming Request-monitor of een eigen workflow.
+- [Kiezen hoe OneUptime waarschuwingen ontvangt](#kiezen-hoe-oneuptime-waarschuwingen-ontvangt): Een monitor voor inkomende verzoeken of een eigen workflow.
 - [Waarschuwingen ontvangen met een monitor](#waarschuwingen-ontvangen-met-een-monitor): Eén incident per waarschuwing, opgelost bij herstel.
 - [Alertmanager configureren](#alertmanager-configureren): Een webhook-ontvanger en de route die hem gebruikt.
 - [Problemen oplossen](#problemen-oplossen): Wanneer waarschuwingen niet aankomen of incidenten open blijven.
@@ -33,19 +33,19 @@ Stel eerst OneUptime in: dat geeft je de URL waar Alertmanager naartoe stuurt.
 
 | Weg | Gebruik hem als |
 | --- | --- |
-| Een Incoming Request-monitor (aanbevolen) | Je wilt dat elke waarschuwing een incident is dat de dienst oproept en wordt opgelost wanneer de waarschuwing herstelt. Er valt niets te bouwen. |
+| Een monitor voor inkomende verzoeken (aanbevolen) | Je wilt dat elke waarschuwing een incident is dat de dienst oproept en wordt opgelost wanneer de waarschuwing herstelt. Er valt niets te bouwen. |
 | Een workflow met een Webhook-trigger | Je hebt eigen logica nodig: waarschuwingen filteren, ze omvormen of eerst andere systemen aanroepen. Een workflow opent één incident per melding, niet per waarschuwing, en lost het niet op bij herstel. |
 
 Beide krijgen dezelfde JSON van dezelfde ontvanger, dus je kunt met de ene beginnen en later overstappen door één URL in `alertmanager.yml` te wijzigen.
 
 ## Waarschuwingen ontvangen met een monitor
 
-Een [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) geeft je een URL, en zijn criteria bepalen wat elke melding doet.
+Een [monitor voor inkomende verzoeken](/docs/monitor/incoming-request-monitor) geeft je een URL, en zijn criteria bepalen wat elke melding doet.
 
 :::steps
 ### De monitor maken
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Kies **Incoming Request** onder **Monitortype**, noem hem `Alertmanager` en klik op **Volgende**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Kies **Inkomende aanvraag** onder **Monitortype**, noem hem `Alertmanager` en klik op **Volgende**.
 
 ### Een incident declareren voor elke afgaande waarschuwing
 
@@ -86,7 +86,7 @@ Een zelf gehoste installatie heeft een eigen host in plaats van `oneuptime.com`.
 > [!WARNING]
 > Groepeer op een waarde die binnen één melding per waarschuwing verschilt. De `fingerprint` van Alertmanager is een hash van de hele labelset van een waarschuwing, dus die verschilt altijd. Een label in de `group_by` van je route verschilt nooit: dat is juist wat de waarschuwingen in één melding zet. Groeperen op `requestBody.alerts[*].labels.alertname` met de route hieronder vouwt elke waarschuwing van een melding samen tot één incident, dat de status van de eerste waarschuwing krijgt.
 
-Koppel de monitor op een OpenStack-cloud ook aan de cloud. De eigen instellingen van een Incoming Request-monitor noemen geen cloud, dus zijn incidenten komen onder **Incidenten** terecht en niet bij de cloud. Open **Overzicht → Gekoppelde resources** van de monitor en voeg de OpenStack-cloud toe: elk incident staat dan ook op de pagina **Incidenten** van die cloud. [OpenStack per deploymenttool](/docs/telemetry/openstack-deployment-tools) heeft de receiver voor elke tool die een Alertmanager draait, op de plek waar die tool hem leest.
+Koppel de monitor op een OpenStack-cloud ook aan de cloud. De eigen instellingen van een monitor voor inkomende verzoeken noemen geen cloud, dus zijn incidenten komen onder **Incidenten** terecht en niet bij de cloud. Open **Overzicht → Gekoppelde resources** van de monitor en voeg de OpenStack-cloud toe: elk incident staat dan ook op de pagina **Incidenten** van die cloud. [OpenStack per deploymenttool](/docs/telemetry/openstack-deployment-tools) heeft de receiver voor elke tool die een Alertmanager draait, op de plek waar die tool hem leest.
 
 ## De incidenten een naam geven
 
@@ -222,7 +222,7 @@ Geen van beide wegen merkt het wanneer Prometheus of Alertmanager stopt met werk
 :::steps
 ### De watchdog-monitor maken
 
-Maak een tweede Incoming Request-monitor, met de naam `Alertmanager watchdog`. Zet het filter van het eerste criterium, het criterium dat de monitor offline zet, op **Incoming Request**, **Not Recieved In Minutes**, `10`, en het filter van het tweede criterium op **Incoming Request**, **Recieved In Minutes**, `10`. Het dashboard spelt beide zo. Kopieer de **Heartbeat URL** van de nieuwe monitor.
+Maak een tweede monitor voor inkomende verzoeken, met de naam `Alertmanager watchdog`. Zet het filter van het eerste criterium, het criterium dat de monitor offline zet, op **Inkomende aanvraag**, **Niet ontvangen in minuten**, `10`, en het filter van het tweede criterium op **Inkomende aanvraag**, **Ontvangen in minuten**, `10`. Het dashboard spelt beide zo. Kopieer de **Heartbeat URL** van de nieuwe monitor.
 
 ### De watchdog-waarschuwing ernaartoe sturen
 

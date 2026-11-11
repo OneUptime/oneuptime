@@ -59,6 +59,7 @@ import UpdateStatusUtil, {
   UpdateState,
   UpdateStatus,
 } from "../../../Types/UpdateCheck/UpdateStatus";
+import { getReaderDateLocale } from "../../../Types/DateLanguage";
 
 /*
  * The edition pill and its dialog. This component only READS the license
@@ -620,7 +621,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return null;
     }
 
-    return endsAt.toLocaleDateString();
+    return endsAt.toLocaleDateString(getReaderDateLocale());
   }, [graceEndsAt]);
 
   // Whole days left in the trial or the grace period, rounded up; never negative.
@@ -659,7 +660,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return null;
     }
 
-    return expiresAt.toLocaleString();
+    return expiresAt.toLocaleString(getReaderDateLocale());
   }, [globalConfig?.enterpriseLicenseExpiresAt]);
 
   /*
@@ -684,7 +685,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return null;
     }
 
-    return publishedAt.toLocaleDateString();
+    return publishedAt.toLocaleDateString(getReaderDateLocale());
   }, [latestVersionPublishedAt]);
 
   const latestVersionCheckedAtText: string | null = useMemo(() => {
@@ -698,7 +699,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return null;
     }
 
-    return checkedAt.toLocaleString();
+    return checkedAt.toLocaleString(getReaderDateLocale());
   }, [latestVersionCheckedAt]);
 
   /*
@@ -1481,7 +1482,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
     return translator.translateTemplate(
       "Last usage report accepted {{date}}: {{quantity}} user-hours.",
-      { date: date.toLocaleString(), quantity: String(quantity) },
+      {
+        date: date.toLocaleString(getReaderDateLocale()),
+        quantity: String(quantity),
+      },
     );
   })();
 

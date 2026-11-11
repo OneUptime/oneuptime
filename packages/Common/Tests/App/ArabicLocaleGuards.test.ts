@@ -9,9 +9,10 @@ import path from "path";
  * status page, Accounts, the admin dashboard, public dashboards and the
  * server's own texts. Each holds exactly English's keys, in English's
  * order, with the same placeholders and tags, and none of the plural keys
- * English does not have. The small files are translated through; the
- * Dashboard starts with its most-used words. A count's general form reads
- * right for every count Arabic sends it (Locales/ARABIC.md).
+ * English does not have. Every one is translated through: what reads as
+ * English is a name, a code or an example, on a list that says so. A
+ * count's general form reads right for every count Arabic sends it
+ * (Locales/ARABIC.md).
  */
 
 const PACKAGES: string = path.resolve(__dirname, "..", "..", "..");
@@ -84,6 +85,75 @@ const tokensOf: (text: string) => Array<string> = (
 const APPS: Array<string> = Object.keys(LOCALE_DIRS);
 
 /*
+ * The Dashboard's lists of what is right in English, beside its locales: one
+ * for every language (i18n/SameAsEnglish.json) and Arabic's own, with its
+ * progress baseline (i18n/Progress/ar.json). npm run i18n:apply --
+ * --same-as-english records a text there (Locales/README.md).
+ */
+const DASHBOARD_TRACKING: string = path.join(
+  PACKAGES,
+  "App/FeatureSet/Dashboard/i18n",
+);
+
+interface LocaleProgressFile {
+  baseline: { keys: number; untranslated: number };
+  sameAsEnglish: Array<string>;
+}
+
+const readJson: <T>(file: string) => T = <T>(file: string): T => {
+  return JSON.parse(fs.readFileSync(file, "utf8")) as T;
+};
+
+// One Arabic letter, from hamza to yeh.
+const ARABIC_LETTER: RegExp = /[ء-ي]/;
+const LETTER: RegExp = /\p{L}/u;
+const PLACEHOLDER: RegExp = /\{\{[^{}]*\}\}/g;
+
+/*
+ * A text with no letter once its {{placeholders}} are gone - "{{count}}%",
+ * "{{a}} - {{b}}" - reads the same in every language, as npm run i18n:check
+ * counts it.
+ */
+const hasLetters: (text: string) => boolean = (text: string): boolean => {
+  return LETTER.test(text.replace(PLACEHOLDER, ""));
+};
+
+/*
+ * Code inside an English sentence: `quoted`, a {{placeholder}}, a dotted
+ * metric or attribute name (vcenter.host.disk.latency.max), key=value and a
+ * CamelCase identifier (ServerSendLatency). A word there is a name, not
+ * the word the glossary translates.
+ */
+const CODE_IN_PROSE: RegExp =
+  /`[^`]*`|\{\{[^{}]*\}\}|\b[\w-]+(?:\.[\w-]+)+\b|\b\w+=\w+|\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b/g;
+
+interface GlossaryWordInProse {
+  name: string;
+  english: RegExp;
+  arabic: RegExp;
+}
+
+/*
+ * ARABIC.md's words for three things the Dashboard names in well over a
+ * hundred texts each, which two translations made side by side said
+ * differently: latency had also been زمن الاستجابة (a monitor's response
+ * time), a datastore Datastore and the inventory المخزون.
+ */
+const GLOSSARY_WORDS_IN_PROSE: Array<GlossaryWordInProse> = [
+  { name: "Latency", english: /\blatenc(?:y|ies)\b/i, arabic: /انتقال/ },
+  { name: "Datastore", english: /\bdata ?stores?\b/i, arabic: /مخزن|مخازن/ },
+  { name: "Inventory", english: /\binventor(?:y|ies)\b/i, arabic: /جرد/ },
+];
+
+// Texts that name one of them as code would, though no code marks it so.
+const NAMED_AS_CODE: Record<string, string> = {
+  "e.g. latency": "an example of a log attribute's name",
+};
+
+// A function an English sentence names with its brackets: track(), grantConsent().
+const FUNCTION_WITH_BRACKETS: RegExp = /[A-Za-z_][\w.]*\(\)/g;
+
+/*
  * The small apps' texts Arabic writes as English does, on purpose: product
  * and vendor names, example values a person types over, and templates that
  * are only their values.
@@ -91,6 +161,19 @@ const APPS: Array<string> = Object.keys(LOCALE_DIRS);
 const SAME_AS_ENGLISH: Record<string, Array<string>> = {
   Accounts: ["OneUptime"],
   PublicDashboard: [],
+  StatusPage: [
+    "+11234567890",
+    "Apple Calendar / Outlook",
+    "Google Calendar",
+    "MS Teams",
+    "Slack",
+    "email@yourcompany.com",
+    "https://example.com/webhook",
+    "https://hooks.slack.com/services/...",
+    "https://outlook.office.com/webhook/...",
+    "my-company-workspace",
+    "subscriber@company.com",
+  ],
   Server: [
     "{{first}} {{second}}",
     "{{hours}} {{minutes}}",
@@ -248,7 +331,8 @@ describe.each(APPS)("Arabic's %s locale", (app: string) => {
     expect(lost).toEqual([]);
   });
 
-  if (app !== "Dashboard" && app !== "StatusPage") {
+  // The Dashboard's lists live beside its locales: see below.
+  if (app !== "Dashboard") {
     test("is translated through: only names and examples read as English", () => {
       const same: Array<string> = [];
 
@@ -263,6 +347,90 @@ describe.each(APPS)("Arabic's %s locale", (app: string) => {
       );
     });
   }
+});
+
+describe("the Dashboard, translated through", () => {
+  const english: Map<string, string> = leaves(readLocale("Dashboard", "en"));
+  const arabic: Map<string, string> = leaves(readLocale("Dashboard", "ar"));
+  const progress: LocaleProgressFile = readJson<LocaleProgressFile>(
+    path.join(DASHBOARD_TRACKING, "Progress", "ar.json"),
+  );
+  const everyLanguagesList: Array<string> = readJson<Array<string>>(
+    path.join(DASHBOARD_TRACKING, "SameAsEnglish.json"),
+  );
+  const rightInEnglish: Set<string> = new Set<string>([
+    ...everyLanguagesList,
+    ...progress.sameAsEnglish,
+  ]);
+
+  /*
+   * A new Dashboard string arrives in ar.json as its English. Translate it
+   * by ARABIC.md's rules (npm run i18n:apply -- --locale ar, as
+   * Locales/README.md says) - or, for a name, a code or an example that
+   * stays as written, record it with --same-as-english.
+   */
+  test("reads as English only where a same-as-English list says English is right", () => {
+    const untranslated: Array<string> = [];
+
+    for (const [key, text] of english) {
+      if (
+        arabic.get(key) === text &&
+        hasLetters(text) &&
+        !rightInEnglish.has(text)
+      ) {
+        untranslated.push(key);
+      }
+    }
+
+    expect(untranslated).toEqual([]);
+    // The check reads the whole file: tens of thousands of keys.
+    expect(english.size).toBeGreaterThan(40000);
+    expect(arabic.size).toBe(english.size);
+  });
+
+  test("its progress baseline counts nothing untranslated, so a translation turned back into English fails", () => {
+    expect(progress.baseline.untranslated).toBe(0);
+    expect(progress.baseline.keys).toBeGreaterThan(40000);
+  });
+
+  /*
+   * The lists are for names, codes and examples: a word the glossary gives
+   * an Arabic word for never passes as right in English.
+   */
+  test("no word the glossary translates is on a same-as-English list", () => {
+    const glossary: string = fs
+      .readFileSync(
+        path.join(PACKAGES, LOCALE_DIRS["Dashboard"] as string, "ARABIC.md"),
+        "utf8",
+      )
+      .split("## Glossary")[1] as string;
+    const translatedTerms: Set<string> = new Set<string>();
+
+    for (const row of glossary.matchAll(/^\| (.+?) \| (.+?) \|$/gm)) {
+      const englishTerms: string = row[1] as string;
+      const arabicWords: string = row[2] as string;
+
+      // A term kept in Latin letters (OneUptime AI, huddle) is not translated.
+      if (englishTerms === "English" || !ARABIC_LETTER.test(arabicWords)) {
+        continue;
+      }
+
+      for (const term of englishTerms
+        .replace(/\s*\([^)]*\)/g, "")
+        .split(/ \/ |, /)) {
+        translatedTerms.add(term.trim().toLowerCase());
+      }
+    }
+
+    expect(translatedTerms).toContain("monitor");
+    expect(translatedTerms).toContain("triage");
+    expect(translatedTerms.size).toBeGreaterThan(80);
+    expect(
+      Array.from(rightInEnglish).filter((text: string): boolean => {
+        return translatedTerms.has(text.toLowerCase());
+      }),
+    ).toEqual([]);
+  });
 });
 
 describe("the Dashboard's most-used words, in Arabic", () => {
@@ -465,6 +633,96 @@ describe("the Dashboard's most-used words, in Arabic", () => {
       "التعليمات البرمجية",
     );
     expect(readLocale("Accounts", "ar")["Code"]).toBe("التعليمات البرمجية");
+  });
+
+  /*
+   * Wherever the Dashboard's English names latency, a datastore or the
+   * inventory in its prose, the Arabic says it in the glossary's words,
+   * so one metric is never called two things on two pages.
+   */
+  test("latency, a datastore and the inventory are said in the glossary's words", () => {
+    const arabicTexts: Map<string, string> = leaves(arabic);
+    const englishTexts: Map<string, string> = leaves(english);
+    const missed: Array<string> = [];
+    const named: Record<string, number> = {};
+
+    for (const word of GLOSSARY_WORDS_IN_PROSE) {
+      named[word.name] = 0;
+
+      for (const [key, text] of englishTexts) {
+        if (!word.english.test(text.replace(CODE_IN_PROSE, " "))) {
+          continue;
+        }
+
+        named[word.name] = (named[word.name] || 0) + 1;
+
+        if (key in NAMED_AS_CODE) {
+          continue;
+        }
+
+        if (!word.arabic.test(arabicTexts.get(key) || "")) {
+          missed.push(`${word.name}: ${key} -> ${arabicTexts.get(key)}`);
+        }
+      }
+    }
+
+    expect(missed).toEqual([]);
+
+    // Each is named in over a hundred texts, so a slip has somewhere to show.
+    for (const word of GLOSSARY_WORDS_IN_PROSE) {
+      expect([word.name, (named[word.name] || 0) > 100]).toEqual([
+        word.name,
+        true,
+      ]);
+    }
+
+    // A name the guard skips is still named in the Dashboard's English.
+    for (const key of Object.keys(NAMED_AS_CODE)) {
+      expect([key, englishTexts.get(key)]).toEqual([key, key]);
+    }
+
+    const glossary: string = fs.readFileSync(
+      path.join(PACKAGES, LOCALE_DIRS["Dashboard"] as string, "ARABIC.md"),
+      "utf8",
+    );
+
+    expect(glossary).toContain("| Latency | زمن الانتقال |");
+    expect(glossary).toContain(
+      "| Data store, Datastore (VMware) | مخزن البيانات (مخازن البيانات) |",
+    );
+    expect(glossary).toContain("| Inventory | الجرد |");
+  });
+
+  /*
+   * A function the English names with its brackets keeps them in Arabic, as
+   * ARABIC.md says and Session Replay's suite holds code: الدالة track(),
+   * never الدالة track.
+   */
+  test("a function keeps its brackets", () => {
+    const arabicTexts: Map<string, string> = leaves(arabic);
+    const dropped: Array<string> = [];
+    let named: number = 0;
+
+    for (const [key, text] of leaves(english)) {
+      for (const name of text.match(FUNCTION_WITH_BRACKETS) || []) {
+        named += 1;
+
+        if (!(arabicTexts.get(key) || "").includes(name)) {
+          dropped.push(`${key} -> ${name}`);
+        }
+      }
+    }
+
+    expect(dropped).toEqual([]);
+    // identify(), start(), grantConsent(), oneuptime.captureMetric(), ...
+    expect(named).toBeGreaterThan(40);
+
+    const glossary: string = fs.readFileSync(
+      path.join(PACKAGES, LOCALE_DIRS["Dashboard"] as string, "ARABIC.md"),
+      "utf8",
+    );
+
+    expect(glossary).toContain("`استدعِ الدالة grantConsent()`");
   });
 });
 

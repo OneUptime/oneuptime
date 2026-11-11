@@ -42,6 +42,7 @@ import IncidentStatusPageScopeCopy from "../../FeatureSet/Dashboard/src/Componen
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { STATUS_PAGE_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * What a status page shows its visitors is set in one place: the "What your
@@ -82,24 +83,7 @@ const VIEW_DIR: string = path.join(
 
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
-const OTHER_LOCALES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const OTHER_LOCALES: Array<string> = [...STATUS_PAGE_LANGUAGES];
 
 // Without its comments, collapsed to one line.
 function readSource(file: string): string {

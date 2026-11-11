@@ -1,4 +1,10 @@
 import { SessionReplayUserKind } from "Common/Types/Rum/SessionReplayApi";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
 import { SessionReplayAdvancedFilters } from "./SessionReplayListFilters";
 
 /*
@@ -28,9 +34,13 @@ export type SessionUserKind = "identified" | "hidden" | "visitor" | "anonymous";
 
 export interface SessionUserDescription {
   kind: SessionUserKind;
-  /* What the cell shows: the label, "Hidden", "Visitor 7f3a2b", "Anonymous". */
+  /*
+   * What the cell shows: the label, "Hidden", "Visitor 7f3a2b", "Anonymous".
+   * The label as the page gave it; the others in the language of the
+   * translator the description was made with.
+   */
   text: string;
-  /* One or two sentences for the cell's hover/tooltip. */
+  /* One or two sentences for the cell's hover/tooltip, in that language. */
   title: string;
   /* One or two characters for the avatar. */
   initials: string;
@@ -49,14 +59,21 @@ export interface SessionUserDescription {
   filter: Partial<SessionReplayAdvancedFilters> | null;
 }
 
-export const HIDDEN_IDENTITY_TITLE: string =
-  "Your role cannot read end-user identity, so the label is not sent to you.";
+/*
+ * The cells' hovers, in English: keys of the Dashboard's locales, looked up
+ * with the translator a description is made with.
+ */
+export const HIDDEN_IDENTITY_TITLE: string = translationKey(
+  "Your role cannot read end-user identity, so the label is not sent to you.",
+);
 
-export const VISITOR_TITLE: string =
-  "Anonymous visitor. The recorder links this browser's sessions with a random id so you can follow one person without identify().";
+export const VISITOR_TITLE: string = translationKey(
+  "Anonymous visitor. The recorder links this browser's sessions with a random id so you can follow one person without identify().",
+);
 
-export const ANONYMOUS_TITLE: string =
-  "The page did not call OneUptimeReplay.identify(), and this recorder did not send a visitor id.";
+export const ANONYMOUS_TITLE: string = translationKey(
+  "The page did not call OneUptimeReplay.identify(), and this recorder did not send a visitor id.",
+);
 
 /* How much of a visitor id the UI shows: enough to tell two apart at a glance. */
 export const SHORT_VISITOR_ID_LENGTH: number = 6;
@@ -114,6 +131,80 @@ export function initialsOf(label: string): string {
   return single.slice(0, 2).toUpperCase() || "?";
 }
 
+/*
+ * Without a translator a description is in English, word for word as it
+ * always was: what the node tests and the User Flows scope read.
+ */
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+// A fixed line in the translator's language.
+function translateLine(text: string, translator: Translator): string {
+  return translator.translateText(text) || text;
+}
+
+/*
+ * The four descriptions every ranking below ends in, each in the
+ * translator's language. Only the label itself is the page's own words.
+ */
+function describeIdentified(
+  label: string,
+  key: string,
+  translator: Translator,
+): SessionUserDescription {
+  return {
+    kind: "identified",
+    text: label,
+    title: translator.translateTemplate(
+      "Identified by your page as {{label}}. Click to see every session from this user.",
+      { label: label },
+    ),
+    initials: initialsOf(label),
+    hue: stableHue(key || label),
+    filter: { identifiedUserRef: label },
+  };
+}
+
+function describeHidden(
+  key: string,
+  translator: Translator,
+): SessionUserDescription {
+  return {
+    kind: "hidden",
+    text: translateLine("Hidden", translator),
+    title: translateLine(HIDDEN_IDENTITY_TITLE, translator),
+    initials: "?",
+    hue: key ? stableHue(key) : null,
+    filter: key ? { identifiedUserKey: key } : null,
+  };
+}
+
+function describeVisitor(
+  visitorId: string,
+  translator: Translator,
+): SessionUserDescription {
+  return {
+    kind: "visitor",
+    text: translator.translateTemplate("Visitor {{id}}", {
+      id: shortVisitorId(visitorId),
+    }),
+    title: translateLine(VISITOR_TITLE, translator),
+    initials: "V",
+    hue: stableHue(visitorId),
+    filter: { visitorId: visitorId },
+  };
+}
+
+function describeAnonymous(translator: Translator): SessionUserDescription {
+  return {
+    kind: "anonymous",
+    text: translateLine("Anonymous", translator),
+    title: translateLine(ANONYMOUS_TITLE, translator),
+    initials: "?",
+    hue: null,
+    filter: null,
+  };
+}
+
 export interface DescribeSessionUserInput {
   identifiedUserLabel: string;
   /*
@@ -127,6 +218,7 @@ export interface DescribeSessionUserInput {
 
 export function describeSessionUser(
   input: DescribeSessionUserInput,
+  translator: Translator = ENGLISH,
 ): SessionUserDescription {
   const label: string = input.identifiedUserLabel.trim();
   const key: string = input.identifiedUserKey.trim();
@@ -138,14 +230,7 @@ export function describeSessionUser(
    * even where a role sees them as "Hidden".
    */
   if (input.isIdentityVisible && label) {
-    return {
-      kind: "identified",
-      text: label,
-      title: `Identified by your page as ${label}. Click to see every session from this user.`,
-      initials: initialsOf(label),
-      hue: stableHue(key || label),
-      filter: { identifiedUserRef: label },
-    };
+    return describeIdentified(label, key, translator);
   }
 
   /*
@@ -154,35 +239,14 @@ export function describeSessionUser(
    * (the digest is not gated), so the cell stays clickable when it has one.
    */
   if (!input.isIdentityVisible) {
-    return {
-      kind: "hidden",
-      text: "Hidden",
-      title: HIDDEN_IDENTITY_TITLE,
-      initials: "?",
-      hue: key ? stableHue(key) : null,
-      filter: key ? { identifiedUserKey: key } : null,
-    };
+    return describeHidden(key, translator);
   }
 
   if (visitorId) {
-    return {
-      kind: "visitor",
-      text: `Visitor ${shortVisitorId(visitorId)}`,
-      title: VISITOR_TITLE,
-      initials: "V",
-      hue: stableHue(visitorId),
-      filter: { visitorId: visitorId },
-    };
+    return describeVisitor(visitorId, translator);
   }
 
-  return {
-    kind: "anonymous",
-    text: "Anonymous",
-    title: ANONYMOUS_TITLE,
-    initials: "?",
-    hue: null,
-    filter: null,
-  };
+  return describeAnonymous(translator);
 }
 
 export interface DescribeUserRollupInput {
@@ -202,6 +266,7 @@ export interface DescribeUserRollupInput {
  */
 export function describeUserRollup(
   input: DescribeUserRollupInput,
+  translator: Translator = ENGLISH,
 ): SessionUserDescription {
   const key: string = input.identifiedUserKey.trim();
   const visitorId: string = input.visitorId.trim();
@@ -209,43 +274,15 @@ export function describeUserRollup(
 
   if (input.kind === "identified") {
     if (input.isIdentityVisible && label) {
-      return {
-        kind: "identified",
-        text: label,
-        title: `Identified by your page as ${label}. Click to see every session from this user.`,
-        initials: initialsOf(label),
-        hue: stableHue(key || label),
-        filter: { identifiedUserRef: label },
-      };
+      return describeIdentified(label, key, translator);
     }
 
-    return {
-      kind: "hidden",
-      text: "Hidden",
-      title: HIDDEN_IDENTITY_TITLE,
-      initials: "?",
-      hue: key ? stableHue(key) : null,
-      filter: key ? { identifiedUserKey: key } : null,
-    };
+    return describeHidden(key, translator);
   }
 
   if (input.kind === "visitor" && visitorId) {
-    return {
-      kind: "visitor",
-      text: `Visitor ${shortVisitorId(visitorId)}`,
-      title: VISITOR_TITLE,
-      initials: "V",
-      hue: stableHue(visitorId),
-      filter: { visitorId: visitorId },
-    };
+    return describeVisitor(visitorId, translator);
   }
 
-  return {
-    kind: "anonymous",
-    text: "Anonymous",
-    title: ANONYMOUS_TITLE,
-    initials: "?",
-    hue: null,
-    filter: null,
-  };
+  return describeAnonymous(translator);
 }

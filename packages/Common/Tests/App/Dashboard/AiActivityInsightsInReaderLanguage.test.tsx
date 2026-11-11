@@ -38,6 +38,7 @@ import {
   makeInsights,
   makeTotals,
 } from "./AiActivityInsightsFixtures";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * AI INSIGHTS IN THE READER'S LANGUAGE, ITS COUNTS IN THE READER'S DIGITS
@@ -62,25 +63,7 @@ const LOCALES_DIR: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "en",
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
 
 const LATIN_DIGIT: RegExp = /[0-9]/;
 const PERSIAN_DIGIT: RegExp = /[\u06F0-\u06F9]/;

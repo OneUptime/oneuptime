@@ -102,7 +102,7 @@ Sélectionnez les **Sondes** et un **Intervalle de surveillance** — il commenc
 
 ### Composants
 
-Choisissez les composants dont vous dépendez, et le moniteur ne surveille qu'eux : **External Status Page Component Status** ne compare que leurs statuts, le statut global est le pire des leurs, et **External Status Page Active Incidents** ne compte que les incidents qui touchent au moins l'un d'eux. Cela reste une seule vérification de la page, quel que soit le nombre choisi.
+Choisissez les composants dont vous dépendez, et le moniteur ne surveille qu'eux : **Statut des composants de la page de statut externe** ne compare que leurs statuts, le statut global est le pire des leurs, et le filtre **Incidents actifs de la page de statut externe** ne compte que les incidents qui touchent au moins l'un d'eux. Cela reste une seule vérification de la page, quel que soit le nombre choisi.
 
 Quand vous ouvrez **Composants**, votre navigateur lit la liste de la page sur une Atlassian Statuspage, une page incident.io ou une page de statut OneUptime, et l'affiche dans les groupes de la page ; chaque composant qui n'est pas opérationnel dit où il en est. Un nom choisi surveille le composant qui porte exactement ce nom, sans tenir compte de la casse : `Copilot` sur la page de GitHub n'est pas `Copilot AI Model Providers`.
 
@@ -129,13 +129,13 @@ Vous pouvez configurer des critères pour décider quand le service externe est 
 
 | Type de filtre | Ce qu'il vérifie | Conditions de filtre |
 | --- | --- | --- |
-| **External Status Page Is Online** | Si la page de statut est accessible et renvoie des données de statut | Vrai ou Faux |
-| **External Status Page Overall Status** | Le statut global indiqué par la page | Égal à, Différent de, Contient, Ne contient pas, Commence par, Se termine par |
-| **External Status Page Component Status** | Le statut de chaque composant du périmètre (les composants choisis, ou ceux du groupe, s'ils sont définis) : Opérationnel, En maintenance, Performances dégradées, Panne partielle, Panne majeure ou Panne totale | Égal à, Différent de, Contient, Ne contient pas, Commence par, Se termine par |
-| **External Status Page Active Incidents** | Le nombre d'incidents actuellement actifs signalés sur la page de statut (seulement ceux qui touchent un composant du périmètre, quand des composants ou un groupe sont choisis) | Égal à, Différent de, et les comparaisons numériques |
-| **External Status Page Response Time (in ms)** | Le temps nécessaire pour récupérer les données de la page de statut | Supérieur à, Inférieur à, Supérieur ou égal à, Inférieur ou égal à |
+| **Page de statut externe en ligne** | Si la page de statut est accessible et renvoie des données de statut | Vrai ou Faux |
+| **Statut global de la page de statut externe** | Le statut global indiqué par la page | Égal à, Différent de, Contient, Ne contient pas, Commence par, Se termine par |
+| **Statut des composants de la page de statut externe** | Le statut de chaque composant du périmètre (les composants choisis, ou ceux du groupe, s'ils sont définis) : Opérationnel, En maintenance, Performances dégradées, Panne partielle, Panne majeure ou Panne totale | Égal à, Différent de, Contient, Ne contient pas, Commence par, Se termine par |
+| **Incidents actifs de la page de statut externe** | Le nombre d'incidents actuellement actifs signalés sur la page de statut (seulement ceux qui touchent un composant du périmètre, quand des composants ou un groupe sont choisis) | Égal à, Différent de, et les comparaisons numériques |
+| **Temps de réponse de la page de statut externe (en ms)** | Le temps nécessaire pour récupérer les données de la page de statut | Supérieur à, Inférieur à, Supérieur ou égal à, Inférieur ou égal à |
 
-Le statut global est ce que dit la page : ses valeurs varient donc selon le fournisseur. Une Atlassian Statuspage rapporte sa propre description, comme `All Systems Operational` ; une page de statut OneUptime, le pire statut parmi ses composants dans le périmètre, comme `under_maintenance` ; un flux rapporte `operational` ou `degraded_performance` ; la vérification d'accessibilité rapporte `reachable` ou `unreachable`. Avec des composants ou un groupe choisis, c'est le pire statut parmi eux, sur toute page. Ces comparaisons sont sensibles à la casse. Le résumé du moniteur affiche le statut global en mots et en couleur, comme celui de chaque composant (`under_maintenance` s'affiche **En maintenance**), tandis que les critères comparent la valeur rapportée par la page. Pour alerter sur les pannes, **External Status Page Active Incidents** et **External Status Page Component Status** sont généralement plus fiables.
+Le statut global est ce que dit la page : ses valeurs varient donc selon le fournisseur. Une Atlassian Statuspage rapporte sa propre description, comme `All Systems Operational` ; une page de statut OneUptime, le pire statut parmi ses composants dans le périmètre, comme `under_maintenance` ; un flux rapporte `operational` ou `degraded_performance` ; la vérification d'accessibilité rapporte `reachable` ou `unreachable`. Avec des composants ou un groupe choisis, c'est le pire statut parmi eux, sur toute page. Ces comparaisons sont sensibles à la casse. Le résumé du moniteur affiche le statut global en mots et en couleur, comme celui de chaque composant (`under_maintenance` s'affiche **En maintenance**), tandis que les critères comparent la valeur rapportée par la page. Pour alerter sur les pannes, **Incidents actifs de la page de statut externe** et **Statut des composants de la page de statut externe** sont généralement plus fiables.
 
 Sur un flux RSS ou Atom, les éléments des dernières 24 heures comptent comme incidents actifs : un élément RSS selon sa date de publication, une entrée Atom selon sa date de mise à jour. Un élément daté dans le futur ne compte qu'à partir de sa date.
 
@@ -178,7 +178,7 @@ Les [critères par défaut](#critères-par-défaut) ne prennent jamais une maint
 :::steps
 ### Ajouter le critère
 
-Dans les critères du moniteur, cliquez sur **Ajouter un critère**. Donnez-lui le filtre **External Status Page Component Status**, **Égal à**, **En maintenance**, et choisissez votre statut de maintenance dans **Modifier le statut du moniteur en**.
+Dans les critères du moniteur, cliquez sur **Ajouter un critère**. Donnez-lui le filtre **Statut des composants de la page de statut externe**, **Égal à**, **En maintenance**, et choisissez votre statut de maintenance dans **Modifier le statut du moniteur en**.
 
 ### Le placer tout en haut
 

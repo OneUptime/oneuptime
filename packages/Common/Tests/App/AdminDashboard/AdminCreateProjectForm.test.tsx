@@ -110,6 +110,7 @@ import { NEW_TAB_DESCRIPTION } from "../../../UI/Components/Markdown.tsx/Markdow
 import { PluralTemplate } from "../../../UI/Utils/TranslateTemplate";
 import fs from "fs";
 import path from "path";
+import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 interface FieldShape {
   key: string;
@@ -253,25 +254,7 @@ describe("Admin > Projects > Create Project", () => {
  * say the same thing.
  */
 describe("Admin > Projects > Create Project, in every Admin Dashboard language", () => {
-  const LANGUAGES: Array<string> = [
-    "en",
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ];
+  const LANGUAGES: Array<string> = ["en", ...ADMIN_DASHBOARD_LANGUAGES];
 
   const FEATURE_SETS: string = path.join(
     __dirname,

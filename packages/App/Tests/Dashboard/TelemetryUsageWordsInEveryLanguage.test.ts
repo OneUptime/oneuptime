@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * THE USAGE PAGES SAY WHAT THEY SAY IN EVERY LANGUAGE (issue #5916).
@@ -32,24 +33,7 @@ const SAME_AS_ENGLISH: Array<string> = JSON.parse(
   ),
 ) as Array<string>;
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 // Every string the usage overview and the Usage page added.
 const OVERVIEW_STRINGS: ReadonlyArray<string> = [
@@ -63,7 +47,10 @@ const OVERVIEW_STRINGS: ReadonlyArray<string> = [
   "A day's telemetry is counted once the day has ended in UTC, by about 08:00 UTC the next day. Today's shows up tomorrow.",
   "No telemetry usage in this range",
   "The newest day with usage is {{day}}. Choose a longer range to see it.",
-  "Spans, and the exceptions recorded with them.",
+  // Exceptions apart from the traces they are billed with (issue #6356).
+  "Spans. Days counted before exceptions were shown apart include their exceptions too.",
+  "Exceptions recorded from spans and logs.",
+  "Exceptions recorded from spans and logs. They are billed as part of Traces.",
   "Profiles, and the samples recorded with them.",
   "Session replays: {{days}}",
   "How long the resource's telemetry is kept, as counted on the newest day of the range.",
@@ -73,9 +60,14 @@ const OVERVIEW_STRINGS: ReadonlyArray<string> = [
   "{{amount}} USD",
 ];
 
-// The Usage page's own: the daily rows' card where billing is off.
+/*
+ * The Usage page's own: the daily rows' card where billing is off, and how
+ * much of a Traces row was exceptions (its line, and its column's title).
+ */
 const DASHBOARD_ONLY_STRINGS: ReadonlyArray<string> = [
   "How much telemetry each service sent each day, and how long it is kept.",
+  "Exceptions: {{size}}",
+  "Exceptions Ingested (in GB)",
 ];
 
 // What the overview names that the Dashboard had words for already.
@@ -88,6 +80,7 @@ const SHARED_EXISTING_STRINGS: ReadonlyArray<string> = [
   "Logs",
   "Metrics",
   "Traces",
+  "Exceptions",
   "Profiles",
   "Session Replays",
   "Security Events",

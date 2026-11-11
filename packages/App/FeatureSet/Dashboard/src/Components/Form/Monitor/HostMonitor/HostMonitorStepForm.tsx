@@ -37,6 +37,8 @@ import {
 import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { HostMetricDefinition } from "Common/Types/Monitor/HostMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import AddHostModal from "../../../HostCollector/AddHostModal";
 import InfrastructureMonitorSetup from "../InfrastructureMonitorSetup/InfrastructureMonitorSetup";
 import InfrastructureResourceField from "../InfrastructureMonitorSetup/InfrastructureResourceField";
@@ -71,6 +73,7 @@ const aggregationOptions: Array<DropdownOption> = [
 const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [rollingTime, setRollingTime] = React.useState<RollingTime | null>(
     null,
   );
@@ -276,6 +279,7 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
             props.defaultIncidentSeverityId || ObjectID.generate(),
           defaultAlertSeverityId:
             props.defaultAlertSeverityId || ObjectID.generate(),
+          translator: translator,
         }),
       );
     }

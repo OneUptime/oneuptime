@@ -30,7 +30,7 @@ import {
 import SessionReplayBudgetMetricType from "Common/Types/Rum/SessionReplayBudgetMetricType";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
-import { formatBytesForCopy } from "Common/Utils/Rum/SessionReplayHealth";
+import { formatBytesForCopy } from "Common/Utils/SessionReplay/SessionReplayHealth";
 import SessionReplayBudgetMetricTypeUtil, {
   SESSION_REPLAY_BUDGET_METRIC_INTERVAL_MINUTES,
   SESSION_REPLAY_BUDGET_METRIC_PROJECT_ID_ATTRIBUTE,

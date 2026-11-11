@@ -52,7 +52,12 @@ import {
   getProjectBalanceShortfallSentence,
   ProjectBalanceType,
 } from "Common/Utils/Project/ProjectBalance";
-import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+  NotificationDeliveryProvider,
+  NotificationDispatch,
+  NotificationProviderConfig,
+} from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import {
   getNoTwilioAccountMessage,
   TwilioMessageKind,
@@ -97,48 +102,42 @@ export default class SmsService {
       failIfNotSent?: boolean | undefined;
     },
   ): Promise<void> {
-    const startNs: bigint = process.hrtime.bigint();
-    let outcome: "success" | "failure" = "success";
+    // How it went, for the platform's operator (NotificationDeliveryMetrics).
+    await NotificationDeliveryMetrics.measureDispatch(
+      {
+        channel: NotificationDeliveryChannel.SMS,
+        isOnCallPage: Boolean(options.userOnCallLogTimelineId),
+      },
+      async (dispatch: NotificationDispatch): Promise<void> => {
+        const notSentReason: string | null = await this.sendSmsInternal(
+          to,
+          // The installation's own name, when it goes by one.
+          ProductBrandingText.brandText(message),
+          options,
+          dispatch,
+        );
 
-    try {
-      const notSentReason: string | null = await this.sendSmsInternal(
-        to,
-        // The installation's own name, when it goes by one.
-        ProductBrandingText.brandText(message),
-        options,
-      );
+        /*
+         * Deliberately not sent: the person's on-call timeline says so, and
+         * why, instead of "Sending" for ever.
+         */
+        if (notSentReason !== null) {
+          dispatch.markNotSent();
 
-      /*
-       * Deliberately not sent: the person's on-call timeline says so, and
-       * why, instead of "Sending" for ever.
-       */
-      if (notSentReason !== null) {
-        await UserOnCallLogTimelineService.markNotSent({
-          userOnCallLogTimelineId: options.userOnCallLogTimelineId,
-          reason: notSentReason,
-        });
-      }
+          await UserOnCallLogTimelineService.markNotSent({
+            userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+            reason: notSentReason,
+          });
+        }
 
-      if (notSentReason !== null && options.failIfNotSent) {
-        // The tenant's settings or balance, not a defect: a user error.
-        throw new BadDataException(
-          `SMS not sent: ${notSentReason}`,
-        ).asUserError();
-      }
-    } catch (err) {
-      outcome = "failure";
-      throw err;
-    } finally {
-      const elapsedNs: bigint = process.hrtime.bigint() - startNs;
-      const durationMs: number = Number(elapsedNs) / 1e6;
-      const attributes: Record<string, string> = {
-        "notification.channel": "sms",
-        outcome,
-      };
-
-      AppMetrics.getNotificationCounter().add(1, attributes);
-      AppMetrics.getNotificationDuration().record(durationMs, attributes);
-    }
+        if (notSentReason !== null && options.failIfNotSent) {
+          // The tenant's settings or balance, not a defect: a user error.
+          throw new BadDataException(
+            `SMS not sent: ${notSentReason}`,
+          ).asUserError();
+        }
+      },
+    );
   }
 
   private static async sendSmsInternal(
@@ -164,13 +163,15 @@ export default class SmsService {
       teamId?: ObjectID | undefined;
       failIfNotSent?: boolean | undefined;
     },
+    dispatch: NotificationDispatch,
   ): Promise<string | null> {
     /*
      * Returns why the SMS was deliberately not sent (the project was not
      * found, has SMS turned off, or has too little balance), after logging
      * it; null when it was handed to Twilio. A failure to send throws. The
      * on-call timeline row of an SMS not sent is updated by sendSms, from
-     * the reason this returns.
+     * the reason this returns. `dispatch` is told what it goes out through,
+     * and that it went.
      */
     let smsError: Error | null = null;
     const smsLog: SmsLog = new SmsLog();
@@ -333,6 +334,17 @@ export default class SmsService {
       const twilioConfig: TwilioConfig | null = gateway
         ? null
         : customTwilioConfig || (await getTwilioConfig(TwilioMessageKind.SMS));
+
+      if (gateway) {
+        dispatch.setProvider(NotificationDeliveryProvider.SmsAndCallGateway);
+      } else if (twilioConfig) {
+        dispatch.setProvider(
+          NotificationDeliveryProvider.Twilio,
+          customTwilioConfig
+            ? NotificationProviderConfig.Project
+            : NotificationProviderConfig.Global,
+        );
+      }
 
       if (!gateway && !twilioConfig) {
         /*
@@ -586,6 +598,8 @@ export default class SmsService {
           throw new BadDataException(result.message).asUserError();
         }
 
+        dispatch.markSucceeded();
+
         smsLog.status = SmsStatus.Sent;
         smsLog.statusMessage = result.message;
       } else {
@@ -614,6 +628,13 @@ export default class SmsService {
           SmsService.mapProviderStatusToSmsStatus(twillioMessage.status) ||
           SmsStatus.Sent;
         smsLog.statusMessage = "Message ID: " + twillioMessage.sid;
+
+        // Accepted - unless Twilio answered with a status that already failed.
+        if (SmsService.isFailureStatus(smsLog.status)) {
+          dispatch.markFailed();
+        } else {
+          dispatch.markSucceeded();
+        }
       }
 
       logger.debug("SMS message sent successfully.");

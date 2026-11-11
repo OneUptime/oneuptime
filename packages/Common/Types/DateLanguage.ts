@@ -205,6 +205,81 @@ export const getDateLocale: (language: string | null | undefined) => string = (
 };
 
 /*
+ * THE LOCALE A NUMBER OR A DATE THE READER SEES IS WRITTEN IN.
+ *
+ * A toLocaleString() with no locale follows the browser, not the page: an
+ * Arabic page read in Safari wrote "١٬٢٣٤" where the product promises Latin
+ * digits, a German page read in an English browser wrote "1,234" beside
+ * "1.234" from the translator, and an English page on a Persian system
+ * wrote Persian digits. These follow the page's language instead
+ * (setDateDisplayLanguage, which every frontend sets from its i18n), in the
+ * digits and calendar it writes (getNumberLocale, getDateLocale).
+ *
+ * An English page keeps the browser's own English - "14/09/2026" in
+ * en-GB, "9/14/2026" in en-US - as it always has, and reads "en" when the
+ * browser's own locale is another language's. Where nothing set a language
+ * (the server, emails, workers) that is the process's English, as before.
+ */
+
+let runtimeLocale: string | null = null;
+
+// The runtime's own default locale ("en-GB", "de-DE"), read once.
+const getRuntimeLocale: () => string = (): string => {
+  if (runtimeLocale === null) {
+    try {
+      runtimeLocale = new Intl.NumberFormat().resolvedOptions().locale || "";
+    } catch {
+      runtimeLocale = "";
+    }
+  }
+
+  return runtimeLocale;
+};
+
+// The locale an English page writes in: the browser's English, else "en".
+const getEnglishReaderLocale: () => string = (): string => {
+  const runtime: string = getRuntimeLocale();
+
+  return runtime && isEnglishDateLanguage(runtime)
+    ? runtime
+    : ENGLISH_DATE_LANGUAGE;
+};
+
+// For Intl.NumberFormat and a number's toLocaleString.
+export const getReaderNumberLocale: () => string = (): string => {
+  const language: string = getDateDisplayLanguage();
+
+  if (isEnglishDateLanguage(language)) {
+    return getEnglishReaderLocale();
+  }
+
+  return getNumberLocale(language) || ENGLISH_DATE_LANGUAGE;
+};
+
+// For Intl.DateTimeFormat and a date's toLocale(Date|Time)String.
+export const getReaderDateLocale: () => string = (): string => {
+  const language: string = getDateDisplayLanguage();
+
+  if (isEnglishDateLanguage(language)) {
+    return getEnglishReaderLocale();
+  }
+
+  return getDateLocale(language);
+};
+
+// A number as the reader's language writes it: "1,234", "1.234", "۱٬۲۳۴".
+export const formatReaderNumber: (
+  value: number,
+  options?: Intl.NumberFormatOptions,
+) => string = (value: number, options?: Intl.NumberFormatOptions): string => {
+  try {
+    return value.toLocaleString(getReaderNumberLocale(), options);
+  } catch {
+    return value.toLocaleString("en", options);
+  }
+};
+
+/*
  * THE ENGLISH OF A DATE WRITTEN IN ANOTHER LANGUAGE.
  *
  * Kept for the most recent texts only: a page writes its dates again on
@@ -645,6 +720,35 @@ export const formatRelativeDate: (data: {
     distance.isFuture ? distance.count : -distance.count,
     distance.unit,
   );
+};
+
+/*
+ * "in 2 Stunden", "قبل 3 أيام" - `count` `unit`s ahead of now, or behind it
+ * when `isFuture` is false, in `locale`: for a caller that counts its own
+ * units (a maintenance window's "in 2 hours", its minutes floored). Null
+ * when this engine has no Intl.RelativeTimeFormat.
+ */
+export const formatRelativeAmount: (data: {
+  count: number;
+  unit: RelativeDateUnit;
+  isFuture: boolean;
+  locale: string;
+}) => string | null = (data: {
+  count: number;
+  unit: RelativeDateUnit;
+  isFuture: boolean;
+  locale: string;
+}): string | null => {
+  const always: RelativeTimeFormatter | null = getRelativeTimeFormatter(
+    data.locale,
+    "always",
+  );
+
+  if (!always) {
+    return null;
+  }
+
+  return always.format(data.isFuture ? data.count : -data.count, data.unit);
 };
 
 /*

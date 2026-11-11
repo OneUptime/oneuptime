@@ -82,6 +82,7 @@ import ThemeUtil from "../../../UI/Utils/Theme";
 import UserUtil from "../../../UI/Utils/User";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const FEATURE_SET: string = path.resolve(
   __dirname,
@@ -105,25 +106,7 @@ const readLocale: (app: string, language: string) => Record<string, unknown> = (
   ) as Record<string, unknown>;
 };
 
-const LANGUAGES: Array<string> = [
-  "en",
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
 
 /*
  * Storage's string index signature makes @jest/globals type a spy on

@@ -102,7 +102,7 @@ Selecione as **Sondas** e um **Intervalo de monitoramento** (começa em **A cada
 
 ### Componentes
 
-Escolha os componentes de que você depende e o monitor acompanha só eles: **External Status Page Component Status** compara só os status deles, o status geral é o pior entre os deles e **External Status Page Active Incidents** conta só os incidentes que afetam pelo menos um deles. Continua sendo uma única verificação da página, quantos você escolher.
+Escolha os componentes de que você depende e o monitor acompanha só eles: **Status do componente da página de status externa** compara só os status deles, o status geral é o pior entre os deles e o filtro **Incidentes ativos da página de status externa** conta só os incidentes que afetam pelo menos um deles. Continua sendo uma única verificação da página, quantos você escolher.
 
 Quando você abre **Componentes**, seu navegador lê a lista da página em uma Atlassian Statuspage, uma página do incident.io ou uma página de status do OneUptime, e a mostra nos grupos da página; cada componente que não está operacional diz como está. Um nome escolhido acompanha o componente com exatamente esse nome, sem diferenciar maiúsculas de minúsculas: `Copilot` na página do GitHub não é `Copilot AI Model Providers`.
 
@@ -129,13 +129,13 @@ Você pode configurar critérios para decidir quando o serviço externo é consi
 
 | Tipo de filtro | O que verifica | Condições do filtro |
 | --- | --- | --- |
-| **External Status Page Is Online** | Se a página de status está acessível e retornando dados de status | Verdadeiro ou Falso |
-| **External Status Page Overall Status** | O status geral que a página informa | Igual a, Diferente de, Contém, Não contém, Começa com, Termina com |
-| **External Status Page Component Status** | O status de cada componente do escopo (os componentes escolhidos, ou os do grupo, quando definidos): Operacional, Em manutenção, Desempenho degradado, Interrupção parcial, Interrupção grave ou Interrupção total | Igual a, Diferente de, Contém, Não contém, Começa com, Termina com |
-| **External Status Page Active Incidents** | O número de incidentes ativos no momento informados na página de status (só os que afetam um componente do escopo, quando há componentes ou um grupo escolhidos) | Igual a, Diferente de e as comparações numéricas |
-| **External Status Page Response Time (in ms)** | Quanto tempo leva para baixar os dados da página de status | Maior que, Menor que, Maior ou igual a, Menor ou igual a |
+| **Página de status externa online** | Se a página de status está acessível e retornando dados de status | Verdadeiro ou Falso |
+| **Status geral da página de status externa** | O status geral que a página informa | Igual a, Diferente de, Contém, Não contém, Começa com, Termina com |
+| **Status do componente da página de status externa** | O status de cada componente do escopo (os componentes escolhidos, ou os do grupo, quando definidos): Operacional, Em manutenção, Desempenho degradado, Interrupção parcial, Interrupção grave ou Interrupção total | Igual a, Diferente de, Contém, Não contém, Começa com, Termina com |
+| **Incidentes ativos da página de status externa** | O número de incidentes ativos no momento informados na página de status (só os que afetam um componente do escopo, quando há componentes ou um grupo escolhidos) | Igual a, Diferente de e as comparações numéricas |
+| **Tempo de resposta da página de status externa (em ms)** | Quanto tempo leva para baixar os dados da página de status | Maior que, Menor que, Maior ou igual a, Menor ou igual a |
 
-O status geral é o que a página diz, então os valores dele variam conforme o provedor: uma Atlassian Statuspage informa a própria descrição, como `All Systems Operational`; uma página de status do OneUptime, o pior status entre os componentes no escopo, como `under_maintenance`; um feed informa `operational` ou `degraded_performance`; a verificação de acessibilidade informa `reachable` ou `unreachable`. Com componentes ou um grupo escolhidos, é o pior status entre eles, em qualquer página. Essas comparações diferenciam maiúsculas de minúsculas. O resumo do monitor mostra o status geral em palavras e cores, como o de cada componente (`under_maintenance` aparece como **Em manutenção**), enquanto os critérios comparam o valor que a página informa. Para alertar sobre interrupções, **External Status Page Active Incidents** e **External Status Page Component Status** costumam ser mais confiáveis.
+O status geral é o que a página diz, então os valores dele variam conforme o provedor: uma Atlassian Statuspage informa a própria descrição, como `All Systems Operational`; uma página de status do OneUptime, o pior status entre os componentes no escopo, como `under_maintenance`; um feed informa `operational` ou `degraded_performance`; a verificação de acessibilidade informa `reachable` ou `unreachable`. Com componentes ou um grupo escolhidos, é o pior status entre eles, em qualquer página. Essas comparações diferenciam maiúsculas de minúsculas. O resumo do monitor mostra o status geral em palavras e cores, como o de cada componente (`under_maintenance` aparece como **Em manutenção**), enquanto os critérios comparam o valor que a página informa. Para alertar sobre interrupções, **Incidentes ativos da página de status externa** e **Status do componente da página de status externa** costumam ser mais confiáveis.
 
 Em um feed RSS ou Atom, os itens das últimas 24 horas contam como incidentes ativos: um item RSS pela data de publicação, uma entrada Atom pela data de atualização. Um item com data no futuro só conta a partir dessa data.
 
@@ -178,7 +178,7 @@ Os [critérios padrão](#critérios-padrão) nunca tomam uma manutenção por um
 :::steps
 ### Adicionar o critério
 
-Nos critérios do monitor, clique em **Adicionar critérios**. Dê a ele o filtro **External Status Page Component Status**, **Igual a**, **Em manutenção**, e escolha o seu status de manutenção em **Alterar status do monitor para**.
+Nos critérios do monitor, clique em **Adicionar critérios**. Dê a ele o filtro **Status do componente da página de status externa**, **Igual a**, **Em manutenção**, e escolha o seu status de manutenção em **Alterar status do monitor para**.
 
 ### Levá-lo para o topo
 

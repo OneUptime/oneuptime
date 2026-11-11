@@ -6,6 +6,7 @@ import {
   PluralTemplate,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * Issue #5073: an Ask AI answer's footer ("$0.0183 · 10,962 tokens · 3
@@ -24,24 +25,7 @@ const LOCALES_DIR: string = path.join(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // The footer facts, as the components ask for them.
 const TOKENS: PluralTemplate = {

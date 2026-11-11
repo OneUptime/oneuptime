@@ -54,6 +54,7 @@ import {
   createTranslator,
 } from "../../../UI/Utils/TranslateTemplate";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * What a Meraki connection says about adding its devices
@@ -79,24 +80,7 @@ const LOCALES_DIR: string = path.join(
   "Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 // Words that read the same in a language, as its locale's progress records them.
 const SAME_IN: Record<string, Array<string>> = {

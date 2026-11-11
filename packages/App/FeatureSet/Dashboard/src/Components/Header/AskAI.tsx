@@ -2,18 +2,31 @@ import IconProp from "Common/Types/Icon/IconProp";
 import HeaderIconDropdownButton from "Common/UI/Components/Header/HeaderIconDropdownButton";
 import KeyboardKey from "Common/UI/Components/KeyboardShortcut/KeyboardKey";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { ReactElement } from "react";
 import { useIsAskAiOpen } from "../AIChat/AskAiEvents";
 import EventName from "../../Utils/EventName";
 
+/*
+ * The button's words are the reader's, as Search's beside it are: written
+ * as the English "Ask AI", it was the one English word left in the header
+ * of every page, in every language - while the translated docs already
+ * told their readers to click the button by its own name in their language.
+ */
+export const ASK_AI_BUTTON_LABEL: string = translationKey("Ask AI");
+
 const AskAI: () => JSX.Element = (): ReactElement => {
   const isOpen: boolean = useIsAskAiOpen();
+  const translator: Translator = useTranslator();
+  const label: string =
+    translator.translateText(ASK_AI_BUTTON_LABEL) || ASK_AI_BUTTON_LABEL;
 
   return (
     <HeaderIconDropdownButton
       icon={IconProp.Sparkles}
-      name="Ask AI"
-      title="Ask AI"
+      name={label}
+      title={label}
       iconClassName="text-indigo-500"
       /*
        * The panel stays beside the page, this button in sight: it reads as

@@ -8,7 +8,8 @@
  * The query string sets the page: `theme` (Light, Dark or System),
  * `private=1` (a page only signed-in readers see), `sso=1` (a private
  * page that also offers single sign-on) and `darkLogo=1` (a page with a
- * logo made for the dark theme too).
+ * logo made for the dark theme too) and `lang` (the page's default
+ * language: `ar`, an Arabic page read right to left).
  */
 import "./MockApi";
 import "../../../App/FeatureSet/StatusPage/src/Index";

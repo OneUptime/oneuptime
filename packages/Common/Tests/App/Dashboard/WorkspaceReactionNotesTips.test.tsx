@@ -37,6 +37,7 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 });
 
 import WorkspaceReactionNotesTips from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceReactionNotesTips";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
@@ -81,24 +82,7 @@ const ALL_LINES: Array<string> = [
   DESCRIPTION,
 ];
 
-const LOCALES: Array<string> = [
-  "da",
-  "de",
-  "es",
-  "fa",
-  "fr",
-  "hi",
-  "it",
-  "ja",
-  "ko",
-  "nl",
-  "no",
-  "pt",
-  "ru",
-  "sv",
-  "zh-CN",
-  "zh-TW",
-];
+const LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 beforeAll(async () => {
   await i18next.use(initReactI18next).init({

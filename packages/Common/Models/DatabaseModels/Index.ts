@@ -32,6 +32,7 @@ import NetworkDeviceLink from "./NetworkDeviceLink";
 import NetworkDeviceLinkRule from "./NetworkDeviceLinkRule";
 import NetworkTopologySuppression from "./NetworkTopologySuppression";
 import NetworkSiteAssignmentRule from "./NetworkSiteAssignmentRule";
+import NetworkDeviceNamingRule from "./NetworkDeviceNamingRule";
 import NetworkControllerConnection from "./NetworkControllerConnection";
 import NetworkAddressName from "./NetworkAddressName";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
@@ -453,6 +454,8 @@ import Runner from "./Runner";
 import RunnerJob from "./RunnerJob";
 import RunnerOwnerTeam from "./RunnerOwnerTeam";
 import RunnerOwnerUser from "./RunnerOwnerUser";
+import TeamOwnerTeam from "./TeamOwnerTeam";
+import TeamOwnerUser from "./TeamOwnerUser";
 import RunbookVariable from "./RunbookVariable";
 import RunbookExecution from "./RunbookExecution";
 import RunbookOwnerTeam from "./RunbookOwnerTeam";
@@ -978,6 +981,8 @@ const AllModelTypes: Array<{
   RunnerJob,
   RunnerOwnerTeam,
   RunnerOwnerUser,
+  TeamOwnerTeam,
+  TeamOwnerUser,
   RunbookVariable,
 
   ProjectSSO,
@@ -1215,6 +1220,7 @@ const AllModelTypes: Array<{
   NetworkDeviceLinkRule,
   NetworkTopologySuppression,
   NetworkSiteAssignmentRule,
+  NetworkDeviceNamingRule,
   NetworkControllerConnection,
   NetworkAddressName,
   DockerHostOwnerTeam,

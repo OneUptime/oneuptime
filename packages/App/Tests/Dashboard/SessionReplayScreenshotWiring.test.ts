@@ -195,8 +195,14 @@ describe("the shell's capture callback", () => {
     expect(body).toContain("tabs.length > 1 && tabIndex >= 0");
     expect(body).toContain("`Tab ${tabIndex + 1}`");
     expect(body).toMatch(/: null,\s*\}\);/);
-    /* The header's tab strip counts the same manifest tabs from one. */
-    expect(TABS_SOURCE).toContain("label: `Tab ${index + 1}`");
+    /*
+     * The header's tab strip counts the same manifest tabs from one, and
+     * names each "Tab {{number}}" - in the reader's language there.
+     */
+    expect(TABS_SOURCE).toContain(
+      "label: nameReplayTab(index + 1, translator)",
+    );
+    expect(TABS_SOURCE).toContain('translateTemplate("Tab {{number}}"');
   });
 
   test("the refs it reads are the ones the shell keeps current", () => {

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47694,
-    "untranslated": 6380
+    "keys": 49075,
+    "untranslated": 5742
   },
   "sameAsEnglish": [
     " incidents",
@@ -120,6 +120,7 @@
     "Canada (+1)",
     "Canonical Sunbeam",
     "Capture",
+    "Cause",
     "Celsius",
     "Chat",
     "Checkout primary",
@@ -467,6 +468,7 @@
     "Service",
     "Services",
     "Session",
+    "Session {{id}}",
     "Sessions",
     "Signal",
     "Site",
@@ -672,6 +674,7 @@
     "x86",
     "z",
     "zone",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{amount}}, ratio {{ratio}}",
     "{{count}} CPU",
     "{{count}} Kubernetes",
@@ -695,6 +698,9 @@
     "{{count}} exception",
     "{{count}} exceptions",
     "{{count}} flow",
+    "{{count}} frustration",
+    "{{count}} image",
+    "{{count}} images",
     "{{count}} incident",
     "{{count}} incidents",
     "{{count}} instance",
@@ -720,12 +726,17 @@
     "{{count}} s",
     "{{count}} service",
     "{{count}} services",
+    "{{count}} session",
+    "{{count}} sessions",
+    "{{count}} signal",
     "{{count}} source",
     "{{count}} sources",
     "{{count}} span",
     "{{count}} spans",
     "{{count}} stack",
     "{{count}} stacks",
+    "{{count}} trace",
+    "{{count}} traces",
     "{{count}} vCPU",
     "{{count}} volume",
     "{{count}} volumes",
@@ -734,6 +745,7 @@
     "{{in}} in",
     "{{minutes}} min",
     "{{protocol}} port {{port}}",
-    "{{up}}/{{count}} OSD up"
+    "{{up}}/{{count}} OSD up",
+    "{{value}} ms"
   ]
 }

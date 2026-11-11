@@ -93,6 +93,7 @@ flowchart TB
 - [Справочник API](/docs/api-reference/api-reference): Автоматизировать OneUptime через его REST API.
 - [CLI](/docs/cli/index): Управлять OneUptime из терминала и CI.
 - [Провайдер Terraform](/docs/terraform/index): Управлять мониторами, страницами статуса и дежурствами как кодом.
+- [Провайдер Crossplane](/docs/crossplane/index): Управлять проектом из Kubernetes с помощью Crossplane.
 :::
 
 ### Администрирование

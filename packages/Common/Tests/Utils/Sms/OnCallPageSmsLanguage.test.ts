@@ -25,6 +25,7 @@ import {
   OnCallPageSmsKind,
   OnCallPageSmsLanguage,
 } from "../../../Utils/Sms/OnCallPageSms";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * A PAGE'S TEXT MESSAGE IN THE LANGUAGE OF THE PERSON IT PAGES
@@ -221,24 +222,7 @@ describe("in other languages", () => {
   });
 
   test("every language keeps a space before the link, so a phone makes it one", () => {
-    for (const code of [
-      "de",
-      "fr",
-      "es",
-      "it",
-      "pt",
-      "nl",
-      "da",
-      "no",
-      "sv",
-      "ru",
-      "ja",
-      "ko",
-      "zh-CN",
-      "zh-TW",
-      "hi",
-      "fa",
-    ]) {
+    for (const code of [...DASHBOARD_LANGUAGES]) {
       const sms: OnCallPageSms = page({ language: languageOf(code) });
 
       expect([code, sms.text.endsWith(` ${LINK}`)]).toEqual([code, true]);

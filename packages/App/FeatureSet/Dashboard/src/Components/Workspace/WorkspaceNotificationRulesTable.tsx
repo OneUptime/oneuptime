@@ -29,6 +29,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import API from "Common/UI/Utils/API/API";
@@ -169,6 +170,10 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   >([]);
   const [securityCaseStatuses, setSecurityCaseStatuses] = React.useState<
     Array<SecurityCaseStatus>
+  >([]);
+  // An SLO rule's: the project's SLOs, to pick the ones it is for.
+  const [serviceLevelObjectives, setServiceLevelObjectives] = React.useState<
+    Array<ServiceLevelObjective>
   >([]);
   const [teams, setTeams] = React.useState<Array<Team>>([]);
   const [microsoftTeamsTeams, setMicrosoftTeams] = React.useState<
@@ -410,6 +415,37 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
 
         setSecurityCasePriorities(caseValues.priorities);
         setSecurityCaseStatuses(caseValues.statuses);
+      }
+
+      /*
+       * Read only for the SLO rules, whose SLOs condition picks them by
+       * name. Someone who may set up rules but not read SLOs still edits the
+       * rule's other conditions, so a refusal leaves the list empty rather
+       * than failing the page.
+       */
+      if (props.eventType === NotificationRuleEventType.ServiceLevelObjective) {
+        try {
+          const slos: ListResult<ServiceLevelObjective> =
+            await ModelAPI.getList({
+              modelType: ServiceLevelObjective,
+              query: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+              },
+              select: {
+                _id: true,
+                name: true,
+              },
+              skip: 0,
+              limit: LIMIT_PER_PROJECT,
+              sort: {
+                name: SortOrder.Ascending,
+              },
+            });
+
+          setServiceLevelObjectives(slos.data);
+        } catch {
+          setServiceLevelObjectives([]);
+        }
       }
 
       const monitorStatus: ListResult<MonitorStatus> = await ModelAPI.getList({
@@ -703,6 +739,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         scheduledMaintenanceStates={scheduledMaintenanceStates}
         securityCasePriorities={securityCasePriorities}
         securityCaseStatuses={securityCaseStatuses}
+        serviceLevelObjectives={serviceLevelObjectives}
         monitorStatus={monitorStatus}
         workspaceType={props.workspaceType}
         teams={teams}
@@ -1131,6 +1168,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             scheduledMaintenanceStates: scheduledMaintenanceStates,
             securityCasePriorities: securityCasePriorities,
             securityCaseStatuses: securityCaseStatuses,
+            serviceLevelObjectives: serviceLevelObjectives,
             monitorStatus: monitorStatus,
             teams: teams,
             users: users,

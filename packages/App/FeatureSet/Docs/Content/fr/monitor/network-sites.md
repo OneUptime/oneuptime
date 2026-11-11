@@ -54,7 +54,7 @@ Chaque équipement est rattaché à un site. Le sous-arbre d'un site, c'est le s
 Allez dans **Réseau → Sites** et cliquez sur **Ajouter : Site**.
 
 ### Dire ce qu'est le site
-À l'étape **Site Details**, choisissez le **Site Type** (le genre de lieu : une région, un magasin, un centre de données) et saisissez un **Nom**. La description, l'adresse postale, et la latitude et la longitude qui placent le site sur la carte sont repliées sous **Plus de champs** : remplissez-les maintenant ou plus tard.
+À l'étape **Site Details**, choisissez le **Site Type** (le genre de lieu : une région, un magasin, un centre de données) et saisissez un **Nom**. Le **Code du site**, la description, l'adresse postale, et la latitude et la longitude qui placent le site sur la carte sont repliés sous **Plus de champs** : remplissez-les maintenant ou plus tard. Un code de site est un code court, comme un numéro de magasin ou d'établissement (`1216`) ; les [règles de nommage](/docs/monitor/network-device-monitor#nommer-les-équipements-selon-votre-convention-de-nommage) l'insèrent dans le nom des équipements avec `{site.code}`.
 
 ### Le placer dans l'arborescence
 À l'étape **Hiérarchie**, choisissez le **Parent Site** si le site se trouve sous un autre. Laissez-le vide pour garder le site au premier niveau.
@@ -171,7 +171,7 @@ Un site sans aucune ligne de chronologie affiche `—` au lieu de 100% : un site
 
 ### Disponibilité quotidienne
 
-À côté du chiffre sur 30 jours, l'aperçu de chaque site affiche **Uptime (24h)**, et sa page **Chronologie de statut** montre les dernières 24 heures, 7, 30 et 90 jours, ainsi qu'une barre par jour pour les 30 derniers.
+À côté du chiffre sur 30 jours, l'aperçu de chaque site affiche **Disponibilité (24 h)**, et sa page **Chronologie de statut** montre les dernières 24 heures, 7, 30 et 90 jours, ainsi qu'une barre par jour pour les 30 derniers.
 
 Une moyenne sur 30 jours ne peut pas montrer un mauvais jour. Une journée complète de panne dans une période de 30 jours coûte 3.3 points, si bien qu'un site éteint pendant tout un mardi affiche encore 96.7% pour le mois, un chiffre qui ressemble à un arrondi. Les barres quotidiennes placent les mêmes données là où un mauvais jour est une mauvaise barre.
 

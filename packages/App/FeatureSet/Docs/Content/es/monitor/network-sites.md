@@ -54,7 +54,7 @@ Cada dispositivo pertenece a un sitio. El subárbol de un sitio es el propio sit
 Ve a **Red → Sitios** y haz clic en **Añadir Sitio**.
 
 ### Decir qué es el sitio
-En el paso **Detalles del sitio**, elige el **Tipo de sitio** (qué clase de lugar es: una región, una tienda, un centro de datos) y escribe un **Nombre**. La descripción, la dirección postal y la latitud y la longitud que sitúan el sitio en el mapa están plegadas en **Más campos**: rellénalas ahora o más tarde.
+En el paso **Detalles del sitio**, elige el **Tipo de sitio** (qué clase de lugar es: una región, una tienda, un centro de datos) y escribe un **Nombre**. El **Código del sitio**, la descripción, la dirección postal y la latitud y la longitud que sitúan el sitio en el mapa están plegados en **Más campos**: rellénalos ahora o más tarde. Un código de sitio es un código corto, como un número de tienda o de local (`1216`); las [reglas de nomenclatura](/docs/monitor/network-device-monitor#nombrar-los-dispositivos-según-tu-convención-de-nomenclatura) lo ponen en los nombres de los dispositivos con `{site.code}`.
 
 ### Colocarlo en el árbol
 En el paso **Jerarquía**, elige el **Sitio padre** si el sitio está bajo otro. Déjalo vacío para mantener el sitio en el nivel superior.
@@ -171,7 +171,7 @@ Un sitio sin ninguna fila en su cronología muestra `—` en lugar de 100%: un s
 
 ### Tiempo de actividad diario
 
-Junto a la cifra de 30 días, la vista general de cada sitio muestra **Uptime (24h)**, y su página **Cronología de estados** muestra las últimas 24 horas, 7, 30 y 90 días, y una barra por día para los últimos 30.
+Junto a la cifra de 30 días, la vista general de cada sitio muestra **Tiempo de actividad (24 h)**, y su página **Cronología de estados** muestra las últimas 24 horas, 7, 30 y 90 días, y una barra por día para los últimos 30.
 
 Una media de 30 días no puede mostrar un mal día. Un día entero de caída en una ventana de 30 días cuesta 3,3 puntos, así que un sitio que estuvo apagado todo un martes sigue informando un 96,7% para el mes, una cifra que parece redondeo. Las barras diarias ponen los mismos datos donde un mal día es una mala barra.
 

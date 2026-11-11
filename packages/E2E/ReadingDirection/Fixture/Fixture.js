@@ -7,7 +7,7 @@
  * (Common/UI/Utils/DateDisplayLanguage).
  *
  * One page, /reading-direction, steered by the query string:
- *   - lang=en|de|fa|ko   the language (and so the direction) of the page
+ *   - lang=en|de|fa|ko|ar   the language (and so the direction) of the page
  *   - theme=dark         (read by server.js) the Dashboard's dark mode
  *   - dialog=open        a dialog over the page
  *   - drawer=open        a side panel (SideOver) over the page
@@ -94,13 +94,14 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
+import AR from "../../../App/FeatureSet/Dashboard/src/Locales/ar.json";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import KO from "../../../App/FeatureSet/Dashboard/src/Locales/ko.json";
 import UserElement from "../../../App/FeatureSet/Dashboard/src/Components/User/User";
 
 const params = new URLSearchParams(window.location.search);
-const language = ["de", "fa", "ko"].includes(params.get("lang"))
+const language = ["de", "fa", "ko", "ar"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 const isDialogOpen = params.get("dialog") === "open";
@@ -123,6 +124,7 @@ await i18next.use(initReactI18next).init({
     de: { translation: DE },
     fa: { translation: FA },
     ko: { translation: KO },
+    ar: { translation: AR },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,
@@ -338,6 +340,7 @@ const READ_FROM_TIME = {
   en: "4 minutes ago",
   de: "vor 4 Minuten",
   fa: "۴ دقیقه پیش",
+  ar: "منذ 4 دقائق",
 };
 
 // A node and the line out of it, at fixed places on the canvas.
@@ -346,7 +349,11 @@ const FLOW_NODES = [
     id: "payments",
     position: { x: 40, y: 30 },
     data: {
-      label: language === "fa" ? "درگاه پرداخت." : "Payments gateway.",
+      label:
+        {
+          fa: "درگاه پرداخت.",
+          ar: "بوابة الدفع.",
+        }[language] || "Payments gateway.",
     },
   },
   // A workflow step's description, from the step catalogue: English.

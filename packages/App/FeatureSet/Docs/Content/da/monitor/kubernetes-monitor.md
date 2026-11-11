@@ -99,7 +99,7 @@ Fanen **Custom Metric** tilbyder disse metrikker, grupperet efter ressourcetype:
 
 ### Hvad der evalueres
 
-Disse monitorer evaluerer altid **Metric Value** – værdien af den konfigurerede metrikforespørgsel eller formel. Kriterieformularen har ingen vælger for filtertype; den viser **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**.
+Disse monitorer evaluerer altid **Metrikværdi** – værdien af den konfigurerede metrikforespørgsel eller formel. Kriterieformularen har ingen vælger for filtertype; den viser **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**.
 
 ### Aggregeringstyper
 
@@ -107,10 +107,10 @@ Disse monitorer evaluerer altid **Metric Value** – værdien af den konfigurere
 | --- | --- |
 | Gennemsnit | Gennemsnitsværdi over tidsvinduet |
 | Sum | Summen af alle værdier |
-| Maximum Value | Højeste værdi i tidsvinduet |
-| Minimum Value | Laveste værdi i tidsvinduet |
-| All Values | Alle værdier skal matche kriteriet og dække hele tidsvinduet |
-| Any Value | Mindst én værdi skal matche |
+| Maksimumværdi | Højeste værdi i tidsvinduet |
+| Minimumværdi | Laveste værdi i tidsvinduet |
+| Alle værdier | Alle værdier skal matche kriteriet og dække hele tidsvinduet |
+| Vilkårlig værdi | Mindst én værdi skal matche |
 
 ### Betingelser
 
@@ -120,9 +120,9 @@ Anomalidetektion mod en baseline kræver ingen tærskel. Vælg en af disse betin
 
 | Betingelse | Matcher, når værdien |
 | --- | --- |
-| **Anomalously High** | Stiger over det forventede interval |
-| **Anomalously Low** | Falder under det forventede interval |
-| **Anomalous** | Forlader det forventede interval i en af retningerne |
+| **Unormalt høj** | Stiger over det forventede interval |
+| **Unormalt lav** | Falder under det forventede interval |
+| **Unormal** | Forlader det forventede interval i en af retningerne |
 
 Hver måling sammenlignes med en baseline for samme time på ugen, bygget ud fra **Baseline-vindue** (som standard 14 dage; 28, 60 eller 90 dage). **Følsomhed** angiver, hvor bredt det forventede interval er: **Lav (4σ — kun grove afvigelser)**, **Mellem (3σ — anbefalet)**, som er standard, eller **Høj (2σ — mere støjende, meget stabile tjenester)**. Anomalibetingelser forbliver i en "Learning"-tilstand og giver ingen advarsler, før den time på ugen har to ugers historik. Denne monitor filtrerer sine forespørgsler efter attributter, så hver forespørgsel, og hver serie i en grupperet forespørgsel, sammenlignes med sin egen historik, så langt tilbage som dine metrikker gemmes. Er det under to uger, forbliver en sum, en optælling eller en forespørgsel på et histogram i den tilstand for altid, og alt andet sammenlignes med alle metrikkens serier. En percentil af et histogram forbliver altid i den tilstand.
 

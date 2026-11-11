@@ -59,6 +59,8 @@ import STORAGE_ARRAY_ONBOARDING from "../../../StorageArray/StorageArrayOnboardi
 import AddResourceModal from "../../../ResourceOnboarding/AddResourceModal";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Window used when a step arrives without one (a legacy step, or a config
@@ -193,6 +195,7 @@ export function getResourceFilterFields(
 const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [rollingTime, setRollingTime] = React.useState<RollingTime | null>(
     null,
   );
@@ -523,6 +526,7 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
             props.defaultIncidentSeverityId || ObjectID.generate(),
           defaultAlertSeverityId:
             props.defaultAlertSeverityId || ObjectID.generate(),
+          translator: translator,
         }),
       );
     }

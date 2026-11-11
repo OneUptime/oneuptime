@@ -605,6 +605,11 @@ export interface DiscoveredDeviceImportFacts {
   siteId?: string | undefined;
   // The probe that polls the switch that saw it. Left out, the site's is used.
   probeId?: string | undefined;
+  /*
+   * Who made it, as the list showed it (from its MAC, or its controller):
+   * what a naming rule's Vendor condition and {vendor} read (issue #6619).
+   */
+  vendor?: string | undefined;
 }
 
 export function readDiscoveredDeviceImportFacts(
@@ -625,6 +630,7 @@ export function readDiscoveredDeviceImportFacts(
 
   const siteId: string | undefined = optionalText(facts["siteId"]);
   const probeId: string | undefined = optionalText(facts["probeId"]);
+  const vendor: string | undefined = optionalText(facts["vendor"]);
 
   if (siteId && ObjectID.isValidUUID(siteId)) {
     read.siteId = siteId;
@@ -632,6 +638,10 @@ export function readDiscoveredDeviceImportFacts(
 
   if (probeId && ObjectID.isValidUUID(probeId)) {
     read.probeId = probeId;
+  }
+
+  if (vendor) {
+    read.vendor = vendor;
   }
 
   return read;

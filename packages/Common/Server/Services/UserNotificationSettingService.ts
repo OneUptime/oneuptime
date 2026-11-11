@@ -39,6 +39,7 @@ import TelegramMessage, {
   TelegramMessagePayload,
 } from "../../Types/Telegram/TelegramMessage";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
+import { TwilioMessageKind } from "../../Utils/Project/TwilioAccount";
 import WhatsAppMessage, {
   WhatsAppMessagePayload,
 } from "../../Types/WhatsApp/WhatsAppMessage";
@@ -422,16 +423,18 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         }
       }
 
-      /*
-       * If the project has a default Twilio config set, all SMS and Calls
-       * sent to project team members will use it instead of the global config.
-       */
-      const projectTwilioConfig: TwilioConfig | undefined =
-        await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
-          data.projectId,
-        );
-
       if (isSentElsewhere && notificationSettings.alertBySMS) {
+        /*
+         * The project's default Twilio config for SMS, when it has one: the
+         * SMS to project team members go through it instead of the global
+         * config (Types/CallAndSMS/TwilioConfigDefaults).
+         */
+        const projectTwilioConfigForSms: TwilioConfig | undefined =
+          await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+            data.projectId,
+            TwilioMessageKind.SMS,
+          );
+
         const userSmses: Array<UserSMS> = await UserSmsService.findBy({
           query: {
             userId: data.userId,
@@ -473,7 +476,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             },
             {
               projectId: data.projectId,
-              customTwilioConfig: projectTwilioConfig,
+              customTwilioConfig: projectTwilioConfigForSms,
               incidentId: data.incidentId,
               alertId: data.alertId,
               alertEpisodeId: data.alertEpisodeId,
@@ -861,6 +864,17 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       }
 
       if (isSentElsewhere && notificationSettings.alertByCall) {
+        /*
+         * The project's default Twilio config for calls, when it has one:
+         * the calls to project team members go through it instead of the
+         * global config.
+         */
+        const projectTwilioConfigForCalls: TwilioConfig | undefined =
+          await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+            data.projectId,
+            TwilioMessageKind.Call,
+          );
+
         const userCalls: Array<UserCall> = await UserCallService.findBy({
           query: {
             userId: data.userId,
@@ -885,7 +899,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             },
             {
               projectId: data.projectId,
-              customTwilioConfig: projectTwilioConfig,
+              customTwilioConfig: projectTwilioConfigForCalls,
               incidentId: data.incidentId,
               alertId: data.alertId,
               alertEpisodeId: data.alertEpisodeId,

@@ -191,11 +191,6 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
-      count: async (data: {
-        query: Record<string, unknown>;
-      }): Promise<number> => {
-        return "isProjectDefault" in data.query ? 1 : configCount;
-      },
       getItem: async (data: {
         modelType: { new (): Record<string, unknown> };
       }): Promise<unknown> => {
@@ -203,13 +198,29 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
         Object.assign(item, { _id: CONFIG_ID, ...stored });
         return item;
       },
+      /*
+       * The project's configs, as the card reads them: configCount configs
+       * for calls and SMS, the first the project default for both.
+       */
       getList: async (): Promise<{
         data: Array<unknown>;
         count: number;
         skip: number;
         limit: number;
       }> => {
-        return { data: [], count: 0, skip: 0, limit: 0 };
+        const data: Array<JSONObject> = Array.from(
+          { length: configCount },
+          (_unused: unknown, index: number): JSONObject => {
+            return {
+              usedFor: "Calls and SMS",
+              isProjectDefault: index === 0,
+              isProjectDefaultForSms: index === 0,
+              isProjectDefaultForCalls: index === 0,
+            };
+          },
+        );
+
+        return { data, count: data.length, skip: 0, limit: data.length };
       },
       getCommonHeaders: (): JSONObject => {
         return { tenantid: "99999999-9999-4999-8999-999999999999" };
@@ -307,6 +318,7 @@ import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSC
 import Phone from "../../../Types/Phone";
 import Column from "../../../UI/Components/ModelTable/Column";
 import Filter from "../../../UI/Components/ModelFilter/Filter";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const SMS_NUMBERS: string = "Twilio SMS Phone Numbers";
 const SECONDARY_NUMBERS: string = "Twilio Secondary Phone Numbers";
@@ -646,12 +658,16 @@ describe("the Twilio Config table", () => {
 
     /*
      * The SMS numbers, and the secondary ones the cell counts - and what
-     * the config is used for, which says which of them it sends from.
+     * the config is used for, which says which of them it sends from, and
+     * what it is the project default for, which its Project Default cell
+     * and its ⋯ menu say.
      */
     expect(lastTableProps()["selectMoreFields"]).toEqual({
       usedFor: true,
       twilioSmsPhoneNumbers: true,
       twilioSecondaryPhoneNumbers: true,
+      isProjectDefaultForSms: true,
+      isProjectDefaultForCalls: true,
     });
 
     const filters: Array<Filter<ProjectCallSMSConfig>> = lastTableProps()[
@@ -1350,24 +1366,7 @@ describe("the strings the form adds", () => {
       });
     }
 
-    for (const language of [
-      "de",
-      "fr",
-      "es",
-      "it",
-      "pt",
-      "nl",
-      "da",
-      "no",
-      "sv",
-      "ru",
-      "ja",
-      "ko",
-      "zh-CN",
-      "zh-TW",
-      "hi",
-      "fa",
-    ]) {
+    for (const language of [...DASHBOARD_LANGUAGES]) {
       const words: Record<string, string> = readLocale(language);
 
       for (const key of [
@@ -1416,7 +1415,7 @@ describe("the strings the form adds", () => {
 
     // The switch's help says the rule in two sentences, not five lines.
     expect(TwilioConfigDefaultCopy.defaultSwitchDescription).toBe(
-      "One config is the project default: the SMS and calls to people in this project, such as on-call alerts, go through it. Status pages use the config picked on each page.",
+      "The SMS and calls to people in this project, such as on-call alerts, will go through this config. Status pages use the config picked on each page.",
     );
   });
 

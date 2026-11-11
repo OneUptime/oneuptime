@@ -21,6 +21,7 @@ import React, {
 } from "react";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import { getReaderNumberLocale } from "../../../Types/DateLanguage";
 
 export interface ComponentProps {
   /* In render order, collapsed subtrees already removed, counts attached. */
@@ -748,7 +749,9 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
             )}
             data-testid="status-page-resource-navigator-ungrouped-count"
           >
-            {props.countIndex.ungroupedCount.toLocaleString()}
+            {props.countIndex.ungroupedCount.toLocaleString(
+              getReaderNumberLocale(),
+            )}
           </span>
         ) : (
           <></>

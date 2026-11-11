@@ -33,6 +33,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import { createTranslator } from "../../../UI/Utils/TranslateTemplate";
 import { getJestSpyOn } from "../../Spy";
 import { ADD_TO_PROJECT_RESULT_LABELS } from "../../../../App/FeatureSet/AdminDashboard/src/Components/User/BulkUserResultLabels";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * THE BULK PROGRESS DIALOG, WHILE A RUN GOES ON AND WHEN IT ENDS (#5299).
@@ -492,24 +493,7 @@ describe("the words in every language", () => {
     ],
   ];
 
-  const OTHER_LANGUAGES: Array<string> = [
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ];
+  const OTHER_LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
   // Each key with the English the dialog shows for it.
   const KEYS: Array<[string, string]> = [

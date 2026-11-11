@@ -35,6 +35,7 @@ import {
 } from "../../../Types/Monitor/MonitorUptimeSummary";
 import ObjectID from "../../../Types/ObjectID";
 import { formatDurationCompactInLanguage } from "../../../Utils/Slo/SloDuration";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * The monitor overview's hero, pulse, facts, target and sections in the
@@ -55,24 +56,7 @@ const LOCALES_DIRECTORY: string = path.join(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const localeCache: Map<string, Record<string, unknown>> = new Map<
   string,

@@ -84,7 +84,7 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 
 Um filtro restringe apenas uma série que possui o seu rótulo: `openstack_nova_up` não tem projeto, então um filtro de projeto a deixa como está.
 
-Mantenha a janela em três coletas ou mais do que você lê: 6 minutos para compute, network, volume e placement, 15 para identity e image. Uma janela menor não reúne coletas suficientes para que **Todos os valores** signifique uma duração.
+Mantenha a janela em três coletas ou mais do que você lê: 6 minutos para compute, network, volume e placement, 15 para identity e image. Uma janela menor não reúne coletas suficientes para que a opção **Todos os valores** signifique uma duração.
 
 ## Atributos de identidade
 
@@ -752,8 +752,8 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | Campo | O que faz |
 | --- | --- |
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da sua variável. |
-| **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todo valor deve corresponder, em toda a janela) ou **Any Value** (um basta). |
-| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Sem dados** corresponde quando a consulta não enviou nada na janela, **Com dados** quando enviou qualquer coisa. **Previsão acima de** e **Previsão abaixo de** correspondem quando a tendência da métrica na janela estará além do limite ao fim de **Horizonte**. |
+| **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Valor máximo**, **Valor mínimo**, **Todos os valores** (todo valor deve corresponder, em toda a janela) ou **Qualquer valor** (um basta). |
+| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalamente alto**, **Anomalamente baixo** ou **Anômalo**. **Sem dados** corresponde quando a consulta não enviou nada na janela, **Com dados** quando enviou qualquer coisa. **Previsão acima de** e **Previsão abaixo de** correspondem quando a tendência da métrica na janela estará além do limite ao fim de **Horizonte**. |
 | **Limite** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não é exibido para condições de anomalia. |
 | **Sensibilidade** | Somente condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |
 | **Janela de linha de base** | Somente condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |

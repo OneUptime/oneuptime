@@ -17,11 +17,15 @@ import {
   ROLE_PICKER_PICK_AN_AREA_HINT,
   ROLE_PICKER_SEARCH_PLACEHOLDER,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RolePickerOptions";
-import { ROLE_CARD_SUMMARIES } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleCardSelectOptions";
+import {
+  ROLE_CARD_SUMMARIES,
+  ROLE_NAMES,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleCardSelectOptions";
 import Permission from "../../../Types/Permission";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
- * THE ROLE PICKER IN THE DASHBOARD'S SIXTEEN OTHER LANGUAGES: every word the
+ * THE ROLE PICKER IN EVERY OTHER LANGUAGE OF THE DASHBOARD: every word the
  * Add a Role dialog draws - the two answers, the twelve areas, the three
  * levels, the words under the tiles, the search box and its empty state, and
  * every role's one line - read from the modules that draw them, so a word
@@ -39,24 +43,7 @@ const LOCALES: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
 
-const LANGUAGES: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 const SENTENCE_ENDINGS: Array<string> = [".", "。", "।"];
 
@@ -117,6 +104,7 @@ const AREA_WORD: Record<string, string> = {
   "zh-TW": "模組",
   hi: "क्षेत्र",
   fa: "بخش",
+  ar: "مجال",
 };
 
 describe("the role picker's words", () => {
@@ -234,6 +222,42 @@ describe("the role picker's words", () => {
     expect(spanish[ROLE_PICKER_PICK_AN_AREA]).toBe("Elige un área");
     expect(spanish[ROLE_PICKER_PICK_AN_AREA_HINT]).toContain("elige");
     expect(spanish[ROLE_PICKER_PICK_AN_AREA_HINT]).not.toContain("elija");
+  });
+
+  /*
+   * Arabic software names the Viewer role عارض; the level switch, the line
+   * under the tiles and every area's Viewer role say it alike, as Admin
+   * (مسؤول) and Member (عضو) do.
+   */
+  test("Arabic names the Viewer level as every area's Viewer role does", () => {
+    const arabic: Record<string, string> = locale("ar");
+    const levels: Array<string> = [
+      RoleLevel.Admin,
+      RoleLevel.Member,
+      RoleLevel.Viewer,
+    ].map((level: RoleLevel): string => {
+      return arabic[ROLE_LEVEL_TITLES[level]] as string;
+    });
+
+    expect(levels).toEqual(["مسؤول", "عضو", "عارض"]);
+    expect(arabic[ROLE_PICKER_PICK_AN_AREA_HINT]).toBe(
+      "ثم اختر «مسؤول» أو «عضو» أو «عارض».",
+    );
+
+    const viewerRoles: Array<string> = (
+      Object.values(ROLE_NAMES) as Array<string>
+    ).filter((name: string): boolean => {
+      return name.endsWith(" Viewer");
+    });
+
+    expect(viewerRoles.length).toBeGreaterThanOrEqual(12);
+
+    for (const name of viewerRoles) {
+      expect([name, (arabic[name] || "").startsWith("عارض ")]).toEqual([
+        name,
+        true,
+      ]);
+    }
   });
 
   test("the two roles that grant the same keep the same line in every language", () => {

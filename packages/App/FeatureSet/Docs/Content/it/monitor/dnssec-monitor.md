@@ -80,7 +80,7 @@ Mantenete o cambiate le **Sonde** e l'**Intervallo di monitoraggio** (parte da *
 | **Zona (Nome di dominio)** | Nessuno | La zona da convalidare, come `example.com`. |
 | **Risolutori** | `1.1.1.1, 8.8.8.8, 9.9.9.9` | I resolver di convalida da interrogare, separati da virgole. Ognuno deve restituire il flag AD perché la catena conti come valida. |
 | **Verifica la coerenza dei nameserver** | Attivo | Interrogare direttamente ogni nameserver autorevole e confrontarne i numeri di serie SOA. Disattivatelo se la vostra rete blocca il DNS in uscita verso server arbitrari. |
-| **Avviso di scadenza della firma (giorni)** (sotto **Altri campi**) | `7` | Salvato con il monitor. Il filtro **DNSSEC Signature Expires In Days** usa il valore che gli date nel criterio, quindi impostate lì la vostra soglia. |
+| **Avviso di scadenza della firma (giorni)** (sotto **Altri campi**) | `7` | Salvato con il monitor. Il filtro **Giorni alla scadenza della firma DNSSEC** usa il valore che gli date nel criterio, quindi impostate lì la vostra soglia. |
 | **Timeout (ms)** (sotto **Altri campi**) | `10000` | Quanto attendere ogni query DNS, in millisecondi. Un tentativo può durare in tutto fino a tre volte tanto. |
 | **Tentativi** (sotto **Altri campi**) | `3` | Nuovi tentativi dopo che il primo fallisce. `0` significa un solo tentativo. |
 
@@ -90,12 +90,12 @@ I criteri decidono quando la zona conta come online, degradata o offline, e se q
 
 | Filtro | Condizioni | Cosa controlla |
 | --- | --- | --- |
-| **DNSSEC Chain Is Valid** | **Vero**, **Falso** | Valgono tutti e quattro i controlli sopra: chiavi pubblicate, DS nella zona padre, firme presenti con un giorno o più davanti, e il flag AD da ogni resolver. |
-| **DNSSEC DNSKEY Record Exists** | **Vero**, **Falso** | La zona pubblica almeno un record DNSKEY. |
-| **DNSSEC DS Record Exists At Parent** | **Vero**, **Falso** | La zona padre pubblica un record DS per la zona. |
-| **DNSSEC Signature Expires In Days** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | I giorni interi prima che scada la firma (RRSIG) più vicina alla scadenza. |
-| **DNSSEC Resolver Consensus (AD Flag)** | **Vero**, **Falso** | Ogni resolver in **Risolutori** restituisce il flag AD. |
-| **DNSSEC Nameservers Are Consistent** | **Vero**, **Falso** | Ogni nameserver autorevole risponde con lo stesso numero di serie SOA. Sempre **Vero** finché **Verifica la coerenza dei nameserver** è disattivato. |
+| **Catena DNSSEC valida** | **Vero**, **Falso** | Valgono tutti e quattro i controlli sopra: chiavi pubblicate, DS nella zona padre, firme presenti con un giorno o più davanti, e il flag AD da ogni resolver. |
+| **Record DNSKEY DNSSEC presente** | **Vero**, **Falso** | La zona pubblica almeno un record DNSKEY. |
+| **Record DS DNSSEC presente nella zona padre** | **Vero**, **Falso** | La zona padre pubblica un record DS per la zona. |
+| **Giorni alla scadenza della firma DNSSEC** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | I giorni interi prima che scada la firma (RRSIG) più vicina alla scadenza. |
+| **Consenso dei risolutori DNSSEC (flag AD)** | **Vero**, **Falso** | Ogni resolver in **Risolutori** restituisce il flag AD. |
+| **Nameserver DNSSEC coerenti** | **Vero**, **Falso** | Ogni nameserver autorevole risponde con lo stesso numero di serie SOA. Sempre **Vero** finché **Verifica la coerenza dei nameserver** è disattivato. |
 
 Con due o più filtri, **Condizione di corrispondenza** decide se devono corrispondere **Tutti** o se basta **Qualsiasi** filtro. Le **Azioni** di un criterio decidono cosa fa: cambiare lo stato del monitor, creare un avviso, dichiarare un incidente, o più di queste cose.
 
@@ -103,7 +103,7 @@ Con due o più filtri, **Condizione di corrispondenza** decide se devono corrisp
 
 Un nuovo monitor DNSSEC parte con due criteri:
 
-- **Catena interrotta** — **DNSSEC Chain Is Valid** è **Falso**. Il monitor viene segnato **Offline** e viene creato un incidente chiamato «_monitor name_ DNSSEC chain is broken». L'incidente si risolve da solo appena la catena torna valida.
+- **Catena interrotta** — **Catena DNSSEC valida** è **Falso**. Il monitor viene segnato **Offline** e viene creato un incidente chiamato «_monitor name_ DNSSEC chain is broken». L'incidente si risolve da solo appena la catena torna valida.
 - **Catena valida** — il monitor viene segnato **Operativo**.
 
 I criteri vengono controllati dall'alto verso il basso, e il primo che corrisponde decide cosa succede. Quando nessuno corrisponde, il monitor mostra il suo stato predefinito: **Operativo**, a meno che non ne scegliate un altro sotto **Altri campi**, sotto i criteri.
@@ -114,16 +114,16 @@ I criteri predefiniti non sorvegliano da soli la scadenza delle firme né la coe
 
 | Obiettivo | Filtro | Condizione | Valore |
 | --- | --- | --- | --- |
-| Offline quando la catena è interrotta (uno predefinito) | **DNSSEC Chain Is Valid** | **Falso** | — |
-| Avvisare prima che le firme scadano | **DNSSEC Signature Expires In Days** | **Minore di** | `7` |
-| Accorgersi di una delega che ha perso il suo record DS | **DNSSEC DS Record Exists At Parent** | **Falso** | — |
-| Accorgersi di resolver in disaccordo | **DNSSEC Resolver Consensus (AD Flag)** | **Falso** | — |
-| Accorgersi di nameserver non allineati | **DNSSEC Nameservers Are Consistent** | **Falso** | — |
+| Offline quando la catena è interrotta (uno predefinito) | **Catena DNSSEC valida** | **Falso** | — |
+| Avvisare prima che le firme scadano | **Giorni alla scadenza della firma DNSSEC** | **Minore di** | `7` |
+| Accorgersi di una delega che ha perso il suo record DS | **Record DS DNSSEC presente nella zona padre** | **Falso** | — |
+| Accorgersi di resolver in disaccordo | **Consenso dei risolutori DNSSEC (flag AD)** | **Falso** | — |
+| Accorgersi di nameserver non allineati | **Nameserver DNSSEC coerenti** | **Falso** | — |
 
 ## Buone pratiche
 
 1. **Scegliete resolver sempre raggiungibili.** Ogni resolver deve restituire il flag AD perché la catena conti come valida, quindi un resolver che la sonda non raggiunge fa fallire il controllo una volta esauriti i tentativi. I predefiniti, `1.1.1.1`, `8.8.8.8` e `9.9.9.9`, sono gestiti da tre operatori diversi, il che individua anche una zona che si convalida su un resolver ma non su un altro.
-2. **Fatevi avvisare prima che le firme scadano.** I firmatari rifirmano una zona prima che le sue firme scadano, quindi una firma vicina alla scadenza significa che la rifirma si è fermata. Aggiungete un criterio con **DNSSEC Signature Expires In Days** / **Minore di** / `7` che crei un avviso, e un secondo a `2` che dichiari un incidente. Trascinate entrambi sopra il criterio che segna la catena come valida, prima quello a `2` giorni, perché vince il primo criterio che corrisponde. Scegliete soglie più basse del tempo che il vostro firmatario lascia di solito su una firma prima di rifirmare, così restano silenziose finché la rifirma funziona.
+2. **Fatevi avvisare prima che le firme scadano.** I firmatari rifirmano una zona prima che le sue firme scadano, quindi una firma vicina alla scadenza significa che la rifirma si è fermata. Aggiungete un criterio con **Giorni alla scadenza della firma DNSSEC** / **Minore di** / `7` che crei un avviso, e un secondo a `2` che dichiari un incidente. Trascinate entrambi sopra il criterio che segna la catena come valida, prima quello a `2` giorni, perché vince il primo criterio che corrisponde. Scegliete soglie più basse del tempo che il vostro firmatario lascia di solito su una firma prima di rifirmare, così restano silenziose finché la rifirma funziona.
 3. **Monitorate ogni zona firmata.** Includete il dominio apex, i sottodomini firmati e ogni zona delegata a un operatore diverso.
 4. **Tenete attivo il controllo di coerenza dei nameserver,** e aggiungete un criterio per esso. Individua un secondario che ha smesso di ricevere i trasferimenti dal primario, cosa che la sola convalida DNSSEC può non notare.
 

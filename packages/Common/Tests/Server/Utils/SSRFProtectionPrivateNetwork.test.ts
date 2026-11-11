@@ -1,4 +1,6 @@
-import SSRFProtection from "../../../Server/Utils/SSRFProtection";
+import SSRFProtection, {
+  WEBHOOK_PRIVATE_NETWORK_HINT,
+} from "../../../Server/Utils/SSRFProtection";
 import {
   afterEach,
   beforeEach,
@@ -21,7 +23,8 @@ import { startEachTestOnSelfHostedEgressPolicy } from "./EgressPolicyEnvironment
  *
  * Three independent things all have to be true before anything changes:
  *   1. the caller passes `allowPrivateNetworkTargets` (an authenticated
- *      project context — never a status page subscriber webhook),
+ *      project context — never the webhook of a subscriber that signed up
+ *      on a status page),
  *   2. that project turned the setting on (resolved by the caller), and
  *   3. the instance operator set ALLOW_PRIVATE_NETWORK_WEBHOOKS or named the
  *      host in PRIVATE_NETWORK_WEBHOOK_ALLOWLIST.
@@ -572,28 +575,130 @@ describe("SSRFProtection — private network opt-in", () => {
   });
 
   describe("error messages", () => {
-    test("a private-tier refusal points at the settings that would allow it", async () => {
-      await expect(
-        SSRFProtection.validateWebhookTargetIsSafe("http://10.0.0.5/hook"),
-      ).rejects.toThrow(/ALLOW_PRIVATE_NETWORK_WEBHOOKS/);
-    });
+    const SETTINGS_HINT: string =
+      " Self-hosted instances can allow this by setting ALLOW_PRIVATE_NETWORK_WEBHOOKS or PRIVATE_NETWORK_WEBHOOK_ALLOWLIST.";
 
-    test("a forbidden-tier refusal does not suggest a way to allow it", async () => {
+    test("an opted-in caller's private-tier refusal points at the settings that would allow it", async () => {
       await expect(
         SSRFProtection.validateWebhookTargetIsSafe(
-          "http://169.254.169.254/latest/meta-data/",
+          "http://10.0.0.5/hook",
+          OPTED_IN,
         ),
       ).rejects.toThrow(
-        "Webhook URL points to a private, loopback, or link-local address and is not allowed.",
+        `Webhook URL points to a private network address and is not allowed.${SETTINGS_HINT}`,
       );
+      expect(WEBHOOK_PRIVATE_NETWORK_HINT).toBe(SETTINGS_HINT);
     });
 
-    test("a private-tier refusal after DNS also points at the settings", async () => {
+    test("an opted-in caller's private-tier refusal after DNS also points at the settings", async () => {
       lookupSpy.mockResolvedValue([{ address: "10.1.2.3", family: 4 }]);
 
       await expect(
         SSRFProtection.validateWebhookTargetIsSafe(
           "http://mattermost.internal/",
+          OPTED_IN,
+        ),
+      ).rejects.toThrow(
+        `Webhook URL resolves to a private network address and is not allowed.${SETTINGS_HINT}`,
+      );
+    });
+
+    test("a forbidden-tier refusal does not suggest a way to allow it", async () => {
+      for (const options of [undefined, OPTED_IN]) {
+        await expect(
+          SSRFProtection.validateWebhookTargetIsSafe(
+            "http://169.254.169.254/latest/meta-data/",
+            options,
+          ),
+        ).rejects.toThrow(
+          /^Webhook URL points to a private, loopback, or link-local address and is not allowed\.$/,
+        );
+      }
+    });
+
+    /*
+     * Issue #6589: the settings never widen a caller that does not opt in,
+     * so naming them sent operators to change something that changed
+     * nothing. A strict caller says what applies to it through its own
+     * hint, or ends its refusal at "is not allowed.".
+     */
+    test("a strict caller's private-tier refusal names no setting, because none would allow it", async () => {
+      for (const isAllowed of [false, true]) {
+        if (isAllowed) {
+          process.env[ALLOW_ENV] = "true";
+          process.env[ALLOWLIST_ENV] = "10.0.0.0/8";
+        }
+
+        await expect(
+          SSRFProtection.validateWebhookTargetIsSafe("http://10.0.0.5/hook"),
+        ).rejects.toThrow(
+          /^Webhook URL points to a private network address and is not allowed\.$/,
+        );
+      }
+    });
+
+    test("nor after DNS", async () => {
+      lookupSpy.mockResolvedValue([{ address: "10.1.2.3", family: 4 }]);
+
+      await expect(
+        SSRFProtection.validateWebhookTargetIsSafe(
+          "http://mattermost.internal/",
+        ),
+      ).rejects.toThrow(
+        /^Webhook URL resolves to a private network address and is not allowed\.$/,
+      );
+    });
+
+    test("nor does an opted-in caller that brings its own policy, which the webhook settings do not decide", async () => {
+      process.env[ALLOW_ENV] = "true";
+
+      for (const url of [
+        "http://10.0.0.5/hook",
+        "http://mattermost.internal/",
+      ]) {
+        lookupSpy.mockResolvedValue([{ address: "10.1.2.3", family: 4 }]);
+
+        const error: Error = await SSRFProtection.validateWebhookTargetIsSafe(
+          url,
+          { ...OPTED_IN, privateNetworkAccessIsAllowed: false },
+        ).then(
+          (): Error => {
+            throw new Error("Expected the private target to be refused.");
+          },
+          (err: Error): Error => {
+            return err;
+          },
+        );
+
+        expect(error.message).toMatch(/is not allowed\.$/);
+        expect(error.message).not.toContain("ALLOW_PRIVATE_NETWORK_WEBHOOKS");
+      }
+    });
+
+    test("a caller's own hint is used whether or not it opted in", async () => {
+      for (const options of [{}, OPTED_IN]) {
+        await expect(
+          SSRFProtection.validateWebhookTargetIsSafe("http://10.0.0.5/hook", {
+            ...options,
+            privateNetworkHint: " Ask whoever runs it.",
+          }),
+        ).rejects.toThrow(
+          /^Webhook URL points to a private network address and is not allowed\. Ask whoever runs it\.$/,
+        );
+      }
+    });
+
+    test("the validate-and-resolve form says the same", async () => {
+      await expect(
+        SSRFProtection.validateAndResolveWebhookTarget("http://10.0.0.5/hook"),
+      ).rejects.toThrow(
+        /^Webhook URL points to a private network address and is not allowed\.$/,
+      );
+
+      await expect(
+        SSRFProtection.validateAndResolveWebhookTarget(
+          "http://10.0.0.5/hook",
+          OPTED_IN,
         ),
       ).rejects.toThrow(/ALLOW_PRIVATE_NETWORK_WEBHOOKS/);
     });

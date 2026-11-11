@@ -14,9 +14,11 @@ import {
  * (SnowflakeSqlApi); Google BigQuery, each dataset with its Google Cloud
  * connection's service account (BigQueryApi); ClickHouse, over its HTTP
  * interface (ClickHouseHttpApi); Databricks, a Unity Catalog catalog at a
- * time (DatabricksApi); and Amazon Athena, a Glue database at a time
- * (AthenaApi). Data Security's own list and engine mapping are
- * left as they are: it does not sample a warehouse.
+ * time (DatabricksApi); Amazon Athena, a Glue database at a time
+ * (AthenaApi); and Microsoft Dataverse, an environment at a time, over its
+ * Web API and its read-only SQL endpoint (DataverseApi). Data Security's
+ * own list and engine mapping are left as they are: it does not sample a
+ * warehouse.
  */
 
 export const DATA_OBSERVABILITY_KINDS: ReadonlyArray<DataStoreKind> = [
@@ -29,6 +31,7 @@ export const DATA_OBSERVABILITY_KINDS: ReadonlyArray<DataStoreKind> = [
   DataStoreKind.AwsAthena,
   DataStoreKind.Oracle,
   DataStoreKind.MongoDb,
+  DataStoreKind.Dataverse,
 ];
 
 export const DATA_OBSERVABILITY_ENGINES: ReadonlyArray<DatabaseEngine> = [
@@ -43,6 +46,7 @@ export const DATA_OBSERVABILITY_ENGINES: ReadonlyArray<DatabaseEngine> = [
   "athena",
   "oracle",
   "mongodb",
+  "dataverse",
 ];
 
 export function getCollectorEngineOfKind(
@@ -78,6 +82,10 @@ export function getCollectorEngineOfKind(
 
   if (kind === DataStoreKind.MongoDb) {
     return "mongodb";
+  }
+
+  if (kind === DataStoreKind.Dataverse) {
+    return "dataverse";
   }
 
   return getDatabaseEngineOfKind(kind);

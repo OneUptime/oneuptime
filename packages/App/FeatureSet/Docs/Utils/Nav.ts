@@ -1530,6 +1530,20 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Crossplane Provider",
+    section: "Developers",
+    links: [
+      {
+        title: "Crossplane Overview",
+        url: "/docs/crossplane/index",
+      },
+      {
+        title: "Managing Resources",
+        url: "/docs/crossplane/managing-resources",
+      },
+    ],
+  },
+  {
     title: "Users & Permissions",
     section: "Administration",
     links: [

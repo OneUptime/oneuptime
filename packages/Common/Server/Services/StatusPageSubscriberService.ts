@@ -53,7 +53,6 @@ import SlackUtil from "../Utils/Workspace/Slack/Slack";
 
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "../Utils/StatusPageSubscriberWebhook";
-import SSRFProtection from "../Utils/SSRFProtection";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "./StatusPageSubscriberNotificationTemplateService";
@@ -1098,22 +1097,24 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * Validate the generic subscriber webhook URL if provided. Subscriber
-     * creation is publicly accessible (Permission.Public), so an unauthenticated
-     * user can supply this URL. Reject targets that point at private, loopback,
-     * link-local, or cloud metadata addresses to prevent SSRF.
-     *
-     * No `allowPrivateNetworkTargets` here, deliberately, and none in
-     * StatusPageSubscriberWebhookUtil either. The private-network exception
-     * (issue #3424) exists for URLs an authenticated project member authored;
-     * this one is chosen by whoever is looking at a public status page, and
-     * granting it the exception would hand any visitor on the internet a POST
-     * into the operator's internal network.
+     * The generic webhook, held to what its writer may reach
+     * (StatusPageSubscriberWebhookUtil.getTargetValidationOptions). A
+     * visitor signing up on the status page chose this URL, so it must be
+     * public whatever the instance allows, and the visitor's refusal says
+     * nothing of what DNS answered. A subscriber the team adds - from the
+     * dashboard, with an API key or by a workflow, each signed in, since an
+     * anonymous create is refused before this hook - carries a URL a
+     * project member wrote, and may reach what the project's own webhooks
+     * may (issue #6589).
      */
     if (data.data.subscriberWebhook) {
-      await SSRFProtection.validateWebhookTargetIsSafe(
-        data.data.subscriberWebhook,
-      );
+      const isSignUp: boolean = statusPageSignUps.has(data.data);
+
+      await StatusPageSubscriberWebhookUtil.assertWebhookUrlAllowed({
+        webhookUrl: data.data.subscriberWebhook,
+        isAddedByTeam: !isSignUp,
+        isRefusalShownToVisitor: isSignUp,
+      });
     }
 
     /*
@@ -1549,6 +1550,9 @@ export class Service extends ProjectReferencesService<Model> {
     // A contact changed to one its page does not take is refused.
     await this.checkContactsAllowedOnPages(updateBy);
 
+    // So is a webhook changed to an address its subscriber may not reach.
+    await this.checkWebhookTargetsAllowed(updateBy);
+
     // So is a contact changed to one another subscription of its page has.
     await this.checkContactsNotTakenOnPages(updateBy);
 
@@ -1799,6 +1803,78 @@ export class Service extends ProjectReferencesService<Model> {
         statusPage: statusPage,
         subscriber: contact,
         isSignUp: manageSubscriptionPageUpdates.has(updateBy),
+      });
+    }
+  }
+
+  /*
+   * An update that changes a subscriber's webhook gives it one that
+   * subscriber may reach, as a new subscriber is held to (onBeforeCreate):
+   * one the team added may reach what the project's webhooks may, and one
+   * that signed up on the status page public addresses only
+   * (StatusPageSubscriberWebhookUtil). Without this, an edit took any URL
+   * and every send to it failed afterwards.
+   *
+   * The rule is the subscriber's, whoever makes the change: a sign-up's
+   * webhook stays public even when a teammate edits it, because each send
+   * reads the rule from the subscriber, not from who last wrote the URL. An
+   * update over several subscribers is checked against each rule its rows
+   * are held to, and refused for all if any one may not have the URL. The
+   * subscribers are the rows the update writes, and the update is held to
+   * them (findRowsAndHoldUpdateToThem).
+   */
+  private async checkWebhookTargetsAllowed(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const webhookUrl: unknown = (
+      updateBy.data as unknown as JSONObject | undefined
+    )?.["subscriberWebhook"];
+
+    // Not written, or cleared.
+    if (
+      webhookUrl === undefined ||
+      webhookUrl === null ||
+      String(webhookUrl).trim() === ""
+    ) {
+      return;
+    }
+
+    const subscribers: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        isAddedByTeam: true,
+      },
+    );
+
+    /*
+     * Asked once for each rule the rows are held to, a sign-up's first, so
+     * an update that writes a sign-up and a subscriber the team added is
+     * refused with the sign-up's reason.
+     */
+    const hasSignUp: boolean = subscribers.some(
+      (subscriber: Model): boolean => {
+        return subscriber.isAddedByTeam !== true;
+      },
+    );
+
+    const hasTeamAdded: boolean = subscribers.some(
+      (subscriber: Model): boolean => {
+        return subscriber.isAddedByTeam === true;
+      },
+    );
+
+    if (hasSignUp) {
+      await StatusPageSubscriberWebhookUtil.assertWebhookUrlAllowed({
+        webhookUrl: String(webhookUrl),
+        isAddedByTeam: false,
+      });
+    }
+
+    if (hasTeamAdded) {
+      await StatusPageSubscriberWebhookUtil.assertWebhookUrlAllowed({
+        webhookUrl: String(webhookUrl),
+        isAddedByTeam: true,
       });
     }
   }
@@ -3027,6 +3103,8 @@ export class Service extends ProjectReferencesService<Model> {
 
       StatusPageSubscriberWebhookUtil.sendWebhookNotification({
         webhookUrl: URL.fromString(createdItem.subscriberWebhook.toString()),
+        // The team's only when both this create and the row say so.
+        isAddedByTeam: !signUp && createdItem.isAddedByTeam === true,
         payload: {
           eventType: "SubscriberSubscribed",
           statusPageId: createdItem.statusPageId.toString(),

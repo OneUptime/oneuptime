@@ -991,7 +991,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
           {error
             ? "Refresh failed"
             : lastUpdated
-              ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+              ? `Updated ${lastUpdated.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`
               : "Updates every minute"}
         </span>
       }

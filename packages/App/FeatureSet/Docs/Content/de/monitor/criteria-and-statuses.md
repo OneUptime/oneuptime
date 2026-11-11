@@ -25,7 +25,7 @@ flowchart TB
     A --> L["Erstellt<br/>eine Warnung"]
 ```
 
-Die Reihenfolge gehört zur Regel. Ein neuer Monitor listet seine Kriterien vom schlimmsten Fall an: offline, dann eine Warnung, wo sein Typ eine hat (ein Zertifikat oder eine Domäne, die bald abläuft), dann online. Ein breites gesundes Kriterium wie **Is Online** auf **Wahr** trifft auf fast jede Prüfung zu, deshalb kommt es zuletzt: über den anderen würde es jedes Mal zuerst zutreffen, und sie würden nie handeln.
+Die Reihenfolge gehört zur Regel. Ein neuer Monitor listet seine Kriterien vom schlimmsten Fall an: offline, dann eine Warnung, wo sein Typ eine hat (ein Zertifikat oder eine Domäne, die bald abläuft), dann online. Ein breites gesundes Kriterium wie **Ist online** auf **Wahr** trifft auf fast jede Prüfung zu, deshalb kommt es zuletzt: über den anderen würde es jedes Mal zuerst zutreffen, und sie würden nie handeln.
 
 Ein Kriterium, das zutrifft, aber keinen Status ändert, entscheidet die Prüfung trotzdem: Der Monitor behält seinen Status, und die Kriterien darunter warten auf die nächste Prüfung. Der **Standard-Überwachungsstatus** gilt nur, wenn kein Kriterium zutrifft. Bei einem neuen Monitor ist er **Betriebsbereit**; ändern Sie ihn unter **Weitere Felder** unterhalb der Kriterien.
 
@@ -49,7 +49,7 @@ Ein Filter liest eine Sache aus der Prüfung und vergleicht sie: einen **Filtert
 
 Ab zwei Filtern erscheint darunter die **Abgleichsbedingung**: **Alle** bedeutet, dass jeder Filter zutreffen muss, **Beliebig**, dass einer genügt. Ein neues Kriterium beginnt mit **Alle**.
 
-Filter, die jede Prüfung messen, etwa **Is Online**, **Antwort-Statuscode** und **Antwortzeit (in ms)**, bieten **Diese Kriterien über einen Zeitraum hinweg auswerten** an. Damit wird ein Fenster der letzten Prüfungen statt nur der neuesten bewertet; es beginnt mit den letzten 5 Minuten und **All Values**, was erst zutrifft, wenn jede Prüfung im Fenster zugetroffen hat. Siehe [Auswertung über einen Zeitraum](/docs/monitor/website-monitor#über-einen-zeitraum-auswerten).
+Filter, die jede Prüfung messen, etwa **Ist online**, **Antwort-Statuscode** und **Antwortzeit (in ms)**, bieten **Diese Kriterien über einen Zeitraum hinweg auswerten** an. Damit wird ein Fenster der letzten Prüfungen statt nur der neuesten bewertet; es beginnt mit den letzten 5 Minuten und **Alle Werte**, was erst zutrifft, wenn jede Prüfung im Fenster zugetroffen hat. Siehe [Auswertung über einen Zeitraum](/docs/monitor/website-monitor#über-einen-zeitraum-auswerten).
 
 ### Aktionen
 
@@ -97,8 +97,8 @@ Um zu sehen, wie eine Prüfung bewertet wurde, öffnen Sie die **Übersicht** de
 
 Ein Vorfall oder eine Warnung, die ein Monitor öffnet, behält die Prüfung, die sie geöffnet hat, sodass Sie das Warum noch sehen, lange nachdem die eigenen Protokolle des Monitors gelöscht sind. Unter der Grundursache nennt der Abschnitt **Auswertungsdetails** das Kriterium, das zutraf, und für jeden Filter, der zutraf, was die Prüfung gefunden hat. **Details anzeigen** ergänzt den Rest der Belege, die Filter, die nicht zutrafen, und die Prüfung selbst: die Anfrage, wann sie lief, von welcher Sonde und was zurückkam. Was ein Filter gefunden hat, kann Folgendes sein:
 
-- **Das Feld.** Wo ein Filter **Antworttext** in einem JSON-Inhalt zutraf, etwa `checks[1].status`, oder der Header, in dem ein Filter **Response Header Value** zutraf.
-- **Die Werte.** Was jeder Wert, den eine **JavaScript Expression** liest, bei der Auswertung enthielt, etwa `responseBody.status = "down"`.
+- **Das Feld.** Wo ein Filter **Antworttext** in einem JSON-Inhalt zutraf, etwa `checks[1].status`, oder der Header, in dem ein Filter **Antwort-Header-Wert** zutraf.
+- **Die Werte.** Was jeder Wert, den ein **JavaScript-Ausdruck** liest, bei der Auswertung enthielt, etwa `responseBody.status = "down"`.
 - **Ein Auszug.** Ein kurzes Stück der Antwort rund um die Übereinstimmung, die Übereinstimmung markiert: nie der ganze Inhalt.
 
 Geheimnisse und personenbezogene Daten werden maskiert, bevor etwas behalten wird: Header wie `Authorization`, `Cookie` und `Set-Cookie`, Felder, deren Namen `password`, `token`, `key`, `session` oder `email` sagen, und Text, der wie ein Bearer-Token, ein JWT, eine Kartennummer oder eine E-Mail-Adresse aussieht. Die URL der Anfrage ist die, mit der der Monitor eingerichtet wurde, also bleibt `{{monitorSecrets.NAME}}` ein Name, und ein geheimer Abfragewert wird maskiert. Die **Überwachungsprotokolle** des Monitors und jeder Wert, den eine Grundursache zitiert, werden auf dieselbe Weise maskiert. Ein Vorfall oder eine Warnung, die von Hand geöffnet wurde oder bevor Auswertungsdetails behalten wurden, hat keine.

@@ -3577,3 +3577,108 @@ describe("Incident:SendNotificationToSubscribers custom templates, in the page's
     }
   });
 });
+
+/*
+ * What a webhook subscriber's URL may reach depends on who wrote it (issue
+ * #6589): one the team added may reach what the project's webhooks may, one a
+ * visitor signed up on the status page public addresses only. The send
+ * re-checks the URL with that rule, so the job hands over each subscriber's
+ * own Is Added By Team, as getSubscribersByStatusPage read it.
+ */
+describe("Incident:SendNotificationToSubscribers tells each webhook send who added its subscriber", () => {
+  function webhookSubscriber(data: {
+    id: string;
+    webhook: string;
+    isAddedByTeam: boolean | undefined;
+  }): StatusPageSubscriber {
+    const row: StatusPageSubscriber = subscriber();
+    row._id = new ObjectID(data.id).toString();
+    delete row.subscriberEmail;
+    delete row.subscriberPhone;
+    delete row.slackIncomingWebhookUrl;
+    delete row.microsoftTeamsIncomingWebhookUrl;
+    row.subscriberWebhook = URL.fromString(data.webhook);
+
+    if (data.isAddedByTeam !== undefined) {
+      row.isAddedByTeam = data.isAddedByTeam;
+    }
+
+    return row;
+  }
+
+  function sentWebhookTargets(): Array<{
+    webhookUrl: string;
+    isAddedByTeam: boolean | undefined;
+  }> {
+    return mock(
+      StatusPageSubscriberWebhookUtil.sendWebhookNotification,
+    ).mock.calls.map(
+      (
+        call: Array<unknown>,
+      ): { webhookUrl: string; isAddedByTeam: boolean | undefined } => {
+        const data: { webhookUrl: URL; isAddedByTeam: boolean | undefined } =
+          call[0] as { webhookUrl: URL; isAddedByTeam: boolean | undefined };
+
+        return {
+          webhookUrl: data.webhookUrl.toString(),
+          isAddedByTeam: data.isAddedByTeam,
+        };
+      },
+    );
+  }
+
+  test("a subscriber the team added is sent as the team's, and one who signed up as a sign-up", async () => {
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockResolvedValue([
+      webhookSubscriber({
+        id: "a1a1a1a1-0000-4000-8000-000000000001",
+        webhook: "http://10.0.0.5/team-hook",
+        isAddedByTeam: true,
+      }),
+      webhookSubscriber({
+        id: "b2b2b2b2-0000-4000-8000-000000000002",
+        webhook: "https://hooks.example.com/visitor-hook",
+        isAddedByTeam: false,
+      }),
+    ] as never);
+
+    await runJob();
+
+    expect(sentWebhookTargets()).toEqual(
+      expect.arrayContaining([
+        { webhookUrl: "http://10.0.0.5/team-hook", isAddedByTeam: true },
+        {
+          webhookUrl: "https://hooks.example.com/visitor-hook",
+          isAddedByTeam: false,
+        },
+      ]),
+    );
+    expect(sentWebhookTargets()).toHaveLength(2);
+  });
+
+  /*
+   * A row read without the column has it undefined: the send then gives it
+   * the sign-up's rule (public addresses only), never the team's.
+   */
+  test("a subscriber read without Is Added By Team is handed over as it is, not as the team's", async () => {
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockResolvedValue([
+      webhookSubscriber({
+        id: "c3c3c3c3-0000-4000-8000-000000000003",
+        webhook: "https://hooks.example.com/unknown",
+        isAddedByTeam: undefined,
+      }),
+    ] as never);
+
+    await runJob();
+
+    expect(sentWebhookTargets()).toEqual([
+      {
+        webhookUrl: "https://hooks.example.com/unknown",
+        isAddedByTeam: undefined,
+      },
+    ]);
+  });
+});

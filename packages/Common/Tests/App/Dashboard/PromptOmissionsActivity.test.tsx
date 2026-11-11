@@ -20,6 +20,7 @@ import {
   createTranslator,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * WHAT AN INVESTIGATION LEFT OUT, IN ITS ACTIVITY (issue #4587).
@@ -128,24 +129,7 @@ describe("describePromptOmissions", () => {
     ]);
   });
 
-  test.each([
-    "de",
-    "fr",
-    "es",
-    "it",
-    "pt",
-    "nl",
-    "da",
-    "no",
-    "sv",
-    "ru",
-    "ja",
-    "ko",
-    "zh-CN",
-    "zh-TW",
-    "hi",
-    "fa",
-  ])(
+  test.each([...DASHBOARD_LANGUAGES])(
     "%s has its own words for every line, with every value in it",
     (language: string) => {
       const lines: Array<string> = describePromptOmissions(

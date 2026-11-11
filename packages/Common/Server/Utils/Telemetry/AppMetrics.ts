@@ -135,17 +135,49 @@ export default class AppMetrics {
     return this.probeCheckDuration;
   }
 
-  // -- Notification dispatch (Mail/SMS/Call/Push) -----------------------
+  // -- Notification delivery --------------------------------------------
+
+  /*
+   * What the platform's operator defines delivery SLOs on: how many records
+   * trigger notifications, how each message handed to a provider went, and
+   * how long after its trigger an on-call page reached its provider. Every
+   * sender records through NotificationDeliveryMetrics, which owns the
+   * attribute names and their bounded values; read it before adding one.
+   */
 
   private static notificationCounter: TelemetryCounter | null = null;
   private static notificationDuration: TelemetryHistogram | null = null;
+  private static notificationTriggerCounter: TelemetryCounter | null = null;
+  private static notificationTimeToSend: TelemetryHistogram | null = null;
+
+  /*
+   * A provider call can take a while: an SMTP server slow to answer, a
+   * custom channel's service tried again. Up to two minutes, so the slow
+   * end has buckets of its own.
+   */
+  public static readonly NOTIFICATION_SEND_DURATION_BUCKETS_IN_MS: ReadonlyArray<number> =
+    [
+      5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000,
+      120000,
+    ];
+
+  /*
+   * From a quarter of a second to an hour: an SLO says "within 30 seconds"
+   * or "within 5 minutes", and a page an hour late still needs a bucket
+   * that says so.
+   */
+  public static readonly NOTIFICATION_TIME_TO_SEND_BUCKETS_IN_MS: ReadonlyArray<number> =
+    [
+      250, 500, 1000, 2000, 5000, 10000, 15000, 30000, 60000, 120000, 300000,
+      600000, 1800000, 3600000,
+    ];
 
   public static getNotificationCounter(): TelemetryCounter {
     if (!this.notificationCounter) {
       this.notificationCounter = Telemetry.getCounter({
         name: "notification.send.count",
         description:
-          "Number of notifications dispatched, partitioned by channel and outcome.",
+          "Number of notifications handed to a provider (Twilio, an SMS and call gateway, a mail service, Expo, a custom channel and the like), partitioned by channel, provider and outcome: success, failure, or not_sent when the project deliberately did not send it.",
         unit: "1",
       });
     }
@@ -157,12 +189,45 @@ export default class AppMetrics {
     if (!this.notificationDuration) {
       this.notificationDuration = Telemetry.getHistogram({
         name: "notification.send.duration",
-        description: "Duration of notification dispatch calls.",
+        description:
+          "Duration of notification dispatch calls to their provider, partitioned by channel, provider and outcome.",
         unit: "ms",
+        explicitBucketBoundaries: [
+          ...this.NOTIFICATION_SEND_DURATION_BUCKETS_IN_MS,
+        ],
       });
     }
 
     return this.notificationDuration;
+  }
+
+  public static getNotificationTriggerCounter(): TelemetryCounter {
+    if (!this.notificationTriggerCounter) {
+      this.notificationTriggerCounter = Telemetry.getCounter({
+        name: "notification.trigger.count",
+        description:
+          "Number of records created that notify people - incidents, alerts and their episodes - partitioned by type, by whether a monitor or a person created them, and by the type of the monitor that triggered them.",
+        unit: "1",
+      });
+    }
+
+    return this.notificationTriggerCounter;
+  }
+
+  public static getNotificationTimeToSend(): TelemetryHistogram {
+    if (!this.notificationTimeToSend) {
+      this.notificationTimeToSend = Telemetry.getHistogram({
+        name: "notification.time_to_send",
+        description:
+          "Time from an on-call page's trigger - the incident, alert or episode being created, or the page being started later - to its provider accepting the notification, for the notifications due as the page starts. Partitioned by channel and trigger type.",
+        unit: "ms",
+        explicitBucketBoundaries: [
+          ...this.NOTIFICATION_TIME_TO_SEND_BUCKETS_IN_MS,
+        ],
+      });
+    }
+
+    return this.notificationTimeToSend;
   }
 
   // -- OTLP / telemetry ingestion ---------------------------------------

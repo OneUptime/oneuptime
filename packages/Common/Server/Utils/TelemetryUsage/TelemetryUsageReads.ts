@@ -7,6 +7,7 @@ import {
   getEmptyTelemetryUsageAmount,
   getTelemetryUsageDays,
   isTelemetryUsageProductType,
+  TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
   TelemetryProjectUsagePage,
   TelemetryProjectUsageSortBy,
   TelemetryProjectUsageSummary,
@@ -14,6 +15,7 @@ import {
   TelemetryUsageByProduct,
   TelemetryUsageDaySummary,
   TelemetryUsageResourceSummary,
+  TelemetryUsageSignal,
   TelemetryUsageSummary,
   TelemetryUsageWindow,
   toTelemetryUsageDay,
@@ -37,6 +39,15 @@ import TelemetryUsageResourceNames from "./TelemetryUsageResourceNames";
  *
  * What usage cost is read only when the caller may see it (isCostIncluded):
  * billing is on and they read billing. Without it no cost leaves the server.
+ *
+ * Exceptions are shown as a signal of their own (issue #6356), though they
+ * are billed inside Traces: a Traces row keeps everything it is billed for in
+ * dataIngestedInGB, and how much of that was exceptions in
+ * exceptionDataIngestedInGB. Each read takes that part out of the row's
+ * Traces and shows it as Exceptions, with its share of the row's cost - so
+ * every total, and every cost, is what it was. A Traces row counted before
+ * the exceptions were counted apart has no part to take out: its exceptions
+ * stay inside Traces, as they were shown when it was counted.
  */
 
 const TABLE: string = '"TelemetryUsageBilling"';
@@ -44,10 +55,53 @@ const TABLE: string = '"TelemetryUsageBilling"';
 // A UTC day of a row, as YYYY-MM-DD.
 const ROW_DAY: string = `to_char("createdAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD')`;
 
+/*
+ * A row's exceptions, in GB: a Traces row's recorded part, never less than
+ * none nor more than the row holds. Every other row - another product's, and
+ * a Traces row counted before the part was recorded (NULL) - has none.
+ * `alias` is the table's, with its dot ('u.'), or '' for none.
+ */
+export const getExceptionGBSql: (alias: string) => string = (
+  alias: string,
+): string => {
+  return `(CASE WHEN ${alias}"productType" = '${ProductType.Traces}' THEN LEAST(GREATEST(COALESCE(${alias}"exceptionDataIngestedInGB", 0), 0), ${alias}"dataIngestedInGB") ELSE 0 END)`;
+};
+
+/*
+ * What a row's exceptions cost, of its cost: their share of its GB. A row's
+ * cost is its GB times a price for its retention, so the share is exact; the
+ * exceptions are never priced, or charged, apart.
+ */
+export const getExceptionCostSql: (alias: string) => string = (
+  alias: string,
+): string => {
+  return `(CASE WHEN ${alias}"dataIngestedInGB" > 0 THEN ${alias}"totalCostInUSD" * ${getExceptionGBSql(alias)} / ${alias}"dataIngestedInGB" ELSE 0 END)`;
+};
+
+/*
+ * The sums each read selects for its group of rows: the rows' own product
+ * with the exceptions taken out, and the exceptions apart - together, every
+ * GB and every cent of the rows, each counted once.
+ */
+export const getSignalSumsSql: (alias: string) => string = (
+  alias: string,
+): string => {
+  return [
+    `COALESCE(SUM(${alias}"dataIngestedInGB" - ${getExceptionGBSql(alias)}), 0)::text AS "dataIngestedInGB"`,
+    `COALESCE(SUM(${alias}"totalCostInUSD" - ${getExceptionCostSql(alias)}), 0)::text AS "totalCostInUSD"`,
+    `COALESCE(SUM(${getExceptionGBSql(alias)}), 0)::text AS "exceptionDataIngestedInGB"`,
+    `COALESCE(SUM(${getExceptionCostSql(alias)}), 0)::text AS "exceptionCostInUSD"`,
+  ].join(", ");
+};
+
 interface ProductSumRow {
   productType: string;
+  // The product's own, the exceptions taken out of Traces.
   dataIngestedInGB: string | number | null;
   totalCostInUSD: string | number | null;
+  // The exceptions of Traces rows; none for any other product.
+  exceptionDataIngestedInGB?: string | number | null | undefined;
+  exceptionCostInUSD?: string | number | null | undefined;
 }
 
 interface DaySumRow extends ProductSumRow {
@@ -74,41 +128,105 @@ const toNumber: (value: string | number | null | undefined) => number = (
 };
 
 const toAmount: (
-  row: ProductSumRow,
+  sums: {
+    dataIngestedInGB: string | number | null | undefined;
+    totalCostInUSD: string | number | null | undefined;
+  },
   isCostIncluded: boolean,
 ) => TelemetryUsageAmount = (
-  row: ProductSumRow,
+  sums: {
+    dataIngestedInGB: string | number | null | undefined;
+    totalCostInUSD: string | number | null | undefined;
+  },
   isCostIncluded: boolean,
 ): TelemetryUsageAmount => {
   const amount: TelemetryUsageAmount = {
-    dataIngestedInGB: toNumber(row.dataIngestedInGB),
+    dataIngestedInGB: toNumber(sums.dataIngestedInGB),
   };
 
   if (isCostIncluded) {
-    amount.totalCostInUSD = toNumber(row.totalCostInUSD);
+    amount.totalCostInUSD = toNumber(sums.totalCostInUSD);
   }
 
   return amount;
 };
 
+export interface TelemetryUsageSignalAmount {
+  signal: TelemetryUsageSignal;
+  amount: TelemetryUsageAmount;
+}
+
+/*
+ * The signals a group of one product's rows holds, and how much of each: the
+ * product's own, and for Traces the exceptions apart, when there were any.
+ * Rows that held only exceptions hold no Traces of their own.
+ */
+export const getSignalAmounts: (
+  row: ProductSumRow & { productType: ProductType },
+  isCostIncluded: boolean,
+) => Array<TelemetryUsageSignalAmount> = (
+  row: ProductSumRow & { productType: ProductType },
+  isCostIncluded: boolean,
+): Array<TelemetryUsageSignalAmount> => {
+  const own: TelemetryUsageAmount = toAmount(row, isCostIncluded);
+  const exceptions: TelemetryUsageAmount = toAmount(
+    {
+      dataIngestedInGB: row.exceptionDataIngestedInGB,
+      totalCostInUSD: row.exceptionCostInUSD,
+    },
+    isCostIncluded,
+  );
+  const hasExceptions: boolean =
+    row.productType === ProductType.Traces && exceptions.dataIngestedInGB > 0;
+
+  const amounts: Array<TelemetryUsageSignalAmount> = [];
+
+  if (!hasExceptions || own.dataIngestedInGB > 0) {
+    amounts.push({ signal: row.productType, amount: own });
+  }
+
+  if (hasExceptions) {
+    amounts.push({
+      signal: TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+      amount: exceptions,
+    });
+  }
+
+  return amounts;
+};
+
 // Adds an amount to a signal's, and to a total.
 const addToProduct: (
   target: { byProduct: TelemetryUsageByProduct; total: TelemetryUsageAmount },
-  productType: ProductType,
+  signal: TelemetryUsageSignal,
   amount: TelemetryUsageAmount,
   isCostIncluded: boolean,
 ) => void = (
   target: { byProduct: TelemetryUsageByProduct; total: TelemetryUsageAmount },
-  productType: ProductType,
+  signal: TelemetryUsageSignal,
   amount: TelemetryUsageAmount,
   isCostIncluded: boolean,
 ): void => {
-  target.byProduct[productType] = addTelemetryUsageAmounts(
-    target.byProduct[productType] ||
-      getEmptyTelemetryUsageAmount(isCostIncluded),
+  target.byProduct[signal] = addTelemetryUsageAmounts(
+    target.byProduct[signal] || getEmptyTelemetryUsageAmount(isCostIncluded),
     amount,
   );
   target.total = addTelemetryUsageAmounts(target.total, amount);
+};
+
+// Adds each signal a group of rows holds to a target's, and to its total.
+const addSignals: (
+  target: { byProduct: TelemetryUsageByProduct; total: TelemetryUsageAmount },
+  signalAmounts: Array<TelemetryUsageSignalAmount>,
+  isCostIncluded: boolean,
+) => void = (
+  target: { byProduct: TelemetryUsageByProduct; total: TelemetryUsageAmount },
+  signalAmounts: Array<TelemetryUsageSignalAmount>,
+  isCostIncluded: boolean,
+): void => {
+  for (const each of signalAmounts) {
+    addToProduct(target, each.signal, each.amount, isCostIncluded);
+  }
 };
 
 export default class TelemetryUsageReads {
@@ -133,7 +251,7 @@ export default class TelemetryUsageReads {
       Array<{ latestDay: string | null }>,
     ] = await Promise.all([
       TelemetryUsageReads.query<DaySumRow>(
-        `SELECT ${ROW_DAY} AS "day", "productType" AS "productType", COALESCE(SUM("dataIngestedInGB"), 0)::text AS "dataIngestedInGB", COALESCE(SUM("totalCostInUSD"), 0)::text AS "totalCostInUSD" FROM ${TABLE} WHERE ${where} GROUP BY 1, 2`,
+        `SELECT ${ROW_DAY} AS "day", "productType" AS "productType", ${getSignalSumsSql("")} FROM ${TABLE} WHERE ${where} GROUP BY 1, 2`,
         parameters,
       ),
       /*
@@ -142,7 +260,7 @@ export default class TelemetryUsageReads {
        * is the one still being kept for it.
        */
       TelemetryUsageReads.query<ResourceSumRow>(
-        `SELECT "primaryEntityId"::text AS "primaryEntityId", "primaryEntityType" AS "primaryEntityType", "productType" AS "productType", COALESCE(SUM("dataIngestedInGB"), 0)::text AS "dataIngestedInGB", COALESCE(SUM("totalCostInUSD"), 0)::text AS "totalCostInUSD", (ARRAY_AGG("retainTelemetryDataForDays" ORDER BY "createdAt" DESC))[1] AS "retentionInDays" FROM ${TABLE} WHERE ${where} GROUP BY 1, 2, 3`,
+        `SELECT "primaryEntityId"::text AS "primaryEntityId", "primaryEntityType" AS "primaryEntityType", "productType" AS "productType", ${getSignalSumsSql("")}, (ARRAY_AGG("retainTelemetryDataForDays" ORDER BY "createdAt" DESC))[1] AS "retentionInDays" FROM ${TABLE} WHERE ${where} GROUP BY 1, 2, 3`,
         parameters,
       ),
       // The newest day counted at all, so an empty range can say why.
@@ -180,10 +298,13 @@ export default class TelemetryUsageReads {
         continue;
       }
 
-      const amount: TelemetryUsageAmount = toAmount(row, data.isCostIncluded);
+      const signalAmounts: Array<TelemetryUsageSignalAmount> = getSignalAmounts(
+        { ...row, productType: row.productType },
+        data.isCostIncluded,
+      );
 
-      addToProduct(day, row.productType, amount, data.isCostIncluded);
-      addToProduct(summary, row.productType, amount, data.isCostIncluded);
+      addSignals(day, signalAmounts, data.isCostIncluded);
+      addSignals(summary, signalAmounts, data.isCostIncluded);
     }
 
     summary.days = Array.from(days.values());
@@ -208,10 +329,12 @@ export default class TelemetryUsageReads {
         sessionReplayRetentionInDays: null,
       };
 
-      addToProduct(
+      addSignals(
         resource,
-        row.productType,
-        toAmount(row, data.isCostIncluded),
+        getSignalAmounts(
+          { ...row, productType: row.productType },
+          data.isCostIncluded,
+        ),
         data.isCostIncluded,
       );
 
@@ -293,7 +416,7 @@ export default class TelemetryUsageReads {
   }): Promise<TelemetryProjectUsagePage> {
     const rows: Array<ProjectSumRow> =
       await TelemetryUsageReads.query<ProjectSumRow>(
-        `SELECT u."projectId"::text AS "projectId", p."name" AS "projectName", u."productType" AS "productType", COALESCE(SUM(u."dataIngestedInGB"), 0)::text AS "dataIngestedInGB", COALESCE(SUM(u."totalCostInUSD"), 0)::text AS "totalCostInUSD" FROM ${TABLE} u INNER JOIN "Project" p ON p."_id" = u."projectId" AND p."deletedAt" IS NULL WHERE u."createdAt" >= $1 AND u."createdAt" < $2 AND u."deletedAt" IS NULL GROUP BY 1, 2, 3`,
+        `SELECT u."projectId"::text AS "projectId", p."name" AS "projectName", u."productType" AS "productType", ${getSignalSumsSql("u.")} FROM ${TABLE} u INNER JOIN "Project" p ON p."_id" = u."projectId" AND p."deletedAt" IS NULL WHERE u."createdAt" >= $1 AND u."createdAt" < $2 AND u."deletedAt" IS NULL GROUP BY 1, 2, 3`,
         [data.window.start, data.window.end],
       );
 
@@ -319,10 +442,13 @@ export default class TelemetryUsageReads {
         byProduct: {},
         total: getEmptyTelemetryUsageAmount(data.isCostIncluded),
       };
-      const amount: TelemetryUsageAmount = toAmount(row, data.isCostIncluded);
+      const signalAmounts: Array<TelemetryUsageSignalAmount> = getSignalAmounts(
+        { ...row, productType: row.productType },
+        data.isCostIncluded,
+      );
 
-      addToProduct(project, row.productType, amount, data.isCostIncluded);
-      addToProduct(instance, row.productType, amount, data.isCostIncluded);
+      addSignals(project, signalAmounts, data.isCostIncluded);
+      addSignals(instance, signalAmounts, data.isCostIncluded);
       projects.set(row.projectId, project);
     }
 

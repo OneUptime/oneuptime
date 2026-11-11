@@ -162,6 +162,11 @@ const LEFT_OUT: Record<string, LeftOut> = {
       tables: 1,
       why: "A matrix of the hours a policy covers, read across and down: every cell one width.",
     },
+  "packages/App/FeatureSet/Dashboard/src/Components/ProductAnalytics/ProductAnalyticsRetentionTable.tsx":
+    {
+      tables: 1,
+      why: "A retention heatmap, a cohort a row and a period a column, read across and down: every period cell one width.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Pages/UserSettings/NotificationSettings.tsx":
     {
       tables: 1,
@@ -196,6 +201,11 @@ const LEFT_OUT: Record<string, LeftOut> = {
     {
       tables: 1,
       why: "The variables an AI agent's install takes, in our words, laid out for the install panel.",
+    },
+  "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/Naming/NamingLookupTableEditor.tsx":
+    {
+      tables: 1,
+      why: "A naming rule's lookup table, edited in the rule form: two inputs and a remove button a row, each input filling its cell.",
     },
 };
 

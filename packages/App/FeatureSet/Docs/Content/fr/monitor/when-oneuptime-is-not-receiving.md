@@ -23,8 +23,8 @@ Un redémarrage de moins de 90 secondes n'est pas une interruption : les collect
 
 | Où | Ce que fait OneUptime |
 | --- | --- |
-| Moniteurs de serveur / VM | **Is Online** ne compte que les minutes pendant lesquelles OneUptime recevait : par défaut, un serveur est hors ligne après 3 minutes de silence que OneUptime aurait pu entendre. |
-| Moniteurs de requêtes entrantes et d'e-mails entrants | **Recieved In Minutes** et **Not Recieved In Minutes** ne comptent que les minutes pendant lesquelles OneUptime recevait. Quand un tel critère est rempli, sa raison indique combien de ces minutes ont été laissées de côté. |
+| Moniteurs de serveur / VM | Le filtre **En ligne** ne compte que les minutes pendant lesquelles OneUptime recevait : par défaut, un serveur est hors ligne après 3 minutes de silence que OneUptime aurait pu entendre. |
+| Moniteurs de requêtes entrantes et d'e-mails entrants | **Reçu dans le délai (minutes)** et **Non reçu dans le délai (minutes)** ne comptent que les minutes pendant lesquelles OneUptime recevait. Quand un tel critère est rempli, sa raison indique combien de ces minutes ont été laissées de côté. |
 | Moniteurs d'hôte, Kubernetes, Docker, de métriques, de journaux, de traces et les autres moniteurs qui lisent la télémétrie | Une vérification dont la fenêtre contient du temps sans réception attend que ce temps ait quitté la fenêtre, et jamais plus de 15 minutes après sa fin. D'ici là, rien ne change : aucun changement de statut, et aucun incident ni alerte n'est ouvert ou résolu. Tant que la file a du retard, une vérification lit jusqu'à l'endroit où en est la file plutôt que jusqu'à maintenant. |
 | Hôtes, clusters et le reste de l'inventaire | Une ressource ne passe à **Déconnecté** qu'une fois son seuil de silence, 15 minutes pour la plupart, écoulé pendant que OneUptime recevait. |
 | Sondes et agents IA | Passent à **Déconnecté** après 3 minutes de silence pendant que OneUptime recevait. |

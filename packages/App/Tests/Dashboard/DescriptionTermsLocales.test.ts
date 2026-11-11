@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 
 /*
  * The shortened descriptions say "acknowledge" and "resolve" the way each
@@ -30,24 +31,7 @@ const LOCALES_DIR: string = path.join(
   "Locales",
 );
 
-const OTHER_LOCALES: Array<string> = [
-  "da",
-  "de",
-  "es",
-  "fa",
-  "fr",
-  "hi",
-  "it",
-  "ja",
-  "ko",
-  "nl",
-  "no",
-  "pt",
-  "ru",
-  "sv",
-  "zh-CN",
-  "zh-TW",
-];
+const OTHER_LOCALES: Array<string> = [...DASHBOARD_LANGUAGES];
 
 function readLocale(locale: string): Record<string, string> {
   return JSON.parse(
@@ -59,9 +43,13 @@ function readLocale(locale: string): Record<string, string> {
  * The stem of each language's word for the action. A word that changes its
  * form keeps the stem: German "behoben" / "beheben" / "behebt", Dutch
  * "opgelost" / "oplossen" / "op te lossen". Persian draws Resolve as "رفع"
- * on the button and "برطرف" on the state, so both count there.
+ * on the button and "برطرف" on the state, so both count there. Arabic
+ * says Acknowledge with the noun "إقرار" in every form (إقرار, تم الإقرار,
+ * عند الإقرار بها), and Resolve with the root ح ل ل, which every form holds
+ * (حل, يُحلّ, محلولة).
  */
 const ACKNOWLEDGE_STEMS: Record<string, Array<string>> = {
+  ar: ["إقرار"],
   da: ["bekræft"],
   de: ["bestätig"],
   es: ["reconoc"],
@@ -86,6 +74,7 @@ const ACKNOWLEDGE_STEMS: Record<string, Array<string>> = {
 };
 
 const RESOLVE_STEMS: Record<string, Array<string>> = {
+  ar: ["حل"],
   da: ["løs"],
   de: ["behob", "beheb"],
   es: ["resuel", "resolv"],
@@ -152,6 +141,7 @@ const LINKED_ALERTS_SWITCHES: Array<{
 
 // Each language's name for push groups, as its Enable Push Groups switch says it.
 const PUSH_GROUPS_NAMES: Record<string, string> = {
+  ar: "دفع المجموعات",
   da: "push-grupper",
   de: "push-gruppen",
   es: "grupos push",

@@ -10,6 +10,7 @@ import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Navigation from "Common/UI/Utils/Navigation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { DOCS_URL } from "Common/UI/Config";
 import {
   RecordingHealthAction,
@@ -17,7 +18,16 @@ import {
   RecordingHealthDiagnosis,
   RecordingHealthSeverity,
 } from "Common/Types/Rum/SessionReplayHealth";
-import { formatRelativeAge } from "Common/Utils/Rum/SessionReplayHealth";
+import { formatRelativeAge } from "Common/Utils/SessionReplay/SessionReplayHealth";
+import {
+  ComposedValue,
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  formatList,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
@@ -26,6 +36,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { RecommendationStatusFilter } from "../Recommendations/RecommendationViewModel";
 import useSessionReplayHealth, {
   SESSION_REPLAY_HEALTH_POLL_SLOW_MS,
+  SessionReplayHealthError,
   SessionReplayHealthSnapshot,
   describeHealthError,
 } from "./useSessionReplayHealth";
@@ -261,34 +272,66 @@ export function RecordingHealthDiagnosisBanner(props: {
   );
 }
 
+/*
+ * The policy's choices by the words the settings page gives them. Each is a
+ * key of the Dashboard's locales, looked up where it is drawn (labelEnum).
+ */
 export const CAPTURE_TRIGGER_LABELS: Record<string, string> = {
-  [SessionReplayCaptureTrigger.Always]: "Always",
-  [SessionReplayCaptureTrigger.OnErrorOrFrustration]: "On error or frustration",
+  [SessionReplayCaptureTrigger.Always]: translationKey("Always"),
+  [SessionReplayCaptureTrigger.OnErrorOrFrustration]: translationKey(
+    "On error or frustration",
+  ),
 };
 
 export const CONSENT_MODE_LABELS: Record<string, string> = {
-  [SessionReplayConsentMode.NotRequired]: "Not required",
-  [SessionReplayConsentMode.RequireExplicit]: "Explicit consent required",
+  [SessionReplayConsentMode.NotRequired]: translationKey("Not required"),
+  [SessionReplayConsentMode.RequireExplicit]: translationKey(
+    "Explicit consent required",
+  ),
 };
 
 export const MASKING_MODE_LABELS: Record<string, string> = {
-  [SessionReplayMaskingMode.MaskSensitiveInputsOnly]:
+  [SessionReplayMaskingMode.MaskSensitiveInputsOnly]: translationKey(
     "Sensitive inputs masked, page text recorded",
-  [SessionReplayMaskingMode.MaskInputsOnly]:
+  ),
+  [SessionReplayMaskingMode.MaskInputsOnly]: translationKey(
     "All inputs masked, page text recorded",
-  [SessionReplayMaskingMode.MaskAllText]: "All text masked (wireframe)",
+  ),
+  [SessionReplayMaskingMode.MaskAllText]: translationKey(
+    "All text masked (wireframe)",
+  ),
 };
 
-/* A raw enum value never reaches the screen; unknown values say so. */
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+// A fixed line in the translator's language.
+function translateLine(text: string, translator: Translator): string {
+  return translator.translateText(text) || text;
+}
+
+/*
+ * A raw enum value never reaches the screen; unknown values say so. In the
+ * reader's language when the caller hands its Translator in, in English
+ * without one.
+ */
 export function labelEnum(
   labels: Record<string, string>,
   value: string,
+  translator: Translator = ENGLISH,
 ): string {
   if (value.length === 0) {
-    return "not reported";
+    return translator.translateText("not reported") || "not reported";
   }
 
-  return labels[value] ?? `unrecognised value (${value})`;
+  const label: string | undefined = labels[value];
+
+  if (label === undefined) {
+    return translator.translateTemplate("unrecognised value ({{value}})", {
+      value: value,
+    });
+  }
+
+  return translator.translateText(label) || label;
 }
 
 export interface RecorderDiagnosticsPasteBoxProps {
@@ -310,11 +353,21 @@ export interface RecorderDiagnosticsPasteBoxProps {
 export function RecorderDiagnosticsPasteBox(
   props: RecorderDiagnosticsPasteBoxProps,
 ): ReactElement {
+  const translator: Translator = useTranslator();
   const [text, setText] = useState<string>("");
-  const [result, setResult] = useState<RecorderDiagnosticsResult | null>(null);
+  /*
+   * The text that was explained, not its explanation: the explanation is
+   * written when it is drawn, so it follows the reader's language.
+   */
+  const [explainedText, setExplainedText] = useState<string | null>(null);
+
+  const result: RecorderDiagnosticsResult | null =
+    explainedText === null
+      ? null
+      : explainRecorderDiagnostics(explainedText, translator);
 
   const explain: () => void = (): void => {
-    setResult(explainRecorderDiagnostics(text));
+    setExplainedText(text);
   };
 
   const showHeading: boolean = props.showHeading !== false;
@@ -324,21 +377,20 @@ export function RecorderDiagnosticsPasteBox(
       {showHeading && (
         <>
           <div className="text-xs font-semibold text-gray-700">
-            Ask the browser instead
+            {translator.translateText("Ask the browser instead")}
           </div>
           <p className="mt-1 text-xs text-gray-500">
-            Anything that stops the recorder before it uploads - a blocked
-            script, a Do Not Track signal, an unsampled session, consent that
-            was never granted - is only visible in the browser. On the page that
-            is not recording, run this in the console, then paste the result
-            below:
+            {translator.translateText(
+              "Anything that stops the recorder before it uploads - a blocked script, a Do Not Track signal, an unsampled session, consent that was never granted - is only visible in the browser. On the page that is not recording, run this in the console, then paste the result below:",
+            )}
           </p>
         </>
       )}
       {!showHeading && (
         <p className="text-sm text-gray-600">
-          On the page that is not recording, run this in the browser console,
-          then paste the result below.
+          {translator.translateText(
+            "On the page that is not recording, run this in the browser console, then paste the result below.",
+          )}
         </p>
       )}
       <div className="mt-2">
@@ -375,7 +427,9 @@ export function RecorderDiagnosticsPasteBox(
             `${DOCS_URL.toString()}${TROUBLESHOOTING_DOCS_PATH}`,
           )}
         >
-          <span>Every code, explained in the docs</span>
+          <span>
+            {translator.translateText("Every code, explained in the docs")}
+          </span>
           <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
         </Link>
       </div>
@@ -396,10 +450,16 @@ export function RecorderDiagnosticsPasteBox(
   );
 }
 
+/*
+ * The explanation as RecorderDiagnosticsExplainer writes it, already in the
+ * reader's language; what the recorder wrote (codes, the record's detail,
+ * its capabilities) is drawn as written.
+ */
 function RecorderDiagnosticsExplanationView(props: {
   explanation: RecorderDiagnosticsExplanation;
 }): ReactElement {
   const { explanation } = props;
+  const translator: Translator = useTranslator();
 
   return (
     <div className="mt-3" data-testid="diagnostics-explanation">
@@ -423,9 +483,11 @@ function RecorderDiagnosticsExplanationView(props: {
           )}
           {explanation.capabilities.length > 0 && (
             <div className="flex gap-2">
-              <dt className="shrink-0 text-gray-500">Capabilities:</dt>
+              <dt className="shrink-0 text-gray-500">
+                {translator.translateText("Capabilities")}:
+              </dt>
               <dd className="min-w-0 break-words text-gray-900">
-                {explanation.capabilities.join(", ")}
+                {formatList(explanation.capabilities, translator)}
               </dd>
             </div>
           )}
@@ -434,18 +496,29 @@ function RecorderDiagnosticsExplanationView(props: {
 
       {explanation.unknownCodes.length > 0 && (
         <div className="mt-3 text-xs text-amber-700">
-          {explanation.unknownCodes.length} code
-          {explanation.unknownCodes.length === 1 ? "" : "s"} newer than this
-          dashboard: {explanation.unknownCodes.join(", ")}. The docs link above
-          lists every code.
+          {translator.translatePlural(
+            {
+              one: "{{count}} code newer than this dashboard: {{codes}}. The docs link above lists every code.",
+              other:
+                "{{count}} codes newer than this dashboard: {{codes}}. The docs link above lists every code.",
+            },
+            explanation.unknownCodes.length,
+            {
+              // The codes as the recorder wrote them, listed the sentence's way.
+              codes: composedValue((sentence: Translator): string => {
+                return formatList(explanation.unknownCodes, sentence);
+              }),
+            },
+            { setsValuesApart: true },
+          )}
         </div>
       )}
 
       {explanation.records.length === 0 ? (
         <div className="mt-3 text-sm text-gray-500">
-          The records array is empty: the recorder made no decision on that page
-          at all, which means the loader never ran. Check that the script tag is
-          on the page.
+          {translator.translateText(
+            "The records array is empty: the recorder made no decision on that page at all, which means the loader never ran. Check that the script tag is on the page.",
+          )}
         </div>
       ) : (
         <ol className="mt-3 divide-y divide-gray-100 rounded-md border border-gray-200">
@@ -498,6 +571,68 @@ function RecorderDiagnosticsExplanationView(props: {
   );
 }
 
+/*
+ * The note under a status kept on screen after a failed refresh: why the
+ * refresh failed, and how old the status shown is ("earlier" when it was
+ * never read). One whole sentence per failure kind, with and without the
+ * time it was read, so no translated title is lower-cased into another
+ * sentence. Every health surface that keeps a status on a failed refresh
+ * says it in these words.
+ */
+export function describeStaleHealthRead(
+  error: SessionReplayHealthError,
+  fetchedAtUnixMs: number | null,
+  nowUnixMs: number,
+  translator: Translator,
+): string {
+  if (fetchedAtUnixMs === null) {
+    if (error.kind === "permission") {
+      return translateLine(
+        "The last refresh failed (you cannot see recording health); showing the status read earlier.",
+        translator,
+      );
+    }
+
+    if (error.kind === "plan") {
+      return translateLine(
+        "The last refresh failed (recording health is not included in this project's plan); showing the status read earlier.",
+        translator,
+      );
+    }
+
+    return translateLine(
+      "The last refresh failed (recording health could not be loaded); showing the status read earlier.",
+      translator,
+    );
+  }
+
+  // When it was read, in the language the sentence is read in.
+  const values: { age: ComposedValue } = {
+    age: composedValue((sentence: Translator): string => {
+      return formatRelativeAge(fetchedAtUnixMs, nowUnixMs, sentence);
+    }),
+  };
+
+  if (error.kind === "permission") {
+    return translator.translateTemplate(
+      "The last refresh failed (you cannot see recording health); showing the status read {{age}}.",
+      values,
+    );
+  }
+
+  if (error.kind === "plan") {
+    return translator.translateTemplate(
+      "The last refresh failed (recording health is not included in this project's plan); showing the status read {{age}}.",
+      values,
+    );
+  }
+
+  return translator.translateTemplate(
+    "The last refresh failed (recording health could not be loaded); showing the status read {{age}}.",
+    values,
+  );
+}
+
 export interface RecordingHealthSummaryViewProps {
   rumApplicationId: ObjectID | string;
   health: SessionReplayHealthSnapshot;
@@ -506,35 +641,44 @@ export interface RecordingHealthSummaryViewProps {
 /*
  * Pure: the policy page's one-line reading of one snapshot, with a way to
  * the full health page. A failed refresh keeps the last diagnosis on screen
- * and says how old it is, like every other health surface.
+ * and says how old it is, like every other health surface. The diagnosis
+ * comes in the reader's language (useSessionReplayHealth writes it so).
  */
 export const RecordingHealthSummaryView: FunctionComponent<
   RecordingHealthSummaryViewProps
 > = (props: RecordingHealthSummaryViewProps): ReactElement => {
   const { health } = props;
+  const translator: Translator = useTranslator();
 
   let body: ReactElement;
 
   if (health.isLoading) {
     body = (
       <div className="text-sm text-gray-500" data-testid="health-card-loading">
-        Checking recording health…
+        {translator.translateText("Checking recording health…")}
       </div>
     );
   } else if (health.status === null && health.error) {
+    const described: { title: string; detail: string } = describeHealthError(
+      health.error,
+      translator,
+    );
+
     body = (
       <div
         className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
         data-testid="health-card-error"
       >
         <div className="text-sm font-semibold text-gray-900">
-          {describeHealthError(health.error).title}
+          {described.title}
         </div>
-        <div className="mt-0.5 text-sm text-gray-700">
-          {describeHealthError(health.error).detail}
-        </div>
+        <div className="mt-0.5 text-sm text-gray-700">{described.detail}</div>
         <div className="mt-1 text-xs text-gray-500">
-          Server said: {health.error.message}
+          {translator.translateTemplate(
+            "Server said: {{message}}",
+            { message: health.error.message },
+            { setsValuesApart: true },
+          )}
         </div>
       </div>
     );
@@ -550,13 +694,12 @@ export const RecordingHealthSummaryView: FunctionComponent<
             className="mt-2 text-xs text-amber-700"
             data-testid="health-card-stale"
           >
-            The last refresh failed (
-            {describeHealthError(health.error).title.toLowerCase()}); showing
-            the status read{" "}
-            {health.fetchedAtUnixMs === null
-              ? "earlier"
-              : formatRelativeAge(health.fetchedAtUnixMs, health.nowUnixMs)}
-            .
+            {describeStaleHealthRead(
+              health.error,
+              health.fetchedAtUnixMs,
+              health.nowUnixMs,
+              translator,
+            )}
           </div>
         )}
       </>

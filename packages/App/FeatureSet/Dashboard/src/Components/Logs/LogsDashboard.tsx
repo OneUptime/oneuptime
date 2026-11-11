@@ -94,6 +94,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { describeLogsTimeRange } from "./LogsInsightsCopy";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 /*
  * The Logs Insights page.
@@ -947,7 +948,8 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
                   />
                   <span>{share.severity}</span>
                   <span className="opacity-70">
-                    {share.count.toLocaleString()} · {share.percent}%
+                    {share.count.toLocaleString(getReaderNumberLocale())} ·{" "}
+                    {share.percent}%
                   </span>
                 </div>
               );
@@ -1060,7 +1062,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
                 <div className="mb-1">
                   <div className="mb-1.5 flex items-end justify-between">
                     <span className="text-2xl font-bold text-gray-900">
-                      {row.total.toLocaleString()}
+                      {row.total.toLocaleString(getReaderNumberLocale())}
                     </span>
                     <span className="mb-1 text-xs text-gray-400">
                       {translator.translatePlural(
@@ -1155,7 +1157,7 @@ const StatCard: FunctionComponent<StatCardProps> = (
         </div>
       </div>
       <p className={`mt-2 text-3xl font-bold ${tone.valueText}`}>
-        {props.value.toLocaleString()}
+        {props.value.toLocaleString(getReaderNumberLocale())}
       </p>
       <p className="mt-1 text-xs text-gray-400">{props.subtext}</p>
     </div>

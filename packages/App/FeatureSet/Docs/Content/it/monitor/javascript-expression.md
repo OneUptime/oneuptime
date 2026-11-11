@@ -1,6 +1,6 @@
 # Espressioni JavaScript
 
-Un filtro di criterio **JavaScript Expression** decide se il criterio di un monitor è soddisfatto con una riga di JavaScript invece di un confronto fisso. Usatelo quando i filtri integrati non riescono a esprimere la condizione — un campo annidato in una risposta JSON, due valori confrontati tra loro, o più controlli combinati con `&&` e `||`.
+Un filtro di criterio **Espressione JavaScript** decide se il criterio di un monitor è soddisfatto con una riga di JavaScript invece di un confronto fisso. Usatelo quando i filtri integrati non riescono a esprimere la condizione — un campo annidato in una risposta JSON, due valori confrontati tra loro, o più controlli combinati con `&&` e `||`.
 
 :::cards
 - [Come funziona](#come-funziona): I segnaposto vengono compilati, poi l'espressione viene eseguita.
@@ -24,7 +24,7 @@ flowchart TB
 
 Poiché i segnaposto vengono sostituiti come testo, `{{responseBody.item}}` diventa il valore grezzo. Una stringa deve stare tra virgolette per essere una stringa JavaScript; un numero o un booleano no — vedete [Regole sulle virgolette](#regole-sulle-virgolette). Le espressioni vengono eseguite sul server OneUptime, in una sandbox isolata.
 
-## Aggiungere un filtro JavaScript Expression
+## Aggiungere un filtro Espressione JavaScript
 
 :::steps
 ### Aprire i criteri
@@ -33,7 +33,7 @@ Sul monitor, aprite **Configurazione → Criteri** e fate clic su **Modifica cri
 
 ### Aggiungere un filtro
 
-In **Filtri**, fate clic su **Aggiungi filtro** e impostate il suo **Tipo di filtro** su **JavaScript Expression**. La **Condizione del filtro** è **Evaluates To True**.
+In **Filtri**, fate clic su **Aggiungi filtro** e impostate il suo **Tipo di filtro** su **Espressione JavaScript**. La **Condizione del filtro** è **Risulta vero**.
 
 ### Scrivere l'espressione
 
@@ -46,7 +46,7 @@ Salvate il monitor. Il filtro viene valutato al controllo successivo del monitor
 
 ## Variabili per tipo di monitor
 
-Le espressioni JavaScript sono offerte per i monitor di tipo Sito web, API, Incoming Request, Incoming Email, SQL Query e Database Health.
+Le espressioni JavaScript sono offerte per i monitor di tipo Sito web, API, Richiesta in arrivo, Incoming Email, SQL Query e Database Health.
 
 ### Monitor di siti web e API
 

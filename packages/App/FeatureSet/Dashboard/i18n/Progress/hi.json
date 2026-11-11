@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 47694,
-    "untranslated": 11052
+    "keys": 49075,
+    "untranslated": 10172
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -55,6 +55,7 @@
     "IP",
     "Infrastructure only",
     "IoT",
+    "JVM CPU",
     "JavaScript API",
     "Keystone",
     "Kolla-Ansible",
@@ -195,6 +196,7 @@
     "writesets",
     "x86",
     "z",
+    "{\"version\": \"...\", \"records\": [...]}",
     "{{count}} B",
     "{{count}} CPU",
     "{{count}} KB",
@@ -204,6 +206,7 @@
     "{{count}} vCPU",
     "{{format}} JSON",
     "{{gigabytes}} GB",
-    "{{in}} in"
+    "{{in}} in",
+    "{{value}} ms"
   ]
 }

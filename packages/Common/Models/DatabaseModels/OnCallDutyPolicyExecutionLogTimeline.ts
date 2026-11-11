@@ -25,6 +25,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
+import { OnCallPageChannel } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import Permission from "../../Types/Permission";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -904,6 +905,46 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public status?: OnCallDutyExecutionLogTimelineStatus = undefined;
+
+  /*
+   * The channels this step's page went out to its person by - a phone call,
+   * an SMS, an email, a push notification - for the run's Execution
+   * Timeline. The person's own notifications (UserOnCallLogTimeline) say
+   * the same, but only that person can read them; whoever can read the run
+   * can read this. Kept by OneUptime alone
+   * (OnCallDutyPolicyExecutionLogTimelineService.refreshNotificationChannels):
+   * worked out again from the step's notifications whenever one is written
+   * or changes status, so one that could not be sent is not listed. Empty
+   * for a page that reached nobody; not set on steps written before it was
+   * kept.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Notified Via",
+    description:
+      "The channels this step's page went out to its person by - phone call, SMS, email, push notification and so on - as the person's own notifications say. Kept by OneUptime as the notifications go out, so a notification that could not be sent is not listed. Empty when the page reached nobody, and not set on steps written before OneUptime kept it.",
+    canReadOnRelationQuery: false,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public notificationChannels?: Array<OnCallPageChannel> = undefined;
 
   @ColumnAccessControl({
     create: [],

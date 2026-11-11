@@ -11,6 +11,7 @@ import {
   MORE_SERIES_TEMPLATE,
   SERIES_COUNT_TEMPLATE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/SeriesCounts";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
  * A METRIC CHART COUNTS ITS SERIES IN THE READER'S PLURAL.
@@ -30,24 +31,7 @@ const DASHBOARD: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard",
 );
 
-const LANGUAGES: ReadonlyArray<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
+const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
 
 // A plural's one form is stored under its key plus this.
 const ONE_FORM_SUFFIX: RegExp = /_one$/;

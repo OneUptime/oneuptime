@@ -389,8 +389,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "kafka",
       metricName: "kafka.consumer_group.lag_sum",
       title: translationKey("Consumer lag"),
-      description:
+      description: translationKey(
         "Messages a consumer group has not yet committed on this topic, added up across its partitions. With several consumer groups, the one furthest behind is shown; a group appears only once it has committed an offset on the topic.",
+      ),
       unit: translationKey("messages"),
       signal: "consumerLag",
       kind: "gauge",
@@ -405,8 +406,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "kafka",
       metricName: "kafka.consumer_group.lag",
       title: translationKey("Partition lag"),
-      description:
+      description: translationKey(
         "Messages not yet committed on the single partition furthest behind, across every consumer group reading this topic. A high value next to a low consumer lag points at one stuck partition.",
+      ),
       unit: translationKey("messages"),
       signal: "consumerLag",
       kind: "gauge",
@@ -421,8 +423,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "kafka",
       metricName: "kafka.consumer_group.offset_sum",
       title: translationKey("Consumed"),
-      description:
+      description: translationKey(
         "Messages consumed per second: the growth of the offsets consumer groups commit on this topic, added up across partitions and consumer groups.",
+      ),
       unit: translationKey("messages"),
       signal: "consumed",
       kind: "counter",
@@ -436,8 +439,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "kafka",
       metricName: "kafka.partition.current_offset",
       title: translationKey("Produced"),
-      description:
+      description: translationKey(
         "Messages produced per second: the growth of each partition's log-end offset, added up across the topic's partitions.",
+      ),
       unit: translationKey("messages"),
       signal: "published",
       kind: "counter",
@@ -453,8 +457,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "rabbitmq",
       metricName: "rabbitmq.message.current",
       title: translationKey("Queue depth"),
-      description:
+      description: translationKey(
         "Messages in the queue: those ready for delivery plus those delivered but not yet acknowledged (the receiver's two `state` series, added up).",
+      ),
       unit: translationKey("messages"),
       signal: "backlog",
       kind: "gauge",
@@ -469,8 +474,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "rabbitmq",
       metricName: "rabbitmq.message.published",
       title: translationKey("Published"),
-      description:
+      description: translationKey(
         "Messages published to the queue per second. The receiver reports it once the queue has seen its first publish.",
+      ),
       unit: translationKey("messages"),
       signal: "published",
       kind: "counter",
@@ -484,8 +490,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "rabbitmq",
       metricName: "rabbitmq.message.delivered",
       title: translationKey("Delivered"),
-      description:
+      description: translationKey(
         "Messages the broker pushed to consumers per second; messages fetched with `basic.get` are not counted.",
+      ),
       unit: translationKey("messages"),
       signal: "consumed",
       kind: "counter",
@@ -499,7 +506,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "rabbitmq",
       metricName: "rabbitmq.message.acknowledged",
       title: translationKey("Acknowledged"),
-      description: "Messages consumers acknowledged per second.",
+      description: translationKey(
+        "Messages consumers acknowledged per second.",
+      ),
       unit: translationKey("messages"),
       signal: "consumed",
       kind: "counter",
@@ -513,8 +522,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "rabbitmq",
       metricName: "rabbitmq.message.dropped",
       title: translationKey("Dropped"),
-      description:
+      description: translationKey(
         "Messages the broker dropped as unroutable, per second (the queue's `drop_unroutable` statistic).",
+      ),
       unit: translationKey("messages"),
       signal: "errors",
       kind: "counter",
@@ -528,8 +538,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "rabbitmq",
       metricName: "rabbitmq.consumer.count",
       title: translationKey("Consumers"),
-      description:
+      description: translationKey(
         "Consumers attached to the queue; with none, nothing is draining it.",
+      ),
       unit: translationKey("consumers"),
       signal: "consumers",
       kind: "gauge",
@@ -545,8 +556,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "activemq",
       metricName: "activemq.message.queue.size",
       title: translationKey("Queue size"),
-      description:
+      description: translationKey(
         "Messages waiting on the destination to be consumed, added up across brokers.",
+      ),
       unit: translationKey("messages"),
       signal: "backlog",
       kind: "gauge",
@@ -561,8 +573,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "activemq",
       metricName: "activemq.message.current",
       title: `${translationKey("Queue size")} (${LEGACY_NAMES_TITLE_QUALIFIER})`,
-      description:
+      description: translationKey(
         "Messages waiting on the destination to be consumed, added up across brokers, as the JMX Scraper names it in its legacy rules (version 1.52 and older, or OTEL_JMX_TARGET_SOURCE=legacy).",
+      ),
       unit: translationKey("messages"),
       signal: "backlog",
       kind: "gauge",
@@ -577,7 +590,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "activemq",
       metricName: "activemq.message.enqueued",
       title: translationKey("Enqueued"),
-      description: "Messages sent to the destination per second.",
+      description: translationKey(
+        "Messages sent to the destination per second.",
+      ),
       unit: translationKey("messages"),
       signal: "published",
       kind: "counter",
@@ -591,8 +606,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "activemq",
       metricName: "activemq.message.dequeued",
       title: translationKey("Dequeued"),
-      description:
+      description: translationKey(
         "Messages acknowledged and removed from the destination per second.",
+      ),
       unit: translationKey("messages"),
       signal: "consumed",
       kind: "counter",
@@ -606,8 +622,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "activemq",
       metricName: "activemq.message.expired",
       title: translationKey("Expired"),
-      description:
+      description: translationKey(
         "Messages that expired before they were delivered, per second.",
+      ),
       unit: translationKey("messages"),
       signal: "errors",
       kind: "counter",
@@ -621,8 +638,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "activemq",
       metricName: "activemq.consumer.count",
       title: translationKey("Consumers"),
-      description:
+      description: translationKey(
         "Consumers subscribed to the destination, added up across brokers; with none, nothing is draining it.",
+      ),
       unit: translationKey("consumers"),
       signal: "consumers",
       kind: "gauge",
@@ -641,8 +659,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "activemq",
       metricName: "activemq.message.enqueue.average_duration",
       title: translationKey("Average time in queue"),
-      description:
+      description: translationKey(
         "The average time a message waited on the destination before it was consumed, a running average the broker keeps (AverageEnqueueTime). It is an average, not the age of the oldest waiting message.",
+      ),
       unit: "s",
       signal: "oldestMessageAge",
       kind: "gauge",
@@ -656,8 +675,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "activemq",
       metricName: "activemq.message.wait_time.avg",
       title: `${translationKey("Average time in queue")} (${LEGACY_NAMES_TITLE_QUALIFIER})`,
-      description:
+      description: translationKey(
         "The average time a message waited on the destination before it was consumed (AverageEnqueueTime), in milliseconds, as the JMX Scraper names it in its legacy rules. It is an average, not the age of the oldest waiting message.",
+      ),
       unit: "ms",
       signal: "oldestMessageAge",
       kind: "gauge",
@@ -673,8 +693,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "servicebus",
       metricName: "azure_activemessages_average",
       title: translationKey("Active messages"),
-      description:
+      description: translationKey(
         "Messages ready for delivery in the queue or topic (Azure Monitor's ActiveMessages, averaged over each minute). A topic's count covers all of its subscriptions.",
+      ),
       unit: translationKey("messages"),
       signal: "backlog",
       kind: "gauge",
@@ -690,8 +711,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "servicebus",
       metricName: "azure_deadletteredmessages_average",
       title: translationKey("Dead-lettered messages"),
-      description:
+      description: translationKey(
         "Messages in the dead-letter sub-queue (Azure Monitor's DeadletteredMessages, averaged over each minute).",
+      ),
       unit: translationKey("messages"),
       signal: "deadLetter",
       kind: "gauge",
@@ -707,8 +729,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "servicebus",
       metricName: "azure_scheduledmessages_average",
       title: translationKey("Scheduled messages"),
-      description:
+      description: translationKey(
         "Messages sent for delivery at a later time that are not in the queue or topic yet (Azure Monitor's ScheduledMessages, averaged over each minute). They wait by design, so they are not part of the backlog.",
+      ),
       unit: translationKey("messages"),
       signal: "scheduled",
       kind: "gauge",
@@ -724,8 +747,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "servicebus",
       metricName: "azure_size_average",
       title: translationKey("Size"),
-      description:
+      description: translationKey(
         "The storage the queue or topic takes, in bytes (Azure Monitor's Size, averaged over each minute). A queue or topic that reaches its maximum size refuses new messages.",
+      ),
       unit: "bytes",
       signal: "size",
       kind: "gauge",
@@ -741,8 +765,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "servicebus",
       metricName: "azure_incomingmessages_total",
       title: translationKey("Incoming messages"),
-      description:
+      description: translationKey(
         "Messages sent to the queue or topic, counted per minute by Azure Monitor (IncomingMessages), including messages auto-forwarded into it.",
+      ),
       unit: translationKey("messages"),
       signal: "published",
       kind: "gauge",
@@ -758,8 +783,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "servicebus",
       metricName: "azure_outgoingmessages_total",
       title: translationKey("Outgoing messages"),
-      description:
+      description: translationKey(
         "Messages received from the queue or topic, counted per minute by Azure Monitor (OutgoingMessages).",
+      ),
       unit: translationKey("messages"),
       signal: "consumed",
       kind: "gauge",
@@ -775,8 +801,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "servicebus",
       metricName: "azure_completemessage_total",
       title: translationKey("Completed messages"),
-      description:
+      description: translationKey(
         "Messages consumers completed (settled), counted per minute by Azure Monitor (CompleteMessage).",
+      ),
       unit: translationKey("messages"),
       signal: "consumed",
       kind: "gauge",
@@ -792,8 +819,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "servicebus",
       metricName: "azure_abandonmessage_total",
       title: translationKey("Abandoned messages"),
-      description:
+      description: translationKey(
         "Messages consumers abandoned, counted per minute by Azure Monitor (AbandonMessage). Each one goes back to the queue to be retried, usually after its processing failed.",
+      ),
       unit: translationKey("messages"),
       signal: "errors",
       kind: "gauge",
@@ -809,8 +837,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "servicebus",
       metricName: "azure_servererrors_total",
       title: translationKey("Server errors"),
-      description:
+      description: translationKey(
         "Requests that failed because of a Service Bus error, counted per minute by Azure Monitor (ServerErrors) and added up across operation results.",
+      ),
       unit: translationKey("requests"),
       signal: "errors",
       kind: "gauge",
@@ -827,8 +856,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "servicebus",
       metricName: "azure_usererrors_total",
       title: translationKey("User errors"),
-      description:
+      description: translationKey(
         "Requests that failed because of the client, such as a lost message lock or a bad request, counted per minute by Azure Monitor (UserErrors) and added up across operation results.",
+      ),
       unit: translationKey("requests"),
       signal: "errors",
       kind: "gauge",
@@ -845,8 +875,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "servicebus",
       metricName: "azure_throttledrequests_total",
       title: translationKey("Throttled requests"),
-      description:
+      description: translationKey(
         "Requests Service Bus rejected because the namespace ran out of capacity, counted per minute by Azure Monitor (ThrottledRequests).",
+      ),
       unit: translationKey("requests"),
       signal: "throttled",
       kind: "gauge",
@@ -863,8 +894,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "servicebus",
       metricName: "azure_serversendlatency_average",
       title: translationKey("Server send latency"),
-      description:
+      description: translationKey(
         "How long Service Bus took to accept a message sent to the queue or topic, in milliseconds (Azure Monitor's ServerSendLatency, averaged over each minute). It is the broker's side of a send, not the time your consumers take to handle a message.",
+      ),
       unit: "ms",
       signal: "latency",
       kind: "gauge",
@@ -882,8 +914,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "eventhubs",
       metricName: "azure_incomingmessages_total",
       title: translationKey("Incoming messages"),
-      description:
+      description: translationKey(
         "Events sent to the event hub, counted per minute by Azure Monitor (IncomingMessages).",
+      ),
       unit: translationKey("messages"),
       signal: "published",
       kind: "gauge",
@@ -899,8 +932,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "eventhubs",
       metricName: "azure_outgoingmessages_total",
       title: translationKey("Outgoing messages"),
-      description:
+      description: translationKey(
         "Events read from the event hub, counted per minute by Azure Monitor (OutgoingMessages) across every consumer group.",
+      ),
       unit: translationKey("messages"),
       signal: "consumed",
       kind: "gauge",
@@ -916,8 +950,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "eventhubs",
       metricName: "azure_servererrors_total",
       title: translationKey("Server errors"),
-      description:
+      description: translationKey(
         "Requests that failed because of an Event Hubs error, counted per minute by Azure Monitor (ServerErrors) and added up across operation results.",
+      ),
       unit: translationKey("requests"),
       signal: "errors",
       kind: "gauge",
@@ -934,8 +969,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "eventhubs",
       metricName: "azure_usererrors_total",
       title: translationKey("User errors"),
-      description:
+      description: translationKey(
         "Requests that failed because of the client, counted per minute by Azure Monitor (UserErrors) and added up across operation results.",
+      ),
       unit: translationKey("requests"),
       signal: "errors",
       kind: "gauge",
@@ -952,8 +988,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "eventhubs",
       metricName: "azure_quotaexceedederrors_total",
       title: translationKey("Quota exceeded errors"),
-      description:
+      description: translationKey(
         "Requests that failed because the namespace hit a quota, counted per minute by Azure Monitor (QuotaExceededErrors) and added up across operation results.",
+      ),
       unit: translationKey("requests"),
       signal: "errors",
       kind: "gauge",
@@ -970,8 +1007,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "eventhubs",
       metricName: "azure_throttledrequests_total",
       title: translationKey("Throttled requests"),
-      description:
+      description: translationKey(
         "Requests Event Hubs rejected because the namespace ran out of throughput, counted per minute by Azure Monitor (ThrottledRequests).",
+      ),
       unit: translationKey("requests"),
       signal: "throttled",
       kind: "gauge",
@@ -988,8 +1026,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "eventhubs",
       metricName: "azure_size_average",
       title: translationKey("Size"),
-      description:
+      description: translationKey(
         "The storage the event hub's retained events take, in bytes (Azure Monitor's Size, averaged over each minute).",
+      ),
       unit: "bytes",
       signal: "size",
       kind: "gauge",
@@ -1006,8 +1045,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
     ...sqsMetric({
       cloudWatchName: "ApproximateNumberOfMessagesVisible",
       title: translationKey("Messages visible"),
-      description:
+      description: translationKey(
         "Messages available for retrieval from the queue (ApproximateNumberOfMessagesVisible, CloudWatch's Average for each period).",
+      ),
       unit: translationKey("messages"),
       signal: "backlog",
       aggregation: AggregationType.Avg,
@@ -1015,8 +1055,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
     ...sqsMetric({
       cloudWatchName: "ApproximateAgeOfOldestMessage",
       title: translationKey("Oldest message age"),
-      description:
+      description: translationKey(
         "Age of the oldest message in the queue (ApproximateAgeOfOldestMessage). CloudWatch reports it only while the queue holds a message.",
+      ),
       unit: "s",
       signal: "oldestMessageAge",
       aggregation: AggregationType.Max,
@@ -1024,8 +1065,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
     ...sqsMetric({
       cloudWatchName: "ApproximateNumberOfMessagesNotVisible",
       title: translationKey("Messages in flight"),
-      description:
+      description: translationKey(
         "Messages a consumer has received but not yet deleted or returned to the queue (ApproximateNumberOfMessagesNotVisible).",
+      ),
       unit: translationKey("messages"),
       signal: "backlog",
       aggregation: AggregationType.Avg,
@@ -1033,8 +1075,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
     ...sqsMetric({
       cloudWatchName: "NumberOfMessagesSent",
       title: translationKey("Messages sent"),
-      description:
+      description: translationKey(
         "Messages sent to the queue in each CloudWatch period (NumberOfMessagesSent, its Sum).",
+      ),
       unit: translationKey("messages"),
       signal: "published",
       aggregation: AggregationType.Sum,
@@ -1042,8 +1085,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
     ...sqsMetric({
       cloudWatchName: "NumberOfMessagesReceived",
       title: translationKey("Messages received"),
-      description:
+      description: translationKey(
         "Messages ReceiveMessage calls returned in each CloudWatch period (NumberOfMessagesReceived); a redelivered message counts again.",
+      ),
       unit: translationKey("messages"),
       signal: "consumed",
       aggregation: AggregationType.Sum,
@@ -1051,8 +1095,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
     ...sqsMetric({
       cloudWatchName: "NumberOfMessagesDeleted",
       title: translationKey("Messages deleted"),
-      description:
+      description: translationKey(
         "Messages deleted from the queue — that is, processed — in each CloudWatch period (NumberOfMessagesDeleted).",
+      ),
       unit: translationKey("messages"),
       signal: "consumed",
       aggregation: AggregationType.Sum,
@@ -1062,8 +1107,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
     ...snsMetric({
       cloudWatchName: "NumberOfMessagesPublished",
       title: translationKey("Messages published"),
-      description:
+      description: translationKey(
         "Messages published to the topic in each CloudWatch period (NumberOfMessagesPublished).",
+      ),
       unit: translationKey("messages"),
       signal: "published",
       aggregation: AggregationType.Sum,
@@ -1071,8 +1117,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
     ...snsMetric({
       cloudWatchName: "NumberOfNotificationsDelivered",
       title: translationKey("Notifications delivered"),
-      description:
+      description: translationKey(
         "Notifications the topic delivered to its subscriptions in each CloudWatch period (NumberOfNotificationsDelivered).",
+      ),
       unit: translationKey("messages"),
       signal: "consumed",
       aggregation: AggregationType.Sum,
@@ -1080,8 +1127,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
     ...snsMetric({
       cloudWatchName: "NumberOfNotificationsFailed",
       title: translationKey("Notifications failed"),
-      description:
+      description: translationKey(
         "Deliveries to subscriptions that failed in each CloudWatch period (NumberOfNotificationsFailed); for HTTP/S endpoints every failed attempt, retries included, counts.",
+      ),
       unit: translationKey("messages"),
       signal: "errors",
       aggregation: AggregationType.Sum,
@@ -1089,8 +1137,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
     ...snsMetric({
       cloudWatchName: "NumberOfNotificationsRedrivenToDlq",
       title: translationKey("Redriven to dead-letter queue"),
-      description:
+      description: translationKey(
         "Notifications moved to a subscription's dead-letter queue in each CloudWatch period (NumberOfNotificationsRedrivenToDlq).",
+      ),
       unit: translationKey("messages"),
       signal: "deadLetter",
       aggregation: AggregationType.Sum,
@@ -1101,8 +1150,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "gcp_pubsub",
       metricName: "pubsub.googleapis.com/subscription/num_undelivered_messages",
       title: translationKey("Undelivered messages"),
-      description:
+      description: translationKey(
         "Messages the subscription has not yet acknowledged (num_undelivered_messages), sampled every minute by Cloud Monitoring.",
+      ),
       unit: translationKey("messages"),
       signal: "backlog",
       kind: "gauge",
@@ -1117,8 +1167,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       metricName:
         "pubsub.googleapis.com/subscription/oldest_unacked_message_age",
       title: translationKey("Oldest unacked message age"),
-      description:
+      description: translationKey(
         "Age of the oldest message the subscription has not yet acknowledged (oldest_unacked_message_age).",
+      ),
       unit: "s",
       signal: "oldestMessageAge",
       kind: "gauge",
@@ -1133,8 +1184,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       metricName:
         "pubsub.googleapis.com/subscription/dead_letter_message_count",
       title: translationKey("Dead-lettered messages"),
-      description:
+      description: translationKey(
         "Messages the subscription forwarded to its dead-letter topic in each sample period (dead_letter_message_count).",
+      ),
       unit: translationKey("messages"),
       signal: "deadLetter",
       kind: "gauge",
@@ -1149,8 +1201,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "gcp_pubsub",
       metricName: "pubsub.googleapis.com/subscription/ack_message_count",
       title: translationKey("Acknowledged messages"),
-      description:
+      description: translationKey(
         "Messages acknowledged on the subscription in each sample period (ack_message_count), added up across delivery types.",
+      ),
       unit: translationKey("messages"),
       signal: "consumed",
       kind: "gauge",
@@ -1165,8 +1218,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "gcp_pubsub",
       metricName: "pubsub.googleapis.com/topic/send_request_count",
       title: translationKey("Publish requests"),
-      description:
+      description: translationKey(
         "Publish requests sent to the topic in each sample period (send_request_count). A request can carry several messages, so this counts requests, not messages.",
+      ),
       unit: translationKey("requests"),
       signal: "published",
       kind: "gauge",
@@ -1188,8 +1242,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "pulsar",
       metricName: "pulsar_msg_backlog",
       title: translationKey("Backlog"),
-      description:
+      description: translationKey(
         "Entries backlogged on the topic across its subscriptions, added up across the topic's partitions. Pulsar counts a batch of messages as one entry.",
+      ),
       unit: translationKey("messages"),
       signal: "backlog",
       kind: "gauge",
@@ -1204,8 +1259,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "pulsar",
       metricName: "pulsar_subscription_back_log",
       title: translationKey("Subscription backlog"),
-      description:
+      description: translationKey(
         "Entries not yet acknowledged on the subscription furthest behind, for its busiest partition. Pulsar counts a batch of messages as one entry.",
+      ),
       unit: translationKey("messages"),
       signal: "consumerLag",
       kind: "gauge",
@@ -1220,8 +1276,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "pulsar",
       metricName: "pulsar_storage_backlog_age_seconds",
       title: translationKey("Backlog age"),
-      description:
+      description: translationKey(
         "Age of the oldest unacknowledged entry in the topic's backlog, for the partition furthest behind; -1 while the broker cannot tell.",
+      ),
       unit: "s",
       signal: "oldestMessageAge",
       kind: "gauge",
@@ -1236,8 +1293,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "pulsar",
       metricName: "pulsar_in_messages_total",
       title: translationKey("Messages in"),
-      description:
+      description: translationKey(
         "Messages published to the topic per second, added up across its partitions. Pulsar exposes the running total as a gauge; the chart shows its rate.",
+      ),
       unit: translationKey("messages"),
       signal: "published",
       kind: "counter",
@@ -1251,8 +1309,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "pulsar",
       metricName: "pulsar_out_messages_total",
       title: translationKey("Messages out"),
-      description:
+      description: translationKey(
         "Messages dispatched to the topic's subscriptions per second, added up across partitions and subscriptions. The per-consumer copies Pulsar adds when consumer-level metrics are on are left out, so no message is counted twice.",
+      ),
       unit: translationKey("messages"),
       signal: "consumed",
       kind: "counter",
@@ -1269,8 +1328,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "rocketmq",
       metricName: "rocketmq_consumer_lag_messages",
       title: translationKey("Consumer lag"),
-      description:
+      description: translationKey(
         "Messages a consumer group has not yet consumed on this topic. With several consumer groups or brokers, the largest value is shown.",
+      ),
       unit: translationKey("messages"),
       signal: "consumerLag",
       kind: "gauge",
@@ -1285,8 +1345,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "rocketmq",
       metricName: "rocketmq_consumer_ready_messages",
       title: translationKey("Ready messages"),
-      description:
+      description: translationKey(
         "Messages ready for a consumer group to pull from this topic. With several consumer groups or brokers, the largest value is shown.",
+      ),
       unit: translationKey("messages"),
       signal: "backlog",
       kind: "gauge",
@@ -1301,8 +1362,9 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "rocketmq",
       metricName: "rocketmq_send_to_dlq_messages_total",
       title: translationKey("Sent to dead-letter queue"),
-      description:
+      description: translationKey(
         "Messages moved to a consumer group's dead-letter queue after running out of retries, per second, counted under the topic they came from.",
+      ),
       unit: translationKey("messages"),
       signal: "deadLetter",
       kind: "counter",
@@ -1316,7 +1378,7 @@ export const MESSAGE_QUEUE_METRICS: ReadonlyArray<MessageQueueMetricDescriptor> 
       system: "rocketmq",
       metricName: "rocketmq_messages_in_total",
       title: translationKey("Messages in"),
-      description: "Messages produced to the topic per second.",
+      description: translationKey("Messages produced to the topic per second."),
       unit: translationKey("messages"),
       signal: "published",
       kind: "counter",

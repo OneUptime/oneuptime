@@ -23,7 +23,7 @@ sequenceDiagram
     O->>O: Lagre den på monitoren
     O->>O: Sjekk kriteriene
     O->>T: Varsel eller hendelse,<br/>hvis et samsvarer
-    Note over O: Hvert 30. sekund, sjekk<br/>kriterier med Email Received
+    Note over O: Hvert 30. sekund, sjekk<br/>kriterier med «E-post mottatt»
 ```
 
 1. Når du oppretter en monitor for innkommende e-post, gir OneUptime den en unik e-postadresse.
@@ -143,15 +143,15 @@ En ny monitor for innkommende e-post opprettes med to kriterier som leser innhol
 
 | Kriterium | Filtertype | Filtervilkår | Verdi | Virkning |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
-| Offline  | Email Body  | Inneholder | `error` | Markerer monitoren som frakoblet, åpner en hendelse |
-| Online   | Email Body  | Inneholder ikke | `error` | Markerer monitoren som online |
+| Offline  | E-postinnhold  | Inneholder | `error` | Markerer monitoren som frakoblet, åpner en hendelse |
+| Online   | E-postinnhold  | Inneholder ikke | `error` | Markerer monitoren som online |
 
 Dette passer for det vanlige tilfellet der en jobb eller et verktøy fra en tredjepart sender sitt eget resultat på e-post: en melding der innholdet nevner `error`, tar monitoren ned, og den neste meldingen uten ordet får monitoren opp igjen og løser hendelsen. Sammenligningen av innholdet skiller ikke mellom store og små bokstaver, så `Error` og `ERROR` samsvarer også.
 
 Endre verdien til det avsenderen faktisk skriver (`FAILED`, `exit code 1` og så videre).
 
 > [!NOTE]
-> Disse standardene er **ikke** en dødmannsbryter: ingenting her utløses når e-postene slutter å komme. Kriterier som bare leser emnet, avsenderen, innholdet eller mottakeren, evalueres når en e-post kommer, og ikke på noe annet tidspunkt. Vil du bli varslet ved stillhet, legger du til et kriterium **Email Received** / **Not Recieved In Minutes** — se [Eksempel 3](#eksempel-3-heartbeat-monitor-ingen-e-post-varsel).
+> Disse standardene er **ikke** en dødmannsbryter: ingenting her utløses når e-postene slutter å komme. Kriterier som bare leser emnet, avsenderen, innholdet eller mottakeren, evalueres når en e-post kommer, og ikke på noe annet tidspunkt. Vil du bli varslet ved stillhet, legger du til et kriterium **E-post mottatt** / **Ikke mottatt innen (minutter)** — se [Eksempel 3](#eksempel-3-heartbeat-monitor-ingen-e-post-varsel).
 
 ## Tilgjengelige filtertyper
 
@@ -160,13 +160,13 @@ Du kan opprette kriterier ut fra disse e-postfeltene:
 | Filtertype | Beskrivelse |
 | ------------------------- | ----------------------------------------------------------------------------------- |
 | **E-postemne** | Emnelinjen i den innkommende e-posten |
-| **Email From Address** | Avsenderens e-postadresse: bare adressen, med små bokstaver, uten visningsnavn |
-| **Email Body** | Ren tekst-delen av e-postinnholdet |
-| **Email To Address** | Mottakerens e-postadresse |
-| **Email Received** | Tidsbaserte kriterier for når e-poster mottas |
-| **JavaScript Expression** | Et egendefinert JavaScript-uttrykk som må gi sann |
+| **Avsenderadresse for e-post** | Avsenderens e-postadresse: bare adressen, med små bokstaver, uten visningsnavn |
+| **E-postinnhold** | Ren tekst-delen av e-postinnholdet |
+| **Mottakeradresse for e-post** | Mottakerens e-postadresse |
+| **E-post mottatt** | Tidsbaserte kriterier for når e-poster mottas |
+| **JavaScript-uttrykk** | Et egendefinert JavaScript-uttrykk som må gi sann |
 
-Monitorens egen adresse maskeres før noe kriterium leser e-posten, så i **Email To Address**, **E-postemne** og **Email Body** står det `[REDACTED]`.
+Monitorens egen adresse maskeres før noe kriterium leser e-posten, så i **Mottakeradresse for e-post**, **E-postemne** og **E-postinnhold** står det `[REDACTED]`.
 
 ## Filtervilkår
 
@@ -185,24 +185,22 @@ Monitorens egen adresse maskeres før noe kriterium leser e-posten, så i **Emai
 
 Ingen av disse sammenligningene skiller mellom store og små bokstaver. Et filter med tom verdi samsvarer aldri.
 
-### Tidsbaserte filtre (Email Received)
-
-Dashbordet staver disse vilkårene "Recieved".
+### Tidsbaserte filtre (E-post mottatt)
 
 | Filtervilkår | Beskrivelse | Eksempel |
 | --------------------------- | ----------------------------------- | -------------------------------- |
-| **Recieved In Minutes** | En e-post ble mottatt innen X minutter | E-post mottatt innen 30 minutter |
-| **Not Recieved In Minutes** | Ingen e-post mottatt på X minutter | Ingen e-post mottatt på 60 minutter |
+| **Mottatt innen (minutter)** | En e-post ble mottatt innen X minutter | E-post mottatt innen 30 minutter |
+| **Ikke mottatt innen (minutter)** | Ingen e-post mottatt på X minutter | Ingen e-post mottatt på 60 minutter |
 
 En monitor som aldri har mottatt en e-post, regner opprettelsestidspunktet som den siste e-posten.
 
-### JavaScript Expression
+### JavaScript-uttrykk
 
 | Filtervilkår | Beskrivelse |
 | --------------------- | ------------------------------------- |
-| **Evaluates To True** | Uttrykket returnerer en sann verdi |
+| **Evalueres til sann** | Uttrykket returnerer en sann verdi |
 
-Uttrykket kjører i en sandkasse uten bundne e-postfelt, så det kan ikke lese emnet, avsenderen, innholdet eller mottakeren til meldingen som utløste kontrollen. Bruk filtertypene **E-postemne**, **Email From Address**, **Email Body** og **Email To Address** for å sjekke innholdet i e-posten.
+Uttrykket kjører i en sandkasse uten bundne e-postfelt, så det kan ikke lese emnet, avsenderen, innholdet eller mottakeren til meldingen som utløste kontrollen. Bruk filtertypene **E-postemne**, **Avsenderadresse for e-post**, **E-postinnhold** og **Mottakeradresse for e-post** for å sjekke innholdet i e-posten.
 
 ## Eksempler på konfigurasjoner
 
@@ -221,15 +219,15 @@ Legg det kritiske kriteriet først: kriteriene sjekkes ovenfra, og det første s
 
 | Kriterium | Filtre | Samsvarsbetingelse | Handlinger |
 | --- | --- | --- | --- |
-| Mislykket jobb | **Email From Address** Lik `monitoring@legacy-system.com`; **E-postemne** Inneholder `Failed` | **Alle** | Endre statusen til frakoblet; erklær en hendelse |
-| Vellykket jobb | **Email From Address** Lik `monitoring@legacy-system.com`; **E-postemne** Inneholder `Success` | **Alle** | Endre statusen til online |
+| Mislykket jobb | **Avsenderadresse for e-post** Lik `monitoring@legacy-system.com`; **E-postemne** Inneholder `Failed` | **Alle** | Endre statusen til frakoblet; erklær en hendelse |
+| Vellykket jobb | **Avsenderadresse for e-post** Lik `monitoring@legacy-system.com`; **E-postemne** Inneholder `Success` | **Alle** | Endre statusen til online |
 
 ### Eksempel 3: Heartbeat-monitor (ingen e-post = varsel)
 
 | Kriterium | Filtre | Handlinger |
 | --- | --- | --- |
-| E-posten er forsinket | **Email Received** Not Recieved In Minutes `60` | Endre statusen til frakoblet; opprett et varsel |
-| E-posten har kommet | **Email Received** Recieved In Minutes `60` | Endre statusen til online |
+| E-posten er forsinket | **E-post mottatt** Ikke mottatt innen (minutter) `60` | Endre statusen til frakoblet; opprett et varsel |
+| E-posten har kommet | **E-post mottatt** Mottatt innen (minutter) `60` | Endre statusen til online |
 
 Det første kriteriet utløses når det ikke har kommet noen e-post på 60 minutter — nyttig for planlagte jobber eller batchprosesser som sender en e-post når de er ferdige. Det andre løser varselet så snart en e-post kommer. Minutter da OneUptime selv ikke tok imot e-post, teller ikke med i de 60, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
@@ -240,7 +238,7 @@ Et kriterium holder én hendelse åpen om gangen: så lenge den er åpen, åpner
 :::steps
 ### Velg e-postene
 
-Gi kriteriet et filter som samsvarer med e-postene det skal åpnes hendelser for. For å ta imot meldinger bare fra deres egne folk bruker du **Email From Address** med **Slutter med** og domenet deres, for eksempel `@example.com`.
+Gi kriteriet et filter som samsvarer med e-postene det skal åpnes hendelser for. For å ta imot meldinger bare fra deres egne folk bruker du **Avsenderadresse for e-post** med **Slutter med** og domenet deres, for eksempel `@example.com`.
 
 ### Erklær hendelsen
 
@@ -263,7 +261,7 @@ Fra da av behandler kriteriet hver e-post for seg:
 
 Hver e-post får fortsatt en rad i **Overvåkingslogger**, og **Vis sammendrag** på den raden sier hva e-posten åpnet, eller hvorfor den ikke åpnet noe. Når kriteriet også oppretter varsler, heter bryteren **Åpne en ny hendelse og et nytt varsel for hver e-post**, og hver e-post åpner sitt eget varsel på samme måte.
 
-Disse hendelsene forblir åpne til noen løser dem. Med **Løs hendelse automatisk** slått på løses de også når en senere e-post samsvarer med et annet kriterium, som enhver hendelse; en senere e-post som samsvarer med det samme kriteriet, løser aldri de tidligere. En kontroll for manglende e-post (**Email Received**) er ikke en e-post, så den åpner fortsatt én hendelse om gangen.
+Disse hendelsene forblir åpne til noen løser dem. Med **Løs hendelse automatisk** slått på løses de også når en senere e-post samsvarer med et annet kriterium, som enhver hendelse; en senere e-post som samsvarer med det samme kriteriet, løser aldri de tidligere. En kontroll for manglende e-post (**E-post mottatt**) er ikke en e-post, så den åpner fortsatt én hendelse om gangen.
 
 > [!WARNING]
 > **Alle som kjenner adressen, kan åpne hendelser.** Hold adressen privat, filtrer på avsenderen som over, og [tilbakestill adressen](#tilbakestill-eller-tilpass-e-postadressen) hvis den lekker. En avsenders adresse kan forfalskes, så filteret holder borte bortkommen e-post, ikke noen som er fast bestemt på å komme inn.
@@ -294,7 +292,7 @@ Titlene, beskrivelsene og utbedringsnotatene til varslene og hendelsene denne mo
 
 - **En tittel får én linje av hver.** I en tittel kuttes hver variabel til én linje på høyst 150 tegn, som slutter med `...` når den var lengre. En tittel kan ikke være lengre enn 500 tegn, og et varsel eller en hendelse med for lang tittel opprettes ikke i det hele tatt, så hvis du siterte en hel e-post, ville monitoren ikke kunne varsle om lange e-poster. Beskrivelser og utbedringsnotater får hele verdien.
 - **Denne monitorens adresse er maskert.** Adressen fungerer som et passord, så den maskeres før e-posten lagres, og `{{emailTo}}` blir `monitor-[REDACTED]@{inbound-domain}` (eller `[REDACTED]@{inbound-domain}` for en tilpasset adresse).
-- **En kontroll for manglende e-post bruker den siste e-posten.** Når et kriterium med **Email Received** åpner et varsel fordi ingen e-post kom i tide, beskriver variablene den siste e-posten monitoren mottok. De er tomme hvis det ikke har kommet noen ennå.
+- **En kontroll for manglende e-post bruker den siste e-posten.** Når et kriterium med **E-post mottatt** åpner et varsel fordi ingen e-post kom i tide, beskriver variablene den siste e-posten monitoren mottok. De er tomme hvis det ikke har kommet noen ennå.
 
 ## Visningen Monitor-sammendrag
 
@@ -312,7 +310,7 @@ Klikk på **Vis flere detaljer** for å se resten:
 
 ### Tidligere e-poster
 
-Kortet viser bare den nyeste e-posten. Hver e-post monitoren evaluerer, skrives også til **Overvåkingslogger**: kolonnen **E-post** viser emnet og avsenderen, og **Vis sammendrag** på raden viser hele e-posten på samme måte som kortet. En monitor med overvåking slått av evaluerer ingenting, så e-postene den mottar, får ingen rader. Hvis et av kriteriene dine sjekker **Email Received**, skriver monitoren også en rad hver gang den ser etter manglende e-post. Kolonnen **E-post** sier "Scheduled check" på de radene, og **Vis sammendrag** der viser den nyeste e-posten på tidspunktet for kontrollen, eller "No email yet" hvis ingen hadde kommet. Overvåkingslogger beholdes i én dag som standard. På en selvhostet server kan en administrator endre det med **Loggoppbevaring for overvåking (dager)** i innstillingene i Admin Dashboard.
+Kortet viser bare den nyeste e-posten. Hver e-post monitoren evaluerer, skrives også til **Overvåkingslogger**: kolonnen **E-post** viser emnet og avsenderen, og **Vis sammendrag** på raden viser hele e-posten på samme måte som kortet. En monitor med overvåking slått av evaluerer ingenting, så e-postene den mottar, får ingen rader. Hvis et av kriteriene dine sjekker **E-post mottatt**, skriver monitoren også en rad hver gang den ser etter manglende e-post. Kolonnen **E-post** sier "Scheduled check" på de radene, og **Vis sammendrag** der viser den nyeste e-posten på tidspunktet for kontrollen, eller "No email yet" hvis ingen hadde kommet. Overvåkingslogger beholdes i én dag som standard. På en selvhostet server kan en administrator endre det med **Loggoppbevaring for overvåking (dager)** i innstillingene i Admin Dashboard.
 
 ## Selvhostet oppsett
 

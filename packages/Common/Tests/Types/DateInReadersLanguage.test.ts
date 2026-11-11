@@ -496,6 +496,65 @@ describe("times in the reader's digits", () => {
   });
 });
 
+/*
+ * A 12-hour clock's half of the day was moment's English "AM" and "PM" in
+ * every language: the one English word in an Arabic monitor's "Refreshed
+ * at" and under a histogram's bars. It is the reader's word now, as Intl
+ * writes it, and the English "AM" is remembered for a sentence in English.
+ */
+describe("a 12-hour time's half of the day", () => {
+  test.each([
+    ["ar", "10:05 ص", "10:05:07 ص"],
+    ["ja", "午前10:05", "午前10:05:07"],
+    ["fa", "۱۰:۰۵ ق.ظ.", "۱۰:۰۵:۰۷ ق.ظ."],
+  ])(
+    "is %s's own word",
+    (language: string, time: string, withSeconds: string) => {
+      setDateDisplayLanguage(language);
+
+      const written: string = OneUptimeDate.getLocalTimeString(INSTANT, {
+        use12HourFormat: true,
+      });
+
+      expect(spaced(written)).toBe(time);
+      expect(
+        spaced(
+          OneUptimeDate.getLocalTimeString(INSTANT, {
+            includeSeconds: true,
+            use12HourFormat: true,
+          }),
+        ),
+      ).toBe(withSeconds);
+      expect(getEnglishOf(written)).toBe("10:05 AM");
+    },
+  );
+
+  test("an afternoon in Arabic is م, and the 24-hour clock is as it was", () => {
+    setDateDisplayLanguage("ar");
+
+    const afternoon: Date = new Date("2026-10-06T13:30:00Z");
+
+    expect(
+      spaced(
+        OneUptimeDate.getLocalTimeString(afternoon, { use12HourFormat: true }),
+      ),
+    ).toBe("2:30 م");
+    expect(OneUptimeDate.getLocalTimeString(afternoon)).toBe("14:30");
+  });
+
+  test("English keeps moment's AM and PM, word for word", () => {
+    expect(
+      OneUptimeDate.getLocalTimeString(INSTANT, { use12HourFormat: true }),
+    ).toBe("10:05 AM");
+    expect(
+      OneUptimeDate.getLocalTimeString(INSTANT, {
+        includeMinutes: false,
+        use12HourFormat: true,
+      }),
+    ).toBe("10 AM");
+  });
+});
+
 describe("how long ago", () => {
   test.each([
     ["en", -5 * 3600000, "5 hours ago"],

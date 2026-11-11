@@ -64,6 +64,7 @@ import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceK
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { joinList } from "Common/UI/Utils/ListSeparator";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 /*
  * CAN WE FIT THIS?
@@ -357,7 +358,7 @@ const ZonesTable: FunctionComponent<{
                   )}
                 </td>
                 <td className={WIDE_CELL_CLASS_NAME}>
-                  {zone.hostCount.toLocaleString()}
+                  {zone.hostCount.toLocaleString(getReaderNumberLocale())}
                   {zone.lostHostCount + zone.disabledHostCount > 0 ? (
                     <div className="text-xs text-amber-700">
                       {translator.translateTemplate(
@@ -489,9 +490,11 @@ const FlavorsTable: FunctionComponent<{
                     >
                       {flavor.isAtLeast
                         ? translator.translateTemplate("At least {{count}}", {
-                            count: flavor.fits.toLocaleString(),
+                            count: flavor.fits.toLocaleString(
+                              getReaderNumberLocale(),
+                            ),
                           })
-                        : flavor.fits.toLocaleString()}
+                        : flavor.fits.toLocaleString(getReaderNumberLocale())}
                     </span>
                     {flavor.isTooLargeForEveryHost ? (
                       <div className="text-xs text-gray-500">
@@ -510,7 +513,11 @@ const FlavorsTable: FunctionComponent<{
                       >
                         {translator.translateTemplate(
                           "{{count}} if it were one pool",
-                          { count: flavor.fitsIfOnePool.toLocaleString() },
+                          {
+                            count: flavor.fitsIfOnePool.toLocaleString(
+                              getReaderNumberLocale(),
+                            ),
+                          },
                         )}
                       </div>
                     ) : (
@@ -518,19 +525,23 @@ const FlavorsTable: FunctionComponent<{
                     )}
                   </td>
                   <td className={WIDE_CELL_CLASS_NAME}>
-                    {flavor.hostsWithRoom.toLocaleString()}
+                    {flavor.hostsWithRoom.toLocaleString(
+                      getReaderNumberLocale(),
+                    )}
                   </td>
                   <td className={WIDE_CELL_CLASS_NAME}>
                     {joinList(
                       Object.keys(flavor.byZone)
                         .sort()
                         .map((zone: string): string => {
-                          return `${zoneTitle(zone, translator)} ${flavor.byZone[zone]!.toLocaleString()}`;
+                          return `${zoneTitle(zone, translator)} ${flavor.byZone[zone]!.toLocaleString(getReaderNumberLocale())}`;
                         }),
                     )}
                   </td>
                   <td className={WIDE_CELL_CLASS_NAME}>
-                    {flavor.instanceCount.toLocaleString()}
+                    {flavor.instanceCount.toLocaleString(
+                      getReaderNumberLocale(),
+                    )}
                   </td>
                   <td
                     className={WIDE_CELL_CLASS_NAME}
@@ -777,7 +788,9 @@ const AggregatesTable: FunctionComponent<{
                     </Link>
                   </td>
                   <td className={WIDE_CELL_CLASS_NAME}>
-                    {aggregate.hostCount.toLocaleString()}
+                    {aggregate.hostCount.toLocaleString(
+                      getReaderNumberLocale(),
+                    )}
                   </td>
                   <td className={CELL_CLASS_NAME}>
                     <AllocatedCell resource={vcpu} />
@@ -859,7 +872,7 @@ const BareMetalClassesTable: FunctionComponent<{
                     )}
                   </td>
                   <td className={CELL_CLASS_NAME}>
-                    {row.nodeCount.toLocaleString()}
+                    {row.nodeCount.toLocaleString(getReaderNumberLocale())}
                   </td>
                   <td
                     className={
@@ -868,13 +881,13 @@ const BareMetalClassesTable: FunctionComponent<{
                         : CELL_CLASS_NAME
                     }
                   >
-                    {row.free.toLocaleString()}
+                    {row.free.toLocaleString(getReaderNumberLocale())}
                   </td>
                   <td className={CELL_CLASS_NAME}>
-                    {row.used.toLocaleString()}
+                    {row.used.toLocaleString(getReaderNumberLocale())}
                   </td>
                   <td className={CELL_CLASS_NAME}>
-                    {row.heldBack.toLocaleString()}
+                    {row.heldBack.toLocaleString(getReaderNumberLocale())}
                   </td>
                 </tr>
               );
@@ -1003,7 +1016,9 @@ const OpenStackCloudCapacity: FunctionComponent<
               ? translator.translateTemplate(
                   "Room for {{count}} {{flavor}}, and 0 {{none}}.",
                   {
-                    count: headline.hasRoom.fits.toLocaleString(),
+                    count: headline.hasRoom.fits.toLocaleString(
+                      getReaderNumberLocale(),
+                    ),
                     flavor: headline.hasRoom.name,
                     none: headline.noRoom.name,
                   },
@@ -1012,7 +1027,9 @@ const OpenStackCloudCapacity: FunctionComponent<
                 ? translator.translateTemplate(
                     "Room for {{count}} {{flavor}}.",
                     {
-                      count: headline.hasRoom.fits.toLocaleString(),
+                      count: headline.hasRoom.fits.toLocaleString(
+                        getReaderNumberLocale(),
+                      ),
                       flavor: headline.hasRoom.name,
                     },
                   )

@@ -54,7 +54,7 @@ Varje enhet kopplas till en plats. En plats underträd är platsen själv plus v
 Gå till **Nätverk → Platser** och klicka på **Lägg till Plats**.
 
 ### Ange vad platsen är
-I steget **Site Details** väljer du **Site Type** (vilken sorts plats det är: en region, en butik, ett datacenter) och skriver ett **Namn**. Beskrivningen, adressen och den latitud och longitud som fäster platsen på kartan är hopfällda under **Fler fält**: fyll i dem nu eller senare.
+I steget **Site Details** väljer du **Site Type** (vilken sorts plats det är: en region, en butik, ett datacenter) och skriver ett **Namn**. Fältet **Platskod**, beskrivningen, adressen och den latitud och longitud som fäster platsen på kartan är hopfällda under **Fler fält**: fyll i dem nu eller senare. En platskod är en kort kod, till exempel ett butiks- eller filialnummer (`1216`); [namngivningsregler](/docs/monitor/network-device-monitor#namnge-enheter-enligt-din-namngivningskonvention) sätter in den i enhetsnamn med `{site.code}`.
 
 ### Placera den i trädet
 I steget **Hierarchy** väljer du **Parent Site** om platsen ligger under en annan. Lämna det tomt för att hålla platsen på översta nivån.
@@ -171,7 +171,7 @@ En plats utan några tidslinjerader alls visar `—` i stället för 100 %: en p
 
 ### Daglig upptid
 
-Bredvid siffran för 30 dagar visar varje plats översikt **Uptime (24h)**, och dess sida **Statustidslinje** visar de senaste 24 timmarna, 7, 30 och 90 dagarna, och en stapel per dag för de senaste 30.
+Bredvid siffran för 30 dagar visar varje plats översikt **Drifttid (24 h)**, och dess sida **Statustidslinje** visar de senaste 24 timmarna, 7, 30 och 90 dagarna, och en stapel per dag för de senaste 30.
 
 Ett medelvärde över 30 dagar kan inte visa en dålig dag. En hel dags avbrott i ett fönster på 30 dagar kostar 3,3 procentenheter, så en plats som var mörk en hel tisdag rapporterar ändå 96,7 % för månaden, en siffra som ser ut som en avrundning. De dagliga staplarna placerar samma data där en dålig dag är en dålig stapel.
 

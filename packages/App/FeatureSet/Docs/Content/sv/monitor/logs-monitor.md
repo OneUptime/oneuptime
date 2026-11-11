@@ -104,7 +104,7 @@ Varje statusändring registreras med sin orsak på monitorns **Statustidslinje**
 
 ## Kriterier
 
-En loggmonitors kriterier har en enda **Filtertyp**: **Log Count**, antalet loggar som matchade i fönstret. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och, för ett tröskelvillkor, ett **Värde**.
+En loggmonitors kriterier har en enda **Filtertyp**: **Antal loggar**, antalet loggar som matchade i fönstret. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och, för ett tröskelvillkor, ett **Värde**.
 
 | Filtervillkor | Matchar när antalet loggar är… |
 | --- | --- |
@@ -113,9 +113,9 @@ En loggmonitors kriterier har en enda **Filtertyp**: **Log Count**, antalet logg
 | **Mindre än** | under värdet |
 | **Mindre än eller lika med** | lika med värdet eller lägre |
 | **Lika med** | exakt värdet |
-| **Anomalously High** | över det förväntade intervallet för den här timmen i veckan |
-| **Anomalously Low** | under det intervallet |
-| **Anomalous** | utanför det intervallet, åt vilket håll som helst |
+| **Onormalt hög** | över det förväntade intervallet för den här timmen i veckan |
+| **Onormalt låg** | under det intervallet |
+| **Avvikande** | utanför det intervallet, åt vilket håll som helst |
 
 Avvikelsevillkoren har inget **Värde**. Välj en **Känslighet** (Låg, Medel, som är standard, eller Hög) och, i de egna kriterierna, ett **Baslinjefönster** på 14 (standard), 28, 60 eller 90 dagar. OneUptime gör om antalet till en takt per minut och jämför den med fönster av samma längd runt samma tidpunkt i tidigare veckor, så långt tillbaka som **Baslinjefönster** räcker; det som händer nu ingår aldrig i jämförelsen. Baslinjen omfattar bara monitorns tjänster och allvarlighetsgrader: dess text- och attributfilter ingår inte. Minuter utan loggar räknas också, så en tjänst som ofta är tyst räknas inte som ovanligt låg bara för att den är tyst. Ett fönster räknas som ovanligt högt bara mot fönstren som innehöll loggar, och bara med minst 20, 10 eller 5 loggar vid känsligheten Låg, Medel eller Hög, så varken ett jobbs vanliga skur eller en tyst tjänsts första rader löser ut det. Tills monitorns tjänster har två veckors historik lär sig kriteriet fortfarande och löser inte ut.
 
@@ -131,8 +131,8 @@ En loggmonitor som skapats via API:et eller Terraform utan kriterier börjar med
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Lika med** `0` | Markerar monitorn som offline och deklarerar en incident, som löses automatiskt |
-| Check if … is online | **Log Count** **Större än** `0` | Markerar monitorn som online |
+| Check if … is offline | **Antal loggar** **Lika med** `0` | Markerar monitorn som offline och deklarerar en incident, som löses automatiskt |
+| Check if … is online | **Antal loggar** **Större än** `0` | Markerar monitorn som online |
 
 ## Genomgånget exempel: en ökning av fel
 
@@ -234,7 +234,7 @@ Värdet för varje Group By-attribut är en [mallvariabel](/docs/monitor/inciden
 
 - **Alla kriterier utvärderas**, som på en grupperad metrikmonitor, så olika grupper kan uppfylla olika kriterier samtidigt. En grupp som uppfyller två kriterier får ändå bara ett larm, från det första; sortera därför kriterierna från allvarligast till minst allvarligt.
 - **En grupp finns bara om den har loggat något i tidsfönstret.** Kriterier som **Lika med 0** och **Mindre än** utlöses därför bara för grupper som har loggat minst en gång; för att varnas när loggar slutar komma helt använder du en monitor utan Group By.
-- **Avvikelsedetektering** (**Anomalously High**, **Anomalously Low**, **Anomalous**) utvärderas inte per grupp (dess baslinje omfattar hela monitorn), så de filtren matchar aldrig på en grupperad monitor.
+- **Avvikelsedetektering** (**Onormalt hög**, **Onormalt låg**, **Avvikande**) utvärderas inte per grupp (dess baslinje omfattar hela monitorn), så de filtren matchar aldrig på en grupperad monitor.
 - Monitorns status följer det första kriterium som någon grupp uppfyller. När ingen grupp uppfyller något kriterium går monitorn tillbaka till sin standardstatus.
 
 ## Felsökning
@@ -244,7 +244,7 @@ Antalet var 0, så filtren matchar inga av de loggar som tjänsten skickar. Öpp
 :::
 
 :::details Det var en ökning, men ingenting varnade
-Kriterierna kontrolleras uppifrån och ned, och den första träffen avgör. Ett brett kriterium ovanför det du väntade dig, som **Log Count** **Större än** `0`, matchar först och stoppar resten. Lägg det allvarligaste kriteriet överst.
+Kriterierna kontrolleras uppifrån och ned, och den första träffen avgör. Ett brett kriterium ovanför det du väntade dig, som **Antal loggar** **Större än** `0`, matchar först och stoppar resten. Lägg det allvarligaste kriteriet överst.
 :::
 
 :::details Ett avvikelsekriterium utlöses aldrig

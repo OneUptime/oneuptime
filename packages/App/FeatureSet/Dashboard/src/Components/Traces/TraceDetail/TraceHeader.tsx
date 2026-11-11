@@ -24,6 +24,7 @@ import {
   getOrphanSpanNote,
   getServiceInfo,
 } from "../../../Utils/TraceDetailPresentation";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export interface ComponentProps {
   traceId: string;
@@ -99,24 +100,26 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
       value:
         // More spans follow the loaded ones, and they are not counted yet.
         summary.totalSpanCount === null ? (
-          `${summary.loadedSpanCount.toLocaleString()}+`
+          `${summary.loadedSpanCount.toLocaleString(getReaderNumberLocale())}+`
         ) : summary.totalSpanCount > summary.loadedSpanCount ? (
           <span>
-            {summary.loadedSpanCount.toLocaleString()}
+            {summary.loadedSpanCount.toLocaleString(getReaderNumberLocale())}
             <span className="ml-1 text-sm font-normal text-gray-500">
               {translator.translateTemplate("of {{total}}", {
-                total: summary.totalSpanCount.toLocaleString(),
+                total: summary.totalSpanCount.toLocaleString(
+                  getReaderNumberLocale(),
+                ),
               })}
             </span>
           </span>
         ) : (
-          summary.loadedSpanCount.toLocaleString()
+          summary.loadedSpanCount.toLocaleString(getReaderNumberLocale())
         ),
       testId: "trace-stat-spans",
     },
     {
       label: "Services",
-      value: summary.serviceCount.toLocaleString(),
+      value: summary.serviceCount.toLocaleString(getReaderNumberLocale()),
       testId: "trace-stat-services",
     },
     {
@@ -131,7 +134,7 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
               "Show only the spans with an error status",
             )}
           >
-            {summary.errorCount.toLocaleString()}
+            {summary.errorCount.toLocaleString(getReaderNumberLocale())}
             <span className="text-sm font-normal text-red-600">
               {translator.translateTemplate("{{percent}} of spans", {
                 percent: formatPercent(summary.errorRatePercent),
@@ -145,7 +148,7 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
     },
     {
       label: "Depth",
-      value: summary.maxDepth.toLocaleString(),
+      value: summary.maxDepth.toLocaleString(getReaderNumberLocale()),
       testId: "trace-stat-depth",
       hint: "The deepest chain of nested spans",
     },

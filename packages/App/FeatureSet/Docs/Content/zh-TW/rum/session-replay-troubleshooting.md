@@ -108,7 +108,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 copy(JSON.stringify(window.__ONEUPTIME_SESSION_REPLAY_DEBUG__.records, null, 2));
 ```
 
-把其中任一個貼到你的支援票證中 — 或貼到應用程式 **健康狀況** 頁面上的 **Ask the browser** 中，它會說明其中的每個代碼。通常只要這樣就足夠了。
+把其中任一個貼到你的支援票證中 — 或貼到應用程式 **健康狀況** 頁面上的 **詢問瀏覽器** 中，它會說明其中的每個代碼。通常只要這樣就足夠了。
 
 ## 何時靜默是正常的：錯誤觸發的策略
 
@@ -185,7 +185,7 @@ OneUptimeReplay.captureSession("installation test");
 | `disabled-by-default` | 此部署上設定了 `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` 。請將其設為 `true` — 如果是自行託管，請先設定 `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` ，因為重播是你最重的資料表。 |
 | `ingest-disabled` | 此部署上設定了 `SESSION_REPLAY_INGEST_ENABLED=false` 。 |
 | `policy-unavailable` | 伺服器無法決定策略 — 通常是 Redis 或 Postgres 的問題。這是刻意的失敗即關閉。請檢查 OneUptime 應用程式的日誌。 |
-| `not-reported` | 伺服器比這個欄位舊。請改用儀表板中 **重播政策** 頁面上的 **Test your installation** 面板。 |
+| `not-reported` | 伺服器比這個欄位舊。請改用儀表板中 **重播政策** 頁面上的 **測試你的安裝** 面板。 |
 
 ### 成品
 
@@ -285,6 +285,18 @@ OneUptimeReplay.captureSession("installation test");
 | `api-stop` | 呼叫了 `stop()` 。最後一個區塊已上傳，工作階段已封口；在頁面的剩餘生命週期內不會再錄製任何內容。 |
 | `api-no-recorder` | 上面某個呼叫在沒有作用中錄製器的情況下執行了 — 通常是因為它在錄製器成品載入之前就執行了。請改為把 `[command, ...arguments]` 項目放入 `window.OneUptimeReplayQueue` ，它們會在成品抵達後立即套用。 |
 
+### 產品分析事件
+
+這些來自錄製器在錄製之外為 [產品分析](/docs/rum/product-analytics#傳送事件和指標) 傳送的事件。
+
+| 代碼 | 意義 |
+| --- | --- |
+| `analytics-started` | 應用程式開啟了產品分析事件，因此錄製器會傳送每個工作階段的開始、其頁面瀏覽以及你對 `track()` 和 `metric()` 的呼叫。 `userPropertyKeys` 說明它保留多少個使用者屬性。 |
+| `analytics-stopped` | 伺服器不接受此頁面的事件，因此不會再從它傳送任何事件。 `status` 為 204 表示應用程式關閉了事件或工作階段重播，403 表示頁面的來源不被允許，400 表示此錄製器傳送了伺服器無法讀取的批次； `reason` 說明是哪一種。 |
+| `metric-analytics-off` | 在應用程式關閉了產品分析事件時呼叫了 `metric()` 。沒有傳送任何內容：請在 **分析設定** 中開啟它們。 |
+| `metric-name-refused` | `metric()` 收到了一個無法傳送的名稱。名稱以字母開頭，只包含字母、數字、 `_` 、 `.` 、 `-` 和 `/` ，最多 100 個字元，而且不以 `oneuptime.` 開頭。 |
+| `metric-value-refused` | `metric()` 收到了一個不是有限數字的值。沒有傳送任何內容。 |
+
 ## Network 分頁中完全沒有請求
 
 請依序檢查這份清單；它依照每個原因成為答案的頻率排序。
@@ -358,7 +370,7 @@ OpenTelemetry 瀏覽器 SDK 的 OTLP/HTTP 匯出工具傳送 `application/json` 
 
 ## 播放器顯示 Buffering，或某個片段載入失敗
 
-播放器會在播放位置接近時，按 15 秒一段取得錄製內容。 _Buffering_ 表示下一段還沒有抵達；八秒後它會提供 **重試** 。最終失敗的片段會顯示一個帶有 **重試** 與 **Copy diagnostic** 的錯誤 — 後者包含工作階段 ID、分頁、片段與世代，這正是支援團隊需要的資訊。錄製內容已到期的工作階段會在舞台的位置顯示一段說明，而 Logs、Traces 與 Errors 分頁仍會根據你的遙測資料運作。
+播放器會在播放位置接近時，按 15 秒一段取得錄製內容。 _Buffering_ 表示下一段還沒有抵達；八秒後它會提供 **重試** 。最終失敗的片段會顯示一個帶有 **重試** 與 **複製診斷資訊** 的錯誤 — 後者包含工作階段 ID、分頁、片段與世代，這正是支援團隊需要的資訊。錄製內容已到期的工作階段會在舞台的位置顯示一段說明，而 Logs、Traces 與 Errors 分頁仍會根據你的遙測資料運作。
 
 ## 重播中缺少圖片、圖示或樣式
 
@@ -373,7 +385,7 @@ OpenTelemetry 瀏覽器 SDK 的 OTLP/HTTP 匯出工具傳送 `application/json` 
 
 ### 先檢查這些
 
-1. **閱讀播放器下方的錄製說明。** 當圖片或樣式表無法在你的瀏覽器中載入時，第一則說明會指出這一點 — 例如 _2 images didn't load in this replay_ — 並列出它們來自哪些網站。它涵蓋自你開啟工作階段以來播放器播放過的每個分頁。 **工作階段詳細資料** （ `I` ）→ **Fidelity** → **Missing assets** 會列出每個位址，最多列出前 200 個。網頁字型、CSS 背景圖片以及你的頁面在瀏覽器中建立的圖片（ `blob:` 位址）不在該清單中；請在 DevTools 中尋找它們（見下文）。
+1. **閱讀播放器下方的錄製說明。** 當圖片或樣式表無法在你的瀏覽器中載入時，第一則說明會指出這一點 — 例如 _2 images didn't load in this replay_ — 並列出它們來自哪些網站。它涵蓋自你開啟工作階段以來播放器播放過的每個分頁。 **工作階段詳細資料** （ `I` ）→ **保真度** → **缺少的資源** 會列出每個位址，最多列出前 200 個。網頁字型、CSS 背景圖片以及你的頁面在瀏覽器中建立的圖片（ `blob:` 位址）不在該清單中；請在 DevTools 中尋找它們（見下文）。
 2. **檢查遮罩模式。** 在 _Mask all text_ 下錄製的工作階段依設計既不載入圖片也不載入網頁字型（頁面以 `data:` URL 形式持有的圖片是錄製的一部分，仍會顯示），其錄製說明會寫著 _Images and web fonts are not loaded_ 。遮罩模式未被回報、或不是儀表板能辨識之模式的工作階段也是如此。兩種情況下樣式表仍會載入。 **工作階段詳細資料** → **隱私** 會顯示工作階段回報的模式，也就是其最近一次頁面載入的模式。
 3. **檢查使用者那裡是否也失敗了。** 在那個時刻開啟事件面板的 **錯誤** 分頁：如果同一個檔案有一行 _Resource failed to load_ ，表示它在使用者的螢幕上也是壞的，重播只是忠實地呈現了這一點。
 
@@ -467,8 +479,8 @@ OpenTelemetry 瀏覽器 SDK 的 OTLP/HTTP 匯出工具傳送 `application/json` 
 
 - `OneUptimeReplay.getDiagnostics()` 的輸出。
 - `session-replay/v1/config` 請求的狀態。
-- 應用程式的 **健康狀況** 頁面，以及 **重播政策** 上的 **Test your installation** 面板顯示的內容。它們從伺服器端回答，也就是瀏覽器看不到的那一半。
-- 對於遺失的圖片、圖示或樣式：一個未能載入之檔案的位址（ **Missing assets** 會列出它們），以及瀏覽器主控台為它輸出的那一行。
+- 應用程式的 **健康狀況** 頁面，以及 **重播政策** 上的 **測試你的安裝** 面板顯示的內容。它們從伺服器端回答，也就是瀏覽器看不到的那一半。
+- 對於遺失的圖片、圖示或樣式：一個未能載入之檔案的位址（ **缺少的資源** 會列出它們），以及瀏覽器主控台為它輸出的那一行。
 
 然後聯絡 support@oneuptime.com，或在 [GitHub](https://github.com/OneUptime/oneuptime) 上提出 issue。
 

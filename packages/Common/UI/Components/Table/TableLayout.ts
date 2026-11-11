@@ -445,9 +445,30 @@ export const TABLE_CELL_CONTENT_ALIGN_CLASS_NAME: string = "[&>*]:align-top";
  * words only ended "grace@acme-commerce.example" as "grace@acme-..." and
  * "Customer-Facing Checkout API" as "Customer-Facing..." in a column with
  * room for twice the words, each row cut at a different width.
+ *
+ * A line read right to left breaks between words
+ * (TABLE_RIGHT_TO_LEFT_LINE_BREAKS).
  */
 export const TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME: string =
-  "data-[fill=true]:max-w-none data-[fill=true]:min-w-[10rem] data-[fill=true]:whitespace-normal data-[fill=true]:break-all data-[fill=true]:line-clamp-1";
+  "data-[fill=true]:max-w-none data-[fill=true]:min-w-[10rem] data-[fill=true]:whitespace-normal data-[fill=true]:break-all data-[fill=true]:[&:dir(rtl)]:[word-break:normal] data-[fill=true]:[&:dir(rtl)]:[overflow-wrap:anywhere] data-[fill=true]:line-clamp-1";
+
+/*
+ * How a line read right to left breaks, where a line read left to right
+ * breaks between any two letters (break-all): between words, and inside a
+ * word only when the word alone is wider than the line (overflow-wrap:
+ * anywhere, which still lets its column give way down to its floor).
+ * Arabic and Persian join a word's letters: a word broken between two of
+ * them is drawn in other letter forms, and Chrome then drew a one-line
+ * clamp's "..." over the middle of the line - "خدمة تسجيل الدخول
+ * للمستخدمين في المملكة العربية" was cut short to "...في المملكةلعربي...",
+ * its space and a letter gone. The line's own way is read by :dir(), so
+ * an English name on an Arabic page (dir="ltr", LineDirection) still runs
+ * to its column's end.
+ */
+export const TABLE_RIGHT_TO_LEFT_LINE_BREAKS: ReadonlyArray<string> = [
+  "[&:dir(rtl)]:[word-break:normal]",
+  "[&:dir(rtl)]:[overflow-wrap:anywhere]",
+];
 
 /*
  * The least a name set free is cut short to: 10rem
@@ -509,7 +530,8 @@ export const TABLE_ROWS_DRAWN_PROPERTY: string = "--ou-table-rows-drawn";
 export const TABLE_ROWS_DRAWN_CLASS_NAME: string = "[--ou-table-rows-drawn:1]";
 
 export const TABLE_VALUE_GIVE_CLASS_NAME: string = [
-  "data-[give=line]:min-w-[8rem] data-[give=line]:whitespace-normal data-[give=line]:break-all data-[give=line]:line-clamp-1",
+  // Right to left, between words (TABLE_RIGHT_TO_LEFT_LINE_BREAKS).
+  "data-[give=line]:min-w-[8rem] data-[give=line]:whitespace-normal data-[give=line]:break-all data-[give=line]:[&:dir(rtl)]:[word-break:normal] data-[give=line]:[&:dir(rtl)]:[overflow-wrap:anywhere] data-[give=line]:line-clamp-1",
   "data-[give=box]:grid data-[give=box]:min-w-[8rem] data-[give=box]:grid-cols-1 data-[give=box]:justify-items-start [&[data-give=box]>*]:min-w-0 [&[data-give=box]>*]:max-w-full",
 ].join(" ");
 

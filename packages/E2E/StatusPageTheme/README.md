@@ -15,8 +15,10 @@ preview), where most tests open it, and at `/`, as if the fixture's host were it
 custom domain. The query string sets the page: `theme` (`Light`, `Dark` or
 `System`), `seoTheme` (the theme the HTML is sent in when it differs from the page's
 own, `none` for a failed lookup), `private=1` (a page only signed-in readers see),
-`sso=1` and `darkLogo=1` (a page with a logo made for the dark theme too,
-`Fixture/logo-dark.svg`). The server's `/hold` and `/release` hold Tailwind and the
+`sso=1`, `darkLogo=1` (a page with a logo made for the dark theme too,
+`Fixture/logo-dark.svg`) and `lang` (the page's default language: its HTML is sent
+in it, with the `<html lang dir>` the page servers write, and the app shows it to a
+visitor who never chose another - `lang=ar` is an Arabic page, right to left). The server's `/hold` and `/release` hold Tailwind and the
 app's bundle back, so a test can look at the page as the browser has it before
 anything but the template runs.
 
@@ -38,6 +40,14 @@ lasts for the visit and is kept nowhere; the overall status banner's words in wh
 on the status colour, in both themes; and the footer's language and theme controls
 centred on a phone, around a switch a thumb can hit. Screenshots of every surface are
 under `output/playwright/status-page-theme-ui`.
+
+`StatusPageInArabic.spec.ts` opens the page with `lang=ar`: its HTML is Arabic and
+right to left before anything but the template has run, Tailwind's reading-direction
+config (`tailwind-reading-direction.js`, which the fixture serves where `index.ejs` asks
+for it, as it does Vazirmatn) turns a left margin into the start of the line, a
+laptop's tabs run from the right, its words are the status page's Arabic in
+Vazirmatn, its dates are Arabic with Latin digits, and nothing scrolls sideways,
+light or dark.
 
 This checks real browser rendering and the app's theme handling; the API, the
 database and the deployed app's routing are outside this fixture.

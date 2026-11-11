@@ -46,7 +46,7 @@ Para añadir una configuración de proyecto:
 2. En **Configuración de Twilio**, selecciona **Crear configuración de Twilio**.
 3. Introduce un nombre y elige en **Usar esta cuenta para** lo que envía la cuenta: **Llamadas y SMS**, **Solo SMS** o **Solo llamadas**. Después introduce **SID de cuenta de Twilio**, **Token de autenticación de Twilio** y el número que pide esa elección: **Número de teléfono principal de Twilio** para las llamadas, o **Números de teléfono SMS de Twilio** para **Solo SMS**. En **Más campos**, si quieres, introduce **Números de teléfono secundarios de Twilio** separados por comas para otros países, y **Números de teléfono SMS de Twilio** si tus números no pueden enviar SMS.
 4. **Establecer como predeterminado del proyecto** empieza activado en la primera configuración del proyecto, así que los SMS y las llamadas a los miembros del proyecto, incluidas las notificaciones de guardia, pasan por ella en cuanto guardas. Desactívalo si esta cuenta es solo para páginas de estado o llamadas entrantes. Una configuración posterior empieza con el interruptor desactivado: actívalo, o elige **Establecer como predeterminado del proyecto** en el menú de la fila de la configuración, para trasladar esos mensajes a ella. Una solicitud a la API que omite `isProjectDefault` se trata de la misma forma.
-5. Guarda. Solo una configuración puede ser la predeterminada del proyecto. Las páginas de estado usan la configuración asignada explícitamente a cada una.
+5. Guarda. Un proyecto tiene una configuración predeterminada para los SMS y otra para las llamadas, así que una configuración en **Solo SMS** y otra en **Solo llamadas** pueden ser predeterminadas a la vez: consulta [Una cuenta solo para SMS, o solo para llamadas](#una-cuenta-solo-para-sms-o-solo-para-llamadas). Las páginas de estado usan la configuración asignada explícitamente a cada una.
 
 > [!IMPORTANT]
 > **SMS** y **Llamadas telefónicas** empiezan desactivados en todos los proyectos, y mientras no estén activados nadie en el proyecto puede añadir un número de teléfono para ellos. Un propietario del proyecto, un **Administrador de facturación** o alguien con **Manage Billing** los activa en la tarjeta **Canales de notificación** de la misma página.
@@ -81,13 +81,15 @@ Una cuenta que usas solo para SMS, o solo para llamadas, no necesita ningún nú
 | **Solo SMS** | **Números de teléfono SMS de Twilio** | Llamadas |
 | **Solo llamadas** | **Número de teléfono principal de Twilio** | SMS |
 
-Lo que una configuración no envía sale como saldría sin ella: cuando la configuración predeterminada del proyecto está en **Solo SMS**, las llamadas a los miembros del proyecto pasan por la configuración de toda la instalación. Si ninguna configuración puede enviar un mensaje, el registro del mensaje dice que la configuración del proyecto no se usa para eso, y quién puede cambiarlo.
+Un proyecto tiene una configuración predeterminada para los SMS y otra para las llamadas, y una configuración es la predeterminada de lo que envía. En el menú de la fila de una configuración, **Establecer como predeterminado del proyecto para SMS** o **Establecer como predeterminado del proyecto para llamadas** la convierte en la predeterminada de lo que envía y deja la otra como está, así que una configuración en **Solo SMS** y otra en **Solo llamadas** pueden ser predeterminadas a la vez. Una configuración en **Llamadas y SMS** se queda con ambas cosas. La columna **Predeterminado del proyecto** indica de qué es predeterminada cada configuración, y **Dejar de usar como predeterminado del proyecto** en el menú de la fila pone fin a ello.
+
+Lo que ninguna configuración predeterminada envía sale como saldría sin configuración: mientras la única predeterminada esté en **Solo SMS**, las llamadas a los miembros del proyecto pasan por la configuración de toda la instalación. Si ninguna configuración puede enviar un mensaje, el registro del mensaje dice que la configuración del proyecto no se usa para eso, y quién puede cambiarlo.
 
 Las páginas de estado ofrecen solo las configuraciones que envían SMS, y **Enviar SMS de prueba** y **Enviar llamada de prueba** aparecen solo para lo que envía cada configuración. Toda configuración existente queda en **Llamadas y SMS**, como antes. En la API y en Terraform, la elección es el campo `usedFor`, y se rechaza una configuración sin los números que su elección necesita.
 
 ## 3. Configura el acceso a la red
 
-El envío funciona solo con acceso saliente. Las actualizaciones de entrega, la confirmación con el teclado y las llamadas entrantes necesitan que Twilio alcance tu servidor.
+El envío funciona solo con acceso saliente. Las actualizaciones de entrega, el resultado de las llamadas, la confirmación con el teclado y las llamadas entrantes necesitan que Twilio alcance tu servidor.
 
 ```mermaid title="Envíos salientes, callbacks entrantes"
 sequenceDiagram
@@ -109,6 +111,7 @@ El acceso entrante depende de la función:
 | --- | --- |
 | Envío de SMS | No. Las actualizaciones del estado de entrega sí necesitan un callback. |
 | Una llamada de voz de prueba sencilla | No. OneUptime incluye las instrucciones habladas en la solicitud saliente a la API. |
+| Saber si se contestó una llamada de guardia | Sí. Twilio informa de cómo terminó cada llamada, para que el feed del incidente pueda decir cuándo alguien no contestó. Las llamadas salen igualmente sin ello. |
 | Pulsar 1 para confirmar una alerta de guardia | Sí. Twilio envía la entrada del teclado a OneUptime. |
 | Políticas de llamadas entrantes | Sí. Twilio pide las instrucciones de la llamada e informa de los resultados de la marcación. |
 
@@ -117,13 +120,14 @@ Estas son las rutas externas, a través de la pasarela Nginx de OneUptime. Los m
 | Método | Ruta | Propósito |
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | Estado de entrega del SMS |
+| POST | `/notification/call/status-callback/:callLogId/:token` | Resultado de la llamada |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | Confirmación con el teclado |
 | POST | `/notification/incoming-call/voice` | Instrucciones opcionales de llamadas entrantes |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Resultados opcionales del enrutamiento de llamadas entrantes |
 
-OneUptime genera automáticamente las URL de los SMS y de la confirmación. No sustituyas sus tokens por una URL de webhook fija. Para las llamadas entrantes, sigue [las políticas de llamadas entrantes](/docs/on-call/incoming-call-policy), que configuran el webhook del número cuando lo asocias.
+OneUptime genera automáticamente las URL de los SMS, del resultado de las llamadas y de la confirmación. No sustituyas sus tokens por una URL de webhook fija. Para las llamadas entrantes, sigue [las políticas de llamadas entrantes](/docs/on-call/incoming-call-policy), que configuran el webhook del número cuando lo asocias.
 
-Twilio exige [URL de webhook accesibles públicamente](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Usa un certificado TLS de confianza pública y conserva a través de los proxies el host, el protocolo, la ruta, los parámetros de consulta, el cuerpo y el encabezado `X-Twilio-Signature` originales. Los manejadores de llamadas entrantes validan las firmas de Twilio; la entrega de SMS usa un token de URL por mensaje, y la confirmación con el teclado, un token de consulta firmado. No expongas los tokens en registros compartidos ni en capturas de pantalla. Consulta [la seguridad de los webhooks de Twilio](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
+Twilio exige [URL de webhook accesibles públicamente](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Usa un certificado TLS de confianza pública y conserva a través de los proxies el host, el protocolo, la ruta, los parámetros de consulta, el cuerpo y el encabezado `X-Twilio-Signature` originales. Los manejadores de llamadas entrantes validan las firmas de Twilio; la entrega de SMS y el resultado de las llamadas usan un token de URL por mensaje o llamada, y la confirmación con el teclado, un token de consulta firmado. No expongas los tokens en registros compartidos ni en capturas de pantalla. Consulta [la seguridad de los webhooks de Twilio](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
 ### Publicar callbacks desde un despliegue privado
 
@@ -142,7 +146,7 @@ El panel puede quedarse en un ingress privado: con DNS dividido, los empleados r
 Las direcciones de origen habituales de los webhooks de Twilio cambian, así que no uses los rangos de IP de SIP o de medios como lista de permitidos para los callbacks. Las ediciones de Twilio que cumplen los requisitos ofrecen [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Confirma que tu edición cumple los requisitos y qué productos admite, y configura tu cortafuegos con los rangos que Twilio publica actualmente; sigue validando los callbacks aunque lo uses.
 
 > [!WARNING]
-> Si una política prohíbe las conexiones entrantes, el envío de SMS y la reproducción de voz sencilla integrada pueden funcionar con HTTPS saliente. Las actualizaciones de entrega de SMS, la confirmación con el teclado y el enrutamiento de llamadas entrantes no pueden funcionar sin callbacks accesibles. Una instalación totalmente desconectada no puede usar Twilio.
+> Si una política prohíbe las conexiones entrantes, el envío de SMS y la reproducción de voz sencilla integrada pueden funcionar con HTTPS saliente. Las actualizaciones de entrega de SMS, el resultado de las llamadas, la confirmación con el teclado y el enrutamiento de llamadas entrantes no pueden funcionar sin callbacks accesibles. Una instalación totalmente desconectada no puede usar Twilio.
 
 Para el desarrollo, la [guía de pruebas de webhooks](https://www.twilio.com/docs/usage/webhooks/webhook-testing) de Twilio describe el uso de un túnel público: reenvíalo a un proxy que permita solo las rutas necesarias, configura el nombre de host resultante como se indica arriba y detenlo después de las pruebas. Un túnel sigue abriendo un acceso entrante.
 
@@ -159,7 +163,7 @@ Para el desarrollo, la [guía de pruebas de webhooks](https://www.twilio.com/doc
 | --- | --- |
 | No se envía nada | Las credenciales, las capacidades del número, las restricciones de la cuenta y la conectividad saliente. |
 | Twilio rechaza los SMS con el error 21606 | El número no puede enviar SMS. Añade uno que sí pueda en **Números de teléfono SMS de Twilio**: consulta [Números distintos para llamadas y SMS](#números-distintos-para-llamadas-y-sms). |
-| Las llamadas o los SMS salen por una cuenta distinta de la del proyecto | La configuración predeterminada del proyecto está en **Solo SMS** o **Solo llamadas**: consulta [Una cuenta solo para SMS, o solo para llamadas](#una-cuenta-solo-para-sms-o-solo-para-llamadas). |
+| Las llamadas o los SMS salen por una cuenta distinta de la del proyecto | Ninguna configuración es la predeterminada del proyecto para ellos: la columna **Predeterminado del proyecto** indica de qué es predeterminada cada configuración. Consulta [Una cuenta solo para SMS, o solo para llamadas](#una-cuenta-solo-para-sms-o-solo-para-llamadas). |
 | El SMS o la llamada llega, pero su estado o la confirmación no se actualizan | La URL del callback y los registros del ingress público. La [guía de Twilio sobre fallos de recuperación HTTP](https://www.twilio.com/docs/api/errors/11200) ayuda a diagnosticar callbacks inaccesibles, problemas de TLS y errores HTTP. |
 
 Una llamada de prueba correcta no demuestra por sí sola que los callbacks sean accesibles.
