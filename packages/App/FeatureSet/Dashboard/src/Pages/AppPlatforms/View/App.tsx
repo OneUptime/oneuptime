@@ -129,6 +129,13 @@ async function loadApp(data: {
           previousRevision: true,
           lastSeenAt: true,
           createdAt: true,
+          // What the app sends, for its tiles' notes and its Setup check.
+          tracesLastReceivedAt: true,
+          logsLastReceivedAt: true,
+          metricsLastReceivedAt: true,
+          signalArrivalsTrackedSince: true,
+          // Its site in Azure Monitor, for an App Service app.
+          providerResourceId: true,
         },
       }),
       ModelAPI.getItem<CloudResource>({

@@ -247,8 +247,14 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
       productName: "Azure App Service",
       description: translationKey("Web apps on Azure App Service."),
       docsUrl: "/docs/telemetry/cloud-other-platforms",
+      /*
+       * The Collector's and the Go SDK's `azureappservice` detectors put
+       * WEBSITE_INSTANCE_ID in azure.app_service.instance.id; the Node.js
+       * and .NET Azure detectors put it in service.instance.id. Either
+       * names the same instance.
+       */
       detection: "detector",
-      instanceAttribute: "host.id",
+      instanceAttribute: "azure.app_service.instance.id",
       // The App Service detector names the site and its deployment slot.
       appAttributes: [SERVICE_NAME_ATTRIBUTE],
       appGroupAttributes: DEPLOYMENT_ENVIRONMENT_ATTRIBUTES,

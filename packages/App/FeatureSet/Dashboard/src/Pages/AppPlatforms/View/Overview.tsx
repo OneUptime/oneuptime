@@ -7,8 +7,10 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
+import CloudApp from "Common/Models/DatabaseModels/CloudApp";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceInstance";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -70,6 +72,13 @@ import {
   isCloudResourceScoped,
 } from "../Utils/CloudResourceTelemetryScope";
 import { CLOUD_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CloudMetricDescriptions";
+import {
+  CLOUD_APP_CHART_LOAD_FAILED,
+  CLOUD_APP_LOAD_FAILED_SUBLABEL,
+  getCloudAppInstancesTileNote,
+  getCloudAppUsageTileNote,
+  getCloudEnvironmentTraceTileNote,
+} from "../Utils/CloudAppTelemetrySetup";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -108,6 +117,13 @@ export const TopInstancesByCpuTitle: FunctionComponent = (): ReactElement => {
  * latency from their traces, with every deploy of its apps marked on the
  * charts, the apps that need a look first, the CPU and memory of the
  * instances running them, and the busiest instances.
+ *
+ * A number is shown only where it was measured, as on an app's page (issue
+ * #6770): an environment none of whose apps sends traces reads "No traces
+ * received" where its requests, error rate and latency would be; CPU and
+ * memory read "Not on Azure App Service" where the platform gives an app
+ * none, and "Not reported" where its live instances report none; a failed
+ * read reads "—" over "could not load".
  */
 const CloudEnvironmentOverview: FunctionComponent<
   PageComponentProps
@@ -123,6 +139,12 @@ const CloudEnvironmentOverview: FunctionComponent<
   const [metrics, setMetrics] = useState<SpanMetrics | null>(null);
   const [memorySeries, setMemorySeries] = useState<Array<TimePoint>>([]);
   const [metricsLoading, setMetricsLoading] = useState<boolean>(true);
+  /*
+   * How many of its apps have sent a trace (CloudApp.tracesLastReceivedAt):
+   * none, and its zero requests were never measured. Null while it is
+   * read, or when it could not be.
+   */
+  const [appsWithTraces, setAppsWithTraces] = useState<number | null>(null);
   const [chartWindow, setChartWindow] = useState<{
     start: Date;
     end: Date;
@@ -200,6 +222,20 @@ const CloudEnvironmentOverview: FunctionComponent<
         })
         .catch(() => {
           setInstancesLoaded(true);
+        });
+
+      ModelAPI.count<CloudApp>({
+        modelType: CloudApp,
+        query: {
+          cloudResourceId: modelId,
+          tracesLastReceivedAt: new NotNull(),
+        },
+      })
+        .then((count: number) => {
+          setAppsWithTraces(count);
+        })
+        .catch(() => {
+          setAppsWithTraces(null);
         });
     } catch (err) {
       /*
@@ -349,7 +385,16 @@ const CloudEnvironmentOverview: FunctionComponent<
   }
 
   const r: CloudResource = cloudResource;
-  const m: SpanMetrics | null = metrics;
+  /*
+   * A failed span read is unknown, not zero: its tiles read "—" over
+   * "could not load", as a RUM application's do.
+   */
+  const spanReadFailed: boolean = Boolean(metrics?.failed);
+  const m: SpanMetrics | null = metrics && !metrics.failed ? metrics : null;
+  const traceNote: string | undefined = getCloudEnvironmentTraceTileNote({
+    appsWithTraces,
+    metrics,
+  });
   const isScoped: boolean = isCloudResourceScoped(r);
 
   /*
@@ -389,6 +434,35 @@ const CloudEnvironmentOverview: FunctionComponent<
     },
     0,
   );
+  // "0 B" only when an instance reported it: none read as "—", not zero.
+  const hasMemory: boolean = liveInstances.some(
+    (i: CloudResourceInstance): boolean => {
+      return typeof i.latestMemoryBytes === "number";
+    },
+  );
+  const isEnvironmentLive: boolean = isCloudInstanceLive(r.lastSeenAt, now);
+  const cpuNote: string | undefined = instancesLoaded
+    ? getCloudAppUsageTileNote({
+        cloudPlatform: r.cloudPlatform,
+        isRunning: liveInstances.length > 0,
+        hasReading: avgCpu !== null,
+        translator,
+      })
+    : undefined;
+  const memoryNote: string | undefined = instancesLoaded
+    ? getCloudAppUsageTileNote({
+        cloudPlatform: r.cloudPlatform,
+        isRunning: liveInstances.length > 0,
+        hasReading: hasMemory,
+        translator,
+      })
+    : undefined;
+  const instancesNote: string | undefined = instancesLoaded
+    ? getCloudAppInstancesTileNote({
+        isRunning: isEnvironmentLive,
+        hasReportedInstances: instances.length > 0,
+      })
+    : undefined;
 
   const platformLabel: string = getManagedCloudPlatformLabel(r.cloudPlatform);
   const providerLabel: string = getCloudProviderLabel(r.cloudProvider);
@@ -412,56 +486,69 @@ const CloudEnvironmentOverview: FunctionComponent<
     {
       title: "CPU",
       value: instancesLoaded ? formatPercent(avgCpu) : "—",
+      valueNote: cpuNote,
       icon: IconProp.ChartBar,
       iconColor: "blue",
       loading: !instancesLoaded,
-      sublabel: "avg across live instances",
-      percent: avgCpu,
+      // The note says it all: the line under it would only repeat it.
+      sublabel: cpuNote ? undefined : "avg across live instances",
+      percent: cpuNote ? undefined : avgCpu,
       description: CLOUD_METRIC_DESCRIPTIONS.cpu,
     },
     {
       title: "Memory",
-      value: instancesLoaded ? formatBytes(totalMem) : "—",
+      value: instancesLoaded && hasMemory ? formatBytes(totalMem) : "—",
+      valueNote: memoryNote,
       icon: IconProp.SquareStack,
       iconColor: "violet",
       loading: !instancesLoaded,
-      sublabel: "total across live instances",
+      sublabel: memoryNote ? undefined : "total across live instances",
       description: CLOUD_METRIC_DESCRIPTIONS.memory,
     },
     {
       title: "Instances",
       value: instancesLoaded ? formatCompact(liveInstances.length) : "—",
+      valueNote: instancesNote,
       icon: IconProp.Cube,
       iconColor: "amber",
       loading: !instancesLoaded,
-      sublabel: translator.translateTemplate(
-        "live in the last {{minutes}} min",
-        { minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES },
-      ),
+      sublabel: instancesNote
+        ? undefined
+        : translator.translateTemplate("live in the last {{minutes}} min", {
+            minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES,
+          }),
       to: populate(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INSTANCES),
       description: CLOUD_METRIC_DESCRIPTIONS.instances,
     },
     {
       title: "Requests",
       value: m ? formatCompact(m.total) : "—",
+      valueNote: traceNote,
       icon: IconProp.Workflow,
       iconColor: "sky",
       loading: metricsLoading,
-      sublabel: "selected range",
+      sublabel: spanReadFailed
+        ? CLOUD_APP_LOAD_FAILED_SUBLABEL
+        : traceNote
+          ? undefined
+          : "selected range",
       description: CLOUD_METRIC_DESCRIPTIONS.requests,
     },
     {
       title: "Error rate",
       value: m ? formatPercent(m.errorRatePercent) : "—",
+      valueNote: traceNote,
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: metricsLoading,
-      sublabel: m
-        ? translator.translateTemplate("{{errors}} errored", {
-            errors: formatCompact(m.errors),
-          })
-        : undefined,
-      percent: m ? m.errorRatePercent : null,
+      sublabel: spanReadFailed
+        ? CLOUD_APP_LOAD_FAILED_SUBLABEL
+        : m && !traceNote
+          ? translator.translateTemplate("{{errors}} errored", {
+              errors: formatCompact(m.errors),
+            })
+          : undefined,
+      percent: m && !traceNote ? m.errorRatePercent : null,
       higherIsBetter: false,
       thresholds: { warn: 1, danger: 5 },
       description: CLOUD_METRIC_DESCRIPTIONS.errorRate,
@@ -469,10 +556,15 @@ const CloudEnvironmentOverview: FunctionComponent<
     {
       title: "p95 latency",
       value: m ? formatDurationMs(m.p95DurationMs) : "—",
+      valueNote: traceNote,
       icon: IconProp.Clock,
       iconColor: "emerald",
       loading: metricsLoading,
-      sublabel: "selected range",
+      sublabel: spanReadFailed
+        ? CLOUD_APP_LOAD_FAILED_SUBLABEL
+        : traceNote
+          ? undefined
+          : "selected range",
       description: CLOUD_METRIC_DESCRIPTIONS.p95Latency,
     },
   ];
@@ -499,8 +591,11 @@ const CloudEnvironmentOverview: FunctionComponent<
           windowEnd={chartWindow?.end ?? null}
           syncId={`cloud-${modelId.toString()}`}
           showLegend={true}
-          loading={metricsLoading && !m}
+          loading={metricsLoading && !m && !spanReadFailed}
           description={CLOUD_METRIC_DESCRIPTIONS.requestsChart}
+          emptyMessage={
+            spanReadFailed ? CLOUD_APP_CHART_LOAD_FAILED : traceNote
+          }
           timeReferenceLines={deployMarkers}
         />
         <ChartCard
@@ -519,6 +614,7 @@ const CloudEnvironmentOverview: FunctionComponent<
           }}
           loading={metricsLoading && memorySeries.length === 0}
           description={CLOUD_METRIC_DESCRIPTIONS.memoryChart}
+          emptyMessage={memoryNote}
           timeReferenceLines={deployMarkers}
         />
       </div>

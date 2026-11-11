@@ -571,4 +571,23 @@ describe("Azure Container Apps descriptor", () => {
       "azure.container_app.instance.id",
     );
   });
+
+  test("App Service keys instances on the Collector detector's instance attribute (issue #6770)", () => {
+    /*
+     * The Collector's and the Go SDK's azureappservice detectors stamp
+     * WEBSITE_INSTANCE_ID as azure.app_service.instance.id; the docs hub
+     * table and the in-app guide name it from this field.
+     */
+    const descriptor: ManagedCloudPlatformDescriptor | null =
+      getManagedCloudPlatformDescriptor(ManagedCloudPlatform.AzureAppService);
+    expect(descriptor?.detection).toBe("detector");
+    expect(descriptor?.instanceAttribute).toBe("azure.app_service.instance.id");
+    expect(
+      CLOUD_INSTANCE_IDENTITY_ATTRIBUTES.indexOf(
+        "azure.app_service.instance.id",
+      ),
+    ).toBeLessThan(
+      CLOUD_INSTANCE_IDENTITY_ATTRIBUTES.indexOf("service.instance.id"),
+    );
+  });
 });

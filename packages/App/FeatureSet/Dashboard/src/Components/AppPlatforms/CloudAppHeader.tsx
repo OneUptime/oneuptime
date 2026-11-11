@@ -151,9 +151,15 @@ const CloudAppHeader: FunctionComponent<ComponentProps> = (
     translator.translateText(CLOUD_APP_STATE_LABELS[state]) ||
     CLOUD_APP_STATE_LABELS[state];
 
+  /*
+   * "Running" with how many instances run it - or nothing, for an app that
+   * runs with no instance of its own reported (its telemetry names no task
+   * or replica): "Running · 0 instances" read as running on none (issue
+   * #6770). The lists say nothing then too (CloudAppStateCell).
+   */
   const stateDetail: string =
     state === CloudAppState.Running
-      ? props.liveInstances !== undefined
+      ? props.liveInstances !== undefined && props.liveInstances > 0
         ? translator.translatePlural(APP_INSTANCE_COUNT, props.liveInstances)
         : ""
       : app.lastSeenAt
