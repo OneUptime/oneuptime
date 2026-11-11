@@ -1,4 +1,11 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
@@ -28,6 +35,7 @@ import {
   bulkItemUnchanged,
   runBulkAction,
 } from "../../../UI/Components/BulkUpdate/BulkActionRunner";
+import { REFRESH_SIDEBAR_COUNT_EVENT } from "../../../UI/Components/SideMenu/SideMenuCountRefresh";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -582,5 +590,137 @@ describe("the table's Bulk Actions", () => {
     expect(componentSource).not.toContain("setProgressInfo");
     expect(componentSource).not.toContain("setShowProgressInfoModal");
     expect(componentSource).not.toContain("new AbortController()");
+  });
+});
+
+/*
+ * THE COUNTS BESIDE THE LIST COUNT AGAIN AS A RUN ENDS (#6856).
+ *
+ * Bulk deleting the last four alerts left "Active Alerts 4" in the side
+ * menu beside an empty list: nothing told the count. Every bulk run passes
+ * through this hook, so its end asks every side-menu count on the page to
+ * count again (SideMenuCountRefresh) - once per run, as soon as it has
+ * ended, while its result is on screen.
+ */
+describe("the side menu's counts once a run ends", () => {
+  let asks: number = 0;
+  const onAsk: () => void = (): void => {
+    asks++;
+  };
+
+  beforeEach(() => {
+    asks = 0;
+    window.addEventListener(REFRESH_SIDEBAR_COUNT_EVENT, onAsk);
+  });
+
+  afterEach(() => {
+    window.removeEventListener(REFRESH_SIDEBAR_COUNT_EVENT, onAsk);
+  });
+
+  test("nothing is asked as a run starts or while it goes on - every item it finishes would ask again", async () => {
+    const gates: Array<Gate> = [gate(), gate(), gate()];
+    render(<Harness items={rows(3)} step={gatedStep(gates)} />);
+
+    start();
+    await screen.findByText("In Progress");
+    expect(asks).toBe(0);
+
+    await act(async () => {
+      gates[0]!.release();
+      gates[1]!.release();
+    });
+    await flush();
+    expect(asks).toBe(0);
+
+    await releaseAll(gates);
+    await screen.findByText("Completed");
+  });
+
+  test("once, as the run ends, while its result is still on screen", async () => {
+    const gates: Array<Gate> = [gate(), gate(), gate()];
+    const onActionEnd: MockFunction = getJestMockFunction();
+    render(
+      <Harness
+        items={rows(3)}
+        step={gatedStep(gates)}
+        onActionEnd={onActionEnd as unknown as () => void}
+      />,
+    );
+
+    start();
+    await releaseAll(gates);
+    await screen.findByText("Completed");
+
+    expect(asks).toBe(1);
+    // The reader has not closed the result yet.
+    expect(onActionEnd).not.toHaveBeenCalled();
+
+    fireEvent.click(footerButton());
+
+    expect(onActionEnd).toHaveBeenCalledTimes(1);
+    // Closing it changes nothing more.
+    expect(asks).toBe(1);
+  });
+
+  test("a run stopped part-way asks too: the items it did reach changed", async () => {
+    const gates: Array<Gate> = [gate(), gate(), gate(), gate()];
+    render(
+      <Harness items={rows(4)} step={gatedStep(gates)} concurrency={1} />,
+    );
+
+    start();
+    await screen.findByText("In Progress");
+
+    await act(async () => {
+      gates[0]!.release();
+    });
+    await flush();
+
+    fireEvent.click(footerButton());
+    expect(footerButton()).toHaveTextContent("Stopping…");
+    expect(asks).toBe(0);
+
+    await releaseAll(gates);
+    await screen.findByText("Stopped");
+
+    expect(asks).toBe(1);
+  });
+
+  test("a run whose items all failed asks too - nothing is assumed about what the server did", async () => {
+    const gates: Array<Gate> = [gate(), gate()];
+    render(<Harness items={rows(2)} step={gatedStep(gates)} />);
+
+    start();
+    await screen.findByText("In Progress");
+
+    await act(async () => {
+      gates[0]!.fail(new Error("You do not have permission to delete this."));
+      gates[1]!.fail(new Error("You do not have permission to delete this."));
+    });
+    await flush();
+    await screen.findByText("Completed");
+
+    expect(asks).toBe(1);
+  });
+
+  test("every run asks for itself: two runs, two asks", async () => {
+    render(
+      <Harness
+        items={rows(2)}
+        step={async (): Promise<void> => {
+          return undefined;
+        }}
+      />,
+    );
+
+    start();
+    await screen.findByText("Completed");
+    expect(asks).toBe(1);
+
+    fireEvent.click(footerButton());
+
+    start();
+    await screen.findByText("Completed");
+    expect(asks).toBe(2);
   });
 });
