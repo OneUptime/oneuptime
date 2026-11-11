@@ -164,9 +164,9 @@ export const AI_TASK_PRESENTATION: {
     description:
       "OneUptime AI finds the root cause in the code, fixes it, and opens a pull request for you to review.",
     icon: IconProp.Wrench,
-    startActionName: "Start",
-    restartActionName: "Run again",
-    retryActionName: "Try again",
+    startActionName: translationKey("Start"),
+    restartActionName: translationKey("Run again"),
+    retryActionName: translationKey("Try again"),
   },
   [CodeFixTaskType.WriteRegressionTest]: {
     taskType: CodeFixTaskType.WriteRegressionTest,
@@ -174,9 +174,9 @@ export const AI_TASK_PRESENTATION: {
     description:
       "OneUptime AI writes a test that reproduces this exception and opens a pull request with it, so the bug cannot come back unnoticed. It does not fix the bug: the test fails until the bug is fixed.",
     icon: IconProp.Beaker,
-    startActionName: "Start",
-    restartActionName: "Run again",
-    retryActionName: "Try again",
+    startActionName: translationKey("Start"),
+    restartActionName: translationKey("Run again"),
+    retryActionName: translationKey("Try again"),
   },
   [CodeFixTaskType.ImproveExceptionHandling]: {
     taskType: CodeFixTaskType.ImproveExceptionHandling,
@@ -184,9 +184,9 @@ export const AI_TASK_PRESENTATION: {
     description:
       "For an expected error, such as invalid input or an intentional denial: OneUptime AI checks the input earlier with a clear message, keeps user data out of the message, and marks the error as handled, without changing what the code does. It opens a pull request for you to review.",
     icon: IconProp.ShieldCheck,
-    startActionName: "Start",
-    restartActionName: "Run again",
-    retryActionName: "Try again",
+    startActionName: translationKey("Start"),
+    restartActionName: translationKey("Run again"),
+    retryActionName: translationKey("Try again"),
   },
 };
 
@@ -211,9 +211,9 @@ export const PRIMARY_AI_TASK_PRESENTATION: {
     description:
       "OneUptime AI finds the root cause of this exception in your code, fixes it, and opens a pull request for you to review.",
     icon: IconProp.Sparkles,
-    startActionName: "Fix with AI",
-    restartActionName: "Fix again",
-    retryActionName: "Try again",
+    startActionName: translationKey("Fix with AI"),
+    restartActionName: translationKey("Fix again"),
+    retryActionName: translationKey("Try again"),
   },
   [CodeFixTaskType.ImproveExceptionHandling]: {
     taskType: CodeFixTaskType.ImproveExceptionHandling,
@@ -221,9 +221,9 @@ export const PRIMARY_AI_TASK_PRESENTATION: {
     description:
       "OneUptime AI found this is an expected error, so the fix handles it better instead of changing what the code does: it checks the input earlier with a clear message, keeps user data out of the message, and marks the error as handled. It opens a pull request for you to review.",
     icon: IconProp.Sparkles,
-    startActionName: "Fix with AI",
-    restartActionName: "Fix again",
-    retryActionName: "Try again",
+    startActionName: translationKey("Fix with AI"),
+    restartActionName: translationKey("Fix again"),
+    retryActionName: translationKey("Try again"),
   },
 };
 

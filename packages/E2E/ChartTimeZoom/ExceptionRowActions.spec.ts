@@ -136,6 +136,19 @@ function clearSelection(page: Page): Locator {
   return page.getByRole("button", { name: "Clear Selection" });
 }
 
+/*
+ * One of the list's status tabs: Unresolved, Resolved, Archived or All (the
+ * fault-class lens beside them has an All of its own).
+ */
+function statusTab(page: Page, name: string): Locator {
+  return page
+    .locator("div.inline-flex")
+    .filter({
+      has: page.getByRole("button", { name: "Resolved", exact: true }),
+    })
+    .getByRole("button", { name, exact: true });
+}
+
 // Where an element sits, to the pixel, in one frame.
 async function topOf(locator: Locator): Promise<number> {
   const box: { y: number } | null = await locator.boundingBox();
@@ -188,12 +201,44 @@ test.describe("an exception's ⋯ menu on the exceptions list", () => {
     await expect(exceptionRow(page, "TypeError")).toHaveCount(1);
   });
 
-  test("at 1440 the status sits at the row's top right, beside the ⋯", async ({
+  /*
+   * A list of one status says it once, in its tab: its rows leave the word
+   * out (their dot still tells), and the message has the row's width.
+   */
+  test("on the Unresolved list no row repeats Unresolved; on All each says where it stands", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, 1440);
+
+    const deadline: Locator = exceptionRow(page, "DeadlineExceededError");
+
+    await expect(deadline.getByTestId("exception-row-status")).toHaveCount(0);
+    await expect(
+      deadline.getByTestId("exception-row-status-inline"),
+    ).toHaveCount(0);
+    await expect(deadline).not.toContainText("Unresolved");
+    // No fingerprint chip on a row either: the exception's page names it.
+    await expect(deadline.getByTestId("exception-row-fingerprint")).toHaveCount(
+      0,
+    );
+
+    await statusTab(page, "All").click();
+    await expect(
+      exceptionRow(page, "DeadlineExceededError").getByTestId(
+        "exception-row-status",
+      ),
+    ).toHaveText("Unresolved");
+  });
+
+  test("at 1440, on the All list, the status sits at the row's top right, beside the ⋯", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, 1440);
+    await statusTab(page, "All").click();
 
     const deadline: Locator = exceptionRow(page, "DeadlineExceededError");
     const corner: Locator = deadline.getByTestId("exception-row-status");
@@ -215,7 +260,7 @@ test.describe("an exception's ⋯ menu on the exceptions list", () => {
   });
 
   for (const theme of ["light", "dark"]) {
-    test(`on a phone the status leads the service line, and the message keeps the row's width (${theme})`, async ({
+    test(`on a phone, on the All list, the status leads the service line, and the message keeps the row's width (${theme})`, async ({
       page,
     }: {
       page: Page;
@@ -231,6 +276,7 @@ test.describe("an exception's ⋯ menu on the exceptions list", () => {
       await expect(page.getByTestId("synthetic-banner")).toBeVisible({
         timeout: 60000,
       });
+      await statusTab(page, "All").click();
 
       const deadline: Locator = exceptionRow(page, "DeadlineExceededError");
 
