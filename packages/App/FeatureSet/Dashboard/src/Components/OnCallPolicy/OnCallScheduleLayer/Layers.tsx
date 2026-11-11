@@ -1003,12 +1003,13 @@ const Layers: FunctionComponent<ComponentProps> = (
           <h2 className="text-lg font-semibold leading-6 text-gray-900">
             {rotationLayersTitle}
           </h2>
-          <p className="mt-1.5 max-w-2xl text-sm text-gray-500">
+          {/* A div, not a p: the link's icon is drawn in a block of its own. */}
+          <div className="mt-1.5 max-w-2xl text-sm text-gray-500">
             {translator.translateText(
               "The highest layer with someone on call is the one that pages. Put the main rotation on top, and fall-back cover below it.",
             )}{" "}
             {layersLearnMore}
-          </p>
+          </div>
         </div>
         {/*
           Under the description on a phone, at the right edge, as a card

@@ -164,7 +164,7 @@ describe("the guard's reading of the source", () => {
     const sample: string = [
       "/* glossaryTerm: GlossaryTerm.Rule in a comment */",
       "// <DefinedTerm term={GlossaryTerm.Role}>",
-      "{ title: \"Probes\", glossaryTerm: GlossaryTerm.Probe }",
+      '{ title: "Probes", glossaryTerm: GlossaryTerm.Probe }',
       "<Card titleGlossaryTerm={GlossaryTerm.Criteria} />",
       "{ titleGlossaryTerm: GlossaryTerm.SLO }",
       "<DefinedTerm term={GlossaryTerm.Layer}>",
@@ -246,10 +246,7 @@ describe("marked words on a page", () => {
  */
 const TERMS_WHERE_FIRST_MET: ReadonlyArray<[string, Array<string>]> = [
   ["Criteria", ["Components/Form/Monitor/MonitorStep.tsx"]],
-  [
-    "Probe",
-    ["Pages/Monitor/Create.tsx", "Pages/Monitor/View/Probes.tsx"],
-  ],
+  ["Probe", ["Pages/Monitor/Create.tsx", "Pages/Monitor/View/Probes.tsx"]],
   ["Incident", ["Components/Form/Monitor/IncidentOrAlertNote.tsx"]],
   ["Alert", ["Components/Form/Monitor/IncidentOrAlertNote.tsx"]],
   [
@@ -371,6 +368,55 @@ describe("the hard forms", () => {
       ).toBe(true);
     },
   );
+});
+
+describe("Learn more is never inside a paragraph", () => {
+  /*
+   * Its icon is drawn in a block (Icon's <div>), which a <p> cannot hold:
+   * React warns, and on the escalation rules page the dialog the page opens
+   * next never drew its form.
+   */
+  const insideParagraph: (source: string, at: number) => boolean = (
+    source: string,
+    at: number,
+  ): boolean => {
+    const opened: number = Math.max(
+      source.lastIndexOf("<p ", at),
+      source.lastIndexOf("<p>", at),
+      source.lastIndexOf("<p\n", at),
+    );
+
+    return opened > source.lastIndexOf("</p>", at);
+  };
+
+  test.each(
+    HARD_FORMS.filter((form: [string, string, string]): boolean => {
+      return read(form[1]).includes("LearnMoreLink");
+    }),
+  )("on %s", (_name: string, file: string) => {
+    const source: string = withoutComments(read(file));
+    const places: Array<number> = [];
+
+    for (const pattern of [/<LearnMoreLink\b/g, /\{\w*LearnMore\}/g]) {
+      for (const match of source.matchAll(pattern)) {
+        places.push(match.index || 0);
+      }
+    }
+
+    expect(places.length).toBeGreaterThan(0);
+
+    for (const place of places) {
+      expect({
+        file: file,
+        place: place,
+        insideParagraph: insideParagraph(source, place),
+      }).toEqual({
+        file: file,
+        place: place,
+        insideParagraph: false,
+      });
+    }
+  });
 });
 
 describe("incident or alert, where the choice is made", () => {

@@ -2066,7 +2066,10 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                 {translator.translateText("Escalation Rules")}
               </DefinedTerm>
             </h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
+            {/*
+             * A div, not a p: the link's icon is drawn in a block of its own.
+             */}
+            <div className="mt-1.5 text-sm leading-relaxed text-gray-500">
               {translator.translateText(
                 "Who gets notified when an incident is triggered, and how it climbs the ladder if no one responds.",
               )}{" "}
@@ -2074,7 +2077,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                 docsPath="/docs/on-call/escalation-rules"
                 dataTestId="escalation-rules-learn-more"
               />
-            </p>
+            </div>
           </div>
           {/*
             Under the description on a phone, at the right edge, as a card

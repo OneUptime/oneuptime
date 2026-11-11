@@ -159,7 +159,7 @@ const OnCallRulesTabs: FunctionComponent<ComponentProps> = (
        * rules" is also the name of the rules under Incidents and Alerts that
        * pick a policy, and the definition says both - and the docs page.
        */}
-      <p
+      <div
         className="mb-4 text-sm text-gray-500"
         data-testid={ON_CALL_RULES_INTRO_TEST_ID}
       >
@@ -177,7 +177,7 @@ const OnCallRulesTabs: FunctionComponent<ComponentProps> = (
           docsPath="/docs/notifications/on-call-rules"
           dataTestId="on-call-rules-learn-more"
         />
-      </p>
+      </div>
       <Tabs
         tabs={tabs}
         initialTabName={getOnCallRuleKindDefinition(requestedKind).tabName}

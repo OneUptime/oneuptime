@@ -698,6 +698,9 @@ describe("How OneUptime works (Home)", () => {
       "how-it-works-step-incident",
       "how-it-works-step-on-call",
       "how-it-works-step-status-page",
+      // What feeds the loop: Telemetry and Infrastructure, each defined.
+      "defined-term",
+      "defined-term",
     ]);
   });
 
