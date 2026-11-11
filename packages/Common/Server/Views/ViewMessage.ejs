@@ -22,26 +22,44 @@
 
                             <div class="shadow sm:overflow-hidden sm:rounded-md">
                                 <div class="bg-white dark:bg-slate-800 py-6 px-4 sm:p-6">
-                                    <div>
-                                        <h2 id="message-heading"
-                                            class="text-lg font-medium leading-6 text-gray-900 dark:text-slate-50"><%= title %></h2>
-                                        <p class="mt-1 text-sm text-gray-500 dark:text-slate-400"><%= message %></p>
-                                        <%# A page escalated with nobody left to page (OnCallPassOnWarning). -%>
-                                        <% if (typeof warning !== 'undefined' && warning) { %>
-                                        <%- include('./Partials/OnCallPassOnWarning.ejs', { warning: warning }) -%>
+                                    <%#
+                                        statusIcon (optional): "check" for a page with nothing left to do -
+                                        an acknowledge page whose record was already acknowledged or
+                                        resolved (OnCallAcknowledgePage) - drawn beside the heading.
+                                    -%>
+                                    <% var hasCheck = typeof statusIcon !== 'undefined' && statusIcon === 'check'; %>
+                                    <div class="flex items-start gap-3">
+                                        <% if (hasCheck) { %>
+                                        <span class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-green-100 dark:bg-green-400/10" data-testid="status-check">
+                                            <svg class="h-5 w-5 text-green-600 dark:text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                            </svg>
+                                        </span>
                                         <% } %>
+                                        <div class="min-w-0 flex-1">
+                                            <h2 id="message-heading"
+                                                class="text-lg font-medium leading-6 text-gray-900 dark:text-slate-50"><%= title %></h2>
+                                            <p class="mt-1 text-sm text-gray-500 dark:text-slate-400"><%= message %></p>
+                                            <%# A page escalated with nobody left to page (OnCallPassOnWarning). -%>
+                                            <% if (typeof warning !== 'undefined' && warning) { %>
+                                            <%- include('./Partials/OnCallPassOnWarning.ejs', { warning: warning }) -%>
+                                            <% } %>
+                                        </div>
                                     </div>
 
                                     <%- include('./Partials/OnCallNotificationDetails.ejs') -%>
 
+                                    <%# None for a notification that points at nothing: no button to a page that is not there. -%>
+                                    <% if (typeof viewDetailsUrl !== 'undefined' && viewDetailsUrl) { %>
                                     <div>
                                         <div class="mt-6">
-                                            <a href="<%= viewDetailsUrl %>"
-                                                class="w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-slate-200 bg-white-600 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-gray-500">
+                                            <a href="<%= viewDetailsUrl %>" data-testid="view-details"
+                                                class="w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-gray-500">
                                                 <%= viewDetailsText %>
                                             </a>
                                         </div>
                                     </div>
+                                    <% } %>
                                 </div>
                             </div>
 
