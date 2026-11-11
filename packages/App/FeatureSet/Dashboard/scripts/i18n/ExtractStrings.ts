@@ -232,12 +232,14 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "ui",
   },
   /*
-   * A Security Events connection's own words for what it imports - Google
+   * A Security Events connection's own words: what it imports - Google
    * SecOps' Data to import, Alerts, Detections, Alerts only - which the
    * connection form, the connections list and the diagnostics put in the
-   * reader's language and into their sentences (#6658). Only the words the
-   * file marks are read: provider names, vendor names and field keys stay
-   * as written.
+   * reader's language and into their sentences (#6658), and every field's
+   * title, description and choices plus each provider's description, which
+   * the connection form draws (#6700). Only the words the file marks are
+   * read: provider names, vendor names, field keys and placeholders that
+   * show a value to type (an ID, an address, a query) stay as written.
    */
   {
     directory:

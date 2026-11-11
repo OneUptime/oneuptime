@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50206,
-    "untranslated": 10278
+    "keys": 50364,
+    "untranslated": 10184
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -52,6 +52,7 @@
     "Chat",
     "Chats",
     "ClickHouse",
+    "Client ID",
     "CloudKitty",
     "Cluster",
     "Cluster {{cluster}}",
@@ -95,6 +96,7 @@
     "Flags",
     "Flavor",
     "Flavors",
+    "Fluent Bit",
     "Gateway",
     "Gibibytes",
     "Gigabits",
@@ -103,6 +105,7 @@
     "Global",
     "Golden Signals",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "H1",
     "HA: {{state}}",

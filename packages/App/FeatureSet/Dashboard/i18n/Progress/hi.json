@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50206,
-    "untranslated": 10268
+    "keys": 50364,
+    "untranslated": 10175
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -39,8 +39,10 @@
     "Down + Out",
     "Edge",
     "Elasticsearch URL",
+    "Fluent Bit",
     "Full view",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "H1",
     "HA: {{state}}",
@@ -59,6 +61,7 @@
     "JVM CPU",
     "JavaScript API",
     "Keystone",
+    "Kibana URL",
     "Kolla-Ansible",
     "LXC 201 · pve3",
     "Link-local",

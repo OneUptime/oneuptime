@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50206,
-    "untranslated": 10292
+    "keys": 50364,
+    "untranslated": 10198
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -59,6 +59,7 @@
     "Chat",
     "ClickHouse",
     "Client",
+    "Client ID",
     "Cloud",
     "CloudKitty",
     "Cluster",
@@ -108,6 +109,7 @@
     "Flame graph",
     "Flavor",
     "Floating IP",
+    "Fluent Bit",
     "Formula",
     "Formula: {{formula}}",
     "Gateway",
@@ -115,6 +117,7 @@
     "Golden Signals",
     "Google Calendar",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "Guest",
     "H1",
