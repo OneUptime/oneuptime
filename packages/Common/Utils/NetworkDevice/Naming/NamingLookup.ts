@@ -79,7 +79,6 @@ export const NAMING_LOOKUP_PROBLEMS: {
   readonly noKeyKind: string;
   readonly unusedTable: string;
   readonly emptyTable: string;
-  readonly badKey: string;
   readonly keyTooLong: string;
   readonly emptyValue: string;
   readonly valueTooLong: string;
@@ -99,9 +98,6 @@ export const NAMING_LOOKUP_PROBLEMS: {
   emptyTable: translationKey(
     "The name pattern uses {lookup}: add a row to the lookup table, or take {lookup} out of the pattern.",
   ),
-  badKey: translationKey(
-    'Row {{row}}: "{{key}}" is not a {{kind}}, such as {{example}}.',
-  ),
   keyTooLong: translationKey(
     "Row {{row}}: the key can be at most {{max}} characters long.",
   ),
@@ -114,6 +110,29 @@ export const NAMING_LOOKUP_PROBLEMS: {
   ),
   duplicateKey: translationKey(
     'Rows {{first}} and {{row}} both have the key "{{key}}". Keep one of them.',
+  ),
+};
+
+/*
+ * A key that is not of the table's kind, said whole for each kind: a
+ * sentence that put the kind's title inside it ("is not a {{kind}}") read
+ * "is not a last part of the ip address" in English, and left the title
+ * English, or wrongly lowercased, in every other language.
+ */
+export const NAMING_LOOKUP_BAD_KEY_PROBLEMS: Readonly<
+  Record<NamingLookupKey, string>
+> = {
+  [NamingLookupKey.LastIpOctet]: translationKey(
+    'Row {{row}}: "{{key}}" is not the last part of an IP address, such as {{example}}.',
+  ),
+  [NamingLookupKey.IpAddress]: translationKey(
+    'Row {{row}}: "{{key}}" is not an IP address, such as {{example}}.',
+  ),
+  [NamingLookupKey.MacAddress]: translationKey(
+    'Row {{row}}: "{{key}}" is not a MAC address, such as {{example}}.',
+  ),
+  [NamingLookupKey.DiscoveredName]: translationKey(
+    'Row {{row}}: "{{key}}" is not a discovered name, such as {{example}}.',
   ),
 };
 
@@ -378,11 +397,10 @@ export function validateNamingLookupEntries(data: {
     if (!key) {
       return {
         problem: {
-          template: NAMING_LOOKUP_PROBLEMS.badKey,
+          template: NAMING_LOOKUP_BAD_KEY_PROBLEMS[kind],
           values: {
             row: row,
             key: rawKey,
-            kind: NAMING_LOOKUP_KEY_TITLES[kind].toLowerCase(),
             example: NAMING_LOOKUP_KEY_EXAMPLES[kind],
           },
         },

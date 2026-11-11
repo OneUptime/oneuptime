@@ -37,10 +37,18 @@ import ObjectID from "../../../Types/ObjectID";
  *     around the monitor's create; getMonitorDataReceivedAt) - and else the
  *     record's creation, which is when a telemetry monitor's evaluation or
  *     a person opened it;
+ *   - one a once-a-minute worker starts when it comes due starts at the
+ *     moment it was due, so the minutes a worker that fell behind added
+ *     are in its time (issue #6708): a run held by its on-call rule or by
+ *     OneUptime AI, at the moment its hold ended
+ *     (getOnCallPolicyRunPagingDueAt), and a page again, at the moment its
+ *     acknowledgement timeout ran out (getOnCallAcknowledgementTimeoutDueAt)
+ *     - each read with the helper its worker decides with, so the two never
+ *     disagree;
  *   - any other starts when it starts paging: a run a person, a workflow or
- *     a rule that now matches started later, a page again, a direct page,
- *     and a run that waited to page (a hold its on-call rule asked for)
- *     once its wait is over.
+ *     a rule that now matches started later, a direct page, and a held run
+ *     started before its hold ran out - a rule that now matches its record,
+ *     OneUptime AI handing its hold off.
  *
  * The notification is accepted on another server, often: the Notification
  * service sends the SMS and writes the outcome on the notification's row.
@@ -245,9 +253,12 @@ export default class OnCallPageTiming {
 
   /*
    * When a page that starts now starts: at its record's trigger, inside
-   * runAsRecordIsCreated; otherwise now.
+   * runAsRecordIsCreated - whatever else it is told; otherwise at `dueAt`,
+   * the moment a worker's page was due (getDueMoment), and now without one.
    */
-  public static startPage(): OnCallPageStartMoment {
+  public static startPage(
+    data?: { dueAt?: Date | string | null | undefined } | undefined,
+  ): OnCallPageStartMoment {
     const record: OnCallPageStartMoment | undefined = recordCreation.getStore();
 
     if (record) {
@@ -255,9 +266,40 @@ export default class OnCallPageTiming {
     }
 
     return {
-      startedAt: OneUptimeDate.getCurrentDate(),
+      startedAt: OnCallPageTiming.getDueMoment({
+        dueAt: data?.dueAt,
+        now: OneUptimeDate.getCurrentDate(),
+      }),
       start: OnCallPageStart.PageStarted,
     };
+  }
+
+  /*
+   * The moment a page was due, as its start: `dueAt`, never after `now` - a
+   * moment in the future, two servers' clocks apart, is now, as
+   * OnCallEscalationAdvance.getDueAt reads one - and now for none, or for
+   * one that is no moment.
+   */
+  public static getDueMoment(data: {
+    dueAt?: Date | string | null | undefined;
+    now: Date;
+  }): Date {
+    const dueAt: Date | null =
+      data.dueAt instanceof Date
+        ? new Date(data.dueAt.getTime())
+        : typeof data.dueAt === "string" && data.dueAt
+          ? OneUptimeDate.fromString(data.dueAt)
+          : null;
+
+    if (
+      !dueAt ||
+      isNaN(dueAt.getTime()) ||
+      dueAt.getTime() > data.now.getTime()
+    ) {
+      return new Date(data.now.getTime());
+    }
+
+    return dueAt;
   }
 
   /*

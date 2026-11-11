@@ -1,3 +1,4 @@
+import OneUptimeDate from "../Date";
 import WorkingHours from "./WorkingHours";
 
 /*
@@ -62,6 +63,67 @@ export function getOnCallPolicyRunWaitingMessage(data: {
     : ON_CALL_POLICY_RUN_WAITING_MESSAGE_START;
 
   return `${start}Paging starts ${moment}.`;
+}
+
+/*
+ * WHEN A RUN THAT WAITS COMES DUE (issue #6708).
+ *
+ * One reading of a waiting run's moment (pagingStartsAt) for the worker
+ * deciding the run pages now (isOnCallPolicyRunWaitOver) and for the page
+ * it then starts, timed from the moment it was due
+ * (getOnCallPolicyRunPagingDueAt, notification.time_to_send): the worker
+ * runs once a minute, so a run is started up to a minute after its moment
+ * - and longer when the worker fell behind - and that lateness is the
+ * platform's, so its page is timed from the moment, not from the tick.
+ */
+export interface OnCallPolicyRunWaitMoment {
+  pagingStartsAt?: Date | string | null | undefined;
+  now: Date;
+}
+
+/*
+ * Whether a waiting run's moment has come at `now`, as the worker has
+ * always decided it: its moment is not after now, counted in whole
+ * seconds. A run with no moment, or one that is no moment, pages at once.
+ */
+export function isOnCallPolicyRunWaitOver(
+  data: OnCallPolicyRunWaitMoment,
+): boolean {
+  if (!data.pagingStartsAt) {
+    return true;
+  }
+
+  return !OneUptimeDate.isAfter(
+    OneUptimeDate.fromString(data.pagingStartsAt),
+    data.now,
+  );
+}
+
+/*
+ * The moment a run that waited was due to page: its moment, once that has
+ * come (isOnCallPolicyRunWaitOver) - however late the worker got to it -
+ * and `now` for a run started before it, its hold ended early by a rule
+ * that now matches its record (WaitingRunsOnRecordChange) or by OneUptime
+ * AI handing it off, and for a run with no moment, or one that is no
+ * moment. Never after `now`: a moment a little ahead - two servers' clocks
+ * apart, or a later millisecond of the same second - is now.
+ */
+export function getOnCallPolicyRunPagingDueAt(
+  data: OnCallPolicyRunWaitMoment,
+): Date {
+  const pagingStartsAt: Date | null = data.pagingStartsAt
+    ? OneUptimeDate.fromString(data.pagingStartsAt)
+    : null;
+
+  if (
+    !pagingStartsAt ||
+    isNaN(pagingStartsAt.getTime()) ||
+    pagingStartsAt.getTime() > data.now.getTime()
+  ) {
+    return new Date(data.now.getTime());
+  }
+
+  return new Date(pagingStartsAt.getTime());
 }
 
 // Whether a waiting run's message says OneUptime AI holds it.

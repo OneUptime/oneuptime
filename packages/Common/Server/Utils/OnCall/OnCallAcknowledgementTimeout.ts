@@ -13,6 +13,7 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  getOnCallAcknowledgementTimeoutDueAt,
   getOnCallAcknowledgementTimeoutInMinutes,
   hasOnCallPagesAgainLeft,
   isOnCallAcknowledgementTimeoutDue,
@@ -975,6 +976,15 @@ export default class OnCallAcknowledgementTimeout {
         recordKind: record.kind,
         startAtRuleId: run.lastExecutedEscalationRuleId || undefined,
         acknowledgedByUserId: acknowledgedByUserId || undefined,
+        /*
+         * Its page is timed from when the clock ran out - the moment this
+         * worker decided it is due by (isOnCallAcknowledgementTimeoutDue),
+         * however late the worker got to it (OnCallPageTiming, issue #6708).
+         */
+        dueAt: getOnCallAcknowledgementTimeoutDueAt({
+          startedAt: startedAt,
+          minutes: minutes,
+        }),
       });
 
     return {

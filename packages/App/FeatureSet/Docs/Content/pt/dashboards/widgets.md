@@ -178,7 +178,7 @@ Cada SLO com o status, o SLI, o orçamento de erros e a taxa de consumo, começa
 | **Funil** | Um funil salvo na página **Funis** de uma aplicação RUM: das pessoas que fizeram a primeira etapa no intervalo de tempo do painel, quantas seguiram para cada etapa seguinte. |
 | **Retenção de usuários** | Uma tabela de retenção salva na sua página **Retenção de usuários**: pessoas agrupadas por quando fizeram pela primeira vez o evento inicial, e a fatia de cada grupo que voltou em cada período depois, com **Todas as coortes** acima. |
 
-Salve primeiro o funil ou a tabela de retenção na sua página (veja [Funis e tabelas de retenção salvos](/docs/rum/product-analytics#funis-e-tabelas-de-retenção-salvos)) e depois escolha-o nas configurações do widget. O widget usa o nome dele como título, a menos que você dê um, e o lê de novo a cada atualização, então uma mudança salva na página aparece no painel. **Abrir em Funis** ou **Abrir em Retenção de usuários** o abre na sua página, no intervalo de tempo do painel. Vê-lo exige o mesmo que ver a página.
+Salve primeiro o funil ou a tabela de retenção na sua página (veja [Funis e tabelas de retenção salvos](/docs/rum/product-analytics#funis-e-tabelas-de-retenção-salvos)) e depois escolha-o nas configurações do widget. O widget usa o nome dele como título, a menos que você dê um, e o lê de novo a cada atualização, então uma mudança salva na página aparece no painel. **Abrir em Funis** ou **Abrir em Retenção de usuários** o abre na sua página, no intervalo de tempo do painel. Vê-lo exige o mesmo que ver a página. Um widget estreito demais para todos os períodos da tabela mostra os primeiros que cabem e informa abaixo da tabela quantos mais existem; essa linha também abre a tabela na sua página.
 
 ## Infraestrutura
 

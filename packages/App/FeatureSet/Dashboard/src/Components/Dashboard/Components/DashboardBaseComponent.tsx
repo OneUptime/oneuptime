@@ -77,6 +77,9 @@ import DashboardComponentType, {
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getWidgetTypeBadgeText } from "../Toolbar/WidgetCatalog";
 import { DashboardWidgetSortColumns } from "Common/Types/Dashboard/DashboardWidgetSort";
 import {
   GridDndMode,
@@ -261,6 +264,12 @@ const WIDGET_BY_TYPE: Partial<
   [DashboardComponentType.Html]: DashboardHtmlComponent,
 };
 
+export const WIDGET_TYPE_BADGE_TEST_ID: string = "dashboard-widget-type";
+
+// The type badge's box while the board is edited: 32px down, under the drag bar, 6px in from the line's end.
+export const WIDGET_TYPE_BADGE_BOX_CLASS_NAME: string =
+  "pointer-events-none absolute right-1.5 top-8 z-20";
+
 interface ResizeHandleSpec {
   direction: ResizeDirection;
   style: React.CSSProperties;
@@ -316,6 +325,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   });
 
   const [isHovered, setIsHovered] = useState<boolean>(false);
+  const translator: Translator = useTranslator();
 
   /*
    * Gone from the config under it: the settings preview of a widget that
@@ -407,27 +417,47 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Which kind of widget it is, while the board is edited: its name as the
+   * catalog gives it, in the reader's language (issue #6720), as its
+   * settings' badge says it - cut at its end on a narrow widget.
+   */
   const getTypeBadge: GetReactElementFunction = (): ReactElement => {
     if (!props.isEditMode || isActive || (!props.isSelected && !isHovered)) {
       return <></>;
     }
+
+    const typeBadgeText: string = getWidgetTypeBadgeText(
+      component.componentType,
+      translator,
+    );
+
+    if (!typeBadgeText) {
+      return <></>;
+    }
+
+    /*
+     * Under the drag bar, at the line's end: the right of a card read from
+     * the left, the left of one read from the right (right-1.5 is the end
+     * on such a page) - over the title's end, not over its first words.
+     */
     return (
       <div
-        className="absolute z-20 pointer-events-none"
+        className={WIDGET_TYPE_BADGE_BOX_CLASS_NAME}
         style={{
-          top: "32px",
-          right: "6px",
+          maxWidth: "calc(100% - 12px)",
         }}
       >
         <span
-          className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium capitalize"
+          className="block truncate px-1.5 py-0.5 rounded text-xs font-medium"
           style={{
             background:
               "color-mix(in srgb, var(--ou-surface-secondary, #f1f5f9) 90%, transparent)",
             color: "var(--ou-text-muted, #64748b)",
           }}
+          data-testid={WIDGET_TYPE_BADGE_TEST_ID}
         >
-          {component.componentType}
+          {typeBadgeText}
         </span>
       </div>
     );
