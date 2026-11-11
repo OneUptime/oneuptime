@@ -107,7 +107,11 @@ import {
   expect,
   test,
 } from "@jest/globals";
-import express from "express";
+import {
+  createExpressApp,
+  ExpressApplication,
+  ExpressJson,
+} from "Common/Server/Utils/Express";
 import http from "http";
 import { AddressInfo } from "net";
 import timers from "timers";
@@ -431,8 +435,8 @@ describe("over HTTP", () => {
   let port: number;
 
   beforeAll(async () => {
-    const app: express.Express = express();
-    app.use(express.json());
+    const app: ExpressApplication = createExpressApp();
+    app.use(ExpressJson());
     app.use("/api/notification/server-test", ServerTestSendAPI);
     app.use(expressErrorHandler);
     server = http.createServer(app);
