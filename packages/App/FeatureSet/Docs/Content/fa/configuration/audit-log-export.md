@@ -140,7 +140,7 @@ OneUptime هر دسته را با POST به **URL** می‌فرستد، به ش�
 | `id` | شناسهٔ مورد. همان مورد اگر دو بار فرستاده شود همان شناسه را دارد. |
 | `createdAt` | زمان ثبت تغییر، به UTC. |
 | `projectId` | پروژه‌ای که تغییر در آن انجام شد. |
-| `action` | `Create`، `Update`، `Delete` یا `Download`. |
+| `action` | `Create`، `Update`، `Delete` یا `Download`، یا برای یک نشست `SignIn`، `SignOut`، `SessionTimeout` یا `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | آنچه تغییر کرد. |
 | `rootResourceType`, `rootResourceId` | منبعی که این به آن تعلق دارد، مانند یک SLO برای قاعده‌اش. |
 | `userId`, `userName`, `userEmail`, `userType` | کسی که تغییر را انجام داد. |

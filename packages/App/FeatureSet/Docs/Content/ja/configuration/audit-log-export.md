@@ -140,7 +140,7 @@ UDP では、メッセージの長さは最大で **最大メッセージサイ�
 | `id` | エントリの ID。同じエントリを二回送信しても ID は同じです。 |
 | `createdAt` | 変更が記録された日時 (UTC)。 |
 | `projectId` | 変更が行われたプロジェクト。 |
-| `action` | `Create`、`Update`、`Delete`、`Download` のいずれか。 |
+| `action` | `Create`、`Update`、`Delete`、`Download` のいずれか。セッションの場合は `SignIn`、`SignOut`、`SessionTimeout`、`SessionRevoked` のいずれか。 |
 | `resourceType`, `resourceId`, `resourceName` | 変更されたもの。 |
 | `rootResourceType`, `rootResourceId` | それが属するリソース。たとえばルールに対する SLO。 |
 | `userId`, `userName`, `userEmail`, `userType` | 変更した人。 |

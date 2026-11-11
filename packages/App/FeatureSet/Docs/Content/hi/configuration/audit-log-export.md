@@ -140,7 +140,7 @@ UDP पर, हर संदेश ज़्यादा से ज़्या�
 | `id` | एंट्री की id। वही एंट्री दो बार भेजी जाए तो उसकी id वही रहती है। |
 | `createdAt` | बदलाव कब दर्ज हुआ, UTC में। |
 | `projectId` | वह प्रोजेक्ट जिसमें बदलाव किया गया। |
-| `action` | `Create`, `Update`, `Delete` या `Download`। |
+| `action` | `Create`, `Update`, `Delete` या `Download`, या किसी सत्र के लिए `SignIn`, `SignOut`, `SessionTimeout` या `SessionRevoked`। |
 | `resourceType`, `resourceId`, `resourceName` | क्या बदला गया। |
 | `rootResourceType`, `rootResourceId` | वह संसाधन जिसका यह हिस्सा है, जैसे किसी नियम के लिए उसका SLO। |
 | `userId`, `userName`, `userEmail`, `userType` | बदलाव किसने किया। |

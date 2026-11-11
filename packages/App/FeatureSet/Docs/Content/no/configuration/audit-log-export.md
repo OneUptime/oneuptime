@@ -140,7 +140,7 @@ Hver oppføring er ett JSON-objekt, med nøklene alltid i denne rekkefølgen:
 | `id` | Oppføringens ID. Den samme oppføringen, sendt to ganger, har den samme ID-en. |
 | `createdAt` | Når endringen ble registrert, i UTC. |
 | `projectId` | Prosjektet endringen ble gjort i. |
-| `action` | `Create`, `Update`, `Delete` eller `Download`. |
+| `action` | `Create`, `Update`, `Delete` eller `Download`, eller for en økt `SignIn`, `SignOut`, `SessionTimeout` eller `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Hva som ble endret. |
 | `rootResourceType`, `rootResourceId` | Ressursen den hører til, for eksempel et SLO for regelen sin. |
 | `userId`, `userName`, `userEmail`, `userType` | Hvem som gjorde endringen. |

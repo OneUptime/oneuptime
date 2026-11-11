@@ -1,11 +1,12 @@
 # Auditlogs
 
-Auditloggen registrerer, hvem der ændrede hvad i dit projekt: hver oprettelse, ændring og sletning af de ressourcer, den dækker, med værdierne før og efter. Brug den til at finde ud af, hvem der slog en monitor fra eller ændrede en API-nøgle, og til at føre dokumentation til compliance-gennemgange. Den er en del af Enterprise-planen i OneUptime Cloud og af Enterprise Edition, når du selv hoster.
+Auditloggen registrerer, hvem der ændrede hvad i dit projekt: hver oprettelse, ændring og sletning af de ressourcer, den dækker, med værdierne før og efter, og hver gang nogen logger ind eller ud. Brug den til at finde ud af, hvem der slog en monitor fra eller ændrede en API-nøgle, hvem der loggede ind og hvorfra, og til at føre dokumentation til compliance-gennemgange. Den er en del af Enterprise-planen i OneUptime Cloud og af Enterprise Edition, når du selv hoster.
 
 :::cards
 - [Slå auditlogning til](#slå-auditlogning-til): Den er slået fra fra start i alle projekter.
 - [Læs auditloggen](#læs-auditloggen): Hvem ændrede hvad, og hvornår.
 - [Hvad registreres](#hvad-registreres): De ressourcer og handlinger, den dækker.
+- [Logins og sessioner](#logins-og-sessioner): Hvem der loggede ind, og hvordan hver session sluttede.
 - [Hvor længe poster gemmes](#hvor-længe-poster-gemmes): Fra 7 til 180 dage.
 :::
 
@@ -64,10 +65,10 @@ En ændring af disse indstillinger træder i kraft inden for et minut.
 | Kolonne | Hvad den viser |
 | --- | --- |
 | **Hvornår** | Hvor længe siden, med dato og klokkeslæt. |
-| **Handling** | `Create`, `Update` eller `Delete`, eller `Download` for en pakkeopsamlingsfil, som nogen har downloadet. |
+| **Handling** | `Create`, `Update` eller `Delete`, `Download` for en pakkeopsamlingsfil, som nogen har downloadet, eller `Sign In`, `Sign Out`, `Session Timeout` eller `Session Revoked` for en session. |
 | **Ressource** | Ressourcens navn, som åbner den, så længe den findes, og dens type. |
 | **Aktør** | Hvem der foretog ændringen: en person, en API-nøgle, en workflow eller `System` for en ændring, OneUptime selv foretog. En persons ændring via en MCP-klient nævner hvilken. |
-| **Ændringer** | Hvor mange felter der blev ændret, eller registreret ved en oprettelse eller sletning. Klik for at se hvert felt. |
+| **Ændringer** | Hvor mange felter der blev ændret, eller registreret ved en oprettelse eller sletning. For en session, hvordan den loggede ind, eller hvorfor den sluttede. Klik for at se hvert felt. |
 
 Filtrér efter **Ressourcetype**, **Ressourcenavn**, **Handling**, **Bruger-e-mail** eller **Tid**. En ændring viser kun de felter, der blev ændret, før og efter, og en gemning, der ikke ændrer noget, tilføjer ingen post.
 
@@ -85,7 +86,7 @@ Alt, hvad folk opretter, ændrer eller sletter i et projekt, registreres: monito
 | Registreringer af kørsler | Hver af dem er allerede registreringen af en workflowkørsel, en vagteskalering, en scanning, en import eller en AI-kørsel. |
 | Det, agenter og telemetri rapporterer | Fundne ressourcer, målinger og forbrug ændrer sig ved hver rapport, ikke fordi nogen har ændret dem. |
 | Aktivitetsfeeds | Et feed viser ændringer, som auditloggen allerede registrerer. |
-| OneUptimes arbejdstilstand | Sessioner, jobs i kø og anden tilstand, som OneUptime holder, mens det arbejder. |
+| OneUptimes arbejdstilstand | Sessioner for læsere af statussider, jobs i kø og anden tilstand, som OneUptime holder, mens det arbejder. |
 | En persons egen notifikationsopsætning | Hver persons adresser, numre og personlige vagtregler er kun deres egne. |
 
 Det registreres også, når en administrator tilføjer eller fjerner en notifikationsmetode eller en personlig vagtregel på en andens konto, uden selve adressen eller nummeret.
@@ -104,6 +105,21 @@ Det, OneUptime gør, fordi nogen bad om det, registreres også som deres ændrin
 Det, en regel gør af sig selv, er OneUptimes egen ændring og registreres, når **Gem systemhændelser** er slået til: de etiketter og ejere, en regel tilføjer, når en post oprettes, og en post, den da gør privat; de enheder og monitorer, en regel for automatisk import opretter ud fra nye scanningsresultater; og det, en monitorregel på en statusside eller et SLO ændrer, når en regel, en monitor eller en etiket gemmes.
 
 Når nogen nulstiller AI-agenten for en vært, en klynge eller en cloudkonto, registreres det på ressourcens egen side **Auditlogs** som deres ændring af `aiAgentResetAt`: hvem, og hvornår. Det samme gælder, når nogen laver en nøgle til en cloudkontos AI-agent: nøglerne vises som ændret, aldrig med en nøgle eller en hash. Det, en agent rapporterer, når den forbinder og melder sig, er udeladt som før.
+
+## Logins og sessioner
+
+Hver gang et medlem af projektet logger ind på OneUptime, registrerer auditloggen det, og igen når den session slutter. Et login gælder OneUptime, ikke ét projekt, så alle projekter, personen er medlem af, registrerer det.
+
+| Handling | Hvornår det registreres |
+| --- | --- |
+| `Sign In` | Nogen logger ind: med en adgangskode eller et login-link, en adgangsnøgle, Google, Microsoft, Vercel eller single sign-on. |
+| `Sign Out` | Personen logger ud. |
+| `Session Timeout` | OneUptime afslutter sessionen, fordi tiden er gået: den inaktivitetsperiode eller sessionslængde, en serveradministrator har angivet, eller 30 dage uden brug. |
+| `Session Revoked` | OneUptime afslutter sessionen, fordi adgangskoden blev ændret, kontoen blev blokeret, eller en serveradministrator nulstillede eller krævede totrinsgodkendelse. |
+
+En posts **Ressource** er sessionen, navngivet efter den enhed, den loggede ind fra, for eksempel `Chrome 130 on macOS`. Postens **Aktør** er den person, sessionen tilhører, så filtrering efter **Bruger-e-mail** finder alle deres logins og sessioner. Detaljerne viser, hvordan personen loggede ind og med hvilken anden faktor, IP-adressen og stedet, og for en afsluttet session, hvornår den loggede ind, hvornår den sidst blev brugt, og hvornår den udløb. Et projekts egen SSO-udbyder nævnes kun i det projekts auditlog.
+
+Logins og sessioner registreres, uanset om projektet gemmer systemhændelser. En udløbet sessionslængde eller 30 dage uden brug registreres inden for få minutter. En udløbet inaktivitetsperiode registreres, næste gang personens åbne fane eller mobilappen kontakter OneUptime.
 
 ## Hvor længe poster gemmes
 

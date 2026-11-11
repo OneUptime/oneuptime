@@ -1,11 +1,12 @@
 # Journaux d'audit
 
-Le journal d'audit enregistre qui a modifié quoi dans votre projet : chaque création, modification et suppression des ressources qu'il couvre, avec les valeurs avant et après. Servez-vous-en pour savoir qui a désactivé un moniteur ou modifié une clé API, et pour garder une trace lors des contrôles de conformité. Il fait partie du forfait Enterprise sur OneUptime Cloud, et de l'Enterprise Edition quand vous hébergez vous-même.
+Le journal d'audit enregistre qui a modifié quoi dans votre projet : chaque création, modification et suppression des ressources qu'il couvre, avec les valeurs avant et après, et chaque fois que quelqu'un se connecte ou se déconnecte. Servez-vous-en pour savoir qui a désactivé un moniteur ou modifié une clé API, qui s'est connecté et d'où, et pour garder une trace lors des contrôles de conformité. Il fait partie du forfait Enterprise sur OneUptime Cloud, et de l'Enterprise Edition quand vous hébergez vous-même.
 
 :::cards
 - [Activer la journalisation d'audit](#activer-la-journalisation-daudit): Elle est désactivée au départ dans chaque projet.
 - [Lire le journal d'audit](#lire-le-journal-daudit): Qui a modifié quoi, et quand.
 - [Ce qui est enregistré](#ce-qui-est-enregistré): Les ressources et les actions qu'il couvre.
+- [Connexions et sessions](#connexions-et-sessions): Qui s'est connecté, et comment chaque session s'est terminée.
 - [Combien de temps les entrées sont conservées](#combien-de-temps-les-entrées-sont-conservées): De 7 à 180 jours.
 :::
 
@@ -64,10 +65,10 @@ Une modification de ces paramètres s'applique en moins d'une minute.
 | Colonne | Ce qu'elle montre |
 | --- | --- |
 | **Quand** | Il y a combien de temps, avec la date et l'heure. |
-| **Action** | `Create`, `Update` ou `Delete`, ou `Download` pour un fichier de capture de paquets que quelqu'un a téléchargé. |
+| **Action** | `Create`, `Update` ou `Delete`, `Download` pour un fichier de capture de paquets que quelqu'un a téléchargé, ou `Sign In`, `Sign Out`, `Session Timeout` ou `Session Revoked` pour une session. |
 | **Ressource** | Le nom de la ressource, qui l'ouvre tant qu'elle existe, et son type. |
 | **Acteur** | Qui a fait la modification : une personne, une clé API, un workflow, ou `System` pour une modification que OneUptime a faite de lui-même. La modification d'une personne faite via un client MCP indique lequel. |
-| **Modifications** | Combien de champs ont changé, ou ont été capturés pour une création ou une suppression. Cliquez dessus pour voir chaque champ. |
+| **Modifications** | Combien de champs ont changé, ou ont été capturés pour une création ou une suppression. Pour une session, comment elle s'est connectée ou pourquoi elle s'est terminée. Cliquez dessus pour voir chaque champ. |
 
 Filtrez par **Type de ressource**, **Nom de la ressource**, **Action**, **E-mail de l'utilisateur** ou **Heure**. Une modification ne liste que les champs qui ont changé, avant et après, et un enregistrement qui ne change rien n'ajoute aucune entrée.
 
@@ -85,7 +86,7 @@ Tout ce que les personnes créent, modifient ou suppriment dans un projet est en
 | Traces d'exécutions | Chacune est déjà la trace d'une exécution de workflow, d'une escalade d'astreinte, d'une analyse, d'une importation ou d'une exécution d'IA. |
 | Ce que signalent les agents et la télémétrie | Les ressources découvertes, les relevés et l'utilisation changent à chaque rapport, pas parce que quelqu'un les a modifiés. |
 | Flux d'activité | Un flux affiche des modifications que le journal d'audit enregistre déjà. |
-| L'état de travail de OneUptime | Les sessions, les tâches en attente et les autres états que OneUptime conserve pendant son travail. |
+| L'état de travail de OneUptime | Les sessions des lecteurs des pages de statut, les tâches en attente et les autres états que OneUptime conserve pendant son travail. |
 | La configuration des notifications propre à une personne | Les adresses, les numéros et les règles d'astreinte personnelles de chaque personne n'appartiennent qu'à elle. |
 
 Un administrateur qui ajoute ou retire une méthode de notification ou une règle d'astreinte personnelle sur le compte de quelqu'un d'autre est aussi enregistré, sans l'adresse ni le numéro lui-même.
@@ -104,6 +105,21 @@ Ce que OneUptime fait parce que quelqu'un le lui a demandé est aussi enregistr�
 Ce qu'une règle fait d'elle-même est une modification de OneUptime lui-même, enregistrée quand **Stocker les événements système** est activé : les libellés et les propriétaires qu'une règle ajoute à la création d'un enregistrement, et un enregistrement qu'elle rend alors privé ; les appareils et les moniteurs qu'une règle d'import automatique crée à partir de nouveaux résultats d'analyse ; et ce qu'une règle de moniteurs d'une page de statut ou d'un SLO change quand une règle, un moniteur ou un libellé est enregistré.
 
 La réinitialisation de l'agent IA d'un hôte, d'un cluster ou d'un compte cloud est enregistrée sur la page **Journaux d'audit** propre à cette ressource, comme la modification de `aiAgentResetAt` par la personne qui l'a réinitialisé : qui, et quand. De même pour la création d'une clé pour l'agent IA d'un compte cloud : les clés apparaissent comme modifiées, jamais avec une clé ou un hachage. Ce qu'un agent signale quand il se connecte et se manifeste reste exclu, comme avant.
+
+## Connexions et sessions
+
+Chaque fois qu'un membre du projet se connecte à OneUptime, le journal d'audit l'enregistre, puis à nouveau quand cette session se termine. Une connexion se fait à OneUptime, pas à un seul projet, donc chaque projet dont la personne est membre l'enregistre.
+
+| Action | Quand elle est enregistrée |
+| --- | --- |
+| `Sign In` | Quelqu'un se connecte : avec un mot de passe ou un lien de connexion, une clé d'accès, Google, Microsoft, Vercel ou l'authentification unique. |
+| `Sign Out` | La personne se déconnecte. |
+| `Session Timeout` | OneUptime met fin à la session à son échéance : le délai d'inactivité ou la durée de session fixés par un administrateur du serveur, ou 30 jours sans utilisation. |
+| `Session Revoked` | OneUptime met fin à la session parce que le mot de passe a changé, que le compte a été bloqué, ou qu'un administrateur du serveur a réinitialisé ou exigé l'authentification à deux facteurs. |
+
+La **Ressource** d'une entrée est la session, nommée d'après l'appareil depuis lequel elle s'est connectée, par exemple `Chrome 130 on macOS`. Son **Acteur** est la personne à qui appartient la session, donc filtrer par **E-mail de l'utilisateur** trouve toutes ses connexions et sessions. Ses détails indiquent comment la personne s'est connectée et avec quel second facteur, l'adresse IP et la localisation, et, pour une session terminée, quand elle s'est connectée, quand elle a été utilisée pour la dernière fois et quand elle a expiré. Le fournisseur SSO propre à un projet n'est nommé que dans le journal d'audit de ce projet.
+
+Les connexions et les sessions sont enregistrées que le projet stocke ou non les événements système. Une durée de session ou 30 jours sans utilisation sont enregistrés dans les minutes qui suivent leur échéance. Un délai d'inactivité est enregistré quand l'onglet ouvert de la personne ou l'application mobile contacte de nouveau OneUptime.
 
 ## Combien de temps les entrées sont conservées
 

@@ -140,7 +140,7 @@ Ogni voce è un oggetto JSON, con le chiavi sempre in quest'ordine:
 | `id` | L'id della voce. La stessa voce inviata due volte ha lo stesso id. |
 | `createdAt` | Quando è stata registrata la modifica, in UTC. |
 | `projectId` | Il progetto in cui è stata fatta la modifica. |
-| `action` | `Create`, `Update`, `Delete` o `Download`. |
+| `action` | `Create`, `Update`, `Delete` o `Download`, oppure per una sessione `SignIn`, `SignOut`, `SessionTimeout` o `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Che cosa è stato modificato. |
 | `rootResourceType`, `rootResourceId` | La risorsa a cui appartiene, come uno SLO per la sua regola. |
 | `userId`, `userName`, `userEmail`, `userType` | Chi ha fatto la modifica. |
