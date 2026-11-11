@@ -29,6 +29,7 @@ import NamePatternInput, {
   insertToken,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/Naming/NamePatternInput";
 import NamingLookupTableEditor, {
+  EMPTY_LOOKUP_TABLE_SENTENCES,
   LOOKUP_ROWS_PER_PAGE,
   getExampleLookupValue,
   mergePastedRows,
@@ -198,6 +199,10 @@ describe("the name pattern field", () => {
     expect(
       screen.getByTestId(`name-pattern-chip-${COUNTER_TOKEN}`),
     ).toBeInTheDocument();
+
+    // The label keeps its gap before the buttons on a page read either way.
+    expect(screen.getByText("Insert:").className).toContain("me-0.5");
+    expect(screen.getByText("Insert:").className).not.toMatch(/\bm[lr]-/);
   });
 
   test("a button puts its placeholder where the cursor is", () => {
@@ -273,6 +278,61 @@ describe("the lookup table", () => {
     expect(screen.getByTestId("naming-lookup-empty")).toHaveTextContent(
       "paste two columns from a spreadsheet",
     );
+  });
+
+  /*
+   * In a whole sentence for each kind of key (#6686): the one sentence it
+   * replaced put the key's title in it lowercased - "the last part of the
+   * ip address", "the mac address".
+   */
+  const emptySentences: Array<[NamingLookupKey, string]> = [
+    [
+      NamingLookupKey.LastIpOctet,
+      "No rows yet. Add one, or paste two columns from a spreadsheet: the last part of each IP address and the value it stands for.",
+    ],
+    [
+      NamingLookupKey.IpAddress,
+      "No rows yet. Add one, or paste two columns from a spreadsheet: each IP address and the value it stands for.",
+    ],
+    [
+      NamingLookupKey.MacAddress,
+      "No rows yet. Add one, or paste two columns from a spreadsheet: each MAC address and the value it stands for.",
+    ],
+    [
+      NamingLookupKey.DiscoveredName,
+      "No rows yet. Add one, or paste two columns from a spreadsheet: each discovered name and the value it stands for.",
+    ],
+  ];
+
+  test.each(emptySentences)(
+    "an empty %s table asks for its own rows",
+    (kind: NamingLookupKey, sentence: string) => {
+      render(<TableHarness initial={[]} kind={kind} />);
+
+      const shown: string =
+        screen.getByTestId("naming-lookup-empty").textContent || "";
+
+      expect(shown).toBe(sentence);
+      expect(EMPTY_LOOKUP_TABLE_SENTENCES[kind]).toBe(sentence);
+      expect(shown).not.toMatch(/\bip\b|\bmac\b/);
+    },
+  );
+
+  test("the table's columns and buttons sit at the reading start and end, on a page read either way", () => {
+    render(<TableHarness initial={[{ key: "51", value: "MNUPLR01" }]} />);
+
+    for (const header of screen.getAllByRole("columnheader")) {
+      expect(header.className).toContain("text-start");
+      expect(header.className).not.toMatch(/\btext-(left|right)\b/);
+    }
+
+    const removeCell: HTMLElement = screen
+      .getByTestId("naming-lookup-remove-row")
+      .closest("td") as HTMLElement;
+
+    expect(removeCell.className).toContain("text-end");
+    expect(removeCell.className).not.toMatch(/\btext-(left|right)\b/);
+    expect(screen.getByText("1 row").className).toContain("ms-auto");
   });
 
   test("rows are added, typed into and removed", () => {
