@@ -132,8 +132,19 @@ export const TEXT_DIRECTION_SCAN_LENGTH: number = 4096;
 
 const FIRST_LETTER_REGEX: RegExp = /\p{L}/u;
 
+/*
+ * A letter of a script written from right to left, by the scripts that use
+ * it (its script extensions), as the bidi algorithm reads it: the Arabic
+ * Tatweel (U+0640, "ـ") is a letter of no one script - Arabic, Syriac,
+ * Mandaic and Adlam stretch their words with it - and the bidi algorithm
+ * draws it as an Arabic letter. Arabic writes it after the article or a
+ * preposition put in front of a Latin name ("أحداث الـ CronJob", "لـ
+ * SMTP"): read by its script alone, it was a Latin letter, and the line
+ * came out left to right, its Arabic words in the wrong order. No other
+ * letter is used by these scripts without being of one of them.
+ */
 const RIGHT_TO_LEFT_LETTER_REGEX: RegExp =
-  /[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}\p{Script=Adlam}\p{Script=Hanifi_Rohingya}\p{Script=Mandaic}\p{Script=Samaritan}]/u;
+  /[\p{Script_Extensions=Arabic}\p{Script_Extensions=Hebrew}\p{Script_Extensions=Syriac}\p{Script_Extensions=Thaana}\p{Script_Extensions=Nko}\p{Script_Extensions=Adlam}\p{Script_Extensions=Hanifi_Rohingya}\p{Script_Extensions=Mandaic}\p{Script_Extensions=Samaritan}]/u;
 
 // One letter, of any script.
 const LETTER_REGEX: RegExp = /^\p{L}$/u;
@@ -533,6 +544,93 @@ export const setApartInSentence: (
   return isSetApartInSentence(value, sentenceDirection)
     ? `${FIRST_STRONG_ISOLATE}${value}${POP_DIRECTIONAL_ISOLATE}`
     : value;
+};
+
+/*
+ * A NUMBER KEEPS THE SIGNS A SENTENCE WRITES AGAINST IT.
+ *
+ * The bidi algorithm reads two numbers with one separator between them as
+ * one number - a slash, a colon, a full stop or a comma (its common
+ * separators), a plus or a minus (its European separators): "3/5",
+ * "09:30", "1.2" - and a number sign in front of a number as part of it:
+ * "#42". To the sentence around it an isolate is one sign of its own, so a
+ * number set apart in one is cut off from the signs beside it: "الأجهزة
+ * المتصلة: {{online}}/{{count}}", each count set apart, was drawn "5/3"
+ * where it reads "3/5", and Persian's "حادثه #{{number}}", whose
+ * right-to-left mark (U+200F) before the sign keeps it in front of the
+ * number ("#۴۲"), was drawn "۴۲#".
+ *
+ * So a value that is a number and nothing else, joined to another number
+ * by one separator or written after a number sign, is not set apart (the
+ * Translator's setsValuesApart): it is drawn with its sign the way the
+ * sentence writes it - "3/5", "09:30", the Persian "#۴۲" and the Arabic
+ * "42#" - as where no value is set apart. A name, an address or a time
+ * beside it is still set apart, and so is a number written apart from its
+ * signs. Whether two numbers join is read from the sentence with its
+ * values as they are (`before` and `after`): a sign between a number and a
+ * name joins nothing.
+ *
+ * A number with a percent or a currency sign stays set apart. After
+ * Arabic or Persian words the bidi algorithm reads its sign with the
+ * sentence, from the right ("%45", "5$"), but at the start of a sentence
+ * it reads the two left to right ("45%"): left as they are, "{{kept}}%
+ * kept, {{discarded}}% dropped" drew its first percent "45%" and its
+ * second "%55". Set apart, every one is drawn as the sentence reads.
+ */
+
+// The bidi algorithm's common and European separators: one between two numbers joins them.
+const NUMBER_SEPARATOR_REGEX: RegExp =
+  /^[+,\-./:\u{00A0}\u{060C}\u{202F}\u{2044}\u{207A}\u{207B}\u{208A}\u{208B}\u{2212}\u{FB29}\u{FE50}\u{FE52}\u{FE55}\u{FE62}\u{FE63}\u{FF0B}\u{FF0C}\u{FF0D}\u{FF0E}\u{FF0F}\u{FF1A}]$/u;
+
+// A number sign - "#", and its small and full-width forms: in front of a number, part of it.
+const NUMBER_SIGN_REGEX: RegExp = /^[#\u{FE5F}\u{FF03}]$/u;
+
+/*
+ * A number and nothing else, as Intl writes one in any language: "42",
+ * "1,234.5", "1.234,5", "1 234", "1'234", "۱٬۲۳۴٫۵", and a negative one
+ * with the mark Intl puts in front of its sign - a left-to-right mark
+ * (U+200E) in Persian and Arabic with Latin digits, an Arabic letter mark
+ * (U+061C) with Arabic ones, a right-to-left mark (U+200F) in Sorani -
+ * and after it in Pashto.
+ */
+const NUMBER_ALONE_REGEX: RegExp =
+  /^[\u{200E}\u{200F}\u{061C}]?(?:[+\-\u{2212}][\u{200E}\u{200F}\u{061C}]?)?\p{Nd}+(?:[,.'\u{00A0}\u{066B}\u{066C}\u{2009}\u{2019}\u{202F}]\p{Nd}+)*$/u;
+
+// No number Intl writes is longer: a longer value is not read as one.
+const NUMBER_ALONE_LENGTH: number = 64;
+
+// Whether `value` is a number and nothing else.
+export const isNumberAlone: (value: string) => boolean = (
+  value: string,
+): boolean => {
+  return value.length <= NUMBER_ALONE_LENGTH && NUMBER_ALONE_REGEX.test(value);
+};
+
+/*
+ * Whether `value`, a number written in a sentence between the text
+ * `before` it and the text `after` it (the sentence's values filled in as
+ * they are), is drawn as one with a sign written against it: one
+ * separator between it and a digit, or a number sign in front of it.
+ */
+export const isNumberJoinedToASign: (
+  value: string,
+  before: string,
+  after: string,
+) => boolean = (value: string, before: string, after: string): boolean => {
+  if (!isNumberAlone(value)) {
+    return false;
+  }
+
+  const signBefore: string = before.charAt(before.length - 1);
+  const signAfter: string = after.charAt(0);
+
+  return (
+    NUMBER_SIGN_REGEX.test(signBefore) ||
+    (NUMBER_SEPARATOR_REGEX.test(signBefore) &&
+      DIGIT_REGEX.test(before.charAt(before.length - 2))) ||
+    (NUMBER_SEPARATOR_REGEX.test(signAfter) &&
+      DIGIT_REGEX.test(after.charAt(1)))
+  );
 };
 
 export const getTextReadingDirection: (

@@ -9,6 +9,7 @@ import {
   FIRST_STRONG_ISOLATE,
   POP_DIRECTIONAL_ISOLATE,
 } from "../../../Types/ReadingDirection";
+import { PluralTemplate } from "../../../Types/Translator";
 
 /*
  * TranslatedSentence draws its sentence on the page and nothing else, so it
@@ -16,16 +17,31 @@ import {
  * sentence a connection's name in Latin letters, the time after it, and the
  * element drawn in a slot. A sentence whose pieces renderText draws as boxes
  * of their own keeps its slots as they are, and a sentence read left to
- * right is drawn exactly as before.
+ * right is drawn exactly as before. A number written against a sign of its
+ * own - two counts beside a slash, a number after a number sign - is left
+ * with it: set apart, "3/5" was drawn "5/3".
  */
 
 const READ_FROM: string =
   "Read from the Meraki dashboard ({{name}}), {{time}}.";
 const RUNNER: string = "Runner {{runner}} is not online.";
+const NODES: PluralTemplate = {
+  one: "{{online}}/{{count}} node online",
+  other: "{{online}}/{{count}} nodes online",
+};
+const INCIDENT_TITLE: string = "Incident #{{number}}: {{title}}";
+
+const RLM: string = String.fromCharCode(0x200f);
 
 const PERSIAN: Record<string, string> = {
   [READ_FROM]: "خوانده‌شده از داشبورد Meraki ({{name}})، {{time}}.",
   [RUNNER]: "رانر {{runner}} آنلاین نیست.",
+  [INCIDENT_TITLE]: `حادثه ${RLM}#{{number}}: {{title}}`,
+};
+
+const ARABIC: Record<string, string> = {
+  [NODES.other]: "العقد المتصلة: {{online}}/{{count}}",
+  [`${NODES.other}_one`]: "العقد المتصلة: {{online}}/{{count}}",
 };
 
 const GERMAN: Record<string, string> = {
@@ -40,7 +56,7 @@ const isolated: (value: string) => string = (value: string): string => {
 const instances: Record<string, i18n> = {};
 
 beforeAll(async () => {
-  for (const language of ["en", "de", "fa"]) {
+  for (const language of ["en", "de", "fa", "ar"]) {
     const instance: i18n = createInstance();
 
     await instance.init({
@@ -50,6 +66,7 @@ beforeAll(async () => {
         en: { translation: {} },
         de: { translation: GERMAN },
         fa: { translation: PERSIAN },
+        ar: { translation: ARABIC },
       },
       interpolation: { escapeValue: false },
       keySeparator: false,
@@ -125,6 +142,43 @@ describe("a sentence drawn in Persian", () => {
         return piece.textContent || "";
       }),
     ).toEqual(["رانر ", " آنلاین نیست."]);
+  });
+});
+
+describe("a number written against a sign of its own", () => {
+  test("two counts beside a slash are drawn as written in Arabic: 3/5", () => {
+    const sentence: HTMLElement = draw(
+      "ar",
+      <TranslatedSentence
+        template={NODES}
+        count={5}
+        slots={{}}
+        values={{ online: "3" }}
+      />,
+    );
+
+    // Nothing set apart: the sentence as the locale file writes it.
+    expect(sentence.textContent).toBe("العقد المتصلة: 3/5");
+  });
+
+  test("a Persian incident's number keeps its sign, and its title in the slot is set apart", () => {
+    const sentence: HTMLElement = draw(
+      "fa",
+      <TranslatedSentence
+        template={INCIDENT_TITLE}
+        slots={{
+          title: <strong data-testid="title">Checkout API down</strong>,
+        }}
+        values={{ number: "۴۲" }}
+      />,
+    );
+
+    expect(sentence.textContent).toBe(
+      `حادثه ${RLM}#۴۲: ${isolated("Checkout API down")}`,
+    );
+    expect(screen.getByTestId("title")).toHaveTextContent(
+      /^Checkout API down$/,
+    );
   });
 });
 
