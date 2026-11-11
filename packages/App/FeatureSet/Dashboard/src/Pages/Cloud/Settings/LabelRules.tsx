@@ -25,6 +25,7 @@ import { RuleWording } from "Common/UI/Components/RuleRun/RuleView";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 // Cloud's rules, and those made for both products before they split.
 const cloudResourceKind: EqualToOrNull<string> = getCloudRuleListKind(
@@ -90,6 +91,8 @@ const CloudResourceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           field: { name: true },
           title: "Name",
           type: FieldType.Element,
+          // The page's words beside the name: only the name reads its own way.
+          getLineText: drawsItsOwnLines,
           getElement: (item: CloudResourceLabelRule): ReactElement => {
             return (
               <CloudRuleName rule={item} kind={CloudResourceKind.Resource} />

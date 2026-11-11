@@ -28,6 +28,8 @@ import Modal from "Common/UI/Components/Modal/Modal";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 
 type RegistrationStep = "preparing" | "prompt" | "saving";
 
@@ -354,6 +356,8 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
             title: "Name",
             type: FieldType.Text,
             wrapContent: true,
+            // A mark beside the name: the name reads its own way, the cell the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (item: UserWebAuthn): ReactElement => {
               return (
                 <div className="flex items-center gap-3">
@@ -366,7 +370,9 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
                     />
                   </span>
                   <div className="min-w-0">
-                    <p className="font-medium text-gray-900">{item.name}</p>
+                    <p className="font-medium text-gray-900">
+                      <IsolatedText text={item.name || ""} />
+                    </p>
                   </div>
                 </div>
               );

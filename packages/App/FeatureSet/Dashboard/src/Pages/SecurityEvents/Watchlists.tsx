@@ -62,6 +62,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 // A watchlist's own page.
 export function getWatchlistViewRoute(watchlistId: ObjectID | string): Route {
@@ -275,6 +276,8 @@ const SecurityWatchlistsPage: FunctionComponent<PageComponentProps> = (
             getExportValue: (item: SecurityWatchlist): string => {
               return item.name || "";
             },
+            // Each of its lines already reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: SecurityWatchlist): ReactElement => {
               return (
                 <WatchlistNameCell

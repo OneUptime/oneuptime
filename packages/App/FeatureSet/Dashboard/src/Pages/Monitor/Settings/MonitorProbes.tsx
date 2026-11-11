@@ -49,6 +49,7 @@ import {
   MONITOR_THIS_PROBE_TITLE,
 } from "../../../Utils/MonitorThisProbe";
 import { PROBE_ON_NEW_MONITORS_COPY } from "../../../Components/Probe/ProbeOnNewMonitorsCopy";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -210,6 +211,8 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Name",
               type: FieldType.Text,
 
+              // A mark beside the name: the name reads its own way, the cell the page's.
+              getLineText: drawsItsOwnLines,
               getElement: (item: Probe): ReactElement => {
                 return <ProbeElement probe={item} />;
               },
@@ -386,6 +389,8 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Name",
               type: FieldType.Text,
 
+              // A mark beside the name: the name reads its own way, the cell the page's.
+              getLineText: drawsItsOwnLines,
               getElement: (item: Probe): ReactElement => {
                 return <ProbeElement probe={item} />;
               },

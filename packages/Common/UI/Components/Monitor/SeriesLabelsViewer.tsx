@@ -4,6 +4,8 @@ import SeriesLabelDisplay, {
 } from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Table from "../Table/Table";
+import { drawsItsOwnLines } from "../Table/ColumnLineText";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import FieldType from "../Types/FieldType";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -66,12 +68,16 @@ const SeriesLabelsViewer: FunctionComponent<ComponentProps> = (
           type: FieldType.Element,
           key: "name",
           disableSort: true,
+          // A label's name over its key: each reads its own way.
+          getLineText: drawsItsOwnLines,
           getElement: (item: DisplaySeriesLabel): ReactElement => {
             return (
               <div>
-                <div className="font-medium text-gray-900">{item.name}</div>
+                <div className="font-medium text-gray-900">
+                  <IsolatedText text={item.name} />
+                </div>
                 <div className="font-mono text-xs text-gray-400">
-                  {item.key}
+                  <IsolatedText text={item.key} />
                 </div>
               </div>
             );

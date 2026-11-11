@@ -16,6 +16,7 @@ import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners
 import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 const ServiceArchivedPage: FunctionComponent<
   PageComponentProps
@@ -109,10 +110,15 @@ const ServiceArchivedPage: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Element,
+            // A mark beside the name: the name reads its own way, the cell the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (service: Service): ReactElement => {
               return (
                 <Fragment>
-                  <ServiceElement service={service} />
+                  <ServiceElement
+                    service={service}
+                    serviceNameClassName="min-w-0 truncate"
+                  />
                 </Fragment>
               );
             },
