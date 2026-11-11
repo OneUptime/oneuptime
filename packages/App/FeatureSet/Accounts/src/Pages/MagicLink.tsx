@@ -22,7 +22,9 @@ import {
 } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
+import { useServerCanSendEmail } from "Common/UI/Utils/ServerSending";
 import User from "Common/Models/DatabaseModels/User";
+import CannotEmailNotice from "../Components/CannotEmailNotice/CannotEmailNotice";
 import React, { MutableRefObject, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -30,6 +32,7 @@ export const MAGIC_LINK_FORM_TEST_ID: string = "magic-link-form";
 export const MAGIC_LINK_SENT_TEST_ID: string = "magic-link-sent";
 export const MAGIC_LINK_SEND_ANOTHER_TEST_ID: string =
   "magic-link-send-another";
+export const MAGIC_LINK_CANNOT_EMAIL_TEST_ID: string = "magic-link-cannot-email";
 
 /*
  * "Sign in with a link", reached from the sign-in page's "Email me a sign-in
@@ -42,11 +45,19 @@ export const MAGIC_LINK_SEND_ANOTHER_TEST_ID: string =
  * master admin turned them off, or the server requires single sign-on - the
  * page sends its reader to the sign-in page, which offers what the server
  * does take.
+ *
+ * A server that cannot send email yet says so in place of the form, and who
+ * can let the reader in (GET /global-config/vars' canSendEmail): the same
+ * for everyone, so nothing about any account.
  */
 const MagicLinkPage: () => JSX.Element = () => {
   const { t } = useTranslation();
 
   const signInMethodsRead: SignInMethodsRead = useSignInMethods();
+
+  // False only once the server says it cannot send email; the form until then.
+  const canSendEmail: boolean | null = useServerCanSendEmail();
+  const cannotEmail: boolean = canSendEmail === false;
 
   // The address the latest link was asked for: shown once it is sent.
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -141,7 +152,7 @@ const MagicLinkPage: () => JSX.Element = () => {
           {sentTo ? t("magicLink.sentTitle") : t("magicLink.title")}
         </h2>
 
-        {!sentTo && (
+        {!sentTo && !cannotEmail && (
           <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
             {t("magicLink.subtitle")}
           </p>
@@ -149,6 +160,12 @@ const MagicLinkPage: () => JSX.Element = () => {
       </div>
 
       <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto">
+        {cannotEmail ? (
+          <CannotEmailNotice
+            testId={MAGIC_LINK_CANNOT_EMAIL_TEST_ID}
+            text={t("magicLink.cannotEmail")}
+          />
+        ) : (
         <div className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10">
           {sentTo ? (
             <div
@@ -225,6 +242,7 @@ const MagicLinkPage: () => JSX.Element = () => {
             </div>
           )}
         </div>
+        )}
 
         {/*
          * The way back to the password, under the card as on the forgot

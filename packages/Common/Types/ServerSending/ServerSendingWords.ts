@@ -8,16 +8,20 @@
  *
  * Pure, with no Node or browser APIs: the server, the Dashboard, the Accounts
  * pages and their tests all read the same words (ServerSendingStatus says
- * where the server stands).
+ * where the server stands). The one a Dashboard page shows is marked for
+ * translation (the Dashboard's extractor reads this file).
  */
+
+import { translationKey } from "../Translator";
 
 /*
  * Why an email the server had to send through its own settings was not
  * sent, while those settings are missing or incomplete: the Email Log row a
  * project's owners read, the on-call log, and the error the sender throws.
  */
-export const SERVER_EMAIL_NOT_SET_UP_MESSAGE: string =
-  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.";
+export const SERVER_EMAIL_NOT_SET_UP_MESSAGE: string = translationKey(
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.",
+);
 
 /*
  * What "Forgot password" answers while the server cannot send email: the

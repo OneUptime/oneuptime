@@ -50,6 +50,7 @@ import ServerSendingStatusUtil, {
   ServerSendingHealth,
 } from "../../Types/ServerSending/ServerSendingStatus";
 import { JSONObject } from "../../Types/JSON";
+import PartialEntity from "../../Types/Database/PartialEntity";
 import crypto from "crypto";
 
 /*
@@ -802,11 +803,25 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    await this.writeServerSendingHealth(health);
+  }
+
+  /*
+   * Writes what the server remembers of its own last sends: one statement,
+   * no hooks - bookkeeping, not a change of the server's settings, so its
+   * updatedAt stays as it was.
+   */
+  public async writeServerSendingHealth(
+    health: ServerSendingHealth,
+  ): Promise<void> {
+    const data: PartialEntity<Model> = {};
+
+    (data as Record<string, unknown>)["serverSendingHealth"] =
+      health as unknown as JSONObject;
+
     await this.updateColumnsByIdWithoutHooks({
       id: ObjectID.getZeroObjectID(),
-      data: {
-        serverSendingHealth: health as unknown as JSONObject,
-      },
+      data: data,
       skipUpdateDateColumn: true,
     });
   }

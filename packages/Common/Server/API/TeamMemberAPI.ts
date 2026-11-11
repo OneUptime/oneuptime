@@ -1,5 +1,7 @@
 import CommonAPI from "./CommonAPI";
 import UserMiddleware from "../Middleware/UserAuthorization";
+import MasterAdminAuthorization from "../Middleware/MasterAdminAuthorization";
+import InvitationLink, { InvitationLinkAnswer } from "../Utils/InvitationLink";
 import AccessTokenService from "../Services/AccessTokenService";
 import ProjectSCIMService from "../Services/ProjectSCIMService";
 import TeamMemberService, {
@@ -104,6 +106,44 @@ export default class TeamMemberAPI extends BaseAPI<
      * the delete runs with the caller's own permissions - so this grants
      * nothing that DELETE /team-member/:id did not already grant.
      */
+    /*
+     * POST /team-member/invitation-link - the link an invitation email
+     * carries, for a master admin to send the person themselves: on a
+     * server that cannot send email, the invite dialogs offer it once the
+     * invitation is created (InvitationLink). Master admins only: the link
+     * claims the account at that address.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/invitation-link`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const teamMemberId: string = (
+            (req.body?.["teamMemberId"] as string) || ""
+          ).trim();
+
+          if (!teamMemberId || !ObjectID.isValidUUID(teamMemberId)) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Team member ID is required."),
+            );
+          }
+
+          const answer: InvitationLinkAnswer =
+            await InvitationLink.getForTeamMember(new ObjectID(teamMemberId));
+
+          return Response.sendJsonObjectResponse(req, res, {
+            link: answer.link,
+            isRegistered: answer.isRegistered,
+            email: answer.email,
+          });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/remove-user-from-project`,
       UserMiddleware.getUserMiddleware,

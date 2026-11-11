@@ -10,7 +10,6 @@ import ServerSendingOutcomes, {
 } from "./ServerSendingOutcomes";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import { ProbeConnectionStatus } from "../../../Models/DatabaseModels/Probe";
-import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import ServerSendingStatusUtil, {
@@ -153,6 +152,31 @@ export default class ServerSendingStatus {
   }
 
   /*
+   * Whether the server's email settings are read, and are missing or
+   * incomplete: what Forgot password, sign-in links and a sign-up that needs
+   * a link emailed are refused on, the same answer for every address. A
+   * read that fails, or finds no row, is not that: the request goes on as it
+   * always did, and the send says how it went.
+   */
+  @CaptureSpan()
+  public static async isEmailKnownNotSetUp(): Promise<boolean> {
+    try {
+      const config: GlobalConfig | null =
+        await ServerSendingStatus.readConfig();
+
+      if (!config) {
+        return false;
+      }
+
+      return ServerChannelSetup.getEmailSetUpProblem(config) !== null;
+    } catch (err) {
+      logger.warn("Could not read whether this server's email is set up.");
+      logger.warn(err);
+      return false;
+    }
+  }
+
+  /*
    * What a page anybody can open may say about email: false while it is not
    * set up, or is and has never managed to send (canSendPublicly).
    */
@@ -256,14 +280,7 @@ export default class ServerSendingStatus {
   }
 
   private static async writeHealth(health: ServerSendingHealth): Promise<void> {
-    await GlobalConfigService.updateColumnsByIdWithoutHooks({
-      id: ObjectID.getZeroObjectID(),
-      data: {
-        serverSendingHealth: health as unknown as JSONObject,
-      },
-      // Bookkeeping, not a change of the server's settings.
-      skipUpdateDateColumn: true,
-    });
+    await GlobalConfigService.writeServerSendingHealth(health);
 
     ServerSendingStatus.cachedHealth = {
       health: health,

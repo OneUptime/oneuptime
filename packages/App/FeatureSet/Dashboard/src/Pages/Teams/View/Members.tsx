@@ -27,7 +27,15 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import {
   DeleteConfirmation,
   ModalTableBulkDefaultActions,
+  ModalType,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
+import {
+  SERVER_EMAIL_COPY,
+  ServerEmail,
+  cannotSendEmail,
+  useServerEmail,
+} from "../../../Utils/ServerEmail";
+import InvitationLinkModal from "../../../Components/Team/InvitationLinkModal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -51,6 +59,14 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
 
   const [isPushGroupsManaged, setIsPushGroupsManaged] =
     React.useState<boolean>(false);
+
+  /*
+   * Whether the server can send the invitation email (Utils/ServerEmail):
+   * the dialog says so, and a master admin is handed the link to send.
+   */
+  const serverEmail: ServerEmail = useServerEmail();
+  const [invitationLinkFor, setInvitationLinkFor] =
+    React.useState<ObjectID | null>(null);
 
   const { isEmailRegistered, checkEmail } = useUserEmailRegistrationStatus({
     getRequestHeaders: () => {
@@ -131,6 +147,22 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
           item.projectId = new ObjectID(props.currentProject._id);
           return Promise.resolve(item);
         }}
+        onCreateSuccess={async (
+          item: TeamMember,
+          modalType?: ModalType,
+        ): Promise<TeamMember> => {
+          // No email went out: a master admin is handed the link to send.
+          if (
+            modalType !== ModalType.Edit &&
+            cannotSendEmail(serverEmail) &&
+            serverEmail.isMasterAdmin &&
+            item.id
+          ) {
+            setInvitationLinkFor(item.id);
+          }
+
+          return item;
+        }}
         onBeforeDelete={async (item: TeamMember): Promise<TeamMember> => {
           if (isPushGroupsManaged) {
             throw new BadDataException(
@@ -161,7 +193,11 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
               user: true,
             },
             title: "Email",
-            description: "We email them an invitation to this team.",
+            description: cannotSendEmail(serverEmail)
+              ? serverEmail.isMasterAdmin
+                ? SERVER_EMAIL_COPY.inviteEmailDescriptionForAdmin
+                : SERVER_EMAIL_COPY.inviteEmailDescription
+              : "We email them an invitation to this team.",
             fieldType: FormFieldSchemaType.Email,
             required: true,
             placeholder: "member@company.com",
@@ -298,11 +334,29 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
               if (item["hasAcceptedInvitation"]) {
                 return <Pill text="Member" color={Green} />;
               }
-              return <Pill text="Invitation Sent" color={Yellow} />;
+              // Nothing was sent by a server that cannot send email.
+              return (
+                <Pill
+                  text={
+                    cannotSendEmail(serverEmail)
+                      ? SERVER_EMAIL_COPY.invitedPill
+                      : "Invitation Sent"
+                  }
+                  color={Yellow}
+                />
+              );
             },
           },
         ]}
       />
+      {invitationLinkFor && (
+        <InvitationLinkModal
+          teamMemberId={invitationLinkFor}
+          onClose={() => {
+            setInvitationLinkFor(null);
+          }}
+        />
+      )}
     </Fragment>
   );
 };

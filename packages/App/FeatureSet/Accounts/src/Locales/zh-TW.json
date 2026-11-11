@@ -157,7 +157,8 @@
     "successMessage": "我們已透過電子郵件向您寄送密碼重設連結。請別忘了檢查垃圾郵件資料夾。",
     "submitButton": "傳送密碼重設連結",
     "rememberPasswordPrompt": "記得您的密碼？",
-    "loginLink": "登入。"
+    "loginLink": "登入。",
+    "cannotEmail": "此伺服器尚無法傳送電子郵件，因此無法寄給您重設密碼的連結。請聯絡伺服器管理員為您重設密碼。"
   },
   "magicLink": {
     "title": "使用連結登入",
@@ -168,7 +169,8 @@
     "notReceived": "收件匣中沒有？請檢查垃圾郵件資料夾，或確認您輸入的是註冊時使用的地址。",
     "sendAnother": "再傳送一個連結",
     "knowPasswordPrompt": "知道您的密碼？",
-    "loginLink": "登入。"
+    "loginLink": "登入。",
+    "cannotEmail": "此伺服器尚無法傳送電子郵件，因此無法寄給您登入連結。請使用密碼登入，或聯絡伺服器管理員為您開通存取權限。"
   },
   "resetPassword": {
     "title": "重設您的密碼",

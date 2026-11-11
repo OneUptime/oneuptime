@@ -9,6 +9,15 @@ export interface GlobalConfigVars {
   disableUserProjectCreation: boolean;
   // Push notifications turned off for the whole server (PushNotificationsTurnedOff).
   disablePushNotifications: boolean;
+  /*
+   * False while the server is known not to be able to send email: its email
+   * is not set up, or has never managed to send (Types/ServerSending/
+   * ServerSendingStatus). The sign-in pages, the invite dialogs, Home and
+   * Create Monitor then say so, instead of promising an email. Read as true
+   * from an answer that does not say false - an older server's, or one that
+   * was refused - so nothing claims the server cannot send when it may.
+   */
+  canSendEmail: boolean;
 }
 
 export default class GlobalConfigUtil {
@@ -37,10 +46,7 @@ export default class GlobalConfigUtil {
           ? {}
           : (response.data as JSONObject);
 
-      GlobalConfigUtil.cache = {
-        disableUserProjectCreation: Boolean(data["disableUserProjectCreation"]),
-        disablePushNotifications: Boolean(data["disablePushNotifications"]),
-      };
+      GlobalConfigUtil.cache = GlobalConfigUtil.readVars(data);
 
       return GlobalConfigUtil.cache;
     })();
@@ -50,6 +56,15 @@ export default class GlobalConfigUtil {
     } finally {
       GlobalConfigUtil.fetchPromise = null;
     }
+  }
+
+  // The vars in an answer: booleans only, each from its own field.
+  public static readVars(data: JSONObject | null | undefined): GlobalConfigVars {
+    return {
+      disableUserProjectCreation: Boolean(data?.["disableUserProjectCreation"]),
+      disablePushNotifications: Boolean(data?.["disablePushNotifications"]),
+      canSendEmail: data?.["canSendEmail"] !== false,
+    };
   }
 
   public static clearCache(): void {
