@@ -317,16 +317,15 @@ describe("startTestPage: a test page to people", () => {
 
 describe("startPolicyTest: a test of an on-call policy", () => {
   test("writes a run of the policy, with no record, saying what it tests and whether it walks every level", async () => {
-    const id: ObjectID = await OnCallDutyPolicyExecutionLogService.startPolicyTest(
-      {
+    const id: ObjectID =
+      await OnCallDutyPolicyExecutionLogService.startPolicyTest({
         projectId: PROJECT_ID,
         onCallDutyPolicyId: POLICY_ID,
         recordKind: OnCallTestPageRecordKind.Alert,
         severityId: SEVERITY_ID,
         walksEscalation: true,
         startedByUserId: SENDER_ID,
-      },
-    );
+      });
 
     expect(id).toEqual(RUN_ID);
 

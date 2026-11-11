@@ -25,8 +25,17 @@ import Permission from "Common/Types/Permission";
  */
 
 const APP_ROOT: string = path.join(__dirname, "..", "..");
-const DASHBOARD_SRC: string = path.join(APP_ROOT, "FeatureSet", "Dashboard", "src");
-const TEST_PAGE_DIR: string = path.join(DASHBOARD_SRC, "Components", "OnCallTestPage");
+const DASHBOARD_SRC: string = path.join(
+  APP_ROOT,
+  "FeatureSet",
+  "Dashboard",
+  "src",
+);
+const TEST_PAGE_DIR: string = path.join(
+  DASHBOARD_SRC,
+  "Components",
+  "OnCallTestPage",
+);
 
 function read(...parts: Array<string>): string {
   return fs.readFileSync(path.join(DASHBOARD_SRC, ...parts), "utf8");
@@ -142,7 +151,12 @@ describe("what the Dashboard and the server agree on", () => {
   test("the dialog calls the routes the server mounts", () => {
     expect(ON_CALL_TEST_PAGE_API_PATH).toBe("/on-call-test-page");
 
-    for (const route of ["/preview", "/page-person", "/page-policy", "/result/:executionLogId"]) {
+    for (const route of [
+      "/preview",
+      "/page-person",
+      "/page-policy",
+      "/result/:executionLogId",
+    ]) {
       expect(SERVER_API).toContain(`\${ON_CALL_TEST_PAGE_API_PATH}${route}`);
     }
 
@@ -155,7 +169,12 @@ describe("what the Dashboard and the server agree on", () => {
       `export const ON_CALL_TEST_PAGE_API_PATH: string = "${ON_CALL_TEST_PAGE_API_PATH}";`,
     );
 
-    for (const route of ["/preview", "/page-person", "/page-policy", "/result/"]) {
+    for (const route of [
+      "/preview",
+      "/page-person",
+      "/page-policy",
+      "/result/",
+    ]) {
       expect({ route, called: api.includes(route) }).toEqual({
         route,
         called: true,
@@ -170,7 +189,9 @@ describe("what the Dashboard and the server agree on", () => {
     expect(baseApi).toContain(
       'import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";',
     );
-    expect(baseApi).toMatch(/app\.use\(\s*`\/\$\{APP_NAME\.toLocaleLowerCase\(\)\}`,\s*OnCallTestPageAPI,?\s*\)/);
+    expect(baseApi).toMatch(
+      /app\.use\(\s*`\/\$\{APP_NAME\.toLocaleLowerCase\(\)\}`,\s*OnCallTestPageAPI,?\s*\)/,
+    );
   });
 
   test("a member's test is offered to the roles the server lets send one", () => {

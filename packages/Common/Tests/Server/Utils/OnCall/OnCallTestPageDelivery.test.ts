@@ -189,15 +189,18 @@ beforeEach(() => {
   jest
     .spyOn(OnCallDutyPolicyService, "findOneById")
     .mockResolvedValue({ name: "Primary" } as never);
-  jest
-    .spyOn(UserService, "findOneById")
-    .mockResolvedValue({ name: "Ana Lopez", email: "ana@example.com" } as never);
+  jest.spyOn(UserService, "findOneById").mockResolvedValue({
+    name: "Ana Lopez",
+    email: "ana@example.com",
+  } as never);
 
   jest
     .spyOn(ProjectCallSMSConfigService, "getProjectDefaultTwilioConfig")
     .mockResolvedValue(undefined as never);
 
-  jest.spyOn(ShortLinkService, "saveShortLinkFor").mockResolvedValue({} as never);
+  jest
+    .spyOn(ShortLinkService, "saveShortLinkFor")
+    .mockResolvedValue({} as never);
   jest
     .spyOn(ShortLinkService, "getShortenedUrl")
     .mockResolvedValue(URL.fromString(SHORT_URL) as never);
@@ -223,7 +226,9 @@ beforeEach(() => {
   jest
     .spyOn(WorkspaceUserNotificationService, "sendDirectMessageToUser")
     .mockResolvedValue(undefined as never);
-  jest.spyOn(WebhookService, "sendWebhook").mockResolvedValue(undefined as never);
+  jest
+    .spyOn(WebhookService, "sendWebhook")
+    .mockResolvedValue(undefined as never);
   jest
     .spyOn(PushNotificationService, "sendPushNotification")
     .mockResolvedValue(undefined as never);
@@ -403,7 +408,9 @@ describe("SMS", () => {
       { message: string },
     ];
 
-    expect(sms.message).toContain("for The Very Long Project Name Of A Big Com…:");
+    expect(sms.message).toContain(
+      "for The Very Long Project Name Of A Big Com…:",
+    );
     expect(sms.message.length).toBeLessThanOrEqual(160);
   });
 
@@ -662,9 +669,9 @@ describe("Slack, Microsoft Teams and Mattermost", () => {
       expect(send.workspaceType).toBe(workspaceType);
       expect(send.workspaceUserId).toBe("U123");
       expect(send.notificationText).toBe("TEST page from OneUptime");
-      expect(send.messageBlocks[0]!.text.startsWith("🧪 **TEST page from")).toBe(
-        true,
-      );
+      expect(
+        send.messageBlocks[0]!.text.startsWith("🧪 **TEST page from"),
+      ).toBe(true);
       expect(send.messageBlocks[0]!.text).toContain(
         `[Acknowledge test page](${SHORT_URL})`,
       );
@@ -672,8 +679,8 @@ describe("Slack, Microsoft Teams and Mattermost", () => {
       expect(send.incidentId).toBeUndefined();
       expect(send.alertId).toBeUndefined();
       expect(String(send.userOnCallLogTimelineId)).toBe(
-      createdRows[0]!.id!.toString(),
-    );
+        createdRows[0]!.id!.toString(),
+      );
       expect(
         (createdRows[0] as unknown as Record<string, ObjectID>)[
           timelineColumn
@@ -797,7 +804,9 @@ describe("custom channel", () => {
       customNotificationChannel: { name: "Pager App", isEnabled: false },
     });
 
-    expect(CustomNotificationChannelDeliveryService.send).not.toHaveBeenCalled();
+    expect(
+      CustomNotificationChannelDeliveryService.send,
+    ).not.toHaveBeenCalled();
     expect(createdRows[0]!.status).toBe(UserNotificationStatus.Error);
     expect(createdRows[0]!.statusMessage).toBe(
       "Not sent: Pager App is turned off.",
@@ -929,9 +938,9 @@ describe("what every message says (readContext)", () => {
   });
 
   test("a read that fails leaves the sentences plainer, and the test still goes out", async () => {
-    (OnCallDutyPolicyExecutionLogService.findOneById as jest.Mock).mockRejectedValue(
-      new Error("database is slow") as never,
-    );
+    (
+      OnCallDutyPolicyExecutionLogService.findOneById as jest.Mock
+    ).mockRejectedValue(new Error("database is slow") as never);
 
     expect(await readContext()).toEqual({
       recordKind: OnCallTestPageRecordKind.Incident,

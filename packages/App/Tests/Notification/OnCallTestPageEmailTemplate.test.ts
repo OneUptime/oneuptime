@@ -111,9 +111,7 @@ describe("a test page's email", () => {
   });
 
   test("with nobody known to have sent it, says nothing about who did", () => {
-    const text: string = visibleText(
-      render({ ...englishVars(), sentBy: "" }),
-    );
+    const text: string = visibleText(render({ ...englishVars(), sentBy: "" }));
 
     expect(text).not.toContain("sent you this test page");
   });

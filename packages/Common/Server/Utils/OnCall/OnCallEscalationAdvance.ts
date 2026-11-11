@@ -424,10 +424,7 @@ export default class OnCallEscalationAdvance {
        * the policy's Repeat Policy card says: a policy whose repeats were
        * switched off, its number left as it was, runs once.
        */
-      if (
-        repeatCount &&
-        repeatCount <= this.getRepeatsAllowed(run)
-      ) {
+      if (repeatCount && repeatCount <= this.getRepeatsAllowed(run)) {
         const newRepeatCount: number = repeatCount + 1;
 
         logger.debug(

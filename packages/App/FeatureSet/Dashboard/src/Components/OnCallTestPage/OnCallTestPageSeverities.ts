@@ -131,7 +131,9 @@ export async function loadSeverityOptions(): Promise<
   const toNamed: (severity: IncidentSeverity | AlertSeverity) => {
     id: string;
     name: string;
-  } = (severity: IncidentSeverity | AlertSeverity): {
+  } = (
+    severity: IncidentSeverity | AlertSeverity,
+  ): {
     id: string;
     name: string;
   } => {

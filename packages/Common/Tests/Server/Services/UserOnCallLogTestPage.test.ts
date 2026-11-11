@@ -139,7 +139,8 @@ function select(query: RuleQuery): Array<StoredRule> {
 
     if (
       query.incidentSeverityId &&
-      rule.incidentSeverityId?.toString() !== query.incidentSeverityId.toString()
+      rule.incidentSeverityId?.toString() !==
+        query.incidentSeverityId.toString()
     ) {
       return false;
     }
@@ -212,9 +213,9 @@ function callOnCreateSuccess(createdItem: Model): Promise<Model> {
 }
 
 function armRun(run: Record<string, unknown> | null): void {
-  (OnCallDutyPolicyExecutionLogService.findOneById as jest.Mock).mockResolvedValue(
-    (run ? { id: RUN_ID, ...run } : null) as never,
-  );
+  (
+    OnCallDutyPolicyExecutionLogService.findOneById as jest.Mock
+  ).mockResolvedValue((run ? { id: RUN_ID, ...run } : null) as never);
 }
 
 let findBySpy: jest.SpyInstance;
@@ -249,23 +250,27 @@ beforeEach(() => {
 
   findBySpy = jest
     .spyOn(UserNotificationRuleService, "findBy")
-    .mockImplementation((findBy: unknown): Promise<Array<UserNotificationRule>> => {
-      const query: RuleQuery = (findBy as { query: RuleQuery }).query;
-      return Promise.resolve(
-        select(query).map((rule: StoredRule): UserNotificationRule => {
-          return {
-            id: rule.id,
-            notifyAfterMinutes: rule.notifyAfterMinutes,
-          } as unknown as UserNotificationRule;
-        }),
-      );
-    });
+    .mockImplementation(
+      (findBy: unknown): Promise<Array<UserNotificationRule>> => {
+        const query: RuleQuery = (findBy as { query: RuleQuery }).query;
+        return Promise.resolve(
+          select(query).map((rule: StoredRule): UserNotificationRule => {
+            return {
+              id: rule.id,
+              notifyAfterMinutes: rule.notifyAfterMinutes,
+            } as unknown as UserNotificationRule;
+          }),
+        );
+      },
+    );
 
   jest
     .spyOn(UserNotificationRuleService, "countBy")
     .mockImplementation((countBy: unknown): Promise<PositiveNumber> => {
       return Promise.resolve(
-        new PositiveNumber(select((countBy as { query: RuleQuery }).query).length),
+        new PositiveNumber(
+          select((countBy as { query: RuleQuery }).query).length,
+        ),
       );
     });
 
@@ -306,12 +311,10 @@ beforeEach(() => {
   jest
     .spyOn(UserService, "findOneById")
     .mockResolvedValue({ name: "Ana Lopez" } as never);
-  jest
-    .spyOn(IncidentService, "findOneById")
-    .mockResolvedValue({
-      incidentSeverityId: INCIDENT_SEVERITY_ID,
-      incidentSeverity: { name: "Critical" },
-    } as never);
+  jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
+    incidentSeverityId: INCIDENT_SEVERITY_ID,
+    incidentSeverity: { name: "Critical" },
+  } as never);
 
   timelineCreateSpy = jest
     .spyOn(UserOnCallLogTimelineService, "create")
@@ -373,8 +376,9 @@ describe("a test page runs every rule of its cell at once", () => {
   test("reads the person's rules of the kind and severity its run names, opt-outs left out, while a member", async () => {
     await callOnCreateSuccess(makeLog());
 
-    const query: RuleQuery = (findBySpy.mock.calls[0]![0] as { query: RuleQuery })
-      .query;
+    const query: RuleQuery = (
+      findBySpy.mock.calls[0]![0] as { query: RuleQuery }
+    ).query;
 
     expect(query.ruleType).toBe(NotificationRuleType.ON_CALL_EXECUTED_INCIDENT);
     expect(query.incidentSeverityId?.toString()).toBe(
@@ -400,10 +404,13 @@ describe("a test page runs every rule of its cell at once", () => {
 
     expect(executedRuleIds()).toEqual([ruleId(5).toString()]);
 
-    const query: RuleQuery = (findBySpy.mock.calls[0]![0] as { query: RuleQuery })
-      .query;
+    const query: RuleQuery = (
+      findBySpy.mock.calls[0]![0] as { query: RuleQuery }
+    ).query;
     expect(query.ruleType).toBe(NotificationRuleType.ON_CALL_EXECUTED_ALERT);
-    expect(query.alertSeverityId?.toString()).toBe(ALERT_SEVERITY_ID.toString());
+    expect(query.alertSeverityId?.toString()).toBe(
+      ALERT_SEVERITY_ID.toString(),
+    );
     expect(query.incidentSeverityId).toBeUndefined();
   });
 
@@ -657,7 +664,8 @@ describe("a test page with no rule for its severity takes a real page's no-rule 
       id: STEP_ID,
       data: {
         status: OnCallDutyExecutionLogTimelineStatus.Skipped,
-        statusMessage: "You have opted out of notifications for Critical incidents.",
+        statusMessage:
+          "You have opted out of notifications for Critical incidents.",
       },
       props: { isRoot: true },
     });

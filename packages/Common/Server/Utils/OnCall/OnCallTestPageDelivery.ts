@@ -19,9 +19,7 @@ import Dictionary from "../../../Types/Dictionary";
 import EmailMessage from "../../../Types/Email/EmailMessage";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import { JSONObject } from "../../../Types/JSON";
-import {
-  isCriticalPushNotification,
-} from "../../../Types/NotificationRule/PushNotificationLevel";
+import { isCriticalPushNotification } from "../../../Types/NotificationRule/PushNotificationLevel";
 import ObjectID from "../../../Types/ObjectID";
 import { getOnCallPageStateName } from "../../../Types/OnCallDutyPolicy/OnCallPageWords";
 import {
@@ -168,10 +166,10 @@ export default class OnCallTestPageDelivery {
 
         const emailMessage: Omit<EmailMessage, "toEmail"> =
           await this.getEmailMessage({
-          timelineId: row.id!,
-          context: context,
-          translator: data.translator,
-        });
+            timelineId: row.id!,
+            context: context,
+            translator: data.translator,
+          });
 
         MailService.sendMail(
           {
@@ -391,7 +389,9 @@ export default class OnCallTestPageDelivery {
         onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
         teamId: options.userBelongsToTeamId,
         onCallScheduleId: options.onCallScheduleId,
-      }).catch(this.onSendError(row.id!, `Error sending ${displayName} message.`));
+      }).catch(
+        this.onSendError(row.id!, `Error sending ${displayName} message.`),
+      );
     }
 
     // WEBHOOK: the documented test event, saying it is a test page.
@@ -570,9 +570,7 @@ export default class OnCallTestPageDelivery {
             userOnCallLogTimelineId: row.id!,
             ...sendIds,
           },
-        ).catch(
-          this.onSendError(row.id!, "Error sending push notification."),
-        );
+        ).catch(this.onSendError(row.id!, "Error sending push notification."));
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),

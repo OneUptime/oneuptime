@@ -1662,7 +1662,10 @@ const OnCallReadinessPage: FunctionComponent<
             title: "Send test page",
             icon: IconProp.Beaker,
             buttonStyleType: ButtonStyleType.NORMAL,
-            onClick: (row: ResponderRow, onCompleteAction: () => void): void => {
+            onClick: (
+              row: ResponderRow,
+              onCompleteAction: () => void,
+            ): void => {
               setTestPageRow(row);
               onCompleteAction();
             },

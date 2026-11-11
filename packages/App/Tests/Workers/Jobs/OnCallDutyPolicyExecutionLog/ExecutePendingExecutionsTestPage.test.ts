@@ -207,16 +207,19 @@ describe("a test page that is paging", () => {
   test.each([
     ["a test of people", false],
     ["a test of a policy that walks every level", true],
-  ])("%s is handed to OnCallTestPageRuns, with the run and now", async (_name: string, withPolicy: boolean) => {
-    const run: OnCallDutyPolicyExecutionLog = testRun(withPolicy);
-    executionLogService.findAllBy.mockResolvedValue([run]);
+  ])(
+    "%s is handed to OnCallTestPageRuns, with the run and now",
+    async (_name: string, withPolicy: boolean) => {
+      const run: OnCallDutyPolicyExecutionLog = testRun(withPolicy);
+      executionLogService.findAllBy.mockResolvedValue([run]);
 
-    await tick();
+      await tick();
 
-    expect(runs.tick).toHaveBeenCalledTimes(1);
-    expect(runs.tick.mock.calls[0]![0].run).toBe(run);
-    expect(runs.tick.mock.calls[0]![0].now).toBeInstanceOf(Date);
-  });
+      expect(runs.tick).toHaveBeenCalledTimes(1);
+      expect(runs.tick.mock.calls[0]![0].run).toBe(run);
+      expect(runs.tick.mock.calls[0]![0].now).toBeInstanceOf(Date);
+    },
+  );
 
   test("nothing else is done with it: no record, no direct page's end, no policy's next rule", async () => {
     executionLogService.findAllBy.mockResolvedValue([
@@ -241,12 +244,12 @@ describe("a test page that is paging", () => {
 
     await tick();
 
-    expect(executionLogService.findAllBy.mock.calls[0]![0].select).toMatchObject(
-      {
-        userNotificationEventType: true,
-        testPageWalksEscalation: true,
-      },
-    );
+    expect(
+      executionLogService.findAllBy.mock.calls[0]![0].select,
+    ).toMatchObject({
+      userNotificationEventType: true,
+      testPageWalksEscalation: true,
+    });
   });
 });
 

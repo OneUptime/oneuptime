@@ -200,11 +200,14 @@ describe("who may send a test page to a member", () => {
     Permission.ProjectMember,
     Permission.OnCallMember,
     Permission.Viewer,
-  ])("%s may not: a test pages somebody else, under the project's name", (permission: Permission) => {
-    expect(() => {
-      OnCallTestPageService.assertMaySendToMember(memberProps([permission]));
-    }).toThrow(ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE);
-  });
+  ])(
+    "%s may not: a test pages somebody else, under the project's name",
+    (permission: Permission) => {
+      expect(() => {
+        OnCallTestPageService.assertMaySendToMember(memberProps([permission]));
+      }).toThrow(ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE);
+    },
+  );
 
   test("a master admin may", () => {
     expect(() => {
@@ -566,9 +569,9 @@ describe("what a test will send, before it is sent", () => {
         } as never),
       ] as never);
 
-    jest.spyOn(UserNotificationRuleService, "findOneBy").mockResolvedValue(
-      null as never,
-    );
+    jest
+      .spyOn(UserNotificationRuleService, "findOneBy")
+      .mockResolvedValue(null as never);
 
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
       enableSmsNotifications: true,
@@ -779,9 +782,11 @@ describe("who a policy's first level pages right now", () => {
     });
 
     expect(
-      level.targets.map((target: { userId: ObjectID; reachedThrough?: string }) => {
-        return [target.userId.toString(), target.reachedThrough];
-      }),
+      level.targets.map(
+        (target: { userId: ObjectID; reachedThrough?: string }) => {
+          return [target.userId.toString(), target.reachedThrough];
+        },
+      ),
     ).toEqual([
       [ANA.toString(), "Team Platform"],
       [BOB.toString(), "Team Platform"],
@@ -796,11 +801,17 @@ describe("who a policy's first level pages right now", () => {
       .spyOn(OnCallDutyPolicyEscalationRuleService, "getAwayOverride")
       .mockImplementation((async (data: { userId: ObjectID }) => {
         if (data.userId.toString() === ANA.toString()) {
-          return { coverUserId: CARA, endsAt: new Date("2026-11-12T09:00:00Z") };
+          return {
+            coverUserId: CARA,
+            endsAt: new Date("2026-11-12T09:00:00Z"),
+          };
         }
 
         if (data.userId.toString() === BOB.toString()) {
-          return { coverUserId: null, endsAt: new Date("2026-11-12T09:00:00Z") };
+          return {
+            coverUserId: null,
+            endsAt: new Date("2026-11-12T09:00:00Z"),
+          };
         }
 
         return null;
@@ -818,7 +829,9 @@ describe("who a policy's first level pages right now", () => {
       reachedThrough: "Covering for Ana Lopez",
     });
     expect(level.notPaged).toContainEqual(
-      expect.stringMatching(/^Bob Stone is away until .+, with nobody covering\.$/),
+      expect.stringMatching(
+        /^Bob Stone is away until .+, with nobody covering\.$/,
+      ),
     );
   });
 
@@ -1096,7 +1109,11 @@ describe("what became of a test: the chain as it happened", () => {
     jest
       .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "findBy")
       .mockResolvedValue([
-        line(LINE_ANA, ANA, OnCallDutyExecutionLogTimelineStatus.NotificationSent),
+        line(
+          LINE_ANA,
+          ANA,
+          OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+        ),
       ] as never);
 
     let result: OnCallTestPageResult = await OnCallTestPageService.getResult({
@@ -1112,7 +1129,11 @@ describe("what became of a test: the chain as it happened", () => {
     jest
       .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "findBy")
       .mockResolvedValue([
-        line(LINE_BOB, BOB, OnCallDutyExecutionLogTimelineStatus.NotificationSent),
+        line(
+          LINE_BOB,
+          BOB,
+          OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+        ),
       ] as never);
 
     result = await OnCallTestPageService.getResult({
@@ -1125,15 +1146,13 @@ describe("what became of a test: the chain as it happened", () => {
   });
 
   test("a text the provider says reached the phone reads Delivered", async () => {
-    jest
-      .spyOn(SmsLogService, "findBy")
-      .mockResolvedValue([
-        {
-          userOnCallLogTimelineId: new ObjectID(
-            "7e5ae000-0000-4000-8000-000000000401",
-          ),
-        },
-      ] as never);
+    jest.spyOn(SmsLogService, "findBy").mockResolvedValue([
+      {
+        userOnCallLogTimelineId: new ObjectID(
+          "7e5ae000-0000-4000-8000-000000000401",
+        ),
+      },
+    ] as never);
     runRead.mockResolvedValue({
       id: RUN,
       status: OnCallDutyPolicyStatus.Executing,
@@ -1237,7 +1256,9 @@ describe("the result's words, from the records", () => {
       userWebhook: { name: "Pager bridge" },
     } as unknown as UserNotificationRule;
 
-    expect(getPreviewMethodsOfRule({ rule: rule, showAddresses: true })).toEqual([
+    expect(
+      getPreviewMethodsOfRule({ rule: rule, showAddresses: true }),
+    ).toEqual([
       {
         channel: OnCallPageChannel.SMS,
         notifyAfterMinutes: 0,

@@ -59,28 +59,31 @@ describe("every message says TEST in its first words", () => {
     LANGUAGES.map((language: string): [string] => {
       return [language];
     }),
-  )("%s: the headline, the text and the email subject start with it", (language: string) => {
-    const translator: Translator = translatorFor(language);
-    const word: string = TEST_WORD[language]!;
+  )(
+    "%s: the headline, the text and the email subject start with it",
+    (language: string) => {
+      const translator: Translator = translatorFor(language);
+      const word: string = TEST_WORD[language]!;
 
-    expect(
-      withoutIsolateMarks(getOnCallTestPageHeadline(translator, "OneUptime")),
-    ).toMatch(new RegExp(`^${word}`));
+      expect(
+        withoutIsolateMarks(getOnCallTestPageHeadline(translator, "OneUptime")),
+      ).toMatch(new RegExp(`^${word}`));
 
-    expect(
-      withoutIsolateMarks(
-        getOnCallTestPageSmsText(translator, {
-          productName: "OneUptime",
-          projectName: "Acme",
-          link: "https://oneuptime.com/l/abcd",
-        }),
-      ),
-    ).toMatch(new RegExp(`^${word}`));
+      expect(
+        withoutIsolateMarks(
+          getOnCallTestPageSmsText(translator, {
+            productName: "OneUptime",
+            projectName: "Acme",
+            link: "https://oneuptime.com/l/abcd",
+          }),
+        ),
+      ).toMatch(new RegExp(`^${word}`));
 
-    expect(
-      withoutIsolateMarks(getOnCallTestPageEmailSubject(translator, "Acme")),
-    ).toMatch(new RegExp(`^${word}`));
-  });
+      expect(
+        withoutIsolateMarks(getOnCallTestPageEmailSubject(translator, "Acme")),
+      ).toMatch(new RegExp(`^${word}`));
+    },
+  );
 
   test.each<[string]>(
     LANGUAGES.filter((language: string): boolean => {
@@ -88,51 +91,54 @@ describe("every message says TEST in its first words", () => {
     }).map((language: string): [string] => {
       return [language];
     }),
-  )("%s: every sentence is worded in the language, not left in English", (language: string) => {
-    const english: Translator = translatorFor("en");
-    const translator: Translator = translatorFor(language);
+  )(
+    "%s: every sentence is worded in the language, not left in English",
+    (language: string) => {
+      const english: Translator = translatorFor("en");
+      const translator: Translator = translatorFor(language);
 
-    const pairs: Array<[string, string]> = [
-      [
-        getOnCallTestPageHeadline(english, "OneUptime"),
-        getOnCallTestPageHeadline(translator, "OneUptime"),
-      ],
-      [
-        getOnCallTestPageAskToAcknowledge(english),
-        getOnCallTestPageAskToAcknowledge(translator),
-      ],
-      [
-        getOnCallTestPageAcknowledgeLabel(english),
-        getOnCallTestPageAcknowledgeLabel(translator),
-      ],
-      [
-        getOnCallTestPageSentBy(english, {
-          isSentBySelf: true,
-          senderName: "",
-        }),
-        getOnCallTestPageSentBy(translator, {
-          isSentBySelf: true,
-          senderName: "",
-        }),
-      ],
-      [
-        getOnCallTestPageWhatItTests(english, {
-          recordKind: OnCallTestPageRecordKind.Alert,
-          projectName: "Acme",
-          severityName: "Critical",
-        }),
-        getOnCallTestPageWhatItTests(translator, {
-          recordKind: OnCallTestPageRecordKind.Alert,
-          projectName: "Acme",
-          severityName: "Critical",
-        }),
-      ],
-    ];
+      const pairs: Array<[string, string]> = [
+        [
+          getOnCallTestPageHeadline(english, "OneUptime"),
+          getOnCallTestPageHeadline(translator, "OneUptime"),
+        ],
+        [
+          getOnCallTestPageAskToAcknowledge(english),
+          getOnCallTestPageAskToAcknowledge(translator),
+        ],
+        [
+          getOnCallTestPageAcknowledgeLabel(english),
+          getOnCallTestPageAcknowledgeLabel(translator),
+        ],
+        [
+          getOnCallTestPageSentBy(english, {
+            isSentBySelf: true,
+            senderName: "",
+          }),
+          getOnCallTestPageSentBy(translator, {
+            isSentBySelf: true,
+            senderName: "",
+          }),
+        ],
+        [
+          getOnCallTestPageWhatItTests(english, {
+            recordKind: OnCallTestPageRecordKind.Alert,
+            projectName: "Acme",
+            severityName: "Critical",
+          }),
+          getOnCallTestPageWhatItTests(translator, {
+            recordKind: OnCallTestPageRecordKind.Alert,
+            projectName: "Acme",
+            severityName: "Critical",
+          }),
+        ],
+      ];
 
-    for (const [inEnglish, inLanguage] of pairs) {
-      expect(withoutIsolateMarks(inLanguage)).not.toBe(inEnglish);
-    }
-  });
+      for (const [inEnglish, inLanguage] of pairs) {
+        expect(withoutIsolateMarks(inLanguage)).not.toBe(inEnglish);
+      }
+    },
+  );
 });
 
 describe("what the test is, in English", () => {
@@ -218,17 +224,20 @@ describe("what the test is, in English", () => {
     LANGUAGES.map((language: string): [string] => {
       return [language];
     }),
-  )("%s: the text message keeps a space before its link", (language: string) => {
-    const text: string = withoutIsolateMarks(
-      getOnCallTestPageSmsText(translatorFor(language), {
-        productName: "OneUptime",
-        projectName: "Acme",
-        link: "https://oneuptime.com/l/abcd",
-      }),
-    );
+  )(
+    "%s: the text message keeps a space before its link",
+    (language: string) => {
+      const text: string = withoutIsolateMarks(
+        getOnCallTestPageSmsText(translatorFor(language), {
+          productName: "OneUptime",
+          projectName: "Acme",
+          link: "https://oneuptime.com/l/abcd",
+        }),
+      );
 
-    expect(text).toContain(" https://oneuptime.com/l/abcd");
-  });
+      expect(text).toContain(" https://oneuptime.com/l/abcd");
+    },
+  );
 
   test("an English test text with a long project name and a short link fits one SMS", () => {
     const text: string = getOnCallTestPageSmsText(english, {
@@ -260,7 +269,9 @@ describe("the call, in English as every call is", () => {
         projectName: "Acme",
         severityName: "Critical",
       }),
-    ).toBe("This tests how Acme pages you for an incident of severity Critical.");
+    ).toBe(
+      "This tests how Acme pages you for an incident of severity Critical.",
+    );
 
     expect(ON_CALL_TEST_PAGE_CALL_PROMPT).toBe(
       "To acknowledge this test page, press 1.",

@@ -190,7 +190,10 @@ test("sent, it shows each message as it goes out, and who acknowledged it, by wh
   );
 
   // A test page to yourself names nobody else.
-  expect(sent?.data).toEqual({ recordKind: "Incident", severityId: CRITICAL_ID });
+  expect(sent?.data).toEqual({
+    recordKind: "Incident",
+    severityId: CRITICAL_ID,
+  });
 
   const result: Locator = dialog(page).getByTestId("test-page-result");
 
@@ -200,7 +203,9 @@ test("sent, it shows each message as it goes out, and who acknowledged it, by wh
   await expect(dialog(page).getByTestId("test-page-delivery")).toHaveCount(3);
 
   // One way out once it is sent: Done. A Cancel would read as cancelling the test.
-  await expect(dialog(page).getByRole("button", { name: "Done" })).toBeVisible();
+  await expect(
+    dialog(page).getByRole("button", { name: "Done" }),
+  ).toBeVisible();
   await expect(
     dialog(page).getByRole("button", { name: "Cancel" }),
   ).toHaveCount(0);
@@ -256,7 +261,9 @@ test("Test this policy: who its first level pages, how, and who it can't reach a
     "This Email method is not verified, so the test can't use it.",
   );
   await expect(people.nth(1)).toContainText("Sam Rivera");
-  await expect(people.nth(1)).toContainText("No on-call rule covers this severity");
+  await expect(people.nth(1)).toContainText(
+    "No on-call rule covers this severity",
+  );
   await expect(
     dialog(page).getByTestId("test-page-preview-not-paged"),
   ).toContainText("Lee Park is away until");
@@ -386,6 +393,19 @@ test("in Persian, the dialog and its result read from the right", async ({
   await dialog(page).getByRole("button", { name: sendLabel }).click();
   await expect(dialog(page).getByTestId("test-page-result")).toBeVisible();
   await expect(dialog(page).getByTestId("test-page-delivery")).toHaveCount(3);
+
+  // A phone number keeps its own direction: "+1 415 555 0100", not "0100 555 415 +1".
+  const phone: Locator = dialog(page)
+    .getByTestId("test-page-delivery-address")
+    .first();
+
+  await expect(phone).toHaveText("+1 415 555 0100");
+  await expect(phone).toHaveAttribute("dir", "auto");
+  expect(
+    await phone.evaluate((element: Element): string => {
+      return getComputedStyle(element).direction;
+    }),
+  ).toBe("ltr");
 
   await expectNoSidewaysScroll(page);
   await screenshot(page, "self-result-fa-390");

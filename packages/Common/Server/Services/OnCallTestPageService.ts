@@ -210,7 +210,9 @@ export class OnCallTestPageService extends BaseService {
         ...ON_CALL_TEST_PAGE_FOR_MEMBER_PERMISSIONS,
       ])
     ) {
-      throw new NotAuthorizedException(ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE);
+      throw new NotAuthorizedException(
+        ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE,
+      );
     }
   }
 
@@ -225,7 +227,9 @@ export class OnCallTestPageService extends BaseService {
     });
 
     if (!isMember) {
-      throw new NotAuthorizedException(ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE);
+      throw new NotAuthorizedException(
+        ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE,
+      );
     }
   }
 
@@ -683,7 +687,10 @@ export class OnCallTestPageService extends BaseService {
           userWhatsApp: { phone: true, isVerified: true },
           userTelegram: { telegramUserHandle: true, isVerified: true },
           userSlack: { slackUserName: true, isVerified: true },
-          userMicrosoftTeams: { microsoftTeamsUserName: true, isVerified: true },
+          userMicrosoftTeams: {
+            microsoftTeamsUserName: true,
+            isVerified: true,
+          },
           userMattermost: { mattermostUserName: true, isVerified: true },
           userPush: { deviceName: true, isVerified: true },
           userWebhook: { name: true },
@@ -941,11 +948,9 @@ export class OnCallTestPageService extends BaseService {
     const memberUserIds: Set<string> = await ProjectMembership.getMemberUserIds(
       {
         projectId: data.projectId,
-        userIds: candidates.map(
-          (candidate: { userId: ObjectID }): ObjectID => {
-            return candidate.userId;
-          },
-        ),
+        userIds: candidates.map((candidate: { userId: ObjectID }): ObjectID => {
+          return candidate.userId;
+        }),
       },
     );
 
@@ -998,11 +1003,7 @@ export class OnCallTestPageService extends BaseService {
       targets.push({ userId: userId, reachedThrough: reachedThrough });
     }
 
-    if (
-      teams.length === 0 &&
-      users.length === 0 &&
-      schedules.length === 0
-    ) {
+    if (teams.length === 0 && users.length === 0 && schedules.length === 0) {
       notPaged.push(
         "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.",
       );
@@ -1287,8 +1288,7 @@ export class OnCallTestPageService extends BaseService {
       return OnCallTestPageKind.Policy;
     }
 
-    const senderId: string | undefined =
-      data.run.createdByUserId?.toString();
+    const senderId: string | undefined = data.run.createdByUserId?.toString();
 
     const pagedSomebodyElse: boolean = data.lines.some(
       (line: OnCallDutyPolicyExecutionLogTimeline): boolean => {
@@ -1746,7 +1746,9 @@ export function getPreviewWarnings(data: {
         return method.channel === off.channel;
       })
     ) {
-      warnings.push(getProjectNotificationChannelOffMessage(off.projectChannel));
+      warnings.push(
+        getProjectNotificationChannelOffMessage(off.projectChannel),
+      );
     }
   }
 

@@ -212,7 +212,9 @@ export const getCustomChannelEventFor: (
      * (buildCustomChannelTestPayload), which every service already takes.
      */
     case UserNotificationEventType.TestPage:
-      throw new BadDataException(CUSTOM_CHANNEL_TEST_PAGE_HAS_NO_RECORD_MESSAGE);
+      throw new BadDataException(
+        CUSTOM_CHANNEL_TEST_PAGE_HAS_NO_RECORD_MESSAGE,
+      );
   }
 };
 

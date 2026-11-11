@@ -90,7 +90,10 @@ beforeEach(() => {
     .spyOn(AlertService, "acknowledgeAlert")
     .mockResolvedValue(undefined as never);
   clockStart = jest
-    .spyOn(OnCallDutyPolicyExecutionLogService, "startAcknowledgementTimeoutClock")
+    .spyOn(
+      OnCallDutyPolicyExecutionLogService,
+      "startAcknowledgementTimeoutClock",
+    )
     .mockResolvedValue(undefined as never);
 });
 
@@ -98,9 +101,10 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-async function acknowledgeTest(
-  acknowledgedFrom?: { channel?: OnCallPageChannel; sentAt?: Date },
-): Promise<void> {
+async function acknowledgeTest(acknowledgedFrom?: {
+  channel?: OnCallPageChannel;
+  sentAt?: Date;
+}): Promise<void> {
   await UserOnCallLogTimelineService.acknowledgePage({
     userOnCallLogId: LOG,
     userId: ANA,

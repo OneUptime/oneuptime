@@ -101,12 +101,15 @@ describe("the modules a test page runs through", () => {
       return [file];
     }),
   )("%s writes to nothing public or permanent", (file: string) => {
-    const source: string = fs.readFileSync(path.join(COMMON_ROOT, file), "utf8");
+    const source: string = fs.readFileSync(
+      path.join(COMMON_ROOT, file),
+      "utf8",
+    );
 
     const imports: Array<string> = source
       .split("\n")
       .filter((line: string): boolean => {
-        return /^import\b/.test(line) || /^\} from /.test(line);
+        return line.startsWith("import ") || line.startsWith("} from ");
       });
 
     const reached: Array<string> = imports.filter((line: string): boolean => {
@@ -122,7 +125,9 @@ describe("starting a test page", () => {
     jest.spyOn(ProjectReferenceCheck, "validateCreate").mockResolvedValue();
     jest
       .spyOn(OnCallDutyPolicyExecutionLogService, "create")
-      .mockImplementation((async (args: { data: OnCallDutyPolicyExecutionLog }) => {
+      .mockImplementation((async (args: {
+        data: OnCallDutyPolicyExecutionLog;
+      }) => {
         args.data.id = RUN_ID;
         return args.data;
       }) as never);
@@ -158,7 +163,9 @@ describe("starting a test page", () => {
   test("of a policy pages its first level and says nothing in any record's feed", async () => {
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy")
-      .mockResolvedValue({ id: new ObjectID("7e5b0000-0000-4000-8000-000000000005") } as never);
+      .mockResolvedValue({
+        id: new ObjectID("7e5b0000-0000-4000-8000-000000000005"),
+      } as never);
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleService, "startRuleExecution")
       .mockResolvedValue({
@@ -168,7 +175,8 @@ describe("starting a test page", () => {
         movesOnAtOnce: false,
       } as never);
 
-    const run: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
+    const run: OnCallDutyPolicyExecutionLog =
+      new OnCallDutyPolicyExecutionLog();
     run.id = RUN_ID;
     run.projectId = PROJECT_ID;
     run.onCallDutyPolicyId = POLICY_ID;

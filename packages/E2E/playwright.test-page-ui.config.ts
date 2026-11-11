@@ -11,8 +11,7 @@ import path from "path";
  * what a send asks for, each message of the result as it goes out with
  * where to fix one, a 390px phone, dark mode and German.
  */
-const port: string =
-  process.env["TEST_PAGE_FIXTURE_PORT"] || "4293";
+const port: string = process.env["TEST_PAGE_FIXTURE_PORT"] || "4293";
 
 export default defineConfig({
   testDir: "./TestPage",

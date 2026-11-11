@@ -135,7 +135,8 @@ export function hasOnCallTestPageAnswerWindowPassed(data: {
 // When a test that started at `startedAt` ends, unanswered.
 export function getOnCallTestPageEndsAt(startedAt: Date): Date {
   return new Date(
-    startedAt.getTime() + ON_CALL_TEST_PAGE_ANSWER_WINDOW_IN_MINUTES * 60 * 1000,
+    startedAt.getTime() +
+      ON_CALL_TEST_PAGE_ANSWER_WINDOW_IN_MINUTES * 60 * 1000,
   );
 }
 
@@ -721,8 +722,7 @@ export function getOnCallTestPageCost(data: {
   const paidWhatsApp: number = data.isBillingEnabled ? whatsAppCount : 0;
   const paidTelegram: number = data.isBillingEnabled ? telegramCount : 0;
 
-  const isPaid: boolean =
-    paidSms + paidCalls + paidWhatsApp + paidTelegram > 0;
+  const isPaid: boolean = paidSms + paidCalls + paidWhatsApp + paidTelegram > 0;
 
   const cost: OnCallTestPageCost = {
     isPaid: isPaid,

@@ -146,7 +146,15 @@ const DeliveryLine: FunctionComponent<{
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="text-sm font-medium text-gray-900">{channelName}</span>
         {delivery.address ? (
-          <span className="min-w-0 break-all text-sm text-gray-500">
+          /*
+           * Its own direction: a phone number reads "+1 415 555 0100" on a
+           * page read from the right too.
+           */
+          <span
+            dir="auto"
+            className="min-w-0 break-all text-sm text-gray-500"
+            data-testid="test-page-delivery-address"
+          >
             {delivery.address}
           </span>
         ) : (
@@ -199,8 +207,7 @@ const StepBlock: FunctionComponent<{
 }> = (props: { step: OnCallTestPageStep }): ReactElement => {
   const translator: Translator = useTranslator();
   const step: OnCallTestPageStep = props.step;
-  const status: { text: string; color: Color } =
-    STEP_STATUS_WORDS[step.status];
+  const status: { text: string; color: Color } = STEP_STATUS_WORDS[step.status];
 
   const through: Array<string> = [];
 
@@ -333,8 +340,9 @@ const TestPageResult: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const timer: React.MutableRefObject<ReturnType<typeof setTimeout> | null> =
     useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onResult: React.MutableRefObject<ComponentProps["onResult"]> =
-    useRef<ComponentProps["onResult"]>(props.onResult);
+  const onResult: React.MutableRefObject<ComponentProps["onResult"]> = useRef<
+    ComponentProps["onResult"]
+  >(props.onResult);
 
   onResult.current = props.onResult;
 
@@ -396,9 +404,7 @@ const TestPageResult: FunctionComponent<ComponentProps> = (
   if (!result) {
     return (
       <div className="text-sm text-gray-500" data-testid="test-page-result">
-        {error ||
-          translator.translateText("Sending the test page...") ||
-          ""}
+        {error || translator.translateText("Sending the test page...") || ""}
       </div>
     );
   }

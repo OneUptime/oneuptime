@@ -873,10 +873,7 @@ export class Service extends DatabaseService<Model> {
       userEmail: user.email?.toString(),
       channel: page.acknowledgedFrom?.channel,
       afterSeconds: sentAt
-        ? Math.max(
-            0,
-            (page.acknowledgedAt.getTime() - sentAt.getTime()) / 1000,
-          )
+        ? Math.max(0, (page.acknowledgedAt.getTime() - sentAt.getTime()) / 1000)
         : undefined,
     });
 

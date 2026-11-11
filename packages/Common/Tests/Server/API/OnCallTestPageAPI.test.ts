@@ -54,9 +54,6 @@ jest.mock("../../../Server/Utils/Response", () => {
   };
 });
 
-// The router registers itself as it is imported.
-require("../../../Server/API/OnCallTestPageAPI");
-
 const PROJECT: ObjectID = new ObjectID("7e5af000-0000-4000-8000-000000000001");
 const POLICY: ObjectID = new ObjectID("7e5af000-0000-4000-8000-000000000002");
 const RUN: ObjectID = new ObjectID("7e5af000-0000-4000-8000-000000000003");
@@ -140,7 +137,12 @@ beforeEach(() => {
       executionLogId: RUN,
       outcome: {
         paged: [
-          { userId: ANA, coveringForUserId: null, teamId: null, scheduleId: null },
+          {
+            userId: ANA,
+            coveringForUserId: null,
+            teamId: null,
+            scheduleId: null,
+          },
         ],
         notPaged: [],
         hadScheduleGap: false,
@@ -163,18 +165,23 @@ describe("every route is for a signed-in member, as a person", () => {
     ["POST", "/page-person"],
     ["POST", "/page-policy"],
     ["GET", "/result/:executionLogId"],
-  ])("%s %s runs behind the user middleware", (method: string, path: string) => {
-    const route: ReturnType<typeof mockRouter.match> = mockRouter.match(
-      method,
-      `${ON_CALL_TEST_PAGE_API_PATH}${path}`,
-    );
+  ])(
+    "%s %s runs behind the user middleware",
+    (method: string, path: string) => {
+      const route: ReturnType<typeof mockRouter.match> = mockRouter.match(
+        method,
+        `${ON_CALL_TEST_PAGE_API_PATH}${path}`,
+      );
 
-    expect(route.middleware).toBe(UserMiddleware.getUserMiddleware);
-  });
+      expect(route.middleware).toBe(UserMiddleware.getUserMiddleware);
+    },
+  );
 
   test("a caller the test-send rule refuses sends nothing", async () => {
     getCaller.mockRejectedValue(
-      new NotAuthorizedException(ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE) as never,
+      new NotAuthorizedException(
+        ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE,
+      ) as never,
     );
 
     const { thrown } = await call("POST", "/page-person", { body: BODY });
@@ -205,7 +212,9 @@ describe("POST /page-person", () => {
     const mayMember: jest.SpyInstance = jest
       .spyOn(OnCallTestPageService, "assertMaySendToMember")
       .mockImplementation(() => {
-        throw new NotAuthorizedException(ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE);
+        throw new NotAuthorizedException(
+          ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE,
+        );
       });
 
     const { thrown } = await call("POST", "/page-person", {
@@ -300,7 +309,9 @@ describe("POST /page-policy", () => {
 
   test("a caller who may not edit the policy tests nothing", async () => {
     mayTestPolicy.mockRejectedValue(
-      new NotAuthorizedException(ON_CALL_TEST_POLICY_NOT_ALLOWED_MESSAGE) as never,
+      new NotAuthorizedException(
+        ON_CALL_TEST_POLICY_NOT_ALLOWED_MESSAGE,
+      ) as never,
     );
 
     const { thrown } = await call("POST", "/page-policy", {

@@ -6,7 +6,6 @@ import {
   OnCallTestPageKind,
   OnCallTestPageRecordKind,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
-import { JSONObject } from "../../../Types/JSON";
 import ProjectMilestoneService, {
   Service as ProjectMilestoneServiceClass,
 } from "../../Services/ProjectMilestoneService";
@@ -35,6 +34,13 @@ import ProductAnalytics from "../ProductAnalytics";
 export const TEST_PAGE_SENT_EVENT: string = "test_page/sent";
 export const TEST_PAGE_ACKNOWLEDGED_EVENT: string = "test_page/acknowledged";
 
+// What every event carries about its project.
+interface ProjectProperties {
+  projectId: string;
+  plan: string;
+  edition: string;
+}
+
 export default class OnCallTestPageEvents {
   public static onTestPageSent(data: {
     projectId: ObjectID;
@@ -43,16 +49,23 @@ export default class OnCallTestPageEvents {
     kind: OnCallTestPageKind;
     recordKind: OnCallTestPageRecordKind;
   }): void {
-    this.capture({
-      userId: data.sentByUserId,
-      projectId: data.projectId,
-      event: TEST_PAGE_SENT_EVENT,
-      properties: {
-        execution_log_id: data.executionLogId.toString(),
-        kind: data.kind,
-        record_kind: data.recordKind,
+    this.withProjectProperties(
+      data.projectId,
+      (project: ProjectProperties): void => {
+        ProductAnalytics.captureForUser({
+          userId: data.sentByUserId,
+          event: TEST_PAGE_SENT_EVENT,
+          properties: {
+            project_id: project.projectId,
+            plan: project.plan,
+            edition: project.edition,
+            execution_log_id: data.executionLogId.toString(),
+            kind: data.kind,
+            record_kind: data.recordKind,
+          },
+        });
       },
-    });
+    );
   }
 
   /*
@@ -77,44 +90,44 @@ export default class OnCallTestPageEvents {
       logger.error(err as Error);
     }
 
-    this.capture({
-      userId: data.acknowledgedByUserId,
-      projectId: data.projectId,
-      event: TEST_PAGE_ACKNOWLEDGED_EVENT,
-      properties: {
-        execution_log_id: data.executionLogId.toString(),
-        channel: data.channel || "",
+    this.withProjectProperties(
+      data.projectId,
+      (project: ProjectProperties): void => {
+        ProductAnalytics.captureForUser({
+          userId: data.acknowledgedByUserId,
+          event: TEST_PAGE_ACKNOWLEDGED_EVENT,
+          properties: {
+            project_id: project.projectId,
+            plan: project.plan,
+            edition: project.edition,
+            execution_log_id: data.executionLogId.toString(),
+            channel: data.channel || "",
+          },
+        });
       },
-    });
+    );
   }
 
   /*
-   * Sends an event with the properties every event carries: the project's
-   * id, its plan and the server's edition. Reads the plan only where
-   * analytics is set up.
+   * Hands `send` what every event carries about its project - its id, its
+   * plan and the server's edition - once the plan is read. Only where
+   * analytics is set up: elsewhere nothing is read and nothing is sent.
    */
-  private static capture(data: {
-    userId: ObjectID;
-    projectId?: ObjectID | undefined;
-    event: string;
-    properties: JSONObject;
-  }): void {
+  private static withProjectProperties(
+    projectId: ObjectID | undefined,
+    send: (project: ProjectProperties) => void,
+  ): void {
     try {
       if (!ProductAnalytics.isConfigured()) {
         return;
       }
 
-      void this.readPlan(data.projectId)
+      void this.readPlan(projectId)
         .then((plan: string) => {
-          ProductAnalytics.captureForUser({
-            userId: data.userId,
-            event: data.event,
-            properties: {
-              project_id: data.projectId?.toString() || "",
-              plan: plan,
-              edition: ProjectMilestoneServiceClass.getEdition(),
-              ...data.properties,
-            },
+          send({
+            projectId: projectId?.toString() || "",
+            plan: plan,
+            edition: ProjectMilestoneServiceClass.getEdition(),
           });
         })
         .catch((err: Error) => {

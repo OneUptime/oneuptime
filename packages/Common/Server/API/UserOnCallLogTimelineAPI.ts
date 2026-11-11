@@ -848,7 +848,10 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
     return this.renderTestPageAnswered(data.req, data.res);
   }
 
-  private renderTestPageAnswered(req: ExpressRequest, res: ExpressResponse): void {
+  private renderTestPageAnswered(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): void {
     return Response.render(
       req,
       res,

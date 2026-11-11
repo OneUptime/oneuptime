@@ -820,7 +820,9 @@ const EVENT_SPECS: Record<string, EventSpec> = {
         .mockResolvedValue({} as never);
       jest
         .spyOn(ShortLinkService, "getShortenedUrl")
-        .mockResolvedValue(URL.fromString("https://oneuptime.test/l/a") as never);
+        .mockResolvedValue(
+          URL.fromString("https://oneuptime.test/l/a") as never,
+        );
       jest
         .spyOn(OnCallPageLinks, "getAcknowledgePageUrl")
         .mockResolvedValue(

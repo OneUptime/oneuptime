@@ -165,7 +165,10 @@ export function describeTestPageCost(
   if (cost.whatsAppCount > 0) {
     items.push(
       translator.translatePlural(
-        { one: "{{count}} WhatsApp message", other: "{{count}} WhatsApp messages" },
+        {
+          one: "{{count}} WhatsApp message",
+          other: "{{count}} WhatsApp messages",
+        },
         cost.whatsAppCount,
       ),
     );
@@ -174,7 +177,10 @@ export function describeTestPageCost(
   if (cost.telegramCount > 0) {
     items.push(
       translator.translatePlural(
-        { one: "{{count}} Telegram message", other: "{{count}} Telegram messages" },
+        {
+          one: "{{count}} Telegram message",
+          other: "{{count}} Telegram messages",
+        },
         cost.telegramCount,
       ),
     );

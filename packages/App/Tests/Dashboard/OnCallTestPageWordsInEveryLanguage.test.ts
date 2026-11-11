@@ -188,9 +188,10 @@ describe("a test page's words in every language", () => {
         "utf8",
       );
 
-      expect({ key: word.key, drawn: source.includes(`"${word.key}"`) }).toEqual(
-        { key: word.key, drawn: true },
-      );
+      expect({
+        key: word.key,
+        drawn: source.includes(`"${word.key}"`),
+      }).toEqual({ key: word.key, drawn: true });
     }
   });
 

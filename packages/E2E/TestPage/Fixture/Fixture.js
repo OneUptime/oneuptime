@@ -199,7 +199,9 @@ const POLICY_PREVIEW = {
       ],
       hasNoRule: false,
       isOptedOut: false,
-      warnings: ["This Email method is not verified, so the test can't use it."],
+      warnings: [
+        "This Email method is not verified, so the test can't use it.",
+      ],
     },
     {
       userId: "40000000-0000-4000-8000-0000000000e2",

@@ -54,9 +54,7 @@ import type { SpyInstance } from "jest-mock";
 const PROJECT: ObjectID = new ObjectID("7e570000-0000-4000-8000-000000000001");
 const POLICY: ObjectID = new ObjectID("7e570000-0000-4000-8000-000000000002");
 const RUN: ObjectID = new ObjectID("7e570000-0000-4000-8000-000000000003");
-const SEVERITY: ObjectID = new ObjectID(
-  "7e570000-0000-4000-8000-000000000004",
-);
+const SEVERITY: ObjectID = new ObjectID("7e570000-0000-4000-8000-000000000004");
 const ANA: ObjectID = new ObjectID("7e570000-0000-4000-8000-0000000000a1");
 const BOB: ObjectID = new ObjectID("7e570000-0000-4000-8000-0000000000b1");
 
@@ -308,14 +306,14 @@ describe("a test that walks every level moves on after a short wait", () => {
       levelWaitInMinutes: 30,
     });
 
-    expect(
-      await OnCallTestPageRuns.tick({ run: run, now: at(1) }),
-    ).toBe(OnCallTestPageTick.Waiting);
+    expect(await OnCallTestPageRuns.tick({ run: run, now: at(1) })).toBe(
+      OnCallTestPageTick.Waiting,
+    );
     expect(claimSpy).not.toHaveBeenCalled();
 
-    expect(
-      await OnCallTestPageRuns.tick({ run: run, now: at(2) }),
-    ).toBe(OnCallTestPageTick.MovedOn);
+    expect(await OnCallTestPageRuns.tick({ run: run, now: at(2) })).toBe(
+      OnCallTestPageTick.MovedOn,
+    );
 
     // The next level, paged as a test: no record, the test's event type.
     expect(startSpy).toHaveBeenCalledTimes(1);
@@ -341,9 +339,9 @@ describe("a test that walks every level moves on after a short wait", () => {
       createdAt: STARTED,
       executeNextEscalationRuleInMinutes: 1,
     });
-    expect(
-      await OnCallTestPageRuns.tick({ run: run, now: at(1) }),
-    ).toBe(OnCallTestPageTick.MovedOn);
+    expect(await OnCallTestPageRuns.tick({ run: run, now: at(1) })).toBe(
+      OnCallTestPageTick.MovedOn,
+    );
   });
 
   test("the wait is cut to two minutes, from when the level started", () => {
@@ -370,9 +368,9 @@ describe("a test that walks every level moves on after a short wait", () => {
 
     expect(claimSpy).toHaveBeenCalledTimes(1);
     expect(claimSpy.mock.calls[0]![0].executionLogId).toEqual(RUN);
-    expect(claimSpy.mock.calls[0]![0].previousLastEscalationRuleExecutedAt).toEqual(
-      at(4),
-    );
+    expect(
+      claimSpy.mock.calls[0]![0].previousLastEscalationRuleExecutedAt,
+    ).toEqual(at(4));
   });
 });
 
