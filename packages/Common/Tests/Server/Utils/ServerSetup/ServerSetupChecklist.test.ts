@@ -406,9 +406,9 @@ describe("what it reads", () => {
 
     expect(probes.status).toBe(ServerSetupStatus.NotSetUp);
     for (const call of probeCountBy.mock.calls) {
-      expect((call[0] as { query: Record<string, unknown> }).query).toMatchObject(
-        { isGlobalProbe: true },
-      );
+      expect(
+        (call[0] as { query: Record<string, unknown> }).query,
+      ).toMatchObject({ isGlobalProbe: true });
     }
   });
 
@@ -445,15 +445,19 @@ describe("what it reads", () => {
     storedConfig = { updateCheckLastFailure: "unreachable" };
 
     expect(
-      find(await ServerSetupChecklist.getAnswer(), ServerSetupCheckId.UpdateChecks)
-        .status,
+      find(
+        await ServerSetupChecklist.getAnswer(),
+        ServerSetupCheckId.UpdateChecks,
+      ).status,
     ).toBe(ServerSetupStatus.Failing);
 
     mockEnv.disableUpdateCheck = true;
 
     expect(
-      find(await ServerSetupChecklist.getAnswer(), ServerSetupCheckId.UpdateChecks)
-        .status,
+      find(
+        await ServerSetupChecklist.getAnswer(),
+        ServerSetupCheckId.UpdateChecks,
+      ).status,
     ).toBe(ServerSetupStatus.NotSetUp);
   });
 
@@ -462,15 +466,19 @@ describe("what it reads", () => {
     mockEnv.vapidPublic = "public";
 
     expect(
-      find(await ServerSetupChecklist.getAnswer(), ServerSetupCheckId.BrowserPush)
-        .status,
+      find(
+        await ServerSetupChecklist.getAnswer(),
+        ServerSetupCheckId.BrowserPush,
+      ).status,
     ).toBe(ServerSetupStatus.NotSetUp);
 
     mockEnv.vapidPrivate = "private";
 
     expect(
-      find(await ServerSetupChecklist.getAnswer(), ServerSetupCheckId.BrowserPush)
-        .status,
+      find(
+        await ServerSetupChecklist.getAnswer(),
+        ServerSetupCheckId.BrowserPush,
+      ).status,
     ).toBe(ServerSetupStatus.Done);
   });
 
@@ -494,8 +502,10 @@ describe("what it reads", () => {
     });
 
     expect(
-      find(await ServerSetupChecklist.getAnswer(), ServerSetupCheckId.SingleSignOn)
-        .status,
+      find(
+        await ServerSetupChecklist.getAnswer(),
+        ServerSetupCheckId.SingleSignOn,
+      ).status,
     ).toBe(ServerSetupStatus.Done);
   });
 
@@ -743,8 +753,11 @@ describe("making a choice, and hiding the card", () => {
     };
 
     expect(
-      (await ServerSetupChecklist.getAnswer({ readerUserId: new ObjectID(ADA) }))
-        .isHiddenForReader,
+      (
+        await ServerSetupChecklist.getAnswer({
+          readerUserId: new ObjectID(ADA),
+        })
+      ).isHiddenForReader,
     ).toBe(true);
     expect(
       (

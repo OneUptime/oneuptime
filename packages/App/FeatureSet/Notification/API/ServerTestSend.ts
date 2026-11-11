@@ -92,7 +92,9 @@ router.post(
   "/email",
   MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
   send(async (body: JSONObject): Promise<ServerTestSendAnswer> => {
-    return await ServerTestSendService.sendEmail(readTestEmail(body["toEmail"]));
+    return await ServerTestSendService.sendEmail(
+      readTestEmail(body["toEmail"]),
+    );
   }),
 );
 

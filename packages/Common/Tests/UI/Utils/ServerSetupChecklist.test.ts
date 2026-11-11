@@ -76,9 +76,9 @@ describe("loading the checklist", () => {
     ]);
 
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(
-      String((fetch.mock.calls[0]![0] as { url: unknown }).url),
-    ).toContain(SERVER_SETUP_CHECKLIST_ROUTE);
+    expect(String((fetch.mock.calls[0]![0] as { url: unknown }).url)).toContain(
+      SERVER_SETUP_CHECKLIST_ROUTE,
+    );
     expect(first).toBe(second);
     expect(first?.openRequired).toEqual([
       ServerSetupCheckId.Email,
@@ -141,7 +141,9 @@ describe("a choice, and hiding the card", () => {
       data: unknown;
     };
 
-    expect(String(call.url)).toContain(`${SERVER_SETUP_CHECKLIST_ROUTE}/choice`);
+    expect(String(call.url)).toContain(
+      `${SERVER_SETUP_CHECKLIST_ROUTE}/choice`,
+    );
     expect(call.data).toEqual({ check: "signups", choice: "skipped" });
     expect(
       ServerSetupChecklistUtil.getCheck(answer, ServerSetupCheckId.Signups)
@@ -165,9 +167,9 @@ describe("a choice, and hiding the card", () => {
   test("hide posts to /hide", async () => {
     await ServerSetupChecklistLoader.hide();
 
-    expect(
-      String((post.mock.calls[0]![0] as { url: unknown }).url),
-    ).toContain(`${SERVER_SETUP_CHECKLIST_ROUTE}/hide`);
+    expect(String((post.mock.calls[0]![0] as { url: unknown }).url)).toContain(
+      `${SERVER_SETUP_CHECKLIST_ROUTE}/hide`,
+    );
   });
 
   test("a refused choice throws, and keeps what was read", async () => {
@@ -215,14 +217,19 @@ describe("a test send", () => {
   });
 
   test("SMS and calls go with the number", async () => {
-    for (const channel of [ServerSendingChannel.SMS, ServerSendingChannel.Call]) {
+    for (const channel of [
+      ServerSendingChannel.SMS,
+      ServerSendingChannel.Call,
+    ]) {
       post.mockResolvedValueOnce(
         ok({ ...ACCEPTED, channel: channel, to: "+14155550100" }) as never,
       );
 
       await sendServerTest({ channel: channel, to: "+14155550100" });
 
-      const call: { url: unknown; data: unknown } = post.mock.calls.at(-1)![0] as {
+      const call: { url: unknown; data: unknown } = post.mock.calls.at(
+        -1,
+      )![0] as {
         url: unknown;
         data: unknown;
       };

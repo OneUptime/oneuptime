@@ -65,10 +65,7 @@ const NotificationFeatureSet: FeatureSet = {
      * reaches it at NOTIFICATION_URL, as the Dashboard reaches /smtp-config.
      */
     app.use(
-      [
-        `/${APP_NAME}${SERVER_TEST_SEND_ROUTE}`,
-        SERVER_TEST_SEND_ROUTE,
-      ],
+      [`/${APP_NAME}${SERVER_TEST_SEND_ROUTE}`, SERVER_TEST_SEND_ROUTE],
       ServerTestSendAPI,
     );
     app.use([`/${APP_NAME}/phone-number`, "/phone-number"], PhoneNumberAPI);

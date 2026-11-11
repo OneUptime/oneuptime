@@ -52,6 +52,9 @@ import { seededRandom, SeededRandom } from "../../Helpers/SeededRandom";
  */
 
 const NOW: Date = new Date("2026-11-11T10:00:00.000Z");
+
+// A Markdown heading line of a docs page.
+const HEADING_LINE: RegExp = /^#{1,6} /;
 const EARLIER: string = "2026-11-10T09:30:00.000Z";
 
 function channel(
@@ -76,7 +79,9 @@ function channel(
 }
 
 // A server that has just started: nothing set up, nothing chosen.
-function freshFacts(overrides: Partial<ServerSetupFacts> = {}): ServerSetupFacts {
+function freshFacts(
+  overrides: Partial<ServerSetupFacts> = {},
+): ServerSetupFacts {
   return {
     isHttpsSetUp: false,
     areSignupsClosed: false,
@@ -229,7 +234,8 @@ describe("the catalogue", () => {
 
     // Every status each check takes, over many seeded servers.
     for (let i: number = 0; i < 3000; i++) {
-      const states: Array<ServerSendingState> = Object.values(ServerSendingState);
+      const states: Array<ServerSendingState> =
+        Object.values(ServerSendingState);
       const pick: () => ServerSendingState = (): ServerSendingState => {
         return states[random(states.length)]!;
       };
@@ -249,15 +255,21 @@ describe("the catalogue", () => {
         lastBackup:
           random(3) === 0
             ? null
-            : { succeeded: random(2) === 1, finishedAt: EARLIER, error: "boom" },
+            : {
+                succeeded: random(2) === 1,
+                finishedAt: EARLIER,
+                error: "boom",
+              },
         isBrowserPushSetUp: random(2) === 1,
         hasAiProvider: random(2) === 1,
         hasSingleSignOn: random(2) === 1,
         choices: {
           choices: Object.fromEntries(
-            SERVER_SETUP_CHECKS.filter((definition: ServerSetupCheckDefinition) => {
-              return definition.choice && random(2) === 1;
-            }).map((definition: ServerSetupCheckDefinition) => {
+            SERVER_SETUP_CHECKS.filter(
+              (definition: ServerSetupCheckDefinition) => {
+                return definition.choice && random(2) === 1;
+              },
+            ).map((definition: ServerSetupCheckDefinition) => {
               return [
                 definition.id,
                 { kind: definition.choice!, at: EARLIER, byUserId: null },
@@ -273,7 +285,11 @@ describe("the catalogue", () => {
 
         const words: string = ServerSetupChecklistUtil.getStatusWords(result);
 
-        expect({ id: result.id, status: result.status, hasWords: Boolean(words) }).toEqual({
+        expect({
+          id: result.id,
+          status: result.status,
+          hasWords: Boolean(words),
+        }).toEqual({
           id: result.id,
           status: result.status,
           hasWords: true,
@@ -329,9 +345,9 @@ describe("the catalogue", () => {
 
       expect({
         adminPath,
-        isRoute: new RegExp(`new Route\\(\\s*\`${adminPath}\`\\s*,?\\s*\\)`).test(
-          routeMap,
-        ),
+        isRoute: new RegExp(
+          `new Route\\(\\s*\`${adminPath}\`\\s*,?\\s*\\)`,
+        ).test(routeMap),
       }).toEqual({ adminPath, isRoute: true });
     }
   });
@@ -353,7 +369,7 @@ describe("the catalogue", () => {
         const headings: Array<string> = markdown
           .split("\n")
           .filter((line: string) => {
-            return /^#{1,6} /.test(line);
+            return HEADING_LINE.test(line);
           })
           .map((line: string) => {
             return line
@@ -375,9 +391,11 @@ describe("the catalogue", () => {
 
 describe("a server that has just started", () => {
   test("has every required check open, and the card counts them", () => {
-    const answer: ServerSetupChecklistAnswer = ServerSetupChecklistUtil.getAnswer(
-      { facts: freshFacts(), readerUserId: "user-1" },
-    );
+    const answer: ServerSetupChecklistAnswer =
+      ServerSetupChecklistUtil.getAnswer({
+        facts: freshFacts(),
+        readerUserId: "user-1",
+      });
 
     expect(answer.openRequired).toEqual([
       ServerSetupCheckId.Email,
@@ -404,9 +422,11 @@ describe("a server that has just started", () => {
   });
 
   test("a finished server has nothing open, and every check is finished", () => {
-    const answer: ServerSetupChecklistAnswer = ServerSetupChecklistUtil.getAnswer(
-      { facts: finishedFacts(), readerUserId: null },
-    );
+    const answer: ServerSetupChecklistAnswer =
+      ServerSetupChecklistUtil.getAnswer({
+        facts: finishedFacts(),
+        readerUserId: null,
+      });
 
     expect(answer.openRequired).toEqual([]);
     expect(
@@ -421,9 +441,13 @@ describe("Email: done when an email went out since the settings were saved", () 
   test("not set up is open, says what is missing, and offers no test", () => {
     const result: ServerSetupCheckResult = check(
       freshFacts({
-        email: channel(ServerSendingChannel.Email, ServerSendingState.NotSetUp, {
-          setUpProblem: "SMTP: the Port is not set under Settings > Emails.",
-        }),
+        email: channel(
+          ServerSendingChannel.Email,
+          ServerSendingState.NotSetUp,
+          {
+            setUpProblem: "SMTP: the Port is not set under Settings > Emails.",
+          },
+        ),
       }),
       ServerSetupCheckId.Email,
     );
@@ -496,7 +520,10 @@ describe("Email: done when an email went out since the settings were saved", () 
       },
     });
 
-    const result: ServerSetupCheckResult = check(facts, ServerSetupCheckId.Email);
+    const result: ServerSetupCheckResult = check(
+      facts,
+      ServerSetupCheckId.Email,
+    );
 
     expect(result.status).toBe(ServerSetupStatus.NotSetUp);
     expect(result.canChoose).toBeNull();
@@ -510,7 +537,8 @@ describe("HTTPS and sign-ups", () => {
       ServerSetupStatus.NotSetUp,
     );
     expect(
-      check(freshFacts({ isHttpsSetUp: true }), ServerSetupCheckId.Https).status,
+      check(freshFacts({ isHttpsSetUp: true }), ServerSetupCheckId.Https)
+        .status,
     ).toBe(ServerSetupStatus.Done);
     expect(check(freshFacts(), ServerSetupCheckId.Https).canChoose).toBeNull();
   });
@@ -526,7 +554,10 @@ describe("HTTPS and sign-ups", () => {
 
     const keptOpen: ServerSetupCheckResult = check(
       freshFacts({
-        choices: chose(ServerSetupCheckId.Signups, ServerSetupChoiceKind.Skipped),
+        choices: chose(
+          ServerSetupCheckId.Signups,
+          ServerSetupChoiceKind.Skipped,
+        ),
       }),
       ServerSetupCheckId.Signups,
     );
@@ -542,7 +573,10 @@ describe("HTTPS and sign-ups", () => {
     const result: ServerSetupCheckResult = check(
       freshFacts({
         areSignupsClosed: true,
-        choices: chose(ServerSetupCheckId.Signups, ServerSetupChoiceKind.Skipped),
+        choices: chose(
+          ServerSetupCheckId.Signups,
+          ServerSetupChoiceKind.Skipped,
+        ),
       }),
       ServerSetupCheckId.Signups,
     );
@@ -670,9 +704,11 @@ describe("SMS and calls", () => {
     );
 
     expect(
-      result.channels.map((status: ServerChannelStatus & { sentThrough: string | null }) => {
-        return [status.channel, status.sentThrough, status.lastWorkedAt];
-      }),
+      result.channels.map(
+        (status: ServerChannelStatus & { sentThrough: string | null }) => {
+          return [status.channel, status.sentThrough, status.lastWorkedAt];
+        },
+      ),
     ).toEqual([
       [ServerSendingChannel.SMS, "Twilio", EARLIER],
       [ServerSendingChannel.Call, "Twilio", EARLIER],
@@ -702,7 +738,10 @@ describe("probes, backups and update checks", () => {
       check(
         freshFacts({
           globalProbes: null,
-          choices: chose(ServerSetupCheckId.Probes, ServerSetupChoiceKind.Skipped),
+          choices: chose(
+            ServerSetupCheckId.Probes,
+            ServerSetupChoiceKind.Skipped,
+          ),
         }),
         ServerSetupCheckId.Probes,
       ).status,
@@ -756,8 +795,10 @@ describe("probes, backups and update checks", () => {
 
   test("backups say whether scheduled backups can be set up here", () => {
     expect(
-      check(freshFacts({ hasScheduledBackups: true }), ServerSetupCheckId.Backups)
-        .hasScheduledBackups,
+      check(
+        freshFacts({ hasScheduledBackups: true }),
+        ServerSetupCheckId.Backups,
+      ).hasScheduledBackups,
     ).toBe(true);
     expect(
       check(freshFacts(), ServerSetupCheckId.Backups).hasScheduledBackups,
@@ -802,7 +843,11 @@ describe("probes, backups and update checks", () => {
     expect(
       check(
         freshFacts({
-          updateChecks: { isDisabled: true, lastCheckedAt: EARLIER, lastFailure: null },
+          updateChecks: {
+            isDisabled: true,
+            lastCheckedAt: EARLIER,
+            lastFailure: null,
+          },
         }),
         ServerSetupCheckId.UpdateChecks,
       ).status,
@@ -825,7 +870,11 @@ describe("probes, backups and update checks", () => {
     expect(
       check(
         freshFacts({
-          updateChecks: { isDisabled: true, lastCheckedAt: null, lastFailure: null },
+          updateChecks: {
+            isDisabled: true,
+            lastCheckedAt: null,
+            lastFailure: null,
+          },
           choices: chose(
             ServerSetupCheckId.UpdateChecks,
             ServerSetupChoiceKind.Skipped,
@@ -854,8 +903,8 @@ describe("optional checks", () => {
   });
 
   test("never counted by the card", () => {
-    const answer: ServerSetupChecklistAnswer = ServerSetupChecklistUtil.getAnswer(
-      {
+    const answer: ServerSetupChecklistAnswer =
+      ServerSetupChecklistUtil.getAnswer({
         facts: {
           ...finishedFacts(),
           isBrowserPushSetUp: false,
@@ -863,8 +912,7 @@ describe("optional checks", () => {
           hasSingleSignOn: false,
         },
         readerUserId: null,
-      },
-    );
+      });
 
     expect(answer.openRequired).toEqual([]);
   });
@@ -1077,16 +1125,24 @@ describe("Hide: per admin, until something new opens", () => {
 
 describe("the answer, read in a browser", () => {
   test("reads back what the server sent, whole", () => {
-    const sent: ServerSetupChecklistAnswer = ServerSetupChecklistUtil.getAnswer({
-      facts: freshFacts({
-        email: channel(ServerSendingChannel.Email, ServerSendingState.Failing),
-        emailSentThrough: "smtp.example.com",
-        sms: channel(ServerSendingChannel.SMS, ServerSendingState.Working),
-        choices: chose(ServerSetupCheckId.Backups, ServerSetupChoiceKind.Confirmed),
-        hasScheduledBackups: true,
-      }),
-      readerUserId: null,
-    });
+    const sent: ServerSetupChecklistAnswer = ServerSetupChecklistUtil.getAnswer(
+      {
+        facts: freshFacts({
+          email: channel(
+            ServerSendingChannel.Email,
+            ServerSendingState.Failing,
+          ),
+          emailSentThrough: "smtp.example.com",
+          sms: channel(ServerSendingChannel.SMS, ServerSendingState.Working),
+          choices: chose(
+            ServerSetupCheckId.Backups,
+            ServerSetupChoiceKind.Confirmed,
+          ),
+          hasScheduledBackups: true,
+        }),
+        readerUserId: null,
+      },
+    );
 
     const named: ServerSetupChecklistAnswer = JSON.parse(JSON.stringify(sent));
     named.checks.find((result: ServerSetupCheckResult) => {

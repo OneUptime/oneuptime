@@ -1,4 +1,8 @@
-import { formatServerSetupTime, getServerSetupRow, ServerSetupRow } from "./ServerSetupChecklist";
+import {
+  formatServerSetupTime,
+  getServerSetupRow,
+  ServerSetupRow,
+} from "./ServerSetupChecklist";
 import ServerTestSendButton, {
   describeServerTestSend,
 } from "./ServerTestSendButton";

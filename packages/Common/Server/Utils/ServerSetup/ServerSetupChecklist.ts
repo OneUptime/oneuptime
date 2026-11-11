@@ -127,7 +127,9 @@ export const getCallAndSmsSentThrough: (
 
   if (gateway) {
     try {
-      return new globalThis.URL(gateway.url).hostname || "your SMS and call gateway";
+      return (
+        new globalThis.URL(gateway.url).hostname || "your SMS and call gateway"
+      );
     } catch {
       return "your SMS and call gateway";
     }
@@ -164,7 +166,9 @@ export default class ServerSetupChecklist {
   }
 
   @CaptureSpan()
-  public static async readLastBackup(): Promise<ServerSetupFacts["lastBackup"]> {
+  public static async readLastBackup(): Promise<
+    ServerSetupFacts["lastBackup"]
+  > {
     const run: BackupRun | null = await BackupRunService.findOneBy({
       query: {
         kind: BackupRunKind.Backup,
@@ -192,7 +196,9 @@ export default class ServerSetupChecklist {
 
     return {
       succeeded: run.status === BackupRunStatus.Succeeded,
-      finishedAt: run.finishedAt ? new Date(run.finishedAt).toISOString() : null,
+      finishedAt: run.finishedAt
+        ? new Date(run.finishedAt).toISOString()
+        : null,
       error: run.error || null,
     };
   }
@@ -283,8 +289,7 @@ export default class ServerSetupChecklist {
         ),
       ]);
 
-    const callAndSmsSentThrough: string =
-      getCallAndSmsSentThrough(config);
+    const callAndSmsSentThrough: string = getCallAndSmsSentThrough(config);
 
     return {
       isHttpsSetUp: HttpProtocol === Protocol.HTTPS,
@@ -308,9 +313,7 @@ export default class ServerSetupChecklist {
       isBrowserPushSetUp: Boolean(VapidPublicKey && VapidPrivateKey),
       hasAiProvider: hasAiProvider,
       hasSingleSignOn: hasSingleSignOn,
-      choices: ServerSetupChecklistUtil.readChoices(
-        config?.serverSetupChoices,
-      ),
+      choices: ServerSetupChecklistUtil.readChoices(config?.serverSetupChoices),
     };
   }
 
@@ -369,14 +372,14 @@ export default class ServerSetupChecklist {
     readerUserId?: ObjectID | null | undefined;
   }): Promise<ServerSetupChecklistAnswer> {
     const config: GlobalConfig | null = await ServerSetupChecklist.readConfig();
-    const facts: ServerSetupFacts = await ServerSetupChecklist.readFacts(config);
+    const facts: ServerSetupFacts =
+      await ServerSetupChecklist.readFacts(config);
 
-    const answer: ServerSetupChecklistAnswer = ServerSetupChecklistUtil.getAnswer(
-      {
+    const answer: ServerSetupChecklistAnswer =
+      ServerSetupChecklistUtil.getAnswer({
         facts: facts,
         readerUserId: data?.readerUserId ? data.readerUserId.toString() : null,
-      },
-    );
+      });
 
     await ServerSetupChecklist.orDefault<void>(
       () => {

@@ -89,17 +89,18 @@ export const SERVER_TEST_SEND_WORDS: {
 };
 
 // The button and dialog title of a channel's test.
-export const getServerTestSendTitle: (channel: ServerSendingChannel) => string =
-  (channel: ServerSendingChannel): string => {
-    switch (channel) {
-      case ServerSendingChannel.SMS:
-        return SERVER_TEST_SEND_WORDS.sendTestSms;
-      case ServerSendingChannel.Call:
-        return SERVER_TEST_SEND_WORDS.makeTestCall;
-      default:
-        return SERVER_TEST_SEND_WORDS.sendTestEmail;
-    }
-  };
+export const getServerTestSendTitle: (
+  channel: ServerSendingChannel,
+) => string = (channel: ServerSendingChannel): string => {
+  switch (channel) {
+    case ServerSendingChannel.SMS:
+      return SERVER_TEST_SEND_WORDS.sendTestSms;
+    case ServerSendingChannel.Call:
+      return SERVER_TEST_SEND_WORDS.makeTestCall;
+    default:
+      return SERVER_TEST_SEND_WORDS.sendTestEmail;
+  }
+};
 
 /*
  * What an answer says, in English with its placeholders, and the values to

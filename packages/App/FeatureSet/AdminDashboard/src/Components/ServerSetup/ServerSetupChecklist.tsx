@@ -363,7 +363,10 @@ export const getServerSetupRow: (data: {
 
       if (isThisVisitLeft) {
         isFinished = false;
-        status = { template: SERVER_SETUP_COPY.https.openedOverHttp, values: {} };
+        status = {
+          template: SERVER_SETUP_COPY.https.openedOverHttp,
+          values: {},
+        };
         actions.push({
           kind: "address",
           title: SERVER_SETUP_COPY.https.openOverHttps,
@@ -398,7 +401,10 @@ export const getServerSetupRow: (data: {
 
     case ServerSetupCheckId.SmsAndCalls:
       for (const channel of check.channels) {
-        if (channel.state === ServerSendingState.Working && channel.lastWorkedAt) {
+        if (
+          channel.state === ServerSendingState.Working &&
+          channel.lastWorkedAt
+        ) {
           checked.push({
             template:
               channel.channel === ServerSendingChannel.Call
@@ -465,7 +471,9 @@ export const getServerSetupRow: (data: {
             ? {
                 kind: "route",
                 title: SERVER_SETUP_COPY.actions.setUpBackups,
-                route: new Route(data.definition.adminPath || "/admin/settings/backups"),
+                route: new Route(
+                  data.definition.adminPath || "/admin/settings/backups",
+                ),
               }
             : {
                 kind: "guide",
@@ -920,7 +928,10 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
           {isAllDone ? (
             <Alert
               type={AlertType.SUCCESS}
-              title={translator.translateText(SERVER_SETUP_COPY.allDone)}
+              title={
+                translator.translateText(SERVER_SETUP_COPY.allDone) ||
+                SERVER_SETUP_COPY.allDone
+              }
               dataTestId="server-setup-all-done"
             />
           ) : (
@@ -935,12 +946,18 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
-          {drawSection(ServerSetupCheckTier.Required, SERVER_SETUP_COPY.required)}
+          {drawSection(
+            ServerSetupCheckTier.Required,
+            SERVER_SETUP_COPY.required,
+          )}
           {drawSection(
             ServerSetupCheckTier.Recommended,
             SERVER_SETUP_COPY.recommended,
           )}
-          {drawSection(ServerSetupCheckTier.Optional, SERVER_SETUP_COPY.optional)}
+          {drawSection(
+            ServerSetupCheckTier.Optional,
+            SERVER_SETUP_COPY.optional,
+          )}
         </div>
       </Card>
     </div>

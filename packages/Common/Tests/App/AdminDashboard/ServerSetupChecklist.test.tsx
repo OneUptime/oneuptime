@@ -105,7 +105,10 @@ import ServerSetupChecklistUtil, {
   ServerSetupFacts,
 } from "../../../Types/ServerSetup/ServerSetupChecklist";
 import { SERVER_TEST_SEND_WORDS } from "../../../Types/ServerSetup/ServerTestSend";
-import { fillTemplate, getTemplatePlaceholders } from "../../../Types/Translator";
+import {
+  fillTemplate,
+  getTemplatePlaceholders,
+} from "../../../Types/Translator";
 import ServerSetupChecklistLoader from "../../../UI/Utils/ServerSetupChecklist";
 import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
@@ -182,7 +185,11 @@ function facts(overrides: Partial<ServerSetupFacts> = {}): ServerSetupFacts {
     smsSentThrough: "Twilio",
     callSentThrough: "Twilio",
     globalProbes: { total: 1, reporting: 0 },
-    updateChecks: { isDisabled: false, lastCheckedAt: EARLIER, lastFailure: null },
+    updateChecks: {
+      isDisabled: false,
+      lastCheckedAt: EARLIER,
+      lastFailure: null,
+    },
     lastBackup: null,
     hasScheduledBackups: false,
     isBrowserPushSetUp: false,
@@ -233,7 +240,10 @@ function rowsFor(
   });
 }
 
-function row(rows: Array<ServerSetupRow>, id: ServerSetupCheckId): ServerSetupRow {
+function row(
+  rows: Array<ServerSetupRow>,
+  id: ServerSetupCheckId,
+): ServerSetupRow {
   return rows.find((candidate: ServerSetupRow) => {
     return candidate.id === id;
   })!;
@@ -326,13 +336,21 @@ describe("HTTPS, as this page sees it", () => {
     expect(
       getHttpsAddress({
         host: "oneuptime.example.com",
-        location: { host: "203.0.113.7", pathname: "/admin/setup", search: "?a=1" },
+        location: {
+          host: "203.0.113.7",
+          pathname: "/admin/setup",
+          search: "?a=1",
+        },
       }),
     ).toBe("https://oneuptime.example.com/admin/setup?a=1");
     expect(
       getHttpsAddress({
         host: "oneuptime.example.com:8443",
-        location: { host: "10.0.0.5:8080", pathname: "/admin/setup", search: "" },
+        location: {
+          host: "10.0.0.5:8080",
+          pathname: "/admin/setup",
+          search: "",
+        },
       }),
     ).toBe("https://oneuptime.example.com:8443/admin/setup");
     expect(
@@ -430,7 +448,9 @@ describe("the rows of a server that has just started", () => {
   test("update checks: on, and when they last checked", () => {
     const updates: ServerSetupRow = row(rows, ServerSetupCheckId.UpdateChecks);
 
-    expect(updates.checked.map(words)).toEqual([`Last checked on [${EARLIER}].`]);
+    expect(updates.checked.map(words)).toEqual([
+      `Last checked on [${EARLIER}].`,
+    ]);
     expect(updates.actions).toEqual([]);
   });
 
@@ -452,7 +472,10 @@ describe("what done was checked against", () => {
     const email: ServerSetupRow = row(
       rowsFor(
         answerFor({
-          email: channel(ServerSendingChannel.Email, ServerSendingState.Working),
+          email: channel(
+            ServerSendingChannel.Email,
+            ServerSendingState.Working,
+          ),
         }),
       ),
       ServerSetupCheckId.Email,
@@ -472,7 +495,10 @@ describe("what done was checked against", () => {
     const email: ServerSetupRow = row(
       rowsFor(
         answerFor({
-          email: channel(ServerSendingChannel.Email, ServerSendingState.Untested),
+          email: channel(
+            ServerSendingChannel.Email,
+            ServerSendingState.Untested,
+          ),
         }),
       ),
       ServerSetupCheckId.Email,
@@ -492,7 +518,10 @@ describe("what done was checked against", () => {
     const email: ServerSetupRow = row(
       rowsFor(
         answerFor({
-          email: channel(ServerSendingChannel.Email, ServerSendingState.Failing),
+          email: channel(
+            ServerSendingChannel.Email,
+            ServerSendingState.Failing,
+          ),
         }),
       ),
       ServerSetupCheckId.Email,
@@ -543,14 +572,20 @@ describe("what done was checked against", () => {
 
   test("a choice says who made it and when, and can be undone", () => {
     const answer: ServerSetupChecklistAnswer = answerFor({
-      choices: chose(ServerSetupCheckId.SmsAndCalls, ServerSetupChoiceKind.Skipped),
+      choices: chose(
+        ServerSetupCheckId.SmsAndCalls,
+        ServerSetupChoiceKind.Skipped,
+      ),
     });
     ServerSetupChecklistUtil.getCheck(
       answer,
       ServerSetupCheckId.SmsAndCalls,
     )!.choice!.byName = "Ada Lovelace";
 
-    const sms: ServerSetupRow = row(rowsFor(answer), ServerSetupCheckId.SmsAndCalls);
+    const sms: ServerSetupRow = row(
+      rowsFor(answer),
+      ServerSetupCheckId.SmsAndCalls,
+    );
 
     expect(sms.isFinished).toBe(true);
     expect(words(sms.status)).toBe(
@@ -566,7 +601,10 @@ describe("what done was checked against", () => {
     const backups: ServerSetupRow = row(
       rowsFor(
         answerFor({
-          choices: chose(ServerSetupCheckId.Backups, ServerSetupChoiceKind.Confirmed),
+          choices: chose(
+            ServerSetupCheckId.Backups,
+            ServerSetupChoiceKind.Confirmed,
+          ),
         }),
       ),
       ServerSetupCheckId.Backups,
@@ -602,7 +640,9 @@ describe("what done was checked against", () => {
       ServerSetupCheckId.Backups,
     );
 
-    expect(failed.checked.map(words)).toEqual(["The bucket refused the upload."]);
+    expect(failed.checked.map(words)).toEqual([
+      "The bucket refused the upload.",
+    ]);
     expect(actionsOf(failed)[0]).toBe(
       "route | Set up backups | /admin/settings/backups",
     );
@@ -616,7 +656,9 @@ describe("HTTPS rows, with what this page knows", () => {
       ServerSetupCheckId.Https,
     );
 
-    expect(words(https.status)).toBe(SERVER_SETUP_COPY.https.onlyBeforeOneUptime);
+    expect(words(https.status)).toBe(
+      SERVER_SETUP_COPY.https.onlyBeforeOneUptime,
+    );
     expect(actionsOf(https)[0]).toContain("How to set up HTTPS");
   });
 
@@ -666,7 +708,9 @@ describe("the page", () => {
     expect(
       within(checklist).getByTestId("server-setup-recommended-progress"),
     ).toHaveTextContent("1 of 4 done");
-    expect(within(checklist).queryByTestId("server-setup-browser-push")).toBeNull();
+    expect(
+      within(checklist).queryByTestId("server-setup-browser-push"),
+    ).toBeNull();
 
     const toggle: HTMLElement = within(checklist).getByTestId(
       "server-setup-optional-toggle",
@@ -678,8 +722,12 @@ describe("the page", () => {
     await flush();
 
     expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(within(checklist).getByTestId("server-setup-browser-push")).toBeVisible();
-    expect(within(checklist).getByTestId("server-setup-ai-provider")).toBeVisible();
+    expect(
+      within(checklist).getByTestId("server-setup-browser-push"),
+    ).toBeVisible();
+    expect(
+      within(checklist).getByTestId("server-setup-ai-provider"),
+    ).toBeVisible();
   });
 
   test("each action is the right control: a link to its page, a guide in a new tab, a test button", async () => {
@@ -714,7 +762,10 @@ describe("the page", () => {
 
   test("a choice is made on the server, and the page shows what it answers", async () => {
     const answered: ServerSetupChecklistAnswer = answerFor({
-      choices: chose(ServerSetupCheckId.SmsAndCalls, ServerSetupChoiceKind.Skipped),
+      choices: chose(
+        ServerSetupCheckId.SmsAndCalls,
+        ServerSetupChoiceKind.Skipped,
+      ),
     });
     const choose: ReturnType<typeof jest.spyOn> = jest
       .spyOn(ServerSetupChecklistLoader, "choose")
@@ -750,12 +801,17 @@ describe("the page", () => {
     const checklist: HTMLElement = await renderIn(
       "en",
       answerFor({
-        choices: chose(ServerSetupCheckId.Backups, ServerSetupChoiceKind.Confirmed),
+        choices: chose(
+          ServerSetupCheckId.Backups,
+          ServerSetupChoiceKind.Confirmed,
+        ),
       }),
     );
 
     await act(async () => {
-      fireEvent.click(within(checklist).getByTestId("server-setup-backups-undo"));
+      fireEvent.click(
+        within(checklist).getByTestId("server-setup-backups-undo"),
+      );
     });
     await flush();
 
@@ -776,7 +832,9 @@ describe("the page", () => {
     );
 
     await act(async () => {
-      fireEvent.click(within(checklist).getByTestId("server-setup-probes-choose"));
+      fireEvent.click(
+        within(checklist).getByTestId("server-setup-probes-choose"),
+      );
     });
     await flush();
 
@@ -795,14 +853,17 @@ describe("the page", () => {
         email: channel(ServerSendingChannel.Email, ServerSendingState.Working),
         globalProbes: { total: 1, reporting: 1 },
         lastBackup: { succeeded: true, finishedAt: EARLIER, error: null },
-        choices: chose(ServerSetupCheckId.SmsAndCalls, ServerSetupChoiceKind.Skipped),
+        choices: chose(
+          ServerSetupCheckId.SmsAndCalls,
+          ServerSetupChoiceKind.Skipped,
+        ),
       }),
       "https:",
     );
 
-    expect(within(checklist).getByTestId("server-setup-all-done")).toHaveTextContent(
-      SERVER_SETUP_COPY.allDone,
-    );
+    expect(
+      within(checklist).getByTestId("server-setup-all-done"),
+    ).toHaveTextContent(SERVER_SETUP_COPY.allDone);
   });
 
   test("in German, the rows, the actions and the checked lines", async () => {
@@ -815,7 +876,9 @@ describe("the page", () => {
       }),
     );
 
-    expect(within(checklist).getByText(de[SERVER_SETUP_COPY.title] as string)).toBeVisible();
+    expect(
+      within(checklist).getByText(de[SERVER_SETUP_COPY.title] as string),
+    ).toBeVisible();
     expect(
       within(checklist).getByText(
         de[SERVER_SETUP_STATUS_WORDS.email.done!] as string,
@@ -950,7 +1013,10 @@ describe("where it is drawn", () => {
       "utf8",
     );
     const app: string = fs.readFileSync(
-      path.join(__dirname, "../../../../App/FeatureSet/AdminDashboard/src/App.tsx"),
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/AdminDashboard/src/App.tsx",
+      ),
       "utf8",
     );
     const routes: string = fs.readFileSync(
@@ -962,7 +1028,9 @@ describe("where it is drawn", () => {
     );
 
     expect(users).not.toContain("ServerSetupChecklist");
-    expect(routes).toContain("[PageMap.SERVER_SETUP]: new Route(`/admin/setup`)");
+    expect(routes).toContain(
+      "[PageMap.SERVER_SETUP]: new Route(`/admin/setup`)",
+    );
     expect(app).toContain("RouteMap[PageMap.SERVER_SETUP]");
     expect(app).toContain("<ServerSetup />");
   });

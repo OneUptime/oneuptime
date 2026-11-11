@@ -434,18 +434,21 @@ describe("POST /global-config/setup-checklist/choice", () => {
     ["no check", { choice: "skipped" }],
     ["a choice that is not one", { check: "sms-and-calls", choice: "yes" }],
     ["no choice at all", { check: "sms-and-calls" }],
-  ])("%s is refused, and nothing is written", async (_name: string, body: JSONObject) => {
-    const result: HttpResult = await send({
-      port,
-      method: "POST",
-      path: "/api/global-config/setup-checklist/choice",
-      body: body,
-      isMasterAdmin: true,
-    });
+  ])(
+    "%s is refused, and nothing is written",
+    async (_name: string, body: JSONObject) => {
+      const result: HttpResult = await send({
+        port,
+        method: "POST",
+        path: "/api/global-config/setup-checklist/choice",
+        body: body,
+        isMasterAdmin: true,
+      });
 
-    expect(result.status).toBe(400);
-    expect(choose).not.toHaveBeenCalled();
-  });
+      expect(result.status).toBe(400);
+      expect(choose).not.toHaveBeenCalled();
+    },
+  );
 
   test("refuses anybody but a master admin, the master API key included", async () => {
     for (const asWho of [{}, { isMasterKey: true }]) {

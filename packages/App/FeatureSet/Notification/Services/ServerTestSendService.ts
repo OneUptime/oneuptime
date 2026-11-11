@@ -61,7 +61,8 @@ export default class ServerTestSendService {
   }
 
   public static async sendEmail(to: Email): Promise<ServerTestSendAnswer> {
-    const config: GlobalConfig | null = await ServerTestSendService.readConfig();
+    const config: GlobalConfig | null =
+      await ServerTestSendService.readConfig();
     const sentThrough: string | null = getEmailSentThrough(config);
     const problem: string | null =
       ServerChannelSetup.getEmailSetUpProblem(config);
@@ -111,7 +112,8 @@ export default class ServerTestSendService {
   }
 
   public static async sendSms(to: Phone): Promise<ServerTestSendAnswer> {
-    const config: GlobalConfig | null = await ServerTestSendService.readConfig();
+    const config: GlobalConfig | null =
+      await ServerTestSendService.readConfig();
     const problem: string | null = ServerChannelSetup.getSetUpProblem(
       ServerSendingChannel.SMS,
       config,
@@ -153,7 +155,8 @@ export default class ServerTestSendService {
   }
 
   public static async makeCall(to: Phone): Promise<ServerTestSendAnswer> {
-    const config: GlobalConfig | null = await ServerTestSendService.readConfig();
+    const config: GlobalConfig | null =
+      await ServerTestSendService.readConfig();
     const problem: string | null = ServerChannelSetup.getSetUpProblem(
       ServerSendingChannel.Call,
       config,

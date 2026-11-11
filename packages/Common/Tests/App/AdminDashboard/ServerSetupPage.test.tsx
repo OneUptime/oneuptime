@@ -170,8 +170,8 @@ function answerWithOpen(
 }
 
 // A checklist whose email is set up and not tested yet.
-const UNTESTED: ServerSetupChecklistAnswer = ServerSetupChecklistUtil.parseAnswer(
-  {
+const UNTESTED: ServerSetupChecklistAnswer =
+  ServerSetupChecklistUtil.parseAnswer({
     checks: [
       {
         id: "email",
@@ -190,8 +190,7 @@ const UNTESTED: ServerSetupChecklistAnswer = ServerSetupChecklistUtil.parseAnswe
         tests: ["sms", "call"],
       },
     ],
-  },
-)!;
+  })!;
 
 const ACCEPTED: ServerTestSendAnswer = {
   channel: ServerSendingChannel.Email,
@@ -512,7 +511,9 @@ describe("the settings pages' test card", () => {
       "server-test-card-sms-and-calls-status",
     );
 
-    expect(status).toHaveTextContent("Failing: SMS or calls have not gone out since");
+    expect(status).toHaveTextContent(
+      "Failing: SMS or calls have not gone out since",
+    );
     expect(status).toHaveTextContent(
       "Twilio said: The number is not SMS-capable.",
     );

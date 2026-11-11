@@ -12,7 +12,10 @@ import {
   ServerTestSendResult,
   toServerTestSendMessage,
 } from "../../../Types/ServerSetup/ServerTestSend";
-import { fillTemplate, getTemplatePlaceholders } from "../../../Types/Translator";
+import {
+  fillTemplate,
+  getTemplatePlaceholders,
+} from "../../../Types/Translator";
 
 /*
  * A TEST SEND, AND WHAT IT ANSWERED, IN WORDS (#6824).

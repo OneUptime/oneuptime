@@ -95,9 +95,7 @@ afterEach(() => {
 
 describe("who may write the checklist's choices", () => {
   test("only serverSetupChoices, a real column nobody may read or write through the API", () => {
-    expect([...ROOT_ONLY_SERVER_SETUP_COLUMNS]).toEqual([
-      "serverSetupChoices",
-    ]);
+    expect([...ROOT_ONLY_SERVER_SETUP_COLUMNS]).toEqual(["serverSetupChoices"]);
     expect(new GlobalConfig().isTableColumn("serverSetupChoices")).toBe(true);
   });
 

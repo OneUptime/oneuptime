@@ -360,7 +360,9 @@ export const SERVER_SETUP_CHECKED_WORDS: {
   chosenBy: string;
   chosenOn: string;
 } = {
-  emailAccepted: translationKey("{{sentThrough}} accepted an email on {{time}}."),
+  emailAccepted: translationKey(
+    "{{sentThrough}} accepted an email on {{time}}.",
+  ),
   smsAccepted: translationKey("{{sentThrough}} accepted an SMS on {{time}}."),
   callAccepted: translationKey("{{sentThrough}} accepted a call on {{time}}."),
   providerSaid: translationKey("{{sentThrough}} said: {{reason}}"),
@@ -596,10 +598,10 @@ export default class ServerSetupChecklistUtil {
       return next;
     }
 
-    if (ServerSetupChecklistUtil.getDefinition(data.check).choice !== data.kind) {
-      throw new Error(
-        `${data.check} cannot be marked as ${data.kind}.`,
-      );
+    if (
+      ServerSetupChecklistUtil.getDefinition(data.check).choice !== data.kind
+    ) {
+      throw new Error(`${data.check} cannot be marked as ${data.kind}.`);
     }
 
     next.choices[data.check] = {
@@ -725,7 +727,9 @@ export default class ServerSetupChecklistUtil {
     };
   }
 
-  private static evaluateEmail(facts: ServerSetupFacts): ServerSetupCheckResult {
+  private static evaluateEmail(
+    facts: ServerSetupFacts,
+  ): ServerSetupCheckResult {
     const status: ServerSetupStatus = ServerSetupChecklistUtil.channelStatus(
       facts.email,
     );
@@ -886,8 +890,7 @@ export default class ServerSetupChecklistUtil {
       status: status,
       facts: facts,
       time: updates.isDisabled ? null : updates.lastCheckedAt,
-      reason:
-        status === ServerSetupStatus.Failing ? updates.lastFailure : null,
+      reason: status === ServerSetupStatus.Failing ? updates.lastFailure : null,
     });
   }
 
@@ -918,7 +921,9 @@ export default class ServerSetupChecklistUtil {
   }
 
   // Every check, in the catalogue's order.
-  public static evaluate(facts: ServerSetupFacts): Array<ServerSetupCheckResult> {
+  public static evaluate(
+    facts: ServerSetupFacts,
+  ): Array<ServerSetupCheckResult> {
     return [
       ServerSetupChecklistUtil.evaluateEmail(facts),
       ServerSetupChecklistUtil.evaluateYesNo({
@@ -962,7 +967,9 @@ export default class ServerSetupChecklistUtil {
   ): Array<ServerSetupCheckId> {
     return checks
       .filter((check: ServerSetupCheckResult): boolean => {
-        return check.tier === ServerSetupCheckTier.Required && !check.isFinished;
+        return (
+          check.tier === ServerSetupCheckTier.Required && !check.isFinished
+        );
       })
       .map((check: ServerSetupCheckResult): ServerSetupCheckId => {
         return check.id;
@@ -1037,7 +1044,9 @@ export default class ServerSetupChecklistUtil {
       for (const channel of parsedChannels || []) {
         const raw: unknown = (row["channels"] as Array<unknown>).find(
           (candidate: unknown): boolean => {
-            return isObject(candidate) && candidate["channel"] === channel.channel;
+            return (
+              isObject(candidate) && candidate["channel"] === channel.channel
+            );
           },
         );
 

@@ -1228,8 +1228,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
         for (const field of formFields) {
           const fieldName: string = field.name!;
-          const isEmptyStandingInForDefault: boolean =
-            startsOnDefaultForEmpty(field, filledIn);
+          const isEmptyStandingInForDefault: boolean = startsOnDefaultForEmpty(
+            field,
+            filledIn,
+          );
 
           if (
             (filledIn as any)[fieldName] !== undefined &&

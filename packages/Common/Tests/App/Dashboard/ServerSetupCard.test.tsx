@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import fs from "fs";
 import { createInstance, i18n } from "i18next";
 import path from "path";
@@ -74,7 +80,10 @@ type Locale = Record<string, unknown>;
 
 function readLocale(locale: string): Locale {
   return JSON.parse(
-    fs.readFileSync(path.join(DASHBOARD_SRC, "Locales", `${locale}.json`), "utf8"),
+    fs.readFileSync(
+      path.join(DASHBOARD_SRC, "Locales", `${locale}.json`),
+      "utf8",
+    ),
   ) as Locale;
 }
 
