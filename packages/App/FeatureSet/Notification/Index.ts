@@ -18,6 +18,7 @@ import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import { CarriedLogo } from "Common/Server/Utils/Mail/EmailCarriedLogos";
 import StatusPageCarriedLogo from "Common/Server/Utils/StatusPage/StatusPageCarriedLogo";
+import ServerSendingStatus from "Common/Server/Utils/ServerSending/ServerSendingStatus";
 import SubscriberNotificationPreview from "Common/Types/StatusPage/SubscriberNotificationPreview";
 import "ejs";
 
@@ -36,6 +37,13 @@ const NotificationFeatureSet: FeatureSet = {
         return StatusPageCarriedLogo.readAddress(address);
       },
     );
+
+    /*
+     * How the server's own emails, SMS and calls go is written down
+     * (ServerSendingStatus), so the server can say whether it can send -
+     * to its admins in the product, and on the sign-in pages.
+     */
+    ServerSendingStatus.startRecordingOutcomes();
 
     app.use([`/${APP_NAME}/email`, "/email"], MailAPI);
     app.use([`/${APP_NAME}/sms`, "/sms"], SmsAPI);

@@ -53,8 +53,8 @@ Klik op **Deze instellingen testen** onder **Testen voor het opslaan**. De test 
 
 | Instelling | Wat je invult |
 | --- | --- |
-| **Kibana URL** | Het adres waarop Kibana wordt aangeboden, bijvoorbeeld `https://kibana.example.com` of `https://<deployment>.kb.<region>.cloud.es.io`. Zonder pad: geen `/app/security`, geen `/api` en geen deel `/s/<space>`. |
-| **Kibana space** | De ID van de space, niet de naam: letters, cijfers, koppeltekens en onderstrepingstekens. Laat leeg voor de standaardspace. |
+| **Kibana-URL** | Het adres waarop Kibana wordt aangeboden, bijvoorbeeld `https://kibana.example.com` of `https://<deployment>.kb.<region>.cloud.es.io`. Zonder pad: geen `/app/security`, geen `/api` en geen deel `/s/<space>`. |
+| **Kibana-space** | De ID van de space, niet de naam: letters, cijfers, koppeltekens en onderstrepingstekens. Laat leeg voor de standaardspace. |
 | **API-sleutel** | De waarde **Base64** van de sleutel, op zichzelf: OneUptime voegt het schema `ApiKey` zelf toe. Hij wordt versleuteld, nooit door de API teruggegeven en nooit opnieuw getoond. Vervang hem met **Inloggegevens bijwerken** bij de verbinding. |
 
 De stap **Opvragen** heeft ook een optionele **Beschrijving**, het **Opvraaginterval (minuten)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint.
@@ -115,7 +115,7 @@ Wanneer een run helemaal niet voorbij de opgeslagen cursor komt, maakt OneUptime
 
 1. **Verkleinen.** De volgende poll leest een venster dat half zo lang is, vanaf hetzelfde beginpunt, en blijft halveren tot een venster volledig wordt gelezen, tot één minuut. De waarschuwing van de run zegt het: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Weer groeien.** Nadat een venster volledig is gelezen, is het volgende weer twee keer zo lang, tot 24 uur.
-3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere waarschuwingen blijven binnenkomen. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
+3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere waarschuwingen blijven binnenkomen. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Dit tijdsbereik importeren** om terug te halen wat één run kan lezen.
 
 Een run die volledig mislukt, met een fout van Kibana, behoudt de cursor en de vensterlengte, en de volgende poll leest hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen. Het **Opvraaginterval (minuten)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll begint, niet waar zijn venster begint.
 
@@ -124,9 +124,9 @@ Een run die volledig mislukt, met een fout van Kibana, behoudt de cursor en de v
 Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
 
 - **Nu uitvoeren** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
-- **Preview alerts** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
-- **Import this time range** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde waarschuwingen worden overgeslagen.
-- **Copy diagnostics** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
+- **Voorbeeld van waarschuwingen** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
+- **Dit tijdsbereik importeren** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde waarschuwingen worden overgeslagen.
+- **Diagnose kopiëren** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
 
 ## Verbinding testen
 
@@ -139,7 +139,7 @@ Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met d
 | **Read detection alerts** | Eén alert die in de laatste 24 uur is gemaakt, kan worden gelezen. Dat bewijst de rechten en de space. |
 | **Alerts available to import** | Hoeveel alerts er in de laatste 24 uur en de laatste 7 dagen zijn gemaakt, met `+` waar Elasticsearch er maar een deel van telde. Geen in 7 dagen is een waarschuwing, geen fout. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | De kant van OneUptime zelf: een proces neemt de jobs van de Worker-wachtrij af, de poll-job draait elke minuut en de opslag van beveiligingsgebeurtenissen antwoordt. |
-| **Scheduled polling** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
+| **Geplande opvraging** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
 
 Elk verzoek in een test heeft een deadline van 20 seconden. Een test importeert nooit iets en verplaatst nooit de cursor, en elke mislukte controle zegt wat je moet wijzigen.
 
@@ -192,7 +192,7 @@ De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met refe
 :::details Last Error begint met `Elastic Security status request`
 - `Elastic Security status request failed (HTTP ...)`: Kibana weigerde het statusverzoek.
   - `HTTP 401`: Kibana accepteerde de API-sleutel niet. Het is niet de waarde **Base64**, of hij is verlopen of ongeldig gemaakt. Maak een nieuwe sleutel en sla hem op met **Inloggegevens bijwerken**.
-  - `HTTP 404`: de **Kibana URL** heeft een pad, of is geen Kibana.
+  - `HTTP 404`: de **Kibana-URL** heeft een pad, of is geen Kibana.
   - `HTTP 503`: Kibana meldt zichzelf als niet beschikbaar, meestal omdat het Elasticsearch niet kan bereiken.
   - `HTTP 3xx`: Kibana stuurde het verzoek door, en doorverwijzingen worden geweigerd. Gebruik het adres waarop Kibana wordt aangeboden.
 - `Elastic Security status request returned ...`: iets anders dan Kibana antwoordde, zoals een aanmeldpagina of een proxy.
@@ -202,7 +202,7 @@ De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met refe
 :::details Last Error begint met `Elastic Security alerts search`
 - `Elastic Security alerts search failed (HTTP ...)`: Kibana weigerde de alertzoekopdracht.
   - `HTTP 403`: de sleutel meldt zich aan, maar kan de alerts van de space niet lezen. Geef hem de rechten uit [Voordat je begint](#voordat-je-begint).
-  - `HTTP 404`: geen enkele space heeft die ID in **Kibana space**, of Elastic Security is daarin niet ingeschakeld.
+  - `HTTP 404`: geen enkele space heeft die ID in **Kibana-space**, of Elastic Security is daarin niet ingeschakeld.
   - `HTTP 429` of `HTTP 5xx`: Kibana of Elasticsearch beperkt verzoeken of faalt. De volgende poll probeert het opnieuw.
 - `Elastic Security alerts search returned ...`: Kibana antwoordde `200`, maar zonder leesbare pagina met alerts, bijvoorbeeld met een eigen fout. Het bericht citeert die. Dit wordt gemeld in plaats van als leeg venster opgevat, zodat de cursor nooit voorbij alerts gaat die niemand heeft gelezen.
 :::
@@ -217,11 +217,11 @@ Er is voor deze verbinding nog geen poll voltooid. Voer **Verbinding testen** ui
 
 :::details Een run is Partial
 - `Stopped after collecting 10000 alerts; the window holds more`: het venster bevatte meer dan de 10.000 alerts die één run leest. Er gaat niets verloren: de volgende poll begint na de laatst gelezen alert. Een verbinding die poll na poll **Gedeeltelijk** blijft, haalt een achterstand in, en haar **Laatst opgevraagd** en **Laatst geïmporteerde gebeurtenis** blijven vooruitgaan. Haalt ze die nooit in, dan maakt de space meer dan 10.000 alerts per pollinterval: maak het **Opvraaginterval (minuten)** korter.
-- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Import this time range** in **Diagnose**. Een import leest net zoveel als een poll.
+- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Dit tijdsbereik importeren** in **Diagnose**. Een import leest net zoveel als een poll.
 :::
 
 :::details De test slaagt, maar er wordt niets geïmporteerd
-Lees **Alerts available to import** in het testrapport. `0` in de laatste 7 dagen betekent dat geen enkele regel een alert maakte in die space: controleer of daar regels zijn ingeschakeld, en of **Kibana space** de space is waarin ze draaien. Als er alerts bestaan, vergroot dan het tijdsbereik in de verkenner van beveiligingsgebeurtenissen: alerts staan onder de tijd van hun activiteit, die ruim voor hun aanmaak kan liggen.
+Lees **Alerts available to import** in het testrapport. `0` in de laatste 7 dagen betekent dat geen enkele regel een alert maakte in die space: controleer of daar regels zijn ingeschakeld, en of **Kibana-space** de space is waarin ze draaien. Als er alerts bestaan, vergroot dan het tijdsbereik in de verkenner van beveiligingsgebeurtenissen: alerts staan onder de tijd van hun activiteit, die ruim voor hun aanmaak kan liggen.
 :::
 
 ## Wat je krijgt

@@ -13,6 +13,12 @@ import {
   SPLUNK,
 } from "./IntegrationsDocsPages";
 import { tables } from "./DocsPageShape";
+import { TRANSLATED_LANGUAGES, readPage } from "./DocsContentSupport";
+import {
+  DashboardTemplateLabel,
+  dashboardLocale,
+  drawnTemplateLabel,
+} from "./DocsDashboardLabels";
 import {
   bold,
   codeIn,
@@ -38,6 +44,8 @@ import {
   quotedBlock,
   quotedMessages,
   quotes,
+  templateLabelQuoteProblems,
+  templateLabelsOf,
   text,
   unreachable,
   withoutTimes,
@@ -100,6 +108,7 @@ import { SecurityConnectorCheck } from "Common/Types/SecurityEvent/Connectors/Co
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import SecurityEventFormat from "Common/Types/SecurityEvent/SecurityEventFormat";
 import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "Common/Types/SecurityEvent/GoogleSecOpsRegion";
+import { isTranslatableTerm } from "Common/Types/Translator";
 import CrowdStrikeFalconNormalizer from "Common/Utils/SecurityEvent/Connectors/CrowdStrikeFalconNormalizer";
 import MicrosoftDefenderXdrNormalizer from "Common/Utils/SecurityEvent/Connectors/MicrosoftDefenderXdrNormalizer";
 import MicrosoftSentinelNormalizer from "Common/Utils/SecurityEvent/Connectors/MicrosoftSentinelNormalizer";
@@ -1708,6 +1717,127 @@ describe("Google SecOps", () => {
     expect(englishPage(GOOGLE_SECOPS)).toContain(
       `open ${bold("Project Settings → Telemetry & APM → Ingestion Keys")} and click ${bold("Create Ingestion Key")}`,
     );
+  });
+});
+
+/*
+ * The labels the Dashboard builds from a sentence and a value (#6703): the
+ * diagnostics' Preview button around the records a connector imports, the
+ * run details' count Returned by Google SecOps, and the form's switches to
+ * remove a stored secret around the setting's title. Each language's page
+ * quotes them as its Dashboard fills them - "Vorschau der Erkennungen" on
+ * the German Google SecOps page - never in English where the Dashboard
+ * draws them otherwise.
+ */
+describe("every connection page in every language: the labels built from a sentence", () => {
+  const PREVIEW: string = "Preview {{records}}";
+
+  it("each page's Preview button names the records its connector imports, as the diagnostics fill the sentence", () => {
+    for (const page of SECURITY_CONNECTION_PAGES) {
+      const definition: SecurityEventConnectorDefinition =
+        SecurityEventConnectorCatalog.find(
+          (candidate: SecurityEventConnectorDefinition): boolean => {
+            return candidate.docsPath === `/docs/${page}`;
+          },
+        ) as SecurityEventConnectorDefinition;
+      const previews: Array<DashboardTemplateLabel> = templateLabelsOf(
+        page,
+        PREVIEW,
+      );
+      const records: unknown = previews[0]?.values["records"];
+
+      expect({
+        page,
+        previews: previews.length,
+        label: previews[0]?.label,
+        // connectorRecordsTerm: a word the sentence translates, cased inside it.
+        term: isTranslatableTerm(records)
+          ? [records.translatableTerm, records.inSentence]
+          : records,
+      }).toEqual({
+        page,
+        previews: 1,
+        label: `Preview ${definition.importedRecordName}s`,
+        term: [`${definition.importedRecordName}s`, true],
+      });
+      expect(englishPage(page)).toContain(bold(previews[0]!.label));
+    }
+  });
+
+  it("every template a page names is worded in every Dashboard language, so no page has to quote it in English", () => {
+    const unworded: Array<string> = [];
+
+    for (const page of SECURITY_CONNECTION_PAGES) {
+      for (const label of templateLabelsOf(page)) {
+        for (const language of TRANSLATED_LANGUAGES) {
+          if (
+            dashboardLocale(language)[label.template] === label.template ||
+            drawnTemplateLabel(language, label) === label.label
+          ) {
+            unworded.push(`${language} ${page}: ${label.label}`);
+          }
+        }
+      }
+    }
+
+    expect(unworded).toEqual([]);
+  });
+
+  it("every language's page quotes each one as its Dashboard draws it, never the English", () => {
+    const problems: Array<string> = [];
+
+    for (const language of TRANSLATED_LANGUAGES) {
+      for (const page of SECURITY_CONNECTION_PAGES) {
+        problems.push(...templateLabelQuoteProblems(language, page));
+      }
+    }
+
+    expect(problems).toEqual([]);
+    // The German Google SecOps page names the button a reader finds.
+    expect(readPage("de", GOOGLE_SECOPS)).toContain(
+      bold("Vorschau der Erkennungen"),
+    );
+    expect(readPage("de", GOOGLE_SECOPS)).not.toContain(
+      bold("Preview detections"),
+    );
+  });
+
+  it("a page that quotes a label's English where its Dashboard draws it otherwise fails, in every language", () => {
+    const labels: number = SECURITY_CONNECTION_PAGES.reduce(
+      (count: number, page: string): number => {
+        return count + templateLabelsOf(page).length;
+      },
+      0,
+    );
+    let tried: number = 0;
+
+    for (const language of TRANSLATED_LANGUAGES) {
+      for (const page of SECURITY_CONNECTION_PAGES) {
+        const markdown: string = readPage(language, page);
+
+        for (const label of templateLabelsOf(page)) {
+          const drawn: string = drawnTemplateLabel(language, label);
+          // The page as it read before #6703: the English label in its place.
+          const english: string = markdown
+            .split(bold(drawn))
+            .join(bold(label.label));
+
+          expect(
+            templateLabelQuoteProblems(language, page, { markdown: english }),
+          ).toEqual(
+            expect.arrayContaining([
+              `${language} ${page}: quotes no **${drawn}**`,
+              `${language} ${page}: quotes the English **${label.label}**`,
+            ]),
+          );
+          tried++;
+        }
+      }
+    }
+
+    // Ten Preview buttons, Returned by Google SecOps and three switches.
+    expect(labels).toBe(14);
+    expect(tried).toBe(TRANSLATED_LANGUAGES.length * labels);
   });
 });
 

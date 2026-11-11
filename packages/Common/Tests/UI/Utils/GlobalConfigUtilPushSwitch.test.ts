@@ -80,6 +80,7 @@ describe("what it reads", () => {
     await expect(GlobalConfigUtil.fetchVars()).resolves.toEqual({
       disableUserProjectCreation: false,
       disablePushNotifications: true,
+      canSendEmail: true,
     });
 
     GlobalConfigUtil.clearCache();
@@ -93,10 +94,11 @@ describe("what it reads", () => {
     await expect(GlobalConfigUtil.fetchVars()).resolves.toEqual({
       disableUserProjectCreation: true,
       disablePushNotifications: false,
+      canSendEmail: true,
     });
   });
 
-  test("the answer holds booleans, and only the two switches", async () => {
+  test("the answer holds booleans, and only the fields it reads", async () => {
     get.mockResolvedValue(
       answer({
         disablePushNotifications: 1,
@@ -110,6 +112,7 @@ describe("what it reads", () => {
     expect(vars).toStrictEqual({
       disableUserProjectCreation: false,
       disablePushNotifications: true,
+      canSendEmail: true,
     });
   });
 });
@@ -123,6 +126,7 @@ describe("an answer the server refused", () => {
     await expect(GlobalConfigUtil.fetchVars()).resolves.toEqual({
       disableUserProjectCreation: false,
       disablePushNotifications: false,
+      canSendEmail: true,
     });
   });
 
@@ -155,6 +159,7 @@ describe("a request that never got an answer", () => {
     await expect(GlobalConfigUtil.fetchVars()).resolves.toEqual({
       disableUserProjectCreation: false,
       disablePushNotifications: true,
+      canSendEmail: true,
     });
     expect(get).toHaveBeenCalledTimes(2);
   });
@@ -198,6 +203,7 @@ describe("once per page load", () => {
     await expect(GlobalConfigUtil.fetchVars()).resolves.toEqual({
       disableUserProjectCreation: false,
       disablePushNotifications: true,
+      canSendEmail: true,
     });
     expect(get).toHaveBeenCalledTimes(2);
   });

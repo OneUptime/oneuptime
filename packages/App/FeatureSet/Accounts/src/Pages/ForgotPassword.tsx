@@ -6,14 +6,31 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import Link from "Common/UI/Components/Link/Link";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import User from "Common/Models/DatabaseModels/User";
+import { useServerCanSendEmail } from "Common/UI/Utils/ServerSending";
+import CannotEmailNotice from "../Components/CannotEmailNotice/CannotEmailNotice";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+export const FORGOT_PASSWORD_CANNOT_EMAIL_TEST_ID: string =
+  "forgot-password-cannot-email";
+
+/*
+ * "Forgot your password": an email address, then "we have emailed you the
+ * link". A server that cannot send email yet - a fresh self-hosted one, until
+ * its admin sets email up - says so before anyone types, and who can let
+ * them in instead (GET /global-config/vars' canSendEmail). That is a fact
+ * about the server, the same for everyone who opens the page, so it says
+ * nothing about any account; the API refuses every address alike too.
+ */
 const ForgotPassword: () => JSX.Element = () => {
   const { t } = useTranslation();
   const apiUrl: URL = FORGOT_PASSWORD_API_URL;
 
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
+
+  // False only once the server says it cannot send email; the form until then.
+  const canSendEmail: boolean | null = useServerCanSendEmail();
+  const cannotEmail: boolean = canSendEmail === false;
 
   return (
     <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
@@ -23,7 +40,7 @@ const ForgotPassword: () => JSX.Element = () => {
           {t("forgotPassword.title")}
         </h2>
 
-        {!isSuccess && (
+        {!isSuccess && !cannotEmail && (
           <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
             {t("forgotPassword.subtitle")}
           </p>
@@ -37,7 +54,14 @@ const ForgotPassword: () => JSX.Element = () => {
       </div>
 
       <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto">
-        {!isSuccess && (
+        {cannotEmail && (
+          <CannotEmailNotice
+            testId={FORGOT_PASSWORD_CANNOT_EMAIL_TEST_ID}
+            text={t("forgotPassword.cannotEmail")}
+          />
+        )}
+
+        {!isSuccess && !cannotEmail && (
           <div
             className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10"
             data-testid="forgot-password-card"

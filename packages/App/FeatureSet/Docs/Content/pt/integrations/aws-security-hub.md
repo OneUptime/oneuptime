@@ -72,9 +72,9 @@ Clique em **Testar estas configurações** em **Testar antes de salvar**. O test
 | **Região** | O código da região, por exemplo `us-east-1`, `eu-central-1` ou `us-gov-west-1`: para as descobertas de outras contas, a região de origem da conta de administrador. |
 | **ID da chave de acesso** | O ID da chave: de 16 a 128 letras ou dígitos, normalmente 20, começando com `AKIA`, ou com `ASIA` para credenciais temporárias. |
 | **Chave de acesso secreta** | O segredo da chave. Ele é criptografado, nunca devolvido pela API e nunca mostrado de novo. Substitua-o com **Atualizar credenciais** na conexão. |
-| **Session token** | Só para credenciais temporárias, que precisam dele: uma chave `ASIA` é recusada sem ele, e uma chave `AKIA` é recusada com ele. |
+| **Token de sessão** | Só para credenciais temporárias, que precisam dele: uma chave `ASIA` é recusada sem ele, e uma chave `AKIA` é recusada com ele. |
 
-Credenciais temporárias de `aws sts assume-role` ou `aws sts get-session-token` expiram, depois de no máximo 12 horas para uma função assumida, e a consulta para até você colar novas com **Atualizar credenciais**. Uma chave de longa duração com esta política restrita, rotacionada no seu próprio calendário, continua consultando sem intervenção. Para passar de credenciais temporárias para uma chave de longa duração, informe a nova chave em **Atualizar credenciais** e ative **Remove the stored Session token**.
+Credenciais temporárias de `aws sts assume-role` ou `aws sts get-session-token` expiram, depois de no máximo 12 horas para uma função assumida, e a consulta para até você colar novas com **Atualizar credenciais**. Uma chave de longa duração com esta política restrita, rotacionada no seu próprio calendário, continua consultando sem intervenção. Para passar de credenciais temporárias para uma chave de longa duração, informe a nova chave em **Atualizar credenciais** e ative **Remover o campo Token de sessão armazenado**.
 
 A etapa **Consulta periódica** também tem uma **Descrição** opcional, o **Intervalo de consulta (minutos)**, um número inteiro de `1` a `1440` que começa em `5`, e **Habilitado**, que começa ativado.
 
@@ -131,7 +131,7 @@ Quando uma execução não consegue passar do cursor salvo de jeito nenhum, por 
 
 1. **Reduzir.** A consulta seguinte lê uma janela com a metade do tamanho, a partir do mesmo ponto de partida, e continua dividindo pela metade até que uma janela seja lida por inteiro, até um minuto. O aviso da execução diz isso: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Voltar a crescer.** Depois que uma janela é lida por inteiro, a seguinte volta a ter o dobro do tamanho, até 24 horas.
-3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que as descobertas mais novas continuem chegando, e a sobreposição das consultas seguintes não volta mais até ele. A execução continua **Parcial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler.
+3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que as descobertas mais novas continuem chegando, e a sobreposição das consultas seguintes não volta mais até ele. A execução continua **Parcial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Importar este intervalo de tempo** para recuperar o que uma execução consegue ler.
 
 Uma execução que falha por completo, com um erro da AWS, mantém o cursor e o tamanho da janela, e a consulta seguinte relê a mesma janela. A única exceção é uma requisição que expirou: o cursor fica, mas a janela seguinte tem a metade do tamanho, porque uma janela pesada demais para ser respondida a tempo expiraria em toda tentativa. Mudar o **Intervalo de consulta (minutos)** não muda nada disso: ele decide com que frequência uma consulta começa, não onde a janela dela começa.
 
@@ -140,9 +140,9 @@ Uma execução que falha por completo, com um erro da AWS, mantém o cursor e o 
 Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela e trabalhar com ela manualmente. Quem pode alterar a conexão pode iniciar essas ações; quem pode vê-la pode ler o histórico.
 
 - **Executar agora** inicia uma consulta na hora, com o cursor de sempre, mesmo quando a conexão não está **Habilitado**.
-- **Preview findings** lê um intervalo de tempo de até 7 dias e não importa nada.
-- **Import this time range** importa um intervalo de até 7 dias, depois que você confirma, sem mover o cursor. As descobertas já importadas são puladas.
-- **Copy diagnostics** em uma execução copia o relatório dela para o suporte. Ele nunca inclui credenciais.
+- **Prévia de constatações** lê um intervalo de tempo de até 7 dias e não importa nada.
+- **Importar este intervalo de tempo** importa um intervalo de até 7 dias, depois que você confirma, sem mover o cursor. As descobertas já importadas são puladas.
+- **Copiar diagnóstico** em uma execução copia o relatório dela para o suporte. Ele nunca inclui credenciais.
 
 ## Testar conexão
 
@@ -155,7 +155,7 @@ Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela
 | **Read findings** | O Security Hub responde a essa requisição: a identidade pode chamar `securityhub:GetFindings`, e o Security Hub está habilitado na região. |
 | **Findings available to import** | Quantas descobertas foram criadas nas últimas 24 horas e nos últimos 7 dias, uma página de 100 cada, então `100+` significa mais. Nenhuma em 7 dias é um aviso, não uma falha. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | O lado do próprio OneUptime: um processo pega os jobs da fila Worker, o job de consulta roda a cada minuto e o armazenamento de eventos de segurança responde. |
-| **Scheduled polling** | Para uma conexão salva: a consulta está ativada, nenhuma execução está presa esperando um worker e as consultas rodam no horário. |
+| **Consulta agendada** | Para uma conexão salva: a consulta está ativada, nenhuma execução está presa esperando um worker e as consultas rodam no horário. |
 
 Cada requisição de um teste tem um prazo de 20 segundos. Um teste nunca importa nada nem move o cursor, e cada verificação que falha diz o que mudar.
 
@@ -169,7 +169,7 @@ A AWS recusou a requisição. A mensagem cita o código de erro da AWS, ou as pr
 - `AccessDeniedException`, ou `is not authorized to perform`: a chave está certa, mas a identidade dela não pode chamar `securityhub:GetFindings`. Anexe a política de [Configurar a conexão](#configurar-a-conexão). Um limite de permissões ou uma política de controle de serviço também pode negá-la.
 - `InvalidAccessException`, ou `is not subscribed to AWS Security Hub`: o Security Hub não está habilitado para esta conta nesta **Região**, ou a conta não é a administradora dele ali.
 - `InvalidSignatureException` ou `SignatureDoesNotMatch`, ou `The request signature we calculated does not match`: a **Chave de acesso secreta** não pertence ao **ID da chave de acesso**. Crie uma nova chave de acesso e salve-a com **Atualizar credenciais**.
-- `UnrecognizedClientException` ou `InvalidClientTokenId`, ou `The security token included in the request is invalid`: a AWS não conhece o **ID da chave de acesso**. Ele foi digitado errado, excluído, desativado ou é de outra partição, ou é uma chave temporária sem o seu **Session token**.
+- `UnrecognizedClientException` ou `InvalidClientTokenId`, ou `The security token included in the request is invalid`: a AWS não conhece o **ID da chave de acesso**. Ele foi digitado errado, excluído, desativado ou é de outra partição, ou é uma chave temporária sem o seu **Token de sessão**.
 - `ExpiredTokenException`, ou `The security token included in the request is expired`: as credenciais temporárias expiraram. Emita novas, ou troque para uma chave de longa duração.
 - `RequestTimeTooSkewed` ou `RequestExpired`, ou `Signature expired`: o relógio dos hosts do OneUptime está mais de 5 minutos fora. Corrija o NTP nos hosts do aplicativo e dos workers.
 - Nenhum código: a AWS não disse se foi a chave ou a política que a recusou. Verifique primeiro a chave, depois a política.
@@ -193,7 +193,7 @@ Nenhuma consulta terminou para essa conexão. Rode **Testar conexão**: as verif
 
 :::details Uma execução está Partial
 - `Stopped after 20 findings requests`: a janela continha mais do que as 2.000 descobertas que uma execução lê. Nada se perde: a consulta seguinte começa depois da última descoberta lida. Uma conexão que continua **Parcial** consulta após consulta está se atualizando de um atraso, e os seus **Última consulta** e **Último evento importado** continuam avançando. Se ela nunca se atualiza, a conta cria mais de 2.000 descobertas por intervalo de consulta: encurte o **Intervalo de consulta (minutos)**.
-- `More records were created in the one minute from ... than one poll can read`: a consulta passou desse minuto. Importe-o com **Import this time range** em **Diagnóstico**. Uma importação lê tanto quanto uma consulta.
+- `More records were created in the one minute from ... than one poll can read`: a consulta passou desse minuto. Importe-o com **Importar este intervalo de tempo** em **Diagnóstico**. Uma importação lê tanto quanto uma consulta.
 :::
 
 :::details O teste passa, mas nada é importado
@@ -201,7 +201,7 @@ Leia **Findings available to import** no relatório do teste. `0` nos últimos 7
 :::
 
 :::details Uma descoberta do console do Security Hub nunca chegou
-Compare o `CreatedAt` dela com o `ProcessedAt`, quando o Security Hub a recebeu. Uma descoberta que chegou mais de 30 minutos depois do seu `CreatedAt` pode ficar para trás do cursor: importe o `CreatedAt` dela com **Import this time range**.
+Compare o `CreatedAt` dela com o `ProcessedAt`, quando o Security Hub a recebeu. Uma descoberta que chegou mais de 30 minutos depois do seu `CreatedAt` pode ficar para trás do cursor: importe o `CreatedAt` dela com **Importar este intervalo de tempo**.
 :::
 
 ## O que você ganha
