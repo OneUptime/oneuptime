@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * THE INVITATION LINK, FOR A MASTER ADMIN TO SEND (#6825).
@@ -14,9 +15,9 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
  *   - an invitation that is not there gets no link at all.
  */
 
-const teamMemberFindOneById: jest.Mock = jest.fn();
-const userFindOneById: jest.Mock = jest.fn();
-const generateRegistrationLink: jest.Mock = jest.fn();
+const teamMemberFindOneById: Mock = jest.fn();
+const userFindOneById: Mock = jest.fn();
+const generateRegistrationLink: Mock = jest.fn();
 
 jest.mock("../../../Server/Services/TeamMemberService", () => {
   return {
