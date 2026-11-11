@@ -67,6 +67,9 @@ import NotificationDeliveryMetrics, {
   NotificationDispatch,
   NotificationProviderConfig,
 } from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
+import ServerSendingOutcomes from "Common/Server/Utils/ServerSending/ServerSendingOutcomes";
+import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
+import { SERVER_EMAIL_NOT_SET_UP_MESSAGE } from "Common/Types/ServerSending/ServerSendingWords";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
 import { createHash } from "crypto";
@@ -954,6 +957,39 @@ export default class MailService {
     return await getGlobalSMTPConfig();
   }
 
+  /*
+   * The server's own mail server or provider, as its settings name it - or,
+   * while they are missing or left incomplete, the refusal everyone reads
+   * (SERVER_EMAIL_NOT_SET_UP_MESSAGE): the project owner in the Email Log,
+   * whoever waits on the on-call log, and the caller. What exactly is
+   * missing goes to the server's log, and to its admin in the Admin
+   * Dashboard (ServerChannelSetup).
+   */
+  private static async getServerEmailServer(
+    read: () => Promise<EmailServer | null>,
+  ): Promise<EmailServer> {
+    let emailServer: EmailServer | null = null;
+
+    try {
+      emailServer = await read();
+    } catch (err) {
+      // A setting left blank. Anything else - the database - is not that.
+      if (!(err instanceof BadDataException)) {
+        throw err;
+      }
+
+      logger.warn(
+        `This server's email settings are incomplete: ${(err as Error)?.message || err}`,
+      );
+    }
+
+    if (!emailServer) {
+      throw new BadDataException(SERVER_EMAIL_NOT_SET_UP_MESSAGE).asUserError();
+    }
+
+    return emailServer;
+  }
+
   private static async updateUserNotificationLogTimelineAsSent(
     timelineId: ObjectID,
     statusMessage: string,
@@ -1545,6 +1581,13 @@ export default class MailService {
       ? NotificationProviderConfig.Project
       : NotificationProviderConfig.Global;
 
+    /*
+     * Set once the email is handed to a mail server or provider: a failure
+     * after this is the mail service's, before it the settings' or
+     * OneUptime's own (rendering the template).
+     */
+    let hasReachedMailService: boolean = false;
+
     if (options && options.projectId) {
       emailLog = new EmailLog();
       emailLog.projectId = options.projectId;
@@ -1692,77 +1735,25 @@ export default class MailService {
 
         const sendgridConfig: SendGridConfig | null = await getSendgridConfig();
 
-        if (!sendgridConfig) {
-          if (emailLog) {
-            emailLog.status = MailStatus.Error;
-            emailLog.statusMessage =
-              "Email is configured to use Sendgrid, but Sendgrid Settings is not configured.";
-
-            await EmailLogService.create({
-              data: emailLog,
-              props: {
-                isRoot: true,
-              },
-            });
-          }
-
-          throw new BadDataException("Sendgrid Config not found").asUserError();
-        }
-
-        if (!sendgridConfig.apiKey) {
-          if (emailLog) {
-            emailLog.status = MailStatus.Error;
-            emailLog.statusMessage =
-              "Email is configured to use Sendgrid, but Sendgrid API key is not configured.";
-
-            await EmailLogService.create({
-              data: emailLog,
-              props: {
-                isRoot: true,
-              },
-            });
-          }
+        /*
+         * SendGrid picked, and its key, sender or name left blank: nothing
+         * can go out. The Email Log row a project's owners read, the on-call
+         * log and the error all say so in their words (catch, below) - the
+         * server's admin reads what is missing in the Admin Dashboard
+         * (ServerChannelSetup).
+         */
+        if (
+          !sendgridConfig ||
+          !sendgridConfig.apiKey ||
+          !sendgridConfig.fromEmail ||
+          !sendgridConfig.fromName
+        ) {
+          logger.warn(
+            "Email is set to go out through SendGrid, but its API key, From Email or From Name is not set in the Admin Dashboard.",
+          );
 
           throw new BadDataException(
-            "Sendgrid API key not configured",
-          ).asUserError();
-        }
-
-        if (!sendgridConfig.fromEmail) {
-          if (emailLog) {
-            emailLog.status = MailStatus.Error;
-            emailLog.statusMessage =
-              "Email is configured to use Sendgrid, but Sendgrid From Email is not configured.";
-
-            await EmailLogService.create({
-              data: emailLog,
-              props: {
-                isRoot: true,
-              },
-            });
-          }
-
-          throw new BadDataException(
-            "Sendgrid From Email not configured",
-          ).asUserError();
-        }
-
-        if (!sendgridConfig.fromName) {
-          if (emailLog) {
-            emailLog.status = MailStatus.Error;
-            emailLog.statusMessage =
-              "Email is configured to use Sendgrid, but Sendgrid From Name is not configured.";
-
-            await EmailLogService.create({
-              data: emailLog,
-              props: {
-                isRoot: true,
-              },
-            });
-          }
-
-          throw new BadDataException(
-            "Sendgrid From Name not configured",
+            SERVER_EMAIL_NOT_SET_UP_MESSAGE,
           ).asUserError();
         }
 
@@ -1771,6 +1762,8 @@ export default class MailService {
         }
 
         const config: SendGridConfig = sendgridConfig;
+
+        hasReachedMailService = true;
 
         const imagesRefused: Error | null = await this.sendEvenWithoutImages({
           mail: mail,
@@ -1788,6 +1781,9 @@ export default class MailService {
         });
 
         dispatch.markSucceeded();
+
+        // The server's own email went out (ServerSendingStatus).
+        await ServerSendingOutcomes.recordSucceeded(ServerSendingChannel.Email);
 
         await this.recordSent({
           emailLog: emailLog,
@@ -1813,9 +1809,9 @@ export default class MailService {
           options = {};
         }
 
-        options.emailServer = await getGlobalEmailProviderServer(
-          globalProviderTransport,
-        );
+        options.emailServer = await this.getServerEmailServer(async () => {
+          return await getGlobalEmailProviderServer(globalProviderTransport);
+        });
       }
 
       if (
@@ -1826,35 +1822,18 @@ export default class MailService {
           options = {};
         }
 
-        const globalEmailServer: EmailServer | null =
-          await this.getGlobalSmtpSettings();
-
-        if (!globalEmailServer) {
-          if (emailLog) {
-            emailLog.status = MailStatus.Error;
-            emailLog.statusMessage =
-              "Email is configured to use SMTP, but SMTP settings are not configured.";
-
-            await EmailLogService.create({
-              data: emailLog,
-              props: {
-                isRoot: true,
-              },
-            });
-          }
-
-          /*
-           * The tenant picked SMTP as their email provider and then never
-           * filled the settings in. The EmailLog row above already tells them
-           * so; the outer catch re-logs this exception, and the authoritative
-           * tag is what keeps that log line out of the Issues list.
-           */
-          throw new BadDataException(
-            "Global SMTP Config not found",
-          ).asUserError();
-        }
-
-        options.emailServer = globalEmailServer;
+        /*
+         * The server's Custom SMTP settings, which nobody may have filled in
+         * yet: a fresh self-hosted server has no mail server. The catch
+         * below writes the Email Log row in a project owner's words, and the
+         * authoritative tag on the error keeps its log line out of the
+         * Issues list.
+         */
+        options.emailServer = await this.getServerEmailServer(
+          async (): Promise<EmailServer | null> => {
+            return await this.getGlobalSmtpSettings();
+          },
+        );
       }
 
       if (options && options.emailServer && emailLog) {
@@ -1875,6 +1854,8 @@ export default class MailService {
         ),
         providerConfig,
       );
+
+      hasReachedMailService = true;
 
       const imagesRefused: Error | null = await this.sendEvenWithoutImages({
         mail: mail,
@@ -1902,6 +1883,11 @@ export default class MailService {
 
       dispatch.markSucceeded();
 
+      // The server's own email went out (ServerSendingStatus).
+      if (providerConfig === NotificationProviderConfig.Global) {
+        await ServerSendingOutcomes.recordSucceeded(ServerSendingChannel.Email);
+      }
+
       await this.recordSent({
         emailLog: emailLog,
         userOnCallLogTimelineId: options.userOnCallLogTimelineId,
@@ -1926,6 +1912,23 @@ export default class MailService {
        * itself is thrown as it is.
        */
       const statusMessage: string = toEmailStatusMessage(message);
+
+      /*
+       * The server's own mail server or provider refused it, or was not
+       * reached: the server's email is failing (ServerSendingStatus), and
+       * its admin is told. Never for a project's own mail server, whose
+       * failures are the project's, nor for an email that never got that
+       * far - settings left blank are "not set up", read from the settings.
+       */
+      if (
+        hasReachedMailService &&
+        providerConfig === NotificationProviderConfig.Global
+      ) {
+        await ServerSendingOutcomes.recordFailed(
+          ServerSendingChannel.Email,
+          statusMessage,
+        );
+      }
 
       logger.error(err);
       if (options?.userOnCallLogTimelineId) {

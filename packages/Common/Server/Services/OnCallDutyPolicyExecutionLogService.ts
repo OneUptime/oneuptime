@@ -1,3 +1,5 @@
+import ProjectMilestoneService from "./ProjectMilestoneService";
+import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
@@ -956,6 +958,16 @@ export class Service extends ProjectReferencesService<Model> {
     if (isOnCallDirectPage(createdItem)) {
       return createdItem;
     }
+
+    /*
+     * The project's first on-call policy that ran (issue #6830): a policy's
+     * run that starts its escalation - not an archived policy's, which says
+     * why nobody was paged, nor a direct page, which has no policy.
+     */
+    ProjectMilestoneService.reachInBackground({
+      projectId: createdItem.projectId,
+      milestone: ActivationMilestone.FirstOnCallPolicyExecuted,
+    });
 
     /*
      * A page again starts at the escalation rule that was paging when its

@@ -306,7 +306,7 @@ histogram.record(metric.value, {
 
 ## 문제 해결
 
-:::details 카드에 "No web vitals reported yet"이 표시됨
+:::details 카드에 "아직 보고된 Web Vitals가 없습니다"이 표시됨
 카드는 앱이 보내는 메트릭으로만 채워집니다. 다음 순서로 확인하세요.
 
 1. 메트릭 파이프라인이 있는지. 트레이스만으로는 이 카드가 절대 채워지지 않습니다.

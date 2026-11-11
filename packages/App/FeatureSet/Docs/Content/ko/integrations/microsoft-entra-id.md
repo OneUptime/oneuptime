@@ -118,7 +118,7 @@ Microsoft 365 감사 로그는 Microsoft가 각 콘텐츠 Blob을 사용할 수 
 
 1. **좁히기.** 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽으며, 구간을 끝까지 읽을 수 있게 될 때까지 계속 절반으로 줄이고, 가장 짧게는 1분까지 줄입니다. 실행의 경고에 그렇게 적힙니다: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` 더 긴 구간에서 이미 가져온 레코드는 중복으로 건너뜁니다.
 2. **다시 늘리기.** 구간을 끝까지 읽으면 커서가 그 끝으로 옮겨지고, 다음 구간은 다시 두 배가 되며, 최대 24시간까지 늘어납니다.
-3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많으면, 더 새로운 레코드가 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **부분**으로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`가 표시됩니다. 그 1분을 **Import this time range**로 가져오면 한 번의 실행으로 읽을 수 있는 만큼 되찾을 수 있습니다.
+3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많으면, 더 새로운 레코드가 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **부분**으로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`가 표시됩니다. 그 1분을 **이 시간 범위 가져오기**로 가져오면 한 번의 실행으로 읽을 수 있는 만큼 되찾을 수 있습니다.
 
 **폴링 간격(분)** 값을 바꿔도 이 중 어느 것도 달라지지 않습니다. 이 설정은 폴링이 얼마나 자주 시작하는지를 정할 뿐, 구간이 어디서 시작하는지는 정하지 않습니다.
 
@@ -127,9 +127,9 @@ Microsoft 365 감사 로그는 Microsoft가 각 콘텐츠 Blob을 사용할 수 
 연결에서 **진단**을 클릭하면 최근 실행을 보고 연결을 직접 다룰 수 있습니다. 연결을 변경할 수 있는 사람은 누구나 이를 시작할 수 있고, 연결을 볼 수 있는 사람은 누구나 기록을 읽을 수 있습니다.
 
 - **지금 실행**은 연결이 **활성화됨** 상태가 아닐 때에도 평소의 커서로 즉시 폴링을 시작합니다.
-- **Preview records**는 최대 7일의 시간 범위를 읽으며 아무것도 가져오지 않습니다.
-- **Import this time range**는 확인을 거친 뒤 최대 7일의 범위를 가져오며, 커서는 옮기지 않습니다. 이미 가져온 레코드는 건너뜁니다. Microsoft Entra ID는 P1 또는 P2가 있으면 로그인과 디렉터리 변경을 30일, 없으면 7일 동안 보관합니다.
-- 실행의 **Copy diagnostics**는 지원팀에 보낼 보고서를 복사합니다. 자격 증명은 절대 포함되지 않습니다.
+- **레코드 미리 보기**는 최대 7일의 시간 범위를 읽으며 아무것도 가져오지 않습니다.
+- **이 시간 범위 가져오기**는 확인을 거친 뒤 최대 7일의 범위를 가져오며, 커서는 옮기지 않습니다. 이미 가져온 레코드는 건너뜁니다. Microsoft Entra ID는 P1 또는 P2가 있으면 로그인과 디렉터리 변경을 30일, 없으면 7일 동안 보관합니다.
+- 실행의 **진단 복사**는 지원팀에 보낼 보고서를 복사합니다. 자격 증명은 절대 포함되지 않습니다.
 
 ## 연결 테스트
 
@@ -146,7 +146,7 @@ Microsoft 365 감사 로그는 Microsoft가 각 콘텐츠 Blob을 사용할 수 
 | **Read the Microsoft 365 audit log** | 옵션이 켜져 있을 때만: Management API가 응답하는지, 그리고 앱이 어떤 콘텐츠 유형을 구독하는지. |
 | **Records available to import** | 지난 24시간에 로그인과 디렉터리 변경이 몇 개 있는지. 각각 최대 500개까지 세므로 `500+`는 그보다 많다는 뜻입니다. 하나도 없으면 경고입니다. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime 쪽: Worker 큐의 작업을 가져가는 프로세스가 있고, 폴링 작업이 매분 실행되고, 보안 이벤트 저장소가 응답하는지. |
-| **Scheduled polling** | 저장된 연결의 경우: 폴링이 켜져 있고, 워커를 기다리며 멈춘 실행이 없고, 폴링이 제때 실행되는지. |
+| **예약된 폴링** | 저장된 연결의 경우: 폴링이 켜져 있고, 워커를 기다리며 멈춘 실행이 없고, 폴링이 제때 실행되는지. |
 
 테스트의 모든 요청에는 20초 기한이 있습니다. 테스트는 아무것도 가져오지 않고 커서를 옮기지도 않으며, 실패한 각 검사는 무엇을 바꿔야 하는지 알려 줍니다.
 

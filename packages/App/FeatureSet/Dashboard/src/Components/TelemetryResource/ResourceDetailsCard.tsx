@@ -13,7 +13,6 @@ import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/Advance
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelDetailField from "Common/UI/Components/ModelDetail/Field";
-import { announceModelHeaderChanged } from "Common/UI/Components/Page/ModelHeaderEvents";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import SelectFormFields from "Common/UI/Types/SelectEntityField";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -50,7 +49,8 @@ import React, { ReactElement } from "react";
  *
  * The server holds a changed identifier or matched name to the create rules
  * (DiscoveredResourceUpdate). A save tells the page header to read the
- * record again (ModelHeaderEvents), so the new name shows at once.
+ * record again (CardModelDetail, through ModelHeaderEvents), so the new name
+ * shows at once.
  *
  * Common/Tests/UI/Components/Forms/ResourceDetailsOnePlaceGuard.test.ts
  * keeps it so: no other form edits these fields.
@@ -278,17 +278,11 @@ const ResourceDetailsCard: <TBaseModel extends BaseModel>(
       isEditable={true}
       editButtonText={RESOURCE_DETAILS_EDIT_BUTTON_TEXT}
       formFields={formFields}
-      onSaveSuccess={(item: TBaseModel): void => {
-        // The page header shows the name and the labels: read them again.
-        announceModelHeaderChanged({
-          modelType: props.modelType,
-          modelId: props.modelId,
-        });
-
-        if (props.onSaveSuccess) {
-          props.onSaveSuccess(item);
-        }
-      }}
+      /*
+       * The page header shows the name and the labels: CardModelDetail tells
+       * it to read them again after a save.
+       */
+      onSaveSuccess={props.onSaveSuccess}
       modelDetailProps={{
         showDetailsInNumberOfColumns: 2,
         modelType: props.modelType,

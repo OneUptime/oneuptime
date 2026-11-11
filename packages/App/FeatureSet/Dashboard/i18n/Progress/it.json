@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50390,
-    "untranslated": 10109
+    "keys": 50583,
+    "untranslated": 9730
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -25,6 +25,7 @@
     "Alias",
     "Amphora",
     "Amphorae",
+    "Angular (Browser)",
     "Apache Kafka · kafka-1:9092",
     "App",
     "Appliance",
@@ -60,6 +61,8 @@
     "Chat",
     "ClickHouse",
     "Client",
+    "Client ID",
+    "Client Secret",
     "Cloud",
     "CloudKitty",
     "Cluster",
@@ -109,6 +112,7 @@
     "Flame graph",
     "Flavor",
     "Floating IP",
+    "Fluent Bit",
     "Formula",
     "Formula: {{formula}}",
     "Funnel",
@@ -117,6 +121,7 @@
     "Golden Signals",
     "Google Calendar",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "Guest",
     "H1",
@@ -125,6 +130,7 @@
     "HH",
     "HTTP {{status}}",
     "Hardware",
+    "Hash",
     "Hello world",
     "Hertz",
     "Home",
@@ -244,6 +250,7 @@
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
+    "React (Browser)",
     "Record",
     "Red Hat OpenShift",
     "RegionOne",

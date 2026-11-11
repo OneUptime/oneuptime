@@ -65,7 +65,7 @@ httpProtocol: https
 
 ### 앱 매니페스트 복사
 
-**프로젝트 설정 > 워크스페이스 > Slack**을 엽니다. 서버에 Slack이 설정되기 전까지 이 페이지는 호스트 이름에 맞게 생성된 매니페스트와 함께 **Integrating Slack with your OneUptime Project**를 표시합니다. 매니페스트는 `https://oneuptime.example.com/api/slack/app-manifest`에서도 제공됩니다.
+**프로젝트 설정 > 워크스페이스 > Slack**을 엽니다. 서버에 Slack이 설정되기 전까지 이 페이지는 호스트 이름에 맞게 생성된 매니페스트와 함께 **OneUptime 프로젝트와 Slack 연동하기**를 표시합니다. 매니페스트는 `https://oneuptime.example.com/api/slack/app-manifest`에서도 제공됩니다.
 
 매니페스트의 모든 URL이 공개 호스트 이름으로 시작하는지 확인하세요. 그렇지 않다면 먼저 `HOST`와 `HTTP_PROTOCOL`을 고치고 변경 사항을 적용합니다.
 
@@ -112,7 +112,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
 :::
 
-OneUptime이 다시 실행되면 **프로젝트 설정 > 워크스페이스 > Slack**에 매니페스트 대신 **Connect with Slack** 버튼이 표시됩니다.
+OneUptime이 다시 실행되면 **프로젝트 설정 > 워크스페이스 > Slack**에 매니페스트 대신 **Slack으로 연결** 버튼이 표시됩니다.
 
 ### 이벤트 요청 URL 확인
 
@@ -120,7 +120,7 @@ Slack 앱의 **Event Subscriptions**에서 요청 URL을 확인합니다. OneUpt
 
 ### 프로젝트 연결
 
-**프로젝트 설정 > 워크스페이스 > Slack**에서 **Connect with Slack**을 선택하고 Slack에서 앱을 허용합니다. Slack이 같은 페이지로 돌려보내며, 이제 그 페이지에 워크스페이스 이름이 표시됩니다.
+**프로젝트 설정 > 워크스페이스 > Slack**에서 **Slack으로 연결**을 선택하고 Slack에서 앱을 허용합니다. Slack이 같은 페이지로 돌려보내며, 이제 그 페이지에 워크스페이스 이름이 표시됩니다.
 
 ### 자신의 Slack 계정 연결
 
@@ -131,7 +131,7 @@ Slack 앱의 **Event Subscriptions**에서 요청 URL을 확인합니다. OneUpt
 
 | Docker Compose (`config.env`) | Helm (`values.yaml`) | 필수 | 값 |
 | --- | --- | --- | --- |
-| `SLACK_APP_CLIENT_ID` | `slackApp.clientId` | 예 | 앱의 **Client ID**. 이 값이 없으면 Slack 페이지에 **Connect with Slack** 대신 설정 안내가 표시됩니다. |
+| `SLACK_APP_CLIENT_ID` | `slackApp.clientId` | 예 | 앱의 **Client ID**. 이 값이 없으면 Slack 페이지에 **Slack으로 연결** 대신 설정 안내가 표시됩니다. |
 | `SLACK_APP_CLIENT_SECRET` | `slackApp.clientSecret` | 예 | 앱의 **Client Secret**. Slack이 돌려준 코드를 토큰으로 교환하는 데 쓰입니다. |
 | `SLACK_APP_SIGNING_SECRET` | `slackApp.signingSecret` | 예 | 앱의 **Signing Secret**. Slack에서 오는 모든 요청을 이 값으로 검사합니다. |
 | `HOST` | `host` | 예 | 스킴을 뺀 공개 호스트 이름. |
@@ -154,19 +154,19 @@ Slack 앱의 **Event Subscriptions**에서 요청 URL을 확인합니다. OneUpt
 
 인시던트와 알림의 설명에는 스크린샷이 들어갈 수 있습니다. 예를 들어 합성 모니터의 스크린샷입니다([스크린샷 표시](/docs/monitor/incident-alert-templating#스크린샷-표시) 참고). OneUptime은 각 스크린샷을 비공개 파일로 워크스페이스에 업로드해 Slack 메시지에 표시하며, 이를 위해 봇 스코프 `files:write`가 필요합니다. 생성된 매니페스트에는 이 스코프가 포함되어 있습니다.
 
-이전 매니페스트로 Slack 앱을 만들었다면 **OAuth & Permissions > Bot Token Scopes**에 `files:write`를 추가하세요(또는 현재 매니페스트로 앱을 업데이트하세요). 그런 다음 **프로젝트 설정 > 워크스페이스 > Slack**에서 **Connect with Slack**을 다시 선택해 새 스코프가 부여되게 합니다. 그때까지 각 스크린샷은 대체 텍스트로 표시됩니다.
+이전 매니페스트로 Slack 앱을 만들었다면 **OAuth & Permissions > Bot Token Scopes**에 `files:write`를 추가하세요(또는 현재 매니페스트로 앱을 업데이트하세요). 그런 다음 **프로젝트 설정 > 워크스페이스 > Slack**에서 **Slack으로 연결**을 다시 선택해 새 스코프가 부여되게 합니다. 그때까지 각 스크린샷은 대체 텍스트로 표시됩니다.
 
 ### 온콜 사용자 그룹
 
 스케줄의 Slack 사용자 그룹을 온콜 담당자와 같게 유지하려면([온콜 사용자 그룹](/docs/workspace-connections/slack#온콜-사용자-그룹) 참고) 봇 스코프 `usergroups:read`와 `usergroups:write`가 필요합니다. 생성된 매니페스트에는 이 스코프가 포함되어 있습니다.
 
-이전 매니페스트로 Slack 앱을 만들었다면 **OAuth & Permissions > Bot Token Scopes**에 `usergroups:read`와 `usergroups:write`를 추가하세요(또는 현재 매니페스트로 앱을 업데이트하세요). 그런 다음 **프로젝트 설정 > 워크스페이스 > Slack**에서 **Connect with Slack**을 다시 선택해 새 스코프가 부여되게 합니다. 그때까지 스케줄 카드에는 OneUptime의 Slack 앱이 아직 사용자 그룹을 변경할 수 없다고 표시됩니다.
+이전 매니페스트로 Slack 앱을 만들었다면 **OAuth & Permissions > Bot Token Scopes**에 `usergroups:read`와 `usergroups:write`를 추가하세요(또는 현재 매니페스트로 앱을 업데이트하세요). 그런 다음 **프로젝트 설정 > 워크스페이스 > Slack**에서 **Slack으로 연결**을 다시 선택해 새 스코프가 부여되게 합니다. 그때까지 스케줄 카드에는 OneUptime의 Slack 앱이 아직 사용자 그룹을 변경할 수 없다고 표시됩니다.
 
 ### 이전 매니페스트로 만든 앱
 
 이전 OneUptime 매니페스트로 만든 Slack 앱은 `/incident`와 `/maintenance`를 자체 명령으로 등록하며, 이 명령은 다른 앱의 같은 이름 명령과 충돌할 수 있습니다. 이 명령은 계속 작동하고 `/oneuptime incident`, `/oneuptime maintenance`와 같은 양식을 엽니다. `/oneuptime`으로 바꾸려면 서버가 생성하는 매니페스트로 앱을 업데이트하세요. [api.slack.com/apps](https://api.slack.com/apps)에서 앱의 **App Manifest**를 열고 매니페스트를 붙여 넣은 뒤 저장합니다.
 
-`/oneuptime page` 이전에 만든 앱도 같은 업데이트가 필요합니다. 업데이트하기 전에는 `/oneuptime page`가 @멘션한 사람을 알아보지 못하고, 바로 호출하는 대신 그 사람을 고르는 양식을 엽니다. 그런 다음 **프로젝트 설정 > 워크스페이스 > Slack**에서 **Connect with Slack**을 다시 선택해 매니페스트가 추가하는 `users:read.email` 스코프가 부여되게 합니다. 그러면 Slack 계정이 OneUptime에 연결되지 않은 사람도 이메일 주소로 찾을 수 있습니다.
+`/oneuptime page` 이전에 만든 앱도 같은 업데이트가 필요합니다. 업데이트하기 전에는 `/oneuptime page`가 @멘션한 사람을 알아보지 못하고, 바로 호출하는 대신 그 사람을 고르는 양식을 엽니다. 그런 다음 **프로젝트 설정 > 워크스페이스 > Slack**에서 **Slack으로 연결**을 다시 선택해 매니페스트가 추가하는 `users:read.email` 스코프가 부여되게 합니다. 그러면 Slack 계정이 OneUptime에 연결되지 않은 사람도 이메일 주소로 찾을 수 있습니다.
 
 앱을 **Home** 탭 이전에 만들었다면 같은 업데이트가 필요합니다. 업데이트하기 전까지 Slack 은 앱에 **Home** 탭을 표시하지 않고, 앱은 추가된 채널에 인사를 게시하지 않습니다. 업데이트하면 탭이 켜지고 앱이 `app_home_opened` 와 `member_joined_channel` 이벤트를 구독합니다. 스코프는 추가되지 않으므로 다시 연결할 필요가 없습니다.
 

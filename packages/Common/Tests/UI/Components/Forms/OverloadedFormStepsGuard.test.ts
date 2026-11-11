@@ -108,6 +108,18 @@ export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
     reason:
       "Every field after the token is written once for each answer to Use This Account For (calls and SMS, SMS only, calls only) with a showIf for that answer alone: the one number the answer takes, the default switch whose help names what goes through the default, and the folded extra numbers. The step shows five rows at most - the account SID, the token, one number, the switch and the More fields line - and four for SMS only.",
   },
+  /*
+   * A workspace summary names the team of its channels next to them, as a
+   * notification rule does: Microsoft Teams by the team's name, Mattermost
+   * by picking one of its bot's teams (#6776).
+   */
+  {
+    file: `${DASHBOARD}/Components/Workspace/WorkspaceSummaryTable.tsx`,
+    form: "ModelTable #1",
+    step: "basic",
+    reason:
+      "The team of the summary's channels is written once for each workspace that has teams, each only on that workspace's summaries: Mattermost's team picker, shown when its bot is in two or more teams, and Microsoft Teams' Team Name. Slack's summaries show neither. The step shows five rows at most - the name, the description, the channel names, the team and Enabled - and four for Slack.",
+  },
 ];
 
 const VIRTUAL_ROOT: string = "/repo";

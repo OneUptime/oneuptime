@@ -633,9 +633,62 @@ describe("MattermostAPI", () => {
         defaultTeamId: TEAM_ID,
         isBotInDefaultTeam: true,
         botUsername: "oneuptime",
+        removedTeams: [],
+        areTeamsListed: true,
       });
       expect(getTeams).not.toHaveBeenCalled();
       expect(updateTeams).not.toHaveBeenCalled();
+    });
+
+    /*
+     * #6775: a rule that names a team the bot was taken out of says so on
+     * its card, by the team's name - kept from when the server listed it.
+     * Before the server has listed the teams, no team is known to be one
+     * the bot left.
+     */
+    test("the teams the bot was taken out of, by the names they had, and whether the server has listed the teams at all", async () => {
+      const FINANCE_TEAM_ID: string = "f".repeat(26);
+
+      connectedWith({
+        teams: [
+          { id: TEAM_ID, name: "engineering", displayName: "Engineering" },
+        ],
+        teamsReadAt: LISTED_NOW,
+        removedTeams: [
+          { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+          { id: FINANCE_TEAM_ID, name: "finance", displayName: "" },
+        ],
+      });
+
+      const response: ProbeResponse = await call(
+        "GET",
+        "/mattermost/connected-teams",
+        { headers: headers([Permission.Viewer]) },
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        removedTeams: [
+          { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
+          { id: FINANCE_TEAM_ID, name: "finance", displayName: "finance" },
+        ],
+        areTeamsListed: true,
+      });
+
+      // Never listed: the teams are as stored, and none is known to be left.
+      connectedWith({});
+      getTeams.mockRejectedValue(new Error("connect ECONNREFUSED"));
+
+      const neverListed: ProbeResponse = await call(
+        "GET",
+        "/mattermost/connected-teams",
+      );
+
+      expect(neverListed.status).toBe(200);
+      expect(neverListed.body).toMatchObject({
+        removedTeams: [],
+        areTeamsListed: false,
+      });
     });
 
     test("teams listed more than ten minutes ago are asked for again, and kept for the next time", async () => {
@@ -675,6 +728,7 @@ describe("MattermostAPI", () => {
           { id: OTHER_TEAM_ID, name: "support", displayName: "Support" },
         ],
         teamsReadAt: expect.any(Date),
+        removedTeams: [],
       });
     });
 

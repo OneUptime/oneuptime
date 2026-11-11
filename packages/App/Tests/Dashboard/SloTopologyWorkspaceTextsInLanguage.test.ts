@@ -5,6 +5,7 @@ import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import { createTranslator, Translator } from "Common/Types/Translator";
 import WorkspaceNotificationSummaryType from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import {
@@ -405,10 +406,22 @@ describe("the SLO overview's words in the reader's language", () => {
   });
 
   test("the at-risk threshold and the downtime the target allows", () => {
+    // The threshold is written the language's way (#6695): "20 %" in German.
     expect(getSloAtRiskTextInLanguage(20, DE)).toBe(
-      "Wenn 20% oder weniger des Fehlerbudgets übrig sind",
+      `Wenn 20${String.fromCharCode(0xa0)}% oder weniger des Fehlerbudgets übrig sind`,
     );
-    expect(getSloAtRiskTextInLanguage(20, AR)).toBe(
+    expect(getSloAtRiskTextInLanguage(12.5, DE)).toContain("12,5");
+
+    const arabic: string = getSloAtRiskTextInLanguage(20, AR);
+
+    expect(arabic).toBe(
+      `عندما يتبقى ${new Intl.NumberFormat(getNumberLocale("ar"), {
+        style: "percent",
+        maximumFractionDigits: 3,
+      }).format(0.2)} أو أقل من ميزانية الأخطاء`,
+    );
+    // On screen, past Intl's direction marks: Latin digits, the sign after.
+    expect(arabic.split(String.fromCharCode(0x200e)).join("")).toBe(
       "عندما يتبقى 20% أو أقل من ميزانية الأخطاء",
     );
 

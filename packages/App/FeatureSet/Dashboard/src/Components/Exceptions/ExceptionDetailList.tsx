@@ -8,14 +8,18 @@ export interface ExceptionDetailListItem {
   value: ReactNode;
   // Muted secondary line under the value, already in the reader's language.
   hint?: string | undefined;
-  // Spans both columns (long values such as a fingerprint).
+  // Spans every column (long values such as a fingerprint).
   isWide?: boolean | undefined;
   testId: string;
 }
 
 export interface ComponentProps {
   items: Array<ExceptionDetailListItem>;
-  columns?: 1 | 2 | undefined;
+  /*
+   * 2: two columns from md. 3: two from md and three from lg, for a card
+   * as wide as the page.
+   */
+  columns?: 1 | 2 | 3 | undefined;
   // The list's name for assistive technology: an English key.
   label?: string | undefined;
 }
@@ -29,13 +33,17 @@ const ExceptionDetailList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const columns: 1 | 2 = props.columns || 2;
+  const columns: 1 | 2 | 3 = props.columns || 2;
 
   return (
     <dl
       aria-label={translator.translateText(props.label)}
       className={`grid grid-cols-1 gap-x-8 gap-y-4 ${
-        columns === 2 ? "md:grid-cols-2" : ""
+        columns === 3
+          ? "md:grid-cols-2 lg:grid-cols-3"
+          : columns === 2
+            ? "md:grid-cols-2"
+            : ""
       }`}
     >
       {props.items.map((item: ExceptionDetailListItem): ReactElement => {
@@ -43,7 +51,13 @@ const ExceptionDetailList: FunctionComponent<ComponentProps> = (
           <div
             key={item.testId}
             data-testid={item.testId}
-            className={`min-w-0 ${item.isWide && columns === 2 ? "md:col-span-2" : ""}`}
+            className={`min-w-0 ${
+              item.isWide && columns === 3
+                ? "md:col-span-2 lg:col-span-3"
+                : item.isWide && columns === 2
+                  ? "md:col-span-2"
+                  : ""
+            }`}
           >
             <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
               {translator.translateText(item.label)}

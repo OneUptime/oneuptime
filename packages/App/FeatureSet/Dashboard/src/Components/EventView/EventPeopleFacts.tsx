@@ -131,12 +131,12 @@ const NOBODY_PICKED: Set<string> = new Set<string>();
  * Where the avatar would be: a dashed circle with a plus. Decoration - the
  * word beside it, or the control's name, says what it does.
  */
-interface EmptyPlaceProps {
+export interface EmptyPlaceProps {
   // Its control's list is open: the circle is lit with it.
   isOpen?: boolean | undefined;
 }
 
-const EmptyPlace: FunctionComponent<EmptyPlaceProps> = (
+export const EmptyPlace: FunctionComponent<EmptyPlaceProps> = (
   props: EmptyPlaceProps,
 ): ReactElement => {
   return (

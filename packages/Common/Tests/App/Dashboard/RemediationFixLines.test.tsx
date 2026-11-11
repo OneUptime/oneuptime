@@ -546,7 +546,9 @@ describe("a fix on the Remediation step", () => {
     ).toBeTruthy();
     // Said once, and not under the other fix.
     expect(screen.getAllByTestId("remediation-action-error")).toHaveLength(1);
-    expect(fixWith("Restart checkout-api pods")).not.toContainElement(refusal);
+    expect(fixWith('Runbook "Restart checkout-api pods"')).not.toContainElement(
+      refusal,
+    );
 
     // Put away, it goes.
     fireEvent.click(within(refusal).getByRole("button"));

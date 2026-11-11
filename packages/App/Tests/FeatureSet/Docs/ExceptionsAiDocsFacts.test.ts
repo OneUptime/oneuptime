@@ -197,7 +197,7 @@ describe("the Exception Tracking page's section on finding and fixing new and ri
       CodeFixTaskType.FixException,
     );
     expect(AI_TASK_PRESENTATION[CodeFixTaskType.FixException].title).toBe(
-      "Fix this exception with AI",
+      "Fix the code",
     );
 
     // An expected error: better handling.
@@ -211,7 +211,7 @@ describe("the Exception Tracking page's section on finding and fixing new and ri
     ).toBe(CodeFixTaskType.ImproveExceptionHandling);
     expect(
       AI_TASK_PRESENTATION[CodeFixTaskType.ImproveExceptionHandling].title,
-    ).toBe("Improve Error Handling");
+    ).toBe("Handle the error better");
 
     // Anything else: none on its own.
     for (const other of [ErrorClass.Infrastructure, ErrorClass.Unknown]) {
@@ -219,13 +219,13 @@ describe("the Exception Tracking page's section on finding and fixing new and ri
     }
 
     expect(section).toContain(
-      "A new or rising exception's pull request is the exception's own AI task, the one its **AI Assistance** page starts, and it waits for OneUptime AI to look into the finding.",
+      "A new or rising exception's pull request is the exception's own AI task, the one its **Fix with AI** page starts, and it waits for OneUptime AI to look into the finding.",
     );
     expect(section).toContain(
-      "When it finds the code at fault (`code-fault`), the pull request fixes it, as **Fix this exception with AI** does.",
+      "When it finds the code at fault (`code-fault`), the pull request fixes it, as **Fix the code** does.",
     );
     expect(section).toContain(
-      "When it finds an expected error (`user-error` or `expected-denial`), the pull request handles the error better, as **Improve Error Handling** does.",
+      "When it finds an expected error (`user-error` or `expected-denial`), the pull request handles the error better, as **Handle the error better** does.",
     );
     expect(section).toContain(
       "Any other verdict opens no pull request on its own.",
@@ -448,7 +448,7 @@ describe("the Exception Tracking page's section on finding and fixing new and ri
     expect(handler).toContain("### Why this pull request");
     expect(handler).toContain("[Open the exception in OneUptime]");
     expect(section).toContain(
-      "- The pull request says why it was opened, with a link to its finding. A new or rising exception's also links the exception, and shows on the exception's **AI Assistance** page.",
+      "- The pull request says why it was opened, with a link to its finding. A new or rising exception's also links the exception, and shows on the exception's **Fix with AI** page.",
     );
   });
 });

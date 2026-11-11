@@ -42,9 +42,9 @@ Um SLO de mês do calendário tem o orçamento do mês inteiro desde o primeiro 
 À medida que a indisponibilidade se acumula, a **Visão geral** mostra o orçamento restante no bloco **Orçamento de erros restante**:
 
 - como porcentagem do total, que também decide o status do SLO e preenche a barra. A barra tem uma marca no limite de risco do SLO;
-- como duração, por exemplo "31m 4s left of 43m 12s".
+- como duração, por exemplo "Restam 31 min 4 s de 43 min 12 s".
 
-Quando o orçamento acaba, o bloco mostra **Sem orçamento**. Quando a indisponibilidade o ultrapassa, o bloco mostra **Orçamento excedido** e o excesso como tempo, por exemplo "4d 23m over budget · 5m 47s allowed": o SLO usou todos os 5 minutos e 47 segundos do orçamento, e mais 4 dias e 23 minutos. A barra fica vazia e vermelha.
+Quando o orçamento acaba, o bloco mostra **Sem orçamento**. Quando a indisponibilidade o ultrapassa, o bloco mostra **Orçamento excedido** e o excesso como tempo, por exemplo "4 dias 23 min acima do orçamento · 5 min 47 s permitido": o SLO usou todos os 5 minutos e 47 segundos do orçamento, e mais 4 dias e 23 minutos. A barra fica vazia e vermelha.
 
 O orçamento restante é guardado como número com sinal para cálculos e gráficos de histórico, então ali um orçamento ultrapassado aparece como porcentagem negativa. Uma porcentagem muito negativa significa que o excesso é grande em relação ao orçamento; não é a parcela do tempo em que o serviço ficou fora do ar.
 
@@ -60,7 +60,7 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 | O bloco mostra | O que significa |
 | --- | --- |
-| Uma duração, como **~2d 5h** | No ritmo atual, o orçamento acaba em mais ou menos esse tempo. Em âmbar, e em vermelho quando falta um dia ou menos. **Menos de 1 min** significa menos de um minuto. |
+| Uma duração, como **~2 dias 5 h** | No ritmo atual, o orçamento acaba em mais ou menos esse tempo. Em âmbar, e em vermelho quando falta um dia ou menos. **Menos de 1 min** significa menos de um minuto. |
 | **Sem consumo** | Nenhum orçamento foi gasto nos últimos 60 minutos. |
 | **Sustentável** | Só janelas móveis: a autonomia é de pelo menos uma janela inteira, então o orçamento não é gasto mais rápido do que a indisponibilidade antiga sai da janela. Nesse ritmo, ele não acaba. |
 | **Dura até a redefinição** | Só meses do calendário: o orçamento é zerado no início do próximo mês antes de acabar. |
@@ -97,7 +97,7 @@ Um SLO de mês do calendário é zerado à meia-noite do primeiro dia de cada m�
 
 ### SLOs novos
 
-Um SLO de janela móvel mais novo que a própria janela é medido com os dados que existem até agora, e o orçamento total cresce com eles: um SLO de 30 dias criado há uma semana tem, por enquanto, um orçamento de 7 dias. Até a janela ficar cheia, a **Visão geral** mostra o quanto ela está preenchida, com um indicador **Window 23% full** e a mesma nota no bloco **Orçamento de erros restante**. Espere que os números se estabilizem à medida que a janela se enche.
+Um SLO de janela móvel mais novo que a própria janela é medido com os dados que existem até agora, e o orçamento total cresce com eles: um SLO de 30 dias criado há uma semana tem, por enquanto, um orçamento de 7 dias. Até a janela ficar cheia, a **Visão geral** mostra o quanto ela está preenchida, com um indicador **Janela 23% preenchida** e a mesma nota no bloco **Orçamento de erros restante**. Espere que os números se estabilizem à medida que a janela se enche.
 
 ## Mudanças de status e o limite de risco
 

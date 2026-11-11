@@ -78,8 +78,11 @@ import {
   MENTION_ON_CALL_EMPTY_TEXT,
   MENTION_ON_CALL_SEARCH_PLACEHOLDER,
   MENTION_ON_CALL_TITLE,
+  getMattermostTeamOptions,
+  getRuleTeamsNotJoined,
   MATTERMOST_TEAM_PLACEHOLDER,
   MATTERMOST_TEAM_TITLE,
+  MattermostRuleTeams,
   NEW_CHANNEL_MATTERMOST_TEAM_DESCRIPTION,
   NEW_CHANNEL_SLACK_WORKSPACE_DESCRIPTION,
   NEW_CHANNEL_TEAM_DESCRIPTION,
@@ -197,6 +200,12 @@ export interface ComponentProps {
    * channels (MattermostTeams).
    */
   mattermostTeams?: Array<MattermostConnectionTeam> | undefined;
+  /*
+   * The same connection, with the teams the bot was taken out of: a rule
+   * that still names one shows its pick - so it can be changed - whatever
+   * the teams left to pick from. Undefined for any other connection.
+   */
+  mattermostConnection?: MattermostRuleTeams | undefined;
   users: Array<User>;
   // For the summary to name the schedules whose on-call person joins.
   onCallSchedules?: Array<OnCallDutyPolicySchedule> | undefined;
@@ -418,13 +427,41 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     ((props.slackWorkspaces || []).length > 1 || workspacesNotAdded.length > 0);
 
   /*
-   * Mattermost, whose bot is a member of two or more teams of the server: a
-   * rule says which team its channels are in, or leaves it to the default
-   * one.
+   * The Mattermost teams this rule names that the project's bot is no
+   * longer a member of: still offered, said to be so, as Slack's workspaces
+   * above - kept while the form is open.
+   */
+  const teamsNotJoinedOffered: MutableRefObject<
+    Array<MattermostConnectionTeam>
+  > = useRef<Array<MattermostConnectionTeam>>([]);
+
+  for (const team of getRuleTeamsNotJoined({
+    rule: props.value,
+    workspaceType: props.workspaceType,
+    connection: props.mattermostConnection,
+  })) {
+    if (
+      !teamsNotJoinedOffered.current.some(
+        (offered: MattermostConnectionTeam): boolean => {
+          return offered.id === team.id;
+        },
+      )
+    ) {
+      teamsNotJoinedOffered.current = [...teamsNotJoinedOffered.current, team];
+    }
+  }
+
+  const teamsNotJoined: Array<MattermostConnectionTeam> =
+    teamsNotJoinedOffered.current;
+
+  /*
+   * Mattermost, whose bot is a member of two or more teams of the server -
+   * or with a pick of a team the bot was taken out of: a rule says which
+   * team its channels are in, or leaves it to the default one.
    */
   const isMattermostTeams: boolean =
     props.workspaceType === WorkspaceType.Mattermost &&
-    (props.mattermostTeams || []).length > 1;
+    ((props.mattermostTeams || []).length > 1 || teamsNotJoined.length > 0);
 
   /*
    * Where the rule's channels are: a Microsoft Teams team, a Slack
@@ -461,14 +498,12 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
           }),
         ]
       : isMattermostTeams
-        ? (props.mattermostTeams || []).map(
-            (team: MattermostConnectionTeam) => {
-              return {
-                label: team.displayName || team.name,
-                value: team.id,
-              };
-            },
-          )
+        ? getMattermostTeamOptions({
+            connection: props.mattermostConnection,
+            teams: props.mattermostTeams || [],
+            notJoined: teamsNotJoined,
+            translator: translator,
+          })
         : [];
 
   // What the picker of the place is called, and what it says.

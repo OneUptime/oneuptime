@@ -94,6 +94,14 @@ jest.mock("../../../UI/Utils/Realtime", () => {
   return {
     __esModule: true,
     default: {
+      /*
+       * The case's own subscription is what is recorded here. The side menu's
+       * counts (UseLiveCount) join only a connection the app has started, so
+       * none is: they hear nothing, and record nothing.
+       */
+      isStarted: (): boolean => {
+        return false;
+      },
       listenToModelEvent: (
         options: { modelId: { toString: () => string } },
         listener: (modelId: unknown) => void,

@@ -68,6 +68,8 @@ import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import Twilio from "twilio";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
+import ServerSendingOutcomes from "Common/Server/Utils/ServerSending/ServerSendingOutcomes";
+import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
 import { MessageInstance } from "twilio/lib/rest/api/v2010/account/message";
 
 export default class SmsService {
@@ -187,6 +189,14 @@ export default class SmsService {
      * it answered, and never the code of the exception that reports it.
      */
     let isGatewayFailure: boolean = false;
+    /*
+     * Whether it goes out through the server's own gateway or Twilio
+     * account, and whether it was handed to one: how that went is the
+     * server's to know (ServerSendingStatus). A project's own account, and
+     * an SMS the project's balance or switch held back, are not.
+     */
+    let isServersOwnSms: boolean = false;
+    let hasReachedProvider: boolean = false;
 
     try {
       message = Text.trimLines(message);
@@ -220,6 +230,8 @@ export default class SmsService {
         )
           ? options.customTwilioConfig
           : undefined;
+
+      isServersOwnSms = !customTwilioConfig;
 
       const shouldChargeForSMS: boolean =
         IsBillingEnabled && !customTwilioConfig;
@@ -572,27 +584,33 @@ export default class SmsService {
          * be, with its id - the SMS log's, when there is one - and, for an
          * on-call page, the links that act on it (CustomChannelActionToken).
          */
+        const payload: ReturnType<typeof buildCallAndSmsGatewayMessagePayload> =
+          buildCallAndSmsGatewayMessagePayload({
+            event: CallAndSmsGatewayEvent.Sms,
+            id: (smsLogId || ObjectID.generate()).toString(),
+            sentAt: OneUptimeDate.getCurrentDate(),
+            to: to.toString(),
+            message: message,
+            isSensitive: Boolean(options.isSensitive),
+            project:
+              project && project.id
+                ? { id: project.id.toString(), name: project.name || "" }
+                : undefined,
+            actions: options.userOnCallLogTimelineId
+              ? await CustomChannelActionToken.getActionLinks(
+                  options.userOnCallLogTimelineId,
+                )
+              : undefined,
+          });
+
+        // Handed to the gateway from here on.
+        hasReachedProvider = true;
+
         const result: CallAndSmsGatewayResult =
           await CallAndSmsGatewayService.send({
             gateway: gateway,
             event: CallAndSmsGatewayEvent.Sms,
-            payload: buildCallAndSmsGatewayMessagePayload({
-              event: CallAndSmsGatewayEvent.Sms,
-              id: (smsLogId || ObjectID.generate()).toString(),
-              sentAt: OneUptimeDate.getCurrentDate(),
-              to: to.toString(),
-              message: message,
-              isSensitive: Boolean(options.isSensitive),
-              project:
-                project && project.id
-                  ? { id: project.id.toString(), name: project.name || "" }
-                  : undefined,
-              actions: options.userOnCallLogTimelineId
-                ? await CustomChannelActionToken.getActionLinks(
-                    options.userOnCallLogTimelineId,
-                  )
-                : undefined,
-            }),
+            payload: payload,
           });
 
         if (!result.ok) {
@@ -608,6 +626,9 @@ export default class SmsService {
 
         dispatch.markSucceeded();
 
+        // The server's own SMS went out (ServerSendingStatus).
+        await ServerSendingOutcomes.recordSucceeded(ServerSendingChannel.SMS);
+
         smsLog.status = SmsStatus.Sent;
         smsLog.statusMessage = result.message;
       } else {
@@ -619,6 +640,9 @@ export default class SmsService {
             }),
           ).asUserError();
         }
+
+        // Handed to Twilio from here on.
+        hasReachedProvider = true;
 
         const twillioMessage: MessageInstance = await client.messages.create({
           body: message,
@@ -642,6 +666,13 @@ export default class SmsService {
           dispatch.markFailed();
         } else {
           dispatch.markSucceeded();
+
+          // The server's own Twilio account took it (ServerSendingStatus).
+          if (!customTwilioConfig) {
+            await ServerSendingOutcomes.recordSucceeded(
+              ServerSendingChannel.SMS,
+            );
+          }
         }
       }
 
@@ -674,6 +705,14 @@ export default class SmsService {
 
       logger.error("SMS message failed to send.");
       logger.error(smsLog.statusMessage);
+
+      // The server's own gateway or Twilio account refused it, or was not reached.
+      if (hasReachedProvider && isServersOwnSms) {
+        await ServerSendingOutcomes.recordFailed(
+          ServerSendingChannel.SMS,
+          smsLog.statusMessage,
+        );
+      }
 
       // Twilio's refusal keeps its words on the way out (TwilioSendError).
       smsError = TwilioSendError.toSendError(e, TwilioSendKind.SMS) as Error;

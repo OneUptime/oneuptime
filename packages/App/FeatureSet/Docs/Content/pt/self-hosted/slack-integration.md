@@ -65,7 +65,7 @@ Esses valores só geram URLs. Eles não criam registros DNS, certificados nem re
 
 ### Copie o manifesto do app
 
-Abra **Configurações do projeto > Espaço de trabalho > Slack**. Enquanto o Slack não estiver configurado no servidor, a página mostra **Integrating Slack with your OneUptime Project** com o manifesto gerado para o seu nome de host. Ele também é servido em `https://oneuptime.example.com/api/slack/app-manifest`.
+Abra **Configurações do projeto > Espaço de trabalho > Slack**. Enquanto o Slack não estiver configurado no servidor, a página mostra **Integrar o Slack ao seu projeto do OneUptime** com o manifesto gerado para o seu nome de host. Ele também é servido em `https://oneuptime.example.com/api/slack/app-manifest`.
 
 Confira se cada URL do manifesto começa com o seu nome de host público. Se não começar, corrija primeiro `HOST` e `HTTP_PROTOCOL` e aplique a alteração.
 
@@ -112,7 +112,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
 :::
 
-Quando o OneUptime voltar, **Configurações do projeto > Espaço de trabalho > Slack** mostra um botão **Connect with Slack** no lugar do manifesto.
+Quando o OneUptime voltar, **Configurações do projeto > Espaço de trabalho > Slack** mostra um botão **Conectar com o Slack** no lugar do manifesto.
 
 ### Verifique a URL de requisição de eventos
 
@@ -120,7 +120,7 @@ Nas **Event Subscriptions** do app do Slack, verifique a URL de requisição. O 
 
 ### Conecte o projeto
 
-Em **Configurações do projeto > Espaço de trabalho > Slack**, selecione **Connect with Slack** e permita o app no Slack. O Slack devolve você à mesma página, que agora mostra o nome do seu workspace.
+Em **Configurações do projeto > Espaço de trabalho > Slack**, selecione **Conectar com o Slack** e permita o app no Slack. O Slack devolve você à mesma página, que agora mostra o nome do seu workspace.
 
 ### Conecte a sua própria conta do Slack
 
@@ -131,7 +131,7 @@ Botões, formulários e comandos agem como o usuário do OneUptime vinculado à 
 
 | Docker Compose (`config.env`) | Helm (`values.yaml`) | Obrigatória | Valor |
 | --- | --- | --- | --- |
-| `SLACK_APP_CLIENT_ID` | `slackApp.clientId` | Sim | O **Client ID** do app. Sem ele, a página do Slack mostra o guia de configuração em vez de **Connect with Slack**. |
+| `SLACK_APP_CLIENT_ID` | `slackApp.clientId` | Sim | O **Client ID** do app. Sem ele, a página do Slack mostra o guia de configuração em vez de **Conectar com o Slack**. |
 | `SLACK_APP_CLIENT_SECRET` | `slackApp.clientSecret` | Sim | O **Client Secret** do app, usado para trocar por um token o código que o Slack devolve. |
 | `SLACK_APP_SIGNING_SECRET` | `slackApp.signingSecret` | Sim | O **Signing Secret** do app. Toda requisição do Slack é verificada com ele. |
 | `HOST` | `host` | Sim | O seu nome de host público, sem o esquema. |
@@ -154,19 +154,19 @@ O manifesto configura estes recursos. Cada um alcança o seu servidor pela rota 
 
 As descrições de incidentes e alertas podem trazer capturas de tela, como a de um monitor sintético (veja [Mostrar uma captura de tela](/docs/monitor/incident-alert-templating#mostrar-uma-captura-de-tela)). O OneUptime as mostra nas mensagens do Slack enviando cada uma ao seu workspace como arquivo privado, o que exige o escopo de bot `files:write`. O manifesto gerado o inclui.
 
-Se você criou o seu app do Slack a partir de um manifesto mais antigo, adicione `files:write` em **OAuth & Permissions > Bot Token Scopes** (ou atualize o app a partir do manifesto atual). Depois, selecione de novo **Connect with Slack** em **Configurações do projeto > Espaço de trabalho > Slack**, para que o novo escopo seja concedido. Até lá, cada captura de tela aparece como o seu texto alternativo.
+Se você criou o seu app do Slack a partir de um manifesto mais antigo, adicione `files:write` em **OAuth & Permissions > Bot Token Scopes** (ou atualize o app a partir do manifesto atual). Depois, selecione de novo **Conectar com o Slack** em **Configurações do projeto > Espaço de trabalho > Slack**, para que o novo escopo seja concedido. Até lá, cada captura de tela aparece como o seu texto alternativo.
 
 ### Grupos de usuários de plantão
 
 Manter o grupo de usuários do Slack de um agendamento igual a quem está de plantão (veja [Grupos de usuários de plantão](/docs/workspace-connections/slack#grupos-de-usuários-de-plantão)) exige os escopos de bot `usergroups:read` e `usergroups:write`. O manifesto gerado os inclui.
 
-Se você criou o seu app do Slack a partir de um manifesto mais antigo, adicione `usergroups:read` e `usergroups:write` em **OAuth & Permissions > Bot Token Scopes** (ou atualize o app a partir do manifesto atual). Depois, selecione de novo **Connect with Slack** em **Configurações do projeto > Espaço de trabalho > Slack**, para que os novos escopos sejam concedidos. Até lá, o cartão do agendamento diz que o app do Slack do OneUptime ainda não tem permissão para alterar grupos de usuários.
+Se você criou o seu app do Slack a partir de um manifesto mais antigo, adicione `usergroups:read` e `usergroups:write` em **OAuth & Permissions > Bot Token Scopes** (ou atualize o app a partir do manifesto atual). Depois, selecione de novo **Conectar com o Slack** em **Configurações do projeto > Espaço de trabalho > Slack**, para que os novos escopos sejam concedidos. Até lá, o cartão do agendamento diz que o app do Slack do OneUptime ainda não tem permissão para alterar grupos de usuários.
 
 ### Apps criados a partir de um manifesto mais antigo
 
 Um app do Slack criado a partir de um manifesto anterior do OneUptime registra `/incident` e `/maintenance` como comandos próprios, que podem conflitar com comandos de mesmo nome de outros apps. Eles continuam funcionando e abrem os mesmos formulários que `/oneuptime incident` e `/oneuptime maintenance`. Para substituí-los por `/oneuptime`, atualize o app a partir do manifesto que o seu servidor gera: em [api.slack.com/apps](https://api.slack.com/apps), abra o **App Manifest** do app, cole o manifesto e salve.
 
-Um app criado antes do `/oneuptime page` precisa da mesma atualização: até recebê-la, o `/oneuptime page` não consegue reconhecer quem você menciona com @, e abre um formulário para escolhê-los em vez de acioná-los na hora. Depois, selecione de novo **Connect with Slack** em **Configurações do projeto > Espaço de trabalho > Slack**, para que o escopo `users:read.email` que o manifesto adiciona seja concedido: com ele, uma pessoa cuja conta do Slack não está conectada ao OneUptime é encontrada pelo endereço de e-mail dela.
+Um app criado antes do `/oneuptime page` precisa da mesma atualização: até recebê-la, o `/oneuptime page` não consegue reconhecer quem você menciona com @, e abre um formulário para escolhê-los em vez de acioná-los na hora. Depois, selecione de novo **Conectar com o Slack** em **Configurações do projeto > Espaço de trabalho > Slack**, para que o escopo `users:read.email` que o manifesto adiciona seja concedido: com ele, uma pessoa cuja conta do Slack não está conectada ao OneUptime é encontrada pelo endereço de e-mail dela.
 
 Um aplicativo criado antes da aba **Home** precisa da mesma atualização: até tê-la, o Slack não mostra nenhuma aba **Home** para o aplicativo, e o aplicativo não publica nenhuma saudação em um canal ao qual é adicionado. A atualização ativa a aba e inscreve o aplicativo nos eventos `app_home_opened` e `member_joined_channel`. Ela não adiciona nenhum scope, então nada precisa ser conectado de novo.
 

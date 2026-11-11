@@ -53,8 +53,8 @@ Klicka på **Testa de här inställningarna** under **Testa innan du sparar**. T
 
 | Inställning | Vad du anger |
 | --- | --- |
-| **Kibana URL** | Adressen som Kibana erbjuds från, till exempel `https://kibana.example.com` eller `https://<deployment>.kb.<region>.cloud.es.io`. Utan sökväg: ingen `/app/security`, ingen `/api` och ingen `/s/<space>`-del. |
-| **Kibana space** | Spacets ID, inte dess namn: bokstäver, siffror, bindestreck och understreck. Lämna tomt för standardspacet. |
+| **Kibana-URL** | Adressen som Kibana erbjuds från, till exempel `https://kibana.example.com` eller `https://<deployment>.kb.<region>.cloud.es.io`. Utan sökväg: ingen `/app/security`, ingen `/api` och ingen `/s/<space>`-del. |
+| **Kibana-space** | Spacets ID, inte dess namn: bokstäver, siffror, bindestreck och understreck. Lämna tomt för standardspacet. |
 | **API-nyckel** | Nyckelns **Base64**-värde, ensamt: OneUptime lägger själv till schemat `ApiKey`. Det krypteras, returneras aldrig av API:t och visas aldrig igen. Ersätt det med **Uppdatera inloggningsuppgifter** på anslutningen. |
 
 Steget **Hämtning** har också en valfri **Beskrivning**, **Hämtningsintervall (minuter)**, ett heltal från `1` till `1440` som börjar på `5`, och **Aktiverad**, som börjar påslagen.
@@ -115,7 +115,7 @@ När en körning inte alls kommer förbi den sparade markören gör OneUptime i 
 
 1. **Smalna av.** Nästa avsökning läser ett fönster som är hälften så långt, från samma startpunkt, och fortsätter att halvera tills ett fönster läses helt, ner till en minut. Körningens varning säger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Växa igen.** När ett fönster har lästs helt är nästa dubbelt så långt igen, upp till 24 timmar.
-3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än en avsökning kan läsa går avsökningen förbi den, så att nyare larm fortsätter att komma. Körningen förblir **Delvis**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Import this time range** för att hämta det som en körning kan läsa.
+3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än en avsökning kan läsa går avsökningen förbi den, så att nyare larm fortsätter att komma. Körningen förblir **Delvis**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Importera det här tidsintervallet** för att hämta det som en körning kan läsa.
 
 En körning som misslyckas helt, med ett fel från Kibana, behåller markören och fönsterlängden, och nästa avsökning läser samma fönster igen. Det enda undantaget är en begäran som fick tidsgräns: markören stannar, men nästa fönster är hälften så långt, eftersom ett fönster som är för tungt för att besvaras i tid skulle få tidsgräns vid varje försök. Att ändra **Hämtningsintervall (minuter)** ändrar inget av detta: det avgör hur ofta en avsökning startar, inte var dess fönster börjar.
 
@@ -124,9 +124,9 @@ En körning som misslyckas helt, med ett fel från Kibana, behåller markören o
 Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar och arbeta med den manuellt. Alla som kan ändra anslutningen kan starta de här åtgärderna; alla som kan se den kan läsa historiken.
 
 - **Kör nu** startar en avsökning direkt, med den vanliga markören, även när anslutningen inte är **Aktiverad**.
-- **Preview alerts** läser ett tidsintervall på upp till 7 dagar och importerar ingenting.
-- **Import this time range** importerar ett intervall på upp till 7 dagar, efter att du har bekräftat, utan att flytta markören. Larm som redan har importerats hoppas över.
-- **Copy diagnostics** på en körning kopierar dess rapport till supporten. Den innehåller aldrig autentiseringsuppgifter.
+- **Förhandsgranska larm** läser ett tidsintervall på upp till 7 dagar och importerar ingenting.
+- **Importera det här tidsintervallet** importerar ett intervall på upp till 7 dagar, efter att du har bekräftat, utan att flytta markören. Larm som redan har importerats hoppas över.
+- **Kopiera diagnostik** på en körning kopierar dess rapport till supporten. Den innehåller aldrig autentiseringsuppgifter.
 
 ## Testa anslutningen
 
@@ -139,7 +139,7 @@ Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar 
 | **Read detection alerts** | Ett larm som har skapats under de senaste 24 timmarna kan läsas. Det bevisar behörigheterna och spacet. |
 | **Alerts available to import** | Hur många larm som har skapats under de senaste 24 timmarna och de senaste 7 dagarna, med `+` där Elasticsearch bara räknade en del av dem. Inga på 7 dagar är en varning, inte ett fel. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen sida: en process tar jobben från Worker-kön, avsökningsjobbet körs varje minut och lagringen för säkerhetshändelser svarar. |
-| **Scheduled polling** | För en sparad anslutning: avsökningen är påslagen, ingen körning har fastnat i väntan på en worker och avsökningar körs i tid. |
+| **Schemalagd hämtning** | För en sparad anslutning: avsökningen är påslagen, ingen körning har fastnat i väntan på en worker och avsökningar körs i tid. |
 
 Varje begäran i ett test har en tidsgräns på 20 sekunder. Ett test importerar aldrig något och flyttar aldrig markören, och varje kontroll som misslyckas säger vad du ska ändra.
 
@@ -192,7 +192,7 @@ Anslutningens **Senaste fel** sparar hela felmeddelandet, med autentiseringsuppg
 :::details Last Error börjar med `Elastic Security status request`
 - `Elastic Security status request failed (HTTP ...)`: Kibana avvisade statusbegäran.
   - `HTTP 401`: Kibana godtog inte API-nyckeln. Det är inte **Base64**-värdet, eller så har den gått ut eller ogiltigförklarats. Skapa en ny nyckel och spara den med **Uppdatera inloggningsuppgifter**.
-  - `HTTP 404`: **Kibana URL** har en sökväg, eller är inte Kibana.
+  - `HTTP 404`: **Kibana-URL** har en sökväg, eller är inte Kibana.
   - `HTTP 503`: Kibana rapporterar sig själv som otillgänglig, oftast för att den inte når Elasticsearch.
   - `HTTP 3xx`: Kibana omdirigerade begäran, och omdirigeringar avvisas. Använd adressen som Kibana erbjuds från.
 - `Elastic Security status request returned ...`: något annat än Kibana svarade, till exempel en inloggningssida eller en proxy.
@@ -202,7 +202,7 @@ Anslutningens **Senaste fel** sparar hela felmeddelandet, med autentiseringsuppg
 :::details Last Error börjar med `Elastic Security alerts search`
 - `Elastic Security alerts search failed (HTTP ...)`: Kibana avvisade larmsökningen.
   - `HTTP 403`: nyckeln loggar in, men kan inte läsa spacets larm. Ge den behörigheterna under [Innan du börjar](#innan-du-börjar).
-  - `HTTP 404`: inget space har det ID:t i **Kibana space**, eller så är Elastic Security inte aktiverat i det.
+  - `HTTP 404`: inget space har det ID:t i **Kibana-space**, eller så är Elastic Security inte aktiverat i det.
   - `HTTP 429` eller `HTTP 5xx`: Kibana eller Elasticsearch begränsar begäranden eller misslyckas. Nästa avsökning försöker igen.
 - `Elastic Security alerts search returned ...`: Kibana svarade `200`, men utan en läsbar sida med larm, till exempel med ett eget fel. Meddelandet citerar det. Det rapporteras i stället för att tas som ett tomt fönster, så att markören aldrig flyttas förbi larm som ingen har läst.
 :::
@@ -217,11 +217,11 @@ Ingen avsökning har slutförts för den här anslutningen. Kör **Testa anslutn
 
 :::details En körning är Partial
 - `Stopped after collecting 10000 alerts; the window holds more`: fönstret innehöll mer än de 10 000 larm som en körning läser. Ingenting går förlorat: nästa avsökning börjar efter det senast lästa larmet. En anslutning som förblir **Delvis** avsökning efter avsökning håller på att komma ikapp en eftersläpning, och dess **Senast hämtad** och **Senast importerade händelse** fortsätter att flytta fram. Om den aldrig kommer ikapp skapar spacet mer än 10 000 larm per avsökningsintervall: gör **Hämtningsintervall (minuter)** kortare.
-- `More records were created in the one minute from ... than one poll can read`: avsökningen gick förbi den minuten. Importera den med **Import this time range** i **Diagnostik**. En import läser lika mycket som en avsökning.
+- `More records were created in the one minute from ... than one poll can read`: avsökningen gick förbi den minuten. Importera den med **Importera det här tidsintervallet** i **Diagnostik**. En import läser lika mycket som en avsökning.
 :::
 
 :::details Testet lyckas, men ingenting importeras
-Läs **Alerts available to import** i testets rapport. `0` de senaste 7 dagarna betyder att ingen regel har skapat något larm i det spacet: kontrollera att det finns aktiverade regler där, och att **Kibana space** är det space där de körs. Om det finns larm vidgar du tidsintervallet i utforskaren för säkerhetshändelser: larm visas under tiden för sin aktivitet, som kan ligga långt före när de skapades.
+Läs **Alerts available to import** i testets rapport. `0` de senaste 7 dagarna betyder att ingen regel har skapat något larm i det spacet: kontrollera att det finns aktiverade regler där, och att **Kibana-space** är det space där de körs. Om det finns larm vidgar du tidsintervallet i utforskaren för säkerhetshändelser: larm visas under tiden för sin aktivitet, som kan ligga långt före när de skapades.
 :::
 
 ## Vad du får

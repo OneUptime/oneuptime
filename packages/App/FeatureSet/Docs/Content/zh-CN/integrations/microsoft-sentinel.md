@@ -52,7 +52,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 找到工作区的详细信息
 
-在 Azure portal 中打开 Log Analytics 工作区。它的 **Overview** 页面会显示 **订阅 ID**、**Resource group** 和工作区的名称。工作区的资源 ID 也包含这三项：
+在 Azure portal 中打开 Log Analytics 工作区。它的 **Overview** 页面会显示 **订阅 ID**、**资源组** 和工作区的名称。工作区的资源 ID 也包含这三项：
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -72,8 +72,8 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 | **目录（租户）ID** | 应用的 **Overview** 页面。租户的 GUID，或已验证的域名，例如 `contoso.onmicrosoft.com`。 |
 | **应用程序（客户端）ID** | 应用的 **Overview** 页面。一个 GUID。 |
 | **订阅 ID** | 工作区的 **Overview** 页面。一个 GUID。 |
-| **Resource group** | 工作区的 **Overview** 页面。1 到 90 个字母、数字、下划线、连字符、句点或括号，不能以句点结尾。 |
-| **Workspace name** | 工作区的 **Overview** 页面。3 到 90 个字母、数字或连字符，以字母或数字开头和结尾。 |
+| **资源组** | 工作区的 **Overview** 页面。1 到 90 个字母、数字、下划线、连字符、句点或括号，不能以句点结尾。 |
+| **工作区名称** | 工作区的 **Overview** 页面。3 到 90 个字母、数字或连字符，以字母或数字开头和结尾。 |
 | **云** | **Azure 公有云**（`login.microsoftonline.com`、`management.azure.com`）或 **Azure Government（美国）** （`login.microsoftonline.us`、`management.usgovcloudapi.net`）。 |
 | **客户端密钥** | 密码的 **Value**。它会被加密，API 从不返回，也不会再次显示。在连接上用 **更新凭据** 替换它。 |
 
@@ -131,7 +131,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 1. **缩小。** 下一次轮询从同一个起点读取长度减半的窗口，并不断减半，直到某个窗口能被完整读取，最短为一分钟。运行的警告会说明这一点：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **恢复。** 一个窗口被完整读取后，下一个窗口的长度会再次加倍，最长为 24 小时。
-3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的事件继续到达。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
+3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的事件继续到达。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **导入此时间范围** 导入这一分钟，即可找回一次运行能读取的内容。
 
 因 Microsoft Entra ID 或 Azure Resource Manager 的错误而彻底失败的运行，会保留游标和窗口长度，下一次轮询会再次读取同一个窗口。唯一的例外是请求超时：游标保持不变，但下一个窗口的长度减半，因为太重而无法及时响应的窗口每次重试都会超时。更改 **轮询间隔（分钟）** 不会改变以上任何一点：它决定轮询多久开始一次，而不是窗口从哪里开始。
 
@@ -140,9 +140,9 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 在连接上点击 **诊断**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
 
 - **立即运行** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
-- **Preview incidents** 读取最长 7 天的时间范围，不导入任何内容。
-- **Import this time range** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的事件会被跳过。
-- 运行上的 **Copy diagnostics** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
+- **预览事件** 读取最长 7 天的时间范围，不导入任何内容。
+- **导入此时间范围** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的事件会被跳过。
+- 运行上的 **复制诊断信息** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
 
 ## 测试连接
 
@@ -155,7 +155,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 | **Read incidents** | 可以读取过去 24 小时内创建的一个事件（`$top=1`）。这证明了角色和工作区的详细信息正确。 |
 | **Incidents available to import** | 过去 24 小时和过去 7 天内创建了多少事件，各读取一页 50 个，所以 `50+` 表示更多。7 天内一个都没有是警告，而不是失败。 |
 | **Background workers**、**Poll scheduler**、**Security event storage** | OneUptime 自身的一侧：有进程在处理 Worker 队列的作业，轮询作业每分钟运行一次，安全事件存储能够响应。 |
-| **Scheduled polling** | 针对已保存的连接：轮询已开启，没有运行卡在等待工作进程的状态，并且轮询按时运行。 |
+| **计划轮询** | 针对已保存的连接：轮询已开启，没有运行卡在等待工作进程的状态，并且轮询按时运行。 |
 
 测试中的每个请求都有 20 秒的期限。测试从不导入任何内容，也不移动游标，每个失败的检查都会说明需要更改什么。
 
@@ -246,7 +246,7 @@ OneUptime 也可以通过 Azure Monitor 的 Logs Ingestion API 把它发现的�
 - `Microsoft Sentinel incidents list failed (HTTP ...)`：Azure Resource Manager 拒绝了请求。
   - `HTTP 401`：它不接受该令牌。几乎总是因为 **云** 与租户不匹配，或者应用注册已被删除。在两页之间过期的令牌会自动续订并重试一次。
   - `HTTP 403` 或 `AuthorizationFailed`：应用在资源组上还没有 **Microsoft Sentinel Reader**。分配该角色，并等待几分钟。
-  - `HTTP 404`：没有具有该 **订阅 ID**、**Resource group** 和 **Workspace name** 的工作区，或者该工作区未启用 Microsoft Sentinel。请从工作区的 **Overview** 页面复制它们。
+  - `HTTP 404`：没有具有该 **订阅 ID**、**资源组** 和 **工作区名称** 的工作区，或者该工作区未启用 Microsoft Sentinel。请从工作区的 **Overview** 页面复制它们。
   - `HTTP 429` 或 `HTTP 5xx`：Azure Resource Manager 正在限流或不可用。下一次轮询会重试。
   - `HTTP 400`：Azure Resource Manager 拒绝了查询，而查询是由 OneUptime 构建的，与你的设置无关。请把消息发送给 OneUptime 支持人员。
 - `Microsoft Sentinel incidents list returned ...`：Azure 返回了 `200`，但没有可读的事件页面，或者带有一个指向其他主机的 `nextLink`，连接器会拒绝这种链接，让令牌永远不离开 Azure Resource Manager。这种情况会被报告出来，而不是被当作空窗口，所以游标永远不会越过没人读过的事件。
@@ -260,7 +260,7 @@ OneUptime 也可以通过 Azure Monitor 的 Logs Ingestion API 把它发现的�
 :::details 运行为 Partial
 - `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`：窗口中的事件超过了一次运行能读取的 1,000 个。不会丢失任何内容：下一次轮询会从读取的最后一个事件之后开始。一次又一次轮询都保持 **部分** 的连接正在追赶积压，它的 **最近轮询** 和 **最近导入的事件** 会持续前进。
 - `Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.`：API 忽略了从早到晚的顺序，所以这次运行无法把游标移到它的最后一个事件，下一次轮询会改为读取更短的窗口。如果反复出现，请把这次运行的报告发送给 OneUptime 支持人员。
-- `More records were created in the one minute from ... than one poll can read`：轮询越过了这一分钟。请在 **诊断** 中用 **Import this time range** 导入它。一次导入读取的量与一次轮询相同。
+- `More records were created in the one minute from ... than one poll can read`：轮询越过了这一分钟。请在 **诊断** 中用 **导入此时间范围** 导入它。一次导入读取的量与一次轮询相同。
 :::
 
 :::details 测试通过，但没有导入任何内容

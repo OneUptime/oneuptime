@@ -25,7 +25,6 @@ import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/Advance
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelDetailField from "Common/UI/Components/ModelDetail/Field";
-import { announceModelHeaderChanged } from "Common/UI/Components/Page/ModelHeaderEvents";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -271,12 +270,11 @@ const DataStoreSettings: FunctionComponent<
           },
           getLabelsFormField<DataStore>(),
         ]}
+        /*
+         * The page header shows the name and the labels: CardModelDetail
+         * tells it to read them again after a save.
+         */
         onSaveSuccess={(): void => {
-          // The page header shows the name and the labels: read them again.
-          announceModelHeaderChanged({
-            modelType: DataStore,
-            modelId: dataStoreId,
-          });
           refresh();
         }}
         modelDetailProps={{

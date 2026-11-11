@@ -470,3 +470,101 @@ export function parseRawStackTraceLines(
     return base;
   });
 }
+
+export interface StackTraceCallerFrame {
+  frame: ResolvedStackFrame;
+  originalIndex: number;
+}
+
+/*
+ * Where the exception happened, for the Overview's Where it happened card:
+ * the frame it was most likely raised from and the few frames that called
+ * it, out of frames already ordered innermost first.
+ */
+export interface StackTraceCrashPoint {
+  frame: ResolvedStackFrame;
+  originalIndex: number;
+  // The frame is in the application's own code (the usual case).
+  isInApp: boolean;
+  /*
+   * The frames that called it, nearest first: of the application's own
+   * code when the crash point is, of any code when no frame is.
+   */
+  callers: Array<StackTraceCallerFrame>;
+  frameCount: number;
+  appFrameCount: number;
+}
+
+export function getStackTraceCrashPoint(
+  frames: ReadonlyArray<ResolvedStackFrame>,
+  maxCallers: number,
+): StackTraceCrashPoint | null {
+  if (frames.length === 0) {
+    return null;
+  }
+
+  const topAppFrameIndex: number = getTopAppFrameIndex(frames);
+  const isInApp: boolean = topAppFrameIndex >= 0;
+  const crashIndex: number = isInApp ? topAppFrameIndex : 0;
+  const callers: Array<StackTraceCallerFrame> = [];
+
+  for (
+    let index: number = crashIndex + 1;
+    index < frames.length && callers.length < maxCallers;
+    index++
+  ) {
+    const frame: ResolvedStackFrame = frames[index]!;
+
+    if (!isInApp || frame.inApp) {
+      callers.push({ frame, originalIndex: index });
+    }
+  }
+
+  return {
+    frame: frames[crashIndex]!,
+    originalIndex: crashIndex,
+    isInApp,
+    callers,
+    frameCount: frames.length,
+    appFrameCount: frames.filter((frame: ResolvedStackFrame): boolean => {
+      return frame.inApp;
+    }).length,
+  };
+}
+
+export interface RawStackTraceExcerpt {
+  lines: Array<string>;
+  // Lines of the trace not in the excerpt.
+  hiddenLineCount: number;
+}
+
+/*
+ * The part of a stack trace without structured frames worth reading first:
+ * its first lines, where V8, Java, .NET, Go and Ruby print the message and
+ * the crash point - or, for a Python traceback, which prints them last, its
+ * last lines. Blank lines are left out.
+ */
+export function getRawStackTraceExcerpt(
+  stackTrace: string | undefined,
+  maxLines: number,
+): RawStackTraceExcerpt {
+  const lines: Array<string> = (stackTrace || "")
+    .split("\n")
+    .map((line: string): string => {
+      return line.replace(/\r$/, "");
+    })
+    .filter((line: string): boolean => {
+      return line.trim().length > 0;
+    });
+
+  if (lines.length <= maxLines) {
+    return { lines, hiddenLineCount: 0 };
+  }
+
+  return {
+    lines: isOutermostFirstStackTrace(stackTrace)
+      ? lines.slice(lines.length - maxLines)
+      : lines.slice(0, maxLines),
+    hiddenLineCount: lines.length - maxLines,
+  };
+}

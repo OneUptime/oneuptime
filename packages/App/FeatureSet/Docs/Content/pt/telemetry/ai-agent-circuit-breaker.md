@@ -193,7 +193,7 @@ O título está vazio ou não corresponde. Um campo que não está em **Fields t
 :::
 
 :::details O seu endpoint responde 401
-O cabeçalho `Authorization` não bate com o token que o seu endpoint espera. Confira o nome em `{{global.variables.AGENT_KILL_TOKEN}}` e o valor salvo na variável global. O valor de uma variável secreta não pode ser lido de volta, então, na dúvida, digite-o de novo com **Update Content**.
+O cabeçalho `Authorization` não bate com o token que o seu endpoint espera. Confira o nome em `{{global.variables.AGENT_KILL_TOKEN}}` e o valor salvo na variável global. O valor de uma variável secreta não pode ser lido de volta, então, na dúvida, digite-o de novo com **Atualizar conteúdo**.
 :::
 
 :::details O alerta de orçamento abre e se resolve sem parar

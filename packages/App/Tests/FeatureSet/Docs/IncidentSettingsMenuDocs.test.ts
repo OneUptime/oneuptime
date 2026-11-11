@@ -178,7 +178,7 @@ describe("Incident docs list the Settings menu's pages", () => {
 
     expect(titles.length).toBeGreaterThan(5);
     expect(titles[0]).toBe("Incident State");
-    expect(titles[titles.length - 1]).toBe("Numbering");
+    expect(titles.slice(-2)).toEqual(["Numbering", "Data Retention"]);
     expect(titles).toContain("Linked Alerts");
     expect(titles).not.toContain("AI");
     expect(titles).not.toContain("Auto Remediation Rules");

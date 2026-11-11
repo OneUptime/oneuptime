@@ -154,10 +154,10 @@ La tarjeta **Token de acceso** de la página de una variable OAuth 2.0 muestra u
 
 | Estado                     | Qué significa                                                                                                                        |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Valid**                  | El token en caché aún no ha caducado.                                                                                                |
+| **Válido**                 | El token en caché aún no ha caducado.                                                                                                |
 | **Caducado**               | Normal en una variable que ningún flujo de trabajo ha usado últimamente. La siguiente ejecución que la use obtiene un token nuevo.   |
 | **Aún no obtenido**        | No se ha obtenido ningún token desde que se creó la variable o se cambiaron sus ajustes.                                             |
-| **No expiry reported**     | El proveedor no dijo cuándo caduca el token, así que cada ejecución obtiene uno nuevo.                                               |
+| **No se indicó caducidad** | El proveedor no dijo cuándo caduca el token, así que cada ejecución obtiene uno nuevo.                                               |
 | **La actualización falló** | El último intento de obtener un token falló. El motivo del proveedor se muestra completo, con cuándo ocurrió. La siguiente renovación correcta lo borra. |
 
 **Actualizar ahora**, debajo del estado, obtiene un token nuevo de inmediato. Úsalo para comprobar ajustes nuevos sin ejecutar un flujo de trabajo. **Actualizar credenciales**, en la tarjeta **Ajustes de OAuth 2.0**, sustituye el secreto de cliente o el token de actualización y después obtiene un token con ellos. Cambiar cualquier ajuste (URL del token, ID de cliente, alcance, etc.) descarta el token en caché, así que la siguiente ejecución obtiene uno con los ajustes nuevos.

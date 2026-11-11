@@ -71,22 +71,26 @@ Klikk på en rad for å åpne siden til unntaket.
 
 ## Siden til et unntak
 
+Alle sidene til et unntak åpnes under den samme overskriften: typen og meldingen, statusen, om det ble håndtert, feilklassen og miljøet, og opplysningene: hvor mange ganger det skjedde, når det først og sist ble sett, tjenesten og hvem det er tildelt. På alle sider bortsett fra **Innstillinger**, som har egne knapper, står **Løs** og **Arkiver** ved siden av opplysningene, og ⋯ ved siden av knappene inneholder **Løs i neste utgivelse** og **Opprett monitor**.
+
 Sidemenyen på siden samler det du gjør med et unntak:
 
 | Side | Hva den viser |
 | --- | --- |
-| **Oversikt** | Meldingen, tjenesten, hvor ofte det skjedde og når det først og sist ble sett, utviklingen over tid, og den siste forekomsten: release, miljø, span, spor og brukerøkt. Øverst OneUptime AIs forklaring av hva som skjedde, når AI er på. |
+| **Oversikt** | **Hvor det skjedde**: linjen i koden din der det ble kastet. Utviklingen over tid, og den siste forekomsten: release, miljø, fingeravtrykk, span, spor og brukerøkt. Øverst OneUptime AIs forklaring av hva som skjedde, når AI er på. |
 | **Stack trace** | Rammene i stakken. For nettleserkode de opprinnelige filene og linjene, når du har lastet opp [Source maps](/docs/telemetry/source-maps) for releasen. |
 | **Forekomster** | Hver forekomst, med tidspunkt, melding og sporet den skjedde i. |
 | **Kontekst** | Attributtene til den siste forekomsten, øktopptaket når det finnes, og trinnene som førte frem til den. |
 | **Logger** | Loggene som ble skrevet rundt den siste forekomsten. |
-| **AI-hjelp** | AI-oppgaver som retter unntaket eller tester det. |
+| **Fiks med AI** | Én AI-oppgave som retter unntaket med en pull request, og de andre foldet inn under den. |
 | **Innstillinger** | Løs eller arkiver unntaket. Den ligger under **Administrer**, som er lukket i starten. |
 | **Revisjonslogger** | Hvem som løste, arkiverte, tildelte eller slo sammen unntaket, og når. Den ligger også under **Administrer**. |
 
+**Hvor det skjedde** viser den første rammen fra din egen kode, det mest sannsynlige stedet der feilen ble kastet: den opprinnelige filen og linjen når en source map har løst den opp, koden rundt den når mappen inneholder koden, og opptil tre rammer fra koden din som kalte den. Uten noen ramme i din egen kode viser kortet den innerste rammen i stack tracen. **Vis hele stack tracen** åpner alle rammene på **Stack trace**. Når den siste forekomsten ikke registrerte strukturerte rammer, viser kortet de første linjene i stack tracen som de er (de siste linjene i en Python-traceback, der feilen står), og et unntak uten stack trace har ikke noe kort.
+
 ## Løs, gjenåpne og arkiver
 
-Knappene øverst på siden til unntaket, siden **Innstillinger** og menyen ⋯ på raden i listen endrer statusen:
+Knappene øverst på siden til unntaket og ⋯ ved siden av dem, siden **Innstillinger** og menyen ⋯ på raden i listen endrer statusen:
 
 | Handling | Når du bruker den | Hva som skjer etterpå |
 | --- | --- | --- |
@@ -96,13 +100,15 @@ Knappene øverst på siden til unntaket, siden **Innstillinger** og menyen ⋯ p
 | **Arkiver** | Det er støy du ikke tenker å rette. | Det forlater listen. Nye forekomster telles, men sender ikke lenger varsler. |
 | **Fjern fra arkiv** | Du vil høre om det igjen. | Det er tilbake i listen det hører hjemme i. |
 
-**Løs i neste utgivelse** ligger i menyen ved siden av **Løs**, i radens meny ⋯, under **Massehandlinger** og på **Innstillinger**, så lenge forekomstene av unntaket oppgir utgivelsen sin: ressursattributtet `service.version`.
+**Løs i neste utgivelse** ligger i ⋯ øverst på siden til unntaket, i radens meny ⋯, under **Massehandlinger** og på **Innstillinger**, så lenge forekomstene av unntaket oppgir utgivelsen sin: ressursattributtet `service.version`.
 
 **Innstillinger** viser hvem som sist løste eller arkiverte unntaket, og når. Knappene der heter **Merk som løst** eller **Merk som uløst**, og **Arkiver** eller **Fjern fra arkiv**.
 
 For å endre flere samtidig krysser du av radene deres i listen, eller boksen over radene for alle unntak på siden, og bruker de samme handlingene under **Massehandlinger**. Når alle unntak på siden er krysset av, tilbyr linjen over radene å velge alle unntak som samsvarer med listens søk og filtre, på alle sider, opptil 10 000 om gangen; en handling spør da før den endrer dem. Resultatet viser hvilke unntak som ble endret, hvilke som ble latt være, og hvorfor.
 
-**Tildel** i unntakets overskrift gir det til én person eller ett team, og fjerner du valget, oppheves tildelingen. Hver rad viser hvem den tilhører, menyen ⋯ tilbyr **Tildel meg**, og **Tildel til…** under **Massehandlinger** tildeler flere samtidig. Personen det tildeles, eller hvert medlem av teamet, får et varsel slik raden **Unntak tildelt meg** i deres [Varselinnstillinger](/docs/notifications/notification-settings) sier; den som tildelte det, får ikke noe.
+**Tildel**, under **Ansvarlig** i unntakets overskrift, gir det til én person eller ett team; klikk på navnet for å gi det til noen andre, og på × ved siden av navnet for å oppheve tildelingen. Hver rad viser hvem den tilhører, menyen ⋯ tilbyr **Tildel meg**, og **Tildel til…** under **Massehandlinger** tildeler flere samtidig. Personen det tildeles, eller hvert medlem av teamet, får et varsel slik raden **Unntak tildelt meg** i deres [Varselinnstillinger](/docs/notifications/notification-settings) sier; den som tildelte det, får ikke noe.
+
+**Opprett monitor**, i ⋯ øverst på siden til unntaket, åpner en ny [unntaksmonitor](/docs/monitor/exceptions-monitor) for typen til dette unntaket i tjenesten det kommer fra, slik at du blir varslet når det skjer igjen. Den vises bare for dem som kan opprette monitorer.
 
 **Aktivitet** nederst i unntakets **Oversikt** viser hvem som endret det og når, nyeste først: hvem som løste, gjenåpnet, arkiverte eller tildelte det, slo sammen et annet unntak med det eller delte opp et, og når det kom tilbake etter at det var løst. Hver endring står der, gjort på unntakets side, i listen, under **Massehandlinger**, via API-et eller av OneUptime selv, og en endring gjort med en API-nøkkel bærer nøkkelens navn.
 
@@ -132,7 +138,7 @@ Med **Arkiver forventede unntak** slått på, i innstillingene for AI-innsikt, a
 | **Hvor du bør se** | Rammene i stack trace du bør åpne først. |
 | **Neste steg** | Høyst tre steg for å bekrefte eller rette det. |
 
-Forklaringen lagres på unntaket, så den neste som åpner det leser den med en gang, og **Forklar på nytt** ber om en ny. **Åpne en pull-forespørsel med rettingen** åpner unntakets side **AI-hjelp**, og **Still et oppfølgingsspørsmål** åpner Ask AI om unntaket.
+Forklaringen lagres på unntaket, så den neste som åpner det leser den med en gang, og **Forklar på nytt** ber om en ny. **Fiks med AI** åpner unntakets side **Fiks med AI**, og **Still et oppfølgingsspørsmål** åpner Ask AI om unntaket.
 
 ID-er, e-post- og IP-adresser og tokener fjernes fra alt som sendes, og av et spans attributter sendes bare noen få, som ruten og statuskoden. Forklaringen bruker prosjektets LLM-leverandør og AI-kreditter og tilbys ikke mens **Aktiver AI** er av. Alle som kan lese unntaket, kan be om en.
 
@@ -142,13 +148,22 @@ Slå et som OneUptime AI kaller **Sannsynligvis den samme feilen**, og som høre
 
 ## Rett det med AI
 
-Siden **AI-hjelp** tilbyr tre oppgaver. Hver kjører som en AI-oppgave som åpner en pull request i kodelageret ditt:
+Siden **Fiks med AI** begynner med én oppgave, som du starter med **Fiks med AI**. Den kjører som en AI-oppgave som åpner en pull request i kodelageret ditt, og hva pull requesten gjør, avhenger av unntakets [feilklasse](#feilklasser):
+
+| Feilklasse | Hva pull requesten gjør |
+| --- | --- |
+| `user-error` eller `expected-denial` | Håndterer feilen bedre, uten å endre hva koden gjør: sjekker inndataene tidligere med en tydelig melding, holder brukerdata ute av meldingen og merker feilen som håndtert. |
+| Enhver annen, eller ikke klassifisert ennå | Finner rotårsaken i koden din og retter den. |
+
+Tre trinn under den forklarer hvordan den virker: den leser stack tracen og finner koden som kastet unntaket, endrer den koden i kodelageret ditt på en egen branch, og åpner en pull request som du kan gå gjennom. Ingenting endres før du fletter den. Når den har kjørt, heter knappen **Fiks på nytt**, eller **Prøv igjen** når forsøket mislyktes eller ikke fant noen retting.
+
+Delen **Andre AI-oppgaver**, foldet inn under den, åpner de andre pull requests med **Start**:
 
 | Oppgave | Hva pull requesten gjør |
 | --- | --- |
-| **Fix this exception with AI** | Retter rotårsaken. Start den med **Fiks med AI**. |
-| **Generate Regression Test** | Legger til en test som feiler til feilen er rettet. |
-| **Forbedre feilhåndtering** | For forventede feil: validerer inndata tidligere, holder brukerdata ute av meldinger og merker feilen som håndtert. |
+| **Rett koden** | Retter rotårsaken. Den står i listen når **Fiks med AI** håndterer en forventet feil. |
+| **Håndter feilen bedre** | Håndterer en forventet feil bedre, som over. Den står i listen når **Fiks med AI** retter koden. |
+| **Skriv en regresjonstest** | Legger til en test som gjenskaper unntaket og feiler til feilen er rettet. Den retter ikke selve feilen. |
 
 AI trenger tre ting først: en LLM-leverandør, et tilkoblet lager (på GitHub, GitLab, Forgejo eller Gitea, eller en hvilken som helst Git-server), og en AI-agent på nett som kjører oppgaven. Siden sjekker hver av dem og lenker til det som mangler. Oppgavene står på pause mens unntaket er løst eller arkivert. Se [Kode](/docs/ai/ai-agent). Å starte en oppgave krever tillatelse til å redigere lageret den jobber i: Den som bare kan lese unntaket, ser oppgavene, men kan ikke starte noen.
 
@@ -162,7 +177,7 @@ Hvert 15. minutt går OneUptime gjennom unntakene dine etter nye, etter dem som 
 | **Topp i unntak** | Et unntak som har skjedd 10 ganger eller mer i løpet av den siste timen, med 5 ganger eller mer sin timerate fra de 24 timene før. | Retter unntaket, eller håndterer det bedre. |
 | **Manglende stack trace** | Unntakene en tjeneste registrerte det siste døgnet har ingen stack trace og har til sammen skjedd 20 ganger eller mer. | Får tjenesten til å registrere en stack trace med hvert unntak. |
 
-Pull requesten for et nytt eller økende unntak er unntakets egen AI-oppgave, den som siden **AI-hjelp** til unntaket starter, og den venter til OneUptime AI har undersøkt funnet. Finner den koden som har skylden (`code-fault`), retter pull requesten den, slik **Fix this exception with AI** gjør. Finner den en forventet feil (`user-error` eller `expected-denial`), håndterer pull requesten feilen bedre, slik **Forbedre feilhåndtering** gjør. Enhver annen konklusjon åpner ingen pull request av seg selv. Med **Arkiver forventede unntak** slått på arkiveres en forventet avvisning i stedet og får ingen pull request.
+Pull requesten for et nytt eller økende unntak er unntakets egen AI-oppgave, den som siden **Fiks med AI** til unntaket starter, og den venter til OneUptime AI har undersøkt funnet. Finner den koden som har skylden (`code-fault`), retter pull requesten den, slik **Rett koden** gjør. Finner den en forventet feil (`user-error` eller `expected-denial`), håndterer pull requesten feilen bedre, slik **Håndter feilen bedre** gjør. Enhver annen konklusjon åpner ingen pull request av seg selv. Med **Arkiver forventede unntak** slått på arkiveres en forventet avvisning i stedet og får ingen pull request.
 
 OneUptime AI åpner bare selv en for et unntak som er kastet i din egen kode: et unntak der stack tracen har en ramme fra koden din, og ikke bare rammer fra biblioteker eller kjøretidsmiljøet. En pull request som noen lukket uten å flette den, setter de automatiske på pause for det unntaket. Alle kan fortsatt be om hvilken som helst av dem med **Fiks med AI** på funnet.
 
@@ -188,7 +203,7 @@ Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandø
 
 - **Unntak → KI → Innsikt** viser hva OneUptime fant, hvert funn med bevisene, rammene fra koden din i stack tracen medregnet. **View Exception Group** åpner unntaket, og for en tjenestes manglende stack traces åpner **Åpne i Unntak** de uløste unntakene dens fra det siste døgnet.
 - **Unntak → KI → Logger** viser hver undersøkelse og hver pull request, nyeste først, med status for hver og hva hver undersøkelse fant.
-- Pull requesten sier hvorfor den ble åpnet, med en lenke til funnet. Den for et nytt eller økende unntak lenker også til unntaket og vises på siden **AI-hjelp** til unntaket. I Kode nevner oppgaven unntaket den retter, eller funnet den kom fra.
+- Pull requesten sier hvorfor den ble åpnet, med en lenke til funnet. Den for et nytt eller økende unntak lenker også til unntaket og vises på siden **Fiks med AI** til unntaket. I Kode nevner oppgaven unntaket den retter, eller funnet den kom fra.
 
 ## Innsikt i unntak
 

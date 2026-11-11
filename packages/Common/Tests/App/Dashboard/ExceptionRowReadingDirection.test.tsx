@@ -12,12 +12,13 @@ import ObjectID from "../../../Types/ObjectID";
 import { LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
 
 /*
- * An exception row on a Persian page (#5344): its fingerprint chip, a code
- * cut short to the row, lost its start, and so did an English assignee's
- * name; the exception's English type and message put a full stop at their
- * start. The fingerprint reads left to right in every language, the name
- * the way it is written where the page reads the other way, and the type
- * and message line in an isolate of its own.
+ * An exception row on a Persian page (#5344): an English assignee's name,
+ * cut short to the row, lost its start, and the exception's English type
+ * and message put a full stop at their start. The name reads the way it is
+ * written where the page reads the other way, and the type and message
+ * line in an isolate of its own. (The row no longer shows the fingerprint,
+ * a code no one scans a list by: the latest occurrence card of the
+ * exception's Overview holds it.)
  */
 
 const instances: Record<string, i18n> = {};
@@ -72,18 +73,6 @@ const draw: (language: string, assignee: string) => void = (
 };
 
 describe("on a Persian page", () => {
-  test("the fingerprint chip reads left to right, as a code does", () => {
-    draw("fa", "José Ignacio Negro de la Vega");
-
-    const fingerprint: HTMLElement = screen.getByTestId(
-      "exception-row-fingerprint",
-    );
-
-    expect(fingerprint).toHaveAttribute("dir", "ltr");
-    expect(fingerprint).toHaveTextContent(/^a1b2c3d4e5f6…$/);
-    expect(fingerprint).toHaveClass("truncate");
-  });
-
   test("an English assignee's name reads left to right, cut short at its own end", () => {
     draw("fa", "José Ignacio Negro de la Vega");
 
@@ -113,15 +102,24 @@ describe("on a Persian page", () => {
 });
 
 describe("on an English page", () => {
-  test("the fingerprint still reads left to right; an English name has no direction of its own", () => {
+  test("an English name has no direction of its own", () => {
     draw("en", "José Ignacio Negro de la Vega");
 
-    expect(screen.getByTestId("exception-row-fingerprint")).toHaveAttribute(
-      "dir",
-      "ltr",
-    );
     expect(
       screen.getByText("José Ignacio Negro de la Vega"),
     ).not.toHaveAttribute("dir");
+  });
+});
+
+describe("in either language", () => {
+  test("the row shows no fingerprint: a code no one scans a list by", () => {
+    for (const language of ["en", "fa"]) {
+      draw(language, "Sara Ahmadi");
+
+      expect(screen.queryByTestId("exception-row-fingerprint")).toBeNull();
+      expect(screen.queryByText(/a1b2c3d4e5f6/)).toBeNull();
+
+      cleanup();
+    }
   });
 });
