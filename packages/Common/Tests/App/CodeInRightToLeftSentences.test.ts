@@ -11,6 +11,7 @@ import {
   LEFT_TO_RIGHT,
   RIGHT_TO_LEFT,
 } from "../../Types/ReadingDirection";
+import { escapeRegExp } from "../../Utils/RegExpEscape";
 import {
   DrawnLine,
   drawLine,
@@ -609,10 +610,6 @@ describe("a mark a translator placed by hand", () => {
 describe("code the English names with a sign in front", () => {
   const CODE_WITH_A_SIGN_IN_FRONT: RegExp =
     /(?<![\w/.:~-])(?:\/\.?[\w.-]+(?:\/[\w.-]+)*|\.[A-Za-z][\w-]*|--?[A-Za-z][\w-]*)/g;
-
-  const escapeRegExp: (text: string) => string = (text: string): string => {
-    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  };
 
   // `code` where it stands on its own in `text`, not inside other code.
   const standingAlone: (code: string) => RegExp = (code: string): RegExp => {

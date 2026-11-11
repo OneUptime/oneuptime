@@ -84,9 +84,9 @@ right inside the Arabic line.
 
 Code is written exactly as `en.json` writes it: `.env` with its dot,
 `--help` with its dashes, `/.well-known/openid-configuration` with its slash,
-`grantConsent()` with its brackets, a cron line as `0 9 * * 1-5`. Do not
-reword code to dodge the bidi algorithm (no `ملف env`, no Latin word put in
-front of a flag), and put no direction mark beside it.
+a function with its brackets (`استدعِ الدالة grantConsent()`), a cron line as
+`0 9 * * 1-5`. Do not reword code to dodge the bidi algorithm (no `ملف env`,
+no Latin word put in front of a flag), and put no direction mark beside it.
 
 The page draws it as written: every frontend's i18next sets each piece of
 code in a sentence of a language read from the right apart in a
