@@ -423,6 +423,104 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
     expectEveryCheckPassed(report);
   }, 600000);
 
+  /*
+   * A screenshot a description defines once and references two hundred
+   * times (#6481). Each reference took a copy of its data: one of 2.25 MB
+   * made more than V8's longest string, and the email went out as its
+   * Markdown, in text. Copies now put back at most
+   * MAX_EMAIL_HELD_TEXT_IN_REFERENCES, so the email is HTML, in good time,
+   * at any size. The time is the fastest of up to three renders.
+   */
+  test("an email renders a screenshot its description references two hundred times, at any size", () => {
+    const report: ProcessReport = runUnoptimized(
+      [
+        'export { default as Markdown, MarkdownContentType, MAX_EMAIL_HELD_TEXT_IN_REFERENCES } from "./Server/Types/Markdown";',
+        'export { default as EmailInlineImages } from "./Server/Utils/Mail/EmailInlineImages";',
+      ],
+      String.raw`
+        const MOST = lib.MAX_EMAIL_HELD_TEXT_IN_REFERENCES;
+        const COUNT = 200;
+        const BUDGET_IN_MS = 2000;
+        const STARTS = "<p>Monitor is down - Timeout 30000ms exceeded\n";
+
+        // A JPEG of byteCount bytes: its signature, then filler.
+        const jpegOfSize = (byteCount) => {
+          return Buffer.concat([
+            Buffer.from([0xff, 0xd8, 0xff, 0xe0]),
+            Buffer.alloc(byteCount - 4, 0x5a),
+          ]).toString("base64");
+        };
+
+        const countOf = (text, part) => {
+          return text.split(part).length - 1;
+        };
+
+        const ROWS = [
+          // The screenshot, its bytes, and the images the email shows.
+          ["1 MB", 1024 * 1024, 6],
+          ["2.25 MB", 2.25 * 1024 * 1024, 0],
+          ["12 MB", 12 * 1024 * 1024, 0],
+        ];
+
+        for (const [label, byteCount, shown] of ROWS) {
+          const lines = ["Monitor is down - Timeout 30000ms exceeded"];
+
+          for (let index = 1; index <= COUNT; index++) {
+            lines.push("![Home " + index + "][home]");
+          }
+
+          lines.push("", "[home]: data:image/jpeg;base64," + jpegOfSize(byteCount));
+
+          const markdown = lines.join("\n");
+
+          results["a JPEG of " + label] = await attempt(async () => {
+            let fastest = Infinity;
+            let html = "";
+
+            for (let tries = 0; tries < 3 && fastest >= BUDGET_IN_MS; tries++) {
+              const started = process.hrtime.bigint();
+
+              html = await lib.Markdown.convertToHTML(
+                markdown,
+                lib.MarkdownContentType.Email,
+              );
+              fastest = Math.min(
+                fastest,
+                Number(process.hrtime.bigint() - started) / 1e6,
+              );
+            }
+
+            const email = lib.EmailInlineImages.attach(html);
+            const ms = Math.round(fastest);
+
+            return {
+              "is HTML, never its Markdown as text":
+                html.startsWith(STARTS) && !html.includes("![Home"),
+              "holds the screenshot once, and copies within the budget":
+                html.length <= markdown.length + MOST + COUNT * 256,
+              ["shows it " + shown + " times, from one attachment at most"]:
+                email.inlineImages.length === (shown > 0 ? 1 : 0) &&
+                countOf(email.html, '<img src="cid:') === shown,
+              "shows the note at every other reference":
+                countOf(email.html, "image too large to include in this email]") ===
+                COUNT - shown,
+              ["in under " + BUDGET_IN_MS + " ms (took " + ms + " ms)"]:
+                ms < BUDGET_IN_MS,
+            };
+          });
+        }
+      `,
+    );
+
+    expectUnoptimizedProcess(report);
+    expect(Object.keys(report.results)).toEqual([
+      "a JPEG of 1 MB",
+      "a JPEG of 2.25 MB",
+      "a JPEG of 12 MB",
+    ]);
+    expectEveryCheckPassed(report);
+  }, 600000);
+
   test("plain text (SMS, push, calls, subjects) keeps it, and what is around it", () => {
     const report: ProcessReport = runUnoptimized(
       [
