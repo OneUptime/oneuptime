@@ -14,13 +14,16 @@ import AlertService from "../../../Server/Services/AlertService";
 import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
+import UserService from "../../../Server/Services/UserService";
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
-import OnCallAcknowledgementTimeout from "../../../Server/Utils/OnCall/OnCallAcknowledgementTimeout";
+import OnCallAcknowledgementTimeout, {
+  OnCallTimeoutRecordStanding,
+} from "../../../Server/Utils/OnCall/OnCallAcknowledgementTimeout";
 import OnCallPageLinkToken, {
   ON_CALL_PAGE_LINK_TOKEN_PARAM,
 } from "../../../Server/Utils/OnCall/OnCallPageLinkToken";
@@ -36,11 +39,15 @@ import User from "../../../Models/DatabaseModels/User";
 import UserOnCallLogTimeline from "../../../Models/DatabaseModels/UserOnCallLogTimeline";
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
+import OneUptimeDate from "../../../Types/Date";
 import Email from "../../../Types/Email";
 import { JSONObject } from "../../../Types/JSON";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
-import { OnCallPassOnOutcome } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import {
+  ON_CALL_PASS_ON_NO_BREAK_SPACE,
+  OnCallPassOnOutcome,
+} from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import Timezone from "../../../Types/Timezone";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
@@ -60,7 +67,9 @@ import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
  * again, so a page left open does not acknowledge a taken incident.
  *
  * The database is stubbed throughout: the run, the record's standing
- * (OnCallAcknowledgementTimeout.readRecordState) and the context.
+ * (OnCallAcknowledgementTimeout.readRecordStanding, with who took it there and
+ * when - issue #6711), the people's names and the context. It is 9 AM UTC on
+ * 11 November 2026, so a time that day reads "at 3:01 AM UTC".
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -223,25 +232,41 @@ function givenRun(run: OnCallDutyPolicyExecutionLog | null): void {
   findRun.mockResolvedValue(run);
 }
 
-function givenRecord(
-  state: { isAcknowledged: boolean; isResolved: boolean } | null,
-): void {
+function givenRecord(state: OnCallTimeoutRecordStanding | null): void {
   recordState.mockResolvedValue(state);
 }
 
-const ACKNOWLEDGED: { isAcknowledged: boolean; isResolved: boolean } = {
+const ACKNOWLEDGED: OnCallTimeoutRecordStanding = {
   isAcknowledged: true,
   isResolved: false,
 };
 
-const RESOLVED: { isAcknowledged: boolean; isResolved: boolean } = {
+const RESOLVED: OnCallTimeoutRecordStanding = {
   isAcknowledged: true,
   isResolved: true,
 };
 
-const OPEN: { isAcknowledged: boolean; isResolved: boolean } = {
+const OPEN: OnCallTimeoutRecordStanding = {
   isAcknowledged: false,
   isResolved: false,
+};
+
+const NOW: Date = new Date("2026-11-11T09:00:00.000Z");
+
+// A time as the page writes it: on one line of a phone.
+function kept(phrase: string): string {
+  return phrase.split(" ").join(ON_CALL_PASS_ON_NO_BREAK_SPACE);
+}
+
+// When answeredBy's run was answered, as the page says it.
+const AT_ANSWERED: string = `at ${kept("3:01 AM UTC")}`;
+
+const ACKNOWLEDGED_AT: Date = new Date("2026-11-11T02:15:00.000Z");
+const RESOLVED_AT: Date = new Date("2026-11-11T04:40:00.000Z");
+
+const NAMES: Record<string, string> = {
+  [ANA.toString()]: "Ana Lopez",
+  [PERSON.toString()]: "Sam Rivera",
 };
 
 beforeAll(() => {
@@ -267,8 +292,19 @@ beforeEach(() => {
   findRun = jest.spyOn(OnCallDutyPolicyExecutionLogService, "findOneById");
   givenRun(policyRun());
 
-  recordState = jest.spyOn(OnCallAcknowledgementTimeout, "readRecordState");
+  recordState = jest.spyOn(OnCallAcknowledgementTimeout, "readRecordStanding");
   givenRecord(OPEN);
+
+  jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(new Date(NOW));
+
+  jest.spyOn(UserService, "findOneById").mockImplementation((async (data: {
+    id: ObjectID;
+  }) => {
+    const user: User = new User();
+    user.id = data.id;
+    user.name = new Name(NAMES[data.id.toString()] || "Someone");
+    return user;
+  }) as never);
 
   // The context the page shows: the incident as the Dashboard has it.
   const incident: Incident = new Incident();
@@ -407,7 +443,7 @@ describe("the acknowledge page once the page is over offers no Acknowledge", () 
     expect(path).toContain(MESSAGE_VIEW);
     expect(variables["title"]).toBe("Already acknowledged - Checkout is down");
     expect(variables["message"]).toBe(
-      "Incident INC-7 was already acknowledged by Ana Lopez.",
+      `Incident INC-7 was already acknowledged by Ana Lopez ${AT_ANSWERED}.`,
     );
     expect(variables["statusIcon"]).toBe("check");
     expect(variables["viewDetailsText"]).toBe("View Incident");
@@ -466,7 +502,7 @@ describe("the acknowledge page once the page is over offers no Acknowledge", () 
 
     expect(variables["title"]).toBe("Already acknowledged - Checkout is down");
     expect(variables["message"]).toBe(
-      "You already acknowledged Incident INC-7.",
+      `You already acknowledged Incident INC-7 ${AT_ANSWERED}.`,
     );
   });
 
@@ -493,7 +529,7 @@ describe("the acknowledge page once the page is over offers no Acknowledge", () 
     await callRoute(ACKNOWLEDGE_PAGE_ROUTE);
 
     expect(rendered().variables["message"]).toBe(
-      "This incident was already acknowledged by Ana Lopez.",
+      `This incident was already acknowledged by Ana Lopez ${AT_ANSWERED}.`,
     );
   });
 
@@ -510,7 +546,7 @@ describe("the acknowledge page once the page is over offers no Acknowledge", () 
       "Already acknowledged - Elevated error rate",
     );
     expect(variables["message"]).toBe(
-      "Alert Episode AEP-3 was already acknowledged by Ana Lopez.",
+      `Alert Episode AEP-3 was already acknowledged by Ana Lopez ${AT_ANSWERED}.`,
     );
     expect(variables["viewDetailsText"]).toBe("View Alert Episode");
   });
@@ -530,7 +566,117 @@ describe("the acknowledge page once the page is over offers no Acknowledge", () 
       "Already marked as seen - Checkout is down",
     );
     expect(variables["message"]).toBe(
-      "Ana Lopez already marked this page as seen.",
+      `Ana Lopez already marked this page as seen ${AT_ANSWERED}.`,
+    );
+  });
+});
+
+describe("who took it, and when, off the incident's own timeline (#6711)", () => {
+  test("acknowledged in the Dashboard by a colleague: who, and when", async () => {
+    givenRecord({
+      ...ACKNOWLEDGED,
+      acknowledgement: { createdByUserId: ANA, startsAt: ACKNOWLEDGED_AT },
+    });
+
+    await callRoute(ACKNOWLEDGE_PAGE_ROUTE);
+
+    const { path, variables } = rendered();
+
+    expect(path).toContain(MESSAGE_VIEW);
+    expect(variables["message"]).toBe(
+      `Incident INC-7 was already acknowledged by Ana Lopez at ${kept("2:15 AM UTC")}.`,
+    );
+  });
+
+  test("acknowledged in the Dashboard by the person themselves: theirs", async () => {
+    givenRecord({
+      ...ACKNOWLEDGED,
+      acknowledgement: { createdByUserId: PERSON, startsAt: ACKNOWLEDGED_AT },
+    });
+
+    await callRoute(ACKNOWLEDGE_PAGE_ROUTE);
+
+    expect(rendered().variables["message"]).toBe(
+      `You already acknowledged Incident INC-7 at ${kept("2:15 AM UTC")}.`,
+    );
+  });
+
+  test("acknowledged by a workflow: when, without who", async () => {
+    givenRecord({
+      ...ACKNOWLEDGED,
+      acknowledgement: { createdByUserId: null, startsAt: ACKNOWLEDGED_AT },
+    });
+
+    await callRoute(ACKNOWLEDGE_PAGE_ROUTE);
+
+    expect(rendered().variables["message"]).toBe(
+      `Incident INC-7 was already acknowledged at ${kept("2:15 AM UTC")}.`,
+    );
+  });
+
+  test("resolved by a colleague: who, and when", async () => {
+    givenRecord({
+      ...RESOLVED,
+      acknowledgement: { createdByUserId: ANA, startsAt: ACKNOWLEDGED_AT },
+      resolution: { createdByUserId: ANA, startsAt: RESOLVED_AT },
+    });
+
+    await callRoute(ACKNOWLEDGE_PAGE_ROUTE);
+
+    const { variables } = rendered();
+
+    expect(variables["title"]).toBe("Already resolved - Checkout is down");
+    expect(variables["message"]).toBe(
+      `Incident INC-7 was already resolved by Ana Lopez at ${kept("4:40 AM UTC")}.`,
+    );
+  });
+
+  test("a time on another day says its date", async () => {
+    givenRecord({
+      ...ACKNOWLEDGED,
+      acknowledgement: {
+        createdByUserId: ANA,
+        startsAt: new Date("2026-11-10T23:54:00.000Z"),
+      },
+    });
+
+    await callRoute(ACKNOWLEDGE_PAGE_ROUTE);
+
+    expect(rendered().variables["message"]).toBe(
+      `Incident INC-7 was already acknowledged by Ana Lopez on ${kept("Nov 10, 2026, 11:54 PM UTC")}.`,
+    );
+  });
+
+  test("times are on the person's own clock", async () => {
+    const item: UserOnCallLogTimeline = timelineItem("incident");
+    const user: User = new User();
+    user.timezone = Timezone.AmericaNew_York;
+    item.user = user;
+    givenItem(item);
+    givenRecord({
+      ...ACKNOWLEDGED,
+      acknowledgement: { createdByUserId: ANA, startsAt: ACKNOWLEDGED_AT },
+    });
+
+    await callRoute(ACKNOWLEDGE_PAGE_ROUTE);
+
+    // 2:15 AM UTC on the 11th is 9:15 PM in New York on the 10th.
+    expect(rendered().variables["message"]).toBe(
+      `Incident INC-7 was already acknowledged by Ana Lopez on ${kept("Nov 10, 2026, 9:15 PM EST")}.`,
+    );
+  });
+
+  test("the address the button opens says the same when pressed too late", async () => {
+    givenRecord({
+      ...ACKNOWLEDGED,
+      acknowledgement: { createdByUserId: ANA, startsAt: ACKNOWLEDGED_AT },
+    });
+
+    await callRoute(ACKNOWLEDGE_ROUTE);
+
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(rendered().variables["message"]).toBe(
+      `Incident INC-7 was already acknowledged by Ana Lopez at ${kept("2:15 AM UTC")}.`,
     );
   });
 });
@@ -619,7 +765,7 @@ describe("pages the record being acknowledged does not end still offer their ans
 
     expect(path).toContain(MESSAGE_VIEW);
     expect(variables["message"]).toBe(
-      "Incident INC-7 was already acknowledged by Ana Lopez.",
+      `Incident INC-7 was already acknowledged by Ana Lopez ${AT_ANSWERED}.`,
     );
   });
 
@@ -712,7 +858,7 @@ describe("the address the Acknowledge button opens asks again", () => {
     expect(path).toContain(MESSAGE_VIEW);
     expect(variables["title"]).toBe("Already acknowledged - Checkout is down");
     expect(variables["message"]).toBe(
-      "Incident INC-7 was already acknowledged by Ana Lopez.",
+      `Incident INC-7 was already acknowledged by Ana Lopez ${AT_ANSWERED}.`,
     );
     expect(variables["viewDetailsText"]).toBe("View Incident");
     expect(variables["statusIcon"]).toBe("check");
