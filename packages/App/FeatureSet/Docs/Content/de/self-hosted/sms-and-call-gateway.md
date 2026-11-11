@@ -125,4 +125,5 @@ Im SMS- oder Anrufprotokoll und bei einem Bereitschaftsalarm im Bereitschaftspro
 - [Push-Benachrichtigungen](/docs/self-hosted/push-notifications): Push für den ganzen Server ausschalten.
 - [Twilio-Integration](/docs/self-hosted/twilio-integration): Stattdessen über Twilio senden.
 - [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access): Was Ihr Server in Ihrem eigenen Netzwerk erreichen darf.
+- [Metriken zur Benachrichtigungszustellung](/docs/self-hosted/notification-delivery-metrics): Die Nachrichten zählen, die Ihr Gateway annimmt und ablehnt.
 :::

@@ -259,4 +259,5 @@ Expo `DeviceNotRegistered` तब बताता है जब मोबाइ�
 - [मोबाइल ऐप समस्या निवारण](/docs/mobile-desktop-apps/faq-troubleshooting): फ़ोन पर साइन-इन और सूचना की समस्याएँ ठीक करें।
 - [एस्केलेशन नियम](/docs/on-call/escalation-rules): तय करें कि किसे और कब पेज किया जाए।
 - [निजी नेटवर्क पहुँच](/docs/self-hosted/private-network-access): आपका सर्वर आपके अपने नेटवर्क में किन चीज़ों तक पहुँच सकता है।
+- [सूचना डिलीवरी मेट्रिक्स](/docs/self-hosted/notification-delivery-metrics): वे पुश गिनें जिन्हें Apple और Google लेते हैं, और जिन्हें वे अस्वीकार करते हैं।
 :::

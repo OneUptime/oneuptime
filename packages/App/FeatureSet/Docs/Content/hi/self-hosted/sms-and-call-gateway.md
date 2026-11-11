@@ -125,4 +125,5 @@ SMS या कॉल लॉग में, और ऑन-कॉल पेज क�
 - [पुश सूचनाएँ](/docs/self-hosted/push-notifications): पूरे सर्वर के लिए पुश बंद करें।
 - [Twilio इंटीग्रेशन](/docs/self-hosted/twilio-integration): इसके बजाय Twilio से भेजें।
 - [निजी नेटवर्क पहुँच](/docs/self-hosted/private-network-access): आपका सर्वर आपके अपने नेटवर्क पर किन चीज़ों तक पहुँच सकता है।
+- [सूचना डिलीवरी मेट्रिक्स](/docs/self-hosted/notification-delivery-metrics): वे संदेश गिनें जिन्हें आपका गेटवे स्वीकार और अस्वीकार करता है।
 :::

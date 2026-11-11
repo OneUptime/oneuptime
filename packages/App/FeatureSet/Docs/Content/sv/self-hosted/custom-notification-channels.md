@@ -183,7 +183,7 @@ En avisering går till varje påslagen kanal, som en begäran per kanal, med `ev
 
 ## Leverans och nya försök
 
-En begäran räknas som levererad när din tjänst svarar med en 2xx-status inom 10 sekunder. En begäran som den inte svarade på, eller svarade på med 408, 429 eller en 5xx-status, skickas igen efter 1 sekund och efter ytterligare 4 sekunder: tre försök totalt. Vid alla andra 4xx-statusar skickas den inte igen.
+En begäran räknas som levererad när din tjänst svarar med en 2xx-status inom 10 sekunder. En begäran som den inte svarade på, eller svarade på med 408, 429 eller en 5xx-status, skickas igen efter 1 sekund och efter ytterligare 4 sekunder: tre försök totalt. Vid alla andra 4xx-statusar skickas den inte igen. Hur varje meddelande gick räknas i [Mått för aviseringsleverans](/docs/self-hosted/notification-delivery-metrics), efter kanalens ID och namn.
 
 Utfallet av varje försök finns i personens jourlogg, med kanalens namn och den status som din tjänst svarade med, aldrig URL:en. Ett larm som inte levereras stoppar inte jourpolicyn: om ingen bekräftar eskalerar den som vanligt. Behåll en e-post- eller sms-regel längre ner i dina regler om din tjänst är det enda sättet att nå personer.
 

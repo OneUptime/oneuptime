@@ -1746,6 +1746,11 @@ const DocsNav: NavGroup[] = [
         title: "Custom Notification Channels",
         url: "/docs/self-hosted/custom-notification-channels",
       },
+      // What OneUptime records about the notifications it sends, and the SLOs to set on it.
+      {
+        title: "Notification Delivery Metrics",
+        url: "/docs/self-hosted/notification-delivery-metrics",
+      },
       {
         title: "SendGrid Inbound Email",
         url: "/docs/self-hosted/sendgrid-inbound-email",

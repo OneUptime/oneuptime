@@ -315,6 +315,7 @@
     "GitHub Integration": "GitHub-integration",
     "Push Notifications": "Push-aviseringar",
     "Custom Notification Channels": "Anpassade aviseringskanaler",
+    "Notification Delivery Metrics": "Mått för aviseringsleverans",
     "SMS and Call Gateway": "SMS- och samtalsgateway",
     "SendGrid Inbound Email": "SendGrid inkommande e-post",
     "Private Network Access": "Åtkomst till privat nätverk",

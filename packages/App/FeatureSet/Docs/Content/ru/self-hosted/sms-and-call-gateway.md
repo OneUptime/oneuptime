@@ -125,4 +125,5 @@ curl -X POST "https://oneuptime.example.com/api/custom-notification-channel/page
 - [Push-уведомления](/docs/self-hosted/push-notifications): Отключите push-уведомления на всём сервере.
 - [Интеграция с Twilio](/docs/self-hosted/twilio-integration): Отправляйте через Twilio вместо этого.
 - [Доступ к частной сети](/docs/self-hosted/private-network-access): К чему ваш сервер может обращаться в вашей собственной сети.
+- [Метрики доставки уведомлений](/docs/self-hosted/notification-delivery-metrics): Считайте сообщения, которые ваш шлюз принимает и отклоняет.
 :::
