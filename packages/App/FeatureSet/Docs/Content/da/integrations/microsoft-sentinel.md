@@ -114,7 +114,7 @@ GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/provide
 - **Oprettelsestidspunktet er markøren.** En planlagt analyseregel, der kører hver time, åbner sin hændelse længe efter den aktivitet, den opdagede, og hændelsens `firstActivityTimeUtc` kan ligge timer eller dage tidligere. En markør på aktivitetstidspunktet ville springe hver sådan hændelse over. Aktivitetstidspunkterne bliver i `attributes`, og eksemplerne i diagnosticeringen viser begge.
 - **Den første poll ser 24 timer tilbage**, så en ny forbindelse straks viser sine nylige hændelser.
 - **Hver senere poll starter 1 minut før den gemte markør**, så en hændelse, der er oprettet på grænsen mellem to vinduer, aldrig springes over.
-- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Sundhed** viser **Catching up**.
+- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Sundhed** viser **Indhenter**.
 - **Dubletter fjernes efter hændelsens GUID** (`name`) i projektet, så overlappet, et gentaget vindue og en import aldrig gemmer en hændelse to gange.
 
 ### Når et vindue indeholder mere, end én poll kan læse

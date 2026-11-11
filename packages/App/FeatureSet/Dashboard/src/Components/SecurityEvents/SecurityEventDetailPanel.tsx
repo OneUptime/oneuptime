@@ -385,7 +385,7 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
                   type="button"
                   data-testid={`security-event-panel-observable-chip-${index}`}
                   title={translator.translateTemplate(
-                    "Correlate \"{{observable}}\"",
+                    'Correlate "{{observable}}"',
                     { observable },
                   )}
                   className="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 font-mono text-xs text-indigo-700 hover:bg-indigo-100"

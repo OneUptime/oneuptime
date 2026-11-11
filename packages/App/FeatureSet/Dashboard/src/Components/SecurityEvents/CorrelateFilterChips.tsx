@@ -4,6 +4,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import {
   CorrelationCondition,
+  CorrelationConnectorWords,
   CorrelationFilter,
   CorrelationOperatorLabels,
   getCorrelationFieldDefinition,
@@ -35,7 +36,7 @@ const CorrelateFilterChips: FunctionComponent<ComponentProps> = (
   }
 
   const connectorLabel: string =
-    props.filter.connector === "or" ? t("OR") : t("AND");
+    CorrelationConnectorWords[props.filter.connector];
 
   return (
     <div

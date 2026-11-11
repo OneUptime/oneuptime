@@ -94,7 +94,7 @@ POST {Kibana URL}/api/detection_engine/signals/search
 - **Oprettelsestidspunktet er markøren.** Alarmer vises efter deres eget `@timestamp`, da regelkørslen oprettede dem, aldrig efter tidspunktet for den aktivitet, de handler om. En regel, der kører hver time, opretter alarmer om aktivitet, der er op til en time gammel, og en markør på aktivitetstidspunktet ville springe dem alle over.
 - **Den første poll ser 24 timer tilbage**, så en ny forbindelse straks viser sine nylige advarsler.
 - **Hver senere poll starter 1 minut før den gemte markør**, så en alarm, der er oprettet på grænsen mellem to vinduer, aldrig går tabt.
-- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Sundhed** viser **Catching up**.
+- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Sundhed** viser **Indhenter**.
 - **Dubletter fjernes efter alarmens `_id`** i projektet, så overlappet, et gentaget vindue og en import aldrig gemmer en alarm to gange.
 
 Kibanas alarmsøgning tager en størrelse og en sortering, men intet sidetoken. Derfor paginerer OneUptime ved at flytte intervallets start til den sidste alarm på hver side og udelader, efter `_id`, de alarmer, den allerede har læst på det tidspunkt. En regelkørsel stempler ofte mange alarmer med samme tidspunkt, og sådan en gruppe læses side for side, ingen to gange og ingen sprunget over.

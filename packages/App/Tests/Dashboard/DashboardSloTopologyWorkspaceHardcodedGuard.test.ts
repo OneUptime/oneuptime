@@ -14,8 +14,14 @@ import { HardcodedString } from "../../FeatureSet/Dashboard/scripts/i18n/Extract
  * Summary - Slack" and "Passkey added. Use it the next time you sign in."
  * in English, glued together from pieces no other language can read.
  *
+ * The second part routes Security Events (connection diagnostics, the
+ * connection test, the setup guide, the event panels, the attribute column
+ * picker and the Correlate builder) and the Security Case entities card: a
+ * reader no longer meets "Find historical detections", "Enabled, every 5
+ * minutes" or "Showing 50 of 120 matching attributes" in English.
+ *
  * `npm run i18n:hardcoded -- --dir Components/<name>` lists what is still
- * written as it is; this keeps those five directories at nothing, except the
+ * written as it is; this keeps the routed directories at nothing, except the
  * one string below, and the Dashboard's other directories from S to W from
  * growing while they are routed in turn.
  *
@@ -27,7 +33,7 @@ const DASHBOARD_SOURCE: string = "packages/App/FeatureSet/Dashboard/src/";
 
 // The directories this change routed: nothing hard-coded is left in them.
 const ROUTED: RegExp =
-  /^Components\/(Slo|StatusPage|Topology|TwoFactorAuth|Workspace)\//;
+  /^Components\/(SecurityCase|SecurityEvents|Slo|StatusPage|Topology|TwoFactorAuth|Workspace)\//;
 
 // The directories the three parts of #6658 share out: S to W.
 const S_TO_W: RegExp = /^Components\/[S-W]/;
@@ -44,8 +50,6 @@ const ALLOWED_IN_ROUTED: Record<string, { count: number; why: string }> = {
  * shrink. A part that empties one moves it into ROUTED above.
  */
 const STILL_BEING_ROUTED: Record<string, number> = {
-  "Components/SecurityCase": 6,
-  "Components/SecurityEvents": 224,
   "Components/SessionReplay": 108,
   "Components/Slack": 11,
   "Components/Team": 1,
@@ -80,8 +84,8 @@ const getComponentsHardcoded: () => Array<HardcodedString> =
     return hardcoded;
   };
 
-describe("the two-factor, topology, status page, SLO and workspace components route their strings through translation", () => {
-  test("only the reviewed PDF title is left in the five routed directories", () => {
+describe("the two-factor, topology, status page, SLO, workspace and security event components route their strings through translation", () => {
+  test("only the reviewed PDF title is left in the routed directories", () => {
     const counts: Record<string, number> = {};
     const found: Array<string> = [];
 
@@ -137,7 +141,7 @@ describe("the two-factor, topology, status page, SLO and workspace components ro
       const file: string = relativeFile(entry);
       const directory: string = file.split("/").slice(0, 2).join("/");
 
-      // The routed five answer to the first test.
+      // The routed directories answer to the first test.
       if (ROUTED.test(file) || !S_TO_W.test(directory)) {
         continue;
       }

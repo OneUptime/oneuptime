@@ -131,7 +131,9 @@ export const CONNECTOR_RECORDS_NAMES: Readonly<Record<string, string>> = {
 };
 
 export function connectorRecordsName(
-  definition: Pick<SecurityEventConnectorDefinition, "importedRecordName"> | undefined,
+  definition:
+    | Pick<SecurityEventConnectorDefinition, "importedRecordName">
+    | undefined,
 ): string {
   const name: string = definition?.importedRecordName || "record";
 
@@ -143,7 +145,9 @@ export function connectorRecordsName(
  * "Erkennungen" in German, in the sentence's language.
  */
 export function connectorRecordsTerm(
-  definition: Pick<SecurityEventConnectorDefinition, "importedRecordName"> | undefined,
+  definition:
+    | Pick<SecurityEventConnectorDefinition, "importedRecordName">
+    | undefined,
 ): TemplateValue {
   return translatableTerm(connectorRecordsName(definition), {
     inSentence: true,
@@ -757,8 +761,7 @@ export function connectorScopeSummary(
 
   if (alertingOnly === false) {
     return (
-      control?.withNonAlertingSummary ||
-      translationKey("Alerts and detections")
+      control?.withNonAlertingSummary || translationKey("Alerts and detections")
     );
   }
 
@@ -1120,9 +1123,7 @@ const CONNECTOR_PROVIDER_DETAIL_LABELS: Record<string, string> = {
   measured: translationKey("Records measured"),
   lateCount: translationKey("Created later than the poll interval"),
   maxLagMinutes: translationKey("Longest lag (minutes)"),
-  includeNonAlertingDetections: translationKey(
-    "Includes non-alerting records",
-  ),
+  includeNonAlertingDetections: translationKey("Includes non-alerting records"),
 };
 
 const CONNECTOR_PROVIDER_DETAIL_VALUE_LABELS: Record<

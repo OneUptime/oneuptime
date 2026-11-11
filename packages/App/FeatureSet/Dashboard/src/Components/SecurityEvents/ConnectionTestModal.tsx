@@ -17,10 +17,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ConnectorTestReportView from "./ConnectorTestReportView";
 

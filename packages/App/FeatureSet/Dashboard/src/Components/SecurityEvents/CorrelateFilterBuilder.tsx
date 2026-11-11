@@ -16,6 +16,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   CorrelationCondition,
   CorrelationConnector,
+  CorrelationConnectorWords,
   CorrelationFieldDefinition,
   CorrelationFieldDefinitions,
   CorrelationFieldKey,
@@ -277,7 +278,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
                         : "bg-indigo-50 text-indigo-600 border-indigo-200"
                     }`}
                   >
-                    {props.connector === "or" ? t("OR") : t("AND")}
+                    {CorrelationConnectorWords[props.connector]}
                   </span>
                 </div>
               )}

@@ -801,9 +801,13 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
     /*
      * What the Security Events connection pages name that no Dashboard
      * locale words: the providers' titles, the connection form's settings
-     * and options from the connector catalog, the Health states, the checks
-     * a test reports, the counts of a run and a preview's button, all drawn
-     * in English. A version is a version. (Instance resource name and
+     * from the connector catalog, the checks a test reports and the
+     * provider-named counts and buttons (Returned by Google SecOps, Preview
+     * detections), which the Dashboard words as one sentence around the
+     * provider's name. A version is a version. (The Health states, Data to
+     * import and the run details' counts and fields are labels since #6658:
+     * the Dashboard draws them through the locales, so each language's page
+     * names them as drawn.) (Instance resource name and
      * Service account JSON are labels now: the Send to your SIEM form draws
      * them through the locales. So are Directory (tenant) ID, Application
      * (client) ID, Subscription ID, the two Azure clouds, Access key ID and
@@ -817,17 +821,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
      * the page names it as drawn.)
      */
     [GOOGLE_SECOPS]: [
-      "Data to import",
-      "Last poll succeeded",
-      "Polling, no events imported yet",
-      "No records returned",
-      "Partial import",
-      "Catching up",
-      "Last poll failed",
-      "Poll overdue",
-      "Schedule paused",
       "Read late alerts by detection time",
-      "Already imported",
       "Authenticate with Google",
       "Read rule detections",
       "Read curated rule detections",
@@ -838,17 +832,12 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Security event storage",
       "Preview detections",
       "Returned by Google SecOps",
-      "Imported into OneUptime",
-      "Time basis read",
-      "Returned by each pass",
-      "Creation lag",
       "13.0.0",
     ],
     [SENTINEL]: [
       "Resource group",
       "Microsoft Sentinel",
       "Workspace name",
-      "Catching up",
       "Preview incidents",
       "Authenticate with Microsoft Entra",
       "Read incidents",
@@ -892,7 +881,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Splunk management URL",
       "Remove the stored Authentication token",
       "Remove the stored Password",
-      "Catching up",
       "Preview notable events",
       "Authenticate with Splunk",
       "Run the search on Splunk",
@@ -905,7 +893,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Elastic Security",
       "Kibana URL",
       "Kibana space",
-      "Catching up",
       "Preview alerts",
       "Authenticate with Kibana",
       "Read detection alerts",
@@ -918,7 +905,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "AWS Security Hub",
       "Session token",
       "Remove the stored Session token",
-      "Catching up",
       "Preview findings",
       "Authenticate with AWS",
       "Read findings",
@@ -931,7 +917,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "API token",
       "Okta organization URL",
       "Event filter",
-      "Catching up",
       "Preview log events",
       "Authenticate with Okta",
       "Read System Log events",

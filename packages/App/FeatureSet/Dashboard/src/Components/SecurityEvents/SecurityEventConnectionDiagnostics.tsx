@@ -420,8 +420,7 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
   const statusTitle: string = translator.translateText("Status") || "Status";
   const returnedTitle: string =
     translator.translateText("Returned / imported") || "Returned / imported";
-  const detailsTitle: string =
-    translator.translateText("Details") || "Details";
+  const detailsTitle: string = translator.translateText("Details") || "Details";
 
   const setPreset: (value: string) => void = (value: string): void => {
     setRangePreset(value);
@@ -460,7 +459,9 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
             {translator.translateText("Scheduled polling")}
           </h3>
           <p className="mt-1 text-sm text-gray-700">
-            <span title={translator.translateText(connectorHealthTooltip(health))}>
+            <span
+              title={translator.translateText(connectorHealthTooltip(health))}
+            >
               {translator.translateText(health)}
             </span>{" "}
             ·{" "}
@@ -917,7 +918,9 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
                       >
                         <td className="py-2 pr-3">
                           {translator.translateText(
-                            securityEventConnectionRunLabels[run.type || "poll"],
+                            securityEventConnectionRunLabels[
+                              run.type || "poll"
+                            ],
                           )}
                           <div className="text-xs text-gray-500">
                             {run.requestedByUserId

@@ -263,7 +263,9 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
             ) : (
               <ul
                 className="space-y-1.5"
-                aria-label={translator.translateText("Attributes shown on rows")}
+                aria-label={translator.translateText(
+                  "Attributes shown on rows",
+                )}
               >
                 {selectedColumns.map(
                   (

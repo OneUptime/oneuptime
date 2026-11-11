@@ -27,10 +27,7 @@ import {
   formatConnectionDate,
 } from "./SecurityEventConnectionDiagnosticsUtil";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -512,8 +509,7 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
                         className="border-b border-gray-100"
                       >
                         <td className="max-w-xs break-words py-2 pr-4">
-                          {sample.title ||
-                            translator.translateText("Untitled")}
+                          {sample.title || translator.translateText("Untitled")}
                           <div className="text-xs text-gray-500">
                             {sample.id}
                           </div>

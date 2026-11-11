@@ -116,7 +116,7 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **La hora de publicación es el cursor.** Un evento del System Log es la propia actividad, así que `published` es a la vez cuando ocurrió y lo que lee el sondeo.
 - **El primer sondeo mira 24 horas atrás**, para que una conexión nueva muestre enseguida sus eventos recientes.
 - **Cada sondeo posterior empieza 15 minutos antes del cursor guardado.** Okta advierte que una solicitud con una hora de fin puede dejar fuera eventos retrasados, algo que considera raro. El solapamiento los lee en el siguiente sondeo. Uno retrasado más de 15 minutos puede quedar detrás del cursor: importa su intervalo de tiempo para recuperarlo.
-- **Un sondeo lee como mucho 24 horas más allá del cursor.** Una conexión cuyo cursor se quedó atrás se pone al día en una serie de ventanas de 24 horas, y su **Salud** indica **Catching up**.
+- **Un sondeo lee como mucho 24 horas más allá del cursor.** Una conexión cuyo cursor se quedó atrás se pone al día en una serie de ventanas de 24 horas, y su **Salud** indica **Poniéndose al día**.
 - **Los duplicados se descartan por `uuid`** dentro del proyecto, para que el solapamiento, una ventana reintentada y una importación nunca guarden un evento dos veces.
 
 Un enlace `next` que apunta a cualquier sitio que no sea tu **Okta organization URL** nunca se sigue, porque el token va con cada solicitud.

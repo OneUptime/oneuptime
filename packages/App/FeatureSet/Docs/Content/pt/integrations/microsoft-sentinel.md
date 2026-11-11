@@ -114,7 +114,7 @@ GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/provide
 - **O horário de criação é o cursor.** Uma regra de análise agendada que roda a cada hora abre o incidente dela bem depois da atividade que detectou, e o `firstActivityTimeUtc` do incidente pode ser horas ou dias anterior. Um cursor pelo horário de atividade pularia cada um desses incidentes. Os horários de atividade ficam em `attributes`, e as amostras do diagnóstico mostram os dois.
 - **A primeira consulta olha 24 horas para trás**, para que uma nova conexão mostre logo os incidentes recentes dela.
 - **Cada consulta seguinte começa 1 minuto antes do cursor salvo**, para que um incidente criado na fronteira entre duas janelas nunca seja pulado.
-- **Uma consulta lê no máximo 24 horas além do cursor.** Uma conexão cujo cursor ficou para trás se atualiza em uma série de janelas de 24 horas, e a **Integridade** dela mostra **Catching up**.
+- **Uma consulta lê no máximo 24 horas além do cursor.** Uma conexão cujo cursor ficou para trás se atualiza em uma série de janelas de 24 horas, e a **Integridade** dela mostra **Recuperando o atraso**.
 - **As duplicatas são descartadas pelo GUID do incidente** (`name`) dentro do projeto, para que a sobreposição, uma janela repetida e uma importação nunca salvem um incidente duas vezes.
 
 ### Quando uma janela contém mais do que uma consulta consegue ler

@@ -542,10 +542,7 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
               </dd>
             </div>
           </dl>
-          <ConnectionWindowProgress
-            result={result}
-            recordsName={recordsName}
-          />
+          <ConnectionWindowProgress result={result} recordsName={recordsName} />
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {statTiles.map(
               ([label, value]: [string, string | number]): ReactElement => {

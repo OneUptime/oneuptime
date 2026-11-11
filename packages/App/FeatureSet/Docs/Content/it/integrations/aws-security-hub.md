@@ -114,7 +114,7 @@ POST https://securityhub.{region}.amazonaws.com/findings
 - **L'ora di creazione è il cursore.** I finding vengono elencati per `CreatedAt`, mai per `FirstObservedAt`. GuardDuty crea un finding quando ha visto abbastanza attività, e un controllo quando Security Hub verifica la risorsa per la prima volta, ore o giorni dopo l'inizio dell'attività. Un cursore sull'ora di osservazione li salterebbe.
 - **La prima interrogazione guarda indietro di 24 ore**, così una nuova connessione mostra subito i suoi finding recenti.
 - **Ogni interrogazione successiva parte 30 minuti prima del cursore salvato.** `CreatedAt` è impostato dal servizio che ha trovato il problema, e il finding raggiunge Security Hub più tardi: GuardDuty invia i nuovi finding entro cinque minuti, e una consegna fallita tramite EventBridge viene ritentata per un massimo di 24 ore. La sovrapposizione legge questi finding all'interrogazione successiva. Uno che arriva più di 30 minuti dopo il suo `CreatedAt` può finire dietro il cursore: importa il suo intervallo di tempo per recuperarlo.
-- **Un'interrogazione legge al massimo 24 ore oltre il cursore.** Una connessione il cui cursore è rimasto indietro recupera in una serie di finestre di 24 ore, e la sua **Integrità** indica **Catching up**.
+- **Un'interrogazione legge al massimo 24 ore oltre il cursore.** Una connessione il cui cursore è rimasto indietro recupera in una serie di finestre di 24 ore, e la sua **Integrità** indica **Recupero in corso**.
 - **I duplicati vengono scartati in base all'`Id` del finding** all'interno del progetto, così la sovrapposizione, una finestra ripetuta e un'importazione non salvano mai un finding due volte.
 
 ### Quando una finestra contiene più di quanto un'interrogazione possa leggere

@@ -171,12 +171,9 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
 
   // Each header names its column, and its resize edge, in the reader's words.
-  const entityTitle: string =
-    translator.translateText("Entity") || "Entity";
-  const typeTitle: string =
-    translator.translateText("Type") || "Type";
-  const eventsTitle: string =
-    translator.translateText("Events") || "Events";
+  const entityTitle: string = translator.translateText("Entity") || "Entity";
+  const typeTitle: string = translator.translateText("Type") || "Type";
+  const eventsTitle: string = translator.translateText("Events") || "Events";
   const findingsTitle: string =
     translator.translateText("Findings") || "Findings";
   const worstSeverityTitle: string =
@@ -369,9 +366,7 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                       ColumnWidthKind.Name,
                     )}
                   >
-                    <span>
-                      {entityTitle}
-                    </span>
+                    <span>{entityTitle}</span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     scope="col"
@@ -396,9 +391,7 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>
-                      {eventsTitle}
-                    </span>
+                    <span>{eventsTitle}</span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     scope="col"
@@ -409,9 +402,7 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>
-                      {findingsTitle}
-                    </span>
+                    <span>{findingsTitle}</span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     scope="col"
@@ -422,9 +413,7 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>
-                      {worstSeverityTitle}
-                    </span>
+                    <span>{worstSeverityTitle}</span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     scope="col"
@@ -435,9 +424,7 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>
-                      {lastSeenTitle}
-                    </span>
+                    <span>{lastSeenTitle}</span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     scope="col"

@@ -7,10 +7,7 @@ import React, {
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -690,7 +687,8 @@ curl -X POST "${ingestUrl}?format=udm" \\
                         RouteMap[PageMap.MONITORS] as Route,
                       )}
                     >
-                      {translator.translateText("Security Events monitor") || ""}
+                      {translator.translateText("Security Events monitor") ||
+                        ""}
                     </AppLink>
                   ),
                 }}

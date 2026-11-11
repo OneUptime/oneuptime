@@ -114,7 +114,7 @@ POST https://securityhub.{region}.amazonaws.com/findings
 - **Opprettelsestidspunktet er markøren.** Funn vises etter `CreatedAt`, aldri etter `FirstObservedAt`. GuardDuty oppretter et funn når den har sett nok aktivitet, og en kontrollsjekk når Security Hub kontrollerer ressursen første gang, timer eller dager etter at aktiviteten begynte. En markør på observasjonstidspunktet ville hoppet over dem.
 - **Den første pollen ser 24 timer tilbake**, slik at en ny tilkobling viser de nylige funnene sine med en gang.
 - **Hver senere poll starter 30 minutter før den lagrede markøren.** `CreatedAt` settes av tjenesten som fant problemet, og funnet når Security Hub senere: GuardDuty sender nye funn innen fem minutter, og en mislykket levering via EventBridge prøves på nytt i opptil 24 timer. Overlappingen leser slike funn ved neste poll. Et funn som kommer mer enn 30 minutter etter sin `CreatedAt`, kan havne bak markøren: importer tidsrommet for å hente det.
-- **En poll leser høyst 24 timer forbi markøren.** En tilkobling der markøren har kommet på etterskudd, tar igjen i en rekke vinduer på 24 timer, og **Helse** viser **Catching up**.
+- **En poll leser høyst 24 timer forbi markøren.** En tilkobling der markøren har kommet på etterskudd, tar igjen i en rekke vinduer på 24 timer, og **Helse** viser **Tar igjen etterslep**.
 - **Duplikater fjernes etter funnets `Id`** i prosjektet, slik at overlappingen, et gjentatt vindu og en import aldri lagrer et funn to ganger.
 
 ### Når et vindu inneholder mer enn én poll kan lese

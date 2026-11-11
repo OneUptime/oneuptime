@@ -114,7 +114,7 @@ POST https://securityhub.{region}.amazonaws.com/findings
 - **Oprettelsestidspunktet er markøren.** Fund vises efter `CreatedAt`, aldrig efter `FirstObservedAt`. GuardDuty opretter et fund, når den har set nok aktivitet, og et kontroltjek, når Security Hub kontrollerer ressourcen første gang, timer eller dage efter at aktiviteten begyndte. En markør på observationstidspunktet ville springe dem over.
 - **Den første poll ser 24 timer tilbage**, så en ny forbindelse straks viser sine nylige fund.
 - **Hver senere poll starter 30 minutter før den gemte markør.** `CreatedAt` sættes af den tjeneste, der fandt problemet, og fundet når Security Hub senere: GuardDuty sender nye fund inden for fem minutter, og en mislykket levering via EventBridge forsøges igen i op til 24 timer. Overlappet læser sådanne fund ved den næste poll. Et fund, der ankommer mere end 30 minutter efter sit `CreatedAt`, kan havne bag markøren: importér dets tidsinterval for at hente det.
-- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Sundhed** viser **Catching up**.
+- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Sundhed** viser **Indhenter**.
 - **Dubletter fjernes efter fundets `Id`** i projektet, så overlappet, et gentaget vindue og en import aldrig gemmer et fund to gange.
 
 ### Når et vindue indeholder mere, end én poll kan læse

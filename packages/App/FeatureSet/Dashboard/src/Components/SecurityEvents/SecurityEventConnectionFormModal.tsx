@@ -880,10 +880,9 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
             field: {
               [removeSecretFieldName(definition.provider, field.key)]: true,
             },
-            title: translator.translateTemplate(
-              "Remove the stored {{field}}",
-              { field: translatableTerm(field.title) },
-            ),
+            title: translator.translateTemplate("Remove the stored {{field}}", {
+              field: translatableTerm(field.title),
+            }),
             description: translator.translateTemplate(
               "Delete the stored {{field}} when you save, for example after changing the sign-in method.",
               { field: translatableTerm(field.title) },

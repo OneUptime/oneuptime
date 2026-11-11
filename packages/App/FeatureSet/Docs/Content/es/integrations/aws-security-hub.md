@@ -114,7 +114,7 @@ POST https://securityhub.{region}.amazonaws.com/findings
 - **La hora de creación es el cursor.** Los hallazgos se listan por `CreatedAt`, nunca por `FirstObservedAt`. GuardDuty crea un hallazgo cuando ha visto suficiente actividad, y una comprobación de control cuando Security Hub comprueba el recurso por primera vez, horas o días después de que empezara la actividad. Un cursor sobre la hora de observación se los saltaría.
 - **El primer sondeo mira 24 horas atrás**, para que una conexión nueva muestre enseguida sus hallazgos recientes.
 - **Cada sondeo posterior empieza 30 minutos antes del cursor guardado.** `CreatedAt` lo fija el servicio que encontró el problema, y el hallazgo llega a Security Hub más tarde: GuardDuty envía los hallazgos nuevos en menos de cinco minutos, y una entrega fallida a través de EventBridge se reintenta durante hasta 24 horas. El solapamiento lee esos hallazgos en el siguiente sondeo. Uno que llega más de 30 minutos después de su `CreatedAt` puede quedar detrás del cursor: importa su intervalo de tiempo para recuperarlo.
-- **Un sondeo lee como mucho 24 horas más allá del cursor.** Una conexión cuyo cursor se quedó atrás se pone al día en una serie de ventanas de 24 horas, y su **Salud** indica **Catching up**.
+- **Un sondeo lee como mucho 24 horas más allá del cursor.** Una conexión cuyo cursor se quedó atrás se pone al día en una serie de ventanas de 24 horas, y su **Salud** indica **Poniéndose al día**.
 - **Los duplicados se descartan por el `Id` del hallazgo** dentro del proyecto, para que el solapamiento, una ventana reintentada y una importación nunca guarden un hallazgo dos veces.
 
 ### Cuando una ventana contiene más de lo que un sondeo puede leer
