@@ -40,8 +40,8 @@ import { openAskAi } from "../AIChat/AskAiEvents";
  * triage it, written on request from the stack trace, the trace and logs of
  * the latest occurrence and the deploys around it (ExceptionExplainer). It
  * is kept on the exception, so the next person reads it at once. From it,
- * one click opens a fix pull request (the exception's AI Assistance page,
- * whose readiness checks it shares) or asks OneUptime AI a follow-up.
+ * one click opens the exception's Fix with AI page (where OneUptime AI
+ * opens the fix as a pull request) or asks OneUptime AI a follow-up.
  *
  * Not offered while the project's AI is off (useAiOffered).
  *
@@ -337,8 +337,8 @@ const ExceptionAIExplanation: FunctionComponent<ComponentProps> = (
 
         <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
           <Button
-            title="Open a fix pull request"
-            icon={IconProp.Code}
+            title="Fix with AI"
+            icon={IconProp.Sparkles}
             buttonStyle={ButtonStyleType.PRIMARY}
             buttonSize={ButtonSize.Small}
             dataTestId="exception-ai-explanation-fix-pr"

@@ -35,9 +35,9 @@ import {
 /*
  * The Overview's What happened card: OneUptime AI's explanation of the
  * exception, asked for with one click and kept for the next reader. From it,
- * a fix pull request is one click away (the AI Assistance page), and so is a
- * follow-up question in Ask AI. Hidden while the project's AI is off, and its
- * Markdown shown in safe mode.
+ * a fix pull request is one click away (Fix with AI, the exception's Fix with
+ * AI page), and so is a follow-up question in Ask AI. Hidden while the
+ * project's AI is off, and its Markdown shown in safe mode.
  */
 
 interface RequestArgs {
@@ -274,7 +274,7 @@ describe("the What happened card", () => {
     }
   });
 
-  test("Open a fix pull request goes to the exception's AI Assistance page", () => {
+  test("Fix with AI, the explanation's first button, goes to the exception's Fix with AI page", () => {
     render(
       <ExceptionAIExplanation
         telemetryExceptionId={EXCEPTION_ID}
@@ -282,7 +282,20 @@ describe("the What happened card", () => {
       />,
     );
 
-    fireEvent.click(screen.getByTestId("exception-ai-explanation-fix-pr"));
+    const button: HTMLElement = screen.getByTestId(
+      "exception-ai-explanation-fix-pr",
+    );
+
+    // Called as the header's button and the side menu's page are.
+    expect(button).toHaveTextContent("Fix with AI");
+    expect(button).not.toHaveTextContent("Open a fix pull request");
+    expect(
+      screen.getAllByRole("button").map((each: HTMLElement): string => {
+        return (each.textContent || "").trim();
+      })[0],
+    ).toBe("Fix with AI");
+
+    fireEvent.click(button);
 
     expect(navigateMock).toHaveBeenCalledTimes(1);
     const route: string = navigateMock.mock.calls[0]![0].toString();

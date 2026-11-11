@@ -151,6 +151,47 @@ describe("an exception's row", () => {
     expect(findNestedControls(container)).toEqual([]);
   });
 
+  test.each([
+    [{}, "Unresolved"],
+    [{ isResolved: true }, "Resolved"],
+    [{ isArchived: true }, "Archived"],
+  ] as Array<[{ isResolved?: boolean; isArchived?: boolean }, string]>)(
+    "in a list of one status it leaves the word out, at every width; its dot still tells (%j)",
+    (state: { isResolved?: boolean; isArchived?: boolean }, word: string) => {
+      const { container } = render(
+        <ExceptionRow
+          exception={exceptionOf(state)}
+          service={SERVICE}
+          actionButtons={ACTIONS}
+          showStatus={false}
+        />,
+      );
+
+      expect(screen.queryByTestId("exception-row-status")).toBeNull();
+      expect(screen.queryByTestId("exception-row-status-inline")).toBeNull();
+      expect(container).not.toHaveTextContent(word);
+
+      // The dot at the row's start, coloured by where it stands.
+      const dotColor: Record<string, string> = {
+        Unresolved: "bg-red-500",
+        Resolved: "bg-emerald-400",
+        Archived: "bg-gray-300",
+      };
+
+      expect(container.querySelector("span.h-2.w-2.rounded-full")).toHaveClass(
+        dotColor[word]!,
+      );
+
+      // The service line still starts with what it says, the service chip.
+      const serviceLine: HTMLElement =
+        within(container).getByText("payments-worker").parentElement!;
+
+      expect(serviceLine.className.split(" ")).toContain("flex-wrap");
+      // The ⋯ keeps its place.
+      expect(screen.getByTestId("exception-row-actions")).toBeTruthy();
+    },
+  );
+
   test("a list that offers no actions draws no ⋯, and still says where the exception stands", () => {
     render(<ExceptionRow exception={exceptionOf({})} service={SERVICE} />);
 

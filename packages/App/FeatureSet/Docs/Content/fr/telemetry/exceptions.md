@@ -71,22 +71,26 @@ Cliquez sur une ligne pour ouvrir la page de l'exception.
 
 ## La page d'une exception
 
+Chaque page d'une exception s'ouvre sous le même en-tête : son type et son message, son statut, si elle a été gérée, sa classe d'erreur et son environnement, et ses informations clés : combien de fois elle s'est produite, quand elle a été vue la première et la dernière fois, son service et la personne à qui elle est attribuée. Sur chaque page sauf **Paramètres**, qui a ses propres boutons, **Résoudre** et **Archiver** figurent à côté, et le menu ⋯ qui les suit contient **Résoudre dans la prochaine version** et **Créer un moniteur**.
+
 Le menu latéral de la page regroupe ce que vous faites d'une exception :
 
 | Page | Ce qu'elle montre |
 | --- | --- |
-| **Vue d'ensemble** | Le message, le service, combien de fois elle s'est produite et quand elle a été vue la première et la dernière fois, sa tendance dans le temps, et sa dernière occurrence : la version, l'environnement, le span, la trace et la session utilisateur. En haut, l'explication de OneUptime AI sur ce qui s'est passé, quand l'IA est activée. |
+| **Vue d'ensemble** | **Où cela s'est produit** : la ligne de votre code d'où elle a été levée. Sa tendance dans le temps, et sa dernière occurrence : la version, l'environnement, l'empreinte, le span, la trace et la session utilisateur. En haut, l'explication de OneUptime AI sur ce qui s'est passé, quand l'IA est activée. |
 | **Stack trace** | Les frames de la pile. Pour le code de navigateur, les fichiers et lignes d'origine, une fois que vous avez envoyé les [Source maps](/docs/telemetry/source-maps) de la version. |
 | **Occurrences** | Chaque occurrence, avec son heure, son message et la trace où elle s'est produite. |
 | **Contexte** | Les attributs de la dernière occurrence, son enregistrement de session s'il y en a un, et les étapes qui y ont mené. |
 | **Journaux** | Les journaux écrits autour de la dernière occurrence. |
-| **Assistance IA** | Des tâches IA qui corrigent l'exception ou la testent. |
+| **Corriger avec l'IA** | Une tâche IA qui corrige l'exception avec une pull request, et les autres, repliées en dessous. |
 | **Paramètres** | Résoudre ou archiver l'exception. Elle se trouve sous **Gérer**, replié au départ. |
 | **Journaux d'audit** | Qui a résolu, archivé, attribué ou fusionné l'exception, et quand. Elle se trouve aussi sous **Gérer**. |
 
+**Où cela s'est produit** montre le premier frame de votre propre code, l'endroit le plus probable où l'erreur a été levée : son fichier et sa ligne d'origine une fois qu'une source map les a résolus, le code qui l'entoure quand la source map le contenait, et jusqu'à trois frames de votre code qui l'ont appelé. Sans frame dans votre propre code, la carte montre le frame le plus interne de la stack trace. **Voir toute la stack trace** ouvre tous les frames sur la page **Stack trace**. Quand la dernière occurrence n'a enregistré aucun frame structuré, la carte montre les premières lignes de la stack trace telles quelles (les dernières lignes d'un traceback Python, là où se trouve l'erreur), et une exception sans stack trace n'a pas de carte.
+
 ## Résoudre, rouvrir et archiver
 
-Les boutons en haut de la page de l'exception, sa page **Paramètres** et le menu ⋯ de sa ligne dans la liste changent son statut :
+Les boutons en haut de la page de l'exception et le menu ⋯ à côté d'eux, sa page **Paramètres** et le menu ⋯ de sa ligne dans la liste changent son statut :
 
 | Action | Quand l'utiliser | Ce qui se passe ensuite |
 | --- | --- | --- |
@@ -96,13 +100,15 @@ Les boutons en haut de la page de l'exception, sa page **Paramètres** et le men
 | **Archiver** | C'est du bruit que vous ne comptez pas corriger. | Elle quitte la liste. Les nouvelles occurrences sont comptées mais ne déclenchent plus de notification. |
 | **Désarchiver** | Vous voulez de nouveau en entendre parler. | Elle revient dans la liste qui lui correspond. |
 
-**Résoudre dans la prochaine version** se trouve dans le menu à côté de **Résoudre**, dans le menu ⋯ de la ligne, sous **Actions groupées** et dans **Paramètres**, tant que les occurrences de l'exception nomment leur version : l'attribut de ressource `service.version`.
+**Résoudre dans la prochaine version** se trouve dans le menu ⋯ en haut de la page de l'exception, dans le menu ⋯ de la ligne, sous **Actions groupées** et dans **Paramètres**, tant que les occurrences de l'exception nomment leur version : l'attribut de ressource `service.version`.
 
 **Paramètres** indique qui a résolu ou archivé l'exception en dernier, et quand. Ses boutons s'intitulent **Marquer comme résolu** ou **Marquer comme non résolu**, et **Archiver** ou **Désarchiver**.
 
 Pour en changer plusieurs à la fois, cochez leurs lignes dans la liste, ou la case au-dessus des lignes pour toutes les exceptions de la page, et utilisez les mêmes actions sous **Actions groupées**. Une fois toutes les exceptions de la page cochées, la barre au-dessus des lignes propose de sélectionner toutes les exceptions qui correspondent à la recherche et aux filtres de la liste, sur toutes les pages, jusqu'à 10 000 à la fois ; une action demande alors confirmation avant de les modifier. Le résultat indique quelles exceptions ont été modifiées, lesquelles sont restées telles quelles, et pourquoi.
 
-**Attribuer** dans l'en-tête de l'exception la confie à une personne ou à une équipe, et retirer ce choix annule l'attribution. Chaque ligne montre à qui elle appartient, son menu ⋯ propose **M'attribuer**, et **Attribuer à…** sous **Actions groupées** en attribue plusieurs à la fois. La personne à qui elle est attribuée, ou chaque membre de l'équipe, reçoit une notification selon la ligne **Exception qui m'est attribuée** de ses [Paramètres de notification](/docs/notifications/notification-settings) ; la personne qui l'a attribuée n'en reçoit pas.
+**Attribuer**, sous **Responsable** dans l'en-tête de l'exception, la confie à une personne ou à une équipe ; cliquez sur son nom pour la confier à quelqu'un d'autre, et sur le × à côté pour annuler l'attribution. Chaque ligne montre à qui elle appartient, son menu ⋯ propose **M'attribuer**, et **Attribuer à…** sous **Actions groupées** en attribue plusieurs à la fois. La personne à qui elle est attribuée, ou chaque membre de l'équipe, reçoit une notification selon la ligne **Exception qui m'est attribuée** de ses [Paramètres de notification](/docs/notifications/notification-settings) ; la personne qui l'a attribuée n'en reçoit pas.
+
+**Créer un moniteur**, dans le menu ⋯ en haut de la page de l'exception, ouvre un nouveau [moniteur d'exceptions](/docs/monitor/exceptions-monitor) pour le type de cette exception dans son service, afin de vous alerter quand elle se reproduit. Il est proposé à ceux qui peuvent créer des moniteurs.
 
 **Activité**, en bas de la **Vue d'ensemble** de l'exception, indique qui l'a modifiée et quand, les plus récentes en premier : qui l'a résolue, rouverte, archivée ou attribuée, a fusionné une autre exception avec elle ou en a défusionné une, et quand elle est revenue après avoir été résolue. Chaque modification y figure, faite sur la page de l'exception, dans la liste, sous **Actions groupées**, par l'API ou par OneUptime lui-même, et une modification faite avec une clé API porte le nom de la clé.
 
@@ -132,7 +138,7 @@ En haut de la **Vue d'ensemble** d'une exception, **Expliquer avec OneUptime AI*
 | **Où regarder** | Les frames de la stack trace à ouvrir en premier. |
 | **Prochaines étapes** | Au plus trois étapes pour la confirmer ou la corriger. |
 
-L'explication est conservée sur l'exception : la personne suivante qui l'ouvre la lit tout de suite, et **Expliquer à nouveau** en demande une nouvelle. **Ouvrir une pull request de correction** ouvre la page **Assistance IA** de l'exception, et **Poser une question complémentaire** ouvre Ask AI sur l'exception.
+L'explication est conservée sur l'exception : la personne suivante qui l'ouvre la lit tout de suite, et **Expliquer à nouveau** en demande une nouvelle. **Corriger avec l'IA** ouvre la page **Corriger avec l'IA** de l'exception, et **Poser une question complémentaire** ouvre Ask AI sur l'exception.
 
 Les identifiants, les adresses e-mail et IP et les jetons sont retirés de tout ce qui est envoyé, et seuls quelques attributs d'un span sont envoyés, comme sa route et son code de statut. L'explication utilise le fournisseur LLM et les crédits IA du projet, et n'est pas proposée tant que **Activer l'IA** est désactivé. Toute personne qui peut lire l'exception peut en demander une.
 
@@ -142,13 +148,22 @@ Fusionnez avec cette exception celle que OneUptime AI juge **Probablement le mê
 
 ## La corriger avec l'IA
 
-La page **Assistance IA** propose trois tâches. Chacune s'exécute comme une tâche IA qui ouvre une pull request dans votre dépôt de code :
+La page **Corriger avec l'IA** commence par une seule tâche, lancée avec **Corriger avec l'IA**. Elle s'exécute comme une tâche IA qui ouvre une pull request dans votre dépôt de code, et ce que fait la pull request dépend de la [classe d'erreur](#classes-derreur) de l'exception :
+
+| Classe d'erreur | Ce que fait la pull request |
+| --- | --- |
+| `user-error` ou `expected-denial` | Gère mieux l'erreur, sans changer ce que fait le code : vérifie la saisie plus tôt avec un message clair, garde les données utilisateur hors du message et marque l'erreur comme gérée. |
+| Toute autre classe, ou pas encore classée | Trouve la cause racine dans votre code et la corrige. |
+
+Trois étapes en dessous expliquent son fonctionnement : la tâche lit la stack trace et trouve le code qui a levé l'exception, modifie ce code dans votre dépôt sur une branche à elle, et ouvre une pull request que vous relisez. Rien ne change tant que vous ne l'avez pas fusionnée. Une fois qu'elle a tourné, son bouton devient **Corriger à nouveau**, ou **Réessayer** quand la tentative a échoué ou n'a trouvé aucun correctif.
+
+Dans la section **Autres tâches d'IA**, repliée en dessous, **Lancer** ouvre les autres pull requests :
 
 | Tâche | Ce que fait la pull request |
 | --- | --- |
-| **Corriger cette exception avec l'IA** | Corrige la cause. Lancez-la avec **Corriger avec l'IA**. |
-| **Générer un test de régression** | Ajoute un test qui échoue tant que le bug n'est pas corrigé. |
-| **Améliorer la gestion des erreurs** | Pour les erreurs attendues : valide les saisies plus tôt, garde les données utilisateur hors des messages et marque l'erreur comme gérée. |
+| **Corriger le code** | Corrige la cause racine. Proposée quand **Corriger avec l'IA** gère une erreur attendue. |
+| **Mieux gérer l'erreur** | Gère mieux une erreur attendue, comme ci-dessus. Proposée quand **Corriger avec l'IA** corrige le code. |
+| **Écrire un test de régression** | Ajoute un test qui reproduit l'exception et échoue tant que le bug n'est pas corrigé. Elle ne corrige pas le bug. |
 
 L'IA a d'abord besoin de trois choses : un fournisseur LLM, un dépôt connecté (sur GitHub, GitLab, Forgejo ou Gitea, ou tout serveur Git), et un agent IA en ligne pour exécuter la tâche. La page vérifie chacune et renvoie vers ce qui manque. Les tâches sont en pause tant que l'exception est résolue ou archivée. Voir [Code](/docs/ai/ai-agent). Démarrer une tâche demande l'autorisation de modifier le dépôt où elle travaille : qui ne peut que lire l'exception voit ses tâches, mais ne peut pas en démarrer.
 
@@ -162,7 +177,7 @@ Toutes les 15 minutes, OneUptime parcourt vos exceptions à la recherche des nou
 | **Pic d'exceptions** | Une exception qui s'est produite 10 fois ou plus au cours de la dernière heure, à 5 fois ou plus son rythme horaire des 24 heures précédentes. | Corrige l'exception, ou la gère mieux. |
 | **Stack trace manquante** | Les exceptions qu'un service a enregistrées le dernier jour n'ont aucune stack trace et se sont produites, ensemble, 20 fois ou plus. | Fait enregistrer au service une stack trace avec chaque exception. |
 
-La pull request d'une exception nouvelle ou en hausse est la tâche IA propre à l'exception, celle que lance sa page **Assistance IA**, et elle attend qu'OneUptime AI ait examiné le constat. S'il trouve le code en cause (`code-fault`), la pull request le corrige, comme le fait **Corriger cette exception avec l'IA**. S'il trouve une erreur attendue (`user-error` ou `expected-denial`), la pull request gère mieux l'erreur, comme le fait **Améliorer la gestion des erreurs**. Tout autre verdict n'ouvre aucune pull request de lui-même. Avec **Archiver les exceptions attendues** activé, un refus attendu est archivé à la place et n'obtient aucune pull request.
+La pull request d'une exception nouvelle ou en hausse est la tâche IA propre à l'exception, celle que lance sa page **Corriger avec l'IA**, et elle attend qu'OneUptime AI ait examiné le constat. S'il trouve le code en cause (`code-fault`), la pull request le corrige, comme le fait **Corriger le code**. S'il trouve une erreur attendue (`user-error` ou `expected-denial`), la pull request gère mieux l'erreur, comme le fait **Mieux gérer l'erreur**. Tout autre verdict n'ouvre aucune pull request de lui-même. Avec **Archiver les exceptions attendues** activé, un refus attendu est archivé à la place et n'obtient aucune pull request.
 
 OneUptime AI n'en ouvre une de lui-même que pour une exception levée dans votre propre code : une exception dont la stack trace contient un frame de votre code, et pas seulement des frames de bibliothèques ou de l'environnement d'exécution. Une pull request que quelqu'un a fermée sans la fusionner met en pause les pull requests automatiques pour cette exception. Chacun peut toujours demander n'importe laquelle d'entre elles avec **Corriger avec l'IA** sur le constat.
 
@@ -188,7 +203,7 @@ Sous **Plus de champs**, une règle choisit les dépôts de code, les serveurs M
 
 - **Exceptions → IA → Analyses** liste ce qu'OneUptime a trouvé, chaque constat avec ses preuves, dont les frames de votre code dans sa stack trace. **View Exception Group** ouvre l'exception, et pour les stack traces manquantes d'un service, **Ouvrir dans Exceptions** ouvre ses exceptions non résolues du dernier jour.
 - **Exceptions → IA → Journaux** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune et ce que chaque investigation a trouvé.
-- La pull request explique pourquoi elle a été ouverte, avec un lien vers son constat. Celle d'une exception nouvelle ou en hausse renvoie aussi vers l'exception et apparaît sur sa page **Assistance IA**. Dans Code, sa tâche nomme l'exception qu'elle corrige, ou le constat d'où elle vient.
+- La pull request explique pourquoi elle a été ouverte, avec un lien vers son constat. Celle d'une exception nouvelle ou en hausse renvoie aussi vers l'exception et apparaît sur sa page **Corriger avec l'IA**. Dans Code, sa tâche nomme l'exception qu'elle corrige, ou le constat d'où elle vient.
 
 ## Analyses des exceptions
 
