@@ -34,8 +34,15 @@ import StatusPageService, {
   Service as StatusPageServiceType,
 } from "../Services/StatusPageService";
 import { MergedDowntimeTotals } from "../Services/MonitorStatusTimelineService";
-import { UptimeDailyAggregate } from "../../Types/StatusPage/UptimeDailyAggregate";
-import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
+import {
+  MonitorGroupUptimeDailyAggregate,
+  UptimeDailyAggregate,
+} from "../../Types/StatusPage/UptimeDailyAggregate";
+import UptimeDailyAggregateUtil, {
+  DEFAULT_UPTIME_AGGREGATE_TIMEZONE,
+} from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
+import MonitorGroupUptimeDailyAggregateUtil from "../../Utils/StatusPage/MonitorGroupUptimeDailyAggregateUtil";
+import StatusPageUptimeTimezone from "../../Utils/StatusPage/StatusPageUptimeTimezone";
 import MonitorGroupMergedDowntimeUtil from "../../Utils/StatusPage/MonitorGroupMergedDowntimeUtil";
 import StatusPageSsoService from "../Services/StatusPageSsoService";
 import StatusPageOidcService from "../Services/StatusPageOidcService";
@@ -156,7 +163,10 @@ import IncidentStatusPageScope, {
 } from "../Utils/StatusPage/IncidentStatusPageScope";
 import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
-import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
+import StatusPageOverviewCache, {
+  StatusPageOverviewBase,
+  StatusPageUptimeHistoryInputs,
+} from "../Utils/StatusPage/StatusPageOverviewCache";
 import StatusPageSummaryUtil from "../../Types/StatusPage/StatusPageSummary";
 import StatusPageSummaryBuilder from "../../Utils/StatusPage/StatusPageSummaryBuilder";
 import { StatusPageSubscriberUnsubscribeSource } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
@@ -2094,8 +2104,20 @@ export default class StatusPageAPI extends BaseAPI<
           req: req,
         });
 
-        const response: JSONObject =
-          await this.getCachedOverviewResponse(statusPageId);
+        /*
+         * The visitor's zone, so each bar of the uptime history is one of
+         * their days: the status page sends it in the body; a GET can name
+         * it with ?timezone=. Without one, the history is cut in UTC, as it
+         * always was.
+         */
+        const response: JSONObject = await this.getCachedOverviewResponse(
+          statusPageId,
+          {
+            timezone:
+              (req.body as JSONObject | undefined)?.["timezone"] ??
+              req.query?.["timezone"],
+          },
+        );
 
         // These can serve private-page data on a GET; never let shared caches store them.
         Response.setNoCacheHeaders(res);
@@ -2160,8 +2182,10 @@ export default class StatusPageAPI extends BaseAPI<
           req: req,
         });
 
-        const overview: JSONObject =
-          await this.getCachedOverviewResponse(statusPageId);
+        // the overview without its uptime history, which the summary leaves out.
+        const overview: JSONObject = (
+          await this.getCachedOverviewBase(statusPageId)
+        ).response;
 
         Response.setNoCacheHeaders(res);
 
@@ -5429,6 +5453,13 @@ export default class StatusPageAPI extends BaseAPI<
      */
     startDateForMonitorTimeline?: Date | undefined;
     endDateForMonitorTimeline?: Date | undefined;
+    /*
+     * The overview builds its day buckets apart, in each visitor's zone
+     * (buildUptimeHistory), so it asks for none here. Everything else that
+     * reads this - the uptime endpoint - gets UTC buckets, which is all a
+     * whole-window total needs.
+     */
+    includeUptimeDailyAggregate?: boolean | undefined;
   }): Promise<{
     statusPageResources: StatusPageResource[];
     monitorStatuses: MonitorStatus[];
@@ -5438,6 +5469,11 @@ export default class StatusPageAPI extends BaseAPI<
     statusPageGroups: StatusPageGroup[];
     statusPage: StatusPage;
     monitorsOnStatusPage: ObjectID[];
+    /*
+     * The monitors whose history or uptime the page shows: each resource's
+     * own monitor, and every monitor of a group whose resource does.
+     */
+    monitorsOnStatusPageForTimeline: ObjectID[];
     monitorsInGroup: Dictionary<ObjectID[]>;
     startDateForMonitorTimeline: Date;
     endDateForMonitorTimeline: Date;
@@ -5735,11 +5771,18 @@ export default class StatusPageAPI extends BaseAPI<
      * returns a few recent days and silently drops the rest.
      */
     const uptimeDailyAggregate: UptimeDailyAggregate =
-      await StatusPageService.getUptimeDailyAggregateForStatusPage({
-        monitorIds: monitorsOnStatusPageForTimeline,
-        startDate: startDateForMonitorTimeline,
-        endDate: endDateForMonitorTimeline,
-      });
+      data.includeUptimeDailyAggregate === false
+        ? {
+            monitors: [],
+            isComplete: true,
+            completeFrom: null,
+            timezone: DEFAULT_UPTIME_AGGREGATE_TIMEZONE,
+          }
+        : await StatusPageService.getUptimeDailyAggregateForStatusPage({
+            monitorIds: monitorsOnStatusPageForTimeline,
+            startDate: startDateForMonitorTimeline,
+            endDate: endDateForMonitorTimeline,
+          });
 
     // return everything.
 
@@ -5752,6 +5795,7 @@ export default class StatusPageAPI extends BaseAPI<
       uptimeDailyAggregate,
       statusPage,
       monitorsOnStatusPage,
+      monitorsOnStatusPageForTimeline,
       monitorsInGroup,
       startDateForMonitorTimeline,
       endDateForMonitorTimeline,
@@ -5835,16 +5879,119 @@ export default class StatusPageAPI extends BaseAPI<
    */
   public async getCachedOverviewResponse(
     statusPageId: ObjectID,
+    options?: {
+      /*
+       * The zone the visitor's uptime history is cut in - whatever they
+       * sent, resolved by StatusPageUptimeTimezone (UTC when it cannot be
+       * used). Every visitor shares the rest of the overview; the history
+       * is kept beside it per clock.
+       */
+      timezone?: unknown;
+    },
   ): Promise<JSONObject> {
-    return await StatusPageOverviewCache.getOrBuild({
+    const base: StatusPageOverviewBase =
+      await this.getCachedOverviewBase(statusPageId);
+
+    const timezone: string = StatusPageUptimeTimezone.resolve(
+      options?.timezone,
+    );
+
+    return await StatusPageOverviewCache.getOrBuildOverviewInZone({
+      overview: base,
+      timezone: timezone,
+      build: async (): Promise<{ json: JSONObject; cutIn: string }> => {
+        return await this.buildUptimeHistory({
+          inputs: base.uptimeHistory,
+          timezone: timezone,
+        });
+      },
+    });
+  }
+
+  /*
+   * The page's overview without its uptime history, which is the same for
+   * every visitor - what the summary reads. Cached as the overview is.
+   */
+  public async getCachedOverviewBase(
+    statusPageId: ObjectID,
+  ): Promise<StatusPageOverviewBase> {
+    return await StatusPageOverviewCache.getOrBuild<StatusPageOverviewBase>({
       statusPageId: statusPageId,
       readProjectId: async (): Promise<ObjectID | null> => {
         return await StatusPageService.getProjectIdOfStatusPage(statusPageId);
       },
-      build: async (): Promise<JSONObject> => {
-        return await this.buildOverviewResponse(statusPageId);
+      build: async (): Promise<StatusPageOverviewBase> => {
+        return await this.buildOverviewBase(statusPageId);
       },
     });
+  }
+
+  /*
+   * The page's uptime history in one zone: every monitor's day buckets
+   * (uptimeDailyAggregate) and every monitor group's
+   * (monitorGroupUptimeDailyAggregate), cut on that zone's days over the
+   * overview's window, so each bar is one of the visitor's calendar days.
+   *
+   * A zone the database cannot cut days in - its tzdata older than the
+   * zone, or without a name moment still knows - would fail the whole
+   * overview, so the history falls back to UTC, the days the page always
+   * drew, and says so in its `timezone`.
+   */
+  @CaptureSpan()
+  public async buildUptimeHistory(data: {
+    inputs: StatusPageUptimeHistoryInputs;
+    timezone: string;
+  }): Promise<{ json: JSONObject; cutIn: string }> {
+    const build: (
+      timezone: string,
+    ) => Promise<{ json: JSONObject; cutIn: string }> = async (
+      timezone: string,
+    ): Promise<{ json: JSONObject; cutIn: string }> => {
+      const [uptimeDailyAggregate, monitorGroupUptimeDailyAggregate]: [
+        UptimeDailyAggregate,
+        MonitorGroupUptimeDailyAggregate,
+      ] = await Promise.all([
+        StatusPageService.getUptimeDailyAggregateForStatusPage({
+          monitorIds: data.inputs.monitorIds,
+          startDate: data.inputs.startDate,
+          endDate: data.inputs.endDate,
+          timezone: timezone,
+        }),
+        StatusPageService.getMonitorGroupUptimeDailyAggregateForStatusPage({
+          monitorGroups: data.inputs.monitorGroups,
+          rankedMonitorStatusIds: data.inputs.rankedMonitorStatusIds,
+          startDate: data.inputs.startDate,
+          endDate: data.inputs.endDate,
+          timezone: timezone,
+        }),
+      ]);
+
+      return {
+        json: {
+          uptimeDailyAggregate:
+            UptimeDailyAggregateUtil.toJSON(uptimeDailyAggregate),
+          monitorGroupUptimeDailyAggregate:
+            MonitorGroupUptimeDailyAggregateUtil.toJSON(
+              monitorGroupUptimeDailyAggregate,
+            ),
+        },
+        cutIn: timezone,
+      };
+    };
+
+    if (data.timezone === DEFAULT_UPTIME_AGGREGATE_TIMEZONE) {
+      return await build(DEFAULT_UPTIME_AGGREGATE_TIMEZONE);
+    }
+
+    try {
+      return await build(data.timezone);
+    } catch (err) {
+      logger.error(
+        `Could not cut a status page's uptime history in ${data.timezone}; drawing it in UTC: ${String(err)}`,
+      );
+
+      return await build(DEFAULT_UPTIME_AGGREGATE_TIMEZONE);
+    }
   }
 
   /*
@@ -5857,7 +6004,32 @@ export default class StatusPageAPI extends BaseAPI<
   @CaptureSpan()
   public async buildOverviewResponse(
     statusPageId: ObjectID,
+    options?: {
+      // the zone to cut the uptime history in; see getCachedOverviewResponse.
+      timezone?: unknown;
+    },
   ): Promise<JSONObject> {
+    const base: StatusPageOverviewBase =
+      await this.buildOverviewBase(statusPageId);
+
+    const history: { json: JSONObject; cutIn: string } =
+      await this.buildUptimeHistory({
+        inputs: base.uptimeHistory,
+        timezone: StatusPageUptimeTimezone.resolve(options?.timezone),
+      });
+
+    return { ...base.response, ...history.json };
+  }
+
+  /*
+   * Everything in the overview but its uptime history, which is cut in each
+   * visitor's zone (buildUptimeHistory), and what that history is built
+   * from. A pure function of the statusPageId, like the overview.
+   */
+  @CaptureSpan()
+  public async buildOverviewBase(
+    statusPageId: ObjectID,
+  ): Promise<StatusPageOverviewBase> {
     /*
      * The timeline window comes from the status page's configured
      * showUptimeHistoryInDays. getStatusPageResourcesAndTimelines
@@ -5871,14 +6043,15 @@ export default class StatusPageAPI extends BaseAPI<
       statusPageResources,
       statusPage,
       monitorsOnStatusPage,
+      monitorsOnStatusPageForTimeline,
       monitorStatusTimelines,
-      uptimeDailyAggregate,
       statusPageGroups,
       monitorsInGroup,
       startDateForMonitorTimeline: startDate,
       endDateForMonitorTimeline: endDate,
     } = await this.getStatusPageResourcesAndTimelines({
       statusPageId: statusPageId,
+      includeUptimeDailyAggregate: false,
     });
 
     /*
@@ -6800,8 +6973,6 @@ export default class StatusPageAPI extends BaseAPI<
         monitorStatusTimelines,
         MonitorStatusTimeline,
       ),
-      uptimeDailyAggregate:
-        UptimeDailyAggregateUtil.toJSON(uptimeDailyAggregate),
       monitorGroupMergedDowntime: MonitorGroupMergedDowntimeUtil.toJSON(
         mergedDowntimeByMonitorGroupId,
       ),
@@ -6849,7 +7020,27 @@ export default class StatusPageAPI extends BaseAPI<
       ),
     };
 
-    return response;
+    return {
+      response: response,
+      uptimeHistory: {
+        monitorIds: monitorsOnStatusPageForTimeline,
+        monitorGroups: StatusPageServiceType.getMonitorGroupsForUptimeHistory({
+          statusPageResources: statusPageResources,
+          monitorsInGroup: monitorsInGroup,
+        }),
+        rankedMonitorStatusIds:
+          MonitorGroupUptimeDailyAggregateUtil.getRankedMonitorStatusIds({
+            monitorStatuses: monitorStatuses,
+            downtimeMonitorStatusIds: (statusPage.downtimeMonitorStatuses || [])
+              .map((status: MonitorStatus): string => {
+                return status.id?.toString() || "";
+              })
+              .filter(Boolean),
+          }),
+        startDate: startDate,
+        endDate: endDate,
+      },
+    };
   }
 
   /*

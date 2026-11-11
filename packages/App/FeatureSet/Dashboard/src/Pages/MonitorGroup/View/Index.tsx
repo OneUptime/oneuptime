@@ -431,11 +431,19 @@ const MonitorGroupView: FunctionComponent<
           description="This group's status over the last 90 days, one bar per day."
           rightElement={getUptimePercent()}
         >
+          {/*
+           * The group's rows of every monitor, merged into one timeline in
+           * the worst status at each instant (WorstStatusTimeline), so a day
+           * adds up to at most the day. Drawn on the days of the zone every
+           * other time on the Dashboard is shown in - the user's - so a bar's
+           * label and the incidents its tooltip lists are the bar's day.
+           */}
           <MonitorUptimeGraph
             error={error}
             items={statusTimelines}
             startDate={OneUptimeDate.getSomeDaysAgo(90)}
             endDate={OneUptimeDate.getCurrentDate()}
+            uptimeTimezone={OneUptimeDate.getCurrentTimezone()}
             isLoading={isLoading}
             defaultBarColor={Green}
             downtimeMonitorStatuses={downTimeMonitorStatues}

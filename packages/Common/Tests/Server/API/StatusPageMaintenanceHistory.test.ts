@@ -296,6 +296,8 @@ describe("a status page's uptime history shows its scheduled maintenance", () =>
           statusPageGroups: [],
           statusPage: statusPage,
           monitorsOnStatusPage: monitorsOnStatusPage,
+          // no history to cut: the uptime bars are not what these are about.
+          monitorsOnStatusPageForTimeline: [],
           monitorsInGroup: {},
           startDateForMonitorTimeline: WINDOW_START,
           endDateForMonitorTimeline: NOW,
