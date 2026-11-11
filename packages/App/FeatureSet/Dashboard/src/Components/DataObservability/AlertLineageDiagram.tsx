@@ -25,7 +25,7 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export interface ComponentProps {
   alertId: ObjectID;
@@ -171,6 +171,13 @@ const AlertLineageNoteLine: FunctionComponent<{
  * highlight's own mark - the diagram's legend leaves that to them. Nothing
  * when there is nothing to draw: an alert about a whole database, or a
  * table no lineage has been seen for.
+ *
+ * An alert from a check on one column - a null rate on
+ * orders.customer_id - comes with the columns each arrow carries and the
+ * column its check reads (DataAlertLineageAnswer.column): the drawing opens
+ * with that column followed beside the alert's ways, first in the column
+ * picker, as the table's Lineage tab follows it, and another can be picked
+ * or none. An alert from a check on the whole table draws as before.
  */
 const AlertLineageDiagram: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -185,6 +192,12 @@ const AlertLineageDiagram: FunctionComponent<ComponentProps> = (
       READ_FAILED,
     );
   const lineage: DataTableLineage | null = read.answer?.lineage || null;
+  // An answer from before the check's column was sent names none.
+  const column: string | null = read.answer?.column || null;
+  // The check's column first in the picker, the rest by name: this page has no table's own order to go by.
+  const columnOrder: Array<string> = useMemo((): Array<string> => {
+    return column ? [column] : [];
+  }, [column]);
 
   if (!read.isLoading && !read.error && (!lineage || isLineageEmpty(lineage))) {
     return <></>;
@@ -251,7 +264,13 @@ const AlertLineageDiagram: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
-        <LineageDiagramBody lineage={lineage} place={LineagePlace.Alert} />
+        <LineageDiagramBody
+          lineage={lineage}
+          place={LineagePlace.Alert}
+          withColumns={Boolean(column)}
+          columnOrder={columnOrder}
+          initialColumn={column}
+        />
       </div>
     );
   }

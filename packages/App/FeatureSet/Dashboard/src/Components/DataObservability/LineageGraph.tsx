@@ -31,6 +31,7 @@ import {
   getLineageNodeTone,
   getLineageToneColor,
   isLineageCardDimmed,
+  joinLineageHighlightSets,
   layoutLineage,
 } from "./LineageGraphModel";
 import { getRunStatePill } from "../../Pages/DataObservability/Pipelines";
@@ -123,13 +124,17 @@ import "reactflow/dist/style.css";
  *
  * One column followed (columnTrail) is picked out the way an alert's ways
  * are, in indigo with the rest faint, and each card on its way names the
- * column there in place of the line under its name.
+ * column there in place of the line under its name. On an alert's drawing
+ * it is picked out beside the alert's ways, which keep their Cause and
+ * Consequence.
  *
  * The same drawing sits on a pipeline's page, the pipeline in the middle,
  * and on a data alert's page, around the alert's table or pipeline - which
  * opens its own page there - with the way to the alert's cause and to the
  * alerts it caused picked out: its cards and arrows in indigo, the cause
- * and each consequence named on its card, and the rest drawn faint. Too
+ * and each consequence named on its card, and the rest drawn faint. A
+ * cause on a pipeline drawn on the arrows it moves data along says Cause
+ * under its name on the arrows the way up ends on. Too
  * wide to read whole, an alert's drawing opens on its cause - or on its
  * own card when nothing caused it - and as much of its ways as fits
  * (getLineageCardsInView), not just centred on the alert's own card.
@@ -949,6 +954,8 @@ interface LineageArrowData {
   title?: string | undefined;
   // The label names a pipeline on an alert's way, not a failed one: indigo, not red.
   isLabelHighlighted?: boolean | undefined;
+  // The pipeline named is the alert's cause: Cause under its name, as a cause's card says.
+  isCause?: boolean | undefined;
   // On an alert's way: drawn over a halo.
   isHighlighted?: boolean | undefined;
 }
@@ -956,8 +963,12 @@ interface LineageArrowData {
 /*
  * An arrow, and on one whose pipeline failed that pipeline's name: an
  * HTML label, so it is cut to the room between two columns, ends in "..."
- * when it is longer, and says the whole sentence under the pointer. An
- * arrow on an alert's way is drawn over a wide, faint indigo halo.
+ * when it is longer, and says the whole sentence under the pointer. The
+ * name reads the way it is written - a Latin name on a Persian page still
+ * ends in "..." at its own end. When the pipeline is the alert's cause,
+ * the card's own small Cause chip sits under the name, inside the same
+ * room. An arrow on an alert's way is drawn over a wide, faint indigo
+ * halo.
  */
 const LineageArrow: FunctionComponent<EdgeProps<LineageArrowData>> = (
   props: EdgeProps<LineageArrowData>,
@@ -995,7 +1006,7 @@ const LineageArrow: FunctionComponent<EdgeProps<LineageArrowData>> = (
       {props.data?.label ? (
         <EdgeLabelRenderer>
           <div
-            className="nodrag nopan absolute truncate rounded px-1 text-[10px] font-medium"
+            className="nodrag nopan absolute flex flex-col items-center truncate rounded px-1 text-[10px] font-medium"
             style={{
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               maxWidth: LINEAGE_EDGE_LABEL_MAX_WIDTH,
@@ -1008,7 +1019,25 @@ const LineageArrow: FunctionComponent<EdgeProps<LineageArrowData>> = (
             title={props.data.title}
             data-testid="lineage-edge-label"
           >
-            {props.data.label}
+            <IsolatedText
+              text={props.data.label}
+              className="block max-w-full truncate"
+              dataTestId="lineage-edge-name"
+            />
+            {props.data.isCause ? (
+              <span
+                className="mt-0.5 flex max-w-full"
+                data-testid="lineage-edge-cause"
+              >
+                <Pill
+                  text={ROLE_LABELS[LineageCardRole.Cause]}
+                  color={Indigo500}
+                  size={PillSize.Small}
+                />
+              </span>
+            ) : (
+              <></>
+            )}
           </div>
         </EdgeLabelRenderer>
       ) : (
@@ -1075,11 +1104,14 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
     useMemo((): LineageHighlightSets | null => {
       return getLineageHighlightSets(props.lineage);
     }, [props.lineage]);
-  // What is picked out: a column followed, else an alert's ways.
+  // What is picked out: an alert's ways, and a column followed beside them.
   const highlight: LineageHighlightSets | null =
     useMemo((): LineageHighlightSets | null => {
       return props.columnTrail
-        ? getLineageColumnHighlightSets(props.columnTrail)
+        ? joinLineageHighlightSets(
+            alertHighlight,
+            getLineageColumnHighlightSets(props.columnTrail),
+          )
         : alertHighlight;
     }, [props.columnTrail, alertHighlight]);
   const onExpand:
@@ -1205,6 +1237,7 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
                   })
                 : look.label.pipeline.name,
               ...(look.label.isFailed ? {} : { isLabelHighlighted: true }),
+              ...(look.label.isCause ? { isCause: true } : {}),
             }
           : {}),
         ...(look.isHighlighted ? { isHighlighted: true } : {}),

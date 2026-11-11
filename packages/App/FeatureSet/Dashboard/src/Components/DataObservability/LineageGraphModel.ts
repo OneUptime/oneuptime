@@ -1,6 +1,6 @@
 import { DataAssetFreshness } from "Common/Types/DataObservability/DataAssetFreshness";
 import DataAssetLineageSource from "Common/Types/DataObservability/DataAssetLineageSource";
-import { DataColumnMapping } from "Common/Types/DataObservability/DataColumnLineage";
+import { LineageColumnTrail } from "Common/Types/DataObservability/DataLineageColumnTrail";
 import {
   DataLineageDrawnTable,
   DataLineageExpandRequest,
@@ -133,6 +133,8 @@ export interface LineageEdgeLabel {
   pipeline: DataTableLineagePipeline;
   // Its latest run failed (red); otherwise it is on an alert's way (indigo).
   isFailed: boolean;
+  // It is the alert's cause, on an arrow the way up ends on: it says Cause, as a cause's card does.
+  isCause: boolean;
 }
 
 // How an arrow is drawn, all told.
@@ -154,6 +156,9 @@ export interface LineageHighlightSets {
   causeNodeIds: Set<string>;
   consequenceNodeIds: Set<string>;
   dataPipelineIds: Set<string>;
+  // The cause's pipelines drawn on arrows, and the arrows on the way up that carry them: those say Cause.
+  causeDataPipelineIds: Set<string>;
+  causeEdgeIds: Set<string>;
 }
 
 export const LINEAGE_NEUTRAL_COLOR: string = "#94a3b8";
@@ -264,7 +269,13 @@ export function getLineageEdgeStyle(
   };
 }
 
-// The ways a drawing picks out, as sets; null when it picks none.
+/*
+ * The ways a drawing picks out, as sets; null when it picks none. A cause
+ * on a pipeline drawn on the arrows it moves data along is said on those
+ * of its arrows the way up ends on: picked out, into the drawing's own
+ * card or a card upstream of it. The same pipeline on a way down - a run
+ * that builds the tables on both sides - is not the way to the cause.
+ */
 export function getLineageHighlightSets(
   lineage: DataTableLineage,
 ): LineageHighlightSets | null {
@@ -274,12 +285,83 @@ export function getLineageHighlightSets(
     return null;
   }
 
+  const edgeIds: Set<string> = new Set(highlight.edgeIds);
+  // An answer from before the cause's pipelines were sent names none.
+  const causeDataPipelineIds: Set<string> = new Set(
+    highlight.causeDataPipelineIds || [],
+  );
+  const causeEdgeIds: Set<string> = new Set();
+
+  if (causeDataPipelineIds.size > 0) {
+    const upstream: Set<string> = new Set(
+      lineage.nodes
+        .filter((node: DataTableLineageNode): boolean => {
+          return node.side === DataLineageSide.Upstream;
+        })
+        .map((node: DataTableLineageNode): string => {
+          return node.id;
+        }),
+    );
+
+    for (const edge of lineage.edges) {
+      if (
+        edgeIds.has(edge.id) &&
+        (edge.target === lineage.focusNodeId || upstream.has(edge.target)) &&
+        edge.pipelines.some((pipeline: DataTableLineagePipeline): boolean => {
+          return causeDataPipelineIds.has(pipeline.dataPipelineId);
+        })
+      ) {
+        causeEdgeIds.add(edge.id);
+      }
+    }
+  }
+
   return {
     nodeIds: new Set(highlight.nodeIds),
-    edgeIds: new Set(highlight.edgeIds),
+    edgeIds,
     causeNodeIds: new Set(highlight.causeNodeIds),
     consequenceNodeIds: new Set(highlight.consequenceNodeIds),
     dataPipelineIds: new Set(highlight.dataPipelineIds),
+    causeDataPipelineIds,
+    causeEdgeIds,
+  };
+}
+
+/*
+ * A column followed on an alert's drawing: its way is picked out beside
+ * the alert's, which keep naming the cause and what it caused - the person
+ * paged sees both where the problem started and where the column comes
+ * from. Without an alert's ways, the column's alone.
+ */
+export function joinLineageHighlightSets(
+  ways: LineageHighlightSets | null,
+  column: LineageHighlightSets,
+): LineageHighlightSets {
+  if (!ways) {
+    return column;
+  }
+
+  const join: (first: Set<string>, second: Set<string>) => Set<string> = (
+    first: Set<string>,
+    second: Set<string>,
+  ): Set<string> => {
+    return new Set([...first, ...second]);
+  };
+
+  return {
+    nodeIds: join(ways.nodeIds, column.nodeIds),
+    edgeIds: join(ways.edgeIds, column.edgeIds),
+    causeNodeIds: join(ways.causeNodeIds, column.causeNodeIds),
+    consequenceNodeIds: join(
+      ways.consequenceNodeIds,
+      column.consequenceNodeIds,
+    ),
+    dataPipelineIds: join(ways.dataPipelineIds, column.dataPipelineIds),
+    causeDataPipelineIds: join(
+      ways.causeDataPipelineIds,
+      column.causeDataPipelineIds,
+    ),
+    causeEdgeIds: join(ways.causeEdgeIds, column.causeEdgeIds),
   };
 }
 
@@ -311,7 +393,10 @@ export function isLineageCardDimmed(
  * The pipeline an arrow names: one whose latest run failed, or - on an
  * alert's way - the pipeline that is its cause or an alert it caused. Never
  * a pipeline that has its own card at the arrow's start, or that the
- * drawing is about: its card already says how it is.
+ * drawing is about: its card already says how it is. On an arrow the way
+ * up to the cause ends on, the cause's pipeline also says Cause - red
+ * still, when its run failed; a failed run of another pipeline is named
+ * first, and says nothing of the cause.
  */
 export function getLineageEdgeLabel(
   edge: DataTableLineageEdge,
@@ -326,6 +411,15 @@ export function getLineageEdgeLabel(
     return edge.source === card || focusNodeId === card;
   };
 
+  const isCause: (pipeline: DataTableLineagePipeline) => boolean = (
+    pipeline: DataTableLineagePipeline,
+  ): boolean => {
+    return Boolean(
+      sets?.causeEdgeIds.has(edge.id) &&
+        sets.causeDataPipelineIds.has(pipeline.dataPipelineId),
+    );
+  };
+
   const failed: DataTableLineagePipeline | undefined = edge.pipelines.find(
     (pipeline: DataTableLineagePipeline): boolean => {
       return (
@@ -335,7 +429,7 @@ export function getLineageEdgeLabel(
   );
 
   if (failed) {
-    return { pipeline: failed, isFailed: true };
+    return { pipeline: failed, isFailed: true, isCause: isCause(failed) };
   }
 
   if (sets?.edgeIds.has(edge.id)) {
@@ -349,7 +443,7 @@ export function getLineageEdgeLabel(
     );
 
     if (named) {
-      return { pipeline: named, isFailed: false };
+      return { pipeline: named, isFailed: false, isCause: isCause(named) };
     }
   }
 
@@ -1438,215 +1532,17 @@ export function getLineageViewportAfterExpanding(data: {
 }
 
 /*
- * FOLLOWING ONE COLUMN UP AND DOWN THE DRAWING.
- *
- * A table's drawing read with its columns (withColumns) says on each arrow
- * between two tables which columns of one feed which of the other, where
- * its sources name them. Picking one of the table's columns follows it:
- * up the arrows into the table to the columns it is built from, and down
- * the arrows out of it to the columns built from it, as far as the drawing
- * goes. Its way is picked out as an alert's ways are (LineageHighlightSets)
- * and each card on it names the column there - renamed on the way, or
- * several, where it is built from or feeds several.
+ * FOLLOWING ONE COLUMN UP AND DOWN THE DRAWING: picking one of the table's
+ * columns follows it up the arrows into the table and down the arrows out
+ * of it (DataLineageColumnTrail, shared with an alert's AI investigation).
+ * Its way is picked out as an alert's ways are (LineageHighlightSets), and
+ * each card on it names the column there.
  */
-
-export interface LineageColumnTrail {
-  // The column followed, as the table names it.
-  column: string;
-  // By card on its way: the columns there that it is, as the arrows name them.
-  columns: Map<string, Array<string>>;
-  // The arrows it goes along.
-  edgeIds: Set<string>;
-  /*
-   * An arrow into or out of a card on its way says nothing of its columns:
-   * the column may go on along it, further than is picked out.
-   */
-  mayGoFurther: boolean;
-}
-
-/*
- * Columns are matched whatever their case: two sources may write one
- * column's name differently (Snowflake keeps unquoted names in capitals;
- * a Spark or dbt job may name them as its code does).
- */
-function getColumnKey(name: string): string {
-  return name.trim().toLowerCase();
-}
-
-/*
- * The columns of the drawing's own table that can be followed: those an
- * arrow into or out of it names, in the table's own order (`columnOrder`,
- * as its last collection read them) and then by name, each named as the
- * table names it. Empty when no arrow next to it names a column: nothing
- * to pick.
- */
-export function getLineageColumnChoices(
-  lineage: DataTableLineage,
-  columnOrder: ReadonlyArray<string> = [],
-): Array<string> {
-  const focus: string = lineage.focusNodeId;
-  const named: Map<string, string> = new Map();
-  const name: (column: string) => void = (column: string): void => {
-    const key: string = getColumnKey(column);
-
-    if (key && !named.has(key)) {
-      named.set(key, column.trim());
-    }
-  };
-
-  for (const edge of lineage.edges) {
-    if (edge.kind !== DataLineageEdgeKind.Feeds || !edge.columnMappings) {
-      continue;
-    }
-
-    for (const mapping of edge.columnMappings) {
-      if (edge.target === focus) {
-        name(mapping.downstreamColumn);
-      }
-
-      if (edge.source === focus) {
-        name(mapping.upstreamColumn);
-      }
-    }
-  }
-
-  const order: Map<string, number> = new Map();
-
-  columnOrder.forEach((column: string, index: number): void => {
-    const key: string = getColumnKey(column);
-
-    if (!order.has(key)) {
-      order.set(key, index);
-
-      // As the table names it.
-      if (named.has(key)) {
-        named.set(key, column);
-      }
-    }
-  });
-
-  const placeOf: (key: string) => number = (key: string): number => {
-    return order.get(key) ?? Number.MAX_SAFE_INTEGER;
-  };
-
-  return Array.from(named.keys())
-    .sort((a: string, b: string): number => {
-      return placeOf(a) - placeOf(b) || compareText(a, b);
-    })
-    .map((key: string): string => {
-      return named.get(key)!;
-    });
-}
-
-/*
- * Where one column of the drawing's own table comes from and where it
- * goes. Up: along each arrow into a card on its way whose columns name
- * the column there, to the columns of the table before it that feed it -
- * another name when it was renamed on the way, several when it is built
- * from several. Down: along each arrow out, to the columns it feeds. Each
- * way is followed on its own - a column that feeds the table is not
- * followed down into the other tables it feeds - and each table's column
- * once, so a cycle ends.
- */
-export function followLineageColumn(
-  lineage: DataTableLineage,
-  column: string,
-): LineageColumnTrail {
-  const focus: string = lineage.focusNodeId;
-  const into: Map<string, Array<DataTableLineageEdge>> = new Map();
-  const out: Map<string, Array<DataTableLineageEdge>> = new Map();
-
-  for (const edge of lineage.edges) {
-    if (edge.kind !== DataLineageEdgeKind.Feeds) {
-      continue;
-    }
-
-    into.set(edge.target, [...(into.get(edge.target) || []), edge]);
-    out.set(edge.source, [...(out.get(edge.source) || []), edge]);
-  }
-
-  const trail: LineageColumnTrail = {
-    column,
-    columns: new Map(),
-    edgeIds: new Set(),
-    mayGoFurther: false,
-  };
-  const addColumn: (nodeId: string, name: string) => void = (
-    nodeId: string,
-    name: string,
-  ): void => {
-    const names: Array<string> = trail.columns.get(nodeId) || [];
-
-    if (
-      !names.some((known: string): boolean => {
-        return getColumnKey(known) === getColumnKey(name);
-      })
-    ) {
-      names.push(name);
-    }
-
-    trail.columns.set(nodeId, names);
-  };
-
-  if (!getColumnKey(column)) {
-    return trail;
-  }
-
-  addColumn(focus, column);
-
-  for (const isUpstream of [true, false]) {
-    const visited: Set<string> = new Set([
-      `${focus}\u0000${getColumnKey(column)}`,
-    ]);
-    const queue: Array<{ nodeId: string; name: string }> = [
-      { nodeId: focus, name: column },
-    ];
-
-    for (let index: number = 0; index < queue.length; index++) {
-      const here: { nodeId: string; name: string } = queue[index]!;
-      const arrows: Array<DataTableLineageEdge> =
-        (isUpstream ? into : out).get(here.nodeId) || [];
-
-      for (const edge of arrows) {
-        const mappings: Array<DataColumnMapping> = edge.columnMappings || [];
-
-        // Its sources named no columns: it may carry this one.
-        if (mappings.length === 0) {
-          trail.mayGoFurther = true;
-          continue;
-        }
-
-        for (const mapping of mappings) {
-          const own: string = isUpstream
-            ? mapping.downstreamColumn
-            : mapping.upstreamColumn;
-
-          if (getColumnKey(own) !== getColumnKey(here.name)) {
-            continue;
-          }
-
-          const next: { nodeId: string; name: string } = {
-            nodeId: isUpstream ? edge.source : edge.target,
-            name: isUpstream
-              ? mapping.upstreamColumn
-              : mapping.downstreamColumn,
-          };
-          const key: string = `${next.nodeId}\u0000${getColumnKey(next.name)}`;
-
-          trail.edgeIds.add(edge.id);
-          addColumn(next.nodeId, next.name);
-
-          if (!visited.has(key)) {
-            visited.add(key);
-            queue.push(next);
-          }
-        }
-      }
-    }
-  }
-
-  return trail;
-}
+export {
+  followLineageColumn,
+  getLineageColumnChoices,
+} from "Common/Types/DataObservability/DataLineageColumnTrail";
+export type { LineageColumnTrail };
 
 // A column's way, picked out as an alert's ways are: no card named its cause or a consequence.
 export function getLineageColumnHighlightSets(
@@ -1658,5 +1554,7 @@ export function getLineageColumnHighlightSets(
     causeNodeIds: new Set(),
     consequenceNodeIds: new Set(),
     dataPipelineIds: new Set(),
+    causeDataPipelineIds: new Set(),
+    causeEdgeIds: new Set(),
   };
 }

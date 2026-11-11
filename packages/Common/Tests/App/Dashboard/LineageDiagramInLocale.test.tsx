@@ -19,6 +19,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/AlertLineageDiagram";
 import { LINEAGE_DEPTH_OPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageDiagram";
 import { getLineageDrawLabel } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageGraph";
+import { LINEAGE_EDGE_LABEL_MAX_WIDTH } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageGraphModel";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
@@ -32,6 +33,9 @@ import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
  * language, each count in the reader's own plural. A sentence pointing at
  * a section below the diagram names it as that language's Lineage tab
  * titles it, so "Feeds below" leads to a section the reader can find.
+ * The cause's pipeline says Cause on its arrow in the word the cause's
+ * card says, short enough in every language to sit under the pipeline's
+ * name inside the arrow label's room.
  * Nothing is drawn here: React Flow and the pages the diagrams link to
  * are stand-ins.
  */
@@ -197,6 +201,7 @@ function answer(
     isCauseDrawn: false,
     consequenceCount: 0,
     drawnConsequenceCount: 0,
+    column: null,
     ...fields,
   };
 }
@@ -620,4 +625,91 @@ describe("what pressing a card's count draws, in words", () => {
       });
     },
   );
+});
+
+/*
+ * A cause on a pipeline says Cause under the pipeline's name on its arrow
+ * (#6687): the Cause chip of the cause's card, in the same word, inside
+ * the label's room between two columns (LINEAGE_EDGE_LABEL_MAX_WIDTH, less
+ * the label's own padding). The chip's text is 10px; a letter of a Latin,
+ * Cyrillic, Arabic or Devanagari word is drawn at about two thirds of
+ * that, a Chinese, Japanese or Korean one at all of it, and the chip adds
+ * its dot, the gap after it and its padding.
+ */
+const CHIP_FONT_SIZE: number = 10;
+const CHIP_CHROME_WIDTH: number = 5 + 4 + 12;
+const LABEL_PADDING: number = 2 * 4;
+
+function isWideLetter(letter: string): boolean {
+  const code: number = letter.codePointAt(0) || 0;
+
+  // CJK symbols, kana and ideographs; Hangul syllables.
+  return (
+    (code >= 0x3000 && code <= 0x9fff) || (code >= 0xac00 && code <= 0xd7af)
+  );
+}
+
+function chipWidth(word: string): number {
+  return (
+    Array.from(word).reduce((width: number, letter: string): number => {
+      return (
+        width +
+        (isWideLetter(letter) ? CHIP_FONT_SIZE : (2 / 3) * CHIP_FONT_SIZE)
+      );
+    }, 0) + CHIP_CHROME_WIDTH
+  );
+}
+
+describe("Cause, on the cause's arrow", () => {
+  test("is the word the cause's card says: one key of the English locale", () => {
+    const graph: string = fs.readFileSync(
+      path.join(DASHBOARD, "src/Components/DataObservability/LineageGraph.tsx"),
+      "utf8",
+    );
+
+    expect(locale("en")["Cause"]).toBe("Cause");
+    expect(graph).toContain('[LineageCardRole.Cause]: translationKey("Cause")');
+    expect(graph).toContain("text={ROLE_LABELS[LineageCardRole.Cause]}");
+    expect(graph).toContain("text={ROLE_LABELS[props.role]}");
+  });
+
+  test("an English word too long for the room would be caught", () => {
+    expect(chipWidth("Cause")).toBeLessThanOrEqual(
+      LINEAGE_EDGE_LABEL_MAX_WIDTH - LABEL_PADDING,
+    );
+    expect(chipWidth("Responsible upstream")).toBeGreaterThan(
+      LINEAGE_EDGE_LABEL_MAX_WIDTH - LABEL_PADDING,
+    );
+  });
+
+  test.each(DASHBOARD_LANGUAGES)(
+    "%s words it short enough for the arrow label's room",
+    (language: string) => {
+      const word: unknown = locale(language)["Cause"];
+
+      expect(typeof word).toBe("string");
+      expect({
+        language,
+        word,
+        isTrimmed: String(word).trim() === word,
+        fits:
+          chipWidth(String(word)) <=
+          LINEAGE_EDGE_LABEL_MAX_WIDTH - LABEL_PADDING,
+        // French writes the word as English does; every other language its own.
+        isOwnWord: language === "fr" ? word === "Cause" : word !== "Cause",
+      }).toEqual({
+        language,
+        word,
+        isTrimmed: true,
+        fits: true,
+        isOwnWord: true,
+      });
+    },
+  );
+
+  test("German and Persian, the languages the arrow was checked in, say Ursache and علت", () => {
+    expect(locale("de")["Cause"]).toBe("Ursache");
+    expect(locale("fa")["Cause"]).toBe("علت");
+    expect(chipWidth("Ursache")).toBeLessThan(LINEAGE_EDGE_LABEL_MAX_WIDTH);
+  });
 });

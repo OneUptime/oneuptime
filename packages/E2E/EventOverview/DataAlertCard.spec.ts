@@ -19,7 +19,8 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * one that fails or is refused leaves out only what it would have shown,
  * never the rest of the card, and never the page. Under it, the alert's
  * Lineage card (AlertLineageDiagram): its table drawn with the one it is
- * built from, the way to its cause, or to the alert it caused, picked out.
+ * built from, the way to its cause, or to the alert it caused, picked out -
+ * and for an alert from a check on one column, that column followed.
  *
  * On the Event Overview fixture's alerts #311 and #310 (Fixture/Fixture.js,
  * ?data= and ?fail=data-alert / data-writers / data-changes), with the clock
@@ -451,6 +452,169 @@ test.describe("an alert's Lineage card", () => {
       animations: "disabled",
     });
   });
+
+  test("an alert from a check on one column opens with that column followed, beside the way to its cause (?data=table&check=column)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERT_PATH, "data=table&check=column");
+
+    const card: Locator = lineageCard(page);
+    await expect(card).toBeVisible({ timeout: 30000 });
+
+    // The picker names the check's column, the sentence says it is followed, each card on its way names it there.
+    await expect(card.getByTestId("lineage-column")).toContainText(
+      "provider_reference",
+    );
+    await expect(card.getByTestId("lineage-column-notes")).toContainText(
+      "provider_reference is highlighted where it comes from and where it goes.",
+    );
+    await expect(
+      lineageNode(card, TABLE_CARD).getByTestId("lineage-card-columns"),
+    ).toHaveText("provider_reference");
+    await expect(
+      lineageNode(card, CAUSE_TABLE_CARD).getByTestId("lineage-card-columns"),
+    ).toHaveText("callback_reference");
+
+    // The way to its cause stays picked out, its card still marked Cause.
+    await expect(card).toContainText(
+      "The way up to the alert that caused this one is highlighted.",
+    );
+    await expect(lineageNode(card, CAUSE_TABLE_CARD)).toHaveAttribute(
+      "data-role",
+      "Cause",
+    );
+    await expect(lineageNode(card, CAUSE_TABLE_CARD)).not.toHaveAttribute(
+      "data-dimmed",
+      "true",
+    );
+    expect(await lineageReads(page, ALERT_ID)).toBe(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await card.scrollIntoViewIfNeeded();
+    await page.mouse.move(0, 0);
+    await card.screenshot({
+      path: path.join(SCREENSHOTS, "data-alert-lineage-column-synthetic.png"),
+      animations: "disabled",
+    });
+
+    // Cleared: the column is no longer named on the cards, and the cause still is.
+    await card
+      .getByTestId("lineage-column")
+      .locator(".ou-select__clear-indicator")
+      .dispatchEvent("mousedown", { button: 0 });
+    await expect(card.getByTestId("lineage-column-notes")).toHaveCount(0);
+    await expect(card.getByTestId("lineage-card-columns")).toHaveCount(0);
+    await expect(card.getByTestId("lineage-column")).toContainText(
+      "Follow a column",
+    );
+    await expect(lineageNode(card, CAUSE_TABLE_CARD)).toHaveAttribute(
+      "data-role",
+      "Cause",
+    );
+  });
+
+  /*
+   * A cause on the pipeline drawn on the arrow, its name longer than the
+   * label's room (LINEAGE_EDGE_LABEL_MAX_WIDTH, 84px, in LineageGraphModel):
+   * the name is cut at its end and the word the cause's card says sits
+   * whole under it, inside that room, in the longest of the languages'
+   * words (German) and right to left (Persian), on a phone and dark too.
+   */
+  const CAUSE_LABEL_ROOM: number = 84;
+
+  for (const look of [
+    { language: "en", word: "Cause", width: 1280, theme: "light" },
+    { language: "de", word: "Ursache", width: 1280, theme: "dark" },
+    { language: "fa", word: "علت", width: 390, theme: "dark" },
+    { language: "en", word: "Cause", width: 390, theme: "light" },
+  ] as Array<{
+    language: string;
+    word: string;
+    width: number;
+    theme: "light" | "dark";
+  }>) {
+    test(`a cause on the pipeline on its arrow: the arrow says ${look.word} under the pipeline's name, inside the label's room (?data=table&cause=pipeline, ${look.language}, ${look.width}px, ${look.theme})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(
+        page,
+        ALERT_PATH,
+        `data=table&cause=pipeline${
+          look.language === "en" ? "" : `&lang=${look.language}&dir=auto`
+        }${look.theme === "dark" ? "&theme=dark" : ""}`,
+      );
+      await page.setViewportSize({ width: look.width, height: 1000 });
+
+      const label: Locator = page.getByTestId("lineage-edge-label");
+      await expect(label).toBeVisible({ timeout: 30000 });
+      await expect(label).toHaveAttribute(
+        "title",
+        "payments_callbacks_hourly_sync",
+      );
+      await expect(label.getByTestId("lineage-edge-name")).toHaveText(
+        "payments_callbacks_hourly_sync",
+      );
+      await expect(label.getByTestId("lineage-edge-cause")).toHaveText(
+        look.word,
+      );
+      // The cause is the pipeline: no table's card is marked Cause.
+      await expect(page.locator('[data-role="Cause"]')).toHaveCount(0);
+
+      const fit: {
+        labelWidth: number;
+        nameCut: boolean;
+        wordWhole: boolean;
+        wordInside: boolean;
+        wordUnderName: boolean;
+      } = await label.evaluate((element: HTMLElement) => {
+        const name: HTMLElement = element.querySelector(
+          '[data-testid="lineage-edge-name"]',
+        ) as HTMLElement;
+        const word: HTMLElement = element.querySelector(
+          '[data-testid="lineage-edge-cause"] [data-testid="pill-text"]',
+        ) as HTMLElement;
+        const box: DOMRect = element.getBoundingClientRect();
+        const wordBox: DOMRect = word.getBoundingClientRect();
+        const nameBox: DOMRect = name.getBoundingClientRect();
+
+        return {
+          // Layout width: the drawing's zoom does not change it.
+          labelWidth: element.offsetWidth,
+          nameCut: name.scrollWidth > name.clientWidth,
+          wordWhole: word.scrollWidth <= word.clientWidth,
+          wordInside:
+            wordBox.left >= box.left - 0.5 && wordBox.right <= box.right + 0.5,
+          wordUnderName: wordBox.top >= nameBox.bottom - 0.5,
+        };
+      });
+
+      expect(fit).toEqual({
+        labelWidth: fit.labelWidth,
+        nameCut: true,
+        wordWhole: true,
+        wordInside: true,
+        wordUnderName: true,
+      });
+      expect(fit.labelWidth).toBeLessThanOrEqual(CAUSE_LABEL_ROOM);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+
+      await fs.mkdir(SCREENSHOTS, { recursive: true });
+      await label.scrollIntoViewIfNeeded();
+      await page.mouse.move(0, 0);
+      await page.getByTestId("lineage-graph").screenshot({
+        path: path.join(
+          SCREENSHOTS,
+          `data-alert-lineage-cause-pipeline-${look.language}-${look.width}-${look.theme}.png`,
+        ),
+        animations: "disabled",
+      });
+    });
+  }
 
   test("the cause's page draws the way down to the alert it caused (?data=table)", async ({
     page,

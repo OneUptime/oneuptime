@@ -367,6 +367,7 @@ function aLineage(fields: Partial<DataTableLineage> = {}): DataTableLineage {
       causeNodeIds: [`table:${SOURCE}`],
       consequenceNodeIds: [`table:${MART}`],
       dataPipelineIds: [MART_ETL],
+      causeDataPipelineIds: [],
     },
     ...fields,
   };
@@ -381,6 +382,7 @@ function anAnswer(
     isCauseDrawn: true,
     consequenceCount: 3,
     drawnConsequenceCount: 2,
+    column: null,
     ...fields,
   };
 }
@@ -625,6 +627,9 @@ describe("the ways picked out", () => {
   test("a pipeline an alert is about, drawn on the arrows it moves data along, is named there in indigo", async () => {
     await renderDrawn();
 
+    // Not the cause's: it says no more than its name.
+    expect(screen.queryByTestId("lineage-edge-cause")).not.toBeInTheDocument();
+
     const id: string = feeds(TABLE, REPORT);
 
     expect(flowEdge(id).data).toEqual({
@@ -665,6 +670,56 @@ describe("the ways picked out", () => {
       title: "orders_etl failed",
       isHighlighted: true,
     });
+  });
+
+  test("a cause on a pipeline says Cause under its name on the arrow the way up ends on; a pipeline an alert it caused is on does not", async () => {
+    const lineage: DataTableLineage = aLineage();
+    lineage.edges[0] = arrow(
+      DataLineageEdgeKind.Feeds,
+      `table:${SOURCE}`,
+      `table:${STAGING}`,
+      {
+        pipelines: [
+          { dataPipelineId: ETL, name: "orders_etl", lastRunState: "COMPLETE" },
+        ],
+      },
+    );
+    lineage.highlight = {
+      ...lineage.highlight!,
+      causeNodeIds: [],
+      dataPipelineIds: [ETL, MART_ETL].sort(),
+      causeDataPipelineIds: [ETL],
+    };
+    await renderDrawn(anAnswer({ lineage }));
+
+    expect(flowEdge(feeds(SOURCE, STAGING)).data).toEqual({
+      label: "orders_etl",
+      title: "orders_etl",
+      isLabelHighlighted: true,
+      isCause: true,
+      isHighlighted: true,
+    });
+
+    const cause: HTMLElement = within(
+      screen.getByTestId(`flow-edge-${feeds(SOURCE, STAGING)}`),
+    ).getByTestId("lineage-edge-label");
+
+    expect(within(cause).getByTestId("lineage-edge-name")).toHaveTextContent(
+      "orders_etl",
+    );
+    expect(within(cause).getByTestId("lineage-edge-cause")).toHaveTextContent(
+      "Cause",
+    );
+    // The consequence's pipeline is named on its arrow, and says nothing more.
+    expect(flowEdge(feeds(TABLE, REPORT)).data).toEqual({
+      label: "orders_mart",
+      title: "orders_mart",
+      isLabelHighlighted: true,
+      isHighlighted: true,
+    });
+    expect(screen.getAllByTestId("lineage-edge-cause")).toHaveLength(1);
+    // No card is named the cause: the cause is the pipeline.
+    expect(document.querySelector('[data-role="Cause"]')).toBeNull();
   });
 
   test("the legend is the diagram's own: the sentences above it say what the indigo ways are", async () => {
@@ -906,6 +961,7 @@ describe("what is said, and where it leads", () => {
         causeNodeIds: [],
         consequenceNodeIds: [`table:${MART}`, `table:${REPORT}`],
         dataPipelineIds: [],
+        causeDataPipelineIds: [],
       },
     };
 

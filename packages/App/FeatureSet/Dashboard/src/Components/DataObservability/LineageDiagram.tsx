@@ -68,7 +68,9 @@ import React, {
  * the next of them in place (mergeLineageExpansion), one card at a time,
  * and Reset diagram goes back to the drawing as it was read. On a table's
  * Lineage tab, read with its arrows' columns, one of the table's columns
- * can be followed up and down the drawing (followLineageColumn).
+ * can be followed up and down the drawing (followLineageColumn); on the
+ * page of an alert from a check on one column, the drawing opens with
+ * that column followed, and another can be picked, or none.
  */
 
 // The steps each way, as the switch offers them: "1 step", "2 steps".
@@ -239,6 +241,18 @@ export interface LineageDiagramBodyProps {
   withColumns?: boolean | undefined;
   // The table's columns in its own order: the order the column picker offers them in.
   columnOrder?: ReadonlyArray<string> | undefined;
+  /*
+   * The column followed when the drawing opens - on an alert's page, the
+   * column its check reads - while an arrow names it. The reader may pick
+   * another, or clear it.
+   */
+  initialColumn?: string | null | undefined;
+}
+
+// The column picked, and the opening column it was picked over: another opening column starts again from it.
+interface PickedColumn {
+  initialColumn: string | null;
+  column: string | null;
 }
 
 // A drawing grown here: what it grew from, so a new read leaves it behind.
@@ -284,7 +298,13 @@ export const LineageDiagramBody: FunctionComponent<LineageDiagramBodyProps> = (
   const [resetCount, setResetCount] = useState<number>(0);
   const [expanding, setExpanding] = useState<LineageExpanding | null>(null);
   const [drawError, setDrawError] = useState<string | null>(null);
-  const [column, setColumn] = useState<string | null>(null);
+  const initialColumn: string | null = props.initialColumn || null;
+  const [picked, setPicked] = useState<PickedColumn>({
+    initialColumn,
+    column: initialColumn,
+  });
+  const column: string | null =
+    picked.initialColumn === initialColumn ? picked.column : initialColumn;
   // What is drawn: grown here from this read, or the read as it came.
   const lineage: DataTableLineage =
     grown && grown.base === props.lineage ? grown.lineage : props.lineage;
@@ -526,9 +546,10 @@ export const LineageDiagramBody: FunctionComponent<LineageDiagramBodyProps> = (
                   onChange={(
                     value: DropdownValue | Array<DropdownValue> | null,
                   ): void => {
-                    setColumn(
-                      typeof value === "string" && value ? value : null,
-                    );
+                    setPicked({
+                      initialColumn,
+                      column: typeof value === "string" && value ? value : null,
+                    });
                   }}
                   dataTestId="lineage-column-picker"
                 />

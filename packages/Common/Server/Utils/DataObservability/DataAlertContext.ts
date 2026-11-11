@@ -24,6 +24,7 @@ import DataPipelineRunService from "../../Services/DataPipelineRunService";
 import DataPipelineService from "../../Services/DataPipelineService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
+import { describeDataAlertColumn } from "./DataAlertColumnLineage";
 import DataAlertLineageReader, {
   DataAlertLineageRow,
   DataAlertRowReader,
@@ -63,7 +64,9 @@ import { describeDataAlertLineage } from "./DataTableLineageAnswer";
  *    between, the pipelines that load them from outside, the dashboards
  *    built on it, where in that chain the alert it is a consequence of is,
  *    and which tables the alerts it caused are on (DataTableLineageAnswer);
- *    for an alert on a pipeline, the tables it reads and writes;
+ *    for an alert on a pipeline, the tables it reads and writes; for an
+ *    alert from a check on one column, where that column comes from and
+ *    where it goes, table by table (DataAlertColumnLineage);
  *  - the columns of the table that changed in the window.
  *
  * Every read is bounded, and one that fails leaves its part out rather
@@ -288,7 +291,9 @@ export default class DataAlertContext {
    * open ones counted on a table, the cause placed, the alerts it caused -
    * so a private one is neither counted nor placed, and the alerts a
    * private alert caused are not either. The alert itself was read above:
-   * the report's readers are the people who may see it.
+   * the report's readers are the people who may see it. An alert from a
+   * check on one column is then told where that column comes from and
+   * where it goes (DataAlertColumnLineage).
    */
   private static async describeLineage(data: {
     projectId: ObjectID;
@@ -322,13 +327,26 @@ export default class DataAlertContext {
           },
           readSubject: everyone.readSubject,
           readConsequences: everyone.readConsequences,
+          /*
+           * A check on one column: its lineage is read with its arrows'
+           * columns, to follow it. A check that cannot be read leaves only
+           * the column out: the lineage is told as a table check's is.
+           */
+          readCheckColumn: async (alertId: string): Promise<string | null> => {
+            return await orNothing(everyone.readCheckColumn(alertId), null);
+          },
         },
         reader: DataTableLineageReader.getDatabaseReader(data.projectId, null),
       }),
       null,
     );
 
-    return answer ? describeDataAlertLineage(answer, data.now) : [];
+    return answer
+      ? [
+          ...describeDataAlertLineage(answer, data.now),
+          ...describeDataAlertColumn(answer),
+        ]
+      : [];
   }
 
   // A column that changed just before is often the whole story: a writer still using the old one fails.
