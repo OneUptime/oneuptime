@@ -312,6 +312,8 @@
       "dataResidencyFieldDescription": "이 프로젝트의 데이터가 호스팅되는 위치를 나타내는 레이블입니다(예: \"EU (Frankfurt)\"). 프로젝트 사용자에게 숨기려면 비워 두세요.",
       "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
       "dataResidencyNotSet": "설정되지 않음",
+      "milestonesCardTitle": "설정 진행 상황",
+      "milestonesCardDescription": "이 프로젝트가 생성된 이후 한 일과 막혀 있는 단계입니다. 이 서버의 자체 데이터에서 읽으며, 어디로도 전송하지 않습니다.",
       "ingestionBudgets": {
         "dailyCardTitle": "이 프로젝트의 일일 예산",
         "dailyCardDescription": "인스턴스 기본값 대신 적용되는 이 프로젝트 자체의 신호별 일일 예산입니다. 인스턴스 기본값을 쓰려면 신호를 비워 두고, 제한하지 않으려면 0을 입력하세요. 프로젝트 관리자는 이 값을 볼 수 있지만 바꿀 수는 없습니다.",

@@ -312,6 +312,8 @@
       "dataResidencyFieldDescription": "表示此專案資料託管位置的標籤，例如 \"EU (Frankfurt)\"。留空則不向專案使用者顯示。",
       "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
       "dataResidencyNotSet": "未設定",
+      "milestonesCardTitle": "設定進度",
+      "milestonesCardDescription": "此專案自建立以來完成了什麼，以及卡在哪一步。讀取自本伺服器自己的資料，不會傳送到任何地方。",
       "ingestionBudgets": {
         "dailyCardTitle": "此專案的每日預算",
         "dailyCardDescription": "此專案自己的每個訊號的每日預算，用來取代執行個體預設值。訊號留空則使用執行個體預設值，輸入 0 則表示無限制。專案的管理員可以看到這些預算，但無法變更。",

@@ -1,3 +1,5 @@
+import ProductEvents from "Common/UI/Utils/ProductEvents";
+import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import PageComponentProps from "../PageComponentProps";
 import {
   cancelToolImport,
@@ -71,6 +73,13 @@ const TOOL_IMPORT_POLL_RETRY_MS: number = 5000;
 
 const RUN_QUERY_PARAM: string = "run";
 
+/*
+ * Where a link to the importer says it was opened from: ?from=home, say.
+ * Sent with importer/opened (ProductEvent); "settings" when it says nothing.
+ */
+export const IMPORTER_OPENED_FROM_QUERY_PARAM: string = "from";
+export const IMPORTER_OPENED_FROM_SETTINGS: string = "settings";
+
 const ImportFromTool: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -141,6 +150,17 @@ const ImportFromTool: FunctionComponent<
 
   useEffect(() => {
     void loadRuns({ isFirstLoad: true });
+
+    /*
+     * Where the importer was opened from (issue #6830): ?from= on its
+     * address - a word the link that brought the person here chose (#6809's
+     * entry points) - or "settings", Project Settings' own menu.
+     */
+    ProductEvents.send(ProductEventName.ImporterOpened, {
+      from:
+        Navigation.getQueryStringByName(IMPORTER_OPENED_FROM_QUERY_PARAM) ||
+        IMPORTER_OPENED_FROM_SETTINGS,
+    });
   }, []);
 
   /*

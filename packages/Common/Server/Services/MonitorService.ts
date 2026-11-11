@@ -1,3 +1,5 @@
+import ProjectMilestoneService from "./ProjectMilestoneService";
+import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import { buildNotificationSms } from "../../Utils/Sms/NotificationSms";
 import DatabaseConfig from "../DatabaseConfig";
 import { InboundEmailDomain, IsBillingEnabled } from "../EnvironmentConfig";
@@ -2486,6 +2488,12 @@ export class Service extends ProjectReferencesService<Model> {
         project_id: createdItem.projectId.toString(),
         monitor_type: createdItem.monitorType?.toString() || "",
       },
+    });
+
+    // The project's first monitor, whoever made it (issue #6830).
+    ProjectMilestoneService.reachInBackground({
+      projectId: createdItem.projectId,
+      milestone: ActivationMilestone.FirstMonitorCreated,
     });
 
     const monitor: Model | null = await this.findOneById({
