@@ -555,8 +555,16 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
     />
   );
 
+  /*
+   * A long title is cut to the tile ("Checkout availability ·
+   * Verbleibendes Fehlerbudget" on a narrow German one): hovering it reads
+   * it whole.
+   */
   const titleElement: ReactElement = (
-    <div className="text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center">
+    <div
+      className="text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center"
+      title={title}
+    >
       {title}
     </div>
   );
@@ -691,6 +699,8 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
              * whenever the SLI ran near the target.
              */
             referenceLineLabelPlacement={ReferenceLineLabelPlacement.Legend}
+            // Centred, like the title above it and the status pill below.
+            isReferenceLineLegendCentered={true}
             onTimeRangeSelect={timeRangeZoom.onTimeRangeSelect}
             onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
             /*
@@ -777,7 +787,15 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      <div className="pt-0.5">{statusPill}</div>
+      {/*
+       * An SLO with no status yet has not been evaluated: the line above
+       * says so, and a grey "Unknown" pill under it would only say it again.
+       */}
+      {tile.isEvaluated || sloStatus ? (
+        <div className="pt-0.5">{statusPill}</div>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

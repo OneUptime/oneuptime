@@ -173,8 +173,11 @@ import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 const EN: Record<string, string> = readDashboardLocale("en");
 const DE: Record<string, string> = readDashboardLocale("de");
 const AR: Record<string, string> = readDashboardLocale("ar");
+const FA: Record<string, string> = readDashboardLocale("fa");
 
 const NO_BREAK_SPACE: string = "\u00A0";
+// U+200E, either side of a burn rate's sign on a page read right to left.
+const LEFT_TO_RIGHT_MARK: string = String.fromCharCode(0x200e);
 const SLO_NAME: string = "Checkout availability";
 
 const COMPONENT_ID: ObjectID = new ObjectID(
@@ -353,6 +356,7 @@ beforeAll(async () => {
     resources: {
       de: { translation: DE },
       ar: { translation: AR },
+      fa: { translation: FA },
       en: { translation: EN },
     },
     interpolation: { escapeValue: false },
@@ -453,8 +457,58 @@ describe("the SLO widget's tile in German", () => {
         ]),
       );
       expect(texts.join("\n")).not.toMatch(ENGLISH_WORDS);
+      /*
+       * No grey "Unbekannt" pill under it: "Noch nicht ausgewertet"
+       * already says all there is to say.
+       */
+      expect(screen.queryByTestId("pill-text")).not.toBeInTheDocument();
+      expect(texts).not.toContain(worded(DE, "Unknown"));
     },
   );
+
+  test("a paused SLO not evaluated yet keeps its status pill: it says why", async () => {
+    await renderWidget({
+      metric: SloWidgetMetric.Sli,
+      slo: buildSlo({ ...NOT_EVALUATED, sloStatus: SloStatus.Paused }),
+    });
+
+    expect(screen.getByTestId("pill-text")).toHaveTextContent(
+      worded(DE, "Paused"),
+    );
+  });
+
+  test("an evaluated SLO's tile keeps its status pill", async () => {
+    await renderWidget({
+      metric: SloWidgetMetric.Sli,
+      slo: buildSlo(),
+    });
+
+    expect(screen.getByTestId("pill-text")).toHaveTextContent(
+      worded(DE, "Healthy"),
+    );
+  });
+
+  test("a title cut to the tile reads whole on hover", async () => {
+    const { container } = await renderWidget({
+      metric: SloWidgetMetric.ErrorBudgetRemaining,
+      slo: buildSlo(),
+    });
+
+    const title: Element | undefined = Array.from(
+      container.querySelectorAll("div"),
+    ).find((element: Element): boolean => {
+      return (
+        element.children.length === 0 &&
+        (element.textContent || "").includes(SLO_NAME)
+      );
+    });
+
+    expect(title).toHaveClass("truncate");
+    expect(title).toHaveAttribute(
+      "title",
+      `${SLO_NAME} · ${worded(DE, "Error Budget Remaining")}`,
+    );
+  });
 });
 
 describe("the SLO widget's tile in Arabic", () => {
@@ -529,6 +583,23 @@ describe("the SLO widget's tile in Arabic", () => {
     ).not.toContain("−");
   });
 
+  test("Burn rate: the sign stays after its figure, held there by left-to-right marks", async () => {
+    const { container } = await renderWidget({
+      metric: SloWidgetMetric.BurnRate,
+      slo: buildSlo(),
+    });
+
+    /*
+     * A bare "×" at the end of a figure read right to left was drawn
+     * before it: "×1.25".
+     */
+    expect(drawnTexts(container)).toEqual(
+      expect.arrayContaining([
+        `1.25${LEFT_TO_RIGHT_MARK}×${LEFT_TO_RIGHT_MARK}`,
+      ]),
+    );
+  });
+
   test("Burn rate before the first evaluation", async () => {
     const { container } = await renderWidget({
       metric: SloWidgetMetric.BurnRate,
@@ -588,6 +659,7 @@ describe("the SLO widget's chart in the reader's figures", () => {
     yAxis: { options: { formatter: (value: number) => string } };
     referenceLines?: Array<{ value: number; label?: string }> | undefined;
     referenceLineLabelPlacement?: ReferenceLineLabelPlacement | undefined;
+    isReferenceLineLegendCentered?: boolean | undefined;
     heightInPx?: number | undefined;
   };
 
@@ -642,6 +714,8 @@ describe("the SLO widget's chart in the reader's figures", () => {
     expect(chart.referenceLineLabelPlacement).toBe(
       ReferenceLineLabelPlacement.Legend,
     );
+    // Centred, as the title above the plot and the status pill under it are.
+    expect(chart.isReferenceLineLegendCentered).toBe(true);
     // The legend's row comes out of the plot, so the tile never overflows.
     expect(chart.heightInPx).toBe(
       PLOT_HEIGHT_IN_PX - SLO_WIDGET_LEGEND_ROW_IN_PX,
@@ -816,6 +890,50 @@ describe("the SLO list widget in German and Arabic", () => {
         worded(AR, "−{{count}} min over budget", { count: "10" }),
       ]),
     );
+    // The burn rate's sign after its figure, as in the single-SLO tile.
+    expect(rowTexts(SLO_NAME)).toEqual(
+      expect.arrayContaining([
+        `1.25${LEFT_TO_RIGHT_MARK}×${LEFT_TO_RIGHT_MARK}`,
+      ]),
+    );
+
+    /*
+     * An English name cut short loses its end, not its start: its cell
+     * reads left to right, and a short one still starts where the Arabic
+     * column's name does.
+     */
+    for (const cell of screen.getAllByTestId("slo-list-name")) {
+      expect(cell).toHaveAttribute("dir", "ltr");
+      expect(cell).toHaveClass("truncate", "text-end");
+    }
+  });
+
+  test("Persian: the strip's counts in Persian digits, as the rows' figures are", async () => {
+    await inLanguage("fa");
+    await renderList();
+
+    const summary: HTMLElement = screen.getByTestId("slo-list-summary");
+
+    // One SLO over budget, one healthy, one not evaluated yet.
+    expect(summary.textContent).toContain("۱");
+    expect(summary.textContent).not.toMatch(/[0-9]/);
+  });
+
+  test("German: the strip's counts as German writes them", async () => {
+    await renderList();
+
+    expect(screen.getByTestId("slo-list-summary").textContent).toMatch(
+      /^1\D.*1\D.*1\D/,
+    );
+  });
+
+  test("German: an English name's cell is drawn as it always was", async () => {
+    await renderList();
+
+    for (const cell of screen.getAllByTestId("slo-list-name")) {
+      expect(cell).not.toHaveAttribute("dir");
+      expect(cell).not.toHaveClass("text-end");
+    }
   });
 
   test("the honeycomb's tiles carry the reader's figures and the status keys it looks up", async () => {

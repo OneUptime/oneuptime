@@ -1,7 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import { SloWidgetMetric } from "../../../Types/Dashboard/DashboardComponents/DashboardSloComponent";
 import { getNumberLocale } from "../../../Types/DateLanguage";
-import { FIRST_STRONG_ISOLATE } from "../../../Types/ReadingDirection";
+import {
+  FIRST_STRONG_ISOLATE,
+  isRightToLeftLanguage,
+} from "../../../Types/ReadingDirection";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import { formatSloPolicyTierThreshold } from "../../../Utils/Slo/SloErrorBudgetPolicy";
@@ -56,6 +59,8 @@ import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 const NO_BREAK_SPACE: string = "\u00A0";
 const MINUS_SIGN: string = "−";
+// U+200E LEFT-TO-RIGHT MARK.
+const LEFT_TO_RIGHT_MARK: string = String.fromCharCode(0x200e);
 
 const ENGLISH: Translator = dashboardTranslator("en");
 const GERMAN: Translator = dashboardTranslator("de");
@@ -81,6 +86,15 @@ const LANGUAGE_ROWS: Array<[string]> = DASHBOARD_LANGUAGES.map(
     return [language];
   },
 );
+
+/*
+ * A burn rate on a page read right to left: its sign between two
+ * left-to-right marks, so it is drawn after the figure ("14.4×"), never
+ * before it ("×14.4"), as a bare sign at the end of the figure was.
+ */
+function rightToLeftBurnRate(figure: string): string {
+  return `${figure}${LEFT_TO_RIGHT_MARK}×${LEFT_TO_RIGHT_MARK}`;
+}
 
 // A percentage as the language's own Intl.NumberFormat writes it.
 function percentIn(language: string, value: number, decimals: number): string {
@@ -202,21 +216,38 @@ describe("formatSloNumber and formatSloBurnRate in the reader's language", () =>
     expect(formatSloBurnRate(0.333333, GERMAN)).toBe("0,33×");
   });
 
-  test("Persian: its own digits and decimal mark, the multiplier's sign as it is", () => {
+  test("Persian: its own digits and decimal mark, the multiplier's sign after them", () => {
     expect(formatSloNumber(0.088, SLI_DECIMALS, PERSIAN)).toBe("۰٫۰۸۸");
-    expect(formatSloBurnRate(14.4, PERSIAN)).toBe("۱۴٫۴×");
+    expect(formatSloBurnRate(14.4, PERSIAN)).toBe(rightToLeftBurnRate("۱۴٫۴"));
     expect(formatSloBurnRate(14.4, PERSIAN)).not.toMatch(LATIN_DIGIT);
   });
 
-  test("Arabic: Latin digits and a decimal point", () => {
-    expect(formatSloBurnRate(14.4, ARABIC)).toBe("14.4×");
+  test("Arabic: Latin digits and a decimal point, the sign after them", () => {
+    expect(formatSloBurnRate(14.4, ARABIC)).toBe(rightToLeftBurnRate("14.4"));
     expect(formatSloNumber(0.088, SLI_DECIMALS, ARABIC)).toBe("0.088");
   });
+
+  test.each(LANGUAGE_ROWS)(
+    "%s: the sign is held after the figure on a page read right to left, and only there",
+    (language: string) => {
+      const burnRate: string =
+        formatSloBurnRate(14.4, dashboardTranslator(language)) || "";
+
+      expect({
+        language,
+        held: burnRate.includes(LEFT_TO_RIGHT_MARK),
+      }).toEqual({ language, held: isRightToLeftLanguage(language) });
+      // The marks aside, a figure and then its sign.
+      expect(burnRate.split(LEFT_TO_RIGHT_MARK).join("")).toMatch(/^[^×]+×$/);
+    },
+  );
 
   test("the burn rate keeps its two decimals in every language", () => {
     expect(BURN_RATE_DECIMALS).toBe(2);
     expect(formatSloBurnRate(1.2345, GERMAN)).toBe("1,23×");
-    expect(formatSloBurnRate(1.2345, PERSIAN)).toBe("۱٫۲۳×");
+    expect(formatSloBurnRate(1.2345, PERSIAN)).toBe(
+      rightToLeftBurnRate("۱٫۲۳"),
+    );
   });
 
   test("a value that is not a figure stays null", () => {

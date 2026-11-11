@@ -136,6 +136,8 @@ const FA: Record<string, string> = readDashboardLocale("fa");
 const AR: Record<string, string> = readDashboardLocale("ar");
 
 const NO_BREAK_SPACE: string = "\u00A0";
+// U+200E, either side of a burn rate's sign on a page read right to left.
+const LEFT_TO_RIGHT_MARK: string = String.fromCharCode(0x200e);
 const SLO_ID: ObjectID = new ObjectID("0193c0de-5555-4aaa-8bbb-000000000005");
 const NOW: Date = new Date("2026-09-15T12:00:00.000Z");
 
@@ -410,7 +412,7 @@ describe("the Metrics page's Error Budget History charts", () => {
     ]);
     expect(labelsOf(budget)).toEqual([
       DE["Budget exhausted"],
-      DE["At risk"],
+      DE["At risk ({{percent}})"]!.replace("{{percent}}", germanPercent("25")),
       `Caution ${germanPercent("50")}`,
       `Change freeze ${germanPercent("12,5")}`,
     ]);
@@ -433,7 +435,7 @@ describe("the Metrics page's Error Budget History charts", () => {
     expect(labelsOf(sli)).toEqual(["Target 99.9%"]);
     expect(labelsOf(budget)).toEqual([
       "Budget exhausted",
-      "At risk",
+      "At risk (25%)",
       "Caution 50%",
       "Change freeze 12.5%",
     ]);
@@ -447,6 +449,41 @@ describe("the Metrics page's Error Budget History charts", () => {
         ReferenceLineLabelPlacement.Legend,
       );
     }
+  });
+
+  test("Arabic: a rule's threshold keeps its sign after the figure, as on the rule's own card", async () => {
+    await inLanguage("ar");
+    await renderCharts();
+
+    const burnRate: ChartProps = lastChart(AR["Burn Rate"]!);
+
+    /*
+     * The sign between two left-to-right marks: a bare "×" at the end of a
+     * label read right to left was drawn before the label instead -
+     * "×Fast burn 14.4".
+     */
+    expect(labelsOf(burnRate)).toEqual([
+      `Fast burn 14.4${LEFT_TO_RIGHT_MARK}×${LEFT_TO_RIGHT_MARK}`,
+    ]);
+    expect(burnRate.yAxis.options.formatter(3.256)).toBe(
+      `3.26${LEFT_TO_RIGHT_MARK}×${LEFT_TO_RIGHT_MARK}`,
+    );
+  });
+
+  test("the at-risk line is named as on the Overview's burn-down, with its figure", async () => {
+    await renderCharts();
+
+    const budget: ChartProps = lastChart(DE["Budget Remaining %"]!);
+
+    cleanup();
+    lineChartMock.mockReset();
+
+    const burnDown: ChartProps = await renderBurnDown();
+
+    expect(labelsOf(budget)[1]).toBe(labelsOf(burnDown)[1]);
+    expect(labelsOf(budget)[1]).toBe(
+      DE["At risk ({{percent}})"]!.replace("{{percent}}", germanPercent("25")),
+    );
   });
 
   test("the target's line has a key of its own in every language, its figure written apart from it", () => {

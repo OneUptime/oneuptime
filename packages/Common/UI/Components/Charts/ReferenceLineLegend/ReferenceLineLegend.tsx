@@ -27,11 +27,23 @@ const SWATCH_HEIGHT: number = 8;
 const ReferenceLineLegend: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const lines: Array<ChartReferenceLineProps> = props.lines.filter(
-    (line: ChartReferenceLineProps): boolean => {
+  /*
+   * In the order the lines are drawn from the top of the plot down: the
+   * legend reads like the plot beside it, so two lines of one colour and
+   * dash (two policy tiers) are told apart by place as well as by name.
+   */
+  const lines: Array<ChartReferenceLineProps> = props.lines
+    .filter((line: ChartReferenceLineProps): boolean => {
       return Boolean(line.label?.trim());
-    },
-  );
+    })
+    .sort(
+      (
+        first: ChartReferenceLineProps,
+        second: ChartReferenceLineProps,
+      ): number => {
+        return second.value - first.value;
+      },
+    );
 
   if (lines.length === 0) {
     return <></>;

@@ -15,6 +15,8 @@ import getJestMockFunction, { MockFunction } from "../../../MockType";
  * legend under the plot instead (ReferenceLineLabelPlacement.Legend): each
  * label beside a short stroke drawn in its line's colour and dash, wrapping
  * on a narrow screen, while the lines themselves are drawn without labels.
+ * The entries read from the top of the plot down, and the legend follows
+ * the time axis's labels with no blank band of the chart's between them.
  *
  * The chart library is replaced by a recorder (recharts draws nothing in
  * jsdom): what matters is which lines it is handed, and what the wrapper
@@ -110,6 +112,7 @@ const LINES: Array<ChartReferenceLineProps> = [
 
 interface LibraryProps {
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
+  isFollowedByLegend?: boolean | undefined;
 }
 
 function lastLibraryProps(): LibraryProps {
@@ -123,6 +126,7 @@ function lastLibraryProps(): LibraryProps {
 function renderChart(
   placement: ReferenceLineLabelPlacement | undefined,
   lines: Array<ChartReferenceLineProps> = LINES,
+  isLegendCentered?: boolean,
 ): HTMLElement {
   const { container } = render(
     <LineChartElement
@@ -135,6 +139,7 @@ function renderChart(
       heightInPx={260}
       referenceLines={lines}
       referenceLineLabelPlacement={placement}
+      isReferenceLineLegendCentered={isLegendCentered}
     />,
   );
 
@@ -147,7 +152,7 @@ afterEach(() => {
 });
 
 describe("ReferenceLineLabelPlacement.Legend", () => {
-  test("names each labelled line under the chart, in the order the lines are given", () => {
+  test("names each labelled line under the chart, from the top of the plot down", () => {
     renderChart(ReferenceLineLabelPlacement.Legend);
 
     const legend: HTMLElement = screen.getByTestId(
@@ -157,11 +162,35 @@ describe("ReferenceLineLabelPlacement.Legend", () => {
       "chart-reference-line-legend-item",
     );
 
+    /*
+     * Given from the bottom up (0, 25, 50), read as the plot is: the
+     * highest line first, whatever order a caller builds its lines in.
+     */
     expect(
       items.map((item: HTMLElement) => {
         return item.textContent;
       }),
-    ).toEqual(["Budget ausgeschöpft", "Gefährdet (25 %)", "Caution 50 %"]);
+    ).toEqual(["Caution 50 %", "Gefährdet (25 %)", "Budget ausgeschöpft"]);
+  });
+
+  test("two lines of one colour and dash are told apart by their place, as on the plot", () => {
+    render(
+      <ReferenceLineLegend
+        lines={[
+          { value: 10, label: "Change freeze 10%", color: "#8b5cf6" },
+          { value: 50, label: "Caution 50%", color: "#8b5cf6" },
+          { value: 30, label: "Reliability first 30%", color: "#8b5cf6" },
+        ]}
+      />,
+    );
+
+    expect(
+      screen
+        .getAllByTestId("chart-reference-line-legend-item")
+        .map((item: HTMLElement) => {
+          return item.textContent;
+        }),
+    ).toEqual(["Caution 50%", "Reliability first 30%", "Change freeze 10%"]);
   });
 
   test("each entry's stroke is drawn in its line's colour and dash, the default dash where it names none", () => {
@@ -181,9 +210,9 @@ describe("ReferenceLineLabelPlacement.Legend", () => {
         ];
       }),
     ).toEqual([
-      ["#ef4444", DEFAULT_REFERENCE_LINE_DASH],
-      ["#f59e0b", "4 4"],
       ["#8b5cf6", "2 3"],
+      ["#f59e0b", "4 4"],
+      ["#ef4444", DEFAULT_REFERENCE_LINE_DASH],
     ]);
     // The stroke is a picture of the line: a screen reader reads the label.
     for (const svg of screen.getAllByTestId(
@@ -249,6 +278,31 @@ describe("ReferenceLineLabelPlacement.Legend", () => {
     expect(container.firstElementChild).toBe(plot.parentElement);
   });
 
+  test("the chart keeps no blank band under its time axis: the legend follows the axis's labels", () => {
+    renderChart(ReferenceLineLabelPlacement.Legend);
+
+    expect(lastLibraryProps().isFollowedByLegend).toBe(true);
+  });
+
+  test("the entries start the line, or are centred under the plot when the chart asks", () => {
+    renderChart(ReferenceLineLabelPlacement.Legend);
+
+    expect(screen.getByTestId("chart-reference-line-legend")).toHaveClass(
+      "mt-2",
+    );
+    expect(screen.getByTestId("chart-reference-line-legend")).not.toHaveClass(
+      "justify-center",
+    );
+
+    cleanup();
+    renderChart(ReferenceLineLabelPlacement.Legend, LINES, true);
+
+    expect(screen.getByTestId("chart-reference-line-legend")).toHaveClass(
+      "mt-2",
+      "justify-center",
+    );
+  });
+
   test("the legend wraps on a narrow screen and reads in the page's direction", () => {
     renderChart(ReferenceLineLabelPlacement.Legend);
 
@@ -277,6 +331,8 @@ describe("ReferenceLineLabelPlacement.Legend", () => {
     expect(
       screen.getByTestId("library-chart").parentElement as HTMLElement,
     ).toHaveClass("flex-1");
+    // Nothing follows the chart: its time axis keeps its usual band.
+    expect(lastLibraryProps().isFollowedByLegend).toBe(false);
   });
 });
 
@@ -299,6 +355,7 @@ describe("ReferenceLineLabelPlacement.OnLine, the default", () => {
 
       expect(plot).toHaveClass("flex-1");
       expect(container.firstElementChild).toBe(plot);
+      expect(lastLibraryProps().isFollowedByLegend).toBe(false);
     },
   );
 });

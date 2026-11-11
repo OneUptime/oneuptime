@@ -25,9 +25,7 @@ import SloHistory from "Common/Models/AnalyticsModels/SloHistory";
 import { DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE } from "Common/Utils/Slo/SloHealth";
 import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "Common/Utils/Slo/SloEvaluation";
 import {
-  BURN_RATE_DECIMALS,
   formatSloBurnRate,
-  formatSloNumber,
   formatSloPercent,
   getSloChartAggregationInterval,
   getSloHistoryMetricName,
@@ -575,6 +573,9 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
    * requiring the reader to remember the threshold - and a line, named for
    * its tier, at every enabled tier of the SLO's error budget policy.
    */
+  const atRiskLinePercentage: number =
+    atRiskThresholdPercentage ?? DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE;
+
   const budgetReferenceLines: Array<ChartReferenceLineProps> =
     getSloPolicyTierReferenceLines({
       lines: [
@@ -584,9 +585,16 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
           color: EXHAUSTED_LINE_COLOR,
         },
         {
-          value:
-            atRiskThresholdPercentage ?? DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
-          label: translator.translateTemplate("At risk"),
+          value: atRiskLinePercentage,
+          /*
+           * "At risk (25%)", as the Overview's burn-down names this line,
+           * and with its figure, as the tiers' lines beside it have theirs.
+           */
+          label: translator.translateTemplate("At risk ({{percent}})", {
+            percent:
+              formatSloPercent(atRiskLinePercentage, undefined, translator) ||
+              "",
+          }),
           color: AT_RISK_LINE_COLOR,
           strokeDasharray: "4 4",
         },
@@ -606,15 +614,15 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
     .map((rule: ServiceLevelObjectiveBurnRateRule) => {
       return {
         value: rule.burnRateThreshold!,
-        label: translator.translateTemplate("{{rule}} {{threshold}}×", {
+        label: translator.translateTemplate("{{rule}} {{threshold}}", {
           rule: rule.name || translatableTerm("Rule"),
-          // "14,4" in German, as the rule's own card writes it.
+          /*
+           * "14,4×" in German, as the rule's own card writes it: the sign
+           * with its figure, so on an Arabic page it stays after the figure
+           * instead of opening the line ("×Fast burn 14.4").
+           */
           threshold:
-            formatSloNumber(
-              rule.burnRateThreshold!,
-              BURN_RATE_DECIMALS,
-              translator,
-            ) || "",
+            formatSloBurnRate(rule.burnRateThreshold!, translator) || "",
         }),
         color: BURN_RULE_LINE_COLOR,
         strokeDasharray: "4 4",

@@ -4,6 +4,7 @@ import {
   getNumberLocale,
   isEnglishDateLanguage,
 } from "../../Types/DateLanguage";
+import { isRightToLeftLanguage } from "../../Types/ReadingDirection";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
 import {
   PluralTemplate,
@@ -44,6 +45,17 @@ const MINUS_SIGN: string = "−";
 
 /** U+00D7 MULTIPLICATION SIGN — burn rate is a multiplier ("3.2×"). */
 const MULTIPLICATION_SIGN: string = "×";
+
+/*
+ * U+200E LEFT-TO-RIGHT MARK. On a page read right to left the burn rate's
+ * sign is set between two of them, as Intl sets Arabic's percent sign (a
+ * mark on each side of the "%"): the sign then stays after its figure,
+ * where the percentages beside it keep theirs - "14.4×" in a tile, a table
+ * cell and after a rule's name ("Fast burn 14.4×"), never "×14.4" or
+ * "×Fast burn 14.4", which the bidi algorithm draws for a bare "×" at the
+ * end of a line read right to left.
+ */
+const LEFT_TO_RIGHT_MARK: string = String.fromCharCode(0x200e);
 
 /*
  * The line under the error budget: "43 min remaining", "−42 min over
@@ -318,7 +330,13 @@ export const formatSloBurnRate: FormatSloBurnRateFunction = (
     translator,
   );
 
-  return figure === null ? null : `${figure}${MULTIPLICATION_SIGN}`;
+  if (figure === null) {
+    return null;
+  }
+
+  return translator && isRightToLeftLanguage(translator.language)
+    ? `${figure}${LEFT_TO_RIGHT_MARK}${MULTIPLICATION_SIGN}${LEFT_TO_RIGHT_MARK}`
+    : `${figure}${MULTIPLICATION_SIGN}`;
 };
 
 /**

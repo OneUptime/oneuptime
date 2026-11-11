@@ -49,6 +49,11 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import AppLink from "../../AppLink/AppLink";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "Common/UI/Utils/LineDirection";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useDashboardListWidgetSort, {
   DashboardListWidgetSort,
@@ -320,7 +325,10 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
                 className="inline-block w-2 h-2 rounded-full"
                 style={{ backgroundColor: entry.color.toString() }}
               ></span>
-              <span className="font-semibold text-gray-700">{entry.count}</span>
+              {/* "۲" on a Persian page, as the figures in the rows. */}
+              <span className="font-semibold text-gray-700">
+                {translator.formatNumber(entry.count)}
+              </span>
               <span>{translator.translateText(entry.label)}</span>
             </span>
           );
@@ -386,6 +394,14 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
       const display: SloListRowDisplay = getSloListRowDisplay(slo, translator);
       const route: Route | undefined = getSloRoute(sloId);
       const statusColor: string = display.statusColor.toString();
+      /*
+       * Cut short at its own end: an English name on an Arabic page loses
+       * its end ("Checkout availab..."), not its start (LineDirection).
+       */
+      const nameDirection: ReadingDirection | undefined = getLineDirection(
+        name,
+        translator.language,
+      );
 
       return (
         <tr
@@ -393,7 +409,13 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
           className="hover:bg-gray-50/50 transition-colors duration-100 group"
           data-testid="slo-list-row"
         >
-          <td className="px-3 py-2 text-xs text-gray-700 truncate max-w-0">
+          <td
+            className={`px-3 py-2 text-xs text-gray-700 truncate max-w-0${
+              nameDirection ? ` ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME}` : ""
+            }`}
+            dir={nameDirection}
+            data-testid="slo-list-name"
+          >
             {route ? (
               <AppLink
                 to={route}

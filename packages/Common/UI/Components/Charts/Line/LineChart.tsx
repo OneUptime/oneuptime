@@ -66,6 +66,12 @@ export interface ComponentProps {
    */
   referenceLineLabelPlacement?: ReferenceLineLabelPlacement | undefined;
   /*
+   * The legend's entries centred under the plot, for a chart whose title
+   * and status are centred above and below it (a dashboard's SLO widget).
+   * Unset, they start the line, under a card's own title.
+   */
+  isReferenceLineLegendCentered?: boolean | undefined;
+  /*
    * Time-anchored annotations: vertical event markers and shaded regions.
    * Dates are snapped onto the categorical x-axis buckets; annotations
    * outside the charted window are dropped (regions clamp to the edge).
@@ -329,6 +335,8 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
         onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
         onBucketClick={props.onBucketClick}
         ghostCategories={props.ghostSeriesNames}
+        // The legend under the plot follows the time axis's labels closely.
+        isFollowedByLegend={hasLabelLegend}
       />
       {hasNoData && <NoDataMessage />}
     </div>
@@ -343,7 +351,9 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
       {chart}
       <ReferenceLineLegend
         lines={props.referenceLines || []}
-        className="mt-2"
+        className={
+          props.isReferenceLineLegendCentered ? "mt-2 justify-center" : "mt-2"
+        }
       />
     </div>
   );
