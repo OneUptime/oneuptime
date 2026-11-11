@@ -35,6 +35,7 @@ import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { isDashboardComponentType } from "Common/Types/Dashboard/DashboardComponentType";
+import { getWidgetTypeBadgeText } from "../Toolbar/WidgetCatalog";
 import ContainedErrorBoundary from "Common/UI/Components/ContainedErrorBoundary/ContainedErrorBoundary";
 
 /*
@@ -71,9 +72,24 @@ export const getWidgetDisplayName: (
   return "";
 };
 
+export const WIDGET_SETTINGS_TYPE_BADGE_TEST_ID: string =
+  "widget-settings-type";
+
+export const WIDGET_SETTINGS_SIZE_TEST_ID: string = "widget-settings-size";
+
+/*
+ * The line under the dialog's title: which kind of widget it is and its
+ * size, wrapping onto a second line before either is cut on a phone.
+ */
+export const WIDGET_SETTINGS_SUMMARY_CLASS_NAME: string =
+  "flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1";
+
+// The kind of widget: cut at its end only when it is wider than the whole line.
+export const WIDGET_SETTINGS_TYPE_BADGE_CLASS_NAME: string =
+  "inline-block min-w-0 max-w-full truncate rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700";
+
 export interface ComponentProps {
   title: string;
-  description: string;
   onClose: () => void;
   onComponentUpdate: (component: DashboardBaseComponent) => void;
   onComponentDelete: (component: DashboardBaseComponent) => void;
@@ -225,6 +241,26 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     component.componentType,
   );
 
+  /*
+   * The badge before the size: the widget's name as the catalog gives it
+   * (issue #6720), in the reader's language - "Funnel", "Docker Hosts" -
+   * never its stored type, unless that is a type OneUptime has no widget
+   * of; none when the widget names no type at all.
+   */
+  const typeBadgeText: string = getWidgetTypeBadgeText(
+    component.componentType,
+    translator,
+  );
+
+  // Its size on the board, in the reader's digits.
+  const sizeText: string = translator.translateTemplate(
+    "{{width}} x {{height}} units",
+    {
+      width: translator.formatNumber(component.widthInDashboardUnits),
+      height: translator.formatNumber(component.heightInDashboardUnits),
+    },
+  );
+
   const aspectRatio: number =
     (component.widthInDashboardUnits || 1) /
     (component.heightInDashboardUnits || 1);
@@ -236,7 +272,33 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={props.title}
-      description={props.description}
+      /*
+       * Under the title, which kind of widget this is and how big: a line
+       * of its own. Beside the title they squeezed it into a column a word
+       * wide on a phone, the long words of a language such as German cut
+       * mid-word.
+       */
+      description={
+        <span className={WIDGET_SETTINGS_SUMMARY_CLASS_NAME}>
+          {typeBadgeText ? (
+            <span
+              className={WIDGET_SETTINGS_TYPE_BADGE_CLASS_NAME}
+              title={typeBadgeText}
+              data-testid={WIDGET_SETTINGS_TYPE_BADGE_TEST_ID}
+            >
+              {typeBadgeText}
+            </span>
+          ) : (
+            <></>
+          )}
+          <span
+            className="whitespace-nowrap text-xs text-gray-500"
+            data-testid={WIDGET_SETTINGS_SIZE_TEST_ID}
+          >
+            {sizeText}
+          </span>
+        </span>
+      }
       modalWidth={ModalWidth.Large}
       onClose={() => {
         props.onComponentUpdate(component);
@@ -265,19 +327,6 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
               setShowDeleteConfirmation(true);
             }}
           />
-        </div>
-      }
-      rightElement={
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 capitalize">
-            {translator.translateText(component.componentType)}
-          </span>
-          <span className="text-xs text-gray-400">
-            {translator.translateTemplate("{{width}} x {{height}} units", {
-              width: component.widthInDashboardUnits,
-              height: component.heightInDashboardUnits,
-            })}
-          </span>
         </div>
       }
     >

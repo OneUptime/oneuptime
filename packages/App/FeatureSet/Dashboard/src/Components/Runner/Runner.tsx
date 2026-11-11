@@ -3,10 +3,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Icon from "Common/UI/Components/Icon/Icon";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import React, { FunctionComponent, ReactElement } from "react";
 import AppLink from "../AppLink/AppLink";
+import RecordLinkName from "../RecordLink/RecordLinkName";
 
 export interface ComponentProps {
   runner: Runner;
@@ -29,14 +29,10 @@ const RunnerElement: FunctionComponent<ComponentProps> = (
         )}
         onNavigateComplete={props.onNavigateComplete}
       >
-        <span className="flex">
-          {props.showIcon ? (
-            <Icon icon={IconProp.Terminal} className="w-5 h-5 mr-1" />
-          ) : (
-            <></>
-          )}{" "}
-          {props.runner.name}
-        </span>
+        <RecordLinkName
+          name={props.runner.name}
+          icon={props.showIcon ? IconProp.Terminal : undefined}
+        />
       </AppLink>
     );
   }

@@ -178,7 +178,7 @@ Every SLO with its status, SLI, error budget and burn rate, the least budget lef
 | **Funnel** | A funnel saved on a RUM application's **Funnels** page: of the people who did its first step in the dashboard's time range, how many went on to each next step. |
 | **User Retention** | A retention table saved on its **User Retention** page: people grouped by when they first did its start event, and the share of each group that came back in each period after, with **All cohorts** above them. |
 
-Save the funnel or the retention table on its page first (see [Saved funnels and retention tables](/docs/rum/product-analytics#saved-funnels-and-retention-tables)), then pick it in the widget's settings. The widget takes its name as its title unless you give it one, and reads it again at each refresh, so a change saved on the page shows on the dashboard. **Open in Funnels** or **Open in User Retention** opens it on its page, in the dashboard's time range. Seeing it takes what seeing the page takes.
+Save the funnel or the retention table on its page first (see [Saved funnels and retention tables](/docs/rum/product-analytics#saved-funnels-and-retention-tables)), then pick it in the widget's settings. The widget takes its name as its title unless you give it one, and reads it again at each refresh, so a change saved on the page shows on the dashboard. **Open in Funnels** or **Open in User Retention** opens it on its page, in the dashboard's time range. Seeing it takes what seeing the page takes. A widget too narrow for every period of its table draws the first ones that fit and says under the table how many more there are; that line opens the table on its page too.
 
 ## Infrastructure
 
