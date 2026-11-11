@@ -339,6 +339,8 @@ describe("the names on the page are the Dashboard's", () => {
     ["Collector release"],
     ["On the host"],
     ["OneUptime defaults"],
+    ["View config"],
+    ["Create a config from it"],
     ["Running"],
     ["Starting"],
     ["Label Rules"],
@@ -355,7 +357,8 @@ describe("the names on the page are the Dashboard's", () => {
 
   test.each([
     ["Products → Infrastructure → Hosts"],
-    ["Products → Infrastructure → Hosts → Collector Configs"],
+    // Collector Configs has the side menu's Configuration section to itself.
+    ["Products → Infrastructure → Hosts → Configuration → Collector Configs"],
     ["Project Settings → Telemetry & APM → Ingestion Keys"],
   ])("the menu path %s", (menuPath: string) => {
     expect(PAGE).toContain(`**${menuPath}**`);

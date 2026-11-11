@@ -126,7 +126,7 @@ curl -fsSL https://oneuptime.com/docs/static/scripts/host-collector/install.sh |
 :::steps
 ### Skapa en insamlarkonfiguration
 
-Öppna **Produkter → Infrastruktur → Värdar → Insamlarkonfigurationer** och välj **Skapa Insamlarkonfiguration**. Ge den ett namn, systemet för de värdar den är till för och, för att bara nå några av dem, deras etiketter. Dess konfiguration börjar som OneUptimes standard för det systemet.
+Öppna **Produkter → Infrastruktur → Värdar → Konfiguration → Insamlarkonfigurationer** och välj **Skapa Insamlarkonfiguration**. Ge den ett namn, systemet för de värdar den är till för och, för att bara nå några av dem, deras etiketter. Dess konfiguration börjar som OneUptimes standard för det systemet.
 
 ### Redigera dess config.yaml
 
@@ -134,14 +134,14 @@ Välj **Redigera konfiguration** på konfigurationens sida, ändra YAML-koden oc
 
 ### Se den nå värdarna
 
-Varje sparad ändring är en ny version, och de värdar den gäller för får den inom en minut. Konfigurationens lista **Värdar** visar varje värd, dess insamlares tillstånd och versionen den kör.
+Varje sparad ändring är en ny version, och de värdar den gäller för får den inom en minut. Konfigurationens flik **Värdar** visar varje värd, dess insamlares tillstånd och versionen den kör.
 :::
 
-En värd kör den första konfigurationen i listan som gäller för den: Dra raderna under **Insamlarkonfigurationer** för att ändra ordningen. Lägg de smalaste konfigurationerna först, till exempel en för webbservrar med `env:production`, och breda, till exempel en för alla Linux-värdar, efter dem. Kortet **OneUptime-standarder** under listan visar vad en värd kör när ingen konfiguration gäller.
+En värd kör den första konfigurationen i listan som gäller för den: Dra raderna under **Insamlarkonfigurationer** för att ändra ordningen. Lägg de smalaste konfigurationerna först, till exempel en för webbservrar med `env:production`, och breda, till exempel en för alla Linux-värdar, efter dem. Varje rad visar hur många värdar som kör konfigurationen och på hur många den misslyckades. Kortet **OneUptime-standarder** under listan visar vad en värd kör när ingen konfiguration gäller, och hur många värdar som kör den. Om du vill ändra det för ett system väljer du **Visa konfiguration** på dess standard och sedan **Skapa en konfiguration från den**.
 
 ### Versioner och återställning
 
-En konfigurations lista **Versioner** sparar varje ändring, nyast först, med vem som sparade den och när. Välj **Visa** för att läsa en version och **Återställ** för att skicka den till värdarna igen: Den sparas som en ny version som anger vilken den återställde, så listan alltid visar vad varje värd fick.
+En konfigurations flik **Versioner** sparar varje ändring, nyast först, med vem som sparade den och när. Välj **Visa** för att läsa en version och **Återställ** för att skicka den till värdarna igen: Den sparas som en ny version som anger vilken den återställde, så listan alltid visar vad varje värd fick.
 
 ### Välj en konfiguration för en värd
 

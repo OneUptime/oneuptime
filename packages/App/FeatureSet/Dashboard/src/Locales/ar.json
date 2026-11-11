@@ -49862,5 +49862,21 @@
   "What your team calls it, on this page and on dashboards.": "الاسم الذي يستخدمه فريقك، في هذه الصفحة وفي لوحات المعلومات.",
   "{{name}} (changed)": "{{name}} (تم تغييره)",
   "{{name}} cannot be opened: reload the page, or delete it and save it again.": "يتعذّر فتح {{name}}: أعد تحميل الصفحة، أو احذفه واحفظه مجددًا.",
-  "Weekly return after sign-up": "العودة الأسبوعية بعد التسجيل"
+  "Weekly return after sign-up": "العودة الأسبوعية بعد التسجيل",
+  "A config someone picked on the host's Collector page.": "إعداد اختاره أحدهم في صفحة المجمّع الخاصة بالمضيف.",
+  "Checked from the top of this list, by the host's system and labels.": "يُفحص من أعلى هذه القائمة، حسب نظام المضيف وتسمياته.",
+  "Create a config from it": "إنشاء إعداد منه",
+  "For the host's system, when no config applies.": "لنظام المضيف، عندما لا ينطبق أي إعداد.",
+  "Host metrics": "مقاييس المضيف",
+  "Host metrics and the install and Wi-Fi logs": "مقاييس المضيف وسجلات التثبيت وسجلات Wi-Fi",
+  "Host metrics, event logs and Windows services": "مقاييس المضيف وسجلات الأحداث وخدمات Windows",
+  "Host metrics, the journal and systemd units": "مقاييس المضيف وسجل journal ووحدات systemd",
+  "No Collector Configs yet. Every host runs OneUptime's default for its system, shown below.": "لا توجد إعدادات مجمّع بعد. ويشغّل كل مضيف الإعداد الافتراضي لـ OneUptime الخاص بنظامه، المعروض أدناه.",
+  "OneUptime's default": "الإعداد الافتراضي لـ OneUptime",
+  "Picked for the host": "مختار للمضيف",
+  "The config OneUptime sends to the hosts it manages. Each host runs the first config that applies to it, from the top: drag the rows to change the order.": "الإعداد الذي يرسله OneUptime إلى المضيفين الذين يديرهم. ويشغّل كل مضيف أول إعداد ينطبق عليه بدءًا من الأعلى: اسحب الصفوف لتغيير الترتيب.",
+  "The first config that applies": "أول إعداد ينطبق",
+  "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "لمن هذا الإعداد، وكم مضيفًا يشغّله الآن. ويشغّل المضيف أول إعداد في القائمة ينطبق عليه.",
+  "How a host gets its config": "كيف يحصل المضيف على إعداده",
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "عندما لا ينطبق على المضيف أي إعداد أعلاه، فإنه يشغّل الإعداد الافتراضي لنظامه. وتتبع الإعدادات الافتراضية إصدارات OneUptime."
 }

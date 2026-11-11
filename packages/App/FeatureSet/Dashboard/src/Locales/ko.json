@@ -49862,5 +49862,21 @@
   "What your team calls it, on this page and on dashboards.": "이 페이지와 대시보드에서 팀이 부르는 이름입니다.",
   "{{name}} (changed)": "{{name}} (변경됨)",
   "{{name}} cannot be opened: reload the page, or delete it and save it again.": "{{name}}을(를) 열 수 없습니다. 페이지를 새로 고치거나, 삭제한 뒤 다시 저장하세요.",
-  "Weekly return after sign-up": "가입 후 주간 재방문"
+  "Weekly return after sign-up": "가입 후 주간 재방문",
+  "A config someone picked on the host's Collector page.": "누군가 호스트의 컬렉터 페이지에서 선택한 구성입니다.",
+  "Checked from the top of this list, by the host's system and labels.": "이 목록의 위에서부터 호스트의 시스템과 레이블로 확인합니다.",
+  "Create a config from it": "이 기본값으로 구성 만들기",
+  "For the host's system, when no config applies.": "적용되는 구성이 없을 때 호스트의 시스템용 구성입니다.",
+  "Host metrics": "호스트 메트릭",
+  "Host metrics and the install and Wi-Fi logs": "호스트 메트릭과 설치 및 Wi-Fi 로그",
+  "Host metrics, event logs and Windows services": "호스트 메트릭, 이벤트 로그 및 Windows 서비스",
+  "Host metrics, the journal and systemd units": "호스트 메트릭, 저널 및 systemd 유닛",
+  "No Collector Configs yet. Every host runs OneUptime's default for its system, shown below.": "아직 컬렉터 구성이 없습니다. 각 호스트는 아래에 표시된 해당 시스템의 OneUptime 기본값을 실행합니다.",
+  "OneUptime's default": "OneUptime 기본값",
+  "Picked for the host": "호스트용으로 선택됨",
+  "The config OneUptime sends to the hosts it manages. Each host runs the first config that applies to it, from the top: drag the rows to change the order.": "OneUptime이 관리하는 호스트에 보내는 구성입니다. 각 호스트는 위에서부터 적용되는 첫 번째 구성을 실행합니다. 행을 끌어 순서를 바꾸세요.",
+  "The first config that applies": "적용되는 첫 번째 구성",
+  "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "이 구성의 대상과 지금 이 구성을 실행하는 호스트 수입니다. 호스트는 목록에서 적용되는 첫 번째 구성을 실행합니다.",
+  "How a host gets its config": "호스트가 구성을 받는 방식",
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "위의 구성 중 호스트에 적용되는 것이 없으면 호스트는 해당 시스템의 기본값을 실행합니다. 기본값은 OneUptime 릴리스를 따릅니다."
 }

@@ -49862,5 +49862,21 @@
   "What your team calls it, on this page and on dashboards.": "आपकी टीम इसे जिस नाम से बुलाती है, इस पेज पर और डैशबोर्ड पर।",
   "{{name}} (changed)": "{{name}} (बदला गया)",
   "{{name}} cannot be opened: reload the page, or delete it and save it again.": "{{name}} नहीं खोला जा सकता: पेज फिर से लोड करें, या इसे हटाकर फिर से सहेजें।",
-  "Weekly return after sign-up": "साइन-अप के बाद साप्ताहिक वापसी"
+  "Weekly return after sign-up": "साइन-अप के बाद साप्ताहिक वापसी",
+  "A config someone picked on the host's Collector page.": "वह कॉन्फ़िग जिसे किसी ने होस्ट के कलेक्टर पेज पर चुना है।",
+  "Checked from the top of this list, by the host's system and labels.": "इस सूची में ऊपर से, होस्ट के सिस्टम और लेबल के आधार पर जाँचा जाता है।",
+  "Create a config from it": "इससे एक कॉन्फ़िग बनाएँ",
+  "For the host's system, when no config applies.": "होस्ट के सिस्टम के लिए, जब कोई कॉन्फ़िग लागू नहीं होता।",
+  "Host metrics": "होस्ट मेट्रिक्स",
+  "Host metrics and the install and Wi-Fi logs": "होस्ट मेट्रिक्स और इंस्टॉल व Wi-Fi लॉग",
+  "Host metrics, event logs and Windows services": "होस्ट मेट्रिक्स, इवेंट लॉग और Windows सेवाएँ",
+  "Host metrics, the journal and systemd units": "होस्ट मेट्रिक्स, journal और systemd यूनिट",
+  "No Collector Configs yet. Every host runs OneUptime's default for its system, shown below.": "अभी तक कोई कलेक्टर कॉन्फ़िग नहीं। हर होस्ट अपने सिस्टम के लिए OneUptime का डिफ़ॉल्ट चलाता है, जो नीचे दिखाया गया है।",
+  "OneUptime's default": "OneUptime का डिफ़ॉल्ट",
+  "Picked for the host": "होस्ट के लिए चुना गया",
+  "The config OneUptime sends to the hosts it manages. Each host runs the first config that applies to it, from the top: drag the rows to change the order.": "वह कॉन्फ़िग जो OneUptime अपने प्रबंधित होस्ट को भेजता है। हर होस्ट ऊपर से, उस पर लागू होने वाला पहला कॉन्फ़िग चलाता है: क्रम बदलने के लिए पंक्तियाँ खींचें।",
+  "The first config that applies": "लागू होने वाला पहला कॉन्फ़िग",
+  "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "यह कॉन्फ़िग किसके लिए है, और अभी कितने होस्ट इसे चलाते हैं। होस्ट सूची का वह पहला कॉन्फ़िग चलाता है जो उस पर लागू होता है।",
+  "How a host gets its config": "होस्ट को उसका कॉन्फ़िग कैसे मिलता है",
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "जब ऊपर का कोई कॉन्फ़िग किसी होस्ट पर लागू नहीं होता, तो वह अपने सिस्टम का डिफ़ॉल्ट चलाता है। डिफ़ॉल्ट OneUptime की रिलीज़ के साथ चलते हैं।"
 }
