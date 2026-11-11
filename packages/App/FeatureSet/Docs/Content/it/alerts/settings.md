@@ -6,7 +6,7 @@ La configurazione degli avvisi sta dentro **Avvisi**, non nelle **Impostazioni d
 - [Le regole che un nuovo avviso attraversa](#le-regole-che-un-nuovo-avviso-attraversa): In ordine, e che cosa fa ciascuna.
 - [Regole di reperibilità](#regole-di-reperibilità): Chiamare le persone giuste senza scegliere una policy ogni volta.
 - [Regole di promemoria](#regole-di-promemoria): Ricordare ai proprietari un avviso finché resta aperto.
-- [Impostazioni](#impostazioni): Modelli di note, campi personalizzati, misurazioni, appartenenza agli episodi e numerazione.
+- [Impostazioni](#impostazioni): Modelli di note, campi personalizzati, misurazioni, appartenenza agli episodi, numerazione e conservazione dei dati.
 :::
 
 ## Dove si trovano le impostazioni degli avvisi
@@ -24,7 +24,7 @@ Aprite **Avvisi** dal menu **Prodotti** nella barra superiore. Le sezioni **Rego
 | **Regole etichette**           | Aggiunge etichette agli avvisi e agli episodi corrispondenti.                                  |
 | **Regole dei promemoria**             | Ricorda ai proprietari, a intervalli, un avviso finché è aperto.                               |
 
-La sezione **Impostazioni** contiene **Stato avviso** e **Gravità avviso**, trattati in [Stati e gravità degli avvisi](/docs/alerts/states-and-severities), poi **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Appartenenza agli episodi** e **Numerazione**, trattati più sotto.
+La sezione **Impostazioni** contiene **Stato avviso** e **Gravità avviso**, trattati in [Stati e gravità degli avvisi](/docs/alerts/states-and-severities), poi **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Appartenenza agli episodi**, **Numerazione** e **Conservazione dei dati**, trattati più sotto.
 
 Altre due sezioni agiscono sugli avvisi. **Avvisi → IA → Impostazioni** decide che cosa fa OneUptime AI da solo: **Indaga sui nuovi avvisi**, attivo nei nuovi progetti, e **Correggi automaticamente i nuovi avvisi**, disattivato finché non lo attivate. Vedere [AI SRE](/docs/ai/ai-sre). **Avvisi → Area di lavoro** contiene le regole di Slack e Microsoft Teams che pubblicano avvisi ed episodi nei canali, e la sua scheda **Riepilogo**. Vedere [Slack](/docs/workspace-connections/slack).
 
@@ -168,6 +168,10 @@ La misurazione **Tempo di riconoscimento dopo la chiamata** conta da **Qualcuno 
 **Avvisi → Impostazioni → Numerazione** imposta il testo davanti ai numeri di avvisi ed episodi: `ALT-` e `AE-` in un nuovo progetto, o `#` senza prefisso. **Aggiorna** apre **Prefisso del numero dell'avviso** e **Prefisso del numero dell'episodio di avviso**, con un'anteprima mentre digitate. Solo gli avvisi e gli episodi creati in seguito ricevono il nuovo prefisso. Le regole per un prefisso sono in [Prefissi dei numeri](/docs/incidents/settings#prefissi-dei-numeri).
 
 La scheda **Numero successivo** sotto imposta il numero che ricevono il prossimo avviso e il prossimo episodio, per proseguire i numeri di un altro strumento: **Aggiorna** apre **Numero successivo dell'avviso** e **Numero successivo dell'episodio di avviso**, ciascuno maggiore del più alto usato finora. Vedete [Numeri successivi](/docs/incidents/settings#numeri-successivi).
+
+### Conservazione dei dati
+
+**Avvisi → Impostazioni → Conservazione dei dati** elimina gli avvisi quando sono risolti da abbastanza tempo, come fa [Conservazione dei dati](/docs/incidents/settings#conservazione-dei-dati) per gli incidenti. La sua scheda **Avvisi risolti** chiede **Elimina dopo**, **Mai** finché non scegliete una durata, e chiede conferma prima di eliminare di più, con **Elimina gli avvisi vecchi**. Un avviso resta finché non è risolto, finché fa parte di un episodio ancora aperto o risolto più di recente, e finché resta un incidente a cui è collegato. Solo i Project Owners e i Project Admins possono modificarla; nell'API è `alertRetentionInDays` del progetto.
 
 > [!NOTE]
 > Su OneUptime Cloud, i modelli di note e i campi personalizzati richiedono il piano **Growth** o superiore.

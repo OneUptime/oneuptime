@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 50430,
+    "keys": 50637,
     "untranslated": 9714
   },
   "sameAsEnglish": [
@@ -441,6 +441,7 @@
     "{{count}} MB",
     "{{count}} SLO",
     "{{count}} SLOs",
+    "{{count}} SMS",
     "{{count}} VM",
     "{{count}} VMs",
     "{{count}} app",

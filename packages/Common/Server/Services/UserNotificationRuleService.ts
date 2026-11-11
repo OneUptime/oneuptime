@@ -233,6 +233,7 @@ import EpisodeMemberEmailList, {
   EpisodeMemberEmailListItem,
   INCIDENT_NUMBER_BADGE,
 } from "../Utils/Mail/EpisodeMemberEmailList";
+import OnCallTestPageDelivery from "../Utils/OnCall/OnCallTestPageDelivery";
 
 // The record a page to a custom channel is about, with the words its push would carry.
 interface CustomChannelPagedRecord {
@@ -1147,6 +1148,27 @@ export class Service extends ProjectReferencesService<Model> {
     notificationRuleItem: Model,
     options: ExecuteNotificationRuleOptions,
   ): Promise<boolean> {
+    /*
+     * A test page (OnCallTestPage) is about no record: every method of the
+     * rule gets the test's own message - TEST first, in the person's
+     * language - through the same senders, each a row of the person's
+     * timeline as for any page (OnCallTestPageDelivery).
+     */
+    if (
+      options.userNotificationEventType === UserNotificationEventType.TestPage
+    ) {
+      return await OnCallTestPageDelivery.deliver({
+        rule: notificationRuleItem,
+        options: options,
+        translator: getServerTranslator(
+          await UserLanguage.getLanguage(notificationRuleItem.userId),
+        ),
+        newTimelineRow: (): UserOnCallLogTimeline => {
+          return this.buildLogTimelineItem(notificationRuleItem, options);
+        },
+      });
+    }
+
     /*
      * The project's default Twilio config for SMS, and its default for
      * calls - one config, when it is the default for both - for the

@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 50430,
+    "keys": 50637,
     "untranslated": 9757
   },
   "sameAsEnglish": [
@@ -431,6 +431,7 @@
     "Tags",
     "Tags ({{count}})",
     "Team",
+    "Team {{name}}",
     "Teams",
     "Tebibytes",
     "Tenancy",

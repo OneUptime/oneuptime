@@ -929,6 +929,12 @@ export default class SecurityCase extends BaseModel {
   public incident?: Incident = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
+  /*
+   * Indexed: deleting the record it points at finds these rows by it
+   * (the foreign key's ON DELETE), as the purge of resolved incidents
+   * and alerts does in batches (#6903), without reading the whole table.
+   */
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     canReadOnRelationQuery: true,

@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 50430,
+    "keys": 50637,
     "untranslated": 5457
   },
   "sameAsEnglish": [
@@ -690,6 +690,7 @@
     "{{count}} CPU",
     "{{count}} Kubernetes",
     "{{count}} SLO",
+    "{{count}} SMS",
     "{{count}} VM",
     "{{count}} action",
     "{{count}} actions",

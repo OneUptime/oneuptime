@@ -32,7 +32,7 @@ Skriv inn et **Prosjektnavn**, for eksempel navnet på bedriften din. På OneUpt
 
 ### Opprett det
 
-Klikk på **Opprett prosjekt**. Prosjektets startside åpnes, med sjekklisten **Velkommen til OneUptime 👋** øverst.
+Klikk på **Opprett prosjekt**. Prosjektets startside åpnes, med sjekklisten **Velkommen til OneUptime 👋** øverst. Først spør den **Hva vil du gjøre først?**: kryss av for **Vite når nettstedet eller API-et mitt er nede**, **Varsle rett person når noe går ned** og **Fortelle kundene mine det med en statusside**, og klikk på **Fortsett**.
 :::
 
 ## Overvåk nettstedet ditt

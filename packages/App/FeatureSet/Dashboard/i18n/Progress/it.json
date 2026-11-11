@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 50430,
+    "keys": 50637,
     "untranslated": 9724
   },
   "sameAsEnglish": [
@@ -301,6 +301,7 @@
     "Task · 44% CPU · 610 MB",
     "Task · 52% CPU · 512 MB",
     "Team",
+    "Team {{name}}",
     "Tenancy",
     "Test",
     "Threat Intel",
@@ -469,6 +470,7 @@
     "{{count}} Kubernetes",
     "{{count}} MB",
     "{{count}} SLO",
+    "{{count}} SMS",
     "{{count}} VM",
     "{{count}} app",
     "{{count}} appliance",

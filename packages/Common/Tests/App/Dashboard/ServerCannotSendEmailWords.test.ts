@@ -219,9 +219,33 @@ describe("where the pages say them", () => {
     return fs.readFileSync(path.join(DASHBOARD_SRC, ...segments), "utf8");
   }
 
+  /*
+   * Home's on-call step has its words in the Welcome checklist's catalog,
+   * and knows whether the server can send from the checklist's one server
+   * answer (issue #6803), which reads the same sending status.
+   */
+  test("Home's on-call step says onCallStepDescription when the server cannot send email", () => {
+    const catalog: string = read(
+      "Components",
+      "Home",
+      "WelcomeChecklist",
+      "WelcomeChecklistCatalog.ts",
+    );
+    const card: string = read("Components", "Home", "GettingStarted.tsx");
+
+    expect(catalog).toContain("SERVER_EMAIL_COPY.onCallStepDescription");
+    expect(catalog).toContain(
+      "SERVER_EMAIL_COPY.onCallStepDescriptionForAdmin",
+    );
+    expect(card).toContain("canSendEmail: answer.canSendEmail,");
+    expect(card).toContain("isMasterAdmin: Boolean(UserUtil.isMasterAdmin()),");
+    expect(card).toContain(
+      "getGettingStartedTaskDescription(entry, serverEmail)",
+    );
+  });
+
   test.each([
     [["Pages", "Monitor", "Create.tsx"], "createMonitorDescription"],
-    [["Components", "Home", "GettingStarted.tsx"], "onCallStepDescription"],
     [["Pages", "Users", "Index.tsx"], "inviteEmailDescription"],
     [["Pages", "Teams", "View", "Members.tsx"], "inviteEmailDescription"],
   ] as Array<[Array<string>, string]>)(

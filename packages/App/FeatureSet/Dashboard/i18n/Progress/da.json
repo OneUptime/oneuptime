@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 50430,
+    "keys": 50637,
     "untranslated": 9734
   },
   "sameAsEnglish": [
@@ -323,10 +323,12 @@
     "Tags",
     "Tags ({{count}})",
     "Team",
+    "Team {{name}}",
     "Teams",
     "Tenancy",
     "Test",
     "Test {{name}}",
+    "Test {{policy}}",
     "Tip",
     "Token",
     "Tokens",

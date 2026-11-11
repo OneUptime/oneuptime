@@ -24,6 +24,8 @@ import StatTile, {
   StatTileGrid,
 } from "../../Components/OnCallPolicy/Readiness/StatTile";
 import UserElement from "../../Components/User/User";
+import SendTestPageModal from "../../Components/OnCallTestPage/SendTestPageModal";
+import { canSendTestPageToMember } from "../../Components/OnCallTestPage/OnCallTestPageAccess";
 import PageComponentProps from "../PageComponentProps";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -968,6 +970,8 @@ const OnCallReadinessPage: FunctionComponent<
   const [itemsOnPage, setItemsOnPage] = useState<number>(DEFAULT_ITEMS_ON_PAGE);
 
   const [coverageRow, setCoverageRow] = useState<ResponderRow | null>(null);
+  // The responder a test page is being sent to (OnCallTestPage).
+  const [testPageRow, setTestPageRow] = useState<ResponderRow | null>(null);
 
   /*
    * Selection is kept as ids rather than as rows, so it survives a refresh that
@@ -1647,6 +1651,27 @@ const OnCallReadinessPage: FunctionComponent<
         onCompleteAction();
       },
     },
+    /*
+     * Beside "Send setup reminder": prove a responder can be reached, with
+     * a test page through their own rules (OnCallTestPage). Offered to the
+     * people the server lets send one - who may send a setup reminder.
+     */
+    ...(canSendTestPageToMember()
+      ? [
+          {
+            title: "Send test page",
+            icon: IconProp.Beaker,
+            buttonStyleType: ButtonStyleType.NORMAL,
+            onClick: (
+              row: ResponderRow,
+              onCompleteAction: () => void,
+            ): void => {
+              setTestPageRow(row);
+              onCompleteAction();
+            },
+          },
+        ]
+      : []),
   ];
 
   /*
@@ -1980,6 +2005,20 @@ const OnCallReadinessPage: FunctionComponent<
        * is severities down by rule types across and is wider than a table cell,
        * and opening one in place used to push every row below it off the screen.
        */}
+      {testPageRow ? (
+        <SendTestPageModal
+          target={{
+            kind: "member",
+            userId: testPageRow._id,
+            userName: testPageRow.responder,
+          }}
+          onClose={() => {
+            setTestPageRow(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
       {coverageRow && (
         <Modal
           title={translator.translateTemplate("Coverage for {{responder}}", {

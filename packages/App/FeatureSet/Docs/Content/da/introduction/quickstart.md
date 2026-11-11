@@ -32,7 +32,7 @@ Indtast et **Projektnavn**, for eksempel din virksomheds navn. På OneUptime Clo
 
 ### Opret det
 
-Klik på **Opret projekt**. Dit projekts startside åbner, med tjeklisten **Velkommen til OneUptime 👋** øverst.
+Klik på **Opret projekt**. Dit projekts startside åbner, med tjeklisten **Velkommen til OneUptime 👋** øverst. Først spørger den **Hvad vil du gøre først?**: sæt flueben ved **Vide, når mit website eller API er nede**, **Tilkalde den rette person, når noget går ned** og **Fortælle mine kunder det via en statusside**, og klik på **Fortsæt**.
 :::
 
 ## Overvåg dit websted
