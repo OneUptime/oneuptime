@@ -9,10 +9,10 @@ import {
 } from "./TranslatedLanguages";
 
 describe("wordAsWrittenIn", () => {
-  test("Arabic names a format without its dot", () => {
-    expect(wordAsWrittenIn("ar", ".txt")).toBe("txt");
-    expect(wordAsWrittenIn("ar", ".csv")).toBe("csv");
-    expect(wordAsWrittenIn("ar", ".env")).toBe("env");
+  test("Arabic names a format with its dot, as en.json writes it", () => {
+    expect(wordAsWrittenIn("ar", ".txt")).toBe(".txt");
+    expect(wordAsWrittenIn("ar", ".csv")).toBe(".csv");
+    expect(wordAsWrittenIn("ar", ".env")).toBe(".env");
   });
 
   test("Arabic names a family of attributes by the name they start with", () => {
