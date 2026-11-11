@@ -162,6 +162,10 @@ describe("an SMS", () => {
     jest
       .spyOn(SmsLogService, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined as never);
+    // The send's result is written only while the log still says Sending.
+    jest
+      .spyOn(SmsLogService, "compareAndSetColumnsByIdWithoutHooks")
+      .mockResolvedValue(true as never);
   });
 
   const sentBody: () => string = (): string => {

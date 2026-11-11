@@ -6,7 +6,6 @@ import CallLog from "Common/Models/DatabaseModels/CallLog";
 import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import TelegramLog from "Common/Models/DatabaseModels/TelegramLog";
-import WhatsAppLog from "Common/Models/DatabaseModels/WhatsAppLog";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import Redis from "Common/Server/Infrastructure/Redis";
 import Semaphore, {
@@ -381,6 +380,14 @@ beforeEach(() => {
   jest
     .spyOn(SmsLogService, "updateColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined as never);
+  // The send's result is written only while the log still says Sending.
+  jest
+    .spyOn(SmsLogService, "compareAndSetColumnsByIdWithoutHooks")
+    .mockResolvedValue(true as never);
+  // A WhatsApp message's log, written before the send, gets its result after.
+  jest
+    .spyOn(WhatsAppLogService, "updateColumnsByIdWithoutHooks")
+    .mockResolvedValue(undefined as never);
   jest
     .spyOn(UserOnCallLogTimelineService, "updateOneById")
     .mockResolvedValue(undefined as never);
@@ -591,7 +598,7 @@ describe("the log of each message records what it cost, in whole cents", () => {
     });
 
     const update: { data: { smsCostInUSDCents: number; status: string } } = (
-      SmsLogService.updateColumnsByIdWithoutHooks as unknown as jest.Mock
+      SmsLogService.compareAndSetColumnsByIdWithoutHooks as unknown as jest.Mock
     ).mock.calls[0]![0] as {
       data: { smsCostInUSDCents: number; status: string };
     };
@@ -613,10 +620,17 @@ describe("the log of each message records what it cost, in whole cents", () => {
   test("WhatsApp: 29 cents, where the old arithmetic took and logged 28", async () => {
     await WhatsAppService.sendWhatsApp(whatsApp(), { projectId: PROJECT_ID });
 
-    const log: WhatsAppLog = logged<WhatsAppLog>(WhatsAppLogService).pop()!;
+    // Its log is written before the send, and gets the send's result after.
+    const update: {
+      data: { whatsAppCostInUSDCents: number; status: string };
+    } = (
+      WhatsAppLogService.updateColumnsByIdWithoutHooks as unknown as jest.Mock
+    ).mock.calls[0]![0] as {
+      data: { whatsAppCostInUSDCents: number; status: string };
+    };
 
-    expect(log.whatsAppCostInUSDCents).toBe(29);
-    expect(log.status).toBe(WhatsAppStatus.Sent);
+    expect(update.data.whatsAppCostInUSDCents).toBe(29);
+    expect(update.data.status).toBe(WhatsAppStatus.Sent);
   });
 
   test("Telegram: 29 cents, where the old arithmetic took and logged 28", async () => {
