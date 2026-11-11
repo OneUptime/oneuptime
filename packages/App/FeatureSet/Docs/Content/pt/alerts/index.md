@@ -1,6 +1,6 @@
 # Visão geral dos alertas
 
-Um alerta avisa sua equipe sobre um problema que deve ser examinado antes que seus usuários percebam: um disco enchendo, um certificado prestes a expirar, uma taxa de erros subindo aos poucos. Ele pode acionar quem está de plantão e notificar seus proprietários, mas nunca aparece em uma página de status e nunca avisa seus assinantes. Esta página explica de onde vêm os alertas, onde eles ficam no painel e como sua equipe trabalha com eles.
+Um alerta avisa sua equipe sobre um problema que deve ser examinado antes que seus usuários percebam: um disco enchendo, um certificado prestes a expirar, uma taxa de erros subindo aos poucos. Ele pode acionar quem está de plantão e notificar seus proprietários, mas nunca aparece em uma página de status e nunca avisa seus assinantes. Esta página explica de onde vêm os alertas, onde eles ficam no painel e como sua equipe trabalha com eles. Não sabe se um problema é um alerta ou um incidente? [Qual devo usar?](/docs/introduction/which-one#incidente-alerta-ou-outro-tipo-de-problema) coloca os dois lado a lado.
 
 :::cards
 - [Alertas e incidentes](#alertas-e-incidentes): O que um problema deve ser e como os dois se relacionam.

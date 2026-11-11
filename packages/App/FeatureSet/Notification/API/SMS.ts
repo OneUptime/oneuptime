@@ -1,6 +1,7 @@
 import SmsService from "../Services/SmsService";
 import { isStatusCallbackTokenValid } from "../Utils/StatusCallbackToken";
 import { getProviderConfigOfCallback } from "../Utils/StatusCallbackProviderConfig";
+import { recordProviderReport } from "../Utils/OnCallNotificationStatus";
 import Select from "Common/Server/Types/Database/Select";
 import NotificationDeliveryMetrics, {
   NotificationDeliveryChannel,
@@ -28,7 +29,6 @@ import UserNotificationStatus from "Common/Types/UserNotification/UserNotificati
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
 import SmsLogService from "Common/Server/Services/SmsLogService";
-import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -47,7 +47,6 @@ import TestSendAccess, {
 } from "Common/Server/API/TestSendAccess";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
-import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -302,51 +301,23 @@ router.post(
       /*
        * Reflect a failed delivery back onto the linked on-call timeline entry — the
        * optimistic "Sent" recorded at submit time was wrong. Only correct the optimistic
-       * "Sending"/"Sent" states; never clobber a user action (Acknowledged) or an
-       * intentional Skipped.
+       * "Sending"/"Sent" states, in the same statement as the check; never clobber a
+       * user action (Acknowledged) or an intentional Skipped (OnCallNotificationStatus).
+       * The send writes the timeline only while it still says Sending, so a callback
+       * that lands first is not undone by it.
+       *
+       * A failed/undelivered on-call SMS could trigger escalation to the next rule
+       * here in the future. Intentionally not implemented yet.
        */
       if (
         smsLog.userOnCallLogTimelineId &&
         SmsService.isFailureStatus(mappedStatus)
       ) {
-        const timeline: UserOnCallLogTimeline | null =
-          await UserOnCallLogTimelineService.findOneById({
-            id: smsLog.userOnCallLogTimelineId,
-            select: {
-              _id: true,
-              status: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        const correctableStatuses: Array<UserNotificationStatus> = [
-          UserNotificationStatus.Sent,
-          UserNotificationStatus.Sending,
-        ];
-
-        if (
-          timeline &&
-          timeline.status &&
-          correctableStatuses.includes(timeline.status)
-        ) {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: smsLog.userOnCallLogTimelineId,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: statusMessage,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-          /*
-           * A failed/undelivered on-call SMS could trigger escalation to the next rule
-           * here in the future. Intentionally not implemented yet.
-           */
-        }
+        await recordProviderReport({
+          userOnCallLogTimelineId: smsLog.userOnCallLogTimelineId,
+          status: UserNotificationStatus.Error,
+          statusMessage: statusMessage,
+        });
       }
 
       return Response.sendEmptySuccessResponse(req, res);

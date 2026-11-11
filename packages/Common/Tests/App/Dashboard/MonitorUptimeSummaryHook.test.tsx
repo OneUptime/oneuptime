@@ -28,6 +28,7 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Color from "../../../Types/Color";
+import OneUptimeDate from "../../../Types/Date";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
@@ -227,9 +228,13 @@ beforeEach(() => {
   jest.spyOn(PermissionUtil, "getAllPermissions").mockImplementation(() => {
     return permissions;
   });
+  /*
+   * The zone every other time on the Dashboard is shown in: the user's own
+   * when they picked one, else the browser's.
+   */
   jest
-    .spyOn(MonitorUptimeSummaryUtil, "getBrowserTimezone")
-    .mockReturnValue("America/New_York");
+    .spyOn(OneUptimeDate, "getCurrentTimezone")
+    .mockReturnValue("America/New_York" as never);
 
   apiGetSpy = jest.spyOn(API, "get");
   apiGetSpy.mockImplementation((...args: Array<unknown>): Promise<unknown> => {
@@ -292,6 +297,46 @@ describe("useMonitorUptimeSummary", () => {
     expect(summary.buckets).toHaveLength(1);
     expect(summary.windows[0]!.key).toBe(MonitorUptimeWindowKey.Last24Hours);
     expect(summary.statuses[0]!.name).toBe("Operational");
+  });
+
+  test("asks for the bars in the user's own zone, not the browser's, so they are the days every other time on the Dashboard is shown in", async () => {
+    jest.restoreAllMocks();
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+    jest.spyOn(PermissionUtil, "getAllPermissions").mockImplementation(() => {
+      return permissions;
+    });
+    apiGetSpy = jest.spyOn(API, "get");
+    apiGetSpy.mockImplementation((): Promise<unknown> => {
+      return Promise.resolve(
+        okResponse(MonitorUptimeSummaryUtil.toJSON(buildSummary(MONITOR_ID))),
+      );
+    });
+    getListSpy = jest.spyOn(ModelAPI, "getList");
+    getListSpy.mockImplementation((): Promise<unknown> => {
+      return Promise.resolve({
+        data: [],
+        count: 0,
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+      });
+    });
+
+    // the browser is in New York; the user's settings say Kolkata.
+    jest
+      .spyOn(MonitorUptimeSummaryUtil, "getBrowserTimezone")
+      .mockReturnValue("America/New_York");
+    OneUptimeDate.setUserTimezone("Asia/Calcutta" as never);
+
+    try {
+      renderSummary();
+      await flush();
+
+      expect(apiGetRequests()[0]!.url.toString()).toContain(
+        "?timezone=Asia%2FKolkata",
+      );
+    } finally {
+      OneUptimeDate.setUserTimezone(null);
+    }
   });
 
   test("the incident overlay covers exactly the summary's window, and maps markers", async () => {

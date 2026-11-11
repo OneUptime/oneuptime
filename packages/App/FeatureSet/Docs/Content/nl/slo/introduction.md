@@ -1,6 +1,6 @@
 # SLO's – Overzicht
 
-Een service level objective (SLO) is een betrouwbaarheidsdoel voor wat u bewaakt, zoals "99,9% van de tijd beschikbaar over een voortschrijdende periode van 30 dagen". OneUptime meet elke SLO elke 5 minuten tegen zijn doel, zodat u in plaats van "werkt het nu?" kunt antwoorden op "zijn we betrouwbaar genoeg geweest, over een periode die voor onze gebruikers telt, en hoeveel ruimte voor fouten hebben we nog?".
+Een service level objective (SLO) is een betrouwbaarheidsdoel voor wat u bewaakt, zoals "99,9% van de tijd beschikbaar over een voortschrijdende periode van 30 dagen". OneUptime meet elke SLO elke 5 minuten tegen zijn doel, zodat u in plaats van "werkt het nu?" kunt antwoorden op "zijn we betrouwbaar genoeg geweest, over een periode die voor onze gebruikers telt, en hoeveel ruimte voor fouten hebben we nog?". De [Woordenlijst](/docs/introduction/glossary#slo) zet SLO's naast de andere woorden die OneUptime gebruikt.
 
 :::cards
 - [Een SLO aanmaken](#een-slo-aanmaken): Een naam en een doel. Al het andere begint met een standaardwaarde.
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 ## Belangrijke begrippen
+
+De woorden die in heel OneUptime worden gebruikt, staan in de [Woordenlijst](/docs/introduction/glossary).
 
 | Begrip | Betekenis |
 | --- | --- |

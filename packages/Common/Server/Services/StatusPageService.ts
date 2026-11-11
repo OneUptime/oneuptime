@@ -71,6 +71,7 @@ import MonitorStatusTimelineService, {
   MergedDowntimeTotals,
 } from "./MonitorStatusTimelineService";
 import {
+  MonitorGroupUptimeDailyAggregate,
   UptimeDailyAggregate,
   UptimeDayBucket,
 } from "../../Types/StatusPage/UptimeDailyAggregate";
@@ -1498,6 +1499,76 @@ export class Service extends ProjectReferencesService<StatusPage> {
       startDate: data.startDate,
       endDate: data.endDate,
     });
+  }
+
+  /**
+   * Each monitor group's day buckets on a status page: how long the GROUP
+   * spent in each status each day, the worst status among its monitors at
+   * each instant, cut in `timezone` on the same grid as the monitors'
+   * buckets. See MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate.
+   */
+  @CaptureSpan()
+  public async getMonitorGroupUptimeDailyAggregateForStatusPage(data: {
+    monitorGroups: Array<{
+      monitorGroupId: ObjectID;
+      monitorIds: Array<ObjectID>;
+    }>;
+    rankedMonitorStatusIds: Array<ObjectID | string>;
+    startDate: Date;
+    endDate: Date;
+    timezone?: string | undefined;
+  }): Promise<MonitorGroupUptimeDailyAggregate> {
+    return await MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate(
+      {
+        monitorGroups: data.monitorGroups,
+        rankedMonitorStatusIds: data.rankedMonitorStatusIds,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        timezone: data.timezone,
+      },
+    );
+  }
+
+  /*
+   * The monitor groups a status page's uptime history is cut for: every
+   * group whose resource shows its history chart or its uptime, once
+   * however many resources name it, with its monitors. A resource that
+   * names a monitor as well is that monitor's (StatusPageResourceUptimeUtil
+   * measures it so), and adds no group.
+   */
+  public static getMonitorGroupsForUptimeHistory(data: {
+    statusPageResources: Array<StatusPageResource>;
+    monitorsInGroup: Dictionary<Array<ObjectID>>;
+  }): Array<{ monitorGroupId: ObjectID; monitorIds: Array<ObjectID> }> {
+    const monitorGroups: Array<{
+      monitorGroupId: ObjectID;
+      monitorIds: Array<ObjectID>;
+    }> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const resource of data.statusPageResources) {
+      if (
+        !resource.monitorGroupId ||
+        resource.monitorId ||
+        !(resource.showStatusHistoryChart || resource.showUptimePercent)
+      ) {
+        continue;
+      }
+
+      const monitorGroupId: string = resource.monitorGroupId.toString();
+
+      if (seen.has(monitorGroupId)) {
+        continue;
+      }
+
+      seen.add(monitorGroupId);
+      monitorGroups.push({
+        monitorGroupId: resource.monitorGroupId,
+        monitorIds: data.monitorsInGroup[monitorGroupId] || [],
+      });
+    }
+
+    return monitorGroups;
   }
 
   /*

@@ -233,6 +233,10 @@ describe("an SMS the Notification service does not send", () => {
     jest
       .spyOn(SmsLogService, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined as never);
+    // The send's result is written only while the log still says Sending.
+    jest
+      .spyOn(SmsLogService, "compareAndSetColumnsByIdWithoutHooks")
+      .mockResolvedValue(true as never);
   });
 
   afterEach(() => {
@@ -274,6 +278,9 @@ describe("an SMS the Notification service does not send", () => {
       expect(loggedRows()[0]!.status).toBe(SmsStatus.Error);
       expect(
         SmsLogService.updateColumnsByIdWithoutHooks,
+      ).not.toHaveBeenCalled();
+      expect(
+        SmsLogService.compareAndSetColumnsByIdWithoutHooks,
       ).not.toHaveBeenCalled();
     });
 

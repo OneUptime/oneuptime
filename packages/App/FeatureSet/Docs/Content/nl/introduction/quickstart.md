@@ -141,6 +141,7 @@ Open de monitor en bekijk wat de sondes hebben ontvangen. Zie het gedeelte over 
 
 :::cards
 - [Kernbegrippen](/docs/introduction/core-concepts): De ideeën achter wat u net hebt ingericht.
+- [Woordenlijst](/docs/introduction/glossary): Elk woord dat u onderweg bent tegengekomen, in een zin of twee.
 - [Bereikbaarheidsschema's](/docs/on-call/schedules): De bereikbaarheid met uw team delen.
 - [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains): De statuspagina uw eigen maken.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Logs, metrics en traces vanuit uw applicaties versturen.

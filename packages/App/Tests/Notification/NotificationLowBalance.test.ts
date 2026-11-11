@@ -277,6 +277,14 @@ beforeEach(() => {
   jest
     .spyOn(SmsLogService, "updateColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined as never);
+  // The send's result is written only while the log still says Sending.
+  jest
+    .spyOn(SmsLogService, "compareAndSetColumnsByIdWithoutHooks")
+    .mockResolvedValue(true as never);
+  // A WhatsApp message's log, written before the send, gets its result after.
+  jest
+    .spyOn(WhatsAppLogService, "updateColumnsByIdWithoutHooks")
+    .mockResolvedValue(undefined as never);
   jest
     .spyOn(UserOnCallLogTimelineService, "updateOneById")
     .mockResolvedValue(undefined as never);

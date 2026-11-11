@@ -141,6 +141,7 @@ OneUptime 中的一切都位于项目中：你的监视器、事件、值班策�
 
 :::cards
 - [核心概念](/docs/introduction/core-concepts): 你刚刚设置的内容背后的概念。
+- [术语表](/docs/introduction/glossary): 你一路上遇到的每个词，用一两句话解释。
 - [值班计划](/docs/on-call/schedules): 与团队分担值班。
 - [状态页品牌与域名](/docs/status-pages/branding-and-domains): 让状态页面体现你的品牌。
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 从你的应用发送日志、指标和追踪。

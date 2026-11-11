@@ -1,6 +1,6 @@
 # SLO:er – Översikt
 
-Ett service level objective (SLO) är ett tillförlitlighetsmål för det du övervakar, som ”tillgängligt 99,9 % av tiden under rullande 30 dagar”. OneUptime mäter varje SLO mot sitt mål var 5:e minut, så i stället för ”fungerar det just nu?” kan du svara på ”har vi varit tillräckligt tillförlitliga, under ett fönster som betyder något för våra användare, och hur mycket utrymme för fel har vi kvar?”.
+Ett service level objective (SLO) är ett tillförlitlighetsmål för det du övervakar, som ”tillgängligt 99,9 % av tiden under rullande 30 dagar”. OneUptime mäter varje SLO mot sitt mål var 5:e minut, så i stället för ”fungerar det just nu?” kan du svara på ”har vi varit tillräckligt tillförlitliga, under ett fönster som betyder något för våra användare, och hur mycket utrymme för fel har vi kvar?”. Sidan [Ordlista](/docs/introduction/glossary#slo) ställer SLO:er bredvid de andra orden som OneUptime använder.
 
 :::cards
 - [Skapa ett SLO](#skapa-ett-slo): Ett namn och ett mål. Allt annat börjar med ett standardvärde.
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 ## Nyckelbegrepp
+
+Orden som används i hela OneUptime finns samlade på sidan [Ordlista](/docs/introduction/glossary).
 
 | Begrepp | Betydelse |
 | --- | --- |

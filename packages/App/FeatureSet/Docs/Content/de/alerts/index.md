@@ -1,6 +1,6 @@
 # Warnungen – Übersicht
 
-Eine Warnung macht Ihr Team auf ein Problem aufmerksam, das es sich ansehen sollte, bevor Ihre Nutzer es bemerken: eine Festplatte, die vollläuft, ein Zertifikat kurz vor dem Ablauf, eine steigende Fehlerrate. Sie kann die Bereitschaft alarmieren und ihre Eigentümer benachrichtigen, erscheint aber nie auf einer Statusseite und informiert nie Ihre Abonnenten. Diese Seite erklärt, woher Warnungen kommen, wo sie im Dashboard zu finden sind und wie Ihr Team sie bearbeitet.
+Eine Warnung macht Ihr Team auf ein Problem aufmerksam, das es sich ansehen sollte, bevor Ihre Nutzer es bemerken: eine Festplatte, die vollläuft, ein Zertifikat kurz vor dem Ablauf, eine steigende Fehlerrate. Sie kann die Bereitschaft alarmieren und ihre Eigentümer benachrichtigen, erscheint aber nie auf einer Statusseite und informiert nie Ihre Abonnenten. Diese Seite erklärt, woher Warnungen kommen, wo sie im Dashboard zu finden sind und wie Ihr Team sie bearbeitet. Nicht sicher, ob ein Problem eine Warnung oder ein Vorfall ist? [Was nehme ich wann?](/docs/introduction/which-one#vorfall-warnung-oder-eine-andere-art-von-problem) stellt beide nebeneinander.
 
 :::cards
 - [Warnungen und Vorfälle](#warnungen-und-vorfälle): Was ein Problem sein sollte, und wie beide zusammenhängen.

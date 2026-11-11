@@ -1,6 +1,6 @@
 # Tjänstekatalog
 
-Tjänstekatalogen visar de applikationer och mikrotjänster du kör. OneUptime lägger till en tjänst första gången dess telemetri kommer in och samlar sedan dess loggar, spår, mätvärden, undantag, incidenter och ägare på en sida, så att alla kan se vad en tjänst gör, vem som äger den och hur den mår.
+Tjänstekatalogen visar de applikationer och mikrotjänster du kör. OneUptime lägger till en tjänst första gången dess telemetri kommer in och samlar sedan dess loggar, spår, mätvärden, undantag, incidenter och ägare på en sida, så att alla kan se vad en tjänst gör, vem som äger den och hur den mår. För att välja mellan en tjänst, en monitorgrupp och en etikett, se [Vilken ska jag använda?](/docs/introduction/which-one#monitorgrupp-tjänst-eller-etikett).
 
 :::cards
 - [Så hamnar en tjänst i katalogen](#så-hamnar-en-tjänst-i-katalogen): Dess `service.name`, vid dess första telemetri.

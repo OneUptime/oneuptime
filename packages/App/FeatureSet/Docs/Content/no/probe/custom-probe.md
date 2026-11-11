@@ -1,6 +1,6 @@
 # Egendefinerte probes
 
-En egendefinert sonde er en liten agent som du kjører i ditt eget nettverk. Den sjekker overvåkerne du legger den til, for eksempel interne nettsteder, API-er og servere bak brannmuren din, og sender resultatene til OneUptime. Den åpner bare utgående tilkoblinger over HTTPS, så ingenting i nettverket ditt trenger å ta imot tilkoblinger fra internett.
+En egendefinert sonde er en liten agent som du kjører i ditt eget nettverk. Den sjekker overvåkerne du legger den til, for eksempel interne nettsteder, API-er og servere bak brannmuren din, og sender resultatene til OneUptime. Den åpner bare utgående tilkoblinger over HTTPS, så ingenting i nettverket ditt trenger å ta imot tilkoblinger fra internett. Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#sonde-agent-collector-eller-runner) for å velge mellom en sonde, en agent, en collector og en Runner.
 
 :::cards
 - [Slik fungerer det](#slik-fungerer-det): Hva sonden gjør, og hvordan OneUptime vet at den kjører.

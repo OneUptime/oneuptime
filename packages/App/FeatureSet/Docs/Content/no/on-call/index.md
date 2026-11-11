@@ -1,6 +1,6 @@
 # Vakt – Oversikt
 
-Vakt er hvordan OneUptime får en person til å ta tak i et problem, når som helst på døgnet. Når en hendelse, et varsel eller en episode trenger noen, tilkaller vaktretningslinjene folk nivå for nivå til noen bekrefter, og hver person nås slik de selv har valgt: et push-varsel, en SMS, et anrop, en e-post eller en chatmelding. Denne siden viser hvordan delene henger sammen, og hvor hver del ligger.
+Vakt er hvordan OneUptime får en person til å ta tak i et problem, når som helst på døgnet. Når en hendelse, et varsel eller en episode trenger noen, tilkaller vaktretningslinjene folk nivå for nivå til noen bekrefter, og hver person nås slik de selv har valgt: et push-varsel, en SMS, et anrop, en e-post eller en chatmelding. Denne siden viser hvordan delene henger sammen, og hvor hver del ligger. Hvert ord som brukes om vakt, er forklart med en setning eller to i [Ordliste](/docs/introduction/glossary#vaktpolicy).
 
 :::cards
 - [Slik når en tilkalling noen](#slik-når-en-tilkalling-noen): Fra en ny hendelse til personen som svarer.
@@ -36,6 +36,8 @@ Første gang en tilkalling når noen, registrerer OneUptime det på hendelsen, v
 > En hendelse, et varsel eller en episode som opprettes allerede bekreftet eller løst, kjører ingen av retningslinjene sine, og feeden sier det. Se [Opprettet allerede bekreftet eller løst](/docs/alerts/index#opprettet-allerede-bekreftet-eller-løst).
 
 ## Byggesteinene
+
+Se [Ordliste](/docs/introduction/glossary) for ordene som brukes på tvers av OneUptime.
 
 | Del | Hva den avgjør | Les mer |
 | --- | --- | --- |

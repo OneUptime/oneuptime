@@ -74,6 +74,8 @@ Gli endpoint seguono le impostazioni della pagina stessa, nella scheda **Cosa mo
 
 La panoramica è una sola richiesta per l'intera pagina. Sono gli stessi dati che disegna la pagina di stato, e hanno al massimo 15 secondi.
 
+I giorni delle barre di disponibilità sono giorni UTC, a meno che non indichiate un fuso orario: aggiungete `?timezone=Asia/Shanghai` a una `GET`, oppure inviate `{"timezone": "Asia/Shanghai"}` come corpo di una `POST`, e `uptimeDailyAggregate` e `monitorGroupUptimeDailyAggregate` vengono divisi nei giorni di quel fuso, come la pagina di stato chiede per ogni visitatore. Un fuso che il server non conosce vale UTC, ed entrambi dicono nel loro `timezone` in quale fuso sono stati divisi.
+
 :::tabs
 @tab curl
 ```bash
@@ -133,7 +135,7 @@ Lo stato complessivo è il peggior stato attuale dei monitor e dei gruppi di mon
 | `resourceGroups` | I gruppi, con `parentStatusPageGroupId` per i gruppi annidati. |
 | `monitorStatuses` | Ogni stato di monitor del progetto, dalla priorità più bassa alla più alta. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | Lo stato attuale di ogni gruppo di monitor della pagina, e i monitor che contiene. |
-| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Ciò da cui vengono disegnate le barre di disponibilità, e le regole di colore delle barre della pagina. |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Ciò da cui vengono disegnate le barre di disponibilità, e le regole di colore delle barre della pagina. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Gli incidenti non risolti che la pagina mostra, le loro note pubbliche e i cambi di stato, e gli stati degli incidenti del progetto. |
 | `timelineIncidents` | Gli incidenti nella finestra delle barre di disponibilità, compresi quelli risolti, per i tooltip delle barre. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Lo stesso per gli episodi di incidenti. |

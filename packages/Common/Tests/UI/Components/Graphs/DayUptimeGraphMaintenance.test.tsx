@@ -403,7 +403,11 @@ describe("DayUptimeGraph - the day's maintenance, told", () => {
 
     expect(tooltip).toHaveTextContent("Scheduled maintenance");
     expect(tooltip).toHaveTextContent("PHP security patches");
-    expect(tooltip).toHaveTextContent("Oct 21, 18:00 – 20:00 CEST");
+    /*
+     * The strip here is drawn on UTC days for a reader in Paris, so the
+     * day's window is on the UTC clock, as the day is (issue #6697).
+     */
+    expect(tooltip).toHaveTextContent("Oct 21, 16:00 – 18:00 UTC");
     expect(tooltip).toHaveTextContent("Completed");
 
     fireEvent.click(
