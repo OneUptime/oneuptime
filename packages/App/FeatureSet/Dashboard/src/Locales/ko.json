@@ -49878,5 +49878,7 @@
   "The first config that applies": "적용되는 첫 번째 구성",
   "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "이 구성의 대상과 지금 이 구성을 실행하는 호스트 수입니다. 호스트는 목록에서 적용되는 첫 번째 구성을 실행합니다.",
   "How a host gets its config": "호스트가 구성을 받는 방식",
-  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "위의 구성 중 호스트에 적용되는 것이 없으면 호스트는 해당 시스템의 기본값을 실행합니다. 기본값은 OneUptime 릴리스를 따릅니다."
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "위의 구성 중 호스트에 적용되는 것이 없으면 호스트는 해당 시스템의 기본값을 실행합니다. 기본값은 OneUptime 릴리스를 따릅니다.",
+  "Read a table's lineage": "테이블의 계보를 읽음",
+  "Reading a table's lineage": "테이블의 계보를 읽는 중"
 }

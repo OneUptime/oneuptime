@@ -454,6 +454,35 @@ describe("the table-freshness route, which the MCP server asks", () => {
       expect(numbersOf(await askRoute(props))).toEqual(["ALT-2", "ALT-1"]);
     },
   );
+
+  /*
+   * A project API key - what an agent signs the MCP server in with - is let
+   * in, as the MCP server's README says of every read-only tool: a key is
+   * nobody in particular, so it is told the alerts that are not private,
+   * and a key with an admin's permission every one.
+   */
+  test("lets in a project API key, and tells it the alerts that are not private", async () => {
+    const table: JSONObject = await askRoute({
+      ...OUTSIDER,
+      userId: undefined,
+      userType: UserType.API,
+    });
+
+    expect(numbersOf(table)).toEqual(["ALT-1"]);
+    expect(String(table["answer"])).not.toContain(PRIVATE_TITLE);
+  });
+
+  test("and an admin's API key every one", async () => {
+    expect(
+      numbersOf(
+        await askRoute({
+          ...ADMINS[0]![1],
+          userId: undefined,
+          userType: UserType.API,
+        }),
+      ),
+    ).toEqual(["ALT-2", "ALT-1"]);
+  });
 });
 
 describe("the get_data_table_freshness tool, as Ask AI, Slack and Microsoft Teams run it", () => {

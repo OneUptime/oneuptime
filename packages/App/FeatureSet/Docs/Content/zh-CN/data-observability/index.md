@@ -37,7 +37,7 @@ flowchart TB
 - **无需逐表配置。** 节奏、计划和通常的运行时间，都从每个表和管道的实际行为中学习得出；为某个数据库推荐的监视器会覆盖其中的每个表，包括以后创建的表。
 - **一个原因只有一个警报。** 如果某个警报的上游表、管道或数据库已有一个打开的警报，它会作为后果加入该警报，并且已被确认，因此一次失败的加载只会呼叫一次。
 - **每个警报都会自我解释。** 它会对可能的原因排序，说明哪些内容依赖于该表以及谁拥有它，并从你对它的反馈中学习：把某个警报标记为 **不是问题**，下次同样的情况就会保持安静。
-- **OneUptime AI 了解你的数据。** 对数据警报的调查从表的写入方、运行和上游表开始；询问 AI、Slack、Microsoft Teams 和 AI 代理都能查询某个表是否新鲜；还可以用一句话编写检查。请参阅 [OneUptime AI 与 API](/docs/data-observability/ai-and-api)。
+- **OneUptime AI 了解你的数据。** 对数据警报的调查从表的写入方、运行和血缘开始；询问 AI、Slack、Microsoft Teams 和 AI 代理都能查询某个表是否新鲜、由什么构建；还可以用一句话编写检查。请参阅 [OneUptime AI 与 API](/docs/data-observability/ai-and-api)。
 
 ## 开始之前
 
@@ -80,5 +80,5 @@ flowchart TB
 - [检查与对账](/docs/data-observability/checks): 针对表中值的规则、表与其副本的比较，以及 dbt 的测试。
 - [血缘与管道](/docs/data-observability/lineage-and-pipelines): OpenLineage、dbt、Fivetran 和 Airbyte，以及一个原因只有一个警报。
 - [数据产品](/docs/data-observability/data-products): 为使用数据的人提供的新鲜度 SLA，显示在状态页上并作为 SLO 跟踪。
-- [OneUptime AI 与 API](/docs/data-observability/ai-and-api): 调查、用一句话编写检查、供 AI 代理使用的新鲜度，以及每个端点。
+- [OneUptime AI 与 API](/docs/data-observability/ai-and-api): 调查、用一句话编写检查、供 AI 代理使用的新鲜度与血缘，以及每个端点。
 :::

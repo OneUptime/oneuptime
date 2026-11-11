@@ -49878,5 +49878,7 @@
   "The first config that applies": "أول إعداد ينطبق",
   "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "لمن هذا الإعداد، وكم مضيفًا يشغّله الآن. ويشغّل المضيف أول إعداد في القائمة ينطبق عليه.",
   "How a host gets its config": "كيف يحصل المضيف على إعداده",
-  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "عندما لا ينطبق على المضيف أي إعداد أعلاه، فإنه يشغّل الإعداد الافتراضي لنظامه. وتتبع الإعدادات الافتراضية إصدارات OneUptime."
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "عندما لا ينطبق على المضيف أي إعداد أعلاه، فإنه يشغّل الإعداد الافتراضي لنظامه. وتتبع الإعدادات الافتراضية إصدارات OneUptime.",
+  "Read a table's lineage": "قُرئت سلالة بيانات جدول",
+  "Reading a table's lineage": "جارٍ قراءة سلالة بيانات جدول"
 }

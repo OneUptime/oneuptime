@@ -49878,5 +49878,7 @@
   "The first config that applies": "第一个适用的配置",
   "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "此配置适用于哪些主机，以及当前有多少台主机在运行它。主机运行列表中第一个适用于它的配置。",
   "How a host gets its config": "主机如何获得其配置",
-  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "当上面没有适用于主机的配置时，主机运行其系统的默认配置。默认配置随 OneUptime 的版本更新。"
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "当上面没有适用于主机的配置时，主机运行其系统的默认配置。默认配置随 OneUptime 的版本更新。",
+  "Read a table's lineage": "读取了某张表的血缘",
+  "Reading a table's lineage": "正在读取表的血缘"
 }

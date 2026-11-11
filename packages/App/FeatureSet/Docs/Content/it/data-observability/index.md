@@ -37,7 +37,7 @@ flowchart TB
 - **Niente da configurare tabella per tabella.** Ritmi, pianificazioni e durate abituali delle esecuzioni vengono appresi da ciò che fa ogni tabella e ogni pipeline, e un monitor consigliato per un database copre ogni sua tabella, comprese quelle create in seguito.
 - **Una segnalazione per causa.** Un avviso la cui tabella, pipeline o database a monte ha già un avviso aperto si unisce a quell'avviso come sua conseguenza, già riconosciuto, così un caricamento non riuscito chiama una volta sola.
 - **Ogni avviso si spiega da sé.** Classifica la causa probabile, indica cosa dipende dalla tabella e chi ne è proprietario, e impara da ciò che ne dici: contrassegnane uno come **Non è un problema** e la stessa cosa resta silenziosa la volta successiva.
-- **OneUptime AI conosce i tuoi dati.** Le indagini sugli avvisi relativi ai dati partono da chi scrive nella tabella, dalle sue esecuzioni e dalle sue tabelle a monte; in Chiedi all'IA, Slack e Microsoft Teams, e dagli agenti IA, si può chiedere se una tabella è aggiornata; e un controllo si può scrivere a partire da una frase. Vedi [OneUptime AI e l'API](/docs/data-observability/ai-and-api).
+- **OneUptime AI conosce i tuoi dati.** Le indagini sugli avvisi relativi ai dati partono da chi scrive nella tabella, dalle sue esecuzioni e dalla sua derivazione; in Chiedi all'IA, Slack e Microsoft Teams, e dagli agenti IA, si può chiedere se una tabella è aggiornata e da cosa è costruita; e un controllo si può scrivere a partire da una frase. Vedi [OneUptime AI e l'API](/docs/data-observability/ai-and-api).
 
 ## Prima di iniziare
 
@@ -80,5 +80,5 @@ Un'installazione self-hosted di OneUptime non paga nulla per le tabelle.
 - [Controlli e riconciliazioni](/docs/data-observability/checks): Regole sui valori di una tabella, il confronto di una tabella con la sua copia, e i test di dbt.
 - [Lineage e pipeline](/docs/data-observability/lineage-and-pipelines): OpenLineage, dbt, Fivetran e Airbyte, e una segnalazione per causa.
 - [Prodotti di dati](/docs/data-observability/data-products): SLA di freschezza per chi usa i dati, sulle pagine di stato e come SLO.
-- [OneUptime AI e l'API](/docs/data-observability/ai-and-api): Indagini, un controllo da una frase, la freschezza per gli agenti IA, e ogni endpoint.
+- [OneUptime AI e l'API](/docs/data-observability/ai-and-api): Indagini, un controllo da una frase, la freschezza e la derivazione per gli agenti IA, e ogni endpoint.
 :::

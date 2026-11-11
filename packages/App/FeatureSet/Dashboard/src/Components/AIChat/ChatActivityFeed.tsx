@@ -367,6 +367,7 @@ export const friendlyToolNames: { [key: string]: string } = {
   // Data Security: the stores, what to fix first, and who can reach what.
   query_data_stores: translationKey("Checking data stores"),
   get_data_table_freshness: translationKey("Checking whether a table is fresh"),
+  get_data_table_lineage: translationKey("Reading a table's lineage"),
   query_data_security_issues: translationKey("Checking data security issues"),
   query_data_store_access: translationKey(
     "Checking who can reach a data store",

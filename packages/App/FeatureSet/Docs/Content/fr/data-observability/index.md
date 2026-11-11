@@ -37,7 +37,7 @@ flowchart TB
 - **Rien à configurer table par table.** Les rythmes, les planifications et les durées d'exécution habituelles sont appris à partir de ce que fait chaque table et chaque pipeline, et un moniteur recommandé pour une base de données couvre chacune de ses tables, y compris celles créées plus tard.
 - **Un seul signalement par cause.** Une alerte dont la table, le pipeline ou la base de données en amont a déjà une alerte ouverte rejoint cette alerte comme sa conséquence, déjà prise en compte, de sorte qu'un chargement cassé ne prévient qu'une seule fois.
 - **Chaque alerte s'explique.** Elle classe la cause probable, dit ce qui dépend de la table et à qui elle appartient, et apprend de ce que vous en dites : marquez-en une **Pas un problème** et la même chose reste silencieuse la prochaine fois.
-- **OneUptime AI connaît vos données.** Les investigations des alertes de données partent de ceux qui écrivent dans la table, de ses exécutions et de ses tables en amont ; on peut demander si une table est fraîche dans Demander à l'IA, Slack ou Microsoft Teams, ou via des agents IA ; et un contrôle peut s'écrire à partir d'une phrase. Voir [OneUptime AI et l'API](/docs/data-observability/ai-and-api).
+- **OneUptime AI connaît vos données.** Les investigations des alertes de données partent de ceux qui écrivent dans la table, de ses exécutions et de son lignage ; on peut demander si une table est fraîche, et à partir de quoi elle est construite, dans Demander à l'IA, Slack ou Microsoft Teams, ou via des agents IA ; et un contrôle peut s'écrire à partir d'une phrase. Voir [OneUptime AI et l'API](/docs/data-observability/ai-and-api).
 
 ## Avant de commencer
 
@@ -80,5 +80,5 @@ Une installation auto-hébergée de OneUptime ne paie rien pour les tables.
 - [Contrôles et rapprochements](/docs/data-observability/checks): Des règles sur les valeurs d'une table, la comparaison d'une table avec sa copie, et les tests de dbt.
 - [Lignage et pipelines](/docs/data-observability/lineage-and-pipelines): OpenLineage, dbt, Fivetran et Airbyte, et un seul signalement par cause.
 - [Produits de données](/docs/data-observability/data-products): Des SLA de fraîcheur pour les personnes qui utilisent les données, sur des pages de statut et comme SLO.
-- [OneUptime AI et l'API](/docs/data-observability/ai-and-api): Les investigations, un contrôle à partir d'une phrase, la fraîcheur pour les agents IA, et chaque point de terminaison.
+- [OneUptime AI et l'API](/docs/data-observability/ai-and-api): Les investigations, un contrôle à partir d'une phrase, la fraîcheur et le lignage pour les agents IA, et chaque point de terminaison.
 :::

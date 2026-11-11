@@ -49878,5 +49878,7 @@
   "The first config that applies": "اولین پیکربندی‌ای که صدق می‌کند",
   "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "این پیکربندی برای کیست و اکنون چند میزبان آن را اجرا می‌کنند. هر میزبان اولین پیکربندی فهرست را که برایش صدق می‌کند اجرا می‌کند.",
   "How a host gets its config": "میزبان چگونه پیکربندی خود را می‌گیرد",
-  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "وقتی هیچ پیکربندی‌ای در بالا برای یک میزبان صدق نکند، پیش‌فرض سیستم خود را اجرا می‌کند. پیش‌فرض‌ها همراه انتشارهای OneUptime به‌روز می‌شوند."
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "وقتی هیچ پیکربندی‌ای در بالا برای یک میزبان صدق نکند، پیش‌فرض سیستم خود را اجرا می‌کند. پیش‌فرض‌ها همراه انتشارهای OneUptime به‌روز می‌شوند.",
+  "Read a table's lineage": "تبار یک جدول را خواند",
+  "Reading a table's lineage": "خواندن تبار یک جدول"
 }

@@ -49878,5 +49878,7 @@
   "The first config that applies": "Первая подходящая конфигурация",
   "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "Для кого эта конфигурация и сколько хостов выполняют её сейчас. Хост выполняет первую подходящую ему конфигурацию из списка.",
   "How a host gets its config": "Как хост получает свою конфигурацию",
-  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "Если хосту не подходит ни одна конфигурация выше, он выполняет конфигурацию по умолчанию для своей системы. Конфигурации по умолчанию обновляются с релизами OneUptime."
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "Если хосту не подходит ни одна конфигурация выше, он выполняет конфигурацию по умолчанию для своей системы. Конфигурации по умолчанию обновляются с релизами OneUptime.",
+  "Read a table's lineage": "Прочитал происхождение таблицы",
+  "Reading a table's lineage": "Чтение происхождения таблицы"
 }

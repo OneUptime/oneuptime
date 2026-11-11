@@ -49878,5 +49878,7 @@
   "The first config that applies": "Den første konfigurasjonen som gjelder",
   "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "Hvem denne konfigurasjonen er for, og hvor mange verter som kjører den nå. En vert kjører den første konfigurasjonen i listen som gjelder for den.",
   "How a host gets its config": "Slik får en vert konfigurasjonen sin",
-  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "Når ingen konfigurasjon ovenfor gjelder for en vert, kjører den standarden for systemet sitt. Standardene følger OneUptimes utgivelser."
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "Når ingen konfigurasjon ovenfor gjelder for en vert, kjører den standarden for systemet sitt. Standardene følger OneUptimes utgivelser.",
+  "Read a table's lineage": "Leste opphavet til en tabell",
+  "Reading a table's lineage": "Leser opphavet til en tabell"
 }

@@ -49878,5 +49878,7 @@
   "The first config that applies": "La première configuration qui s'applique",
   "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "À qui s'adresse cette configuration, et combien d'hôtes l'exécutent en ce moment. Un hôte exécute la première configuration de la liste qui s'applique à lui.",
   "How a host gets its config": "Comment un hôte obtient sa configuration",
-  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "Quand aucune configuration ci-dessus ne s'applique à un hôte, il exécute la configuration par défaut de son système. Les configurations par défaut suivent les versions de OneUptime."
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "Quand aucune configuration ci-dessus ne s'applique à un hôte, il exécute la configuration par défaut de son système. Les configurations par défaut suivent les versions de OneUptime.",
+  "Read a table's lineage": "A lu le lignage d'une table",
+  "Reading a table's lineage": "Lecture du lignage d'une table"
 }
