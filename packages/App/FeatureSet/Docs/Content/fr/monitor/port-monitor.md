@@ -108,11 +108,11 @@ Les critères décident quand le port compte comme en ligne, dégradé ou hors l
 
 | Filtre | Conditions | Ce qu'il vérifie |
 | --- | --- | --- |
-| **Is Online** | **Vrai**, **Faux** | Si le port a accepté une connexion. |
+| **En ligne** | **Vrai**, **Faux** | Si le port a accepté une connexion. |
 | **Total Connection Time (DNS + TCP) (in ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Le temps de connexion complet, y compris la résolution DNS pour un nom d'hôte. |
-| **Port DNS Lookup Time (in ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | La résolution DNS avant la première tentative TCP. Elle n'a pas de valeur quand la cible est une adresse IP. |
-| **Port TCP Connect Time (in ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | De la première tentative TCP jusqu'à l'acceptation de la connexion, y compris le basculement entre IPv6 et IPv4. |
-| **Is Request Timeout** | **Vrai**, **Faux** | Si la résolution DNS ou la connexion TCP a dépassé le délai, à chaque tentative. |
+| **Temps de résolution DNS du port (en ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | La résolution DNS avant la première tentative TCP. Elle n'a pas de valeur quand la cible est une adresse IP. |
+| **Temps de connexion TCP du port (en ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | De la première tentative TCP jusqu'à l'acceptation de la connexion, y compris le basculement entre IPv6 et IPv4. |
+| **Délai de la requête dépassé** | **Vrai**, **Faux** | Si la résolution DNS ou la connexion TCP a dépassé le délai, à chaque tentative. |
 
 Un critère sur la résolution DNS n'a rien à évaluer quand la cible est une adresse IP. Pour des critères qui doivent fonctionner aussi bien avec des noms d'hôte qu'avec des adresses IP, utilisez le temps total ou le temps de connexion TCP.
 
@@ -129,17 +129,17 @@ Les critères sont vérifiés de haut en bas, et le premier qui correspond déci
 
 ### Évaluer sur une période
 
-**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **Is Online**, **Total Connection Time (DNS + TCP) (in ms)**, **Port DNS Lookup Time (in ms)**, **Port TCP Connect Time (in ms)** et **Is Request Timeout**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
+**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **En ligne**, **Total Connection Time (DNS + TCP) (in ms)**, **Temps de résolution DNS du port (en ms)**, **Temps de connexion TCP du port (en ms)** et **Délai de la requête dépassé**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
 
 | Agrégation | Correspond quand |
 | --- | --- |
-| **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value** | Cette valeur, sur la fenêtre, remplit la condition. Filtres numériques seulement. |
-| **All Values** | Chaque vérification de la fenêtre remplit la condition. |
-| **Any Value** | Au moins une vérification de la fenêtre remplit la condition. |
+| **Moyenne**, **Somme**, **Valeur maximale**, **Valeur minimale** | Cette valeur, sur la fenêtre, remplit la condition. Filtres numériques seulement. |
+| **Toutes les valeurs** | Chaque vérification de la fenêtre remplit la condition. |
+| **Au moins une valeur** | Au moins une vérification de la fenêtre remplit la condition. |
 
-**All Values** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Any Value** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
+L'option **Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
 
-**Is Request Timeout** n'est pas un nombre qu'OneUptime enregistre : OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **All Values** ou **Any Value**.
+**Délai de la requête dépassé** n'est pas un nombre qu'OneUptime enregistre : OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **Toutes les valeurs** ou **Au moins une valeur**.
 
 Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'elle contienne plusieurs vérifications : un moniteur vérifié toutes les 5 minutes n'a qu'une seule vérification dans une fenêtre de 5 minutes.
 
@@ -155,11 +155,11 @@ Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'el
 
 | Objectif | Filtre | Condition | Valeur |
 | --- | --- | --- | --- |
-| Hors ligne quand le port est fermé | **Is Online** | **Faux** | — |
+| Hors ligne quand le port est fermé | **En ligne** | **Faux** | — |
 | Alerter quand la connexion est lente | **Total Connection Time (DNS + TCP) (in ms)** | **Supérieur à** | `500` |
 | Marquer le service dégradé quand il est lent à se connecter | **Total Connection Time (DNS + TCP) (in ms)** | **Supérieur à** | `200` |
-| Alerter quand le DNS est lent | **Port DNS Lookup Time (in ms)** | **Supérieur à** | `100` |
-| Alerter quand la poignée de main TCP est lente | **Port TCP Connect Time (in ms)** | **Supérieur à** | `250` |
+| Alerter quand le DNS est lent | **Temps de résolution DNS du port (en ms)** | **Supérieur à** | `100` |
+| Alerter quand la poignée de main TCP est lente | **Temps de connexion TCP du port (en ms)** | **Supérieur à** | `250` |
 
 ## Dépannage
 
@@ -168,7 +168,7 @@ La sonde n'a pas pu ouvrir de connexion : un pare-feu la rejette, le service n'�
 :::
 
 :::details Le temps de résolution DNS est toujours vide
-La cible est une adresse IP, donc il n'y a rien à résoudre. Utilisez plutôt **Total Connection Time (DNS + TCP) (in ms)** ou **Port TCP Connect Time (in ms)**.
+La cible est une adresse IP, donc il n'y a rien à résoudre. Utilisez plutôt **Total Connection Time (DNS + TCP) (in ms)** ou **Temps de connexion TCP du port (en ms)**.
 :::
 
 :::details Je dois vérifier un service UDP

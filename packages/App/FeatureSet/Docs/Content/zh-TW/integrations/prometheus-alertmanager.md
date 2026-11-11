@@ -3,7 +3,7 @@
 把 [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) 警示傳送到 OneUptime，讓每個觸發的警示都成為一個呼叫待命團隊的事件，並在警示恢復時解決。Alertmanager 把通知發布到 Webhook 接收器，因此兩邊都無需安裝任何東西。
 
 :::cards
-- [選擇 OneUptime 接收警示的方式](#選擇-oneuptime-接收警示的方式): Incoming Request 監測器，或你自己的工作流程。
+- [選擇 OneUptime 接收警示的方式](#選擇-oneuptime-接收警示的方式): 傳入請求監測器，或你自己的工作流程。
 - [用監測器接收警示](#用監測器接收警示): 每個警示一個事件，恢復時自動解決。
 - [設定 Alertmanager](#設定-alertmanager): 一個 Webhook 接收器，以及使用它的路由。
 - [疑難排解](#疑難排解): 警示沒有到達，或事件一直未關閉時。
@@ -33,19 +33,19 @@ Prometheus 評估你的警示規則，並把觸發的警示傳送給 Alertmanage
 
 | 方式 | 適用情況 |
 | --- | --- |
-| Incoming Request 監測器（建議） | 你希望每個警示都成為一個呼叫待命人員的事件，並在警示恢復時解決。無需建置任何東西。 |
+| 傳入請求監測器（建議） | 你希望每個警示都成為一個呼叫待命人員的事件，並在警示恢復時解決。無需建置任何東西。 |
 | 帶 Webhook 觸發器的工作流程 | 你需要自己的邏輯：先篩選警示、轉換格式或呼叫其他系統。工作流程為每個通知（而不是每個警示）開啟一個事件，並且不會在恢復時解決它。 |
 
 兩者從同一個接收器收到相同的 JSON，所以你可以先用其中一種，之後只需修改 `alertmanager.yml` 中的一個 URL 就能切換。
 
 ## 用監測器接收警示
 
-[Incoming Request 監測器](/docs/monitor/incoming-request-monitor) 會給你一個 URL，它的條件決定每個通知做什麼。
+[傳入請求監測器](/docs/monitor/incoming-request-monitor) 會給你一個 URL，它的條件決定每個通知做什麼。
 
 :::steps
 ### 建立監測器
 
-前往 **監測器**，點選 **建立監測器**。在 **監測器類型** 下選擇 **Incoming Request**，將其命名為 `Alertmanager`，然後點選 **下一步**。
+前往 **監測器**，點選 **建立監測器**。在 **監測器類型** 下選擇 **傳入請求**，將其命名為 `Alertmanager`，然後點選 **下一步**。
 
 ### 為每個觸發的警示宣告事件
 
@@ -222,7 +222,7 @@ amtool alert add test_alert severity=warning \
 :::steps
 ### 建立看門狗監測器
 
-建立第二個 Incoming Request 監測器，命名為 `Alertmanager watchdog`。把它第一個條件（把監測器標記為離線的那個）的篩選器設為 **Incoming Request**、**Not Recieved In Minutes**、`10`，把第二個條件的篩選器設為 **Incoming Request**、**Recieved In Minutes**、`10`。儀表板上這兩項就是這樣拼寫的。複製新監測器的 **Heartbeat URL**。
+建立第二個傳入請求監測器，命名為 `Alertmanager watchdog`。把它第一個條件（把監測器標記為離線的那個）的篩選器設為 **傳入請求**、**在指定分鐘內未收到**、`10`，把第二個條件的篩選器設為 **傳入請求**、**在指定分鐘內收到**、`10`。儀表板上這兩項就是這樣拼寫的。複製新監測器的 **Heartbeat URL**。
 
 ### 把看門狗警示路由到它
 

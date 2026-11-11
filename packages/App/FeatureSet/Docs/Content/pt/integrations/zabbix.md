@@ -3,7 +3,7 @@
 Envie os problemas do [Zabbix](https://www.zabbix.com) para o OneUptime, para que cada problema vire um incidente que chama a sua equipe de plantão e seja resolvido quando o Zabbix se recuperar. Modelos de workflow prontos mantêm os dois lados em sincronia: o que as pessoas fazem no Zabbix é anotado no incidente, e confirmar ou resolver o incidente confirma ou fecha o problema no Zabbix. O Zabbix envia cada problema por um tipo de mídia webhook, então não há nada a instalar em nenhum dos lados.
 
 :::cards
-- [Escolher como o OneUptime recebe os problemas](#escolher-como-o-oneuptime-recebe-os-problemas): Modelos de workflow ou um monitor Incoming Request.
+- [Escolher como o OneUptime recebe os problemas](#escolher-como-o-oneuptime-recebe-os-problemas): Modelos de workflow ou um monitor de requisições recebidas.
 - [Começar pelos modelos](#começar-pelos-modelos): Seis modelos, o que fazem e o que pedem.
 - [Configurar o Zabbix](#configurar-o-zabbix): Um tipo de mídia, um usuário e uma ação.
 - [Solução de problemas](#solução-de-problemas): Quando os problemas não chegam ou os incidentes ficam abertos.
@@ -37,7 +37,7 @@ Configure o OneUptime primeiro: ele fornece a URL para a qual o Zabbix envia.
 | Forma | Use quando |
 | --- | --- |
 | Os modelos de workflow (recomendados) | Você quer cada problema como um incidente ou um alerta na gravidade do Zabbix, com o plantão chamado para High e Disaster, resolvido na recuperação, com o que as pessoas fazem no Zabbix anotado nele, e o Zabbix confirmado ou fechado a partir do OneUptime. |
-| Um monitor Incoming Request | Você quer incidentes sem um workflow, em qualquer plano, e um monitor cujo status acompanha o Zabbix. Nada volta para o Zabbix. |
+| Um monitor de requisições recebidas | Você quer incidentes sem um workflow, em qualquer plano, e um monitor cujo status acompanha o Zabbix. Nada volta para o Zabbix. |
 
 Os dois recebem o mesmo JSON do mesmo tipo de mídia, então você pode começar com um e trocar depois mudando uma única URL no Zabbix.
 
@@ -130,12 +130,12 @@ O Zabbix 6.0 lê o token de API do corpo da requisição, não do cabeçalho `Au
 
 ## Receber problemas com um monitor
 
-Um [monitor Incoming Request](/docs/monitor/incoming-request-monitor) fornece uma URL, e os critérios dele decidem o que cada requisição faz.
+Um [monitor de requisições recebidas](/docs/monitor/incoming-request-monitor) fornece uma URL, e os critérios dele decidem o que cada requisição faz.
 
 :::steps
 ### Criar o monitor
 
-Vá para **Monitores** e clique em **Criar monitor**. Escolha **Incoming Request** em **Tipo de monitor**, dê o nome `Zabbix` e clique em **Próximo**.
+Vá para **Monitores** e clique em **Criar monitor**. Escolha **Requisição recebida** em **Tipo de monitor**, dê o nome `Zabbix` e clique em **Próximo**.
 
 ### Declarar um incidente para cada problema
 

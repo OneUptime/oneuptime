@@ -101,7 +101,7 @@ Queste impostazioni sono ripiegate sotto **Altri campi**. L'intestazione ripiega
 
 | Campo | Predefinito | Cosa fa |
 | --- | --- | --- |
-| **Intestazioni della richiesta** | Nessuna | Le intestazioni da inviare, come coppie nome e valore. Fate clic su **Aggiungi: Request Header** per ciascuna. |
+| **Intestazioni della richiesta** | Nessuna | Le intestazioni da inviare, come coppie nome e valore. Fate clic su **Aggiungi: Intestazione della richiesta** per ciascuna. |
 | **Corpo della richiesta (in JSON)** | Nessuno | Un oggetto JSON da inviare come corpo, di solito con **POST**, **PUT** o **PATCH**. Deve essere JSON valido. |
 | **Non seguire i reindirizzamenti** | Disattivato | Valutare la prima risposta invece di seguire i reindirizzamenti. Vedete [sotto](#non-seguire-i-reindirizzamenti). |
 | **Consenti certificati autofirmati** | Disattivato | Saltare la convalida del certificato TLS per il nome host del monitor stesso. |
@@ -154,14 +154,14 @@ I criteri decidono quando l'API conta come online, degradata o offline, e se ci�
 
 | Filtro | Condizioni | Cosa controlla |
 | --- | --- | --- |
-| **Is Online** | **Vero**, **Falso** | Se l'API ha risposto, qualunque sia il codice di stato. |
+| **Online** | **Vero**, **Falso** | Se l'API ha risposto, qualunque sia il codice di stato. |
 | **Codice di stato della risposta** | **Uguale a**, **Diverso da**, **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Il codice di stato HTTP. |
 | **Tempo di risposta (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Quanto è durata la richiesta, reindirizzamenti compresi. |
 | **Corpo della Risposta** | **Contiene**, **Non contiene** | Testo nel corpo della risposta. La corrispondenza distingue maiuscole e minuscole. |
-| **Response Header** | **Contiene**, **Non contiene** | Se la risposta ha un'intestazione con questo nome. Inserite il nome in minuscolo, come `x-request-id`. |
-| **Response Header Value** | **Contiene**, **Non contiene** | Se un'intestazione ha esattamente questo valore, confrontato in minuscolo, come `application/json`. |
-| **JavaScript Expression** | **Evaluates To True** | Un'espressione sulla risposta. Vedete [Espressioni JavaScript](/docs/monitor/javascript-expression). |
-| **Is Request Timeout** | **Vero**, **Falso** | Se la richiesta è andata in timeout a ogni tentativo. |
+| **Intestazione della risposta** | **Contiene**, **Non contiene** | Se la risposta ha un'intestazione con questo nome. Inserite il nome in minuscolo, come `x-request-id`. |
+| **Valore dell'intestazione della risposta** | **Contiene**, **Non contiene** | Se un'intestazione ha esattamente questo valore, confrontato in minuscolo, come `application/json`. |
+| **Espressione JavaScript** | **Risulta vero** | Un'espressione sulla risposta. Vedete [Espressioni JavaScript](/docs/monitor/javascript-expression). |
+| **Timeout della richiesta** | **Vero**, **Falso** | Se la richiesta è andata in timeout a ogni tentativo. |
 
 Una risposta JSON viene controllata nella sua forma compatta, senza spazi tra chiavi e valori. Per trovare `"status": "ok"` con **Corpo della Risposta**, inserite `"status":"ok"`.
 
@@ -178,7 +178,7 @@ Un nuovo monitor API parte con due criteri, quindi funziona senza cambiare nulla
 
 Nell'elenco dei criteri prendono il nome dal monitor: _Check if (name) is offline_ e _Check if (name) is online_.
 
-Quindi un endpoint che risponde `201 Created` o `204 No Content` conta come attivo. Se per voi solo un codice di stato significa che tutto è a posto, modificate entrambi i criteri nella pagina **Configurazione → Criteri** del monitor: per esempio **Codice di stato della risposta** / **Uguale a** / `200` nel criterio online e **Diverso da** / `200` in quello offline, al posto dei due filtri sul codice di stato che ha ciascuno. Per controllare anche cosa restituisce l'API, aggiungete un filtro **Corpo della Risposta** o **JavaScript Expression** al criterio offline.
+Quindi un endpoint che risponde `201 Created` o `204 No Content` conta come attivo. Se per voi solo un codice di stato significa che tutto è a posto, modificate entrambi i criteri nella pagina **Configurazione → Criteri** del monitor: per esempio **Codice di stato della risposta** / **Uguale a** / `200` nel criterio online e **Diverso da** / `200` in quello offline, al posto dei due filtri sul codice di stato che ha ciascuno. Per controllare anche cosa restituisce l'API, aggiungete un filtro **Corpo della Risposta** o **Espressione JavaScript** al criterio offline.
 
 I criteri vengono controllati dall'alto verso il basso, e il primo che corrisponde decide cosa succede.
 
@@ -188,17 +188,17 @@ I monitor creati prima che OneUptime cambiasse queste impostazioni predefinite m
 
 ### Valutare su un periodo di tempo
 
-**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **Is Online**, **Codice di stato della risposta**, **Tempo di risposta (in ms)**, **Corpo della Risposta**, **Response Header**, **Response Header Value**, **JavaScript Expression** e **Is Request Timeout**. Attivatela per valutare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
+**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **Online**, **Codice di stato della risposta**, **Tempo di risposta (in ms)**, **Corpo della Risposta**, **Intestazione della risposta**, **Valore dell'intestazione della risposta**, **Espressione JavaScript** e **Timeout della richiesta**. Attivatela per valutare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
 
 | Aggregazione | Corrisponde quando |
 | --- | --- |
-| **Media**, **Somma**, **Maximum Value**, **Minimum Value** | Quel valore, sulla finestra, soddisfa la condizione. Solo filtri numerici. |
-| **All Values** | Ogni controllo nella finestra soddisfa la condizione. |
-| **Any Value** | Almeno un controllo nella finestra soddisfa la condizione. |
+| **Media**, **Somma**, **Valore massimo**, **Valore minimo** | Quel valore, sulla finestra, soddisfa la condizione. Solo filtri numerici. |
+| **Tutti i valori** | Ogni controllo nella finestra soddisfa la condizione. |
+| **Qualsiasi valore** | Almeno un controllo nella finestra soddisfa la condizione. |
 
-**All Values** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio attende invece di corrispondere sull'unica lettura che ha. **Any Value** è l'impostazione per «avvisami appena un singolo controllo supera la soglia» e scatta comunque subito.
+L'opzione **Tutti i valori** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio attende invece di corrispondere sull'unica lettura che ha. **Qualsiasi valore** è l'impostazione per «avvisami appena un singolo controllo supera la soglia» e scatta comunque subito.
 
-Un corpo, un'intestazione, un valore di intestazione o un'espressione non è un numero che OneUptime registra, quindi per questi filtri e per **Is Request Timeout** registra se il filtro ha corrisposto a ogni controllo, e valuta la finestra da quella registrazione con **All Values** o **Any Value**. È così che un monitor supera un riavvio. Un'app che si sta avviando può rispondere `200` con una pagina segnaposto come `Application starting...`; con **All Values**, un filtro **Corpo della Risposta** che cerca il titolo dell'app porta il monitor offline solo quando la pagina segnaposto è durata per tutta la finestra.
+Un corpo, un'intestazione, un valore di intestazione o un'espressione non è un numero che OneUptime registra, quindi per questi filtri e per **Timeout della richiesta** registra se il filtro ha corrisposto a ogni controllo, e valuta la finestra da quella registrazione con **Tutti i valori** o **Qualsiasi valore**. È così che un monitor supera un riavvio. Un'app che si sta avviando può rispondere `200` con una pagina segnaposto come `Application starting...`; con **Tutti i valori**, un filtro **Corpo della Risposta** che cerca il titolo dell'app porta il monitor offline solo quando la pagina segnaposto è durata per tutta la finestra.
 
 Scegliete una finestra più lunga dell'intervallo di monitoraggio, così che contenga più controlli: un monitor controllato ogni 5 minuti ha un solo controllo in qualsiasi finestra di 5 minuti.
 
@@ -216,10 +216,10 @@ Scegliete una finestra più lunga dell'intervallo di monitoraggio, così che con
 | --- | --- | --- | --- |
 | Segnare l'API degradata quando è lenta | **Tempo di risposta (in ms)** | **Maggiore di** | `1000` |
 | Offline quando il controllo di salute segnala un problema | **Corpo della Risposta** | **Non contiene** | `"status":"ok"` |
-| Lo stesso, letto dal JSON analizzato | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
+| Lo stesso, letto dal JSON analizzato | **Espressione JavaScript** | **Risulta vero** | `"{{responseBody.status}}" !== "ok"` |
 | Accettare solo `201` da un `POST` | **Codice di stato della risposta** | **Uguale a** | `201` |
 
-Per superare un riavvio, attivate **Valuta questo criterio su un periodo di tempo** per il filtro del corpo della risposta e scegliete **All Values** su 15 minuti.
+Per superare un riavvio, attivate **Valuta questo criterio su un periodo di tempo** per il filtro del corpo della risposta e scegliete **Tutti i valori** su 15 minuti.
 
 ## Risoluzione dei problemi
 

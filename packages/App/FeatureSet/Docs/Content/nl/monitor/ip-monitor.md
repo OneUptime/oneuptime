@@ -86,11 +86,11 @@ Criteria bepalen wanneer het adres als online, verminderd of offline telt, en of
 
 | Filter | Voorwaarden | Wat het controleert |
 | --- | --- | --- |
-| **Is Online** | **Waar**, **Onwaar** | Of minstens één echoverzoek een antwoord kreeg. |
+| **Is online** | **Waar**, **Onwaar** | Of minstens één echoverzoek een antwoord kreeg. |
 | **Reactietijd (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | De gemiddelde roundtriptijd van de antwoorden. |
-| **Packet Loss (in %)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Het deel van de vijf echoverzoeken dat geen antwoord kreeg. |
+| **Pakketverlies (in %)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Het deel van de vijf echoverzoeken dat geen antwoord kreeg. |
 | **Jitter (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | De standaardafwijking van de roundtriptijden over de pakketten van één controle. |
-| **Is Request Timeout** | **Waar**, **Onwaar** | Of de ping bij elke poging een time-out bereikte. |
+| **Time-out van aanvraag** | **Waar**, **Onwaar** | Of de ping bij elke poging een time-out bereikte. |
 
 Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** moeten overeenkomen of dat **Minstens één** filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing maken, een incident melden, of meerdere daarvan.
 
@@ -105,17 +105,17 @@ Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenk
 
 ### Over een periode evalueren
 
-**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **Is Online**, **Reactietijd (in ms)**, **Packet Loss (in %)**, **Jitter (in ms)** en **Is Request Timeout**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**.
+**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **Is online**, **Reactietijd (in ms)**, **Pakketverlies (in %)**, **Jitter (in ms)** en **Time-out van aanvraag**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**.
 
 | Aggregatie | Komt overeen wanneer |
 | --- | --- |
-| **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value** | Dat getal, over het venster, aan de voorwaarde voldoet. Alleen numerieke filters. |
-| **All Values** | Elke controle in het venster aan de voorwaarde voldoet. |
-| **Any Value** | Minstens één controle in het venster aan de voorwaarde voldoet. |
+| **Gemiddelde**, **Som**, **Maximale waarde**, **Minimale waarde** | Dat getal, over het venster, aan de voorwaarde voldoet. Alleen numerieke filters. |
+| **Alle waarden** | Elke controle in het venster aan de voorwaarde voldoet. |
+| **Willekeurige waarde** | Minstens één controle in het venster aan de voorwaarde voldoet. |
 
-**All Values** komt pas overeen wanneer het venster echt met gegevens gevuld is. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Any Value** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en slaat nog steeds meteen aan.
+De optie **Alle waarden** komt pas overeen wanneer het venster echt met gegevens gevuld is. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Willekeurige waarde** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en slaat nog steeds meteen aan.
 
-**Is Request Timeout** is geen getal dat OneUptime vastlegt. OneUptime legt daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **All Values** of **Any Value**.
+**Time-out van aanvraag** is geen getal dat OneUptime vastlegt. OneUptime legt daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **Alle waarden** of **Willekeurige waarde**.
 
 Maak het venster langer dan het monitoringinterval, zodat het meerdere controles bevat: een monitor die elke 5 minuten wordt gecontroleerd, heeft in elk venster van 5 minuten maar één controle.
 
@@ -131,9 +131,9 @@ Maak het venster langer dan het monitoringinterval, zodat het meerdere controles
 
 | Doel | Filter | Voorwaarde | Waarde |
 | --- | --- | --- | --- |
-| Offline wanneer het adres onbereikbaar is | **Is Online** | **Onwaar** | — |
+| Offline wanneer het adres onbereikbaar is | **Is online** | **Onwaar** | — |
 | Waarschuwen bij hoge latentie | **Reactietijd (in ms)** | **Groter dan** | `100` |
-| Het adres als verminderd markeren op een verbinding met verlies | **Packet Loss (in %)** | **Groter dan** | `20` |
+| Het adres als verminderd markeren op een verbinding met verlies | **Pakketverlies (in %)** | **Groter dan** | `20` |
 | Waarschuwen bij een instabiele verbinding | **Jitter (in ms)** | **Groter dan** | `30` |
 
 ## Problemen oplossen

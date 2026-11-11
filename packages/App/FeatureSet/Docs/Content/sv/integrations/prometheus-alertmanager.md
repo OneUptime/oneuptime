@@ -3,7 +3,7 @@
 Skicka larm från [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) till OneUptime, så att varje larm som utlöses blir en incident som larmar ditt jourteam och löses när larmet har återhämtat sig. Alertmanager postar sina aviseringar till en webhook-mottagare, så det finns inget att installera på någon av sidorna.
 
 :::cards
-- [Välj hur OneUptime tar emot larm](#välj-hur-oneuptime-tar-emot-larm): En Incoming Request-monitor eller ett eget arbetsflöde.
+- [Välj hur OneUptime tar emot larm](#välj-hur-oneuptime-tar-emot-larm): En monitor för inkommande förfrågningar eller ett eget arbetsflöde.
 - [Ta emot larm med en monitor](#ta-emot-larm-med-en-monitor): En incident per larm, löst vid återhämtning.
 - [Konfigurera Alertmanager](#konfigurera-alertmanager): En webhook-mottagare och den route som använder den.
 - [Felsökning](#felsökning): När larm inte kommer fram eller incidenter förblir öppna.
@@ -33,19 +33,19 @@ Konfigurera OneUptime först: det ger dig den URL som Alertmanager skickar till.
 
 | Väg | Använd den när |
 | --- | --- |
-| En Incoming Request-monitor (rekommenderas) | Du vill att varje larm ska bli en incident som larmar jouren och löses när larmet har återhämtat sig. Det finns inget att bygga. |
+| En monitor för inkommande förfrågningar (rekommenderas) | Du vill att varje larm ska bli en incident som larmar jouren och löses när larmet har återhämtat sig. Det finns inget att bygga. |
 | Ett arbetsflöde med en Webhook-utlösare | Du behöver egen logik: filtrera larm, forma om dem eller anropa andra system först. Ett arbetsflöde öppnar en incident per avisering, inte per larm, och löser den inte vid återhämtning. |
 
 Båda får samma JSON från samma mottagare, så du kan börja med det ena och byta senare genom att ändra en URL i `alertmanager.yml`.
 
 ## Ta emot larm med en monitor
 
-En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) ger dig en URL, och dess kriterier avgör vad varje avisering gör.
+En [monitor för inkommande förfrågningar](/docs/monitor/incoming-request-monitor) ger dig en URL, och dess kriterier avgör vad varje avisering gör.
 
 :::steps
 ### Skapa monitorn
 
-Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Incoming Request** under **Monitortyp**, ge den namnet `Alertmanager` och klicka på **Nästa**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Inkommande begäran** under **Monitortyp**, ge den namnet `Alertmanager` och klicka på **Nästa**.
 
 ### Deklarera en incident för varje utlöst larm
 
@@ -222,7 +222,7 @@ Ingen av vägarna märker när Prometheus eller Alertmanager slutar fungera: att
 :::steps
 ### Skapa watchdog-monitorn
 
-Skapa en andra Incoming Request-monitor, som heter `Alertmanager watchdog`. Ställ in filtret för dess första kriterium, det som markerar monitorn som offline, på **Incoming Request**, **Not Recieved In Minutes**, `10`, och filtret för dess andra kriterium på **Incoming Request**, **Recieved In Minutes**, `10`. Instrumentpanelen stavar båda så. Kopiera den nya monitorns **Heartbeat URL**.
+Skapa en andra monitor för inkommande förfrågningar, som heter `Alertmanager watchdog`. Ställ in filtret för dess första kriterium, det som markerar monitorn som offline, på **Inkommande begäran**, **Inte mottaget inom (minuter)**, `10`, och filtret för dess andra kriterium på **Inkommande begäran**, **Mottaget inom (minuter)**, `10`. Instrumentpanelen stavar båda så. Kopiera den nya monitorns **Heartbeat URL**.
 
 ### Skicka watchdog-larmet dit
 

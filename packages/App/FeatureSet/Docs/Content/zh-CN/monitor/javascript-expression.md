@@ -1,6 +1,6 @@
 # JavaScript 表达式
 
-**JavaScript Expression** 条件筛选器用一行 JavaScript 而不是固定的比较来判断监视器的条件是否满足。当内置筛选器无法表达条件时使用它——例如 JSON 响应深处的某个字段、两个值之间的比较，或用 `&&` 和 `||` 组合的多项检查。
+**JavaScript 表达式** 条件筛选器用一行 JavaScript 而不是固定的比较来判断监视器的条件是否满足。当内置筛选器无法表达条件时使用它——例如 JSON 响应深处的某个字段、两个值之间的比较，或用 `&&` 和 `||` 组合的多项检查。
 
 :::cards
 - [工作原理](#工作原理): 先填入占位符，再运行表达式。
@@ -24,7 +24,7 @@ flowchart TB
 
 由于占位符以文本形式替换，`{{responseBody.item}}` 会变成原始值。字符串必须用引号括起来才是 JavaScript 字符串；数字或布尔值则不需要——参见 [引号规则](#引号规则)。表达式在 OneUptime 服务器上的隔离沙箱中运行。
 
-## 添加 JavaScript Expression 筛选器
+## 添加 JavaScript 表达式筛选器
 
 :::steps
 ### 打开条件
@@ -33,7 +33,7 @@ flowchart TB
 
 ### 添加筛选器
 
-在 **过滤器** 下点击 **添加过滤器**，将其 **过滤器类型** 设为 **JavaScript Expression**。**过滤条件** 为 **Evaluates To True**。
+在 **过滤器** 下点击 **添加过滤器**，将其 **过滤器类型** 设为 **JavaScript 表达式**。**过滤条件** 为 **计算结果为真**。
 
 ### 编写表达式
 
@@ -46,7 +46,7 @@ flowchart TB
 
 ## 各监视器类型的变量
 
-JavaScript 表达式适用于 Website、API、Incoming Request、Incoming Email、SQL Query 和 Database Health 监视器。
+JavaScript 表达式适用于 Website、API、传入请求、Incoming Email、SQL Query 和 Database Health 监视器。
 
 ### 网站和 API 监视器
 

@@ -3,7 +3,7 @@
 Send varsler fra [Datadog](https://www.datadoghq.com)-monitorer til OneUptime, slik at hvert varsel blir en hendelse eller et varsel i OneUptime, varsler vaktteamet ditt når det haster, og løses når Datadog-monitoren er gjenopprettet. Datadog sender varslene sine gjennom sin [Webhooks-integrasjon](https://docs.datadoghq.com/integrations/webhooks/), så det er ingenting å installere på noen av sidene.
 
 :::cards
-- [Velg hvordan OneUptime mottar varsler](#velg-hvordan-oneuptime-mottar-varsler): En arbeidsflytmal eller en Incoming Request-monitor.
+- [Velg hvordan OneUptime mottar varsler](#velg-hvordan-oneuptime-mottar-varsler): En arbeidsflytmal eller en monitor for innkommende forespørsler.
 - [Start med malen](#start-med-malen): Velg hvem som skal varsles, kopier URL-en, og se hva hvert varsel gjør.
 - [Motta varsler med en monitor](#motta-varsler-med-en-monitor): Én hendelse per varsel, løst ved gjenoppretting.
 - [Konfigurer Datadog](#konfigurer-datadog): En webhook og monitorene som varsler den.
@@ -36,7 +36,7 @@ Sett opp OneUptime først: det gir deg URL-en som Datadog sender til.
 | Vei | Bruk den når |
 | --- | --- |
 | Arbeidsflytmalen (anbefalt) | Du vil ha hvert varsel som en hendelse eller et varsel med en alvorlighetsgrad ut fra monitorens prioritet, varslet til vakten for P1 og P2, med advarsler notert på den, og løst ved gjenoppretting. Det er ingenting å bygge. |
-| En Incoming Request-monitor | Du vil ha hendelser uten en arbeidsflyt, på hvilken som helst plan, og en monitor hvis status følger Datadog. |
+| En monitor for innkommende forespørsler | Du vil ha hendelser uten en arbeidsflyt, på hvilken som helst plan, og en monitor hvis status følger Datadog. |
 
 Begge får den samme JSON-en fra den samme webhooken, så du kan begynne med den ene og bytte senere ved å endre én URL i Datadog.
 
@@ -86,12 +86,12 @@ Med egne alvorlighetsgrader går P1, P2 og ingen prioritet til den mest alvorlig
 
 ## Motta varsler med en monitor
 
-En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) gir deg en URL, og kriteriene dens avgjør hva hvert varsel gjør.
+En [monitor for innkommende forespørsler](/docs/monitor/incoming-request-monitor) gir deg en URL, og kriteriene dens avgjør hva hvert varsel gjør.
 
 :::steps
 ### Opprett monitoren
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Incoming Request** under **Monitortype**, gi den navnet `Datadog`, og klikk på **Neste**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Innkommende forespørsel** under **Monitortype**, gi den navnet `Datadog`, og klikk på **Neste**.
 
 ### Erklær en hendelse for hvert varsel
 

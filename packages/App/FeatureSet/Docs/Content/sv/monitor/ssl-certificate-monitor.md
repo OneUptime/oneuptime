@@ -73,14 +73,14 @@ Kriterier avgör när certifikatet räknas som i ordning, försämrat eller tras
 
 | Filter | Villkor | Vad det kontrollerar |
 | --- | --- | --- |
-| **Is Valid Certificate** | **Sant**, **Falskt** | Certifikatet klarar en webbläsares kontroller: en betrodd utfärdare, ett värdnamn som stämmer och en giltighetsperiod som omfattar i dag. **Falskt** när slutpunkten inte svarade. |
-| **Is Not A Valid Certificate** | **Sant**, **Falskt** | Motsatsen till **Is Valid Certificate**: **Sant** när certifikatet inte klarar de kontrollerna eller inte kunde kontrolleras. |
-| **Is Expired Certificate** | **Sant**, **Falskt** | Certifikatets utgångsdatum har passerat. |
-| **Is Self Signed Certificate** | **Sant**, **Falskt** | Certifikatet, eller ett i dess kedja, är självsignerat. |
-| **Expires In Days** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Dagar tills certifikatet går ut. |
-| **Expires In Hours** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Timmar tills certifikatet går ut. |
+| **Är giltigt certifikat** | **Sant**, **Falskt** | Certifikatet klarar en webbläsares kontroller: en betrodd utfärdare, ett värdnamn som stämmer och en giltighetsperiod som omfattar i dag. **Falskt** när slutpunkten inte svarade. |
+| **Är inte ett giltigt certifikat** | **Sant**, **Falskt** | Motsatsen till **Är giltigt certifikat**: **Sant** när certifikatet inte klarar de kontrollerna eller inte kunde kontrolleras. |
+| **Är utgånget certifikat** | **Sant**, **Falskt** | Certifikatets utgångsdatum har passerat. |
+| **Är självsignerat certifikat** | **Sant**, **Falskt** | Certifikatet, eller ett i dess kedja, är självsignerat. |
+| **Dagar till utgång** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Dagar tills certifikatet går ut. |
+| **Timmar till utgång** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Timmar tills certifikatet går ut. |
 
-**Expires In Days** räknar hela dagar: ett certifikat som går ut om 14 dagar och 20 timmar har 14 dagar kvar. **Expires In Hours** räknar hela timmar på samma sätt.
+**Dagar till utgång** räknar hela dagar: ett certifikat som går ut om 14 dagar och 20 timmar har 14 dagar kvar. **Timmar till utgång** räknar hela timmar på samma sätt.
 
 Med två eller fler filter avgör **Matchningsvillkor** om **Alla** måste matcha eller om **Valfri** av dem räcker. Ett kriteriums **Åtgärder** avgör vad det gör: ändrar monitorns status, skapar ett larm, deklarerar en incident eller flera av dessa.
 
@@ -96,13 +96,13 @@ Varningen "går snart ut" är ett larm, inte en incident: det visas inte på din
 
 Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad som händer. Därför ligger "går snart ut" ovanför "är giltigt": ett certifikat som håller på att gå ut är fortfarande giltigt, så det skulle matcha båda.
 
-För att bli varnad tidigare ändrar du värdet för filtret **Expires In Days** i kriteriet "går snart ut", till exempel till `30`. För att i stället kalla in någon öppnar du kriteriets **Åtgärder**: slå på **När filter matchar, deklarera en incident.**, eller behåll larmet och lägg till en jourpolicy på det under **Jourpolicyer**.
+För att bli varnad tidigare ändrar du värdet för filtret **Dagar till utgång** i kriteriet "går snart ut", till exempel till `30`. För att i stället kalla in någon öppnar du kriteriets **Åtgärder**: slå på **När filter matchar, deklarera en incident.**, eller behåll larmet och lägg till en jourpolicy på det under **Jourpolicyer**.
 
 :::details Lägg till varningen på en monitor som skapades innan den fanns
 Monitorer som skapades innan OneUptime lade till den här varningen har inget kriterium "går snart ut". Så här lägger du till det:
 
 1. Öppna **Konfiguration → Kriterier** på monitorn och klicka på **Redigera övervakningskriterier**.
-2. Klicka på **Lägg till kriterier**. Sätt dess filter till **Is Valid Certificate** / **Sant**, klicka på **Lägg till filter** och sätt det andra till **Expires In Days** / **Mindre än eller lika med** / `14`. Låt **Matchningsvillkor** stå på **Alla** (det visas under filtren så snart det finns två).
+2. Klicka på **Lägg till kriterier**. Sätt dess filter till **Är giltigt certifikat** / **Sant**, klicka på **Lägg till filter** och sätt det andra till **Dagar till utgång** / **Mindre än eller lika med** / `14`. Låt **Matchningsvillkor** stå på **Alla** (det visas under filtren så snart det finns två).
 3. Slå på **När filter matchar, skapa ett larm.** under **Åtgärder** och låt **När filter matchar, ändra övervakarstatus.** vara avstängt, så att det skapar ett larm och inte ändrar monitorns status.
 4. Dra det nya kriteriet ovanför kriteriet som markerar monitorn som online och spara sedan.
 :::
@@ -111,10 +111,10 @@ Monitorer som skapades innan OneUptime lade till den här varningen har inget kr
 
 | Mål | Filter | Villkor | Värde |
 | --- | --- | --- | --- |
-| Varna en månad i förväg | **Expires In Days** | **Mindre än eller lika med** | `30` |
-| Kalla in någon den sista dagen | **Expires In Hours** | **Mindre än** | `24` |
-| Offline först när certifikatet har gått ut | **Is Expired Certificate** | **Sant** | — |
-| Flagga ett självsignerat certifikat | **Is Self Signed Certificate** | **Sant** | — |
+| Varna en månad i förväg | **Dagar till utgång** | **Mindre än eller lika med** | `30` |
+| Kalla in någon den sista dagen | **Timmar till utgång** | **Mindre än** | `24` |
+| Offline först när certifikatet har gått ut | **Är utgånget certifikat** | **Sant** | — |
+| Flagga ett självsignerat certifikat | **Är självsignerat certifikat** | **Sant** | — |
 
 Ett kriterium om utgång måste ligga ovanför kriteriet som markerar certifikatet som giltigt: ett certifikat som snart går ut är fortfarande giltigt, och det första kriteriet som matchar vinner.
 
@@ -132,11 +132,11 @@ Incidentens grundorsak säger varför. En vanlig orsak är en server som skickar
 :::
 
 :::details Jag övervakar en intern tjänst med ett självsignerat certifikat
-Ett självsignerat certifikat är aldrig giltigt, så standardkriterierna håller monitorn offline. **Is Self Signed Certificate**, **Is Expired Certificate** och **Expires In Days** fungerar fortfarande för det, så bygg kriterierna på dem. På **Konfiguration → Kriterier**:
+Ett självsignerat certifikat är aldrig giltigt, så standardkriterierna håller monitorn offline. **Är självsignerat certifikat**, **Är utgånget certifikat** och **Dagar till utgång** fungerar fortfarande för det, så bygg kriterierna på dem. På **Konfiguration → Kriterier**:
 
-1. Klicka på **Lägg till filter** i kriteriet "inte giltigt", sätt det nya filtret till **Is Self Signed Certificate** / **Falskt** och sätt **Matchningsvillkor** till **Alla**. Kriteriet tar fortfarande monitorn offline när slutpunkten inte svarar, eller när certifikatet är fel på något annat sätt.
-2. Lägg till ett kriterium med **Is Expired Certificate** / **Sant** som markerar monitorn som **Offline** och deklarerar en incident, och dra det högst upp.
-3. Ersätt **Is Valid Certificate** / **Sant** med **Is Expired Certificate** / **Falskt** i kriteriet "går snart ut", så att varningen även täcker det självsignerade certifikatet.
+1. Klicka på **Lägg till filter** i kriteriet "inte giltigt", sätt det nya filtret till **Är självsignerat certifikat** / **Falskt** och sätt **Matchningsvillkor** till **Alla**. Kriteriet tar fortfarande monitorn offline när slutpunkten inte svarar, eller när certifikatet är fel på något annat sätt.
+2. Lägg till ett kriterium med **Är utgånget certifikat** / **Sant** som markerar monitorn som **Offline** och deklarerar en incident, och dra det högst upp.
+3. Ersätt **Är giltigt certifikat** / **Sant** med **Är utgånget certifikat** / **Falskt** i kriteriet "går snart ut", så att varningen även täcker det självsignerade certifikatet.
 
 Så länge certifikatet är aktuellt matchar inget kriterium, och monitorn visar sin standardstatus, **Fungerar**.
 :::

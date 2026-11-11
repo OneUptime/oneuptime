@@ -101,7 +101,7 @@ Deze instellingen zijn ingeklapt onder **Meer velden**. De ingeklapte kop noemt 
 
 | Veld | Standaard | Wat het doet |
 | --- | --- | --- |
-| **Aanvraagheaders** | Geen | Headers die worden verzonden, als paren van naam en waarde. Klik voor elke header op **Request Header toevoegen**. |
+| **Aanvraagheaders** | Geen | Headers die worden verzonden, als paren van naam en waarde. Klik voor elke header op **Aanvraagheader toevoegen**. |
 | **Aanvraagtekst (in JSON)** | Geen | Een JSON-object dat als body wordt verzonden, meestal met **POST**, **PUT** of **PATCH**. Het moet geldige JSON zijn. |
 | **Omleidingen niet volgen** | Uit | Het eerste antwoord beoordelen in plaats van omleidingen te volgen. Zie [hieronder](#omleidingen-niet-volgen). |
 | **Zelfondertekende certificaten toestaan** | Uit | De validatie van het TLS-certificaat overslaan voor de eigen hostnaam van de monitor. |
@@ -154,14 +154,14 @@ Criteria bepalen wanneer de API als online, verminderd of offline telt, en of da
 
 | Filter | Voorwaarden | Wat het controleert |
 | --- | --- | --- |
-| **Is Online** | **Waar**, **Onwaar** | Of de API überhaupt antwoordde, ongeacht de statuscode. |
+| **Is online** | **Waar**, **Onwaar** | Of de API überhaupt antwoordde, ongeacht de statuscode. |
 | **Reactiestatuscode** | **Gelijk aan**, **Niet gelijk aan**, **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | De HTTP-statuscode. |
 | **Reactietijd (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Hoe lang de aanvraag duurde, omleidingen inbegrepen. |
 | **Antwoordlichaam** | **Bevat**, **Bevat niet** | Tekst in de body van het antwoord. De vergelijking is hoofdlettergevoelig. |
-| **Response Header** | **Bevat**, **Bevat niet** | Of het antwoord een header met deze naam heeft. Vul de naam in kleine letters in, zoals `x-request-id`. |
-| **Response Header Value** | **Bevat**, **Bevat niet** | Of een header precies deze waarde heeft, vergeleken in kleine letters, zoals `application/json`. |
-| **JavaScript Expression** | **Evaluates To True** | Een expressie over het antwoord. Zie [JavaScript-expressies](/docs/monitor/javascript-expression). |
-| **Is Request Timeout** | **Waar**, **Onwaar** | Of de aanvraag bij elke poging een time-out bereikte. |
+| **Reactieheader** | **Bevat**, **Bevat niet** | Of het antwoord een header met deze naam heeft. Vul de naam in kleine letters in, zoals `x-request-id`. |
+| **Waarde van reactieheader** | **Bevat**, **Bevat niet** | Of een header precies deze waarde heeft, vergeleken in kleine letters, zoals `application/json`. |
+| **JavaScript-expressie** | **Resulteert in waar** | Een expressie over het antwoord. Zie [JavaScript-expressies](/docs/monitor/javascript-expression). |
+| **Time-out van aanvraag** | **Waar**, **Onwaar** | Of de aanvraag bij elke poging een time-out bereikte. |
 
 Een JSON-antwoord wordt in zijn compacte vorm gecontroleerd, zonder spaties tussen sleutels en waarden. Om `"status": "ok"` te vinden met **Antwoordlichaam**, vult u `"status":"ok"` in.
 
@@ -178,7 +178,7 @@ Een nieuwe API-monitor begint met twee criteria, zodat hij werkt zonder dat u ie
 
 In de lijst met criteria zijn ze naar de monitor genoemd: _Check if (name) is offline_ en _Check if (name) is online_.
 
-Een endpoint dat `201 Created` of `204 No Content` antwoordt, telt dus als bereikbaar. Betekent voor u maar één statuscode gezond, wijzig dan beide criteria op de pagina **Configuratie → Criteria** van de monitor: bijvoorbeeld **Reactiestatuscode** / **Gelijk aan** / `200` in het online-criterium en **Niet gelijk aan** / `200` in het offline-criterium, in plaats van de twee statuscodefilters die elk heeft. Om ook te controleren wat de API teruggeeft, voegt u een filter **Antwoordlichaam** of **JavaScript Expression** toe aan het offline-criterium.
+Een endpoint dat `201 Created` of `204 No Content` antwoordt, telt dus als bereikbaar. Betekent voor u maar één statuscode gezond, wijzig dan beide criteria op de pagina **Configuratie → Criteria** van de monitor: bijvoorbeeld **Reactiestatuscode** / **Gelijk aan** / `200` in het online-criterium en **Niet gelijk aan** / `200` in het offline-criterium, in plaats van de twee statuscodefilters die elk heeft. Om ook te controleren wat de API teruggeeft, voegt u een filter **Antwoordlichaam** of **JavaScript-expressie** toe aan het offline-criterium.
 
 Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenkomt bepaalt wat er gebeurt.
 
@@ -188,17 +188,17 @@ Monitoren die zijn gemaakt voordat OneUptime deze standaarden wijzigde, houden d
 
 ### Over een periode evalueren
 
-**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **Is Online**, **Reactiestatuscode**, **Reactietijd (in ms)**, **Antwoordlichaam**, **Response Header**, **Response Header Value**, **JavaScript Expression** en **Is Request Timeout**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**.
+**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **Is online**, **Reactiestatuscode**, **Reactietijd (in ms)**, **Antwoordlichaam**, **Reactieheader**, **Waarde van reactieheader**, **JavaScript-expressie** en **Time-out van aanvraag**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**.
 
 | Aggregatie | Komt overeen wanneer |
 | --- | --- |
-| **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value** | Dat getal, over het venster, aan de voorwaarde voldoet. Alleen numerieke filters. |
-| **All Values** | Elke controle in het venster aan de voorwaarde voldoet. |
-| **Any Value** | Minstens één controle in het venster aan de voorwaarde voldoet. |
+| **Gemiddelde**, **Som**, **Maximale waarde**, **Minimale waarde** | Dat getal, over het venster, aan de voorwaarde voldoet. Alleen numerieke filters. |
+| **Alle waarden** | Elke controle in het venster aan de voorwaarde voldoet. |
+| **Willekeurige waarde** | Minstens één controle in het venster aan de voorwaarde voldoet. |
 
-**All Values** komt pas overeen wanneer het venster echt met gegevens gevuld is. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Any Value** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en slaat nog steeds meteen aan.
+De optie **Alle waarden** komt pas overeen wanneer het venster echt met gegevens gevuld is. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Willekeurige waarde** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en slaat nog steeds meteen aan.
 
-Een body, een header, een headerwaarde of een expressie is geen getal dat OneUptime vastlegt. Voor die filters en voor **Is Request Timeout** legt OneUptime daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **All Values** of **Any Value**. Zo doorstaat een monitor een herstart. Een app die opstart, antwoordt misschien met `200` en een tijdelijke pagina zoals `Application starting...`; met **All Values** zet een filter **Antwoordlichaam** dat naar de titel van de app zoekt de monitor pas offline als de tijdelijke pagina het hele venster heeft geduurd.
+Een body, een header, een headerwaarde of een expressie is geen getal dat OneUptime vastlegt. Voor die filters en voor **Time-out van aanvraag** legt OneUptime daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **Alle waarden** of **Willekeurige waarde**. Zo doorstaat een monitor een herstart. Een app die opstart, antwoordt misschien met `200` en een tijdelijke pagina zoals `Application starting...`; met **Alle waarden** zet een filter **Antwoordlichaam** dat naar de titel van de app zoekt de monitor pas offline als de tijdelijke pagina het hele venster heeft geduurd.
 
 Maak het venster langer dan het monitoringinterval, zodat het meerdere controles bevat: een monitor die elke 5 minuten wordt gecontroleerd, heeft in elk venster van 5 minuten maar één controle.
 
@@ -216,10 +216,10 @@ Maak het venster langer dan het monitoringinterval, zodat het meerdere controles
 | --- | --- | --- | --- |
 | De API als verminderd markeren wanneer hij traag is | **Reactietijd (in ms)** | **Groter dan** | `1000` |
 | Offline wanneer de gezondheidscontrole een probleem meldt | **Antwoordlichaam** | **Bevat niet** | `"status":"ok"` |
-| Hetzelfde, gelezen uit de geparste JSON | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
+| Hetzelfde, gelezen uit de geparste JSON | **JavaScript-expressie** | **Resulteert in waar** | `"{{responseBody.status}}" !== "ok"` |
 | Alleen `201` accepteren van een `POST` | **Reactiestatuscode** | **Gelijk aan** | `201` |
 
-Zet om een herstart te doorstaan **Evalueer deze criteria over een bepaalde periode** aan voor het filter op de antwoordbody en kies **All Values** over 15 minuten.
+Zet om een herstart te doorstaan **Evalueer deze criteria over een bepaalde periode** aan voor het filter op de antwoordbody en kies **Alle waarden** over 15 minuten.
 
 ## Problemen oplossen
 

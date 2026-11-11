@@ -25,7 +25,7 @@ flowchart TB
     A --> L["Maakt een<br/>waarschuwing"]
 ```
 
-De volgorde hoort bij de regel. Een nieuwe monitor zet zijn criteria van slechtste naar beste: offline, dan een waarschuwing als zijn type er een heeft (een certificaat of een domein dat binnenkort verloopt), dan online. Een breed gezond criterium, zoals **Is Online** op **Waar**, komt overeen met bijna elke controle, dus het staat als laatste: boven de andere zou het elke keer als eerste overeenkomen en zouden de andere nooit handelen.
+De volgorde hoort bij de regel. Een nieuwe monitor zet zijn criteria van slechtste naar beste: offline, dan een waarschuwing als zijn type er een heeft (een certificaat of een domein dat binnenkort verloopt), dan online. Een breed gezond criterium, zoals **Is online** op **Waar**, komt overeen met bijna elke controle, dus het staat als laatste: boven de andere zou het elke keer als eerste overeenkomen en zouden de andere nooit handelen.
 
 Een criterium dat overeenkomt maar geen status wijzigt, beslist de controle toch: de monitor houdt zijn status, en de criteria eronder wachten op de volgende controle. De **Standaard monitorstatus** geldt alleen als geen enkel criterium overeenkomt. Bij een nieuwe monitor is dat **Operationeel**; wijzig het onder **Meer velden**, onder de criteria.
 
@@ -49,7 +49,7 @@ Een filter leest één gegeven uit de controle en vergelijkt het: een **Filterty
 
 Vanaf twee filters verschijnt eronder de **Overeenkomstvoorwaarde**: **Alle** betekent dat elk filter moet overeenkomen, **Minstens één** dat er één genoeg is. Een nieuw criterium begint op **Alle**.
 
-Filters die elke controle meten, zoals **Is Online**, **Reactiestatuscode** en **Reactietijd (in ms)**, bieden **Evalueer deze criteria over een bepaalde periode**. Dat beoordeelt een venster van recente controles in plaats van alleen de laatste, en begint op de laatste 5 minuten met **All Values**, dat pas overeenkomt als elke controle in het venster overeenkwam. Zie [Evalueren over een periode](/docs/monitor/website-monitor#over-een-periode-evalueren).
+Filters die elke controle meten, zoals **Is online**, **Reactiestatuscode** en **Reactietijd (in ms)**, bieden **Evalueer deze criteria over een bepaalde periode**. Dat beoordeelt een venster van recente controles in plaats van alleen de laatste, en begint op de laatste 5 minuten met **Alle waarden**, dat pas overeenkomt als elke controle in het venster overeenkwam. Zie [Evalueren over een periode](/docs/monitor/website-monitor#over-een-periode-evalueren).
 
 ### Acties
 
@@ -97,8 +97,8 @@ Om te zien hoe een controle is beoordeeld, opent u het **Overzicht** van de moni
 
 Een incident of waarschuwing die een monitor opent, bewaart de controle die het opende, zodat u nog lang nadat de logboeken van de monitor zelf zijn verdwenen kunt zien waarom. Onder de hoofdoorzaak noemt **Evaluatiedetails** het criterium dat overeenkwam en per filter dat overeenkwam wat de controle vond. **Details tonen** voegt de rest van het bewijs toe, de filters die niet overeenkwamen en de controle zelf: het verzoek, wanneer die liep, vanaf welke sonde en wat er terugkwam. Wat een filter vond, kan zijn:
 
-- **Het veld.** Waar een filter **Antwoordlichaam** in een JSON-inhoud overeenkwam, zoals `checks[1].status`, of de header waarin een filter **Response Header Value** overeenkwam.
-- **De waarden.** Wat elke waarde die een **JavaScript Expression** leest bevatte toen die werd geëvalueerd, zoals `responseBody.status = "down"`.
+- **Het veld.** Waar een filter **Antwoordlichaam** in een JSON-inhoud overeenkwam, zoals `checks[1].status`, of de header waarin een filter **Waarde van reactieheader** overeenkwam.
+- **De waarden.** Wat elke waarde die een **JavaScript-expressie** leest bevatte toen die werd geëvalueerd, zoals `responseBody.status = "down"`.
 - **Een fragment.** Een kort stuk van het antwoord rond de overeenkomst, met de overeenkomst gemarkeerd: nooit de hele inhoud.
 
 Geheimen en persoonsgegevens worden gemaskeerd voordat er iets wordt bewaard: headers zoals `Authorization`, `Cookie` en `Set-Cookie`, velden waarvan de naam `password`, `token`, `key`, `session` of `email` zegt, en tekst die eruitziet als een bearer-token, een JWT, een kaartnummer of een e-mailadres. De URL van het verzoek is die waarmee de monitor is ingesteld, dus `{{monitorSecrets.NAME}}` blijft een naam, en een geheime querywaarde wordt gemaskeerd. De **Monitoringlogboeken** van de monitor, en elke waarde die een hoofdoorzaak citeert, worden op dezelfde manier gemaskeerd. Een incident of waarschuwing die met de hand is geopend, of voordat evaluatiedetails werden bewaard, heeft er geen.

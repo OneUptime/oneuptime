@@ -73,14 +73,14 @@ Kriterier avgjør når sertifikatet regnes som i orden, redusert eller feil, og 
 
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
-| **Is Valid Certificate** | **Sann**, **Usann** | Sertifikatet består en nettlesers sjekker: en utsteder det er tillit til, et vertsnavn som stemmer, og en gyldighetsperiode som omfatter i dag. **Usann** når endepunktet ikke svarte. |
-| **Is Not A Valid Certificate** | **Sann**, **Usann** | Det motsatte av **Is Valid Certificate**: **Sann** når sertifikatet ikke består de sjekkene eller ikke kunne sjekkes. |
-| **Is Expired Certificate** | **Sann**, **Usann** | Sertifikatets utløpsdato er passert. |
-| **Is Self Signed Certificate** | **Sann**, **Usann** | Sertifikatet, eller ett i kjeden, er selvsignert. |
-| **Expires In Days** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Dager til sertifikatet utløper. |
-| **Expires In Hours** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Timer til sertifikatet utløper. |
+| **Er gyldig sertifikat** | **Sann**, **Usann** | Sertifikatet består en nettlesers sjekker: en utsteder det er tillit til, et vertsnavn som stemmer, og en gyldighetsperiode som omfatter i dag. **Usann** når endepunktet ikke svarte. |
+| **Er ikke et gyldig sertifikat** | **Sann**, **Usann** | Det motsatte av **Er gyldig sertifikat**: **Sann** når sertifikatet ikke består de sjekkene eller ikke kunne sjekkes. |
+| **Er utløpt sertifikat** | **Sann**, **Usann** | Sertifikatets utløpsdato er passert. |
+| **Er selvsignert sertifikat** | **Sann**, **Usann** | Sertifikatet, eller ett i kjeden, er selvsignert. |
+| **Dager til utløp** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Dager til sertifikatet utløper. |
+| **Timer til utløp** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Timer til sertifikatet utløper. |
 
-**Expires In Days** teller hele dager: et sertifikat som utløper om 14 dager og 20 timer, har 14 dager igjen. **Expires In Hours** teller hele timer på samme måte.
+**Dager til utløp** teller hele dager: et sertifikat som utløper om 14 dager og 20 timer, har 14 dager igjen. **Timer til utløp** teller hele timer på samme måte.
 
 Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvare, eller om **Hvilken som helst** av dem holder. Et kriteriums **Handlinger** avgjør hva det gjør: endrer monitorstatusen, oppretter et varsel, erklærer en hendelse, eller flere av disse.
 
@@ -96,13 +96,13 @@ Varselet "utløper snart" er et varsel, ikke en hendelse: det vises ikke på sta
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Derfor står "utløper snart" over "er gyldig": et sertifikat som er i ferd med å utløpe, er fortsatt gyldig, så det ville samsvare med begge.
 
-For å bli varslet tidligere endrer du verdien til filteret **Expires In Days** i kriteriet "utløper snart", for eksempel til `30`. For å få noen tilkalt i stedet åpner du kriteriets **Handlinger**: slå på **Når filtre samsvarer, erklær en hendelse.**, eller behold varselet og legg til en vaktretningslinje på det under **Vaktretningslinjer**.
+For å bli varslet tidligere endrer du verdien til filteret **Dager til utløp** i kriteriet "utløper snart", for eksempel til `30`. For å få noen tilkalt i stedet åpner du kriteriets **Handlinger**: slå på **Når filtre samsvarer, erklær en hendelse.**, eller behold varselet og legg til en vaktretningslinje på det under **Vaktretningslinjer**.
 
 :::details Legg til varselet på en monitor som ble opprettet før det fantes
 Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke noe kriterium "utløper snart". Slik legger du det til:
 
 1. Åpne **Konfigurasjon → Kriterier** på monitoren, og klikk på **Rediger overvåkingskriterier**.
-2. Klikk på **Legg til kriterier**. Sett filteret til **Is Valid Certificate** / **Sann**, klikk på **Legg til filter**, og sett det andre til **Expires In Days** / **Mindre enn eller lik** / `14`. La **Samsvarsbetingelse** stå på **Alle** (den vises under filtrene så snart det er to).
+2. Klikk på **Legg til kriterier**. Sett filteret til **Er gyldig sertifikat** / **Sann**, klikk på **Legg til filter**, og sett det andre til **Dager til utløp** / **Mindre enn eller lik** / `14`. La **Samsvarsbetingelse** stå på **Alle** (den vises under filtrene så snart det er to).
 3. Slå på **Når filtre samsvarer, opprett et varsel.** under **Handlinger**, og la **Når filtre samsvarer, endre overvåkerstatus.** være slått av, så det oppretter et varsel og ikke endrer monitorens status.
 4. Dra det nye kriteriet over kriteriet som merker monitoren som tilkoblet, og lagre så.
 :::
@@ -111,10 +111,10 @@ Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke no
 
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
-| Varsle en måned i forveien | **Expires In Days** | **Mindre enn eller lik** | `30` |
-| Tilkall noen den siste dagen | **Expires In Hours** | **Mindre enn** | `24` |
-| Frakoblet først når sertifikatet er utløpt | **Is Expired Certificate** | **Sann** | — |
-| Marker et selvsignert sertifikat | **Is Self Signed Certificate** | **Sann** | — |
+| Varsle en måned i forveien | **Dager til utløp** | **Mindre enn eller lik** | `30` |
+| Tilkall noen den siste dagen | **Timer til utløp** | **Mindre enn** | `24` |
+| Frakoblet først når sertifikatet er utløpt | **Er utløpt sertifikat** | **Sann** | — |
+| Marker et selvsignert sertifikat | **Er selvsignert sertifikat** | **Sann** | — |
 
 Et kriterium om utløp må stå over kriteriet som merker sertifikatet som gyldig: et sertifikat som snart utløper, er fortsatt gyldig, og det første kriteriet som samsvarer, vinner.
 
@@ -132,11 +132,11 @@ Hendelsens rotårsak forteller hvorfor. En vanlig årsak er en server som sender
 :::
 
 :::details Jeg overvåker en intern tjeneste med et selvsignert sertifikat
-Et selvsignert sertifikat er aldri gyldig, så standardkriteriene holder monitoren frakoblet. **Is Self Signed Certificate**, **Is Expired Certificate** og **Expires In Days** fungerer fortsatt for det, så bygg kriteriene på dem. På **Konfigurasjon → Kriterier**:
+Et selvsignert sertifikat er aldri gyldig, så standardkriteriene holder monitoren frakoblet. **Er selvsignert sertifikat**, **Er utløpt sertifikat** og **Dager til utløp** fungerer fortsatt for det, så bygg kriteriene på dem. På **Konfigurasjon → Kriterier**:
 
-1. Klikk på **Legg til filter** i kriteriet "ikke gyldig", sett det nye filteret til **Is Self Signed Certificate** / **Usann**, og sett **Samsvarsbetingelse** til **Alle**. Kriteriet tar fortsatt monitoren frakoblet når endepunktet ikke svarer, eller sertifikatet er feil på en annen måte.
-2. Legg til et kriterium med **Is Expired Certificate** / **Sann** som merker monitoren som **Frakoblet** og erklærer en hendelse, og dra det helt øverst.
-3. Erstatt **Is Valid Certificate** / **Sann** med **Is Expired Certificate** / **Usann** i kriteriet "utløper snart", så varselet også dekker det selvsignerte sertifikatet.
+1. Klikk på **Legg til filter** i kriteriet "ikke gyldig", sett det nye filteret til **Er selvsignert sertifikat** / **Usann**, og sett **Samsvarsbetingelse** til **Alle**. Kriteriet tar fortsatt monitoren frakoblet når endepunktet ikke svarer, eller sertifikatet er feil på en annen måte.
+2. Legg til et kriterium med **Er utløpt sertifikat** / **Sann** som merker monitoren som **Frakoblet** og erklærer en hendelse, og dra det helt øverst.
+3. Erstatt **Er gyldig sertifikat** / **Sann** med **Er utløpt sertifikat** / **Usann** i kriteriet "utløper snart", så varselet også dekker det selvsignerte sertifikatet.
 
 Så lenge sertifikatet er gjeldende, samsvarer ingen kriterier, og monitoren viser standardstatusen sin, **I drift**.
 :::

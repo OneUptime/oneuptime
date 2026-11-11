@@ -18,7 +18,7 @@ Ga naar **Monitoren** en klik op **Monitor maken**. Het formulier opent op de ee
 
 De eerste vraag is het **Monitortype**: wat wilt u bewaken?
 
-- De zes types die het vaakst worden gemaakt staan bovenaan: **Website**, **API**, **Ping**, **Poort**, **SSL Certificate** en **Incoming Request**, voor heartbeats van cronjobs en webhooks.
+- De zes types die het vaakst worden gemaakt staan bovenaan: **Website**, **API**, **Ping**, **Poort**, **SSL Certificate** en **Inkomende aanvraag**, voor heartbeats van cronjobs en webhooks.
 - **Meer monitortypen** toont alle andere types onder hun categorie, zoals **Infrastructuur** (Kubernetes, Docker, host) en **Telemetrie** (logboeken, metrieken, traces). **Handmatig**, een monitor waarvan u de status zelf instelt, en **Sondestatus**, die u laat weten wanneer een probe de verbinding verliest, staan onder **Overig**.
 - Of typ in het zoekvak. Het kent de woorden die u al gebruikt, zoals `k8s`, `postgres`, `heartbeat` of `tls`, en **Enter** kiest de eerste treffer.
 

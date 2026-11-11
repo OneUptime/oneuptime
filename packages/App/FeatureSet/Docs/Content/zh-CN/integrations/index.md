@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- | --- |
 | 内置连接 | OneUptime 自己连接的工具。只需填写表单，无需构建任何东西。 | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[安全事件](/docs/telemetry/security-events) 连接 |
 | 工作流模板 | 双向保持同步的工单工具、监控问题、安全事件报告，以及聊天消息。选择一个模板并填写几项设置即可。 | [Jira](/docs/integrations/jira)、[Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)、[Huntress](/docs/integrations/huntress)、[Zabbix](/docs/integrations/zabbix)、[Datadog](/docs/integrations/datadog)、[New Relic](/docs/integrations/new-relic) |
-| Incoming Request 监视器 | 发送 Webhook 的告警工具。无需工作流，每条告警对应一个事件，通知值班人员，并在告警恢复时解决。 | [Zabbix](/docs/integrations/zabbix)、[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)、[Grafana](/docs/integrations/grafana) |
+| 入站请求监视器 | 发送 Webhook 的告警工具。无需工作流，每条告警对应一个事件，通知值班人员，并在告警恢复时解决。 | [Zabbix](/docs/integrations/zabbix)、[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)、[Grafana](/docs/integrations/grafana) |
 | 你自己构建的工作流 | 任何带有 Webhook 或 REST API 的工具，以及你自己的任何逻辑。 | [PagerDuty](/docs/integrations/pagerduty)、[Opsgenie](/docs/integrations/opsgenie)、[ServiceNow](/docs/integrations/servicenow) |
 
 从表格顶部开始看：越靠上的方式，需要维护的东西越少。
@@ -112,7 +112,7 @@ flowchart TB
 
 ### 入站：另一个工具把数据发送到 OneUptime
 
-对于告警工具，先从 [Incoming Request 监视器](/docs/monitor/incoming-request-monitor#接收来自其他系统的告警) 开始：它为每条告警创建一个事件，并在恢复时解决，无需构建任何东西。需要自己的逻辑时，再构建工作流：
+对于告警工具，先从 [入站请求监视器](/docs/monitor/incoming-request-monitor#接收来自其他系统的告警) 开始：它为每条告警创建一个事件，并在恢复时解决，无需构建任何东西。需要自己的逻辑时，再构建工作流：
 
 :::steps
 1. 打开 **工作流**，点击 **创建工作流**，然后点击 **从零开始**。为工作流命名，然后点击 **创建工作流**。

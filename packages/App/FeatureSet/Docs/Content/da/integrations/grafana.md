@@ -3,7 +3,7 @@
 Send advarsler fra [Grafana](https://grafana.com) til OneUptime, så hver advarsel, der udløses, bliver en hændelse, der kalder dit vagthold op og løses, når advarslen er kommet sig. Grafana sender sine advarsler via et webhook-kontaktpunkt, så der er intet at installere på nogen af siderne.
 
 :::cards
-- [Vælg, hvordan OneUptime modtager advarsler](#vælg-hvordan-oneuptime-modtager-advarsler): En Incoming Request-monitor eller dit eget workflow.
+- [Vælg, hvordan OneUptime modtager advarsler](#vælg-hvordan-oneuptime-modtager-advarsler): En monitor for indgående anmodninger eller dit eget workflow.
 - [Modtag advarsler med en monitor](#modtag-advarsler-med-en-monitor): Én hændelse pr. advarsel, løst ved genopretning.
 - [Konfigurer Grafana](#konfigurer-grafana): Et webhook-kontaktpunkt og den politik, der bruger det.
 - [Fejlfinding](#fejlfinding): Når advarsler ikke kommer frem, eller hændelser bliver ved med at være åbne.
@@ -33,19 +33,19 @@ Sæt OneUptime op først: det giver dig den URL, Grafana sender til.
 
 | Vej | Brug den, når |
 | --- | --- |
-| En Incoming Request-monitor (anbefalet) | Du vil have, at hver advarsel bliver en hændelse, der kalder vagten op og løses, når advarslen er kommet sig. Der er intet at bygge. |
+| En monitor for indgående anmodninger (anbefalet) | Du vil have, at hver advarsel bliver en hændelse, der kalder vagten op og løses, når advarslen er kommet sig. Der er intet at bygge. |
 | Et workflow med en Webhook-trigger | Du har brug for din egen logik: filtrere advarsler, omforme dem eller kalde andre systemer først. Et workflow åbner én hændelse pr. notifikation, ikke pr. advarsel, og løser den ikke ved genopretning. |
 
 Begge får den samme JSON fra det samme kontaktpunkt, så du kan begynde med den ene og skifte senere ved at ændre én URL i Grafana.
 
 ## Modtag advarsler med en monitor
 
-En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) giver dig en URL, og dens kriterier afgør, hvad hver notifikation gør.
+En [monitor for indgående anmodninger](/docs/monitor/incoming-request-monitor) giver dig en URL, og dens kriterier afgør, hvad hver notifikation gør.
 
 :::steps
 ### Opret monitoren
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Vælg **Incoming Request** under **Monitortype**, kald den `Grafana`, og klik på **Næste**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Vælg **Indgående anmodning** under **Monitortype**, kald den `Grafana`, og klik på **Næste**.
 
 ### Erklær en hændelse for hver udløst advarsel
 

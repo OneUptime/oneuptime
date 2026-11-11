@@ -1,6 +1,6 @@
 # JavaScript-expressies
 
-Een criteriumfilter **JavaScript Expression** bepaalt met één regel JavaScript in plaats van een vaste vergelijking of aan het criterium van een monitor is voldaan. Gebruik het wanneer de ingebouwde filters de voorwaarde niet kunnen uitdrukken — een veld diep in een JSON-antwoord, twee waarden die met elkaar worden vergeleken, of meerdere controles gecombineerd met `&&` en `||`.
+Een criteriumfilter **JavaScript-expressie** bepaalt met één regel JavaScript in plaats van een vaste vergelijking of aan het criterium van een monitor is voldaan. Gebruik het wanneer de ingebouwde filters de voorwaarde niet kunnen uitdrukken — een veld diep in een JSON-antwoord, twee waarden die met elkaar worden vergeleken, of meerdere controles gecombineerd met `&&` en `||`.
 
 :::cards
 - [Hoe het werkt](#hoe-het-werkt): Plaatshouders worden ingevuld, daarna draait de expressie.
@@ -24,7 +24,7 @@ flowchart TB
 
 Omdat plaatshouders als tekst worden vervangen, wordt `{{responseBody.item}}` de ruwe waarde. Een tekenreeks moet tussen aanhalingstekens staan om een JavaScript-tekenreeks te zijn; een getal of een boolean niet — zie [Regels voor aanhalingstekens](#regels-voor-aanhalingstekens). Expressies draaien op de OneUptime-server, in een geïsoleerde sandbox.
 
-## Een filter JavaScript Expression toevoegen
+## Een filter JavaScript-expressie toevoegen
 
 :::steps
 ### De criteria openen
@@ -33,7 +33,7 @@ Open bij de monitor **Configuratie → Criteria** en klik op **Bewakingscriteria
 
 ### Een filter toevoegen
 
-Klik onder **Filters** op **Filter toevoegen** en zet het **Filtertype** op **JavaScript Expression**. De **Filtervoorwaarde** is **Evaluates To True**.
+Klik onder **Filters** op **Filter toevoegen** en zet het **Filtertype** op **JavaScript-expressie**. De **Filtervoorwaarde** is **Resulteert in waar**.
 
 ### De expressie schrijven
 
@@ -46,7 +46,7 @@ Sla de monitor op. Het filter wordt bij de volgende controle van de monitor geë
 
 ## Variabelen per monitortype
 
-JavaScript-expressies worden aangeboden voor monitoren van het type Website, API, Incoming Request, Incoming Email, SQL Query en Database Health.
+JavaScript-expressies worden aangeboden voor monitoren van het type Website, API, Inkomende aanvraag, Incoming Email, SQL Query en Database Health.
 
 ### Website- en API-monitoren
 

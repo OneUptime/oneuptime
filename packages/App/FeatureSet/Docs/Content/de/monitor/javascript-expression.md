@@ -1,6 +1,6 @@
 # JavaScript-Ausdrücke
 
-Ein Kriterienfilter **JavaScript Expression** entscheidet mit einer Zeile JavaScript statt mit einem festen Vergleich, ob das Kriterium eines Monitors erfüllt ist. Verwenden Sie ihn, wenn die eingebauten Filter die Bedingung nicht ausdrücken können — ein Feld tief in einer JSON-Antwort, zwei Werte, die miteinander verglichen werden, oder mehrere Prüfungen, die mit `&&` und `||` verknüpft sind.
+Ein Kriterienfilter **JavaScript-Ausdruck** entscheidet mit einer Zeile JavaScript statt mit einem festen Vergleich, ob das Kriterium eines Monitors erfüllt ist. Verwenden Sie ihn, wenn die eingebauten Filter die Bedingung nicht ausdrücken können — ein Feld tief in einer JSON-Antwort, zwei Werte, die miteinander verglichen werden, oder mehrere Prüfungen, die mit `&&` und `||` verknüpft sind.
 
 :::cards
 - [So funktioniert es](#so-funktioniert-es): Platzhalter werden ausgefüllt, dann läuft der Ausdruck.
@@ -24,7 +24,7 @@ flowchart TB
 
 Weil Platzhalter als Text ersetzt werden, wird `{{responseBody.item}}` zum rohen Wert. Eine Zeichenkette muss in Anführungszeichen stehen, um eine JavaScript-Zeichenkette zu sein; eine Zahl oder ein boolescher Wert nicht — siehe [Regeln für Anführungszeichen](#regeln-für-anführungszeichen). Ausdrücke laufen auf dem OneUptime-Server, in einer isolierten Sandbox.
 
-## Einen Filter JavaScript Expression hinzufügen
+## Einen Filter JavaScript-Ausdruck hinzufügen
 
 :::steps
 ### Die Kriterien öffnen
@@ -33,7 +33,7 @@ Weil Platzhalter als Text ersetzt werden, wird `{{responseBody.item}}` zum rohen
 
 ### Einen Filter hinzufügen
 
-Klicken Sie unter **Filter** auf **Filter hinzufügen** und setzen Sie seinen **Filtertyp** auf **JavaScript Expression**. Die **Filterbedingung** ist **Evaluates To True**.
+Klicken Sie unter **Filter** auf **Filter hinzufügen** und setzen Sie seinen **Filtertyp** auf **JavaScript-Ausdruck**. Die **Filterbedingung** ist **Ergibt wahr**.
 
 ### Den Ausdruck schreiben
 

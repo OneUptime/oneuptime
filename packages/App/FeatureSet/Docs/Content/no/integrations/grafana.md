@@ -3,7 +3,7 @@
 Send varsler fra [Grafana](https://grafana.com) til OneUptime, slik at hvert varsel som utløses, blir en hendelse som varsler vaktteamet ditt og løses når varselet er gjenopprettet. Grafana sender varslene sine gjennom et webhook-kontaktpunkt, så det er ingenting å installere på noen av sidene.
 
 :::cards
-- [Velg hvordan OneUptime mottar varsler](#velg-hvordan-oneuptime-mottar-varsler): En Incoming Request-monitor eller en egen arbeidsflyt.
+- [Velg hvordan OneUptime mottar varsler](#velg-hvordan-oneuptime-mottar-varsler): En monitor for innkommende forespørsler eller en egen arbeidsflyt.
 - [Motta varsler med en monitor](#motta-varsler-med-en-monitor): Én hendelse per varsel, løst ved gjenoppretting.
 - [Konfigurer Grafana](#konfigurer-grafana): Et webhook-kontaktpunkt og retningslinjen som bruker det.
 - [Feilsøking](#feilsøking): Når varsler ikke kommer frem, eller hendelser blir stående åpne.
@@ -33,19 +33,19 @@ Sett opp OneUptime først: det gir deg URL-en som Grafana sender til.
 
 | Vei | Bruk den når |
 | --- | --- |
-| En Incoming Request-monitor (anbefalt) | Du vil at hvert varsel skal bli en hendelse som varsler vakten og løses når varselet er gjenopprettet. Det er ingenting å bygge. |
+| En monitor for innkommende forespørsler (anbefalt) | Du vil at hvert varsel skal bli en hendelse som varsler vakten og løses når varselet er gjenopprettet. Det er ingenting å bygge. |
 | En arbeidsflyt med en Webhook-trigger | Du trenger din egen logikk: filtrere varsler, omforme dem eller kalle andre systemer først. En arbeidsflyt åpner én hendelse per varsling, ikke per varsel, og løser den ikke ved gjenoppretting. |
 
 Begge får den samme JSON-en fra det samme kontaktpunktet, så du kan begynne med den ene og bytte senere ved å endre én URL i Grafana.
 
 ## Motta varsler med en monitor
 
-En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) gir deg en URL, og kriteriene dens avgjør hva hver varsling gjør.
+En [monitor for innkommende forespørsler](/docs/monitor/incoming-request-monitor) gir deg en URL, og kriteriene dens avgjør hva hver varsling gjør.
 
 :::steps
 ### Opprett monitoren
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Incoming Request** under **Monitortype**, gi den navnet `Grafana`, og klikk på **Neste**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Innkommende forespørsel** under **Monitortype**, gi den navnet `Grafana`, og klikk på **Neste**.
 
 ### Erklær en hendelse for hvert utløst varsel
 

@@ -108,11 +108,11 @@ I criteri decidono quando la porta conta come online, degradata o offline, e se 
 
 | Filtro | Condizioni | Cosa controlla |
 | --- | --- | --- |
-| **Is Online** | **Vero**, **Falso** | Se la porta ha accettato una connessione. |
+| **Online** | **Vero**, **Falso** | Se la porta ha accettato una connessione. |
 | **Total Connection Time (DNS + TCP) (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | L'intero tempo di connessione, compresa la risoluzione DNS per un nome host. |
-| **Port DNS Lookup Time (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | La risoluzione DNS prima del primo tentativo TCP. Non ha valore quando la destinazione è un indirizzo IP. |
-| **Port TCP Connect Time (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Dal primo tentativo TCP fino all'accettazione della connessione, compreso il passaggio tra IPv6 e IPv4. |
-| **Is Request Timeout** | **Vero**, **Falso** | Se la risoluzione DNS o la connessione TCP ha superato il timeout, a ogni tentativo. |
+| **Tempo di risoluzione DNS della porta (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | La risoluzione DNS prima del primo tentativo TCP. Non ha valore quando la destinazione è un indirizzo IP. |
+| **Tempo di connessione TCP della porta (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Dal primo tentativo TCP fino all'accettazione della connessione, compreso il passaggio tra IPv6 e IPv4. |
+| **Timeout della richiesta** | **Vero**, **Falso** | Se la risoluzione DNS o la connessione TCP ha superato il timeout, a ogni tentativo. |
 
 Un criterio sulla risoluzione DNS non ha nulla da valutare quando la destinazione è un indirizzo IP. Per criteri che devono funzionare allo stesso modo con nomi host e indirizzi IP, usate il tempo totale o il tempo di connessione TCP.
 
@@ -129,17 +129,17 @@ I criteri vengono controllati dall'alto verso il basso, e il primo che corrispon
 
 ### Valutare su un periodo di tempo
 
-**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **Is Online**, **Total Connection Time (DNS + TCP) (in ms)**, **Port DNS Lookup Time (in ms)**, **Port TCP Connect Time (in ms)** e **Is Request Timeout**. Attivatela per valutare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
+**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **Online**, **Total Connection Time (DNS + TCP) (in ms)**, **Tempo di risoluzione DNS della porta (in ms)**, **Tempo di connessione TCP della porta (in ms)** e **Timeout della richiesta**. Attivatela per valutare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
 
 | Aggregazione | Corrisponde quando |
 | --- | --- |
-| **Media**, **Somma**, **Maximum Value**, **Minimum Value** | Quel valore, sulla finestra, soddisfa la condizione. Solo filtri numerici. |
-| **All Values** | Ogni controllo nella finestra soddisfa la condizione. |
-| **Any Value** | Almeno un controllo nella finestra soddisfa la condizione. |
+| **Media**, **Somma**, **Valore massimo**, **Valore minimo** | Quel valore, sulla finestra, soddisfa la condizione. Solo filtri numerici. |
+| **Tutti i valori** | Ogni controllo nella finestra soddisfa la condizione. |
+| **Qualsiasi valore** | Almeno un controllo nella finestra soddisfa la condizione. |
 
-**All Values** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio attende invece di corrispondere sull'unica lettura che ha. **Any Value** è l'impostazione per «avvisami appena un singolo controllo supera la soglia» e scatta comunque subito.
+L'opzione **Tutti i valori** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio attende invece di corrispondere sull'unica lettura che ha. **Qualsiasi valore** è l'impostazione per «avvisami appena un singolo controllo supera la soglia» e scatta comunque subito.
 
-**Is Request Timeout** non è un numero che OneUptime registra, quindi registra se il filtro ha corrisposto a ogni controllo, e valuta la finestra da quella registrazione con **All Values** o **Any Value**.
+**Timeout della richiesta** non è un numero che OneUptime registra, quindi registra se il filtro ha corrisposto a ogni controllo, e valuta la finestra da quella registrazione con **Tutti i valori** o **Qualsiasi valore**.
 
 Scegliete una finestra più lunga dell'intervallo di monitoraggio, così che contenga più controlli: un monitor controllato ogni 5 minuti ha un solo controllo in qualsiasi finestra di 5 minuti.
 
@@ -155,11 +155,11 @@ Scegliete una finestra più lunga dell'intervallo di monitoraggio, così che con
 
 | Obiettivo | Filtro | Condizione | Valore |
 | --- | --- | --- | --- |
-| Offline quando la porta è chiusa | **Is Online** | **Falso** | — |
+| Offline quando la porta è chiusa | **Online** | **Falso** | — |
 | Avvisare quando la connessione è lenta | **Total Connection Time (DNS + TCP) (in ms)** | **Maggiore di** | `500` |
 | Segnare il servizio degradato quando è lento a connettersi | **Total Connection Time (DNS + TCP) (in ms)** | **Maggiore di** | `200` |
-| Avvisare quando il DNS è lento | **Port DNS Lookup Time (in ms)** | **Maggiore di** | `100` |
-| Avvisare quando l'handshake TCP è lento | **Port TCP Connect Time (in ms)** | **Maggiore di** | `250` |
+| Avvisare quando il DNS è lento | **Tempo di risoluzione DNS della porta (in ms)** | **Maggiore di** | `100` |
+| Avvisare quando l'handshake TCP è lento | **Tempo di connessione TCP della porta (in ms)** | **Maggiore di** | `250` |
 
 ## Risoluzione dei problemi
 
@@ -168,7 +168,7 @@ La sonda non è riuscita ad aprire una connessione: un firewall la scarta, il se
 :::
 
 :::details Il tempo di risoluzione DNS è sempre vuoto
-La destinazione è un indirizzo IP, quindi non c'è nulla da risolvere. Usate invece **Total Connection Time (DNS + TCP) (in ms)** o **Port TCP Connect Time (in ms)**.
+La destinazione è un indirizzo IP, quindi non c'è nulla da risolvere. Usate invece **Total Connection Time (DNS + TCP) (in ms)** o **Tempo di connessione TCP della porta (in ms)**.
 :::
 
 :::details Devo controllare un servizio UDP

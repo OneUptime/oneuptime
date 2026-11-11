@@ -3,7 +3,7 @@
 Invia gli avvisi di [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) a OneUptime, così ogni avviso che scatta diventa un incidente che chiama il tuo team reperibile e si risolve quando l'avviso rientra. Alertmanager pubblica le sue notifiche su un ricevitore webhook, quindi non c'è nulla da installare né da una parte né dall'altra.
 
 :::cards
-- [Scegliere come OneUptime riceve gli avvisi](#scegliere-come-oneuptime-riceve-gli-avvisi): Un monitor Incoming Request o un workflow tuo.
+- [Scegliere come OneUptime riceve gli avvisi](#scegliere-come-oneuptime-riceve-gli-avvisi): Un monitor di richieste in arrivo o un workflow tuo.
 - [Ricevere gli avvisi con un monitor](#ricevere-gli-avvisi-con-un-monitor): Un incidente per avviso, risolto al rientro.
 - [Configurare Alertmanager](#configurare-alertmanager): Un ricevitore webhook e la route che lo usa.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Quando gli avvisi non arrivano o gli incidenti restano aperti.
@@ -33,19 +33,19 @@ Configura prima OneUptime: ti dà l'URL a cui invia Alertmanager.
 
 | Strada | Usala quando |
 | --- | --- |
-| Un monitor Incoming Request (consigliato) | Vuoi che ogni avviso sia un incidente che chiama la reperibilità e si risolve quando l'avviso rientra. Non c'è nulla da costruire. |
+| Un monitor di richieste in arrivo (consigliato) | Vuoi che ogni avviso sia un incidente che chiama la reperibilità e si risolve quando l'avviso rientra. Non c'è nulla da costruire. |
 | Un workflow con un trigger Webhook | Ti serve una logica tua: filtrare gli avvisi, rimodellarli o chiamare prima altri sistemi. Un workflow apre un incidente per notifica, non per avviso, e non lo risolve al rientro. |
 
 Entrambi ricevono lo stesso JSON dallo stesso ricevitore, quindi puoi iniziare con uno e passare all'altro in seguito cambiando un URL in `alertmanager.yml`.
 
 ## Ricevere gli avvisi con un monitor
 
-Un [monitor Incoming Request](/docs/monitor/incoming-request-monitor) ti dà un URL, e i suoi criteri decidono cosa fa ogni notifica.
+Un [monitor di richieste in arrivo](/docs/monitor/incoming-request-monitor) ti dà un URL, e i suoi criteri decidono cosa fa ogni notifica.
 
 :::steps
 ### Creare il monitor
 
-Vai su **Monitor** e fai clic su **Crea monitor**. Scegli **Incoming Request** in **Tipo di monitor**, chiamalo `Alertmanager` e fai clic su **Avanti**.
+Vai su **Monitor** e fai clic su **Crea monitor**. Scegli **Richiesta in arrivo** in **Tipo di monitor**, chiamalo `Alertmanager` e fai clic su **Avanti**.
 
 ### Dichiarare un incidente per ogni avviso che scatta
 
@@ -86,7 +86,7 @@ Un'installazione self-hosted ha il proprio host al posto di `oneuptime.com`.
 > [!WARNING]
 > Raggruppa per un valore che cambia da un avviso all'altro all'interno di una notifica. Il `fingerprint` di Alertmanager è un hash dell'intero insieme di etichette di un avviso, quindi cambia sempre. Un'etichetta nel `group_by` della tua route non cambia mai: è ciò che mette gli avvisi in una stessa notifica. Raggruppare per `requestBody.alerts[*].labels.alertname` con la route qui sotto riunisce ogni avviso di una notifica in un solo incidente, che prende lo stato del primo avviso.
 
-Su un cloud OpenStack, collega il monitor anche al cloud. Le impostazioni di un monitor Incoming Request non nominano alcun cloud, quindi i suoi incidenti arriverebbero in **Incidenti** e non sul cloud. Apri **Panoramica → Risorse collegate** del monitor e aggiungi il cloud OpenStack: ogni incidente compare allora anche nella pagina **Incidenti** di quel cloud. [OpenStack per strumento di distribuzione](/docs/telemetry/openstack-deployment-tools) ha il receiver per ogni strumento che esegue un Alertmanager, nel punto da cui quello strumento lo legge.
+Su un cloud OpenStack, collega il monitor anche al cloud. Le impostazioni di un monitor di richieste in arrivo non nominano alcun cloud, quindi i suoi incidenti arriverebbero in **Incidenti** e non sul cloud. Apri **Panoramica → Risorse collegate** del monitor e aggiungi il cloud OpenStack: ogni incidente compare allora anche nella pagina **Incidenti** di quel cloud. [OpenStack per strumento di distribuzione](/docs/telemetry/openstack-deployment-tools) ha il receiver per ogni strumento che esegue un Alertmanager, nel punto da cui quello strumento lo legge.
 
 ## Dare un nome agli incidenti
 
@@ -222,7 +222,7 @@ Nessuna delle due strade si accorge quando Prometheus o Alertmanager smettono di
 :::steps
 ### Creare il monitor watchdog
 
-Crea un secondo monitor Incoming Request, chiamato `Alertmanager watchdog`. Imposta il filtro del suo primo criterio, quello che segna il monitor come offline, su **Incoming Request**, **Not Recieved In Minutes**, `10`, e il filtro del suo secondo criterio su **Incoming Request**, **Recieved In Minutes**, `10`. La dashboard li scrive entrambi così. Copia l'**Heartbeat URL** del nuovo monitor.
+Crea un secondo monitor di richieste in arrivo, chiamato `Alertmanager watchdog`. Imposta il filtro del suo primo criterio, quello che segna il monitor come offline, su **Richiesta in arrivo**, **Non ricevuto in minuti**, `10`, e il filtro del suo secondo criterio su **Richiesta in arrivo**, **Ricevuto in minuti**, `10`. La dashboard li scrive entrambi così. Copia l'**Heartbeat URL** del nuovo monitor.
 
 ### Indirizzarvi l'avviso watchdog
 

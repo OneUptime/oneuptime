@@ -39,7 +39,8 @@ import { describe, expect, it } from "@jest/globals";
  * language for the conditions, in bold and in prose, outside code
  * (DocsCriteriaConditions says what it reads), so a page cannot name one in
  * English again where its language's Dashboard draws it otherwise - nor a
- * condition a locale keys tomorrow.
+ * condition a locale keys tomorrow, as 31eadaee92e keyed the rest of them
+ * (Recieved In Minutes, Evaluates To True, Anomalously High).
  */
 
 // The comparisons adc8421a1b keyed, and the three conditions keyed before it.
@@ -60,6 +61,25 @@ const KEYED_BEFORE: ReadonlyArray<string> = [
   FilterType.Contains,
   FilterType.True,
   FilterType.False,
+];
+
+/*
+ * The conditions 31eadaee92e keyed, worded in every language in
+ * f155e8e0998: every condition left, the time, expression, process, anomaly
+ * and forecast ones. Since then the Dashboard has a key for each FilterType
+ * value.
+ */
+const KEYED_IN_31EADAEE92E: ReadonlyArray<string> = [
+  FilterType.NotRecievedInMinutes,
+  FilterType.RecievedInMinutes,
+  FilterType.EvaluatesToTrue,
+  FilterType.IsExecuting,
+  FilterType.IsNotExecuting,
+  FilterType.AnomalouslyHigh,
+  FilterType.AnomalouslyLow,
+  FilterType.Anomalous,
+  FilterType.ForecastAbove,
+  FilterType.ForecastBelow,
 ];
 
 /*
@@ -97,12 +117,16 @@ function nonEmptyLines(lines: Array<string>): Array<string> {
 }
 
 describe("the conditions this suite reads", () => {
-  it("are every condition the Dashboard has a key for, the ones adc8421a1b keyed among them", () => {
+  it("are every condition the Dashboard has a key for, the ones adc8421a1b and 31eadaee92e keyed among them", () => {
     expect([...DRAWN_CONDITIONS].sort()).toEqual(
-      [...KEYED_IN_ADC8421A1B, ...KEYED_BEFORE].sort(),
+      [...KEYED_IN_ADC8421A1B, ...KEYED_BEFORE, ...KEYED_IN_31EADAEE92E].sort(),
+    );
+    // That is every condition there is.
+    expect([...DRAWN_CONDITIONS].sort()).toEqual(
+      [...Object.values(FilterType)].sort(),
     );
 
-    // Every other condition has no key, and is read as a longer name only.
+    // A condition with no key would be read as a longer name only.
     for (const condition of Object.values(FilterType)) {
       expect({
         condition,
@@ -171,13 +195,12 @@ describe("the conditions this suite reads", () => {
       expect(DRAWN_CONDITIONS).toContain(condition);
     }
 
-    expect(LONGER_NAMES).toEqual(
-      expect.arrayContaining([
-        FilterType.EvaluatesToTrue,
-        "Contains Any",
-        "Contains All",
-      ]),
-    );
+    /*
+     * Every condition is drawn now, so the longer names are the workspace
+     * rules' alone; Evaluates To True is a condition, read whole.
+     */
+    expect(LONGER_NAMES).toEqual(["Contains Any", "Contains All"]);
+    expect(DRAWN_CONDITIONS).toContain(FilterType.EvaluatesToTrue);
 
     // Contains Any and Contains All are labels of their own, drawn whole.
     expect(isDashboardLabel("Contains Any")).toBe(true);
@@ -300,10 +323,14 @@ describe("the reader, on the shapes the pages have", () => {
   it("does not take a longer name for the condition inside it", () => {
     const markdown: string = [
       "**Contains Any** und **Contains All** sind eigene Bezeichnungen.",
-      "**Evaluates To True** und **Not Recieved In Minutes** haben keinen Schlüssel.",
+      "**Evaluates To True** und **Not Recieved In Minutes** sind eigene Bedingungen.",
     ].join("\n");
 
-    expect(conditionsOn("de", "monitor/page", markdown)).toEqual([]);
+    // The second line's names are read whole: not True, not Recieved In Minutes.
+    expect(conditionsOn("de", "monitor/page", markdown)).toEqual([
+      `monitor/page:2: **Evaluates To True** -> ${drawnDashboardLabel("de", FilterType.EvaluatesToTrue)}`,
+      `monitor/page:2: **Not Recieved In Minutes** -> ${drawnDashboardLabel("de", FilterType.NotRecievedInMinutes)}`,
+    ]);
   });
 
   it("reads True and False in bold only, where they are the condition", () => {

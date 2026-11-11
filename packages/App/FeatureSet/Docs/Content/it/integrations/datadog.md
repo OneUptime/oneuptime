@@ -3,7 +3,7 @@
 Invia gli avvisi dei monitor di [Datadog](https://www.datadoghq.com) a OneUptime, così ognuno diventa un incidente o un avviso, chiama il tuo team reperibile quando è urgente e si risolve quando il monitor di Datadog rientra. Datadog invia i suoi avvisi tramite la sua [integrazione Webhooks](https://docs.datadoghq.com/integrations/webhooks/), quindi non c'è nulla da installare né da una parte né dall'altra.
 
 :::cards
-- [Scegliere come OneUptime riceve gli avvisi](#scegliere-come-oneuptime-riceve-gli-avvisi): Un modello di workflow, o un monitor Incoming Request.
+- [Scegliere come OneUptime riceve gli avvisi](#scegliere-come-oneuptime-riceve-gli-avvisi): Un modello di workflow, o un monitor di richieste in arrivo.
 - [Partire dal modello](#partire-dal-modello): Scegli chi chiamare, copia l'URL e vedi cosa fa ogni avviso.
 - [Ricevere gli avvisi con un monitor](#ricevere-gli-avvisi-con-un-monitor): Un incidente per avviso, risolto al rientro.
 - [Configurare Datadog](#configurare-datadog): Un webhook e i monitor che lo notificano.
@@ -36,7 +36,7 @@ Configura prima OneUptime: ti dà l'URL a cui invia Datadog.
 | Strada | Usala quando |
 | --- | --- |
 | Il modello di workflow (consigliato) | Vuoi ogni avviso come un incidente o un avviso a una gravità data dalla priorità del monitor, con i reperibili chiamati per P1 e P2, gli avvertimenti annotati sopra, e risolto al rientro. Non c'è nulla da costruire. |
-| Un monitor Incoming Request | Vuoi incidenti senza un workflow, con qualsiasi piano, e un monitor il cui stato segue Datadog. |
+| Un monitor di richieste in arrivo | Vuoi incidenti senza un workflow, con qualsiasi piano, e un monitor il cui stato segue Datadog. |
 
 Entrambi ricevono lo stesso JSON dallo stesso webhook, quindi puoi iniziare con uno e passare all'altro in seguito cambiando un URL in Datadog.
 
@@ -86,12 +86,12 @@ Con gravità tue, P1, P2 e nessuna priorità vanno alla più grave, P3 a quella 
 
 ## Ricevere gli avvisi con un monitor
 
-Un [monitor Incoming Request](/docs/monitor/incoming-request-monitor) ti dà un URL, e i suoi criteri decidono cosa fa ogni avviso.
+Un [monitor di richieste in arrivo](/docs/monitor/incoming-request-monitor) ti dà un URL, e i suoi criteri decidono cosa fa ogni avviso.
 
 :::steps
 ### Creare il monitor
 
-Vai su **Monitor** e fai clic su **Crea monitor**. Scegli **Incoming Request** in **Tipo di monitor**, chiamalo `Datadog` e fai clic su **Avanti**.
+Vai su **Monitor** e fai clic su **Crea monitor**. Scegli **Richiesta in arrivo** in **Tipo di monitor**, chiamalo `Datadog` e fai clic su **Avanti**.
 
 ### Dichiarare un incidente per ogni avviso
 

@@ -1,6 +1,6 @@
 # Expressions JavaScript
 
-Un filtre de critère **JavaScript Expression** décide si le critère d'un moniteur est rempli avec une ligne de JavaScript au lieu d'une comparaison fixe. Utilisez-le quand les filtres intégrés ne peuvent pas exprimer la condition — un champ enfoui dans une réponse JSON, deux valeurs comparées entre elles, ou plusieurs vérifications combinées avec `&&` et `||`.
+Un filtre de critère **Expression JavaScript** décide si le critère d'un moniteur est rempli avec une ligne de JavaScript au lieu d'une comparaison fixe. Utilisez-le quand les filtres intégrés ne peuvent pas exprimer la condition — un champ enfoui dans une réponse JSON, deux valeurs comparées entre elles, ou plusieurs vérifications combinées avec `&&` et `||`.
 
 :::cards
 - [Fonctionnement](#fonctionnement): Les espaces réservés sont remplis, puis l'expression s'exécute.
@@ -24,7 +24,7 @@ flowchart TB
 
 Comme les espaces réservés sont remplacés en texte, `{{responseBody.item}}` devient la valeur brute. Une chaîne doit être entourée de guillemets pour être une chaîne JavaScript ; un nombre ou un booléen non — voir [Règles des guillemets](#règles-des-guillemets). Les expressions s'exécutent sur le serveur OneUptime, dans un bac à sable isolé.
 
-## Ajouter un filtre JavaScript Expression
+## Ajouter un filtre Expression JavaScript
 
 :::steps
 ### Ouvrir les critères
@@ -33,7 +33,7 @@ Sur le moniteur, ouvrez **Configuration → Critères** et cliquez sur **Modifie
 
 ### Ajouter un filtre
 
-Sous **Filtres**, cliquez sur **Ajouter un filtre** et réglez son **Type de filtre** sur **JavaScript Expression**. La **Condition de filtre** est **Evaluates To True**.
+Sous **Filtres**, cliquez sur **Ajouter un filtre** et réglez son **Type de filtre** sur **Expression JavaScript**. La **Condition de filtre** est **S'évalue à vrai**.
 
 ### Écrire l'expression
 
