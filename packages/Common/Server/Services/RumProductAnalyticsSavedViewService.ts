@@ -3,6 +3,7 @@ import Model from "../../Models/DatabaseModels/RumProductAnalyticsSavedView";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
@@ -41,6 +42,13 @@ import {
  * name back through the relation, which a read joins without asking
  * whose it is.
  */
+
+// The application's two names, ID column first: a write may use either.
+const RUM_APPLICATION_KEYS: Array<string> = [
+  "rumApplicationId",
+  "rumApplication",
+];
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
@@ -124,14 +132,29 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data.definition,
     );
 
-    const projectId: ObjectID | undefined =
-      createBy.data.projectId ||
-      (createBy.props.tenantId as ObjectID | undefined);
+    /*
+     * The application under either of its names (the two must agree), kept
+     * in the ID column: a create that names it only by the relation is
+     * counted against it too.
+     */
+    const rumApplicationId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      RUM_APPLICATION_KEYS,
+      "RUM Application",
+    );
 
-    if (projectId && createBy.data.rumApplicationId) {
+    /*
+     * The project the application was just held to: the request's, which
+     * DatabaseService writes on the row, else the one a write without a
+     * project on the request names.
+     */
+    const projectId: ObjectID | undefined =
+      createBy.props.tenantId || createBy.data.projectId || undefined;
+
+    if (projectId && rumApplicationId) {
       await this.assertApplicationHasRoom({
         projectId: projectId,
-        rumApplicationId: createBy.data.rumApplicationId,
+        rumApplicationId: rumApplicationId,
         viewType: viewType as ProductAnalyticsSavedViewType,
       });
     }

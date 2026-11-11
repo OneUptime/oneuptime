@@ -6,6 +6,7 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { ProjectScopedReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../../../Server/Utils/Database/RelationIdUtil";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -46,6 +47,10 @@ const APPLICATION_ID: ObjectID = new ObjectID(
 );
 const SAVED_VIEW_ID: ObjectID = new ObjectID(
   "6a300000-0000-4000-8000-000000000003",
+);
+// Another of the project's own applications.
+const OTHER_APPLICATION_ID: ObjectID = new ObjectID(
+  "6a300000-0000-4000-8000-000000000004",
 );
 // An application of another project.
 const FOREIGN_APPLICATION_ID: ObjectID = new ObjectID(
@@ -196,7 +201,10 @@ beforeEach(() => {
   directory = stubProjectDirectory({
     projectId: PROJECT_ID,
     records: {
-      RumApplication: [APPLICATION_ID.toString()],
+      RumApplication: [
+        APPLICATION_ID.toString(),
+        OTHER_APPLICATION_ID.toString(),
+      ],
     },
     elsewhere: [FOREIGN_APPLICATION_ID.toString()],
   });
@@ -634,6 +642,56 @@ describe("the RUM application a saved view reads is its project's own", () => {
       expect(thrown).toBeInstanceOf(ProjectScopedReferenceException);
       expect(harness.countBy.mock.calls).toHaveLength(0);
     }
+  });
+
+  test("the project's own, named by the relation alone, is looked up in the project, kept in its ID column and counted against", async () => {
+    const harness: Harness = buildService();
+
+    const result: OnCreate<Model> = await harness.internals.onBeforeCreate(
+      createBy({
+        rumApplicationId: undefined,
+        rumApplication: { _id: APPLICATION_ID.toString() },
+      }),
+    );
+
+    expect(directory.recordLookups).toEqual([
+      {
+        model: "RumApplication",
+        projectId: PROJECT_ID.toString(),
+        ids: [APPLICATION_ID.toString()],
+      },
+    ]);
+    expect(String(result.createBy.data.rumApplicationId)).toBe(
+      APPLICATION_ID.toString(),
+    );
+
+    const count: JSONObject = harness.countBy.mock.calls[0]![0] as JSONObject;
+
+    expect(
+      (
+        (count["query"] as JSONObject)["rumApplicationId"] as ObjectID
+      ).toString(),
+    ).toBe(APPLICATION_ID.toString());
+  });
+
+  test("two of the project's applications under its two names are refused: they disagree", async () => {
+    const harness: Harness = buildService();
+
+    expect(
+      await createRefusal(
+        harness,
+        createBy({
+          rumApplicationId: APPLICATION_ID,
+          rumApplication: { _id: OTHER_APPLICATION_ID.toString() },
+        }),
+      ),
+    ).toBe(
+      RelationIdUtil.getConflictMessage("RUM Application", [
+        "rumApplicationId",
+        "rumApplication",
+      ]),
+    );
+    expect(harness.countBy.mock.calls).toHaveLength(0);
   });
 
   test("an update that points a saved view at another project's application is refused, a teammate's or OneUptime's own", async () => {
