@@ -103,9 +103,9 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
       createEditModalWidth={ModalWidth.Large}
       cardProps={{
         title: "Alert On-Call Rules",
-        titleGlossaryTerm: GlossaryTerm.OnCallRules,
         description:
           "Page on-call policies automatically for new alerts that match.",
+        titleGlossaryTerm: GlossaryTerm.OnCallRules,
       }}
       documentationLink={Route.fromString("/docs/alerts/settings#on-call-rules")}
       helpContent={{

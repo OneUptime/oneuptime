@@ -76,9 +76,9 @@ const MonitorGroupPage: FunctionComponent<
         }}
         cardProps={{
           title: "Monitor Groups",
-          titleGlossaryTerm: GlossaryTerm.MonitorGroup,
           description:
             "Monitors that together make up one service, such as Checkout. A group shows the worst status among its monitors, and a status page can show the whole group as one resource.",
+          titleGlossaryTerm: GlossaryTerm.MonitorGroup,
         }}
         noItemsMessage={"No monitor groups found."}
         formFields={[

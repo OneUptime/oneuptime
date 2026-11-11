@@ -1523,9 +1523,9 @@ const IncidentCreate: FunctionComponent<
                     incidentSeverity: true,
                   },
                   title: "Incident Severity",
-                  glossaryTerm: GlossaryTerm.Severity,
                   stepId: "incident-details",
                   description: "How serious is it?",
+                  glossaryTerm: GlossaryTerm.Severity,
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: IncidentSeverity,
@@ -1595,10 +1595,10 @@ const IncidentCreate: FunctionComponent<
                     currentIncidentState: true,
                   },
                   title: "Initial State",
-                  glossaryTerm: GlossaryTerm.State,
                   stepId: "incident-details",
                   description:
                     "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved. No one is paged for it.",
+                  glossaryTerm: GlossaryTerm.State,
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: IncidentState,
@@ -2342,10 +2342,10 @@ const IncidentCreate: FunctionComponent<
                     onCallDutyPolicies: true,
                   },
                   title: "On-Call Policy",
-                  glossaryTerm: GlossaryTerm.OnCallPolicy,
                   stepId: "on-call",
                   description:
                     "The on-call policies to page as soon as the incident is declared.",
+                  glossaryTerm: GlossaryTerm.OnCallPolicy,
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
                   dropdownModal: {
                     type: OnCallDutyPolicy,

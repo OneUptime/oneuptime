@@ -92,9 +92,9 @@ const TelemetryIngestionKeys: FunctionComponent<
         userPreferencesKey="telemetry-ingestion-keys-table"
         cardProps={{
           title: "Telemetry Ingestion Keys",
-          titleGlossaryTerm: GlossaryTerm.IngestionKey,
           description:
             "These keys are used to ingest telemetry data like Logs, Traces and Metrics for your project.",
+          titleGlossaryTerm: GlossaryTerm.IngestionKey,
         }}
         noItemsMessage={"No telemetry ingestion keys found."}
         formSteps={formSteps}

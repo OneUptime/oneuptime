@@ -1939,7 +1939,6 @@ const MonitorCreate: FunctionComponent<
                   showEvenIfPermissionDoesNotExist: true,
                   stepId: "monitoring-interval",
                   title: "Probes",
-                  glossaryTerm: GlossaryTerm.Probe,
                   /*
                    * It used to say an empty selection meant "use the
                    * defaults". It does not: an explicit empty selection
@@ -1948,6 +1947,7 @@ const MonitorCreate: FunctionComponent<
                    */
                   description:
                     "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.",
+                  glossaryTerm: GlossaryTerm.Probe,
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
                   /*
                    * So the form will not create a monitor that is never

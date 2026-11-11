@@ -13,7 +13,8 @@ import GlossaryTerm, { getGlossaryTermPath } from "../../Types/Docs/GlossaryTerm
  *
  * The docs' Glossary (/docs/<lang>/introduction/glossary) is the one place
  * a term's definition is written, once per language (#6818). The docs serve
- * the same entries as data at /docs/glossary/<lang>.json, and this module
+ * the same entries as data (glossary/<lang>.json under the docs, Docs/Index's
+ * glossary route), and this module
  * reads them for the product's definitions (Components/Glossary/DefinedTerm):
  * a word on a page shows the very sentences the Glossary page shows, in the
  * reader's language, and nothing is copied into a locale file to drift.

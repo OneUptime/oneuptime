@@ -224,10 +224,10 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
         isViewable={true}
         cardProps={{
           title: props.title || "Alert Episodes",
-          titleGlossaryTerm: GlossaryTerm.Episode,
           description:
             props.description ||
             "Episodes group related alerts so you can respond to them together. Grouping rules open episodes for you, or you can create one yourself.",
+          titleGlossaryTerm: GlossaryTerm.Episode,
           /*
            * Routes to the episode create page rather than the table's built in
            * create modal, so ModelTable's own permission gate never sees this

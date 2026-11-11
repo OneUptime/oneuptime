@@ -173,9 +173,9 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
         showViewIdButton={true}
         cardProps={{
           title: "Runbooks",
-          titleGlossaryTerm: GlossaryTerm.Runbook,
           description:
             "Reusable response procedures: ordered checklists of manual or automated steps.",
+          titleGlossaryTerm: GlossaryTerm.Runbook,
         }}
         formFields={[
           {

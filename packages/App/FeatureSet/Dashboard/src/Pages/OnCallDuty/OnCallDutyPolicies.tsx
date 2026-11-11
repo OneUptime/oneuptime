@@ -174,9 +174,9 @@ const OnCallDutyPage: FunctionComponent<
         }}
         cardProps={{
           title: "On-Call Duty Policies",
-          titleGlossaryTerm: GlossaryTerm.OnCallPolicy,
           description:
             "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.",
+          titleGlossaryTerm: GlossaryTerm.OnCallPolicy,
         }}
         videoLink={URL.fromString("https://youtu.be/HzhKmCryYdc")}
         formFields={createFormFields}

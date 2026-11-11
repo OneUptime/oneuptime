@@ -528,9 +528,9 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
         sortOrder={SortOrder.Ascending}
         cardProps={{
           title: "Service Level Objectives",
-          titleGlossaryTerm: GlossaryTerm.SLO,
           description:
             "Reliability targets measured from monitor uptime. Each SLO tracks its error budget and alerts you before the budget runs out.",
+          titleGlossaryTerm: GlossaryTerm.SLO,
         }}
         /*
          * An empty list under an active chip is not an empty project: the

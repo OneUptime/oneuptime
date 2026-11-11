@@ -202,9 +202,9 @@ const MonitorProbes: FunctionComponent<
         isCreateable={true}
         cardProps={{
           title: "Probes",
-          titleGlossaryTerm: GlossaryTerm.Probe,
           description:
             "The probes that check this monitor. Add one to check it from another location.",
+          titleGlossaryTerm: GlossaryTerm.Probe,
         }}
         noItemsMessage={
           "No probes check this monitor. Add a probe to start checking it."

@@ -214,9 +214,9 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           showViewIdButton={true}
           cardProps={{
             title: "Workflows",
-            titleGlossaryTerm: GlossaryTerm.Workflow,
             description:
               "No-code automations that run when something happens, such as posting to Slack when an incident is created. Start from a template or build your own.",
+            titleGlossaryTerm: GlossaryTerm.Workflow,
           }}
           videoLink={URL.fromString("https://youtu.be/z-b7_KQcUDY")}
           /*

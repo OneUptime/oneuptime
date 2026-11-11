@@ -173,9 +173,9 @@ const ServicesPage: FunctionComponent<
         isViewable={true}
         cardProps={{
           title: "Services",
-          titleGlossaryTerm: GlossaryTerm.Service,
           description:
             "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.",
+          titleGlossaryTerm: GlossaryTerm.Service,
         }}
         showViewIdButton={true}
         selectMoreFields={{

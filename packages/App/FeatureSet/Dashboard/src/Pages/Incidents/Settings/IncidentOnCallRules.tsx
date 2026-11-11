@@ -111,9 +111,9 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
       createEditModalWidth={ModalWidth.Large}
       cardProps={{
         title: "Incident On-Call Rules",
-        titleGlossaryTerm: GlossaryTerm.OnCallRules,
         description:
           "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.",
+        titleGlossaryTerm: GlossaryTerm.OnCallRules,
       }}
       documentationLink={Route.fromString(
         "/docs/incidents/settings#incident-on-call-rules",

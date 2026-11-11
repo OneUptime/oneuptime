@@ -151,9 +151,9 @@ const OnCallDutyPage: FunctionComponent<
         }}
         cardProps={{
           title: "On-Call Duty Schedules",
-          titleGlossaryTerm: GlossaryTerm.OnCallSchedule,
           description:
             "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.",
+          titleGlossaryTerm: GlossaryTerm.OnCallSchedule,
           buttons: [
             /*
              * Named as the page it opens, which the On-Call Duty menu,

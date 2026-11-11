@@ -254,11 +254,11 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
         isViewable={true}
         cardProps={{
           title: props.title || "Incident Episodes",
-          titleGlossaryTerm: GlossaryTerm.Episode,
           buttons: cardbuttons,
           description:
             props.description ||
             "Episodes group related incidents so you can respond to them together. Grouping rules open episodes for you, or you can create one yourself.",
+          titleGlossaryTerm: GlossaryTerm.Episode,
         }}
         noItemsMessage={props.noItemsMessage}
         emptyState={{ ...props.emptyState, ...facetEmptyState }}

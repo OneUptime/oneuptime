@@ -30,8 +30,13 @@
  *                 overview-once  only the FIRST Incident list fails
  *                 resources  every Status Page count fails
  *                 upcoming   the upcoming maintenance list fails
- *   ?lang=      de reads the German locale file
+ *   ?lang=      de reads the German locale file, fa the Persian one (the
+ *               page then reads right to left, as the Dashboard's does)
  *   ?theme=     dark adds html.dark (handled by server.js)
+ *
+ * The header carries the Dashboard's Help menu, and the page the dialog
+ * How OneUptime works opens in (App.tsx mounts it once), so Help and
+ * Home's Explore OneUptime open it as they do in the product (#6819).
  *
  * Every read is recorded on window.__homeOverviewFixture: listRequests,
  * countRequests, apiRequests, paletteToggles (Search) and unhandled:
@@ -50,9 +55,13 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import { initReactI18next } from "react-i18next";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import Help from "../../../App/FeatureSet/Dashboard/src/Components/Header/Help";
+import HowOneUptimeWorksDialog from "../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorksDialog";
 import HomeLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Home/Layout";
 import Home from "../../../App/FeatureSet/Dashboard/src/Pages/Home/Home";
 import EventName from "../../../App/FeatureSet/Dashboard/src/Utils/EventName";
@@ -132,7 +141,9 @@ const scenario = SCENARIOS.includes(params.get("scenario"))
   : "busy";
 const roleMode = params.get("role") === "viewer" ? "viewer" : "owner";
 const failures = listParam("fail");
-const language = params.get("lang") === "de" ? "de" : "en";
+const language = ["de", "fa"].includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
 
 const GLOBAL_PERMISSIONS = [
   Permission.Public,
@@ -1072,11 +1083,14 @@ await i18next.use(initReactI18next).init({
   resources: {
     en: { translation: en },
     de: { translation: de },
+    fa: { translation: fa },
   },
   interpolation: { escapeValue: false },
 });
 // Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
 followLanguageForDates(i18next);
+// <html lang dir> follow the reader's language: Persian reads right to left.
+followLanguageForPage(i18next);
 
 /*
  * ---------------------------------------------------------------------------
@@ -1178,10 +1192,17 @@ function FixtureApp() {
           <span className="text-lg font-semibold text-gray-900">OneUptime</span>
           <span className="text-sm text-gray-500">Acme Commerce</span>
         </div>
-        <span data-testid="synthetic-banner" className="text-xs text-gray-500">
-          Preview workspace · Synthetic data
-        </span>
+        <div className="flex items-center gap-3">
+          <span
+            data-testid="synthetic-banner"
+            className="text-xs text-gray-500"
+          >
+            Preview workspace · Synthetic data
+          </span>
+          <Help />
+        </div>
       </header>
+      <HowOneUptimeWorksDialog />
       <Routes>
         <Route element={<FixtureHomeLayout />}>
           <Route
