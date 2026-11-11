@@ -146,9 +146,9 @@ La pagina **Client** elenca `browser.platform` sul web e `device.model.identifie
 - **Safari e Firefox.** `browserDetector` legge l'API UA Client Hints, che hanno solo i browser Chromium. Sugli altri imposta `browser.language`, che basta per archiviare la telemetria come RUM, ma non `browser.platform`. Imposta `browser.platform` tu stesso perché quei client compaiano.
 - **Un SDK mobile che imposta solo `device.manufacturer`.** Questo archivia la telemetria come RUM mobile, ma la pagina **Client** ha bisogno di `device.model.identifier`.
 
-## Core Web Vitals mostra «No web vitals reported yet»
+## Core Web Vitals mostra «Nessun web vital ancora segnalato»
 
-La scheda si riempie solo con le metriche che la tua app invia, quindi le tracce da sole non la riempiono mai. Verifica di esportare metriche, che i loro nomi siano tra quelli che OneUptime legge e che compaiano nella pagina **Metriche** dell'applicazione. [La scheda dice «No web vitals reported yet»](/docs/rum/web-vitals#risoluzione-dei-problemi) ripercorre ogni verifica, compresi i valori persi quando un visitatore chiude la scheda prima dell'esportazione successiva.
+La scheda si riempie solo con le metriche che la tua app invia, quindi le tracce da sole non la riempiono mai. Verifica di esportare metriche, che i loro nomi siano tra quelli che OneUptime legge e che compaiano nella pagina **Metriche** dell'applicazione. [La scheda dice «Nessun web vital ancora segnalato»](/docs/rum/web-vitals#risoluzione-dei-problemi) ripercorre ogni verifica, compresi i valori persi quando un visitatore chiude la scheda prima dell'esportazione successiva.
 
 ## Lo stato dice Nessun traffico recente mentre le persone usano l'app
 

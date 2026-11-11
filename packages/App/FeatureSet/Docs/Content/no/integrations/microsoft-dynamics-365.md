@@ -258,7 +258,7 @@ Malene dekker de vanlige tilfellene. For å bygge en retning selv bygger denne d
 
 Opprett tokenet én gang, for alle arbeidsflyter, som en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokener-som-fornyer-seg-selv):
 
-1. Gå til **Arbeidsflyter → Globale variabler**, åpne menyen **Mer** (**⋯**) ved siden av **Opprett Workflow Variabel**, og velg **Create OAuth 2.0 Variable**. Gi den navnet `DYNAMICS_TOKEN`.
+1. Gå til **Arbeidsflyter → Globale variabler**, åpne menyen **Mer** (**⋯**) ved siden av **Opprett Workflow Variabel**, og velg **Opprett OAuth 2.0-variabel**. Gi den navnet `DYNAMICS_TOKEN`.
 2. Velg **Microsoft Entra ID** under **Leverandør**, erstatt `{tenant-id}` i **Token-URL** med Directory (tenant) ID-en din, og velg **Client Credentials**.
 3. Skriv inn **Klient-ID** og **Klienthemmelighet** under **Påloggingsinformasjon**. Sett scopet til `https://yourorg.crm.dynamics.com/.default` under **Avansert**, og opprett deretter variabelen.
 

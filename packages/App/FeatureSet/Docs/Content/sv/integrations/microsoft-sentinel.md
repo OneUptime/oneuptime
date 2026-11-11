@@ -52,7 +52,7 @@ Rollen låter appen läsa incidenter (`Microsoft.SecurityInsights/incidents/read
 
 ### Hitta arbetsytans uppgifter
 
-Öppna Log Analytics-arbetsytan i Azure-portalen. Dess sida **Overview** visar **Prenumerations-ID**, **Resource group** och arbetsytans namn. Arbetsytans resurs-ID innehåller samma tre:
+Öppna Log Analytics-arbetsytan i Azure-portalen. Dess sida **Overview** visar **Prenumerations-ID**, **Resursgrupp** och arbetsytans namn. Arbetsytans resurs-ID innehåller samma tre:
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -72,8 +72,8 @@ Klicka på **Testa de här inställningarna** under **Testa innan du sparar**. T
 | **Katalog-ID (tenant)** | Appens sida **Overview**. Klientorganisationens GUID, eller en verifierad domän som `contoso.onmicrosoft.com`. |
 | **Program-ID (klient)** | Appens sida **Overview**. Ett GUID. |
 | **Prenumerations-ID** | Arbetsytans sida **Overview**. Ett GUID. |
-| **Resource group** | Arbetsytans sida **Overview**. 1 till 90 bokstäver, siffror, understreck, bindestreck, punkter eller parenteser, som inte slutar med en punkt. |
-| **Workspace name** | Arbetsytans sida **Overview**. 3 till 90 bokstäver, siffror eller bindestreck, som börjar och slutar med en bokstav eller en siffra. |
+| **Resursgrupp** | Arbetsytans sida **Overview**. 1 till 90 bokstäver, siffror, understreck, bindestreck, punkter eller parenteser, som inte slutar med en punkt. |
+| **Arbetsytans namn** | Arbetsytans sida **Overview**. 3 till 90 bokstäver, siffror eller bindestreck, som börjar och slutar med en bokstav eller en siffra. |
 | **Moln** | **Offentligt Azure-moln** (`login.microsoftonline.com`, `management.azure.com`) eller **Azure Government (USA)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
 | **Klienthemlighet** | Hemlighetens **Value**. Den krypteras, returneras aldrig av API:et och visas aldrig igen. Ersätt den med **Uppdatera inloggningsuppgifter** på anslutningen. |
 
@@ -131,7 +131,7 @@ När en körning inte alls kommer förbi den sparade markören gör OneUptime i 
 
 1. **Smalna av.** Nästa avsökning läser ett fönster som är hälften så långt, från samma startpunkt, och fortsätter att halvera tills ett fönster läses helt, ner till en minut. Körningens varning säger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Växa igen.** När ett fönster har lästs helt är nästa dubbelt så långt igen, upp till 24 timmar.
-3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än en avsökning kan läsa går avsökningen förbi den, så att nyare incidenter fortsätter att komma. Körningen förblir **Delvis**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Import this time range** för att hämta det som en körning kan läsa.
+3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än en avsökning kan läsa går avsökningen förbi den, så att nyare incidenter fortsätter att komma. Körningen förblir **Delvis**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Importera det här tidsintervallet** för att hämta det som en körning kan läsa.
 
 En körning som misslyckas helt, med ett fel från Microsoft Entra ID eller Azure Resource Manager, behåller markören och fönsterlängden, och nästa avsökning läser samma fönster igen. Det enda undantaget är en begäran som fick tidsgräns: markören stannar, men nästa fönster är hälften så långt, eftersom ett fönster som är för tungt för att besvaras i tid skulle få tidsgräns vid varje försök. Att ändra **Hämtningsintervall (minuter)** ändrar inget av detta: det avgör hur ofta en avsökning startar, inte var dess fönster börjar.
 
@@ -140,9 +140,9 @@ En körning som misslyckas helt, med ett fel från Microsoft Entra ID eller Azur
 Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar och arbeta med den manuellt. Alla som kan ändra anslutningen kan starta de här åtgärderna; alla som kan se den kan läsa historiken.
 
 - **Kör nu** startar en avsökning direkt, med den vanliga markören, även när anslutningen inte är **Aktiverad**.
-- **Preview incidents** läser ett tidsintervall på upp till 7 dagar och importerar ingenting.
-- **Import this time range** importerar ett intervall på upp till 7 dagar, efter att du har bekräftat, utan att flytta markören. Incidenter som redan har importerats hoppas över.
-- **Copy diagnostics** på en körning kopierar dess rapport till supporten. Den innehåller aldrig autentiseringsuppgifter.
+- **Förhandsgranska incidenter** läser ett tidsintervall på upp till 7 dagar och importerar ingenting.
+- **Importera det här tidsintervallet** importerar ett intervall på upp till 7 dagar, efter att du har bekräftat, utan att flytta markören. Incidenter som redan har importerats hoppas över.
+- **Kopiera diagnostik** på en körning kopierar dess rapport till supporten. Den innehåller aldrig autentiseringsuppgifter.
 
 ## Testa anslutningen
 
@@ -155,7 +155,7 @@ Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar 
 | **Read incidents** | En incident som har skapats de senaste 24 timmarna kan läsas (`$top=1`). Det bevisar rollen och arbetsytans uppgifter. |
 | **Incidents available to import** | Hur många incidenter som har skapats de senaste 24 timmarna och de senaste 7 dagarna, en sida med 50 för var och en, så `50+` betyder fler. Inga på 7 dagar är en varning, inte ett fel. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen sida: en process tar jobben från Worker-kön, avsökningsjobbet körs varje minut och lagringen för säkerhetshändelser svarar. |
-| **Scheduled polling** | För en sparad anslutning: avsökningen är påslagen, ingen körning har fastnat i väntan på en worker och avsökningar körs i tid. |
+| **Schemalagd hämtning** | För en sparad anslutning: avsökningen är påslagen, ingen körning har fastnat i väntan på en worker och avsökningar körs i tid. |
 
 Varje begäran i ett test har en tidsgräns på 20 sekunder. Ett test importerar aldrig något och flyttar aldrig markören, och varje kontroll som misslyckas säger vad du ska ändra.
 
@@ -246,7 +246,7 @@ Anslutningens **Senaste fel** sparar hela felmeddelandet, med autentiseringsuppg
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: Azure Resource Manager avvisade begäran.
   - `HTTP 401`: den godtog inte token. Nästan alltid passar **Moln** inte klientorganisationen, eller så har appregistreringen tagits bort. En token som upphör att gälla mellan två sidor förnyas och försöks igen en gång av sig själv.
   - `HTTP 403` eller `AuthorizationFailed`: appen har ännu inte **Microsoft Sentinel Reader** på resursgruppen. Tilldela den och vänta några minuter.
-  - `HTTP 404`: ingen arbetsyta har det **Prenumerations-ID**, den **Resource group** och det **Workspace name**, eller så är Microsoft Sentinel inte aktiverat där. Kopiera dem från arbetsytans sida **Overview**.
+  - `HTTP 404`: ingen arbetsyta har det **Prenumerations-ID**, den **Resursgrupp** och det **Arbetsytans namn**, eller så är Microsoft Sentinel inte aktiverat där. Kopiera dem från arbetsytans sida **Overview**.
   - `HTTP 429` eller `HTTP 5xx`: Azure Resource Manager begränsar begäranden eller är otillgängligt. Nästa avsökning försöker igen.
   - `HTTP 400`: Azure Resource Manager avvisade begäran, som OneUptime bygger, inte dina inställningar. Skicka meddelandet till OneUptimes support.
 - `Microsoft Sentinel incidents list returned ...`: Azure svarade `200`, men utan en läsbar sida med incidenter, eller med en `nextLink` till en annan värd, som anslutningen avvisar så att token aldrig lämnar Azure Resource Manager. Det rapporteras i stället för att tolkas som ett tomt fönster, så att markören aldrig passerar incidenter som ingen har läst.
@@ -260,7 +260,7 @@ Ingen avsökning har slutförts för den här anslutningen. Kör **Testa anslutn
 :::details En körning är Partial
 - `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`: fönstret innehöll mer än de 1 000 incidenter som en körning läser. Ingenting går förlorat: nästa avsökning börjar efter den senast lästa incidenten. En anslutning som förblir **Delvis** avsökning efter avsökning håller på att komma ikapp en eftersläpning, och dess **Senast hämtad** och **Senast importerade händelse** fortsätter att flytta sig framåt.
 - `Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.`: API:et ignorerade ordningen från äldst till nyast, så körningen kan inte flytta markören till sin sista incident, och nästa avsökning läser i stället ett kortare fönster. Om det upprepas skickar du körningens rapport till OneUptimes support.
-- `More records were created in the one minute from ... than one poll can read`: avsökningen gick förbi den minuten. Importera den med **Import this time range** i **Diagnostik**. En import läser lika mycket som en avsökning.
+- `More records were created in the one minute from ... than one poll can read`: avsökningen gick förbi den minuten. Importera den med **Importera det här tidsintervallet** i **Diagnostik**. En import läser lika mycket som en avsökning.
 :::
 
 :::details Testet lyckas, men ingenting importeras

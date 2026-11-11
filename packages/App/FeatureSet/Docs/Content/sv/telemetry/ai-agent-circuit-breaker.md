@@ -193,7 +193,7 @@ Titeln är tom eller matchar inte. Ett fält som inte finns i utlösarens **Fiel
 :::
 
 :::details Din slutpunkt svarar 401
-Huvudet `Authorization` matchar inte den token som din slutpunkt förväntar sig. Kontrollera namnet i `{{global.variables.AGENT_KILL_TOKEN}}` och värdet som är sparat i den globala variabeln. Värdet för en hemlig variabel kan inte läsas tillbaka, så skriv in det igen med **Update Content** om du är osäker.
+Huvudet `Authorization` matchar inte den token som din slutpunkt förväntar sig. Kontrollera namnet i `{{global.variables.AGENT_KILL_TOKEN}}` och värdet som är sparat i den globala variabeln. Värdet för en hemlig variabel kan inte läsas tillbaka, så skriv in det igen med **Uppdatera innehåll** om du är osäker.
 :::
 
 :::details Budgetlarmet öppnas och löses om och om igen

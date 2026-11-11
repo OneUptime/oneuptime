@@ -258,7 +258,7 @@ De sjablonen dekken de gebruikelijke gevallen. Om een richting zelf te bouwen, b
 
 Maak het token één keer aan, voor elke workflow, als een [OAuth 2.0-variabele](/docs/workflows/variables#oauth-20-variabelen-tokens-die-zichzelf-vernieuwen):
 
-1. Ga naar **Workflows → Globale variabelen**, open het menu **Meer** (**⋯**) naast **Workflowvariabele aanmaken** en kies **Create OAuth 2.0 Variable**. Noem hem `DYNAMICS_TOKEN`.
+1. Ga naar **Workflows → Globale variabelen**, open het menu **Meer** (**⋯**) naast **Workflowvariabele aanmaken** en kies **OAuth 2.0-variabele maken**. Noem hem `DYNAMICS_TOKEN`.
 2. Kies bij **Provider** **Microsoft Entra ID**, vervang `{tenant-id}` in de **Token-URL** door je Directory (tenant) ID en kies **Client Credentials**.
 3. Vul bij **Inloggegevens** de **Client-ID** en het **Client-secret** in. Stel bij **Geavanceerd** de scope in op `https://yourorg.crm.dynamics.com/.default` en maak daarna de variabele aan.
 

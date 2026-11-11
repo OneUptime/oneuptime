@@ -55,7 +55,7 @@ const WorkflowVariableTokenRefreshModal: FunctionComponent<ComponentProps> = (
   return (
     <ConfirmModal
       title={getTokenRefreshTitle(props.outcome)}
-      description={getTokenRefreshDescription(props.outcome)}
+      description={getTokenRefreshDescription(props.outcome, translator)}
       submitButtonText="Close"
       submitButtonType={ButtonStyleType.NORMAL}
       onSubmit={props.onClose}

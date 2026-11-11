@@ -2497,6 +2497,23 @@ export default class SlackAPI {
         );
         logger.debug(err);
       }
+
+      /*
+       * The default until another is chosen with Make default: the first
+       * workspace by name, stored, so that adding OneUptime to a workspace
+       * that comes first by name later does not move it. Installed again,
+       * or moved up from one of the organization's workspaces, the default
+       * kept takes its place below. Not listed yet, it is stored when they
+       * are (SlackOrganization.getOfConnection).
+       */
+      const firstWorkspaceId: string | undefined =
+        SlackOrganization.pickDefaultWorkspaceId({
+          workspaces: miscData.workspaces || [],
+        });
+
+      if (firstWorkspaceId) {
+        miscData.defaultWorkspaceId = firstWorkspaceId;
+      }
     }
 
     const existing: WorkspaceProjectAuthToken | null =

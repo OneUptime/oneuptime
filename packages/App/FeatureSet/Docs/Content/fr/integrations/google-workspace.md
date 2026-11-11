@@ -48,7 +48,7 @@ La connexion s'authentifie avec la clé d'un compte de service et la [délégati
 
 ### Ajouter la connexion dans OneUptime
 
-Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{projectId}/security-events/connections`), cliquez sur **Ajouter une connexion**, choisissez **Google Workspace** sous **Identité**, et cliquez sur **Suivant**. Saisissez l'**Administrator email**, cliquez sur **Suivant**, et collez le contenu du fichier de clé dans **JSON du compte de service**. À l'étape **Interrogation**, activez **Activité Drive** pour lire aussi Drive.
+Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{projectId}/security-events/connections`), cliquez sur **Ajouter une connexion**, choisissez **Google Workspace** sous **Identité**, et cliquez sur **Suivant**. Saisissez l'**E-mail de l'administrateur**, cliquez sur **Suivant**, et collez le contenu du fichier de clé dans **JSON du compte de service**. À l'étape **Interrogation**, activez **Activité Drive** pour lire aussi Drive.
 
 ### La tester avant d'enregistrer
 
@@ -57,7 +57,7 @@ Cliquez sur **Tester ces paramètres** sous **Tester avant d'enregistrer**. Le t
 
 | Réglage | Ce qu'il faut saisir |
 | --- | --- |
-| **Administrator email** | L'adresse de l'administrateur en tant que lequel le compte de service agit, comme `admin@example.com`. Il doit avoir le privilège Reports. |
+| **E-mail de l'administrateur** | L'adresse de l'administrateur en tant que lequel le compte de service agit, comme `admin@example.com`. Il doit avoir le privilège Reports. |
 | **Activité Drive** | Facultatif, désactivé par défaut. Activé, chaque interrogation lit aussi les partages et téléchargements de Drive. |
 | **JSON du compte de service** | Le fichier de clé entier, qui contient `client_email` et `private_key`. Il est chiffré, jamais renvoyé par l'API et plus jamais affiché. Remplacez-le avec **Mettre à jour les identifiants** sur la connexion. |
 
@@ -103,7 +103,7 @@ Changer le **Intervalle d'interrogation (minutes)** n'y change rien : il décide
 Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récentes et travailler avec elle à la main. Quiconque peut modifier la connexion peut les lancer ; quiconque peut la voir peut lire l'historique.
 
 - **Exécuter maintenant** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
-- **Preview audit events** lit une plage de temps de 7 jours au plus et n'importe rien.
+- **Aperçu des événements d'audit** lit une plage de temps de 7 jours au plus et n'importe rien.
 - **Importer cette plage de temps** importe une plage de 7 jours au plus, après votre confirmation, sans déplacer le curseur. Les activités déjà importées sont sautées. Google conserve 6 mois de journaux d'audit.
 - **Copier les diagnostics** sur une exécution copie son rapport pour le support. Il ne contient jamais d'identifiants.
 
@@ -129,7 +129,7 @@ La **Dernière erreur** de la connexion conserve le message d'erreur complet, id
 
 :::details Dernière erreur indique `token request failed`
 - `unauthorized_client` : le compte de service n'a pas de délégation au niveau du domaine pour le champ d'application. Ajoutez son **Unique ID** avec `https://www.googleapis.com/auth/admin.reports.audit.readonly` sous **Manage domain-wide delegation**.
-- `invalid_grant` avec `Invalid email or User ID` : l'**Administrator email** n'est pas un utilisateur de ce Google Workspace.
+- `invalid_grant` avec `Invalid email or User ID` : l'**E-mail de l'administrateur** n'est pas un utilisateur de ce Google Workspace.
 - `invalid_grant` avec `Invalid JWT Signature` : la clé a été supprimée ou désactivée. Créez une nouvelle clé, et enregistrez-la avec **Mettre à jour les identifiants**.
 :::
 

@@ -90,7 +90,7 @@ Regeln namnges efter det den döljer, till exempel ”Data Security: Email addre
 | Fynd | Regel som Rensa skapar |
 | --- | --- |
 | E-postadress, kortnummer, amerikanskt socialförsäkringsnummer, telefonnummer eller IP-adress | Det inbyggda mönstret för den typen. Kortnummer, socialförsäkringsnummer och telefonnummer maskeras, resten döljs helt. |
-| Ett värde under en nyckel som ser känslig ut, till exempel `password` eller `token` | En regel av typen **Sensitive Attribute Keys**, som döljer hela värdet i varje sådant attribut |
+| Ett värde under en nyckel som ser känslig ut, till exempel `password` eller `token` | En regel av typen **Känsliga attributnycklar**, som döljer hela värdet i varje sådant attribut |
 | Varje annan datatyp som ett mönster kan hitta | En regel av typen **Anpassad regex**, skapad av datatypens egna mönster, som döljer varje värde med den formen |
 
 Vissa fynd kan inte rensas av en regel, och **Rensa** säger varför:
@@ -109,7 +109,7 @@ Ett fynd markeras som rensat bara när intaget skulle köra en aktiverad regel �
 
 - **Rätt poster.** Loggregler täcker loggar och en RUM-applikations loggar. Spårregler täcker spans, undantag och AI-anrop: ett undantag är en kopia av sitt spans undantagshändelse, så de regler som rensar händelser rensar det.
 - **Rätt del.** Regelns **Fält att rensa** omfattar den del av posten som fyndet finns i, eller så lämnar regeln dem som standard.
-- **Ett mönster som hittar typen.** En inbyggd **Mönstertyp** hittar sin egen datatyp: **E-postadress** hittar e-postadresser, **Kreditkortsnummer** kortnummer, **Personnummer (Social Security Number)** amerikanska socialförsäkringsnummer, **Telefonnummer** telefonnummer och **IP-adress** IP-adresser. **Sensitive Attribute Keys** täcker varje värde under en nyckel som ser känslig ut, oavsett vad värdet är.
+- **Ett mönster som hittar typen.** En inbyggd **Mönstertyp** hittar sin egen datatyp: **E-postadress** hittar e-postadresser, **Kreditkortsnummer** kortnummer, **Personnummer (Social Security Number)** amerikanska socialförsäkringsnummer, **Telefonnummer** telefonnummer och **IP-adress** IP-adresser. **Känsliga attributnycklar** täcker varje värde under en nyckel som ser känslig ut, oavsett vad värdet är.
 - **Dina egna anpassade mönster räknas aldrig.** En **Anpassad regex** täcker ett fynd bara när den är exakt det mönster som **Rensa** skapar för dess typ. Ett fynd sparar bara maskerade prov, som inget mönster kan provas mot, så OneUptime kan inte bevisa att ditt mönster döljer dessa data, och ett fynd som felaktigt kallas rensat är en läcka som ingen tittar på.
 
 En regel som är avstängd, eller som inte rensar något, räknas aldrig. Täckningen räknas ut på nytt efter varje skanning, så en regel som du lägger till eller tar bort för hand ändrar vad som markeras som rensat inom en timme.

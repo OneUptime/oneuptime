@@ -99,7 +99,7 @@ Under **Avanceret** skal du vælge **Maskeringshandling** og **Felter, der skal 
 | **SSN (CPR-nummer)** | Amerikanske personnumre (Social Security), såsom `123-45-6789` |
 | **Telefonnummer** | Nordamerikanske telefonnumre, såsom `555-123-4567` |
 | **IP-adresse** | IPv4-adresser, såsom `192.168.1.1` |
-| **Sensitive Attribute Keys** | Hele værdien af enhver attribut, hvis nøgle ser hemmelig ud, såsom `password`, `token`, `api_key`, `authorization` eller `cookie` |
+| **Følsomme attributnøgler** | Hele værdien af enhver attribut, hvis nøgle ser hemmelig ud, såsom `password`, `token`, `api_key`, `authorization` eller `cookie` |
 | **Brugerdefineret regex** | Dit eget regulære udtryk, skrevet uden skråstreger eller flag og matchet med forskel på store og små bogstaver |
 
 | Maskeringshandling | Hvad et match bliver til |
@@ -122,10 +122,10 @@ Mask:   Payment failed for j***@***.com
 Hash:   Payment failed for [HASHED:8c87b489]
 ```
 
-**Felter, der skal renses** er **Begge (brødtekst og attributter)** for en protokolregel, medmindre du vælger **Kun brødtekst** eller **Kun attributter**, og **Alle (navn, attributter og hændelser)** for en span-regel, medmindre du vælger **Kun span-navn**, **Kun attributter** eller **Kun hændelsesattributter**. Attributterne på et spans links renses sammen med spannets egne attributter. En **Sensitive Attribute Keys**-regel renser altid attributværdier, da den læser attributnøgler.
+**Felter, der skal renses** er **Begge (brødtekst og attributter)** for en protokolregel, medmindre du vælger **Kun brødtekst** eller **Kun attributter**, og **Alle (navn, attributter og hændelser)** for en span-regel, medmindre du vælger **Kun span-navn**, **Kun attributter** eller **Kun hændelsesattributter**. Attributterne på et spans links renses sammen med spannets egne attributter. En **Følsomme attributnøgler**-regel renser altid attributværdier, da den læser attributnøgler.
 
-- **Lister og indlejrede værdier læses også.** En regel læser hver tekst i en liste, en liste af lister eller en nøgle-værdi-liste, såsom værdierne af en HTTP-header, og bevarer værdiens form: tal og sand eller falsk forbliver, som de er. En **Sensitive Attribute Keys**-regel læser også nøglerne inde i en værdi, så `password` inde i en nøgle-værdi-liste skjules også. Brødteksten i en logpost, der sendes som et map eller en liste, gemmes som sin JSON-tekst, som en mønsterregel renser som al anden tekst.
-- **En værdi, der er for stor til at blive læst element for element, læses som tekst.** En værdi, der er indlejret mere end 32 niveauer dybt, eller som ville bringe en post over 10.000 værdier inde i dens lister og maps, læses og gemmes som sin JSON-tekst. En mønsterregel renser det, den finder i den tekst, og en **Sensitive Attribute Keys**-regel skjuler hele værdien, når et ord som `password` eller `token` optræder i den.
+- **Lister og indlejrede værdier læses også.** En regel læser hver tekst i en liste, en liste af lister eller en nøgle-værdi-liste, såsom værdierne af en HTTP-header, og bevarer værdiens form: tal og sand eller falsk forbliver, som de er. En **Følsomme attributnøgler**-regel læser også nøglerne inde i en værdi, så `password` inde i en nøgle-værdi-liste skjules også. Brødteksten i en logpost, der sendes som et map eller en liste, gemmes som sin JSON-tekst, som en mønsterregel renser som al anden tekst.
+- **En værdi, der er for stor til at blive læst element for element, læses som tekst.** En værdi, der er indlejret mere end 32 niveauer dybt, eller som ville bringe en post over 10.000 værdier inde i dens lister og maps, læses og gemmes som sin JSON-tekst. En mønsterregel renser det, den finder i den tekst, og en **Følsomme attributnøgler**-regel skjuler hele værdien, når et ord som `password` eller `token` optræder i den.
 - **Undtagelser kommer fra den rensede post.** En undtagelse, der findes i en logpost, laves efter rensningen, og de regler, der renser span-hændelser, renser også de undtagelser, der er registreret på dem.
 - **Session Replays renses også.** Scrub-regler for protokoller kører også over Session Replay-optagelser, oven i den maskering, optageren foretager i browseren.
 - **Regler kører i listens rækkefølge.** Hver regel ser det, reglerne før den efterlod.

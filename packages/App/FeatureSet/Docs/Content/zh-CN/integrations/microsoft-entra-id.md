@@ -118,7 +118,7 @@ Microsoft 365 审计日志按 Microsoft 提供每个内容 blob 的时间读取�
 
 1. **缩小。** 下一次轮询从同一个起点读取长度减半的窗口，并不断减半，直到某个窗口能被完整读取，最短为一分钟。运行的警告会说明这一点：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` 已从较长窗口导入的记录会作为重复项被跳过。
 2. **恢复。** 一个窗口被完整读取后，游标会移到它的末尾，下一个窗口的长度会再次加倍，最长为 24 小时。
-3. **越过单独的一分钟。** 如果连一分钟内的记录都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的记录继续到达。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
+3. **越过单独的一分钟。** 如果连一分钟内的记录都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的记录继续到达。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **导入此时间范围** 导入这一分钟，即可找回一次运行能读取的内容。
 
 更改 **轮询间隔（分钟）** 不会改变这些：它决定的是轮询多久开始一次，而不是窗口从哪里开始。
 
@@ -127,9 +127,9 @@ Microsoft 365 审计日志按 Microsoft 提供每个内容 blob 的时间读取�
 在连接上点击 **诊断**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
 
 - **立即运行** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
-- **Preview records** 读取最长 7 天的时间范围，不导入任何内容。
-- **Import this time range** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的记录会被跳过。有 P1 或 P2 时，Microsoft Entra ID 会保留 30 天的登录和目录更改，没有时保留 7 天。
-- 运行上的 **Copy diagnostics** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
+- **预览记录** 读取最长 7 天的时间范围，不导入任何内容。
+- **导入此时间范围** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的记录会被跳过。有 P1 或 P2 时，Microsoft Entra ID 会保留 30 天的登录和目录更改，没有时保留 7 天。
+- 运行上的 **复制诊断信息** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
 
 ## 测试连接
 
@@ -146,7 +146,7 @@ Microsoft 365 审计日志按 Microsoft 提供每个内容 blob 的时间读取�
 | **Read the Microsoft 365 audit log** | 仅在开启该选项时：Management API 有响应，以及应用订阅了哪些内容类型。 |
 | **Records available to import** | 过去 24 小时内有多少登录和目录更改，每种最多数到 500，因此 `500+` 表示更多。一条都没有时为警告。 |
 | **Background workers**、**Poll scheduler**、**Security event storage** | OneUptime 自身的一侧：有进程在处理 Worker 队列的作业，轮询作业每分钟运行一次，安全事件存储能够响应。 |
-| **Scheduled polling** | 针对已保存的连接：轮询已开启，没有运行卡在等待工作进程的状态，并且轮询按时运行。 |
+| **计划轮询** | 针对已保存的连接：轮询已开启，没有运行卡在等待工作进程的状态，并且轮询按时运行。 |
 
 测试中的每个请求都有 20 秒的期限。测试从不导入任何内容，也不移动游标，每个失败的检查都会说明需要更改什么。
 

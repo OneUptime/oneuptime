@@ -347,22 +347,24 @@ export default class SlackOrganization {
       });
 
     /*
-     * The default chosen - or kept from the workspace the project was
-     * connected to before - that Slack lists no more: OneUptime was removed
-     * from it. It moves to the first workspace left by name, and is stored
-     * there, so adding OneUptime to the old one again does not move it back.
-     * Storing it drops the channels cached as other workspaces', so a rule
-     * that names no workspace looks for its channel in the new default
-     * first (updateSlackOrganization).
+     * The default is stored, so it stays where it is: the one chosen, the
+     * workspace the project was connected to before, or - none stored yet,
+     * as for an installation made before installs stored one - the first
+     * workspace by name, which OneUptime added to a workspace that comes
+     * first by name would otherwise take over. One Slack lists no more -
+     * OneUptime was removed from it - moves to the first workspace left by
+     * name, and is stored there, so adding OneUptime to the old one again
+     * does not move it back. Storing another default drops the channels
+     * cached as other workspaces', so a rule that names no workspace looks
+     * for its channel in the new default first (updateSlackOrganization),
+     * never in a cached channel of the workspace OneUptime left.
      */
-    const chosenDefaultId: string = SlackOrganization.textOf(
+    const storedDefaultId: string = SlackOrganization.textOf(
       miscData.defaultWorkspaceId,
     );
 
-    const isDefaultMoved: boolean =
-      Boolean(chosenDefaultId) &&
-      Boolean(defaultWorkspaceId) &&
-      defaultWorkspaceId !== chosenDefaultId;
+    const isDefaultToStore: boolean =
+      Boolean(defaultWorkspaceId) && defaultWorkspaceId !== storedDefaultId;
 
     try {
       await WorkspaceProjectAuthTokenService.updateSlackOrganization({
@@ -371,7 +373,7 @@ export default class SlackOrganization {
         workspaces: workspaces,
         workspacesReadAt: readAt,
         removedWorkspaces: removedWorkspaces,
-        ...(isDefaultMoved ? { defaultWorkspaceId: defaultWorkspaceId } : {}),
+        ...(isDefaultToStore ? { defaultWorkspaceId: defaultWorkspaceId } : {}),
       });
     } catch (err) {
       logger.debug(

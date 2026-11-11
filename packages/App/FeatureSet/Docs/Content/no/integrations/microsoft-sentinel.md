@@ -52,7 +52,7 @@ Rollen lar appen lese hendelser (`Microsoft.SecurityInsights/incidents/read`) og
 
 ### Finn opplysningene om arbeidsområdet
 
-Åpne Log Analytics-arbeidsområdet i Azure-portalen. Siden **Overview** viser **Abonnements-ID**, **Resource group** og navnet på arbeidsområdet. Ressurs-ID-en til arbeidsområdet inneholder de samme tre:
+Åpne Log Analytics-arbeidsområdet i Azure-portalen. Siden **Overview** viser **Abonnements-ID**, **Ressursgruppe** og navnet på arbeidsområdet. Ressurs-ID-en til arbeidsområdet inneholder de samme tre:
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -72,8 +72,8 @@ Klikk på **Test disse innstillingene** under **Test før du lagrer**. Testen lo
 | **Katalog-ID (tenant)** | Appens side **Overview**. GUID-en til leieren, eller et verifisert domene som `contoso.onmicrosoft.com`. |
 | **Program-ID (klient)** | Appens side **Overview**. En GUID. |
 | **Abonnements-ID** | Arbeidsområdets side **Overview**. En GUID. |
-| **Resource group** | Arbeidsområdets side **Overview**. 1 til 90 bokstaver, sifre, understreker, bindestreker, punktum eller parenteser, ikke avsluttet med punktum. |
-| **Workspace name** | Arbeidsområdets side **Overview**. 3 til 90 bokstaver, sifre eller bindestreker, som starter og slutter med en bokstav eller et siffer. |
+| **Ressursgruppe** | Arbeidsområdets side **Overview**. 1 til 90 bokstaver, sifre, understreker, bindestreker, punktum eller parenteser, ikke avsluttet med punktum. |
+| **Navn på arbeidsområde** | Arbeidsområdets side **Overview**. 3 til 90 bokstaver, sifre eller bindestreker, som starter og slutter med en bokstav eller et siffer. |
 | **Sky** | **Offentlig Azure-sky** (`login.microsoftonline.com`, `management.azure.com`) eller **Azure Government (USA)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
 | **Klienthemmelighet** | Hemmelighetens **Value**. Den krypteres, returneres aldri av API-et og vises aldri igjen. Erstatt den med **Oppdater påloggingsinformasjon** på tilkoblingen. |
 
@@ -131,7 +131,7 @@ Når en kjøring ikke kommer forbi den lagrede markøren i det hele tatt, gjør 
 
 1. **Snevre inn.** Den neste pollen leser et vindu som er halvparten så langt, fra det samme startpunktet, og fortsetter å halvere til et vindu leses helt, ned til ett minutt. Kjøringens advarsel sier det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Vokse igjen.** Når et vindu er lest helt, er det neste igjen dobbelt så langt, opptil 24 timer.
-3. **Gå forbi ett enkelt minutt.** Hvis selv ett minutt inneholder mer enn en poll kan lese, går pollingen forbi det, slik at nyere hendelser fortsetter å komme. Kjøringen forblir **Delvis**, og **Siste feil** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importer det minuttet med **Import this time range** for å hente det én kjøring kan lese.
+3. **Gå forbi ett enkelt minutt.** Hvis selv ett minutt inneholder mer enn en poll kan lese, går pollingen forbi det, slik at nyere hendelser fortsetter å komme. Kjøringen forblir **Delvis**, og **Siste feil** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importer det minuttet med **Importer dette tidsrommet** for å hente det én kjøring kan lese.
 
 En kjøring som mislykkes helt, med en feil fra Microsoft Entra ID eller Azure Resource Manager, beholder markøren og vinduslengden, og den neste pollen leser det samme vinduet på nytt. Det eneste unntaket er en forespørsel som fikk tidsavbrudd: markøren blir, men det neste vinduet er halvparten så langt, fordi et vindu som er for tungt til å bli besvart i tide, ville fått tidsavbrudd ved hvert forsøk. Å endre **Henteintervall (minutter)** endrer ingenting av dette: det avgjør hvor ofte en poll starter, ikke hvor vinduet begynner.
 
@@ -140,9 +140,9 @@ En kjøring som mislykkes helt, med en feil fra Microsoft Entra ID eller Azure R
 Klikk på **Diagnostikk** på en tilkobling for å se de siste kjøringene og arbeide med den manuelt. Alle som kan endre tilkoblingen, kan starte disse handlingene; alle som kan se den, kan lese historikken.
 
 - **Kjør nå** starter en poll med en gang, med den vanlige markøren, også når tilkoblingen ikke er **Aktivert**.
-- **Preview incidents** leser et tidsrom på opptil 7 dager og importerer ingenting.
-- **Import this time range** importerer et tidsrom på opptil 7 dager, etter at du har bekreftet, uten å flytte markøren. Hendelser som allerede er importert, hoppes over.
-- **Copy diagnostics** på en kjøring kopierer rapporten for brukerstøtte. Den inneholder aldri legitimasjon.
+- **Forhåndsvis hendelser** leser et tidsrom på opptil 7 dager og importerer ingenting.
+- **Importer dette tidsrommet** importerer et tidsrom på opptil 7 dager, etter at du har bekreftet, uten å flytte markøren. Hendelser som allerede er importert, hoppes over.
+- **Kopier diagnostikk** på en kjøring kopierer rapporten for brukerstøtte. Den inneholder aldri legitimasjon.
 
 ## Test tilkoblingen
 
@@ -155,7 +155,7 @@ Klikk på **Diagnostikk** på en tilkobling for å se de siste kjøringene og ar
 | **Read incidents** | Én hendelse som er opprettet de siste 24 timene, kan leses (`$top=1`). Det beviser rollen og opplysningene om arbeidsområdet. |
 | **Incidents available to import** | Hvor mange hendelser som er opprettet de siste 24 timene og de siste 7 dagene, én side med 50 for hver, så `50+` betyr flere. Ingen på 7 dager er en advarsel, ikke en feil. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen side: en prosess tar jobbene fra Worker-køen, poll-jobben kjører hvert minutt, og lageret for sikkerhetshendelser svarer. |
-| **Scheduled polling** | For en lagret tilkobling: polling er slått på, ingen kjøring sitter fast og venter på en worker, og poller kjører i tide. |
+| **Planlagt henting** | For en lagret tilkobling: polling er slått på, ingen kjøring sitter fast og venter på en worker, og poller kjører i tide. |
 
 Hver forespørsel i en test har en frist på 20 sekunder. En test importerer aldri noe og flytter aldri markøren, og hver kontroll som mislykkes, sier hva du skal endre.
 
@@ -246,7 +246,7 @@ Eksempelfilen, én rad med hver kolonne i tabellen:
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: Azure Resource Manager avviste forespørselen.
   - `HTTP 401`: den godtok ikke tokenet. Nesten alltid passer **Sky** ikke til leieren, eller appregistreringen er slettet. Et token som utløper mellom to sider, fornyes og prøves på nytt én gang av seg selv.
   - `HTTP 403` eller `AuthorizationFailed`: appen har ennå ikke **Microsoft Sentinel Reader** på ressursgruppen. Tildel den, og vent noen minutter.
-  - `HTTP 404`: ingen arbeidsområder har den **Abonnements-ID**, den **Resource group** og det **Workspace name**, eller Microsoft Sentinel er ikke aktivert der. Kopier dem fra arbeidsområdets side **Overview**.
+  - `HTTP 404`: ingen arbeidsområder har den **Abonnements-ID**, den **Ressursgruppe** og det **Navn på arbeidsområde**, eller Microsoft Sentinel er ikke aktivert der. Kopier dem fra arbeidsområdets side **Overview**.
   - `HTTP 429` eller `HTTP 5xx`: Azure Resource Manager begrenser forespørsler eller er utilgjengelig. Den neste pollen prøver igjen.
   - `HTTP 400`: Azure Resource Manager avviste forespørselen, som OneUptime bygger, ikke innstillingene dine. Send meldingen til OneUptimes brukerstøtte.
 - `Microsoft Sentinel incidents list returned ...`: Azure svarte `200`, men uten en lesbar side med hendelser, eller med en `nextLink` til en annen vert, som tilkoblingen avviser, slik at tokenet aldri forlater Azure Resource Manager. Det rapporteres i stedet for å bli tatt som et tomt vindu, slik at markøren aldri går forbi hendelser som ingen har lest.
@@ -260,7 +260,7 @@ Ingen poll er fullført for denne tilkoblingen. Kjør **Test tilkoblingen**: kon
 :::details En kjøring er Partial
 - `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`: vinduet inneholdt mer enn de 1 000 hendelsene én kjøring leser. Ingenting går tapt: den neste pollen starter etter den siste hendelsen som ble lest. En tilkobling som forblir **Delvis** poll etter poll, tar igjen et etterslep, og **Sist hentet** og **Siste importerte hendelse** fortsetter å flytte seg fremover.
 - `Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.`: API-et ignorerte rekkefølgen fra eldst til nyest, så kjøringen kan ikke flytte markøren til den siste hendelsen sin, og den neste pollen leser i stedet et kortere vindu. Hvis det fortsetter, sender du kjøringens rapport til OneUptimes brukerstøtte.
-- `More records were created in the one minute from ... than one poll can read`: pollingen gikk forbi det minuttet. Importer det med **Import this time range** i **Diagnostikk**. En import leser like mye som en poll.
+- `More records were created in the one minute from ... than one poll can read`: pollingen gikk forbi det minuttet. Importer det med **Importer dette tidsrommet** i **Diagnostikk**. En import leser like mye som en poll.
 :::
 
 :::details Testen lykkes, men ingenting importeres

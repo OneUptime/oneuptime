@@ -99,7 +99,11 @@ const SecurityEventWhatHappenedNext: FunctionComponent<ComponentProps> = (
         borderLeftColor: getRequestOutcomeColor(facts.outcome).toString(),
       }}
     >
-      <div className="flex items-center justify-between gap-2">
+      {/*
+       * The outcome pill moves under the title when both do not fit, so a
+       * longer title (Что произошло дальше) is never squeezed onto three lines.
+       */}
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
         <h3 className="text-sm font-semibold text-gray-900">
           {translator.translateText(WHAT_HAPPENED_NEXT_TITLE)}
         </h3>
