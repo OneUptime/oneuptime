@@ -71,22 +71,26 @@ Klik op een rij om de pagina van de uitzondering te openen.
 
 ## De pagina van een uitzondering
 
+Elke pagina van een uitzondering opent onder dezelfde kop: haar type en bericht, haar status, of ze werd afgehandeld, haar foutklasse en omgeving, en haar gegevens: hoe vaak ze optrad, wanneer ze voor het eerst en het laatst werd gezien, haar service en aan wie ze is toegewezen. Op elke pagina behalve **Instellingen**, die eigen knoppen heeft, staan **Oplossen** en **Archiveren** ernaast, en het ⋯ naast die knoppen bevat **Oplossen in volgende release** en **Monitor maken**.
+
 Het zijmenu van de pagina groepeert wat u met een uitzondering doet:
 
 | Pagina | Wat die toont |
 | --- | --- |
-| **Overzicht** | Het bericht, de service, hoe vaak ze optrad en wanneer ze voor het eerst en het laatst gezien werd, haar verloop in de tijd, en haar laatste voorval: de release, de omgeving, de span, de trace en de gebruikerssessie. Bovenaan de uitleg van OneUptime AI over wat er gebeurde, als AI aan staat. |
+| **Overzicht** | **Waar het gebeurde**: de regel in uw code waar ze werd opgeworpen. Haar verloop in de tijd, en haar laatste voorval: de release, de omgeving, de vingerafdruk, de span, de trace en de gebruikerssessie. Bovenaan de uitleg van OneUptime AI over wat er gebeurde, als AI aan staat. |
 | **Stack trace** | De frames van de stack. Voor browsercode de oorspronkelijke bestanden en regels, zodra u [Source maps](/docs/telemetry/source-maps) voor de release uploadt. |
 | **Voorvallen** | Elk voorval, met de tijd, het bericht en de trace waarin het optrad. |
 | **Context** | De attributen van het laatste voorval, de sessie-opname als die er is, en de stappen die ertoe leidden. |
 | **Logboeken** | De logboeken die rond het laatste voorval zijn geschreven. |
-| **AI-assistentie** | AI-taken die de uitzondering verhelpen of testen. |
+| **Oplossen met AI** | Eén AI-taak die de uitzondering verhelpt met een pull request, en de andere taken eronder ingeklapt. |
 | **Instellingen** | De uitzondering oplossen of archiveren. Staat onder **Beheren**, dat eerst ingeklapt is. |
 | **Auditlogboeken** | Wie de uitzondering heeft opgelost, gearchiveerd, toegewezen of samengevoegd, en wanneer. Staat ook onder **Beheren**. |
 
+**Waar het gebeurde** toont het eerste frame van uw eigen code, de waarschijnlijkste plek waar de fout werd opgeworpen: het oorspronkelijke bestand en de oorspronkelijke regel zodra een source map het frame heeft opgelost, de code eromheen als de map die bevat, en tot drie frames van uw code die het aanriepen. Zonder frame in uw eigen code toont de kaart het binnenste frame van de stacktrace. **Volledige stack trace bekijken** opent elk frame op **Stack trace**. Als het laatste voorval geen gestructureerde frames heeft vastgelegd, toont de kaart de eerste regels van de stacktrace zoals ze zijn (de laatste regels van een Python-traceback, waar de fout staat), en een uitzondering zonder stacktrace heeft geen kaart.
+
 ## Oplossen, heropenen en archiveren
 
-De knoppen bovenaan de pagina van de uitzondering, haar pagina **Instellingen** en het menu ⋯ op haar rij in de lijst wijzigen de status:
+De knoppen bovenaan de pagina van de uitzondering en het ⋯ ernaast, haar pagina **Instellingen** en het menu ⋯ op haar rij in de lijst wijzigen de status:
 
 | Actie | Wanneer u die gebruikt | Wat er daarna gebeurt |
 | --- | --- | --- |
@@ -96,13 +100,15 @@ De knoppen bovenaan de pagina van de uitzondering, haar pagina **Instellingen** 
 | **Archiveren** | Het is ruis die u niet wilt verhelpen. | Ze verlaat de lijst. Nieuwe voorvallen worden geteld maar sturen geen meldingen meer. |
 | **Uit archief halen** | U wilt er weer van horen. | Ze staat weer in de lijst waar ze thuishoort. |
 
-**Oplossen in volgende release** staat in het menu naast **Oplossen**, in het menu ⋯ van de rij, onder **Bulkacties** en op **Instellingen**, zolang de voorvallen van de uitzondering hun release noemen: het resource-attribuut `service.version`.
+**Oplossen in volgende release** staat in het ⋯ bovenaan de pagina van de uitzondering, in het menu ⋯ van de rij, onder **Bulkacties** en op **Instellingen**, zolang de voorvallen van de uitzondering hun release noemen: het resource-attribuut `service.version`.
 
 **Instellingen** toont wie de uitzondering het laatst heeft opgelost of gearchiveerd, en wanneer. De knoppen daar heten **Markeren als opgelost** of **Markeren als onopgelost**, en **Archiveren** of **Uit archief halen**.
 
 Om er meerdere tegelijk te wijzigen, vinkt u hun rijen in de lijst aan, of het vakje boven de rijen voor alle uitzonderingen op de pagina, en gebruikt u dezelfde acties onder **Bulkacties**. Zijn alle uitzonderingen op de pagina aangevinkt, dan biedt de balk boven de rijen aan om alle uitzonderingen te selecteren die bij de zoekopdracht en filters van de lijst passen, op alle pagina's, tot 10.000 tegelijk; een actie vraagt dan eerst om bevestiging voordat die ze wijzigt. Het resultaat toont welke uitzonderingen zijn gewijzigd, welke zijn gelaten zoals ze waren, en waarom.
 
-**Toewijzen** in de kop van de uitzondering geeft haar aan één persoon of één team, en de keuze weghalen heft de toewijzing op. Elke rij toont van wie ze is, haar menu ⋯ biedt **Aan mij toewijzen**, en **Toewijzen aan…** onder **Bulkacties** wijst er meerdere tegelijk toe. De persoon aan wie ze is toegewezen, of elk lid van het team, krijgt een melding zoals de rij **Uitzondering aan mij toegewezen** van hun [Meldingsinstellingen](/docs/notifications/notification-settings) aangeeft; wie haar toewees, krijgt er geen.
+**Toewijzen**, onder **Toegewezen aan** in de kop van de uitzondering, geeft haar aan één persoon of één team; klik op de naam om haar aan iemand anders te geven, en op het × ernaast om de toewijzing op te heffen. Elke rij toont van wie ze is, haar menu ⋯ biedt **Aan mij toewijzen**, en **Toewijzen aan…** onder **Bulkacties** wijst er meerdere tegelijk toe. De persoon aan wie ze is toegewezen, of elk lid van het team, krijgt een melding zoals de rij **Uitzondering aan mij toegewezen** van hun [Meldingsinstellingen](/docs/notifications/notification-settings) aangeeft; wie haar toewees, krijgt er geen.
+
+**Monitor maken**, in het ⋯ bovenaan de pagina van de uitzondering, opent een nieuwe [uitzonderingen-monitor](/docs/monitor/exceptions-monitor) voor het type van deze uitzondering in haar service, om u te waarschuwen als ze opnieuw optreedt. Alleen wie monitors mag maken, krijgt deze knop te zien.
 
 **Activiteit**, onderaan het **Overzicht** van de uitzondering, toont wie haar wanneer heeft gewijzigd, nieuwste eerst: wie haar heeft opgelost, heropend, gearchiveerd of toegewezen, een andere uitzondering met haar heeft samengevoegd of er een heeft gesplitst, en wanneer ze terugkwam nadat ze was opgelost. Elke wijziging staat er, gedaan op de pagina van de uitzondering, in de lijst, onder **Bulkacties**, via de API of door OneUptime zelf, en een wijziging met een API-sleutel draagt de naam van de sleutel.
 
@@ -132,7 +138,7 @@ Bovenaan het **Overzicht** van een uitzondering vraagt **Uitleggen met OneUptime
 | **Waar te kijken** | De frames van de stack trace die u eerst opent. |
 | **Volgende stappen** | Hoogstens drie stappen om haar te bevestigen of op te lossen. |
 
-De uitleg wordt bij de uitzondering bewaard, zodat de volgende die haar opent hem meteen leest, en **Opnieuw uitleggen** vraagt een nieuwe. **Een pull request met de oplossing openen** opent de pagina **AI-assistentie** van de uitzondering, en **Een vervolgvraag stellen** opent Ask AI over de uitzondering.
+De uitleg wordt bij de uitzondering bewaard, zodat de volgende die haar opent hem meteen leest, en **Opnieuw uitleggen** vraagt een nieuwe. **Oplossen met AI** opent de pagina **Oplossen met AI** van de uitzondering, en **Een vervolgvraag stellen** opent Ask AI over de uitzondering.
 
 ID's, e-mail- en IP-adressen en tokens worden verwijderd uit alles wat wordt verstuurd, en van de attributen van een span worden er maar een paar verstuurd, zoals de route en de statuscode. De uitleg gebruikt de LLM-provider en de AI-tegoeden van het project en wordt niet aangeboden zolang **AI inschakelen** uit staat. Iedereen die de uitzondering mag lezen, kan er een vragen.
 
@@ -142,13 +148,22 @@ Voeg een uitzondering die OneUptime AI **Waarschijnlijk dezelfde bug** noemt en 
 
 ## Verhelpen met AI
 
-De pagina **AI-assistentie** biedt drie taken. Elke taak loopt als AI-taak die een pull request opent in uw coderepository:
+De pagina **Oplossen met AI** begint met één taak, die u start met **Oplossen met AI**. Die loopt als AI-taak die een pull request opent in uw coderepository, en wat de pull request doet, hangt af van de [foutklasse](#foutklassen) van de uitzondering:
+
+| Foutklasse | Wat de pull request doet |
+| --- | --- |
+| `user-error` of `expected-denial` | Handelt de fout beter af, zonder te veranderen wat de code doet: controleert de invoer eerder met een duidelijk bericht, houdt gebruikersgegevens uit het bericht en markeert de fout als afgehandeld. |
+| Elke andere, of nog niet ingedeeld | Vindt de hoofdoorzaak in uw code en verhelpt die. |
+
+Drie stappen eronder leggen uit hoe het werkt: de taak leest de stacktrace en vindt de code die de uitzondering opwierp, wijzigt die code in uw repository op een eigen branch, en opent een pull request die u kunt beoordelen. Er verandert niets totdat u hem samenvoegt. Zodra de taak heeft gelopen, heet de knop **Opnieuw oplossen**, of **Opnieuw proberen** als de poging mislukte of geen oplossing vond.
+
+De sectie **Andere AI-taken**, eronder ingeklapt, opent de andere pull requests met **Starten**:
 
 | Taak | Wat de pull request doet |
 | --- | --- |
-| **Fix this exception with AI** | Verhelpt de oorzaak. Start de taak met **Oplossen met AI**. |
-| **Generate Regression Test** | Voegt een test toe die faalt totdat de bug is verholpen. |
-| **Foutafhandeling verbeteren** | Voor verwachte fouten: controleert invoer eerder, houdt gebruikersgegevens uit berichten en markeert de fout als afgehandeld. |
+| **De code corrigeren** | Verhelpt de hoofdoorzaak. Staat in de lijst als **Oplossen met AI** een verwachte fout afhandelt. |
+| **De fout beter afhandelen** | Handelt een verwachte fout beter af, zoals hierboven. Staat in de lijst als **Oplossen met AI** de code verhelpt. |
+| **Een regressietest schrijven** | Voegt een test toe die de uitzondering reproduceert en faalt totdat de bug is verholpen. Verhelpt de bug zelf niet. |
 
 AI heeft eerst drie dingen nodig: een LLM-provider, een gekoppelde repository (op GitHub, GitLab, Forgejo of Gitea, of op elke Git-server), en een AI-agent die online is om de taak uit te voeren. De pagina controleert elk van de drie en linkt naar wat ontbreekt. De taken pauzeren zolang de uitzondering opgelost of gearchiveerd is. Zie [Code](/docs/ai/ai-agent). Een taak starten vraagt toestemming om de repository te bewerken waarin ze werkt: wie de uitzondering alleen mag lezen, ziet haar taken maar kan er geen starten.
 
@@ -162,7 +177,7 @@ Elke 15 minuten doorzoekt OneUptime uw uitzonderingen op nieuwe, op uitzondering
 | **Piek in uitzonderingen** | Een uitzondering die in het afgelopen uur 10 keer of vaker is opgetreden, met 5 keer of meer haar uurtempo van de 24 uur daarvoor. | Verhelpt de uitzondering, of handelt haar beter af. |
 | **Ontbrekende stack trace** | De uitzonderingen die een service de afgelopen dag vastlegde, hebben geen stacktrace en zijn samen 20 keer of vaker opgetreden. | Laat de service bij elke uitzondering een stacktrace vastleggen. |
 
-De pull request van een nieuwe of stijgende uitzondering is de eigen AI-taak van de uitzondering, die haar pagina **AI-assistentie** start, en hij wacht tot OneUptime AI de bevinding heeft onderzocht. Vindt het de schuldige code (`code-fault`), dan verhelpt de pull request die, zoals **Fix this exception with AI** doet. Vindt het een verwachte fout (`user-error` of `expected-denial`), dan handelt de pull request de fout beter af, zoals **Foutafhandeling verbeteren** doet. Elk ander oordeel opent zelf geen pull request. Met **Verwachte uitzonderingen archiveren** aan wordt een verwachte weigering in plaats daarvan gearchiveerd en krijgt die geen pull request.
+De pull request van een nieuwe of stijgende uitzondering is de eigen AI-taak van de uitzondering, die haar pagina **Oplossen met AI** start, en hij wacht tot OneUptime AI de bevinding heeft onderzocht. Vindt het de schuldige code (`code-fault`), dan verhelpt de pull request die, zoals **De code corrigeren** doet. Vindt het een verwachte fout (`user-error` of `expected-denial`), dan handelt de pull request de fout beter af, zoals **De fout beter afhandelen** doet. Elk ander oordeel opent zelf geen pull request. Met **Verwachte uitzonderingen archiveren** aan wordt een verwachte weigering in plaats daarvan gearchiveerd en krijgt die geen pull request.
 
 OneUptime AI opent er alleen zelf een voor een uitzondering die in uw eigen code is opgeworpen: een uitzondering waarvan de stacktrace een frame van uw code bevat, en niet alleen frames van bibliotheken of de runtime. Een pull request die iemand zonder samenvoegen sloot, pauzeert de automatische voor die uitzondering. Iedereen kan er nog steeds elk ervan vragen met **Oplossen met AI** op de bevinding.
 
@@ -188,7 +203,7 @@ Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de 
 
 - **Uitzonderingen → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs, de frames van uw code in haar stacktrace inbegrepen. **View Exception Group** opent de uitzondering, en bij de ontbrekende stacktraces van een service opent **Openen in Uitzonderingen** haar niet-opgeloste uitzonderingen van de afgelopen dag.
 - **Uitzonderingen → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat en wat elk onderzoek vond.
-- De pull request zegt waarom hij werd geopend, met een link naar zijn bevinding. Die van een nieuwe of stijgende uitzondering linkt ook naar de uitzondering en staat op haar pagina **AI-assistentie**. In Code noemt zijn taak de uitzondering die ze verhelpt, of de bevinding waar ze vandaan kwam.
+- De pull request zegt waarom hij werd geopend, met een link naar zijn bevinding. Die van een nieuwe of stijgende uitzondering linkt ook naar de uitzondering en staat op haar pagina **Oplossen met AI**. In Code noemt zijn taak de uitzondering die ze verhelpt, of de bevinding waar ze vandaan kwam.
 
 ## Inzichten in uitzonderingen
 
