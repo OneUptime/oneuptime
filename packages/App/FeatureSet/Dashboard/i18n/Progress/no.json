@@ -1,11 +1,12 @@
 {
   "baseline": {
-    "keys": 50206,
-    "untranslated": 10299
+    "keys": 50316,
+    "untranslated": 10129
   },
   "sameAsEnglish": [
     "\"GET\"",
     "0 (kiss-o'-death {{kissCode}})",
+    "00:05:0b*",
     "15 min",
     "2xx",
     "3xx",

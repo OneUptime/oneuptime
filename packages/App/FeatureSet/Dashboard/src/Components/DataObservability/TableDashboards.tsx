@@ -1,6 +1,7 @@
 import AppLink from "../AppLink/AppLink";
 import {
   getRefreshStatusPill,
+  RefreshError,
   TimeAgo,
   VIEWERS_IN_28_DAYS,
   VIEWS,
@@ -192,11 +193,7 @@ const TableDashboards: FunctionComponent<ComponentProps> = (
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                     {typeof dashboard.viewCount === "number" ? (
                       <span>
-                        {translator.translatePlural(
-                          VIEWS,
-                          dashboard.viewCount,
-                          { count: dashboard.viewCount },
-                        )}
+                        {translator.translatePlural(VIEWS, dashboard.viewCount)}
                       </span>
                     ) : (
                       <></>
@@ -229,12 +226,10 @@ const TableDashboards: FunctionComponent<ComponentProps> = (
                       <></>
                     )}
                     {dashboard.lastRefreshError ? (
-                      <span
+                      <RefreshError
+                        error={dashboard.lastRefreshError}
                         className="max-w-md truncate text-red-600"
-                        title={dashboard.lastRefreshError}
-                      >
-                        {dashboard.lastRefreshError}
-                      </span>
+                      />
                     ) : (
                       <></>
                     )}
@@ -279,7 +274,6 @@ const TableDashboards: FunctionComponent<ComponentProps> = (
                           {translator.translatePlural(
                             VIEWERS_IN_28_DAYS,
                             dashboard.viewerCount,
-                            { count: dashboard.viewerCount },
                           )}
                         </dd>
                       </>
