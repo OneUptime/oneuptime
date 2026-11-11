@@ -73,6 +73,7 @@ OneUptime virker i hvert team på din Mattermost-server, som botten er medlem af
 - **Standardteamet.** Det er det team, du forbandt projektet med. **Gør til standard** på kortet gør et andet team til standard, for en rolle, der må forbinde projektet.
 - **Hvor OneUptime virker.** Knapperne i OneUptimes beskeder og de formularer, de åbner, virker i hvert af disse teams. I et team, botten er fjernet fra, siger en knap kun, at teamet ikke længere er forbundet.
 - **Et standardteam, botten er fjernet fra.** Kortet siger det. Tilføj botten igen i Mattermost, eller gør et andet team til standard.
+- **Et team, en regel nævner, som botten er fjernet fra.** Regelens kort siger det, og reglen bruger ikke et andet team i stedet. Tilføj botten til teamet igen i Mattermost, eller vælg et andet team i reglen: dens formular viser stadig det gamle valg, så du kan ændre det.
 
 ## Forbind din egen Mattermost-konto
 
@@ -171,6 +172,8 @@ Hver knap, OneUptime slår op, bærer en signatur, der kontrolleres, når der tr
 | Et team, du har føjet botten til, står ikke på kortet **Mattermost-teams** | Klik på **Opdater** på kortet. |
 | **OneUptime's bot is not a member of this Mattermost team** | Du har valgt et team, botten har forladt. Føj botten til det i Mattermost, og klik så på **Opdater**. |
 | **OneUptime's bot may not create channels in the Mattermost team this rule names** | Føj botten til det team i Mattermost, eller vælg et andet team i reglen. |
+| **OneUptime's bot is not a member of the Mattermost team chosen for the channel** | Føj botten til det team i Mattermost, eller vælg et andet team i reglen. |
+| **OneUptime's bot is no longer a member of the project's default Mattermost team** | Tilføj botten til det team igen i Mattermost, eller gør et andet team til standard. |
 | **OneUptime could not reach the Mattermost server** | Tjek adressen, og at OneUptime kan nå den. Se [Netværk og selvhosting](#netværk-og-selvhosting). |
 | **The bot is not a member of the private Mattermost channel** | Føj botten til kanalen i Mattermost. |
 | En knap gør intet, eller Mattermost siger, at den ikke kunne fuldføre handlingen | Mattermost kan ikke nå OneUptime. Se [Netværk og selvhosting](#netværk-og-selvhosting). |

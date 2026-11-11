@@ -73,6 +73,7 @@ OneUptime 會在您的 Mattermost 伺服器上其機器人所屬的每個團隊�
 - **預設團隊。** 即您連接專案時所用的團隊。可以連接專案的角色可透過卡片上的 **設為預設** 將另一個團隊設為預設團隊。
 - **OneUptime 在哪裡運作。** OneUptime 訊息上的按鈕及其開啟的表單，在這些團隊中都能使用。在機器人已被移出的團隊中，按鈕只會提示該團隊已不再連接。
 - **機器人已被移出的預設團隊。** 卡片會說明這一點。請在 Mattermost 中重新加入機器人，或將另一個團隊設為預設團隊。
+- **規則指定的、機器人已被移出的團隊。** 規則的卡片會說明這一點，規則也不會改用其他團隊。請在 Mattermost 中將機器人重新加入該團隊，或在規則中選擇另一個團隊：規則的表單仍會顯示原來的選擇，方便您變更。
 
 ## 連接您自己的 Mattermost 帳戶
 
@@ -171,6 +172,8 @@ OneUptime 發布的每個按鈕都附有一個簽章，對應其發布所在的 
 | 您新增了機器人的某個團隊不在 **Mattermost 團隊清單** 卡片上 | 按一下卡片上的 **重新整理**。 |
 | **OneUptime's bot is not a member of this Mattermost team** | 您選擇的團隊中已沒有該機器人。在 Mattermost 中將機器人新增到該團隊，然後按一下 **重新整理**。 |
 | **OneUptime's bot may not create channels in the Mattermost team this rule names** | 在 Mattermost 中將機器人新增到該團隊，或在規則中選擇另一個團隊。 |
+| **OneUptime's bot is not a member of the Mattermost team chosen for the channel** | 在 Mattermost 中將機器人新增到該團隊，或在規則中選擇另一個團隊。 |
+| **OneUptime's bot is no longer a member of the project's default Mattermost team** | 在 Mattermost 中將機器人重新加入該團隊，或將另一個團隊設為預設團隊。 |
 | **OneUptime could not reach the Mattermost server** | 檢查網址，並確認 OneUptime 能夠連到它。請參閱 [網路與自行託管](#網路與自行託管)。 |
 | **The bot is not a member of the private Mattermost channel** | 在 Mattermost 中將機器人新增到該頻道。 |
 | 按鈕沒有反應，或 Mattermost 提示無法完成該操作 | Mattermost 無法連到 OneUptime。請參閱 [網路與自行託管](#網路與自行託管)。 |

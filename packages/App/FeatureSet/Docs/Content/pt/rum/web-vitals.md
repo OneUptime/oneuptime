@@ -306,7 +306,7 @@ Esses monitores só leem os nomes `web_vital.*`. Se o seu aplicativo envia um vi
 
 ## Solução de problemas
 
-:::details O cartão diz "No web vitals reported yet"
+:::details O cartão diz "Nenhum web vital informado ainda"
 O cartão só se preenche com as métricas que o seu aplicativo envia. Verifique, na ordem:
 
 1. Se você tem um pipeline de métricas: traços sozinhos nunca preenchem este cartão.

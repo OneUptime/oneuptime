@@ -306,7 +306,7 @@ Questi monitor leggono solo i nomi `web_vital.*`. Se la tua app invia un vital c
 
 ## Risoluzione dei problemi
 
-:::details La scheda dice «No web vitals reported yet»
+:::details La scheda dice «Nessun web vital ancora segnalato»
 La scheda si riempie solo con le metriche che la tua app invia. Controlla, nell'ordine:
 
 1. Di avere una pipeline di metriche: le tracce da sole non riempiono mai questa scheda.

@@ -17,7 +17,9 @@ import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceN
 import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
-import MattermostUtil from "../../../Server/Utils/Workspace/Mattermost/Mattermost";
+import MattermostUtil, {
+  MattermostRequestError,
+} from "../../../Server/Utils/Workspace/Mattermost/Mattermost";
 import MattermostConnection from "../../../Server/Utils/Workspace/Mattermost/MattermostConnection";
 import WorkspaceUtil from "../../../Server/Utils/Workspace/Workspace";
 import { WorkspaceChannel } from "../../../Server/Utils/Workspace/WorkspaceBase";
@@ -203,7 +205,11 @@ describe("Test Rule for a Mattermost rule naming a team", () => {
     };
   });
 
-  async function testRule(rule: WorkspaceNotificationRule): Promise<void> {
+  // `workspaceUtil`: what is asked whether each channel exists - the mock below by default.
+  async function testRule(
+    rule: WorkspaceNotificationRule,
+    workspaceUtil?: unknown,
+  ): Promise<void> {
     jest
       .spyOn(WorkspaceNotificationRuleService, "findOneById")
       .mockResolvedValue(rule);
@@ -230,9 +236,11 @@ describe("Test Rule for a Mattermost rule naming a team", () => {
       return channelExists(asked.channelName, asked.teamId);
     });
 
-    jest.spyOn(WorkspaceUtil, "getWorkspaceTypeUtil").mockReturnValue({
-      doesChannelExist: doesChannelExist,
-    } as never);
+    jest
+      .spyOn(WorkspaceUtil, "getWorkspaceTypeUtil")
+      .mockReturnValue(
+        (workspaceUtil || { doesChannelExist: doesChannelExist }) as never,
+      );
 
     postSpy = jest
       .spyOn(WorkspaceUtil, "postMessageToAllWorkspaceChannelsAsBot")
@@ -333,6 +341,57 @@ describe("Test Rule for a Mattermost rule naming a team", () => {
     expect(postSpy).not.toHaveBeenCalled();
   });
 
+  /*
+   * #6775: the bot was taken out of the team the rule names. The server
+   * refuses it that team's channels; the test says so in plain words, as
+   * the rule's Notification Logs do (MattermostUtil.findChannelByName),
+   * rather than passing Mattermost's refusal on - and posts nothing.
+   */
+  test("a team the bot was taken out of: the test says so, rather than Mattermost's refusal, and nothing is posted", async () => {
+    const paths: Array<string> = [];
+
+    jest.spyOn(MattermostUtil, "callServer").mockImplementation((async (call: {
+      path: string;
+    }) => {
+      paths.push(call.path);
+
+      // The bot is in Engineering alone now.
+      if (call.path === "/api/v4/users/me/teams") {
+        return [
+          { id: ENGINEERING, name: "engineering", display_name: "Engineering" },
+        ];
+      }
+
+      throw new MattermostRequestError({
+        message:
+          "Error from Mattermost: You do not have the appropriate permissions.",
+        statusCode: 403,
+        errorId: "api.context.permissions.app_error",
+      });
+    }) as never);
+
+    await expect(
+      testRule(
+        incidentRule(FIRST_RULE_ID, {
+          shouldCreateNewChannel: false,
+          shouldPostToExistingChannel: true,
+          existingChannelNames: "incidents",
+          existingTeam: SUPPORT,
+        }),
+        MattermostUtil,
+      ),
+    ).rejects.toThrow(
+      "OneUptime's bot is not a member of the Mattermost team chosen for the channel incidents, so it cannot look for the channel there. Add the bot to that team in Mattermost, or choose another team, then try again.",
+    );
+    expect(postSpy).not.toHaveBeenCalled();
+    // Looked for in Support alone.
+    expect(
+      paths.filter((path: string): boolean => {
+        return path.includes(ENGINEERING);
+      }),
+    ).toEqual([]);
+  });
+
   test("a rule naming no team: none is asked of, and none goes with the message", async () => {
     await testRule(
       incidentRule(FIRST_RULE_ID, {
@@ -366,7 +425,7 @@ describe("a record's channels, created in the team each rule names", () => {
           id: String(createdIn.length).padStart(26, "c"),
           name: data.channelName,
           workspaceType: WorkspaceType.Mattermost,
-          teamId: data.teamId,
+          ...(data.teamId !== undefined ? { teamId: data.teamId } : {}),
         };
       }) as never);
 

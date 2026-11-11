@@ -576,9 +576,9 @@ describe("a fix reads as the steps it went through", () => {
             .textContent as string;
         }),
     ).toEqual([
-      "Restart checkout-api pods",
-      "AI fix through MCP servers",
-      "AI kubectl fix",
+      'Runbook "Restart checkout-api pods"',
+      "Fix through MCP servers",
+      'Fix on cluster "prod-east"',
     ]);
   });
 });

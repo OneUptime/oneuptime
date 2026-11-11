@@ -73,6 +73,7 @@ OneUptime 은 Mattermost 서버의 팀 중 봇이 속한 모든 팀에서 작동
 - **기본 팀.** 프로젝트를 연결한 팀입니다. 프로젝트를 연결할 수 있는 역할이라면 카드의 **기본값으로 설정** 으로 다른 팀을 기본 팀으로 만들 수 있습니다.
 - **OneUptime 이 작동하는 곳.** OneUptime 메시지의 버튼과 버튼이 여는 양식은 그 각각의 팀에서 작동합니다. 봇이 제거된 팀에서는 버튼이 그 팀이 더 이상 연결되어 있지 않다고만 알립니다.
 - **봇이 제거된 기본 팀.** 카드에 그렇다고 표시됩니다. Mattermost 에서 봇을 다시 추가하거나 다른 팀을 기본 팀으로 설정하세요.
+- **규칙이 지정한, 봇이 제거된 팀.** 규칙의 카드에 그렇다고 표시되며, 규칙은 대신 다른 팀을 사용하지 않습니다. Mattermost 에서 봇을 그 팀에 다시 추가하거나 규칙에서 다른 팀을 선택하세요. 규칙의 양식에는 이전 선택이 그대로 표시되므로 바꿀 수 있습니다.
 
 ## 자신의 Mattermost 계정 연결하기
 
@@ -171,6 +172,8 @@ OneUptime 이 게시하는 모든 버튼에는 게시된 Mattermost 팀에 대�
 | 봇을 추가한 팀이 **Mattermost 팀 목록** 카드에 없음 | 카드에서 **새로고침** 을 클릭하세요. |
 | **OneUptime's bot is not a member of this Mattermost team** | 봇이 나간 팀을 선택했습니다. Mattermost 에서 봇을 그 팀에 추가한 다음 **새로고침** 을 클릭하세요. |
 | **OneUptime's bot may not create channels in the Mattermost team this rule names** | Mattermost 에서 봇을 그 팀에 추가하거나, 규칙에서 다른 팀을 선택하세요. |
+| **OneUptime's bot is not a member of the Mattermost team chosen for the channel** | Mattermost 에서 봇을 그 팀에 추가하거나, 규칙에서 다른 팀을 선택하세요. |
+| **OneUptime's bot is no longer a member of the project's default Mattermost team** | Mattermost 에서 봇을 그 팀에 다시 추가하거나, 다른 팀을 기본 팀으로 설정하세요. |
 | **OneUptime could not reach the Mattermost server** | 주소와, OneUptime 이 그 주소에 접근할 수 있는지 확인하세요. [네트워크와 자체 호스팅](#네트워크와-자체-호스팅) 을 참조하세요. |
 | **The bot is not a member of the private Mattermost channel** | Mattermost 에서 봇을 채널에 추가하세요. |
 | 버튼이 아무것도 하지 않거나, Mattermost 가 작업을 완료할 수 없다고 표시함 | Mattermost 가 OneUptime 에 접근할 수 없습니다. [네트워크와 자체 호스팅](#네트워크와-자체-호스팅) 을 참조하세요. |

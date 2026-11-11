@@ -9,11 +9,6 @@ import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediatio
 import AutoRemediationSuggestionStatus from "Common/Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationVerificationStatus from "Common/Types/AutoRemediation/AutoRemediationVerificationStatus";
 import AutoRemediationSuggestionType from "Common/Types/AutoRemediation/AutoRemediationSuggestionType";
-import { isProjectRunbookPick } from "Common/Types/AutoRemediation/AutoRemediationFix";
-import {
-  describeRemediationRoundName,
-  parseClusterRoundNameSnapshot,
-} from "Common/Types/AutoRemediation/RemediationRoundName";
 import {
   AutoRemediationDecisionEntry,
   AutoRemediationDecisionReason,
@@ -22,7 +17,6 @@ import {
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import {
-  AiRemediationCommand,
   AiRemediationCommandPlan,
   AiRemediationCommandPlanUtil,
   AiRemediationPlanExecutionStatus,
@@ -35,7 +29,6 @@ import {
 } from "Common/Types/AutoRemediation/ExternalMcpToolCallPlan";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -151,6 +144,15 @@ import {
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import RemediationDecisionList from "./RemediationDecisionList";
+import {
+  getRemediationFixSource,
+  getRemediationFixTitle,
+} from "./RemediationFixHeader";
+import {
+  describeRemediationStepSummary,
+  getRemediationStepSummary,
+  RemediationStepSummary,
+} from "./RemediationStepSummary";
 import McpToolCallList from "./McpToolCallList";
 import {
   getRemediationDecisionLines,
@@ -823,7 +825,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
               _id: true,
               status: true,
               ruleNameSnapshot: true,
-              // No rule: the project's own pick, named as it is (not "Rule: ...").
+              // No rule: the project's own pick, "From OneUptime AI".
               autoRemediationRuleId: true,
               runbookNameSnapshot: true,
               // How the proposed runbook went the last times it ran.
@@ -1414,6 +1416,8 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         translator,
         switchesNow,
         isRecordResolved: Boolean(props.isRecordResolved),
+        // A line a fix below tells is marked, and not drawn (issue #6860).
+        fixes: suggestions,
       })
     : [];
 
@@ -1556,98 +1560,23 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     const dryRunTitle: string | null = isUnapprovablePlan
       ? null
       : getCloudDryRunButtonTitle({ status, plan });
-    const runbookTitle: string =
-      suggestion.runbookNameSnapshot ||
-      (translator.translateText(
-        status === AutoRemediationSuggestionStatus.Planning
-          ? "Picking the best runbook…"
-          : "No runbook",
-      ) as string);
-    const isClusterFix: boolean = Boolean(
-      suggestion.kubernetesClusterId ||
-        plan?.commands.some((command: AiRemediationCommand) => {
-          return command.stepType === RunbookStepType.Kubectl;
-        }),
-    );
-    // A resource round, or a plan of commands on a resource's AI agent.
-    const isResourceFix: boolean =
-      !isClusterFix &&
-      Boolean(
-        suggestion.resourceId ||
-          plan?.commands.some((command: AiRemediationCommand) => {
-            return command.stepType === RunbookStepType.ResourceCommand;
-          }),
-      );
-    const title: string = isMcpFix
-      ? (translator.translateText("AI fix through MCP servers") as string)
-      : isCommandPlan
-        ? (translator.translateText(
-            isClusterFix
-              ? "AI kubectl fix"
-              : isResourceFix
-                ? "AI infrastructure fix"
-                : "AI Command Plan",
-          ) as string)
-        : runbookTitle;
-    let sourceLabel: string = translator.translateTemplate("Rule: {{name}}", {
-      name:
-        suggestion.ruleNameSnapshot ||
-        (translator.translateText("Unknown") as string),
+    /*
+     * What the fix is and where it works - 'Fix on cluster "prod"',
+     * 'Runbook "Restart checkout"' - and why OneUptime AI tried it: the AI
+     * rule it came from, or OneUptime AI itself (RemediationFixHeader,
+     * issue #6860). A cluster's or resource's round is named for the rule
+     * that matched there, as the decision wrote it down.
+     */
+    const title: string = getRemediationFixTitle({
+      suggestion,
+      translator,
+      entries: decision?.entries,
     });
-
-    if (isProjectRunbookPick(suggestion)) {
-      /*
-       * The project's own pick, made while no rule is set up: it is
-       * OneUptime AI's, and no rule's.
-       */
-      sourceLabel = translator.translateText("OneUptime AI") as string;
-    } else if (suggestion.kubernetesClusterId) {
-      /*
-       * A round OneUptime AI ran on the cluster, in the reader's words
-       * with the cluster's name as data (RemediationRoundName) - its
-       * stored name is the server's English.
-       */
-      sourceLabel =
-        describeRemediationRoundName(
-          {
-            ruleNameSnapshot: suggestion.ruleNameSnapshot,
-            isClusterRound: true,
-          },
-          translator,
-        ) ||
-        suggestion.ruleNameSnapshot ||
-        (translator.translateText("AI remediation for cluster") as string);
-    } else if (suggestion.resourceId) {
-      sourceLabel =
-        describeRemediationRoundName(
-          {
-            ruleNameSnapshot: suggestion.ruleNameSnapshot,
-            isClusterRound: false,
-            resourceType: suggestion.resourceType,
-          },
-          translator,
-        ) ||
-        suggestion.ruleNameSnapshot ||
-        (translator.translateText("AI remediation") as string);
-    } else if (
-      !suggestion.autoRemediationRuleId &&
-      parseClusterRoundNameSnapshot(suggestion.ruleNameSnapshot)
-    ) {
-      /*
-       * A round on a cluster deleted since (its link is gone, ON DELETE SET
-       * NULL), with no rule behind it: its name is all that says it was a
-       * cluster's, so it reads as one - never "Rule: AI remediation for
-       * cluster ...".
-       */
-      sourceLabel =
-        describeRemediationRoundName(
-          {
-            ruleNameSnapshot: suggestion.ruleNameSnapshot,
-            isClusterRound: true,
-          },
-          translator,
-        ) || sourceLabel;
-    }
+    const sourceLabel: string = getRemediationFixSource({
+      suggestion,
+      translator,
+      entries: decision?.entries,
+    });
 
     const failedCount: number = getRemediationFixFailedCount({
       plan,
@@ -1682,6 +1611,15 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     });
     const isFirstOfTwoApprovals: boolean =
       approvals.needsTwoApprovals && !approvals.isWaitingForSecondApproval;
+    /*
+     * Where the fix stands, beside its name - unless its one step says it:
+     * a fix being worked out, one that found no fix and one that stopped
+     * read "Working out a fix…", "Found no safe fix" or "Stopped before it
+     * found a fix" right under the name, and the fact beside it said the
+     * same again ("No safe fix found"), with the step's pill a third time
+     * (issue #6860).
+     */
+    const isStatusFactShown: boolean = steps.length > 1;
     const stepsIdPrefix: string = `${fixDetailsIdPrefix}-${suggestionId}`;
     const getStepKey: (kind: RemediationFixStepKind) => string = (
       kind: RemediationFixStepKind,
@@ -2153,10 +2091,11 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
               {title}
             </span>
             {/*
-              The rule or round that proposed it - a round in the reader's
-              words, a rule by the name it was given: set apart (bdi) so it
-              reads its own way and keeps its quotes in place on a
-              right-to-left page, where it still sits under the title.
+              Why OneUptime AI tried it - 'From AI rule "All alerts"', or
+              "From OneUptime AI" - in the reader's words, the rule by the
+              name it was given: set apart (bdi) so it reads its own way and
+              keeps its quotes in place on a right-to-left page, where it
+              still sits under the title.
             */}
             <span
               data-testid="remediation-fix-source"
@@ -2165,39 +2104,51 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
               <bdi>{sourceLabel}</bdi>
             </span>
           </div>
-          <div
-            data-testid="remediation-fix-facts"
-            className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:pt-0.5"
-          >
-            <StatusFact
-              status={status}
-              isCommandPlan={isCommandPlan || isMcpFix}
-              isUnapprovable={isUnapprovablePlan}
-              isWaitingForSecondApproval={approvals.isWaitingForSecondApproval}
-              isUnfinished={isUnfinishedRound}
-            />
-            {suggestion.verificationStatus ? (
-              <VerificationFact
-                status={
-                  suggestion.verificationStatus as AutoRemediationVerificationStatus
-                }
-              />
-            ) : (
-              <></>
-            )}
-            {failedCount > 0 ? (
-              <RemediationFixFact
-                visual={FIX_FAILED_VISUAL}
-                words={translator.translatePlural(
-                  REMEDIATION_FIX_FAILED_COUNT,
-                  failedCount,
-                )}
-                testId="remediation-fix-failed-count"
-              />
-            ) : (
-              <></>
-            )}
-          </div>
+          {isStatusFactShown ||
+          suggestion.verificationStatus ||
+          failedCount > 0 ? (
+            <div
+              data-testid="remediation-fix-facts"
+              className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:pt-0.5"
+            >
+              {isStatusFactShown ? (
+                <StatusFact
+                  status={status}
+                  isCommandPlan={isCommandPlan || isMcpFix}
+                  isUnapprovable={isUnapprovablePlan}
+                  isWaitingForSecondApproval={
+                    approvals.isWaitingForSecondApproval
+                  }
+                  isUnfinished={isUnfinishedRound}
+                />
+              ) : (
+                <></>
+              )}
+              {suggestion.verificationStatus ? (
+                <VerificationFact
+                  status={
+                    suggestion.verificationStatus as AutoRemediationVerificationStatus
+                  }
+                />
+              ) : (
+                <></>
+              )}
+              {failedCount > 0 ? (
+                <RemediationFixFact
+                  visual={FIX_FAILED_VISUAL}
+                  words={translator.translatePlural(
+                    REMEDIATION_FIX_FAILED_COUNT,
+                    failedCount,
+                  )}
+                  testId="remediation-fix-failed-count"
+                />
+              ) : (
+                <></>
+              )}
+            </div>
+          ) : (
+            <></>
+          )}
         </div>
 
         <RemediationFixStepList
@@ -2318,9 +2269,30 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         },
       ]
     : [];
+  /*
+   * A line a fix tells is not drawn: the cluster round it says started is
+   * the fix named for that cluster, the rule it says matched is the one the
+   * fix says it came from (issue #6860). The pill and Try again read them
+   * all.
+   */
   const linesToDraw: Array<RemediationDecisionLine> = isWaiting
     ? waitingLines
-    : decisionLines;
+    : decisionLines.filter((line: RemediationDecisionLine): boolean => {
+        return !line.isToldByFix;
+      });
+  /*
+   * What came of fixing, in one sentence, first (issue #6860): set like the
+   * investigation's answer, as the pill reads it - a fix that waits for the
+   * reader, one at work, how the fixes that ran went, or why none ran.
+   */
+  const stepSummary: RemediationStepSummary | null =
+    isLoadedForSubject && !isWaiting
+      ? getRemediationStepSummary({
+          fixes,
+          mayApprove: mayApproveFixes,
+          codeFix,
+        })
+      : null;
   /*
    * Nothing was ever decided about the record, no fix was proposed, and
    * there is no fix in the code to speak of: a pull request being written
@@ -2363,6 +2335,18 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
           {translator.translateText(
             "Checking what OneUptime AI did to fix this…",
           )}
+        </p>
+      ) : (
+        <></>
+      )}
+
+      {stepSummary ? (
+        <p
+          data-testid="remediation-step-summary"
+          data-summary={stepSummary.kind}
+          className="break-words text-base font-semibold leading-7 text-gray-900"
+        >
+          {describeRemediationStepSummary(stepSummary, { translator, signal })}
         </p>
       ) : (
         <></>

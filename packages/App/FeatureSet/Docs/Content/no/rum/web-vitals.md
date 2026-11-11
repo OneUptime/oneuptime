@@ -306,7 +306,7 @@ Disse monitorene leser bare navnene `web_vital.*`. Hvis appen din sender en vita
 
 ## Feilsøking
 
-:::details Kortet sier «No web vitals reported yet»
+:::details Kortet sier «Ingen web vitals rapportert ennå»
 Kortet fylles bare fra målinger appen din sender. Sjekk i rekkefølge:
 
 1. At du i det hele tatt har en målingspipeline: Spor alene fyller aldri dette kortet.

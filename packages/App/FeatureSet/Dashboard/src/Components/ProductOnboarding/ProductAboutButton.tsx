@@ -1,3 +1,5 @@
+import ProductEvents from "Common/UI/Utils/ProductEvents";
+import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -45,6 +47,10 @@ const ProductAboutButton: FunctionComponent<ComponentProps> = (
         data-testid={PRODUCT_ABOUT_BUTTON_TEST_ID}
         onClick={() => {
           setIsOpen(true);
+          // Who opens the explanation, and for which product (issue #6830).
+          ProductEvents.send(ProductEventName.HowItWorksOpened, {
+            product: props.product,
+          });
         }}
       >
         <Icon

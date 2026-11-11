@@ -73,6 +73,7 @@ OneUptime 在您的 Mattermost 服务器上其机器人所属的每个团队中�
 - **默认团队。** 即您连接项目时所用的团队。可以连接项目的角色可通过卡片上的 **设为默认** 将另一个团队设为默认团队。
 - **OneUptime 在哪里工作。** OneUptime 消息上的按钮及其打开的表单，在这些团队中都能使用。在机器人已被移出的团队中，按钮只会提示该团队已不再连接。
 - **机器人已被移出的默认团队。** 卡片会说明这一点。请在 Mattermost 中重新添加机器人，或将另一个团队设为默认团队。
+- **规则指定的、机器人已被移出的团队。** 规则的卡片会说明这一点，规则也不会改用其他团队。请在 Mattermost 中将机器人重新添加到该团队，或在规则中选择另一个团队：规则的表单仍会显示原来的选择，方便您更改。
 
 ## 连接您自己的 Mattermost 账户
 
@@ -171,6 +172,8 @@ OneUptime 发布的每个按钮都带有一个签名，对应其发布所在的 
 | 您添加了机器人的某个团队不在 **Mattermost 团队列表** 卡片上 | 点击卡片上的 **刷新**。 |
 | **OneUptime's bot is not a member of this Mattermost team** | 您选择的团队中已没有该机器人。在 Mattermost 中将机器人添加到该团队，然后点击 **刷新**。 |
 | **OneUptime's bot may not create channels in the Mattermost team this rule names** | 在 Mattermost 中将机器人添加到该团队，或在规则中选择另一个团队。 |
+| **OneUptime's bot is not a member of the Mattermost team chosen for the channel** | 在 Mattermost 中将机器人添加到该团队，或在规则中选择另一个团队。 |
+| **OneUptime's bot is no longer a member of the project's default Mattermost team** | 在 Mattermost 中将机器人重新添加到该团队，或将另一个团队设为默认团队。 |
 | **OneUptime could not reach the Mattermost server** | 检查地址，并确认 OneUptime 能够访问它。请参阅 [网络与自托管](#网络与自托管)。 |
 | **The bot is not a member of the private Mattermost channel** | 在 Mattermost 中将机器人添加到该频道。 |
 | 按钮没有反应，或 Mattermost 提示无法完成该操作 | Mattermost 无法访问 OneUptime。请参阅 [网络与自托管](#网络与自托管)。 |

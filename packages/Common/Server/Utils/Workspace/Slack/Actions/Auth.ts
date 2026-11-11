@@ -130,6 +130,9 @@ export interface SlackRequest {
    * (SlackOrganization.getWorkspaceIdOfKnownChannel). A press made for that
    * installation names the person's own workspace (user.team_id), which
    * need not be the channel's: "Back to Slack" opens the channel in this one.
+   * For a channel OneUptime does not know, Slack is asked for its workspace
+   * once the person has connected their account, never while the press
+   * waits for its answer (SlackOrganization.getWorkspaceIdToOpenChannelIn).
    */
   slackChannelTeamId?: string | undefined;
   // The thread the press was made in, when it was in one.

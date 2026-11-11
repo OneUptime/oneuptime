@@ -73,6 +73,31 @@ export interface MattermostTeamsDescription {
   defaultTeamId: string | null;
   isBotInDefaultTeam: boolean;
   botUsername: string;
+  // The teams the bot was taken out of, by the names they had.
+  removedTeams: Array<MattermostConnectionTeam>;
+  // Whether the server has listed the bot's teams at all.
+  areTeamsListed: boolean;
+}
+
+// The teams of an answer: each with an id, its name for no display name.
+function readTeams(value: unknown): Array<MattermostConnectionTeam> {
+  return (Array.isArray(value) ? (value as Array<JSONObject | null>) : [])
+    .map((item: JSONObject | null): MattermostConnectionTeam => {
+      const team: JSONObject = item && typeof item === "object" ? item : {};
+      const id: string = typeof team["id"] === "string" ? team["id"] : "";
+      const name: string = typeof team["name"] === "string" ? team["name"] : "";
+
+      return {
+        id: id,
+        name: name,
+        displayName:
+          (typeof team["displayName"] === "string" && team["displayName"]) ||
+          name,
+      };
+    })
+    .filter((team: MattermostConnectionTeam): boolean => {
+      return Boolean(team.id);
+    });
 }
 
 export const readMattermostTeamsDescription: (
@@ -85,25 +110,14 @@ export const readMattermostTeamsDescription: (
       ? (data["defaultTeamId"] as string)
       : null;
 
-  const teams: Array<MattermostTeamOfProject> = (
-    Array.isArray(data?.["teams"]) ? (data?.["teams"] as Array<JSONObject>) : []
-  )
-    .map((team: JSONObject): MattermostTeamOfProject => {
-      const id: string = typeof team["id"] === "string" ? team["id"] : "";
-      const name: string = typeof team["name"] === "string" ? team["name"] : "";
-
+  const teams: Array<MattermostTeamOfProject> = readTeams(data?.["teams"]).map(
+    (team: MattermostConnectionTeam): MattermostTeamOfProject => {
       return {
-        id: id,
-        name: name,
-        displayName:
-          (typeof team["displayName"] === "string" && team["displayName"]) ||
-          name,
-        isDefault: Boolean(defaultTeamId) && id === defaultTeamId,
+        ...team,
+        isDefault: Boolean(defaultTeamId) && team.id === defaultTeamId,
       };
-    })
-    .filter((team: MattermostTeamOfProject): boolean => {
-      return Boolean(team.id);
-    });
+    },
+  );
 
   return {
     teams: teams,
@@ -113,6 +127,8 @@ export const readMattermostTeamsDescription: (
       typeof data?.["botUsername"] === "string"
         ? (data["botUsername"] as string)
         : "",
+    removedTeams: readTeams(data?.["removedTeams"]),
+    areTeamsListed: data?.["areTeamsListed"] === true,
   };
 };
 

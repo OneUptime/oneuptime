@@ -201,7 +201,7 @@ Sposta il valore di un attributo (**Chiave di origine**) in un altro (**Chiave d
 
 ## Processore di categoria
 
-Valuta in ordine un elenco di regole e memorizza in un attributo di destinazione il nome della prima regola il cui filtro corrisponde, così potete trovare in una volta sola tutti i log «Payment Error». Impostate **Attributo di destinazione** (`category` per impostazione predefinita), poi aggiungete delle **Regole di categoria**: un **Category name** e le condizioni in **When logs match**. Vince la prima regola che corrisponde; un log che non ne soddisfa nessuna resta invariato. Sui log di un dispositivo di rete, una regola con il nome di un evento (`ups.on_battery`) sotto l'attributo di destinazione `event.name` fa del log un [evento di rete](/docs/monitor/network-events#i-tuoi-eventi).
+Valuta in ordine un elenco di regole e memorizza in un attributo di destinazione il nome della prima regola il cui filtro corrisponde, così potete trovare in una volta sola tutti i log «Payment Error». Impostate **Attributo di destinazione** (`category` per impostazione predefinita), poi aggiungete delle **Regole di categoria**: un **Nome della categoria** e le condizioni in **When logs match**. Vince la prima regola che corrisponde; un log che non ne soddisfa nessuna resta invariato. Sui log di un dispositivo di rete, una regola con il nome di un evento (`ups.on_battery`) sotto l'attributo di destinazione `event.name` fa del log un [evento di rete](/docs/monitor/network-events#i-tuoi-eventi).
 
 ## Passaggi successivi
 

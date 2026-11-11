@@ -1,3 +1,5 @@
+import ProjectMilestoneService from "./ProjectMilestoneService";
+import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import CreateBy from "../Types/Database/CreateBy";
 import IncidentMeasurementValueService from "./IncidentMeasurementValueService";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -667,6 +669,22 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
       states: incidentStates,
       stateId: createdItem.incidentStateId,
     });
+
+    /*
+     * The project's first incident or alert a person answered (issue
+     * #6830): acknowledged by the rule above, on a row a person made - in
+     * the Dashboard, Slack, Microsoft Teams, or by answering an on-call page
+     * (acknowledgedByUserId). Not a monitor or a workflow moving it.
+     */
+    if (
+      isAcknowledged &&
+      (createdItem.createdByUserId || onCreate.createBy.props.userId)
+    ) {
+      ProjectMilestoneService.reachInBackground({
+        projectId: createdItem.projectId,
+        milestone: ActivationMilestone.FirstIncidentOrAlertAcknowledged,
+      });
+    }
 
     /*
      * This change resolves the incident: it moves the incident's current

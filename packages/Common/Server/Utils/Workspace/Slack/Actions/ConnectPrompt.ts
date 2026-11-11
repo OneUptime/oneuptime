@@ -513,7 +513,9 @@ export default class SlackConnectPrompt {
     /*
      * The workspace of the channel the press was made in, when it is known
      * (SlackRequest.slackChannelTeamId): where the settings page's "Back to
-     * Slack" opens the channel - else the press's own workspace.
+     * Slack" opens the channel - else the press's own workspace, kept until
+     * the person comes back connected and Slack is asked for the channel's
+     * (SlackOrganization.getWorkspaceIdToOpenChannelIn).
      */
     slackChannelTeamId?: string | undefined;
     /*

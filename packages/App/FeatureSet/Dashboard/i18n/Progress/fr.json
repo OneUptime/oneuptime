@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50417,
-    "untranslated": 5487
+    "keys": 50430,
+    "untranslated": 5457
   },
   "sameAsEnglish": [
     " incidents",
@@ -85,7 +85,6 @@
     "Audit",
     "Auth, No Priv",
     "Auth, Priv",
-    "Auth0",
     "Auto",
     "Azure AKS",
     "Azure CLI",

@@ -193,7 +193,7 @@ API 블록의 **Request Headers**:
 :::
 
 :::details 엔드포인트가 401을 반환함
-`Authorization` 헤더가 엔드포인트가 기대하는 토큰과 일치하지 않습니다. `{{global.variables.AGENT_KILL_TOKEN}}` 의 이름과 전역 변수에 저장한 값을 확인하세요. 시크릿 변수의 값은 다시 읽을 수 없으므로, 확실하지 않으면 **Update Content** 로 다시 입력하세요.
+`Authorization` 헤더가 엔드포인트가 기대하는 토큰과 일치하지 않습니다. `{{global.variables.AGENT_KILL_TOKEN}}` 의 이름과 전역 변수에 저장한 값을 확인하세요. 시크릿 변수의 값은 다시 읽을 수 없으므로, 확실하지 않으면 **내용 업데이트** 로 다시 입력하세요.
 :::
 
 :::details 예산 알림이 열렸다 해결되기를 반복함
