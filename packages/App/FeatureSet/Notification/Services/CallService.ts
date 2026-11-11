@@ -68,6 +68,8 @@ import Twilio from "twilio";
 import { CallInstance } from "twilio/lib/rest/api/v2010/account/call";
 import Phone from "Common/Types/Phone";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
+import ServerSendingOutcomes from "Common/Server/Utils/ServerSending/ServerSendingOutcomes";
+import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
 import {
   fitTextsToBudget,
   MAX_CALL_TWIML_LENGTH,
@@ -252,6 +254,14 @@ export default class CallService {
      */
     let callError: Error | null = null;
     const callLog: CallLog = new CallLog();
+    /*
+     * Whether it goes out through the server's own gateway or Twilio
+     * account, and whether it was handed to one: how that went is the
+     * server's to know (ServerSendingStatus). A project's own account, and
+     * a call the project's balance or switch held back, are not.
+     */
+    let isServersOwnCall: boolean = false;
+    let hasReachedProvider: boolean = false;
 
     try {
       logger.debug("Call Request received.");
@@ -270,6 +280,8 @@ export default class CallService {
         )
           ? options.customTwilioConfig
           : undefined;
+
+      isServersOwnCall = !customTwilioConfig;
 
       // is no custom twilio config is provided, use default twilio config and charge for call.
       const shouldChargeForCall: boolean =
@@ -578,6 +590,9 @@ export default class CallService {
       // Twilio's answer, which says how long the call took; a gateway's does not.
       let twillioCall: CallInstance | null = null;
 
+      // Handed to the gateway or to Twilio from here on.
+      hasReachedProvider = true;
+
       if (gateway) {
         /*
          * The gateway is told what the call says, and - for an on-call
@@ -613,6 +628,9 @@ export default class CallService {
         }
 
         dispatch.markSucceeded();
+
+        // The server's own call went out (ServerSendingStatus).
+        await ServerSendingOutcomes.recordSucceeded(ServerSendingChannel.Call);
 
         callLog.status = CallStatus.Success;
         callLog.statusMessage = result.message;
@@ -657,6 +675,13 @@ export default class CallService {
 
         dispatch.markSucceeded();
 
+        // The server's own Twilio account took it (ServerSendingStatus).
+        if (isServersOwnCall) {
+          await ServerSendingOutcomes.recordSucceeded(
+            ServerSendingChannel.Call,
+          );
+        }
+
         callLog.status = CallStatus.Success;
         callLog.statusMessage = "Call ID: " + twillioCall.sid;
 
@@ -698,6 +723,14 @@ export default class CallService {
 
       logger.error("Call Request failed.");
       logger.error(callLog.statusMessage);
+
+      // The server's own gateway or Twilio account refused it, or was not reached.
+      if (hasReachedProvider && isServersOwnCall) {
+        await ServerSendingOutcomes.recordFailed(
+          ServerSendingChannel.Call,
+          callLog.statusMessage,
+        );
+      }
 
       // Twilio's refusal keeps its words on the way out (TwilioSendError).
       callError = TwilioSendError.toSendError(e, TwilioSendKind.Call) as Error;

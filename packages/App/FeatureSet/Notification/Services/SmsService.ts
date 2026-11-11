@@ -68,6 +68,8 @@ import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import Twilio from "twilio";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
+import ServerSendingOutcomes from "Common/Server/Utils/ServerSending/ServerSendingOutcomes";
+import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
 import { MessageInstance } from "twilio/lib/rest/api/v2010/account/message";
 
 export default class SmsService {
@@ -187,6 +189,14 @@ export default class SmsService {
      * it answered, and never the code of the exception that reports it.
      */
     let isGatewayFailure: boolean = false;
+    /*
+     * Whether it goes out through the server's own gateway or Twilio
+     * account, and whether it was handed to one: how that went is the
+     * server's to know (ServerSendingStatus). A project's own account, and
+     * an SMS the project's balance or switch held back, are not.
+     */
+    let isServersOwnSms: boolean = false;
+    let hasReachedProvider: boolean = false;
 
     try {
       message = Text.trimLines(message);
@@ -220,6 +230,8 @@ export default class SmsService {
         )
           ? options.customTwilioConfig
           : undefined;
+
+      isServersOwnSms = !customTwilioConfig;
 
       const shouldChargeForSMS: boolean =
         IsBillingEnabled && !customTwilioConfig;
@@ -566,6 +578,9 @@ export default class SmsService {
         }
       }
 
+      // Handed to the gateway or to Twilio from here on.
+      hasReachedProvider = true;
+
       if (gateway) {
         /*
          * The gateway is handed the message as written, as Twilio would
@@ -608,6 +623,9 @@ export default class SmsService {
 
         dispatch.markSucceeded();
 
+        // The server's own SMS went out (ServerSendingStatus).
+        await ServerSendingOutcomes.recordSucceeded(ServerSendingChannel.SMS);
+
         smsLog.status = SmsStatus.Sent;
         smsLog.statusMessage = result.message;
       } else {
@@ -642,6 +660,13 @@ export default class SmsService {
           dispatch.markFailed();
         } else {
           dispatch.markSucceeded();
+
+          // The server's own Twilio account took it (ServerSendingStatus).
+          if (!customTwilioConfig) {
+            await ServerSendingOutcomes.recordSucceeded(
+              ServerSendingChannel.SMS,
+            );
+          }
         }
       }
 
@@ -674,6 +699,14 @@ export default class SmsService {
 
       logger.error("SMS message failed to send.");
       logger.error(smsLog.statusMessage);
+
+      // The server's own gateway or Twilio account refused it, or was not reached.
+      if (hasReachedProvider && isServersOwnSms) {
+        await ServerSendingOutcomes.recordFailed(
+          ServerSendingChannel.SMS,
+          smsLog.statusMessage,
+        );
+      }
 
       // Twilio's refusal keeps its words on the way out (TwilioSendError).
       smsError = TwilioSendError.toSendError(e, TwilioSendKind.SMS) as Error;

@@ -44,6 +44,12 @@ import TelemetryIngestionBudgetSettings from "../Utils/Telemetry/TelemetryIngest
 import TelemetryIngestionBudgetValidation, {
   isTelemetryIngestionBudgetInstanceSettingTouched,
 } from "../Utils/Telemetry/TelemetryIngestionBudgetValidation";
+import ServerChannelSetup from "../Utils/ServerSending/ServerChannelSetup";
+import ServerSendingStatusUtil, {
+  ServerSendingChannel,
+  ServerSendingHealth,
+} from "../../Types/ServerSending/ServerSendingStatus";
+import { JSONObject } from "../../Types/JSON";
 import crypto from "crypto";
 
 /*
@@ -166,6 +172,18 @@ export const ROOT_ONLY_UPDATE_CHECK_COLUMNS: ReadonlyArray<keyof Model> = [
   "securityAdvisoriesEmailed",
   "updateCheckLastAttemptAt",
   "updateCheckLastFailure",
+];
+
+/*
+ * What the server remembers of its own last sends (Types/ServerSending/
+ * ServerSendingStatus): written by the senders and by this service when a
+ * channel's settings are saved, all as OneUptime itself (isRoot). Master
+ * admins bypass the (empty) column ACLs, so without this a PUT through the
+ * CRUD API could say email works on a server that has never sent one - and
+ * take the banner away that says it does not.
+ */
+export const ROOT_ONLY_SENDING_HEALTH_COLUMNS: ReadonlyArray<keyof Model> = [
+  "serverSendingHealth",
 ];
 
 const TELEGRAM_WEBHOOK_SECRET_CACHE_NAMESPACE: string =
@@ -716,6 +734,84 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Refuses any write to ROOT_ONLY_SENDING_HEALTH_COLUMNS that does not come
+   * from OneUptime itself. An explicit null counts as a write.
+   */
+  public assertSendingHealthWrittenByRootOnly(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const isWritten: boolean = ROOT_ONLY_SENDING_HEALTH_COLUMNS.some(
+      (column: keyof Model): boolean => {
+        return (
+          (data as Record<string, unknown> | undefined)?.[column as string] !==
+          undefined
+        );
+      },
+    );
+
+    if (!isWritten) {
+      return;
+    }
+
+    throw new NotAuthorizedException(
+      "serverSendingHealth is written by OneUptime as it sends, and cannot be changed.",
+    );
+  }
+
+  /*
+   * Starts channels again at untested (ServerSendingStatus): their settings
+   * were saved, and what the server remembers of their sends was learned
+   * with the settings before. Never fails the save it follows.
+   */
+  public async forgetServerSendingHealthOf(
+    channels: Array<ServerSendingChannel>,
+  ): Promise<void> {
+    if (channels.length === 0) {
+      return;
+    }
+
+    const config: Model | null = await this.findOneById({
+      id: ObjectID.getZeroObjectID(),
+      select: {
+        serverSendingHealth: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const health: ServerSendingHealth = ServerSendingStatusUtil.readHealth(
+      config?.serverSendingHealth,
+    );
+
+    let isChanged: boolean = false;
+
+    for (const channel of channels) {
+      if (health[channel]) {
+        delete health[channel];
+        isChanged = true;
+      }
+    }
+
+    if (!isChanged) {
+      return;
+    }
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: ObjectID.getZeroObjectID(),
+      data: {
+        serverSendingHealth: health as unknown as JSONObject,
+      },
+      skipUpdateDateColumn: true,
+    });
+  }
+
+  /*
    * The branding columns, removed from what a caller other than OneUptime
    * itself selects or filters on: read back through the generic API, they
    * would show values the enterprise module has decided not to apply.
@@ -1013,6 +1109,7 @@ export class Service extends DatabaseService<Model> {
       createBy.data,
       createBy.props,
     );
+    this.assertSendingHealthWrittenByRootOnly(createBy.data, createBy.props);
     this.assertTwilioSmsNumbersAreValid(createBy.data);
     this.assertTwilioUseIsValid(createBy.data);
     this.assertCallAndSmsProviderIsValid(createBy.data);
@@ -1038,6 +1135,7 @@ export class Service extends DatabaseService<Model> {
       updateBy.data,
       updateBy.props,
     );
+    this.assertSendingHealthWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertTwilioSmsNumbersAreValid(updateBy.data);
     this.assertTwilioUseIsValid(updateBy.data);
     await this.assertTwilioNumbersKeptForUse(updateBy);
@@ -1327,6 +1425,25 @@ export class Service extends DatabaseService<Model> {
 
     if (Service.writesSessionLengths(onUpdate.updateBy.data)) {
       await this.applySessionLengthsChange();
+    }
+
+    /*
+     * A channel's settings saved - email, SMS and calls, push: it starts
+     * again at untested, so a banner about the old settings goes, and the
+     * next send says how the new ones do.
+     */
+    const savedChannels: Array<ServerSendingChannel> =
+      ServerChannelSetup.getChannelsWrittenBy(onUpdate.updateBy.data);
+
+    if (savedChannels.length > 0) {
+      try {
+        await this.forgetServerSendingHealthOf(savedChannels);
+      } catch (err) {
+        logger.warn(
+          "Could not start the saved channels again at untested after their settings were saved.",
+        );
+        logger.warn(err);
+      }
     }
 
     return onUpdate;
