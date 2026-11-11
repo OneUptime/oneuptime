@@ -40,6 +40,14 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   onCountFetchInit?: (() => void) | undefined;
 }
 
+// What one read of the count asks the server, and whom it tells it started.
+interface CountQuestion<TBaseModel extends BaseModel> {
+  modelType: { new (): TBaseModel } | undefined;
+  countQuery: Query<TBaseModel> | undefined;
+  requestOptions: RequestOptions | undefined;
+  onCountFetchInit: (() => void) | undefined;
+}
+
 /*
  * A SIDE-MENU ENTRY WITH THE COUNT OF WHAT ITS LIST HOLDS.
  *
@@ -74,10 +82,16 @@ const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
   // The count on show; undefined draws none.
   const [count, setCount] = useState<number | undefined>(undefined);
 
-  // The props of the moment: a read started later counts what is asked then.
-  const propsRef: MutableRefObject<ComponentProps<TBaseModel>> =
-    useRef<ComponentProps<TBaseModel>>(props);
-  propsRef.current = props;
+  // What a read asks, as of now: a read started later counts what is asked then.
+  const question: CountQuestion<TBaseModel> = {
+    modelType: props.modelType,
+    countQuery: props.countQuery,
+    requestOptions: props.requestOptions,
+    onCountFetchInit: props.onCountFetchInit,
+  };
+  const questionRef: MutableRefObject<CountQuestion<TBaseModel>> =
+    useRef<CountQuestion<TBaseModel>>(question);
+  questionRef.current = question;
 
   // The number of the latest read; only its answer is shown.
   const latestReadRef: MutableRefObject<number> = useRef<number>(0);
@@ -86,7 +100,7 @@ const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
 
   const readCount: ReadCountFunction = useCallback(
     async (options: { isRecount: boolean }): Promise<void> => {
-      const current: ComponentProps<TBaseModel> = propsRef.current;
+      const current: CountQuestion<TBaseModel> = questionRef.current;
 
       if (!current.modelType || !current.countQuery) {
         return;

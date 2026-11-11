@@ -396,11 +396,11 @@ const pickBulkAction: (label: string) => Promise<void> = async (
   });
 
   fireEvent.click(
-    Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(
-      (item: HTMLElement) => {
-        return (item.textContent || "").trim() === label;
-      },
-    )!,
+    Array.from(
+      document.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+    ).find((item: HTMLElement) => {
+      return (item.textContent || "").trim() === label;
+    })!,
   );
 };
 
@@ -436,7 +436,9 @@ const waitForResult: () => Promise<void> = async (): Promise<void> => {
           '[data-testid="modal-footer"] button',
         ),
       ).some((button: HTMLButtonElement) => {
-        return (button.textContent || "").trim() === "Close" && !button.disabled;
+        return (
+          (button.textContent || "").trim() === "Close" && !button.disabled
+        );
       }),
     ).toBe(true);
   });
@@ -600,10 +602,11 @@ describe("a row's Delete", () => {
 
     await waitFor(() => {
       expect(
-        Array.from(document.querySelectorAll<HTMLButtonElement>("tbody button"))
-          .filter((button: HTMLButtonElement) => {
-            return (button.textContent || "").trim() === "Delete";
-          }).length,
+        Array.from(
+          document.querySelectorAll<HTMLButtonElement>("tbody button"),
+        ).filter((button: HTMLButtonElement) => {
+          return (button.textContent || "").trim() === "Delete";
+        }).length,
       ).toBe(4);
     });
 

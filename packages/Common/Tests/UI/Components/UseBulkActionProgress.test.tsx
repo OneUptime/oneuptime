@@ -664,9 +664,7 @@ describe("the side menu's counts once a run ends", () => {
 
   test("a run stopped part-way asks too: the items it did reach changed", async () => {
     const gates: Array<Gate> = [gate(), gate(), gate(), gate()];
-    render(
-      <Harness items={rows(4)} step={gatedStep(gates)} concurrency={1} />,
-    );
+    render(<Harness items={rows(4)} step={gatedStep(gates)} concurrency={1} />);
 
     start();
     await screen.findByText("In Progress");
