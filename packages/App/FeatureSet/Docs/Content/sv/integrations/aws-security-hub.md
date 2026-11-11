@@ -114,7 +114,7 @@ POST https://securityhub.{region}.amazonaws.com/findings
 - **Skapandetiden är markören.** Fynd listas efter `CreatedAt`, aldrig efter `FirstObservedAt`. GuardDuty skapar ett fynd när den har sett tillräckligt med aktivitet, och en kontrollkontroll när Security Hub kontrollerar resursen första gången, timmar eller dagar efter att aktiviteten började. En markör på observationstiden skulle hoppa över dem.
 - **Den första avsökningen ser 24 timmar bakåt**, så att en ny anslutning direkt visar sina senaste fynd.
 - **Varje senare avsökning börjar 30 minuter före den sparade markören.** `CreatedAt` sätts av tjänsten som hittade problemet, och fyndet når Security Hub senare: GuardDuty skickar nya fynd inom fem minuter, och en misslyckad leverans via EventBridge försöks igen i upp till 24 timmar. Överlappningen läser sådana fynd vid nästa avsökning. Ett fynd som kommer mer än 30 minuter efter sitt `CreatedAt` kan hamna bakom markören: importera dess tidsintervall för att hämta det.
-- **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar, och dess **Hälsa** visar **Catching up**.
+- **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar, och dess **Hälsa** visar **Kommer ikapp**.
 - **Dubbletter tas bort efter fyndets `Id`** inom projektet, så att överlappningen, ett upprepat fönster och en import aldrig sparar ett fynd två gånger.
 
 ### När ett fönster innehåller mer än en avsökning kan läsa

@@ -535,7 +535,11 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
       {testItem && (
         <ConnectionTestModal
           key={testItem.id?.toString()}
-          title={`Test connection: ${testItem.name || getSecurityEventConnectorTitle(testItem.provider)}`}
+          title={translator.translateTemplate("Test connection: {{name}}", {
+            name:
+              testItem.name ||
+              getSecurityEventConnectorTitle(testItem.provider),
+          })}
           providerTitle={getSecurityEventConnectorTitle(testItem.provider)}
           runTest={() => {
             return runConnectionTestRequest({
@@ -586,7 +590,7 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
           }
         >
           <pre
-            aria-label="Full error message"
+            aria-label={translator.translateText("Full error message")}
             tabIndex={0}
             className="whitespace-pre-wrap break-words rounded-md bg-gray-50 p-4 text-sm text-gray-800"
           >

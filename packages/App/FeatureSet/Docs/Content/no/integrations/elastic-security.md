@@ -94,7 +94,7 @@ POST {Kibana URL}/api/detection_engine/signals/search
 - **Opprettelsestidspunktet er markøren.** Varsler vises etter sin egen `@timestamp`, når regelkjøringen opprettet dem, aldri etter tidspunktet for aktiviteten de handler om. En regel som kjører hver time, oppretter varsler om aktivitet som er opptil en time gammel, og en markør på aktivitetstidspunktet ville hoppet over alle sammen.
 - **Den første pollen ser 24 timer tilbake**, slik at en ny tilkobling viser de nylige varslene sine med en gang.
 - **Hver senere poll starter 1 minutt før den lagrede markøren**, slik at et varsel som er opprettet på grensen mellom to vinduer, aldri går tapt.
-- **En poll leser høyst 24 timer forbi markøren.** En tilkobling der markøren har kommet på etterskudd, tar igjen i en rekke vinduer på 24 timer, og **Helse** viser **Catching up**.
+- **En poll leser høyst 24 timer forbi markøren.** En tilkobling der markøren har kommet på etterskudd, tar igjen i en rekke vinduer på 24 timer, og **Helse** viser **Tar igjen etterslep**.
 - **Duplikater fjernes etter varselets `_id`** i prosjektet, slik at overlappingen, et gjentatt vindu og en import aldri lagrer et varsel to ganger.
 
 Varselsøket i Kibana tar en størrelse og en sortering, men ikke noe sidetoken. Derfor paginerer OneUptime ved å flytte starten av tidsrommet til det siste varselet på hver side, og utelater, etter `_id`, varslene den allerede har lest i det øyeblikket. Én regelkjøring stempler ofte mange varsler med samme tidspunkt, og en slik gruppe leses side for side, ingen to ganger og ingen hoppet over.

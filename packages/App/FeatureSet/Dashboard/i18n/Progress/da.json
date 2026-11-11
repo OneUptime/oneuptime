@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 49601,
+    "keys": 49779,
     "untranslated": 10319
   },
   "sameAsEnglish": [
@@ -573,6 +573,7 @@
     "{{online}}/{{count}} node online",
     "{{size}} disk",
     "{{tokens}} tokens",
-    "{{value}} ms"
+    "{{value}} ms",
+    "{{value}} s"
   ]
 }

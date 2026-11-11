@@ -114,7 +114,7 @@ POST https://securityhub.{region}.amazonaws.com/findings
 - **O horário de criação é o cursor.** As descobertas são listadas por `CreatedAt`, nunca por `FirstObservedAt`. O GuardDuty cria uma descoberta quando já viu atividade suficiente, e uma verificação de controle quando o Security Hub verifica o recurso pela primeira vez, horas ou dias depois de a atividade começar. Um cursor pelo horário de observação as pularia.
 - **A primeira consulta olha 24 horas para trás**, para que uma nova conexão mostre logo as descobertas recentes dela.
 - **Cada consulta seguinte começa 30 minutos antes do cursor salvo.** O `CreatedAt` é definido pelo serviço que encontrou o problema, e a descoberta chega ao Security Hub depois: o GuardDuty envia novas descobertas em até cinco minutos, e uma entrega pelo EventBridge que falhou é repetida por até 24 horas. A sobreposição lê essas descobertas na consulta seguinte. Uma que chega mais de 30 minutos depois do seu `CreatedAt` pode ficar para trás do cursor: importe o intervalo de tempo dela para recuperá-la.
-- **Uma consulta lê no máximo 24 horas além do cursor.** Uma conexão cujo cursor ficou para trás se atualiza em uma série de janelas de 24 horas, e a **Integridade** dela mostra **Catching up**.
+- **Uma consulta lê no máximo 24 horas além do cursor.** Uma conexão cujo cursor ficou para trás se atualiza em uma série de janelas de 24 horas, e a **Integridade** dela mostra **Recuperando o atraso**.
 - **As duplicatas são descartadas pelo `Id` da descoberta** dentro do projeto, para que a sobreposição, uma janela repetida e uma importação nunca salvem uma descoberta duas vezes.
 
 ### Quando uma janela contém mais do que uma consulta consegue ler

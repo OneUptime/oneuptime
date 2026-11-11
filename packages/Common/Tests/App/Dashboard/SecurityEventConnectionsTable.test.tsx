@@ -2223,8 +2223,13 @@ describe("run details for a window one poll could not read", () => {
     );
 
     expect(details).toHaveTextContent("1 hour, the same length");
+    /*
+     * One sentence for every connector, looked up whole: "record" rather
+     * than each connector's own singular ("finding"), which no other
+     * language could glue in.
+     */
     expect(details).toHaveTextContent(
-      "moved the cursor to the last finding it read. The next scheduled poll continues from there with a window of 1 hour.",
+      "moved the cursor to the last record it read. The next scheduled poll continues from there with a window of 1 hour.",
     );
     expect(details).not.toHaveTextContent("from the same starting point");
   });

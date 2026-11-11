@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 49601,
+    "keys": 49779,
     "untranslated": 10322
   },
   "sameAsEnglish": [
@@ -406,6 +406,7 @@
     "{{percent}} full",
     "{{size}} disk",
     "{{tokens}} tokens",
-    "{{value}} ms"
+    "{{value}} ms",
+    "{{value}} s"
   ]
 }

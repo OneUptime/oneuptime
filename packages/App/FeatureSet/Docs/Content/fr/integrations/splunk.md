@@ -101,7 +101,7 @@ POST {Splunk management URL}/services/search/v2/jobs/export
 - **L'heure de création est le curseur.** La fenêtre porte sur `_time`, qui pour un notable event est le moment où la recherche de corrélation l'a créé, et non celui où s'est produite l'activité trouvée. Une recherche qui tourne toutes les heures date ses notable events de l'heure de son exécution, si bien qu'aucun ne passe derrière le curseur.
 - **La première interrogation remonte 24 heures en arrière**, si bien qu'une nouvelle connexion montre tout de suite ses notable events récents.
 - **Chaque interrogation suivante commence 1 minute avant le curseur enregistré**, si bien qu'une ligne créée à la limite entre deux fenêtres n'est jamais sautée.
-- **Une interrogation lit au plus 24 heures au-delà du curseur.** Une connexion dont le curseur a pris du retard le rattrape en une suite de fenêtres de 24 heures, et sa **Santé** indique **Catching up**.
+- **Une interrogation lit au plus 24 heures au-delà du curseur.** Une connexion dont le curseur a pris du retard le rattrape en une suite de fenêtres de 24 heures, et sa **Santé** indique **Rattrapage en cours**.
 - **Les doublons sont écartés par `event_id`**, ou par les `_bkt` et `_cd` propres à Splunk, au sein du projet, si bien que le chevauchement, une fenêtre relue et un import ne stockent jamais une ligne deux fois.
 
 Un search head antérieur à 9.0.1 répond `404` à la requête vers `search/v2/jobs/export`. OneUptime l'envoie alors vers `search/jobs/export`, obsolète, et l'exécution le signale dans un avertissement. Mettez à jour le search head : les versions actuelles désactivent ce point de terminaison.
@@ -144,7 +144,7 @@ Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récente
 | **Run the search on Splunk** | La recherche de **Rechercher** s'exécute sur les dernières 24 heures, pour une ligne, et indique quel point de terminaison d'export a répondu. |
 | **Notable events available to import** | Combien de lignes la recherche de **Rechercher** trouve dans les dernières 24 heures et les 7 derniers jours. Aucune en 7 jours est un avertissement, pas un échec. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Le côté de OneUptime lui-même : un processus prend les tâches de la file Worker, la tâche d'interrogation s'exécute chaque minute, et le stockage des événements de sécurité répond. |
-| **Scheduled polling** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
+| **Interrogation planifiée** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
 
 Chaque requête d'un test a un délai de 20 secondes. Un test n'importe jamais rien et ne déplace jamais le curseur, et chaque vérification en échec dit ce qu'il faut changer.
 
