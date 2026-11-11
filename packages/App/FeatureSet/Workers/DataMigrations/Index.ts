@@ -131,6 +131,7 @@ import RestoreNamespaceMetricMonitorTotals from "./RestoreNamespaceMetricMonitor
 import RedactLatestIncomingRequests from "./RedactLatestIncomingRequests";
 import ClearMonitorGroupOnMonitorStatusPageResources from "./ClearMonitorGroupOnMonitorStatusPageResources";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
+import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
 import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
 import BackfillLabelNameSortKeys from "./BackfillLabelNameSortKeys";
@@ -1048,6 +1049,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
+  /*
+   * Activation milestones (ProjectMilestone, issue #6830): every project
+   * that existed before they were kept gets the ones its data shows - its
+   * first monitor, check result, on-call page delivered, second member and
+   * the rest - marked wasBackfilled, with no analytics event. After the
+   * schema migration AddProjectMilestones; idempotent; before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BackfillProjectMilestones(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
