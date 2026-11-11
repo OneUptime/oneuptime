@@ -444,7 +444,8 @@ found by the first hunt. The project's Slack page holds two rules (`WorkspaceNot
 `Fixture.js` beside the connected Slack): New cases to #soc under Security Case Rules, and
 PowerShell finds to #threat-hunting under Hunt Rules (Security Hunt Name contains PowerShell),
 neither owned by a team (`WorkspaceNotificationRuleOwningTeam` holds no rows);
-`GET /workspace-notification-rule/number-prefixes` answers no prefixes.
+`GET /workspace-notification-rule/number-prefixes` answers no prefixes, and `GET /slack/workspaces`
+answers as for one workspace, not a whole Enterprise organization, so the rules pick no workspace.
 
 | Parameter | Values                                     |
 | --------- | ------------------------------------------ |
