@@ -326,7 +326,7 @@ describe("each tool's reader", () => {
         ): Promise<DataSourceHttpResponse> => {
           const url: string = request.url;
 
-          if (url.includes("login.microsoftonline.com")) {
+          if (url.startsWith("https://login.microsoftonline.com/")) {
             return json({ access_token: "aad" });
           }
 

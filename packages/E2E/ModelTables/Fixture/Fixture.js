@@ -1040,6 +1040,8 @@ const RECORDS = {
   StatusPageOwnerUser: STATUS_PAGE_OWNERS,
   StatusPageOwnerTeam: [],
   Team: TEAMS,
+  TeamOwnerUser: [],
+  TeamOwnerTeam: [],
   Label: LABELS,
   User: PEOPLE,
   NetworkDeviceRole: DEVICE_ROLES,

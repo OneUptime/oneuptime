@@ -93,7 +93,16 @@ export default interface ProbeMonitorResponse {
   externalStatusPageResponse?: ExternalStatusPageMonitorResponse | undefined;
   monitoredAt: Date;
   isTimeout?: boolean | undefined;
+  // When a worker took the report off the queue to evaluate it.
   ingestedAt?: Date | undefined;
+  /*
+   * When OneUptime's ingest API received the report - of a check, an SNMP
+   * trap, a network device's poll - before the queue it waited in: a page
+   * its evaluation starts is timed from then (OnCallPageTiming). Set by
+   * OneUptime, never by the probe, whose own clock (monitoredAt) can be
+   * off.
+   */
+  dataReceivedAt?: Date | undefined;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
   probeAttempts?: Array<ProbeAttempt> | undefined;
   totalAttempts?: number | undefined;

@@ -14,6 +14,7 @@ import Response from "Common/Server/Utils/Response";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectService from "Common/Server/Services/ProjectService";
 import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
+import OneUptimeDate from "Common/Types/Date";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -68,6 +69,12 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
+      /*
+       * The moment OneUptime received this report, before any queueing: a
+       * page its evaluation starts is timed from it (OnCallPageTiming).
+       */
+      const receivedAt: Date = OneUptimeDate.getCurrentDate();
+
       const monitorSecretKeyAsString: string | undefined =
         req.params["secretkey"];
 
@@ -82,6 +89,7 @@ router.post(
       await TelemetryQueueService.addServerMonitorIngestJob({
         secretKey: monitorSecretKeyAsString,
         serverMonitorResponse: req.body as JSONObject,
+        receivedAt: receivedAt,
       });
 
       return;

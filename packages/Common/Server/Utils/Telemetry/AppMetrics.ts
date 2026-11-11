@@ -139,10 +139,11 @@ export default class AppMetrics {
 
   /*
    * What the platform's operator defines delivery SLOs on: how many records
-   * trigger notifications, how each message handed to a provider went, and
-   * how long after its trigger an on-call page reached its provider. Every
-   * sender records through NotificationDeliveryMetrics, which owns the
-   * attribute names and their bounded values; read it before adding one.
+   * trigger notifications, how each message handed to a provider went, how
+   * long after its trigger an on-call page reached its provider, and how
+   * late the notifications sent later went out. Every sender records
+   * through NotificationDeliveryMetrics, which owns the attribute names and
+   * their bounded values; read it before adding one.
    */
 
   private static notificationCounter: TelemetryCounter | null = null;
@@ -228,6 +229,46 @@ export default class AppMetrics {
     }
 
     return this.notificationTimeToSend;
+  }
+
+  // -- Notifications sent later -------------------------------------------
+
+  /*
+   * How late the on-call notifications the on-call configuration sends
+   * later went out: a person's rule that waits ("call me after 10
+   * minutes"), a push repeated until acknowledged, a later escalation
+   * level, the policy repeating. Workers that run once a minute send them,
+   * and one that falls behind sends every one of them late - nothing else
+   * shows that (issue #6646). Recorded through
+   * NotificationDeliveryMetrics.recordSendLag, once per notification.
+   */
+
+  private static notificationSendLag: TelemetryHistogram | null = null;
+
+  /*
+   * From a second to an hour: a worker that keeps up sends within a minute
+   * or so of the moment - its tick, and the provider taking the message -
+   * so the edges around a minute are close together, for an SLO of
+   * "within 90 seconds"; one that fell behind shows by how many minutes.
+   */
+  public static readonly NOTIFICATION_SEND_LAG_BUCKETS_IN_MS: ReadonlyArray<number> =
+    [
+      1000, 5000, 10000, 15000, 30000, 45000, 60000, 75000, 90000, 120000,
+      180000, 300000, 600000, 1800000, 3600000,
+    ];
+
+  public static getNotificationSendLag(): TelemetryHistogram {
+    if (!this.notificationSendLag) {
+      this.notificationSendLag = Telemetry.getHistogram({
+        name: "notification.send.lag",
+        description:
+          "Time from when an on-call notification sent later was due - a person's on-call rule that waits, a push repeated until acknowledged, a later escalation level, the policy repeating - to its provider accepting it: how far behind the workers that send them are. Partitioned by channel, schedule and trigger type.",
+        unit: "ms",
+        explicitBucketBoundaries: [...this.NOTIFICATION_SEND_LAG_BUCKETS_IN_MS],
+      });
+    }
+
+    return this.notificationSendLag;
   }
 
   // -- Notification final statuses --------------------------------------

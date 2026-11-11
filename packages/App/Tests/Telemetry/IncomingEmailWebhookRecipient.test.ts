@@ -1,4 +1,12 @@
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import { JSONObject } from "Common/Types/JSON";
 
@@ -163,6 +171,7 @@ jest.mock(
 import Response from "Common/Server/Utils/Response";
 import MultipartFormDataMiddleware from "Common/Server/Middleware/MultipartFormData";
 import Exception from "Common/Types/Exception/Exception";
+import OneUptimeDate from "Common/Types/Date";
 import TelemetryQueueService from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
 // Importing the router module registers the route on the mocked router.
 import "../../FeatureSet/Telemetry/API/ProbeIngest/IncomingEmail";
@@ -516,5 +525,64 @@ describe("one email for several monitors and workflows", () => {
 
     expect(jobs).toHaveLength(1);
     expect(jobs[0]!["workflowSecretKey"]).toBe(WORKFLOW_SECRET);
+  });
+});
+
+/*
+ * WHEN ONEUPTIME RECEIVED THE EMAIL (dataReceivedAt, issue #6647).
+ *
+ * The route reads the server's clock once, as the webhook reaches it, and
+ * queues that one moment with the email for every address it went to: a
+ * page a monitor's evaluation starts is timed from it, however long the
+ * email waited in the queue.
+ *
+ * The clock here moves a second at each read, so a later read would show.
+ */
+describe("when OneUptime received the email", () => {
+  const RECEIVED_AT: Date = new Date("2026-11-10T09:29:20.000Z");
+
+  let reads: number;
+  let clock: SpyInstance<typeof OneUptimeDate.getCurrentDate>;
+
+  beforeEach(() => {
+    reads = 0;
+
+    clock = jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockImplementation((): Date => {
+        return new Date(RECEIVED_AT.getTime() + 1000 * reads++);
+      });
+  });
+
+  afterEach(() => {
+    clock.mockRestore();
+  });
+
+  test("one moment for every address it went to: the first read of the clock", async () => {
+    await invokeRoute({
+      to: `monitor-${SECRET}@${DOMAIN}, ${WORKFLOW_ADDRESS}`,
+      cc: `nightly-backups@${DOMAIN}`,
+    });
+
+    const jobs: Array<JSONObject> = enqueuedJobs();
+
+    expect(jobs).toHaveLength(3);
+
+    for (const job of jobs) {
+      expect(job["receivedAt"]).toBeInstanceOf(Date);
+      expect(job["receivedAt"]).toEqual(RECEIVED_AT);
+    }
+  });
+
+  test("an email for one monitor carries it too", async () => {
+    await invokeRoute({ to: `monitor-${SECRET}@${DOMAIN}` });
+
+    expect(enqueuedJob()["receivedAt"]).toEqual(RECEIVED_AT);
+  });
+
+  test("an email refused is queued with nothing", async () => {
+    await invokeRoute({ to: "nightly-backups@acme.example" });
+
+    expect(addJobMock).not.toHaveBeenCalled();
   });
 });
