@@ -34,6 +34,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
  * Cloud > Budgets: what a month may cost - for one account or every one -
@@ -187,6 +188,8 @@ const CloudBudgets: FunctionComponent<
           type: FieldType.Element,
           isNotCustomizable: true,
           wrapContent: true,
+          // Each of its lines already reads its own way.
+          getLineText: drawsItsOwnLines,
           getElement: (item: CloudBudget): ReactElement => {
             /*
              * The team's own words, each in its own direction (bdi): an

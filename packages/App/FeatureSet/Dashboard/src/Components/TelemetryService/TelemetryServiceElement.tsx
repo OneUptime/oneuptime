@@ -12,6 +12,7 @@ import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 export interface ComponentProps {
   telemetryService: Service;
@@ -40,7 +41,14 @@ const TelemetryServiceElement: FunctionComponent<ComponentProps> = (
             })}
           />
         </div>
-        <div className={props.telemetryServiceNameClassName}>{serviceName}</div>
+        {/*
+         * Its name reads the way it is written: an English name on an
+         * Arabic page is cut short at its own end (IsolatedLine).
+         */}
+        <IsolatedLine
+          text={serviceName}
+          className={props.telemetryServiceNameClassName}
+        />
       </div>
     );
   };

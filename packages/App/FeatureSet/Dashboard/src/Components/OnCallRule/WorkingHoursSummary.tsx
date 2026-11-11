@@ -12,6 +12,8 @@ import {
   getWorkingHoursRowSummary,
   getWorkingHoursSummary,
 } from "./WorkingHoursText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
  * What an on-call rule set to "Only during working hours" does, said where
@@ -94,13 +96,14 @@ export const OnCallRuleNameCell: FunctionComponent<RowComponentProps> = (
   });
   const pagesObservers: boolean = isPageAsObservers(props.rule.pageAs);
 
+  // The rule's name reads the way it is written (IsolatedText, IsolatedLine).
   if (!summary && !pagesObservers) {
-    return <>{props.name}</>;
+    return <IsolatedText text={props.name} />;
   }
 
   return (
     <div className="min-w-0">
-      <div className="truncate">{props.name}</div>
+      <IsolatedLine text={props.name} className="truncate" />
       {pagesObservers ? (
         <div
           className="mt-0.5 flex items-start gap-1 whitespace-normal text-xs font-normal text-gray-500"

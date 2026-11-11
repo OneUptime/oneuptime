@@ -109,6 +109,10 @@ const RumArchivedPage: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Element,
+            // Its name, and its own data under it: the cell reads the name's way.
+            getLineText: (item: RumApplication): string | undefined => {
+              return item.name;
+            },
             getElement: (item: RumApplication): ReactElement => {
               const id: string = (item.appIdentifier as string) || "";
               const name: string = (item.name as string) || "";

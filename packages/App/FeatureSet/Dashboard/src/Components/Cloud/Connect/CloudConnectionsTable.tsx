@@ -93,6 +93,8 @@ import {
   READ_WARNINGS_TITLE,
 } from "./CloudConnectionWords";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
  * The project's cloud connections, a row each, in three columns: the
@@ -816,6 +818,8 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
               field: { name: true },
               title: "Account",
               type: FieldType.Element,
+              // A mark beside the name: the name reads its own way, the cell the page's.
+              getLineText: drawsItsOwnLines,
               getElement: (item: CloudConnection): ReactElement => {
                 const definition: CloudConnectionDefinition | undefined =
                   getCloudConnectionDefinition(item.provider);
@@ -853,12 +857,11 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                     <CloudConnectionLogo provider={item.provider} size="md" />
                     {/* A long name or account list is cut, not the table widened. */}
                     <div className="min-w-0 max-w-[15rem]">
-                      <div
+                      <IsolatedLine
+                        text={item.name || ""}
                         className="truncate text-sm font-medium text-gray-900"
                         title={item.name || ""}
-                      >
-                        {item.name}
-                      </div>
+                      />
                       {subtitle ? (
                         <div
                           className="truncate text-xs text-gray-500"

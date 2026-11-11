@@ -151,6 +151,10 @@ const McpServerPage: FunctionComponent<PageComponentProps> = (
             title: "Client",
             type: FieldType.Element,
             contentClassName: CLIENT_CELL_WIDTH_CLASS_NAME,
+            // Its name, and its own data under it: the cell reads the name's way.
+            getLineText: (item: McpOAuthGrant): string | undefined => {
+              return item.name || "MCP Client";
+            },
             getElement: (item: McpOAuthGrant): ReactElement => {
               const clientHost: string | null = getMcpClientHost(item.clientId);
               const clientName: string = item.name || "MCP Client";

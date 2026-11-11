@@ -23,6 +23,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 
 /*
  * What the project's warehouses spent over the last day: Snowflake credits
@@ -279,11 +281,13 @@ const SpendPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             getExportValue: (item: DataWarehouseJob): string => {
               return item.name || "";
             },
+            // The page's words beside the name: only the name reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: DataWarehouseJob): ReactElement => {
               return (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium text-gray-900 [overflow-wrap:anywhere]">
-                    {item.name || ""}
+                    <IsolatedText text={item.name || ""} />
                   </span>
                   {item.writesOnlyUnusedTables ? (
                     <span className="rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-800">

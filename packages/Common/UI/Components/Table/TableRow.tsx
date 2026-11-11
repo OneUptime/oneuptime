@@ -48,6 +48,7 @@ import TableFoldedValues, {
   TableFoldedValue,
 } from "./TableFoldedValues";
 import { getColumnsFoldedInto } from "./FoldedColumns";
+import { getElementLineText } from "./ColumnLineText";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
@@ -429,9 +430,10 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
    * The way a cell's line reads when it is not the page's way: a plain
    * value in the other script - an English summary on a Persian page - is
    * cut short at its own end, not at its start (LineDirection). So is an
-   * element whose column names the words it draws (getLineText: a monitor's
-   * name drawn as a link). A cell with columns folded under it keeps the
-   * page's way: its folded lines are the page's words.
+   * element whose column names the words it draws (getLineText), or that
+   * draws a record's name or title (ColumnLineText: an incident's title
+   * drawn as a link). A cell with columns folded under it keeps the page's
+   * way: its folded lines are the page's words.
    */
   const getCellLineDirection: (
     column: Column<T>,
@@ -439,7 +441,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     column: Column<T>,
   ): ReadingDirection | undefined => {
     const text: string | undefined = column.getElement
-      ? column.getLineText?.(props.item) || undefined
+      ? getElementLineText<T>(column, props.item)
       : getPlainCellText(column);
 
     if (!text) {

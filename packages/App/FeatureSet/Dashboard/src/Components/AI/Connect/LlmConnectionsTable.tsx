@@ -48,6 +48,8 @@ import {
   LlmConnectionTestWords,
   getLlmConnectionReadFailureWords,
 } from "./LlmConnectionTestWords";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
  * The project's connections of one kind: how each is doing, when it was
@@ -398,6 +400,8 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
             field: { name: true },
             title: "Connection",
             type: FieldType.Element,
+            // A mark beside the name: the name reads its own way, the cell the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (item: LlmObservabilityConnection): ReactElement => {
               const definition: LlmConnectionDefinition | undefined =
                 getLlmConnectionDefinition(item.provider);
@@ -406,9 +410,10 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
                 <div className="flex items-center gap-3">
                   <LlmConnectionLogo provider={item.provider} size="md" />
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-medium text-gray-900">
-                      {item.name}
-                    </div>
+                    <IsolatedLine
+                      text={item.name || ""}
+                      className="truncate text-sm font-medium text-gray-900"
+                    />
                     <div className="truncate text-xs text-gray-500">
                       {definition
                         ? translator.translateText(definition.title)

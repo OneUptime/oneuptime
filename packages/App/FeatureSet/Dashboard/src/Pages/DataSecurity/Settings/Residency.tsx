@@ -32,6 +32,8 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { joinList } from "Common/UI/Utils/ListSeparator";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 
 /*
  * Data Security > Settings > Residency: where data may live.
@@ -372,15 +374,17 @@ const DataSecurityResidency: FunctionComponent<
             field: { name: true },
             title: "Name",
             type: FieldType.Element,
+            // A description under the name: each reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: DataSecurityResidencyRule): ReactElement => {
               return (
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-gray-900">
-                    {item.name || ""}
+                    <IsolatedText text={item.name || ""} />
                   </div>
                   {item.description ? (
                     <div className="mt-0.5 text-sm text-gray-500">
-                      {item.description}
+                      <IsolatedText text={item.description} />
                     </div>
                   ) : (
                     <></>

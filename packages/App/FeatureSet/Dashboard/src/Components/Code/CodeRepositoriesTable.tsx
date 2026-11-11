@@ -29,6 +29,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 
 /*
  * A list of a project's repositories in Code, drawn as every list in
@@ -194,6 +196,8 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
        * (CODE_REPOSITORY_COLUMN_CLASS_NAME).
        */
       contentClassName: CODE_REPOSITORY_COLUMN_CLASS_NAME,
+      // A mark beside the name: the name reads its own way, the cell the page's.
+      getLineText: drawsItsOwnLines,
       getElement: (repository: CodeRepositoryListItem): ReactElement => {
         const fullName: string = getRepositoryFullName(repository);
         const hostNote: string = getRepositoryHostNote(repository);
@@ -229,7 +233,7 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
                   dataTestId="code-repository-name"
                   className="truncate font-medium text-gray-900 hover:text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                 >
-                  <>{repository.name}</>
+                  <IsolatedText text={repository.name || ""} />
                 </Link>
                 {/*
                  * The first column is drawn a step heavier (the row's name,

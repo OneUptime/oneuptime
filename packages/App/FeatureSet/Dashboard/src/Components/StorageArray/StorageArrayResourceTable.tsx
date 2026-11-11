@@ -93,6 +93,10 @@ const StorageArrayResourceTable: FunctionComponent<ComponentProps> = (
           title: "Name",
           type: FieldType.Element,
           isNotCustomizable: true,
+          // The words it shows, which are not the field as stored.
+          getLineText: (item: StorageArrayResource): string | undefined => {
+            return StorageArrayResourceUtils.displayNameForResource(item);
+          },
           getElement: (item: StorageArrayResource): ReactElement => {
             const name: string =
               StorageArrayResourceUtils.displayNameForResource(item);

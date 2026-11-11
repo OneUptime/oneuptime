@@ -20,6 +20,8 @@ import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourc
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 
 /*
  * Cloud > Archived: the cloud resources archived by a person or by the sweep
@@ -124,6 +126,8 @@ const CloudArchivedPage: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Element,
+            // The page's words beside the name: only the name reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: CloudResource): ReactElement => {
               const account: string = (item.cloudAccountId as string) || "";
               const name: string = (item.name as string) || "";
@@ -139,7 +143,7 @@ const CloudArchivedPage: FunctionComponent<
                     to={route}
                     className="text-sm font-medium text-gray-900 truncate hover:underline"
                   >
-                    {name || "—"}
+                    <IsolatedText text={name || "—"} />
                   </AppLink>
                   {account && (
                     <div className="text-xs text-gray-500 font-mono truncate">

@@ -12,6 +12,8 @@ import {
   PillColors,
 } from "./PillColors";
 import useTranslateValue from "../../Utils/Translation";
+import { getLineDirection } from "../../Utils/LineDirection";
+import { ReadingDirection } from "../../../Types/ReadingDirection";
 
 export enum PillSize {
   Small = "10px",
@@ -84,8 +86,18 @@ const Pill: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const colors: PillColors = getPillColors(props.color || Gray500);
-  const { translateString } = useTranslateValue();
+  const { translateString, language } = useTranslateValue();
   const text: string = translateString(props.text) ?? props.text;
+  /*
+   * Its words read their own way where that is not the page's: a label a
+   * team named in English, on an Arabic page, is cut short at its own end
+   * ("Production EU W...") and keeps its punctuation in place, while its
+   * dot stays at the page's start (LineDirection).
+   */
+  const textDirection: ReadingDirection | undefined = getLineDirection(
+    text,
+    language,
+  );
 
   const getPillElement: GetReactElementFunction = (): ReactElement => {
     return (
@@ -156,6 +168,7 @@ const Pill: FunctionComponent<ComponentProps> = (
         )}
         <span
           data-testid="pill-text"
+          dir={textDirection}
           className={
             props.isWrapping
               ? WRAPPING_PILL_TEXT_CLASS_NAME

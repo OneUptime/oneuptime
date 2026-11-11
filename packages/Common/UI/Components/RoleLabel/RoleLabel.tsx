@@ -4,6 +4,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import Icon from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
 import React, { FunctionComponent, ReactElement } from "react";
+import IsolatedText from "../IsolatedText/IsolatedText";
 
 export interface ComponentProps {
   name: string;
@@ -56,7 +57,10 @@ const RoleLabel: FunctionComponent<ComponentProps> = (
           aria-hidden="true"
         />
       )}
-      <span className="text-sm font-medium text-gray-900">{props.name}</span>
+      {/* Its name reads the way it is written, its mark the page's. */}
+      <span className="text-sm font-medium text-gray-900">
+        <IsolatedText text={props.name} />
+      </span>
     </div>
   );
 

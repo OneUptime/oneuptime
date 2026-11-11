@@ -39,6 +39,7 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 export interface ComponentProps {
   caseId: ObjectID;
@@ -314,6 +315,8 @@ const SecurityCaseEvidenceTable: FunctionComponent<ComponentProps> = (
             contentClassName: "min-w-[9rem]",
             // A phone's card is the evidence: "Evidence" over each said nothing.
             hideTitleOnMobile: true,
+            // Each of its lines already reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: SecurityCaseEvidence): ReactElement => {
               return <SecurityCaseEvidenceCell item={item} />;
             },

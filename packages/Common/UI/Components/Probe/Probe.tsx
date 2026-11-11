@@ -9,6 +9,7 @@ import Probe from "../../../Models/DatabaseModels/Probe";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import IsolatedText from "../IsolatedText/IsolatedText";
 
 export interface ComponentProps {
   probe?: Probe | JSONObject | undefined | null;
@@ -60,9 +61,14 @@ const ProbeElement: FunctionComponent<ComponentProps> = (
       </div>
       <div className="mt-1 mr-1 ml-3">
         <div>
-          <span data-testid="probe-name">{`${
-            (probe["name"]?.toString() as string) || ""
-          } ${props.suffix || ""}`}</span>{" "}
+          {/*
+           * Its name reads the way it is written (an English name on an
+           * Arabic page), the words after it the page's way.
+           */}
+          <span data-testid="probe-name">
+            <IsolatedText text={(probe["name"]?.toString() as string) || ""} />
+            {` ${props.suffix || ""}`}
+          </span>{" "}
         </div>
       </div>
     </div>
