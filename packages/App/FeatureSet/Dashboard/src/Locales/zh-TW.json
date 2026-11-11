@@ -28069,7 +28069,7 @@
   "Only if threat intel matched": "僅在威脅情報符合時",
   "Open Case": "開啟案例",
   "Open Cases": "未結案例",
-  "Open Cases From": "自此嚴重程度起開啟案例",
+  "Open Cases From": "開啟案例的起始嚴重程度",
   "Open Cases From Severity": "自以下嚴重程度起開啟案例",
   "Open For": "已開啟時長",
   "Open Security Cases": "開啟安全案例",

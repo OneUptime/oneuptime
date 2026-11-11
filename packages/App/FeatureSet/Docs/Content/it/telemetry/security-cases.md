@@ -49,7 +49,7 @@ Ognuna di queste azioni si può anche concedere singolarmente, dalla creazione d
 | --- | --- | --- |
 | Regole di rilevamento | Una regola corrisponde | **Apri un caso in caso di corrispondenza**, nel passo **In caso di corrispondenza** della regola |
 | Threat intelligence | Un evento nomina un indicatore noto | **Apri un caso in caso di corrispondenza**, nel passo **In caso di corrispondenza** del feed |
-| Prodotti collegati | Un avviso proprio del prodotto viene importato a un livello pari o superiore alla soglia della connessione | **Open Cases From** impostato su **Mai**, nel passo **Interrogazione** della connessione |
+| Prodotti collegati | Un avviso proprio del prodotto viene importato a un livello pari o superiore alla soglia della connessione | **Apri casi da** impostato su **Mai**, nel passo **Interrogazione** della connessione |
 | Prodotti di sicurezza nei tuoi log | Una minaccia che un firewall, un IDS o un prodotto per gli endpoint scrive nei tuoi log raggiunge o supera la soglia di I tuoi log | **Apri casi a partire da** impostato su **Mai**, su **I tuoi log** |
 | Rischio delle entità | Il rischio di un utente, host o indirizzo raggiunge la soglia del progetto | **Casi di rischio**, in **Impostazioni → Valutazione del rischio** |
 | Persone | Qualcuno ne apre uno da **Casi di sicurezza**, o con **Apri caso** nel pannello di un evento | Nessuna impostazione |

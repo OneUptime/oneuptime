@@ -54,7 +54,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 | 설정 | 입력할 값 |
 | --- | --- |
 | **Kibana URL** | Kibana를 제공하는 주소. 예: `https://kibana.example.com` 또는 `https://<deployment>.kb.<region>.cloud.es.io`. 경로는 붙이지 않습니다. `/app/security`도, `/api`도, `/s/<space>` 부분도 없어야 합니다. |
-| **Kibana space** | 스페이스의 이름이 아니라 ID. 영문자, 숫자, 하이픈, 밑줄로 이루어집니다. 기본 스페이스라면 비워 둡니다. |
+| **Kibana 공간** | 스페이스의 이름이 아니라 ID. 영문자, 숫자, 하이픈, 밑줄로 이루어집니다. 기본 스페이스라면 비워 둡니다. |
 | **API 키** | 키의 **Base64** 값 그대로. `ApiKey` 스킴은 OneUptime이 직접 붙입니다. 암호화되며, API가 반환하지 않고 다시 표시되지도 않습니다. 교체하려면 연결의 **자격 증명 업데이트**를 사용합니다. |
 
 **폴링** 단계에는 선택 사항인 **설명**, `1`부터 `1440`까지의 정수이며 처음 값이 `5`인 **폴링 간격(분)**, 그리고 처음에 켜져 있는 **활성화됨**도 있습니다.
@@ -115,7 +115,7 @@ Stopped after collecting 10000 alerts; the window holds more.
 
 1. **좁히기.** 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽으며, 구간을 끝까지 읽을 수 있게 될 때까지 계속 절반으로 줄이고, 가장 짧게는 1분까지 줄입니다. 실행의 경고에 그렇게 적힙니다: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **다시 늘리기.** 구간을 끝까지 읽은 뒤에는 다음 구간이 다시 두 배가 되며, 최대 24시간까지 늘어납니다.
-3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 알림이 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **부분**으로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`가 표시됩니다. 그 1분을 **Import this time range**로 가져오면 한 번의 실행으로 읽을 수 있는 만큼 되찾을 수 있습니다.
+3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 알림이 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **부분**으로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`가 표시됩니다. 그 1분을 **이 시간 범위 가져오기**로 가져오면 한 번의 실행으로 읽을 수 있는 만큼 되찾을 수 있습니다.
 
 Kibana의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는 그대로 유지되고 다음 폴링이 같은 구간을 다시 읽습니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 커서는 그대로지만 다음 구간은 절반 길이가 됩니다. 제시간에 응답하기에는 너무 무거운 구간은 시도할 때마다 시간이 초과되기 때문입니다. **폴링 간격(분)** 값을 바꿔도 이 중 어느 것도 달라지지 않습니다. 이 설정은 폴링이 얼마나 자주 시작하는지를 정할 뿐, 구간이 어디서 시작하는지는 정하지 않습니다.
 
@@ -124,9 +124,9 @@ Kibana의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는
 연결에서 **진단**을 클릭하면 최근 실행을 보고 연결을 직접 다룰 수 있습니다. 연결을 변경할 수 있는 사람은 누구나 이를 시작할 수 있고, 연결을 볼 수 있는 사람은 누구나 기록을 읽을 수 있습니다.
 
 - **지금 실행**은 연결이 **활성화됨** 상태가 아닐 때에도 평소의 커서로 즉시 폴링을 시작합니다.
-- **Preview alerts**는 최대 7일의 시간 범위를 읽으며 아무것도 가져오지 않습니다.
-- **Import this time range**는 확인을 거친 뒤 최대 7일의 범위를 가져오며, 커서는 옮기지 않습니다. 이미 가져온 알림은 건너뜁니다.
-- 실행의 **Copy diagnostics**는 지원팀에 보낼 보고서를 복사합니다. 자격 증명은 절대 포함되지 않습니다.
+- **알림 미리 보기**는 최대 7일의 시간 범위를 읽으며 아무것도 가져오지 않습니다.
+- **이 시간 범위 가져오기**는 확인을 거친 뒤 최대 7일의 범위를 가져오며, 커서는 옮기지 않습니다. 이미 가져온 알림은 건너뜁니다.
+- 실행의 **진단 복사**는 지원팀에 보낼 보고서를 복사합니다. 자격 증명은 절대 포함되지 않습니다.
 
 ## 연결 테스트
 
@@ -139,7 +139,7 @@ Kibana의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는
 | **Read detection alerts** | 지난 24시간 동안 생성된 알림 하나를 읽을 수 있습니다. 이로써 권한과 스페이스가 확인됩니다. |
 | **Alerts available to import** | 지난 24시간과 지난 7일 동안 생성된 알림의 수. Elasticsearch가 일부만 센 경우에는 `+`가 붙습니다. 7일 동안 하나도 없으면 실패가 아니라 경고입니다. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime 쪽: Worker 큐의 작업을 가져가는 프로세스가 있고, 폴링 작업이 매분 실행되고, 보안 이벤트 저장소가 응답하는지. |
-| **Scheduled polling** | 저장된 연결의 경우: 폴링이 켜져 있고, 워커를 기다리며 멈춘 실행이 없고, 폴링이 제때 실행되는지. |
+| **예약된 폴링** | 저장된 연결의 경우: 폴링이 켜져 있고, 워커를 기다리며 멈춘 실행이 없고, 폴링이 제때 실행되는지. |
 
 테스트의 모든 요청에는 20초 기한이 있습니다. 테스트는 아무것도 가져오지 않고 커서를 옮기지도 않으며, 실패한 각 검사는 무엇을 바꿔야 하는지 알려 줍니다.
 
@@ -202,7 +202,7 @@ Kibana에서 **Stack Management → API keys** 를 열고 **Create API key** 를
 :::details Last Error가 `Elastic Security alerts search`로 시작함
 - `Elastic Security alerts search failed (HTTP ...)`: Kibana가 알림 검색을 거부했습니다.
   - `HTTP 403`: 키로 로그인은 되지만 스페이스의 알림을 읽을 수 없습니다. [사전 요건](#사전-요건)의 권한을 부여하세요.
-  - `HTTP 404`: 그 **Kibana space** ID를 가진 스페이스가 없거나, 그 스페이스에서 Elastic Security가 활성화되어 있지 않습니다.
+  - `HTTP 404`: 그 **Kibana 공간** ID를 가진 스페이스가 없거나, 그 스페이스에서 Elastic Security가 활성화되어 있지 않습니다.
   - `HTTP 429` 또는 `HTTP 5xx`: Kibana나 Elasticsearch가 요청을 제한하고 있거나 실패하고 있습니다. 다음 폴링에서 다시 시도합니다.
 - `Elastic Security alerts search returned ...`: Kibana가 `200`으로 응답했지만 읽을 수 있는 알림 페이지 없이, 예를 들어 자체 오류를 반환했습니다. 메시지에 그 내용이 인용됩니다. 빈 구간으로 간주하지 않고 보고하므로, 아무도 읽지 않은 알림을 커서가 지나치는 일은 없습니다.
 :::
@@ -217,11 +217,11 @@ Kibana에서 **Stack Management → API keys** 를 열고 **Create API key** 를
 
 :::details 실행이 Partial임
 - `Stopped after collecting 10000 alerts; the window holds more`: 구간에 한 번의 실행이 읽는 10,000개보다 많은 알림이 있었습니다. 잃는 것은 없습니다. 다음 폴링은 마지막으로 읽은 알림 다음부터 시작합니다. 폴링할 때마다 **부분**으로 남는 연결은 밀린 분량을 따라잡는 중이며, **마지막 폴링**과 **마지막으로 가져온 이벤트**는 계속 앞으로 나아갑니다. 끝내 따라잡지 못한다면 스페이스가 폴링 간격마다 10,000개가 넘는 알림을 만들고 있는 것입니다. **폴링 간격(분)** 값을 줄이세요.
-- `More records were created in the one minute from ... than one poll can read`: 폴링이 그 1분을 넘어갔습니다. **진단**에서 **Import this time range**로 그 1분을 가져오세요. 가져오기는 한 번의 폴링만큼 읽습니다.
+- `More records were created in the one minute from ... than one poll can read`: 폴링이 그 1분을 넘어갔습니다. **진단**에서 **이 시간 범위 가져오기**로 그 1분을 가져오세요. 가져오기는 한 번의 폴링만큼 읽습니다.
 :::
 
 :::details 테스트는 통과하지만 아무것도 가져오지 않음
-테스트 보고서에서 **Alerts available to import**를 읽으세요. 지난 7일 동안 `0`이면 그 스페이스에서 어떤 규칙도 알림을 만들지 않은 것입니다. 그곳에서 규칙이 활성화되어 있는지, 그리고 **Kibana space**가 규칙이 실행되는 스페이스인지 확인하세요. 알림이 있다면 보안 이벤트 탐색기에서 시간 범위를 넓히세요. 알림은 활동 시각에 표시되며, 이는 알림이 만들어진 시각보다 한참 이전일 수 있습니다.
+테스트 보고서에서 **Alerts available to import**를 읽으세요. 지난 7일 동안 `0`이면 그 스페이스에서 어떤 규칙도 알림을 만들지 않은 것입니다. 그곳에서 규칙이 활성화되어 있는지, 그리고 **Kibana 공간**이 규칙이 실행되는 스페이스인지 확인하세요. 알림이 있다면 보안 이벤트 탐색기에서 시간 범위를 넓히세요. 알림은 활동 시각에 표시되며, 이는 알림이 만들어진 시각보다 한참 이전일 수 있습니다.
 :::
 
 ## 얻을 수 있는 것

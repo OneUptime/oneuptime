@@ -53,8 +53,8 @@ Fai clic su **Prova queste impostazioni** sotto **Testa prima di salvare**. Il t
 
 | Impostazione | Cosa inserire |
 | --- | --- |
-| **Kibana URL** | L'indirizzo da cui viene servito Kibana, per esempio `https://kibana.example.com` o `https://<deployment>.kb.<region>.cloud.es.io`. Senza percorso: né `/app/security`, né `/api`, né la parte `/s/<space>`. |
-| **Kibana space** | L'ID dello spazio, non il suo nome: lettere, cifre, trattini e trattini bassi. Lascialo vuoto per lo spazio predefinito. |
+| **URL di Kibana** | L'indirizzo da cui viene servito Kibana, per esempio `https://kibana.example.com` o `https://<deployment>.kb.<region>.cloud.es.io`. Senza percorso: né `/app/security`, né `/api`, né la parte `/s/<space>`. |
+| **Spazio Kibana** | L'ID dello spazio, non il suo nome: lettere, cifre, trattini e trattini bassi. Lascialo vuoto per lo spazio predefinito. |
 | **Chiave API** | Il valore **Base64** della chiave, da solo: OneUptime aggiunge da sé lo schema `ApiKey`. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Aggiorna le credenziali** sulla connessione. |
 
 Il passaggio **Interrogazione** ha anche una **Descrizione** facoltativa, il **Intervallo di interrogazione (minuti)**, un numero intero da `1` a `1440` che parte da `5`, e **Abilitato**, che parte attivo.
@@ -115,7 +115,7 @@ Quando un'esecuzione non riesce affatto a superare il cursore salvato, OneUptime
 
 1. **Restringere.** L'interrogazione successiva legge una finestra lunga la metà, dallo stesso punto di partenza, e continua a dimezzarla finché una finestra non viene letta per intero, fino a un minuto. L'avviso dell'esecuzione lo dice: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Tornare a crescere.** Dopo che una finestra è stata letta per intero, la successiva è di nuovo lunga il doppio, fino a 24 ore.
-3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così gli avvisi più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
+3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così gli avvisi più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Importa questo intervallo di tempo** per recuperare ciò che un'esecuzione può leggere.
 
 Un'esecuzione che fallisce del tutto, con un errore di Kibana, mantiene il cursore e la lunghezza della finestra, e l'interrogazione successiva rilegge la stessa finestra. L'unica eccezione è una richiesta scaduta: il cursore resta, ma la finestra successiva è lunga la metà, perché una finestra troppo pesante per ricevere risposta in tempo scadrebbe a ogni tentativo. Cambiare il **Intervallo di interrogazione (minuti)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
 
@@ -124,9 +124,9 @@ Un'esecuzione che fallisce del tutto, con un errore di Kibana, mantiene il curso
 Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti e lavorarci a mano. Chi può modificare la connessione può avviare queste azioni; chi può vederla può leggerne la cronologia.
 
 - **Esegui ora** avvia subito un'interrogazione, con il cursore abituale, anche quando la connessione non è **Abilitato**.
-- **Preview alerts** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
-- **Import this time range** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. Gli avvisi già importati vengono saltati.
-- **Copy diagnostics** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
+- **Anteprima dei avvisi** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
+- **Importa questo intervallo di tempo** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. Gli avvisi già importati vengono saltati.
+- **Copia diagnostica** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
 
 ## Testare la connessione
 
@@ -139,7 +139,7 @@ Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti
 | **Read detection alerts** | Si può leggere un alert creato nelle ultime 24 ore. Questo dimostra i privilegi e lo spazio. |
 | **Alerts available to import** | Quanti alert sono stati creati nelle ultime 24 ore e negli ultimi 7 giorni, con `+` dove Elasticsearch ne ha contato solo una parte. Nessuno in 7 giorni è un avviso, non un errore. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Il lato di OneUptime stesso: un processo prende i job della coda Worker, il job di polling gira ogni minuto e l'archivio degli eventi di sicurezza risponde. |
-| **Scheduled polling** | Per una connessione salvata: il polling è attivo, nessuna esecuzione è bloccata in attesa di un worker e le interrogazioni girano in orario. |
+| **Interrogazione pianificata** | Per una connessione salvata: il polling è attivo, nessuna esecuzione è bloccata in attesa di un worker e le interrogazioni girano in orario. |
 
 Ogni richiesta di un test ha una scadenza di 20 secondi. Un test non importa mai nulla e non sposta mai il cursore, e ogni controllo fallito dice cosa cambiare.
 
@@ -192,7 +192,7 @@ Il **Ultimo errore** della connessione conserva il messaggio di errore completo,
 :::details Last Error inizia con `Elastic Security status request`
 - `Elastic Security status request failed (HTTP ...)`: Kibana ha rifiutato la richiesta di stato.
   - `HTTP 401`: Kibana non ha accettato la chiave API. Non è il valore **Base64**, oppure è scaduta o è stata invalidata. Crea una nuova chiave e salvala con **Aggiorna le credenziali**.
-  - `HTTP 404`: la **Kibana URL** ha un percorso, oppure non è Kibana.
+  - `HTTP 404`: la **URL di Kibana** ha un percorso, oppure non è Kibana.
   - `HTTP 503`: Kibana si dichiara non disponibile, di solito perché non riesce a raggiungere Elasticsearch.
   - `HTTP 3xx`: Kibana ha reindirizzato la richiesta, e i reindirizzamenti vengono rifiutati. Usa l'indirizzo da cui viene servito Kibana.
 - `Elastic Security status request returned ...`: ha risposto qualcosa di diverso da Kibana, per esempio una pagina di accesso o un proxy.
@@ -202,7 +202,7 @@ Il **Ultimo errore** della connessione conserva il messaggio di errore completo,
 :::details Last Error inizia con `Elastic Security alerts search`
 - `Elastic Security alerts search failed (HTTP ...)`: Kibana ha rifiutato la ricerca degli alert.
   - `HTTP 403`: la chiave accede, ma non può leggere gli alert dello spazio. Dalle i privilegi indicati in [Prima di iniziare](#prima-di-iniziare).
-  - `HTTP 404`: nessuno spazio ha quell'ID **Kibana space**, oppure Elastic Security non è abilitato in esso.
+  - `HTTP 404`: nessuno spazio ha quell'ID **Spazio Kibana**, oppure Elastic Security non è abilitato in esso.
   - `HTTP 429` o `HTTP 5xx`: Kibana o Elasticsearch sta limitando le richieste o sta fallendo. L'interrogazione successiva riprova.
 - `Elastic Security alerts search returned ...`: Kibana ha risposto `200`, ma senza una pagina di alert leggibile, per esempio con un proprio errore. Il messaggio lo cita. Viene segnalato invece di essere preso per una finestra vuota, così il cursore non supera mai alert che nessuno ha letto.
 :::
@@ -217,11 +217,11 @@ Nessuna interrogazione è terminata per questa connessione. Esegui **Testa la co
 
 :::details Un'esecuzione è Partial
 - `Stopped after collecting 10000 alerts; the window holds more`: la finestra conteneva più dei 10.000 alert che legge un'esecuzione. Non si perde nulla: l'interrogazione successiva parte dopo l'ultimo alert letto. Una connessione che resta **Parziale** un'interrogazione dopo l'altra sta recuperando un arretrato, e i suoi **Ultima interrogazione** e **Ultimo evento importato** continuano ad avanzare. Se non recupera mai, lo spazio crea più di 10.000 alert per intervallo di polling: accorcia il **Intervallo di interrogazione (minuti)**.
-- `More records were created in the one minute from ... than one poll can read`: il polling ha superato quel minuto. Importalo con **Import this time range** in **Diagnostica**. Un'importazione legge quanto un'interrogazione.
+- `More records were created in the one minute from ... than one poll can read`: il polling ha superato quel minuto. Importalo con **Importa questo intervallo di tempo** in **Diagnostica**. Un'importazione legge quanto un'interrogazione.
 :::
 
 :::details Il test riesce, ma non viene importato nulla
-Leggi **Alerts available to import** nel rapporto del test. `0` negli ultimi 7 giorni significa che nessuna regola ha creato un alert in quello spazio: verifica che lì ci siano regole abilitate, e che **Kibana space** sia lo spazio in cui girano. Se gli alert esistono, allarga l'intervallo di tempo nell'esploratore degli eventi di sicurezza: gli alert compaiono all'ora della loro attività, che può essere molto precedente alla loro creazione.
+Leggi **Alerts available to import** nel rapporto del test. `0` negli ultimi 7 giorni significa che nessuna regola ha creato un alert in quello spazio: verifica che lì ci siano regole abilitate, e che **Spazio Kibana** sia lo spazio in cui girano. Se gli alert esistono, allarga l'intervallo di tempo nell'esploratore degli eventi di sicurezza: gli alert compaiono all'ora della loro attività, che può essere molto precedente alla loro creazione.
 :::
 
 ## Cosa ottieni

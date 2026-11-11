@@ -6,6 +6,12 @@ import {
   scanSourceText,
 } from "../../FeatureSet/Dashboard/scripts/i18n/ExtractStrings";
 import { getDefaultContext } from "../../FeatureSet/Dashboard/scripts/i18n/I18n";
+import {
+  ConnectorField,
+  ConnectorFieldOption,
+  SecurityEventConnectorCatalog,
+  SecurityEventConnectorDefinition,
+} from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 
 /*
  * THE SECURITY EVENTS TEXTS (#6658, part 2), IN EVERY LANGUAGE - read from
@@ -19,6 +25,13 @@ import { getDefaultContext } from "../../FeatureSet/Dashboard/scripts/i18n/I18n"
  * whole, so each must be worded in the languages the Dashboard ships: a
  * sentence left in English is a German, Japanese or Arabic reader meeting
  * English again.
+ *
+ * Since #6700 and #6702 that is every Dashboard language, not only German,
+ * Spanish, French, Japanese and Arabic, and the connection form's own words
+ * from the connector catalog - each provider's description, each setting's
+ * title, description and choices - are keys too. And since #6781 a Russian
+ * sentence never puts the records a connector imports (a nominative plural:
+ * "оповещения", "записи") after a word that wants another case.
  */
 
 const CONTEXT: ReturnType<typeof getDefaultContext> = getDefaultContext();
@@ -60,7 +73,10 @@ const DASHBOARD_FILES: Array<string> = [
   "Components/SecurityEvents/SecurityEventsViewer.tsx",
 ];
 
-// The Google SecOps "Data to import" control the diagnostics quote.
+/*
+ * The connector catalog: the Google SecOps "Data to import" control the
+ * diagnostics quote, and every word the connection form draws from it.
+ */
 const COMMON_FILES: Array<string> = [
   "packages/Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog.ts",
 ];
@@ -260,15 +276,14 @@ describe("the Security Events texts in every language", () => {
     expect(notInEnglish).toEqual([]);
   });
 
-  test("Arabic words every key the files look up", () => {
-    expect(untranslated("ar", KEYS)).toEqual([]);
-  });
+  test("every Dashboard language words every key the files look up, Arabic included", () => {
+    expect(LANGUAGES).toHaveLength(17);
+    expect(LANGUAGES).toEqual(expect.arrayContaining(["ar", "fa", "hi", "ru"]));
 
-  test("German, Spanish, French and Japanese word every key the files look up", () => {
     // Every language's gaps at once, so a failure names them all.
     const missing: Record<string, Array<string>> = {};
 
-    for (const language of ["de", "es", "fr", "ja"]) {
+    for (const language of LANGUAGES) {
       const keys: Array<string> = untranslated(language, KEYS);
 
       if (keys.length > 0) {
@@ -346,6 +361,253 @@ describe("the Security Events texts in every language", () => {
     expect(german["Find historical {{records}}"]).not.toBe(
       "Find historical {{records}}",
     );
+  });
+
+  // A placeholder showing a value to type: digits, an address, a query, JSON.
+  const VALUE_TO_TYPE: RegExp = /[0-9./=@{"-]/;
+  // A choice that is a code, such as a region's: europe-west2.
+  const CODE: RegExp = /^[a-z0-9-]+$/;
+
+  test("the connection form's words from the catalog are keys, worded in every language", () => {
+    const words: Set<string> = new Set<string>();
+    const asWritten: Array<string> = [];
+
+    for (const definition of SecurityEventConnectorCatalog as Array<SecurityEventConnectorDefinition>) {
+      words.add(definition.description);
+
+      for (const field of [
+        ...definition.configFields,
+        ...definition.secretFields,
+      ] as Array<ConnectorField>) {
+        words.add(field.title);
+        words.add(field.description);
+
+        /*
+         * A placeholder that shows a value to type - an ID, an address, a
+         * query, a region code - is drawn as written; one written in words
+         * is a key.
+         */
+        if (field.placeholder !== undefined) {
+          if (VALUE_TO_TYPE.test(field.placeholder)) {
+            asWritten.push(field.placeholder);
+          } else {
+            words.add(field.placeholder);
+          }
+        }
+
+        /*
+         * A choice that names a host (CrowdStrike's clouds) or is a code
+         * (Google SecOps' regions, europe-west2) is drawn as written.
+         */
+        for (const option of (field.options ||
+          []) as Array<ConnectorFieldOption>) {
+          if (option.label.includes(".") || CODE.test(option.label)) {
+            asWritten.push(option.label);
+          } else {
+            words.add(option.label);
+          }
+        }
+      }
+    }
+
+    // Ten providers' descriptions and their settings, not a handful.
+    expect(words.size).toBeGreaterThan(80);
+    expect(words).toContain("Select a region");
+    expect(words).toContain("Azure Government (US), DoD");
+    expect(asWritten).toContain("US-1 (api.crowdstrike.com)");
+    expect(asWritten).toContain("europe-west2");
+    expect(asWritten).toContain("00000000-0000-0000-0000-000000000000");
+
+    // Each is marked in the catalog, so the extractor reads it into en.json.
+    const unmarked: Array<string> = [...words].filter(
+      (word: string): boolean => {
+        return !KEYS.includes(word) || ENGLISH[word] !== word;
+      },
+    );
+
+    expect(unmarked).toEqual([]);
+
+    const missing: Record<string, Array<string>> = {};
+
+    for (const language of LANGUAGES) {
+      const keys: Array<string> = untranslated(language, [...words]);
+
+      if (keys.length > 0) {
+        missing[language] = keys;
+      }
+    }
+
+    expect(missing).toEqual({});
+  });
+
+  /*
+   * A Russian sentence names the records a connector imports in the
+   * nominative plural the locale words them in. After "больше" or "нет",
+   * after a preposition, or after an adjective in another case ("более
+   * старым"), Russian wants the genitive or the dative - "больше
+   * оповещений" - which the filled sentence cannot give: #6781.
+   */
+  const RUSSIAN_RECORDS_PLACEHOLDERS: Array<string> = [
+    "records",
+    "alerting",
+    "nonAlerting",
+  ];
+
+  const RUSSIAN_WORDS_WANTING_ANOTHER_CASE: ReadonlySet<string> = new Set([
+    "больше",
+    "меньше",
+    "много",
+    "мало",
+    "нет",
+    "сколько",
+    "несколько",
+    "без",
+    "для",
+    "из",
+    "от",
+    "до",
+    "у",
+    "к",
+    "по",
+    "с",
+    "со",
+    "о",
+    "об",
+    "при",
+    "над",
+    "под",
+    "перед",
+    "между",
+    "среди",
+    "около",
+    "кроме",
+    "вместо",
+    "после",
+  ]);
+
+  // An adjective in a case other than the nominative plural: старым, новых.
+  const RUSSIAN_OBLIQUE_ADJECTIVE: RegExp = /(?:ым|им|ых|их|ыми|ими|ому|ему)$/;
+
+  // Where a Russian sentence puts a records word after a word wanting another case.
+  function russianCaseProblems(sentence: string): Array<string> {
+    const problems: Array<string> = [];
+
+    for (const name of RUSSIAN_RECORDS_PLACEHOLDERS) {
+      const parts: Array<string> = sentence.split(`{{${name}}}`);
+
+      parts.slice(0, -1).forEach((before: string): void => {
+        const words: Array<string> = before
+          .toLowerCase()
+          .split(/[\s«»"(),;:]+/)
+          .filter(Boolean);
+        const previous: string = words[words.length - 1] || "";
+
+        if (
+          RUSSIAN_WORDS_WANTING_ANOTHER_CASE.has(previous) ||
+          RUSSIAN_OBLIQUE_ADJECTIVE.test(previous)
+        ) {
+          problems.push(`${previous} {{${name}}}`);
+        }
+      });
+    }
+
+    return problems;
+  }
+
+  test("Russian names the records a connector imports in the nominative plural its sentences are worded for", () => {
+    const russian: Record<string, string> = readLocale("ru");
+
+    expect(
+      [
+        "incidents",
+        "alerts",
+        "notable events",
+        "findings",
+        "log events",
+        "records",
+        "audit events",
+        "detections",
+      ].map((name: string): string => {
+        return russian[name] as string;
+      }),
+    ).toEqual([
+      "инциденты",
+      "оповещения",
+      "значимые события",
+      "находки",
+      "события журнала",
+      "записи",
+      "события аудита",
+      "обнаружения",
+    ]);
+  });
+
+  test("no Russian sentence puts the records after a word that wants another case", () => {
+    const russian: Record<string, string> = readLocale("ru");
+    const sentences: Array<string> = KEYS.filter((key: string): boolean => {
+      return RUSSIAN_RECORDS_PLACEHOLDERS.some((name: string): boolean => {
+        return key.includes(`{{${name}}}`);
+      });
+    });
+
+    // The diagnostics, the run details and the import confirmation, at least.
+    expect(sentences.length).toBeGreaterThan(8);
+
+    const problems: Array<string> = sentences.flatMap(
+      (key: string): Array<string> => {
+        return russianCaseProblems(russian[key] as string).map(
+          (problem: string): string => {
+            return `${problem}: ${key}`;
+          },
+        );
+      },
+    );
+
+    expect(problems).toEqual([]);
+
+    // The three sentences #6781 reworded read as a Russian reader expects.
+    expect(
+      russian[
+        "More {{records}} were created in one minute than one poll can read. Polling moved past that minute so newer {{records}} keep arriving; the {{records}} from it that this poll did not read were not imported."
+      ],
+    ).toContain(
+      "Один опрос не может прочитать все {{records}}, созданные за одну минуту.",
+    );
+    expect(
+      russian[
+        "This window held more {{records}} than one poll can read, so the cursor stayed where it was. The next scheduled poll reads a window of {{window}} from the same starting point and widens it again as polls complete."
+      ],
+    ).toContain("Один опрос не может прочитать все {{records}} этого окна");
+    expect(
+      russian[
+        "Preview a window before importing. The first scheduled poll looks back 24 hours; older {{records}} need a historical import. Choose up to 7 days per run. When Last Error says polling moved past a minute it could not read in full, import that minute here to recover what one run can read."
+      ],
+    ).toContain("более старые {{records}} требуют исторического импорта");
+  });
+
+  test("the Russian check finds the wordings #6781 replaced", () => {
+    // As the Russian locale worded them before: the genitive the noun lacked.
+    expect(
+      russianCaseProblems(
+        "За одну минуту было создано больше {{records}}, чем может прочитать один опрос.",
+      ),
+    ).toEqual(["больше {{records}}"]);
+    expect(
+      russianCaseProblems(
+        "В этом окне было больше {{records}}, чем может прочитать один опрос, поэтому курсор остался на месте.",
+      ),
+    ).toEqual(["больше {{records}}"]);
+    expect(
+      russianCaseProblems(
+        "Первый запланированный опрос смотрит на 24 часа назад; более старым {{records}} нужен исторический импорт.",
+      ),
+    ).toEqual(["старым {{records}}"]);
+    // A nominative plural reads right, where the sentence starts or after "все".
+    expect(
+      russianCaseProblems(
+        "{{records}} за эту минуту не импортированы; все {{records}} этого окна.",
+      ),
+    ).toEqual([]);
   });
 
   test("the Arabic counted sentences name their count in the one-form too", () => {

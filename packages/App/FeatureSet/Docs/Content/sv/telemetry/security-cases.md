@@ -49,7 +49,7 @@ Var och en av dessa behörigheter kan också ges för sig, från att skapa ett �
 | --- | --- | --- |
 | Detektionsregler | En regel träffar | **Öppna ett ärende vid matchning**, i regelns steg **Vid träff** |
 | Hotunderrättelser | En händelse nämner en känd indikator | **Öppna ett ärende vid matchning**, i flödets steg **Vid träff** |
-| Anslutna produkter | Ett larm från produkten själv importeras på eller över anslutningens tröskel | **Open Cases From** satt till **Aldrig**, i anslutningens steg **Hämtning** |
+| Anslutna produkter | Ett larm från produkten själv importeras på eller över anslutningens tröskel | **Öppna ärenden från** satt till **Aldrig**, i anslutningens steg **Hämtning** |
 | Säkerhetsprodukter i dina loggar | Ett hot som en brandvägg, ett IDS eller en endpointprodukt skriver i dina loggar ligger på eller över tröskeln för Dina loggar | **Öppna ärenden från** satt till **Aldrig**, på **Dina loggar** |
 | Entitetsrisk | En användares, värds eller adress risk når projektets tröskel | **Riskärenden** under **Inställningar → Riskbedömning** |
 | Personer | Någon öppnar ett från **Säkerhetsärenden**, eller med **Öppna ärende** i en händelses panel | Går inte |

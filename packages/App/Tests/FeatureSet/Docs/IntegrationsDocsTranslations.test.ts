@@ -18,6 +18,7 @@ import {
   PROSE,
   STEP_NAMES,
   TELEGRAM,
+  TEMPLATE_LABELS,
   TEMPLATE_NAMES,
   ZABBIX,
 } from "./IntegrationsDocsPages";
@@ -29,7 +30,13 @@ import {
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
-import { drawnActionLabel, isActionLabel } from "./DocsDashboardLabels";
+import {
+  DashboardTemplateLabel,
+  dashboardLocale,
+  drawnActionLabel,
+  drawnTemplateLabel,
+  isActionLabel,
+} from "./DocsDashboardLabels";
 import {
   PATH_SEPARATOR,
   boldLabels,
@@ -240,11 +247,27 @@ function keptBold(page: string): Array<string> {
   ];
 }
 
-// Whether a list accounts for a bold English word on a page.
+// The labels a page names that the Dashboard builds from a sentence (#6703).
+function templateLabels(page: string): Array<DashboardTemplateLabel> {
+  return [...(TEMPLATE_LABELS[page] || [])];
+}
+
+function templateLabelNames(page: string): Array<string> {
+  return templateLabels(page).map((label: DashboardTemplateLabel): string => {
+    return label.label;
+  });
+}
+
+/*
+ * Whether a list accounts for a bold English word on a page. A
+ * template-built label is accounted for here and drawn by
+ * englishBoldDrawings, so dashboardLabels never looks it up as a key.
+ */
 function accountedFor(page: string, span: string): boolean {
   return (
     isCodeSpan(span) ||
     keptBold(page).includes(span) ||
+    templateLabelNames(page).includes(span) ||
     listed(PROSE, page).includes(span)
   );
 }
@@ -299,8 +322,9 @@ function drawnMenuPath(language: string, segments: Array<string>): string {
 /*
  * Every bold label and menu path of the English page that a language draws
  * in its own words, as the English page writes it and as a page in the
- * language must: [English bold, drawn bold]. A Persian path is one bold
- * span per segment.
+ * language must: [English bold, drawn bold]. A label the Dashboard builds
+ * from a sentence and a value is the language's sentence filled with that
+ * value (drawnTemplateLabel). A Persian path is one bold span per segment.
  */
 function englishBoldDrawings(
   language: string,
@@ -310,6 +334,14 @@ function englishBoldDrawings(
     ...dashboardLabels(page).map((label: string): [string, string] => {
       return [`**${label}**`, `**${drawnActionLabel(language, label)}**`];
     }),
+    ...templateLabels(page).map(
+      (label: DashboardTemplateLabel): [string, string] => {
+        return [
+          `**${label.label}**`,
+          `**${drawnTemplateLabel(language, label)}**`,
+        ];
+      },
+    ),
     ...dashboardPaths(page).map((segments: Array<string>): [string, string] => {
       return [drawnMenuPath("en", segments), drawnMenuPath(language, segments)];
     }),
@@ -515,6 +547,7 @@ describe("the lists this test keeps", () => {
       TEMPLATE_NAMES,
       OTHER_NAMES,
       KEPT_AS_WRITTEN,
+      TEMPLATE_LABELS,
       PLAN_NAMES,
       PROSE,
       WIDEST_DIAGRAM_LINE,
@@ -591,6 +624,7 @@ describe("the lists this test keeps", () => {
       ];
       const stale: Array<string> = [
         ...keptBold(page),
+        ...templateLabelNames(page),
         ...listed(PROSE, page),
       ].filter((span: string): boolean => {
         return !english.includes(span);
@@ -602,7 +636,11 @@ describe("the lists this test keeps", () => {
 
   it("list each word once per page, in one list", () => {
     for (const page of PAGE_NAMES) {
-      const all: Array<string> = [...keptBold(page), ...listed(PROSE, page)];
+      const all: Array<string> = [
+        ...keptBold(page),
+        ...templateLabelNames(page),
+        ...listed(PROSE, page),
+      ];
       const twice: Array<string> = all.filter(
         (span: string, index: number): boolean => {
           return all.indexOf(span) !== index;
@@ -621,6 +659,60 @@ describe("the lists this test keeps", () => {
           name,
           label: false,
         });
+      }
+    }
+  });
+
+  it("name each template-built label by a key with its placeholders, filled as the English Dashboard draws it", () => {
+    const english: Record<string, unknown> = dashboardLocale("en");
+
+    for (const page of PAGE_NAMES) {
+      for (const label of templateLabels(page)) {
+        const placeholders: Array<string> = [
+          ...label.template.matchAll(/\{\{(\w+)\}\}/g),
+        ].map((match: RegExpMatchArray): string => {
+          return match[1] as string;
+        });
+
+        expect({
+          page,
+          label: label.label,
+          key: english[label.template] === label.template,
+          values: Object.keys(label.values).sort(),
+          // The English label is no key: a page could not look it up.
+          labelIsKey: isActionLabel(label.label),
+          drawn: drawnTemplateLabel("en", label),
+        }).toEqual({
+          page,
+          label: label.label,
+          key: true,
+          values: placeholders.sort(),
+          labelIsKey: false,
+          drawn: label.label,
+        });
+      }
+    }
+  });
+
+  it("draw a template-built label in every language's own words where its Dashboard words the sentence", () => {
+    for (const page of PAGE_NAMES) {
+      for (const label of templateLabels(page)) {
+        for (const language of LANGUAGES) {
+          const worded: boolean =
+            dashboardLocale(language)[label.template] !== label.template;
+
+          expect({
+            page,
+            language,
+            label: label.label,
+            drawnInEnglish: drawnTemplateLabel(language, label) === label.label,
+          }).toEqual({
+            page,
+            language,
+            label: label.label,
+            drawnInEnglish: !worded,
+          });
+        }
       }
     }
   });

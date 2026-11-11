@@ -53,8 +53,8 @@ Haz clic en **Probar esta configuración** en **Probar antes de guardar**. La pr
 
 | Ajuste | Qué introducir |
 | --- | --- |
-| **Kibana URL** | La dirección desde la que se sirve Kibana, por ejemplo `https://kibana.example.com` o `https://<deployment>.kb.<region>.cloud.es.io`. Sin ruta: ni `/app/security`, ni `/api`, ni la parte `/s/<space>`. |
-| **Kibana space** | El ID del espacio, no su nombre: letras, cifras, guiones y guiones bajos. Déjalo vacío para el espacio predeterminado. |
+| **URL de Kibana** | La dirección desde la que se sirve Kibana, por ejemplo `https://kibana.example.com` o `https://<deployment>.kb.<region>.cloud.es.io`. Sin ruta: ni `/app/security`, ni `/api`, ni la parte `/s/<space>`. |
+| **Espacio de Kibana** | El ID del espacio, no su nombre: letras, cifras, guiones y guiones bajos. Déjalo vacío para el espacio predeterminado. |
 | **Clave de API** | El valor **Base64** de la clave, por sí solo: OneUptime añade él mismo el esquema `ApiKey`. Se cifra, la API nunca lo devuelve y nunca se vuelve a mostrar. Sustitúyelo con **Actualizar credenciales** en la conexión. |
 
 El paso **Sondeo** también tiene una **Descripción** opcional, el **Intervalo de sondeo (minutos)**, un número entero de `1` a `1440` que empieza en `5`, y **Habilitado**, que empieza activado.
@@ -124,7 +124,7 @@ Una ejecución que falla del todo, con un error de Kibana, conserva el cursor y 
 Haz clic en **Diagnósticos** en una conexión para ver sus ejecuciones recientes y trabajar con ella a mano. Quien puede cambiar la conexión puede iniciar estas acciones; quien puede verla puede leer el historial.
 
 - **Ejecutar ahora** inicia un sondeo de inmediato, con el cursor habitual, incluso cuando la conexión no está **Habilitado**.
-- **Preview alerts** lee un intervalo de tiempo de hasta 7 días y no importa nada.
+- **Vista previa de alertas** lee un intervalo de tiempo de hasta 7 días y no importa nada.
 - **Importar este intervalo de tiempo** importa un intervalo de hasta 7 días, después de que lo confirmes, sin mover el cursor. Las alertas ya importadas se omiten.
 - **Copiar diagnósticos** en una ejecución copia su informe para soporte. Nunca incluye credenciales.
 
@@ -192,7 +192,7 @@ El **Último error** de la conexión guarda el mensaje de error completo, con la
 :::details Último error empieza por `Elastic Security status request`
 - `Elastic Security status request failed (HTTP ...)`: Kibana rechazó la solicitud de estado.
   - `HTTP 401`: Kibana no aceptó la clave de API. No es el valor **Base64**, o caducó o se invalidó. Crea una clave nueva y guárdala con **Actualizar credenciales**.
-  - `HTTP 404`: la **Kibana URL** tiene una ruta, o no es Kibana.
+  - `HTTP 404`: la **URL de Kibana** tiene una ruta, o no es Kibana.
   - `HTTP 503`: Kibana se declara no disponible, normalmente porque no puede llegar a Elasticsearch.
   - `HTTP 3xx`: Kibana redirigió la solicitud, y las redirecciones se rechazan. Usa la dirección desde la que se sirve Kibana.
 - `Elastic Security status request returned ...`: respondió algo distinto de Kibana, por ejemplo una página de inicio de sesión o un proxy.
@@ -202,7 +202,7 @@ El **Último error** de la conexión guarda el mensaje de error completo, con la
 :::details Último error empieza por `Elastic Security alerts search`
 - `Elastic Security alerts search failed (HTTP ...)`: Kibana rechazó la búsqueda de alertas.
   - `HTTP 403`: la clave inicia sesión, pero no puede leer las alertas del espacio. Dale los privilegios de [Antes de empezar](#antes-de-empezar).
-  - `HTTP 404`: ningún espacio tiene ese ID de **Kibana space**, o Elastic Security no está habilitado en él.
+  - `HTTP 404`: ningún espacio tiene ese ID de **Espacio de Kibana**, o Elastic Security no está habilitado en él.
   - `HTTP 429` o `HTTP 5xx`: Kibana o Elasticsearch está limitando las solicitudes o fallando. El siguiente sondeo lo vuelve a intentar.
 - `Elastic Security alerts search returned ...`: Kibana respondió `200`, pero sin una página de alertas legible, por ejemplo con su propio error. El mensaje lo cita. Se notifica en lugar de tomarse como una ventana vacía, para que el cursor nunca pase de largo alertas que nadie leyó.
 :::
@@ -221,7 +221,7 @@ Ningún sondeo ha terminado para esta conexión. Ejecuta **Probar conexión**: s
 :::
 
 :::details La prueba pasa, pero no se importa nada
-Lee **Alerts available to import** en el informe de la prueba. `0` en los últimos 7 días significa que ninguna regla creó una alerta en ese espacio: comprueba que allí hay reglas habilitadas, y que **Kibana space** es el espacio donde se ejecutan. Si hay alertas, amplía el intervalo de tiempo en el explorador de eventos de seguridad: las alertas aparecen en la hora de su actividad, que puede ser muy anterior a su creación.
+Lee **Alerts available to import** en el informe de la prueba. `0` en los últimos 7 días significa que ninguna regla creó una alerta en ese espacio: comprueba que allí hay reglas habilitadas, y que **Espacio de Kibana** es el espacio donde se ejecutan. Si hay alertas, amplía el intervalo de tiempo en el explorador de eventos de seguridad: las alertas aparecen en la hora de su actividad, que puede ser muy anterior a su creación.
 :::
 
 ## Qué obtienes
