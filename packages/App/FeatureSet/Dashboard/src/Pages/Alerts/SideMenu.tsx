@@ -305,6 +305,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Hashtag,
         },
+        // How long a resolved alert is kept before it is deleted (issue #6903).
+        {
+          link: {
+            title: "Data Retention",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_RETENTION] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
       ],
     },
   ];

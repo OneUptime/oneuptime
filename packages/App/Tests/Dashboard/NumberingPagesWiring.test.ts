@@ -61,6 +61,11 @@ interface Product {
   // The page's two cards' copy (NumberPrefixSettings, NextNumberSettings).
   prefixes: string;
   nextNumbers: string;
+  /*
+   * The page key of the Data Retention entry that follows Numbering, last
+   * in Settings, where the product has one (issue #6903).
+   */
+  retentionPageKey?: string | undefined;
 }
 
 const PRODUCTS: Array<Product> = [
@@ -75,6 +80,7 @@ const PRODUCTS: Array<Product> = [
     productCrumb: "Incidents",
     prefixes: "INCIDENT_NUMBER_PREFIXES",
     nextNumbers: "INCIDENT_NEXT_NUMBERS",
+    retentionPageKey: "INCIDENTS_SETTINGS_RETENTION",
   },
   {
     name: "Alerts",
@@ -87,6 +93,7 @@ const PRODUCTS: Array<Product> = [
     productCrumb: "Alerts",
     prefixes: "ALERT_NUMBER_PREFIXES",
     nextNumbers: "ALERT_NEXT_NUMBERS",
+    retentionPageKey: "ALERTS_SETTINGS_RETENTION",
   },
   {
     name: "Scheduled Maintenance",
@@ -119,17 +126,20 @@ const STARTS_AT_COLUMNS: Array<string> = [
 ];
 
 describe.each(PRODUCTS)("$name → Settings → Numbering", (product: Product) => {
-  test("is the last Settings entry, named Numbering, with the # icon", () => {
+  test("is the last Settings entry but Data Retention, named Numbering, with the # icon", () => {
     const settings: string = sectionBetween(
       dense(product.sideMenu),
       'title:"Settings",',
       "addDeveloperSideMenuSection(",
     );
+    const numbering: string = `\\{link:\\{title:"Numbering",to:RouteUtil\\.populateRouteParams\\(RouteMap\\[PageMap\\.${product.pageKey}\\]asRoute,\\),\\},icon:IconProp\\.Hashtag,\\},`;
+    // How long a resolved incident or alert is kept comes last, after it.
+    const retention: string = product.retentionPageKey
+      ? `\\{link:\\{title:"DataRetention",to:RouteUtil\\.populateRouteParams\\(RouteMap\\[PageMap\\.${product.retentionPageKey}\\]asRoute,\\),\\},icon:IconProp\\.Archive,\\},`
+      : "";
 
     expect(settings).toMatch(
-      new RegExp(
-        `\\{link:\\{title:"Numbering",to:RouteUtil\\.populateRouteParams\\(RouteMap\\[PageMap\\.${product.pageKey}\\]asRoute,\\),\\},icon:IconProp\\.Hashtag,\\},\\],\\},\\];$`,
-      ),
+      new RegExp(`${numbering}${retention}\\],\\},\\];$`),
     );
   });
 

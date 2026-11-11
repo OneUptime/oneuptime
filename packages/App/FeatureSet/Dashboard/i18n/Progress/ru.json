@@ -193,6 +193,7 @@
     "{\"version\": \"...\", \"records\": [...]}",
     "{{count}} CPU",
     "{{count}} Kubernetes",
+    "{{count}} SMS",
     "{{in}} in"
   ]
 }

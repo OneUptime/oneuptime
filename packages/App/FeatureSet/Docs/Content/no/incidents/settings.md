@@ -28,6 +28,7 @@ Konfigurasjonen av hendelser ligger under **Hendelser**, ikke under **Prosjektin
 | **Tilknyttede varsler**      | Velge om varslene som er knyttet til en hendelse, bekreftes og løses sammen med den. Begge er slått på i nye prosjekter. |
 | **Medlemskap i episoder**    | Velge om en hendelse bare kan være i én episode. Slått av som standard. |
 | **Nummerering**              | Teksten foran hendelses- og episodenumre, som `INC-` i `INC-42`, og nummeret den neste får. |
+| **Dataoppbevaring**          | Hvor lenge løste hendelser beholdes før de slettes. Alle beholdes til du velger en periode. |
 
 Det OneUptime AI gjør på egen hånd, settes ikke her: det har en egen seksjon, **Hendelser → KI**, på ruter som begynner med `/dashboard/{projectId}/incidents/ai/`. Siden **Innstillinger** der slår av eller på undersøkelse av nye hendelser, automatisk retting av dem (slått av til du slår den på), og utkast til etteranalyser, og hver lagres så snart du slår den om; AI-reglene som snevrer inn hvilke hendelser som undersøkes og rettes, og med hvilke koderepositorier og pull requests, postmortem-reglene som velger hvilke løste hendelser som får et utkast og hvilke maler det følger, og de valgfrie grensene KI jobber under, er brettet sammen under **Flere innstillinger**, og ingen av dem gjelder før du setter dem. **Innsikt** og **Logger** står ved siden av: hva KI har lært av hendelsene dine, og alt den har gjort. Se [AI SRE](/docs/ai/ai-sre).
 
@@ -593,6 +594,23 @@ Begge er slått på i nye prosjekter; et prosjekt som ble opprettet før de var 
 ## Medlemskap i episoder
 
 En hendelse kan være i flere episoder samtidig. **Hendelser → Innstillinger → Medlemskap i episoder** (`/dashboard/{projectId}/incidents/settings/episode-membership`) har én bryter, **En hendelse kan bare være i én episode**: så lenge den er slått på, blir en hendelse som er i en episode, ikke lagt til i noen annen, verken fra dashbordet eller via API-et, en arbeidsflyt eller en grupperingsregel, før den er tatt ut av den episoden. Den er slått av til du slår den på, og lagres så snart du slår den om. Bare Project Owners og Project Admins kan endre den; for alle andre er bryteren låst og sier hvilken tillatelse den krever. Å slå den på tar ingen hendelse ut av en episode. [Én episode per hendelse](/docs/incidents/episodes#én-episode-per-hendelse) beskriver hva hver måte å legge til på gjør så lenge den er slått på.
+
+## Dataoppbevaring
+
+Løste hendelser blir værende til noen sletter dem, hver med tilstandstidslinjen, notatene, feeden og varselloggene sine, så databasen i et travelt prosjekt bare fortsetter å vokse. **Hendelser → Innstillinger → Dataoppbevaring** (`/dashboard/{projectId}/incidents/settings/data-retention`) sletter dem når de har vært løst lenge nok. Kortet **Løste hendelser** spør om **Slett etter**: **Aldri**, som alle prosjekter starter med, eller en periode fra 30 dager til 3 år. Valget lagres med en gang, og en periode som sletter mer enn før, ber først om bekreftelse med **Slett gamle hendelser**.
+
+Hver time slettes hver hendelse som har vært løst lenger enn det, med alt som hører til den: tilstandstidslinje, notater, feed, eiere, varsellogger og vaktkjøringer. Perioden regnes fra hendelsens siste tilstandsendring, så en hendelse som var åpen i et år og ble løst forrige uke, blir værende hele perioden. En episode slettes når den har vært løst like lenge, og ingen av hendelsene dens er igjen. Statussider slutter å vise slettede hendelser, ingenting som er slettet kan gjenopprettes, og hendelsesnumre deles aldri ut igjen. Et prosjekt med flere år med løste hendelser tar igjen etterslepet i løpet av noen kjøringer, én i timen.
+
+Uansett hvor lenge siden den ble løst, blir en hendelse værende:
+
+- så lenge den ikke er løst;
+- så lenge etteranalysen er **Fullført** og **Behold hendelser med fullført etteranalyse** er slått på. Den bryteren er på samme kort, er slått på som standard og ber om bekreftelse før den slås av. Så lenge den er slått på, blir også en episode med en skrevet etteranalyse værende;
+- så lenge den er i en episode som fortsatt er åpen, eller som ble løst for kortere tid siden enn den valgte perioden.
+
+Bare Project Owners og Project Admins kan endre disse innstillingene. I API-et er de prosjektets `incidentRetentionInDays`, `0` for **Aldri**, og `keepIncidentsWithCompletedPostmortem`. Varsler har sin egen innstilling: se [Varselregler og innstillinger](/docs/alerts/settings#dataoppbevaring).
+
+> [!NOTE]
+> På en selvdriftet installasjon gjenbruker PostgreSQL plassen slettede rader etterlater, men gir den ikke tilbake til disken. For å krympe databasen etter en stor første opprydding kjører du `VACUUM FULL` på de største tabellene i et vedlikeholdsvindu, siden den låser hver tabell mens den skriver den på nytt, eller bruker `pg_repack`, som ikke gjør det.
 
 ## Regler som kjører når en hendelse opprettes
 

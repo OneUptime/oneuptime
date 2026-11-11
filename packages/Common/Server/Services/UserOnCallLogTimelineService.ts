@@ -52,6 +52,9 @@ import NotificationDeliveryMetrics, {
 } from "../Utils/Telemetry/NotificationDeliveryMetrics";
 import CustomNotificationChannelService from "./CustomNotificationChannelService";
 import CustomNotificationChannel from "../../Models/DatabaseModels/CustomNotificationChannel";
+import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
+import { getOnCallTestPageAcknowledgedMessage } from "../../Types/OnCallDutyPolicy/OnCallTestPage";
+import OnCallTestPageEvents from "../Utils/OnCall/OnCallTestPageEvents";
 
 /*
  * What the record's feed is told of a notification that an update gives
@@ -527,6 +530,23 @@ export class Service extends DatabaseService<Model> {
           triggeredByAlertEpisodeId: true,
           triggeredByIncidentEpisodeId: true,
           onCallDutyPolicyExecutionLogTimelineId: true,
+          /*
+           * A test page (OnCallTestPage) says which message it was
+           * acknowledged from, and how long after that message went out.
+           */
+          userNotificationEventType: true,
+          createdAt: true,
+          userCallId: true,
+          userSmsId: true,
+          userWhatsAppId: true,
+          userTelegramId: true,
+          userPushId: true,
+          userEmailId: true,
+          userSlackId: true,
+          userMicrosoftTeamsId: true,
+          userMattermostId: true,
+          userWebhookId: true,
+          customNotificationChannelId: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -551,6 +571,12 @@ export class Service extends DatabaseService<Model> {
           triggeredByAlertEpisodeId: item.triggeredByAlertEpisodeId,
           triggeredByIncidentEpisodeId: item.triggeredByIncidentEpisodeId,
           acknowledgedAt: acknowledgedAt,
+          userNotificationEventType: item.userNotificationEventType,
+          acknowledgedFrom: {
+            channel: getOnCallPageChannelsOf(item)[0],
+            sentAt: item.createdAt,
+          },
+          projectId: item.projectId,
         });
       }
     }
@@ -578,7 +604,23 @@ export class Service extends DatabaseService<Model> {
     triggeredByAlertEpisodeId?: ObjectID | undefined;
     triggeredByIncidentEpisodeId?: ObjectID | undefined;
     acknowledgedAt: Date;
+    // The page's event type: a test page (OnCallTestPage) is acknowledged in its own words.
+    userNotificationEventType?: UserNotificationEventType | undefined;
+    // The message it was acknowledged from, when one was: by what, and when it went out.
+    acknowledgedFrom?:
+      | {
+          channel?: OnCallPageChannel | undefined;
+          sentAt?: Date | undefined;
+        }
+      | undefined;
+    // The page's project, for what a test page's acknowledgement records.
+    projectId?: ObjectID | undefined;
   }): Promise<void> {
+    if (page.userNotificationEventType === UserNotificationEventType.TestPage) {
+      await this.acknowledgeTestPage(page);
+      return;
+    }
+
     const isIncident: boolean = Boolean(page.triggeredByIncidentId);
     const isAlert: boolean = Boolean(page.triggeredByAlertId);
     /*
@@ -779,6 +821,119 @@ export class Service extends DatabaseService<Model> {
       await OnCallAcknowledgementTimeout.onPageAcknowledged({
         executionLogId: page.onCallDutyPolicyExecutionLogId,
         acknowledgedAt: page.acknowledgedAt,
+      });
+    }
+  }
+
+  /*
+   * ACKNOWLEDGES A TEST PAGE (OnCallTestPage): the person's log, the run and
+   * the run's line for them, in a test's words - who, by what, and how long
+   * after their message went out ("Test page acknowledged by Ana Lopez by
+   * SMS after 14 seconds."). There is no record to acknowledge, no clock to
+   * start, and nobody else to page: the run is over. Whoever sent it sees it
+   * in its result, and the first one acknowledged in a project is the
+   * milestone its activation counts (OnCallTestPageEvents).
+   */
+  private async acknowledgeTestPage(page: {
+    userOnCallLogId: ObjectID;
+    userId: ObjectID;
+    onCallDutyPolicyExecutionLogId?: ObjectID | undefined;
+    onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+    acknowledgedAt: Date;
+    acknowledgedFrom?:
+      | {
+          channel?: OnCallPageChannel | undefined;
+          sentAt?: Date | undefined;
+        }
+      | undefined;
+    projectId?: ObjectID | undefined;
+  }): Promise<void> {
+    const user: User | null = await UserService.findOneById({
+      id: page.userId,
+      select: {
+        _id: true,
+        name: true,
+        email: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user) {
+      throw new BadDataException("User not found.");
+    }
+
+    const sentAt: Date | undefined = page.acknowledgedFrom?.sentAt
+      ? OneUptimeDate.fromString(page.acknowledgedFrom.sentAt)
+      : undefined;
+
+    const statusMessage: string = getOnCallTestPageAcknowledgedMessage({
+      userName: user.name?.toString(),
+      userEmail: user.email?.toString(),
+      channel: page.acknowledgedFrom?.channel,
+      afterSeconds: sentAt
+        ? Math.max(0, (page.acknowledgedAt.getTime() - sentAt.getTime()) / 1000)
+        : undefined,
+    });
+
+    await UserOnCallLogService.updateOneById({
+      id: page.userOnCallLogId,
+      data: {
+        acknowledgedAt: page.acknowledgedAt,
+        acknowledgedByUserId: page.userId,
+        status: UserNotificationExecutionStatus.Completed,
+        statusMessage: statusMessage,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    /*
+     * The run says who acknowledged it first: a colleague who answers the
+     * same test afterwards has their own line acknowledged, and leaves the
+     * run's answer as it is.
+     */
+    if (page.onCallDutyPolicyExecutionLogId) {
+      await OnCallDutyPolicyExecutionLogService.updateOneBy({
+        query: {
+          _id: page.onCallDutyPolicyExecutionLogId.toString(),
+          acknowledgedAt: QueryHelper.isNull(),
+        },
+        data: {
+          acknowledgedAt: page.acknowledgedAt,
+          acknowledgedByUserId: page.userId,
+          status: OnCallDutyPolicyStatus.Completed,
+          statusMessage: statusMessage,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (page.onCallDutyPolicyExecutionLogTimelineId) {
+      await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
+        id: page.onCallDutyPolicyExecutionLogTimelineId,
+        data: {
+          acknowledgedAt: page.acknowledgedAt,
+          isAcknowledged: true,
+          status: OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+          statusMessage: statusMessage,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (page.onCallDutyPolicyExecutionLogId) {
+      OnCallTestPageEvents.onTestPageAcknowledged({
+        projectId: page.projectId,
+        executionLogId: page.onCallDutyPolicyExecutionLogId,
+        acknowledgedByUserId: page.userId,
+        channel: page.acknowledgedFrom?.channel,
       });
     }
   }

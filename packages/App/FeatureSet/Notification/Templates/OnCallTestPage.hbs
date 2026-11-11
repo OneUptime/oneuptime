@@ -1,0 +1,24 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(tt "TEST page from {{product}}" product=productName) }}
+
+{{> InfoBlock plainInfo=whatItTests}}
+
+{{#if sentBy}}
+{{> InfoBlock plainInfo=sentBy}}
+{{/if}}
+
+{{> InfoBlock info=(tHtml "Acknowledge it to finish the test.")}}
+
+{{> ButtonBlock buttonUrl=acknowledgeLink buttonText=(t "Acknowledge test page")}}
+
+{{> LinkBlock linkUrl=acknowledgeLink linkLabel=(t "You can also copy and paste this link:")}}
+
+{{> TitleBlock title=(tHtml "Why am I receiving this email?")}}
+{{> InfoBlock info=(tHtml "A test page was sent to check that on-call pages reach you. It is not about an incident or an alert, and nobody else is told about it.")}}
+
+{{> Footer this }}
+
+{{> End this}}

@@ -412,6 +412,19 @@ export class Service extends ProjectReferencesService<Model> {
     return onDelete;
   }
 
+  /*
+   * A hard delete - the purge of resolved episodes a project no longer
+   * keeps (Utils/Retention/ResolvedRecordRetention, #6903) - runs no
+   * onDeleteSuccess; what it does is the same, so it runs here.
+   */
+  @CaptureSpan()
+  protected override async onHardDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    return await this.onDeleteSuccess(onDelete, itemIdsBeforeDelete);
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,

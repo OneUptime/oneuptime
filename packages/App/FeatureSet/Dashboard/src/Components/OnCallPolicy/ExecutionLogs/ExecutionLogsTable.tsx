@@ -1,4 +1,5 @@
 import { isOnCallObserverPage } from "Common/Types/OnCallDutyPolicy/OnCallObserverPage";
+import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import AppLink from "../../../Components/AppLink/AppLink";
 import IncidentView from "../../../Components/Incident/Incident";
 import UserElement from "../../../Components/User/User";
@@ -116,6 +117,17 @@ export const ON_CALL_LOGS_PAGED_AGAIN: string = translationKey(
  * from the record's responders' runs beside it. Acknowledged By, for it,
  * is who has seen it.
  */
+/*
+ * A test page (OnCallTestPage): no incident or alert behind it, and every
+ * message it sent said TEST. Its run says so where its record would be, and
+ * under its status.
+ */
+export const ON_CALL_LOGS_TEST_PAGE: string = translationKey(
+  "Test page: no incident or alert",
+);
+
+export const ON_CALL_LOGS_TEST_PAGE_MARK: string = translationKey("Test page");
+
 export const ON_CALL_LOGS_PAGED_AS_OBSERVERS: string = translationKey(
   "Paged as observers: their answer only says they've seen it",
 );
@@ -425,6 +437,14 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
           );
         }
 
+        if (isOnCallTestPage(item)) {
+          return (
+            <p data-testid="execution-log-test-page-trigger">
+              {translator.translateText(ON_CALL_LOGS_TEST_PAGE)}
+            </p>
+          );
+        }
+
         return <p>-</p>;
       },
     },
@@ -444,6 +464,21 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
 
       getElement: (item: OnCallDutyPolicyExecutionLog): ReactElement => {
         const pill: ReactElement = getStatusPill(item);
+
+        // A test page says so under its pill, before anything else.
+        if (isOnCallTestPage(item)) {
+          return (
+            <div>
+              {pill}
+              <p
+                className={ON_CALL_LOGS_WAITING_MESSAGE_CLASS_NAME}
+                data-testid="execution-log-test-page"
+              >
+                {translator.translateText(ON_CALL_LOGS_TEST_PAGE_MARK)}
+              </p>
+            </div>
+          );
+        }
 
         // An observer's page says so under its pill, before anything else.
         const status: ReactElement = isOnCallObserverPage(item) ? (
@@ -556,6 +591,8 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
           pageAgainNumber: true,
           // So does an observer's page (OnCallObserverPage).
           isObserverPage: true,
+          // And a test page (OnCallTestPage), with no record behind it.
+          userNotificationEventType: true,
           // Read with every row: a row with none is a direct page.
           onCallDutyPolicyId: true,
           // What started a direct page: a workflow, or a person.

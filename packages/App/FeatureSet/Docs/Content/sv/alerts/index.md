@@ -61,7 +61,7 @@ Utlös ett larm när ditt team bör titta innan någon utanför märker något, 
 | **AI**            | **Insikter**, **Loggar** och **Inställningar**: vad OneUptime AI har lärt sig av dina larm, allt den har gjort och vad den får göra. |
 | **Arbetsyta**     | **Slack**, **Microsoft Teams** och **Mattermost**, beroende på vad projektet har anslutit, eller **Anslut en arbetsyta** när det inte har någon av dem. |
 | **Regler**        | **Grupperingsregler**, **Jourregler**, **Incidentregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **Påminnelseregler**. |
-| **Inställningar** | **Larmstatus**, **Larmallvar**, **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Medlemskap i episoder**, **Numrering**.         |
+| **Inställningar** | **Larmstatus**, **Larmallvar**, **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Medlemskap i episoder**, **Numrering**, **Datalagring**.         |
 
 **Larm** och **Episoder** är öppna; **AI**, **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** börjar hopfällda, och ett avsnitt öppnar sig självt när du är på en av dess sidor. Konfigurationen av larm finns här, inte i **Projektinställningar**.
 

@@ -28,6 +28,7 @@ Die Vorfallkonfiguration liegt in **Vorfälle**, nicht in den **Projekteinstellu
 | **Verknüpfte Warnungen**      | Wählen, ob die mit einem Vorfall verknüpften Warnungen mit ihm bestätigt und behoben werden. Beides ist in neuen Projekten an. |
 | **Episodenzugehörigkeit**     | Wählen, ob ein Vorfall nur in einer Episode sein kann. Standardmäßig aus. |
 | **Nummerierung**              | Der Text vor Vorfall- und Episodennummern, etwa `INC-` in `INC-42`, und die Nummer, die als Nächstes vergeben wird. |
+| **Datenaufbewahrung**         | Wie lange behobene Vorfälle aufbewahrt werden, bevor sie gelöscht werden. Bis Sie eine Dauer wählen, bleiben alle erhalten. |
 
 Was OneUptime AI selbstständig tut, wird nicht hier eingestellt: Dafür gibt es einen eigenen Abschnitt, **Vorfälle → KI**, unter Routen, die mit `/dashboard/{projectId}/incidents/ai/` beginnen. Seine Seite **Einstellungen** schaltet das Untersuchen neuer Vorfälle, ihr automatisches Beheben (aus, bis Sie es einschalten) und Postmortem-Entwürfe ein oder aus, und jeder Schalter speichert, sobald Sie ihn umlegen. Die KI-Regeln, die eingrenzen, welche Vorfälle untersucht und behoben werden und mit welchen Code-Repositorys und Pull Requests, die Postmortem-Regeln, die festlegen, welche gelösten Vorfälle einen Entwurf erhalten und welchen Vorlagen er folgt, und die optionalen Grenzen, unter denen die KI arbeitet, sind unter **Weitere Einstellungen** eingeklappt, und keine davon gilt, bevor Sie sie setzen. Daneben liegen **Einblicke** und **Protokolle**: was die KI aus Ihren Vorfällen gelernt und was sie alles getan hat. Siehe [AI SRE](/docs/ai/ai-sre).
 
@@ -593,6 +594,23 @@ Beide sind in neuen Projekten an; ein Projekt, das angelegt wurde, bevor sie sta
 ## Episodenzugehörigkeit
 
 Ein Vorfall kann gleichzeitig in mehreren Episoden sein. **Vorfälle → Einstellungen → Episodenzugehörigkeit** (`/dashboard/{projectId}/incidents/settings/episode-membership`) hat einen Schalter, **Ein Vorfall kann nur in einer Episode sein**: Solange er an ist, wird ein Vorfall, der in einer Episode ist, keiner anderen hinzugefügt, weder im Dashboard noch über die API, einen Workflow oder eine Gruppierungsregel, bis er aus dieser Episode entfernt ist. Er ist aus, bis Sie ihn einschalten, und speichert beim Umlegen sofort. Nur Project Owners und Project Admins können ihn ändern; für alle anderen ist der Schalter gesperrt und nennt die nötige Berechtigung. Das Einschalten nimmt keinen Vorfall aus einer Episode heraus. [Eine Episode pro Vorfall](/docs/incidents/episodes#eine-episode-pro-vorfall) beschreibt, was jeder Weg zum Hinzufügen tut, solange er an ist.
+
+## Datenaufbewahrung
+
+Behobene Vorfälle bleiben, bis jemand sie löscht, jeder mit seiner Zustands-Zeitachse, seinen Notizen, seinem Feed und seinen Benachrichtigungsprotokollen, sodass die Datenbank eines aktiven Projekts immer weiter wächst. **Vorfälle → Einstellungen → Datenaufbewahrung** (`/dashboard/{projectId}/incidents/settings/data-retention`) löscht sie, sobald sie lange genug behoben sind. Die Karte **Behobene Vorfälle** dort fragt nach **Löschen nach**: **Nie**, womit jedes Projekt beginnt, oder einer Dauer von 30 Tagen bis 3 Jahren. Die Auswahl wird sofort gespeichert, und eine Dauer, die mehr löscht als zuvor, fragt erst nach, mit **Alte Vorfälle löschen**.
+
+Stündlich wird jeder Vorfall, der länger als diese Dauer behoben ist, mit allem gelöscht, was zu ihm gehört: Zustands-Zeitachse, Notizen, Feed, Eigentümer, Benachrichtigungsprotokolle und Bereitschaftsläufe. Die Dauer zählt ab der letzten Zustandsänderung des Vorfalls, sodass einer, der ein Jahr lang offen war und letzte Woche behoben wurde, die ganze Dauer bleibt. Eine Episode wird gelöscht, sobald sie ebenso lange behoben ist und keiner ihrer Vorfälle mehr übrig ist. Statusseiten zeigen gelöschte Vorfälle nicht mehr an, nichts Gelöschtes lässt sich wiederherstellen, und Vorfallnummern werden nie erneut vergeben. Ein Projekt mit Jahren behobener Vorfälle holt in einigen stündlichen Läufen auf.
+
+Egal, wie lange seine Behebung zurückliegt, ein Vorfall bleibt:
+
+- solange er nicht behoben ist;
+- solange sein Postmortem **Abgeschlossen** ist und **Vorfälle mit abgeschlossenem Postmortem behalten** an ist. Dieser Schalter liegt auf derselben Karte, ist standardmäßig an und fragt nach, bevor er ausgeschaltet wird. Solange er an ist, bleibt auch eine Episode mit geschriebenem Postmortem;
+- solange er in einer Episode ist, die noch offen ist oder vor kürzerer Zeit als der gewählten Dauer behoben wurde.
+
+Nur Project Owners und Project Admins können diese Einstellungen ändern. Über die API sind es `incidentRetentionInDays` des Projekts, `0` für **Nie**, und `keepIncidentsWithCompletedPostmortem`. Warnungen haben eine eigene Einstellung: siehe [Warnungsregeln & Einstellungen](/docs/alerts/settings#datenaufbewahrung).
+
+> [!NOTE]
+> Bei einer selbst gehosteten Installation verwendet PostgreSQL den Platz gelöschter Zeilen wieder, gibt ihn aber nicht an die Festplatte zurück. Um die Datenbank nach einer großen ersten Bereinigung zu verkleinern, führen Sie in einem Wartungsfenster `VACUUM FULL` für die größten Tabellen aus, das jede Tabelle sperrt, während es sie neu schreibt, oder verwenden Sie `pg_repack`, das das nicht tut.
 
 ## Regeln, die beim Anlegen eines Vorfalls laufen
 

@@ -28,6 +28,7 @@ Konfigurationen av incidenter finns under **Incidenter**, inte under **Projektin
 | **Länkade larm**             | Välja om larmen som är länkade till en incident bekräftas och löses tillsammans med den. Båda är påslagna i nya projekt. |
 | **Medlemskap i episoder**    | Välja om en incident bara kan ingå i en episod. Avslaget som standard. |
 | **Numrering**                | Texten före incident- och episodnummer, som `INC-` i `INC-42`, och numret som nästa får. |
+| **Datalagring**              | Hur länge lösta incidenter sparas innan de tas bort. Alla sparas tills du väljer en tid. |
 
 Det som OneUptime AI gör på egen hand ställs inte in här: det har ett eget avsnitt, **Incidenter → AI**, på vägar som börjar med `/dashboard/{projectId}/incidents/ai/`. Dess sida **Inställningar** slår av eller på utredning av nya incidenter, automatisk åtgärd av dem (avstängd tills du slår på den), och utkast till efteranalyser, och var och en sparas så snart du slår om den; AI-reglerna som snävar in vilka incidenter som utreds och åtgärdas, och med vilka kodrepositorier och pull requests, postmortem-reglerna som väljer vilka lösta incidenter som får ett utkast och vilka mallar det följer, och de valfria gränserna som AI arbetar under, är hopfällda under **Fler inställningar**, och ingen av dem gäller förrän du sätter den. **Insikter** och **Loggar** finns bredvid: vad AI har lärt sig av dina incidenter, och allt den har gjort. Se [AI SRE](/docs/ai/ai-sre).
 
@@ -593,6 +594,23 @@ Båda är påslagna i nya projekt; ett projekt som skapades innan de var påslag
 ## Medlemskap i episoder
 
 En incident kan finnas i flera episoder samtidigt. **Incidenter → Inställningar → Medlemskap i episoder** (`/dashboard/{projectId}/incidents/settings/episode-membership`) har ett reglage, **En incident kan bara ingå i en episod**: så länge det är påslaget läggs en incident som finns i en episod inte till i någon annan, varken från instrumentpanelen eller via API:t, ett arbetsflöde eller en grupperingsregel, förrän den har tagits ut ur den episoden. Det är avslaget tills du slår på det, och sparas så snart du slår om det. Bara Project Owners och Project Admins kan ändra det; för alla andra är reglaget låst och säger vilken behörighet det kräver. Att slå på det tar inte ut någon incident ur en episod. [En episod per incident](/docs/incidents/episodes#en-episod-per-incident) beskriver vad varje sätt att lägga till gör så länge det är påslaget.
+
+## Datalagring
+
+Lösta incidenter finns kvar tills någon tar bort dem, var och en med sin tillståndstidslinje, sina anteckningar, sitt flöde och sina aviseringsloggar, så databasen i ett aktivt projekt fortsätter att växa. **Incidenter → Inställningar → Datalagring** (`/dashboard/{projectId}/incidents/settings/data-retention`) tar bort dem när de har varit lösta tillräckligt länge. Kortet **Lösta incidenter** frågar efter **Ta bort efter**: **Aldrig**, som varje projekt börjar med, eller en tid från 30 dagar till 3 år. Valet sparas direkt, och en tid som tar bort mer än tidigare ber först om bekräftelse med **Ta bort gamla incidenter**.
+
+Varje timme tas varje incident som har varit löst längre än så bort, med allt som hör till den: tillståndstidslinje, anteckningar, flöde, ägare, aviseringsloggar och jourkörningar. Tiden räknas från incidentens senaste tillståndsändring, så en incident som var öppen i ett år och löstes förra veckan finns kvar hela tiden. En episod tas bort när den har varit löst lika länge och ingen av dess incidenter finns kvar. Statussidor slutar visa borttagna incidenter, inget som tagits bort kan återställas, och incidentnummer delas aldrig ut igen. Ett projekt med flera års lösta incidenter har kommit ikapp efter några körningar, en i timmen.
+
+Oavsett hur länge sedan den löstes finns en incident kvar:
+
+- så länge den inte är löst;
+- så länge dess efteranalys är **Slutförd** och **Behåll incidenter med en slutförd efteranalys** är påslaget. Reglaget finns på samma kort, är påslaget som standard och ber om bekräftelse innan det slås av. Så länge det är påslaget finns även en episod med en skriven efteranalys kvar;
+- så länge den ingår i en episod som fortfarande är öppen, eller som löstes för kortare tid sedan än den valda tiden.
+
+Bara Project Owners och Project Admins kan ändra de här inställningarna. I API:t är de projektets `incidentRetentionInDays`, `0` för **Aldrig**, och `keepIncidentsWithCompletedPostmortem`. Larm har en egen inställning: se [Larmregler och inställningar](/docs/alerts/settings#datalagring).
+
+> [!NOTE]
+> På en egen installation återanvänder PostgreSQL utrymmet som borttagna rader lämnar, men lämnar inte tillbaka det till disken. För att krympa databasen efter en stor första rensning kör du `VACUUM FULL` på de största tabellerna i ett underhållsfönster, eftersom det låser varje tabell medan det skriver om den, eller använder `pg_repack`, som inte gör det.
 
 ## Regler som körs när en incident skapas
 

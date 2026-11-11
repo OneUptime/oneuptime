@@ -622,6 +622,7 @@
     "{{count}} OID",
     "{{count}} Podman",
     "{{count}} SLO",
+    "{{count}} SMS",
     "{{count}} VM",
     "{{count}} app",
     "{{count}} appliance",

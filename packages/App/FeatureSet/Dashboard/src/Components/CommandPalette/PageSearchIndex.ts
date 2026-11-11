@@ -1179,6 +1179,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "starting number",
             ],
           },
+          {
+            page: PageMap.INCIDENTS_SETTINGS_RETENTION,
+            title: "Data Retention",
+            icon: IconProp.Archive,
+            keywords: [
+              "incident retention",
+              "delete old incidents",
+              "delete resolved incidents",
+              "how long incidents are kept",
+              "database size",
+            ],
+            settings: ["Resolved Incidents"],
+          },
         ],
       },
       incidentAlertAiSection({
@@ -1322,6 +1335,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "next alert number",
               "starting number",
             ],
+          },
+          {
+            page: PageMap.ALERTS_SETTINGS_RETENTION,
+            title: "Data Retention",
+            icon: IconProp.Archive,
+            keywords: [
+              "alert retention",
+              "delete old alerts",
+              "delete resolved alerts",
+              "how long alerts are kept",
+              "database size",
+            ],
+            settings: ["Resolved Alerts"],
           },
         ],
       },
@@ -3965,6 +3991,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "contact methods",
             ],
             settings: [
+              "Test your pages",
               "Emails for Notifications",
               "Phone Numbers for SMS Notifications",
               "Phone Numbers for Call Notifications",
@@ -3972,6 +3999,21 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "Telegram Accounts for Notifications",
               "Push Notifications",
               "Webhooks",
+            ],
+            // A test page through the person's own rules (OnCallTestPage).
+            actions: [
+              {
+                id: "send-me-a-test-page",
+                title: "Send me a test page",
+                icon: IconProp.Beaker,
+                keywords: [
+                  "test page",
+                  "test notification",
+                  "test my phone",
+                  "fire drill",
+                  "will it wake me",
+                ],
+              },
             ],
           },
           {
