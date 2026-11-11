@@ -136,6 +136,7 @@ const DashboardProductAnalyticsRetentionComponentElement: FunctionComponent<
         <ProductAnalyticsRetentionTable
           retention={retention.data}
           dataTestId={`${RETENTION_WIDGET_TEST_ID}-table`}
+          isCompact={true}
         />
         {definition && retentionPeriod !== definition.period ? (
           <p

@@ -1099,6 +1099,109 @@ describe("the Retention widget", () => {
     ).toBeInTheDocument();
     expect(getItemMock).not.toHaveBeenCalled();
   });
+
+  /*
+   * The table drawn compact, as the board's other tables are set, so the
+   * default widget holds a month's weeks: the cohorts leave their year out
+   * when every one is this year's. The board reads its own CUSTOM range, so
+   * only the clock's year is at stake here: only Date is faked, and timers
+   * run as usual.
+   */
+  describe("drawn compact", () => {
+    function pinClock(now: Date): void {
+      jest.useFakeTimers({
+        now: now,
+        doNotFake: [
+          "hrtime",
+          "nextTick",
+          "performance",
+          "queueMicrotask",
+          "requestAnimationFrame",
+          "cancelAnimationFrame",
+          "requestIdleCallback",
+          "cancelIdleCallback",
+          "setImmediate",
+          "clearImmediate",
+          "setInterval",
+          "clearInterval",
+          "setTimeout",
+          "clearTimeout",
+        ],
+      });
+    }
+
+    async function drawnCohorts(): Promise<Array<string>> {
+      getItemMock.mockResolvedValue(savedRetention());
+      answerReads();
+
+      renderRetention({ savedViewId: RETENTION_ID });
+
+      await waitFor(() => {
+        expect(
+          screen.getAllByTestId(`${RETENTION_WIDGET_TEST_ID}-table-row`),
+        ).toHaveLength(3);
+      });
+
+      return within(screen.getByTestId(`${RETENTION_WIDGET_TEST_ID}-table`))
+        .getAllByRole("rowheader")
+        .map((header: HTMLElement): string => {
+          return (header.textContent || "").trim();
+        });
+    }
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    test("small type and narrow cells; every cohort this year's, so no year", async () => {
+      pinClock(new Date("2026-11-11T12:00:00.000Z"));
+
+      expect(await drawnCohorts()).toEqual([
+        "All cohorts",
+        "Nov 1",
+        "Nov 2",
+        "Nov 3",
+      ]);
+
+      const table: HTMLElement = within(
+        screen.getByTestId(`${RETENTION_WIDGET_TEST_ID}-table`),
+      ).getByRole("table");
+
+      expect(table).toHaveClass("text-xs");
+      expect(table).not.toHaveClass("text-sm");
+
+      for (const header of within(table).getAllByRole("columnheader")) {
+        expect(header).toHaveClass("px-1.5", "py-1", "text-[11px]");
+      }
+
+      const cells: Array<HTMLElement> = [
+        ...within(table).getAllByTestId(
+          `${RETENTION_WIDGET_TEST_ID}-table-average-cell`,
+        ),
+        ...within(table).getAllByTestId(
+          `${RETENTION_WIDGET_TEST_ID}-table-cell`,
+        ),
+      ];
+
+      expect(cells).toHaveLength(9);
+
+      for (const cell of cells) {
+        expect(cell).toHaveClass("min-w-[2.75rem]", "px-1.5", "py-1");
+        expect(cell).not.toHaveClass("min-w-[3.5rem]");
+      }
+    });
+
+    test("read in the new year: last year's cohorts keep their year", async () => {
+      pinClock(new Date("2027-01-04T12:00:00.000Z"));
+
+      expect(await drawnCohorts()).toEqual([
+        "All cohorts",
+        "Nov 1, 2026",
+        "Nov 2, 2026",
+        "Nov 3, 2026",
+      ]);
+    });
+  });
 });
 
 describe("a widget draws again only for what it shows", () => {

@@ -105,6 +105,7 @@ import {
   averageProductAnalyticsRetention,
   buildProductAnalyticsRetentionAverageRow,
   buildProductAnalyticsRetentionRows,
+  canLeaveOutProductAnalyticsCohortYear,
   describeProductAnalyticsCohort,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductAnalytics/ProductAnalyticsRetentionTable";
 import { getProductAnalyticsRetentionShade } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductAnalytics/ProductAnalyticsEventsFormat";
@@ -320,6 +321,168 @@ describe("a retention table's rows", () => {
         language: "en",
       }),
     ).toBe("soon");
+  });
+});
+
+/*
+ * A dashboard widget draws the table compact (isCompact): its cohorts leave
+ * their year out when every cohort it draws starts in the year it is now,
+ * in the read's own time zone - "Oct 5" where the page says "Oct 5, 2026".
+ */
+describe("a compact table's cohorts", () => {
+  const NOW: Date = new Date("2026-11-11T12:00:00.000Z");
+
+  function cohortLabels(data: {
+    cohorts: Array<Cohort>;
+    now?: Date;
+    isCompact?: boolean;
+  }): Array<string> {
+    return buildProductAnalyticsRetentionRows({
+      retention: weekRetention(data.cohorts),
+      translator: english,
+      isCompact: data.isCompact ?? true,
+      now: data.now || NOW,
+    }).map((row: ProductAnalyticsRetentionRow): string => {
+      return row.cohort;
+    });
+  }
+
+  test.each([
+    [ProductAnalyticsRetentionPeriod.Day, "en", "Oct 5"],
+    [ProductAnalyticsRetentionPeriod.Week, "de", "5. Okt."],
+    [ProductAnalyticsRetentionPeriod.Month, "en", "October"],
+    [ProductAnalyticsRetentionPeriod.Month, "fr", "octobre"],
+  ])(
+    "a %s cohort in %s without its year reads %p",
+    (
+      period: ProductAnalyticsRetentionPeriod,
+      language: string,
+      expected: string,
+    ) => {
+      expect(
+        describeProductAnalyticsCohort({
+          start:
+            period === ProductAnalyticsRetentionPeriod.Month
+              ? "2026-10-01"
+              : "2026-10-05",
+          period: period,
+          language: language,
+          withYear: false,
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  test("every cohort of this year: no year, where the page's table keeps it", () => {
+    const cohorts: Array<Cohort> = [
+      { start: "2026-10-05", people: 4, returning: [4, 1] },
+      { start: "2026-10-12", people: 2, returning: [2, null] },
+    ];
+
+    expect(cohortLabels({ cohorts: cohorts })).toEqual(["Oct 5", "Oct 12"]);
+    expect(cohortLabels({ cohorts: cohorts, isCompact: false })).toEqual([
+      "Oct 5, 2026",
+      "Oct 12, 2026",
+    ]);
+  });
+
+  test("across New Year, or all of a past year: every cohort keeps its year", () => {
+    expect(
+      cohortLabels({
+        cohorts: [
+          { start: "2025-12-29", people: 4, returning: [4, 1] },
+          { start: "2026-01-05", people: 2, returning: [2, null] },
+        ],
+        now: new Date("2026-01-10T12:00:00.000Z"),
+      }),
+    ).toEqual(["Dec 29, 2025", "Jan 5, 2026"]);
+    /* Last October is not this one: "Oct 6" alone would read as this year's. */
+    expect(
+      cohortLabels({
+        cohorts: [
+          { start: "2025-10-06", people: 4, returning: [4, 1] },
+          { start: "2025-10-13", people: 2, returning: [2, null] },
+        ],
+      }),
+    ).toEqual(["Oct 6, 2025", "Oct 13, 2025"]);
+  });
+
+  test("only the cohorts it draws count: last year's empty weeks before the first person are no rows", () => {
+    expect(
+      cohortLabels({
+        cohorts: [
+          { start: "2025-12-29", people: 0, returning: [0, 0] },
+          { start: "2026-01-05", people: 3, returning: [3, null] },
+        ],
+        now: new Date("2026-01-10T12:00:00.000Z"),
+      }),
+    ).toEqual(["Jan 5"]);
+  });
+
+  test("this year is the read's time zone's, and the UTC year in a zone that is none", () => {
+    // 23:30 UTC on New Year's Eve: 2027 in Auckland, still 2026 in UTC.
+    const eve: Date = new Date("2026-12-31T23:30:00.000Z");
+    const january: Array<Cohort> = [
+      { start: "2027-01-01", people: 3, returning: [3] },
+    ];
+
+    expect(
+      canLeaveOutProductAnalyticsCohortYear({
+        cohorts: january,
+        timeZone: "Pacific/Auckland",
+        now: eve,
+      }),
+    ).toBe(true);
+    expect(
+      canLeaveOutProductAnalyticsCohortYear({
+        cohorts: january,
+        timeZone: "UTC",
+        now: eve,
+      }),
+    ).toBe(false);
+
+    // 00:30 UTC on New Year's Day: 2027 in UTC, still 2026 in Los Angeles.
+    const newYear: Date = new Date("2027-01-01T00:30:00.000Z");
+    const december: Array<Cohort> = [
+      { start: "2026-12-28", people: 3, returning: [3] },
+    ];
+
+    expect(
+      canLeaveOutProductAnalyticsCohortYear({
+        cohorts: december,
+        timeZone: "America/Los_Angeles",
+        now: newYear,
+      }),
+    ).toBe(true);
+    expect(
+      canLeaveOutProductAnalyticsCohortYear({
+        cohorts: december,
+        timeZone: "UTC",
+        now: newYear,
+      }),
+    ).toBe(false);
+    expect(
+      canLeaveOutProductAnalyticsCohortYear({
+        cohorts: december,
+        timeZone: "Not/A_Zone",
+        now: newYear,
+      }),
+    ).toBe(false);
+    expect(
+      canLeaveOutProductAnalyticsCohortYear({
+        cohorts: january,
+        timeZone: "Not/A_Zone",
+        now: newYear,
+      }),
+    ).toBe(true);
+    // No cohorts: nothing to leave out.
+    expect(
+      canLeaveOutProductAnalyticsCohortYear({
+        cohorts: [],
+        timeZone: "UTC",
+        now: newYear,
+      }),
+    ).toBe(false);
   });
 });
 
@@ -628,6 +791,15 @@ describe("ProductAnalyticsRetention", () => {
       ...within(table).getAllByRole("rowheader"),
     ]) {
       expect(cohort.className).toContain(RETENTION_COHORT_COLUMN_CLASS_NAME);
+    }
+
+    // The page's own spacing: a dashboard widget's table is the compact one.
+    expect(within(table).getByRole("table")).toHaveClass("text-sm");
+    expect(within(table).getByRole("table")).not.toHaveClass("text-xs");
+    for (const cell of within(table).getAllByTestId(
+      "product-analytics-retention-table-cell",
+    )) {
+      expect(cell).toHaveClass("min-w-[3.5rem]", "px-2", "py-1.5");
     }
   });
 

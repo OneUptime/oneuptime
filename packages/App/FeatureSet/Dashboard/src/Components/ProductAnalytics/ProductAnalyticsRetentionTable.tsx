@@ -47,11 +47,16 @@ export interface ProductAnalyticsRetentionRow {
   cells: Array<ProductAnalyticsRetentionCell | null>;
 }
 
-/* A cohort's first day ("2026-03-02") in the reader's language: "Mar 2, 2026", "March 2026". */
+/*
+ * A cohort's first day ("2026-03-02") in the reader's language: "Mar 2,
+ * 2026", "March 2026" - or "Mar 2", "March" without its year (withYear
+ * false), where the table has said the year another way.
+ */
 export function describeProductAnalyticsCohort(data: {
   start: string;
   period: ProductAnalyticsRetentionPeriod;
   language: string;
+  withYear?: boolean | undefined;
 }): string {
   const [year, month, day]: Array<number> = data.start
     .split("-")
@@ -66,7 +71,7 @@ export function describeProductAnalyticsCohort(data: {
   try {
     return new Intl.DateTimeFormat(getDateLocale(data.language), {
       timeZone: "UTC",
-      year: "numeric",
+      ...(data.withYear === false ? {} : { year: "numeric" }),
       month:
         data.period === ProductAnalyticsRetentionPeriod.Month
           ? "long"
@@ -80,9 +85,51 @@ export function describeProductAnalyticsCohort(data: {
   }
 }
 
+/* The year it is at `now` in a time zone ("2026"); the UTC year when the zone is not one. */
+function getYearInTimeZone(now: Date, timeZone: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: timeZone,
+      year: "numeric",
+    }).format(now);
+  } catch {
+    return String(now.getUTCFullYear());
+  }
+}
+
+/*
+ * Whether a compact table leaves its cohorts' year out: only when every
+ * cohort it draws starts in the year it is now, in the read's own time
+ * zone. A table across New Year keeps it, and so does one of a past year,
+ * where "Oct 5" alone would read as this October.
+ */
+export function canLeaveOutProductAnalyticsCohortYear(data: {
+  cohorts: ReadonlyArray<ProductAnalyticsRetentionCohortDto>;
+  timeZone: string;
+  now: Date;
+}): boolean {
+  const year: string = getYearInTimeZone(data.now, data.timeZone);
+
+  return (
+    data.cohorts.length > 0 &&
+    data.cohorts.every(
+      (cohort: ProductAnalyticsRetentionCohortDto): boolean => {
+        return cohort.start.split("-")[0] === year;
+      },
+    )
+  );
+}
+
 export function buildProductAnalyticsRetentionRows(data: {
   retention: ProductAnalyticsRetentionDto;
   translator: Translator;
+  /*
+   * Drawn compact (a dashboard widget): the cohorts' year is left out when
+   * every one is in this year (canLeaveOutProductAnalyticsCohortYear).
+   */
+  isCompact?: boolean | undefined;
+  // The time "this year" is read at; now when left out.
+  now?: Date | undefined;
 }): Array<ProductAnalyticsRetentionRow> {
   const translator: Translator = data.translator;
   /*
@@ -95,44 +142,53 @@ export function buildProductAnalyticsRetentionRows(data: {
       return cohort.people > 0;
     },
   );
+  const cohorts: Array<ProductAnalyticsRetentionCohortDto> =
+    data.retention.cohorts.slice(Math.max(firstWithPeople, 0));
+  const withYear: boolean = !(
+    data.isCompact &&
+    canLeaveOutProductAnalyticsCohortYear({
+      cohorts: cohorts,
+      timeZone: data.retention.timeZone,
+      now: data.now || new Date(),
+    })
+  );
 
-  return data.retention.cohorts
-    .slice(Math.max(firstWithPeople, 0))
-    .map(
-      (
-        cohort: ProductAnalyticsRetentionCohortDto,
-      ): ProductAnalyticsRetentionRow => {
-        const label: string = describeProductAnalyticsCohort({
-          start: cohort.start,
-          period: data.retention.period,
-          language: translator.language,
-        });
+  return cohorts.map(
+    (
+      cohort: ProductAnalyticsRetentionCohortDto,
+    ): ProductAnalyticsRetentionRow => {
+      const label: string = describeProductAnalyticsCohort({
+        start: cohort.start,
+        period: data.retention.period,
+        language: translator.language,
+        withYear: withYear,
+      });
 
-        return {
-          key: cohort.start,
-          cohort: label,
-          people: formatProductAnalyticsCount(cohort.people, translator),
-          cells: cohort.returning.map(
-            (
-              count: number | null,
-              index: number,
-            ): ProductAnalyticsRetentionCell | null => {
-              if (count === null || cohort.people === 0) {
-                return null;
-              }
+      return {
+        key: cohort.start,
+        cohort: label,
+        people: formatProductAnalyticsCount(cohort.people, translator),
+        cells: cohort.returning.map(
+          (
+            count: number | null,
+            index: number,
+          ): ProductAnalyticsRetentionCell | null => {
+            if (count === null || cohort.people === 0) {
+              return null;
+            }
 
-              return buildProductAnalyticsRetentionCell({
-                count: count,
-                people: cohort.people,
-                index: index,
-                period: data.retention.period,
-                translator: translator,
-              });
-            },
-          ),
-        };
-      },
-    );
+            return buildProductAnalyticsRetentionCell({
+              count: count,
+              people: cohort.people,
+              index: index,
+              period: data.retention.period,
+              translator: translator,
+            });
+          },
+        ),
+      };
+    },
+  );
 }
 
 /*
@@ -303,18 +359,59 @@ export const RETENTION_LIGHT_TEXT_SHADE: number = 0.5;
 export const RETENTION_COHORT_COLUMN_CLASS_NAME: string =
   "sticky start-0 z-10 bg-white";
 
+/* The table's type and spacing: a page's, or a dashboard widget's. */
+export interface ProductAnalyticsRetentionTableDensity {
+  table: string;
+  // Cohort, People and each period over its column.
+  header: string;
+  // A row's cohort and its people.
+  label: string;
+  // A period's cell, shaded or empty.
+  cell: string;
+}
+
+export const RETENTION_TABLE_DENSITY: Readonly<
+  Record<"page" | "compact", ProductAnalyticsRetentionTableDensity>
+> = {
+  page: {
+    table: "text-sm",
+    header: "px-2 py-1.5 text-xs tracking-wider",
+    label: "px-2 py-1.5",
+    cell: "min-w-[3.5rem] px-2 py-1.5",
+  },
+  /*
+   * A widget's, as the board's other tables are set (text-xs cells under
+   * 11px headings): a column the width of its share, so the default
+   * widget - eight units, 521px beside the side menu at 1280 - holds a
+   * month's six weeks and All cohorts without a sideways scroll, where the
+   * page's spacing cut the sixth week.
+   */
+  compact: {
+    table: "text-xs",
+    header: "px-1.5 py-1 text-[11px] tracking-wide",
+    label: "px-1.5 py-1",
+    cell: "min-w-[2.75rem] px-1.5 py-1",
+  },
+};
+
 const ProductAnalyticsRetentionTable: FunctionComponent<{
   retention: ProductAnalyticsRetentionDto;
   dataTestId: string;
+  // A dashboard widget's: compact, the cohorts' year left out when it is this year's.
+  isCompact?: boolean | undefined;
 }> = (props: {
   retention: ProductAnalyticsRetentionDto;
   dataTestId: string;
+  isCompact?: boolean | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
+  const density: ProductAnalyticsRetentionTableDensity =
+    RETENTION_TABLE_DENSITY[props.isCompact ? "compact" : "page"];
   const rows: Array<ProductAnalyticsRetentionRow> =
     buildProductAnalyticsRetentionRows({
       retention: props.retention,
       translator: translator,
+      isCompact: props.isCompact,
     });
   const averageRow: ProductAnalyticsRetentionRow | null =
     buildProductAnalyticsRetentionAverageRow({
@@ -354,14 +451,14 @@ const ProductAnalyticsRetentionTable: FunctionComponent<{
       <tr key={row.key} data-testid={`${testId}-row`}>
         <th
           scope="row"
-          className={`${RETENTION_COHORT_COLUMN_CLASS_NAME} whitespace-nowrap px-2 py-1.5 text-start text-gray-900 ${
+          className={`${RETENTION_COHORT_COLUMN_CLASS_NAME} whitespace-nowrap ${density.label} text-start text-gray-900 ${
             isAverage ? "font-semibold" : "font-medium"
           }`}
         >
           {row.cohort}
         </th>
         <td
-          className={`whitespace-nowrap px-2 py-1.5 text-end tabular-nums ${
+          className={`whitespace-nowrap ${density.label} text-end tabular-nums ${
             isAverage ? "font-semibold text-gray-900" : "text-gray-700"
           }`}
         >
@@ -375,7 +472,7 @@ const ProductAnalyticsRetentionTable: FunctionComponent<{
             return (
               <td
                 key={index}
-                className="px-2 py-1.5"
+                className={density.label}
                 data-testid={`${testId}-empty`}
               />
             );
@@ -384,7 +481,7 @@ const ProductAnalyticsRetentionTable: FunctionComponent<{
           return (
             <td
               key={index}
-              className={`min-w-[3.5rem] rounded px-2 py-1.5 text-center tabular-nums ${
+              className={`${density.cell} rounded text-center tabular-nums ${
                 isAverage ? "font-semibold " : ""
               }${
                 cell.shade >= RETENTION_LIGHT_TEXT_SHADE
@@ -409,18 +506,20 @@ const ProductAnalyticsRetentionTable: FunctionComponent<{
 
   return (
     <div className="overflow-x-auto" data-testid={props.dataTestId}>
-      <table className="min-w-full border-separate border-spacing-0.5 text-sm">
+      <table
+        className={`min-w-full border-separate border-spacing-0.5 ${density.table}`}
+      >
         <thead>
           <tr>
             <th
               scope="col"
-              className={`${RETENTION_COHORT_COLUMN_CLASS_NAME} whitespace-nowrap px-2 py-1.5 text-start text-xs font-medium uppercase tracking-wider text-gray-500`}
+              className={`${RETENTION_COHORT_COLUMN_CLASS_NAME} whitespace-nowrap ${density.header} text-start font-medium uppercase text-gray-500`}
             >
               {translator.translateText("Cohort")}
             </th>
             <th
               scope="col"
-              className="whitespace-nowrap px-2 py-1.5 text-end text-xs font-medium uppercase tracking-wider text-gray-500"
+              className={`whitespace-nowrap ${density.header} text-end font-medium uppercase text-gray-500`}
             >
               {translator.translateText("People")}
             </th>
@@ -429,7 +528,7 @@ const ProductAnalyticsRetentionTable: FunctionComponent<{
                 <th
                   key={index}
                   scope="col"
-                  className="whitespace-nowrap px-2 py-1.5 text-center text-xs font-medium uppercase tracking-wider text-gray-500"
+                  className={`whitespace-nowrap ${density.header} text-center font-medium uppercase text-gray-500`}
                 >
                   {describeProductAnalyticsRetentionColumn({
                     period: props.retention.period,
