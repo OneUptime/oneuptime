@@ -95,7 +95,7 @@ vCenter、Kubernetes 叢集、主機、Docker 或 Podman 主機、Docker Swarm�
 
 **網路** 是你的網路設備的即時地圖，依據設備透過 LLDP（在 Cisco 設備上還有 CDP）回報的鄰居建立。它沒有時間選擇器：連線會自行重新整理。
 
-如果你把設備分組到站點中，檢視會在你的站點上開啟：選擇一個站點，或切換到 **All devices**。**Map options** 用於排列地圖並選擇要包含的內容，**匯出 PDF** 會儲存你看到的地圖。網路設備的頁面也會繪製同樣的地圖：請參閱 [網路拓撲](/docs/monitor/network-device-monitor#網路拓撲)。
+如果你把設備分組到站點中，檢視會在你的站點上開啟：選擇一個站點，或切換到 **所有裝置**。**Map options** 用於排列地圖並選擇要包含的內容，**匯出 PDF** 會儲存你看到的地圖。網路設備的頁面也會繪製同樣的地圖：請參閱 [網路拓撲](/docs/monitor/network-device-monitor#網路拓撲)。
 
 ## 疑難排解
 

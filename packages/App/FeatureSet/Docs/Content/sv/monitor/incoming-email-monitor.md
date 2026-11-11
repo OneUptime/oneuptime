@@ -23,7 +23,7 @@ sequenceDiagram
     O->>O: Lagra den på monitorn
     O->>O: Kontrollera kriterierna
     O->>T: Larm eller incident,<br/>om något matchar
-    Note over O: Var 30:e sekund, kontrollera<br/>kriterier med Email Received
+    Note over O: Var 30:e sekund, kontrollera<br/>kriterier med ”E-post mottagen”
 ```
 
 1. När du skapar en monitor för inkommande e-post ger OneUptime den en unik e-postadress.
@@ -143,8 +143,8 @@ En ny monitor för inkommande e-post skapas med två kriterier som läser e-post
 
 | Kriterium | Filtertyp | Filtervillkor | Värde | Effekt |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
-| Offline  | Email Body  | Innehåller | `error` | Markerar monitorn som offline, öppnar en incident |
-| Online   | Email Body  | Innehåller inte | `error` | Markerar monitorn som online |
+| Offline  | E-postinnehåll  | Innehåller | `error` | Markerar monitorn som offline, öppnar en incident |
+| Online   | E-postinnehåll  | Innehåller inte | `error` | Markerar monitorn som online |
 
 Det passar det vanliga fallet där ett jobb eller ett verktyg från tredje part mejlar sitt eget resultat: ett meddelande vars innehåll nämner `error` tar ned monitorn, och nästa meddelande utan ordet tar upp monitorn igen och löser incidenten. Jämförelsen av innehållet skiljer inte på versaler och gemener, så `Error` och `ERROR` matchar också.
 
@@ -185,9 +185,7 @@ Monitorns egen adress maskeras innan något kriterium läser e-postmeddelandet, 
 
 Ingen av de här jämförelserna skiljer på versaler och gemener. Ett filter med ett tomt värde matchar aldrig.
 
-### Tidsbaserade filter (Email Received)
-
-Instrumentpanelen stavar de här villkoren "Recieved".
+### Tidsbaserade filter (E-post mottagen)
 
 | Filtervillkor | Beskrivning | Exempel |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -196,7 +194,7 @@ Instrumentpanelen stavar de här villkoren "Recieved".
 
 En monitor som aldrig har tagit emot något e-postmeddelande räknar tidpunkten då den skapades som det senaste e-postmeddelandet.
 
-### JavaScript Expression
+### JavaScript-uttryck
 
 | Filtervillkor | Beskrivning |
 | --------------------- | ------------------------------------- |

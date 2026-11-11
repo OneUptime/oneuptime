@@ -17,8 +17,8 @@ Vid varje kontroll ber en sond en DNS-server om en posttyp för ett namn, till e
 flowchart TB
     query["Fråga efter posttypen"] --> answer{"Poster returnerade?"}
     answer -->|"Nej, återförsök kvar"| query
-    answer -->|"Nej, inga återförsök kvar"| offline["DNS Is Online: False"]
-    answer -->|"Ja"| online["DNS Is Online: True"]
+    answer -->|"Nej, inga återförsök kvar"| offline["DNS är online: Falskt"]
+    answer -->|"Ja"| online["DNS är online: Sant"]
     online --> ad["Kontrollera AD-flaggan"]
     ad --> criteria["Kontrollera kriterierna"]
     offline --> criteria
@@ -164,7 +164,7 @@ dig @8.8.8.8 example.com A
 3. Lägg under det i sin tur till ett kriterium med **DNS är online** / **Sant**, som markerar monitorn som **Offline** och deklarerar en incident. Det matchar bara svar som inte har värdet.
 :::
 
-:::details DNSSEC Is Valid matchar aldrig
+:::details DNSSEC är giltig matchar aldrig
 Servern i **DNS-server (valfritt)** validerar inte DNSSEC och sätter därför aldrig AD-flaggan, eller så kunde sonden inte köra kontrollen. Lämna fältet tomt för att validera med `8.8.8.8`, eller använd en [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
 :::
 

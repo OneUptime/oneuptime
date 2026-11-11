@@ -26,7 +26,10 @@ import { describe, expect, test } from "@jest/globals";
  *     every record, as decided by isOngoing, as handed isOngoing to decide
  *     on itself, or as the on-call fan-out; a step that is in none of the
  *     lists fails here, so a new step has to be decided for a record
- *     created already over;
+ *     created already over. A call an awaited step's callback hands back
+ *     runs as part of it, and is a step too: the on-call fan-out runs inside
+ *     OnCallPageTiming.runAsRecordIsCreated, which times its pages from the
+ *     record's creation and runs nothing but the fan-out;
  *   - a step listed as decided by isOngoing sits under a condition on it,
  *     and a step listed as handed it gets it as an argument;
  *   - grouping may open (or reopen) an episode only for a record that pages
@@ -182,6 +185,14 @@ const SERVICES: Array<ServiceSteps> = [
   },
 ];
 
+/*
+ * What the on-call fan-out runs inside: it times the pages the fan-out starts
+ * from the record's creation (OnCallPageTiming) and runs the fan-out it is
+ * handed, so it is part of the fan-out - and the fan-out it hands back is
+ * read as a step of its own (awaitedCalls).
+ */
+const ON_CALL_FAN_OUT_TIMING: string = "OnCallPageTiming.runAsRecordIsCreated";
+
 const ONGOING_CONDITION: RegExp = /\bisOngoing\b/;
 const PAGES_ON_CALL_CONDITION: RegExp = /\bStartingStageUtil\.pagesOnCall\(/;
 const MAY_OPEN_EPISODE_OPTION: RegExp =
@@ -227,7 +238,47 @@ function eachNode(node: ts.Node, visit: (child: ts.Node) => void): void {
   });
 }
 
-// The callee of every awaited call, as written: "this.addOwners".
+/*
+ * The calls a callback hands back: its expression body, or what its own
+ * return statements return (a function inside it returns for itself).
+ */
+function callsHandedBack(node: ts.Expression): Array<ts.CallExpression> {
+  if (!ts.isArrowFunction(node) && !ts.isFunctionExpression(node)) {
+    return [];
+  }
+
+  if (!ts.isBlock(node.body)) {
+    return ts.isCallExpression(node.body) ? [node.body] : [];
+  }
+
+  const returned: Array<ts.CallExpression> = [];
+
+  const visit: (child: ts.Node) => void = (child: ts.Node): void => {
+    if (ts.isFunctionLike(child)) {
+      return;
+    }
+
+    if (
+      ts.isReturnStatement(child) &&
+      child.expression &&
+      ts.isCallExpression(child.expression)
+    ) {
+      returned.push(child.expression);
+    }
+
+    ts.forEachChild(child, visit);
+  };
+
+  ts.forEachChild(node.body, visit);
+
+  return returned;
+}
+
+/*
+ * The callee of every awaited call, as written: "this.addOwners" - and of
+ * every call an awaited call's callback hands back, which runs as part of
+ * it (the on-call fan-out, inside ON_CALL_FAN_OUT_TIMING).
+ */
 function awaitedCalls(
   source: ts.SourceFile,
   root: ts.Node,
@@ -240,6 +291,15 @@ function awaitedCalls(
         callee: node.expression.expression.getText(source),
         call: node.expression,
       });
+
+      for (const argument of node.expression.arguments) {
+        for (const handedBack of callsHandedBack(argument)) {
+          calls.push({
+            callee: handedBack.expression.getText(source),
+            call: handedBack,
+          });
+        }
+      }
     }
   });
 
@@ -353,6 +413,7 @@ describe.each(SERVICES)(
         ...service.decidedByOngoing,
         ...service.handedIsOngoing,
         `this.${service.onCallFanOut}`,
+        ON_CALL_FAN_OUT_TIMING,
       ]);
 
       const undecided: Array<string> = awaitedCalls(source, onCreateSuccess!)
@@ -562,6 +623,29 @@ describe.each(SERVICES)(
           return argument.getText(source);
         }),
       ).toContain("startingStage");
+    });
+
+    test("the page timing the fan-out runs inside runs the fan-out, and nothing else", () => {
+      const timings: Array<ts.CallExpression> = awaitedCalls(
+        source,
+        onCreateSuccess!,
+      )
+        .filter((step: { callee: string }): boolean => {
+          return step.callee === ON_CALL_FAN_OUT_TIMING;
+        })
+        .map((step: { call: ts.CallExpression }): ts.CallExpression => {
+          return step.call;
+        });
+
+      for (const timing of timings) {
+        expect(
+          timing.arguments
+            .flatMap(callsHandedBack)
+            .map((call: ts.CallExpression): string => {
+              return call.expression.getText(source);
+            }),
+        ).toEqual([`this.${service.onCallFanOut}`]);
+      }
     });
   },
 );

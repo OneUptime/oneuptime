@@ -60,7 +60,10 @@ import { describe, expect, it } from "@jest/globals";
  *   - Names every Dashboard shows in English (no locale key) stay English
  *     (SHOWN_IN_ENGLISH), and so do the labels of other products' consoles,
  *     vSphere's and Purity's (OTHER_CONSOLES), and names of products and
- *     versions (NAMES).
+ *     versions (NAMES). The criteria's check (Metric Value), anomaly
+ *     conditions and window aggregates gained keys in 31eadaee92e, worded
+ *     in every language in f155e8e0998: they are labels now, drawn like any
+ *     other.
  *
  * Bold words that are Dashboard labels only by coincidence are PROSE, with
  * why; the pages' own bold leads are PROSE_LEADS, which a translation words
@@ -102,14 +105,7 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
 
 const MONITOR_PAGES: Array<string> = [STORAGE, IOT, VMWARE, OPENSTACK];
 
-/*
- * The If No Data options with no locale key; Trigger has one. The anomaly
- * conditions (Anomalous, Anomalously High, Anomalously Low), the window
- * aggregates (Maximum Value, Minimum Value, All Values, Any Value) and the
- * criteria filters (Is Online, Metric Value) left this list on 2026-11-10:
- * #6575 keyed them in every language, so every translation names them as
- * its Dashboard draws them, like any other label.
- */
+// The If No Data options with no locale key; Trigger has one.
 const UNKEYED_NO_DATA: Array<string> = ["Ignore", "Treat As Zero"];
 
 // The step forms' tab and windows with no locale key.
@@ -119,21 +115,18 @@ const FORM_NAMES: Array<string> = [
   "Past 365 Days",
 ];
 
-// The criteria names every Dashboard still shows in English.
-const CRITERIA_NAMES: Array<string> = [...UNKEYED_NO_DATA];
-
 /*
  * Bold names every language's Dashboard shows in English, because its
  * locale has no key for them, by page.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   // A template's name, as the template picker shows it.
-  [STORAGE]: [...FORM_NAMES, "Array Stopped Reporting", ...CRITERIA_NAMES],
+  [STORAGE]: [...FORM_NAMES, "Array Stopped Reporting", ...UNKEYED_NO_DATA],
   [IOT]: [
     ...FORM_NAMES,
     // A template's name.
     "Device Offline",
-    ...CRITERIA_NAMES,
+    ...UNKEYED_NO_DATA,
   ],
   /*
    * Templates' names, as the template picker shows them: the one every new
@@ -144,7 +137,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     ...FORM_NAMES,
     "vCenter Stopped Reporting",
     "Datacenter Hosts Not Responding",
-    ...CRITERIA_NAMES,
+    ...UNKEYED_NO_DATA,
   ],
   /*
    * Templates' names, as the template picker shows them (OpenStackAlertTemplates
@@ -160,7 +153,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Compute Service Down",
     "Project Quota Nearly Reached",
     "Identity API Down",
-    ...CRITERIA_NAMES,
+    ...UNKEYED_NO_DATA,
   ],
 };
 

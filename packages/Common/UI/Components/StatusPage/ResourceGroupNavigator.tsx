@@ -12,6 +12,7 @@ import Icon from "../Icon/Icon";
 import MoreMenu from "../MoreMenu/MoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import Tooltip from "../Tooltip/Tooltip";
+import { getNavigatorCountTooltip } from "./ResourceGroupNavigatorText";
 import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import React, {
   Fragment,
@@ -401,10 +402,13 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
               ? "bg-gray-100 text-gray-400"
               : "bg-gray-100 text-gray-500"
         }`}
-        title={StatusPageResourceExplorerUtil.getNavigatorCountTooltip({
-          row: row,
-          countIndex: props.countIndex,
-        })}
+        title={getNavigatorCountTooltip(
+          {
+            row: row,
+            countIndex: props.countIndex,
+          },
+          translator,
+        )}
         data-testid="status-page-resource-navigator-count"
       >
         {label}

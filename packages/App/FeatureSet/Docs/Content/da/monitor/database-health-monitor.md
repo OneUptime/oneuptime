@@ -402,7 +402,7 @@ For at læse én metrik i et udtryk kan du skrive det prikkede serienavn inden i
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
 ```
 
-Til en tærskel på en enkelt metrik bør du vælge **Databasemetrik** frem for et udtryk: det slår serien op for dig, tilbyder kun det, din motor kan levere, og springer kontrollen over, når værdien ikke blev indsamlet, i stedet for at sammenligne med ingenting.
+Til en tærskel på en enkelt metrik bør du vælge **Databasemetrik** frem for et udtryk: den slår serien op for dig, tilbyder kun det, din motor kan levere, og springer kontrollen over, når værdien ikke blev indsamlet, i stedet for at sammenligne med ingenting.
 
 ### Eksempel: en primær PostgreSQL-server
 

@@ -320,7 +320,7 @@ test("the map of every device shows the devices with no links, and a large netwo
     timeout: 120000,
   });
   await expect(page.getByTestId("network-topology-visible-count")).toHaveText(
-    "Showing 1203 of 1203 devices",
+    "Showing 1,203 of 1,203 devices",
     { timeout: 120000 },
   );
 

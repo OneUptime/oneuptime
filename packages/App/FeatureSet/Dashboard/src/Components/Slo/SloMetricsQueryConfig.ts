@@ -11,6 +11,11 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import AlertMetricTypeUtil from "Common/Utils/Alerts/AlertMetricType";
 import IncidentMetricTypeUtil from "Common/Utils/Incident/IncidentMetricType";
 import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "Common/Utils/Slo/SloEvaluation";
+import {
+  createTranslator,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
 import SloMetricTypeUtil, {
   SERVICE_LEVEL_OBJECTIVE_IDS_METRIC_ATTRIBUTE,
   SLO_METRIC_PROJECT_ID_ATTRIBUTE,
@@ -40,6 +45,17 @@ export const SLO_METRICS_TABS: ReadonlyArray<SloMetricsTab> = [
   SloMetricsTab.ErrorBudgetHistory,
   SloMetricsTab.IncidentMetrics,
   SloMetricsTab.AlertMetrics,
+];
+
+/*
+ * The tab names as the keys Tabs looks them up by, so the extractor gives
+ * each one a key (a test keeps the list equal to SloMetricsTab).
+ */
+export const SLO_METRICS_TAB_KEYS: ReadonlyArray<string> = [
+  translationKey("SLO Metrics"),
+  translationKey("Error Budget History"),
+  translationKey("Incident Metrics"),
+  translationKey("Alert Metrics"),
 ];
 
 /*
@@ -78,40 +94,57 @@ export interface SloMetricsCardCopy {
   description: string;
 }
 
-export type GetSloMetricCategoriesFunction = () => Array<SloMetricCategory>;
+/*
+ * Without a translator the descriptions read in English, word for word -
+ * what a plain-node test reads. The Metrics page hands the reader's, so the
+ * Burn card's sentence, which carries its window, is worded whole.
+ */
+const ENGLISH: Translator = createTranslator(undefined);
 
-export const getSloMetricCategories: GetSloMetricCategoriesFunction =
-  (): Array<SloMetricCategory> => {
-    return [
-      {
-        id: "objective",
-        title: "Objective",
-        description:
-          "The SLI against its target, and the share of the error budget still unspent. Metrics follow the monitor metric retention; Error Budget History keeps the long-range view.",
-        metrics: [
-          SloMetricType.SliPercent,
-          SloMetricType.TargetPercent,
-          SloMetricType.ErrorBudgetRemainingPercent,
-        ],
-      },
-      {
-        id: "burn",
-        title: "Burn",
-        description: `How fast the error budget is being spent over the trailing ${SLO_CURRENT_BURN_RATE_WINDOW_MINUTES} minutes, and how much downtime the SLO can still absorb before it breaches.`,
-        metrics: [
-          SloMetricType.BurnRate,
-          SloMetricType.ErrorBudgetRemainingSeconds,
-        ],
-      },
-      {
-        id: "status",
-        title: "Status",
-        description:
-          "The SLO's status at each evaluation - Healthy, At Risk or Budget Exhausted. Paused and misconfigured evaluations leave a gap.",
-        metrics: [SloMetricType.Status],
-      },
-    ];
-  };
+export type GetSloMetricCategoriesFunction = (
+  translator?: Translator,
+) => Array<SloMetricCategory>;
+
+export const getSloMetricCategories: GetSloMetricCategoriesFunction = (
+  translator: Translator = ENGLISH,
+): Array<SloMetricCategory> => {
+  return [
+    {
+      id: "objective",
+      title: "Objective",
+      description:
+        "The SLI against its target, and the share of the error budget still unspent. Metrics follow the monitor metric retention; Error Budget History keeps the long-range view.",
+      metrics: [
+        SloMetricType.SliPercent,
+        SloMetricType.TargetPercent,
+        SloMetricType.ErrorBudgetRemainingPercent,
+      ],
+    },
+    {
+      id: "burn",
+      title: "Burn",
+      description: translator.translatePlural(
+        {
+          one: "How fast the error budget is being spent over the trailing {{count}} minute, and how much downtime the SLO can still absorb before it breaches.",
+          other:
+            "How fast the error budget is being spent over the trailing {{count}} minutes, and how much downtime the SLO can still absorb before it breaches.",
+        },
+        SLO_CURRENT_BURN_RATE_WINDOW_MINUTES,
+      ),
+      metrics: [
+        SloMetricType.BurnRate,
+        SloMetricType.ErrorBudgetRemainingSeconds,
+      ],
+    },
+    {
+      id: "status",
+      title: "Status",
+      description:
+        "The SLO's status at each evaluation - Healthy, At Risk or Budget Exhausted. Paused and misconfigured evaluations leave a gap.",
+      metrics: [SloMetricType.Status],
+    },
+  ];
+};
 
 /*
  * Series drawn on the panel of the series right before them instead of on a

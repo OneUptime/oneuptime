@@ -52,7 +52,7 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { SLO_EVALUATION_CADENCE_MINUTES } from "Common/Utils/Slo/SloEvaluation";
 import { DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE } from "Common/Utils/Slo/SloHealth";
-import { getSloWindowPhrase } from "Common/Utils/Slo/SloOverviewText";
+import { sloWindowPhraseValue } from "./SloOverviewTextInLanguage";
 import {
   getSloChartBucketSeconds,
   getSloComplianceWindowRange,
@@ -230,15 +230,18 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
     { modelId: props.sloId },
   );
 
-  const windowPhrase: string = getSloWindowPhrase({
-    windowType: slo.windowType,
-    windowDays: slo.windowDays,
-    timezone: slo.timezone,
-  });
-
-  const description: string = isCalendarMonth
-    ? `Error budget left over ${windowPhrase}. The faded line spends the budget evenly by the reset — below it, the month is burning too fast.`
-    : `Error budget left over ${windowPhrase}, with the at-risk and exhausted lines this SLO is judged against.`;
+  const description: string = translator.translateTemplate(
+    isCalendarMonth
+      ? "Error budget left over {{window}}. The faded line spends the budget evenly by the reset — below it, the month is burning too fast."
+      : "Error budget left over {{window}}, with the at-risk and exhausted lines this SLO is judged against.",
+    {
+      window: sloWindowPhraseValue({
+        windowType: slo.windowType,
+        windowDays: slo.windowDays,
+        timezone: slo.timezone,
+      }),
+    },
+  );
 
   type GetBodyFunction = () => ReactElement;
 
@@ -291,7 +294,14 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
               ? "No budget history in this window yet"
               : "No budget history yet"
           }
-          description={`Each evaluation records the remaining budget, every ${SLO_EVALUATION_CADENCE_MINUTES} minutes. The line appears after the next one.`}
+          description={translator.translatePlural(
+            {
+              one: "Each evaluation records the remaining budget, every {{count}} minute. The line appears after the next one.",
+              other:
+                "Each evaluation records the remaining budget, every {{count}} minutes. The line appears after the next one.",
+            },
+            SLO_EVALUATION_CADENCE_MINUTES,
+          )}
         />,
       );
     }
@@ -365,12 +375,14 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
         lines: [
           {
             value: 0,
-            label: "Budget exhausted",
+            label: translator.translateTemplate("Budget exhausted"),
             color: EXHAUSTED_LINE_COLOR,
           },
           {
             value: atRiskThreshold,
-            label: `At risk (${formatSloPercent(atRiskThreshold)})`,
+            label: translator.translateTemplate("At risk ({{percent}})", {
+              percent: formatSloPercent(atRiskThreshold) || "",
+            }),
             color: AT_RISK_LINE_COLOR,
             strokeDasharray: "4 4",
           },

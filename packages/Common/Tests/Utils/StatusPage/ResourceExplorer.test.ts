@@ -13,6 +13,7 @@ import StatusPageResourceExplorerUtil, {
   StatusPageResourceSelectionState,
   StatusPageResourceSelectionType,
 } from "../../../Utils/StatusPage/ResourceExplorer";
+import { getNavigatorCountTooltip } from "../../../UI/Components/StatusPage/ResourceGroupNavigatorText";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -840,7 +841,7 @@ describe("StatusPageResourceExplorerUtil", () => {
       ).toBeNull();
 
       expect(
-        StatusPageResourceExplorerUtil.getNavigatorCountTooltip({
+        getNavigatorCountTooltip({
           row: {
             ownResourceCount: 3,
             subtreeResourceCount: 3,
@@ -848,16 +849,6 @@ describe("StatusPageResourceExplorerUtil", () => {
           countIndex: incomplete,
         }),
       ).toBeUndefined();
-    });
-
-    test("pluralises the resource count", () => {
-      expect(
-        StatusPageResourceExplorerUtil.getResourceCountLabel({ count: 1 }),
-      ).toBe("1 resource");
-
-      expect(
-        StatusPageResourceExplorerUtil.getResourceCountLabel({ count: 4 }),
-      ).toBe("4 resources");
     });
 
     /*
@@ -889,7 +880,7 @@ describe("StatusPageResourceExplorerUtil", () => {
       ).toBe("2");
 
       expect(
-        StatusPageResourceExplorerUtil.getNavigatorCountTooltip({
+        getNavigatorCountTooltip({
           row: {
             ownResourceCount: 2,
             subtreeResourceCount: 100,
@@ -899,7 +890,7 @@ describe("StatusPageResourceExplorerUtil", () => {
       ).toBe("2 resources in this group · 100 including sub groups");
 
       expect(
-        StatusPageResourceExplorerUtil.getNavigatorCountTooltip({
+        getNavigatorCountTooltip({
           row: {
             ownResourceCount: 1,
             subtreeResourceCount: 1,
@@ -907,26 +898,6 @@ describe("StatusPageResourceExplorerUtil", () => {
           countIndex: complete,
         }),
       ).toBe("1 resource in this group");
-    });
-
-    test("pluralises the sub group count and stays silent at zero", () => {
-      expect(
-        StatusPageResourceExplorerUtil.getSubGroupCountLabel({
-          subGroupCount: 0,
-        }),
-      ).toBeNull();
-
-      expect(
-        StatusPageResourceExplorerUtil.getSubGroupCountLabel({
-          subGroupCount: 1,
-        }),
-      ).toBe("1 sub group");
-
-      expect(
-        StatusPageResourceExplorerUtil.getSubGroupCountLabel({
-          subGroupCount: 12,
-        }),
-      ).toBe("12 sub groups");
     });
   });
 

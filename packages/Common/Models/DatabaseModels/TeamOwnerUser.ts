@@ -77,7 +77,7 @@ const TEAM_OWNER_WRITERS: Array<Permission> = [
   pluralName: "Team User Owners",
   icon: IconProp.Team,
   tableDescription:
-    "Add people as owners of your teams. Owners look after who is in a team and what it may do.",
+    "Add users as owners to your teams. Owners look after who is in a team and what it may do.",
 })
 @Entity({
   name: "TeamOwnerUser",

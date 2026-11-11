@@ -101,7 +101,7 @@ Varje statusändring registreras med sin orsak på monitorns **Statustidslinje**
 
 ## Kriterier
 
-En spårningsmonitors kriterier har en enda **Filtertyp**: **Span Count**, antalet spans som matchade i fönstret. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och, för ett tröskelvillkor, ett **Värde**.
+En spårningsmonitors kriterier har en enda **Filtertyp**: **Antal spans**, antalet spans som matchade i fönstret. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och, för ett tröskelvillkor, ett **Värde**.
 
 | Filtervillkor | Matchar när antalet spans är… |
 | --- | --- |
@@ -127,8 +127,8 @@ En spårningsmonitor som skapats via API:et eller Terraform utan kriterier börj
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Lika med** `0` | Markerar monitorn som offline och deklarerar en incident, som löses automatiskt |
-| Check if … is online | **Span Count** **Större än** `0` | Markerar monitorn som online |
+| Check if … is offline | **Antal spans** **Lika med** `0` | Markerar monitorn som offline och deklarerar en incident, som löses automatiskt |
+| Check if … is online | **Antal spans** **Större än** `0` | Markerar monitorn som online |
 
 ## Genomgånget exempel: misslyckade checkout-förfrågningar
 

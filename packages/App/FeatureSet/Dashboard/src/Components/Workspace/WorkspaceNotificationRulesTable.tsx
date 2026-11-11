@@ -12,6 +12,8 @@ import React, {
 import WorkspaceType, {
   getWorkspaceTypeDisplayName,
 } from "Common/Types/Workspace/WorkspaceType";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceNotificationRuleOwningTeam from "Common/Models/DatabaseModels/WorkspaceNotificationRuleOwningTeam";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
@@ -144,6 +146,7 @@ export interface ComponentProps {
 const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
 
@@ -1188,7 +1191,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`Test Rule`}
           error={testError}
-          description={`Test the rule ${testNotificationRule.name} by sending a test notification to ${getWorkspaceTypeDisplayName(props.workspaceType)}.`}
+          description={translator.translateTemplate(
+            "Test the rule {{rule}} by sending a test notification to {{workspace}}.",
+            {
+              rule: testNotificationRule.name || "",
+              workspace: getWorkspaceTypeDisplayName(props.workspaceType),
+            },
+          )}
           submitButtonText={"Test"}
           onClose={() => {
             setShowTestModal(false);
@@ -1212,7 +1221,10 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={testError ? `Test Failed` : `Test Executed Successfully`}
           error={testError}
-          description={`Test executed successfully. You should now see a notification in ${getWorkspaceTypeDisplayName(props.workspaceType)}.`}
+          description={translator.translateTemplate(
+            "Test executed successfully. You should now see a notification in {{workspace}}.",
+            { workspace: getWorkspaceTypeDisplayName(props.workspaceType) },
+          )}
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
           onSubmit={async () => {

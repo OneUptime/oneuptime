@@ -105,6 +105,8 @@ Varje jobb, dbt-projekt och synkronisering visas under **Pipelines**, med sina k
 - **Pipeline Run Unusually Long**: en körning har tagit dubbelt så lång tid som vanligt eller mer, kontrollerat var femte minut medan den körs, så att en körning som hänger sig upptäcks innan den slutar.
 - **Pipeline Is Late**: ingen körning har startat på längre tid än schemat tillåter.
 
+En pipelines sida har kortet **Härkomst**, det första stället att titta på när en körning misslyckas eller är försenad: till vänster de tabeller den läser, till höger de tabeller den skriver, pipelinen däremellan, och varje kort visar hur det står till nu. Välj fler steg för att se vad tabellerna byggs av och vad som byggs av dem, och öppna valfri tabell för att se dess egen flik **Härkomst**.
+
 ## Ett larm per orsak
 
 När en tabell blir inaktuell blir varje tabell som byggs av den också inaktuell. Innan ett datalarm öppnas letar OneUptime i härkomsten efter ett larm som redan är öppet på det som dess tabell eller pipeline byggs av: tabellerna uppströms, de pipelines som skriver till dem och de databaser de ligger i, upp till fem steg uppåt. När den hittar ett blir det nya larmet en följd av det larmet:
@@ -113,6 +115,10 @@ När en tabell blir inaktuell blir varje tabell som byggs av den också inaktuel
 - Dess flöde och dess kort **Data** visar vilket larm som orsakade det, och det ansluter sig till orsakens episod.
 
 Orsakens kort **Data** listar dess **Påverkan nedströms**: varje larm den orsakade. Ett tabellarms kort visar också de tjänster som skriver till tabellen, med deras misslyckade skrivningar, och deras driftsättningar och andra ändringar under dygnet före larmet.
+
+Under kortet **Data** har ett larms sida kortet **Härkomst**: härkomsten runt dess tabell, som tabellens flik **Härkomst** ritar den, eller runt dess pipeline. Vägen upp till larmet som orsakade det och ner till varje larm det orsakade är framhävd - orsakens tabell eller pipeline märkt **Orsak**, varje orsakat larms märkt **Följd** - och resten tonas ned, så att den som öppnar det ser var i kedjan problemet började. Gäller orsaken en hel databas, eller ligger den längre upp än diagrammet når, säger kortet det i ord. **Utforska härkomst** öppnar tabellens flik **Härkomst**, eller pipelinens sida.
+
+Den som inte får se larmet som orsakade det får varken kortet **Data** eller härkomsten, och ett orsakat larm som personen inte får se framhävs inte och räknas inte.
 
 ## Innan en ändring slås ihop
 

@@ -623,7 +623,7 @@ export const DiscoveredHostNamingLine: FunctionComponent<{
           {naming.name}
         </span>
         {naming.ruleName && (
-          <span className="hidden flex-shrink-0 truncate text-xs text-gray-400 sm:inline">
+          <span className="max-sm:hidden flex-shrink-0 truncate text-xs text-gray-400 sm:inline">
             <InlineSeparator />
             {naming.ruleName}
           </span>

@@ -84,7 +84,7 @@ Haz clic en **Crear monitor**. OneUptime abre la página del monitor y lo evalú
 
 Un filtro solo acota una serie que lleva su etiqueta: `openstack_nova_up` no tiene proyecto, así que un filtro por proyecto la deja como está.
 
-Mantén la ventana en tres recopilaciones o más de lo que lees: 6 minutos para compute, network, volume y placement, 15 para identity e image. Una ventana más corta no contiene suficientes recopilaciones para que **Todos los valores** signifique una duración.
+Mantén la ventana en tres recopilaciones o más de lo que lees: 6 minutos para compute, network, volume y placement, 15 para identity e image. Una ventana más corta no contiene suficientes recopilaciones para que la opción **Todos los valores** signifique una duración.
 
 ## Atributos de identidad
 

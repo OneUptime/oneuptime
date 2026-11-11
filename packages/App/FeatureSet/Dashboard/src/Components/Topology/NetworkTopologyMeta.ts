@@ -9,6 +9,7 @@ import {
   NetworkTopologyNodeStatus,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import { getNetworkControllerProviderShortTitle } from "Common/Types/NetworkController/NetworkControllerProvider";
+import { fillTemplate, translationKey } from "Common/Types/Translator";
 import { DEVICE_ROLES_IN_LEGEND_ORDER } from "Common/Utils/Monitor/NetworkDeviceRoleUtil";
 import {
   getMacSearchHex,
@@ -342,7 +343,16 @@ export interface TopologyLegendEntry {
   color: string;
   /** Set only on "shape" swatches: which silhouette to draw. */
   shape?: TopologyNodeShape | undefined;
+  /*
+   * A label with a value in it, as the sentence the map looks up in the
+   * reader's language; `label` is the same sentence filled in English (the
+   * PDF's words).
+   */
+  labelTemplate?: { template: string; values: Record<string, number> };
 }
+
+// The busy link's key: one sentence with the threshold in it.
+const BUSY_LINK_LABEL: string = translationKey("Busy (over {{percent}}%)");
 
 export const TOPOLOGY_LEGEND: Array<TopologyLegendEntry> = [
   { group: "Status", label: "Up", swatch: "dot", color: NODE_STATUS_COLORS.up },
@@ -384,7 +394,13 @@ export const TOPOLOGY_LEGEND: Array<TopologyLegendEntry> = [
   },
   {
     group: "Link",
-    label: `Busy (over ${LINK_SATURATION_THRESHOLD_PERCENT}%)`,
+    label: fillTemplate(BUSY_LINK_LABEL, {
+      percent: LINK_SATURATION_THRESHOLD_PERCENT,
+    }),
+    labelTemplate: {
+      template: BUSY_LINK_LABEL,
+      values: { percent: LINK_SATURATION_THRESHOLD_PERCENT },
+    },
     swatch: "line",
     color: LINK_STATE_COLORS.saturated,
   },

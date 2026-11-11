@@ -402,7 +402,7 @@ Om één metric in een expressie te lezen, zet je de reeksnaam met zijn punten t
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
 ```
 
-Gebruik voor een drempel op één metric liever **Databasemetriek** dan een expressie: het zoekt de reeks voor je op, biedt alleen aan wat je engine kan leveren, en slaat de controle over als de waarde niet is verzameld in plaats van met niets te vergelijken.
+Gebruik voor een drempel op één metric liever **Databasemetriek** dan een expressie: die zoekt de reeks voor je op, biedt alleen aan wat je engine kan leveren, en slaat de controle over als de waarde niet is verzameld in plaats van met niets te vergelijken.
 
 ### Voorbeeld: een primaire PostgreSQL-server
 

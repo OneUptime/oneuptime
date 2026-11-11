@@ -24,7 +24,7 @@ flowchart TB
 
 چون جای‌نگهدارها به‌صورت متن جایگزین می‌شوند، `{{responseBody.item}}` به مقدار خام تبدیل می‌شود. یک رشته باید در علامت نقل‌قول باشد تا یک رشتهٔ JavaScript به حساب بیاید؛ یک عدد یا مقدار بولی نه — [قواعد نقل‌قول](#قواعد-نقلقول) را ببینید. عبارت‌ها روی سرور OneUptime، در یک sandbox جداشده، اجرا می‌شوند.
 
-## افزودن یک فیلتر JavaScript Expression
+## افزودن یک فیلتر عبارت JavaScript
 
 :::steps
 ### باز کردن معیارها
@@ -46,7 +46,7 @@ flowchart TB
 
 ## متغیرها بر اساس نوع مانیتور
 
-عبارت‌های JavaScript برای مانیتورهای Website، API، Incoming Request، Incoming Email، SQL Query و Database Health ارائه می‌شوند.
+عبارت‌های JavaScript برای مانیتورهای Website، API، درخواست ورودی، Incoming Email، SQL Query و Database Health ارائه می‌شوند.
 
 ### مانیتورهای وب‌سایت و API
 

@@ -116,7 +116,7 @@ Cada mudança de status, com o motivo, fica registrada na **Linha do tempo de st
 
 ## Critérios
 
-Os critérios de um monitor de exceções têm quatro opções de **Tipo de filtro**: **Quantidade de exceções**, o número de exceções que corresponderam na janela, e **New Exceptions**, **Exceções com regressão** e **Aumento de exceções (em %)**, descritos abaixo. **Quando alertar** configura um critério, cuja **Condição** é **Mais de**, **Pelo menos**, **Menos de**, **No máximo**, **Exatamente**, **Incomumente alto**, **Incomumente baixo** ou **Incomumente alto ou baixo**. Para vários critérios, ou um com mais de um filtro, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Condição do filtro** e um **Valor**.
+Os critérios de um monitor de exceções têm quatro opções de **Tipo de filtro**: **Quantidade de exceções**, o número de exceções que corresponderam na janela, e **Exceções novas**, **Exceções com regressão** e **Aumento de exceções (em %)**, descritos abaixo. **Quando alertar** configura um critério, cuja **Condição** é **Mais de**, **Pelo menos**, **Menos de**, **No máximo**, **Exatamente**, **Incomumente alto**, **Incomumente baixo** ou **Incomumente alto ou baixo**. Para vários critérios, ou um com mais de um filtro, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Condição do filtro** e um **Valor**.
 
 | Condição do filtro | Corresponde quando a contagem de exceções está… |
 | --- | --- |
@@ -155,7 +155,7 @@ Além de quantas exceções aconteceram, um monitor de exceções pode alertar s
 
 | Tipo de filtro | O que conta na janela |
 | --- | --- |
-| **New Exceptions** | Exceções correspondentes vistas pela primeira vez que não estão resolvidas nem arquivadas. |
+| **Exceções novas** | Exceções correspondentes vistas pela primeira vez que não estão resolvidas nem arquivadas. |
 | **Exceções com regressão** | Exceções correspondentes que você resolveu, que voltaram e continuam abertas. |
 | **Aumento de exceções (em %)** | Quanto o número de exceções correspondentes está acima do habitual: o dia anterior à janela, por janela da mesma duração, no mínimo uma. Dez exceções depois de um dia calmo dão 900%. |
 
@@ -188,7 +188,7 @@ Você quer um incidente sempre que a API lançar uma exceção em produção, e 
 | `TimeoutError` × 2 | nenhum | Ativa | Não: sem ambiente |
 | `NullReferenceException` × 4 | `production` | Resolvida depois de ocorrer | Não: resolvida |
 
-O **Quantidade de exceções** é 3, então **Mais de** `0` corresponde: o monitor fica offline e um incidente é declarado. Depois que passam cinco minutos sem nenhuma exceção de produção ativa, a regra deixa de corresponder, o monitor volta ao seu status padrão e o incidente se resolve sozinho.
+A **Quantidade de exceções** é 3, então **Mais de** `0` corresponde: o monitor fica offline e um incidente é declarado. Depois que passam cinco minutos sem nenhuma exceção de produção ativa, a regra deixa de corresponder, o monitor volta ao seu status padrão e o incidente se resolve sozinho.
 
 ## Solução de problemas
 

@@ -63,15 +63,14 @@ import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
  *     screen shows the English, never the Edit template. FLAT_LOOKUP lists
  *     them with the source line that draws each, and the translations name
  *     them as the flat lookup draws them.
- *   - OpenTelemetry's span status codes and two dialog titles built from
- *     template literals have no locale key at all: every language shows
- *     them in English (SHOWN_IN_ENGLISH). The threshold conditions (Greater
- *     Than, Equal To) gained theirs in adc8421a1b, and the criteria filters
- *     (Log Count, Metric Value, Exception Count), the anomaly conditions
- *     (Anomalously High) and the window aggregates (Any Value) theirs in
- *     #6575 (2026-11-10): they are labels now, drawn like any other, and a
- *     condition written out with its value ("**Equal To 0**") is drawn with
- *     it (CONDITIONS_WITH_VALUES).
+ *   - OpenTelemetry's span status codes (ERROR, UNSET) and two dialog titles
+ *     built from template literals have no locale key at all: every
+ *     language shows them in English (SHOWN_IN_ENGLISH). The threshold
+ *     conditions (Greater Than, Equal To) gained theirs in adc8421a1b, and
+ *     the criteria filters, anomaly conditions and aggregations (Log Count,
+ *     Anomalously High, Any Value) in 31eadaee92e: they are labels now,
+ *     drawn like any other, and a condition written out with its value
+ *     ("**Equal To 0**") is drawn with it (CONDITIONS_WITH_VALUES).
  *   - Plan names and permission titles stay in English, as on the workflow
  *     and runbook pages (KEPT_IN_ENGLISH): the plans are product names, and
  *     the permissions are what the API, Terraform and the team pages call
@@ -141,22 +140,21 @@ const TELEMETRY_MONITOR_PAGES: Array<string> = [
  * Bold names every language's Dashboard shows in English, because its
  * locale has no key for them, by page. A translation keeps each one bold and
  * in English, so the reader finds it as the screen shows it.
+ *
+ * The Logs, Metrics and Exceptions pages have none, and the Traces page only
+ * its span status codes: the criteria filters (Log Count, Metric Value, Span
+ * Count, Exception Count, New Exceptions, Regressed Exceptions, Exception
+ * Increase (in %)), the anomaly conditions (Anomalously High, Anomalously
+ * Low, Anomalous) and the aggregations (Any Value) left this list in
+ * 31eadaee92e, when every criteria check, condition and aggregation became a
+ * key of the Dashboard's locales (CriteriaFilterTerms). Profiles never had
+ * any: its criteria's labels (Profile Count, Function Share (in %)) were
+ * spelled out for the locales first (PROFILE_CHECK_ON_LABELS). Every
+ * language's criteria form draws them all in its own words.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
-  /*
-   * The logs, metrics and exceptions monitors have none since #6575
-   * (2026-11-10): their criteria filters (Log Count, Metric Value, Exception
-   * Count, New Exceptions), anomaly conditions (Anomalously High) and window
-   * aggregates (Any Value) are keyed in every language, so every criteria
-   * form draws them in its own words. Profiles had none before: its
-   * criteria's labels (Profile Count, Function Share (in %)) are spelled out
-   * for the locales (PROFILE_CHECK_ON_LABELS).
-   */
-  [TRACES_MONITOR]: [
-    // OpenTelemetry's span status codes, as TracesMonitorSpanStatusDocs keeps them.
-    "ERROR",
-    "UNSET",
-  ],
+  // OpenTelemetry's span status codes, as TracesMonitorSpanStatusDocs keeps them.
+  [TRACES_MONITOR]: ["ERROR", "UNSET"],
   [RESOURCES_AND_GROUPS]: [
     // Titles built from a template literal, which no lookup can find.
     "Add a monitor to {group}",

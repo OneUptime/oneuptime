@@ -67,9 +67,9 @@ function readLocale(language: string): Record<string, string> {
 
 // What reads the same as English in every language, and in this one.
 function keptAsWritten(language: string): Set<string> {
-  const global: Array<string> = readJson("i18n/SameAsEnglish.json") as Array<
-    string
-  >;
+  const global: Array<string> = readJson(
+    "i18n/SameAsEnglish.json",
+  ) as Array<string>;
   const own: Array<string> =
     ((readJson(`i18n/Progress/${language}.json`) as Record<string, unknown>)[
       "sameAsEnglish"

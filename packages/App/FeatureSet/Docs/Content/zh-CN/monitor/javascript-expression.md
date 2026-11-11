@@ -24,7 +24,7 @@ flowchart TB
 
 由于占位符以文本形式替换，`{{responseBody.item}}` 会变成原始值。字符串必须用引号括起来才是 JavaScript 字符串；数字或布尔值则不需要——参见 [引号规则](#引号规则)。表达式在 OneUptime 服务器上的隔离沙箱中运行。
 
-## 添加 JavaScript Expression 筛选器
+## 添加 JavaScript 表达式筛选器
 
 :::steps
 ### 打开条件
@@ -46,7 +46,7 @@ flowchart TB
 
 ## 各监视器类型的变量
 
-JavaScript 表达式适用于 Website、API、Incoming Request、Incoming Email、SQL Query 和 Database Health 监视器。
+JavaScript 表达式适用于 Website、API、传入请求、Incoming Email、SQL Query 和 Database Health 监视器。
 
 ### 网站和 API 监视器
 

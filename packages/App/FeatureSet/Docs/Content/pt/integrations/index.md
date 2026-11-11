@@ -29,7 +29,7 @@ Uma integração bidirecional, como Jira ou Dynamics 365, usa os dois sentidos: 
 | --- | --- | --- |
 | Uma conexão integrada | Ferramentas às quais o OneUptime se conecta sozinho. Você preenche um formulário e não há nada a montar. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), as conexões de [Eventos de segurança](/docs/telemetry/security-events) |
 | Um modelo de workflow | Ferramentas de tickets, sincronizadas nos dois sentidos, problemas de monitoramento, relatórios de incidentes de segurança e mensagens de chat. Você escolhe um modelo e preenche algumas configurações. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
-| Um monitor Incoming Request | Ferramentas de alerta que enviam um webhook. Você recebe um incidente por alerta, encaminhado ao plantão e resolvido quando o alerta se recupera, sem workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
+| Um monitor de requisições recebidas | Ferramentas de alerta que enviam um webhook. Você recebe um incidente por alerta, encaminhado ao plantão e resolvido quando o alerta se recupera, sem workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Um workflow que você monta | Qualquer ferramenta com um webhook ou uma API REST, e qualquer lógica sua. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
 Comece pelo topo da tabela: quanto mais alta uma forma, menos há para manter.
@@ -112,7 +112,7 @@ Uma ferramenta sem guia ainda se encaixa em um de dois padrões. Se ela pode env
 
 ### De entrada: outra ferramenta envia dados para o OneUptime
 
-Para uma ferramenta de alerta, comece com um [monitor Incoming Request](/docs/monitor/incoming-request-monitor#receber-alertas-de-outro-sistema): ele abre um incidente por alerta e o resolve na recuperação, sem nada a montar. Monte um workflow quando você precisar de uma lógica própria:
+Para uma ferramenta de alerta, comece com um [monitor de requisições recebidas](/docs/monitor/incoming-request-monitor#receber-alertas-de-outro-sistema): ele abre um incidente por alerta e o resolve na recuperação, sem nada a montar. Monte um workflow quando você precisar de uma lógica própria:
 
 :::steps
 1. Abra **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois em **Começar do zero**. Dê um nome ao workflow e clique em **Criar fluxo de trabalho**.

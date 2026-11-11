@@ -31,6 +31,7 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   checkApply: string;
   alertExplanation: (alertId: string) => string;
   alertFeedback: (alertId: string) => string;
+  alertLineage: (alertId: string) => string;
   quality: string;
   watchedTables: string;
   storeWatch: (dataStoreId: string) => string;
@@ -38,6 +39,7 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   biSync: (dataBiConnectionId: string) => string;
   tableDashboards: string;
   tableLineage: string;
+  pipelineLineage: string;
   tableSensitivity: string;
   tableErrors: string;
   aiAppTables: string;
@@ -54,6 +56,10 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   },
   alertFeedback: (alertId: string): string => {
     return `/data-observability/alerts/${alertId}/feedback`;
+  },
+  // The lineage around a data alert, with the ways to its cause and to the alerts it caused.
+  alertLineage: (alertId: string): string => {
+    return `/data-observability/alerts/${alertId}/lineage`;
   },
   // How well Data Observability is working for the project.
   quality: "/data-observability/quality",
@@ -113,6 +119,8 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   tableDashboards: "/data-observability/tables/dashboards",
   // A table's lineage several steps each way, with how each table is now: what its Lineage tab draws.
   tableLineage: "/data-observability/tables/lineage",
+  // A pipeline's lineage: the tables it reads and writes, with how each is now: what its page draws.
+  pipelineLineage: "/data-observability/pipelines/lineage",
   // What Data Security knows each of a table's columns holds.
   tableSensitivity: "/data-observability/tables/sensitivity",
   // The errors in the services that write a table, naming it.

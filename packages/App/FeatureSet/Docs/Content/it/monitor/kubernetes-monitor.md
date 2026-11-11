@@ -107,10 +107,10 @@ Questi monitor valutano sempre il **Valore della metrica**: il valore della quer
 | --- | --- |
 | Media | Valore medio nella finestra di tempo |
 | Somma | Somma di tutti i valori |
-| Maximum Value | Valore più alto nella finestra di tempo |
-| Minimum Value | Valore più basso nella finestra di tempo |
-| All Values | Tutti i valori devono soddisfare il criterio e coprire tutta la finestra di tempo |
-| Any Value | Almeno un valore deve corrispondere |
+| Valore massimo | Valore più alto nella finestra di tempo |
+| Valore minimo | Valore più basso nella finestra di tempo |
+| Tutti i valori | Tutti i valori devono soddisfare il criterio e coprire tutta la finestra di tempo |
+| Qualsiasi valore | Almeno un valore deve corrispondere |
 
 ### Condizioni
 

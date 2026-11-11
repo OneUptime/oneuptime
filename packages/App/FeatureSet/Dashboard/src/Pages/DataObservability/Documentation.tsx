@@ -325,6 +325,8 @@ They read these metrics, each tagged with \`oneuptime.data.pipeline.id\` and \`o
 - \`oneuptime.data.pipeline.run_duration_ratio\`: the run's time over the typical run's (counted as at least a minute), as each run ends and every five minutes while it runs.
 - \`oneuptime.data.pipeline.overdue_seconds\`: how long past its schedule the next run is, every five minutes; 0 while on time.
 
+A pipeline's page draws its **Lineage**, the first place to look when a run fails or is late: the tables it reads on the left, the tables it writes on the right, and how each is now. Pick more steps to see what those tables are built from and what is built from them. The same lineage is at \`POST /api/data-observability/pipelines/lineage\`, for your own tools.
+
 
 
 ## Fivetran and Airbyte syncs
@@ -415,6 +417,8 @@ When a table goes stale, every table built from it goes stale too. Before a data
 - It joins the cause's episode, when the cause is in one.
 
 The cause's **Data** card lists its **Downstream Impact**: every alert it caused. A table alert's card also shows the services that write the table, with their failed writes, and their deploys and other changes in the day before the alert.
+
+Under the **Data** card, an alert's page draws its **Lineage**: around its table, as the table's **Lineage** tab draws it, or around its pipeline, with the way up to the alert that caused it and down to each alert it caused highlighted, the cause marked **Cause** and each alert it caused **Consequence**. Someone who may not see the alert that caused it gets neither the **Data** card nor the lineage, and an alert it caused that they may not see is neither highlighted nor counted. The same lineage is at \`POST /api/data-observability/alerts/<alert ID>/lineage\`.
 
 
 ## OneUptime AI

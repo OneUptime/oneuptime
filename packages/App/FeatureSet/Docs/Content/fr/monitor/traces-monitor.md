@@ -101,7 +101,7 @@ Chaque changement de statut est enregistré, avec sa raison, dans la **Chronolog
 
 ## Critères
 
-Les critères d'un moniteur de traces ont un seul **Type de filtre** : **Span Count**, le nombre de spans qui ont correspondu dans la fenêtre. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus**, **Exactement**, **Anormalement haut**, **Anormalement bas** ou **Anormalement haut ou bas**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et, pour une condition de seuil, une **Valeur**.
+Les critères d'un moniteur de traces ont un seul **Type de filtre** : **Nombre de spans**, le nombre de spans qui ont correspondu dans la fenêtre. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus**, **Exactement**, **Anormalement haut**, **Anormalement bas** ou **Anormalement haut ou bas**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et, pour une condition de seuil, une **Valeur**.
 
 | Condition de filtre | Correspond quand le nombre de spans est… |
 | --- | --- |
@@ -127,8 +127,8 @@ Un moniteur de traces créé via l'API ou Terraform sans critères commence avec
 
 | Critère | Filtre | Effet |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Égal à** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
-| Check if … is online | **Span Count** **Supérieur à** `0` | Passe le moniteur en ligne |
+| Check if … is offline | **Nombre de spans** **Égal à** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
+| Check if … is online | **Nombre de spans** **Supérieur à** `0` | Passe le moniteur en ligne |
 
 ## Exemple : des requêtes de checkout en échec
 

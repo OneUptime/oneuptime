@@ -3,7 +3,7 @@
 把 [Datadog](https://www.datadoghq.com) 监控器的告警发送到 OneUptime，让每个告警都成为一个事件或警报，紧急时呼叫你的值班团队，并在 Datadog 监控器恢复时解决。Datadog 通过它的 [Webhooks 集成](https://docs.datadoghq.com/integrations/webhooks/) 发送告警，因此两边都无需安装任何东西。
 
 :::cards
-- [选择 OneUptime 接收告警的方式](#选择-oneuptime-接收告警的方式): 工作流模板，或 Incoming Request 监视器。
+- [选择 OneUptime 接收告警的方式](#选择-oneuptime-接收告警的方式): 工作流模板，或入站请求监视器。
 - [从模板开始](#从模板开始): 选择要呼叫的人，复制 URL，并查看每个告警会做什么。
 - [用监视器接收告警](#用监视器接收告警): 每个告警一个事件，恢复时自动解决。
 - [配置 Datadog](#配置-datadog): 一个 Webhook，以及通知它的监控器。
@@ -36,7 +36,7 @@ Datadog 监控器在状态改变时，也就是触发、警告、恢复或没有
 | 方式 | 适用情况 |
 | --- | --- |
 | 工作流模板（推荐） | 你希望每个告警都成为一个事件或警报，其严重程度来自监控器的优先级，P1 和 P2 时呼叫值班人员，警告记录在上面，并在恢复时解决。无需构建任何东西。 |
-| Incoming Request 监视器 | 你希望不用工作流、在任何套餐上都能创建事件，并有一个状态跟随 Datadog 的监视器。 |
+| 入站请求监视器 | 你希望不用工作流、在任何套餐上都能创建事件，并有一个状态跟随 Datadog 的监视器。 |
 
 两者从同一个 Webhook 收到相同的 JSON，所以你可以先用其中一种，之后只需修改 Datadog 中的一个 URL 就能切换。
 
@@ -86,7 +86,7 @@ Datadog 监控器在状态改变时，也就是触发、警告、恢复或没有
 
 ## 用监视器接收告警
 
-[Incoming Request 监视器](/docs/monitor/incoming-request-monitor) 会给你一个 URL，它的条件决定每个告警做什么。
+[入站请求监视器](/docs/monitor/incoming-request-monitor) 会给你一个 URL，它的条件决定每个告警做什么。
 
 :::steps
 ### 创建监视器

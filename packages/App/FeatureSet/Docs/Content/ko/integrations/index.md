@@ -29,7 +29,7 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 | --- | --- | --- |
 | 기본 제공 연결 | OneUptime이 직접 연결하는 도구. 양식만 채우면 되고 만들 것은 없습니다. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [보안 이벤트](/docs/telemetry/security-events) 연결 |
 | 워크플로 템플릿 | 양방향으로 동기화되는 티켓 도구, 모니터링 문제, 보안 인시던트 보고서, 채팅 메시지. 템플릿을 고르고 설정 몇 가지를 채웁니다. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
-| Incoming Request 모니터 | 웹훅을 보내는 알림 도구. 워크플로 없이 알림마다 인시던트가 하나씩 만들어지고, 온콜에 전달되며, 알림이 복구되면 해결됩니다. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
+| 수신 요청 모니터 | 웹훅을 보내는 알림 도구. 워크플로 없이 알림마다 인시던트가 하나씩 만들어지고, 온콜에 전달되며, 알림이 복구되면 해결됩니다. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | 직접 만드는 워크플로 | 웹훅이나 REST API가 있는 모든 도구와 모든 자체 로직. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
 표의 위쪽부터 검토하세요. 위에 있는 방법일수록 유지 관리할 것이 적습니다.
@@ -112,7 +112,7 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 
 ### 인바운드: 다른 도구가 OneUptime으로 데이터를 보냄
 
-알림 도구라면 먼저 [Incoming Request 모니터](/docs/monitor/incoming-request-monitor#다른-시스템의-알림-수신)로 시작하세요. 알림마다 인시던트를 하나씩 만들고 복구되면 해결하므로 만들 것이 없습니다. 자체 로직이 필요할 때 워크플로를 만드세요:
+알림 도구라면 먼저 [수신 요청 모니터](/docs/monitor/incoming-request-monitor#다른-시스템의-알림-수신)로 시작하세요. 알림마다 인시던트를 하나씩 만들고 복구되면 해결하므로 만들 것이 없습니다. 자체 로직이 필요할 때 워크플로를 만드세요:
 
 :::steps
 1. **워크플로**를 열고 **워크플로 생성**을 클릭한 다음 **처음부터 시작**을 클릭합니다. 워크플로 이름을 정하고 **워크플로 생성**을 클릭합니다.

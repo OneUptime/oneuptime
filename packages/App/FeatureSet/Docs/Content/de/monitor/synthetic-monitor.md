@@ -128,7 +128,7 @@ Vom Skript zurückgegebene Daten werden vor dem Speichern nach JSON serialisiert
 
 ### Auf die zurückgegebenen Daten alarmieren
 
-Was das Skript als `data` zurückgibt, ist der **Ergebniswert** des Monitors, den ein Kriterium vergleichen kann. Ist `data` ein Objekt oder ein Array, füllen Sie im Result-Value-Filter **Feldpfad (optional)** aus, um ein Feld daraus zu vergleichen — zum Beispiel `status`, `timings.loadTime` oder `errors[0].message`. Der Filter wird an den Daten jedes Browsers und jeder Bildschirmgröße geprüft, auf denen der Monitor läuft, und trifft zu, wenn einer davon zutrifft. Wie Pfade und Bedingungen funktionieren, steht unter [Auf die zurückgegebenen Daten alarmieren](/docs/monitor/custom-code-monitor#auf-die-zurückgegebenen-daten-alarmieren).
+Was das Skript als `data` zurückgibt, ist der **Ergebniswert** des Monitors, den ein Kriterium vergleichen kann. Ist `data` ein Objekt oder ein Array, füllen Sie im Ergebniswert-Filter **Feldpfad (optional)** aus, um ein Feld daraus zu vergleichen — zum Beispiel `status`, `timings.loadTime` oder `errors[0].message`. Der Filter wird an den Daten jedes Browsers und jeder Bildschirmgröße geprüft, auf denen der Monitor läuft, und trifft zu, wenn einer davon zutrifft. Wie Pfade und Bedingungen funktionieren, steht unter [Auf die zurückgegebenen Daten alarmieren](/docs/monitor/custom-code-monitor#auf-die-zurückgegebenen-daten-alarmieren).
 
 ## Screenshots
 

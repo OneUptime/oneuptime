@@ -11,13 +11,13 @@ import {
   TopologyDrillState,
   buildSiteTopologyFilterOptions,
   canShowDeviceView,
+  childNounInSentence,
   describeSiteTopologyFilter,
   describeUnattachedDevices,
   filterSitesByTopologyHealth,
   firstMatchingSiteId,
   flatFallbackReason,
   parseTopologyDrillState,
-  pluralChildLabel,
   resolveHierarchyTopologyView,
   summarizeSiteTopologyHealth,
 } from "./HierarchyTopologyViewModel";
@@ -58,6 +58,13 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  TemplateValue,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import React, {
   Fragment,
   FunctionComponent,
@@ -113,12 +120,15 @@ const REFRESH_INTERVAL_MS: number = 60 * 1000;
 // Debounce for mirroring drill state into the URL (Safari rate-limits it).
 const QUERY_STRING_DEBOUNCE_MS: number = 200;
 
-const CARD_TITLE: string = "Browse by site";
-const CARD_DESCRIPTION: string =
-  "Start with a location to understand its network and find devices that need attention.";
+// The card and the search box look these up in the reader's language.
+const CARD_TITLE: string = translationKey("Browse by site");
+const CARD_DESCRIPTION: string = translationKey(
+  "Start with a location to understand its network and find devices that need attention.",
+);
 
-const SEARCH_PLACEHOLDER: string =
-  "Search sites by name — anywhere in your network";
+const SEARCH_PLACEHOLDER: string = translationKey(
+  "Search sites by name — anywhere in your network",
+);
 
 /*
  * How a load ended. "superseded" is not a failure: a newer request (a
@@ -145,16 +155,19 @@ const FLAT_FALLBACK_COPY: Record<
   Exclude<FlatFallbackReason, null | "requested">,
   string
 > = {
-  "no-sites":
+  "no-sites": translationKey(
     "You're viewing every device in one map. Organize devices into sites to explore your network by location.",
-  "no-attached-devices":
+  ),
+  "no-attached-devices": translationKey(
     "Your devices aren't assigned to sites yet. Set a site on each device to explore its network by location.",
+  ),
 };
 
 const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   /*
    * Drill position. Read from the URL at mount so a link opens on the level
@@ -449,7 +462,11 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
    * pluraliser rather than a "+ s" — "Search facilitys" is the tell that
    * two halves of the product disagree about somebody's own vocabulary.
    */
-  const childTypeLabelPlural: string = pluralChildLabel(childTypeLabel);
+  // The level's children in a sentence: the customer's word, or "sites".
+  const childrenInSentence: TemplateValue = childNounInSentence(
+    childTypeLabel,
+    true,
+  );
 
   /*
    * Issue #3320's auto-zoom, at this level: the first site the filter
@@ -486,19 +503,21 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
     : null;
 
   const chipOptions: Array<StatusChipOption> = useMemo(() => {
-    return buildSiteTopologyFilterOptions(healthSummary, childTypeLabel).map(
-      (option: SiteTopologyFilterOption): StatusChipOption => {
-        return {
-          value: option.value,
-          label: option.label,
-          description: option.description,
-          color: option.color,
-          count: option.count,
-          testId: option.testId,
-        };
-      },
-    );
-  }, [healthSummary, childTypeLabel]);
+    return buildSiteTopologyFilterOptions(
+      healthSummary,
+      childTypeLabel,
+      translator,
+    ).map((option: SiteTopologyFilterOption): StatusChipOption => {
+      return {
+        value: option.value,
+        label: option.label,
+        description: option.description,
+        color: option.color,
+        count: option.count,
+        testId: option.testId,
+      };
+    });
+  }, [healthSummary, childTypeLabel, translator.language]);
 
   const refresh: () => void = (): void => {
     fetchLevel(currentSiteId, false).catch((err: Error) => {
@@ -536,8 +555,11 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
     breadcrumb.length > 0 || showDeviceToggle || showToggleFromDeviceView;
 
   const deviceToggleLabels: { level: string; devices: string } = isAtRoot
-    ? { level: "Browse by site", devices: "All devices" }
-    : { level: "Sites here", devices: "Devices here" };
+    ? { level: CARD_TITLE, devices: translationKey("All devices") }
+    : {
+        level: translationKey("Sites here"),
+        devices: translationKey("Devices here"),
+      };
 
   const header: ReactElement = (
     <div className="mb-4 flex flex-col gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 md:flex-row md:items-center md:justify-between">
@@ -545,7 +567,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
       {showDeviceToggle || showToggleFromDeviceView ? (
         <div
           role="group"
-          aria-label={translateString("Topology scope") || "Topology scope"}
+          aria-label={translateString("Topology scope")}
           data-testid="topology-hierarchy-scope-toggle"
           className="inline-flex flex-shrink-0 flex-wrap rounded-lg border border-gray-200 bg-gray-50 p-0.5"
         >
@@ -607,8 +629,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
            */}
           <Loader loaderType={LoaderType.Bar} size={180} color={Slate500} />
           <p className="text-sm text-gray-500">
-            {translateString("Loading your network…") ||
-              "Loading your network…"}
+            {translateString("Loading your network…")}
           </p>
         </div>
       </Card>
@@ -652,7 +673,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
                 changeSite(null);
               }}
             >
-              {translateString("Back to all sites") || "Back to all sites"}
+              {translateString("Back to all sites")}
             </button>
           </div>
         ) : (
@@ -695,7 +716,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
               )}
               className="font-medium text-indigo-600 hover:text-indigo-800"
             >
-              {translateString("Manage sites") || "Manage sites"}
+              {translateString("Manage sites")}
             </Link>
           </div>
         ) : (
@@ -741,6 +762,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
       attachedDeviceCount: 0,
       unattachedDeviceCount: 0,
     },
+    translator,
   );
 
   return (
@@ -750,7 +772,10 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
         title={currentSite ? currentSite.name : CARD_TITLE}
         description={
           currentSite
-            ? `Explore the ${childTypeLabelPlural} in ${currentSite.name}. Each card includes the health of the devices below it.`
+            ? translator.translateTemplate(
+                "Explore the {{children}} in {{site}}. Each card includes the health of the devices below it.",
+                { children: childrenInSentence, site: currentSite.name },
+              )
             : CARD_DESCRIPTION
         }
         buttons={[
@@ -767,7 +792,10 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
             className="mb-3 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800"
             data-testid="topology-hierarchy-refresh-error"
           >
-            {`${error} — showing the last level that loaded.`}
+            {translator.translateTemplate(
+              "{{error}} — showing the last level that loaded.",
+              { error: error },
+            )}
           </div>
         ) : (
           <></>
@@ -811,7 +839,14 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
                 aria-live="polite"
                 data-testid="topology-hierarchy-result-count"
               >
-                {`${visibleSites.length} of ${allLevelSites.length} ${childTypeLabelPlural} · Updates every minute`}
+                {translator.translateTemplate(
+                  "{{visible}} of {{total}} {{children}} · Updates every minute",
+                  {
+                    visible: translator.formatNumber(visibleSites.length),
+                    total: translator.formatNumber(allLevelSites.length),
+                    children: childrenInSentence,
+                  },
+                )}
               </p>
               {normalizedSearch || healthFilterMode !== "all" ? (
                 <button
@@ -823,7 +858,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
                     setHealthFilterMode("all");
                   }}
                 >
-                  {translateString("Clear filters") || "Clear filters"}
+                  {translateString("Clear filters")}
                 </button>
               ) : (
                 <></>
@@ -864,19 +899,28 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
                 mode: healthFilterMode,
                 summary: healthSummary,
                 childTypeLabel: childTypeLabel,
+                translator: translator,
               })}
             </p>
             {focusedSite ? (
               <button
                 type="button"
                 data-testid="topology-hierarchy-jump-to-first"
-                aria-label={`Open ${focusedSite.name}, the first ${childTypeLabel.toLowerCase()} that needs a look`}
+                aria-label={translator.translateTemplate(
+                  "Open {{site}}, the first {{child}} that needs a look",
+                  {
+                    site: focusedSite.name,
+                    child: childNounInSentence(childTypeLabel, false),
+                  },
+                )}
                 className="rounded-md px-2 py-1 text-xs font-medium text-indigo-600 underline transition hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 onClick={() => {
                   changeSite(focusedSite.id);
                 }}
               >
-                {`Open ${focusedSite.name}`}
+                {translator.translateTemplate("Open {{name}}", {
+                  name: focusedSite.name,
+                })}
               </button>
             ) : (
               <></>
@@ -906,7 +950,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
                 showEveryDevice();
               }}
             >
-              {translateString("Show every device") || "Show every device"}
+              {translateString("Show every device")}
             </button>
           </p>
         ) : (
@@ -920,8 +964,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
           >
             {translateString(
               "This level is very large, so some of the rollups below may be partial. Search to narrow it down.",
-            ) ||
-              "This level is very large, so some of the rollups below may be partial. Search to narrow it down."}
+            )}
           </div>
         ) : (
           <></>
@@ -945,11 +988,22 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
                    * and the search box's dropdown is where that shows up.
                    */
                   isRemoteSearchable(normalizedSearch)
-                  ? `No ${childTypeLabelPlural} at this level match. Click the search box to see matching sites from anywhere in your network, or clear the search and filters.`
-                  : `No ${childTypeLabelPlural} at this level match what you are looking for. Clear the search or the health filter to see the rest.`
-                : `Nothing has been added inside ${
-                    currentSite ? currentSite.name : "this project"
-                  } yet.`
+                  ? translator.translateTemplate(
+                      "No {{children}} at this level match. Click the search box to see matching sites from anywhere in your network, or clear the search and filters.",
+                      { children: childrenInSentence },
+                    )
+                  : translator.translateTemplate(
+                      "No {{children}} at this level match what you are looking for. Clear the search or the health filter to see the rest.",
+                      { children: childrenInSentence },
+                    )
+                : currentSite
+                  ? translator.translateTemplate(
+                      "Nothing has been added inside {{site}} yet.",
+                      { site: currentSite.name },
+                    )
+                  : translator.translateText(
+                      "Nothing has been added inside this project yet.",
+                    ) || ""
             }
           />
         ) : (
@@ -973,16 +1027,21 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
 
         {isAtRoot ? (
           <p className="mt-4 text-xs text-gray-500">
-            {translateString("Sites are managed in") || "Sites are managed in"}{" "}
-            <Link
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.NETWORK_SITES] as Route,
-              )}
-              className="font-medium text-indigo-600 hover:text-indigo-800"
-            >
-              Network Sites
-            </Link>
-            .
+            <TranslatedSentence
+              template="Sites are managed in {{networkSites}}."
+              slots={{
+                networkSites: (
+                  <Link
+                    to={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.NETWORK_SITES] as Route,
+                    )}
+                    className="font-medium text-indigo-600 hover:text-indigo-800"
+                  >
+                    {translator.translateText("Network Sites")}
+                  </Link>
+                ),
+              }}
+            />
           </p>
         ) : (
           <></>

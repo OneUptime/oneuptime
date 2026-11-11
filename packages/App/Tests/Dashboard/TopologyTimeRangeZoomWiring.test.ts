@@ -84,7 +84,7 @@ describe("the service-call drawer keeps a zoom of its own", () => {
      */
     const history: number = indexOfOrFail(
       code,
-      ') : ( <div data-testid="edge-history" aria-busy={isLoading}> <div className="flex h-7 items-center justify-between gap-2" data-testid="edge-history-header" > <h3 className="text-sm font-semibold text-gray-900"> {translateString("History") || "History"} </h3> <div className="flex items-center gap-2">',
+      ') : ( <div data-testid="edge-history" aria-busy={isLoading}> <div className="flex h-7 items-center justify-between gap-2" data-testid="edge-history-header" > <h3 className="text-sm font-semibold text-gray-900"> {translateString("History")} </h3> <div className="flex items-center gap-2">',
     );
     const reset: number = indexOfOrFail(code, "<ResetTimeRangeZoomButton />");
     const body: number = indexOfOrFail(

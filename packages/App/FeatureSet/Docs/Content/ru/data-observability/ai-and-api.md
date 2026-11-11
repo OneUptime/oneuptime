@@ -33,6 +33,8 @@ OneUptime AI знает ваши данные: он расследует опо�
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Вебхуки синхронизаций Airbyte | Ключ приёма в URL |
 | `POST /api/data-observability/tables/freshness` | Актуальность таблицы в том виде, в каком её возвращает инструмент MCP, с `{ "table": "public.orders" }` | API-ключ |
 | `POST /api/data-observability/tables/lineage` | Происхождение таблицы на несколько шагов в каждую сторону, с состоянием каждой таблицы, как его рисует вкладка **Происхождение**, с `{ "dataAssetId": "<table ID>", "depth": 3 }` | API-ключ |
+| `POST /api/data-observability/pipelines/lineage` | Таблицы, которые пайплайн читает и пишет, с состоянием каждой таблицы, как их рисует его страница, с `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | API-ключ |
+| `POST /api/data-observability/alerts/<alert ID>/lineage` | Происхождение оповещения о данных, как его рисует страница оповещения, с путём к оповещению, которое его вызвало, и к оповещениям, которые вызвало оно | API-ключ |
 | `POST /api/data-observability/checks/apply` | Приводит проверки проекта в соответствие с файлом, как это делает `oneuptime data-checks apply`, с `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | API-ключ |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | Значок «data as of» продукта данных | Собственный токен значка |
 

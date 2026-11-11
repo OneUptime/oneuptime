@@ -101,7 +101,7 @@ Cada cambio de estado, con su motivo, queda registrado en la **Cronología de es
 
 ## Criterios
 
-Los criterios de un monitor de trazas tienen un único **Tipo de filtro**: **Span Count**, el número de spans que coincidieron en la ventana. **Cuándo alertar** configura un criterio, cuya **Condición** es **Más de**, **Al menos**, **Menos de**, **Como mucho**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo** o **Inusualmente alto o bajo**. Para varios criterios, o uno con más de un filtro, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Condición de filtro** y, para una condición de umbral, un **Valor**.
+Los criterios de un monitor de trazas tienen un único **Tipo de filtro**: **Número de spans**, el número de spans que coincidieron en la ventana. **Cuándo alertar** configura un criterio, cuya **Condición** es **Más de**, **Al menos**, **Menos de**, **Como mucho**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo** o **Inusualmente alto o bajo**. Para varios criterios, o uno con más de un filtro, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Condición de filtro** y, para una condición de umbral, un **Valor**.
 
 | Condición de filtro | Coincide cuando el recuento de spans está… |
 | --- | --- |
@@ -127,8 +127,8 @@ Un monitor de trazas creado mediante la API o Terraform sin criterios empieza co
 
 | Criterio | Filtro | Efecto |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Igual a** `0` | Pone el monitor fuera de línea y declara un incidente que se resuelve solo |
-| Check if … is online | **Span Count** **Mayor que** `0` | Pone el monitor en línea |
+| Check if … is offline | **Número de spans** **Igual a** `0` | Pone el monitor fuera de línea y declara un incidente que se resuelve solo |
+| Check if … is online | **Número de spans** **Mayor que** `0` | Pone el monitor en línea |
 
 ## Ejemplo práctico: solicitudes de checkout fallidas
 

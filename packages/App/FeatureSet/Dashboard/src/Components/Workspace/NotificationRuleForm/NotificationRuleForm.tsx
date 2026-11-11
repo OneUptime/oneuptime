@@ -431,7 +431,9 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             return {
               label:
                 chat.chatType === "personal"
-                  ? `${chat.name} (1:1 chat)`
+                  ? translator.translateTemplate("{{chat}} (1:1 chat)", {
+                      chat: chat.name,
+                    })
                   : chat.name,
               value: chat.id,
             };

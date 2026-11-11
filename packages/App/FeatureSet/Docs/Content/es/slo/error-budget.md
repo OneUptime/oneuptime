@@ -44,7 +44,7 @@ A medida que se acumula el tiempo de inactividad, la **Vista general** muestra e
 - como porcentaje del total, que también decide el estado del SLO y llena la barra. La barra tiene una marca en el umbral de riesgo del SLO;
 - como duración, por ejemplo "31m 4s left of 43m 12s".
 
-Cuando el presupuesto se agota, el mosaico muestra **No budget left**. Cuando el tiempo de inactividad lo supera, el mosaico muestra **Budget exceeded** y el exceso como tiempo, por ejemplo "4d 23m over budget · 5m 47s allowed": el SLO ha gastado los 5 minutos y 47 segundos de su presupuesto, y otros 4 días y 23 minutos más. La barra se queda vacía y en rojo.
+Cuando el presupuesto se agota, el mosaico muestra **Sin presupuesto**. Cuando el tiempo de inactividad lo supera, el mosaico muestra **Presupuesto superado** y el exceso como tiempo, por ejemplo "4d 23m over budget · 5m 47s allowed": el SLO ha gastado los 5 minutos y 47 segundos de su presupuesto, y otros 4 días y 23 minutos más. La barra se queda vacía y en rojo.
 
 El presupuesto restante se guarda como un número con signo para los cálculos y los gráficos de historial, así que un presupuesto superado aparece ahí como un porcentaje negativo. Un porcentaje muy negativo significa que el exceso es grande comparado con el presupuesto; no es la parte del tiempo en que el servicio estuvo caído.
 
@@ -60,11 +60,11 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 | El mosaico muestra | Qué significa |
 | --- | --- |
-| Una duración, como **~2d 5h** | El presupuesto se agota en más o menos ese tiempo al ritmo actual. En ámbar, y en rojo cuando queda un día o menos. **Under 1m** significa menos de un minuto. |
-| **Not burning** | No se gastó presupuesto en los últimos 60 minutos. |
-| **Sustainable** | Solo ventanas móviles: la autonomía es de al menos una ventana entera, así que el presupuesto no se gasta más rápido de lo que sale de la ventana el tiempo de inactividad antiguo. A este ritmo no se puede agotar. |
-| **Lasts until reset** | Solo meses naturales: el presupuesto se reinicia al empezar el mes siguiente antes de agotarse. |
-| **Overspent** | El presupuesto ya está gastado. El mosaico indica cuánto se ha superado. |
+| Una duración, como **~2d 5h** | El presupuesto se agota en más o menos ese tiempo al ritmo actual. En ámbar, y en rojo cuando queda un día o menos. **Menos de 1 min** significa menos de un minuto. |
+| **Sin consumo** | No se gastó presupuesto en los últimos 60 minutos. |
+| **Sostenible** | Solo ventanas móviles: la autonomía es de al menos una ventana entera, así que el presupuesto no se gasta más rápido de lo que sale de la ventana el tiempo de inactividad antiguo. A este ritmo no se puede agotar. |
+| **Dura hasta el reinicio** | Solo meses naturales: el presupuesto se reinicia al empezar el mes siguiente antes de agotarse. |
+| **Excedido** | El presupuesto ya está gastado. El mosaico indica cuánto se ha superado. |
 
 En los SLO de mes natural, el mosaico también indica cuándo se reinicia el presupuesto.
 
@@ -80,7 +80,7 @@ El gráfico **Consumo del presupuesto de errores** de la **Vista general** traza
 - Se registra un punto en cada evaluación, cada 5 minutos, así que el gráfico de un SLO nuevo está vacío hasta su primera evaluación.
 - Arrastra sobre el gráfico para ampliar una parte de la ventana. Haz doble clic, o clic en **Restablecer zoom**, para volver a ver toda la ventana.
 
-**Abrir métricas** abre la página **Métricas** del SLO, cuya pestaña **Error Budget History** llega hasta 400 días atrás. Consulta [Métricas y paneles de SLO](/docs/slo/metrics).
+**Abrir métricas** abre la página **Métricas** del SLO, cuya pestaña **Historial del presupuesto de errores** llega hasta 400 días atrás. Consulta [Métricas y paneles de SLO](/docs/slo/metrics).
 
 ## Cómo se recupera el presupuesto
 

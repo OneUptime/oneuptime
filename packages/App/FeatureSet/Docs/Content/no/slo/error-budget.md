@@ -44,7 +44,7 @@ Etter hvert som nedetiden øker, viser **Oversikt** det gjenværende budsjettet 
 - som en prosentandel av totalen, som også bestemmer statusen til SLO-et og fyller stolpen. Stolpen har et merke ved risikoterskelen til SLO-et;
 - som en varighet, for eksempel "31m 4s left of 43m 12s".
 
-Når budsjettet er brukt opp, viser flisen **No budget left**. Når nedetiden overskrider det, viser flisen **Budget exceeded** og overskridelsen som tid, for eksempel "4d 23m over budget · 5m 47s allowed": SLO-et har brukt alle 5 minutter og 47 sekunder av budsjettet sitt, og 4 dager og 23 minutter til. Stolpen blir stående tom og rød.
+Når budsjettet er brukt opp, viser flisen **Ikke noe budsjett igjen**. Når nedetiden overskrider det, viser flisen **Budsjettet er overskredet** og overskridelsen som tid, for eksempel "4d 23m over budget · 5m 47s allowed": SLO-et har brukt alle 5 minutter og 47 sekunder av budsjettet sitt, og 4 dager og 23 minutter til. Stolpen blir stående tom og rød.
 
 Gjenværende budsjett lagres som et tall med fortegn for beregninger og historikkdiagrammer, så der vises et overskredet budsjett som en negativ prosentandel. En svært negativ prosentandel betyr at overskridelsen er stor sammenlignet med budsjettet; det er ikke andelen av tiden tjenesten var nede.
 
@@ -60,11 +60,11 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 | Flisen viser | Hva det betyr |
 | --- | --- |
-| En varighet, som **~2d 5h** | I dagens tempo går budsjettet tomt om omtrent så lang tid. Gul, og rød ved én dag eller mindre. **Under 1m** betyr mindre enn ett minutt. |
-| **Not burning** | Det er ikke brukt noe budsjett de siste 60 minuttene. |
-| **Sustainable** | Bare rullerende vinduer: rekkevidden er minst ett helt vindu, så budsjettet brukes ikke raskere enn gammel nedetid faller ut av vinduet. I dette tempoet går det ikke tomt. |
-| **Lasts until reset** | Bare kalendermåneder: budsjettet nullstilles ved starten av neste måned før det går tomt. |
-| **Overspent** | Budsjettet er allerede brukt opp. Flisen sier hvor mye det er overskredet med. |
+| En varighet, som **~2d 5h** | I dagens tempo går budsjettet tomt om omtrent så lang tid. Gul, og rød ved én dag eller mindre. **Under 1 min** betyr mindre enn ett minutt. |
+| **Ikke noe forbruk** | Det er ikke brukt noe budsjett de siste 60 minuttene. |
+| **Bærekraftig** | Bare rullerende vinduer: rekkevidden er minst ett helt vindu, så budsjettet brukes ikke raskere enn gammel nedetid faller ut av vinduet. I dette tempoet går det ikke tomt. |
+| **Rekker til tilbakestilling** | Bare kalendermåneder: budsjettet nullstilles ved starten av neste måned før det går tomt. |
+| **Overskredet** | Budsjettet er allerede brukt opp. Flisen sier hvor mye det er overskredet med. |
 
 For SLO-er med kalendermåned sier flisen også når budsjettet nullstilles.
 
@@ -80,7 +80,7 @@ Diagrammet **Nedbrenning av feilbudsjett** i **Oversikt** viser gjenværende bud
 - Et punkt registreres ved hver evaluering, hvert 5. minutt, så diagrammet til et nytt SLO er tomt til den første evalueringen.
 - Dra over diagrammet for å zoome inn på en del av vinduet. Dobbeltklikk, eller klikk på **Tilbakestill zoom**, for å se hele vinduet igjen.
 
-**Åpne målinger** åpner siden **Målinger** til SLO-et, der fanen **Error Budget History** går opptil 400 dager tilbake. Se [SLO-metrikker og -dashbord](/docs/slo/metrics).
+**Åpne målinger** åpner siden **Målinger** til SLO-et, der fanen **Feilbudsjettets historikk** går opptil 400 dager tilbake. Se [SLO-metrikker og -dashbord](/docs/slo/metrics).
 
 ## Hvordan budsjettet kommer tilbake
 

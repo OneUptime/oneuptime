@@ -39,9 +39,12 @@ const MODELS_WITH_A_SUBJECT: Array<string> = REGISTERED_MODELS.filter(
   },
 );
 
-// What a rule model's name ends with after the kind of record it is about.
+/*
+ * What a rule model's name ends with after the kind of record it is about:
+ * a naming rule (#6619) names network devices, as a label rule labels them.
+ */
 const RULE_KIND_SUFFIX: RegExp =
-  /(?:Label|Owner|OnCall|Grouping|Privacy|Reminder|Sla)Rule$/;
+  /(?:Label|Owner|OnCall|Grouping|Privacy|Reminder|Sla|Naming)Rule$/;
 
 const PLURAL_NAME: RegExp = /pluralName:\s*"([^"]+)"/;
 

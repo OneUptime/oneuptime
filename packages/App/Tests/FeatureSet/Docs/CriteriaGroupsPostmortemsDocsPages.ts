@@ -56,10 +56,10 @@ export const CRITERIA_GROUPS_POSTMORTEMS_PAGES: ReadonlyArray<CriteriaGroupsPost
  * Bold words every language writes as the English does, by page: the "⋯"
  * that opens a row's menu, and the built-in outlines of Generate Postmortem
  * with AI, which the dialog lists by their English names in every language.
- * The criteria editor's filter and window names (Is Online, All Values,
- * Response Header Value, JavaScript Expression) left this list on
- * 2026-11-10: #6575 keyed them in every language, so every translation
- * names them as its criteria editor draws them.
+ * (The criteria editor's filter and window names - Is Online, All Values,
+ * Response Header Value, JavaScript Expression - were kept too until
+ * 31eadaee92e gave them keys, worded in every language in f155e8e0998: the
+ * dropdowns draw them translated, so the pages name them as drawn.)
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {

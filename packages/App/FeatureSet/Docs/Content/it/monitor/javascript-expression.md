@@ -24,7 +24,7 @@ flowchart TB
 
 Poiché i segnaposto vengono sostituiti come testo, `{{responseBody.item}}` diventa il valore grezzo. Una stringa deve stare tra virgolette per essere una stringa JavaScript; un numero o un booleano no — vedete [Regole sulle virgolette](#regole-sulle-virgolette). Le espressioni vengono eseguite sul server OneUptime, in una sandbox isolata.
 
-## Aggiungere un filtro JavaScript Expression
+## Aggiungere un filtro Espressione JavaScript
 
 :::steps
 ### Aprire i criteri
@@ -46,7 +46,7 @@ Salvate il monitor. Il filtro viene valutato al controllo successivo del monitor
 
 ## Variabili per tipo di monitor
 
-Le espressioni JavaScript sono offerte per i monitor di tipo Sito web, API, Incoming Request, Incoming Email, SQL Query e Database Health.
+Le espressioni JavaScript sono offerte per i monitor di tipo Sito web, API, Richiesta in arrivo, Incoming Email, SQL Query e Database Health.
 
 ### Monitor di siti web e API
 

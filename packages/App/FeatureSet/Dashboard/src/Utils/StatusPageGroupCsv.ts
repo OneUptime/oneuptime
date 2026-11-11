@@ -1,7 +1,10 @@
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  TemplateValues,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Pure CSV parsing + import planning for the Status Page > Groups bulk
@@ -108,6 +111,19 @@ const GRID_ONLY_COLUMNS: Array<string> = [
   "columnAxisLabel",
   "columnAxisValues",
 ];
+
+/*
+ * A problem with the file, in the reader's language. Each one is drawn in
+ * the import dialog's list and nowhere else, so the values in it - a
+ * column's name, the cell as it was written - are set apart: an Arabic
+ * 'isExpandedByDefault "maybe"' keeps its quotes around the value instead
+ * of one flipped to the far end of the Latin run.
+ */
+function translateCsvError(template: string, values: TemplateValues): string {
+  return getGlobalTranslator().translateTemplate(template, values, {
+    setsValuesApart: true,
+  });
+}
 
 interface CsvRecord {
   // 1-based line the record starts on (quoted fields may span lines).
@@ -229,7 +245,7 @@ function parseHeader(
     if (!canonical) {
       errors.push({
         line: record.line,
-        message: translateTemplate(
+        message: translateCsvError(
           'Unknown column "{{column}}" in header. Expected columns: {{columns}}.',
           {
             column: cell.trim(),
@@ -243,7 +259,7 @@ function parseHeader(
     if (headerIndex.has(canonical)) {
       errors.push({
         line: record.line,
-        message: translateTemplate('Duplicate column "{{column}}" in header.', {
+        message: translateCsvError('Duplicate column "{{column}}" in header.', {
           column: canonical,
         }),
       });
@@ -257,7 +273,7 @@ function parseHeader(
     if (!headerIndex.has(required)) {
       errors.push({
         line: record.line,
-        message: translateTemplate(
+        message: translateCsvError(
           'Missing required column "{{column}}" in header.',
           { column: required },
         ),
@@ -311,7 +327,10 @@ function parseBoolean(raw: string, column: string): BooleanParseResult {
 
   return {
     value: undefined,
-    error: `${column} "${raw.trim()}" is not a true/false value. Use true or false (yes/no and 1/0 also work).`,
+    error: translateCsvError(
+      '{{column}} "{{value}}" is not a true/false value. Use true or false (yes/no and 1/0 also work).',
+      { column: column, value: raw.trim() },
+    ),
   };
 }
 
@@ -355,9 +374,14 @@ function parseEnumCell<TEnumValue extends string>(data: {
   if (matched === undefined) {
     return {
       value: undefined,
-      error: `Unknown ${data.column} "${data.raw.trim()}". Valid values: ${Object.keys(
-        data.enumObject,
-      ).join(", ")}.`,
+      error: translateCsvError(
+        'Unknown {{column}} "{{value}}". Valid values: {{values}}.',
+        {
+          column: data.column,
+          value: data.raw.trim(),
+          values: Object.keys(data.enumObject).join(", "),
+        },
+      ),
     };
   }
 
@@ -410,7 +434,7 @@ export function parseStatusPageGroupCsv(
     if (record.cells.length > headerRecord.cells.length) {
       errors.push({
         line: record.line,
-        message: translateTemplate(
+        message: translateCsvError(
           "Row has {{values}} values but the header has {{columns}} columns.",
           {
             values: record.cells.length,

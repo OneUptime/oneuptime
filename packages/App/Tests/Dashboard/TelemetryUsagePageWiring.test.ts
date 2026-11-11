@@ -212,7 +212,10 @@ describe("what the page draws", () => {
   test("says under a Traces row's data ingested how much of it was exceptions", () => {
     const columns: string = page.slice(page.indexOf("columns={["));
     const dataIngested: string = columns.slice(
-      columns.lastIndexOf("{", columns.indexOf('title: "Data Ingested (in GB)"')),
+      columns.lastIndexOf(
+        "{",
+        columns.indexOf('title: "Data Ingested (in GB)"'),
+      ),
       columns.indexOf('title: "Data Retention (in Days)"'),
     );
 

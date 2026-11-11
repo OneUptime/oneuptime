@@ -29,7 +29,7 @@ Een tweerichtingsintegratie, zoals Jira of Dynamics 365, gebruikt beide richting
 | --- | --- | --- |
 | Een ingebouwde koppeling | Tools waarmee OneUptime zelf verbinding maakt. Je vult een formulier in en er valt niets te bouwen. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), de koppelingen van [Beveiligingsgebeurtenissen](/docs/telemetry/security-events) |
 | Een workflowsjabloon | Ticketingtools, in beide richtingen bijgewerkt, monitoringproblemen, beveiligingsincidentrapporten en chatberichten. Je kiest een sjabloon en vult een paar instellingen in. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
-| Een Incoming Request-monitor | Alertingtools die een webhook sturen. Je krijgt één incident per alert, aan de dienst doorgegeven en opgelost wanneer de alert herstelt, zonder workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
+| Een monitor voor inkomende verzoeken | Alertingtools die een webhook sturen. Je krijgt één incident per alert, aan de dienst doorgegeven en opgelost wanneer de alert herstelt, zonder workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Een workflow die je zelf bouwt | Elke tool met een webhook of een REST API, en elke eigen logica. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
 Begin bovenaan de tabel: hoe hoger een manier staat, hoe minder er te onderhouden is.
@@ -112,7 +112,7 @@ Een tool zonder handleiding past toch in een van twee patronen. Kan hij een webh
 
 ### Inkomend: een andere tool stuurt gegevens naar OneUptime
 
-Begin voor een alertingtool met een [Incoming Request-monitor](/docs/monitor/incoming-request-monitor#waarschuwingen-uit-een-ander-systeem-ontvangen): die opent één incident per alert en lost het op bij herstel, zonder dat je iets bouwt. Bouw een workflow wanneer je eigen logica nodig hebt:
+Begin voor een alertingtool met een [monitor voor inkomende verzoeken](/docs/monitor/incoming-request-monitor#waarschuwingen-uit-een-ander-systeem-ontvangen): die opent één incident per alert en lost het op bij herstel, zonder dat je iets bouwt. Bouw een workflow wanneer je eigen logica nodig hebt:
 
 :::steps
 1. Open **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul beginnen**. Geef de workflow een naam en klik op **Workflow maken**.

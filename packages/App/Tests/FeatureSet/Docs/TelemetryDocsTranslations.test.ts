@@ -66,10 +66,10 @@ import { describe, expect, it } from "@jest/globals";
  *     Pipeline" is both a permission and a button on its page, so the page
  *     has it both ways.
  *   - Names the Dashboard draws in English everywhere - a tab with no
- *     locale key, the aggregation option "Count of logs", the criteria
- *     names - and the docs' own tab names stay in English (SHOWN_IN_ENGLISH).
- *     When the Dashboard gains a key for one, a test below fails until the
- *     pages name it as drawn.
+ *     locale key, the aggregation option "Count of logs" - and the docs' own
+ *     tab names stay in English (SHOWN_IN_ENGLISH). When the Dashboard gains
+ *     a key for one, a test below fails until the pages name it as drawn:
+ *     the monitor criteria's aggregations (All Values) did in 31eadaee92e.
  *
  * Bold words that are Dashboard labels only by coincidence are PROSE, with
  * why; bold words that are neither labels nor shown in English are the
@@ -140,14 +140,12 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Grafana Alloy",
     ".NET",
   ],
-  [RECORDING_RULES]: [
-    /*
-     * The editor's aggregation option, which has no locale key. A metrics
-     * monitor's aggregation strategy, All Values, left this list on
-     * 2026-11-10: #6575 keyed it in every language.
-     */
-    "Count of logs",
-  ],
+  /*
+   * The editor's aggregation option, which has no locale key. A metrics
+   * monitor's aggregation strategy (All Values) is a label since
+   * 31eadaee92e, drawn like any other.
+   */
+  [RECORDING_RULES]: ["Count of logs"],
 };
 
 /*

@@ -213,9 +213,9 @@ Das passt zum häufigen Fall, dass der Absender seinen eigenen Zustand in der Nu
 | --------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
 | Eingehende Anfrage | Ob in einem Zeitfenster eine Anfrage einging | Die einzige Prüfung, die auslösen kann, wenn nichts ankommt |
 | Anfragetext | Den Body der Anfrage | Teilzeichenkettensuche. Objekt-Bodys werden als kompaktes JSON verglichen |
-| Request Header | Die Namen der Anfrage-Header | Exakter Vergleich mit einem ganzen Header-Namen, ohne Beachtung der Groß- und Kleinschreibung |
-| Request Header Value | Die Werte der Anfrage-Header | Exakter Vergleich mit einem ganzen Header-Wert, ohne Beachtung der Groß- und Kleinschreibung |
-| JavaScript Expression | Jeden Ausdruck über `requestBody` und `requestHeaders` | Die flexibelste Option — siehe [JavaScript-Ausdrücke](/docs/monitor/javascript-expression) |
+| Anfrage-Header | Die Namen der Anfrage-Header | Exakter Vergleich mit einem ganzen Header-Namen, ohne Beachtung der Groß- und Kleinschreibung |
+| Anfrage-Header-Wert | Die Werte der Anfrage-Header | Exakter Vergleich mit einem ganzen Header-Wert, ohne Beachtung der Groß- und Kleinschreibung |
+| JavaScript-Ausdruck | Jeden Ausdruck über `requestBody` und `requestHeaders` | Die flexibelste Option — siehe [JavaScript-Ausdrücke](/docs/monitor/javascript-expression) |
 
 ### Filterbedingungen
 
@@ -223,7 +223,7 @@ Jeder Filtertyp bietet eigene Bedingungen:
 
 | Filtertyp | Bedingungen |
 | --- | --- |
-| **Eingehende Anfrage** | **Empfangen in Minuten** — innerhalb der angegebenen Zahl von Minuten ging eine Anfrage ein. **Nicht empfangen in Minuten** — innerhalb der angegebenen Zahl von Minuten ging keine Anfrage ein. (Das Dashboard schreibt sie so.) |
+| **Eingehende Anfrage** | **Empfangen in Minuten** — innerhalb der angegebenen Zahl von Minuten ging eine Anfrage ein. **Nicht empfangen in Minuten** — innerhalb der angegebenen Zahl von Minuten ging keine Anfrage ein. |
 | **Anfragetext**, **Anfrage-Header**, **Anfrage-Header-Wert** | **Enthält** und **Enthält nicht** |
 | **JavaScript-Ausdruck** | **Ergibt wahr** |
 
@@ -254,7 +254,7 @@ Objekt-Bodys werden als kompaktes JSON ohne Leerzeichen verglichen, ein Filter *
 > Setzen Sie den Totmannschalter **über** die Standardkriterien. Kriterien werden von oben geprüft, und das erste, das zutrifft, entscheidet. Die Prüfung im Hintergrund liest die letzte Anfrage erneut, das Online-Standardkriterium — "Anfragetext Enthält nicht `error`" — trifft also weiter darauf zu, und ein Kriterium darunter kommt nie an die Reihe. **Kriterien hinzufügen** fügt ein Kriterium unten an: Ziehen Sie es nach oben.
 
 > [!WARNING]
-> Ein Monitor wird nur dann im Hintergrund erneut geprüft, wenn mindestens eines seiner Kriterien **Eingehende Anfrage** prüft. Ein Monitor, dessen Kriterien nur Anfragetext, Request Header oder einen JavaScript-Ausdruck prüfen, wird geprüft, wenn eine Anfrage eintrifft, und zu keinem anderen Zeitpunkt — er kann also nie von selbst offline gehen. Wenn Sie einen Alarm bei fehlendem Heartbeat wollen, brauchen Sie ein Kriterium **Eingehende Anfrage**.
+> Ein Monitor wird nur dann im Hintergrund erneut geprüft, wenn mindestens eines seiner Kriterien **Eingehende Anfrage** prüft. Ein Monitor, dessen Kriterien nur Anfragetext, Anfrage-Header oder einen JavaScript-Ausdruck prüfen, wird geprüft, wenn eine Anfrage eintrifft, und zu keinem anderen Zeitpunkt — er kann also nie von selbst offline gehen. Wenn Sie einen Alarm bei fehlendem Heartbeat wollen, brauchen Sie ein Kriterium **Eingehende Anfrage**.
 
 Die Prüfung im Hintergrund zählt ganze Minuten und löst aus, sobald *mehr* als der Wert vergangen ist: "Nicht empfangen in Minuten: 10" löst etwa 11 Minuten nach der letzten Anfrage aus (die Prüfung läuft alle 30 Sekunden). Ein Monitor, der noch nie eine Anfrage erhalten hat, wird so behandelt, als wäre seine Erstellungszeit die letzte Anfrage, dasselbe Kriterium löst bei einem brandneuen Monitor also etwa 11 Minuten nach dem Erstellen aus, auch wenn der Absender nie eingerichtet wurde. Es zählen nur Minuten, in denen OneUptime empfangen hat: Minuten, in denen OneUptime selbst neu startet, aktualisiert wird oder aufholt, zählen nicht, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
 
@@ -367,7 +367,7 @@ Nur ein Kriterium **Eingehende Anfrage** (**Nicht empfangen in Minuten**) bemerk
 Senden Sie `Content-Type: application/json` und schreiben Sie den Wert als kompaktes JSON — `"status":"firing"`, ohne Leerzeichen nach dem Doppelpunkt. Ohne JSON- oder Formular-Content-Type wird der Body nicht geparst.
 :::
 
-:::details Ein Filter Request Header trifft nie zu
+:::details Ein Filter Anfrage-Header trifft nie zu
 Header-Namen und -Werte werden als Ganzes verglichen. Geben Sie den vollständigen Wert an, etwa `application/json; charset=utf-8`, statt eines Teils davon.
 :::
 

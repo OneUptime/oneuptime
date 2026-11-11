@@ -104,7 +104,7 @@ Elke statuswijziging wordt, met de reden ervan, vastgelegd op de **Statustijdlij
 
 ## Criteria
 
-De criteria van een logs-monitor hebben één **Filtertype**: **Log Count**, het aantal logs dat in het venster overeenkwam. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en, bij een drempelvoorwaarde, een **Waarde**.
+De criteria van een logs-monitor hebben één **Filtertype**: **Aantal logs**, het aantal logs dat in het venster overeenkwam. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en, bij een drempelvoorwaarde, een **Waarde**.
 
 | Filtervoorwaarde | Komt overeen wanneer het aantal logs… |
 | --- | --- |
@@ -131,8 +131,8 @@ Een logs-monitor die via de API of Terraform zonder criteria is aangemaakt, begi
 
 | Criterium | Filter | Effect |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Gelijk aan** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
-| Check if … is online | **Log Count** **Groter dan** `0` | Zet de monitor online |
+| Check if … is offline | **Aantal logs** **Gelijk aan** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
+| Check if … is online | **Aantal logs** **Groter dan** `0` | Zet de monitor online |
 
 ## Uitgewerkt voorbeeld: een piek in fouten
 
@@ -244,7 +244,7 @@ Het aantal was 0, dus de filters komen met geen enkele log van de service overee
 :::
 
 :::details Er was een piek, maar er kwam geen waarschuwing
-De criteria worden van boven naar beneden gecontroleerd en de eerste overeenkomst beslist. Een breed criterium boven het criterium dat u verwachtte, zoals **Log Count** **Groter dan** `0`, komt eerst overeen en houdt de rest tegen. Zet het ernstigste criterium bovenaan.
+De criteria worden van boven naar beneden gecontroleerd en de eerste overeenkomst beslist. Een breed criterium boven het criterium dat u verwachtte, zoals **Aantal logs** **Groter dan** `0`, komt eerst overeen en houdt de rest tegen. Zet het ernstigste criterium bovenaan.
 :::
 
 :::details Een anomaliecriterium gaat nooit af

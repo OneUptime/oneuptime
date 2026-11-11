@@ -29,7 +29,7 @@ En toveisintegrasjon, som Jira eller Dynamics 365, bruker begge retningene: én 
 | --- | --- | --- |
 | En innebygd tilkobling | Verktøy OneUptime kobler seg til selv. Du fyller ut et skjema, og det er ingenting å bygge. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), tilkoblingene for [Sikkerhetshendelser](/docs/telemetry/security-events) |
 | En arbeidsflytmal | Saksverktøy, holdt i takt begge veier, overvåkingsproblemer, sikkerhetshendelsesrapporter og chatmeldinger. Du velger en mal og fyller ut noen få innstillinger. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
-| En Incoming Request-monitor | Varslingsverktøy som sender en webhook. Du får én hendelse per varsel, sendt til vakten og løst når varselet er over, uten arbeidsflyt. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
+| En monitor for innkommende forespørsler | Varslingsverktøy som sender en webhook. Du får én hendelse per varsel, sendt til vakten og løst når varselet er over, uten arbeidsflyt. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | En arbeidsflyt du bygger selv | Alle verktøy med en webhook eller et REST API, og all logikk du trenger selv. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
 Start fra toppen av tabellen: jo høyere en måte står, jo mindre er det å vedlikeholde.
@@ -112,7 +112,7 @@ Et verktøy uten veiledning passer likevel inn i ett av to mønstre. Kan det sen
 
 ### Innkommende: et annet verktøy sender data til OneUptime
 
-For et varslingsverktøy starter du med en [Incoming Request-monitor](/docs/monitor/incoming-request-monitor#motta-varsler-fra-et-annet-system): den oppretter én hendelse per varsel og løser den ved gjenoppretting, uten at du må bygge noe. Bygg en arbeidsflyt når du trenger din egen logikk:
+For et varslingsverktøy starter du med en [monitor for innkommende forespørsler](/docs/monitor/incoming-request-monitor#motta-varsler-fra-et-annet-system): den oppretter én hendelse per varsel og løser den ved gjenoppretting, uten at du må bygge noe. Bygg en arbeidsflyt når du trenger din egen logikk:
 
 :::steps
 1. Åpne **Arbeidsflyter**, klikk på **Opprett arbeidsflyt** og deretter på **Start fra bunnen**. Gi arbeidsflyten et navn, og klikk på **Opprett arbeidsflyt**.

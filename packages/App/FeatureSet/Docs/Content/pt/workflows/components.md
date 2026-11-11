@@ -195,7 +195,7 @@ Envie um e-mail por um servidor SMTP que você informa no bloco. O bloco se cham
 | **From Email**                          | O remetente, por exemplo `Alerts <alerts@company.com>`.                                               |
 | **To Email**                            | O endereço do destinatário. Separe vários endereços com vírgulas ou ponto e vírgula.                  |
 | **Subject**                             | O assunto.                                                                                            |
-| **Corpo do e-mail**                          | A mensagem, enviada como HTML.                                                                        |
+| **Email Body**                          | A mensagem, enviada como HTML.                                                                        |
 | **SMTP HOST** e **SMTP Port**           | O servidor de e-mail ao qual se conectar.                                                             |
 | **SMTP Username** e **SMTP Password**   | Opcionais. Preencha os dois ou nenhum.                                                                |
 | **Use Implicit TLS**                    | Ligue para TLS implícito, normalmente na porta 465. Deixe desligado para STARTTLS, normalmente na porta 587. |
