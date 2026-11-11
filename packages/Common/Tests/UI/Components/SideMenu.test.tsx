@@ -20,6 +20,7 @@ import SideMenuSection from "../../../UI/Components/SideMenu/SideMenuSection";
 import Page from "../../../UI/Components/Page/Page";
 import PageTrailEndContext from "../../../UI/Components/Page/PageTrailEnd";
 import Navigation from "../../../UI/Utils/Navigation";
+import { SIDE_MENU_FOLDS_STORAGE_KEY } from "../../../UI/Components/SideMenu/SideMenuSectionState";
 
 /*
  * Which sections of a side menu are open when it is drawn.
@@ -137,6 +138,8 @@ async function renderAt(
 
 beforeEach(() => {
   setViewportWidth(DESKTOP_WIDTH);
+  // Each test's menu starts from its defaults, not a fold an earlier test made.
+  window.localStorage.removeItem(SIDE_MENU_FOLDS_STORAGE_KEY);
 });
 
 afterEach(() => {

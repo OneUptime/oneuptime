@@ -35,6 +35,7 @@ import SideMenuSection, {
 } from "./SideMenuSection";
 import {
   entriesInMenuChildren,
+  getSideMenuFoldMemoryKey,
   MenuEntryRoutes,
   MenuRoute,
   routesInMenuChildren,
@@ -155,6 +156,7 @@ function mapSectionElements(
 function withActiveSections(
   children: ReactElement | Array<ReactElement>,
   currentPath: string,
+  foldMemoryKey: string,
 ): Array<ReactElement> {
   const sectionRoutes: Array<Array<MenuRoute>> = [];
 
@@ -177,10 +179,16 @@ function withActiveSections(
       sectionIndex++;
 
       if (section.props.isActive !== undefined) {
-        return section;
+        return section.props.foldMemoryKey !== undefined
+          ? section
+          : React.cloneElement(section, { foldMemoryKey });
       }
 
-      return React.cloneElement(section, { isActive, currentPath });
+      return React.cloneElement(section, {
+        isActive,
+        currentPath,
+        foldMemoryKey: section.props.foldMemoryKey ?? foldMemoryKey,
+      });
     },
   );
 }
@@ -216,6 +224,23 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     ...(props.children ? entriesInMenuChildren(props.children) : []),
   ];
   const rowList: Route | null = getRowListRoute(menuEntries) || null;
+
+  /*
+   * Which menu this is, for the folds its reader chose by hand (#6816): the
+   * address of its first entry, with the ids taken out, so every record's
+   * own menu of one kind shares one memory.
+   */
+  const firstEntry: MenuEntryRoutes | undefined = menuEntries[0];
+  const foldMemoryKey: string = getSideMenuFoldMemoryKey({
+    firstRoute:
+      firstEntry?.link?.to ||
+      (firstEntry ? routesOfMenuEntry(firstEntry)[0] : undefined),
+    sectionTitles: (props.sections || []).map(
+      (section: SideMenuSectionProps): string => {
+        return section.title;
+      },
+    ),
+  });
 
   // Whether an entry is lit: for the page itself, or holding it as a row.
   const isEntryLit: (entry: {
@@ -620,10 +645,12 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             defaultCollapsed?: boolean;
             collapsible?: boolean;
             isActive: boolean;
+            foldMemoryKey: string;
           } = {
             key: `section-${sectionIndex}`,
             title: section.title,
             isActive: Boolean(holdsCurrentPage[sectionIndex]),
+            foldMemoryKey: foldMemoryKey,
           };
 
           if (section.icon) {
@@ -724,7 +751,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     // Support legacy children prop for backward compatibility
     if (props.children) {
-      withActiveSections(props.children, currentPath).forEach(
+      withActiveSections(props.children, currentPath, foldMemoryKey).forEach(
         (child: ReactElement, index: number) => {
           if (React.isValidElement(child)) {
             content.push(React.cloneElement(child, { key: `child-${index}` }));

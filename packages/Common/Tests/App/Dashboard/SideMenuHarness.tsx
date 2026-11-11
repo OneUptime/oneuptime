@@ -7,6 +7,7 @@ import { SIDE_MENU_ITEM_TITLE_TEST_ID } from "../../../UI/Components/SideMenu/Si
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import { SIDE_MENU_FOLDS_STORAGE_KEY } from "../../../UI/Components/SideMenu/SideMenuSectionState";
 
 /*
  * Shared scaffolding for the product side-menu suites (alerts, incidents,
@@ -248,6 +249,13 @@ export function mobileSummaryText(): string {
  */
 export async function renderMenu(menu: ReactElement): Promise<RenderResult> {
   let rendered: RenderResult | undefined;
+
+  /*
+   * Each menu starts from its defaults: a section a test before this one
+   * folded or opened by hand would otherwise be remembered in the browser
+   * (SideMenuSectionState's remembered folds, #6816).
+   */
+  window.localStorage.removeItem(SIDE_MENU_FOLDS_STORAGE_KEY);
 
   await act(async () => {
     rendered = render(menu);
