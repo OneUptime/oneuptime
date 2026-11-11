@@ -1144,8 +1144,7 @@ test.describe("the Alerts list of the screenshot", () => {
     // Its item still clips across, and is still a box of its own.
     expect(focused.itemOverflowX).toBe("clip");
     expect(focused.itemDisplay).toBe("flow-root");
-    // The link - and so its ring - is its icon (or colour) and name's width,
-    // no more.
+    // The link - its ring - is its icon (or colour) and name's width, no more.
     expect(focused.linkRectCount).toBe(1);
     expect(Math.abs(focused.linkLeft - focused.rowLeft)).toBeLessThanOrEqual(1);
     expect(Math.abs(focused.linkRight - focused.rowRight)).toBeLessThanOrEqual(
