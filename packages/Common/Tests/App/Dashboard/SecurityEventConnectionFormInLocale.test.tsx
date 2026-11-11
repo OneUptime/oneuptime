@@ -385,6 +385,31 @@ describe("creating a connection in German", () => {
     expectNoEnglish(dialog(), fieldWords(sentinel.secretFields));
   });
 
+  test("the last step's button creates the connection in German", async () => {
+    await renderModal();
+    await chooseProvider("Microsoft Sentinel");
+    await next();
+    fill("Directory (tenant) ID", "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c");
+    fill("Application (client) ID", "00001111-aaaa-2222-bbbb-3333cccc4444");
+    fill("Subscription ID", "c0ffee00-1111-4222-8333-444455556666");
+    fill("Resource group", "security-rg");
+    fill("Workspace name", "sentinel-ws");
+    await next();
+    fill("Client secret", "a-client-secret");
+    await next();
+
+    // The Polling step: the action that creates it, read as German reads it.
+    expect(
+      within(dialog()).getByRole("button", {
+        name: worded("Create connection"),
+      }),
+    ).toBeVisible();
+    expect(german("Create connection")).toBe("Verbindung erstellen");
+    expect(
+      within(dialog()).queryByRole("button", { name: "Create connection" }),
+    ).toBeNull();
+  });
+
   test("Google SecOps: the Region placeholder is German, its region codes as written", async () => {
     await renderModal();
     await chooseProvider("Google SecOps");
@@ -566,6 +591,46 @@ describe("editing a connection in German", () => {
       "Remove the stored",
       "Leave blank to keep the stored value.",
     ]);
+  });
+
+  test("an edit's action and new credentials' action are German too", async () => {
+    await renderModal({
+      connection: connectionOf(
+        SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
+        "Splunk ES",
+        {
+          url: "https://splunk.example.com:8089",
+          searchString: "index=notable",
+        },
+      ),
+    });
+    await next();
+    await next();
+
+    expect(
+      within(dialog()).getByRole("button", { name: worded("Save changes") }),
+    ).toBeVisible();
+    expect(
+      within(dialog()).queryByRole("button", { name: "Save changes" }),
+    ).toBeNull();
+    cleanup();
+
+    await renderModal({
+      connection: connectionOf(
+        SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
+        "Splunk ES",
+      ),
+      credentialsOnly: true,
+    });
+
+    expect(
+      within(dialog()).getByRole("button", {
+        name: worded("Update credentials"),
+      }),
+    ).toBeVisible();
+    expect(
+      within(dialog()).queryByRole("button", { name: "Update credentials" }),
+    ).toBeNull();
   });
 
   test.each(

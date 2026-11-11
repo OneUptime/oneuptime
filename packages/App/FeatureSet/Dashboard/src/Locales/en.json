@@ -50432,5 +50432,6 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "No arrow on this diagram says where {{column}} comes from or where it goes."
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "No arrow on this diagram says where {{column}} comes from or where it goes.",
+  "Create connection": "Create connection"
 }

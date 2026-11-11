@@ -49683,7 +49683,7 @@
   "Curated rule detections": "اكتشافات القواعد المنتقاة",
   "Curated rules with recent detections": "القواعد المنتقاة ذات الاكتشافات الحديثة",
   "Data to import": "البيانات المراد استيرادها",
-  "Delete the stored {{field}} when you save, for example after changing the sign-in method.": "يحذف الحقل المخزَّن {{field}} عند الحفظ، مثلًا بعد تغيير طريقة تسجيل الدخول.",
+  "Delete the stored {{field}} when you save, for example after changing the sign-in method.": "يحذف الحقل المخزَّن «{{field}}» عند الحفظ، مثلًا بعد تغيير طريقة تسجيل الدخول.",
   "Details unavailable": "التفاصيل غير متاحة",
   "Detect, correlate and alert on what you are now collecting.": "اكتشف ما تجمعه الآن واربطه وأطلق التنبيهات بشأنه.",
   "Detection time, with created time also read": "وقت الاكتشاف، مع قراءة وقت الإنشاء أيضًا",
@@ -49718,7 +49718,7 @@
   "Move {{key}} up": "نقل {{key}} إلى الأعلى",
   "No records returned": "لم تُرجَع أي سجلات",
   "OneUptime workers and scheduler": "عمّال OneUptime والمُجدوِل",
-  "Only {{alerting}} are imported with this {{control}} selection; select {{nonAlerting}} to import the rest.": "بهذا الاختيار في «{{control}}» تُستورد {{alerting}} فقط؛ اختر {{nonAlerting}} لاستيراد الباقي.",
+  "Only {{alerting}} are imported with this {{control}} selection; select {{nonAlerting}} to import the rest.": "بهذا الاختيار في «{{control}}» تُستورد {{alerting}} فقط؛ اختر «{{nonAlerting}}» لاستيراد الباقي.",
   "Other Data to import choice": "الخيار الآخر في «البيانات المراد استيرادها»",
   "Parent Processes": "العمليات الأم",
   "Partial import": "استيراد جزئي",
@@ -49737,7 +49737,7 @@
   "Put The Events To Work": "اجعل الأحداث تعمل لصالحك",
   "Records are mapped best-effort by field name — see the table below for which keys become typed columns. Everything else is preserved in {{attributes}}.": "تُطابَق السجلات بأفضل جهد حسب اسم الحقل — راجع الجدول أدناه لمعرفة المفاتيح التي تصبح أعمدة محددة النوع. ويُحفظ كل ما عدا ذلك في {{attributes}}.",
   "Records measured": "السجلات المقيسة",
-  "Remove the stored {{field}}": "إزالة الحقل المخزَّن {{field}}",
+  "Remove the stored {{field}}": "إزالة الحقل المخزَّن «{{field}}»",
   "Remove {{key}}": "إزالة {{key}}",
   "Replace the stored {{provider}} credentials. Blank fields keep their stored value.": "استبدل بيانات اعتماد {{provider}} المخزَّنة. تحتفظ الحقول الفارغة بقيمتها المخزَّنة.",
   "Replace the stored {{provider}} credentials. Blank fields keep their stored value. Turn on a Remove toggle to delete an optional one.": "استبدل بيانات اعتماد {{provider}} المخزَّنة. تحتفظ الحقول الفارغة بقيمتها المخزَّنة. فعّل مفتاح «إزالة» لحذف قيمة اختيارية.",
@@ -49788,7 +49788,7 @@
   "This run did not finish processing every record in the window. Review the checks and warnings before retrying.": "لم يُنهِ هذا التشغيل معالجة كل سجل في النافذة. راجع الفحوصات والتحذيرات قبل المحاولة مرة أخرى.",
   "This window held more {{records}} than one poll can read, so the cursor stayed where it was. The next scheduled poll reads a window of {{window}} from the same starting point and widens it again as polls complete.": "احتوت هذه النافذة من {{records}} على أكثر مما يستطيع استطلاع واحد قراءته، لذا بقي المؤشر في مكانه. يقرأ الاستطلاع المجدول التالي نافذة مدتها {{window}} من نقطة البدء نفسها ويوسّعها مجددًا مع اكتمال الاستطلاعات.",
   "Time basis read": "أساس الوقت المقروء",
-  "To import {{nonAlerting}} too, select {{nonAlertingLabel}} under {{control}} using Edit connection.": "لاستيراد {{nonAlerting}} أيضًا، اختر {{nonAlertingLabel}} ضمن «{{control}}» من «تعديل الاتصال».",
+  "To import {{nonAlerting}} too, select {{nonAlertingLabel}} under {{control}} using Edit connection.": "لاستيراد {{nonAlerting}} أيضًا، اختر «{{nonAlertingLabel}}» ضمن «{{control}}» من «تعديل الاتصال».",
   "To recover them, use Import this time range under Find historical {{records}} for {{start}} → {{end}}. Any already imported are skipped.": "لاستعادتها، استخدم «استيراد هذا النطاق الزمني» ضمن «البحث عن {{records}} السابقة» للفترة {{start}} ← {{end}}. يُتخطّى ما استُورد مسبقًا.",
   "To recover them, use Import this time range under Find historical {{records}} on the minute named in the warnings. Any already imported are skipped.": "لاستعادتها، استخدم «استيراد هذا النطاق الزمني» ضمن «البحث عن {{records}} السابقة» للدقيقة المذكورة في التحذيرات. يُتخطّى ما استُورد مسبقًا.",
   "Up to {{window}}": "حتى {{window}}",
@@ -50432,5 +50432,6 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "الصف {{row}}: \"{{key}}\" ليس اسمًا مكتشفًا، مثل {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "الصف {{row}}: \"{{key}}\" ليس عنوان IP، مثل {{example}}.",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "الصف {{row}}: \"{{key}}\" ليس الجزء الأخير من عنوان IP، مثل {{example}}.",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "لا يذكر أي سهم في هذا المخطط مصدر العمود {{column}} أو وجهته."
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "لا يذكر أي سهم في هذا المخطط مصدر العمود {{column}} أو وجهته.",
+  "Create connection": "إنشاء الاتصال"
 }

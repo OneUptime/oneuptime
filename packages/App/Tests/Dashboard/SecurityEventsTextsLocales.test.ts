@@ -118,14 +118,23 @@ function scan(file: string, kind: "ui" | "keys"): Array<ExtractedString> {
 }
 
 // Every key the files look up: a plural's general sentence and its "_one".
-function getKeys(): Array<string> {
+function getKeys(
+  dashboardFiles: Array<string> = DASHBOARD_FILES.map(
+    (file: string): string => {
+      return path.join(DASHBOARD, "src", file);
+    },
+  ),
+  commonFiles: Array<string> = COMMON_FILES.map((file: string): string => {
+    return path.join(REPOSITORY_ROOT, file);
+  }),
+): Array<string> {
   const keys: Set<string> = new Set<string>();
   const strings: Array<ExtractedString> = [
-    ...DASHBOARD_FILES.flatMap((file: string): Array<ExtractedString> => {
-      return scan(path.join(DASHBOARD, "src", file), "ui");
+    ...dashboardFiles.flatMap((file: string): Array<ExtractedString> => {
+      return scan(file, "ui");
     }),
-    ...COMMON_FILES.flatMap((file: string): Array<ExtractedString> => {
-      return scan(path.join(REPOSITORY_ROOT, file), "keys");
+    ...commonFiles.flatMap((file: string): Array<ExtractedString> => {
+      return scan(file, "keys");
     }),
   ];
 
@@ -142,9 +151,54 @@ function getKeys(): Array<string> {
 
 const KEYS: Array<string> = getKeys();
 
+const SOURCE_FILE: RegExp = /\.tsx?$/;
+
+// Every source file under `folder`, its own folders included.
+function sourceFiles(folder: string): Array<string> {
+  return fs
+    .readdirSync(folder, { withFileTypes: true })
+    .flatMap((entry: fs.Dirent): Array<string> => {
+      const file: string = path.join(folder, entry.name);
+
+      if (entry.isDirectory()) {
+        return sourceFiles(file);
+      }
+
+      return SOURCE_FILE.test(entry.name) ? [file] : [];
+    })
+    .sort();
+}
+
+/*
+ * Every Security Events screen, not only the files this change routed: the
+ * story an event's request tells, where an event came from, the watchlists,
+ * the cases, and the words the Common catalogs give them.
+ */
+const SECURITY_EVENTS_DASHBOARD_FOLDERS: Array<string> = [
+  "Components/SecurityEvents",
+  "Components/SecurityCase",
+  "Pages/SecurityEvents",
+];
+
+const SECURITY_EVENTS_COMMON_FOLDER: string =
+  "packages/Common/Types/SecurityEvent";
+
+const SECURITY_EVENTS_DASHBOARD_FILES: Array<string> =
+  SECURITY_EVENTS_DASHBOARD_FOLDERS.flatMap((folder: string): Array<string> => {
+    return sourceFiles(path.join(DASHBOARD, "src", folder));
+  });
+
+const EVERY_SECURITY_EVENTS_KEY: Array<string> = getKeys(
+  SECURITY_EVENTS_DASHBOARD_FILES,
+  sourceFiles(path.join(REPOSITORY_ROOT, SECURITY_EVENTS_COMMON_FOLDER)),
+);
+
 // The keys a language still holds in English, without recording them so.
-function untranslated(language: string, keys: Array<string>): Array<string> {
-  const locale: Record<string, string> = readLocale(language);
+function untranslated(
+  language: string,
+  keys: Array<string>,
+  locale: Record<string, string> = readLocale(language),
+): Array<string> {
   const same: Set<string> = keptAsWritten(language);
 
   return keys.filter((key: string): boolean => {
@@ -292,6 +346,51 @@ describe("the Security Events texts in every language", () => {
     }
 
     expect(missing).toEqual({});
+  });
+
+  test("every Security Events screen's keys are worded in every language, not only this change's files", () => {
+    // The request story and Where it came from live in files of their own.
+    expect(SECURITY_EVENTS_DASHBOARD_FILES).toEqual(
+      expect.arrayContaining([
+        path.join(
+          DASHBOARD,
+          "src/Components/SecurityEvents/SecurityEventRequestCopy.ts",
+        ),
+        path.join(
+          DASHBOARD,
+          "src/Components/SecurityEvents/Watchlists/WatchlistsCopy.ts",
+        ),
+      ]),
+    );
+    expect(EVERY_SECURITY_EVENTS_KEY.length).toBeGreaterThan(KEYS.length * 2);
+    expect(EVERY_SECURITY_EVENTS_KEY).toEqual(
+      expect.arrayContaining(["What happened next", "Where it came from"]),
+    );
+
+    const missing: Record<string, Array<string>> = {};
+
+    for (const language of LANGUAGES) {
+      const keys: Array<string> = untranslated(
+        language,
+        EVERY_SECURITY_EVENTS_KEY,
+      );
+
+      if (keys.length > 0) {
+        missing[language] = keys;
+      }
+    }
+
+    expect(missing).toEqual({});
+
+    // A sentence a language holds in English is found, as German held this one.
+    const german: Record<string, string> = {
+      ...readLocale("de"),
+      "What happened next": "What happened next",
+    };
+
+    expect(untranslated("de", EVERY_SECURITY_EVENTS_KEY, german)).toEqual([
+      "What happened next",
+    ]);
   });
 
   test("every language words each sentence this change worded, with its placeholders", () => {
@@ -445,12 +544,15 @@ describe("the Security Events texts in every language", () => {
    * nominative plural the locale words them in. After "больше" or "нет",
    * after a preposition, or after an adjective in another case ("более
    * старым"), Russian wants the genitive or the dative - "больше
-   * оповещений" - which the filled sentence cannot give: #6781.
+   * оповещений" - which the filled sentence cannot give: #6781. The label
+   * of the choice that imports the rest ("Обнаружения") is such a plural
+   * too, so a sentence names it after a noun: "с вариантом «Обнаружения»".
    */
   const RUSSIAN_RECORDS_PLACEHOLDERS: Array<string> = [
     "records",
     "alerting",
     "nonAlerting",
+    "nonAlertingLabel",
   ];
 
   const RUSSIAN_WORDS_WANTING_ANOTHER_CASE: ReadonlySet<string> = new Set([
@@ -583,6 +685,13 @@ describe("the Security Events texts in every language", () => {
         "Preview a window before importing. The first scheduled poll looks back 24 hours; older {{records}} need a historical import. Choose up to 7 days per run. When Last Error says polling moved past a minute it could not read in full, import that minute here to recover what one run can read."
       ],
     ).toContain("более старые {{records}} требуют исторического импорта");
+
+    // The diagnostics name the Detections choice after a noun, in quotes.
+    expect(
+      russian[
+        "Test connection checks access to {{provider}}, what it has available to import with and without {{nonAlertingLabel}}, and whether OneUptime's workers and scheduler are running. It runs immediately and imports nothing. Run now imports the next poll window immediately, including when the schedule is paused."
+      ],
+    ).toContain("с вариантом «{{nonAlertingLabel}}» и без него");
   });
 
   test("the Russian check finds the wordings #6781 replaced", () => {
@@ -602,6 +711,12 @@ describe("the Security Events texts in every language", () => {
         "Первый запланированный опрос смотрит на 24 часа назад; более старым {{records}} нужен исторический импорт.",
       ),
     ).toEqual(["старым {{records}}"]);
+    // The Detections label straight after "с", as the diagnostics had it.
+    expect(
+      russianCaseProblems(
+        "что доступно для импорта с {{nonAlertingLabel}} и без них",
+      ),
+    ).toEqual(["с {{nonAlertingLabel}}"]);
     // A nominative plural reads right, where the sentence starts or after "все".
     expect(
       russianCaseProblems(
