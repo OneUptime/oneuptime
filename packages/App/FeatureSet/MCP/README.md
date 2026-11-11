@@ -143,6 +143,7 @@ Purpose-built shortcuts for incident/alert response (`packages/App/FeatureSet/MC
 - `add_incident_note` (with `visibility: "internal" | "public"` — public notes post to the status page)
 - `add_alert_note`
 - `get_data_table_freshness` — whether a table Data Observability watches is fresh: fresh or late by its own rhythm, when it last changed, its open alerts, and its writers' latest runs (read-only)
+- `get_data_table_lineage` — what a table Data Observability watches is built from and what is built from it, up to five steps each way (`depth`, three by default): the tables that are late, dropped, have open alerts or whose pipeline failed first, nearest first, then the rest, the pipelines that load it from outside and the BI dashboards built on it (read-only)
 - `oneuptime_whoami` — returns the project (ID and name) the credential belongs to; for an OAuth sign-in, also who is signed in, through which client, and whether the connection is read-only
 
 ### Helper and public tools

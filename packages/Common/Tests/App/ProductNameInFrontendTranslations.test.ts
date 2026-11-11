@@ -148,7 +148,8 @@ describe("the wiring in each frontend's i18n module", () => {
       const source: string = read(frontend);
 
       expect(source).toContain(".use(productNamePostProcessor)");
-      expect(source).toContain("postProcess: getProductNamePostProcess()");
+      // The name first, then code set apart (Common/UI/Utils/CodeReadsAsWritten).
+      expect(source).toContain("postProcess: getTranslationPostProcess()");
     },
   );
 
@@ -157,5 +158,6 @@ describe("the wiring in each frontend's i18n module", () => {
 
     expect(source).not.toContain("productNamePostProcessor");
     expect(source).not.toContain("getProductNamePostProcess");
+    expect(source).not.toContain("getTranslationPostProcess");
   });
 });

@@ -126,7 +126,7 @@ curl -fsSL https://oneuptime.com/docs/static/scripts/host-collector/install.sh |
 :::steps
 ### Create a Collector Config
 
-Open **Products → Infrastructure → Hosts → Collector Configs** and select **Create Collector Config**. Give it a name, the system of the hosts it is for, and, to reach only some of them, their labels. Its config starts as OneUptime's default for that system.
+Open **Products → Infrastructure → Hosts → Configuration → Collector Configs** and select **Create Collector Config**. Give it a name, the system of the hosts it is for, and, to reach only some of them, their labels. Its config starts as OneUptime's default for that system.
 
 ### Edit its config.yaml
 
@@ -134,14 +134,14 @@ On the config's page, select **Edit config**, change the YAML and save. OneUptim
 
 ### Watch it reach the hosts
 
-Every saved change is a new version, and the hosts it applies to get it within a minute. The config's **Hosts** list shows each host, its collector's state and the version it runs.
+Every saved change is a new version, and the hosts it applies to get it within a minute. The config's **Hosts** tab shows each host, its collector's state and the version it runs.
 :::
 
-A host runs the first config in the list that applies to it: drag the rows on **Collector Configs** to change the order. Put the narrowest configs first, such as one for `env:production` web servers, and broad ones, such as one for every Linux host, after them. The **OneUptime defaults** card under the list shows what a host runs when no config applies.
+A host runs the first config in the list that applies to it: drag the rows on **Collector Configs** to change the order. Put the narrowest configs first, such as one for `env:production` web servers, and broad ones, such as one for every Linux host, after them. Each row says how many hosts run the config, and on how many it failed. The **OneUptime defaults** card under the list shows what a host runs when no config applies, and how many hosts run it. To change that for a system, select **View config** on its default, then **Create a config from it**.
 
 ### Versions and Put back
 
-A config's **Versions** list keeps every saved change, newest first, with who saved it and when. Select **View** to read a version, and **Put back** to send it to the hosts again: it is saved as a new version that says which one it put back, so the list always tells what each host was sent.
+A config's **Versions** tab keeps every saved change, newest first, with who saved it and when. Select **View** to read a version, and **Put back** to send it to the hosts again: it is saved as a new version that says which one it put back, so the list always tells what each host was sent.
 
 ### Pick a config for one host
 

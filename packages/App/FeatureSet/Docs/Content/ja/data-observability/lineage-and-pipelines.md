@@ -128,5 +128,5 @@ Power BI の各レポートとダッシュボードについて、**BI ダッシ
 
 :::cards
 - [データプロダクト](/docs/data-observability/data-products): 人が使うテーブルに対する鮮度 SLA。
-- [OneUptime AI と API](/docs/data-observability/ai-and-api): テーブルの書き込み元と実行から始まる調査。
+- [OneUptime AI と API](/docs/data-observability/ai-and-api): テーブルの書き込み元と実行から始まる調査。AI に質問や AI エージェントから、テーブルが何から作られているかを尋ねることもできます。
 :::

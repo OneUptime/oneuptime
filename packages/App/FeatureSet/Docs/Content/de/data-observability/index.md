@@ -37,7 +37,7 @@ flowchart TB
 - **Nichts pro Tabelle zu konfigurieren.** Rhythmen, Zeitpläne und übliche Laufzeiten werden aus dem gelernt, was jede Tabelle und jede Pipeline tut, und ein für eine Datenbank empfohlener Monitor deckt jede Tabelle darin ab, auch später angelegte.
 - **Eine Meldung pro Ursache.** Eine Warnung, für deren vorgelagerte Tabelle, Pipeline oder Datenbank schon eine Warnung offen ist, schließt sich dieser Warnung als deren Folge an, bereits bestätigt, sodass ein fehlerhafter Ladevorgang nur einmal alarmiert.
 - **Jede Warnung erklärt sich selbst.** Sie ordnet die wahrscheinliche Ursache nach Rang, sagt, was von der Tabelle abhängt und wem sie gehört, und lernt aus dem, was Sie dazu sagen: Markieren Sie eine als **Kein Problem**, und dasselbe bleibt beim nächsten Mal still.
-- **OneUptime AI kennt Ihre Daten.** Untersuchungen von Datenwarnungen beginnen bei dem, was in die Tabelle schreibt, bei ihren Läufen und ihren vorgelagerten Tabellen; in KI fragen, Slack und Microsoft Teams sowie über KI-Agenten lässt sich fragen, ob eine Tabelle aktuell ist; und eine Prüfung lässt sich aus einem Satz schreiben. Siehe [OneUptime AI und die API](/docs/data-observability/ai-and-api).
+- **OneUptime AI kennt Ihre Daten.** Untersuchungen von Datenwarnungen beginnen bei dem, was in die Tabelle schreibt, bei ihren Läufen und ihrer Datenherkunft; in KI fragen, Slack und Microsoft Teams sowie über KI-Agenten lässt sich fragen, ob eine Tabelle aktuell ist und woraus sie erstellt wird; und eine Prüfung lässt sich aus einem Satz schreiben. Siehe [OneUptime AI und die API](/docs/data-observability/ai-and-api).
 
 ## Bevor Sie beginnen
 
@@ -80,5 +80,5 @@ Eine selbst gehostete OneUptime-Installation zahlt nichts für Tabellen.
 - [Prüfungen und Abgleiche](/docs/data-observability/checks): Regeln für die Werte einer Tabelle, der Vergleich einer Tabelle mit ihrer Kopie und die Tests von dbt.
 - [Lineage und Pipelines](/docs/data-observability/lineage-and-pipelines): OpenLineage, dbt, Fivetran und Airbyte, und eine Meldung pro Ursache.
 - [Datenprodukte](/docs/data-observability/data-products): Aktualitäts-SLAs für die Menschen, die Daten nutzen, auf Statusseiten und als SLOs.
-- [OneUptime AI und die API](/docs/data-observability/ai-and-api): Untersuchungen, eine Prüfung aus einem Satz, Aktualität für KI-Agenten und jeder Endpunkt.
+- [OneUptime AI und die API](/docs/data-observability/ai-and-api): Untersuchungen, eine Prüfung aus einem Satz, Aktualität und Datenherkunft für KI-Agenten und jeder Endpunkt.
 :::

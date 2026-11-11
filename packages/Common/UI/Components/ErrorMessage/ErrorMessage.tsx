@@ -1,5 +1,5 @@
 import IsolatedText from "../IsolatedText/IsolatedText";
-import { getLineDirection } from "../../Utils/LineDirection";
+import { getTranslatedLineDirection } from "../../Utils/LineDirection";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslateValue from "../../Utils/Translation";
 import useTranslator from "../../Utils/UseTranslator";
@@ -36,7 +36,7 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
        * they always were.
        */}
       {typeof translatedMessage === "string" &&
-      getLineDirection(translatedMessage, translator.language) ? (
+      getTranslatedLineDirection(translatedMessage, translator.language) ? (
         <IsolatedText text={translatedMessage} />
       ) : (
         translatedMessage

@@ -339,6 +339,8 @@ Verktøyet **`oneuptime_whoami`** returnerer prosjektet påloggingsdetaljene din
 
 Verktøyet **`get_data_table_freshness`** forteller en agent om en tabell som Data Observability overvåker er fersk før den bruker dataene: fersk eller forsinket målt mot tabellens egen rytme, når den sist ble endret, de åpne varslene, og hvordan den siste kjøringen av hver pipeline som skriver den gikk. Oppgi `table` som `schema.table`, bare tabellens navn eller ID-en. Det endrer ingenting.
 
+Verktøyet **`get_data_table_lineage`** forteller en agent hva en overvåket tabell er bygget fra og hva som er bygget fra den, før den endrer tabellen eller stoler på dataene: oppstrøms- og nedstrømstabellene som er forsinket, slettet, har åpne varsler eller der pipelinen feilet på siste kjøring, de nærmeste først, hver med hvor mange trinn unna den er, så resten, pipelinene som laster kildene dens utenfra, og BI-dashbordene som er bygget på den. Det går tre trinn i hver retning, eller opptil fem med `depth`. Oppgi `table` som for `get_data_table_freshness`. Det endrer ingenting.
+
 ## Spørre etter telemetri
 
 Logger, målinger, spor (spans), unntak, monitorlogger og de andre typene telemetri kommer som skrivebeskyttede verktøy `list_` og `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` og `count_`-tvillingene deres). Telemetri kommer inn gjennom OpenTelemetry, så det finnes ingen opprettingsverktøy.

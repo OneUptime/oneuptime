@@ -71,6 +71,8 @@ export const targetTypeToPageMap: {
   [AIChatCitationTargetType.DataSecurityAccess]: PageMap.DATA_SECURITY_ACCESS,
   [AIChatCitationTargetType.DataTableView]:
     PageMap.DATA_OBSERVABILITY_TABLE_VIEW,
+  [AIChatCitationTargetType.DataTableLineageView]:
+    PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE,
 };
 
 export const targetTypeToIcon: {
@@ -119,6 +121,8 @@ export const targetTypeToIcon: {
   [AIChatCitationTargetType.DataSecurityIssueView]: IconProp.ShieldExclamation,
   [AIChatCitationTargetType.DataSecurityAccess]: IconProp.Key,
   [AIChatCitationTargetType.DataTableView]: IconProp.TableCells,
+  // The Lineage tab's own icon.
+  [AIChatCitationTargetType.DataTableLineageView]: IconProp.Workflow,
 };
 
 /*

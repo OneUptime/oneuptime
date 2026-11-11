@@ -136,6 +136,19 @@ const INVESTIGATION_READ_TOOLS: Array<[string, string, IconProp, string]> = [
   ],
   ["search_code", "Searched code", IconProp.Code, "Code"],
   ["read_code_file", "Read a code file", IconProp.DocumentText, "Code"],
+  // A data alert's investigation: whether the table is fresh, and its lineage.
+  [
+    "get_data_table_freshness",
+    "Checked whether a table is fresh",
+    IconProp.TableCells,
+    "Data observability",
+  ],
+  [
+    "get_data_table_lineage",
+    "Read a table's lineage",
+    IconProp.Workflow,
+    "Data observability",
+  ],
 ];
 
 function argumentsFor(
@@ -293,6 +306,8 @@ describe("describeCitationTargetPage", () => {
     [AIChatCitationTargetType.SecurityEvents, "Security events"],
     [AIChatCitationTargetType.OnCallPolicyView, "On-call policy"],
     [AIChatCitationTargetType.ServiceView, "Service"],
+    [AIChatCitationTargetType.DataTableView, "Data table"],
+    [AIChatCitationTargetType.DataTableLineageView, "Lineage"],
   ])("%s opens %s", (targetType: AIChatCitationTargetType, page: string) => {
     expect(describeCitationTargetPage(targetType)).toBe(page);
   });

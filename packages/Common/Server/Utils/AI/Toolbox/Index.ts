@@ -72,7 +72,10 @@ import {
   QueryDataStoreAccessTool,
   QueryDataStoresTool,
 } from "./DataSecurityTools";
-import { GetDataTableFreshnessTool } from "./DataObservabilityTools";
+import {
+  GetDataTableFreshnessTool,
+  GetDataTableLineageTool,
+} from "./DataObservabilityTools";
 import { GetChangeDetailsTool } from "./ChangeTools";
 import { BaselineAnomalyTool, QueryMetricsTool } from "./MetricTools";
 import { GetTraceTool, QueryTracesTool } from "./TraceTools";
@@ -199,10 +202,12 @@ export default class AIToolbox {
     QueryDataStoreAccessTool,
     /*
      * Data Observability: whether a watched table is fresh, its open alerts
-     * and its writers' latest runs - also how Slack and Microsoft Teams
-     * answer "is the orders table fresh?" (DataObservabilityTools).
+     * and its writers' latest runs, and what it is built from and what is
+     * built from it - also how Slack and Microsoft Teams answer "is the
+     * orders table fresh?" and "what feeds it?" (DataObservabilityTools).
      */
     GetDataTableFreshnessTool,
+    GetDataTableLineageTool,
     TopExceptionsTool,
     SearchLogsTool,
     SearchSecurityEventsTool,

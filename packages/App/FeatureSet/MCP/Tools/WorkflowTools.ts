@@ -22,6 +22,8 @@ import McpCredentialUtil, {
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject, JSONArray } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { DATA_OBSERVABILITY_API_ROUTES } from "Common/Types/DataObservability/DataObservabilityApiTypes";
+import { readDataLineageDepth } from "Common/Types/DataObservability/DataTableLineage";
 import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
 import { StateListType } from "Common/Utils/StateOrder";
 
@@ -183,6 +185,30 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
     readOnly: true,
   },
   {
+    name: "get_data_table_lineage",
+    title: "Get Data Table Lineage",
+    description:
+      "What a table Data Observability watches is built from and what is built from it, before you change it or trust its data: the tables upstream and downstream, several steps each way, that are late, dropped, have open alerts, or whose pipeline failed its last run - nearest first, with how many steps away and the tables between - then the rest, the pipelines that load the upstream tables from outside with their latest run, and the BI dashboards built on it. Pass table: its schema.table key (public.orders), its name alone (orders), or its ID; and depth: the steps each way, 1 to 5 (default 3). A name several databases share answers with each match. Read-only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        table: {
+          type: "string",
+          description:
+            "The table: its schema.table key (public.orders), its name alone (orders), or its ID.",
+        },
+        depth: {
+          type: "number",
+          description:
+            "How many steps each way (default 3, max 5). Ask with more when the answer says the lineage goes on.",
+        },
+      },
+      required: ["table"],
+      additionalProperties: false,
+    },
+    readOnly: true,
+  },
+  {
     name: "oneuptime_whoami",
     title: "Who Am I",
     description:
@@ -292,6 +318,8 @@ export async function handleWorkflowTool(
       return addAlertNote(args, credential);
     case "get_data_table_freshness":
       return getDataTableFreshness(args, credential);
+    case "get_data_table_lineage":
+      return getDataTableLineage(args, credential);
     case "oneuptime_whoami":
       return whoami(credential);
     default:
@@ -635,6 +663,66 @@ async function getDataTableFreshness(
               return String((row as JSONObject)["answer"] || "");
             })
             .join("\n"),
+  } as JSONObject;
+}
+
+/**
+ * What a watched table is built from and what is built from it, from Data
+ * Observability's own route (/api/data-observability/tables/lineage/answer),
+ * read as the caller: one answer per table the name matches, each told in
+ * lines an agent can quote - problems first.
+ *
+ * The lineage is the message. Each match is listed by its ID, name and
+ * database only, to ask about one of them again: the route's own structure
+ * of the lineage tells the same tables again, at twice the length, and an
+ * MCP client reads every byte of a result into its model's context.
+ */
+async function getDataTableLineage(
+  args: Record<string, unknown>,
+  credential: McpCredentialInput,
+): Promise<JSONObject> {
+  const table: string = requireString(args, "table");
+  const depth: number = readDataLineageDepth(args["depth"]);
+
+  const response: unknown = await OneUptimeApiService.makeAuthenticatedApiCall({
+    method: "POST",
+    path: `/api${DATA_OBSERVABILITY_API_ROUTES.tableLineageAnswer}`,
+    body: { table, depth } as JSONObject,
+    credential,
+  });
+  const tables: Array<JSONObject> = (
+    ((response as JSONObject | null)?.["tables"] as JSONArray | undefined) || []
+  ).map((row: unknown): JSONObject => {
+    return (row as JSONObject | null) || {};
+  });
+  const answers: Array<string> = tables.map((row: JSONObject): string => {
+    return String(row["answer"] || "");
+  });
+
+  return {
+    success: true,
+    operation: "get_data_table_lineage",
+    table,
+    depth,
+    matches: tables.length,
+    tables: tables.map((row: JSONObject): JSONObject => {
+      return {
+        dataAssetId: (row["dataAssetId"] as string | undefined) || null,
+        name: (row["name"] as string | undefined) || null,
+        database: (row["database"] as string | undefined) || null,
+      };
+    }),
+    message:
+      tables.length === 0
+        ? `No table Data Observability watches is called "${table}".`
+        : [
+            ...(tables.length > 1
+              ? [
+                  `${tables.length} watched tables are called "${table}". The lineage of each:`,
+                ]
+              : []),
+            ...answers,
+          ].join("\n\n"),
   } as JSONObject;
 }
 

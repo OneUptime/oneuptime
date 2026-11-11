@@ -126,7 +126,7 @@ curl -fsSL https://oneuptime.com/docs/static/scripts/host-collector/install.sh |
 :::steps
 ### Maak een collectorconfiguratie
 
-Open **Producten → Infrastructuur → Hosts → Collectorconfiguraties** en kies **Collectorconfiguratie aanmaken**. Geef haar een naam, het systeem van de hosts waarvoor ze is en, om er maar een deel van te bereiken, hun labels. Haar configuratie begint als de standaard van OneUptime voor dat systeem.
+Open **Producten → Infrastructuur → Hosts → Configuratie → Collectorconfiguraties** en kies **Collectorconfiguratie aanmaken**. Geef haar een naam, het systeem van de hosts waarvoor ze is en, om er maar een deel van te bereiken, hun labels. Haar configuratie begint als de standaard van OneUptime voor dat systeem.
 
 ### Bewerk haar config.yaml
 
@@ -134,14 +134,14 @@ Kies op de pagina van de configuratie **Configuratie bewerken**, wijzig de YAML 
 
 ### Zie haar de hosts bereiken
 
-Elke opgeslagen wijziging is een nieuwe versie, en de hosts waarvoor ze geldt krijgen haar binnen een minuut. De lijst **Hosts** van de configuratie toont elke host, de status van zijn collector en de versie die hij uitvoert.
+Elke opgeslagen wijziging is een nieuwe versie, en de hosts waarvoor ze geldt krijgen haar binnen een minuut. Het tabblad **Hosts** van de configuratie toont elke host, de status van zijn collector en de versie die hij uitvoert.
 :::
 
-Een host voert de eerste configuratie in de lijst uit die voor hem geldt: sleep de rijen in **Collectorconfiguraties** om de volgorde te wijzigen. Zet de nauwste configuraties bovenaan, zoals een voor webservers met `env:production`, en brede, zoals een voor elke Linux-host, daaronder. De kaart **Standaarden van OneUptime** onder de lijst toont wat een host uitvoert als er geen configuratie geldt.
+Een host voert de eerste configuratie in de lijst uit die voor hem geldt: sleep de rijen in **Collectorconfiguraties** om de volgorde te wijzigen. Zet de nauwste configuraties bovenaan, zoals een voor webservers met `env:production`, en brede, zoals een voor elke Linux-host, daaronder. Elke rij toont hoeveel hosts de configuratie uitvoeren, en op hoeveel ze mislukte. De kaart **Standaarden van OneUptime** onder de lijst toont wat een host uitvoert als er geen configuratie geldt, en hoeveel hosts dat doen. Om dat voor een systeem te wijzigen, kiest u bij de standaard ervan **Configuratie bekijken** en daarna **Een configuratie hiervan maken**.
 
 ### Versies en terugzetten
 
-De lijst **Versies** van een configuratie bewaart elke opgeslagen wijziging, de nieuwste eerst, met wie haar opsloeg en wanneer. Kies **Bekijken** om een versie te lezen, en **Terugzetten** om haar opnieuw naar de hosts te sturen: ze wordt opgeslagen als een nieuwe versie die zegt welke ze terugzette, zodat de lijst altijd vertelt wat elke host kreeg.
+Het tabblad **Versies** van een configuratie bewaart elke opgeslagen wijziging, de nieuwste eerst, met wie haar opsloeg en wanneer. Kies **Bekijken** om een versie te lezen, en **Terugzetten** om haar opnieuw naar de hosts te sturen: ze wordt opgeslagen als een nieuwe versie die zegt welke ze terugzette, zodat de lijst altijd vertelt wat elke host kreeg.
 
 ### Kies een configuratie voor één host
 

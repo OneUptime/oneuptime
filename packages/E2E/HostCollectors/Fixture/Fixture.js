@@ -4,9 +4,12 @@
  *
  *   - Hosts: the list, its Add Host dialog (the one command, the key, the
  *     live "wait for the host" step) and the showcase an empty list shows;
- *   - Hosts > Collector Configs: the list, OneUptime's defaults, creating one;
- *   - a Collector Config's page: who it is for, config.yaml and its edit
- *     dialog, the Versions list with Put back, the hosts that run it;
+ *   - Hosts > Configuration > Collector Configs: the list (how a host gets
+ *     its config, how many hosts run each one), OneUptime's defaults and
+ *     how many hosts run each, creating one, from scratch or from a default;
+ *   - a Collector Config's page: who it is for and how many hosts run it,
+ *     then its tabs - config.yaml and its edit dialog, the hosts that run
+ *     it, the Versions list with Put back;
  *   - a host's Collector page: a managed host (state, config, Change config,
  *     Try again, the commands on the host) and one set up by hand (the
  *     command that hands it over, the manual guide);
@@ -73,6 +76,9 @@ import User from "Common/Models/DatabaseModels/User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
@@ -483,6 +489,24 @@ function matchesValue(stored, wanted) {
       return false;
     }
     return new Date(stored).getTime() >= new Date(wanted.value).getTime();
+  }
+
+  /*
+   * The defaults card's counts: a host OneUptime manages (an instance) that
+   * runs no Collector Config (no config id), of one system's os.type values.
+   */
+  if (wanted instanceof IsNull) {
+    return stored === undefined || stored === null || stored === "";
+  }
+
+  if (wanted instanceof NotNull) {
+    return stored !== undefined && stored !== null && stored !== "";
+  }
+
+  if (wanted instanceof Includes) {
+    return wanted.values.some((value) => {
+      return matchesValue(stored, value);
+    });
   }
 
   if (
