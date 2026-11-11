@@ -44,7 +44,7 @@ Während sich Ausfallzeit ansammelt, zeigt die **Übersicht** das verbleibende B
 - als Prozentsatz des Gesamtbudgets, der auch den Status des SLO bestimmt und den Balken füllt. Der Balken hat eine Markierung an der Risikoschwelle des SLO;
 - als Dauer, zum Beispiel "31m 4s left of 43m 12s".
 
-Ist das Budget aufgebraucht, zeigt die Kachel **No budget left**. Geht die Ausfallzeit darüber hinaus, zeigt die Kachel **Budget exceeded** und die Überziehung als Zeit, zum Beispiel "4d 23m over budget · 5m 47s allowed": Das SLO hat alle 5 Minuten und 47 Sekunden seines Budgets verbraucht und weitere 4 Tage und 23 Minuten dazu. Der Balken bleibt leer und rot.
+Ist das Budget aufgebraucht, zeigt die Kachel **Kein Budget mehr**. Geht die Ausfallzeit darüber hinaus, zeigt die Kachel **Budget überschritten** und die Überziehung als Zeit, zum Beispiel "4d 23m over budget · 5m 47s allowed": Das SLO hat alle 5 Minuten und 47 Sekunden seines Budgets verbraucht und weitere 4 Tage und 23 Minuten dazu. Der Balken bleibt leer und rot.
 
 Das verbleibende Budget wird für Berechnungen und Verlaufsdiagramme als Zahl mit Vorzeichen gespeichert, ein überzogenes Budget erscheint dort also als negativer Prozentsatz. Ein großer negativer Prozentsatz bedeutet, dass die Überziehung im Vergleich zum Budget groß ist; er ist nicht der Anteil der Zeit, in der der Dienst ausgefallen war.
 
@@ -60,11 +60,11 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 | Die Kachel zeigt | Bedeutung |
 | --- | --- |
-| Eine Dauer, etwa **~2d 5h** | Beim aktuellen Tempo ist das Budget in etwa dieser Zeit aufgebraucht. Gelb, und rot, sobald es einen Tag oder weniger sind. **Under 1m** bedeutet weniger als eine Minute. |
-| **Not burning** | In den letzten 60 Minuten wurde kein Budget verbraucht. |
-| **Sustainable** | Nur rollierende Zeitfenster: Die Reichweite ist mindestens ein ganzes Zeitfenster, das Budget wird also nicht schneller verbraucht, als alte Ausfallzeit herausfällt. Bei diesem Tempo kann es nicht aufgebraucht werden. |
-| **Lasts until reset** | Nur Kalendermonate: Das Budget wird zu Beginn des nächsten Monats zurückgesetzt, bevor es aufgebraucht wäre. |
-| **Overspent** | Das Budget ist bereits verbraucht. Die Kachel sagt, um wie viel es überzogen ist. |
+| Eine Dauer, etwa **~2d 5h** | Beim aktuellen Tempo ist das Budget in etwa dieser Zeit aufgebraucht. Gelb, und rot, sobald es einen Tag oder weniger sind. **Unter 1 Min.** bedeutet weniger als eine Minute. |
+| **Kein Verbrauch** | In den letzten 60 Minuten wurde kein Budget verbraucht. |
+| **Tragfähig** | Nur rollierende Zeitfenster: Die Reichweite ist mindestens ein ganzes Zeitfenster, das Budget wird also nicht schneller verbraucht, als alte Ausfallzeit herausfällt. Bei diesem Tempo kann es nicht aufgebraucht werden. |
+| **Reicht bis zum Zurücksetzen** | Nur Kalendermonate: Das Budget wird zu Beginn des nächsten Monats zurückgesetzt, bevor es aufgebraucht wäre. |
+| **Überzogen** | Das Budget ist bereits verbraucht. Die Kachel sagt, um wie viel es überzogen ist. |
 
 Bei Kalendermonat-SLOs sagt die Kachel außerdem, wann das Budget zurückgesetzt wird.
 
@@ -80,7 +80,7 @@ Das Diagramm **Fehlerbudget-Burn-down** auf der **Übersicht** zeigt das verblei
 - Bei jeder Auswertung, alle 5 Minuten, wird ein Punkt erfasst, das Diagramm eines neuen SLO bleibt also bis zu seiner ersten Auswertung leer.
 - Ziehen Sie über das Diagramm, um in einen Teil des Zeitfensters zu zoomen. Doppelklicken Sie oder klicken Sie auf **Zoom zurücksetzen**, um wieder das ganze Zeitfenster zu sehen.
 
-**Metriken öffnen** öffnet die Seite **Metriken** des SLO, deren Tab **Error Budget History** bis zu 400 Tage zurückreicht. Siehe [SLO-Metriken und -Dashboards](/docs/slo/metrics).
+**Metriken öffnen** öffnet die Seite **Metriken** des SLO, deren Tab **Verlauf des Fehlerbudgets** bis zu 400 Tage zurückreicht. Siehe [SLO-Metriken und -Dashboards](/docs/slo/metrics).
 
 ## Wie sich das Budget erholt
 

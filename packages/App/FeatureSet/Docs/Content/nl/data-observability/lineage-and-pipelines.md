@@ -97,6 +97,18 @@ Voor elk Power BI-rapport en -dashboard toont **BI-dashboards** eerst hoe vaak h
 
 Weergaven, en vernieuwingen op capaciteiten, hebben niets nodig buiten de beheer-API-toegang hierboven: de service principal in een beveiligingsgroep die **Service principals can access read-only admin APIs** toestaat, zonder Power BI-machtigingen op de app die toestemming van een beheerder vereisen. Als weergaven of vernieuwingen niet gelezen kunnen worden, worden de dashboards toch gelezen en bewaard, zegt de BI-tool wat is overgeslagen en waarom, en probeert de volgende lezing het opnieuw.
 
+### Waarschuwingen bij mislukte vernieuwingen
+
+Zet **Alert on Failed Refreshes** aan wanneer je een Power BI-tool toevoegt of bewerkt (een nieuwe begint met deze optie aan), en OneUptime houdt voor de tool één monitor bij onder **Monitoren**, genoemd naar de tool. De monitor opent een waarschuwing voor elke dataset waarvan de laatste vernieuwing is mislukt of geannuleerd, met de dataset en de werkruimte in de titel van de waarschuwing, en lost die op zodra een latere vernieuwing is voltooid. Een dataset die later wordt gepubliceerd, wordt bewaakt zodra die gelezen is. Zet je de schakelaar uit of verwijder je de tool, dan wordt de monitor verwijderd; tot dan is het een gewone monitor, met zijn eigenaren, on-callbeleid en onderhoudsvensters.
+
+Mislukte vernieuwingen gebruiken de pipelinemonitoren niet. Een dataset waarvan de vernieuwing is mislukt, blijft de gegevens van zijn laatste voltooide vernieuwing tonen tot een latere is voltooid, dus de waarschuwing blijft tot dan open, terwijl de waarschuwing van een mislukte uitvoering een uur na de uitvoering verdwijnt. En vernieuwingen worden eens per uur gelezen: een vernieuwing die tot een uur na het einde wordt gelezen, zou vaak buiten het uur vallen waar **Pipeline Run Failed** naar kijkt, een dataset die elk halfuur wordt vernieuwd, zou steeds **Pipeline Is Late** worden, en een vernieuwing die klaar is maar nog niet gelezen, zou eruitzien als **Pipeline Run Unusually Long**.
+
+- Elke lezing per uur bewaart de datasets waarvan de laatste afgeronde vernieuwing is mislukt of geannuleerd. Elke vijf minuten schrijft elk daarvan `oneuptime.data.bi.refresh_failed`, 1 zolang die faalt en 0 in het uur nadat een latere vernieuwing is voltooid, en de monitor leest die, zodat één fout één waarschuwing opent, hoeveel lezingen per uur hem ook zien.
+- Een fout wordt gezien bij de volgende lezing per uur: de waarschuwing gaat open tot een uur nadat de vernieuwing mislukte, en wordt opgelost tot een uur nadat een latere vernieuwing is voltooid.
+- Een vernieuwing die nog loopt, verandert niets: de waarschuwing van een dataset waarvan de vernieuwing is mislukt, blijft open terwijl de volgende vernieuwing loopt, en wordt pas opgelost zodra een vernieuwing is voltooid.
+- Op een capaciteit geeft de lijst van vernieuwbare items van Power BI alleen de laatste vernieuwing van elke dataset, dus een vernieuwing die mislukte en binnen hetzelfde uur werd gevolgd door een voltooide, wordt nooit gezien: dan zijn de gegevens alweer vers.
+- Datasets op gedeelde capaciteit geven alleen waarschuwingen waar hun vernieuwingen gelezen kunnen worden (hierboven), en een dataset waarvan de vernieuwingen niet gelezen konden worden, houdt zijn waarschuwing zoals die was tot dat wel kan.
+
 ## Pipelines
 
 Elke job, elk dbt-project en elke synchronisatie verschijnt onder **Pipelines**, met de uitvoeringen: wanneer elke uitvoering begon en eindigde, hoe lang ze duurde, welke poging het was waar de scheduler dat zegt (het try-nummer van Airflow), en de fout van een mislukte uitvoering. Na vijf uitvoeringen leert elke pipeline uit zijn eigen uitvoeringen hoe lang een uitvoering gewoonlijk duurt en hoeveel tijd er volgens zijn planning tussen twee uitvoeringen zit. De pagina van een pipeline beveelt drie monitoren aan:
@@ -104,6 +116,8 @@ Elke job, elk dbt-project en elke synchronisatie verschijnt onder **Pipelines**,
 - **Pipeline Run Failed**: een uitvoering is mislukt of afgebroken.
 - **Pipeline Run Unusually Long**: een uitvoering heeft twee keer haar gebruikelijke tijd of langer geduurd, elke vijf minuten gecontroleerd zolang ze loopt, zodat een uitvoering die vastloopt al wordt opgemerkt voordat ze eindigt.
 - **Pipeline Is Late**: er is langer geen uitvoering gestart dan de planning toestaat.
+
+De pagina van een pipeline tekent zijn **Herkomst**, de eerste plek om te kijken als een uitvoering mislukt of te laat is: links de tabellen die hij leest, rechts de tabellen die hij schrijft, de pipeline ertussen, en elke kaart zegt hoe het er nu voor staat. Kies meer stappen om te zien waaruit die tabellen zijn opgebouwd en wat eruit is opgebouwd, en open een willekeurige tabel om haar eigen tabblad **Herkomst** te zien.
 
 ## Eén waarschuwing per oorzaak
 
@@ -114,6 +128,10 @@ Wanneer een tabel verouderd raakt, raakt elke tabel die eruit is opgebouwd ook v
 
 De kaart **Gegevens** van de oorzaak toont haar **Impact stroomafwaarts**: elke waarschuwing die ze veroorzaakte. De kaart van een tabelwaarschuwing toont ook de services die naar de tabel schrijven, met hun mislukte schrijfacties, en hun deploys en andere wijzigingen in de dag vóór de waarschuwing.
 
+Onder de kaart **Gegevens** tekent de pagina van een waarschuwing haar **Herkomst**: rond haar tabel, zoals het tabblad **Herkomst** van de tabel die tekent, of rond haar pipeline. De weg omhoog naar de waarschuwing die haar veroorzaakte en omlaag naar elke waarschuwing die ze veroorzaakte, is gemarkeerd - de tabel of pipeline van de oorzaak met **Oorzaak**, die van elke veroorzaakte waarschuwing met **Gevolg** - en de rest vervaagt, zodat wie haar opent ziet waar in de keten het probleem begon. Gaat de oorzaak over een hele database, of ligt ze verder omhoog dan het diagram reikt, dan zegt de kaart dat in woorden. **Herkomst verkennen** opent het tabblad **Herkomst** van de tabel, of de pagina van de pipeline.
+
+Wie de waarschuwing die haar veroorzaakte niet mag zien, krijgt geen kaart **Gegevens** en geen herkomst, en een veroorzaakte waarschuwing die diegene niet mag zien, wordt niet gemarkeerd en niet meegeteld.
+
 ## Voordat een wijziging wordt gemerged
 
 Wanneer een pull request een bewaakte tabel wijzigt, zegt [Production Review](/docs/ai/ai-agent) op de pull request wat ervan afhangt: de services die haar lezen, de tabellen die eruit zijn opgebouwd, de dashboards erop en haar dataproducten. Een tabel met een kopie op een database die als Staging is gemarkeerd, zegt ook hoe de kopie verschilt: haar rijen, haar kolommen en wat de controles van de tabel daar lezen, ter plekke uitgevoerd. Op een database die alleen een sonde kan bereiken, worden de controles weggelaten, en dat wordt gemeld.
@@ -122,5 +140,5 @@ Wanneer een pull request een bewaakte tabel wijzigt, zegt [Production Review](/d
 
 :::cards
 - [Dataproducten](/docs/data-observability/data-products): Actualiteits-SLA's over de tabellen die mensen gebruiken.
-- [OneUptime AI en de API](/docs/data-observability/ai-and-api): Onderzoeken die beginnen bij de schrijvers en uitvoeringen van een tabel.
+- [OneUptime AI en de API](/docs/data-observability/ai-and-api): Onderzoeken die beginnen bij de schrijvers en uitvoeringen van een tabel. Via AI vragen en AI-agents kun je vragen waaruit een tabel is opgebouwd.
 :::

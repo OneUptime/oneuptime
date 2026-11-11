@@ -12,6 +12,8 @@
  *   - dialog=open        a dialog over the page
  *   - drawer=open        a side panel (SideOver) over the page
  *   - width=<px>         how wide the overflowing table's card is (560)
+ *   - code=raw           sentences as the locale files hold them, with no
+ *                        code set apart (Common/UI/Utils/CodeReadsAsWritten)
  *
  * The components are the production ones: the switch (Toggle), the status
  * dot (StatusBubble), a table whose Actions column sticks at its end
@@ -33,7 +35,10 @@
  * with an English error, and a narrow month whose English and Persian
  * events are cut short to their blocks (Calendar). A week with two blocks
  * at once on a day, and a chart whose time axis names the hours with their
- * day (LineChart).
+ * day (LineChart). Help texts that name code - a path, a flag, a function,
+ * a cron line, a file, an address a value fills in - help texts that name
+ * products, and a key's sign in brackets, in the Dashboard's words
+ * (FieldLabel).
  */
 import "Common/UI/Styles/Theme.css";
 import React, { useState } from "react";
@@ -50,6 +55,15 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import { setCodeApartInSentence } from "Common/Types/CodeInSentence";
+import {
+  CODE_READS_AS_WRITTEN_POST_PROCESSOR,
+  codeReadsAsWrittenPostProcessor,
+  leaveIsolatesOutOfCopiedText,
+  setCodeApartWith,
+} from "Common/UI/Utils/CodeReadsAsWritten";
+import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Breadcrumbs from "Common/UI/Components/Breadcrumbs/Breadcrumbs";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -107,6 +121,11 @@ const language = ["de", "fa", "ko", "ar"].includes(params.get("lang"))
 const isDialogOpen = params.get("dialog") === "open";
 const isDrawerOpen = params.get("drawer") === "open";
 /*
+ * code=raw: the sentences as the locale files hold them, with no code set
+ * apart - the page before every frontend's i18next set it apart.
+ */
+const isCodeSetApart = params.get("code") !== "raw";
+/*
  * The table's card: 800px, 48rem or wider, where a table too wide for it
  * scrolls sideways - in a narrower one it is drawn as cards (TableFit).
  */
@@ -116,20 +135,35 @@ const tableWidth = Number(params.get("width") || 800);
 followLanguageForPage(i18next);
 followLanguageForDates(i18next);
 
-await i18next.use(initReactI18next).init({
-  lng: language,
-  fallbackLng: "en",
-  resources: {
-    en: { translation: {} },
-    de: { translation: DE },
-    fa: { translation: FA },
-    ko: { translation: KO },
-    ar: { translation: AR },
-  },
-  interpolation: { escapeValue: false },
-  keySeparator: false,
-  nsSeparator: false,
-});
+/*
+ * As every frontend's i18n set-up does: code in an Arabic or Persian
+ * sentence set apart as it is handed to the page, and copied without the
+ * marks that set it apart. The page bundles every language's words, so it
+ * hands over the rules with them, as the Admin Dashboard does.
+ */
+setCodeApartWith(setCodeApartInSentence);
+leaveIsolatesOutOfCopiedText();
+
+await i18next
+  .use(initReactI18next)
+  .use(codeReadsAsWrittenPostProcessor)
+  .init({
+    postProcess: isCodeSetApart
+      ? [CODE_READS_AS_WRITTEN_POST_PROCESSOR]
+      : false,
+    lng: language,
+    fallbackLng: "en",
+    resources: {
+      en: { translation: {} },
+      de: { translation: DE },
+      fa: { translation: FA },
+      ko: { translation: KO },
+      ar: { translation: AR },
+    },
+    interpolation: { escapeValue: false },
+    keySeparator: false,
+    nsSeparator: false,
+  });
 
 // One moment for every date the page writes.
 const WRITTEN_AT = new Date("2026-10-26T15:07:00.000Z");
@@ -391,6 +425,158 @@ function Section(props) {
     <section className="mb-6" data-testid={`section-${props.name}`}>
       {props.children}
     </section>
+  );
+}
+
+/*
+ * Help texts that name code, from the Dashboard's locale files: a path, two
+ * flags, two functions, a cron line, a file and an address a value fills
+ * in. Under them, help texts that name products (NAMES_HELP), a key's sign
+ * in brackets, which a mark keeps unmirrored, and two sentences that quote
+ * a state as the page names it (#6659).
+ */
+const CODE_HELP = [
+  {
+    id: "code-path",
+    title: "Logs",
+    help: "Make sure the Docker agent's filelog receiver is collecting logs from /var/lib/docker/containers.",
+  },
+  {
+    id: "code-flag-help",
+    title: "Commands",
+    help: "Every command the CLI has for these. Add --help to any of them for its flags.",
+  },
+  {
+    id: "code-flag-metric",
+    title: "Quotas",
+    help: "Counted per region. Per project, these come from Neutron's quotas, which the agent leaves off: delete the --disable-metric=neutron-quota_network line from the exporter to see them.",
+  },
+  {
+    id: "code-function",
+    title: "Consent",
+    help: "Nothing uploads until your page calls grantConsent().",
+  },
+  {
+    id: "code-cron",
+    title: "Schedule",
+    help: 'Enter a cron expression, such as "0 9 * * 1-5" (09:00 on weekdays).',
+  },
+  {
+    id: "code-file",
+    title: "Agent",
+    help: "Create a .env file next to the downloaded files, then start the agent.",
+  },
+  /*
+   * More Latin letters in its code than Arabic ones in its words: counted
+   * with its code, the Arabic sentence was laid out from the left.
+   */
+  {
+    id: "code-call",
+    title: "Session Replay",
+    help: "Nothing uploads until the page calls OneUptimeReplay.grantConsent().",
+  },
+];
+
+/*
+ * Help texts worded in Arabic or Persian that name more products in Latin
+ * letters than they have words of their own. Read by most of their
+ * letters, they were laid out from the left, their words in the wrong
+ * order; they read as the page does (Common/UI/Utils/LineDirection's
+ * getTranslatedLineDirection). Persian leaves the authenticator one in
+ * English.
+ */
+const NAMES_HELP = [
+  {
+    id: "names-smtp",
+    title: "Hostname",
+    help: "SMTP server hostname. Examples: smtp.office365.com (Microsoft 365), smtp.gmail.com (Google)",
+  },
+  {
+    id: "names-authenticator",
+    title: "Authenticator apps",
+    help: "Get a one-time code from an app such as 1Password, Google Authenticator, or Microsoft Authenticator.",
+  },
+  {
+    id: "names-provider",
+    title: "Provider",
+    help: "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).",
+  },
+];
+
+const KEY_SIGNS = [
+  { id: "key-sign-newer", text: "Newer session by this user (})" },
+  { id: "key-sign-older", text: "Older session by this user ({)" },
+  { id: "key-sign-speed", text: "Playback speed (< slower, > faster)" },
+];
+
+const QUOTED_STATES = [
+  {
+    id: "quoted-state-vm",
+    text: "Running, Powered off or Template, inferred from whether the VM sent CPU data in the latest collection. Running turns amber or red, with why under it, while the host swaps, balloons or makes the VM wait for a CPU.",
+  },
+  {
+    id: "quoted-state-health",
+    text: "The component's latest health as the FlashBlade reports it: Healthy, Unused for an empty position, or Unhealthy when the part needs a person.",
+  },
+];
+
+function CodeInSentences() {
+  const translator = useTranslator();
+
+  return (
+    <div className="w-[40rem] max-w-full space-y-4 bg-white p-4 dark:bg-gray-900">
+      {CODE_HELP.map((item) => {
+        return (
+          <div key={item.id} data-testid={item.id}>
+            <FieldLabelElement
+              title={item.title}
+              description={item.help}
+              descriptionId={`${item.id}-help`}
+              hideOptionalLabel={true}
+            />
+          </div>
+        );
+      })}
+      <div data-testid="code-template">
+        <FieldLabelElement title="OTLP Endpoint" hideOptionalLabel={true} />
+        <p className="mt-1 text-sm text-gray-500" id="code-template-help">
+          {translator.translateTemplate(
+            "Send with the otlp_http exporter to {{url}}/otlp, with the header x-oneuptime-token: {{key}}. Each host fills in its own address and key.",
+            { url: "https://oneuptime.example.com", key: "tok_41f" },
+          )}
+        </p>
+      </div>
+      {NAMES_HELP.map((item) => {
+        return (
+          <div key={item.id} data-testid={item.id}>
+            <FieldLabelElement
+              title={item.title}
+              description={item.help}
+              descriptionId={`${item.id}-help`}
+              hideOptionalLabel={true}
+            />
+          </div>
+        );
+      })}
+      <ul className="space-y-1 text-sm text-gray-700">
+        {KEY_SIGNS.map((item) => {
+          return (
+            <li key={item.id} data-testid={item.id}>
+              {translator.translateText(item.text)}
+            </li>
+          );
+        })}
+      </ul>
+      <ul className="space-y-1 text-sm text-gray-700">
+        {QUOTED_STATES.map((item) => {
+          return (
+            <li key={item.id} data-testid={item.id}>
+              {translator.translateText(item.text)}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
@@ -938,6 +1124,10 @@ function Page() {
             {language === "fa" ? " را بنویسید." : " is written as is."}
           </p>
         </div>
+      </Section>
+
+      <Section name="code-in-sentences">
+        <CodeInSentences />
       </Section>
 
       <Section name="korean-words">

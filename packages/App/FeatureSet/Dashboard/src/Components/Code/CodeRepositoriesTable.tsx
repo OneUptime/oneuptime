@@ -29,6 +29,12 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import IsolatedLine, {
+  getIsolatedLine,
+} from "Common/UI/Components/IsolatedText/IsolatedLine";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 
 /*
  * A list of a project's repositories in Code, drawn as every list in
@@ -194,7 +200,24 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
        * (CODE_REPOSITORY_COLUMN_CLASS_NAME).
        */
       contentClassName: CODE_REPOSITORY_COLUMN_CLASS_NAME,
+      // A mark beside the name: the name reads its own way, the cell the page's.
+      getLineText: drawsItsOwnLines,
       getElement: (repository: CodeRepositoryListItem): ReactElement => {
+        /*
+         * The name, its organization/name and its description each read
+         * their own way (getIsolatedLine, IsolatedLine), so each is cut
+         * short at its own end: an English name on an Arabic page lost its
+         * start, its "..." at the page's end.
+         */
+        const nameLine: {
+          dir: ReadingDirection | undefined;
+          className: string;
+        } = getIsolatedLine({
+          text: repository.name,
+          pageLanguage: translator.language,
+          className:
+            "truncate font-medium text-gray-900 hover:text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
+        });
         const fullName: string = getRepositoryFullName(repository);
         const hostNote: string = getRepositoryHostNote(repository);
         const shownFullName: string = [fullName, hostNote]
@@ -227,9 +250,10 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
                 <Link
                   to={getRepositoryRoute(repository.id)}
                   dataTestId="code-repository-name"
-                  className="truncate font-medium text-gray-900 hover:text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                  dir={nameLine.dir}
+                  className={nameLine.className}
                 >
-                  <>{repository.name}</>
+                  <IsolatedText text={repository.name || ""} />
                 </Link>
                 {/*
                  * The first column is drawn a step heavier (the row's name,
@@ -238,12 +262,12 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
                  * quieter facts, in the regular weight.
                  */}
                 {shownFullName && shownFullName !== repository.name ? (
-                  <span
-                    data-testid="code-repository-full-name"
+                  <IsolatedLine
+                    as="span"
+                    text={shownFullName}
+                    dataTestId="code-repository-full-name"
                     className={`truncate text-xs ${CODE_REPOSITORY_ROW_FACT_CLASS_NAME}`}
-                  >
-                    {shownFullName}
-                  </span>
+                  />
                 ) : (
                   <></>
                 )}
@@ -259,12 +283,12 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
                 )}
               </span>
               {repository.description ? (
-                <span
-                  data-testid="code-repository-row-description"
+                <IsolatedLine
+                  as="span"
+                  text={repository.description}
+                  dataTestId="code-repository-row-description"
                   className={`block max-w-md truncate text-sm ${CODE_REPOSITORY_ROW_FACT_CLASS_NAME}`}
-                >
-                  {repository.description}
-                </span>
+                />
               ) : (
                 <></>
               )}

@@ -24,6 +24,7 @@ Start from the question the tile has to answer:
 | What is happening right now? | **Log Stream**, **Trace List**, **Incident List** or **Alert List** |
 | Are all our sites up? | **Monitor List** |
 | Are we keeping the reliability we promised? | **SLO** or **SLO List** |
+| Do people get through a flow, and come back? | **Funnel** or **User Retention** |
 | What state are our clusters and hosts in? | A widget of the Infrastructure group |
 | Where in the world is our network, and what is down? | **Network Map** |
 | A heading, a note, the time in another office? | **Text** or **Clock** |
@@ -170,6 +171,15 @@ The SLO widget works on [public dashboards](/docs/dashboards/sharing). What gets
 
 Every SLO with its status, SLI, error budget and burn rate, the least budget left first. Filter it by status or labels, or by a **Label Variable** that viewers pick in the toolbar. [SLO Metrics and Dashboards](/docs/slo/metrics) shows both SLO widgets at work.
 
+## Product analytics
+
+| Widget | What it shows |
+| --- | --- |
+| **Funnel** | A funnel saved on a RUM application's **Funnels** page: of the people who did its first step in the dashboard's time range, how many went on to each next step. |
+| **User Retention** | A retention table saved on its **User Retention** page: people grouped by when they first did its start event, and the share of each group that came back in each period after, with **All cohorts** above them. |
+
+Save the funnel or the retention table on its page first (see [Saved funnels and retention tables](/docs/rum/product-analytics#saved-funnels-and-retention-tables)), then pick it in the widget's settings. The widget takes its name as its title unless you give it one, and reads it again at each refresh, so a change saved on the page shows on the dashboard. **Open in Funnels** or **Open in User Retention** opens it on its page, in the dashboard's time range. Seeing it takes what seeing the page takes.
+
 ## Infrastructure
 
 Each of these lists the resources that an agent or a collector reports to OneUptime. Narrow them by cluster, host or namespace in their filters, and show them as a list or as a honeycomb.
@@ -235,7 +245,7 @@ Through the API and Terraform, the order is the widget's `arguments.sort`: a col
 
 A [public dashboard](/docs/dashboards/sharing) draws most widgets for its visitors, each showing only what it was set up to show. A few cannot be shown without a signed-in session:
 
-- **Log Chart**, **Trace Chart**, **Trace Table**, **Security Events** and **Security Events Flow** say in their place that they are not available on public dashboards.
+- **Log Chart**, **Trace Chart**, **Trace Table**, **Security Events**, **Security Events Flow**, **Funnel** and **User Retention** say in their place that they are not available on public dashboards.
 - The External Data Sources widgets are left out of a public dashboard altogether, because their settings are the query itself.
 
 ## When a widget can't be shown

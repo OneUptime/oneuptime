@@ -31,13 +31,17 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   checkApply: string;
   alertExplanation: (alertId: string) => string;
   alertFeedback: (alertId: string) => string;
+  alertLineage: (alertId: string) => string;
   quality: string;
   watchedTables: string;
   storeWatch: (dataStoreId: string) => string;
   tableFreshness: string;
   biSync: (dataBiConnectionId: string) => string;
+  biRefreshAlert: (dataBiConnectionId: string) => string;
   tableDashboards: string;
   tableLineage: string;
+  tableLineageAnswer: string;
+  pipelineLineage: string;
   tableSensitivity: string;
   tableErrors: string;
   aiAppTables: string;
@@ -54,6 +58,10 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   },
   alertFeedback: (alertId: string): string => {
     return `/data-observability/alerts/${alertId}/feedback`;
+  },
+  // The lineage around a data alert, with the ways to its cause and to the alerts it caused.
+  alertLineage: (alertId: string): string => {
+    return `/data-observability/alerts/${alertId}/lineage`;
   },
   // How well Data Observability is working for the project.
   quality: "/data-observability/quality",
@@ -109,10 +117,18 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   biSync: (dataBiConnectionId: string): string => {
     return `/data-observability/bi-connections/${dataBiConnectionId}/sync`;
   },
+  // Makes the BI tool's monitor on failed refreshes match it: made, kept or removed.
+  biRefreshAlert: (dataBiConnectionId: string): string => {
+    return `/data-observability/bi-connections/${dataBiConnectionId}/refresh-alert`;
+  },
   // The dashboards built on a table, and on the tables built from it.
   tableDashboards: "/data-observability/tables/dashboards",
   // A table's lineage several steps each way, with how each table is now: what its Lineage tab draws.
   tableLineage: "/data-observability/tables/lineage",
+  // A table's lineage told in words, problems first, by its name: what the MCP server's lineage tool asks.
+  tableLineageAnswer: "/data-observability/tables/lineage/answer",
+  // A pipeline's lineage: the tables it reads and writes, with how each is now: what its page draws.
+  pipelineLineage: "/data-observability/pipelines/lineage",
   // What Data Security knows each of a table's columns holds.
   tableSensitivity: "/data-observability/tables/sensitivity",
   // The errors in the services that write a table, naming it.
@@ -215,6 +231,11 @@ export interface DataObservabilityDataProductBadgeResetResponse {
 
 export interface DataObservabilityCheckAlertResponse {
   // The check's monitor, or null when it has no alert.
+  monitorId: string | null;
+}
+
+export interface DataObservabilityBiRefreshAlertResponse {
+  // The BI tool's monitor on failed refreshes, or null when it has none.
   monitorId: string | null;
 }
 

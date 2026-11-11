@@ -259,4 +259,5 @@ Expo 接受了推播，並不表示推播已到達裝置：Apple 或 Google 仍�
 - [行動應用程式疑難排解](/docs/mobile-desktop-apps/faq-troubleshooting): 解決手機上的登入和通知問題。
 - [升級規則](/docs/on-call/escalation-rules): 決定呼叫誰，以及何時呼叫。
 - [私有網路存取](/docs/self-hosted/private-network-access): 你的伺服器在你自己的網路中可以連到什麼。
+- [通知傳遞指標](/docs/self-hosted/notification-delivery-metrics): 統計 Apple 和 Google 接收的推播，以及它們拒絕的推播。
 :::

@@ -116,7 +116,7 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **Die Veröffentlichungszeit ist der Cursor.** Ein Ereignis des System Log ist die Aktivität selbst, deshalb ist `published` sowohl der Zeitpunkt, zu dem es geschah, als auch das, was das Abfragen liest.
 - **Die erste Abfrage blickt 24 Stunden zurück**, sodass eine neue Verbindung ihre jüngsten Ereignisse sofort zeigt.
 - **Jede spätere Abfrage beginnt 15 Minuten vor dem gespeicherten Cursor.** Okta warnt, dass eine Anfrage mit einer Endzeit verzögerte Ereignisse auslassen kann, was es selten nennt. Die Überlappung liest sie bei der nächsten Abfrage. Eines, das um mehr als 15 Minuten verzögert ist, kann hinter den Cursor fallen: Importieren Sie seinen Zeitraum, um es zurückzuholen.
-- **Eine Abfrage liest höchstens 24 Stunden über den Cursor hinaus.** Eine Verbindung, deren Cursor zurückliegt, holt in einer Reihe von 24-Stunden-Fenstern auf, und ihre **Integrität** zeigt **Catching up**.
+- **Eine Abfrage liest höchstens 24 Stunden über den Cursor hinaus.** Eine Verbindung, deren Cursor zurückliegt, holt in einer Reihe von 24-Stunden-Fenstern auf, und ihre **Integrität** zeigt **Holt auf**.
 - **Duplikate werden nach `uuid` verworfen**, innerhalb des Projekts, sodass die Überlappung, ein wiederholtes Zeitfenster und ein Import nie ein Ereignis doppelt speichern.
 
 Einem Link `next`, der woandershin zeigt als auf Ihre **Okta organization URL**, wird nie gefolgt, da das Token jede Anfrage begleitet.

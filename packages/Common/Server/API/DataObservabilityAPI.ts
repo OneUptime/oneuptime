@@ -83,11 +83,19 @@ import DataCheckService from "../Services/DataCheckService";
 import { isValidProbeConnectionVariable } from "../Utils/DataSecurity/DataSecurityProbeScan";
 import { DATA_OBSERVABILITY_KINDS } from "../Utils/DataObservability/DataObservabilityEngines";
 import DataBiSync from "../Utils/DataObservability/Bi/DataBiSync";
+import DataBiRefreshAlerts from "../Utils/DataObservability/Bi/DataBiRefreshAlerts";
 import DataWarehouseSpendSummary from "../Utils/DataObservability/DataWarehouseSpendSummary";
 import DataTableDashboards from "../Utils/DataObservability/Bi/DataTableDashboards";
 import DataTableSensitivity from "../Utils/DataObservability/DataTableSensitivity";
 import DataTableLineageReader from "../Utils/DataObservability/DataTableLineage";
+import DataTableLineageAnswerer, {
+  DataTableLineageAnswer,
+  formatDataTableLineageAnswer,
+} from "../Utils/DataObservability/DataTableLineageAnswer";
+import DataAlertLineageReader from "../Utils/DataObservability/DataAlertLineage";
 import {
+  DEFAULT_DATA_PIPELINE_LINEAGE_DEPTH,
+  DataAlertLineageAnswer,
   DataTableLineage,
   readDataLineageDepth,
 } from "../../Types/DataObservability/DataTableLineage";
@@ -129,11 +137,14 @@ import CommonAPI from "./CommonAPI";
  *  - a check written by OneUptime AI from a rule in a sentence, to review,
  *    for the same people;
  *  - whether a table is fresh, as one answer (DataTableAnswer), for anyone
- *    who may read data assets - what the MCP server's
+ *    who may read data assets and their API keys - what the MCP server's
  *    get_data_table_freshness tool asks;
  *  - a table's lineage several steps each way, with how each table on it
  *    is now (DataTableLineage), for the same people and their API keys -
- *    what a table's Lineage tab draws;
+ *    what a table's Lineage tab draws - and the same told in words,
+ *    problems first, for a table named as for its freshness
+ *    (DataTableLineageAnswer): what the MCP server's get_data_table_lineage
+ *    tool asks;
  *  - a data product's "data as of" badge, for anyone with its secret, so it
  *    can be embedded where nobody signs in to OneUptime;
  *  - Connect a database, for those who may create data assets.
@@ -496,6 +507,11 @@ export default class DataObservabilityAPI extends BaseAPI<
 
         return { tables: answers } as unknown as JSONObject;
       },
+      /*
+       * Read-only, so the MCP server's tool answers an agent signed in with
+       * a project API key too: its alerts as the key may see them.
+       */
+      { allowsApiKey: true },
     );
 
     this.post(
@@ -516,6 +532,22 @@ export default class DataObservabilityAPI extends BaseAPI<
         return (await DataBiSync.syncConnection(
           connection.id,
         )) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.biRefreshAlert(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await DataBiRefreshAlerts.sync({
+          projectId,
+          dataBiConnectionId: DataObservabilityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
       },
     );
 
@@ -584,6 +616,126 @@ export default class DataObservabilityAPI extends BaseAPI<
         return lineage as unknown as JSONObject;
       },
       // Read-only, so a build in CI can ask what a change reaches.
+      { allowsApiKey: true },
+    );
+
+    /*
+     * A table's lineage told in words, problems first - what the MCP
+     * server's get_data_table_lineage asks. The table is named as for its
+     * freshness: schema.table, its name alone, or its ID; a name several
+     * databases share answers with each.
+     */
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.tableLineageAnswer,
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const reference: string =
+          typeof body["table"] === "string" ? body["table"].trim() : "";
+
+        if (!reference) {
+          throw new BadDataException(
+            "Name the table: its schema.table key, its name, or its ID.",
+          );
+        }
+
+        const depth: number = readDataLineageDepth(body["depth"]);
+        const now: Date = OneUptimeDate.getCurrentDate();
+        // Its tables' open alerts as the person, or API key, who asked may see them.
+        const answers: Array<DataTableLineageAnswer> =
+          await DataTableLineageAnswerer.answer({
+            projectId,
+            reference,
+            depth,
+            now,
+            reader: props,
+          });
+
+        return {
+          depth,
+          tables: answers.map((answer: DataTableLineageAnswer): JSONObject => {
+            return {
+              ...(answer as unknown as JSONObject),
+              answer: formatDataTableLineageAnswer(answer, now),
+            };
+          }),
+        } as unknown as JSONObject;
+      },
+      { allowsApiKey: true },
+    );
+
+    // A pipeline's lineage: the tables it reads and writes, a step each way unless asked for more.
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.pipelineLineage,
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const dataPipelineId: string =
+          typeof body["dataPipelineId"] === "string"
+            ? body["dataPipelineId"]
+            : "";
+
+        if (!ObjectID.isValidUUID(dataPipelineId)) {
+          throw new BadDataException("Name the pipeline by its ID.");
+        }
+
+        // Its tables' open alerts as the person who asked may see them.
+        const lineage: DataTableLineage | null =
+          await DataTableLineageReader.readPipeline({
+            projectId,
+            dataPipelineId: new ObjectID(dataPipelineId),
+            depth: readDataLineageDepth(
+              body["depth"],
+              DEFAULT_DATA_PIPELINE_LINEAGE_DEPTH,
+            ),
+            now: OneUptimeDate.getCurrentDate(),
+            reader: props,
+          });
+
+        if (!lineage) {
+          throw new BadDataException("Pipeline not found.");
+        }
+
+        return lineage as unknown as JSONObject;
+      },
+      { allowsApiKey: true },
+    );
+
+    /*
+     * A data alert's lineage, with the ways to its cause and to the alerts
+     * it caused: every alert as the person who asked may see it, so an
+     * alert, or a cause, they may not see is not found.
+     */
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.alertLineage(":id"),
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const answer: DataAlertLineageAnswer | null =
+          await DataAlertLineageReader.read({
+            projectId,
+            alertId: DataObservabilityAPI.readId(req),
+            now: OneUptimeDate.getCurrentDate(),
+            reader: props,
+          });
+
+        if (!answer) {
+          throw new BadDataException("Alert not found.");
+        }
+
+        return answer as unknown as JSONObject;
+      },
       { allowsApiKey: true },
     );
 

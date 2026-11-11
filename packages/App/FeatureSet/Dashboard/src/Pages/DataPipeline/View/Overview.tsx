@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import AppLink from "../../../Components/AppLink/AppLink";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import PipelineLineageDiagram from "../../../Components/DataObservability/PipelineLineageDiagram";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import {
@@ -36,7 +37,8 @@ import { useParams } from "react-router-dom";
 
 /*
  * One pipeline at a glance - its latest run, how long a run usually takes,
- * whether its next run is on time, and how many it has run - then every
+ * whether its next run is on time, and how many it has run - then its
+ * lineage: the tables it reads and writes, with how each is now. Then every
  * run, newest first: how it went, how long it took, its error, what it wrote.
  */
 const PipelineOverviewPage: FunctionComponent<
@@ -167,6 +169,8 @@ const PipelineOverviewPage: FunctionComponent<
           icon={IconProp.Activity}
         />
       </EventStatBar>
+
+      <PipelineLineageDiagram dataPipelineId={dataPipelineId} />
 
       <ModelTable<DataPipelineRun>
         modelType={DataPipelineRun}

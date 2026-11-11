@@ -52,6 +52,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 
 /*
  * TEAMS > SETTINGS > ROLES: THE PROJECT'S CUSTOM ROLES.
@@ -261,15 +263,17 @@ const TeamRoles: FunctionComponent<PageComponentProps> = (
             // A role's name and description are prose: they wrap, and never push the counts off the card.
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-xl",
+            // A description under the name: each reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: CustomRole): ReactElement => {
               return (
                 <div className="min-w-0">
                   <p className="font-medium text-gray-900 break-words">
-                    {item.name}
+                    <IsolatedText text={item.name || ""} />
                   </p>
                   {item.description ? (
                     <p className="mt-0.5 text-sm text-gray-500 break-words">
-                      {item.description}
+                      <IsolatedText text={item.description} />
                     </p>
                   ) : (
                     <></>

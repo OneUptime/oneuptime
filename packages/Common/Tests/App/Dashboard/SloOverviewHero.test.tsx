@@ -389,6 +389,33 @@ describe("SloOverviewHero", () => {
     },
   );
 
+  test.each([
+    ["Customers can pay for their basket.", "ltr"],
+    ["يستطيع العملاء دفع ثمن سلتهم.", "rtl"],
+  ])(
+    "a description is drawn the way it was written (%s reads %s)",
+    (description: string, direction: string) => {
+      renderHero({ slo: buildSlo({ description }) });
+
+      const paragraph: HTMLElement = screen.getByTestId(
+        "slo-overview-description",
+      );
+
+      /*
+       * Someone wrote it, in their language: in an isolate of its own, an
+       * English description on an Arabic page keeps its full stop at its
+       * end, and an Arabic one on an English page at its start.
+       */
+      expect(paragraph.tagName).toBe("P");
+      expect(paragraph.children).toHaveLength(1);
+      const isolate: Element = paragraph.children[0]!;
+      expect(isolate.tagName).toBe("BDI");
+      expect(isolate).toHaveAttribute("dir", direction);
+      expect(isolate.textContent).toBe(description);
+      expect(paragraph.textContent).toBe(description);
+    },
+  );
+
   test("a missing target is explicit instead of showing an incomplete percentage", () => {
     renderHero({ slo: buildSlo({ targetPercentage: undefined }) });
 

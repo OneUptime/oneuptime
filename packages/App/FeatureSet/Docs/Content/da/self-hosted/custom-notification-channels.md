@@ -183,7 +183,7 @@ En notifikation går til hver kanal, der er slået til, som én anmodning pr. ka
 
 ## Levering og nye forsøg
 
-En anmodning tæller som leveret, når din tjeneste svarer med en 2xx-status inden for 10 sekunder. En anmodning, den ikke svarede på eller svarede med 408, 429 eller en 5xx-status, sendes igen efter 1 sekund og efter yderligere 4 sekunder: tre forsøg i alt. Ved enhver anden 4xx-status sendes den ikke igen.
+En anmodning tæller som leveret, når din tjeneste svarer med en 2xx-status inden for 10 sekunder. En anmodning, den ikke svarede på eller svarede med 408, 429 eller en 5xx-status, sendes igen efter 1 sekund og efter yderligere 4 sekunder: tre forsøg i alt. Ved enhver anden 4xx-status sendes den ikke igen. Hvordan hver besked gik, tælles i [Metrikker for notifikationslevering](/docs/self-hosted/notification-delivery-metrics) efter kanalens ID og navn.
 
 Resultatet af hvert forsøg står i personens vagtlog med kanalens navn og den status, din tjeneste svarede med, aldrig URL'en. Et tilkald, der ikke bliver leveret, stopper ikke vagtpolitikken: Hvis ingen bekræfter, eskalerer den som sædvanlig. Behold en e-mail- eller SMS-regel længere nede i dine regler, hvis din tjeneste er den eneste måde at nå folk på.
 

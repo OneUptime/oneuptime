@@ -11,7 +11,7 @@ Der er en Begivenheder-side to steder:
 
 - Tidsrummets begivenheder, de nyeste først. Hver række fortæller, hvad der skete, på hvilken enhed, med hvad - interfacet, tunnelen, gatewayen - og med enhedens egne ord.
 - **Problemer**, **Genopretninger** og **Til orientering**, hver med antallet i tidsrummet. Klik på en af dem for kun at se dem.
-- Vælgeren **Alle begivenheder** og, på netværkets side, vælgeren **All devices** indsnævrer listen yderligere. Tidsrummet og filtrene gemmes i sidens adresse, så et link åbner præcis den samme visning.
+- Vælgeren **Alle begivenheder** og, på netværkets side, vælgeren **Alle enheder** indsnævrer listen yderligere. Tidsrummet og filtrene gemmes i sidens adresse, så et link åbner præcis den samme visning.
 - Klik på en begivenhed for at åbne den: hvornår den skete, hvad den handler om, beskeden, som enheden sendte den, og alle attributter, OneUptime læste ud af den.
 - **Opret advarsel** tilbyder de advarsler, de fleste netværk vil have, og **Opret advarsel for denne begivenhed** laver en for den begivenhed, du har åbnet. Se [Advarsler](#advarsler).
 

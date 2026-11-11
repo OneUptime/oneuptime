@@ -97,6 +97,18 @@ Para cada relatório e painel do Power BI, **Painéis de BI** mostra primeiro qu
 
 As visualizações, e as atualizações em capacidades, não precisam de nada além do acesso às APIs de administração acima: a entidade de serviço em um grupo de segurança permitido por **Service principals can access read-only admin APIs**, sem permissões do Power BI no aplicativo que exijam consentimento do administrador. Quando visualizações ou atualizações não podem ser lidas, os painéis ainda são lidos e mantidos, a ferramenta de BI diz o que foi ignorado e por quê, e a próxima leitura tenta de novo.
 
+### Alertas de atualizações com falha
+
+Ative **Alert on Failed Refreshes** ao adicionar ou editar uma ferramenta Power BI (uma nova já começa com a opção ativada) e o OneUptime mantém um monitor para a ferramenta em **Monitores**, com o nome dela. O monitor abre um alerta para cada conjunto de dados cuja última atualização falhou ou foi cancelada, com o conjunto de dados e o workspace dele no título do alerta, e o resolve assim que uma atualização posterior é concluída. Um conjunto de dados publicado depois passa a ser vigiado assim que é lido. Desativar a chave, ou remover a ferramenta, remove o monitor; até lá, ele é um monitor comum, com seus responsáveis, políticas de plantão e janelas de manutenção.
+
+Atualizações com falha não usam os monitores de pipeline. Um conjunto de dados cuja atualização falhou continua mostrando os dados da sua última atualização concluída até que uma posterior seja concluída, então o alerta dele fica aberto até lá, enquanto o alerta de uma execução com falha se fecha uma hora depois da execução. E as atualizações são lidas uma vez por hora: uma atualização lida até uma hora depois de terminar cairia muitas vezes fora da hora que o **Pipeline Run Failed** olha, um conjunto de dados atualizado a cada meia hora viraria **Pipeline Is Late** sem parar, e uma atualização terminada mas ainda não lida pareceria **Pipeline Run Unusually Long**.
+
+- Cada leitura de hora em hora guarda os conjuntos de dados cuja última atualização terminada falhou ou foi cancelada. A cada cinco minutos, cada um escreve `oneuptime.data.bi.refresh_failed`, 1 enquanto falha e 0 durante a hora seguinte à conclusão de uma atualização posterior, e o monitor lê esse valor, de modo que uma falha abre um único alerta, não importa quantas leituras de hora em hora a vejam.
+- Uma falha é vista na leitura seguinte: o alerta dela abre até uma hora depois de a atualização falhar e é resolvido até uma hora depois de uma atualização posterior ser concluída.
+- Uma atualização ainda em andamento não muda nada: o alerta de um conjunto de dados cuja atualização falhou continua aberto enquanto a próxima atualização roda, e só é resolvido quando uma atualização é concluída.
+- Em uma capacidade, a lista de itens atualizáveis do Power BI traz só a última atualização de cada conjunto de dados, então uma atualização que falhou e foi seguida por uma concluída dentro da mesma hora nunca é vista: a essa altura, os dados já estão atualizados de novo.
+- Conjuntos de dados em capacidade compartilhada só geram alertas onde as atualizações deles podem ser lidas (acima), e um conjunto de dados cujas atualizações não puderam ser lidas mantém o alerta como estava até que possam.
+
 ## Pipelines
 
 Cada job, projeto dbt e sincronização aparece em **Pipelines**, com as suas execuções: quando cada uma começou e terminou, quanto tempo levou, qual tentativa ela foi onde o agendador informa (o número da tentativa do Airflow) e o erro de uma execução com falha. Depois de cinco execuções, cada pipeline aprende com as próprias execuções quanto tempo uma execução costuma levar e quanto tempo ele costuma ficar entre execuções no seu agendamento. A página de um pipeline recomenda três monitores:
@@ -104,6 +116,8 @@ Cada job, projeto dbt e sincronização aparece em **Pipelines**, com as suas ex
 - **Pipeline Run Failed**: uma execução falhou ou foi abortada.
 - **Pipeline Run Unusually Long**: uma execução levou o dobro do tempo típico ou mais, verificado a cada cinco minutos enquanto ela roda, para que uma execução travada seja notada antes de terminar.
 - **Pipeline Is Late**: nenhuma execução começa há mais tempo do que o agendamento dele permite.
+
+A página de um pipeline desenha a **Linhagem** dele, o primeiro lugar para olhar quando uma execução falha ou atrasa: à esquerda, as tabelas que ele lê; à direita, as tabelas que ele escreve; no meio, o pipeline; e cada cartão diz como está agora. Escolha mais passos para ver a partir do que essas tabelas são construídas e o que é construído a partir delas, e abra qualquer tabela para ver a própria aba **Linhagem** dela.
 
 ## Um alerta por causa
 
@@ -114,6 +128,10 @@ Quando uma tabela fica desatualizada, todas as tabelas construídas a partir del
 
 O cartão **Dados** da causa lista o **Impacto a jusante** dela: cada alerta que ela causou. O cartão de um alerta de tabela também mostra os serviços que escrevem na tabela, com as escritas que falharam, e as implantações e outras mudanças deles no dia anterior ao alerta.
 
+Abaixo do cartão **Dados**, a página de um alerta desenha a **Linhagem** dele: em torno da tabela dele, como a aba **Linhagem** da tabela a desenha, ou em torno do pipeline dele. O caminho para cima até o alerta que o causou e para baixo até cada alerta que ele causou fica destacado - a tabela ou o pipeline da causa marcado como **Causa**, os de cada alerta causado como **Consequência** - e o resto esmaece, para que quem o abre veja em que ponto da cadeia o problema começou. Quando a causa é sobre um banco de dados inteiro, ou está mais acima do que o diagrama alcança, o cartão diz isso em palavras. **Explorar linhagem** abre a aba **Linhagem** da tabela, ou a página do pipeline.
+
+Quem não pode ver o alerta que o causou não recebe nem o cartão **Dados** nem a linhagem, e um alerta causado que essa pessoa não pode ver não é destacado nem contado.
+
 ## Antes de uma alteração ser mesclada
 
 Quando um pull request altera uma tabela observada, o [Production Review](/docs/ai/ai-agent) diz no pull request o que depende dela: os serviços que a leem, as tabelas construídas a partir dela, os painéis sobre ela e os produtos de dados dela. Uma tabela com uma cópia em um banco de dados marcado como Staging também diz como a cópia difere: as linhas, as colunas e o que as verificações da tabela leem lá, executadas na hora. Em um banco de dados que só uma sonda alcança, as verificações ficam de fora, e ele avisa.
@@ -122,5 +140,5 @@ Quando um pull request altera uma tabela observada, o [Production Review](/docs/
 
 :::cards
 - [Produtos de dados](/docs/data-observability/data-products): SLAs de atualização sobre as tabelas que as pessoas usam.
-- [OneUptime AI e a API](/docs/data-observability/ai-and-api): Investigações que partem de quem escreve em uma tabela e das execuções dela.
+- [OneUptime AI e a API](/docs/data-observability/ai-and-api): Investigações que partem de quem escreve em uma tabela e das execuções dela. Pelo Pergunte à IA e por agentes de IA, é possível perguntar a partir do que uma tabela é construída.
 :::

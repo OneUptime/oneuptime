@@ -52,6 +52,7 @@ import SecurityListNameCell, {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
  * The tile a connection's product mark sits on at the start of its name:
@@ -393,6 +394,8 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             wrapContent: true,
             wrapMaxWidthClassName:
               SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
+            // Each of its lines already reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: SecurityEventConnection): ReactElement => {
               const definition: SecurityEventConnectorDefinition | undefined =
                 getSecurityEventConnectorDefinition(item.provider);
@@ -535,7 +538,11 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
       {testItem && (
         <ConnectionTestModal
           key={testItem.id?.toString()}
-          title={`Test connection: ${testItem.name || getSecurityEventConnectorTitle(testItem.provider)}`}
+          title={translator.translateTemplate("Test connection: {{name}}", {
+            name:
+              testItem.name ||
+              getSecurityEventConnectorTitle(testItem.provider),
+          })}
           providerTitle={getSecurityEventConnectorTitle(testItem.provider)}
           runTest={() => {
             return runConnectionTestRequest({
@@ -586,7 +593,7 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
           }
         >
           <pre
-            aria-label="Full error message"
+            aria-label={translator.translateText("Full error message")}
             tabIndex={0}
             className="whitespace-pre-wrap break-words rounded-md bg-gray-50 p-4 text-sm text-gray-800"
           >

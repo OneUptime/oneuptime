@@ -330,8 +330,8 @@ export function getEmptyReason(
     const detail: string =
       diagnosis && diagnosis.state === "healthy-quiet"
         ? translator.translateTemplate(
-            "Remove a filter, widen the range, or clear everything. {{diagnosis}}.",
-            { diagnosis: diagnosis.title },
+            "Remove a filter, widen the range, or clear everything. {{health}}.",
+            { health: diagnosis.title },
           )
         : translateLine(
             "Remove a filter, widen the range, or clear everything.",

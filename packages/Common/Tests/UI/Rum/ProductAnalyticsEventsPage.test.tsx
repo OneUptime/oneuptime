@@ -837,6 +837,15 @@ describe("ProductAnalyticsEvents: before there is anything to read", () => {
     renderPage();
 
     expect(await screen.findByText("No events yet")).toBeInTheDocument();
+    /*
+     * What arrives on its own, and what the code sends, in one line on a
+     * phone: an empty state's words are at most 150 characters (issue #6660).
+     */
+    const said: string =
+      "Session starts and page views arrive on their own wherever the browser recorder runs. To count what people do, send events and numbers from your app:";
+
+    expect(screen.getByText(said)).toBeInTheDocument();
+    expect(said.length).toBeLessThanOrEqual(150);
     expect(
       screen.getByTestId("product-analytics-events-snippet"),
     ).toHaveTextContent('OneUptimeReplay.track("Signed up", { plan: "pro" });');
@@ -881,7 +890,7 @@ describe("ProductAnalyticsEvents: before there is anything to read", () => {
     );
 
     expect(off).toHaveTextContent(
-      "Turn them on to count session starts, page views and the events your app sends with track().",
+      "Turn them on to count session starts, page views and track() events.",
     );
     expect(screen.queryByText("No events yet")).not.toBeInTheDocument();
 
@@ -913,7 +922,7 @@ describe("ProductAnalyticsEvents: before there is anything to read", () => {
       screen.getByTestId("product-analytics-events-off-switch-status"),
     ).toHaveTextContent("Saved");
     expect(off).toHaveTextContent(
-      "Sends session starts, page views and your track() and metric() calls from every session",
+      "Sends session starts, page views, track() and metric() calls from every session, recorded or not.",
     );
   });
 

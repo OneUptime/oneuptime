@@ -53,6 +53,7 @@ import MonitorStepTraceMonitor, {
 import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "./MonitorStepMetricMonitor";
+import MonitorStepRollingTime from "./MonitorStepRollingTime";
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
 } from "./MonitorStepExceptionMonitor";
@@ -1276,6 +1277,20 @@ export default class MonitorStep extends DatabaseProperty {
     }
 
     /*
+     * A rolling time that means none read a window of no length: every
+     * check found no data (MonitorStepRollingTime).
+     */
+    const rollingTimeError: string | null =
+      MonitorStepRollingTime.getUnreadableError({
+        monitorType: monitorType,
+        stepData: value.data,
+      });
+
+    if (rollingTimeError) {
+      return rollingTimeError;
+    }
+
+    /*
      * An infrastructure monitor reads nothing but its metric queries. One
      * saved without a query - its alert template and metric both left
      * unpicked - was accepted, and then evaluated nothing, ever.
@@ -1649,38 +1664,59 @@ export default class MonitorStep extends DatabaseProperty {
       externalStatusPageMonitor: json["externalStatusPageMonitor"]
         ? (json["externalStatusPageMonitor"] as JSONObject)
         : undefined,
+      /*
+       * Each infrastructure type's settings with a rolling time written
+       * another way ("15 minutes") read as the one it means, like
+       * metricMonitor's (MonitorStepRollingTime).
+       */
       kubernetesMonitor: json["kubernetesMonitor"]
-        ? (json["kubernetesMonitor"] as JSONObject)
+        ? MonitorStepRollingTime.readSettings(
+            json["kubernetesMonitor"] as JSONObject,
+          )
         : undefined,
       dockerMonitor: json["dockerMonitor"]
-        ? (json["dockerMonitor"] as JSONObject)
+        ? MonitorStepRollingTime.readSettings(
+            json["dockerMonitor"] as JSONObject,
+          )
         : undefined,
       hostMonitor: json["hostMonitor"]
-        ? (json["hostMonitor"] as JSONObject)
+        ? MonitorStepRollingTime.readSettings(json["hostMonitor"] as JSONObject)
         : undefined,
       podmanMonitor: json["podmanMonitor"]
-        ? (json["podmanMonitor"] as JSONObject)
+        ? MonitorStepRollingTime.readSettings(
+            json["podmanMonitor"] as JSONObject,
+          )
         : undefined,
       proxmoxMonitor: json["proxmoxMonitor"]
-        ? (json["proxmoxMonitor"] as JSONObject)
+        ? MonitorStepRollingTime.readSettings(
+            json["proxmoxMonitor"] as JSONObject,
+          )
         : undefined,
       openstackMonitor: json["openstackMonitor"]
-        ? (json["openstackMonitor"] as JSONObject)
+        ? MonitorStepRollingTime.readSettings(
+            json["openstackMonitor"] as JSONObject,
+          )
         : undefined,
       vmwareMonitor: json["vmwareMonitor"]
-        ? (json["vmwareMonitor"] as JSONObject)
+        ? MonitorStepRollingTime.readSettings(
+            json["vmwareMonitor"] as JSONObject,
+          )
         : undefined,
       dockerSwarmMonitor: json["dockerSwarmMonitor"]
-        ? (json["dockerSwarmMonitor"] as JSONObject)
+        ? MonitorStepRollingTime.readSettings(
+            json["dockerSwarmMonitor"] as JSONObject,
+          )
         : undefined,
       cephMonitor: json["cephMonitor"]
-        ? (json["cephMonitor"] as JSONObject)
+        ? MonitorStepRollingTime.readSettings(json["cephMonitor"] as JSONObject)
         : undefined,
       storageArrayMonitor: json["storageArrayMonitor"]
-        ? (json["storageArrayMonitor"] as JSONObject)
+        ? MonitorStepRollingTime.readSettings(
+            json["storageArrayMonitor"] as JSONObject,
+          )
         : undefined,
       iotMonitor: json["iotMonitor"]
-        ? (json["iotMonitor"] as JSONObject)
+        ? MonitorStepRollingTime.readSettings(json["iotMonitor"] as JSONObject)
         : undefined,
       /*
        * Normalized on the way in: each probe once, and nothing that is not

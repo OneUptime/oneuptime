@@ -325,6 +325,8 @@ They read these metrics, each tagged with \`oneuptime.data.pipeline.id\` and \`o
 - \`oneuptime.data.pipeline.run_duration_ratio\`: the run's time over the typical run's (counted as at least a minute), as each run ends and every five minutes while it runs.
 - \`oneuptime.data.pipeline.overdue_seconds\`: how long past its schedule the next run is, every five minutes; 0 while on time.
 
+A pipeline's page draws its **Lineage**, the first place to look when a run fails or is late: the tables it reads on the left, the tables it writes on the right, and how each is now. Pick more steps to see what those tables are built from and what is built from them. The same lineage is at \`POST /api/data-observability/pipelines/lineage\`, for your own tools.
+
 
 
 ## Fivetran and Airbyte syncs
@@ -353,6 +355,8 @@ The real impact of bad data is the dashboard someone opens. Under **BI Dashboard
 | **Census** | \`{ "apiKey": "...", "region": "us" }\`: each sync is read as one more thing that depends on a table |
 
 Every hour, and when a tool is added or you choose **Read Now**, OneUptime reads each dashboard and the tables behind it: a card's table and a native question's SQL (Metabase), a dataset's table or a virtual dataset's SQL (Superset), the Metadata API's upstream tables (Tableau), each tile's explore (Looker), and each report's dataset (Power BI, from a workspace scan). Each table is matched to a watched one by its database, schema and name; a name that still fits two watched tables is left unmatched. A table's **Lineage** tab, its alerts' **Data** card and Production Review list the dashboards built on it, and on the tables built from it. Only names and links are read, never a dashboard's data.
+
+A Power BI tool can also alert on its datasets' failed refreshes. With **Alert on Failed Refreshes** on, as it is for a tool added now, OneUptime keeps one monitor for the tool that opens an alert for each dataset whose last refresh failed or was cancelled, named in the alert's title, and resolves it once a later refresh completes. It reads \`oneuptime.data.bi.refresh_failed\`, tagged with \`oneuptime.data.bi.dataset.name\` and \`oneuptime.data.bi.workspace.name\`: every five minutes, each dataset the hourly read found failing writes 1, and 0 for the hour after a later refresh completes. A refresh still running changes nothing, so one failure is one alert, however many hourly reads see it.
 
 ## Jobs in your traces
 
@@ -416,12 +420,15 @@ When a table goes stale, every table built from it goes stale too. Before a data
 
 The cause's **Data** card lists its **Downstream Impact**: every alert it caused. A table alert's card also shows the services that write the table, with their failed writes, and their deploys and other changes in the day before the alert.
 
+Under the **Data** card, an alert's page draws its **Lineage**: around its table, as the table's **Lineage** tab draws it, or around its pipeline, with the way up to the alert that caused it and down to each alert it caused highlighted, the cause marked **Cause** and each alert it caused **Consequence**. Someone who may not see the alert that caused it gets neither the **Data** card nor the lineage, and an alert it caused that they may not see is neither highlighted nor counted. The same lineage is at \`POST /api/data-observability/alerts/<alert ID>/lineage\`.
+
 
 ## OneUptime AI
 
-- **Investigations of data alerts.** When OneUptime AI investigates an alert on a table, a pipeline or a database, it reads what is next to it: the table's freshness and open alerts, the alert it is a consequence of, the runs of the pipelines that write it since the day before (a failed run with its error), the services that write it with their failed writes and their deploys and other changes, and the tables it is built from. It names the run, deploy or upstream table behind the alert.
+- **Investigations of data alerts.** When OneUptime AI investigates an alert on a table, a pipeline or a database, it reads what is next to it: the table's freshness and open alerts, the alert it is a consequence of, the runs of the pipelines that write it since the day before (a failed run with its error), the services that write it with their failed writes and their deploys and other changes, and its lineage: the tables it is built from and the tables built from it, the ones with a problem first, with where the alert it is a consequence of sits and which tables the alerts it caused are on. It names the run, deploy or upstream table behind the alert.
 - **A check from a sentence.** On a table's Checks tab, **Write a Check from a Sentence** turns a rule such as "orders never have a negative total" into a Custom SQL check that counts the rows breaking it, with an alert when any do. You read the query before **Add Check** adds it, and it is held to everything any Custom SQL check is: one read-only statement, run in a read-only transaction.
 - **Is this table fresh?** Ask OneUptime AI in Ask AI, Slack or Microsoft Teams ("is the orders table fresh?"). It answers with the table's freshness by its own rhythm, when it last changed, its open alerts, its writers' latest runs and the data products it is part of. AI agents ask the same through the MCP server's \`get_data_table_freshness\` tool, before they use the data.
+- **What is this table built from?** Ask the same way ("what feeds the revenue table?", "what breaks if raw.orders stops loading?"). It follows the table's lineage three steps each way, or up to five when asked, and puts the tables upstream and downstream that are late, dropped, have open alerts or whose pipeline failed its last run first, nearest first, with how many steps away each is and the tables between; then the rest, the pipelines that load its sources from outside what OneUptime watches, and the BI dashboards built on it. Open alerts are counted, never named, and only those the person who asks may see. AI agents ask the same through the MCP server's \`get_data_table_lineage\` tool, before they change a table.
 
 ## Services that use each table
 

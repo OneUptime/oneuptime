@@ -50,6 +50,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 export interface ComponentProps {
   // One table's checks, with its columns to choose from; or every check of the project.
@@ -598,25 +600,35 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
             getExportValue: (check: DataCheck): string => {
               return check.name || "";
             },
+            // The page's words beside the name: only the name reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (check: DataCheck): ReactElement => {
               return (
                 <div className="min-w-0">
                   {isForOneTable || !check.dataAssetId ? (
-                    <span className="block truncate font-medium text-gray-900">
-                      {check.name}
-                    </span>
+                    <IsolatedLine
+                      as="span"
+                      text={check.name || ""}
+                      className="block truncate font-medium text-gray-900"
+                    />
                   ) : (
-                    <AppLink
-                      to={RouteUtil.populateRouteParams(
-                        RouteMap[
-                          PageMap.DATA_OBSERVABILITY_TABLE_VIEW_CHECKS
-                        ] as Route,
-                        { modelId: check.dataAssetId },
-                      )}
-                      className="block truncate font-medium text-gray-900 hover:underline"
+                    <IsolatedLine
+                      as="span"
+                      text={check.name || ""}
+                      className="block truncate font-medium text-gray-900"
                     >
-                      <span>{check.name}</span>
-                    </AppLink>
+                      <AppLink
+                        to={RouteUtil.populateRouteParams(
+                          RouteMap[
+                            PageMap.DATA_OBSERVABILITY_TABLE_VIEW_CHECKS
+                          ] as Route,
+                          { modelId: check.dataAssetId },
+                        )}
+                        className="hover:underline"
+                      >
+                        <span>{check.name}</span>
+                      </AppLink>
+                    </IsolatedLine>
                   )}
                   <span className="block truncate text-xs text-gray-500">
                     {check.checkType}

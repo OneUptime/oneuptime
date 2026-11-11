@@ -14,10 +14,13 @@ import {
 import { loadLocaleResource, LocaleResource } from "./I18nLocaleLoader";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
+import { productNamePostProcessor } from "Common/UI/Utils/ProductNameTranslation";
 import {
-  getProductNamePostProcess,
-  productNamePostProcessor,
-} from "Common/UI/Utils/ProductNameTranslation";
+  codeReadsAsWrittenPostProcessor,
+  getTranslationPostProcess,
+  leaveIsolatesOutOfCopiedText,
+  whenCodeCanBeSetApart,
+} from "Common/UI/Utils/CodeReadsAsWritten";
 
 /*
  * English is the ONLY locale bundled statically: it is the fallback language,
@@ -94,8 +97,13 @@ const lazyLocaleBackend: BackendModule = {
     _namespace: string,
     callback: ReadCallback,
   ): void => {
-    loadLocaleResource(language)
-      .then((resource: LocaleResource): void => {
+    /*
+     * An Arabic or Persian locale arrives with the rules that set the code
+     * in its sentences apart, which no other language loads
+     * (Common/UI/Utils/CodeReadsAsWritten).
+     */
+    Promise.all([loadLocaleResource(language), whenCodeCanBeSetApart(language)])
+      .then(([resource]: [LocaleResource, void]): void => {
         callback(null, resource as ResourceKey);
       })
       .catch((error: unknown): void => {
@@ -117,12 +125,16 @@ export const i18nReady: Promise<void> = i18n
   .use(lazyLocaleBackend)
   .use(initReactI18next)
   .use(productNamePostProcessor)
+  .use(codeReadsAsWrittenPostProcessor)
   .init({
     resources: {
       en: { translation: en },
     },
-    // The installation's own name in every sentence, when it has one.
-    postProcess: getProductNamePostProcess(),
+    /*
+     * The installation's own name in every sentence, when it has one, and
+     * code in an Arabic or Persian sentence drawn as it is written.
+     */
+    postProcess: getTranslationPostProcess(),
     partialBundledLanguages: true,
     fallbackLng: DEFAULT_LANGUAGE,
     supportedLngs: SUPPORTED_DASHBOARD_LANGUAGE_CODES,
@@ -149,5 +161,8 @@ followLanguageForDates(i18n);
  * reads the page in it, and a Persian page reads right to left.
  */
 followLanguageForPage(i18n);
+
+// Code copied from a sentence pastes without the marks that set it apart.
+leaveIsolatesOutOfCopiedText();
 
 export default i18n;

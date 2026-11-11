@@ -5,6 +5,11 @@ import NetworkTopology, {
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import {
   TopologyGroupBox,
   TopologyLayoutModel,
@@ -385,6 +390,7 @@ const renderLegendSwatch: (entry: TopologyLegendEntry) => ReactElement = (
 const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const nodes: Array<NetworkTopologyNode> = props.topology?.nodes || [];
   const edges: Array<NetworkTopologyEdge> = props.topology?.edges || [];
   const layoutMode: TopologyLayoutMode = props.layoutMode || "force";
@@ -1241,8 +1247,8 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                 <button
                   key={control.testId}
                   type="button"
-                  title={control.label}
-                  aria-label={control.label}
+                  title={translator.translateText(control.label)}
+                  aria-label={translator.translateText(control.label)}
                   data-testid={control.testId}
                   disabled={control.disabled}
                   className={`flex h-7 w-7 items-center justify-center rounded-md text-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
@@ -1265,7 +1271,9 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
             className="pointer-events-none absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700"
             data-testid="network-topology-custom-layout-chip"
           >
-            {`Custom layout · ${overrides.size} moved`}
+            {translator.translateTemplate("Custom layout · {{count}} moved", {
+              count: translator.formatNumber(overrides.size),
+            })}
           </div>
         ) : (
           <></>
@@ -1301,22 +1309,25 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                       icon={IconProp.CheckCircle}
                     />
                   </span>
-                  Nothing needs attention right now
+                  {translator.translateText(
+                    "Nothing needs attention right now",
+                  )}
                 </div>
                 <p className="mt-1 text-sm text-gray-500">
-                  Every device on this map answered its last poll with all
-                  interfaces and links up. Switch back to All to see the whole
-                  network.
+                  {translator.translateText(
+                    "Every device on this map answered its last poll with all interfaces and links up. Switch back to All to see the whole network.",
+                  )}
                 </p>
               </div>
             ) : (
               <div>
                 <div className="text-sm font-medium text-gray-900">
-                  No devices match your filters
+                  {translator.translateText("No devices match your filters")}
                 </div>
                 <p className="mt-1 text-sm text-gray-500">
-                  Clear the VLAN filter or re-enable a node type to see the map
-                  again.
+                  {translator.translateText(
+                    "Clear the VLAN filter or re-enable a node type to see the map again.",
+                  )}
                 </p>
               </div>
             )}
@@ -1333,7 +1344,10 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
             className="pointer-events-none absolute inset-x-0 top-2 z-10 mx-auto w-fit rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800"
             data-testid="network-topology-no-search-matches"
           >
-            {`Nothing matches "${props.searchText}" — the whole map is dimmed`}
+            {translator.translateTemplate(
+              'Nothing matches "{{search}}" — the whole map is dimmed',
+              { search: props.searchText },
+            )}
           </div>
         ) : (
           <></>
@@ -1343,7 +1357,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
           <></>
         ) : (
           <div className="pointer-events-none absolute inset-x-0 bottom-2 z-10 mx-auto w-fit rounded-full bg-gray-900/80 px-3 py-1 text-xs text-white">
-            Zoom in to see device names
+            {translator.translateText("Zoom in to see device names")}
           </div>
         )}
 
@@ -1352,7 +1366,9 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
           data-testid="network-topology-svg"
           role="application"
           tabIndex={0}
-          aria-label="Network topology map. Drag a device to move it. Drag the background to pan. Arrow keys pan, plus and minus zoom, zero fits the graph to the view, Escape cancels."
+          aria-label={translator.translateText(
+            "Network topology map. Drag a device to move it. Drag the background to pan. Arrow keys pan, plus and minus zoom, zero fits the graph to the view, Escape cancels.",
+          )}
           viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
           preserveAspectRatio="xMidYMid meet"
           className="block h-full w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
@@ -1745,7 +1761,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
        */}
       <ul
         role="list"
-        aria-label="Topology key"
+        aria-label={translator.translateText("Topology key")}
         data-testid="network-topology-legend"
         className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-gray-100 px-3 py-2.5 text-xs text-gray-600"
       >
@@ -1763,8 +1779,17 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                 {renderLegendSwatch(entry)}
               </svg>
               <span>
-                <span className="text-gray-400">{`${entry.group}: `}</span>
-                {entry.label}
+                <span className="text-gray-400">
+                  {translator.translateTemplate("{{group}}:", {
+                    group: translatableTerm(entry.group),
+                  })}{" "}
+                </span>
+                {entry.labelTemplate
+                  ? translator.translateTemplate(
+                      entry.labelTemplate.template,
+                      entry.labelTemplate.values,
+                    )
+                  : translator.translateText(entry.label)}
               </span>
             </li>
           );
@@ -1781,7 +1806,14 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
         data-testid="network-topology-visible-count"
         className="mt-1 px-3 text-xs text-gray-400"
       >
-        {`Showing ${viewModel.visibleNodeCount} of ${viewModel.totalNodeCount} devices`}
+        {translator.translatePlural(
+          {
+            one: "Showing {{visible}} of {{count}} device",
+            other: "Showing {{visible}} of {{count}} devices",
+          },
+          viewModel.totalNodeCount,
+          { visible: translator.formatNumber(viewModel.visibleNodeCount) },
+        )}
       </p>
     </div>
   );

@@ -1645,6 +1645,10 @@ const NetworkDevices: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Element,
+            // Its name, and its own data under it: the cell reads the name's way.
+            getLineText: (item: NetworkDevice): string | undefined => {
+              return item.name;
+            },
             getElement: (item: NetworkDevice): ReactElement => {
               const route: Route = RouteUtil.populateRouteParams(
                 RouteMap[PageMap.NETWORK_DEVICE_VIEW] as Route,

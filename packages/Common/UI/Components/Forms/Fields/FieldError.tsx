@@ -1,5 +1,5 @@
 import IsolatedText from "../../IsolatedText/IsolatedText";
-import { getLineDirection } from "../../../Utils/LineDirection";
+import { getTranslatedLineDirection } from "../../../Utils/LineDirection";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -97,7 +97,7 @@ const FieldError: FunctionComponent<ComponentProps> = (
       role={announce === "alert" ? "alert" : undefined}
       aria-live={announce === "polite" ? "polite" : undefined}
     >
-      {getLineDirection(message, translator.language) ? (
+      {getTranslatedLineDirection(message, translator.language) ? (
         <IsolatedText text={message} />
       ) : (
         message

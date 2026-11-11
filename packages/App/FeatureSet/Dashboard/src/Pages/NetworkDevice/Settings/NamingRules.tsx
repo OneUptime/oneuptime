@@ -18,6 +18,8 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
  * NAMING RULES (Network > Rules > Naming Rules, OneUptime issue #6619).
@@ -151,16 +153,22 @@ const NetworkDeviceNamingRulesPage: FunctionComponent<
             field: { name: true },
             title: "Name",
             type: FieldType.Element,
+            // A description under the name: each reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: NetworkDeviceNamingRule): ReactElement => {
               return (
                 <div className="min-w-0">
-                  <span className="block text-sm font-medium text-gray-900">
-                    {item.name}
-                  </span>
+                  <IsolatedLine
+                    as="span"
+                    text={item.name || ""}
+                    className="block truncate text-sm font-medium text-gray-900"
+                  />
                   {item.description && (
-                    <span className="mt-0.5 block truncate text-xs text-gray-500">
-                      {item.description}
-                    </span>
+                    <IsolatedLine
+                      as="span"
+                      text={item.description}
+                      className="mt-0.5 block truncate text-xs text-gray-500"
+                    />
                   )}
                 </div>
               );

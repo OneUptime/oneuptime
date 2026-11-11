@@ -74,6 +74,13 @@ import { applyAlertSelfPrivacyFilter } from "../Alert/AlertPrivacyFilter";
  * counted with the privacy clause of the drawing's reader, as the table's
  * own answer counts them (DataTableAnswer): a private alert its reader may
  * not see is never counted.
+ *
+ * A pipeline's drawing (buildForPipeline) has the pipeline in the middle:
+ * the tables it reads on the left, the tables it writes on the right - its
+ * nearest, problems first, the rest counted on its card - and from each of
+ * them the same walk, a step further out. A data alert's drawing
+ * (DataAlertLineage) pins the tables along the ways to its cause and to the
+ * alerts it caused, so they are drawn whatever else is.
  */
 
 // The most lineage edges read at one step on one side.
@@ -152,6 +159,41 @@ export interface DataLineageReader {
     limit: number;
   }): Promise<{ dashboards: Array<DataLineageDashboardRow>; total: number }>;
 }
+
+// What a pipeline's drawing reads besides: the rows that name the pipeline.
+export interface DataPipelineLineageReader extends DataLineageReader {
+  // Its rows, the newest first: each table it wrote, and what it read to write it.
+  readPipelineEdges(data: {
+    dataPipelineId: string;
+    limit: number;
+  }): Promise<Array<DataLineageEdgeRow>>;
+}
+
+/*
+ * What a drawing draws whatever else it does: the ways to a data alert's
+ * cause and to the alerts it caused (DataAlertLineage). A pinned table is
+ * chosen first at its step, past the most per table; a pinned pipeline is
+ * drawn writing its table from outside, past the most per table. A side
+ * still holds no more than its most tables.
+ */
+export interface DataLineagePins {
+  dataAssetIds: Set<string>;
+  dataPipelineIds: Set<string>;
+}
+
+// The tables a pipeline reads and writes, with when each was last seen.
+export interface DataPipelineTables {
+  // What it reads and does not write: a table it reads and writes is drawn where it writes.
+  read: Map<string, Date | null>;
+  written: Map<string, Date | null>;
+  // It had more rows than were read.
+  isTruncated: boolean;
+}
+
+const NO_PINS: DataLineagePins = {
+  dataAssetIds: new Set(),
+  dataPipelineIds: new Set(),
+};
 
 // An edge between two tables, every row of it together.
 interface FeedsEdge {
@@ -247,6 +289,38 @@ function toTime(value: Date | null): number {
   return value ? value.getTime() : 0;
 }
 
+// Steps one way: a whole number from one to the most.
+function clampDepth(depth: number): number {
+  return Math.min(
+    MAX_DATA_LINEAGE_DEPTH,
+    Math.max(1, Math.floor(Number.isFinite(depth) ? depth : 1)),
+  );
+}
+
+function newWalkState(): WalkState {
+  return {
+    tables: new Map(),
+    pipelines: new Map(),
+    placed: new Map(),
+    edges: new Map(),
+    hiddenUpstream: new Map(),
+    hiddenDownstream: new Map(),
+    writers: new Map(),
+    feedingPipelines: new Map(),
+    isTruncated: false,
+  };
+}
+
+function toEdgeRow(edge: DataAssetLineage): DataLineageEdgeRow {
+  return {
+    upstreamDataAssetId: edge.upstreamDataAssetId?.toString() || null,
+    downstreamDataAssetId: edge.downstreamDataAssetId!.toString(),
+    dataPipelineId: edge.dataPipelineId?.toString() || null,
+    source: isDataAssetLineageSource(edge.source) ? edge.source : null,
+    lastSeenAt: readDate(edge.lastSeenAt),
+  };
+}
+
 function readDate(value: unknown): Date | null {
   if (!value) {
     return null;
@@ -290,29 +364,43 @@ export default class DataTableLineageReader {
     });
   }
 
+  /*
+   * A pipeline's lineage, for its reader: the tables it reads and writes,
+   * and the steps beyond them. Null when the pipeline is not one of the
+   * project's.
+   */
+  public static async readPipeline(data: {
+    projectId: ObjectID;
+    dataPipelineId: ObjectID;
+    depth: number;
+    now: Date;
+    reader: DatabaseCommonInteractionProps | null;
+  }): Promise<DataTableLineage | null> {
+    return await this.buildForPipeline({
+      focusDataPipelineId: data.dataPipelineId.toString(),
+      depth: data.depth,
+      now: data.now,
+      reader: this.getDatabaseReader(data.projectId, data.reader),
+    });
+  }
+
   // The graph, from any reader: the walk itself.
   public static async build(data: {
     focusDataAssetId: string;
     depth: number;
     now: Date;
     reader: DataLineageReader;
+    // Steps up and down when they differ: an alert's drawing reaching its cause.
+    upstreamDepth?: number | undefined;
+    downstreamDepth?: number | undefined;
+    pins?: DataLineagePins | undefined;
   }): Promise<DataTableLineage | null> {
-    const depth: number = Math.min(
-      MAX_DATA_LINEAGE_DEPTH,
-      Math.max(1, Math.floor(data.depth)),
-    );
+    const depth: number = clampDepth(data.depth);
+    const upstreamDepth: number = clampDepth(data.upstreamDepth ?? depth);
+    const downstreamDepth: number = clampDepth(data.downstreamDepth ?? depth);
+    const pins: DataLineagePins = data.pins || NO_PINS;
     const focusId: string = data.focusDataAssetId;
-    const state: WalkState = {
-      tables: new Map(),
-      pipelines: new Map(),
-      placed: new Map(),
-      edges: new Map(),
-      hiddenUpstream: new Map(),
-      hiddenDownstream: new Map(),
-      writers: new Map(),
-      feedingPipelines: new Map(),
-      isTruncated: false,
-    };
+    const state: WalkState = newWalkState();
 
     await this.readMissingTables(data.reader, state, [focusId]);
 
@@ -324,20 +412,302 @@ export default class DataTableLineageReader {
 
     await this.walk({
       direction: DataLineageDirection.Upstream,
-      focusId,
-      depth,
+      frontier: [focusId],
+      firstStep: 1,
+      depth: upstreamDepth,
+      placedOnSide: 0,
+      pins: pins.dataAssetIds,
       now: data.now,
       reader: data.reader,
       state,
     });
     await this.walk({
       direction: DataLineageDirection.Downstream,
-      focusId,
-      depth,
+      frontier: [focusId],
+      firstStep: 1,
+      depth: downstreamDepth,
+      placedOnSide: 0,
+      pins: pins.dataAssetIds,
       now: data.now,
       reader: data.reader,
       state,
     });
+
+    return await this.finish({
+      state,
+      focusNodeId: getLineageTableNodeId(focusId),
+      depth: Math.max(upstreamDepth, downstreamDepth),
+      now: data.now,
+      reader: data.reader,
+      pins,
+      focusNode: null,
+      focusEdges: [],
+      focusPipelineId: null,
+    });
+  }
+
+  /*
+   * A pipeline's graph: the pipeline in the middle, the tables it reads on
+   * the left and the tables it writes on the right - its nearest each way,
+   * problems first, the rest counted on its card - then from those tables
+   * the walk goes on as it does from a table, the pipeline one step in.
+   */
+  public static async buildForPipeline(data: {
+    focusDataPipelineId: string;
+    depth: number;
+    now: Date;
+    reader: DataPipelineLineageReader;
+    upstreamDepth?: number | undefined;
+    downstreamDepth?: number | undefined;
+    pins?: DataLineagePins | undefined;
+    // The tables it reads and writes, when the caller has read them already (readPipelineTables).
+    tables?: DataPipelineTables | undefined;
+  }): Promise<DataTableLineage | null> {
+    const depth: number = clampDepth(data.depth);
+    const upstreamDepth: number = clampDepth(data.upstreamDepth ?? depth);
+    const downstreamDepth: number = clampDepth(data.downstreamDepth ?? depth);
+    const pins: DataLineagePins = data.pins || NO_PINS;
+    const pipelineId: string = data.focusDataPipelineId;
+    const state: WalkState = newWalkState();
+
+    await this.readMissingPipelines(data.reader, state, [pipelineId]);
+
+    const focus: DataLineagePipelineRow | undefined =
+      state.pipelines.get(pipelineId);
+
+    if (!focus) {
+      return null;
+    }
+
+    const tables: DataPipelineTables =
+      data.tables || (await this.readPipelineTables(data.reader, pipelineId));
+
+    if (tables.isTruncated) {
+      state.isTruncated = true;
+    }
+
+    await this.readMissingTables(data.reader, state, [
+      ...tables.read.keys(),
+      ...tables.written.keys(),
+    ]);
+
+    const reads: { chosen: Array<string>; hidden: number } =
+      this.choosePipelineTables({
+        state,
+        seen: tables.read,
+        pins: pins.dataAssetIds,
+        now: data.now,
+      });
+    const writes: { chosen: Array<string>; hidden: number } =
+      this.choosePipelineTables({
+        state,
+        seen: tables.written,
+        pins: pins.dataAssetIds,
+        now: data.now,
+      });
+
+    for (const id of reads.chosen) {
+      state.placed.set(id, { side: DataLineageSide.Upstream, depth: -1 });
+    }
+
+    for (const id of writes.chosen) {
+      state.placed.set(id, { side: DataLineageSide.Downstream, depth: 1 });
+    }
+
+    const focusNodeId: string = getLineagePipelineNodeId(pipelineId);
+    const asEdgePipeline: DataTableLineagePipeline = {
+      dataPipelineId: pipelineId,
+      name: focus.jobName,
+      lastRunState: focus.lastRunState,
+    };
+    const focusEdges: Array<DataTableLineageEdge> = [];
+
+    // What it reads, into it: a read is no run of its own, so it carries no pipeline.
+    for (const id of reads.chosen) {
+      const source: string = getLineageTableNodeId(id);
+
+      focusEdges.push({
+        id: getLineageEdgeId({
+          kind: DataLineageEdgeKind.Reads,
+          source,
+          target: focusNodeId,
+        }),
+        source,
+        target: focusNodeId,
+        kind: DataLineageEdgeKind.Reads,
+        seenIn: [DataAssetLineageSource.Pipeline],
+        pipelines: [],
+        lastSeenAt: toIso(tables.read.get(id) || null),
+      });
+    }
+
+    // What it writes, out of it: its run moves the data, so a failed run is told on the arrow.
+    for (const id of writes.chosen) {
+      const target: string = getLineageTableNodeId(id);
+
+      focusEdges.push({
+        id: getLineageEdgeId({
+          kind: DataLineageEdgeKind.Writes,
+          source: focusNodeId,
+          target,
+        }),
+        source: focusNodeId,
+        target,
+        kind: DataLineageEdgeKind.Writes,
+        seenIn: [DataAssetLineageSource.Pipeline],
+        pipelines: [asEdgePipeline],
+        lastSeenAt: toIso(tables.written.get(id) || null),
+      });
+    }
+
+    await this.walk({
+      direction: DataLineageDirection.Upstream,
+      frontier: reads.chosen,
+      firstStep: 2,
+      depth: upstreamDepth,
+      placedOnSide: reads.chosen.length,
+      pins: pins.dataAssetIds,
+      now: data.now,
+      reader: data.reader,
+      state,
+    });
+    await this.walk({
+      direction: DataLineageDirection.Downstream,
+      frontier: writes.chosen,
+      firstStep: 2,
+      depth: downstreamDepth,
+      placedOnSide: writes.chosen.length,
+      pins: pins.dataAssetIds,
+      now: data.now,
+      reader: data.reader,
+      state,
+    });
+
+    return await this.finish({
+      state,
+      focusNodeId,
+      depth: Math.max(upstreamDepth, downstreamDepth),
+      now: data.now,
+      reader: data.reader,
+      pins,
+      focusNode: {
+        ...this.pipelineNode(focus, DataLineageSide.Focus, 0),
+        hiddenUpstreamCount: reads.hidden,
+        hiddenDownstreamCount: writes.hidden,
+      },
+      focusEdges,
+      focusPipelineId: pipelineId,
+    });
+  }
+
+  /*
+   * The tables a pipeline reads and writes, from its own rows: each row
+   * names a table it wrote, and - when it read one to write it - that table.
+   */
+  public static async readPipelineTables(
+    reader: DataPipelineLineageReader,
+    dataPipelineId: string,
+  ): Promise<DataPipelineTables> {
+    const rows: Array<DataLineageEdgeRow> = await reader.readPipelineEdges({
+      dataPipelineId,
+      limit: MAX_DATA_LINEAGE_EDGE_ROWS,
+    });
+    const read: Map<string, Date | null> = new Map();
+    const written: Map<string, Date | null> = new Map();
+
+    for (const row of rows) {
+      if (row.dataPipelineId !== dataPipelineId) {
+        continue;
+      }
+
+      written.set(
+        row.downstreamDataAssetId,
+        laterOf(written.get(row.downstreamDataAssetId) || null, row.lastSeenAt),
+      );
+
+      if (
+        row.upstreamDataAssetId &&
+        row.upstreamDataAssetId !== row.downstreamDataAssetId
+      ) {
+        read.set(
+          row.upstreamDataAssetId,
+          laterOf(read.get(row.upstreamDataAssetId) || null, row.lastSeenAt),
+        );
+      }
+    }
+
+    for (const id of written.keys()) {
+      read.delete(id);
+    }
+
+    return {
+      read,
+      written,
+      isTruncated: rows.length >= MAX_DATA_LINEAGE_EDGE_ROWS,
+    };
+  }
+
+  /*
+   * The tables a pipeline reads, or writes, that its drawing draws: the
+   * pinned first, then its nearest as a table's are chosen - a problem
+   * first, then one still in its database, then the one seen last - at
+   * most the most next to one card. The rest are counted on its card.
+   */
+  private static choosePipelineTables(data: {
+    state: WalkState;
+    seen: Map<string, Date | null>;
+    pins: Set<string>;
+    now: Date;
+  }): { chosen: Array<string>; hidden: number } {
+    const edges: Map<string, FeedsEdge> = new Map();
+
+    for (const [id, lastSeenAt] of data.seen) {
+      edges.set(id, {
+        upstreamDataAssetId: id,
+        downstreamDataAssetId: id,
+        seenIn: new Set([DataAssetLineageSource.Pipeline]),
+        pipelineIds: new Set(),
+        lastSeenAt,
+      });
+    }
+
+    // Only the tables the project still has.
+    const ranked: Array<string> = this.rankNeighbours({
+      state: data.state,
+      edges,
+      now: data.now,
+    });
+    const chosen: Array<string> = ranked.filter((id: string): boolean => {
+      return data.pins.has(id);
+    });
+
+    for (const id of ranked) {
+      if (chosen.length >= MAX_DATA_LINEAGE_NEIGHBORS) {
+        break;
+      }
+
+      if (!chosen.includes(id)) {
+        chosen.push(id);
+      }
+    }
+
+    return { chosen, hidden: ranked.length - chosen.length };
+  }
+
+  // Everything both kinds of drawing do once their walks are done.
+  private static async finish(data: {
+    state: WalkState;
+    focusNodeId: string;
+    depth: number;
+    now: Date;
+    reader: DataLineageReader;
+    pins: DataLineagePins;
+    // A pipeline's drawing: its own card and arrows, and its id, never drawn again as a writer.
+    focusNode: DataTableLineageNode | null;
+    focusEdges: Array<DataTableLineageEdge>;
+    focusPipelineId: string | null;
+  }): Promise<DataTableLineage> {
+    const state: WalkState = data.state;
 
     /*
      * A table one table did not draw - past its most neighbours - can be
@@ -359,8 +729,10 @@ export default class DataTableLineageReader {
     const openAlerts: Map<string, number> =
       await data.reader.readOpenAlertCounts(placedIds);
 
-    const nodes: Array<DataTableLineageNode> = [];
-    const edges: Array<DataTableLineageEdge> = [];
+    const nodes: Array<DataTableLineageNode> = data.focusNode
+      ? [data.focusNode]
+      : [];
+    const edges: Array<DataTableLineageEdge> = [...data.focusEdges];
 
     for (const [id, placed] of state.placed) {
       nodes.push(
@@ -394,7 +766,13 @@ export default class DataTableLineageReader {
       });
     }
 
-    this.addWriters({ state, nodes, edges });
+    this.addWriters({
+      state,
+      nodes,
+      edges,
+      pins: data.pins.dataPipelineIds,
+      focusPipelineId: data.focusPipelineId,
+    });
 
     const hiddenDashboardCount: number = await this.addDashboards({
       reader: data.reader,
@@ -409,8 +787,8 @@ export default class DataTableLineageReader {
     });
 
     return {
-      focusNodeId: getLineageTableNodeId(focusId),
-      depth,
+      focusNodeId: data.focusNodeId,
+      depth: data.depth,
       nodes,
       edges,
       hiddenDashboardCount,
@@ -418,11 +796,17 @@ export default class DataTableLineageReader {
     };
   }
 
-  // One side of the table, a step at a time.
+  // One side of the drawing, a step at a time, from the tables a step in.
   private static async walk(data: {
     direction: DataLineageDirection;
-    focusId: string;
+    // The table itself, or the tables a pipeline reads (upstream) or writes (downstream).
+    frontier: Array<string>;
+    // How many steps from the drawing's own card the first tables found are.
+    firstStep: number;
     depth: number;
+    // The tables already drawn on this side: a pipeline's own.
+    placedOnSide: number;
+    pins: Set<string>;
     now: Date;
     reader: DataLineageReader;
     state: WalkState;
@@ -436,10 +820,10 @@ export default class DataTableLineageReader {
     const hidden: Map<string, Map<string, FeedsEdge>> = isUpstream
       ? state.hiddenUpstream
       : state.hiddenDownstream;
-    let placedOnSide: number = 0;
-    let frontier: Array<string> = [data.focusId];
+    let placedOnSide: number = data.placedOnSide;
+    let frontier: Array<string> = [...data.frontier];
 
-    for (let step: number = 1; frontier.length > 0; step++) {
+    for (let step: number = data.firstStep; frontier.length > 0; step++) {
       const isBeyond: boolean = step > data.depth;
       const inFrontier: Set<string> = new Set(frontier);
       const rows: Array<DataLineageEdgeRow> = await data.reader.readEdges({
@@ -542,6 +926,30 @@ export default class DataTableLineageReader {
       const chosen: Set<string> = new Set();
 
       if (!isBeyond) {
+        // The ways to an alert's cause and to the alerts it caused, first and past the most per table.
+        for (const parent of frontier) {
+          for (const neighbour of neighbours.get(parent)?.keys() || []) {
+            if (
+              !data.pins.has(neighbour) ||
+              !state.tables.has(neighbour) ||
+              state.placed.has(neighbour) ||
+              chosen.has(neighbour)
+            ) {
+              continue;
+            }
+
+            if (
+              placedOnSide + chosen.size >=
+              MAX_DATA_LINEAGE_TABLES_PER_SIDE
+            ) {
+              state.isTruncated = true;
+              break;
+            }
+
+            chosen.add(neighbour);
+          }
+        }
+
         for (const parent of frontier) {
           const ofParent: Map<string, FeedsEdge> | undefined =
             neighbours.get(parent);
@@ -550,7 +958,14 @@ export default class DataTableLineageReader {
             continue;
           }
 
+          // The ways' tables take their places first: the rest fill what is left.
           let drawn: number = 0;
+
+          for (const neighbour of ofParent.keys()) {
+            if (data.pins.has(neighbour) && chosen.has(neighbour)) {
+              drawn++;
+            }
+          }
 
           for (const neighbour of this.rankNeighbours({
             state,
@@ -562,7 +977,10 @@ export default class DataTableLineageReader {
             }
 
             if (chosen.has(neighbour)) {
-              drawn++;
+              if (!data.pins.has(neighbour)) {
+                drawn++;
+              }
+
               continue;
             }
 
@@ -732,16 +1150,41 @@ export default class DataTableLineageReader {
     );
   }
 
+  private static pipelineNode(
+    pipeline: DataLineagePipelineRow,
+    side: DataLineageSide,
+    depth: number,
+  ): DataTableLineageNode {
+    return {
+      id: getLineagePipelineNodeId(pipeline.dataPipelineId),
+      kind: DataLineageNodeKind.Pipeline,
+      side,
+      depth,
+      name: pipeline.jobName,
+      dataPipelineId: pipeline.dataPipelineId,
+      jobNamespace: pipeline.jobNamespace,
+      lastRunState: pipeline.lastRunState,
+      lastRunStartedAt: toIso(pipeline.lastRunStartedAt),
+      lastErrorMessage: clip(
+        pipeline.lastErrorMessage,
+        MAX_DATA_LINEAGE_ERROR_LENGTH,
+      ),
+    };
+  }
+
   /*
    * The pipelines that bring data into the upstream side from outside what
    * OneUptime watches: a pipeline whose writes rows name a drawn table (or
    * the table itself) and that is on no edge into it from a watched table.
-   * One card per pipeline, a step before the first table it writes.
+   * One card per pipeline, a step before the first table it writes; a
+   * pinned one first, and never the pipeline the drawing is about.
    */
   private static addWriters(data: {
     state: WalkState;
     nodes: Array<DataTableLineageNode>;
     edges: Array<DataTableLineageEdge>;
+    pins: Set<string>;
+    focusPipelineId: string | null;
   }): void {
     const state: WalkState = data.state;
     const cards: Map<string, DataTableLineageNode> = new Map();
@@ -762,12 +1205,23 @@ export default class DataTableLineageReader {
         const pipeline: DataLineagePipelineRow | undefined =
           state.pipelines.get(writer.dataPipelineId);
 
-        if (pipeline && !feeding.has(writer.dataPipelineId)) {
+        if (
+          pipeline &&
+          !feeding.has(writer.dataPipelineId) &&
+          writer.dataPipelineId !== data.focusPipelineId
+        ) {
           outside.push({ pipeline, writer });
         }
       }
 
       outside.sort((a: OutsideWriter, b: OutsideWriter): number => {
+        const aPinned: boolean = data.pins.has(a.pipeline.dataPipelineId);
+        const bPinned: boolean = data.pins.has(b.pipeline.dataPipelineId);
+
+        if (aPinned !== bPinned) {
+          return aPinned ? -1 : 1;
+        }
+
         const aFailed: boolean = isFailedLineageRunState(
           a.pipeline.lastRunState,
         );
@@ -801,21 +1255,11 @@ export default class DataTableLineageReader {
         if (card) {
           card.depth = Math.min(card.depth, placed.depth - 1);
         } else {
-          const node: DataTableLineageNode = {
-            id: nodeId,
-            kind: DataLineageNodeKind.Pipeline,
-            side: DataLineageSide.Upstream,
-            depth: placed.depth - 1,
-            name: pipeline.jobName,
-            dataPipelineId: pipeline.dataPipelineId,
-            jobNamespace: pipeline.jobNamespace,
-            lastRunState: pipeline.lastRunState,
-            lastRunStartedAt: toIso(pipeline.lastRunStartedAt),
-            lastErrorMessage: clip(
-              pipeline.lastErrorMessage,
-              MAX_DATA_LINEAGE_ERROR_LENGTH,
-            ),
-          };
+          const node: DataTableLineageNode = this.pipelineNode(
+            pipeline,
+            DataLineageSide.Upstream,
+            placed.depth - 1,
+          );
 
           cards.set(nodeId, node);
           data.nodes.push(node);
@@ -1022,8 +1466,38 @@ export default class DataTableLineageReader {
   public static getDatabaseReader(
     projectId: ObjectID,
     reader: DatabaseCommonInteractionProps | null,
-  ): DataLineageReader {
+  ): DataPipelineLineageReader {
     return {
+      readPipelineEdges: async (data: {
+        dataPipelineId: string;
+        limit: number;
+      }): Promise<Array<DataLineageEdgeRow>> => {
+        const found: Array<DataAssetLineage> =
+          await DataAssetLineageService.findBy({
+            query: {
+              projectId,
+              dataPipelineId: new ObjectID(data.dataPipelineId),
+            },
+            select: {
+              upstreamDataAssetId: true,
+              downstreamDataAssetId: true,
+              dataPipelineId: true,
+              source: true,
+              lastSeenAt: true,
+            },
+            sort: { lastSeenAt: SortOrder.Descending },
+            limit: Math.max(1, data.limit),
+            skip: 0,
+            props: { isRoot: true },
+          });
+
+        return found
+          .filter((edge: DataAssetLineage): boolean => {
+            return Boolean(edge.downstreamDataAssetId);
+          })
+          .map(toEdgeRow);
+      },
+
       readEdges: async (data: {
         direction: DataLineageDirection;
         dataAssetIds: Array<string>;
@@ -1061,15 +1535,7 @@ export default class DataTableLineageReader {
               continue;
             }
 
-            rows.push({
-              upstreamDataAssetId: edge.upstreamDataAssetId?.toString() || null,
-              downstreamDataAssetId: edge.downstreamDataAssetId.toString(),
-              dataPipelineId: edge.dataPipelineId?.toString() || null,
-              source: isDataAssetLineageSource(edge.source)
-                ? edge.source
-                : null,
-              lastSeenAt: readDate(edge.lastSeenAt),
-            });
+            rows.push(toEdgeRow(edge));
           }
 
           if (rows.length >= data.limit) {

@@ -184,4 +184,5 @@ Et nummer som er bekreftet for SMS, er også bekreftet for anrop, uten en ny kod
 - [SMS- og anropsgateway](/docs/self-hosted/sms-and-call-gateway): Send SMS og anrop gjennom din egen leverandør i stedet for Twilio.
 - [SMTP](/docs/emails/smtp): Send også e-post gjennom din egen e-postserver.
 - [Tilgang til private nettverk](/docs/self-hosted/private-network-access): La arbeidsflyter og webhooker nå interne verktøy.
+- [Metrikker for varslingslevering](/docs/self-hosted/notification-delivery-metrics): Mål hvor mange SMS-er og anrop som når Twilio og telefonen.
 :::

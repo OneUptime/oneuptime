@@ -115,6 +115,13 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import { setCodeApartInSentence } from "Common/Types/CodeInSentence";
+import {
+  CODE_READS_AS_WRITTEN_POST_PROCESSOR,
+  codeReadsAsWrittenPostProcessor,
+  leaveIsolatesOutOfCopiedText,
+  setCodeApartWith,
+} from "Common/UI/Utils/CodeReadsAsWritten";
 import SecurityEventsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Layout";
 import SecurityOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Overview";
 import SecurityCasesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Cases";
@@ -4517,6 +4524,24 @@ async function handleApi(method, options) {
   ) {
     return new HTTPResponse(200, { numberPrefixes: {} }, {});
   }
+  /*
+   * The workspaces the Slack page's rules may post in (SlackAPI's
+   * describeConnection): the connected Slack is one workspace, not a whole
+   * Enterprise organization, so its rules pick no workspace.
+   */
+  if (method === "GET" && path.endsWith("/slack/workspaces")) {
+    return new HTTPResponse(
+      200,
+      {
+        isOrganization: false,
+        isInOrganization: false,
+        organizationName: "",
+        workspaces: [],
+        defaultWorkspaceId: null,
+      },
+      {},
+    );
+  }
   if (method === "GET" && path.endsWith(`/project/${PROJECT_ID}/numbering`)) {
     return new HTTPResponse(200, caseSetup.numbering(), {});
   }
@@ -4642,12 +4667,26 @@ if (language !== "en") {
  */
 followLanguageForDates(i18next);
 
-await i18next.use(initReactI18next).init({
-  lng: language,
-  fallbackLng: "en",
-  resources,
-  interpolation: { escapeValue: false },
-});
+/*
+ * As every frontend's i18n set-up does: code in a Persian sentence (svc-*)
+ * set apart as it is handed to the page (CodeReadsAsWritten), since the
+ * locale files no longer carry marks beside code, and copied without the
+ * marks that set it apart. The fixture bundles the page's words, so it hands
+ * over the rules with them, as the Admin Dashboard does.
+ */
+setCodeApartWith(setCodeApartInSentence);
+leaveIsolatesOutOfCopiedText();
+
+await i18next
+  .use(initReactI18next)
+  .use(codeReadsAsWrittenPostProcessor)
+  .init({
+    postProcess: [CODE_READS_AS_WRITTEN_POST_PROCESSOR],
+    lng: language,
+    fallbackLng: "en",
+    resources,
+    interpolation: { escapeValue: false },
+  });
 document.documentElement.lang = language;
 document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
 

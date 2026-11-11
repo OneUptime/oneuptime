@@ -32,6 +32,7 @@ import {
 import { APP_API_URL } from "Common/UI/Config";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -46,17 +47,28 @@ import {
   connectorHealthTooltip,
   connectorNextPoll,
   connectorProviderTitle,
-  connectorScopeImportNoun,
+  connectorRecordsTerm,
+  connectorScopeImportValue,
   connectorScopeLabel,
   connectorScopeSummary,
   formatConnectionDate,
   readSecurityEventConnectionResult,
   securityEventConnectionRunLabels,
+  securityEventConnectionRunStatusLabel,
   validateConnectionRange,
 } from "./SecurityEventConnectionDiagnosticsUtil";
 import SecurityEventConnectionRunDetails, {
   ConnectionTime,
 } from "./SecurityEventConnectionRunDetails";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  TemplateValue,
+  Translator,
+  translatableTerm,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 export interface ComponentProps {
   connection: SecurityEventConnection;
@@ -91,6 +103,7 @@ function localDateInput(date: Date): string {
 const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [connection, setConnection] = useState<SecurityEventConnection>(
     props.connection,
   );
@@ -143,14 +156,17 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
   const providerTitle: string = connectorProviderTitle(
     connection.provider || "",
   );
-  const recordName: string = definition?.importedRecordName || "record";
+  // "detections", in each sentence's own language.
+  const records: TemplateValue = connectorRecordsTerm(definition);
   const scopeControl: ConnectorAlertingOnlyControl | undefined =
     definition?.supportsAlertingOnlyToggle
       ? definition.alertingOnlyControl
       : undefined;
-  const importNoun: string =
-    connectorScopeImportNoun(definition, connection.alertingOnly) ||
-    `${recordName}s`;
+  // "alerts and detections", or the records without a scope control.
+  const importWhat: TemplateValue = connectorScopeImportValue(
+    definition,
+    connection.alertingOnly,
+  );
 
   const refreshHistory: () => Promise<boolean> =
     useCallback(async (): Promise<boolean> => {
@@ -290,7 +306,7 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
       ? validateConnectionRange(startTime, endTime)
       : null;
     if (validationError) {
-      setError(validationError);
+      setError(translator.translateText(validationError) || validationError);
       return;
     }
     setIsSubmitting(true);
@@ -319,7 +335,9 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
       const runId: unknown = response.data["runId"];
       if (typeof runId !== "string" || !runId) {
         throw new Error(
-          "The run was not returned by the server. Refresh run history before trying again.",
+          translator.translateText(
+            "The run was not returned by the server. Refresh run history before trying again.",
+          ),
         );
       }
       if (!mounted.current) {
@@ -397,6 +415,19 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
   const nextPoll: Date | null = connectorNextPoll(connection);
   const rangeError: string | null = validateConnectionRange(startTime, endTime);
   const health: string = connectorHealth(connection);
+  /*
+   * Each run header names its column, and its resize edge, in the reader's
+   * words. The first column says what kind of run each row is (Poll,
+   * Test connection): "Type", since "Run" is the verb on the product's Run
+   * buttons in most languages ("Ausführen").
+   */
+  const runTitle: string = translator.translateText("Type") || "Type";
+  const startedTitle: string =
+    translator.translateText("Started (UTC)") || "Started (UTC)";
+  const statusTitle: string = translator.translateText("Status") || "Status";
+  const returnedTitle: string =
+    translator.translateText("Returned / imported") || "Returned / imported";
+  const detailsTitle: string = translator.translateText("Details") || "Details";
 
   const setPreset: (value: string) => void = (value: string): void => {
     setRangePreset(value);
@@ -412,8 +443,13 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
 
   return (
     <Modal
-      title={`Connection diagnostics: ${connection.name || providerTitle}`}
-      description={`Check access, inspect what ${providerTitle} returns, and review imports. Times are shown in UTC; hover a time for your local clock.`}
+      title={translator.translateTemplate("Connection diagnostics: {{name}}", {
+        name: connection.name || providerTitle,
+      })}
+      description={translator.translateTemplate(
+        "Check access, inspect what {{provider}} returns, and review imports. Times are shown in UTC; hover a time for your local clock.",
+        { provider: providerTitle },
+      )}
       modalWidth={ModalWidth.Large}
       onClose={(): void => {
         updatedCallback.current();
@@ -423,76 +459,118 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
     >
       <div className="space-y-6">
         <section
-          aria-label="Scheduled polling"
+          aria-label={translator.translateText("Scheduled polling")}
           className="rounded-md border border-gray-200 p-4"
         >
           <h3 className="text-base font-semibold text-gray-900">
-            Scheduled polling
+            {translator.translateText("Scheduled polling")}
           </h3>
           <p className="mt-1 text-sm text-gray-700">
-            <span title={connectorHealthTooltip(health)}>{health}</span> ·{" "}
+            <span
+              title={translator.translateText(connectorHealthTooltip(health))}
+            >
+              {translator.translateText(health)}
+            </span>
+            <InlineSeparator />
             {connection.isEnabled
-              ? `Enabled, every ${connection.pollIntervalInMinutes || 5} minutes`
-              : "Disabled"}
+              ? translator.translatePlural(
+                  {
+                    one: "Enabled, every minute",
+                    other: "Enabled, every {{count}} minutes",
+                  },
+                  connection.pollIntervalInMinutes || 5,
+                )
+              : translator.translateText("Disabled")}
           </p>
           <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
             <div>
-              <dt className="text-gray-500">Provider</dt>
+              <dt className="text-gray-500">
+                {translator.translateText("Provider")}
+              </dt>
               <dd>{providerTitle}</dd>
             </div>
             <div>
-              <dt className="text-gray-500">Last attempt (UTC)</dt>
+              <dt className="text-gray-500">
+                {translator.translateText("Last attempt (UTC)")}
+              </dt>
               <dd>
                 <ConnectionTime value={connection.lastPolledAt} />
               </dd>
             </div>
             <div>
-              <dt className="text-gray-500">Last successful poll (UTC)</dt>
+              <dt className="text-gray-500">
+                {translator.translateText("Last successful poll (UTC)")}
+              </dt>
               <dd>
                 <ConnectionTime value={connection.lastSuccessfulPollAt} />
               </dd>
             </div>
             <div>
-              <dt className="text-gray-500">Last event imported (UTC)</dt>
+              <dt className="text-gray-500">
+                {translator.translateText("Last event imported (UTC)")}
+              </dt>
               <dd>
                 <ConnectionTime value={connection.lastEventIngestedAt} />
               </dd>
             </div>
             <div>
-              <dt className="text-gray-500">Next scheduled poll (UTC)</dt>
+              <dt className="text-gray-500">
+                {translator.translateText("Next scheduled poll (UTC)")}
+              </dt>
               <dd>
                 {!connection.isEnabled ? (
-                  "Paused"
+                  translator.translateText("Paused")
                 ) : nextPoll ? (
-                  <>
-                    <ConnectionTime value={nextPoll} /> (approximate)
-                  </>
+                  <TranslatedSentence
+                    template="{{time}} (approximate)"
+                    slots={{ time: <ConnectionTime value={nextPoll} /> }}
+                  />
                 ) : (
-                  "Next worker tick"
+                  translator.translateText("Next worker tick")
                 )}
               </dd>
             </div>
             {definition?.supportsAlertingOnlyToggle && (
               <div>
                 <dt className="text-gray-500">
-                  {connectorScopeLabel(definition)}
+                  {translator.translateText(connectorScopeLabel(definition))}
                 </dt>
                 <dd>
-                  {connectorScopeSummary(definition, connection.alertingOnly)}
+                  {translator.translateText(
+                    connectorScopeSummary(definition, connection.alertingOnly),
+                  )}
                 </dd>
               </div>
             )}
           </dl>
           <p className="mt-3 text-xs text-gray-500">
-            Enabled controls the schedule. Poll outcomes include Run now; review
-            scheduled runs in history to confirm recurring polling.{" "}
+            {translator.translateText(
+              "Enabled controls the schedule. Poll outcomes include Run now; review scheduled runs in history to confirm recurring polling.",
+            )}{" "}
             {scopeControl
-              ? `To import ${scopeControl.nonAlertingLabel.toLowerCase()} too, select ${scopeControl.nonAlertingLabel} under ${scopeControl.title} using Edit connection.`
-              : "Change settings using Edit connection."}
+              ? translator.translateTemplate(
+                  "To import {{nonAlerting}} too, select {{nonAlertingLabel}} under {{control}} using Edit connection.",
+                  {
+                    nonAlerting: translatableTerm(
+                      scopeControl.nonAlertingLabel,
+                      { inSentence: true },
+                    ),
+                    nonAlertingLabel: translatableTerm(
+                      scopeControl.nonAlertingLabel,
+                    ),
+                    control: translatableTerm(scopeControl.title),
+                  },
+                )
+              : translator.translateText(
+                  "Change settings using Edit connection.",
+                )}
           </p>
         </section>
 
-        <section aria-label="On-demand checks" className="space-y-3">
+        <section
+          aria-label={translator.translateText("On-demand checks")}
+          className="space-y-3"
+        >
           <div className="flex flex-wrap gap-2">
             <Button
               title="Test connection"
@@ -515,21 +593,32 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
             />
           </div>
           <p className="text-sm text-gray-600">
-            {`Test connection checks access to ${providerTitle}, what it has available to import${
-              scopeControl
-                ? ` with and without ${scopeControl.nonAlertingLabel}`
-                : ""
-            }, and whether OneUptime's workers and scheduler are running. It runs immediately and imports nothing. Run now imports the next poll window immediately, including when the schedule is paused.`}
+            {scopeControl
+              ? translator.translateTemplate(
+                  "Test connection checks access to {{provider}}, what it has available to import with and without {{nonAlertingLabel}}, and whether OneUptime's workers and scheduler are running. It runs immediately and imports nothing. Run now imports the next poll window immediately, including when the schedule is paused.",
+                  {
+                    provider: providerTitle,
+                    nonAlertingLabel: translatableTerm(
+                      scopeControl.nonAlertingLabel,
+                    ),
+                  },
+                )
+              : translator.translateTemplate(
+                  "Test connection checks access to {{provider}}, what it has available to import, and whether OneUptime's workers and scheduler are running. It runs immediately and imports nothing. Run now imports the next poll window immediately, including when the schedule is paused.",
+                  { provider: providerTitle },
+                )}
           </p>
           {!props.canRun && (
             <p className="text-sm text-gray-500">
               {props.disabledReason ||
-                "Only project owners, project administrators, and security administrators can start runs. You can still review run history."}
+                translator.translateText(
+                  "Only project owners, project administrators, and security administrators can start runs. You can still review run history.",
+                )}
             </p>
           )}
           {isTesting && (
             <p role="status" className="text-sm text-gray-600">
-              {CONNECTION_TEST_PROGRESS_MESSAGE}
+              {translator.translateText(CONNECTION_TEST_PROGRESS_MESSAGE)}
             </p>
           )}
           {testError && !isTesting && <ErrorMessage message={testError} />}
@@ -541,13 +630,14 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
           )}
           {isSubmitting && (
             <p role="status" className="text-sm text-gray-600">
-              Starting run…
+              {translator.translateText("Starting run…")}
             </p>
           )}
           {hasPendingRun && (
             <p className="text-sm text-gray-600">
-              A run is already queued or running. New actions are available when
-              it finishes.
+              {translator.translateText(
+                "A run is already queued or running. New actions are available when it finishes.",
+              )}
             </p>
           )}
         </section>
@@ -562,29 +652,32 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
         )}
         {!selectedRun && selectedRunId && !error && !historyError && (
           <p role="status" className="text-sm text-gray-600">
-            Waiting for the run to appear in history…
+            {translator.translateText(
+              "Waiting for the run to appear in history…",
+            )}
           </p>
         )}
 
         <section
-          aria-label="Historical records"
+          aria-label={translator.translateText("Historical records")}
           className="space-y-3 rounded-md border border-gray-200 p-4"
         >
           <h3 className="text-base font-semibold text-gray-900">
-            Find historical {recordName}s
+            {translator.translateTemplate("Find historical {{records}}", {
+              records,
+            })}
           </h3>
           <p className="text-sm text-gray-600">
-            Preview a window before importing. The first scheduled poll looks
-            back 24 hours; older {recordName}s need a historical import. Choose
-            up to 7 days per run. When Last Error says polling moved past a
-            minute it could not read in full, import that minute here to recover
-            what one run can read.
+            {translator.translateTemplate(
+              "Preview a window before importing. The first scheduled poll looks back 24 hours; older {{records}} need a historical import. Choose up to 7 days per run. When Last Error says polling moved past a minute it could not read in full, import that minute here to recover what one run can read.",
+              { records },
+            )}
           </p>
           <label
             className="block text-sm font-medium text-gray-700"
             htmlFor="security-event-connection-range"
           >
-            Time range
+            {translator.translateText("Time range")}
           </label>
           <select
             id="security-event-connection-range"
@@ -594,10 +687,16 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
               setPreset(event.target.value);
             }}
           >
-            <option value="1">Last hour</option>
-            <option value="24">Last 24 hours</option>
-            <option value="168">Last 7 days</option>
-            <option value="custom">Custom range</option>
+            <option value="1">{translator.translateText("Last hour")}</option>
+            <option value="24">
+              {translator.translateText("Last 24 hours")}
+            </option>
+            <option value="168">
+              {translator.translateText("Last 7 days")}
+            </option>
+            <option value="custom">
+              {translator.translateText("Custom range")}
+            </option>
           </select>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
@@ -605,7 +704,7 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
                 className="block text-sm text-gray-700"
                 htmlFor="security-event-connection-start"
               >
-                Start (your local time)
+                {translator.translateText("Start (your local time)")}
               </label>
               <input
                 id="security-event-connection-start"
@@ -626,7 +725,7 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
                 className="block text-sm text-gray-700"
                 htmlFor="security-event-connection-end"
               >
-                End (your local time)
+                {translator.translateText("End (your local time)")}
               </label>
               <input
                 id="security-event-connection-end"
@@ -645,12 +744,14 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
           </div>
           {rangeError && (
             <p role="alert" className="text-sm text-red-700">
-              {rangeError}
+              {translator.translateText(rangeError)}
             </p>
           )}
           <div className="flex flex-wrap gap-2">
             <Button
-              title={`Preview ${recordName}s`}
+              title={translator.translateTemplate("Preview {{records}}", {
+                records,
+              })}
               buttonStyle={ButtonStyleType.OUTLINE}
               disabled={disableActions || Boolean(rangeError)}
               onClick={(): void => {
@@ -669,15 +770,21 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
           {confirmImport && !rangeError && (
             <div
               role="group"
-              aria-label="Confirm historical import"
+              aria-label={translator.translateText("Confirm historical import")}
               className="space-y-3 rounded-md bg-indigo-50 p-3 text-sm text-gray-800"
             >
               <p>
-                Import {importNoun} from{" "}
-                {formatConnectionDate(new Date(startTime))} to{" "}
-                {formatConnectionDate(new Date(endTime))} into OneUptime?
-                Imported events become available to security rules and monitors.
-                Already imported {recordName}s are skipped.
+                {translator.translateTemplate(
+                  "Import {{what}} from {{start}} to {{end}} into OneUptime? Imported events become available to security rules and monitors. Already imported {{records}} are skipped.",
+                  {
+                    what: importWhat,
+                    start: formatConnectionDate(new Date(startTime)),
+                    end: formatConnectionDate(new Date(endTime)),
+                    records,
+                  },
+                  // Each time reads as written in a right-to-left sentence.
+                  { setsValuesApart: true },
+                )}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -700,7 +807,10 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
           )}
         </section>
 
-        <section aria-label="Run history" className="space-y-3">
+        <section
+          aria-label={translator.translateText("Run history")}
+          className="space-y-3"
+        >
           {/*
            * Refresh history shares the heading's line, and what the list
            * holds runs under both, 4px under the heading, as Scheduled
@@ -711,7 +821,7 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
           <div data-testid="security-connection-run-history-header">
             <div className="flex items-center justify-between gap-2">
               <h3 className="min-w-0 text-base font-semibold text-gray-900">
-                Recent runs
+                {translator.translateText("Recent runs")}
               </h3>
               {/* Its text on the heading's line, its padding hanging over it. */}
               <div className="-my-2 flex flex-shrink-0 items-center">
@@ -726,74 +836,81 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
               </div>
             </div>
             <p className="mt-1 text-xs text-gray-500">
-              The 20 most recent runs, including connection tests and previews.
-              Times are shown in UTC; hover a time for your local clock.
+              {translator.translateText(
+                "The 20 most recent runs, including connection tests and previews. Times are shown in UTC; hover a time for your local clock.",
+              )}
             </p>
           </div>
-          {isLoading && <p role="status">Loading run history…</p>}
+          {isLoading && (
+            <p role="status">
+              {translator.translateText("Loading run history…")}
+            </p>
+          )}
           {!isLoading && runs.length === 0 && (
             <p className="text-sm text-gray-500">
-              No runs recorded yet. Older polls may not have diagnostic history.
+              {translator.translateText(
+                "No runs recorded yet. Older polls may not have diagnostic history.",
+              )}
             </p>
           )}
           {runs.length > 0 && (
             <div className="overflow-x-auto">
               {runColumns.styles}
               <table
-                className={`${runColumns.getTableWidthClassName("min-w-full")} text-left text-sm`}
+                className={`${runColumns.getTableWidthClassName("min-w-full")} text-start text-sm`}
                 {...runColumns.tableAttributes}
               >
                 <thead className="border-b border-gray-200 text-gray-500">
                   <tr>
                     <ResizableHeaderCell
-                      className="py-2 pr-3"
+                      className="py-2 pe-3"
                       resize={runColumns.getResize(
                         "run",
-                        "Run",
+                        runTitle,
                         ColumnWidthKind.Name,
                       )}
                     >
-                      <span>{"Run"}</span>
+                      <span>{runTitle}</span>
                     </ResizableHeaderCell>
                     <ResizableHeaderCell
-                      className="py-2 pr-3"
+                      className="py-2 pe-3"
                       resize={runColumns.getResize(
                         "started",
-                        "Started (UTC)",
+                        startedTitle,
                         ColumnWidthKind.Whole,
                       )}
                     >
-                      <span>{"Started (UTC)"}</span>
+                      <span>{startedTitle}</span>
                     </ResizableHeaderCell>
                     <ResizableHeaderCell
-                      className="py-2 pr-3"
+                      className="py-2 pe-3"
                       resize={runColumns.getResize(
                         "status",
-                        "Status",
+                        statusTitle,
                         ColumnWidthKind.Whole,
                       )}
                     >
-                      <span>{"Status"}</span>
+                      <span>{statusTitle}</span>
                     </ResizableHeaderCell>
                     <ResizableHeaderCell
-                      className="py-2 pr-3"
+                      className="py-2 pe-3"
                       resize={runColumns.getResize(
                         "returned",
-                        "Returned / imported",
+                        returnedTitle,
                         ColumnWidthKind.Whole,
                       )}
                     >
-                      <span>{"Returned / imported"}</span>
+                      <span>{returnedTitle}</span>
                     </ResizableHeaderCell>
                     <ResizableHeaderCell
                       className="py-2"
                       resize={runColumns.getResize(
                         "details",
-                        "Details",
+                        detailsTitle,
                         ColumnWidthKind.Prose,
                       )}
                     >
-                      <span>{"Details"}</span>
+                      <span>{detailsTitle}</span>
                     </ResizableHeaderCell>
                   </tr>
                 </thead>
@@ -808,26 +925,41 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
                         key={run.id?.toString()}
                         className="border-b border-gray-100"
                       >
-                        <td className="py-2 pr-3">
-                          {securityEventConnectionRunLabels[run.type || "poll"]}
+                        <td className="py-2 pe-3">
+                          {translator.translateText(
+                            securityEventConnectionRunLabels[
+                              run.type || "poll"
+                            ],
+                          )}
                           <div className="text-xs text-gray-500">
                             {run.requestedByUserId
-                              ? "Requested on demand"
-                              : "Scheduled"}
+                              ? translator.translateText("Requested on demand")
+                              : translator.translateText("Scheduled")}
                           </div>
                         </td>
-                        <td className="whitespace-nowrap py-2 pr-3">
+                        <td className="whitespace-nowrap py-2 pe-3">
                           <ConnectionTime
                             value={run.startedAt}
-                            emptyText="Not started"
+                            emptyText={translationKey("Not started")}
                           />
                         </td>
-                        <td className="py-2 pr-3">
-                          {run.status === "empty" ? "No records" : run.status}
+                        <td className="py-2 pe-3">
+                          {securityEventConnectionRunStatusLabel(
+                            run.status || "queued",
+                            translator,
+                          )}
                         </td>
-                        <td className="py-2 pr-3">
+                        <td className="py-2 pe-3">
+                          {/*
+                           * Grouped as the run's own figures are ("12.345"
+                           * in German), so a row and its details agree.
+                           */}
                           {result
-                            ? `${result.fetchedCount} / ${result.ingestedCount}`
+                            ? `${result.fetchedCount.toLocaleString(
+                                getReaderNumberLocale(),
+                              )} / ${result.ingestedCount.toLocaleString(
+                                getReaderNumberLocale(),
+                              )}`
                             : "—"}
                         </td>
                         <td className="py-2">

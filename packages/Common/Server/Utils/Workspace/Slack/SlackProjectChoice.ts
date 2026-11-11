@@ -102,6 +102,9 @@ export enum SlackProjectChoiceKind {
 export interface SlackQuestionCommand {
   question: string;
   teamId: string;
+  // In a Slack Enterprise organization (SlackRequestWorkspace).
+  enterpriseId?: string | undefined;
+  isEnterpriseInstall?: boolean | undefined;
   slackUserId: string;
   channelId?: string | undefined;
   // Where its answer goes: the command's own response_url.
@@ -149,6 +152,9 @@ const PRESS_FIELDS: ReadonlyArray<string> = [
   "command",
   "text",
   "team_id",
+  // In a Slack Enterprise organization (SlackRequestWorkspace).
+  "enterprise_id",
+  "is_enterprise_install",
   "user_id",
   "user_name",
   "channel_id",
@@ -159,8 +165,9 @@ const PRESS_FIELDS: ReadonlyArray<string> = [
 
 // ...and of the objects in it - never a message's or a view's blocks.
 const PRESS_OBJECT_FIELDS: Readonly<Record<string, ReadonlyArray<string>>> = {
-  user: ["id", "username", "name"],
-  team: ["id"],
+  user: ["id", "username", "name", "team_id"],
+  team: ["id", "enterprise_id"],
+  enterprise: ["id"],
   channel: ["id", "name"],
   container: ["is_ephemeral", "thread_ts"],
   message: ["ts", "thread_ts"],
@@ -609,6 +616,7 @@ export default class SlackProjectChoice {
           question: {
             question: question["question"] as string,
             teamId: question["teamId"] as string,
+            ...SlackProjectChoice.readEnterprise(question),
             slackUserId: question["slackUserId"] as string,
             channelId: WorkspaceProjectChoiceStore.textOrUndefined(
               question["channelId"],
@@ -643,6 +651,7 @@ export default class SlackProjectChoice {
           message: {
             kind: message["kind"] as SlackMessageKind,
             teamId: message["teamId"] as string,
+            ...SlackProjectChoice.readEnterprise(message),
             channelId: message["channelId"] as string,
             userId: message["userId"] as string,
             text: message["text"] as string,
@@ -656,6 +665,28 @@ export default class SlackProjectChoice {
       default:
         return null;
     }
+  }
+
+  /*
+   * A kept request's Slack Enterprise organization, when it was made in one:
+   * nothing for a workspace on its own, so it reads back as it was written.
+   */
+  private static readEnterprise(kept: JSONObject): {
+    enterpriseId?: string;
+    isEnterpriseInstall?: boolean;
+  } {
+    const enterprise: { enterpriseId?: string; isEnterpriseInstall?: boolean } =
+      {};
+
+    if (WorkspaceProjectChoiceStore.isText(kept["enterpriseId"])) {
+      enterprise.enterpriseId = kept["enterpriseId"] as string;
+    }
+
+    if (kept["isEnterpriseInstall"] === true) {
+      enterprise.isEnterpriseInstall = true;
+    }
+
+    return enterprise;
   }
 
   // The parts of a conversation's key: hashed, never kept as they are.

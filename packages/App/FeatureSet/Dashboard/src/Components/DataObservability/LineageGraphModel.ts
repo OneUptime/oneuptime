@@ -2,13 +2,16 @@ import { DataAssetFreshness } from "Common/Types/DataObservability/DataAssetFres
 import DataAssetLineageSource from "Common/Types/DataObservability/DataAssetLineageSource";
 import {
   DataLineageEdgeKind,
+  DataLineageHighlight,
   DataLineageNodeKind,
   DataLineageSide,
   DataTableLineage,
   DataTableLineageEdge,
   DataTableLineageNode,
   DataTableLineagePipeline,
+  getLineagePipelineNodeId,
   isFailedLineageRunState,
+  isLineagePipelineNodeId,
   isRunningLineageRunState,
 } from "Common/Types/DataObservability/DataTableLineage";
 
@@ -23,6 +26,9 @@ import {
  * source. Pipelines that bring data in from outside sit a column before
  * the first table they write, dashboards a column after the last table
  * they read.
+ *
+ * A pipeline's drawing reads the same way with the pipeline in the middle:
+ * the tables it reads on the left, the tables it writes on the right.
  *
  * Within a column, cards line up with the cards they are joined to: the
  * columns are arranged from the table outwards, then back, then outwards
@@ -97,11 +103,62 @@ export interface LineageSummary {
   downstreamProblems: number;
 }
 
+// Which page a drawing is on: what its own card says, whether it opens, what its counts tell.
+export enum LineagePlace {
+  // A table's Lineage tab: the table is the page.
+  Table = "Table",
+  // A pipeline's page: the pipeline is the page.
+  Pipeline = "Pipeline",
+  // A data alert's page: its table or pipeline opens its own page.
+  Alert = "Alert",
+}
+
+// A card at the end of a way an alert's drawing picks out.
+export enum LineageCardRole {
+  // Where the alert's cause is.
+  Cause = "Cause",
+  // Where an alert it caused is.
+  Consequence = "Consequence",
+}
+
+// A pipeline named on an arrow.
+export interface LineageEdgeLabel {
+  pipeline: DataTableLineagePipeline;
+  // Its latest run failed (red); otherwise it is on an alert's way (indigo).
+  isFailed: boolean;
+}
+
+// How an arrow is drawn, all told.
+export interface LineageArrowLook {
+  color: string;
+  width: number;
+  dash: string | null;
+  label: LineageEdgeLabel | null;
+  // On an alert's way: drawn over a halo.
+  isHighlighted: boolean;
+  // Off the ways a drawing picks out: drawn faint.
+  isDimmed: boolean;
+}
+
+// The ways a drawing picks out, to look things up in.
+export interface LineageHighlightSets {
+  nodeIds: Set<string>;
+  edgeIds: Set<string>;
+  causeNodeIds: Set<string>;
+  consequenceNodeIds: Set<string>;
+  dataPipelineIds: Set<string>;
+}
+
 export const LINEAGE_NEUTRAL_COLOR: string = "#94a3b8";
 export const LINEAGE_READS_COLOR: string = "#cbd5e1";
 export const LINEAGE_PROBLEM_COLOR: string = "#ef4444";
 export const LINEAGE_HEALTHY_COLOR: string = "#22c55e";
 export const LINEAGE_RUNNING_COLOR: string = "#eab308";
+// The ways an alert's drawing picks out: indigo, as the drawing's own card is ringed.
+export const LINEAGE_HIGHLIGHT_COLOR: string = "#6366f1";
+export const LINEAGE_HIGHLIGHT_WIDTH: number = 2.5;
+// How faint what is off the ways is drawn.
+export const LINEAGE_DIMMED_OPACITY: number = 0.4;
 
 // A query seen moving the data: dashed. A view's definition: dotted. A pipeline's run: solid.
 export const LINEAGE_QUERY_HISTORY_DASH: string = "6 4";
@@ -166,7 +223,11 @@ export function getLineageEdgeStyle(
       return isFailedLineageRunState(pipeline.lastRunState);
     }) || null;
 
-  if (edge.kind === DataLineageEdgeKind.Reads) {
+  // A dashboard's read: light. A pipeline's read of a table is drawn as any other arrow into it.
+  if (
+    edge.kind === DataLineageEdgeKind.Reads &&
+    !isLineagePipelineNodeId(edge.target)
+  ) {
     return {
       color: LINEAGE_READS_COLOR,
       width: 1.25,
@@ -194,6 +255,162 @@ export function getLineageEdgeStyle(
     dash,
     failedPipeline,
   };
+}
+
+// The ways a drawing picks out, as sets; null when it picks none.
+export function getLineageHighlightSets(
+  lineage: DataTableLineage,
+): LineageHighlightSets | null {
+  const highlight: DataLineageHighlight | undefined = lineage.highlight;
+
+  if (!highlight || highlight.nodeIds.length === 0) {
+    return null;
+  }
+
+  return {
+    nodeIds: new Set(highlight.nodeIds),
+    edgeIds: new Set(highlight.edgeIds),
+    causeNodeIds: new Set(highlight.causeNodeIds),
+    consequenceNodeIds: new Set(highlight.consequenceNodeIds),
+    dataPipelineIds: new Set(highlight.dataPipelineIds),
+  };
+}
+
+// Where a card is on an alert's ways: its cause, an alert it caused, or neither.
+export function getLineageCardRole(
+  sets: LineageHighlightSets | null,
+  nodeId: string,
+): LineageCardRole | null {
+  if (sets?.causeNodeIds.has(nodeId)) {
+    return LineageCardRole.Cause;
+  }
+
+  if (sets?.consequenceNodeIds.has(nodeId)) {
+    return LineageCardRole.Consequence;
+  }
+
+  return null;
+}
+
+// Whether a card is drawn faint: off every way a drawing picks out.
+export function isLineageCardDimmed(
+  sets: LineageHighlightSets | null,
+  nodeId: string,
+): boolean {
+  return Boolean(sets && !sets.nodeIds.has(nodeId));
+}
+
+/*
+ * The pipeline an arrow names: one whose latest run failed, or - on an
+ * alert's way - the pipeline that is its cause or an alert it caused. Never
+ * a pipeline that has its own card at the arrow's start, or that the
+ * drawing is about: its card already says how it is.
+ */
+export function getLineageEdgeLabel(
+  edge: DataTableLineageEdge,
+  focusNodeId: string,
+  sets: LineageHighlightSets | null,
+): LineageEdgeLabel | null {
+  const hasOwnCard: (pipeline: DataTableLineagePipeline) => boolean = (
+    pipeline: DataTableLineagePipeline,
+  ): boolean => {
+    const card: string = getLineagePipelineNodeId(pipeline.dataPipelineId);
+
+    return edge.source === card || focusNodeId === card;
+  };
+
+  const failed: DataTableLineagePipeline | undefined = edge.pipelines.find(
+    (pipeline: DataTableLineagePipeline): boolean => {
+      return (
+        isFailedLineageRunState(pipeline.lastRunState) && !hasOwnCard(pipeline)
+      );
+    },
+  );
+
+  if (failed) {
+    return { pipeline: failed, isFailed: true };
+  }
+
+  if (sets?.edgeIds.has(edge.id)) {
+    const named: DataTableLineagePipeline | undefined = edge.pipelines.find(
+      (pipeline: DataTableLineagePipeline): boolean => {
+        return (
+          sets.dataPipelineIds.has(pipeline.dataPipelineId) &&
+          !hasOwnCard(pipeline)
+        );
+      },
+    );
+
+    if (named) {
+      return { pipeline: named, isFailed: false };
+    }
+  }
+
+  return null;
+}
+
+/*
+ * How an arrow is drawn: by where it was seen and whether its pipeline
+ * failed (getLineageEdgeStyle), and on an alert's drawing, picked out in
+ * indigo - red still red - when it is on a way, faint when it is not.
+ */
+export function getLineageArrowLook(
+  edge: DataTableLineageEdge,
+  focusNodeId: string,
+  sets: LineageHighlightSets | null,
+): LineageArrowLook {
+  const style: LineageEdgeStyle = getLineageEdgeStyle(edge);
+  const isHighlighted: boolean = Boolean(sets?.edgeIds.has(edge.id));
+
+  return {
+    color:
+      isHighlighted && !style.failedPipeline
+        ? LINEAGE_HIGHLIGHT_COLOR
+        : style.color,
+    width: isHighlighted
+      ? Math.max(style.width, LINEAGE_HIGHLIGHT_WIDTH)
+      : style.width,
+    dash: style.dash,
+    label: getLineageEdgeLabel(edge, focusNodeId, sets),
+    isHighlighted,
+    isDimmed: Boolean(sets) && !isHighlighted,
+  };
+}
+
+/*
+ * A pipeline's drawing: how many tables it reads and writes, those not
+ * drawn included - the arrows into and out of its card, and the counts on
+ * its card.
+ */
+export function countPipelineTables(lineage: DataTableLineage): {
+  reads: number;
+  writes: number;
+} {
+  const focus: DataTableLineageNode | undefined = lineage.nodes.find(
+    (node: DataTableLineageNode): boolean => {
+      return node.id === lineage.focusNodeId;
+    },
+  );
+  let reads: number = focus?.hiddenUpstreamCount || 0;
+  let writes: number = focus?.hiddenDownstreamCount || 0;
+
+  for (const edge of lineage.edges) {
+    if (
+      edge.kind === DataLineageEdgeKind.Reads &&
+      edge.target === lineage.focusNodeId
+    ) {
+      reads++;
+    }
+
+    if (
+      edge.kind === DataLineageEdgeKind.Writes &&
+      edge.source === lineage.focusNodeId
+    ) {
+      writes++;
+    }
+  }
+
+  return { reads, writes };
 }
 
 // Only the table itself: nothing has been seen feeding it or built from it.
@@ -249,7 +466,8 @@ function compareText(a: string, b: string): number {
  * Each card's column. Upstream, the longest way to the table along the
  * arrows between upstream tables (a cycle among them is cut where the walk
  * meets it); downstream, the longest way from it. A card no such way
- * reaches keeps the steps the lineage gave it.
+ * reaches keeps the steps the lineage gave it. On a pipeline's drawing the
+ * arrows into and out of the pipeline are the first steps of those ways.
  */
 export function getLineageColumns(
   lineage: DataTableLineage,
@@ -279,7 +497,17 @@ export function getLineageColumns(
   const from: Map<string, Array<string>> = new Map();
 
   for (const edge of lineage.edges) {
-    if (edge.kind !== DataLineageEdgeKind.Feeds) {
+    // A pipeline's own arrows: what it reads into it, what it writes out of it.
+    const isFocusRead: boolean =
+      edge.kind === DataLineageEdgeKind.Reads && edge.target === focus;
+    const isFocusWrite: boolean =
+      edge.kind === DataLineageEdgeKind.Writes && edge.source === focus;
+
+    if (
+      edge.kind !== DataLineageEdgeKind.Feeds &&
+      !isFocusRead &&
+      !isFocusWrite
+    ) {
       continue;
     }
 
@@ -366,6 +594,14 @@ export function getLineageColumns(
 
   // A pipeline a column before the first table it writes, a dashboard a column after the last it reads.
   for (const edge of lineage.edges) {
+    // The pipeline a drawing is about stays in the middle.
+    if (
+      (edge.kind === DataLineageEdgeKind.Writes && edge.source === focus) ||
+      (edge.kind === DataLineageEdgeKind.Reads && edge.target === focus)
+    ) {
+      continue;
+    }
+
     const tableColumn: number | undefined = columns.get(
       edge.kind === DataLineageEdgeKind.Writes ? edge.target : edge.source,
     );
@@ -611,17 +847,109 @@ export function layoutLineage(lineage: DataTableLineage): LineageLayout {
 }
 
 /*
+ * The cards a drawing too wide to read whole keeps in view when it opens,
+ * the most wanted first. On a data alert's drawing that is where its
+ * problem started - the cause's card - then the alert's own card, then the
+ * alerts it caused and the other cards on its ways, nearest first: the
+ * person paged sees the cause before anything else, wherever in the chain
+ * it is. On any other drawing, only the card it is about.
+ */
+export function getLineageCardsInView(
+  lineage: DataTableLineage,
+  layout: LineageLayout,
+  sets: LineageHighlightSets | null,
+): Array<string> {
+  const focus: string = lineage.focusNodeId;
+
+  if (!sets) {
+    return [focus];
+  }
+
+  const focusColumn: number = layout.columns.get(focus) || 0;
+  const stepsAway: (id: string) => number = (id: string): number => {
+    return Math.abs((layout.columns.get(id) ?? focusColumn) - focusColumn);
+  };
+  const nearestFirst: (ids: Iterable<string>) => Array<string> = (
+    ids: Iterable<string>,
+  ): Array<string> => {
+    return Array.from(new Set(ids))
+      .filter((id: string): boolean => {
+        return id !== focus && layout.positions.has(id);
+      })
+      .sort((a: string, b: string): number => {
+        return stepsAway(a) - stepsAway(b) || compareText(a, b);
+      });
+  };
+
+  const causes: Array<string> = nearestFirst(sets.causeNodeIds);
+  const consequences: Array<string> = nearestFirst(
+    sets.consequenceNodeIds,
+  ).filter((id: string): boolean => {
+    return !causes.includes(id);
+  });
+  const rest: Array<string> = nearestFirst(sets.nodeIds).filter(
+    (id: string): boolean => {
+      return !causes.includes(id) && !consequences.includes(id);
+    },
+  );
+
+  return [...causes, focus, ...consequences, ...rest];
+}
+
+// A box in the drawing's own units.
+interface LineageBox {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+function getCardBox(point: LineagePoint): LineageBox {
+  return {
+    left: point.x,
+    top: point.y,
+    right: point.x + LINEAGE_CARD_WIDTH,
+    bottom: point.y + LINEAGE_CARD_HEIGHT,
+  };
+}
+
+/*
+ * Where a box's middle may go, one way, with the box still inside the room:
+ * as close to `toward` as that allows, or the box's own middle.
+ */
+function getLeaningMiddle(data: {
+  low: number;
+  high: number;
+  room: number;
+  toward: number | null;
+}): number {
+  const middle: number = (data.low + data.high) / 2;
+  const slack: number = Math.max(0, (data.room - (data.high - data.low)) / 2);
+
+  if (data.toward === null) {
+    return middle;
+  }
+
+  return Math.min(middle + slack, Math.max(middle - slack, data.toward));
+}
+
+/*
  * Where the diagram is looked at from on a canvas of a given size: the whole
  * drawing, fitted and centered, when it fits with its cards' names still
- * readable; otherwise the table itself in the middle, at the least zoom
- * that keeps names readable - the rest is a drag away, and the fit control
- * shows all of it. Null while the canvas has no size to go by.
+ * readable. Otherwise, at the least zoom that keeps names readable, the
+ * cards it is asked to keep in view (getLineageCardsInView: the table
+ * itself, unless an alert's ways say more), as many as fit, the most wanted
+ * first; the view leans toward the first card that did not fit, so the way
+ * to it starts on screen. The rest is a drag away, and the fit control shows
+ * all of it. Null while the canvas has no size to go by.
  */
 export function getLineageViewport(data: {
   layout: LineageLayout;
   focusNodeId: string;
   width: number;
   height: number;
+  // The cards to keep in view, the most wanted first; the drawing's own card when none are named.
+  inView?: ReadonlyArray<string> | undefined;
 }): LineageViewport | null {
   if (!(data.width > 0) || !(data.height > 0)) {
     return null;
@@ -641,19 +969,66 @@ export function getLineageViewport(data: {
     };
   }
 
-  const focus: LineagePoint | undefined = data.layout.positions.get(
-    data.focusNodeId,
-  );
-  const centerX: number = focus
-    ? focus.x + LINEAGE_CARD_WIDTH / 2
+  const zoom: number = LINEAGE_READABLE_ZOOM;
+  // The room the canvas holds at that zoom, kept clear of its edges as a fitted drawing is.
+  const roomWidth: number = data.width / (zoom * (1 + LINEAGE_FIT_PADDING));
+  const roomHeight: number = data.height / (zoom * (1 + LINEAGE_FIT_PADDING));
+  const wanted: ReadonlyArray<string> =
+    data.inView && data.inView.length > 0 ? data.inView : [data.focusNodeId];
+
+  let shown: LineageBox | null = null;
+  // The first card wanted that did not fit: the view leans toward it.
+  let leftOut: LineageBox | null = null;
+
+  for (const id of wanted) {
+    const point: LineagePoint | undefined = data.layout.positions.get(id);
+
+    if (!point) {
+      continue;
+    }
+
+    const card: LineageBox = getCardBox(point);
+    const joined: LineageBox = shown
+      ? {
+          left: Math.min(shown.left, card.left),
+          top: Math.min(shown.top, card.top),
+          right: Math.max(shown.right, card.right),
+          bottom: Math.max(shown.bottom, card.bottom),
+        }
+      : card;
+    const fits: boolean =
+      joined.right - joined.left <= roomWidth &&
+      joined.bottom - joined.top <= roomHeight;
+
+    if (fits || !shown) {
+      // A card that cannot fit even alone is still the one shown.
+      shown = joined;
+    } else if (!leftOut) {
+      leftOut = card;
+    }
+  }
+
+  // Not one card to keep in view: the drawing's middle.
+  const centerX: number = shown
+    ? getLeaningMiddle({
+        low: shown.left,
+        high: shown.right,
+        room: roomWidth,
+        toward: leftOut ? (leftOut.left + leftOut.right) / 2 : null,
+      })
     : data.layout.width / 2;
-  const centerY: number = focus
-    ? focus.y + LINEAGE_CARD_HEIGHT / 2
+  const centerY: number = shown
+    ? getLeaningMiddle({
+        low: shown.top,
+        high: shown.bottom,
+        room: roomHeight,
+        toward: leftOut ? (leftOut.top + leftOut.bottom) / 2 : null,
+      })
     : data.layout.height / 2;
 
   return {
-    x: data.width / 2 - centerX * LINEAGE_READABLE_ZOOM,
-    y: data.height / 2 - centerY * LINEAGE_READABLE_ZOOM,
-    zoom: LINEAGE_READABLE_ZOOM,
+    x: data.width / 2 - centerX * zoom,
+    y: data.height / 2 - centerY * zoom,
+    zoom,
   };
 }

@@ -10,6 +10,7 @@ import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "./OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicySchedule from "./OnCallDutyPolicySchedule";
 import Team from "./Team";
+import UserOnCallLogTimeline from "./UserOnCallLogTimeline";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
@@ -950,6 +951,68 @@ export default class WhatsAppLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public onCallDutyPolicyScheduleId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadWhatsAppLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "userOnCallLogTimelineId",
+    type: TableColumnType.Entity,
+    modelType: UserOnCallLogTimeline,
+    title: "User On-Call Log Timeline",
+    description:
+      "On-call notification timeline entry this WhatsApp message was sent for (if any): the message was an on-call page.",
+    example: "f1a2b3c4-d5e6-47f8-9a0b-1c2d3e4f5a6b",
+  })
+  @ManyToOne(
+    () => {
+      return UserOnCallLogTimeline;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userOnCallLogTimelineId" })
+  public userOnCallLogTimeline?: UserOnCallLogTimeline = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadWhatsAppLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User On-Call Log Timeline ID",
+    description:
+      "ID of the on-call notification timeline entry this WhatsApp message was sent for (if any).",
+    example: "f1a2b3c4-d5e6-47f8-9a0b-1c2d3e4f5a6b",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userOnCallLogTimelineId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

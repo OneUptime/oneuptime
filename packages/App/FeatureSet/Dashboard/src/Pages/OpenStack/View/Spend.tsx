@@ -66,6 +66,7 @@ import {
   getOpenStackCoverageNote,
   getOpenStackSpendCsv,
 } from "../Utils/OpenStackSpendView";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
  * WHO'S USING WHAT, AND WHAT COULD BE RECLAIMED.
@@ -607,6 +608,8 @@ const OpenStackCloudSpend: FunctionComponent<
               type: FieldType.Element,
               isNotCustomizable: true,
               wrapContent: true,
+              // Each of its lines already reads its own way.
+              getLineText: drawsItsOwnLines,
               getElement: (item: OpenStackProjectUsage): ReactElement => {
                 return (
                   <div

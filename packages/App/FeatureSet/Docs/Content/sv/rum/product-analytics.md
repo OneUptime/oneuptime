@@ -111,6 +111,17 @@ Segmentet för en tratt, och för en kvarhållningstabell, använder de fält so
 
 Varje rad är en kohort och hur många personer den har, och varje cell andelen av dem som kom tillbaka under den perioden, mörkare ju fler som gjorde det. En period som inte har börjat än lämnas tom.
 
+**Alla kohorter**, ovanför dem, räknar kohorterna som en: under varje period de personer som kom tillbaka, av personerna i de kohorter som har nått den, så en kohort på 200 personer väger fyra gånger så mycket som en på 50. Den visas så snart två kohorter rymmer någon.
+
+## Sparade trattar och kvarhållningstabeller
+
+**Sparade trattar**, på sidan **Trattar**, och **Sparade kvarhållningstabeller**, på **Kvarhållning av användare**, listar det ditt team har sparat för applikationen, för att öppna det igen eller visa det på en instrumentpanel. En sparad tratt behåller sina steg, sin tid att slutföra dem och sitt segment, och en sparad kvarhållningstabell sina två händelser, sin period och sitt segment. Ingen av dem behåller tidsintervallet: sidan behåller sitt eget, och en instrumentpanel läser sitt eget.
+
+- **+ Spara tratt** eller **+ Spara kvarhållningstabell** sparar det sidan visar, under ett namn. En applikation behåller högst 100 av varje.
+- Välj en för att öppna den. Sidans adress namnger den, så en länk öppnar den för alla som får se den. När du ändrar det den visar säger namnet det, och **Uppdatera** sparar ändringen.
+- **Redigera** byter namn på en, och **Ta bort** tar bort den för alla. **Rensa vy** stänger den som är öppen och behåller det sidan visar.
+- En länk till en som har tagits bort, eller som du inte får se, säger det, och sidan öppnas utan den.
+
 ## Instrumentpaneler och aviseringar
 
 Varje händelse räknas också, minut för minut, som ett av applikationens mätvärden, och varje anrop till `metric()` är en punkt i ett eget mätvärde, under det namn anropet anger. Rita dem på applikationens sida **Mätvärden**, lägg till dem på en instrumentpanel eller avisera på dem med en metrikövervakning; **Öppna Mätvärden** under **Alla händelser** öppnar sidan.
@@ -123,6 +134,8 @@ Varje händelse räknas också, minut för minut, som ett av applikationens mät
 
 De här tre debiteras inte, och `metric()` avvisar ett namn som börjar med `oneuptime.`, så inget som din sida skickar kan utge sig för att vara dem. Dina `metric()`-punkter sparas och debiteras som applikationens andra mätvärden.
 
+En sparad tratt eller kvarhållningstabell kan också visas på en instrumentpanel: widgetarna **Tratt** och **Kvarhållning av användare**, i widgetkatalogens grupp **Produktanalys**, visar en i instrumentpanelens tidsintervall, och **Öppna i Trattar** eller **Öppna i Kvarhållning av användare** öppnar den på dess sida (se [Instrumentpanels-widgetar](/docs/dashboards/widgets#produktanalys)).
+
 ## Integritet och lagring
 
 - **13 månader.** En månads siffror tas bort den första dagen i den 13:e månaden efter, så de senaste 12 hela månaderna finns alltid kvar, oavsett inspelningarnas egen lagringstid (7 dagar som standard). Händelser sparas på samma sätt.
@@ -132,6 +145,8 @@ De här tre debiteras inte, och `metric()` avvisar ett namn som börjar med `one
 ## Vem kan se det
 
 Att läsa de här sidorna kräver detsamma som att läsa sessionslistan: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som projektägare och administratörer har. Att se vem en inloggad användare är, och att söka efter personer på namn, kräver den identitetsbehörighet som [Vem kan titta på en inspelning](/docs/telemetry/session-replay#vem-kan-titta-på-en-inspelning) beskriver.
+
+Att spara, byta namn på och ta bort sparade trattar och kvarhållningstabeller kräver samma behörigheter som att läsa de här sidorna, och en widget på en instrumentpanel visar en bara för en läsare som har dem.
 
 Att slå på eller av händelserna kräver `EditRumApplication` (_Edit RUM Application_) eller rollen som projektägare, administratör eller medlem. Att ange användaregenskaper kräver `EditRumApplication` eller rollen som ägare eller administratör, eftersom det avgör vad som sparas om inloggade personer.
 

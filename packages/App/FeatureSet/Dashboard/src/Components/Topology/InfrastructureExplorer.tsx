@@ -56,7 +56,7 @@ import {
   searchInfrastructure,
   summarizeCounts,
 } from "./InfrastructureTopologyModel";
-import { formatLastSeen, isEntityActive } from "./TopologyActivity";
+import { formatLastSeenInLanguage, isEntityActive } from "./TopologyActivity";
 import {
   EntityDetailTarget,
   InfrastructureCollection,
@@ -1082,7 +1082,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
             />
             <span className={node.isActive ? "text-gray-600" : "text-gray-400"}>
               {t(node.isActive ? "Active" : "Inactive")} ·{" "}
-              {formatLastSeen(node.lastSeenAt || undefined)}
+              {formatLastSeenInLanguage(node.lastSeenAt || undefined)}
             </span>
           </span>
         </td>
@@ -1510,7 +1510,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                               }
                             >
                               {t(active ? "Active" : "Inactive")} ·{" "}
-                              {formatLastSeen(item.lastSeenAt)}
+                              {formatLastSeenInLanguage(item.lastSeenAt)}
                             </span>
                           </span>
                         </td>

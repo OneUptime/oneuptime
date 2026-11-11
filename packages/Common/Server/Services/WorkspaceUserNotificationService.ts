@@ -12,10 +12,14 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import NotificationDeliveryMetrics, {
   NotificationDeliveryChannel,
   NotificationDeliveryOutcome,
-  NotificationDeliveryProvider,
+  NotificationDestination,
   NotificationDispatch,
   NotificationProviderConfig,
 } from "../Utils/Telemetry/NotificationDeliveryMetrics";
+import {
+  getDeliveryChannelOfWorkspace,
+  getDeliveryProviderOfWorkspace,
+} from "../Utils/Workspace/WorkspaceDeliveryMetrics";
 import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -126,6 +130,7 @@ export class WorkspaceUserNotificationService extends BaseService {
           // Sent as the project's own bot, through its workspace connection.
           providerConfig: NotificationProviderConfig.Project,
           isOnCallPage: Boolean(options.userOnCallLogTimelineId),
+          destination: NotificationDestination.DirectMessage,
         })
       : null;
 
@@ -283,37 +288,10 @@ export class WorkspaceUserNotificationService extends BaseService {
 }
 
 /*
- * A workspace's direct messages as the platform's delivery metrics name
- * them; null for a workspace they do not know, which sends none.
+ * A workspace's messages as the platform's delivery metrics name them,
+ * kept with the channel posts' (WorkspaceDeliveryMetrics), which each
+ * workspace's own code records.
  */
-export function getDeliveryChannelOfWorkspace(
-  workspaceType: WorkspaceType,
-): NotificationDeliveryChannel | null {
-  switch (workspaceType) {
-    case WorkspaceType.Slack:
-      return NotificationDeliveryChannel.Slack;
-    case WorkspaceType.MicrosoftTeams:
-      return NotificationDeliveryChannel.MicrosoftTeams;
-    case WorkspaceType.Mattermost:
-      return NotificationDeliveryChannel.Mattermost;
-    default:
-      return null;
-  }
-}
-
-export function getDeliveryProviderOfWorkspace(
-  workspaceType: WorkspaceType,
-): NotificationDeliveryProvider {
-  switch (workspaceType) {
-    case WorkspaceType.Slack:
-      return NotificationDeliveryProvider.Slack;
-    case WorkspaceType.MicrosoftTeams:
-      return NotificationDeliveryProvider.MicrosoftTeams;
-    case WorkspaceType.Mattermost:
-      return NotificationDeliveryProvider.Mattermost;
-    default:
-      return NotificationDeliveryProvider.None;
-  }
-}
+export { getDeliveryChannelOfWorkspace, getDeliveryProviderOfWorkspace };
 
 export default new WorkspaceUserNotificationService();

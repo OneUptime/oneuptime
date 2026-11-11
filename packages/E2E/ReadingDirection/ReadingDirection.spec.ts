@@ -1021,8 +1021,15 @@ test.describe("values cut short to their column", () => {
       .locator(":scope > div");
 
     expect(await styleOf(summary, "direction")).toBe("ltr");
-    // Its end is the page's start: a value that fits starts at the right.
-    expect(await styleOf(summary, "text-align")).toBe("end");
+    /*
+     * Its end is the page's start: a value that fits starts at the right.
+     * A later column's value gives way, so its box is lined up by its last
+     * line (text-align-last), which a one-line value always is: cut short to
+     * one clamped line, it keeps its whole "..."
+     * (LINE_OR_CLAMPED_LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME). The next test
+     * holds a short value there, at the right.
+     */
+    expect(await styleOf(summary, "text-align-last")).toBe("end");
 
     const summaryBox: Box = await boxOf(summary);
     const summaryStart: Box = await boxOfText(summary, "Polled");
@@ -2389,6 +2396,540 @@ test.describe("an Arabic page", () => {
       });
     }
   });
+});
+
+/*
+ * Code in an Arabic or Persian help text - a path, a flag, a function, a
+ * cron line, a file, an address a value fills in - is drawn as it is
+ * written: each of its characters right of the one before it on its line.
+ * Every frontend's i18next sets the code apart as it hands a sentence of a
+ * language read from the right to the page (Common/UI/Utils/
+ * CodeReadsAsWritten). With code=raw the page draws the sentences as the
+ * locale files hold them, and code read backwards: the negative control.
+ */
+test.describe("code in a sentence read from the right", () => {
+  const CODE_IN_HELP: Array<{ testId: string; codes: Array<string> }> = [
+    { testId: "code-path", codes: ["/var/lib/docker/containers"] },
+    { testId: "code-flag-help", codes: ["--help"] },
+    {
+      testId: "code-flag-metric",
+      codes: ["--disable-metric=neutron-quota_network"],
+    },
+    { testId: "code-function", codes: ["grantConsent()"] },
+    { testId: "code-cron", codes: ["0 9 * * 1-5"] },
+    { testId: "code-file", codes: [".env"] },
+    { testId: "code-call", codes: ["OneUptimeReplay.grantConsent()"] },
+    { testId: "code-template", codes: ["https://oneuptime.example.com/otlp"] },
+  ];
+
+  const CODE_HELP_IDS: Array<string> = CODE_IN_HELP.map(
+    (item: { testId: string }): string => {
+      return item.testId;
+    },
+  );
+
+  // Help texts that name more products in Latin letters than they have words.
+  const NAMES_HELP_IDS: Array<string> = [
+    "names-smtp",
+    "names-authenticator",
+    "names-provider",
+  ];
+
+  interface CharacterBox {
+    left: number;
+    right: number;
+    top: number;
+  }
+
+  /*
+   * Where each character of `code` is drawn, where the element's words
+   * first name it - the isolates' marks, which draw nothing, left out.
+   * Null when the words do not name it (Persian leaves a few sentences in
+   * English).
+   */
+  const characterBoxesOf: (
+    locator: Locator,
+    code: string,
+  ) => Promise<Array<CharacterBox> | null> = async (
+    locator: Locator,
+    code: string,
+  ): Promise<Array<CharacterBox> | null> => {
+    return locator.evaluate(
+      (element: Element, needle: string): Array<CharacterBox> | null => {
+        const MARK: RegExp = /[\u{2066}-\u{2069}]/u;
+        const units: Array<{ node: Node; offset: number; unit: string }> = [];
+        const walker: TreeWalker = document.createTreeWalker(
+          element,
+          NodeFilter.SHOW_TEXT,
+        );
+
+        for (
+          let node: Node | null = walker.nextNode();
+          node;
+          node = walker.nextNode()
+        ) {
+          const text: string = node.textContent || "";
+
+          for (let offset: number = 0; offset < text.length; offset++) {
+            if (!MARK.test(text[offset] as string)) {
+              units.push({ node, offset, unit: text[offset] as string });
+            }
+          }
+        }
+
+        const written: string = units
+          .map((unit: { unit: string }): string => {
+            return unit.unit;
+          })
+          .join("");
+        const start: number = written.indexOf(needle);
+
+        if (start < 0) {
+          return null;
+        }
+
+        return units
+          .slice(start, start + needle.length)
+          .map((unit: { node: Node; offset: number }): CharacterBox => {
+            const range: Range = document.createRange();
+
+            range.setStart(unit.node, unit.offset);
+            range.setEnd(unit.node, unit.offset + 1);
+
+            const rect: DOMRect = range.getBoundingClientRect();
+
+            return { left: rect.left, right: rect.right, top: rect.top };
+          });
+      },
+      code,
+    );
+  };
+
+  // Each two characters on one line: whether the second is drawn right of the first.
+  const readsForward: (boxes: Array<CharacterBox>) => Array<boolean> = (
+    boxes: Array<CharacterBox>,
+  ): Array<boolean> => {
+    const steps: Array<boolean> = [];
+
+    for (let index: number = 1; index < boxes.length; index++) {
+      const before: CharacterBox = boxes[index - 1] as CharacterBox;
+      const after: CharacterBox = boxes[index] as CharacterBox;
+
+      if (Math.abs(after.top - before.top) > 3) {
+        continue;
+      }
+
+      steps.push(after.left + after.right > before.left + before.right + 0.5);
+    }
+
+    return steps;
+  };
+
+  interface Drawn {
+    code: string;
+    steps: Array<boolean>;
+  }
+
+  const drawnCode: (page: Page) => Promise<Array<Drawn>> = async (
+    page: Page,
+  ): Promise<Array<Drawn>> => {
+    const drawn: Array<Drawn> = [];
+
+    for (const item of CODE_IN_HELP) {
+      for (const code of item.codes) {
+        const boxes: Array<CharacterBox> | null = await characterBoxesOf(
+          page.getByTestId(item.testId),
+          code,
+        );
+
+        if (boxes) {
+          drawn.push({ code, steps: readsForward(boxes) });
+        }
+      }
+    }
+
+    return drawn;
+  };
+
+  interface SentenceStart {
+    testId: string;
+    // Whether the help is drawn in a box of its own read from the left.
+    readFromTheLeft: boolean;
+    // Whether its first character is drawn at the right end of its first line.
+    startsAtTheRight: boolean;
+  }
+
+  /*
+   * Where each help's sentence starts, for the helps worded in the page's
+   * own letters (Persian leaves a few in English, which read from the left).
+   */
+  const sentenceStarts: (
+    page: Page,
+    testIds: Array<string>,
+  ) => Promise<Array<SentenceStart>> = async (
+    page: Page,
+    testIds: Array<string>,
+  ): Promise<Array<SentenceStart>> => {
+    const starts: Array<SentenceStart> = [];
+
+    for (const testId of testIds) {
+      const start: Omit<SentenceStart, "testId"> | null = await page
+        .locator(`#${testId}-help`)
+        .evaluate((element: Element): Omit<SentenceStart, "testId"> | null => {
+          const ARABIC_LETTER: RegExp = /\p{Script=Arabic}/u;
+          // A space, or a mark that draws nothing: LRM, RLM, an isolate's.
+          const UNDRAWN: RegExp = /[\s\u{200E}\u{200F}\u{2066}-\u{2069}]/u;
+
+          if (!ARABIC_LETTER.test(element.textContent || "")) {
+            return null;
+          }
+
+          const boxes: Array<{ left: number; right: number; top: number }> = [];
+          const walker: TreeWalker = document.createTreeWalker(
+            element,
+            NodeFilter.SHOW_TEXT,
+          );
+
+          for (
+            let node: Node | null = walker.nextNode();
+            node;
+            node = walker.nextNode()
+          ) {
+            const text: string = node.textContent || "";
+
+            for (let offset: number = 0; offset < text.length; offset++) {
+              if (UNDRAWN.test(text[offset] as string)) {
+                continue;
+              }
+
+              const range: Range = document.createRange();
+
+              range.setStart(node, offset);
+              range.setEnd(node, offset + 1);
+
+              const rect: DOMRect = range.getBoundingClientRect();
+
+              if (rect.width > 0) {
+                boxes.push({
+                  left: rect.left,
+                  right: rect.right,
+                  top: rect.top,
+                });
+              }
+            }
+          }
+
+          const first: { left: number; right: number; top: number } =
+            boxes[0] as { left: number; right: number; top: number };
+          const rightEnd: number = Math.max(
+            ...boxes
+              .filter((box: { top: number }): boolean => {
+                return Math.abs(box.top - first.top) <= 3;
+              })
+              .map((box: { right: number }): number => {
+                return box.right;
+              }),
+          );
+
+          return {
+            readFromTheLeft: element.querySelector('bdi[dir="ltr"]') !== null,
+            startsAtTheRight: first.right >= rightEnd - 1,
+          };
+        });
+
+      if (start) {
+        starts.push({ testId, ...start });
+      }
+    }
+
+    return starts;
+  };
+
+  // The Dashboard's locale file for `language`, as the page is handed it.
+  const localeOf: (
+    language: string,
+  ) => Promise<Record<string, string>> = async (
+    language: string,
+  ): Promise<Record<string, string>> => {
+    return JSON.parse(
+      await fs.readFile(
+        path.resolve(
+          __dirname,
+          `../../App/FeatureSet/Dashboard/src/Locales/${language}.json`,
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+  };
+
+  for (const language of RIGHT_TO_LEFT) {
+    /*
+     * Each piece of code, each character right of the one before it; the
+     * sentence round it still read from the right. The code an Arabic
+     * sentence names is in Latin letters, and they may outnumber its
+     * Arabic ones: counted, the code laid the whole sentence out from the
+     * left, its words in the wrong order. Set apart, it is not counted, and
+     * a help text in the page's language reads as the page does
+     * (readAsWritten). Copied, a sentence is the locale file's again.
+     */
+    test(`${language}: code reads as written, the sentence round it from the right, and a copy pastes as written`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `lang=${language}`);
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+      });
+
+      const drawn: Array<Drawn> = await drawnCode(page);
+
+      // A path, a flag, a function, a cron line, an address: at least five.
+      expect(drawn.length).toBeGreaterThanOrEqual(5);
+
+      for (const piece of drawn) {
+        expect({ code: piece.code, steps: piece.steps.length > 0 }).toEqual({
+          code: piece.code,
+          steps: true,
+        });
+        expect({
+          code: piece.code,
+          backwards: piece.steps.filter((step: boolean): boolean => {
+            return !step;
+          }).length,
+        }).toEqual({ code: piece.code, backwards: 0 });
+      }
+
+      const starts: Array<SentenceStart> = await sentenceStarts(
+        page,
+        CODE_HELP_IDS,
+      );
+
+      // Arabic words all eight; Persian leaves two in English.
+      expect(starts.length).toBeGreaterThanOrEqual(6);
+      expect(starts).toEqual(
+        starts.map((start: SentenceStart): SentenceStart => {
+          return {
+            testId: start.testId,
+            readFromTheLeft: false,
+            startsAtTheRight: true,
+          };
+        }),
+      );
+
+      const copy: { shown: string; copied: string; prevented: boolean } =
+        await page.evaluate(
+          (): { shown: string; copied: string; prevented: boolean } => {
+            const help: HTMLElement = document.getElementById(
+              "code-path-help",
+            ) as HTMLElement;
+            const range: Range = document.createRange();
+
+            range.selectNodeContents(help);
+
+            const selection: Selection = window.getSelection() as Selection;
+
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            const clipboard: DataTransfer = new DataTransfer();
+            const event: ClipboardEvent = new ClipboardEvent("copy", {
+              clipboardData: clipboard,
+              bubbles: true,
+              cancelable: true,
+            });
+
+            help.dispatchEvent(event);
+
+            return {
+              shown: help.textContent || "",
+              copied: clipboard.getData("text/plain"),
+              prevented: event.defaultPrevented,
+            };
+          },
+        );
+      const locale: Record<string, string> = await localeOf(language);
+
+      // The page holds the marks; the copy is the locale file's sentence.
+      expect(copy.shown).toMatch(/[\u{2066}-\u{2069}]/u);
+      expect(copy.prevented).toBe(true);
+      expect(copy.copied).toBe(
+        locale[
+          "Make sure the Docker agent's filelog receiver is collecting logs from /var/lib/docker/containers."
+        ],
+      );
+    });
+
+    /*
+     * A help text worded in the page's language that names more products
+     * in Latin letters than it has words of its own: read by most of its
+     * letters, it was drawn in an isolate read from the left, its words in
+     * the wrong order - the SMTP server's help on both pages, and Arabic's
+     * authenticator and provider ones. It reads as the page does.
+     */
+    test(`${language}: a help text that names more products in Latin letters than it has words reads from the right`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `lang=${language}`);
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+      });
+
+      const starts: Array<SentenceStart> = await sentenceStarts(
+        page,
+        NAMES_HELP_IDS,
+      );
+
+      // Arabic words all three; Persian leaves the authenticator in English.
+      expect(
+        starts.map((start: SentenceStart): string => {
+          return start.testId;
+        }),
+      ).toEqual(
+        language === "fa" ? ["names-smtp", "names-provider"] : NAMES_HELP_IDS,
+      );
+      expect(starts).toEqual(
+        starts.map((start: SentenceStart): SentenceStart => {
+          return {
+            testId: start.testId,
+            readFromTheLeft: false,
+            startsAtTheRight: true,
+          };
+        }),
+      );
+    });
+
+    /*
+     * The negative control, with the sentences as the locale files hold
+     * them (code=raw): code read backwards. (A sentence with more code than
+     * words still reads from the right: a help text in the page's language
+     * reads as the page does, whatever it names.)
+     */
+    test(`${language}: as the locale file holds the sentences, code reads backwards`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `lang=${language}&code=raw`);
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+      });
+
+      const backwards: Array<string> = (await drawnCode(page))
+        .filter((piece: Drawn): boolean => {
+          return piece.steps.includes(false);
+        })
+        .map((piece: Drawn): string => {
+          return piece.code;
+        });
+
+      // Persian's --help read help--; Arabic's flag and file their sign last.
+      expect(backwards).toEqual(
+        expect.arrayContaining(
+          language === "fa"
+            ? ["--help"]
+            : ["--disable-metric=neutron-quota_network", ".env"],
+        ),
+      );
+    });
+  }
+
+  /*
+   * For a person to look at: the help texts in Arabic and Persian, light
+   * and dark (one page, its dark class turned on), on a laptop and a
+   * phone, and as the locale files held them.
+   */
+  const SHOTS: Array<{
+    name: string;
+    query: string;
+    width: number;
+    alsoDark: boolean;
+  }> = RIGHT_TO_LEFT.flatMap(
+    (
+      language: string,
+    ): Array<{
+      name: string;
+      query: string;
+      width: number;
+      alsoDark: boolean;
+    }> => {
+      return [
+        {
+          name: language,
+          query: `lang=${language}`,
+          width: 1280,
+          alsoDark: true,
+        },
+        {
+          name: language,
+          query: `lang=${language}&width=340`,
+          width: 390,
+          alsoDark: true,
+        },
+        {
+          name: `${language}-as-the-file-holds-it`,
+          query: `lang=${language}&code=raw`,
+          width: 1280,
+          alsoDark: false,
+        },
+      ];
+    },
+  );
+
+  for (const shot of SHOTS) {
+    test(`screen: ${shot.name} at ${shot.width} pixels${shot.alsoDark ? ", light and dark" : ""}`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: shot.width, height: 900 });
+      await open(page, shot.query, shot.width > 640);
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+      });
+
+      const section: Locator = page.getByTestId("section-code-in-sentences");
+
+      await expect(section).toBeVisible();
+      await expectNoSidewaysScroll(page);
+      await fs.mkdir(SCREENSHOTS, { recursive: true });
+      await section.screenshot({
+        path: path.join(
+          SCREENSHOTS,
+          `code-in-sentences-${shot.name}-${shot.width}.png`,
+        ),
+        animations: "disabled",
+      });
+
+      if (!shot.alsoDark) {
+        return;
+      }
+
+      // The Dashboard's dark mode: the class ?theme=dark puts on <html>.
+      await page.evaluate(() => {
+        document.documentElement.classList.add("dark");
+      });
+      await expect(page.locator("html.dark")).toHaveCount(1);
+      await expect
+        .poll(async (): Promise<string> => {
+          return section.evaluate((element: Element): string => {
+            return getComputedStyle(element.querySelector("div") as Element)
+              .backgroundColor;
+          });
+        })
+        .not.toBe("rgb(255, 255, 255)");
+      await expectNoSidewaysScroll(page);
+      await section.screenshot({
+        path: path.join(
+          SCREENSHOTS,
+          `code-in-sentences-${shot.name}-dark-${shot.width}.png`,
+        ),
+        animations: "disabled",
+      });
+    });
+  }
 });
 
 /*

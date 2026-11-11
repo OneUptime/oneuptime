@@ -97,6 +97,18 @@ Pour chaque rapport et tableau de bord Power BI, **Tableaux de bord BI** indique
 
 Les vues, et les actualisations sur les capacités, ne demandent rien de plus que l'accès aux API d'administration ci-dessus : le principal de service dans un groupe de sécurité autorisé par **Service principals can access read-only admin APIs**, sans autorisation Power BI nécessitant le consentement d'un administrateur sur l'application. Quand les vues ou les actualisations ne peuvent pas être lues, les tableaux de bord sont tout de même lus et conservés, l'outil BI indique ce qui a été ignoré et pourquoi, et la lecture suivante réessaie.
 
+### Alertes sur les actualisations en échec
+
+Activez **Alert on Failed Refreshes** quand vous ajoutez ou modifiez un outil Power BI (un nouvel outil commence avec cette option activée), et OneUptime tient pour l'outil un moniteur sous **Moniteurs**, qui porte son nom. Le moniteur ouvre une alerte pour chaque jeu de données dont la dernière actualisation a échoué ou a été annulée, avec le jeu de données et son espace de travail dans le titre de l'alerte, et la résout dès qu'une actualisation ultérieure aboutit. Un jeu de données publié plus tard est surveillé dès qu'il est lu. Désactiver l'interrupteur, ou retirer l'outil, supprime le moniteur ; jusque-là, c'est un moniteur ordinaire, avec ses propriétaires, ses politiques d'astreinte et ses fenêtres de maintenance.
+
+Les actualisations en échec n'utilisent pas les moniteurs de pipeline. Un jeu de données dont l'actualisation a échoué continue d'afficher les données de sa dernière actualisation réussie jusqu'à ce qu'une actualisation ultérieure aboutisse : son alerte reste donc ouverte jusque-là, alors que l'alerte d'une exécution en échec se referme une heure après l'exécution. Et les actualisations sont lues une fois par heure : une actualisation lue jusqu'à une heure après sa fin tomberait souvent hors de l'heure que regarde **Pipeline Run Failed**, un jeu de données actualisé toutes les demi-heures passerait sans cesse en **Pipeline Is Late**, et une actualisation terminée mais pas encore lue aurait l'air d'un **Pipeline Run Unusually Long**.
+
+- Chaque lecture horaire conserve les jeux de données dont la dernière actualisation terminée a échoué ou a été annulée. Toutes les cinq minutes, chacun écrit `oneuptime.data.bi.refresh_failed`, 1 tant qu'il échoue et 0 pendant l'heure qui suit l'aboutissement d'une actualisation ultérieure, et le moniteur le lit : un échec ouvre ainsi une seule alerte, quel que soit le nombre de lectures horaires qui le voient.
+- Un échec est vu à la lecture horaire suivante : son alerte s'ouvre jusqu'à une heure après l'échec de l'actualisation, et se résout jusqu'à une heure après l'aboutissement d'une actualisation ultérieure.
+- Une actualisation encore en cours ne change rien : l'alerte d'un jeu de données dont l'actualisation a échoué reste ouverte pendant que sa prochaine actualisation tourne, et ne se résout qu'une fois qu'une actualisation aboutit.
+- Sur une capacité, la liste des éléments actualisables de Power BI ne donne que la dernière actualisation de chaque jeu de données : une actualisation qui a échoué et a été suivie d'une actualisation réussie dans la même heure n'est donc jamais vue, mais d'ici là les données sont de nouveau à jour.
+- Les jeux de données sur une capacité partagée ne donnent d'alerte que là où leurs actualisations peuvent être lues (ci-dessus), et un jeu de données dont les actualisations n'ont pas pu être lues garde son alerte telle quelle jusqu'à ce qu'elles puissent l'être.
+
 ## Pipelines
 
 Chaque job, projet dbt et synchronisation apparaît sous **Pipelines**, avec ses exécutions : quand chacune a commencé et s'est terminée, combien de temps elle a duré, quelle tentative c'était là où le planificateur l'indique (le numéro d'essai d'Airflow), et l'erreur d'une exécution en échec. Après cinq exécutions, chaque pipeline apprend de ses propres exécutions combien de temps dure habituellement une exécution et combien de temps s'écoule entre deux exécutions selon sa planification. La page d'un pipeline recommande trois moniteurs :
@@ -104,6 +116,8 @@ Chaque job, projet dbt et synchronisation apparaît sous **Pipelines**, avec ses
 - **Pipeline Run Failed** : une exécution a échoué ou a été interrompue.
 - **Pipeline Run Unusually Long** : une exécution a pris deux fois sa durée habituelle ou plus, vérifié toutes les cinq minutes pendant qu'elle tourne, si bien qu'une exécution bloquée est repérée avant qu'elle ne se termine.
 - **Pipeline Is Late** : aucune exécution n'a démarré depuis plus longtemps que sa planification ne le permet.
+
+La page d'un pipeline dessine son **Lignage**, le premier endroit où regarder quand une exécution échoue ou est en retard : à gauche les tables qu'il lit, à droite les tables qu'il écrit, le pipeline entre les deux, et chaque carte indique son état actuel. Choisissez plus d'étapes pour voir à partir de quoi ces tables sont construites et ce qui est construit à partir d'elles, et ouvrez n'importe quelle table pour voir son propre onglet **Lignage**.
 
 ## Un seul signalement par cause
 
@@ -114,6 +128,10 @@ Quand une table devient obsolète, chaque table construite à partir d'elle le d
 
 La carte **Données** de la cause liste son **Impact en aval** : chaque alerte qu'elle a causée. La carte d'une alerte de table montre aussi les services qui écrivent dans la table, avec leurs écritures en échec, ainsi que leurs déploiements et autres changements dans la journée précédant l'alerte.
 
+Sous la carte **Données**, la page d'une alerte dessine son **Lignage** : autour de sa table, tel que l'onglet **Lignage** de la table le dessine, ou autour de son pipeline. Le chemin qui remonte jusqu'à l'alerte qui l'a causée et qui descend jusqu'à chaque alerte qu'elle a causée est mis en évidence - la table ou le pipeline de la cause marqué **Cause**, ceux de chaque alerte causée marqués **Conséquence** - et le reste s'estompe, si bien que quiconque l'ouvre voit où, dans la chaîne, le problème a commencé. Quand la cause porte sur une base de données entière, ou se trouve plus haut que ne remonte le diagramme, la carte le dit en toutes lettres. **Explorer le lignage** ouvre l'onglet **Lignage** de la table, ou la page du pipeline.
+
+Une personne qui ne peut pas voir l'alerte qui l'a causée n'a ni la carte **Données** ni le lignage, et une alerte causée qu'elle ne peut pas voir n'est ni mise en évidence ni comptée.
+
 ## Avant qu'un changement ne soit fusionné
 
 Quand une pull request modifie une table surveillée, [Production Review](/docs/ai/ai-agent) indique sur la pull request ce qui en dépend : les services qui la lisent, les tables construites à partir d'elle, les tableaux de bord qui s'appuient sur elle, et ses produits de données. Une table dont une copie se trouve sur une base de données marquée Préproduction indique aussi en quoi la copie diffère : ses lignes, ses colonnes, et ce que les contrôles de la table y lisent, exécutés sur le champ. Sur une base de données que seule une sonde peut atteindre, les contrôles sont omis, et il le dit.
@@ -122,5 +140,5 @@ Quand une pull request modifie une table surveillée, [Production Review](/docs/
 
 :::cards
 - [Produits de données](/docs/data-observability/data-products): Des SLA de fraîcheur sur les tables qu'utilisent les gens.
-- [OneUptime AI et l'API](/docs/data-observability/ai-and-api): Des investigations qui partent de ceux qui écrivent dans une table et de ses exécutions.
+- [OneUptime AI et l'API](/docs/data-observability/ai-and-api): Des investigations qui partent de ceux qui écrivent dans une table et de ses exécutions. Dans Demander à l'IA et via des agents IA, on peut demander à partir de quoi une table est construite.
 :::

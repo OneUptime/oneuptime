@@ -26,6 +26,7 @@ import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import logger from "../Logger";
 import URL from "../../../Types/API/URL";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import { NotificationProviderConfig } from "../Telemetry/NotificationDeliveryMetrics";
 
 export interface WorkspaceThread {
   channel: WorkspaceChannel;
@@ -589,6 +590,13 @@ export default class WorkspaceBase {
   public static async sendMessageToChannelViaIncomingWebhook(_data: {
     url: URL;
     text: string;
+    /*
+     * For the platform's delivery metrics (WorkspaceDeliveryMetrics): whose
+     * webhook it is - a project's, unless said otherwise - and false for a
+     * post that is no notification (a workflow's step), not counted.
+     */
+    providerConfig?: NotificationProviderConfig | undefined;
+    isNotification?: boolean | undefined;
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
     throw new NotImplementedException();
   }

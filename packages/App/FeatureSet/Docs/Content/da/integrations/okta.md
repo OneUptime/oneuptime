@@ -116,7 +116,7 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **Udgivelsestidspunktet er markøren.** En System Log-begivenhed er selve aktiviteten, så `published` er både, hvornår den skete, og det, pollingen læser.
 - **Den første poll ser 24 timer tilbage**, så en ny forbindelse straks viser sine nylige begivenheder.
 - **Hver senere poll starter 15 minutter før den gemte markør.** Okta advarer om, at en anmodning med et sluttidspunkt kan udelade forsinkede begivenheder, hvilket Okta kalder sjældent. Overlappet læser dem ved den næste poll. En begivenhed, der er forsinket mere end 15 minutter, kan havne bag markøren: importér dens tidsinterval for at hente den.
-- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Sundhed** viser **Catching up**.
+- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Sundhed** viser **Indhenter**.
 - **Dubletter fjernes efter `uuid`** i projektet, så overlappet, et gentaget vindue og en import aldrig gemmer en begivenhed to gange.
 
 Et `next`-link, der peger andre steder hen end din **Okta organization URL**, følges aldrig, da tokenet sendes med hver anmodning.

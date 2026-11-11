@@ -33,8 +33,12 @@ jobs:
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/MobileApp
+      # A version, not @latest: a new expo-doctor release can break before it
+      # checks anything. 1.21.7 (published 2026-11-11) fails at start with
+      # "Cannot find module '@expo/env'"; 1.21.6 passes all 21 checks on this
+      # app. Move it to a newer release once that release passes here.
       - name: Run Expo Doctor
-        run: cd packages/MobileApp && npx expo-doctor@latest
+        run: cd packages/MobileApp && npx expo-doctor@1.21.6
 
   jest:
     runs-on: ubuntu-latest

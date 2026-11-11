@@ -110,6 +110,9 @@ import {
 } from "Common/Types/SecurityEvent/SecurityEventScope";
 import { HuntSearchState } from "./Hunts/HuntsModel";
 import { EVENT_PLURAL, EVENT_SINGULAR } from "./Hunts/HuntsCopy";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import HuntsMenu from "./Hunts/HuntsMenu";
 import useAddEventsToCase, {
   AddEventsToCaseActions,
@@ -354,6 +357,7 @@ function toFilterTuples(
 const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
   const [initialUrlState] = useState<InitialUrlState>((): InitialUrlState => {
@@ -1210,7 +1214,8 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
               item.message ||
               item.className ||
               item.eventUid?.toString() ||
-              "Security event"
+              translator.translateText("Security event") ||
+              ""
             );
           },
         }}
@@ -1335,14 +1340,22 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
               data-testid={SECURITY_EVENTS_VOLUME_TOTAL_TEST_ID}
             >
               {isVolumeLoading || !volume ? (
-                "Counting events..."
+                translator.translateText("Counting events...")
               ) : (
-                <>
-                  <span className="font-semibold tabular-nums text-gray-900">
-                    {volume.total.toLocaleString(getReaderNumberLocale())}
-                  </span>{" "}
-                  {volume.total === 1 ? "event" : "events"}
-                </>
+                <TranslatedSentence
+                  template={{
+                    one: "{{count}} event",
+                    other: "{{count}} events",
+                  }}
+                  count={volume.total}
+                  slots={{
+                    count: (
+                      <span className="font-semibold tabular-nums text-gray-900">
+                        {volume.total.toLocaleString(getReaderNumberLocale())}
+                      </span>
+                    ),
+                  }}
+                />
               )}
             </span>
           )

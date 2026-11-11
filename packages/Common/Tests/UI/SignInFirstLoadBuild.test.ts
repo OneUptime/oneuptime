@@ -17,11 +17,14 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * browser OpenTelemetry SDK with zone.js through the entry's Telemetry, and
  * through FormField the code editor with its syntax checks and grammars, the
  * Markdown editor with DOMPurify, the file picker with react-dropzone, and the
- * people picker with the kinds of record it searches and their models. Each
- * is now loaded where it is used - posthog-js once analytics starts, the SDK
- * where browser telemetry is configured, the rest by the first list, form
- * field, summary or code that needs it. zone.js is gone altogether
- * (BrowserTelemetrySdk.ts says why).
+ * people picker with the kinds of record it searches and their models; the
+ * i18n set-up's post-processor brought the rules that set code apart in an
+ * Arabic or Persian sentence. Each is now loaded where it is used -
+ * posthog-js once analytics starts, the SDK where browser telemetry is
+ * configured, the rules with an Arabic or Persian locale file, the rest by
+ * the first list, form field, summary or code that needs it. zone.js is gone
+ * altogether (BrowserTelemetrySdk.ts says why), and so are crypto-js's
+ * ciphers, which HashedString brought with the SHA-256 it hashes with.
  *
  * Built here as the frontends build (the shared esbuild config, for
  * production), with these modules as the entry, and read from esbuild's
@@ -42,6 +45,25 @@ const SHARED_MODULES: ReadonlyArray<string> = [
   "UI/Components/EditionLabel/EditionLabel",
   "UI/Utils/Analytics",
   "UI/Utils/Telemetry/Telemetry",
+];
+
+interface NamedExports {
+  module: string;
+  // What the pages import from it.
+  names: ReadonlyArray<string>;
+}
+
+// Shared modules the pages import by name: the sign-in pages' i18n set-up.
+const SHARED_NAMED_EXPORTS: ReadonlyArray<NamedExports> = [
+  {
+    module: "UI/Utils/CodeReadsAsWritten",
+    names: [
+      "codeReadsAsWrittenPostProcessor",
+      "getTranslationPostProcess",
+      "leaveIsolatesOutOfCopiedText",
+      "whenCodeCanBeSetApart",
+    ],
+  },
 ];
 
 // A module's own source, as the metafile names it.
@@ -173,6 +195,11 @@ const LEFT_OUT: ReadonlyArray<LeftOut> = [
     isLoadedWhenNeeded: true,
   },
   {
+    name: "the rules that set code apart in a sentence read from the right, which load with Arabic or Persian words",
+    path: "Types/CodeInSentence.ts",
+    isLoadedWhenNeeded: true,
+  },
+  {
     name: "the GlobalConfig database model, which the edition label no longer builds",
     path: "Models/DatabaseModels/GlobalConfig.ts",
     isLoadedWhenNeeded: false,
@@ -180,6 +207,16 @@ const LEFT_OUT: ReadonlyArray<LeftOut> = [
   {
     name: "zone.js, which the SDK does not use",
     path: "node_modules/zone.js/",
+    isLoadedWhenNeeded: false,
+  },
+  {
+    name: "crypto-js's index, every cipher and hash it has, where HashedString hashes with SHA-256 alone",
+    path: "node_modules/crypto-js/index.js",
+    isLoadedWhenNeeded: false,
+  },
+  {
+    name: "the ciphers crypto-js's index brought (AES, Triple DES, Blowfish, RC4, Rabbit)",
+    path: "node_modules/crypto-js/cipher-core.js",
     isLoadedWhenNeeded: false,
   },
 ];
@@ -204,11 +241,18 @@ const build: () => BuiltInputs = (): BuiltInputs => {
 
   fs.writeFileSync(
     entry,
-    SHARED_MODULES.map((module: string, index: number): string => {
-      return `export { default as Module${index} } from ${JSON.stringify(
-        path.join(COMMON_ROOT, module),
-      )};`;
-    }).join("\n"),
+    [
+      ...SHARED_MODULES.map((module: string, index: number): string => {
+        return `export { default as Module${index} } from ${JSON.stringify(
+          path.join(COMMON_ROOT, module),
+        )};`;
+      }),
+      ...SHARED_NAMED_EXPORTS.map((shared: NamedExports): string => {
+        return `export { ${shared.names.join(", ")} } from ${JSON.stringify(
+          path.join(COMMON_ROOT, shared.module),
+        )};`;
+      }),
+    ].join("\n"),
   );
 
   const script: string = `
@@ -310,7 +354,12 @@ afterAll(() => {
 
 describe("what the sign-in pages' shared modules put in the first load", () => {
   test("is built from those modules, every one of them in it", () => {
-    for (const module of SHARED_MODULES) {
+    for (const module of [
+      ...SHARED_MODULES,
+      ...SHARED_NAMED_EXPORTS.map((shared: NamedExports): string => {
+        return shared.module;
+      }),
+    ]) {
       expect({
         module,
         isInFirstLoad: built!.firstLoad.some((input: string): boolean => {

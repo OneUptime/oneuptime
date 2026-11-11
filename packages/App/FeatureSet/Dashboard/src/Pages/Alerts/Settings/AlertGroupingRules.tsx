@@ -50,6 +50,9 @@ import useGroupingRuleTableExtras, {
   GroupingRuleTableExtras,
 } from "../../../Components/GroupingRule/GroupingRuleTableExtras";
 import { translateGroupingRuleText } from "../../../Components/GroupingRule/GroupingRuleTranslate";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 const documentationMarkdown: string = `
 ### How Alert Grouping Works
@@ -287,14 +290,20 @@ const AlertGroupingRulesPage: FunctionComponent<
             title: "Name",
             type: FieldType.Text,
             wrapContent: true,
+            // A description under the name: each reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: AlertGroupingRule): ReactElement => {
               return (
                 <div>
-                  <p className="font-medium text-gray-900">{item.name}</p>
+                  <p className="font-medium text-gray-900">
+                    <IsolatedText text={item.name || ""} />
+                  </p>
                   {item.description ? (
-                    <p className="mt-0.5 line-clamp-2 text-sm text-gray-500">
-                      {item.description}
-                    </p>
+                    <IsolatedLine
+                      as="p"
+                      text={item.description}
+                      className="mt-0.5 line-clamp-2 text-sm text-gray-500"
+                    />
                   ) : (
                     <></>
                   )}

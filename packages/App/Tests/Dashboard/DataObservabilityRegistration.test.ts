@@ -283,6 +283,66 @@ describe("Data Observability registry wiring", () => {
     );
   });
 
+  test("alerts on failed Power BI refreshes - migration, five-minute check, route and page - are wired", () => {
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDataBiConnectionRefreshAlerts1809110200000 } from "./1809110200000-AddDataBiConnectionRefreshAlerts";',
+    );
+    expect(
+      migrations.indexOf("AddDataBiConnectionRefreshAlerts1809110200000,"),
+    ).toBeGreaterThan(
+      migrations.indexOf("AddDataDashboardUsageAndRefreshes1809100612000,"),
+    );
+
+    const migration: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809110200000-AddDataBiConnectionRefreshAlerts.ts",
+    );
+
+    expect(migration).toContain(
+      'ALTER TABLE "DataBiConnection" ADD "alertOnFailedRefreshes" boolean DEFAULT false',
+    );
+    expect(migration).toContain(
+      'ALTER TABLE "DataBiConnection" ADD "refreshMonitorId" uuid',
+    );
+    expect(migration).toContain(
+      'ALTER TABLE "DataBiConnection" ADD "failedRefreshes" jsonb',
+    );
+
+    const jobs: string = readSquashed(
+      "App/FeatureSet/Workers/Jobs/DataObservability/DataObservabilityJobs.ts",
+    );
+
+    expect(jobs).toContain('"DataObservability:CheckBiRefreshes"');
+    expect(jobs).toContain(
+      "await DataBiRefreshCheck.checkAll(OneUptimeDate.getCurrentDate());",
+    );
+
+    expect(DATA_OBSERVABILITY_API_ROUTES.biRefreshAlert("abc")).toBe(
+      "/data-observability/bi-connections/abc/refresh-alert",
+    );
+
+    const api: string = readSquashed(
+      "Common/Server/API/DataObservabilityAPI.ts",
+    );
+
+    expect(api).toContain(
+      'DATA_OBSERVABILITY_API_ROUTES.biRefreshAlert(":id")',
+    );
+    expect(api).toContain("await DataBiRefreshAlerts.sync({");
+
+    // Saving a BI tool - Add or Edit - keeps its monitor as saved.
+    expect(
+      readSquashed(
+        "App/FeatureSet/Dashboard/src/Pages/DataObservability/BiDashboards.tsx",
+      ),
+    ).toContain(
+      "await keepRefreshAlert(connection); await readTool(connection);",
+    );
+  });
+
   test("dbt artifacts - migration, ingest route and CLI command - are wired", () => {
     const migrations: string = readSquashed(
       "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
@@ -348,32 +408,27 @@ describe("Data Observability registry wiring", () => {
       ),
     ).toContain('CREATE TABLE "DataAlert"');
 
-    /*
-     * The cause is looked for before the alert is created, and recorded
-     * after. The alert is created inside
-     * OnCallPageTiming.runAsMonitorTriggered, so its pages start when the
-     * data that tripped the monitor came in.
-     */
+    // The cause is looked for before the alert is created, and recorded after.
     const monitorAlert: string = readSquashed(
       "Common/Server/Utils/Monitor/MonitorAlert.ts",
     );
-    const createsAlert: number = monitorAlert.indexOf(
-      "const createdAlert: Alert = await OnCallPageTiming.runAsMonitorTriggered(",
-    );
 
-    expect(createsAlert).toBeGreaterThan(-1);
+    // The alert is created inside its page timing (OnCallPageTiming): wherever it is, the cause is read around it.
+    const created: number = monitorAlert.indexOf("const createdAlert: Alert =");
+
+    expect(created).toBeGreaterThan(-1);
     expect(
       monitorAlert.indexOf("return AlertService.create({"),
-    ).toBeGreaterThan(createsAlert);
+    ).toBeGreaterThan(created);
     expect(
       monitorAlert.indexOf("await DataAlertCause.findCause({"),
     ).toBeGreaterThan(-1);
     expect(
       monitorAlert.indexOf("await DataAlertCause.findCause({"),
-    ).toBeLessThan(createsAlert);
+    ).toBeLessThan(created);
     expect(
       monitorAlert.indexOf("await DataAlertCause.record({"),
-    ).toBeGreaterThan(createsAlert);
+    ).toBeGreaterThan(created);
     expect(
       readSquashed("App/FeatureSet/Dashboard/src/Pages/Alerts/View/Index.tsx"),
     ).toContain("<DataAlertLineage alertId={modelId} />");

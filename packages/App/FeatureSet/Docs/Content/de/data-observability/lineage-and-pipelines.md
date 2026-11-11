@@ -97,6 +97,18 @@ Für jeden Power-BI-Bericht und jedes Power-BI-Dashboard zeigt **BI-Dashboards**
 
 Aufrufe und Aktualisierungen auf Kapazitäten brauchen nichts über den Admin-API-Zugriff oben hinaus: den Service Principal in einer Sicherheitsgruppe, die **Service principals can access read-only admin APIs** erlaubt, ohne Power-BI-Berechtigungen der App, die eine Administratorzustimmung erfordern. Wenn Aufrufe oder Aktualisierungen nicht gelesen werden können, werden die Dashboards trotzdem gelesen und behalten, das BI-Tool sagt, was übersprungen wurde und warum, und das nächste Lesen versucht es erneut.
 
+### Warnungen bei fehlgeschlagenen Aktualisierungen
+
+Aktivieren Sie **Alert on Failed Refreshes**, wenn Sie ein Power-BI-Tool hinzufügen oder bearbeiten (bei einem neuen ist es bereits aktiviert), und OneUptime führt für das Tool einen Monitor unter **Monitore**, benannt nach dem Tool. Der Monitor öffnet eine Warnung für jedes Dataset, dessen letzte Aktualisierung fehlgeschlagen ist oder abgebrochen wurde, mit dem Dataset und seinem Arbeitsbereich im Titel der Warnung, und löst sie auf, sobald eine spätere Aktualisierung abgeschlossen ist. Ein später veröffentlichtes Dataset wird überwacht, sobald es gelesen wird. Wenn Sie den Schalter ausschalten oder das Tool entfernen, wird der Monitor entfernt; bis dahin ist er ein gewöhnlicher Monitor, mit seinen Besitzern, Bereitschaftsrichtlinien und Wartungsfenstern.
+
+Fehlgeschlagene Aktualisierungen verwenden nicht die Pipeline-Monitore. Ein Dataset, dessen Aktualisierung fehlgeschlagen ist, zeigt weiterhin die Daten seiner letzten abgeschlossenen Aktualisierung, bis eine spätere abgeschlossen ist. Daher bleibt seine Warnung bis dahin offen, während die Warnung eines fehlgeschlagenen Laufs eine Stunde nach dem Lauf erlischt. Außerdem werden Aktualisierungen einmal pro Stunde gelesen: Eine Aktualisierung, die bis zu einer Stunde nach ihrem Ende gelesen wird, läge oft außerhalb der Stunde, die **Pipeline Run Failed** betrachtet, ein halbstündlich aktualisiertes Dataset würde immer wieder zu **Pipeline Is Late**, und eine beendete, aber noch nicht gelesene Aktualisierung sähe nach **Pipeline Run Unusually Long** aus.
+
+- Jedes stündliche Lesen behält die Datasets, deren letzte beendete Aktualisierung fehlgeschlagen ist oder abgebrochen wurde. Alle fünf Minuten schreibt jedes davon `oneuptime.data.bi.refresh_failed`, 1, solange es fehlschlägt, und 0 in der Stunde, nachdem eine spätere Aktualisierung abgeschlossen ist, und der Monitor liest diesen Wert, sodass ein Fehlschlag eine einzige Warnung öffnet, wie viele stündliche Lesevorgänge ihn auch sehen.
+- Ein Fehlschlag wird beim nächsten stündlichen Lesen erkannt: Seine Warnung öffnet sich bis zu einer Stunde, nachdem die Aktualisierung fehlgeschlagen ist, und löst sich bis zu einer Stunde, nachdem eine spätere Aktualisierung abgeschlossen wurde.
+- Eine noch laufende Aktualisierung ändert nichts: Die Warnung eines Datasets, dessen Aktualisierung fehlgeschlagen ist, bleibt offen, während seine nächste Aktualisierung läuft, und löst sich erst, wenn eine Aktualisierung abgeschlossen ist.
+- Auf einer Kapazität liefert die Liste der aktualisierbaren Elemente von Power BI nur die letzte Aktualisierung jedes Datasets. Eine Aktualisierung, die fehlschlug und auf die innerhalb derselben Stunde eine abgeschlossene folgte, wird daher nie gesehen: Bis dahin sind die Daten wieder aktuell.
+- Datasets auf gemeinsam genutzter Kapazität warnen nur dort, wo ihre Aktualisierungen gelesen werden können (siehe oben), und ein Dataset, dessen Aktualisierungen nicht gelesen werden konnten, behält seine Warnung, wie sie war, bis sie es können.
+
 ## Pipelines
 
 Jeder Job, jedes dbt-Projekt und jeder Sync erscheint unter **Pipelines**, mit seinen Läufen: wann jeder begann und endete, wie lange er dauerte, der wievielte Versuch er war, wo der Scheduler das sagt (die Try-Nummer von Airflow), und der Fehler eines fehlgeschlagenen Laufs. Jede Pipeline lernt nach fünf Läufen aus ihren eigenen Läufen, wie lange ein Lauf üblicherweise dauert und wie viel Zeit nach ihrem Zeitplan zwischen zwei Läufen vergeht. Die Seite einer Pipeline empfiehlt drei Monitore:
@@ -104,6 +116,8 @@ Jeder Job, jedes dbt-Projekt und jeder Sync erscheint unter **Pipelines**, mit s
 - **Pipeline Run Failed**: Ein Lauf ist fehlgeschlagen oder wurde abgebrochen.
 - **Pipeline Run Unusually Long**: Ein Lauf dauert doppelt so lange wie üblich oder länger, geprüft alle fünf Minuten, während er läuft, sodass ein hängender Lauf erkannt wird, bevor er endet.
 - **Pipeline Is Late**: Seit längerer Zeit, als ihr Zeitplan erlaubt, hat kein Lauf begonnen.
+
+Die Seite einer Pipeline zeichnet ihre **Datenherkunft**, die erste Anlaufstelle, wenn ein Lauf fehlschlägt oder sich verspätet: links die Tabellen, die sie liest, rechts die Tabellen, die sie schreibt, dazwischen die Pipeline, und wie es jetzt um jede steht. Wählen Sie mehr Schritte, um zu sehen, woraus diese Tabellen erstellt werden und was aus ihnen erstellt wird, und öffnen Sie eine beliebige Tabelle, um ihren eigenen Tab **Datenherkunft** zu sehen.
 
 ## Eine Meldung pro Ursache
 
@@ -114,6 +128,10 @@ Veraltet eine Tabelle, veralten auch alle Tabellen, die aus ihr erstellt werden.
 
 Die Karte **Daten** der Ursache listet ihren **Auswirkung auf nachgelagerte Daten** auf: jede Warnung, die sie verursacht hat. Die Karte einer Tabellenwarnung zeigt außerdem die Dienste, die in die Tabelle schreiben, mit ihren fehlgeschlagenen Schreibvorgängen sowie ihren Deployments und anderen Änderungen am Tag vor der Warnung.
 
+Unter der Karte **Daten** zeichnet die Seite einer Warnung ihre **Datenherkunft**: rund um ihre Tabelle, wie der Tab **Datenherkunft** der Tabelle sie zeichnet, oder rund um ihre Pipeline. Der Weg hinauf zu der Warnung, die sie verursacht hat, und hinunter zu jeder Warnung, die sie verursacht hat, ist hervorgehoben - die Tabelle oder Pipeline der Ursache ist als **Ursache** markiert, die jeder verursachten Warnung als **Folge** -, und der Rest tritt zurück, sodass jeder, der sie öffnet, sieht, wo in der Kette das Problem begann. Betrifft die Ursache eine ganze Datenbank oder liegt sie weiter oben, als das Diagramm reicht, sagt die Karte das in Worten. **Datenherkunft erkunden** öffnet den Tab **Datenherkunft** der Tabelle oder die Seite der Pipeline.
+
+Wer die Warnung, die sie verursacht hat, nicht sehen darf, bekommt weder die Karte **Daten** noch die Datenherkunft, und eine von ihr verursachte Warnung, die diese Person nicht sehen darf, wird weder hervorgehoben noch mitgezählt.
+
 ## Bevor eine Änderung gemergt wird
 
 Ändert ein Pull Request eine überwachte Tabelle, sagt die [Produktionsprüfung](/docs/ai/ai-agent) im Pull Request, was davon abhängt: die Dienste, die sie lesen, die Tabellen, die aus ihr erstellt werden, die Dashboards darauf und ihre Datenprodukte. Eine Tabelle mit einer Kopie in einer Datenbank, die als Staging markiert ist, sagt außerdem, wie sich die Kopie unterscheidet: ihre Zeilen, ihre Spalten und was die Prüfungen der Tabelle dort lesen, an Ort und Stelle ausgeführt. Bei einer Datenbank, die nur eine Sonde erreicht, werden die Prüfungen weggelassen, und es sagt das.
@@ -122,5 +140,5 @@ Die Karte **Daten** der Ursache listet ihren **Auswirkung auf nachgelagerte Date
 
 :::cards
 - [Datenprodukte](/docs/data-observability/data-products): Aktualitäts-SLAs für die Tabellen, die Menschen nutzen.
-- [OneUptime AI und die API](/docs/data-observability/ai-and-api): Untersuchungen, die bei dem beginnen, was in eine Tabelle schreibt, und bei ihren Läufen.
+- [OneUptime AI und die API](/docs/data-observability/ai-and-api): Untersuchungen, die bei dem beginnen, was in eine Tabelle schreibt, und bei ihren Läufen. In KI fragen und über KI-Agenten lässt sich fragen, woraus eine Tabelle erstellt wird.
 :::

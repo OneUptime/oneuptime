@@ -23,7 +23,9 @@ import path from "path";
  *   literal command and path (ceph health detail, /health) and the clouds'
  *   own services by name, which a health event's title starts with (AWS
  *   Health, Azure Service Health, Azure Resource Health, Google Cloud
- *   Service Health: #6060), are other words.
+ *   Service Health: #6060), are other words. So is a placeholder named
+ *   health ("... clear everything. {{health}}."): a slot the code fills
+ *   with a translated title, not a word the string says (2026-11-10).
  * - The other words are gone: no Dashboard or Admin Dashboard string, docs
  *   page, docs menu entry or API reference string of the language uses them.
  */
@@ -65,6 +67,14 @@ const NAMES_HEALTH: RegExp = /\bhealth\b/i;
 const NOT_THE_WORD: RegExp =
   /health (insurance|records?|information|plan|data|identifiers|details)|National Health Service|^Health information$|^Health, Government|health detail|\/health|^(AWS|Azure Service|Azure Resource|Google Cloud Service) Health:/i;
 
+// A template's placeholder: "{{health}}" is filled by the code, not said.
+const PLACEHOLDER: RegExp = /\{\{[^{}]*\}\}/g;
+
+// Whether an English string says health, outside its placeholders.
+function namesHealth(english: string): boolean {
+  return NAMES_HEALTH.test(english.replace(PLACEHOLDER, ""));
+}
+
 function readStrings(app: string, language: string): Strings {
   return JSON.parse(
     fs.readFileSync(
@@ -105,7 +115,7 @@ function stringsWithoutTheWord(
 
     return (
       typeof english[key] === "string" &&
-      NAMES_HEALTH.test(key) &&
+      namesHealth(key) &&
       !NOT_THE_WORD.test(key) &&
       typeof value === "string" &&
       value !== english[key] &&
@@ -158,7 +168,7 @@ describe("one word for health in each language", () => {
       const naming: Array<string> = Object.keys(english).filter(
         (key: string): boolean => {
           return (
-            NAMES_HEALTH.test(key) &&
+            namesHealth(key) &&
             !NOT_THE_WORD.test(key) &&
             typeof strings[key] === "string" &&
             strings[key] !== english[key]
@@ -316,5 +326,35 @@ describe("one word for health in each language", () => {
     expect(NOT_THE_WORD.test("Azure Resource Health: {{event}}")).toBe(true);
     expect(NOT_THE_WORD.test("Service health")).toBe(false);
     expect(NOT_THE_WORD.test("Service Health")).toBe(false);
+  });
+
+  test("a placeholder named health is a slot, not the word; the words around it still count", () => {
+    const placeholder: string =
+      "Remove a filter, widen the range, or clear everything. {{health}}.";
+
+    expect(namesHealth(placeholder)).toBe(false);
+    expect(namesHealth("It reads {{health}}.")).toBe(false);
+    expect(namesHealth("{{healthy}} of {{total}} healthy")).toBe(false);
+    expect(namesHealth("Broker health")).toBe(true);
+    expect(namesHealth("{{name}} health")).toBe(true);
+    expect(namesHealth("Health of {{health}}")).toBe(true);
+
+    // The real string is in the Dashboard, translated, without the word.
+    const english: Strings = readStrings("Dashboard", "en");
+    const japanese: Strings = readStrings("Dashboard", "ja");
+
+    expect(english[placeholder]).toBe(placeholder);
+    expect(japanese[placeholder]).toContain("{{health}}");
+    expect(stringsWithoutTheWord(english, japanese, "ヘルス")).not.toContain(
+      placeholder,
+    );
+    // Had the English said the word, the rule would hold the translation to it.
+    expect(
+      stringsWithoutTheWord(
+        { "Recorder health: {{health}}.": "Recorder health: {{health}}." },
+        { "Recorder health: {{health}}.": "レコーダー: {{health}}。" },
+        "ヘルス",
+      ),
+    ).toEqual(["Recorder health: {{health}}."]);
   });
 });

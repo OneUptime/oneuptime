@@ -6,6 +6,12 @@ import LogsSavedViewsDropdown, {
 } from "../../../UI/Components/LogsViewer/components/SavedViewsDropdown";
 import TelemetrySavedViewsDropdown from "../../../UI/Components/TelemetryViewer/components/SavedViewsDropdown";
 import { LogsSavedViewOption } from "../../../UI/Components/LogsViewer/types";
+import {
+  SAVED_VIEW_ROW_ACTIONS_CLASS_NAME,
+  SAVED_VIEW_ROW_ACTION_CLASS_NAME,
+  SAVED_VIEW_ROW_NAME_CLASS_NAME,
+  getSavedViewRowClassName,
+} from "../../../UI/Components/SavedViews/SavedViewsList";
 import "@testing-library/jest-dom";
 import {
   RenderResult,
@@ -13,6 +19,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import React, { FunctionComponent } from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -686,3 +693,106 @@ describe.each(SHRINKABLE_SURFACES)(
     });
   },
 );
+
+/*
+ * A row's Update, Edit and Delete, drawn alike by both dropdowns: shown
+ * while the row is hovered or focused where the pointer can hover, a line
+ * under the name on a touch screen (SavedViewsList's row classes). Each
+ * copy drew them see-through beside the name, which kept their width from
+ * the name and showed nothing to a keyboard or a touch screen.
+ */
+describe.each([
+  { label: "logs dropdown", Component: LogsSavedViewsDropdown },
+  { label: "telemetry dropdown", Component: TelemetrySavedViewsDropdown },
+])(
+  "$label — a row's actions",
+  (surface: { Component: FunctionComponent<SavedViewsDropdownProps> }) => {
+    afterEach(() => {
+      cleanup();
+    });
+
+    test("every row and its actions wear the shared row classes", () => {
+      const Component: FunctionComponent<SavedViewsDropdownProps> =
+        surface.Component;
+
+      render(
+        <Component
+          savedViews={makeViews(2)}
+          selectedSavedViewId="view-2"
+          onSelect={jest.fn()}
+          onEdit={jest.fn()}
+          onDelete={jest.fn()}
+          onUpdateCurrent={jest.fn()}
+        />,
+      );
+      fireEvent.click(screen.getAllByRole("button")[0]!);
+
+      for (const [name, isSelected] of [
+        ["View 1", false],
+        ["View 2", true],
+      ] as Array<[string, boolean]>) {
+        const nameButton: HTMLElement = screen.getByRole("button", {
+          name: name,
+        });
+        const row: HTMLElement = nameButton.parentElement as HTMLElement;
+        const actions: HTMLElement = row.lastElementChild as HTMLElement;
+
+        expect(row.className).toBe(getSavedViewRowClassName(isSelected));
+        expect(nameButton.className).toBe(SAVED_VIEW_ROW_NAME_CLASS_NAME);
+        expect(actions.className).toBe(SAVED_VIEW_ROW_ACTIONS_CLASS_NAME);
+        expect(
+          within(actions)
+            .getAllByRole("button")
+            .map((button: HTMLElement): string => {
+              return button.textContent || "";
+            }),
+        ).toEqual(
+          isSelected ? ["Update", "Edit", "Delete"] : ["Edit", "Delete"],
+        );
+
+        for (const action of within(actions).getAllByRole("button")) {
+          expect(action.className).toContain(SAVED_VIEW_ROW_ACTION_CLASS_NAME);
+        }
+      }
+    });
+  },
+);
+
+describe("the row classes", () => {
+  test("where the pointer can hover: out of the layout until the row is hovered or focused", () => {
+    expect(SAVED_VIEW_ROW_ACTIONS_CLASS_NAME).not.toContain("opacity-0");
+    expect(SAVED_VIEW_ROW_ACTIONS_CLASS_NAME).toContain(
+      "[@media(hover:hover)]:group-[:not(:hover):not(:focus-within)]:hidden",
+    );
+    // In the row's line, on no colour of its own: none laid over the name.
+    expect(SAVED_VIEW_ROW_ACTIONS_CLASS_NAME).not.toMatch(/\babsolute\b|\bbg-/);
+    // A row holding the keyboard's focus is lit as a hovered one is.
+    expect(getSavedViewRowClassName(false)).toContain(
+      "hover:bg-gray-50 focus-within:bg-gray-50",
+    );
+    expect(getSavedViewRowClassName(true)).toContain("bg-indigo-50");
+    /*
+     * As tall as the name's line, so showing them does not grow the row and
+     * move the rows under it: 11px text's own line is 16.5px.
+     */
+    expect(SAVED_VIEW_ROW_ACTION_CLASS_NAME).toContain(
+      "py-0.5 text-[11px] leading-4",
+    );
+  });
+
+  test("on a touch screen: a line of their own under the name, in view", () => {
+    expect(getSavedViewRowClassName(false)).toContain(
+      "[@media(hover:none)]:flex-wrap",
+    );
+    expect(SAVED_VIEW_ROW_NAME_CLASS_NAME).toContain(
+      "[@media(hover:none)]:basis-full",
+    );
+    // Starting where the name does, past the checkmark's column.
+    expect(SAVED_VIEW_ROW_ACTIONS_CLASS_NAME).toContain(
+      "[@media(hover:none)]:basis-full [@media(hover:none)]:pl-6",
+    );
+    expect(SAVED_VIEW_ROW_ACTION_CLASS_NAME).toContain(
+      "[@media(hover:none)]:py-1",
+    );
+  });
+});

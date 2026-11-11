@@ -33,6 +33,8 @@ import TextArea from "Common/UI/Components/TextArea/TextArea";
 import API from "Common/UI/Utils/API/API";
 import downloadFile from "Common/UI/Utils/DownloadFile";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatList, Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -70,6 +72,7 @@ export interface ComponentProps {
 const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [csvText, setCsvText] = useState<string>("");
   const [parseResult, setParseResult] =
     useState<StatusPageGroupCsvParseResult | null>(null);
@@ -296,7 +299,10 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
    */
   const submitButtonText: string =
     rows.length > 0
-      ? `Import ${rows.length} Group${rows.length === 1 ? "" : "s"}`
+      ? translator.translatePlural(
+          { one: "Import {{count}} Group", other: "Import {{count}} Groups" },
+          rows.length,
+        )
       : "Import";
 
   type DescribeOptionsFunction = (row: ParsedStatusPageGroupRow) => string;
@@ -312,20 +318,30 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
     const parts: Array<string> = [];
 
     if (row.isExpandedByDefault !== undefined) {
-      parts.push(row.isExpandedByDefault ? "Expanded" : "Collapsed");
+      parts.push(
+        (row.isExpandedByDefault
+          ? translator.translateText("Expanded")
+          : translator.translateText("Collapsed")) as string,
+      );
     }
     if (row.showCurrentStatus !== undefined) {
-      parts.push(row.showCurrentStatus ? "Status shown" : "Status hidden");
+      parts.push(
+        (row.showCurrentStatus
+          ? translator.translateText("Status shown")
+          : translator.translateText("Status hidden")) as string,
+      );
     }
     if (row.showUptimePercent !== undefined) {
       parts.push(
         row.showUptimePercent
-          ? `Uptime % (${row.uptimePercentPrecision})`
-          : "No uptime %",
+          ? translator.translateTemplate("Uptime % ({{precision}})", {
+              precision: String(row.uptimePercentPrecision),
+            })
+          : (translator.translateText("No uptime %") as string),
       );
     }
 
-    return parts.join(", ");
+    return formatList(parts, translator);
   };
 
   return (
@@ -356,13 +372,17 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
     >
       <div className="space-y-4">
         <p className="text-sm text-gray-500">
-          Columns: {STATUS_PAGE_GROUP_CSV_COLUMNS.join(", ")}. Only name is
-          required — leave any other column blank to keep the default. Rows
-          whose parentName is empty or already exists import first, then their
-          children, so parents and children can live in the same file. Rows with
-          an unresolvable parent are skipped and reported. The axis columns
-          apply only when viewMode is {StatusPageGroupViewMode.Grid}; wrap their
-          comma-separated lists in quotes.
+          {/*
+           * The column names and the view mode are what the file holds,
+           * written as it holds them in every language.
+           */}
+          {translator.translateTemplate(
+            "Columns: {{columns}}. Only name is required — leave any other column blank to keep the default. Rows whose parentName is empty or already exists import first, then their children, so parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported. The axis columns apply only when viewMode is {{grid}}; wrap their comma-separated lists in quotes.",
+            {
+              columns: STATUS_PAGE_GROUP_CSV_COLUMNS.join(", "),
+              grid: StatusPageGroupViewMode.Grid,
+            },
+          )}
         </p>
 
         <TextArea
@@ -443,9 +463,9 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
         {parseErrors.length > 0 && (
           <div className="rounded-md border border-red-200 bg-red-50 p-3">
             <p className="mb-1 text-sm font-medium text-red-800">
-              Fix these problems before importing:
+              {translator.translateText("Fix these problems before importing:")}
             </p>
-            <ul className="list-disc space-y-0.5 pl-5">
+            <ul className="list-disc space-y-0.5 ps-5">
               {parseErrors.map(
                 (
                   error: StatusPageGroupCsvError,
@@ -453,8 +473,17 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
                 ): ReactElement => {
                   return (
                     <li key={index} className="text-sm text-red-700">
-                      {error.line > 0 ? `Line ${error.line}: ` : ""}
-                      {error.message}
+                      {error.line > 0
+                        ? translator.translateTemplate(
+                            "Line {{line}}: {{message}}",
+                            {
+                              line: translator.formatNumber(error.line),
+                              message: translator.translateText(
+                                error.message,
+                              ) as string,
+                            },
+                          )
+                        : translator.translateText(error.message)}
                     </li>
                   );
                 },
@@ -469,18 +498,35 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
           rowResults.length === 0 && (
             <div className="overflow-x-auto">
               <p className="mb-2 text-sm text-gray-600">
-                {rows.length} group{rows.length === 1 ? "" : "s"} ready to
-                import.
+                {translator.translatePlural(
+                  {
+                    one: "{{count}} group ready to import.",
+                    other: "{{count}} groups ready to import.",
+                  },
+                  rows.length,
+                )}
               </p>
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead>
-                  <tr className="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                    <th className="px-3 py-2">Line</th>
-                    <th className="px-3 py-2">Name</th>
-                    <th className="px-3 py-2">Parent</th>
-                    <th className="px-3 py-2">Description</th>
-                    <th className="px-3 py-2">View Mode</th>
-                    <th className="px-3 py-2">Options</th>
+                  <tr className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                    <th className="px-3 py-2 text-start">
+                      {translator.translateText("Line")}
+                    </th>
+                    <th className="px-3 py-2 text-start">
+                      {translator.translateText("Name")}
+                    </th>
+                    <th className="px-3 py-2 text-start">
+                      {translator.translateText("Parent")}
+                    </th>
+                    <th className="px-3 py-2 text-start">
+                      {translator.translateText("Description")}
+                    </th>
+                    <th className="px-3 py-2 text-start">
+                      {translator.translateText("View Mode")}
+                    </th>
+                    <th className="px-3 py-2 text-start">
+                      {translator.translateText("Options")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -492,7 +538,8 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
                           {row.name}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {row.parentName || "Top level"}
+                          {row.parentName ||
+                            translator.translateText("Top level")}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
                           {row.description || "—"}
@@ -514,15 +561,23 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
         {rowResults.length > 0 && (
           <div className="overflow-x-auto">
             <p className="mb-2 text-sm font-medium text-gray-700">
-              Import results
+              {translator.translateText("Import results")}
             </p>
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead>
-                <tr className="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                  <th className="px-3 py-2">Line</th>
-                  <th className="px-3 py-2">Name</th>
-                  <th className="px-3 py-2">Result</th>
-                  <th className="px-3 py-2">Details</th>
+                <tr className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  <th className="px-3 py-2 text-start">
+                    {translator.translateText("Line")}
+                  </th>
+                  <th className="px-3 py-2 text-start">
+                    {translator.translateText("Name")}
+                  </th>
+                  <th className="px-3 py-2 text-start">
+                    {translator.translateText("Result")}
+                  </th>
+                  <th className="px-3 py-2 text-start">
+                    {translator.translateText("Details")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -542,22 +597,22 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
                         <td className="px-3 py-2">
                           {result.status === "created" && (
                             <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                              Created
+                              {translator.translateText("Created")}
                             </span>
                           )}
                           {result.status === "failed" && (
                             <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
-                              Failed
+                              {translator.translateText("Failed")}
                             </span>
                           )}
                           {result.status === "skipped" && (
                             <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-                              Skipped
+                              {translator.translateText("Skipped")}
                             </span>
                           )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {result.message || "—"}
+                          {translator.translateText(result.message) || "—"}
                         </td>
                       </tr>
                     );

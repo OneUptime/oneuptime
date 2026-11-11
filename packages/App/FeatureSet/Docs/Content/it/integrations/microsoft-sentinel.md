@@ -114,7 +114,7 @@ GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/provide
 - **L'ora di creazione è il cursore.** Una regola di analisi pianificata che gira ogni ora apre il suo incidente molto dopo l'attività che ha individuato, e il `firstActivityTimeUtc` dell'incidente può essere precedente di ore o giorni. Un cursore sull'ora di attività salterebbe ognuno di questi incidenti. Le ore di attività restano in `attributes`, e i campioni della diagnostica le mostrano entrambe.
 - **La prima interrogazione guarda indietro di 24 ore**, così una nuova connessione mostra subito i suoi incidenti recenti.
 - **Ogni interrogazione successiva parte 1 minuto prima del cursore salvato**, così un incidente creato al confine tra due finestre non viene mai saltato.
-- **Un'interrogazione legge al massimo 24 ore oltre il cursore.** Una connessione il cui cursore è rimasto indietro recupera in una serie di finestre di 24 ore, e la sua **Integrità** indica **Catching up**.
+- **Un'interrogazione legge al massimo 24 ore oltre il cursore.** Una connessione il cui cursore è rimasto indietro recupera in una serie di finestre di 24 ore, e la sua **Integrità** indica **Recupero in corso**.
 - **I duplicati vengono scartati in base al GUID dell'incidente** (`name`) all'interno del progetto, così la sovrapposizione, una finestra ripetuta e un'importazione non salvano mai un incidente due volte.
 
 ### Quando una finestra contiene più di quanto un'interrogazione possa leggere

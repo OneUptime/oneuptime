@@ -514,7 +514,11 @@ describe("pasted and uploaded tables", () => {
     const random: SeededRandom = seededRandom(1216);
     const alphabet: string = 'ab,c";d e-1\t';
 
-    // One character of the alphabet; its tab, which no cell holds, adds nothing.
+    /*
+     * One character of the alphabet, drawn: a drawn tab writes nothing, as
+     * a tab is a separator a cell never holds. (Compared, not replaced:
+     * TestCodeScanningGuard refuses a first-only replace.)
+     */
     const draw: () => string = (): string => {
       const character: string = alphabet[random(alphabet.length)]!;
 

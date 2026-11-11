@@ -60,6 +60,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 
 export const ERROR_BUDGET_POLICY_TABLE_ID: string =
   "slo-error-budget-policy-table";
@@ -314,6 +316,8 @@ const SloErrorBudgetPolicy: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Element,
+            // A badge: its words read their own way (Pill), its dot the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (
               item: ServiceLevelObjectiveErrorBudgetPolicyTier,
             ): ReactElement => {
@@ -323,7 +327,7 @@ const SloErrorBudgetPolicy: FunctionComponent<
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium text-gray-900">
-                      {item.name}
+                      <IsolatedText text={item.name || ""} />
                     </span>
                     {isCurrent ? (
                       <span data-testid={CURRENT_POLICY_TIER_TEST_ID}>

@@ -97,6 +97,18 @@ Per ogni report e dashboard di Power BI, **Dashboard BI** mostra per primi quant
 
 Le visualizzazioni, e gli aggiornamenti sulle capacità, non richiedono altro che l'accesso alle API di amministrazione indicato sopra: il service principal in un gruppo di sicurezza consentito da **Service principals can access read-only admin APIs**, senza autorizzazioni Power BI sull'app che richiedano il consenso di un amministratore. Quando le visualizzazioni o gli aggiornamenti non possono essere letti, le dashboard vengono comunque lette e mantenute, lo strumento BI dice cosa è stato saltato e perché, e la lettura successiva riprova.
 
+### Avvisi sugli aggiornamenti non riusciti
+
+Attiva **Alert on Failed Refreshes** quando aggiungi o modifichi uno strumento Power BI (uno nuovo parte con l'opzione attiva) e OneUptime mantiene per lo strumento un monitor in **Monitor**, con il suo nome. Il monitor apre un avviso per ogni set di dati il cui ultimo aggiornamento non è riuscito o è stato annullato, con il set di dati e la sua area di lavoro nel titolo dell'avviso, e lo risolve non appena un aggiornamento successivo viene completato. Un set di dati pubblicato più tardi viene sorvegliato non appena viene letto. Disattivando l'interruttore, o rimuovendo lo strumento, il monitor viene rimosso; fino ad allora è un monitor come gli altri, con i suoi proprietari, le sue policy di reperibilità e le sue finestre di manutenzione.
+
+Gli aggiornamenti non riusciti non usano i monitor delle pipeline. Un set di dati il cui aggiornamento non è riuscito continua a mostrare i dati del suo ultimo aggiornamento completato finché non se ne completa uno successivo, quindi il suo avviso resta aperto fino ad allora, mentre l'avviso di un'esecuzione non riuscita si chiude un'ora dopo l'esecuzione. E gli aggiornamenti vengono letti una volta all'ora: un aggiornamento letto fino a un'ora dopo la sua fine cadrebbe spesso fuori dall'ora che guarda **Pipeline Run Failed**, un set di dati aggiornato ogni mezz'ora diventerebbe continuamente **Pipeline Is Late**, e un aggiornamento finito ma non ancora letto sembrerebbe **Pipeline Run Unusually Long**.
+
+- Ogni lettura oraria conserva i set di dati il cui ultimo aggiornamento terminato non è riuscito o è stato annullato. Ogni cinque minuti ciascuno scrive `oneuptime.data.bi.refresh_failed`, 1 finché fallisce e 0 per l'ora successiva al completamento di un aggiornamento successivo, e il monitor lo legge, così un errore apre un solo avviso, per quante letture orarie lo vedano.
+- Un errore viene visto alla lettura oraria successiva: il suo avviso si apre fino a un'ora dopo che l'aggiornamento non è riuscito, e si risolve fino a un'ora dopo il completamento di un aggiornamento successivo.
+- Un aggiornamento ancora in corso non cambia nulla: l'avviso di un set di dati il cui aggiornamento non è riuscito resta aperto mentre è in corso il suo aggiornamento successivo, e si risolve solo quando un aggiornamento viene completato.
+- Su una capacità, l'elenco degli elementi aggiornabili di Power BI dà solo l'ultimo aggiornamento di ogni set di dati, quindi un aggiornamento non riuscito seguito da uno completato nella stessa ora non viene mai visto: a quel punto i dati sono di nuovo aggiornati.
+- I set di dati su capacità condivisa generano avvisi solo dove i loro aggiornamenti possono essere letti (sopra), e un set di dati i cui aggiornamenti non è stato possibile leggere mantiene il suo avviso com'era finché non si possono leggere.
+
 ## Pipeline
 
 Ogni job, progetto dbt e sincronizzazione compare in **Pipeline**, con le sue esecuzioni: quando ciascuna è iniziata e finita, quanto è durata, a quale tentativo corrispondeva dove lo scheduler lo indica (il numero di tentativo di Airflow), e l'errore di un'esecuzione non riuscita. Dopo cinque esecuzioni, ogni pipeline impara dalle proprie esecuzioni quanto dura di solito un'esecuzione e quanto tempo passa tra un'esecuzione e l'altra secondo la sua pianificazione. La pagina di una pipeline consiglia tre monitor:
@@ -104,6 +116,8 @@ Ogni job, progetto dbt e sincronizzazione compare in **Pipeline**, con le sue es
 - **Pipeline Run Failed**: un'esecuzione non è riuscita o è stata interrotta.
 - **Pipeline Run Unusually Long**: un'esecuzione ha impiegato il doppio del tempo abituale o più, verificato ogni cinque minuti mentre è in corso, così un'esecuzione bloccata viene notata prima che finisca.
 - **Pipeline Is Late**: nessuna esecuzione è partita da più tempo di quanto la sua pianificazione consenta.
+
+La pagina di una pipeline disegna la sua **Derivazione**, il primo posto in cui guardare quando un'esecuzione non riesce o è in ritardo: a sinistra le tabelle che legge, a destra le tabelle che scrive, la pipeline in mezzo, e ogni riquadro dice com'è adesso. Scegli più passi per vedere da cosa sono costruite quelle tabelle e cosa è costruito a partire da esse, e apri qualsiasi tabella per vedere la sua scheda **Derivazione**.
 
 ## Una segnalazione per causa
 
@@ -114,6 +128,10 @@ Quando una tabella smette di essere aggiornata, ogni tabella costruita a partire
 
 Il riquadro **Dati** della causa elenca il suo **Impatto a valle**: ogni avviso che ha causato. Il riquadro di un avviso su una tabella mostra anche i servizi che scrivono la tabella, con le loro scritture non riuscite, e i loro deploy e le altre modifiche nel giorno precedente l'avviso.
 
+Sotto il riquadro **Dati**, la pagina di un avviso disegna la sua **Derivazione**: attorno alla sua tabella, come la disegna la scheda **Derivazione** della tabella, o attorno alla sua pipeline. Il percorso che sale fino all'avviso che lo ha causato e scende fino a ogni avviso che ha causato è evidenziato - la tabella o la pipeline della causa segnata come **Causa**, quelle di ogni avviso causato come **Conseguenza** - e il resto si attenua, così chi lo apre vede in quale punto della catena è iniziato il problema. Quando la causa riguarda un intero database, o si trova più in alto di dove arriva il diagramma, il riquadro lo dice a parole. **Esplora la derivazione** apre la scheda **Derivazione** della tabella, o la pagina della pipeline.
+
+Chi non può vedere l'avviso che lo ha causato non riceve né il riquadro **Dati** né la derivazione, e un avviso causato che non può vedere non viene né evidenziato né contato.
+
 ## Prima che una modifica venga unita
 
 Quando una pull request modifica una tabella sorvegliata, [Production Review](/docs/ai/ai-agent) indica sulla pull request cosa ne dipende: i servizi che la leggono, le tabelle costruite a partire da essa, le dashboard su di essa e i suoi prodotti di dati. Una tabella con una copia su un database contrassegnato come Staging indica anche in cosa la copia differisce: le sue righe, le sue colonne e ciò che i controlli della tabella leggono lì, eseguiti al momento. Su un database raggiungibile solo da una sonda, i controlli vengono omessi, e lo indica.
@@ -122,5 +140,5 @@ Quando una pull request modifica una tabella sorvegliata, [Production Review](/d
 
 :::cards
 - [Prodotti di dati](/docs/data-observability/data-products): SLA di freschezza sulle tabelle che le persone usano.
-- [OneUptime AI e l'API](/docs/data-observability/ai-and-api): Indagini che partono da chi scrive una tabella e dalle sue esecuzioni.
+- [OneUptime AI e l'API](/docs/data-observability/ai-and-api): Indagini che partono da chi scrive una tabella e dalle sue esecuzioni. In Chiedi all'IA e dagli agenti IA si può chiedere da cosa è costruita una tabella.
 :::

@@ -4,6 +4,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import {
   CorrelationCondition,
+  CorrelationConnectorWords,
   CorrelationFilter,
   CorrelationOperatorLabels,
   getCorrelationFieldDefinition,
@@ -34,7 +35,24 @@ const CorrelateFilterChips: FunctionComponent<ComponentProps> = (
     return <Fragment />;
   }
 
-  const connectorLabel: string = props.filter.connector === "or" ? "OR" : "AND";
+  const connectorLabel: string =
+    CorrelationConnectorWords[props.filter.connector];
+
+  /*
+   * A value picked from a field's own list (a severity) reads as the
+   * builder's dropdown shows it ("Hoch"); a typed value is shown as typed.
+   */
+  const chipValue: (condition: CorrelationCondition) => string = (
+    condition: CorrelationCondition,
+  ): string => {
+    const options: Array<string> | undefined = getCorrelationFieldDefinition(
+      condition.field,
+    ).valueOptions;
+
+    return options && options.includes(condition.value)
+      ? t(condition.value)
+      : condition.value;
+  };
 
   return (
     <div
@@ -43,6 +61,8 @@ const CorrelateFilterChips: FunctionComponent<ComponentProps> = (
     >
       {props.filter.conditions.map(
         (condition: CorrelationCondition, index: number): ReactElement => {
+          const value: string = chipValue(condition);
+
           return (
             <Fragment key={index}>
               {index > 0 && (
@@ -58,7 +78,7 @@ const CorrelateFilterChips: FunctionComponent<ComponentProps> = (
               )}
               <span
                 data-testid={`correlate-filter-chip-${index}`}
-                className="inline-flex max-w-full items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 py-0.5 pl-2 pr-0.5 text-xs text-indigo-700"
+                className="inline-flex max-w-full items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 py-0.5 pe-0.5 ps-2 text-xs text-indigo-700"
               >
                 {/*
                  * The spaces between parts are not drawn inside a flex row
@@ -77,9 +97,9 @@ const CorrelateFilterChips: FunctionComponent<ComponentProps> = (
                  */}
                 <span
                   className="min-w-0 max-w-[16rem] truncate font-mono"
-                  title={condition.value}
+                  title={value}
                 >
-                  {condition.value}
+                  {value}
                 </span>
                 <button
                   type="button"
@@ -100,7 +120,7 @@ const CorrelateFilterChips: FunctionComponent<ComponentProps> = (
       <button
         type="button"
         data-testid="correlate-filter-clear-all"
-        className="ml-1 text-xs text-gray-500 underline hover:text-gray-700"
+        className="ms-1 text-xs text-gray-500 underline hover:text-gray-700"
         onClick={() => {
           props.onClearAll();
         }}

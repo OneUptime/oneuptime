@@ -67,6 +67,8 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
  * Runbooks -> Runners, read like Monitors -> Settings -> Probes:
@@ -528,12 +530,17 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: { name: true },
             title: "Name",
             type: FieldType.Text,
+            // A badge: its words read their own way (Pill), its dot the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (item: Runner): ReactElement => {
               return (
                 <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="min-w-0 truncate" data-testid="runner-name">
-                    {item.name}
-                  </span>
+                  <IsolatedLine
+                    as="span"
+                    text={item.name || ""}
+                    className="min-w-0 truncate"
+                    dataTestId="runner-name"
+                  />
                   {item.isProjectDefault ? (
                     <span data-testid="runner-project-default-pill">
                       <Pill

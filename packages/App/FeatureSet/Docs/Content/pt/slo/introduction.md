@@ -176,7 +176,7 @@ A **Visão geral** responde a "estamos dentro do orçamento?", de cima para baix
 - **O resumo**: o status, uma frase sobre o que ele significa e a descrição. Ao lado ficam **Atualizar** e quando o SLO foi avaliado pela última vez. Abaixo ficam a meta, a **Janela de conformidade** (com um indicador de preenchimento enquanto uma janela móvel nova se enche: veja [SLOs novos e o indicador de preenchimento da janela](#slos-novos-e-o-indicador-de-preenchimento-da-janela)), o número de monitores e os proprietários, com **Adicionar proprietários** para adicionar um ali mesmo.
 - **Os números principais**:
   - **SLI**: a parcela de tempo bom na janela, e quanto ela está acima ou abaixo da meta.
-  - **Orçamento de erros restante**: uma porcentagem, uma duração como "12m 30s left of 43m 12s" e uma barra com uma marca no limite de risco. Quando o orçamento é ultrapassado, mostra **Budget exceeded** e por quanto.
+  - **Orçamento de erros restante**: uma porcentagem, uma duração como "12m 30s left of 43m 12s" e uma barra com uma marca no limite de risco. Quando o orçamento é ultrapassado, mostra **Orçamento excedido** e por quanto.
   - **Taxa de consumo**: a velocidade com que o orçamento é gasto nos últimos 60 minutos, o período que a regra de consumo rápido padrão usa. Fica âmbar acima de 1× e vermelho, com **Limite da regra atingido**, no limite mais baixo das regras de taxa de consumo habilitadas do SLO cujo período é de 6 horas ou menos. Uma hora diz pouco sobre uma regra cujo período é de dias, como **Slow leak**, por isso a taxa não é comparada com regras assim.
   - **Autonomia do orçamento**: quanto o orçamento dura nesse ritmo. Veja [Orçamentos de erros](/docs/slo/error-budget#autonomia-do-orçamento).
 - **Burn-down do orçamento de erros**: o orçamento restante ao longo da janela atual. Veja [Orçamentos de erros](/docs/slo/error-budget#consumo-do-orçamento-de-erros).
@@ -238,7 +238,7 @@ O menu lateral de um monitor também tem uma página **SLOs**: os SLOs que medem
 
 Um SLO de janela móvel mais novo que a própria janela é medido com os dados que existem até agora: um SLO de 30 dias criado ontem tem um dia de dados. Seu orçamento de erros começa pequeno e cresce à medida que a janela se enche, então os primeiros números oscilam mais do que vão oscilar depois.
 
-Enquanto for assim, a **Visão geral** avisa: o resumo mostra um indicador **Window 23% full** (**Window under 1% full** no primeiro dia), e o bloco **Orçamento de erros restante** repete isso abaixo do número. Os dois somem quando a janela está cheia. SLOs de mês do calendário nunca os mostram, porque o orçamento deles cobre o mês inteiro desde o primeiro dia, e os SLOs no modo **Média de segundos dos monitores** também não, porque o orçamento deles é contado entre os monitores.
+Enquanto for assim, a **Visão geral** avisa: o resumo mostra um indicador **Window 23% full** (**Janela com menos de 1% preenchido** no primeiro dia), e o bloco **Orçamento de erros restante** repete isso abaixo do número. Os dois somem quando a janela está cheia. SLOs de mês do calendário nunca os mostram, porque o orçamento deles cobre o mês inteiro desde o primeiro dia, e os SLOs no modo **Média de segundos dos monitores** também não, porque o orçamento deles é contado entre os monitores.
 
 ## Solução de problemas
 

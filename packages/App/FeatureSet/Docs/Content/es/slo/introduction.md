@@ -176,7 +176,7 @@ La **Vista general** responde a «¿estamos dentro del presupuesto?», de arriba
 - **El resumen**: el estado, una frase sobre lo que significa y la descripción. Al lado están **Actualizar** y cuándo se evaluó el SLO por última vez. Debajo están el objetivo, la **Ventana de cumplimiento** (con un indicador de llenado mientras una ventana móvil joven se llena: consulta [Los SLO jóvenes y el indicador de llenado de la ventana](#los-slo-jóvenes-y-el-indicador-de-llenado-de-la-ventana)), el número de monitores y los propietarios, con **Añadir propietarios** para añadir uno allí mismo.
 - **Las cifras principales**:
   - **SLI**: la parte de tiempo bueno en la ventana, y cuánto está por encima o por debajo del objetivo.
-  - **Presupuesto de errores restante**: un porcentaje, una duración como "12m 30s left of 43m 12s" y una barra con una marca en el umbral de riesgo. Cuando el presupuesto se supera, muestra **Budget exceeded** y por cuánto.
+  - **Presupuesto de errores restante**: un porcentaje, una duración como "12m 30s left of 43m 12s" y una barra con una marca en el umbral de riesgo. Cuando el presupuesto se supera, muestra **Presupuesto superado** y por cuánto.
   - **Tasa de consumo**: a qué velocidad se gasta el presupuesto en los últimos 60 minutos, el periodo que usa la regla de consumo rápido predeterminada. Se vuelve ámbar por encima de 1× y roja, con **Se alcanzó el umbral de la regla**, en el umbral más bajo de las reglas de tasa de consumo habilitadas del SLO cuyo periodo es de 6 horas o menos. Una hora dice poco de una regla cuyo periodo abarca días, como **Slow leak**, así que no se compara con una regla de ese tipo.
   - **Autonomía del presupuesto**: cuánto dura el presupuesto a ese ritmo. Consulta [Presupuestos de errores](/docs/slo/error-budget#autonomía-del-presupuesto).
 - **Consumo del presupuesto de errores**: el presupuesto restante a lo largo de la ventana actual. Consulta [Presupuestos de errores](/docs/slo/error-budget#consumo-del-presupuesto-de-errores).
@@ -238,7 +238,7 @@ El menú lateral de un monitor también tiene una página **SLO**: los SLO que m
 
 Un SLO con ventana móvil más joven que su ventana se mide sobre los datos que existen hasta ahora: un SLO de 30 días creado ayer tiene un día de datos. Su presupuesto de errores empieza pequeño y crece a medida que la ventana se llena, así que sus primeras cifras se mueven más de lo que lo harán después.
 
-Mientras sea así, la **Vista general** lo indica: el resumen muestra un indicador **Window 23% full** (**Window under 1% full** el primer día), y el mosaico **Presupuesto de errores restante** lo repite bajo su cifra. Ambos desaparecen cuando la ventana está llena. Los SLO de mes natural nunca los muestran, porque su presupuesto cubre todo el mes desde el primer día, y tampoco los SLO en modo **Promedio de segundos del monitor**, cuyo presupuesto se cuenta entre varios monitores.
+Mientras sea así, la **Vista general** lo indica: el resumen muestra un indicador **Window 23% full** (**Ventana llena a menos del 1 %** el primer día), y el mosaico **Presupuesto de errores restante** lo repite bajo su cifra. Ambos desaparecen cuando la ventana está llena. Los SLO de mes natural nunca los muestran, porque su presupuesto cubre todo el mes desde el primer día, y tampoco los SLO en modo **Promedio de segundos del monitor**, cuyo presupuesto se cuenta entre varios monitores.
 
 ## Solución de problemas
 

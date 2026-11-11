@@ -2848,7 +2848,7 @@ describe("Topology (telemetry/topology)", () => {
     expect(infrastructure).toContain(
       "Where your services run. Replicas of one workload are grouped; open anything to look inside.",
     );
-    expect(network).toContain('devices: "All devices"');
+    expect(network).toContain('devices: translationKey("All devices")');
     expect(toolbar).toContain('translateString("Map options")');
     expect(
       readDashboardSource("Components/Topology/NetworkTopologyLiveView.tsx"),

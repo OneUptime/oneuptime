@@ -143,6 +143,7 @@ const WORKFLOW_TOOL_NAMES: string[] = [
   "add_incident_note",
   "add_alert_note",
   "get_data_table_freshness",
+  "get_data_table_lineage",
   "oneuptime_whoami",
 ];
 
@@ -690,6 +691,211 @@ describe("WorkflowTools", () => {
     });
   });
 
+  describe("get_data_table_lineage", () => {
+    const ORDERS_LINEAGE: string = [
+      "public.orders (Orders DB): late by 2 hours. Its lineage, 3 steps each way:",
+      "Upstream, what it is built from: 2 tables, 1 with a problem.",
+      "- raw.orders, 2 steps up, through staging.orders: late by 22 hours.",
+      "The rest, nearest first: staging.orders (1 step up, fresh).",
+      "Downstream, what is built from it: 1 table, none with a problem.",
+      "Nearest first: marts.revenue (1 step down, fresh).",
+    ].join("\n");
+
+    it("is offered with the table it needs and the steps it may take, and nothing else", () => {
+      const lineage: McpToolInfo | undefined = generateWorkflowTools().find(
+        (tool: McpToolInfo): boolean => {
+          return tool.name === "get_data_table_lineage";
+        },
+      );
+
+      expect(lineage?.title).toBe("Get Data Table Lineage");
+      expect(lineage?.annotations).toEqual({
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+      });
+      expect(lineage?.inputSchema).toEqual({
+        type: "object",
+        properties: {
+          table: expect.objectContaining({ type: "string" }),
+          depth: expect.objectContaining({ type: "number" }),
+        },
+        required: ["table"],
+        additionalProperties: false,
+      });
+      expect(lineage?.description).toContain("built from");
+      expect(lineage?.description).toContain("Read-only.");
+    });
+
+    it("asks the API as the caller for three steps each way, and answers with the table's lineage", async () => {
+      apiCallSpy.mockResolvedValueOnce({
+        depth: 3,
+        tables: [
+          {
+            dataAssetId: "asset-1",
+            dataPipelineId: null,
+            name: "public.orders",
+            database: "Orders DB",
+            depth: 3,
+            // The route's structure of the lineage, which the words tell.
+            upstream: { tableCount: 2, problemCount: 1, problems: [] },
+            downstream: { tableCount: 1, problemCount: 0, problems: [] },
+            loaders: [],
+            dashboards: [],
+            answer: ORDERS_LINEAGE,
+          },
+        ],
+      } as never);
+
+      const result: JSONObject = await handleWorkflowTool(
+        "get_data_table_lineage",
+        { table: "public.orders" },
+        API_KEY,
+      );
+
+      expect(apiCallSpy).toHaveBeenCalledTimes(1);
+      expect(apiCallSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: "POST",
+          path: "/api/data-observability/tables/lineage/answer",
+          body: { table: "public.orders", depth: 3 },
+          credential: API_KEY,
+        }),
+      );
+      // The lineage is the message, told once: each match only by what asks about it again.
+      expect(result).toEqual({
+        success: true,
+        operation: "get_data_table_lineage",
+        table: "public.orders",
+        depth: 3,
+        matches: 1,
+        tables: [
+          {
+            dataAssetId: "asset-1",
+            name: "public.orders",
+            database: "Orders DB",
+          },
+        ],
+        message: ORDERS_LINEAGE,
+      });
+    });
+
+    it("lists a match the API told without an ID, a name or a database with nulls, never undefined", async () => {
+      apiCallSpy.mockResolvedValueOnce({
+        depth: 3,
+        tables: [{ answer: ORDERS_LINEAGE }],
+      } as never);
+
+      const result: JSONObject = await handleWorkflowTool(
+        "get_data_table_lineage",
+        { table: "orders" },
+        API_KEY,
+      );
+
+      expect(result["matches"]).toBe(1);
+      expect(result["tables"]).toEqual([
+        { dataAssetId: null, name: null, database: null },
+      ]);
+      expect(result["message"]).toBe(ORDERS_LINEAGE);
+    });
+
+    it.each([
+      [1, 1],
+      [5, 5],
+      ["2", 2],
+      [99, 5],
+      [0, 1],
+      ["many", 3],
+    ])(
+      "asked for %p steps, asks the API for %p",
+      async (depth: unknown, asked: number) => {
+        apiCallSpy.mockResolvedValueOnce({ tables: [] } as never);
+
+        const result: JSONObject = await handleWorkflowTool(
+          "get_data_table_lineage",
+          { table: "public.orders", depth },
+          API_KEY,
+        );
+
+        expect(apiCallSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            body: { table: "public.orders", depth: asked },
+          }),
+        );
+        expect(result["depth"]).toBe(asked);
+      },
+    );
+
+    it("tells how many tables share a name, then the lineage of each, apart", async () => {
+      apiCallSpy.mockResolvedValueOnce({
+        depth: 3,
+        tables: [
+          { answer: ORDERS_LINEAGE },
+          {
+            answer:
+              "archive.orders (Archive DB): fresh. Its lineage, 3 steps each way:\nUpstream: no watched table is seen feeding it.\nDownstream: no watched table is seen built from it.",
+          },
+        ],
+      } as never);
+
+      const result: JSONObject = await handleWorkflowTool(
+        "get_data_table_lineage",
+        { table: "orders" },
+        API_KEY,
+      );
+
+      expect(result["matches"]).toBe(2);
+      expect(String(result["message"]).split("\n\n")).toEqual([
+        '2 watched tables are called "orders". The lineage of each:',
+        ORDERS_LINEAGE,
+        "archive.orders (Archive DB): fresh. Its lineage, 3 steps each way:\nUpstream: no watched table is seen feeding it.\nDownstream: no watched table is seen built from it.",
+      ]);
+    });
+
+    it("says so when no watched table has the name", async () => {
+      apiCallSpy.mockResolvedValueOnce({ depth: 3, tables: [] } as never);
+
+      const result: JSONObject = await handleWorkflowTool(
+        "get_data_table_lineage",
+        { table: "orders" },
+        API_KEY,
+      );
+
+      expect(result["matches"]).toBe(0);
+      expect(result["tables"]).toEqual([]);
+      expect(result["message"]).toBe(
+        'No table Data Observability watches is called "orders".',
+      );
+    });
+
+    it("asks as a client signed in with OAuth, which needs only to read", async () => {
+      apiCallSpy.mockResolvedValueOnce({ tables: [] } as never);
+
+      await handleWorkflowTool(
+        "get_data_table_lineage",
+        { table: "public.orders" },
+        OAUTH_READ_ONLY,
+      );
+
+      expect(apiCallSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: "/api/data-observability/tables/lineage/answer",
+          credential: OAUTH_READ_ONLY,
+        }),
+      );
+    });
+
+    it.each([[{}], [{ table: "" }], [{ table: 42 }]])(
+      "needs a table: %p",
+      async (args: Record<string, unknown>) => {
+        await expect(
+          handleWorkflowTool("get_data_table_lineage", args, API_KEY),
+        ).rejects.toThrow(/table/);
+        expect(apiCallSpy).not.toHaveBeenCalled();
+      },
+    );
+  });
+
   describe("unknown tools", () => {
     it("rejects unknown workflow tool names", async () => {
       await expect(
@@ -699,12 +905,16 @@ describe("WorkflowTools", () => {
   });
 
   describe("isReadOnlyWorkflowTool", () => {
-    it("marks whoami and a table's freshness, and only those, as tools that only read", () => {
+    it("marks whoami and a table's freshness and lineage, and only those, as tools that only read", () => {
       expect(
         WORKFLOW_TOOL_NAMES.filter((name: string): boolean => {
           return isReadOnlyWorkflowTool(name);
         }).sort(),
-      ).toEqual(["get_data_table_freshness", "oneuptime_whoami"]);
+      ).toEqual([
+        "get_data_table_freshness",
+        "get_data_table_lineage",
+        "oneuptime_whoami",
+      ]);
     });
 
     it("agrees with the readOnlyHint each tool shows to clients", () => {
@@ -1170,6 +1380,12 @@ describe("WorkflowTools against an API that answers over HTTP", () => {
 
   const PROJECT_ID: string = "9d6f6f0e-3a61-4d0b-9f0a-2c1a7a5e4b11";
   const STATE_ID: string = "0b0f5c3e-64a6-4b27-8a59-7d8d1f1f0c22";
+  const LINEAGE_ANSWER: string = [
+    "public.orders (Orders DB): fresh. Its lineage, 2 steps each way:",
+    "Upstream, what it is built from: 1 table, 1 with a problem.",
+    "- raw.orders, 1 step up: late by 3 hours.",
+    "Downstream: no watched table is seen built from it.",
+  ].join("\n");
 
   let server: http.Server;
   let received: Array<ReceivedRequest>;
@@ -1208,6 +1424,26 @@ describe("WorkflowTools against an API that answers over HTTP", () => {
                 count: rows.length,
                 skip: 0,
                 limit: 10,
+              }),
+            );
+            return;
+          }
+
+          // A table's lineage: the route's own object, not a list's envelope.
+          if (path === "/api/data-observability/tables/lineage/answer") {
+            res.statusCode = 200;
+            res.end(
+              JSON.stringify({
+                depth: 2,
+                tables: [
+                  {
+                    dataAssetId: VALID_UUID,
+                    name: "public.orders",
+                    database: "Orders DB",
+                    upstream: { tableCount: 1, problemCount: 1 },
+                    answer: LINEAGE_ANSWER,
+                  },
+                ],
               }),
             );
             return;
@@ -1281,6 +1517,29 @@ describe("WorkflowTools against an API that answers over HTTP", () => {
       skip: 0,
       limit: 10,
     });
+  });
+
+  it("get_data_table_lineage reads the tables off the object the API returned, asked with the key", async () => {
+    const result: JSONObject = await handleWorkflowTool(
+      "get_data_table_lineage",
+      { table: "public.orders", depth: 2 },
+      API_KEY,
+    );
+
+    expect(result["success"]).toBe(true);
+    expect(result["matches"]).toBe(1);
+    expect(result["message"]).toBe(LINEAGE_ANSWER);
+    expect(result["tables"]).toEqual([
+      { dataAssetId: VALID_UUID, name: "public.orders", database: "Orders DB" },
+    ]);
+
+    expect(received).toHaveLength(1);
+    expect(received[0]!.method).toBe("POST");
+    expect(received[0]!.path).toBe(
+      "/api/data-observability/tables/lineage/answer",
+    );
+    expect(received[0]!.headers["apikey"]).toBe(API_KEY);
+    expect(received[0]!.body).toEqual({ table: "public.orders", depth: 2 });
   });
 
   it("whoami for a signed-in client lists the project, and presents a delegation token to get it", async () => {

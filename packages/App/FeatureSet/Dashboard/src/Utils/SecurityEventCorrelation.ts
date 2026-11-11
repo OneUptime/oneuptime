@@ -68,6 +68,16 @@ export enum CorrelationOperator {
 
 export type CorrelationConnector = "and" | "or";
 
+/*
+ * The connector between conditions, as the Correlate help text names it
+ * ("combine fields with AND or OR"): the query's own operators, so they read
+ * the same in every language while the labels around them are translated.
+ */
+export const CorrelationConnectorWords: Record<CorrelationConnector, string> = {
+  and: "AND",
+  or: "OR",
+};
+
 export interface CorrelationCondition {
   field: CorrelationFieldKey;
   operator: CorrelationOperator;

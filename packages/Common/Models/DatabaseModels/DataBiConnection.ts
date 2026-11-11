@@ -18,6 +18,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import DataBiTool from "../../Types/DataObservability/DataBiTool";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONArray } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -29,8 +30,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * may read its dashboards and what they query. Every hour OneUptime reads
  * the tool's dashboards and the tables behind each (DataBiSync), so a late
  * or broken table's alert lists the dashboards people open on it - and, for
- * Power BI, how often each is viewed and when its data last refreshed. The
- * credentials are encrypted at rest and never returned by the API.
+ * Power BI, how often each is viewed and when its data last refreshed. A
+ * Power BI tool can also alert on its datasets' failed refreshes, through a
+ * monitor OneUptime keeps for it (DataBiRefreshAlerts). The credentials are
+ * encrypted at rest and never returned by the API.
  */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
@@ -371,6 +374,58 @@ export default class DataBiConnection extends BaseModel {
     nullable: true,
   })
   public usageReadUntil?: Date = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: false,
+    title: "Alert on Failed Refreshes",
+    description:
+      "Whether OneUptime keeps a monitor that opens an alert for each dataset whose refresh failed (Power BI), resolved once a later refresh completes.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public alertOnFailedRefreshes?: boolean = undefined;
+
+  /*
+   * An id, not a relation: the monitor is found by it and checked to be
+   * there (DataBiRefreshAlerts), and removed with the tool
+   * (DataBiConnectionService).
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    computed: true,
+    title: "Refresh Monitor ID",
+    description:
+      "ID of the Metrics monitor that alerts on the tool's failed refreshes.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public refreshMonitorId?: ObjectID = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Failed Refreshes",
+    description:
+      "The datasets whose last refresh failed or was cancelled (Power BI), each with its error, until a later refresh completes - and for an hour after that, marked recovered.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public failedRefreshes?: JSONArray = undefined;
 
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({

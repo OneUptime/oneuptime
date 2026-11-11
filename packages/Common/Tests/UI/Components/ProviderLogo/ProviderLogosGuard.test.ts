@@ -239,7 +239,7 @@ const SVG_DATA_URLS_KEPT: ReadonlyArray<KeptOnPurpose> = [
   },
   {
     file: "packages/Common/UI/Components/QR/QRCodeImage.ts",
-    why: "a QR code, not an icon: the code a person scans to set up two-factor authentication or verify Telegram, drawn as an SVG so it stays sharp at any size and the build's own output can draw it without a document (QRCodeInBrowserBuild, issue #6638)",
+    why: "a QR code a camera reads (two-factor setup, Telegram's verification): a picture of data, not an icon, sharp at any size as an SVG (#6638)",
   },
 ];
 

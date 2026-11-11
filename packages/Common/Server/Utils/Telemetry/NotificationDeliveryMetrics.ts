@@ -2,6 +2,8 @@ import AppMetrics from "./AppMetrics";
 import logger from "../Logger";
 import MailTransportType from "../../../Types/Email/MailTransportType";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import SmsStatus from "../../../Types/SmsStatus";
+import WhatsAppStatus from "../../../Types/WhatsAppStatus";
 
 /*
  * NOTIFICATION DELIVERY METRICS: WHAT THE PLATFORM'S OPERATOR DEFINES
@@ -25,6 +27,21 @@ import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageCha
  *                               name) and outcome (success, failure, not_sent).
  *   notification.time_to_send   how long after its trigger an on-call page was
  *                               accepted by its provider (OnCallPageTiming).
+ *   notification.send.lag       how long after it was due an on-call
+ *                               notification sent later - a rule that waits,
+ *                               a repeat, a later escalation level, a policy
+ *                               repeat - was accepted by its provider: how
+ *                               far behind the workers that send them are
+ *                               (OnCallSendLag, issue #6646).
+ *   notification.delivery.count     how a message the provider accepted
+ *   notification.delivery.duration  ended, when the provider tells it later:
+ *                               an SMS delivered or not, a call answered or
+ *                               not, a push Apple or Google took or not, and
+ *                               how long that took (issue #6648).
+ *
+ * Slack, Microsoft Teams and Mattermost messages also say where they went
+ * (notification.destination): to a person, into a channel, or to an incoming
+ * webhook (issue #6645).
  *
  * Every sender records through this file, so a channel, a provider or an
  * outcome is spelled one way everywhere, and every attribute keeps to a
@@ -123,17 +140,71 @@ export enum NotificationTriggerSource {
 /*
  * What an on-call page's time to send is measured from (OnCallPageTiming),
  * for a page that started with its record: the moment OneUptime received
- * the data that tripped the monitor - an incoming request, which waits in a
- * queue before it is evaluated - or else the record's creation, the moment
- * a monitor's own check, a telemetry monitor's evaluation or a person
- * opened it. For a page started later - by a person, a workflow, a rule
- * that now matches, a page again, or after a hold the on-call rules ask
- * for - the moment it started.
+ * the data that tripped the monitor - an incoming request, a server
+ * agent's report, an incoming email, a probe's report, each of which waits
+ * in a queue before it is evaluated (issue #6647) - or else the record's
+ * creation, the moment a telemetry monitor's evaluation or a person opened
+ * it. For a page started later - by a person, a workflow, a rule that now
+ * matches, a page again, or after a hold the on-call rules ask for - the
+ * moment it started.
  */
 export enum OnCallPageStart {
   MonitorDataReceived = "monitor_data_received",
   RecordCreated = "record_created",
   PageStarted = "page_started",
+}
+
+/*
+ * Which wait of the on-call configuration an on-call notification sent
+ * later was due after (notification.send.lag, OnCallSendLag): its lag is
+ * from the moment that wait ran out.
+ */
+export enum NotificationSchedule {
+  // A person's on-call rule that waits: "call me after 10 minutes".
+  RuleWait = "rule_wait",
+  // A push repeated until somebody acknowledges (NotificationRepeat).
+  Repeat = "repeat",
+  // A later escalation level, once the level before waited its "Escalate after".
+  Escalation = "escalation",
+  // The policy starting again from its first level: its Repeat Policy.
+  PolicyRepeat = "policy_repeat",
+}
+
+/*
+ * Where a Slack, Microsoft Teams or Mattermost message went (issue #6645).
+ * Only those three channels carry it: every message of the others goes to
+ * one person.
+ */
+export enum NotificationDestination {
+  // To one person: the notification methods' own (WorkspaceUserNotificationService).
+  DirectMessage = "direct_message",
+  /*
+   * Into a channel - or a Teams group chat - as the project's bot:
+   * workspace notification rules, live run messages (WorkspaceChannelPosts).
+   */
+  Channel = "channel",
+  // To an incoming webhook somebody made: a status page subscriber's.
+  IncomingWebhook = "incoming_webhook",
+}
+
+/*
+ * How a message the provider accepted ended, as the provider tells it later
+ * (notification.delivery.count, issue #6648). Final: a message has one.
+ */
+export enum NotificationDeliveryStatus {
+  // It reached the phone: the carrier's delivery receipt, Apple or Google took the push.
+  Delivered = "delivered",
+  /*
+   * It never reached the phone: the carrier could not deliver the SMS, the
+   * phone's app is gone (Expo's DeviceNotRegistered).
+   */
+  Undelivered = "undelivered",
+  // The provider could not send it at all.
+  Failed = "failed",
+  // A call somebody - or their voicemail - picked up.
+  Answered = "answered",
+  // A call that rang out, or found the line busy or declined.
+  NotAnswered = "not_answered",
 }
 
 // The attribute names, one spelling for every sender.
@@ -149,6 +220,8 @@ export enum NotificationMetricAttribute {
   TriggerSource = "notification.trigger.source",
   MonitorType = "monitor.type",
   PageStart = "notification.page.start",
+  Destination = "notification.destination",
+  Schedule = "notification.schedule",
 }
 
 // The most of a custom channel's name an attribute carries.
@@ -168,6 +241,28 @@ export interface NotificationDispatchStart {
   // A notification of an on-call page (it has an on-call timeline row).
   isOnCallPage?: boolean | undefined;
   customChannel?: NotificationCustomChannelIdentity | undefined;
+  // Where a Slack, Microsoft Teams or Mattermost message went.
+  destination?: NotificationDestination | undefined;
+}
+
+/*
+ * A message's final status, as its provider told it - Twilio's status
+ * callbacks, Expo's receipts, Meta's status webhooks. The sender's own
+ * record of it says which channel, provider and account it went out on, and
+ * whether it was an on-call page, as notification.send.count said them.
+ */
+export interface NotificationDeliveryReport {
+  channel: NotificationDeliveryChannel;
+  provider: NotificationDeliveryProvider;
+  providerConfig?: NotificationProviderConfig | undefined;
+  isOnCallPage: boolean;
+  status: NotificationDeliveryStatus;
+  /*
+   * How long after the provider accepted the message it ended so, when that
+   * is known (notification.delivery.duration). Left out when it is not: a
+   * push's receipt says nothing of when Apple or Google took it.
+   */
+  timeToStatusInMs?: number | undefined;
 }
 
 export type NotificationMetricAttributes = Record<string, string>;
@@ -232,6 +327,7 @@ export class NotificationDispatch {
   private providerConfig: NotificationProviderConfig;
   private isOnCallPage: boolean;
   private customChannel: NotificationCustomChannelIdentity | undefined;
+  private readonly destination: NotificationDestination | undefined;
   private outcome: NotificationDeliveryOutcome | undefined = undefined;
   private readonly startedAtInNs: bigint;
   private isEnded: boolean = false;
@@ -243,6 +339,7 @@ export class NotificationDispatch {
       start.providerConfig || NotificationProviderConfig.Global;
     this.isOnCallPage = Boolean(start.isOnCallPage);
     this.customChannel = start.customChannel;
+    this.destination = start.destination;
     this.startedAtInNs = process.hrtime.bigint();
   }
 
@@ -300,6 +397,7 @@ export class NotificationDispatch {
       providerConfig: this.providerConfig,
       isOnCallPage: this.isOnCallPage,
       customChannel: this.customChannel,
+      destination: this.destination,
       outcome: outcome,
     });
   }
@@ -369,6 +467,23 @@ export default class NotificationDeliveryMetrics {
    * no Enterprise license - recorded as such, with no time of its own.
    */
   public static recordNotSent(start: NotificationDispatchStart): void {
+    this.recordWithoutDuration(start, NotificationDeliveryOutcome.NotSent);
+  }
+
+  /*
+   * A message that failed before anything was handed to its provider - a
+   * chat channel that could not be found, a workspace that could not be
+   * asked where to post - recorded as a failure, with no time of its own:
+   * notification.send.duration is how long providers take.
+   */
+  public static recordFailedBeforeSend(start: NotificationDispatchStart): void {
+    this.recordWithoutDuration(start, NotificationDeliveryOutcome.Failure);
+  }
+
+  private static recordWithoutDuration(
+    start: NotificationDispatchStart,
+    outcome: NotificationDeliveryOutcome,
+  ): void {
     try {
       const attributes: NotificationMetricAttributes =
         this.getDispatchAttributes({
@@ -378,10 +493,41 @@ export default class NotificationDeliveryMetrics {
             start.providerConfig || NotificationProviderConfig.Global,
           isOnCallPage: Boolean(start.isOnCallPage),
           customChannel: start.customChannel,
-          outcome: NotificationDeliveryOutcome.NotSent,
+          destination: start.destination,
+          outcome: outcome,
         });
 
       AppMetrics.getNotificationCounter().add(1, attributes);
+    } catch (err) {
+      reportRecordingFailure(err);
+    }
+  }
+
+  /*
+   * A message's final status arrived from its provider
+   * (notification.delivery.count), and how long after the provider accepted
+   * the message, when that is known (notification.delivery.duration). Its
+   * caller records each message's final status once: on the transition of
+   * the message's own log row into it, never on every callback. Clocks of
+   * two servers can disagree by a little: a time below zero is recorded as
+   * zero. Never throws.
+   */
+  public static recordDelivery(report: NotificationDeliveryReport): void {
+    try {
+      const attributes: NotificationMetricAttributes =
+        this.getDeliveryAttributes(report);
+
+      AppMetrics.getNotificationDeliveryCounter().add(1, attributes);
+
+      if (
+        typeof report.timeToStatusInMs === "number" &&
+        Number.isFinite(report.timeToStatusInMs)
+      ) {
+        AppMetrics.getNotificationDeliveryDuration().record(
+          Math.max(0, report.timeToStatusInMs),
+          attributes,
+        );
+      }
     } catch (err) {
       reportRecordingFailure(err);
     }
@@ -429,12 +575,42 @@ export default class NotificationDeliveryMetrics {
     }
   }
 
+  /*
+   * An on-call notification the on-call configuration sent later - a rule
+   * that waits, a repeat, a later escalation level, a policy repeat - was
+   * accepted by its provider this long after it was due
+   * (notification.send.lag, OnCallSendLag). Clocks of two servers can
+   * disagree by a little: a lag below zero is recorded as zero. Never
+   * throws.
+   */
+  public static recordSendLag(data: {
+    channel: NotificationDeliveryChannel;
+    customChannel?: NotificationCustomChannelIdentity | undefined;
+    triggerType?: NotificationTriggerType | undefined;
+    schedule: NotificationSchedule;
+    lagInMs: number;
+  }): void {
+    try {
+      if (!Number.isFinite(data.lagInMs)) {
+        return;
+      }
+
+      AppMetrics.getNotificationSendLag().record(
+        Math.max(0, data.lagInMs),
+        this.getSendLagAttributes(data),
+      );
+    } catch (err) {
+      reportRecordingFailure(err);
+    }
+  }
+
   public static getDispatchAttributes(data: {
     channel: NotificationDeliveryChannel;
     provider: NotificationDeliveryProvider;
     providerConfig: NotificationProviderConfig;
     isOnCallPage: boolean;
     customChannel?: NotificationCustomChannelIdentity | undefined;
+    destination?: NotificationDestination | undefined;
     outcome: NotificationDeliveryOutcome;
   }): NotificationMetricAttributes {
     const attributes: NotificationMetricAttributes = {
@@ -449,7 +625,98 @@ export default class NotificationDeliveryMetrics {
 
     addCustomChannelAttributes(attributes, data.customChannel);
 
+    if (data.destination) {
+      attributes[NotificationMetricAttribute.Destination] = data.destination;
+    }
+
     return attributes;
+  }
+
+  /*
+   * A final status's attributes: the message's channel, provider, account
+   * and whether it was a page - as notification.send.count said them - and
+   * the status, as `outcome`.
+   */
+  public static getDeliveryAttributes(data: {
+    channel: NotificationDeliveryChannel;
+    provider: NotificationDeliveryProvider;
+    providerConfig?: NotificationProviderConfig | undefined;
+    isOnCallPage: boolean;
+    status: NotificationDeliveryStatus;
+  }): NotificationMetricAttributes {
+    return {
+      [NotificationMetricAttribute.Channel]: data.channel,
+      [NotificationMetricAttribute.Provider]: data.provider,
+      [NotificationMetricAttribute.ProviderConfig]:
+        data.providerConfig || NotificationProviderConfig.Global,
+      [NotificationMetricAttribute.OnCallPage]: data.isOnCallPage
+        ? "true"
+        : "false",
+      [NotificationMetricAttribute.Outcome]: data.status,
+    };
+  }
+
+  /*
+   * How long ago a message's log was written - as its provider accepted it
+   * - for its final status's time (recordDelivery). Undefined for a log
+   * with no time it was written.
+   */
+  public static getMillisecondsSince(
+    writtenAt: Date | null | undefined,
+    now: Date = new Date(),
+  ): number | undefined {
+    if (!writtenAt) {
+      return undefined;
+    }
+
+    const writtenAtInMs: number = new Date(writtenAt).getTime();
+
+    if (!Number.isFinite(writtenAtInMs)) {
+      return undefined;
+    }
+
+    return now.getTime() - writtenAtInMs;
+  }
+
+  /*
+   * The final status an SMS log's status is, for the delivery metrics: one
+   * of Twilio's delivery receipts' (SmsService.mapProviderStatusToSmsStatus).
+   * Null for a status that is not final - still being sent - or not one
+   * Twilio reported (an error sending it, too little balance).
+   */
+  public static getDeliveryStatusOfSms(
+    status: SmsStatus | null | undefined,
+  ): NotificationDeliveryStatus | null {
+    switch (status) {
+      case SmsStatus.Delivered:
+        return NotificationDeliveryStatus.Delivered;
+      case SmsStatus.Undelivered:
+        return NotificationDeliveryStatus.Undelivered;
+      case SmsStatus.Failed:
+        return NotificationDeliveryStatus.Failed;
+      default:
+        return null;
+    }
+  }
+
+  /*
+   * The final status a WhatsApp log's status is: delivered once Meta says
+   * it reached the phone - or that it was read, which it says of a message
+   * delivered - and failed when Meta could not deliver it. Null for any
+   * other: sent, queued, a warning, an error sending it.
+   */
+  public static getDeliveryStatusOfWhatsApp(
+    status: WhatsAppStatus | null | undefined,
+  ): NotificationDeliveryStatus | null {
+    switch (status) {
+      case WhatsAppStatus.Delivered:
+      case WhatsAppStatus.Read:
+        return NotificationDeliveryStatus.Delivered;
+      case WhatsAppStatus.Failed:
+        return NotificationDeliveryStatus.Failed;
+      default:
+        return null;
+    }
   }
 
   public static getTriggerAttributes(data: {
@@ -481,6 +748,26 @@ export default class NotificationDeliveryMetrics {
     const attributes: NotificationMetricAttributes = {
       [NotificationMetricAttribute.Channel]: data.channel,
       [NotificationMetricAttribute.PageStart]: data.pageStart,
+    };
+
+    if (data.triggerType) {
+      attributes[NotificationMetricAttribute.TriggerType] = data.triggerType;
+    }
+
+    addCustomChannelAttributes(attributes, data.customChannel);
+
+    return attributes;
+  }
+
+  public static getSendLagAttributes(data: {
+    channel: NotificationDeliveryChannel;
+    customChannel?: NotificationCustomChannelIdentity | undefined;
+    triggerType?: NotificationTriggerType | undefined;
+    schedule: NotificationSchedule;
+  }): NotificationMetricAttributes {
+    const attributes: NotificationMetricAttributes = {
+      [NotificationMetricAttribute.Channel]: data.channel,
+      [NotificationMetricAttribute.Schedule]: data.schedule,
     };
 
     if (data.triggerType) {

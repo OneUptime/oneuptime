@@ -101,7 +101,7 @@ POST {Splunk management URL}/services/search/v2/jobs/export
 - **Oprettelsestidspunktet er markøren.** Vinduet gælder `_time`, som for et notable event er, da korrelationssøgningen oprettede det, ikke da den fundne aktivitet fandt sted. En søgning, der kører hver time, daterer sine notable events til tidspunktet for sin kørsel, så ingen havner bag markøren.
 - **Den første poll ser 24 timer tilbage**, så en ny forbindelse straks viser sine nylige notable events.
 - **Hver senere poll starter 1 minut før den gemte markør**, så en række, der er oprettet på grænsen mellem to vinduer, aldrig går tabt.
-- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Sundhed** viser **Catching up**.
+- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Sundhed** viser **Indhenter**.
 - **Dubletter fjernes efter `event_id`**, eller Splunks egne `_bkt` og `_cd`, i projektet, så overlappet, et gentaget vindue og en import aldrig gemmer en række to gange.
 
 Et search head, der er ældre end 9.0.1, svarer `404` på anmodningen til `search/v2/jobs/export`. OneUptime sender den så til det forældede `search/jobs/export`, og kørslen siger det i en advarsel. Opgradér search headet: aktuelle versioner slår det endpoint fra.

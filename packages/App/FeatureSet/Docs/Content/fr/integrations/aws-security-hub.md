@@ -114,7 +114,7 @@ POST https://securityhub.{region}.amazonaws.com/findings
 - **L'heure de création est le curseur.** Les constats sont listés par `CreatedAt`, jamais par `FirstObservedAt`. GuardDuty crée un constat une fois qu'il a vu assez d'activité, et une vérification de contrôle quand Security Hub vérifie la ressource pour la première fois, des heures ou des jours après le début de l'activité. Un curseur sur l'heure d'observation les sauterait.
 - **La première interrogation remonte 24 heures en arrière**, si bien qu'une nouvelle connexion montre tout de suite ses constats récents.
 - **Chaque interrogation suivante commence 30 minutes avant le curseur enregistré.** `CreatedAt` est fixé par le service qui a trouvé le problème, et le constat atteint Security Hub plus tard : GuardDuty envoie les nouveaux constats en moins de cinq minutes, et une livraison échouée via EventBridge est réessayée pendant 24 heures au plus. Le chevauchement lit ces constats à l'interrogation suivante. Un constat qui arrive plus de 30 minutes après son `CreatedAt` peut passer derrière le curseur : importez sa plage de temps pour le récupérer.
-- **Une interrogation lit au plus 24 heures au-delà du curseur.** Une connexion dont le curseur a pris du retard le rattrape en une suite de fenêtres de 24 heures, et sa **Santé** indique **Catching up**.
+- **Une interrogation lit au plus 24 heures au-delà du curseur.** Une connexion dont le curseur a pris du retard le rattrape en une suite de fenêtres de 24 heures, et sa **Santé** indique **Rattrapage en cours**.
 - **Les doublons sont écartés par l'`Id` du constat** au sein du projet, si bien que le chevauchement, une fenêtre relue et un import ne stockent jamais un constat deux fois.
 
 ### Quand une fenêtre contient plus qu'une interrogation ne peut lire
@@ -155,7 +155,7 @@ Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récente
 | **Read findings** | Security Hub répond à cette requête : l'identité a le droit d'appeler `securityhub:GetFindings`, et Security Hub est activé dans la région. |
 | **Findings available to import** | Combien de constats ont été créés dans les 24 dernières heures et les 7 derniers jours, une page de 100 pour chacun, si bien que `100+` signifie davantage. Aucun en 7 jours est un avertissement, pas un échec. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Le côté de OneUptime lui-même : un processus prend les tâches de la file Worker, la tâche d'interrogation s'exécute chaque minute, et le stockage des événements de sécurité répond. |
-| **Scheduled polling** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
+| **Interrogation planifiée** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
 
 Chaque requête d'un test a un délai de 20 secondes. Un test n'importe jamais rien et ne déplace jamais le curseur, et chaque vérification en échec dit ce qu'il faut changer.
 

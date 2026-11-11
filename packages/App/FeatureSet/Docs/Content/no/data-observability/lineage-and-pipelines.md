@@ -97,6 +97,18 @@ For hver Power BI-rapport og hvert Power BI-dashbord viser **BI-dashbord** førs
 
 Visninger, og oppdateringer på kapasiteter, trenger ikke noe mer enn administrator-API-tilgangen ovenfor: tjenestekontohaveren i en sikkerhetsgruppe som **Service principals can access read-only admin APIs** tillater, uten Power BI-tillatelser på appen som krever administratorsamtykke. Når visninger eller oppdateringer ikke kan leses, blir dashbordene likevel lest og beholdt, BI-verktøyet sier hva som ble hoppet over og hvorfor, og neste lesing prøver igjen.
 
+### Varsler ved mislykkede oppdateringer
+
+Slå på **Alert on Failed Refreshes** når du legger til eller redigerer et Power BI-verktøy (et nytt starter med det slått på), så holder OneUptime én monitor for verktøyet under **Monitorer**, oppkalt etter det. Monitoren åpner et varsel for hvert datasett der den siste oppdateringen mislyktes eller ble avbrutt, med datasettet og arbeidsområdet i tittelen på varselet, og løser det så snart en senere oppdatering er fullført. Et datasett som publiseres senere, overvåkes så snart det er lest. Slår du av bryteren eller fjerner verktøyet, fjernes monitoren; frem til da er den en vanlig monitor, med eiere, vaktpolicyer og vedlikeholdsvinduer.
+
+Mislykkede oppdateringer bruker ikke pipelinemonitorene. Et datasett der oppdateringen mislyktes, fortsetter å vise dataene fra sin siste fullførte oppdatering til en senere blir fullført, så varselet blir stående åpent til da, mens varselet for en mislykket kjøring forsvinner en time etter kjøringen. Og oppdateringer leses én gang i timen: en oppdatering som leses opptil en time etter at den sluttet, ville ofte havne utenfor timen **Pipeline Run Failed** ser på, et datasett som oppdateres hver halvtime, ville stadig bli **Pipeline Is Late**, og en oppdatering som var ferdig, men ennå ikke lest, ville se ut som **Pipeline Run Unusually Long**.
+
+- Hver timelige lesing beholder datasettene der den siste avsluttede oppdateringen mislyktes eller ble avbrutt. Hvert femte minutt skriver hvert av dem `oneuptime.data.bi.refresh_failed`, 1 så lenge det feiler og 0 i timen etter at en senere oppdatering er fullført, og monitoren leser det, så én feil åpner ett varsel uansett hvor mange timelige lesinger som ser den.
+- En feil oppdages ved neste timelige lesing: varselet åpnes opptil en time etter at oppdateringen mislyktes, og løses opptil en time etter at en senere oppdatering ble fullført.
+- En oppdatering som fortsatt kjører, endrer ingenting: varselet for et datasett der oppdateringen mislyktes, forblir åpent mens neste oppdatering kjører, og løses først når en oppdatering er fullført.
+- På en kapasitet gir Power BIs liste over oppdaterbare elementer bare den siste oppdateringen av hvert datasett, så en oppdatering som mislyktes og ble fulgt av en fullført innen samme time, blir aldri sett: da er dataene ferske igjen.
+- Datasett på delt kapasitet varsler bare der oppdateringene deres kan leses (ovenfor), og et datasett der oppdateringene ikke kunne leses, beholder varselet sitt slik det var til de kan det.
+
 ## Pipelines
 
 Hver jobb, hvert dbt-prosjekt og hver synkronisering vises under **Pipelines**, med kjøringene sine: når hver startet og sluttet, hvor lang tid den tok, hvilket forsøk den var der planleggeren oppgir det (Airflows try number), og feilen fra en mislykket kjøring. Etter fem kjøringer har hver pipeline lært av sine egne kjøringer hvor lang tid en kjøring vanligvis tar, og hvor lenge det går mellom kjøringene etter tidsplanen. Siden for en pipeline anbefaler tre monitorer:
@@ -104,6 +116,8 @@ Hver jobb, hvert dbt-prosjekt og hver synkronisering vises under **Pipelines**, 
 - **Pipeline Run Failed**: en kjøring feilet eller ble avbrutt.
 - **Pipeline Run Unusually Long**: en kjøring har tatt dobbelt så lang tid som vanlig eller mer, sjekket hvert femte minutt mens den kjører, så en kjøring som henger, oppdages før den er ferdig.
 - **Pipeline Is Late**: ingen kjøring har startet på lengre tid enn tidsplanen tillater.
+
+Siden for en pipeline har kortet **Opphav**, det første stedet å se når en kjøring feiler eller er forsinket: til venstre tabellene den leser, til høyre tabellene den skriver, pipelinen imellom, og hvert kort viser hvordan det står til nå. Velg flere trinn for å se hva disse tabellene er bygget fra, og hva som er bygget fra dem, og åpne en hvilken som helst tabell for å se dens egen fane **Opphav**.
 
 ## Én sak per årsak
 
@@ -114,6 +128,10 @@ Når en tabell blir utdatert, blir hver tabell som er bygget fra den, også utda
 
 **Data**-kortet til årsaken viser **Påvirkning nedstrøms**: hvert varsel den forårsaket. Kortet for et tabellvarsel viser også tjenestene som skriver til tabellen, med de mislykkede skrivingene deres, og utrullingene og andre endringer deres i døgnet før varselet.
 
+Under **Data**-kortet har siden for et varsel kortet **Opphav**: opphavet rundt tabellen, slik fanen **Opphav** for tabellen tegner det, eller rundt pipelinen. Veien opp til varselet som forårsaket det, og ned til hvert varsel det forårsaket, er uthevet - tabellen eller pipelinen til årsaken merket **Årsak**, den til hvert forårsaket varsel merket **Følge** - og resten tones ned, slik at den som åpner det, ser hvor i kjeden problemet startet. Gjelder årsaken en hel database, eller ligger den lenger opp enn diagrammet når, sier kortet det med ord. **Utforsk opphav** åpner fanen **Opphav** for tabellen, eller siden for pipelinen.
+
+Den som ikke har tilgang til varselet som forårsaket det, får verken **Data**-kortet eller opphavet, og et forårsaket varsel vedkommende ikke har tilgang til, blir verken uthevet eller talt med.
+
 ## Før en endring slås sammen
 
 Når en pull request endrer en overvåket tabell, sier [Production Review](/docs/ai/ai-agent) på pull requesten hva som avhenger av den: tjenestene som leser den, tabellene som er bygget fra den, dashbordene på den, og dataproduktene dens. En tabell med en kopi på en database merket Staging sier også hvordan kopien er forskjellig: radene, kolonnene, og hva sjekkene til tabellen leser der, kjørt på stedet. På en database bare en sonde kan nå, utelates sjekkene, og det sies fra om det.
@@ -122,5 +140,5 @@ Når en pull request endrer en overvåket tabell, sier [Production Review](/docs
 
 :::cards
 - [Dataprodukter](/docs/data-observability/data-products): Aktualitets-SLA-er for tabellene folk bruker.
-- [OneUptime AI og API-et](/docs/data-observability/ai-and-api): Undersøkelser som starter fra skriverne og kjøringene til en tabell.
+- [OneUptime AI og API-et](/docs/data-observability/ai-and-api): Undersøkelser som starter fra skriverne og kjøringene til en tabell. I Spør AI og via AI-agenter kan du spørre hva en tabell er bygget fra.
 :::

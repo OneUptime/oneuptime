@@ -14,6 +14,13 @@ import {
  * These pin what every sender records through - the metric each signal goes
  * to, its attribute names, their bounded values, the outcome a send ends
  * with - and that recording a metric never fails a send.
+ *
+ * And what they record since: where a Slack, Microsoft Teams or Mattermost
+ * message went (notification.destination, issue #6645), how a message a
+ * provider accepted ended, when the provider tells it later
+ * (notification.delivery.count and .duration, issue #6648), and how late an
+ * on-call notification sent later went out (notification.send.lag, issue
+ * #6646).
  */
 
 interface RecordedCall {
@@ -25,6 +32,9 @@ const sendCounterCalls: Array<RecordedCall> = [];
 const sendDurationCalls: Array<RecordedCall> = [];
 const triggerCounterCalls: Array<RecordedCall> = [];
 const timeToSendCalls: Array<RecordedCall> = [];
+const deliveryCounterCalls: Array<RecordedCall> = [];
+const deliveryDurationCalls: Array<RecordedCall> = [];
+const sendLagCalls: Array<RecordedCall> = [];
 
 let failInstruments: boolean = false;
 
@@ -62,6 +72,15 @@ jest.mock("../../../../Server/Utils/Telemetry/AppMetrics", () => {
       getNotificationTimeToSend: () => {
         return instrument(timeToSendCalls);
       },
+      getNotificationDeliveryCounter: () => {
+        return instrument(deliveryCounterCalls);
+      },
+      getNotificationDeliveryDuration: () => {
+        return instrument(deliveryDurationCalls);
+      },
+      getNotificationSendLag: () => {
+        return instrument(sendLagCalls);
+      },
     },
   };
 });
@@ -78,15 +97,20 @@ import NotificationDeliveryMetrics, {
   NotificationDeliveryChannel,
   NotificationDeliveryOutcome,
   NotificationDeliveryProvider,
+  NotificationDeliveryStatus,
+  NotificationDestination,
   NotificationDispatch,
   NotificationMetricAttribute,
   NotificationProviderConfig,
+  NotificationSchedule,
   NotificationTriggerSource,
   NotificationTriggerType,
   OnCallPageStart,
 } from "../../../../Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import logger from "../../../../Server/Utils/Logger";
 import MailTransportType from "../../../../Types/Email/MailTransportType";
+import SmsStatus from "../../../../Types/SmsStatus";
+import WhatsAppStatus from "../../../../Types/WhatsAppStatus";
 import {
   ON_CALL_PAGE_CHANNELS,
   OnCallPageChannel,
@@ -99,6 +123,9 @@ beforeEach(() => {
   sendDurationCalls.length = 0;
   triggerCounterCalls.length = 0;
   timeToSendCalls.length = 0;
+  deliveryCounterCalls.length = 0;
+  deliveryDurationCalls.length = 0;
+  sendLagCalls.length = 0;
   failInstruments = false;
 });
 
@@ -674,6 +701,158 @@ describe("an on-call page's time to send", () => {
   });
 });
 
+describe("an on-call notification sent later: how late it went out", () => {
+  test("is recorded in ms with its channel, the wait it was due after and its record's type", () => {
+    NotificationDeliveryMetrics.recordSendLag({
+      channel: NotificationDeliveryChannel.Call,
+      triggerType: NotificationTriggerType.Incident,
+      schedule: NotificationSchedule.RuleWait,
+      lagInMs: 42_500,
+    });
+
+    expect(sendLagCalls).toEqual([
+      {
+        value: 42_500,
+        attributes: {
+          "notification.channel": "call",
+          "notification.schedule": "rule_wait",
+          "notification.trigger.type": "incident",
+        },
+      },
+    ]);
+  });
+
+  test("each wait, each channel and each record type is told apart", () => {
+    for (const schedule of Object.values(NotificationSchedule)) {
+      for (const channel of Object.values(NotificationDeliveryChannel)) {
+        for (const triggerType of Object.values(NotificationTriggerType)) {
+          NotificationDeliveryMetrics.recordSendLag({
+            channel: channel,
+            triggerType: triggerType,
+            schedule: schedule,
+            lagInMs: 1,
+          });
+
+          expect(sendLagCalls[sendLagCalls.length - 1]!.attributes).toEqual({
+            "notification.channel": channel,
+            "notification.schedule": schedule,
+            "notification.trigger.type": triggerType,
+          });
+        }
+      }
+    }
+  });
+
+  test("a custom channel's is told apart by its id and its trimmed name", () => {
+    NotificationDeliveryMetrics.recordSendLag({
+      channel: NotificationDeliveryChannel.CustomChannel,
+      customChannel: { id: CUSTOM_CHANNEL_ID, name: "  CorpoApp  " },
+      triggerType: NotificationTriggerType.Alert,
+      schedule: NotificationSchedule.Repeat,
+      lagInMs: 900,
+    });
+
+    expect(sendLagCalls[0]!.attributes).toEqual({
+      "notification.channel": "custom_channel",
+      "notification.schedule": "repeat",
+      "notification.trigger.type": "alert",
+      "notification.custom_channel.id": CUSTOM_CHANNEL_ID,
+      "notification.custom_channel.name": "CorpoApp",
+    });
+  });
+
+  test("a custom channel's long name is cut to a bounded length", () => {
+    NotificationDeliveryMetrics.recordSendLag({
+      channel: NotificationDeliveryChannel.CustomChannel,
+      customChannel: { id: CUSTOM_CHANNEL_ID, name: "x".repeat(500) },
+      schedule: NotificationSchedule.Escalation,
+      lagInMs: 900,
+    });
+
+    expect(
+      sendLagCalls[0]!.attributes["notification.custom_channel.name"],
+    ).toHaveLength(MAX_CUSTOM_CHANNEL_NAME_LENGTH);
+  });
+
+  test("with no record type, none is carried", () => {
+    NotificationDeliveryMetrics.recordSendLag({
+      channel: NotificationDeliveryChannel.Push,
+      schedule: NotificationSchedule.PolicyRepeat,
+      lagInMs: 61_000,
+    });
+
+    expect(sendLagCalls[0]!.attributes).toEqual({
+      "notification.channel": "push",
+      "notification.schedule": "policy_repeat",
+    });
+  });
+
+  test("carries no project, person, record or notification: only bounded attributes", () => {
+    NotificationDeliveryMetrics.recordSendLag({
+      channel: NotificationDeliveryChannel.CustomChannel,
+      customChannel: { id: CUSTOM_CHANNEL_ID, name: "CorpoApp" },
+      triggerType: NotificationTriggerType.IncidentEpisode,
+      schedule: NotificationSchedule.Escalation,
+      lagInMs: 5,
+    });
+
+    expect(Object.keys(sendLagCalls[0]!.attributes).sort()).toEqual([
+      "notification.channel",
+      "notification.custom_channel.id",
+      "notification.custom_channel.name",
+      "notification.schedule",
+      "notification.trigger.type",
+    ]);
+  });
+
+  test("a lag below zero - two servers' clocks a little apart - is recorded as zero", () => {
+    NotificationDeliveryMetrics.recordSendLag({
+      channel: NotificationDeliveryChannel.SMS,
+      schedule: NotificationSchedule.RuleWait,
+      lagInMs: -120,
+    });
+
+    expect(sendLagCalls[0]!.value).toBe(0);
+  });
+
+  test("a lag that is not a number is not recorded", () => {
+    for (const lagInMs of [NaN, Infinity, -Infinity]) {
+      NotificationDeliveryMetrics.recordSendLag({
+        channel: NotificationDeliveryChannel.SMS,
+        schedule: NotificationSchedule.RuleWait,
+        lagInMs: lagInMs,
+      });
+    }
+
+    expect(sendLagCalls).toHaveLength(0);
+  });
+
+  test("goes to its own metric: no time to send, no send counted", () => {
+    NotificationDeliveryMetrics.recordSendLag({
+      channel: NotificationDeliveryChannel.SMS,
+      schedule: NotificationSchedule.RuleWait,
+      lagInMs: 10,
+    });
+
+    expect(sendLagCalls).toHaveLength(1);
+    expect(timeToSendCalls).toHaveLength(0);
+    expect(sendCounterCalls).toHaveLength(0);
+  });
+
+  test("an instrument that throws is logged and dropped", () => {
+    failInstruments = true;
+
+    expect(() => {
+      NotificationDeliveryMetrics.recordSendLag({
+        channel: NotificationDeliveryChannel.Call,
+        schedule: NotificationSchedule.Escalation,
+        lagInMs: 10,
+      });
+    }).not.toThrow();
+    expect(logger.debug).toHaveBeenCalled();
+  });
+});
+
 describe("recording never fails a send", () => {
   test("an instrument that throws is logged and dropped", async () => {
     failInstruments = true;
@@ -691,9 +870,25 @@ describe("recording never fails a send", () => {
         pageStart: OnCallPageStart.RecordCreated,
         timeToSendInMs: 10,
       });
+      NotificationDeliveryMetrics.recordSendLag({
+        channel: NotificationDeliveryChannel.SMS,
+        schedule: NotificationSchedule.Escalation,
+        lagInMs: 10,
+      });
       NotificationDeliveryMetrics.startDispatch({
         channel: NotificationDeliveryChannel.SMS,
       }).end(NotificationDeliveryOutcome.Success);
+      NotificationDeliveryMetrics.recordFailedBeforeSend({
+        channel: NotificationDeliveryChannel.Slack,
+        destination: NotificationDestination.Channel,
+      });
+      NotificationDeliveryMetrics.recordDelivery({
+        channel: NotificationDeliveryChannel.SMS,
+        provider: NotificationDeliveryProvider.Twilio,
+        isOnCallPage: true,
+        status: NotificationDeliveryStatus.Delivered,
+        timeToStatusInMs: 1200,
+      });
     }).not.toThrow();
 
     const value: string = await NotificationDeliveryMetrics.measureDispatch(
@@ -746,6 +941,7 @@ describe("one spelling for every channel, provider and outcome", () => {
     ["trigger type", Object.values(NotificationTriggerType)],
     ["trigger source", Object.values(NotificationTriggerSource)],
     ["page start", Object.values(OnCallPageStart)],
+    ["schedule", Object.values(NotificationSchedule)],
   ])(
     "every %s value is lower snake case, and unique",
     (_name: string, values: Array<string>) => {
@@ -764,6 +960,16 @@ describe("one spelling for every channel, provider and outcome", () => {
     expect(NotificationDeliveryChannel.Call).toBe("call");
     expect(NotificationMetricAttribute.Channel).toBe("notification.channel");
     expect(NotificationMetricAttribute.Outcome).toBe("outcome");
+  });
+
+  test("a notification sent later is told apart by the wait it was due after", () => {
+    expect(NotificationMetricAttribute.Schedule).toBe("notification.schedule");
+    expect(Object.values(NotificationSchedule).sort()).toEqual([
+      "escalation",
+      "policy_repeat",
+      "repeat",
+      "rule_wait",
+    ]);
   });
 
   test("the probe's monitor type attribute is the one triggers use", () => {
@@ -856,5 +1062,438 @@ describe("every on-call channel and every mail transport is counted", () => {
         "Fax" as unknown as MailTransportType,
       ),
     ).toBe("smtp");
+  });
+});
+
+describe("where a chat message went (issue #6645)", () => {
+  test("a send that says where it went carries it as notification.destination", () => {
+    expect(
+      NotificationDeliveryMetrics.getDispatchAttributes({
+        channel: NotificationDeliveryChannel.Slack,
+        provider: NotificationDeliveryProvider.Slack,
+        providerConfig: NotificationProviderConfig.Project,
+        isOnCallPage: false,
+        destination: NotificationDestination.Channel,
+        outcome: NotificationDeliveryOutcome.Success,
+      }),
+    ).toEqual({
+      "notification.channel": "slack",
+      "notification.provider": "slack",
+      "notification.provider.config": "project",
+      "notification.on_call_page": "false",
+      "notification.destination": "channel",
+      outcome: "success",
+    });
+  });
+
+  test("a send that does not - every channel but the three chats - carries no destination at all", () => {
+    expect(
+      NotificationDeliveryMetrics.getDispatchAttributes({
+        channel: NotificationDeliveryChannel.Email,
+        provider: NotificationDeliveryProvider.SMTP,
+        providerConfig: NotificationProviderConfig.Global,
+        isOnCallPage: false,
+        outcome: NotificationDeliveryOutcome.Success,
+      }),
+    ).not.toHaveProperty("notification.destination");
+  });
+
+  test("a dispatch started with a destination records it on its send and its duration", () => {
+    NotificationDeliveryMetrics.startDispatch({
+      channel: NotificationDeliveryChannel.MicrosoftTeams,
+      provider: NotificationDeliveryProvider.MicrosoftTeams,
+      providerConfig: NotificationProviderConfig.Project,
+      destination: NotificationDestination.IncomingWebhook,
+    }).end(NotificationDeliveryOutcome.Failure);
+
+    expect(lastSendAttributes()).toEqual({
+      "notification.channel": "microsoft_teams",
+      "notification.provider": "microsoft_teams",
+      "notification.provider.config": "project",
+      "notification.on_call_page": "false",
+      "notification.destination": "incoming_webhook",
+      outcome: "failure",
+    });
+    expect(sendDurationCalls[0]!.attributes).toEqual(lastSendAttributes());
+  });
+
+  test("a message not sent says where it would have gone", () => {
+    NotificationDeliveryMetrics.recordNotSent({
+      channel: NotificationDeliveryChannel.Mattermost,
+      provider: NotificationDeliveryProvider.Mattermost,
+      providerConfig: NotificationProviderConfig.Project,
+      destination: NotificationDestination.Channel,
+    });
+
+    expect(lastSendAttributes()).toMatchObject({
+      "notification.destination": "channel",
+      outcome: "not_sent",
+    });
+    expect(sendDurationCalls).toHaveLength(0);
+  });
+});
+
+describe("a message that failed before it reached its provider", () => {
+  test("is counted as a failure, with no duration: the send duration is how long providers take", () => {
+    NotificationDeliveryMetrics.recordFailedBeforeSend({
+      channel: NotificationDeliveryChannel.Slack,
+      provider: NotificationDeliveryProvider.Slack,
+      providerConfig: NotificationProviderConfig.Project,
+      destination: NotificationDestination.Channel,
+    });
+
+    expect(sendCounterCalls).toEqual([
+      {
+        value: 1,
+        attributes: {
+          "notification.channel": "slack",
+          "notification.provider": "slack",
+          "notification.provider.config": "project",
+          "notification.on_call_page": "false",
+          "notification.destination": "channel",
+          outcome: "failure",
+        },
+      },
+    ]);
+    expect(sendDurationCalls).toHaveLength(0);
+  });
+
+  test("with nothing more said: by no provider, on the server's own account, as no page", () => {
+    NotificationDeliveryMetrics.recordFailedBeforeSend({
+      channel: NotificationDeliveryChannel.MicrosoftTeams,
+    });
+
+    expect(lastSendAttributes()).toEqual({
+      "notification.channel": "microsoft_teams",
+      "notification.provider": "none",
+      "notification.provider.config": "global",
+      "notification.on_call_page": "false",
+      outcome: "failure",
+    });
+  });
+
+  test("never touches the final-status metrics", () => {
+    NotificationDeliveryMetrics.recordFailedBeforeSend({
+      channel: NotificationDeliveryChannel.Slack,
+    });
+
+    expect(deliveryCounterCalls).toHaveLength(0);
+    expect(deliveryDurationCalls).toHaveLength(0);
+  });
+});
+
+describe("how a message a provider accepted ended (issue #6648)", () => {
+  test("is counted once with its channel, provider, account, whether it was a page, and its status as outcome", () => {
+    NotificationDeliveryMetrics.recordDelivery({
+      channel: NotificationDeliveryChannel.SMS,
+      provider: NotificationDeliveryProvider.Twilio,
+      providerConfig: NotificationProviderConfig.Project,
+      isOnCallPage: true,
+      status: NotificationDeliveryStatus.Undelivered,
+      timeToStatusInMs: 4200,
+    });
+
+    expect(deliveryCounterCalls).toEqual([
+      {
+        value: 1,
+        attributes: {
+          "notification.channel": "sms",
+          "notification.provider": "twilio",
+          "notification.provider.config": "project",
+          "notification.on_call_page": "true",
+          outcome: "undelivered",
+        },
+      },
+    ]);
+    expect(deliveryDurationCalls).toEqual([
+      { value: 4200, attributes: deliveryCounterCalls[0]!.attributes },
+    ]);
+  });
+
+  test("never touches the send metrics", () => {
+    NotificationDeliveryMetrics.recordDelivery({
+      channel: NotificationDeliveryChannel.Call,
+      provider: NotificationDeliveryProvider.Twilio,
+      isOnCallPage: true,
+      status: NotificationDeliveryStatus.Answered,
+      timeToStatusInMs: 12000,
+    });
+
+    expect(sendCounterCalls).toHaveLength(0);
+    expect(sendDurationCalls).toHaveLength(0);
+    expect(triggerCounterCalls).toHaveLength(0);
+    expect(timeToSendCalls).toHaveLength(0);
+  });
+
+  test("with no account said: the server's own", () => {
+    NotificationDeliveryMetrics.recordDelivery({
+      channel: NotificationDeliveryChannel.Push,
+      provider: NotificationDeliveryProvider.Expo,
+      isOnCallPage: false,
+      status: NotificationDeliveryStatus.Delivered,
+    });
+
+    expect(deliveryCounterCalls[0]!.attributes).toEqual({
+      "notification.channel": "push",
+      "notification.provider": "expo",
+      "notification.provider.config": "global",
+      "notification.on_call_page": "false",
+      outcome: "delivered",
+    });
+  });
+
+  test("with no time known - a push's receipt says none - it is counted, not timed", () => {
+    NotificationDeliveryMetrics.recordDelivery({
+      channel: NotificationDeliveryChannel.Push,
+      provider: NotificationDeliveryProvider.PushRelay,
+      isOnCallPage: true,
+      status: NotificationDeliveryStatus.Failed,
+    });
+
+    expect(deliveryCounterCalls).toHaveLength(1);
+    expect(deliveryDurationCalls).toHaveLength(0);
+  });
+
+  test.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    "a time of %s is not a time: counted, not timed",
+    (time: number) => {
+      NotificationDeliveryMetrics.recordDelivery({
+        channel: NotificationDeliveryChannel.WhatsApp,
+        provider: NotificationDeliveryProvider.MetaWhatsApp,
+        isOnCallPage: false,
+        status: NotificationDeliveryStatus.Delivered,
+        timeToStatusInMs: time,
+      });
+
+      expect(deliveryCounterCalls).toHaveLength(1);
+      expect(deliveryDurationCalls).toHaveLength(0);
+    },
+  );
+
+  test("a time below zero - two servers' clocks a little apart - is recorded as zero", () => {
+    NotificationDeliveryMetrics.recordDelivery({
+      channel: NotificationDeliveryChannel.SMS,
+      provider: NotificationDeliveryProvider.Twilio,
+      isOnCallPage: false,
+      status: NotificationDeliveryStatus.Delivered,
+      timeToStatusInMs: -350,
+    });
+
+    expect(deliveryDurationCalls[0]!.value).toBe(0);
+  });
+
+  test("a time of zero is a time", () => {
+    NotificationDeliveryMetrics.recordDelivery({
+      channel: NotificationDeliveryChannel.Call,
+      provider: NotificationDeliveryProvider.Twilio,
+      isOnCallPage: true,
+      status: NotificationDeliveryStatus.Answered,
+      timeToStatusInMs: 0,
+    });
+
+    expect(deliveryDurationCalls).toEqual([
+      { value: 0, attributes: deliveryCounterCalls[0]!.attributes },
+    ]);
+  });
+
+  test("an instrument that throws is logged and dropped - a callback is never failed by its metric", () => {
+    failInstruments = true;
+
+    expect(() => {
+      NotificationDeliveryMetrics.recordDelivery({
+        channel: NotificationDeliveryChannel.SMS,
+        provider: NotificationDeliveryProvider.Twilio,
+        isOnCallPage: true,
+        status: NotificationDeliveryStatus.Delivered,
+        timeToStatusInMs: 900,
+      });
+    }).not.toThrow();
+
+    expect(logger.debug).toHaveBeenCalled();
+  });
+
+  test("its attributes, on their own", () => {
+    expect(
+      NotificationDeliveryMetrics.getDeliveryAttributes({
+        channel: NotificationDeliveryChannel.Call,
+        provider: NotificationDeliveryProvider.Twilio,
+        isOnCallPage: false,
+        status: NotificationDeliveryStatus.NotAnswered,
+      }),
+    ).toEqual({
+      "notification.channel": "call",
+      "notification.provider": "twilio",
+      "notification.provider.config": "global",
+      "notification.on_call_page": "false",
+      outcome: "not_answered",
+    });
+  });
+});
+
+describe("how long ago a message's log was written", () => {
+  const NOW: Date = new Date("2026-11-10T12:00:00.000Z");
+
+  test("is the time from the log to now", () => {
+    expect(
+      NotificationDeliveryMetrics.getMillisecondsSince(
+        new Date("2026-11-10T11:59:57.500Z"),
+        NOW,
+      ),
+    ).toBe(2500);
+  });
+
+  test("a log written after now - two clocks - is below zero, for recordDelivery to make zero", () => {
+    expect(
+      NotificationDeliveryMetrics.getMillisecondsSince(
+        new Date("2026-11-10T12:00:01.000Z"),
+        NOW,
+      ),
+    ).toBe(-1000);
+  });
+
+  test("a time read back as text is read as a time", () => {
+    expect(
+      NotificationDeliveryMetrics.getMillisecondsSince(
+        "2026-11-10T11:59:00.000Z" as unknown as Date,
+        NOW,
+      ),
+    ).toBe(60000);
+  });
+
+  test.each([
+    ["no time", undefined],
+    ["null", null],
+    ["a time that is not one", new Date("not a date")],
+    ["text that is not a time", "yesterday-ish" as unknown as Date],
+  ])("%s: not known", (_name: string, writtenAt: Date | null | undefined) => {
+    expect(
+      NotificationDeliveryMetrics.getMillisecondsSince(writtenAt, NOW),
+    ).toBeUndefined();
+  });
+
+  test("is measured to the clock's now, unless told otherwise", () => {
+    const since: number | undefined =
+      NotificationDeliveryMetrics.getMillisecondsSince(
+        new Date(Date.now() - 5000),
+      );
+
+    expect(since).toBeGreaterThanOrEqual(5000);
+    expect(since).toBeLessThan(5000 + 60000);
+  });
+});
+
+describe("the final status a log's status is", () => {
+  const SMS_FINAL: Record<string, NotificationDeliveryStatus> = {
+    [SmsStatus.Delivered]: NotificationDeliveryStatus.Delivered,
+    [SmsStatus.Undelivered]: NotificationDeliveryStatus.Undelivered,
+    [SmsStatus.Failed]: NotificationDeliveryStatus.Failed,
+  };
+
+  test.each(Object.values(SmsStatus))("an SMS at %s", (status: SmsStatus) => {
+    expect(NotificationDeliveryMetrics.getDeliveryStatusOfSms(status)).toBe(
+      SMS_FINAL[status] ?? null,
+    );
+  });
+
+  test("an SMS with no status has none", () => {
+    expect(
+      NotificationDeliveryMetrics.getDeliveryStatusOfSms(undefined),
+    ).toBeNull();
+    expect(NotificationDeliveryMetrics.getDeliveryStatusOfSms(null)).toBeNull();
+  });
+
+  test("an SMS that could not be sent - an error, too little balance - is not a status Twilio reported", () => {
+    expect(
+      NotificationDeliveryMetrics.getDeliveryStatusOfSms(SmsStatus.Error),
+    ).toBeNull();
+    expect(
+      NotificationDeliveryMetrics.getDeliveryStatusOfSms(SmsStatus.LowBalance),
+    ).toBeNull();
+  });
+
+  const WHATSAPP_FINAL: Record<string, NotificationDeliveryStatus> = {
+    [WhatsAppStatus.Delivered]: NotificationDeliveryStatus.Delivered,
+    [WhatsAppStatus.Read]: NotificationDeliveryStatus.Delivered,
+    [WhatsAppStatus.Failed]: NotificationDeliveryStatus.Failed,
+  };
+
+  test.each(Object.values(WhatsAppStatus))(
+    "a WhatsApp message at %s",
+    (status: WhatsAppStatus) => {
+      expect(
+        NotificationDeliveryMetrics.getDeliveryStatusOfWhatsApp(status),
+      ).toBe(WHATSAPP_FINAL[status] ?? null);
+    },
+  );
+
+  test("a WhatsApp message read was delivered: it is counted as delivered", () => {
+    expect(
+      NotificationDeliveryMetrics.getDeliveryStatusOfWhatsApp(
+        WhatsAppStatus.Read,
+      ),
+    ).toBe(NotificationDeliveryStatus.Delivered);
+  });
+
+  test("a WhatsApp message with no status has none", () => {
+    expect(
+      NotificationDeliveryMetrics.getDeliveryStatusOfWhatsApp(undefined),
+    ).toBeNull();
+    expect(
+      NotificationDeliveryMetrics.getDeliveryStatusOfWhatsApp(null),
+    ).toBeNull();
+  });
+});
+
+/*
+ * The values the docs (issue #6644) and anybody's dashboards and SLOs are
+ * written against: each one spelled once, here.
+ */
+describe("the spelling of the destination and the final statuses", () => {
+  const SNAKE_CASE: RegExp = /^[a-z]+(_[a-z]+)*$/;
+
+  test("the destination attribute's name", () => {
+    expect(NotificationMetricAttribute.Destination).toBe(
+      "notification.destination",
+    );
+  });
+
+  test("the destinations", () => {
+    expect(Object.values(NotificationDestination).sort()).toEqual([
+      "channel",
+      "direct_message",
+      "incoming_webhook",
+    ]);
+  });
+
+  test("the final statuses", () => {
+    expect(Object.values(NotificationDeliveryStatus).sort()).toEqual([
+      "answered",
+      "delivered",
+      "failed",
+      "not_answered",
+      "undelivered",
+    ]);
+  });
+
+  test.each([
+    ["destination", Object.values(NotificationDestination)],
+    ["final status", Object.values(NotificationDeliveryStatus)],
+  ])(
+    "every %s value is lower snake case, and unique",
+    (_name: string, values: Array<string>) => {
+      for (const value of values) {
+        expect(value).toMatch(SNAKE_CASE);
+      }
+
+      expect(new Set(values).size).toBe(values.length);
+    },
+  );
+
+  test("no final status is spelled as a send's outcome: the two metrics' outcomes are told apart", () => {
+    for (const status of Object.values(NotificationDeliveryStatus)) {
+      expect(
+        Object.values(NotificationDeliveryOutcome) as Array<string>,
+      ).not.toContain(status);
+    }
   });
 });

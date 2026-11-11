@@ -401,6 +401,47 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
     ],
   },
   {
+    name: "Product Analytics",
+    group: WidgetCategoryGroup.Observability,
+    icon: IconProp.PresentationChartLine,
+    description:
+      "Funnels and retention tables saved on a RUM application's product analytics pages.",
+    items: [
+      {
+        type: DashboardComponentType.ProductAnalyticsFunnel,
+        label: "Funnel",
+        icon: IconProp.Funnel,
+        // Within a card's two lines, as its neighbours' are.
+        description:
+          "A saved funnel: how many people went on from each step to the next.",
+        keywords: [
+          "conversion",
+          "drop off",
+          "steps",
+          "rum",
+          "product analytics",
+          "saved funnel",
+        ],
+      },
+      {
+        type: DashboardComponentType.ProductAnalyticsRetention,
+        // As its page is named: "Retention" alone reads as data retention.
+        label: "User Retention",
+        icon: IconProp.TableCells,
+        description:
+          "A saved retention table: how many came back, period by period.",
+        keywords: [
+          "cohort",
+          "user retention",
+          "came back",
+          "churn",
+          "rum",
+          "product analytics",
+        ],
+      },
+    ],
+  },
+  {
     name: "Hosts",
     group: WidgetCategoryGroup.Infrastructure,
     icon: IconProp.Server,

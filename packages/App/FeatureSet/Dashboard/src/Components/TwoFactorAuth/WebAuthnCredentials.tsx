@@ -14,14 +14,69 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
-import WebAuthn from "Common/UI/Utils/WebAuthn";
+import WebAuthn, {
+  WEBAUTHN_ALREADY_REGISTERED,
+  WEBAUTHN_NEEDS_SECURE_CONNECTION,
+  WEBAUTHN_NOT_SUPPORTED,
+  WEBAUTHN_REGISTRATION_CANCELED,
+  WEBAUTHN_REGISTRATION_FAILED,
+} from "Common/UI/Utils/WebAuthn";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import FieldLabel from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Input from "Common/UI/Components/Input/Input";
 import Modal from "Common/UI/Components/Modal/Modal";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 
 type RegistrationStep = "preparing" | "prompt" | "saving";
+
+/*
+ * WebAuthn words a registration's errors for a passkey. The security keys
+ * card names its own kind, each in a sentence of its own, so the reader's
+ * language words the whole sentence.
+ */
+const SECURITY_KEY_ERRORS: Record<string, string> = {
+  [WEBAUTHN_NEEDS_SECURE_CONNECTION]: translationKey(
+    "Security keys require a secure connection. Open OneUptime using HTTPS, or sign in with your password.",
+  ),
+  [WEBAUTHN_NOT_SUPPORTED]: translationKey(
+    "This browser does not support security keys. Use a supported browser or sign in with your password.",
+  ),
+  [WEBAUTHN_REGISTRATION_CANCELED]: translationKey(
+    "Security key registration was canceled or timed out. Try again when you are ready.",
+  ),
+  [WEBAUTHN_ALREADY_REGISTERED]: translationKey(
+    "This authenticator is already registered. Choose a different authenticator or use your existing security key.",
+  ),
+  [WEBAUTHN_REGISTRATION_FAILED]: translationKey(
+    "Unable to complete security key registration. Please try again.",
+  ),
+};
+
+const PASSKEY_WORD: RegExp = /Passkey/g;
+const PASSKEY_WORD_IN_SENTENCE: RegExp = /passkey/g;
+
+// A registration error as the card names its kind, in English.
+const getRegistrationError: (error: unknown, isPasskey: boolean) => string = (
+  error: unknown,
+  isPasskey: boolean,
+): string => {
+  const message: string = WebAuthn.getErrorMessage(error, "registration");
+
+  if (isPasskey) {
+    return message;
+  }
+
+  return (
+    SECURITY_KEY_ERRORS[message] ||
+    message
+      .replace(PASSKEY_WORD, "Security key")
+      .replace(PASSKEY_WORD_IN_SENTENCE, "security key")
+  );
+};
 
 export interface ComponentProps {
   isPasskey: boolean;
@@ -31,6 +86,7 @@ export interface ComponentProps {
 const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isRegisteringPasskey: boolean = props.isPasskey;
   const [credentialCount, setCredentialCount] = React.useState<number | null>(
     null,
@@ -109,7 +165,9 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
 
     const name: string = webAuthnRegistrationName.trim();
     if (!name) {
-      setWebAuthnRegistrationNameError("Enter a name to recognize this key.");
+      setWebAuthnRegistrationNameError(
+        translator.translateText("Enter a name to recognize this key."),
+      );
       return;
     }
 
@@ -171,7 +229,9 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
       setShowWebAuthnRegistrationModal(false);
       setWebAuthnRegistrationSuccess(
         isRegisteringPasskey
-          ? "Passkey added. Use it the next time you sign in."
+          ? (translator.translateText(
+              "Passkey added. Use it the next time you sign in.",
+            ) as string)
           : null,
       );
       setTableRefreshToggle((previous: string) => {
@@ -179,12 +239,11 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
       });
     } catch (err) {
       if (!controller.signal.aborted) {
+        // OneUptime's own sentences in the reader's words; the server's as sent.
         setWebAuthnRegistrationError(
-          isRegisteringPasskey
-            ? WebAuthn.getErrorMessage(err, "registration")
-            : WebAuthn.getErrorMessage(err, "registration")
-                .replace(/Passkey/g, "Security key")
-                .replace(/passkey/g, "security key"),
+          translator.translateText(
+            getRegistrationError(err, isRegisteringPasskey),
+          ) as string,
         );
       }
     } finally {
@@ -259,13 +318,17 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
             </span>
             <p className="mt-3 font-medium text-gray-900">
               {props.isPasskey
-                ? "No passkeys added yet."
-                : "No security keys added yet."}
+                ? translator.translateText("No passkeys added yet.")
+                : translator.translateText("No security keys added yet.")}
             </p>
             <p className="mt-1 text-sm text-gray-500">
               {props.isPasskey
-                ? "Add a passkey for a faster, more secure sign-in."
-                : "Add a USB or NFC security key to protect your account."}
+                ? translator.translateText(
+                    "Add a passkey for a faster, more secure sign-in.",
+                  )
+                : translator.translateText(
+                    "Add a USB or NFC security key to protect your account.",
+                  )}
             </p>
           </div>
         }
@@ -281,7 +344,9 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
             customValidation: (values: FormValues<UserWebAuthn>) => {
               return String(values.name || "").trim()
                 ? null
-                : "Enter a name to recognize this key.";
+                : (translator.translateText(
+                    "Enter a name to recognize this key.",
+                  ) as string);
             },
           },
         ]}
@@ -291,6 +356,8 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
             title: "Name",
             type: FieldType.Text,
             wrapContent: true,
+            // A mark beside the name: the name reads its own way, the cell the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (item: UserWebAuthn): ReactElement => {
               return (
                 <div className="flex items-center gap-3">
@@ -303,7 +370,9 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
                     />
                   </span>
                   <div className="min-w-0">
-                    <p className="font-medium text-gray-900">{item.name}</p>
+                    <p className="font-medium text-gray-900">
+                      <IsolatedText text={item.name || ""} />
+                    </p>
                   </div>
                 </div>
               );
@@ -325,7 +394,9 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
                   {item.isVerified ? (
                     <Icon icon={IconProp.CheckCircle} className="h-3.5 w-3.5" />
                   ) : null}
-                  {item.isVerified ? "Ready" : "Setup incomplete"}
+                  {item.isVerified
+                    ? translator.translateText("Ready")
+                    : translator.translateText("Setup incomplete")}
                 </span>
               );
             },
@@ -385,8 +456,12 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
             />
             <p id="passkey-name-hint" className="mt-2 text-sm text-gray-500">
               {isRegisteringPasskey
-                ? "Choose a name you will recognize later, such as your device or password manager."
-                : "Choose a name you will recognize later, such as Work YubiKey."}
+                ? translator.translateText(
+                    "Choose a name you will recognize later, such as your device or password manager.",
+                  )
+                : translator.translateText(
+                    "Choose a name you will recognize later, such as Work YubiKey.",
+                  )}
             </p>
             {webAuthnRegistrationError && (
               <Alert
@@ -402,10 +477,14 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
                 className="mt-4 rounded-md bg-indigo-50 p-3 text-sm text-indigo-800"
               >
                 {webAuthnRegistrationStep === "preparing"
-                  ? "Preparing registration…"
+                  ? translator.translateText("Preparing registration…")
                   : webAuthnRegistrationStep === "prompt"
-                    ? "Follow the prompt from your browser or device. You can cancel and try again."
-                    : "Saving your key. Keep this window open for a moment…"}
+                    ? translator.translateText(
+                        "Follow the prompt from your browser or device. You can cancel and try again.",
+                      )
+                    : translator.translateText(
+                        "Saving your key. Keep this window open for a moment…",
+                      )}
               </p>
             )}
           </div>

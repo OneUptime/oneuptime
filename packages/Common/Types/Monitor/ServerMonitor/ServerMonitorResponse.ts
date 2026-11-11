@@ -21,8 +21,18 @@ export default interface ServerMonitorResponse {
   monitorId: ObjectID;
   hostname: string; // Hostname of the server
   basicInfrastructureMetrics?: BasicInfrastructureMetrics | undefined;
+  /*
+   * When the report was evaluated - what the online check counts from, so
+   * a backed-up queue cannot make a live server look silent.
+   */
   requestReceivedAt: Date;
   onlyCheckRequestReceivedAt: boolean;
+  /*
+   * When OneUptime's ingest API received the report, before the queue it
+   * waited in: a page its evaluation starts is timed from then
+   * (OnCallPageTiming). Set by OneUptime, never by the agent.
+   */
+  dataReceivedAt?: Date | undefined;
   processes?: ServerProcess[] | undefined;
   failureCause?: string | undefined;
   timeNow?: Date | undefined; // Time when the response was generated

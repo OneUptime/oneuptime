@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 49075,
-    "untranslated": 2433
+    "keys": 49779,
+    "untranslated": 2588
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -429,6 +429,7 @@
     "V3",
     "VIP",
     "VLAN",
+    "VLAN {{vlanId}}",
     "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
@@ -671,6 +672,7 @@
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
     "{{value}} ms",
+    "{{value}} s",
     "μs",
     "≤ 1000 ms",
     "≤ 150 ms",

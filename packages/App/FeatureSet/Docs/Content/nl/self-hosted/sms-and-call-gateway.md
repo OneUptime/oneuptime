@@ -125,4 +125,5 @@ In het sms- of oproeplogboek, en bij een dienstmelding in het bereikbaarheidslog
 - [Pushmeldingen](/docs/self-hosted/push-notifications): Push uitzetten voor de hele server.
 - [Twilio-integratie](/docs/self-hosted/twilio-integration): In plaats daarvan via Twilio versturen.
 - [Toegang tot privénetwerk](/docs/self-hosted/private-network-access): Wat uw server op uw eigen netwerk mag bereiken.
+- [Metrics voor de bezorging van meldingen](/docs/self-hosted/notification-delivery-metrics): De berichten tellen die uw gateway accepteert en weigert.
 :::

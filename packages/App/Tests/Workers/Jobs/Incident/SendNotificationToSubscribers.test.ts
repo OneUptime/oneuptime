@@ -3593,6 +3593,7 @@ describe("Incident:SendNotificationToSubscribers tells each webhook send who add
   }): StatusPageSubscriber {
     const row: StatusPageSubscriber = subscriber();
     row._id = new ObjectID(data.id).toString();
+    // A webhook subscriber only: none of the other channels.
     delete row.subscriberEmail;
     delete row.subscriberPhone;
     delete row.slackIncomingWebhookUrl;

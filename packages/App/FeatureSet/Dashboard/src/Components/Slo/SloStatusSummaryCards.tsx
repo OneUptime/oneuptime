@@ -17,6 +17,11 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -70,6 +75,7 @@ export function hasAnySlo(counts: SloStatusSummaryCounts): boolean {
 const SloStatusSummaryCards: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [counts, setCounts] = useState<SloStatusSummaryCounts | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
@@ -181,7 +187,7 @@ const SloStatusSummaryCards: FunctionComponent<ComponentProps> = (
     <div
       data-testid="slo-status-summary-cards"
       role="group"
-      aria-label="SLO status summary"
+      aria-label={translator.translateTemplate("SLO status summary")}
       className="mb-5 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6"
     >
       {SLO_STATUS_SUMMARY_TILES.map((tile: SloStatusSummaryTile) => {
@@ -212,11 +218,15 @@ const SloStatusSummaryCards: FunctionComponent<ComponentProps> = (
              * Says what the tile contributes, not that the list equals it: the
              * Owner and Labels chips still layer on top.
              */
-            ariaLabel={
+            ariaLabel={translator.translateTemplate(
               isSelected
-                ? `${tile.label}: ${count}. Filtering the SLO list below - activate to remove this filter.`
-                : `${tile.label}: ${count}. Activate to filter the SLO list below to these SLOs.`
-            }
+                ? "{{status}}: {{count}}. Filtering the SLO list below - activate to remove this filter."
+                : "{{status}}: {{count}}. Activate to filter the SLO list below to these SLOs.",
+              {
+                status: translatableTerm(tile.label),
+                count: translator.formatNumber(count),
+              },
+            )}
             value={
               isLoading ? (
                 <div className="mt-1 space-y-2">
@@ -242,7 +252,7 @@ const SloStatusSummaryCards: FunctionComponent<ComponentProps> = (
                           getSloStatusSummaryTileColor(tile).toString(),
                       }}
                     ></span>
-                    <span>{tile.caption}</span>
+                    <span>{translator.translateText(tile.caption)}</span>
                   </div>
                 </div>
               )

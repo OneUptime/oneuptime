@@ -3,13 +3,13 @@
 An offline harness for adding hosts the way OneUptime does it by default (one command on the
 host) and for the collectors OneUptime manages on them.
 
-| Page                    | Route (from `RouteMap`)                                                  | Production components                                    |
-| ----------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------- |
-| Hosts, Add Host         | `HOSTS` `/dashboard/:projectId/host`                                     | `Pages/Host/Layout` and `Pages/Host/Hosts`               |
-| Collector Configs       | `HOST_COLLECTOR_CONFIGS` `/dashboard/:projectId/host/collector-configs`  | `Pages/Host/CollectorConfigs`                            |
-| A Collector Config      | `HOST_COLLECTOR_CONFIG_VIEW` `.../collector-configs/:id`                 | `Pages/Host/CollectorConfigView`                         |
-| Hosts > Documentation   | `HOST_DOCUMENTATION` `/dashboard/:projectId/host/documentation`          | `Pages/Host/Documentation`                               |
-| A host's Collector page | `HOST_VIEW_DOCUMENTATION` `/dashboard/:projectId/host/:id/documentation` | `Pages/Host/View/Layout` and `Pages/Host/View/Collector` |
+| Page                              | Route (from `RouteMap`)                                                  | Production components                                    |
+| --------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------- |
+| Hosts, Add Host                   | `HOSTS` `/dashboard/:projectId/host`                                     | `Pages/Host/Layout` and `Pages/Host/Hosts`               |
+| Configuration > Collector Configs | `HOST_COLLECTOR_CONFIGS` `/dashboard/:projectId/host/collector-configs`  | `Pages/Host/CollectorConfigs`                            |
+| A Collector Config                | `HOST_COLLECTOR_CONFIG_VIEW` `.../collector-configs/:id`                 | `Pages/Host/CollectorConfigView`                         |
+| Hosts > Documentation             | `HOST_DOCUMENTATION` `/dashboard/:projectId/host/documentation`          | `Pages/Host/Documentation`                               |
+| A host's Collector page           | `HOST_VIEW_DOCUMENTATION` `/dashboard/:projectId/host/:id/documentation` | `Pages/Host/View/Layout` and `Pages/Host/View/Collector` |
 
 Run from `packages/E2E`:
 
@@ -22,7 +22,10 @@ same Tailwind build, `tailwind.config`, `Theme.css` and Inter production uses, a
 `127.0.0.1:4371` (`HOST_COLLECTORS_FIXTURE_PORT`). No Docker, no database, no sign-in. Only the
 `ModelAPI` / `API` data boundary and the signed-in user are replaced, and a save of a config's
 YAML is checked by the real `HostCollectorConfigPolicy`, as the server checks it, so a refused
-save shows the server's own words. The locale files are the real `en.json` and `de.json`.
+save shows the server's own words. A count (the hosts that run a config, those it failed on,
+the hosts on each of OneUptime's defaults) is answered from the same records, matching its query
+as the server would (`Includes`, `IsNull`, `NotNull`), so it agrees with the lists. The locale
+files are the real `en.json` and `de.json`.
 Every record is fabricated for an "Acme Infrastructure" workspace.
 
 ## Scenarios

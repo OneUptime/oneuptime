@@ -3,7 +3,17 @@ import {
   SiteDeviceScope,
 } from "../NetworkSite/SiteHierarchyTypes";
 import { siteHealthState } from "../NetworkSite/SiteHealthFilter";
-import { pluralizeSiteType } from "../NetworkSite/SiteMapViewModel";
+import {
+  GENERIC_SITE_TYPE_LABEL,
+  pluralizeSiteType,
+} from "../NetworkSite/SiteMapViewModel";
+import {
+  composedValue,
+  createTranslator,
+  TemplateValue,
+  translatableTerm,
+  Translator,
+} from "Common/Types/Translator";
 import {
   DeviceHealthCounts,
   emptyDeviceHealthCounts,
@@ -457,24 +467,95 @@ export function pluralChildLabel(childTypeLabel: string): string {
 }
 
 /*
+ * What the sentences below are written in when the caller hands no
+ * translator: English, word for word as before - what a unit test and the
+ * server read. The page hands the reader's (useTranslator), and each
+ * sentence is then looked up whole.
+ */
+const ENGLISH: Translator = createTranslator(undefined);
+
+/*
+ * Whether the level's children are named by OneUptime's own word ("site")
+ * rather than by a site type the customer wrote. OneUptime's word is
+ * translated; the customer's is drawn as they wrote it, in every language.
+ */
+function isGenericChildLabel(childTypeLabel: string): boolean {
+  return childTypeLabel.trim().toLowerCase() === GENERIC_SITE_TYPE_LABEL;
+}
+
+/*
+ * The level's children named in the middle of a sentence: "stores" (the
+ * customer's word, as written), or "sites" in the reader's language.
+ */
+export function childNounInSentence(
+  childTypeLabel: string,
+  isPlural: boolean,
+): TemplateValue {
+  if (isGenericChildLabel(childTypeLabel)) {
+    return translatableTerm(isPlural ? "sites" : "site", {
+      inSentence: true,
+    });
+  }
+
+  return isPlural
+    ? pluralChildLabel(childTypeLabel)
+    : childTypeLabel.trim().toLowerCase();
+}
+
+/*
  * The customer's noun agreeing with a count: "1 store", "12 stores".
  *
  * A level of exactly one is not a rounding case — a franchisee with one
  * market, or a level narrowed to a single match, is an ordinary sight, and
  * "1 stores need a look" is the kind of sentence that makes a page read as
- * generated rather than written.
+ * generated rather than written. OneUptime's own "sites" is counted the way
+ * the reader's language counts.
  */
-function countOfChildren(count: number, childTypeLabel: string): string {
+function countOfChildren(
+  count: number,
+  childTypeLabel: string,
+  translator: Translator,
+): string {
+  if (isGenericChildLabel(childTypeLabel)) {
+    return translator.translatePlural(
+      { one: "{{count}} site", other: "{{count}} sites" },
+      count,
+    );
+  }
+
   const noun: string =
     count === 1
       ? childTypeLabel.trim().toLowerCase()
       : pluralChildLabel(childTypeLabel);
-  return `${count} ${noun}`;
+
+  return translator.translateTemplate("{{count}} {{noun}}", {
+    count: translator.formatNumber(count),
+    noun: noun,
+  });
 }
 
 // "1 device" / "48 devices".
-function countOfDevices(count: number): string {
-  return `${count} device${count === 1 ? "" : "s"}`;
+function countOfDevices(count: number, translator: Translator): string {
+  return translator.translatePlural(
+    { one: "{{count}} device", other: "{{count}} devices" },
+    count,
+  );
+}
+
+/*
+ * A count of the level's children put into another sentence: built in the
+ * sentence's language, so an English sentence never holds a German count.
+ */
+function childCountValue(count: number, childTypeLabel: string): TemplateValue {
+  return composedValue((translator: Translator): string => {
+    return countOfChildren(count, childTypeLabel, translator);
+  });
+}
+
+function deviceCountValue(count: number): TemplateValue {
+  return composedValue((translator: Translator): string => {
+    return countOfDevices(count, translator);
+  });
 }
 
 export interface SiteTopologyFilterOption {
@@ -498,13 +579,22 @@ export interface SiteTopologyFilterOption {
 export function buildSiteTopologyFilterOptions(
   summary: SiteTopologyHealthSummary,
   childTypeLabel: string,
+  translator: Translator = ENGLISH,
 ): Array<SiteTopologyFilterOption> {
-  const plural: string = pluralChildLabel(childTypeLabel);
+  const children: TemplateValue = childNounInSentence(childTypeLabel, true);
+
+  /*
+   * The labels stay English: the chip group looks them up. The
+   * descriptions are its tooltips, which it draws as given.
+   */
   return [
     {
       value: "all",
       label: "All",
-      description: `Every ${plural} at this level.`,
+      description: translator.translateTemplate(
+        "Every {{children}} at this level.",
+        { children: children },
+      ),
       color: undefined,
       count: summary.total,
       testId: "topology-hierarchy-filter-all",
@@ -512,7 +602,10 @@ export function buildSiteTopologyFilterOptions(
     {
       value: "attention",
       label: "Needs attention",
-      description: `${plural} holding a device that is down or degraded, or whose own status is not operational.`,
+      description: translator.translateTemplate(
+        "{{children}} holding a device that is down or degraded, or whose own status is not operational.",
+        { children: children },
+      ),
       color: SITE_TOPOLOGY_STATE_COLORS.down,
       count: summary.attention,
       testId: "topology-hierarchy-filter-attention",
@@ -520,7 +613,10 @@ export function buildSiteTopologyFilterOptions(
     {
       value: "down",
       label: "Down",
-      description: `${plural} holding at least one device that is not answering.`,
+      description: translator.translateTemplate(
+        "{{children}} holding at least one device that is not answering.",
+        { children: children },
+      ),
       color: SITE_TOPOLOGY_STATE_COLORS.down,
       count: summary.down,
       testId: "topology-hierarchy-filter-down",
@@ -528,7 +624,10 @@ export function buildSiteTopologyFilterOptions(
     {
       value: "degraded",
       label: "Degraded",
-      description: `${plural} with dark ports, or a status of their own that needs a look.`,
+      description: translator.translateTemplate(
+        "{{children}} with dark ports, or a status of their own that needs a look.",
+        { children: children },
+      ),
       color: SITE_TOPOLOGY_STATE_COLORS.degraded,
       count: summary.degraded,
       testId: "topology-hierarchy-filter-degraded",
@@ -548,22 +647,30 @@ export function describeSiteTopologyFilter(input: {
   mode: SiteTopologyFilterMode;
   summary: SiteTopologyHealthSummary;
   childTypeLabel: string;
+  translator?: Translator | undefined;
 }): string {
-  const singular: string = input.childTypeLabel.trim().toLowerCase();
-  const plural: string = pluralChildLabel(input.childTypeLabel);
+  const translator: Translator = input.translator || ENGLISH;
   const devices: DeviceHealthCounts = input.summary.devices;
-  const levelSize: string = countOfChildren(
+  const levelSize: TemplateValue = childCountValue(
     input.summary.total,
     input.childTypeLabel,
   );
 
   if (!isSiteTopologyFilterActive(input.mode)) {
     if (devices.total === 0) {
-      return `${levelSize} at this level. Open one to see the devices in it.`;
+      return translator.translateTemplate(
+        "{{levelSize}} at this level. Open one to see the devices in it.",
+        { levelSize: levelSize },
+      );
     }
-    return `${levelSize} at this level, ${countOfDevices(
-      devices.total,
-    )} below them. Narrow to what needs a look, then open a ${singular} for its topology.`;
+    return translator.translateTemplate(
+      "{{levelSize}} at this level, {{devices}} below them. Narrow to what needs a look, then open a {{child}} for its topology.",
+      {
+        levelSize: levelSize,
+        devices: deviceCountValue(devices.total),
+        child: childNounInSentence(input.childTypeLabel, false),
+      },
+    );
   }
 
   const matched: number = siteTopologyCountForMode(input.summary, input.mode);
@@ -576,14 +683,23 @@ export function describeSiteTopologyFilter(input: {
      * points at what did match instead of declaring the level healthy.
      */
     if (input.mode !== "attention" && input.summary.attention > 0) {
-      return `No ${plural} at this level are ${
-        input.mode === "down" ? "down" : "degraded"
-      } — but ${countOfChildren(
-        input.summary.attention,
-        input.childTypeLabel,
-      )} still need a look.`;
+      return translator.translateTemplate(
+        input.mode === "down"
+          ? "No {{children}} at this level are down — but {{attention}} still need a look."
+          : "No {{children}} at this level are degraded — but {{attention}} still need a look.",
+        {
+          children: childNounInSentence(input.childTypeLabel, true),
+          attention: childCountValue(
+            input.summary.attention,
+            input.childTypeLabel,
+          ),
+        },
+      );
     }
-    return `Nothing at this level matches — all ${levelSize} look fine.`;
+    return translator.translateTemplate(
+      "Nothing at this level matches — all {{levelSize}} look fine.",
+      { levelSize: levelSize },
+    );
   }
 
   /*
@@ -604,11 +720,25 @@ export function describeSiteTopologyFilter(input: {
    * denominator is the whole level for the same reason: it is the scale the
    * numerator has to be read against.
    */
-  return `${matched} of ${levelSize} need a look${
-    affectedDevices > 0
-      ? `, across ${affectedDevices} of ${countOfDevices(devices.total)}`
-      : ""
-  }. Open one for its topology.`;
+  if (affectedDevices > 0) {
+    return translator.translateTemplate(
+      "{{matched}} of {{levelSize}} need a look, across {{affected}} of {{devices}}. Open one for its topology.",
+      {
+        matched: translator.formatNumber(matched),
+        levelSize: levelSize,
+        affected: translator.formatNumber(affectedDevices),
+        devices: deviceCountValue(devices.total),
+      },
+    );
+  }
+
+  return translator.translateTemplate(
+    "{{matched}} of {{levelSize}} need a look. Open one for its topology.",
+    {
+      matched: translator.formatNumber(matched),
+      levelSize: levelSize,
+    },
+  );
 }
 
 /*
@@ -683,13 +813,19 @@ export function describeDeviceCounts(counts: DeviceHealthCounts): string {
  * that silently omits four hundred unattached devices is the same failure
  * as a map that silently drops nodes.
  */
-export function describeUnattachedDevices(scope: SiteDeviceScope): string {
+export function describeUnattachedDevices(
+  scope: SiteDeviceScope,
+  translator: Translator = ENGLISH,
+): string {
   if (!scope || scope.unattachedDeviceCount <= 0) {
     return "";
   }
-  return `${scope.unattachedDeviceCount} device${
-    scope.unattachedDeviceCount === 1 ? " is" : "s are"
-  } not attached to a site, so ${
-    scope.unattachedDeviceCount === 1 ? "it does" : "they do"
-  } not appear anywhere in this hierarchy.`;
+  return translator.translatePlural(
+    {
+      one: "{{count}} device is not attached to a site, so it does not appear anywhere in this hierarchy.",
+      other:
+        "{{count}} devices are not attached to a site, so they do not appear anywhere in this hierarchy.",
+    },
+    scope.unattachedDeviceCount,
+  );
 }

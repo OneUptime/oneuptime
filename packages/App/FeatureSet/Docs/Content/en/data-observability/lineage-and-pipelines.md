@@ -97,6 +97,18 @@ For each Power BI report and dashboard, **BI Dashboards** shows first how many t
 
 Views, and refreshes on capacities, need nothing beyond the admin API access above: the service principal in a security group allowed by **Service principals can access read-only admin APIs**, with no Power BI permissions on the app that need admin consent. When views or refreshes cannot be read, the dashboards are still read and kept, the BI tool says what was skipped and why, and the next read tries again.
 
+### Alerts on failed refreshes
+
+Turn on **Alert on Failed Refreshes** when you add or edit a Power BI tool (a new one starts with it on), and OneUptime keeps one monitor for the tool under **Monitors**, named after it. The monitor opens an alert for each dataset whose last refresh failed or was cancelled, with the dataset and its workspace in the alert's title, and resolves it once a later refresh completes. A dataset published later is watched as soon as it is read. Turning the switch off, or removing the tool, removes the monitor; until then it is an ordinary monitor, with its owners, on-call policies and maintenance windows.
+
+Failed refreshes do not use the pipeline monitors. A dataset whose refresh failed goes on showing the data of its last completed refresh until a later one completes, so its alert stays open until then, where a failed run's alert clears an hour after the run. And refreshes are read once an hour: a refresh read up to an hour after it ended would often fall outside the hour **Pipeline Run Failed** looks at, a dataset refreshed every half hour would keep turning **Pipeline Is Late**, and a refresh that ended but was not read yet would look **Pipeline Run Unusually Long**.
+
+- Each hourly read keeps the datasets whose latest finished refresh failed or was cancelled. Every five minutes, each one writes `oneuptime.data.bi.refresh_failed`, 1 while it fails and 0 for the hour after a later refresh completes, and the monitor reads it, so one failure opens one alert however many hourly reads see it.
+- A failure is seen at the next hourly read: its alert opens up to an hour after the refresh failed, and resolves up to an hour after a later refresh completed.
+- A refresh still running changes nothing: the alert of a dataset whose refresh failed stays open while its next refresh runs, and resolves only once a refresh completes.
+- On a capacity, Power BI's list of refreshables gives only each dataset's last refresh, so a refresh that failed and was followed by a completed one within the same hour is never seen: by then the data is fresh again.
+- Datasets on shared capacity alert only where their refreshes can be read (above), and a dataset whose refreshes could not be read keeps its alert as it was until they can.
+
 ## Pipelines
 
 Each job, dbt project and sync appears under **Pipelines**, with its runs: when each started and ended, how long it took, which attempt it was where the scheduler says (Airflow's try number), and a failed run's error. Each pipeline learns from its own runs how long a run usually takes and how long it goes between runs on its schedule, after five runs. A pipeline's page recommends three monitors:
@@ -104,6 +116,8 @@ Each job, dbt project and sync appears under **Pipelines**, with its runs: when 
 - **Pipeline Run Failed**: a run failed or was aborted.
 - **Pipeline Run Unusually Long**: a run has taken twice its typical time or more, checked every five minutes while it runs, so a run that hangs is seen before it ends.
 - **Pipeline Is Late**: no run has started for longer than its schedule allows.
+
+A pipeline's page draws its **Lineage**, the first place to look when a run fails or is late: the tables it reads on the left, the tables it writes on the right, the pipeline between them, and how each is now. Pick more steps to see what those tables are built from and what is built from them, and open any table to see its own **Lineage** tab.
 
 ## One issue per cause
 
@@ -114,6 +128,10 @@ When a table goes stale, every table built from it goes stale too. Before a data
 
 The cause's **Data** card lists its **Downstream Impact**: every alert it caused. A table alert's card also shows the services that write the table, with their failed writes, and their deploys and other changes in the day before the alert.
 
+Under the **Data** card, an alert's page draws its **Lineage**: around its table, as the table's **Lineage** tab draws it, or around its pipeline. The way up to the alert that caused it and down to each alert it caused is highlighted - the cause's table or pipeline marked **Cause**, each caused alert's marked **Consequence** - and the rest fades, so whoever opens it sees where in the chain the problem started. When the cause is about a whole database, or further up than the diagram reaches, the card says so in words. **Explore Lineage** opens the table's **Lineage** tab, or the pipeline's page.
+
+Someone who may not see the alert that caused it gets neither the **Data** card nor the lineage, and an alert it caused that they may not see is neither highlighted nor counted.
+
 ## Before a change merges
 
 When a pull request changes a watched table, [Production Review](/docs/ai/ai-agent) says on the pull request what depends on it: the services that read it, the tables built from it, the dashboards on it, and its data products. A table with a copy on a database marked Staging also says how the copy differs: its rows, its columns, and what the table's checks read there, run on the spot. On a database only a probe can reach, the checks are left out, and it says so.
@@ -122,5 +140,5 @@ When a pull request changes a watched table, [Production Review](/docs/ai/ai-age
 
 :::cards
 - [Data Products](/docs/data-observability/data-products): Freshness SLAs over the tables people use.
-- [OneUptime AI and the API](/docs/data-observability/ai-and-api): Investigations that start from a table's writers and runs.
+- [OneUptime AI and the API](/docs/data-observability/ai-and-api): Investigations that start from a table's writers and runs. Ask AI and AI agents can ask what a table is built from.
 :::

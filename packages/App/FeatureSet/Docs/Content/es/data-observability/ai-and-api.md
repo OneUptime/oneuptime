@@ -1,11 +1,12 @@
 # OneUptime AI y la API
 
-OneUptime AI conoce tus datos: investiga una alerta de datos a partir de quienes escriben en la tabla, de sus ejecuciones y de sus tablas de origen, responde si una tabla está actualizada allí donde se le pregunte y escribe una comprobación a partir de una regla dicha en una frase. Todo lo que muestra Observabilidad de datos está también a disposición de tus propias herramientas, a través de sus endpoints, sus métricas y el servidor MCP.
+OneUptime AI conoce tus datos: investiga una alerta de datos a partir de quienes escriben en la tabla, de sus ejecuciones y de su linaje, responde si una tabla está actualizada y a partir de qué se construye allí donde se le pregunte y escribe una comprobación a partir de una regla dicha en una frase. Todo lo que muestra Observabilidad de datos está también a disposición de tus propias herramientas, a través de sus endpoints, sus métricas y el servidor MCP.
 
 ## OneUptime AI
 
-- **Investigaciones de alertas de datos.** Cuando OneUptime AI investiga una alerta sobre una tabla, un pipeline o una base de datos, parte de lo que tiene al lado: la frescura y las alertas abiertas de la tabla, la alerta de la que es consecuencia, las ejecuciones de los pipelines que escriben en ella desde el día anterior (una ejecución fallida con su error, o la ejecución que nunca llegó), los servicios que escriben en ella con sus escrituras fallidas, despliegues y otros cambios, las tablas a partir de las que se construye y las columnas que cambiaron. Nombra la ejecución, el despliegue o la tabla de origen que hay detrás de la alerta. Consulta [AI SRE](/docs/ai/ai-sre).
+- **Investigaciones de alertas de datos.** Cuando OneUptime AI investiga una alerta sobre una tabla, un pipeline o una base de datos, parte de lo que tiene al lado: la frescura y las alertas abiertas de la tabla, la alerta de la que es consecuencia, las ejecuciones de los pipelines que escriben en ella desde el día anterior (una ejecución fallida con su error, o la ejecución que nunca llegó), los servicios que escriben en ella con sus escrituras fallidas, despliegues y otros cambios, su linaje (las tablas a partir de las que se construye y las tablas que se construyen a partir de ella, primero las que tienen un problema, dónde está en él la alerta de la que es consecuencia y en qué tablas están las alertas que causó) y las columnas que cambiaron. Nombra la ejecución, el despliegue o la tabla de origen que hay detrás de la alerta. Consulta [AI SRE](/docs/ai/ai-sre).
 - **¿Está actualizada esta tabla?** Pregunta en [Preguntar a la IA](/docs/ai/ask-ai), Slack o Microsoft Teams: «¿está actualizada la tabla orders?». La respuesta da la frescura de la tabla según su propio ritmo, cuándo cambió por última vez, sus alertas abiertas, las últimas ejecuciones de quienes escriben en ella y los productos de datos de los que forma parte. Un nombre que comparten varias bases de datos se responde para cada una, para que a nadie se le diga que la tabla equivocada está actualizada.
+- **¿A partir de qué se construye esta tabla?** Pregunta «¿qué alimenta la tabla revenue?» o «¿qué se rompe si raw.orders deja de cargarse?». La respuesta sigue el linaje de la tabla tres pasos en cada dirección, o hasta cinco si se pide, y pone primero lo que falla: las tablas de origen y de destino que van con retraso, se eliminaron, tienen alertas abiertas o cuyo pipeline falló en su última ejecución, primero las más cercanas, cada una con cuántos pasos la separan y las tablas que hay entre medias. Después vienen las demás, los pipelines que cargan sus orígenes desde fuera de lo que OneUptime vigila y los paneles de BI construidos sobre ella. Las alertas abiertas se cuentan, nunca se nombran, y solo las que puede ver la persona que pregunta.
 - **Una comprobación a partir de una frase.** En la pestaña **Comprobaciones** de una tabla, **Escribir una comprobación a partir de una frase** convierte una regla en una comprobación de SQL personalizado en el SQL de tu motor. Consulta [Comprobaciones y conciliaciones](/docs/data-observability/checks).
 
 - **Deriva lenta.** Las filas de una tabla, o el valor de una comprobación, que se mueven una quinta parte o más en una semana, con demasiada lentitud para cualquier alerta, llegan a AI Insights como un «mira aquí». No avisa a nadie.
@@ -15,13 +16,14 @@ Cada una de estas funciones necesita que OneUptime AI esté activado para el pro
 
 ## Agentes de IA y el servidor MCP
 
-Los agentes de IA deberían comprobar que los datos están actualizados antes de usarlos. El [servidor MCP](/docs/ai/mcp-server) tiene una herramienta de solo lectura para eso:
+Los agentes de IA deberían comprobar que los datos están actualizados antes de usarlos, y qué se construye a partir de una tabla antes de cambiarla. El [servidor MCP](/docs/ai/mcp-server) tiene herramientas de solo lectura para ambas cosas:
 
 | Herramienta | Qué responde |
 | --- | --- |
 | `get_data_table_freshness` | Si una tabla vigilada está actualizada, cuándo cambió por última vez, sus alertas abiertas, las últimas ejecuciones de quienes escriben en ella y sus productos de datos. Indica `table` como `schema.table`, solo el nombre de la tabla o su ID |
+| `get_data_table_lineage` | A partir de qué se construye una tabla vigilada y qué se construye a partir de ella, tres pasos en cada dirección o hasta cinco: primero las tablas con un problema, las más cercanas primero, luego las demás, los pipelines que cargan sus orígenes desde fuera y los paneles de BI construidos sobre ella. Indica `table` como para su frescura, y `depth` de 1 a 5 |
 
-Funciona con un inicio de sesión de solo lectura y responde como la persona o la clave de API que inició sesión.
+Ambas funcionan con un inicio de sesión de solo lectura y responden como la persona o la clave de API que inició sesión.
 
 ## Endpoints
 
@@ -33,6 +35,9 @@ Funciona con un inicio de sesión de solo lectura y responde como la persona o l
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Los webhooks de sincronización de Airbyte | La clave de ingesta en la URL |
 | `POST /api/data-observability/tables/freshness` | La frescura de una tabla, tal como la responde la herramienta MCP, con `{ "table": "public.orders" }` | Una clave de API |
 | `POST /api/data-observability/tables/lineage` | El linaje de una tabla unos pasos en cada dirección, con el estado de cada tabla, tal como lo dibuja su pestaña **Linaje**, con `{ "dataAssetId": "<table ID>", "depth": 3 }` | Una clave de API |
+| `POST /api/data-observability/tables/lineage/answer` | El linaje de una tabla contado en palabras, primero las tablas con un problema, tal como lo responde la herramienta MCP, con `{ "table": "public.orders", "depth": 3 }` | Una clave de API |
+| `POST /api/data-observability/pipelines/lineage` | Las tablas que un pipeline lee y escribe, con el estado de cada una, tal como las dibuja su página, con `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | Una clave de API |
+| `POST /api/data-observability/alerts/<alert ID>/lineage` | El linaje de una alerta de datos, tal como lo dibuja su página, con el camino hasta la alerta que la causó y hasta las alertas que causó | Una clave de API |
 | `POST /api/data-observability/checks/apply` | Hacer que las comprobaciones del proyecto coincidan con un archivo, como lo hace `oneuptime data-checks apply`, con `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | Una clave de API |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | La insignia «data as of» de un producto de datos | El token propio de la insignia |
 

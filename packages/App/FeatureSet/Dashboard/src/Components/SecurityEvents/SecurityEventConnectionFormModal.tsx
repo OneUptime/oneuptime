@@ -45,7 +45,13 @@ import {
   SECURITY_EVENT_CONNECTION_TEST_ROUTE,
   connectorDocsUrl,
 } from "./SecurityEventConnectionDiagnosticsUtil";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  formatList,
+  translatableTerm,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export const PROVIDER_STEP_ID: string = "provider";
 export const CONNECTION_STEP_ID: string = "connection";
@@ -445,8 +451,9 @@ export function secretFieldTypeFor(field: ConnectorField): FormFieldSchemaType {
     : FormFieldSchemaType.Password;
 }
 
-export const CONNECTION_TEST_CHOOSE_PROVIDER_MESSAGE: string =
-  "Choose a provider before testing.";
+export const CONNECTION_TEST_CHOOSE_PROVIDER_MESSAGE: string = translationKey(
+  "Choose a provider before testing.",
+);
 
 /*
  * "Paste the Service account JSON to test these settings before saving..."
@@ -455,21 +462,42 @@ export const CONNECTION_TEST_CHOOSE_PROVIDER_MESSAGE: string =
  */
 export function connectionTestNeedsSecretsMessage(
   fields: Array<ConnectorField>,
+  translator?: Translator | undefined,
 ): string {
-  const verb: string = fields.every((field: ConnectorField): boolean => {
+  const paste: boolean = fields.every((field: ConnectorField): boolean => {
     return field.type === "json";
-  })
-    ? "Paste"
-    : "Enter";
+  });
   const titles: Array<string> = fields.map((field: ConnectorField): string => {
     return field.title;
   });
+
+  if (translator) {
+    const named: Array<string> = titles.map((title: string): string => {
+      return translator.translateTerm(title);
+    });
+    const names: string =
+      named.length > 1
+        ? translator.translateTemplate("{{items}} and {{last}}", {
+            items: formatList(named.slice(0, -1), translator),
+            last: named[named.length - 1] || "",
+          })
+        : named.join("");
+
+    // The verb is part of each sentence, so a language words each its own way.
+    return translator.translateTemplate(
+      paste
+        ? "Paste the {{fields}} to test these settings before saving. A saved connection can be tested from its row's Test connection action."
+        : "Enter the {{fields}} to test these settings before saving. A saved connection can be tested from its row's Test connection action.",
+      { fields: names },
+    );
+  }
+
   const names: string =
     titles.length > 1
       ? `${titles.slice(0, -1).join(", ")} and ${titles[titles.length - 1]}`
       : titles.join("");
 
-  return `${verb} the ${names} to test these settings before saving. A saved connection can be tested from its row's Test connection action.`;
+  return `${paste ? "Paste" : "Enter"} the ${names} to test these settings before saving. A saved connection can be tested from its row's Test connection action.`;
 }
 
 /*
@@ -480,6 +508,8 @@ export function connectionTestNeedsSecretsMessage(
 export function connectionTestDisabledReason(data: {
   values: JSONObject;
   connection?: SecurityEventConnection | undefined;
+  // With one, the reason is in the reader's language.
+  translator?: Translator | undefined;
 }): string | undefined {
   const provider: string =
     data.connection?.provider || readString(data.values["provider"]);
@@ -487,7 +517,9 @@ export function connectionTestDisabledReason(data: {
     getSecurityEventConnectorDefinition(provider);
 
   if (!definition) {
-    return CONNECTION_TEST_CHOOSE_PROVIDER_MESSAGE;
+    return data.translator
+      ? data.translator.translateText(CONNECTION_TEST_CHOOSE_PROVIDER_MESSAGE)
+      : CONNECTION_TEST_CHOOSE_PROVIDER_MESSAGE;
   }
 
   if (data.connection?.id) {
@@ -509,7 +541,7 @@ export function connectionTestDisabledReason(data: {
   );
 
   return missing.length > 0
-    ? connectionTestNeedsSecretsMessage(missing)
+    ? connectionTestNeedsSecretsMessage(missing, data.translator)
     : undefined;
 }
 
@@ -601,6 +633,7 @@ interface InlineSettingsTestProps {
 const InlineSettingsTest: FunctionComponent<InlineSettingsTestProps> = (
   props: InlineSettingsTestProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const valuesRef: React.MutableRefObject<JSONObject> = useRef<JSONObject>(
     props.values,
   );
@@ -625,10 +658,15 @@ const InlineSettingsTest: FunctionComponent<InlineSettingsTestProps> = (
 
   return (
     <InlineConnectionTest
-      providerTitle={definition?.title || "the provider"}
+      providerTitle={
+        definition?.title ||
+        translator.translateText("the provider") ||
+        "the provider"
+      }
       disabledReason={connectionTestDisabledReason({
         values: props.values,
         connection: props.connection,
+        translator,
       })}
       settingsKey={settingsKey}
       runTest={(): Promise<SecurityConnectorTestReport> => {
@@ -663,6 +701,7 @@ export interface ComponentProps {
 const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
   const isEditing: boolean = Boolean(props.connection?.id);
@@ -753,10 +792,19 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
               : {}),
             ...(index === 0
               ? {
-                  sectionTitle: `${definition.title} settings`,
-                  sectionDescription: `Values from your ${definition.vendorName} console. The setup guide explains where each one lives.`,
+                  sectionTitle: translator.translateTemplate(
+                    "{{product}} settings",
+                    { product: definition.title },
+                  ),
+                  sectionDescription: translator.translateTemplate(
+                    "Values from your {{vendor}} console. The setup guide explains where each one lives.",
+                    { vendor: definition.vendorName },
+                  ),
                   sideLink: {
-                    text: `${definition.title} setup guide`,
+                    text: translator.translateTemplate(
+                      "{{product}} setup guide",
+                      { product: definition.title },
+                    ),
                     url: connectorDocsUrl(definition),
                     openLinkInNewTab: true,
                   },
@@ -785,25 +833,35 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
           field: { [secretFieldName(definition.provider, field.key)]: true },
           title: field.title,
           description: isEditing
-            ? `${field.description} Leave blank to keep the stored value.`
+            ? translator.translateTemplate(
+                "{{description}} Leave blank to keep the stored value.",
+                { description: translatableTerm(field.description) },
+              )
             : field.description,
           stepId: CREDENTIALS_STEP_ID,
           fieldType: secretFieldTypeFor(field),
           // Stored secrets can never be read back, so editing never requires them.
           required: isEditing ? false : field.required,
           ...(isEditing
-            ? { placeholder: "Unchanged" }
+            ? { placeholder: translationKey("Unchanged") }
             : field.placeholder
               ? { placeholder: field.placeholder }
               : {}),
           showIf: isSelected(definition),
           ...(index === 0
             ? {
-                sectionTitle: `${definition.title} credentials`,
-                sectionDescription:
+                sectionTitle: translator.translateTemplate(
+                  "{{product}} credentials",
+                  { product: definition.title },
+                ),
+                sectionDescription: translationKey(
                   "Encrypted at rest and never returned by the API.",
+                ),
                 sideLink: {
-                  text: `${definition.title} setup guide`,
+                  text: translator.translateTemplate(
+                    "{{product}} setup guide",
+                    { product: definition.title },
+                  ),
                   url: connectorDocsUrl(definition),
                   openLinkInNewTab: true,
                 },
@@ -822,8 +880,13 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
             field: {
               [removeSecretFieldName(definition.provider, field.key)]: true,
             },
-            title: `Remove the stored ${field.title}`,
-            description: `Delete the stored ${field.title} when you save, for example after changing the sign-in method.`,
+            title: translator.translateTemplate("Remove the stored {{field}}", {
+              field: translatableTerm(field.title),
+            }),
+            description: translator.translateTemplate(
+              "Delete the stored {{field}} when you save, for example after changing the sign-in method.",
+              { field: translatableTerm(field.title) },
+            ),
             stepId: CREDENTIALS_STEP_ID,
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
@@ -1065,10 +1128,14 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
       : "Create connection";
 
   const title: string = credentialsOnly
-    ? `Update credentials: ${props.connection?.name || lockedDefinition?.title || ""}`
+    ? translator.translateTemplate("Update credentials: {{name}}", {
+        name: props.connection?.name || lockedDefinition?.title || "",
+      })
     : isEditing
-      ? `Edit connection: ${props.connection?.name || ""}`
-      : "Add connection";
+      ? translator.translateTemplate("Edit connection: {{name}}", {
+          name: props.connection?.name || "",
+        })
+      : translationKey("Add connection");
 
   const hasOptionalSecret: boolean = Boolean(
     lockedDefinition?.secretFields.some((field: ConnectorField): boolean => {
@@ -1076,11 +1143,23 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
     }),
   );
 
+  const providerName: string =
+    lockedDefinition?.title || translator.translateText("Provider") || "";
   const description: string = credentialsOnly
-    ? `Replace the stored ${lockedDefinition?.title || ""} credentials. Blank fields keep their stored value.${hasOptionalSecret ? " Turn on a Remove toggle to delete an optional one." : ""}`
+    ? translator.translateTemplate(
+        hasOptionalSecret
+          ? "Replace the stored {{provider}} credentials. Blank fields keep their stored value. Turn on a Remove toggle to delete an optional one."
+          : "Replace the stored {{provider}} credentials. Blank fields keep their stored value.",
+        { provider: lockedDefinition?.title || "" },
+      )
     : isEditing
-      ? `${lockedDefinition?.title || "Provider"} connection. The provider cannot be changed after creation; add a new connection to import from another product.`
-      : "Import security events from a SIEM, EDR, cloud security or identity product. Test before saving.";
+      ? translator.translateTemplate(
+          "{{provider}} connection. The provider cannot be changed after creation; add a new connection to import from another product.",
+          { provider: providerName },
+        )
+      : translationKey(
+          "Import security events from a SIEM, EDR, cloud security or identity product. Test before saving.",
+        );
 
   return (
     <BasicFormModal<JSONObject>
@@ -1120,7 +1199,9 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
               Object.keys(submission.secrets).length === 0
             ) {
               throw new Error(
-                "Enter at least one credential to update or remove, or close this dialog to keep the stored values.",
+                translator.translateText(
+                  "Enter at least one credential to update or remove, or close this dialog to keep the stored values.",
+                ),
               );
             }
 

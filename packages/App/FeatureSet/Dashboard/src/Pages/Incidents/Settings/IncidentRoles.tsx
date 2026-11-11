@@ -25,6 +25,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
  * A project starts with one role, Incident Commander, and adds the others it
@@ -197,6 +198,8 @@ const IncidentRoles: FunctionComponent<
             },
             title: IncidentRoleSettingsCopy.nameFieldTitle,
             type: FieldType.Text,
+            // A mark beside the name: the name reads its own way, the cell the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (item: IncidentRole): ReactElement => {
               return (
                 <RoleLabel

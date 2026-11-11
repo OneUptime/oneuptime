@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 49075,
-    "untranslated": 10164
+    "keys": 49779,
+    "untranslated": 10283
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -115,6 +115,7 @@
     "Up + Out",
     "VIP",
     "VLAN",
+    "VLAN {{vlanId}}",
     "VMID {{vmid}}",
     "VMware vCenter",
     "Vital",

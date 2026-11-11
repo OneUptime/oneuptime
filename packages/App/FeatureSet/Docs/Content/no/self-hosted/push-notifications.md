@@ -259,4 +259,5 @@ Hvis ingenting av dette hjelper, kontakter du oss på [hello@oneuptime.com](mail
 - [Feilsøking for mobilappen](/docs/mobile-desktop-apps/faq-troubleshooting): Løs problemer med pålogging og varsler på telefonen.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem som varsles, og når.
 - [Tilgang til privat nettverk](/docs/self-hosted/private-network-access): Hva serveren din kan nå i ditt eget nettverk.
+- [Metrikker for varslingslevering](/docs/self-hosted/notification-delivery-metrics): Tell pushvarslene Apple og Google tar imot, og dem de avviser.
 :::

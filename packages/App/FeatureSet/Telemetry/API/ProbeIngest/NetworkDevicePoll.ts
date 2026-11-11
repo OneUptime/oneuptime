@@ -2,6 +2,7 @@ import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import { ProbeExpressRequest } from "../../Types/Request";
 import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
@@ -508,6 +509,12 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
+      /*
+       * The moment OneUptime received this poll, before any queueing: a page
+       * its evaluation starts is timed from it (OnCallPageTiming).
+       */
+      const receivedAt: Date = OneUptimeDate.getCurrentDate();
+
       const probeId: ObjectID | undefined =
         (req as ProbeExpressRequest).probe?.id || undefined;
 
@@ -569,6 +576,7 @@ router.post(
           ),
           monitoredAt: (req.body["monitoredAt"] as string) || undefined,
         },
+        receivedAt: receivedAt,
       });
 
       return Response.sendJsonObjectResponse(req, res, { result: "ok" });

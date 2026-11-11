@@ -33,6 +33,8 @@ import DashboardLogStreamComponentUtil from "Common/Utils/Dashboard/Components/D
 import DashboardLogChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardLogChartComponent";
 import DashboardSecurityEventsListComponentUtil from "Common/Utils/Dashboard/Components/DashboardSecurityEventsListComponent";
 import DashboardSecurityEventsFlowComponentUtil from "Common/Utils/Dashboard/Components/DashboardSecurityEventsFlowComponent";
+import DashboardProductAnalyticsFunnelComponentUtil from "Common/Utils/Dashboard/Components/DashboardProductAnalyticsFunnelComponent";
+import DashboardProductAnalyticsRetentionComponentUtil from "Common/Utils/Dashboard/Components/DashboardProductAnalyticsRetentionComponent";
 import DashboardTraceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceListComponent";
 import DashboardTraceChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceChartComponent";
 import DashboardTraceTableComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceTableComponent";
@@ -976,6 +978,18 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           if (componentType === DashboardComponentType.SecurityEventsFlow) {
             newComponent =
               DashboardSecurityEventsFlowComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.ProductAnalyticsFunnel) {
+            newComponent =
+              DashboardProductAnalyticsFunnelComponentUtil.getDefaultComponent();
+          }
+
+          if (
+            componentType === DashboardComponentType.ProductAnalyticsRetention
+          ) {
+            newComponent =
+              DashboardProductAnalyticsRetentionComponentUtil.getDefaultComponent();
           }
 
           if (componentType === DashboardComponentType.TraceList) {

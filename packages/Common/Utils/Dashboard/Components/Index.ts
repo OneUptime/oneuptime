@@ -39,6 +39,8 @@ import DashboardPodmanNetworkListComponentUtil from "./DashboardPodmanNetworkLis
 import DashboardPodmanVolumeListComponentUtil from "./DashboardPodmanVolumeListComponent";
 import DashboardProxmoxGuestListComponentUtil from "./DashboardProxmoxGuestListComponent";
 import DashboardSecurityEventsFlowComponentUtil from "./DashboardSecurityEventsFlowComponent";
+import DashboardProductAnalyticsFunnelComponentUtil from "./DashboardProductAnalyticsFunnelComponent";
+import DashboardProductAnalyticsRetentionComponentUtil from "./DashboardProductAnalyticsRetentionComponent";
 import DashboardSecurityEventsListComponentUtil from "./DashboardSecurityEventsListComponent";
 import DashboardSloComponentUtil from "./DashboardSloComponent";
 import DashboardSloListComponentUtil from "./DashboardSloListComponent";
@@ -140,6 +142,23 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.SecurityEventsFlow) {
       return DashboardSecurityEventsFlowComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (
+      dashboardComponentType === DashboardComponentType.ProductAnalyticsFunnel
+    ) {
+      return DashboardProductAnalyticsFunnelComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (
+      dashboardComponentType ===
+      DashboardComponentType.ProductAnalyticsRetention
+    ) {
+      return DashboardProductAnalyticsRetentionComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

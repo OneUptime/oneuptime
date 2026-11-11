@@ -95,7 +95,7 @@ Ett vCenter, ett Kubernetes-kluster, en värd, en Docker- eller Podman-värd, et
 
 **Nätverk** är den levande kartan över dina nätverksenheter, byggd från de grannar de rapporterar via LLDP, och via CDP på Cisco-enheter. Den har ingen tidsväljare: anslutningarna uppdateras av sig själva.
 
-Om du grupperar enheter i platser öppnas vyn på dina platser: välj en, eller växla till **All devices**. **Map options** ordnar kartan och väljer vad den tar med, och **Exportera PDF** sparar kartan du ser. Nätverksenheternas sidor ritar samma karta: se [Nätverkstopologi](/docs/monitor/network-device-monitor#nätverkstopologi).
+Om du grupperar enheter i platser öppnas vyn på dina platser: välj en, eller växla till **Alla enheter**. **Map options** ordnar kartan och väljer vad den tar med, och **Exportera PDF** sparar kartan du ser. Nätverksenheternas sidor ritar samma karta: se [Nätverkstopologi](/docs/monitor/network-device-monitor#nätverkstopologi).
 
 ## Felsökning
 

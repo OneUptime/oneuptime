@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 49075,
-    "untranslated": 10195
+    "keys": 49779,
+    "untranslated": 10314
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -313,6 +313,7 @@
     "Uptime %",
     "VIP",
     "VLAN",
+    "VLAN {{vlanId}}",
     "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
@@ -500,6 +501,7 @@
     "{{observation}} in {{readings}}",
     "{{size}} in {{duration}}",
     "{{up}}/{{count}} OSD up",
-    "{{value}} ms"
+    "{{value}} ms",
+    "{{value}} s"
   ]
 }

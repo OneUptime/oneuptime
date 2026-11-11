@@ -46,6 +46,7 @@ import MonitorNotificationRule from "Common/Types/Workspace/NotificationRules/No
 import {
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
+  SlackOrganizationWorkspace,
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
 import {
@@ -66,6 +67,7 @@ import {
   CREATE_CHANNEL_TITLES,
   EXISTING_CHANNEL_NAMES_DESCRIPTIONS,
   EXISTING_CHANNEL_NAMES_TITLE,
+  EXISTING_CHANNELS_SLACK_WORKSPACE_DESCRIPTION,
   EXISTING_CHANNELS_TEAM_DESCRIPTION,
   INCIDENT_ROLES_DESCRIPTION,
   INCIDENT_ROLES_TITLE,
@@ -74,6 +76,7 @@ import {
   MENTION_ON_CALL_EMPTY_TEXT,
   MENTION_ON_CALL_SEARCH_PLACEHOLDER,
   MENTION_ON_CALL_TITLE,
+  NEW_CHANNEL_SLACK_WORKSPACE_DESCRIPTION,
   NEW_CHANNEL_TEAM_DESCRIPTION,
   NO_CHATS_DESCRIPTION,
   NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS,
@@ -85,6 +88,8 @@ import {
   POST_TO_EXISTING_CHANNELS_DESCRIPTION,
   POST_TO_EXISTING_CHANNELS_TITLE,
   RULE_SUMMARY_TITLE,
+  SLACK_WORKSPACE_PLACEHOLDER,
+  SLACK_WORKSPACE_TITLE,
   TEAM_PLACEHOLDER,
   TEAM_TITLE,
   TEAMS_WHO_JOINS_NOTE,
@@ -165,6 +170,12 @@ export interface ComponentProps {
   teams: Array<Team>;
   microsoftTeamsTeams?: Array<MicrosoftTeamsTeam>;
   microsoftTeamsChats?: Array<MicrosoftTeamsChat>;
+  /*
+   * Slack installed for a whole Enterprise organization: the workspaces
+   * OneUptime was added to. With two or more, a rule picks the workspace of
+   * its channels (SlackOrganization).
+   */
+  slackWorkspaces?: Array<SlackOrganizationWorkspace> | undefined;
   users: Array<User>;
   // For the summary to name the schedules whose on-call person joins.
   onCallSchedules?: Array<OnCallDutyPolicySchedule> | undefined;
@@ -342,6 +353,18 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     },
   ];
 
+  /*
+   * Slack installed for a whole Enterprise organization and added to two or
+   * more of its workspaces: a rule says which workspace its channels are
+   * in, or leaves it to the default one.
+   */
+  const isSlackOrganization: boolean =
+    props.workspaceType === WorkspaceType.Slack &&
+    (props.slackWorkspaces || []).length > 1;
+
+  // Where the rule's channels are: a Microsoft Teams team, or a Slack workspace.
+  const hasPlacePicker: boolean = isTeams || isSlackOrganization;
+
   const teamOptions: Array<{ label: string; value: string }> = isTeams
     ? (props.microsoftTeamsTeams || []).map((team: MicrosoftTeamsTeam) => {
         return {
@@ -349,7 +372,16 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
           value: team.id,
         };
       })
-    : [];
+    : isSlackOrganization
+      ? (props.slackWorkspaces || []).map(
+          (workspace: SlackOrganizationWorkspace) => {
+            return {
+              label: workspace.name,
+              value: workspace.id,
+            };
+          },
+        )
+      : [];
 
   /*
    * Where it posts, and the channel it creates. Posting to channels people
@@ -372,13 +404,16 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       field: {
         existingTeam: true,
       },
-      title: TEAM_TITLE,
-      description: EXISTING_CHANNELS_TEAM_DESCRIPTION,
+      title: isTeams ? TEAM_TITLE : SLACK_WORKSPACE_TITLE,
+      description: isTeams
+        ? EXISTING_CHANNELS_TEAM_DESCRIPTION
+        : EXISTING_CHANNELS_SLACK_WORKSPACE_DESCRIPTION,
       fieldType: FormFieldSchemaType.Dropdown,
-      placeholder: TEAM_PLACEHOLDER,
-      required: true,
+      placeholder: isTeams ? TEAM_PLACEHOLDER : SLACK_WORKSPACE_PLACEHOLDER,
+      // A Slack organization's rule may leave it to the default workspace.
+      required: isTeams,
       showIf: (formValue: FormValues<BaseNotificationRule>) => {
-        return Boolean(formValue.shouldPostToExistingChannel) && isTeams;
+        return Boolean(formValue.shouldPostToExistingChannel) && hasPlacePicker;
       },
       dropdownOptions: teamOptions,
     },
@@ -431,7 +466,9 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             return {
               label:
                 chat.chatType === "personal"
-                  ? `${chat.name} (1:1 chat)`
+                  ? translator.translateTemplate("{{chat}} (1:1 chat)", {
+                      chat: chat.name,
+                    })
                   : chat.name,
               value: chat.id,
             };
@@ -609,13 +646,15 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         field: {
           teamToCreateChannelIn: true,
         },
-        title: TEAM_TITLE,
-        description: NEW_CHANNEL_TEAM_DESCRIPTION,
+        title: isTeams ? TEAM_TITLE : SLACK_WORKSPACE_TITLE,
+        description: isTeams
+          ? NEW_CHANNEL_TEAM_DESCRIPTION
+          : NEW_CHANNEL_SLACK_WORKSPACE_DESCRIPTION,
         fieldType: FormFieldSchemaType.Dropdown,
-        placeholder: TEAM_PLACEHOLDER,
-        required: true,
+        placeholder: isTeams ? TEAM_PLACEHOLDER : SLACK_WORKSPACE_PLACEHOLDER,
+        required: isTeams,
         showIf: (formValue: FormValues<NotificationRulesType>) => {
-          return createsChannel(formValue) && isTeams;
+          return createsChannel(formValue) && hasPlacePicker;
         },
         dropdownOptions: teamOptions,
       },
@@ -732,6 +771,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             onCallSchedules={props.onCallSchedules}
             microsoftTeamsTeams={props.microsoftTeamsTeams}
             microsoftTeamsChats={props.microsoftTeamsChats}
+            slackWorkspaces={props.slackWorkspaces}
             numberPrefixes={props.numberPrefixes}
             exampleRecordName={props.exampleRecordName}
             showWhenEmpty={true}

@@ -94,7 +94,7 @@ POST {Kibana URL}/api/detection_engine/signals/search
 - **De aanmaaktijd is de cursor.** Alerts worden getoond op hun eigen `@timestamp`, wanneer de run van de regel ze maakte, nooit op de tijd van de activiteit waarover ze gaan. Een regel die elk uur draait, maakt alerts over activiteit van hooguit een uur oud, en een cursor op activiteitstijd zou ze allemaal overslaan.
 - **De eerste poll kijkt 24 uur terug**, zodat een nieuwe verbinding meteen haar recente waarschuwingen toont.
 - **Elke volgende poll begint 1 minuut voor de opgeslagen cursor**, zodat een alert die op de grens van twee vensters is gemaakt nooit wordt gemist.
-- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Gezondheid** toont **Catching up**.
+- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Gezondheid** toont **Bezig met inhalen**.
 - **Duplicaten worden verwijderd op de `_id` van de alert** binnen het project, zodat de overlap, een herhaald venster en een import een alert nooit twee keer opslaan.
 
 De alertzoekopdracht van Kibana accepteert een grootte en een sortering, maar geen paginatoken. Dus pagineert OneUptime door het begin van het bereik naar de laatste alert van elke pagina te verschuiven, en laat het op `_id` de alerts weg die het op dat moment al heeft gelezen. Eén run van een regel stempelt vaak veel alerts met dezelfde tijd, en zo'n groep wordt pagina voor pagina gelezen, geen twee keer en geen overgeslagen.

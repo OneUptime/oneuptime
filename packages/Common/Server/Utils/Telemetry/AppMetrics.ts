@@ -139,10 +139,11 @@ export default class AppMetrics {
 
   /*
    * What the platform's operator defines delivery SLOs on: how many records
-   * trigger notifications, how each message handed to a provider went, and
-   * how long after its trigger an on-call page reached its provider. Every
-   * sender records through NotificationDeliveryMetrics, which owns the
-   * attribute names and their bounded values; read it before adding one.
+   * trigger notifications, how each message handed to a provider went, how
+   * long after its trigger an on-call page reached its provider, and how
+   * late the notifications sent later went out. Every sender records
+   * through NotificationDeliveryMetrics, which owns the attribute names and
+   * their bounded values; read it before adding one.
    */
 
   private static notificationCounter: TelemetryCounter | null = null;
@@ -228,6 +229,100 @@ export default class AppMetrics {
     }
 
     return this.notificationTimeToSend;
+  }
+
+  // -- Notifications sent later -------------------------------------------
+
+  /*
+   * How late the on-call notifications the on-call configuration sends
+   * later went out: a person's rule that waits ("call me after 10
+   * minutes"), a push repeated until acknowledged, a later escalation
+   * level, the policy repeating. Workers that run once a minute send them,
+   * and one that falls behind sends every one of them late - nothing else
+   * shows that (issue #6646). Recorded through
+   * NotificationDeliveryMetrics.recordSendLag, once per notification.
+   */
+
+  private static notificationSendLag: TelemetryHistogram | null = null;
+
+  /*
+   * From a second to an hour: a worker that keeps up sends within a minute
+   * or so of the moment - its tick, and the provider taking the message -
+   * so the edges around a minute are close together, for an SLO of
+   * "within 90 seconds"; one that fell behind shows by how many minutes.
+   */
+  public static readonly NOTIFICATION_SEND_LAG_BUCKETS_IN_MS: ReadonlyArray<number> =
+    [
+      1000, 5000, 10000, 15000, 30000, 45000, 60000, 75000, 90000, 120000,
+      180000, 300000, 600000, 1800000, 3600000,
+    ];
+
+  public static getNotificationSendLag(): TelemetryHistogram {
+    if (!this.notificationSendLag) {
+      this.notificationSendLag = Telemetry.getHistogram({
+        name: "notification.send.lag",
+        description:
+          "Time from when an on-call notification sent later was due - a person's on-call rule that waits, a push repeated until acknowledged, a later escalation level, the policy repeating - to its provider accepting it: how far behind the workers that send them are. Partitioned by channel, schedule and trigger type.",
+        unit: "ms",
+        explicitBucketBoundaries: [...this.NOTIFICATION_SEND_LAG_BUCKETS_IN_MS],
+      });
+    }
+
+    return this.notificationSendLag;
+  }
+
+  // -- Notification final statuses --------------------------------------
+
+  /*
+   * How a message the provider accepted ended, as the provider tells it
+   * later - Twilio's status callbacks for SMS and calls, Expo's push
+   * receipts, Meta's WhatsApp status webhooks - and how long after the
+   * provider accepted it. Recorded through
+   * NotificationDeliveryMetrics.recordDelivery, once per message.
+   */
+
+  private static notificationDeliveryCounter: TelemetryCounter | null = null;
+  private static notificationDeliveryDuration: TelemetryHistogram | null = null;
+
+  /*
+   * From half a second to a day: most SMS reach a phone within seconds, a
+   * call is answered or rings out within a minute, but a carrier holding an
+   * SMS for a phone that is off reports it delivered or not hours later -
+   * the slow end an operator chases has buckets of its own.
+   */
+  public static readonly NOTIFICATION_DELIVERY_DURATION_BUCKETS_IN_MS: ReadonlyArray<number> =
+    [
+      500, 1000, 2000, 5000, 10000, 15000, 30000, 60000, 120000, 300000, 600000,
+      1800000, 3600000, 14400000, 86400000,
+    ];
+
+  public static getNotificationDeliveryCounter(): TelemetryCounter {
+    if (!this.notificationDeliveryCounter) {
+      this.notificationDeliveryCounter = Telemetry.getCounter({
+        name: "notification.delivery.count",
+        description:
+          "Number of final delivery statuses providers reported for notifications they accepted - an SMS delivered, undelivered or failed, a call answered, not answered or failed, a push delivered, undelivered or failed, a WhatsApp message delivered or failed - partitioned by channel, provider and outcome. Each message is counted once.",
+        unit: "1",
+      });
+    }
+
+    return this.notificationDeliveryCounter;
+  }
+
+  public static getNotificationDeliveryDuration(): TelemetryHistogram {
+    if (!this.notificationDeliveryDuration) {
+      this.notificationDeliveryDuration = Telemetry.getHistogram({
+        name: "notification.delivery.duration",
+        description:
+          "Time from a provider accepting a notification to its final status - an SMS or WhatsApp message delivered or not, a call picked up (to the moment it was answered) or ended unanswered - partitioned by channel, provider and outcome. Push receipts do not say when they were delivered and are not timed.",
+        unit: "ms",
+        explicitBucketBoundaries: [
+          ...this.NOTIFICATION_DELIVERY_DURATION_BUCKETS_IN_MS,
+        ],
+      });
+    }
+
+    return this.notificationDeliveryDuration;
   }
 
   // -- OTLP / telemetry ingestion ---------------------------------------

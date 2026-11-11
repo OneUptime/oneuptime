@@ -14,7 +14,8 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
-import { inEnglishDates } from "Common/Types/DateLanguage";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import useAsyncEffect from "use-async-effect";
 
@@ -89,6 +90,7 @@ export interface ComponentProps {
 const BackupCodes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [status, setStatus] = React.useState<BackupCodeStatus | null>(null);
   const [isStatusLoading, setIsStatusLoading] = React.useState<boolean>(true);
   const [statusError, setStatusError] = React.useState<string>("");
@@ -286,7 +288,11 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
         setHasCopiedCodes(false);
       }, 2000);
     } catch {
-      setCopyError("Could not copy the codes. Download them instead.");
+      setCopyError(
+        translator.translateText(
+          "Could not copy the codes. Download them instead.",
+        ) as string,
+      );
     }
   };
 
@@ -295,15 +301,25 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    // The file is English throughout, its date too.
+    /*
+     * In the reader's language, as the card they saved it from is: each line
+     * is looked up whole, and the date follows its line (English while the
+     * line is).
+     */
     const content: string = [
-      "OneUptime two-factor authentication backup codes",
-      `Generated: ${inEnglishDates((): string => {
-        return OneUptimeDate.getCurrentDateAsFormattedString();
-      })}`,
+      translator.translateText(
+        "OneUptime two-factor authentication backup codes",
+      ),
+      translator.translateTemplate("Generated: {{date}}", {
+        date: OneUptimeDate.getCurrentDateAsFormattedString(),
+      }),
       "",
-      "Each code can be used once after entering your password.",
-      "Keep this file somewhere safe, separate from your authenticator or security key.",
+      translator.translateText(
+        "Each code can be used once after entering your password.",
+      ),
+      translator.translateText(
+        "Keep this file somewhere safe, separate from your authenticator or security key.",
+      ),
       "",
       ...generatedCodes,
       "",
@@ -342,7 +358,7 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
         <div
           className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4"
           role="status"
-          aria-label="Backup code status"
+          aria-label={translator.translateText("Backup code status")}
         >
           <div
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500"
@@ -352,11 +368,12 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
           </div>
           <div>
             <p className="text-sm font-medium text-gray-900">
-              Set up your recovery option
+              {translator.translateText("Set up your recovery option")}
             </p>
             <p className="mt-1 text-sm leading-6 text-gray-500">
-              Generate backup codes so you can sign in if you lose access to
-              your authenticator app or security key.
+              {translator.translateText(
+                "Generate backup codes so you can sign in if you lose access to your authenticator app or security key.",
+              )}
             </p>
           </div>
         </div>
@@ -375,7 +392,7 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
       <div
         className="rounded-lg border border-gray-200 bg-gray-50 p-4"
         role="status"
-        aria-label="Backup code status"
+        aria-label={translator.translateText("Backup code status")}
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
@@ -389,13 +406,27 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
               />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">{`${status.unused} of ${status.total} backup codes remaining`}</p>
+              <p className="text-sm font-semibold text-gray-900">
+                {translator.translateTemplate(
+                  "{{unused}} of {{total}} backup codes remaining",
+                  {
+                    unused: translator.formatNumber(status.unused),
+                    total: translator.formatNumber(status.total),
+                  },
+                )}
+              </p>
               <p className="mt-1 text-sm leading-6 text-gray-500">
                 {isExhausted
-                  ? "All codes have been used. Generate a new set to restore your recovery option."
+                  ? translator.translateText(
+                      "All codes have been used. Generate a new set to restore your recovery option.",
+                    )
                   : isLow
-                    ? "You are running low. Generate a new set before you run out."
-                    : "Each code can be used once in place of your second factor."}
+                    ? translator.translateText(
+                        "You are running low. Generate a new set before you run out.",
+                      )
+                    : translator.translateText(
+                        "Each code can be used once in place of your second factor.",
+                      )}
               </p>
             </div>
           </div>
@@ -403,26 +434,28 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
             className={`inline-flex w-fit shrink-0 items-center rounded-full border px-2.5 py-1 text-xs font-medium ${tone}`}
           >
             {isExhausted
-              ? "No codes left"
+              ? translator.translateText("No codes left")
               : isLow
-                ? "Running low"
-                : "Ready to use"}
+                ? translator.translateText("Running low")
+                : translator.translateText("Ready to use")}
           </span>
         </div>
         <div className="mt-4 flex flex-col gap-2 border-t border-gray-200 pt-3 text-xs leading-5 text-gray-500 sm:flex-row sm:justify-between">
           <span>
-            Store your codes in a password manager or another safe place.
+            {translator.translateText(
+              "Store your codes in a password manager or another safe place.",
+            )}
           </span>
           {status.generatedAt && (
             <span>
               {/*
-               * In English, as every other line of this card still is: one
-               * German line in it would read as a mistake.
+               * The date follows the sentence: in the reader's language once
+               * it words the line, in English until then.
                */}
-              {inEnglishDates((): string => {
-                return `Generated ${OneUptimeDate.getDateAsLocalFormattedString(
+              {translator.translateTemplate("Generated {{date}}", {
+                date: OneUptimeDate.getDateAsLocalFormattedString(
                   status.generatedAt as Date,
-                )}`;
+                ),
               })}
             </span>
           )}
@@ -577,18 +610,19 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
               </span>
               <div>
                 <p className="text-sm font-medium text-amber-900">
-                  These codes are shown only once.
+                  {translator.translateText("These codes are shown only once.")}
                 </p>
                 <p className="mt-1 text-sm leading-6 text-amber-800">
-                  Save them in a password manager or download a copy. Each code
-                  works once, after your password.
+                  {translator.translateText(
+                    "Save them in a password manager or download a copy. Each code works once, after your password.",
+                  )}
                 </p>
               </div>
             </div>
 
             <div
               className="mt-5 grid grid-cols-1 gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3 sm:grid-cols-2 sm:p-4"
-              aria-label="Backup codes"
+              aria-label={translator.translateText("Backup codes")}
             >
               {generatedCodes.map((code: string, index: number) => {
                 return (
@@ -636,7 +670,9 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
             >
               {hasCopiedCodes && (
                 <span className="sr-only">
-                  Backup codes copied to clipboard.
+                  {translator.translateText(
+                    "Backup codes copied to clipboard.",
+                  )}
                 </span>
               )}
               {copyError && (
@@ -659,7 +695,9 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
                 }}
               />
               <span className="text-sm font-medium text-gray-700">
-                I have saved these codes somewhere safe.
+                {translator.translateText(
+                  "I have saved these codes somewhere safe.",
+                )}
               </span>
             </label>
           </div>

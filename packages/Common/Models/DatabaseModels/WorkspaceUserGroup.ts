@@ -279,7 +279,7 @@ export default class WorkspaceUserGroup extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Workspace Team ID",
     description:
-      "Microsoft Teams only: the team the tag is in (its Microsoft 365 group id).",
+      "Microsoft Teams: the team the tag is in (its Microsoft 365 group id). Slack installed for a whole Enterprise organization: the workspace the user group is in (T...). Empty for a Slack user group of a project connected to one workspace.",
   })
   @Column({
     nullable: true,

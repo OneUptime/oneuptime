@@ -225,11 +225,10 @@ export default class MetricQueryCloudAggregation {
       return AggregationInterval.Total;
     }
 
-    const rollingTime: RollingTime = Object.values(RollingTime).includes(
-      record?.["rollingTime"] as RollingTime,
-    )
-      ? (record!["rollingTime"] as RollingTime)
-      : RollingTime.Past1Minute;
+    // Written another way ("15 minutes") or not at all, as the worker reads it.
+    const rollingTime: RollingTime = RollingTimeUtil.fromValueOrDefault(
+      record?.["rollingTime"],
+    );
     const window: InBetween<Date> = RollingTimeUtil.convertToStartAndEndDate(
       rollingTime,
       new Date(0),

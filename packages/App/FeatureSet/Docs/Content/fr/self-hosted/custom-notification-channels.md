@@ -183,7 +183,7 @@ Une notification part vers chaque canal activé, en une requête par canal, avec
 
 ## Livraison et nouvelles tentatives
 
-Une requête compte comme livrée quand votre service répond avec un statut 2xx en moins de 10 secondes. Une requête restée sans réponse, ou à laquelle il a répondu par 408, 429 ou un statut 5xx, est renvoyée après 1 seconde, puis après 4 secondes de plus : trois tentatives en tout. Aucun autre statut 4xx n'entraîne de nouvel envoi.
+Une requête compte comme livrée quand votre service répond avec un statut 2xx en moins de 10 secondes. Une requête restée sans réponse, ou à laquelle il a répondu par 408, 429 ou un statut 5xx, est renvoyée après 1 seconde, puis après 4 secondes de plus : trois tentatives en tout. Aucun autre statut 4xx n'entraîne de nouvel envoi. Le sort de chaque message est compté dans les [Métriques de distribution des notifications](/docs/self-hosted/notification-delivery-metrics), par l'ID et le nom du canal.
 
 Le résultat de chaque tentative figure dans le journal d'astreinte de la personne, avec le nom du canal et le statut renvoyé par votre service, jamais l'URL. Une alerte non livrée n'arrête pas la politique d'astreinte : si personne ne la prend en compte, elle s'escalade comme d'habitude. Gardez une règle e-mail ou SMS plus loin dans vos règles si votre service est le seul moyen de joindre les personnes.
 

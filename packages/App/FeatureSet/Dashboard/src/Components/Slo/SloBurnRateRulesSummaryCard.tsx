@@ -11,7 +11,7 @@ import Card from "Common/UI/Components/Card/Card";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
-import { formatDurationCompact } from "Common/Utils/Slo/SloDuration";
+import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import {
   SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES,
   SLO_CURRENT_BURN_RATE_WINDOW_MINUTES,
@@ -19,6 +19,11 @@ import {
 } from "Common/Utils/Slo/SloEvaluation";
 import { isBurnRateAtOrAboveThreshold } from "Common/Utils/Slo/SloProjection";
 import { formatSloBurnRate } from "Common/Utils/Slo/SloWidgetFormat";
+import {
+  Translator,
+  translatableTerm,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -29,26 +34,54 @@ export interface ComponentProps {
   error: string;
 }
 
-type GetRuleWindowTextFunction = (
-  rule: ServiceLevelObjectiveBurnRateRule,
-) => string;
+type GetRuleThresholdTextFunction = (data: {
+  rule: ServiceLevelObjectiveBurnRateRule;
+  threshold: number;
+  translator: Translator;
+}) => string;
 
-const getRuleWindowText: GetRuleWindowTextFunction = (
-  rule: ServiceLevelObjectiveBurnRateRule,
-): string => {
+/*
+ * "At 14.4× or faster over 1h and 5m": the rule's threshold and the windows
+ * it looks back over, one sentence for each number of windows, worded
+ * whole in the reader's language.
+ */
+const getRuleThresholdText: GetRuleThresholdTextFunction = (data: {
+  rule: ServiceLevelObjectiveBurnRateRule;
+  threshold: number;
+  translator: Translator;
+}): string => {
   const windows: Array<string> = [];
 
-  for (const minutes of [rule.longWindowInMinutes, rule.shortWindowInMinutes]) {
+  for (const minutes of [
+    data.rule.longWindowInMinutes,
+    data.rule.shortWindowInMinutes,
+  ]) {
     if (typeof minutes === "number" && isFinite(minutes) && minutes > 0) {
-      windows.push(formatDurationCompact(minutes * 60));
+      windows.push(
+        formatDurationCompactInLanguage(minutes * 60, data.translator.language),
+      );
     }
   }
 
-  if (windows.length === 0) {
-    return "";
+  const rate: string = formatSloBurnRate(data.threshold) || "";
+
+  if (windows.length === 2) {
+    return data.translator.translateTemplate(
+      "At {{rate}} or faster over {{longWindow}} and {{shortWindow}}",
+      { rate: rate, longWindow: windows[0]!, shortWindow: windows[1]! },
+    );
   }
 
-  return ` over ${windows.join(" and ")}`;
+  if (windows.length === 1) {
+    return data.translator.translateTemplate(
+      "At {{rate}} or faster over {{window}}",
+      { rate: rate, window: windows[0]! },
+    );
+  }
+
+  return data.translator.translateTemplate("At {{rate}} or faster", {
+    rate: rate,
+  });
 };
 
 type GetRatioBarClassFunction = (ratio: number) => string;
@@ -80,6 +113,7 @@ const getRatioBarClass: GetRatioBarClassFunction = (ratio: number): string => {
 const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const rulesRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.SLO_VIEW_BURN_RATE_RULES] as Route,
     { modelId: props.sloId },
@@ -106,12 +140,14 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
       ? props.currentBurnRate
       : null;
 
-  const burnRateWindowText: string = formatDurationCompact(
+  const burnRateWindowText: string = formatDurationCompactInLanguage(
     SLO_CURRENT_BURN_RATE_WINDOW_MINUTES * 60,
+    translator.language,
   );
 
-  const comparableLongWindowText: string = formatDurationCompact(
+  const comparableLongWindowText: string = formatDurationCompactInLanguage(
     SLO_CURRENT_BURN_RATE_COMPARABLE_LONG_WINDOW_MINUTES * 60,
+    translator.language,
   );
 
   const hasUncomparedRule: boolean = enabledRules.some(
@@ -138,9 +174,14 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
           title="No enabled burn rate rules"
           description={
             disabledCount > 0
-              ? `This SLO has ${disabledCount} disabled rule${
-                  disabledCount === 1 ? "" : "s"
-                }, so nothing alerts when it burns its error budget too fast.`
+              ? translator.translatePlural(
+                  {
+                    one: "This SLO has {{count}} disabled rule, so nothing alerts when it burns its error budget too fast.",
+                    other:
+                      "This SLO has {{count}} disabled rules, so nothing alerts when it burns its error budget too fast.",
+                  },
+                  disabledCount,
+                )
               : "Nothing alerts when this SLO burns its error budget too fast."
           }
           actions={
@@ -158,7 +199,7 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
     return (
       <div>
         <ul
-          aria-label="Enabled burn rate rules"
+          aria-label={translator.translateTemplate("Enabled burn rate rules")}
           className="divide-y divide-gray-100"
         >
           {enabledRules.map(
@@ -193,17 +234,15 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
                   data-testid="slo-burn-rule-row"
                   className="py-3 first:pt-0"
                 >
+                  {/*
+                   * The name shares its line with the badge; the threshold
+                   * sentence runs the card's whole width under them, so a
+                   * long sentence (German's) never wraps beside a badge.
+                   */}
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="break-words text-sm font-medium text-gray-900">
-                        {rule.name || "Unnamed rule"}
-                      </p>
-                      <p className="mt-0.5 text-xs text-gray-500">
-                        {threshold !== null
-                          ? `At ${formatSloBurnRate(threshold)} or faster${getRuleWindowText(rule)}`
-                          : "No threshold set — this rule never fires"}
-                      </p>
-                    </div>
+                    <p className="min-w-0 break-words text-sm font-medium text-gray-900">
+                      {rule.name || translator.translateText("Unnamed rule")}
+                    </p>
                     {isAtThreshold ? (
                       <StatusBadge
                         text="At threshold"
@@ -214,12 +253,29 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
                       <></>
                     )}
                   </div>
+                  <p
+                    data-testid="slo-burn-rule-threshold"
+                    className="mt-0.5 text-xs text-gray-500"
+                  >
+                    {threshold !== null
+                      ? getRuleThresholdText({
+                          rule: rule,
+                          threshold: threshold,
+                          translator: translator,
+                        })
+                      : translator.translateText(
+                          "No threshold set — this rule never fires",
+                        )}
+                  </p>
 
                   {threshold !== null && isCompared ? (
                     <div className="mt-2 flex items-center gap-2">
                       <div
                         role="progressbar"
-                        aria-label={`${rule.name || "Rule"}: current burn against its threshold`}
+                        aria-label={translator.translateTemplate(
+                          "{{rule}}: current burn against its threshold",
+                          { rule: rule.name || translatableTerm("Rule") },
+                        )}
                         aria-valuemin={0}
                         aria-valuemax={100}
                         aria-valuenow={Math.round(ratio * 100)}
@@ -237,7 +293,9 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
                       <span className="flex-shrink-0 text-xs tabular-nums text-gray-500">
                         {currentBurnRate === null
                           ? "—"
-                          : `${formatSloBurnRate(currentBurnRate)} now`}
+                          : translator.translateTemplate("{{rate}} now", {
+                              rate: formatSloBurnRate(currentBurnRate) || "",
+                            })}
                       </span>
                     </div>
                   ) : (
@@ -277,13 +335,29 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
         </ul>
 
         <p className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500">
-          {`"Now" is the burn over the last ${burnRateWindowText}; each rule fires on its own windows.`}
-          {hasUncomparedRule
-            ? ` Rules that look back more than ${comparableLongWindowText} are not compared with it.`
-            : ""}
-          {disabledCount > 0
-            ? ` ${disabledCount} disabled rule${disabledCount === 1 ? " is" : "s are"} not shown.`
-            : ""}
+          {[
+            translator.translateTemplate(
+              '"Now" is the burn over the last {{window}}; each rule fires on its own windows.',
+              { window: burnRateWindowText },
+            ),
+            hasUncomparedRule
+              ? translator.translateTemplate(
+                  "Rules that look back more than {{window}} are not compared with it.",
+                  { window: comparableLongWindowText },
+                )
+              : "",
+            disabledCount > 0
+              ? translator.translatePlural(
+                  {
+                    one: "{{count}} disabled rule is not shown.",
+                    other: "{{count}} disabled rules are not shown.",
+                  },
+                  disabledCount,
+                )
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
         </p>
       </div>
     );

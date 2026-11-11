@@ -12,6 +12,8 @@ import React, {
 import WorkspaceType, {
   getWorkspaceTypeDisplayName,
 } from "Common/Types/Workspace/WorkspaceType";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceNotificationRuleOwningTeam from "Common/Models/DatabaseModels/WorkspaceNotificationRuleOwningTeam";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
@@ -74,6 +76,7 @@ import {
 import {
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
+  SlackOrganizationWorkspace,
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import { getVideoCallValidationError } from "Common/Types/Workspace/NotificationRules/VideoCallNotificationRule";
@@ -144,6 +147,7 @@ export interface ComponentProps {
 const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
 
@@ -181,6 +185,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   >([]);
   const [microsoftTeamsChats, setMicrosoftTeamsChats] = React.useState<
     Array<MicrosoftTeamsChat>
+  >([]);
+  /*
+   * Slack installed for a whole Enterprise organization: the workspaces
+   * OneUptime was added to, for a rule to pick the one its channels are in.
+   */
+  const [slackWorkspaces, setSlackWorkspaces] = React.useState<
+    Array<SlackOrganizationWorkspace>
   >([]);
   const [users, setUsers] = React.useState<Array<User>>([]);
   const [onCallSchedules, setOnCallSchedules] = React.useState<
@@ -677,10 +688,52 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           setMicrosoftTeamsChats(chatsData);
         }
       }
+
+      /*
+       * Slack installed for a whole Enterprise organization: its workspaces.
+       * One workspace's connection - or one Slack could not be asked about -
+       * has none, and its rules simply pick no workspace.
+       */
+      if (props.workspaceType === WorkspaceType.Slack) {
+        setSlackWorkspaces(await loadSlackWorkspaces());
+      }
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Exception));
     }
     setIsLoading(false);
+  };
+
+  type LoadSlackWorkspacesFunction = () => Promise<
+    Array<SlackOrganizationWorkspace>
+  >;
+
+  const loadSlackWorkspaces: LoadSlackWorkspacesFunction = async (): Promise<
+    Array<SlackOrganizationWorkspace>
+  > => {
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.get({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/slack/workspaces`,
+          ),
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (
+        response instanceof HTTPErrorResponse ||
+        response.data?.["isOrganization"] !== true
+      ) {
+        return [];
+      }
+
+      const workspaces: unknown = response.data["workspaces"];
+
+      return Array.isArray(workspaces)
+        ? (workspaces as Array<SlackOrganizationWorkspace>)
+        : [];
+    } catch {
+      return [];
+    }
   };
 
   useEffect(() => {
@@ -745,6 +798,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         teams={teams}
         microsoftTeamsTeams={microsoftTeamsTeams}
         microsoftTeamsChats={microsoftTeamsChats}
+        slackWorkspaces={slackWorkspaces}
         users={users}
         onCallSchedules={onCallSchedules}
         numberPrefixes={numberPrefixes}
@@ -1175,6 +1229,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             onCallSchedules: onCallSchedules,
             microsoftTeamsTeams: microsoftTeamsTeams,
             microsoftTeamsChats: microsoftTeamsChats,
+            slackWorkspaces: slackWorkspaces,
             videoCallConnections: videoCallConnections,
             numberPrefixes: numberPrefixes,
             exampleRecordName: exampleRecordName,
@@ -1188,7 +1243,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`Test Rule`}
           error={testError}
-          description={`Test the rule ${testNotificationRule.name} by sending a test notification to ${getWorkspaceTypeDisplayName(props.workspaceType)}.`}
+          description={translator.translateTemplate(
+            "Test the rule {{rule}} by sending a test notification to {{workspace}}.",
+            {
+              rule: testNotificationRule.name || "",
+              workspace: getWorkspaceTypeDisplayName(props.workspaceType),
+            },
+          )}
           submitButtonText={"Test"}
           onClose={() => {
             setShowTestModal(false);
@@ -1212,7 +1273,10 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={testError ? `Test Failed` : `Test Executed Successfully`}
           error={testError}
-          description={`Test executed successfully. You should now see a notification in ${getWorkspaceTypeDisplayName(props.workspaceType)}.`}
+          description={translator.translateTemplate(
+            "Test executed successfully. You should now see a notification in {{workspace}}.",
+            { workspace: getWorkspaceTypeDisplayName(props.workspaceType) },
+          )}
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
           onSubmit={async () => {

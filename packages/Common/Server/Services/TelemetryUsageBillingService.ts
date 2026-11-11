@@ -98,6 +98,7 @@ export const TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES: ReadonlyArray<ServiceType>
     ServiceType.DataPipeline,
     ServiceType.DataProduct,
     ServiceType.DataReconciliation,
+    ServiceType.DataBiConnection,
   ];
 
 export type IsTelemetryBillingExcludedEntityTypeFunction = (

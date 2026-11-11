@@ -33,6 +33,8 @@ import {
 } from "./VideoCallApi";
 import VideoCallProviderLogo from "./VideoCallProviderLogo";
 import VideoCallTestPanel from "./VideoCallTestPanel";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
  * The project's video call connections. Create and edit go through
@@ -256,6 +258,8 @@ const VideoCallConnectionsTable: FunctionComponent<ComponentProps> = (
             },
             title: "Connection",
             type: FieldType.Element,
+            // A mark beside the name: the name reads its own way, the cell the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (item: VideoCallConnection): ReactElement => {
               return (
                 <div className="flex items-center gap-3">
@@ -269,9 +273,11 @@ const VideoCallConnectionsTable: FunctionComponent<ComponentProps> = (
                     size="md"
                   />
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-gray-900">
-                      {item.name}
-                    </p>
+                    <IsolatedLine
+                      as="p"
+                      text={item.name || ""}
+                      className="truncate text-sm font-medium text-gray-900"
+                    />
                     <p className="truncate text-xs text-gray-500">
                       {isVideoCallOAuth(item.authMethod)
                         ? item.connectedAccount

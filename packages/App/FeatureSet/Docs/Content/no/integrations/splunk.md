@@ -101,7 +101,7 @@ POST {Splunk management URL}/services/search/v2/jobs/export
 - **Opprettelsestidspunktet er markøren.** Vinduet gjelder `_time`, som for et notable event er når korrelasjonssøket opprettet det, ikke når aktiviteten det fant, skjedde. Et søk som kjører hver time, daterer sine notable events til tidspunktet for kjøringen, så ingen havner bak markøren.
 - **Den første pollen ser 24 timer tilbake**, slik at en ny tilkobling viser de nylige notable eventene sine med en gang.
 - **Hver senere poll starter 1 minutt før den lagrede markøren**, slik at en rad som er opprettet på grensen mellom to vinduer, aldri går tapt.
-- **En poll leser høyst 24 timer forbi markøren.** En tilkobling der markøren har kommet på etterskudd, tar igjen i en rekke vinduer på 24 timer, og **Helse** viser **Catching up**.
+- **En poll leser høyst 24 timer forbi markøren.** En tilkobling der markøren har kommet på etterskudd, tar igjen i en rekke vinduer på 24 timer, og **Helse** viser **Tar igjen etterslep**.
 - **Duplikater fjernes etter `event_id`**, eller Splunks egne `_bkt` og `_cd`, i prosjektet, slik at overlappingen, et gjentatt vindu og en import aldri lagrer en rad to ganger.
 
 En search head eldre enn 9.0.1 svarer `404` på forespørselen til `search/v2/jobs/export`. OneUptime sender den da til den utgåtte `search/jobs/export`, og kjøringen sier det i en advarsel. Oppgrader search headen: gjeldende versjoner slår av det endepunktet.

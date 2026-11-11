@@ -58,7 +58,7 @@ Le metriche di incidenti e avvisi portano due attributi corrispondenti, `service
 
 Le metriche `oneuptime.slo.*` vengono conservate quanto le metriche dei monitor: **30 giorni** per impostazione predefinita. In un'installazione self-hosted, un amministratore principale può cambiarlo con **Monitor Metric Retention (Days)** nelle impostazioni **Conservazione dei dati** dell'Admin Dashboard.
 
-Questo non limita la scheda **Error Budget History** della pagina **Metriche** dello SLO. Quella cronologia viene archiviata a parte e conservata per 400 giorni.
+Questo non limita la scheda **Cronologia del budget di errore** della pagina **Metriche** dello SLO. Quella cronologia viene archiviata a parte e conservata per 400 giorni.
 
 ## La pagina Metriche
 
@@ -66,12 +66,12 @@ La pagina **Metriche** di uno SLO ha quattro schede:
 
 | Scheda | Cosa mostra |
 | --- | --- |
-| **SLO Metrics** | Le serie `oneuptime.slo.*` in tre riquadri che condividono un intervallo di tempo, l'ultimo giorno per impostazione predefinita: **Obiettivo** (lo SLI con l'obiettivo sopra, e il budget rimanente), **Consumo** (tasso di consumo e tempo di budget rimanente) e **Stato**. |
-| **Error Budget History** | SLI, budget rimanente e tasso di consumo sulla cronologia di lungo periodo, con linee all'obiettivo, ai limiti di rischio e di esaurimento, e alla soglia di ogni regola del tasso di consumo abilitata. |
+| **Metriche SLO** | Le serie `oneuptime.slo.*` in tre riquadri che condividono un intervallo di tempo, l'ultimo giorno per impostazione predefinita: **Obiettivo** (lo SLI con l'obiettivo sopra, e il budget rimanente), **Consumo** (tasso di consumo e tempo di budget rimanente) e **Stato**. |
+| **Cronologia del budget di errore** | SLI, budget rimanente e tasso di consumo sulla cronologia di lungo periodo, con linee all'obiettivo, ai limiti di rischio e di esaurimento, e alla soglia di ogni regola del tasso di consumo abilitata. |
 | **Metriche di incidente** | Il numero, il tempo di presa in carico, il tempo di risoluzione e la durata degli incidenti che riguardano questo SLO, l'ultima settimana per impostazione predefinita. Sono inclusi gli incidenti dichiarati dalle sue regole del tasso di consumo. |
 | **Metriche di avviso** | Lo stesso per gli avvisi. Sono inclusi gli avvisi generati dalle sue regole del tasso di consumo. |
 
-Le schede **SLO Metrics**, **Metriche di incidente** e **Metriche di avviso** leggono l'archivio di metriche, il che richiede il permesso di leggere la telemetria. Un ruolo personalizzato che può leggere gli SLO ma non la telemetria vede quelle schede vuote, mentre **Error Budget History** funziona comunque.
+Le schede **Metriche SLO**, **Metriche di incidente** e **Metriche di avviso** leggono l'archivio di metriche, il che richiede il permesso di leggere la telemetria. Un ruolo personalizzato che può leggere gli SLO ma non la telemetria vede quelle schede vuote, mentre **Cronologia del budget di errore** funziona comunque.
 
 ## Gli SLO nelle dashboard
 
@@ -123,7 +123,7 @@ Due SLO hanno quel nome. L'elenco e i grafici li mostrano entrambi, e i widget d
 :::
 
 :::details La scheda SLO Metrics è vuota
-Il tuo ruolo non può leggere la telemetria, oppure lo SLO non è stato ancora valutato. **Error Budget History** legge lo SLO stesso e funziona comunque.
+Il tuo ruolo non può leggere la telemetria, oppure lo SLO non è stato ancora valutato. **Cronologia del budget di errore** legge lo SLO stesso e funziona comunque.
 :::
 
 ## Passi successivi

@@ -52,6 +52,11 @@ export interface PendingExpoPushReceipt {
   pushNotificationLogId?: string | undefined;
   // The on-call timeline row of the page, when the push was a page to this one device.
   userOnCallLogTimelineId?: string | undefined;
+  /*
+   * The push was an on-call page - to this device or among several - as
+   * notification.send.count said it, for its receipt's delivery metric.
+   */
+  isOnCallPage?: boolean | undefined;
 }
 
 // Expo's advice: read a push's receipt 15 minutes after sending it.
@@ -210,6 +215,10 @@ export class ExpoPushReceiptQueue {
       receipt.userOnCallLogTimelineId = entry["userOnCallLogTimelineId"];
     }
 
+    if (entry["isOnCallPage"] === true) {
+      receipt.isOnCallPage = true;
+    }
+
     return receipt;
   }
 
@@ -227,6 +236,7 @@ export class ExpoPushReceiptQueue {
       ...(receipt.userOnCallLogTimelineId
         ? { userOnCallLogTimelineId: receipt.userOnCallLogTimelineId }
         : {}),
+      ...(receipt.isOnCallPage ? { isOnCallPage: true } : {}),
     });
   }
 

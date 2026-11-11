@@ -29,6 +29,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import Twilio from "twilio";
 
 /*
@@ -182,7 +183,7 @@ function callRequest(): CallRequest {
 
 let createMessage: jest.Mock;
 let createCall: jest.Mock;
-let post: ReturnType<typeof jest.spyOn>;
+let post: SpyInstance<typeof API.post>;
 let project: Project | null;
 
 function onlySend(): Record<string, string> {
@@ -239,9 +240,12 @@ beforeEach(() => {
     };
   });
 
+  // API.post is generic, so its spy is typed by a cast.
   post = jest
     .spyOn(API, "post")
-    .mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}) as never);
+    .mockResolvedValue(
+      new HTTPResponse<JSONObject>(200, {}, {}) as never,
+    ) as unknown as SpyInstance<typeof API.post>;
   jest
     .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
     .mockResolvedValue(undefined as never);
@@ -338,6 +342,50 @@ describe("an SMS", () => {
     });
 
     expect(onlySend()["notification.on_call_page"]).toBe("true");
+  });
+
+  /*
+   * How the SMS ended is counted on the same account as its send (issue
+   * #6648): its status callback's address says whose account it went out on.
+   */
+  test("on the project's own Twilio account, its status callback says so", async () => {
+    await SmsService.sendSms(TO, MESSAGE, {
+      projectId: PROJECT_ID,
+      customTwilioConfig: PROJECT_TWILIO,
+    });
+
+    // Read as an address, never by a piece of its text.
+    const callback: globalThis.URL = new globalThis.URL(
+      String((createMessage.mock.calls[0]![0] as JSONObject)["statusCallback"]),
+    );
+
+    expect(callback.host).toBe("oneuptime.example.com");
+    expect(callback.pathname.split("/").slice(0, 4)).toEqual([
+      "",
+      "notification",
+      "sms",
+      "status-callback",
+    ]);
+    expect([...callback.searchParams.entries()]).toEqual([
+      ["providerConfig", "project"],
+    ]);
+  });
+
+  test("on the server's own account, its status callback's address is as it always was", async () => {
+    await SmsService.sendSms(TO, MESSAGE, { projectId: PROJECT_ID });
+
+    const callback: globalThis.URL = new globalThis.URL(
+      String((createMessage.mock.calls[0]![0] as JSONObject)["statusCallback"]),
+    );
+
+    expect(callback.host).toBe("oneuptime.example.com");
+    expect(callback.pathname.split("/").slice(0, 4)).toEqual([
+      "",
+      "notification",
+      "sms",
+      "status-callback",
+    ]);
+    expect(callback.search).toBe("");
   });
 
   test("through the server's own gateway: counted under the gateway, not Twilio", async () => {

@@ -5,6 +5,8 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import Input from "Common/UI/Components/Input/Input";
 import IconProp from "Common/Types/Icon/IconProp";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -53,6 +55,7 @@ const serializeValues: (values: Array<string>) => string = (
 const AxisValuesInput: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   // We keep a local working list (so users can type empty rows mid-edit).
   const [values, setValues] = useState<Array<string>>(() => {
     const parsed: Array<string> = parseValues(props.initialValue);
@@ -148,7 +151,7 @@ const AxisValuesInput: FunctionComponent<ComponentProps> = (
               </div>
               <button
                 type="button"
-                aria-label="Remove value"
+                aria-label={translator.translateText("Remove value")}
                 onClick={() => {
                   removeAt(index);
                 }}

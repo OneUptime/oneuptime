@@ -30,8 +30,9 @@ import OldestKeyMap from "../../../Utils/OldestKeyMap";
 const MAX_REMEMBERED: number = 2000;
 
 /*
- * Insertion order: the first key is the oldest, which OldestKeyMap answers
- * in constant time however much the memo has churned.
+ * Insertion order, oldest first. OldestKeyMap answers the oldest key without
+ * walking past the slots of the keys evicted before it, as keys().next()
+ * would in a memo that evicts on every write once it is full.
  */
 const remembered: OldestKeyMap<string, EvaluationSentence> = new OldestKeyMap<
   string,
