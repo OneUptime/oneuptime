@@ -297,6 +297,8 @@ export default class MattermostTeams {
    * apart (WorkspaceNotificationRuleService): the one the rule names, else
    * the default team - where a channel named without a team is created, and
    * looked for first. Undefined for a project with no Mattermost connection.
+   * What is not a Mattermost id names no team: a value written through the
+   * API before rules could name a team, when it was not read.
    */
   public static getTeamIdOfRuleChannel(data: {
     projectAuth:
@@ -309,7 +311,7 @@ export default class MattermostTeams {
       MattermostTeams.readConnection(data.projectAuth);
 
     return (
-      MattermostTeams.textOf(data.teamId) ||
+      MattermostTeams.idOf(data.teamId) ||
       connection?.defaultTeam.id ||
       undefined
     );

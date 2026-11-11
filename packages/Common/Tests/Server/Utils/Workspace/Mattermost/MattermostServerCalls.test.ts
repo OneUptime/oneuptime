@@ -1927,6 +1927,37 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
       ]);
     });
 
+    test("a team that is not a Mattermost id, written through the API before rules named one, names none and is never sent", async () => {
+      on("GET", "/api/v4/users/me/teams", ok(BOTH_TEAMS));
+      on(
+        "GET",
+        `/api/v4/teams/${OTHER_TEAM_ID}/channels/name/support-desk`,
+        ok(channel(OTHER_CHANNEL_ID, "support-desk", "O", OTHER_TEAM_ID)),
+      );
+
+      const found: WorkspaceChannel | null =
+        await MattermostUtil.findChannelByName({
+          authToken: AUTH_TOKEN,
+          channelName: "support-desk",
+          teamId: "../users/me",
+        });
+
+      // Looked for as a rule naming no team is: the default team first.
+      expect(found).toMatchObject({
+        id: OTHER_CHANNEL_ID,
+        teamId: OTHER_TEAM_ID,
+      });
+      expect(
+        calls.map((call: ServerCall) => {
+          return call.path;
+        }),
+      ).toEqual([
+        `/api/v4/teams/${TEAM_ID}/channels/name/support-desk`,
+        "/api/v4/users/me/teams",
+        `/api/v4/teams/${OTHER_TEAM_ID}/channels/name/support-desk`,
+      ]);
+    });
+
     test("a handle in another team comes before a display name in the default team", async () => {
       on("GET", "/api/v4/users/me/teams", ok(BOTH_TEAMS));
       on(

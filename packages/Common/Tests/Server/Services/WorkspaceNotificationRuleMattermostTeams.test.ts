@@ -455,6 +455,23 @@ describe("a record's channels, created in the team each rule names", () => {
     ]);
   });
 
+  test("a rule whose team is not a Mattermost id, written through the API before rules named one, creates its channel in the default team, as it did", async () => {
+    const channels: Array<NotificationRuleWorkspaceChannel> =
+      await createChannels({
+        rules: [
+          incidentRule(FIRST_RULE_ID, { teamToCreateChannelIn: "engineering" }),
+          incidentRule(SECOND_RULE_ID),
+        ],
+      });
+
+    expect(createdIn).toEqual([
+      { channelName: CHANNEL_NAME, teamId: ENGINEERING },
+    ]);
+    expect(teamsAndRulesOf(channels)).toEqual([
+      [ENGINEERING, [FIRST_RULE_ID.toString(), SECOND_RULE_ID.toString()]],
+    ]);
+  });
+
   test("once another team is the default, a rule naming no team creates its channel there", async () => {
     await createChannels({
       rules: [
@@ -613,6 +630,18 @@ describe("the existing Mattermost channels rules post to, each once", () => {
       ["incidents", undefined],
       ["incidents", SUPPORT],
     ]);
+  });
+
+  test("a rule naming a team by something that is not a Mattermost id posts once with one naming none", () => {
+    expect(
+      existingChannels({
+        rules: [
+          postingRule("incidents"),
+          postingRule("incidents", "engineering"),
+        ],
+        projectAuth: mattermostAuth(),
+      }),
+    ).toEqual([["incidents", undefined]]);
   });
 
   test("once another team is the default, naming none is naming it", () => {

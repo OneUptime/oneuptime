@@ -374,6 +374,21 @@ describe("the team of a rule's channel, and of a channel a record holds", () => 
     ).toBeUndefined();
   });
 
+  test("a rule's team that is not a Mattermost id, written through the API before rules named one, names none: the default", () => {
+    expect(
+      MattermostTeams.getTeamIdOfRuleChannel({
+        projectAuth: movedDefault,
+        teamId: "engineering",
+      }),
+    ).toBe(SUPPORT);
+    expect(
+      MattermostTeams.getTeamIdOfRuleChannel({
+        projectAuth: null,
+        teamId: "../users/me",
+      }),
+    ).toBeUndefined();
+  });
+
   test("a stored channel: the team it was stored with", () => {
     expect(
       MattermostTeams.getTeamIdOfStoredChannel({

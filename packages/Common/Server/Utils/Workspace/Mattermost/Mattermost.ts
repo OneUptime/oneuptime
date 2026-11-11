@@ -834,7 +834,9 @@ export default class MattermostUtil extends WorkspaceBase {
    * the other teams the bot is a member of, asked for only then
    * (MattermostTeams): by handle in each team, then by display name in
    * each, so a handle in another team comes before a display name in the
-   * default one.
+   * default one. A team that is not a Mattermost id names none, and is
+   * never sent: a rule's team written through the API before rules could
+   * name one, when it was not read.
    */
   @CaptureSpan()
   public static async findChannelByName(data: {
@@ -845,8 +847,10 @@ export default class MattermostUtil extends WorkspaceBase {
     const connection: MattermostConnectionData =
       MattermostConnection.fromAuthToken(data.authToken);
 
-    const namedTeamId: string | undefined = data.teamId
-      ? MattermostConnection.assertMattermostId(data.teamId, "team")
+    const namedTeamId: string | undefined = MattermostConnection.isMattermostId(
+      data.teamId,
+    )
+      ? data.teamId
       : undefined;
 
     const typed: string = (data.channelName || "").trim().replace(/^[#~]/, "");
