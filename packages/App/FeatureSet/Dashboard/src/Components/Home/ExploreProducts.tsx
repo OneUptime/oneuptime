@@ -1,4 +1,10 @@
 import AppLink from "../AppLink/AppLink";
+import { PRODUCT_ABOUT_BUTTON_CLASS_NAME } from "../ProductOnboarding/ProductAboutButton";
+import { HOW_IT_WORKS_TITLE } from "./HowOneUptimeWorks";
+import {
+  HowOneUptimeWorksOpenedFrom,
+  openHowOneUptimeWorks,
+} from "./HowOneUptimeWorksDialog";
 import { useDashboardNavigationItems } from "../../Utils/NavigationItems";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
@@ -41,6 +47,10 @@ import { useTranslation } from "react-i18next";
 export interface ComponentProps {
   projectId: string;
 }
+
+// The button beside the card's title that opens How OneUptime works.
+export const HOME_HOW_ONEUPTIME_WORKS_TEST_ID: string =
+  "home-how-oneuptime-works";
 
 // The products menu's categories, without the settings one.
 export const getExploreCategories: (data: {
@@ -130,6 +140,24 @@ const ExploreProducts: FunctionComponent<ComponentProps> = (
         description="Everything OneUptime can do, by category. Open a product to see what it shows and how to set it up."
         bodyClassName="mt-4"
         className="!mb-0"
+        /*
+         * How the core products fit together, from Home at any time: the
+         * Welcome checklist shows it only until it is done or dismissed.
+         */
+        rightElement={
+          <button
+            type="button"
+            className={PRODUCT_ABOUT_BUTTON_CLASS_NAME}
+            aria-haspopup="dialog"
+            data-testid={HOME_HOW_ONEUPTIME_WORKS_TEST_ID}
+            onClick={() => {
+              openHowOneUptimeWorks(HowOneUptimeWorksOpenedFrom.Home);
+            }}
+          >
+            <Icon icon={IconProp.Map} className="h-4 w-4 flex-shrink-0" />
+            <span>{translator.translateText(HOW_IT_WORKS_TITLE)}</span>
+          </button>
+        }
       >
         <div
           role="tablist"

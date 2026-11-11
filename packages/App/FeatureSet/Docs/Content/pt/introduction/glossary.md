@@ -92,6 +92,12 @@ Quem está de plantão a cada momento: as pessoas se revezam, e cada uma passa o
 
 Também chamado: **Rotation**. Veja [Agendamentos de plantão](/docs/on-call/schedules).
 
+### Camada
+
+Uma rotação dentro de um agendamento de plantão: quem se reveza, com que frequência há passagem de turno e quais horários ela cobre. É acionada a camada mais alta em que há alguém de plantão, por isso a rotação principal fica no topo e a cobertura reserva abaixo dela.
+
+Veja [Agendamentos de plantão](/docs/on-call/schedules#camadas).
+
 ### Método de notificação
 
 Um endereço pelo qual o OneUptime pode contatar você em um projeto: um endereço de e-mail, um número de telefone para SMS ou chamadas, sua conta do Slack ou do Microsoft Teams, ou o aplicativo do OneUptime no seu celular. Cada pessoa adiciona os seus em **Configurações do usuário**.

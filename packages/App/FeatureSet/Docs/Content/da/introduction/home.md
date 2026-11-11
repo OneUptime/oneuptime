@@ -74,7 +74,7 @@ Det trin, du skal tage først, er markeret med **Næste trin**. På OneUptime Cl
 
 Når du opretter en overvågning, en statusside eller en vagtpolitik fra et trin, siger siden, du lander på, hvad der kommer bagefter, med **Tilbage til opsætningen**.
 
-Under trinene viser **Sådan virker OneUptime** de fire kerneprodukter i den rækkefølge, et problem bevæger sig gennem dem: **Monitorer**, **Hændelser og advarsler**, **Vagtordning** og **Statussider**. Klik på et for at åbne det.
+Under trinene viser **Sådan virker OneUptime** de fire kerneprodukter i den rækkefølge, et problem bevæger sig gennem dem: **Monitorer**, **Hændelser og advarsler**, **Vagtordning** og **Statussider**. Klik på et for at åbne det. Under dem står, hvad der fodrer kredsløbet, telemetri og infrastruktur, med links til [Grundbegreber](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
 
 ```mermaid title="Hvornår velkomsttjeklisten vises"
 flowchart TB
@@ -87,7 +87,7 @@ flowchart TB
     done -->|"Nej"| shown["Tjeklisten med<br/>de resterende trin"]
 ```
 
-Tjeklisten forsvinder for alle, når hvert trin er færdigt. For at skjule den før, skal du klikke på **Skjul**: den er så kun skjult for dig, på alle enheder, og en linje bliver stående med **Vis den** og **Sådan virker OneUptime**. Folk, der er inviteret til projektet som medlemmer, ser ikke tjeklisten.
+Tjeklisten forsvinder for alle, når hvert trin er færdigt. For at skjule den før, skal du klikke på **Skjul**: den er så kun skjult for dig, på alle enheder, og en linje bliver stående med **Vis den** og **Sådan virker OneUptime**. Folk, der er inviteret til projektet som medlemmer, ser ikke tjeklisten. **Sådan virker OneUptime** er stadig ét klik væk i alle projekter: åbn det fra **Hjælp** eller med knappen ved siden af **Udforsk OneUptime**.
 
 ### Kræver opmærksomhed
 
@@ -136,7 +136,9 @@ To bjælker løber hen over toppen af hver side.
 | Øverst til højre | **Søg** og **Spørg AI**, notifikationsklokken med det, der kræver dig nu (aktive hændelser og advarsler, de vagtpolitikker, du har vagt i, ventende invitationer), **Hjælp**, og dit billede, som åbner menuen for din [konto](/docs/introduction/your-account). |
 | Under dem | **Hjem** og **Produkter** til venstre, **Brugerindstillinger** til højre: hvordan OneUptime kontakter dig i dette projekt. |
 
-**Hjælp** åbner denne dokumentation (**Dokumentation**) og listen **Keyboard shortcuts** og tilbyder support via e-mail og på Slack. På en smal skærm, som på en telefon, er **Søg**, **Spørg AI** og **Hjælp** udeladt for at spare plads; klokken og dit billede bliver.
+**Hjælp** starter med det, der hjælper dig med at lære: **Hurtigstart**, **Sådan virker OneUptime**, **Ordliste** og denne dokumentation (**Dokumentation**). Under dem ligger listen **Keyboard shortcuts** og support via e-mail og på Slack. På en smal skærm, som på en telefon, er **Søg**, **Spørg AI** og **Hjælp** udeladt for at spare plads; klokken og dit billede bliver.
+
+Et ord med en prikket linje under, som **Sonder** i formularen til en ny monitor, fortæller, hvad det betyder, når du peger på det, tabber til det eller trykker på det. Dets **Læs mere** åbner ordet i [Ordliste](/docs/introduction/glossary).
 
 ### Sider og lister
 

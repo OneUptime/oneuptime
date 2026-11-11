@@ -1,4 +1,6 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
+import GlossaryTerm from "../../../Types/Docs/GlossaryTerm";
+import DefinedTerm from "../Glossary/DefinedTerm";
 import { BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import API from "../../Utils/API/API";
@@ -5060,9 +5062,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       planName = new props.modelType().getCreateBillingPlan()!;
     }
 
+    /*
+     * The card's Glossary term (cardProps.titleGlossaryTerm) marks the
+     * title's words here, beside its plan's badge: Card marks only a title
+     * that is words alone.
+     */
+    const glossaryTerm: GlossaryTerm | undefined =
+      props.cardProps?.titleGlossaryTerm;
+
     return (
       <span>
-        {renderedTitle}
+        {glossaryTerm && typeof renderedTitle === "string" ? (
+          <DefinedTerm term={glossaryTerm}>{renderedTitle}</DefinedTerm>
+        ) : (
+          renderedTitle
+        )}
         {showPlan && (
           <span
             style={{

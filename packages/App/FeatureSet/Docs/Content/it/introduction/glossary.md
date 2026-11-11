@@ -92,6 +92,12 @@ Chi è reperibile in ogni momento: le persone si danno il turno, e ciascuna pass
 
 Altri nomi: **Rotation**. Vedi [Pianificazioni di reperibilità](/docs/on-call/schedules).
 
+### Livello
+
+Una rotazione all'interno di una pianificazione di reperibilità: chi si alterna, ogni quanto avviene il passaggio di consegne e quali orari copre. Avvisa il livello più alto in cui qualcuno è reperibile, quindi la rotazione principale va in cima e la copertura di riserva sotto.
+
+Vedi [Pianificazioni di reperibilità](/docs/on-call/schedules#livelli).
+
 ### Metodo di notifica
 
 Un recapito a cui OneUptime può raggiungerti in un progetto: un indirizzo e-mail, un numero di telefono per SMS o chiamate, il tuo account Slack o Microsoft Teams, o l'app OneUptime sul tuo telefono. Ognuno aggiunge i propri in **Impostazioni utente**.

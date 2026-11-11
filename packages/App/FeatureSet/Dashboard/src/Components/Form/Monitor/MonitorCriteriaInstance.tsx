@@ -1,4 +1,5 @@
 import CriteriaFilters from "./CriteriaFilters";
+import IncidentOrAlertNote from "./IncidentOrAlertNote";
 import {
   CRITERIA_ACTION_FORM_CLASS_NAME,
   CRITERIA_SECTION_CLASS_NAME,
@@ -93,6 +94,12 @@ export interface ComponentProps {
   value?: undefined | MonitorCriteriaInstance;
   onChange?: undefined | ((value: MonitorCriteriaInstance) => void);
   onDelete?: undefined | (() => void);
+  /*
+   * The first criteria of the list: it marks "incidents" and "alerts" as
+   * defined terms where the choice between them is made; the rest say the
+   * same line unmarked, as a page marks a word once.
+   */
+  isFirstCriteria?: boolean | undefined;
 }
 
 const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
@@ -581,6 +588,15 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               />
             </div>
           )}
+
+          {/*
+           * The difference between the two choices below, in a line beside
+           * them, with the words defined on the first criteria.
+           */}
+          <IncidentOrAlertNote
+            marksTerms={props.isFirstCriteria}
+            className="mt-4 text-sm leading-5 text-gray-500"
+          />
 
           <div className="mt-4">
             <Toggle

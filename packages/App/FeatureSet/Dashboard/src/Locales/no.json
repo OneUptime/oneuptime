@@ -155,7 +155,10 @@
   },
   "help": {
     "label": "Hjelp",
+    "quickstart": "Hurtigstart",
     "documentation": "Dokumentasjon",
+    "glossary": "Ordliste",
+    "howOneUptimeWorks": "Slik fungerer OneUptime",
     "supportEmail": "Støtte-e-post",
     "chatSlack": "Chat på Slack",
     "requestDemo": "Be om demo"
@@ -12013,7 +12016,7 @@
   "Layout and presentation widgets that do not need a data source.": "Widgeter for oppsett og presentasjon som ikke trenger en datakilde.",
   "Leaf Level": "Leaf Level",
   "Learn about dynamic templates": "Les om dynamiske maler",
-  "Learn more": "Learn more",
+  "Learn more": "Finn ut mer",
   "Learn more about secrets.": "Learn more about secrets.",
   "Learn more.": "Learn more.",
   "Learned from FDB": "Lært fra FDB",
@@ -50675,5 +50678,13 @@
   "{{name}} acknowledged it in Mattermost after {{time}}.": "{{name}} bekreftet den i Mattermost etter {{time}}.",
   "{{name}} acknowledged it in Microsoft Teams after {{time}}.": "{{name}} bekreftet den i Microsoft Teams etter {{time}}.",
   "{{name}} acknowledged it in Slack after {{time}}.": "{{name}} bekreftet den i Slack etter {{time}}.",
-  "{{name}} acknowledged it.": "{{name}} bekreftet den."
+  "{{name}} acknowledged it.": "{{name}} bekreftet den.",
+  "Core Concepts": "Grunnbegreper",
+  "Glossary": "Ordliste",
+  "Loading the definition…": "Laster inn definisjonen…",
+  "Read more": "Les mer",
+  "Read what this means in the glossary": "Les i ordlisten hva dette betyr",
+  "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} er for problemer kundene dine merker, og kan vises på en statusside. {{alerts}} er for teamet ditt, og vises aldri der.",
+  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} avgjør for hver alvorlighetsgrad hvilken varslingsmetode et varsel prøver, og etter hvor lang tid.",
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} og {{infrastructure}} mater kretsløpet: regler for loggene, metrikkene og sporene dine, eller for vertene, klyngene og skyene dine, åpner også hendelser og varsler."
 }

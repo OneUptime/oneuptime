@@ -1,4 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -49,6 +50,7 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title: "Labels",
           description:
             "Group resources with labels. A team's permission can be limited to the resources with certain labels.",
+          titleGlossaryTerm: GlossaryTerm.Label,
         }}
         noItemsMessage={"No labels found."}
         viewPageRoute={Navigation.getCurrentRoute()}

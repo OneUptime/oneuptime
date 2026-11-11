@@ -155,7 +155,10 @@
   },
   "help": {
     "label": "Help",
+    "quickstart": "Quickstart",
     "documentation": "Documentation",
+    "glossary": "Glossary",
+    "howOneUptimeWorks": "How OneUptime works",
     "supportEmail": "Support Email",
     "chatSlack": "Chat on Slack",
     "requestDemo": "Request Demo"
@@ -50675,5 +50678,13 @@
   "{{name}} acknowledged it in Mattermost after {{time}}.": "{{name}} acknowledged it in Mattermost after {{time}}.",
   "{{name}} acknowledged it in Microsoft Teams after {{time}}.": "{{name}} acknowledged it in Microsoft Teams after {{time}}.",
   "{{name}} acknowledged it in Slack after {{time}}.": "{{name}} acknowledged it in Slack after {{time}}.",
-  "{{name}} acknowledged it.": "{{name}} acknowledged it."
+  "{{name}} acknowledged it.": "{{name}} acknowledged it.",
+  "Core Concepts": "Core Concepts",
+  "Glossary": "Glossary",
+  "Loading the definition…": "Loading the definition…",
+  "Read more": "Read more",
+  "Read what this means in the glossary": "Read what this means in the glossary",
+  "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.",
+  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.",
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too."
 }

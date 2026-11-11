@@ -155,7 +155,10 @@
   },
   "help": {
     "label": "Aide",
+    "quickstart": "Démarrage rapide",
     "documentation": "Documentation",
+    "glossary": "Glossaire",
+    "howOneUptimeWorks": "Comment fonctionne OneUptime",
     "supportEmail": "E-mail de support",
     "chatSlack": "Discuter sur Slack",
     "requestDemo": "Demander une démo"
@@ -50675,5 +50678,13 @@
   "{{name}} acknowledged it in Mattermost after {{time}}.": "{{name}} l'a pris en compte dans Mattermost après {{time}}.",
   "{{name}} acknowledged it in Microsoft Teams after {{time}}.": "{{name}} l'a pris en compte dans Microsoft Teams après {{time}}.",
   "{{name}} acknowledged it in Slack after {{time}}.": "{{name}} l'a pris en compte dans Slack après {{time}}.",
-  "{{name}} acknowledged it.": "{{name}} l'a pris en compte."
+  "{{name}} acknowledged it.": "{{name}} l'a pris en compte.",
+  "Core Concepts": "Concepts clés",
+  "Glossary": "Glossaire",
+  "Loading the definition…": "Chargement de la définition…",
+  "Read more": "Lire la suite",
+  "Read what this means in the glossary": "Lire ce que cela signifie dans le glossaire",
+  "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} : pour les problèmes que vos clients ressentent ; ils peuvent apparaître sur une page de statut. {{alerts}} : pour votre équipe ; elles n'y apparaissent jamais.",
+  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} : pour chaque gravité, la méthode de notification qu'un appel essaie, et au bout de combien de temps.",
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} et {{infrastructure}} alimentent la boucle : des règles sur vos journaux, métriques et traces, ou sur vos hôtes, clusters et clouds, ouvrent aussi des incidents et des alertes."
 }
