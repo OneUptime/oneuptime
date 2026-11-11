@@ -11,7 +11,16 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import { PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE } from "Common/Server/Utils/Probe/ProbeReportIdentity";
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import OneUptimeDate from "Common/Types/Date";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Every probe ingest route knows which probe a request is from by the probe
@@ -441,10 +450,11 @@ for (const route of RESULT_ROUTES) {
 
       expect(queued).not.toContain(PROBE_KEY);
       expect(queued).not.toContain("probeCapabilities");
+      // Beside a check result: when OneUptime received it (#6647).
       expect(Object.keys(job).sort()).toEqual(
         route.jobType === "monitor-test"
           ? ["jobType", "probeId", "probeMonitorResponse", "testId"]
-          : ["jobType", "probeId", "probeMonitorResponse"],
+          : ["jobType", "probeId", "probeMonitorResponse", "receivedAt"],
       );
     });
 
@@ -878,5 +888,125 @@ describe("POST /probe/network-flow: the flows are the receiving probe's", () => 
     const built: { addressNames: Map<string, string> } = flowIngest.buildRows
       .mock.calls[0]![0] as never;
     expect(built.addressNames.size).toBe(0);
+  });
+});
+
+/*
+ * WHEN ONEUPTIME RECEIVED A PROBE'S REPORT (dataReceivedAt, issue #6647).
+ *
+ * The route reads the server's clock as a check result or a trap reaches
+ * it - before anything is checked or queued - and queues that moment
+ * beside it: a page its evaluation starts is timed from then, however long
+ * it waited in the queue. Never the probe's own clock (monitoredAt). A
+ * monitor test's result pages nobody, and carries none.
+ *
+ * The clock here moves a second at each read, so a later read would show.
+ */
+describe("when OneUptime received a probe's report", () => {
+  const RECEIVED_AT: Date = new Date("2026-11-10T09:29:20.000Z");
+  const PROBES_CLOCK: string = "2020-01-01T00:00:00.000Z";
+  const snmpTrap: JSONObject = {
+    sourceIpAddress: "10.0.0.7",
+    trapOid: "1.3.6.1.6.3.1.1.5.3",
+  };
+
+  let reads: number;
+  let clock: SpyInstance<typeof OneUptimeDate.getCurrentDate>;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    reads = 0;
+
+    clock = jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockImplementation((): Date => {
+        return new Date(RECEIVED_AT.getTime() + 1000 * reads++);
+      });
+  });
+
+  afterEach(() => {
+    clock.mockRestore();
+  });
+
+  test("a check result is queued with the moment it reached the route - not the probe's own clock", async () => {
+    const result: JSONObject = {
+      ...checkResult(asJson(SENDER)),
+      monitoredAt: PROBES_CLOCK,
+    };
+
+    await callEndpoint(
+      "/probe/response/ingest",
+      makeRequest({ body: probeBody({ probeMonitorResponse: result }) }),
+    );
+
+    const job: JSONObject = queuedJob();
+
+    expect(job["receivedAt"]).toBeInstanceOf(Date);
+    expect(job["receivedAt"]).toEqual(RECEIVED_AT);
+    // The result itself is queued as the probe sent it.
+    expect((job["probeMonitorResponse"] as JSONObject)["monitoredAt"]).toBe(
+      PROBES_CLOCK,
+    );
+  });
+
+  test("a body that says when it was received is not believed", async () => {
+    await callEndpoint(
+      "/probe/response/ingest",
+      makeRequest({
+        body: {
+          ...probeBody({ probeMonitorResponse: checkResult(asJson(SENDER)) }),
+          receivedAt: PROBES_CLOCK,
+        },
+      }),
+    );
+
+    expect(queuedJob()["receivedAt"]).toEqual(RECEIVED_AT);
+  });
+
+  test("a monitor test's result pages nobody: queued with no receipt", async () => {
+    await callEndpoint(
+      "/probe/response/monitor-test-ingest/:testId",
+      makeRequest({
+        body: probeBody({ probeMonitorResponse: checkResult(asJson(SENDER)) }),
+        params: { testId: "5c1e3a7d-2f4b-4d6e-8a9c-0b2d4f6a8c33" },
+      }),
+    );
+
+    expect("receivedAt" in queuedJob()).toBe(false);
+  });
+
+  test("a trap is queued with the moment it reached the route", async () => {
+    await callEndpoint(
+      "/probe/snmp-trap",
+      makeRequest({ body: probeBody({ snmpTrap }) }),
+    );
+
+    expect(queueService.addSnmpTrapIngestJob).toHaveBeenCalledTimes(1);
+
+    const job: JSONObject = queueService.addSnmpTrapIngestJob.mock
+      .calls[0]![0] as JSONObject;
+
+    expect(job["receivedAt"]).toEqual(RECEIVED_AT);
+    expect(Object.keys(job).sort()).toEqual([
+      "probeId",
+      "receivedAt",
+      "snmpTrap",
+    ]);
+  });
+
+  test("a report refused is queued with nothing", async () => {
+    await callEndpoint(
+      "/probe/snmp-trap",
+      makeRequest({ body: probeBody({ snmpTrap }), probe: null }),
+    );
+    await callEndpoint(
+      "/probe/response/ingest",
+      makeRequest({
+        body: probeBody({ probeMonitorResponse: checkResult(asJson(OTHER)) }),
+      }),
+    );
+
+    expect(queueService.addSnmpTrapIngestJob).not.toHaveBeenCalled();
+    expect(queueService.addProbeIngestJob).not.toHaveBeenCalled();
   });
 });

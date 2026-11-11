@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 49601,
+    "keys": 49779,
     "untranslated": 10301
   },
   "sameAsEnglish": [
@@ -485,6 +485,7 @@
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
     "{{up}}/{{count}} OSDs up",
-    "{{value}} ms"
+    "{{value}} ms",
+    "{{value}} s"
   ]
 }

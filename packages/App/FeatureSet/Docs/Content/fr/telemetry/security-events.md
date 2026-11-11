@@ -236,7 +236,7 @@ Un compte AWS, un projet Google Cloud ou un abonnement Azure [connecté sous **C
 | Microsoft Entra ID | Connexions, modifications d'annuaire et détections de risque, si vous le choisissez les connexions en arrière-plan et d'applications qui ont échoué, et, du journal d'audit Microsoft 365, les transferts de courrier, les partages et les verdicts d'hameçonnage | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Connexions, détections propres à Google, modifications d'administration et accès accordés aux applications, et partages Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
-- Les alertes propres au produit d'un niveau égal ou supérieur à **Open Cases From** (**Élevé et au-dessus** sauf si vous choisissez un autre niveau, ou **Jamais**) ouvrent des [dossiers](/docs/telemetry/security-cases), regroupées selon l'utilisateur, l'hôte ou l'adresse qu'elles concernent.
+- Les alertes propres au produit d'un niveau égal ou supérieur à **Ouvrir des dossiers à partir de** (**Élevé et au-dessus** sauf si vous choisissez un autre niveau, ou **Jamais**) ouvrent des [dossiers](/docs/telemetry/security-cases), regroupées selon l'utilisateur, l'hôte ou l'adresse qu'elles concernent.
 - Une connexion lit les enregistrements selon le moment où le produit les a créés, pas selon le moment de l'activité qu'ils décrivent. Une règle SIEM qui s'exécute toutes les heures crée des détections bien après les événements correspondants, et elles sont tout de même importées.
 - La première interrogation remonte 24 heures en arrière, donc une nouvelle connexion montre tout de suite des enregistrements récents.
 - **Tester la connexion**, dans la ligne de la connexion, vérifie l'accès au produit et que les workers de OneUptime tournent, sans rien importer. **Exécuter maintenant** interroge immédiatement.
@@ -283,7 +283,7 @@ Un champ est soit un nom court (`severity`, `class`, `category`, `activity`, `st
 
 ### Facettes
 
-La barre latérale compte les événements de la fenêtre par **Source**, **Gravité**, **Request Outcome**, **Classe d'événements**, **Catégorie**, **Activité**, **Statut**, **Fournisseur**, **Produit**, **Règle de détection**, **Utilisateur source**, **Hôte source**, **Processus** et **Processus parent**. Cliquez sur une valeur pour ne garder que ses événements, ou sur le signe moins à côté pour les exclure. Cliquez à nouveau pour annuler. Le graphique et chaque comptage décrivent exactement les événements de la liste.
+La barre latérale compte les événements de la fenêtre par **Source**, **Gravité**, **Résultat de la requête**, **Classe d'événements**, **Catégorie**, **Activité**, **Statut**, **Fournisseur**, **Produit**, **Règle de détection**, **Utilisateur source**, **Hôte source**, **Processus** et **Processus parent**. Cliquez sur une valeur pour ne garder que ses événements, ou sur le signe moins à côté pour les exclure. Cliquez à nouveau pour annuler. Le graphique et chaque comptage décrivent exactement les événements de la liste.
 
 ### Ce qui s'est passé ensuite
 

@@ -115,6 +115,7 @@ import MonitorService from "Common/Server/Services/MonitorService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import OnCallPageTiming from "Common/Server/Utils/OnCall/OnCallPageTiming";
 
 // Imported for its side effect: RunCron (mocked above) records the handler.
 import "../../../../FeatureSet/Workers/Jobs/ServerMonitor/CheckOnlineStatus";
@@ -388,6 +389,44 @@ describe("ServerMonitor:CheckOnlineStatus worker", () => {
     );
     expect(payload.hostname).toBe("refetched-host");
     expect(payload.timeNow?.getTime()).toBe(NOW.getTime());
+  });
+
+  /*
+   * A page this check starts is timed from the record's creation, as
+   * before: its moment is the last report's, long before what it found -
+   * not when OneUptime received that report (dataReceivedAt, issue #6647),
+   * which the stored response now carries.
+   */
+  test("a check that no report came is not timed from when the last report was received", async () => {
+    const lastReportReceivedAt: Date = new Date("2026-07-27T09:40:01.000Z");
+
+    monitorService.findBy.mockResolvedValue([
+      makeSweepMonitor({
+        id: MONITOR_A_ID,
+        monitorSteps: stepsWithCheckOn(CheckOn.IsOnline),
+      }),
+    ]);
+    monitorService.findOneBy.mockResolvedValue(
+      makeRefetchedMonitor({
+        id: MONITOR_A_ID,
+        projectId: PROJECT_ID,
+        serverMonitorRequestReceivedAt: new Date("2026-07-27T09:40:00.000Z"),
+        serverMonitorResponse: {
+          requestReceivedAt: new Date("2026-07-27T09:40:00.000Z"),
+          dataReceivedAt: lastReportReceivedAt,
+          hostname: "web-1",
+        } as ServerMonitorResponse,
+      }),
+    );
+
+    await runWorkerTick();
+
+    const payload: ServerMonitorResponse = monitorResourceMock.mock
+      .calls[0]![0] as ServerMonitorResponse;
+
+    expect(payload.onlyCheckRequestReceivedAt).toBe(true);
+    expect("dataReceivedAt" in payload).toBe(false);
+    expect(OnCallPageTiming.getMonitorDataReceivedAt(payload)).toBeUndefined();
   });
 
   test("requestReceivedAt falls back to the stored response's requestReceivedAt when the column is unset", async () => {

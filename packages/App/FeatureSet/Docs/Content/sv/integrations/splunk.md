@@ -101,7 +101,7 @@ POST {Splunk management URL}/services/search/v2/jobs/export
 - **Skapandetiden är markören.** Fönstret gäller `_time`, som för ett notable event är när korrelationssökningen skapade det, inte när den hittade aktiviteten inträffade. En sökning som körs varje timme daterar sina notable events till tiden för sin körning, så inget hamnar bakom markören.
 - **Den första avsökningen ser 24 timmar bakåt**, så att en ny anslutning direkt visar sina senaste notable events.
 - **Varje senare avsökning börjar 1 minut före den sparade markören**, så att en rad som har skapats på gränsen mellan två fönster aldrig missas.
-- **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar, och dess **Hälsa** visar **Catching up**.
+- **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar, och dess **Hälsa** visar **Kommer ikapp**.
 - **Dubbletter tas bort efter `event_id`**, eller Splunks egna `_bkt` och `_cd`, inom projektet, så att överlappningen, ett upprepat fönster och en import aldrig sparar en rad två gånger.
 
 Ett search head som är äldre än 9.0.1 svarar `404` på begäran till `search/v2/jobs/export`. OneUptime skickar den då till det föråldrade `search/jobs/export`, och körningen säger det i en varning. Uppgradera search headen: aktuella versioner stänger av den slutpunkten.

@@ -37,6 +37,7 @@ import { isOnCallObserverPage } from "Common/Types/OnCallDutyPolicy/OnCallObserv
 import OnCallAcknowledgementTimeout, {
   OnCallTimeoutRecordKind,
 } from "Common/Server/Utils/OnCall/OnCallAcknowledgementTimeout";
+import { OnCallRulesTick } from "Common/Server/Utils/OnCall/OnCallSendLag";
 
 RunCron(
   "UserOnCallLog:ExecutePendingExecutions",
@@ -444,10 +445,12 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
 
       let isAllExecuted: boolean = true;
 
+      const now: Date = OneUptimeDate.getCurrentDate();
+
       const minutesSinceExecutionStarted: number =
         OneUptimeDate.getDifferenceInMinutes(
           pendingNotificationLog.createdAt!,
-          OneUptimeDate.getCurrentDate(),
+          now,
         );
 
       /*
@@ -457,6 +460,17 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
       const executedClaimKeys: Array<string> = Object.keys(
         pendingNotificationLog.executedNotificationRules! || {},
       );
+
+      /*
+       * Each delivery sent below is timed from when its rule's schedule
+       * made it due (notification.send.lag, OnCallSendLag).
+       */
+      const rulesTick: OnCallRulesTick = new OnCallRulesTick({
+        userOnCallLogId: pendingNotificationLog.id,
+        logCreatedAt: pendingNotificationLog.createdAt,
+        executedClaimKeys: executedClaimKeys,
+        checkedAt: now,
+      });
 
       for (const notificationRule of notificationRules) {
         const ruleId: string = notificationRule.id?.toString() || "";
@@ -491,33 +505,54 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
           continue;
         }
 
-        // execute this rule.
+        // execute this rule, as the scheduled send it is.
 
-        await UserNotificationRuleService.executeNotificationRuleItem(
-          notificationRule.id!,
+        await rulesTick.runSend(
           {
-            userNotificationLogId: pendingNotificationLog.id!,
-            projectId: pendingNotificationLog.projectId!,
-            triggeredByIncidentId: pendingNotificationLog.triggeredByIncidentId,
-            triggeredByAlertId: pendingNotificationLog.triggeredByAlertId,
-            triggeredByAlertEpisodeId:
-              pendingNotificationLog.triggeredByAlertEpisodeId,
-            triggeredByIncidentEpisodeId:
-              pendingNotificationLog.triggeredByIncidentEpisodeId,
-            userNotificationEventType:
-              pendingNotificationLog.userNotificationEventType!,
-            onCallPolicyExecutionLogId:
-              pendingNotificationLog.onCallDutyPolicyExecutionLogId,
-            onCallPolicyId: pendingNotificationLog.onCallDutyPolicyId,
-            onCallPolicyEscalationRuleId:
-              pendingNotificationLog.onCallDutyPolicyEscalationRuleId,
-            userBelongsToTeamId: pendingNotificationLog.userBelongsToTeamId,
-            onCallDutyPolicyExecutionLogTimelineId:
-              pendingNotificationLog.onCallDutyPolicyExecutionLogTimelineId,
-            onCallScheduleId: pendingNotificationLog.onCallDutyScheduleId,
-            ...(dueExecution > 0 ? { repeatNumber: dueExecution } : {}),
+            ruleId: ruleId,
+            notifyAfterMinutes: notificationRule.notifyAfterMinutes || 0,
+            repeatEveryMinutes: notificationRule.repeatEveryMinutes,
+            executionNumber: dueExecution,
+          },
+          (): Promise<void> => {
+            return UserNotificationRuleService.executeNotificationRuleItem(
+              notificationRule.id!,
+              {
+                userNotificationLogId: pendingNotificationLog.id!,
+                projectId: pendingNotificationLog.projectId!,
+                triggeredByIncidentId:
+                  pendingNotificationLog.triggeredByIncidentId,
+                triggeredByAlertId: pendingNotificationLog.triggeredByAlertId,
+                triggeredByAlertEpisodeId:
+                  pendingNotificationLog.triggeredByAlertEpisodeId,
+                triggeredByIncidentEpisodeId:
+                  pendingNotificationLog.triggeredByIncidentEpisodeId,
+                userNotificationEventType:
+                  pendingNotificationLog.userNotificationEventType!,
+                onCallPolicyExecutionLogId:
+                  pendingNotificationLog.onCallDutyPolicyExecutionLogId,
+                onCallPolicyId: pendingNotificationLog.onCallDutyPolicyId,
+                onCallPolicyEscalationRuleId:
+                  pendingNotificationLog.onCallDutyPolicyEscalationRuleId,
+                userBelongsToTeamId: pendingNotificationLog.userBelongsToTeamId,
+                onCallDutyPolicyExecutionLogTimelineId:
+                  pendingNotificationLog.onCallDutyPolicyExecutionLogTimelineId,
+                onCallScheduleId: pendingNotificationLog.onCallDutyScheduleId,
+                ...(dueExecution > 0 ? { repeatNumber: dueExecution } : {}),
+              },
+            );
           },
         );
+      }
+
+      /*
+       * Its rules were gone through: a delivery the next tick finds due that
+       * this one did not came due in between - a rule added or changed, the
+       * record's severity changed - and is timed from no earlier than now
+       * (OnCallSendLag). A log that is done is not ticked again.
+       */
+      if (!isAllExecuted) {
+        await rulesTick.finish();
       }
 
       if (isAllExecuted) {

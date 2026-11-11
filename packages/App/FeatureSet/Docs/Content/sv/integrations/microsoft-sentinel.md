@@ -114,7 +114,7 @@ GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/provide
 - **Skapandetiden är markören.** En schemalagd analysregel som körs varje timme öppnar sin incident långt efter den aktivitet den upptäckte, och incidentens `firstActivityTimeUtc` kan ligga timmar eller dagar tidigare. En markör på aktivitetstiden skulle hoppa över varje sådan incident. Aktivitetstiderna finns kvar i `attributes`, och exemplen i diagnostiken visar båda.
 - **Den första avsökningen ser 24 timmar bakåt**, så att en ny anslutning direkt visar sina senaste incidenter.
 - **Varje senare avsökning börjar 1 minut före den sparade markören**, så att en incident som har skapats på gränsen mellan två fönster aldrig hoppas över.
-- **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar, och dess **Hälsa** visar **Catching up**.
+- **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar, och dess **Hälsa** visar **Kommer ikapp**.
 - **Dubbletter tas bort efter incidentens GUID** (`name`) inom projektet, så att överlappningen, ett upprepat fönster och en import aldrig sparar en incident två gånger.
 
 ### När ett fönster innehåller mer än en avsökning kan läsa

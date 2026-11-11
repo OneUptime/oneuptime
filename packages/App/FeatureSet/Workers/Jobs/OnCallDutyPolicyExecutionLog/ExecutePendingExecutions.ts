@@ -15,6 +15,12 @@ import { isOnCallObserverPage } from "Common/Types/OnCallDutyPolicy/OnCallObserv
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { getOnCallPolicyRunEndedWhileWaitingMessage } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
+import {
+  getOnCallEscalationDueAt,
+  getOnCallEscalationWaitInMinutes,
+  getOnCallEscalationWaitStartedAt,
+  isOnCallEscalationWaitOver,
+} from "Common/Types/OnCallDutyPolicy/OnCallEscalationWait";
 import { OnCallPolicyAiHoldOutcome } from "Common/Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import AiFirstResponder from "Common/Server/Utils/AI/FirstResponder/AiFirstResponder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
@@ -230,22 +236,12 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
 
     const currentDate: Date = OneUptimeDate.getCurrentDate();
 
-    const lastExecutedAt: Date =
-      executionLog.lastEscalationRuleExecutedAt || executionLog.createdAt!;
-
-    const getDifferenceInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
-      lastExecutedAt,
-      currentDate,
-    );
-
     logger.debug(
-      `Current date: ${currentDate}, Last executed at: ${lastExecutedAt}, Difference in minutes: ${getDifferenceInMinutes}`,
+      `Current date: ${currentDate}, Last executed at: ${getOnCallEscalationWaitStartedAt(executionLog)}, Waiting for ${getOnCallEscalationWaitInMinutes(executionLog)} minutes.`,
     );
 
-    if (
-      getDifferenceInMinutes <
-      (executionLog.executeNextEscalationRuleInMinutes || 0)
-    ) {
+    // The rule's wait, as the one reading of it says (OnCallEscalationWait).
+    if (!isOnCallEscalationWaitOver(executionLog, currentDate)) {
       logger.debug(
         `Execution not needed yet. Waiting for ${executionLog.executeNextEscalationRuleInMinutes} minutes.`,
       );
@@ -261,10 +257,14 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
      * 1-minute cadence, worker replicas) - or a tick and a pass landing
      * together - move the run on once and page the next rule once (audit
      * F13).
+     *
+     * What it pages was due when the wait ran out, and is timed from then
+     * (notification.send.lag): a tick that came late shows.
      */
     await OnCallEscalationAdvance.advance({
       run: executionLog,
       now: currentDate,
+      dueAt: getOnCallEscalationDueAt(executionLog),
     });
 
     return;

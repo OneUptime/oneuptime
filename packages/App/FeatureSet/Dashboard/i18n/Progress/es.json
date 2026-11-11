@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 49601,
-    "untranslated": 2592
+    "keys": 49779,
+    "untranslated": 2588
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -672,6 +672,7 @@
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
     "{{value}} ms",
+    "{{value}} s",
     "μs",
     "≤ 1000 ms",
     "≤ 150 ms",

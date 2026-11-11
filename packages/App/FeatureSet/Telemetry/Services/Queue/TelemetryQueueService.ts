@@ -934,6 +934,11 @@ export default class TelemetryQueueService {
     probeMonitorResponse: JSONObject;
     jobType: "probe-response" | "monitor-test";
     testId?: string;
+    /*
+     * When the ingest API received it, before any queueing: the worker
+     * times a page its evaluation starts from then (OnCallPageTiming).
+     */
+    receivedAt?: Date | undefined;
   }): Promise<void> {
     try {
       const probeData: ProbeIngestJobData = {
@@ -943,7 +948,7 @@ export default class TelemetryQueueService {
         },
         jobType: data.jobType,
         testId: data.testId,
-        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        ingestionTimestamp: data.receivedAt || OneUptimeDate.getCurrentDate(),
       };
 
       const jobData: TelemetryIngestJobData = {
@@ -985,6 +990,11 @@ export default class TelemetryQueueService {
   public static async addSnmpTrapIngestJob(data: {
     probeId: ObjectID;
     snmpTrap: JSONObject;
+    /*
+     * When the ingest API received it, before any queueing: the worker
+     * times a page its evaluation starts from then (OnCallPageTiming).
+     */
+    receivedAt?: Date | undefined;
   }): Promise<void> {
     try {
       const probeData: ProbeIngestJobData = {
@@ -993,7 +1003,7 @@ export default class TelemetryQueueService {
           probeId: data.probeId.toString(),
           snmpTrap: data.snmpTrap,
         },
-        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        ingestionTimestamp: data.receivedAt || OneUptimeDate.getCurrentDate(),
       };
 
       const jobData: TelemetryIngestJobData = {
@@ -1024,12 +1034,17 @@ export default class TelemetryQueueService {
 
   public static async addNetworkDeviceWalkJob(data: {
     walkRequestBody: JSONObject;
+    /*
+     * When the ingest API received it, before any queueing: the worker
+     * times a page its evaluation starts from then (OnCallPageTiming).
+     */
+    receivedAt?: Date | undefined;
   }): Promise<void> {
     try {
       const probeData: ProbeIngestJobData = {
         jobType: "network-device-walk",
         networkDeviceWalk: data.walkRequestBody,
-        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        ingestionTimestamp: data.receivedAt || OneUptimeDate.getCurrentDate(),
       };
 
       const jobData: TelemetryIngestJobData = {
@@ -1077,11 +1092,16 @@ export default class TelemetryQueueService {
           size: number;
         }>
       | undefined;
+    /*
+     * When the ingest API received it, before any queueing: the worker
+     * times a page its evaluation starts from then (OnCallPageTiming).
+     */
+    receivedAt?: Date | undefined;
   }): Promise<void> {
     try {
       const probeData: ProbeIngestJobData = {
         jobType: "incoming-email",
-        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        ingestionTimestamp: data.receivedAt || OneUptimeDate.getCurrentDate(),
         incomingEmail: {
           secretKey: data.secretKey,
           customLocalPart: data.customLocalPart,
@@ -1138,12 +1158,17 @@ export default class TelemetryQueueService {
   public static async addServerMonitorIngestJob(data: {
     secretKey: string;
     serverMonitorResponse: JSONObject;
+    /*
+     * When the ingest API received it, before any queueing: the worker
+     * times a page its evaluation starts from then (OnCallPageTiming).
+     */
+    receivedAt?: Date | undefined;
   }): Promise<void> {
     try {
       const serverMonitorData: ServerMonitorIngestJobData = {
         secretKey: data.secretKey,
         serverMonitorResponse: data.serverMonitorResponse,
-        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        ingestionTimestamp: data.receivedAt || OneUptimeDate.getCurrentDate(),
       };
 
       const jobData: TelemetryIngestJobData = {

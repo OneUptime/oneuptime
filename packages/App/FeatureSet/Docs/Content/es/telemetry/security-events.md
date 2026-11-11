@@ -236,7 +236,7 @@ Una cuenta de AWS, un proyecto de Google Cloud o una suscripción de Azure [cone
 | Microsoft Entra ID | Inicios de sesión, cambios de directorio y detecciones de riesgo, si lo eliges los inicios de sesión en segundo plano y de aplicaciones que fallaron, y del registro de auditoría de Microsoft 365, el reenvío de correo, el uso compartido y los veredictos de phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Inicios de sesión, las detecciones propias de Google, los cambios de administración y los accesos concedidos a aplicaciones, y el uso compartido en Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
-- Las alertas propias del producto con un nivel igual o superior a **Open Cases From** (**Alta y superior** salvo que elijas otro nivel, o **Nunca**) abren [casos](/docs/telemetry/security-cases), agrupadas por el usuario, host o dirección de los que tratan.
+- Las alertas propias del producto con un nivel igual o superior a **Abrir casos desde** (**Alta y superior** salvo que elijas otro nivel, o **Nunca**) abren [casos](/docs/telemetry/security-cases), agrupadas por el usuario, host o dirección de los que tratan.
 - Una conexión lee los registros según el momento en que el producto los creó, no según el momento de la actividad que describen. Una regla de SIEM que se ejecuta cada hora crea detecciones mucho después de los eventos que coincidieron, y aun así se importan.
 - La primera consulta mira 24 horas atrás, así que una conexión nueva muestra registros recientes de inmediato.
 - **Probar conexión**, en la fila de la conexión, comprueba el acceso al producto y que los workers propios de OneUptime están funcionando, y no importa nada. **Ejecutar ahora** consulta en el acto.
@@ -283,7 +283,7 @@ Un campo es un nombre corto (`severity`, `class`, `category`, `activity`, `statu
 
 ### Facetas
 
-La barra lateral cuenta los eventos de la ventana por **Origen**, **Gravedad**, **Request Outcome**, **Clase de evento**, **Categoría**, **Actividad**, **Estado**, **Proveedor**, **Producto**, **Regla de detección**, **Usuario de origen**, **Host de origen**, **Proceso** y **Proceso padre**. Haz clic en un valor para quedarte solo con sus eventos, o en el signo menos de al lado para excluirlos. Haz clic de nuevo para deshacerlo. El gráfico y cada recuento describen exactamente los eventos de la lista.
+La barra lateral cuenta los eventos de la ventana por **Origen**, **Gravedad**, **Resultado de la solicitud**, **Clase de evento**, **Categoría**, **Actividad**, **Estado**, **Proveedor**, **Producto**, **Regla de detección**, **Usuario de origen**, **Host de origen**, **Proceso** y **Proceso padre**. Haz clic en un valor para quedarte solo con sus eventos, o en el signo menos de al lado para excluirlos. Haz clic de nuevo para deshacerlo. El gráfico y cada recuento describen exactamente los eventos de la lista.
 
 ### Qué pasó después
 

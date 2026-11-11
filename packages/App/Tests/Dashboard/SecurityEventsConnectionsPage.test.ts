@@ -600,7 +600,10 @@ describe("Security events connections page content", () => {
     expect(actionButtonsBlock).toContain('title: "View Error"');
     expect(connectionsTableSource).toContain('title="Last Error"');
     expect(connectionsTableSource).toContain('label="Copy Error"');
-    expect(connectionsTableSource).toContain('aria-label="Full error message"');
+    // The full message's label is read in the reader's language.
+    expect(connectionsTableSource).toContain(
+      'aria-label={translator.translateText("Full error message")}',
+    );
   });
 
   test("the row action can fetch the error without a Last Error column", () => {
@@ -682,7 +685,9 @@ describe("Security events connections page content", () => {
     expect(connectionFormSource).toContain(
       "required: isEditing ? false : field.required",
     );
-    expect(connectionFormSource).toContain('{ placeholder: "Unchanged" }');
+    expect(connectionFormSource).toContain(
+      '{ placeholder: translationKey("Unchanged") }',
+    );
   });
 
   test("Alerts are fixed while Detections controls the persisted scope", () => {
@@ -1039,7 +1044,8 @@ describe("Google SecOps integration docs", () => {
       {
         label: `Preview ${googleSecOps.importedRecordName}s`,
         source: diagnosticsSource,
-        rendered: "title={`Preview ${recordName}s`}",
+        // The records are named inside the sentence, never glued on.
+        rendered: 'translator.translateTemplate("Preview {{records}}"',
       },
       {
         label: "Import this time range",
@@ -1074,12 +1080,12 @@ describe("Google SecOps integration docs", () => {
       {
         label: `Returned by ${googleSecOps.title}`,
         source: runDetailsSource,
-        rendered: "[`Returned by ${providerTitle}`, result.fetchedCount]",
+        rendered: 'translator.translateTemplate("Returned by {{provider}}"',
       },
       {
         label: "Imported into OneUptime",
         source: runDetailsSource,
-        rendered: '["Imported into OneUptime", result.ingestedCount]',
+        rendered: 'translator.translateText("Imported into OneUptime")',
       },
       {
         label: "Already imported",
@@ -1089,32 +1095,32 @@ describe("Google SecOps integration docs", () => {
       {
         label: "Rejected",
         source: runDetailsSource,
-        rendered: '["Rejected", result.rejectedCount]',
+        rendered: 'translator.translateText("Rejected")',
       },
       {
         label: "Failed",
         source: runDetailsSource,
-        rendered: '["Failed", result.failedCount]',
+        rendered: 'translator.translateText("Failed")',
       },
       {
         label: "Provider details",
         source: runDetailsSource,
-        rendered: ">Provider details</h4>",
+        rendered: '{translator.translateText("Provider details")}',
       },
       {
         label: "Time basis read",
         source: diagnosticsUtilSource,
-        rendered: 'basis: "Time basis read"',
+        rendered: 'basis: translationKey("Time basis read")',
       },
       {
         label: "Returned by each pass",
         source: diagnosticsUtilSource,
-        rendered: 'sourceCounts: "Returned by each pass"',
+        rendered: 'sourceCounts: translationKey("Returned by each pass")',
       },
       {
         label: "Creation lag",
         source: diagnosticsUtilSource,
-        rendered: 'creationLag: "Creation lag"',
+        rendered: 'creationLag: translationKey("Creation lag")',
       },
       ...[
         "Last poll succeeded",

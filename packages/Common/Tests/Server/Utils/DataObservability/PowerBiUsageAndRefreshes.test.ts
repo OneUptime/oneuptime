@@ -1188,7 +1188,7 @@ describe("Power BI's reader, with views and refreshes", () => {
         return { statusCode, bodyText: JSON.stringify(body), bodyJson: body };
       };
 
-      if (url.includes("login.microsoftonline.com")) {
+      if (url.startsWith("https://login.microsoftonline.com/")) {
         return answer({ access_token: "aad" });
       }
 

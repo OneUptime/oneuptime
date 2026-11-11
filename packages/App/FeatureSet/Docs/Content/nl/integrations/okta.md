@@ -116,7 +116,7 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **De publicatietijd is de cursor.** Een System Log-gebeurtenis is de activiteit zelf, dus `published` is zowel wanneer ze plaatsvond als wat het pollen leest.
 - **De eerste poll kijkt 24 uur terug**, zodat een nieuwe verbinding meteen haar recente gebeurtenissen toont.
 - **Elke volgende poll begint 15 minuten voor de opgeslagen cursor.** Okta waarschuwt dat een verzoek met een eindtijd vertraagde gebeurtenissen kan weglaten, wat het zelden noemt. De overlap leest ze bij de volgende poll. Een gebeurtenis die meer dan 15 minuten is vertraagd, kan achter de cursor vallen: importeer haar tijdsbereik om haar terug te halen.
-- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Gezondheid** toont **Catching up**.
+- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Gezondheid** toont **Bezig met inhalen**.
 - **Duplicaten worden verwijderd op `uuid`** binnen het project, zodat de overlap, een herhaald venster en een import een gebeurtenis nooit twee keer opslaan.
 
 Een link `next` die ergens anders heen wijst dan je **Okta organization URL**, wordt nooit gevolgd, omdat het token met elk verzoek meegaat.

@@ -114,7 +114,7 @@ POST https://securityhub.{region}.amazonaws.com/findings
 - **De aanmaaktijd is de cursor.** Bevindingen worden getoond op `CreatedAt`, nooit op `FirstObservedAt`. GuardDuty maakt een bevinding zodra het genoeg activiteit heeft gezien, en een controlecontrole wanneer Security Hub de resource voor het eerst controleert, uren of dagen nadat de activiteit begon. Een cursor op observatietijd zou ze overslaan.
 - **De eerste poll kijkt 24 uur terug**, zodat een nieuwe verbinding meteen haar recente bevindingen toont.
 - **Elke volgende poll begint 30 minuten voor de opgeslagen cursor.** `CreatedAt` wordt gezet door de dienst die het probleem vond, en de bevinding bereikt Security Hub later: GuardDuty stuurt nieuwe bevindingen binnen vijf minuten, en een mislukte levering via EventBridge wordt tot 24 uur lang opnieuw geprobeerd. De overlap leest zulke bevindingen bij de volgende poll. Een bevinding die meer dan 30 minuten na haar `CreatedAt` aankomt, kan achter de cursor vallen: importeer haar tijdsbereik om haar terug te halen.
-- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Gezondheid** toont **Catching up**.
+- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Gezondheid** toont **Bezig met inhalen**.
 - **Duplicaten worden verwijderd op de `Id` van de bevinding** binnen het project, zodat de overlap, een herhaald venster en een import een bevinding nooit twee keer opslaan.
 
 ### Wanneer een venster meer bevat dan één poll kan lezen

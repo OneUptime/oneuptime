@@ -24,6 +24,8 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import { NotificationSchedule } from "../Telemetry/NotificationDeliveryMetrics";
+import OnCallSendLag, { OnCallScheduledSend } from "./OnCallSendLag";
 
 /*
  * MOVING AN ON-CALL POLICY'S RUN ON TO ITS NEXT ESCALATION RULE.
@@ -76,6 +78,12 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * no longer a later level of the run's policy - deleted, moved up, or
  * another policy's - is not paged: the run moves on to its next level, as
  * it would have.
+ *
+ * WHAT IT PAGES IS TIMED FROM WHEN IT WAS DUE (OnCallSendLag,
+ * notification.send.lag): the moment the wait ran out, for the worker's
+ * move on, or now, for a person's. A level it moves on to at once, finding
+ * nobody before it, was due at the same moment. A move on inside a page's
+ * start (moveOnAtOnce, as a run starts) is timed by the page's start.
  */
 
 export enum OnCallEscalationAdvanceKind {
@@ -230,6 +238,13 @@ export default class OnCallEscalationAdvance {
    *
    * `toRuleId`: the later level to page instead of the next, picked by the
    * person escalating (OnCallPagePassOn). The levels between are skipped.
+   *
+   * `dueAt`: when the move on was due - the worker's, when the wait ran out
+   * (OnCallEscalationWait). What the run pages is timed from then
+   * (notification.send.lag, OnCallSendLag): a later level as an
+   * escalation, and from the moment it starts its policy again, a policy
+   * repeat. Without it, the move on is due now: a person passing the page
+   * on, a level with nobody to wait for.
    */
   @CaptureSpan()
   public static async advance(data: {
@@ -237,9 +252,14 @@ export default class OnCallEscalationAdvance {
     now: Date;
     isCurrentRuleEmpty?: boolean | undefined;
     toRuleId?: ObjectID | undefined;
+    dueAt?: Date | undefined;
   }): Promise<OnCallEscalationAdvanceResult> {
     const run: OnCallDutyPolicyExecutionLog = data.run;
     const runId: ObjectID = run.id!;
+    const send: OnCallScheduledSend = {
+      dueAt: this.getDueAt({ dueAt: data.dueAt, now: data.now }),
+      schedule: NotificationSchedule.Escalation,
+    };
 
     const claimed: boolean =
       await OnCallDutyPolicyExecutionLogService.claimEscalationAdvance({
@@ -346,6 +366,7 @@ export default class OnCallEscalationAdvance {
             run: run,
             ruleId: nextRule.id!,
             passedOnUserIds: passedOnUserIds,
+            send: send,
           });
 
         lastStarted = this.getStarted({
@@ -458,11 +479,18 @@ export default class OnCallEscalationAdvance {
           `Starting execution of the first escalation rule: ${firstEscalationRule.id}`,
         );
 
+        /*
+         * The policy's repeat: what it pages from here on - a level after
+         * the first it moves on to at once included - is timed as one.
+         */
+        send.schedule = NotificationSchedule.PolicyRepeat;
+
         const outcome: OnCallRuleExecutionOutcome | undefined =
           await this.startRule({
             run: run,
             ruleId: firstEscalationRule.id!,
             passedOnUserIds: passedOnUserIds,
+            send: send,
           });
 
         lastStarted = this.getStarted({
@@ -630,17 +658,42 @@ export default class OnCallEscalationAdvance {
     });
   }
 
+  /*
+   * When a move on was due, for the notifications it sends: `dueAt` - the
+   * moment the wait ran out - or `now` without one; never later than now.
+   */
+  public static getDueAt(data: { dueAt?: Date | undefined; now: Date }): Date {
+    const dueAt: number = data.dueAt ? new Date(data.dueAt).getTime() : NaN;
+
+    if (isNaN(dueAt) || dueAt > data.now.getTime()) {
+      return data.now;
+    }
+
+    return new Date(dueAt);
+  }
+
+  /*
+   * Pages a rule as a scheduled send (OnCallSendLag): every notification it
+   * writes is due when `send` says - copied, since the advance goes on to
+   * change its schedule.
+   */
   private static async startRule(data: {
     run: OnCallDutyPolicyExecutionLog;
     ruleId: ObjectID;
     passedOnUserIds: Array<ObjectID>;
+    send: OnCallScheduledSend;
   }): Promise<OnCallRuleExecutionOutcome | undefined> {
-    return await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
-      data.ruleId,
-      {
-        ...this.getPageContext(data.run),
-        onCallPolicyId: data.run.onCallDutyPolicyId!,
-        passedOnUserIds: data.passedOnUserIds,
+    return await OnCallSendLag.runAsScheduledSend(
+      { dueAt: data.send.dueAt, schedule: data.send.schedule },
+      (): Promise<OnCallRuleExecutionOutcome> => {
+        return OnCallDutyPolicyEscalationRuleService.startRuleExecution(
+          data.ruleId,
+          {
+            ...this.getPageContext(data.run),
+            onCallPolicyId: data.run.onCallDutyPolicyId!,
+            passedOnUserIds: data.passedOnUserIds,
+          },
+        );
       },
     );
   }

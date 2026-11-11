@@ -48,6 +48,7 @@ import { toStorableJson } from "Common/Server/Utils/Database/PostgresStorableVal
 import InboundEmailProviderFactory from "Common/Server/Services/InboundEmail/InboundEmailProviderFactory";
 import Select from "Common/Server/Types/Database/Select";
 import IncomingEmailWorkflowDelivery from "../../Services/IncomingEmailWorkflowDelivery";
+import OnCallPageTiming from "Common/Server/Utils/OnCall/OnCallPageTiming";
 
 /*
  * One probe's check result, or one step of a monitor test it ran.
@@ -84,6 +85,16 @@ export async function processProbeFromQueue(
   probeResponse.ingestedAt = OneUptimeDate.getCurrentDate();
 
   if (jobData.jobType === "probe-response") {
+    /*
+     * When the ingest API received the report, before the queue it waited
+     * in: a page its evaluation starts is timed from then
+     * (OnCallPageTiming) - not from monitoredAt, the probe's own clock.
+     */
+    OnCallPageTiming.stampMonitorDataReceivedAt(
+      probeResponse,
+      jobData.ingestionTimestamp,
+    );
+
     // Handle regular probe response
     await MonitorResourceUtil.monitorResource(probeResponse, {
       reportingProbeId: reportingProbeId,
@@ -315,6 +326,12 @@ export async function processSnmpTrapFromQueue(
         ingestedAt: OneUptimeDate.getCurrentDate(),
       };
 
+      // When the ingest API received the trap (OnCallPageTiming).
+      OnCallPageTiming.stampMonitorDataReceivedAt(
+        trapResponse,
+        jobData.ingestionTimestamp,
+      );
+
       try {
         await MonitorResourceUtil.monitorResource(trapResponse);
       } catch (err) {
@@ -438,6 +455,10 @@ export async function processNetworkDeviceWalkFromQueue(
     monitoredAt: isNaN(monitoredAt.getTime())
       ? OneUptimeDate.getCurrentDate()
       : monitoredAt,
+    // When the ingest API received the poll (OnCallPageTiming).
+    dataReceivedAt: OnCallPageTiming.toMonitorDataReceivedAt(
+      jobData.ingestionTimestamp,
+    ),
   });
 }
 
@@ -589,6 +610,17 @@ export async function processIncomingEmailFromQueue(
     attachments: redactedEmailData.attachments,
     onlyCheckForIncomingEmailReceivedAt: false,
   };
+
+  /*
+   * When the inbound email webhook received the email, before the queue it
+   * waited in: a page its evaluation starts is timed from then
+   * (OnCallPageTiming). emailReceivedAt stays the moment it is evaluated -
+   * what the heartbeat check counts from.
+   */
+  OnCallPageTiming.stampMonitorDataReceivedAt(
+    incomingEmailRequest,
+    jobData.ingestionTimestamp,
+  );
 
   /*
    * Update monitor with last email received time. Heartbeat write:

@@ -663,7 +663,10 @@ describe("every connection page's polling", () => {
       "App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionDiagnostics.tsx",
     );
 
-    expect(diagnostics).toContain("title={`Preview ${recordName}s`}");
+    // One sentence around the records' name, in the reader's language.
+    expect(diagnostics).toContain(
+      'title={translator.translateTemplate("Preview {{records}}", {',
+    );
     expect(diagnostics).toContain('title="Import this time range"');
     expect(diagnostics).toContain('title="Run now"');
   });

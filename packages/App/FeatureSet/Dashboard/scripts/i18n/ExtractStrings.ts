@@ -232,6 +232,19 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "ui",
   },
   /*
+   * A Security Events connection's own words for what it imports - Google
+   * SecOps' Data to import, Alerts, Detections, Alerts only - which the
+   * connection form, the connections list and the diagnostics put in the
+   * reader's language and into their sentences (#6658). Only the words the
+   * file marks are read: provider names, vendor names and field keys stay
+   * as written.
+   */
+  {
+    directory:
+      "packages/Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog.ts",
+    kind: "keys",
+  },
+  /*
    * What each of the traces explorer's span types is: the (i) beside the
    * Span Type choice lists them, and each choice says its own. Only the
    * sentences the file marks are read: the choices' names are drawn as

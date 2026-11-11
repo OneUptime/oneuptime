@@ -51,6 +51,7 @@ type ChipProps = {
  * side of an interaction is worse than one that shows nothing.
  */
 const Chip: FunctionComponent<ChipProps> = (props: ChipProps): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * A chosen attribute is tinted, so a reader can tell the facts they asked
    * for from the ones every row carries.
@@ -77,7 +78,10 @@ const Chip: FunctionComponent<ChipProps> = (props: ChipProps): ReactElement => {
         }
         title={props.labelTitle}
       >
-        {props.label}
+        {/* A fact's name is a word to translate; a source attribute's is its own. */}
+        {props.isAttribute
+          ? props.label
+          : translator.translateText(props.label) || props.label}
       </span>
       <span
         className={`truncate font-medium ${
@@ -172,7 +176,9 @@ const SecurityEventListRow: FunctionComponent<ComponentProps> = (
             )}
             <span className="min-w-0 flex-1 truncate font-mono text-xs text-gray-700">
               {message || (
-                <span className="text-gray-400">No message recorded</span>
+                <span className="text-gray-400">
+                  {translator.translateText("No message recorded")}
+                </span>
               )}
             </span>
           </div>

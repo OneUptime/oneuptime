@@ -101,7 +101,7 @@ POST {Splunk management URL}/services/search/v2/jobs/export
 - **L'ora di creazione è il cursore.** La finestra riguarda `_time`, che per un notable event è quando la ricerca di correlazione l'ha creato, non quando è avvenuta l'attività che ha trovato. Una ricerca che gira ogni ora data i suoi notable event all'ora della sua esecuzione, quindi nessuno finisce dietro il cursore.
 - **La prima interrogazione guarda indietro di 24 ore**, così una nuova connessione mostra subito i suoi notable event recenti.
 - **Ogni interrogazione successiva parte 1 minuto prima del cursore salvato**, così una riga creata al confine tra due finestre non viene mai persa.
-- **Un'interrogazione legge al massimo 24 ore oltre il cursore.** Una connessione il cui cursore è rimasto indietro recupera in una serie di finestre di 24 ore, e la sua **Integrità** indica **Catching up**.
+- **Un'interrogazione legge al massimo 24 ore oltre il cursore.** Una connessione il cui cursore è rimasto indietro recupera in una serie di finestre di 24 ore, e la sua **Integrità** indica **Recupero in corso**.
 - **I duplicati vengono scartati in base a `event_id`**, o ai `_bkt` e `_cd` propri di Splunk, all'interno del progetto, così la sovrapposizione, una finestra ripetuta e un'importazione non salvano mai una riga due volte.
 
 Un search head precedente alla 9.0.1 risponde `404` alla richiesta a `search/v2/jobs/export`. OneUptime la invia allora a `search/jobs/export`, deprecato, e l'esecuzione lo segnala in un avviso. Aggiorna il search head: le versioni attuali disattivano quell'endpoint.

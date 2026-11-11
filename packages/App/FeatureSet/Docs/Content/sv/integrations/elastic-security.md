@@ -94,7 +94,7 @@ POST {Kibana URL}/api/detection_engine/signals/search
 - **Skapandetiden är markören.** Larm listas efter sin egen `@timestamp`, när regelkörningen skapade dem, aldrig efter tiden för aktiviteten de handlar om. En regel som körs varje timme skapar larm om aktivitet som är upp till en timme gammal, och en markör på aktivitetstiden skulle hoppa över alla.
 - **Den första avsökningen ser 24 timmar bakåt**, så att en ny anslutning direkt visar sina senaste larm.
 - **Varje senare avsökning börjar 1 minut före den sparade markören**, så att ett larm som har skapats på gränsen mellan två fönster aldrig missas.
-- **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar, och dess **Hälsa** visar **Catching up**.
+- **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar, och dess **Hälsa** visar **Kommer ikapp**.
 - **Dubbletter tas bort efter larmets `_id`** inom projektet, så att överlappningen, ett upprepat fönster och en import aldrig sparar ett larm två gånger.
 
 Kibanas larmsökning tar en storlek och en sortering, men ingen sidtoken. Därför paginerar OneUptime genom att flytta intervallets början till det sista larmet på varje sida, och utelämnar, efter `_id`, de larm som den redan har läst vid det ögonblicket. En regelkörning stämplar ofta många larm med samma tid, och en sådan grupp läses sida för sida, inget två gånger och inget överhoppat.

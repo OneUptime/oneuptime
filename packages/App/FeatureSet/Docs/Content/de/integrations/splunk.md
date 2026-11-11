@@ -101,7 +101,7 @@ POST {Splunk management URL}/services/search/v2/jobs/export
 - **Die Erstellungszeit ist der Cursor.** Das Zeitfenster liegt auf `_time`, und das ist für ein Notable Event der Zeitpunkt, zu dem die Korrelationssuche es erstellt hat, nicht der, zu dem die gefundene Aktivität geschah. Eine stündlich laufende Suche versieht ihre Notable Events mit der Zeit ihres Laufs, sodass keines hinter den Cursor fällt.
 - **Die erste Abfrage blickt 24 Stunden zurück**, sodass eine neue Verbindung ihre jüngsten Notable Events sofort zeigt.
 - **Jede spätere Abfrage beginnt 1 Minute vor dem gespeicherten Cursor**, sodass eine Zeile, die an der Grenze zwischen zwei Zeitfenstern erstellt wurde, nie übersprungen wird.
-- **Eine Abfrage liest höchstens 24 Stunden über den Cursor hinaus.** Eine Verbindung, deren Cursor zurückliegt, holt in einer Reihe von 24-Stunden-Fenstern auf, und ihre **Integrität** zeigt **Catching up**.
+- **Eine Abfrage liest höchstens 24 Stunden über den Cursor hinaus.** Eine Verbindung, deren Cursor zurückliegt, holt in einer Reihe von 24-Stunden-Fenstern auf, und ihre **Integrität** zeigt **Holt auf**.
 - **Duplikate werden nach `event_id` verworfen**, oder nach den Splunk-eigenen `_bkt` und `_cd`, innerhalb des Projekts, sodass die Überlappung, ein wiederholtes Zeitfenster und ein Import nie eine Zeile doppelt speichern.
 
 Ein Search Head, der älter als 9.0.1 ist, beantwortet die Anfrage an `search/v2/jobs/export` mit `404`. OneUptime sendet sie dann an das veraltete `search/jobs/export`, und der Lauf sagt das in einer Warnung. Aktualisieren Sie den Search Head: Aktuelle Versionen schalten diesen Endpunkt ab.
