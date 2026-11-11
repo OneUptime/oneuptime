@@ -288,6 +288,22 @@ jobs:
           Tests/Server/Utils/Retention/ResolvedRecordRetentionPostgres.test.ts
           --forceExit
 
+      # A project's activation milestones (#6894): each kept once, even by
+      # servers racing for it, and the backfill fills what the data shows
+      # without sending anything or overwriting a milestone kept live.
+      - name: Test project activation milestones on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROJECT_MILESTONE_TESTS: "true"
+          PROJECT_MILESTONE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROJECT_MILESTONE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROJECT_MILESTONE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ProjectMilestonePostgres.test.ts
+          --forceExit
+
       # A person adds only an incident or alert they can see to an episode
       # they can see, and neither side's feed entry - nor the episode's Slack
       # / Teams post - names the other side when it is private.
