@@ -946,12 +946,12 @@ describe("autoDiscoverCloudResource apps and their revisions", () => {
 
   test("an App Service app's cloud.resource_id reaches its row as the provider's id for it", async () => {
     const SITE_ID: string =
-      "/subscriptions/d6252cc9-f01c-428b-924d-9896199f9a13/resourceGroups/rg-web/providers/Microsoft.Web/sites/storefront";
+      "/subscriptions/3f1c9a52-7d4e-4b8a-9e21-6c5d0b7a2f13/resourceGroups/rg-web/providers/Microsoft.Web/sites/storefront";
     const APP_SERVICE: Record<string, string> = {
       "cloud.platform": "azure.app_service",
       "cloud.provider": "azure",
       "cloud.region": "northcentralus",
-      "cloud.account.id": "d6252cc9-f01c-428b-924d-9896199f9a13",
+      "cloud.account.id": "3f1c9a52-7d4e-4b8a-9e21-6c5d0b7a2f13",
       "service.name": "storefront",
       "deployment.environment": "Production",
       "service.instance.id": "a1b2c3",

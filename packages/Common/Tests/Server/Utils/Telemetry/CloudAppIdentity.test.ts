@@ -505,7 +505,7 @@ describe("buildCloudAppKey", () => {
  */
 describe("the provider's id for the app (cloud.resource_id)", () => {
   const SITE_ID: string =
-    "/subscriptions/d6252cc9-f01c-428b-924d-9896199f9a13/resourceGroups/rg-web/providers/Microsoft.Web/sites/storefront";
+    "/subscriptions/3f1c9a52-7d4e-4b8a-9e21-6c5d0b7a2f13/resourceGroups/rg-web/providers/Microsoft.Web/sites/storefront";
 
   test("an App Service app keeps the site's resource id its detector reports", () => {
     const identity: CloudAppIdentity = resolve(

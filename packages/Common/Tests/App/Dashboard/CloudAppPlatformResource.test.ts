@@ -49,7 +49,7 @@ import {
  *     unknown rather than 0.
  */
 
-const SUBSCRIPTION: string = "d6252cc9-f01c-428b-924d-9896199f9a13";
+const SUBSCRIPTION: string = "3f1c9a52-7d4e-4b8a-9e21-6c5d0b7a2f13";
 
 function siteId(name: string, group: string = "rg-apps"): string {
   return `/subscriptions/${SUBSCRIPTION}/resourceGroups/${group}/providers/Microsoft.Web/sites/${name}`;

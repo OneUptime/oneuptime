@@ -174,8 +174,8 @@ const MINUTE_MS: number = 60 * 1000;
 const APP_ID: string = "76000000-0000-4000-8000-000000000001";
 const ENVIRONMENT_ID: string = "76100000-0000-4000-8000-000000000001";
 const SITE_ROW_ID: string = "76200000-0000-4000-8000-000000000001";
-const SUBSCRIPTION: string = "d6252cc9-f01c-428b-924d-9896199f9a13";
-const SITE: string = "azure-monitor-collector-northcentralus";
+const SUBSCRIPTION: string = "3f1c9a52-7d4e-4b8a-9e21-6c5d0b7a2f13";
+const SITE: string = "telemetry-relay-northcentralus";
 const SITE_ID: string = `/subscriptions/${SUBSCRIPTION}/resourceGroups/rg-monitoring/providers/Microsoft.Web/sites/${SITE}`;
 
 function minutesAgo(minutes: number): Date {
