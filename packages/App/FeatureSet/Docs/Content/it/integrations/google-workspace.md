@@ -48,7 +48,7 @@ La connessione accede con la chiave di un account di servizio e la [delega a liv
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Eventi di sicurezza → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Google Workspace** in **Identità** e fai clic su **Avanti**. Inserisci l'**Administrator email**, fai clic su **Avanti** e incolla il contenuto del file della chiave in **JSON dell'account di servizio**. Nel passaggio **Interrogazione**, attiva **Attività di Drive** per leggere anche Drive.
+Apri **Prodotti → Eventi di sicurezza → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Google Workspace** in **Identità** e fai clic su **Avanti**. Inserisci l'**Email dell'amministratore**, fai clic su **Avanti** e incolla il contenuto del file della chiave in **JSON dell'account di servizio**. Nel passaggio **Interrogazione**, attiva **Attività di Drive** per leggere anche Drive.
 
 ### Provarla prima di salvare
 
@@ -57,7 +57,7 @@ Fai clic su **Prova queste impostazioni** in **Testa prima di salvare**. Il test
 
 | Impostazione | Cosa inserire |
 | --- | --- |
-| **Administrator email** | L'indirizzo dell'amministratore che l'account di servizio impersona, per esempio `admin@example.com`. Deve avere il privilegio Reports. |
+| **Email dell'amministratore** | L'indirizzo dell'amministratore che l'account di servizio impersona, per esempio `admin@example.com`. Deve avere il privilegio Reports. |
 | **Attività di Drive** | Facoltativa, disattivata per impostazione predefinita. Se attiva, ogni interrogazione legge anche le condivisioni e i download di Drive. |
 | **JSON dell'account di servizio** | L'intero file della chiave, che contiene `client_email` e `private_key`. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Aggiorna le credenziali** sulla connessione. |
 
@@ -94,7 +94,7 @@ Ogni log ha un budget proprio, in pagine da 1.000 attività: 10 per gli accessi,
 
 1. **Restringere.** L'interrogazione successiva legge una finestra lunga la metà, dallo stesso punto di partenza, e continua a dimezzarla finché una finestra non viene letta per intero, fino a un minuto. L'avviso dell'esecuzione lo dice: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Le attività già importate dalla finestra più lunga vengono saltate come duplicati.
 2. **Tornare a crescere.** Dopo che una finestra è stata letta per intero, il cursore passa alla sua fine, e la finestra successiva è di nuovo lunga il doppio, fino a 24 ore.
-3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così le attività più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
+3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così le attività più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Importa questo intervallo di tempo** per recuperare ciò che un'esecuzione può leggere.
 
 Cambiare l'**Intervallo di interrogazione (minuti)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
 
@@ -103,9 +103,9 @@ Cambiare l'**Intervallo di interrogazione (minuti)** non cambia nulla di tutto q
 Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti e lavorarci a mano. Chi può modificare la connessione può avviare queste azioni; chi può vederla può leggerne la cronologia.
 
 - **Esegui ora** avvia subito un'interrogazione, con il cursore abituale, anche quando la connessione non è **Abilitato**.
-- **Preview audit events** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
-- **Import this time range** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. Le attività già importate vengono saltate. Google conserva 6 mesi di log di audit.
-- **Copy diagnostics** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
+- **Anteprima dei eventi di audit** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
+- **Importa questo intervallo di tempo** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. Le attività già importate vengono saltate. Google conserva 6 mesi di log di audit.
+- **Copia diagnostica** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
 
 ## Testare la connessione
 
@@ -119,7 +119,7 @@ Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti
 | **Read Drive activity** | Solo con l'opzione attiva: il log di Drive si può leggere. |
 | **Activities available to import** | Quante attività di accesso e di amministrazione contengono le ultime 24 ore, al massimo 1.000 ciascuna, quindi `1000+` significa di più. Nessuna è un avviso. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Il lato di OneUptime stesso: un processo prende i job della coda Worker, il job di polling gira ogni minuto e l'archivio degli eventi di sicurezza risponde. |
-| **Scheduled polling** | Per una connessione salvata: il polling è attivo, nessuna esecuzione è bloccata in attesa di un worker e le interrogazioni girano in orario. |
+| **Interrogazione pianificata** | Per una connessione salvata: il polling è attivo, nessuna esecuzione è bloccata in attesa di un worker e le interrogazioni girano in orario. |
 
 Ogni richiesta di un test ha una scadenza di 20 secondi. Un test non importa mai nulla e non sposta mai il cursore, e ogni controllo fallito dice cosa cambiare.
 
@@ -129,7 +129,7 @@ L'**Ultimo errore** della connessione conserva il messaggio di errore completo, 
 
 :::details Ultimo errore dice `token request failed`
 - `unauthorized_client`: l'account di servizio non ha la delega a livello di dominio per l'ambito. Aggiungi il suo **Unique ID** con `https://www.googleapis.com/auth/admin.reports.audit.readonly` in **Manage domain-wide delegation**.
-- `invalid_grant` con `Invalid email or User ID`: l'**Administrator email** non è un utente di questo Google Workspace.
+- `invalid_grant` con `Invalid email or User ID`: l'**Email dell'amministratore** non è un utente di questo Google Workspace.
 - `invalid_grant` con `Invalid JWT Signature`: la chiave è stata eliminata o disattivata. Crea una nuova chiave e salvala con **Aggiorna le credenziali**.
 :::
 

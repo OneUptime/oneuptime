@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50316,
-    "untranslated": 10151
+    "keys": 50417,
+    "untranslated": 10010
   },
   "sameAsEnglish": [
     " is",
@@ -156,6 +156,7 @@
     "Flavor",
     "Flavors",
     "Floating IP",
+    "Fluent Bit",
     "Gateway",
     "Gibibytes",
     "Gigabits",
@@ -163,6 +164,7 @@
     "Gigahertz",
     "Golden Signals",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "H1",
     "HA: {{state}}",

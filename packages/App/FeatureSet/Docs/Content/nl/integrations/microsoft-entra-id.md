@@ -118,7 +118,7 @@ Elk logboek heeft een eigen budget: 10 pagina's van 500 directorywijzigingen, 20
 
 1. **Verkleinen.** De volgende poll leest een venster dat half zo lang is, vanaf hetzelfde beginpunt, en blijft halveren tot een venster volledig wordt gelezen, tot één minuut. De waarschuwing van de run zegt het: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Records die al uit het langere venster zijn geïmporteerd, worden als duplicaten overgeslagen.
 2. **Weer groeien.** Nadat een venster volledig is gelezen, gaat de cursor naar het einde ervan, en is het volgende venster weer twee keer zo lang, tot 24 uur.
-3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere records blijven binnenkomen. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
+3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere records blijven binnenkomen. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Dit tijdsbereik importeren** om terug te halen wat één run kan lezen.
 
 Het **Opvraaginterval (minuten)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll begint, niet waar zijn venster begint.
 
@@ -127,9 +127,9 @@ Het **Opvraaginterval (minuten)** wijzigen verandert hier niets aan: het bepaalt
 Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
 
 - **Nu uitvoeren** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
-- **Preview records** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
-- **Import this time range** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde records worden overgeslagen. Microsoft Entra ID bewaart 30 dagen aanmeldingen en directorywijzigingen met P1 of P2, en 7 dagen zonder.
-- **Copy diagnostics** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
+- **Voorbeeld van records** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
+- **Dit tijdsbereik importeren** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde records worden overgeslagen. Microsoft Entra ID bewaart 30 dagen aanmeldingen en directorywijzigingen met P1 of P2, en 7 dagen zonder.
+- **Diagnose kopiëren** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
 
 ## Verbinding testen
 
@@ -146,7 +146,7 @@ Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met d
 | **Read the Microsoft 365 audit log** | Alleen met de optie aan: de Management API antwoordt, en op welke inhoudstypen de app is geabonneerd. |
 | **Records available to import** | Hoeveel aanmeldingen en directorywijzigingen de afgelopen 24 uur bevatten, elk maximaal 500, dus `500+` betekent meer. Geen enkele is een waarschuwing. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | De kant van OneUptime zelf: een proces neemt de jobs van de Worker-wachtrij af, de poll-job draait elke minuut en de opslag van beveiligingsgebeurtenissen antwoordt. |
-| **Scheduled polling** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
+| **Geplande opvraging** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
 
 Elk verzoek in een test heeft een deadline van 20 seconden. Een test importeert nooit iets en verplaatst nooit de cursor, en elke mislukte controle zegt wat je moet wijzigen.
 

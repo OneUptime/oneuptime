@@ -236,7 +236,7 @@ Ett AWS-konto, ett Google Cloud-projekt eller en Azure-prenumeration som är [an
 | Microsoft Entra ID | Inloggningar, katalogändringar och riskidentifieringar, om du vill misslyckade bakgrunds- och appinloggningar, och från Microsoft 365-granskningsloggen vidarebefordran av e-post, delning och nätfiskeutlåtanden | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Inloggningar, Googles egna fynd, administratörsändringar och appåtkomst, och delning i Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
-- Produktens egna larm på eller över **Open Cases From** (**Hög och högre** om du inte väljer en annan nivå, eller **Aldrig**) öppnar [ärenden](/docs/telemetry/security-cases), grupperade efter användaren, värden eller adressen som de handlar om.
+- Produktens egna larm på eller över **Öppna ärenden från** (**Hög och högre** om du inte väljer en annan nivå, eller **Aldrig**) öppnar [ärenden](/docs/telemetry/security-cases), grupperade efter användaren, värden eller adressen som de handlar om.
 - En anslutning läser poster efter tiden då produkten skapade dem, inte efter tiden för aktiviteten de beskriver. En SIEM-regel som körs varje timme skapar detektioner långt efter händelserna den träffade, och de importeras ändå.
 - Den första hämtningen tittar 24 timmar bakåt, så en ny anslutning visar nya poster direkt.
 - **Testa anslutningen**, i anslutningens rad, kontrollerar åtkomsten till produkten och att OneUptimes egna workers körs, och importerar ingenting. **Kör nu** hämtar direkt.
@@ -283,7 +283,7 @@ Ett fält är antingen ett kort namn (`severity`, `class`, `category`, `activity
 
 ### Facetter
 
-Sidopanelen räknar fönstrets händelser efter **Källa**, **Allvarlighetsgrad**, **Request Outcome**, **Händelseklass**, **Kategori**, **Aktivitet**, **Status**, **Leverantör**, **Produkt**, **Detektionsregel**, **Källanvändare**, **Källvärd**, **Process** och **Överordnad process**. Klicka på ett värde för att bara behålla dess händelser, eller på minustecknet bredvid för att utesluta dem. Klicka igen för att ångra. Diagrammet och varje räkning beskriver exakt händelserna i listan.
+Sidopanelen räknar fönstrets händelser efter **Källa**, **Allvarlighetsgrad**, **Resultat av begäran**, **Händelseklass**, **Kategori**, **Aktivitet**, **Status**, **Leverantör**, **Produkt**, **Detektionsregel**, **Källanvändare**, **Källvärd**, **Process** och **Överordnad process**. Klicka på ett värde för att bara behålla dess händelser, eller på minustecknet bredvid för att utesluta dem. Klicka igen för att ångra. Diagrammet och varje räkning beskriver exakt händelserna i listan.
 
 ### Vad som hände sedan
 

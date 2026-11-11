@@ -53,8 +53,8 @@ Klicken Sie unter **Vor dem Speichern testen** auf **Diese Einstellungen testen*
 
 | Einstellung | Was Sie eintragen |
 | --- | --- |
-| **Kibana URL** | Die Adresse, unter der Kibana bereitgestellt wird, etwa `https://kibana.example.com` oder `https://<deployment>.kb.<region>.cloud.es.io`. Ohne Pfad: nicht `/app/security`, nicht `/api` und nicht der Teil `/s/<space>`. |
-| **Kibana space** | Die ID des Space, nicht sein Name: Buchstaben, Ziffern, Bindestriche und Unterstriche. Lassen Sie sie für den Standard-Space leer. |
+| **Kibana-URL** | Die Adresse, unter der Kibana bereitgestellt wird, etwa `https://kibana.example.com` oder `https://<deployment>.kb.<region>.cloud.es.io`. Ohne Pfad: nicht `/app/security`, nicht `/api` und nicht der Teil `/s/<space>`. |
+| **Kibana-Space** | Die ID des Space, nicht sein Name: Buchstaben, Ziffern, Bindestriche und Unterstriche. Lassen Sie sie für den Standard-Space leer. |
 | **API-Schlüssel** | Der **Base64**-Wert des Schlüssels, für sich allein: OneUptime fügt das Schema `ApiKey` selbst hinzu. Er wird verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie ihn mit **Anmeldedaten aktualisieren** an der Verbindung. |
 
 Der Schritt **Abfrage** hat außerdem eine optionale **Beschreibung**, das **Abfrageintervall (Minuten)**, eine ganze Zahl von `1` bis `1440`, die mit `5` beginnt, und **Aktiviert**, das eingeschaltet beginnt.
@@ -124,7 +124,7 @@ Ein Lauf, der ganz fehlschlägt, mit einem Fehler von Kibana, behält den Cursor
 Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehen und von Hand mit ihr zu arbeiten. Wer die Verbindung ändern darf, kann diese starten; wer sie sehen darf, kann den Verlauf lesen.
 
 - **Jetzt ausführen** startet sofort eine Abfrage, mit dem üblichen Cursor, auch wenn die Verbindung nicht **Aktiviert** ist.
-- **Preview alerts** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
+- **Vorschau der Warnungen** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
 - **Diesen Zeitraum importieren** importiert nach Ihrer Bestätigung einen Zeitraum von bis zu 7 Tagen, ohne den Cursor zu verschieben. Bereits importierte Warnungen werden übersprungen.
 - **Diagnosen kopieren** an einem Lauf kopiert seinen Bericht für den Support. Er enthält nie Anmeldedaten.
 
@@ -192,7 +192,7 @@ Der **Letzter Fehler** der Verbindung bewahrt die vollständige Fehlermeldung, m
 :::details Letzter Fehler beginnt mit `Elastic Security status request`
 - `Elastic Security status request failed (HTTP ...)`: Kibana hat die Statusanfrage abgelehnt.
   - `HTTP 401`: Kibana hat den API-Schlüssel nicht angenommen. Es ist nicht der **Base64**-Wert, oder er ist abgelaufen oder wurde ungültig gemacht. Erstellen Sie einen neuen Schlüssel und speichern Sie ihn mit **Anmeldedaten aktualisieren**.
-  - `HTTP 404`: Die **Kibana URL** hat einen Pfad oder ist nicht Kibana.
+  - `HTTP 404`: Die **Kibana-URL** hat einen Pfad oder ist nicht Kibana.
   - `HTTP 503`: Kibana meldet sich als nicht verfügbar, meist weil es Elasticsearch nicht erreicht.
   - `HTTP 3xx`: Kibana hat die Anfrage umgeleitet, und Umleitungen werden abgelehnt. Verwenden Sie die Adresse, unter der Kibana bereitgestellt wird.
 - `Elastic Security status request returned ...`: Etwas anderes als Kibana hat geantwortet, etwa eine Anmeldeseite oder ein Proxy.
@@ -202,7 +202,7 @@ Der **Letzter Fehler** der Verbindung bewahrt die vollständige Fehlermeldung, m
 :::details Letzter Fehler beginnt mit `Elastic Security alerts search`
 - `Elastic Security alerts search failed (HTTP ...)`: Kibana hat die Warnungssuche abgelehnt.
   - `HTTP 403`: Der Schlüssel meldet sich an, kann die Warnungen des Space aber nicht lesen. Geben Sie ihm die Berechtigungen unter [Bevor Sie beginnen](#bevor-sie-beginnen).
-  - `HTTP 404`: Kein Space hat diese ID in **Kibana space**, oder Elastic Security ist darin nicht aktiviert.
+  - `HTTP 404`: Kein Space hat diese ID in **Kibana-Space**, oder Elastic Security ist darin nicht aktiviert.
   - `HTTP 429` oder `HTTP 5xx`: Kibana oder Elasticsearch begrenzt Anfragen oder schlägt fehl. Die nächste Abfrage versucht es erneut.
 - `Elastic Security alerts search returned ...`: Kibana hat mit `200` geantwortet, aber ohne lesbare Seite mit Warnungen, etwa mit seinem eigenen Fehler. Die Meldung zitiert ihn. Das wird gemeldet statt als leeres Zeitfenster genommen, damit der Cursor nie über Warnungen hinwegrückt, die niemand gelesen hat.
 :::
@@ -221,7 +221,7 @@ Für diese Verbindung ist noch keine Abfrage fertig geworden. Führen Sie **Verb
 :::
 
 :::details Der Test besteht, aber nichts wird importiert
-Lesen Sie **Alerts available to import** im Bericht des Tests. `0` in den letzten 7 Tagen heißt, dass keine Regel in diesem Space eine Warnung erstellt hat: Prüfen Sie, dass dort Regeln aktiviert sind und dass **Kibana space** der Space ist, in dem sie laufen. Gibt es Warnungen, erweitern Sie den Zeitraum im Explorer der Sicherheitsereignisse: Warnungen erscheinen unter der Zeit ihrer Aktivität, die weit vor ihrer Erstellung liegen kann.
+Lesen Sie **Alerts available to import** im Bericht des Tests. `0` in den letzten 7 Tagen heißt, dass keine Regel in diesem Space eine Warnung erstellt hat: Prüfen Sie, dass dort Regeln aktiviert sind und dass **Kibana-Space** der Space ist, in dem sie laufen. Gibt es Warnungen, erweitern Sie den Zeitraum im Explorer der Sicherheitsereignisse: Warnungen erscheinen unter der Zeit ihrer Aktivität, die weit vor ihrer Erstellung liegen kann.
 :::
 
 ## Was Sie davon haben

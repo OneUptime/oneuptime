@@ -126,7 +126,7 @@ Une exécution **Partiel** pour une autre raison, comme une alerte qui n'a pas p
 Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récentes et travailler avec elle à la main. Quiconque peut modifier la connexion peut les lancer ; quiconque peut la voir peut lire l'historique.
 
 - **Exécuter maintenant** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
-- **Preview alerts** lit une plage de temps de 7 jours au plus et n'importe rien.
+- **Aperçu des alertes** lit une plage de temps de 7 jours au plus et n'importe rien.
 - **Importer cette plage de temps** importe une plage de 7 jours au plus, après votre confirmation, sans déplacer le curseur. Les alertes déjà importées sont sautées.
 - **Copier les diagnostics** sur une exécution copie son rapport pour le support. Il ne contient jamais d'identifiants.
 

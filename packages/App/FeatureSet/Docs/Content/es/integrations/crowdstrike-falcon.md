@@ -25,7 +25,7 @@ Cada minuto, OneUptime sondea cada conexión habilitada cuyo intervalo de sondeo
 
 - En OneUptime, el rol Project Owner, Project Admin o Security Admin. Los roles Security Member y Security Viewer pueden ver las conexiones y su historial de ejecuciones, pero no cambiarlas.
 - Un ID de cliente de Falcon (CID) y un usuario de la consola de Falcon que pueda gestionar clientes de API: el rol Falcon Administrator, o un rol personalizado con el permiso API clients and keys.
-- HTTPS saliente de la aplicación y los workers de OneUptime hacia el host de API de tu nube de Falcon, que aparece en **Falcon cloud** más abajo.
+- HTTPS saliente de la aplicación y los workers de OneUptime hacia el host de API de tu nube de Falcon, que aparece en **Nube de Falcon** más abajo.
 
 ## Configurar la conexión
 
@@ -59,7 +59,7 @@ Haz clic en **Probar esta configuración** en **Probar antes de guardar**. La pr
 | Ajuste | Qué introducir |
 | --- | --- |
 | **ID de cliente** | El ID del cliente de API, tal como lo mostró Falcon al crear el cliente. |
-| **Falcon cloud** | La nube de tu CID: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** o **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Cada solicitud va al host de API de esa nube. |
+| **Nube de Falcon** | La nube de tu CID: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** o **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Cada solicitud va al host de API de esa nube. |
 | **Secreto del cliente** | El secreto del cliente de API. Se cifra, la API nunca lo devuelve y no se vuelve a mostrar. Sustitúyelo con **Actualizar credenciales** en la conexión. |
 
 El paso **Sondeo** también tiene una **Descripción** opcional, el **Intervalo de sondeo (minutos)**, un número entero de `1` a `1440` que empieza en `5`, y **Habilitado**, que empieza activado. Una conexión que no está habilitada se puede probar igualmente, y sondear a mano.
@@ -119,7 +119,7 @@ Una ejecución que falla del todo, con un error de Falcon, conserva el cursor y 
 Haz clic en **Diagnósticos** en una conexión para ver sus ejecuciones recientes y trabajar con ella a mano. Quien puede cambiar la conexión puede iniciar estas acciones; quien puede verla puede leer el historial.
 
 - **Ejecutar ahora** inicia un sondeo de inmediato, con el cursor habitual, incluso cuando la conexión no está **Habilitado**.
-- **Preview alerts** lee un intervalo de tiempo de hasta 7 días y no importa nada.
+- **Vista previa de alertas** lee un intervalo de tiempo de hasta 7 días y no importa nada.
 - **Importar este intervalo de tiempo** importa un intervalo de hasta 7 días, después de que lo confirmes, sin mover el cursor. Las alertas ya importadas se omiten.
 - **Copiar diagnósticos** en una ejecución copia su informe para soporte. Nunca incluye credenciales.
 
@@ -129,7 +129,7 @@ Haz clic en **Diagnósticos** en una conexión para ver sus ejecuciones reciente
 
 | Comprobación | Qué comprueba |
 | --- | --- |
-| **Configuración** | **ID de cliente**, **Falcon cloud** y **Secreto del cliente** están presentes y bien formados. No se contacta con nada cuando esto falla. |
+| **Configuración** | **ID de cliente**, **Nube de Falcon** y **Secreto del cliente** están presentes y bien formados. No se contacta con nada cuando esto falla. |
 | **Authenticate with CrowdStrike Falcon** | `POST /oauth2/token` con el ID y el secreto del cliente de API, en el host de tu nube, devuelve un token. |
 | **Read alerts from the Falcon Alerts API** | Se acepta una consulta de alertas de una sola alerta (`limit=1`) sobre las últimas 24 horas, lo que demuestra el ámbito **Alerts → Read**. |
 | **Alerts available to import** | Cuántas alertas se crearon en las últimas 24 horas y en los últimos 7 días. Ninguna en 7 días es un aviso, no un fallo: el sondeo importa las alertas nuevas a medida que Falcon las crea. |
@@ -143,13 +143,13 @@ Cada solicitud de una prueba tiene un plazo de 20 segundos. Una prueba nunca imp
 El **Último error** de la conexión, y cada comprobación que falla, guardan el mensaje de error completo, con las credenciales ocultas, tras un prefijo que nombra el paso que falló. Cuando una conexión tiene un error, selecciona **Ver error** en su columna **Acciones** para leerlo, y **Copiar error** en el cuadro de diálogo para copiarlo. Lee primero el prefijo.
 
 :::details Último error empieza por `CrowdStrike Falcon token request`
-- `CrowdStrike Falcon token request failed (HTTP 401)` o `(HTTP 403)`: Falcon rechazó el ID y el secreto del cliente de API, antes de contactar con la Alerts API. Comprueba que **Falcon cloud** es la nube de tu CID, ya que aquí se rechaza un cliente de otra nube, que **ID de cliente** es el del cliente y que **Secreto del cliente** es el secreto emitido con él. Si se perdió el secreto, restablécelo en la consola de Falcon y guárdalo con **Actualizar credenciales**.
+- `CrowdStrike Falcon token request failed (HTTP 401)` o `(HTTP 403)`: Falcon rechazó el ID y el secreto del cliente de API, antes de contactar con la Alerts API. Comprueba que **Nube de Falcon** es la nube de tu CID, ya que aquí se rechaza un cliente de otra nube, que **ID de cliente** es el del cliente y que **Secreto del cliente** es el secreto emitido con él. Si se perdió el secreto, restablécelo en la consola de Falcon y guárdalo con **Actualizar credenciales**.
 - `CrowdStrike Falcon token request returned ...`: Falcon respondió con algo inutilizable, un cuerpo que no es JSON o sin `access_token`. Suele ser un proxy o una pasarela en medio, no las credenciales.
 :::
 
 :::details Último error empieza por `CrowdStrike Falcon alerts`
 - `CrowdStrike Falcon alerts query failed (HTTP 403)`: el token se aceptó, pero el cliente de API no tiene el ámbito **Alerts → Read**. Actívalo para el cliente en **API clients and keys** y guarda. Se aplica al siguiente token, así que vuelve a probar al cabo de un minuto.
-- `CrowdStrike Falcon alerts query failed (HTTP 401)`: la Alerts API rechazó el token, lo que casi siempre significa que **Falcon cloud** no es la nube que emitió el cliente.
+- `CrowdStrike Falcon alerts query failed (HTTP 401)`: la Alerts API rechazó el token, lo que casi siempre significa que **Nube de Falcon** no es la nube que emitió el cliente.
 - `CrowdStrike Falcon alerts query failed (HTTP 429)` o `CrowdStrike Falcon alerts fetch failed (HTTP 429)`: Falcon está limitando la frecuencia de este cliente de API. El cliente HTTP de OneUptime no conserva las cabeceras de respuesta en un error, así que el mensaje suele terminar con `the X-RateLimit-RetryAfter header was not available` en lugar de citarla. Los sondeos programados lo vuelven a intentar solos. Si sigue pasando, da a OneUptime un cliente de API propio, en lugar de uno compartido con otras herramientas.
 - `CrowdStrike Falcon alerts query failed (HTTP 400)`: Falcon rechazó la consulta. La conexión envía un filtro FQL fijo sobre `created_timestamp`, así que copia el informe y envíalo al soporte de OneUptime.
 - `CrowdStrike Falcon alerts query returned ...` o `CrowdStrike Falcon alerts fetch returned ...`: Falcon respondió `200`, con un cuerpo que no es JSON o con una forma que la conexión no conoce. Se notifica en lugar de tomarse como una ventana vacía, para que el cursor nunca pase de largo alertas que nadie leyó.
