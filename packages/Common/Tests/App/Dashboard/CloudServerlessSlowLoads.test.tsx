@@ -246,7 +246,8 @@ interface OverviewCase {
 }
 
 const NO_DATA: string = "No data in this time range";
-const CHART_LOAD_FAILED: string = "Something went wrong. Try again in a moment.";
+const CHART_LOAD_FAILED: string =
+  "Something went wrong. Try again in a moment.";
 
 const OVERVIEWS: Array<[string, OverviewCase]> = [
   [

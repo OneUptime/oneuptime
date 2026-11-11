@@ -1246,7 +1246,10 @@ interface PlaceholderList {
 }
 
 // Every `placeholders: [...]` list a source writes, in order.
-const placeholderListsIn: (fileName: string, source: string) => Array<PlaceholderList> = (
+const placeholderListsIn: (
+  fileName: string,
+  source: string,
+) => Array<PlaceholderList> = (
   fileName: string,
   source: string,
 ): Array<PlaceholderList> => {
@@ -1294,7 +1297,7 @@ describe("the node boot suite's placeholders follow the loader's list", () => {
         "Sample.ts",
         [
           "const a = { placeholders: [",
-          '  // A comment between the names.',
+          "  // A comment between the names.",
           '  "First:Job",',
           '  "Second:Job",',
           "] };",

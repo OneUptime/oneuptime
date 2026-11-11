@@ -46,11 +46,11 @@ describe("ExpiringCache's limits", () => {
     }
 
     expect(cache.get("a")).toBeUndefined();
-    expect(["b", "c", "d"].map((key: string) => cache.get(key))).toEqual([
-      "value of b",
-      "value of c",
-      "value of d",
-    ]);
+    expect(
+      ["b", "c", "d"].map((key: string): string | undefined => {
+        return cache.get(key);
+      }),
+    ).toEqual(["value of b", "value of c", "value of d"]);
 
     cache.set("e", "value of e", NEVER);
 
@@ -314,10 +314,7 @@ describe("ExpiringCache evicts through OldestKeyMap", () => {
       keys: number;
     }) => {
       const random: SeededRandom = seededRandom(scenario.seed);
-      const now: SpyInstance<typeof Date.now> = jest.spyOn(
-        Date,
-        "now",
-      );
+      const now: SpyInstance<typeof Date.now> = jest.spyOn(Date, "now");
       const cache: ExpiringCache<string> = new ExpiringCache<string>(
         scenario.maxEntries,
         lengthOf,
