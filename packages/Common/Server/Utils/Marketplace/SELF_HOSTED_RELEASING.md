@@ -362,7 +362,9 @@ Producer Portal on within 2 business days of it, then sends a welcome email
 with the next steps. Google's Marketplace Operations team supports the
 onboarding for 60 days from its onboarding email (until about 8 January
 2027); help after that is not guaranteed. Everything lives in the
-`oneuptime-marketplace` project, never in `oneuptime-k8s`.
+`oneuptime-marketplace` project, never in `oneuptime-k8s`. This is OneUptime's
+only Google Cloud Marketplace product: OneUptime Cloud is not listed there
+([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
 
 1. **Partner account** (maintainer):
 
@@ -1183,6 +1185,7 @@ rejection, go-live and price change.
 | 2026-11-06 | Google      | Project workspace: the onboarding email's roles granted on `oneuptime-marketplace`                  | Maintainer |
 | 2026-11-09 | Google      | Partner approved: Google's onboarding email names OneUptime Enterprise (self-hosted)                | Google     |
 | 2026-11-11 | Google      | Project info form submitted (Kubernetes App, seller HackerBay, Inc.); Producer Portal pending       | Agent      |
+| 2026-11-11 | Google      | Decided: Google Cloud Marketplace sells only this Kubernetes app, not OneUptime Cloud (SaaS)        | Maintainer |
 
 ## Notes for agents driving the browser
 

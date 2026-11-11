@@ -6,6 +6,13 @@ This is the runbook for maintainers and AI agents who list **OneUptime Cloud**
 needs, and keep it running. Follow the repository's
 [AGENTS.md](../../../../../AGENTS.md) as well.
 
+**OneUptime Cloud is not listed on Google Cloud Marketplace** (the
+maintainer's decision, 11 November 2026): Google lists only SaaS hosted on
+Google Cloud, and OneUptime Cloud is moving off it (see
+[Google Cloud Marketplace](#google-cloud-marketplace)). Google sells only the
+self-hosted Kubernetes app. The Google integration stays in the code, unused
+while its settings are unset, for the day that changes.
+
 It does not cover self-hosted OneUptime Enterprise, which the same
 marketplaces sell as a Kubernetes application billed per user-hour: see
 [SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md). OneUptime Cloud is also
@@ -75,15 +82,16 @@ addresses carry the publisher ID Partner Center has for HackerBay,
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------- | ----------- |
 | AWS          | `https://aws.amazon.com/marketplace/pp/prodview-ttfnc3eqofayw` (product `prod-unn56dxklr4mw`, seller `seller-d3b2fafj4knc2`) | 2026-10-21  |
 | Microsoft    | `https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-cloud` (offer `oneuptime-cloud`)                        | 2026-10-21  |
-| Google Cloud | Not public yet                                                                                                               |             |
+| Google Cloud | Not listed: Google lists only SaaS hosted on Google Cloud (see [Google Cloud Marketplace](#google-cloud-marketplace))        |             |
 
 The website shows them, from
 [packages/Home/Utils/CloudMarketplaces.ts](../../../../Home/Utils/CloudMarketplaces.ts):
 the Resellers page's "Buy through your cloud marketplace" section
 (`/resellers#cloud-marketplaces`) and a line under the plans on `/pricing`.
-A listing that is not public there says "Coming soon". When a listing goes
-public, put its address in that file as well as here, exactly as the
-marketplace links it.
+A listing that is not public there says "Coming soon", and a marketplace that
+does not sell OneUptime Cloud has no row for it. When a listing goes public,
+put its address in that file as well as here, exactly as the marketplace
+links it.
 
 ## Pricing: the same prices as oneuptime.com, in usage units
 
@@ -162,12 +170,13 @@ submit button without a maintainer's explicit go-ahead in chat.
     elsewhere). Pattern 3, "storage and backup on Google Cloud", is for
     storage, backup, replication and disaster-recovery products only:
     copying OneUptime's data to Google Cloud does not keep the listing
-    eligible. **Before the move**, a maintainer decides between keeping the
-    data plane on Google Cloud and telling Google and withdrawing the
-    listing. The listing lives in a Google Cloud project of its own
-    (`oneuptime-marketplace`), never in `oneuptime-k8s`. Whether a purchase
-    counts toward a buyer's Google Cloud commitment is Google's rule for the
-    product, not something to promise in the listing.
+    eligible. **So OneUptime Cloud is not listed there** (the maintainer's
+    decision, 11 November 2026): a listing would face a re-review at the
+    move, a possibly smaller revenue share, and buyers to move off Google
+    billing by hand. List it only if its data plane is to stay on Google
+    Cloud. Whether a purchase counts toward a buyer's Google Cloud commitment
+    is Google's rule for the product, not something to promise in the
+    listing.
   - **AWS Marketplace** lists SaaS hosted anywhere (since May 2025). Only
     products deployed on AWS get the "Deployed on AWS" badge and count toward
     a buyer's AWS spend commitment, so OneUptime's listing has neither.
@@ -309,13 +318,23 @@ The URLs each marketplace asks for (production):
 
 ## Google Cloud Marketplace
 
+**Not listed** (the maintainer's decision, 11 November 2026): OneUptime Cloud
+is moving off Google Cloud, and Google lists only SaaS hosted there - see the
+hosting rule under
+[Before you start](#before-you-start-decisions-and-facts-that-are-the-businesss).
+Google Cloud Marketplace sells only the self-hosted Kubernetes app
+([SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md#google-cloud-marketplace-kubernetes-app)).
+Do not create a SaaS product in Producer Portal and leave the
+`GOOGLE_CLOUD_MARKETPLACE_*` settings unset: the integration's URLs then
+answer "not available here". The steps below are kept for the day OneUptime
+Cloud's data plane is to stay on Google Cloud.
+
 The listing, its service account, its Pub/Sub subscription and its Service
-Control service live in a Google Cloud project made for the listing,
+Control service would live in a Google Cloud project made for the listings,
 `oneuptime-marketplace` - never `oneuptime-k8s`, which hosts OneUptime Cloud
 today and will be deleted when OneUptime moves to its own data centre. Nothing
 in the integration depends on where OneUptime Cloud runs, but Google's listing
-rules do: see the hosting rule under
-[Before you start](#before-you-start-decisions-and-facts-that-are-the-businesss).
+rules do.
 
 1. **Become a Google Cloud Marketplace partner** (maintainer). Join the Google
    Cloud Partner Network (`https://partners.cloud.google.com`, "Create new
@@ -335,12 +354,12 @@ rules do: see the hosting rule under
    partner) went in on 11 November with that product's listing type. Producer
    Portal is pending: Google turns it on within 2 business days of the form.
    See [SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md#google-cloud-marketplace-kubernetes-app)
-   for the details. This SaaS product goes into the same project, created in
-   Producer Portal next to the Kubernetes app with no new partner sign-up,
-   but Google validates every listing on its own (its Onboarding Validation
-   Form), including the hosting rule above: settle that rule first. The
-   service accounts of steps 5 and 6 (`marketplace@` and
-   `marketplace-pubsub-push@`) exist, with no key yet.
+   for the details. A SaaS product would go into the same project, created
+   in Producer Portal next to the Kubernetes app with no new partner
+   sign-up, but Google validates every listing on its own (its Onboarding
+   Validation Form), the hosting rule included. The service accounts of
+   steps 5 and 6 (`marketplace@` and `marketplace-pubsub-push@`) exist, with
+   no key, and nothing uses them.
 
 2. **Create the product**: a SaaS product, "integrated with Google Cloud"
    (Google Cloud bills it).
@@ -623,11 +642,12 @@ Marketplace".
 
 Add a row for every submission, approval, rejection and go-live.
 
-| Date       | Marketplace  | What happened                                                                                                         | Who   |
-| ---------- | ------------ | --------------------------------------------------------------------------------------------------------------------- | ----- |
-| 2026-10-21 | AWS          | SaaS listing seen public (`prodview-ttfnc3eqofayw`); the website links it                                             | Agent |
-| 2026-10-21 | Microsoft    | SaaS offer `oneuptime-cloud` seen live (publisher `oneupitme`); the website links it                                  | Agent |
-| 2026-11-11 | Google Cloud | Partner approved (for the self-hosted app); project info form submitted; Producer Portal pending; no SaaS product yet | Agent |
+| Date       | Marketplace  | What happened                                                                                                         | Who        |
+| ---------- | ------------ | --------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 2026-10-21 | AWS          | SaaS listing seen public (`prodview-ttfnc3eqofayw`); the website links it                                             | Agent      |
+| 2026-10-21 | Microsoft    | SaaS offer `oneuptime-cloud` seen live (publisher `oneupitme`); the website links it                                  | Agent      |
+| 2026-11-11 | Google Cloud | Partner approved (for the self-hosted app); project info form submitted; Producer Portal pending; no SaaS product yet | Agent      |
+| 2026-11-11 | Google Cloud | Decided: OneUptime Cloud is not listed on Google Cloud Marketplace (it is moving off Google Cloud)                    | Maintainer |
 
 ## Notes for agents driving the browser
 
