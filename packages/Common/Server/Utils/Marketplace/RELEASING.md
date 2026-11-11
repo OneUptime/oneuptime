@@ -319,6 +319,20 @@ rules do: see the hosting rule under
    Control, Pub/Sub and IAM APIs in it. Producer Portal is at
    `https://console.cloud.google.com/producer-portal?project=oneuptime-marketplace`;
    it may not load until the partner account is approved.
+
+   **Where this stands** (11 November 2026): Google approved the partner
+   account for the self-hosted Kubernetes app (its onboarding email names
+   "OneUptime Enterprise (self-hosted)"), the `oneuptime-marketplace` project
+   has the roles that email asks for, and the project info form (once per
+   partner) went in on 11 November with that product's listing type. Producer
+   Portal is pending: Google turns it on within 2 business days of the form.
+   See [SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md#google-cloud-marketplace-kubernetes-app)
+   for the details. Ask the Partner Engineer whether this SaaS product can be
+   added in Producer Portal next to the Kubernetes app or needs an approval of
+   its own, and settle the hosting rule above first. The service accounts of
+   steps 5 and 6 (`marketplace@` and `marketplace-pubsub-push@`) exist, with
+   no key yet.
+
 2. **Create the product**: a SaaS product, "integrated with Google Cloud"
    (Google Cloud bills it).
 3. **Pricing**: usage-based, one metric, `usage_units`, unit "unit", USD 0.01
@@ -597,10 +611,11 @@ Marketplace".
 
 Add a row for every submission, approval, rejection and go-live.
 
-| Date       | Marketplace | What happened                                                                        | Who   |
-| ---------- | ----------- | ------------------------------------------------------------------------------------ | ----- |
-| 2026-10-21 | AWS         | SaaS listing seen public (`prodview-ttfnc3eqofayw`); the website links it            | Agent |
-| 2026-10-21 | Microsoft   | SaaS offer `oneuptime-cloud` seen live (publisher `oneupitme`); the website links it | Agent |
+| Date       | Marketplace  | What happened                                                                                                         | Who   |
+| ---------- | ------------ | --------------------------------------------------------------------------------------------------------------------- | ----- |
+| 2026-10-21 | AWS          | SaaS listing seen public (`prodview-ttfnc3eqofayw`); the website links it                                             | Agent |
+| 2026-10-21 | Microsoft    | SaaS offer `oneuptime-cloud` seen live (publisher `oneupitme`); the website links it                                  | Agent |
+| 2026-11-11 | Google Cloud | Partner approved (for the self-hosted app); project info form submitted; Producer Portal pending; no SaaS product yet | Agent |
 
 ## Notes for agents driving the browser
 

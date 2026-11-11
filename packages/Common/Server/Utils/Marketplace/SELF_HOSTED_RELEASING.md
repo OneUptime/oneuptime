@@ -247,15 +247,15 @@ Some values exist only once the portals have created the products. Each goes
 into the repository through a pull request, before the first release that
 needs it. Record each one in [History](#history).
 
-| Value                                            | Where it comes from                                                                                        | Where it goes                                                                                                                                                                                                                                                                      |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Value                                            | Where it comes from                                                                                        | Where it goes                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AWS product code                                 | AWS Marketplace Management Portal, when the container product is created                                   | `AWS_SELF_HOSTED_PRODUCT_CODES` in [SelfHostedMarketplaceConfig.ts](../../../../../ee/Server/Marketplace/Reporters/SelfHostedMarketplaceConfig.ts). It is compiled into the image: a OneUptime release made before this change cannot bill AWS, and says "This build of OneUptime has no AWS Marketplace product code" |
-| AWS registry prefix                              | The portal's repository URIs: `709825985650.dkr.ecr.us-east-1.amazonaws.com/<sellerName>`                  | `editions.json`, `aws.registry`                                                                                                                                                                                                                                                    |
-| Azure registry                                   | The Azure Container Registry you create: `<name>.azurecr.io`                                               | `editions.json`, `azure.registry`                                                                                                                                                                                                                                                  |
-| Google registry path and Service Control service | The Artifact Registry repository you create; Producer Portal's **Overview** page, **Service name** column  | `editions.json`, `google-cloud.registry` and `google-cloud.serviceName`                                                                                                                                                                                                            |
-| AWS product ID                                   | `python3 HelmChart/Marketplace/automation/aws_catalog.py find-product` (the Catalog API's entity ID)       | `editions.json`, `aws.productId`                                                                                                                                                                                                                                                   |
-| Microsoft offer, plan, extension type, bundle    | Partner Center; the bundle's repository is the one `cpa buildbundle` pushes to (check after the first run) | `editions.json`, `azure.offerId`, `planId`, `clusterExtensionType`, `resourceGroup`, `bundleRepository`                                                                                                                                                                            |
-| Ready                                            | Every value of the edition above is the portal's real one                                                  | `editions.json`, `"ready": true` for that edition. Until then the workflow pushes and submits nothing to that marketplace                                                                                                                                                          |
+| AWS registry prefix                              | The portal's repository URIs: `709825985650.dkr.ecr.us-east-1.amazonaws.com/<sellerName>`                  | `editions.json`, `aws.registry`                                                                                                                                                                                                                                                                                        |
+| Azure registry                                   | The Azure Container Registry you create: `<name>.azurecr.io`                                               | `editions.json`, `azure.registry`                                                                                                                                                                                                                                                                                      |
+| Google registry path and Service Control service | The Artifact Registry repository you create; Producer Portal's **Overview** page, **Service name** column  | `editions.json`, `google-cloud.registry` and `google-cloud.serviceName`                                                                                                                                                                                                                                                |
+| AWS product ID                                   | `python3 HelmChart/Marketplace/automation/aws_catalog.py find-product` (the Catalog API's entity ID)       | `editions.json`, `aws.productId`                                                                                                                                                                                                                                                                                       |
+| Microsoft offer, plan, extension type, bundle    | Partner Center; the bundle's repository is the one `cpa buildbundle` pushes to (check after the first run) | `editions.json`, `azure.offerId`, `planId`, `clusterExtensionType`, `resourceGroup`, `bundleRepository`                                                                                                                                                                                                                |
+| Ready                                            | Every value of the edition above is the portal's real one                                                  | `editions.json`, `"ready": true` for that edition. Until then the workflow pushes and submits nothing to that marketplace                                                                                                                                                                                              |
 
 The AWS and Microsoft values in `editions.json` are the real ones, and both
 editions are ready. Google Cloud's service name waits for its Producer Portal
@@ -355,13 +355,39 @@ Docker Hub already, so nothing new is exposed.
 
 ### Google Cloud Marketplace: Kubernetes app
 
-Waiting on Google: OneUptime's Google Cloud partner sign-up is still pending.
-Everything lives in the `oneuptime-marketplace` project, never in
-`oneuptime-k8s`.
+Google approved OneUptime as a partner for this product: its onboarding email
+of 9 November 2026 names "OneUptime Enterprise (self-hosted)". **Waiting on
+Google:** the project info form went in on 11 November 2026, and Google turns
+Producer Portal on within 2 business days of it, then sends a welcome email
+with the next steps. Google's Marketplace Operations team supports the
+onboarding for 60 days from its onboarding email (until about 8 January
+2027); help after that is not guaranteed. Everything lives in the
+`oneuptime-marketplace` project, never in `oneuptime-k8s`.
 
-1. **Partner account** (maintainer): finish the partner sign-up, accept the
-   Cloud Marketplace agreements and set up payments in Producer Portal
-   (`https://console.cloud.google.com/producer-portal?project=oneuptime-marketplace`).
+1. **Partner account** (maintainer):
+
+   - **Project workspace** (done on 6 November 2026): `oneuptime-marketplace`
+     (project number `660319187425`) in the `hackerbay.io` organization
+     (`52022142725`), with the roles Google's onboarding email asks for:
+
+     | Principal                                                                      | Roles                                                                                                                                                                                                                                                                      |
+     | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+     | `group:cloud-commerce-marketplace-onboarding@twosync-src.google.com` (a group) | Editor, Service Management Administrator                                                                                                                                                                                                                                   |
+     | `serviceAccount:cloud-commerce-producer@system.gserviceaccount.com`            | Service Config Editor (`roles/servicemanagement.configEditor`)                                                                                                                                                                                                             |
+     | `serviceAccount:cloud-commerce-procurement@system.gserviceaccount.com`         | Service Controller. The email names Service Consumer too, which IAM grants on a service, not a project ("not supported for this resource"): grant it on the product's service (`gcloud endpoints services add-iam-policy-binding`) if Producer Portal asks, once it exists |
+     | `serviceAccount:managed-services@cloud-marketplace.iam.gserviceaccount.com`    | Service Management Administrator                                                                                                                                                                                                                                           |
+
+   - **Project info form** (done on 11 November 2026; once per partner, from
+     the onboarding email): listing type Kubernetes App; seller name
+     **HackerBay, Inc.**, which Google shows on the listings and on buyers'
+     bills; primary contact the maintainer's address Google already writes
+     to; technical staff in the Americas; preferred launch 15 December 2026.
+   - **Payments profile** (maintainer only: bank and tax details) on
+     Producer Portal's payments page, once it is on and before creating the
+     product, as Google recommends, with more than one billing admin.
+   - Accept the Cloud Marketplace agreements Producer Portal shows
+     (`https://console.cloud.google.com/producer-portal?project=oneuptime-marketplace`).
+
 2. **Ask the Partner Engineer two things before building on them**: that
    Google still takes new **deployer-based** Kubernetes apps (Producer Portal
    also offers Terraform-based Kubernetes apps, whose billing works another
@@ -369,9 +395,9 @@ Everything lives in the `oneuptime-marketplace` project, never in
    secret), and that it takes images from an **Artifact Registry
    `pkg.dev`** repository (Google's older guide speaks of Container Registry,
    which has shut down).
-3. **Access for Google**: in `oneuptime-marketplace`, grant
-   `roles/viewer` to `cloud-commerce-marketplace-onboarding@twosync-src.google.com`,
-   and whatever else Producer Portal's technical integration page asks for.
+3. **Access for Google**: the roles of step 1 (Editor includes the
+   `roles/viewer` an older version of this guide asked for), and whatever
+   else Producer Portal's technical integration page asks for.
 4. **The registry** (the maintainer approves the cost: Artifact Registry
    storage, about a dollar a month). `ci_setup.py google` creates it, with a
    cleanup policy that keeps each image's 3 newest releases and deletes the
@@ -1124,7 +1150,10 @@ rejection, go-live and price change.
 | 2026-10-19 | Microsoft   | The registry's purge keeps each repository's newest release, and any from the last 7 days           | Agent      |
 | 2026-10-19 | AWS         | AWS refused 14.0.72: MISSING_VALUES_IMAGE_REFERENCE; the chart takes registry, repository and tag   | Agent      |
 | 2026-10-21 | Microsoft   | Offer `oneuptime-enterprise` seen live (publisher `oneupitme`); the website links it                | Agent      |
-| 2026-10-27 | All three   | The editions turn off the daily check-in with oneuptime.com: the marketplace knows its buyers      | Agent      |
+| 2026-10-27 | All three   | The editions turn off the daily check-in with oneuptime.com: the marketplace knows its buyers       | Agent      |
+| 2026-11-06 | Google      | Project workspace: the onboarding email's roles granted on `oneuptime-marketplace`                  | Maintainer |
+| 2026-11-09 | Google      | Partner approved: Google's onboarding email names OneUptime Enterprise (self-hosted)                | Google     |
+| 2026-11-11 | Google      | Project info form submitted (Kubernetes App, seller HackerBay, Inc.); Producer Portal pending       | Agent      |
 
 ## Notes for agents driving the browser
 
