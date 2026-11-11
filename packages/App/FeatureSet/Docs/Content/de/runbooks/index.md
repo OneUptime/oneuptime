@@ -1,6 +1,6 @@
 # Runbooks – Übersicht
 
-Ein Runbook ist ein wiederverwendbares Reaktionsverfahren: eine geordnete Liste manueller und automatisierter Schritte, die Sie für einen Vorfall, eine Warnung oder ein geplantes Wartungsereignis ausführen. Es macht aus dem Thread „Was tun wir jetzt?“ eine Checkliste, der jede Person in Bereitschaft um 3 Uhr nachts folgen kann, mit bereits geschriebenen Skripten, API-Aufrufen und Freigaben. Runbooks sind für die Bereitschaftsingenieure gedacht, die auf Vorfälle reagieren, und für die Plattform-Teams, die diese Reaktion automatisieren.
+Ein Runbook ist ein wiederverwendbares Reaktionsverfahren: eine geordnete Liste manueller und automatisierter Schritte, die Sie für einen Vorfall, eine Warnung oder ein geplantes Wartungsereignis ausführen. Es macht aus dem Thread „Was tun wir jetzt?“ eine Checkliste, der jede Person in Bereitschaft um 3 Uhr nachts folgen kann, mit bereits geschriebenen Skripten, API-Aufrufen und Freigaben. Runbooks sind für die Bereitschaftsingenieure gedacht, die auf Vorfälle reagieren, und für die Plattform-Teams, die diese Reaktion automatisieren. Um zwischen einem Runbook, einem Workflow, einem Playbook und einer KI-Regel zu wählen, lesen Sie [Was nehme ich wann?](/docs/introduction/which-one#workflow-runbook-playbook-oder-ki-regel).
 
 :::cards
 - [Ein Runbook verfassen](/docs/runbooks/authoring): Ein Runbook erstellen und seine Schritte schreiben.
@@ -39,6 +39,8 @@ Jeder Lauf ist eine **Ausführung**. Beim Start werden die Schritte des Runbooks
 HTTP- und KI-Schritte laufen auf dem OneUptime Worker. Bash-, SSH- und kubectl-Schritte laufen auf einem [Runner](/docs/runbooks/agents), den Sie in Ihrer eigenen Infrastruktur installieren, sodass diese Skripte nie auf den Servern von OneUptime laufen. Ein JavaScript-Schritt läuft ebenfalls auf einem Ihrer Runner oder, wenn er keinen wählt und das Projekt keinen [Standard-Runner](/docs/runbooks/agents#der-standard-runner-des-projekts) hat, auf einem [globalen Runner](/docs/runbooks/agents#globale-runner), in einer Sandbox, die nur das Internet erreicht. Status, Ausgabe und Fehlermeldung jedes Schritts werden auf der Ausführung aufgezeichnet, die beim Vorfall, bei der Warnung oder beim Ereignis bleibt, für das sie lief.
 
 ## Zentrale Begriffe
+
+Die Wörter, die in ganz OneUptime verwendet werden, stehen im [Glossar](/docs/introduction/glossary).
 
 | Begriff | Bedeutung |
 | --- | --- |

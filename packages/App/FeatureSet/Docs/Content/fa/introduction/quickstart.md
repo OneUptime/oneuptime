@@ -141,6 +141,7 @@ flowchart TB
 
 :::cards
 - [مفاهیم اصلی](/docs/introduction/core-concepts): ایده‌های پشت آنچه همین حالا راه انداختید.
+- [واژه‌نامه](/docs/introduction/glossary): هر واژه‌ای که در این مسیر دیدید، در یکی دو جمله.
 - [زمان‌بندی‌های آنکال](/docs/on-call/schedules): آنکال بودن را با تیمتان تقسیم کنید.
 - [برندینگ و دامنه‌های صفحه وضعیت](/docs/status-pages/branding-and-domains): صفحه وضعیت را از آن خودتان کنید.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): لاگ‌ها، متریک‌ها و ترِیس‌ها را از برنامه‌هایتان بفرستید.

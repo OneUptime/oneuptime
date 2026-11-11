@@ -1,6 +1,6 @@
 # Vue d'ensemble des Runbooks
 
-Un runbook est une procédure de réponse réutilisable : une liste ordonnée d'étapes manuelles et automatisées que vous exécutez sur un incident, une alerte ou un événement de maintenance planifiée. Il transforme le fil « on fait quoi maintenant ? » en une checklist que toute personne d'astreinte peut suivre à 3 h du matin, avec les scripts, les appels d'API et les approbations déjà écrits. Les runbooks s'adressent aux ingénieurs d'astreinte qui répondent aux incidents et aux équipes plateforme qui automatisent cette réponse.
+Un runbook est une procédure de réponse réutilisable : une liste ordonnée d'étapes manuelles et automatisées que vous exécutez sur un incident, une alerte ou un événement de maintenance planifiée. Il transforme le fil « on fait quoi maintenant ? » en une checklist que toute personne d'astreinte peut suivre à 3 h du matin, avec les scripts, les appels d'API et les approbations déjà écrits. Les runbooks s'adressent aux ingénieurs d'astreinte qui répondent aux incidents et aux équipes plateforme qui automatisent cette réponse. Pour choisir entre un runbook, un workflow, un playbook et une règle IA, consultez [Lequel choisir ?](/docs/introduction/which-one#workflow-runbook-playbook-ou-règle-ia).
 
 :::cards
 - [Rédiger un runbook](/docs/runbooks/authoring): Créer un runbook et écrire ses étapes.
@@ -39,6 +39,8 @@ Chaque exécution d'un runbook est une **exécution**. Au démarrage, les étape
 Les étapes HTTP et IA s'exécutent sur le Worker OneUptime. Les étapes Bash, SSH et kubectl s'exécutent sur un [agent Runbook](/docs/runbooks/agents) que vous installez dans votre propre infrastructure, de sorte que ces scripts ne s'exécutent jamais sur les serveurs d'OneUptime. Une étape JavaScript s'exécute elle aussi sur l'un de vos agents ou, si elle n'en choisit aucun et que le projet n'a pas d'[agent Runbook par défaut](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet), sur un [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux), dans un bac à sable qui n'atteint qu'Internet. Le statut, la sortie et le message d'erreur de chaque étape sont enregistrés sur l'exécution, qui reste attachée à l'incident, à l'alerte ou à l'événement pour lequel elle a tourné.
 
 ## Concepts clés
+
+Les mots utilisés dans tout OneUptime se trouvent dans le [Glossaire](/docs/introduction/glossary).
 
 | Terme | Signification |
 | --- | --- |

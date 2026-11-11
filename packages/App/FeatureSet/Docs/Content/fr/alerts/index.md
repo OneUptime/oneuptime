@@ -1,6 +1,6 @@
 # Vue d'ensemble des alertes
 
-Une alerte signale à votre équipe un problème à examiner avant que vos utilisateurs ne le remarquent : un disque qui se remplit, un certificat sur le point d'expirer, un taux d'erreurs qui grimpe. Elle peut alerter la personne d'astreinte et prévenir ses propriétaires, mais elle n'apparaît jamais sur une page de statut et ne prévient jamais vos abonnés. Cette page explique d'où viennent les alertes, où elles se trouvent dans le tableau de bord et comment votre équipe les traite.
+Une alerte signale à votre équipe un problème à examiner avant que vos utilisateurs ne le remarquent : un disque qui se remplit, un certificat sur le point d'expirer, un taux d'erreurs qui grimpe. Elle peut alerter la personne d'astreinte et prévenir ses propriétaires, mais elle n'apparaît jamais sur une page de statut et ne prévient jamais vos abonnés. Cette page explique d'où viennent les alertes, où elles se trouvent dans le tableau de bord et comment votre équipe les traite. Vous ne savez pas si un problème est une alerte ou un incident ? [Lequel choisir ?](/docs/introduction/which-one#incident-alerte-ou-autre-type-de-problème) les compare côte à côte.
 
 :::cards
 - [Alertes et incidents](#alertes-et-incidents): Ce qu'un problème devrait être, et comment les deux se relient.

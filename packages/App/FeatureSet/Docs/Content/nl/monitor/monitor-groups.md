@@ -1,6 +1,6 @@
 # Monitorgroepen
 
-Een monitorgroep voegt meerdere monitoren samen tot één status. Groepeer de monitoren die samen één dienst vormen, zoals Checkout: de API, de betaaldienst en de webapp ervan. De groep toont de slechtste status onder hen, heeft een eigen beschikbaarheid, en een statuspagina kan de hele groep als één rij tonen.
+Een monitorgroep voegt meerdere monitoren samen tot één status. Groepeer de monitoren die samen één dienst vormen, zoals Checkout: de API, de betaaldienst en de webapp ervan. De groep toont de slechtste status onder hen, heeft een eigen beschikbaarheid, en een statuspagina kan de hele groep als één rij tonen. Om te kiezen tussen een monitorgroep, een service en een label, zie [Welke gebruik ik?](/docs/introduction/which-one#monitorgroep-service-of-label).
 
 :::cards
 - [Hoe de status van een groep wordt bepaald](#hoe-de-status-van-een-groep-wordt-bepaald): De slechtste status onder haar monitoren.

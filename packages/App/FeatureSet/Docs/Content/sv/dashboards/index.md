@@ -1,6 +1,6 @@
 # Översikt över instrumentpaneler
 
-En instrumentpanel är en sida med widgetar som du själv ordnar: diagram över dina mätvärden, loggar och spår, listor över incidenter, larm och övervakare, dina SLO:er och din infrastruktur, till och med data från system utanför OneUptime. Bygg en för jourskärmen, för ett teams morgonkoll eller som en sida för dina kunder, och dela den med ditt projekt eller med alla som har länken.
+En instrumentpanel är en sida med widgetar som du själv ordnar: diagram över dina mätvärden, loggar och spår, listor över incidenter, larm och övervakare, dina SLO:er och din infrastruktur, till och med data från system utanför OneUptime. Bygg en för jourskärmen, för ett teams morgonkoll eller som en sida för dina kunder, och dela den med ditt projekt eller med alla som har länken. För att välja mellan en instrumentpanel, en offentlig instrumentpanel och en statussida, se [Vilken ska jag använda?](/docs/introduction/which-one#instrumentpanel-offentlig-instrumentpanel-eller-statussida).
 
 :::cards
 - [Så fungerar en instrumentpanel](#så-fungerar-en-instrumentpanel): Var datan kommer ifrån, och vem som ser den.

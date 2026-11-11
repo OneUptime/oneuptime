@@ -1,6 +1,6 @@
 # Statussidor – Översikt
 
-En statussida är det offentliga ansiktet för allt du övervakar: en enda URL som dina kunder kan öppna i stället för att skriva till dig och fråga om problemet bara finns hos dem. Den visar aktuell status för de tjänster du väljer att visa, incidenterna du arbetar med, underhållet du har planerat och alla meddelanden du vill fästa högst upp.
+En statussida är det offentliga ansiktet för allt du övervakar: en enda URL som dina kunder kan öppna i stället för att skriva till dig och fråga om problemet bara finns hos dem. Den visar aktuell status för de tjänster du väljer att visa, incidenterna du arbetar med, underhållet du har planerat och alla meddelanden du vill fästa högst upp. För att välja mellan en statussida och en instrumentpanel, se [Vilken ska jag använda?](/docs/introduction/which-one#instrumentpanel-offentlig-instrumentpanel-eller-statussida).
 
 När något går sönder klockan 2 på natten är statussidan det första din supportkö hänvisar till. Det är också därifrån dina prenumeranter aviseras, så det lönar sig att sätta upp den innan du behöver den, inte mitt under driftstoppet.
 
@@ -41,6 +41,8 @@ Sidan visar monitorerna du lägger på den som resurser, och incidenter når sid
 - **Prenumeranter aviseras automatiskt.** Prenumeranter via e-post, SMS, Slack, Microsoft Teams och webhook kan följa en sida, varje kanal bakom sitt eget reglage.
 
 ## Nyckelbegrepp
+
+Orden som används i hela OneUptime finns samlade på sidan [Ordlista](/docs/introduction/glossary).
 
 | Begrepp | Vad det betyder |
 | --- | --- |

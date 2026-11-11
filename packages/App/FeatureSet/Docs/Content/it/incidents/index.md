@@ -1,6 +1,6 @@
 # Panoramica degli incidenti
 
-Un incidente è il documento su cui lavora il vostro team quando qualcosa si rompe: che cosa è colpito, quanto è grave, a che punto è la risposta, a chi appartiene e tutto ciò che viene annotato strada facendo. Dichiararne uno avvisa la rotazione di reperibilità giusta, informa i suoi proprietari e — se lo volete — mostra il disservizio sulla vostra pagina di stato, così i clienti sanno che ci state lavorando.
+Un incidente è il documento su cui lavora il vostro team quando qualcosa si rompe: che cosa è colpito, quanto è grave, a che punto è la risposta, a chi appartiene e tutto ciò che viene annotato strada facendo. Dichiararne uno avvisa la rotazione di reperibilità giusta, informa i suoi proprietari e — se lo volete — mostra il disservizio sulla vostra pagina di stato, così i clienti sanno che ci state lavorando. Non siete sicuri se un problema sia un incidente o un avviso? [Quale usare?](/docs/introduction/which-one#incidente-avviso-o-un-altro-tipo-di-problema) li mette a confronto.
 
 :::cards
 - [Dichiarare un incidente](/docs/incidents/declaring-incidents): A mano, da un modello, da un monitor, tramite l'API o con un modulo.
@@ -86,7 +86,7 @@ Dopodiché potete scrivere un [post-mortem](/docs/incidents/postmortems) e, se v
 
 ## Termini chiave
 
-Una manciata di parole ricorre in tutte le altre pagine di questa sezione. Chiaritele per prime.
+Una manciata di parole ricorre in tutte le altre pagine di questa sezione. Chiaritele per prime. Le parole usate in tutto OneUptime sono nel [Glossario](/docs/introduction/glossary).
 
 | Termine                     | Che cosa significa                                                                                                                                  |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
