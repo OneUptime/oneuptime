@@ -23,6 +23,8 @@ import {
   productNamePostProcessor,
 } from "../../../UI/Utils/ProductNameTranslation";
 
+type CodeInSentenceModule = typeof import("../../../Types/CodeInSentence");
+
 /*
  * The i18next post-processor every frontend runs each translated sentence
  * through (Common/UI/Utils/CodeReadsAsWritten): code in a sentence of a
@@ -117,8 +119,9 @@ describe("a sentence the page draws again and again", () => {
     let counted: Mock<SetApart> = jest.fn<SetApart>();
 
     jest.isolateModules(() => {
-      const actual: { setCodeApartInSentence: typeof setCodeApartInSentence } =
-        jest.requireActual("../../../Types/CodeInSentence");
+      const actual: CodeInSentenceModule = jest.requireActual(
+        "../../../Types/CodeInSentence",
+      ) as CodeInSentenceModule;
 
       counted = jest.fn<SetApart>(
         (sentence: string, language: string): string => {
