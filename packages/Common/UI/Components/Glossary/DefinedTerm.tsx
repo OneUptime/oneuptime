@@ -168,9 +168,7 @@ const DefinedTermPopover: FunctionComponent<PopoverProps> = (
           dir={props.read.glossary.direction}
           className="space-y-1"
         >
-          <p className="font-semibold text-gray-900">
-            {definition.term}
-          </p>
+          <p className="font-semibold text-gray-900">{definition.term}</p>
           <p
             data-testid={DEFINED_TERM_DEFINITION_TEST_ID}
             className="leading-5 text-gray-600"
@@ -248,106 +246,118 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
       });
   };
 
+  /*
+   * An interactive popover is placed in its word's parent, at its end: the
+   * span of its own puts it right after the word, so Tab goes from the word
+   * to Read more, and not first through what follows the word.
+   */
   return (
-    <Tippy
-      content={
-        <DefinedTermPopover
-          term={props.term}
-          read={read}
-          language={translator.language}
-          onResize={() => {
-            void instanceRef.current?.popperInstance?.update();
-          }}
-          onFocusLeave={(to: Element | null) => {
-            const instance: Instance | null = instanceRef.current;
+    <span className="inline">
+      <Tippy
+        content={
+          <DefinedTermPopover
+            term={props.term}
+            read={read}
+            language={translator.language}
+            onResize={() => {
+              void instanceRef.current?.popperInstance?.update();
+            }}
+            onFocusLeave={(to: Element | null) => {
+              const instance: Instance | null = instanceRef.current;
 
-            /*
-             * Tab past Read more puts it away. Back to the word, or onto
-             * the popover's own frame (a click on its padding), keeps it.
-             */
-            if (
-              instance &&
-              to !== instance.reference &&
-              !(to && instance.popper.contains(to))
-            ) {
-              instance.hide();
-            }
-          }}
-        />
-      }
-      plugins={TOOLTIP_PLUGINS}
-      interactive={true}
-      // A press keeps it; the next press, or one anywhere else, hides it.
-      trigger="mouseenter focus click"
-      hideOnClick={true}
-      delay={[150, 100]}
-      duration={[200, 150]}
-      maxWidth={320}
-      placement="top"
-      theme="light-border"
-      animation="shift-away-subtle"
-      role="dialog"
-      aria={{ content: "describedby", expanded: "auto" }}
-      onCreate={(instance: Instance) => {
-        instanceRef.current = instance;
-        // The popover is named by its word: "Criteria, dialog".
-        instance.popper.firstElementChild?.setAttribute(
-          "aria-labelledby",
-          triggerId,
-        );
-      }}
-      onTrigger={(_instance: Instance, event: Event) => {
-        lastTriggerRef.current = event.type;
-        startReading();
-      }}
-      onShow={(): false | undefined => {
+              /*
+               * Tab past Read more puts it away. Back to the word, or onto
+               * the popover's own frame (a click on its padding), keeps it.
+               */
+              if (
+                instance &&
+                to !== instance.reference &&
+                !(to && instance.popper.contains(to))
+              ) {
+                instance.hide();
+              }
+            }}
+          />
+        }
+        plugins={TOOLTIP_PLUGINS}
+        interactive={true}
+        // A press keeps it; the next press, or one anywhere else, hides it.
+        trigger="mouseenter focus click"
+        hideOnClick={true}
         /*
-         * Shown on focus only when the keyboard moved it there: a dialog
-         * opened with the mouse focuses what is in it, and a definition
-         * should not pop up there unasked.
+         * Shown at once on hover. With a delay, a click that came before it
+         * ran out was a press outside a popover not yet shown: Tippy hid it
+         * and dropped the click, and a quick click on the word showed nothing.
          */
-        if (
-          FOCUS_EVENTS.includes(lastTriggerRef.current) &&
-          !wasLastInputFromKeyboard()
-        ) {
-          return false;
-        }
-
-        startReading();
-
-        if (!recordedTerms.has(props.term)) {
-          recordedTerms.add(props.term);
-          UiAnalytics.capture(DEFINED_TERM_OPENED_EVENT, {
-            term: props.term,
-          });
-        }
-
-        return undefined;
-      }}
-    >
-      <button
-        type="button"
-        id={triggerId}
-        data-testid={props.dataTestId || DEFINED_TERM_TEST_ID}
-        data-glossary-term={props.term}
-        className={DEFINED_TERM_CLASS_NAME}
-        onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
-          event.preventDefault();
-          event.stopPropagation();
+        delay={[0, 100]}
+        duration={[200, 150]}
+        maxWidth={320}
+        placement="top"
+        theme="light-border"
+        animation="shift-away-subtle"
+        role="dialog"
+        aria={{ content: "describedby", expanded: "auto" }}
+        onCreate={(instance: Instance) => {
+          instanceRef.current = instance;
+          // The popover is named by its word: "Criteria, dialog".
+          instance.popper.firstElementChild?.setAttribute(
+            "aria-labelledby",
+            triggerId,
+          );
         }}
-        /*
-         * A card that is itself a button hears Enter and Space bubble up
-         * and would open; they are this word's.
-         */
-        onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>): void => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.stopPropagation();
+        onTrigger={(_instance: Instance, event: Event) => {
+          lastTriggerRef.current = event.type;
+          startReading();
+        }}
+        onShow={(): false | undefined => {
+          /*
+           * Shown on focus only when the keyboard moved it there: a dialog
+           * opened with the mouse focuses what is in it, and a definition
+           * should not pop up there unasked.
+           */
+          if (
+            FOCUS_EVENTS.includes(lastTriggerRef.current) &&
+            !wasLastInputFromKeyboard()
+          ) {
+            return false;
           }
+
+          startReading();
+
+          if (!recordedTerms.has(props.term)) {
+            recordedTerms.add(props.term);
+            UiAnalytics.capture(DEFINED_TERM_OPENED_EVENT, {
+              term: props.term,
+            });
+          }
+
+          return undefined;
         }}
       >
-        {props.children}
-      </button>
-    </Tippy>
+        <button
+          type="button"
+          id={triggerId}
+          data-testid={props.dataTestId || DEFINED_TERM_TEST_ID}
+          data-glossary-term={props.term}
+          className={DEFINED_TERM_CLASS_NAME}
+          onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          /*
+           * A card that is itself a button hears Enter and Space bubble up
+           * and would open; they are this word's.
+           */
+          onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>): void => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.stopPropagation();
+            }
+          }}
+        >
+          {props.children}
+        </button>
+      </Tippy>
+    </span>
   );
 };
 

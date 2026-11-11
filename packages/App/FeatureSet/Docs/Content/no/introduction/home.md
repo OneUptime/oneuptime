@@ -65,7 +65,7 @@ Sjekklisten leder deg gjennom de fire tingene et prosjekt trenger før det er ny
 | **Inviter teamet ditt** | Noen andre enn deg er i prosjektet, eller invitert til det. | **Brukere** |
 | **Sett opp en vaktpolicy** | Prosjektet har en vaktpolicy. | **Vakttjeneste** |
 
-Under stegene viser **Slik fungerer OneUptime** de fire kjerneproduktene i rekkefølgen et problem går gjennom dem: **Monitorer**, **Hendelser og varsler**, **Vakttjeneste** og **Statussider**. Klikk på ett for å åpne det.
+Under stegene viser **Slik fungerer OneUptime** de fire kjerneproduktene i rekkefølgen et problem går gjennom dem: **Monitorer**, **Hendelser og varsler**, **Vakttjeneste** og **Statussider**. Klikk på ett for å åpne det. Under dem står det hva som mater kretsløpet, telemetri og infrastruktur, med lenker til [Grunnbegreper](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
 
 ```mermaid title="Når velkomstsjekklisten forsvinner"
 flowchart TB
@@ -76,7 +76,7 @@ flowchart TB
     done -->|"Nei"| shown["Sjekklisten med<br/>stegene som gjenstår"]
 ```
 
-Sjekklisten forsvinner når alle fire steg er fullført. Klikk på **Skjul** for å skjule den før. Det huskes i denne nettleseren, for dette prosjektet; alt stegene åpner, ligger fortsatt i menyen **Produkter**.
+Sjekklisten forsvinner når alle fire steg er fullført. Klikk på **Skjul** for å skjule den før. Det huskes i denne nettleseren, for dette prosjektet; alt stegene åpner, ligger fortsatt i menyen **Produkter**. **Slik fungerer OneUptime** er fortsatt ett klikk unna, i alle prosjekter: åpne det fra **Hjelp** eller med knappen ved siden av **Utforsk OneUptime**.
 
 ### Krever oppmerksomhet
 
@@ -125,7 +125,9 @@ To linjer går over toppen av hver side.
 | Øverst til høyre | **Søk** og **Spør AI**, varselklokken med det som trenger deg nå (aktive hendelser og varsler, vaktpolicyene du har vakt i, ventende invitasjoner), **Hjelp**, og bildet ditt, som åpner menyen for [kontoen](/docs/introduction/your-account) din. |
 | Under dem | **Hjem** og **Produkter** til venstre, **Brukerinnstillinger** til høyre: hvordan OneUptime når deg i dette prosjektet. |
 
-**Hjelp** åpner denne dokumentasjonen (**Dokumentasjon**) og listen **Keyboard shortcuts**, og tilbyr støtte på e-post og på Slack. På en smal skjerm, som en telefon, er **Søk**, **Spør AI** og **Hjelp** utelatt for å spare plass; klokken og bildet ditt blir værende.
+**Hjelp** starter med det som hjelper deg å lære: **Hurtigstart**, **Slik fungerer OneUptime**, **Ordliste** og denne dokumentasjonen (**Dokumentasjon**). Under dem ligger listen **Keyboard shortcuts** og støtte på e-post og på Slack. På en smal skjerm, som en telefon, er **Søk**, **Spør AI** og **Hjelp** utelatt for å spare plass; klokken og bildet ditt blir værende.
+
+Et ord med en prikket linje under, som **Sonder** i skjemaet for en ny monitor, forteller hva det betyr når du peker på det, tabber til det eller trykker på det. **Les mer** åpner ordet i [Ordliste](/docs/introduction/glossary).
 
 ### Sider og lister
 

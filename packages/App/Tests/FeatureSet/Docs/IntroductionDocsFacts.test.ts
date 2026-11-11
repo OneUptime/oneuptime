@@ -1560,6 +1560,27 @@ describe("Home Page & Shortcuts", () => {
   it("names the Help menu's items, and what a narrow screen leaves out", () => {
     const help: string = dashboard("Components/Header/Help.tsx");
 
+    // The ways to learn first, in the order the docs name them.
+    const learn: Array<number> = [
+      't("help.quickstart", "Quickstart")',
+      't("help.howOneUptimeWorks", "How OneUptime works")',
+      't("help.glossary", "Glossary")',
+      't("help.documentation", "Documentation")',
+      't("keyboardShortcuts.title", "Keyboard shortcuts")',
+    ].map((call: string): number => {
+      return help.indexOf(call);
+    });
+
+    expect(
+      learn.every((index: number): boolean => {
+        return index >= 0;
+      }),
+    ).toBe(true);
+    expect(
+      [...learn].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(learn);
     expect(help).toContain('t("help.documentation", "Documentation")');
     expect(help).toContain(
       't("keyboardShortcuts.title", "Keyboard shortcuts")',
@@ -1588,7 +1609,7 @@ describe("Home Page & Shortcuts", () => {
     expect(header).toContain("<UserProfile");
 
     expect(HOME).toContain(
-      "**Help** opens these docs (**Documentation**) and the **Keyboard shortcuts** list, and offers support by email and on Slack. On a narrow screen, such as a phone, **Search**, **Ask AI** and **Help** are left out to save room; the bell and your picture stay.",
+      "**Help** starts with what helps you learn: the **Quickstart**, **How OneUptime works**, the **Glossary** and these docs (**Documentation**). Under them are the **Keyboard shortcuts** list and support by email and on Slack. On a narrow screen, such as a phone, **Search**, **Ask AI** and **Help** are left out to save room; the bell and your picture stay.",
     );
   });
 
