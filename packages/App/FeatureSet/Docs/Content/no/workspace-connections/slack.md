@@ -43,7 +43,7 @@ Ett Slack-workspace kan være koblet til mer enn ett prosjekt, for eksempel prod
 :::steps
 ### Installer OneUptime i Slack-workspacet ditt
 
-Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Slack**, og klikk på **Connect with Slack**. Velg workspacet, og gi OneUptime tillatelse. Slack sender deg tilbake til samme side, som nå viser hvilket workspace prosjektet er koblet til. Til et workspace er koblet til, inneholder seksjonen **Arbeidsområde** i menyene Hendelser, Varsler, Planlagt vedlikehold, Monitorer og Vakttjeneste **Koble til et arbeidsområde**, som også fører hit.
+Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Slack**, og klikk på **Koble til med Slack**. Velg workspacet, og gi OneUptime tillatelse. Slack sender deg tilbake til samme side, som nå viser hvilket workspace prosjektet er koblet til. Til et workspace er koblet til, inneholder seksjonen **Arbeidsområde** i menyene Hendelser, Varsler, Planlagt vedlikehold, Monitorer og Vakttjeneste **Koble til et arbeidsområde**, som også fører hit.
 
 ### Koble til din egen Slack-konto
 
@@ -62,7 +62,7 @@ Klikk på **Testregel** i regelens rad. En testmelding kommer i kanalene regelen
 
 Med Slack Enterprise Grid kan ett prosjekt jobbe i flere workspacer i organisasjonen din. Installer OneUptime for hele organisasjonen i stedet for ett workspace:
 
-1. En administrator eller eier av organisasjonen klikker på **Connect with Slack** under **Prosjektinnstillinger** > **Arbeidsområde** > **Slack**, velger organisasjonen i stedet for et av workspacene på installasjonssiden til Slack og gir OneUptime tilgang.
+1. En administrator eller eier av organisasjonen klikker på **Koble til med Slack** under **Prosjektinnstillinger** > **Arbeidsområde** > **Slack**, velger organisasjonen i stedet for et av workspacene på installasjonssiden til Slack og gir OneUptime tilgang.
 2. I organisasjonsinnstillingene i Slack legger en administrator OneUptime til i hvert workspace som skal bruke det.
 3. Kortet **Slack-arbeidsområder** viser disse workspacene. Klikk på **Oppdater** etter at OneUptime er lagt til i et nytt workspace.
 
@@ -313,7 +313,7 @@ Når prosjektets offentlige notater må godkjennes og du slår på Slack for **G
 ## Koble fra
 
 - **Koble fra** kobler bare fra din egen Slack-konto, og fjerner samtidig Slack-varselmetoden din.
-- **Uninstall OneUptime from Slack**, på **Prosjektinnstillinger** > **Arbeidsområde** > **Slack**, kobler fra prosjektet. OneUptime slutter å publisere i Slack, og menyene **Arbeidsområde** slutter å vise det. Varslingsreglene og sammendragene beholdes til du kobler til igjen.
+- **Avinstaller OneUptime fra Slack**, på **Prosjektinnstillinger** > **Arbeidsområde** > **Slack**, kobler fra prosjektet. OneUptime slutter å publisere i Slack, og menyene **Arbeidsområde** slutter å vise det. Varslingsreglene og sammendragene beholdes til du kobler til igjen.
 
 > [!WARNING]
 > Å avinstallere kobler også fra hvert medlems egen Slack-konto i prosjektet, og fjerner Slack-varselmetodene og vaktreglene som brukte dem. De som ble tilkalt i Slack, tilkalles via de andre varselmetodene sine til de legger til Slack igjen.

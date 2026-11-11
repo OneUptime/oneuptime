@@ -90,7 +90,7 @@ Regelen får navn etter det den skjuler, for eksempel «Data Security: Email add
 | Funn | Regelen Rens lager |
 | --- | --- |
 | E-postadresse, kortnummer, amerikansk Social Security-nummer, telefonnummer eller IP-adresse | Det innebygde mønsteret for den typen. Kortnumre, Social Security-numre og telefonnumre maskeres, resten sladdes. |
-| En verdi under en nøkkel som ser sensitiv ut, for eksempel `password` eller `token` | En regel av typen **Sensitive Attribute Keys**, som sladder hele verdien til hvert slikt attributt |
+| En verdi under en nøkkel som ser sensitiv ut, for eksempel `password` eller `token` | En regel av typen **Sensitive attributtnøkler**, som sladder hele verdien til hvert slikt attributt |
 | Enhver annen datatype et mønster kan finne | En regel av typen **Egendefinert regex**, laget av datatypens egne mønstre, som sladder hver verdi med den formen |
 
 Noen funn kan ikke renses av en regel, og **Rens** sier hvorfor:
@@ -109,7 +109,7 @@ Et funn merkes som renset bare når inntaket ville kjørt en aktivert regel over
 
 - **De riktige postene.** Loggregler dekker logger og loggene til en RUM-applikasjon. Sporregler dekker spans, unntak og AI-kall: et unntak er en kopi av unntakshendelsen i sitt span, så reglene som renser hendelser, renser det.
 - **Den riktige delen.** Regelens **Felt som skal renses** inkluderer den delen av posten funnet ligger i, eller regelen lar dem stå på standardverdien.
-- **Et mønster som finner typen.** En innebygd **Mønstertype** finner sin egen datatype: **E-postadresse** finner e-postadresser, **Kredittkortnummer** kortnumre, **SSN (personnummer)** amerikanske Social Security-numre, **Telefonnummer** telefonnumre og **IP-adresse** IP-adresser. **Sensitive Attribute Keys** dekker hver verdi under en nøkkel som ser sensitiv ut, uansett hva verdien er.
+- **Et mønster som finner typen.** En innebygd **Mønstertype** finner sin egen datatype: **E-postadresse** finner e-postadresser, **Kredittkortnummer** kortnumre, **SSN (personnummer)** amerikanske Social Security-numre, **Telefonnummer** telefonnumre og **IP-adresse** IP-adresser. **Sensitive attributtnøkler** dekker hver verdi under en nøkkel som ser sensitiv ut, uansett hva verdien er.
 - **Dine egne mønstre teller aldri.** En **Egendefinert regex** dekker et funn bare når den er nøyaktig det mønsteret **Rens** lager for typen. Et funn beholder bare maskerte prøver, som ingen mønstre kan prøves på, så OneUptime kunne ikke bevise at mønsteret ditt skjuler dataene, og et funn som feilaktig kalles renset, er en lekkasje ingen ser på.
 
 En regel som er slått av, eller som ikke renser noe, teller aldri. Dekningen beregnes på nytt etter hver skanning, så en regel du legger til eller fjerner manuelt, endrer hva som er merket som renset, innen en time.

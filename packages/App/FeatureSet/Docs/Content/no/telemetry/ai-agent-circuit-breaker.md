@@ -193,7 +193,7 @@ Tittelen er tom eller samsvarer ikke. Et felt som ikke står i utløserens **Fie
 :::
 
 :::details Endepunktet ditt svarer 401
-Hodet `Authorization` samsvarer ikke med tokenet endepunktet ditt forventer. Sjekk navnet i `{{global.variables.AGENT_KILL_TOKEN}}` og verdien som er lagret i den globale variabelen. Verdien til en hemmelig variabel kan ikke leses tilbake, så skriv den inn på nytt med **Update Content** hvis du er i tvil.
+Hodet `Authorization` samsvarer ikke med tokenet endepunktet ditt forventer. Sjekk navnet i `{{global.variables.AGENT_KILL_TOKEN}}` og verdien som er lagret i den globale variabelen. Verdien til en hemmelig variabel kan ikke leses tilbake, så skriv den inn på nytt med **Oppdater innhold** hvis du er i tvil.
 :::
 
 :::details Budsjettvarselet åpnes og løses om og om igjen

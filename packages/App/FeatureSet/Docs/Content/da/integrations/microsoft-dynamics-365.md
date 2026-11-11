@@ -258,7 +258,7 @@ Skabelonerne dækker de almindelige tilfælde. For at bygge en retning selv bygg
 
 Opret tokenet én gang, til alle workflows, som en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokens-der-fornyer-sig-selv):
 
-1. Gå til **Arbejdsgange → Globale variabler**, åbn menuen **Mere** (**⋯**) ved siden af **Opret Workflow Variabel**, og vælg **Create OAuth 2.0 Variable**. Giv den navnet `DYNAMICS_TOKEN`.
+1. Gå til **Arbejdsgange → Globale variabler**, åbn menuen **Mere** (**⋯**) ved siden af **Opret Workflow Variabel**, og vælg **Opret OAuth 2.0-variabel**. Giv den navnet `DYNAMICS_TOKEN`.
 2. Vælg **Microsoft Entra ID** under **Udbyder**, erstat `{tenant-id}` i **Token-URL** med dit Directory (tenant) ID, og vælg **Client Credentials**.
 3. Indtast **Klient-ID** og **Klienthemmelighed** under **Loginoplysninger**. Sæt under **Avanceret** scopet til `https://yourorg.crm.dynamics.com/.default`, og opret derefter variablen.
 

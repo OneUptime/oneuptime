@@ -43,7 +43,7 @@ To forbindelser får det til at virke:
 :::steps
 ### Installér OneUptime i dit Slack-workspace
 
-Gå til **Projektindstillinger** > **Arbejdsområde** > **Slack**, og klik på **Connect with Slack**. Vælg workspacet, og giv OneUptime lov. Slack sender dig tilbage til samme side, som nu nævner det workspace, projektet er forbundet med. Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagtordning **Forbind et arbejdsområde**, som også fører hertil.
+Gå til **Projektindstillinger** > **Arbejdsområde** > **Slack**, og klik på **Forbind med Slack**. Vælg workspacet, og giv OneUptime lov. Slack sender dig tilbage til samme side, som nu nævner det workspace, projektet er forbundet med. Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagtordning **Forbind et arbejdsområde**, som også fører hertil.
 
 ### Forbind din egen Slack-konto
 
@@ -62,7 +62,7 @@ Klik på **Testregel** i reglens række. En testbesked ankommer i de kanaler, re
 
 Med Slack Enterprise Grid kan ét projekt arbejde i flere workspaces i din organisation. Installér OneUptime for hele organisationen i stedet for ét workspace:
 
-1. En administrator eller ejer af organisationen klikker på **Connect with Slack** under **Projektindstillinger** > **Arbejdsområde** > **Slack**, vælger organisationen i stedet for et af dens workspaces på Slacks installationsside og giver OneUptime adgang.
+1. En administrator eller ejer af organisationen klikker på **Forbind med Slack** under **Projektindstillinger** > **Arbejdsområde** > **Slack**, vælger organisationen i stedet for et af dens workspaces på Slacks installationsside og giver OneUptime adgang.
 2. I Slacks organisationsindstillinger føjer en administrator OneUptime til hvert workspace, der skal bruge det.
 3. Kortet **Slack-arbejdsområder** viser disse workspaces. Klik på **Opdater**, når OneUptime er føjet til et nyt workspace.
 
@@ -313,7 +313,7 @@ Når projektets offentlige noter kræver godkendelse, og du slår Slack til for 
 ## Afbryd forbindelsen
 
 - **Afbryd forbindelse** fjerner kun tilknytningen af din egen Slack-konto og fjerner samtidig din Slack-notifikationsmetode.
-- **Uninstall OneUptime from Slack**, på **Projektindstillinger** > **Arbejdsområde** > **Slack**, afbryder projektets forbindelse. OneUptime holder op med at slå op i Slack, og menuerne **Arbejdsområde** holder op med at vise det. Notifikationsreglerne og opsummeringerne bevares, til du forbinder igen.
+- **Afinstaller OneUptime fra Slack**, på **Projektindstillinger** > **Arbejdsområde** > **Slack**, afbryder projektets forbindelse. OneUptime holder op med at slå op i Slack, og menuerne **Arbejdsområde** holder op med at vise det. Notifikationsreglerne og opsummeringerne bevares, til du forbinder igen.
 
 > [!WARNING]
 > At afinstallere fjerner også tilknytningen af hvert medlems egen Slack-konto i projektet og fjerner Slack-notifikationsmetoderne og de vagtregler, der brugte dem. De, der blev tilkaldt i Slack, tilkaldes via deres andre notifikationsmetoder, indtil de tilføjer Slack igen.
