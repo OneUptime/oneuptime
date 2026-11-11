@@ -336,6 +336,30 @@ describe("a number after a number sign in a sentence read from the right", () =>
     expect(wrong).toEqual([]);
   });
 
+  /*
+   * Persian draws the sign in front of the number, "#۴۲" (ARABIC.md,
+   * Numbers in a sentence): only the mark keeps it there. After a Persian
+   * word and a space, the number is read as an Arabic number and the sign as
+   * the sentence's, drawn "۴۲#" - the AI log's "کار #{{taskNumber}}" link
+   * was, beside every other Persian task, incident and alert number.
+   */
+  test("every Persian one stands behind a right-to-left mark", () => {
+    const persian: Array<Drawing> = NUMBER_SIGNS.filter(
+      (drawing: Drawing): boolean => {
+        return drawing.sentence.language === "fa";
+      },
+    );
+
+    expect(persian.length).toBeGreaterThan(5);
+    expect(
+      persian
+        .filter((drawing: Drawing): boolean => {
+          return !drawing.isAfterMark || drawing.onThePage !== true;
+        })
+        .map(describeDrawing),
+    ).toEqual([]);
+  });
+
   // The negative control: the number set apart lost its sign, "۴۲#".
   test("the number set apart on its own was drawn after its sign", () => {
     const wrong: Array<Drawing> = NUMBER_SIGNS.filter(
