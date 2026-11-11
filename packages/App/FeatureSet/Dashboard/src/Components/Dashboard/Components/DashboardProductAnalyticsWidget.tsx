@@ -139,13 +139,15 @@ export function getProductAnalyticsWidgetSavedView<
   }
 
   /*
-   * The answer for this id, once it is in: a row whose id is another's is
-   * the last widget setting's, still on screen while the next is read.
+   * The answer for this id: a row of it stays on screen while a refresh
+   * reads it again, so the widget does not blink on each refresh. A row
+   * whose id is another's is the last widget setting's, still held while
+   * the next is read; no row is an answer once the read is done.
    */
   const row: RumProductAnalyticsSavedView | null = data.read.data;
-  const isAnswered: boolean =
-    !data.read.isLoading &&
-    (row === null || row._id?.toString() === data.savedViewId);
+  const isAnswered: boolean = row
+    ? row._id?.toString() === data.savedViewId
+    : !data.read.isLoading;
 
   if (!isAnswered) {
     return {
@@ -160,7 +162,11 @@ export function getProductAnalyticsWidgetSavedView<
     : null;
 
   if (!view) {
-    return { state: ProductAnalyticsWidgetState.Missing, view: null, error: "" };
+    return {
+      state: ProductAnalyticsWidgetState.Missing,
+      view: null,
+      error: "",
+    };
   }
 
   if (!view.definition) {
@@ -259,7 +265,9 @@ export function ProductAnalyticsWidgetFrame<
 
   switch (props.saved.state) {
     case ProductAnalyticsWidgetState.NotOnPublic:
-      body = <WidgetPlaceholder icon={words.icon} message={words.notOnPublic} />;
+      body = (
+        <WidgetPlaceholder icon={words.icon} message={words.notOnPublic} />
+      );
       break;
     case ProductAnalyticsWidgetState.Setup:
       body = <WidgetPlaceholder icon={words.icon} message={words.setup} />;

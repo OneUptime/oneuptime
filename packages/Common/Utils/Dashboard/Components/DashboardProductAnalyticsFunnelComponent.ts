@@ -59,7 +59,8 @@ export default class DashboardProductAnalyticsFunnelComponentUtil extends Dashbo
         id: "savedViewId",
         placeholder: "Select a saved funnel",
         section: DataSourceSection,
-        entityFilterModelType: EntityFilterModelType.ProductAnalyticsSavedFunnel,
+        entityFilterModelType:
+          EntityFilterModelType.ProductAnalyticsSavedFunnel,
       },
       {
         name: "Title",

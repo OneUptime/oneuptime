@@ -18,8 +18,11 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import RumProductAnalyticsSavedView from "../../../Models/DatabaseModels/RumProductAnalyticsSavedView";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import { ProductAnalyticsSavedViewType } from "../../../Types/Rum/ProductAnalyticsSavedViews";
 import Route from "../../../Types/API/Route";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import { ProductAnalyticsEventKind } from "../../../Types/Rum/ProductAnalyticsEvents";
@@ -58,6 +61,8 @@ import {
 
 const postMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
+// The application's saved funnels (issue #6630): none, unless a test says.
+const getListMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/API/API", () => {
   return {
@@ -84,6 +89,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       getItem: (...args: Array<unknown>): unknown => {
         return getItemMock(...args);
+      },
+      getList: (...args: Array<unknown>): unknown => {
+        return getListMock(...args);
       },
     },
   };
@@ -211,6 +219,8 @@ function stepPicker(number: number): HTMLElement {
 beforeEach(() => {
   postMock.mockReset();
   getItemMock.mockReset();
+  getListMock.mockReset();
+  getListMock.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 100 });
   getItemMock.mockImplementation((): Promise<unknown> => {
     return Promise.resolve({
       isProductAnalyticsEnabled: true,
@@ -741,5 +751,203 @@ describe("ProductAnalyticsFunnels", () => {
         { field: "deviceType", key: "", value: "mobile" },
       ]);
     });
+  });
+});
+
+/*
+ * Saved funnels (issue #6630): the toolbar's dropdown opens one, and a
+ * page opened from a dashboard widget's link (`?view=<id>` and its range)
+ * reads only the saved funnel - never the default first.
+ */
+describe("saved funnels", () => {
+  const SAVED_ID: string = "6a303333-0000-4000-8000-000000000001";
+
+  function savedFunnel(): RumProductAnalyticsSavedView {
+    const row: RumProductAnalyticsSavedView = new RumProductAnalyticsSavedView(
+      new ObjectID(SAVED_ID),
+    );
+
+    row.name = "Pricing to purchase";
+    row.viewType = ProductAnalyticsSavedViewType.Funnel;
+    row.rumApplicationId = new ObjectID(PRODUCT_ANALYTICS_TEST_APP_ID);
+    row.definition = {
+      steps: [
+        { kind: "page", name: "/pricing" },
+        { kind: "custom", name: "Purchased" },
+      ],
+      windowMs: 7 * DAY_MS,
+      filters: [{ field: "country", key: "", value: "DE" }],
+    };
+
+    return row;
+  }
+
+  function saved(): HTMLElement {
+    return screen.getByTestId("product-analytics-funnels-saved");
+  }
+
+  beforeEach(() => {
+    getJestSpyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+    getListMock.mockResolvedValue({
+      data: [savedFunnel()],
+      count: 1,
+      skip: 0,
+      limit: 100,
+    });
+  });
+
+  it("a widget's link opens the saved funnel, and reads it alone", async () => {
+    mockReads({});
+
+    renderPage(`?range=Past+1+Week&view=${SAVED_ID}`);
+
+    expect(await waitForSteps(2)).toHaveLength(2);
+
+    const reads: Array<JSONObject> = productAnalyticsRequestsTo(
+      postMock,
+      "funnel",
+    ).map((request: { data: JSONObject }): JSONObject => {
+      return request.data;
+    });
+
+    expect(reads.length).toBeGreaterThan(0);
+
+    for (const read of reads) {
+      expect(read["steps"]).toEqual([
+        { kind: "page", name: "/pricing" },
+        { kind: "custom", name: "Purchased" },
+      ]);
+      expect(read["windowMs"]).toBe(7 * DAY_MS);
+      expect(read["filters"]).toEqual([
+        { field: "country", key: "", value: "DE" },
+      ]);
+    }
+
+    await waitFor(() => {
+      expect(within(saved()).getAllByRole("button")[0]).toHaveTextContent(
+        "Pricing to purchase",
+      );
+    });
+
+    const address: URLSearchParams = new URLSearchParams(
+      window.location.search,
+    );
+
+    expect(address.get("view")).toBe(SAVED_ID);
+    expect(address.getAll("step")).toEqual([
+      "page:/pricing",
+      "custom:Purchased",
+    ]);
+    // The range the link came with stays the page's.
+    expect(address.get("range")).toBe("Past 1 Week");
+  });
+
+  it("a shared link's own steps win, under the saved funnel it names, shown changed", async () => {
+    mockReads({});
+
+    renderPage(
+      `?step=${encodeURIComponent("session:")}&step=${encodeURIComponent(
+        "custom:Signed up",
+      )}&view=${SAVED_ID}`,
+    );
+
+    await waitForSteps(2);
+
+    expect(lastFunnelRequest()["steps"]).toEqual([
+      { kind: "session", name: "" },
+      { kind: "custom", name: "Signed up" },
+    ]);
+    await waitFor(() => {
+      expect(within(saved()).getAllByRole("button")[0]).toHaveTextContent(
+        "Pricing to purchase (changed)",
+      );
+    });
+    expect(new URLSearchParams(window.location.search).get("view")).toBe(
+      SAVED_ID,
+    );
+  });
+
+  it("a link to a saved funnel this reader cannot open says so, and the page reads its default", async () => {
+    getListMock.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 100 });
+    mockReads({});
+
+    renderPage(`?view=${SAVED_ID}`);
+
+    expect(
+      await screen.findByTestId("product-analytics-saved-view-notice"),
+    ).toHaveTextContent(
+      "The saved funnel this link opens was deleted, or you cannot see it.",
+    );
+    await waitForSteps(2);
+    expect(lastFunnelRequest()["steps"]).toEqual([
+      { kind: "session", name: "" },
+      { kind: "custom", name: "Signed up" },
+    ]);
+    await waitFor(() => {
+      expect(new URLSearchParams(window.location.search).has("view")).toBe(
+        false,
+      );
+    });
+  });
+
+  it("picking a saved funnel puts its steps on the page and it in the address", async () => {
+    mockReads({});
+
+    renderPage();
+
+    await waitForSteps(2);
+
+    await act(async () => {
+      fireEvent.click(within(saved()).getAllByRole("button")[0]!);
+    });
+
+    const panel: HTMLElement = screen.getByRole("dialog", {
+      name: "Saved funnels",
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        await within(panel).findByRole("button", {
+          name: "Pricing to purchase",
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(lastFunnelRequest()["steps"]).toEqual([
+        { kind: "page", name: "/pricing" },
+        { kind: "custom", name: "Purchased" },
+      ]);
+    });
+    expect(lastFunnelRequest()["windowMs"]).toBe(7 * DAY_MS);
+    await waitFor(() => {
+      expect(new URLSearchParams(window.location.search).get("view")).toBe(
+        SAVED_ID,
+      );
+    });
+
+    // A step changed: still the open one, now changed.
+    await chooseProductAnalyticsOption(stepPicker(2), "Signed up");
+
+    await waitFor(() => {
+      expect(within(saved()).getAllByRole("button")[0]).toHaveTextContent(
+        "Pricing to purchase (changed)",
+      );
+    });
+  });
+
+  it("a role that may not read saved funnels sees no dropdown, and the funnel as before", async () => {
+    getJestSpyOn(PermissionGate, "check").mockReturnValue({
+      isAllowed: false,
+      disabledReason: "No access.",
+    });
+    mockReads({});
+
+    renderPage();
+
+    await waitForSteps(2);
+    expect(
+      screen.queryByTestId("product-analytics-funnels-saved"),
+    ).not.toBeInTheDocument();
   });
 });

@@ -12,8 +12,9 @@ import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * A public dashboard reads no logs, traces, security events or external
- * data sources, and each widget of those says so where its data would be.
+ * A public dashboard reads no logs, traces, security events, external data
+ * sources or product analytics, and each widget of those says so where its
+ * data would be.
  * They said it two ways: the lists and the Data Source widgets an icon and
  * their sentence in the middle of the widget, the log and trace charts, the
  * trace table and the security events flow a line near the widget's top -
@@ -27,6 +28,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const apiPostMock: MockFunction = getJestMockFunction();
 const analyticsListMock: MockFunction = getJestMockFunction();
+// A saved funnel or retention table (issue #6630), by its id.
+const modelGetItemMock: MockFunction = getJestMockFunction();
 
 /*
  * The arrow wrappers are load bearing: jest.mock is hoisted above the
@@ -55,6 +58,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getCommonHeaders: () => {
         return {};
       },
+      getItem: (...args: Array<any>) => {
+        return modelGetItemMock(...args);
+      },
     },
   };
 });
@@ -79,6 +85,8 @@ import DashboardTraceTableComponentElement from "../../../../App/FeatureSet/Dash
 import DashboardSecurityEventsFlowComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSecurityEventsFlowComponent";
 import DashboardSecurityEventsListComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSecurityEventsListComponent";
 import DashboardDataSourceChartComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardDataSourceChartComponent";
+import DashboardProductAnalyticsFunnelComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardProductAnalyticsFunnelComponent";
+import DashboardProductAnalyticsRetentionComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardProductAnalyticsRetentionComponent";
 import { WIDGET_PLACEHOLDER_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/WidgetPlaceholder";
 import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
 import {
@@ -98,6 +106,8 @@ import DashboardTraceTableComponentUtil from "../../../Utils/Dashboard/Component
 import DashboardSecurityEventsFlowComponentUtil from "../../../Utils/Dashboard/Components/DashboardSecurityEventsFlowComponent";
 import DashboardSecurityEventsListComponentUtil from "../../../Utils/Dashboard/Components/DashboardSecurityEventsListComponent";
 import DashboardDataSourceChartComponentUtil from "../../../Utils/Dashboard/Components/DashboardDataSourceChartComponent";
+import DashboardProductAnalyticsFunnelComponentUtil from "../../../Utils/Dashboard/Components/DashboardProductAnalyticsFunnelComponent";
+import DashboardProductAnalyticsRetentionComponentUtil from "../../../Utils/Dashboard/Components/DashboardProductAnalyticsRetentionComponent";
 
 const COMPONENT_ID: ObjectID = new ObjectID(
   "5e5e5e5e-1111-4111-8111-5e5e5e5e5e5e",
@@ -267,6 +277,61 @@ const WIDGETS: Array<WidgetUnderTest> = [
       );
     },
   },
+  /*
+   * The Funnel and Retention widgets (issue #6630) read an application's
+   * end users: never on a public dashboard, whose visitors are nobody's.
+   * A saved one is picked, so the placeholder is what a board shows.
+   */
+  {
+    name: "Funnel",
+    sentence: "Funnels are not available on public dashboards.",
+    component: (): DashboardBaseComponent => {
+      const component: DashboardBaseComponent =
+        DashboardProductAnalyticsFunnelComponentUtil.getDefaultComponent();
+
+      component.arguments = {
+        savedViewId: "5e5e5e5e-4444-4444-8444-5e5e5e5e5e5e",
+      } as DashboardBaseComponent["arguments"];
+
+      return component;
+    },
+    element: (
+      props: DashboardBaseComponentProps,
+      component: DashboardBaseComponent,
+    ): React.ReactElement => {
+      return (
+        <DashboardProductAnalyticsFunnelComponentElement
+          {...props}
+          component={component as never}
+        />
+      );
+    },
+  },
+  {
+    name: "User Retention",
+    sentence: "Retention tables are not available on public dashboards.",
+    component: (): DashboardBaseComponent => {
+      const component: DashboardBaseComponent =
+        DashboardProductAnalyticsRetentionComponentUtil.getDefaultComponent();
+
+      component.arguments = {
+        savedViewId: "5e5e5e5e-5555-4555-8555-5e5e5e5e5e5e",
+      } as DashboardBaseComponent["arguments"];
+
+      return component;
+    },
+    element: (
+      props: DashboardBaseComponentProps,
+      component: DashboardBaseComponent,
+    ): React.ReactElement => {
+      return (
+        <DashboardProductAnalyticsRetentionComponentElement
+          {...props}
+          component={component as never}
+        />
+      );
+    },
+  },
 ];
 
 // Stands for the public board: the page registers this context on mount.
@@ -279,6 +344,7 @@ function enterPublicBoard(): void {
 beforeEach(() => {
   apiPostMock.mockReset();
   analyticsListMock.mockReset();
+  modelGetItemMock.mockReset();
 });
 
 afterEach(() => {
@@ -315,6 +381,7 @@ describe("on a public dashboard, every widget it cannot draw shows one placehold
 
       expect(apiPostMock).not.toHaveBeenCalled();
       expect(analyticsListMock).not.toHaveBeenCalled();
+      expect(modelGetItemMock).not.toHaveBeenCalled();
     });
   }
 

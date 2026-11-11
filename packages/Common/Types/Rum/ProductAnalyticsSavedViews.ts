@@ -36,7 +36,10 @@ export enum ProductAnalyticsSavedViewType {
 }
 
 export const PRODUCT_ANALYTICS_SAVED_VIEW_TYPES: ReadonlyArray<ProductAnalyticsSavedViewType> =
-  [ProductAnalyticsSavedViewType.Funnel, ProductAnalyticsSavedViewType.Retention];
+  [
+    ProductAnalyticsSavedViewType.Funnel,
+    ProductAnalyticsSavedViewType.Retention,
+  ];
 
 export function isProductAnalyticsSavedViewType(
   value: unknown,

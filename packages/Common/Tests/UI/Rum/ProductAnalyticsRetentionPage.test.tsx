@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import {
@@ -11,8 +18,11 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import RumProductAnalyticsSavedView from "../../../Models/DatabaseModels/RumProductAnalyticsSavedView";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import { ProductAnalyticsSavedViewType } from "../../../Types/Rum/ProductAnalyticsSavedViews";
 import Route from "../../../Types/API/Route";
 import TimeRange from "../../../Types/Time/TimeRange";
 import { createTranslator, Translator } from "../../../Types/Translator";
@@ -33,6 +43,7 @@ import {
   chooseProductAnalyticsOption,
   lastProductAnalyticsRequestTo,
   openProductAnalyticsOptions,
+  productAnalyticsRequestsTo,
   productAnalyticsTestNames,
 } from "./ProductAnalyticsEventsPageKit";
 
@@ -47,6 +58,8 @@ import {
 
 const postMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
+// The application's saved retention tables (issue #6630): none, unless a test says.
+const getListMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/API/API", () => {
   return {
@@ -73,6 +86,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       getItem: (...args: Array<unknown>): unknown => {
         return getItemMock(...args);
+      },
+      getList: (...args: Array<unknown>): unknown => {
+        return getListMock(...args);
       },
     },
   };
@@ -191,6 +207,8 @@ beforeEach(() => {
       isSessionReplayEnabled: true,
     });
   });
+  getListMock.mockReset();
+  getListMock.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 100 });
   getJestSpyOn(PermissionGate, "checkColumnUpdate").mockImplementation(
     (): PermissionGateResult => {
       return { isAllowed: true };
@@ -392,12 +410,14 @@ describe("the All cohorts row", () => {
       averageProductAnalyticsRetention(withEmpty);
 
     expect(average.people).toBe(300);
+    /*
+     * Week 3 only the empty cohort reached: no period of the row, as it is
+     * no column of the table (which starts at the first cohort anyone is in).
+     */
     expect(average.periods).toEqual([
       { returning: 300, people: 300 },
       { returning: 90, people: 200 },
       { returning: 40, people: 200 },
-      /* Only the empty cohort reached it: no cohort with anyone in it has. */
-      null,
     ]);
     expect(
       buildProductAnalyticsRetentionAverageRow({
@@ -408,7 +428,7 @@ describe("the All cohorts row", () => {
           return cell ? cell.text : "";
         },
       ),
-    ).toEqual(["100%", "45%", "20%", ""]);
+    ).toEqual(["100%", "45%", "20%"]);
 
     /*
      * One cohort with anyone in it, however many empty ones: the row would
@@ -667,9 +687,15 @@ describe("ProductAnalyticsRetention", () => {
       "Week 2: 50 of 300 came back (17%)",
       "Week 3: 20 of 200 came back (10%)",
     ]);
-    expect(cells[1]!.getAttribute("style")).toContain(
-      `rgb(79 70 229 / ${getProductAnalyticsRetentionShade(120 / 350)})`,
-    );
+    /*
+     * Bold, like its cohort's name; light text on a cell shaded past half.
+     * (Its shade is the cohorts' formula - the pure tests above; jsdom
+     * drops the rgb(r g b / a) background a browser draws.)
+     */
+    expect(cells[0]!.className).toContain("font-semibold");
+    expect(cells[0]!.className).toContain("text-white");
+    expect(cells[1]!.className).toContain("font-semibold");
+    expect(cells[1]!.className).toContain("text-gray-900");
     /* The cohorts' own rows are as they were. */
     expect(tableRows()).toHaveLength(3);
   });
@@ -855,6 +881,260 @@ describe("ProductAnalyticsRetention", () => {
     expect(await screen.findByText("No events yet")).toBeInTheDocument();
     expect(
       screen.queryByTestId("product-analytics-retention-page"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * Saved retention tables (issue #6630): the toolbar's dropdown opens one,
+ * and a page opened from a dashboard widget's link (`?view=<id>` and its
+ * range) reads only the saved table - never the default first.
+ */
+describe("saved retention tables", () => {
+  const SAVED_ID: string = "6a303333-0000-4000-8000-000000000002";
+
+  function savedRetention(): RumProductAnalyticsSavedView {
+    const row: RumProductAnalyticsSavedView = new RumProductAnalyticsSavedView(
+      new ObjectID(SAVED_ID),
+    );
+
+    row.name = "Buyers who buy again";
+    row.viewType = ProductAnalyticsSavedViewType.Retention;
+    row.rumApplicationId = new ObjectID(PRODUCT_ANALYTICS_TEST_APP_ID);
+    row.definition = {
+      startEvent: { kind: "page", name: "/pricing" },
+      returnEvent: { kind: "custom", name: "Purchased" },
+      period: "day",
+      filters: [{ field: "country", key: "", value: "DE" }],
+    };
+
+    return row;
+  }
+
+  function saved(): HTMLElement {
+    return screen.getByTestId("product-analytics-retention-saved");
+  }
+
+  function trigger(): HTMLElement {
+    return within(saved()).getAllByRole("button")[0]!;
+  }
+
+  beforeEach(() => {
+    getJestSpyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+    getListMock.mockResolvedValue({
+      data: [savedRetention()],
+      count: 1,
+      skip: 0,
+      limit: 100,
+    });
+  });
+
+  it("a widget's link opens the saved table, and reads it alone", async () => {
+    mockReads({});
+
+    renderPage(
+      `?range=${encodeURIComponent(TimeRange.PAST_ONE_WEEK)}&view=${SAVED_ID}`,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("product-analytics-retention-table-row"),
+      ).toHaveLength(3);
+    });
+
+    const reads: Array<JSONObject> = productAnalyticsRequestsTo(
+      postMock,
+      "retention",
+    ).map((request: { data: JSONObject }): JSONObject => {
+      return request.data;
+    });
+
+    expect(reads.length).toBeGreaterThan(0);
+
+    for (const read of reads) {
+      expect(read["startEvent"]).toEqual({ kind: "page", name: "/pricing" });
+      expect(read["returnEvent"]).toEqual({
+        kind: "custom",
+        name: "Purchased",
+      });
+      expect(read["period"]).toBe("day");
+      expect(read["filters"]).toEqual([
+        { field: "country", key: "", value: "DE" },
+      ]);
+    }
+
+    // The segment offers the saved start event's people's properties only.
+    for (const request of productAnalyticsRequestsTo(
+      postMock,
+      "event-properties",
+    )) {
+      expect(request.data["event"]).toEqual({
+        kind: "page",
+        name: "/pricing",
+      });
+    }
+
+    await waitFor(() => {
+      expect(trigger()).toHaveTextContent("Buyers who buy again");
+    });
+    expect(trigger()).not.toHaveTextContent("(changed)");
+
+    const address: URLSearchParams = new URLSearchParams(
+      window.location.search,
+    );
+
+    expect(address.get("view")).toBe(SAVED_ID);
+    expect(address.get("start")).toBe("page:/pricing");
+    expect(address.get("return")).toBe("custom:Purchased");
+    expect(address.get("per")).toBe("day");
+    // The range the link came with stays the page's.
+    expect(address.get("range")).toBe(TimeRange.PAST_ONE_WEEK);
+  });
+
+  it("a shared link's own events win, under the saved table it names, shown changed", async () => {
+    mockReads({});
+
+    renderPage(
+      `?start=${encodeURIComponent("custom:Signed up")}&view=${SAVED_ID}`,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("product-analytics-retention-table-row"),
+      ).toHaveLength(3);
+    });
+    expect(lastRetentionRequest()["startEvent"]).toEqual({
+      kind: "custom",
+      name: "Signed up",
+    });
+    // What the link did not say is the page's default, not the saved one's.
+    expect(lastRetentionRequest()["returnEvent"]).toEqual({
+      kind: "session",
+      name: "",
+    });
+    await waitFor(() => {
+      expect(trigger()).toHaveTextContent("Buyers who buy again (changed)");
+    });
+    expect(new URLSearchParams(window.location.search).get("view")).toBe(
+      SAVED_ID,
+    );
+  });
+
+  it("a link to a saved table this reader cannot open says so, and the page reads its default", async () => {
+    getListMock.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 100 });
+    mockReads({});
+
+    renderPage(`?view=${SAVED_ID}`);
+
+    expect(
+      await screen.findByTestId("product-analytics-saved-view-notice"),
+    ).toHaveTextContent(
+      "The saved retention table this link opens was deleted, or you cannot see it.",
+    );
+    await waitFor(() => {
+      expect(lastRetentionRequest()["startEvent"]).toEqual({
+        kind: "session",
+        name: "",
+      });
+    });
+    expect(lastRetentionRequest()["period"]).toBe("week");
+    await waitFor(() => {
+      expect(new URLSearchParams(window.location.search).has("view")).toBe(
+        false,
+      );
+    });
+  });
+
+  it("picking a saved table reads its events and period, and a change shows it changed", async () => {
+    mockReads({});
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("product-analytics-retention-table-row"),
+      ).toHaveLength(3);
+    });
+
+    await act(async () => {
+      fireEvent.click(trigger());
+    });
+
+    const panel: HTMLElement = screen.getByRole("dialog", {
+      name: "Saved retention tables",
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        await within(panel).findByRole("button", {
+          name: "Buyers who buy again",
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(lastRetentionRequest()["startEvent"]).toEqual({
+        kind: "page",
+        name: "/pricing",
+      });
+    });
+    expect(lastRetentionRequest()["returnEvent"]).toEqual({
+      kind: "custom",
+      name: "Purchased",
+    });
+    expect(lastRetentionRequest()["period"]).toBe("day");
+    expect(lastRetentionRequest()["filters"]).toEqual([
+      { field: "country", key: "", value: "DE" },
+    ]);
+    await waitFor(() => {
+      expect(new URLSearchParams(window.location.search).get("view")).toBe(
+        SAVED_ID,
+      );
+    });
+
+    await chooseProductAnalyticsOption(
+      screen.getByRole("combobox", { name: "Cohorts" }),
+      "By month",
+    );
+
+    await waitFor(() => {
+      expect(trigger()).toHaveTextContent("Buyers who buy again (changed)");
+    });
+    expect(lastRetentionRequest()["period"]).toBe("month");
+  });
+
+  it("a role that may not read saved tables sees no dropdown, and the table as before", async () => {
+    getJestSpyOn(PermissionGate, "check").mockReturnValue({
+      isAllowed: false,
+      disabledReason: "No access.",
+    });
+    // The list is asked for anyway - the server decides - and refused.
+    getListMock.mockRejectedValue(
+      new HTTPErrorResponse(
+        403,
+        { message: "You do not have permission to read this." },
+        {},
+      ),
+    );
+    mockReads({});
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("product-analytics-retention-table-row"),
+      ).toHaveLength(3);
+    });
+    expect(
+      screen.queryByTestId("product-analytics-retention-saved"),
+    ).not.toBeInTheDocument();
+    expect(lastRetentionRequest()["startEvent"]).toEqual({
+      kind: "session",
+      name: "",
+    });
+    // No link named one: nothing to say about it.
+    expect(
+      screen.queryByTestId("product-analytics-saved-view-notice"),
     ).not.toBeInTheDocument();
   });
 });

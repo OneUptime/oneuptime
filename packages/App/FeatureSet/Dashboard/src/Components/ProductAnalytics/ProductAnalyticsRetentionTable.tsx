@@ -223,8 +223,7 @@ export function averageProductAnalyticsRetention(
       };
 
       periods[index] = {
-        returning:
-          period.returning + (isCountOfPeople(count) ? count : 0),
+        returning: period.returning + (isCountOfPeople(count) ? count : 0),
         people: period.people + cohort.people,
       };
     });

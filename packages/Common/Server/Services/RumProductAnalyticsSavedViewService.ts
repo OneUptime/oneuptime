@@ -44,7 +44,9 @@ export class Service extends DatabaseService<Model> {
     definition: unknown,
   ): JSONObject {
     if (!isProductAnalyticsSavedViewType(viewType)) {
-      throw new BadDataException(PRODUCT_ANALYTICS_SAVED_VIEW_PROBLEMS.viewType);
+      throw new BadDataException(
+        PRODUCT_ANALYTICS_SAVED_VIEW_PROBLEMS.viewType,
+      );
     }
 
     if (definition === undefined || definition === null) {
@@ -159,10 +161,7 @@ export class Service extends DatabaseService<Model> {
     const kinds: Set<string> = new Set<string>();
 
     for (const row of rows) {
-      if (
-        data["viewType"] !== undefined &&
-        data["viewType"] !== row.viewType
-      ) {
+      if (data["viewType"] !== undefined && data["viewType"] !== row.viewType) {
         throw new BadDataException(
           PRODUCT_ANALYTICS_SAVED_VIEW_PROBLEMS.viewTypeFixed,
         );

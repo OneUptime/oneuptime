@@ -34,6 +34,14 @@ import {
 } from "Common/Types/Rum/ProductAnalytics";
 import { DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS } from "Common/Types/Rum/SessionReplay";
 import { PRODUCT_ANALYTICS_SOURCE_PERSON_KEY_SQL } from "Common/Models/AnalyticsModels/RumProductAnalyticsSession";
+import RumProductAnalyticsSavedView from "Common/Models/DatabaseModels/RumProductAnalyticsSavedView";
+import Permission from "Common/Types/Permission";
+import { PRODUCT_ANALYTICS_SAVED_VIEWS_PER_APPLICATION_MAX } from "Common/Types/Rum/ProductAnalyticsSavedViews";
+import {
+  WIDGET_CATALOG,
+  WidgetCatalogCategory,
+  WidgetCatalogItem,
+} from "../../../FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/WidgetCatalog";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -49,6 +57,11 @@ const SOURCES: Record<string, string> = {
   personPage: `${DASHBOARD}/Pages/Rum/View/ProductAnalyticsPerson.tsx`,
   peopleCard: `${DASHBOARD}/Components/ProductAnalytics/ProductAnalyticsPeopleCard.tsx`,
   format: `${DASHBOARD}/Components/ProductAnalytics/ProductAnalyticsFormat.ts`,
+  retentionTable: `${DASHBOARD}/Components/ProductAnalytics/ProductAnalyticsRetentionTable.tsx`,
+  savedViews: `${DASHBOARD}/Components/ProductAnalytics/ProductAnalyticsSavedViews.ts`,
+  savedViewsDropdown:
+    "packages/Common/UI/Components/TelemetryViewer/components/SavedViewsDropdown.tsx",
+  widgetFrame: `${DASHBOARD}/Components/Dashboard/Components/DashboardProductAnalyticsWidget.tsx`,
   telemetryApi: "packages/Common/Server/API/TelemetryAPI.ts",
   permissions: "packages/Common/Types/Permission.ts",
 };
@@ -197,6 +210,7 @@ describe("Product Analytics: its place in the docs", () => {
         "Events",
         "Funnels",
         "User Retention",
+        "Saved funnels and retention tables",
         "Dashboards and alerts",
         "Privacy and retention",
         "Who can see it",
@@ -579,6 +593,138 @@ describe("Product Analytics: privacy, retention and who can see it", () => {
     );
     expect(who).toContain(
       "(/docs/telemetry/session-replay#who-can-watch-a-recording)",
+    );
+  });
+});
+
+/*
+ * Issue #6632 and issue #6630: the All cohorts row over the retention
+ * table, and the funnels and retention tables a team saves, opens again
+ * and shows on a dashboard.
+ */
+describe("Product Analytics: All cohorts, and saved funnels and retention tables", () => {
+  const retention: string = section("## User Retention");
+  const saved: string = section("## Saved funnels and retention tables");
+  const dashboards: string = section("## Dashboards and alerts");
+  const who: string = section("## Who can see it");
+
+  it("draws All cohorts above the cohorts once two hold anyone, as the table does", () => {
+    const table: string = source("retentionTable");
+
+    expect(table).toContain(
+      'export const ALL_COHORTS: string = translationKey("All cohorts");',
+    );
+    expect(table).toContain(
+      "export const RETENTION_AVERAGE_MIN_COHORTS: number = 2;",
+    );
+    expect(retention).toContain(
+      "**All cohorts**, above them, counts the cohorts as one: in each period, the people who came back over the people of the cohorts that have reached it",
+    );
+    expect(retention).toContain("It shows once two cohorts hold anyone.");
+  });
+
+  it("names each kind's list and save button as the pages draw them, and the most an application keeps", () => {
+    const words: string = source("savedViews");
+
+    for (const word of [
+      'list: translationKey("Saved funnels"),',
+      'create: translationKey("+ Save funnel"),',
+      'list: translationKey("Saved retention tables"),',
+      'create: translationKey("+ Save retention table"),',
+    ]) {
+      expect(words).toContain(word);
+    }
+
+    expect(PRODUCT_ANALYTICS_SAVED_VIEWS_PER_APPLICATION_MAX).toBe(100);
+    expect(saved).toContain(
+      "**Saved funnels**, on the **Funnels** page, and **Saved retention tables**, on **User Retention**, list what your team saved for the application",
+    );
+    expect(saved).toContain(
+      `- **+ Save funnel** or **+ Save retention table** saves what the page shows, under a name. An application keeps at most ${PRODUCT_ANALYTICS_SAVED_VIEWS_PER_APPLICATION_MAX} of each.`,
+    );
+  });
+
+  it("keeps no time range, as the save dialog says", () => {
+    expect(source("savedViews")).toContain(
+      "The time range is not kept: this page keeps its own, and a dashboard widget reads the dashboard's.",
+    );
+    expect(saved).toContain(
+      "Neither keeps the time range: the page keeps its own, and a dashboard reads its own.",
+    );
+  });
+
+  it("names the list's own actions as the saved views list draws them", () => {
+    const dropdown: string = source("savedViewsDropdown");
+
+    for (const action of ["Update", "Edit", "Delete", "Clear view"]) {
+      expect(dropdown).toContain(`translator.translateText("${action}")`);
+      expect(saved).toContain(`**${action}**`);
+    }
+
+    expect(source("savedViews")).toContain(
+      'translationKey("{{name}} (changed)")',
+    );
+    expect(saved).toContain(
+      "Once you change what it shows, its name says so, and **Update** saves the change.",
+    );
+  });
+
+  it("puts one on a dashboard with the Product Analytics group's widgets, which open it on its page", () => {
+    const group: WidgetCatalogCategory | undefined = WIDGET_CATALOG.find(
+      (category: WidgetCatalogCategory): boolean => {
+        return category.name === "Product Analytics";
+      },
+    );
+
+    expect(
+      group?.items.map((item: WidgetCatalogItem): string => {
+        return item.label;
+      }),
+    ).toEqual(["Funnel", "User Retention"]);
+
+    for (const open of ["Open in Funnels", "Open in User Retention"]) {
+      expect(source("widgetFrame")).toContain(
+        `open: translationKey("${open}"),`,
+      );
+    }
+
+    expect(dashboards).toContain(
+      "the **Funnel** and **User Retention** widgets, in the widget catalog's **Product Analytics** group, show one in the dashboard's time range, and **Open in Funnels** or **Open in User Retention** opens it on its page",
+    );
+    expect(dashboards).toContain(
+      "(/docs/dashboards/widgets#product-analytics)",
+    );
+  });
+
+  it("keeps them under the permissions these pages are read with", () => {
+    const list: Array<string> = allMatches(
+      between(
+        source("telemetryApi"),
+        "const SESSION_REPLAY_LIST_PERMISSIONS: Array<Permission> = [",
+        "];",
+      ),
+      /Permission\.(\w+)/g,
+    ).sort();
+    const model: RumProductAnalyticsSavedView =
+      new RumProductAnalyticsSavedView();
+
+    for (const permissions of [
+      model.readRecordPermissions,
+      model.createRecordPermissions,
+      model.updateRecordPermissions,
+      model.deleteRecordPermissions,
+    ]) {
+      expect(
+        permissions
+          .map((permission: Permission): string => {
+            return permission.toString();
+          })
+          .sort(),
+      ).toEqual(list);
+    }
+
+    expect(who).toContain(
+      "Saving, renaming and deleting saved funnels and retention tables takes the same permissions as reading these pages, and a dashboard widget shows one only to a reader who holds them.",
     );
   });
 });

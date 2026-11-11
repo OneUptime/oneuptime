@@ -34,11 +34,11 @@ import { DASHBOARD_WIDGET_SORT_ARGUMENT } from "./DashboardWidgetSort";
  * The widgets a public dashboard cannot draw: its API reads no logs, no
  * traces, no security events and no product analytics. Each says so in its
  * place, under its title ("Log charts are not available on public
- * dashboards."), and its title is all it is served. The external Data Source widgets are not
- * among them: a public dashboard leaves them out altogether, because
- * their settings are the query itself (PublicDashboardViewConfig
- * .sanitize). The page lays out both kinds as the words they are
- * (PublicDashboardContext.isWidgetDrawnHere).
+ * dashboards."), and its title is all it is served. The external Data
+ * Source widgets are not among them: a public dashboard leaves them out
+ * altogether, because their settings are the query itself
+ * (PublicDashboardViewConfig.sanitize). The page lays out both kinds as
+ * the words they are (PublicDashboardContext.isWidgetDrawnHere).
  */
 export const PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES: ReadonlyArray<DashboardComponentType> =
   [

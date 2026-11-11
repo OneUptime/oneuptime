@@ -39,7 +39,8 @@ export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardProductAnalyticsFunnelComponent;
 }
 
-export const FUNNEL_WIDGET_TEST_ID: string = "dashboard-product-analytics-funnel";
+export const FUNNEL_WIDGET_TEST_ID: string =
+  "dashboard-product-analytics-funnel";
 
 const DashboardProductAnalyticsFunnelComponentElement: FunctionComponent<
   ComponentProps
@@ -99,12 +100,10 @@ const DashboardProductAnalyticsFunnelComponentElement: FunctionComponent<
       </div>
     );
   } else {
-    const completion: string | null = describeProductAnalyticsFunnelCompletion(
-      {
-        funnel: funnel.data,
-        translator: translator,
-      },
-    );
+    const completion: string | null = describeProductAnalyticsFunnelCompletion({
+      funnel: funnel.data,
+      translator: translator,
+    });
 
     content = (
       <div

@@ -134,9 +134,7 @@ export const SAVED_VIEW_UNREADABLE_NOTICE: string = translationKey(
  * The saved view a page's address names, or null: an id, as a link is
  * untrusted - anything else is no saved view.
  */
-export function readProductAnalyticsSavedViewId(
-  search: string,
-): string | null {
+export function readProductAnalyticsSavedViewId(search: string): string | null {
   const value: string | null = new URLSearchParams(search).get(
     PRODUCT_ANALYTICS_SAVED_VIEW_URL_KEY,
   );
@@ -329,7 +327,9 @@ export function applyProductAnalyticsRetentionDefinition(
  * untrusted (the API, Terraform and scripts write these rows too): null
  * when it is not one of its kind any more.
  */
-export interface ProductAnalyticsSavedView<T extends ProductAnalyticsSavedViewType> {
+export interface ProductAnalyticsSavedView<
+  T extends ProductAnalyticsSavedViewType,
+> {
   id: string;
   name: string;
   rumApplicationId: string;
@@ -465,8 +465,9 @@ export function nameProductAnalyticsSavedViewApplications(data: {
   data.items.forEach(
     (item: RumProductAnalyticsSavedView, index: number): void => {
       const option: DropdownOption | undefined = data.options[index];
-      const applicationName: string | undefined =
-        data.applicationNames.get(item.rumApplicationId?.toString() || "");
+      const applicationName: string | undefined = data.applicationNames.get(
+        item.rumApplicationId?.toString() || "",
+      );
 
       if (option && applicationName) {
         option.description = applicationName;

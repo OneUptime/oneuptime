@@ -24,6 +24,7 @@ Börja med frågan som rutan ska besvara:
 | Vad händer just nu? | **Loggström**, **Spårlista**, **Incidentlista** eller **Larmlista** |
 | Är alla våra webbplatser uppe? | **Övervakningslista** |
 | Håller vi den tillförlitlighet vi har lovat? | **SLO** eller **SLO-lista** |
+| Tar sig folk igenom ett flöde, och kommer de tillbaka? | **Tratt** eller **Kvarhållning av användare** |
 | I vilket tillstånd är våra kluster och värdar? | En widget i gruppen Infrastruktur |
 | Var i världen finns vårt nätverk, och vad är nere? | **Nätverkskarta** |
 | En rubrik, en anteckning, tiden på ett annat kontor? | **Text** eller **Klocka** |
@@ -170,6 +171,15 @@ SLO-widgeten fungerar på [offentliga instrumentpaneler](/docs/dashboards/sharin
 
 Varje SLO med dess status, SLI, felbudget och burn rate, med minst återstående budget först. Filtrera den efter status eller etiketter, eller med en **Etikettvariabel** som tittarna väljer i verktygsfältet. [SLO-metriker och -instrumentpaneler](/docs/slo/metrics) visar båda SLO-widgetarna i arbete.
 
+## Produktanalys
+
+| Widget | Vad den visar |
+| --- | --- |
+| **Tratt** | En tratt sparad på sidan **Trattar** i en RUM-applikation: av de personer som utförde dess första steg under instrumentpanelens tidsintervall, hur många som gick vidare till varje nästa steg. |
+| **Kvarhållning av användare** | En kvarhållningstabell sparad på dess sida **Kvarhållning av användare**: personer grupperade efter när de först utförde dess starthändelse, och andelen av varje grupp som kom tillbaka under varje period efter, med **Alla kohorter** ovanför. |
+
+Spara tratten eller kvarhållningstabellen på dess sida först (se [Sparade trattar och kvarhållningstabeller](/docs/rum/product-analytics#sparade-trattar-och-kvarhållningstabeller)), och välj den sedan i widgetens inställningar. Widgeten tar dess namn som rubrik om du inte ger den en, och läser den igen vid varje uppdatering, så en ändring som sparas på sidan syns på instrumentpanelen. **Öppna i Trattar** eller **Öppna i Kvarhållning av användare** öppnar den på dess sida, i instrumentpanelens tidsintervall. Att se den kräver detsamma som att se sidan.
+
 ## Infrastruktur
 
 Var och en av de här widgetarna listar resurserna som en agent eller en collector rapporterar till OneUptime. Begränsa dem efter kluster, värd eller namnrymd i deras filter, och visa dem som en lista eller som en bikaka.
@@ -235,7 +245,7 @@ Via API:et och Terraform är ordningen widgetens `arguments.sort`: en kolumn och
 
 En [offentlig instrumentpanel](/docs/dashboards/sharing) ritar de flesta widgetar för sina besökare, och var och en visar bara det den har ställts in att visa. Några få kan inte visas utan en inloggad session:
 
-- **Loggdiagram**, **Spårdiagram**, **Spårtabell**, **Säkerhetshändelser** och **Flöde av säkerhetshändelser** säger på sin plats att de inte är tillgängliga på offentliga instrumentpaneler.
+- **Loggdiagram**, **Spårdiagram**, **Spårtabell**, **Säkerhetshändelser**, **Flöde av säkerhetshändelser**, **Tratt** och **Kvarhållning av användare** säger på sin plats att de inte är tillgängliga på offentliga instrumentpaneler.
 - Widgetarna i Externa datakällor utelämnas helt från en offentlig instrumentpanel, eftersom deras inställningar är själva frågan.
 
 ## När en widget inte kan visas

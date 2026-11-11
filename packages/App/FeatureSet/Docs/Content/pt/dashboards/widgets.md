@@ -24,6 +24,7 @@ Comece pela pergunta que o bloco precisa responder:
 | O que está acontecendo agora? | **Fluxo de registros**, **Lista de traços**, **Lista de incidentes** ou **Lista de alertas** |
 | Todos os nossos sites estão no ar? | **Lista de monitores** |
 | Estamos mantendo a confiabilidade que prometemos? | **SLO** ou **Lista de SLOs** |
+| As pessoas chegam ao fim de um fluxo, e voltam? | **Funil** ou **Retenção de usuários** |
 | Em que estado estão nossos clusters e hosts? | Um widget do grupo Infraestrutura |
 | Onde no mundo está a nossa rede, e o que está fora do ar? | **Mapa de rede** |
 | Um título, uma nota, a hora em outro escritório? | **Texto** ou **Relógio** |
@@ -170,6 +171,15 @@ O widget SLO funciona em [painéis públicos](/docs/dashboards/sharing). O que �
 
 Cada SLO com o status, o SLI, o orçamento de erros e a taxa de consumo, começando pelo que tem menos orçamento restante. Filtre-a por status ou rótulos, ou por uma **Variável de rótulo** que as pessoas escolhem na barra de ferramentas. [Métricas e painéis de SLO](/docs/slo/metrics) mostra os dois widgets de SLO em ação.
 
+## Análise de produto
+
+| Widget | O que mostra |
+| --- | --- |
+| **Funil** | Um funil salvo na página **Funis** de uma aplicação RUM: das pessoas que fizeram a primeira etapa no intervalo de tempo do painel, quantas seguiram para cada etapa seguinte. |
+| **Retenção de usuários** | Uma tabela de retenção salva na sua página **Retenção de usuários**: pessoas agrupadas por quando fizeram pela primeira vez o evento inicial, e a fatia de cada grupo que voltou em cada período depois, com **Todas as coortes** acima. |
+
+Salve primeiro o funil ou a tabela de retenção na sua página (veja [Funis e tabelas de retenção salvos](/docs/rum/product-analytics#funis-e-tabelas-de-retenção-salvos)) e depois escolha-o nas configurações do widget. O widget usa o nome dele como título, a menos que você dê um, e o lê de novo a cada atualização, então uma mudança salva na página aparece no painel. **Abrir em Funis** ou **Abrir em Retenção de usuários** o abre na sua página, no intervalo de tempo do painel. Vê-lo exige o mesmo que ver a página.
+
 ## Infraestrutura
 
 Cada um destes widgets lista os recursos que um agente ou um coletor informa ao OneUptime. Restrinja-os por cluster, host ou namespace nos filtros, e mostre-os como lista ou como colmeia.
@@ -235,7 +245,7 @@ Pela API e pelo Terraform, a ordem é o `arguments.sort` do widget: uma coluna e
 
 Um [painel público](/docs/dashboards/sharing) desenha a maioria dos widgets para os visitantes, e cada um mostra só o que foi configurado para mostrar. Alguns não podem ser mostrados sem uma sessão conectada:
 
-- **Gráfico de registros**, **Gráfico de traços**, **Tabela de traços**, **Eventos de segurança** e **Fluxo de eventos de segurança** dizem, no lugar deles, que não estão disponíveis em painéis públicos.
+- **Gráfico de registros**, **Gráfico de traços**, **Tabela de traços**, **Eventos de segurança**, **Fluxo de eventos de segurança**, **Funil** e **Retenção de usuários** dizem, no lugar deles, que não estão disponíveis em painéis públicos.
 - Os widgets de Fontes de dados externas ficam totalmente fora de um painel público, porque as configurações deles são a própria consulta.
 
 ## Quando um widget não pode ser mostrado

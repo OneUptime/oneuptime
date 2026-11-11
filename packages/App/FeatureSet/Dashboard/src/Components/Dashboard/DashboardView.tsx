@@ -980,9 +980,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
               DashboardSecurityEventsFlowComponentUtil.getDefaultComponent();
           }
 
-          if (
-            componentType === DashboardComponentType.ProductAnalyticsFunnel
-          ) {
+          if (componentType === DashboardComponentType.ProductAnalyticsFunnel) {
             newComponent =
               DashboardProductAnalyticsFunnelComponentUtil.getDefaultComponent();
           }

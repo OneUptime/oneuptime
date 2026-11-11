@@ -289,9 +289,7 @@ function ProductAnalyticsSavedViewsMenu<
   const [toDelete, setToDelete] = useState<ProductAnalyticsSavedView<T> | null>(
     null,
   );
-  const [deleteError, setDeleteError] = useState<string | undefined>(
-    undefined,
-  );
+  const [deleteError, setDeleteError] = useState<string | undefined>(undefined);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   const model: RumProductAnalyticsSavedView =
