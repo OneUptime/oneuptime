@@ -3,6 +3,7 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import InvestigationNotStartedReason, {
   InvestigationNotStartedCode,
   InvestigationGateDetails,
+  InvestigationNotStartedFacts,
 } from "../../../../Types/AI/InvestigationNotStartedReason";
 import ObjectID from "../../../../Types/ObjectID";
 import AIService, { AutonomousBudgetStatus } from "../../../Services/AIService";
@@ -244,6 +245,10 @@ export default class InvestigationEligibility {
           "Automatic investigations are triggered when a record is created. Enabling investigation later does not backfill existing records; check the AI logs and service health if new eligible records are also missing investigations.",
       },
     };
+    const facts: InvestigationNotStartedFacts | null = this.getFacts(
+      details,
+      budget,
+    );
     return {
       code,
       ...reasons[code],
@@ -253,7 +258,63 @@ export default class InvestigationEligibility {
       source,
       evaluatedAt: new Date().toISOString(),
       ...(isAfterWait ? { decidedAfterWaitMinutes: waitMinutes } : {}),
+      ...(facts ? { facts } : {}),
     };
+  }
+
+  /*
+   * The facts a Dashboard words the reason from in its reader's language
+   * (InvestigationNotStartedWords), beside the English sentences above: the
+   * severity names, the cooldown and the daily token limit, each only when
+   * it is known - or null when none is. A wait travels as
+   * decidedAfterWaitMinutes instead, as it always has.
+   */
+  public static getFacts(
+    details?: InvestigationGateDetails,
+    budget?: AutonomousBudgetStatus,
+  ): InvestigationNotStartedFacts | null {
+    const facts: InvestigationNotStartedFacts = {};
+    const name: (value: string | undefined) => string | undefined = (
+      value: string | undefined,
+    ): string | undefined => {
+      return typeof value === "string" && value.trim() ? value : undefined;
+    };
+    const count: (value: number | null | undefined) => number | undefined = (
+      value: number | null | undefined,
+    ): number | undefined => {
+      return typeof value === "number" && Number.isFinite(value) && value >= 0
+        ? value
+        : undefined;
+    };
+
+    const severityName: string | undefined = name(details?.severityName);
+    const minimumSeverityName: string | undefined = name(
+      details?.minimumSeverityName,
+    );
+    const cooldownWindowMinutes: number | undefined = count(
+      details?.cooldownWindowMinutes,
+    );
+    // A limit below 0 pauses the work as 0 does (getAutonomousDailyBudgetStatus).
+    const dailyTokenLimit: number | undefined =
+      typeof budget?.limitInTokens === "number" &&
+      Number.isFinite(budget.limitInTokens)
+        ? Math.max(0, budget.limitInTokens)
+        : undefined;
+
+    if (severityName !== undefined) {
+      facts.severityName = severityName;
+    }
+    if (minimumSeverityName !== undefined) {
+      facts.minimumSeverityName = minimumSeverityName;
+    }
+    if (cooldownWindowMinutes !== undefined) {
+      facts.cooldownWindowMinutes = cooldownWindowMinutes;
+    }
+    if (dailyTokenLimit !== undefined) {
+      facts.dailyTokenLimit = dailyTokenLimit;
+    }
+
+    return Object.keys(facts).length > 0 ? facts : null;
   }
 
   /** Best effort, without overriding the first decision or failing creation. */
