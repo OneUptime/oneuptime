@@ -50740,5 +50740,9 @@
   "Only you see this, as the server's admin.": "Only you see this, as the server's admin.",
   "Server Setup Choices": "Server Setup Choices",
   "This server is not finished: {{count}} things to set up": "This server is not finished: {{count}} things to set up",
-  "This server is not finished: {{count}} things to set up_one": "This server is not finished: {{count}} thing to set up"
+  "This server is not finished: {{count}} things to set up_one": "This server is not finished: {{count}} thing to set up",
+  "Import from {{tools}}": "Import from {{tools}}",
+  "Import from {{tools}} and others": "Import from {{tools}} and others",
+  "Import from {{tool}}": "Import from {{tool}}",
+  "Show every tool": "Show every tool"
 }

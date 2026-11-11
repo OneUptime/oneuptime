@@ -50740,5 +50740,9 @@
   "Only you see this, as the server's admin.": "サーバーの管理者であるあなたにだけ表示されています。",
   "Server Setup Choices": "サーバー設定での選択",
   "This server is not finished: {{count}} things to set up": "このサーバーはまだ準備中です：残り {{count}} 件の設定",
-  "This server is not finished: {{count}} things to set up_one": "このサーバーはまだ準備中です：残り {{count}} 件の設定"
+  "This server is not finished: {{count}} things to set up_one": "このサーバーはまだ準備中です：残り {{count}} 件の設定",
+  "Import from {{tools}}": "{{tools}} からインポート",
+  "Import from {{tools}} and others": "{{tools}} などからインポート",
+  "Import from {{tool}}": "{{tool}} からインポート",
+  "Show every tool": "すべてのツールを表示"
 }

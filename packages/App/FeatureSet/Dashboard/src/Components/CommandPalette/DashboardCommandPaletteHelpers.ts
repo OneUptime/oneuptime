@@ -63,6 +63,15 @@ export const PALETTE_SEARCH_PRIORITY: {
   action: 0,
 };
 
+/*
+ * What a result named for another product ("Import from PagerDuty") gives up
+ * in Search (PaletteCommand.searchPenalty): enough that a word one of
+ * OneUptime's own pages holds, even as the start of one of its other names
+ * ("pager", "pag"), opens that page first, while a name only the import
+ * holds ("pagerduty", "uptime kuma") opens the import.
+ */
+export const PALETTE_ANOTHER_PRODUCT_SEARCH_PENALTY: number = 12;
+
 // ---- ":"-guard --------------------------------------------------------------
 
 /*
@@ -182,6 +191,11 @@ export interface PageSearchCommandDescriptor {
    * before (PaletteCommand.onPageCommandId).
    */
   onPageId?: string | undefined;
+  /*
+   * Named for another product: it gives way to OneUptime's own pages
+   * (PALETTE_ANOTHER_PRODUCT_SEARCH_PENALTY).
+   */
+  isNamedForAnotherProduct?: boolean | undefined;
 }
 
 export interface BuildPageSearchCommandsInput {
@@ -254,6 +268,26 @@ const englishUnlessShown: (shown: string, english: string) => Array<string> = (
   english: string,
 ): Array<string> => {
   return isSameName(shown, english) ? [] : [english];
+};
+
+/*
+ * A title with its {{placeholders}} filled, after it is translated: the
+ * values are brands ("PagerDuty"), the same in every language.
+ */
+export const fillPageSearchTitle: (
+  title: string,
+  values: Record<string, string> | undefined,
+) => string = (
+  title: string,
+  values: Record<string, string> | undefined,
+): string => {
+  let filled: string = title;
+
+  for (const name of Object.keys(values || {})) {
+    filled = filled.split(`{{${name}}}`).join(values![name]!);
+  }
+
+  return filled;
 };
 
 /*
@@ -397,12 +431,24 @@ export function buildPageSearchCommandDescriptors(
             continue;
           }
 
-          const actionTitle: string = input.translate(action.title);
+          const actionTitle: string = fillPageSearchTitle(
+            input.translate(action.title),
+            action.titleValues,
+          );
+          const englishActionTitle: string = fillPageSearchTitle(
+            action.title,
+            action.titleValues,
+          );
+          // Its own query string, where it opens the page on itself.
+          const actionRoutePath: string =
+            action.queryString !== undefined
+              ? path + action.queryString
+              : routePath;
 
           descriptors.push({
             id: slugifyPaletteCommandId("page-action", action.id),
             title: actionTitle,
-            titleAliases: englishUnlessShown(actionTitle, action.title),
+            titleAliases: englishUnlessShown(actionTitle, englishActionTitle),
             keywords: action.keywords || [],
             breadcrumb: onPageBreadcrumb,
             breadcrumbKeywords: [...breadcrumbKeywords, page.title],
@@ -413,11 +459,14 @@ export function buildPageSearchCommandDescriptors(
              * More settings opens there.
              */
             routePath: action.anchor
-              ? `${routePath}#${action.anchor}`
-              : routePath,
+              ? `${actionRoutePath}#${action.anchor}`
+              : actionRoutePath,
             areaId: area.id,
             isAction: true,
             isSetting: false,
+            ...(action.isNamedForAnotherProduct
+              ? { isNamedForAnotherProduct: true }
+              : {}),
           });
         }
 
@@ -471,6 +520,7 @@ export function buildPageSearchCommandDescriptors(
 export interface PageSearchCommandRanking {
   searchPriority: number;
   onPageCommandId?: string | undefined;
+  searchPenalty?: number | undefined;
 }
 
 export const getPageSearchCommandRanking: (
@@ -478,6 +528,14 @@ export const getPageSearchCommandRanking: (
 ) => PageSearchCommandRanking = (
   descriptor: PageSearchCommandDescriptor,
 ): PageSearchCommandRanking => {
+  // "Import from PagerDuty" gives way to OneUptime's own pages.
+  if (descriptor.isNamedForAnotherProduct) {
+    return {
+      searchPriority: PALETTE_SEARCH_PRIORITY.page,
+      searchPenalty: PALETTE_ANOTHER_PRODUCT_SEARCH_PENALTY,
+    };
+  }
+
   if (!descriptor.isSetting) {
     return { searchPriority: PALETTE_SEARCH_PRIORITY.page };
   }

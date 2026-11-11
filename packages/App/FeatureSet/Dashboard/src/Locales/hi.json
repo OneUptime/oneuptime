@@ -50740,5 +50740,9 @@
   "Only you see this, as the server's admin.": "यह सिर्फ़ आपको दिखता है, क्योंकि आप सर्वर के एडमिन हैं।",
   "Server Setup Choices": "सर्वर सेटअप के विकल्प",
   "This server is not finished: {{count}} things to set up": "यह सर्वर अभी पूरा नहीं हुआ: {{count}} चीज़ें सेट अप करनी बाकी हैं",
-  "This server is not finished: {{count}} things to set up_one": "यह सर्वर अभी पूरा नहीं हुआ: {{count}} चीज़ सेट अप करनी बाकी है"
+  "This server is not finished: {{count}} things to set up_one": "यह सर्वर अभी पूरा नहीं हुआ: {{count}} चीज़ सेट अप करनी बाकी है",
+  "Import from {{tools}}": "{{tools}} से इंपोर्ट करें",
+  "Import from {{tools}} and others": "{{tools}} और अन्य से इंपोर्ट करें",
+  "Import from {{tool}}": "{{tool}} से इंपोर्ट करें",
+  "Show every tool": "सभी टूल दिखाएं"
 }

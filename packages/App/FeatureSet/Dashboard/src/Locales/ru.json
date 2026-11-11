@@ -50740,5 +50740,9 @@
   "Only you see this, as the server's admin.": "Это видите только вы как администратор сервера.",
   "Server Setup Choices": "Выбор при настройке сервера",
   "This server is not finished: {{count}} things to set up": "Сервер не настроен до конца: осталось пунктов — {{count}}",
-  "This server is not finished: {{count}} things to set up_one": "Сервер не настроен до конца: остался {{count}} пункт"
+  "This server is not finished: {{count}} things to set up_one": "Сервер не настроен до конца: остался {{count}} пункт",
+  "Import from {{tools}}": "Импорт из {{tools}}",
+  "Import from {{tools}} and others": "Импорт из {{tools}} и других",
+  "Import from {{tool}}": "Импорт из {{tool}}",
+  "Show every tool": "Показать все инструменты"
 }

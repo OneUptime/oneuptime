@@ -3,6 +3,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import {
   getToolImportSourceDefinition,
+  getToolImportSourcesThatFill,
   GRAFANA_ONCALL_API_URL_EXAMPLE,
   INCIDENT_IO_HOST,
   isToolImportAddressGiven,
@@ -54,6 +55,92 @@ import ToolImportSource, {
  * selection a start request sends (checked before anything uses it) and
  * the stored report (read back defensively).
  */
+
+/*
+ * Which tools fill a list (#6809): what an empty Monitors, On-Call or
+ * Status Pages list names when it offers the importer, and the tools the
+ * importer opens on from there.
+ */
+describe("getToolImportSourcesThatFill", () => {
+  test("Monitors: the uptime tools that check something, not Atlassian Statuspage, whose components come over as manual monitors", () => {
+    expect(
+      getToolImportSourcesThatFill(ToolImportResourceKind.Monitor),
+    ).toEqual([
+      ToolImportSource.UptimeRobot,
+      ToolImportSource.BetterStack,
+      ToolImportSource.Pingdom,
+      ToolImportSource.StatusCake,
+      ToolImportSource.UptimeKuma,
+    ]);
+    // It does bring monitors over: it is left out of the list on purpose.
+    expect(
+      getToolImportSourceDefinition(ToolImportSource.AtlassianStatuspage).kinds,
+    ).toContain(ToolImportResourceKind.Monitor);
+  });
+
+  test("On-Call Policies and Schedules: the five on-call tools, Opsgenie first", () => {
+    const onCallTools: Array<ToolImportSource> = [
+      ToolImportSource.OpsGenie,
+      ToolImportSource.PagerDuty,
+      ToolImportSource.IncidentIo,
+      ToolImportSource.SplunkOnCall,
+      ToolImportSource.GrafanaOnCall,
+    ];
+
+    expect(
+      getToolImportSourcesThatFill(ToolImportResourceKind.OnCallPolicy),
+    ).toEqual(onCallTools);
+    expect(
+      getToolImportSourcesThatFill(ToolImportResourceKind.OnCallSchedule),
+    ).toEqual(onCallTools);
+  });
+
+  test("Status Pages: the three tools that bring pages, Atlassian Statuspage among them", () => {
+    expect(
+      getToolImportSourcesThatFill(ToolImportResourceKind.StatusPage),
+    ).toEqual([
+      ToolImportSource.UptimeRobot,
+      ToolImportSource.AtlassianStatuspage,
+      ToolImportSource.BetterStack,
+    ]);
+  });
+
+  test("every kind lists only tools that bring it, in the order the importer offers them", () => {
+    for (const kind of ToolImportResourceKindOrder) {
+      const sources: Array<ToolImportSource> =
+        getToolImportSourcesThatFill(kind);
+
+      for (const source of sources) {
+        expect({ kind, source, brings: true }).toEqual({
+          kind,
+          source,
+          brings: getToolImportSourceDefinition(source).kinds.includes(kind),
+        });
+      }
+
+      expect(sources).toEqual(
+        AllToolImportSources.filter((source: ToolImportSource): boolean => {
+          return sources.includes(source);
+        }),
+      );
+    }
+  });
+
+  test("every tool fills at least one of the lists that offer the importer", () => {
+    const filled: Set<ToolImportSource> = new Set<ToolImportSource>(
+      [
+        ToolImportResourceKind.Monitor,
+        ToolImportResourceKind.OnCallPolicy,
+        ToolImportResourceKind.OnCallSchedule,
+        ToolImportResourceKind.StatusPage,
+      ].flatMap((kind: ToolImportResourceKind): Array<ToolImportSource> => {
+        return getToolImportSourcesThatFill(kind);
+      }),
+    );
+
+    expect(Array.from(filled).sort()).toEqual([...AllToolImportSources].sort());
+  });
+});
 
 describe("ToolImportCatalog", () => {
   test("every tool has a definition with its own hosts, a docs page and what it brings", () => {

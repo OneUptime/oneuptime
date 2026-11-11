@@ -50740,5 +50740,9 @@
   "Only you see this, as the server's admin.": "لا يرى هذا غيرك، بصفتك مسؤول الخادم.",
   "Server Setup Choices": "اختيارات إعداد الخادم",
   "This server is not finished: {{count}} things to set up": "لم يكتمل إعداد هذا الخادم. العناصر المتبقية: {{count}}",
-  "This server is not finished: {{count}} things to set up_one": "لم يكتمل إعداد هذا الخادم. العناصر المتبقية: {{count}}"
+  "This server is not finished: {{count}} things to set up_one": "لم يكتمل إعداد هذا الخادم. العناصر المتبقية: {{count}}",
+  "Import from {{tools}}": "الاستيراد من {{tools}}",
+  "Import from {{tools}} and others": "الاستيراد من {{tools}} وغيرها",
+  "Import from {{tool}}": "الاستيراد من {{tool}}",
+  "Show every tool": "إظهار كل الأدوات"
 }
