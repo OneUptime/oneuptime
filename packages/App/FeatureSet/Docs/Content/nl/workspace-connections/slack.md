@@ -43,7 +43,7 @@ Eén Slack-workspace kan aan meer dan één project gekoppeld zijn, zoals produc
 :::steps
 ### OneUptime installeren in je Slack-workspace
 
-Ga naar **Projectinstellingen** > **Werkruimte** > **Slack** en klik op **Connect with Slack**. Kies de workspace en sta OneUptime toe. Slack stuurt je terug naar dezelfde pagina, die nu de workspace noemt waaraan het project is gekoppeld. Zolang er geen workspace is gekoppeld, bevat de sectie **Werkruimte** van de menu's Incidenten, Waarschuwingen, Gepland onderhoud, Monitoren en Bereikbaarheidsdienst **Werkruimte koppelen**, dat ook hierheen leidt.
+Ga naar **Projectinstellingen** > **Werkruimte** > **Slack** en klik op **Verbinden met Slack**. Kies de workspace en sta OneUptime toe. Slack stuurt je terug naar dezelfde pagina, die nu de workspace noemt waaraan het project is gekoppeld. Zolang er geen workspace is gekoppeld, bevat de sectie **Werkruimte** van de menu's Incidenten, Waarschuwingen, Gepland onderhoud, Monitoren en Bereikbaarheidsdienst **Werkruimte koppelen**, dat ook hierheen leidt.
 
 ### Je eigen Slack-account koppelen
 
@@ -62,7 +62,7 @@ Klik op **Testregel** in de rij van de regel. Er komt een testbericht aan in de 
 
 Met Slack Enterprise Grid kan één project werken in meerdere workspaces van je organisatie. Installeer OneUptime daarvoor voor de hele organisatie in plaats van voor één workspace:
 
-1. Een beheerder of eigenaar van de organisatie klikt op **Connect with Slack** onder **Projectinstellingen** > **Werkruimte** > **Slack**, kiest op de installatiepagina van Slack de organisatie in plaats van een van haar workspaces en geeft OneUptime toestemming.
+1. Een beheerder of eigenaar van de organisatie klikt op **Verbinden met Slack** onder **Projectinstellingen** > **Werkruimte** > **Slack**, kiest op de installatiepagina van Slack de organisatie in plaats van een van haar workspaces en geeft OneUptime toestemming.
 2. In de organisatie-instellingen van Slack voegt een beheerder OneUptime toe aan elke workspace die het moet gebruiken.
 3. De kaart **Slack-werkruimtes** toont die workspaces. Klik op **Vernieuwen** nadat OneUptime aan een andere workspace is toegevoegd.
 
@@ -313,7 +313,7 @@ Als de openbare notities van uw project goedgekeurd moeten worden en u Slack aan
 ## Ontkoppelen
 
 - **Verbinding verbreken** ontkoppelt alleen je eigen Slack-account, en verwijdert daarmee ook je Slack-meldingsmethode.
-- **Uninstall OneUptime from Slack**, op **Projectinstellingen** > **Werkruimte** > **Slack**, ontkoppelt het project. OneUptime stopt met plaatsen in Slack, en de **Werkruimte**-menu's tonen het niet meer. De meldingsregels en samenvattingen blijven bewaard voor als je opnieuw koppelt.
+- **OneUptime verwijderen uit Slack**, op **Projectinstellingen** > **Werkruimte** > **Slack**, ontkoppelt het project. OneUptime stopt met plaatsen in Slack, en de **Werkruimte**-menu's tonen het niet meer. De meldingsregels en samenvattingen blijven bewaard voor als je opnieuw koppelt.
 
 > [!WARNING]
 > Verwijderen ontkoppelt ook het Slack-account van elk lid van het project, en verwijdert de Slack-meldingsmethoden en de bereikbaarheidsregels die ze gebruikten. Wie in Slack werd opgeroepen, wordt via zijn andere meldingsmethoden opgeroepen tot hij Slack opnieuw toevoegt.

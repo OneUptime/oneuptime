@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50316,
-    "untranslated": 10151
+    "keys": 50317,
+    "untranslated": 9926
   },
   "sameAsEnglish": [
     " is",
@@ -41,6 +41,7 @@
     "Alias",
     "Amphora",
     "Amphorae",
+    "Angular (Browser)",
     "Apache Kafka · kafka-1:9092",
     "App",
     "Appliance",
@@ -170,6 +171,7 @@
     "HTML, CSS & JavaScript",
     "HTTP {{status}}",
     "Hardware",
+    "Hash",
     "Headers (JSON)",
     "Hertz",
     "Histogram",
@@ -224,6 +226,7 @@
     "Items",
     "Japan (+81)",
     "Jitter (in ms)",
+    "Journeys",
     "Kelvin",
     "Kernel",
     "Keystone",
@@ -352,6 +355,7 @@
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
+    "React (Browser)",
     "Real User Monitoring",
     "Recent",
     "Record",

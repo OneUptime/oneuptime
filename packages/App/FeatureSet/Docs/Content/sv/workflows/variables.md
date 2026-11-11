@@ -63,12 +63,12 @@ Listan visar varje variabels namn och beskrivning. Klicka på **Visa** på en ra
 
 | Knapp                                      | Vad den gör                                                                                                                                      |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Redigera Variabel**                      | Ändrar namnet, beskrivningen och — för en statisk variabel som ännu inte är hemlig — hemlighetsmarkeringen. När en variabel väl är hemlig förblir den hemlig. |
-| **Update Content**                         | Ersätter ett statiskt värde. Det sparade innehållet kan inte läsas tillbaka, så du skriver det nya värdet i sin helhet.                          |
-| **Use in Workflows**                       | Visar den exakta referensen att klistra in i dina block, med en kopieringsknapp.                                                                 |
+| **Redigera variabel**                      | Ändrar namnet, beskrivningen och — för en statisk variabel som ännu inte är hemlig — hemlighetsmarkeringen. När en variabel väl är hemlig förblir den hemlig. |
+| **Uppdatera innehåll**                         | Ersätter ett statiskt värde. Det sparade innehållet kan inte läsas tillbaka, så du skriver det nya värdet i sin helhet.                          |
+| **Använd i arbetsflöden**                       | Visar den exakta referensen att klistra in i dina block, med en kopieringsknapp.                                                                 |
 | **Ta bort Arbetsflödesvariabel**           | Tar bort den efter att ha bett dig bekräfta. Bekräftelsen nämner variabeln, så att du kan kontrollera att det är rätt.                            |
 
-För att i stället skapa en variabel för en **OAuth 2.0-åtkomsttoken** öppnar du menyn **Mer** (**⋯**) bredvid **Skapa Arbetsflödesvariabel** och väljer **Create OAuth 2.0 Variable**. OAuth 2.0-variabler har [ett eget avsnitt](#oauth-20-variabler-token-som-förnyar-sig-själva) nedan. En variabels typ kan inte ändras efter att den har sparats.
+För att i stället skapa en variabel för en **OAuth 2.0-åtkomsttoken** öppnar du menyn **Mer** (**⋯**) bredvid **Skapa Arbetsflödesvariabel** och väljer **Skapa OAuth 2.0-variabel**. OAuth 2.0-variabler har [ett eget avsnitt](#oauth-20-variabler-token-som-förnyar-sig-själva) nedan. En variabels typ kan inte ändras efter att den har sparats.
 
 Du kan också uppdatera en variabel via API:t, vilket beskrivs [i slutet av den här sidan](#uppdatera-en-variabel-från-ett-arbetsflöde). Globala variabler och arbetsflödesvariabler är en funktion i planen Growth.
 
@@ -123,7 +123,7 @@ sequenceDiagram
 
 ### Skapa en
 
-**Create OAuth 2.0 Variable** frågar efter en sak per steg:
+**Skapa OAuth 2.0-variabel** frågar efter en sak per steg:
 
 1. **Variabel**: namnet som arbetsflöden hänvisar till den med, och en beskrivning.
 2. **Leverantör**: välj din **Identitetsleverantör**, så fyller OneUptime i dess **Token-URL**:
@@ -146,7 +146,7 @@ Under vissa fält lägger formuläret till en hjälprad för leverantören du va
 
 När du sparar en ny OAuth 2.0-variabel hämtar OneUptime dess första token direkt och berättar vad leverantören svarade. Ett stavfel i hemligheten eller URL:en syns då, inte timmar senare i en misslyckad körning. Att hämta en token skriver till variabeln, så det kräver behörighet att redigera arbetsflödesvariabler; kan du skapa variabler men inte redigera dem är det den första arbetsflödeskörningen som använder variabeln som hämtar dess token.
 
-Variabelns sida (klicka på **Visa** på dess rad) har ett kort **OAuth 2.0 Settings**. **Redigera inställningar** går igenom samma steg **Leverantör** (token-URL), **Autentiseringsuppgifter** (klient-ID) och **Avancerad** (omfattning, ytterligare parametrar, klientautentisering). **Nästa** går vidare, och **Spara ändringar** finns på det sista steget. Varje steg är redan ifyllt, så steglistan bredvid formuläret öppnar vilket som helst av dem: ändra en inställning på dess steg, öppna sedan det sista steget och spara. Beviljandetypen är fast när den har sparats.
+Variabelns sida (klicka på **Visa** på dess rad) har ett kort **OAuth 2.0-inställningar**. **Redigera inställningar** går igenom samma steg **Leverantör** (token-URL), **Autentiseringsuppgifter** (klient-ID) och **Avancerad** (omfattning, ytterligare parametrar, klientautentisering). **Nästa** går vidare, och **Spara ändringar** finns på det sista steget. Varje steg är redan ifyllt, så steglistan bredvid formuläret öppnar vilket som helst av dem: ändra en inställning på dess steg, öppna sedan det sista steget och spara. Beviljandetypen är fast när den har sparats.
 
 ### Kortet Åtkomsttoken
 
@@ -160,7 +160,7 @@ Kortet **Åtkomsttoken** på en OAuth 2.0-variabels sida visar en av de här sta
 | **No expiry reported**     | Leverantören sa inte när token går ut, så varje körning hämtar en ny.                                                                |
 | **Refresh failed**         | Det senaste försöket att hämta en token misslyckades. Leverantörens orsak visas i sin helhet, med när det hände. Nästa lyckade förnyelse rensar den. |
 
-**Uppdatera nu**, under statusen, hämtar en ny token direkt. Använd den för att kontrollera nya inställningar utan att köra ett arbetsflöde. **Uppdatera inloggningsuppgifter**, på kortet **OAuth 2.0 Settings**, ersätter klienthemligheten eller refresh token och hämtar sedan en token med dem. Ändrar du en inställning (token-URL, klient-ID, omfattning och så vidare) kasseras den cachade token, så att nästa körning hämtar en med de nya inställningarna.
+**Uppdatera nu**, under statusen, hämtar en ny token direkt. Använd den för att kontrollera nya inställningar utan att köra ett arbetsflöde. **Uppdatera inloggningsuppgifter**, på kortet **OAuth 2.0-inställningar**, ersätter klienthemligheten eller refresh token och hämtar sedan en token med dem. Ändrar du en inställning (token-URL, klient-ID, omfattning och så vidare) kasseras den cachade token, så att nästa körning hämtar en med de nya inställningarna.
 
 ### När leverantören säger nej
 

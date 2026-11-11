@@ -63,12 +63,12 @@ Listen viser hver variabels navn og beskrivelse. Klik på **Vis** i en række fo
 
 | Knap                                       | Hvad den gør                                                                                                                                     |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Rediger Variabel**                       | Ændrer navnet, beskrivelsen og — for en statisk variabel, der endnu ikke er hemmelig — hemmeligheds-markeringen. Når en variabel først er hemmelig, forbliver den hemmelig. |
-| **Update Content**                         | Erstatter en statisk værdi. Det gemte indhold kan ikke læses tilbage, så du skriver den nye værdi i sin helhed.                                  |
-| **Use in Workflows**                       | Viser den præcise reference, du skal indsætte i dine blokke, med en kopieringsknap.                                                              |
+| **Rediger variabel**                       | Ændrer navnet, beskrivelsen og — for en statisk variabel, der endnu ikke er hemmelig — hemmeligheds-markeringen. Når en variabel først er hemmelig, forbliver den hemmelig. |
+| **Opdater indhold**                         | Erstatter en statisk værdi. Det gemte indhold kan ikke læses tilbage, så du skriver den nye værdi i sin helhed.                                  |
+| **Brug i arbejdsgange**                       | Viser den præcise reference, du skal indsætte i dine blokke, med en kopieringsknap.                                                              |
 | **Slet Workflow Variabel**                 | Sletter den, efter at have bedt dig bekræfte. Bekræftelsen nævner variablen, så du kan tjekke, at det er den rigtige.                             |
 
-For i stedet at oprette en variabel til et **OAuth 2.0-adgangstoken** åbner du menuen **Mere** (**⋯**) ved siden af **Opret Workflow Variabel** og vælger **Create OAuth 2.0 Variable**. OAuth 2.0-variabler har [deres egen sektion](#oauth-20-variabler-tokens-der-fornyer-sig-selv) nedenfor. En variabels type kan ikke ændres, efter at den er gemt.
+For i stedet at oprette en variabel til et **OAuth 2.0-adgangstoken** åbner du menuen **Mere** (**⋯**) ved siden af **Opret Workflow Variabel** og vælger **Opret OAuth 2.0-variabel**. OAuth 2.0-variabler har [deres egen sektion](#oauth-20-variabler-tokens-der-fornyer-sig-selv) nedenfor. En variabels type kan ikke ændres, efter at den er gemt.
 
 Du kan også opdatere en variabel via API'et, hvilket er beskrevet [sidst på denne side](#opdatér-en-variabel-fra-et-workflow). Globale variabler og workflowvariabler er en funktion i abonnementet Growth.
 
@@ -123,7 +123,7 @@ sequenceDiagram
 
 ### Opret en
 
-**Create OAuth 2.0 Variable** spørger om én ting pr. trin:
+**Opret OAuth 2.0-variabel** spørger om én ting pr. trin:
 
 1. **Variabel**: det navn, workflows henviser til den med, og en beskrivelse.
 2. **Udbyder**: vælg din **Identitetsudbyder**, så udfylder OneUptime dens **Token-URL**:
@@ -146,7 +146,7 @@ Under nogle felter tilføjer formularen en hjælpelinje til den udbyder, du valg
 
 Når du gemmer en ny OAuth 2.0-variabel, henter OneUptime dens første token med det samme og fortæller dig, hvad udbyderen svarede. En slåfejl i hemmeligheden eller URL'en viser sig da, ikke timer senere i en mislykket kørsel. At hente et token skriver til variablen, så det kræver tilladelse til at redigere workflowvariabler; kan du oprette variabler, men ikke redigere dem, er det den første workflowkørsel, der bruger variablen, der henter dens token.
 
-Variablens side (klik på **Vis** i dens række) har et kort **OAuth 2.0 Settings**. **Rediger indstillinger** går gennem de samme trin **Udbyder** (token-URL), **Loginoplysninger** (klient-ID) og **Avanceret** (omfang, yderligere parametre, klientgodkendelse). **Næste** går videre, og **Gem ændringer** er på det sidste trin. Hvert trin er allerede udfyldt, så trinlisten ved siden af formularen åbner ethvert af dem: ændr én indstilling på dens trin, åbn så det sidste trin, og gem. Tildelingstypen er fast, når den er gemt.
+Variablens side (klik på **Vis** i dens række) har et kort **OAuth 2.0-indstillinger**. **Rediger indstillinger** går gennem de samme trin **Udbyder** (token-URL), **Loginoplysninger** (klient-ID) og **Avanceret** (omfang, yderligere parametre, klientgodkendelse). **Næste** går videre, og **Gem ændringer** er på det sidste trin. Hvert trin er allerede udfyldt, så trinlisten ved siden af formularen åbner ethvert af dem: ændr én indstilling på dens trin, åbn så det sidste trin, og gem. Tildelingstypen er fast, når den er gemt.
 
 ### Kortet Adgangstoken
 
@@ -160,7 +160,7 @@ Kortet **Adgangstoken** på en OAuth 2.0-variabels side viser en af disse status
 | **No expiry reported**     | Udbyderen sagde ikke, hvornår tokenet udløber, så hver kørsel henter et nyt.                                                         |
 | **Refresh failed**         | Det seneste forsøg på at hente et token mislykkedes. Udbyderens årsag vises i sin helhed, med hvornår det skete. Den næste vellykkede fornyelse rydder den. |
 
-**Opdater nu**, under statussen, henter et nyt token med det samme. Brug den til at tjekke nye indstillinger uden at køre et workflow. **Opdater legitimationsoplysninger**, på kortet **OAuth 2.0 Settings**, erstatter klienthemmeligheden eller refresh tokenet og henter derefter et token med dem. Ændrer du en indstilling (token-URL, klient-ID, omfang og så videre), kasseres det cachede token, så den næste kørsel henter et med de nye indstillinger.
+**Opdater nu**, under statussen, henter et nyt token med det samme. Brug den til at tjekke nye indstillinger uden at køre et workflow. **Opdater legitimationsoplysninger**, på kortet **OAuth 2.0-indstillinger**, erstatter klienthemmeligheden eller refresh tokenet og henter derefter et token med dem. Ændrer du en indstilling (token-URL, klient-ID, omfang og så videre), kasseres det cachede token, så den næste kørsel henter et med de nye indstillinger.
 
 ### Når udbyderen siger nej
 

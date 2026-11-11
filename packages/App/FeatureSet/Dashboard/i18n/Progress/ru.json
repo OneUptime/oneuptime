@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50316,
-    "untranslated": 10089
+    "keys": 50317,
+    "untranslated": 9867
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -27,6 +27,7 @@
     "CPU Ready {{percent}}",
     "Canonical Sunbeam",
     "ClickHouse",
+    "Client ID",
     "CloudKitty",
     "CloudWatch Metric Streams",
     "CrowdStrike",

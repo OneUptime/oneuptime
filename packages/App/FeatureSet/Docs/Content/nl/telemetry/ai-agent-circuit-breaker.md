@@ -193,7 +193,7 @@ De titel is leeg of komt niet overeen. Een veld dat niet in **Fields to pass on*
 :::
 
 :::details Je endpoint antwoordt 401
-De header `Authorization` komt niet overeen met het token dat je endpoint verwacht. Controleer de naam in `{{global.variables.AGENT_KILL_TOKEN}}` en de waarde die in de globale variabele is opgeslagen. De waarde van een geheime variabele kan niet worden teruggelezen, dus typ hem bij twijfel opnieuw met **Update Content**.
+De header `Authorization` komt niet overeen met het token dat je endpoint verwacht. Controleer de naam in `{{global.variables.AGENT_KILL_TOKEN}}` en de waarde die in de globale variabele is opgeslagen. De waarde van een geheime variabele kan niet worden teruggelezen, dus typ hem bij twijfel opnieuw met **Inhoud bijwerken**.
 :::
 
 :::details De budgetwaarschuwing gaat steeds open en dicht

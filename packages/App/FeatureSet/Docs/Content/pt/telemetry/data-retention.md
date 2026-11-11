@@ -53,7 +53,7 @@ Acesse **Configurações do projeto → Telemetria e APM → Retenção de dados
 
 ### Definir o número de dias
 
-Clique em **Edit Retention Settings**, digite o número de dias, pelo menos 1, e clique em **Salvar alterações**.
+Clique em **Editar configurações de retenção**, digite o número de dias, pelo menos 1, e clique em **Salvar alterações**.
 :::
 
 O novo número vale para cada entrada que chega a partir de então e não tem uma substituição própria.

@@ -258,7 +258,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 把令牌作为 [OAuth 2.0 变量](/docs/workflows/variables#oauth-20-变量会自动刷新的令牌) 创建一次，供所有工作流使用：
 
-1. 前往 **工作流 → 全局变量**，打开 **创建工作流变量** 旁边的 **更多** 菜单（**⋯**），选择 **Create OAuth 2.0 Variable**。将其命名为 `DYNAMICS_TOKEN`。
+1. 前往 **工作流 → 全局变量**，打开 **创建工作流变量** 旁边的 **更多** 菜单（**⋯**），选择 **创建 OAuth 2.0 变量**。将其命名为 `DYNAMICS_TOKEN`。
 2. 在 **提供商** 中选择 **Microsoft Entra ID**，把 **令牌 URL** 中的 `{tenant-id}` 替换为你的 Directory (tenant) ID，然后选择 **Client Credentials**。
 3. 在 **凭据** 中输入 **客户端 ID** 和 **客户端密钥**。在 **高级** 中把作用域设为 `https://yourorg.crm.dynamics.com/.default`，然后创建变量。
 

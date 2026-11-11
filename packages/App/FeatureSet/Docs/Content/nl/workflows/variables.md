@@ -64,11 +64,11 @@ De lijst toont de naam en de beschrijving van elke variabele. Klik op **Bekijken
 | Knop                                       | Wat hij doet                                                                                                                                     |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Variabele bewerken**                     | Wijzigt de naam, de beschrijving en — bij een statische variabele die nog niet geheim is — de geheim-markering. Is een variabele eenmaal geheim, dan blijft ze geheim. |
-| **Update Content**                         | Vervangt een statische waarde. De opgeslagen inhoud kan niet worden teruggelezen, dus je typt de nieuwe waarde helemaal.                         |
-| **Use in Workflows**                       | Toont de exacte verwijzing om in je blokken te plakken, met een kopieerknop.                                                                     |
+| **Inhoud bijwerken**                         | Vervangt een statische waarde. De opgeslagen inhoud kan niet worden teruggelezen, dus je typt de nieuwe waarde helemaal.                         |
+| **Gebruiken in workflows**                       | Toont de exacte verwijzing om in je blokken te plakken, met een kopieerknop.                                                                     |
 | **Workflowvariabele verwijderen**         | Verwijdert haar, nadat je hebt bevestigd. De bevestiging noemt de variabele, zodat je kunt controleren dat het de juiste is.                      |
 
-Om in plaats daarvan een variabele voor een **OAuth 2.0-toegangstoken** te maken, open je het menu **Meer** (**⋯**) naast **Workflowvariabele aanmaken** en kies je **Create OAuth 2.0 Variable**. OAuth 2.0-variabelen hebben [een eigen sectie](#oauth-20-variabelen-tokens-die-zichzelf-vernieuwen) hieronder. Het type van een variabele kan na het opslaan niet meer worden gewijzigd.
+Om in plaats daarvan een variabele voor een **OAuth 2.0-toegangstoken** te maken, open je het menu **Meer** (**⋯**) naast **Workflowvariabele aanmaken** en kies je **OAuth 2.0-variabele maken**. OAuth 2.0-variabelen hebben [een eigen sectie](#oauth-20-variabelen-tokens-die-zichzelf-vernieuwen) hieronder. Het type van een variabele kan na het opslaan niet meer worden gewijzigd.
 
 Je kunt een variabele ook bijwerken via de API; dat wordt [aan het eind van deze pagina](#een-variabele-bijwerken-vanuit-een-workflow) uitgelegd. Globale variabelen en workflow-variabelen zijn een functie van het abonnement Growth.
 
@@ -123,7 +123,7 @@ sequenceDiagram
 
 ### Er een maken
 
-**Create OAuth 2.0 Variable** vraagt één ding per stap:
+**OAuth 2.0-variabele maken** vraagt één ding per stap:
 
 1. **Variabele**: de naam waarmee workflows ernaar verwijzen, en een beschrijving.
 2. **Provider**: kies je **Identiteitsprovider** en OneUptime vult de **Token-URL** ervan in:
@@ -146,7 +146,7 @@ Onder sommige velden voegt het formulier een regel hulp toe voor de provider die
 
 Als je een nieuwe OAuth 2.0-variabele opslaat, haalt OneUptime meteen het eerste token op en vertelt je wat de provider antwoordde. Een typfout in het secret of de URL komt dan aan het licht, niet uren later in een mislukte uitvoering. Een token ophalen schrijft naar de variabele, dus daarvoor heb je toestemming nodig om workflow-variabelen te bewerken; kun je variabelen wel maken maar niet bewerken, dan haalt de eerste workflow-uitvoering die de variabele gebruikt het token op.
 
-De pagina van de variabele (klik op **Bekijken** in de rij) heeft een kaart **OAuth 2.0 Settings**. **Instellingen bewerken** loopt door dezelfde stappen **Provider** (token-URL), **Inloggegevens** (client-ID) en **Geavanceerd** (scope, extra parameters, clientauthenticatie). **Volgende** gaat verder en **Wijzigingen opslaan** staat op de laatste stap. Elke stap is al ingevuld, dus de stappenlijst naast het formulier opent elke stap: wijzig een instelling op haar stap, open dan de laatste stap en sla op. Het granttype ligt vast zodra het is opgeslagen.
+De pagina van de variabele (klik op **Bekijken** in de rij) heeft een kaart **OAuth 2.0-instellingen**. **Instellingen bewerken** loopt door dezelfde stappen **Provider** (token-URL), **Inloggegevens** (client-ID) en **Geavanceerd** (scope, extra parameters, clientauthenticatie). **Volgende** gaat verder en **Wijzigingen opslaan** staat op de laatste stap. Elke stap is al ingevuld, dus de stappenlijst naast het formulier opent elke stap: wijzig een instelling op haar stap, open dan de laatste stap en sla op. Het granttype ligt vast zodra het is opgeslagen.
 
 ### De kaart Toegangstoken
 
@@ -160,7 +160,7 @@ De kaart **Toegangstoken** op de pagina van een OAuth 2.0-variabele toont een va
 | **No expiry reported**     | De provider zei niet wanneer het token verloopt, dus elke uitvoering haalt een nieuw token op.                                       |
 | **Refresh failed**         | De laatste poging om een token op te halen mislukte. De reden van de provider staat er volledig, met het moment waarop het gebeurde. De volgende geslaagde vernieuwing wist het. |
 
-**Nu vernieuwen**, onder de status, haalt meteen een nieuw token op. Gebruik het om nieuwe instellingen te controleren zonder een workflow uit te voeren. **Inloggegevens bijwerken**, op de kaart **OAuth 2.0 Settings**, vervangt het client-secret of het refresh token en haalt daarmee daarna een token op. Een instelling wijzigen (token-URL, client-ID, scope enzovoort) gooit het token in de cache weg, zodat de volgende uitvoering er een ophaalt met de nieuwe instellingen.
+**Nu vernieuwen**, onder de status, haalt meteen een nieuw token op. Gebruik het om nieuwe instellingen te controleren zonder een workflow uit te voeren. **Inloggegevens bijwerken**, op de kaart **OAuth 2.0-instellingen**, vervangt het client-secret of het refresh token en haalt daarmee daarna een token op. Een instelling wijzigen (token-URL, client-ID, scope enzovoort) gooit het token in de cache weg, zodat de volgende uitvoering er een ophaalt met de nieuwe instellingen.
 
 ### Als de provider nee zegt
 

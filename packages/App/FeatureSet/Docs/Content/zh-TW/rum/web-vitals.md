@@ -306,7 +306,7 @@ histogram.record(metric.value, {
 
 ## 疑難排解
 
-:::details 卡片顯示「No web vitals reported yet」
+:::details 卡片顯示「尚未回報 Web Vitals」
 卡片只由你的應用程式傳送的指標填入。請依序檢查：
 
 1. 你到底有沒有指標管線：只有追蹤永遠填不滿這張卡片。

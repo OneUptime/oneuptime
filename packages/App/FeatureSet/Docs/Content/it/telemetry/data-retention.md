@@ -53,7 +53,7 @@ Andate in **Impostazioni del progetto → Telemetria e APM → Conservazione dei
 
 ### Impostare il numero di giorni
 
-Fate clic su **Edit Retention Settings**, inserite il numero di giorni, almeno 1, e fate clic su **Salva modifiche**.
+Fate clic su **Modifica impostazioni di conservazione**, inserite il numero di giorni, almeno 1, e fate clic su **Salva modifiche**.
 :::
 
 Il nuovo numero si applica a ogni record che arriva da quel momento e che non ha una sostituzione propria.

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50316,
-    "untranslated": 10129
+    "keys": 50317,
+    "untranslated": 9907
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -97,6 +97,7 @@
     "HA: {{state}}",
     "HAProxy",
     "HTTP {{status}}",
+    "Hash",
     "Hertz",
     "Histogram",
     "Hunt",

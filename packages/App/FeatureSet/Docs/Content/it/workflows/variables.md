@@ -63,12 +63,12 @@ L'elenco mostra il nome e la descrizione di ogni variabile. Fai clic su **Visual
 
 | Pulsante                                       | Cosa fa                                                                                                                                          |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Modifica: Variabile**                        | Cambia il nome, la descrizione e — per una variabile statica non ancora segreta — il contrassegno di segreto. Una volta segreta, una variabile resta segreta. |
-| **Update Content**                             | Sostituisce un valore statico. Il contenuto salvato non può essere riletto, quindi scrivi il nuovo valore per intero.                           |
-| **Use in Workflows**                           | Mostra il riferimento esatto da incollare nei tuoi blocchi, con un pulsante per copiarlo.                                                        |
+| **Modifica variabile**                        | Cambia il nome, la descrizione e — per una variabile statica non ancora segreta — il contrassegno di segreto. Una volta segreta, una variabile resta segreta. |
+| **Aggiorna contenuto**                             | Sostituisce un valore statico. Il contenuto salvato non può essere riletto, quindi scrivi il nuovo valore per intero.                           |
+| **Usa nei flussi di lavoro**                           | Mostra il riferimento esatto da incollare nei tuoi blocchi, con un pulsante per copiarlo.                                                        |
 | **Elimina: Variabile del flusso di lavoro**        | La elimina, dopo averti chiesto conferma. La conferma nomina la variabile, così puoi verificare che sia quella giusta.                           |
 
-Per creare invece una variabile **token di accesso OAuth 2.0**, apri il menu **Altro** (**⋯**) accanto a **Crea: Variabile del flusso di lavoro** e scegli **Create OAuth 2.0 Variable**. Le variabili OAuth 2.0 hanno [una sezione tutta loro](#variabili-oauth-20-token-che-si-rinnovano-da-soli) più sotto. Il tipo di una variabile non può essere cambiato dopo il salvataggio.
+Per creare invece una variabile **token di accesso OAuth 2.0**, apri il menu **Altro** (**⋯**) accanto a **Crea: Variabile del flusso di lavoro** e scegli **Crea variabile OAuth 2.0**. Le variabili OAuth 2.0 hanno [una sezione tutta loro](#variabili-oauth-20-token-che-si-rinnovano-da-soli) più sotto. Il tipo di una variabile non può essere cambiato dopo il salvataggio.
 
 Puoi anche aggiornare una variabile tramite l'API, come spiegato [alla fine di questa pagina](#aggiornare-una-variabile-da-un-workflow). Le variabili globali e del workflow sono una funzione del piano Growth.
 
@@ -123,7 +123,7 @@ sequenceDiagram
 
 ### Crearne una
 
-**Create OAuth 2.0 Variable** chiede una cosa per passaggio:
+**Crea variabile OAuth 2.0** chiede una cosa per passaggio:
 
 1. **Variabile**: il nome con cui i workflow fanno riferimento alla variabile, e una descrizione.
 2. **Provider**: scegli il tuo **Provider di identità** e OneUptime compila il suo **URL del token**:
@@ -146,7 +146,7 @@ Sotto alcuni campi il modulo aggiunge una riga di aiuto per il provider che hai 
 
 Quando salvi una nuova variabile OAuth 2.0, OneUptime recupera subito il suo primo token e ti dice cosa ha risposto il provider. Un errore di battitura nel secret o nell'URL emerge in quel momento, non ore dopo in un'esecuzione non riuscita. Recuperare un token scrive nella variabile, quindi serve il permesso di modificare le variabili del workflow; se puoi creare variabili ma non modificarle, sarà la prima esecuzione di un workflow che usa la variabile a recuperarne il token.
 
-La pagina della variabile (fai clic su **Visualizza** nella sua riga) ha una scheda **OAuth 2.0 Settings**. **Modifica impostazioni** ripercorre gli stessi passaggi **Provider** (URL del token), **Credenziali** (client ID) e **Avanzato** (ambito, parametri aggiuntivi, autenticazione del client). **Avanti** prosegue e **Salva modifiche** è nell'ultimo passaggio. Ogni passaggio è già compilato, quindi l'elenco dei passaggi accanto al modulo apre uno qualsiasi di essi: cambia un'impostazione nel suo passaggio, poi apri l'ultimo passaggio e salva. Il tipo di concessione resta fisso una volta salvato.
+La pagina della variabile (fai clic su **Visualizza** nella sua riga) ha una scheda **Impostazioni OAuth 2.0**. **Modifica impostazioni** ripercorre gli stessi passaggi **Provider** (URL del token), **Credenziali** (client ID) e **Avanzato** (ambito, parametri aggiuntivi, autenticazione del client). **Avanti** prosegue e **Salva modifiche** è nell'ultimo passaggio. Ogni passaggio è già compilato, quindi l'elenco dei passaggi accanto al modulo apre uno qualsiasi di essi: cambia un'impostazione nel suo passaggio, poi apri l'ultimo passaggio e salva. Il tipo di concessione resta fisso una volta salvato.
 
 ### La scheda Token di accesso
 
@@ -160,7 +160,7 @@ La scheda **Token di accesso** nella pagina di una variabile OAuth 2.0 mostra un
 | **No expiry reported**     | Il provider non ha detto quando scade il token, quindi ogni esecuzione ne recupera uno nuovo.                                        |
 | **Refresh failed**         | L'ultimo tentativo di ottenere un token non è riuscito. Il motivo del provider viene mostrato per intero, con il momento in cui è successo. Il prossimo rinnovo riuscito lo cancella. |
 
-**Aggiorna ora**, sotto lo stato, recupera subito un nuovo token. Usalo per verificare nuove impostazioni senza eseguire un workflow. **Aggiorna le credenziali**, nella scheda **OAuth 2.0 Settings**, sostituisce il client secret o il refresh token, poi recupera un token con essi. Modificare qualsiasi impostazione (URL del token, client ID, ambito e così via) scarta il token in cache, quindi l'esecuzione successiva ne recupera uno con le nuove impostazioni.
+**Aggiorna ora**, sotto lo stato, recupera subito un nuovo token. Usalo per verificare nuove impostazioni senza eseguire un workflow. **Aggiorna le credenziali**, nella scheda **Impostazioni OAuth 2.0**, sostituisce il client secret o il refresh token, poi recupera un token con essi. Modificare qualsiasi impostazione (URL del token, client ID, ambito e così via) scarta il token in cache, quindi l'esecuzione successiva ne recupera uno con le nuove impostazioni.
 
 ### Quando il provider dice di no
 

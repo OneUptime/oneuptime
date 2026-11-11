@@ -53,7 +53,7 @@ Ga naar **Projectinstellingen → Telemetrie & APM → Gegevensbewaring**. **Tel
 
 ### Het aantal dagen instellen
 
-Klik op **Edit Retention Settings**, voer het aantal dagen in, minstens 1, en klik op **Wijzigingen opslaan**.
+Klik op **Bewaarinstellingen bewerken**, voer het aantal dagen in, minstens 1, en klik op **Wijzigingen opslaan**.
 :::
 
 Het nieuwe getal geldt voor elk record dat vanaf dan binnenkomt en geen eigen overschrijving heeft.

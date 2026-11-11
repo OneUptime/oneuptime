@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50316,
-    "untranslated": 10122
+    "keys": 50317,
+    "untranslated": 9895
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -25,6 +25,7 @@
     "Alias",
     "Amphora",
     "Amphorae",
+    "Angular (Browser)",
     "Apache Kafka · kafka-1:9092",
     "App",
     "Appliance",
@@ -60,6 +61,7 @@
     "Chat",
     "ClickHouse",
     "Client",
+    "Client ID",
     "Cloud",
     "CloudKitty",
     "Cluster",
@@ -124,6 +126,7 @@
     "HH",
     "HTTP {{status}}",
     "Hardware",
+    "Hash",
     "Hello world",
     "Hertz",
     "Home",
@@ -243,6 +246,7 @@
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
+    "React (Browser)",
     "Record",
     "Red Hat OpenShift",
     "RegionOne",

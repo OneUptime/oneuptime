@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50316,
-    "untranslated": 10126
+    "keys": 50317,
+    "untranslated": 9903
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -131,6 +131,7 @@
     "HAProxy",
     "HTTP {{status}}",
     "Hardware",
+    "Hash",
     "Hello world",
     "Hertz",
     "Histogram",

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50316,
-    "untranslated": 10108
+    "keys": 50317,
+    "untranslated": 9884
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -53,6 +53,7 @@
     "Chat",
     "Chats",
     "ClickHouse",
+    "Client ID",
     "CloudKitty",
     "Cluster",
     "Cluster {{cluster}}",
@@ -111,6 +112,7 @@
     "HH",
     "HTTP {{status}}",
     "Hardware",
+    "Hash",
     "Hertz",
     "Hong Kong (+852)",
     "Host",

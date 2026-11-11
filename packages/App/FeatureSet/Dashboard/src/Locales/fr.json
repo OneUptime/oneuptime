@@ -10744,7 +10744,7 @@
   "Fix performance with AI": "Accélérer avec l'IA",
   "Fix task created": "Tâche de correctif créée",
   "Fix these problems before importing:": "Corrigez ces problèmes avant d'importer :",
-  "Fixed once the variable is saved.": "Corrigé une fois la variable enregistrée.",
+  "Fixed once the variable is saved.": "Ne peut plus être modifié une fois la variable enregistrée.",
   "Fixes": "Correctifs",
   "Fixes OneUptime AI proposed or applied on this cluster, newest first.": "Correctifs proposés ou appliqués par l'IA de OneUptime sur ce cluster, du plus récent au plus ancien.",
   "Flags": "Indicateurs",
