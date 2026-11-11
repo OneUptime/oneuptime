@@ -6,7 +6,7 @@ Konfigurasjonen av varsler ligger under **Varsler**, ikke i **Prosjektinnstillin
 - [Reglene et nytt varsel går gjennom](#reglene-et-nytt-varsel-går-gjennom): I rekkefølge, og hva hver av dem gjør.
 - [Vaktregler](#vaktregler): Tilkall de riktige personene uten å velge en policy hver gang.
 - [Påminnelsesregler](#påminnelsesregler): Minn eiere på varselet så lenge det er åpent.
-- [Innstillinger](#innstillinger): Notatmaler, egendefinerte felt, målinger, medlemskap i episoder og nummerering.
+- [Innstillinger](#innstillinger): Notatmaler, egendefinerte felt, målinger, medlemskap i episoder, nummerering og dataoppbevaring.
 :::
 
 ## Hvor varselinnstillingene ligger
@@ -24,7 +24,7 @@ Konfigurasjonen av varsler ligger under **Varsler**, ikke i **Prosjektinnstillin
 | **Etikettregler**     | Legger til etiketter på samsvarende varsler og episoder.                                       |
 | **Påminnelsesregler**    | Minner eiere på med et intervall så lenge et varsel er åpent.                                  |
 
-Seksjonen **Innstillinger** inneholder **Varselsstatus** og **Varselsalvor**, som er beskrevet på [Varseltilstander og alvorlighetsgrader](/docs/alerts/states-and-severities), og deretter **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Medlemskap i episoder** og **Nummerering**, som er beskrevet nedenfor.
+Seksjonen **Innstillinger** inneholder **Varselsstatus** og **Varselsalvor**, som er beskrevet på [Varseltilstander og alvorlighetsgrader](/docs/alerts/states-and-severities), og deretter **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Medlemskap i episoder**, **Nummerering** og **Dataoppbevaring**, som er beskrevet nedenfor.
 
 To andre seksjoner virker på varsler. **Varsler → KI → Innstillinger** avgjør hva OneUptime AI gjør på egen hånd: **Undersøk nye varsler**, slått på for nye prosjekter, og **Rett nye varsler automatisk**, slått av til du slår det på. Se [AI SRE](/docs/ai/ai-sre). **Varsler → Arbeidsområde** inneholder Slack- og Microsoft Teams-reglene som legger ut varsler og episoder i kanaler, og fanen **Sammendrag**. Se [Slack](/docs/workspace-connections/slack).
 
@@ -168,6 +168,10 @@ Eiere får hver påminnelse som **Påminnelse om varsel**, som er slått på via
 **Varsler → Innstillinger → Nummerering** angir teksten foran varsel- og episodenumre: `ALT-` og `AE-` i et nytt prosjekt, eller `#` uten prefiks. **Oppdater** åpner **Nummerprefiks for varsel** og **Nummerprefiks for varselepisode**, med en forhåndsvisning mens du skriver. Bare varsler og episoder som opprettes etterpå, får det nye prefikset. Reglene for et prefiks står under [Nummerprefikser](/docs/incidents/settings#nummerprefikser).
 
 Kortet **Neste nummer** under setter nummeret det neste varselet og den neste episoden får, for å fortsette numrene fra et annet verktøy: **Oppdater** åpner **Neste varselnummer** og **Neste nummer for varselepisode**, hver høyere enn det høyeste så langt. Se [Neste numre](/docs/incidents/settings#neste-numre).
+
+### Dataoppbevaring
+
+**Varsler → Innstillinger → Dataoppbevaring** sletter varsler når de har vært løst lenge nok, slik [Dataoppbevaring](/docs/incidents/settings#dataoppbevaring) gjør for hendelser. Kortet **Løste varsler** spør om **Slett etter**, **Aldri** til du velger en periode, og ber om bekreftelse før mer slettes, med **Slett gamle varsler**. Et varsel blir værende så lenge det ikke er løst, så lenge det er i en episode som fortsatt er åpen eller ble løst for kortere tid siden, og så lenge en hendelse det er knyttet til, blir værende. Bare Project Owners og Project Admins kan endre den; i API-et er det prosjektets `alertRetentionInDays`.
 
 > [!NOTE]
 > På OneUptime Cloud krever notatmaler og egendefinerte felt planen **Growth** eller høyere.

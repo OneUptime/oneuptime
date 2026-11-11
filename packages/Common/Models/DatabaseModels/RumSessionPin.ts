@@ -296,6 +296,12 @@ export default class RumSessionPin extends BaseModel {
     read: READ_PERMISSIONS,
     update: [],
   })
+  /*
+   * Indexed: deleting the record it points at finds these rows by it
+   * (the foreign key's ON DELETE), as the purge of resolved incidents
+   * and alerts does in batches (#6903), without reading the whole table.
+   */
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
@@ -341,6 +347,12 @@ export default class RumSessionPin extends BaseModel {
     read: READ_PERMISSIONS,
     update: [],
   })
+  /*
+   * Indexed: deleting the record it points at finds these rows by it
+   * (the foreign key's ON DELETE), as the purge of resolved incidents
+   * and alerts does in batches (#6903), without reading the whole table.
+   */
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
