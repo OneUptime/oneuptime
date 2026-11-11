@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentEpisodeElement from "./IncidentEpisode";
 import { Black } from "Common/Types/BrandColors";
@@ -257,6 +258,7 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
           description:
             props.description ||
             "Episodes group related incidents so you can respond to them together. Grouping rules open episodes for you, or you can create one yourself.",
+          titleGlossaryTerm: GlossaryTerm.Episode,
         }}
         noItemsMessage={props.noItemsMessage}
         emptyState={{ ...props.emptyState, ...facetEmptyState }}

@@ -489,11 +489,12 @@ describe("Home and its cards", () => {
 
     const gettingStartedEffect: string = useEffectContaining(
       GETTING_STARTED_SOURCE,
-      "fetchTaskCompletion",
+      "fetchWelcomeChecklist()",
     );
 
-    expect(gettingStartedEffect).toMatch(
-      /\[\s*props\.projectId\??\.toString\(\)\s*\]\s*\)$/,
+    expect(gettingStartedEffect).toMatch(/\[\s*projectIdString\s*\]\s*\)$/);
+    expect(GETTING_STARTED_SOURCE).toMatch(
+      /projectIdString: string = props\.projectId\.toString\(\)/,
     );
   });
 
@@ -517,43 +518,49 @@ describe("Home and its cards", () => {
 });
 
 describe("Getting Started", () => {
-  test("its effect short-circuits on dismissal before any count request", () => {
+  /*
+   * The Welcome checklist (issue #6803) is ONE server answer - goals, steps
+   * ticked on outcomes, hidden or finished - instead of four count requests
+   * per visit. Finished and hidden are the server's, for every device, so
+   * the old short-circuits on this browser's storage are gone with the
+   * counts they guarded.
+   */
+  test("its effect makes one read, and counts nothing", () => {
     const effect: string = useEffectContaining(
       GETTING_STARTED_SOURCE,
-      "fetchTaskCompletion",
+      "fetchWelcomeChecklist()",
     );
 
-    /*
-     * The counts only exist to decide whether the checklist should render.
-     * A dismissed checklist never renders, so the dismissal read must come
-     * first and a bare `return` must sit between it and the fetch.
-     */
-    const dismissalIndex: number = effect.indexOf("getDismissKey");
-    const fetchIndex: number = effect.indexOf("fetchTaskCompletion");
-
-    expect(dismissalIndex).toBeGreaterThanOrEqual(0);
-    expect(fetchIndex).toBeGreaterThan(dismissalIndex);
-
-    const betweenDismissalAndFetch: string = effect.slice(
-      dismissalIndex,
-      fetchIndex,
-    );
-
-    expect(betweenDismissalAndFetch).toMatch(/\breturn\b/);
+    expect(effect.match(/fetchWelcomeChecklist\(\)/g)).toHaveLength(1);
     expect(effect).not.toContain("ModelAPI");
+    expect(GETTING_STARTED_SOURCE).not.toContain("ModelAPI.count");
   });
 
-  test("a fully completed checklist is remembered so its counts are never re-fetched", () => {
+  test("what the old checklist kept in this browser is sent first, once, and only then is the card read", () => {
     const effect: string = useEffectContaining(
       GETTING_STARTED_SOURCE,
-      "fetchTaskCompletion",
+      "fetchWelcomeChecklist()",
     );
 
-    expect(effect).toContain("getCompleteKey");
+    const legacyIndex: number = effect.indexOf("sendLegacyBrowserState(");
+    const fetchIndex: number = effect.indexOf("fetchWelcomeChecklist()");
 
-    expect(GETTING_STARTED_SOURCE).toMatch(
-      /LocalStorage\.setItem\(\s*getCompleteKey/,
+    expect(legacyIndex).toBeGreaterThanOrEqual(0);
+    expect(fetchIndex).toBeGreaterThan(legacyIndex);
+    // The answer to the old state is the card: no second read after it.
+    expect(effect).toMatch(
+      /fromLegacy \|\| \(await fetchWelcomeChecklist\(\)\)/,
     );
+  });
+
+  test("a response for a project that was left is dropped", () => {
+    const effect: string = useEffectContaining(
+      GETTING_STARTED_SOURCE,
+      "fetchWelcomeChecklist()",
+    );
+
+    expect(effect).toMatch(/isCurrent = false/);
+    expect(effect).toMatch(/if \(isCurrent\)/);
   });
 });
 

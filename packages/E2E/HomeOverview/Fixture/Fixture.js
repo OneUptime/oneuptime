@@ -30,8 +30,22 @@
  *                 overview-once  only the FIRST Incident list fails
  *                 resources  every Status Page count fails
  *                 upcoming   the upcoming maintenance list fails
- *   ?lang=      de reads the German locale file
+ *   ?lang=      de reads the German locale file, fa the Persian one (the
+ *               page then reads right to left, as the Dashboard's does)
  *   ?theme=     dark adds html.dark (handled by server.js)
+ *   ?welcome=   the Welcome checklist's answer (GET /welcome-checklist),
+ *               built with the real rules (Common/Types/WelcomeChecklist):
+ *                 ask     a new project nobody has answered for yet: the
+ *                         question first
+ *                 half    the four steps, the monitor's first check in
+ *                 hidden  the four steps, hidden by this person
+ *               without it, a new project skipped the question (the four
+ *               steps, none done) and every other scenario finished it
+ *   ?plan=      free: OneUptime Cloud's Free plan (the team step needs Growth)
+ *
+ * The header carries the Dashboard's Help menu, and the page the dialog
+ * How OneUptime works opens in (App.tsx mounts it once), so Help and
+ * Home's Explore OneUptime open it as they do in the product (#6819).
  *
  * Every read is recorded on window.__homeOverviewFixture: listRequests,
  * countRequests, apiRequests, paletteToggles (Search) and unhandled:
@@ -50,9 +64,13 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import { initReactI18next } from "react-i18next";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import Help from "../../../App/FeatureSet/Dashboard/src/Components/Header/Help";
+import HowOneUptimeWorksDialog from "../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorksDialog";
 import HomeLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Home/Layout";
 import Home from "../../../App/FeatureSet/Dashboard/src/Pages/Home/Home";
 import EventName from "../../../App/FeatureSet/Dashboard/src/Utils/EventName";
@@ -97,6 +115,12 @@ import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
+import ActivationMilestone from "Common/Types/Analytics/ActivationMilestone";
+import { parseProjectGoals } from "Common/Types/WelcomeChecklist/ProjectGoal";
+import {
+  WelcomeAudience,
+  buildWelcomeChecklist,
+} from "Common/Types/WelcomeChecklist/WelcomeChecklist";
 
 /*
  * ---------------------------------------------------------------------------
@@ -132,7 +156,9 @@ const scenario = SCENARIOS.includes(params.get("scenario"))
   : "busy";
 const roleMode = params.get("role") === "viewer" ? "viewer" : "owner";
 const failures = listParam("fail");
-const language = params.get("lang") === "de" ? "de" : "en";
+const language = ["de", "fa"].includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
 
 const GLOBAL_PERMISSIONS = [
   Permission.Public,
@@ -1043,9 +1069,115 @@ ModelAPI.getItem = async (options) => {
   return null;
 };
 
+/*
+ * The Welcome checklist (issue #6803): one answer for the project and the
+ * person, built with the real rules, and the routes that change it.
+ */
+const welcomeMode = params.get("welcome") || "";
+const welcome = {
+  goals: welcomeMode === "ask" ? null : [],
+  isHiddenForMe: welcomeMode === "hidden",
+  isFinished: !isNew,
+  reached:
+    welcomeMode === "half"
+      ? [
+          ActivationMilestone.FirstMonitorCreated,
+          ActivationMilestone.FirstCheckResultReceived,
+        ]
+      : [],
+  isFreePlan: params.get("plan") === "free",
+};
+fixture.welcomeRequests = [];
+
+function welcomeAnswer() {
+  const base = {
+    goals: welcome.goals,
+    shouldAskForGoals: false,
+    canChooseGoals: roleMode !== "viewer",
+    isHiddenForMe: welcome.isHiddenForMe,
+    isFinished: welcome.isFinished,
+    canSendEmail: true,
+    steps: [],
+    doneCount: 0,
+    totalCount: 0,
+  };
+
+  // A viewer was invited: the owner's checklist is not theirs (#6807).
+  if (roleMode === "viewer") {
+    return { ...base, audience: WelcomeAudience.InvitedMember };
+  }
+
+  if (welcome.isFinished) {
+    return { ...base, audience: WelcomeAudience.SetUp };
+  }
+
+  const checklist = buildWelcomeChecklist({
+    goals: welcome.goals,
+    facts: {
+      reached: welcome.reached,
+      hasRuleThatPagesSomeone: false,
+      hasFinishedImport: false,
+      serverCanSendEmail: true,
+    },
+    plan: { isFreePlan: welcome.isFreePlan },
+    readerIsServerAdmin: false,
+  });
+
+  return {
+    ...base,
+    audience: WelcomeAudience.SetUp,
+    shouldAskForGoals: welcome.goals === null,
+    steps: checklist.steps,
+    doneCount: checklist.doneCount,
+    totalCount: checklist.totalCount,
+  };
+}
+
+function handleWelcome(method, url, options) {
+  const path = new URL(url).pathname;
+
+  if (!path.includes("/welcome-checklist")) {
+    return null;
+  }
+
+  fixture.welcomeRequests.push({
+    method,
+    path,
+    data: serialize(options.data),
+  });
+
+  if (method === "GET" && path.endsWith("/welcome-checklist")) {
+    return ok(welcomeAnswer());
+  }
+
+  if (method === "POST" && path.endsWith("/welcome-checklist/goals")) {
+    welcome.goals = parseProjectGoals(options.data?.goals) || [];
+    return ok(welcomeAnswer());
+  }
+
+  if (method === "POST" && path.endsWith("/welcome-checklist/hide")) {
+    welcome.isHiddenForMe = true;
+    return ok(welcomeAnswer());
+  }
+
+  if (method === "POST" && path.endsWith("/welcome-checklist/show")) {
+    welcome.isHiddenForMe = false;
+    return ok(welcomeAnswer());
+  }
+
+  return null;
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   fixture.apiRequests.push({ method, url });
+
+  const welcomeResponse = handleWelcome(method, url, options);
+
+  if (welcomeResponse) {
+    return welcomeResponse;
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return ok({ data: [], count: 0 });
 }
@@ -1072,11 +1204,14 @@ await i18next.use(initReactI18next).init({
   resources: {
     en: { translation: en },
     de: { translation: de },
+    fa: { translation: fa },
   },
   interpolation: { escapeValue: false },
 });
 // Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
 followLanguageForDates(i18next);
+// <html lang dir> follow the reader's language: Persian reads right to left.
+followLanguageForPage(i18next);
 
 /*
  * ---------------------------------------------------------------------------
@@ -1178,10 +1313,17 @@ function FixtureApp() {
           <span className="text-lg font-semibold text-gray-900">OneUptime</span>
           <span className="text-sm text-gray-500">Acme Commerce</span>
         </div>
-        <span data-testid="synthetic-banner" className="text-xs text-gray-500">
-          Preview workspace · Synthetic data
-        </span>
+        <div className="flex items-center gap-3">
+          <span
+            data-testid="synthetic-banner"
+            className="text-xs text-gray-500"
+          >
+            Preview workspace · Synthetic data
+          </span>
+          <Help />
+        </div>
       </header>
+      <HowOneUptimeWorksDialog />
       <Routes>
         <Route element={<FixtureHomeLayout />}>
           <Route

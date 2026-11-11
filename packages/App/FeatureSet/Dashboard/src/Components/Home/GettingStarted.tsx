@@ -1,40 +1,57 @@
-import ChecklistEvents from "Common/UI/Utils/ChecklistEvents";
-import PageMap from "../../Utils/PageMap";
+import GoalQuestion from "./WelcomeChecklist/GoalQuestion";
+import HowOneUptimeWorks from "./HowOneUptimeWorks";
+import {
+  fetchWelcomeChecklist,
+  postWelcomeChecklist,
+  sendLegacyBrowserState,
+} from "./WelcomeChecklist/WelcomeChecklistApi";
+import {
+  WELCOME_CHECKLIST_COPY,
+  WELCOME_PLAN_PAGE,
+  WelcomeStepEntry,
+  getWelcomeGoalEntry,
+  getWelcomeStepEntry,
+  getWelcomeStepRoute,
+} from "./WelcomeChecklist/WelcomeChecklistCatalog";
+import { rememberWelcomeStepStarted } from "./WelcomeChecklist/WelcomeStepInProgress";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { ServerEmail, cannotSendEmail } from "../../Utils/ServerEmail";
+import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import Route from "Common/Types/API/Route";
-import ObjectID from "Common/Types/ObjectID";
-import IconProp from "Common/Types/Icon/IconProp";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Dictionary from "Common/Types/Dictionary";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import IconProp from "Common/Types/Icon/IconProp";
+import ObjectID from "Common/Types/ObjectID";
+import ProjectGoal, {
+  toGoalsEventValue,
+} from "Common/Types/WelcomeChecklist/ProjectGoal";
+import {
+  WelcomeAudience,
+  WelcomeChecklistStepState,
+  WelcomeStep,
+} from "Common/Types/WelcomeChecklist/WelcomeChecklist";
+import {
+  WELCOME_CHECKLIST_GOALS_ROUTE,
+  WELCOME_CHECKLIST_HIDE_ROUTE,
+  WELCOME_CHECKLIST_SHOW_ROUTE,
+  WelcomeChecklistAnswer,
+} from "Common/Types/WelcomeChecklist/WelcomeChecklistAnswer";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ProgressBar, {
   ProgressBarSize,
 } from "Common/UI/Components/ProgressBar/ProgressBar";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import LocalStorage from "Common/UI/Utils/LocalStorage";
-import Navigation from "Common/UI/Utils/Navigation";
-import PermissionGate, {
-  ModelAction,
-  PermissionCheckableModel,
-} from "Common/UI/Utils/PermissionGate";
 import UiAnalytics from "Common/UI/Utils/Analytics";
-import useTranslateValue from "Common/UI/Utils/Translation";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
-import HowOneUptimeWorks from "./HowOneUptimeWorks";
-import {
-  SERVER_EMAIL_COPY,
-  ServerEmail,
-  cannotSendEmail,
-  useServerEmail,
-} from "../../Utils/ServerEmail";
-import StatusPage from "Common/Models/DatabaseModels/StatusPage";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
-import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import ChecklistEvents from "Common/UI/Utils/ChecklistEvents";
+import Navigation from "Common/UI/Utils/Navigation";
+import ProductEvents from "Common/UI/Utils/ProductEvents";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import UserUtil from "Common/UI/Utils/User";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -42,168 +59,44 @@ import React, {
   useState,
 } from "react";
 
+/*
+ * THE WELCOME CARD ON HOME (issue #6803).
+ *
+ * It starts from what the person came to do: a new project's owner is asked
+ * once, "What do you want to do first?" (GoalQuestion), and the checklist
+ * that follows has the steps of those goals, in the order of "How OneUptime
+ * works". Everything is the server's - one answer for the project and the
+ * person (WelcomeChecklistApi, Common/Types/WelcomeChecklist) - so a second
+ * member and another browser see the same progress:
+ *
+ *   - a step ticks when the thing works, not when a record exists (a monitor
+ *     that reported, a status page that shows a monitor);
+ *   - a step the plan cannot finish says which plan it needs before the click;
+ *   - one step is marked next;
+ *   - Hide hides the card for this person only, on every device, and leaves
+ *     a line to show it again and to "How OneUptime works";
+ *   - once every step is done the card is gone, for everyone.
+ *
+ * Invited members are not shown the owner's checklist: the server answers
+ * with the invited-member audience, and the card draws nothing - #6807 gives
+ * them a first hour of their own, at getWelcomeCardView's InvitedMember.
+ */
+
 export interface ComponentProps {
   projectId: ObjectID;
   // Passed to the card, e.g. to drop its margin inside a spaced layout.
   className?: string | undefined;
 }
 
-interface GettingStartedTask {
-  key: string;
-  title: string;
-  description: string;
-  /*
-   * What the step says instead while the server cannot send email, when
-   * its description promises one (Utils/ServerEmail): to a master admin,
-   * who can set email up, and to anybody else.
-   */
-  descriptionWithoutEmail?:
-    | {
-        forAdmin: string;
-        forOthers: string;
-      }
-    | undefined;
-  icon: IconProp;
-  iconBackgroundClassName: string;
-  pageMap: PageMap;
-  /*
-   * A page of its own that creates what the step asks for. Only someone who
-   * may create that model is sent there: a create form they cannot submit
-   * would only fail at the end (issue #3306). Everyone else lands on
-   * `pageMap`, whose create button is shown disabled, with the reason.
-   */
-  createPage?:
-    | {
-        pageMap: PageMap;
-        modelType: { new (): PermissionCheckableModel };
-      }
-    | undefined;
-  isComplete: (projectId: ObjectID) => Promise<boolean>;
-}
-
-type GetTaskPageMapFunction = (task: GettingStartedTask) => PageMap;
-
-const getTaskPageMap: GetTaskPageMapFunction = (
-  task: GettingStartedTask,
-): PageMap => {
-  if (
-    task.createPage &&
-    PermissionGate.check(new task.createPage.modelType(), ModelAction.Create)
-      .isAllowed
-  ) {
-    return task.createPage.pageMap;
-  }
-
-  return task.pageMap;
-};
-
-const gettingStartedTasks: Array<GettingStartedTask> = [
-  {
-    key: "create-monitor",
-    title: "Create your first monitor",
-    description:
-      "Monitor websites, APIs, servers and more — get notified the moment something goes down.",
-    icon: IconProp.AltGlobe,
-    iconBackgroundClassName: "bg-indigo-500",
-    pageMap: PageMap.MONITORS,
-    // The step says "create", so it opens the form, not the (empty) list.
-    createPage: {
-      pageMap: PageMap.MONITOR_CREATE,
-      modelType: Monitor,
-    },
-    isComplete: async (projectId: ObjectID): Promise<boolean> => {
-      return (
-        (await ModelAPI.count<Monitor>({
-          modelType: Monitor,
-          query: { projectId: projectId },
-        })) > 0
-      );
-    },
-  },
-  {
-    key: "create-status-page",
-    title: "Publish a status page",
-    description:
-      "Keep customers in the loop with a public status page for uptime, incidents and maintenance.",
-    icon: IconProp.CheckCircle,
-    iconBackgroundClassName: "bg-emerald-500",
-    pageMap: PageMap.STATUS_PAGES,
-    isComplete: async (projectId: ObjectID): Promise<boolean> => {
-      return (
-        (await ModelAPI.count<StatusPage>({
-          modelType: StatusPage,
-          query: { projectId: projectId },
-        })) > 0
-      );
-    },
-  },
-  {
-    key: "invite-team",
-    title: "Invite your team",
-    description:
-      "Bring teammates on board so the right people can respond when something breaks.",
-    icon: IconProp.Team,
-    iconBackgroundClassName: "bg-amber-500",
-    /*
-     * Users, not Teams: the Teams page lists the three built-in teams and
-     * offers "Create Team", with no way to invite anyone. "Invite User" is on
-     * the Users page.
-     */
-    pageMap: PageMap.USERS,
-    isComplete: async (projectId: ObjectID): Promise<boolean> => {
-      // every project starts with its creator as the first team member.
-      return (
-        (await ModelAPI.count<TeamMember>({
-          modelType: TeamMember,
-          query: { projectId: projectId },
-        })) > 1
-      );
-    },
-  },
-  {
-    key: "create-on-call-policy",
-    title: "Set up an on-call policy",
-    /*
-     * Says what happens until then, too: an incident or alert nobody owns
-     * is emailed to the project's owners (the Owners workers), so a new
-     * project's first monitor already reaches whoever made the project.
-     */
-    description:
-      "Page the right person when an incident or alert opens. Until then, the project's owners get an email.",
-    // A server that cannot send email emails nobody: said, with the fix.
-    descriptionWithoutEmail: {
-      forAdmin: SERVER_EMAIL_COPY.onCallStepDescriptionForAdmin,
-      forOthers: SERVER_EMAIL_COPY.onCallStepDescription,
-    },
-    icon: IconProp.Call,
-    iconBackgroundClassName: "bg-rose-500",
-    pageMap: PageMap.ON_CALL_DUTY,
-    isComplete: async (projectId: ObjectID): Promise<boolean> => {
-      return (
-        (await ModelAPI.count<OnCallDutyPolicy>({
-          modelType: OnCallDutyPolicy,
-          query: { projectId: projectId },
-        })) > 0
-      );
-    },
-  },
-];
-
-type GetDismissKeyFunction = (projectId: ObjectID) => string;
-
-const getDismissKey: GetDismissKeyFunction = (projectId: ObjectID): string => {
-  return `getting-started-dismissed-${projectId.toString()}`;
-};
-
 /*
  * What a step says: its description, or - while the server cannot send
  * email and the description promises one - the truth, with the fix.
  */
 export const getGettingStartedTaskDescription: (
-  task: Pick<GettingStartedTask, "description" | "descriptionWithoutEmail">,
+  task: Pick<WelcomeStepEntry, "description" | "descriptionWithoutEmail">,
   serverEmail: ServerEmail,
 ) => string = (
-  task: Pick<GettingStartedTask, "description" | "descriptionWithoutEmail">,
+  task: Pick<WelcomeStepEntry, "description" | "descriptionWithoutEmail">,
   serverEmail: ServerEmail,
 ): string => {
   if (!task.descriptionWithoutEmail || !cannotSendEmail(serverEmail)) {
@@ -215,190 +108,489 @@ export const getGettingStartedTaskDescription: (
     : task.descriptionWithoutEmail.forOthers;
 };
 
-type GetCompleteKeyFunction = (projectId: ObjectID) => string;
+export enum WelcomeCardView {
+  // Nothing: not read yet, could not be read, finished, or nothing to do.
+  None = "none",
+  Question = "question",
+  Checklist = "checklist",
+  // The person hid it: a line to show it again.
+  Hidden = "hidden",
+  // An invited member: their own first hour goes here (#6807).
+  InvitedMember = "invited_member",
+}
 
-const getCompleteKey: GetCompleteKeyFunction = (
-  projectId: ObjectID,
-): string => {
-  return `getting-started-complete-${projectId.toString()}`;
+// What the card draws for an answer.
+export const getWelcomeCardView: (data: {
+  answer: WelcomeChecklistAnswer | null;
+  isChangingGoals: boolean;
+}) => WelcomeCardView = (data: {
+  answer: WelcomeChecklistAnswer | null;
+  isChangingGoals: boolean;
+}): WelcomeCardView => {
+  const answer: WelcomeChecklistAnswer | null = data.answer;
+
+  if (!answer) {
+    return WelcomeCardView.None;
+  }
+
+  if (answer.audience === WelcomeAudience.InvitedMember) {
+    return WelcomeCardView.InvitedMember;
+  }
+
+  if (answer.isFinished) {
+    return WelcomeCardView.None;
+  }
+
+  if (
+    answer.canChooseGoals &&
+    (data.isChangingGoals || answer.shouldAskForGoals)
+  ) {
+    return WelcomeCardView.Question;
+  }
+
+  if (answer.steps.length === 0) {
+    return WelcomeCardView.None;
+  }
+
+  if (answer.isHiddenForMe) {
+    return WelcomeCardView.Hidden;
+  }
+
+  return WelcomeCardView.Checklist;
 };
+
+/*
+ * The step after `step` that is left to do and the plan allows - what the
+ * page a step's record lands on names as next (WelcomeNextStep).
+ */
+export const getStepAfter: (
+  steps: ReadonlyArray<WelcomeChecklistStepState>,
+  step: WelcomeStep,
+) => WelcomeStep | null = (
+  steps: ReadonlyArray<WelcomeChecklistStepState>,
+  step: WelcomeStep,
+): WelcomeStep | null => {
+  const index: number = steps.findIndex(
+    (state: WelcomeChecklistStepState): boolean => {
+      return state.step === step;
+    },
+  );
+
+  const after: WelcomeChecklistStepState | undefined = steps
+    .slice(index + 1)
+    .concat(steps.slice(0, Math.max(index, 0)))
+    .find((state: WelcomeChecklistStepState): boolean => {
+      return !state.isDone && state.needsPlan === null && state.step !== step;
+    });
+
+  return after ? after.step : null;
+};
+
+// The plan a project is on, as a step held back by its plan names it.
+const CURRENT_PLAN_HELD_BACK: PlanType = PlanType.Free;
 
 const GettingStarted: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
-  const tx: (value: string) => string = (value: string): string => {
-    return translateString(value) ?? value;
-  };
+  const translator: Translator = useTranslator();
+  const projectIdString: string = props.projectId.toString();
 
-  // Whether the on-call step's "the project's owners get an email" is true.
-  const serverEmail: ServerEmail = useServerEmail();
+  const [answer, setAnswer] = useState<WelcomeChecklistAnswer | null>(null);
+  const [isChangingGoals, setIsChangingGoals] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [showHowItWorks, setShowHowItWorks] = useState<boolean>(false);
 
-  const [isDismissed, setIsDismissed] = useState<boolean>(
-    Boolean(LocalStorage.getItem(getDismissKey(props.projectId))),
-  );
-
-  const [taskCompletion, setTaskCompletion] =
-    useState<Dictionary<boolean> | null>(null);
-
-  const fetchTaskCompletion: PromiseVoidFunction = async (): Promise<void> => {
-    /*
-     * Each step is checked on its own. One count that failed - a role that
-     * may not read on-call policies, a request that did not come back - used
-     * to hide the whole checklist, and every step that could be checked with
-     * it. A step whose check failed is left out of this visit (it would only
-     * lead somewhere the user may not go), and the checklist is a
-     * progressive enhancement: it goes only when no step could be checked.
-     */
-    const results: Array<PromiseSettledResult<boolean>> =
-      await Promise.allSettled(
-        gettingStartedTasks.map((task: GettingStartedTask) => {
-          return task.isComplete(props.projectId);
-        }),
-      );
-
-    const completion: Dictionary<boolean> = {};
-
-    gettingStartedTasks.forEach((task: GettingStartedTask, i: number) => {
-      const result: PromiseSettledResult<boolean> | undefined = results[i];
-
-      if (result && result.status === "fulfilled") {
-        completion[task.key] = Boolean(result.value);
-      }
-    });
-
-    if (Object.keys(completion).length === 0) {
-      setTaskCompletion(null);
-      return;
-    }
-
-    /*
-     * The steps this browser saw go from not done to done, and the whole
-     * checklist when it finishes (issue #6830): only the click on a step was
-     * recorded before.
-     */
-    ChecklistEvents.noteProgress({
-      projectId: props.projectId.toString(),
-      current: completion,
-      stepKeys: gettingStartedTasks.map((task: GettingStartedTask): string => {
-        return task.key;
-      }),
-    });
-
-    const isEveryTaskComplete: boolean = gettingStartedTasks.every(
-      (task: GettingStartedTask) => {
-        return completion[task.key] === true;
-      },
-    );
-
-    if (isEveryTaskComplete) {
-      /*
-       * A finished checklist never renders again — remember that, so
-       * future Home visits skip these count requests entirely. Only when
-       * every step was checked: a step that could not be is not done.
-       */
-      LocalStorage.setItem(getCompleteKey(props.projectId), true);
-    }
-
-    setTaskCompletion(completion);
-  };
-
+  /*
+   * One read per project: what this browser remembered of the checklist
+   * before this one goes to the server first, once, and its answer is the
+   * card; otherwise the card is read. Keyed on the id's VALUE, not the
+   * ObjectID instance: callers that rebuild the id each render must not
+   * read again.
+   */
   useEffect(() => {
-    const dismissed: boolean = Boolean(
-      LocalStorage.getItem(getDismissKey(props.projectId)),
-    );
+    let isCurrent: boolean = true;
 
-    setIsDismissed(dismissed);
+    setAnswer(null);
+    setIsChangingGoals(false);
+    setError("");
 
-    /*
-     * A dismissed or already-completed checklist renders nothing, so bail
-     * out BEFORE firing the four count requests — otherwise every Home
-     * visit pays for a card that will never be shown.
-     */
+    const load: () => Promise<void> = async (): Promise<void> => {
+      const fromLegacy: WelcomeChecklistAnswer | null =
+        await sendLegacyBrowserState(projectIdString);
+      const loaded: WelcomeChecklistAnswer | null =
+        fromLegacy || (await fetchWelcomeChecklist());
+
+      if (isCurrent) {
+        setAnswer(loaded);
+      }
+    };
+
+    load().catch(() => {
+      // Each read answers null on a failure: the card is left out.
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [projectIdString]);
+
+  const goals: Array<ProjectGoal> = answer?.goals || [];
+  const goalsEventValue: string = toGoalsEventValue(goals);
+
+  /*
+   * The steps this browser saw go from not done to done, and the whole
+   * checklist when it finishes (issue #6830), with the project's goals.
+   */
+  useEffect(() => {
     if (
-      dismissed ||
-      Boolean(LocalStorage.getItem(getCompleteKey(props.projectId)))
+      !answer ||
+      answer.audience !== WelcomeAudience.SetUp ||
+      answer.steps.length === 0
     ) {
       return;
     }
 
-    fetchTaskCompletion().catch(() => {
-      // handled in fetchTaskCompletion.
+    const counted: Array<WelcomeChecklistStepState> = answer.steps.filter(
+      (state: WelcomeChecklistStepState): boolean => {
+        return (
+          state.needsPlan === null && state.step !== WelcomeStep.ServerEmail
+        );
+      },
+    );
+    const current: Dictionary<boolean> = {};
+
+    for (const state of counted) {
+      current[state.step] = state.isDone;
+    }
+
+    ChecklistEvents.noteProgress({
+      projectId: projectIdString,
+      current: current,
+      stepKeys: counted.map((state: WelcomeChecklistStepState): string => {
+        return state.step;
+      }),
+      goals: goalsEventValue,
     });
-    /*
-     * Keyed on the string VALUE, not the ObjectID instance: callers that
-     * rebuild the id each render (identity churn) must not re-fire these
-     * count requests.
-     */
-  }, [props.projectId.toString()]);
+  }, [answer]);
 
-  if (isDismissed || !taskCompletion) {
+  const view: WelcomeCardView = getWelcomeCardView({
+    answer: answer,
+    isChangingGoals: isChangingGoals,
+  });
+
+  if (
+    !answer ||
+    view === WelcomeCardView.None ||
+    view === WelcomeCardView.InvitedMember
+  ) {
     return <></>;
   }
 
-  // The steps that could be checked this visit (fetchTaskCompletion).
-  const shownTasks: Array<GettingStartedTask> = gettingStartedTasks.filter(
-    (task: GettingStartedTask) => {
-      return task.key in taskCompletion;
-    },
-  );
+  // Sends a change, and draws the card the server answers with.
+  const change: (
+    route: string,
+    data: Dictionary<unknown>,
+    onSaved?: (saved: WelcomeChecklistAnswer) => void,
+  ) => Promise<boolean> = async (
+    route: string,
+    data: Dictionary<unknown>,
+    onSaved?: (saved: WelcomeChecklistAnswer) => void,
+  ): Promise<boolean> => {
+    setIsSaving(true);
+    setError("");
 
-  const completedCount: number = shownTasks.filter(
-    (task: GettingStartedTask) => {
-      return taskCompletion[task.key];
-    },
-  ).length;
+    const saved: WelcomeChecklistAnswer | null = await postWelcomeChecklist(
+      route,
+      data as never,
+    );
 
-  if (completedCount === shownTasks.length) {
-    return <></>;
-  }
+    setIsSaving(false);
 
-  const dismiss: () => void = (): void => {
-    LocalStorage.setItem(getDismissKey(props.projectId), true);
-    setIsDismissed(true);
-    UiAnalytics.capture("dashboard/home/getting-started-dismissed", {
-      projectId: props.projectId.toString(),
+    if (!saved) {
+      setError(WELCOME_CHECKLIST_COPY.couldNotSave);
+      return false;
+    }
+
+    setAnswer(saved);
+    onSaved?.(saved);
+    return true;
+  };
+
+  const chooseGoals: (chosen: Array<ProjectGoal>) => void = (
+    chosen: Array<ProjectGoal>,
+  ): void => {
+    const isChange: boolean = answer.goals !== null;
+
+    change(WELCOME_CHECKLIST_GOALS_ROUTE, { goals: chosen }, () => {
+      setIsChangingGoals(false);
+      ProductEvents.send(ProductEventName.GoalsChosen, {
+        goals: toGoalsEventValue(chosen),
+        goal_count: chosen.length,
+        is_change: isChange,
+      });
+    }).catch(() => {
+      // change() answers false on a failure, and says so.
     });
   };
+
+  const skipOrCancel: () => void = (): void => {
+    if (isChangingGoals) {
+      setIsChangingGoals(false);
+      setError("");
+      return;
+    }
+
+    chooseGoals([]);
+  };
+
+  if (view === WelcomeCardView.Question) {
+    return (
+      <GoalQuestion
+        key={isChangingGoals ? "change" : "first"}
+        className={props.className}
+        initialGoals={isChangingGoals ? goals : []}
+        isChange={isChangingGoals}
+        isSaving={isSaving}
+        error={error || undefined}
+        onSubmit={chooseGoals}
+        onSkip={skipOrCancel}
+      />
+    );
+  }
+
+  const howItWorks: ReactElement = (
+    <HowOneUptimeWorks projectId={projectIdString} />
+  );
+
+  if (view === WelcomeCardView.Hidden) {
+    return (
+      <div className={props.className} data-testid="welcome-checklist-hidden">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
+          <span>
+            {translator.translateText(WELCOME_CHECKLIST_COPY.hiddenLine)}
+          </span>
+          <Button
+            title={WELCOME_CHECKLIST_COPY.showButton}
+            buttonStyle={ButtonStyleType.SECONDARY_LINK}
+            buttonSize={ButtonSize.Small}
+            disabled={isSaving}
+            onClick={() => {
+              change(WELCOME_CHECKLIST_SHOW_ROUTE, {}).catch(() => {
+                // change() says so.
+              });
+            }}
+            dataTestId="welcome-checklist-show"
+          />
+          <Button
+            title={WELCOME_CHECKLIST_COPY.howItWorksButton}
+            buttonStyle={ButtonStyleType.SECONDARY_LINK}
+            buttonSize={ButtonSize.Small}
+            ariaExpanded={showHowItWorks}
+            onClick={() => {
+              setShowHowItWorks(!showHowItWorks);
+            }}
+            dataTestId="welcome-checklist-how-it-works"
+          />
+          {error ? (
+            <span role="alert" className="text-red-600">
+              {translator.translateText(error)}
+            </span>
+          ) : (
+            <></>
+          )}
+        </div>
+        {showHowItWorks ? <div className="mt-3">{howItWorks}</div> : <></>}
+      </div>
+    );
+  }
+
+  const serverEmail: ServerEmail = {
+    canSendEmail: answer.canSendEmail,
+    isMasterAdmin: Boolean(UserUtil.isMasterAdmin()),
+  };
+
+  const hide: () => void = (): void => {
+    ProductEvents.send(ProductEventName.ChecklistDismissed, {
+      done_count: answer.doneCount,
+      step_count: answer.totalCount,
+      goals: goalsEventValue,
+    });
+    // Sent before the rule, and dashboards are built on it.
+    UiAnalytics.capture("dashboard/home/getting-started-dismissed", {
+      projectId: projectIdString,
+    });
+
+    change(WELCOME_CHECKLIST_HIDE_ROUTE, {}).catch(() => {
+      // change() says so.
+    });
+  };
+
+  const openStep: (state: WelcomeChecklistStepState) => void = (
+    state: WelcomeChecklistStepState,
+  ): void => {
+    const entry: WelcomeStepEntry = getWelcomeStepEntry(state.step);
+
+    ProductEvents.send(ProductEventName.ChecklistStepStarted, {
+      step: state.step,
+      goals: goalsEventValue,
+      ...(state.needsPlan ? { needs_plan: state.needsPlan } : {}),
+    });
+    // Sent before the rule, and dashboards are built on it.
+    UiAnalytics.capture("dashboard/home/getting-started-task", {
+      projectId: projectIdString,
+      task: state.step,
+    });
+
+    if (state.needsPlan) {
+      Navigation.navigate(
+        RouteUtil.populateRouteParams(RouteMap[WELCOME_PLAN_PAGE] as Route),
+      );
+      return;
+    }
+
+    if (entry.externalUrl) {
+      Navigation.navigate(entry.externalUrl(), { openInNewTab: true });
+      return;
+    }
+
+    const route: Route | null = getWelcomeStepRoute(entry);
+
+    if (!route) {
+      return;
+    }
+
+    rememberWelcomeStepStarted({
+      projectId: projectIdString,
+      step: state.step,
+      nextStep: getStepAfter(answer.steps, state.step),
+    });
+
+    Navigation.navigate(route);
+  };
+
+  const describe: (state: WelcomeChecklistStepState) => string = (
+    state: WelcomeChecklistStepState,
+  ): string => {
+    const entry: WelcomeStepEntry = getWelcomeStepEntry(state.step);
+
+    if (state.needsPlan) {
+      return translator.translateTemplate(
+        WELCOME_CHECKLIST_COPY.needsPlanDescription,
+        {
+          plan: state.needsPlan,
+          currentPlan: CURRENT_PLAN_HELD_BACK,
+        },
+      );
+    }
+
+    return (
+      translator.translateText(
+        getGettingStartedTaskDescription(entry, serverEmail),
+      ) || ""
+    );
+  };
+
+  const goalsRow: ReactElement = answer.canChooseGoals ? (
+    <div
+      data-testid="welcome-checklist-goals"
+      className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-gray-500"
+    >
+      {goals.length > 0 ? (
+        <>
+          <span>
+            {translator.translateText(WELCOME_CHECKLIST_COPY.goalsLabel)}
+          </span>
+          {goals.map((goal: ProjectGoal): ReactElement => {
+            return (
+              <span
+                key={goal}
+                data-testid={`welcome-checklist-goal-${goal}`}
+                className="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700"
+              >
+                {translator.translateText(getWelcomeGoalEntry(goal).title)}
+              </span>
+            );
+          })}
+        </>
+      ) : (
+        <></>
+      )}
+      <Button
+        title={
+          goals.length > 0
+            ? WELCOME_CHECKLIST_COPY.changeGoals
+            : WELCOME_CHECKLIST_COPY.chooseGoals
+        }
+        buttonStyle={ButtonStyleType.SECONDARY_LINK}
+        buttonSize={ButtonSize.Small}
+        onClick={() => {
+          setError("");
+          setIsChangingGoals(true);
+        }}
+        dataTestId="welcome-checklist-change-goals"
+      />
+    </div>
+  ) : (
+    <></>
+  );
 
   return (
     <Card
       className={props.className}
-      title="Welcome to OneUptime 👋"
-      description="A few quick steps and your project will be up and running. Pick up where you left off anytime."
+      title={WELCOME_CHECKLIST_COPY.title}
+      description={WELCOME_CHECKLIST_COPY.description}
       rightElement={
         <Button
-          title="Dismiss"
+          title={WELCOME_CHECKLIST_COPY.hideButton}
           buttonStyle={ButtonStyleType.SECONDARY_LINK}
           buttonSize={ButtonSize.Small}
-          onClick={dismiss}
+          disabled={isSaving}
+          onClick={hide}
           dataTestId="getting-started-dismiss"
         />
       }
     >
       <div data-testid="getting-started">
-        <div className="mb-6 max-w-md">
-          <ProgressBar
-            count={completedCount}
-            totalCount={shownTasks.length}
-            suffix={tx("steps completed")}
-            size={ProgressBarSize.Small}
-          />
+        <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="w-full max-w-md">
+            <ProgressBar
+              count={answer.doneCount}
+              totalCount={answer.totalCount}
+              suffix={
+                translator.translateText(
+                  WELCOME_CHECKLIST_COPY.progressSuffix,
+                ) || ""
+              }
+              size={ProgressBarSize.Small}
+            />
+          </div>
+          {goalsRow}
         </div>
+        {error ? (
+          <p role="alert" className="mb-4 text-sm text-red-600">
+            {translator.translateText(error)}
+          </p>
+        ) : (
+          <></>
+        )}
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          {shownTasks.map((task: GettingStartedTask) => {
-            const isComplete: boolean = taskCompletion[task.key] || false;
+          {answer.steps.map((state: WelcomeChecklistStepState) => {
+            const entry: WelcomeStepEntry = getWelcomeStepEntry(state.step);
+            const isComplete: boolean = state.isDone;
 
             // Spans, not divs: a button may only hold phrasing content.
             const tileContent: ReactElement = (
               <>
                 <span
                   className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
-                    isComplete ? "bg-emerald-100" : task.iconBackgroundClassName
+                    isComplete
+                      ? "bg-emerald-100"
+                      : entry.iconBackgroundClassName
                   }`}
                 >
                   <Icon
-                    icon={isComplete ? IconProp.Check : task.icon}
+                    icon={isComplete ? IconProp.Check : entry.icon}
                     className={`h-5 w-5 ${
                       isComplete ? "text-emerald-600" : "text-white"
                     }`}
@@ -406,19 +598,43 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
                 </span>
                 <span className="block min-w-0 flex-1">
                   <span
-                    className={`block text-sm font-medium ${
+                    className={`flex flex-wrap items-center gap-2 text-sm font-medium ${
                       isComplete ? "text-gray-500" : "text-gray-900"
                     }`}
                   >
-                    {tx(task.title)}
+                    {translator.translateText(entry.title)}
+                    {state.isNext ? (
+                      <span
+                        data-testid="getting-started-next"
+                        className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700"
+                      >
+                        {translator.translateText(
+                          WELCOME_CHECKLIST_COPY.nextBadge,
+                        )}
+                      </span>
+                    ) : (
+                      <></>
+                    )}
                   </span>
                   <span className="mt-1 block text-sm text-gray-500">
-                    {tx(getGettingStartedTaskDescription(task, serverEmail))}
+                    {describe(state)}
                   </span>
                 </span>
                 {isComplete ? (
                   <span className="mt-0.5 flex-shrink-0 text-xs font-medium text-emerald-600">
-                    {tx("Done")}
+                    {translator.translateText(WELCOME_CHECKLIST_COPY.done)}
+                  </span>
+                ) : state.needsPlan ? (
+                  <span
+                    data-testid={`getting-started-task-${state.step}-needs-plan`}
+                    className="mt-0.5 flex-shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+                  >
+                    {translator.translateTemplate(
+                      WELCOME_CHECKLIST_COPY.needsPlan,
+                      {
+                        plan: state.needsPlan,
+                      },
+                    )}
                   </span>
                 ) : (
                   /*
@@ -429,7 +645,11 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
                    */
                   <span className="mt-0.5 flex-shrink-0 text-gray-400">
                     <Icon
-                      icon={IconProp.ChevronRight}
+                      icon={
+                        entry.externalUrl
+                          ? IconProp.ExternalLink
+                          : IconProp.ChevronRight
+                      }
                       className="h-5 w-5 transition group-hover:text-indigo-500"
                     />
                   </span>
@@ -441,8 +661,9 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
             if (isComplete) {
               return (
                 <div
-                  key={task.key}
-                  data-testid={`getting-started-task-${task.key}`}
+                  key={state.step}
+                  data-testid={`getting-started-task-${state.step}`}
+                  data-done="true"
                   className="group flex items-start gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4 transition"
                 >
                   {tileContent}
@@ -450,35 +671,25 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
               );
             }
 
-            const goToTask: () => void = (): void => {
-              UiAnalytics.capture("dashboard/home/getting-started-task", {
-                projectId: props.projectId.toString(),
-                task: task.key,
-              });
-              /*
-               * Where to go is decided at the click, not at the first paint:
-               * the permission snapshot that says whether the create form is
-               * open to this user can arrive after it (getTaskPageMap).
-               */
-              Navigation.navigate(
-                RouteUtil.populateRouteParams(
-                  RouteMap[getTaskPageMap(task)] as Route,
-                ),
-              );
-            };
-
             /*
              * A step to do is a button: Tab reaches it, and Enter or Space
-             * opens it. It was a clickable box with role="button" that the
-             * keyboard could neither reach nor press.
+             * opens it.
              */
             return (
               <button
-                key={task.key}
+                key={state.step}
                 type="button"
-                onClick={goToTask}
-                data-testid={`getting-started-task-${task.key}`}
-                className="group flex w-full items-start gap-4 rounded-lg border border-gray-200 bg-white p-4 text-left transition hover:border-indigo-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                onClick={() => {
+                  openStep(state);
+                }}
+                data-testid={`getting-started-task-${state.step}`}
+                data-done="false"
+                data-next={state.isNext ? "true" : "false"}
+                className={`group flex w-full items-start gap-4 rounded-lg border bg-white p-4 text-left transition hover:border-indigo-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                  state.isNext
+                    ? "border-indigo-300 ring-1 ring-indigo-200"
+                    : "border-gray-200"
+                }`}
               >
                 {tileContent}
               </button>
@@ -487,12 +698,11 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
         </div>
         {/*
          * The checklist says what to do; this says how the pieces connect.
-         * It lives in the same card so it goes away with the checklist once
-         * the project is set up (or the user dismisses it).
+         * Hiding the card keeps it one click away, on the line left behind.
+         * Help and Home's Explore OneUptime open it in a dialog
+         * (HowOneUptimeWorksDialog) at any time too, however old the project.
          */}
-        <div className="mt-6">
-          <HowOneUptimeWorks projectId={props.projectId.toString()} />
-        </div>
+        <div className="mt-6">{howItWorks}</div>
       </div>
     </Card>
   );

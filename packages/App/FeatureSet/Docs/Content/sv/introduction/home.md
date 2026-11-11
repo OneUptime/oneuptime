@@ -56,27 +56,38 @@ En siffra över noll visar **Kräver uppmärksamhet**, eller **Pågår** och **B
 
 ### Välkomstchecklistan
 
-Checklistan leder dig genom de fyra saker som ett projekt behöver innan det är användbart. Varje steg öppnar sidan där du gör det, och bockar av sig självt när projektet har det som steget ber om.
+Första gången en projektägare eller projektadministratör öppnar Hem i ett nytt projekt frågar kortet **Vad vill du göra först?** Kryssa i ett eller flera mål, till exempel **Veta när min webbplats eller mitt API ligger nere** eller **Jag tittar bara runt**, och klicka på **Fortsätt**: checklistan innehåller då de steg som målen behöver. **Hoppa över** ger de fyra steg som alla projekt får. För att svara igen senare klickar du på **Ändra** i checklistan. Ett projekt som redan använder övervakare, telemetri eller jour får inte frågan.
+
+Varje steg bockar av sig självt när saken fungerar, inte när en post finns, och alla som konfigurerar projektet ser samma lista, på alla enheter:
 
 | Steg | Klart när | Öppnar |
 | --- | --- | --- |
-| **Skapa din första övervakare** | Projektet har en monitor. | Formuläret **Skapa monitor**, eller listan **Monitorer** för den som inte får skapa monitorer. |
-| **Publicera en statussida** | Projektet har en statussida. | **Statussidor** |
-| **Bjud in ditt team** | Någon förutom du finns i projektet, eller är inbjuden till det. | **Användare** |
-| **Konfigurera en jourpolicy** | Projektet har en jourpolicy. | **Jourtjänst** |
+| **Importera från ditt nuvarande verktyg** | En import från ett annat verktyg är slutförd. | **Importera från ett annat verktyg** |
+| **Skapa din första övervakare** | Den första kontrollen kommer in. | Formuläret **Skapa monitor**, eller listan **Monitorer** för den som inte får skapa övervakare. |
+| **Anslut en server eller ett kluster** | De första mätvärdena kommer in. | **Värdar** |
+| **Skicka dina första loggar, mätvärden eller spår** | Projektets första loggar, mätvärden, spår, undantag eller profiler kommer in. | **Loggar** |
+| **Konfigurera en jourpolicy** | Ett testlarm kvitteras, ett larm når någon, eller en jourregel kör en policy som kan nå någon. | **Jourtjänst** |
+| **Publicera en statussida** | En statussida visar en övervakare. | **Statussidor** |
+| **Bjud in ditt team** | Någon accepterar din inbjudan. | **Användare** |
 
-Under stegen visar **Så fungerar OneUptime** de fyra kärnprodukterna i den ordning ett problem går igenom dem: **Monitorer**, **Incidenter och larm**, **Jourtjänst** och **Statussidor**. Klicka på en för att öppna den.
+Steget du ska ta först är markerat med **Nästa steg**. På OneUptime Clouds Free-plan, som har en person, säger **Bjud in ditt team** att den behöver Growth-planen, och öppnar **Fakturering**. På en egen server som ännu inte kan skicka e-post ser serverns administratörer först **Den här servern kan inte skicka e-post än**; den öppnar administratörsdashboarden.
 
-```mermaid title="När välkomstchecklistan försvinner"
+När du skapar en övervakare, en statussida eller en jourpolicy från ett steg säger sidan du hamnar på vad som kommer härnäst, med **Tillbaka till konfigurationen**.
+
+Under stegen visar **Så fungerar OneUptime** de fyra kärnprodukterna i den ordning ett problem går igenom dem: **Monitorer**, **Incidenter och larm**, **Jourtjänst** och **Statussidor**. Klicka på en för att öppna den. Under dem står vad som matar kretsloppet, telemetri och infrastruktur, med länkar till [Grundbegrepp](/docs/introduction/core-concepts) och [Ordlista](/docs/introduction/glossary).
+
+```mermaid title="När välkomstchecklistan visas"
 flowchart TB
-    open["Hem öppnas"] --> dismissed{"Stängd i den här<br/>webbläsaren?"}
-    dismissed -->|"Nej"| done{"Alla fyra steg<br/>klara?"}
-    dismissed -->|"Ja"| hidden["Ingen checklista"]
-    done -->|"Ja"| hidden
-    done -->|"Nej"| shown["Checklistan med<br/>återstående steg"]
+    open["Hem öppnas"] --> answered{"Mål valda<br/>eller hoppade över?"}
+    answered -->|"Nej"| question["Vad vill du<br/>göra först?"]
+    answered -->|"Ja"| hidden{"Dold<br/>av dig?"}
+    hidden -->|"Ja"| line["En rad för att<br/>visa den igen"]
+    hidden -->|"Nej"| done{"Alla steg<br/>klara?"}
+    done -->|"Ja"| gone["Ingen checklista"]
+    done -->|"Nej"| shown["Checklistan med<br/>de steg som återstår"]
 ```
 
-Checklistan försvinner när alla fyra steg är klara. Klicka på **Dölj** för att dölja den tidigare. Det sparas i den här webbläsaren för det här projektet; allt som stegen öppnar finns kvar i menyn **Produkter**.
+Checklistan försvinner för alla när varje steg är klart. För att dölja den tidigare klickar du på **Dölj**: den döljs då bara för dig, på alla enheter, och en rad blir kvar med **Visa den** och **Så fungerar OneUptime**. Den som har bjudits in till projektet som medlem ser inte checklistan. **Så fungerar OneUptime** finns kvar ett klick bort, i alla projekt: öppna det från **Hjälp** eller med knappen bredvid **Utforska OneUptime**.
 
 ### Kräver uppmärksamhet
 
@@ -125,7 +136,9 @@ Två fält löper över toppen av varje sida.
 | Uppe till höger | **Sök** och **Fråga AI**, aviseringsklockan med det som behöver dig nu (aktiva incidenter och larm, jourpolicyerna du har jour i, väntande inbjudningar), **Hjälp**, och din bild, som öppnar menyn för ditt [konto](/docs/introduction/your-account). |
 | Under dem | **Hem** och **Produkter** till vänster, **Användarinställningar** till höger: hur OneUptime når dig i det här projektet. |
 
-**Hjälp** öppnar den här dokumentationen (**Dokumentation**) och listan **Keyboard shortcuts**, och erbjuder support via e-post och på Slack. På en smal skärm, som en telefon, utelämnas **Sök**, **Fråga AI** och **Hjälp** för att spara plats; klockan och din bild finns kvar.
+**Hjälp** börjar med det som hjälper dig att lära dig: **Snabbstart**, **Så fungerar OneUptime**, **Ordlista** och den här dokumentationen (**Dokumentation**). Under dem finns listan **Keyboard shortcuts** och support via e-post och på Slack. På en smal skärm, som en telefon, utelämnas **Sök**, **Fråga AI** och **Hjälp** för att spara plats; klockan och din bild finns kvar.
+
+Ett ord med en prickad linje under, som **Sonder** i formuläret för en ny monitor, berättar vad det betyder när du pekar på det, tabbar till det eller trycker på det. Dess **Läs mer** öppnar ordet i [Ordlista](/docs/introduction/glossary).
 
 ### Sidor och listor
 
