@@ -49817,5 +49817,21 @@
   "{{time}} (approximate)": "{{time}} (تقریبی)",
   "{{value}} s": "{{value}} ثانیه",
   "{{window}}, the same length": "{{window}}، با همان طول",
-  "Security Events Ingest Endpoint": "نقطه پایانی دریافت رویدادهای امنیتی"
+  "Security Events Ingest Endpoint": "نقطه پایانی دریافت رویدادهای امنیتی",
+  "A config someone picked on the host's Collector page.": "پیکربندی‌ای که کسی در صفحه کالکتور میزبان انتخاب کرده است.",
+  "Checked from the top of this list, by the host's system and labels.": "از بالای این فهرست، بر اساس سیستم و برچسب‌های میزبان بررسی می‌شود.",
+  "Create a config from it": "ساخت پیکربندی از روی آن",
+  "For the host's system, when no config applies.": "برای سیستم میزبان، وقتی هیچ پیکربندی‌ای صدق نکند.",
+  "Host metrics": "متریک‌های میزبان",
+  "Host metrics and the install and Wi-Fi logs": "متریک‌های میزبان و لاگ‌های نصب و Wi-Fi",
+  "Host metrics, event logs and Windows services": "متریک‌های میزبان، لاگ‌های رویداد و سرویس‌های Windows",
+  "Host metrics, the journal and systemd units": "متریک‌های میزبان، journal و یونیت‌های systemd",
+  "No Collector Configs yet. Every host runs OneUptime's default for its system, shown below.": "هنوز پیکربندی کالکتوری وجود ندارد. هر میزبان پیش‌فرض OneUptime را برای سیستم خود اجرا می‌کند که در پایین نشان داده شده است.",
+  "OneUptime's default": "پیش‌فرض OneUptime",
+  "Picked for the host": "برای میزبان انتخاب شده",
+  "The config OneUptime sends to the hosts it manages. Each host runs the first config that applies to it, from the top: drag the rows to change the order.": "پیکربندی‌ای که OneUptime برای میزبان‌هایی که مدیریت می‌کند می‌فرستد. هر میزبان از بالا، اولین پیکربندی‌ای را که برایش صدق می‌کند اجرا می‌کند: برای تغییر ترتیب، ردیف‌ها را بکشید.",
+  "The first config that applies": "اولین پیکربندی‌ای که صدق می‌کند",
+  "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "این پیکربندی برای کیست و اکنون چند میزبان آن را اجرا می‌کنند. هر میزبان اولین پیکربندی فهرست را که برایش صدق می‌کند اجرا می‌کند.",
+  "How a host gets its config": "میزبان چگونه پیکربندی خود را می‌گیرد",
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "وقتی هیچ پیکربندی‌ای در بالا برای یک میزبان صدق نکند، پیش‌فرض سیستم خود را اجرا می‌کند. پیش‌فرض‌ها همراه انتشارهای OneUptime به‌روز می‌شوند."
 }

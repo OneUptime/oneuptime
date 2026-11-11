@@ -49817,5 +49817,21 @@
   "{{time}} (approximate)": "{{time}} (ungefär)",
   "{{value}} s": "{{value}} s",
   "{{window}}, the same length": "{{window}}, samma längd",
-  "Security Events Ingest Endpoint": "Intagnings-endpoint för säkerhetshändelser"
+  "Security Events Ingest Endpoint": "Intagnings-endpoint för säkerhetshändelser",
+  "A config someone picked on the host's Collector page.": "En konfiguration som någon valt på värdens Insamlare-sida.",
+  "Checked from the top of this list, by the host's system and labels.": "Kontrolleras från toppen av den här listan, efter värdens system och etiketter.",
+  "Create a config from it": "Skapa en konfiguration från den",
+  "For the host's system, when no config applies.": "För värdens system, när ingen konfiguration gäller.",
+  "Host metrics": "Mätvärden för värden",
+  "Host metrics and the install and Wi-Fi logs": "Mätvärden för värden samt installations- och Wi-Fi-loggarna",
+  "Host metrics, event logs and Windows services": "Mätvärden för värden, händelseloggar och Windows-tjänster",
+  "Host metrics, the journal and systemd units": "Mätvärden för värden, journalen och systemd-enheter",
+  "No Collector Configs yet. Every host runs OneUptime's default for its system, shown below.": "Inga insamlarkonfigurationer än. Varje värd kör OneUptimes standard för sitt system, som visas nedan.",
+  "OneUptime's default": "OneUptimes standard",
+  "Picked for the host": "Vald för värden",
+  "The config OneUptime sends to the hosts it manages. Each host runs the first config that applies to it, from the top: drag the rows to change the order.": "Konfigurationen som OneUptime skickar till värdarna det hanterar. Varje värd kör den första konfigurationen som gäller för den, uppifrån: dra raderna för att ändra ordningen.",
+  "The first config that applies": "Den första konfigurationen som gäller",
+  "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "Vem den här konfigurationen är för och hur många värdar som kör den nu. En värd kör den första konfigurationen i listan som gäller för den.",
+  "How a host gets its config": "Så får en värd sin konfiguration",
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "När ingen konfiguration ovan gäller för en värd kör den standarden för sitt system. Standarderna följer OneUptimes versioner."
 }

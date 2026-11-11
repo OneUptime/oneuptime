@@ -126,7 +126,7 @@ curl -fsSL https://oneuptime.com/docs/static/scripts/host-collector/install.sh |
 :::steps
 ### Crea una configuración del recolector
 
-Abre **Productos → Infraestructura → Hosts → Configuraciones del recolector** y selecciona **Crear Configuración del recolector**. Dale un nombre, el sistema de los hosts a los que va dirigida y, para llegar solo a algunos, sus etiquetas. Su configuración empieza como la predeterminada de OneUptime para ese sistema.
+Abre **Productos → Infraestructura → Hosts → Configuración → Configuraciones del recolector** y selecciona **Crear Configuración del recolector**. Dale un nombre, el sistema de los hosts a los que va dirigida y, para llegar solo a algunos, sus etiquetas. Su configuración empieza como la predeterminada de OneUptime para ese sistema.
 
 ### Edita su config.yaml
 
@@ -134,14 +134,14 @@ En la página de la configuración, selecciona **Editar configuración**, cambia
 
 ### Comprueba que llega a los hosts
 
-Cada cambio guardado es una versión nueva, y los hosts a los que se aplica la reciben en menos de un minuto. La lista **Hosts** de la configuración muestra cada host, el estado de su recolector y la versión que ejecuta.
+Cada cambio guardado es una versión nueva, y los hosts a los que se aplica la reciben en menos de un minuto. La pestaña **Hosts** de la configuración muestra cada host, el estado de su recolector y la versión que ejecuta.
 :::
 
-Un host ejecuta la primera configuración de la lista que se le aplica: arrastra las filas en **Configuraciones del recolector** para cambiar el orden. Pon primero las configuraciones más específicas, como una para los servidores web con `env:production`, y las generales, como una para todos los hosts Linux, después. La tarjeta **Configuraciones predeterminadas de OneUptime** bajo la lista muestra lo que ejecuta un host cuando no se le aplica ninguna configuración.
+Un host ejecuta la primera configuración de la lista que se le aplica: arrastra las filas en **Configuraciones del recolector** para cambiar el orden. Pon primero las configuraciones más específicas, como una para los servidores web con `env:production`, y las generales, como una para todos los hosts Linux, después. Cada fila indica cuántos hosts ejecutan la configuración y en cuántos falló. La tarjeta **Configuraciones predeterminadas de OneUptime** bajo la lista muestra lo que ejecuta un host cuando no se le aplica ninguna configuración, y cuántos hosts lo ejecutan. Para cambiarlo en un sistema, selecciona **Ver configuración** en su predeterminada y luego **Crear una configuración a partir de esta**.
 
 ### Versiones y restauración
 
-La lista **Versiones** de una configuración guarda cada cambio, el más reciente primero, con quién lo guardó y cuándo. Selecciona **Ver** para leer una versión y **Restaurar** para enviarla de nuevo a los hosts: se guarda como una versión nueva que indica cuál restauró, así que la lista siempre dice qué recibió cada host.
+La pestaña **Versiones** de una configuración guarda cada cambio, el más reciente primero, con quién lo guardó y cuándo. Selecciona **Ver** para leer una versión y **Restaurar** para enviarla de nuevo a los hosts: se guarda como una versión nueva que indica cuál restauró, así que la lista siempre dice qué recibió cada host.
 
 ### Elige una configuración para un solo host
 

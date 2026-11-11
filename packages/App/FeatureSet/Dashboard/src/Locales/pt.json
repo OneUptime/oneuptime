@@ -49817,5 +49817,21 @@
   "{{time}} (approximate)": "{{time}} (aproximado)",
   "{{value}} s": "{{value}} s",
   "{{window}}, the same length": "{{window}}, a mesma duração",
-  "Security Events Ingest Endpoint": "Endpoint de ingestão de eventos de segurança"
+  "Security Events Ingest Endpoint": "Endpoint de ingestão de eventos de segurança",
+  "A config someone picked on the host's Collector page.": "Uma configuração que alguém escolheu na página Coletor do host.",
+  "Checked from the top of this list, by the host's system and labels.": "Verificada a partir do topo desta lista, pelo sistema e pelos rótulos do host.",
+  "Create a config from it": "Criar uma configuração a partir dele",
+  "For the host's system, when no config applies.": "Para o sistema do host, quando nenhuma configuração se aplica.",
+  "Host metrics": "Métricas do host",
+  "Host metrics and the install and Wi-Fi logs": "Métricas do host e os logs de instalação e de Wi-Fi",
+  "Host metrics, event logs and Windows services": "Métricas do host, logs de eventos e serviços do Windows",
+  "Host metrics, the journal and systemd units": "Métricas do host, o journal e as unidades do systemd",
+  "No Collector Configs yet. Every host runs OneUptime's default for its system, shown below.": "Ainda não há configurações do coletor. Cada host executa o padrão do OneUptime para o seu sistema, mostrado abaixo.",
+  "OneUptime's default": "Padrão do OneUptime",
+  "Picked for the host": "Escolhida para o host",
+  "The config OneUptime sends to the hosts it manages. Each host runs the first config that applies to it, from the top: drag the rows to change the order.": "A configuração que o OneUptime envia aos hosts que gerencia. Cada host executa a primeira configuração que se aplica a ele, a partir do topo: arraste as linhas para mudar a ordem.",
+  "The first config that applies": "A primeira configuração que se aplica",
+  "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "Para quem é esta configuração e quantos hosts a executam agora. Um host executa a primeira configuração da lista que se aplica a ele.",
+  "How a host gets its config": "Como um host recebe a sua configuração",
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "Quando nenhuma configuração acima se aplica a um host, ele executa o padrão do seu sistema. Os padrões acompanham as versões do OneUptime."
 }

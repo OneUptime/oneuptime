@@ -126,7 +126,7 @@ curl -fsSL https://oneuptime.com/docs/static/scripts/host-collector/install.sh |
 :::steps
 ### Créer une configuration du collecteur
 
-Ouvrez **Produits → Infrastructure → Hôtes → Configurations du collecteur** et sélectionnez **Créer : Configuration du collecteur**. Donnez-lui un nom, le système des hôtes auxquels elle est destinée et, pour n'en atteindre que certains, leurs étiquettes. Sa configuration part de la configuration par défaut de OneUptime pour ce système.
+Ouvrez **Produits → Infrastructure → Hôtes → Configuration → Configurations du collecteur** et sélectionnez **Créer : Configuration du collecteur**. Donnez-lui un nom, le système des hôtes auxquels elle est destinée et, pour n'en atteindre que certains, leurs étiquettes. Sa configuration part de la configuration par défaut de OneUptime pour ce système.
 
 ### Modifier son config.yaml
 
@@ -134,14 +134,14 @@ Sur la page de la configuration, sélectionnez **Modifier la configuration**, ch
 
 ### La voir arriver sur les hôtes
 
-Chaque modification enregistrée est une nouvelle version, et les hôtes auxquels elle s'applique la reçoivent dans la minute. La liste **Hôtes** de la configuration montre chaque hôte, l'état de son collecteur et la version qu'il exécute.
+Chaque modification enregistrée est une nouvelle version, et les hôtes auxquels elle s'applique la reçoivent dans la minute. L'onglet **Hôtes** de la configuration montre chaque hôte, l'état de son collecteur et la version qu'il exécute.
 :::
 
-Un hôte exécute la première configuration de la liste qui s'applique à lui : faites glisser les lignes dans **Configurations du collecteur** pour changer l'ordre. Placez en premier les configurations les plus ciblées, comme une pour les serveurs web en `env:production`, et les plus larges, comme une pour tous les hôtes Linux, après elles. La carte **Configurations par défaut de OneUptime** sous la liste montre ce qu'exécute un hôte quand aucune configuration ne s'applique.
+Un hôte exécute la première configuration de la liste qui s'applique à lui : faites glisser les lignes dans **Configurations du collecteur** pour changer l'ordre. Placez en premier les configurations les plus ciblées, comme une pour les serveurs web en `env:production`, et les plus larges, comme une pour tous les hôtes Linux, après elles. Chaque ligne indique combien d'hôtes exécutent la configuration, et sur combien elle a échoué. La carte **Configurations par défaut de OneUptime** sous la liste montre ce qu'exécute un hôte quand aucune configuration ne s'applique, et combien d'hôtes l'exécutent. Pour le changer pour un système, sélectionnez **Voir la configuration** sur sa configuration par défaut, puis **Créer une configuration à partir de celle-ci**.
 
 ### Versions et retour en arrière
 
-La liste **Versions** d'une configuration conserve chaque modification enregistrée, la plus récente en premier, avec qui l'a enregistrée et quand. Sélectionnez **Voir** pour lire une version, et **Rétablir** pour l'envoyer de nouveau aux hôtes : elle est enregistrée comme une nouvelle version qui indique laquelle elle a rétablie, si bien que la liste dit toujours ce que chaque hôte a reçu.
+L'onglet **Versions** d'une configuration conserve chaque modification enregistrée, la plus récente en premier, avec qui l'a enregistrée et quand. Sélectionnez **Voir** pour lire une version, et **Rétablir** pour l'envoyer de nouveau aux hôtes : elle est enregistrée comme une nouvelle version qui indique laquelle elle a rétablie, si bien que la liste dit toujours ce que chaque hôte a reçu.
 
 ### Choisir une configuration pour un seul hôte
 

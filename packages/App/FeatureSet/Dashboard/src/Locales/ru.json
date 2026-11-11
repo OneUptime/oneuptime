@@ -49817,5 +49817,21 @@
   "{{time}} (approximate)": "{{time}} (приблизительно)",
   "{{value}} s": "{{value}} с",
   "{{window}}, the same length": "{{window}}, той же длины",
-  "Security Events Ingest Endpoint": "Эндпоинт приёма событий безопасности"
+  "Security Events Ingest Endpoint": "Эндпоинт приёма событий безопасности",
+  "A config someone picked on the host's Collector page.": "Конфигурация, которую кто-то выбрал на странице «Коллектор» хоста.",
+  "Checked from the top of this list, by the host's system and labels.": "Проверяется сверху этого списка, по системе и меткам хоста.",
+  "Create a config from it": "Создать конфигурацию на её основе",
+  "For the host's system, when no config applies.": "Для системы хоста, если не подходит ни одна конфигурация.",
+  "Host metrics": "Метрики хоста",
+  "Host metrics and the install and Wi-Fi logs": "Метрики хоста и журналы установки и Wi-Fi",
+  "Host metrics, event logs and Windows services": "Метрики хоста, журналы событий и службы Windows",
+  "Host metrics, the journal and systemd units": "Метрики хоста, журнал и юниты systemd",
+  "No Collector Configs yet. Every host runs OneUptime's default for its system, shown below.": "Конфигураций коллектора пока нет. Каждый хост выполняет конфигурацию OneUptime по умолчанию для своей системы — она показана ниже.",
+  "OneUptime's default": "Конфигурация OneUptime по умолчанию",
+  "Picked for the host": "Выбрана для хоста",
+  "The config OneUptime sends to the hosts it manages. Each host runs the first config that applies to it, from the top: drag the rows to change the order.": "Конфигурация, которую OneUptime отправляет управляемым хостам. Каждый хост выполняет первую подходящую ему конфигурацию, считая сверху: перетаскивайте строки, чтобы изменить порядок.",
+  "The first config that applies": "Первая подходящая конфигурация",
+  "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "Для кого эта конфигурация и сколько хостов выполняют её сейчас. Хост выполняет первую подходящую ему конфигурацию из списка.",
+  "How a host gets its config": "Как хост получает свою конфигурацию",
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "Если хосту не подходит ни одна конфигурация выше, он выполняет конфигурацию по умолчанию для своей системы. Конфигурации по умолчанию обновляются с релизами OneUptime."
 }
