@@ -40,6 +40,8 @@ const lettersAndDigitsOf: (text: string) => string = (text: string): string => {
 
 interface ValueSet<T extends string> {
   values: ReadonlyArray<T>;
+  // Every name a value is read by: the values, their other names, symbols.
+  names: ReadonlyArray<string>;
   /*
    * Each value by its letters and digits, and by each other name for it.
    * Null where two values have the same letters: neither is guessed.
@@ -83,6 +85,11 @@ const makeValueSet: <T extends string>(data: {
 
   return {
     values: data.values,
+    names: [
+      ...data.values,
+      ...Object.keys(data.otherNames || {}),
+      ...Object.keys(data.symbols || {}),
+    ],
     byLettersAndDigits,
     bySymbol: new Map<string, T>(Object.entries(data.symbols || {})),
   };
@@ -201,6 +208,22 @@ const EVALUATE_OVER_TIME_TYPES: ValueSet<EvaluateOverTimeType> =
 const NO_DATA_POLICIES: ValueSet<NoDataPolicy> = makeValueSet<NoDataPolicy>({
   values: Object.values(NoDataPolicy),
 });
+
+// The fields of a criteria whose values are read when written another way.
+export type CriteriaFilterValueField =
+  | "filterType"
+  | "checkOn"
+  | "filterCondition"
+  | "evaluateOverTimeType"
+  | "noDataPolicy";
+
+const VALUE_SETS: Record<CriteriaFilterValueField, ValueSet<string>> = {
+  filterType: FILTER_TYPES,
+  checkOn: CHECK_ONS,
+  filterCondition: FILTER_CONDITIONS,
+  evaluateOverTimeType: EVALUATE_OVER_TIME_TYPES,
+  noDataPolicy: NO_DATA_POLICIES,
+};
 
 // The longest part of a written value an error quotes back.
 const MAX_QUOTED_LENGTH: number = 64;
@@ -321,6 +344,17 @@ export default class CriteriaFilterValues {
 
   public static readNoDataPolicy(value: unknown): NoDataPolicy | null {
     return readValue(NO_DATA_POLICIES, value);
+  }
+
+  /*
+   * Every name a field's value is read by, as it is written here: the
+   * values, their other names ("avg", "gte") and their symbols (">="). For
+   * a reader that must read them exactly as this one does - the Terraform
+   * provider's, which is checked against cases built from these
+   * (Scripts/TerraformProvider/Core/MonitorStepsValuesCases.ts).
+   */
+  public static getNamesRead(field: CriteriaFilterValueField): Array<string> {
+    return [...VALUE_SETS[field].names];
   }
 
   /*
