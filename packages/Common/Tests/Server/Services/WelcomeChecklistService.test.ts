@@ -119,11 +119,17 @@ let legacyCounts: {
 let serverCanSendEmail: boolean;
 let writes: Array<{ sql: string; parameters: Array<unknown> }>;
 
-let readinessSpy: SpyInstance;
-let incidentRulesSpy: SpyInstance;
-let importsSpy: SpyInstance;
-let milestonesSpy: SpyInstance;
-let legacyCountSpies: Array<SpyInstance>;
+let readinessSpy: SpyInstance<
+  typeof OnCallReadinessService.getReadinessForPolicy
+>;
+let incidentRulesSpy: SpyInstance<typeof IncidentOnCallRuleService.findBy>;
+let importsSpy: SpyInstance<typeof ToolImportRunService.countBy>;
+let milestonesSpy: SpyInstance<
+  typeof ProjectMilestoneService.getReachedMilestones
+>;
+// The four counts of the checklist before this one, each a service of its own.
+type LegacyCountSpy = SpyInstance<() => Promise<PositiveNumber>>;
+let legacyCountSpies: Array<LegacyCountSpy>;
 let canSendSpy: SpyInstance;
 
 function permission(value: Permission): UserPermission {
@@ -176,10 +182,11 @@ const stepsOf: (answer: WelcomeChecklistAnswer) => Array<string> = (
   });
 };
 
-const storedState: () => ReturnType<typeof parseWelcomeChecklistState> =
-  (): ReturnType<typeof parseWelcomeChecklistState> => {
-    return parseWelcomeChecklistState(row.welcomeChecklistState);
-  };
+const storedState: () => ReturnType<
+  typeof parseWelcomeChecklistState
+> = (): ReturnType<typeof parseWelcomeChecklistState> => {
+  return parseWelcomeChecklistState(row.welcomeChecklistState);
+};
 
 const count: (value: number) => PositiveNumber = (
   value: number,
@@ -198,25 +205,39 @@ beforeEach(() => {
   alertRulePolicies = [];
   reachableByPolicy = {};
   finishedImports = 0;
-  legacyCounts = { monitors: 0, statusPages: 0, teamMembers: 1, onCallPolicies: 0 };
+  legacyCounts = {
+    monitors: 0,
+    statusPages: 0,
+    teamMembers: 1,
+    onCallPolicies: 0,
+  };
   serverCanSendEmail = true;
   writes = [];
 
-  jest.spyOn(ProjectService, "findOneById").mockImplementation((async (): Promise<
-    unknown
-  > => {
-    return { ...row };
-  }) as never);
+  jest
+    .spyOn(ProjectService, "findOneById")
+    .mockImplementation((async (): Promise<unknown> => {
+      return { ...row };
+    }) as never);
 
   jest.spyOn(ProjectService, "getRepository").mockReturnValue({
     manager: {
-      query: async (sql: string, parameters: Array<unknown>): Promise<unknown> => {
+      query: async (
+        sql: string,
+        parameters: Array<unknown>,
+      ): Promise<unknown> => {
         writes.push({ sql: sql, parameters: parameters });
 
-        if (sql.startsWith(`UPDATE "Project" SET "goals" = $1, "welcomeChecklistState" = $2`)) {
+        if (
+          sql.startsWith(
+            `UPDATE "Project" SET "goals" = $1, "welcomeChecklistState" = $2`,
+          )
+        ) {
           row.goals = JSON.parse(parameters[0] as string);
           row.welcomeChecklistState = JSON.parse(parameters[1] as string);
-        } else if (sql.startsWith(`UPDATE "Project" SET "welcomeChecklistState" = $1`)) {
+        } else if (
+          sql.startsWith(`UPDATE "Project" SET "welcomeChecklistState" = $1`)
+        ) {
           row.welcomeChecklistState = JSON.parse(parameters[0] as string);
         } else {
           throw new Error(`Unexpected query: ${sql}`);
@@ -231,7 +252,11 @@ beforeEach(() => {
     .spyOn(ProjectMilestoneService, "getReachedMilestones")
     .mockImplementation((async (): Promise<unknown> => {
       return milestones.map((milestone: ActivationMilestone) => {
-        return { milestone: milestone, reachedAt: new Date(), wasBackfilled: false };
+        return {
+          milestone: milestone,
+          reachedAt: new Date(),
+          wasBackfilled: false,
+        };
       });
     }) as never);
 
@@ -240,7 +265,7 @@ beforeEach(() => {
   ): Array<JSONObject> => {
     return policies.map((ids: Array<string>) => {
       return {
-        _id: new ObjectID(),
+        _id: ObjectID.generate(),
         onCallDutyPolicies: ids.map((id: string) => {
           return { _id: new ObjectID(id) };
         }),
@@ -279,18 +304,18 @@ beforeEach(() => {
   legacyCountSpies = [
     jest.spyOn(MonitorService, "countBy").mockImplementation((async () => {
       return count(legacyCounts.monitors);
-    }) as never),
+    }) as never) as unknown as LegacyCountSpy,
     jest.spyOn(StatusPageService, "countBy").mockImplementation((async () => {
       return count(legacyCounts.statusPages);
-    }) as never),
+    }) as never) as unknown as LegacyCountSpy,
     jest.spyOn(TeamMemberService, "countBy").mockImplementation((async () => {
       return count(legacyCounts.teamMembers);
-    }) as never),
+    }) as never) as unknown as LegacyCountSpy,
     jest
       .spyOn(OnCallDutyPolicyService, "countBy")
       .mockImplementation((async () => {
         return count(legacyCounts.onCallPolicies);
-      }) as never),
+      }) as never) as unknown as LegacyCountSpy,
   ];
 
   canSendSpy = jest
@@ -462,9 +487,12 @@ describe("steps tick on outcomes", () => {
   });
 
   test("asks at most a few policies about their responders, each once", async () => {
-    const many: Array<string> = Array.from({ length: 12 }, (_: unknown, index: number) => {
-      return `77777777-7777-4777-8777-${String(index).padStart(12, "0")}`;
-    });
+    const many: Array<string> = Array.from(
+      { length: 12 },
+      (_: unknown, index: number) => {
+        return `77777777-7777-4777-8777-${String(index).padStart(12, "0")}`;
+      },
+    );
 
     incidentRulePolicies = [many, many];
 
@@ -550,22 +578,22 @@ describe("one checklist for the project", () => {
   test("hiding is one member's own: the other still sees it, and it can be shown again", async () => {
     await WelcomeChecklistService.setHiddenForCaller(OWNER(), true);
 
-    expect((await WelcomeChecklistService.getAnswer(OWNER())).isHiddenForMe).toBe(
-      true,
-    );
-    expect((await WelcomeChecklistService.getAnswer(ADMIN())).isHiddenForMe).toBe(
-      false,
-    );
+    expect(
+      (await WelcomeChecklistService.getAnswer(OWNER())).isHiddenForMe,
+    ).toBe(true);
+    expect(
+      (await WelcomeChecklistService.getAnswer(ADMIN())).isHiddenForMe,
+    ).toBe(false);
     // Hidden, the answer still carries the steps for the line left behind.
-    expect((await WelcomeChecklistService.getAnswer(OWNER())).steps).toHaveLength(
-      4,
-    );
+    expect(
+      (await WelcomeChecklistService.getAnswer(OWNER())).steps,
+    ).toHaveLength(4);
 
     await WelcomeChecklistService.setHiddenForCaller(OWNER(), false);
 
-    expect((await WelcomeChecklistService.getAnswer(OWNER())).isHiddenForMe).toBe(
-      false,
-    );
+    expect(
+      (await WelcomeChecklistService.getAnswer(OWNER())).isHiddenForMe,
+    ).toBe(false);
   });
 
   test("an invited member gets nothing to draw, and nothing is read for them", async () => {
@@ -702,9 +730,11 @@ describe("the plan and the edition", () => {
 
     expect(canSendSpy).not.toHaveBeenCalled();
     expect(answer.canSendEmail).toBe(true);
-    expect(answer.steps.map((state: WelcomeChecklistStepState) => {
-      return state.step;
-    })).not.toContain(WelcomeStep.ServerEmail);
+    expect(
+      answer.steps.map((state: WelcomeChecklistStepState) => {
+        return state.step;
+      }),
+    ).not.toContain(WelcomeStep.ServerEmail);
   });
 });
 
@@ -714,7 +744,12 @@ describe("a project from before this checklist", () => {
   });
 
   test("that finished the old checklist is finished now, and is never asked", async () => {
-    legacyCounts = { monitors: 3, statusPages: 1, teamMembers: 2, onCallPolicies: 1 };
+    legacyCounts = {
+      monitors: 3,
+      statusPages: 1,
+      teamMembers: 2,
+      onCallPolicies: 1,
+    };
 
     const answer: WelcomeChecklistAnswer =
       await WelcomeChecklistService.getAnswer(OWNER());
@@ -726,7 +761,12 @@ describe("a project from before this checklist", () => {
   });
 
   test("that did not is looked at once, and then follows outcomes", async () => {
-    legacyCounts = { monitors: 3, statusPages: 1, teamMembers: 1, onCallPolicies: 1 };
+    legacyCounts = {
+      monitors: 3,
+      statusPages: 1,
+      teamMembers: 1,
+      onCallPolicies: 1,
+    };
 
     const first: WelcomeChecklistAnswer =
       await WelcomeChecklistService.getAnswer(OWNER());
@@ -748,7 +788,12 @@ describe("a project from before this checklist", () => {
 
   test("a project created now is never looked at by the old rule", async () => {
     row.welcomeChecklistState = { startedWithOutcomes: true };
-    legacyCounts = { monitors: 3, statusPages: 1, teamMembers: 2, onCallPolicies: 1 };
+    legacyCounts = {
+      monitors: 3,
+      statusPages: 1,
+      teamMembers: 2,
+      onCallPolicies: 1,
+    };
 
     const answer: WelcomeChecklistAnswer =
       await WelcomeChecklistService.getAnswer(OWNER());
@@ -816,15 +861,20 @@ describe("what a browser remembered of the old checklist", () => {
 
 describe("the writes", () => {
   test("go straight to the project's row, never through its update hooks", async () => {
-    const update: SpyInstance = jest.spyOn(ProjectService, "updateOneById");
+    const update: SpyInstance<typeof ProjectService.updateOneById> = jest.spyOn(
+      ProjectService,
+      "updateOneById",
+    );
 
     await WelcomeChecklistService.chooseGoals(OWNER(), ["telemetry"]);
     await WelcomeChecklistService.setHiddenForCaller(OWNER(), true);
 
     expect(update).not.toHaveBeenCalled();
-    expect(writes.map((write: { sql: string }) => {
-      return write.sql;
-    })).toEqual([
+    expect(
+      writes.map((write: { sql: string }) => {
+        return write.sql;
+      }),
+    ).toEqual([
       `UPDATE "Project" SET "goals" = $1, "welcomeChecklistState" = $2 WHERE "_id" = $3`,
       `UPDATE "Project" SET "welcomeChecklistState" = $1 WHERE "_id" = $2`,
     ]);

@@ -46,7 +46,9 @@ import {
  */
 const router: ExpressRouter = Express.getRouter();
 
-async function readCaller(req: ExpressRequest): Promise<WelcomeChecklistCaller> {
+async function readCaller(
+  req: ExpressRequest,
+): Promise<WelcomeChecklistCaller> {
   const props: DatabaseCommonInteractionProps =
     await CommonAPI.getDatabaseCommonInteractionProps(req);
 

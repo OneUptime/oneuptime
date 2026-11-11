@@ -234,7 +234,9 @@ describe("where the pages say them", () => {
     const card: string = read("Components", "Home", "GettingStarted.tsx");
 
     expect(catalog).toContain("SERVER_EMAIL_COPY.onCallStepDescription");
-    expect(catalog).toContain("SERVER_EMAIL_COPY.onCallStepDescriptionForAdmin");
+    expect(catalog).toContain(
+      "SERVER_EMAIL_COPY.onCallStepDescriptionForAdmin",
+    );
     expect(card).toContain("canSendEmail: answer.canSendEmail,");
     expect(card).toContain("isMasterAdmin: Boolean(UserUtil.isMasterAdmin()),");
     expect(card).toContain(

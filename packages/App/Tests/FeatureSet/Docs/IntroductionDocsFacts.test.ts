@@ -1065,9 +1065,7 @@ function checklistTasks(): Array<ChecklistTask> {
     "export const WELCOME_STEPS",
     "\n];",
   );
-  const starts: Array<RegExpMatchArray> = Array.from(
-    block.matchAll(TASK_STEP),
-  );
+  const starts: Array<RegExpMatchArray> = Array.from(block.matchAll(TASK_STEP));
 
   return starts.map((match: RegExpMatchArray, index: number): ChecklistTask => {
     const chunk: string = block.slice(
@@ -1280,7 +1278,9 @@ describe("Home Page & Shortcuts", () => {
     expect(CHECKLIST_CATALOG_SOURCE).toContain(
       'title: translationKey("What do you want to do first?"),',
     );
-    expect(section).toContain("the card asks **What do you want to do first?**");
+    expect(section).toContain(
+      "the card asks **What do you want to do first?**",
+    );
     // The first goal and the last, as the question lists them.
     expect(goals[0]).toBe("Know when my website or API is down");
     expect(goals[goals.length - 1]).toBe("Just looking around");

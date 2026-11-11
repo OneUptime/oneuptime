@@ -139,7 +139,9 @@ function step(
   return { step: key, isDone: false, needsPlan: null, isNext: false, ...extra };
 }
 
-function answer(extra?: Partial<WelcomeChecklistAnswer>): WelcomeChecklistAnswer {
+function answer(
+  extra?: Partial<WelcomeChecklistAnswer>,
+): WelcomeChecklistAnswer {
   const steps: Array<WelcomeChecklistStepState> = extra?.steps || [
     step(WelcomeStep.Monitor, { isNext: true }),
     step(WelcomeStep.OnCall),
@@ -259,10 +261,9 @@ describe("What do you want to do first?", () => {
     expect(goalBox(ProjectGoal.Uptime).checked).toBe(true);
     expect(goalBox(ProjectGoal.StatusPage).checked).toBe(true);
     expect(goalBox(ProjectGoal.Telemetry).checked).toBe(false);
-    expect(screen.getByTestId(`welcome-goal-${ProjectGoal.Uptime}`)).toHaveAttribute(
-      "data-chosen",
-      "true",
-    );
+    expect(
+      screen.getByTestId(`welcome-goal-${ProjectGoal.Uptime}`),
+    ).toHaveAttribute("data-chosen", "true");
   });
 
   test("Continue sends the goals, draws the checklist that follows, and records home/goals_chosen", async () => {
@@ -307,9 +308,9 @@ describe("What do you want to do first?", () => {
       goals: [],
     });
     expect(screen.getByTestId("getting-started")).toBeInTheDocument();
-    expect(screen.getAllByTestId(/^getting-started-task-[a-z_]+$/)).toHaveLength(
-      4,
-    );
+    expect(
+      screen.getAllByTestId(/^getting-started-task-[a-z_]+$/),
+    ).toHaveLength(4);
     expect(sendMock).toHaveBeenCalledWith(ProductEventName.GoalsChosen, {
       goals: "",
       goal_count: 0,
@@ -396,18 +397,18 @@ describe("changing the goals later, from Home", () => {
       goal_count: 2,
       is_change: true,
     });
-    expect(screen.getAllByTestId(/^getting-started-task-[a-z_]+$/)).toHaveLength(
-      2,
-    );
+    expect(
+      screen.getAllByTestId(/^getting-started-task-[a-z_]+$/),
+    ).toHaveLength(2);
   });
 
   test("a project that skipped is offered to choose goals", async () => {
     fetchMock.mockResolvedValue(answer({ goals: [] }));
     await renderGettingStarted();
 
-    expect(screen.getByTestId("welcome-checklist-change-goals")).toHaveTextContent(
-      "Choose your goals",
-    );
+    expect(
+      screen.getByTestId("welcome-checklist-change-goals"),
+    ).toHaveTextContent("Choose your goals");
   });
 });
 
@@ -499,7 +500,10 @@ describe("what this browser remembered of the old checklist", () => {
 
 describe("the events of a step seen done", () => {
   test("carry the goals, and leave out the server's email and steps the plan holds back", async () => {
-    const note: SpyInstance = jest.spyOn(ChecklistEvents, "noteProgress");
+    const note: SpyInstance<typeof ChecklistEvents.noteProgress> = jest.spyOn(
+      ChecklistEvents,
+      "noteProgress",
+    );
 
     fetchMock.mockResolvedValue(
       answer({
@@ -551,7 +555,10 @@ describe("the events of a step seen done", () => {
   });
 
   test("an invited member's answer notes nothing", async () => {
-    const note: SpyInstance = jest.spyOn(ChecklistEvents, "noteProgress");
+    const note: SpyInstance<typeof ChecklistEvents.noteProgress> = jest.spyOn(
+      ChecklistEvents,
+      "noteProgress",
+    );
 
     fetchMock.mockResolvedValue(
       answer({ audience: WelcomeAudience.InvitedMember, steps: [] }),
@@ -572,7 +579,12 @@ describe("what the card draws", () => {
       WelcomeCardView.InvitedMember,
     ],
     ["finished", answer({ isFinished: true }), false, WelcomeCardView.None],
-    ["a new project", answer({ shouldAskForGoals: true }), false, WelcomeCardView.Question],
+    [
+      "a new project",
+      answer({ shouldAskForGoals: true }),
+      false,
+      WelcomeCardView.Question,
+    ],
     ["changing the goals", answer(), true, WelcomeCardView.Question],
     [
       "changing, by someone who may not",

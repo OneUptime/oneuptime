@@ -52,9 +52,11 @@ const facts: (extra: Partial<WelcomeOutcomeFacts>) => WelcomeOutcomeFacts = (
 const stepsOf: (checklist: WelcomeChecklist) => Array<WelcomeStep> = (
   checklist: WelcomeChecklist,
 ): Array<WelcomeStep> => {
-  return checklist.steps.map((state: WelcomeChecklistStepState): WelcomeStep => {
-    return state.step;
-  });
+  return checklist.steps.map(
+    (state: WelcomeChecklistStepState): WelcomeStep => {
+      return state.step;
+    },
+  );
 };
 
 const stateOf: (
@@ -95,9 +97,12 @@ describe("which steps a project gets", () => {
     [ProjectGoal.Infrastructure, [WelcomeStep.Infrastructure]],
     [ProjectGoal.Import, [WelcomeStep.Import, WelcomeStep.OnCall]],
     [ProjectGoal.Explore, [WelcomeStep.Monitor]],
-  ])("the %s goal brings its own steps", (goal: ProjectGoal, steps: Array<WelcomeStep>) => {
-    expect(getStepsForGoals([goal])).toEqual(steps);
-  });
+  ])(
+    "the %s goal brings its own steps",
+    (goal: ProjectGoal, steps: Array<WelcomeStep>) => {
+      expect(getStepsForGoals([goal])).toEqual(steps);
+    },
+  );
 
   test("every goal has steps, and every step a goal brings is in the order", () => {
     for (const goal of PROJECT_GOALS) {
@@ -348,9 +353,9 @@ describe("whether the server needs to look at on-call rules", () => {
 
 describe("what the plan holds back", () => {
   test("on the Free plan, inviting the team needs the Growth plan", () => {
-    expect(
-      getWelcomeStepPlanNeed(WelcomeStep.Team, { isFreePlan: true }),
-    ).toBe(PlanType.Growth);
+    expect(getWelcomeStepPlanNeed(WelcomeStep.Team, { isFreePlan: true })).toBe(
+      PlanType.Growth,
+    );
   });
 
   test("on any other plan, and on a server without billing, nothing is held back", () => {
@@ -624,19 +629,24 @@ describe("when Home asks what the project came to do", () => {
     ).toBe(false);
   });
 
-  test.each(PROJECT_IN_USE_MILESTONES.map((milestone: ActivationMilestone) => {
-    return [milestone];
-  }))("never of a project already in use (%s)", (milestone: ActivationMilestone) => {
-    expect(isProjectInUse([milestone])).toBe(true);
-    expect(
-      shouldAskForGoals({
-        goals: null,
-        canChooseGoals: true,
-        isFinished: false,
-        reached: [milestone],
-      }),
-    ).toBe(false);
-  });
+  test.each(
+    PROJECT_IN_USE_MILESTONES.map((milestone: ActivationMilestone) => {
+      return [milestone];
+    }),
+  )(
+    "never of a project already in use (%s)",
+    (milestone: ActivationMilestone) => {
+      expect(isProjectInUse([milestone])).toBe(true);
+      expect(
+        shouldAskForGoals({
+          goals: null,
+          canChooseGoals: true,
+          isFinished: false,
+          reached: [milestone],
+        }),
+      ).toBe(false);
+    },
+  );
 
   test("a project whose only milestone is a second member is still asked", () => {
     expect(isProjectInUse([ActivationMilestone.SecondMemberJoined])).toBe(

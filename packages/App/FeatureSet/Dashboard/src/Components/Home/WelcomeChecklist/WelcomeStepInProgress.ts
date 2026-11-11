@@ -1,4 +1,7 @@
-import { getWelcomeStepEntry, WelcomeStepEntry } from "./WelcomeChecklistCatalog";
+import {
+  getWelcomeStepEntry,
+  WelcomeStepEntry,
+} from "./WelcomeChecklistCatalog";
 import RouteMap from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import {
@@ -23,7 +26,8 @@ import SessionStorage from "Common/UI/Utils/SessionStorage";
  * doing now, not about the project.
  */
 
-export const STEP_IN_PROGRESS_KEY: string = "welcome-checklist-step-in-progress";
+export const STEP_IN_PROGRESS_KEY: string =
+  "welcome-checklist-step-in-progress";
 
 // How long a started step is carried: an hour is long enough to make the record.
 export const STEP_IN_PROGRESS_TTL_MS: number = 60 * 60 * 1000;
@@ -115,7 +119,8 @@ export const readWelcomeStepInProgress: (
 const ESCAPE: RegExp = /[.*+?^${}()|[\]\\]/g;
 
 // A record's id in an address: an ObjectID, which is a UUID.
-const RECORD_ID_PATTERN: string = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+const RECORD_ID_PATTERN: string =
+  "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
 /*
  * Whether a path is the page a route names, for one project: the route's

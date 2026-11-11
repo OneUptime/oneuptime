@@ -907,7 +907,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     data.data.welcomeChecklistState = toWelcomeChecklistStateJSON(
       getNewProjectWelcomeChecklistState(),
     );
-    data.data.goals = undefined;
+    delete data.data.goals;
 
     if (data.props.userId) {
       RelationIdUtil.stamp(

@@ -7,7 +7,13 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -26,7 +32,11 @@ jest.mock("../../../UI/Utils/Navigation", () => {
     __esModule: true,
     default: {
       getCurrentPath: () => {
-        return { toString: () => currentPath };
+        return {
+          toString: () => {
+            return currentPath;
+          },
+        };
       },
       isOnThisPage: () => {
         return false;
@@ -155,7 +165,10 @@ describe("which page is a step's landing page", () => {
     ).toBe(false);
     expect(
       isPathOnRoute({
-        path: pathOf(PageMap.MONITOR_VIEW).replace(PROJECT_ID, OTHER_PROJECT_ID),
+        path: pathOf(PageMap.MONITOR_VIEW).replace(
+          PROJECT_ID,
+          OTHER_PROJECT_ID,
+        ),
         route: monitorView,
         projectId: PROJECT_ID,
       }),
@@ -201,7 +214,11 @@ describe("what is carried", () => {
   test("something that is not a step reads as nothing", () => {
     window.sessionStorage.setItem(
       STEP_IN_PROGRESS_KEY,
-      JSON.stringify({ projectId: PROJECT_ID, step: "teleport", startedAt: Date.now() }),
+      JSON.stringify({
+        projectId: PROJECT_ID,
+        step: "teleport",
+        startedAt: Date.now(),
+      }),
     );
     expect(readWelcomeStepInProgress()).toBeNull();
 

@@ -108,19 +108,20 @@ export const readLegacyBrowserState: (
   }
 };
 
-export const forgetLegacyBrowserState: (projectId: ObjectID | string) => void =
-  (projectId: ObjectID | string): void => {
-    try {
-      LocalStorage.removeItem(
-        `${LEGACY_DISMISSED_KEY_PREFIX}${projectId.toString()}`,
-      );
-      LocalStorage.removeItem(
-        `${LEGACY_COMPLETE_KEY_PREFIX}${projectId.toString()}`,
-      );
-    } catch {
-      // Sent again next time: the server keeps it once either way.
-    }
-  };
+export const forgetLegacyBrowserState: (
+  projectId: ObjectID | string,
+) => void = (projectId: ObjectID | string): void => {
+  try {
+    LocalStorage.removeItem(
+      `${LEGACY_DISMISSED_KEY_PREFIX}${projectId.toString()}`,
+    );
+    LocalStorage.removeItem(
+      `${LEGACY_COMPLETE_KEY_PREFIX}${projectId.toString()}`,
+    );
+  } catch {
+    // Sent again next time: the server keeps it once either way.
+  }
+};
 
 /*
  * Sends what this browser remembered, when it remembered anything, and

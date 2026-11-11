@@ -65,9 +65,7 @@ const isFinishedBy: (value: unknown) => value is WelcomeChecklistFinishedBy = (
 ): value is WelcomeChecklistFinishedBy => {
   return (
     typeof value === "string" &&
-    (Object.values(WelcomeChecklistFinishedBy) as Array<string>).includes(
-      value,
-    )
+    (Object.values(WelcomeChecklistFinishedBy) as Array<string>).includes(value)
   );
 };
 

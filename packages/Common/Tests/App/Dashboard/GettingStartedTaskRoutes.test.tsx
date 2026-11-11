@@ -7,7 +7,13 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import type { SpyInstance } from "jest-mock";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -162,7 +168,7 @@ const EVERY_STEP: WelcomeChecklistAnswer = answer(
 );
 
 let mayCreate: boolean | undefined;
-let checkSpy: SpyInstance;
+let checkSpy: SpyInstance<typeof PermissionGate.check>;
 
 async function renderGettingStarted(): Promise<void> {
   await act(async () => {

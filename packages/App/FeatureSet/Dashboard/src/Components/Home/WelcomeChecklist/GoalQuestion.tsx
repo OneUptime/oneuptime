@@ -142,7 +142,9 @@ const GoalQuestion: FunctionComponent<ComponentProps> = (
             disabled={props.isSaving}
             onClick={props.onSkip}
             dataTestId={
-              props.isChange ? "welcome-question-cancel" : "welcome-question-skip"
+              props.isChange
+                ? "welcome-question-cancel"
+                : "welcome-question-skip"
             }
           />
           <Button

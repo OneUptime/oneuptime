@@ -693,9 +693,7 @@ test.describe("a newcomer's first steps", () => {
       await expect(page.getByTestId("getting-started")).toBeVisible();
       expect(await checklistSteps(page)).toEqual(NEWCOMER_STEPS);
 
-      const onCall: Locator = page.getByTestId(
-        "getting-started-task-on_call",
-      );
+      const onCall: Locator = page.getByTestId("getting-started-task-on_call");
 
       await expect(onCall).toContainText(ON_CALL_STEP_TITLE);
       await expect(onCall).toContainText(ON_CALL_STEP_SENTENCE);
@@ -739,9 +737,7 @@ test.describe("a newcomer's first steps", () => {
   }) => {
     await openReady(page, "scenario=new&lang=de");
 
-    const onCall: Locator = page.getByTestId(
-      "getting-started-task-on_call",
-    );
+    const onCall: Locator = page.getByTestId("getting-started-task-on_call");
 
     await expect(onCall).toContainText("Bereitschaftsrichtlinie einrichten");
     await expect(onCall).toContainText(
@@ -759,9 +755,7 @@ test.describe("a newcomer's first steps", () => {
   }) => {
     await openReady(page, "scenario=new&theme=dark");
 
-    const onCall: Locator = page.getByTestId(
-      "getting-started-task-on_call",
-    );
+    const onCall: Locator = page.getByTestId("getting-started-task-on_call");
 
     await expect(onCall).toContainText(ON_CALL_STEP_SENTENCE);
 
@@ -838,7 +832,9 @@ test.describe("what do you want to do first?", () => {
       await expect(question).toContainText("What do you want to do first?");
       await expect(question.getByRole("checkbox")).toHaveCount(7);
       await expect(page.getByTestId("getting-started")).toHaveCount(0);
-      await expect(page.getByTestId("welcome-question-continue")).toBeDisabled();
+      await expect(
+        page.getByTestId("welcome-question-continue"),
+      ).toBeDisabled();
       await expectNoSidewaysScroll(page);
 
       await screenshot(page, `home-welcome-question-${width}`);

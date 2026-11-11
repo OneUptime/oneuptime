@@ -89,13 +89,17 @@ describe("the goals a project chose", () => {
         42,
         "status_page",
       ]),
-    ).toEqual([ProjectGoal.Uptime, ProjectGoal.StatusPage, ProjectGoal.Explore]);
+    ).toEqual([
+      ProjectGoal.Uptime,
+      ProjectGoal.StatusPage,
+      ProjectGoal.Explore,
+    ]);
   });
 
   test("travel to analytics joined by a dot, in order, all seven whole", () => {
-    expect(toGoalsEventValue([ProjectGoal.StatusPage, ProjectGoal.Uptime])).toBe(
-      "uptime.status_page",
-    );
+    expect(
+      toGoalsEventValue([ProjectGoal.StatusPage, ProjectGoal.Uptime]),
+    ).toBe("uptime.status_page");
     expect(toGoalsEventValue([])).toBe("");
     expect(toGoalsEventValue(null)).toBe("");
 
@@ -246,10 +250,13 @@ describe("the checklist's state", () => {
       finishedAt: undefined,
     });
 
-    expect(json).toEqual({ startedWithOutcomes: true, hiddenForUserIds: [USER_A] });
-    expect(parseWelcomeChecklistState(JSON.parse(JSON.stringify(json)))).toEqual(
-      json,
-    );
+    expect(json).toEqual({
+      startedWithOutcomes: true,
+      hiddenForUserIds: [USER_A],
+    });
+    expect(
+      parseWelcomeChecklistState(JSON.parse(JSON.stringify(json))),
+    ).toEqual(json);
   });
 });
 
@@ -263,8 +270,18 @@ describe("the answer Home reads", () => {
     isFinished: false,
     canSendEmail: true,
     steps: [
-      { step: WelcomeStep.Monitor, isDone: true, needsPlan: null, isNext: false },
-      { step: WelcomeStep.OnCall, isDone: false, needsPlan: null, isNext: true },
+      {
+        step: WelcomeStep.Monitor,
+        isDone: true,
+        needsPlan: null,
+        isNext: false,
+      },
+      {
+        step: WelcomeStep.OnCall,
+        isDone: false,
+        needsPlan: null,
+        isNext: true,
+      },
       {
         step: WelcomeStep.Team,
         isDone: false,
@@ -288,7 +305,10 @@ describe("the answer Home reads", () => {
     expect(parseWelcomeChecklistAnswer(null)).toBeNull();
     expect(parseWelcomeChecklistAnswer([])).toBeNull();
     expect(
-      parseWelcomeChecklistAnswer({ ...toWelcomeChecklistAnswerJSON(ANSWER), audience: "owner" }),
+      parseWelcomeChecklistAnswer({
+        ...toWelcomeChecklistAnswerJSON(ANSWER),
+        audience: "owner",
+      }),
     ).toBeNull();
   });
 
@@ -306,8 +326,18 @@ describe("the answer Home reads", () => {
     });
 
     expect(parsed?.steps).toEqual([
-      { step: WelcomeStep.Monitor, isDone: false, needsPlan: null, isNext: true },
-      { step: WelcomeStep.OnCall, isDone: false, needsPlan: null, isNext: false },
+      {
+        step: WelcomeStep.Monitor,
+        isDone: false,
+        needsPlan: null,
+        isNext: true,
+      },
+      {
+        step: WelcomeStep.OnCall,
+        isDone: false,
+        needsPlan: null,
+        isNext: false,
+      },
     ]);
     expect(parsed?.doneCount).toBe(0);
     expect(parsed?.totalCount).toBe(0);
@@ -326,7 +356,9 @@ describe("the answer Home reads", () => {
       parseWelcomeChecklistAnswer({ audience: "set_up", canSendEmail: false })
         ?.canSendEmail,
     ).toBe(false);
-    expect(parseWelcomeChecklistAnswer({ audience: "set_up" })?.goals).toBeNull();
+    expect(
+      parseWelcomeChecklistAnswer({ audience: "set_up" })?.goals,
+    ).toBeNull();
   });
 
   test("an empty answer draws nothing", () => {

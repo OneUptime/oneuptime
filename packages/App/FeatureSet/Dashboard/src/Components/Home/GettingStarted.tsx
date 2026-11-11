@@ -141,7 +141,10 @@ export const getWelcomeCardView: (data: {
     return WelcomeCardView.None;
   }
 
-  if (answer.canChooseGoals && (data.isChangingGoals || answer.shouldAskForGoals)) {
+  if (
+    answer.canChooseGoals &&
+    (data.isChangingGoals || answer.shouldAskForGoals)
+  ) {
     return WelcomeCardView.Question;
   }
 
@@ -250,7 +253,9 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
 
     const counted: Array<WelcomeChecklistStepState> = answer.steps.filter(
       (state: WelcomeChecklistStepState): boolean => {
-        return state.needsPlan === null && state.step !== WelcomeStep.ServerEmail;
+        return (
+          state.needsPlan === null && state.step !== WelcomeStep.ServerEmail
+        );
       },
     );
     const current: Dictionary<boolean> = {};
@@ -362,7 +367,9 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     return (
       <div className={props.className} data-testid="welcome-checklist-hidden">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
-          <span>{translator.translateText(WELCOME_CHECKLIST_COPY.hiddenLine)}</span>
+          <span>
+            {translator.translateText(WELCOME_CHECKLIST_COPY.hiddenLine)}
+          </span>
           <Button
             title={WELCOME_CHECKLIST_COPY.showButton}
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
@@ -491,7 +498,9 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     >
       {goals.length > 0 ? (
         <>
-          <span>{translator.translateText(WELCOME_CHECKLIST_COPY.goalsLabel)}</span>
+          <span>
+            {translator.translateText(WELCOME_CHECKLIST_COPY.goalsLabel)}
+          </span>
           {goals.map((goal: ProjectGoal): ReactElement => {
             return (
               <span
@@ -548,7 +557,11 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
             <ProgressBar
               count={answer.doneCount}
               totalCount={answer.totalCount}
-              suffix={translator.translateText(WELCOME_CHECKLIST_COPY.progressSuffix) || ""}
+              suffix={
+                translator.translateText(
+                  WELCOME_CHECKLIST_COPY.progressSuffix,
+                ) || ""
+              }
               size={ProgressBarSize.Small}
             />
           </div>
@@ -571,7 +584,9 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
               <>
                 <span
                   className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
-                    isComplete ? "bg-emerald-100" : entry.iconBackgroundClassName
+                    isComplete
+                      ? "bg-emerald-100"
+                      : entry.iconBackgroundClassName
                   }`}
                 >
                   <Icon
@@ -593,7 +608,9 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
                         data-testid="getting-started-next"
                         className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700"
                       >
-                        {translator.translateText(WELCOME_CHECKLIST_COPY.nextBadge)}
+                        {translator.translateText(
+                          WELCOME_CHECKLIST_COPY.nextBadge,
+                        )}
                       </span>
                     ) : (
                       <></>
@@ -612,9 +629,12 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
                     data-testid={`getting-started-task-${state.step}-needs-plan`}
                     className="mt-0.5 flex-shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
                   >
-                    {translator.translateTemplate(WELCOME_CHECKLIST_COPY.needsPlan, {
-                      plan: state.needsPlan,
-                    })}
+                    {translator.translateTemplate(
+                      WELCOME_CHECKLIST_COPY.needsPlan,
+                      {
+                        plan: state.needsPlan,
+                      },
+                    )}
                   </span>
                 ) : (
                   /*
@@ -625,7 +645,11 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
                    */
                   <span className="mt-0.5 flex-shrink-0 text-gray-400">
                     <Icon
-                      icon={entry.externalUrl ? IconProp.ExternalLink : IconProp.ChevronRight}
+                      icon={
+                        entry.externalUrl
+                          ? IconProp.ExternalLink
+                          : IconProp.ChevronRight
+                      }
                       className="h-5 w-5 transition group-hover:text-indigo-500"
                     />
                   </span>
@@ -662,7 +686,9 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
                 data-done="false"
                 data-next={state.isNext ? "true" : "false"}
                 className={`group flex w-full items-start gap-4 rounded-lg border bg-white p-4 text-left transition hover:border-indigo-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                  state.isNext ? "border-indigo-300 ring-1 ring-indigo-200" : "border-gray-200"
+                  state.isNext
+                    ? "border-indigo-300 ring-1 ring-indigo-200"
+                    : "border-gray-200"
                 }`}
               >
                 {tileContent}

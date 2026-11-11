@@ -232,8 +232,18 @@ function welcomeAnswer(
     goals: [],
     canChooseGoals: true,
     steps: [
-      { step: WelcomeStep.Monitor, isDone: true, needsPlan: null, isNext: false },
-      { step: WelcomeStep.OnCall, isDone: false, needsPlan: null, isNext: true },
+      {
+        step: WelcomeStep.Monitor,
+        isDone: true,
+        needsPlan: null,
+        isNext: false,
+      },
+      {
+        step: WelcomeStep.OnCall,
+        isDone: false,
+        needsPlan: null,
+        isNext: true,
+      },
       {
         step: WelcomeStep.StatusPage,
         isDone: false,

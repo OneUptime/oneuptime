@@ -112,7 +112,8 @@ export const getStepsForGoals: (
 ) => Array<WelcomeStep> = (
   goals: ReadonlyArray<ProjectGoal> | null,
 ): Array<WelcomeStep> => {
-  const known: Array<ProjectGoal> = parseProjectGoals(goals ? [...goals] : null) || [];
+  const known: Array<ProjectGoal> =
+    parseProjectGoals(goals ? [...goals] : null) || [];
 
   const wanted: Set<WelcomeStep> = new Set<WelcomeStep>();
 

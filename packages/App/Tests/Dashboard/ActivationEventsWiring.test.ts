@@ -124,7 +124,9 @@ describe("the Dashboard's behaviour events", () => {
     expect(source).toMatch(
       /ChecklistEvents\.noteProgress\(\{\s*projectId: projectIdString,\s*current: current,\s*stepKeys: counted\.map\(/,
     );
-    expect(source).toMatch(/goals: goalsEventValue,\s*\}\);\s*\}, \[answer\]\);/);
+    expect(source).toMatch(
+      /goals: goalsEventValue,\s*\}\);\s*\}, \[answer\]\);/,
+    );
   });
 
   test("the Welcome checklist: goals chosen, a step started and the card hidden go through ProductEvents.send", () => {

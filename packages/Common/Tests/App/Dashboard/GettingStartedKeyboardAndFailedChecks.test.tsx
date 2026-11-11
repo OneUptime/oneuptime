@@ -318,9 +318,8 @@ describe("the steps, from the keyboard", () => {
     await renderGettingStarted();
 
     const progress: string =
-      within(screen.getByTestId("getting-started")).getByText(
-        /steps completed/,
-      ).textContent || "";
+      within(screen.getByTestId("getting-started")).getByText(/steps completed/)
+        .textContent || "";
 
     expect(progress).toContain("2");
     expect(progress).toContain("3");

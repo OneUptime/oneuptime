@@ -22,7 +22,9 @@ import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "../../Models/DatabaseModels/Project";
 import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import SubscriptionPlan, { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
@@ -91,8 +93,10 @@ import {
  */
 
 // Who may choose the project's goals: the people who set it up.
-export const WELCOME_CHECKLIST_SET_UP_PERMISSIONS: ReadonlyArray<Permission> =
-  [Permission.ProjectOwner, Permission.ProjectAdmin];
+export const WELCOME_CHECKLIST_SET_UP_PERMISSIONS: ReadonlyArray<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+];
 
 // How many policies run by rules are asked about their responders, at most.
 export const MAX_POLICIES_CHECKED_FOR_RESPONDERS: number = 5;
@@ -402,9 +406,8 @@ export default class WelcomeChecklistService {
     projectId: ObjectID,
   ): Promise<boolean> {
     try {
-      const policyIds: Array<string> = await this.readPoliciesRunByRules(
-        projectId,
-      );
+      const policyIds: Array<string> =
+        await this.readPoliciesRunByRules(projectId);
 
       for (const policyId of policyIds.slice(
         0,

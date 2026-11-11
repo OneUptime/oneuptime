@@ -106,5 +106,6 @@ export const toGoalsEventValue: (
 };
 
 // The longest toGoalsEventValue can be: every goal.
-export const GOALS_EVENT_VALUE_MAX_LENGTH: number =
-  PROJECT_GOALS.join(GOALS_EVENT_SEPARATOR).length;
+export const GOALS_EVENT_VALUE_MAX_LENGTH: number = PROJECT_GOALS.join(
+  GOALS_EVENT_SEPARATOR,
+).length;
