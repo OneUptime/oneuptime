@@ -4,7 +4,9 @@ import UserOnCallLogTimeline from "../../../../Models/DatabaseModels/UserOnCallL
 import OnCallDutyPolicyExecutionLogService from "../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import UserOnCallLogService from "../../../../Server/Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "../../../../Server/Services/UserOnCallLogTimelineService";
-import OnCallAcknowledgementTimeout from "../../../../Server/Utils/OnCall/OnCallAcknowledgementTimeout";
+import OnCallAcknowledgementTimeout, {
+  OnCallTimeoutRecordState,
+} from "../../../../Server/Utils/OnCall/OnCallAcknowledgementTimeout";
 import { OnCallEscalationAdvanceKind } from "../../../../Server/Utils/OnCall/OnCallEscalationAdvance";
 import OnCallPagePassOn from "../../../../Server/Utils/OnCall/OnCallPagePassOn";
 import ObjectID from "../../../../Types/ObjectID";
@@ -771,9 +773,8 @@ describe("a page a person asked for, about an incident somebody is on already (#
    * answers it or the incident is resolved, so each of them can still say
    * they cannot take it.
    */
-  let recordState: jest.SpiedFunction<
-    typeof OnCallAcknowledgementTimeout.readRecordState
-  >;
+  // Where the incident stands, as the run reads it (readRecordState).
+  let standing: OnCallTimeoutRecordState | null;
 
   async function startPersonPage(userIds: Array<ObjectID>): Promise<void> {
     await world.startDirectPage(userIds);
@@ -782,9 +783,13 @@ describe("a page a person asked for, about an incident somebody is on already (#
   }
 
   beforeEach(() => {
-    recordState = jest
+    standing = { isAcknowledged: true, isResolved: false };
+
+    jest
       .spyOn(OnCallAcknowledgementTimeout, "readRecordState")
-      .mockResolvedValue({ isAcknowledged: true, isResolved: false });
+      .mockImplementation(async () => {
+        return standing;
+      });
   });
 
   test("is not refused as acknowledged: escalating it stops paging the one person it paged", async () => {
@@ -863,7 +868,7 @@ describe("a page a person asked for, about an incident somebody is on already (#
 
   test("once its incident is resolved, it is over", async () => {
     await startPersonPage([ANA]);
-    recordState.mockResolvedValue({ isAcknowledged: true, isResolved: true });
+    standing = { isAcknowledged: true, isResolved: true };
 
     expect(await world.passOn(ANA)).toEqual({
       passedOn: false,
@@ -873,7 +878,7 @@ describe("a page a person asked for, about an incident somebody is on already (#
 
   test("once its incident is gone, it is over", async () => {
     await startPersonPage([ANA]);
-    recordState.mockResolvedValue(null);
+    standing = null;
 
     expect((await world.passOn(ANA)).refusal).toBe(
       OnCallPassOnRefusal.RecordAcknowledged,
@@ -885,7 +890,7 @@ describe("a page a person asked for, about an incident somebody is on already (#
 
     await world.preview(ANA);
 
-    expect(recordState).toHaveBeenCalledWith({
+    expect(OnCallAcknowledgementTimeout.readRecordState).toHaveBeenCalledWith({
       kind: "incident",
       recordId: INCIDENT_ID,
     });
@@ -918,7 +923,7 @@ describe("a page a person asked for, about an incident somebody is on already (#
       passedOn: false,
       refusal: OnCallPassOnRefusal.RecordAcknowledged,
     });
-    expect(recordState).not.toHaveBeenCalled();
+    expect(OnCallAcknowledgementTimeout.readRecordState).not.toHaveBeenCalled();
   });
 
   test("a policy's page still ends with its record's acknowledgement", async () => {
@@ -935,7 +940,7 @@ describe("a page a person asked for, about an incident somebody is on already (#
   test("an observer's page about an acknowledged record is left as it was: nothing to escalate", async () => {
     await startPersonPage([ANA]);
     world.run.isObserverPage = true;
-    world.run.triggeredByUserId = undefined;
+    delete world.run.triggeredByUserId;
 
     expect((await world.passOn(ANA)).refusal).toBe(
       OnCallPassOnRefusal.RecordAcknowledged,
@@ -945,7 +950,7 @@ describe("a page a person asked for, about an incident somebody is on already (#
   test("about an incident nobody has acknowledged, it is escalated as before", async () => {
     await startPersonPage([ANA]);
     world.isRecordAcknowledged = false;
-    recordState.mockResolvedValue({ isAcknowledged: false, isResolved: false });
+    standing = { isAcknowledged: false, isResolved: false };
 
     expect(passed(await world.passOn(ANA))).toBe(
       OnCallPassOnOutcome.PagingStopped,

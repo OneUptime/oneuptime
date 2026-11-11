@@ -20,7 +20,7 @@ import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCa
 import UserOnCallLogTimeline from "../../../../Models/DatabaseModels/UserOnCallLogTimeline";
 import ObjectID from "../../../../Types/ObjectID";
 import { OnCallAcknowledgePageState } from "../../../../Types/OnCallDutyPolicy/OnCallAcknowledgePage";
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * WHAT A MESSAGE'S ACKNOWLEDGE PAGE READS TO KNOW WHETHER IT STILL OFFERS
@@ -68,12 +68,16 @@ function run(
   return log;
 }
 
-let findRun: jest.SpiedFunction<
-  typeof OnCallDutyPolicyExecutionLogService.findOneById
->;
-let recordState: jest.SpiedFunction<
-  typeof OnCallAcknowledgementTimeout.readRecordState
->;
+// A message that is part of no run.
+function withoutRun(
+  timelineItem: UserOnCallLogTimeline,
+): UserOnCallLogTimeline {
+  delete timelineItem.onCallDutyPolicyExecutionLogId;
+  return timelineItem;
+}
+
+let findRun: jest.SpyInstance;
+let recordState: jest.SpyInstance;
 
 beforeEach(() => {
   jest.restoreAllMocks();
@@ -274,7 +278,7 @@ describe("read: what the page offers", () => {
     expect(
       (
         await OnCallAcknowledgePageAnswerReader.read({
-          timelineItem: item({ onCallDutyPolicyExecutionLogId: undefined }),
+          timelineItem: withoutRun(item()),
           reference: INCIDENT,
           run: null,
         })

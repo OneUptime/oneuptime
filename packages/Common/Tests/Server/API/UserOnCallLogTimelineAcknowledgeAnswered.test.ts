@@ -185,6 +185,15 @@ function policyRun(
   return run;
 }
 
+// A page a person asked for from Slack or Microsoft Teams: no policy, started by a person.
+function personPageRun(): OnCallDutyPolicyExecutionLog {
+  const run: OnCallDutyPolicyExecutionLog = policyRun({
+    triggeredByUserId: ANA,
+  });
+  delete run.onCallDutyPolicyId;
+  return run;
+}
+
 function answeredBy(
   userId: ObjectID,
   name: string,
@@ -541,12 +550,7 @@ describe("pages the record being acknowledged does not end still offer their ans
   });
 
   test("a page a person asked for from Slack or Microsoft Teams", async () => {
-    givenRun(
-      policyRun({
-        onCallDutyPolicyId: undefined,
-        triggeredByUserId: ANA,
-      }),
-    );
+    givenRun(personPageRun());
     givenRecord(ACKNOWLEDGED);
 
     await callRoute(ACKNOWLEDGE_PAGE_ROUTE);
@@ -555,12 +559,7 @@ describe("pages the record being acknowledged does not end still offer their ans
   });
 
   test("a page a person asked for offers Can't take it? Escalate beside Acknowledge (#6710)", async () => {
-    givenRun(
-      policyRun({
-        onCallDutyPolicyId: undefined,
-        triggeredByUserId: ANA,
-      }),
-    );
+    givenRun(personPageRun());
     givenRecord(ACKNOWLEDGED);
     previewSpy.mockResolvedValue({
       passedOn: false,
