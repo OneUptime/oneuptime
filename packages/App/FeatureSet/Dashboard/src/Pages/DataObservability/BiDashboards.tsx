@@ -368,7 +368,7 @@ const BiDashboardsPage: FunctionComponent<
             title: "Alert on Failed Refreshes",
             stepId: "connection",
             description:
-              "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.",
+              "Open an alert for each dataset whose refresh fails, until a later one completes. OneUptime keeps one monitor for it, named after this tool.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             defaultValue: true,
