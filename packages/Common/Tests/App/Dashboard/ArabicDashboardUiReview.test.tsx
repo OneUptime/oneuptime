@@ -22,6 +22,10 @@ import AskAI, {
   ASK_AI_BUTTON_LABEL,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Header/AskAI";
 import InvestigationNotStarted from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationNotStarted";
+import {
+  getInvestigationNotStartedWords,
+  InvestigationNotStartedWords,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationNotStartedWords";
 import MonitorTypeTitle from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MonitorTypeTitle";
 import MonitorOpenWorkCard from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorOpenWorkCard";
 import {
@@ -36,7 +40,9 @@ import {
   OverviewSection,
   resolveSection,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/OverviewSection";
-import InvestigationNotStartedReason from "../../../Types/AI/InvestigationNotStartedReason";
+import InvestigationNotStartedReason, {
+  InvestigationNotStartedCode,
+} from "../../../Types/AI/InvestigationNotStartedReason";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -92,7 +98,12 @@ const side: (
   });
 };
 
-// A reason the server words, in English whatever the reader's language.
+/*
+ * A reason as the server sends it, in English whatever the reader's
+ * language. The card words a code it knows itself (#6656); a code a newer
+ * server sends that this Dashboard does not word yet keeps the server's
+ * English.
+ */
 const REASON: InvestigationNotStartedReason = {
   code: "automatic_investigation_disabled",
   title: "Automatic investigation is off.",
@@ -100,6 +111,14 @@ const REASON: InvestigationNotStartedReason = {
   nextStep: "Turn on automatic investigation for new incidents.",
   source: "recorded",
   evaluatedAt: "2026-11-10T11:50:00.000Z",
+};
+
+const FUTURE_REASON: InvestigationNotStartedReason = {
+  ...REASON,
+  code: "future_reason" as InvestigationNotStartedCode,
+  title: "A newer reason is set.",
+  description: "This server words a reason the Dashboard does not know yet.",
+  nextStep: "Review the newer setting.",
 };
 
 beforeAll(async () => {
@@ -331,12 +350,14 @@ describe("the Topology page's tabs", () => {
 });
 
 describe("why an incident was not investigated", () => {
-  const renderReason: () => void = (): void => {
+  const renderReason: (reason: InvestigationNotStartedReason) => void = (
+    reason: InvestigationNotStartedReason,
+  ): void => {
     render(
       <MemoryRouter>
         <InvestigationNotStarted
           subjectType="incident"
-          reason={REASON}
+          reason={reason}
           isLoading={false}
           hasError={false}
           hasSuccessfulResponse={true}
@@ -347,15 +368,43 @@ describe("why an incident was not investigated", () => {
     );
   };
 
+  // The card words a reason it knows in Arabic, drawn as the page's own.
+  test("a reason the card knows reads in Arabic", async () => {
+    const words: InvestigationNotStartedWords | null =
+      getInvestigationNotStartedWords({
+        reason: REASON,
+        subjectType: "incident",
+        translator: dashboardTranslator("ar"),
+      });
+
+    expect(words).not.toBeNull();
+
+    await inLanguage("ar");
+    renderReason(REASON);
+
+    expect(screen.getByText(words!.title).tagName).toBe("H3");
+    expect(screen.getByText(words!.description).tagName).toBe("P");
+    expect(screen.getByText(words!.nextStep).tagName).toBe("P");
+
+    for (const english of [REASON.title, REASON.description, REASON.nextStep]) {
+      expect(screen.queryByText(english)).toBeNull();
+    }
+  });
+
   /*
    * The server's English, in a line laid out right to left, put its full
-   * stop at its start (".Automatic investigation is off").
+   * stop at its start (".Automatic investigation is off"). A reason the
+   * card does not word yet is still drawn in it.
    */
   test("the server's English reads as written on an Arabic page", async () => {
     await inLanguage("ar");
-    renderReason();
+    renderReason(FUTURE_REASON);
 
-    for (const words of [REASON.title, REASON.description, REASON.nextStep]) {
+    for (const words of [
+      FUTURE_REASON.title,
+      FUTURE_REASON.description,
+      FUTURE_REASON.nextStep,
+    ]) {
       const drawn: HTMLElement = screen.getByText(words);
 
       expect(drawn.tagName).toBe("BDI");
@@ -367,10 +416,10 @@ describe("why an incident was not investigated", () => {
   });
 
   test("and as it always was on an English page", () => {
-    renderReason();
+    renderReason(FUTURE_REASON);
 
-    expect(screen.getByText(REASON.title).tagName).toBe("H3");
-    expect(screen.getByText(REASON.description).tagName).toBe("P");
-    expect(screen.getByText(REASON.nextStep).tagName).toBe("P");
+    expect(screen.getByText(FUTURE_REASON.title).tagName).toBe("H3");
+    expect(screen.getByText(FUTURE_REASON.description).tagName).toBe("P");
+    expect(screen.getByText(FUTURE_REASON.nextStep).tagName).toBe("P");
   });
 });

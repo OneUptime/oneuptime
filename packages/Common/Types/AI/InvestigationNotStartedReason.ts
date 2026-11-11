@@ -62,18 +62,20 @@ export default interface InvestigationNotStartedReason {
    */
   decidedAfterWaitMinutes?: number | undefined;
   /*
-   * The facts `title`, `description` and `nextStep` were worded from, so a
-   * Dashboard words the reason itself, in its reader's language
-   * (InvestigationNotStartedWords): the three sentences stay the server's
-   * English, for API readers and older Dashboards. Only the facts the code
-   * had are set, and a decision recorded before they were sent has none.
+   * The facts the Dashboard words the reason from, beside its code, its
+   * source and decidedAfterWaitMinutes: the Dashboard says why in its
+   * reader's language (InvestigationNotStartedWords), while `title`,
+   * `description` and `nextStep` stay the server's English, for API readers
+   * and older Dashboards. Only the facts the reason had are set, and a
+   * decision recorded before facts were sent has none: the Dashboard then
+   * words it without them.
    */
   facts?: InvestigationNotStartedFacts | undefined;
 }
 
 /*
  * Nothing in here is secret: each fact is already in the English sentences
- * beside it, and the record's readers see it there.
+ * beside it, which the record's readers see.
  */
 export interface InvestigationNotStartedFacts {
   // severity_below_threshold: the record's severity, by name.
@@ -82,13 +84,10 @@ export interface InvestigationNotStartedFacts {
   minimumSeverityName?: string | undefined;
   // monitor_cooldown: the re-investigation cooldown, in minutes.
   cooldownWindowMinutes?: number | undefined;
-  // no_investigation_rule_matched: how many enabled rules were checked.
-  rulesChecked?: number | undefined;
   /*
-   * daily_budget_exhausted: the tokens AI work on this kind of record had
-   * used that day, and its daily token limit (0 pauses it).
+   * daily_budget_exhausted: the daily token limit of AI work on this kind
+   * of record. 0 pauses that work rather than running out.
    */
-  usedTokensToday?: number | undefined;
   dailyTokenLimit?: number | undefined;
 }
 

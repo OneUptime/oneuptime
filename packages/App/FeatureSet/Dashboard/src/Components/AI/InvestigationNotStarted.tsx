@@ -8,6 +8,7 @@ import InvestigationNotStartedReason, {
 import {
   getInvestigationNotStartedWords,
   InvestigationNotStartedWords,
+  WORDED_NOT_STARTED_CODES,
 } from "./InvestigationNotStartedWords";
 import Project from "Common/Models/DatabaseModels/Project";
 import { PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN } from "Common/Types/AI/ProjectAiDailyLimits";
@@ -94,9 +95,15 @@ const FACT_NAMES: ReadonlyArray<"severityName" | "minimumSeverityName"> = [
   "minimumSeverityName",
 ];
 
-const FACT_COUNTS: ReadonlyArray<
-  "cooldownWindowMinutes" | "rulesChecked" | "usedTokensToday" | "dailyTokenLimit"
-> = ["cooldownWindowMinutes", "rulesChecked", "usedTokensToday", "dailyTokenLimit"];
+const FACT_COUNTS: ReadonlyArray<"cooldownWindowMinutes" | "dailyTokenLimit"> =
+  ["cooldownWindowMinutes", "dailyTokenLimit"];
+
+// Whether the card words this code itself (InvestigationNotStartedWords).
+export function isWordedInvestigationNotStartedCode(
+  code: string | undefined,
+): code is InvestigationNotStartedCode {
+  return WORDED_NOT_STARTED_CODES.includes(code as InvestigationNotStartedCode);
+}
 
 /*
  * The facts sent with a reason, each kept only when it has the shape the
@@ -133,7 +140,8 @@ export function parseInvestigationNotStartedFacts(
 
 /*
  * Treat missing/malformed data from an older API replica as unknown, never as
- * a disabled feature. All server-authored copy is rendered as plain text.
+ * a disabled feature. All server-authored copy is rendered as plain text. A
+ * code the card does not know is kept: its sentences are the server's.
  */
 export function parseInvestigationNotStartedReason(
   value: unknown,
@@ -241,9 +249,13 @@ export function getSettingsAction(
     };
   }
 
+  /*
+   * The page is LLM Providers, and the card's words name it so: the same
+   * link a security case's AI triage offers.
+   */
   if (code === "provider_missing") {
     return {
-      label: "Configure an AI provider",
+      label: "Set up an LLM provider",
       page: PageMap.SETTINGS_AI_LLM_PROVIDERS,
       permissions: [
         Permission.ProjectOwner,
@@ -352,8 +364,14 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
     (translator.translateText(
       "Review the investigation settings and AI logs. Enabling automatic investigation applies to new events; it does not automatically investigate older ones.",
     ) as string);
+  /*
+   * A code the card does not know points nowhere: its next step is the
+   * server's, and the card cannot tell which page that step means.
+   */
   const action: SettingsAction | null =
-    !isLoading && !isUnavailable
+    !isLoading &&
+    !isUnavailable &&
+    (!reason || isWordedInvestigationNotStartedCode(reason.code))
       ? getSettingsAction(reason?.code || "no_run_recorded", subjectType)
       : null;
   const canReviewSettings: boolean = Boolean(
@@ -390,9 +408,9 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
     >
       <div>
         {/*
-         * The server's English, for a code the Dashboard does not word yet:
-         * on an Arabic page it reads as written, its full stop at its end
-         * (ReadAsWritten). The Dashboard's own words read as the page does.
+         * The card's own words read as the page does. The server's English,
+         * for a code the card does not word yet, reads as written on an
+         * Arabic page, its full stop at its end (ReadAsWritten).
          */}
         <h3 className="text-sm font-semibold text-gray-900">
           {readAsWritten(title, translator.language)}

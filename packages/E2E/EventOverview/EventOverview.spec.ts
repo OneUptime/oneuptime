@@ -7555,12 +7555,23 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
     );
     await expect(remediationCard(page)).toBeVisible({ timeout: 30000 });
     await expect(remediationCard(page)).toContainText("prod-eu-west-1");
+    /*
+     * The card words why itself (InvestigationNotStartedWords, #6656), not
+     * in the server's English ("Automatic incident investigation was off at
+     * creation"): the same title the folded line has.
+     */
     await expect(
       investigation.getByRole("heading", {
         level: 3,
-        name: "Automatic incident investigation was off at creation",
+        name: AI_WAS_OFF_TITLE,
+        exact: true,
       }),
     ).toBeVisible();
+    await expect(
+      investigation.getByText(
+        "Automatic incident investigation was off at creation",
+      ),
+    ).toHaveCount(0);
     // The full card, closed by its conversation, and no line.
     await expect(
       investigation.getByTestId("investigation-conversation"),

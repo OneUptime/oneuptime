@@ -263,10 +263,11 @@ export default class InvestigationEligibility {
   }
 
   /*
-   * The facts the sentences above were worded from, for a Dashboard that
-   * words the reason in its reader's language (InvestigationNotStartedWords):
-   * only those that are set, or null when there are none. A wait travels as
-   * decidedAfterWaitMinutes instead.
+   * The facts a Dashboard words the reason from in its reader's language
+   * (InvestigationNotStartedWords), beside the English sentences above: the
+   * severity names, the cooldown and the daily token limit, each only when
+   * it is known - or null when none is. A wait travels as
+   * decidedAfterWaitMinutes instead, as it always has.
    */
   public static getFacts(
     details?: InvestigationGateDetails,
@@ -293,9 +294,12 @@ export default class InvestigationEligibility {
     const cooldownWindowMinutes: number | undefined = count(
       details?.cooldownWindowMinutes,
     );
-    const rulesChecked: number | undefined = count(details?.rulesChecked);
-    const usedTokensToday: number | undefined = count(budget?.usedTokensToday);
-    const dailyTokenLimit: number | undefined = count(budget?.limitInTokens);
+    // A limit below 0 pauses the work as 0 does (getAutonomousDailyBudgetStatus).
+    const dailyTokenLimit: number | undefined =
+      typeof budget?.limitInTokens === "number" &&
+      Number.isFinite(budget.limitInTokens)
+        ? Math.max(0, budget.limitInTokens)
+        : undefined;
 
     if (severityName !== undefined) {
       facts.severityName = severityName;
@@ -305,12 +309,6 @@ export default class InvestigationEligibility {
     }
     if (cooldownWindowMinutes !== undefined) {
       facts.cooldownWindowMinutes = cooldownWindowMinutes;
-    }
-    if (rulesChecked !== undefined) {
-      facts.rulesChecked = rulesChecked;
-    }
-    if (usedTokensToday !== undefined) {
-      facts.usedTokensToday = usedTokensToday;
     }
     if (dailyTokenLimit !== undefined) {
       facts.dailyTokenLimit = dailyTokenLimit;

@@ -6838,8 +6838,10 @@ function clusterAccessRows() {
 
 /*
  * Why a record was not investigated, as InvestigationEligibility writes it
- * for the off modes: the server's own English (the card reads only the code
- * and whether it was recorded).
+ * for the off modes: the server's own English, for API readers. The card
+ * words a reason itself from its code, whether it was recorded and its
+ * facts (InvestigationNotStartedWords, #6656), so none of this English is
+ * drawn.
  */
 function aiOffReason(investigation) {
   const kind = investigation.subjectType;

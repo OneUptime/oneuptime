@@ -14,6 +14,11 @@ import {
   INVESTIGATE_NOW,
   INVESTIGATION_WAITING_STATUS,
 } from "../../../FeatureSet/Dashboard/src/Components/AI/InvestigationWaitingState";
+import {
+  getInvestigationNotStartedWords,
+  InvestigationNotStartedWords,
+} from "../../../FeatureSet/Dashboard/src/Components/AI/InvestigationNotStartedWords";
+import { dashboardLocale } from "./DocsDashboardLabels";
 import { FOLLOW_UP_WINDOW_MINUTES } from "Common/Server/Utils/AI/SRE/IncidentFollowUpCheck";
 import InvestigationEligibility from "Common/Server/Utils/AI/SRE/InvestigationEligibility";
 import {
@@ -21,6 +26,7 @@ import {
   MAX_INVESTIGATION_RULE_WAIT_MINUTES,
 } from "Common/Types/AI/InvestigationRuleWait";
 import ObjectID from "Common/Types/ObjectID";
+import { createTranslator } from "Common/Types/Translator";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -33,7 +39,8 @@ import path from "path";
  * AI card and the server use, with the numbers the code holds: a wait of at
  * most a day, and the follow-up check's window counted from the waited
  * investigation's end. Every language has the section in the English one's
- * place, keeping the server's English line and the API's column name.
+ * place, keeping the API's column name, and quotes the AI card's line in
+ * the words the Dashboard draws it in that language (#6656).
  */
 
 const RULES_HEADING: string = "## Which incidents are investigated and fixed";
@@ -56,13 +63,40 @@ function flat(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
-// The server's title for an incident resolved during its rule's wait.
-const RESOLVED_TITLE: string = InvestigationEligibility.reason(
-  "resolved_before_investigation",
-  { projectId: ObjectID.generate(), incidentId: ObjectID.generate() },
-  undefined,
-  { waitMinutes: 10 },
-).title;
+// The server's reason for an incident resolved during its rule's wait.
+const RESOLVED_REASON: ReturnType<typeof InvestigationEligibility.reason> =
+  InvestigationEligibility.reason(
+    "resolved_before_investigation",
+    { projectId: ObjectID.generate(), incidentId: ObjectID.generate() },
+    undefined,
+    { waitMinutes: 10 },
+  );
+
+/*
+ * The title the AI card draws for it in a language: the Dashboard words a
+ * reason itself, from that language's locale (InvestigationNotStartedWords).
+ */
+function resolvedTitleIn(language: string): string {
+  const locale: Record<string, unknown> = dashboardLocale(language);
+  const words: InvestigationNotStartedWords | null =
+    getInvestigationNotStartedWords({
+      reason: RESOLVED_REASON,
+      subjectType: "incident",
+      translator: createTranslator((text: string): string | undefined => {
+        const value: unknown = locale[text];
+
+        return typeof value === "string" ? value : undefined;
+      }, language),
+    });
+
+  if (!words) {
+    throw new Error(`The card does not word ${RESOLVED_REASON.code}`);
+  }
+
+  return words.title;
+}
+
+const RESOLVED_TITLE: string = resolvedTitleIn("en");
 
 describe("the AI SRE page says how an AI rule waits", () => {
   test("in a section of its own, closing the rules section, before auto-remediation", () => {
@@ -103,8 +137,10 @@ describe("the AI SRE page says how an AI rule waits", () => {
     expect(SECTION).toContain("empty means no wait");
   });
 
-  test("quotes the AI card's line for an incident resolved during the wait as the server writes it", () => {
+  test("quotes the AI card's line for an incident resolved during the wait as the card draws it", () => {
     expect(RESOLVED_TITLE).toBe("Resolved before the investigation started");
+    // The server's English, for API readers, says the same.
+    expect(RESOLVED_REASON.title).toBe(RESOLVED_TITLE);
     expect(SECTION).toContain(`card says why: **${RESOLVED_TITLE}**`);
   });
 
@@ -173,7 +209,7 @@ describe("every language has the section in the English one's place", () => {
       return language !== "en";
     }),
   )(
-    "%s keeps the server's line, the API's column and the numbers",
+    "%s quotes the card's line in its own words, keeps the API's column and the numbers",
     (language: string) => {
       const section: string = sectionIn(language);
       const lines: Array<string> = section.split("\n");
@@ -182,7 +218,11 @@ describe("every language has the section in the English one's place", () => {
       expect(
         readPage(language, AI_SRE).split("\n")[END]?.startsWith("## "),
       ).toBe(true);
-      expect(section).toContain(`**${RESOLVED_TITLE}**`);
+      const title: string = resolvedTitleIn(language);
+
+      expect(title).not.toBe(RESOLVED_TITLE);
+      expect(section).toContain(`**${title}**`);
+      expect(section).not.toContain(RESOLVED_TITLE);
       expect(section).toContain(`\`${INVESTIGATION_RULE_WAIT_COLUMN}\``);
 
       // The wait's bounds and the follow-up window, in the language's digits.

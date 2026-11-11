@@ -27,8 +27,14 @@ import {
   SettingsAction,
   getInvestigationNotStartedStatus,
   getSettingsAction,
+  isWordedInvestigationNotStartedCode,
   parseInvestigationNotStartedReason,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationNotStarted";
+import {
+  getInvestigationNotStartedWords,
+  InvestigationNotStartedWords,
+  WORDED_NOT_STARTED_CODES,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationNotStartedWords";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Project from "../../../Models/DatabaseModels/Project";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -40,6 +46,7 @@ import InvestigationNotStartedReason, {
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import { createTranslator, Translator } from "../../../Types/Translator";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import ProjectUtil from "../../../UI/Utils/Project";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -109,11 +116,21 @@ const NO_CREDITS_WHO_CAN_ACT: string =
 const DAILY_LIMIT_WHO_CAN_ACT: string =
   "A project owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI → AI Features.";
 
+/*
+ * What the server sends: a code, how it was decided, and its own English
+ * (title, description, next step). The card words a code it knows itself,
+ * in the reader's language (InvestigationNotStartedWords), so none of these
+ * sentences is ever drawn for one - each is worded unlike the card's own, so
+ * a test can tell which the card drew. The server's English is drawn only
+ * for a code the card does not word yet (one a newer server sends).
+ */
 interface ReasonExample {
   code: InvestigationNotStartedCode;
   title: string;
   description: string;
   nextStep: string;
+  // resolved_before_investigation is only ever decided when a wait ends.
+  decidedAfterWaitMinutes?: number | undefined;
 }
 
 const REASONS: Array<ReasonExample> = [
@@ -175,22 +192,23 @@ const REASONS: Array<ReasonExample> = [
   },
   {
     code: "created_resolved",
-    title: "This incident was created already resolved",
+    title: "This record was created already resolved",
     description:
       "It was already resolved when it was created, so OneUptime AI did not investigate it automatically.",
     nextStep: "To look into it anyway, ask OneUptime AI below.",
   },
   {
     code: "resolved_before_investigation",
-    title: "Resolved before the investigation started",
+    title: "Resolved before the investigation could start",
     description:
       "An investigation rule made OneUptime AI wait 10 minutes to see whether this incident would still be open. It was resolved first, so it was not investigated.",
     nextStep:
       "To look into it anyway, ask OneUptime AI below. The wait is set on the investigation rules under Incidents → AI → Settings → More settings.",
+    decidedAfterWaitMinutes: 10,
   },
   {
     code: "daily_budget_exhausted",
-    title: "The daily AI token limit was reached",
+    title: "The daily token budget was exhausted",
     description: "The daily token budget for this event type was exhausted.",
     nextStep: "Review the budget for future investigations.",
   },
@@ -202,7 +220,7 @@ const REASONS: Array<ReasonExample> = [
   },
   {
     code: "enqueue_failed",
-    title: "The investigation could not be queued",
+    title: "The investigation could not be added to the queue",
     description: "A service error prevented the investigation from starting.",
     nextStep: "Check the service logs for a queue error.",
   },
@@ -239,6 +257,36 @@ function reasonFor(
     ...overrides,
   };
 }
+
+// The suite renders with no language set up: the card reads in English.
+const ENGLISH: Translator = createTranslator(undefined, "en");
+
+/*
+ * The card's own three lines for a reason, as an English reader sees them.
+ * Their exact English is pinned code by code in
+ * InvestigationNotStartedWords.test.ts; here they are what the card draws.
+ */
+function cardWords(
+  reason: InvestigationNotStartedReason,
+  subjectType: InvestigationSubjectType,
+): InvestigationNotStartedWords {
+  const words: InvestigationNotStartedWords | null =
+    getInvestigationNotStartedWords({
+      reason,
+      subjectType,
+      translator: ENGLISH,
+    });
+
+  if (!words) {
+    throw new Error(`The card does not word ${reason.code}`);
+  }
+
+  return words;
+}
+
+// The titles the card draws for the reasons several tests below switch between.
+const COOLDOWN_TITLE: string = "Skipped during the re-investigation cooldown";
+const PROVIDER_MISSING_TITLE: string = "No LLM provider was available";
 
 function noRunResponse(
   reason: InvestigationNotStartedReason | null = reasonFor(),
@@ -322,9 +370,14 @@ describe.each<[InvestigationSubjectType]>([["alert"], ["incident"]])(
   "%s investigation explanation",
   (subjectType: InvestigationSubjectType) => {
     test.each(REASONS)(
-      "shows the server's $code decision and next step",
+      "words the $code decision and next step itself, not in the server's English",
       async (example: ReasonExample) => {
-        postMock.mockResolvedValue(noRunResponse(reasonFor(example.code)));
+        const reason: InvestigationNotStartedReason = reasonFor(example.code);
+        const words: InvestigationNotStartedWords = cardWords(
+          reason,
+          subjectType,
+        );
+        postMock.mockResolvedValue(noRunResponse(reason));
 
         renderPanel(subjectType);
         await flush();
@@ -339,11 +392,28 @@ describe.each<[InvestigationSubjectType]>([["alert"], ["incident"]])(
           screen.getByTestId("ai-card-step-investigation-pill"),
         ).toHaveTextContent("Not investigated");
         expect(
-          screen.getByRole("heading", { name: example.title }),
+          screen.getByRole("heading", { name: words.title }),
         ).toBeVisible();
-        expect(screen.getByText(example.description)).toBeVisible();
-        expect(screen.getByText(example.nextStep)).toBeVisible();
-        expect(screen.getByText("Decision recorded at creation")).toBeVisible();
+        expect(screen.getByText(words.description)).toBeVisible();
+        expect(screen.getByText(words.nextStep)).toBeVisible();
+
+        // None of the server's English is drawn beside the card's words.
+        for (const serverLine of [
+          example.title,
+          example.description,
+          example.nextStep,
+        ]) {
+          expect(Object.values(words)).not.toContain(serverLine);
+          expect(screen.queryByText(serverLine)).toBeNull();
+        }
+
+        expect(
+          screen.getByText(
+            example.decidedAfterWaitMinutes
+              ? "Decision recorded when the wait ended"
+              : "Decision recorded at creation",
+          ),
+        ).toBeVisible();
         expect(panel.querySelector("time")).toHaveAttribute(
           "datetime",
           EVALUATED_AT,
@@ -476,12 +546,50 @@ describe("investigation reason freshness and uncertainty", () => {
     await flush();
 
     expect(screen.getByText("No recorded decision")).toBeVisible();
+    expect(screen.getByText("No investigation was recorded")).toBeVisible();
     expect(
       screen.getByText(
-        /Current settings allow investigation, but the original reason is unknown/,
+        "This alert would be investigated under today's settings, but no investigation or decision was recorded for it. The settings may have changed since it was created.",
       ),
     ).toBeVisible();
-    expect(screen.queryByText("AI is disabled for this project")).toBeNull();
+    expect(
+      screen.queryByText(
+        /Current settings allow investigation, but the original reason is unknown/,
+      ),
+    ).toBeNull();
+    expect(screen.queryByText("AI was off for this project")).toBeNull();
+  });
+
+  /*
+   * The server could read neither the decision taken then nor today's
+   * checks (InvestigationEligibility's catch): the card says exactly that,
+   * not that the checks failed when the record was created.
+   */
+  test("says when neither the decision nor today's checks could be read", async () => {
+    postMock.mockResolvedValue(
+      noRunResponse(
+        reasonFor("eligibility_check_failed", { source: "unknown" }),
+      ),
+    );
+    renderPanel("incident");
+    await flush();
+
+    expect(screen.getByText("No recorded decision")).toBeVisible();
+    expect(
+      screen.getByRole("heading", {
+        name: "The AI checks could not be finished",
+      }),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        "No investigation was found, and neither the decision taken then nor today's checks could be read.",
+      ),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        "Ask a project administrator to check the service's health and the AI settings. Nothing is tried again automatically.",
+      ),
+    ).toBeVisible();
   });
 
   test("a legacy no-run payload shows a useful fallback without inventing a blocker", async () => {
@@ -508,7 +616,11 @@ describe("investigation reason freshness and uncertainty", () => {
     null,
     "ai_disabled",
     { code: "ai_disabled" },
-    { ...reasonFor(), code: "future_reason" },
+    // A code is lowercase words joined by underscores, at most 64 long.
+    { ...reasonFor(), code: "Future Reason" },
+    { ...reasonFor(), code: "future-reason" },
+    { ...reasonFor(), code: `f${"x".repeat(64)}` },
+    { ...reasonFor(), code: 7 },
     { ...reasonFor(), title: "  " },
     { ...reasonFor(), nextStep: 3 },
     { ...reasonFor(), source: "guessed" },
@@ -537,17 +649,55 @@ describe("investigation reason freshness and uncertainty", () => {
     },
   );
 
-  test("renders explanation strings as text instead of executable markup", async () => {
+  /*
+   * A code a newer server sends before this Dashboard words it is still a
+   * reason: its own English is drawn, rather than "no explanation". Its
+   * next step is the server's, so the card cannot tell which settings page
+   * it means and offers none.
+   */
+  test("draws a code it does not word yet in the server's own English, with no settings link", async () => {
+    postMock.mockResolvedValue(
+      noRunResponse({
+        ...reasonFor("monitor_cooldown"),
+        code: "future_reason" as InvestigationNotStartedCode,
+      }),
+    );
+    renderPanel();
+    await flush();
+
+    expect(
+      screen.getByRole("heading", {
+        name: "This monitor was recently investigated",
+      }),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        "A previous investigation was started inside the 30 minute cooldown.",
+      ),
+    ).toBeVisible();
+    expect(
+      screen.getByText("Review the previous investigation for this monitor."),
+    ).toBeVisible();
+    expect(screen.getByText("Decision recorded at creation")).toBeVisible();
+    expect(screen.queryByText(COOLDOWN_TITLE)).toBeNull();
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(
+      screen.queryByText("A project administrator can review these settings."),
+    ).toBeNull();
+  });
+
+  test("renders a newer server's explanation strings as text instead of executable markup", async () => {
     const title: string = '<img src=x onerror="alert(1)">';
     const nextStep: string = "[Open settings](javascript:alert(1))";
     postMock.mockResolvedValue(
-      noRunResponse(
-        reasonFor("enqueue_failed", {
+      noRunResponse({
+        ...reasonFor("enqueue_failed", {
           title,
           description: "<script>window.compromised = true</script>",
           nextStep,
         }),
-      ),
+        code: "future_reason" as InvestigationNotStartedCode,
+      }),
     );
     const view: ReturnType<typeof render> = renderPanel();
     await flush();
@@ -557,6 +707,30 @@ describe("investigation reason freshness and uncertainty", () => {
     expect(view.container.querySelector("script")).toBeNull();
     expect(view.container.querySelector("img")).toBeNull();
     expect(view.container.querySelector('a[href^="javascript:"]')).toBeNull();
+  });
+
+  test("never draws a known code's server sentences, whatever they hold", async () => {
+    const title: string = '<img src=x onerror="alert(1)">';
+    postMock.mockResolvedValue(
+      noRunResponse(
+        reasonFor("enqueue_failed", {
+          title,
+          description: "<script>window.compromised = true</script>",
+          nextStep: "[Open settings](javascript:alert(1))",
+        }),
+      ),
+    );
+    const view: ReturnType<typeof render> = renderPanel();
+    await flush();
+
+    expect(
+      screen.getByRole("heading", {
+        name: "The investigation could not be queued",
+      }),
+    ).toBeVisible();
+    expect(view.container.textContent).not.toContain("onerror");
+    expect(view.container.textContent).not.toContain("<script>");
+    expect(view.container.textContent).not.toContain("javascript:");
   });
 
   test("refreshes changed explanations even while no run exists", async () => {
@@ -576,13 +750,13 @@ describe("investigation reason freshness and uncertainty", () => {
       );
     const view: ReturnType<typeof render> = renderPanel();
     await flush();
-    expect(screen.getByText("No AI provider is configured")).toBeVisible();
+    expect(screen.getByText("No LLM provider is available")).toBeVisible();
 
     await advance();
 
-    expect(screen.queryByText("No AI provider is configured")).toBeNull();
+    expect(screen.queryByText("No LLM provider is available")).toBeNull();
     expect(
-      screen.getByText("Severity is below the investigation threshold"),
+      screen.getByText("Severity is below the minimum for AI investigation"),
     ).toBeVisible();
     expect(view.container.querySelector("time")).toHaveAttribute(
       "datetime",
@@ -621,24 +795,18 @@ describe("investigation reason freshness and uncertainty", () => {
       .mockReturnValueOnce(nextResponse);
     const view: ReturnType<typeof render> = renderPanel();
     await flush();
-    expect(
-      screen.getByText("This monitor was recently investigated"),
-    ).toBeVisible();
+    expect(screen.getByText(COOLDOWN_TITLE)).toBeVisible();
 
     view.rerender(
       <InvestigationPanel subjectType="incident" subjectId={NEXT_SUBJECT_ID} />,
     );
     expect(screen.getByText("Checking investigation status…")).toBeVisible();
-    expect(
-      screen.queryByText("This monitor was recently investigated"),
-    ).toBeNull();
+    expect(screen.queryByText(COOLDOWN_TITLE)).toBeNull();
 
     resolveNext!(noRunResponse(reasonFor("provider_missing")));
     await flush();
-    expect(screen.getByText("No AI provider is configured")).toBeVisible();
-    expect(
-      screen.queryByText("This monitor was recently investigated"),
-    ).toBeNull();
+    expect(screen.getByText(PROVIDER_MISSING_TITLE)).toBeVisible();
+    expect(screen.queryByText(COOLDOWN_TITLE)).toBeNull();
   });
 
   test("ignores a late explanation from the previous subject", async () => {
@@ -660,10 +828,8 @@ describe("investigation reason freshness and uncertainty", () => {
     resolveFirst!(noRunResponse(reasonFor("monitor_cooldown")));
     await flush();
 
-    expect(screen.getByText("No AI provider is configured")).toBeVisible();
-    expect(
-      screen.queryByText("This monitor was recently investigated"),
-    ).toBeNull();
+    expect(screen.getByText(PROVIDER_MISSING_TITLE)).toBeVisible();
+    expect(screen.queryByText(COOLDOWN_TITLE)).toBeNull();
   });
 });
 
@@ -702,9 +868,7 @@ describe("investigation status failures and recovery", () => {
       );
       await flush();
 
-      expect(
-        screen.getByText("This monitor was recently investigated"),
-      ).toBeVisible();
+      expect(screen.getByText(COOLDOWN_TITLE)).toBeVisible();
       expect(
         screen.queryByText("Investigation status is unavailable"),
       ).toBeNull();
@@ -723,9 +887,7 @@ describe("investigation status failures and recovery", () => {
     await flush();
     await advance();
 
-    expect(
-      screen.getByText("This monitor was recently investigated"),
-    ).toBeVisible();
+    expect(screen.getByText(COOLDOWN_TITLE)).toBeVisible();
     expect(
       screen.getByText(
         "Could not refresh this status. Showing the last successful check.",
@@ -737,9 +899,7 @@ describe("investigation status failures and recovery", () => {
 
     await advance();
 
-    expect(
-      screen.getByText("This monitor was recently investigated"),
-    ).toBeVisible();
+    expect(screen.getByText(COOLDOWN_TITLE)).toBeVisible();
     expect(screen.queryByText(/Could not refresh this status/)).toBeNull();
   });
 
@@ -768,9 +928,7 @@ describe("investigation status failures and recovery", () => {
 
     resolveRetry!(noRunResponse());
     await flush();
-    expect(
-      screen.getByText("This monitor was recently investigated"),
-    ).toBeVisible();
+    expect(screen.getByText(COOLDOWN_TITLE)).toBeVisible();
   });
 });
 
@@ -781,7 +939,7 @@ describe("investigation settings actions", () => {
     await flush();
 
     expect(
-      screen.getByRole("link", { name: "Configure an AI provider" }),
+      screen.getByRole("link", { name: "Set up an LLM provider" }),
     ).toHaveAttribute(
       "href",
       expect.stringContaining(
@@ -817,10 +975,10 @@ describe("investigation settings actions", () => {
     renderPanel("incident");
     await flush();
 
-    expect(screen.getByText("The project is out of AI credits")).toBeVisible();
+    expect(screen.getByText("The project was out of AI credits")).toBeVisible();
     expect(
       screen.getByText(
-        "Review AI credits under Project Settings → AI → AI Credits. Adding credits later does not retry this incident.",
+        "Add AI credits to the project. This applies to new incidents only, not to this one.",
       ),
     ).toBeVisible();
     expect(
@@ -956,7 +1114,7 @@ describe("investigation settings actions", () => {
     await flush();
 
     expect(
-      screen.getByText("Severity is below the investigation threshold"),
+      screen.getByText("Severity was below the minimum for AI investigation"),
     ).toBeVisible();
     expect(screen.queryByRole("link")).toBeNull();
     expect(
@@ -973,7 +1131,7 @@ describe("investigation settings actions", () => {
     await flush();
 
     expect(
-      screen.getByRole("link", { name: "Configure an AI provider" }),
+      screen.getByRole("link", { name: "Set up an LLM provider" }),
     ).toBeVisible();
     expect(
       screen.queryByText("A project administrator can review these settings."),
@@ -1135,11 +1293,12 @@ describe("which settings page each reason points at", () => {
 });
 
 /*
- * The card treats a code it does not know as "no explanation", so a reason
- * the server learns to send (insufficient_ai_balance was the latest) must be
- * added to the card's list at the same time — or every such incident shows
- * the generic fallback. Read from the type's source so a new code cannot be
- * added there alone.
+ * The card words every code itself, in the reader's language, and draws the
+ * server's English only for a code it does not word yet. A reason the
+ * server learns to send (insufficient_ai_balance was one) must be worded
+ * here at the same time, or every such incident reads in English on every
+ * page. Read from the type's source so a new code cannot be added there
+ * alone.
  */
 describe("the card knows every reason the server can send", () => {
   const typeSource: string = fs.readFileSync(
@@ -1192,6 +1351,168 @@ describe("the card knows every reason the server can send", () => {
         return example.code;
       }).sort(),
     ).toEqual([...codes].sort());
+  });
+
+  test("words every code the type names, and no other", () => {
+    expect([...WORDED_NOT_STARTED_CODES].sort()).toEqual([...codes].sort());
+
+    for (const code of codes) {
+      expect(isWordedInvestigationNotStartedCode(code)).toBe(true);
+    }
+
+    expect(isWordedInvestigationNotStartedCode("future_reason")).toBe(false);
+    expect(isWordedInvestigationNotStartedCode(undefined)).toBe(false);
+    expect(isWordedInvestigationNotStartedCode("constructor")).toBe(false);
+  });
+
+  test("keeps a code it does not word yet, with the server's sentences", () => {
+    expect(
+      parseInvestigationNotStartedReason({
+        code: "future_reason",
+        title: "Title",
+        description: "Description",
+        nextStep: "Next step",
+        source: "recorded",
+        evaluatedAt: EVALUATED_AT,
+      }),
+    ).toEqual({
+      code: "future_reason",
+      title: "Title",
+      description: "Description",
+      nextStep: "Next step",
+      source: "recorded",
+      evaluatedAt: EVALUATED_AT,
+    });
+  });
+});
+
+/*
+ * The facts sent with a reason are what the card words it from - names it
+ * sets apart, counts it puts in a sentence - so each is kept only in the
+ * shape the server sends it, and anything else is left out rather than
+ * drawn.
+ */
+describe("the facts sent with a reason", () => {
+  function factsOf(facts: unknown): unknown {
+    return parseInvestigationNotStartedReason({
+      ...reasonFor("severity_below_threshold"),
+      facts,
+    })?.facts;
+  }
+
+  test("keeps the names and counts the server sends", () => {
+    expect(
+      factsOf({
+        severityName: "Low",
+        minimumSeverityName: "High",
+        cooldownWindowMinutes: 30,
+        dailyTokenLimit: 0,
+      }),
+    ).toEqual({
+      severityName: "Low",
+      minimumSeverityName: "High",
+      cooldownWindowMinutes: 30,
+      dailyTokenLimit: 0,
+    });
+  });
+
+  test("drops a fact of the wrong shape, and keeps the rest", () => {
+    expect(
+      factsOf({
+        severityName: "  ",
+        minimumSeverityName: 3,
+        cooldownWindowMinutes: -5,
+        dailyTokenLimit: Number.POSITIVE_INFINITY,
+      }),
+    ).toBeUndefined();
+    expect(
+      factsOf({
+        severityName: { name: "Low" },
+        minimumSeverityName: "High",
+        cooldownWindowMinutes: "30",
+        dailyTokenLimit: 50000,
+      }),
+    ).toEqual({ minimumSeverityName: "High", dailyTokenLimit: 50000 });
+  });
+
+  test("drops a key the card does not read", () => {
+    expect(
+      factsOf({ rulesChecked: 2, usedTokensToday: 100, severityName: "Low" }),
+    ).toEqual({ severityName: "Low" });
+  });
+
+  test.each([null, "facts", 3, ["Low"], {}])(
+    "leaves facts out when there are none: %j",
+    (facts: unknown) => {
+      const parsed: InvestigationNotStartedReason | null =
+        parseInvestigationNotStartedReason({
+          ...reasonFor("severity_below_threshold"),
+          facts,
+        });
+
+      expect(parsed).not.toBeNull();
+      expect(parsed && "facts" in parsed).toBe(false);
+    },
+  );
+
+  /*
+   * An English sentence needs no isolate around a Latin name; an Arabic or
+   * Persian one sets the names apart (InvestigationNotStartedWords.test.ts).
+   */
+  test("names the severities a reason sends on the card", async () => {
+    postMock.mockResolvedValue(
+      noRunResponse(
+        reasonFor("severity_below_threshold", {
+          facts: { severityName: "Low", minimumSeverityName: "High" },
+        }),
+      ),
+    );
+    renderPanel("incident");
+    await flush();
+
+    expect(screen.getByText(/^This incident's severity, /).textContent).toBe(
+      "This incident's severity, Low, was below the minimum for AI investigation, High.",
+    );
+  });
+
+  test("says the cooldown a reason sends, in minutes", async () => {
+    postMock.mockResolvedValue(
+      noRunResponse(
+        reasonFor("monitor_cooldown", {
+          facts: { cooldownWindowMinutes: 45 },
+        }),
+      ),
+    );
+    renderPanel("alert");
+    await flush();
+
+    expect(
+      screen.getByText(
+        "Another alert on the same monitor had been investigated within the re-investigation cooldown of 45 minutes, so no investigation started.",
+      ),
+    ).toBeVisible();
+  });
+
+  test("says a daily token limit of 0 paused the work, not that it ran out", async () => {
+    postMock.mockResolvedValue(
+      noRunResponse(
+        reasonFor("daily_budget_exhausted", {
+          facts: { dailyTokenLimit: 0 },
+        }),
+      ),
+    );
+    renderPanel("alert");
+    await flush();
+
+    expect(
+      screen.getByRole("heading", { name: "Automatic AI work was paused" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByText("The daily AI token limit was reached"),
+    ).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Review alert AI settings" }),
+    ).toBeVisible();
   });
 });
 
@@ -1336,14 +1657,9 @@ describe("the not-started card's layout", () => {
     renderPanel();
     await flush();
 
-    const example: ReasonExample = REASONS.find(
-      (item: ReasonExample): boolean => {
-        return item.code === "daily_budget_exhausted";
-      },
-    )!;
     const reasonHeading: HTMLElement = screen.getByRole("heading", {
       level: 3,
-      name: example.title,
+      name: cardWords(reasonFor("daily_budget_exhausted"), "alert").title,
     });
     const nextStepHeading: HTMLElement = screen.getByRole("heading", {
       level: 3,
