@@ -73,6 +73,14 @@ export const EMPTY_LOOKUP_TABLE_SENTENCES: Readonly<
   ),
 };
 
+/*
+ * A row of the table's buttons, lined up with the table above it: a Button
+ * keeps a dialog footer's margin (md:ml-3), which pushed the first one in
+ * from the table's edge and spread the rest apart.
+ */
+export const LOOKUP_BUTTON_ROW_CLASS_NAME: string =
+  "flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+
 export interface NamingLookupTableEditorProps {
   kind: NamingLookupKey | undefined;
   entries: Array<NamingLookupEntry>;
@@ -446,7 +454,10 @@ const NamingLookupTableEditor: FunctionComponent<
               setPastedText(event.target.value);
             }}
           />
-          <div className="flex flex-wrap gap-2">
+          <div
+            className={LOOKUP_BUTTON_ROW_CLASS_NAME}
+            data-testid="naming-lookup-paste-buttons"
+          >
             <Button
               title="Add these rows"
               buttonStyle={ButtonStyleType.PRIMARY}
@@ -468,7 +479,10 @@ const NamingLookupTableEditor: FunctionComponent<
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div
+        className={LOOKUP_BUTTON_ROW_CLASS_NAME}
+        data-testid="naming-lookup-buttons"
+      >
         <Button
           title="Add row"
           icon={IconProp.Add}

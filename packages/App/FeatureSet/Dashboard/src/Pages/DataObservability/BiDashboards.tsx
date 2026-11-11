@@ -2,6 +2,7 @@ import PageComponentProps from "../PageComponentProps";
 import {
   getRefreshCountText,
   getRefreshStatusPill,
+  RefreshError,
   RefreshLine,
   TimeAgo,
   VIEWS,
@@ -118,12 +119,10 @@ function getLastRefreshElement(item: DataDashboard): ReactElement {
         <></>
       )}
       {history?.last?.error ? (
-        <span
+        <RefreshError
+          error={history.last.error}
           className="block max-w-md truncate text-xs text-red-600"
-          title={history.last.error}
-        >
-          {history.last.error}
-        </span>
+        />
       ) : (
         <></>
       )}
@@ -153,9 +152,7 @@ function getTopViewersElement(
           <li key={viewer.viewer} className="text-xs text-gray-700">
             <span className="[overflow-wrap:anywhere]">{viewer.viewer}</span>{" "}
             <span className="text-gray-500">
-              {translator.translatePlural(VIEWS, viewer.views, {
-                count: viewer.views,
-              })}
+              {translator.translatePlural(VIEWS, viewer.views)}
             </span>
           </li>
         );

@@ -7,7 +7,16 @@ import {
   expect,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
+import fs from "fs";
+import path from "path";
 import i18next, { createInstance, i18n } from "i18next";
 import React, { ReactElement, useState } from "react";
 import { I18nextProvider } from "react-i18next";
@@ -24,11 +33,19 @@ import NamePatternInput from "../../../../App/FeatureSet/Dashboard/src/Component
 import ApplyNamingRulesModal from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/Naming/ApplyNamingRulesModal";
 import { getLookupTableFieldError } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/Naming/NamingRuleFormFields";
 import {
+  RefreshError,
+  RefreshLine,
   VIEWERS_IN_28_DAYS,
   VIEWS,
   getRefreshCountText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DashboardActivity";
+import TableDashboards from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/TableDashboards";
+import { DataObservabilityTableDashboard } from "../../../Types/DataObservability/DataObservabilityApiTypes";
+import { DataBiRefreshStatus } from "../../../Types/DataObservability/DataDashboardActivity";
+import ObjectID from "../../../Types/ObjectID";
+import { LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
 import {
+  DeviceNamingApplyResult,
   DeviceNamingOutcome,
   DeviceNamingPlan,
   NamingLookupEntry,
@@ -76,6 +93,8 @@ import {
  */
 
 const planMock: jest.Mock = jest.fn();
+const applyMock: jest.Mock = jest.fn();
+const tableDashboardsMock: jest.Mock = jest.fn();
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/Naming/DeviceNamingApi",
@@ -86,9 +105,25 @@ jest.mock(
       planDeviceNaming: (...args: Array<unknown>) => {
         return planMock(...args);
       },
-      applyDeviceNaming: jest.fn(),
+      applyDeviceNaming: (...args: Array<unknown>) => {
+        return applyMock(...args);
+      },
       previewScanNames: jest.fn(),
       previewDiscoveredDeviceNames: jest.fn(),
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataObservabilityApi",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getTableDashboards: (...args: Array<unknown>) => {
+          return tableDashboardsMock(...args);
+        },
+      },
     };
   },
 );
@@ -103,7 +138,14 @@ jest.mock("../../../UI/Components/Modal/Modal", () => {
           <p data-testid="modal-description">{props.description}</p>
           {props.isBodyLoading ? <p>Loading plan</p> : props.children}
           {props.onSubmit && (
-            <button data-testid="modal-submit">{props.submitButtonText}</button>
+            <button
+              data-testid="modal-submit"
+              onClick={() => {
+                props.onSubmit?.();
+              }}
+            >
+              {props.submitButtonText}
+            </button>
           )}
         </div>
       );
@@ -266,6 +308,8 @@ beforeAll(async () => {
 
 beforeEach(() => {
   planMock.mockReset();
+  applyMock.mockReset();
+  tableDashboardsMock.mockReset();
 });
 
 afterEach(() => {
@@ -509,18 +553,365 @@ describe("Power BI views and refreshes, in German", () => {
   });
 
   test("views and viewers, one and many", () => {
-    expect(GERMAN.translatePlural(VIEWS, 5, { count: 5 })).toBe(
+    expect(GERMAN.translatePlural(VIEWS, 5)).toBe(
       fill(wordsOf(DE, "{{count}} views"), { count: "5" }),
     );
-    expect(GERMAN.translatePlural(VIEWS, 1, { count: 1 })).toBe(
+    expect(GERMAN.translatePlural(VIEWS, 1)).toBe(
       fill(wordsOf(DE, "{{count}} views_one"), { count: "1" }),
     );
-    expect(GERMAN.translatePlural(VIEWERS_IN_28_DAYS, 12, { count: 12 })).toBe(
+    expect(GERMAN.translatePlural(VIEWERS_IN_28_DAYS, 12)).toBe(
       fill(wordsOf(DE, "{{count}} viewers in the last 28 days"), {
         count: "12",
       }),
     );
   });
+
+  /*
+   * A count written the German way (#6671 review): the screens filled
+   * {{count}} with the raw number, so a much-opened dashboard read "12873
+   * Aufrufe" and a busy refresh schedule "1203 von 1408".
+   */
+  test("a count in the thousands is written the German way", () => {
+    expect(GERMAN.translatePlural(VIEWS, 12873)).toBe(
+      fill(wordsOf(DE, "{{count}} views"), { count: "12.873" }),
+    );
+    expect(GERMAN.translatePlural(VIEWERS_IN_28_DAYS, 2400)).toBe(
+      fill(wordsOf(DE, "{{count}} viewers in the last 28 days"), {
+        count: "2.400",
+      }),
+    );
+    expect(
+      getRefreshCountText(GERMAN, {
+        refreshCount: 1408,
+        failureCount: 1203,
+      } as never),
+    ).toBe(
+      fill(wordsOf(DE, "{{failed}} of {{count}} failed in the last 7 days"), {
+        failed: "1.203",
+        count: "1.408",
+      }),
+    );
+    expect(
+      getRefreshCountText(GERMAN, {
+        refreshCount: 1408,
+        failureCount: 0,
+      } as never),
+    ).toBe(
+      fill(wordsOf(DE, "{{count}} refreshes in the last 7 days"), {
+        count: "1.408",
+      }),
+    );
+  });
+});
+
+const FA: Locale = RIGHT_TO_LEFT["fa"] as Locale;
+const AR: Locale = RIGHT_TO_LEFT["ar"] as Locale;
+const LATIN_DIGIT: RegExp = /[0-9]/;
+
+/*
+ * Persian writes its figures in Persian digits: the count the Translator
+ * fills in, and the 7 and 28 of the sentence around it, as fa.json does in
+ * every other "in the last N days".
+ */
+describe("Power BI views and refreshes, in Persian and Arabic", () => {
+  const PERSIAN: Translator = translatorFor("fa", FA);
+  const ARABIC: Translator = translatorFor("ar", AR);
+
+  test("Persian: the counts and the days in Persian digits, not one Latin digit", () => {
+    const lines: Array<[string, string]> = [
+      [
+        PERSIAN.translatePlural(VIEWS, 12873),
+        fill(wordsOf(FA, "{{count}} views"), { count: "۱۲٬۸۷۳" }),
+      ],
+      [
+        PERSIAN.translatePlural(VIEWERS_IN_28_DAYS, 1),
+        fill(wordsOf(FA, "{{count}} viewers in the last 28 days_one"), {
+          count: "۱",
+        }),
+      ],
+      [
+        PERSIAN.translatePlural(VIEWERS_IN_28_DAYS, 42),
+        fill(wordsOf(FA, "{{count}} viewers in the last 28 days"), {
+          count: "۴۲",
+        }),
+      ],
+      [
+        getRefreshCountText(PERSIAN, {
+          refreshCount: 1408,
+          failureCount: 3,
+        } as never) as string,
+        fill(wordsOf(FA, "{{failed}} of {{count}} failed in the last 7 days"), {
+          failed: "۳",
+          count: "۱٬۴۰۸",
+        }),
+      ],
+      [
+        getRefreshCountText(PERSIAN, {
+          refreshCount: 24,
+          failureCount: 0,
+        } as never) as string,
+        fill(wordsOf(FA, "{{count}} refreshes in the last 7 days"), {
+          count: "۲۴",
+        }),
+      ],
+      [
+        getRefreshCountText(PERSIAN, {
+          refreshCount: 1,
+          failureCount: 0,
+        } as never) as string,
+        fill(wordsOf(FA, "{{count}} refreshes in the last 7 days_one"), {
+          count: "۱",
+        }),
+      ],
+    ];
+
+    for (const [shown, expected] of lines) {
+      expect(withoutIsolates(shown)).toBe(expected);
+      expect({ shown, latin: LATIN_DIGIT.test(shown) }).toEqual({
+        shown,
+        latin: false,
+      });
+    }
+  });
+
+  test("Persian: the naming rules' figures in prose are Persian digits too", () => {
+    for (const key of [
+      "Only the first 20,000 devices were checked. Select devices on the Devices list to check the rest.",
+      "The device's MAC address as 12 digits and letters, without separators.",
+      "{{count}} refreshes in the last 7 days",
+      "{{count}} refreshes in the last 7 days_one",
+      "{{count}} viewers in the last 28 days",
+      "{{count}} viewers in the last 28 days_one",
+      "{{failed}} of {{count}} failed in the last 7 days",
+    ]) {
+      const words: string = wordsOf(FA, key);
+
+      expect({ key, latin: LATIN_DIGIT.test(words) }).toEqual({
+        key,
+        latin: false,
+      });
+    }
+
+    expect(
+      FA[
+        "Only the first 20,000 devices were checked. Select devices on the Devices list to check the rest."
+      ],
+    ).toContain(PERSIAN.formatNumber(20000));
+  });
+
+  test("Arabic: the counts in the Latin digits Arabic is written with here, grouped", () => {
+    expect(withoutIsolates(ARABIC.translatePlural(VIEWS, 12873))).toBe(
+      fill(wordsOf(AR, "{{count}} views"), { count: "12,873" }),
+    );
+    expect(
+      withoutIsolates(
+        getRefreshCountText(ARABIC, {
+          refreshCount: 1408,
+          failureCount: 1203,
+        } as never) as string,
+      ),
+    ).toBe(
+      fill(wordsOf(AR, "{{failed}} of {{count}} failed in the last 7 days"), {
+        failed: "1,203",
+        count: "1,408",
+      }),
+    );
+  });
+});
+
+/*
+ * The three files that draw Power BI's counts and refresh errors: none
+ * hands translatePlural a count of its own (which skipped the reader's way
+ * of writing it), and none draws a refresh's error on a span of the page's
+ * direction (RefreshError, below).
+ */
+describe("the Power BI screens' source", () => {
+  const DASHBOARD_SOURCE: string = path.resolve(
+    __dirname,
+    "../../../../App/FeatureSet/Dashboard/src",
+  );
+  const FILES: Array<string> = [
+    "Components/DataObservability/DashboardActivity.tsx",
+    "Components/DataObservability/TableDashboards.tsx",
+    "Pages/DataObservability/BiDashboards.tsx",
+  ];
+
+  // translatePlural handed a {{count}} of its own for a Power BI count.
+  const COUNT_OF_ITS_OWN: RegExp =
+    /translatePlural\(\s*(?:VIEWS|VIEWERS_IN_28_DAYS|REFRESHES_IN_A_WEEK)\s*,\s*[^,()]+(?:\([^()]*\))?\s*,\s*\{/;
+  const COUNT_OF_ITS_OWN_ALL: RegExp = new RegExp(COUNT_OF_ITS_OWN.source, "g");
+  const RAW_REFRESH_COUNT: RegExp = /count:\s*history\.refreshCount\b/g;
+  // A span that draws an error, titled with it, in the page's direction.
+  const ERROR_SPAN: RegExp = /<span[^>]*title=\{[^}]*[eE]rror\}/;
+  const ERROR_SPAN_ALL: RegExp = new RegExp(ERROR_SPAN.source, "g");
+
+  test.each(FILES)("%s", (file: string) => {
+    const source: string = fs.readFileSync(
+      path.join(DASHBOARD_SOURCE, file),
+      "utf-8",
+    );
+
+    expect(source.match(COUNT_OF_ITS_OWN_ALL)).toBeNull();
+    expect(source.match(RAW_REFRESH_COUNT)).toBeNull();
+    expect(source.match(ERROR_SPAN_ALL)).toBeNull();
+  });
+
+  test("the check itself catches a count of its own and an error's span", () => {
+    expect(
+      COUNT_OF_ITS_OWN.test(
+        "translator.translatePlural(VIEWS, viewer.views, {\n count: viewer.views,\n })",
+      ),
+    ).toBe(true);
+    expect(
+      COUNT_OF_ITS_OWN.test("translator.translatePlural(VIEWS, viewer.views)"),
+    ).toBe(false);
+    expect(
+      ERROR_SPAN.test(
+        '<span\n className="max-w-md truncate"\n title={dashboard.lastRefreshError}\n>',
+      ),
+    ).toBe(true);
+    expect(
+      ERROR_SPAN.test(
+        '<RefreshError\n error={dashboard.lastRefreshError}\n className="max-w-md truncate"\n/>',
+      ),
+    ).toBe(false);
+  });
+});
+
+const ENGLISH_ERROR: string =
+  "The credentials provided for the SQL source are invalid.";
+
+describe("a Power BI refresh's English error, on a page read either way", () => {
+  function inLanguageOf(language: string, element: ReactElement): void {
+    const locale: Locale =
+      language === "de" ? DE : (RIGHT_TO_LEFT[language] as Locale);
+
+    render(
+      <I18nextProvider i18n={instanceFor(language, locale)}>
+        <MemoryRouter>{element}</MemoryRouter>
+      </I18nextProvider>,
+    );
+  }
+
+  /*
+   * Power BI's errors are English. On an Arabic or Persian page the line
+   * read the page's way: cut short, it lost its start ("...source are
+   * invalid") and its full stop moved to its other end.
+   */
+  test.each(["ar", "fa"])(
+    "%s: the error reads its own way, is cut at its end and keeps its title",
+    (language: string) => {
+      inLanguageOf(
+        language,
+        <RefreshError
+          error={ENGLISH_ERROR}
+          className="max-w-md truncate text-xs text-red-600"
+        />,
+      );
+
+      const line: HTMLElement = screen.getByTestId("refresh-error");
+
+      expect(line.tagName).toBe("SPAN");
+      expect(line).toHaveAttribute("dir", "ltr");
+      expect(line).toHaveAttribute("title", ENGLISH_ERROR);
+      expect(line.textContent).toBe(ENGLISH_ERROR);
+      expect(line.className.split(" ")).toEqual(
+        expect.arrayContaining([
+          "max-w-md",
+          "truncate",
+          "text-red-600",
+          LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+        ]),
+      );
+    },
+  );
+
+  test("German: an English error reads the page's way, drawn as it was", () => {
+    inLanguageOf(
+      "de",
+      <RefreshError
+        error={ENGLISH_ERROR}
+        className="max-w-md truncate text-xs text-red-600"
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId("refresh-error");
+
+    expect(line).not.toHaveAttribute("dir");
+    expect(line.className).toBe("max-w-md truncate text-xs text-red-600");
+  });
+
+  test("a refresh line: the error on its own line, beside the status", () => {
+    inLanguageOf(
+      "ar",
+      <RefreshLine
+        refresh={{
+          status: DataBiRefreshStatus.Failed,
+          startedAt: "2026-11-10T08:00:00.000Z",
+          endedAt: "2026-11-10T08:01:00.000Z",
+          type: "Scheduled",
+          error: ENGLISH_ERROR,
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("refresh-error")).toHaveAttribute("dir", "ltr");
+  });
+
+  test.each(["fa", "ar"])(
+    "%s: a table's dashboards, their counts written the page's way and the error its own",
+    async (language: string) => {
+      const dashboard: DataObservabilityTableDashboard = {
+        dataDashboardId: "dashboard-1",
+        name: "Store sales",
+        url: null,
+        tool: "PowerBi",
+        folder: null,
+        owner: "ana@example.com",
+        via: null,
+        viewCount: 12873,
+        viewerCount: 1,
+        lastViewedAt: null,
+        lastRefreshStatus: DataBiRefreshStatus.Failed,
+        lastRefreshAt: null,
+        lastRefreshError: ENGLISH_ERROR,
+      };
+
+      tableDashboardsMock.mockResolvedValue([dashboard]);
+
+      inLanguageOf(
+        language,
+        <TableDashboards
+          dataAssetId={new ObjectID("10000000-0000-4000-8000-000000000002")}
+        />,
+      );
+
+      const list: HTMLElement = await screen.findByTestId("table-dashboards");
+      const locale: Locale = RIGHT_TO_LEFT[language] as Locale;
+      const thousands: string = language === "fa" ? "۱۲٬۸۷۳" : "12,873";
+
+      expect(withoutIsolates(list.textContent || "")).toContain(
+        fill(wordsOf(locale, "{{count}} views"), { count: thousands }),
+      );
+      expect(within(list).getByTestId("refresh-error")).toHaveAttribute(
+        "dir",
+        "ltr",
+      );
+
+      fireEvent.click(within(list).getByRole("button", { expanded: false }));
+
+      const one: string = fill(
+        wordsOf(locale, "{{count}} viewers in the last 28 days_one"),
+        { count: language === "fa" ? "۱" : "1" },
+      );
+
+      expect(withoutIsolates(list.textContent || "")).toContain(one);
+
+      if (language === "fa") {
+        expect(LATIN_DIGIT.test(one)).toBe(false);
+      }
+    },
+  );
 });
 
 /*
@@ -644,5 +1035,61 @@ describe.each(["ar", "fa"])("the naming rules, in %s", (language: string) => {
       }).textContent || "";
 
     expect(isCodeDrawnAsWritten(shown, "UN{site.code}{lookup}")).toBe(true);
+  });
+
+  /*
+   * A device's name, on a line of its own: an English one reads its own
+   * way and lines up with the page's lines at their end, where dir="auto"
+   * had it read its own way and line up on the left (#6686 review).
+   */
+  test("the names of devices that need attention, and of those left alone, read their own way", async () => {
+    planMock.mockResolvedValue({
+      ...PLAN,
+      items: PLAN.items.map((item: DeviceNamingPlan["items"][number]) => {
+        return item.deviceId === "device-3"
+          ? { ...item, currentName: "Drive-thru board 3" }
+          : item;
+      }),
+    });
+    applyMock.mockResolvedValue({
+      renamed: 0,
+      skipped: [
+        {
+          deviceId: "device-1",
+          reason:
+            "The device was renamed since the preview, so it was left alone.",
+        },
+      ],
+    } as DeviceNamingApplyResult);
+
+    inLanguage(<ApplyNamingRulesModal onClose={() => {}} />);
+
+    const attention: HTMLElement = await screen.findByTestId(
+      "naming-plan-attention",
+    );
+    const attentionName: HTMLElement =
+      within(attention).getByText("Drive-thru board 3");
+
+    expect(attentionName.tagName).toBe("SPAN");
+    expect(attentionName).toHaveAttribute("dir", "ltr");
+    expect(attentionName.className.split(" ")).toEqual(
+      expect.arrayContaining(["block", LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME]),
+    );
+    expect(attention.querySelectorAll("[dir=auto]").length).toBe(0);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-submit"));
+    });
+
+    const skipped: HTMLElement = await screen.findByTestId(
+      "naming-apply-skipped",
+    );
+    const skippedName: HTMLElement = within(skipped).getByText("dmb-5");
+
+    expect(skippedName).toHaveAttribute("dir", "ltr");
+    expect(skippedName.className.split(" ")).toContain(
+      LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+    );
+    expect(skipped.querySelectorAll("[dir=auto]").length).toBe(0);
   });
 });
