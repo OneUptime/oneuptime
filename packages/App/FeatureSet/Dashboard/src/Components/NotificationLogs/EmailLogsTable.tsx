@@ -182,7 +182,8 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
 
               setModalText(
                 ServerSendingWords.isServerEmailNotSetUpMessage(statusMessage)
-                  ? translator.translateText(SERVER_EMAIL_NOT_SET_UP_MESSAGE)
+                  ? translator.translateText(SERVER_EMAIL_NOT_SET_UP_MESSAGE) ||
+                      SERVER_EMAIL_NOT_SET_UP_MESSAGE
                   : statusMessage,
               );
               setModalTitle("Status Message");

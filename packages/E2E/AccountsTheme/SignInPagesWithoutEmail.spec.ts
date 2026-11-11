@@ -28,13 +28,13 @@ const PAGES: Array<{
 }> = [
   {
     name: "forgot-password",
-    address: "/accounts/forgot-password",
+    address: "/accounts/forgot-password?magiclink=0",
     notice: "forgot-password-cannot-email",
     form: "forgot-password-card",
   },
   {
     name: "magic-link",
-    address: "/accounts/magic-link",
+    address: "/accounts/magic-link?magiclink=1",
     notice: "magic-link-cannot-email",
     form: "magic-link-form",
   },
@@ -106,14 +106,14 @@ const shoot: (
 
 test.describe("the sign-in pages on a server that cannot send email", () => {
   for (const signInPage of PAGES) {
-    test(`${signInPage.name}: says so in place of its form, at a laptop's width and a phone's, light and dark`, async ({
-      page,
-      context,
-    }: {
-      page: Page;
-      context: BrowserContext;
-    }, testInfo: TestInfo) => {
-      for (const theme of ["light", "dark"]) {
+    for (const theme of ["light", "dark"]) {
+      test(`${signInPage.name}: says so in place of its form, ${theme}, at a laptop's width and a phone's`, async ({
+        page,
+        context,
+      }: {
+        page: Page;
+        context: BrowserContext;
+      }, testInfo: TestInfo) => {
         await keep(context, { theme: theme });
         await page.emulateMedia({
           colorScheme: theme === "dark" ? "dark" : "light",
@@ -124,28 +124,33 @@ test.describe("the sign-in pages on a server that cannot send email", () => {
           ["phone", PHONE],
         ] as Array<[string, { width: number; height: number }]>) {
           await page.setViewportSize(viewport);
-          await page.goto(`${signInPage.address}?email=none`);
+          await page.goto(`${signInPage.address}&email=none`);
 
           const notice: ReturnType<Page["getByTestId"]> = page.getByTestId(
             signInPage.notice,
           );
 
           await expect(notice).toBeVisible();
-          await expect(notice).toContainText("This server cannot send email yet");
+          await expect(notice).toContainText(
+            "This server cannot send email yet",
+          );
           await expect(notice).toContainText("server's admin");
           await expect(page.getByTestId(signInPage.form)).toHaveCount(0);
           await expect(page.getByRole("textbox")).toHaveCount(0);
+          await expect
+            .poll(async (): Promise<boolean> => {
+              return page.evaluate((): boolean => {
+                return document.documentElement.classList.contains("dark");
+              });
+            })
+            .toBe(theme === "dark");
           await settle(page);
 
           await expectNoSidewaysScroll(page);
           await shoot(page, testInfo, `${signInPage.name}-${theme}-${size}`);
         }
-
-        await page.evaluate((): void => {
-          window.sessionStorage.removeItem("__no_email_spec_kept");
-        });
-      }
-    });
+      });
+    }
 
     test(`${signInPage.name}: a server that can send email shows the form, as before`, async ({
       page,
@@ -177,7 +182,7 @@ test.describe("the sign-in pages on a server that cannot send email", () => {
           ["phone", PHONE],
         ] as Array<[string, { width: number; height: number }]>) {
           await page.setViewportSize(viewport);
-          await page.goto(`${signInPage.address}?email=none`);
+          await page.goto(`${signInPage.address}&email=none`);
 
           const notice: ReturnType<Page["getByTestId"]> = page.getByTestId(
             signInPage.notice,

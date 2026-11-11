@@ -34,6 +34,8 @@
  *   brand=name|logo|logos  an installation that goes by a name of its own:
  *                          with no logo, with a logo for light backgrounds
  *                          only, or with logos for light and dark ones
+ *   magiclink=1            the server takes sign-in links emailed to the
+ *                          account ("Sign in with a link")
  *   email=none             a server that cannot send email yet
  *                          (GET /global-config/vars' canSendEmail): Forgot
  *                          password and the sign-in link page say so
@@ -253,6 +255,7 @@ const answer = (method, apiPath, data) => {
       isSsoRequired: isSsoRequired,
       ssoProviders: PROVIDERS.slice(0, providerCount),
       hasProjectSsoProviders: isSsoRequired && scenario["projectsso"] === "1",
+      isMagicLinkLoginEnabled: !isSsoRequired && scenario["magiclink"] === "1",
     });
   }
 
