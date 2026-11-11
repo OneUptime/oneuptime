@@ -5,6 +5,7 @@ import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import User from "../../../Models/DatabaseModels/User";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { SessionEndCause } from "../../../Types/UserSession/SessionEndCause";
 
 /*
  * ---------------------------------------------------------------------------
@@ -102,7 +103,7 @@ describe("UserService.onUpdateSuccess — blocking a user", () => {
 
     expect(revokeAllSessionsByUserId).toHaveBeenCalledTimes(1);
     expect(revokeAllSessionsByUserId).toHaveBeenCalledWith(USER_ID, {
-      reason: "User blocked",
+      cause: SessionEndCause.AccountBlocked,
     });
   });
 
@@ -115,10 +116,10 @@ describe("UserService.onUpdateSuccess — blocking a user", () => {
 
     expect(revokeAllSessionsByUserId).toHaveBeenCalledTimes(2);
     expect(revokeAllSessionsByUserId).toHaveBeenCalledWith(USER_ID, {
-      reason: "User blocked",
+      cause: SessionEndCause.AccountBlocked,
     });
     expect(revokeAllSessionsByUserId).toHaveBeenCalledWith(OTHER_USER_ID, {
-      reason: "User blocked",
+      cause: SessionEndCause.AccountBlocked,
     });
   });
 

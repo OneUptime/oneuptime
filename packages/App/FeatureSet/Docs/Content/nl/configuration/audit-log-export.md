@@ -140,7 +140,7 @@ Elke vermelding is één JSON-object, met de sleutels altijd in deze volgorde:
 | `id` | De id van de vermelding. Dezelfde vermelding die twee keer wordt verzonden, heeft dezelfde id. |
 | `createdAt` | Wanneer de wijziging is vastgelegd, in UTC. |
 | `projectId` | Het project waarin de wijziging is gedaan. |
-| `action` | `Create`, `Update`, `Delete` of `Download`. |
+| `action` | `Create`, `Update`, `Delete` of `Download`, of voor een sessie `SignIn`, `SignOut`, `SessionTimeout` of `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Wat er is gewijzigd. |
 | `rootResourceType`, `rootResourceId` | De resource waartoe het behoort, zoals een SLO voor zijn regel. |
 | `userId`, `userName`, `userEmail`, `userType` | Wie de wijziging heeft gedaan. |

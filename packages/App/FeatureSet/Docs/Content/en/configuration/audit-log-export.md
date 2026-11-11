@@ -140,7 +140,7 @@ Every entry is one JSON object, its keys always in this order:
 | `id` | The entry's id. The same entry sent twice has the same id. |
 | `createdAt` | When the change was recorded, in UTC. |
 | `projectId` | The project the change was made in. |
-| `action` | `Create`, `Update`, `Delete` or `Download`. |
+| `action` | `Create`, `Update`, `Delete` or `Download`, or for a session `SignIn`, `SignOut`, `SessionTimeout` or `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | What was changed. |
 | `rootResourceType`, `rootResourceId` | The resource it belongs to, such as an SLO for its rule. |
 | `userId`, `userName`, `userEmail`, `userType` | Who made the change. |

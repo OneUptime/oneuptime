@@ -30,6 +30,8 @@ import VercelMarketplaceSignIn, {
   VercelSignInError,
 } from "../Vercel/VercelMarketplaceSignIn";
 import Response from "Common/Server/Utils/Response";
+import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
+import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
 import MarketplaceSubscription from "Common/Models/DatabaseModels/MarketplaceSubscription";
 import User from "Common/Models/DatabaseModels/User";
 import AuthenticationEmail from "App/FeatureSet/Identity/Utils/AuthenticationEmail";
@@ -180,7 +182,8 @@ router.get(
           ipAddress: getClientIp(req),
           userAgent: headerValueToString(req.headers["user-agent"]),
           ...extractDeviceInfo(req),
-          additionalInfo: { signInMethod: "Vercel" },
+          requestOrigin: RequestOriginUtil.fromRequest(req),
+          signIn: { method: SignInMethod.Vercel },
         });
 
       CookieUtil.setUserCookie({

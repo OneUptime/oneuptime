@@ -8,7 +8,7 @@ const SettingsAuditLogs: FunctionComponent<PageComponentProps> = (
   return (
     <AuditLogsTable
       title="Audit Logs"
-      description="All changes made to the resources in this project."
+      description="Every change made to the resources in this project, and every time its members sign in or out."
     />
   );
 };

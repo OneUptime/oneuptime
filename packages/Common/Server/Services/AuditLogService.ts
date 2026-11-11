@@ -12,6 +12,7 @@ import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AuditLog from "../../Models/AnalyticsModels/AuditLog";
 import { AUDIT_LOG_EXPORT_SOURCE_COLUMNS } from "../../Types/AuditLog/Export/AuditLogExportRecord";
+import { SessionAuditEvent } from "../../Types/AuditLog/AuditLogSessionEvent";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -37,8 +38,8 @@ export const AUDIT_LOG_CREATE_REFUSED_MESSAGE: string =
  * (ee/Server/AuditLog/AuditLogRecorder.ts): which changes are recorded, the
  * diff, redaction, relation names, the actor and the project-settings cache.
  * recordCreate / recordUpdate / recordDelete / recordDownload /
- * invalidateProjectSettings stay here as thin delegates to the recorder the
- * enterprise module registered, so
+ * recordSessionEvents / invalidateProjectSettings stay here as thin
+ * delegates to the recorder the enterprise module registered, so
  * DatabaseService, ProjectService and the user-notification services call
  * exactly what they always called.
  *
@@ -194,6 +195,34 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
       await recorder.recordDownload(data);
     } catch (err) {
       logger.warn("AuditLog: failed to record download event");
+      logger.warn(err);
+    }
+  }
+
+  /*
+   * People's sessions - who signed in, signed out, and whose session timed
+   * out or was revoked (Types/AuditLog/AuditLogSessionEvent, issue #6762).
+   * UserSessionService calls it when a session starts and when one ends.
+   * Never throws: the sign-in or the sign-out it records goes ahead
+   * whatever happens here.
+   */
+  public async recordSessionEvents(
+    events: Array<SessionAuditEvent>,
+  ): Promise<void> {
+    if (events.length === 0) {
+      return;
+    }
+
+    const recorder: AuditLogRecorder | null = this.getRecorder();
+
+    if (!recorder) {
+      return;
+    }
+
+    try {
+      await recorder.recordSessionEvents(events);
+    } catch (err) {
+      logger.warn("AuditLog: failed to record session events");
       logger.warn(err);
     }
   }

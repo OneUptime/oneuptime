@@ -5,6 +5,7 @@ import type {
 } from "./EnterpriseLicenseSnapshot";
 import type BillingProvider from "../Types/Billing/BillingProvider";
 import type BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import type { SessionAuditEvent } from "../../Types/AuditLog/AuditLogSessionEvent";
 import type DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import type { ProductBranding } from "../../Types/Branding/ProductBranding";
 import type { JSONObject } from "../../Types/JSON";
@@ -76,6 +77,15 @@ export interface AuditLogRecorder {
     itemId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<void>;
+
+  /*
+   * People's sessions (issue #6762): a sign-in, a sign-out, a session that
+   * timed out or was revoked - each recorded in every project its person
+   * is a member of that records audit logs (Types/AuditLog/
+   * AuditLogSessionEvent). Several at once, for a revocation or a sweep
+   * that ends many sessions.
+   */
+  recordSessionEvents(events: Array<SessionAuditEvent>): Promise<void>;
 
   invalidateProjectSettings(projectId: ObjectID): void;
 }

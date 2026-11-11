@@ -1738,7 +1738,7 @@ describe("Your Account", () => {
 
     expect(userService).toContain("updateBy.data.resetPasswordToken = null!;");
     expect(userService).toContain("updateBy.data.magicLinkToken = null!;");
-    expect(userService).toContain('reason: "Password changed",');
+    expect(userService).toContain("cause: SessionEndCause.PasswordChanged,");
     expect(YOUR_ACCOUNT).toContain(
       "A new password signs every device out of your account, and any password reset link or sign-in link already sent stops working.",
     );

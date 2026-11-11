@@ -40,6 +40,10 @@ import ObjectID from "Common/Types/ObjectID";
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
 import Timezone from "Common/Types/Timezone";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import {
+  SecondFactor,
+  SignInMethod,
+} from "Common/Types/UserSession/SessionSignIn";
 
 /*
  * ---------------------------------------------------------------------------
@@ -1210,6 +1214,12 @@ describe("POST /login-with-magic-link - an account without two factor authentica
 
     expect(answer.error).toBeNull();
     expect(signedIn()).toBe(true);
+    // The audit log says how they signed in (SessionSignIn, issue #6762).
+    expect(createSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        signIn: { method: SignInMethod.SignInLink, secondFactor: undefined },
+      }),
+    );
     expect(setUserCookie).toHaveBeenCalledTimes(1);
     expect(refreshUserAllPermissions).toHaveBeenCalledWith(
       new ObjectID(USER_ID),
@@ -1500,6 +1510,15 @@ describe("POST /login-with-magic-link - an account with two factor authenticatio
     await verifyTotp({ magicLinkToken: TOKEN, code: app.code() });
 
     expect(signedIn()).toBe(true);
+    // A sign-in link, with the authenticator app as its second factor.
+    expect(createSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        signIn: {
+          method: SignInMethod.SignInLink,
+          secondFactor: SecondFactor.AuthenticatorApp,
+        },
+      }),
+    );
     expect(row!["magicLinkToken"]).toBeNull();
     expect(forgetWrongCodes).toHaveBeenCalledWith(new ObjectID(USER_ID));
   });

@@ -1,11 +1,12 @@
 # Revisjonslogger
 
-Revisjonsloggen registrerer hvem som endret hva i prosjektet ditt: hver opprettelse, endring og sletting av ressursene den dekker, med verdiene før og etter. Bruk den til å finne ut hvem som slo av en monitor eller endret en API-nøkkel, og til å føre dokumentasjon for compliance-gjennomganger. Den er en del av Enterprise-abonnementet i OneUptime Cloud og av Enterprise Edition når du selvhoster.
+Revisjonsloggen registrerer hvem som endret hva i prosjektet ditt: hver opprettelse, endring og sletting av ressursene den dekker, med verdiene før og etter, og hver gang noen logger på eller logger ut. Bruk den til å finne ut hvem som slo av en monitor eller endret en API-nøkkel, hvem som logget på og hvorfra, og til å føre dokumentasjon for compliance-gjennomganger. Den er en del av Enterprise-abonnementet i OneUptime Cloud og av Enterprise Edition når du selvhoster.
 
 :::cards
 - [Slå på revisjonslogging](#slå-på-revisjonslogging): Den er av fra start i alle prosjekter.
 - [Les revisjonsloggen](#les-revisjonsloggen): Hvem endret hva, og når.
 - [Hva som registreres](#hva-som-registreres): Ressursene og handlingene den dekker.
+- [Pålogginger og økter](#pålogginger-og-økter): Hvem som logget på, og hvordan hver økt endte.
 - [Hvor lenge oppføringer beholdes](#hvor-lenge-oppføringer-beholdes): Fra 7 til 180 dager.
 :::
 
@@ -64,10 +65,10 @@ En endring av disse innstillingene trer i kraft innen ett minutt.
 | Kolonne | Hva den viser |
 | --- | --- |
 | **Når** | Hvor lenge siden, med dato og klokkeslett. |
-| **Handling** | `Create`, `Update` eller `Delete`, eller `Download` for en pakkeopptaksfil som noen har lastet ned. |
+| **Handling** | `Create`, `Update` eller `Delete`, `Download` for en pakkeopptaksfil som noen har lastet ned, eller `Sign In`, `Sign Out`, `Session Timeout` eller `Session Revoked` for en økt. |
 | **Ressurs** | Ressursens navn, som åpner den så lenge den finnes, og typen. |
 | **Aktør** | Hvem som gjorde endringen: en person, en API-nøkkel, en arbeidsflyt eller `System` for en endring OneUptime selv gjorde. En persons endring via en MCP-klient nevner hvilken. |
-| **Endringer** | Hvor mange felt som ble endret, eller registrert ved en opprettelse eller sletting. Klikk for å se hvert felt. |
+| **Endringer** | Hvor mange felt som ble endret, eller registrert ved en opprettelse eller sletting. For en økt: hvordan den logget på, eller hvorfor den sluttet. Klikk for å se hvert felt. |
 
 Filtrer etter **Ressurstype**, **Ressursnavn**, **Handling**, **Bruker-e-post** eller **Tid**. En endring viser bare feltene som ble endret, før og etter, og en lagring som ikke endrer noe, legger ikke til noen oppføring.
 
@@ -85,7 +86,7 @@ Alt folk oppretter, endrer eller sletter i et prosjekt, registreres: monitorer, 
 | Registreringer av kjøringer | Hver av dem er allerede registreringen av en kjøring av en arbeidsflyt, en vakteskalering, en skanning, en import eller en AI-kjøring. |
 | Det agenter og telemetri rapporterer | Oppdagede ressurser, målinger og forbruk endrer seg med hver rapport, ikke fordi noen har endret dem. |
 | Aktivitetsfeeder | En feed viser endringer som revisjonsloggen allerede registrerer. |
-| OneUptimes arbeidstilstand | Økter, jobber i kø og annen tilstand OneUptime holder mens det arbeider. |
+| OneUptimes arbeidstilstand | Økter for lesere av statussider, jobber i kø og annen tilstand OneUptime holder mens det arbeider. |
 | En persons egen varslingsoppsett | Hver persons adresser, numre og personlige vaktregler tilhører bare dem. |
 
 Det registreres også når en administrator legger til eller fjerner en varslingsmetode eller en personlig vaktregel på en annens konto, uten selve adressen eller nummeret.
@@ -104,6 +105,21 @@ Det OneUptime gjør fordi noen ba om det, registreres også som deres endring, e
 Det en regel gjør av seg selv, er OneUptimes egen endring og registreres når **Lagre systemhendelser** er slått på: etiketter og eiere en regel legger til når en post opprettes, og en post den da gjør privat; enhetene og monitorene en regel for automatisk import oppretter fra nye skanneresultater; og det en monitorregel på en statusside eller en SLO endrer når en regel, en monitor eller en etikett lagres.
 
 Å tilbakestille AI-agenten til en vert, en klynge eller en skykonto registreres på ressursens egen side **Revisjonslogger**, som endringen av `aiAgentResetAt` gjort av den som tilbakestilte den: hvem, og når. Det samme gjelder å lage en nøkkel til AI-agenten for en skykonto: nøklene vises som endret, aldri med en nøkkel eller en hash. Det en agent rapporterer når den kobler til og melder seg, holdes utenfor, som før.
+
+## Pålogginger og økter
+
+Hver gang et medlem av prosjektet logger på OneUptime, registrerer revisjonsloggen det, og igjen når den økten slutter. En pålogging gjelder OneUptime, ikke ett prosjekt, så alle prosjektene personen er medlem av, registrerer den.
+
+| Handling | Når den registreres |
+| --- | --- |
+| `Sign In` | Noen logger på: med passord eller en innloggingslenke, en passnøkkel, Google, Microsoft, Vercel eller enkel pålogging. |
+| `Sign Out` | Personen logger ut. |
+| `Session Timeout` | OneUptime avslutter økten fordi tiden er ute: inaktivitetsperioden eller øktlengden en serveradministrator har angitt, eller 30 dager uten bruk. |
+| `Session Revoked` | OneUptime avslutter økten fordi passordet ble endret, kontoen ble blokkert, eller en serveradministrator tilbakestilte eller krevde totrinnsbekreftelse. |
+
+For en slik oppføring er **Ressurs** økten, navngitt etter enheten den logget på fra, for eksempel `Chrome 130 on macOS`. **Aktør** er personen økten tilhører, så filtrering etter **Bruker-e-post** finner alle påloggingene og øktene deres. Detaljene sier hvordan de logget på og med hvilken andre faktor, IP-adressen og stedet, og for en økt som er avsluttet, når den logget på, når den sist ble brukt og når den utløp. Et prosjekts egen SSO-leverandør nevnes bare i revisjonsloggen til det prosjektet.
+
+Pålogginger og økter registreres enten prosjektet lagrer systemhendelser eller ikke. En utløpt øktlengde eller 30 dager uten bruk registreres innen noen minutter. En utløpt inaktivitetsperiode registreres neste gang personens åpne fane eller mobilappen kontakter OneUptime.
 
 ## Hvor lenge oppføringer beholdes
 

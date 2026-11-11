@@ -18,6 +18,7 @@ import HashedString from "../../../Types/HashedString";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { SessionEndCause } from "../../../Types/UserSession/SessionEndCause";
 
 /*
  * ---------------------------------------------------------------------------
@@ -182,7 +183,7 @@ describe("a new password ends the wait", () => {
     ).resolves.toBeDefined();
 
     expect(revokeAllSessionsByUserId).toHaveBeenCalledWith(USER_ID, {
-      reason: "Password changed",
+      cause: SessionEndCause.PasswordChanged,
     });
   });
 });

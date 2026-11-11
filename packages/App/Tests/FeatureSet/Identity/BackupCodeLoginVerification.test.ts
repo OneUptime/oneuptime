@@ -22,6 +22,10 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import {
+  SecondFactor,
+  SignInMethod,
+} from "Common/Types/UserSession/SessionSignIn";
 
 const mockRouter: MockIdentityRouter = createMockIdentityRouter();
 
@@ -736,6 +740,15 @@ describe("POST /verify-backup-code -- signing in when the factor is unreachable"
 
     expect(loginSucceeded()).toBe(true);
     expect(createSession).toHaveBeenCalledTimes(1);
+    // The audit log says how they signed in (SessionSignIn, issue #6762).
+    expect(createSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        signIn: {
+          method: SignInMethod.Password,
+          secondFactor: SecondFactor.BackupCode,
+        },
+      }),
+    );
 
     const miscData: JSONObject = responseMiscData();
 

@@ -48,6 +48,10 @@ import {
   expect,
   it,
 } from "@jest/globals";
+import {
+  SecondFactor,
+  SignInMethod,
+} from "Common/Types/UserSession/SessionSignIn";
 
 const mockRouter: MockIdentityRouter = createMockIdentityRouter();
 
@@ -821,6 +825,15 @@ describe("wrong authenticator codes are counted for the account, wherever they c
 
     expect(result.signedIn).toBe(true);
     expect(createSession).toHaveBeenCalledTimes(1);
+    // The audit log says how they signed in (SessionSignIn, issue #6762).
+    expect(createSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        signIn: {
+          method: SignInMethod.Password,
+          secondFactor: SecondFactor.AuthenticatorApp,
+        },
+      }),
+    );
   });
 
   it("each further wrong code doubles the wait, up to an hour", async () => {
@@ -1028,6 +1041,14 @@ describe("a sign-in that passes its second step forgets the wrong codes", () => 
 
     expect((await useSecurityKey(account)).signedIn).toBe(true);
     expect(verifyWebAuthn).toHaveBeenCalledTimes(1);
+    expect(createSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        signIn: {
+          method: SignInMethod.Password,
+          secondFactor: SecondFactor.SecurityKey,
+        },
+      }),
+    );
 
     expect((await enterCode(account, account.wrongCode())).errorMessage).toBe(
       "Invalid code.",

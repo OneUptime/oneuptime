@@ -13,6 +13,10 @@ import {
   SessionEndReason,
   SessionLengths,
 } from "../../../Types/UserSession/SessionLength";
+import {
+  getSessionEndCauseRevokedReason,
+  SessionEndCause,
+} from "../../../Types/UserSession/SessionEndCause";
 import FakeEnterpriseModule, {
   installFakeEnterpriseModule,
   uninstallEnterpriseModule,
@@ -584,11 +588,23 @@ describe("UserSessionService.renewSessionWithNewRefreshToken", () => {
 
 describe("ending a session the lengths ended", () => {
   test.each([
-    [SessionEndReason.LengthReached, "Session length reached"],
-    [SessionEndReason.Inactive, "Idle timeout reached"],
+    [
+      SessionEndReason.LengthReached,
+      "Session length reached",
+      SessionEndCause.LengthReached,
+    ],
+    [
+      SessionEndReason.Inactive,
+      "Idle timeout reached",
+      SessionEndCause.IdleTimeout,
+    ],
   ])(
     "revokes it with its reason (%s)",
-    async (reason: SessionEndReason, revokedReason: string) => {
+    async (
+      reason: SessionEndReason,
+      revokedReason: string,
+      cause: SessionEndCause,
+    ) => {
       const revoke: ReturnType<typeof jest.spyOn> = jest
         .spyOn(UserSessionService, "revokeSessionById")
         .mockResolvedValue(undefined as never);
@@ -596,9 +612,13 @@ describe("ending a session the lengths ended", () => {
       await UserSessionService.endSessionByLength(SESSION_ID, reason);
 
       expect(SESSION_END_REVOKED_REASONS[reason]).toBe(revokedReason);
-      expect(revoke).toHaveBeenCalledWith(SESSION_ID, {
-        reason: revokedReason,
-      });
+      // Revoked for its cause, whose words are the reason a refresh reads.
+      expect(revoke).toHaveBeenCalledWith(SESSION_ID, { cause: cause });
+      expect(
+        getSessionEndCauseRevokedReason(
+          cause as Exclude<SessionEndCause, SessionEndCause.Other>,
+        ),
+      ).toBe(revokedReason);
     },
   );
 

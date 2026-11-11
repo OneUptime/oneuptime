@@ -140,7 +140,7 @@ UDP에서 메시지는 최대 **최대 메시지 크기** 바이트입니다. **
 | `id` | 항목의 ID입니다. 같은 항목을 두 번 보내도 ID는 같습니다. |
 | `createdAt` | 변경이 기록된 시각(UTC)입니다. |
 | `projectId` | 변경이 일어난 프로젝트입니다. |
-| `action` | `Create`, `Update`, `Delete` 또는 `Download`입니다. |
+| `action` | `Create`, `Update`, `Delete` 또는 `Download`이고, 세션의 경우 `SignIn`, `SignOut`, `SessionTimeout` 또는 `SessionRevoked`입니다. |
 | `resourceType`, `resourceId`, `resourceName` | 변경된 대상입니다. |
 | `rootResourceType`, `rootResourceId` | 그것이 속한 리소스입니다. 예를 들어 규칙에 대한 SLO입니다. |
 | `userId`, `userName`, `userEmail`, `userType` | 변경한 사람입니다. |

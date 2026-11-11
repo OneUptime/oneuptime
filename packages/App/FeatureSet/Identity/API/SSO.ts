@@ -73,6 +73,7 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import Name from "Common/Types/Name";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
+import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -437,6 +438,8 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       },
       select: {
         _id: true,
+        // The audit log's sign-in entry names the provider (SessionSignIn).
+        name: true,
         signOnURL: true,
         issuerURL: true,
         publicCertificate: true,
@@ -829,6 +832,12 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         ...extractDeviceInfo(req),
         additionalInfo: {
           projectId: projectId.toString(),
+        },
+        requestOrigin: RequestOriginUtil.fromRequest(req),
+        signIn: {
+          method: SignInMethod.Saml,
+          ssoProviderName: projectSSO.name,
+          ssoProjectId: projectId,
         },
       });
 

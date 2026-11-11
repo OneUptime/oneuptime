@@ -140,7 +140,7 @@ Jeder Eintrag ist ein JSON-Objekt, seine Schlüssel immer in dieser Reihenfolge:
 | `id` | Die ID des Eintrags. Derselbe Eintrag hat auch zweimal gesendet dieselbe ID. |
 | `createdAt` | Wann die Änderung erfasst wurde, in UTC. |
 | `projectId` | Das Projekt, in dem die Änderung vorgenommen wurde. |
-| `action` | `Create`, `Update`, `Delete` oder `Download`. |
+| `action` | `Create`, `Update`, `Delete` oder `Download`, oder bei einer Sitzung `SignIn`, `SignOut`, `SessionTimeout` oder `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Was geändert wurde. |
 | `rootResourceType`, `rootResourceId` | Die Ressource, zu der es gehört, etwa ein SLO für seine Regel. |
 | `userId`, `userName`, `userEmail`, `userType` | Wer die Änderung vorgenommen hat. |

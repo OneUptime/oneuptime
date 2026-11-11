@@ -1,4 +1,5 @@
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
+import { AUDIT_LOG_SESSION_RESOURCE_TYPE } from "Common/Types/AuditLog/AuditLogSessionEvent";
 import Query from "Common/Types/BaseDatabase/Query";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -203,6 +204,16 @@ export const RESOURCE_META: { [key: string]: ResourceMeta } = {
     icon: IconProp.Terminal,
     color: "text-violet-600",
     bgColor: "bg-violet-50 border-violet-100",
+  },
+  /*
+   * A person's session (issue #6762): who signed in, signed out, and whose
+   * session timed out or was revoked, named by the device it signed in
+   * from. No view route: a session is not a page.
+   */
+  [AUDIT_LOG_SESSION_RESOURCE_TYPE]: {
+    icon: IconProp.ComputerDesktop,
+    color: "text-slate-700",
+    bgColor: "bg-slate-50 border-slate-200",
   },
   Label: {
     icon: IconProp.Label,
