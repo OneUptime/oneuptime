@@ -1,5 +1,6 @@
 import GoalQuestion from "./WelcomeChecklist/GoalQuestion";
 import HowOneUptimeWorks from "./HowOneUptimeWorks";
+import MemberFirstSteps from "./MemberFirstSteps/MemberFirstSteps";
 import {
   fetchWelcomeChecklist,
   postWelcomeChecklist,
@@ -78,8 +79,9 @@ import React, {
  *   - once every step is done the card is gone, for everyone.
  *
  * Invited members are not shown the owner's checklist: the server answers
- * with the invited-member audience, and the card draws nothing - #6807 gives
- * them a first hour of their own, at getWelcomeCardView's InvitedMember.
+ * with the invited-member audience, and the card draws their own first
+ * steps instead (MemberFirstSteps, #6807) - can OneUptime reach me, when am
+ * I on call, the mobile app, and a test page to myself - with the same Hide.
  */
 
 export interface ComponentProps {
@@ -115,7 +117,7 @@ export enum WelcomeCardView {
   Checklist = "checklist",
   // The person hid it: a line to show it again.
   Hidden = "hidden",
-  // An invited member: their own first hour goes here (#6807).
+  // An invited member: their own first steps (MemberFirstSteps, #6807).
   InvitedMember = "invited_member",
 }
 
@@ -279,11 +281,7 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     isChangingGoals: isChangingGoals,
   });
 
-  if (
-    !answer ||
-    view === WelcomeCardView.None ||
-    view === WelcomeCardView.InvitedMember
-  ) {
+  if (!answer || view === WelcomeCardView.None) {
     return <></>;
   }
 
@@ -343,6 +341,32 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
 
     chooseGoals([]);
   };
+
+  /*
+   * An invited member's own first steps: the same Hide and Show, kept for
+   * this person on the server, as the owner's card's.
+   */
+  if (view === WelcomeCardView.InvitedMember) {
+    return (
+      <MemberFirstSteps
+        answer={answer}
+        projectId={props.projectId}
+        className={props.className}
+        isSaving={isSaving}
+        error={error}
+        onHide={() => {
+          change(WELCOME_CHECKLIST_HIDE_ROUTE, {}).catch(() => {
+            // change() says so.
+          });
+        }}
+        onShow={() => {
+          change(WELCOME_CHECKLIST_SHOW_ROUTE, {}).catch(() => {
+            // change() says so.
+          });
+        }}
+      />
+    );
+  }
 
   if (view === WelcomeCardView.Question) {
     return (
