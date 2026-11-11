@@ -48,6 +48,9 @@ export enum EntityFilterModelType {
   StorageArray = "StorageArray",
   DockerSwarmCluster = "DockerSwarmCluster",
   NetworkSiteType = "NetworkSiteType",
+  // Saved funnels and saved retention tables (RumProductAnalyticsSavedView).
+  ProductAnalyticsSavedFunnel = "ProductAnalyticsSavedFunnel",
+  ProductAnalyticsSavedRetention = "ProductAnalyticsSavedRetention",
 }
 
 export interface ComponentArgumentSection {

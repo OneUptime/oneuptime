@@ -896,4 +896,85 @@ describe("the Criteria page's step previews", () => {
       NOW.getTime() - SIX_HOURS_AGO.getTime(),
     );
   });
+
+  /*
+   * A Metrics monitor an AI created through the MCP server was stored with
+   * its rolling time as "15 minutes": this preview charted a window of no
+   * length - an empty chart - while the edit form's chart showed data.
+   * A step read from the API now holds the value it means
+   * (MonitorStep.fromJSON); a step handed over as written previews it too.
+   */
+  test("a step whose rolling time is written another way previews the window it means, never none", async () => {
+    const MINUTE: number = 60 * 1000;
+    const cases: Array<{
+      metricName: string;
+      written: string;
+      minutes: number;
+      words: string;
+    }> = [
+      {
+        metricName: "criteria.words",
+        written: "15 minutes",
+        minutes: 15,
+        words: "past 15 minutes",
+      },
+      {
+        metricName: "criteria.iso",
+        written: "PT1H",
+        minutes: 60,
+        words: "past 1 hour",
+      },
+      // A value that means none: the default window, never an empty chart.
+      {
+        metricName: "criteria.unreadable",
+        written: "fortnight",
+        minutes: 1,
+        words: "past 1 minute",
+      },
+    ];
+
+    render(
+      <MemoryRouter>
+        {cases.map(
+          (
+            stepCase: { metricName: string; written: string },
+            index: number,
+          ) => {
+            return (
+              <MonitorStepElement
+                key={index}
+                monitorType={MonitorType.Metrics}
+                monitorStep={metricStep(
+                  stepCase.metricName,
+                  stepCase.written as RollingTime,
+                )}
+                monitorStatusOptions={[]}
+                incidentSeverityOptions={[]}
+                alertSeverityOptions={[]}
+                onCallPolicyOptions={[]}
+                labelOptions={[]}
+                teamOptions={[]}
+                userOptions={[]}
+                incidentRoleOptions={[]}
+              />
+            );
+          },
+        )}
+      </MemoryRouter>,
+    );
+
+    for (const stepCase of cases) {
+      await previewSettled(stepCase.metricName);
+
+      const [start, end] = lastFetchedWindowFor(stepCase.metricName)!;
+
+      expect(end - start).toBeGreaterThanOrEqual(stepCase.minutes * MINUTE);
+      expect(end - start).toBeLessThan((stepCase.minutes + 1) * MINUTE);
+      expect(
+        screen.getByText(
+          `The metrics this monitor evaluates, over the ${stepCase.words}.`,
+        ),
+      ).toBeInTheDocument();
+    }
+  });
 });

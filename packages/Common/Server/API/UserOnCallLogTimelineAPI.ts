@@ -84,6 +84,8 @@ const NOTIFICATION_PAGE_SELECT: Select<UserOnCallLogTimeline> = {
   userId: true,
   onCallDutyPolicyExecutionLogId: true,
   isAcknowledged: true,
+  // When it was answered from its own link: "You already acknowledged ... at 5:28 AM UTC."
+  acknowledgedAt: true,
   triggeredByIncidentId: true,
   triggeredByIncident: {
     title: true,
@@ -813,9 +815,10 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
   /*
    * The acknowledge page once it no longer offers Acknowledge
    * (OnCallAcknowledgePage): why - "Incident INC-42 was already acknowledged
-   * by Ana Lopez." - under a check, with what it is about and the button
-   * that opens it in the Dashboard. The address its button opens says the
-   * same when it is pressed too late.
+   * by Ana Lopez at 5:28 AM UTC." - under a check, with what it is about and
+   * the button that opens it in the Dashboard. The time is on the person's
+   * own clock. The address its button opens says the same when it is
+   * pressed too late.
    */
   private renderAcknowledgePageAnswered(data: {
     req: ExpressRequest;
@@ -842,6 +845,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           isObserverPage: data.isObserverPage,
           recordLabel: record.label,
           recordLabelInSentence: record.labelInSentence,
+          timezone: record.timezone,
         }),
         // Nothing is asked of the person: the heading wears a check.
         statusIcon: "check",

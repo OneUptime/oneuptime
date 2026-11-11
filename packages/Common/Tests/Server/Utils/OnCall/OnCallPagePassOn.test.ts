@@ -25,6 +25,7 @@ import {
   OnCallPassOnAnswer,
   OnCallPassOnOutcome,
   OnCallPassOnRefusal,
+  getOnCallPassOnRefusalSentence,
   getOnCallPassOnSentence,
 } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import UserNotificationExecutionStatus from "../../../../Types/UserNotification/UserNotificationExecutionStatus";
@@ -647,6 +648,142 @@ describe("somebody took it already", () => {
     expect(world.stepsOf(ANA)[0]!.status).toBe(
       OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
     );
+  });
+});
+
+describe("who took it, when no page was answered (#6711)", () => {
+  /*
+   * Somebody acknowledged the incident in the Dashboard, the app, Slack or
+   * Microsoft Teams - answering no page, so the run names nobody. The
+   * refusal the person reads names them, from the incident's own state
+   * timeline; the Dashboard's list of the person's pages, read on every
+   * visit, reads no timeline.
+   */
+  beforeEach(async () => {
+    world.addRule({ order: 1, users: [ANA, BOB] });
+    world.addRule({ order: 2, users: [CARL] });
+    await world.startRun();
+    world.isRecordAcknowledged = true;
+  });
+
+  test("escalating names who acknowledged it, from the incident's timeline", async () => {
+    world.recordStanding = {
+      isAcknowledged: true,
+      isResolved: false,
+      acknowledgement: { createdByUserId: CARL, startsAt: new Date(START) },
+    };
+
+    expect(await world.passOn(ANA)).toEqual({
+      passedOn: false,
+      refusal: OnCallPassOnRefusal.RecordAcknowledged,
+      acknowledgedByName: "Carl Diaz",
+    });
+    expect(
+      getOnCallPassOnRefusalSentence(await world.passOn(ANA), {
+        recordLabel: "Incident INC-7",
+      }),
+    ).toBe(
+      "Incident INC-7 was already acknowledged by Carl Diaz, so there is nothing to escalate.",
+    );
+  });
+
+  test("what escalating would do, asked first, names them too", async () => {
+    world.recordStanding = {
+      isAcknowledged: true,
+      isResolved: false,
+      acknowledgement: { createdByUserId: CARL, startsAt: new Date(START) },
+    };
+
+    expect((await world.preview(ANA)).acknowledgedByName).toBe("Carl Diaz");
+  });
+
+  test("an answer to a page names who answered it: the timeline is not read", async () => {
+    world.run.acknowledgedAt = new Date(START);
+    world.run.acknowledgedByUserId = BOB;
+    world.run.acknowledgedByUser = { name: "Bob Smith" } as never;
+    world.recordStanding = {
+      isAcknowledged: true,
+      isResolved: false,
+      acknowledgement: { createdByUserId: CARL, startsAt: new Date(START) },
+    };
+
+    expect((await world.passOn(ANA)).acknowledgedByName).toBe("Bob Smith");
+    expect(
+      OnCallAcknowledgementTimeout.readRecordStanding,
+    ).not.toHaveBeenCalled();
+  });
+
+  test("acknowledged by nobody by name - a workflow, an API key: no name", async () => {
+    world.recordStanding = {
+      isAcknowledged: true,
+      isResolved: false,
+      acknowledgement: { createdByUserId: null, startsAt: new Date(START) },
+    };
+
+    expect(await world.passOn(ANA)).toEqual({
+      passedOn: false,
+      refusal: OnCallPassOnRefusal.RecordAcknowledged,
+    });
+  });
+
+  test("a timeline that cannot be read: no name, never a throw", async () => {
+    jest
+      .spyOn(OnCallAcknowledgementTimeout, "readRecordStanding")
+      .mockImplementation(async () => {
+        throw new Error("the database is away");
+      });
+
+    expect(await world.passOn(ANA)).toEqual({
+      passedOn: false,
+      refusal: OnCallPassOnRefusal.RecordAcknowledged,
+    });
+    expect(world.errors.join("\n")).toContain(
+      "Could not read who acknowledged incident",
+    );
+  });
+
+  test("the record's own run is what is read: its kind and its id", async () => {
+    await world.passOn(ANA);
+
+    expect(
+      OnCallAcknowledgementTimeout.readRecordStanding,
+    ).toHaveBeenCalledWith({
+      kind: "incident",
+      recordId: INCIDENT_ID,
+    });
+  });
+
+  test("the Dashboard's list of the person's pages reads no timeline", async () => {
+    expect(
+      await OnCallPagePassOn.getOpenPagesForRecord({
+        userId: ANA,
+        projectId: PROJECT_ID,
+        recordType: OnCallPageRecordType.Incident,
+        recordId: INCIDENT_ID,
+      }),
+    ).toEqual([]);
+    expect(
+      OnCallAcknowledgementTimeout.readRecordStanding,
+    ).not.toHaveBeenCalled();
+  });
+
+  test("a person's page resolved without an answer names nobody, and reads no timeline", async () => {
+    // A direct page Dana asked for: no policy, by its id or read with it.
+    delete world.run.onCallDutyPolicyId;
+    delete world.run.onCallDutyPolicy;
+    world.run.triggeredByUserId = DANA;
+
+    jest
+      .spyOn(OnCallAcknowledgementTimeout, "readRecordState")
+      .mockResolvedValue({ isAcknowledged: true, isResolved: true });
+
+    expect(await world.passOn(ANA)).toEqual({
+      passedOn: false,
+      refusal: OnCallPassOnRefusal.RecordAcknowledged,
+    });
+    expect(
+      OnCallAcknowledgementTimeout.readRecordStanding,
+    ).not.toHaveBeenCalled();
   });
 });
 

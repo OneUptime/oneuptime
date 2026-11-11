@@ -111,6 +111,17 @@ The segment of a funnel, and of a retention table, takes the fields every event 
 
 Each row is a cohort and how many people it holds, and each cell the share of them who came back in that period, darker the more did. A period that has not begun yet is left empty.
 
+**All cohorts**, above them, counts the cohorts as one: in each period, the people who came back over the people of the cohorts that have reached it, so a cohort of 200 people weighs four times as much as one of 50. It shows once two cohorts hold anyone.
+
+## Saved funnels and retention tables
+
+**Saved funnels**, on the **Funnels** page, and **Saved retention tables**, on **User Retention**, list what your team saved for the application, to open it again or show it on a dashboard. A saved funnel keeps its steps, its time to finish and its segment, and a saved retention table its two events, its period and its segment. Neither keeps the time range: the page keeps its own, and a dashboard reads its own.
+
+- **+ Save funnel** or **+ Save retention table** saves what the page shows, under a name. An application keeps at most 100 of each.
+- Pick one to open it. The page's address names it, so a link opens it for everyone who may see it. Once you change what it shows, its name says so, and **Update** saves the change.
+- **Edit** renames one, and **Delete** deletes it for everyone. **Clear view** closes the one that is open, and keeps what the page shows.
+- A link to one that was deleted, or that you may not see, says so, and the page opens without it.
+
 ## Dashboards and alerts
 
 Each event is also counted, minute by minute, as a metric of the application's, and each `metric()` call is a point of a metric of its own, under the name it gives. Chart them on the application's **Metrics** page, add them to a dashboard, or alert on them with a Metrics monitor; **Open Metrics**, under **All events**, opens the page.
@@ -123,6 +134,8 @@ Each event is also counted, minute by minute, as a metric of the application's, 
 
 These three are not billed, and `metric()` refuses a name that starts with `oneuptime.`, so nothing your page sends passes for them. Your `metric()` points are kept and billed as the application's other metrics are.
 
+A saved funnel or retention table goes on a dashboard too: the **Funnel** and **User Retention** widgets, in the widget catalog's **Product Analytics** group, show one in the dashboard's time range, and **Open in Funnels** or **Open in User Retention** opens it on its page (see [Dashboard Widgets](/docs/dashboards/widgets#product-analytics)).
+
 ## Privacy and retention
 
 - **13 months.** A month's numbers are removed on the first day of the 13th month after it, so the last 12 full months are always there, whatever the recordings' own retention (7 days by default). Events are kept the same way.
@@ -132,6 +145,8 @@ These three are not billed, and `metric()` refuses a name that starts with `oneu
 ## Who can see it
 
 Reading these pages takes what reading the session list takes: `ReadRumSessionReplay` (_List Session Replays_) or `ReadRumSessionReplayPayload` (_Watch Session Replays_), which project owners and admins hold. Seeing who a signed-in user is, and searching people by name, takes the identity permission described in [Who can watch a recording](/docs/telemetry/session-replay#who-can-watch-a-recording).
+
+Saving, renaming and deleting saved funnels and retention tables takes the same permissions as reading these pages, and a dashboard widget shows one only to a reader who holds them.
 
 Turning the events on or off takes `EditRumApplication` (_Edit RUM Application_) or a project owner's, admin's or member's role. Listing user properties takes `EditRumApplication` or an owner's or admin's role, since it decides what is kept about signed-in people.
 

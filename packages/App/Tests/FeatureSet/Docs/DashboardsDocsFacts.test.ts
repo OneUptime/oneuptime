@@ -218,6 +218,8 @@ const SETTINGS_DIALOG: string = `${DASHBOARD_COMPONENTS_DIR}/Canvas/ComponentSet
 const GAUGE_WIDGET: string = `${WIDGET_COMPONENTS_DIR}/DashboardGaugeComponent.tsx`;
 const VALUE_VIEW: string = `${WIDGET_COMPONENTS_DIR}/ValueWidgetView.tsx`;
 const DATA_SOURCE_PLACEHOLDER: string = `${WIDGET_COMPONENTS_DIR}/DataSourceWidgetPlaceholder.tsx`;
+// The Funnel and Retention widgets' shared frame and words (issue #6630).
+const PRODUCT_ANALYTICS_WIDGET: string = `${WIDGET_COMPONENTS_DIR}/DashboardProductAnalyticsWidget.tsx`;
 const RESOURCE_OWNERS: string = `${DASHBOARD_APP}/Components/ResourceOwners/useResourceOwners.tsx`;
 const DASHBOARD_ROUTES: string = `${DASHBOARD_APP}/Utils/RouteMap.ts`;
 const ENTERPRISE_ELIGIBILITY: string = `${DASHBOARD_APP}/Enterprise/EnterpriseEligibility.ts`;
@@ -251,6 +253,13 @@ const NOT_ON_PUBLIC_DASHBOARDS: string = "not available on public dashboards";
 
 // A widget's component file, named for its type: DashboardLogChartComponent.tsx.
 const WIDGET_COMPONENT_FILE: RegExp = /^Dashboard(\w+)Component\.tsx$/;
+
+/*
+ * The Funnel and Retention widgets draw in a shared frame, whose words say
+ * so for both kinds (PRODUCT_ANALYTICS_WIDGET_WORDS): a widget that draws
+ * in it says it too.
+ */
+const PRODUCT_ANALYTICS_WIDGET_FRAME: string = "<ProductAnalyticsWidgetFrame";
 
 const NUMBER_WORDS: ReadonlyArray<string> = [
   "zero",
@@ -1733,6 +1742,38 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
     );
   });
 
+  /*
+   * The Funnel and User Retention widgets (issue #6630) show what a team
+   * saved on a RUM application's Funnels and User Retention pages.
+   */
+  it("describes the Product Analytics group's widgets in their own section, and how they open their page", () => {
+    const section: string = sectionOf(page, "## Product analytics");
+    const widgets: Array<string> = labelsOf(
+      catalogCategory("Product Analytics"),
+    );
+    const frame: string = readSource(PRODUCT_ANALYTICS_WIDGET);
+
+    expect(widgets).toEqual(["Funnel", "User Retention"]);
+    expect(column(tables(section)[0], 0)).toEqual(widgets.map(bold));
+
+    // The link each draws to its page, by its own words.
+    for (const open of ["Open in Funnels", "Open in User Retention"]) {
+      expect(frame).toContain(`open: translationKey("${open}"),`);
+      expect(section).toContain(bold(open));
+    }
+
+    // Titled with the saved one's name unless the widget has a title.
+    expect(frame).toContain(
+      'const title: string = props.title?.trim() || view?.name || "";',
+    );
+    expect(section).toContain(
+      "The widget takes its name as its title unless you give it one",
+    );
+    expect(section).toContain(
+      "(/docs/rum/product-analytics#saved-funnels-and-retention-tables)",
+    );
+  });
+
   it("gives the Log Chart's and the Trace Chart's choices as their settings offer them", () => {
     const table: Array<Array<string>> = rowsOf(
       tables(sectionOf(page, "## Logs, traces and security"))[0],
@@ -1881,11 +1922,15 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
     const refusing: Array<string> = fs
       .readdirSync(path.join(PACKAGES_DIR, WIDGET_COMPONENTS_DIR))
       .filter((file: string): boolean => {
+        if (!WIDGET_COMPONENT_FILE.test(file)) {
+          return false;
+        }
+
+        const source: string = readSource(`${WIDGET_COMPONENTS_DIR}/${file}`);
+
         return (
-          WIDGET_COMPONENT_FILE.test(file) &&
-          readSource(`${WIDGET_COMPONENTS_DIR}/${file}`).includes(
-            NOT_ON_PUBLIC_DASHBOARDS,
-          )
+          source.includes(NOT_ON_PUBLIC_DASHBOARDS) ||
+          source.includes(PRODUCT_ANALYTICS_WIDGET_FRAME)
         );
       })
       .map((file: string): string => {
@@ -1901,8 +1946,14 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
         );
       }) || "";
 
-    expect(refusing.length).toBeGreaterThanOrEqual(5);
+    expect(refusing.length).toBeGreaterThanOrEqual(7);
     expect(boldSpans(refusingLine).sort()).toEqual([...refusing].sort());
+    // The shared frame says it for both of its kinds.
+    for (const kind of ["Funnels", "Retention tables"]) {
+      expect(readSource(PRODUCT_ANALYTICS_WIDGET)).toContain(
+        `${kind} are ${NOT_ON_PUBLIC_DASHBOARDS}.`,
+      );
+    }
 
     // The data source widgets never reach the visitor: the config drops them.
     const config: DashboardViewConfig = {

@@ -2356,6 +2356,9 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
       ],
       [DashboardComponentType.SecurityEventsList]: ["messageContains"],
       [DashboardComponentType.SecurityEventsFlow]: ["severityFilters"],
+      // The saved funnel or retention table it reads (issue #6630).
+      [DashboardComponentType.ProductAnalyticsFunnel]: ["savedViewId"],
+      [DashboardComponentType.ProductAnalyticsRetention]: ["savedViewId"],
     };
 
     interface ExpectedWidget {

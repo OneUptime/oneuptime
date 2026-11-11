@@ -24,6 +24,7 @@ Beginnen Sie mit der Frage, die die Kachel beantworten soll:
 | Was passiert gerade? | **Protokoll-Stream**, **Trace-Liste**, **Vorfallsliste** oder **Warnungsliste** |
 | Sind alle unsere Websites erreichbar? | **Überwachungsliste** |
 | Halten wir die Zuverlässigkeit, die wir versprochen haben? | **SLO** oder **SLO-Liste** |
+| Kommen Personen durch einen Ablauf, und kommen sie wieder? | **Trichter** oder **Benutzerbindung** |
 | In welchem Zustand sind unsere Cluster und Hosts? | Ein Widget der Gruppe Infrastruktur |
 | Wo auf der Welt ist unser Netzwerk, und was ist ausgefallen? | **Netzwerkkarte** |
 | Eine Überschrift, eine Notiz, die Uhrzeit in einem anderen Büro? | **Text** oder **Uhr** |
@@ -170,6 +171,15 @@ Das SLO-Widget funktioniert auf [öffentlichen Dashboards](/docs/dashboards/shar
 
 Jedes SLO mit seinem Status, SLI, Fehlerbudget und seiner Burn Rate, das mit dem wenigsten verbleibenden Budget zuerst. Filtern Sie sie nach Status oder Beschriftungen, oder nach einer **Beschriftungsvariable**, die Betrachter in der Werkzeugleiste wählen. [SLO-Metriken und -Dashboards](/docs/slo/metrics) zeigt beide SLO-Widgets im Einsatz.
 
+## Produktanalyse
+
+| Widget | Was es zeigt |
+| --- | --- |
+| **Trichter** | Ein Trichter, der auf der Seite **Trichter** einer RUM-Anwendung gespeichert wurde: von den Personen, die seinen ersten Schritt im Zeitbereich des Dashboards ausführten, wie viele zu jedem nächsten Schritt weitergingen. |
+| **Benutzerbindung** | Eine Bindungstabelle, die auf ihrer Seite **Benutzerbindung** gespeichert wurde: Personen, gruppiert danach, wann sie ihr Startereignis zum ersten Mal ausführten, und der Anteil jeder Gruppe, der in jeder Periode danach zurückkam, mit **Alle Kohorten** darüber. |
+
+Speichern Sie den Trichter oder die Bindungstabelle zuerst auf ihrer Seite (siehe [Gespeicherte Trichter und Bindungstabellen](/docs/rum/product-analytics#gespeicherte-trichter-und-bindungstabellen)) und wählen Sie sie dann in den Einstellungen des Widgets. Das Widget nimmt ihren Namen als Titel, sofern Sie ihm keinen geben, und liest sie bei jeder Aktualisierung neu, sodass eine auf der Seite gespeicherte Änderung auf dem Dashboard erscheint. **In „Trichter“ öffnen** oder **In „Benutzerbindung“ öffnen** öffnet sie auf ihrer Seite, im Zeitbereich des Dashboards. Sie zu sehen erfordert dasselbe wie die Seite zu sehen.
+
 ## Infrastruktur
 
 Jedes dieser Widgets listet die Ressourcen, die ein Agent oder ein Collector an OneUptime meldet. Grenzen Sie sie in ihren Filtern nach Cluster, Host oder Namespace ein, und zeigen Sie sie als Liste oder als Waben.
@@ -235,7 +245,7 @@ Die Dashboard-Vorlagen öffnen ihre Listen von Hosts, Knoten, Pods, Swarm-Dienst
 
 Ein [öffentliches Dashboard](/docs/dashboards/sharing) zeichnet die meisten Widgets für seine Besucher, jedes zeigt nur, wofür es eingerichtet wurde. Einige können ohne angemeldete Sitzung nicht angezeigt werden:
 
-- **Protokolldiagramm**, **Trace-Diagramm**, **Trace-Tabelle**, **Sicherheitsereignisse** und **Fluss der Sicherheitsereignisse** sagen an ihrer Stelle, dass sie auf öffentlichen Dashboards nicht verfügbar sind.
+- **Protokolldiagramm**, **Trace-Diagramm**, **Trace-Tabelle**, **Sicherheitsereignisse**, **Fluss der Sicherheitsereignisse**, **Trichter** und **Benutzerbindung** sagen an ihrer Stelle, dass sie auf öffentlichen Dashboards nicht verfügbar sind.
 - Die Widgets der Gruppe External Data Sources werden aus einem öffentlichen Dashboard ganz weggelassen, weil ihre Einstellungen die Abfrage selbst sind.
 
 ## Wenn ein Widget nicht angezeigt werden kann

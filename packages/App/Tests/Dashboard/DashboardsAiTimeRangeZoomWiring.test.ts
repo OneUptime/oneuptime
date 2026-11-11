@@ -386,6 +386,19 @@ describe("non-time-series visuals stay out of drag-to-zoom", () => {
       "the security events flow",
       `${WIDGETS}/DashboardSecurityEventsFlowComponent.tsx`,
     ],
+    // A saved funnel and a saved retention table: steps and cohorts, no time axis.
+    [
+      "the product analytics funnel widget",
+      `${WIDGETS}/DashboardProductAnalyticsFunnelComponent.tsx`,
+    ],
+    [
+      "the product analytics retention widget",
+      `${WIDGETS}/DashboardProductAnalyticsRetentionComponent.tsx`,
+    ],
+    [
+      "the product analytics widgets' frame",
+      `${WIDGETS}/DashboardProductAnalyticsWidget.tsx`,
+    ],
     [
       "the LLM usage breakdown",
       `${DASHBOARD_SRC}/Components/AI/LlmUsageBreakdown.tsx`,

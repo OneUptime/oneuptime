@@ -12,10 +12,13 @@ import {
   getOnCallAcknowledgePageAnswer,
   getOnCallAcknowledgePageAnsweredHeading,
   getOnCallAcknowledgePageAnsweredSentence,
+  getOnCallAcknowledgePageMoment,
   getOnCallAcknowledgePagePersonName,
   isOnCallAcknowledgePageOpen,
   isOnCallPageEndedOnlyByAnAnswer,
 } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgePage";
+import { ON_CALL_PASS_ON_NO_BREAK_SPACE } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import Timezone from "../../../Types/Timezone";
 
 /*
  * WHAT THE ACKNOWLEDGE PAGE A MESSAGE'S LINK OPENS OFFERS
@@ -164,7 +167,8 @@ describe("a responder's page: over once its record is acknowledged, whoever did 
       ),
     ).toEqual({
       state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
-      acknowledgedByName: "Ana Lopez",
+      byName: "Ana Lopez",
+      at: ANSWERED_AT,
     });
   });
 
@@ -314,7 +318,8 @@ describe("a page again, a person's page and an observer's page go on until one o
         ),
       ).toEqual({
         state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
-        acknowledgedByName: "Ana Lopez",
+        byName: "Ana Lopez",
+        at: ANSWERED_AT,
       });
     },
   );
@@ -422,6 +427,7 @@ describe("who answered, as the page names them", () => {
       ),
     ).toEqual({
       state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
+      at: ANSWERED_AT,
     });
   });
 
@@ -432,7 +438,7 @@ describe("who answered, as the page names them", () => {
           run: answeredBy(POLICY_RUN, ANA, { email: "ana@example.com" }),
           record: ACKNOWLEDGED_RECORD,
         }),
-      ).acknowledgedByName,
+      ).byName,
     ).toBe("ana@example.com");
   });
 
@@ -443,12 +449,12 @@ describe("who answered, as the page names them", () => {
           run: answeredBy(POLICY_RUN, PERSON),
           record: ACKNOWLEDGED_RECORD,
         }),
-      ).acknowledgedByName,
+      ).byName,
     ).toBeUndefined();
     expect(
       getOnCallAcknowledgePageAnswer(
         facts({ run: answeredBy(POLICY_RUN, ANA), record: RESOLVED_RECORD }),
-      ).acknowledgedByName,
+      ).byName,
     ).toBeUndefined();
   });
 });
@@ -536,7 +542,7 @@ describe("the sentence under it", () => {
     expect(
       sentence({
         state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
-        acknowledgedByName: "Ana Lopez",
+        byName: "Ana Lopez",
       }),
     ).toBe("Incident INC-42 was already acknowledged by Ana Lopez.");
   });
@@ -551,7 +557,7 @@ describe("the sentence under it", () => {
     expect(
       sentence({
         state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
-        acknowledgedByName: "   ",
+        byName: "   ",
       }),
     ).toBe("Incident INC-42 is already acknowledged.");
   });
@@ -575,7 +581,7 @@ describe("the sentence under it", () => {
       sentence(
         {
           state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
-          acknowledgedByName: "Ana Lopez",
+          byName: "Ana Lopez",
         },
         false,
         labels,
@@ -598,7 +604,7 @@ describe("the sentence under it", () => {
       sentence(
         {
           state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
-          acknowledgedByName: "Ana Lopez",
+          byName: "Ana Lopez",
         },
         false,
         ["Alert Episode AEP-3", "Alert Episode AEP-3"],
@@ -630,7 +636,7 @@ describe("the sentence under it", () => {
         sentence(
           {
             state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
-            acknowledgedByName: "Ana Lopez",
+            byName: "Ana Lopez",
           },
           true,
         ),
@@ -657,12 +663,535 @@ describe("the sentence under it", () => {
         { state: OnCallAcknowledgePageState.AcknowledgedByYou },
         {
           state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
-          acknowledgedByName: "Ana Lopez",
+          byName: "Ana Lopez",
         },
         { state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse },
       ]) {
         expect(sentence(answer, true)).not.toMatch(/acknowledg/i);
       }
     });
+  });
+});
+
+/*
+ * WHO TOOK IT, AND WHEN (https://github.com/OneUptime/oneuptime/issues/6711).
+ *
+ * The page named who took it only when somebody answered a page, read off
+ * the run: acknowledged in the Dashboard, the app, Slack or by a workflow, it
+ * said only "is already acknowledged". It now reads who and when off the
+ * record's state timeline for a responder's page, and off the answer to the
+ * page for the pages that go on until answered - and says when, as Slack and
+ * Microsoft Teams answer a press that came too late.
+ */
+
+const BOB: string = "0f6706aa-0000-4000-8000-0000000000b2";
+const ACKNOWLEDGED_AT: Date = new Date("2026-11-11T02:15:00.000Z");
+const RESOLVED_AT: Date = new Date("2026-11-11T04:40:00.000Z");
+const MESSAGE_ANSWERED_AT: Date = new Date("2026-11-11T03:30:00.000Z");
+
+describe("who took it, and when, read for a responder's page off the record's timeline", () => {
+  test("whoever acknowledged the record - the Dashboard, the app, Slack alike - by name, and when", () => {
+    expect(
+      getOnCallAcknowledgePageAnswer(
+        facts({
+          record: {
+            ...ACKNOWLEDGED_RECORD,
+            acknowledgement: {
+              byUserId: ANA,
+              byName: "Ana Lopez",
+              at: ACKNOWLEDGED_AT,
+            },
+          },
+        }),
+      ),
+    ).toEqual({
+      state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
+      byName: "Ana Lopez",
+      at: ACKNOWLEDGED_AT,
+    });
+  });
+
+  test("the record's own acknowledgement wins over a later answer to a page", () => {
+    expect(
+      getOnCallAcknowledgePageAnswer(
+        facts({
+          run: answeredBy(POLICY_RUN, BOB, { name: "Bob Smith" }),
+          record: {
+            ...ACKNOWLEDGED_RECORD,
+            acknowledgement: {
+              byUserId: ANA,
+              byName: "Ana Lopez",
+              at: ACKNOWLEDGED_AT,
+            },
+          },
+        }),
+      ),
+    ).toEqual({
+      state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
+      byName: "Ana Lopez",
+      at: ACKNOWLEDGED_AT,
+    });
+  });
+
+  test("acknowledged by nobody by name - an API key, a workflow - says when, without who", () => {
+    expect(
+      getOnCallAcknowledgePageAnswer(
+        facts({
+          run: answeredBy(POLICY_RUN, BOB, { name: "Bob Smith" }),
+          record: {
+            ...ACKNOWLEDGED_RECORD,
+            acknowledgement: { byUserId: null, at: ACKNOWLEDGED_AT },
+          },
+        }),
+      ),
+    ).toEqual({
+      state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
+      at: ACKNOWLEDGED_AT,
+    });
+  });
+
+  test("somebody whose name could not be read: when, without who", () => {
+    expect(
+      getOnCallAcknowledgePageAnswer(
+        facts({
+          record: {
+            ...ACKNOWLEDGED_RECORD,
+            acknowledgement: { byUserId: ANA, at: ACKNOWLEDGED_AT },
+          },
+        }),
+      ),
+    ).toEqual({
+      state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
+      at: ACKNOWLEDGED_AT,
+    });
+  });
+
+  test("the person's own acknowledgement - from the Dashboard, say - is theirs", () => {
+    expect(
+      getOnCallAcknowledgePageAnswer(
+        facts({
+          record: {
+            ...ACKNOWLEDGED_RECORD,
+            acknowledgement: {
+              byUserId: PERSON.toUpperCase(),
+              byName: "Sam Rivera",
+              at: ACKNOWLEDGED_AT,
+            },
+          },
+        }),
+      ),
+    ).toEqual({
+      state: OnCallAcknowledgePageState.AcknowledgedByYou,
+      at: ACKNOWLEDGED_AT,
+    });
+  });
+
+  test("with no timeline to read, the run's answer says who and when", () => {
+    expect(
+      getOnCallAcknowledgePageAnswer(
+        facts({
+          run: answeredBy(POLICY_RUN, BOB, { name: "Bob Smith" }),
+          record: ACKNOWLEDGED_RECORD,
+        }),
+      ),
+    ).toEqual({
+      state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
+      byName: "Bob Smith",
+      at: ANSWERED_AT,
+    });
+  });
+
+  test("a time given as text is read as a time", () => {
+    expect(
+      getOnCallAcknowledgePageAnswer(
+        facts({
+          record: {
+            ...ACKNOWLEDGED_RECORD,
+            acknowledgement: {
+              byUserId: ANA,
+              byName: "Ana Lopez",
+              at: ACKNOWLEDGED_AT.toISOString(),
+            },
+          },
+        }),
+      ).at,
+    ).toEqual(ACKNOWLEDGED_AT);
+  });
+});
+
+describe("who answered, and when, for the pages that go on until answered", () => {
+  const RUNS: Array<[string, OnCallAcknowledgePageRun]> = [
+    ["a page again", PAGE_AGAIN_RUN],
+    ["a page a person asked for", PERSON_PAGE_RUN],
+    ["an observer's page", OBSERVER_RUN],
+  ];
+
+  test.each(RUNS)(
+    "%s names who answered the page, not who acknowledged the record",
+    (_name: string, run: OnCallAcknowledgePageRun) => {
+      expect(
+        getOnCallAcknowledgePageAnswer(
+          facts({
+            run: answeredBy(run, BOB, { name: "Bob Smith" }),
+            record: {
+              ...ACKNOWLEDGED_RECORD,
+              acknowledgement: {
+                byUserId: ANA,
+                byName: "Ana Lopez",
+                at: ACKNOWLEDGED_AT,
+              },
+            },
+          }),
+        ),
+      ).toEqual({
+        state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
+        byName: "Bob Smith",
+        at: ANSWERED_AT,
+      });
+    },
+  );
+});
+
+describe("who resolved it, and when", () => {
+  test("somebody else, by name, and when", () => {
+    expect(
+      getOnCallAcknowledgePageAnswer(
+        facts({
+          record: {
+            ...RESOLVED_RECORD,
+            resolution: {
+              byUserId: ANA,
+              byName: "Ana Lopez",
+              at: RESOLVED_AT,
+            },
+          },
+        }),
+      ),
+    ).toEqual({
+      state: OnCallAcknowledgePageState.Resolved,
+      byName: "Ana Lopez",
+      at: RESOLVED_AT,
+    });
+  });
+
+  test("the person themselves", () => {
+    expect(
+      getOnCallAcknowledgePageAnswer(
+        facts({
+          record: {
+            ...RESOLVED_RECORD,
+            resolution: {
+              byUserId: PERSON,
+              byName: "Sam Rivera",
+              at: RESOLVED_AT,
+            },
+          },
+        }),
+      ),
+    ).toEqual({
+      state: OnCallAcknowledgePageState.Resolved,
+      isByYou: true,
+      at: RESOLVED_AT,
+    });
+  });
+
+  test("on every kind of page: resolved is resolved, whoever answered", () => {
+    for (const run of [PAGE_AGAIN_RUN, PERSON_PAGE_RUN, OBSERVER_RUN]) {
+      expect(
+        getOnCallAcknowledgePageAnswer(
+          facts({
+            run: answeredBy(run, BOB, { name: "Bob Smith" }),
+            record: {
+              ...RESOLVED_RECORD,
+              resolution: {
+                byUserId: ANA,
+                byName: "Ana Lopez",
+                at: RESOLVED_AT,
+              },
+            },
+          }),
+        ),
+      ).toEqual({
+        state: OnCallAcknowledgePageState.Resolved,
+        byName: "Ana Lopez",
+        at: RESOLVED_AT,
+      });
+    }
+  });
+
+  test("with no resolve to read, neither who nor when - never the run's answer", () => {
+    expect(
+      getOnCallAcknowledgePageAnswer(
+        facts({
+          run: answeredBy(POLICY_RUN, BOB, { name: "Bob Smith" }),
+          record: RESOLVED_RECORD,
+        }),
+      ),
+    ).toEqual({ state: OnCallAcknowledgePageState.Resolved });
+  });
+});
+
+describe("when the person answered their page themselves", () => {
+  test("this message's own link: when it was", () => {
+    expect(
+      getOnCallAcknowledgePageAnswer(
+        facts({
+          isMessageAcknowledged: true,
+          messageAcknowledgedAt: MESSAGE_ANSWERED_AT,
+        }),
+      ),
+    ).toEqual({
+      state: OnCallAcknowledgePageState.AcknowledgedByYou,
+      at: MESSAGE_ANSWERED_AT,
+    });
+  });
+
+  test("another of their messages: when the run says", () => {
+    expect(
+      getOnCallAcknowledgePageAnswer(
+        facts({
+          run: answeredBy(POLICY_RUN, PERSON),
+          record: ACKNOWLEDGED_RECORD,
+        }),
+      ),
+    ).toEqual({
+      state: OnCallAcknowledgePageState.AcknowledgedByYou,
+      at: ANSWERED_AT,
+    });
+  });
+
+  test("this message answered with no time kept: no time", () => {
+    expect(
+      getOnCallAcknowledgePageAnswer(
+        facts({ isMessageAcknowledged: true, messageAcknowledgedAt: null }),
+      ),
+    ).toEqual({ state: OnCallAcknowledgePageState.AcknowledgedByYou });
+  });
+});
+
+describe("when, as the page says it, on the reader's own clock", () => {
+  const NOW: Date = new Date("2026-11-11T09:00:00.000Z");
+
+  // A time as the page writes it: on one line of a phone.
+  function kept(phrase: string): string {
+    return phrase.split(" ").join(ON_CALL_PASS_ON_NO_BREAK_SPACE);
+  }
+
+  test("the same day: its time, with its zone", () => {
+    expect(
+      getOnCallAcknowledgePageMoment({
+        at: new Date("2026-11-11T05:28:00.000Z"),
+        timezone: Timezone.UTC,
+        now: NOW,
+      }),
+    ).toBe(`at ${kept("5:28 AM UTC")}`);
+  });
+
+  test("another day: its date too", () => {
+    expect(
+      getOnCallAcknowledgePageMoment({
+        at: new Date("2026-11-10T23:54:00.000Z"),
+        timezone: Timezone.UTC,
+        now: NOW,
+      }),
+    ).toBe(`on ${kept("Nov 10, 2026, 11:54 PM UTC")}`);
+  });
+
+  test("in the reader's zone: a time that is today in UTC can be yesterday in New York", () => {
+    expect(
+      getOnCallAcknowledgePageMoment({
+        at: new Date("2026-11-11T05:28:00.000Z"),
+        timezone: Timezone.AmericaNew_York,
+        now: NOW,
+      }),
+    ).toBe(`at ${kept("12:28 AM EST")}`);
+    expect(
+      getOnCallAcknowledgePageMoment({
+        at: new Date("2026-11-11T03:00:00.000Z"),
+        timezone: Timezone.AmericaNew_York,
+        now: NOW,
+      }),
+    ).toBe(`on ${kept("Nov 10, 2026, 10:00 PM EST")}`);
+  });
+
+  test("a zone OneUptime does not know reads as UTC, never as the server's", () => {
+    for (const timezone of ["Mars/Olympus_Mons", "", undefined]) {
+      expect(
+        getOnCallAcknowledgePageMoment({
+          at: new Date("2026-11-11T05:28:00.000Z"),
+          timezone: timezone,
+          now: NOW,
+        }),
+      ).toBe(`at ${kept("5:28 AM UTC")}`);
+    }
+  });
+
+  test("its words stay on one line; 'at' and 'on' may break from them", () => {
+    const moment: string = getOnCallAcknowledgePageMoment({
+      at: new Date("2026-11-10T23:54:00.000Z"),
+      timezone: Timezone.UTC,
+      now: NOW,
+    });
+
+    expect(moment.startsWith("on ")).toBe(true);
+    expect(moment.slice(3)).not.toContain(" ");
+  });
+});
+
+describe("the sentence, with who and when", () => {
+  const NOW: Date = new Date("2026-11-11T09:00:00.000Z");
+  const AT: Date = new Date("2026-11-11T05:28:00.000Z");
+  const WHEN: string = `at 5:28${ON_CALL_PASS_ON_NO_BREAK_SPACE}AM${ON_CALL_PASS_ON_NO_BREAK_SPACE}UTC`;
+
+  function sentence(
+    answer: OnCallAcknowledgePageAnswer,
+    isObserverPage: boolean = false,
+    labels: [string, string] = ["Incident INC-42", "Incident INC-42"],
+  ): string {
+    return getOnCallAcknowledgePageAnsweredSentence({
+      answer: answer,
+      isObserverPage: isObserverPage,
+      recordLabel: labels[0],
+      recordLabelInSentence: labels[1],
+      timezone: Timezone.UTC,
+      now: NOW,
+    });
+  }
+
+  test.each([
+    [
+      "acknowledged by somebody, and when",
+      {
+        state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
+        byName: "Ana Lopez",
+        at: AT,
+      },
+      `Incident INC-42 was already acknowledged by Ana Lopez ${WHEN}.`,
+    ],
+    [
+      "acknowledged, when, by nobody by name",
+      { state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse, at: AT },
+      `Incident INC-42 was already acknowledged ${WHEN}.`,
+    ],
+    [
+      "acknowledged by the person, and when",
+      { state: OnCallAcknowledgePageState.AcknowledgedByYou, at: AT },
+      `You already acknowledged Incident INC-42 ${WHEN}.`,
+    ],
+    [
+      "resolved by somebody, and when",
+      {
+        state: OnCallAcknowledgePageState.Resolved,
+        byName: "Ana Lopez",
+        at: AT,
+      },
+      `Incident INC-42 was already resolved by Ana Lopez ${WHEN}.`,
+    ],
+    [
+      "resolved by somebody, not when",
+      { state: OnCallAcknowledgePageState.Resolved, byName: "Ana Lopez" },
+      "Incident INC-42 was already resolved by Ana Lopez.",
+    ],
+    [
+      "resolved, when, by nobody by name",
+      { state: OnCallAcknowledgePageState.Resolved, at: AT },
+      `Incident INC-42 was already resolved ${WHEN}.`,
+    ],
+    [
+      "resolved by the person, and when",
+      {
+        state: OnCallAcknowledgePageState.Resolved,
+        isByYou: true as const,
+        at: AT,
+      },
+      `You already resolved Incident INC-42 ${WHEN}.`,
+    ],
+    [
+      "resolved by the person, not when",
+      { state: OnCallAcknowledgePageState.Resolved, isByYou: true as const },
+      "You already resolved Incident INC-42.",
+    ],
+  ])(
+    "%s",
+    (_name: string, answer: OnCallAcknowledgePageAnswer, expected: string) => {
+      expect(sentence(answer)).toBe(expected);
+    },
+  );
+
+  test("a record without a number: 'this incident' inside a sentence", () => {
+    expect(
+      sentence(
+        { state: OnCallAcknowledgePageState.AcknowledgedByYou, at: AT },
+        false,
+        ["This incident", "this incident"],
+      ),
+    ).toBe(`You already acknowledged this incident ${WHEN}.`);
+    expect(
+      sentence(
+        { state: OnCallAcknowledgePageState.Resolved, isByYou: true, at: AT },
+        false,
+        ["This incident", "this incident"],
+      ),
+    ).toBe(`You already resolved this incident ${WHEN}.`);
+  });
+
+  describe("an observer's page, with when", () => {
+    test.each([
+      [
+        "by the person",
+        { state: OnCallAcknowledgePageState.AcknowledgedByYou, at: AT },
+        `You already marked this page as seen ${WHEN}.`,
+      ],
+      [
+        "by another observer, by name",
+        {
+          state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
+          byName: "Ana Lopez",
+          at: AT,
+        },
+        `Ana Lopez already marked this page as seen ${WHEN}.`,
+      ],
+      [
+        "by another observer, unnamed",
+        { state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse, at: AT },
+        `This page was already marked as seen ${WHEN}.`,
+      ],
+    ])(
+      "%s",
+      (
+        _name: string,
+        answer: OnCallAcknowledgePageAnswer,
+        expected: string,
+      ) => {
+        expect(sentence(answer, true)).toBe(expected);
+        expect(sentence(answer, true)).not.toMatch(/acknowledg/i);
+      },
+    );
+  });
+
+  test("a time in the reader's zone, with its date on another day", () => {
+    expect(
+      getOnCallAcknowledgePageAnsweredSentence({
+        answer: {
+          state: OnCallAcknowledgePageState.AcknowledgedBySomeoneElse,
+          byName: "Ana Lopez",
+          at: new Date("2026-11-11T03:00:00.000Z"),
+        },
+        isObserverPage: false,
+        recordLabel: "Incident INC-42",
+        recordLabelInSentence: "Incident INC-42",
+        timezone: Timezone.AmericaNew_York,
+        now: NOW,
+      }),
+    ).toBe(
+      `Incident INC-42 was already acknowledged by Ana Lopez on ${[
+        "Nov",
+        "10,",
+        "2026,",
+        "10:00",
+        "PM",
+        "EST",
+      ].join(ON_CALL_PASS_ON_NO_BREAK_SPACE)}.`,
+    );
   });
 });

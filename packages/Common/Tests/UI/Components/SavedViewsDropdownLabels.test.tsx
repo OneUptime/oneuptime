@@ -422,4 +422,96 @@ describe("the panel's place", () => {
     draw({ dropdownAlignment: "right" });
     expect(open()).toHaveAttribute("data-align", "right");
   });
+
+  /*
+   * A phone's window grows with whatever runs past its screen: the panel,
+   * first drawn from the trigger's start before its width applied, made
+   * innerWidth 900 on a 390px phone - room enough by that - and it stayed
+   * off the screen, the page scrolling sideways under it. The page's own
+   * width (the root element's) does not grow.
+   */
+  test("on a phone, opens by the page's width, not a window grown past the screen", () => {
+    placeTrigger({ left: 211, right: 353, viewportWidth: 900 });
+    Object.defineProperty(document.documentElement, "clientWidth", {
+      configurable: true,
+      value: 390,
+    });
+
+    try {
+      draw();
+      expect(open()).toHaveAttribute("data-align", "right");
+    } finally {
+      Reflect.deleteProperty(document.documentElement, "clientWidth");
+    }
+  });
+});
+
+/*
+ * THE TRIGGER'S SIZE. A chip in an explorer's toolbar of chips; in a card's
+ * header, as tall as its buttons and its time range (38px, 42px on a
+ * phone), where a chip stood 30px among them.
+ */
+describe("the trigger's size", () => {
+  test("a chip unless the host says otherwise", () => {
+    draw();
+
+    expect(trigger()).toHaveClass("px-2.5", "py-1.5", "text-xs");
+    expect(trigger()).not.toHaveClass("text-sm");
+  });
+
+  test("a header's control in a header", () => {
+    draw({ triggerSize: "header", showTriggerIcon: true });
+
+    expect(trigger()).toHaveClass(
+      "px-3",
+      "py-2.5",
+      "md:py-2",
+      "text-sm",
+      "border-gray-300",
+    );
+    expect(trigger()).not.toHaveClass("py-1.5", "text-xs");
+  });
+});
+
+/*
+ * A ROW'S ACTIONS. Kept beside the name, see-through until the row was
+ * hovered, they took its width all the same - "Sign-up to fi..." in a
+ * German panel - showed nothing to a keyboard's focus, and nothing at all
+ * on a touch screen, whose taps still hit them. Where the pointer can
+ * hover they are now out of the layout until the row is hovered or
+ * focused; on a touch screen they take a line under the name.
+ */
+describe("a row's actions", () => {
+  test("shown while the row is hovered or focused; under the name on a touch screen", () => {
+    draw({
+      selectedSavedViewId: "h3",
+      onEdit: jest.fn(),
+      onDelete: jest.fn(),
+      onUpdateCurrent: jest.fn(),
+    });
+
+    const panel: HTMLElement = open();
+    const row: HTMLElement = within(panel)
+      .getByRole("button", { name: "Threat intel matches" })
+      .closest("div.group") as HTMLElement;
+    const actions: HTMLElement = within(row).getByRole("button", {
+      name: "Update",
+    }).parentElement as HTMLElement;
+
+    expect(actions).not.toHaveClass("opacity-0");
+    expect(actions).toHaveClass(
+      "[@media(hover:hover)]:group-[:not(:hover):not(:focus-within)]:hidden",
+      "[@media(hover:none)]:basis-full",
+    );
+    expect(row).toHaveClass("[@media(hover:none)]:flex-wrap");
+
+    // Tab from the name reaches them, in order.
+    expect(
+      within(row)
+        .getAllByRole("button")
+        .map((button: HTMLElement): string => {
+          return button.getAttribute("aria-label") || button.textContent || "";
+        }),
+    ).toEqual(["Threat intel matches", "Update", "Edit", "Delete"]);
+  });
 });
