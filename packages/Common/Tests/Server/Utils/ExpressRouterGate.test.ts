@@ -1,6 +1,11 @@
 import Express from "../../../Server/Utils/Express";
 import ExpressRouterGate from "../../../Server/Utils/ExpressRouterGate";
-import { fastestRun, FastestRun } from "../../Helpers/FastestRun";
+import {
+  ComparedRuns,
+  fastestRun,
+  FastestRun,
+  fastestRunsComparedAsync,
+} from "../../Helpers/FastestRun";
 import {
   afterAll,
   afterEach,
@@ -803,53 +808,75 @@ describe("ExpressRouterGate", () => {
 
     test("takes several times less time", async () => {
       const servers: Array<http.Server> = [];
-      const timings: Record<string, number> = {};
+      const agents: Array<http.Agent> = [];
 
-      try {
-        for (const [label, make] of [
-          ["plain", plainRouter],
-          ["gated", gatedRouter],
-        ] as Array<[string, () => express.Router]>) {
-          const server: http.Server = await listen(bigApp(make));
-          servers.push(server);
-          const agent: http.Agent = new http.Agent({
-            keepAlive: true,
-            maxSockets: 4,
-          });
-          const port: number = (server.address() as AddressInfo).port;
+      /*
+       * A batch of requests to the last router of an app, timed as one run:
+       * it says how many were answered as the route answers.
+       */
+      const batchFor: (
+        make: () => express.Router,
+      ) => Promise<() => Promise<number>> = async (
+        make: () => express.Router,
+      ): Promise<() => Promise<number>> => {
+        const server: http.Server = await listen(bigApp(make));
+        servers.push(server);
+        const agent: http.Agent = new http.Agent({
+          keepAlive: true,
+          maxSockets: 4,
+        });
+        agents.push(agent);
+        const port: number = (server.address() as AddressInfo).port;
 
-          // A batch of requests to the last router, timed as one run.
-          const batch: () => Promise<number> = async (): Promise<number> => {
-            const started: number = performance.now();
+        return async (): Promise<number> => {
+          let answered: number = 0;
 
-            for (let round: number = 0; round < 25; round++) {
-              await Promise.all(
-                [0, 1, 2, 3].map((): Promise<Answer> => {
-                  return send(
-                    port,
-                    agent,
-                    "POST",
-                    `/api/model-${ROUTERS - 1}/count`,
-                  );
-                }),
-              );
-            }
+          for (let round: number = 0; round < 25; round++) {
+            const answers: Array<Answer> = await Promise.all(
+              [0, 1, 2, 3].map((): Promise<Answer> => {
+                return send(
+                  port,
+                  agent,
+                  "POST",
+                  `/api/model-${ROUTERS - 1}/count`,
+                );
+              }),
+            );
 
-            return performance.now() - started;
-          };
-
-          await batch();
-
-          let fastest: number = Infinity;
-
-          for (let attempt: number = 0; attempt < 3; attempt++) {
-            fastest = Math.min(fastest, await batch());
+            answered += answers.filter((answer: Answer): boolean => {
+              return answer.status === 200;
+            }).length;
           }
 
-          timings[label] = fastest;
+          return answered;
+        };
+      };
+
+      try {
+        const plainBatch: () => Promise<number> = await batchFor(plainRouter);
+        const gatedBatch: () => Promise<number> = await batchFor(gatedRouter);
+
+        /*
+         * Both apps listen at once, so their batches take turns: timed one
+         * after the other, a busy stretch of the runner through one app's
+         * batches slows every one of them (fastestRunsComparedAsync).
+         */
+        const runs: ComparedRuns<number, number> =
+          await fastestRunsComparedAsync({
+            first: plainBatch,
+            second: gatedBatch,
+          });
+
+        // Every request of the batches that counted reached its route.
+        expect(runs.first.result).toBe(100);
+        expect(runs.second.result).toBe(100);
+        // Measured about four times faster; twice leaves room for a busy runner.
+        expect(runs.second.inMs * 2).toBeLessThan(runs.first.inMs);
+      } finally {
+        for (const agent of agents) {
           agent.destroy();
         }
-      } finally {
+
         for (const server of servers) {
           await new Promise<void>((resolve: () => void) => {
             server.close(() => {
@@ -858,9 +885,6 @@ describe("ExpressRouterGate", () => {
           });
         }
       }
-
-      // Measured about four times faster; twice leaves room for a busy runner.
-      expect(timings["gated"]! * 2).toBeLessThan(timings["plain"]!);
     });
 
     test("the gate's own check costs well under a microsecond a router", () => {
