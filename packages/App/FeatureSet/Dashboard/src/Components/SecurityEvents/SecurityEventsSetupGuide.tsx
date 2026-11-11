@@ -7,7 +7,12 @@ import React, {
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -131,6 +136,7 @@ const genericFieldMappings: Array<{ column: string; accepts: string }> = [
 ];
 
 const SecurityEventsSetupGuide: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [selectedSource, setSelectedSource] = useState<Source>("http");
   const [selectedDialect, setSelectedDialect] = useState<Dialect>("ocsf");
   const [selectedKey, setSelectedKey] = useState<TelemetryIngestionKey | null>(
@@ -408,10 +414,10 @@ curl -X POST "${ingestUrl}?format=udm" \\
         </div>
         <div className={`flex-1 min-w-0 ${isLast ? "pb-0" : "pb-8"}`}>
           <h4 className="text-sm font-semibold text-gray-900 leading-9">
-            {title}
+            {translator.translateText(title)}
           </h4>
           <p className="text-sm text-gray-500 mt-0.5 mb-3 leading-relaxed">
-            {description}
+            {translator.translateText(description)}
           </p>
           {content}
         </div>
@@ -423,7 +429,7 @@ curl -X POST "${ingestUrl}?format=udm" \\
     return (
       <div className="mb-6">
         <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-          Where are your events coming from?
+          {translator.translateText("Where are your events coming from?")}
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {sources.map((source: SourceOption) => {
@@ -444,10 +450,10 @@ curl -X POST "${ingestUrl}?format=udm" \\
                 <div
                   className={`text-sm font-semibold ${isSelected ? "text-indigo-700" : "text-gray-900"}`}
                 >
-                  {source.label}
+                  {translator.translateText(source.label)}
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                  {source.description}
+                  {translator.translateText(source.description)}
                 </div>
               </button>
             );
@@ -461,7 +467,7 @@ curl -X POST "${ingestUrl}?format=udm" \\
     return (
       <div className="mb-4">
         <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-          Payload dialect
+          {translator.translateText("Payload dialect")}
         </label>
         <div className="flex flex-wrap gap-1.5">
           {dialects.map((dialect: DialectOption) => {
@@ -470,7 +476,7 @@ curl -X POST "${ingestUrl}?format=udm" \\
               <button
                 key={dialect.key}
                 type="button"
-                title={dialect.description}
+                title={translator.translateText(dialect.description)}
                 onClick={() => {
                   setSelectedDialect(dialect.key);
                 }}
@@ -480,20 +486,23 @@ curl -X POST "${ingestUrl}?format=udm" \\
                     : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
                 }`}
               >
-                {dialect.label}
+                {translator.translateText(dialect.label)}
               </button>
             );
           })}
         </div>
         <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-          {
+          {translator.translateText(
             dialects.find((dialect: DialectOption) => {
               return dialect.key === selectedDialect;
-            })?.description
-          }{" "}
-          The dialect is detected per event when you leave{" "}
-          <code className="font-mono text-gray-700">format</code> off, so one
-          webhook can mix detection alerts with raw events.
+            })?.description,
+          )}{" "}
+          <TranslatedSentence
+            template="The dialect is detected per event when you leave {{format}} off, so one webhook can mix detection alerts with raw events."
+            slots={{
+              format: <code className="font-mono text-gray-700">format</code>,
+            }}
+          />
         </p>
       </div>
     );
@@ -506,10 +515,10 @@ curl -X POST "${ingestUrl}?format=udm" \\
           <thead className="bg-gray-50">
             <tr>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Column
+                {translator.translateText("Column")}
               </th>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Recognized source fields
+                {translator.translateText("Recognized source fields")}
               </th>
             </tr>
           </thead>
@@ -544,9 +553,14 @@ curl -X POST "${ingestUrl}?format=udm" \\
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-green-800">
-                Security events are flowing! {eventCount} new{" "}
-                {eventCount === 1 ? "event" : "events"} since you opened this
-                guide.
+                {translator.translatePlural(
+                  {
+                    one: "Security events are flowing! {{count}} new event since you opened this guide.",
+                    other:
+                      "Security events are flowing! {{count}} new events since you opened this guide.",
+                  },
+                  eventCount,
+                )}
               </p>
               <AppLink
                 className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm"
@@ -554,7 +568,7 @@ curl -X POST "${ingestUrl}?format=udm" \\
                   RouteMap[PageMap.SECURITY_EVENTS] as Route,
                 )}
               >
-                View Security Events
+                {translator.translateText("View Security Events") || ""}
               </AppLink>
             </div>
           </div>
@@ -587,14 +601,16 @@ curl -X POST "${ingestUrl}?format=udm" \\
             ></path>
           </svg>
           <p className="text-sm text-gray-500">
-            Listening for your first security event… events usually appear
-            within a few seconds of being sent.
+            {translator.translateText(
+              "Listening for your first security event… events usually appear within a few seconds of being sent.",
+            )}
           </p>
         </div>
         {hasVerifyError && (
           <p className="text-xs text-gray-400 mt-2">
-            Couldn&apos;t reach the server on the last check — retrying
-            automatically.
+            {translator.translateText(
+              "Couldn't reach the server on the last check — retrying automatically.",
+            )}
           </p>
         )}
       </div>
@@ -605,8 +621,9 @@ curl -X POST "${ingestUrl}?format=udm" \\
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <p className="text-sm text-gray-600 leading-relaxed">
-          Ingested events are searchable on their own, but they earn their keep
-          once something is watching them:
+          {translator.translateText(
+            "Ingested events are searchable on their own, but they earn their keep once something is watching them:",
+          )}
         </p>
         <ul className="mt-3 space-y-2 text-sm text-gray-600">
           <li className="flex items-start gap-2">
@@ -615,16 +632,23 @@ curl -X POST "${ingestUrl}?format=udm" \\
               className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5"
             />
             <span>
-              <AppLink
-                className="font-medium text-indigo-600 hover:text-indigo-700"
-                to={RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.SECURITY_EVENTS_DETECTION_RULES] as Route,
-                )}
-              >
-                Detection Rules
-              </AppLink>{" "}
-              run Sigma rules over incoming events on a schedule and open alerts
-              when they match.
+              <TranslatedSentence
+                template="{{link}} run Sigma rules over incoming events on a schedule and open alerts when they match."
+                slots={{
+                  link: (
+                    <AppLink
+                      className="font-medium text-indigo-600 hover:text-indigo-700"
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[
+                          PageMap.SECURITY_EVENTS_DETECTION_RULES
+                        ] as Route,
+                      )}
+                    >
+                      {translator.translateText("Detection Rules") || ""}
+                    </AppLink>
+                  ),
+                }}
+              />
             </span>
           </li>
           <li className="flex items-start gap-2">
@@ -633,16 +657,21 @@ curl -X POST "${ingestUrl}?format=udm" \\
               className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5"
             />
             <span>
-              <AppLink
-                className="font-medium text-indigo-600 hover:text-indigo-700"
-                to={RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.SECURITY_EVENTS_CORRELATE] as Route,
-                )}
-              >
-                Correlate
-              </AppLink>{" "}
-              pivots from any observable — a user, host or IP — to everything
-              else that mentions it.
+              <TranslatedSentence
+                template="{{link}} pivots from any observable — a user, host or IP — to everything else that mentions it."
+                slots={{
+                  link: (
+                    <AppLink
+                      className="font-medium text-indigo-600 hover:text-indigo-700"
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SECURITY_EVENTS_CORRELATE] as Route,
+                      )}
+                    >
+                      {translator.translateText("Correlate") || ""}
+                    </AppLink>
+                  ),
+                }}
+              />
             </span>
           </li>
           <li className="flex items-start gap-2">
@@ -651,17 +680,21 @@ curl -X POST "${ingestUrl}?format=udm" \\
               className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5"
             />
             <span>
-              A{" "}
-              <AppLink
-                className="font-medium text-indigo-600 hover:text-indigo-700"
-                to={RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.MONITORS] as Route,
-                )}
-              >
-                Security Events monitor
-              </AppLink>{" "}
-              counts matching events over a sliding window and drives the usual
-              criteria — change status, open incidents, page on-call.
+              <TranslatedSentence
+                template="A {{link}} counts matching events over a sliding window and drives the usual criteria — change status, open incidents, page on-call."
+                slots={{
+                  link: (
+                    <AppLink
+                      className="font-medium text-indigo-600 hover:text-indigo-700"
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.MONITORS] as Route,
+                      )}
+                    >
+                      {translator.translateText("Security Events monitor") || ""}
+                    </AppLink>
+                  ),
+                }}
+              />
             </span>
           </li>
         </ul>
@@ -675,7 +708,7 @@ curl -X POST "${ingestUrl}?format=udm" \\
           >
             <>
               <Icon icon={IconProp.Book} className="h-4 w-4" />
-              Full documentation
+              {translator.translateText("Full documentation")}
             </>
           </Link>
           <Link
@@ -687,7 +720,7 @@ curl -X POST "${ingestUrl}?format=udm" \\
           >
             <>
               <Icon icon={IconProp.Book} className="h-4 w-4" />
-              Google SecOps guide
+              {translator.translateText("Google SecOps guide")}
             </>
           </Link>
         </div>
@@ -701,9 +734,12 @@ curl -X POST "${ingestUrl}?format=udm" \\
         <div>
           <CodeBlock code={fluentBitSnippet()} language="yaml" />
           <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-            Records are mapped best-effort by field name — see the table below
-            for which keys become typed columns. Everything else is preserved in{" "}
-            <code className="font-mono">attributes</code>.
+            <TranslatedSentence
+              template="Records are mapped best-effort by field name — see the table below for which keys become typed columns. Everything else is preserved in {{attributes}}."
+              slots={{
+                attributes: <code className="font-mono">attributes</code>,
+              }}
+            />
           </p>
           <div className="mt-3">{renderGenericFieldTable()}</div>
         </div>
@@ -715,9 +751,9 @@ curl -X POST "${ingestUrl}?format=udm" \\
         <div>
           <CodeBlock code={secOpsSnippet()} language="bash" />
           <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-            Detection payloads are recognized automatically and stored as
-            Detection Finding events, with observables mined from the matched
-            events.
+            {translator.translateText(
+              "Detection payloads are recognized automatically and stored as Detection Finding events, with observables mined from the matched events.",
+            )}
           </p>
         </div>
       );
@@ -748,13 +784,12 @@ curl -X POST "${ingestUrl}?format=udm" \\
             </div>
             <div className="flex-1">
               <h2 className="text-lg font-semibold text-gray-900">
-                Send Security Events to OneUptime
+                {translator.translateText("Send Security Events to OneUptime")}
               </h2>
               <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">
-                Any source that can POST JSON over HTTPS can feed Security
-                Events — no SDK and no agent. Events are normalized to OCSF
-                whatever dialect they arrive in, and land in the same data lake
-                as your logs, traces and metrics.
+                {translator.translateText(
+                  "Any source that can POST JSON over HTTPS can feed Security Events — no SDK and no agent. Events are normalized to OCSF whatever dialect they arrive in, and land in the same data lake as your logs, traces and metrics.",
+                )}
               </p>
             </div>
           </div>
@@ -767,12 +802,16 @@ curl -X POST "${ingestUrl}?format=udm" \\
           <div className="mt-2">
             {renderStep(
               1,
-              "Get Your Ingestion Credentials",
-              "Security events authenticate with the same telemetry ingestion key as the rest of your telemetry. Select an existing key or create a new one.",
+              translationKey("Get Your Ingestion Credentials"),
+              translationKey(
+                "Security events authenticate with the same telemetry ingestion key as the rest of your telemetry. Select an existing key or create a new one.",
+              ),
               <IngestionKeySelector
                 endpointLabel="Security Events Ingest Endpoint"
                 endpointValue={ingestUrl}
-                endpointHint="Send the token in the x-oneuptime-token header. Name the source with x-oneuptime-service-name, or let it be inferred from the payload's product or vendor."
+                endpointHint={translator.translateText(
+                  "Send the token in the x-oneuptime-token header. Name the source with x-oneuptime-service-name, or let it be inferred from the payload's product or vendor.",
+                )}
                 /*
                  * Security events come from a SIEM, a log shipper or a
                  * script, never a page: only a Server key may write them.
@@ -785,22 +824,28 @@ curl -X POST "${ingestUrl}?format=udm" \\
 
             {renderStep(
               2,
-              "Send Your Events",
-              'The body can be a single object, a bare array, or { "events": [...] }. Everything in the payload is kept: recognized fields become typed columns, the rest is flattened into attributes.',
+              translationKey("Send Your Events"),
+              translationKey(
+                'The body can be a single object, a bare array, or { "events": [...] }. Everything in the payload is kept: recognized fields become typed columns, the rest is flattened into attributes.',
+              ),
               renderSendStep(),
             )}
 
             {renderStep(
               3,
-              "Verify It Is Working",
-              "Leave this page open while your source sends — incoming events are detected automatically.",
+              translationKey("Verify It Is Working"),
+              translationKey(
+                "Leave this page open while your source sends — incoming events are detected automatically.",
+              ),
               renderVerifyContent(),
             )}
 
             {renderStep(
               4,
-              "Put The Events To Work",
-              "Detect, correlate and alert on what you are now collecting.",
+              translationKey("Put The Events To Work"),
+              translationKey(
+                "Detect, correlate and alert on what you are now collecting.",
+              ),
               renderNextStepsContent(),
               true,
             )}

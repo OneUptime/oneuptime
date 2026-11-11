@@ -14,6 +14,7 @@ import {
   LEGACY_GOOGLE_SECOPS_CONNECTION_ID_ATTRIBUTE,
   SECURITY_CONNECTION_ID_ATTRIBUTE,
   SecurityEventConnectionRunResult,
+  SecurityEventConnectionRunStatus,
   SecurityEventConnectionRunType,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
 import {
@@ -33,12 +34,24 @@ import {
   getReaderDateLocale,
   getReaderNumberLocale,
 } from "Common/Types/DateLanguage";
+import {
+  TemplateValue,
+  Translator,
+  composedValue,
+  translatableTerm,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Shared by every provider on the Security Event Connections page. The
  * vocabulary (health labels, run labels, date format, range rules) lives in
  * one place on purpose: a customer with a Google SecOps connection and a
  * Sentinel connection side by side reads the same words for the same state.
+ *
+ * Every word here is kept in English and looked up where it is drawn
+ * (#6658): a constant is a translationKey(), and a helper that writes a
+ * sentence takes the reader's Translator. Without one it writes the English
+ * the server, the API and support tickets read.
  */
 
 // API path (under APP_API_URL) of the synchronous connection test.
@@ -49,11 +62,93 @@ export const securityEventConnectionRunLabels: Record<
   SecurityEventConnectionRunType,
   string
 > = {
-  test: "Test connection",
-  poll: "Poll",
-  preview: "Preview",
-  backfill: "Historical import",
+  test: translationKey("Test connection"),
+  poll: translationKey("Poll"),
+  preview: translationKey("Preview"),
+  backfill: translationKey("Historical import"),
 };
+
+// The heading over one run, each written whole so a language words it its way.
+export const securityEventConnectionRunDetailsTitles: Record<
+  SecurityEventConnectionRunType,
+  string
+> = {
+  test: translationKey("Test connection details"),
+  poll: translationKey("Poll details"),
+  preview: translationKey("Preview details"),
+  backfill: translationKey("Historical import details"),
+};
+
+/*
+ * A run's status as run history and the run's own line say it. The stored
+ * values are machine words ("success", "empty"); a status the server adds
+ * later is shown as stored.
+ */
+export const securityEventConnectionRunStatusLabels: Record<
+  SecurityEventConnectionRunStatus,
+  string
+> = {
+  queued: translationKey("Queued"),
+  running: translationKey("Running"),
+  success: translationKey("Success"),
+  empty: translationKey("No records"),
+  partial: translationKey("Partial"),
+  failed: translationKey("Failed"),
+};
+
+export function securityEventConnectionRunStatusLabel(
+  status: string,
+  translator?: Translator | undefined,
+): string {
+  const label: string | undefined =
+    securityEventConnectionRunStatusLabels[
+      status as SecurityEventConnectionRunStatus
+    ];
+
+  if (!label) {
+    return status;
+  }
+
+  return translator ? translator.translateText(label) || label : label;
+}
+
+/*
+ * What one source's records are called, more than one of them: the catalog
+ * names one record ("detection"), and every name there takes an s in
+ * English. Each is a key here because the extractor does not read the
+ * catalog; SecurityEventConnectionTextsInLanguage holds every catalog name
+ * to an entry, so a new provider cannot leave its sentences in English.
+ */
+export const CONNECTOR_RECORDS_NAMES: Readonly<Record<string, string>> = {
+  incident: translationKey("incidents"),
+  alert: translationKey("alerts"),
+  "notable event": translationKey("notable events"),
+  finding: translationKey("findings"),
+  "log event": translationKey("log events"),
+  record: translationKey("records"),
+  "audit event": translationKey("audit events"),
+  detection: translationKey("detections"),
+};
+
+export function connectorRecordsName(
+  definition: Pick<SecurityEventConnectorDefinition, "importedRecordName"> | undefined,
+): string {
+  const name: string = definition?.importedRecordName || "record";
+
+  return CONNECTOR_RECORDS_NAMES[name] || `${name}s`;
+}
+
+/*
+ * The records as a sentence names them: "detections" in English,
+ * "Erkennungen" in German, in the sentence's language.
+ */
+export function connectorRecordsTerm(
+  definition: Pick<SecurityEventConnectorDefinition, "importedRecordName"> | undefined,
+): TemplateValue {
+  return translatableTerm(connectorRecordsName(definition), {
+    inSentence: true,
+  });
+}
 
 export function readSecurityEventConnectionResult(
   value: JSONObject | undefined,
@@ -84,14 +179,29 @@ export function readSecurityConnectorTestReport(
   return value as unknown as SecurityConnectorTestReport;
 }
 
-export function formatConnectionDate(value: string | Date | undefined): string {
+const CONNECTION_DATE_NEVER: string = translationKey("Never");
+const CONNECTION_DATE_UNKNOWN: string = translationKey("Unknown");
+
+/*
+ * A UTC timestamp as run history, the API and support tickets write it
+ * ("2026-09-10 12:00:00 UTC"), the same in every language; only "Never" and
+ * "Unknown" are words, in the reader's language with a translator.
+ */
+export function formatConnectionDate(
+  value: string | Date | undefined,
+  translator?: Translator | undefined,
+): string {
+  const word: (english: string) => string = (english: string): string => {
+    return translator ? translator.translateText(english) || english : english;
+  };
+
   if (!value) {
-    return "Never";
+    return word(CONNECTION_DATE_NEVER);
   }
 
   const date: Date = new Date(value);
   return Number.isNaN(date.getTime())
-    ? "Unknown"
+    ? word(CONNECTION_DATE_UNKNOWN)
     : date
         .toISOString()
         .replace("T", " ")
@@ -130,12 +240,22 @@ export function formatConnectionLocalDate(
   });
 }
 
+const LOCAL_TIME_TITLE: string = translationKey("Local time: {{time}}");
+
 // Title attribute for a UTC timestamp: the local rendering, or nothing.
 export function connectionTimeTitle(
   value: string | Date | undefined,
+  translator?: Translator | undefined,
 ): string | undefined {
   const local: string = formatConnectionLocalDate(value);
-  return local ? `Local time: ${local}` : undefined;
+
+  if (!local) {
+    return undefined;
+  }
+
+  return translator
+    ? translator.translateTemplate(LOCAL_TIME_TITLE, { time: local })
+    : `Local time: ${local}`;
 }
 
 /*
@@ -168,16 +288,30 @@ export function connectorNextPoll(
  * the table column, the diagnostics modal and their tests spell each state
  * exactly once.
  */
-export const CONNECTOR_HEALTH_SUCCEEDED: string = "Last poll succeeded";
-export const CONNECTOR_HEALTH_NO_EVENTS_YET: string =
-  "Polling, no events imported yet";
-export const CONNECTOR_HEALTH_FAILED: string = "Last poll failed";
-export const CONNECTOR_HEALTH_OVERDUE: string = "Poll overdue";
-export const CONNECTOR_HEALTH_PARTIAL: string = "Partial import";
-export const CONNECTOR_HEALTH_CATCHING_UP: string = "Catching up";
-export const CONNECTOR_HEALTH_PAUSED: string = "Schedule paused";
-export const CONNECTOR_HEALTH_WAITING: string = "Waiting for first poll";
-export const CONNECTOR_HEALTH_UNAVAILABLE: string = "Details unavailable";
+export const CONNECTOR_HEALTH_SUCCEEDED: string = translationKey(
+  "Last poll succeeded",
+);
+export const CONNECTOR_HEALTH_NO_EVENTS_YET: string = translationKey(
+  "Polling, no events imported yet",
+);
+export const CONNECTOR_HEALTH_FAILED: string =
+  translationKey("Last poll failed");
+export const CONNECTOR_HEALTH_OVERDUE: string = translationKey("Poll overdue");
+export const CONNECTOR_HEALTH_PARTIAL: string =
+  translationKey("Partial import");
+export const CONNECTOR_HEALTH_CATCHING_UP: string =
+  translationKey("Catching up");
+export const CONNECTOR_HEALTH_PAUSED: string =
+  translationKey("Schedule paused");
+export const CONNECTOR_HEALTH_WAITING: string = translationKey(
+  "Waiting for first poll",
+);
+export const CONNECTOR_HEALTH_UNAVAILABLE: string = translationKey(
+  "Details unavailable",
+);
+export const CONNECTOR_HEALTH_NO_RECORDS: string = translationKey(
+  "No records returned",
+);
 
 /*
  * "Last poll succeeded" is only earned once an event has actually landed.
@@ -238,7 +372,7 @@ export function connectorHealth(
     return CONNECTOR_HEALTH_CATCHING_UP;
   }
   if (result?.status === "empty") {
-    return "No records returned";
+    return CONNECTOR_HEALTH_NO_RECORDS;
   }
   if (result?.status === "success") {
     return connectorHealthAfterSuccessfulPoll(connection);
@@ -257,7 +391,7 @@ export function connectorHealthTone(health: string): ConnectorHealthTone {
    */
   if (
     health === CONNECTOR_HEALTH_SUCCEEDED ||
-    health === "No records returned" ||
+    health === CONNECTOR_HEALTH_NO_RECORDS ||
     health === "No detections returned"
   ) {
     return "good";
@@ -291,33 +425,56 @@ export function connectorHealthPillColor(health: string): Color {
 
 /*
  * Hover text for the states whose one-line label needs a second sentence.
- * Returned for every state so the pill has a consistent affordance.
+ * Returned for every state so the pill has a consistent affordance. In
+ * English: the Pill and the diagnostics line look it up as they draw it.
  */
 export function connectorHealthTooltip(health: string): string {
   switch (health) {
     case CONNECTOR_HEALTH_NO_EVENTS_YET:
-      return "Scheduled polls succeed, but no event has been imported yet. Use Test connection to see what the source has available to import and whether OneUptime's workers are running.";
+      return translationKey(
+        "Scheduled polls succeed, but no event has been imported yet. Use Test connection to see what the source has available to import and whether OneUptime's workers are running.",
+      );
     case CONNECTOR_HEALTH_SUCCEEDED:
-      return "The last scheduled poll succeeded and this connection has imported events.";
+      return translationKey(
+        "The last scheduled poll succeeded and this connection has imported events.",
+      );
     case CONNECTOR_HEALTH_FAILED:
-      return "The last scheduled poll failed. Open View Error for the full message.";
+      return translationKey(
+        "The last scheduled poll failed. Open View Error for the full message.",
+      );
     case CONNECTOR_HEALTH_OVERDUE:
-      return "The scheduler has not polled this connection when it was due. Use Test connection to check whether OneUptime's workers and scheduler are running.";
+      return translationKey(
+        "The scheduler has not polled this connection when it was due. Use Test connection to check whether OneUptime's workers and scheduler are running.",
+      );
     case CONNECTOR_HEALTH_PARTIAL:
-      return "The last poll could not read or process every record in its window. Scheduled polling continues on its own, from the last record read or with a shorter window; open Diagnostics for the warnings.";
+      return translationKey(
+        "The last poll could not read or process every record in its window. Scheduled polling continues on its own, from the last record read or with a shorter window; open Diagnostics for the warnings.",
+      );
     case CONNECTOR_HEALTH_CATCHING_UP:
-      return "The connection is working through a backlog in windows of up to 24 hours.";
+      return translationKey(
+        "The connection is working through a backlog in windows of up to 24 hours.",
+      );
     case CONNECTOR_HEALTH_PAUSED:
-      return "Scheduled polling is disabled. Run now still works.";
+      return translationKey(
+        "Scheduled polling is disabled. Run now still works.",
+      );
     case CONNECTOR_HEALTH_WAITING:
-      return "Created moments ago; the scheduler polls once a minute.";
+      return translationKey(
+        "Created moments ago; the scheduler polls once a minute.",
+      );
     case CONNECTOR_HEALTH_UNAVAILABLE:
-      return "A poll ran but recorded no result details.";
+      return translationKey("A poll ran but recorded no result details.");
     default:
-      return "The last poll returned no records in its window. Use Test connection to see what the source has available to import.";
+      return translationKey(
+        "The last poll returned no records in its window. Use Test connection to see what the source has available to import.",
+      );
   }
 }
 
+/*
+ * Why a time range cannot be previewed or imported, in English: the
+ * diagnostics modal looks the sentence up where it shows it.
+ */
 export function validateConnectionRange(
   startTime: string,
   endTime: string,
@@ -332,16 +489,16 @@ export function validateConnectionRange(
     !Number.isFinite(start) ||
     !Number.isFinite(end)
   ) {
-    return "Choose a valid start and end time.";
+    return translationKey("Choose a valid start and end time.");
   }
   if (start >= end) {
-    return "The start time must be before the end time.";
+    return translationKey("The start time must be before the end time.");
   }
   if (end > now) {
-    return "The end time must not be in the future.";
+    return translationKey("The end time must not be in the future.");
   }
   if (end - start > 7 * 24 * 60 * 60_000) {
-    return "Choose a time range of 7 days or less.";
+    return translationKey("Choose a time range of 7 days or less.");
   }
   return null;
 }
@@ -532,17 +689,36 @@ export function connectorCheckGroup(
   return "provider";
 }
 
+const CHECK_GROUP_PLATFORM_TITLE: string = translationKey(
+  "OneUptime workers and scheduler",
+);
+const CHECK_GROUP_AVAILABILITY_TITLE: string = translationKey(
+  "What is available to import",
+);
+const CHECK_GROUP_PROVIDER_TITLE: string = translationKey(
+  "Access to {{provider}}",
+);
+
 export function connectorCheckGroupTitle(
   group: ConnectorCheckGroup,
   provider: string,
+  translator?: Translator | undefined,
 ): string {
+  const word: (english: string) => string = (english: string): string => {
+    return translator ? translator.translateText(english) || english : english;
+  };
+
   switch (group) {
     case "platform":
-      return "OneUptime workers and scheduler";
+      return word(CHECK_GROUP_PLATFORM_TITLE);
     case "availability":
-      return "What is available to import";
+      return word(CHECK_GROUP_AVAILABILITY_TITLE);
     default:
-      return `Access to ${connectorProviderTitle(provider)}`;
+      return translator
+        ? translator.translateTemplate(CHECK_GROUP_PROVIDER_TITLE, {
+            provider: connectorProviderTitle(provider),
+          })
+        : `Access to ${connectorProviderTitle(provider)}`;
   }
 }
 
@@ -564,7 +740,7 @@ type ConnectorScopeDefinition = Pick<
 export function connectorScopeLabel(
   definition: ConnectorScopeDefinition | undefined,
 ): string {
-  return definition?.alertingOnlyControl?.title || "Scope";
+  return definition?.alertingOnlyControl?.title || translationKey("Scope");
 }
 
 // Undefined for a provider whose records have no alerting distinction.
@@ -580,10 +756,46 @@ export function connectorScopeSummary(
     definition.alertingOnlyControl;
 
   if (alertingOnly === false) {
-    return control?.withNonAlertingSummary || "Alerts and detections";
+    return (
+      control?.withNonAlertingSummary ||
+      translationKey("Alerts and detections")
+    );
   }
 
-  return control?.alertingOnlySummary || "Alerts only";
+  return control?.alertingOnlySummary || translationKey("Alerts only");
+}
+
+/*
+ * What an import brings in, as a sentence names it: "alerts and detections"
+ * or "alerts" in the control's own words and the sentence's language, or
+ * the source's records ("findings") without a control.
+ */
+export function connectorScopeImportValue(
+  definition:
+    | (ConnectorScopeDefinition &
+        Pick<SecurityEventConnectorDefinition, "importedRecordName">)
+    | undefined,
+  alertingOnly: boolean | undefined,
+): TemplateValue {
+  const control: ConnectorAlertingOnlyControl | undefined =
+    definition?.supportsAlertingOnlyToggle
+      ? definition.alertingOnlyControl
+      : undefined;
+
+  if (!control) {
+    return connectorRecordsTerm(definition);
+  }
+
+  if (alertingOnly !== false) {
+    return translatableTerm(control.alertingLabel, { inSentence: true });
+  }
+
+  return composedValue((sentence: Translator): string => {
+    return sentence.translateTemplate("{{first}} and {{second}}", {
+      first: translatableTerm(control.alertingLabel, { inSentence: true }),
+      second: translatableTerm(control.nonAlertingLabel, { inSentence: true }),
+    });
+  });
 }
 
 /*
@@ -615,10 +827,10 @@ export const connectorCheckStatusLabels: Record<
   SecurityConnectorCheckStatus,
   string
 > = {
-  pass: "Passed",
-  fail: "Failed",
-  warn: "Warning",
-  skip: "Skipped",
+  pass: translationKey("Passed"),
+  fail: translationKey("Failed"),
+  warn: translationKey("Warning"),
+  skip: translationKey("Skipped"),
 };
 
 /*
@@ -630,25 +842,38 @@ export const connectorCheckStatusLabels: Record<
  * key so a new count is never silently hidden.
  */
 const CONNECTOR_COUNT_LABELS: Record<string, string> = {
-  createdLast24h: "Created in the last 24 hours",
-  createdLast7d: "Created in the last 7 days",
+  createdLast24h: translationKey("Created in the last 24 hours"),
+  createdLast7d: translationKey("Created in the last 7 days"),
   // True when the source capped the count, so the number is a lower bound.
-  hasMoreLast24h: "More than counted in the last 24 hours",
-  hasMoreLast7d: "More than counted in the last 7 days",
-  usingDefaultFilter: "Uses the default event filter",
-  scope: "Data to import",
-  otherScope: "Other Data to import choice",
-  alertsViewLast24h: "Alerts by detection time, last 24 hours",
-  alertsViewLast7d: "Alerts by detection time, last 7 days",
-  ruleDetectionsCreatedLast24h: "Rule detections created in the last 24 hours",
-  ruleDetectionsCreatedLast7d: "Rule detections created in the last 7 days",
+  hasMoreLast24h: translationKey("More than counted in the last 24 hours"),
+  hasMoreLast7d: translationKey("More than counted in the last 7 days"),
+  usingDefaultFilter: translationKey("Uses the default event filter"),
+  scope: translationKey("Data to import"),
+  otherScope: translationKey("Other Data to import choice"),
+  alertsViewLast24h: translationKey("Alerts by detection time, last 24 hours"),
+  alertsViewLast7d: translationKey("Alerts by detection time, last 7 days"),
+  ruleDetectionsCreatedLast24h: translationKey(
+    "Rule detections created in the last 24 hours",
+  ),
+  ruleDetectionsCreatedLast7d: translationKey(
+    "Rule detections created in the last 7 days",
+  ),
 };
 
-export function connectorCountLabel(key: string): string {
+/*
+ * A count's label, in the reader's language with a translator. A key no
+ * label names is spaced out from the machine key in English
+ * ("incidentsCreatedLast7d": "Incidents created in the last 7 days") in
+ * every language, so a new count is never silently hidden.
+ */
+export function connectorCountLabel(
+  key: string,
+  translator?: Translator | undefined,
+): string {
   const known: string | undefined = CONNECTOR_COUNT_LABELS[key];
 
   if (known) {
-    return known;
+    return translator ? translator.translateText(known) || known : known;
   }
 
   return key
@@ -676,9 +901,16 @@ function isPlainCountObject(value: unknown): value is JSONObject {
  * rendered as "[object Object]". Arrays are listed; any other object is
  * shown as compact JSON so its content is still readable.
  */
-export function formatConnectorCountValue(value: unknown): string {
+export function formatConnectorCountValue(
+  value: unknown,
+  translator?: Translator | undefined,
+): string {
+  const word: (english: string) => string = (english: string): string => {
+    return translator ? translator.translateText(english) || english : english;
+  };
+
   if (typeof value === "boolean") {
-    return value ? "Yes" : "No";
+    return value ? word(translationKey("Yes")) : word(translationKey("No"));
   }
 
   if (typeof value === "number") {
@@ -686,7 +918,7 @@ export function formatConnectorCountValue(value: unknown): string {
   }
 
   if (value === null || value === undefined || value === "") {
-    return "Unknown";
+    return word(translationKey("Unknown"));
   }
 
   if (typeof value === "string") {
@@ -695,22 +927,22 @@ export function formatConnectorCountValue(value: unknown): string {
 
   if (Array.isArray(value)) {
     return value.length === 0
-      ? "None"
+      ? word(translationKey("None"))
       : value
           .map((item: unknown): string => {
-            return formatConnectorCountValue(item);
+            return formatConnectorCountValue(item, translator);
           })
           .join(", ");
   }
 
   if (value instanceof Date) {
-    return formatConnectionDate(value);
+    return formatConnectionDate(value, translator);
   }
 
   try {
     return JSON.stringify(value);
   } catch {
-    return "Unknown";
+    return word(translationKey("Unknown"));
   }
 }
 
@@ -719,18 +951,26 @@ export function formatConnectorCountValue(value: unknown): string {
  * in the form's own vocabulary (Data to import: Alerts always, Detections
  * optional), worded as its check messages word it.
  */
-function formatConnectorCountEntry(key: string, value: unknown): string {
+function formatConnectorCountEntry(
+  key: string,
+  value: unknown,
+  translator?: Translator | undefined,
+): string {
+  const word: (english: string) => string = (english: string): string => {
+    return translator ? translator.translateText(english) || english : english;
+  };
+
   if (key === "scope") {
     if (value === "alerts-only") {
-      return "Alerts only";
+      return word(translationKey("Alerts only"));
     }
 
     if (value === "alerts-and-detections") {
-      return "Alerts and Detections";
+      return word(translationKey("Alerts and Detections"));
     }
   }
 
-  return formatConnectorCountValue(value);
+  return formatConnectorCountValue(value, translator);
 }
 
 export interface ConnectorCountRow {
@@ -749,9 +989,25 @@ const MAX_COUNT_NESTING: number = 3;
  * in the last 24 hours"); its own `scope` leaf takes the parent label alone
  * because "Other Data to import choice: data to import" says it twice.
  */
+interface ConnectorCountParent {
+  key: string;
+  label: string;
+  // The English label, for a sentence that names the group in the reader's language.
+  englishLabel: string;
+  depth: number;
+}
+
+const COUNT_IN_GROUP_LABEL: string = translationKey("{{group}}: {{measure}}");
+
+/*
+ * With a translator, every label is in the reader's language, a nested one
+ * written whole ("{{group}}: {{measure}}") with the measure cased for the
+ * middle of a line the way that language cases it.
+ */
 export function connectorCountRows(
   counts: JSONObject,
-  parent?: { key: string; label: string; depth: number } | undefined,
+  parent?: ConnectorCountParent | undefined,
+  translator?: Translator | undefined,
 ): Array<ConnectorCountRow> {
   const rows: Array<ConnectorCountRow> = [];
 
@@ -759,16 +1015,30 @@ export function connectorCountRows(
     const value: unknown = counts[key];
     const ownLabel: string = connectorCountLabel(key);
     const path: string = parent ? `${parent.key}.${key}` : key;
-    const label: string = !parent
+    const englishLabel: string = !parent
       ? ownLabel
       : key === "scope"
-        ? parent.label
-        : `${parent.label}: ${ownLabel.charAt(0).toLowerCase()}${ownLabel.slice(1)}`;
+        ? parent.englishLabel
+        : `${parent.englishLabel}: ${ownLabel.charAt(0).toLowerCase()}${ownLabel.slice(1)}`;
+    const label: string = !translator
+      ? englishLabel
+      : !parent
+        ? connectorCountLabel(key, translator)
+        : key === "scope"
+          ? parent.label
+          : translator.translateTemplate(COUNT_IN_GROUP_LABEL, {
+              group: translatableTerm(parent.englishLabel),
+              measure: translatableTerm(ownLabel, { inSentence: true }),
+            });
     const depth: number = parent ? parent.depth + 1 : 1;
 
     if (isPlainCountObject(value) && depth < MAX_COUNT_NESTING) {
       rows.push(
-        ...connectorCountRows(value, { key: path, label, depth: depth }),
+        ...connectorCountRows(
+          value,
+          { key: path, label, englishLabel, depth: depth },
+          translator,
+        ),
       );
       continue;
     }
@@ -776,7 +1046,7 @@ export function connectorCountRows(
     rows.push({
       key: path,
       label,
-      value: formatConnectorCountEntry(key, value),
+      value: formatConnectorCountEntry(key, value, translator),
     });
   }
 
@@ -835,18 +1105,24 @@ export interface ConnectorProviderDetailGroup {
  * way count keys are, so a new detail is never silently hidden.
  */
 const CONNECTOR_PROVIDER_DETAIL_LABELS: Record<string, string> = {
-  basis: "Time basis read",
-  sourceCounts: "Returned by each pass",
-  ruleDetections: "Rule detections",
-  curatedDetections: "Curated rule detections",
-  alertsView: "Alerts view",
-  lateAlertsView: "Alerts view, late alerts from the previous day",
-  curatedRulesWithDetections: "Curated rules with recent detections",
-  creationLag: "Creation lag",
-  measured: "Records measured",
-  lateCount: "Created later than the poll interval",
-  maxLagMinutes: "Longest lag (minutes)",
-  includeNonAlertingDetections: "Includes non-alerting records",
+  basis: translationKey("Time basis read"),
+  sourceCounts: translationKey("Returned by each pass"),
+  ruleDetections: translationKey("Rule detections"),
+  curatedDetections: translationKey("Curated rule detections"),
+  alertsView: translationKey("Alerts view"),
+  lateAlertsView: translationKey(
+    "Alerts view, late alerts from the previous day",
+  ),
+  curatedRulesWithDetections: translationKey(
+    "Curated rules with recent detections",
+  ),
+  creationLag: translationKey("Creation lag"),
+  measured: translationKey("Records measured"),
+  lateCount: translationKey("Created later than the poll interval"),
+  maxLagMinutes: translationKey("Longest lag (minutes)"),
+  includeNonAlertingDetections: translationKey(
+    "Includes non-alerting records",
+  ),
 };
 
 const CONNECTOR_PROVIDER_DETAIL_VALUE_LABELS: Record<
@@ -854,24 +1130,43 @@ const CONNECTOR_PROVIDER_DETAIL_VALUE_LABELS: Record<
   Record<string, string>
 > = {
   basis: {
-    "created-time": "Created time",
-    "detection-time": "Detection time, with created time also read",
+    "created-time": translationKey("Created time"),
+    "detection-time": translationKey(
+      "Detection time, with created time also read",
+    ),
   },
 };
 
-export function connectorProviderDetailLabel(key: string): string {
-  return CONNECTOR_PROVIDER_DETAIL_LABELS[key] || connectorCountLabel(key);
+export function connectorProviderDetailLabel(
+  key: string,
+  translator?: Translator | undefined,
+): string {
+  const known: string | undefined = CONNECTOR_PROVIDER_DETAIL_LABELS[key];
+
+  if (!known) {
+    return connectorCountLabel(key, translator);
+  }
+
+  return translator ? translator.translateText(known) || known : known;
 }
 
 function formatConnectorProviderDetailValue(
   key: string,
   value: unknown,
+  translator?: Translator | undefined,
 ): string {
   if (typeof value === "string") {
-    return CONNECTOR_PROVIDER_DETAIL_VALUE_LABELS[key]?.[value] || value;
+    const known: string | undefined =
+      CONNECTOR_PROVIDER_DETAIL_VALUE_LABELS[key]?.[value];
+
+    if (!known) {
+      return value;
+    }
+
+    return translator ? translator.translateText(known) || known : known;
   }
 
-  return formatConnectorCountValue(value);
+  return formatConnectorCountValue(value, translator);
 }
 
 /*
@@ -884,6 +1179,7 @@ function formatConnectorProviderDetailValue(
 export function connectorProviderDetailGroups(
   details: JSONObject | undefined,
   omitKeys: Array<string> = [],
+  translator?: Translator | undefined,
 ): Array<ConnectorProviderDetailGroup> {
   if (!details) {
     return [];
@@ -902,15 +1198,16 @@ export function connectorProviderDetailGroups(
     if (isPlainCountObject(value)) {
       groups.push({
         key,
-        title: connectorProviderDetailLabel(key),
+        title: connectorProviderDetailLabel(key, translator),
         rows: Object.keys(value).map(
           (childKey: string): ConnectorProviderDetailRow => {
             return {
               key: `${key}.${childKey}`,
-              label: connectorProviderDetailLabel(childKey),
+              label: connectorProviderDetailLabel(childKey, translator),
               value: formatConnectorProviderDetailValue(
                 childKey,
                 value[childKey],
+                translator,
               ),
             };
           },
@@ -921,8 +1218,8 @@ export function connectorProviderDetailGroups(
 
     general.rows.push({
       key,
-      label: connectorProviderDetailLabel(key),
-      value: formatConnectorProviderDetailValue(key, value),
+      label: connectorProviderDetailLabel(key, translator),
+      value: formatConnectorProviderDetailValue(key, value, translator),
     });
   }
 
@@ -938,12 +1235,43 @@ export function readWindowMinutes(value: unknown): number | null {
     : null;
 }
 
-// "1 minute", "45 minutes", "3 hours", "24 hours", "90 minutes".
-export function formatWindowMinutes(minutes: number): string {
+/*
+ * "1 minute", "45 minutes", "3 hours", "24 hours", "90 minutes": counted
+ * the way the reader's language counts with a translator ("3 Stunden").
+ */
+export function formatWindowMinutes(
+  minutes: number,
+  translator?: Translator | undefined,
+): string {
   if (minutes >= 60 && minutes % 60 === 0) {
     const hours: number = minutes / 60;
+
+    if (translator) {
+      return translator.translatePlural(
+        { one: "{{count}} hour", other: "{{count}} hours" },
+        hours,
+      );
+    }
+
     return `${hours} hour${hours === 1 ? "" : "s"}`;
   }
 
+  if (translator) {
+    return translator.translatePlural(
+      { one: "{{count}} minute", other: "{{count}} minutes" },
+      minutes,
+    );
+  }
+
   return `${minutes.toLocaleString("en-US")} minute${minutes === 1 ? "" : "s"}`;
+}
+
+/*
+ * A window length that goes into a sentence: worded in the sentence's own
+ * language, so an English sentence never carries "3 Stunden".
+ */
+export function windowMinutesValue(minutes: number): TemplateValue {
+  return composedValue((sentence: Translator): string => {
+    return formatWindowMinutes(minutes, sentence);
+  });
 }

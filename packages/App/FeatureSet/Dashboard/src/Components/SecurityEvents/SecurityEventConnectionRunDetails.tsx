@@ -29,6 +29,7 @@ import {
   connectorCheckStatusLabels,
   connectorProviderDetailGroups,
   connectorProviderTitle,
+  connectorRecordsName,
   connectorSampleEventTime,
   connectorSampleTitle,
   connectorScopeLabel,
@@ -40,9 +41,18 @@ import {
   readSecurityConnectorTestReport,
   readSecurityEventConnectionResult,
   readWindowMinutes,
-  securityEventConnectionRunLabels,
+  securityEventConnectionRunDetailsTitles,
+  windowMinutesValue,
 } from "./SecurityEventConnectionDiagnosticsUtil";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  TemplateValue,
+  Translator,
+  translatableTerm,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * A UTC timestamp whose hover text carries the viewer's local time. Every
@@ -58,15 +68,18 @@ export interface ConnectionTimeProps {
 export const ConnectionTime: FunctionComponent<ConnectionTimeProps> = (
   props: ConnectionTimeProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (!props.value) {
-    return <span>{props.emptyText || "Never"}</span>;
+    const emptyText: string = props.emptyText || translationKey("Never");
+    return <span>{translator.translateText(emptyText) || emptyText}</span>;
   }
 
   const iso: string = new Date(props.value).toISOString();
 
   return (
-    <time dateTime={iso} title={connectionTimeTitle(props.value)}>
-      {formatConnectionDate(props.value)}
+    <time dateTime={iso} title={connectionTimeTitle(props.value, translator)}>
+      {formatConnectionDate(props.value, translator)}
     </time>
   );
 };
@@ -97,8 +110,12 @@ export function hasConnectionWindowProgress(
 
 export interface ConnectionWindowProgressProps {
   result: ConnectionWindowProgressResult;
-  // Singular noun for what the source imports, e.g. "finding".
-  recordName?: string | undefined;
+  /*
+   * What the source imports, more than one of them, in English: a key of
+   * CONNECTOR_RECORDS_NAMES ("detections"). Each sentence names it in its
+   * own language.
+   */
+  recordsName?: string | undefined;
 }
 
 /*
@@ -112,18 +129,21 @@ export interface ConnectionWindowProgressProps {
 export const ConnectionWindowProgress: FunctionComponent<
   ConnectionWindowProgressProps
 > = (props: ConnectionWindowProgressProps): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const result: ConnectionWindowProgressResult = props.result;
 
   if (!hasConnectionWindowProgress(result)) {
     return null;
   }
 
-  const recordName: string = props.recordName || "record";
+  const records: TemplateValue = translatableTerm(
+    props.recordsName || "records",
+    { inSentence: true },
+  );
   const chunk: number | null = readWindowMinutes(result.chunkMinutes);
   const next: number | null = readWindowMinutes(result.nextChunkMinutes);
   const forced: boolean = result.forcedAdvance === true;
   const unread: boolean = !result.complete && result.status !== "failed";
-  const recordTitle: string = `${recordName.charAt(0).toUpperCase()}${recordName.slice(1)}`;
   const windowEnd: Date = new Date(result.windowEnd);
   const hasWindowEnd: boolean = Number.isFinite(windowEnd.getTime());
   /*
@@ -140,17 +160,25 @@ export const ConnectionWindowProgress: FunctionComponent<
       <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
         {chunk !== null && (
           <div>
-            <dt className="text-gray-500">Window read by this poll</dt>
-            <dd>{formatWindowMinutes(chunk)}</dd>
+            <dt className="text-gray-500">
+              {translator.translateText("Window read by this poll")}
+            </dt>
+            <dd>{formatWindowMinutes(chunk, translator)}</dd>
           </div>
         )}
         {next !== null && (
           <div>
-            <dt className="text-gray-500">Next scheduled poll reads</dt>
+            <dt className="text-gray-500">
+              {translator.translateText("Next scheduled poll reads")}
+            </dt>
             <dd>
               {next === chunk
-                ? `${formatWindowMinutes(next)}, the same length`
-                : `Up to ${formatWindowMinutes(next)}`}
+                ? translator.translateTemplate("{{window}}, the same length", {
+                    window: windowMinutesValue(next),
+                  })
+                : translator.translateTemplate("Up to {{window}}", {
+                    window: windowMinutesValue(next),
+                  })}
             </dd>
           </div>
         )}
@@ -160,35 +188,42 @@ export const ConnectionWindowProgress: FunctionComponent<
           role="alert"
           className="space-y-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900"
         >
-          <h4 className="font-medium">Polling moved past one minute</h4>
+          <h4 className="font-medium">
+            {translator.translateText("Polling moved past one minute")}
+          </h4>
           <p>
-            More {recordName}s were created in one minute than one poll can
-            read. Polling moved past that minute so newer {recordName}s keep
-            arriving; the {recordName}s from it that this poll did not read were
-            not imported.
+            {translator.translateTemplate(
+              "More {{records}} were created in one minute than one poll can read. Polling moved past that minute so newer {{records}} keep arriving; the {{records}} from it that this poll did not read were not imported.",
+              { records },
+            )}
           </p>
           {hasWindowEnd ? (
             <p>
-              To recover them, use Import this time range under Find historical{" "}
-              {recordName}s for <ConnectionTime value={skippedStart} /> →{" "}
-              <ConnectionTime value={windowEnd} />. {recordTitle}s already
-              imported are skipped.
+              <TranslatedSentence
+                template="To recover them, use Import this time range under Find historical {{records}} for {{start}} → {{end}}. Any already imported are skipped."
+                values={{ records }}
+                slots={{
+                  start: <ConnectionTime value={skippedStart} />,
+                  end: <ConnectionTime value={windowEnd} />,
+                }}
+              />
             </p>
           ) : (
             <p>
-              To recover them, use Import this time range under Find historical{" "}
-              {recordName}s on the minute named in the warnings. {recordTitle}s
-              already imported are skipped.
+              {translator.translateTemplate(
+                "To recover them, use Import this time range under Find historical {{records}} on the minute named in the warnings. Any already imported are skipped.",
+                { records },
+              )}
             </p>
           )}
         </div>
       )}
       {!forced && unread && chunk !== null && next !== null && next < chunk && (
         <p role="alert" className="text-sm text-amber-700">
-          This window held more {recordName}s than one poll can read, so the
-          cursor stayed where it was. The next scheduled poll reads a window of{" "}
-          {formatWindowMinutes(next)} from the same starting point and widens it
-          again as polls complete.
+          {translator.translateTemplate(
+            "This window held more {{records}} than one poll can read, so the cursor stayed where it was. The next scheduled poll reads a window of {{window}} from the same starting point and widens it again as polls complete.",
+            { records, window: windowMinutesValue(next) },
+          )}
         </p>
       )}
       {!forced &&
@@ -197,15 +232,17 @@ export const ConnectionWindowProgress: FunctionComponent<
         next !== null &&
         next >= chunk && (
           <p role="alert" className="text-sm text-amber-700">
-            This poll stopped before the end of its window and moved the cursor
-            to the last {recordName} it read. The next scheduled poll continues
-            from there with a window of {formatWindowMinutes(next)}.
+            {translator.translateTemplate(
+              "This poll stopped before the end of its window and moved the cursor to the last record it read. The next scheduled poll continues from there with a window of {{window}}.",
+              { window: windowMinutesValue(next) },
+            )}
           </p>
         )}
       {result.status === "failed" && next !== null && (
         <p className="text-sm text-gray-600">
-          A failed poll does not change the window: the next scheduled poll
-          retries from the same starting point.
+          {translator.translateText(
+            "A failed poll does not change the window: the next scheduled poll retries from the same starting point.",
+          )}
         </p>
       )}
     </div>
@@ -234,9 +271,21 @@ function checkStatusClassName(status: string): string {
   }
 }
 
+/*
+ * The line a run's status reads as: "Result: Success". A status the server
+ * adds later is shown as stored, capitalised.
+ */
+const RUN_RESULT_STATUS_LABELS: Record<string, string> = {
+  success: translationKey("Success"),
+  empty: translationKey("No records returned"),
+  partial: translationKey("Partial"),
+  failed: translationKey("Failed"),
+};
+
 const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const run: SecurityEventConnectionRun = props.run;
   const status: string = run.status || "queued";
   /*
@@ -255,7 +304,7 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
   const providerTitle: string = connectorProviderTitle(provider);
   const definition: SecurityEventConnectorDefinition | undefined =
     getSecurityEventConnectorDefinition(provider);
-  const recordName: string = definition?.importedRecordName || "record";
+  const recordsName: string = connectorRecordsName(definition);
   const scopeControl: ConnectorAlertingOnlyControl | undefined =
     definition?.supportsAlertingOnlyToggle
       ? definition.alertingOnlyControl
@@ -276,6 +325,7 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
     connectorProviderDetailGroups(
       providerDetails,
       showScope ? ["includeNonAlertingDetections"] : [],
+      translator,
     );
   // Only a source that says which records are alerts gets the column.
   const showAlertColumn: boolean = Boolean(
@@ -299,14 +349,80 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
     ],
   });
 
+  // Each header names its column, and its resize edge, in the reader's words.
+  const recordTitle: string = translator.translateText("Record") || "Record";
+  const severityTitle: string =
+    translator.translateText("Severity") || "Severity";
+  const eventTimeTitle: string =
+    translator.translateText("Event time (UTC)") || "Event time (UTC)";
+  const createdAtSourceTitle: string =
+    translator.translateText("Created at source (UTC)") ||
+    "Created at source (UTC)";
+  const alertTitle: string = translator.translateText("Alert") || "Alert";
+
+  const resultStatusEnglish: string | undefined =
+    RUN_RESULT_STATUS_LABELS[status];
+  const resultStatusLabel: string = resultStatusEnglish
+    ? translator.translateText(resultStatusEnglish) || resultStatusEnglish
+    : `${status.charAt(0).toUpperCase()}${status.slice(1)}`;
+
+  let statusLine: string = translator.translateTemplate("Result: {{status}}", {
+    status: resultStatusLabel,
+  });
+
+  if (status === "queued") {
+    statusLine =
+      translator.translateText(
+        "Queued — waiting for a worker. You can close this window and return to run history.",
+      ) || "";
+  } else if (status === "running") {
+    statusLine = providerTitle
+      ? translator.translateTemplate(
+          "Running — checking {{provider}}. Results update automatically.",
+          { provider: providerTitle },
+        )
+      : translator.translateText(
+          "Running — checking the source. Results update automatically.",
+        ) || "";
+  }
+
+  const statTiles: Array<[string, string | number]> = result
+    ? [
+        [
+          translator.translateTemplate("Returned by {{provider}}", {
+            provider: providerTitle,
+          }),
+          result.fetchedCount,
+        ],
+        [
+          translator.translateText("Imported into OneUptime") ||
+            "Imported into OneUptime",
+          result.ingestedCount,
+        ],
+        [
+          translator.translateText("Already imported") || "Already imported",
+          run.type === "test" || run.type === "preview"
+            ? translator.translateText("Not checked") || "Not checked"
+            : result.duplicateCount,
+        ],
+        [
+          translator.translateText("Rejected") || "Rejected",
+          result.rejectedCount,
+        ],
+        [translator.translateText("Failed") || "Failed", result.failedCount],
+      ]
+    : [];
+
   return (
     <section
-      aria-label="Run details"
+      aria-label={translator.translateText("Run details")}
       className="space-y-4 rounded-md border border-gray-200 p-4"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-base font-semibold text-gray-900">
-          {securityEventConnectionRunLabels[run.type || "poll"]} details
+          {translator.translateText(
+            securityEventConnectionRunDetailsTitles[run.type || "poll"],
+          )}
         </h3>
         <CopyTextButton
           label="Copy diagnostics"
@@ -329,18 +445,15 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
         />
       </div>
       <p role="status" className="text-sm text-gray-700">
-        {status === "queued"
-          ? "Queued — waiting for a worker. You can close this window and return to run history."
-          : status === "running"
-            ? `Running — checking ${providerTitle || "the source"}. Results update automatically.`
-            : `Result: ${status === "empty" ? "No records returned" : status.charAt(0).toUpperCase() + status.slice(1)}`}
+        {statusLine}
       </p>
       {status === "queued" &&
         run.createdAt &&
         Date.now() - new Date(run.createdAt).getTime() > 120_000 && (
           <p className="text-sm text-amber-700">
-            This run has been waiting for more than 2 minutes. Use Test
-            connection to check whether a worker is consuming the queue.
+            {translator.translateText(
+              "This run has been waiting for more than 2 minutes. Use Test connection to check whether a worker is consuming the queue.",
+            )}
           </p>
         )}
       {/*
@@ -360,9 +473,17 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
         typeof run.request?.["startTime"] === "string" &&
         typeof run.request?.["endTime"] === "string" && (
           <p className="text-sm text-gray-600">
-            Requested window:{" "}
-            <ConnectionTime value={run.request["startTime"] as string} /> →{" "}
-            <ConnectionTime value={run.request["endTime"] as string} />
+            <TranslatedSentence
+              template="Requested window: {{start}} → {{end}}"
+              slots={{
+                start: (
+                  <ConnectionTime value={run.request["startTime"] as string} />
+                ),
+                end: (
+                  <ConnectionTime value={run.request["endTime"] as string} />
+                ),
+              }}
+            />
           </p>
         )}
       {report && <ConnectorTestReportView report={report} />}
@@ -370,69 +491,83 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
         <>
           <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
             <div>
-              <dt className="text-gray-500">Requested window (UTC)</dt>
+              <dt className="text-gray-500">
+                {translator.translateText("Requested window (UTC)")}
+              </dt>
               <dd>
                 <ConnectionTime value={result.windowStart} /> →{" "}
                 <ConnectionTime value={result.windowEnd} />
               </dd>
             </div>
             <div>
-              <dt className="text-gray-500">Provider</dt>
+              <dt className="text-gray-500">
+                {translator.translateText("Provider")}
+              </dt>
               <dd>{providerTitle}</dd>
             </div>
             {showScope && (
               <div>
                 <dt className="text-gray-500">
-                  {connectorScopeLabel(definition)}
+                  {translator.translateText(connectorScopeLabel(definition))}
                 </dt>
                 <dd>
-                  {connectorScopeSummary(
-                    definition,
-                    includeNonAlerting !== true,
+                  {translator.translateText(
+                    connectorScopeSummary(
+                      definition,
+                      includeNonAlerting !== true,
+                    ),
                   )}
                 </dd>
               </div>
             )}
             <div>
-              <dt className="text-gray-500">Completed (UTC)</dt>
+              <dt className="text-gray-500">
+                {translator.translateText("Completed (UTC)")}
+              </dt>
               <dd>
                 <ConnectionTime value={result.completedAt} />
               </dd>
             </div>
             <div>
-              <dt className="text-gray-500">Duration</dt>
-              <dd>{(result.durationMs / 1000).toFixed(1)} seconds</dd>
+              <dt className="text-gray-500">
+                {translator.translateText("Duration")}
+              </dt>
+              <dd>
+                {translator.translateTemplate("{{seconds}} seconds", {
+                  seconds: (result.durationMs / 1000).toLocaleString(
+                    getReaderNumberLocale(),
+                    { minimumFractionDigits: 1, maximumFractionDigits: 1 },
+                  ),
+                })}
+              </dd>
             </div>
           </dl>
-          <ConnectionWindowProgress result={result} recordName={recordName} />
+          <ConnectionWindowProgress
+            result={result}
+            recordsName={recordsName}
+          />
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {(
-              [
-                [`Returned by ${providerTitle}`, result.fetchedCount],
-                ["Imported into OneUptime", result.ingestedCount],
-                [
-                  "Already imported",
-                  run.type === "test" || run.type === "preview"
-                    ? "Not checked"
-                    : result.duplicateCount,
-                ],
-                ["Rejected", result.rejectedCount],
-                ["Failed", result.failedCount],
-              ] as Array<[string, string | number]>
-            ).map(([label, value]: [string, string | number]): ReactElement => {
-              return (
-                <div key={label} className="rounded-md bg-gray-50 p-3">
-                  <div className="text-xl font-semibold text-gray-900">
-                    {value.toLocaleString(getReaderNumberLocale())}
+            {statTiles.map(
+              ([label, value]: [string, string | number]): ReactElement => {
+                return (
+                  <div key={label} className="rounded-md bg-gray-50 p-3">
+                    <div className="text-xl font-semibold text-gray-900">
+                      {value.toLocaleString(getReaderNumberLocale())}
+                    </div>
+                    <div className="text-xs text-gray-600">{label}</div>
                   </div>
-                  <div className="text-xs text-gray-600">{label}</div>
-                </div>
-              );
-            })}
+                );
+              },
+            )}
           </div>
           {detailGroups.length > 0 && (
-            <section aria-label="Provider details" className="text-sm">
-              <h4 className="mb-2 text-sm font-medium">Provider details</h4>
+            <section
+              aria-label={translator.translateText("Provider details")}
+              className="text-sm"
+            >
+              <h4 className="mb-2 text-sm font-medium">
+                {translator.translateText("Provider details")}
+              </h4>
               <div className="space-y-3">
                 {detailGroups.map(
                   (group: ConnectorProviderDetailGroup): ReactElement => {
@@ -464,38 +599,63 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
           )}
           {run.type === "test" && (
             <p className="text-sm text-gray-600">
-              This checks credentials and access to {providerTitle}. It does not
-              import events or confirm that scheduled polling is working.
+              {translator.translateTemplate(
+                "This checks credentials and access to {{provider}}. It does not import events or confirm that scheduled polling is working.",
+                { provider: providerTitle },
+              )}
             </p>
           )}
           {run.type === "preview" && (
             <p className="text-sm text-gray-600">
-              Preview reads {providerTitle} without importing events or changing
-              scheduled polling.
+              {translator.translateTemplate(
+                "Preview reads {{provider}} without importing events or changing scheduled polling.",
+                { provider: providerTitle },
+              )}
             </p>
           )}
           {result.status === "empty" && (
             <p className="text-sm text-gray-600">
-              {`${providerTitle} returned no matching records for this time range. Try a wider range, or use Test connection to see what is available to import.${
-                scopeControl && includeNonAlerting === false
-                  ? ` Only ${scopeControl.alertingLabel.toLowerCase()} are imported with this ${scopeControl.title} selection; select ${scopeControl.nonAlertingLabel} to import the rest.`
-                  : ""
-              }`}
+              {translator.translateTemplate(
+                "{{provider}} returned no matching records for this time range. Try a wider range, or use Test connection to see what is available to import.",
+                { provider: providerTitle },
+              )}
+              {scopeControl && includeNonAlerting === false && (
+                <>
+                  {" "}
+                  {translator.translateTemplate(
+                    "Only {{alerting}} are imported with this {{control}} selection; select {{nonAlerting}} to import the rest.",
+                    {
+                      alerting: translatableTerm(scopeControl.alertingLabel, {
+                        inSentence: true,
+                      }),
+                      control: translatableTerm(scopeControl.title),
+                      nonAlerting: translatableTerm(
+                        scopeControl.nonAlertingLabel,
+                      ),
+                    },
+                  )}
+                </>
+              )}
             </p>
           )}
           {!result.complete &&
             run.type !== "test" &&
             !hasConnectionWindowProgress(result) && (
               <p role="alert" className="text-sm text-amber-700">
-                This run did not finish processing every record in the window.
                 {run.type === "preview" || run.type === "backfill"
-                  ? " Choose a shorter time range to read the rest; records already imported are skipped."
-                  : " Review the checks and warnings before retrying."}
+                  ? translator.translateText(
+                      "This run did not finish processing every record in the window. Choose a shorter time range to read the rest; records already imported are skipped.",
+                    )
+                  : translator.translateText(
+                      "This run did not finish processing every record in the window. Review the checks and warnings before retrying.",
+                    )}
               </p>
             )}
           {result.warnings.length > 0 && (
             <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-900">
-              <h4 className="font-medium">Warnings</h4>
+              <h4 className="font-medium">
+                {translator.translateText("Warnings")}
+              </h4>
               <ul className="mt-1 list-disc space-y-1 pl-5">
                 {result.warnings.map(
                   (warning: string, index: number): ReactElement => {
@@ -514,7 +674,9 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
           )}
           {result.checks.length > 0 && (
             <div>
-              <h4 className="mb-2 text-sm font-medium">Connection checks</h4>
+              <h4 className="mb-2 text-sm font-medium">
+                {translator.translateText("Connection checks")}
+              </h4>
               <ul className="space-y-2 text-sm">
                 {result.checks.map(
                   (
@@ -524,13 +686,17 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                     const status: string = normalizeConnectorCheckStatus(
                       check.status,
                     );
+                    const statusLabel: string | undefined =
+                      connectorCheckStatusLabels[
+                        status as SecurityConnectorCheckStatus
+                      ];
                     return (
                       <li key={`${check.key}-${index}`}>
                         <span className={checkStatusClassName(status)}>
                           {check.name}:{" "}
-                          {connectorCheckStatusLabels[
-                            status as SecurityConnectorCheckStatus
-                          ] || status}
+                          {statusLabel
+                            ? translator.translateText(statusLabel)
+                            : status}
                         </span>
                         <p className="text-gray-600">{check.message}</p>
                         {check.remediation && status !== "pass" && (
@@ -545,10 +711,14 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
           )}
           {result.samples.length > 0 && (
             <div>
-              <h4 className="text-sm font-medium">Sample records</h4>
+              <h4 className="text-sm font-medium">
+                {translator.translateText("Sample records")}
+              </h4>
               <p className="mt-1 text-xs text-gray-500">
-                Event time can be earlier than the time {providerTitle} created
-                the record. Samples may cover only part of the result.
+                {translator.translateTemplate(
+                  "Event time can be earlier than the time {{provider}} created the record. Samples may cover only part of the result.",
+                  { provider: providerTitle },
+                )}
               </p>
               <div className="mt-2 overflow-x-auto">
                 {sampleColumns.styles}
@@ -562,52 +732,52 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                         className="py-2 pr-4"
                         resize={sampleColumns.getResize(
                           "record",
-                          "Record",
+                          recordTitle,
                           ColumnWidthKind.Name,
                         )}
                       >
-                        <span>{"Record"}</span>
+                        <span>{recordTitle}</span>
                       </ResizableHeaderCell>
                       <ResizableHeaderCell
                         className="py-2 pr-4"
                         resize={sampleColumns.getResize(
                           "severity",
-                          "Severity",
+                          severityTitle,
                           ColumnWidthKind.Whole,
                         )}
                       >
-                        <span>{"Severity"}</span>
+                        <span>{severityTitle}</span>
                       </ResizableHeaderCell>
                       <ResizableHeaderCell
                         className="py-2 pr-4"
                         resize={sampleColumns.getResize(
                           "eventTime",
-                          "Event time (UTC)",
+                          eventTimeTitle,
                           ColumnWidthKind.Whole,
                         )}
                       >
-                        <span>{"Event time (UTC)"}</span>
+                        <span>{eventTimeTitle}</span>
                       </ResizableHeaderCell>
                       <ResizableHeaderCell
                         className={showAlertColumn ? "py-2 pr-4" : "py-2"}
                         resize={sampleColumns.getResize(
                           "createdAtSource",
-                          "Created at source (UTC)",
+                          createdAtSourceTitle,
                           ColumnWidthKind.Whole,
                         )}
                       >
-                        <span>{"Created at source (UTC)"}</span>
+                        <span>{createdAtSourceTitle}</span>
                       </ResizableHeaderCell>
                       {showAlertColumn && (
                         <ResizableHeaderCell
                           className="py-2"
                           resize={sampleColumns.getResize(
                             "alert",
-                            "Alert",
+                            alertTitle,
                             ColumnWidthKind.Whole,
                           )}
                         >
-                          <span>{"Alert"}</span>
+                          <span>{alertTitle}</span>
                         </ResizableHeaderCell>
                       )}
                     </tr>
@@ -624,18 +794,20 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                             className="border-b border-gray-100"
                           >
                             <td className="max-w-xs break-words py-2 pr-4">
-                              {connectorSampleTitle(sample) || "Untitled"}
+                              {connectorSampleTitle(sample) ||
+                                translator.translateText("Untitled")}
                               <div className="text-xs text-gray-500">
                                 {sample.id}
                               </div>
                             </td>
                             <td className="py-2 pr-4">
-                              {sample.severity || "Unknown"}
+                              {sample.severity ||
+                                translator.translateText("Unknown")}
                             </td>
                             <td className="whitespace-nowrap py-2 pr-4">
                               <ConnectionTime
                                 value={connectorSampleEventTime(sample)}
-                                emptyText="Not provided"
+                                emptyText={translationKey("Not provided")}
                               />
                             </td>
                             <td
@@ -647,16 +819,16 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                             >
                               <ConnectionTime
                                 value={sample.createdTime}
-                                emptyText="Not provided"
+                                emptyText={translationKey("Not provided")}
                               />
                             </td>
                             {showAlertColumn && (
                               <td className="py-2">
                                 {sample.isAlert === undefined
-                                  ? "Unknown"
+                                  ? translator.translateText("Unknown")
                                   : sample.isAlert
-                                    ? "Yes"
-                                    : "No"}
+                                    ? translator.translateText("Yes")
+                                    : translator.translateText("No")}
                               </td>
                             )}
                           </tr>
@@ -677,11 +849,12 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                   run.securityEventConnectionId?.toString(),
                 )}
               >
-                View events in this time range
+                {translator.translateText("View events in this time range")}
               </Link>
               <p className="mt-1 text-gray-500">
-                Opens the event-time range of these records, including records
-                created later.
+                {translator.translateText(
+                  "Opens the event-time range of these records, including records created later.",
+                )}
               </p>
             </div>
           )}

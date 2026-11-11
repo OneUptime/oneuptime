@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 49153,
-    "untranslated": 10225
+    "keys": 49494,
+    "untranslated": 10390
   },
   "sameAsEnglish": [
     " is",
@@ -572,6 +572,7 @@
     "namespace",
     "namespaces",
     "node",
+    "notable events",
     "nova-compute",
     "ns",
     "null",
@@ -775,6 +776,7 @@
     "{{subject}} was {{value}}",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
-    "{{value}} ms"
+    "{{value}} ms",
+    "{{value}} s"
   ]
 }

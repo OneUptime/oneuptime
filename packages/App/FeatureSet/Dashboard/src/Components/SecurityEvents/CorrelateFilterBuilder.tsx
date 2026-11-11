@@ -11,6 +11,8 @@ import Input from "Common/UI/Components/Input/Input";
 import AutocompleteTextInput from "Common/UI/Components/AutocompleteTextInput/AutocompleteTextInput";
 import IconProp from "Common/Types/Icon/IconProp";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   CorrelationCondition,
   CorrelationConnector,
@@ -77,8 +79,35 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const t: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
+  };
+  // "Condition 2 value": each editor named for a screen reader in its language.
+  const conditionLabel: (
+    index: number,
+    part: "field" | "operator" | "value",
+  ) => string = (
+    index: number,
+    part: "field" | "operator" | "value",
+  ): string => {
+    const number: string = translator.formatNumber(index + 1);
+
+    if (part === "field") {
+      return translator.translateTemplate("Condition {{number}} field", {
+        number,
+      });
+    }
+
+    if (part === "operator") {
+      return translator.translateTemplate("Condition {{number}} operator", {
+        number,
+      });
+    }
+
+    return translator.translateTemplate("Condition {{number}} value", {
+      number,
+    });
   };
 
   const updateCondition: (
@@ -109,7 +138,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
       return (
         <Dropdown
           dataTestId={`correlate-condition-value-${index}`}
-          ariaLabel={`Condition ${index + 1} value`}
+          ariaLabel={conditionLabel(index, "value")}
           options={valueOptions}
           value={valueOptions.find((option: DropdownOption) => {
             return option.value === condition.value;
@@ -129,7 +158,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
       return (
         <AutocompleteTextInput
           dataTestId={`correlate-condition-value-${index}`}
-          ariaLabel={`Condition ${index + 1} value`}
+          ariaLabel={conditionLabel(index, "value")}
           value={condition.value}
           suggestions={definition.valueSuggestions}
           placeholder={definition.placeholder}
@@ -144,7 +173,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
       <Input
         isSearchOrFilter={true}
         dataTestId={`correlate-condition-value-${index}`}
-        ariaLabel={`Condition ${index + 1} value`}
+        ariaLabel={conditionLabel(index, "value")}
         value={condition.value}
         placeholder={definition.placeholder}
         onEnterPress={props.onSubmit}
@@ -248,7 +277,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
                         : "bg-indigo-50 text-indigo-600 border-indigo-200"
                     }`}
                   >
-                    {props.connector === "or" ? "OR" : "AND"}
+                    {props.connector === "or" ? t("OR") : t("AND")}
                   </span>
                 </div>
               )}
@@ -256,7 +285,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
                 <Dropdown
                   dataTestId={`correlate-condition-field-${index}`}
                   isClearable={false}
-                  ariaLabel={`Condition ${index + 1} field`}
+                  ariaLabel={conditionLabel(index, "field")}
                   options={fieldDropdownOptions}
                   value={fieldDropdownOptions.find((option: DropdownOption) => {
                     return option.value === condition.field;
@@ -293,7 +322,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
                 <Dropdown
                   dataTestId={`correlate-condition-operator-${index}`}
                   isClearable={false}
-                  ariaLabel={`Condition ${index + 1} operator`}
+                  ariaLabel={conditionLabel(index, "operator")}
                   options={operatorOptions}
                   value={operatorOptions.find((option: DropdownOption) => {
                     return option.value === condition.operator;

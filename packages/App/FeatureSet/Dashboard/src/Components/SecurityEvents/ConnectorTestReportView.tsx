@@ -26,6 +26,12 @@ import {
   connectorTestReportCounts,
   formatConnectionDate,
 } from "./SecurityEventConnectionDiagnosticsUtil";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   report: SecurityConnectorTestReport;
@@ -89,16 +95,24 @@ const STATUS_STYLES: Record<SecurityConnectorCheckStatus, StatusStyle> = {
   },
 };
 
-function formatDuration(durationMs: number): string {
+// "820 ms", "1.5 s": the unit and the number written the reader's way.
+export function formatDuration(
+  durationMs: number,
+  translator: Translator,
+): string {
   if (!Number.isFinite(durationMs) || durationMs < 0) {
     return "";
   }
 
   if (durationMs < 1000) {
-    return `${Math.round(durationMs)} ms`;
+    return translator.translateTemplate("{{value}} ms", {
+      value: translator.formatNumber(Math.round(durationMs)),
+    });
   }
 
-  return `${(durationMs / 1000).toFixed(1)} s`;
+  return translator.translateTemplate("{{value}} s", {
+    value: translator.formatNumber(Math.round(durationMs / 100) / 10),
+  });
 }
 
 interface CheckRowProps {
@@ -108,6 +122,7 @@ interface CheckRowProps {
 const CheckRow: FunctionComponent<CheckRowProps> = (
   props: CheckRowProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showRemediation, setShowRemediation] = useState<boolean>(
     /*
      * A failed check opens its remediation by default: the reader came here
@@ -124,7 +139,7 @@ const CheckRow: FunctionComponent<CheckRowProps> = (
   const style: StatusStyle =
     STATUS_STYLES[props.check.status] || STATUS_STYLES.skip;
   const remediationId: string = `remediation-${props.check.key}`;
-  const duration: string = formatDuration(props.check.durationMs);
+  const duration: string = formatDuration(props.check.durationMs, translator);
 
   return (
     <li
@@ -147,7 +162,9 @@ const CheckRow: FunctionComponent<CheckRowProps> = (
           <span
             className={`rounded-full px-2 py-0.5 text-xs font-medium ${style.labelClassName}`}
           >
-            {connectorCheckStatusLabels[props.check.status]}
+            {translator.translateText(
+              connectorCheckStatusLabels[props.check.status],
+            )}
           </span>
           {duration && (
             <span className="text-xs text-gray-500">{duration}</span>
@@ -169,7 +186,7 @@ const CheckRow: FunctionComponent<CheckRowProps> = (
                 });
               }}
             >
-              What to do
+              {translator.translateText("What to do")}
             </button>
             {showRemediation && (
               <p
@@ -186,16 +203,17 @@ const CheckRow: FunctionComponent<CheckRowProps> = (
   );
 };
 
+// An English key; the banner translates it.
 function summaryTitle(status: SecurityConnectorTestReport["status"]): string {
   if (status === "fail") {
-    return "Some checks failed";
+    return translationKey("Some checks failed");
   }
 
   if (status === "warn") {
-    return "Passed with warnings";
+    return translationKey("Passed with warnings");
   }
 
-  return "All checks passed";
+  return translationKey("All checks passed");
 }
 
 function summaryClassName(
@@ -215,6 +233,7 @@ function summaryClassName(
 const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const report: SecurityConnectorTestReport = props.report;
   const providerTitle: string =
     props.providerTitle || connectorProviderTitle(report.provider);
@@ -237,6 +256,8 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
    */
   const countRows: Array<ConnectorCountRow> = connectorCountRows(
     connectorTestReportCounts(report),
+    undefined,
+    translator,
   );
   const samples: Array<SecurityConnectorSample> = report.samples || [];
 
@@ -261,11 +282,22 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
    * here. Pretty-printed so it pastes readably into a support ticket.
    */
   const reportJson: string = JSON.stringify(report, null, 2);
+  const reportDuration: string = formatDuration(report.durationMs, translator);
+  // The sample headers, which also name each column's resize edge.
+  const recordTitle: string = translator.translateText("Record") || "Record";
+  const severityTitle: string =
+    translator.translateText("Severity") || "Severity";
+  const createdTitle: string =
+    translator.translateText("Created (UTC)") || "Created (UTC)";
+  const eventTimeTitle: string =
+    translator.translateText("Event time (UTC)") || "Event time (UTC)";
+  const notProvided: string =
+    translator.translateText("Not provided") || "Not provided";
 
   return (
     <div
       role="region"
-      aria-label="Connection test report"
+      aria-label={translator.translateText("Connection test report")}
       className="space-y-5"
     >
       <div
@@ -276,26 +308,34 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="text-base font-semibold">
-              {summaryTitle(report.status)}
+              {translator.translateText(summaryTitle(report.status))}
             </h3>
             <p className="mt-1 text-sm">{report.summary}</p>
             <p className="mt-2 text-xs opacity-80">
-              {providerTitle} · completed{" "}
-              <time
-                dateTime={report.completedAt}
-                title={connectionTimeTitle(report.completedAt)}
-              >
-                {formatConnectionDate(report.completedAt)}
-              </time>
-              {formatDuration(report.durationMs)
-                ? ` · ${formatDuration(report.durationMs)}`
-                : ""}
+              <TranslatedSentence
+                template="{{provider}} · completed {{time}}"
+                values={{ provider: providerTitle }}
+                slots={{
+                  time: (
+                    <time
+                      dateTime={report.completedAt}
+                      title={connectionTimeTitle(
+                        report.completedAt,
+                        translator,
+                      )}
+                    >
+                      {formatConnectionDate(report.completedAt, translator)}
+                    </time>
+                  ),
+                }}
+              />
+              {reportDuration ? ` · ${reportDuration}` : ""}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {props.onRunAgain && (
               <Button
-                title="Run again"
+                title={translationKey("Run again")}
                 buttonStyle={ButtonStyleType.OUTLINE}
                 icon={IconProp.Refresh}
                 disabled={Boolean(props.isRunningAgain)}
@@ -306,7 +346,7 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
               />
             )}
             <CopyTextButton
-              label="Copy report"
+              label={translationKey("Copy report")}
               textToBeCopied={reportJson}
               size="sm"
               variant="soft"
@@ -322,7 +362,11 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
           return null;
         }
 
-        const title: string = connectorCheckGroupTitle(group, providerTitle);
+        const title: string = connectorCheckGroupTitle(
+          group,
+          providerTitle,
+          translator,
+        );
 
         return (
           <section
@@ -345,21 +389,21 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
 
       {countRows.length > 0 && (
         <section
-          aria-label="Availability counts"
+          aria-label={translator.translateText("Availability counts")}
           className="rounded-md border border-gray-200 p-4"
         >
           <h4 className="text-sm font-semibold text-gray-900">
-            Availability counts
+            {translator.translateText("Availability counts")}
           </h4>
           <div className="mt-2 overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-gray-200 text-gray-500">
                 <tr>
                   <th scope="col" className="py-2 pr-4">
-                    Measure
+                    {translator.translateText("Measure")}
                   </th>
                   <th scope="col" className="py-2">
-                    Value
+                    {translator.translateText("Value")}
                   </th>
                 </tr>
               </thead>
@@ -391,15 +435,16 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
 
       {samples.length > 0 && (
         <section
-          aria-label="Sample records"
+          aria-label={translator.translateText("Sample records")}
           className="rounded-md border border-gray-200 p-4"
         >
           <h4 className="text-sm font-semibold text-gray-900">
-            Sample records
+            {translator.translateText("Sample records")}
           </h4>
           <p className="mt-1 text-xs text-gray-500">
-            A few of the most recent records the source returned. Event time can
-            be much earlier than the time the source created the record.
+            {translator.translateText(
+              "A few of the most recent records the source returned. Event time can be much earlier than the time the source created the record.",
+            )}
           </p>
           <div className="mt-2 overflow-x-auto">
             {sampleColumns.styles}
@@ -414,44 +459,44 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
                     className="py-2 pr-4"
                     resize={sampleColumns.getResize(
                       "record",
-                      "Record",
+                      recordTitle,
                       ColumnWidthKind.Name,
                     )}
                   >
-                    <span>{"Record"}</span>
+                    <span>{recordTitle}</span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     scope="col"
                     className="py-2 pr-4"
                     resize={sampleColumns.getResize(
                       "severity",
-                      "Severity",
+                      severityTitle,
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>{"Severity"}</span>
+                    <span>{severityTitle}</span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     scope="col"
                     className="py-2 pr-4"
                     resize={sampleColumns.getResize(
                       "created",
-                      "Created (UTC)",
+                      createdTitle,
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>{"Created (UTC)"}</span>
+                    <span>{createdTitle}</span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     scope="col"
                     className="py-2"
                     resize={sampleColumns.getResize(
                       "eventTime",
-                      "Event time (UTC)",
+                      eventTimeTitle,
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>{"Event time (UTC)"}</span>
+                    <span>{eventTimeTitle}</span>
                   </ResizableHeaderCell>
                 </tr>
               </thead>
@@ -467,29 +512,40 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
                         className="border-b border-gray-100"
                       >
                         <td className="max-w-xs break-words py-2 pr-4">
-                          {sample.title || "Untitled"}
+                          {sample.title ||
+                            translator.translateText("Untitled")}
                           <div className="text-xs text-gray-500">
                             {sample.id}
                           </div>
                         </td>
                         <td className="py-2 pr-4">
-                          {sample.severity || "Unknown"}
+                          {sample.severity ||
+                            translator.translateText("Unknown")}
                         </td>
                         <td
                           className="whitespace-nowrap py-2 pr-4"
-                          title={connectionTimeTitle(sample.createdTime)}
+                          title={connectionTimeTitle(
+                            sample.createdTime,
+                            translator,
+                          )}
                         >
                           {sample.createdTime
-                            ? formatConnectionDate(sample.createdTime)
-                            : "Not provided"}
+                            ? formatConnectionDate(
+                                sample.createdTime,
+                                translator,
+                              )
+                            : notProvided}
                         </td>
                         <td
                           className="whitespace-nowrap py-2"
-                          title={connectionTimeTitle(sample.eventTime)}
+                          title={connectionTimeTitle(
+                            sample.eventTime,
+                            translator,
+                          )}
                         >
                           {sample.eventTime
-                            ? formatConnectionDate(sample.eventTime)
-                            : "Not provided"}
+                            ? formatConnectionDate(sample.eventTime, translator)
+                            : notProvided}
                         </td>
                       </tr>
                     );

@@ -34,7 +34,8 @@ const CorrelateFilterChips: FunctionComponent<ComponentProps> = (
     return <Fragment />;
   }
 
-  const connectorLabel: string = props.filter.connector === "or" ? "OR" : "AND";
+  const connectorLabel: string =
+    props.filter.connector === "or" ? t("OR") : t("AND");
 
   return (
     <div

@@ -2,6 +2,7 @@ import IconProp from "../../Icon/IconProp";
 import ProviderLogo from "../../ProviderLogo/ProviderLogo";
 import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "../GoogleSecOpsRegion";
 import SecurityEventConnectorProvider from "./SecurityEventConnectorProvider";
+import { translationKey } from "../../Translator";
 
 /*
  * Everything the product needs to know about a provider that is NOT code:
@@ -733,14 +734,17 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: true,
       alertingOnlyControl: {
-        title: "Data to import",
-        description:
+        title: translationKey("Data to import"),
+        description: translationKey(
           "Alerts are always imported because Google's API always returns them. Select Detections to also import rule matches that did not generate an alert.",
-        alertingLabel: "Alerts",
-        alertingHint: "Google's alerts API always includes alerts.",
-        nonAlertingLabel: "Detections",
-        alertingOnlySummary: "Alerts only",
-        withNonAlertingSummary: "Alerts and detections",
+        ),
+        alertingLabel: translationKey("Alerts"),
+        alertingHint: translationKey(
+          "Google's alerts API always includes alerts.",
+        ),
+        nonAlertingLabel: translationKey("Detections"),
+        alertingOnlySummary: translationKey("Alerts only"),
+        withNonAlertingSummary: translationKey("Alerts and detections"),
       },
       importedRecordName: "detection",
       cursorOverlapInMinutes: 1,

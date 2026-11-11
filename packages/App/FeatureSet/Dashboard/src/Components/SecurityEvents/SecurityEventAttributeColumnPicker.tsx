@@ -19,6 +19,8 @@ import {
   normalizeSecurityEventAttributeColumnKeys,
   searchSecurityEventAttributeKeys,
 } from "./SecurityEventAttributeColumns";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export const SECURITY_EVENT_ATTRIBUTE_COLUMN_PICKER_TEST_ID: string =
   "security-event-attribute-column-picker";
@@ -70,6 +72,7 @@ const getIconButtonClassName: (isLocked: boolean) => string = (
 const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
   const triggerRef: React.MutableRefObject<HTMLButtonElement | null> =
@@ -201,10 +204,12 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
         }}
         aria-haspopup="dialog"
         aria-expanded={isComponentVisible}
-        title="Choose source attributes to show on every event row"
+        title={translator.translateText(
+          "Choose source attributes to show on every event row",
+        )}
       >
         <Icon icon={IconProp.ViewColumns} className="h-3.5 w-3.5" />
-        <span>Columns</span>
+        <span>{translator.translateText("Columns")}</span>
         {hasSelection && (
           <span className="rounded bg-indigo-100 px-1 text-[10px] font-semibold tabular-nums text-indigo-700">
             {selectedKeys.length}
@@ -215,18 +220,19 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
       {isComponentVisible && (
         <div
           role="dialog"
-          aria-label="Attribute columns"
+          aria-label={translator.translateText("Attribute columns")}
           className="absolute left-0 right-0 z-20 mt-2 rounded-lg border border-gray-200 bg-white p-4 shadow-xl md:left-auto md:w-[26rem]"
           data-testid={SECURITY_EVENT_ATTRIBUTE_COLUMN_PICKER_PANEL_TEST_ID}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h3 className="text-sm font-semibold text-gray-900">
-                Attribute columns
+                {translator.translateText("Attribute columns")}
               </h3>
               <p className="mt-0.5 text-xs text-gray-500">
-                Show source attributes on every event row. A row that does not
-                carry one leaves it off.
+                {translator.translateText(
+                  "Show source attributes on every event row. A row that does not carry one leaves it off.",
+                )}
               </p>
             </div>
 
@@ -238,23 +244,27 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
                   updateKeys([]);
                 }}
               >
-                Clear all
+                {translator.translateText("Clear all")}
               </button>
             )}
           </div>
 
           <div className="mt-4">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-              Shown on rows
+              {translator.translateText("Shown on rows")}
             </p>
 
             {!hasSelection ? (
               <p className="rounded-md border border-dashed border-gray-200 px-3 py-3 text-xs text-gray-500">
-                None yet. Add one below, or open an event and use the column
-                button beside any of its attributes.
+                {translator.translateText(
+                  "None yet. Add one below, or open an event and use the column button beside any of its attributes.",
+                )}
               </p>
             ) : (
-              <ul className="space-y-1.5" aria-label="Attributes shown on rows">
+              <ul
+                className="space-y-1.5"
+                aria-label={translator.translateText("Attributes shown on rows")}
+              >
                 {selectedColumns.map(
                   (
                     column: SecurityEventAttributeColumn,
@@ -278,8 +288,11 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
                           <button
                             type="button"
                             className={getIconButtonClassName(index === 0)}
-                            aria-label={`Move ${column.key} up`}
-                            title="Move up"
+                            aria-label={translator.translateTemplate(
+                              "Move {{key}} up",
+                              { key: column.key },
+                            )}
+                            title={translator.translateText("Move up")}
                             disabled={index === 0}
                             onClick={() => {
                               moveKey(column.key, -1);
@@ -295,8 +308,11 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
                             className={getIconButtonClassName(
                               index === selectedColumns.length - 1,
                             )}
-                            aria-label={`Move ${column.key} down`}
-                            title="Move down"
+                            aria-label={translator.translateTemplate(
+                              "Move {{key}} down",
+                              { key: column.key },
+                            )}
+                            title={translator.translateText("Move down")}
                             disabled={index === selectedColumns.length - 1}
                             onClick={() => {
                               moveKey(column.key, 1);
@@ -310,8 +326,11 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
                           <button
                             type="button"
                             className={getIconButtonClassName(false)}
-                            aria-label={`Remove ${column.key}`}
-                            title="Remove"
+                            aria-label={translator.translateTemplate(
+                              "Remove {{key}}",
+                              { key: column.key },
+                            )}
+                            title={translator.translateText("Remove")}
                             onClick={() => {
                               removeKey(column.key);
                             }}
@@ -332,15 +351,17 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
 
           <div className="mt-4">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-              Add an attribute
+              {translator.translateText("Add an attribute")}
             </p>
 
             <input
               data-unsaved-changes-ignore
               type="text"
               value={searchQuery}
-              aria-label="Search attributes"
-              placeholder="Search attributes, e.g. user firstName"
+              aria-label={translator.translateText("Search attributes")}
+              placeholder={translator.translateText(
+                "Search attributes, e.g. user firstName",
+              )}
               autoFocus={true}
               className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-xs text-gray-700 placeholder:text-gray-400 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
               onChange={(event: ChangeEvent<HTMLInputElement>) => {
@@ -377,26 +398,30 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
                       {typedKey}
                     </p>
                     <p className="text-[10px] text-gray-500">
-                      Add this exact key as a column.
+                      {translator.translateText(
+                        "Add this exact key as a column.",
+                      )}
                     </p>
                   </div>
                   <button
                     type="button"
                     className="flex-shrink-0 rounded-md px-2 py-1 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-100 hover:text-indigo-700"
-                    aria-label={`Add ${typedKey}`}
+                    aria-label={translator.translateTemplate("Add {{key}}", {
+                      key: typedKey,
+                    })}
                     onClick={() => {
                       addKey(typedKey);
                       setSearchQuery("");
                     }}
                   >
-                    Add
+                    {translator.translateText("Add")}
                   </button>
                 </div>
               )}
 
               {props.isLoading && searchResult.total === 0 && (
                 <p className="px-1 py-2 text-xs text-gray-500">
-                  Loading attributes...
+                  {translator.translateText("Loading attributes...")}
                 </p>
               )}
 
@@ -405,8 +430,12 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
                 !canAddTypedKey && (
                   <p className="px-1 py-2 text-xs text-gray-500">
                     {typedKey
-                      ? "No attribute matches that search."
-                      : "No attributes seen on recent events yet."}
+                      ? translator.translateText(
+                          "No attribute matches that search.",
+                        )
+                      : translator.translateText(
+                          "No attributes seen on recent events yet.",
+                        )}
                   </p>
                 )}
 
@@ -433,12 +462,15 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
                       <button
                         type="button"
                         className="flex-shrink-0 rounded-md px-2 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-indigo-700"
-                        aria-label={`Add ${column.key}`}
+                        aria-label={translator.translateTemplate(
+                          "Add {{key}}",
+                          { key: column.key },
+                        )}
                         onClick={() => {
                           addKey(column.key);
                         }}
                       >
-                        Add
+                        {translator.translateText("Add")}
                       </button>
                     </div>
                   );
@@ -448,9 +480,13 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
 
             {searchResult.total > searchResult.keys.length && (
               <p className="mt-2 text-[11px] text-gray-400">
-                Showing {searchResult.keys.length.toLocaleString("en-US")} of{" "}
-                {searchResult.total.toLocaleString("en-US")} matching
-                attributes. Keep typing to narrow.
+                {translator.translateTemplate(
+                  "Showing {{shown}} of {{total}} matching attributes. Keep typing to narrow.",
+                  {
+                    shown: translator.formatNumber(searchResult.keys.length),
+                    total: translator.formatNumber(searchResult.total),
+                  },
+                )}
               </p>
             )}
           </div>

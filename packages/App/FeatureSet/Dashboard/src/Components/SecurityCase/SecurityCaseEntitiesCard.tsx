@@ -170,6 +170,20 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
+  // Each header names its column, and its resize edge, in the reader's words.
+  const entityTitle: string =
+    translator.translateText("Entity") || "Entity";
+  const typeTitle: string =
+    translator.translateText("Type") || "Type";
+  const eventsTitle: string =
+    translator.translateText("Events") || "Events";
+  const findingsTitle: string =
+    translator.translateText("Findings") || "Findings";
+  const worstSeverityTitle: string =
+    translator.translateText("Worst Severity") || "Worst Severity";
+  const lastSeenTitle: string =
+    translator.translateText("Last Seen") || "Last Seen";
+
   /*
    * The entities' columns as wide as a person makes them (Common's
    * Table/ColumnResize): an entity gives way to 10rem, a count, a
@@ -351,12 +365,12 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                     className={headerCellClassName}
                     resize={entityColumns.getResize(
                       "entity",
-                      translator.translateText("Entity") || "Entity",
+                      entityTitle,
                       ColumnWidthKind.Name,
                     )}
                   >
                     <span>
-                      {translator.translateText("Entity") || "Entity"}
+                      {entityTitle}
                     </span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
@@ -364,11 +378,11 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                     className={`${headerCellClassName} ${ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME}`}
                     resize={entityColumns.getResize(
                       "type",
-                      translator.translateText("Type") || "Type",
+                      typeTitle,
                       ColumnWidthKind.Text,
                     )}
                   >
-                    <span>{translator.translateText("Type") || "Type"}</span>
+                    <span>{typeTitle}</span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     scope="col"
@@ -378,12 +392,12 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                     )}
                     resize={entityColumns.getResize(
                       "events",
-                      translator.translateText("Events") || "Events",
+                      eventsTitle,
                       ColumnWidthKind.Whole,
                     )}
                   >
                     <span>
-                      {translator.translateText("Events") || "Events"}
+                      {eventsTitle}
                     </span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
@@ -391,12 +405,12 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                     className={`${headerCellClassName} text-right ${ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME}`}
                     resize={entityColumns.getResize(
                       "findings",
-                      translator.translateText("Findings") || "Findings",
+                      findingsTitle,
                       ColumnWidthKind.Whole,
                     )}
                   >
                     <span>
-                      {translator.translateText("Findings") || "Findings"}
+                      {findingsTitle}
                     </span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
@@ -404,14 +418,12 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                     className={`${headerCellClassName} ${ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME}`}
                     resize={entityColumns.getResize(
                       "worstSeverity",
-                      translator.translateText("Worst Severity") ||
-                        "Worst Severity",
+                      worstSeverityTitle,
                       ColumnWidthKind.Whole,
                     )}
                   >
                     <span>
-                      {translator.translateText("Worst Severity") ||
-                        "Worst Severity"}
+                      {worstSeverityTitle}
                     </span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
@@ -419,12 +431,12 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                     className={`${headerCellClassName} ${ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME}`}
                     resize={entityColumns.getResize(
                       "lastSeen",
-                      translator.translateText("Last Seen") || "Last Seen",
+                      lastSeenTitle,
                       ColumnWidthKind.Whole,
                     )}
                   >
                     <span>
-                      {translator.translateText("Last Seen") || "Last Seen"}
+                      {lastSeenTitle}
                     </span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
