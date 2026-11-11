@@ -109,14 +109,14 @@ services:
 | `notification.provider.config` | インストール自身のアカウントと設定には `global`。プロジェクト独自の Twilio アカウント、SMTP サーバー、Webhook、ワークスペース接続には `project` で、その失敗はプロジェクトが直すものです |
 | `notification.on_call_page` | オンコール呼び出しの通知なら `true`、それ以外は `false` |
 | `outcome` | 次のとおり、`success`、`failure`、`not_sent` |
-| `notification.destination` | Slack、Microsoft Teams、Mattermost のみ。一人への `direct_message`、チャネルや Teams のグループチャットへの投稿には `channel`、ステータスページ購読者のものなど受信 Webhook には `incoming_webhook` |
+| `notification.destination` | Slack、Microsoft Teams、Mattermost では、一人への `direct_message`、チャネルや Teams のグループチャットへの投稿には `channel`、ステータスページ購読者のものなど受信 Webhook には `incoming_webhook`。Webhook では、ステータスページ購読者自身の Webhook には `status_page_subscriber`。人の Webhook とほかのすべてのチャネルには付きません |
 | `notification.custom_channel.id`、`notification.custom_channel.name` | カスタムチャネルのみ。チャネルの ID と、100 文字に切り詰めた名前 |
 
 - `success`: プロバイダーがメッセージを受け付けました。
 - `failure`: プロバイダーが拒否したか到達できなかった、または送信に失敗しました。見つからなかったチャットチャネルは、所要時間のない失敗です。
 - `not_sent`: 意図的に送信されませんでした。プロジェクトがチャネルをオフにした、残高が不足している、またはブロックされている、このサーバーでプッシュがオフになっている、あるいはカスタムチャネルがオフ、削除済み、またはライセンスの対象外です。成功率にはこれらを含めません。設定が働いた結果であり、プラットフォームの障害ではないからです。
 
-ステータスページ購読者の通常の Webhook は、まだ数えられていません。
+ステータスページ購読者自身の Webhook へのメッセージは、何回試みても一回と数えます。エンドポイントが 2xx のステータスで応答したときは `success`、ほかのステータスで応答したとき、到達できなかったとき、またはアドレスが許可されていないときは `failure` です。
 
 ### 電話に届いたもの
 
@@ -155,7 +155,7 @@ services:
 | --- | --- |
 | `monitor_data_received` | モニターを作動させたデータを OneUptime が受信した時点。受信リクエスト、サーバーエージェントのレポート、受信メール、プローブのチェック、SNMP トラップ、ネットワークデバイスのポーリングのいずれかです。データが評価待ちのキューで待った時間も含まれます。 |
 | `record_created` | インシデント、アラート、エピソードが作成された時点。テレメトリーモニター、ルール、または人による作成と、停止したハートビートのような不在のチェックの場合です。 |
-| `page_started` | 呼び出しが後から開始された時点。人、ワークフロー、または新たに一致したルールが開始した場合、再度の呼び出し、直接の呼び出し、オンコールルールが求めた保留を待ち終えた呼び出しです。 |
+| `page_started` | 呼び出しが後から開始された時点。人、ワークフロー、または新たに一致したルールが開始した場合と、直接の呼び出しです。オンコールルールまたは OneUptime AI が保留した呼び出しでは保留が終わった時点、ただしそれより早く開始されたなら開始時点です。再度の呼び出しでは確認後のタイムアウトが切れた時点です。そのため、どちらかに遅れて着手したワーカーは、この時間に現れます。 |
 
 受信リクエストの場合、時間はエンドポイントが受信した最新のリクエストから数えるので、少し短く出ることがあります。
 
@@ -170,7 +170,7 @@ services:
 | `escalation` | 後のエスカレーションレベル: その前のレベルが待ち時間を終えた時点、または人が呼び出しを次に回したときはすぐ。 |
 | `policy_repeat` | 最初のレベルからやり直すポリシー: 最後のレベルの待ち時間が切れた時点。 |
 
-これも `notification.channel`、`notification.trigger.type`、そしてカスタムチャネルでは `notification.custom_channel.id` と `notification.custom_channel.name` を持ちます。呼び出しの開始時点で送るべき通知がここに入ることはありません。それは送信までの時間に入ります。
+これも `notification.channel`、`notification.trigger.type`、そしてカスタムチャネルでは `notification.custom_channel.id` と `notification.custom_channel.name` を持ちます。呼び出しの開始時点で送るべき通知がここに入ることはありません。保留の後や再度の呼び出しとして、ワーカーが呼び出しを遅れて開始した場合も同じです。それは送信までの時間に入ります。
 
 ### ヒストグラムのバケット
 
@@ -220,7 +220,7 @@ services:
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-`a` が 30000 以下にとどまる間は目標を満たしています。後から開始された呼び出しはトリガーからではなく開始時点から測られるので、除外します。`notification.page.start` でグループ化するとモニターのキュー（`monitor_data_received`）をほかと分けて見られ、`notification.channel` でグループ化すると遅いチャネルを見つけられます。
+`a` が 30000 以下にとどまる間は目標を満たしています。後から開始された呼び出しはトリガーからではなく開始時点または予定時刻から測られるので、除外します。`notification.page.start` でグループ化するとモニターのキュー（`monitor_data_received`）をほかと分けて見られ、`notification.channel` でグループ化すると遅いチャネルを見つけられます。
 
 ### 後で送信される通知が 90 秒以内に送り出される
 
