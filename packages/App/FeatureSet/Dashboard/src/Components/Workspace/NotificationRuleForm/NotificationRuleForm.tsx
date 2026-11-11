@@ -78,9 +78,8 @@ import {
   MENTION_ON_CALL_EMPTY_TEXT,
   MENTION_ON_CALL_SEARCH_PLACEHOLDER,
   MENTION_ON_CALL_TITLE,
+  getMattermostTeamOptions,
   getRuleTeamsNotJoined,
-  isMattermostTeamNotJoined,
-  MATTERMOST_TEAM_NOT_JOINED_OPTION,
   MATTERMOST_TEAM_PLACEHOLDER,
   MATTERMOST_TEAM_TITLE,
   MattermostRuleTeams,
@@ -464,26 +463,6 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     props.workspaceType === WorkspaceType.Mattermost &&
     ((props.mattermostTeams || []).length > 1 || teamsNotJoined.length > 0);
 
-  // A Mattermost team as the picker shows it: said so when the bot left it.
-  const mattermostTeamOption: (team: MattermostConnectionTeam) => {
-    label: string;
-    value: string;
-  } = (team: MattermostConnectionTeam): { label: string; value: string } => {
-    const name: string = team.displayName || team.name || team.id;
-
-    return {
-      label: isMattermostTeamNotJoined({
-        connection: props.mattermostConnection,
-        teamId: team.id,
-      })
-        ? translator.translateTemplate(MATTERMOST_TEAM_NOT_JOINED_OPTION, {
-            team: name,
-          })
-        : name,
-      value: team.id,
-    };
-  };
-
   /*
    * Where the rule's channels are: a Microsoft Teams team, a Slack
    * workspace, or a Mattermost team.
@@ -519,18 +498,12 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
           }),
         ]
       : isMattermostTeams
-        ? [
-            ...(props.mattermostTeams || []),
-            ...teamsNotJoined.filter(
-              (team: MattermostConnectionTeam): boolean => {
-                return !(props.mattermostTeams || []).some(
-                  (listed: MattermostConnectionTeam): boolean => {
-                    return listed.id === team.id;
-                  },
-                );
-              },
-            ),
-          ].map(mattermostTeamOption)
+        ? getMattermostTeamOptions({
+            connection: props.mattermostConnection,
+            teams: props.mattermostTeams || [],
+            notJoined: teamsNotJoined,
+            translator: translator,
+          })
         : [];
 
   // What the picker of the place is called, and what it says.

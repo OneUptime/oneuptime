@@ -103,10 +103,7 @@ import {
   readSlackConnectionDescription,
   SlackConnectionDescription,
 } from "../Slack/SlackOrganizationCard";
-import {
-  MattermostTeamsDescription,
-  readMattermostTeamsDescription,
-} from "../Mattermost/MattermostTeamsCard";
+import { fetchMattermostRuleTeams } from "../Mattermost/MattermostTeamsCard";
 import { canRuleCreateChannel } from "./NotificationRuleForm/NotificationRuleOwnChannel";
 import {
   SecurityCaseValueLists,
@@ -742,7 +739,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
        */
       if (props.workspaceType === WorkspaceType.Mattermost) {
         const connection: MattermostRuleTeams | undefined =
-          await loadMattermostConnection();
+          await fetchMattermostRuleTeams();
 
         setMattermostConnection(connection);
         setMattermostTeams(connection?.teams || []);
@@ -783,48 +780,6 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           workspaces: connection.workspaces,
           removedWorkspaces: connection.removedWorkspaces,
           organizationName: connection.organizationName,
-        };
-      } catch {
-        return undefined;
-      }
-    };
-
-  type LoadMattermostConnectionFunction = () => Promise<
-    MattermostRuleTeams | undefined
-  >;
-
-  const loadMattermostConnection: LoadMattermostConnectionFunction =
-    async (): Promise<MattermostRuleTeams | undefined> => {
-      try {
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.get({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              `/mattermost/connected-teams`,
-            ),
-            headers: ModelAPI.getCommonHeaders(),
-          });
-
-        if (response instanceof HTTPErrorResponse) {
-          return undefined;
-        }
-
-        const connection: MattermostTeamsDescription =
-          readMattermostTeamsDescription(response.data);
-
-        return {
-          teams: connection.teams.map(
-            (team: MattermostConnectionTeam): MattermostConnectionTeam => {
-              return {
-                id: team.id,
-                name: team.name,
-                displayName: team.displayName,
-              };
-            },
-          ),
-          removedTeams: connection.removedTeams,
-          defaultTeamId: connection.defaultTeamId || "",
-          isBotInDefaultTeam: connection.isBotInDefaultTeam,
-          areTeamsListed: connection.areTeamsListed,
         };
       } catch {
         return undefined;

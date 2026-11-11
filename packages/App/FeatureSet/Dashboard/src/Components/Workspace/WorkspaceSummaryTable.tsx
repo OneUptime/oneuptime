@@ -11,9 +11,11 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
 } from "react";
 import WorkspaceType, {
   getWorkspaceTypeDisplayName,
@@ -33,7 +35,17 @@ import NotificationRuleCondition, {
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import NotificationRuleConditions from "./NotificationRuleForm/NotificationRuleConditions";
-import { NOTIFICATION_RULE_CONDITIONS_TITLES } from "./NotificationRuleForm/NotificationRuleCopy";
+import {
+  EXISTING_CHANNELS_MATTERMOST_TEAM_DESCRIPTION,
+  getMattermostTeamOptions,
+  getMattermostTeamsNotJoined,
+  MATTERMOST_TEAM_PLACEHOLDER,
+  MATTERMOST_TEAM_TITLE,
+  MattermostRuleTeams,
+  NOTIFICATION_RULE_CONDITIONS_TITLES,
+} from "./NotificationRuleForm/NotificationRuleCopy";
+import { fetchMattermostRuleTeams } from "../Mattermost/MattermostTeamsCard";
+import { MattermostConnectionTeam } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
 import WorkspaceSummaryScheduleUtil from "Common/Utils/Workspace/WorkspaceSummarySchedule";
@@ -98,6 +110,26 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   const [incidentStates, setIncidentStates] = React.useState<
     Array<IncidentState>
   >([]);
+
+  /*
+   * A Mattermost project's connection: the teams its bot is a member of,
+   * for a summary to pick the team of its channels from, and those it was
+   * taken out of. Undefined for another workspace, or when it cannot be
+   * read: no picker, as before.
+   */
+  const [mattermostConnection, setMattermostConnection] = React.useState<
+    MattermostRuleTeams | undefined
+  >(undefined);
+
+  /*
+   * The teams the bot was taken out of that the open form's summary picks:
+   * still offered, said to be so, while the form is open - changed to
+   * another team and back too - as a notification rule's are. Emptied when
+   * the form closes, for the next one.
+   */
+  const summaryTeamsNotJoined: MutableRefObject<
+    Array<MattermostConnectionTeam>
+  > = useRef<Array<MattermostConnectionTeam>>([]);
 
   // Locked, saying why, for someone who may not send a test (TestSendLock).
   const testSummaryLock: TestSendLock = getTestSendLock(
@@ -219,6 +251,11 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         },
       );
       setIncidentStates(incStatesResult.data);
+
+      // A Mattermost summary picks the team of its channels among the bot's.
+      if (props.workspaceType === WorkspaceType.Mattermost) {
+        setMattermostConnection(await fetchMattermostRuleTeams());
+      }
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Exception));
     }
@@ -329,6 +366,9 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         isDeleteable={true}
         isEditable={true}
         createEditModalWidth={ModalWidth.Large}
+        onCreateEditModalClose={() => {
+          summaryTeamsNotJoined.current = [];
+        }}
         isCreateable={true}
         cardProps={{
           title: translator.translateTemplate(copy.cardTitle, {
@@ -479,6 +519,79 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             required: true,
             placeholder: "#incidents-summary, #engineering",
           },
+          /*
+           * Mattermost, whose bot is a member of two or more teams - or a
+           * summary that picks a team the bot was taken out of: the team its
+           * channels are in, as a notification rule picks it. Left empty,
+           * they are looked for in the default team first, then in the
+           * bot's other teams. Kept as the team's id in teamName, which the
+           * summary hands Mattermost as the team of its channels
+           * (WorkspaceNotificationSummaryService).
+           */
+          ...(props.workspaceType === WorkspaceType.Mattermost &&
+          mattermostConnection
+            ? [
+                {
+                  field: {
+                    teamName: true,
+                  },
+                  stepId: "basic",
+                  title: MATTERMOST_TEAM_TITLE,
+                  description: EXISTING_CHANNELS_MATTERMOST_TEAM_DESCRIPTION,
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  required: false,
+                  placeholder: MATTERMOST_TEAM_PLACEHOLDER,
+                  dropdownOptions: getMattermostTeamOptions({
+                    connection: mattermostConnection,
+                    teams: mattermostConnection.teams,
+                    notJoined: [],
+                    translator: translator,
+                  }),
+                  fetchDropdownOptions: async (
+                    values: FormValues<WorkspaceNotificationSummary>,
+                  ): Promise<Array<DropdownOption>> => {
+                    /*
+                     * Run each time the step opens, on the form's values: a
+                     * pick of a team the bot left is kept till the form closes.
+                     */
+                    for (const team of getMattermostTeamsNotJoined({
+                      connection: mattermostConnection,
+                      teamIds: [
+                        typeof values.teamName === "string"
+                          ? values.teamName
+                          : undefined,
+                      ],
+                    })) {
+                      if (
+                        !summaryTeamsNotJoined.current.some(
+                          (kept: MattermostConnectionTeam): boolean => {
+                            return kept.id === team.id;
+                          },
+                        )
+                      ) {
+                        summaryTeamsNotJoined.current = [
+                          ...summaryTeamsNotJoined.current,
+                          team,
+                        ];
+                      }
+                    }
+
+                    return getMattermostTeamOptions({
+                      connection: mattermostConnection,
+                      teams: mattermostConnection.teams,
+                      notJoined: summaryTeamsNotJoined.current,
+                      translator: translator,
+                    });
+                  },
+                  showIf: (): boolean => {
+                    return (
+                      mattermostConnection.teams.length > 1 ||
+                      summaryTeamsNotJoined.current.length > 0
+                    );
+                  },
+                },
+              ]
+            : []),
           ...(props.workspaceType === WorkspaceType.MicrosoftTeams
             ? [
                 {
