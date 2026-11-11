@@ -5253,4 +5253,74 @@ export default class Project extends TenantModel {
     transformer: getDecimalDatabaseTransformer(),
   })
   public securityEventsIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  /*
+   * What the project came to do (issue #6803): the goals its owner ticked
+   * when Home asked "What do you want to do first?", as ProjectGoal values
+   * (Types/WelcomeChecklist/ProjectGoal). Null: never answered. Empty: the
+   * question was skipped. Read it with parseProjectGoals.
+   *
+   * Every member reads it - the Welcome checklist on Home is built from it,
+   * and #6814 starts a project's products from it. Nobody writes it through
+   * the API: it is chosen through POST /welcome-checklist/goals, which only
+   * an Owner or Admin may call (WelcomeChecklistAPI).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Goals",
+    description:
+      "What the project came to do, as its owner answered on Home: uptime, on_call, status_page, telemetry, infrastructure, import or explore. Empty: the question was skipped. Not set: never answered.",
+    example: '["uptime", "status_page"]',
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+    unique: false,
+  })
+  public goals?: Array<string> = undefined;
+
+  /*
+   * The Welcome checklist's state, kept on the server so every member and
+   * every device sees the same checklist (issue #6803,
+   * Types/WelcomeChecklist/WelcomeChecklistState): when the goals were
+   * chosen and by whom, when the checklist finished, and the members who
+   * hid it for themselves. Null on a project from before the checklist was
+   * kept here; a project created now starts with startedWithOutcomes.
+   *
+   * Internal: read and written only by the server (WelcomeChecklistService),
+   * which answers Home with what it means for the person asking.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.JSON,
+    title: "Welcome Checklist State",
+    description:
+      "When the project's goals were chosen, when its Welcome checklist finished, and the members who hid it. Managed by the server.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+    unique: false,
+  })
+  public welcomeChecklistState?: JSONObject = undefined;
 }
