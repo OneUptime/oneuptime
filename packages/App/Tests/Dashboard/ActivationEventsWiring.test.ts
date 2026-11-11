@@ -110,21 +110,35 @@ describe("the Dashboard's behaviour events", () => {
     );
   });
 
-  test("the Welcome checklist: its progress is noted once its steps were checked, with every step's key", () => {
+  test("the Welcome checklist: its progress is noted from the server's answer, with the steps that count and the goals", () => {
     const source: string = read("Components/Home/GettingStarted.tsx");
 
-    const noted: number = source.indexOf("ChecklistEvents.noteProgress({");
-    const emptyReturn: number = source.indexOf(
-      "if (Object.keys(completion).length === 0) {",
+    const effect: number = source.indexOf("ChecklistEvents.noteProgress({");
+    // Only for the people setting the project up, and only with steps.
+    const guard: number = source.indexOf(
+      "answer.audience !== WelcomeAudience.SetUp ||",
     );
 
-    expect(noted).toBeGreaterThan(emptyReturn);
-    expect(noted).toBeLessThan(
-      source.indexOf("setTaskCompletion(completion);"),
-    );
+    expect(guard).toBeGreaterThan(-1);
+    expect(effect).toBeGreaterThan(guard);
     expect(source).toMatch(
-      /ChecklistEvents\.noteProgress\(\{\s*projectId: props\.projectId\.toString\(\),\s*current: completion,\s*stepKeys: gettingStartedTasks\.map\(/,
+      /ChecklistEvents\.noteProgress\(\{\s*projectId: projectIdString,\s*current: current,\s*stepKeys: counted\.map\(/,
     );
+    expect(source).toMatch(/goals: goalsEventValue,\s*\}\);\s*\}, \[answer\]\);/);
+  });
+
+  test("the Welcome checklist: goals chosen, a step started and the card hidden go through ProductEvents.send", () => {
+    const source: string = read("Components/Home/GettingStarted.tsx");
+
+    for (const event of [
+      "ProductEventName.GoalsChosen",
+      "ProductEventName.ChecklistStepStarted",
+      "ProductEventName.ChecklistDismissed",
+    ]) {
+      expect(source).toContain(`ProductEvents.send(${event}, {`);
+    }
+
+    expect(source).not.toMatch(/UiAnalytics\.capture\(\s*"home\//);
   });
 
   test("no page sends a catalog event any way but through ProductEvents.send", () => {

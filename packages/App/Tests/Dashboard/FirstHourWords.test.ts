@@ -43,7 +43,15 @@ const CREATE_MONITOR_DESCRIPTION: string =
 
 const WHITESPACE_RUN: RegExp = /\s+/g;
 
+/*
+ * The Welcome checklist ticks its steps on outcomes since #6803, and each
+ * step says when it is done: the on-call step's sentence gained "Done when
+ * ...", and still says who is told until then.
+ */
 const ON_CALL_STEP_DESCRIPTION: string =
+  "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the project's owners get an email.";
+
+const PREVIOUS_ON_CALL_STEP_DESCRIPTION: string =
   "Page the right person when an incident or alert opens. Until then, the project's owners get an email.";
 
 const EVERY_NEW_EVENT_TITLE: string =
@@ -63,6 +71,7 @@ const NEW_SENTENCES: Array<string> = [
 const RETIRED_SENTENCES: Array<string> = [
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change.",
   "Route alerts and incidents to the right person at the right time.",
+  PREVIOUS_ON_CALL_STEP_DESCRIPTION,
 ];
 
 /*
@@ -105,13 +114,17 @@ describe("where the newcomer reads it", () => {
       DASHBOARD_SRC,
       "Components",
       "Home",
-      "GettingStarted.tsx",
-    );
+      "WelcomeChecklist",
+      "WelcomeChecklistCatalog.ts",
+    ).replace(WHITESPACE_RUN, " ");
+    const start: number = checklist.indexOf("step: WelcomeStep.OnCall,");
     const step: string = checklist.slice(
-      checklist.indexOf('key: "create-on-call-policy"'),
+      start,
+      checklist.indexOf("step: WelcomeStep.StatusPage,", start),
     );
 
-    expect(step).toContain('title: "Set up an on-call policy"');
+    expect(start).toBeGreaterThan(-1);
+    expect(step).toContain('title: translationKey("Set up an on-call policy")');
     expect(step).toContain(`"${ON_CALL_STEP_DESCRIPTION}"`);
   });
 
@@ -133,6 +146,13 @@ describe("where the newcomer reads it", () => {
     const sources: Array<string> = [
       read(DASHBOARD_SRC, "Pages", "Monitor", "Create.tsx"),
       read(DASHBOARD_SRC, "Components", "Home", "GettingStarted.tsx"),
+      read(
+        DASHBOARD_SRC,
+        "Components",
+        "Home",
+        "WelcomeChecklist",
+        "WelcomeChecklistCatalog.ts",
+      ),
     ];
 
     for (const retired of RETIRED_SENTENCES) {
