@@ -1,4 +1,3 @@
-import MailTransportType from "../../../Types/Email/MailTransportType";
 import "@testing-library/jest-dom";
 import {
   afterEach,
@@ -22,49 +21,28 @@ import fs from "fs";
 import path from "path";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
-import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * The Admin Dashboard's "Finish setting up this server" card (#5229's
- * follow-ups): on a self-hosted server whose email, HTTPS or sign-ups are
- * still open, at the top of the Admin Dashboard's first page (Users), with
- * each one's state and the place that changes it:
+ * FINISH SETTING UP THIS SERVER: THE ADMIN DASHBOARD'S SERVER SETUP PAGE
+ * (#6824, after #5229's three-item card on Admin > Users).
  *
- *   - Email: done when the mail server it sends through has its address and
- *     sender (Custom SMTP's host and From address, or SendGrid's From
- *     address); "Set up email" opens Settings > Emails;
- *   - HTTPS: done when HTTP_PROTOCOL=https and the page came over HTTPS;
- *     "How to set up HTTPS" opens the guide in a new tab, and says so. A
- *     page that came over HTTPS to a server still set to HTTP (a proxy in
- *     front) is told just that - not that passwords cross the network
- *     unencrypted (fu-platform's review). The reverse - a server set to
- *     HTTPS whose page came over plain HTTP - is told that only this visit
- *     is left, and "Open over HTTPS" opens the page at the HTTPS address
- *     OneUptime's links point to (fu-platform-next);
- *   - Sign-ups: done once sign-ups are off; "Choose who can sign up" opens
- *     Settings > Authentication.
+ * Every check the server answers, in three sections - required (email,
+ * HTTPS, who can sign up), recommended (SMS and calls, probes, backups,
+ * update checks) and, folded, optional (browser push, AI, single sign-on).
+ * Each row says what it is for and where it stands, what that was checked
+ * against ("smtp.example.com accepted an email on ...", "Chosen by Ada
+ * Lovelace on ..."), and offers the one thing to do next: the page that
+ * sets it up, a test send, a guide, or the admin's own choice ("Use email
+ * and push only", "This server is backed up"), which can be undone.
  *
- * It draws nothing on OneUptime Cloud, once all three are done, once its
- * admin hides it in this browser, or when the settings cannot be read. In
- * every language the Admin Dashboard speaks.
+ * HTTPS is the one check this page knows more about than the server: a
+ * proxy in front that OneUptime was not told about, and an http:// visit
+ * to a server set to HTTPS, are each said as what they are. In every
+ * language the Admin Dashboard speaks.
  */
 
-const mockGetItem: MockFunction = getJestMockFunction();
-let mockBillingEnabled: boolean = false;
 let mockHttpProtocol: string = "http";
-// The server's HOST setting, as the Admin Dashboard is handed it.
 let mockHost: string = "oneuptime.example.com";
-
-jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
-  return {
-    __esModule: true,
-    default: {
-      getItem: (...args: Array<unknown>): unknown => {
-        return mockGetItem(...args);
-      },
-    },
-  };
-});
 
 jest.mock("../../../UI/Config", () => {
   const actual: Record<string, unknown> = jest.requireActual(
@@ -76,11 +54,6 @@ jest.mock("../../../UI/Config", () => {
     ) as typeof import("../../../Types/API/Protocol");
   const mocked: Record<string, unknown> = { ...actual };
 
-  Object.defineProperty(mocked, "BILLING_ENABLED", {
-    get: (): boolean => {
-      return mockBillingEnabled;
-    },
-  });
   Object.defineProperty(mocked, "HTTP_PROTOCOL", {
     get: (): unknown => {
       return mockHttpProtocol === "https"
@@ -98,40 +71,51 @@ jest.mock("../../../UI/Config", () => {
 });
 
 import ServerSetupChecklist, {
-  SERVER_SETUP_COPY,
-  SERVER_SETUP_HIDDEN_STORAGE_KEY,
-  SERVER_SETUP_HTTPS_GUIDE,
-  ServerSetupItem,
-  ServerSetupItemName,
+  formatServerSetupTime,
   getHttpsAddress,
-  getServerSetupItems,
-  isEmailSetUp,
+  getServerSetupRows,
   isHttpsOnlyBeforeOneUptime,
   isOpenedOverHttpWhileSetToHttps,
   isServedOverHttps,
+  SERVER_SETUP_COPY,
+  ServerSetupAction,
+  ServerSetupRow,
 } from "../../../../App/FeatureSet/AdminDashboard/src/Components/ServerSetup/ServerSetupChecklist";
-import PageMap from "../../../../App/FeatureSet/AdminDashboard/src/Utils/PageMap";
-import RouteMap from "../../../../App/FeatureSet/AdminDashboard/src/Utils/RouteMap";
-import GlobalConfig, {
-  EmailServerType,
-} from "../../../Models/DatabaseModels/GlobalConfig";
+import { SERVER_TEST_CARD_COPY } from "../../../../App/FeatureSet/AdminDashboard/src/Components/ServerSetup/ServerTestCard";
+import {
+  SERVER_SETUP_PAGE_LOAD_ERROR,
+  SERVER_SETUP_PAGE_TITLE,
+} from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Setup/Index";
 import Protocol from "../../../Types/API/Protocol";
+import {
+  ServerChannelStatus,
+  ServerSendingChannel,
+  ServerSendingState,
+} from "../../../Types/ServerSending/ServerSendingStatus";
+import ServerSetupChecklistUtil, {
+  SERVER_SETUP_CHECKED_WORDS,
+  SERVER_SETUP_CHECKS,
+  SERVER_SETUP_GUIDES,
+  SERVER_SETUP_STATUS_WORDS,
+  ServerSetupCheckDefinition,
+  ServerSetupCheckId,
+  ServerSetupChecklistAnswer,
+  ServerSetupChoiceKind,
+  ServerSetupChoices,
+  ServerSetupFacts,
+} from "../../../Types/ServerSetup/ServerSetupChecklist";
+import { SERVER_TEST_SEND_WORDS } from "../../../Types/ServerSetup/ServerTestSend";
+import {
+  fillTemplate,
+  getTemplatePlaceholders,
+} from "../../../Types/Translator";
+import ServerSetupChecklistLoader from "../../../UI/Utils/ServerSetupChecklist";
 import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const LOCALES_DIR: string = path.join(
   __dirname,
-  "..",
-  "..",
-  "..",
-  "..",
-  "App",
-  "FeatureSet",
-  "AdminDashboard",
-  "src",
-  "Locales",
+  "../../../../App/FeatureSet/AdminDashboard/src/Locales",
 );
-
-const OTHER_LOCALES: Array<string> = [...ADMIN_DASHBOARD_LANGUAGES];
 
 type Locale = Record<string, unknown>;
 
@@ -167,68 +151,153 @@ async function flush(): Promise<void> {
   });
 }
 
-const config: (values: Partial<GlobalConfig>) => GlobalConfig = (
-  values: Partial<GlobalConfig>,
-): GlobalConfig => {
-  return Object.assign(new GlobalConfig(), values);
+const EARLIER: string = "2026-11-10T09:30:00.000Z";
+
+function channel(
+  name: ServerSendingChannel,
+  state: ServerSendingState,
+  overrides: Partial<ServerChannelStatus> = {},
+): ServerChannelStatus {
+  return {
+    channel: name,
+    state: state,
+    hasWorked: state === ServerSendingState.Working,
+    lastWorkedAt: state === ServerSendingState.Working ? EARLIER : null,
+    failingSince: state === ServerSendingState.Failing ? EARLIER : null,
+    lastFailure:
+      state === ServerSendingState.Failing ? "535 Authentication failed" : null,
+    setUpProblem:
+      state === ServerSendingState.NotSetUp
+        ? "Nothing is set up under Settings > Emails yet."
+        : null,
+    ...overrides,
+  };
+}
+
+function facts(overrides: Partial<ServerSetupFacts> = {}): ServerSetupFacts {
+  return {
+    isHttpsSetUp: false,
+    areSignupsClosed: false,
+    email: channel(ServerSendingChannel.Email, ServerSendingState.NotSetUp),
+    sms: channel(ServerSendingChannel.SMS, ServerSendingState.NotSetUp),
+    call: channel(ServerSendingChannel.Call, ServerSendingState.NotSetUp),
+    emailSentThrough: "smtp.example.com",
+    smsSentThrough: "Twilio",
+    callSentThrough: "Twilio",
+    globalProbes: { total: 1, reporting: 0 },
+    updateChecks: {
+      isDisabled: false,
+      lastCheckedAt: EARLIER,
+      lastFailure: null,
+    },
+    lastBackup: null,
+    hasScheduledBackups: false,
+    isBrowserPushSetUp: false,
+    hasAiProvider: false,
+    hasSingleSignOn: false,
+    choices: { choices: {}, hiddenBy: {} },
+    ...overrides,
+  };
+}
+
+function answerFor(
+  values: Partial<ServerSetupFacts> = {},
+): ServerSetupChecklistAnswer {
+  return ServerSetupChecklistUtil.getAnswer({
+    facts: facts(values),
+    readerUserId: null,
+  });
+}
+
+function chose(
+  check: ServerSetupCheckId,
+  kind: ServerSetupChoiceKind,
+): ServerSetupChoices {
+  return {
+    choices: { [check]: { kind: kind, at: EARLIER, byUserId: "ada" } },
+    hiddenBy: {},
+  };
+}
+
+const formatTime: (iso: string | null) => string = (
+  iso: string | null,
+): string => {
+  return iso ? `[${iso}]` : "";
 };
 
-const NOTHING_SET_UP: GlobalConfig = config({ disableSignup: false });
+function rowsFor(
+  answer: ServerSetupChecklistAnswer,
+  page: { httpProtocol?: Protocol; pageProtocol?: string } = {},
+): Array<ServerSetupRow> {
+  return getServerSetupRows({
+    answer: answer,
+    page: {
+      httpProtocol: page.httpProtocol || Protocol.HTTP,
+      pageProtocol: page.pageProtocol || "http:",
+      httpsAddress: "https://oneuptime.example.com/admin/setup",
+    },
+    formatTime: formatTime,
+  });
+}
+
+function row(
+  rows: Array<ServerSetupRow>,
+  id: ServerSetupCheckId,
+): ServerSetupRow {
+  return rows.find((candidate: ServerSetupRow) => {
+    return candidate.id === id;
+  })!;
+}
+
+function words(sentence: {
+  template: string;
+  values: Record<string, string>;
+}): string {
+  return fillTemplate(sentence.template, sentence.values);
+}
+
+function actionsOf(target: ServerSetupRow): Array<string> {
+  return target.actions.map((action: ServerSetupAction) => {
+    return [
+      action.kind,
+      action.title,
+      action.route?.toString() || action.url || action.channel || "",
+      action.isSecondary ? "secondary" : "",
+    ]
+      .filter(Boolean)
+      .join(" | ");
+  });
+}
 
 async function renderIn(
   locale: string,
+  answer: ServerSetupChecklistAnswer,
   pageProtocol: string = "http:",
-): Promise<HTMLElement | null> {
+  onAnswer: (answer: ServerSetupChecklistAnswer | null) => void = () => {},
+): Promise<HTMLElement> {
   const instance: i18n = await instanceFor(locale);
 
   render(
     <I18nextProvider i18n={instance}>
       <MemoryRouter>
-        <ServerSetupChecklist pageProtocol={pageProtocol} />
+        <ServerSetupChecklist
+          answer={answer}
+          onAnswer={onAnswer}
+          pageProtocol={pageProtocol}
+        />
       </MemoryRouter>
     </I18nextProvider>,
   );
 
   await flush();
 
-  return screen.queryByTestId("server-setup-checklist");
+  return screen.getByTestId("server-setup-checklist");
 }
 
-// The copy's words as one list, in the order a locale must have them.
-const COPY_WORDS: Array<string> = [
-  SERVER_SETUP_COPY.title,
-  SERVER_SETUP_COPY.description,
-  SERVER_SETUP_COPY.hide,
-  SERVER_SETUP_COPY.email.title,
-  SERVER_SETUP_COPY.email.done,
-  SERVER_SETUP_COPY.email.open,
-  SERVER_SETUP_COPY.email.action,
-  SERVER_SETUP_COPY.https.title,
-  SERVER_SETUP_COPY.https.done,
-  SERVER_SETUP_COPY.https.open,
-  SERVER_SETUP_COPY.https.onlyBeforeOneUptime,
-  SERVER_SETUP_COPY.https.openedOverHttp,
-  SERVER_SETUP_COPY.https.action,
-  SERVER_SETUP_COPY.https.openOverHttps,
-  SERVER_SETUP_COPY.signups.title,
-  SERVER_SETUP_COPY.signups.done,
-  SERVER_SETUP_COPY.signups.open,
-  SERVER_SETUP_COPY.signups.action,
-  SERVER_SETUP_COPY.doneLabel,
-  SERVER_SETUP_COPY.openLabel,
-  SERVER_SETUP_COPY.opensInNewTab,
-];
-
 beforeEach(() => {
-  mockGetItem.mockReset();
-  mockGetItem.mockImplementation(async () => {
-    return NOTHING_SET_UP;
-  });
-  mockBillingEnabled = false;
   mockHttpProtocol = "http";
   mockHost = "oneuptime.example.com";
-  window.localStorage.clear();
-  window.history.replaceState({}, "", "/admin/users");
+  window.history.replaceState({}, "", "/admin/setup");
 });
 
 afterEach(() => {
@@ -236,671 +305,697 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("isEmailSetUp", () => {
-  test("Custom SMTP, also when nothing was picked: its host and its sender", () => {
-    expect(isEmailSetUp({})).toBe(false);
-    expect(isEmailSetUp({ smtpHost: "smtp.example.com" })).toBe(false);
-    expect(isEmailSetUp({ smtpFromEmail: "ops@example.com" })).toBe(false);
-    expect(
-      isEmailSetUp({
-        smtpHost: "smtp.example.com",
-        smtpFromEmail: "ops@example.com",
-      }),
-    ).toBe(true);
-    expect(
-      isEmailSetUp({
-        emailServerType: EmailServerType.CustomSMTP,
-        smtpHost: " ",
-        smtpFromEmail: "ops@example.com",
-      }),
-    ).toBe(false);
-  });
-
-  test("Microsoft Graph: its OAuth app and its mailbox, no host", () => {
-    expect(
-      isEmailSetUp({
-        smtpTransportType: MailTransportType.MicrosoftGraph,
-        smtpFromEmail: "ops@example.com",
-      }),
-    ).toBe(false);
-    expect(
-      isEmailSetUp({
-        emailServerType: EmailServerType.CustomSMTP,
-        smtpTransportType: MailTransportType.MicrosoftGraph,
-        smtpClientId: "client-id",
-        smtpFromEmail: "ops@example.com",
-      }),
-    ).toBe(true);
-  });
-
-  test("Amazon SES: its access key ID, its Region and its sender", () => {
-    const ses: Record<string, unknown> = {
-      emailServerType: EmailServerType.AmazonSES,
-      amazonSesAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
-      amazonSesRegion: "us-east-1",
-      amazonSesFromEmail: "ops@example.com",
-    };
-
-    expect(isEmailSetUp(ses as never)).toBe(true);
-
-    for (const missing of [
-      "amazonSesAccessKeyId",
-      "amazonSesRegion",
-      "amazonSesFromEmail",
-    ]) {
-      expect({
-        missing,
-        setUp: isEmailSetUp({ ...ses, [missing]: "" } as never),
-      }).toEqual({ missing, setUp: false });
-    }
-
-    // Whatever the SMTP fields hold.
-    expect(
-      isEmailSetUp({
-        emailServerType: EmailServerType.AmazonSES,
-        smtpHost: "smtp.example.com",
-        smtpFromEmail: "ops@example.com",
-      }),
-    ).toBe(false);
-  });
-
-  test("Mailgun: its domain and its sender", () => {
-    expect(
-      isEmailSetUp({
-        emailServerType: EmailServerType.Mailgun,
-        mailgunDomain: "mg.example.com",
-        mailgunFromEmail: "ops@mg.example.com",
-      }),
-    ).toBe(true);
-    expect(
-      isEmailSetUp({
-        emailServerType: EmailServerType.Mailgun,
-        mailgunFromEmail: "ops@mg.example.com",
-      }),
-    ).toBe(false);
-  });
-
-  test("Postmark and Resend: their sender", () => {
-    expect(
-      isEmailSetUp({
-        emailServerType: EmailServerType.Postmark,
-        postmarkFromEmail: "ops@example.com",
-      }),
-    ).toBe(true);
-    expect(
-      isEmailSetUp({
-        emailServerType: EmailServerType.Resend,
-        resendFromEmail: "ops@example.com",
-      }),
-    ).toBe(true);
-    expect(isEmailSetUp({ emailServerType: EmailServerType.Postmark })).toBe(
-      false,
-    );
-    expect(
-      isEmailSetUp({
-        emailServerType: EmailServerType.Resend,
-        postmarkFromEmail: "ops@example.com",
-      }),
-    ).toBe(false);
-  });
-
-  test("SendGrid: its sender, whatever the SMTP fields hold", () => {
-    expect(
-      isEmailSetUp({
-        emailServerType: EmailServerType.Sendgrid,
-        smtpHost: "smtp.example.com",
-        smtpFromEmail: "ops@example.com",
-      }),
-    ).toBe(false);
-    expect(
-      isEmailSetUp({
-        emailServerType: EmailServerType.Sendgrid,
-        sendgridFromEmail: "ops@example.com",
-      }),
-    ).toBe(true);
-  });
-});
-
-describe("isServedOverHttps", () => {
-  test("only when OneUptime is told so and the page came over HTTPS", () => {
+describe("HTTPS, as this page sees it", () => {
+  test("done only when OneUptime is told so and the page came over HTTPS", () => {
     expect(isServedOverHttps(Protocol.HTTPS, "https:")).toBe(true);
     expect(isServedOverHttps(Protocol.HTTP, "http:")).toBe(false);
-    // A proxy in front serves HTTPS, but OneUptime still writes http:// links and plain cookies.
     expect(isServedOverHttps(Protocol.HTTP, "https:")).toBe(false);
     expect(isServedOverHttps(Protocol.HTTPS, "http:")).toBe(false);
   });
-});
 
-describe("isHttpsOnlyBeforeOneUptime", () => {
-  test("only when the page came over HTTPS and OneUptime is still set to HTTP", () => {
+  test("a proxy in front, and an http:// visit to a server set to HTTPS, are each told apart", () => {
     expect(isHttpsOnlyBeforeOneUptime(Protocol.HTTP, "https:")).toBe(true);
     expect(isHttpsOnlyBeforeOneUptime(Protocol.HTTPS, "https:")).toBe(false);
-    expect(isHttpsOnlyBeforeOneUptime(Protocol.HTTP, "http:")).toBe(false);
-    expect(isHttpsOnlyBeforeOneUptime(Protocol.HTTPS, "http:")).toBe(false);
-  });
-});
-
-describe("isOpenedOverHttpWhileSetToHttps", () => {
-  test("only when OneUptime is set to HTTPS and the page came over HTTP", () => {
     expect(isOpenedOverHttpWhileSetToHttps(Protocol.HTTPS, "http:")).toBe(true);
-    expect(isOpenedOverHttpWhileSetToHttps(Protocol.HTTPS, "https:")).toBe(
-      false,
-    );
     expect(isOpenedOverHttpWhileSetToHttps(Protocol.HTTP, "http:")).toBe(false);
-    expect(isOpenedOverHttpWhileSetToHttps(Protocol.HTTP, "https:")).toBe(
-      false,
-    );
-  });
 
-  test("never at the same time as the other two answers", () => {
     for (const setting of [Protocol.HTTP, Protocol.HTTPS]) {
       for (const page of ["http:", "https:"]) {
-        const answers: Array<boolean> = [
-          isServedOverHttps(setting, page),
-          isHttpsOnlyBeforeOneUptime(setting, page),
-          isOpenedOverHttpWhileSetToHttps(setting, page),
-        ];
-
         expect(
-          answers.filter((answer: boolean) => {
-            return answer;
-          }).length,
+          [
+            isServedOverHttps(setting, page),
+            isHttpsOnlyBeforeOneUptime(setting, page),
+            isOpenedOverHttpWhileSetToHttps(setting, page),
+          ].filter(Boolean).length,
         ).toBeLessThanOrEqual(1);
       }
     }
   });
-});
 
-describe("getHttpsAddress", () => {
-  const location: (
-    host: string,
-    pathname: string,
-    search?: string,
-  ) => { host: string; pathname: string; search: string } = (
-    host: string,
-    pathname: string,
-    search: string = "",
-  ): { host: string; pathname: string; search: string } => {
-    return { host, pathname, search };
-  };
-
-  test("this page, over HTTPS, at the address OneUptime's links point to", () => {
+  test("the HTTPS address is this page at HOST, its port kept; without a HOST, the page's own", () => {
     expect(
       getHttpsAddress({
         host: "oneuptime.example.com",
-        location: location("oneuptime.example.com", "/admin/users"),
+        location: {
+          host: "203.0.113.7",
+          pathname: "/admin/setup",
+          search: "?a=1",
+        },
       }),
-    ).toBe("https://oneuptime.example.com/admin/users");
-  });
-
-  test("a visit through the server's IP address moves to HOST, whose certificate it is", () => {
-    expect(
-      getHttpsAddress({
-        host: "oneuptime.example.com",
-        location: location("203.0.113.7", "/admin/users", "?page=2"),
-      }),
-    ).toBe("https://oneuptime.example.com/admin/users?page=2");
-  });
-
-  test("a HOST with a port keeps it", () => {
+    ).toBe("https://oneuptime.example.com/admin/setup?a=1");
     expect(
       getHttpsAddress({
         host: "oneuptime.example.com:8443",
-        location: location("10.0.0.5:8080", "/admin/users"),
+        location: {
+          host: "10.0.0.5:8080",
+          pathname: "/admin/setup",
+          search: "",
+        },
       }),
-    ).toBe("https://oneuptime.example.com:8443/admin/users");
+    ).toBe("https://oneuptime.example.com:8443/admin/setup");
+    expect(
+      getHttpsAddress({
+        host: " ",
+        location: { host: "10.0.0.5", pathname: "/admin/setup", search: "" },
+      }),
+    ).toBe("https://10.0.0.5/admin/setup");
+  });
+});
+
+describe("the rows of a server that has just started", () => {
+  const rows: Array<ServerSetupRow> = rowsFor(answerFor());
+
+  test("every check, in order, in its section", () => {
+    expect(
+      rows.map((target: ServerSetupRow) => {
+        return [target.id, target.tier, target.isFinished];
+      }),
+    ).toEqual(
+      SERVER_SETUP_CHECKS.map((definition: ServerSetupCheckDefinition) => {
+        return [
+          definition.id,
+          definition.tier,
+          definition.id === ServerSetupCheckId.UpdateChecks,
+        ];
+      }),
+    );
   });
 
-  test("without a HOST, the address the page came to", () => {
-    for (const host of ["", "  "]) {
-      expect(
-        getHttpsAddress({
-          host,
-          location: location("10.0.0.5", "/admin/settings/host"),
+  test("email: what is missing, and Set up email", () => {
+    const email: ServerSetupRow = row(rows, ServerSetupCheckId.Email);
+
+    expect(words(email.status)).toBe(
+      "Not set up yet: OneUptime cannot send invitations, password resets or alerts by email.",
+    );
+    expect(email.checked.map(words)).toEqual([
+      "Nothing is set up under Settings > Emails yet.",
+    ]);
+    expect(actionsOf(email)).toEqual([
+      "route | Set up email | /admin/settings/smtp",
+    ]);
+  });
+
+  test("HTTPS: the guide, opened in a new tab", () => {
+    expect(actionsOf(row(rows, ServerSetupCheckId.Https))).toEqual([
+      `guide | How to set up HTTPS | ${SERVER_SETUP_GUIDES.https}`,
+    ]);
+  });
+
+  test("sign-ups: Choose who can sign up, or keep them open", () => {
+    expect(actionsOf(row(rows, ServerSetupCheckId.Signups))).toEqual([
+      "route | Choose who can sign up | /admin/settings/authentication",
+      "choose | Keep sign-ups open | secondary",
+    ]);
+  });
+
+  test("SMS and calls: set them up, or use email and push only", () => {
+    const sms: ServerSetupRow = row(rows, ServerSetupCheckId.SmsAndCalls);
+
+    expect(words(sms.status)).toBe(
+      "Not set up yet: on-call alerts can only go out by email and push.",
+    );
+    expect(actionsOf(sms)).toEqual([
+      "route | Set up SMS and calls | /admin/settings/call-and-sms",
+      "choose | Use email and push only | secondary",
+    ]);
+  });
+
+  test("probes: see the global probes, or not needed", () => {
+    expect(actionsOf(row(rows, ServerSetupCheckId.Probes))).toEqual([
+      "route | See global probes | /admin/settings/probes",
+      "choose | Not needed | secondary",
+    ]);
+  });
+
+  test("backups on the Community Edition: the guide, or confirm", () => {
+    expect(actionsOf(row(rows, ServerSetupCheckId.Backups))).toEqual([
+      `guide | How to back up | ${SERVER_SETUP_GUIDES.backups}`,
+      "choose | This server is backed up | secondary",
+    ]);
+  });
+
+  test("backups on the Enterprise Edition: its scheduled backups page", () => {
+    const backups: ServerSetupRow = row(
+      rowsFor(answerFor({ hasScheduledBackups: true })),
+      ServerSetupCheckId.Backups,
+    );
+
+    expect(actionsOf(backups)[0]).toBe(
+      "route | Set up backups | /admin/settings/backups",
+    );
+  });
+
+  test("update checks: on, and when they last checked", () => {
+    const updates: ServerSetupRow = row(rows, ServerSetupCheckId.UpdateChecks);
+
+    expect(updates.checked.map(words)).toEqual([
+      `Last checked on [${EARLIER}].`,
+    ]);
+    expect(updates.actions).toEqual([]);
+  });
+
+  test("optional: a guide or a page each, never a choice", () => {
+    expect(actionsOf(row(rows, ServerSetupCheckId.BrowserPush))).toEqual([
+      `guide | Read the guide | ${SERVER_SETUP_GUIDES.browserPush}`,
+    ]);
+    expect(actionsOf(row(rows, ServerSetupCheckId.AiProvider))).toEqual([
+      "route | Add an AI provider | /admin/settings/llm-providers",
+    ]);
+    expect(actionsOf(row(rows, ServerSetupCheckId.SingleSignOn))).toEqual([
+      "route | Set up single sign-on | /admin/settings/sso",
+    ]);
+  });
+});
+
+describe("what done was checked against", () => {
+  test("email working: what accepted it and when, nothing to do", () => {
+    const email: ServerSetupRow = row(
+      rowsFor(
+        answerFor({
+          email: channel(
+            ServerSendingChannel.Email,
+            ServerSendingState.Working,
+          ),
         }),
-      ).toBe("https://10.0.0.5/admin/settings/host");
-    }
-  });
-});
-
-describe("getServerSetupItems", () => {
-  test("email, HTTPS and sign-ups, in that order, each with the place that changes it", () => {
-    const items: Array<ServerSetupItem> = getServerSetupItems({
-      emailIsSetUp: false,
-      isServedOverHttps: false,
-      signupsAreClosed: false,
-    });
-
-    expect(
-      items.map((item: ServerSetupItem) => {
-        return item.name;
-      }),
-    ).toEqual([
-      ServerSetupItemName.Email,
-      ServerSetupItemName.Https,
-      ServerSetupItemName.Signups,
-    ]);
-    expect(items[0]!.route?.toString()).toBe(
-      RouteMap[PageMap.SETTINGS_SMTP]!.toString(),
-    );
-    expect(items[1]!.guideUrl).toBe(SERVER_SETUP_HTTPS_GUIDE);
-    expect(items[1]!.route).toBeUndefined();
-    expect(items[2]!.route?.toString()).toBe(
-      RouteMap[PageMap.SETTINGS_AUTHENTICATION]!.toString(),
-    );
-    expect(
-      items.map((item: ServerSetupItem) => {
-        return item.description;
-      }),
-    ).toEqual([
-      SERVER_SETUP_COPY.email.open,
-      SERVER_SETUP_COPY.https.open,
-      SERVER_SETUP_COPY.signups.open,
-    ]);
-  });
-
-  test("behind an HTTPS proxy, HTTPS is still to do, and says only HTTP_PROTOCOL is left", () => {
-    const https: ServerSetupItem = getServerSetupItems({
-      emailIsSetUp: false,
-      isServedOverHttps: false,
-      isHttpsOnlyBeforeOneUptime: true,
-      signupsAreClosed: false,
-    })[1]!;
-
-    expect(https.isDone).toBe(false);
-    expect(https.description).toBe(SERVER_SETUP_COPY.https.onlyBeforeOneUptime);
-    expect(https.description).toContain("HTTP_PROTOCOL=https");
-    // Not the line for a server nobody reaches over HTTPS.
-    expect(https.description).not.toContain("unencrypted");
-    expect(https.guideUrl).toBe(SERVER_SETUP_HTTPS_GUIDE);
-  });
-
-  test("set to HTTPS but opened over HTTP: only this visit is left, and the action opens the page over HTTPS", () => {
-    const https: ServerSetupItem = getServerSetupItems({
-      emailIsSetUp: true,
-      isServedOverHttps: false,
-      isHttpsOnlyBeforeOneUptime: false,
-      isOpenedOverHttpWhileSetToHttps: true,
-      httpsAddress: "https://oneuptime.example.com/admin/users",
-      signupsAreClosed: true,
-    })[1]!;
-
-    expect(https.isDone).toBe(false);
-    expect(https.description).toBe(SERVER_SETUP_COPY.https.openedOverHttp);
-    // Not the "Not set up yet" line, whose guide's steps are done.
-    expect(https.description).not.toBe(SERVER_SETUP_COPY.https.open);
-    expect(https.description).not.toContain("Not set up yet");
-    expect(https.actionTitle).toBe(SERVER_SETUP_COPY.https.openOverHttps);
-    expect(https.address).toBe("https://oneuptime.example.com/admin/users");
-    expect(https.guideUrl).toBeUndefined();
-    expect(https.route).toBeUndefined();
-  });
-
-  test("without the address to open, the reverse case keeps the guide", () => {
-    const https: ServerSetupItem = getServerSetupItems({
-      emailIsSetUp: false,
-      isServedOverHttps: false,
-      isOpenedOverHttpWhileSetToHttps: true,
-      signupsAreClosed: false,
-    })[1]!;
-
-    expect(https.description).toBe(SERVER_SETUP_COPY.https.open);
-    expect(https.actionTitle).toBe(SERVER_SETUP_COPY.https.action);
-    expect(https.guideUrl).toBe(SERVER_SETUP_HTTPS_GUIDE);
-    expect(https.address).toBeUndefined();
-  });
-
-  test("served over HTTPS wins over everything else", () => {
-    const https: ServerSetupItem = getServerSetupItems({
-      emailIsSetUp: false,
-      isServedOverHttps: true,
-      isOpenedOverHttpWhileSetToHttps: true,
-      httpsAddress: "https://oneuptime.example.com/admin/users",
-      signupsAreClosed: false,
-    })[1]!;
-
-    expect(https.isDone).toBe(true);
-    expect(https.description).toBe(SERVER_SETUP_COPY.https.done);
-    expect(https.address).toBeUndefined();
-  });
-
-  test("a done item says what it means now", () => {
-    const items: Array<ServerSetupItem> = getServerSetupItems({
-      emailIsSetUp: true,
-      isServedOverHttps: true,
-      signupsAreClosed: true,
-    });
-
-    expect(
-      items.map((item: ServerSetupItem) => {
-        return [item.isDone, item.description];
-      }),
-    ).toEqual([
-      [true, SERVER_SETUP_COPY.email.done],
-      [true, SERVER_SETUP_COPY.https.done],
-      [true, SERVER_SETUP_COPY.signups.done],
-    ]);
-  });
-
-  test("the HTTPS guide is the Docker Compose guide's own section", () => {
-    const guide: string = fs.readFileSync(
-      path.join(
-        __dirname,
-        "../../../../App/FeatureSet/Docs/Content/en/installation/docker-compose.md",
       ),
-      "utf8",
+      ServerSetupCheckId.Email,
     );
 
-    expect(SERVER_SETUP_HTTPS_GUIDE).toBe(
-      "/docs/installation/docker-compose#set-up-https",
+    expect(email.isFinished).toBe(true);
+    expect(words(email.status)).toBe(
+      "Set up: OneUptime sends invitations, password resets and alerts by email.",
     );
-    expect(guide.split("\n")).toContain("## Set up HTTPS");
+    expect(email.checked.map(words)).toEqual([
+      `smtp.example.com accepted an email on [${EARLIER}].`,
+    ]);
+    expect(email.actions).toEqual([]);
+  });
+
+  test("email set up but untested: Send test email, and the settings", () => {
+    const email: ServerSetupRow = row(
+      rowsFor(
+        answerFor({
+          email: channel(
+            ServerSendingChannel.Email,
+            ServerSendingState.Untested,
+          ),
+        }),
+      ),
+      ServerSetupCheckId.Email,
+    );
+
+    expect(email.isFinished).toBe(false);
+    expect(words(email.status)).toBe(
+      "Set up, but not tested yet: send a test email to make sure it arrives.",
+    );
+    expect(actionsOf(email)).toEqual([
+      "test | email",
+      "route | Open settings | /admin/settings/smtp | secondary",
+    ]);
+  });
+
+  test("email failing: since when, and what the mail server said", () => {
+    const email: ServerSetupRow = row(
+      rowsFor(
+        answerFor({
+          email: channel(
+            ServerSendingChannel.Email,
+            ServerSendingState.Failing,
+          ),
+        }),
+      ),
+      ServerSetupCheckId.Email,
+    );
+
+    expect(email.isFailing).toBe(true);
+    expect(words(email.status)).toBe(
+      `Failing: emails have not gone out since [${EARLIER}].`,
+    );
+    expect(email.checked.map(words)).toEqual([
+      "smtp.example.com said: 535 Authentication failed",
+    ]);
+    expect(actionsOf(email)[0]).toBe("test | email");
+  });
+
+  test("SMS and calls: what accepted each, and a test for each channel set up", () => {
+    const working: ServerSetupRow = row(
+      rowsFor(
+        answerFor({
+          sms: channel(ServerSendingChannel.SMS, ServerSendingState.Working),
+          call: channel(ServerSendingChannel.Call, ServerSendingState.Working),
+        }),
+      ),
+      ServerSetupCheckId.SmsAndCalls,
+    );
+
+    expect(working.checked.map(words)).toEqual([
+      `Twilio accepted an SMS on [${EARLIER}].`,
+      `Twilio accepted a call on [${EARLIER}].`,
+    ]);
+
+    const untested: ServerSetupRow = row(
+      rowsFor(
+        answerFor({
+          sms: channel(ServerSendingChannel.SMS, ServerSendingState.Untested),
+          call: channel(ServerSendingChannel.Call, ServerSendingState.Untested),
+        }),
+      ),
+      ServerSetupCheckId.SmsAndCalls,
+    );
+
+    expect(actionsOf(untested)).toEqual([
+      "test | sms",
+      "test | call",
+      "route | Open settings | /admin/settings/call-and-sms | secondary",
+    ]);
+  });
+
+  test("a choice says who made it and when, and can be undone", () => {
+    const answer: ServerSetupChecklistAnswer = answerFor({
+      choices: chose(
+        ServerSetupCheckId.SmsAndCalls,
+        ServerSetupChoiceKind.Skipped,
+      ),
+    });
+    ServerSetupChecklistUtil.getCheck(
+      answer,
+      ServerSetupCheckId.SmsAndCalls,
+    )!.choice!.byName = "Ada Lovelace";
+
+    const sms: ServerSetupRow = row(
+      rowsFor(answer),
+      ServerSetupCheckId.SmsAndCalls,
+    );
+
+    expect(sms.isFinished).toBe(true);
+    expect(words(sms.status)).toBe(
+      "Not used: on-call alerts go out by email and push.",
+    );
+    expect(sms.checked.map(words)).toEqual([
+      `Chosen by Ada Lovelace on [${EARLIER}].`,
+    ]);
+    expect(actionsOf(sms)).toEqual(["undo | Undo | secondary"]);
+  });
+
+  test("a choice whose maker is not known says when", () => {
+    const backups: ServerSetupRow = row(
+      rowsFor(
+        answerFor({
+          choices: chose(
+            ServerSetupCheckId.Backups,
+            ServerSetupChoiceKind.Confirmed,
+          ),
+        }),
+      ),
+      ServerSetupCheckId.Backups,
+    );
+
+    expect(words(backups.status)).toBe("Backed up, as an admin confirmed.");
+    expect(backups.checked.map(words)).toEqual([`Chosen on [${EARLIER}].`]);
+  });
+
+  test("a backup the server made: when it finished; one that failed: why", () => {
+    expect(
+      row(
+        rowsFor(
+          answerFor({
+            lastBackup: { succeeded: true, finishedAt: EARLIER, error: null },
+          }),
+        ),
+        ServerSetupCheckId.Backups,
+      ).checked.map(words),
+    ).toEqual([`The last backup finished on [${EARLIER}].`]);
+
+    const failed: ServerSetupRow = row(
+      rowsFor(
+        answerFor({
+          lastBackup: {
+            succeeded: false,
+            finishedAt: EARLIER,
+            error: "The bucket refused the upload.",
+          },
+          hasScheduledBackups: true,
+        }),
+      ),
+      ServerSetupCheckId.Backups,
+    );
+
+    expect(failed.checked.map(words)).toEqual([
+      "The bucket refused the upload.",
+    ]);
+    expect(actionsOf(failed)[0]).toBe(
+      "route | Set up backups | /admin/settings/backups",
+    );
   });
 });
 
-describe("the card", () => {
-  test("a new server: every item still to do, each with its button, at the top of the page", async () => {
-    const card: HTMLElement | null = await renderIn("en");
-
-    expect(card).not.toBeNull();
-    expect(card!).toHaveTextContent(SERVER_SETUP_COPY.title);
-    expect(card!).toHaveTextContent(SERVER_SETUP_COPY.description);
-
-    for (const name of ["email", "https", "signups"]) {
-      const row: HTMLElement = screen.getByTestId(`server-setup-${name}`);
-      expect(row).toHaveAttribute("data-done", "false");
-      expect(
-        within(row).getByTestId(`server-setup-${name}-action`),
-      ).toBeVisible();
-      expect(row).toHaveTextContent(SERVER_SETUP_COPY.openLabel);
-    }
-
-    expect(screen.getByTestId("server-setup-email-action")).toHaveTextContent(
-      SERVER_SETUP_COPY.email.action,
+describe("HTTPS rows, with what this page knows", () => {
+  test("behind an HTTPS proxy: almost, only HTTP_PROTOCOL is left", () => {
+    const https: ServerSetupRow = row(
+      rowsFor(answerFor(), { pageProtocol: "https:" }),
+      ServerSetupCheckId.Https,
     );
-    expect(
-      screen.getByTestId("server-setup-email-action").getAttribute("href"),
-    ).toBe(RouteMap[PageMap.SETTINGS_SMTP]!.toString());
-    expect(
-      screen.getByTestId("server-setup-signups-action").getAttribute("href"),
-    ).toBe(RouteMap[PageMap.SETTINGS_AUTHENTICATION]!.toString());
 
-    const https: HTMLElement = screen.getByTestId("server-setup-https-action");
-    expect(new URL(https.getAttribute("href") || "").pathname).toBe(
-      "/docs/installation/docker-compose",
+    expect(words(https.status)).toBe(
+      SERVER_SETUP_COPY.https.onlyBeforeOneUptime,
     );
-    expect(new URL(https.getAttribute("href") || "").hash).toBe(
-      "#set-up-https",
-    );
-    expect(https).toHaveAttribute("target", "_blank");
-    // The guide opens in a tab of its own, and the link says so.
-    expect(
-      within(https).getByTestId("server-setup-https-new-tab"),
-    ).toBeInTheDocument();
-    expect(https).toHaveTextContent(
-      `${SERVER_SETUP_COPY.https.action} (${SERVER_SETUP_COPY.opensInNewTab})`,
-    );
-    // The pages of the Admin Dashboard open where the card is.
-    for (const name of ["email", "signups"]) {
-      const action: HTMLElement = screen.getByTestId(
-        `server-setup-${name}-action`,
-      );
-      expect(action).not.toHaveAttribute("target", "_blank");
-      expect(
-        within(action).queryByTestId(`server-setup-${name}-new-tab`),
-      ).toBeNull();
-      expect(action).not.toHaveTextContent(SERVER_SETUP_COPY.opensInNewTab);
-    }
-
-    // It reads only the settings it needs, never a secret.
-    const [request] = mockGetItem.mock.calls[0] as [
-      { select: Record<string, boolean> },
-    ];
-    expect(Object.keys(request.select).sort()).toEqual([
-      "_id",
-      "amazonSesAccessKeyId",
-      "amazonSesFromEmail",
-      "amazonSesRegion",
-      "disableSignup",
-      "emailServerType",
-      "mailgunDomain",
-      "mailgunFromEmail",
-      "postmarkFromEmail",
-      "resendFromEmail",
-      "sendgridFromEmail",
-      "smtpClientId",
-      "smtpFromEmail",
-      "smtpHost",
-      "smtpTransportType",
-    ]);
-
-    // An access key ID names an account; its secret, and every API key, stay unread.
-    for (const secret of [
-      "smtpPassword",
-      "smtpClientSecret",
-      "sendgridApiKey",
-      "amazonSesSecretAccessKey",
-      "mailgunApiKey",
-      "postmarkServerToken",
-      "resendApiKey",
-    ]) {
-      expect(request.select[secret]).toBeUndefined();
-    }
+    expect(actionsOf(https)[0]).toContain("How to set up HTTPS");
   });
 
-  test("a done item shows its check and no button", async () => {
-    mockGetItem.mockImplementation(async () => {
-      return config({
-        smtpHost: "smtp.example.com" as never,
-        smtpFromEmail: "ops@example.com" as never,
-        disableSignup: false,
-      });
-    });
+  test("set to HTTPS but opened over HTTP: only this visit is left, opened over HTTPS", () => {
+    const https: ServerSetupRow = row(
+      rowsFor(answerFor({ isHttpsSetUp: true }), {
+        httpProtocol: Protocol.HTTPS,
+        pageProtocol: "http:",
+      }),
+      ServerSetupCheckId.Https,
+    );
 
-    await renderIn("en");
+    expect(https.isFinished).toBe(false);
+    expect(words(https.status)).toBe(SERVER_SETUP_COPY.https.openedOverHttp);
+    expect(actionsOf(https)).toEqual([
+      "address | Open over HTTPS | https://oneuptime.example.com/admin/setup",
+    ]);
+  });
 
-    const email: HTMLElement = screen.getByTestId("server-setup-email");
-    expect(email).toHaveAttribute("data-done", "true");
-    expect(email).toHaveTextContent(SERVER_SETUP_COPY.email.done);
-    expect(email).toHaveTextContent(SERVER_SETUP_COPY.doneLabel);
-    expect(screen.queryByTestId("server-setup-email-action")).toBeNull();
-    expect(screen.getByTestId("server-setup-https")).toHaveAttribute(
+  test("set to HTTPS and opened over HTTPS: done", () => {
+    const https: ServerSetupRow = row(
+      rowsFor(answerFor({ isHttpsSetUp: true }), {
+        httpProtocol: Protocol.HTTPS,
+        pageProtocol: "https:",
+      }),
+      ServerSetupCheckId.Https,
+    );
+
+    expect(https.isFinished).toBe(true);
+    expect(words(https.status)).toBe("People reach this server over HTTPS.");
+    expect(https.actions).toEqual([]);
+  });
+});
+
+describe("the page", () => {
+  test("required and recommended open; optional folded until asked for", async () => {
+    const checklist: HTMLElement = await renderIn("en", answerFor());
+
+    expect(within(checklist).getByText(SERVER_SETUP_COPY.title)).toBeVisible();
+    expect(within(checklist).getByTestId("server-setup-email")).toHaveAttribute(
       "data-done",
       "false",
     );
-  });
-
-  test("a page that came over HTTPS to a server still set to HTTP: HTTPS says only HTTP_PROTOCOL is left", async () => {
-    mockHttpProtocol = "http";
-
-    await renderIn("en", "https:");
-
-    const https: HTMLElement = screen.getByTestId("server-setup-https");
-    expect(https).toHaveAttribute("data-done", "false");
-    expect(https).toHaveTextContent(
-      SERVER_SETUP_COPY.https.onlyBeforeOneUptime,
-    );
-    expect(https).not.toHaveTextContent(SERVER_SETUP_COPY.https.open);
     expect(
-      within(https).getByTestId("server-setup-https-action"),
+      within(checklist).getByTestId("server-setup-required-progress"),
+    ).toHaveTextContent("0 of 3 done");
+    expect(
+      within(checklist).getByTestId("server-setup-recommended-progress"),
+    ).toHaveTextContent("1 of 4 done");
+    expect(
+      within(checklist).queryByTestId("server-setup-browser-push"),
+    ).toBeNull();
+
+    const toggle: HTMLElement = within(checklist).getByTestId(
+      "server-setup-optional-toggle",
+    );
+
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(toggle);
+    await flush();
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(
+      within(checklist).getByTestId("server-setup-browser-push"),
+    ).toBeVisible();
+    expect(
+      within(checklist).getByTestId("server-setup-ai-provider"),
     ).toBeVisible();
   });
 
-  test("a page that came over HTTP: HTTPS is not set up", async () => {
-    await renderIn("en", "http:");
-
-    expect(screen.getByTestId("server-setup-https")).toHaveTextContent(
-      SERVER_SETUP_COPY.https.open,
-    );
-  });
-
-  test("a server set to HTTPS whose page came over HTTP: only this visit is left, and Open over HTTPS opens this page at HOST", async () => {
-    mockHttpProtocol = "https";
-    window.history.replaceState({}, "", "/admin/users?page=2");
-
-    await renderIn("en", "http:");
-
-    const https: HTMLElement = screen.getByTestId("server-setup-https");
-    expect(https).toHaveAttribute("data-done", "false");
-    expect(https).toHaveTextContent(SERVER_SETUP_COPY.https.openedOverHttp);
-    expect(https).not.toHaveTextContent(SERVER_SETUP_COPY.https.open);
-    expect(https).not.toHaveTextContent(
-      SERVER_SETUP_COPY.https.onlyBeforeOneUptime,
+  test("each action is the right control: a link to its page, a guide in a new tab, a test button", async () => {
+    const checklist: HTMLElement = await renderIn(
+      "en",
+      answerFor({
+        email: channel(ServerSendingChannel.Email, ServerSendingState.Untested),
+      }),
     );
 
-    const action: HTMLElement = within(https).getByTestId(
-      "server-setup-https-action",
-    );
-    expect(action).toHaveTextContent(SERVER_SETUP_COPY.https.openOverHttps);
-    expect(action).not.toHaveTextContent(SERVER_SETUP_COPY.https.action);
-    const address: URL = new URL(action.getAttribute("href") || "");
-    expect(address.protocol).toBe("https:");
-    expect(address.host).toBe("oneuptime.example.com");
-    expect(address.pathname).toBe("/admin/users");
-    expect(address.search).toBe("?page=2");
-    // The same app over HTTPS: it opens where the card is, not in a new tab.
-    expect(action).not.toHaveAttribute("target", "_blank");
     expect(
-      within(action).queryByTestId("server-setup-https-new-tab"),
-    ).toBeNull();
-    expect(action).not.toHaveTextContent(SERVER_SETUP_COPY.opensInNewTab);
-  });
+      within(checklist).getByTestId("server-setup-email-test-email"),
+    ).toHaveTextContent("Send test email");
+    expect(
+      within(checklist).getByTestId("server-setup-signups-route"),
+    ).toHaveAttribute("href", "/admin/settings/authentication");
 
-  test("the reverse case without a HOST opens the address the page came to", async () => {
-    mockHttpProtocol = "https";
-    mockHost = "";
-
-    await renderIn("en", "http:");
-
-    const action: HTMLElement = screen.getByTestId("server-setup-https-action");
-    const address: URL = new URL(action.getAttribute("href") || "");
-    expect(address.protocol).toBe("https:");
-    expect(address.host).toBe(window.location.host);
-    expect(address.pathname).toBe("/admin/users");
-  });
-
-  test("the reverse case in Persian: the row and its action in Persian", async () => {
-    mockHttpProtocol = "https";
-
-    await renderIn("fa", "http:");
-
-    const persian: Locale = readLocale("fa");
-    const https: HTMLElement = screen.getByTestId("server-setup-https");
-    expect(https).toHaveTextContent(
-      persian[SERVER_SETUP_COPY.https.openedOverHttp] as string,
+    const guide: HTMLElement = within(checklist).getByTestId(
+      "server-setup-https-guide",
     );
-    expect(screen.getByTestId("server-setup-https-action")).toHaveTextContent(
-      persian[SERVER_SETUP_COPY.https.openOverHttps] as string,
+
+    expect(guide).toHaveAttribute(
+      "href",
+      `${window.location.origin}${SERVER_SETUP_GUIDES.https}`,
     );
+    expect(guide).toHaveAttribute("target", "_blank");
+    expect(
+      within(guide).getByTestId("server-setup-https-guide-new-tab"),
+    ).toBeInTheDocument();
+    expect(guide).toHaveTextContent("Opens in a new tab");
   });
 
-  test("all three done: nothing is drawn", async () => {
-    mockHttpProtocol = "https";
-    mockGetItem.mockImplementation(async () => {
-      return config({
-        emailServerType: EmailServerType.Sendgrid,
-        sendgridFromEmail: "ops@example.com" as never,
-        disableSignup: true,
-      });
+  test("a choice is made on the server, and the page shows what it answers", async () => {
+    const answered: ServerSetupChecklistAnswer = answerFor({
+      choices: chose(
+        ServerSetupCheckId.SmsAndCalls,
+        ServerSetupChoiceKind.Skipped,
+      ),
     });
+    const choose: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ServerSetupChecklistLoader, "choose")
+      .mockResolvedValue(answered);
+    const onAnswer: jest.Mock = jest.fn();
 
-    expect(await renderIn("en", "https:")).toBeNull();
-    expect(mockGetItem).toHaveBeenCalledTimes(1);
-  });
-
-  test("Hide: gone, and gone the next time this browser opens the page", async () => {
-    await renderIn("en");
-
-    fireEvent.click(
-      screen.getByRole("button", { name: SERVER_SETUP_COPY.hide }),
+    const checklist: HTMLElement = await renderIn(
+      "en",
+      answerFor(),
+      "http:",
+      onAnswer as never,
     );
+
+    await act(async () => {
+      fireEvent.click(
+        within(checklist).getByTestId("server-setup-sms-and-calls-choose"),
+      );
+    });
     await flush();
 
-    expect(screen.queryByTestId("server-setup-checklist")).toBeNull();
-    expect(window.localStorage.getItem(SERVER_SETUP_HIDDEN_STORAGE_KEY)).toBe(
-      "true",
+    expect(choose).toHaveBeenCalledWith(
+      ServerSetupCheckId.SmsAndCalls,
+      ServerSetupChoiceKind.Skipped,
+    );
+    expect(onAnswer).toHaveBeenCalledWith(answered);
+  });
+
+  test("undo makes the choice null", async () => {
+    const choose: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ServerSetupChecklistLoader, "choose")
+      .mockResolvedValue(answerFor());
+
+    const checklist: HTMLElement = await renderIn(
+      "en",
+      answerFor({
+        choices: chose(
+          ServerSetupCheckId.Backups,
+          ServerSetupChoiceKind.Confirmed,
+        ),
+      }),
     );
 
-    cleanup();
-    mockGetItem.mockClear();
-
-    expect(await renderIn("en")).toBeNull();
-    // Hidden: not even the settings are read.
-    expect(mockGetItem).not.toHaveBeenCalled();
-  });
-
-  test("OneUptime Cloud draws nothing and reads nothing", async () => {
-    mockBillingEnabled = true;
-
-    expect(await renderIn("en")).toBeNull();
-    expect(mockGetItem).not.toHaveBeenCalled();
-  });
-
-  test("settings that cannot be read draw nothing", async () => {
-    mockGetItem.mockImplementation(() => {
-      throw new Error("forbidden");
+    await act(async () => {
+      fireEvent.click(
+        within(checklist).getByTestId("server-setup-backups-undo"),
+      );
     });
-    expect(await renderIn("en")).toBeNull();
+    await flush();
 
-    cleanup();
-    mockGetItem.mockImplementation(async () => {
-      return null;
-    });
-    expect(await renderIn("en")).toBeNull();
+    expect(choose).toHaveBeenCalledWith(ServerSetupCheckId.Backups, null);
   });
 
-  test("in German", async () => {
-    const card: HTMLElement | null = await renderIn("de");
+  test("a choice the server refuses says why, and changes nothing", async () => {
+    jest
+      .spyOn(ServerSetupChecklistLoader, "choose")
+      .mockRejectedValue(new Error("Only master admins can do this."));
+    const onAnswer: jest.Mock = jest.fn();
 
-    expect(card!).toHaveTextContent("Diesen Server fertig einrichten");
-    expect(screen.getByTestId("server-setup-email-action")).toHaveTextContent(
-      "E-Mail einrichten",
+    const checklist: HTMLElement = await renderIn(
+      "en",
+      answerFor(),
+      "http:",
+      onAnswer as never,
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        within(checklist).getByTestId("server-setup-probes-choose"),
+      );
+    });
+    await flush();
+
+    expect(within(checklist).getByTestId("server-setup-error")).toBeVisible();
+    expect(onAnswer).not.toHaveBeenCalled();
+  });
+
+  test("everything required and recommended finished: says so", async () => {
+    mockHttpProtocol = "https";
+
+    const checklist: HTMLElement = await renderIn(
+      "en",
+      answerFor({
+        isHttpsSetUp: true,
+        areSignupsClosed: true,
+        email: channel(ServerSendingChannel.Email, ServerSendingState.Working),
+        globalProbes: { total: 1, reporting: 1 },
+        lastBackup: { succeeded: true, finishedAt: EARLIER, error: null },
+        choices: chose(
+          ServerSetupCheckId.SmsAndCalls,
+          ServerSetupChoiceKind.Skipped,
+        ),
+      }),
+      "https:",
+    );
+
+    expect(
+      within(checklist).getByTestId("server-setup-all-done"),
+    ).toHaveTextContent(SERVER_SETUP_COPY.allDone);
+  });
+
+  test("in German, the rows, the actions and the checked lines", async () => {
+    const de: Locale = readLocale("de");
+
+    const checklist: HTMLElement = await renderIn(
+      "de",
+      answerFor({
+        email: channel(ServerSendingChannel.Email, ServerSendingState.Working),
+      }),
+    );
+
+    expect(
+      within(checklist).getByText(de[SERVER_SETUP_COPY.title] as string),
+    ).toBeVisible();
+    expect(
+      within(checklist).getByText(
+        de[SERVER_SETUP_STATUS_WORDS.email.done!] as string,
+      ),
+    ).toBeVisible();
+    expect(
+      within(checklist).getAllByTestId("server-setup-email-checked")[0],
+    ).toHaveTextContent(
+      fillTemplate(de[SERVER_SETUP_CHECKED_WORDS.emailAccepted] as string, {
+        sentThrough: "smtp.example.com",
+        time: formatServerSetupTime(EARLIER),
+      }).replace(/[⁦-⁩]/g, ""),
     );
     expect(
-      screen.getByRole("button", { name: "Ausblenden" }),
-    ).toBeInTheDocument();
+      within(checklist).getByTestId("server-setup-sms-and-calls-choose"),
+    ).toHaveTextContent(
+      de[SERVER_SETUP_COPY.actions.useEmailAndPushOnly] as string,
+    );
   });
 });
 
-describe("its words, in every language the Admin Dashboard speaks", () => {
-  const english: Locale = readLocale("en");
+/*
+ * Every word the Server setup page, its test sends and its cards say: the
+ * catalogue's titles and status lines, what each was checked against, the
+ * page's own words, the test dialogs' and the settings pages' cards'.
+ */
+const ALL_WORDS: Array<string> = Array.from(
+  new Set<string>([
+    SERVER_SETUP_PAGE_TITLE,
+    SERVER_SETUP_PAGE_LOAD_ERROR,
+    "Server Setup",
+    "What this server still needs: email, HTTPS, sign-ups and more.",
+    ...SERVER_SETUP_CHECKS.map((definition: ServerSetupCheckDefinition) => {
+      return definition.title;
+    }),
+    ...Object.values(SERVER_SETUP_STATUS_WORDS).flatMap(
+      (lines: Partial<Record<string, string>>) => {
+        return Object.values(lines) as Array<string>;
+      },
+    ),
+    ...Object.values(SERVER_SETUP_CHECKED_WORDS),
+    SERVER_SETUP_COPY.title,
+    SERVER_SETUP_COPY.description,
+    SERVER_SETUP_COPY.allDone,
+    SERVER_SETUP_COPY.required,
+    SERVER_SETUP_COPY.recommended,
+    SERVER_SETUP_COPY.optional,
+    SERVER_SETUP_COPY.progress,
+    SERVER_SETUP_COPY.doneLabel,
+    SERVER_SETUP_COPY.openLabel,
+    SERVER_SETUP_COPY.failingLabel,
+    SERVER_SETUP_COPY.opensInNewTab,
+    ...Object.values(SERVER_SETUP_COPY.https),
+    ...Object.values(SERVER_SETUP_COPY.actions),
+    ...Object.values(SERVER_TEST_SEND_WORDS),
+    ...Object.values(SERVER_TEST_CARD_COPY),
+  ]),
+);
 
+// Words a translation may keep as they are written in English.
+const SAME_IN: Record<string, Array<string>> = {
+  HTTPS: ["*"],
+  Email: ["*"],
+  Done: ["*"],
+  Failing: ["*"],
+  Required: ["*"],
+  Optional: ["*"],
+  Probes: ["*"],
+  Backups: ["*"],
+  "Single sign-on": ["it", "nl", "da"],
+};
+
+describe("its words, in every language the Admin Dashboard speaks", () => {
   test("English has every word as its own value", () => {
-    for (const word of COPY_WORDS) {
+    const english: Locale = readLocale("en");
+
+    for (const word of ALL_WORDS) {
       expect({ word, value: english[word] }).toEqual({ word, value: word });
     }
   });
 
-  test.each(OTHER_LOCALES)(
-    "%s has every word, translated",
+  test.each([...ADMIN_DASHBOARD_LANGUAGES])(
+    "%s has every word, translated, with its placeholders and literals kept",
     (locale: string) => {
       const translated: Locale = readLocale(locale);
 
-      for (const word of COPY_WORDS) {
+      for (const word of ALL_WORDS) {
         const value: unknown = translated[word];
 
         expect({ word, type: typeof value }).toEqual({ word, type: "string" });
         expect((value as string).trim().length).toBeGreaterThan(0);
-        // Words a translation keeps as they are: product, protocol and "Email" in some.
-        if (!["HTTPS", "Email", "Done"].includes(word)) {
+
+        const same: Array<string> | undefined = SAME_IN[word];
+
+        if (!same || (!same.includes("*") && !same.includes(locale))) {
           expect({ word, same: value === word }).toEqual({ word, same: false });
         }
-        // OneUptime keeps its name in every language.
-        if (word.includes("OneUptime")) {
-          expect(value as string).toContain("OneUptime");
-        }
-        // A setting and an address are written as they are typed.
-        for (const literal of ["HTTP_PROTOCOL=https", "http://"]) {
+
+        expect(getTemplatePlaceholders(value as string).sort()).toEqual(
+          getTemplatePlaceholders(word).sort(),
+        );
+
+        for (const literal of [
+          "OneUptime",
+          "HTTP_PROTOCOL=https",
+          "http://",
+          "config.env",
+          "VAPID",
+          "GitHub",
+          "HTTPS",
+        ]) {
           if (word.includes(literal)) {
             expect({
               word,
               literal,
               kept: (value as string).includes(literal),
-            }).toEqual({
-              word,
-              literal,
-              kept: true,
-            });
+            }).toEqual({ word, literal, kept: true });
           }
         }
       }
@@ -908,27 +1003,35 @@ describe("its words, in every language the Admin Dashboard speaks", () => {
   );
 });
 
-describe("the Admin Dashboard's first page draws it", () => {
-  test("the Users page, which the Admin Dashboard opens on, puts it above its table", () => {
-    const usersPage: string = fs.readFileSync(
+describe("where it is drawn", () => {
+  test("its own page, Server setup, at /admin/setup - not on Admin > Users", () => {
+    const users: string = fs.readFileSync(
       path.join(
         __dirname,
         "../../../../App/FeatureSet/AdminDashboard/src/Pages/Users/Index.tsx",
       ),
       "utf8",
     );
-    const initPage: string = fs.readFileSync(
+    const app: string = fs.readFileSync(
       path.join(
         __dirname,
-        "../../../../App/FeatureSet/AdminDashboard/src/Pages/Init/Init.tsx",
+        "../../../../App/FeatureSet/AdminDashboard/src/App.tsx",
+      ),
+      "utf8",
+    );
+    const routes: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/AdminDashboard/src/Utils/RouteMap.ts",
       ),
       "utf8",
     );
 
-    expect(initPage).toContain("RouteMap[PageMap.USERS]");
-    expect(usersPage.indexOf("<ServerSetupChecklist />")).toBeGreaterThan(-1);
-    expect(usersPage.indexOf("<ServerSetupChecklist />")).toBeLessThan(
-      usersPage.indexOf("<ModelTable<User>"),
+    expect(users).not.toContain("ServerSetupChecklist");
+    expect(routes).toContain(
+      "[PageMap.SERVER_SETUP]: new Route(`/admin/setup`)",
     );
+    expect(app).toContain("RouteMap[PageMap.SERVER_SETUP]");
+    expect(app).toContain("<ServerSetup />");
   });
 });

@@ -123,6 +123,7 @@ import { CustomDomainCertificateStatus } from "../../../Types/CustomDomain/Custo
 import Permission from "../../../Types/Permission";
 import { DOMAIN_NOT_CHANGEABLE_MESSAGE } from "../../../Server/API/CustomDomainRoutes";
 import { customDomainCaller } from "./CustomDomainCallers";
+import { stubbedCnameCheck } from "./CnameCheckStub";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -176,7 +177,7 @@ function makeDomain(extra: Partial<DomainRow> = {}): DomainRow {
 
 type Spies = {
   findOneBy: MockedFn;
-  isCnameValid: MockedFn;
+  checkCname: MockedFn;
   orderCertIfMissing: MockedFn;
   orderCert: MockedFn;
   // The one write that records a domain with a good certificate as ordered.
@@ -242,9 +243,15 @@ function setUp(data: {
             ? makeDomain()
             : data.domain) as never,
       ) as unknown as MockedFn,
-    isCnameValid: jest
-      .spyOn(StatusPageDomainService, "isCnameValid")
-      .mockResolvedValue(data.cnameValid ?? true) as unknown as MockedFn,
+    checkCname: jest
+      .spyOn(StatusPageDomainService, "checkCname")
+      .mockImplementation((async (fullDomain: string) => {
+        return stubbedCnameCheck(
+          fullDomain,
+          data.cnameValid ?? true,
+          mockCNameRecord,
+        );
+      }) as never) as unknown as MockedFn,
     orderCertIfMissing: jest
       .spyOn(StatusPageDomainService, "orderCertIfMissing")
       .mockImplementation(
@@ -376,7 +383,7 @@ describe("verify-cname (Check now)", () => {
       callerProps.tenantId!.toString(),
     );
     expect(lookup.props).toEqual({ isRoot: true });
-    expect(spies.isCnameValid).not.toHaveBeenCalled();
+    expect(spies.checkCname).not.toHaveBeenCalled();
     expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
 
     const error: Error = sendErrorResponseMock.mock
@@ -391,7 +398,9 @@ describe("verify-cname (Check now)", () => {
 
     await callRoute(VERIFY_ROUTE);
 
-    expect(spies.isCnameValid).toHaveBeenCalledWith("status.acme.com");
+    expect(spies.checkCname).toHaveBeenCalledWith("status.acme.com", {
+      lookUpDnsEvenWhenReached: true,
+    });
     expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
     expect(sendJsonObjectResponseMock).not.toHaveBeenCalled();
 
@@ -449,7 +458,7 @@ describe("verify-cname (Check now)", () => {
       cnameVerifiedJustNow: true,
       renewIfExpired: true,
     });
-    expect(spies.isCnameValid).toHaveBeenCalledTimes(1);
+    expect(spies.checkCname).toHaveBeenCalledTimes(1);
     expect(spies.orderCert).not.toHaveBeenCalled();
 
     expect(answered()).toEqual({

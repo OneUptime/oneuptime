@@ -593,6 +593,32 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     };
 
     /*
+     * Whether a field the record holds nothing for (null) starts on its
+     * default: only where it says its default stands in for nothing
+     * (startsOnDefaultWhenEmpty), and only while it is shown - a hidden
+     * field is sent as it was, so an untouched form saves the record as it
+     * holds it (a Microsoft Graph server keeps its empty port).
+     */
+    type StartsOnDefaultForEmptyFunction = (
+      field: Field<T>,
+      values: FormValues<T>,
+    ) => boolean;
+
+    const startsOnDefaultForEmpty: StartsOnDefaultForEmptyFunction = (
+      field: Field<T>,
+      values: FormValues<T>,
+    ): boolean => {
+      if (
+        !field.startsOnDefaultWhenEmpty ||
+        (values as any)[field.name!] !== null
+      ) {
+        return false;
+      }
+
+      return !field.showIf || field.showIf(values);
+    };
+
+    /*
      * Whether the reader has changed the field since the form opened (see
      * changedFieldNames). A people picker keeps its picks under a form
      * value per kind - an owner field's ownerUsers and ownerTeams - and
@@ -1202,8 +1228,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
         for (const field of formFields) {
           const fieldName: string = field.name!;
+          const isEmptyStandingInForDefault: boolean = startsOnDefaultForEmpty(
+            field,
+            filledIn,
+          );
 
-          if ((filledIn as any)[fieldName] !== undefined) {
+          if (
+            (filledIn as any)[fieldName] !== undefined &&
+            !isEmptyStandingInForDefault
+          ) {
             continue;
           }
 
@@ -1332,11 +1365,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
         /*
          * A field the form does not start with a value for starts on its
-         * default - 0 and false included (hasDefaultValue).
+         * default - 0 and false included (hasDefaultValue). So does one
+         * whose record holds nothing (null), where the field says its
+         * default stands in for nothing (startsOnDefaultWhenEmpty): the
+         * server's SMTP port, empty on a fresh server, starts on 587.
          */
         if (
           hasDefaultValue(field) &&
-          (values as any)[fieldName] === undefined
+          ((values as any)[fieldName] === undefined ||
+            startsOnDefaultForEmpty(field, values))
         ) {
           (values as any)[fieldName] = field.defaultValue;
         }

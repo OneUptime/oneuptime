@@ -62,7 +62,14 @@ const sendsThroughGateway: (item: GlobalConfig) => boolean = (
   return CallAndSmsProviders.isGateway(item.callAndSmsProvider);
 };
 
-const CallAndSmsGatewayCard: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+  // The provider was saved: the page reads again where SMS and calls stand.
+  onSaveSuccess?: (() => void) | undefined;
+}
+
+const CallAndSmsGatewayCard: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const [isTestShown, setIsTestShown] = useState<boolean>(false);
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [testMessage, setTestMessage] = useState<string>("");
@@ -124,6 +131,9 @@ const CallAndSmsGatewayCard: FunctionComponent = (): ReactElement => {
         isEditable={true}
         editButtonText="Edit Provider"
         editModalTitle="Edit Provider"
+        onSaveSuccess={() => {
+          props.onSaveSuccess?.();
+        }}
         formFields={[
           {
             field: {

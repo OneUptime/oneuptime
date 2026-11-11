@@ -2681,4 +2681,31 @@ export default class GlobalConfig extends GlobalConfigModel {
     nullable: true,
   })
   public serverSendingHealth?: JSONObject = undefined;
+
+  /*
+   * What the server's admins chose on its setup checklist (Types/ServerSetup/
+   * ServerSetupChecklist): a check the server does without ("We will use
+   * email and push only"), one done some way the server cannot see ("This
+   * server is backed up"), with who chose it and when, and each admin's
+   * "Hide" of the card. Everything else on the checklist is worked out from
+   * the server's real state. Written by OneUptime only (isRoot), through the
+   * checklist's own routes: GlobalConfigService refuses a write through the
+   * CRUD API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Server Setup Choices",
+    description:
+      "What this server's admins chose on its setup checklist: checks it does without, checks done some way the server cannot see, and who hid the checklist's card.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public serverSetupChoices?: JSONObject = undefined;
 }

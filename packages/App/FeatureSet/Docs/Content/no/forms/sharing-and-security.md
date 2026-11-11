@@ -55,27 +55,26 @@ Som standard vises et skjema på lenken sin, på OneUptimes egen adresse. For å
 
 Å legge skjemaet på ditt eget domene tar tre trinn, og bare de to første er dine:
 
-1. **Legg til domenet**: et underdomene og ett av de verifiserte domenene dine.
-2. **Legg til CNAME-posten** hos DNS-leverandøren din. Dialogen **DNS-oppsett** åpner med posten så snart du legger til domenet.
+1. **Legg til domenet**: skriv inn adressen folk skal åpne, som `report.acme.com`.
+2. **Legg til DNS-postene** hos DNS-leverandøren din. Dialogen **DNS-oppsett** viser dem: en CNAME-post for adressen og, første gang prosjektet bruker et domene, en TXT-post som viser at prosjektet eier det.
 3. **Det gratis SSL-sertifikatet utstedes automatisk** så snart posten er funnet. Det finnes ingen knapp å trykke på.
 
 Når domenet er live, viser kortet **Delingslenke** det over skjemaets lenke. Begge åpner det samme skjemaet.
 
 ### Legge til et domene
 
-Klikk på **Opprett Skjemadomene**. Dialogen er én side:
+Klikk på **Legg til egendefinert domene**. Dialogen ber om én ting:
 
-- **Underdomene**: bare etiketten, med plassholderen `report (leave blank for root)`. Skriv bare `report`, ikke hele vertsnavnet. La feltet stå tomt, eller skriv `@`, for å bruke roddomenet.
-- **Domene**: ett av domenene som er verifisert under **Prosjektinnstillinger** > **Avansert** > **Domener**, der du med en TXT-post beviser at du eier et domene. Lenken **Legg til et domene** ved siden av feltet åpner den siden i en ny fane.
+- **Domene**: hele adressen folk skal åpne, med plassholderen `report.example.com`. En innlimt lenke fungerer også: bare vertsnavnet beholdes. For å bruke roten av et domene skriver du selve domenet.
 - **Flere felt**: brettet sammen. Åpne det bare for å bruke ditt eget sertifikat: slå på **Last opp tilpasset sertifikat**, og lim inn **Sertifikat** og dets **Sertifikatets private nøkkel**.
 
-Klikk på **Opprett Skjemadomene** igjen for å legge det til. Dialogen lukkes, og det nye domenets **DNS-oppsett** åpner. Navnet på et domene og skjemaet det viser ligger fast når det er lagt til, så **Rediger** endrer bare sertifikatet: for å endre ett av dem legger du til det nye domenet og sletter det gamle.
+Klikk på **Fortsett**. Hvis prosjektet har verifisert domenet adressen ligger på, under **Prosjektinnstillinger** > **Avansert** > **Domener**, legges domenet til, og domenets **DNS-oppsett** åpner. Hvis ikke, legger OneUptime til det domenet i prosjektet, og **DNS-oppsett** åpner også med TXT-posten, så du verifiserer det der og da. Navnet på et domene og skjemaet det viser ligger fast når det er lagt til, så **Rediger** endrer bare sertifikatet: for å endre ett av dem legger du til det nye domenet og sletter det gamle.
 
 Et domene viser én statusside, ett dashbord eller ett skjema, så et navn som en av dem allerede har, i hvilket som helst prosjekt, avvises: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
 
 ### DNS-oppsett og Sjekk nå
 
-Dialogen **DNS-oppsett** viser posten du skal legge til hos DNS-leverandøren din, hvert felt med en kopieringsknapp: **Type** `CNAME`, **Navn** hele domenet du la til, og **Verdi** CNAME-posten til installasjonen din. For et roddomene tillater mange DNS-leverandører ikke en CNAME-post: bruk i stedet leverandørens ALIAS-, ANAME- eller CNAME-flattening-post med samme verdi.
+Dialogen **DNS-oppsett** viser hver post du skal legge til hos DNS-leverandøren din, hvert felt med en kopieringsknapp: **Type** `CNAME`, **Navn** hele domenet du la til, og **Verdi** CNAME-posten til installasjonen din, etter domenets TXT-post så lenge prosjektet ikke har verifisert det. Under hver post sier **Sjekk nå** hva OneUptime slo opp og hva som kom tilbake. For et roddomene tillater mange DNS-leverandører ikke en CNAME-post: bruk i stedet leverandørens ALIAS-, ANAME- eller CNAME-flattening-post med samme verdi.
 
 OneUptime sjekker hvert uverifiserte domene hvert 15. minutt, og når det finner posten, bestiller det domenets gratis Let's Encrypt-sertifikat i den samme sjekken. Klikk på **Sjekk nå** for å sjekke med en gang. Til et domene er live, har raden en handling **DNS-oppsett** som åpner den samme dialogen, der **Sjekk nå** også bestiller på nytt et sertifikat som feilet eller har utløpt, høyst én gang per domene hvert 15. minutt. Fornyelsen skjer automatisk, i god tid før sertifikatet utløper.
 

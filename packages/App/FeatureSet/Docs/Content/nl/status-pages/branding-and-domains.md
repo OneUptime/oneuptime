@@ -1,6 +1,6 @@
 # Statuspagina – branding en domeinen
 
-Uw statuspagina is het enige scherm van OneUptime waar uw klanten naar kijken, dus het moet eruitzien als het uwe en op uw eigen domein staan, zoals `status.yourcompany.com`. Deze pagina loopt de pagina **Huisstijl** kaart voor kaart door en zet daarna de statuspagina op uw domein: voeg het domein toe, voeg één DNS-record toe, en het gratis SSL-certificaat volgt vanzelf.
+Uw statuspagina is het enige scherm van OneUptime waar uw klanten naar kijken, dus het moet eruitzien als het uwe en op uw eigen domein staan, zoals `status.yourcompany.com`. Deze pagina loopt de pagina **Huisstijl** kaart voor kaart door en zet daarna de statuspagina op uw domein: voeg het domein toe, voeg zijn DNS-records toe, en het gratis SSL-certificaat volgt vanzelf.
 
 :::cards
 - [De pagina Huisstijl](#de-pagina-huisstijl): Logo, thema, titel, favicon, links, footer, kleuren en talen.
@@ -155,20 +155,20 @@ Op OneUptime Cloud vereist het toevoegen of wijzigen van een ervan het plan **Gr
 
 Standaard is een statuspagina bereikbaar op de voorbeeld-URL op het scherm **Overzicht** ervan. Om haar op uw eigen hostnaam te zetten, gaat u naar **Statuspagina's → uw pagina → Huisstijl → Aangepaste domeinen** (`{id}/domains`).
 
-De kaart **Aangepaste domeinen** zegt wat u moet doen: laat het CNAME-record van elk domein naar het statuspagina-CNAME-record van uw installatie wijzen, en OneUptime geeft het SSL-certificaat van het domein uit en verlengt het voor u. Zonder iets ingesteld zegt de tabel **Geen aangepaste domeinen gevonden**, met **Domein van statuspagina aanmaken** eronder. De tabel heeft twee kolommen, **Domein** en **Status**, en filters voor **Domein**, **CNAME geldig** en **SSL geprovisioneerd**.
+De kaart **Aangepaste domeinen** zegt wat u moet doen: laat het CNAME-record van elk domein naar het statuspagina-CNAME-record van uw installatie wijzen, en OneUptime geeft het SSL-certificaat van het domein uit en verlengt het voor u. Zonder iets ingesteld zegt de tabel **Geen aangepaste domeinen gevonden**, met **Aangepast domein toevoegen** eronder. De tabel heeft twee kolommen, **Domein** en **Status**, en filters voor **Domein**, **CNAME geldig** en **SSL geprovisioneerd**.
 
-De pagina op uw domein zetten kost drie stappen, en alleen de eerste twee zijn voor u:
+De pagina op uw domein zetten kost drie stappen, allemaal op deze pagina, en alleen de eerste twee zijn voor u:
 
-1. **Het domein toevoegen**: een subdomein en een van uw geverifieerde domeinen.
-2. **Het CNAME-record ervan toevoegen** bij uw DNS-provider. Het dialoogvenster **DNS-instelling** toont het record zodra u het domein toevoegt.
-3. **Het gratis SSL-certificaat wordt automatisch uitgegeven** zodra het record is gevonden. Er is geen knop om op te drukken.
+1. **Het domein toevoegen**: typ het adres dat mensen gaan openen, zoals `status.yourcompany.com`.
+2. **De DNS-records ervan toevoegen** bij uw DNS-provider. Het dialoogvenster **DNS-instelling** toont ze: een CNAME-record voor het adres en, de eerste keer dat het project een domein gebruikt, een TXT-record dat laat zien dat het domein van het project is.
+3. **Het gratis SSL-certificaat wordt automatisch uitgegeven** zodra de records zijn gevonden. Er is geen knop om op te drukken.
 
 ```mermaid title="Van een nieuw aangepast domein naar HTTPS"
 flowchart TB
-    A["Het domein toevoegen"] --> B["DNS-instelling toont het CNAME-record"]
-    B --> C["Het record toevoegen bij uw DNS-provider"]
-    C --> D{"Record gevonden?"}
-    D -->|"Nog niet"| E["Nu controleren, of de controle elke 15 minuten"]
+    A["Het adres typen"] --> B["DNS-instelling toont de records"]
+    B --> C["Ze toevoegen bij uw DNS-provider"]
+    C --> D{"Records gevonden?"}
+    D -->|"Nog niet"| E["Nu controleren zegt wat het vond"]
     E --> D
     D -->|"Ja"| F["Domein geverifieerd"]
     F --> G["Gratis certificaat besteld bij Let's Encrypt"]
@@ -177,8 +177,8 @@ flowchart TB
 
 ### Voordat u begint
 
-- **Het bovenliggende domein moet geverifieerd zijn.** De keuzelijst **Domein** toont alleen de domeinen die zijn geverifieerd onder **Projectinstellingen → Geavanceerd → Domeinen**, waar u met een TXT-record bewijst dat een domein van u is. De link **Domein toevoegen** naast het veld opent die pagina in een nieuw tabblad.
-- **Uw installatie heeft een statuspagina-CNAME-record nodig.** OneUptime Cloud heeft er een. Stel het bij een zelfgehoste installatie in op een hostnaam die naar uw OneUptime-server wijst (een A-record), en zorg dat de server antwoordt op poort 80, waar Let's Encrypt hem controleert. Zonder dat record zeggen de kaart en het dialoogvenster **DNS-instelling** "Custom Domains not enabled for this OneUptime installation" in plaats van een record te tonen.
+- **Uw installatie heeft een statuspagina-CNAME-record nodig.** OneUptime Cloud heeft er een. Stel het bij een zelfgehoste installatie in op een hostnaam die naar uw OneUptime-server wijst (een A-record), en zorg dat de server antwoordt op de poorten 80 en 443: daar bereiken bezoekers en Let's Encrypt elk aangepast domein. Zonder dat record zeggen de kaart en het dialoogvenster **DNS-instelling** "Custom Domains not enabled for this OneUptime installation" in plaats van een record te tonen.
+- **Een zelfgehoste server wordt eerst gecontroleerd.** **Aangepast domein toevoegen** en **DNS-instelling** zeggen onder "This server is not ready for custom domains yet" wat de server nog nodig heeft voordat een aangepast domein kan werken: of de instelling voor het CNAME-record is ingesteld, of de hostnaam ervan wordt omgezet, of hij deze OneUptime bereikt op poort 80 en verbindingen accepteert op poort 443, en of de server gratis certificaten uitgeeft. Elke regel zegt wat u waar moet wijzigen. De controles draaien vanaf de server zelf, dus mensen buiten uw netwerk moeten de hostnaam via dezelfde poorten kunnen bereiken.
 
 :::tabs
 @tab Docker Compose
@@ -195,48 +195,52 @@ statusPage:
 ### Het domein toevoegen
 
 :::steps
-#### Statuspagina Domein aanmaken openen
+#### Aangepast domein toevoegen openen
 
-Klik op **Aangepaste domeinen** op **Domein van statuspagina aanmaken**. Het dialoogvenster bestaat uit één pagina.
+Klik op **Aangepaste domeinen** op **Aangepast domein toevoegen**. Het dialoogvenster vraagt om één ding.
 
-#### Het subdomein invullen
+#### Het adres typen
 
-Vul in **Subdomein** (plaatshouder `status (leave blank for root)`) alleen het label in, zoals `status`, niet de volledige hostnaam. Laat het leeg, of vul `@` in, om het hoofddomein (apex) te gebruiken.
-
-#### Het domein kiezen
-
-Kies in **Domein** (plaatshouder `Select domain`) een van uw geverifieerde domeinen. Een domein dat u niet hebt geverifieerd, staat er niet tussen, omdat het zou worden geweigerd.
+Typ in **Domein** (plaatshouder `status.example.com`) het volledige adres dat mensen gaan openen, zoals `status.yourcompany.com`. Een geplakte link werkt ook: alleen de hostnaam ervan wordt bewaard. Om het hoofddomein te gebruiken, typt u gewoon het domein zelf.
 
 #### Het gratis certificaat houden, of uw eigen uploaden
 
 **Meer velden** is ingeklapt, en de kop zegt welk certificaat het domein gaat gebruiken: "We geven een gratis SSL-certificaat uit voor dit domein en verlengen het automatisch." Open het alleen om een eigen certificaat te gebruiken: zet **Aangepast certificaat uploaden** aan en plak dan het **Certificaat** en de **Privésleutel van certificaat** in PEM-formaat. Beide zijn dan verplicht.
 
-#### Het domein aanmaken
+#### Doorgaan
 
-Klik op **Domein van statuspagina aanmaken**. Het dialoogvenster sluit en de **DNS-instelling** van het nieuwe domein opent, met het record dat u moet toevoegen.
+Klik op **Doorgaan**. Als het project het domein waarop het adres staat al heeft geverifieerd, wordt het domein toegevoegd en opent de **DNS-instelling** ervan, met het CNAME-record dat u moet toevoegen. Zo niet, dan voegt OneUptime dat domein toe aan **Projectinstellingen → Geavanceerd → Domeinen** en opent de **DNS-instelling** met beide records, zodat u het domein meteen daar verifieert, zonder de pagina te verlaten.
 :::
 
-De volledige naam van een domein ligt vast zodra u het toevoegt, dus **Bewerken** wijzigt alleen het certificaat ervan. Om een ander subdomein te gebruiken, voegt u dat domein toe en verwijdert u het oude. Een naam die een dashboard of een formulier al gebruikt, in welk project ook, wordt geweigerd: één domein toont één statuspagina, dashboard of formulier.
+De volledige naam van een domein ligt vast zodra u het toevoegt, dus **Bewerken** wijzigt alleen het certificaat ervan. Om een ander adres te gebruiken, voegt u dat toe en verwijdert u het oude. Een naam die een dashboard of een formulier al gebruikt, in welk project ook, wordt geweigerd: één domein toont één statuspagina, dashboard of formulier.
+
+Een domein aan het project toevoegen vereist de machtiging om projectdomeinen aan te maken (**Create Domain**, of Project Owner of Project Admin), en het verifiëren vereist **Edit Domain**. Zonder die machtigingen zegt het dialoogvenster wie het kan doen.
 
 ### DNS-instelling en verificatie
 
-Het dialoogvenster **DNS-instelling** toont het record dat u bij uw DNS-provider toevoegt, één veld per rij, elk met een kopieerknop:
+Het dialoogvenster **DNS-instelling** toont elk record dat nog nodig is bij uw DNS-provider, één veld per rij, elk met een kopieerknop:
 
-| Veld | Wat u invult |
-| ----- | ------------- |
-| **Type** | `CNAME` |
-| **Naam** | Het volledige domein dat u hebt toegevoegd, bijvoorbeeld `status.yourcompany.com` |
-| **Waarde** | Het statuspagina-CNAME-record van uw installatie |
+| Record | **Type** | **Naam** | **Waarde** |
+| ------ | -------- | -------- | --------- |
+| Laat zien dat het domein van het project is, totdat het is geverifieerd | `TXT` | Het domein, bijvoorbeeld `yourcompany.com` | De verificatietekst ervan, `oneuptime-verification-…` |
+| Laat het adres naar OneUptime wijzen | `CNAME` | Het volledige adres, bijvoorbeeld `status.yourcompany.com` | Het statuspagina-CNAME-record van uw installatie |
+
+U voegt het TXT-record één keer per domein toe: elk later adres op dat domein heeft alleen zijn CNAME-record nodig. Voor een adres onder het domein staan de twee op verschillende namen, omdat een naam met een CNAME-record geen ander record kan hebben; voor het hoofddomein zelf staat het ALIAS- of CNAME-flattening-record naast het TXT-record.
 
 > [!NOTE]
 > Voor een hoofddomein, zonder subdomein, voegt het dialoogvenster een opmerking toe: veel DNS-providers staan daar geen CNAME-record toe. Gebruik in plaats daarvan het ALIAS-, ANAME- of CNAME-flattening-record van uw provider, met dezelfde waarde.
 
-OneUptime controleert elk niet-geverifieerd domein elke 15 minuten en verifieert het uwe zodra het record live is, of u nu terugkomt of niet. Om meteen te controleren, klikt u op **Nu controleren**:
+Klik op **Nu controleren** om de records meteen op te zoeken. Het controleert eerst het TXT-record en voegt, zodra dat is gevonden, het domein toe aan de statuspagina en controleert het CNAME-record ervan. Elk record toont dan zijn eigen status, **Gevonden**, **Verkeerde waarde**, **Nog niet gevonden** of **Kon niet controleren**, en daaronder wat OneUptime heeft opgezocht en wat er terugkwam, met wat u moet wijzigen:
 
-- **Het record is nog niet gevonden.** Het dialoogvenster blijft open en zegt naar welk record het zocht. Een nieuw DNS-record kan even nodig hebben om zichtbaar te worden: klik later nog eens op **Nu controleren**, of laat het aan de controle elke 15 minuten over.
-- **Het record is gevonden.** Het dialoogvenster zegt "Uw CNAME-record is geverifieerd." en wat er daarna met het certificaat gebeurt. Het gratis certificaat wordt op dat moment besteld.
+- "We hebben het CNAME-record van status.yourcompany.com opgezocht en niets gekregen." Het record is er nog niet, of nog niet zichtbaar: een nieuw record kan even nodig hebben om zichtbaar te worden.
+- "We hebben het CNAME-record van status.yourcompany.com opgezocht en other.example.net gekregen, maar verwachtten oneuptime.yourcompany.com." Het record wijst ergens anders heen: wijzig de waarde ervan.
+- "We hebben het CNAME-record van status.yourcompany.com opgezocht en niets gekregen, maar de naam antwoordt met het adres 203.0.113.10." De naam heeft een A-record, of de DNS-provider ervan leidt hem via een proxy of vlakt hem af (de oranje wolk van Cloudflare doet dat), waardoor het CNAME-record voor iedereen verborgen blijft: vervang het A-record, of zet de naam op DNS only.
 
-Zolang een domein niet is geverifieerd en het certificaat er niet is, heeft de rij ervan een actie **DNS-instelling** die hetzelfde dialoogvenster opent. Bij een geverifieerd domein waarvan de certificaatbestelling steeds mislukt, of waarvan het certificaat is verlopen, bestelt **Nu controleren** daar opnieuw en toont het waarom de laatste bestelling mislukte. Het bestelt hoogstens één keer per domein per 15 minuten; daartussen blijft OneUptime het zelf opnieuw proberen.
+OneUptime volgt de hele CNAME-keten, dus een record dat naar een eigen naam wijst, die op zijn beurt naar het record van uw installatie wijst, telt ook. Net als een naam waarvan de verzoeken OneUptime bereiken, ook als de DNS-provider ervan het CNAME-record verbergt.
+
+Zodra het CNAME-record is gevonden, zegt het dialoogvenster "Uw CNAME-record is geverifieerd." en wat er daarna met het certificaat gebeurt. Het gratis certificaat wordt op dat moment besteld. Als verzoeken aan het adres OneUptime nog steeds niet bereiken, bijvoorbeeld omdat een proxy voor een zelfgehoste server het adres niet doorgeeft, zegt het dialoogvenster dat: het certificaat kan pas worden uitgegeven als ze dat wel doen.
+
+OneUptime controleert het CNAME-record van elk niet-geverifieerd domein elke 15 minuten en verifieert het uwe zodra het live is, of u nu terugkomt of niet. Zolang een domein niet is geverifieerd en het certificaat er niet is, heeft de rij ervan een actie **DNS-instelling** die hetzelfde dialoogvenster opent. Bij een geverifieerd domein waarvan de certificaatbestelling steeds mislukt, of waarvan het certificaat is verlopen, bestelt **Nu controleren** daar opnieuw en toont het waarom de laatste bestelling mislukte. Het bestelt hoogstens één keer per domein per 15 minuten; daartussen blijft OneUptime het zelf opnieuw proberen.
 
 ### SSL-certificaten
 
@@ -285,7 +289,7 @@ De kolom **Status** zegt hoe ver elk domein op weg is naar HTTPS, in een van ach
 | Geverifieerd. Gebruikt de HTTPS van uw eigen proxy. | Op een zelfgehoste installatie zonder Let's Encrypt-accountsleutel is het record geverifieerd en is het domein bereikbaar. Het HTTPS ervan is aan uw eigen proxy, tenzij u een certificaat uploadt. |
 
 :::details Een domein blijft lang na het toevoegen van het record op "Wachten op DNS" staan
-Controleer of de naam van het record het volledige domein is, zoals `status.yourcompany.com`, en of de waarde precies overeenkomt met het CNAME-record van uw installatie. Gebruik op een hoofddomein een ALIAS-, ANAME- of afgevlakt CNAME-record. Klik daarna op **Nu controleren** in **DNS-instelling**.
+Open **DNS-instelling** en klik op **Nu controleren**: onder het record staat wat OneUptime heeft opgezocht en wat er terugkwam. Controleer of de naam van het record het volledige domein is, zoals `status.yourcompany.com`, en of de waarde overeenkomt met het CNAME-record van uw installatie. Staat er dat de naam antwoordt met een adres, dan heeft de naam een A-record of leidt de DNS-provider hem via een proxy: vervang het A-record, of zet de naam op DNS only. Gebruik op een hoofddomein een ALIAS-, ANAME- of afgevlakt CNAME-record.
 :::
 
 :::details De kolom Status zegt dat er geen gratis certificaat kon worden uitgegeven
@@ -298,7 +302,7 @@ Zoek op uw domein naar een CAA-record dat `letsencrypt.org` buitensluit, en cont
 
 Wie het domein alleen mag lezen, zoals een Viewer of een Status Page Viewer, ziet nog steeds de kolom **Status** en het toe te voegen record in **DNS-instelling**. Voor hen zijn **Nu controleren** en **Reissue SSL** vergrendeld, en ze zeggen welke machtiging nodig is. OneUptime blijft hoe dan ook elk domein controleren en het certificaat ervan zelf bestellen.
 
-Hetzelfde geldt voor API-sleutels. Een sleutel die domeinen van statuspagina's alleen mag lezen, kan `verify-cname`, `order-ssl` of `reissue-ssl` op `/status-page-domain` niet aanroepen. Geef hem **Read Status Page Domain** en **Edit Status Page Domain** als hij dat nodig heeft.
+Hetzelfde geldt voor API-sleutels. Een sleutel die domeinen van statuspagina's alleen mag lezen, kan `verify-cname`, `check-dns`, `order-ssl` of `reissue-ssl` op `/status-page-domain` niet aanroepen. Geef hem **Read Status Page Domain** en **Edit Status Page Domain** als hij dat nodig heeft. Als het record niet is gevonden, weigert `verify-cname` met wat het heeft opgezocht en wat er terugkwam, in de woorden die **DNS-instelling** toont; `check-dns` geeft hoe dan ook antwoord voor elk record dat het heeft opgezocht.
 
 ## Powered by OneUptime
 

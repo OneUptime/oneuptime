@@ -30,6 +30,17 @@ import CustomDomainVerification, {
 import CustomDomainCertificates, {
   CustomDomainCertificate,
 } from "../../Types/CustomDomain/CustomDomainCertificates";
+import {
+  DnsRecordCheck,
+  isDnsRecordFound,
+} from "../../Types/CustomDomain/DnsRecordCheck";
+import { describeDnsRecordCheckInEnglish } from "../../Types/CustomDomain/DnsRecordCheckWords";
+import CustomDomainDnsCheckResultJSON from "../../Types/CustomDomain/CustomDomainDnsCheckResult";
+import CustomDomainServerReadinessJSON, {
+  CustomDomainServerReadinessResult,
+} from "../../Types/CustomDomain/CustomDomainServerReadiness";
+import CustomDomainServerReadiness from "../Utils/CustomDomain/CustomDomainServerReadiness";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 
 /*
  * What the routes need of a custom domain service beyond its table: a status
@@ -38,6 +49,13 @@ import CustomDomainCertificates, {
  */
 export interface CustomDomainRouteService {
   isCnameValid(fullDomain: string): Promise<boolean>;
+  checkCname(
+    fullDomain: string,
+    options?: {
+      recordResult?: boolean | undefined;
+      lookUpDnsEvenWhenReached?: boolean | undefined;
+    },
+  ): Promise<DnsRecordCheck>;
   orderCertOnceCnameIsVerified(
     domain: BaseModel,
   ): Promise<CustomDomainVerificationResult>;
@@ -131,6 +149,15 @@ export default class CustomDomainRoutes {
     return { domain };
   }
 
+  /*
+   * verify-cname's refusal of a record that is not found: what was looked
+   * up, what came back and what to change, in English, then when it is
+   * checked again.
+   */
+  public static getNotVerifiedMessage(check: DnsRecordCheck): string {
+    return `${describeDnsRecordCheckInEnglish(check)} We keep checking every 15 minutes.`;
+  }
+
   public static add(data: {
     router: ExpressRouter;
     // The domain table's API path: "/status-page-domain", "/dashboard-domain".
@@ -143,6 +170,12 @@ export default class CustomDomainRoutes {
     getCnameRecord: () => string;
     // The column - and route parameter - naming the status page or dashboard.
     parentColumn: string;
+    /*
+     * The setting that sets the CNAME record, and its Helm value: what the
+     * server readiness check names when it is not set.
+     */
+    cnameRecordVariable: string;
+    cnameRecordHelmValue: string;
   }): void {
     const service: DatabaseService<BaseModel> & CustomDomainRouteService =
       data.service;
@@ -242,14 +275,20 @@ export default class CustomDomainRoutes {
             );
           }
 
-          const isValid: boolean = await service.isCnameValid(fullDomain);
+          /*
+           * What was looked up and what came back: a refusal says it, in
+           * place of "could not find a CNAME record" (#1521, #1664).
+           */
+          const check: DnsRecordCheck = await service.checkCname(fullDomain, {
+            lookUpDnsEvenWhenReached: true,
+          });
 
-          if (!isValid) {
+          if (!isDnsRecordFound(check)) {
             return Response.sendErrorResponse(
               req,
               res,
               new BadDataException(
-                `We could not find a CNAME record for ${fullDomain} that points to ${data.getCnameRecord()} yet. Please check the record at your DNS provider. A new record can take a while to show up, and we keep checking every 15 minutes.`,
+                CustomDomainRoutes.getNotVerifiedMessage(check),
               ),
             );
           }
@@ -261,6 +300,81 @@ export default class CustomDomainRoutes {
             req,
             res,
             CustomDomainVerification.toJSON(result),
+          );
+        } catch (e) {
+          next(e);
+        }
+      },
+    );
+
+    /*
+     * DNS Setup's Check now: the same check and the same order as
+     * verify-cname, answered either way - found or not - with every record
+     * it looked up and what came back (CustomDomainDnsCheckResult), so the
+     * dialog can draw each record with its own status. verify-cname keeps
+     * refusing a record that is not found, for the API callers that rely
+     * on it.
+     */
+    data.router.get(
+      `${data.crudApiPath}/check-dns/:id`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const domain: BaseModel | null = await findDomainCallerMayChange(
+            req,
+            res,
+            {
+              _id: true,
+              fullDomain: true,
+              isCustomCertificate: true,
+              isSslOrdered: true,
+              // Whose on-demand orders the order counts against.
+              projectId: true,
+            } as Select<BaseModel>,
+          );
+
+          if (!domain) {
+            return;
+          }
+
+          const fullDomain: string | undefined = (
+            domain as unknown as CustomDomainRow
+          ).fullDomain;
+
+          if (!fullDomain) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid domain."),
+            );
+          }
+
+          const check: DnsRecordCheck = await service.checkCname(fullDomain, {
+            lookUpDnsEvenWhenReached: true,
+          });
+
+          if (!isDnsRecordFound(check)) {
+            return Response.sendJsonObjectResponse(
+              req,
+              res,
+              CustomDomainDnsCheckResultJSON.toJSON({
+                isVerified: false,
+                records: [check],
+              }),
+            );
+          }
+
+          const certificate: CustomDomainVerificationResult =
+            await service.orderCertOnceCnameIsVerified(domain);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            CustomDomainDnsCheckResultJSON.toJSON({
+              isVerified: true,
+              records: [check],
+              certificate: certificate,
+            }),
           );
         } catch (e) {
           next(e);
@@ -433,6 +547,76 @@ export default class CustomDomainRoutes {
           );
 
           return Response.sendEmptySuccessResponse(req, res);
+        } catch (e) {
+          next(e);
+        }
+      },
+    );
+
+    /*
+     * Whether this server can serve a custom domain of this kind at all
+     * (CustomDomainServerReadiness): its CNAME target set, resolving,
+     * reaching this OneUptime on port 80 and taking connections on 443, and
+     * whether it issues free certificates. The Custom Domains page shows
+     * what is missing before anybody adds a record. Self-hosted only: on
+     * OneUptime Cloud there is nothing for a customer to set, and the
+     * answer has no checks.
+     *
+     * For whoever may read this kind's domains. It reads nothing of theirs,
+     * and the answer is kept a few minutes, so the requests it makes out of
+     * the server do not grow with the readers.
+     */
+    data.router.get(
+      `${data.crudApiPath}/server-readiness`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          try {
+            // Throws for a caller who may not read this kind's domains.
+            await service.findBy({
+              query: {} as Query<BaseModel>,
+              select: { _id: true } as Select<BaseModel>,
+              limit: 1,
+              skip: 0,
+              props: databaseProps,
+            });
+          } catch (err) {
+            if (
+              err instanceof NotAuthorizedException ||
+              err instanceof NotAuthenticatedException
+            ) {
+              return Response.sendErrorResponse(req, res, err);
+            }
+
+            throw err;
+          }
+
+          if (IsBillingEnabled) {
+            return Response.sendJsonObjectResponse(
+              req,
+              res,
+              CustomDomainServerReadinessJSON.toJSON({
+                target: data.getCnameRecord(),
+                checks: [],
+              }),
+            );
+          }
+
+          const readiness: CustomDomainServerReadinessResult =
+            await CustomDomainServerReadiness.check({
+              target: data.getCnameRecord(),
+              variable: data.cnameRecordVariable,
+              helmValue: data.cnameRecordHelmValue,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            CustomDomainServerReadinessJSON.toJSON(readiness),
+          );
         } catch (e) {
           next(e);
         }

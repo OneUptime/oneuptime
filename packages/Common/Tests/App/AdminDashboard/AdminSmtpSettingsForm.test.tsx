@@ -570,7 +570,7 @@ describe("Admin > Settings > Email > Host Settings", () => {
     });
   });
 
-  test("an instance without a port shows 587 only as a placeholder", async () => {
+  test("an instance without a port starts on 587, and Next goes on without typing it (#6875)", async () => {
     stored = { ...SMTP_INSTANCE, smtpPort: null, isSMTPSecure: null };
 
     await renderPage();
@@ -579,31 +579,58 @@ describe("Admin > Settings > Email > Host Settings", () => {
 
     await waitForField(dialog, "smtp.server.com");
 
-    expect(within(dialog).getByPlaceholderText("587")).toHaveValue("");
+    // A value, not only the box's example: a newcomer does not type it.
+    expect(within(dialog).getByPlaceholderText("587")).toHaveValue("587");
     // Never set: the mail service does not require TLS.
     expect(summaryOf(dialog)).toBe(
       "Mail is sent over SMTP, signing in with the username and password. TLS is used only if the server offers it.",
     );
 
-    // The port is still asked for: Next stays on the step, nothing saved.
     await act(async () => {
       fireEvent.click(within(dialog).getByTestId("modal-footer-next-button"));
     });
     await settle();
 
+    // On to the Sender step, with no error under Port.
+    expect(within(dialog).queryByText(/NaN/)).toBeNull();
     expect(
-      within(dialog).queryByTestId("modal-footer-submit-button"),
-    ).toBeNull();
+      within(dialog).getByTestId("modal-footer-submit-button"),
+    ).toBeVisible();
 
-    // And the save, from the last step, sends the user back to it.
-    await openLastStep(dialog);
     await act(async () => {
       fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
     });
     await settle();
 
-    expect(within(dialog).getByPlaceholderText("587")).toBeVisible();
+    expect(asText(savedValues()["smtpPort"])).toBe("587");
+  });
 
+  test("a port emptied by hand says Port is required, not Invalid number: NaN (#6875)", async () => {
+    stored = { ...SMTP_INSTANCE, smtpPort: null, isSMTPSecure: null };
+
+    await renderPage();
+
+    const dialog: HTMLElement = await openEditDialog();
+
+    await waitForField(dialog, "smtp.server.com");
+
+    await act(async () => {
+      fireEvent.change(within(dialog).getByPlaceholderText("587"), {
+        target: { value: "" },
+      });
+    });
+    await settle();
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId("modal-footer-next-button"));
+    });
+    await settle();
+
+    expect(within(dialog).queryByText(/NaN/)).toBeNull();
+    expect(within(dialog).getByText("Port is required.")).toBeVisible();
+    expect(
+      within(dialog).queryByTestId("modal-footer-submit-button"),
+    ).toBeNull();
     expect(mockCreateOrUpdate).not.toHaveBeenCalled();
   });
 

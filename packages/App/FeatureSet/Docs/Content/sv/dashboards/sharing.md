@@ -86,29 +86,28 @@ Kortet heter **Anpassade domäner** och säger vad du ska göra: peka varje dom�
 
 Att lägga instrumentpanelen på din egen domän tar tre steg, och bara de två första är dina:
 
-1. **Lägg till domänen**: en underdomän och en av dina verifierade domäner.
-2. **Lägg till dess CNAME-post** hos din DNS-leverantör. Dialogrutan **DNS-inställning** öppnas med posten så snart du lägger till domänen.
+1. **Lägg till domänen**: skriv adressen som folk ska öppna, som `dashboard.acme.com`.
+2. **Lägg till dess DNS-poster** hos din DNS-leverantör. Dialogrutan **DNS-inställning** visar dem: en CNAME-post för adressen och, första gången projektet använder en domän, en TXT-post som visar att projektet äger den.
 3. **Det kostnadsfria SSL-certifikatet utfärdas automatiskt** så snart posten har hittats. Det finns ingen knapp att trycka på.
 
 När den har verifierats kan instrumentpanelen nås både på din anpassade domän och på den ursprungliga URL:en.
 
 ### Lägg till domänen
 
-Klicka på **Skapa Dashboard Domän**. Dialogrutan är en enda sida:
+Klicka på **Lägg till anpassad domän**. Dialogrutan frågar efter en enda sak:
 
-- **Underdomän**: bara etiketten, med platshållaren `dashboard (leave blank for root)`. Ange bara `dashboard`, inte hela värdnamnet. Lämna den tom eller ange `@` för att använda rotdomänen (apex).
-- **Domän**: domänerna som har verifierats under **Projektinställningar → Avancerad → Domäner**, där du med en TXT-post bevisar att en domän är din. En domän som du inte har verifierat finns inte i listan, eftersom den skulle avvisas. Länken **Lägg till en domän** bredvid fältet öppnar den sidan i en ny flik.
+- **Domän**: hela adressen som folk ska öppna, med platshållaren `dashboard.example.com`. En inklistrad länk fungerar också: bara dess värdnamn behålls. För att använda roten av en domän skriver du själva domänen.
 - **Fler fält**: hopfällt. Så länge det är hopfällt säger rubriken vilket certifikat domänen kommer att använda: "Vi utfärdar ett gratis SSL-certifikat för den här domänen och förnyar det automatiskt." Öppna det bara för att använda ett eget certifikat (se nedan).
 
-Klicka på **Skapa Dashboard Domän**. Dialogrutan stängs och den nya domänens **DNS-inställning** öppnas. En domäns fullständiga namn ligger fast när du lägger till den, så **Redigera** ändrar bara dess certifikat. För att använda en annan underdomän lägger du till den domänen och tar bort den gamla.
+Klicka på **Fortsätt**. Om projektet har verifierat domänen som adressen ligger på, under **Projektinställningar → Avancerad → Domäner**, läggs domänen till och dess **DNS-inställning** öppnas. Om inte lägger OneUptime till den domänen i projektet, och **DNS-inställning** öppnas även med dess TXT-post, så att du verifierar den direkt där. En domäns fullständiga namn ligger fast när du lägger till den, så **Redigera** ändrar bara dess certifikat. För att använda en annan adress lägger du till den och tar bort den gamla.
 
 ### DNS-inställning och Kontrollera nu
 
-Dialogrutan **DNS-inställning** visar posten som du ska lägga till hos din DNS-leverantör, ett fält per rad, vart och ett med en kopieringsknapp: **Typ** `CNAME`, **Namn** den fullständiga domän som du lade till, och **Värde** din installations CNAME-post för instrumentpaneler. För en rotdomän, utan underdomän, lägger dialogrutan till en anmärkning: många DNS-leverantörer tillåter inte en CNAME-post där, så använd i stället leverantörens ALIAS-, ANAME- eller CNAME-flattening-post med samma värde.
+Dialogrutan **DNS-inställning** visar varje post som du ska lägga till hos din DNS-leverantör, ett fält per rad, vart och ett med en kopieringsknapp: **Typ** `CNAME`, **Namn** den fullständiga domän som du lade till, och **Värde** din installations CNAME-post för instrumentpaneler, efter domänens TXT-post så länge projektet inte har verifierat den. För en rotdomän, utan underdomän, lägger dialogrutan till en anmärkning: många DNS-leverantörer tillåter inte en CNAME-post där, så använd i stället leverantörens ALIAS-, ANAME- eller CNAME-flattening-post med samma värde.
 
 OneUptime kontrollerar varje overifierad domän var 15:e minut, och när kontrollen hittar posten beställer den domänens kostnadsfria Let's Encrypt-certifikat i samma kontroll, oavsett om du kommer tillbaka eller inte. För att kontrollera direkt klickar du på **Kontrollera nu**:
 
-- **Posten har inte hittats än.** Dialogrutan förblir öppen och säger vilken post den letade efter. En ny DNS-post kan ta en stund att dyka upp. Klicka på **Kontrollera nu** igen senare, eller lämna det åt kontrollen var 15:e minut.
+- **Posten har inte hittats än.** Dialogrutan förblir öppen och säger under varje post vad OneUptime slog upp och vad som kom tillbaka: ingenting, ett annat värde eller en adress där en CNAME-post förväntades. En ny DNS-post kan ta en stund att dyka upp. Klicka på **Kontrollera nu** igen senare, eller lämna det åt kontrollen var 15:e minut.
 - **Posten har hittats.** Dialogrutan säger "Din CNAME-post är verifierad." och vad som händer med certifikatet härnäst. Det kostnadsfria certifikatet beställs i det ögonblicket och är oftast aktivt inom 15 minuter.
 
 Tills en domän har verifierats och dess certifikat är på plats har dess rad en åtgärd **DNS-inställning** som öppnar samma dialogruta. På en verifierad domän vars certifikatbeställning fortsätter att misslyckas, eller vars certifikat har gått ut, beställer **Kontrollera nu** där på nytt och visar varför den senaste beställningen misslyckades. Den beställer högst en gång per domän var 15:e minut; däremellan fortsätter OneUptime att försöka på egen hand och väntar lite längre efter varje misslyckande i rad. Förnyelsen sker automatiskt, i god tid innan certifikatet går ut, och en misslyckad DNS-kontroll tar aldrig bort ett certifikat som fortfarande är giltigt.

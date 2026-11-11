@@ -114,18 +114,18 @@
     "server-email": {
       "title": "As a self-hosted admin, make the server able to send email",
       "path": "manual",
-      "startsAt": "Admin Dashboard > Users, where the first admin lands",
+      "startsAt": "the Admin Dashboard, where the first admin lands (Server setup, /admin/setup)",
       "endsWhen": "the SMTP server is saved and a test email has gone out",
       "budget": {
-        "screens": 3,
+        "screens": 2,
         "dialogs": 2,
-        "clicks": 17,
-        "fieldsTyped": 9,
-        "products": 3,
-        "keystrokes": 175,
-        "defaultsKept": 0,
-        "choices": 6,
-        "words": 464
+        "clicks": 11,
+        "fieldsTyped": 5,
+        "products": 2,
+        "keystrokes": 119,
+        "defaultsKept": 2,
+        "choices": 0,
+        "words": 490
       }
     }
   }

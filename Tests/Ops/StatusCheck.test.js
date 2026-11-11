@@ -340,12 +340,48 @@ describe("what it says once OneUptime is up", () => {
     },
   );
 
+  test("right after where to sign up, it says where to finish setting up the server (#6824)", () => {
+    const result = statusCheck({
+      config: configWith([
+        "HOST=oneuptime.example.com",
+        "HTTP_PROTOCOL=http",
+        "ONEUPTIME_HTTP_PORT=80",
+      ]),
+    });
+    const lines = result.output.split("\n");
+    const signUp = lines.findIndex((line) => {
+      return line.startsWith("Open http://oneuptime.example.com in your browser.");
+    });
+
+    expect(signUp).toBeGreaterThan(0);
+    expect(lines[signUp + 1]).toBe(
+      "Then finish setting up this server: http://oneuptime.example.com/admin/setup",
+    );
+  });
+
+  test("the setup address follows HTTP_PROTOCOL and HOST, port included", () => {
+    const https = statusCheck({
+      config: configWith(["HOST=oneuptime.example.com", "HTTP_PROTOCOL=https"]),
+    });
+    const local = statusCheck({
+      config: configWith(["HOST=localhost:8080", "HTTP_PROTOCOL=http"]),
+    });
+
+    expect(https.output).toContain(
+      "Then finish setting up this server: https://oneuptime.example.com/admin/setup",
+    );
+    expect(local.output).toContain(
+      "Then finish setting up this server: http://localhost:8080/admin/setup",
+    );
+  });
+
   test("with no HOST anywhere, it says it is up and names no address", () => {
     const result = statusCheck({ config: null });
 
     expect(result.status).toBe(0);
     expect(result.output).toContain("OneUptime is up!");
     expect(result.output).not.toContain("in your browser");
+    expect(result.output).not.toContain("finish setting up this server");
   });
 
   test("it ends with one line about feedback and support, not a page of it", () => {
