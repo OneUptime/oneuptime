@@ -55,27 +55,26 @@ Från början visas ett formulär på sin länk, på OneUptimes egen adress. Fö
 
 Att lägga formuläret på din egen domän tar tre steg, och bara de två första är dina:
 
-1. **Lägg till domänen**: en underdomän och en av dina verifierade domäner.
-2. **Lägg till dess CNAME-post** hos din DNS-leverantör. Dialogrutan **DNS-inställning** öppnas med posten så snart du lägger till domänen.
+1. **Lägg till domänen**: skriv adressen som folk ska öppna, som `report.acme.com`.
+2. **Lägg till dess DNS-poster** hos din DNS-leverantör. Dialogrutan **DNS-inställning** visar dem: en CNAME-post för adressen och, första gången projektet använder en domän, en TXT-post som visar att projektet äger den.
 3. **Det kostnadsfria SSL-certifikatet utfärdas automatiskt** så snart posten har hittats. Det finns ingen knapp att trycka på.
 
 När domänen är live listar kortet **Delningslänk** den ovanför formulärets länk. Båda öppnar samma formulär.
 
 ### Lägga till en domän
 
-Klicka på **Skapa Formulärdomän**. Dialogrutan är en enda sida:
+Klicka på **Lägg till anpassad domän**. Dialogrutan frågar efter en enda sak:
 
-- **Underdomän**: bara etiketten, med platshållaren `report (leave blank for root)`. Skriv bara `report`, inte hela värdnamnet. Lämna fältet tomt eller skriv `@` för att använda rotdomänen.
-- **Domän**: en av domänerna som är verifierade under **Projektinställningar** > **Avancerad** > **Domäner**, där du med en TXT-post visar att du äger en domän. Länken **Lägg till en domän** bredvid fältet öppnar den sidan i en ny flik.
+- **Domän**: hela adressen som folk ska öppna, med platshållaren `report.example.com`. En inklistrad länk fungerar också: bara dess värdnamn behålls. För att använda roten av en domän skriver du själva domänen.
 - **Fler fält**: hopfällt. Öppna det bara för att använda ett eget certifikat: slå på **Ladda upp anpassat certifikat** och klistra in **Certifikat** och dess **Privat certifikatnyckel**.
 
-Klicka på **Skapa Formulärdomän** igen för att lägga till den. Dialogrutan stängs och den nya domänens **DNS-inställning** öppnas. En domäns namn och dess formulär ligger fast när den har lagts till, så **Redigera** ändrar bara dess certifikat: för att ändra något av dem lägger du till den nya domänen och tar bort den gamla.
+Klicka på **Fortsätt**. Om projektet har verifierat domänen som adressen ligger på, under **Projektinställningar** > **Avancerad** > **Domäner**, läggs domänen till och dess **DNS-inställning** öppnas. Om inte lägger OneUptime till den domänen i projektet, och **DNS-inställning** öppnas även med dess TXT-post, så att du verifierar den direkt där. En domäns namn och dess formulär ligger fast när den har lagts till, så **Redigera** ändrar bara dess certifikat: för att ändra något av dem lägger du till den nya domänen och tar bort den gamla.
 
 En domän visar en statussida, en instrumentpanel eller ett formulär, så ett namn som någon av dem redan har, i vilket projekt som helst, avvisas: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
 
 ### DNS-inställning och Kontrollera nu
 
-Dialogrutan **DNS-inställning** visar posten som du lägger till hos din DNS-leverantör, varje fält med en kopieringsknapp: **Typ** `CNAME`, **Namn** hela domänen som du lade till, och **Värde** din installations CNAME-post. För en rotdomän tillåter många DNS-leverantörer ingen CNAME-post: använd i stället leverantörens ALIAS-, ANAME- eller CNAME-flattening-post med samma värde.
+Dialogrutan **DNS-inställning** visar varje post som du lägger till hos din DNS-leverantör, varje fält med en kopieringsknapp: **Typ** `CNAME`, **Namn** hela domänen som du lade till, och **Värde** din installations CNAME-post, efter domänens TXT-post så länge projektet inte har verifierat den. Under varje post säger **Kontrollera nu** vad OneUptime slog upp och vad som kom tillbaka. För en rotdomän tillåter många DNS-leverantörer ingen CNAME-post: använd i stället leverantörens ALIAS-, ANAME- eller CNAME-flattening-post med samma värde.
 
 OneUptime kontrollerar varje overifierad domän var 15:e minut, och när den hittar posten beställer den domänens kostnadsfria Let's Encrypt-certifikat i samma kontroll. Klicka på **Kontrollera nu** för att kontrollera direkt. Tills en domän är live har dess rad en åtgärd **DNS-inställning** som öppnar samma dialogruta, där **Kontrollera nu** också beställer om ett certifikat som misslyckades eller har gått ut, högst en gång per domän var 15:e minut. Förnyelsen sker automatiskt, i god tid innan certifikatet går ut.
 

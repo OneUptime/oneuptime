@@ -866,11 +866,30 @@ describe("the Admin Dashboard's instance mail server", () => {
     );
   });
 
-  test("fills nothing in: 587 is only the placeholder, and TLS shows what is stored", () => {
+  test("the port starts on 587 when the instance holds none (#6875), and TLS shows what is stored", () => {
     const port: Field<GlobalConfig> = fieldFor(GLOBAL_FIELDS, "smtpPort");
 
-    expect(port.defaultValue).toBeUndefined();
+    /*
+     * A value, not only the box's example: a fresh server's port is null,
+     * and the edit form starts it on 587 (startsOnDefaultWhenEmpty). An
+     * instance with a port of its own keeps it.
+     */
+    expect(port.defaultValue).toBe(DEFAULT_SMTP_PORT);
+    expect(port.startsOnDefaultWhenEmpty).toBe(true);
     expect(port.placeholder).toBe("587");
+
+    // Nothing else of the form starts on a default of its own.
+    for (const field of GLOBAL_FIELDS) {
+      if (field !== port) {
+        expect({
+          field: Object.keys(field.field || {}),
+          startsOnDefaultWhenEmpty: field.startsOnDefaultWhenEmpty,
+        }).toEqual({
+          field: Object.keys(field.field || {}),
+          startsOnDefaultWhenEmpty: undefined,
+        });
+      }
+    }
 
     const secure: Field<GlobalConfig> = fieldFor(GLOBAL_FIELDS, "isSMTPSecure");
 
@@ -924,18 +943,32 @@ describe("both forms", () => {
   });
 
   test("ask for a mail server and its sign-in in the same words", () => {
+    /*
+     * Both start on port 587: a new project config through its create
+     * form's initial values, the instance's edit form through the port's
+     * default (#6875). Every other field starts the same way in both.
+     */
     const describeField: (field: Field<unknown>) => Record<string, unknown> = (
       field: Field<unknown>,
     ): Record<string, unknown> => {
+      const isPort: boolean = field.fieldType === FormFieldSchemaType.Port;
+
       return {
         title: field.title,
         description: field.description,
         placeholder: field.placeholder,
         fieldType: field.fieldType,
         required: field.required,
-        defaultValue: field.defaultValue,
+        defaultValue: isPort ? "587 to start" : field.defaultValue,
       };
     };
+
+    expect(fieldFor(GLOBAL_FIELDS, "smtpPort").defaultValue).toBe(587);
+    expect(
+      (PROJECT_SMTP_CONFIG_CREATE_INITIAL_VALUES as Record<string, unknown>)[
+        "port"
+      ],
+    ).toBe(587);
 
     for (const key of [
       "hostname",

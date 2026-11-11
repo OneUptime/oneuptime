@@ -86,29 +86,28 @@ La scheda si intitola **Domini personalizzati** e dice che cosa fare: punta il r
 
 Mettere la dashboard sul tuo dominio richiede tre passaggi, e solo i primi due spettano a te:
 
-1. **Aggiungi il dominio**: un sottodominio e uno dei tuoi domini verificati.
-2. **Aggiungi il suo record CNAME** presso il tuo provider DNS. La finestra **Configurazione DNS** si apre con il record non appena aggiungi il dominio.
+1. **Aggiungi il dominio**: digita l'indirizzo che le persone apriranno, come `dashboard.acme.com`.
+2. **Aggiungi i suoi record DNS** presso il tuo provider DNS. La finestra **Configurazione DNS** li mostra: un record CNAME per l'indirizzo e, la prima volta che il progetto usa un dominio, un record TXT che dimostra che il dominio appartiene al progetto.
 3. **Il certificato SSL gratuito viene emesso automaticamente** non appena il record viene trovato. Non c'è nessun pulsante da premere.
 
 Una volta verificata, la dashboard è raggiungibile sia sul tuo dominio personalizzato sia sull'URL originale.
 
 ### Aggiungere il dominio
 
-Fai clic su **Crea: Dominio della dashboard**. La finestra è una sola pagina:
+Fai clic su **Aggiungi dominio personalizzato**. La finestra chiede una sola cosa:
 
-- **Sottodominio**: solo l'etichetta, con il segnaposto `dashboard (leave blank for root)`. Inserisci solo `dashboard`, non l'intero nome host. Lascialo vuoto o inserisci `@` per usare il dominio radice (apex).
-- **Dominio**: i domini verificati in **Impostazioni del progetto → Avanzato → Domini**, dove dimostri con un record TXT che un dominio è tuo. Un dominio che non hai verificato non è elencato, perché verrebbe rifiutato. Il link **Aggiungi un dominio** accanto al campo apre quella pagina in una nuova scheda.
+- **Dominio**: l'indirizzo completo che le persone apriranno, con il segnaposto `dashboard.example.com`. Funziona anche un link incollato: viene tenuto solo il suo nome host. Per usare la radice di un dominio, digita il dominio stesso.
 - **Altri campi**: chiuso. Finché è chiuso, la sua intestazione dice quale certificato userà il dominio: "Emettiamo un certificato SSL gratuito per questo dominio e lo rinnoviamo automaticamente." Aprilo solo per usare un certificato tuo (vedi sotto).
 
-Fai clic su **Crea: Dominio della dashboard**. La finestra si chiude e si apre la **Configurazione DNS** del nuovo dominio. Il nome completo di un dominio è fissato quando lo aggiungi, quindi **Modifica** cambia solo il suo certificato. Per usare un altro sottodominio, aggiungi quel dominio ed elimina quello vecchio.
+Fai clic su **Continua**. Se il progetto ha verificato il dominio su cui si trova l'indirizzo, in **Impostazioni del progetto → Avanzato → Domini**, il dominio viene aggiunto e si apre la sua **Configurazione DNS**. Altrimenti, OneUptime aggiunge quel dominio al progetto e la **Configurazione DNS** si apre anche con il suo record TXT, così lo verifichi lì stesso. Il nome completo di un dominio è fissato quando lo aggiungi, quindi **Modifica** cambia solo il suo certificato. Per usare un altro indirizzo, aggiungi quello ed elimina quello vecchio.
 
 ### Configurazione DNS e Verifica ora
 
-La finestra **Configurazione DNS** mostra il record da aggiungere presso il tuo provider DNS, un campo per riga, ciascuno con un pulsante di copia: **Tipo** `CNAME`, **Nome** il dominio completo che hai aggiunto, e **Valore** il record CNAME per le dashboard della tua installazione. Per un dominio radice, senza sottodominio, la finestra aggiunge una nota: molti provider DNS non consentono lì un record CNAME, quindi usa invece il record ALIAS, ANAME o di CNAME flattening del tuo provider, con lo stesso valore.
+La finestra **Configurazione DNS** mostra ogni record da aggiungere presso il tuo provider DNS, un campo per riga, ciascuno con un pulsante di copia: **Tipo** `CNAME`, **Nome** il dominio completo che hai aggiunto, e **Valore** il record CNAME per le dashboard della tua installazione, dopo il record TXT del dominio finché il progetto non l'ha verificato. Per un dominio radice, senza sottodominio, la finestra aggiunge una nota: molti provider DNS non consentono lì un record CNAME, quindi usa invece il record ALIAS, ANAME o di CNAME flattening del tuo provider, con lo stesso valore.
 
 OneUptime verifica ogni dominio non verificato ogni 15 minuti, e quando la verifica trova il record ordina il certificato Let's Encrypt gratuito del dominio nella stessa verifica, che tu torni o meno. Per verificare subito, fai clic su **Verifica ora**:
 
-- **Il record non è ancora stato trovato.** La finestra resta aperta e dice quale record ha cercato. Un nuovo record DNS può metterci un po' a comparire. Fai di nuovo clic su **Verifica ora** più tardi, oppure lascia fare alla verifica ogni 15 minuti.
+- **Il record non è ancora stato trovato.** La finestra resta aperta e, sotto ogni record, dice cosa ha cercato OneUptime e cosa ha ottenuto: niente, un altro valore, o un indirizzo dove ci si aspettava un record CNAME. Un nuovo record DNS può metterci un po' a comparire. Fai di nuovo clic su **Verifica ora** più tardi, oppure lascia fare alla verifica ogni 15 minuti.
 - **Il record è stato trovato.** La finestra dice "Il tuo record CNAME è verificato." e che cosa succede poi al certificato. Il certificato gratuito viene ordinato in quel momento, e di solito è attivo entro 15 minuti.
 
 Finché un dominio non è verificato e il suo certificato non è al suo posto, la sua riga ha un'azione **Configurazione DNS** che apre la stessa finestra. Su un dominio verificato il cui ordine del certificato continua a fallire, o il cui certificato è scaduto, **Verifica ora** da lì ordina di nuovo e mostra perché l'ultimo ordine è fallito. Ordina al massimo una volta per dominio ogni 15 minuti; nel frattempo, OneUptime continua a riprovare da solo, aspettando un po' di più dopo ogni fallimento consecutivo. Il rinnovo è automatico, ben prima che il certificato scada, e una verifica DNS fallita non rimuove mai un certificato ancora valido.

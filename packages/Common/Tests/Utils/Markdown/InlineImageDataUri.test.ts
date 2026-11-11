@@ -1,5 +1,6 @@
 import {
   InlineImageDataUri,
+  isInlineImageDataUriPrefix,
   parseInlineImageDataUri,
 } from "../../../Utils/Markdown/InlineImageDataUri";
 import { describe, expect, test } from "@jest/globals";
@@ -310,5 +311,80 @@ describe("parseInlineImageDataUri - size", () => {
       limitInMs: 5000,
     });
     expect(timed.inMs).toBeLessThan(5000);
+  });
+});
+
+/*
+ * The email renderer reads a long address's start before it puts back the
+ * rest (Server/Types/Markdown, issue #6481): when what comes up to a data:
+ * URL's first "," is no inline image's start, the URL is no inline image,
+ * whatever follows, and nothing is put back.
+ */
+describe("isInlineImageDataUriPrefix - the start of a data: URL, up to its first comma", () => {
+  test.each([
+    "data:image/png;base64,",
+    "data:image/jpeg;base64,",
+    "data:image/jpg;base64,",
+    "data:image/gif;base64,",
+    "data:image/webp;base64,",
+    "DATA:IMAGE/PNG;BASE64,",
+    "Data:Image/Jpeg;Base64,",
+  ])("takes %s", (prefix: string) => {
+    expect(isInlineImageDataUriPrefix(prefix)).toBe(true);
+  });
+
+  test.each([
+    ["an SVG", "data:image/svg+xml;base64,"],
+    ["HTML", "data:text/html;base64,"],
+    ["an icon", "data:image/x-icon;base64,"],
+    ["a media type parameter", "data:image/png;charset=utf-8;base64,"],
+    ["data not in base64", "data:image/png,"],
+    ["no media type", "data:;base64,"],
+    ["a start that goes on into the data", "data:image/png;base64,iVBOR"],
+    ["a start short of its comma", "data:image/png;base64"],
+    ["a space before it", " data:image/png;base64,"],
+    ["a character reference in it", "data:image/png&#59;base64,"],
+    ["an https URL's start", "https://example.com/a,"],
+    ["an empty string", ""],
+  ])("refuses %s", (_label: string, prefix: string) => {
+    expect(isInlineImageDataUriPrefix(prefix)).toBe(false);
+  });
+
+  test("refuses what is not a string at run time", () => {
+    for (const value of [undefined, null, 42, {}]) {
+      expect(isInlineImageDataUriPrefix(value as unknown as string)).toBe(
+        false,
+      );
+    }
+  });
+
+  test("agrees with parseInlineImageDataUri: every inline image starts with a start it takes", () => {
+    const urls: Array<string> = [
+      `data:image/png;base64,${PNG}`,
+      `data:image/png;base64,${JPEG}`,
+      `data:image/jpg;base64,${JPEG}`,
+      `data:image/gif;base64,${GIF89A}`,
+      `data:image/webp;base64,${WEBP}`,
+      `DATA:IMAGE/PNG;BASE64,${PNG}`,
+      `data:image/svg+xml;base64,${PNG}`,
+      `data:image/png;charset=utf-8;base64,${PNG}`,
+      `data:image/png,${PNG}`,
+      `data:text/html;base64,${PNG}`,
+      `data:;base64,${PNG}`,
+      `data:image/png;base64,${base64Of("<svg/>")}`,
+    ];
+    let images: number = 0;
+
+    for (const url of urls) {
+      const start: string = url.slice(0, url.indexOf(",") + 1);
+
+      if (parseInlineImageDataUri(url)) {
+        images++;
+        expect(isInlineImageDataUriPrefix(start)).toBe(true);
+      }
+    }
+
+    // Both kinds are in the list: six images, and six that are not.
+    expect(images).toBe(6);
   });
 });

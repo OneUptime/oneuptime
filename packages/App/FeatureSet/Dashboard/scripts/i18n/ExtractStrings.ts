@@ -352,6 +352,22 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * What a custom domain's DNS check looked up and what came back, and what
+   * a self-hosted server still needs before a custom domain can work: DNS
+   * Setup and Add Custom Domain say them in the reader's language. Only the
+   * words the files mark are read: record types and hostnames stay as
+   * written.
+   */
+  {
+    directory: "packages/Common/Types/CustomDomain/DnsRecordCheckWords.ts",
+    kind: "keys",
+  },
+  {
+    directory:
+      "packages/Common/Types/CustomDomain/CustomDomainServerReadiness.ts",
+    kind: "keys",
+  },
+  /*
    * A RUM application's status - Receiving data, No recent traffic, Waiting
    * for data - and what each means: the RUM Applications list and an
    * application's hero say them in the reader's language. Only the words

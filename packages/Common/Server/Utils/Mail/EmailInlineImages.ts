@@ -256,6 +256,18 @@ export default class EmailInlineImages {
   }
 
   /**
+   * The note attach() leaves in place of an image too large to include in
+   * an email, with `altText` - the image's alt text as its alt attribute
+   * holds it, escaped. For an image the email renderer leaves out before
+   * attach() ever sees it, so the reader sees the same note: a copy of a
+   * screenshot past what references may copy into one email field
+   * (Server/Types/Markdown, MAX_EMAIL_HELD_TEXT_IN_REFERENCES).
+   */
+  public static getTooLargeImageNotice(altText: string): string {
+    return getLeftOutImageNotice(altText, TOO_LARGE_REASON);
+  }
+
+  /**
    * `html` with every inline raster image an <img> holds - each image
    * attach() would move into an attachment - replaced by a note with its
    * alt text, saying it could not be included: the email as it goes when a
