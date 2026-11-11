@@ -74,7 +74,7 @@ Il passaggio da fare per primo è segnato con **Prossimo passaggio**. Con il pia
 
 Quando crei un monitor, una pagina di stato o una policy di reperibilità da un passaggio, la pagina su cui arrivi dice cosa viene dopo, con **Torna alla configurazione**.
 
-Sotto i passaggi, **Come funziona OneUptime** mostra i quattro prodotti principali nell'ordine in cui un problema li attraversa: **Monitor**, **Incidenti e avvisi**, **Reperibilità** e **Pagine di stato**. Fai clic su uno per aprirlo.
+Sotto i passaggi, **Come funziona OneUptime** mostra i quattro prodotti principali nell'ordine in cui un problema li attraversa: **Monitor**, **Incidenti e avvisi**, **Reperibilità** e **Pagine di stato**. Fai clic su uno per aprirlo. Sotto dice cosa alimenta questo ciclo, la telemetria e l'infrastruttura, e rimanda a [Concetti fondamentali](/docs/introduction/core-concepts) e [Glossario](/docs/introduction/glossary).
 
 ```mermaid title="Quando compare la checklist di benvenuto"
 flowchart TB
@@ -87,7 +87,7 @@ flowchart TB
     done -->|"No"| shown["La checklist, con<br/>i passaggi rimasti"]
 ```
 
-La checklist sparisce per tutti quando ogni passaggio è fatto. Per nasconderla prima, fai clic su **Nascondi**: resta nascosta solo per te, su ogni dispositivo, e rimane una riga con **Mostralo** e **Come funziona OneUptime**. Chi è stato invitato nel progetto come membro non vede la checklist.
+La checklist sparisce per tutti quando ogni passaggio è fatto. Per nasconderla prima, fai clic su **Nascondi**: resta nascosta solo per te, su ogni dispositivo, e rimane una riga con **Mostralo** e **Come funziona OneUptime**. Chi è stato invitato nel progetto come membro non vede la checklist. **Come funziona OneUptime** resta a un clic, in qualsiasi progetto: aprilo da **Aiuto** o con il pulsante accanto a **Esplora OneUptime**.
 
 ### Richiede attenzione
 
@@ -136,7 +136,9 @@ Due barre attraversano la parte alta di ogni pagina.
 | In alto a destra | **Cerca** e **Chiedi all'IA**, la campanella delle notifiche con ciò che ti aspetta ora (incidenti e avvisi attivi, le policy di reperibilità in cui sei di turno, gli inviti in sospeso), **Aiuto**, e la tua foto, che apre il menu del tuo [account](/docs/introduction/your-account). |
 | Sotto | **Home** e **Prodotti** a sinistra, **Impostazioni utente** a destra: come OneUptime ti raggiunge in questo progetto. |
 
-**Aiuto** apre questa documentazione (**Documentazione**) e l'elenco **Keyboard shortcuts**, e offre supporto via e-mail e su Slack. Su uno schermo stretto, come quello di un telefono, **Cerca**, **Chiedi all'IA** e **Aiuto** vengono tolti per fare spazio; la campanella e la tua foto restano.
+**Aiuto** inizia da ciò che aiuta a imparare: **Guida rapida**, **Come funziona OneUptime**, **Glossario** e questa documentazione (**Documentazione**). Sotto ci sono l'elenco **Keyboard shortcuts** e il supporto via e-mail e su Slack. Su uno schermo stretto, come quello di un telefono, **Cerca**, **Chiedi all'IA** e **Aiuto** vengono tolti per fare spazio; la campanella e la tua foto restano.
+
+Una parola con una linea tratteggiata sotto, come **Sonde** nel modulo di un nuovo monitor, dice cosa significa quando la indichi, la raggiungi con Tab o la tocchi. Il suo **Leggi di più** apre la parola nel [Glossario](/docs/introduction/glossary).
 
 ### Pagine ed elenchi
 

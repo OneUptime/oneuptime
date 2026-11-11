@@ -92,6 +92,12 @@ Wer zu jedem Zeitpunkt Bereitschaft hat: Personen wechseln sich ab, und jede üb
 
 Auch genannt: **Rotation**. Siehe [Bereitschaftspläne](/docs/on-call/schedules).
 
+### Ebene
+
+Eine Rotation innerhalb eines Bereitschaftsplans: wer sich abwechselt, wie oft übergeben wird und welche Zeiten sie abdeckt. Es alarmiert die oberste Ebene, in der gerade jemand Bereitschaft hat, daher gehört die Hauptrotation nach oben und die Vertretung darunter.
+
+Siehe [Bereitschaftspläne](/docs/on-call/schedules#ebenen).
+
 ### Benachrichtigungsmethode
 
 Eine Adresse, unter der OneUptime Sie in einem Projekt erreichen darf: eine E-Mail-Adresse, eine Telefonnummer für SMS oder Anrufe, Ihr Slack- oder Microsoft-Teams-Konto oder die OneUptime-App auf Ihrem Telefon. Jede Person fügt ihre eigenen unter **Benutzereinstellungen** hinzu.

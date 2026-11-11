@@ -699,6 +699,8 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
         {/*
          * The checklist says what to do; this says how the pieces connect.
          * Hiding the card keeps it one click away, on the line left behind.
+         * Help and Home's Explore OneUptime open it in a dialog
+         * (HowOneUptimeWorksDialog) at any time too, however old the project.
          */}
         <div className="mt-6">{howItWorks}</div>
       </div>

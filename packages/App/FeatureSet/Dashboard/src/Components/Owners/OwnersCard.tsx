@@ -3,6 +3,8 @@ import {
   getRestingClassName,
 } from "Common/UI/Components/Button/ButtonStates";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
+import DefinedTerm from "Common/UI/Components/Glossary/DefinedTerm";
 import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -528,7 +530,13 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
 
   const titleNode: ReactElement = (
     <span className="inline-flex items-center gap-2">
-      <span>{translator.translateText("Owners")}</span>
+      {/*
+       * Every record's Owners page is where a newcomer first meets the
+       * word, so the title says what an owner is (DefinedTerm).
+       */}
+      <DefinedTerm term={GlossaryTerm.Owner}>
+        {translator.translateText("Owners")}
+      </DefinedTerm>
       {items.length > 0 && (
         <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold ring-1 ring-inset ring-indigo-100">
           {items.length}
