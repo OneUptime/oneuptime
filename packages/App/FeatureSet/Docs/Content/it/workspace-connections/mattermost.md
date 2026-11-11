@@ -71,7 +71,7 @@ OneUptime funziona in ogni team del tuo server Mattermost di cui il suo bot è m
 
 - **Quale team usa una regola.** Le regole di notifica scelgono il **Team Mattermost** dei loro canali. Se resta vuoto, la regola crea il suo canale nel team predefinito, e cerca i canali che nomina prima lì, poi negli altri team del bot.
 - **Il team predefinito.** È il team a cui hai collegato il progetto. **Imposta come predefinito** sulla scheda rende predefinito un altro team, per un ruolo che può collegare il progetto.
-- **Dove funziona OneUptime.** I pulsanti dei messaggi di OneUptime, e i moduli che aprono, funzionano in ciascuno di questi team. Un pulsante in un team da cui il bot è stato rimosso non fa nulla.
+- **Dove funziona OneUptime.** I pulsanti dei messaggi di OneUptime, e i moduli che aprono, funzionano in ciascuno di questi team. In un team da cui il bot è stato rimosso, un pulsante dice solo che il team non è più collegato.
 - **Un team predefinito da cui il bot è stato rimosso.** La scheda lo segnala. Aggiungi di nuovo il bot in Mattermost, oppure imposta un altro team come predefinito.
 
 ## Collegare il tuo account Mattermost

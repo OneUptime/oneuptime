@@ -71,7 +71,7 @@ OneUptime werkt in elk team van je Mattermost-server waarvan zijn bot lid is:
 
 - **Welk team een regel gebruikt.** Meldingsregels kiezen het **Mattermost-team** waarin hun kanalen staan. Blijft het veld leeg, dan maakt een regel zijn kanaal aan in het standaardteam, en zoekt hij de kanalen die hij noemt eerst daar en daarna in de andere teams van de bot.
 - **Het standaardteam.** Dat is het team waaraan je het project hebt gekoppeld. **Als standaard instellen** op de kaart maakt een ander team de standaard, voor een rol die het project mag koppelen.
-- **Waar OneUptime werkt.** De knoppen in de berichten van OneUptime, en de formulieren die ze openen, werken in elk van die teams. Een knop in een team waaruit de bot is verwijderd, doet niets.
+- **Waar OneUptime werkt.** De knoppen in de berichten van OneUptime, en de formulieren die ze openen, werken in elk van die teams. In een team waaruit de bot is verwijderd, meldt een knop alleen dat het team niet meer gekoppeld is.
 - **Een standaardteam waaruit de bot is verwijderd.** De kaart meldt dat. Voeg de bot in Mattermost weer toe, of maak een ander team de standaard.
 
 ## Je eigen Mattermost-account koppelen

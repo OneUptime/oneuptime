@@ -71,7 +71,7 @@ OneUptime fonctionne dans chaque équipe de votre serveur Mattermost dont son bo
 
 - **L'équipe qu'une règle utilise.** Les règles de notification choisissent l'**Équipe Mattermost** de leurs canaux. Si elle est laissée vide, une règle crée son canal dans l'équipe par défaut, et cherche les canaux qu'elle nomme d'abord dans celle-ci, puis dans les autres équipes du bot.
 - **L'équipe par défaut.** C'est l'équipe à laquelle vous avez connecté le projet. **Définir par défaut** sur la carte fait d'une autre équipe l'équipe par défaut, pour un rôle qui peut connecter le projet.
-- **Où OneUptime fonctionne.** Les boutons des messages de OneUptime, et les formulaires qu'ils ouvrent, fonctionnent dans chacune de ces équipes. Un bouton dans une équipe dont le bot a été retiré ne fait rien.
+- **Où OneUptime fonctionne.** Les boutons des messages de OneUptime, et les formulaires qu'ils ouvrent, fonctionnent dans chacune de ces équipes. Dans une équipe dont le bot a été retiré, un bouton indique seulement que l'équipe n'est plus connectée.
 - **Une équipe par défaut dont le bot a été retiré.** La carte le signale. Rajoutez le bot dans Mattermost, ou définissez une autre équipe par défaut.
 
 ## Connecter votre propre compte Mattermost

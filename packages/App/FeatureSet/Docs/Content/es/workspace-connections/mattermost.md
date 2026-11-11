@@ -71,7 +71,7 @@ OneUptime funciona en cada equipo de tu servidor de Mattermost del que su bot es
 
 - **Qué equipo usa una regla.** Las reglas de notificación eligen el **Equipo de Mattermost** de sus canales. Si se deja vacío, la regla crea su canal en el equipo predeterminado y busca los canales que nombra primero allí y después en los demás equipos del bot.
 - **El equipo predeterminado.** Es el equipo al que conectaste el proyecto. **Establecer como predeterminado** en la tarjeta convierte otro equipo en el predeterminado, para un rol que pueda conectar el proyecto.
-- **Dónde funciona OneUptime.** Los botones de los mensajes de OneUptime, y los formularios que abren, funcionan en cada uno de esos equipos. Un botón en un equipo del que se quitó el bot no hace nada.
+- **Dónde funciona OneUptime.** Los botones de los mensajes de OneUptime, y los formularios que abren, funcionan en cada uno de esos equipos. En un equipo del que se quitó el bot, un botón solo avisa de que el equipo ya no está conectado.
 - **Un equipo predeterminado del que se quitó el bot.** La tarjeta lo indica. Vuelve a añadir el bot en Mattermost, o establece otro equipo como predeterminado.
 
 ## Conectar tu propia cuenta de Mattermost

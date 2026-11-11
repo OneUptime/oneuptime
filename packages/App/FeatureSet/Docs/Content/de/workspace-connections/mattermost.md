@@ -71,7 +71,7 @@ OneUptime funktioniert in jedem Team Ihres Mattermost-Servers, in dem sein Bot M
 
 - **Welches Team eine Regel nutzt.** Benachrichtigungsregeln wählen das **Mattermost-Team**, in dem ihre Kanäle liegen. Bleibt das Feld leer, legt eine Regel ihren Kanal im Standard-Team an und sucht die Kanäle, die sie nennt, zuerst dort und dann in den anderen Teams des Bots.
 - **Das Standard-Team.** Es ist das Team, mit dem Sie das Projekt verbunden haben. **Als Standard festlegen** auf der Karte macht ein anderes Team zum Standard, für eine Rolle, die das Projekt verbinden darf.
-- **Wo OneUptime funktioniert.** Die Schaltflächen in den Nachrichten von OneUptime und die Formulare, die sie öffnen, funktionieren in jedem dieser Teams. Eine Schaltfläche in einem Team, aus dem der Bot entfernt wurde, bewirkt nichts.
+- **Wo OneUptime funktioniert.** Die Schaltflächen in den Nachrichten von OneUptime und die Formulare, die sie öffnen, funktionieren in jedem dieser Teams. In einem Team, aus dem der Bot entfernt wurde, meldet eine Schaltfläche nur, dass das Team nicht mehr verbunden ist.
 - **Ein Standard-Team, aus dem der Bot entfernt wurde.** Die Karte weist darauf hin. Fügen Sie den Bot in Mattermost wieder hinzu oder machen Sie ein anderes Team zum Standard.
 
 ## Ihr eigenes Mattermost-Konto verbinden

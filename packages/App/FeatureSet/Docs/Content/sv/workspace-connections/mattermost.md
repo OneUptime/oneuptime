@@ -71,7 +71,7 @@ OneUptime fungerar i varje team på din Mattermost-server som boten är medlem i
 
 - **Vilket team en regel använder.** Aviseringsregler väljer det **Mattermost-team** som deras kanaler finns i. Lämnas fältet tomt skapar regeln sin kanal i standardteamet och letar först där efter kanalerna den anger, sedan i botens andra team.
 - **Standardteamet.** Det är det team som du anslöt projektet till. **Gör till standard** på kortet gör ett annat team till standard, för en roll som får ansluta projektet.
-- **Var OneUptime fungerar.** Knapparna i OneUptimes meddelanden, och formulären de öppnar, fungerar i vart och ett av de teamen. En knapp i ett team som boten har tagits bort från gör ingenting.
+- **Var OneUptime fungerar.** Knapparna i OneUptimes meddelanden, och formulären de öppnar, fungerar i vart och ett av de teamen. I ett team som boten har tagits bort från säger en knapp bara att teamet inte längre är anslutet.
 - **Ett standardteam som boten har tagits bort från.** Kortet säger det. Lägg till boten igen i Mattermost, eller gör ett annat team till standard.
 
 ## Anslut ditt eget Mattermost-konto
