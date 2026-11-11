@@ -25,6 +25,8 @@ sequenceDiagram
     O->>O: Kontrollera kriterierna<br/>uppifrån och ned
 ```
 
+Sonden kontrollerar API:ets certifikat som en webbläsare gör, även om utfärdaren har återkallat det. Ett återkallat certifikat får kontrollen att misslyckas precis som ett utgånget: monitorn går offline, och felorsaken säger att certifikatet har återkallats. **Tillåt självsignerade certifikat** stänger av de här kontrollerna för monitorns eget värdnamn.
+
 En sond som har förlorat sin egen nätverksanslutning rapporterar inget resultat, så den kan inte markera ditt API som offline.
 
 ## Innan du börjar

@@ -27,6 +27,8 @@ flowchart TB
 
 Når ingen av monitorens kriterier leser svarets brødtekst (et filter **Svartekst** eller **JavaScript-uttrykk**), sender sonden en forespørsel `HEAD` i stedet for en `GET`, og gjentar den som `GET` hvis serveren avviser `HEAD`. Tilgangsloggene på serveren din kan vise begge.
 
+Sonden sjekker nettstedets sertifikat slik en nettleser gjør, også om utstederen har tilbakekalt det. Et tilbakekalt sertifikat får sjekken til å mislykkes på samme måte som et utløpt: monitoren blir frakoblet, og feilårsaken sier at sertifikatet ble tilbakekalt. **Tillat selvsignerte sertifikater** slår av disse sjekkene for monitorens eget vertsnavn.
+
 En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke nettstedet ditt som frakoblet.
 
 ## Før du starter

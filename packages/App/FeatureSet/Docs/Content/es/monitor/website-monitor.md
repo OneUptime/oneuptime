@@ -27,6 +27,8 @@ flowchart TB
 
 Cuando ninguno de los criterios del monitor lee el cuerpo de la respuesta (un filtro **Cuerpo de la respuesta** o **Expresión de JavaScript**), la sonda envía una solicitud `HEAD` en lugar de un `GET`, y la repite como `GET` si el servidor rechaza `HEAD`. Los registros de acceso de su servidor pueden mostrar cualquiera de las dos.
 
+La sonda comprueba el certificado del sitio como lo hace un navegador, incluido si su emisor lo ha revocado. Un certificado revocado hace fallar la comprobación igual que uno caducado: el monitor pasa a sin conexión y la causa del fallo indica que el certificado fue revocado. **Permitir certificados autofirmados** desactiva estas comprobaciones para el nombre de host del propio monitor.
+
 Una sonda que ha perdido su propia conexión de red no informa de ningún resultado, así que no puede marcar su sitio como sin conexión.
 
 ## Antes de empezar

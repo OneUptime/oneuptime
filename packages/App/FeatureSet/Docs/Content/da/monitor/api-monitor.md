@@ -25,6 +25,8 @@ sequenceDiagram
     O->>O: Tjek kriterierne<br/>fra top til bund
 ```
 
+Sonden kontrollerer API'ets certifikat, som en browser gør, også om udstederen har tilbagekaldt det. Et tilbagekaldt certifikat får kontrollen til at mislykkes ligesom et udløbet: monitoren går offline, og fejlårsagen siger, at certifikatet blev tilbagekaldt. **Tillad selvsignerede certifikater** slår disse kontroller fra for monitorens eget værtsnavn.
+
 En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet resultat, så den kan ikke markere din API som offline.
 
 ## Før du starter

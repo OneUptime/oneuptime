@@ -25,6 +25,8 @@ sequenceDiagram
     O->>O: Sjekk kriteriene<br/>fra topp til bunn
 ```
 
+Sonden sjekker API-ets sertifikat slik en nettleser gjør, også om utstederen har tilbakekalt det. Et tilbakekalt sertifikat får sjekken til å mislykkes på samme måte som et utløpt: monitoren blir frakoblet, og feilårsaken sier at sertifikatet ble tilbakekalt. **Tillat selvsignerte sertifikater** slår av disse sjekkene for monitorens eget vertsnavn.
+
 En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke API-et ditt som frakoblet.
 
 ## Før du starter

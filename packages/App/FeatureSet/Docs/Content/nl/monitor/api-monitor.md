@@ -25,6 +25,8 @@ sequenceDiagram
     O->>O: De criteria controleren,<br/>van boven naar beneden
 ```
 
+De sonde controleert het certificaat van de API zoals een browser dat doet, ook of de uitgever het heeft ingetrokken. Een ingetrokken certificaat laat de controle mislukken zoals een verlopen certificaat: de monitor gaat offline en de oorzaak van de fout zegt dat het certificaat is ingetrokken. **Zelfondertekende certificaten toestaan** zet deze controles uit voor de eigen hostnaam van de monitor.
+
 Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat, en kan uw API dus niet als offline markeren.
 
 ## Voordat u begint

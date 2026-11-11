@@ -288,6 +288,7 @@ Docker Engine 27 及更高版本会为该网络选择一个 IPv6 子网，并把
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | 设为 `true` 后，合成监视器中的 Chromium 会在它自己的沙箱中运行。只有在探测器的容器使用允许沙箱的 seccomp 配置文件（例如 Playwright 的配置文件）运行时才开启它：没有这样的配置文件，Chromium 无法启动。关闭时，探测器会在启动时记录一条警告。 |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Custom Code 监视器脚本的超时时间，单位为毫秒。 |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | 设为 `true` 后，此探测器上的 Website、API、External Status Page 和 Custom Code 监视器可以访问私有地址。参见 [私有网络访问](/docs/self-hosted/private-network-access)。 |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | 此探测器上的 SSL Certificate、Website 和 API 监视器会像浏览器一样，询问证书的颁发机构是否已吊销该证书。设为 `false` 可停止询问，例如在无法访问互联网的探测器上。探测器无法连接的颁发机构永远不会被当作吊销：对于每个无法连接的响应程序，探测器大约每 5 分钟会等待几秒。参见 [SSL 证书监控](/docs/monitor/ssl-certificate-monitor)。 |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | 探测器同时轮询的网络设备数量。轮询设备很多的探测器可以调高它。 |
 
 合成监视器运行时的限制（同时运行的数量、内存和磁盘）见 [合成监控](/docs/monitor/synthetic-monitor) 页面。

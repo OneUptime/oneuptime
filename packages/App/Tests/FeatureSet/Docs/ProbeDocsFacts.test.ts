@@ -499,6 +499,19 @@ describe("the Custom Probes page: every setting the probe reads", () => {
           continue;
         }
 
+        // On unless set to "false": the certificate revocation check.
+        if (
+          readSource(PROBE_CONFIG).includes(
+            `process.env["${name}"] !== "false"`,
+          )
+        ) {
+          expect({ name, defaultCell }).toEqual({
+            name,
+            defaultCell: "`true`",
+          });
+          continue;
+        }
+
         if (name === "PROBE_MONITOR_CHECK_TIMEOUT_IN_MS") {
           // Computed: tested with the synthetic script timeout below.
           continue;
@@ -638,6 +651,22 @@ describe("the Custom Probes page: every setting the probe reads", () => {
     );
     expect(readSource(PROBE_INDEX)).toMatch(
       /if \(!PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED\) \{\s*logger\.warn\(/,
+    );
+  });
+
+  it("says the certificate revocation check is on unless turned off, and that an unreachable issuer is no revocation", () => {
+    const row: Array<string> = rowFor(
+      tableRows(section(page, "### Checking monitors")),
+      "`PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED`",
+    );
+
+    expect(switchDefault("PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED")).toBe(
+      "on",
+    );
+    expect(row[1]).toBe("`true`");
+    expect(row[2]).toContain("Set to `false` to stop asking");
+    expect(row[2]).toContain(
+      "An issuer the probe cannot reach is never taken as a revocation",
     );
   });
 

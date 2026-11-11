@@ -1,17 +1,21 @@
 # Monitor certificato SSL
 
-Un monitor del certificato SSL controlla i certificati TLS che presentano i vostri siti e servizi, come fa un browser, e vi avvisa prima che scadano. Mette anche il monitor offline quando un certificato non è più valido: scaduto, autofirmato, emesso per un altro nome host o da un'autorità di cui i browser non si fidano.
+Un monitor del certificato SSL controlla i certificati TLS che presentano i vostri siti e servizi, come fa un browser, e vi avvisa prima che scadano. Mette anche il monitor offline quando un certificato non è più valido: scaduto, revocato dal suo emittente, autofirmato, emesso per un altro nome host o da un'autorità di cui i browser non si fidano.
 
 :::cards
 - [Creare il monitor](#creare-un-monitor-del-certificato-ssl): Sei passaggi nella dashboard.
 - [Criteri predefiniti](#criteri-predefiniti): Un avviso di scadenza con 14 giorni di anticipo, senza configurare nulla.
-- [Criteri di monitoraggio](#criteri-di-monitoraggio): Validità, scadenza e certificati autofirmati.
-- [Risoluzione dei problemi](#risoluzione-dei-problemi): Certificati autofirmati e interni.
+- [Criteri di monitoraggio](#criteri-di-monitoraggio): Validità, scadenza, revoca e certificati autofirmati.
+- [Risoluzione dei problemi](#risoluzione-dei-problemi): Certificati autofirmati e interni, e la verifica della revoca.
 :::
 
 ## Come funziona
 
 A ogni controllo, una sonda apre una connessione TLS verso l'host e la porta dell'URL, la porta `443` a meno che l'URL non ne indichi un'altra, e verifica il certificato come farebbe un browser: un emittente affidabile, un nome host che corrisponde e date che includono oggi. Se il certificato non supera la verifica, la sonda lo legge comunque, quindi la sua data di scadenza, il suo emittente e le sue impronte vengono registrati in ogni caso. Una connessione che fallisce, va in timeout o presenta un certificato non valido viene ritentata, fino al numero di tentativi che consentite. Poi OneUptime valuta il risultato con i criteri del monitor.
+
+Un certificato che supera questi controlli viene anche controllato per la revoca, come fa un browser. La sonda legge la risposta OCSP che il server invia con il suo certificato, se ce n'è una, poi interroga il responder OCSP dell'emittente indicato nel certificato e, solo se questo non dà risposta, legge l'elenco di revoca dei certificati (CRL) dell'emittente. Si fida solo di una risposta aggiornata firmata dall'emittente o da un responder che l'emittente ha autorizzato, e controlla il certificato del server stesso, non quelli intermedi. Un certificato revocato non è valido. Quando non si riesce ad avere una risposta firmata, lo stato di revoca è sconosciuto e, come in un browser, il certificato non viene trattato come revocato.
+
+Una risposta viene conservata fino al prossimo aggiornamento dell'emittente, per al massimo un'ora, e una ricerca non riuscita viene ritentata dopo 5 minuti. Così un nuovo certificato viene controllato subito, e un certificato revocato mentre è in uso viene rilevato entro un'ora.
 
 ```mermaid title="Come i criteri predefiniti giudicano un certificato"
 flowchart TB
@@ -73,9 +77,10 @@ I criteri decidono quando il certificato conta come buono, degradato o guasto, e
 
 | Filtro | Condizioni | Cosa controlla |
 | --- | --- | --- |
-| **Certificato valido** | **Vero**, **Falso** | Il certificato supera i controlli di un browser: un emittente affidabile, un nome host che corrisponde e date che includono oggi. **Falso** quando l'endpoint non ha risposto. |
+| **Certificato valido** | **Vero**, **Falso** | Il certificato supera i controlli di un browser: un emittente affidabile, un nome host che corrisponde, date che includono oggi e nessuna revoca da parte del suo emittente. **Falso** quando l'endpoint non ha risposto. |
 | **Certificato non valido** | **Vero**, **Falso** | Il contrario di **Certificato valido**: **Vero** quando il certificato non supera quei controlli o non è stato possibile controllarlo. |
 | **Certificato scaduto** | **Vero**, **Falso** | La data di scadenza del certificato è passata. |
+| **Certificato revocato** | **Vero**, **Falso** | L'emittente del certificato lo ha revocato. **Falso** quando l'emittente dice che non è revocato, e quando non è stato possibile verificarlo. |
 | **Certificato autofirmato** | **Vero**, **Falso** | Il certificato, o uno della sua catena, è autofirmato. |
 | **Giorni alla scadenza** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | I giorni che mancano alla scadenza del certificato. |
 | **Ore alla scadenza** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Le ore che mancano alla scadenza del certificato. |
@@ -88,7 +93,7 @@ Con due o più filtri, **Condizione di corrispondenza** decide se devono corrisp
 
 Un nuovo monitor del certificato SSL parte con tre criteri, così vi avvisa prima che un certificato scada senza configurare nulla:
 
-1. **Il certificato non è valido** — il certificato è scaduto, è autofirmato, è stato emesso per un altro nome host o da un'autorità non affidabile, oppure non è stato possibile controllarlo perché l'endpoint non ha risposto. Il monitor viene segnato **Offline** e viene creato un incidente chiamato «_monitor name_ certificate is not valid». La sua causa principale dice quale di questi casi era. L'incidente si risolve da solo appena il certificato torna valido.
+1. **Il certificato non è valido** — il certificato è scaduto, è stato revocato dal suo emittente, è autofirmato, è stato emesso per un altro nome host o da un'autorità non affidabile, oppure non è stato possibile controllarlo perché l'endpoint non ha risposto. Il monitor viene segnato **Offline** e viene creato un incidente chiamato «_monitor name_ certificate is not valid». La sua causa principale dice quale di questi casi era e, per un certificato revocato, quando e perché il suo emittente lo ha revocato. L'incidente si risolve da solo appena il certificato torna valido.
 2. **Il certificato scade presto** — il certificato è valido ma scade entro 14 giorni. Viene creato un **avviso** chiamato «_monitor name_ certificate expires soon».
 3. **Il certificato è valido** — il monitor viene segnato **Operativo**.
 
@@ -115,8 +120,9 @@ I monitor creati prima che OneUptime aggiungesse questo avviso non hanno un crit
 | Chiamare qualcuno l'ultimo giorno | **Ore alla scadenza** | **Minore di** | `24` |
 | Offline solo quando il certificato è scaduto | **Certificato scaduto** | **Vero** | — |
 | Segnalare un certificato autofirmato | **Certificato autofirmato** | **Vero** | — |
+| Chiamare il team di sicurezza quando l'emittente revoca il certificato | **Certificato revocato** | **Vero** | — |
 
-Un criterio sulla scadenza deve stare sopra il criterio che segna il certificato come valido: un certificato in scadenza è ancora valido, e vince il primo criterio che corrisponde.
+Un criterio sulla scadenza deve stare sopra il criterio che segna il certificato come valido: un certificato in scadenza è ancora valido, e vince il primo criterio che corrisponde. Allo stesso modo, un certificato revocato non è nemmeno valido, quindi un criterio su **Certificato revocato** deve stare sopra il criterio «non è valido».
 
 ## Buone pratiche
 
@@ -143,6 +149,12 @@ Finché il certificato è valido nel tempo, nessun criterio corrisponde e il mon
 
 :::details Il monitor è offline con «could not be checked because the endpoint is not reachable»
 La sonda non è riuscita ad aprire una connessione TLS verso l'host e la porta. Controllate la porta nell'URL, e che un firewall lasci passare le sonde. Un host su una rete privata ha bisogno di una [sonda personalizzata](/docs/probe/custom-probe).
+:::
+
+:::details Non è stato possibile verificare lo stato di revoca del certificato
+Quando la sonda non riesce ad avere una risposta firmata dall'emittente del certificato, il riepilogo del monitor mostra **Stato di revoca** come **Impossibile verificare**, e **Problema nella verifica della revoca**, sotto **Mostra altri dettagli**, dice perché: il certificato non indica alcun responder OCSP né alcuna CRL, l'emittente non ha risposto in tempo, oppure non è stato possibile verificare la sua risposta. Come in un browser, un certificato del genere non viene trattato come revocato, e la sonda chiede di nuovo dopo 5 minuti.
+
+Una [sonda personalizzata](/docs/probe/custom-probe) senza accesso a Internet non può raggiungere alcun emittente. Controlla comunque i certificati: attende qualche secondo ogni responder che non riesce a raggiungere, circa una volta ogni 5 minuti. Per farle smettere di chiedere, impostate `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` su `false` sulla sonda e riavviatela.
 :::
 
 ## Passaggi successivi

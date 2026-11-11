@@ -302,7 +302,7 @@ criteria = [
 | ウェブサイト / API | `Is Online`、`Response Time (in ms)`、`Response Status Code`、`Response Body`、`Response Header`、`Response Header Value`、`JavaScript Expression`、`Is Request Timeout` |
 | Ping / IP | `Is Online`、`Response Time (in ms)`、`Packet Loss (in %)`、`Jitter (in ms)`、`Is Request Timeout` |
 | ポート | `Is Online`、`Response Time (in ms)` (ダッシュボードの合計接続時間)、`Port DNS Lookup Time (in ms)`、`Port TCP Connect Time (in ms)`、`Is Request Timeout` |
-| SSL 証明書 | `Is Valid Certificate`、`Is Not A Valid Certificate`、`Is Self Signed Certificate`、`Is Expired Certificate`、`Expires In Days`、`Expires In Hours` |
+| SSL 証明書 | `Is Valid Certificate`、`Is Not A Valid Certificate`、`Is Self Signed Certificate`、`Is Expired Certificate`、`Is Revoked Certificate`、`Expires In Days`、`Expires In Hours` |
 | 受信リクエスト | `Incoming Request`、`Request Body`、`Request Header`、`Request Header Value`、`JavaScript Expression` |
 | 受信メール | `Email Received`、`Email Subject`、`Email From Address`、`Email To Address`、`Email Body` |
 | サーバー | `Is Online`、`CPU Usage (in %)`、`Memory Usage (in %)`、`Disk Usage (in %)` (`disk_path` と一緒に)、`Server Process Name` |

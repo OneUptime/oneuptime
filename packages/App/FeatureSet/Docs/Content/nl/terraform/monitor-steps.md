@@ -302,7 +302,7 @@ De `check_on`-waarden die elk monitortype het meest gebruikt. De criteria-editor
 | Website / API | `Is Online`, `Response Time (in ms)`, `Response Status Code`, `Response Body`, `Response Header`, `Response Header Value`, `JavaScript Expression`, `Is Request Timeout` |
 | Ping / IP | `Is Online`, `Response Time (in ms)`, `Packet Loss (in %)`, `Jitter (in ms)`, `Is Request Timeout` |
 | Poort | `Is Online`, `Response Time (in ms)` (de totale verbindingstijd van het dashboard), `Port DNS Lookup Time (in ms)`, `Port TCP Connect Time (in ms)`, `Is Request Timeout` |
-| SSL-certificaat | `Is Valid Certificate`, `Is Not A Valid Certificate`, `Is Self Signed Certificate`, `Is Expired Certificate`, `Expires In Days`, `Expires In Hours` |
+| SSL-certificaat | `Is Valid Certificate`, `Is Not A Valid Certificate`, `Is Self Signed Certificate`, `Is Expired Certificate`, `Is Revoked Certificate`, `Expires In Days`, `Expires In Hours` |
 | Inkomend verzoek | `Incoming Request`, `Request Body`, `Request Header`, `Request Header Value`, `JavaScript Expression` |
 | Inkomende e-mail | `Email Received`, `Email Subject`, `Email From Address`, `Email To Address`, `Email Body` |
 | Server | `Is Online`, `CPU Usage (in %)`, `Memory Usage (in %)`, `Disk Usage (in %)` (met `disk_path`), `Server Process Name` |

@@ -27,6 +27,8 @@ flowchart TB
 
 När inget av monitorns kriterier läser svarets kropp (ett filter **Svarstext** eller **JavaScript-uttryck**) skickar sonden en begäran `HEAD` i stället för en `GET`, och upprepar den som `GET` om servern avvisar `HEAD`. Serverns åtkomstloggar kan visa vilken som helst av dem.
 
+Sonden kontrollerar webbplatsens certifikat som en webbläsare gör, även om utfärdaren har återkallat det. Ett återkallat certifikat får kontrollen att misslyckas precis som ett utgånget: monitorn går offline, och felorsaken säger att certifikatet har återkallats. **Tillåt självsignerade certifikat** stänger av de här kontrollerna för monitorns eget värdnamn.
+
 En sond som har förlorat sin egen nätverksanslutning rapporterar inget resultat, så den kan inte markera din webbplats som offline.
 
 ## Innan du börjar
