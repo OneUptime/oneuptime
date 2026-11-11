@@ -32,7 +32,7 @@ Enter a **Project Name**, such as your company's name. On OneUptime Cloud, pick 
 
 ### Create it
 
-Click **Create Project**. Your project's Home page opens, with the **Welcome to OneUptime 👋** checklist at the top.
+Click **Create Project**. Your project's Home page opens, with the **Welcome to OneUptime 👋** checklist at the top. It first asks **What do you want to do first?**: tick **Know when my website or API is down**, **Page the right person when something breaks** and **Tell my customers with a status page**, and click **Continue**.
 :::
 
 ## Monitor your website

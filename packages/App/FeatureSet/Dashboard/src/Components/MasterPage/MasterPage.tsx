@@ -4,6 +4,7 @@ import Footer from "../Footer/Footer";
 import ProjectBlocked from "../Project/ProjectBlocked";
 import Header from "../Header/Header";
 import NavBar from "../NavBar/NavBar";
+import WelcomeNextStep from "../Home/WelcomeChecklist/WelcomeNextStep";
 import Route from "Common/Types/API/Route";
 import SubscriptionStatus, {
   SubscriptionStatusUtil,
@@ -207,7 +208,19 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
          */
         className="flex flex-col min-h-screen"
       >
-        {showProjectBlocked ? <ProjectBlocked /> : props.children}
+        {showProjectBlocked ? (
+          <ProjectBlocked />
+        ) : (
+          <>
+            {/*
+             * After a Welcome checklist step's record is created, the page
+             * it lands on says what is next (issue #6803). Nothing anywhere
+             * else.
+             */}
+            <WelcomeNextStep />
+            {props.children}
+          </>
+        )}
       </MasterPage>
     </div>
   );

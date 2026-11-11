@@ -56,27 +56,38 @@ A count above zero reads **Needs attention**, or **In progress** and **Budget bu
 
 ### The welcome checklist
 
-The checklist walks you through the four things a project needs before it is useful. Each step opens the page where you do it, and ticks itself off when the project has what it asks for.
+The first time a Project Owner or Project Admin opens Home in a new project, the card asks **What do you want to do first?** Tick one or more goals, such as **Know when my website or API is down** or **Just looking around**, and click **Continue**: the checklist then holds the steps those goals need. **Skip** gives the four steps every project gets. To answer again later, click **Change** on the checklist. A project that already has monitors, telemetry or on-call in use is not asked.
+
+Each step ticks itself off when the thing works, not when a record exists, and everyone setting up the project sees the same list, on every device:
 
 | Step | Done when | Opens |
 | --- | --- | --- |
-| **Create your first monitor** | The project has a monitor. | The **Create Monitor** form, or the **Monitors** list for someone who may not create monitors. |
-| **Publish a status page** | The project has a status page. | **Status Pages** |
-| **Invite your team** | Someone besides you is in the project, or invited to it. | **Users** |
-| **Set up an on-call policy** | The project has an on-call policy. | **On-Call Duty** |
+| **Import from your current tool** | An import from another tool finishes. | **Import from another tool** |
+| **Create your first monitor** | Its first check comes in. | The **Create Monitor** form, or the **Monitors** list for someone who may not create monitors. |
+| **Connect a server or cluster** | Its first metrics arrive. | **Hosts** |
+| **Send your first logs, metrics or traces** | The project's first logs, metrics, traces, exceptions or profiles arrive. | **Logs** |
+| **Set up an on-call policy** | A test page is acknowledged, a page reaches someone, or an on-call rule runs a policy that can reach someone. | **On-Call Duty** |
+| **Publish a status page** | A status page shows a monitor. | **Status Pages** |
+| **Invite your team** | Someone accepts your invitation. | **Users** |
+
+The step to do first is marked **Next step**. On OneUptime Cloud's Free plan, which has one person, **Invite your team** says it needs the Growth plan, and opens **Billing**. On a self-hosted server that cannot send email yet, the server's admins see **This server cannot send email yet** first; it opens the Admin Dashboard.
+
+When you create a monitor, a status page or an on-call policy from a step, the page you land on says what is next, with **Back to setup**.
 
 Under the steps, **How OneUptime works** shows the four core products in the order a problem flows through them: **Monitors**, **Incidents & Alerts**, **On-Call Duty** and **Status Pages**. Click one to open it. Under them it says what feeds that loop, telemetry and infrastructure, and links to [Core Concepts](/docs/introduction/core-concepts) and the [Glossary](/docs/introduction/glossary).
 
-```mermaid title="When the welcome checklist goes away"
+```mermaid title="When the welcome checklist shows"
 flowchart TB
-    open["Home opens"] --> dismissed{"Dismissed in<br/>this browser?"}
-    dismissed -->|No| done{"All four<br/>steps done?"}
-    dismissed -->|Yes| hidden["No checklist"]
-    done -->|Yes| hidden
+    open["Home opens"] --> answered{"Goals chosen<br/>or skipped?"}
+    answered -->|No| question["What do you want<br/>to do first?"]
+    answered -->|Yes| hidden{"Hidden<br/>by you?"}
+    hidden -->|Yes| line["A line to<br/>show it again"]
+    hidden -->|No| done{"Every step<br/>done?"}
+    done -->|Yes| gone["No checklist"]
     done -->|No| shown["The checklist, with<br/>the steps left to do"]
 ```
 
-The checklist goes away once all four steps are done. To hide it sooner, click **Dismiss**. Dismissing is remembered in this browser, for this project; everything the steps open is still in the **Products** menu. **How OneUptime works** stays one click away, in any project: open it from **Help**, or with the button beside **Explore OneUptime**.
+The checklist goes away for everyone once every step is done. To hide it sooner, click **Hide**: it is hidden for you alone, on every device, and a line stays with **Show it** and **How OneUptime works**. People invited to the project as members do not see the checklist. **How OneUptime works** stays one click away, in any project: open it from **Help**, or with the button beside **Explore OneUptime**.
 
 ### Needs attention
 

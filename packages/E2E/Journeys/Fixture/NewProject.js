@@ -49,6 +49,10 @@ import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import URL from "Common/Types/API/URL";
+import {
+  WelcomeAudience,
+  buildWelcomeChecklist,
+} from "Common/Types/WelcomeChecklist/WelcomeChecklist";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -264,6 +268,8 @@ export function seedNewProject(options) {
 export function signIn(project, who) {
   const isMember = who === "member";
   const user = isMember ? project.grace : project.ada;
+  // Who Home's Welcome card is for (dashboardRoutes' /welcome-checklist).
+  project.signedInAs = isMember ? "member" : "owner";
   const held = isMember
     ? [Permission.ProjectMember]
     : [Permission.ProjectOwner];
@@ -409,6 +415,51 @@ export function dashboardRoutes(project) {
   const store = project.store;
 
   return [
+    [
+      /*
+       * Home's Welcome card (issue #6803), built with the real rules: a
+       * project made a minute ago whose owner has not said yet what they
+       * came to do sees the question; an invited member sees nothing (their
+       * own first hour is #6807). The journeys go by the products menu, as a
+       * newcomer who skips the card does.
+       */
+      "GET",
+      "/welcome-checklist",
+      () => {
+        if (project.signedInAs === "member") {
+          return ok({
+            audience: WelcomeAudience.InvitedMember,
+            goals: null,
+            steps: [],
+          });
+        }
+
+        const checklist = buildWelcomeChecklist({
+          goals: null,
+          facts: {
+            reached: [],
+            hasRuleThatPagesSomeone: false,
+            hasFinishedImport: false,
+            serverCanSendEmail: true,
+          },
+          plan: { isFreePlan: false },
+          readerIsServerAdmin: false,
+        });
+
+        return ok({
+          audience: WelcomeAudience.SetUp,
+          goals: null,
+          shouldAskForGoals: true,
+          canChooseGoals: true,
+          isHiddenForMe: false,
+          isFinished: false,
+          canSendEmail: true,
+          steps: checklist.steps,
+          doneCount: checklist.doneCount,
+          totalCount: checklist.totalCount,
+        });
+      },
+    ],
     [
       /*
        * Adding a number sends it a code (UserCallService, UserSmsService):

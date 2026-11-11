@@ -34,6 +34,14 @@ import HowOneUptimeWorks, {
 import Help from "../../../../App/FeatureSet/Dashboard/src/Components/Header/Help";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import {
+  WelcomeAudience,
+  WelcomeStep,
+} from "../../../Types/WelcomeChecklist/WelcomeChecklist";
+import {
+  WelcomeChecklistAnswer,
+  getEmptyWelcomeChecklistAnswer,
+} from "../../../Types/WelcomeChecklist/WelcomeChecklistAnswer";
 
 /*
  * "OneUptime is vast and users get confused" — this suite pins the fixes that
@@ -127,6 +135,31 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+/*
+ * The Welcome checklist is one server answer (issue #6803): it is answered
+ * here, half done - the monitor reported, a second person joined.
+ */
+const welcomeFetchMock: MockFunction = getJestMockFunction();
+const welcomePostMock: MockFunction = getJestMockFunction();
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistApi",
+  () => {
+    return {
+      __esModule: true,
+      fetchWelcomeChecklist: (...args: Array<unknown>) => {
+        return welcomeFetchMock(...args);
+      },
+      postWelcomeChecklist: (...args: Array<unknown>) => {
+        return welcomePostMock(...args);
+      },
+      sendLegacyBrowserState: () => {
+        return Promise.resolve(null);
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Utils/Navigation", () => {
   return {
     __esModule: true,
@@ -189,6 +222,41 @@ const HALF_DONE: CountFor = (modelName: string): number => {
   }
   return 0;
 };
+
+function welcomeAnswer(
+  extra?: Partial<WelcomeChecklistAnswer>,
+): WelcomeChecklistAnswer {
+  return {
+    ...getEmptyWelcomeChecklistAnswer(),
+    audience: WelcomeAudience.SetUp,
+    goals: [],
+    canChooseGoals: true,
+    steps: [
+      {
+        step: WelcomeStep.Monitor,
+        isDone: true,
+        needsPlan: null,
+        isNext: false,
+      },
+      {
+        step: WelcomeStep.OnCall,
+        isDone: false,
+        needsPlan: null,
+        isNext: true,
+      },
+      {
+        step: WelcomeStep.StatusPage,
+        isDone: false,
+        needsPlan: null,
+        isNext: false,
+      },
+      { step: WelcomeStep.Team, isDone: true, needsPlan: null, isNext: false },
+    ],
+    doneCount: 2,
+    totalCount: 4,
+    ...extra,
+  };
+}
 
 async function renderGettingStarted(): Promise<void> {
   await act(async () => {
@@ -289,6 +357,8 @@ beforeEach(() => {
   activeLocale = EN;
   getCurrentProjectIdMock.mockReturnValue(new ObjectID(PROJECT_ID));
   answerCounts(HALF_DONE);
+  welcomeFetchMock.mockResolvedValue(welcomeAnswer());
+  welcomePostMock.mockResolvedValue(welcomeAnswer({ isHiddenForMe: true }));
 });
 
 afterEach(() => {
@@ -299,6 +369,8 @@ afterEach(() => {
   countMock.mockReset();
   captureMock.mockReset();
   getCurrentProjectIdMock.mockReset();
+  welcomeFetchMock.mockReset();
+  welcomePostMock.mockReset();
 });
 
 describe("Products menu sections", () => {
@@ -795,19 +867,28 @@ describe("How OneUptime works (Home)", () => {
     ]);
   });
 
-  test("dismissing Getting Started also removes the explainer", async () => {
+  test("hiding the checklist keeps the explainer one click away (#6803)", async () => {
     await renderGettingStarted();
     expect(screen.getByTestId("how-oneuptime-works")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId("getting-started-dismiss"));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("getting-started-dismiss"));
+    });
 
+    expect(screen.queryByTestId("getting-started")).toBeNull();
     expect(screen.queryByTestId("how-oneuptime-works")).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("welcome-checklist-how-it-works"));
+    });
+
+    expect(screen.getByTestId("how-oneuptime-works")).toBeInTheDocument();
   });
 
   test("a fully set-up project does not see the explainer", async () => {
-    answerCounts((): number => {
-      return 5;
-    });
+    welcomeFetchMock.mockResolvedValue(
+      welcomeAnswer({ isFinished: true, steps: [] }),
+    );
     await renderGettingStarted();
 
     expect(screen.queryByTestId("how-oneuptime-works")).toBeNull();

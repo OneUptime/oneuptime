@@ -56,27 +56,38 @@ Et tall over null viser **Krever oppmerksomhet**, eller **Pågår** og **Budsjet
 
 ### Velkomstsjekklisten
 
-Sjekklisten leder deg gjennom de fire tingene et prosjekt trenger før det er nyttig. Hvert steg åpner siden der du gjør det, og krysser seg selv av når prosjektet har det steget ber om.
+Første gang en prosjekteier eller prosjektadministrator åpner Hjem i et nytt prosjekt, spør kortet **Hva vil du gjøre først?** Kryss av for ett eller flere mål, for eksempel **Vite når nettstedet eller API-et mitt er nede** eller **Jeg ser meg bare rundt**, og klikk på **Fortsett**: sjekklisten inneholder da stegene disse målene trenger. **Hopp over** gir de fire stegene alle prosjekter får. For å svare på nytt senere klikker du på **Endre** i sjekklisten. Et prosjekt som allerede bruker overvåkere, telemetri eller vakt, blir ikke spurt.
+
+Hvert steg krysser seg selv av når tingen virker, ikke når en post finnes, og alle som setter opp prosjektet ser den samme listen, på alle enheter:
 
 | Steg | Fullført når | Åpner |
 | --- | --- | --- |
-| **Opprett din første overvåker** | Prosjektet har en monitor. | Skjemaet **Opprett monitor**, eller listen **Monitorer** for den som ikke kan opprette monitorer. |
-| **Publiser en statusside** | Prosjektet har en statusside. | **Statussider** |
-| **Inviter teamet ditt** | Noen andre enn deg er i prosjektet, eller invitert til det. | **Brukere** |
-| **Sett opp en vaktpolicy** | Prosjektet har en vaktpolicy. | **Vakttjeneste** |
+| **Importer fra verktøyet du bruker nå** | En import fra et annet verktøy er fullført. | **Importer fra et annet verktøy** |
+| **Opprett din første overvåker** | Den første sjekken kommer inn. | Skjemaet **Opprett monitor**, eller listen **Monitorer** for den som ikke kan opprette overvåkere. |
+| **Koble til en server eller en klynge** | De første målingene kommer inn. | **Verter** |
+| **Send de første loggene, målingene eller sporene dine** | Prosjektets første logger, målinger, spor, unntak eller profiler kommer inn. | **Logger** |
+| **Sett opp en vaktpolicy** | Et testvarsel blir kvittert, et varsel når noen, eller en vaktregel kjører en policy som kan nå noen. | **Vakttjeneste** |
+| **Publiser en statusside** | En statusside viser en overvåker. | **Statussider** |
+| **Inviter teamet ditt** | Noen godtar invitasjonen din. | **Brukere** |
+
+Steget du skal ta først, er merket med **Neste steg**. På Free-abonnementet i OneUptime Cloud, som har én person, sier **Inviter teamet ditt** at det trenger Growth-abonnementet, og åpner **Fakturering**. På en selvhostet server som ennå ikke kan sende e-post, ser serverens administratorer først **Denne serveren kan ikke sende e-post ennå**; det åpner administrasjonsdashbordet.
+
+Når du oppretter en overvåker, en statusside eller en vaktpolicy fra et steg, sier siden du lander på hva som kommer etterpå, med **Tilbake til oppsettet**.
 
 Under stegene viser **Slik fungerer OneUptime** de fire kjerneproduktene i rekkefølgen et problem går gjennom dem: **Monitorer**, **Hendelser og varsler**, **Vakttjeneste** og **Statussider**. Klikk på ett for å åpne det. Under dem står det hva som mater kretsløpet, telemetri og infrastruktur, med lenker til [Grunnbegreper](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
 
-```mermaid title="Når velkomstsjekklisten forsvinner"
+```mermaid title="Når velkomstsjekklisten vises"
 flowchart TB
-    open["Hjem åpnes"] --> dismissed{"Lukket i denne<br/>nettleseren?"}
-    dismissed -->|"Nei"| done{"Alle fire steg<br/>fullført?"}
-    dismissed -->|"Ja"| hidden["Ingen sjekkliste"]
-    done -->|"Ja"| hidden
+    open["Hjem åpnes"] --> answered{"Mål valgt<br/>eller hoppet over?"}
+    answered -->|"Nei"| question["Hva vil du<br/>gjøre først?"]
+    answered -->|"Ja"| hidden{"Skjult<br/>av deg?"}
+    hidden -->|"Ja"| line["En linje for å<br/>vise den igjen"]
+    hidden -->|"Nei"| done{"Alle steg<br/>ferdige?"}
+    done -->|"Ja"| gone["Ingen sjekkliste"]
     done -->|"Nei"| shown["Sjekklisten med<br/>stegene som gjenstår"]
 ```
 
-Sjekklisten forsvinner når alle fire steg er fullført. Klikk på **Skjul** for å skjule den før. Det huskes i denne nettleseren, for dette prosjektet; alt stegene åpner, ligger fortsatt i menyen **Produkter**. **Slik fungerer OneUptime** er fortsatt ett klikk unna, i alle prosjekter: åpne det fra **Hjelp** eller med knappen ved siden av **Utforsk OneUptime**.
+Sjekklisten forsvinner for alle når hvert steg er ferdig. For å skjule den tidligere klikker du på **Skjul**: den er da bare skjult for deg, på alle enheter, og en linje blir stående med **Vis den** og **Slik fungerer OneUptime**. De som er invitert til prosjektet som medlemmer, ser ikke sjekklisten. **Slik fungerer OneUptime** er fortsatt ett klikk unna, i alle prosjekter: åpne det fra **Hjelp** eller med knappen ved siden av **Utforsk OneUptime**.
 
 ### Krever oppmerksomhet
 
