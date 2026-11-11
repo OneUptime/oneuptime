@@ -621,8 +621,17 @@ function namesUtility(className: string | undefined, prefix: string): boolean {
  * (TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES). A resource's link with its
  * icon keeps to the item's one line too, its name cut short at its own
  * end by a line of its own (the Dashboard's RecordLinkName).
+ *
+ * Clipped across only (overflow-x-clip, not truncate's overflow-hidden),
+ * as a cell's value is (TABLE_CELL_TRUNCATE_CLASS_NAMES): a link's focus
+ * ring shows above and below it. A resource's icon and name are a box as
+ * tall as the item's line, and an item clipped all round would hide the
+ * whole of its ring - a keyboard could not see which resource it was on.
+ * Still a box of its own for what it holds (flow-root), as overflow-hidden
+ * made it: a clip does not, and the margins of a block inside an item
+ * would run out through it into the next item's.
  */
-export const TABLE_LIST_ITEM_CLASS_NAME: string = `truncate ${TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES}`;
+export const TABLE_LIST_ITEM_CLASS_NAME: string = `flow-root overflow-x-clip text-ellipsis whitespace-nowrap ${TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES}`;
 
 /*
  * The same item in a field of a phone's card (TableCardContext): the card

@@ -27,11 +27,18 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The row: the icon, then the name's line, 8px apart - where a table's
- * cell drew the name after the icon's 4px margin and a space. min-w-0, so
- * the row may be narrower than the name, in a flex box of its own too.
+ * cell drew the name after the icon's 4px margin and a space. A box set on
+ * its holder's line (inline-flex), as the name's text was, at the line's
+ * start - on the right of an Arabic page. It is as wide as the icon and
+ * the name, and never wider than the line (max-w-full), where the name
+ * cuts itself short. So the link around it is just as wide: its focus ring
+ * hugs the icon and the name, and a click past a short name's end is still
+ * the table row's, as it was. A flex row as a block would make the link,
+ * an inline, run the line's whole width. min-w-0, so the row may be
+ * narrower than the name in a flex box of its own too.
  */
 export const RECORD_LINK_NAME_ROW_CLASS_NAME: string =
-  "flex min-w-0 items-start gap-2";
+  "inline-flex max-w-full min-w-0 items-start gap-2";
 
 /*
  * The icon, set on a line of its own as it was set on the name's line:
@@ -44,11 +51,12 @@ export const RECORD_LINK_ICON_CLASS_NAME: string =
 
 /*
  * The name's line. Where the row's holder keeps it to one line (a table's
- * cell: TABLE_LIST_ITEM_CLASS_NAME's truncate), it shrinks with the row
- * (min-w-0) and draws its own "..." at its own end; where its holder lets
- * it wrap (a phone's card: TABLE_CARD_LIST_ITEM_CLASS_NAME), it wraps,
- * breaking a name with no place to break anywhere rather than run past the
- * card. Not truncate: that would cut a phone card's names to one line.
+ * cell: TABLE_LIST_ITEM_CLASS_NAME's whitespace-nowrap), it shrinks with
+ * the row, no wider than the line (min-w-0), and draws its own "..." at
+ * its own end; where its holder lets it wrap (a phone's card:
+ * TABLE_CARD_LIST_ITEM_CLASS_NAME), it wraps, breaking a name with no
+ * place to break anywhere rather than run past the card. Not truncate:
+ * that would cut a phone card's names to one line.
  * Said to wrap, a line that reads the other way from the page is as wide
  * as its words beside the icon (IsolatedLine's
  * CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME), never aligned to its

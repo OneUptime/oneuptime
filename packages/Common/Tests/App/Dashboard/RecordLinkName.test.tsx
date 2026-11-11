@@ -330,7 +330,12 @@ describe("the classes the row and its line are drawn with", () => {
       /^(?:space-x-|m[rlse]-|p[rlse]-)/;
 
     expect(classes).toEqual(
-      expect.arrayContaining(["flex", "min-w-0", "items-start", "gap-2"]),
+      expect.arrayContaining([
+        "inline-flex",
+        "min-w-0",
+        "items-start",
+        "gap-2",
+      ]),
     );
     // A margin on one side (space-x, mr-1) lands on the name's far side.
     expect(
@@ -338,6 +343,32 @@ describe("the classes the row and its line are drawn with", () => {
         return SPACING_CLASS_NAME_PATTERN.test(token);
       }),
     ).toEqual([]);
+  });
+
+  /*
+   * A flex row as a block (flex) would make the link around it - an inline
+   * - run the whole width of its item's line: a click past a short name's
+   * end would open the resource rather than the table's row. Set on the
+   * line as a box of its own, the row is as wide as its icon and name, and
+   * no wider than the line.
+   */
+  test("the row is a box on its holder's line, as wide as its icon and name and never wider than the line", () => {
+    const classes: Array<string> = RECORD_LINK_NAME_ROW_CLASS_NAME.split(" ");
+
+    expect(classes).toEqual(
+      expect.arrayContaining(["inline-flex", "max-w-full"]),
+    );
+
+    for (const runsTheLinesWidth of [
+      "flex",
+      "block",
+      "w-full",
+      "flex-1",
+      "grow",
+      "flex-grow",
+    ]) {
+      expect(classes).not.toContain(runsTheLinesWidth);
+    }
   });
 
   test("a table's cell leaves the row alone: its record-link converter matches only the bare flex span", () => {
@@ -701,7 +732,8 @@ const RECORD_ELEMENTS: Array<RecordElement> = [
       return (
         <MonitorGroupElement
           monitorGroup={named(new MonitorGroup(), data)}
-          showIcon={data.showIcon}
+          // Its prop takes a boolean only: left out, it is no icon.
+          showIcon={Boolean(data.showIcon)}
         />
       );
     },
