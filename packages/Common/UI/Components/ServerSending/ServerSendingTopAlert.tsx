@@ -167,9 +167,10 @@ const ServerSendingTopAlert: FunctionComponent<ComponentProps> = (
   switch (alert.kind) {
     case ServerSendingAlertKind.EmailNotSetUp:
       title = SERVER_SENDING_ALERT_COPY.emailNotSetUpTitle;
-      description = translator.translateText(
-        SERVER_SENDING_ALERT_COPY.emailNotSetUpDescription,
-      );
+      description =
+        translator.translateText(
+          SERVER_SENDING_ALERT_COPY.emailNotSetUpDescription,
+        ) || SERVER_SENDING_ALERT_COPY.emailNotSetUpDescription;
       action = link(
         props.emailSettingsLink,
         SERVER_SENDING_ALERT_COPY.setUpEmail,
@@ -202,9 +203,10 @@ const ServerSendingTopAlert: FunctionComponent<ComponentProps> = (
     }
     case ServerSendingAlertKind.GlobalProbesSilent:
       title = SERVER_SENDING_ALERT_COPY.probesSilentTitle;
-      description = translator.translateText(
-        SERVER_SENDING_ALERT_COPY.probesSilentDescription,
-      );
+      description =
+        translator.translateText(
+          SERVER_SENDING_ALERT_COPY.probesSilentDescription,
+        ) || SERVER_SENDING_ALERT_COPY.probesSilentDescription;
       action = link(
         props.globalProbesLink,
         SERVER_SENDING_ALERT_COPY.seeGlobalProbes,

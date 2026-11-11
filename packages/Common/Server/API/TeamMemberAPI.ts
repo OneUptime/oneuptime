@@ -118,9 +118,9 @@ export default class TeamMemberAPI extends BaseAPI<
       MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const teamMemberId: string = (
-            (req.body?.["teamMemberId"] as string) || ""
-          ).trim();
+          const requested: unknown = req.body?.["teamMemberId"];
+          const teamMemberId: string =
+            typeof requested === "string" ? requested.trim() : "";
 
           if (!teamMemberId || !ObjectID.isValidUUID(teamMemberId)) {
             return Response.sendErrorResponse(
