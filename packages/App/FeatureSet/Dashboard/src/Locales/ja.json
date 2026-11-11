@@ -50497,5 +50497,6 @@
   "What do you want to do first?": "まず何をしますか？",
   "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.": "プロジェクトが各アクティベーションのマイルストーンに初めて到達した日時: 最初のモニター、チェック結果、届いたオンコール通知、2 人目のメンバー、モニターを表示するステータスページ、各種テレメトリーなど。",
   "You hid the Welcome checklist.": "ウェルカムチェックリストを非表示にしました。",
-  "Your goals:": "目的:"
+  "Your goals:": "目的:",
+  "Next step": "次のステップ"
 }

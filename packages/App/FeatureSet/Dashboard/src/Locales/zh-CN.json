@@ -50497,5 +50497,6 @@
   "What do you want to do first?": "您想先做什么？",
   "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.": "项目首次达成每个激活里程碑的时间：第一个监视器、第一次检查结果、第一次送达的值班呼叫、第二位成员、显示监视器的状态页面、各类遥测数据等。",
   "You hid the Welcome checklist.": "您已隐藏欢迎清单。",
-  "Your goals:": "您的目标："
+  "Your goals:": "您的目标：",
+  "Next step": "下一步"
 }

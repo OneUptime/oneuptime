@@ -302,7 +302,7 @@ describe("the steps, from the keyboard", () => {
       within(stepTile(WelcomeStep.Monitor)!).getByTestId(
         "getting-started-next",
       ),
-    ).toHaveTextContent("Next");
+    ).toHaveTextContent("Next step");
     expect(stepTile(WelcomeStep.Monitor)).toHaveAttribute("data-next", "true");
     expect(stepTile(WelcomeStep.OnCall)).toHaveAttribute("data-next", "false");
   });

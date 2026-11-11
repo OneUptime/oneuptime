@@ -56,27 +56,38 @@ Un numero sopra lo zero mostra **Richiede attenzione**, oppure **In corso** e **
 
 ### L'elenco di benvenuto
 
-L'elenco ti guida tra le quattro cose di cui un progetto ha bisogno per essere utile. Ogni passaggio apre la pagina in cui lo esegui, e si spunta da solo quando il progetto ha ciò che chiede.
+La prima volta che un proprietario o un amministratore del progetto apre la Home di un nuovo progetto, la scheda chiede **Cosa vuoi fare per prima cosa?** Spunta uno o più obiettivi, come **Sapere quando il mio sito web o la mia API non funziona** o **Do solo un'occhiata**, e fai clic su **Continua**: la checklist conterrà i passaggi che servono a quegli obiettivi. **Salta** dà i quattro passaggi che riceve ogni progetto. Per rispondere di nuovo in seguito, fai clic su **Cambia** nella checklist. A un progetto che usa già monitor, telemetria o reperibilità non viene chiesto.
+
+Ogni passaggio si spunta da solo quando la cosa funziona, non quando esiste un record, e chiunque configuri il progetto vede la stessa lista, su ogni dispositivo:
 
 | Passaggio | Completato quando | Apre |
 | --- | --- | --- |
-| **Crea il tuo primo monitor** | Il progetto ha un monitor. | Il modulo **Crea monitor**, o l'elenco **Monitor** per chi non può creare monitor. |
-| **Pubblica una pagina di stato** | Il progetto ha una pagina di stato. | **Pagine di stato** |
-| **Invita il tuo team** | Oltre a te, qualcuno è nel progetto o vi è stato invitato. | **Utenti** |
-| **Configura una policy di reperibilità** | Il progetto ha una policy di reperibilità. | **Reperibilità** |
+| **Importa dal tuo strumento attuale** | Un'importazione da un altro strumento termina. | **Importa da un altro strumento** |
+| **Crea il tuo primo monitor** | Arriva il suo primo controllo. | Il modulo **Crea monitor**, o l'elenco **Monitor** per chi non può creare monitor. |
+| **Collega un server o un cluster** | Arrivano le sue prime metriche. | **Host** |
+| **Invia i tuoi primi log, metriche o trace** | Arrivano i primi log, metriche, trace, eccezioni o profili del progetto. | **Registri** |
+| **Configura una policy di reperibilità** | Un avviso di prova viene confermato, un avviso raggiunge qualcuno, o una regola di reperibilità esegue una policy che può raggiungere qualcuno. | **Reperibilità** |
+| **Pubblica una pagina di stato** | Una pagina di stato mostra un monitor. | **Pagine di stato** |
+| **Invita il tuo team** | Qualcuno accetta il tuo invito. | **Utenti** |
+
+Il passaggio da fare per primo è segnato con **Prossimo passaggio**. Con il piano Free di OneUptime Cloud, che include una persona, **Invita il tuo team** dice che serve il piano Growth e apre **Fatturazione**. Su un server self-hosted che non può ancora inviare email, gli amministratori del server vedono prima **Questo server non può ancora inviare email**, che apre la dashboard di amministrazione.
+
+Quando crei un monitor, una pagina di stato o una policy di reperibilità da un passaggio, la pagina su cui arrivi dice cosa viene dopo, con **Torna alla configurazione**.
 
 Sotto i passaggi, **Come funziona OneUptime** mostra i quattro prodotti principali nell'ordine in cui un problema li attraversa: **Monitor**, **Incidenti e avvisi**, **Reperibilità** e **Pagine di stato**. Fai clic su uno per aprirlo.
 
-```mermaid title="Quando sparisce l'elenco di benvenuto"
+```mermaid title="Quando compare la checklist di benvenuto"
 flowchart TB
-    open["Si apre la home"] --> dismissed{"Chiuso in<br/>questo browser?"}
-    dismissed -->|"No"| done{"Tutti e quattro<br/>completati?"}
-    dismissed -->|"Sì"| hidden["Nessun elenco"]
-    done -->|"Sì"| hidden
-    done -->|"No"| shown["L'elenco, con i<br/>passaggi mancanti"]
+    open["Si apre la Home"] --> answered{"Obiettivi scelti<br/>o saltati?"}
+    answered -->|"No"| question["Cosa vuoi fare<br/>per prima cosa?"]
+    answered -->|"Sì"| hidden{"Nascosta<br/>da te?"}
+    hidden -->|"Sì"| line["Una riga per<br/>mostrarla di nuovo"]
+    hidden -->|"No"| done{"Tutti i passaggi<br/>fatti?"}
+    done -->|"Sì"| gone["Nessuna checklist"]
+    done -->|"No"| shown["La checklist, con<br/>i passaggi rimasti"]
 ```
 
-L'elenco sparisce quando tutti e quattro i passaggi sono completati. Per nasconderlo prima, fai clic su **Nascondi**. La scelta di nasconderlo vale per questo browser e per questo progetto; tutto ciò che i passaggi aprono resta nel menu **Prodotti**.
+La checklist sparisce per tutti quando ogni passaggio è fatto. Per nasconderla prima, fai clic su **Nascondi**: resta nascosta solo per te, su ogni dispositivo, e rimane una riga con **Mostralo** e **Come funziona OneUptime**. Chi è stato invitato nel progetto come membro non vede la checklist.
 
 ### Richiede attenzione
 

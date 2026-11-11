@@ -50497,5 +50497,6 @@
   "What do you want to do first?": "무엇부터 하시겠어요?",
   "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.": "프로젝트가 각 활성화 마일스톤에 처음 도달한 시각: 첫 모니터, 첫 확인 결과, 처음 전달된 온콜 호출, 두 번째 멤버, 모니터를 보여 주는 상태 페이지, 종류별 텔레메트리 등.",
   "You hid the Welcome checklist.": "환영 체크리스트를 숨겼습니다.",
-  "Your goals:": "목표:"
+  "Your goals:": "목표:",
+  "Next step": "다음 단계"
 }

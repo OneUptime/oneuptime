@@ -50497,5 +50497,6 @@
   "What do you want to do first?": "Что вы хотите сделать первым делом?",
   "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.": "Когда проект впервые достиг каждого этапа активации: первый монитор, первый результат проверки, первое доставленное оповещение дежурному, второй участник, страница статуса с монитором, телеметрия каждого вида и другое.",
   "You hid the Welcome checklist.": "Вы скрыли приветственный список.",
-  "Your goals:": "Ваши цели:"
+  "Your goals:": "Ваши цели:",
+  "Next step": "Следующий шаг"
 }

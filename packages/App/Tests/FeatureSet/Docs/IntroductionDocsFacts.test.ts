@@ -998,6 +998,10 @@ const AUTO_REMEDIATION_RULES: string = String(
 const CHECKLIST_SOURCE: string = dashboard(
   "Components/Home/GettingStarted.tsx",
 );
+// The Welcome checklist's steps, words and pages (issue #6803).
+const CHECKLIST_CATALOG_SOURCE: string = dashboard(
+  "Components/Home/WelcomeChecklist/WelcomeChecklistCatalog.ts",
+);
 const TILES_SOURCE: string = dashboard("Components/Home/OverviewStats.tsx");
 const OVERVIEW_DATA_SOURCE: string = dashboard(
   "Components/Home/HomeOverviewData.ts",
@@ -1017,11 +1021,11 @@ const UPCOMING_SOURCE: string = dashboard(
 );
 const EXPLORE_SOURCE: string = dashboard("Components/Home/ExploreProducts.tsx");
 
-const TASK_TITLE: RegExp = /^ {4}title: "([^"]+)",$/gm;
+const TASK_STEP: RegExp =
+  /^ {4}step: WelcomeStep\.(\w+),\n {4}title: translationKey\("([^"]+)"\),$/gm;
 const TASK_PAGE_MAP: RegExp = /^ {4}pageMap: PageMap\.(\w+),$/m;
 const TASK_CREATE_PAGE_MAP: RegExp =
   /createPage: \{\s*pageMap: PageMap\.(\w+),/;
-const TASK_COUNT_THRESHOLD: RegExp = /\)\) > (\d)/;
 const TILE_KEY: RegExp = /^ {4}key: "([^"]+)",$/gm;
 const TILE_FIELD: (field: string) => RegExp = (field: string): RegExp => {
   return new RegExp(`^ {4}${field}: "([^"]+)",$`, "m");
@@ -1047,22 +1051,22 @@ const QUICK_ACTION_TITLE: RegExp = /title: translationKey\("([^"]+)"\)/g;
 const RESOURCE_TITLE: RegExp = /title: translationKey\("([^"]+)"\)/g;
 const NUMBERED_ITEM: RegExp = /^\d+\. (.+)$/gm;
 
-// Each checklist task, as the component's array literal declares it.
+// Each checklist step, as the catalog's array literal declares it.
 interface ChecklistTask {
+  step: string;
   title: string;
-  pageMap: string;
+  pageMap: string | null;
   createPageMap: string | null;
-  countMustExceed: number;
 }
 
 function checklistTasks(): Array<ChecklistTask> {
   const block: string = blockFrom(
-    CHECKLIST_SOURCE,
-    "const gettingStartedTasks",
+    CHECKLIST_CATALOG_SOURCE,
+    "export const WELCOME_STEPS",
     "\n];",
   );
   const starts: Array<RegExpMatchArray> = Array.from(
-    block.matchAll(TASK_TITLE),
+    block.matchAll(TASK_STEP),
   );
 
   return starts.map((match: RegExpMatchArray, index: number): ChecklistTask => {
@@ -1072,13 +1076,11 @@ function checklistTasks(): Array<ChecklistTask> {
     );
 
     return {
-      title: match[1] as string,
-      pageMap: (chunk.match(TASK_PAGE_MAP) as RegExpMatchArray)[1] as string,
+      step: match[1] as string,
+      title: match[2] as string,
+      pageMap: (chunk.match(TASK_PAGE_MAP)?.[1] as string | undefined) || null,
       createPageMap:
         (chunk.match(TASK_CREATE_PAGE_MAP)?.[1] as string | undefined) || null,
-      countMustExceed: Number(
-        (chunk.match(TASK_COUNT_THRESHOLD) as RegExpMatchArray)[1],
-      ),
     };
   });
 }
@@ -1163,7 +1165,10 @@ describe("Home Page & Shortcuts", () => {
         expect(order[index]).toBeGreaterThan(order[index - 1] as number);
       }
     }
-    expect(CHECKLIST_SOURCE).toContain('title="Welcome to OneUptime 👋"');
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      'title: "Welcome to OneUptime 👋",',
+    );
+    expect(CHECKLIST_SOURCE).toContain("title={WELCOME_CHECKLIST_COPY.title}");
 
     const items: Array<string> = Array.from(
       whatHomeShows.matchAll(NUMBERED_ITEM),
@@ -1259,18 +1264,66 @@ describe("Home Page & Shortcuts", () => {
     );
   });
 
-  it("gives the checklist's steps, what finishes each and what each opens, as the component does", () => {
-    const tasks: Array<ChecklistTask> = checklistTasks();
+  it("asks what the project came to do, with the goals the question offers", () => {
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+    const goals: Array<string> = Array.from(
+      blockFrom(
+        CHECKLIST_CATALOG_SOURCE,
+        "export const WELCOME_GOALS",
+        "\n];",
+      ).matchAll(/title: translationKey\("([^"]+)"\)/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(goals).toHaveLength(7);
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      'title: translationKey("What do you want to do first?"),',
+    );
+    expect(section).toContain("the card asks **What do you want to do first?**");
+    // The first goal and the last, as the question lists them.
+    expect(goals[0]).toBe("Know when my website or API is down");
+    expect(goals[goals.length - 1]).toBe("Just looking around");
+    expect(section).toContain(`**${goals[0]}**`);
+    expect(section).toContain(`**${goals[goals.length - 1]}**`);
+    for (const button of ["Continue", "Skip", "Change"]) {
+      expect(CHECKLIST_CATALOG_SOURCE).toContain(`translationKey("${button}")`);
+      expect(section).toContain(`**${button}**`);
+    }
+  });
+
+  it("gives the checklist's steps, what finishes each and what each opens, as the catalog does", () => {
+    // The project's own steps: the server's email is the server admin's.
+    const tasks: Array<ChecklistTask> = checklistTasks().filter(
+      (task: ChecklistTask): boolean => {
+        return task.step !== "ServerEmail";
+      },
+    );
     const rows: Array<Array<string>> = onlyTableOf(
       sectionOf(HOME, "### The welcome checklist"),
     );
 
-    expect(tasks.length).toBe(4);
+    expect(
+      tasks.map((task: ChecklistTask): string => {
+        return task.step;
+      }),
+    ).toEqual([
+      "Import",
+      "Monitor",
+      "Infrastructure",
+      "Telemetry",
+      "OnCall",
+      "StatusPage",
+      "Team",
+    ]);
 
     // Where each step goes, by the name the page gives the place.
     const OPENS: Record<string, string> = {
+      SETTINGS_IMPORT_FROM_TOOL: "Import from another tool",
       MONITORS: "Monitors",
       MONITOR_CREATE: "Create Monitor",
+      HOSTS: "Hosts",
+      LOGS: "Logs",
       STATUS_PAGES: "Status Pages",
       USERS: "Users",
       ON_CALL_DUTY: "On-Call Duty",
@@ -1291,8 +1344,8 @@ describe("Home Page & Shortcuts", () => {
         (rows[index] as Array<string>)[2] as string,
       );
       const expected: Array<string> = task.createPageMap
-        ? [OPENS[task.createPageMap] as string, OPENS[task.pageMap] as string]
-        : [OPENS[task.pageMap] as string];
+        ? [OPENS[task.createPageMap] as string, OPENS[task.pageMap!] as string]
+        : [OPENS[task.pageMap!] as string];
 
       expect({ task: task.title, opens: opens }).toEqual({
         task: task.title,
@@ -1300,28 +1353,50 @@ describe("Home Page & Shortcuts", () => {
       });
     });
 
-    // Monitors, status pages and policies: one. Team members: you and one more.
-    expect(
-      tasks.map((task: ChecklistTask): number => {
-        return task.countMustExceed;
-      }),
-    ).toEqual([0, 0, 1, 0]);
-    expect((rows[2] as Array<string>)[1]).toBe(
-      "Someone besides you is in the project, or invited to it.",
+    // Done on outcomes, as the rules in Common/Types/WelcomeChecklist say.
+    expect((rows[1] as Array<string>)[1]).toBe("Its first check comes in.");
+    expect((rows[5] as Array<string>)[1]).toBe(
+      "A status page shows a monitor.",
+    );
+    expect((rows[6] as Array<string>)[1]).toBe(
+      "Someone accepts your invitation.",
     );
   });
 
-  it("dismisses the checklist for this project, in this browser", () => {
-    expect(CHECKLIST_SOURCE).toContain('title="Dismiss"');
-    expect(CHECKLIST_SOURCE).toContain(
-      "LocalStorage.setItem(getDismissKey(props.projectId), true);",
+  it("names the next step, the plan's limit, the server's email and the way back as the card does", () => {
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      'nextBadge: translationKey("Next step"),',
     );
-    expect(CHECKLIST_SOURCE).toContain(
-      "const isEveryTaskComplete: boolean = gettingStartedTasks.every(",
+    expect(section).toContain("is marked **Next step**");
+    expect(section).toContain(
+      "**Invite your team** says it needs the Growth plan, and opens **Billing**",
     );
-    expect(whatHomeShows).toContain(
-      "Dismissing is remembered in this browser, for this project",
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      "WELCOME_PLAN_PAGE: PageMap = PageMap.SETTINGS_BILLING;",
     );
+    expect(section).toContain("**This server cannot send email yet**");
+    expect(section).toContain("**Back to setup**");
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      'backToSetup: translationKey("Back to setup"),',
+    );
+  });
+
+  it("hides the checklist for this person, on every device, and keeps How OneUptime works a click away", () => {
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      'hideButton: translationKey("Hide"),',
+    );
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      'showButton: translationKey("Show it"),',
+    );
+    expect(CHECKLIST_SOURCE).toContain("WELCOME_CHECKLIST_HIDE_ROUTE");
+    expect(section).toContain(
+      "click **Hide**: it is hidden for you alone, on every device, and a line stays with **Show it** and **How OneUptime works**.",
+    );
+    expect(section).not.toContain("this browser");
   });
 
   it("names How OneUptime works and its four products in their order", () => {

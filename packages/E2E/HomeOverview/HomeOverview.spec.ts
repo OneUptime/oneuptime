@@ -650,17 +650,18 @@ test.describe("the verdicts", () => {
  * someone - on a phone as on a desktop, and in the reader's language.
  */
 
+// The four steps a project that skipped the question gets, in How OneUptime works' order.
 const NEWCOMER_STEPS: Array<string> = [
-  "create-monitor",
-  "create-status-page",
-  "invite-team",
-  "create-on-call-policy",
+  "monitor",
+  "on_call",
+  "status_page",
+  "team",
 ];
 
 const ON_CALL_STEP_TITLE: string = "Set up an on-call policy";
 
 const ON_CALL_STEP_SENTENCE: string =
-  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.";
+  "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the project's owners get an email.";
 
 async function checklistSteps(page: Page): Promise<Array<string>> {
   return page
@@ -693,7 +694,7 @@ test.describe("a newcomer's first steps", () => {
       expect(await checklistSteps(page)).toEqual(NEWCOMER_STEPS);
 
       const onCall: Locator = page.getByTestId(
-        "getting-started-task-create-on-call-policy",
+        "getting-started-task-on_call",
       );
 
       await expect(onCall).toContainText(ON_CALL_STEP_TITLE);
@@ -739,7 +740,7 @@ test.describe("a newcomer's first steps", () => {
     await openReady(page, "scenario=new&lang=de");
 
     const onCall: Locator = page.getByTestId(
-      "getting-started-task-create-on-call-policy",
+      "getting-started-task-on_call",
     );
 
     await expect(onCall).toContainText("Bereitschaftsrichtlinie einrichten");
@@ -759,7 +760,7 @@ test.describe("a newcomer's first steps", () => {
     await openReady(page, "scenario=new&theme=dark");
 
     const onCall: Locator = page.getByTestId(
-      "getting-started-task-create-on-call-policy",
+      "getting-started-task-on_call",
     );
 
     await expect(onCall).toContainText(ON_CALL_STEP_SENTENCE);
@@ -780,6 +781,231 @@ test.describe("a newcomer's first steps", () => {
     expect(colors.surface).not.toBe("rgb(255, 255, 255)");
 
     await screenshot(page, "home-newcomer-dark");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * What do you want to do first? (issue #6803)
+ * ---------------------------------------------------------------------------
+ *
+ * A new project's owner is asked once what they came to do; the checklist
+ * that follows holds those goals' steps, ticks on outcomes, marks the next
+ * one, says what the plan cannot do before the click, and hides for this
+ * person alone. The fixture builds every answer with the real rules.
+ */
+
+async function welcomeRequests(
+  page: Page,
+): Promise<Array<{ method: string; path: string; data: unknown }>> {
+  return page.evaluate(
+    (): Array<{ method: string; path: string; data: unknown }> => {
+      return JSON.parse(
+        JSON.stringify(
+          (
+            window as unknown as {
+              __homeOverviewFixture: {
+                welcomeRequests: Array<{
+                  method: string;
+                  path: string;
+                  data: unknown;
+                }>;
+              };
+            }
+          ).__homeOverviewFixture.welcomeRequests,
+        ),
+      );
+    },
+  );
+}
+
+test.describe("what do you want to do first?", () => {
+  for (const width of [1280, 390]) {
+    test(`at ${width}px: the question first, then the checklist its goals bring`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({
+        width: width,
+        height: width === 390 ? 844 : 900,
+      });
+      await openReady(page, "scenario=new&welcome=ask");
+
+      const question: Locator = page.getByTestId("welcome-question");
+
+      await expect(question).toBeVisible();
+      await expect(question).toContainText("What do you want to do first?");
+      await expect(question.getByRole("checkbox")).toHaveCount(7);
+      await expect(page.getByTestId("getting-started")).toHaveCount(0);
+      await expect(page.getByTestId("welcome-question-continue")).toBeDisabled();
+      await expectNoSidewaysScroll(page);
+
+      await screenshot(page, `home-welcome-question-${width}`);
+
+      await page
+        .getByTestId("welcome-goal-uptime")
+        .getByRole("checkbox")
+        .check();
+      await page
+        .getByTestId("welcome-goal-status_page")
+        .getByRole("checkbox")
+        .check();
+      await page.getByTestId("welcome-question-continue").click();
+
+      await expect(page.getByTestId("getting-started")).toBeVisible();
+      expect(await checklistSteps(page)).toEqual([
+        "monitor",
+        "on_call",
+        "status_page",
+      ]);
+      await expect(page.getByTestId("getting-started-next")).toHaveCount(1);
+      await expect(
+        page.getByTestId("getting-started-task-monitor"),
+      ).toHaveAttribute("data-next", "true");
+      await expect(
+        page.getByTestId("welcome-checklist-goal-uptime"),
+      ).toContainText("Know when my website or API is down");
+
+      const goals: Array<{ method: string; path: string; data: unknown }> = (
+        await welcomeRequests(page)
+      ).filter((request: { path: string }): boolean => {
+        return request.path.endsWith("/goals");
+      });
+
+      expect(goals).toEqual([
+        {
+          method: "POST",
+          path: "/api/welcome-checklist/goals",
+          data: { goals: ["uptime", "status_page"] },
+        },
+      ]);
+      await expectNoSidewaysScroll(page);
+
+      await screenshot(page, `home-welcome-goals-${width}`);
+    });
+  }
+
+  test("Skip gives the four steps, and Change asks again with the answer ticked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new&welcome=ask");
+
+    await page.getByTestId("welcome-question-skip").click();
+
+    await expect(page.getByTestId("getting-started")).toBeVisible();
+    expect(await checklistSteps(page)).toEqual(NEWCOMER_STEPS);
+
+    await page.getByTestId("welcome-checklist-change-goals").click();
+
+    await expect(page.getByTestId("welcome-question")).toBeVisible();
+    await expect(page.getByTestId("welcome-question-continue")).toHaveText(
+      "Save",
+    );
+    await page.getByTestId("welcome-question-cancel").click();
+    await expect(page.getByTestId("getting-started")).toBeVisible();
+  });
+
+  test("a step ticks on its outcome, and the next one is marked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new&welcome=half");
+
+    const monitor: Locator = page.getByTestId("getting-started-task-monitor");
+
+    await expect(monitor).toHaveAttribute("data-done", "true");
+    await expect(monitor).toContainText("Done");
+    await expect(
+      page.getByTestId("getting-started-task-on_call"),
+    ).toHaveAttribute("data-next", "true");
+
+    await screenshot(page, "home-welcome-half");
+  });
+
+  test("on the Free plan, the team step says it needs Growth before the click", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new&plan=free");
+
+    await expect(
+      page.getByTestId("getting-started-task-team-needs-plan"),
+    ).toHaveText("Needs the Growth plan");
+    await expect(page.getByTestId("getting-started-task-team")).toContainText(
+      "The Free plan has one person.",
+    );
+
+    await screenshot(page, "home-welcome-free-plan");
+  });
+
+  test("Hide is this person's own: a line stays, with Show it and How OneUptime works", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new");
+
+    await page.getByTestId("getting-started-dismiss").click();
+
+    await expect(page.getByTestId("getting-started")).toHaveCount(0);
+    await expect(page.getByTestId("welcome-checklist-hidden")).toContainText(
+      "You hid the Welcome checklist.",
+    );
+
+    await page.getByTestId("welcome-checklist-how-it-works").click();
+    await expect(page.getByTestId("how-oneuptime-works")).toBeVisible();
+
+    await screenshot(page, "home-welcome-hidden");
+
+    await page.getByTestId("welcome-checklist-show").click();
+    await expect(page.getByTestId("getting-started")).toBeVisible();
+
+    expect(
+      (await welcomeRequests(page)).map(
+        (request: { method: string; path: string }): string => {
+          return `${request.method} ${request.path}`;
+        },
+      ),
+    ).toEqual([
+      "GET /api/welcome-checklist",
+      "POST /api/welcome-checklist/hide",
+      "POST /api/welcome-checklist/show",
+    ]);
+  });
+
+  test("an invited member sees no checklist and no question", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new&role=viewer&welcome=ask");
+
+    await expect(page.getByTestId("welcome-question")).toHaveCount(0);
+    await expect(page.getByTestId("getting-started")).toHaveCount(0);
+  });
+
+  test("German and dark: the question in German, readable on a dark card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new&welcome=ask&lang=de&theme=dark");
+
+    const question: Locator = page.getByTestId("welcome-question");
+
+    await expect(question).toContainText("Was möchten Sie zuerst tun?");
+    await expect(question).toContainText(
+      "Wissen, wenn meine Website oder API ausfällt",
+    );
+    await expect(question).not.toContainText("What do you want to do first?");
+    await expectNoSidewaysScroll(page);
+
+    await screenshot(page, "home-welcome-question-de-dark");
   });
 });
 

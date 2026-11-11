@@ -123,7 +123,8 @@ export const WELCOME_CHECKLIST_COPY: {
   ),
   hideButton: translationKey("Hide"),
   progressSuffix: translationKey("steps completed"),
-  nextBadge: translationKey("Next"),
+  // Not "Next", which reads as a button ("Weiter") in some languages.
+  nextBadge: translationKey("Next step"),
   done: translationKey("Done"),
   goalsLabel: translationKey("Your goals:"),
   changeGoals: translationKey("Change"),

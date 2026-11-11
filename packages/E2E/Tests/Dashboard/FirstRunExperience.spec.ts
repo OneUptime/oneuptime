@@ -157,6 +157,44 @@ test.describe("First run: a brand-new project", () => {
     });
   });
 
+  /*
+   * Issue #6803: a new project's owner is asked once what they came to do,
+   * on the server, so the answer holds on every device. Skip gives the four
+   * steps every project gets.
+   */
+  test("Home asks what the project came to do, and Skip gives the four steps", async () => {
+    test.setTimeout(180000);
+
+    await gotoProjectPage({
+      page,
+      projectId,
+      url: projectUrl(projectId, "/home"),
+      ready: page.getByTestId("welcome-question"),
+    });
+
+    await expect(page.getByTestId("welcome-question")).toContainText(
+      "What do you want to do first?",
+    );
+    await expect(
+      page.getByTestId("welcome-question").getByRole("checkbox"),
+    ).toHaveCount(7);
+
+    await page.getByTestId("welcome-question-skip").click();
+
+    for (const step of ["monitor", "on_call", "status_page", "team"]) {
+      await expect(
+        page.getByTestId(`getting-started-task-${step}`),
+      ).toBeVisible({ timeout: 30000 });
+    }
+
+    // Answered once: it is not asked again.
+    await page.reload();
+    await expect(page.getByTestId("getting-started-task-team")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(page.getByTestId("welcome-question")).toHaveCount(0);
+  });
+
   test("Getting Started's 'Invite your team' lands where Invite User is", async () => {
     test.setTimeout(180000);
 
@@ -164,10 +202,10 @@ test.describe("First run: a brand-new project", () => {
       page,
       projectId,
       url: projectUrl(projectId, "/home"),
-      ready: page.getByTestId("getting-started-task-invite-team"),
+      ready: page.getByTestId("getting-started-task-team"),
     });
 
-    await page.getByTestId("getting-started-task-invite-team").click();
+    await page.getByTestId("getting-started-task-team").click();
 
     await expect(page).toHaveURL(exactPath(projectId, "/users"), {
       timeout: 30000,
