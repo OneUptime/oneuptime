@@ -493,10 +493,15 @@ describe("opening the definition", () => {
     leave(screen.getByTestId("first"));
     await waitHidden();
     fireEvent.mouseEnter(screen.getByTestId("second"));
+    // jsdom keeps the first word's hidden popover: the second's is beside it.
     await waitFor(() => {
       expect(
-        screen.getByTestId(DEFINED_TERM_DEFINITION_TEST_ID),
-      ).toHaveTextContent("A machine that runs monitors' checks.");
+        screen
+          .getAllByTestId(DEFINED_TERM_DEFINITION_TEST_ID)
+          .map((element: HTMLElement): string => {
+            return element.textContent || "";
+          }),
+      ).toContain("A machine that runs monitors' checks. One. Two.");
     });
 
     // Both definitions came from one read of the glossary.
