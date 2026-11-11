@@ -120,7 +120,7 @@ OneUptime → Dynamics 365 のテンプレートは、**プライベートイン
 
 **テンプレートのサインイン方法。** ウィザードは、テナント、クライアント ID、シークレットを、ワークフローの **ワークフロー変数** にある 1 つの [OAuth 2.0 変数](/docs/workflows/variables#oauth-20-変数自動で更新されるトークン) `dynamicsAccessToken` に保存します。内容は Client Credentials、トークン URL `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`、スコープ `<environment URL>/.default`、そしてリクエスト本文で送信され暗号化して保存されるクライアントシークレットです。Dynamics 365 へのすべての呼び出しは `Authorization: Bearer {{local.variables.dynamicsAccessToken}}` を送信します。OneUptime は、ステップが最初に必要とするときにトークンを取得し、期限切れの前に新しいトークンを取得し、実行ログとステップのトレースでは `[REDACTED]` に置き換えます。
 
-何かを実行する前にサインインを確認するには、**ワークフロー変数** を開き、`dynamicsAccessToken` の **表示** をクリックしてから **今すぐ更新** をクリックします。**Access Token Fetched** と表示されれば、アプリの登録は正しく設定されています。そうでなければ、`AADSTS7000215: Invalid client secret provided` のような Microsoft Entra ID のエラーが問題点を示します。
+何かを実行する前にサインインを確認するには、**ワークフロー変数** を開き、`dynamicsAccessToken` の **表示** をクリックしてから **今すぐ更新** をクリックします。**アクセストークンを取得しました** と表示されれば、アプリの登録は正しく設定されています。そうでなければ、`AADSTS7000215: Invalid client secret provided` のような Microsoft Entra ID のエラーが問題点を示します。
 
 各ワークフローは個別のコピーを持ちます。クライアントシークレットを交換するときは、すべての Dynamics 365 ワークフローで `dynamicsAccessToken` を開き、**認証情報を更新** を使います。
 
