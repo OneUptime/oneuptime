@@ -4,12 +4,12 @@ import { DataAssetFreshness } from "../../../Types/DataObservability/DataAssetFr
 import {
   DataAlertLineageAnswer,
   DataLineageEdgeKind,
+  DataLineageHighlight,
   DataLineageNodeKind,
   DataLineageSide,
   DataTableLineage,
   DataTableLineageEdge,
   DataTableLineageNode,
-  DataTableLineagePipeline,
   MAX_DATA_LINEAGE_DEPTH,
   MAX_DATA_LINEAGE_NEIGHBORS,
   isFailedLineageRunState,
@@ -1019,7 +1019,8 @@ export function formatDataTableLineageAnswer(
     : "";
 
   return [
-    `${answer.dataAssetId ? "" : "The pipeline "}${name}${state}. Its lineage, ${plural(answer.depth, "step", "steps")} each way:`,
+    // Its own state can end with a pipeline's error, which can end its sentence itself ("?", or "…" when clipped).
+    `${withFullStop(`${answer.dataAssetId ? "" : "The pipeline "}${name}${state}`)} Its lineage, ${plural(answer.depth, "step", "steps")} each way:`,
     ...describeDataTableLineageSides(answer, now),
   ].join("\n");
 }
@@ -1056,9 +1057,9 @@ export function formatDataTableLineageReply(data: {
 /*
  * What an investigation of a data alert is told of its lineage
  * (DataAlertContext): the lineage around its table or pipeline, where in
- * the chain the alert it is a consequence of is, and which tables the
- * alerts it caused are on. Lines of a list; none when the alert is about a
- * whole database.
+ * the chain the alert it is a consequence of is, and which tables - or
+ * pipelines between them - the alerts it caused are on. Lines of a list;
+ * none when the alert is about a whole database.
  */
 export function describeDataAlertLineage(
   alertLineage: DataAlertLineageAnswer,
@@ -1140,6 +1141,72 @@ export function describeDataAlertLineage(
     }`;
   };
 
+  /*
+   * A cause or a consequence on a pipeline that moves data between two
+   * watched tables is picked out on its arrows, not as a card
+   * (DataLineageHighlight.dataPipelineIds): each is named with the tables
+   * it builds along the picked-out arrows one way - up, into the table or
+   * a table it is built from; down, into a table built from it - in the
+   * order the drawing holds its arrows.
+   */
+  const placeArrowPipelines: (isUpstream: boolean) => Map<string, string> = (
+    isUpstream: boolean,
+  ): Map<string, string> => {
+    const highlight: DataLineageHighlight | undefined = lineage.highlight;
+    const builds: Map<string, { name: string; targets: Array<string> }> =
+      new Map();
+
+    for (const edge of lineage.edges) {
+      const target: DataTableLineageNode | undefined = byId.get(edge.target);
+
+      if (!highlight || !target || !highlight.edgeIds.includes(edge.id)) {
+        continue;
+      }
+
+      const isIntoUpstream: boolean =
+        target.id === lineage.focusNodeId ||
+        target.side === DataLineageSide.Upstream;
+
+      if (isIntoUpstream !== isUpstream) {
+        continue;
+      }
+
+      for (const pipeline of edge.pipelines) {
+        if (!highlight.dataPipelineIds.includes(pipeline.dataPipelineId)) {
+          continue;
+        }
+
+        const built: { name: string; targets: Array<string> } = builds.get(
+          pipeline.dataPipelineId,
+        ) || { name: pipeline.name, targets: [] };
+
+        built.targets.push(target.id);
+        builds.set(pipeline.dataPipelineId, built);
+      }
+    }
+
+    const places: Map<string, string> = new Map();
+
+    for (const [dataPipelineId, built] of builds) {
+      const named: { tables: Array<string>; untoldTableCount: number } =
+        nameTables(built.targets, tables);
+
+      places.set(
+        dataPipelineId,
+        `the pipeline ${built.name}${
+          named.tables.length > 0
+            ? `, which builds ${listNamedTables(named.tables, named.untoldTableCount)}`
+            : ""
+        }`,
+      );
+    }
+
+    return places;
+  };
+
+  // The pipeline the cause is on, when it is told on its arrows: not one of the alerts it caused.
+  let causePipelineId: string | null = null;
+
   if (alertLineage.isCauseDrawn && lineage.highlight) {
     const places: Array<string> = lineage.highlight.causeNodeIds
       .map(placeOf)
@@ -1149,30 +1216,13 @@ export function describeDataAlertLineage(
 
     // A cause on a pipeline that moves data between two watched tables: named on the arrow into the table it builds.
     if (places.length === 0) {
-      for (const edge of lineage.edges) {
-        const highlighted: boolean = lineage.highlight.edgeIds.includes(
-          edge.id,
-        );
-        const target: DataTableLineageNode | undefined = byId.get(edge.target);
-        const carried: DataTableLineagePipeline | undefined =
-          edge.pipelines.find((pipeline: DataTableLineagePipeline) => {
-            return lineage.highlight!.dataPipelineIds.includes(
-              pipeline.dataPipelineId,
-            );
-          });
+      const first: [string, string] | undefined = Array.from(
+        placeArrowPipelines(true),
+      )[0];
 
-        if (
-          highlighted &&
-          carried &&
-          target &&
-          (target.id === lineage.focusNodeId ||
-            target.side === DataLineageSide.Upstream)
-        ) {
-          places.push(
-            `the pipeline ${carried.name}, which builds ${target.name}`,
-          );
-          break;
-        }
+      if (first) {
+        causePipelineId = first[0];
+        places.push(first[1]);
       }
     }
 
@@ -1184,11 +1234,21 @@ export function describeDataAlertLineage(
   }
 
   if (alertLineage.consequenceCount > 0) {
-    const places: Array<string> = (lineage.highlight?.consequenceNodeIds || [])
-      .map(placeOf)
-      .filter((place: string | null): place is string => {
-        return Boolean(place);
-      });
+    const places: Array<string> = [
+      ...(lineage.highlight?.consequenceNodeIds || [])
+        .map(placeOf)
+        .filter((place: string | null): place is string => {
+          return Boolean(place);
+        }),
+      // An alert it caused on a pipeline that moves data between two tables built from it: on the arrows it moves data along.
+      ...Array.from(placeArrowPipelines(false))
+        .filter(([dataPipelineId]: [string, string]): boolean => {
+          return dataPipelineId !== causePipelineId;
+        })
+        .map(([, place]: [string, string]): string => {
+          return place;
+        }),
+    ];
 
     lines.push(
       `- ${plural(alertLineage.consequenceCount, "alert was", "alerts were")} raised as a consequence of this one${

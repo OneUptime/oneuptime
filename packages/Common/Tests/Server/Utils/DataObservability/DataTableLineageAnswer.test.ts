@@ -91,6 +91,9 @@ async function textOf(
   return formatDataTableLineageAnswer(await answerOf(graph, focus, depth), NOW);
 }
 
+// A sentence ended twice: "?." or "…." or "..".
+const DOUBLE_ENDING: RegExp = /[?.!…]\./;
+
 function namesOf(tables: Array<DataLineageAnswerTable>): Array<string> {
   return tables.map((table: DataLineageAnswerTable): string => {
     return table.table;
@@ -452,6 +455,52 @@ describe("a table's lineage, told", () => {
     expect(text).not.toContain("Disk full..");
     expect(text).toContain("…\n");
   });
+
+  /*
+   * The table's own line names its own failed loader's error, then goes
+   * on: an error that ends its own sentence - a question, a clipped one -
+   * is not given a second ending before "Its lineage".
+   */
+  test.each([
+    [
+      "a question",
+      "Is the source reachable?",
+      "Is the source reachable? Its lineage, 3 steps each way:",
+    ],
+    [
+      "its own full stop",
+      "Disk full.",
+      "Disk full. Its lineage, 3 steps each way:",
+    ],
+    ["no ending", "Disk full", "Disk full. Its lineage, 3 steps each way:"],
+    [
+      "one clipped",
+      `Load failed: ${"x".repeat(400)}`,
+      "x… Its lineage, 3 steps each way:",
+    ],
+  ])(
+    "the table's own line ends once when its loader's error ends with %s",
+    async (_case: string, lastErrorMessage: string, ending: string) => {
+      const graph: MemoryGraph = newGraph();
+      table(graph, t(1), { assetKey: "public.orders" });
+      pipeline(graph, p(1), {
+        jobName: "orders_sync",
+        lastRunState: "FAIL",
+        lastErrorMessage,
+      });
+      writes(graph, p(1), t(1));
+
+      const first: string = (await textOf(graph, t(1))).split("\n")[0]!;
+
+      expect(
+        first.startsWith(
+          "public.orders (Warehouse): fresh; the pipeline orders_sync that loads it failed its last run 1 hour ago: ",
+        ),
+      ).toBe(true);
+      expect(first.endsWith(ending)).toBe(true);
+      expect(first).not.toMatch(DOUBLE_ENDING);
+    },
+  );
 
   test("the loaders: a failed one first, each with how its latest run went", async () => {
     const graph: MemoryGraph = newGraph();

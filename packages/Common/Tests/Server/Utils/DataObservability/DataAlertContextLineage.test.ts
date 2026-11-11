@@ -290,6 +290,63 @@ describe("an alert's lineage, as an investigation is told it", () => {
     );
   });
 
+  /*
+   * An alert it caused on a pipeline that moves data between two tables
+   * built from it is picked out on that pipeline's arrows, as a cause on
+   * one is: it is placed there - not left out of the places, so that the
+   * count would read as if every alert it caused were on the tables named.
+   */
+  test("an alert it caused on a pipeline between two tables built from it is placed on that pipeline, with what it builds", async () => {
+    const graph: MemoryGraph = warehouse();
+    pipeline(graph, p(3), { jobName: "dbt_marts" });
+    runs(graph, p(3), { reads: [t(1)], writes: [t(5)] });
+
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(1), { table: 1 });
+    alertOn(alerts, a(2), { pipeline: 3 }, a(1));
+
+    const alone: Array<string> = await linesFor(graph, alerts, a(1));
+
+    expect(alone[alone.length - 1]).toBe(
+      "- 1 alert was raised as a consequence of this one, on: the pipeline dbt_marts, which builds marts.revenue.",
+    );
+
+    // With one on a table too: the tables first, then the pipelines.
+    alertOn(alerts, a(3), { table: 6 }, a(1));
+
+    const both: Array<string> = await linesFor(graph, alerts, a(1));
+
+    expect(both[both.length - 1]).toBe(
+      "- 2 alerts were raised as a consequence of this one, on: marts.kpis, 2 steps down, through marts.revenue; the pipeline dbt_marts, which builds marts.revenue.",
+    );
+  });
+
+  /*
+   * A cause on a pipeline is picked out on its arrows too. When that
+   * pipeline also moves data along a way picked out down to an alert it
+   * caused, it is still the cause: never told as one of the alerts this
+   * one caused.
+   */
+  test("a cause on a pipeline that also moves data down a picked-out way is told as the cause only", async () => {
+    const graph: MemoryGraph = warehouse();
+    // dbt_build builds analytics.daily_revenue, and marts.revenue from it.
+    runs(graph, p(1), { reads: [t(1)], writes: [t(5)] });
+
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(0), { pipeline: 1 });
+    alertOn(alerts, a(1), { table: 1 }, a(0));
+    alertOn(alerts, a(3), { table: 6 }, a(1));
+
+    const lines: Array<string> = await linesFor(graph, alerts, a(1));
+
+    expect(lines).toContain(
+      "- The alert this one is a consequence of is on the pipeline dbt_build, which builds analytics.daily_revenue: start there.",
+    );
+    expect(lines[lines.length - 1]).toBe(
+      "- 1 alert was raised as a consequence of this one, on: marts.kpis, 2 steps down, through marts.revenue.",
+    );
+  });
+
   test("an alert it caused further down than the lineage reaches is counted, not placed", async () => {
     const graph: MemoryGraph = newGraph();
 
