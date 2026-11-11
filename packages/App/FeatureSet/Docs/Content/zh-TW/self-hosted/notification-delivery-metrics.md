@@ -210,7 +210,7 @@ services:
 | `a` | `notification.send.count` | **總和** | `notification.channel = sms`、`notification.on_call_page = true`、`notification.provider.config = global`、`outcome != not_sent` |
 | `b` | `notification.send.count` | **總和** | 相同條件，再加上 `outcome = failure` |
 
-公式 `$b / $a * 100` 是失敗的比例，只要它維持在 1 或以下，目標就算達成。沒有失敗的步長不會繪製資料點，因為 `b` 沒有資料點。`outcome != not_sent` 排除了被專案本身設定擋下的內容，`global` 排除了專案自己的 Twilio 帳戶。若是其他管道，請把 `sms` 改為 `call`、`push` 或 `email`。
+公式 `$b / $a * 100` 是失敗的比例，只要它維持在 1 或以下，目標就算達成。沒有失敗的步長不會繪製資料點，因為 `b` 沒有資料點。`outcome != not_sent` 排除了被專案本身設定擋下的內容，`global` 排除了專案自己的 Twilio 帳戶。在透過自己的簡訊與電話閘道傳送簡訊的安裝中，同樣的查詢衡量的是該閘道。若是其他管道，請把 `sms` 改為 `call`、`push` 或 `email`。
 
 ### 呼叫在 30 秒內發出
 

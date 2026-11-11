@@ -210,7 +210,7 @@ Au plus 1 % des SMS d'astreinte envoyés par le propre compte Twilio de l'instal
 | `a` | `notification.send.count` | **Somme** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Somme** | Les mêmes, avec `outcome = failure` |
 
-La formule `$b / $a * 100` est la part qui a échoué, et l'objectif tient tant qu'elle reste inférieure ou égale à 1. Un pas sans échec ne trace aucun point, car `b` n'en a pas. `outcome != not_sent` exclut ce que les paramètres propres aux projets ont retenu, et `global` les propres comptes Twilio des projets. Pour un autre canal, remplacez `sms` : `call`, `push` ou `email`.
+La formule `$b / $a * 100` est la part qui a échoué, et l'objectif tient tant qu'elle reste inférieure ou égale à 1. Un pas sans échec ne trace aucun point, car `b` n'en a pas. `outcome != not_sent` exclut ce que les paramètres propres aux projets ont retenu, et `global` les propres comptes Twilio des projets. Sur une installation qui envoie ses SMS par sa passerelle SMS et appels, les mêmes requêtes mesurent la passerelle. Pour un autre canal, remplacez `sms` : `call`, `push` ou `email`.
 
 ### Les alertes partent en moins de 30 secondes
 

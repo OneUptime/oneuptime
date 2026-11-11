@@ -210,7 +210,7 @@ Como mucho falla el 1 % de los SMS de guardia enviados a través de la cuenta de
 | `a` | `notification.send.count` | **Suma** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Suma** | Las mismas, con `outcome = failure` |
 
-La fórmula `$b / $a * 100` es la proporción que falló, y el objetivo se cumple mientras se mantenga igual o por debajo de 1. Un paso sin fallos no dibuja ningún punto, ya que `b` no tiene ninguno. `outcome != not_sent` deja fuera lo que retuvieron los ajustes propios de los proyectos, y `global` las cuentas de Twilio propias de los proyectos. Para otro canal, cambia `sms`: `call`, `push` o `email`.
+La fórmula `$b / $a * 100` es la proporción que falló, y el objetivo se cumple mientras se mantenga igual o por debajo de 1. Un paso sin fallos no dibuja ningún punto, ya que `b` no tiene ninguno. `outcome != not_sent` deja fuera lo que retuvieron los ajustes propios de los proyectos, y `global` las cuentas de Twilio propias de los proyectos. En una instalación que envía los SMS por su pasarela de SMS y llamadas, las mismas consultas miden la pasarela. Para otro canal, cambia `sms`: `call`, `push` o `email`.
 
 ### Los avisos salen en menos de 30 segundos
 

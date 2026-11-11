@@ -210,7 +210,7 @@ No máximo 1% dos SMS de plantão enviados pela conta do Twilio da própria inst
 | `a` | `notification.send.count` | **Soma** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Soma** | As mesmas, com `outcome = failure` |
 
-A fórmula `$b / $a * 100` é a parcela que falhou, e o objetivo se mantém enquanto ela ficar igual ou abaixo de 1. Um passo sem falha não desenha nenhum ponto, já que `b` não tem nenhum. `outcome != not_sent` deixa de fora o que as configurações próprias dos projetos seguraram, e `global` as contas do Twilio dos próprios projetos. Para outro canal, troque `sms`: `call`, `push` ou `email`.
+A fórmula `$b / $a * 100` é a parcela que falhou, e o objetivo se mantém enquanto ela ficar igual ou abaixo de 1. Um passo sem falha não desenha nenhum ponto, já que `b` não tem nenhum. `outcome != not_sent` deixa de fora o que as configurações próprias dos projetos seguraram, e `global` as contas do Twilio dos próprios projetos. Em uma instalação que envia os SMS pelo seu gateway de SMS e chamadas, as mesmas consultas medem o gateway. Para outro canal, troque `sms`: `call`, `push` ou `email`.
 
 ### Acionamentos saem em até 30 segundos
 

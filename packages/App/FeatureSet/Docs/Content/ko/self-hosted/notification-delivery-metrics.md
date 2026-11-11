@@ -210,7 +210,7 @@ services:
 | `a` | `notification.send.count` | **합계** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **합계** | 같은 조건에 `outcome = failure` 추가 |
 
-수식 `$b / $a * 100`은 실패한 비율이며, 그 값이 1 이하로 유지되는 동안 목표가 지켜집니다. 실패가 없는 단계는 `b`에 포인트가 없으므로 포인트를 그리지 않습니다. `outcome != not_sent`는 프로젝트 자체 설정이 막은 것을 제외하고, `global`은 프로젝트 자체의 Twilio 계정을 제외합니다. 다른 채널은 `sms`를 `call`, `push` 또는 `email`로 바꾸세요.
+수식 `$b / $a * 100`은 실패한 비율이며, 그 값이 1 이하로 유지되는 동안 목표가 지켜집니다. 실패가 없는 단계는 `b`에 포인트가 없으므로 포인트를 그리지 않습니다. `outcome != not_sent`는 프로젝트 자체 설정이 막은 것을 제외하고, `global`은 프로젝트 자체의 Twilio 계정을 제외합니다. SMS를 자체 SMS 및 통화 게이트웨이로 보내는 설치에서는 같은 쿼리가 게이트웨이를 측정합니다. 다른 채널은 `sms`를 `call`, `push` 또는 `email`로 바꾸세요.
 
 ### 호출이 30초 안에 나감
 

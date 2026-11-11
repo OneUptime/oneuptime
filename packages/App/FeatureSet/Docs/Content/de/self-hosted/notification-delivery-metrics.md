@@ -210,7 +210,7 @@ Höchstens 1 % der Bereitschafts-SMS, die über das eigene Twilio-Konto der Inst
 | `a` | `notification.send.count` | **Summe** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Summe** | Dieselben, mit `outcome = failure` |
 
-Die Formel `$b / $a * 100` ist der Anteil, der fehlschlug, und das Ziel gilt, solange er bei oder unter 1 bleibt. Ein Schritt ohne Fehlschlag zeichnet keinen Punkt, da `b` dort keinen hat. `outcome != not_sent` lässt aus, was die eigenen Einstellungen der Projekte zurückgehalten haben, und `global` die eigenen Twilio-Konten der Projekte. Für einen anderen Kanal ändern Sie `sms`: `call`, `push` oder `email`.
+Die Formel `$b / $a * 100` ist der Anteil, der fehlschlug, und das Ziel gilt, solange er bei oder unter 1 bleibt. Ein Schritt ohne Fehlschlag zeichnet keinen Punkt, da `b` dort keinen hat. `outcome != not_sent` lässt aus, was die eigenen Einstellungen der Projekte zurückgehalten haben, und `global` die eigenen Twilio-Konten der Projekte. Auf einer Installation, die SMS über ihr SMS- und Anruf-Gateway sendet, messen dieselben Abfragen das Gateway. Für einen anderen Kanal ändern Sie `sms`: `call`, `push` oder `email`.
 
 ### Alarme gehen innerhalb von 30 Sekunden hinaus
 

@@ -210,7 +210,7 @@ Al massimo l'1% degli SMS di reperibilità inviati tramite l'account Twilio prop
 | `a` | `notification.send.count` | **Somma** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Somma** | Le stesse, con `outcome = failure` |
 
-La formula `$b / $a * 100` è la quota che è fallita, e l'obiettivo regge finché resta pari o inferiore a 1. Un passo senza errori non disegna alcun punto, perché `b` non ne ha. `outcome != not_sent` esclude ciò che le impostazioni proprie dei progetti hanno trattenuto, e `global` gli account Twilio propri dei progetti. Per un altro canale, cambia `sms`: `call`, `push` o `email`.
+La formula `$b / $a * 100` è la quota che è fallita, e l'obiettivo regge finché resta pari o inferiore a 1. Un passo senza errori non disegna alcun punto, perché `b` non ne ha. `outcome != not_sent` esclude ciò che le impostazioni proprie dei progetti hanno trattenuto, e `global` gli account Twilio propri dei progetti. Su un'installazione che invia gli SMS tramite il proprio gateway per SMS e chiamate, le stesse query misurano il gateway. Per un altro canale, cambia `sms`: `call`, `push` o `email`.
 
 ### Gli avvisi di reperibilità partono entro 30 secondi
 

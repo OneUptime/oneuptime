@@ -210,7 +210,7 @@ Hoogstens 1% van de sms-berichten van de bereikbaarheidsdienst die via het eigen
 | `a` | `notification.send.count` | **Som** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Som** | Dezelfde, met `outcome = failure` |
 
-De formule `$b / $a * 100` is het aandeel dat mislukte, en het doel wordt gehaald zolang dat op of onder 1 blijft. Een stap zonder mislukking tekent geen punt, omdat `b` er daar geen heeft. `outcome != not_sent` laat weg wat de eigen instellingen van de projecten tegenhielden, en `global` de eigen Twilio-accounts van de projecten. Voor een ander kanaal wijzigt u `sms`: `call`, `push` of `email`.
+De formule `$b / $a * 100` is het aandeel dat mislukte, en het doel wordt gehaald zolang dat op of onder 1 blijft. Een stap zonder mislukking tekent geen punt, omdat `b` er daar geen heeft. `outcome != not_sent` laat weg wat de eigen instellingen van de projecten tegenhielden, en `global` de eigen Twilio-accounts van de projecten. Op een installatie die sms-berichten via haar eigen sms- en belgateway verstuurt, meten dezelfde query's de gateway. Voor een ander kanaal wijzigt u `sms`: `call`, `push` of `email`.
 
 ### Oproepen vertrekken binnen 30 seconden
 

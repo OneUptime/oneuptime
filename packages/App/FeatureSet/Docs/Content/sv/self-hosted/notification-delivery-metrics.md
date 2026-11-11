@@ -210,7 +210,7 @@ Högst 1 % av de jour-SMS som skickas via installationens eget Twilio-konto miss
 | `a` | `notification.send.count` | **Summa** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Summa** | Samma, med `outcome = failure` |
 
-Formeln `$b / $a * 100` är andelen som misslyckades, och målet håller så länge den ligger på eller under 1. Ett steg utan misslyckanden ritar ingen punkt, eftersom `b` inte har någon. `outcome != not_sent` utesluter det som projektens egna inställningar höll tillbaka, och `global` projektens egna Twilio-konton. För en annan kanal ändrar du `sms`: `call`, `push` eller `email`.
+Formeln `$b / $a * 100` är andelen som misslyckades, och målet håller så länge den ligger på eller under 1. Ett steg utan misslyckanden ritar ingen punkt, eftersom `b` inte har någon. `outcome != not_sent` utesluter det som projektens egna inställningar höll tillbaka, och `global` projektens egna Twilio-konton. På en installation som skickar SMS via sin SMS- och samtalsgateway mäter samma frågor gatewayen. För en annan kanal ändrar du `sms`: `call`, `push` eller `email`.
 
 ### Larm går ut inom 30 sekunder
 

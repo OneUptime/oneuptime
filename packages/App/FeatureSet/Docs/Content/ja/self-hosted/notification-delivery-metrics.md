@@ -210,7 +210,7 @@ services:
 | `a` | `notification.send.count` | **合計** | `notification.channel = sms`、`notification.on_call_page = true`、`notification.provider.config = global`、`outcome != not_sent` |
 | `b` | `notification.send.count` | **合計** | 同じ条件に `outcome = failure` を加える |
 
-数式 `$b / $a * 100` は失敗した割合で、それが 1 以下にとどまる間は目標を満たしています。失敗のないステップは、`b` にポイントがないため、ポイントが描かれません。`outcome != not_sent` はプロジェクト自身の設定が止めたものを除外し、`global` はプロジェクト独自の Twilio アカウントを除外します。別のチャネルには `sms` を `call`、`push`、`email` に変えます。
+数式 `$b / $a * 100` は失敗した割合で、それが 1 以下にとどまる間は目標を満たしています。失敗のないステップは、`b` にポイントがないため、ポイントが描かれません。`outcome != not_sent` はプロジェクト自身の設定が止めたものを除外し、`global` はプロジェクト独自の Twilio アカウントを除外します。SMS を自身の SMS・通話ゲートウェイ経由で送るインストールでは、同じクエリがゲートウェイを測定します。別のチャネルには `sms` を `call`、`push`、`email` に変えます。
 
 ### 呼び出しが 30 秒以内に送り出される
 

@@ -99,6 +99,8 @@ const HEADING_LINE: RegExp = /^(#{1,6})\s/;
 const FENCE_LINE: RegExp = /^\s*```/;
 // "`notification.channel = sms`": an attribute, an operator and a value.
 const CONDITION: RegExp = /^(\S+) (=|!=) (\S+)$/;
+// A run of white space in source, read as one space.
+const WHITESPACE_RUN: RegExp = /\s+/g;
 
 function readRepoFile(relative: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, relative), "utf8");
@@ -1685,6 +1687,74 @@ describe("the objectives", () => {
 
     expect(phone).toContain("For calls, use `call` and `outcome != answered`.");
     expect(valuesOf(NotificationDeliveryStatus)).toContain("answered");
+  });
+
+  /*
+   * An installation that sends its SMS and calls through its own gateway
+   * sends nothing through Twilio, and its gateway's messages are the
+   * installation's own (global): the first objective's queries count them
+   * as they count Twilio's, which the page says.
+   */
+  it("measure an installation's SMS and call gateway with the same queries, as its own account", async () => {
+    expect(section("### On-call SMS reach Twilio")).toContain(
+      "On an installation that sends SMS through its SMS and call gateway, the same queries measure the gateway.",
+    );
+
+    for (const service of ["SmsService", "CallService"]) {
+      const source: string = readAppSource(
+        `FeatureSet/Notification/Services/${service}.ts`,
+      ).replace(WHITESPACE_RUN, " ");
+      const dispatchStart: string = source.slice(
+        source.indexOf("NotificationDeliveryMetrics.measureDispatch("),
+        source.indexOf("async (dispatch: NotificationDispatch)"),
+      );
+
+      // Started with no account, so it is the installation's own (global).
+      expect({ service, dispatchStart }).toEqual({
+        service,
+        dispatchStart: expect.not.stringContaining("providerConfig"),
+      });
+      // The gateway only where no project's own Twilio account is used...
+      expect({ service, source }).toEqual({
+        service,
+        source: expect.stringContaining(
+          "const gateway: CallAndSmsGateway | null = customTwilioConfig ? null : await getCallAndSmsGateway();",
+        ),
+      });
+      // ...picked with no account of its own, and Twilio not used beside it.
+      expect({ service, source }).toEqual({
+        service,
+        source: expect.stringContaining(
+          "if (gateway) { dispatch.setProvider(NotificationDeliveryProvider.SmsAndCallGateway); }",
+        ),
+      });
+      expect({ service, source }).toEqual({
+        service,
+        source: expect.stringContaining(
+          "const twilioConfig: TwilioConfig | null = gateway ? null :",
+        ),
+      });
+    }
+
+    // Recorded as the first objective's conditions read it.
+    const dispatch: NotificationDispatch =
+      NotificationDeliveryMetrics.startDispatch({
+        channel: NotificationDeliveryChannel.SMS,
+        isOnCallPage: true,
+      });
+
+    dispatch.setProvider(NotificationDeliveryProvider.SmsAndCallGateway);
+    dispatch.end(NotificationDeliveryOutcome.Failure);
+
+    expect(recordedOn("notification.send.count").slice(-1)).toEqual([
+      {
+        "notification.channel": "sms",
+        "notification.provider": "sms_and_call_gateway",
+        "notification.provider.config": "global",
+        "notification.on_call_page": "true",
+        outcome: "failure",
+      },
+    ]);
   });
 });
 

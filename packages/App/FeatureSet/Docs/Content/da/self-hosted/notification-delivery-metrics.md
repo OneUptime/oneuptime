@@ -210,7 +210,7 @@ Højst 1 % af de vagt-SMS'er, der sendes gennem installationens egen Twilio-kont
 | `a` | `notification.send.count` | **Sum** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Sum** | De samme, med `outcome = failure` |
 
-Formlen `$b / $a * 100` er den andel, der fejlede, og målet holder, så længe den bliver på eller under 1. Et trin uden fejl tegner intet punkt, da `b` ikke har noget. `outcome != not_sent` udelader det, projekternes egne indstillinger holdt tilbage, og `global` projekternes egne Twilio-konti. For en anden kanal skal du ændre `sms`: `call`, `push` eller `email`.
+Formlen `$b / $a * 100` er den andel, der fejlede, og målet holder, så længe den bliver på eller under 1. Et trin uden fejl tegner intet punkt, da `b` ikke har noget. `outcome != not_sent` udelader det, projekternes egne indstillinger holdt tilbage, og `global` projekternes egne Twilio-konti. På en installation, der sender SMS gennem sin SMS- og opkaldsgateway, måler de samme forespørgsler gatewayen. For en anden kanal skal du ændre `sms`: `call`, `push` eller `email`.
 
 ### Tilkald går ud inden for 30 sekunder
 

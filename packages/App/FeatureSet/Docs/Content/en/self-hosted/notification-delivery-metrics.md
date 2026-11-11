@@ -210,7 +210,7 @@ At most 1% of the on-call SMS sent through the installation's own Twilio account
 | `a` | `notification.send.count` | **Sum** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Sum** | The same, with `outcome = failure` |
 
-The formula `$b / $a * 100` is the share that failed, and the objective holds while it stays at or below 1. A step with no failure draws no point, as `b` has none. `outcome != not_sent` leaves out what the projects' own settings held back, and `global` the projects' own Twilio accounts. For another channel, change `sms`: `call`, `push` or `email`.
+The formula `$b / $a * 100` is the share that failed, and the objective holds while it stays at or below 1. A step with no failure draws no point, as `b` has none. `outcome != not_sent` leaves out what the projects' own settings held back, and `global` the projects' own Twilio accounts. On an installation that sends SMS through its SMS and call gateway, the same queries measure the gateway. For another channel, change `sms`: `call`, `push` or `email`.
 
 ### Pages go out within 30 seconds
 
