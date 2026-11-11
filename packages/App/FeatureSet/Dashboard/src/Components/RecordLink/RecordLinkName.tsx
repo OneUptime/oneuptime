@@ -1,0 +1,96 @@
+import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import React, { FunctionComponent, ReactElement } from "react";
+
+/*
+ * A RECORD'S NAME IN ITS LINK, WITH ITS KIND'S ICON BESIDE IT.
+ *
+ * A record's link - a monitor, a host, a cluster, an SLO: MonitorElement
+ * and its siblings - draws its name, and in a list of a row's resources
+ * (AffectedResourcesCell) its kind's icon too. That icon and name used to
+ * be one flex row with the name as bare text in it, which a table's cell
+ * laid out as a line of text (TableLayout's
+ * TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES): a line of the page's, so on
+ * an Arabic or Persian page an English name too long for its column was
+ * cut at its start, the "..." on its left ("...lNodesInEuWest1" for "High
+ * Node Memory Utilization on AllNodesInEuWest1"), and on a phone's card
+ * its wrapped lines lined up on the right.
+ *
+ * With its icon, the name is a line of its own beside it (IsolatedLine):
+ * read the way it is written, so an English name ends in "..." at its own
+ * end where its box does, and its wrapped lines start at its own start.
+ * The icon and the name are a flex row of the page's way (the icon at the
+ * line's start, on the right of an Arabic page), set apart by a gap - a
+ * margin on one side of the icon (mr-1) was on the far side of it there.
+ */
+
+/*
+ * The row: the icon, then the name's line, 8px apart - where a table's
+ * cell drew the name after the icon's 4px margin and a space. min-w-0, so
+ * the row may be narrower than the name, in a flex box of its own too.
+ */
+export const RECORD_LINK_NAME_ROW_CLASS_NAME: string =
+  "flex min-w-0 items-start gap-2";
+
+/*
+ * The icon, set on a line of its own as it was set on the name's line:
+ * centred on the text (an inline box, align-middle), the line as tall as
+ * the name's. So it stays beside the name's first line when the name
+ * wraps, not halfway down a name of three lines.
+ */
+export const RECORD_LINK_ICON_CLASS_NAME: string =
+  "inline-block h-5 w-5 align-middle";
+
+/*
+ * The name's line. Where the row's holder keeps it to one line (a table's
+ * cell: TABLE_LIST_ITEM_CLASS_NAME's truncate), it shrinks with the row
+ * (min-w-0) and draws its own "..." at its own end; where its holder lets
+ * it wrap (a phone's card: TABLE_CARD_LIST_ITEM_CLASS_NAME), it wraps,
+ * breaking a name with no place to break anywhere rather than run past the
+ * card. Not truncate: that would cut a phone card's names to one line.
+ * Said to wrap, a line that reads the other way from the page is as wide
+ * as its words beside the icon (IsolatedLine's
+ * CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME), never aligned to its
+ * end, which would line up every wrapped line of an English name on the
+ * right of an Arabic page. ServiceElement's name takes it too
+ * (serviceNameClassName), beside its colour.
+ */
+export const RECORD_LINK_NAME_LINE_CLASS_NAME: string =
+  "min-w-0 overflow-hidden text-ellipsis [overflow-wrap:anywhere]";
+
+// The name's line, for a page's tests (and the browser's) to find it by.
+export const RECORD_LINK_NAME_TEST_ID: string = "record-link-name";
+
+export interface ComponentProps {
+  name: string | undefined;
+  /*
+   * The record kind's icon, drawn before the name. Left out, the name is
+   * drawn alone, exactly as it always was: a table's cell lays that out as
+   * a line of text (TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES), and a list
+   * on a record's own name reads its line from the record (ColumnLineText).
+   */
+  icon?: IconProp | undefined;
+}
+
+const RecordLinkName: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  if (props.icon === undefined) {
+    return <span className="flex"> {props.name}</span>;
+  }
+
+  return (
+    <span className={RECORD_LINK_NAME_ROW_CLASS_NAME}>
+      <Icon icon={props.icon} className={RECORD_LINK_ICON_CLASS_NAME} />
+      <IsolatedLine
+        as="span"
+        text={props.name || ""}
+        className={RECORD_LINK_NAME_LINE_CLASS_NAME}
+        dataTestId={RECORD_LINK_NAME_TEST_ID}
+      />
+    </span>
+  );
+};
+
+export default RecordLinkName;

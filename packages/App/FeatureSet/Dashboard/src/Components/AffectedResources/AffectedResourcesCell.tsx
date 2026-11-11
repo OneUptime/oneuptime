@@ -37,6 +37,7 @@ import NetworkDeviceElement from "../NetworkDevice/NetworkDeviceElement";
 import NetworkSiteElement from "../NetworkSite/NetworkSiteElement";
 import ServiceElement from "../Service/ServiceElement";
 import SloElement from "../Slo/SloElement";
+import { RECORD_LINK_NAME_LINE_CLASS_NAME } from "../RecordLink/RecordLinkName";
 
 /*
  * Compact table-cell version of AffectedResourcesDisplay. Flattens
@@ -45,6 +46,12 @@ import SloElement from "../Slo/SloElement";
  * resources" button) so list-page rows stay short. Each row shows the
  * resource's type icon (Server / Globe / Kubernetes / Docker / Service)
  * so the user can still tell types apart at a glance.
+ *
+ * Each name is a line of its own beside its icon (RecordLinkName, and
+ * ServiceElement's name beside its colour), read the way it is written: on
+ * an Arabic or Persian page an English name too long for the column ends
+ * in "..." at its own end, not at its start ("...lNodesInEuWest1"), and on
+ * a phone's card its wrapped lines start on its own side.
  *
  * Keep this in sync with AffectedResourcesPicker: if a new resource type is
  * added there, mirror it here so the picker, detail display, and table
@@ -415,9 +422,14 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
          * instead of a mislabelled row.
          */
         if (item.type === "Service") {
+          /*
+           * Its name beside its colour is a line of its own already; it
+           * shrinks and ends in "..." where its row's other names do.
+           */
           return (
             <ServiceElement
               service={item.model}
+              serviceNameClassName={RECORD_LINK_NAME_LINE_CLASS_NAME}
               onNavigateComplete={props.onNavigateComplete}
             />
           );
