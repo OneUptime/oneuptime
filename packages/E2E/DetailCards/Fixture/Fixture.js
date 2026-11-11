@@ -375,6 +375,9 @@ const RECORDS = {
   StatusPageDomain: () => [],
   // A team page's Custom Fields card: none defined, so it hides itself.
   TeamCustomField: () => [],
+  // A team page's Owners card lists the team's owners: this team has none.
+  TeamOwnerUser: () => [],
+  TeamOwnerTeam: () => [],
   Label: () => LABELS,
 };
 

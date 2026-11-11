@@ -266,8 +266,17 @@ function timedAttempt<T>(
 ): FastestRun<T> {
   const started: number = now();
   const result: T = run();
-  const inMs: number = now() - started;
 
+  return keptIfFastest(fastest, result, now() - started, attempt);
+}
+
+// A side's attempt that took inMs: its fastest from now on unless one was faster.
+function keptIfFastest<T>(
+  fastest: FastestRun<T> | null,
+  result: T,
+  inMs: number,
+  attempt: number,
+): FastestRun<T> {
   if (fastest === null || inMs < fastest.inMs) {
     return {
       result: result,
@@ -369,3 +378,74 @@ export const fastestRunAsync: FastestRunAsyncFunction = async <T>(
 
   return adjustedForSlowRunner(fastest as FastestRun<T>, options, now);
 };
+
+export interface ComparedRunsAsyncOptions<A, B> {
+  first: () => Promise<A>;
+  second: () => Promise<B>;
+  // At least one; COMPARED_RUN_ROUNDS when left out.
+  rounds?: number | undefined;
+  // The clock, in milliseconds: performance.now when left out.
+  now?: (() => number) | undefined;
+}
+
+export type FastestRunsComparedAsyncFunction = <A, B>(
+  options: ComparedRunsAsyncOptions<A, B>,
+) => Promise<ComparedRuns<A, B>>;
+
+/*
+ * fastestRunsCompared for work that awaits - a batch of requests to a
+ * server: the same untimed run of each, then the same rounds of one attempt
+ * each, the order switched every round, each side's fastest attempt
+ * counting. ExpressRouterGate's gated app answers a batch about four times
+ * faster than Express's own; timed one after the other, 14.0.107's gate read
+ * it 1.83 times faster - 66 ms a batch at best against the plain app's 120.
+ */
+export const fastestRunsComparedAsync: FastestRunsComparedAsyncFunction =
+  async <A, B>(
+    options: ComparedRunsAsyncOptions<A, B>,
+  ): Promise<ComparedRuns<A, B>> => {
+    const rounds: number =
+      options.rounds === undefined
+        ? COMPARED_RUN_ROUNDS
+        : Math.max(1, Math.floor(options.rounds));
+    const now: () => number =
+      options.now ||
+      ((): number => {
+        return performance.now();
+      });
+
+    // One untimed run of each, so neither side is timed cold.
+    await options.first();
+    await options.second();
+
+    let first: FastestRun<A> | null = null;
+    let second: FastestRun<B> | null = null;
+
+    for (let round: number = 1; round <= rounds; round++) {
+      if (round % 2 === 1) {
+        first = await timedAttemptAsync(options.first, first, round, now);
+        second = await timedAttemptAsync(options.second, second, round, now);
+      } else {
+        second = await timedAttemptAsync(options.second, second, round, now);
+        first = await timedAttemptAsync(options.first, first, round, now);
+      }
+    }
+
+    return {
+      first: first as FastestRun<A>,
+      second: second as FastestRun<B>,
+    };
+  };
+
+// timedAttempt for work that awaits.
+async function timedAttemptAsync<T>(
+  run: () => Promise<T>,
+  fastest: FastestRun<T> | null,
+  attempt: number,
+  now: () => number,
+): Promise<FastestRun<T>> {
+  const started: number = now();
+  const result: T = await run();
+
+  return keptIfFastest(fastest, result, now() - started, attempt);
+}

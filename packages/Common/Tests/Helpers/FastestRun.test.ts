@@ -6,6 +6,7 @@ import {
   fastestRun,
   fastestRunAsync,
   fastestRunsCompared,
+  fastestRunsComparedAsync,
   MAX_SLOWDOWN,
   measureSlowdown,
   REFERENCE_WORK_USUAL_MS,
@@ -616,5 +617,204 @@ describe("fastestRunsCompared", () => {
     expect(runs.second.inMs).toBeGreaterThanOrEqual(0);
     expect(runs.first.attempts).toBe(2);
     expect(runs.second.attempts).toBe(2);
+  });
+});
+
+/*
+ * fastestRunsComparedAsync, two versions of work that awaits timed against
+ * each other - a batch of requests to two servers: the same untimed run of
+ * each, and the same rounds taking turns, as fastestRunsCompared.
+ */
+describe("fastestRunsComparedAsync", () => {
+  test("one untimed run of each, then the two take turns, the order switched every round", async () => {
+    const order: Array<string> = [];
+    let clockReads: number = 0;
+
+    await fastestRunsComparedAsync({
+      first: async (): Promise<string> => {
+        order.push("first");
+        await Promise.resolve();
+        return "first";
+      },
+      second: async (): Promise<string> => {
+        order.push("second");
+        await Promise.resolve();
+        return "second";
+      },
+      rounds: 3,
+      now: (): number => {
+        clockReads++;
+        return clockReads;
+      },
+    });
+
+    expect(order).toEqual([
+      "first",
+      "second",
+      "first",
+      "second",
+      "second",
+      "first",
+      "first",
+      "second",
+    ]);
+    // Two readings a timed attempt; the untimed runs read no clock.
+    expect(clockReads).toBe(12);
+  });
+
+  test("each side's fastest attempt counts, with what it resolved to, out of one attempt a round", async () => {
+    let firstRuns: number = 0;
+    let secondRuns: number = 0;
+
+    const runs: ComparedRuns<number, number> = await fastestRunsComparedAsync({
+      first: async (): Promise<number> => {
+        firstRuns++;
+        return firstRuns;
+      },
+      second: async (): Promise<number> => {
+        secondRuns++;
+        return secondRuns * 10;
+      },
+      rounds: 3,
+      // Round 1: first 50, second 20; round 2: second 5, first 40; round 3: first 30, second 20.
+      now: scriptedClock([0, 50, 50, 70, 70, 75, 75, 115, 115, 145, 145, 165]),
+    });
+
+    // The first side's fastest is round 3's: its fourth run, the untimed one included.
+    expect(runs.first.inMs).toBe(30);
+    expect(runs.first.measuredInMs).toBe(30);
+    expect(runs.first.result).toBe(4);
+    expect(runs.first.attempts).toBe(3);
+    expect(runs.first.slowdown).toBe(1);
+    // The second side's is round 2's: its third run.
+    expect(runs.second.inMs).toBe(5);
+    expect(runs.second.result).toBe(30);
+    expect(runs.second.attempts).toBe(3);
+  });
+
+  test("the number of rounds can be given: at least one, a whole number", async () => {
+    const runsOf: (rounds: number | undefined) => Promise<number> = async (
+      rounds: number | undefined,
+    ): Promise<number> => {
+      let runs: number = 0;
+
+      await fastestRunsComparedAsync({
+        first: async (): Promise<null> => {
+          runs++;
+          return null;
+        },
+        second: async (): Promise<null> => {
+          return null;
+        },
+        rounds: rounds,
+      });
+
+      return runs;
+    };
+
+    // Every count includes the untimed run.
+    expect(await runsOf(0)).toBe(2);
+    expect(await runsOf(2.7)).toBe(3);
+    expect(await runsOf(undefined)).toBe(COMPARED_RUN_ROUNDS + 1);
+  });
+
+  test("a side that rejects stops the timing", async () => {
+    let secondRuns: number = 0;
+
+    await expect(
+      fastestRunsComparedAsync({
+        first: async (): Promise<null> => {
+          return null;
+        },
+        second: async (): Promise<null> => {
+          secondRuns++;
+          throw new Error("refused");
+        },
+      }),
+    ).rejects.toThrow("refused");
+    expect(secondRuns).toBe(1);
+  });
+
+  test("REGRESSION: a busy runner through one side's batches hides the router gate's ratio when the sides are timed one after the other, never when they take turns", async () => {
+    /*
+     * 14.0.107's gate: ExpressRouterGate's gated app answers a batch of
+     * requests about four times faster than Express's own, but its batches,
+     * all timed after the plain app's, came out at 66 ms at best against the
+     * plain app's 120 - 1.83 times faster. A virtual clock: a plain batch
+     * takes 120 ms and a gated one 30, and a batch that starts while the
+     * runner is busy takes 2.2 times as long - 264 ms and 66.
+     */
+    const timeline: (
+      busyFromMs: number,
+      busyUntilMs: number,
+    ) => {
+      now: () => number;
+      plain: () => Promise<number>;
+      gated: () => Promise<number>;
+    } = (
+      busyFromMs: number,
+      busyUntilMs: number,
+    ): {
+      now: () => number;
+      plain: () => Promise<number>;
+      gated: () => Promise<number>;
+    } => {
+      let time: number = 0;
+      const batch: (
+        usualMs: number,
+        busyMs: number,
+      ) => () => Promise<number> = (
+        usualMs: number,
+        busyMs: number,
+      ): (() => Promise<number>) => {
+        return async (): Promise<number> => {
+          const busy: boolean = time >= busyFromMs && time < busyUntilMs;
+          await Promise.resolve();
+          time += busy ? busyMs : usualMs;
+          return usualMs;
+        };
+      };
+
+      return {
+        now: (): number => {
+          return time;
+        },
+        plain: batch(120, 264),
+        gated: batch(30, 66),
+      };
+    };
+
+    /*
+     * One after the other, as the suite timed them - an untimed batch and
+     * three timed ones each - with the runner busy from the gated app's
+     * first batch on.
+     */
+    const sequential: ReturnType<typeof timeline> = timeline(480, 1000);
+    await sequential.plain();
+    const plainAlone: FastestRun<number> = await fastestRunAsync({
+      run: sequential.plain,
+      limitInMs: 0,
+      now: sequential.now,
+    });
+    await sequential.gated();
+    const gatedAlone: FastestRun<number> = await fastestRunAsync({
+      run: sequential.gated,
+      limitInMs: 0,
+      now: sequential.now,
+    });
+    expect(plainAlone.inMs).toBe(120);
+    expect(gatedAlone.inMs).toBe(66);
+    expect(gatedAlone.inMs * 2).toBeGreaterThan(plainAlone.inMs);
+
+    // Taking turns, through the same busy stretch: the rounds it misses decide.
+    const turns: ReturnType<typeof timeline> = timeline(480, 1000);
+    const runs: ComparedRuns<number, number> = await fastestRunsComparedAsync({
+      first: turns.plain,
+      second: turns.gated,
+      now: turns.now,
+    });
+    expect(runs.first.inMs).toBe(120);
+    expect(runs.second.inMs).toBe(30);
+    expect(runs.second.inMs * 2).toBeLessThan(runs.first.inMs);
   });
 });
