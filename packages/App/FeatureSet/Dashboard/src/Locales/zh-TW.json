@@ -49862,5 +49862,21 @@
   "What your team calls it, on this page and on dashboards.": "您的團隊在此頁面和儀表板上使用的名稱。",
   "{{name}} (changed)": "{{name}}（已變更）",
   "{{name}} cannot be opened: reload the page, or delete it and save it again.": "無法開啟 {{name}}：請重新載入頁面，或將其刪除後重新儲存。",
-  "Weekly return after sign-up": "註冊後每週回訪"
+  "Weekly return after sign-up": "註冊後每週回訪",
+  "A config someone picked on the host's Collector page.": "有人在主機的收集器頁面上為其選定的設定。",
+  "Checked from the top of this list, by the host's system and labels.": "從此清單頂端開始，依主機的系統與標籤檢查。",
+  "Create a config from it": "以此為基礎建立設定",
+  "For the host's system, when no config applies.": "沒有適用的設定時，用於主機系統的設定。",
+  "Host metrics": "主機指標",
+  "Host metrics and the install and Wi-Fi logs": "主機指標以及安裝與 Wi-Fi 日誌",
+  "Host metrics, event logs and Windows services": "主機指標、事件日誌與 Windows 服務",
+  "Host metrics, the journal and systemd units": "主機指標、journal 與 systemd 單元",
+  "No Collector Configs yet. Every host runs OneUptime's default for its system, shown below.": "尚無收集器設定。每台主機都會執行其系統的 OneUptime 預設設定，見下方。",
+  "OneUptime's default": "OneUptime 預設設定",
+  "Picked for the host": "為主機選定",
+  "The config OneUptime sends to the hosts it manages. Each host runs the first config that applies to it, from the top: drag the rows to change the order.": "OneUptime 傳送給其管理之主機的設定。每台主機會從頂端開始，執行第一個適用於它的設定：拖曳列即可變更順序。",
+  "The first config that applies": "第一個適用的設定",
+  "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "此設定適用於哪些主機，以及目前有多少台主機正在執行它。主機會執行清單中第一個適用於它的設定。",
+  "How a host gets its config": "主機如何取得其設定",
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "當上方沒有適用於主機的設定時，主機會執行其系統的預設設定。預設設定會隨 OneUptime 的版本更新。"
 }

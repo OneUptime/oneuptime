@@ -49862,5 +49862,21 @@
   "What your team calls it, on this page and on dashboards.": "El nombre que usa tu equipo, en esta página y en los paneles.",
   "{{name}} (changed)": "{{name}} (con cambios)",
   "{{name}} cannot be opened: reload the page, or delete it and save it again.": "No se puede abrir {{name}}: vuelve a cargar la página, o elimina el elemento y guárdalo de nuevo.",
-  "Weekly return after sign-up": "Regreso semanal tras el registro"
+  "Weekly return after sign-up": "Regreso semanal tras el registro",
+  "A config someone picked on the host's Collector page.": "Una configuración que alguien eligió en la página Recolector del host.",
+  "Checked from the top of this list, by the host's system and labels.": "Se comprueba desde arriba de esta lista, según el sistema y las etiquetas del host.",
+  "Create a config from it": "Crear una configuración a partir de esta",
+  "For the host's system, when no config applies.": "Para el sistema del host, cuando no se aplica ninguna configuración.",
+  "Host metrics": "Métricas del host",
+  "Host metrics and the install and Wi-Fi logs": "Métricas del host y los registros de instalación y Wi-Fi",
+  "Host metrics, event logs and Windows services": "Métricas del host, registros de eventos y servicios de Windows",
+  "Host metrics, the journal and systemd units": "Métricas del host, el journal y las unidades de systemd",
+  "No Collector Configs yet. Every host runs OneUptime's default for its system, shown below.": "Todavía no hay configuraciones del recolector. Cada host ejecuta la predeterminada de OneUptime para su sistema, que se muestra abajo.",
+  "OneUptime's default": "Predeterminada de OneUptime",
+  "Picked for the host": "Elegida para el host",
+  "The config OneUptime sends to the hosts it manages. Each host runs the first config that applies to it, from the top: drag the rows to change the order.": "La configuración que OneUptime envía a los hosts que gestiona. Cada host ejecuta la primera configuración que se le aplica, empezando por arriba: arrastra las filas para cambiar el orden.",
+  "The first config that applies": "La primera configuración que se aplica",
+  "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "Para quién es esta configuración y cuántos hosts la ejecutan ahora. Un host ejecuta la primera configuración de la lista que se le aplica.",
+  "How a host gets its config": "Cómo obtiene un host su configuración",
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "Cuando no se aplica a un host ninguna configuración de arriba, ejecuta la predeterminada de su sistema. Las predeterminadas siguen las versiones de OneUptime."
 }

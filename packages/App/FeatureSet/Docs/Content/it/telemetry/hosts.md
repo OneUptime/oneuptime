@@ -126,7 +126,7 @@ curl -fsSL https://oneuptime.com/docs/static/scripts/host-collector/install.sh |
 :::steps
 ### Crea una configurazione del collector
 
-Apri **Prodotti → Infrastruttura → Host → Configurazioni del collector** e seleziona **Crea: Configurazione del collector**. Dalle un nome, il sistema degli host a cui è destinata e, per raggiungerne solo alcuni, le loro etichette. La sua configurazione parte dalla predefinita di OneUptime per quel sistema.
+Apri **Prodotti → Infrastruttura → Host → Configurazione → Configurazioni del collector** e seleziona **Crea: Configurazione del collector**. Dalle un nome, il sistema degli host a cui è destinata e, per raggiungerne solo alcuni, le loro etichette. La sua configurazione parte dalla predefinita di OneUptime per quel sistema.
 
 ### Modifica il suo config.yaml
 
@@ -134,14 +134,14 @@ Nella pagina della configurazione, seleziona **Modifica configurazione**, cambia
 
 ### Guardala raggiungere gli host
 
-Ogni modifica salvata è una nuova versione, e gli host a cui si applica la ricevono entro un minuto. L'elenco **Host** della configurazione mostra ogni host, lo stato del suo collector e la versione che esegue.
+Ogni modifica salvata è una nuova versione, e gli host a cui si applica la ricevono entro un minuto. La scheda **Host** della configurazione mostra ogni host, lo stato del suo collector e la versione che esegue.
 :::
 
-Un host esegue la prima configurazione dell'elenco che si applica a lui: trascina le righe in **Configurazioni del collector** per cambiare l'ordine. Metti prima le configurazioni più mirate, come una per i server web con `env:production`, e dopo quelle generali, come una per ogni host Linux. La scheda **Configurazioni predefinite di OneUptime** sotto l'elenco mostra cosa esegue un host quando nessuna configurazione si applica.
+Un host esegue la prima configurazione dell'elenco che si applica a lui: trascina le righe in **Configurazioni del collector** per cambiare l'ordine. Metti prima le configurazioni più mirate, come una per i server web con `env:production`, e dopo quelle generali, come una per ogni host Linux. Ogni riga dice quanti host eseguono la configurazione e su quanti non è riuscita. La scheda **Configurazioni predefinite di OneUptime** sotto l'elenco mostra cosa esegue un host quando nessuna configurazione si applica, e quanti host la eseguono. Per cambiarlo per un sistema, seleziona **Visualizza configurazione** sulla sua predefinita, poi **Crea una configurazione da questa**.
 
 ### Versioni e ripristino
 
-L'elenco **Versioni** di una configurazione conserva ogni modifica salvata, dalla più recente, con chi l'ha salvata e quando. Seleziona **Visualizza** per leggere una versione e **Ripristina** per inviarla di nuovo agli host: viene salvata come nuova versione che indica quale ha ripristinato, così l'elenco dice sempre cosa ha ricevuto ogni host.
+La scheda **Versioni** di una configurazione conserva ogni modifica salvata, dalla più recente, con chi l'ha salvata e quando. Seleziona **Visualizza** per leggere una versione e **Ripristina** per inviarla di nuovo agli host: viene salvata come nuova versione che indica quale ha ripristinato, così l'elenco dice sempre cosa ha ricevuto ogni host.
 
 ### Scegli una configurazione per un solo host
 

@@ -49862,5 +49862,21 @@
   "What your team calls it, on this page and on dashboards.": "您的团队在此页面和仪表板上使用的名称。",
   "{{name}} (changed)": "{{name}}（已更改）",
   "{{name}} cannot be opened: reload the page, or delete it and save it again.": "无法打开 {{name}}：请重新加载页面，或将其删除后重新保存。",
-  "Weekly return after sign-up": "注册后每周回访"
+  "Weekly return after sign-up": "注册后每周回访",
+  "A config someone picked on the host's Collector page.": "有人在主机的收集器页面上为其选定的配置。",
+  "Checked from the top of this list, by the host's system and labels.": "从此列表顶部开始，按主机的系统和标签检查。",
+  "Create a config from it": "以此为基础创建配置",
+  "For the host's system, when no config applies.": "没有适用的配置时，用于主机系统的配置。",
+  "Host metrics": "主机指标",
+  "Host metrics and the install and Wi-Fi logs": "主机指标以及安装和 Wi-Fi 日志",
+  "Host metrics, event logs and Windows services": "主机指标、事件日志和 Windows 服务",
+  "Host metrics, the journal and systemd units": "主机指标、journal 和 systemd 单元",
+  "No Collector Configs yet. Every host runs OneUptime's default for its system, shown below.": "还没有收集器配置。每台主机都运行其系统的 OneUptime 默认配置，见下方。",
+  "OneUptime's default": "OneUptime 默认配置",
+  "Picked for the host": "为主机选定",
+  "The config OneUptime sends to the hosts it manages. Each host runs the first config that applies to it, from the top: drag the rows to change the order.": "OneUptime 发送给其管理的主机的配置。每台主机从顶部开始，运行第一个适用于它的配置：拖动行即可更改顺序。",
+  "The first config that applies": "第一个适用的配置",
+  "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.": "此配置适用于哪些主机，以及当前有多少台主机在运行它。主机运行列表中第一个适用于它的配置。",
+  "How a host gets its config": "主机如何获得其配置",
+  "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.": "当上面没有适用于主机的配置时，主机运行其系统的默认配置。默认配置随 OneUptime 的版本更新。"
 }
