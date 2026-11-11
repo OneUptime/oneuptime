@@ -11,6 +11,7 @@ import DataTableLineageReader, {
 import { DataAssetFreshness } from "../../../../Types/DataObservability/DataAssetFreshness";
 import DataAssetKind from "../../../../Types/DataObservability/DataAssetKind";
 import DataAssetLineageSource from "../../../../Types/DataObservability/DataAssetLineageSource";
+import { DataColumnMapping } from "../../../../Types/DataObservability/DataColumnLineage";
 import {
   DataLineageEdgeKind,
   DataLineageNodeKind,
@@ -265,6 +266,7 @@ function memoryReader(graph: MemoryGraph): DataLineageReader {
     readDashboards: async (data: {
       dataAssetIds: Array<string>;
       limit: number;
+      drawnDataAssetIds?: Array<string> | undefined;
     }): Promise<{
       dashboards: Array<DataLineageDashboardRow>;
       total: number;
@@ -272,6 +274,10 @@ function memoryReader(graph: MemoryGraph): DataLineageReader {
       graph.dashboardReads.push([...data.dataAssetIds]);
 
       const asked: Set<string> = new Set(data.dataAssetIds);
+      const told: Set<string> = new Set([
+        ...data.dataAssetIds,
+        ...(data.drawnDataAssetIds || []),
+      ]);
       const reading: Array<DataLineageDashboardRow> = graph.dashboards
         .filter((dashboard: DataLineageDashboardRow): boolean => {
           return dashboard.dataAssetIds.some((id: string): boolean => {
@@ -282,7 +288,7 @@ function memoryReader(graph: MemoryGraph): DataLineageReader {
           return {
             ...dashboard,
             dataAssetIds: dashboard.dataAssetIds.filter((id: string) => {
-              return asked.has(id);
+              return told.has(id);
             }),
           };
         })
@@ -296,6 +302,12 @@ function memoryReader(graph: MemoryGraph): DataLineageReader {
         dashboards: reading.slice(0, data.limit),
         total: reading.length,
       };
+    },
+    // No columns in these graphs: DataLineageColumns.test.ts follows them.
+    readColumnMappings: async (): Promise<
+      Map<string, Array<DataColumnMapping>>
+    > => {
+      return new Map();
     },
   };
 }

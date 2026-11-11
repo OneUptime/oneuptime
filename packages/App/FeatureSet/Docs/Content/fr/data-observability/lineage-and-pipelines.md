@@ -17,7 +17,11 @@ L'onglet **Lignage** d'une table montre les tables à partir desquelles elle est
 
 En haut de l'onglet, un diagramme dessine ce lignage sur quelques étapes de chaque côté (trois, ou choisissez 1, 2 ou 5) : à gauche ce à partir de quoi la table est construite, à droite les tables et les tableaux de bord construits à partir d'elle, et les pipelines qui chargent des données venues de l'extérieur, là où elles entrent. Chaque carte indique son état actuel - en retard, une alerte ouverte, une exécution en échec - et une flèche devient rouge quand la dernière exécution de son pipeline a échoué, si bien qu'on peut remonter d'une table en retard jusqu'à l'exécution qui l'a bloquée. Ouvrez n'importe quelle table pour centrer le diagramme sur elle.
 
+Une carte dessine au plus dix tables de chaque côté et compte les autres, par exemple **+14**. Sélectionnez ce nombre pour en dessiner jusqu'à dix de plus là où elles se trouvent, les problèmes d'abord, avec chaque flèche entre elles et ce qui est déjà dessiné. **Réinitialiser le diagramme** revient au diagramme tel qu'il a été dessiné au départ. Quand un côté contient autant de tables qu'un diagramme peut en contenir, ouvrez une table pour centrer le diagramme sur elle.
+
 Lorsque la source nomme des colonnes, l'onglet **Colonnes** d'une table indique d'où vient chaque colonne et ce qu'elle alimente : l'historique d'accès de Snowflake (édition Enterprise, qui demande `IMPORTED PRIVILEGES` sur la base de données `SNOWFLAKE`), et la facette `columnLineage` d'OpenLineage.
+
+Dans l'onglet **Lignage**, choisissez une colonne de la table dans **Suivre une colonne** pour mettre en évidence d'où elle vient et où elle va : en remontant le diagramme jusqu'aux colonnes à partir desquelles elle est construite, en descendant jusqu'aux colonnes construites à partir d'elle, chacune nommée sur sa table, même là où elle a été renommée en chemin. Une flèche dont les sources ne nomment aucune colonne peut la porter plus loin que ce qui est mis en évidence, et le diagramme le signale.
 
 ## OpenLineage
 
@@ -117,7 +121,7 @@ Chaque job, projet dbt et synchronisation apparaît sous **Pipelines**, avec ses
 - **Pipeline Run Unusually Long** : une exécution a pris deux fois sa durée habituelle ou plus, vérifié toutes les cinq minutes pendant qu'elle tourne, si bien qu'une exécution bloquée est repérée avant qu'elle ne se termine.
 - **Pipeline Is Late** : aucune exécution n'a démarré depuis plus longtemps que sa planification ne le permet.
 
-La page d'un pipeline dessine son **Lignage**, le premier endroit où regarder quand une exécution échoue ou est en retard : à gauche les tables qu'il lit, à droite les tables qu'il écrit, le pipeline entre les deux, et chaque carte indique son état actuel. Choisissez plus d'étapes pour voir à partir de quoi ces tables sont construites et ce qui est construit à partir d'elles, et ouvrez n'importe quelle table pour voir son propre onglet **Lignage**.
+La page d'un pipeline dessine son **Lignage**, le premier endroit où regarder quand une exécution échoue ou est en retard : à gauche les tables qu'il lit, à droite les tables qu'il écrit, le pipeline entre les deux, et chaque carte indique son état actuel. Choisissez plus d'étapes pour voir à partir de quoi ces tables sont construites et ce qui est construit à partir d'elles, et ouvrez n'importe quelle table pour voir son propre onglet **Lignage**. Un nombre de tables non dessinées, sur la carte du pipeline ou sur celle d'une table, en dessine d'autres sur place ici aussi.
 
 ## Un seul signalement par cause
 

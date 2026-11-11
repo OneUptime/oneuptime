@@ -31,6 +31,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  */
 
 const getPipelineLineageMock: MockFunction = getJestMockFunction();
+const expandLineageMock: MockFunction = getJestMockFunction();
 
 // The props of the latest React Flow drawing: its cards and arrows.
 let mockFlowProps: ReactFlowProps | null = null;
@@ -43,6 +44,9 @@ jest.mock(
       default: {
         getPipelineLineage: (...args: Array<any>) => {
           return getPipelineLineageMock(...args);
+        },
+        expandLineage: (...args: Array<any>) => {
+          return expandLineageMock(...args);
         },
       },
     };
@@ -210,6 +214,7 @@ import {
   DataTableLineage,
   DataTableLineageEdge,
   DataTableLineageNode,
+  MAX_DATA_LINEAGE_TABLES_PER_SIDE,
   getLineageEdgeId,
 } from "../../../Types/DataObservability/DataTableLineage";
 import PipelineLineageDiagram from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/PipelineLineageDiagram";
@@ -371,6 +376,7 @@ async function renderDrawn(
 
 beforeEach(() => {
   getPipelineLineageMock.mockReset();
+  expandLineageMock.mockReset();
   mockFlowProps = null;
 });
 
@@ -526,7 +532,7 @@ describe("the pipeline and its tables", () => {
     }
   });
 
-  test("the tables it reads that are not drawn are counted on its card, as tables it reads", async () => {
+  test("the tables it reads that are not drawn are counted on its card, a button that draws them as tables it reads", async () => {
     await renderDrawn();
 
     const hidden: HTMLElement = within(card(ETL_NODE)).getByTestId(
@@ -534,8 +540,14 @@ describe("the pipeline and its tables", () => {
     );
 
     expect(hidden).toHaveTextContent("+3");
-    expect(hidden.getAttribute("title")).toBe(
-      "3 more tables this pipeline reads are not drawn.",
+    expect(hidden.tagName).toBe("BUTTON");
+    expect(hidden).toHaveAttribute(
+      "title",
+      "Draw 3 more tables this pipeline reads",
+    );
+    expect(hidden).toHaveAttribute(
+      "aria-label",
+      "Draw 3 more tables this pipeline reads",
     );
     expect(
       within(card(ETL_NODE)).queryByTestId("lineage-hidden-right"),
@@ -551,7 +563,42 @@ describe("the pipeline and its tables", () => {
       within(card(ETL_NODE))
         .getByTestId("lineage-hidden-right")
         .getAttribute("title"),
-    ).toBe("1 more table this pipeline writes is not drawn.");
+    ).toBe("Draw one more table this pipeline writes");
+  });
+
+  test("with no room left on its side, its count says what it does not draw, and draws nothing", async () => {
+    const lineage: DataTableLineage = aLineage();
+
+    // The most tables a side holds, upstream: the two it reads and as many more.
+    for (
+      let index: number = 2;
+      index < MAX_DATA_LINEAGE_TABLES_PER_SIDE;
+      index++
+    ) {
+      lineage.nodes.push(
+        table(
+          `66666666-6666-4666-8666-${index.toString().padStart(12, "0")}`,
+          DataLineageSide.Upstream,
+          -2,
+        ),
+      );
+    }
+
+    await renderDrawn(lineage);
+
+    const hidden: HTMLElement = within(card(ETL_NODE)).getByTestId(
+      "lineage-hidden-left",
+    );
+
+    expect(hidden.tagName).toBe("SPAN");
+    expect(hidden).toHaveAttribute(
+      "title",
+      "3 more tables this pipeline reads are not drawn.",
+    );
+
+    fireEvent.click(hidden);
+
+    expect(expandLineageMock).not.toHaveBeenCalled();
   });
 
   test("a table further away keeps a table's own count", async () => {
@@ -571,9 +618,7 @@ describe("the pipeline and its tables", () => {
       within(card(`table:${SOURCE}`))
         .getByTestId("lineage-hidden-left")
         .getAttribute("title"),
-    ).toBe(
-      "2 more tables upstream are not drawn. Open this table to center the diagram on it.",
-    );
+    ).toBe("Draw 2 more tables upstream");
     expect(flowNode(`table:${SOURCE}`).position.x).toBeLessThan(
       flowNode(`table:${RAW}`).position.x,
     );

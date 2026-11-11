@@ -19,6 +19,15 @@ import DataAssetLineageSource, {
   isDataAssetLineageSource,
 } from "../../../Types/DataObservability/DataAssetLineageSource";
 import {
+  DataColumnMapping,
+  mergeColumnMappings,
+} from "../../../Types/DataObservability/DataColumnLineage";
+import {
+  DataLineageExpandRequest,
+  DataLineageExpansion,
+  readLineageCardId,
+} from "../../../Types/DataObservability/DataLineageExpansion";
+import {
   DataLineageEdgeKind,
   DataLineageNodeKind,
   DataLineageSide,
@@ -26,6 +35,7 @@ import {
   DataTableLineageEdge,
   DataTableLineageNode,
   DataTableLineagePipeline,
+  MAX_DATA_LINEAGE_COLUMN_MAPPINGS,
   MAX_DATA_LINEAGE_DASHBOARDS,
   MAX_DATA_LINEAGE_DEPTH,
   MAX_DATA_LINEAGE_ERROR_LENGTH,
@@ -81,6 +91,16 @@ import { applyAlertSelfPrivacyFilter } from "../Alert/AlertPrivacyFilter";
  * them the same walk, a step further out. A data alert's drawing
  * (DataAlertLineage) pins the tables along the ways to its cause and to the
  * alerts it caused, so they are drawn whatever else is.
+ *
+ * A card's count of tables not drawn can be pressed (expand): the walk then
+ * takes one more step from that card alone, with every table already drawn
+ * placed before it starts, so it chooses the next of its neighbours as it
+ * chose the first - the nearest not drawn, problems first - counts what
+ * lies beyond them, and draws every arrow between them and what is drawn.
+ *
+ * Asked for with its columns, each arrow between two tables carries the
+ * columns it moves (columnMappings), read in a read of their own after the
+ * walk, so a drawing not asked for them reads nothing more.
  */
 
 // The most lineage edges read at one step on one side.
@@ -91,6 +111,12 @@ const READ_CHUNK: number = 500;
 
 // The most data alerts read to count a drawing's open alerts.
 const MAX_DATA_ALERT_ROWS: number = 5000;
+
+// The most arrows whose columns one read asks for.
+const COLUMN_READ_CHUNK: number = 100;
+
+// How a table's card id starts (getLineageTableNodeId).
+const TABLE_NODE_PREFIX: string = "table:";
 
 export enum DataLineageDirection {
   Upstream = "Upstream",
@@ -133,8 +159,19 @@ export interface DataLineageDashboardRow {
   name: string;
   tool: string | null;
   url: string | null;
-  // The tables it reads, of those it was asked about.
+  // The tables it reads, of those it was asked about and those drawn already.
   dataAssetIds: Array<string>;
+}
+
+// An arrow between two tables, as its columns are asked for.
+export interface DataLineageTablePair {
+  upstreamDataAssetId: string;
+  downstreamDataAssetId: string;
+}
+
+// How the columns of an arrow are looked up: "<upstream id>><downstream id>".
+export function getLineageTablePairKey(pair: DataLineageTablePair): string {
+  return `${pair.upstreamDataAssetId}>${pair.downstreamDataAssetId}`;
 }
 
 // Where the walk reads from: the database, or a test's tables in memory.
@@ -157,7 +194,17 @@ export interface DataLineageReader {
   readDashboards(data: {
     dataAssetIds: Array<string>;
     limit: number;
+    // Tables drawn already: each dashboard also says which of them it reads, though it is not looked up by them.
+    drawnDataAssetIds?: Array<string> | undefined;
   }): Promise<{ dashboards: Array<DataLineageDashboardRow>; total: number }>;
+  /*
+   * The columns each of these arrows carries, every row's together
+   * (mergeColumnMappings), by getLineageTablePairKey: an arrow no source
+   * named columns on is not in it.
+   */
+  readColumnMappings(
+    pairs: Array<DataLineageTablePair>,
+  ): Promise<Map<string, Array<DataColumnMapping>>>;
 }
 
 // What a pipeline's drawing reads besides: the rows that name the pipeline.
@@ -355,10 +402,32 @@ export default class DataTableLineageReader {
     depth: number;
     now: Date;
     reader: DatabaseCommonInteractionProps | null;
+    // Each arrow between two tables with the columns it carries.
+    withColumns?: boolean | undefined;
   }): Promise<DataTableLineage | null> {
     return await this.build({
       focusDataAssetId: data.dataAssetId.toString(),
       depth: data.depth,
+      now: data.now,
+      reader: this.getDatabaseReader(data.projectId, data.reader),
+      withColumns: data.withColumns,
+    });
+  }
+
+  /*
+   * The next tables a card does not draw, for its reader: whose privacy
+   * clause counts their open alerts, as the drawing's own were counted.
+   * Null when the card's table, or the drawing's pipeline, is not one of
+   * the project's.
+   */
+  public static async expand(data: {
+    projectId: ObjectID;
+    request: DataLineageExpandRequest;
+    now: Date;
+    reader: DatabaseCommonInteractionProps | null;
+  }): Promise<DataLineageExpansion | null> {
+    return await this.buildExpansion({
+      request: data.request,
       now: data.now,
       reader: this.getDatabaseReader(data.projectId, data.reader),
     });
@@ -394,6 +463,7 @@ export default class DataTableLineageReader {
     upstreamDepth?: number | undefined;
     downstreamDepth?: number | undefined;
     pins?: DataLineagePins | undefined;
+    withColumns?: boolean | undefined;
   }): Promise<DataTableLineage | null> {
     const depth: number = clampDepth(data.depth);
     const upstreamDepth: number = clampDepth(data.upstreamDepth ?? depth);
@@ -433,7 +503,7 @@ export default class DataTableLineageReader {
       state,
     });
 
-    return await this.finish({
+    const lineage: DataTableLineage = await this.finish({
       state,
       focusNodeId: getLineageTableNodeId(focusId),
       depth: Math.max(upstreamDepth, downstreamDepth),
@@ -444,6 +514,22 @@ export default class DataTableLineageReader {
       focusEdges: [],
       focusPipelineId: null,
     });
+
+    if (data.withColumns) {
+      const depths: Map<string, number> = new Map();
+
+      for (const node of lineage.nodes) {
+        depths.set(node.id, node.depth);
+      }
+
+      await this.addColumnMappings({
+        reader: data.reader,
+        edges: lineage.edges,
+        depths,
+      });
+    }
+
+    return lineage;
   }
 
   /*
@@ -515,49 +601,28 @@ export default class DataTableLineageReader {
     }
 
     const focusNodeId: string = getLineagePipelineNodeId(pipelineId);
-    const asEdgePipeline: DataTableLineagePipeline = {
-      dataPipelineId: pipelineId,
-      name: focus.jobName,
-      lastRunState: focus.lastRunState,
-    };
     const focusEdges: Array<DataTableLineageEdge> = [];
 
-    // What it reads, into it: a read is no run of its own, so it carries no pipeline.
     for (const id of reads.chosen) {
-      const source: string = getLineageTableNodeId(id);
-
-      focusEdges.push({
-        id: getLineageEdgeId({
-          kind: DataLineageEdgeKind.Reads,
-          source,
-          target: focusNodeId,
+      focusEdges.push(
+        this.pipelineTableEdge({
+          pipeline: focus,
+          dataAssetId: id,
+          isRead: true,
+          lastSeenAt: tables.read.get(id) || null,
         }),
-        source,
-        target: focusNodeId,
-        kind: DataLineageEdgeKind.Reads,
-        seenIn: [DataAssetLineageSource.Pipeline],
-        pipelines: [],
-        lastSeenAt: toIso(tables.read.get(id) || null),
-      });
+      );
     }
 
-    // What it writes, out of it: its run moves the data, so a failed run is told on the arrow.
     for (const id of writes.chosen) {
-      const target: string = getLineageTableNodeId(id);
-
-      focusEdges.push({
-        id: getLineageEdgeId({
-          kind: DataLineageEdgeKind.Writes,
-          source: focusNodeId,
-          target,
+      focusEdges.push(
+        this.pipelineTableEdge({
+          pipeline: focus,
+          dataAssetId: id,
+          isRead: false,
+          lastSeenAt: tables.written.get(id) || null,
         }),
-        source: focusNodeId,
-        target,
-        kind: DataLineageEdgeKind.Writes,
-        seenIn: [DataAssetLineageSource.Pipeline],
-        pipelines: [asEdgePipeline],
-        lastSeenAt: toIso(tables.written.get(id) || null),
-      });
+      );
     }
 
     await this.walk({
@@ -583,6 +648,58 @@ export default class DataTableLineageReader {
       state,
     });
 
+    /*
+     * A table it reads, or writes, past the most its card draws can be
+     * drawn all the same, reached through another table - or round a
+     * circle, on the other side: it is joined to the pipeline, and its
+     * card no longer counts it, so pressing the count draws as many as it
+     * says (buildExpansion joins the tables it draws the same way).
+     */
+    const hiddenOf: (way: {
+      seen: Map<string, Date | null>;
+      chosen: Array<string>;
+      isRead: boolean;
+    }) => number = (way: {
+      seen: Map<string, Date | null>;
+      chosen: Array<string>;
+      isRead: boolean;
+    }): number => {
+      const chosen: Set<string> = new Set(way.chosen);
+      let hidden: number = 0;
+
+      for (const [id, lastSeenAt] of way.seen) {
+        if (chosen.has(id) || !state.tables.has(id)) {
+          continue;
+        }
+
+        if (!state.placed.has(id)) {
+          hidden++;
+          continue;
+        }
+
+        focusEdges.push(
+          this.pipelineTableEdge({
+            pipeline: focus,
+            dataAssetId: id,
+            isRead: way.isRead,
+            lastSeenAt,
+          }),
+        );
+      }
+
+      return hidden;
+    };
+    const hiddenReads: number = hiddenOf({
+      seen: tables.read,
+      chosen: reads.chosen,
+      isRead: true,
+    });
+    const hiddenWrites: number = hiddenOf({
+      seen: tables.written,
+      chosen: writes.chosen,
+      isRead: false,
+    });
+
     return await this.finish({
       state,
       focusNodeId,
@@ -592,12 +709,667 @@ export default class DataTableLineageReader {
       pins,
       focusNode: {
         ...this.pipelineNode(focus, DataLineageSide.Focus, 0),
-        hiddenUpstreamCount: reads.hidden,
-        hiddenDownstreamCount: writes.hidden,
+        hiddenUpstreamCount: hiddenReads,
+        hiddenDownstreamCount: hiddenWrites,
       },
       focusEdges,
       focusPipelineId: pipelineId,
     });
+  }
+
+  /*
+   * The next tables a card does not draw (DataLineageExpansion), from any
+   * reader. Every table the request names as drawn is placed before the
+   * walk starts, so none is drawn twice and the arrows to them are drawn;
+   * then the walk takes one step from the card alone - its nearest not
+   * drawn, problems first, at most the most per card and what its side has
+   * room for - and a step past them, to count what lies beyond each. A
+   * pipeline's own card chooses from the tables it reads, or writes, as
+   * its drawing chose its first. Null when the card's table, or the
+   * drawing's pipeline, is not one of the project's.
+   */
+  public static async buildExpansion(data: {
+    request: DataLineageExpandRequest;
+    now: Date;
+    reader: DataPipelineLineageReader;
+  }): Promise<DataLineageExpansion | null> {
+    const request: DataLineageExpandRequest = data.request;
+    const focus: { kind: "table" | "pipeline"; id: string } | null =
+      readLineageCardId(request.focusNodeId);
+    const card: { kind: "table" | "pipeline"; id: string } | null =
+      readLineageCardId(request.nodeId);
+
+    if (!focus || !card) {
+      return null;
+    }
+
+    const isUpstream: boolean = request.side === DataLineageSide.Upstream;
+    const direction: DataLineageDirection = isUpstream
+      ? DataLineageDirection.Upstream
+      : DataLineageDirection.Downstream;
+    const side: DataLineageSide = isUpstream
+      ? DataLineageSide.Upstream
+      : DataLineageSide.Downstream;
+    const focusPipelineId: string | null =
+      focus.kind === "pipeline" ? focus.id : null;
+    const state: WalkState = newWalkState();
+
+    // What is drawn already: never drawn again, and the arrows to it are.
+    for (const table of request.tables) {
+      state.placed.set(table.dataAssetId, {
+        side: table.side,
+        depth: table.depth,
+      });
+    }
+
+    const drawnIds: Set<string> = new Set(state.placed.keys());
+    const placedOnSide: number = request.tables.filter(
+      (table: { side: DataLineageSide }): boolean => {
+        return table.side === side;
+      },
+    ).length;
+    const ownEdges: Array<DataTableLineageEdge> = [];
+    let hiddenCount: number = 0;
+
+    if (card.kind === "pipeline") {
+      // The drawing's own pipeline: the next tables it reads, or writes.
+      await this.readMissingPipelines(data.reader, state, [card.id]);
+
+      const pipeline: DataLineagePipelineRow | undefined = state.pipelines.get(
+        card.id,
+      );
+
+      if (!pipeline) {
+        return null;
+      }
+
+      const tables: DataPipelineTables = await this.readPipelineTables(
+        data.reader,
+        card.id,
+      );
+
+      if (tables.isTruncated) {
+        state.isTruncated = true;
+      }
+
+      const seen: Map<string, Date | null> = isUpstream
+        ? tables.read
+        : tables.written;
+      const notDrawn: Map<string, Date | null> = new Map();
+
+      for (const [id, lastSeenAt] of seen) {
+        if (!drawnIds.has(id)) {
+          notDrawn.set(id, lastSeenAt);
+        }
+      }
+
+      await this.readMissingTables(data.reader, state, [...notDrawn.keys()]);
+
+      const choice: { chosen: Array<string>; hidden: number } =
+        this.choosePipelineTables({
+          state,
+          seen: notDrawn,
+          pins: new Set(),
+          now: data.now,
+          most: Math.max(0, MAX_DATA_LINEAGE_TABLES_PER_SIDE - placedOnSide),
+        });
+
+      // Its side had no room for as many as it would draw.
+      if (
+        choice.chosen.length <
+        Math.min(
+          MAX_DATA_LINEAGE_NEIGHBORS,
+          choice.chosen.length + choice.hidden,
+        )
+      ) {
+        state.isTruncated = true;
+      }
+
+      hiddenCount = choice.hidden;
+
+      for (const id of choice.chosen) {
+        state.placed.set(id, { side, depth: isUpstream ? -1 : 1 });
+      }
+
+      /*
+       * Its arrows to the tables drawn now. Every other table it reads (or
+       * writes) that is drawn is joined to it already: by the drawing, or
+       * by the draw that drew it.
+       */
+      for (const id of choice.chosen) {
+        ownEdges.push(
+          this.pipelineTableEdge({
+            pipeline,
+            dataAssetId: id,
+            isRead: isUpstream,
+            lastSeenAt: seen.get(id) || null,
+          }),
+        );
+      }
+
+      // What lies beyond the tables drawn now, counted.
+      await this.walk({
+        direction,
+        frontier: choice.chosen,
+        firstStep: 2,
+        depth: 1,
+        placedOnSide: placedOnSide + choice.chosen.length,
+        pins: new Set(),
+        now: data.now,
+        reader: data.reader,
+        state,
+      });
+    } else {
+      await this.readMissingTables(data.reader, state, [card.id]);
+
+      const placed: PlacedTable | undefined = state.placed.get(card.id);
+
+      if (!state.tables.has(card.id) || !placed) {
+        return null;
+      }
+
+      // One step out from the card, then one past it to count what lies beyond.
+      const step: number = Math.abs(placed.depth) + 1;
+
+      await this.walk({
+        direction,
+        frontier: [card.id],
+        firstStep: step,
+        depth: step,
+        placedOnSide,
+        pins: new Set(),
+        now: data.now,
+        reader: data.reader,
+        state,
+      });
+
+      hiddenCount =
+        (isUpstream ? state.hiddenUpstream : state.hiddenDownstream).get(
+          card.id,
+        )?.size || 0;
+    }
+
+    const newIds: Array<string> = Array.from(state.placed.keys()).filter(
+      (id: string): boolean => {
+        return !drawnIds.has(id);
+      },
+    );
+    const isNew: Set<string> = new Set(newIds);
+
+    // The arrows the walk does not read: the other way, between the tables drawn now and what is drawn.
+    await this.keepEdgesBack({
+      reader: data.reader,
+      state,
+      direction: isUpstream
+        ? DataLineageDirection.Downstream
+        : DataLineageDirection.Upstream,
+      dataAssetIds: newIds,
+    });
+
+    /*
+     * On a pipeline's drawing, a table drawn now that the pipeline reads,
+     * or writes, is joined to it - on the other side too, round a circle -
+     * so its card counts it no more.
+     */
+    if (focusPipelineId && card.kind === "table" && newIds.length > 0) {
+      await this.readMissingPipelines(data.reader, state, [focusPipelineId]);
+
+      const pipeline: DataLineagePipelineRow | undefined =
+        state.pipelines.get(focusPipelineId);
+
+      if (pipeline) {
+        const tables: DataPipelineTables = await this.readPipelineTables(
+          data.reader,
+          focusPipelineId,
+        );
+
+        for (const id of newIds) {
+          const isRead: boolean = tables.read.has(id);
+
+          if (isRead || tables.written.has(id)) {
+            ownEdges.push(
+              this.pipelineTableEdge({
+                pipeline,
+                dataAssetId: id,
+                isRead,
+                lastSeenAt:
+                  (isRead ? tables.read : tables.written).get(id) || null,
+              }),
+            );
+          }
+        }
+      }
+    }
+
+    const openAlerts: Map<string, number> =
+      newIds.length > 0
+        ? await data.reader.readOpenAlertCounts(newIds)
+        : new Map();
+    const nodes: Array<DataTableLineageNode> = [];
+    const edges: Array<DataTableLineageEdge> = [...ownEdges];
+
+    for (const id of newIds) {
+      nodes.push(
+        this.tableNode({
+          table: state.tables.get(id)!,
+          placed: state.placed.get(id)!,
+          now: data.now,
+          openAlertCount: openAlerts.get(id) || 0,
+          hiddenUpstreamCount: state.hiddenUpstream.get(id)?.size || 0,
+          hiddenDownstreamCount: state.hiddenDownstream.get(id)?.size || 0,
+        }),
+      );
+    }
+
+    /*
+     * The arrows with a table drawn now, and the card's own that way: a
+     * table it counted that is drawn elsewhere - across a cycle, or
+     * reached another way - is joined to it now. Other arrows between
+     * tables drawn already are drawn; the diagram keeps one of each.
+     */
+    const cardTableId: string | null = card.kind === "table" ? card.id : null;
+
+    for (const edge of state.edges.values()) {
+      if (
+        isNew.has(edge.upstreamDataAssetId) ||
+        isNew.has(edge.downstreamDataAssetId) ||
+        (cardTableId !== null &&
+          (isUpstream
+            ? edge.downstreamDataAssetId === cardTableId
+            : edge.upstreamDataAssetId === cardTableId))
+      ) {
+        edges.push(this.feedsEdge(state, edge));
+      }
+    }
+
+    this.addWriters({
+      state,
+      nodes,
+      edges,
+      pins: new Set(),
+      focusPipelineId,
+      tableIds: isNew,
+    });
+
+    const hiddenDashboardCount: number | null =
+      await this.addExpansionDashboards({
+        reader: data.reader,
+        state,
+        newIds,
+        drawnDataDashboardIds: request.dataDashboardIds,
+        nodes,
+        edges,
+      });
+
+    if (request.withColumns) {
+      const depths: Map<string, number> = new Map();
+
+      for (const [id, placed] of state.placed) {
+        depths.set(getLineageTableNodeId(id), placed.depth);
+      }
+
+      await this.addColumnMappings({ reader: data.reader, edges, depths });
+    }
+
+    edges.sort((a: DataTableLineageEdge, b: DataTableLineageEdge): number => {
+      return compareText(a.id, b.id);
+    });
+
+    return {
+      nodeId: request.nodeId,
+      side,
+      hiddenCount,
+      nodes,
+      edges,
+      hiddenDashboardCount,
+      isTruncated: state.isTruncated,
+    };
+  }
+
+  /*
+   * The arrows the walk does not read, from the tables drawn now: the
+   * other way from them, to the tables drawn whose own way they are - one
+   * drawn now upstream that also feeds a table drawn already upstream, or
+   * the drawing's own; one drawn now downstream built from another drawn
+   * downstream. An arrow from a table upstream to one downstream is left
+   * out, as a drawing read whole leaves it out: the table between them, or
+   * the pipeline a drawing is about, already shows the way. Nothing is
+   * counted this way: a table counts only its own way.
+   */
+  private static async keepEdgesBack(data: {
+    reader: DataLineageReader;
+    state: WalkState;
+    // The way read from them.
+    direction: DataLineageDirection;
+    dataAssetIds: Array<string>;
+  }): Promise<void> {
+    if (data.dataAssetIds.length === 0) {
+      return;
+    }
+
+    const isUpstream: boolean =
+      data.direction === DataLineageDirection.Upstream;
+    const ids: Set<string> = new Set(data.dataAssetIds);
+    const rows: Array<DataLineageEdgeRow> = await data.reader.readEdges({
+      direction: data.direction,
+      dataAssetIds: data.dataAssetIds,
+      limit: MAX_DATA_LINEAGE_EDGE_ROWS,
+    });
+
+    if (rows.length >= MAX_DATA_LINEAGE_EDGE_ROWS) {
+      data.state.isTruncated = true;
+    }
+
+    const pipelineIds: Array<string> = [];
+
+    for (const row of rows) {
+      // A writes row: no table at its other end.
+      if (!row.upstreamDataAssetId) {
+        continue;
+      }
+
+      const own: string = isUpstream
+        ? row.downstreamDataAssetId
+        : row.upstreamDataAssetId;
+      const other: string = isUpstream
+        ? row.upstreamDataAssetId
+        : row.downstreamDataAssetId;
+
+      if (!ids.has(own) || other === own) {
+        continue;
+      }
+
+      const placed: PlacedTable | undefined = data.state.placed.get(other);
+
+      // Not drawn, or drawn where this arrow is not its own way.
+      if (
+        !placed ||
+        placed.side ===
+          (isUpstream ? DataLineageSide.Upstream : DataLineageSide.Downstream)
+      ) {
+        continue;
+      }
+
+      if (row.dataPipelineId) {
+        pipelineIds.push(row.dataPipelineId);
+      }
+
+      this.keepEdge(data.state, {
+        upstreamDataAssetId: row.upstreamDataAssetId,
+        downstreamDataAssetId: row.downstreamDataAssetId,
+        seenIn: new Set([
+          row.source && isDataAssetLineageSource(row.source)
+            ? row.source
+            : DataAssetLineageSource.Pipeline,
+        ]),
+        pipelineIds: new Set(row.dataPipelineId ? [row.dataPipelineId] : []),
+        lastSeenAt: row.lastSeenAt,
+      });
+    }
+
+    await this.readMissingPipelines(data.reader, data.state, pipelineIds);
+  }
+
+  /*
+   * The dashboards built on the tables drawn now downstream: an arrow from
+   * each such table to each dashboard drawn already that reads it, and the
+   * dashboards not drawn yet, first by name while the drawing has room for
+   * them, each with an arrow from every drawn table it reads. Returns how
+   * many dashboards built on the drawn tables are then not drawn, all
+   * told; null when no table was drawn downstream.
+   */
+  private static async addExpansionDashboards(data: {
+    reader: DataLineageReader;
+    state: WalkState;
+    newIds: Array<string>;
+    drawnDataDashboardIds: Array<string>;
+    nodes: Array<DataTableLineageNode>;
+    edges: Array<DataTableLineageEdge>;
+  }): Promise<number | null> {
+    const state: WalkState = data.state;
+    // A dashboard is drawn after the table itself and the tables built from it, never upstream.
+    const isRead: (id: string) => boolean = (id: string): boolean => {
+      const placed: PlacedTable | undefined = state.placed.get(id);
+
+      return Boolean(placed && placed.side !== DataLineageSide.Upstream);
+    };
+    const newReadIds: Array<string> = data.newIds.filter(isRead);
+
+    if (newReadIds.length === 0) {
+      return null;
+    }
+
+    const isNew: Set<string> = new Set(newReadIds);
+    const drawnReadIds: Array<string> = Array.from(state.placed.keys()).filter(
+      (id: string): boolean => {
+        return isRead(id) && !isNew.has(id);
+      },
+    );
+    const drawnDashboards: Set<string> = new Set(data.drawnDataDashboardIds);
+    const found: { dashboards: Array<DataLineageDashboardRow>; total: number } =
+      await data.reader.readDashboards({
+        dataAssetIds: newReadIds,
+        limit: MAX_DATA_LINEAGE_DASHBOARDS + drawnDashboards.size,
+        drawnDataAssetIds: drawnReadIds,
+      });
+    let drawn: number = drawnDashboards.size;
+
+    for (const dashboard of found.dashboards) {
+      const tableIds: Array<string> = Array.from(
+        new Set(dashboard.dataAssetIds),
+      )
+        .filter(isRead)
+        .sort(compareText);
+      const isDrawn: boolean = drawnDashboards.has(dashboard.dataDashboardId);
+
+      if (
+        !tableIds.some((id: string): boolean => {
+          return isNew.has(id);
+        })
+      ) {
+        continue;
+      }
+
+      const nodeId: string = getLineageDashboardNodeId(
+        dashboard.dataDashboardId,
+      );
+
+      if (!isDrawn) {
+        if (drawn >= MAX_DATA_LINEAGE_DASHBOARDS) {
+          continue;
+        }
+
+        data.nodes.push({
+          id: nodeId,
+          kind: DataLineageNodeKind.Dashboard,
+          side: DataLineageSide.Downstream,
+          depth:
+            Math.max(
+              ...tableIds.map((id: string): number => {
+                return state.placed.get(id)!.depth;
+              }),
+            ) + 1,
+          name: dashboard.name,
+          dataDashboardId: dashboard.dataDashboardId,
+          tool: dashboard.tool,
+          url: dashboard.url,
+        });
+        drawn++;
+      }
+
+      for (const tableId of tableIds) {
+        // A dashboard drawn already has its arrows from the tables drawn before.
+        if (isDrawn && !isNew.has(tableId)) {
+          continue;
+        }
+
+        const source: string = getLineageTableNodeId(tableId);
+
+        data.edges.push({
+          id: getLineageEdgeId({
+            kind: DataLineageEdgeKind.Reads,
+            source,
+            target: nodeId,
+          }),
+          source,
+          target: nodeId,
+          kind: DataLineageEdgeKind.Reads,
+          seenIn: [],
+          pipelines: [],
+          lastSeenAt: null,
+        });
+      }
+    }
+
+    // All told: the dashboards on every drawn table, less those drawn.
+    const all: { dashboards: Array<DataLineageDashboardRow>; total: number } =
+      await data.reader.readDashboards({
+        dataAssetIds: [...drawnReadIds, ...newReadIds],
+        limit: 1,
+      });
+
+    return Math.max(0, all.total - drawn);
+  }
+
+  /*
+   * The columns each arrow between two tables carries, the arrows nearest
+   * the drawing's own card first, until one answer holds the most it
+   * carries (MAX_DATA_LINEAGE_COLUMN_MAPPINGS): an arrow past them carries
+   * none, as one no source named columns on.
+   */
+  private static async addColumnMappings(data: {
+    reader: DataLineageReader;
+    edges: Array<DataTableLineageEdge>;
+    // Each card's steps from the drawing's own, by card id.
+    depths: Map<string, number>;
+  }): Promise<void> {
+    const stepsOf: (edge: DataTableLineageEdge) => number = (
+      edge: DataTableLineageEdge,
+    ): number => {
+      return Math.min(
+        Math.abs(data.depths.get(edge.source) ?? Number.MAX_SAFE_INTEGER),
+        Math.abs(data.depths.get(edge.target) ?? Number.MAX_SAFE_INTEGER),
+      );
+    };
+    const arrows: Array<DataTableLineageEdge> = data.edges
+      .filter((edge: DataTableLineageEdge): boolean => {
+        return (
+          edge.kind === DataLineageEdgeKind.Feeds &&
+          edge.source.startsWith(TABLE_NODE_PREFIX) &&
+          edge.target.startsWith(TABLE_NODE_PREFIX)
+        );
+      })
+      .sort((a: DataTableLineageEdge, b: DataTableLineageEdge): number => {
+        return stepsOf(a) - stepsOf(b) || compareText(a.id, b.id);
+      });
+    let carried: number = 0;
+
+    for (const chunk of chunked(arrows, COLUMN_READ_CHUNK)) {
+      const pairs: Array<DataLineageTablePair> = chunk.map(
+        (edge: DataTableLineageEdge): DataLineageTablePair => {
+          return {
+            upstreamDataAssetId: edge.source.slice(TABLE_NODE_PREFIX.length),
+            downstreamDataAssetId: edge.target.slice(TABLE_NODE_PREFIX.length),
+          };
+        },
+      );
+      const found: Map<
+        string,
+        Array<DataColumnMapping>
+      > = await data.reader.readColumnMappings(pairs);
+
+      for (let index: number = 0; index < chunk.length; index++) {
+        const mappings: Array<DataColumnMapping> | undefined = found.get(
+          getLineageTablePairKey(pairs[index]!),
+        );
+
+        if (!mappings || mappings.length === 0) {
+          continue;
+        }
+
+        // The rest are further from the drawing's own card: none of them is carried.
+        if (carried + mappings.length > MAX_DATA_LINEAGE_COLUMN_MAPPINGS) {
+          return;
+        }
+
+        chunk[index]!.columnMappings = mappings;
+        carried += mappings.length;
+      }
+    }
+  }
+
+  // A pipeline's own arrow: from a table it reads, or to a table it writes.
+  private static pipelineTableEdge(data: {
+    pipeline: DataLineagePipelineRow;
+    dataAssetId: string;
+    isRead: boolean;
+    lastSeenAt: Date | null;
+  }): DataTableLineageEdge {
+    const pipelineNodeId: string = getLineagePipelineNodeId(
+      data.pipeline.dataPipelineId,
+    );
+    const tableNodeId: string = getLineageTableNodeId(data.dataAssetId);
+
+    // What it reads, into it: a read is no run of its own, so it carries no pipeline.
+    if (data.isRead) {
+      return {
+        id: getLineageEdgeId({
+          kind: DataLineageEdgeKind.Reads,
+          source: tableNodeId,
+          target: pipelineNodeId,
+        }),
+        source: tableNodeId,
+        target: pipelineNodeId,
+        kind: DataLineageEdgeKind.Reads,
+        seenIn: [DataAssetLineageSource.Pipeline],
+        pipelines: [],
+        lastSeenAt: toIso(data.lastSeenAt),
+      };
+    }
+
+    // What it writes, out of it: its run moves the data, so a failed run is told on the arrow.
+    return {
+      id: getLineageEdgeId({
+        kind: DataLineageEdgeKind.Writes,
+        source: pipelineNodeId,
+        target: tableNodeId,
+      }),
+      source: pipelineNodeId,
+      target: tableNodeId,
+      kind: DataLineageEdgeKind.Writes,
+      seenIn: [DataAssetLineageSource.Pipeline],
+      pipelines: [
+        {
+          dataPipelineId: data.pipeline.dataPipelineId,
+          name: data.pipeline.jobName,
+          lastRunState: data.pipeline.lastRunState,
+        },
+      ],
+      lastSeenAt: toIso(data.lastSeenAt),
+    };
+  }
+
+  // An arrow between two tables, as a drawing draws it.
+  private static feedsEdge(
+    state: WalkState,
+    edge: FeedsEdge,
+  ): DataTableLineageEdge {
+    const source: string = getLineageTableNodeId(edge.upstreamDataAssetId);
+    const target: string = getLineageTableNodeId(edge.downstreamDataAssetId);
+
+    return {
+      id: getLineageEdgeId({
+        kind: DataLineageEdgeKind.Feeds,
+        source,
+        target,
+      }),
+      source,
+      target,
+      kind: DataLineageEdgeKind.Feeds,
+      seenIn: Array.from(edge.seenIn).sort(compareText),
+      pipelines: this.edgePipelines(state, Array.from(edge.pipelineIds)),
+      lastSeenAt: toIso(edge.lastSeenAt),
+    };
   }
 
   /*
@@ -651,13 +1423,15 @@ export default class DataTableLineageReader {
    * The tables a pipeline reads, or writes, that its drawing draws: the
    * pinned first, then its nearest as a table's are chosen - a problem
    * first, then one still in its database, then the one seen last - at
-   * most the most next to one card. The rest are counted on its card.
+   * most the most next to one card, or the room `most` leaves. The rest
+   * are counted on its card.
    */
   private static choosePipelineTables(data: {
     state: WalkState;
     seen: Map<string, Date | null>;
     pins: Set<string>;
     now: Date;
+    most?: number | undefined;
   }): { chosen: Array<string>; hidden: number } {
     const edges: Map<string, FeedsEdge> = new Map();
 
@@ -680,9 +1454,13 @@ export default class DataTableLineageReader {
     const chosen: Array<string> = ranked.filter((id: string): boolean => {
       return data.pins.has(id);
     });
+    const most: number = Math.min(
+      MAX_DATA_LINEAGE_NEIGHBORS,
+      data.most ?? MAX_DATA_LINEAGE_NEIGHBORS,
+    );
 
     for (const id of ranked) {
-      if (chosen.length >= MAX_DATA_LINEAGE_NEIGHBORS) {
+      if (chosen.length >= most) {
         break;
       }
 
@@ -748,22 +1526,7 @@ export default class DataTableLineageReader {
     }
 
     for (const edge of state.edges.values()) {
-      const source: string = getLineageTableNodeId(edge.upstreamDataAssetId);
-      const target: string = getLineageTableNodeId(edge.downstreamDataAssetId);
-
-      edges.push({
-        id: getLineageEdgeId({
-          kind: DataLineageEdgeKind.Feeds,
-          source,
-          target,
-        }),
-        source,
-        target,
-        kind: DataLineageEdgeKind.Feeds,
-        seenIn: Array.from(edge.seenIn).sort(compareText),
-        pipelines: this.edgePipelines(state, Array.from(edge.pipelineIds)),
-        lastSeenAt: toIso(edge.lastSeenAt),
-      });
+      edges.push(this.feedsEdge(state, edge));
     }
 
     this.addWriters({
@@ -1177,7 +1940,8 @@ export default class DataTableLineageReader {
    * OneUptime watches: a pipeline whose writes rows name a drawn table (or
    * the table itself) and that is on no edge into it from a watched table.
    * One card per pipeline, a step before the first table it writes; a
-   * pinned one first, and never the pipeline the drawing is about.
+   * pinned one first, and never the pipeline the drawing is about. Drawing
+   * more of a drawing, only the tables drawn now (`tableIds`).
    */
   private static addWriters(data: {
     state: WalkState;
@@ -1185,6 +1949,7 @@ export default class DataTableLineageReader {
     edges: Array<DataTableLineageEdge>;
     pins: Set<string>;
     focusPipelineId: string | null;
+    tableIds?: Set<string> | undefined;
   }): void {
     const state: WalkState = data.state;
     const cards: Map<string, DataTableLineageNode> = new Map();
@@ -1193,7 +1958,11 @@ export default class DataTableLineageReader {
       const writers: Map<string, Writer> | undefined =
         state.writers.get(tableId);
 
-      if (placed.side === DataLineageSide.Downstream || !writers) {
+      if (
+        placed.side === DataLineageSide.Downstream ||
+        !writers ||
+        (data.tableIds && !data.tableIds.has(tableId))
+      ) {
         continue;
       }
 
@@ -1743,6 +2512,7 @@ export default class DataTableLineageReader {
       readDashboards: async (data: {
         dataAssetIds: Array<string>;
         limit: number;
+        drawnDataAssetIds?: Array<string> | undefined;
       }): Promise<{
         dashboards: Array<DataLineageDashboardRow>;
         total: number;
@@ -1751,7 +2521,10 @@ export default class DataTableLineageReader {
           return { dashboards: [], total: 0 };
         }
 
-        const asked: Set<string> = new Set(data.dataAssetIds);
+        const asked: Set<string> = new Set([
+          ...data.dataAssetIds,
+          ...(data.drawnDataAssetIds || []),
+        ]);
         const query: Query<DataDashboard> = {
           projectId,
           _id: QueryHelper.anyOfEntitiesInManyToMany({
@@ -1806,6 +2579,80 @@ export default class DataTableLineageReader {
             }),
           total: total.toNumber(),
         };
+      },
+
+      readColumnMappings: async (
+        pairs: Array<DataLineageTablePair>,
+      ): Promise<Map<string, Array<DataColumnMapping>>> => {
+        const columns: Map<string, Array<DataColumnMapping>> = new Map();
+
+        if (pairs.length === 0) {
+          return columns;
+        }
+
+        const wanted: Set<string> = new Set(pairs.map(getLineageTablePairKey));
+        const asIds: (ids: Array<string>) => Includes = (
+          ids: Array<string>,
+        ): Includes => {
+          return new Includes(
+            Array.from(new Set(ids)).map((id: string): ObjectID => {
+              return new ObjectID(id);
+            }),
+          );
+        };
+        // Every row of the arrows asked about that names columns: rows of other arrows between these tables are left out.
+        const found: Array<DataAssetLineage> =
+          await DataAssetLineageService.findBy({
+            query: {
+              projectId,
+              upstreamDataAssetId: asIds(
+                pairs.map((pair: DataLineageTablePair): string => {
+                  return pair.upstreamDataAssetId;
+                }),
+              ),
+              downstreamDataAssetId: asIds(
+                pairs.map((pair: DataLineageTablePair): string => {
+                  return pair.downstreamDataAssetId;
+                }),
+              ),
+              columnMappings: QueryHelper.notNull(),
+            },
+            select: {
+              upstreamDataAssetId: true,
+              downstreamDataAssetId: true,
+              columnMappings: true,
+            },
+            sort: { lastSeenAt: SortOrder.Descending },
+            limit: MAX_DATA_LINEAGE_EDGE_ROWS,
+            skip: 0,
+            props: { isRoot: true },
+          });
+
+        for (const row of found) {
+          if (!row.upstreamDataAssetId || !row.downstreamDataAssetId) {
+            continue;
+          }
+
+          const key: string = getLineageTablePairKey({
+            upstreamDataAssetId: row.upstreamDataAssetId.toString(),
+            downstreamDataAssetId: row.downstreamDataAssetId.toString(),
+          });
+
+          if (!wanted.has(key)) {
+            continue;
+          }
+
+          const merged: Array<DataColumnMapping> = mergeColumnMappings(
+            columns.get(key),
+            row.columnMappings,
+          );
+
+          if (merged.length > 0) {
+            columns.set(key, merged);
+          }
+        }
+
+        return columns;
       },
     };
   }
