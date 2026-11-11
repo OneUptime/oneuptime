@@ -125,40 +125,38 @@ const ToolImportPickerGroup: FunctionComponent<{
         {translator.translateText(TOOL_IMPORT_CATEGORY_TITLES[props.category])}
       </h3>
       <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {props.sources.map(
-          (source: ToolImportSource): ReactElement => {
-            const definition: ToolImportSourceDefinition =
-              getToolImportSourceDefinition(source);
+        {props.sources.map((source: ToolImportSource): ReactElement => {
+          const definition: ToolImportSourceDefinition =
+            getToolImportSourceDefinition(source);
 
-            return (
-              <li key={source}>
-                <button
-                  type="button"
-                  data-testid={`tool-import-pick-${source}`}
-                  onClick={() => {
-                    props.onPick(source);
-                  }}
-                  className="group flex h-full w-full items-start gap-3 rounded-xl border border-gray-200 bg-white p-4 text-left transition-colors hover:border-indigo-400 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                >
-                  <ToolImportLogo source={source} size="lg" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-gray-900">
-                      {definition.title}
-                    </span>
-                    <span className="mt-1 block text-sm text-gray-500">
-                      {translator.translateText(
-                        TOOL_IMPORT_TOOL_COPY[source].description,
-                      )}
-                    </span>
+          return (
+            <li key={source}>
+              <button
+                type="button"
+                data-testid={`tool-import-pick-${source}`}
+                onClick={() => {
+                  props.onPick(source);
+                }}
+                className="group flex h-full w-full items-start gap-3 rounded-xl border border-gray-200 bg-white p-4 text-left transition-colors hover:border-indigo-400 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                <ToolImportLogo source={source} size="lg" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-gray-900">
+                    {definition.title}
                   </span>
-                  <span className="mt-0.5 flex-shrink-0 text-gray-400">
-                    <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
+                  <span className="mt-1 block text-sm text-gray-500">
+                    {translator.translateText(
+                      TOOL_IMPORT_TOOL_COPY[source].description,
+                    )}
                   </span>
-                </button>
-              </li>
-            );
-          },
-        )}
+                </span>
+                <span className="mt-0.5 flex-shrink-0 text-gray-400">
+                  <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
+                </span>
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

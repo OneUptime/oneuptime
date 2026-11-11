@@ -389,7 +389,12 @@ describe("the page is reachable", () => {
   });
 
   test("Cmd+K opens it first for the words someone moving over types", () => {
-    for (const query of ["import", "migrate", "migration", "move to oneuptime"]) {
+    for (const query of [
+      "import",
+      "migrate",
+      "migration",
+      "move to oneuptime",
+    ]) {
       expect({ query, first: firstFound(query) }).toEqual({
         query,
         first: `${PAGE_TITLE} — Project Settings › Advanced`,
@@ -410,7 +415,11 @@ describe("the page is reachable", () => {
     )) {
       const title: string = getToolImportSourceDefinition(source).title;
 
-      for (const query of [title, title.toLowerCase(), `import from ${title}`]) {
+      for (const query of [
+        title,
+        title.toLowerCase(),
+        `import from ${title}`,
+      ]) {
         expect({ query, first: firstFound(query) }).toEqual({
           query,
           first: `Import from ${title} — Project Settings › Advanced › ${PAGE_TITLE}`,
@@ -486,7 +495,9 @@ describe("the page is reachable", () => {
         },
         catalog: [],
       }).filter((descriptor: PageSearchCommandDescriptor): boolean => {
-        return descriptor.title.startsWith("Import from ") && descriptor.isAction;
+        return (
+          descriptor.title.startsWith("Import from ") && descriptor.isAction
+        );
       });
 
     const expected: Array<ToolImportSource> = AllToolImportSources.filter(
