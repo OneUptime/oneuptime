@@ -545,6 +545,23 @@ describe("a session's end in the audit log", () => {
     ]);
   });
 
+  /*
+   * An entry about a session says where that session was: a new password
+   * set from another device, or a master admin's block, is not where the
+   * session was used.
+   */
+  test("a revocation another request asked for names the session's own last address", async () => {
+    await revoke({
+      rows: [sessionRow({ ipAddress: "198.51.100.4" })],
+      revokedReason: getSessionEndCauseRevokedReason(
+        SessionEndCause.PasswordChanged,
+      ),
+      props: { isRoot: true, requestOrigin: ORIGIN },
+    });
+
+    expect(recordedEvents()[0]!.ipAddress).toBe("198.51.100.4");
+  });
+
   test.each([
     [SessionEndCause.AccountBlocked, AuditLogAction.SessionRevoked],
     [SessionEndCause.TwoFactorReset, AuditLogAction.SessionRevoked],

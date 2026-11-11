@@ -2125,7 +2125,6 @@ router.post(
       // Revoke all active sessions for this user on password reset
       await UserSessionService.revokeAllSessionsByUserId(alreadySavedUser.id!, {
         cause: SessionEndCause.PasswordReset,
-        requestOrigin: RequestOriginUtil.fromRequest(req),
       });
 
       logger.info(

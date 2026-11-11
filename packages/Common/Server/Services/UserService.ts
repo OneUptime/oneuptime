@@ -987,7 +987,6 @@ export class Service extends DatabaseService<Model> {
         // Revoke all active sessions for this user on password change
         await UserSessionService.revokeAllSessionsByUserId(user.id!, {
           cause: SessionEndCause.PasswordChanged,
-          requestOrigin: onUpdate.updateBy.props.requestOrigin,
         });
 
         /*

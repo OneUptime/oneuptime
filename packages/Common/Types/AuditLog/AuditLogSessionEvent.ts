@@ -130,8 +130,8 @@ export enum AuditLogSessionField {
   Device = "device",
   /*
    * The address of the request the entry is about - the sign-in's, the
-   * sign-out's - or, for a session OneUptime ended, the last one it was
-   * used from.
+   * sign-out's - or, for a session OneUptime ended, the last one that
+   * session was used from.
    */
   IpAddress = "ipAddress",
   // Where it signed in from, when the operator names the CDN headers that say it.

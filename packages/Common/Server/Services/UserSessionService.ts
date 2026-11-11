@@ -1402,8 +1402,10 @@ export class Service extends DatabaseService<Model> {
    * before the revocation (onBeforeUpdate read it), or null for a row that
    * names no person.
    *
-   * The address is the request's that ended it, when one did - a sign-out -
-   * and otherwise the last one the session was used from. A timeout says
+   * The address is the sign-out request's, for a sign-out, and otherwise
+   * the last one the session was used from: an entry about a session says
+   * where that session was, never where the password change or the block
+   * that ended it came from. A timeout says
    * when it ran out: OneUptime notices a session's end at its next refresh,
    * or at the next sweep (endSessionsThatRanOut), which can be later.
    */
@@ -1430,7 +1432,11 @@ export class Service extends DatabaseService<Model> {
       device: origin.device || Service.describeDevice(data.session.userAgent),
       location: origin.location,
       ipAddress:
-        data.requestOrigin?.ipAddress || data.session.ipAddress || undefined,
+        (data.cause === SessionEndCause.SignedOut
+          ? data.requestOrigin?.ipAddress
+          : undefined) ||
+        data.session.ipAddress ||
+        undefined,
       endCause: data.cause,
     };
 
