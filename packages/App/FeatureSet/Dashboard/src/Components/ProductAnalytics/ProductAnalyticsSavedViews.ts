@@ -60,6 +60,8 @@ export interface ProductAnalyticsSavedViewWords {
   missing: string;
   // Nothing on screen to save yet.
   nothingToSave: string;
+  // The name field's example.
+  namePlaceholder: string;
 }
 
 export const PRODUCT_ANALYTICS_SAVED_VIEW_WORDS: Readonly<
@@ -81,6 +83,7 @@ export const PRODUCT_ANALYTICS_SAVED_VIEW_WORDS: Readonly<
       "The saved funnel this link opens was deleted, or you cannot see it.",
     ),
     nothingToSave: translationKey("Nothing to save until the funnel is shown."),
+    namePlaceholder: translationKey("Sign-up to first purchase"),
   },
   [ProductAnalyticsSavedViewType.Retention]: {
     list: translationKey("Saved retention tables"),
@@ -100,6 +103,7 @@ export const PRODUCT_ANALYTICS_SAVED_VIEW_WORDS: Readonly<
     nothingToSave: translationKey(
       "Nothing to save until the retention table is shown.",
     ),
+    namePlaceholder: translationKey("Weekly return after sign-up"),
   },
 };
 
@@ -114,10 +118,6 @@ export const SAVED_VIEW_CHANGED_TEMPLATE: string =
 
 export const SAVED_VIEW_NAME_DESCRIPTION: string = translationKey(
   "What your team calls it, on this page and on dashboards.",
-);
-
-export const SAVED_VIEW_NAME_PLACEHOLDER: string = translationKey(
-  "Sign-up to first purchase",
 );
 
 // Under the name of one whose definition this version cannot read.

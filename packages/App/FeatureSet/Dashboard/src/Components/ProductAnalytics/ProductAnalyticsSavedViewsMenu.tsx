@@ -42,7 +42,6 @@ import {
   SAVED_VIEW_CHANGED_TEMPLATE,
   SAVED_VIEW_DELETE_WIDGETS_NOTE,
   SAVED_VIEW_NAME_DESCRIPTION,
-  SAVED_VIEW_NAME_PLACEHOLDER,
   SAVED_VIEW_UNREADABLE,
   SAVED_VIEW_UNREADABLE_NOTICE,
   deleteProductAnalyticsSavedView,
@@ -470,7 +469,7 @@ function ProductAnalyticsSavedViewsMenu<
       fieldType: FormFieldSchemaType.Text,
       title: "Name",
       description: SAVED_VIEW_NAME_DESCRIPTION,
-      placeholder: SAVED_VIEW_NAME_PLACEHOLDER,
+      placeholder: words.namePlaceholder,
       required: true,
       validation: {
         maxLength: PRODUCT_ANALYTICS_SAVED_VIEW_NAME_MAX_LENGTH,

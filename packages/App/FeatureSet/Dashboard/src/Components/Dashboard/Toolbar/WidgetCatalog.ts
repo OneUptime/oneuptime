@@ -424,7 +424,8 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       },
       {
         type: DashboardComponentType.ProductAnalyticsRetention,
-        label: "Retention",
+        // As its page is named: "Retention" alone reads as data retention.
+        label: "User Retention",
         icon: IconProp.TableCells,
         description:
           "A saved retention table: people grouped by when they first did its start event, and the share that came back in each period after.",
