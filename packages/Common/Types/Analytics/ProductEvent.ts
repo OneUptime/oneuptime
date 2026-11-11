@@ -271,6 +271,10 @@ export const ALLOWED_PROPERTY_NAMES_WITH_FORBIDDEN_WORDS: Readonly<
   has_password:
     "Whether the person signed up with a password (server/user_created): true or false.",
   query: `The words of a search that found nothing: on Cloud only, cut to ${SEARCH_QUERY_MAX_LENGTH} characters (search/no_results, issue #6830's decision).`,
+  utm_content:
+    "The utm_content of the link a person signed up through: the ad or link variant a campaign named, not text anyone wrote.",
+  utmContent:
+    "utm_content as the sign-up page keeps it (utm_event): the ad or link variant a campaign named.",
 };
 
 export const getPropertyNameWords: (propertyName: string) => Array<string> = (
