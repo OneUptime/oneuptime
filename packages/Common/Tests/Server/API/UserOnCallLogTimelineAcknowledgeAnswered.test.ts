@@ -21,7 +21,9 @@ import {
   NextFunction,
 } from "../../../Server/Utils/Express";
 import OnCallAcknowledgementTimeout from "../../../Server/Utils/OnCall/OnCallAcknowledgementTimeout";
-import OnCallPageLinkToken from "../../../Server/Utils/OnCall/OnCallPageLinkToken";
+import OnCallPageLinkToken, {
+  ON_CALL_PAGE_LINK_TOKEN_PARAM,
+} from "../../../Server/Utils/OnCall/OnCallPageLinkToken";
 import OnCallPagePassOn from "../../../Server/Utils/OnCall/OnCallPagePassOn";
 import Response from "../../../Server/Utils/Response";
 import Alert from "../../../Models/DatabaseModels/Alert";
@@ -38,6 +40,7 @@ import Email from "../../../Types/Email";
 import { JSONObject } from "../../../Types/JSON";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
+import { OnCallPassOnOutcome } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import Timezone from "../../../Types/Timezone";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
@@ -385,7 +388,9 @@ describe("the acknowledge page once the page is over offers no Acknowledge", () 
     givenRecord(ACKNOWLEDGED);
 
     await callRoute(ACKNOWLEDGE_PAGE_ROUTE, {
-      token: OnCallPageLinkToken.sign({ userOnCallLogTimelineId: ITEM }),
+      [ON_CALL_PAGE_LINK_TOKEN_PARAM]: OnCallPageLinkToken.sign({
+        userOnCallLogTimelineId: ITEM,
+      }),
     });
 
     const { path, variables } = rendered();
@@ -547,6 +552,48 @@ describe("pages the record being acknowledged does not end still offer their ans
     await callRoute(ACKNOWLEDGE_PAGE_ROUTE);
 
     expect(rendered().path).toContain(ACKNOWLEDGE_VIEW);
+  });
+
+  test("a page a person asked for offers Can't take it? Escalate beside Acknowledge (#6710)", async () => {
+    givenRun(
+      policyRun({
+        onCallDutyPolicyId: undefined,
+        triggeredByUserId: ANA,
+      }),
+    );
+    givenRecord(ACKNOWLEDGED);
+    previewSpy.mockResolvedValue({
+      passedOn: false,
+      result: {
+        outcome: OnCallPassOnOutcome.PagingStopped,
+        isPreview: true,
+        isDirectPage: true,
+        policyName: "",
+        pagedNames: [],
+        stillPagedNames: [],
+        ruleCount: 0,
+      },
+    });
+
+    await callRoute(ACKNOWLEDGE_PAGE_ROUTE, {
+      [ON_CALL_PAGE_LINK_TOKEN_PARAM]: OnCallPageLinkToken.sign({
+        userOnCallLogTimelineId: ITEM,
+      }),
+    });
+
+    const { path, variables } = rendered();
+
+    expect(path).toContain(ACKNOWLEDGE_VIEW);
+    expect(previewSpy).toHaveBeenCalledWith({
+      userId: PERSON,
+      executionLogId: RUN,
+    });
+    expect(variables["passOn"]).toEqual(
+      expect.objectContaining({
+        lead: "Can't take it?",
+        buttonText: "Escalate",
+      }),
+    );
   });
 
   test("an observer's page", async () => {
