@@ -2263,9 +2263,10 @@ export default class SlackAPI {
   /*
    * What GET /slack/workspaces answers (see it): for a whole organization's
    * installation, its name, the workspaces OneUptime was added to - the
-   * default first - and the default; for one workspace, whether it is part
-   * of an Enterprise organization, as the install recorded it or, for a
-   * connection made before installs recorded it, as Slack says now.
+   * default first - the default, and the workspaces it was removed from;
+   * for one workspace, whether it is part of an Enterprise organization, as
+   * the install recorded it or, for a connection made before installs
+   * recorded it, as Slack says now.
    */
   private static async describeConnection(data: {
     projectId: ObjectID;
@@ -2290,6 +2291,15 @@ export default class SlackAPI {
           },
         ),
         defaultWorkspaceId: organization.defaultWorkspaceId || null,
+        /*
+         * Those OneUptime was removed from, by the names they had: a rule
+         * that still picks one says so on its card.
+         */
+        removedWorkspaces: organization.removedWorkspaces.map(
+          (workspace: SlackOrganizationWorkspace): JSONObject => {
+            return { id: workspace.id, name: workspace.name };
+          },
+        ),
       };
     }
 
@@ -2312,6 +2322,7 @@ export default class SlackAPI {
       organizationName: miscData?.enterpriseName || "",
       workspaces: [],
       defaultWorkspaceId: null,
+      removedWorkspaces: [],
     };
   }
 
@@ -2461,6 +2472,26 @@ export default class SlackAPI {
 
         if (existingMiscData?.channelCache) {
           miscData.channelCache = existingMiscData.channelCache;
+        }
+
+        /*
+         * The workspaces it was removed from keep their names, for the
+         * rules that still pick one (SlackOrganization.getNotAddedMessage).
+         */
+        const before: SlackOrganizationConnection | null =
+          SlackOrganization.readConnection(existing);
+
+        if (before) {
+          const removedWorkspaces: Array<SlackOrganizationWorkspace> =
+            SlackOrganization.getRemovedWorkspaces({
+              listedBefore: before.workspaces,
+              removedBefore: before.removedWorkspaces,
+              listedNow: miscData.workspaces || before.workspaces,
+            });
+
+          if (removedWorkspaces.length > 0) {
+            miscData.removedWorkspaces = removedWorkspaces;
+          }
         }
       }
 

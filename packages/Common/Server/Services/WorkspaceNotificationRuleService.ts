@@ -44,7 +44,10 @@ import WorkspaceProjectAuthToken, {
   MattermostMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
-import SlackOrganization from "../Utils/Workspace/Slack/SlackOrganization";
+import SlackOrganization, {
+  SlackOrganizationConnection,
+  SlackWorkspaceNotAddedException,
+} from "../Utils/Workspace/Slack/SlackOrganization";
 import logger, { LogAttributes } from "../Utils/Logger";
 import NotificationRuleWorkspaceChannel, {
   NotificationRuleWorkspaceChannelUtil,
@@ -168,6 +171,21 @@ export interface NotificationRuleChannelToCreate {
 interface CreatedRuleChannel {
   askedFor: WorkspaceChannelToCreate;
   channel: NotificationRuleWorkspaceChannel;
+}
+
+// What a rule's channel is created with (WorkspaceBase.createChannel).
+interface CreateRuleChannelData {
+  authToken: string;
+  channelName: string;
+  projectId: ObjectID;
+  teamId?: string;
+  isPrivate?: boolean;
+  /*
+   * Slack: the project's connection to a whole Enterprise organization, as
+   * read for every channel created at once - null for one to one workspace
+   * (SlackUtil.createChannel).
+   */
+  organization?: SlackOrganizationConnection | null;
 }
 
 /*
@@ -553,6 +571,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         });
       } catch (err) {
         /*
+         * The Slack workspace the rule picks no longer has OneUptime: said
+         * as it is (SlackOrganization.getNotAddedMessage), as the rule's
+         * Notification Logs say it.
+         */
+        if (err instanceof SlackWorkspaceNotAddedException) {
+          throw new BadDataException(err.message);
+        }
+
+        /*
          * What the workspace answered, readable whatever was thrown: Slack
          * and Microsoft Graph throw an HTTP error response itself.
          */
@@ -617,6 +644,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           /*
            * Slack, installed for a whole Enterprise organization: the
            * workspace the rule names, when it names one (SlackOrganization).
+           * One OneUptime is no longer added to is said so, rather than
+           * the channel said not to exist (SlackWorkspaceNotAddedException).
            */
           if (rule.workspaceType === WorkspaceType.Slack && channel.teamId) {
             doesChannelExistData.teamId = channel.teamId;
@@ -4093,6 +4122,21 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     const workspaceUtil: typeof WorkspaceBase =
       WorkspaceUtil.getWorkspaceTypeUtil(data.workspaceType);
 
+    /*
+     * Slack installed for a whole Enterprise organization: its workspaces,
+     * read once for every channel created here - listed again from Slack
+     * when those listed last are old - and handed to each one created, which
+     * would read the project's connection again otherwise. Null for a
+     * project connected to one workspace.
+     */
+    const slackOrganization: SlackOrganizationConnection | null =
+      data.workspaceType === WorkspaceType.Slack
+        ? await SlackOrganization.getOfConnection({
+            projectId: data.projectId,
+            projectAuth: projectAuth,
+          })
+        : null;
+
     for (const notificationChannel of notificationChannels) {
       // The team a Microsoft Teams channel is created in: the rule's, or the project's.
       let teamId: string | undefined = notificationChannel.teamId;
@@ -4113,10 +4157,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
        * project connected to one workspace (SlackOrganization).
        */
       if (data.workspaceType === WorkspaceType.Slack) {
-        teamId = SlackOrganization.getWorkspaceIdOfChannel({
-          projectAuth: projectAuth,
-          teamId: teamId,
-        });
+        teamId = slackOrganization
+          ? SlackOrganization.getWorkspaceIdToCreateIn({
+              organization: slackOrganization,
+              teamId: teamId,
+            })
+          : undefined;
       }
 
       const askedFor: WorkspaceChannelToCreate = {
@@ -4166,13 +4212,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         `Creating new channel with name: ${notificationChannel.channelName}`,
         { projectId: data.projectId?.toString() } as LogAttributes,
       );
-      const createChannelData: {
-        authToken: string;
-        channelName: string;
-        projectId: ObjectID;
-        teamId?: string;
-        isPrivate?: boolean;
-      } = {
+      const createChannelData: CreateRuleChannelData = {
         authToken: data.projectOrUserAuthTokenForWorkspace,
         channelName: notificationChannel.channelName,
         projectId: data.projectId,
@@ -4184,6 +4224,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       if (teamId) {
         createChannelData.teamId = teamId;
+      }
+
+      if (data.workspaceType === WorkspaceType.Slack) {
+        createChannelData.organization = slackOrganization;
       }
 
       let channel: WorkspaceChannel;
@@ -4336,13 +4380,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
    */
   private async createChannelUnderFreeName(data: {
     workspaceType: WorkspaceType;
-    createChannelData: {
-      authToken: string;
-      channelName: string;
-      projectId: ObjectID;
-      teamId?: string;
-      isPrivate?: boolean;
-    };
+    createChannelData: CreateRuleChannelData;
     prefix: string;
     channelNameParts: WorkspaceChannelNameParts;
   }): Promise<WorkspaceChannel> {

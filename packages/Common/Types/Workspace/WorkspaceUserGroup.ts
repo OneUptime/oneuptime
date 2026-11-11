@@ -376,7 +376,10 @@ export interface WorkspaceUserGroupView {
   name: string;
   // Slack: its handle, without the "@" ("payments-oncall"). Teams: none.
   handle: string | null;
-  // Teams: the team the tag is in.
+  /*
+   * Teams: the team the tag is in. Slack installed for a whole Enterprise
+   * organization: the workspace the group is in.
+   */
   teamName: string | null;
   // This schedule first, then the others it follows, by name.
   schedules: Array<WorkspaceUserGroupScheduleView>;
@@ -415,7 +418,11 @@ export interface WorkspaceAvailableUserGroup {
   followsScheduleNames: Array<string>;
 }
 
-// A Microsoft Teams team a tag can be in: one OneUptime's app is in.
+/*
+ * A Microsoft Teams team a tag can be in: one OneUptime's app is in. For
+ * Slack installed for a whole Enterprise organization, a workspace a user
+ * group can be in: one OneUptime was added to, the default first.
+ */
 export interface WorkspaceUserGroupTeam {
   teamId: string;
   name: string;
@@ -430,7 +437,11 @@ export interface WorkspaceUserGroupConnectRequest {
   // Slack: a new user group to create, with its name and handle.
   newGroupName?: string | undefined;
   newGroupHandle?: string | undefined;
-  // Microsoft Teams: the team, and the tag's name (used, or created).
+  /*
+   * Microsoft Teams: the team, and the tag's name (used, or created).
+   * Slack installed for a whole Enterprise organization: the workspace the
+   * group is in - empty for the default one.
+   */
   workspaceTeamId?: string | undefined;
   tagName?: string | undefined;
 }
