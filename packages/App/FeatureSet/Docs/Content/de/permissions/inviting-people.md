@@ -76,7 +76,7 @@ Mit der Annahme ist die Person sofort im Projekt, mit den Berechtigungen ihres T
 | --- | --- |
 | **Benutzer** | Name und E-Mail-Adresse. |
 | **Teams** | Jedes Team des Projekts, in dem die Person ist oder zu dem sie eingeladen ist. |
-| **Status** | **Mitglied**, sobald sie beigetreten ist, mit der Zahl der noch nicht angenommenen Einladungen in andere Teams. **Einladung gesendet** bis dahin. |
+| **Status** | **Mitglied**, sobald sie beigetreten ist, mit der Zahl der noch nicht angenommenen Einladungen in andere Teams. **Einladung gesendet** bis dahin. Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, stattdessen **Eingeladen**: Die Einladung wird erstellt, aber keine E-Mail verschickt. |
 
 Filtern Sie die Liste nach **Benutzer**, **Status** oder **Team**. Klicken Sie auf eine Zeile, um die Seite der Person zu öffnen:
 

@@ -50447,7 +50447,7 @@
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert. This server cannot send email yet, so nobody is emailed: ask your server's admin to set up email.": "選擇要監測的對象並為其命名。其餘內容皆使用可變更的預設值。一旦發生問題，OneUptime 會建立事件或警示。此伺服器尚無法傳送電子郵件，因此不會有人收到郵件：請聯絡伺服器管理員設定電子郵件。",
   "See global probes": "查看全域探針",
   "Send them their invitation link": "傳送邀請連結",
-  "Server Sending Health": "伺服器傳送狀態",
+  "Server Sending Health": "伺服器傳送健康狀況",
   "Set up email": "設定電子郵件",
   "The invitation was created, but its link could not be read. Open the Admin Dashboard to set their password instead.": "邀請已建立，但無法讀取其連結。請改為在管理員儀表板中為其設定密碼。",
   "This server cannot send email yet, so they will not get an invitation email. The invitation is still created, and you get a link to send them yourself.": "此伺服器尚無法傳送電子郵件，因此對方不會收到邀請郵件。邀請仍會建立，您會取得一個可自行傳送給對方的連結。",

@@ -76,7 +76,7 @@ Ao aceitar, a pessoa entra no projeto na hora, com as permissões da equipe dela
 | --- | --- |
 | **Usuário** | O nome e o endereço de e-mail dela. |
 | **Equipes** | Cada equipe do projeto de que ela participa, ou para a qual foi convidada. |
-| **Status** | **Membro** depois que ela entrou, com o número de convites para outras equipes que ainda não aceitou. **Convite enviado** até lá. |
+| **Status** | **Membro** depois que ela entrou, com o número de convites para outras equipes que ainda não aceitou. **Convite enviado** até lá. Em um servidor auto-hospedado que ainda não consegue enviar e-mails, **Convidado** no lugar: o convite é criado, mas nenhum e-mail é enviado. |
 
 Filtre a lista por **Usuário**, **Status** ou **Equipe**. Clique em uma linha para abrir a página da pessoa:
 

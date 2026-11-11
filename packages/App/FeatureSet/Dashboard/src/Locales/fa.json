@@ -50447,7 +50447,7 @@
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert. This server cannot send email yet, so nobody is emailed: ask your server's admin to set up email.": "انتخاب کنید چه چیزی پایش شود و برایش نامی بگذارید. بقیه با مقادیر پیش‌فرضی شروع می‌شود که می‌توانید تغییرشان دهید. وقتی مشکلی پیش بیاید، OneUptime یک حادثه یا هشدار باز می‌کند. این سرور هنوز نمی‌تواند ایمیل بفرستد، پس به کسی ایمیل زده نمی‌شود: از مدیر سرور بخواهید ایمیل را راه‌اندازی کند.",
   "See global probes": "دیدن پراب‌های سراسری",
   "Send them their invitation link": "پیوند دعوتشان را بفرستید",
-  "Server Sending Health": "وضعیت ارسال سرور",
+  "Server Sending Health": "سلامت ارسال سرور",
   "Set up email": "راه‌اندازی ایمیل",
   "The invitation was created, but its link could not be read. Open the Admin Dashboard to set their password instead.": "دعوت ایجاد شد، اما پیوندش خوانده نشد. به‌جای آن داشبورد مدیریت را باز کنید و برایشان گذرواژه تعیین کنید.",
   "This server cannot send email yet, so they will not get an invitation email. The invitation is still created, and you get a link to send them yourself.": "این سرور هنوز نمی‌تواند ایمیل بفرستد، پس ایمیل دعوت به دستشان نمی‌رسد. دعوت با این حال ایجاد می‌شود و پیوندی می‌گیرید تا خودتان برایشان بفرستید.",
