@@ -133,7 +133,7 @@ export const TEXT_DIRECTION_SCAN_LENGTH: number = 4096;
 const FIRST_LETTER_REGEX: RegExp = /\p{L}/u;
 
 const RIGHT_TO_LEFT_LETTER_REGEX: RegExp =
-  /[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}\p{Script=Adlam}\p{Script=Hanifi_Rohingya}\p{Script=Mandaic}\p{Script=Samaritan}]/u;
+  /[\u{0640}\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}\p{Script=Adlam}\p{Script=Hanifi_Rohingya}\p{Script=Mandaic}\p{Script=Samaritan}]/u;
 
 // One letter, of any script.
 const LETTER_REGEX: RegExp = /^\p{L}$/u;

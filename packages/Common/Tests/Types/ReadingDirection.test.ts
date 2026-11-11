@@ -5,6 +5,7 @@ import {
   hasEnglishWords,
   hasRightToLeftWords,
   isRightToLeftLanguage,
+  isSetApartInSentence,
   LEFT_TO_RIGHT,
   ReadingDirection,
   RIGHT_TO_LEFT,
@@ -240,6 +241,17 @@ describe("which way a text shown on a page is read", () => {
     ["Привет", LEFT_TO_RIGHT],
   ])("%p reads %p", (text: string, expected: ReadingDirection) => {
     expect(getTextReadingDirectionByMostLetters(text)).toBe(expected);
+  });
+
+  test("Arabic Tatweel counts as a right-to-left letter", () => {
+    for (const text of ["أحداث الـ CronJob", "معرّف عميل OAuth لـ SMTP"]) {
+      expect(getTextReadingDirectionByMostLetters(text)).toBe(RIGHT_TO_LEFT);
+    }
+
+    expect(getTextReadingDirection("ـ")).toBe(RIGHT_TO_LEFT);
+    expect(hasRightToLeftWords("ـ")).toBe(true);
+    expect(isSetApartInSentence("ـ", LEFT_TO_RIGHT)).toBe(true);
+    expect(isSetApartInSentence("ـ", RIGHT_TO_LEFT)).toBe(false);
   });
 
   test("a Persian sentence that starts with an English word is Persian", () => {
