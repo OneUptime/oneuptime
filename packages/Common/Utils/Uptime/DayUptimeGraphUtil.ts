@@ -382,14 +382,7 @@ export default class DayUptimeGraphUtil {
         timezone: data.timezone,
       });
 
-    const viewerTimezone: string = OneUptimeDate.getCurrentTimezone();
-
-    const barOffset: number = moment(data.date).tz(data.timezone).utcOffset();
-    const viewerOffset: number = this.isValidTimezone(viewerTimezone)
-      ? moment(data.date).tz(viewerTimezone).utcOffset()
-      : barOffset;
-
-    if (barOffset === viewerOffset) {
+    if (this.isViewersClock({ date: data.date, timezone: data.timezone })) {
       return label;
     }
 
@@ -397,6 +390,64 @@ export default class DayUptimeGraphUtil {
       data.timezone as Timezone,
       data.date,
     )})`;
+  }
+
+  /*
+   * Whether a bar drawn in `timezone` reads the viewer's own clock at
+   * `date` - the zone every "local" time on the page is shown in
+   * (OneUptimeDate.getCurrentTimezone). True without a zone of its own.
+   *
+   * The status page asks for its history in the viewer's zone, and the
+   * Dashboard in the user's, so a bar's zone is the viewer's - unless the
+   * server could not cut days in it and fell back to UTC.
+   */
+  public static isViewersClock(data: {
+    date: Date;
+    timezone?: string | undefined;
+  }): boolean {
+    if (!this.isValidTimezone(data.timezone)) {
+      return true;
+    }
+
+    const viewerTimezone: string = OneUptimeDate.getCurrentTimezone();
+
+    if (!this.isValidTimezone(viewerTimezone)) {
+      return true;
+    }
+
+    const date: Date = OneUptimeDate.fromString(data.date);
+
+    return (
+      moment(date).tz(data.timezone).utcOffset() ===
+      moment(date).tz(viewerTimezone).utcOffset()
+    );
+  }
+
+  /*
+   * When something on a bar's day happened - an incident declared - in the
+   * zone the day is drawn in, so the day and what it lists agree.
+   *
+   * On the viewer's own clock that is the page's usual local time, with its
+   * zone ("Nov 06 2026, 15:36 CST"). On a bar drawn in another zone - a UTC
+   * day, labelled "(UTC)" - it is that zone's time, named: listed in the
+   * viewer's zone, an incident at 02:00 CST on 7 November sat under the bar
+   * of 6 November (UTC) and read as the wrong day (issue #6697).
+   */
+  public static formatEventTime(data: {
+    date: Date;
+    timezone?: string | undefined;
+  }): string {
+    if (this.isViewersClock(data)) {
+      return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        data.date,
+        false,
+      );
+    }
+
+    return OneUptimeDate.getDateAsFormattedStringInTimezone({
+      date: data.date,
+      timezone: data.timezone,
+    });
   }
 
   /*

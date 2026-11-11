@@ -1,6 +1,6 @@
 # Runbooks – Overzicht
 
-Een runbook is een herbruikbare responsprocedure: een geordende lijst van handmatige en geautomatiseerde stappen die u uitvoert op een incident, een waarschuwing of een gepland onderhoudsevenement. Het maakt van de thread "wat doen we nu?" een checklist die iedereen met dienst om 3 uur 's nachts kan volgen, met de scripts, API-aanroepen en goedkeuringen al uitgeschreven. Runbooks zijn bedoeld voor de engineers met dienst die op incidenten reageren en voor de platformteams die die respons automatiseren.
+Een runbook is een herbruikbare responsprocedure: een geordende lijst van handmatige en geautomatiseerde stappen die u uitvoert op een incident, een waarschuwing of een gepland onderhoudsevenement. Het maakt van de thread "wat doen we nu?" een checklist die iedereen met dienst om 3 uur 's nachts kan volgen, met de scripts, API-aanroepen en goedkeuringen al uitgeschreven. Runbooks zijn bedoeld voor de engineers met dienst die op incidenten reageren en voor de platformteams die die respons automatiseren. Om te kiezen tussen een runbook, een workflow, een playbook en een AI-regel, zie [Welke gebruik ik?](/docs/introduction/which-one#workflow-runbook-playbook-of-ai-regel).
 
 :::cards
 - [Een runbook schrijven](/docs/runbooks/authoring): Een runbook maken en de stappen schrijven.
@@ -39,6 +39,8 @@ Elke run van een runbook is een **uitvoering**. Bij de start worden de stappen v
 HTTP- en AI-stappen lopen op de OneUptime Worker. Bash-, SSH- en kubectl-stappen lopen op een [Runner](/docs/runbooks/agents) die u in uw eigen infrastructuur installeert, zodat die scripts nooit op de servers van OneUptime draaien. Een JavaScript-stap loopt ook op een van uw Runners of, als hij er geen kiest en het project geen [standaard-Runner](/docs/runbooks/agents#de-standaard-runner-van-het-project) heeft, op een [globale Runner](/docs/runbooks/agents#globale-runners), in een sandbox die alleen het internet bereikt. De status, uitvoer en foutmelding van elke stap worden vastgelegd op de uitvoering, die bij het incident, de waarschuwing of het evenement blijft waarvoor ze liep.
 
 ## Kernbegrippen
+
+De woorden die in heel OneUptime worden gebruikt, staan in de [Woordenlijst](/docs/introduction/glossary).
 
 | Begrip | Betekenis |
 | --- | --- |

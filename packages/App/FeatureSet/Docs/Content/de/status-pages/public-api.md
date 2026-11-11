@@ -74,6 +74,8 @@ Die Endpunkte folgen den eigenen Einstellungen der Seite in der Karte **Was Ihre
 
 Die Übersicht ist eine Anfrage für die ganze Seite. Es sind dieselben Daten, die die Statusseite zeichnet, und sie sind höchstens 15 Sekunden alt.
 
+Die Tage der Verfügbarkeitsbalken sind UTC-Tage, solange Sie keine Zeitzone angeben: Hängen Sie `?timezone=Asia/Shanghai` an ein `GET` an oder senden Sie `{"timezone": "Asia/Shanghai"}` als Body eines `POST`, dann werden `uptimeDailyAggregate` und `monitorGroupUptimeDailyAggregate` in die Tage dieser Zone geschnitten, so wie die Statusseite es für jeden Besucher anfragt. Eine Zone, die der Server nicht kennt, ist UTC, und beide sagen in ihrem `timezone`, in welcher Zone sie geschnitten wurden.
+
 :::tabs
 @tab curl
 ```bash
@@ -133,7 +135,7 @@ Der Gesamtstatus ist der schlechteste aktuelle Status der Monitore und Monitorgr
 | `resourceGroups` | Die Gruppen, mit `parentStatusPageGroupId` für verschachtelte Gruppen. |
 | `monitorStatuses` | Jeden Monitorstatus des Projekts, von der niedrigsten Priorität bis zur höchsten. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | Den aktuellen Status jeder Monitorgruppe auf der Seite und die Monitore darin. |
-| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Woraus die Verfügbarkeitsbalken gezeichnet werden, und die Balkenfarbregeln der Seite. |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Woraus die Verfügbarkeitsbalken gezeichnet werden, und die Balkenfarbregeln der Seite. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Die nicht behobenen Vorfälle, die die Seite zeigt, ihre öffentlichen Notizen und Statuswechsel sowie die Vorfallstatus des Projekts. |
 | `timelineIncidents` | Die Vorfälle im Zeitfenster der Verfügbarkeitsbalken, behobene eingeschlossen, für die Tooltips der Balken. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Dasselbe für Vorfall-Episoden. |

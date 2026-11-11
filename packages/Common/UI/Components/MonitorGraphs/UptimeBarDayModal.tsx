@@ -11,7 +11,6 @@ import {
 import { ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME } from "../Icon/Icon";
 import Pill from "../Pill/Pill";
 import Color from "../../../Types/Color";
-import OneUptimeDate from "../../../Types/Date";
 import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import { MAINTENANCE_MARK_COLOR } from "../../../Utils/StatusPage/HistoryChartBarColors";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
@@ -258,10 +257,10 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
                       }}
                     >
                       {labels.declared}{" "}
-                      {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                        incident.declaredAt,
-                        false,
-                      )}
+                      {DayUptimeGraphUtil.formatEventTime({
+                        date: incident.declaredAt,
+                        timezone: props.timezone,
+                      })}
                     </span>
                   }
                   pills={pills}
@@ -301,6 +300,7 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
                       dataTestId="uptime-day-maintenance-window"
                       startsAt={event.startsAt}
                       endsAt={event.endsAt}
+                      timezone={props.timezone}
                       style={{
                         display: "block",
                         fontSize: "12px",

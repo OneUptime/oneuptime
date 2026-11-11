@@ -1,6 +1,6 @@
 # Core Concepts
 
-OneUptime has many products, but they rest on a handful of ideas: projects, monitors, incidents and alerts, on-call, status pages and telemetry. This page explains each one in a few sentences, shows how they connect, and links to where each is covered in full. Read it once, and every other page in the docs reads more easily.
+OneUptime has many products, but they rest on a handful of ideas: projects, monitors, incidents and alerts, on-call, status pages and telemetry. Around them are what you watch, what you install and the rules that act for you. This page explains each one in a few sentences, shows how they connect, and links to where each is covered in full. Read it once, and every other page in the docs reads more easily. For one word at a time, see the [Glossary](/docs/introduction/glossary); to choose between two things that look alike, see [Which One Do I Use?](/docs/introduction/which-one).
 
 :::cards
 - [Projects and people](#projects-and-people): Where everything lives, and who can do what.
@@ -47,6 +47,41 @@ A monitor's **criteria** decide what each result means. They are checked in orde
 :::cards
 - [Creating a Monitor](/docs/monitor/create-monitor): Pick a type, say what to check, and how often.
 - [Custom Probes](/docs/probe/custom-probe): Check what only your own network can reach.
+:::
+
+## What you watch
+
+A monitor checks one thing. Around your monitors, OneUptime keeps a record of what you run, and you meet these records in the menu:
+
+- A **monitor group** rolls several monitors into one status, so a status page can show something made of many parts, such as Checkout, as one row.
+- A **service** is an application or microservice you run. OneUptime adds it the first time its telemetry arrives, and brings its logs, traces, metrics, exceptions and incidents together on one page.
+- **Hosts**, **Kubernetes** clusters and the rest of **Infrastructure** are the machines and platforms you run, filled in by the agents you install.
+- **Inventory** is one list of all of it: services, hosts, clusters, devices, cloud resources, and the things that send no telemetry at all.
+
+They meet where a problem shows. A service's monitors can roll up into a monitor group, an SLO measures them, and when one fails it declares an incident. The incident lists the service among the resources it affects, and the status page shows the group and the incident.
+
+```mermaid title="One service, what watches it, and where it shows"
+flowchart TB
+    service["Service: Checkout"] -->|"watched by"| monitors["Its monitors"]
+    monitors --> group["Monitor group"]
+    monitors --> slo["SLO"]
+    monitors -->|"declare"| incident["Incident"]
+    group --> statuspage["Status page"]
+    incident --> statuspage
+```
+
+:::cards
+- [Monitor Groups](/docs/monitor/monitor-groups): Roll several monitors into one status.
+- [Service Catalog](/docs/telemetry/services): Every application you run, on one page each.
+- [Inventory Overview](/docs/inventory/overview): Everything OneUptime knows about your estate.
+:::
+
+## Reliability targets
+
+An **SLO** (service level objective) is a reliability target for what you monitor, such as up 99.9% of the time over 30 days. OneUptime measures it from its monitors every 5 minutes. The downtime the target allows is its error budget: with plenty left you can take risks, and with little left you slow down and invest in stability.
+
+:::cards
+- [SLOs Overview](/docs/slo/introduction): Set a target, and see how much of the budget is left.
 :::
 
 ## Incidents and alerts
@@ -97,11 +132,35 @@ A **status page** shows your customers whether your services work. You choose wh
 
 ## Telemetry
 
-**Telemetry** is what your systems send OneUptime: logs, metrics, traces, exceptions and profiles. Apps send it with OpenTelemetry, and OneUptime's agents send it from hosts, Kubernetes clusters, Docker hosts and other infrastructure. Every sender uses an **ingestion key**, created under **Project Settings → Telemetry & APM → Ingestion Keys**. You search telemetry, chart it on dashboards, and watch it with telemetry monitors, which raise incidents and alerts like any other monitor.
+**Telemetry** is what your systems send OneUptime: logs, metrics, traces, exceptions and profiles. Apps send it with OpenTelemetry, and OneUptime's agents send it from hosts, Kubernetes clusters, Docker hosts and other infrastructure. Every sender uses an **ingestion key**, created under **Project Settings → Telemetry & APM → Ingestion Keys**. You search telemetry, chart it on dashboards, and watch it with telemetry monitors, which raise incidents and alerts like any other monitor. In the menu, **Logs**, **Metrics**, **Traces**, **Performance Profiles** and **Exceptions** each open one kind; **AI / LLM** follows your AI's conversations, **Data Observability** watches the tables in your databases, and **Topology** maps how it all connects.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send logs, metrics and traces from your apps.
 - [Logs Monitor](/docs/monitor/logs-monitor): Get told when a pattern shows up in your logs.
+:::
+
+## Security
+
+**Security Events** keeps the security events from your logs, your security tools and anything else you send. Its detection rules turn what they find into security cases, which your team works in a queue and playbooks respond to. **Data Security** finds the sensitive data in your buckets, databases and telemetry, and what is wrong with how it is kept.
+
+:::cards
+- [Get Started with Security](/docs/telemetry/security-getting-started): Find threats in the data you already have.
+- [Data Security Overview](/docs/data-security/index): Find your sensitive data, and fix how it is kept.
+:::
+
+## What you install, and the keys
+
+Most of OneUptime needs nothing installed. You install something only to reach what OneUptime cannot see from outside, and each piece connects out to OneUptime with a key:
+
+- A custom probe runs monitors' checks inside your network, with its own probe ID and key.
+- The **OpenTelemetry Collector**, the Kubernetes agent and the Docker agent send telemetry with an **ingestion key**. The infrastructure agent behind a Server / VM monitor sends with that monitor's secret key.
+- A **Runner** runs runbook steps inside your infrastructure, with its own Runner ID and key.
+
+An ingestion key only sends telemetry in. An **API key** is the other kind: it lets a script, the CLI, Terraform or an AI assistant read and change your project, with the permissions you give it. Neither works in place of the other.
+
+:::cards
+- [Which One Do I Use?](/docs/introduction/which-one#probe-agent-collector-or-runner): What to install, and the key each one takes.
+- [Ingestion Keys](/docs/telemetry/ingestion-keys): Create, scope and rotate the keys that send telemetry.
 :::
 
 ## Automation and AI
@@ -123,11 +182,30 @@ A **status page** shows your customers whether your services work. You choose wh
 - [Label and Owner Rules](/docs/configuration/label-and-owner-rules): Label new resources and give them owners automatically.
 :::
 
+## The kinds of rule
+
+Many things in OneUptime are called a rule. Each makes one decision for you when something new arrives, and they come in a few families. Most of them are under **Rules** in the side menus of **Incidents** and **Alerts**.
+
+| What it decides | Rules |
+| --- | --- |
+| Who is paged | **On-Call Rules** pick the on-call policies a new incident or alert runs, and a policy's **Escalation Rules** page level by level |
+| Who owns it, and how it is labelled | **Owner Rules**, **Label Rules** and **Privacy Rules** |
+| What belongs together | **Grouping Rules** open episodes and add to them |
+| What runs on it | **Runbook Rules** start runbooks, and **AI Rules** decide what OneUptime AI investigates and fixes |
+| When to follow up | **SLA Rules** track response and resolution times, and **Reminder Rules** remind owners while it is open |
+
+A monitor's own rules are its criteria. The on-call rules under **User Settings** are something else again: each person's own, they decide how a page reaches that person.
+
+:::cards
+- [Incident Settings & Automation](/docs/incidents/settings#rules-that-run-when-an-incident-is-created): The rules that run when an incident is created, in order.
+- [Personal On-Call Rules](/docs/notifications/on-call-rules): How a page reaches you.
+:::
+
 ## Next steps
 
 :::cards
 - [Quickstart](/docs/introduction/quickstart): Put these ideas to work in fifteen minutes.
-- [Home Page & Shortcuts](/docs/introduction/home): Find every product in the dashboard.
-- [Creating a Monitor](/docs/monitor/create-monitor): Your first monitor, field by field.
+- [Glossary](/docs/introduction/glossary): Every word OneUptime uses, in a sentence or two.
+- [Which One Do I Use?](/docs/introduction/which-one): Incident or alert, workflow or runbook, and the other look-alikes.
 - [Incidents Overview](/docs/incidents/index): What happens after a monitor declares an incident.
 :::

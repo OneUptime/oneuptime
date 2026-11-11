@@ -1,6 +1,6 @@
 # Alerts Overview
 
-An alert tells your team about a problem to look into before your users notice it: a disk filling up, a certificate about to expire, an error rate creeping up. It can page whoever is on call and notify its owners, but it never shows on a status page and never tells your subscribers. This page explains where alerts come from, where they live in the dashboard and how your team works them.
+An alert tells your team about a problem to look into before your users notice it: a disk filling up, a certificate about to expire, an error rate creeping up. It can page whoever is on call and notify its owners, but it never shows on a status page and never tells your subscribers. This page explains where alerts come from, where they live in the dashboard and how your team works them. Not sure whether a problem is an alert or an incident? [Which One Do I Use?](/docs/introduction/which-one#incident-alert-or-another-kind-of-problem) puts them side by side.
 
 :::cards
 - [Alerts and incidents](#alerts-and-incidents): Which one a problem should be, and how the two connect.

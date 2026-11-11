@@ -11,6 +11,7 @@ import UptimeBarTooltipMaintenance from "../../Types/Monitor/UptimeBarTooltipMai
 import ObjectID from "../../Types/ObjectID";
 import Timezone from "../../Types/Timezone";
 import TimezoneAlias from "../../Types/TimezoneAlias";
+import DayUptimeGraphUtil from "./DayUptimeGraphUtil";
 import ScheduledMaintenanceStartUtil, {
   ScheduledMaintenancePhaseOfState,
 } from "../ScheduledMaintenanceStart";
@@ -223,7 +224,12 @@ export default class UptimeMaintenanceUtil {
    * days in UTC for everyone, but "18:00" means the clock on the reader's
    * wall, and the zone written after it says which clock that is.
    */
-  public static formatWindow(data: { startsAt: Date; endsAt: Date }): string {
+  public static formatWindow(data: {
+    startsAt: Date;
+    endsAt: Date;
+    // the zone of the day it is listed on; see getWindowText.
+    timezone?: string | undefined;
+  }): string {
     const text: MaintenanceWindowText | null = this.getWindowText(data);
 
     if (!text) {
@@ -240,6 +246,14 @@ export default class UptimeMaintenanceUtil {
   public static getWindowText(data: {
     startsAt: Date;
     endsAt: Date;
+    /*
+     * The zone of the bar's day the window is listed on. A day drawn in
+     * another zone than the viewer's - a UTC day, when the server could not
+     * cut the history in theirs - lists the window on that zone's clock, as
+     * it lists its incidents (DayUptimeGraphUtil.formatEventTime); the
+     * reader's clock otherwise.
+     */
+    timezone?: string | undefined;
   }): MaintenanceWindowText | null {
     const start: Date | null = this.toDate(data.startsAt);
 
@@ -254,6 +268,21 @@ export default class UptimeMaintenanceUtil {
         : start;
 
     const use12HourFormat: boolean = OneUptimeDate.getUserPrefers12HourFormat();
+
+    if (
+      data.timezone &&
+      !DayUptimeGraphUtil.isViewersClock({
+        date: start,
+        timezone: data.timezone,
+      })
+    ) {
+      return this.getWindowTextInTimezone({
+        start: start,
+        end: end,
+        timezone: data.timezone,
+        use12HourFormat: use12HourFormat,
+      });
+    }
 
     const startText: string = OneUptimeDate.getDateAsLocalShortDateTimeString(
       start,
@@ -371,6 +400,60 @@ export default class UptimeMaintenanceUtil {
     }
 
     return items;
+  }
+
+  // getWindowText on the clock of `timezone`, each end named with its zone.
+  private static getWindowTextInTimezone(data: {
+    start: Date;
+    end: Date;
+    timezone: string;
+    use12HourFormat: boolean;
+  }): MaintenanceWindowText {
+    const dateTimeText: (date: Date) => string = (date: Date): string => {
+      return OneUptimeDate.getDateAsFormattedStringInTimezone({
+        date: date,
+        timezone: data.timezone,
+        use12HourFormat: data.use12HourFormat,
+        hideYear: true,
+        hideZone: true,
+      });
+    };
+
+    const sameDay: boolean =
+      OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+        date: data.start,
+        format: "YYYY-MM-DD",
+        timezone: data.timezone,
+      }) ===
+      OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+        date: data.end,
+        format: "YYYY-MM-DD",
+        timezone: data.timezone,
+      });
+
+    const startText: string = dateTimeText(data.start);
+    const endText: string = sameDay
+      ? OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+          date: data.end,
+          format: data.use12HourFormat ? "h:mm A" : "HH:mm",
+          timezone: data.timezone,
+        })
+      : dateTimeText(data.end);
+
+    const startZone: string = OneUptimeDate.getZoneAbbrByTimezone(
+      data.timezone as Timezone,
+      data.start,
+    );
+    const endZone: string = OneUptimeDate.getZoneAbbrByTimezone(
+      data.timezone as Timezone,
+      data.end,
+    );
+
+    return {
+      start:
+        startZone === endZone ? startText : `${startText} ${startZone}`.trim(),
+      end: `${endText} ${endZone}`.trim(),
+    };
   }
 
   // The time of day `date` reads at on the reader's clock, in their language.

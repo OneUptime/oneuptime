@@ -1,6 +1,6 @@
 # Présentation des workflows
 
-Les workflows automatisent le travail dans OneUptime sans code. Vous posez des blocs sur un canevas, vous les reliez, et le workflow s'exécute tout seul dès que son déclencheur se produit : un incident est créé, une planification arrive à échéance, un autre outil appelle une URL ou un e-mail arrive. Servez-vous-en pour relier OneUptime au reste de votre infrastructure et pour prendre en charge le suivi de routine pendant que vous traitez le problème lui-même.
+Les workflows automatisent le travail dans OneUptime sans code. Vous posez des blocs sur un canevas, vous les reliez, et le workflow s'exécute tout seul dès que son déclencheur se produit : un incident est créé, une planification arrive à échéance, un autre outil appelle une URL ou un e-mail arrive. Servez-vous-en pour relier OneUptime au reste de votre infrastructure et pour prendre en charge le suivi de routine pendant que vous traitez le problème lui-même. Pour choisir entre un workflow, un runbook, un playbook et une règle IA, consultez [Lequel choisir ?](/docs/introduction/which-one#workflow-runbook-playbook-ou-règle-ia).
 
 :::cards
 - [Créer un workflow](/docs/workflows/authoring): Créez un workflow, puis ajoutez, reliez et configurez ses blocs sur le canevas.
@@ -47,6 +47,8 @@ Vous construisez tout cela visuellement, sur un canevas. La plupart des workflow
 - **Réutiliser les automatisations courantes** — construisez-la une fois, puis démarrez-la depuis n'importe quel autre workflow avec un bloc **Execute Workflow**.
 
 ## Termes clés
+
+Les mots utilisés dans tout OneUptime se trouvent dans le [Glossaire](/docs/introduction/glossary).
 
 | Terme                   | Ce que cela désigne                                                                                                  |
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------- |

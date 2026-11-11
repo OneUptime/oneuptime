@@ -1,6 +1,6 @@
 # Panoramica delle dashboard
 
-Una dashboard è una pagina di widget che disponi tu: grafici delle tue metriche, dei log e delle tracce, elenchi di incidenti, avvisi e monitor, i tuoi SLO e la tua infrastruttura, perfino dati di sistemi esterni a OneUptime. Creane una per lo schermo del turno di reperibilità, per il controllo mattutino di un team o come pagina per i tuoi clienti, e condividila con il tuo progetto o con chiunque abbia il link.
+Una dashboard è una pagina di widget che disponi tu: grafici delle tue metriche, dei log e delle tracce, elenchi di incidenti, avvisi e monitor, i tuoi SLO e la tua infrastruttura, perfino dati di sistemi esterni a OneUptime. Creane una per lo schermo del turno di reperibilità, per il controllo mattutino di un team o come pagina per i tuoi clienti, e condividila con il tuo progetto o con chiunque abbia il link. Per scegliere tra una dashboard, una dashboard pubblica e una pagina di stato, vedi [Quale usare?](/docs/introduction/which-one#dashboard-dashboard-pubblica-o-pagina-di-stato).
 
 :::cards
 - [Come funziona una dashboard](#come-funziona-una-dashboard): Da dove arrivano i suoi dati, e chi la vede.

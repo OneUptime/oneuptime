@@ -119,6 +119,8 @@ I colori delle barre del grafico della cronologia si impostano in **Altre impost
 
 Ogni barra è un giorno. Passa il puntatore su una barra o fai clic su di essa (toccala sul telefono, o premi Invio dalla tastiera) per leggere la giornata: il suo tempo di attività, quanto è durato ogni stato, gli incidenti dichiarati quel giorno e la manutenzione programmata che vi si è svolta, ciascuno con un link alla propria pagina. Un giorno con manutenzione programmata ha una fascia blu in cima alla sua barra e, finché un evento è in corso, ogni risorsa dei suoi monitor mostra «In manutenzione» accanto al nome. La manutenzione non cambia né il colore di una barra né il tempo di attività, che vengono dagli stati del monitor: per tenere il lavoro pianificato fuori dal tempo di attività, scegli per l'evento in **Cambia lo stato del monitor in** uno stato che non sia tra quelli di **Conta come inattività** della pagina. Vedi [Cosa influenza un evento](/docs/scheduled-maintenance/index#cosa-influenza-un-evento).
 
+Ogni barra è un giorno nel fuso orario del lettore, lo stesso in cui la pagina mostra tutti gli altri orari, quindi l'ultima barra è il suo oggi. La barra di un gruppo di monitor mostra per quanto tempo il gruppo stesso è rimasto in ciascuno stato quel giorno: in ogni momento il gruppo ha lo stato peggiore tra i suoi monitor, quindi gli stati di un giorno sommano il tempo in cui almeno uno dei suoi monitor veniva controllato, e mai più del giorno.
+
 ## Gruppi
 
 Alla maggior parte dei gruppi serve solo un nome.

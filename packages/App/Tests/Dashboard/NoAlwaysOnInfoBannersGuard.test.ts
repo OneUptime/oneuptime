@@ -52,6 +52,16 @@ import ts from "typescript";
  * Whatever a page wants to say every time belongs in a card's description
  * (or a field's), where the reader looks when deciding. A banner that has to
  * stay goes under the condition it is about.
+ *
+ * The banners that are exceptions the reader must act on, and so belong:
+ *
+ *   - "Email is not set up" / "Email is failing" / "No global probe is
+ *     reporting" (Common/UI/Components/ServerSending/ServerSendingTopAlert,
+ *     #6825): a warning at the top of the Dashboard and the Admin Dashboard,
+ *     for master admins only, drawn only while the server cannot send email
+ *     or its global probes are silent, and gone by itself once they work.
+ *     Its suite (Common/Tests/UI/Components/ServerSendingTopAlert) holds it
+ *     to drawing nothing otherwise.
  */
 
 const FEATURE_SET_DIR: string = path.resolve(

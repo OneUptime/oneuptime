@@ -6,6 +6,7 @@ import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 import IsolatedLine, {
   getIsolatedLine,
+  isWrappingLineClassName,
 } from "../../../UI/Components/IsolatedText/IsolatedLine";
 import Pill from "../../../UI/Components/Pill/Pill";
 import ProbeElement from "../../../UI/Components/Probe/Probe";
@@ -259,6 +260,187 @@ describe("<IsolatedLine />", () => {
       ...CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME.split(" "),
     );
     expect(line).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+  });
+});
+
+/*
+ * A LINE THAT WRAPS, READ THE OTHER WAY (#6742).
+ *
+ * A box whose words run onto more lines - Spend's job name, which breaks
+ * anywhere ([overflow-wrap:anywhere]); a record's name beside its icon on
+ * a phone's card - was aligned to its end as a one-line box is: every
+ * wrapped line of an English name on an Arabic page lined up on the right,
+ * ragged on its left, where it starts. Its classes say it wraps, so it is
+ * as wide as its words instead (CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME):
+ * at the page's start, each of its lines from its own start.
+ */
+describe("a line whose classes say it wraps", () => {
+  const WRAPPING_CLASS_NAMES: Array<string> = [
+    "whitespace-normal",
+    "whitespace-pre-wrap",
+    "whitespace-pre-line",
+    "whitespace-break-spaces",
+    "text-wrap",
+    "text-balance",
+    "text-pretty",
+    "break-words",
+    "break-all",
+    "[overflow-wrap:anywhere]",
+    "[overflow-wrap:break-word]",
+    "[word-break:break-all]",
+    "[word-break:break-word]",
+  ];
+
+  test.each(WRAPPING_CLASS_NAMES)(
+    "with %s, an English line on an Arabic page is as wide as its words, not aligned to its end",
+    (wrapClassName: string) => {
+      const className: string = `min-w-0 font-medium ${wrapClassName}`;
+
+      expect(isWrappingLineClassName(className)).toBe(true);
+      expect(
+        getIsolatedLine({ text: ENGLISH_NAME, pageLanguage: "ar", className }),
+      ).toEqual({
+        dir: "ltr",
+        className: `${className} ${CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME}`,
+      });
+    },
+  );
+
+  test.each(["fa", "ar"])(
+    "on a %s page Spend's job name, which breaks anywhere, wraps from its own start",
+    (language: string) => {
+      expect(
+        getIsolatedLine({
+          text: ENGLISH_NAME,
+          pageLanguage: language,
+          className:
+            "min-w-0 font-medium text-gray-900 [overflow-wrap:anywhere]",
+        }),
+      ).toEqual({
+        dir: "ltr",
+        className: `min-w-0 font-medium text-gray-900 [overflow-wrap:anywhere] ${CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME}`,
+      });
+    },
+  );
+
+  test.each(["truncate", "whitespace-nowrap", "text-nowrap"])(
+    "kept to one line by %s, it is a one-line box whatever else it says, aligned to its end",
+    (oneLineClassName: string) => {
+      const className: string = `break-words ${oneLineClassName}`;
+
+      expect(isWrappingLineClassName(className)).toBe(false);
+      expect(
+        getIsolatedLine({ text: ENGLISH_NAME, pageLanguage: "ar", className })
+          .className,
+      ).toBe(`${className} ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME}`);
+    },
+  );
+
+  test("only a whole class counts: a variant's or a look-alike's does not", () => {
+    for (const className of [
+      "md:whitespace-normal",
+      "hover:break-words",
+      "break-words-x",
+      "text-wrap-balance",
+      "xwhitespace-normal",
+      "whitespace-nowrap",
+      "overflow-hidden text-ellipsis",
+      "",
+    ]) {
+      expect(isWrappingLineClassName(className)).toBe(false);
+    }
+
+    expect(isWrappingLineClassName(undefined)).toBe(false);
+    expect(isWrappingLineClassName(null)).toBe(false);
+    expect(
+      getIsolatedLine({
+        text: ENGLISH_NAME,
+        pageLanguage: "ar",
+        className: "md:whitespace-normal",
+      }).className,
+    ).toBe(`md:whitespace-normal ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME}`);
+  });
+
+  test("a line cut short to a few lines that also breaks its words is as wide as its words once", () => {
+    const className: string =
+      "line-clamp-2 text-sm font-normal text-gray-500 [overflow-wrap:anywhere]";
+
+    expect(
+      getIsolatedLine({ text: ENGLISH_NAME, pageLanguage: "fa", className }),
+    ).toEqual({
+      dir: "ltr",
+      className: `${className} ${CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME}`,
+    });
+  });
+
+  test("words that read the page's way are drawn exactly as they were, wrapping or not", () => {
+    expect(
+      getIsolatedLine({
+        text: ARABIC_NAME,
+        pageLanguage: "ar",
+        className: "whitespace-normal break-words",
+      }),
+    ).toEqual({ dir: undefined, className: "whitespace-normal break-words" });
+    expect(
+      getIsolatedLine({
+        text: ENGLISH_NAME,
+        pageLanguage: "en",
+        className: "[overflow-wrap:anywhere]",
+      }),
+    ).toEqual({ dir: undefined, className: "[overflow-wrap:anywhere]" });
+  });
+
+  test("a Persian line that wraps on an English page reads right to left, as wide as its words", () => {
+    expect(
+      getIsolatedLine({
+        text: ARABIC_NAME,
+        pageLanguage: "en",
+        className: "break-words",
+      }),
+    ).toEqual({
+      dir: "rtl",
+      className: `break-words ${CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME}`,
+    });
+  });
+
+  test("drawn, Spend's job name on a Persian page reads left to right, its lines from its own start", () => {
+    drawOn(
+      "fa",
+      <div className="flex flex-wrap items-center gap-2">
+        <IsolatedLine
+          as="span"
+          text="nightly_orders_rollup_eu_west_1_full_refresh (dbt)"
+          className="min-w-0 font-medium text-gray-900 [overflow-wrap:anywhere]"
+          dataTestId="job-name"
+        />
+      </div>,
+    );
+
+    const line: HTMLElement = screen.getByTestId("job-name");
+
+    expect(line).toHaveAttribute("dir", "ltr");
+    expect(line).toHaveClass(
+      "[overflow-wrap:anywhere]",
+      ...CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME.split(" "),
+    );
+    expect(line).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    // The badge's row beside it keeps the page's way.
+    expect(line.parentElement).not.toHaveAttribute("dir");
+  });
+
+  test("a one-line name (truncate) is still aligned to its end", () => {
+    drawOn(
+      "ar",
+      <IsolatedLine
+        text={ENGLISH_NAME}
+        className="min-w-0 truncate"
+        dataTestId="one-line"
+      />,
+    );
+
+    expect(screen.getByTestId("one-line")).toHaveClass(
+      LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+    );
   });
 });
 

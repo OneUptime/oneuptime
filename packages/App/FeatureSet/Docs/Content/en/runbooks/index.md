@@ -1,6 +1,6 @@
 # Runbooks Overview
 
-A runbook is a reusable response procedure: an ordered list of manual and automated steps that you run on an incident, an alert or a scheduled maintenance event. It turns the "what do we do now?" thread into a checklist anyone on call can follow at 3am, with the scripts, API calls and approvals already written. Runbooks are for the on-call engineers who respond to incidents and for the platform teams who automate that response.
+A runbook is a reusable response procedure: an ordered list of manual and automated steps that you run on an incident, an alert or a scheduled maintenance event. It turns the "what do we do now?" thread into a checklist anyone on call can follow at 3am, with the scripts, API calls and approvals already written. Runbooks are for the on-call engineers who respond to incidents and for the platform teams who automate that response. To choose between a runbook, a workflow, a playbook and an AI rule, see [Which One Do I Use?](/docs/introduction/which-one#workflow-runbook-playbook-or-ai-rule).
 
 :::cards
 - [Authoring a Runbook](/docs/runbooks/authoring): Create a runbook and write its steps.
@@ -39,6 +39,8 @@ Every run is an **execution**. When it starts, the runbook's steps are copied on
 HTTP and AI steps run on the OneUptime Worker. Bash, SSH and kubectl steps run on a [Runner](/docs/runbooks/agents) you install in your own infrastructure, so those scripts never run on OneUptime's servers. A JavaScript step runs on one of your Runners too or, if it picks none and the project has no [default Runner](/docs/runbooks/agents#the-projects-default-runner), on a [global Runner](/docs/runbooks/agents#global-runners), in a sandbox that reaches the internet only. Each step's status, output and error message are recorded on the execution, which stays with the incident, alert or event it ran for.
 
 ## Key concepts
+
+The words used across OneUptime are in the [Glossary](/docs/introduction/glossary).
 
 | Term | Meaning |
 | --- | --- |

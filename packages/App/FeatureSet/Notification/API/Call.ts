@@ -7,16 +7,14 @@ import {
 } from "../Utils/CallOutcome";
 import { isStatusCallbackTokenValid } from "../Utils/StatusCallbackToken";
 import { getProviderConfigOfCallback } from "../Utils/StatusCallbackProviderConfig";
+import { recordProviderReport } from "../Utils/OnCallNotificationStatus";
 import NotificationDeliveryMetrics, {
   NotificationDeliveryChannel,
   NotificationDeliveryProvider,
 } from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import CallStatus from "Common/Types/Call/CallStatus";
-import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import CallLogService from "Common/Server/Services/CallLogService";
-import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
-import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
 import CallRequest from "Common/Types/Call/CallRequest";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import TwilioConfigJSON from "Common/Types/CallAndSMS/TwilioConfigJSON";
@@ -242,47 +240,19 @@ router.post(
         }),
       });
 
+      /*
+       * Only a notification that is still just sent: the person's answer
+       * (pressing 1 is their acknowledgement), an escalation from it, or a
+       * skip says more than how the call ended - checked in the same
+       * statement as the write (OnCallNotificationStatus), as an SMS's
+       * delivery report is.
+       */
       if (callLog.userOnCallLogTimelineId) {
-        const notification: UserOnCallLogTimeline | null =
-          await UserOnCallLogTimelineService.findOneById({
-            id: callLog.userOnCallLogTimelineId,
-            select: {
-              _id: true,
-              status: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        /*
-         * Only a notification that is still just sent: the person's answer
-         * (pressing 1 is their acknowledgement), an escalation from it, or a
-         * skip says more than how the call ended.
-         */
-        const correctableStatuses: Array<UserNotificationStatus> = [
-          UserNotificationStatus.Sent,
-          UserNotificationStatus.Sending,
-        ];
-
-        if (
-          notification &&
-          notification.status &&
-          correctableStatuses.includes(notification.status)
-        ) {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: callLog.userOnCallLogTimelineId,
-            data: {
-              ...(outcome.notificationStatus
-                ? { status: outcome.notificationStatus }
-                : {}),
-              statusMessage: statusMessage,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        }
+        await recordProviderReport({
+          userOnCallLogTimelineId: callLog.userOnCallLogTimelineId,
+          status: outcome.notificationStatus || undefined,
+          statusMessage: statusMessage,
+        });
       }
 
       return Response.sendEmptySuccessResponse(req, res);

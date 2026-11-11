@@ -1,6 +1,6 @@
 # Monitor-Gruppen
 
-Eine Monitor-Gruppe fasst mehrere Monitore zu einem Status zusammen. Gruppieren Sie die Monitore, die zusammen einen Dienst bilden, etwa Checkout: seine API, seinen Zahlungsdienst und seine Web-App. Die Gruppe zeigt den schlimmsten Status unter ihnen, hat eine eigene Verfügbarkeit, und eine Statusseite kann die ganze Gruppe als eine Zeile anzeigen.
+Eine Monitor-Gruppe fasst mehrere Monitore zu einem Status zusammen. Gruppieren Sie die Monitore, die zusammen einen Dienst bilden, etwa Checkout: seine API, seinen Zahlungsdienst und seine Web-App. Die Gruppe zeigt den schlimmsten Status unter ihnen, hat eine eigene Verfügbarkeit, und eine Statusseite kann die ganze Gruppe als eine Zeile anzeigen. Um zwischen einer Monitor-Gruppe, einem Dienst und einer Beschriftung zu wählen, lesen Sie [Was nehme ich wann?](/docs/introduction/which-one#monitor-gruppe-dienst-oder-beschriftung).
 
 :::cards
 - [Wie der Status einer Gruppe ermittelt wird](#wie-der-status-einer-gruppe-ermittelt-wird): Der schlimmste Status unter ihren Monitoren.
@@ -90,6 +90,8 @@ Um einen Monitor aus der Gruppe zu nehmen, klicken Sie in **Monitore in der Grup
 | **Gruppe löschen** | Löscht die Gruppe, ebenfalls unter **Erweitert**. |
 
 Die Verfügbarkeit in der **Übersicht** zählt jeden Status außer dem betriebsbereiten als Ausfallzeit. Eine Statusseite zählt nur die Status in ihrer eigenen Liste **Zählt als Ausfallzeit**: siehe [Auswählen, was auf der Seite angezeigt wird](/docs/status-pages/index#auswählen-was-auf-der-seite-erscheint).
+
+Jeder Balken des Verfügbarkeits-Diagramms, hier und auf einer Statusseite, zeigt, wie lange die Gruppe selbst an diesem Tag in jedem Status war: In jedem Moment hat sie den schlechtesten Status ihrer Monitore, sodass eine Stunde, in der zwei von ihnen gleichzeitig offline sind, eine Stunde der Gruppe ist und ein Tag nie mehr als einen Tag ergibt. Die Tage sind Ihre eigenen: Das Dashboard zeichnet sie in der Zeitzone Ihrer Benutzereinstellungen, eine Statusseite in der jedes Besuchers.
 
 Die Liste **Monitor-Gruppen** kann Gruppen nach Eigentümer und Label filtern, Labels und Eigentümer für viele Gruppen auf einmal setzen und Gruppen als JSON exportieren oder importieren.
 

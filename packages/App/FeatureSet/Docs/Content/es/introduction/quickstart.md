@@ -141,6 +141,7 @@ Abre el monitor y revisa lo que recibieron las sondas. Consulta la sección de s
 
 :::cards
 - [Conceptos básicos](/docs/introduction/core-concepts): Las ideas detrás de lo que acabas de configurar.
+- [Glosario](/docs/introduction/glossary): Cada palabra que has encontrado por el camino, en una o dos frases.
 - [Programaciones de guardia](/docs/on-call/schedules): Repartir la guardia con tu equipo.
 - [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains): Hacer tuya la página de estado.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Enviar registros, métricas y trazas desde tus aplicaciones.

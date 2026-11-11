@@ -1,6 +1,6 @@
 # Ingestion-Schlüssel
 
-Ein Ingestion-Schlüssel verbindet Ihre Telemetrie mit Ihrem Projekt. Anwendungen, OpenTelemetry Collectors und Agenten senden ihn mit jeder Anfrage, und OneUptime legt ihre Protokolle, Traces und Metriken in dem Projekt ab, zu dem der Schlüssel gehört. Diese Seite zeigt, wie Sie einen Schlüssel anlegen, welche Art Sie wählen und wie Sie Schlüssel sicher halten.
+Ein Ingestion-Schlüssel verbindet Ihre Telemetrie mit Ihrem Projekt. Anwendungen, OpenTelemetry Collectors und Agenten senden ihn mit jeder Anfrage, und OneUptime legt ihre Protokolle, Traces und Metriken in dem Projekt ab, zu dem der Schlüssel gehört. Diese Seite zeigt, wie Sie einen Schlüssel anlegen, welche Art Sie wählen und wie Sie Schlüssel sicher halten. Den Unterschied zwischen einem Ingestion-Schlüssel und einem API-Schlüssel erklärt [Was nehme ich wann?](/docs/introduction/which-one#ingestion-schlüssel-oder-api-schlüssel).
 
 :::cards
 - [Einen Ingestion-Schlüssel anlegen](#einen-ingestion-schlüssel-anlegen): Ein Name, ein Typ und ein Geheimnis zum Kopieren.

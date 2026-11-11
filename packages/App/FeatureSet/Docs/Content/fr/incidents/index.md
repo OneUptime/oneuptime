@@ -1,6 +1,6 @@
 # Vue d'ensemble des incidents
 
-Un incident est l'enregistrement à partir duquel votre équipe travaille quand quelque chose casse : ce qui est touché, la gravité, où en est l'intervention, à qui il appartient, et tout ce qui est consigné en chemin. En déclarer un alerte la bonne rotation d'astreinte, prévient ses propriétaires et — si vous le souhaitez — affiche la panne sur votre page de statut, pour que vos clients sachent que vous êtes dessus.
+Un incident est l'enregistrement à partir duquel votre équipe travaille quand quelque chose casse : ce qui est touché, la gravité, où en est l'intervention, à qui il appartient, et tout ce qui est consigné en chemin. En déclarer un alerte la bonne rotation d'astreinte, prévient ses propriétaires et — si vous le souhaitez — affiche la panne sur votre page de statut, pour que vos clients sachent que vous êtes dessus. Vous ne savez pas si un problème est un incident ou une alerte ? [Lequel choisir ?](/docs/introduction/which-one#incident-alerte-ou-autre-type-de-problème) les compare côte à côte.
 
 :::cards
 - [Déclarer un incident](/docs/incidents/declaring-incidents): À la main, à partir d'un modèle, depuis un moniteur, par l'API ou via un formulaire.
@@ -86,7 +86,7 @@ Ensuite, vous pouvez rédiger un [post-mortem](/docs/incidents/postmortems) et, 
 
 ## Termes clés
 
-Une poignée de mots revient sur toutes les autres pages de cette section. Clarifiez-les d'abord.
+Une poignée de mots revient sur toutes les autres pages de cette section. Clarifiez-les d'abord. Les mots utilisés dans tout OneUptime se trouvent dans le [Glossaire](/docs/introduction/glossary).
 
 | Terme                      | Ce que cela veut dire                                                                                                                                    |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |

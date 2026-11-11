@@ -296,8 +296,21 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       return [];
     }
 
+    /*
+     * Inclusive at both ends: endOfDay is the next day's start less a
+     * millisecond, so every instant is in exactly one day. moment's
+     * isBetween, which this used, is exclusive at both ends, and an incident
+     * declared on the stroke of midnight was listed on no day.
+     */
+    const dayStartTime: number = startOfDay.getTime();
+    const dayEndTime: number = endOfDay.getTime();
+
     return props.incidents.filter((incident: UptimeBarTooltipIncident) => {
-      return OneUptimeDate.isBetween(incident.declaredAt, startOfDay, endOfDay);
+      const declaredAt: number = OneUptimeDate.fromString(
+        incident.declaredAt,
+      ).getTime();
+
+      return declaredAt >= dayStartTime && declaredAt <= dayEndTime;
     });
   };
 
@@ -328,31 +341,54 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       );
     });
 
-    const todaysEvents: Array<Event> = props.events.filter((event: Event) => {
-      let doesEventBelongsToToday: boolean = false;
+    /*
+     * The day as a half-open span, [start of the day, start of the next
+     * day), to the millisecond: endOfDay is the next day's start less a
+     * millisecond. Measured to it, a fully covered day is 24 hours, not
+     * 23:59:59.999 - and a day only reaches as far as now.
+     */
+    const dayStartTime: number = startOfTheDay.getTime();
+    const dayEndTime: number = Math.min(
+      endOfTheDay.getTime() + 1,
+      now.getTime(),
+    );
 
-      /// if the event starts or end today.
-      if (
-        OneUptimeDate.isBetween(event.startDate, startOfTheDay, endOfTheDay)
-      ) {
-        doesEventBelongsToToday = true;
+    /*
+     * The part of each event that falls in this day and has happened. An
+     * event overlaps the day when it starts before the day ends and ends
+     * after it starts. The test this replaces was strict at both ends, so an
+     * event starting exactly at the day's first instant - a monitor group's
+     * merged timeline turns at any instant - and running past its last one
+     * was in no day at all.
+     */
+    const todaysEventSpans: Array<{
+      event: Event;
+      seconds: number;
+    }> = [];
+
+    for (const event of props.events) {
+      const eventStartTime: number = OneUptimeDate.fromString(
+        event.startDate,
+      ).getTime();
+      const eventEndTime: number = OneUptimeDate.fromString(
+        event.endDate,
+      ).getTime();
+
+      const from: number = Math.max(eventStartTime, dayStartTime);
+      const to: number = Math.min(eventEndTime, dayEndTime);
+
+      if (!(to > from)) {
+        continue;
       }
 
-      if (OneUptimeDate.isBetween(event.endDate, startOfTheDay, endOfTheDay)) {
-        doesEventBelongsToToday = true;
-      }
+      todaysEventSpans.push({ event: event, seconds: (to - from) / 1000 });
+    }
 
-      // if the event is outside start or end day but overlaps the day completely.
-
-      if (
-        OneUptimeDate.isBetween(startOfTheDay, event.startDate, endOfTheDay) &&
-        OneUptimeDate.isBetween(endOfTheDay, startOfTheDay, event.endDate)
-      ) {
-        doesEventBelongsToToday = true;
-      }
-
-      return doesEventBelongsToToday;
-    });
+    const todaysEvents: Array<Event> = todaysEventSpans.map(
+      (span: { event: Event; seconds: number }): Event => {
+        return span.event;
+      },
+    );
 
     const secondsOfEvent: Dictionary<number> = {};
     const eventColors: Dictionary<Color> = {};
@@ -361,24 +397,9 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
 
     const eventLabels: Dictionary<string> = {};
 
-    for (const event of todaysEvents) {
-      const startDate: Date = OneUptimeDate.getGreaterDate(
-        event.startDate,
-        startOfTheDay,
-      );
-
-      const endDate: Date = OneUptimeDate.getLesserDate(
-        event.endDate,
-        OneUptimeDate.getLesserDate(
-          OneUptimeDate.getCurrentDate(),
-          endOfTheDay,
-        ),
-      );
-
-      const seconds: number = OneUptimeDate.getSecondsBetweenDates(
-        startDate,
-        endDate,
-      );
+    for (const span of todaysEventSpans) {
+      const event: Event = span.event;
+      const seconds: number = span.seconds;
 
       if (!secondsOfEvent[event.eventStatusId.toString()]) {
         secondsOfEvent[event.eventStatusId.toString()] = 0;

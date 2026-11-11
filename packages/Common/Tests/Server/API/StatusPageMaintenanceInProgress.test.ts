@@ -222,6 +222,7 @@ describe("a status page shows every scheduled maintenance event in progress as o
       statusPageGroups: [],
       statusPage: statusPage,
       monitorsOnStatusPage: [],
+      monitorsOnStatusPageForTimeline: [],
       monitorsInGroup: {},
       startDateForMonitorTimeline: new Date(Date.now() - 30 * DAY_MS),
       endDateForMonitorTimeline: new Date(),

@@ -74,6 +74,8 @@ Los endpoints siguen los propios ajustes de la página, en la tarjeta **Lo que m
 
 La vista general es una sola solicitud para toda la página. Son los mismos datos que dibuja la página de estado, y tienen como mucho 15 segundos de antigüedad.
 
+Los días de las barras de disponibilidad son días UTC salvo que indique una zona horaria: añada `?timezone=Asia/Shanghai` a un `GET`, o envíe `{"timezone": "Asia/Shanghai"}` como cuerpo de un `POST`, y `uptimeDailyAggregate` y `monitorGroupUptimeDailyAggregate` se dividen en los días de esa zona, como pide la página de estado para cada visitante. Una zona que el servidor no conoce es UTC, y ambos dicen en su `timezone` en qué zona se dividieron.
+
 :::tabs
 @tab curl
 ```bash
@@ -133,7 +135,7 @@ El estado global es el peor estado actual de los monitores y grupos de monitores
 | `resourceGroups` | Los grupos, con `parentStatusPageGroupId` para los grupos anidados. |
 | `monitorStatuses` | Cada estado de monitor del proyecto, de la prioridad más baja a la más alta. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | El estado actual de cada grupo de monitores de la página y los monitores que contiene. |
-| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | A partir de qué se dibujan las barras de disponibilidad, y las reglas de color de las barras de la página. |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | A partir de qué se dibujan las barras de disponibilidad, y las reglas de color de las barras de la página. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Los incidentes sin resolver que muestra la página, sus notas públicas y cambios de estado, y los estados de incidente del proyecto. |
 | `timelineIncidents` | Los incidentes dentro de la ventana de las barras de disponibilidad, incluidos los resueltos, para las descripciones emergentes de las barras. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Lo mismo para los episodios de incidentes. |

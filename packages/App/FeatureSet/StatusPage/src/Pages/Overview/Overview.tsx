@@ -43,8 +43,12 @@ import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTim
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
-import { UptimeDailyAggregate } from "Common/Types/StatusPage/UptimeDailyAggregate";
+import {
+  MonitorGroupUptimeDailyAggregate,
+  UptimeDailyAggregate,
+} from "Common/Types/StatusPage/UptimeDailyAggregate";
 import UptimeDailyAggregateUtil from "Common/Utils/StatusPage/UptimeDailyAggregateUtil";
+import MonitorGroupUptimeDailyAggregateUtil from "Common/Utils/StatusPage/MonitorGroupUptimeDailyAggregateUtil";
 import { MergedDowntimeTotals } from "Common/Types/StatusPage/MergedDowntimeTotals";
 import MonitorGroupMergedDowntimeUtil from "Common/Utils/StatusPage/MonitorGroupMergedDowntimeUtil";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
@@ -205,6 +209,17 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const [monitorGroupMergedDowntime, setMonitorGroupMergedDowntime] = useState<
     Dictionary<MergedDowntimeTotals>
   >({});
+  /*
+   * Server-measured day buckets per monitor group: how long the GROUP spent
+   * in each status each day - the worst status among its monitors at each
+   * instant - so a group's day adds up to at most the day (issue #6697).
+   * What a group's bars and uptime percentage are painted from. Empty from
+   * a server that predates it, and a group then falls back to its rows.
+   */
+  const [
+    monitorGroupUptimeDailyAggregate,
+    setMonitorGroupUptimeDailyAggregate,
+  ] = useState<MonitorGroupUptimeDailyAggregate | null>(null);
   const [resourceGroups, setResourceGroups] = useState<Array<StatusPageGroup>>(
     [],
   );
@@ -262,15 +277,53 @@ const Overview: FunctionComponent<PageComponentProps> = (
    * that predates the aggregate) there is nothing to line up with, and the
    * strips keep the visitor's own days.
    */
-  const uptimeBucketWindow: { startDate: Date; endDate: Date } | null =
+  const monitorBucketWindow: { startDate: Date; endDate: Date } | null =
     useMemo(() => {
       return UptimeDailyAggregateUtil.getWindow(uptimeDailyAggregate);
     }, [uptimeDailyAggregate]);
+  const monitorGroupBucketWindow: { startDate: Date; endDate: Date } | null =
+    useMemo(() => {
+      return MonitorGroupUptimeDailyAggregateUtil.getWindow(
+        monitorGroupUptimeDailyAggregate,
+      );
+    }, [monitorGroupUptimeDailyAggregate]);
+  /*
+   * The monitors' and the monitor groups' buckets are cut together, in the
+   * zone the page asked for and on one grid, so one window serves every
+   * strip - from whichever has buckets, or the span of both.
+   */
+  const uptimeBucketWindow: { startDate: Date; endDate: Date } | null =
+    useMemo(() => {
+      if (!monitorBucketWindow || !monitorGroupBucketWindow) {
+        return monitorBucketWindow || monitorGroupBucketWindow;
+      }
+
+      return {
+        startDate: new Date(
+          Math.min(
+            monitorBucketWindow.startDate.getTime(),
+            monitorGroupBucketWindow.startDate.getTime(),
+          ),
+        ),
+        endDate: new Date(
+          Math.max(
+            monitorBucketWindow.endDate.getTime(),
+            monitorGroupBucketWindow.endDate.getTime(),
+          ),
+        ),
+      };
+    }, [monitorBucketWindow, monitorGroupBucketWindow]);
   const uptimeStripStartDate: Date = uptimeBucketWindow?.startDate || startDate;
   const uptimeStripEndDate: Date = uptimeBucketWindow?.endDate || endDate;
-  const uptimeStripTimezone: string | undefined = uptimeBucketWindow
+  /*
+   * The visitor's own zone, which the page asked for, unless the server
+   * could not cut days in it and said UTC instead.
+   */
+  const uptimeStripTimezone: string | undefined = monitorBucketWindow
     ? UptimeDailyAggregateUtil.getTimezone(uptimeDailyAggregate)
-    : undefined;
+    : monitorGroupBucketWindow
+      ? monitorGroupUptimeDailyAggregate?.timezone
+      : undefined;
   const [currentStatus, setCurrentStatus] = useState<MonitorStatus | null>(
     null,
   );
@@ -361,7 +414,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
         url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
           `/overview/${id.toString()}`,
         ),
-        data: {},
+        /*
+         * The zone the page shows every time in, so each bar of the uptime
+         * history is one of the visitor's own days, and the incidents and
+         * maintenance its tooltip lists - in that same zone - are the day's.
+         * The bars used to be UTC days for everyone (issue #6697).
+         */
+        data: {
+          timezone: OneUptimeDate.getCurrentTimezone(),
+        },
         headers: API.getDefaultHeaders(),
       });
 
@@ -453,6 +514,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
       const monitorGroupMergedDowntime: Dictionary<MergedDowntimeTotals> =
         MonitorGroupMergedDowntimeUtil.fromJSON(
           data["monitorGroupMergedDowntime"] as JSONObject,
+        );
+      const monitorGroupUptimeDailyAggregate: MonitorGroupUptimeDailyAggregate =
+        MonitorGroupUptimeDailyAggregateUtil.fromJSON(
+          data["monitorGroupUptimeDailyAggregate"] as JSONObject,
         );
       const resourceGroups: Array<StatusPageGroup> = BaseModel.fromJSONArray(
         (data["resourceGroups"] as JSONArray) || [],
@@ -570,6 +635,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setMonitorStatusTimelines(monitorStatusTimelines);
       setUptimeDailyAggregate(uptimeDailyAggregate);
       setMonitorGroupMergedDowntime(monitorGroupMergedDowntime);
+      setMonitorGroupUptimeDailyAggregate(monitorGroupUptimeDailyAggregate);
       setResourceGroups(resourceGroups);
       setMonitorStatuses(monitorStatuses);
       setStatusPage(statusPage);
@@ -804,6 +870,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
               statusPageGroupTreeIndex: groupTreeIndex,
               uptimeDailyAggregate: uptimeDailyAggregate,
               monitorGroupMergedDowntime: monitorGroupMergedDowntime,
+              monitorGroupUptimeDailyAggregate:
+                monitorGroupUptimeDailyAggregate,
             },
           )
         : null;
@@ -852,6 +920,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     monitorsInGroup,
     uptimeDailyAggregate,
     monitorGroupMergedDowntime,
+    monitorGroupUptimeDailyAggregate,
     startDate,
     endDate,
     t,
@@ -980,23 +1049,20 @@ const Overview: FunctionComponent<PageComponentProps> = (
             downtimeMonitorStatuses={statusPage?.downtimeMonitorStatuses || []}
             /*
              * Single-monitor resource, so the monitor's own buckets are the
-             * resource's reading. A GROUP resource deliberately gets none:
-             * its status at any moment is the highest-priority status among
-             * its monitors, and summing per-monitor day buckets would count
-             * two monitors down at the same time as twice the downtime. A
-             * group's uptime percentage is read from the server's merged
-             * figure instead (below); its bars keep the old event-derived
-             * behaviour until there is a merged reading per day.
+             * resource's reading. A GROUP resource reads its own buckets
+             * instead (below): its status at any moment is the worst status
+             * among its monitors, and summing per-monitor day buckets would
+             * count two monitors down at the same time as twice the downtime.
              */
             uptimeBuckets={UptimeDailyAggregateUtil.getBucketsForMonitor(
               uptimeDailyAggregate,
               resource.monitorId || resource.monitor?.id || "",
             )}
             /*
-             * The buckets are UTC days (one cached payload serves every
-             * visitor), so the bars are drawn on UTC days too. Drawn on the
-             * visitor's local days instead, a bucket landed on the wrong bar
-             * west of UTC and today's bar had no bucket at all.
+             * The zone the buckets were cut in - the visitor's own, which the
+             * page asks for - so each bar is exactly one bucket. Drawn on any
+             * other days, a bucket lands on the wrong bar and today's bar has
+             * no bucket at all.
              */
             uptimeTimezone={uptimeStripTimezone}
             monitorStatuses={monitorStatuses}
@@ -1103,9 +1169,23 @@ const Overview: FunctionComponent<PageComponentProps> = (
             )}
             downtimeMonitorStatuses={statusPage?.downtimeMonitorStatuses || []}
             /*
-             * The group's uptime percentage: the time at least one of its
-             * monitors was down, merged by the server from every row. Its
-             * rows are what the page-wide cap left, merged by priority.
+             * The group's own day buckets, measured by the server from every
+             * row: how long the GROUP spent in each status each day, the
+             * worst status among its monitors at each instant. Its bars and
+             * its uptime percentage are painted from them, so a finished day
+             * adds up to at most the day, and the percentage is the sum of
+             * the days. Its rows are what the page-wide cap left; they paint
+             * only a day these do not cover.
+             */
+            uptimeBuckets={MonitorGroupUptimeDailyAggregateUtil.getBucketsForMonitorGroup(
+              monitorGroupUptimeDailyAggregate,
+              resource.monitorGroupId?.toString() || "",
+            )}
+            monitorStatuses={monitorStatuses}
+            /*
+             * The group's uptime percentage from a server that sends no
+             * buckets for it: the time at least one of its monitors was
+             * down, merged from every row.
              */
             mergedDowntime={
               monitorGroupMergedDowntime[
@@ -1115,10 +1195,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
             startDate={uptimeStripStartDate}
             endDate={uptimeStripEndDate}
             /*
-             * A group has no buckets and is painted from its rows, but it
-             * shares the list's "N days ago ... Today" axis with the monitor
-             * strips, so it is drawn on their days. On the visitor's own days
-             * column i would be a different day on each row.
+             * Drawn on the same days as every monitor strip - the visitor's
+             * own - so column i is the same day on every row.
              */
             uptimeTimezone={uptimeStripTimezone}
             showHistoryChart={resource.showStatusHistoryChart}
@@ -1155,6 +1233,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     monitorStatusTimelines,
     uptimeDailyAggregate,
     monitorGroupMergedDowntime,
+    monitorGroupUptimeDailyAggregate,
     monitorsInGroup,
     monitorGroupCurrentStatuses,
     uptimeStripStartDate,
@@ -1184,6 +1263,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         uptimeWindow: { startDate, endDate },
         uptimeDailyAggregate,
         monitorGroupMergedDowntime,
+        monitorGroupUptimeDailyAggregate,
       },
     );
   }, [
@@ -1192,6 +1272,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     monitorStatusTimelines,
     uptimeDailyAggregate,
     monitorGroupMergedDowntime,
+    monitorGroupUptimeDailyAggregate,
     statusPageResources,
     resourceGroups,
     monitorsInGroup,
@@ -1426,6 +1507,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
               uptimeWindow: { startDate: startDate, endDate: endDate },
               uptimeDailyAggregate: uptimeDailyAggregate,
               monitorGroupMergedDowntime: monitorGroupMergedDowntime,
+              monitorGroupUptimeDailyAggregate:
+                monitorGroupUptimeDailyAggregate,
             });
           if (percent !== null) {
             uptimePercents.push(percent);

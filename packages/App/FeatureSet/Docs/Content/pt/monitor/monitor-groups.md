@@ -1,6 +1,6 @@
 # Grupos de monitores
 
-Um grupo de monitores reúne vários monitores em um único status. Agrupe os monitores que juntos formam um serviço, como Checkout: a API, o serviço de pagamentos e o app web dele. O grupo mostra o pior status entre eles, tem a sua própria disponibilidade, e uma página de status pode mostrar o grupo inteiro como uma única linha.
+Um grupo de monitores reúne vários monitores em um único status. Agrupe os monitores que juntos formam um serviço, como Checkout: a API, o serviço de pagamentos e o app web dele. O grupo mostra o pior status entre eles, tem a sua própria disponibilidade, e uma página de status pode mostrar o grupo inteiro como uma única linha. Para escolher entre um grupo de monitores, um serviço e um rótulo, veja [Qual devo usar?](/docs/introduction/which-one#grupo-de-monitores-serviço-ou-rótulo).
 
 :::cards
 - [Como o status de um grupo é calculado](#como-o-status-de-um-grupo-é-calculado): O pior status entre os seus monitores.
@@ -90,6 +90,8 @@ Abra um grupo para ver as páginas dele no menu lateral:
 | **Excluir grupo** | Exclui o grupo, também em **Avançado**. |
 
 A disponibilidade em **Visão geral** conta como indisponibilidade todo status exceto o operacional. Uma página de status conta só os status da sua própria lista **Conta como indisponibilidade**: veja [Escolher o que aparece na página](/docs/status-pages/index#escolher-o-que-aparece-na-página).
+
+Cada barra do gráfico de tempo de atividade, aqui e em uma página de status, mostra quanto tempo o próprio grupo passou em cada status naquele dia: a cada momento ele tem o pior status entre seus monitores, então uma hora em que dois deles ficam offline ao mesmo tempo é uma hora do grupo, e um dia nunca soma mais do que um dia. Os dias são os seus: o painel os desenha no fuso horário das suas configurações de usuário, e uma página de status no de cada visitante.
 
 A lista **Grupos de monitores** pode filtrar grupos por proprietário e rótulo, definir rótulos e proprietários em muitos grupos de uma vez, e exportar ou importar grupos como JSON.
 

@@ -62,6 +62,13 @@ import {
   canSignedInUserInviteToEveryTeam,
   findDefaultInviteTeam,
 } from "../../Utils/DefaultInviteTeam";
+import {
+  SERVER_EMAIL_COPY,
+  ServerEmail,
+  cannotSendEmail,
+  useServerEmail,
+} from "../../Utils/ServerEmail";
+import InvitationLinkModal from "Common/UI/Components/InvitationLink/InvitationLinkModal";
 
 const Users: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -73,6 +80,17 @@ const Users: FunctionComponent<PageComponentProps> = (
     React.useState<boolean>(false);
   const [isPushGroupsManaged, setIsPushGroupsManaged] =
     React.useState<boolean>(false);
+
+  /*
+   * Whether the server can send the invitation email (Utils/ServerEmail):
+   * the dialog says so before anyone invites, and a master admin is then
+   * handed the link the email would have carried.
+   */
+  const serverEmail: ServerEmail = useServerEmail();
+  const [invitationLinkFor, setInvitationLinkFor] = React.useState<{
+    teamMemberId: ObjectID;
+    viewPageRoute: Route;
+  } | null>(null);
 
   /*
    * The team Invite User starts on: the project's members team, when the
@@ -440,7 +458,17 @@ const Users: FunctionComponent<PageComponentProps> = (
             disableSort: true,
             getElement: (item: TeamMember) => {
               if (!item.hasAcceptedInvitation) {
-                return <Pill text="Invitation Sent" color={Yellow} />;
+                // Nothing was sent by a server that cannot send email.
+                return (
+                  <Pill
+                    text={
+                      cannotSendEmail(serverEmail)
+                        ? SERVER_EMAIL_COPY.invitedPill
+                        : "Invitation Sent"
+                    }
+                    color={Yellow}
+                  />
+                );
               }
 
               /*
@@ -501,7 +529,23 @@ const Users: FunctionComponent<PageComponentProps> = (
                 RouteUtil.populateRouteParams(props.pageRoute).toString() +
                 "/" +
                 userId;
-              Navigation.navigate(new Route(viewPageRoute));
+
+              /*
+               * No email went out: a master admin is handed the link to
+               * send, and goes on to the person's page once done with it.
+               */
+              if (
+                cannotSendEmail(serverEmail) &&
+                serverEmail.isMasterAdmin &&
+                teamMember.id
+              ) {
+                setInvitationLinkFor({
+                  teamMemberId: teamMember.id,
+                  viewPageRoute: new Route(viewPageRoute),
+                });
+              } else {
+                Navigation.navigate(new Route(viewPageRoute));
+              }
             }
             setShowInviteUserModal(false);
           }}
@@ -515,8 +559,11 @@ const Users: FunctionComponent<PageComponentProps> = (
                   user: true,
                 },
                 title: "Email",
-                description:
-                  "We email them an invitation to the team you pick.",
+                description: cannotSendEmail(serverEmail)
+                  ? serverEmail.isMasterAdmin
+                    ? SERVER_EMAIL_COPY.inviteEmailDescriptionForAdmin
+                    : SERVER_EMAIL_COPY.inviteEmailDescription
+                  : "We email them an invitation to the team you pick.",
                 fieldType: FormFieldSchemaType.Email,
                 required: true,
                 placeholder: "member@company.com",
@@ -565,6 +612,16 @@ const Users: FunctionComponent<PageComponentProps> = (
               },
             ],
             formType: FormType.Create,
+          }}
+        />
+      )}
+      {invitationLinkFor && (
+        <InvitationLinkModal
+          teamMemberId={invitationLinkFor.teamMemberId}
+          onClose={() => {
+            const viewPageRoute: Route = invitationLinkFor.viewPageRoute;
+            setInvitationLinkFor(null);
+            Navigation.navigate(viewPageRoute);
           }}
         />
       )}

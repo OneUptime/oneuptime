@@ -176,6 +176,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   // A cron schedule in words: the monitor's interval, a workflow's schedule.
   { directory: "packages/Common/Utils/CronScheduleText.ts", kind: "ui" },
+  /*
+   * Why an email was not sent when the server has no email set up: the
+   * project's Email Logs show it in the reader's language. Only the words
+   * the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/ServerSending/ServerSendingWords.ts",
+    kind: "ui",
+  },
   // The common schedules a workflow's Schedule trigger offers.
   { directory: "packages/Common/Utils/CronTab.ts", kind: "ui" },
   /*

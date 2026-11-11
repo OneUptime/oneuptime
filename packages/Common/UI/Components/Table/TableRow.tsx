@@ -35,6 +35,7 @@ import {
   TABLE_SELECTED_ROW_CLASS_NAME,
   TABLE_STICKY_END_BODY_CELL_CLASS_NAME,
   TABLE_STUCK_END_CELL_CLASS_NAME,
+  TABLE_WRAP_CELL_OTHER_WAY_LINE_CLASS_NAME,
   getTableCellPaddingClassName,
 } from "./TableLayout";
 import { TABLE_STICKY_END_ATTRIBUTE } from "./TableStickyEndFocus";
@@ -56,6 +57,7 @@ import useTranslateValue from "../../Utils/Translation";
 import useTranslator from "../../Utils/UseTranslator";
 import { Translator } from "../../Utils/TranslateTemplate";
 import {
+  CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
   getLineDirection,
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
   LINE_OR_CLAMPED_LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
@@ -621,6 +623,10 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     );
                   }
 
+                  // The values folded under this field's own (Column.foldInto).
+                  const foldedValues: Array<TableFoldedValue> =
+                    getFoldedValuesOf(column);
+
                   /*
                    * A plain yes/no field says nothing when it is no, as the
                    * table's quiet dash does. A column that draws its own
@@ -633,9 +639,9 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     column.type === FieldType.Boolean &&
                     !column.getElement
                       ? props.item[column.key]
-                        ? getCellContent(column, getFoldedValuesOf(column))
+                        ? getCellContent(column, foldedValues)
                         : null
-                      : getCellContent(column, getFoldedValuesOf(column));
+                      : getCellContent(column, foldedValues);
 
                   // A card leaves out the fields that have nothing to say.
                   if (
@@ -663,6 +669,28 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                    */
                   const isCardTitleHidden: boolean =
                     i === 0 || Boolean(column.hideTitleOnMobile);
+
+                  /*
+                   * A value that reads the other way from the page - an
+                   * English title on an Arabic page - reads its own way in
+                   * a card as it does in a table's cell
+                   * (getCellLineDirection): a card wraps it, and in the
+                   * page's way its lines lined up on the right and its
+                   * full stop came first. As wide as its words, it still
+                   * starts where the card's other values do, each of its
+                   * lines from its own start
+                   * (CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME). A
+                   * column that draws more than the value's words (a logo
+                   * beside a name, a line of the page's under it) keeps the
+                   * card's way, and sets its name apart itself.
+                   */
+                  const lineDirection: ReadingDirection | undefined =
+                    getCellLineDirection(column, foldedValues);
+
+                  const valueClassName: string =
+                    i === 0
+                      ? `${TABLE_MOBILE_FIELD_VALUE_CLASS_NAME} font-medium`
+                      : TABLE_MOBILE_FIELD_VALUE_CLASS_NAME;
 
                   return (
                     <div
@@ -707,10 +735,11 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                       </dt>
                       <dd
                         className={
-                          i === 0
-                            ? `${TABLE_MOBILE_FIELD_VALUE_CLASS_NAME} font-medium`
-                            : TABLE_MOBILE_FIELD_VALUE_CLASS_NAME
+                          lineDirection
+                            ? `${valueClassName} ${CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME}`
+                            : valueClassName
                         }
+                        dir={lineDirection}
                       >
                         {value}
                       </dd>
@@ -885,6 +914,22 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 ? undefined
                 : getCellLineDirection(column, foldedValues);
 
+              /*
+               * A column of prose (wrapContent) wraps its value rather than
+               * cut it short, and aligned to its end, as a one-line value
+               * is, every wrapped line of an English description on an
+               * Arabic page lined up on the right, ragged where it starts.
+               * Its box keeps the page's way and its width (its cap, its
+               * floor); the value reads its own way in a box inside it
+               * (TABLE_WRAP_CELL_OTHER_WAY_LINE_CLASS_NAME), as wide as its
+               * words, at the page's start, each line from its own start.
+               */
+              const isWrappedOtherWay: boolean = Boolean(
+                lineDirection && column.wrapContent,
+              );
+              const boxLineDirection: ReadingDirection | undefined =
+                isWrappedOtherWay ? undefined : lineDirection;
+
               return (
                 <td
                   key={getCellKey(column, i)}
@@ -911,7 +956,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     columnContent !== undefined && (
                       <div
                         className={
-                          lineDirection
+                          boxLineDirection
                             ? `${contentWrapperClassName} ${
                                 /*
                                  * The row's name, and any other value that
@@ -929,7 +974,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                               }`
                             : contentWrapperClassName
                         }
-                        dir={lineDirection}
+                        dir={boxLineDirection}
                         /*
                          * The row's name, which may use the room of a table
                          * that fits (useTableScrollState's
@@ -956,7 +1001,18 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                             : showFullValueWhenCutShort
                         }
                       >
-                        {columnContent}
+                        {isWrappedOtherWay ? (
+                          <div
+                            dir={lineDirection}
+                            className={
+                              TABLE_WRAP_CELL_OTHER_WAY_LINE_CLASS_NAME
+                            }
+                          >
+                            {columnContent}
+                          </div>
+                        ) : (
+                          columnContent
+                        )}
                       </div>
                     )}
                   {isActions && (

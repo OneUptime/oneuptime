@@ -1,6 +1,6 @@
 # Hændelser – Oversigt
 
-En hændelse er den optegnelse, dit team arbejder ud fra, når noget går i stykker: hvad der er ramt, hvor slemt det er, hvor langt indsatsen er nået, hvem der ejer den, og alt det, der bliver skrevet ned undervejs. At erklære en tilkalder den rigtige vagtrotation, giver ejerne besked og — hvis du vil — sætter udfaldet på din statusside, så kunderne ved, at du er på sagen.
+En hændelse er den optegnelse, dit team arbejder ud fra, når noget går i stykker: hvad der er ramt, hvor slemt det er, hvor langt indsatsen er nået, hvem der ejer den, og alt det, der bliver skrevet ned undervejs. At erklære en tilkalder den rigtige vagtrotation, giver ejerne besked og — hvis du vil — sætter udfaldet på din statusside, så kunderne ved, at du er på sagen. Er du i tvivl om, hvorvidt et problem er en hændelse eller en advarsel? [Hvilken skal jeg bruge?](/docs/introduction/which-one#hændelse-advarsel-eller-en-anden-slags-problem) stiller dem op side om side.
 
 :::cards
 - [Opret en hændelse](/docs/incidents/declaring-incidents): I hånden, fra en skabelon, fra en monitor, via API'et eller via en formular.
@@ -86,7 +86,7 @@ Derefter kan du skrive en [postmortem](/docs/incidents/postmortems) og eventuelt
 
 ## Nøglebegreber
 
-En håndfuld ord går igen på hver anden side i dette afsnit. Få dem på plads først.
+En håndfuld ord går igen på hver anden side i dette afsnit. Få dem på plads først. Se [Ordliste](/docs/introduction/glossary) for de ord, der bruges på tværs af OneUptime.
 
 | Begreb                 | Hvad det betyder                                                                                                                                    |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |

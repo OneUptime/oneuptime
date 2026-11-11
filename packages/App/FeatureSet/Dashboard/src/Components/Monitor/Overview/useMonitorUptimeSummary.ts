@@ -629,9 +629,17 @@ export const useMonitorUptimeSummary: (options: {
               .addRoute(
                 "/monitor/uptime-summary/" + options.monitorId.toString(),
               )
+              /*
+               * The zone every other time on the Dashboard is shown in: the
+               * one the user picked in User Settings, else the browser's
+               * (OneUptimeDate.getCurrentTimezone, always a zone moment
+               * knows). Asked in the browser's own zone, a user whose
+               * settings name another zone got bars cut on the browser's
+               * days, labelled and listing their incidents on theirs.
+               */
               .addQueryParam(
                 "timezone",
-                MonitorUptimeSummaryUtil.getBrowserTimezone(),
+                OneUptimeDate.getCurrentTimezone(),
                 true,
               ),
             headers: ModelAPI.getCommonHeaders(),
