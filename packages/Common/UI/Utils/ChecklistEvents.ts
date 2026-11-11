@@ -16,8 +16,9 @@ import { JSONValue } from "../../Types/JSON";
  * (getChecklistProgressChange says which). What was seen is kept in this
  * browser, per project.
  *
- * The checklist #6803 keeps on the server calls this the same way, with its
- * own step keys.
+ * The checklist #6803 keeps on the server calls this with its own step keys
+ * (WelcomeStep) and the project's goals (toGoalsEventValue), which both
+ * events carry so the funnel splits by goal.
  */
 export default class ChecklistEvents {
   public static getSeenKey(projectId: string): string {
@@ -28,6 +29,8 @@ export default class ChecklistEvents {
     projectId: string;
     current: Dictionary<boolean>;
     stepKeys: ReadonlyArray<string>;
+    // The project's goals, as toGoalsEventValue writes them.
+    goals?: string | undefined;
   }): ChecklistProgressChange | null {
     try {
       const key: string = ChecklistEvents.getSeenKey(data.projectId);
@@ -40,15 +43,20 @@ export default class ChecklistEvents {
 
       LocalStorage.setItem(key, change.seen);
 
+      const goals: { goals?: string } =
+        data.goals !== undefined ? { goals: data.goals } : {};
+
       for (const step of change.completedSteps) {
         ProductEvents.send(ProductEventName.ChecklistStepCompleted, {
           step: step,
+          ...goals,
         });
       }
 
       if (change.isFinished) {
         ProductEvents.send(ProductEventName.ChecklistFinished, {
           step_count: data.stepKeys.length,
+          ...goals,
         });
       }
 

@@ -56,27 +56,38 @@ Um número acima de zero mostra **Requer atenção**, ou **Em andamento** e **Or
 
 ### A lista de boas-vindas
 
-A lista guia você pelas quatro coisas de que um projeto precisa para ser útil. Cada etapa abre a página onde você a realiza, e se marca sozinha quando o projeto tem o que ela pede.
+Na primeira vez que um proprietário ou administrador do projeto abre o Início de um projeto novo, o cartão pergunta **O que você quer fazer primeiro?** Marque um ou mais objetivos, como **Saber quando meu site ou API cair** ou **Só estou dando uma olhada**, e clique em **Continuar**: a lista passa a ter as etapas de que esses objetivos precisam. **Pular** dá as quatro etapas que todo projeto recebe. Para responder de novo depois, clique em **Alterar** na lista. Um projeto que já usa monitores, telemetria ou plantão não é perguntado.
+
+Cada etapa se marca sozinha quando a coisa funciona, não quando um registro existe, e todos que configuram o projeto veem a mesma lista, em todos os dispositivos:
 
 | Etapa | Concluída quando | Abre |
 | --- | --- | --- |
-| **Crie seu primeiro monitor** | O projeto tem um monitor. | O formulário **Criar monitor**, ou a lista **Monitores** para quem não pode criar monitores. |
-| **Publique uma página de status** | O projeto tem uma página de status. | **Páginas de status** |
-| **Convide sua equipe** | Alguém além de você está no projeto, ou foi convidado. | **Usuários** |
-| **Configure uma política de plantão** | O projeto tem uma política de plantão. | **Plantão** |
+| **Importe da sua ferramenta atual** | Uma importação de outra ferramenta termina. | **Importar de outra ferramenta** |
+| **Crie seu primeiro monitor** | Chega a primeira verificação. | O formulário **Criar monitor**, ou a lista **Monitores** para quem não pode criar monitores. |
+| **Conecte um servidor ou cluster** | Chegam as primeiras métricas. | **Hosts** |
+| **Envie seus primeiros logs, métricas ou traces** | Chegam os primeiros logs, métricas, traces, exceções ou perfis do projeto. | **Registros** |
+| **Configure uma política de plantão** | Um acionamento de teste é reconhecido, um acionamento alcança alguém, ou uma regra de plantão executa uma política que pode alcançar alguém. | **Plantão** |
+| **Publique uma página de status** | Uma página de status mostra um monitor. | **Páginas de status** |
+| **Convide sua equipe** | Alguém aceita seu convite. | **Usuários** |
+
+A etapa a fazer primeiro é marcada com **Próxima etapa**. No plano Free do OneUptime Cloud, que tem uma pessoa, **Convide sua equipe** diz que precisa do plano Growth e abre **Cobrança**. Em um servidor auto-hospedado que ainda não pode enviar e-mails, os administradores do servidor veem primeiro **Este servidor ainda não pode enviar e-mails**, que abre o painel de administração.
+
+Quando você cria um monitor, uma página de status ou uma política de plantão a partir de uma etapa, a página em que você chega diz o que vem a seguir, com **Voltar à configuração**.
 
 Abaixo das etapas, **Como o OneUptime funciona** mostra os quatro produtos principais na ordem em que um problema passa por eles: **Monitores**, **Incidentes e alertas**, **Plantão** e **Páginas de status**. Clique em um para abri-lo.
 
-```mermaid title="Quando a lista de boas-vindas some"
+```mermaid title="Quando a lista de boas-vindas aparece"
 flowchart TB
-    open["O Início abre"] --> dismissed{"Dispensada neste<br/>navegador?"}
-    dismissed -->|"Não"| done{"As quatro etapas<br/>concluídas?"}
-    dismissed -->|"Sim"| hidden["Sem lista"]
-    done -->|"Sim"| hidden
-    done -->|"Não"| shown["A lista, com as<br/>etapas restantes"]
+    open["O Início abre"] --> answered{"Objetivos escolhidos<br/>ou pulados?"}
+    answered -->|"Não"| question["O que você quer<br/>fazer primeiro?"]
+    answered -->|"Sim"| hidden{"Ocultada<br/>por você?"}
+    hidden -->|"Sim"| line["Uma linha para<br/>mostrá-la de novo"]
+    hidden -->|"Não"| done{"Todas as etapas<br/>concluídas?"}
+    done -->|"Sim"| gone["Sem lista"]
+    done -->|"Não"| shown["A lista, com<br/>as etapas restantes"]
 ```
 
-A lista some quando as quatro etapas estão concluídas. Para escondê-la antes, clique em **Dispensar**. A dispensa vale para este navegador e este projeto; tudo o que as etapas abrem continua no menu **Produtos**.
+A lista some para todos quando todas as etapas estão concluídas. Para ocultá-la antes, clique em **Ocultar**: ela fica oculta só para você, em todos os dispositivos, e fica uma linha com **Mostrar** e **Como o OneUptime funciona**. Quem foi convidado ao projeto como membro não vê a lista.
 
 ### Requer atenção
 

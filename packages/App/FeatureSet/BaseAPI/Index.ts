@@ -2085,6 +2085,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
+import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
 import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
@@ -6559,6 +6560,15 @@ const BaseAPIFeatureSet: FeatureSet = {
      * it after. A bare router for the same reason as OnCallReadinessAPI.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallTestPageAPI);
+
+    /*
+     * The Welcome checklist on Home (issue #6803): the project's goals and
+     * its checklist, with each step ticked on what works, for the person
+     * asking. A bare router for the same reason as OnCallReadinessAPI: it
+     * is no model's CRUD, and the service reads and writes as root, so its
+     * own checks are the gate.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, WelcomeChecklistAPI);
 
     /*
      * Telemetry usage (Project Settings > Telemetry & APM > Usage, and the

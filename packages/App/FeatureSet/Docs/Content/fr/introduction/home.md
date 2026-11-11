@@ -56,27 +56,38 @@ Un nombre supérieur à zéro affiche **Attention requise**, ou **En cours** et 
 
 ### La liste de bienvenue
 
-La liste vous guide à travers les quatre choses dont un projet a besoin pour être utile. Chaque étape ouvre la page où vous la réalisez, et se coche d'elle-même quand le projet a ce qu'elle demande.
+La première fois qu'un propriétaire ou un administrateur du projet ouvre l'accueil d'un nouveau projet, la carte demande **Que voulez-vous faire en premier ?** Cochez un ou plusieurs objectifs, par exemple **Savoir quand mon site web ou mon API est en panne** ou **Je regarde simplement**, puis cliquez sur **Continuer** : la liste contient alors les étapes dont ces objectifs ont besoin. **Ignorer** donne les quatre étapes que reçoit tout projet. Pour répondre à nouveau plus tard, cliquez sur **Modifier** dans la liste. Un projet qui utilise déjà des moniteurs, de la télémétrie ou l'astreinte n'est pas interrogé.
+
+Chaque étape se coche d'elle-même quand la chose fonctionne, pas quand un enregistrement existe, et toutes les personnes qui configurent le projet voient la même liste, sur chaque appareil :
 
 | Étape | Terminée quand | Ouvre |
 | --- | --- | --- |
-| **Créez votre premier moniteur** | Le projet a un moniteur. | Le formulaire **Créer un moniteur**, ou la liste **Moniteurs** pour quelqu'un qui ne peut pas créer de moniteurs. |
-| **Publiez une page de statut** | Le projet a une page de statut. | **Pages de statut** |
-| **Invitez votre équipe** | Quelqu'un d'autre que vous est dans le projet, ou y est invité. | **Utilisateurs** |
-| **Configurez une politique d'astreinte** | Le projet a une politique d'astreinte. | **Astreinte** |
+| **Importer depuis votre outil actuel** | Une importation depuis un autre outil se termine. | **Importer depuis un autre outil** |
+| **Créez votre premier moniteur** | Sa première vérification arrive. | Le formulaire **Créer un moniteur**, ou la liste **Moniteurs** pour quelqu'un qui ne peut pas créer de moniteurs. |
+| **Connecter un serveur ou un cluster** | Ses premières métriques arrivent. | **Hôtes** |
+| **Envoyer vos premiers logs, métriques ou traces** | Les premiers logs, métriques, traces, exceptions ou profils du projet arrivent. | **Journaux** |
+| **Configurez une politique d'astreinte** | Une alerte de test est acquittée, une alerte joint quelqu'un, ou une règle d'astreinte exécute une politique qui peut joindre quelqu'un. | **Astreinte** |
+| **Publiez une page de statut** | Une page de statut affiche un moniteur. | **Pages de statut** |
+| **Invitez votre équipe** | Quelqu'un accepte votre invitation. | **Utilisateurs** |
+
+L'étape à faire en premier est marquée **Étape suivante**. Avec l'offre Free d'OneUptime Cloud, qui comprend une personne, **Invitez votre équipe** indique qu'il faut l'offre Growth, et ouvre **Facturation**. Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, les administrateurs du serveur voient d'abord **Ce serveur ne peut pas encore envoyer d'e-mails** ; cela ouvre le tableau de bord admin.
+
+Quand vous créez un moniteur, une page de statut ou une politique d'astreinte depuis une étape, la page où vous arrivez dit ce qui vient ensuite, avec **Retour à la configuration**.
 
 Sous les étapes, **Comment fonctionne OneUptime** montre les quatre produits essentiels dans l'ordre où un problème les traverse : **Moniteurs**, **Incidents et alertes**, **Astreinte** et **Pages de statut**. Cliquez sur l'un d'eux pour l'ouvrir.
 
-```mermaid title="Quand la liste de bienvenue disparaît"
+```mermaid title="Quand la liste de bienvenue s'affiche"
 flowchart TB
-    open["L'accueil s'ouvre"] --> dismissed{"Masquée dans<br/>ce navigateur ?"}
-    dismissed -->|"Non"| done{"Les quatre étapes<br/>terminées ?"}
-    dismissed -->|"Oui"| hidden["Pas de liste"]
-    done -->|"Oui"| hidden
+    open["L'accueil s'ouvre"] --> answered{"Objectifs choisis<br/>ou ignorés ?"}
+    answered -->|"Non"| question["Que voulez-vous<br/>faire en premier ?"]
+    answered -->|"Oui"| hidden{"Masquée<br/>par vous ?"}
+    hidden -->|"Oui"| line["Une ligne pour<br/>la réafficher"]
+    hidden -->|"Non"| done{"Toutes les étapes<br/>terminées ?"}
+    done -->|"Oui"| gone["Pas de liste"]
     done -->|"Non"| shown["La liste, avec<br/>les étapes restantes"]
 ```
 
-La liste disparaît une fois les quatre étapes terminées. Pour la masquer plus tôt, cliquez sur **Masquer**. Le masquage vaut pour ce navigateur et ce projet ; tout ce que les étapes ouvrent reste dans le menu **Produits**.
+La liste disparaît pour tout le monde une fois chaque étape terminée. Pour la masquer plus tôt, cliquez sur **Masquer** : elle n'est masquée que pour vous, sur chaque appareil, et une ligne reste avec **Afficher** et **Comment fonctionne OneUptime**. Les personnes invitées dans le projet comme membres ne voient pas la liste.
 
 ### Attention requise
 
