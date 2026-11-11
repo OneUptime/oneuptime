@@ -50004,5 +50004,6 @@
   "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.": "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.",
   "Refresh Monitor ID": "Refresh Monitor ID",
   "The alert on failed refreshes was not saved: {{error}}": "The alert on failed refreshes was not saved: {{error}}",
-  "Every change made to the resources in this project, and every time its members sign in or out.": "इस प्रोजेक्ट में संसाधनों में किया गया हर परिवर्तन, और हर बार जब इसके सदस्य साइन इन या साइन आउट करते हैं।"
+  "Every change made to the resources in this project, and every time its members sign in or out.": "इस प्रोजेक्ट में संसाधनों में किया गया हर परिवर्तन, और हर बार जब इसके सदस्य साइन इन या साइन आउट करते हैं।",
+  "When enabled, every create, update and delete action on your project's resources, and every sign-in and sign-out of its members, will be recorded in the audit log.": "सक्षम होने पर, आपके प्रोजेक्ट के संसाधनों पर हर create, update और delete क्रिया, और इसके सदस्यों का हर साइन इन और साइन आउट, ऑडिट लॉग में रिकॉर्ड किया जाएगा।"
 }

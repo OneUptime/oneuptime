@@ -50004,5 +50004,6 @@
   "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.": "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.",
   "Refresh Monitor ID": "Refresh Monitor ID",
   "The alert on failed refreshes was not saved: {{error}}": "The alert on failed refreshes was not saved: {{error}}",
-  "Every change made to the resources in this project, and every time its members sign in or out.": "이 프로젝트의 리소스에 대한 모든 변경 사항과 멤버의 모든 로그인 및 로그아웃입니다."
+  "Every change made to the resources in this project, and every time its members sign in or out.": "이 프로젝트의 리소스에 대한 모든 변경 사항과 멤버의 모든 로그인 및 로그아웃입니다.",
+  "When enabled, every create, update and delete action on your project's resources, and every sign-in and sign-out of its members, will be recorded in the audit log.": "활성화하면 프로젝트 리소스에 대한 모든 생성, 업데이트, 삭제 작업과 멤버의 모든 로그인 및 로그아웃이 감사 로그에 기록됩니다."
 }

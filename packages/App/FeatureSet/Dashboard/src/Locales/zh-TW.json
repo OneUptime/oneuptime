@@ -50004,5 +50004,6 @@
   "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.": "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.",
   "Refresh Monitor ID": "Refresh Monitor ID",
   "The alert on failed refreshes was not saved: {{error}}": "The alert on failed refreshes was not saved: {{error}}",
-  "Every change made to the resources in this project, and every time its members sign in or out.": "對此專案中資源所做的每一項變更，以及其成員的每一次登入和登出。"
+  "Every change made to the resources in this project, and every time its members sign in or out.": "對此專案中資源所做的每一項變更，以及其成員的每一次登入和登出。",
+  "When enabled, every create, update and delete action on your project's resources, and every sign-in and sign-out of its members, will be recorded in the audit log.": "啟用時，對專案資源的每次建立、更新和刪除動作，以及其成員的每次登入和登出，都會記錄在稽核日誌中。"
 }
