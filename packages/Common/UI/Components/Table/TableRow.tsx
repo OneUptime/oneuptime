@@ -44,6 +44,7 @@ import Columns from "./Types/Columns";
 import Color from "../../../Types/Color";
 import TableDate from "./TableDate";
 import TableFoldedValues, {
+  isEmptyFoldedContent,
   TableFoldedMainLayout,
   TableFoldedValue,
 } from "./TableFoldedValues";
@@ -427,15 +428,14 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
   );
 
   /*
-   * The way a cell's line reads when it is not the page's way: a plain
-   * value in the other script - an English summary on a Persian page - is
-   * cut short at its own end, not at its start (LineDirection). So is an
-   * element whose column names the words it draws (getLineText), or that
-   * draws a record's name or title (ColumnLineText: an incident's title
-   * drawn as a link). A cell with columns folded under it keeps the page's
-   * way: its folded lines are the page's words.
+   * The way a column's own value reads when it is not the page's way: a
+   * plain value in the other script - an English summary on a Persian page
+   * - is cut short at its own end, not at its start (LineDirection). So is
+   * an element whose column names the words it draws (getLineText), or
+   * that draws a record's name or title (ColumnLineText: an incident's
+   * title drawn as a link).
    */
-  const getCellLineDirection: (
+  const getValueLineDirection: (
     column: Column<T>,
   ) => ReadingDirection | undefined = (
     column: Column<T>,
@@ -444,19 +444,49 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
       ? getElementLineText<T>(column, props.item)
       : getPlainCellText(column);
 
-    if (!text) {
-      return undefined;
-    }
+    return text ? getLineDirection(text, translator.language) : undefined;
+  };
 
-    const foldedHere: Columns<T> = getColumnsFoldedInto<T>({
+  /*
+   * The values of the columns folded into a cell (Column.foldInto) that have
+   * something to say, each on a line of its own under the cell's value
+   * (TableFoldedValues). A folded column with no value draws no line.
+   */
+  const getFoldedValuesOf: (column: Column<T>) => Array<TableFoldedValue> = (
+    column: Column<T>,
+  ): Array<TableFoldedValue> => {
+    return getColumnsFoldedInto<T>({
       column: column,
       drawnColumns: renderedColumns,
       foldedColumns: foldedColumns,
-    });
+    })
+      .map((folded: Column<T>): TableFoldedValue => {
+        return {
+          title: folded.title,
+          content: getColumnContent(folded),
+          isTitleShown: folded.showTitleWhenFolded,
+        };
+      })
+      .filter((value: TableFoldedValue): boolean => {
+        return !isEmptyFoldedContent(value.content);
+      });
+  };
 
-    return foldedHere.length > 0
-      ? undefined
-      : getLineDirection(text, translator.language);
+  /*
+   * The way a cell's line reads: its value's (getValueLineDirection). A
+   * cell with values folded under it keeps the page's way - its folded
+   * lines are the page's words - and its value's own line reads its way
+   * there instead (TableFoldedValues' mainDirection): an incident's English
+   * title over its labels and owners on an Arabic page.
+   */
+  const getCellLineDirection: (
+    column: Column<T>,
+    foldedValues: Array<TableFoldedValue>,
+  ) => ReadingDirection | undefined = (
+    column: Column<T>,
+    foldedValues: Array<TableFoldedValue>,
+  ): ReadingDirection | undefined => {
+    return foldedValues.length > 0 ? undefined : getValueLineDirection(column);
   };
 
   /*
@@ -474,23 +504,23 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
    * A cell's value, with the values of the columns folded into it on lines
    * of their own under it (TableFoldedValues).
    */
-  const getCellContent: (column: Column<T>) => React.ReactNode = (
+  const getCellContent: (
     column: Column<T>,
+    foldedValues: Array<TableFoldedValue>,
+  ) => React.ReactNode = (
+    column: Column<T>,
+    foldedValues: Array<TableFoldedValue>,
   ): React.ReactNode => {
     const content: React.ReactNode = getColumnContent(column);
-    const foldedHere: Columns<T> = getColumnsFoldedInto<T>({
-      column: column,
-      drawnColumns: renderedColumns,
-      foldedColumns: foldedColumns,
-    });
 
-    if (foldedHere.length === 0) {
+    if (foldedValues.length === 0) {
       return content;
     }
 
     return (
       <TableFoldedValues
         main={content}
+        mainDirection={getValueLineDirection(column)}
         mainLayout={
           VALUE_KINDS_KEPT_WHOLE.includes(column.type)
             ? TableFoldedMainLayout.Whole
@@ -498,13 +528,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
               ? TableFoldedMainLayout.Wrap
               : TableFoldedMainLayout.Line
         }
-        folded={foldedHere.map((folded: Column<T>): TableFoldedValue => {
-          return {
-            title: folded.title,
-            content: getColumnContent(folded),
-            isTitleShown: folded.showTitleWhenFolded,
-          };
-        })}
+        folded={foldedValues}
       />
     );
   };
@@ -609,9 +633,9 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     column.type === FieldType.Boolean &&
                     !column.getElement
                       ? props.item[column.key]
-                        ? getCellContent(column)
+                        ? getCellContent(column, getFoldedValuesOf(column))
                         : null
-                      : getCellContent(column);
+                      : getCellContent(column, getFoldedValuesOf(column));
 
                   // A card leaves out the fields that have nothing to say.
                   if (
@@ -827,6 +851,11 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                   }`
                 : "";
 
+              // The values folded under this cell's own (Column.foldInto).
+              const foldedValues: Array<TableFoldedValue> = isActions
+                ? []
+                : getFoldedValuesOf(column);
+
               /*
                * An Actions column with a key and an element of its own draws
                * that element before the row's buttons.
@@ -835,7 +864,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 ? column.key && column.getElement
                   ? column.getElement(props.item)
                   : null
-                : getCellContent(column);
+                : getCellContent(column, foldedValues);
 
               /*
                * The column's own classes, plus the width cap - which has to
@@ -854,7 +883,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                */
               const lineDirection: ReadingDirection | undefined = isActions
                 ? undefined
-                : getCellLineDirection(column);
+                : getCellLineDirection(column, foldedValues);
 
               return (
                 <td
@@ -885,11 +914,16 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                           lineDirection
                             ? `${contentWrapperClassName} ${
                                 /*
-                                 * The row's name may be cut short to its
-                                 * first line (line-clamp), whose "..." an
-                                 * end-aligned box drew past its edge.
+                                 * The row's name, and any other value that
+                                 * gives way before the rows scroll sideways,
+                                 * may be cut short to their first line
+                                 * (line-clamp), whose "..." an end-aligned
+                                 * box drew past its edge: an English alert
+                                 * title on an Arabic page read "High Node
+                                 * Memo." with one dot of three.
                                  */
-                                isFillingNameColumn<T>(column, i === 0)
+                                isFillingNameColumn<T>(column, i === 0) ||
+                                isGivingValueColumn<T>(column, i === 0)
                                   ? LINE_OR_CLAMPED_LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME
                                   : LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME
                               }`

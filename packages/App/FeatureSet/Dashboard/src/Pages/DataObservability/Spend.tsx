@@ -24,7 +24,7 @@ import React, {
   useState,
 } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
-import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
  * What the project's warehouses spent over the last day: Snowflake credits
@@ -286,9 +286,11 @@ const SpendPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             getElement: (item: DataWarehouseJob): ReactElement => {
               return (
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-gray-900 [overflow-wrap:anywhere]">
-                    <IsolatedText text={item.name || ""} />
-                  </span>
+                  <IsolatedLine
+                    as="span"
+                    text={item.name || ""}
+                    className="min-w-0 font-medium text-gray-900 [overflow-wrap:anywhere]"
+                  />
                   {item.writesOnlyUnusedTables ? (
                     <span className="rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-800">
                       {translator.translateText("Writes unused tables")}

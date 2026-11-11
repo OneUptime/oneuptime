@@ -172,7 +172,13 @@ describe.each([
     expect(cutBoxOf(ENGLISH_NAME)).toHaveAttribute("dir", "ltr");
   });
 
-  test("a name that is not the row's first column lines up by its end, as one line", () => {
+  /*
+   * A name in another column gives way when the table needs the room - cut
+   * to its first line - so it is lined up by its last line too: aligned to
+   * its end, that line's "..." was drawn past the box's edge ("High Node
+   * Memo." with one dot of three).
+   */
+  test("a name that is not the row's first column lines up by its last line", () => {
     drawRows({
       language,
       rows: [{ _id: "1", name: ENGLISH_NAME, priority: 1 }],
@@ -182,7 +188,10 @@ describe.each([
     const box: HTMLElement = cutBoxOf(ENGLISH_NAME);
 
     expect(box).toHaveAttribute("dir", "ltr");
-    expect(box).toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    expect(box).toHaveClass(
+      ...LINE_OR_CLAMPED_LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME.split(" "),
+    );
+    expect(box).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
   });
 
   test("a name in the page's own script is drawn as it always was", () => {

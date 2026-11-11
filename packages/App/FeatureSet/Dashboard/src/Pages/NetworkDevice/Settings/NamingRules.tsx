@@ -19,7 +19,6 @@ import React, {
   useState,
 } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
-import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
@@ -159,9 +158,11 @@ const NetworkDeviceNamingRulesPage: FunctionComponent<
             getElement: (item: NetworkDeviceNamingRule): ReactElement => {
               return (
                 <div className="min-w-0">
-                  <span className="block text-sm font-medium text-gray-900">
-                    <IsolatedText text={item.name || ""} />
-                  </span>
+                  <IsolatedLine
+                    as="span"
+                    text={item.name || ""}
+                    className="block truncate text-sm font-medium text-gray-900"
+                  />
                   {item.description && (
                     <IsolatedLine
                       as="span"

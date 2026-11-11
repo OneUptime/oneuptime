@@ -311,7 +311,12 @@ describe.each([
     expect(name.nextElementSibling).not.toHaveAttribute("dir");
   });
 
-  test("an on-call rule with nothing under its name: the name is an isolate in the page's line", () => {
+  /*
+   * Drawn inline in the page's line, an English rule's name too long for
+   * its column lost its start ("...on-call (EU)"); on a line of its own it
+   * is cut short at its own end.
+   */
+  test("an on-call rule with nothing under its name: the name is a line of its own, cut at its own end", () => {
     const view: ReturnType<typeof render> = render(
       <I18nextProvider i18n={instances[language]!}>
         <OnCallRuleNameCell
@@ -321,11 +326,10 @@ describe.each([
       </I18nextProvider>,
     );
 
-    const isolate: HTMLElement = view.container.querySelector(
-      "bdi",
-    ) as HTMLElement;
+    const name: HTMLElement = lineOf(ENGLISH_RULE);
 
-    expect(isolate).toHaveAttribute("dir", "ltr");
+    expect(name).toHaveAttribute("dir", "ltr");
+    expect(name).toHaveClass("truncate", LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
     expect(view.container.textContent).toBe(ENGLISH_RULE);
   });
 });

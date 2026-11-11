@@ -89,7 +89,7 @@ import React, {
   useState,
 } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
-import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
  * Data Security > Settings > Data Types: what a scan looks for.
@@ -1017,13 +1017,15 @@ const CustomDataTypesTable: FunctionComponent = (): ReactElement => {
           getElement: (item: DataSecurityCustomDataType): ReactElement => {
             return (
               <div className="min-w-0">
-                <div className="text-sm font-medium text-gray-900">
-                  <IsolatedText text={item.name || ""} />
-                </div>
+                <IsolatedLine
+                  text={item.name || ""}
+                  className="truncate text-sm font-medium text-gray-900"
+                />
                 {item.description ? (
-                  <div className="mt-0.5 text-sm text-gray-500">
-                    <IsolatedText text={item.description} />
-                  </div>
+                  <IsolatedLine
+                    text={item.description}
+                    className="mt-0.5 truncate text-sm text-gray-500"
+                  />
                 ) : (
                   <></>
                 )}

@@ -25,8 +25,9 @@ import {
  * (drawsItsOwnLines): one way for the whole cell would turn those the
  * wrong way round. The name draws its own line the way it is written
  * (IsolatedLine) so an English name on an Arabic page is cut short at its
- * own end; a badge's words (Pill), a probe's and a role's name read their
- * own way inside the page's line.
+ * own end; a badge's words (Pill) read their own way inside the page's
+ * line, and a probe's and a role's name are lines of their own beside
+ * their marks.
  */
 
 const ENGLISH_NAME: string = "payments-gateway-eu-west-1 (primary)";
@@ -294,21 +295,38 @@ describe("a badge's words (Pill)", () => {
 });
 
 describe("a probe's and a role's name", () => {
-  test("a probe's English name reads left to right inside the page's line, its suffix after it", () => {
+  /*
+   * Drawn inline in the page's line, an English probe name too long for its
+   * cell lost its start ("gapore office behind the corporate proxy"), with
+   * no "..." to say so. Its own line reads its way and ends in "...".
+   */
+  test("a probe's English name is a line of its own, read left to right and cut at its own end", () => {
     const probe: Probe = new Probe();
     probe.name = "Ohio (us-east-2)";
 
     drawOn("ar", <ProbeElement probe={probe} suffix="(2)" />);
 
     const name: HTMLElement = screen.getByTestId("probe-name");
-    const isolate: HTMLElement = name.querySelector("bdi") as HTMLElement;
 
-    expect(isolate).toHaveAttribute("dir", "ltr");
-    expect(isolate.textContent).toBe("Ohio (us-east-2)");
+    expect(name).toHaveAttribute("dir", "ltr");
+    expect(name).toHaveClass(
+      "overflow-hidden",
+      "text-ellipsis",
+      LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+    );
     // The words read as they always did: the name, then the suffix.
     expect(name.textContent).toBe("Ohio (us-east-2) (2)");
-    // The name's line, and the probe's mark beside it, keep the page's way.
-    expect(name).not.toHaveAttribute("dir");
+    // Its box may shrink below its words, so the "..." can show.
+    expect(name.parentElement).toHaveClass("min-w-0");
+  });
+
+  test("a probe's name in the page's script keeps the page's way", () => {
+    const probe: Probe = new Probe();
+    probe.name = ARABIC_NAME;
+
+    drawOn("ar", <ProbeElement probe={probe} />);
+
+    expect(screen.getByTestId("probe-name")).not.toHaveAttribute("dir");
   });
 
   test("a probe with no suffix keeps the words it always had", () => {
@@ -328,11 +346,19 @@ describe("a probe's and a role's name", () => {
       </div>,
     );
 
-    const isolate: HTMLElement = screen
-      .getByTestId("role")
-      .querySelector("bdi") as HTMLElement;
+    const name: HTMLElement = screen.getByText("Incident Commander");
 
-    expect(isolate).toHaveAttribute("dir", "ltr");
+    // Its own line, cut short at its own end where its cell is narrow.
+    expect(name).toHaveAttribute("dir", "ltr");
+    expect(name).toHaveClass(
+      "min-w-0",
+      "overflow-hidden",
+      "text-ellipsis",
+      LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+    );
+    // Its mark beside it keeps the page's way.
+    expect(name.parentElement).not.toHaveAttribute("dir");
+    expect(name.parentElement).toHaveClass("min-w-0");
     expect(screen.getByTestId("role").textContent).toBe("Incident Commander");
   });
 });

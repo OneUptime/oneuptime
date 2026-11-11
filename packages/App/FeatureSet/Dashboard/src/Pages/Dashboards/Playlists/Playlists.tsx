@@ -22,7 +22,6 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { getPlaylistSummary } from "../../../Components/Dashboard/Playlist/PlaylistDashboards";
 import { getPlaylistFormFields } from "./PlaylistFormFields";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
-import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
@@ -49,9 +48,13 @@ export const PlaylistNameCell: FunctionComponent<{
 }): ReactElement => {
   const isSummaryFolded: boolean = useAreTableColumnsFolded();
 
-  // Its name reads the way it is written (IsolatedText, IsolatedLine).
+  /*
+   * Its name reads the way it is written, on a line of its own cut short at
+   * its own end (IsolatedLine): an English name on an Arabic page, drawn
+   * inline, lost its start.
+   */
   if (!isSummaryFolded) {
-    return <IsolatedText text={props.name} />;
+    return <IsolatedLine text={props.name} className="truncate" />;
   }
 
   return (

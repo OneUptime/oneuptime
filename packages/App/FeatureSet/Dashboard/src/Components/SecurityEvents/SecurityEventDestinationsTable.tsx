@@ -46,7 +46,7 @@ import React, {
   useState,
 } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
-import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 export const SECURITY_EVENT_DESTINATIONS_TABLE_ID: string =
   "security-event-destinations-table";
@@ -286,9 +286,7 @@ const SecurityEventDestinationsTable: FunctionComponent = (): ReactElement => {
                     <></>
                   )}
                   <div className="min-w-0">
-                    <span>
-                      <IsolatedText text={item.name || ""} />
-                    </span>
+                    <IsolatedLine text={item.name || ""} className="truncate" />
                     <div
                       className="whitespace-normal text-xs text-gray-500"
                       data-testid="security-event-destination-detail"

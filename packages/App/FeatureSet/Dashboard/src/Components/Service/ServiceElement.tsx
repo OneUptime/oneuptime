@@ -31,8 +31,13 @@ const ServiceElement: FunctionComponent<ComponentProps> = (
     ) || "";
 
   const getServiceElement: GetReactElementFunction = (): ReactElement => {
+    /*
+     * gap, not space-x: space-x is a margin at the start of the name, and a
+     * name that reads its own way (IsolatedLine's dir) has its start at its
+     * other side - an English name on an Arabic page touched its colour.
+     */
     return (
-      <div className="flex space-x-2">
+      <div className="flex gap-2">
         <div className="mt-1">
           <ColorSquareCube
             color={props.service.serviceColor || Black}

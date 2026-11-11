@@ -9,7 +9,7 @@ import Probe from "../../../Models/DatabaseModels/Probe";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
-import IsolatedText from "../IsolatedText/IsolatedText";
+import IsolatedLine from "../IsolatedText/IsolatedLine";
 
 export interface ComponentProps {
   probe?: Probe | JSONObject | undefined | null;
@@ -38,6 +38,8 @@ const ProbeElement: FunctionComponent<ComponentProps> = (
     );
   }
 
+  const name: string = probe["name"]?.toString() || "";
+
   return (
     <div className="flex">
       <div>
@@ -59,17 +61,21 @@ const ProbeElement: FunctionComponent<ComponentProps> = (
           />
         )}
       </div>
-      <div className="mt-1 mr-1 ml-3">
-        <div>
-          {/*
-           * Its name reads the way it is written (an English name on an
-           * Arabic page), the words after it the page's way.
-           */}
-          <span data-testid="probe-name">
-            <IsolatedText text={(probe["name"]?.toString() as string) || ""} />
-            {` ${props.suffix || ""}`}
-          </span>{" "}
-        </div>
+      <div className="mt-1 mr-1 ml-3 min-w-0">
+        {/*
+         * Its name reads the way it is written, and where its box is too
+         * narrow for it - a table's cell - it is cut short at its own end
+         * (IsolatedLine): an English probe name on an Arabic page lost its
+         * start ("gapore office behind the corporate proxy"), with no "..."
+         * to say so. It wraps wherever its line may.
+         */}
+        <IsolatedLine
+          text={name}
+          className="overflow-hidden text-ellipsis"
+          dataTestId="probe-name"
+        >
+          {`${name} ${props.suffix || ""}`}
+        </IsolatedLine>
       </div>
     </div>
   );

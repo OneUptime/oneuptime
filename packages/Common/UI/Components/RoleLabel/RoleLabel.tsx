@@ -4,7 +4,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import Icon from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
 import React, { FunctionComponent, ReactElement } from "react";
-import IsolatedText from "../IsolatedText/IsolatedText";
+import IsolatedLine from "../IsolatedText/IsolatedLine";
 
 export interface ComponentProps {
   name: string;
@@ -38,7 +38,7 @@ const RoleLabel: FunctionComponent<ComponentProps> = (
     : White;
 
   const element: ReactElement = (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 items-center gap-2">
       {resolvedIcon ? (
         <div
           className="flex items-center justify-center h-6 w-6 rounded-md flex-shrink-0"
@@ -57,10 +57,17 @@ const RoleLabel: FunctionComponent<ComponentProps> = (
           aria-hidden="true"
         />
       )}
-      {/* Its name reads the way it is written, its mark the page's. */}
-      <span className="text-sm font-medium text-gray-900">
-        <IsolatedText text={props.name} />
-      </span>
+      {/*
+       * Its name reads the way it is written, its mark the page's; where its
+       * box is too narrow for it - a table's cell - the name is cut short
+       * at its own end (IsolatedLine), where an English role's name on an
+       * Arabic page lost its start.
+       */}
+      <IsolatedLine
+        as="span"
+        text={props.name}
+        className="min-w-0 overflow-hidden text-ellipsis text-sm font-medium text-gray-900"
+      />
     </div>
   );
 
