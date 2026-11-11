@@ -1,6 +1,6 @@
 # Grundkonzepte
 
-OneUptime hat viele Produkte, aber sie beruhen auf einer Handvoll Ideen: Projekte, Monitore, Vorfälle und Warnungen, Bereitschaft, Statusseiten und Telemetrie. Diese Seite erklärt jede davon in wenigen Sätzen, zeigt, wie sie zusammenhängen, und verlinkt auf die Seiten, die sie ausführlich behandeln. Lesen Sie sie einmal, und jede andere Seite der Dokumentation liest sich leichter.
+OneUptime hat viele Produkte, aber sie beruhen auf einer Handvoll Ideen: Projekte, Monitore, Vorfälle und Warnungen, Bereitschaft, Statusseiten und Telemetrie. Um sie herum stehen das, was Sie überwachen, das, was Sie installieren, und die Regeln, die für Sie handeln. Diese Seite erklärt jede davon in wenigen Sätzen, zeigt, wie sie zusammenhängen, und verlinkt auf die Seiten, die sie ausführlich behandeln. Lesen Sie sie einmal, und jede andere Seite der Dokumentation liest sich leichter. Einzelne Wörter erklärt das [Glossar](/docs/introduction/glossary); um zwischen zwei Dingen zu wählen, die sich ähnlich sehen, lesen Sie [Was nehme ich wann?](/docs/introduction/which-one).
 
 :::cards
 - [Projekte und Personen](#projekte-und-personen): Wo alles liegt und wer was darf.
@@ -47,6 +47,41 @@ Die **Kriterien** eines Monitors entscheiden, was jedes Ergebnis bedeutet. Sie w
 :::cards
 - [Einen Monitor erstellen](/docs/monitor/create-monitor): Einen Typ wählen, festlegen, was geprüft wird, und wie oft.
 - [Benutzerdefinierte Probes](/docs/probe/custom-probe): Prüfen, was nur Ihr eigenes Netzwerk erreicht.
+:::
+
+## Was Sie überwachen
+
+Ein Monitor prüft eine Sache. Rund um Ihre Monitore führt OneUptime Buch über das, was Sie betreiben, und diesen Datensätzen begegnen Sie im Menü:
+
+- Eine **Monitor-Gruppe** fasst mehrere Monitore zu einem Status zusammen, sodass eine Statusseite etwas, das aus vielen Teilen besteht, etwa Checkout, als eine Zeile zeigen kann.
+- Ein **Dienst** ist eine Anwendung oder ein Microservice, den Sie betreiben. OneUptime legt ihn an, sobald seine Telemetrie zum ersten Mal eintrifft, und führt seine Protokolle, Traces, Metriken, Ausnahmen und Vorfälle auf einer Seite zusammen.
+- **Hosts**, Cluster unter **Kubernetes** und der Rest der **Infrastruktur** sind die Rechner und Plattformen, die Sie betreiben, gefüllt von den Agenten, die Sie installieren.
+- Das **Inventar** ist eine einzige Liste von allem: Dienste, Hosts, Cluster, Geräte, Cloud-Ressourcen und die Dinge, die gar keine Telemetrie senden.
+
+Sie treffen sich dort, wo sich ein Problem zeigt. Die Monitore eines Dienstes können in einer Monitor-Gruppe zusammenlaufen, ein SLO misst sie, und wenn einer ausfällt, meldet er einen Vorfall. Der Vorfall führt den Dienst unter den Ressourcen, die er betrifft, und die Statusseite zeigt die Gruppe und den Vorfall.
+
+```mermaid title="Ein Dienst, was ihn überwacht und wo er erscheint"
+flowchart TB
+    service["Dienst: Checkout"] -->|"überwacht von"| monitors["Seine Monitore"]
+    monitors --> group["Monitor-Gruppe"]
+    monitors --> slo["SLO"]
+    monitors -->|"melden"| incident["Vorfall"]
+    group --> statuspage["Statusseite"]
+    incident --> statuspage
+```
+
+:::cards
+- [Monitor-Gruppen](/docs/monitor/monitor-groups): Mehrere Monitore zu einem Status zusammenfassen.
+- [Dienstkatalog](/docs/telemetry/services): Jede Anwendung, die Sie betreiben, auf je einer eigenen Seite.
+- [Inventar – Übersicht](/docs/inventory/overview): Alles, was OneUptime über Ihre Umgebung weiß.
+:::
+
+## Zuverlässigkeitsziele
+
+Ein **SLO** (Service Level Objective) ist ein Zuverlässigkeitsziel für das, was Sie überwachen, etwa 99,9 % der Zeit verfügbar über 30 Tage. OneUptime misst es alle 5 Minuten anhand seiner Monitore. Die Ausfallzeit, die das Ziel erlaubt, ist sein Fehlerbudget: Bleibt viel davon übrig, können Sie Risiken eingehen, und bleibt wenig, treten Sie kürzer und investieren in Stabilität.
+
+:::cards
+- [SLOs – Übersicht](/docs/slo/introduction): Ein Ziel setzen und sehen, wie viel vom Budget übrig ist.
 :::
 
 ## Vorfälle und Warnungen
@@ -97,11 +132,35 @@ Eine **Statusseite** zeigt Ihren Kunden, ob Ihre Dienste funktionieren. Sie wäh
 
 ## Telemetrie
 
-**Telemetrie** ist das, was Ihre Systeme an OneUptime senden: Logs, Metriken, Traces, Ausnahmen und Profile. Anwendungen senden sie mit OpenTelemetry, und die Agenten von OneUptime senden sie von Hosts, Kubernetes-Clustern, Docker-Hosts und anderer Infrastruktur. Jeder Absender nutzt einen **Ingestion-Schlüssel**, angelegt unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel**. Sie durchsuchen Telemetrie, stellen sie auf Dashboards dar und überwachen sie mit Telemetrie-Monitoren, die wie jeder andere Monitor Vorfälle und Warnungen auslösen.
+**Telemetrie** ist das, was Ihre Systeme an OneUptime senden: Logs, Metriken, Traces, Ausnahmen und Profile. Anwendungen senden sie mit OpenTelemetry, und die Agenten von OneUptime senden sie von Hosts, Kubernetes-Clustern, Docker-Hosts und anderer Infrastruktur. Jeder Absender nutzt einen **Ingestion-Schlüssel**, angelegt unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel**. Sie durchsuchen Telemetrie, stellen sie auf Dashboards dar und überwachen sie mit Telemetrie-Monitoren, die wie jeder andere Monitor Vorfälle und Warnungen auslösen. Im Menü öffnen **Protokolle**, **Metriken**, **Traces**, **Leistungsprofile** und **Ausnahmen** jeweils eine Art; **KI / LLM** verfolgt die Gespräche Ihrer KI, **Data Observability** beobachtet die Tabellen in Ihren Datenbanken, und **Topologie** zeigt, wie alles zusammenhängt.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Logs, Metriken und Traces aus Ihren Anwendungen senden.
 - [Logs-Überwachung](/docs/monitor/logs-monitor): Erfahren, wenn ein Muster in Ihren Logs auftaucht.
+:::
+
+## Sicherheit
+
+**Sicherheitsereignisse** speichert die Sicherheitsereignisse aus Ihren Protokollen, Ihren Sicherheitstools und allem anderen, was Sie senden. Seine Erkennungsregeln machen aus dem, was sie finden, Sicherheitsfälle, die Ihr Team in einer Warteschlange bearbeitet und auf die Playbooks reagieren. **Datensicherheit** findet die sensiblen Daten in Ihren Buckets, Datenbanken und Ihrer Telemetrie, und was an ihrer Aufbewahrung nicht stimmt.
+
+:::cards
+- [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started): Bedrohungen in den Daten finden, die Sie bereits haben.
+- [Übersicht der Datensicherheit](/docs/data-security/index): Ihre sensiblen Daten finden und ihre Aufbewahrung in Ordnung bringen.
+:::
+
+## Was Sie installieren, und die Schlüssel dazu
+
+Das meiste in OneUptime braucht keine Installation. Sie installieren nur dann etwas, wenn Sie erreichen wollen, was OneUptime von außen nicht sehen kann, und jedes Teil verbindet sich ausgehend mit einem Schlüssel mit OneUptime:
+
+- Eine benutzerdefinierte Sonde führt die Prüfungen von Monitoren in Ihrem Netzwerk aus, mit eigener Sonden-ID und eigenem Schlüssel.
+- Der **OpenTelemetry Collector**, der Kubernetes-Agent und der Docker-Agent senden Telemetrie mit einem **Ingestion-Schlüssel**. Der Infrastruktur-Agent hinter einer Server- / VM-Überwachung sendet mit dem geheimen Schlüssel dieses Monitors.
+- Ein **Runner** führt Runbook-Schritte in Ihrer Infrastruktur aus, mit eigener Runner-ID und eigenem Schlüssel.
+
+Ein Ingestion-Schlüssel sendet nur Telemetrie herein. Ein **API-Schlüssel** ist die andere Art: Mit ihm kann ein Skript, die CLI, Terraform oder ein KI-Assistent Ihr Projekt lesen und ändern, mit den Berechtigungen, die Sie ihm geben. Keiner funktioniert anstelle des anderen.
+
+:::cards
+- [Was nehme ich wann?](/docs/introduction/which-one#sonde-agent-collector-oder-runner): Was Sie installieren, und welchen Schlüssel jedes Teil braucht.
+- [Ingestion-Schlüssel](/docs/telemetry/ingestion-keys): Die Schlüssel anlegen, eingrenzen und rotieren, die Telemetrie senden.
 :::
 
 ## Automatisierung und KI
@@ -123,11 +182,30 @@ Eine **Statusseite** zeigt Ihren Kunden, ob Ihre Dienste funktionieren. Sie wäh
 - [Beschriftungs- und Eigentümerregeln](/docs/configuration/label-and-owner-rules): Neue Ressourcen automatisch beschriften und ihnen Eigentümer geben.
 :::
 
+## Die Arten von Regeln
+
+Vieles in OneUptime heißt Regel. Jede trifft eine Entscheidung für Sie, wenn etwas Neues eintrifft, und es gibt sie in einigen Familien. Die meisten finden Sie unter **Regeln** in den Seitenmenüs von **Vorfälle** und **Warnungen**.
+
+| Was sie entscheidet | Regeln |
+| --- | --- |
+| Wer alarmiert wird | **Bereitschaftsregeln** wählen die Bereitschaftsrichtlinien, die ein neuer Vorfall oder eine neue Warnung durchläuft, und die **Eskalationsregeln** einer Richtlinie alarmieren Stufe für Stufe |
+| Wem es gehört und wie es beschriftet wird | **Eigentümerregeln**, **Beschriftungsregeln** und **Datenschutzregeln** |
+| Was zusammengehört | **Gruppierungsregeln** eröffnen Episoden und fügen ihnen weitere hinzu |
+| Was darauf läuft | **Runbook-Regeln** starten Runbooks, und **KI-Regeln** entscheiden, was OneUptime AI untersucht und behebt |
+| Wann nachgefasst wird | **SLA-Regeln** verfolgen Reaktions- und Lösungszeiten, und **Erinnerungsregeln** erinnern die Eigentümer, solange etwas offen ist |
+
+Die eigenen Regeln eines Monitors sind seine Kriterien. Die Bereitschaftsregeln unter **Benutzereinstellungen** sind wieder etwas anderes: Sie gehören jeder Person selbst und entscheiden, wie eine Alarmierung diese Person erreicht.
+
+:::cards
+- [Vorfalleinstellungen & Automatisierung](/docs/incidents/settings#regeln-die-beim-anlegen-eines-vorfalls-laufen): Die Regeln, die laufen, wenn ein Vorfall angelegt wird, der Reihe nach.
+- [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules): Wie eine Alarmierung Sie erreicht.
+:::
+
 ## Nächste Schritte
 
 :::cards
 - [Schnellstart](/docs/introduction/quickstart): Diese Ideen in fünfzehn Minuten anwenden.
-- [Startseite & Tastenkürzel](/docs/introduction/home): Jedes Produkt im Dashboard finden.
-- [Einen Monitor erstellen](/docs/monitor/create-monitor): Ihr erster Monitor, Feld für Feld.
+- [Glossar](/docs/introduction/glossary): Jedes Wort, das OneUptime verwendet, in ein oder zwei Sätzen.
+- [Was nehme ich wann?](/docs/introduction/which-one): Vorfall oder Warnung, Workflow oder Runbook und die anderen Doppelgänger.
 - [Vorfälle – Übersicht](/docs/incidents/index): Was passiert, nachdem ein Monitor einen Vorfall meldet.
 :::

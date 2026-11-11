@@ -141,6 +141,7 @@ Eine Statusseite zeigt einen Vorfall, wenn einer der Monitore des Vorfalls auf d
 
 :::cards
 - [Grundkonzepte](/docs/introduction/core-concepts): Die Ideen hinter dem, was Sie gerade eingerichtet haben.
+- [Glossar](/docs/introduction/glossary): Jedes Wort, das Ihnen unterwegs begegnet ist, in ein oder zwei Sätzen.
 - [Bereitschaftspläne](/docs/on-call/schedules): Die Bereitschaft mit Ihrem Team teilen.
 - [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains): Die Statusseite zu Ihrer eigenen machen.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Logs, Metriken und Traces aus Ihren Anwendungen senden.

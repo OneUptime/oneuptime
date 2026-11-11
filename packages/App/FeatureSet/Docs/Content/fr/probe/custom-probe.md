@@ -1,6 +1,6 @@
 # Sondes personnalisées
 
-Une sonde personnalisée est un petit agent que vous exécutez dans votre propre réseau. Elle vérifie les moniteurs auxquels vous l'ajoutez, comme des sites web internes, des API et des serveurs derrière votre pare-feu, et envoie les résultats à OneUptime. Elle n'ouvre que des connexions sortantes, en HTTPS : rien dans votre réseau n'a besoin d'accepter des connexions depuis Internet.
+Une sonde personnalisée est un petit agent que vous exécutez dans votre propre réseau. Elle vérifie les moniteurs auxquels vous l'ajoutez, comme des sites web internes, des API et des serveurs derrière votre pare-feu, et envoie les résultats à OneUptime. Elle n'ouvre que des connexions sortantes, en HTTPS : rien dans votre réseau n'a besoin d'accepter des connexions depuis Internet. Pour choisir entre une sonde, un agent, un collecteur et un agent Runbook, consultez [Lequel choisir ?](/docs/introduction/which-one#sonde-agent-collecteur-ou-agent-runbook).
 
 :::cards
 - [Fonctionnement](#fonctionnement): Ce que fait la sonde, et comment OneUptime sait qu'elle tourne.

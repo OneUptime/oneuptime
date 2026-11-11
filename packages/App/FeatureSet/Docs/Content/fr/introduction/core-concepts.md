@@ -1,6 +1,6 @@
 # Concepts clés
 
-OneUptime compte de nombreux produits, mais ils reposent sur une poignée d'idées : les projets, les moniteurs, les incidents et les alertes, l'astreinte, les pages de statut et la télémétrie. Cette page explique chacune en quelques phrases, montre comment elles s'articulent et renvoie vers les pages qui les traitent en détail. Lisez-la une fois, et toutes les autres pages de la documentation se liront plus facilement.
+OneUptime compte de nombreux produits, mais ils reposent sur une poignée d'idées : les projets, les moniteurs, les incidents et les alertes, l'astreinte, les pages de statut et la télémétrie. Autour d'elles se trouvent ce que vous surveillez, ce que vous installez et les règles qui agissent pour vous. Cette page explique chacune en quelques phrases, montre comment elles s'articulent et renvoie vers les pages qui les traitent en détail. Lisez-la une fois, et toutes les autres pages de la documentation se liront plus facilement. Pour un mot à la fois, consultez le [Glossaire](/docs/introduction/glossary) ; pour choisir entre deux choses qui se ressemblent, consultez [Lequel choisir ?](/docs/introduction/which-one).
 
 :::cards
 - [Projets et personnes](#projets-et-personnes): Où tout se trouve, et qui peut faire quoi.
@@ -47,6 +47,41 @@ Les **critères** d'un moniteur décident de ce que signifie chaque résultat. I
 :::cards
 - [Créer un moniteur](/docs/monitor/create-monitor): Choisir un type, dire quoi vérifier, et à quelle fréquence.
 - [Sondes personnalisées](/docs/probe/custom-probe): Vérifier ce que seul votre propre réseau peut atteindre.
+:::
+
+## Ce que vous surveillez
+
+Un moniteur vérifie une seule chose. Autour de vos moniteurs, OneUptime tient un registre de ce que vous exploitez, et vous retrouvez ces enregistrements dans le menu :
+
+- Un **groupe de moniteurs** réunit plusieurs moniteurs en un seul statut, pour qu'une page de statut puisse afficher sur une seule ligne quelque chose fait de nombreuses parties, comme Checkout.
+- Un **service** est une application ou un microservice que vous exploitez. OneUptime l'ajoute dès que sa télémétrie arrive pour la première fois, et réunit ses journaux, traces, métriques, exceptions et incidents sur une seule page.
+- Les **Hôtes**, les clusters **Kubernetes** et le reste de l'**Infrastructure** sont les machines et les plateformes que vous exploitez, alimentées par les agents que vous installez.
+- L'**Inventaire** est une liste unique de tout cela : services, hôtes, clusters, appareils, ressources cloud, et même ce qui n'envoie aucune télémétrie.
+
+Ils se rejoignent là où un problème apparaît. Les moniteurs d'un service peuvent se regrouper dans un groupe de moniteurs, un SLO les mesure, et quand l'un d'eux échoue, il déclare un incident. L'incident cite le service parmi les ressources qu'il touche, et la page de statut affiche le groupe et l'incident.
+
+```mermaid title="Un service, ce qui le surveille et où il apparaît"
+flowchart TB
+    service["Service : Checkout"] -->|"surveillé par"| monitors["Ses moniteurs"]
+    monitors --> group["Groupe de moniteurs"]
+    monitors --> slo["SLO"]
+    monitors -->|"déclarent"| incident["Incident"]
+    group --> statuspage["Page de statut"]
+    incident --> statuspage
+```
+
+:::cards
+- [Groupes de moniteurs](/docs/monitor/monitor-groups): Réunir plusieurs moniteurs en un seul statut.
+- [Catalogue de services](/docs/telemetry/services): Chaque application que vous exploitez, chacune sur sa propre page.
+- [Vue d'ensemble de l'inventaire](/docs/inventory/overview): Tout ce que OneUptime sait de votre parc.
+:::
+
+## Objectifs de fiabilité
+
+Un **SLO** (objectif de niveau de service) est un objectif de fiabilité pour ce que vous surveillez, par exemple disponible 99,9 % du temps sur 30 jours. OneUptime le mesure à partir de ses moniteurs toutes les 5 minutes. Le temps d'indisponibilité que permet l'objectif est son budget d'erreur : s'il en reste beaucoup, vous pouvez prendre des risques, et s'il en reste peu, vous ralentissez et investissez dans la stabilité.
+
+:::cards
+- [Vue d'ensemble des SLO](/docs/slo/introduction): Fixer un objectif, et voir ce qu'il reste du budget.
 :::
 
 ## Incidents et alertes
@@ -97,11 +132,35 @@ La **maintenance planifiée** annonce à l'avance des travaux prévus. Un évén
 
 ## Télémétrie
 
-La **télémétrie** est ce que vos systèmes envoient à OneUptime : journaux, métriques, traces, exceptions et profils. Les applications l'envoient avec OpenTelemetry, et les agents de OneUptime l'envoient depuis des hôtes, des clusters Kubernetes, des hôtes Docker et le reste de votre infrastructure. Chaque émetteur utilise une **clé d'ingestion**, créée sous **Paramètres du projet → Télémétrie & APM → Clés d'ingestion**. Vous recherchez la télémétrie, la représentez sur des tableaux de bord et la surveillez avec des moniteurs de télémétrie, qui déclenchent des incidents et des alertes comme n'importe quel autre moniteur.
+La **télémétrie** est ce que vos systèmes envoient à OneUptime : journaux, métriques, traces, exceptions et profils. Les applications l'envoient avec OpenTelemetry, et les agents de OneUptime l'envoient depuis des hôtes, des clusters Kubernetes, des hôtes Docker et le reste de votre infrastructure. Chaque émetteur utilise une **clé d'ingestion**, créée sous **Paramètres du projet → Télémétrie & APM → Clés d'ingestion**. Vous recherchez la télémétrie, la représentez sur des tableaux de bord et la surveillez avec des moniteurs de télémétrie, qui déclenchent des incidents et des alertes comme n'importe quel autre moniteur. Dans le menu, **Journaux**, **Métriques**, **Traces**, **Profils de performance** et **Exceptions** ouvrent chacun un type de données ; **IA / LLM** suit les conversations de votre IA, **Observabilité des données** surveille les tables de vos bases de données, et **Topologie** montre comment tout cela s'articule.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Envoyer les journaux, les métriques et les traces de vos applications.
 - [Surveillance des journaux](/docs/monitor/logs-monitor): Être prévenu quand un motif apparaît dans vos journaux.
+:::
+
+## Sécurité
+
+Les **Événements de sécurité** conservent les événements de sécurité issus de vos journaux, de vos outils de sécurité et de tout ce que vous envoyez d'autre. Leurs règles de détection transforment ce qu'elles trouvent en dossiers de sécurité, que votre équipe traite dans une file et auxquels répondent les playbooks. La **Sécurité des données** trouve les données sensibles dans vos buckets, vos bases de données et votre télémétrie, et ce qui ne va pas dans leur conservation.
+
+:::cards
+- [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started): Trouver des menaces dans les données que vous avez déjà.
+- [Vue d'ensemble de Sécurité des données](/docs/data-security/index): Trouver vos données sensibles, et corriger leur conservation.
+:::
+
+## Ce que vous installez, et les clés
+
+L'essentiel de OneUptime ne nécessite aucune installation. Vous n'installez quelque chose que pour atteindre ce que OneUptime ne voit pas de l'extérieur, et chaque élément se connecte en sortie à OneUptime avec une clé :
+
+- Une sonde personnalisée exécute les vérifications des moniteurs dans votre réseau, avec son propre ID de sonde et sa propre clé.
+- L'**OpenTelemetry Collector**, l'agent Kubernetes et l'agent Docker envoient la télémétrie avec une **clé d'ingestion**. L'agent d'infrastructure derrière un moniteur Serveur / VM envoie avec la clé secrète de ce moniteur.
+- Un **Agent Runbook** exécute les étapes de runbook dans votre infrastructure, avec son propre ID d'agent Runbook et sa propre clé.
+
+Une clé d'ingestion ne fait qu'envoyer de la télémétrie. Une **clé API** est l'autre type : elle permet à un script, à la CLI, à Terraform ou à un assistant IA de lire et de modifier votre projet, avec les autorisations que vous lui donnez. Aucune ne fonctionne à la place de l'autre.
+
+:::cards
+- [Lequel choisir ?](/docs/introduction/which-one#sonde-agent-collecteur-ou-agent-runbook): Quoi installer, et la clé que chacun utilise.
+- [Clés d'ingestion](/docs/telemetry/ingestion-keys): Créer, restreindre et renouveler les clés qui envoient la télémétrie.
 :::
 
 ## Automatisation et IA
@@ -123,11 +182,30 @@ Les **étiquettes** sont des mots-clés que vous posez sur les moniteurs, les in
 - [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules): Étiqueter les nouvelles ressources et leur donner des propriétaires automatiquement.
 :::
 
+## Les types de règles
+
+Beaucoup de choses dans OneUptime s'appellent une règle. Chacune prend une décision pour vous quand quelque chose de nouveau arrive, et elles se répartissent en quelques familles. La plupart se trouvent sous **Règles** dans les menus latéraux des **Incidents** et des **Alertes**.
+
+| Ce qu'elles décident | Règles |
+| --- | --- |
+| Qui est alerté | Les **Règles d'astreinte** choisissent les politiques d'astreinte qu'exécute un nouvel incident ou une nouvelle alerte, et les **Règles d'escalade** d'une politique alertent niveau par niveau |
+| À qui il appartient, et comment il est étiqueté | **Règles de propriétaire**, **Règles d'étiquettes** et **Règles de confidentialité** |
+| Ce qui va ensemble | Les **Règles de regroupement** ouvrent des épisodes et y ajoutent des éléments |
+| Ce qui s'exécute dessus | Les **Règles de runbook** lancent des runbooks, et les **Règles IA** décident de ce que OneUptime AI examine et corrige |
+| Quand relancer | Les **Règles SLA** suivent les délais de réponse et de résolution, et les **Règles de rappel** relancent les propriétaires tant que c'est ouvert |
+
+Les règles propres à un moniteur sont ses critères. Les règles d'astreinte sous **Paramètres utilisateur** sont encore autre chose : propres à chaque personne, elles décident comment une alerte parvient à cette personne.
+
+:::cards
+- [Paramètres et automatisation des incidents](/docs/incidents/settings#les-règles-qui-sexécutent-à-la-création-dun-incident): Les règles qui s'exécutent quand un incident est créé, dans l'ordre.
+- [Règles d'astreinte personnelles](/docs/notifications/on-call-rules): Comment une alerte vous parvient.
+:::
+
 ## Étapes suivantes
 
 :::cards
 - [Démarrage rapide](/docs/introduction/quickstart): Mettre ces idées en pratique en quinze minutes.
-- [Page d'accueil et raccourcis](/docs/introduction/home): Trouver chaque produit dans le tableau de bord.
-- [Créer un moniteur](/docs/monitor/create-monitor): Votre premier moniteur, champ par champ.
+- [Glossaire](/docs/introduction/glossary): Chaque mot qu'utilise OneUptime, en une phrase ou deux.
+- [Lequel choisir ?](/docs/introduction/which-one): Incident ou alerte, workflow ou runbook, et les autres sosies.
 - [Vue d'ensemble des incidents](/docs/incidents/index): Ce qui se passe après qu'un moniteur déclare un incident.
 :::

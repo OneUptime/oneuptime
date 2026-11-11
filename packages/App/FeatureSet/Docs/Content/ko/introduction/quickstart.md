@@ -141,6 +141,7 @@ OneUptime의 모든 것은 프로젝트 안에 있습니다. 모니터, 인시�
 
 :::cards
 - [핵심 개념](/docs/introduction/core-concepts): 방금 설정한 것의 바탕이 되는 개념.
+- [용어집](/docs/introduction/glossary): 지금까지 만난 모든 단어를 한두 문장으로.
 - [온콜 스케줄](/docs/on-call/schedules): 팀과 온콜을 나눠 맡습니다.
 - [상태 페이지 브랜딩 및 도메인](/docs/status-pages/branding-and-domains): 상태 페이지를 우리 회사에 맞게 꾸밉니다.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 앱에서 로그, 메트릭, 트레이스를 보냅니다.

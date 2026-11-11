@@ -1,6 +1,6 @@
 # Workflows Overview
 
-Workflows automate work in OneUptime without code. You place blocks on a canvas, connect them, and the workflow runs on its own whenever its trigger fires: an incident is created, a schedule comes due, another tool calls a URL, or an email arrives. Use them to connect OneUptime to the rest of your stack and to take care of routine follow-up while you work on the problem itself.
+Workflows automate work in OneUptime without code. You place blocks on a canvas, connect them, and the workflow runs on its own whenever its trigger fires: an incident is created, a schedule comes due, another tool calls a URL, or an email arrives. Use them to connect OneUptime to the rest of your stack and to take care of routine follow-up while you work on the problem itself. To choose between a workflow, a runbook, a playbook and an AI rule, see [Which One Do I Use?](/docs/introduction/which-one#workflow-runbook-playbook-or-ai-rule).
 
 :::cards
 - [Authoring a Workflow](/docs/workflows/authoring): Create a workflow, then add, connect and set up its blocks on the canvas.
@@ -47,6 +47,8 @@ You build all of this visually on a canvas. Most workflows need no code at all; 
 - **Reuse common automation** — build it once, and start it from any other workflow with an **Execute Workflow** block.
 
 ## Key terms
+
+The words used across OneUptime are in the [Glossary](/docs/introduction/glossary).
 
 | Term                | What it means                                                                                         |
 | ------------------- | ----------------------------------------------------------------------------------------------------- |
