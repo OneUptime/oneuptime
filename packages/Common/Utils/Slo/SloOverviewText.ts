@@ -2,6 +2,7 @@ import SliType from "../../Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "../../Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
+import { Translator } from "../../Types/Translator";
 import {
   DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
   DEFAULT_ROLLING_WINDOW_DAYS,
@@ -106,13 +107,19 @@ export const getSloTargetText: GetSloTargetTextFunction = (
  * A budget below zero is exceeded, not a useful negative percentage left.
  * Classify before rounding so even a small overage cannot read as 0%.
  * The signed value remains available to calculations and history charts.
+ *
+ * With the reader's Translator the percentage is written their way ("42,5 %",
+ * "<0,1 %"); the words for a spent budget stay English here, for the
+ * Dashboard to look up (getSloBudgetRemainingTextInLanguage).
  */
 export type GetSloBudgetRemainingTextFunction = (
   percentage: number | undefined | null,
+  translator?: Translator | undefined,
 ) => string | null;
 
 export const getSloBudgetRemainingText: GetSloBudgetRemainingTextFunction = (
   percentage: number | undefined | null,
+  translator?: Translator | undefined,
 ): string | null => {
   const remaining: number | null = toFiniteNumber(percentage);
 
@@ -129,10 +136,10 @@ export const getSloBudgetRemainingText: GetSloBudgetRemainingTextFunction = (
   }
 
   if (remaining < 0.1) {
-    return "<0.1%";
+    return `<${formatSloPercent(0.1, 1, translator)}`;
   }
 
-  return formatSloPercent(Math.min(remaining, 100), 1);
+  return formatSloPercent(Math.min(remaining, 100), 1, translator);
 };
 
 /** "No monitors" / "1 monitor" / "12 monitors". */

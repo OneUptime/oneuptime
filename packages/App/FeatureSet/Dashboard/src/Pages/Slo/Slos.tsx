@@ -33,7 +33,11 @@ import { Gray500, Slate500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import { getSloBudgetTier, SloBudgetTier } from "Common/Utils/Slo/SloHealth";
-import { formatSloBurnRate } from "Common/Utils/Slo/SloWidgetFormat";
+import {
+  formatSloBurnRate,
+  formatSloPercent,
+  SLI_DECIMALS,
+} from "Common/Utils/Slo/SloWidgetFormat";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Columns from "Common/UI/Components/ModelTable/Columns";
@@ -52,6 +56,7 @@ import React, {
   useState,
 } from "react";
 import {
+  getGlobalTranslator,
   translatePlural,
   translateText,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -126,13 +131,11 @@ SLOs are evaluated automatically every few minutes.
 
 type FormatPercentFunction = (value: number | undefined | null) => string;
 
+// "99,874 %" in German: the table's figures as the reader's language writes them.
 const formatPercent: FormatPercentFunction = (
   value: number | undefined | null,
 ): string => {
-  if (value === undefined || value === null) {
-    return "—";
-  }
-  return `${Math.round(value * 1000) / 1000}%`;
+  return formatSloPercent(value, SLI_DECIMALS, getGlobalTranslator()) ?? "—";
 };
 
 /*
@@ -331,6 +334,7 @@ export const getSloTableColumns: GetSloTableColumnsFunction =
         getElement: (item: ServiceLevelObjective): ReactElement => {
           const burnRate: string | null = formatSloBurnRate(
             item.currentBurnRate,
+            getGlobalTranslator(),
           );
 
           if (burnRate === null) {

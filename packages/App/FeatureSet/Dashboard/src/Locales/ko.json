@@ -50530,5 +50530,14 @@
   "Project Milestones": "Project Milestones",
   "Reached At": "Reached At",
   "Was Backfilled": "Was Backfilled",
-  "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.": "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more."
+  "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.": "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.",
+  "Not Evaluated": "평가 안 됨",
+  "Target {{target}}": "목표 {{target}}",
+  "target {{target}}": "목표 {{target}}",
+  "under 1 min over budget": "예산 1분 미만 초과",
+  "under 1 min remaining": "1분 미만 남음",
+  "{{count}} min remaining": "{{count}}분 남음",
+  "{{count}} min remaining_one": "{{count}}분 남음",
+  "−{{count}} min over budget": "예산 {{count}}분 초과",
+  "−{{count}} min over budget_one": "예산 {{count}}분 초과"
 }

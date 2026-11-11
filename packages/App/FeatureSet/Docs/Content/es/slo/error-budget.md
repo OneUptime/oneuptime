@@ -42,9 +42,9 @@ Un SLO de mes natural tiene el presupuesto de todo el mes desde el primer día: 
 A medida que se acumula el tiempo de inactividad, la **Vista general** muestra el presupuesto restante en su mosaico **Presupuesto de errores restante**:
 
 - como porcentaje del total, que también decide el estado del SLO y llena la barra. La barra tiene una marca en el umbral de riesgo del SLO;
-- como duración, por ejemplo "31m 4s left of 43m 12s".
+- como duración, por ejemplo "Quedan 31 min 4 s de 43 min 12 s".
 
-Cuando el presupuesto se agota, el mosaico muestra **Sin presupuesto**. Cuando el tiempo de inactividad lo supera, el mosaico muestra **Presupuesto superado** y el exceso como tiempo, por ejemplo "4d 23m over budget · 5m 47s allowed": el SLO ha gastado los 5 minutos y 47 segundos de su presupuesto, y otros 4 días y 23 minutos más. La barra se queda vacía y en rojo.
+Cuando el presupuesto se agota, el mosaico muestra **Sin presupuesto**. Cuando el tiempo de inactividad lo supera, el mosaico muestra **Presupuesto superado** y el exceso como tiempo, por ejemplo "4 d 23 min por encima del presupuesto · 5 min 47 s permitido": el SLO ha gastado los 5 minutos y 47 segundos de su presupuesto, y otros 4 días y 23 minutos más. La barra se queda vacía y en rojo.
 
 El presupuesto restante se guarda como un número con signo para los cálculos y los gráficos de historial, así que un presupuesto superado aparece ahí como un porcentaje negativo. Un porcentaje muy negativo significa que el exceso es grande comparado con el presupuesto; no es la parte del tiempo en que el servicio estuvo caído.
 
@@ -60,7 +60,7 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 | El mosaico muestra | Qué significa |
 | --- | --- |
-| Una duración, como **~2d 5h** | El presupuesto se agota en más o menos ese tiempo al ritmo actual. En ámbar, y en rojo cuando queda un día o menos. **Menos de 1 min** significa menos de un minuto. |
+| Una duración, como **~2 d 5 h** | El presupuesto se agota en más o menos ese tiempo al ritmo actual. En ámbar, y en rojo cuando queda un día o menos. **Menos de 1 min** significa menos de un minuto. |
 | **Sin consumo** | No se gastó presupuesto en los últimos 60 minutos. |
 | **Sostenible** | Solo ventanas móviles: la autonomía es de al menos una ventana entera, así que el presupuesto no se gasta más rápido de lo que sale de la ventana el tiempo de inactividad antiguo. A este ritmo no se puede agotar. |
 | **Dura hasta el reinicio** | Solo meses naturales: el presupuesto se reinicia al empezar el mes siguiente antes de agotarse. |
@@ -97,7 +97,7 @@ Un SLO de mes natural se reinicia a medianoche del primer día de cada mes, en s
 
 ### Los SLO jóvenes
 
-Un SLO con ventana móvil más joven que su ventana se mide sobre los datos que existen hasta ahora, y su presupuesto total crece con ellos: un SLO de 30 días creado hace una semana tiene por ahora un presupuesto de 7 días. Hasta que la ventana esté llena, la **Vista general** muestra cuánto lo está, con un indicador **Window 23% full** y la misma nota en el mosaico **Presupuesto de errores restante**. Cuenta con que las cifras se estabilicen a medida que la ventana se llena.
+Un SLO con ventana móvil más joven que su ventana se mide sobre los datos que existen hasta ahora, y su presupuesto total crece con ellos: un SLO de 30 días creado hace una semana tiene por ahora un presupuesto de 7 días. Hasta que la ventana esté llena, la **Vista general** muestra cuánto lo está, con un indicador **Ventana llena al 23 %** y la misma nota en el mosaico **Presupuesto de errores restante**. Cuenta con que las cifras se estabilicen a medida que la ventana se llena.
 
 ## Cambios de estado y el umbral de riesgo
 

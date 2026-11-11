@@ -373,6 +373,7 @@ const SloErrorBudgetPolicy: FunctionComponent<
             ): ReactElement => {
               const threshold: string = formatSloPolicyTierThreshold(
                 item.thresholdPercentage,
+                translator,
               );
 
               if (!threshold) {

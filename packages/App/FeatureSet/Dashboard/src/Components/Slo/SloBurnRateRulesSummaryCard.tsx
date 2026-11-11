@@ -63,7 +63,8 @@ const getRuleThresholdText: GetRuleThresholdTextFunction = (data: {
     }
   }
 
-  const rate: string = formatSloBurnRate(data.threshold) || "";
+  // "14,4×" in German: the threshold as the reader's language writes it.
+  const rate: string = formatSloBurnRate(data.threshold, data.translator) || "";
 
   if (windows.length === 2) {
     return data.translator.translateTemplate(
@@ -294,7 +295,11 @@ const SloBurnRateRulesSummaryCard: FunctionComponent<ComponentProps> = (
                         {currentBurnRate === null
                           ? "—"
                           : translator.translateTemplate("{{rate}} now", {
-                              rate: formatSloBurnRate(currentBurnRate) || "",
+                              rate:
+                                formatSloBurnRate(
+                                  currentBurnRate,
+                                  translator,
+                                ) || "",
                             })}
                       </span>
                     </div>

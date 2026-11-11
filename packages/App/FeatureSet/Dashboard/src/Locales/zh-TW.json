@@ -50530,5 +50530,14 @@
   "Project Milestones": "Project Milestones",
   "Reached At": "Reached At",
   "Was Backfilled": "Was Backfilled",
-  "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.": "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more."
+  "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.": "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.",
+  "Not Evaluated": "未評估",
+  "Target {{target}}": "目標 {{target}}",
+  "target {{target}}": "目標 {{target}}",
+  "under 1 min over budget": "超出預算不到 1 分鐘",
+  "under 1 min remaining": "剩餘不到 1 分鐘",
+  "{{count}} min remaining": "剩餘 {{count}} 分鐘",
+  "{{count}} min remaining_one": "剩餘 {{count}} 分鐘",
+  "−{{count}} min over budget": "超出預算 {{count}} 分鐘",
+  "−{{count}} min over budget_one": "超出預算 {{count}} 分鐘"
 }

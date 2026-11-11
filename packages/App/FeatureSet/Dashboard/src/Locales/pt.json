@@ -50530,5 +50530,14 @@
   "Project Milestones": "Project Milestones",
   "Reached At": "Reached At",
   "Was Backfilled": "Was Backfilled",
-  "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.": "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more."
+  "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.": "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.",
+  "Not Evaluated": "Não avaliado",
+  "Target {{target}}": "Meta {{target}}",
+  "target {{target}}": "meta {{target}}",
+  "under 1 min over budget": "Orçamento excedido em menos de 1 min",
+  "under 1 min remaining": "Resta menos de 1 min",
+  "{{count}} min remaining": "Restam {{count}} min",
+  "{{count}} min remaining_one": "Resta {{count}} min",
+  "−{{count}} min over budget": "Orçamento excedido em {{count}} min",
+  "−{{count}} min over budget_one": "Orçamento excedido em {{count}} min"
 }

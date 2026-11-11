@@ -49355,7 +49355,7 @@
   "Error budget left over {{window}}. The faded line spends the budget evenly by the reset — below it, the month is burning too fast.": "Verbleibendes Fehlerbudget über {{window}}. Die blasse Linie verbraucht das Budget gleichmäßig bis zum Zurücksetzen – liegt die Kurve darunter, wird im Monat zu schnell verbraucht.",
   "Error budget not evaluated yet": "Fehlerbudget noch nicht ausgewertet",
   "Error budget running low": "Fehlerbudget wird knapp",
-  "Error-budget burn measured over the trailing {{window}}. A burn rate of 1 spends the budget exactly over the compliance window. Dashed lines are the thresholds of this SLO's enabled burn rate rules.": "Verbrauch des Fehlerbudgets, gemessen über die letzten {{window}}. Eine Burn-Rate von 1 verbraucht das Budget genau über das Compliance-Zeitfenster. Gestrichelte Linien sind die Schwellenwerte der aktivierten Burn-Rate-Regeln dieses SLO.",
+  "Error-budget burn measured over the trailing {{window}}. A burn rate of 1 spends the budget exactly over the compliance window. Dashed lines are the thresholds of this SLO's enabled burn rate rules.": "Über die letzten {{window}} gemessener Verbrauch des Fehlerbudgets. Eine Burn-Rate von 1 verbraucht das Budget genau über das Compliance-Zeitfenster. Gestrichelte Linien sind die Schwellenwerte der aktivierten Burn-Rate-Regeln dieses SLO.",
   "Evaluated every {{count}} minutes.": "Alle {{count}} Minuten ausgewertet.",
   "Evaluated every {{count}} minutes._one": "Alle {{count}} Minute ausgewertet.",
   "Evaluated {{time}}": "Ausgewertet {{time}}",
@@ -50530,5 +50530,14 @@
   "Project Milestones": "Project Milestones",
   "Reached At": "Reached At",
   "Was Backfilled": "Was Backfilled",
-  "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.": "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more."
+  "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.": "When a project first reached each activation milestone: its first monitor, check result, on-call page delivered, second member, status page with a monitor, telemetry of each kind and more.",
+  "Not Evaluated": "Nicht ausgewertet",
+  "Target {{target}}": "Ziel {{target}}",
+  "target {{target}}": "Ziel {{target}}",
+  "under 1 min over budget": "Weniger als 1 Min. über dem Budget",
+  "under 1 min remaining": "Noch weniger als 1 Min.",
+  "{{count}} min remaining": "Noch {{count}} Min.",
+  "{{count}} min remaining_one": "Noch {{count}} Min.",
+  "−{{count}} min over budget": "{{count}} Min. über dem Budget",
+  "−{{count}} min over budget_one": "{{count}} Min. über dem Budget"
 }

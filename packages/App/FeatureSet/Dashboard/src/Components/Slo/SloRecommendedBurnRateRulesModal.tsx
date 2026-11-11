@@ -3,6 +3,10 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import { SloRecommendedBurnRateRuleToAdd } from "Common/Utils/Slo/SloRecommendedBurnRateRules";
+import {
+  formatSloBurnRate,
+  formatSloNumber,
+} from "Common/Utils/Slo/SloWidgetFormat";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   BURN_RATE_RULE_NOTHING_PICKED,
@@ -57,15 +61,18 @@ const SloRecommendedBurnRateRulesModal: FunctionComponent<ComponentProps> = (
                 <span className="text-sm font-medium text-gray-900">
                   {rule.name}
                 </span>
+                {/* The figures the reader's way: "14,4×", "۲" in Persian. */}
                 <span className="flex-shrink-0 text-sm tabular-nums text-gray-900">
-                  {rule.burnRateThreshold}×
+                  {formatSloBurnRate(rule.burnRateThreshold, translator)}
                 </span>
               </div>
               <div className="mt-0.5 text-sm text-gray-600">
                 {translator.translateTemplate(
                   "Fires when about {{percent}}% of the error budget burns in {{duration}}",
                   {
-                    percent: rule.budgetPercentage,
+                    percent:
+                      formatSloNumber(rule.budgetPercentage, 2, translator) ||
+                      String(rule.budgetPercentage),
                     duration: formatDurationCompactInLanguage(
                       rule.longWindowInMinutes * 60,
                       translator.language,

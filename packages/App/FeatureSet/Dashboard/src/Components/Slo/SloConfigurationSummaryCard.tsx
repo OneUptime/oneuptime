@@ -76,13 +76,20 @@ const SloConfigurationSummaryCard: FunctionComponent<ComponentProps> = (
   const downtimeStatuses: Array<MonitorStatus> =
     (slo.downtimeMonitorStatuses as Array<MonitorStatus> | undefined) || [];
 
+  // The target as the reader's language writes it: "99,9 %" in German.
+  const targetText: string | null = formatSloPercent(
+    slo.targetPercentage,
+    undefined,
+    translator,
+  );
+
   const rows: Array<ConfigurationRow> = [
     {
       key: "objective",
       label: "Objective",
-      value: formatSloPercent(slo.targetPercentage)
+      value: targetText
         ? translator.translateTemplate("{{percent}} uptime", {
-            percent: formatSloPercent(slo.targetPercentage) || "",
+            percent: targetText,
           })
         : "No target set",
       description: allowedDowntime
