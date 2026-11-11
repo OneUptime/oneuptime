@@ -37,6 +37,7 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   storeWatch: (dataStoreId: string) => string;
   tableFreshness: string;
   biSync: (dataBiConnectionId: string) => string;
+  biRefreshAlert: (dataBiConnectionId: string) => string;
   tableDashboards: string;
   tableLineage: string;
   tableLineageAnswer: string;
@@ -116,6 +117,10 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   // Reads a BI tool's dashboards now, and says how it went.
   biSync: (dataBiConnectionId: string): string => {
     return `/data-observability/bi-connections/${dataBiConnectionId}/sync`;
+  },
+  // Makes the BI tool's monitor on failed refreshes match it: made, kept or removed.
+  biRefreshAlert: (dataBiConnectionId: string): string => {
+    return `/data-observability/bi-connections/${dataBiConnectionId}/refresh-alert`;
   },
   // The dashboards built on a table, and on the tables built from it.
   tableDashboards: "/data-observability/tables/dashboards",
@@ -229,6 +234,11 @@ export interface DataObservabilityDataProductBadgeResetResponse {
 
 export interface DataObservabilityCheckAlertResponse {
   // The check's monitor, or null when it has no alert.
+  monitorId: string | null;
+}
+
+export interface DataObservabilityBiRefreshAlertResponse {
+  // The BI tool's monitor on failed refreshes, or null when it has none.
   monitorId: string | null;
 }
 

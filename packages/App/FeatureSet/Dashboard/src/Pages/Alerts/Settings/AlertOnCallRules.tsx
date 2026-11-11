@@ -25,6 +25,7 @@ import {
 } from "../../../Utils/Form/EventRuleForm";
 import { OnCallRuleNameCell } from "../../../Components/OnCallRule/WorkingHoursSummary";
 import { OnCallRuleRecord } from "../../../Components/OnCallRule/WorkingHoursText";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 const alertOnCallDocumentation: string = `
 ### How Alert On-Call Rules Work
@@ -134,6 +135,8 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
           field: { name: true },
           title: "Name",
           type: FieldType.Text,
+          // The page's words beside the name: only the name reads its own way.
+          getLineText: drawsItsOwnLines,
           getElement: (item: AlertOnCallRule): ReactElement => {
             return <OnCallRuleNameCell name={item.name || ""} rule={item} />;
           },
@@ -319,6 +322,8 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
           field: { name: true },
           title: "Name",
           type: FieldType.Text,
+          // The page's words beside the name: only the name reads its own way.
+          getLineText: drawsItsOwnLines,
           getElement: (item: AlertEpisodeOnCallRule): ReactElement => {
             return <OnCallRuleNameCell name={item.name || ""} rule={item} />;
           },

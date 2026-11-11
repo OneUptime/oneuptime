@@ -183,7 +183,7 @@ Una notificación va a cada canal activado, como una solicitud por canal, con `e
 
 ## Entrega y reintentos
 
-Una solicitud cuenta como entregada cuando tu servicio responde con un estado 2xx en 10 segundos. Una solicitud que no respondió, o que respondió con 408, 429 o un estado 5xx, se vuelve a enviar al cabo de 1 segundo y de 4 segundos más: tres intentos en total. Con cualquier otro estado 4xx no se vuelve a enviar.
+Una solicitud cuenta como entregada cuando tu servicio responde con un estado 2xx en 10 segundos. Una solicitud que no respondió, o que respondió con 408, 429 o un estado 5xx, se vuelve a enviar al cabo de 1 segundo y de 4 segundos más: tres intentos en total. Con cualquier otro estado 4xx no se vuelve a enviar. Cómo terminó cada mensaje se cuenta en las [Métricas de entrega de notificaciones](/docs/self-hosted/notification-delivery-metrics), por el ID y el nombre del canal.
 
 El resultado de cada intento queda en el registro de guardia de la persona, con el nombre del canal y el estado con el que respondió tu servicio, nunca la URL. Un aviso que no se entrega no detiene la política de guardia: si nadie lo reconoce, se escala como siempre. Mantén una regla de correo o SMS más adelante en tus reglas si tu servicio es la única forma de llegar a las personas.
 

@@ -19,6 +19,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 export interface ComponentProps {
   // One table's tests; every table's when not given.
@@ -181,16 +183,22 @@ const DbtTestTable: FunctionComponent<ComponentProps> = (
           getExportValue: (check: DataCheck): string => {
             return check.name || "";
           },
+          // A description under the name: each reads its own way.
+          getLineText: drawsItsOwnLines,
           getElement: (check: DataCheck): ReactElement => {
             return (
               <div className="min-w-0">
-                <span className="block truncate font-medium text-gray-900">
-                  {check.name}
-                </span>
+                <IsolatedLine
+                  as="span"
+                  text={check.name || ""}
+                  className="block truncate font-medium text-gray-900"
+                />
                 {check.description ? (
-                  <span className="block max-w-md truncate text-xs text-gray-500">
-                    {check.description}
-                  </span>
+                  <IsolatedLine
+                    as="span"
+                    text={check.description}
+                    className="block max-w-md truncate text-xs text-gray-500"
+                  />
                 ) : (
                   <></>
                 )}

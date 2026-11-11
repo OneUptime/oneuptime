@@ -774,12 +774,13 @@ describe("a Slack account is looked for among Slack links only", () => {
     const context: { userId?: ObjectID | undefined } | undefined = await (
       SlackAPI as unknown as {
         resolveSlackAiOpsContext: (data: {
-          slackTeamId: string;
+          // Where it was asked (SlackRequestWorkspace).
+          slackWorkspace: { teamId: string };
           slackUserId: string;
         }) => Promise<{ userId?: ObjectID | undefined } | undefined>;
       }
     ).resolveSlackAiOpsContext({
-      slackTeamId: SLACK_TEAM_ID,
+      slackWorkspace: { teamId: SLACK_TEAM_ID },
       slackUserId: COLLEAGUE_SLACK_ID,
     });
 
@@ -796,12 +797,13 @@ describe("a Slack account is looked for among Slack links only", () => {
     const context: { userId?: ObjectID | undefined } | undefined = await (
       SlackAPI as unknown as {
         resolveSlackAiOpsContext: (data: {
-          slackTeamId: string;
+          // Where it was asked (SlackRequestWorkspace).
+          slackWorkspace: { teamId: string };
           slackUserId: string;
         }) => Promise<{ userId?: ObjectID | undefined } | undefined>;
       }
     ).resolveSlackAiOpsContext({
-      slackTeamId: SLACK_TEAM_ID,
+      slackWorkspace: { teamId: SLACK_TEAM_ID },
       slackUserId: SIGNED_IN_SLACK_ID,
     });
 
@@ -1170,12 +1172,13 @@ describe("a link a person typed in, while it is still there, is nobody's account
     const context: { userId?: ObjectID | undefined } | undefined = await (
       SlackAPI as unknown as {
         resolveSlackAiOpsContext: (data: {
-          slackTeamId: string;
+          // Where it was asked (SlackRequestWorkspace).
+          slackWorkspace: { teamId: string };
           slackUserId: string;
         }) => Promise<{ userId?: ObjectID | undefined } | undefined>;
       }
     ).resolveSlackAiOpsContext({
-      slackTeamId: SLACK_TEAM_ID,
+      slackWorkspace: { teamId: SLACK_TEAM_ID },
       slackUserId: SIGNED_IN_SLACK_ID,
     });
 

@@ -259,4 +259,5 @@ Expo는 모바일 앱이 기기에서 삭제되었거나 기기의 푸시 토큰
 - [모바일 앱 문제 해결](/docs/mobile-desktop-apps/faq-troubleshooting): 휴대폰의 로그인 및 알림 문제를 해결합니다.
 - [에스컬레이션 규칙](/docs/on-call/escalation-rules): 누구를 언제 호출할지 정합니다.
 - [프라이빗 네트워크 접근](/docs/self-hosted/private-network-access): 서버가 자체 네트워크에서 닿을 수 있는 범위.
+- [알림 전달 메트릭](/docs/self-hosted/notification-delivery-metrics): Apple과 Google이 받은 푸시와 거부한 푸시를 셉니다.
 :::

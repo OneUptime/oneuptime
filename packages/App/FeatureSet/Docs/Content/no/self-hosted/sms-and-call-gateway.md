@@ -125,4 +125,5 @@ SMS- eller anropsloggen, og for en vakttilkalling personens vaktlogg, sier `Sent
 - [Push-varsler](/docs/self-hosted/push-notifications): Slå av push for hele serveren.
 - [Twilio-integrasjon](/docs/self-hosted/twilio-integration): Send gjennom Twilio i stedet.
 - [Tilgang til privat nettverk](/docs/self-hosted/private-network-access): Hva serveren din kan nå på ditt eget nettverk.
+- [Metrikker for varslingslevering](/docs/self-hosted/notification-delivery-metrics): Tell meldingene gatewayen din tar imot og avviser.
 :::

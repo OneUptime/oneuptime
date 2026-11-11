@@ -62,6 +62,7 @@ import {
   isCloudHealthChange,
   readCloudAiChange,
 } from "./CloudChangesScope";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
  * What changed in a cloud resource or a cloud account: the operations its
@@ -540,6 +541,8 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
           isNotCustomizable: true,
           wrapContent: true,
           wrapMaxWidthClassName: "max-w-2xl",
+          // Each of its lines already reads its own way.
+          getLineText: drawsItsOwnLines,
           getElement: (change: ChangeEvent): ReactElement => {
             /*
              * Under a health event's title, what the provider and OneUptime

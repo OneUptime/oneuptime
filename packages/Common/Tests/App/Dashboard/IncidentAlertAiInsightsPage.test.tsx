@@ -643,7 +643,7 @@ describe.each(
         expect(
           linksIn(within(item).getByTestId("ai-insights-next-step-link")),
         ).toEqual([
-          `Configure an AI provider → ${pathOf(PageMap.SETTINGS_AI_LLM_PROVIDERS)}`,
+          `Set up an LLM provider → ${pathOf(PageMap.SETTINGS_AI_LLM_PROVIDERS)}`,
         ]);
       });
 

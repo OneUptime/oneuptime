@@ -1,3 +1,4 @@
+import { DataBiDatasetRead } from "../../../../Types/DataObservability/DataBiRefreshAlert";
 import DataBiTool from "../../../../Types/DataObservability/DataBiTool";
 import { DataDashboardRefreshHistory } from "../../../../Types/DataObservability/DataDashboardActivity";
 import { JSONObject } from "../../../../Types/JSON";
@@ -35,7 +36,8 @@ import {
  *     sources; a report charts its dataset, and a dashboard its tiles'.
  *     Each also says how often it is viewed, from the activity log
  *     (PowerBiActivity), and how fresh its datasets are, from their
- *     refreshes (PowerBiRefreshes).
+ *     refreshes (PowerBiRefreshes); the datasets themselves are read with
+ *     their refreshes, for the alerts on failed ones (DataBiRefreshAlert).
  *   - Hightouch: an API key. Each sync's model is a table, or SQL naming them.
  *   - Census: a workspace API key. Each sync's source is a table.
  *
@@ -79,6 +81,11 @@ export interface BiToolRead {
   usage: BiUsageRead | null;
   // What was not read while the dashboards were: views or refreshes.
   warnings: Array<string>;
+  /*
+   * The datasets behind its dashboards, each with its refreshes, where the
+   * tool says (Power BI); left out otherwise.
+   */
+  datasets?: Array<DataBiDatasetRead> | undefined;
 }
 
 export type BiTransport = (
@@ -1050,7 +1057,9 @@ export class PowerBiConnector {
         if (datasetId) {
           datasets.set(datasetId.toLowerCase(), {
             datasetId,
+            name: readText(dataset["name"]) || datasetId,
             workspaceId,
+            workspace: readText(workspace["name"]) || null,
             onCapacity: workspace["isOnDedicatedCapacity"] === true,
             tables: refs,
           });
@@ -1060,6 +1069,19 @@ export class PowerBiConnector {
 
     const items: Array<{ read: BiDashboardRead; datasetIds: Array<string> }> =
       readPowerBiItems(workspaces, datasets);
+    // Every dataset a report or dashboard read charts, in lower case.
+    const chartedIds: Array<string> = Array.from(
+      new Set(
+        items.flatMap(
+          (item: {
+            read: BiDashboardRead;
+            datasetIds: Array<string>;
+          }): Array<string> => {
+            return item.datasetIds;
+          },
+        ),
+      ),
+    );
     const warnings: Array<string> = [];
     let refreshRead: PowerBiRefreshRead = {
       refreshes: new Map(),
@@ -1069,18 +1091,7 @@ export class PowerBiConnector {
     try {
       refreshRead = await readPowerBiRefreshes({
         get,
-        datasets: Array.from(
-          new Set(
-            items.flatMap(
-              (item: {
-                read: BiDashboardRead;
-                datasetIds: Array<string>;
-              }): Array<string> => {
-                return item.datasetIds;
-              },
-            ),
-          ),
-        )
+        datasets: chartedIds
           .map((datasetId: string): PowerBiRefreshTarget | null => {
             const dataset: PowerBiDataset | undefined = datasets.get(datasetId);
 
@@ -1126,6 +1137,25 @@ export class PowerBiConnector {
         return item.read;
       },
     );
+    // Each charted dataset with its refreshes: undefined where they were not read.
+    const datasetReads: Array<DataBiDatasetRead> = chartedIds
+      .map((datasetId: string): DataBiDatasetRead | null => {
+        const dataset: PowerBiDataset | undefined = datasets.get(datasetId);
+
+        return dataset
+          ? {
+              datasetId,
+              name: dataset.name,
+              workspace: dataset.workspace,
+              refresh: refreshRead.refreshes.has(datasetId)
+                ? refreshRead.refreshes.get(datasetId)
+                : undefined,
+            }
+          : null;
+      })
+      .filter((read: DataBiDatasetRead | null): read is DataBiDatasetRead => {
+        return read !== null;
+      });
     let usage: BiUsageRead | null = null;
 
     try {
@@ -1156,14 +1186,18 @@ export class PowerBiConnector {
       dashboards,
       usage,
       warnings: [...refreshRead.warnings, ...warnings],
+      datasets: datasetReads,
     };
   }
 }
 
-// A dataset scanned: where it is, and the tables its Power Query reads.
+// A dataset scanned: its name, where it is, and the tables its Power Query reads.
 interface PowerBiDataset {
   datasetId: string;
+  name: string;
   workspaceId: string;
+  // Its workspace's name.
+  workspace: string | null;
   onCapacity: boolean;
   tables: Array<BiTableRef>;
 }

@@ -132,7 +132,9 @@ export default interface Columns<
    * The words getElement draws on the cell's line - a name drawn as a link -
    * so the cell reads their way when that is not the page's: an English
    * monitor name on an Arabic page is cut short at its own end
-   * (Table/Types/Column's getLineText).
+   * (Table/Types/Column's getLineText). A column on the record's `name` or
+   * `title` reads that field without it (Table/ColumnLineText); set it for
+   * other words, or to drawsItsOwnLines for an element of several lines.
    */
   getLineText?: ((item: TEntity) => string | undefined) | undefined;
 }

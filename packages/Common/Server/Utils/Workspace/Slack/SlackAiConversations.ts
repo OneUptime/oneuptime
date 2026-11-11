@@ -3,6 +3,9 @@ import GlobalCache from "../../../Infrastructure/GlobalCache";
 import { JSONObject } from "../../../../Types/JSON";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import logger from "../../Logger";
+import SlackRequestWorkspaceUtil, {
+  SlackRequestWorkspace,
+} from "./SlackRequestWorkspace";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { WorkspaceConversationPerson } from "../WorkspaceConnectPromptOnce";
 import { SlackAnswerPlace } from "./Actions/Answer";
@@ -62,6 +65,13 @@ export enum SlackMessageKind {
 export interface SlackMessage {
   kind: SlackMessageKind;
   teamId: string;
+  /*
+   * In a Slack Enterprise organization: the organization, and whether the
+   * message came to OneUptime's installation in the whole organization
+   * (SlackRequestWorkspace) - what finds a project connected to it.
+   */
+  enterpriseId?: string | undefined;
+  isEnterpriseInstall?: boolean | undefined;
   channelId: string;
   // Who wrote it: a Slack user id.
   userId: string;
@@ -159,6 +169,17 @@ export default class SlackAiConversations {
       text: SlackAiConversations.textOf(fields["text"]),
       ts: SlackAiConversations.textOf(fields["ts"]),
     };
+
+    const workspace: SlackRequestWorkspace =
+      SlackRequestWorkspaceUtil.read(payload);
+
+    if (workspace.enterpriseId) {
+      message.enterpriseId = workspace.enterpriseId;
+    }
+
+    if (workspace.isEnterpriseInstall) {
+      message.isEnterpriseInstall = true;
+    }
 
     const threadTs: string = SlackAiConversations.textOf(fields["thread_ts"]);
 

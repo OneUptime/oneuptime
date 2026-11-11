@@ -48,6 +48,7 @@ import SlackUserGroups, {
   SLACK_USER_GROUP_DESCRIPTION,
   SlackUserGroupInfo,
 } from "../Slack/SlackUserGroups";
+import SlackOrganization from "../Slack/SlackOrganization";
 import { WorkspaceUserGroupError } from "./WorkspaceUserGroupProvider";
 import WorkspaceUserGroupSync from "./WorkspaceUserGroupSync";
 
@@ -407,7 +408,8 @@ export default class WorkspaceUserGroupManager {
         await WorkspaceUserGroupManager.askWorkspace(data.workspaceType, () => {
           return SlackUserGroups.list({
             authToken: projectAuth.authToken || "",
-            teamId: projectAuth.workspaceProjectId || "",
+            // A whole Slack Enterprise organization's: its default workspace's groups.
+            teamId: SlackOrganization.getWorkspaceIdForCalls(projectAuth),
           });
         });
 
@@ -820,7 +822,20 @@ export default class WorkspaceUserGroupManager {
     handle: string | null;
   }> {
     const authToken: string = data.projectAuth.authToken || "";
-    const teamId: string = data.projectAuth.workspaceProjectId || "";
+
+    /*
+     * The workspace the group is in: the project's own, or - for Slack
+     * installed for a whole Enterprise organization - its default one,
+     * which the group keeps (workspaceTeamId) to be kept in step there.
+     */
+    const teamId: string = SlackOrganization.getWorkspaceIdForCalls(
+      data.projectAuth,
+    );
+    const workspaceTeamId: string | null = SlackOrganization.isOrganization(
+      data.projectAuth.miscData,
+    )
+      ? teamId || null
+      : null;
 
     const newName: string = (data.request.newGroupName || "").trim();
     const newHandle: string = readSlackUserGroupHandle(
@@ -863,7 +878,7 @@ export default class WorkspaceUserGroupManager {
 
       return {
         workspaceGroupId: created.id,
-        workspaceTeamId: null,
+        workspaceTeamId: workspaceTeamId,
         name: created.name || newName,
         handle: created.handle || newHandle,
       };
@@ -903,7 +918,7 @@ export default class WorkspaceUserGroupManager {
 
     return {
       workspaceGroupId: group.id,
-      workspaceTeamId: null,
+      workspaceTeamId: workspaceTeamId,
       name: group.name,
       handle: group.handle || null,
     };

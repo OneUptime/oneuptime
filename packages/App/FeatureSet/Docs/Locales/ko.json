@@ -315,6 +315,7 @@
     "GitHub Integration": "GitHub 통합",
     "Push Notifications": "푸시 알림",
     "Custom Notification Channels": "사용자 지정 알림 채널",
+    "Notification Delivery Metrics": "알림 전달 메트릭",
     "SMS and Call Gateway": "SMS 및 통화 게이트웨이",
     "SendGrid Inbound Email": "SendGrid 수신 이메일",
     "Private Network Access": "프라이빗 네트워크 접근",

@@ -557,6 +557,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "A Slack workspace",
     "The Growth plan on OneUptime Cloud",
     "On a self-hosted server,",
+    // Slack Enterprise organizations: one project in several workspaces.
+    "Which workspace a rule uses.",
+    "Where OneUptime works.",
+    "A project connected to a single workspace.",
     // Asking everyone to connect.
     "Who gets a message.",
     "What the card says.",

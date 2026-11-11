@@ -106,10 +106,11 @@ export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  *   - OpenAI Compatible, an option of the LLM Provider field, drawn as
  *     the field's options write it;
  *   - text the server writes in English: a refused Base URL's message,
- *     the context window errors, the investigation card's lines for an
- *     incident outside the rules and for one resolved during a rule's wait
- *     (InvestigationEligibility), the AI Logs statuses, and the lead of a
- *     follow-up check's analysis (IncidentFollowUpCheck.buildReportLead);
+ *     the context window errors, the AI Logs statuses, and the lead of a
+ *     follow-up check's analysis (IncidentFollowUpCheck.buildReportLead).
+ *     The investigation card's lines for an incident outside the rules and
+ *     for one resolved during a rule's wait are the Dashboard's own now
+ *     (InvestigationNotStartedWords, #6656), and drawn in each language;
  *   - the namespaces Kubernetes names kube-system, kube-public and
  *     kube-node-lease;
  *   - the command policy's SafeWrite and RiskyWrite tiers;
@@ -124,8 +125,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "kube-system",
       "kube-public",
       "kube-node-lease",
-      "This incident was outside the AI rules that investigate at creation",
-      "Resolved before the investigation started",
       "Budget Exceeded",
       "Insufficient Balance",
       "Most likely root cause",

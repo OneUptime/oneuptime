@@ -20,6 +20,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 const LATE_TABLES: PluralTemplate = {
   one: "{{count}} table late",
@@ -128,12 +130,16 @@ const DataObservabilityDataProductsPage: FunctionComponent<
             getExportValue: (product: DataProduct): string => {
               return product.name || "";
             },
+            // The page's words beside the name: only the name reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (product: DataProduct): ReactElement => {
               return (
                 <div className="min-w-0">
-                  <span className="block truncate font-medium text-gray-900">
-                    {product.name}
-                  </span>
+                  <IsolatedLine
+                    as="span"
+                    text={product.name || ""}
+                    className="block truncate font-medium text-gray-900"
+                  />
                   <span className="block truncate text-xs text-gray-500">
                     {describeDataProductSla(translator, product)}
                   </span>

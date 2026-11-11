@@ -184,4 +184,5 @@ SMS で確認した番号は、2 つ目のコードなしで通話用にも確�
 - [SMS・通話ゲートウェイ](/docs/self-hosted/sms-and-call-gateway): Twilio の代わりに独自のプロバイダーを通じて SMS と通話を送信します。
 - [SMTP](/docs/emails/smtp): メールも自分のメールサーバーから送信します。
 - [プライベートネットワークアクセス](/docs/self-hosted/private-network-access): ワークフローと Webhook から社内ツールに到達できるようにします。
+- [通知配信メトリクス](/docs/self-hosted/notification-delivery-metrics): Twilio と電話に届いた SMS と通話の数を測定します。
 :::

@@ -101,6 +101,18 @@ För varje Power BI-rapport och instrumentpanel visar **BI-instrumentpaneler** f
 
 Visningar, och uppdateringar på kapaciteter, behöver inget utöver administratörs-API-åtkomsten ovan: tjänsthuvudnamnet i en säkerhetsgrupp som **Service principals can access read-only admin APIs** tillåter, utan Power BI-behörigheter i appen som kräver administratörsmedgivande. När visningar eller uppdateringar inte kan läsas läses och behålls instrumentpanelerna ändå, BI-verktyget säger vad som hoppades över och varför, och nästa läsning försöker igen.
 
+### Larm vid misslyckade uppdateringar
+
+Slå på **Alert on Failed Refreshes** när du lägger till eller redigerar ett Power BI-verktyg (ett nytt börjar med det påslaget), så håller OneUptime en monitor för verktyget under **Monitorer**, uppkallad efter det. Monitorn öppnar ett larm för varje datauppsättning vars senaste uppdatering misslyckades eller avbröts, med datauppsättningen och dess arbetsyta i larmets titel, och löser det så snart en senare uppdatering har slutförts. En datauppsättning som publiceras senare bevakas så snart den har lästs. Slår du av reglaget eller tar bort verktyget tas monitorn bort; fram till dess är den en vanlig monitor, med sina ägare, jourpolicyer och underhållsfönster.
+
+Misslyckade uppdateringar använder inte pipelinemonitorerna. En datauppsättning vars uppdatering misslyckades fortsätter att visa data från sin senaste slutförda uppdatering tills en senare slutförs, så dess larm förblir öppet tills dess, medan larmet för en misslyckad körning försvinner en timme efter körningen. Och uppdateringar läses en gång i timmen: en uppdatering som läses upp till en timme efter att den slutade skulle ofta hamna utanför den timme som **Pipeline Run Failed** tittar på, en datauppsättning som uppdateras varje halvtimme skulle hela tiden bli **Pipeline Is Late**, och en uppdatering som var klar men ännu inte läst skulle se ut som **Pipeline Run Unusually Long**.
+
+- Varje läsning varje timme behåller de datauppsättningar vars senaste avslutade uppdatering misslyckades eller avbröts. Var femte minut skriver var och en `oneuptime.data.bi.refresh_failed`, 1 så länge den misslyckas och 0 under timmen efter att en senare uppdatering har slutförts, och monitorn läser det, så att ett fel öppnar ett enda larm oavsett hur många läsningar som ser det.
+- Ett fel upptäcks vid nästa läsning: dess larm öppnas upp till en timme efter att uppdateringen misslyckades och löses upp till en timme efter att en senare uppdatering slutfördes.
+- En uppdatering som fortfarande pågår ändrar ingenting: larmet för en datauppsättning vars uppdatering misslyckades förblir öppet medan dess nästa uppdatering körs och löses först när en uppdatering har slutförts.
+- På en kapacitet ger Power BI:s lista över uppdaterbara objekt bara varje datauppsättnings senaste uppdatering, så en uppdatering som misslyckades och följdes av en slutförd inom samma timme syns aldrig: då är data aktuella igen.
+- Datauppsättningar på delad kapacitet larmar bara där deras uppdateringar kan läsas (ovan), och en datauppsättning vars uppdateringar inte kunde läsas behåller sitt larm som det var tills de kan läsas.
+
 ## Pipelines
 
 Varje jobb, dbt-projekt och synkronisering visas under **Pipelines**, med sina körningar: när varje körning startade och slutade, hur lång tid den tog, vilket försök den var där schemaläggaren anger det (Airflows try-nummer), och felet för en misslyckad körning. Efter fem körningar lär sig varje pipeline av sina egna körningar hur lång tid en körning brukar ta och hur lång tid det brukar gå mellan körningarna enligt dess schema. En pipelines sida rekommenderar tre monitorer:

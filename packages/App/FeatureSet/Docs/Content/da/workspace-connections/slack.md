@@ -58,6 +58,19 @@ Gå til **Hændelser** > **Arbejdsområde** > **Slack**. Sektionen **Arbejdsomr�
 Klik på **Testregel** i reglens række. En testbesked ankommer i de kanaler, reglen nævner. Se [Test en regel](#test-en-regel).
 :::
 
+## Slack Enterprise-organisationer
+
+Med Slack Enterprise Grid kan ét projekt arbejde i flere workspaces i din organisation. Installér OneUptime for hele organisationen i stedet for ét workspace:
+
+1. En administrator eller ejer af organisationen klikker på **Connect with Slack** under **Projektindstillinger** > **Arbejdsområde** > **Slack**, vælger organisationen i stedet for et af dens workspaces på Slacks installationsside og giver OneUptime adgang.
+2. I Slacks organisationsindstillinger føjer en administrator OneUptime til hvert workspace, der skal bruge det.
+3. Kortet **Slack-arbejdsområder** viser disse workspaces. Klik på **Opdater**, når OneUptime er føjet til et nyt workspace.
+
+- **Hvilket workspace en regel bruger.** Notifikationsregler vælger det **Slack-arbejdsområde**, deres kanaler ligger i. Står feltet tomt, bruger reglen standard-workspacet og leder først dér efter de kanaler, den nævner. **Gør til standard** på kortet ændrer standarden.
+- **Hvor OneUptime virker.** Knapper, kommandoer, fanen Home og OneUptime AI virker i hvert af disse workspaces, og medlemmer forbinder deres egen Slack-konto fra et hvilket som helst af dem.
+- **Et projekt, der er forbundet med ét workspace.** Hører det workspace til organisationen, beholder projektet sine regler, kanaler og forbundne konti, når det installeres for hele organisationen med **Installer for organisationen** på samme side. Det workspace bliver standard.
+- **På en selvhostet server** tillader en Slack-app, der er oprettet ud fra OneUptimes manifest, det allerede: manifestet sætter `org_deploy_enabled`.
+
 ## Bed alle om at forbinde deres konto
 
 Ingen kan forbinde en andens Slack-konto, heller ikke en administrator: hver især logger ind med sin egen. For at få et helt team med beder en **Projektejer** eller **Projektadministrator** alle på én gang under **Projektindstillinger** > **Arbejdsområde** > **Slack**. Kortet **Members' Slack accounts** viser, hvor mange medlemmer der har forbundet deres konto. **Ask everyone to connect** sender hvert medlem, der ikke har gjort det, en direkte besked fra OneUptime i Slack med en knap **Connect Slack account**, der forbinder medlemmets konto med ét klik.

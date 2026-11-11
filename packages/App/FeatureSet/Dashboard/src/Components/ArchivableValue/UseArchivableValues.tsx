@@ -93,6 +93,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
  * ARCHIVE AND UNARCHIVE FOR THE VALUES RECORDS PICK FROM
@@ -597,6 +598,8 @@ const useArchivableValues: <T extends BaseModel>(
       title: "Name",
       type: FieldType.Text,
       isNotCustomizable: true,
+      // A badge: its words read their own way (Pill), its dot the page's.
+      getLineText: drawsItsOwnLines,
       getElement: (item: T): ReactElement => {
         if (data.getNameElement) {
           return data.getNameElement(item);

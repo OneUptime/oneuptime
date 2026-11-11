@@ -184,4 +184,5 @@ Um número verificado para SMS também fica verificado para chamadas, sem um seg
 - [Gateway de SMS e chamadas](/docs/self-hosted/sms-and-call-gateway): Enviar SMS e chamadas pelo seu próprio provedor em vez do Twilio.
 - [SMTP](/docs/emails/smtp): Enviar também os e-mails pelo seu próprio servidor de e-mail.
 - [Acesso a redes privadas](/docs/self-hosted/private-network-access): Deixar workflows e webhooks alcançarem ferramentas internas.
+- [Métricas de entrega de notificações](/docs/self-hosted/notification-delivery-metrics): Medir quantos SMS e chamadas chegam ao Twilio e ao telefone.
 :::

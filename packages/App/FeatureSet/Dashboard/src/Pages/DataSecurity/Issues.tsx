@@ -60,6 +60,7 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 // The line under an issue's title: its check's group, and when it was found.
 const FIRST_DETECTED: string = translationKey("First detected {{time}}");
@@ -221,6 +222,8 @@ const DataSecurityIssuesPage: FunctionComponent<
             isNotCustomizable: true,
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-md",
+            // Each of its lines already reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: DataSecurityIssue): ReactElement => {
               const id: string = item._id?.toString() || "";
 

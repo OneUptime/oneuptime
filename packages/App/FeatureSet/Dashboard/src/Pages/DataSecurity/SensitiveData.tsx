@@ -56,6 +56,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
  * WHERE DOES EACH KIND OF DATA LIVE?
@@ -354,6 +355,8 @@ const DataSecuritySensitiveDataPage: FunctionComponent<
               disableSort: true,
               wrapContent: true,
               wrapMaxWidthClassName: "max-w-sm",
+              // The page's words beside the name: only the name reads its own way.
+              getLineText: drawsItsOwnLines,
               getElement: (row: DataTypeRow): ReactElement => {
                 return (
                   <div className="min-w-[10rem]">
@@ -364,7 +367,7 @@ const DataSecuritySensitiveDataPage: FunctionComponent<
                      */}
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="text-sm font-medium text-gray-900">
-                        {row.name}
+                        <IsolatedText text={row.name || ""} />
                       </span>
                       {row.category ? (
                         <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">

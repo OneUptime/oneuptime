@@ -259,4 +259,5 @@ Expo 接受了推送，并不意味着推送已到达设备：Apple 或 Google �
 - [移动应用故障排除](/docs/mobile-desktop-apps/faq-troubleshooting): 解决手机上的登录和通知问题。
 - [升级规则](/docs/on-call/escalation-rules): 决定呼叫谁，以及何时呼叫。
 - [私有网络访问](/docs/self-hosted/private-network-access): 你的服务器在你自己的网络中可以访问什么。
+- [通知投递指标](/docs/self-hosted/notification-delivery-metrics): 统计 Apple 和 Google 接收的推送，以及它们拒绝的推送。
 :::

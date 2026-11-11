@@ -31,10 +31,17 @@ export interface WorkspaceUserGroupTarget {
   projectId: ObjectID;
   // The project's connection to the workspace.
   authToken: string;
-  // Slack: the workspace (team) id. Microsoft Teams: the tenant id.
+  /*
+   * Slack: the workspace (team) id - for OneUptime installed for a whole
+   * Enterprise organization, its default workspace's (SlackOrganization).
+   * Microsoft Teams: the tenant id.
+   */
   workspaceProjectId: string;
   workspaceGroupId: string;
-  // Microsoft Teams: the team the tag is in.
+  /*
+   * Microsoft Teams: the team the tag is in. Slack installed for a whole
+   * Enterprise organization: the workspace the group is in.
+   */
   workspaceTeamId: string | null;
   // The group's name as OneUptime knows it (a Teams tag is made again by it).
   name: string;

@@ -22,6 +22,11 @@ import Column from "../../../../UI/Components/Table/Types/Column";
 import Columns from "../../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../../UI/Components/Types/FieldType";
 import GenericObject from "../../../../Types/GenericObject";
+import { LEFT_TO_RIGHT } from "../../../../Types/ReadingDirection";
+import {
+  CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "../../../../UI/Utils/LineDirection";
 
 /*
  * A column folded into another's cell (Column.foldInto): where a list does
@@ -270,6 +275,78 @@ describe("TableFoldedValues", () => {
 
     expect(main).toHaveClass("whitespace-normal", "break-words");
     expect(main).not.toHaveClass("whitespace-nowrap");
+  });
+
+  /*
+   * An English title on an Arabic page, over the page's labels and owners:
+   * drawn the page's way, a title cut short to its two lines lost the start
+   * of its second line ("...every EU region while the payments gateway").
+   */
+  test("a value that reads the other way from the page reads its own way; what is folded under it keeps the page's", () => {
+    render(
+      <TableFoldedValues
+        main={
+          <span>
+            Checkout requests time out for customers in every EU region
+          </span>
+        }
+        mainDirection={LEFT_TO_RIGHT}
+        folded={[{ title: "Labels", content: <span>إنتاج</span> }]}
+      />,
+    );
+
+    const values: HTMLElement = screen.getByTestId(TABLE_FOLDED_VALUES_TEST_ID);
+    const main: Element = values.firstElementChild as Element;
+
+    expect(values).not.toHaveAttribute("dir");
+    expect(main).toHaveAttribute("dir", "ltr");
+    /*
+     * Clamped to two lines, it is as wide as its words at the page's start
+     * (text-end would draw a clamped line's "..." past its end).
+     */
+    expect(main).toHaveClass(
+      ...TABLE_FOLDED_MAIN_LINE_CLASS_NAME.split(" "),
+      ...CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME.split(" "),
+    );
+    expect(main).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    expect(screen.getByTestId(TABLE_FOLDED_VALUE_TEST_ID)).not.toHaveAttribute(
+      "dir",
+    );
+  });
+
+  test("a value kept whole on its one line that reads the other way is lined up by its end", () => {
+    render(
+      <TableFoldedValues
+        main={<span>Oct 16, 2026</span>}
+        mainDirection={LEFT_TO_RIGHT}
+        mainLayout={TableFoldedMainLayout.Whole}
+        folded={[{ title: "Lasted", content: <span>2 ساعة</span> }]}
+      />,
+    );
+
+    const main: Element = screen.getByTestId(TABLE_FOLDED_VALUES_TEST_ID)
+      .firstElementChild as Element;
+
+    expect(main).toHaveAttribute("dir", "ltr");
+    expect(main).toHaveClass(
+      "whitespace-nowrap",
+      LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+    );
+  });
+
+  test("a value that reads the page's way is drawn as it always was", () => {
+    render(
+      <TableFoldedValues
+        main={<span>Checkout latency</span>}
+        folded={[{ title: "Labels", content: <span>Production</span> }]}
+      />,
+    );
+
+    const main: Element = screen.getByTestId(TABLE_FOLDED_VALUES_TEST_ID)
+      .firstElementChild as Element;
+
+    expect(main).not.toHaveAttribute("dir");
+    expect(main.className).toBe(TABLE_FOLDED_MAIN_LINE_CLASS_NAME);
   });
 });
 

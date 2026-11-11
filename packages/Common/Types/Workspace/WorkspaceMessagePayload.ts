@@ -258,7 +258,11 @@ export default interface WorkspaceMessagePayload {
   channelIds: Array<string>; // Channel ids to send message to.
   messageBlocks: Array<WorkspaceMessageBlock>; // Message to add to blocks.
   workspaceType: WorkspaceType;
-  teamId?: string | undefined; // Team ID for Microsoft Teams
+  /*
+   * The Microsoft Teams team - or, for Slack installed for a whole
+   * Enterprise organization, the workspace - its channel names are in.
+   */
+  teamId?: string | undefined;
   chatIds?: Array<string> | undefined; // Microsoft Teams chat ids (group / personal chats) to send message to.
   /*
    * What a notification, a message preview or a screen reader shows of the

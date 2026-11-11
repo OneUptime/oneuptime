@@ -184,4 +184,5 @@ Ett nummer som är verifierat för SMS är också verifierat för samtal, utan e
 - [SMS- och samtalsgateway](/docs/self-hosted/sms-and-call-gateway): Skicka SMS och samtal via din egen leverantör i stället för Twilio.
 - [SMTP](/docs/emails/smtp): Skicka även e-post via din egen e-postserver.
 - [Åtkomst till privata nätverk](/docs/self-hosted/private-network-access): Låt arbetsflöden och webhooks nå interna verktyg.
+- [Mått för aviseringsleverans](/docs/self-hosted/notification-delivery-metrics): Mät hur många SMS och samtal som når Twilio och telefonen.
 :::

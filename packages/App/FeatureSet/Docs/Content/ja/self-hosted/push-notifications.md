@@ -259,4 +259,5 @@ Expo は、モバイルアプリがデバイスから削除されたとき、ま
 - [モバイルアプリのトラブルシューティング](/docs/mobile-desktop-apps/faq-troubleshooting): スマートフォンでのサインインと通知の問題を解決します。
 - [エスカレーションルール](/docs/on-call/escalation-rules): 誰をいつ呼び出すかを決めます。
 - [プライベートネットワークへのアクセス](/docs/self-hosted/private-network-access): サーバーが自分のネットワーク内で到達できる範囲。
+- [通知配信メトリクス](/docs/self-hosted/notification-delivery-metrics): Apple と Google が受け取ったプッシュと拒否したプッシュを数えます。
 :::

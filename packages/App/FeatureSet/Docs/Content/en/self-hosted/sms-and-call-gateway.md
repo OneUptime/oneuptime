@@ -125,4 +125,5 @@ The SMS or call log, and for an on-call page the person's on-call log, says `Sen
 - [Push Notifications](/docs/self-hosted/push-notifications): Turn push off for the whole server.
 - [Twilio Integration](/docs/self-hosted/twilio-integration): Send through Twilio instead.
 - [Private Network Access](/docs/self-hosted/private-network-access): What your server may reach on your own network.
+- [Notification Delivery Metrics](/docs/self-hosted/notification-delivery-metrics): Count the messages your gateway accepts and refuses.
 :::

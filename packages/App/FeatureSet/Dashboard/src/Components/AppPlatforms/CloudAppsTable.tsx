@@ -51,6 +51,8 @@ import { getAppsCloudAccountFacet } from "./AppPlatformsAccountFacet";
 import useResourceOwners, {
   UseResourceOwnersResult,
 } from "../ResourceOwners/useResourceOwners";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 
 /*
  * A list of App Platforms apps: every app on every platform (All Apps), or
@@ -372,6 +374,8 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
            */
           wrapContent: true,
           wrapMaxWidthClassName: "max-w-xs",
+          // A mark beside the name: the name reads its own way, the cell the page's.
+          getLineText: drawsItsOwnLines,
           getElement: (app: CloudApp): ReactElement => {
             const where: Array<CloudAppFact> = getWhere(app);
 
@@ -393,7 +397,7 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
                     to={getAppRoute(app)}
                     className="break-words text-sm font-medium text-gray-900 hover:underline"
                   >
-                    {app.name || "—"}
+                    <IsolatedText text={app.name || "—"} />
                   </AppLink>
                   {/*
                    * Each part is kept whole where it fits - a region such as

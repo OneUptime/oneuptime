@@ -259,4 +259,5 @@ EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT=true npx expo prebuild
 - [رفع اشکال برنامهٔ موبایل](/docs/mobile-desktop-apps/faq-troubleshooting): مشکلات ورود و اعلان روی گوشی را برطرف کنید.
 - [قاعده‌های تشدید](/docs/on-call/escalation-rules): تصمیم بگیرید چه کسی و چه وقت فراخوانده شود.
 - [دسترسی به شبکه خصوصی](/docs/self-hosted/private-network-access): سرور شما در شبکهٔ خودتان به چه چیزهایی می‌تواند برسد.
+- [متریک‌های تحویل اعلان](/docs/self-hosted/notification-delivery-metrics): پوش‌هایی را که Apple و Google می‌پذیرند، و آن‌هایی را که رد می‌کنند، بشمارید.
 :::

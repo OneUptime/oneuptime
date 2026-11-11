@@ -83,6 +83,7 @@ import DataCheckService from "../Services/DataCheckService";
 import { isValidProbeConnectionVariable } from "../Utils/DataSecurity/DataSecurityProbeScan";
 import { DATA_OBSERVABILITY_KINDS } from "../Utils/DataObservability/DataObservabilityEngines";
 import DataBiSync from "../Utils/DataObservability/Bi/DataBiSync";
+import DataBiRefreshAlerts from "../Utils/DataObservability/Bi/DataBiRefreshAlerts";
 import DataWarehouseSpendSummary from "../Utils/DataObservability/DataWarehouseSpendSummary";
 import DataTableDashboards from "../Utils/DataObservability/Bi/DataTableDashboards";
 import DataTableSensitivity from "../Utils/DataObservability/DataTableSensitivity";
@@ -536,6 +537,22 @@ export default class DataObservabilityAPI extends BaseAPI<
         return (await DataBiSync.syncConnection(
           connection.id,
         )) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.biRefreshAlert(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await DataBiRefreshAlerts.sync({
+          projectId,
+          dataBiConnectionId: DataObservabilityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
       },
     );
 
