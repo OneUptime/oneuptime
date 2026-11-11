@@ -1,6 +1,11 @@
 import DataAsset from "../../../../Models/DatabaseModels/DataAsset";
 import DataBiConnection from "../../../../Models/DatabaseModels/DataBiConnection";
 import DataDashboard from "../../../../Models/DatabaseModels/DataDashboard";
+import {
+  DataBiFailedRefresh,
+  getNextFailedRefreshes,
+  readDataBiFailedRefreshes,
+} from "../../../../Types/DataObservability/DataBiRefreshAlert";
 import DataBiTool, {
   isDataBiTool,
 } from "../../../../Types/DataObservability/DataBiTool";
@@ -55,6 +60,10 @@ import {
  * data. Views or refreshes that could not be read leave the dashboards' as
  * they were, and the tool says why as a warning, not an error: its
  * dashboards were read.
+ *
+ * The tool also keeps the datasets whose latest finished refresh failed,
+ * until a later one completes (DataBiRefreshAlert): what its alerts on
+ * failed refreshes read, every five minutes (DataBiRefreshCheck).
  */
 
 export interface DataBiSyncResult {
@@ -166,6 +175,7 @@ export default class DataBiSync {
           credentials: true,
           usageReadFrom: true,
           usageReadUntil: true,
+          failedRefreshes: true,
         },
         props: { isRoot: true },
       });
@@ -219,6 +229,14 @@ export default class DataBiSync {
         catalog,
         usage: read.usage,
       });
+      // Where the tool says (Power BI): the datasets failing now, by what was read.
+      const failedRefreshes: Array<DataBiFailedRefresh> | null = read.datasets
+        ? getNextFailedRefreshes({
+            previous: readDataBiFailedRefreshes(connection.failedRefreshes),
+            datasets: read.datasets,
+            now: OneUptimeDate.getCurrentDate(),
+          })
+        : null;
 
       // The hours of views read are kept once every dashboard holds them.
       await DataBiConnectionService.updateOneById({
@@ -233,6 +251,14 @@ export default class DataBiSync {
             ? {
                 usageReadFrom: new Date(read.usage.range.from),
                 usageReadUntil: new Date(read.usage.range.until),
+              }
+            : {}),
+          ...(failedRefreshes
+            ? {
+                // None failing is kept as none, so the five-minute check skips the tool.
+                failedRefreshes: (failedRefreshes.length > 0
+                  ? failedRefreshes
+                  : null) as never,
               }
             : {}),
         },

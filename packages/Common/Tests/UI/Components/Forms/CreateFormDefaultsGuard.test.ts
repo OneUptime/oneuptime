@@ -141,6 +141,13 @@ export const SWITCHES_OFF_THEIR_COLUMN_DEFAULT: Array<ListedSwitch> = [
     key: "isEnabled",
     reason: AUTO_IMPORT_RULES_REASON,
   },
+  {
+    file: `${DASHBOARD}/Pages/DataObservability/BiDashboards.tsx`,
+    form: "ModelTable: Data Observability > BI Tools",
+    key: "alertOnFailedRefreshes",
+    reason:
+      "On for a Power BI tool added now, by someone looking at the switch and what it says it keeps. The column's off speaks for every tool added before the alerts existed, and for one added through the API: the monitor it keeps is billed like any other, so it is made only when the person saving asks for it.",
+  },
 ];
 
 interface ListedForm {

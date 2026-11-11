@@ -5,6 +5,7 @@ import DataObservabilityRunner from "Common/Server/Utils/DataObservability/DataO
 import DataPipelineScheduleCheck from "Common/Server/Utils/DataObservability/DataPipelineScheduleCheck";
 import DataProductCheck from "Common/Server/Utils/DataObservability/DataProductCheck";
 import DataBiSync from "Common/Server/Utils/DataObservability/Bi/DataBiSync";
+import DataBiRefreshCheck from "Common/Server/Utils/DataObservability/Bi/DataBiRefreshCheck";
 import DataReconciliationCompare from "Common/Server/Utils/DataObservability/DataReconciliationCompare";
 import {
   DATA_OBSERVABILITY_COLLECT_STORE_JOB,
@@ -48,6 +49,10 @@ import ObjectID from "Common/Types/ObjectID";
  * Every fifteen minutes, reconcile every reconciliation's two sides - also
  * done as each side is recorded - so a side that stopped being read is
  * noticed (DataReconciliationCompare).
+ *
+ * Every five minutes, every Power BI dataset whose last refresh failed - as
+ * the hourly read of its BI tool left it - says so, for its tool's alerts on
+ * failed refreshes (DataBiRefreshCheck).
  */
 
 // The most stores claimed for collection per run.
@@ -216,6 +221,18 @@ RunCron(
   },
   async () => {
     await DataReconciliationCompare.compareAll(OneUptimeDate.getCurrentDate());
+  },
+);
+
+RunCron(
+  "DataObservability:CheckBiRefreshes",
+  {
+    schedule: EVERY_FIVE_MINUTE,
+    runOnStartup: false,
+    timeoutInMS: 4 * 60 * 1000,
+  },
+  async () => {
+    await DataBiRefreshCheck.checkAll(OneUptimeDate.getCurrentDate());
   },
 );
 

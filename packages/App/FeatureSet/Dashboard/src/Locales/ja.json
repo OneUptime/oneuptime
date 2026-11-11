@@ -49998,5 +49998,10 @@
   "“{{settingName}}” is off, so no new investigation can start.": "「{{settingName}}」がオフのため、新しい調査は開始できません。",
   "“{{settingName}}” is set to 0, which pauses automatic AI work.": "「{{settingName}}」が 0 に設定されているため、AI の自動処理は一時停止しています。",
   "“{{settingName}}” was off, so no investigation started.": "「{{settingName}}」がオフだったため、調査は開始されませんでした。",
-  "“{{settingName}}” was set to 0, which pauses automatic AI work, so no investigation started.": "「{{settingName}}」が 0 に設定され AI の自動処理が一時停止していたため、調査は開始されませんでした。"
+  "“{{settingName}}” was set to 0, which pauses automatic AI work, so no investigation started.": "「{{settingName}}」が 0 に設定され AI の自動処理が一時停止していたため、調査は開始されませんでした。",
+  "Alert on Failed Refreshes": "Alert on Failed Refreshes",
+  "Failed Refreshes": "Failed Refreshes",
+  "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.": "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.",
+  "Refresh Monitor ID": "Refresh Monitor ID",
+  "The alert on failed refreshes was not saved: {{error}}": "The alert on failed refreshes was not saved: {{error}}"
 }

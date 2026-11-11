@@ -7,6 +7,7 @@ import DataStore from "../../../Models/DatabaseModels/DataStore";
 import DataPipeline from "../../../Models/DatabaseModels/DataPipeline";
 import DataProduct from "../../../Models/DatabaseModels/DataProduct";
 import DataReconciliation from "../../../Models/DatabaseModels/DataReconciliation";
+import DataBiConnection from "../../../Models/DatabaseModels/DataBiConnection";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -183,6 +184,12 @@ export const TELEMETRY_ENTITY_TYPES: Record<
     modelType: DataReconciliation,
     nameFields: ["name"],
   },
+  // Data Observability's BI tool rows: the Power BI tool whose datasets' refreshes they describe.
+  [ServiceType.DataBiConnection]: {
+    label: "BI Tool",
+    modelType: DataBiConnection,
+    nameFields: ["name"],
+  },
   [ServiceType.NetworkDevice]: {
     label: "Network Device",
     modelType: NetworkDevice,
@@ -241,6 +248,7 @@ export const TELEMETRY_ENTITY_RESOLUTION_ORDER: Array<ServiceType> = [
   ServiceType.DataPipeline,
   ServiceType.DataProduct,
   ServiceType.DataReconciliation,
+  ServiceType.DataBiConnection,
   ServiceType.IoTDevice,
   ServiceType.ProxmoxCluster,
   ServiceType.OpenStackCloud,

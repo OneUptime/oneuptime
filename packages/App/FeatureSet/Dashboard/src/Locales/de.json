@@ -49998,5 +49998,10 @@
   "“{{settingName}}” is off, so no new investigation can start.": "„{{settingName}}“ ist ausgeschaltet, daher kann keine neue Untersuchung starten.",
   "“{{settingName}}” is set to 0, which pauses automatic AI work.": "„{{settingName}}“ steht auf 0, was automatische KI-Arbeit pausiert.",
   "“{{settingName}}” was off, so no investigation started.": "„{{settingName}}“ war ausgeschaltet, daher wurde keine Untersuchung gestartet.",
-  "“{{settingName}}” was set to 0, which pauses automatic AI work, so no investigation started.": "„{{settingName}}“ stand auf 0, was automatische KI-Arbeit pausiert, daher wurde keine Untersuchung gestartet."
+  "“{{settingName}}” was set to 0, which pauses automatic AI work, so no investigation started.": "„{{settingName}}“ stand auf 0, was automatische KI-Arbeit pausiert, daher wurde keine Untersuchung gestartet.",
+  "Alert on Failed Refreshes": "Alert on Failed Refreshes",
+  "Failed Refreshes": "Failed Refreshes",
+  "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.": "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.",
+  "Refresh Monitor ID": "Refresh Monitor ID",
+  "The alert on failed refreshes was not saved: {{error}}": "The alert on failed refreshes was not saved: {{error}}"
 }
