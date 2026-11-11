@@ -46,6 +46,7 @@ import useProductFirstRun, {
 } from "../../Components/ProductOnboarding/UseProductFirstRun";
 import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 const ServicesPage: FunctionComponent<
   PageComponentProps
@@ -245,10 +246,15 @@ const ServicesPage: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Element,
+            // A mark beside the name: the name reads its own way, the cell the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (service: Service): ReactElement => {
               return (
                 <Fragment>
-                  <ServiceElement service={service} />
+                  <ServiceElement
+                    service={service}
+                    serviceNameClassName="min-w-0 truncate"
+                  />
                 </Fragment>
               );
             },

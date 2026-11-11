@@ -45,6 +45,12 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
+import WorkspaceProjectAuthToken, {
+  SlackChannelCacheEntry,
+} from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import SlackOrganization, {
+  SlackOrganizationConnection,
+} from "./SlackOrganization";
 import SSRFProtection from "../../SSRFProtection";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
@@ -1249,10 +1255,19 @@ export default class SlackUtil extends WorkspaceBase {
     return channel;
   }
 
+  /*
+   * Every channel OneUptime can see, keyed by its name. For a project
+   * connected to a whole Slack Enterprise organization (`organization`,
+   * SlackOrganization): every channel of every workspace OneUptime was added
+   * to, each with its workspace (teamId), keyed by its id - one name can be
+   * a channel in each of them. Either way the channels are cached by name
+   * (miscData.channelCache), the default workspace's where names meet.
+   */
   @CaptureSpan()
   public static override async getAllWorkspaceChannels(data: {
     authToken: string;
     projectId: ObjectID;
+    organization?: SlackOrganizationConnection | null | undefined;
   }): Promise<Dictionary<WorkspaceChannel>> {
     const getAllChLogAttributes: LogAttributes = {
       projectId: data.projectId?.toString(),
@@ -1262,13 +1277,93 @@ export default class SlackUtil extends WorkspaceBase {
       "Getting all workspace channels with data:",
       getAllChLogAttributes,
     );
-    logger.debug(data, getAllChLogAttributes);
+    logger.debug(
+      { projectId: data.projectId?.toString() },
+      getAllChLogAttributes,
+    );
 
     const channels: Dictionary<WorkspaceChannel> = {};
-    let cursor: string | undefined = undefined;
-    const maxPages: number = 100;
-    let pageCount: number = 0;
     const localChannelCache: Dictionary<any> = {};
+
+    // A workspace's own channels (undefined), or each workspace's of an organization.
+    const workspaceIds: Array<string | undefined> = data.organization
+      ? SlackOrganization.getWorkspaceIdsToSearch({
+          organization: data.organization,
+        })
+      : [undefined];
+
+    let listedWorkspaces: number = 0;
+    let firstError: unknown = undefined;
+
+    for (const teamId of workspaceIds) {
+      try {
+        await this.listChannelPages({
+          authToken: data.authToken,
+          teamId: teamId,
+          maxPages: 100,
+          logAttributes: getAllChLogAttributes,
+          onChannel: (channel: WorkspaceChannel): boolean => {
+            channels[data.organization ? channel.id : channel.name] = channel;
+
+            this.addToLocalChannelCache(localChannelCache, channel);
+
+            return false;
+          },
+        });
+
+        listedWorkspaces++;
+      } catch (err) {
+        // A workspace's own channels: what Slack refused with, as before.
+        if (!data.organization) {
+          throw err;
+        }
+
+        // One workspace of an organization refused - removed since, say: the others still list.
+        logger.error(
+          `Could not list the channels of Slack workspace ${teamId} of an organization's installation.`,
+          getAllChLogAttributes,
+        );
+        logger.error(err, getAllChLogAttributes);
+        firstError = firstError || err;
+      }
+    }
+
+    if (data.organization && listedWorkspaces === 0 && firstError) {
+      throw firstError;
+    }
+
+    // Update cache in bulk
+    try {
+      await this.updateChannelsInCache({
+        projectId: data.projectId,
+        channelCache: localChannelCache,
+      });
+    } catch (error) {
+      logger.error("Error bulk updating channel cache:", getAllChLogAttributes);
+      logger.error(error, getAllChLogAttributes);
+      // Don't fail the request if caching fails
+    }
+
+    logger.debug("All workspace channels obtained:", getAllChLogAttributes);
+    return channels;
+  }
+
+  /*
+   * conversations.list, page by page: each channel with an id and a name is
+   * given to `onChannel`, until it returns true or the pages run out
+   * (`maxPages`). `teamId` lists one workspace of a Slack Enterprise
+   * organization, with the organization's token - which Slack requires it
+   * for - and each channel says it. Throws what Slack refuses with.
+   */
+  private static async listChannelPages(data: {
+    authToken: string;
+    teamId: string | undefined;
+    maxPages: number;
+    logAttributes: LogAttributes;
+    onChannel: (channel: WorkspaceChannel) => boolean;
+  }): Promise<void> {
+    let cursor: string | undefined = undefined;
+    let pageCount: number = 0;
 
     do {
       const requestBody: JSONObject = {
@@ -1276,6 +1371,10 @@ export default class SlackUtil extends WorkspaceBase {
         types: "public_channel,private_channel",
         exclude_archived: true,
       };
+
+      if (data.teamId) {
+        requestBody["team_id"] = data.teamId;
+      }
 
       if (cursor) {
         requestBody["cursor"] = cursor;
@@ -1296,15 +1395,15 @@ export default class SlackUtil extends WorkspaceBase {
         });
 
       if (response instanceof HTTPErrorResponse) {
-        logger.error("Error response from Slack API:", getAllChLogAttributes);
-        logger.error(response, getAllChLogAttributes);
+        logger.error("Error response from Slack API:", data.logAttributes);
+        logger.error(response, data.logAttributes);
         throw response;
       }
 
       // check for ok response
       if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-        logger.error("Invalid response from Slack API:", getAllChLogAttributes);
-        logger.error(response.jsonData, getAllChLogAttributes);
+        logger.error("Invalid response from Slack API:", data.logAttributes);
+        logger.error(response.jsonData, data.logAttributes);
         const messageFromSlack: string = (response.jsonData as JSONObject)?.[
           "error"
         ] as string;
@@ -1318,44 +1417,50 @@ export default class SlackUtil extends WorkspaceBase {
           continue;
         }
 
-        const channelObj: WorkspaceChannel = {
+        const workspaceChannel: WorkspaceChannel = {
           id: channel["id"] as string,
           name: channel["name"] as string,
           workspaceType: WorkspaceType.Slack,
         };
 
-        channels[channel["name"].toString()] = channelObj;
+        if (data.teamId) {
+          workspaceChannel.teamId = data.teamId;
+        }
 
-        // Add to local cache
-        const normalizedName: string = channel["name"].toString().toLowerCase();
-        localChannelCache[normalizedName] = {
-          id: channel["id"] as string,
-          name: channel["name"] as string,
-          workspaceType: WorkspaceType.Slack,
-          lastUpdated: OneUptimeDate.toString(OneUptimeDate.getCurrentDate()),
-        };
+        if (data.onChannel(workspaceChannel)) {
+          return;
+        }
       }
 
       cursor = (
         (response.jsonData as JSONObject)["response_metadata"] as JSONObject
       )?.["next_cursor"] as string;
       pageCount++;
-    } while (cursor && pageCount < maxPages);
+    } while (cursor && pageCount < data.maxPages);
+  }
 
-    // Update cache in bulk
-    try {
-      await this.updateChannelsInCache({
-        projectId: data.projectId,
-        channelCache: localChannelCache,
-      });
-    } catch (error) {
-      logger.error("Error bulk updating channel cache:", getAllChLogAttributes);
-      logger.error(error, getAllChLogAttributes);
-      // Don't fail the request if caching fails
+  /*
+   * A listed channel, cached by its lower-cased name. Where an organization's
+   * workspaces each have a channel of the name, the first listed - the
+   * default workspace's - is kept.
+   */
+  private static addToLocalChannelCache(
+    localChannelCache: Dictionary<any>,
+    channel: WorkspaceChannel,
+  ): void {
+    const normalizedName: string = channel.name.toString().toLowerCase();
+
+    if (localChannelCache[normalizedName]) {
+      return;
     }
 
-    logger.debug("All workspace channels obtained:", getAllChLogAttributes);
-    return channels;
+    localChannelCache[normalizedName] = {
+      id: channel.id,
+      name: channel.name,
+      workspaceType: WorkspaceType.Slack,
+      lastUpdated: OneUptimeDate.toString(OneUptimeDate.getCurrentDate()),
+      ...(channel.teamId ? { teamId: channel.teamId } : {}),
+    };
   }
 
   private static async updateChannelsInCache(data: {
@@ -1378,8 +1483,32 @@ export default class SlackUtil extends WorkspaceBase {
     const miscData: any = projectAuth.miscData || {};
     const channelCache: any = miscData.channelCache || {};
 
+    /*
+     * The workspaces of a Slack Enterprise organization can each have a
+     * channel of one name (#general): the default workspace's stays cached
+     * under it, so a rule that names no workspace keeps finding the
+     * default's, as getWorkspaceChannelByName looks there first. Another
+     * workspace's - read for a rule that names it - is not cached over it.
+     */
+    const defaultWorkspaceId: string | undefined =
+      SlackOrganization.readConnection(projectAuth)?.defaultWorkspaceId;
+
     // Update the cache
-    Object.assign(channelCache, data.channelCache);
+    for (const channelName of Object.keys(data.channelCache)) {
+      const entry: any = data.channelCache[channelName];
+      const cachedEntry: any = channelCache[channelName];
+
+      if (
+        defaultWorkspaceId &&
+        cachedEntry?.teamId === defaultWorkspaceId &&
+        entry?.teamId &&
+        entry.teamId !== defaultWorkspaceId
+      ) {
+        continue;
+      }
+
+      channelCache[channelName] = entry;
+    }
 
     // Update miscData
     miscData.channelCache = channelCache;
@@ -1402,6 +1531,7 @@ export default class SlackUtil extends WorkspaceBase {
   public static async getChannelFromCache(data: {
     projectId: ObjectID;
     channelName: string;
+    teamId?: string | undefined;
   }): Promise<WorkspaceChannel | null> {
     const cacheGetLogAttributes: LogAttributes = {
       projectId: data.projectId?.toString(),
@@ -1413,41 +1543,75 @@ export default class SlackUtil extends WorkspaceBase {
     );
     logger.debug(data, cacheGetLogAttributes);
 
-    const projectAuth: any =
+    const projectAuth: WorkspaceProjectAuthToken | null =
       await WorkspaceProjectAuthTokenService.getProjectAuth({
         projectId: data.projectId,
         workspaceType: WorkspaceType.Slack,
       });
 
-    if (!projectAuth || !projectAuth.miscData) {
+    return this.readChannelFromCache({
+      projectAuth: projectAuth,
+      channelName: data.channelName,
+      teamId: data.teamId,
+      logAttributes: cacheGetLogAttributes,
+    });
+  }
+
+  /*
+   * A channel the project's connection has cached by its name. With
+   * `teamId` - a rule's workspace of a Slack Enterprise organization - only
+   * one cached as that workspace's, or cached before workspaces were.
+   */
+  private static readChannelFromCache(data: {
+    projectAuth: WorkspaceProjectAuthToken | null;
+    channelName: string;
+    teamId?: string | undefined;
+    logAttributes: LogAttributes;
+  }): WorkspaceChannel | null {
+    if (!data.projectAuth || !data.projectAuth.miscData) {
+      logger.debug("No project auth found or no misc data", data.logAttributes);
+      return null;
+    }
+
+    const miscData: any = data.projectAuth.miscData;
+    const channelCache: any = miscData.channelCache;
+
+    if (!channelCache || !channelCache[data.channelName]) {
+      logger.debug("Channel not found in cache", data.logAttributes);
+      return null;
+    }
+
+    const cachedChannelData: SlackChannelCacheEntry = channelCache[
+      data.channelName
+    ] as SlackChannelCacheEntry;
+
+    if (
+      data.teamId &&
+      cachedChannelData.teamId &&
+      cachedChannelData.teamId !== data.teamId
+    ) {
       logger.debug(
-        "No project auth found or no misc data",
-        cacheGetLogAttributes,
+        "Channel cached is another workspace's; looking in the one asked for.",
+        data.logAttributes,
       );
       return null;
     }
 
-    const miscData: any = projectAuth.miscData;
-    const channelCache: any = miscData.channelCache;
-
-    if (!channelCache || !channelCache[data.channelName]) {
-      logger.debug("Channel not found in cache", cacheGetLogAttributes);
-      return null;
-    }
-
-    const cachedChannelData: WorkspaceChannel = channelCache[
-      data.channelName
-    ] as WorkspaceChannel;
     const channel: WorkspaceChannel = {
       id: cachedChannelData.id,
       name: cachedChannelData.name,
       workspaceType: WorkspaceType.Slack,
     };
 
-    logger.debug("Channel found in cache:", cacheGetLogAttributes);
-    logger.debug(channel, cacheGetLogAttributes);
+    if (cachedChannelData.teamId) {
+      channel.teamId = cachedChannelData.teamId;
+    }
+
+    logger.debug("Channel found in cache:", data.logAttributes);
+    logger.debug(channel, data.logAttributes);
     return channel;
   }
+
   @CaptureSpan()
   public static async updateChannelCache(data: {
     projectId: ObjectID;
@@ -1483,6 +1647,7 @@ export default class SlackUtil extends WorkspaceBase {
       id: data.channel.id,
       name: data.channel.name,
       lastUpdated: OneUptimeDate.toString(OneUptimeDate.getCurrentDate()),
+      ...(data.channel.teamId ? { teamId: data.channel.teamId } : {}),
     };
 
     // Update miscData
@@ -1503,11 +1668,22 @@ export default class SlackUtil extends WorkspaceBase {
     );
   }
 
+  /*
+   * A channel OneUptime can see, by its name: from the project's cache, else
+   * from Slack (conversations.list), page by page until it is found - the
+   * channels read on the way are cached. Null when there is none.
+   *
+   * A project connected to a whole Slack Enterprise organization
+   * (SlackOrganization) looks in the workspace `teamId` names - a rule's -
+   * and only there; without one, in the default workspace first, then in
+   * the others OneUptime was added to.
+   */
   @CaptureSpan()
   public static async getWorkspaceChannelByName(data: {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
+    teamId?: string | undefined;
   }): Promise<WorkspaceChannel | null> {
     const getByNameLogAttributes: LogAttributes = {
       projectId: data.projectId?.toString(),
@@ -1517,7 +1693,10 @@ export default class SlackUtil extends WorkspaceBase {
       "Getting workspace channel by name with data:",
       getByNameLogAttributes,
     );
-    logger.debug(data, getByNameLogAttributes);
+    logger.debug(
+      { channelName: data.channelName, teamId: data.teamId },
+      getByNameLogAttributes,
+    );
 
     // Normalize channel name
     let normalizedChannelName: string = data.channelName;
@@ -1526,18 +1705,14 @@ export default class SlackUtil extends WorkspaceBase {
     }
     normalizedChannelName = normalizedChannelName.toLowerCase();
 
-    // Try to get from cache first
+    // The project's connection: its cached channels, and whether it is an organization's.
+    let projectAuth: WorkspaceProjectAuthToken | null = null;
+
     try {
-      const cachedChannel: WorkspaceChannel | null =
-        await this.getChannelFromCache({
-          projectId: data.projectId,
-          channelName: normalizedChannelName,
-        });
-      if (cachedChannel) {
-        logger.debug("Channel found in cache:", getByNameLogAttributes);
-        logger.debug(cachedChannel, getByNameLogAttributes);
-        return cachedChannel;
-      }
+      projectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.Slack,
+      });
     } catch (error) {
       logger.error(
         "Error getting channel from cache, falling back to API:",
@@ -1546,121 +1721,76 @@ export default class SlackUtil extends WorkspaceBase {
       logger.error(error, getByNameLogAttributes);
     }
 
-    let cursor: string | undefined = undefined;
-    const maxPages: number = 500;
-    let pageCount: number = 0;
+    // Try to get from cache first
+    const cachedChannel: WorkspaceChannel | null = this.readChannelFromCache({
+      projectAuth: projectAuth,
+      channelName: normalizedChannelName,
+      teamId: data.teamId,
+      logAttributes: getByNameLogAttributes,
+    });
+
+    if (cachedChannel) {
+      return cachedChannel;
+    }
+
+    const organization: SlackOrganizationConnection | null = projectAuth
+      ? await SlackOrganization.getOfConnection({
+          projectId: data.projectId,
+          projectAuth: projectAuth,
+        })
+      : null;
+
+    const workspaceIds: Array<string | undefined> = organization
+      ? data.teamId
+        ? [data.teamId]
+        : SlackOrganization.getWorkspaceIdsToSearch({
+            organization: organization,
+          })
+      : [undefined];
+
     const localChannelCache: Dictionary<any> = {};
+    let foundChannel: WorkspaceChannel | null = null;
 
-    do {
-      const requestBody: JSONObject = {
-        limit: 999, // Use smaller limit for faster searches
-        types: "public_channel,private_channel",
-        exclude_archived: true,
-      };
+    for (const teamId of workspaceIds) {
+      // The channel, once this workspace's listing comes to it.
+      const found: { channel: WorkspaceChannel | null } = { channel: null };
 
-      if (cursor) {
-        requestBody["cursor"] = cursor;
-      }
+      try {
+        await this.listChannelPages({
+          authToken: data.authToken,
+          teamId: teamId,
+          maxPages: 500,
+          logAttributes: getByNameLogAttributes,
+          onChannel: (channel: WorkspaceChannel): boolean => {
+            this.addToLocalChannelCache(localChannelCache, channel);
 
-      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.post<JSONObject>({
-          url: URL.fromString("https://slack.com/api/conversations.list"),
-          data: requestBody,
-          headers: {
-            Authorization: `Bearer ${data.authToken}`,
-            ["Content-Type"]: "application/x-www-form-urlencoded",
-          },
-          options: {
-            retries: 3,
-            exponentialBackoff: true,
+            if (channel.name.toLowerCase() === normalizedChannelName) {
+              found.channel = channel;
+              return true;
+            }
+
+            return false;
           },
         });
+      } catch (err) {
+        if (!organization) {
+          throw err;
+        }
 
-      if (response instanceof HTTPErrorResponse) {
-        logger.error("Error response from Slack API:", getByNameLogAttributes);
-        logger.error(response, getByNameLogAttributes);
-        throw response;
-      }
-
-      // check for ok response
-      if ((response.jsonData as JSONObject)?.["ok"] !== true) {
         logger.error(
-          "Invalid response from Slack API:",
+          `Could not look for a channel in Slack workspace ${teamId} of an organization's installation.`,
           getByNameLogAttributes,
         );
-        logger.error(response.jsonData, getByNameLogAttributes);
-        const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-          "error"
-        ] as string;
-        throw new BadRequestException("Error from Slack " + messageFromSlack);
+        logger.error(err, getByNameLogAttributes);
       }
 
-      logger.debug(
-        "Searching for " + normalizedChannelName,
-        getByNameLogAttributes,
-      );
-      logger.debug(
-        "Searching channels in current page...",
-        getByNameLogAttributes,
-      );
-      logger.debug(
-        JSON.stringify((response.jsonData as JSONObject)["channels"], null, 2),
-        getByNameLogAttributes,
-      );
-
-      for (const channel of (response.jsonData as JSONObject)[
-        "channels"
-      ] as Array<JSONObject>) {
-        if (!channel["id"] || !channel["name"]) {
-          continue;
-        }
-
-        const channelObj: WorkspaceChannel = {
-          id: channel["id"] as string,
-          name: channel["name"] as string,
-          workspaceType: WorkspaceType.Slack,
-        };
-
-        // Add to local cache
-        const normalizedName: string = channel["name"].toString().toLowerCase();
-        localChannelCache[normalizedName] = {
-          id: channel["id"] as string,
-          name: channel["name"] as string,
-          workspaceType: WorkspaceType.Slack,
-          lastUpdated: OneUptimeDate.toString(OneUptimeDate.getCurrentDate()),
-        };
-
-        const channelName: string = (channel["name"] as string).toLowerCase();
-        if (channelName === normalizedChannelName) {
-          logger.debug("Channel found:", getByNameLogAttributes);
-          logger.debug(channel, getByNameLogAttributes);
-
-          // Update cache before returning
-          try {
-            await this.updateChannelsInCache({
-              projectId: data.projectId,
-              channelCache: localChannelCache,
-            });
-          } catch (error) {
-            logger.error(
-              "Error bulk updating channel cache:",
-              getByNameLogAttributes,
-            );
-            logger.error(error, getByNameLogAttributes);
-            // Don't fail the request if caching fails
-          }
-
-          return channelObj;
-        }
+      if (found.channel) {
+        foundChannel = found.channel;
+        break;
       }
+    }
 
-      cursor = (
-        (response.jsonData as JSONObject)["response_metadata"] as JSONObject
-      )?.["next_cursor"] as string;
-      pageCount++;
-    } while (cursor && pageCount < maxPages);
-
-    // Update cache even if channel not found
+    // Update cache, found or not
     try {
       await this.updateChannelsInCache({
         projectId: data.projectId,
@@ -1673,6 +1803,12 @@ export default class SlackUtil extends WorkspaceBase {
       );
       logger.error(error, getByNameLogAttributes);
       // Don't fail the request if caching fails
+    }
+
+    if (foundChannel) {
+      logger.debug("Channel found:", getByNameLogAttributes);
+      logger.debug(foundChannel, getByNameLogAttributes);
+      return foundChannel;
     }
 
     logger.debug("Channel not found:", getByNameLogAttributes);
@@ -1752,6 +1888,8 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
+    // A workspace of a Slack Enterprise organization: a rule's (getWorkspaceChannelByName).
+    teamId?: string;
   }): Promise<boolean> {
     // if channel name starts with #, remove it
     if (data.channelName && data.channelName.startsWith("#")) {
@@ -1767,6 +1905,7 @@ export default class SlackUtil extends WorkspaceBase {
         authToken: data.authToken,
         channelName: data.channelName,
         projectId: data.projectId,
+        ...(data.teamId ? { teamId: data.teamId } : {}),
       });
 
     return channel !== null;
@@ -1849,11 +1988,18 @@ export default class SlackUtil extends WorkspaceBase {
         channelName = channelName.substring(1);
       }
 
+      /*
+       * A project connected to a whole Slack Enterprise organization: a
+       * channel of the workspace the rule names, when it names one.
+       */
       const channel: WorkspaceChannel | null =
         await this.getWorkspaceChannelByName({
           authToken: data.authToken,
           channelName: channelName,
           projectId: data.projectId,
+          ...(data.workspaceMessagePayload.teamId
+            ? { teamId: data.workspaceMessagePayload.teamId }
+            : {}),
         });
 
       if (channel) {
@@ -2721,6 +2867,39 @@ export default class SlackUtil extends WorkspaceBase {
   }
 
   /*
+   * The workspace a channel is created in, for a project connected to a
+   * whole Slack Enterprise organization (SlackOrganization): the one asked
+   * for, else the default. Undefined for a project connected to one
+   * workspace - whose token needs none. Throws for an organization
+   * OneUptime is added to no workspace of yet: Slack would refuse.
+   */
+  private static async getWorkspaceToCreateIn(data: {
+    projectId: ObjectID;
+    teamId: string | undefined;
+  }): Promise<string | undefined> {
+    const organization: SlackOrganizationConnection | null =
+      await SlackOrganization.getOfProject({ projectId: data.projectId });
+
+    if (!organization) {
+      return undefined;
+    }
+
+    const teamId: string | undefined =
+      SlackOrganization.getWorkspaceIdToCreateIn({
+        organization: organization,
+        teamId: data.teamId,
+      });
+
+    if (!teamId) {
+      throw new BadRequestException(
+        `OneUptime is installed for the ${organization.enterpriseName || "Slack Enterprise"} organization but has not been added to any of its workspaces yet. Add it to a workspace in Slack's organization settings, then try again.`,
+      );
+    }
+
+    return teamId;
+  }
+
+  /*
    * The name Slack creates a channel by: Slack only allows lowercase
    * letters, numbers, hyphens, and underscores, so the name is lower-cased
    * and all other characters (including #) are removed. "#Incidents -INC-9"
@@ -2731,25 +2910,37 @@ export default class SlackUtil extends WorkspaceBase {
   }
 
   /*
-   * Names Slack creates by the same name are one channel: asked to create
-   * it a second time, Slack answers name_taken.
+   * Names Slack creates by the same name, in the same workspace, are one
+   * channel: asked to create it a second time, Slack answers name_taken.
+   * Another workspace of a Slack Enterprise organization has names of its
+   * own. The workspaces are as the rules service reads them
+   * (SlackOrganization.getWorkspaceIdOfChannel): a rule's or the default
+   * one for a whole organization's installation, and none for a project
+   * connected to one workspace.
    */
   public static override isSameChannelToCreate(
     channel: WorkspaceChannelToCreate,
     otherChannel: WorkspaceChannelToCreate,
   ): boolean {
     return (
+      (channel.teamId || undefined) === (otherChannel.teamId || undefined) &&
       this.getChannelNameToCreate(channel.channelName) ===
-      this.getChannelNameToCreate(otherChannel.channelName)
+        this.getChannelNameToCreate(otherChannel.channelName)
     );
   }
 
+  /*
+   * Creates a channel. A project connected to a whole Slack Enterprise
+   * organization creates it in a workspace (SlackOrganization): the one
+   * `teamId` names - a rule's - else the default one.
+   */
   @CaptureSpan()
   public static override async createChannel(data: {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
     isPrivate?: boolean;
+    teamId?: string | undefined;
   }): Promise<WorkspaceChannel> {
     /*
      * As Slack creates it (getChannelNameToCreate). A rule's channel arrives
@@ -2771,6 +2962,15 @@ export default class SlackUtil extends WorkspaceBase {
 
     if (data.isPrivate) {
       createChannelPayload["is_private"] = true;
+    }
+
+    const teamId: string | undefined = await this.getWorkspaceToCreateIn({
+      projectId: data.projectId,
+      teamId: data.teamId,
+    });
+
+    if (teamId) {
+      createChannelPayload["team_id"] = teamId;
     }
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -2837,6 +3037,10 @@ export default class SlackUtil extends WorkspaceBase {
       workspaceType: WorkspaceType.Slack,
     };
 
+    if (teamId) {
+      channel.teamId = teamId;
+    }
+
     logger.debug("Channel created successfully:", createChannelLogAttributes);
     logger.debug(channel, createChannelLogAttributes);
 
@@ -2848,6 +3052,7 @@ export default class SlackUtil extends WorkspaceBase {
         name: channel.name,
         workspaceType: WorkspaceType.Slack,
         lastUpdated: OneUptimeDate.toString(OneUptimeDate.getCurrentDate()),
+        ...(teamId ? { teamId: teamId } : {}),
       };
       await this.updateChannelsInCache({
         projectId: data.projectId,

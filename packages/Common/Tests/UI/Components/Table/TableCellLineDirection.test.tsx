@@ -5,12 +5,16 @@ import { createInstance, i18n } from "i18next";
 import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 import TableBody from "../../../../UI/Components/Table/TableBody";
+import TableEmptyValue from "../../../../UI/Components/Table/TableEmptyValue";
 import Columns from "../../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../../UI/Components/Types/FieldType";
 import {
+  CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
   LINE_OR_CLAMPED_LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
 } from "../../../../UI/Utils/LineDirection";
+import { TABLE_FOLDED_MAIN_ATTRIBUTE } from "../../../../UI/Components/Table/FullValueTitle";
+import { TABLE_FOLDED_VALUE_TEST_ID } from "../../../../UI/Components/Table/TableFoldedValues";
 
 /*
  * A table's plain value is cut short with "..." at its cell's edge, and a
@@ -103,9 +107,36 @@ describe("on a Persian page", () => {
     const box: HTMLElement = cutBoxOf(ROW.summary);
 
     expect(box).toHaveAttribute("dir", "ltr");
-    expect(box).toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    /*
+     * A value that gives way before the rows scroll sideways: lined up by
+     * its last line, as the row's name is (below).
+     */
+    expect(box).toHaveClass(
+      LINE_OR_CLAMPED_LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+    );
+    expect(box).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
     // Still cut short there, as every one-line value is.
     expect(box).toHaveClass("overflow-x-clip", "text-ellipsis");
+  });
+
+  test("an English value in a column its page sized is lined up by its end", () => {
+    drawRow({
+      language: "fa",
+      columns: [
+        { title: "Owner", type: FieldType.Text, key: "owner" },
+        {
+          title: "Last Poll Summary",
+          type: FieldType.Text,
+          key: "summary",
+          contentClassName: "max-w-xs",
+        },
+      ],
+    });
+
+    const box: HTMLElement = cutBoxOf(ROW.summary);
+
+    expect(box).toHaveAttribute("dir", "ltr");
+    expect(box).toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
   });
 
   test("a Persian value's box reads as the page does, with nothing of its own", () => {
@@ -164,6 +195,80 @@ describe("on a Persian page", () => {
       .closest("td") as HTMLElement;
 
     expect(cell.firstElementChild).not.toHaveAttribute("dir");
+
+    /*
+     * Its own value's line reads its way, so an English title cut short to
+     * its lines ends in "..." at its own end - not at its start, as "...every
+     * EU region while the payments gateway" did - and sits at the page's
+     * start, as wide as its words.
+     */
+    const main: HTMLElement = cell.querySelector(
+      `[${TABLE_FOLDED_MAIN_ATTRIBUTE}]`,
+    ) as HTMLElement;
+
+    expect(main).toHaveTextContent(ROW.summary);
+    expect(main).toHaveAttribute("dir", "ltr");
+    expect(main).toHaveClass(CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    expect(main).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+
+    // The folded value under it is a line of the page's, outside it.
+    const folded: HTMLElement = screen.getByTestId(TABLE_FOLDED_VALUE_TEST_ID);
+
+    expect(folded).toHaveTextContent(ROW.owner);
+    expect(folded).not.toHaveAttribute("dir");
+    expect(main).not.toContainElement(folded);
+  });
+
+  test("a cell whose folded columns have nothing to say reads as an unfolded one", () => {
+    drawRow({
+      language: "fa",
+      columns: [
+        { title: "Last Poll Summary", type: FieldType.Text, key: "summary" },
+      ],
+      foldedColumns: [
+        {
+          title: "Notes",
+          type: FieldType.Element,
+          key: "owner",
+          hideBelowLargeScreen: true,
+          foldInto: "summary",
+          // Nothing to say: the quiet dash, which draws no line.
+          getElement: (): ReactElement => {
+            return <TableEmptyValue />;
+          },
+        },
+      ],
+    });
+
+    const cell: HTMLElement = screen
+      .getByText(ROW.summary)
+      .closest("td") as HTMLElement;
+
+    expect(cell.firstElementChild).toHaveAttribute("dir", "ltr");
+    expect(cell.querySelector(`[${TABLE_FOLDED_MAIN_ATTRIBUTE}]`)).toBe(null);
+  });
+
+  test("a Persian value with an English one folded under it is drawn as it always was", () => {
+    drawRow({
+      language: "fa",
+      columns: [{ title: "Owner", type: FieldType.Text, key: "owner" }],
+      foldedColumns: [
+        {
+          title: "Last Poll Summary",
+          type: FieldType.Text,
+          key: "summary",
+          hideBelowLargeScreen: true,
+          foldInto: "owner",
+        },
+      ],
+    });
+
+    const main: HTMLElement = screen
+      .getByText(ROW.owner)
+      .closest(`[${TABLE_FOLDED_MAIN_ATTRIBUTE}]`) as HTMLElement;
+
+    expect(main).not.toHaveAttribute("dir");
+    expect(main).not.toHaveClass(CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME);
   });
 });
 
@@ -193,8 +298,10 @@ describe("on an English page", () => {
  * table fits its card). Aligned to its end, that line's "..." was drawn
  * past the box's edge and cut ("Customer notifications worker (queue
  * co.." on an Arabic monitor list); only its last line is aligned to its
- * end, so a name that fits still starts where the page's lines do. Any
- * other column's value stays on one line and keeps its end alignment.
+ * end, so a name that fits still starts where the page's lines do. So is
+ * any other column's value that gives way when the table needs the room
+ * ("High Node Memo." on an Arabic alerts list); a column its page sized
+ * keeps its end alignment (above).
  */
 describe("a row's name that reads the other way", () => {
   test("is lined up by its last line, so a line cut short keeps its whole ellipsis", () => {

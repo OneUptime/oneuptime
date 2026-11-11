@@ -61,6 +61,8 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 export interface ComponentProps {
   scope: AuditLogExportScope;
@@ -379,6 +381,8 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
             },
             title: "Name",
             type: FieldType.Text,
+            // A mark beside the name: the name reads its own way, the cell the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (item: AuditLogExport): ReactElement => {
               /*
                * What it is and where it sends read under its name: "Amazon
@@ -427,12 +431,11 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
                       pointer): a block of its own, since an ellipsis does
                       not reach into a box inside the cell's line.
                     */}
-                    <div
+                    <IsolatedLine
+                      text={item.name || ""}
                       className="truncate"
-                      data-testid="audit-log-export-name"
-                    >
-                      {item.name}
-                    </div>
+                      dataTestId="audit-log-export-name"
+                    />
                     <div
                       className="whitespace-normal break-words text-xs text-gray-500"
                       data-testid="audit-log-export-detail"

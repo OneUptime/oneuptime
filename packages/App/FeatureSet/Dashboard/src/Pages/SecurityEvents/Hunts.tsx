@@ -48,6 +48,7 @@ import UserUtil from "Common/UI/Utils/User";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
  * SECURITY EVENTS > EVENTS > HUNTS: the searches the team saved, each with
@@ -203,6 +204,8 @@ const SecurityHuntsPage: FunctionComponent<PageComponentProps> = (
           getExportValue: (item: SecurityHunt): string => {
             return item.name || "";
           },
+          // Each of its lines already reads its own way.
+          getLineText: drawsItsOwnLines,
           getElement: (item: SecurityHunt): ReactElement => {
             return <HuntNameCell hunt={item} />;
           },

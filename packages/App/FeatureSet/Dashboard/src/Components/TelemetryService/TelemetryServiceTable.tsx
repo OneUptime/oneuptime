@@ -15,6 +15,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import TelemetryServiceElement from "./TelemetryServiceElement";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 export interface ComponentProps {
   query?: Query<Monitor> | undefined;
@@ -132,10 +133,15 @@ const TelemetryServiceTable: FunctionComponent<ComponentProps> = (
             },
             title: "Name",
             type: FieldType.Element,
+            // A mark beside the name: the name reads its own way, the cell the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (service: Service): ReactElement => {
               return (
                 <Fragment>
-                  <TelemetryServiceElement telemetryService={service} />
+                  <TelemetryServiceElement
+                    telemetryService={service}
+                    telemetryServiceNameClassName="min-w-0 truncate"
+                  />
                 </Fragment>
               );
             },

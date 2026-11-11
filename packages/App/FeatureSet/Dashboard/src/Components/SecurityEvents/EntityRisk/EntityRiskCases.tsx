@@ -23,6 +23,8 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 
 export interface ComponentProps {
   entityValue: string;
@@ -81,6 +83,8 @@ const EntityRiskCases: FunctionComponent<ComponentProps> = (
             type: FieldType.Element,
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-xl",
+            // A mark beside the name: the name reads its own way, the cell the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (item: SecurityCase): ReactElement => {
               return (
                 <div className="flex min-w-0 items-start gap-2">
@@ -93,7 +97,7 @@ const EntityRiskCases: FunctionComponent<ComponentProps> = (
                       {item.caseNumberWithPrefix || ""}
                     </div>
                     <div className="text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
-                      {item.title || ""}
+                      <IsolatedText text={item.title || ""} />
                     </div>
                   </div>
                 </div>

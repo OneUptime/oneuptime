@@ -4,6 +4,7 @@ import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import useTranslateValue from "../../Utils/Translation";
+import { ReadingDirection } from "../../../Types/ReadingDirection";
 
 export interface ComponentProps {
   children: ReactNode;
@@ -32,6 +33,11 @@ export interface ComponentProps {
    * screen reader. It wins over isCurrentPage.
    */
   ariaCurrent?: LinkAriaCurrent | undefined;
+  /*
+   * The way its words read when that is not the page's (getIsolatedLine): a
+   * link that is a name on a line of its own, cut short at its own end.
+   */
+  dir?: ReadingDirection | undefined;
 }
 
 export type LinkAriaCurrent = "page" | "true";
@@ -65,6 +71,7 @@ const Link: FunctionComponent<ComponentProps> = (
       <span
         id={props.id}
         data-testid={props.dataTestId}
+        dir={props.dir}
         className={`cursor-default ${props.className || ""}`}
         onMouseOver={props.onMouseOver}
         onMouseOut={props.onMouseOut}
@@ -108,6 +115,7 @@ const Link: FunctionComponent<ComponentProps> = (
     <a
       id={props.id}
       data-testid={props.dataTestId}
+      dir={props.dir}
       className={`${cursorClassName} ${props.className || ""}`}
       onMouseOver={props.onMouseOver}
       onMouseOut={props.onMouseOut}

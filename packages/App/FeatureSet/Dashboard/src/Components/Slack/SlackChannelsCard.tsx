@@ -20,13 +20,26 @@ import { JSONObject } from "Common/Types/JSON";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import SendTestNotificationButton from "../Workspace/SendTestNotificationButton";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 interface ChannelItem {
   id: string;
   name: string;
+  /*
+   * OneUptime installed for a whole Slack Enterprise organization: the
+   * workspace the channel is in.
+   */
+  workspaceName?: string | undefined;
 }
+
+export const SLACK_CHANNELS_DESCRIPTION: string = translationKey(
+  "Channels OneUptime can see in your Slack workspace. Use these names when a notification rule posts to an existing channel. Use Send Test to confirm OneUptime can post to a channel.",
+);
+
+export const SLACK_ORGANIZATION_CHANNELS_DESCRIPTION: string = translationKey(
+  "Channels OneUptime can see in the workspaces of your Slack organization. Use these names when a notification rule posts to an existing channel. Use Send Test to confirm OneUptime can post to a channel.",
+);
 
 const SlackChannelsCard: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -58,6 +71,10 @@ const SlackChannelsCard: FunctionComponent = (): ReactElement => {
           return {
             id: (channel["id"] as string) || "",
             name: (channel["name"] as string) || "",
+            workspaceName:
+              typeof channel["workspaceName"] === "string"
+                ? (channel["workspaceName"] as string)
+                : undefined,
           };
         })
         .filter((channel: ChannelItem) => {
@@ -77,6 +94,13 @@ const SlackChannelsCard: FunctionComponent = (): ReactElement => {
       setError(API.getFriendlyErrorMessage(err));
     });
   }, []);
+
+  // A Slack Enterprise organization's: its channels name their workspace.
+  const isOrganization: boolean = channels.some(
+    (channel: ChannelItem): boolean => {
+      return Boolean(channel.workspaceName);
+    },
+  );
 
   type SendingTestChangeFunction = (isSending: boolean) => void;
 
@@ -98,7 +122,11 @@ const SlackChannelsCard: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title="Slack Channels"
-      description="Channels OneUptime can see in your Slack workspace. Use these names when a notification rule posts to an existing channel. Use Send Test to confirm OneUptime can post to a channel."
+      description={
+        isOrganization
+          ? SLACK_ORGANIZATION_CHANNELS_DESCRIPTION
+          : SLACK_CHANNELS_DESCRIPTION
+      }
       buttons={[
         {
           title: "Refresh Channels",
@@ -157,6 +185,7 @@ const SlackChannelsCard: FunctionComponent = (): ReactElement => {
                   return (
                     <li
                       key={channel.id}
+                      data-testid={`slack-channel-${channel.id}`}
                       className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
                     >
                       <div className="h-9 w-9 flex flex-none items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
@@ -177,6 +206,14 @@ const SlackChannelsCard: FunctionComponent = (): ReactElement => {
                         <div className="font-medium text-gray-900 truncate">
                           {channel.name}
                         </div>
+                        {channel.workspaceName && (
+                          <div
+                            className="truncate text-xs text-gray-500"
+                            data-testid="slack-channel-workspace"
+                          >
+                            {channel.workspaceName}
+                          </div>
+                        )}
                       </div>
                       <SendTestNotificationButton
                         route="/slack/channels/test"

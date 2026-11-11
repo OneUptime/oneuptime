@@ -60,6 +60,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { HOST_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/HostMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
  * The config a host runs, under its collector's state: as wide as the
@@ -489,6 +490,8 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Name",
             type: FieldType.Element,
             contentClassName: HOSTS_NAME_CELL_WIDTH_CLASS_NAME,
+            // Each of its lines already reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: Host): ReactElement => {
               const id: string = (item.hostIdentifier as string) || "";
               const name: string = (item.name as string) || "";

@@ -1123,6 +1123,10 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
         type: FieldType.Element,
         // Whatever else a viewer hides, a row stays nameable.
         isNotCustomizable: true,
+        // The words it shows, which are not the field as stored.
+        getLineText: (row: OpenStackResource): string | undefined => {
+          return getName(row);
+        },
         getElement: (row: OpenStackResource): ReactElement => {
           return (
             <span className="text-sm font-medium text-gray-900">

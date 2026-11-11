@@ -109,6 +109,10 @@ const HostArchivedPage: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Element,
+            // Its name, and its own data under it: the cell reads the name's way.
+            getLineText: (item: Host): string | undefined => {
+              return item.name;
+            },
             getElement: (item: Host): ReactElement => {
               const id: string = (item.hostIdentifier as string) || "";
               const name: string = (item.name as string) || "";

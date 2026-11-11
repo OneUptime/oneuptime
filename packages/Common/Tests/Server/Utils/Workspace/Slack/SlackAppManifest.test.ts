@@ -362,6 +362,13 @@ const METHOD_SCOPES: Record<string, Array<string>> = {
   // A form in place of the modal its project was chosen in (SlackProjectChoice).
   "views.update": [],
   "views.publish": [],
+  /*
+   * The workspaces of a Slack Enterprise organization OneUptime's
+   * organization-wide installation is added to (SlackOrganization): no scope.
+   */
+  "auth.teams.list": [],
+  // Which organization a workspace's installation is part of: no scope.
+  "auth.test": [],
   "chat.postMessage": ["chat:write"],
   "chat.postEphemeral": ["chat:write"],
   "chat.update": ["chat:write"],

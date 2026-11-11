@@ -203,6 +203,10 @@ const CloudAccountResources: FunctionComponent<
             title: "Name",
             type: FieldType.Element,
             isNotCustomizable: true,
+            // Its name, and its own data under it: the cell reads the name's way.
+            getLineText: (item: CloudResource): string | undefined => {
+              return item.name;
+            },
             /*
              * What it is and where, under its name - the way the accounts
              * list says each account's cloud and id - not a Region column

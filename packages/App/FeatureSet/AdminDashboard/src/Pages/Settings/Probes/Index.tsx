@@ -21,6 +21,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -172,6 +173,8 @@ const Settings: FunctionComponent = (): ReactElement => {
             title: "Name",
             type: FieldType.Text,
 
+            // A mark beside the name: the name reads its own way, the cell the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (item: Probe): ReactElement => {
               return <ProbeElement probe={item} />;
             },

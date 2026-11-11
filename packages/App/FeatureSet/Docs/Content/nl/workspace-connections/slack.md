@@ -58,6 +58,19 @@ Ga naar **Incidenten** > **Werkruimte** > **Slack**. De sectie **Werkruimte** to
 Klik op **Testregel** in de rij van de regel. Er komt een testbericht aan in de kanalen die de regel noemt. Zie [Een regel testen](#een-regel-testen).
 :::
 
+## Slack Enterprise-organisaties
+
+Met Slack Enterprise Grid kan één project werken in meerdere workspaces van je organisatie. Installeer OneUptime daarvoor voor de hele organisatie in plaats van voor één workspace:
+
+1. Een beheerder of eigenaar van de organisatie klikt op **Connect with Slack** onder **Projectinstellingen** > **Werkruimte** > **Slack**, kiest op de installatiepagina van Slack de organisatie in plaats van een van haar workspaces en geeft OneUptime toestemming.
+2. In de organisatie-instellingen van Slack voegt een beheerder OneUptime toe aan elke workspace die het moet gebruiken.
+3. De kaart **Slack-werkruimtes** toont die workspaces. Klik op **Vernieuwen** nadat OneUptime aan een andere workspace is toegevoegd.
+
+- **Welke workspace een regel gebruikt.** Meldingsregels kiezen de **Slack-werkruimte** waarin hun kanalen staan. Blijft het veld leeg, dan gebruikt een regel de standaardworkspace en zoekt ze de kanalen die ze noemt daar eerst. **Als standaard instellen** op de kaart wijzigt de standaard.
+- **Waar OneUptime werkt.** Knoppen, opdrachten, het tabblad Home en OneUptime AI werken in elk van die workspaces, en leden koppelen hun eigen Slack-account vanuit elk ervan.
+- **Een project dat met één workspace is gekoppeld.** Hoort die workspace bij de organisatie, dan behoudt het project zijn regels, kanalen en gekoppelde accounts wanneer het met **Installeren voor de organisatie** op dezelfde pagina voor de hele organisatie wordt geïnstalleerd. Die workspace wordt de standaard.
+- **Op een zelfgehoste server** staat een Slack-app die is gemaakt met het manifest van OneUptime dit al toe: het manifest zet `org_deploy_enabled`.
+
 ## Iedereen vragen hun account te koppelen
 
 Niemand kan het Slack-account van iemand anders koppelen, ook een beheerder niet: ieder meldt zich aan met zijn eigen account. Om een heel team erbij te halen, vraagt een **Projecteigenaar** of **Projectbeheerder** iedereen tegelijk op **Projectinstellingen** > **Werkruimte** > **Slack**. De kaart **Members' Slack accounts** zegt hoeveel leden hun account al hebben gekoppeld. **Ask everyone to connect** stuurt elk lid dat nog niet gekoppeld is een direct bericht van OneUptime in Slack, met een knop **Connect Slack account** die het account met één klik koppelt.

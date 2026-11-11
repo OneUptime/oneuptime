@@ -17,6 +17,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { FunctionComponent, ReactElement } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
  * The stores that are gone from their clouds or sources: a bucket that was
@@ -122,6 +123,8 @@ const DataSecurityArchivedStores: FunctionComponent<
           field: { name: true },
           title: "Name",
           type: FieldType.Element,
+          // Each of its lines already reads its own way.
+          getLineText: drawsItsOwnLines,
           getElement: (item: DataStore): ReactElement => {
             return <StoreNameCell store={item} />;
           },

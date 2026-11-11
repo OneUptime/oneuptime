@@ -45,6 +45,8 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 export const SECURITY_EVENT_DESTINATIONS_TABLE_ID: string =
   "security-event-destinations-table";
@@ -242,6 +244,8 @@ const SecurityEventDestinationsTable: FunctionComponent = (): ReactElement => {
             },
             title: "Name",
             type: FieldType.Text,
+            // A mark beside the name: the name reads its own way, the cell the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (item: SecurityEventDestination): ReactElement => {
               const scope: string | undefined = item.sendScope;
               /*
@@ -282,7 +286,7 @@ const SecurityEventDestinationsTable: FunctionComponent = (): ReactElement => {
                     <></>
                   )}
                   <div className="min-w-0">
-                    <span>{item.name}</span>
+                    <IsolatedLine text={item.name || ""} className="truncate" />
                     <div
                       className="whitespace-normal text-xs text-gray-500"
                       data-testid="security-event-destination-detail"

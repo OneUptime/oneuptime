@@ -63,6 +63,10 @@ const IoTFleetDevices: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Element,
+            // Its name, and its own data under it: the cell reads the name's way.
+            getLineText: (item: IoTDevice): string | undefined => {
+              return item.name || item.externalId;
+            },
             getElement: (item: IoTDevice): ReactElement => {
               return (
                 <div className="flex flex-col">

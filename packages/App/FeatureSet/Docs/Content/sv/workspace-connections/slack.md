@@ -58,6 +58,19 @@ Gå till **Incidenter** > **Arbetsyta** > **Slack**. Avsnittet **Arbetsyta** vis
 Klicka på **Testregel** på regelns rad. Ett testmeddelande kommer i de kanaler som regeln anger. Se [Testa en regel](#testa-en-regel).
 :::
 
+## Slack Enterprise-organisationer
+
+Med Slack Enterprise Grid kan ett projekt arbeta i flera arbetsytor i din organisation. Installera OneUptime för hela organisationen i stället för en arbetsyta:
+
+1. En administratör eller ägare av organisationen klickar på **Connect with Slack** under **Projektinställningar** > **Arbetsyta** > **Slack**, väljer organisationen i stället för en av dess arbetsytor på Slacks installationssida och ger OneUptime åtkomst.
+2. I Slacks organisationsinställningar lägger en administratör till OneUptime i varje arbetsyta som ska använda det.
+3. Kortet **Slack-arbetsytor** listar de arbetsytorna. Klicka på **Uppdatera** när OneUptime har lagts till i en ny arbetsyta.
+
+- **Vilken arbetsyta en regel använder.** Aviseringsregler väljer den **Slack-arbetsyta** som deras kanaler finns i. Lämnas fältet tomt använder regeln standardarbetsytan och letar först där efter kanalerna den anger. **Gör till standard** på kortet ändrar standarden.
+- **Var OneUptime fungerar.** Knappar, kommandon, fliken Home och OneUptime AI fungerar i var och en av de arbetsytorna, och medlemmar ansluter sitt eget Slack-konto från vilken som helst av dem.
+- **Ett projekt som är anslutet till en enda arbetsyta.** Hör den arbetsytan till organisationen behåller projektet sina regler, kanaler och anslutna konton när det installeras för hela organisationen med **Installera för organisationen** på samma sida. Den arbetsytan blir standard.
+- **På en egen server** tillåter en Slack-app som skapats från OneUptimes manifest redan detta: manifestet sätter `org_deploy_enabled`.
+
 ## Be alla att ansluta
 
 Ingen kan ansluta någon annans Slack-konto, inte ens en administratör: var och en loggar in med sitt eget. För att få med ett helt team ber en **Projektägare** eller **Projektadministratör** alla på en gång på **Projektinställningar** > **Arbetsyta** > **Slack**. Kortet **Members' Slack accounts** visar hur många medlemmar som har anslutit. **Ask everyone to connect** skickar ett direktmeddelande från OneUptime i Slack till varje medlem som inte har gjort det, med knappen **Connect Slack account**, som ansluter personens konto med ett klick.

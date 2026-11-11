@@ -48,6 +48,9 @@ import MicrosoftTeamsUtil, {
   MicrosoftTeamsRosterMember,
 } from "./MicrosoftTeams/MicrosoftTeams";
 import SlackUtil from "./Slack/Slack";
+import SlackOrganization, {
+  SlackOrganizationConnection,
+} from "./Slack/SlackOrganization";
 import SlackChannelMembers, {
   SlackChannelMembersError,
   SlackPersonFacts,
@@ -329,6 +332,13 @@ export default class WorkspaceAskToConnect {
           authToken: data.projectAuth.authToken || "",
           people: data.people,
           keepLock: keepLock,
+          slackWorkspaceIds:
+            data.workspaceType === WorkspaceType.Slack
+              ? await WorkspaceAskToConnect.getSlackWorkspaceIds({
+                  projectId: data.projectId,
+                  projectAuth: data.projectAuth,
+                })
+              : undefined,
         });
 
       const message: WorkspaceAskToConnectMessage =
@@ -518,6 +528,12 @@ export default class WorkspaceAskToConnect {
     authToken: string;
     people: Array<WorkspaceAskToConnectPerson>;
     keepLock: () => Promise<void>;
+    /*
+     * Slack installed for a whole Enterprise organization: the workspaces
+     * whose people are read (users.list wants one). Undefined for one
+     * workspace's installation.
+     */
+    slackWorkspaceIds?: Array<string> | undefined;
   }): Promise<Map<string, string>> {
     // Who each address belongs to, lower-cased.
     const wanted: Map<string, string> = new Map<string, string>();
@@ -545,6 +561,31 @@ export default class WorkspaceAskToConnect {
       authToken: data.authToken,
       wanted: wanted,
       keepLock: data.keepLock,
+      teamIds: data.slackWorkspaceIds,
+    });
+  }
+
+  /*
+   * The workspaces whose people are read, for Slack installed for a whole
+   * Enterprise organization: every one OneUptime was added to
+   * (SlackOrganization). Undefined for one workspace's installation.
+   */
+  private static async getSlackWorkspaceIds(data: {
+    projectId: ObjectID;
+    projectAuth: WorkspaceProjectAuthToken;
+  }): Promise<Array<string> | undefined> {
+    const organization: SlackOrganizationConnection | null =
+      await SlackOrganization.getOfConnection({
+        projectId: data.projectId,
+        projectAuth: data.projectAuth,
+      });
+
+    if (!organization) {
+      return undefined;
+    }
+
+    return SlackOrganization.getWorkspaceIdsToSearch({
+      organization: organization,
     });
   }
 
@@ -552,6 +593,8 @@ export default class WorkspaceAskToConnect {
     authToken: string;
     wanted: Map<string, string>;
     keepLock: () => Promise<void>;
+    // An organization's workspaces, each read in turn (findAccounts).
+    teamIds?: Array<string> | undefined;
   }): Promise<Map<string, string>> {
     const found: Map<string, string> = new Map<string, string>();
 
@@ -589,35 +632,76 @@ export default class WorkspaceAskToConnect {
       return found;
     }
 
-    let cursor: string = "";
+    // One workspace's people (undefined), or each of an organization's workspaces' in turn.
+    const teamIds: Array<string | undefined> = data.teamIds
+      ? data.teamIds
+      : [undefined];
+
     let pages: number = 0;
+    let readWorkspaces: number = 0;
+    let firstError: unknown = undefined;
 
-    do {
-      // The page asked for, as it was when asked: a retry asks for it again.
-      const pageCursor: string = cursor;
+    for (const teamId of teamIds) {
+      let cursor: string = "";
 
-      const page: { people: Array<SlackPersonFacts>; nextCursor: string } =
-        await WorkspaceAskToConnect.whenSlackAnswers({
-          call: () => {
-            return SlackChannelMembers.getPeoplePage({
-              authToken: data.authToken,
-              cursor: pageCursor,
-            });
-          },
-          keepLock: data.keepLock,
-        });
+      try {
+        do {
+          // The page asked for, as it was when asked: a retry asks for it again.
+          const pageCursor: string = cursor;
 
-      for (const person of page.people) {
-        take(person);
+          const page: {
+            people: Array<SlackPersonFacts>;
+            nextCursor: string;
+          } = await WorkspaceAskToConnect.whenSlackAnswers({
+            call: () => {
+              return SlackChannelMembers.getPeoplePage({
+                authToken: data.authToken,
+                cursor: pageCursor,
+                ...(teamId ? { teamId: teamId } : {}),
+              });
+            },
+            keepLock: data.keepLock,
+          });
+
+          for (const person of page.people) {
+            take(person);
+          }
+
+          cursor = page.nextCursor;
+          pages++;
+        } while (
+          cursor &&
+          found.size < data.wanted.size &&
+          pages < SLACK_MAX_PEOPLE_PAGES
+        );
+
+        readWorkspaces++;
+      } catch (err) {
+        // A workspace's own people: what Slack refused with, as before.
+        if (!data.teamIds) {
+          throw err;
+        }
+
+        /*
+         * One workspace of an organization refused - OneUptime removed from
+         * it since, say: the people of the others are still read.
+         */
+        logger.error(
+          `Could not read the people of Slack workspace ${teamId} of an organization's installation.`,
+        );
+        logger.error(err);
+        firstError = firstError || err;
       }
 
-      cursor = page.nextCursor;
-      pages++;
-    } while (
-      cursor &&
-      found.size < data.wanted.size &&
-      pages < SLACK_MAX_PEOPLE_PAGES
-    );
+      if (found.size >= data.wanted.size || pages >= SLACK_MAX_PEOPLE_PAGES) {
+        break;
+      }
+    }
+
+    // Every workspace of the organization refused: nobody could be looked up.
+    if (readWorkspaces === 0 && firstError) {
+      throw firstError;
+    }
 
     return found;
   }

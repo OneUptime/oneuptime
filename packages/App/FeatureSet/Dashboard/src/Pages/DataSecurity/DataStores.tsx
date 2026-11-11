@@ -42,6 +42,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
  * EVERY PLACE DATA LIVES: the buckets, databases and warehouses Data
@@ -305,6 +306,8 @@ const DataSecurityDataStores: FunctionComponent<
             type: FieldType.Element,
             // A long bucket name is cut short at 12rem, whole under the pointer.
             contentClassName: STORE_NAME_CELL_WIDTH_CLASS_NAME,
+            // Each of its lines already reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: DataStore): ReactElement => {
               return <StoreNameCell store={item} />;
             },

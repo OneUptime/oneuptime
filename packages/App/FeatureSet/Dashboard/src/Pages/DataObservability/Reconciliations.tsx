@@ -31,6 +31,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
  * Every reconciliation: one measure of two tables - rows, a column's sum or
@@ -340,12 +342,16 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
             getExportValue: (item: DataReconciliation): string => {
               return item.name || "";
             },
+            // The page's words beside the name: only the name reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: DataReconciliation): ReactElement => {
               return (
                 <div className="min-w-0">
-                  <span className="block truncate font-medium text-gray-900">
-                    {item.name}
-                  </span>
+                  <IsolatedLine
+                    as="span"
+                    text={item.name || ""}
+                    className="block truncate font-medium text-gray-900"
+                  />
                   <span className="block truncate text-xs text-gray-500">
                     {translator.translateTemplate(
                       "{{source}} against {{target}}, within {{tolerance}}",

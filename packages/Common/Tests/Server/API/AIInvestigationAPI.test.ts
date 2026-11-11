@@ -337,6 +337,38 @@ describe("AIInvestigationAPI latest-investigation payload", () => {
     expect(PostedRootCause.getForInvestigation).not.toHaveBeenCalled();
   });
 
+  /*
+   * The Dashboard words the reason in its reader's language from its code
+   * and these facts (#6656); the English sentences stay for API readers.
+   */
+  it("sends the facts a reason was worded from beside its English", async () => {
+    const reason: InvestigationNotStartedReason =
+      InvestigationEligibility.reason(
+        "severity_below_threshold",
+        { projectId: PROJECT_ID, incidentId: INCIDENT_ID },
+        undefined,
+        { severityName: "Minor", minimumSeverityName: "Critical" },
+      );
+    jest
+      .spyOn(InvestigationEligibility, "getNotStartedReason")
+      .mockResolvedValue(reason);
+    await callIncidentRoute();
+
+    const sent: InvestigationNotStartedReason = (
+      sentPayload() as unknown as {
+        notInvestigatedReason: InvestigationNotStartedReason;
+      }
+    ).notInvestigatedReason;
+
+    expect(sent.facts).toEqual({
+      severityName: "Minor",
+      minimumSeverityName: "Critical",
+    });
+    expect(sent.code).toBe("severity_below_threshold");
+    expect(sent.description).toContain("Minor");
+    expect(sent.description).toContain("Critical");
+  });
+
   it.each([
     AIRunStatus.Queued,
     AIRunStatus.Running,
