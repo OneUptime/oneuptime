@@ -2,6 +2,15 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import CallAndSmsGatewayCard from "./CallAndSmsGatewayCard";
+import ServerTestCard, {
+  SERVER_TEST_CARD_COPY,
+} from "../../../Components/ServerSetup/ServerTestCard";
+import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
+import { ServerSetupCheckId } from "Common/Types/ServerSetup/ServerSetupChecklist";
+import {
+  useServerSetupChecklist,
+  UseServerSetupChecklistResult,
+} from "Common/UI/Utils/ServerSetupChecklist";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
@@ -65,6 +74,14 @@ const usedFor: (
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+  // Where SMS and calls stand, for the test card, read again after a save.
+  const checklist: UseServerSetupChecklistResult = useServerSetupChecklist();
+
+  const onSettingsSaved: () => void = (): void => {
+    // Saving the settings starts SMS and calls again at "not tested yet".
+    void checklist.reload();
+  };
+
   return (
     <Page
       title={t("pages.settings.title")}
@@ -88,11 +105,24 @@ const Settings: FunctionComponent = (): ReactElement => {
       ]}
       sideMenu={<DashboardSideMenu />}
     >
+      {/*
+       * Does it work? Where SMS and calls stand, and their test sends -
+       * through Twilio or the gateway, whichever the server sends through.
+       */}
+      <ServerTestCard
+        check={ServerSetupCheckId.SmsAndCalls}
+        title={t(SERVER_TEST_CARD_COPY.callAndSmsTitle)}
+        description={t(SERVER_TEST_CARD_COPY.callAndSmsDescription)}
+        channels={[ServerSendingChannel.SMS, ServerSendingChannel.Call]}
+        checklist={checklist}
+      />
+
       {/* What carries the server's SMS and calls: Twilio, or a gateway. */}
-      <CallAndSmsGatewayCard />
+      <CallAndSmsGatewayCard onSaveSuccess={onSettingsSaved} />
 
       <CardModelDetail
         name="Call and SMS Settings"
+        onSaveSuccess={onSettingsSaved}
         cardProps={{
           title: t("pages.settings.callSms.cardTitle"),
           description: t("pages.settings.callSms.cardDescription"),

@@ -363,34 +363,29 @@ journey(
 
 /*
  * 7. As a self-hosted admin, make the server able to send email: from
- * where the first admin lands (Admin > Users, "Finish setting up this
- * server"), the SMTP server and who the email comes from, then a test
- * email - today only Send Email's announcement test sends one.
+ * where the first admin lands in the Admin Dashboard (/admin, which opens
+ * Server setup while email, HTTPS or sign-ups are open, #6824), the SMTP
+ * server and who the email comes from - its port starts on 587 (#6875) -
+ * then "Send test email" on the same page, to the admin's own address.
  */
 journey(
   "server-email",
   async (person: Journey, page: Page) => {
     await person.begin(
-      "/admin/users",
+      "/admin",
       page.getByRole("heading", { name: "Finish setting up this server" }),
     );
     await person.press("Set up email");
     await person.press("Edit SMTP Config");
     await person.type("Hostname", "smtp.acme-commerce.example");
-    // 587 is only the box's example: the form asks for it.
-    await person.type("Port", "587");
     await person.type(/^Username/, "oneuptime@acme-commerce.example");
     await person.type(/^Password/, "smtp-app-password");
     await person.submit("Next");
     await person.type("From Email", "oneuptime@acme-commerce.example");
     await person.type("From Name", "Acme OneUptime");
     await person.submit("Save Changes");
-    await person.openProduct("Send Email");
-    await person.type("Subject", "Test from OneUptime");
-    await person.type("Message", "It works.");
-    await person.press("Send Test Email");
-    await person.type("Test Email Address", "ada@acme-commerce.example");
-    await person.submit("Send Test");
+    await person.press("Send test email");
+    await person.submit("Send test email");
   },
   (log: FixtureLog) => {
     const [saved] = writesTo(log, "GlobalConfig", "update");
@@ -398,12 +393,12 @@ journey(
     expect(saved?.data["smtpPort"]).toBe(587);
     const sent: Array<FixtureApiCall> = log.api.filter(
       (call: FixtureApiCall) => {
-        return call.path.endsWith("/admin/email/send-test");
+        return call.path.endsWith("/server-test/email");
       },
     );
     expect(
       sent.map((call: FixtureApiCall) => {
-        return call.body["testEmail"];
+        return call.body["toEmail"];
       }),
     ).toEqual(["ada@acme-commerce.example"]);
   },

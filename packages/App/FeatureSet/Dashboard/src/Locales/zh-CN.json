@@ -10718,7 +10718,7 @@
   "Finger Print": "Finger Print",
   "Finish reason": "结束原因",
   "Finish setting up AI": "Finish setting up AI",
-  "Finish setup": "Finish setup",
+  "Finish setup": "完成设置",
   "Finland": "Finland",
   "Fire when a group's count reaches this number within one evaluation window. 1 fires on any match.": "当某组在一个评估窗口内的计数达到此数值时触发。1 表示任何匹配都会触发。",
   "Capture a session when a successful request takes at least this many milliseconds. 0 (default) turns it off.": "当成功的请求耗时至少达到这么多毫秒时录制会话。0（默认）表示关闭。",
@@ -50736,5 +50736,9 @@
   "Read what this means in the glossary": "在术语表中查看含义",
   "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}}用于客户能感受到的问题，可以显示在状态页上。{{alerts}}用于你的团队，永远不会显示在状态页上。",
   "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}}决定每个严重程度下，呼叫会尝试哪种通知方式，以及等待多久。",
-  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}}和{{infrastructure}}也会汇入这一流程：针对日志、指标和链路追踪，或针对主机、集群和云的规则，同样会创建事件和警报。"
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}}和{{infrastructure}}也会汇入这一流程：针对日志、指标和链路追踪，或针对主机、集群和云的规则，同样会创建事件和警报。",
+  "Only you see this, as the server's admin.": "只有您能看到这条内容，因为您是服务器管理员。",
+  "Server Setup Choices": "服务器设置选择",
+  "This server is not finished: {{count}} things to set up": "此服务器尚未完成设置：还有 {{count}} 项待设置",
+  "This server is not finished: {{count}} things to set up_one": "此服务器尚未完成设置：还有 {{count}} 项待设置"
 }

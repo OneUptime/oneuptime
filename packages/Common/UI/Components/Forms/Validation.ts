@@ -474,9 +474,17 @@ export default class Validation {
       }
 
       if (name in entries) {
-        const content: string | undefined = (entries as JSONObject)[
-          name
-        ]?.toString();
+        const value: unknown = (entries as JSONObject)[name];
+
+        /*
+         * A number box left empty holds NaN, which reads "NaN": it is
+         * empty, and a required one says "<Title> is required" - not
+         * "Invalid number: NaN" from the number check behind it (#6875).
+         */
+        const content: string | undefined =
+          typeof value === "number" && Number.isNaN(value)
+            ? undefined
+            : (value as JSONValue | undefined)?.toString();
 
         // Check Required fields.
         const resultRequired: string | null = this.validateRequired(

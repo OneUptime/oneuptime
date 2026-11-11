@@ -10718,7 +10718,7 @@
   "Finger Print": "Finger Print",
   "Finish reason": "Reden van beëindiging",
   "Finish setting up AI": "Finish setting up AI",
-  "Finish setup": "Finish setup",
+  "Finish setup": "Instellen afronden",
   "Finland": "Finland",
   "Fire when a group's count reaches this number within one evaluation window. 1 fires on any match.": "Afgaan wanneer de telling van een groep dit aantal bereikt binnen één evaluatievenster. 1 gaat af bij elke overeenkomst.",
   "Capture a session when a successful request takes at least this many milliseconds. 0 (default) turns it off.": "Een sessie vastleggen wanneer een geslaagd verzoek minstens zoveel milliseconden duurt. 0 (standaard) schakelt het uit.",
@@ -50736,5 +50736,9 @@
   "Read what this means in the glossary": "Lees in de woordenlijst wat dit betekent",
   "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} zijn voor problemen die je klanten merken, en kunnen op een statuspagina verschijnen. {{alerts}} zijn voor je team, en verschijnen daar nooit.",
   "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} bepalen per ernst welke meldingsmethode een oproep probeert, en na hoeveel tijd.",
-  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} en {{infrastructure}} voeden de kringloop: regels op je logs, metrics en traces, of op je hosts, clusters en clouds, openen ook incidenten en waarschuwingen."
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} en {{infrastructure}} voeden de kringloop: regels op je logs, metrics en traces, of op je hosts, clusters en clouds, openen ook incidenten en waarschuwingen.",
+  "Only you see this, as the server's admin.": "Alleen u ziet dit, als beheerder van de server.",
+  "Server Setup Choices": "Keuzes bij de serverinstelling",
+  "This server is not finished: {{count}} things to set up": "Deze server is niet af: nog {{count}} dingen in te stellen",
+  "This server is not finished: {{count}} things to set up_one": "Deze server is niet af: nog {{count}} ding in te stellen"
 }
