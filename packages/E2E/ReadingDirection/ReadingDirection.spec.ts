@@ -1021,8 +1021,15 @@ test.describe("values cut short to their column", () => {
       .locator(":scope > div");
 
     expect(await styleOf(summary, "direction")).toBe("ltr");
-    // Its end is the page's start: a value that fits starts at the right.
-    expect(await styleOf(summary, "text-align")).toBe("end");
+    /*
+     * Its end is the page's start: a value that fits starts at the right.
+     * A later column's value gives way, so its box is lined up by its last
+     * line (text-align-last), which a one-line value always is: cut short to
+     * one clamped line, it keeps its whole "..."
+     * (LINE_OR_CLAMPED_LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME). The next test
+     * holds a short value there, at the right.
+     */
+    expect(await styleOf(summary, "text-align-last")).toBe("end");
 
     const summaryBox: Box = await boxOf(summary);
     const summaryStart: Box = await boxOfText(summary, "Polled");
