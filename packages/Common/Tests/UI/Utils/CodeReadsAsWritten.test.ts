@@ -1,5 +1,6 @@
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -16,6 +17,7 @@ import {
   getTranslationPostProcess,
   leaveIsolatesOutOfCopiedText,
   setCodeApartInTranslation,
+  whenCodeCanBeSetApart,
   withoutIsolates,
 } from "../../../UI/Utils/CodeReadsAsWritten";
 import {
@@ -25,13 +27,38 @@ import {
 
 type CodeInSentenceModule = typeof import("../../../Types/CodeInSentence");
 
+type CodeReadsAsWrittenModule =
+  typeof import("../../../UI/Utils/CodeReadsAsWritten");
+
 /*
  * The i18next post-processor every frontend runs each translated sentence
  * through (Common/UI/Utils/CodeReadsAsWritten): code in a sentence of a
  * language read from the right comes out set apart in a left-to-right
  * isolate, a sentence in any other language as it went in, and what a
- * reader copies from the page comes without the isolates' marks.
+ * reader copies from the page comes without the isolates' marks. The rules
+ * that set the code apart load only for a language read from the right:
+ * here they are loaded first, as a frontend loads them with its Arabic and
+ * Persian words, except where a test asks what happens before.
  */
+
+beforeAll(async () => {
+  await whenCodeCanBeSetApart("ar");
+});
+
+const CODE_READS_AS_WRITTEN: string = "../../../UI/Utils/CodeReadsAsWritten";
+
+// A page's own post-processor, before anything has loaded or handed it the rules.
+const freshPage: () => CodeReadsAsWrittenModule =
+  (): CodeReadsAsWrittenModule => {
+    let page: CodeReadsAsWrittenModule | null = null;
+
+    jest.isolateModules(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      page = require(CODE_READS_AS_WRITTEN) as CodeReadsAsWrittenModule;
+    });
+
+    return page as unknown as CodeReadsAsWrittenModule;
+  };
 
 const LRI: string = String.fromCharCode(0x2066);
 const RLI: string = String.fromCharCode(0x2067);
@@ -100,11 +127,114 @@ describe("a sentence handed to the page", () => {
   });
 });
 
+describe("the rules that set code apart, which only a language read from the right loads", () => {
+  test("are not loaded for a language read from the left", async () => {
+    const page: CodeReadsAsWrittenModule = freshPage();
+
+    for (const language of [
+      "en",
+      "en-US",
+      "de",
+      "ja",
+      "zh-CN",
+      "hi",
+      null,
+      undefined,
+      "",
+    ]) {
+      await page.whenCodeCanBeSetApart(language);
+    }
+
+    // Still not there: an Arabic sentence would go out as it is written.
+    expect(page.setCodeApartInTranslation(ARABIC_WITH_CODE, "ar")).toBe(
+      ARABIC_WITH_CODE,
+    );
+  });
+
+  test("are waited for with an Arabic or Persian page's words, and set its code apart once there", async () => {
+    const page: CodeReadsAsWrittenModule = freshPage();
+
+    await page.whenCodeCanBeSetApart("fa");
+
+    expect(page.setCodeApartInTranslation(PERSIAN_WITH_CODE, "fa")).toBe(
+      setCodeApartInSentence(PERSIAN_WITH_CODE, "fa"),
+    );
+    expect(page.setCodeApartInTranslation(ARABIC_WITH_CODE, "ar-EG")).toBe(
+      setCodeApartInSentence(ARABIC_WITH_CODE, "ar-EG"),
+    );
+  });
+
+  test("not there yet, hand a sentence back as it is written, not remembered, and are asked for by it", async () => {
+    const page: CodeReadsAsWrittenModule = freshPage();
+
+    expect(page.setCodeApartInTranslation(PERSIAN_WITH_CODE, "fa")).toBe(
+      PERSIAN_WITH_CODE,
+    );
+
+    // Nothing else asks: the sentence's own ask brings them.
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+
+    expect(page.setCodeApartInTranslation(PERSIAN_WITH_CODE, "fa")).toBe(
+      setCodeApartInSentence(PERSIAN_WITH_CODE, "fa"),
+    );
+  });
+
+  test("handed over by a frontend that bundles every language's words, are there from the first sentence", () => {
+    const page: CodeReadsAsWrittenModule = freshPage();
+
+    page.setCodeApartWith(setCodeApartInSentence);
+
+    expect(page.setCodeApartInTranslation(ARABIC_WITH_CODE, "ar")).toBe(
+      setCodeApartInSentence(ARABIC_WITH_CODE, "ar"),
+    );
+  });
+
+  test("that cannot be fetched hold no words back, and the next ask fetches them", async () => {
+    let fetches: number = 0;
+    const actual: CodeInSentenceModule = jest.requireActual(
+      "../../../Types/CodeInSentence",
+    ) as CodeInSentenceModule;
+
+    jest.doMock("../../../Types/CodeInSentence", () => {
+      fetches += 1;
+
+      if (fetches === 1) {
+        throw new Error("The file could not be fetched.");
+      }
+
+      return actual;
+    });
+
+    try {
+      const page: CodeReadsAsWrittenModule = freshPage();
+
+      // A locale backend waiting for them still hands its words over.
+      await expect(page.whenCodeCanBeSetApart("fa")).resolves.toBeUndefined();
+      expect(fetches).toBe(1);
+      expect(page.setCodeApartInTranslation(PERSIAN_WITH_CODE, "fa")).toBe(
+        PERSIAN_WITH_CODE,
+      );
+
+      await page.whenCodeCanBeSetApart("fa");
+
+      expect(fetches).toBe(2);
+      expect(page.setCodeApartInTranslation(PERSIAN_WITH_CODE, "fa")).toBe(
+        setCodeApartInSentence(PERSIAN_WITH_CODE, "fa"),
+      );
+    } finally {
+      jest.dontMock("../../../Types/CodeInSentence");
+    }
+  });
+});
+
 describe("a sentence the page draws again and again", () => {
   /*
    * CodeInSentence reads a sentence through: the post-processor remembers
    * what it read, per language, and forgets it all past a bound, so a page
-   * left open for a day does not keep every sentence it ever drew.
+   * left open for a day does not keep every sentence it ever drew. A page
+   * of its own is handed rules that count their reads.
    */
   const withCountedReads: () => {
     setApart: typeof setCodeApartInTranslation;
@@ -113,45 +243,24 @@ describe("a sentence the page draws again and again", () => {
     setApart: typeof setCodeApartInTranslation;
     reads: () => number;
   } => {
-    type SetApart = (sentence: string, language: string) => string;
+    type SetApart = typeof setCodeApartInSentence;
 
-    let setApart: typeof setCodeApartInTranslation = setCodeApartInTranslation;
-    let counted: Mock<SetApart> = jest.fn<SetApart>();
+    const counted: Mock<SetApart> = jest.fn<SetApart>(
+      (sentence: string, language: string | null | undefined): string => {
+        return setCodeApartInSentence(sentence, language);
+      },
+    );
+    const page: CodeReadsAsWrittenModule = freshPage();
 
-    jest.isolateModules(() => {
-      const actual: CodeInSentenceModule = jest.requireActual(
-        "../../../Types/CodeInSentence",
-      ) as CodeInSentenceModule;
-
-      counted = jest.fn<SetApart>(
-        (sentence: string, language: string): string => {
-          return actual.setCodeApartInSentence(sentence, language);
-        },
-      );
-
-      jest.doMock("../../../Types/CodeInSentence", () => {
-        return {
-          ...actual,
-          setCodeApartInSentence: counted,
-        };
-      });
-
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      setApart = require("../../../UI/Utils/CodeReadsAsWritten")
-        .setCodeApartInTranslation as typeof setCodeApartInTranslation;
-    });
+    page.setCodeApartWith(counted);
 
     return {
-      setApart,
+      setApart: page.setCodeApartInTranslation,
       reads: (): number => {
         return counted.mock.calls.length;
       },
     };
   };
-
-  afterEach(() => {
-    jest.dontMock("../../../Types/CodeInSentence");
-  });
 
   test("is read once per language", () => {
     const { setApart, reads } = withCountedReads();

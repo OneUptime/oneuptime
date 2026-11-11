@@ -55,10 +55,12 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import { setCodeApartInSentence } from "Common/Types/CodeInSentence";
 import {
   CODE_READS_AS_WRITTEN_POST_PROCESSOR,
   codeReadsAsWrittenPostProcessor,
   leaveIsolatesOutOfCopiedText,
+  setCodeApartWith,
 } from "Common/UI/Utils/CodeReadsAsWritten";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -136,8 +138,10 @@ followLanguageForDates(i18next);
 /*
  * As every frontend's i18n set-up does: code in an Arabic or Persian
  * sentence set apart as it is handed to the page, and copied without the
- * marks that set it apart.
+ * marks that set it apart. The page bundles every language's words, so it
+ * hands over the rules with them, as the Admin Dashboard does.
  */
+setCodeApartWith(setCodeApartInSentence);
 leaveIsolatesOutOfCopiedText();
 
 await i18next

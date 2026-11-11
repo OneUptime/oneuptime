@@ -12,6 +12,7 @@ import {
   codeReadsAsWrittenPostProcessor,
   getTranslationPostProcess,
   leaveIsolatesOutOfCopiedText,
+  whenCodeCanBeSetApart,
   withoutIsolates,
 } from "../../../UI/Utils/CodeReadsAsWritten";
 import { productNamePostProcessor } from "../../../UI/Utils/ProductNameTranslation";
@@ -85,6 +86,11 @@ const dashboardI18n: i18n = createInstance();
 const rawI18n: i18n = createInstance();
 
 beforeAll(async () => {
+  /*
+   * The Dashboard's Arabic and Persian words arrive with the rules that set
+   * their code apart (its locale backend waits for them).
+   */
+  await whenCodeCanBeSetApart("ar");
   await dashboardI18n
     .use(productNamePostProcessor)
     .use(codeReadsAsWrittenPostProcessor)

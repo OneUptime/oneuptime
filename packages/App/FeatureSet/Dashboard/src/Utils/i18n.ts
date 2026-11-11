@@ -19,6 +19,7 @@ import {
   codeReadsAsWrittenPostProcessor,
   getTranslationPostProcess,
   leaveIsolatesOutOfCopiedText,
+  whenCodeCanBeSetApart,
 } from "Common/UI/Utils/CodeReadsAsWritten";
 
 /*
@@ -96,8 +97,13 @@ const lazyLocaleBackend: BackendModule = {
     _namespace: string,
     callback: ReadCallback,
   ): void => {
-    loadLocaleResource(language)
-      .then((resource: LocaleResource): void => {
+    /*
+     * An Arabic or Persian locale arrives with the rules that set the code
+     * in its sentences apart, which no other language loads
+     * (Common/UI/Utils/CodeReadsAsWritten).
+     */
+    Promise.all([loadLocaleResource(language), whenCodeCanBeSetApart(language)])
+      .then(([resource]: [LocaleResource, void]): void => {
         callback(null, resource as ResourceKey);
       })
       .catch((error: unknown): void => {

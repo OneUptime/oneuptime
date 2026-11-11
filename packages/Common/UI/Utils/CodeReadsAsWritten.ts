@@ -1,6 +1,11 @@
 import type { PostProcessorModule, TOptions } from "i18next";
-import { setCodeApartInSentence } from "../../Types/CodeInSentence";
+/*
+ * Type-only: the one place the rules are loaded is the import() below
+ * (codeInSentenceRules), so a page read from the left never downloads them.
+ */
+import type { setCodeApartInSentence } from "../../Types/CodeInSentence";
 import { isRightToLeftLanguage } from "../../Types/ReadingDirection";
+import { LazyLibrary } from "./LazyLibrary";
 import { getProductNamePostProcess } from "./ProductNameTranslation";
 
 /*
@@ -24,10 +29,51 @@ import { getProductNamePostProcess } from "./ProductNameTranslation";
  * Copying a sentence copies its isolates' marks, which a terminal or an
  * editor keeps: "--help" pasted with them is no flag. So each frontend
  * also leaves them out of what is copied (leaveIsolatesOutOfCopiedText).
+ *
+ * The rules that find the code (Common/Types/CodeInSentence) are needed
+ * only in a language read from the right, so they are a file of their own
+ * that a page in any other language never loads: they were 3 KiB gzipped
+ * of the sign-in and status pages' first load (issue #5608). A frontend
+ * that fetches a language's words when it is chosen fetches the rules with
+ * an Arabic or Persian locale file (whenCodeCanBeSetApart), so those words
+ * arrive with what sets their code apart. One that bundles every
+ * language's words hands the rules over with them, before it starts
+ * (setCodeApartWith).
  */
 
 export const CODE_READS_AS_WRITTEN_POST_PROCESSOR: string =
   "codeReadsAsWritten";
+
+export type CodeInSentenceRules = typeof setCodeApartInSentence;
+
+const codeInSentenceRules: LazyLibrary<CodeInSentenceRules> =
+  new LazyLibrary<CodeInSentenceRules>(
+    async (): Promise<CodeInSentenceRules> => {
+      const library: { setCodeApartInSentence: CodeInSentenceRules } =
+        await import("../../Types/CodeInSentence");
+
+      return library.setCodeApartInSentence;
+    },
+  );
+
+// The rules a frontend that bundles every language's words handed over.
+let handedOverRules: CodeInSentenceRules | null = null;
+
+const getRules: () => CodeInSentenceRules | null =
+  (): CodeInSentenceRules | null => {
+    return handedOverRules || codeInSentenceRules.getLoaded();
+  };
+
+/*
+ * For a frontend that bundles every language's words - the Admin
+ * Dashboard, a public dashboard: the rules, bundled with them and there
+ * from the first sentence it translates.
+ */
+export const setCodeApartWith: (rules: CodeInSentenceRules) => void = (
+  rules: CodeInSentenceRules,
+): void => {
+  handedOverRules = rules;
+};
 
 /*
  * A sentence the page draws again and again is read once per language:
@@ -57,6 +103,31 @@ const isReadFromTheRight: (language: string) => boolean = (
 };
 
 /*
+ * For a frontend that fetches a language's words when it is chosen - the
+ * Dashboard, the sign-in pages, a status page: settles once `language`'s
+ * sentences can be set apart, at once for a language read from the left,
+ * which never loads the rules. Its locale backend waits for this beside an
+ * Arabic or Persian locale file. It never fails: words whose rules cannot
+ * be fetched still go out, as they are written, and the next sentence
+ * asks for the rules again (LazyLibrary).
+ */
+export const whenCodeCanBeSetApart: (
+  language: string | null | undefined,
+) => Promise<void> = async (
+  language: string | null | undefined,
+): Promise<void> => {
+  if (!language || !isReadFromTheRight(language) || getRules()) {
+    return;
+  }
+
+  try {
+    await codeInSentenceRules.load();
+  } catch {
+    // Handed back as written until a later sentence's ask brings them.
+  }
+};
+
+/*
  * `sentence` as a page shows it to a reader of `language`: its code set
  * apart in a language read from the right (setCodeApartInSentence), as it
  * is in any other.
@@ -69,6 +140,21 @@ export const setCodeApartInTranslation: (
   language: string | null | undefined,
 ): string => {
   if (!sentence || !language || !isReadFromTheRight(language)) {
+    return sentence;
+  }
+
+  const setCodeApart: CodeInSentenceRules | null = getRules();
+
+  if (!setCodeApart) {
+    /*
+     * Asked for before the rules arrived - a frontend fetches them with
+     * its Arabic and Persian words, so only a sentence asked for in such a
+     * language before its words gets here. It is handed back as it is
+     * written, not remembered, so it is read again once they are there,
+     * and it asks for them.
+     */
+    void whenCodeCanBeSetApart(language);
+
     return sentence;
   }
 
@@ -85,7 +171,7 @@ export const setCodeApartInTranslation: (
     return remembered;
   }
 
-  const shown: string = setCodeApartInSentence(sentence, language);
+  const shown: string = setCodeApart(sentence, language);
 
   if (sentences.size >= MOST_REMEMBERED_SENTENCES) {
     sentences.clear();
