@@ -79,6 +79,8 @@ const SHARED_CLIENT_CALLS_TO_OTHER_SERVICES: Record<string, string> = {
 const OTHER_CLIENTS: Record<string, string> = {
   "packages/Probe/Utils/HttpTimingAgents.ts":
     "the agents that time a monitor's own requests",
+  "packages/Probe/Utils/Monitors/CertificateRevocation/RevocationHttpClient.ts":
+    "the OCSP responders and CRLs a monitored certificate names, for the revocation check",
   "packages/Probe/Utils/Monitors/HttpMonitorRequest.ts":
     "a monitor's own request, to the address it checks",
   "packages/Probe/Utils/Monitors/MonitorTypes/ExternalStatusPageMonitor.ts":

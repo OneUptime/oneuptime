@@ -81,6 +81,15 @@ const MAX_SOURCES_PER_KIND: number = 2;
 const MAX_CACHED_OCSP_ANSWERS: number = 10000;
 const MAX_CACHED_CRLS: number = 64;
 
+/*
+ * What the cached CRLs may hold in all, estimated as their bytes plus about
+ * 100 bytes per serial number in their lookup map. Public CAs' CRLs are
+ * mostly well under a megabyte, so this keeps dozens of them; a probe that
+ * watches many issuers with huge CRLs downloads the least recent again.
+ */
+const MAX_CACHED_CRL_BYTES: number = 256 * 1024 * 1024;
+const ESTIMATED_BYTES_PER_CRL_ENTRY: number = 100;
+
 const CRL_REDIRECTS_FOLLOWED: number = 3;
 
 /*
@@ -88,13 +97,27 @@ const CRL_REDIRECTS_FOLLOWED: number = 3;
  * entry goes when a new one would not fit.
  */
 class ExpiringCache<T> {
-  private readonly entries: Map<string, { value: T; expiresAt: number }> =
-    new Map<string, { value: T; expiresAt: number }>();
+  private readonly entries: Map<
+    string,
+    { value: T; expiresAt: number; size: number }
+  > = new Map<string, { value: T; expiresAt: number; size: number }>();
 
-  public constructor(private readonly maxEntries: number) {}
+  private totalSize: number = 0;
+
+  /*
+   * sizeOf and maxTotalSize bound what the entries hold in all, as well as
+   * how many there are: a CRL can be megabytes.
+   */
+  public constructor(
+    private readonly maxEntries: number,
+    private readonly sizeOf: (value: T) => number = (): number => {
+      return 0;
+    },
+    private readonly maxTotalSize: number = Number.POSITIVE_INFINITY,
+  ) {}
 
   public get(key: string): T | undefined {
-    const entry: { value: T; expiresAt: number } | undefined =
+    const entry: { value: T; expiresAt: number; size: number } | undefined =
       this.entries.get(key);
 
     if (!entry) {
@@ -102,7 +125,7 @@ class ExpiringCache<T> {
     }
 
     if (entry.expiresAt <= Date.now()) {
-      this.entries.delete(key);
+      this.delete(key);
       return undefined;
     }
 
@@ -110,23 +133,46 @@ class ExpiringCache<T> {
   }
 
   public set(key: string, value: T, expiresAt: number): void {
-    this.entries.delete(key);
+    this.delete(key);
 
-    while (this.entries.size >= this.maxEntries) {
+    const size: number = this.sizeOf(value);
+
+    while (
+      this.entries.size > 0 &&
+      (this.entries.size >= this.maxEntries ||
+        this.totalSize + size > this.maxTotalSize)
+    ) {
       const oldestKey: string | undefined = this.entries.keys().next().value;
 
       if (oldestKey === undefined) {
         break;
       }
 
-      this.entries.delete(oldestKey);
+      this.delete(oldestKey);
     }
 
-    this.entries.set(key, { value: value, expiresAt: expiresAt });
+    // A value that alone is over the budget is not kept at all.
+    if (size > this.maxTotalSize) {
+      return;
+    }
+
+    this.entries.set(key, { value: value, expiresAt: expiresAt, size: size });
+    this.totalSize += size;
   }
 
   public clear(): void {
     this.entries.clear();
+    this.totalSize = 0;
+  }
+
+  private delete(key: string): void {
+    const entry: { value: T; expiresAt: number; size: number } | undefined =
+      this.entries.get(key);
+
+    if (entry) {
+      this.totalSize -= entry.size;
+      this.entries.delete(key);
+    }
   }
 }
 
@@ -139,7 +185,16 @@ export default class CertificateRevocationChecker {
   > = new Map<string, Promise<RevocationAnswer>>();
 
   private static readonly crls: ExpiringCache<CrlVerification> =
-    new ExpiringCache<CrlVerification>(MAX_CACHED_CRLS);
+    new ExpiringCache<CrlVerification>(
+      MAX_CACHED_CRLS,
+      (verification: CrlVerification): number => {
+        return verification.isVerified
+          ? verification.crl.der.length +
+              verification.crl.entries.size * ESTIMATED_BYTES_PER_CRL_ENTRY
+          : 0;
+      },
+      MAX_CACHED_CRL_BYTES,
+    );
   private static readonly crlDownloadsInFlight: Map<
     string,
     Promise<CrlVerification>
