@@ -50740,5 +50740,9 @@
   "Only you see this, as the server's admin.": "Kun du kan se dette, som serverens administrator.",
   "Server Setup Choices": "Valg ved serveropsætning",
   "This server is not finished: {{count}} things to set up": "Denne server er ikke færdig: {{count}} ting mangler at blive sat op",
-  "This server is not finished: {{count}} things to set up_one": "Denne server er ikke færdig: {{count}} ting mangler at blive sat op"
+  "This server is not finished: {{count}} things to set up_one": "Denne server er ikke færdig: {{count}} ting mangler at blive sat op",
+  "Import from {{tools}}": "Importér fra {{tools}}",
+  "Import from {{tools}} and others": "Importér fra {{tools}} og andre",
+  "Import from {{tool}}": "Importér fra {{tool}}",
+  "Show every tool": "Vis alle værktøjer"
 }

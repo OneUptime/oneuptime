@@ -50740,5 +50740,9 @@
   "Only you see this, as the server's admin.": "只有您能看到這則內容，因為您是伺服器管理員。",
   "Server Setup Choices": "伺服器設定選擇",
   "This server is not finished: {{count}} things to set up": "此伺服器尚未完成設定：還有 {{count}} 項待設定",
-  "This server is not finished: {{count}} things to set up_one": "此伺服器尚未完成設定：還有 {{count}} 項待設定"
+  "This server is not finished: {{count}} things to set up_one": "此伺服器尚未完成設定：還有 {{count}} 項待設定",
+  "Import from {{tools}}": "從 {{tools}} 匯入",
+  "Import from {{tools}} and others": "從 {{tools}} 等工具匯入",
+  "Import from {{tool}}": "從 {{tool}} 匯入",
+  "Show every tool": "顯示所有工具"
 }

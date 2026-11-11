@@ -51,6 +51,8 @@ import ToolImportSource, {
 } from "../../../Types/ToolImport/ToolImportSource";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import ProductEvents from "../../../UI/Utils/ProductEvents";
+import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
@@ -1422,6 +1424,255 @@ describe("the report's Finish the switch checklist", () => {
       expect(
         within(finish).queryByRole("link", { name: LINK }),
       ).not.toBeInTheDocument();
+    },
+  );
+});
+
+/*
+ * Links to the importer from where a newcomer stands (#6809): an empty
+ * Monitors, On-Call or Status Pages list opens it on the tools that fill
+ * that list (?kind=), Search's "Import from PagerDuty" on PagerDuty's
+ * connect step (?tool=), and each says where it came from (?from=), sent
+ * once with importer/opened.
+ */
+describe("opened from a link elsewhere", () => {
+  function pickerTools(): Array<string> {
+    return Array.from(
+      screen
+        .getByTestId("tool-import-picker")
+        .querySelectorAll('[data-testid^="tool-import-pick-"]'),
+    ).map((tile: Element): string => {
+      return (tile.getAttribute("data-testid") || "").replace(
+        "tool-import-pick-",
+        "",
+      );
+    });
+  }
+
+  function queryParam(name: string): string | null {
+    return new URLSearchParams(window.location.search).get(name);
+  }
+
+  test.each([
+    [
+      "Monitors",
+      ToolImportResourceKind.Monitor,
+      [
+        ToolImportSource.UptimeRobot,
+        ToolImportSource.BetterStack,
+        ToolImportSource.Pingdom,
+        ToolImportSource.StatusCake,
+        ToolImportSource.UptimeKuma,
+      ],
+    ],
+    [
+      "On-Call Policies",
+      ToolImportResourceKind.OnCallPolicy,
+      [
+        ToolImportSource.OpsGenie,
+        ToolImportSource.PagerDuty,
+        ToolImportSource.IncidentIo,
+        ToolImportSource.SplunkOnCall,
+        ToolImportSource.GrafanaOnCall,
+      ],
+    ],
+    [
+      "On-Call Schedules",
+      ToolImportResourceKind.OnCallSchedule,
+      [
+        ToolImportSource.OpsGenie,
+        ToolImportSource.PagerDuty,
+        ToolImportSource.IncidentIo,
+        ToolImportSource.SplunkOnCall,
+        ToolImportSource.GrafanaOnCall,
+      ],
+    ],
+    [
+      "Status Pages",
+      ToolImportResourceKind.StatusPage,
+      [
+        ToolImportSource.UptimeRobot,
+        ToolImportSource.AtlassianStatuspage,
+        ToolImportSource.BetterStack,
+      ],
+    ],
+  ])(
+    "from an empty %s list, the picker offers only the tools that fill it",
+    async (
+      _list: string,
+      kind: ToolImportResourceKind,
+      tools: Array<ToolImportSource>,
+    ) => {
+      goTo(`/dashboard/${PROJECT_ID}/settings/import?from=x&kind=${kind}`);
+
+      await renderPage();
+      await screen.findByTestId("tool-import-picker", {}, WAIT);
+
+      expect(pickerTools()).toEqual(tools);
+      expect(screen.getByTestId("tool-import-picker")).toHaveAttribute(
+        "data-fills",
+        kind,
+      );
+      // Every tool is one click away.
+      expect(
+        screen.getByTestId("tool-import-picker-show-every-tool"),
+      ).toHaveTextContent("Show every tool");
+    },
+  );
+
+  test("from an empty Monitors list, the on-call group is not drawn at all", async () => {
+    goTo(
+      `/dashboard/${PROJECT_ID}/settings/import?from=monitors-empty&kind=Monitor`,
+    );
+
+    await renderPage();
+    await screen.findByTestId("tool-import-picker", {}, WAIT);
+
+    expect(
+      screen.queryByTestId(
+        `tool-import-picker-group-${ToolImportCategory.OnCall}`,
+      ),
+    ).toBeNull();
+    expect(
+      screen.getByTestId(
+        `tool-import-picker-group-${ToolImportCategory.Monitoring}`,
+      ),
+    ).toHaveTextContent("Uptime monitoring and status pages");
+  });
+
+  test("Show every tool offers all eleven, in their groups, and drops ?kind= from the address", async () => {
+    goTo(
+      `/dashboard/${PROJECT_ID}/settings/import?from=on-call-schedules-empty&kind=OnCallSchedule`,
+    );
+
+    await renderPage();
+    await screen.findByTestId("tool-import-picker", {}, WAIT);
+
+    fireEvent.click(screen.getByTestId("tool-import-picker-show-every-tool"));
+
+    expect(pickerTools()).toEqual(AllToolImportSources);
+    expect(
+      screen.queryByTestId("tool-import-picker-show-every-tool"),
+    ).toBeNull();
+    expect(screen.getByTestId("tool-import-picker")).not.toHaveAttribute(
+      "data-fills",
+    );
+    expect(queryParam("kind")).toBeNull();
+    // Where it came from stays: it is said once, when the page opens.
+    expect(queryParam("from")).toBe("on-call-schedules-empty");
+  });
+
+  test("picking a fitting tool connects it, and Back comes back to the same few tools", async () => {
+    goTo(
+      `/dashboard/${PROJECT_ID}/settings/import?from=status-pages-empty&kind=StatusPage`,
+    );
+
+    await renderPage();
+    await pickTool(ToolImportSource.AtlassianStatuspage);
+    fireEvent.click(screen.getByTestId("tool-import-back"));
+
+    await screen.findByTestId("tool-import-picker", {}, WAIT);
+    expect(pickerTools()).toEqual([
+      ToolImportSource.UptimeRobot,
+      ToolImportSource.AtlassianStatuspage,
+      ToolImportSource.BetterStack,
+    ]);
+  });
+
+  test.each([
+    ["no kind", ""],
+    ["a kind that does not exist", "&kind=Nonsense"],
+  ])(
+    "with %s, every tool is offered and there is nothing to widen",
+    async (_name: string, query: string) => {
+      goTo(`/dashboard/${PROJECT_ID}/settings/import?from=x${query}`);
+
+      await renderPage();
+      await screen.findByTestId("tool-import-picker", {}, WAIT);
+
+      expect(pickerTools()).toEqual(AllToolImportSources);
+      expect(
+        screen.queryByTestId("tool-import-picker-show-every-tool"),
+      ).toBeNull();
+    },
+  );
+
+  test("Search's Import from PagerDuty opens on PagerDuty's connect step, and Back opens the picker, after a reload too", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/settings/import?from=search&tool=PagerDuty`);
+
+    await renderPage();
+
+    await screen.findByTestId("tool-import-connect", {}, WAIT);
+    expect(screen.getByText("Where is your PagerDuty account?")).toBeVisible();
+    expect(screen.queryByTestId("tool-import-picker")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("tool-import-back"));
+
+    await screen.findByTestId("tool-import-picker", {}, WAIT);
+    expect(pickerTools()).toEqual(AllToolImportSources);
+    expect(queryParam("tool")).toBeNull();
+  });
+
+  test("a tool OneUptime does not import from opens the picker", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/settings/import?from=search&tool=Zabbix`);
+
+    await renderPage();
+
+    await screen.findByTestId("tool-import-picker", {}, WAIT);
+    expect(screen.queryByTestId("tool-import-connect")).toBeNull();
+  });
+
+  test("an import of one's own still in flight wins over a tool the link picked", async () => {
+    server.runs = [runView({ status: ToolImportRunStatus.Reading })];
+    answerRun(
+      RUN_ID,
+      details(runView({ status: ToolImportRunStatus.Reading })),
+    );
+    goTo(`/dashboard/${PROJECT_ID}/settings/import?from=search&tool=PagerDuty`);
+
+    await renderPage();
+
+    await screen.findByTestId("tool-import-progress", {}, WAIT);
+    expect(screen.queryByTestId("tool-import-connect")).toBeNull();
+  });
+
+  test.each([
+    [
+      "an empty Monitors list",
+      "?from=monitors-empty&kind=Monitor",
+      "monitors-empty",
+    ],
+    ["Search", "?from=search&tool=PagerDuty", "search"],
+    ["the Welcome checklist", "?from=welcome", "welcome"],
+    ["Project Settings' own menu", "", "settings"],
+  ])(
+    "opened from %s, importer/opened says so once",
+    async (_where: string, query: string, from: string) => {
+      const sent: Array<[ProductEventName, JSONObject | undefined]> = [];
+
+      jest
+        .spyOn(ProductEvents, "send")
+        .mockImplementation(
+          (name: ProductEventName, properties?: JSONObject): void => {
+            sent.push([name, properties]);
+          },
+        );
+      goTo(`/dashboard/${PROJECT_ID}/settings/import${query}`);
+
+      await renderPage();
+      await screen.findByTestId(
+        query.includes("tool=") ? "tool-import-connect" : "tool-import-picker",
+        {},
+        WAIT,
+      );
+
+      expect(
+        sent.filter(
+          (event: [ProductEventName, JSONObject | undefined]): boolean => {
+            return event[0] === ProductEventName.ImporterOpened;
+          },
+        ),
+      ).toEqual([[ProductEventName.ImporterOpened, { from }]]);
     },
   );
 });

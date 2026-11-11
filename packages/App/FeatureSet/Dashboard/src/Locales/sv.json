@@ -50740,5 +50740,9 @@
   "Only you see this, as the server's admin.": "Bara du ser det här, som serverns administratör.",
   "Server Setup Choices": "Val vid serverkonfiguration",
   "This server is not finished: {{count}} things to set up": "Den här servern är inte klar: {{count}} saker återstår att konfigurera",
-  "This server is not finished: {{count}} things to set up_one": "Den här servern är inte klar: {{count}} sak återstår att konfigurera"
+  "This server is not finished: {{count}} things to set up_one": "Den här servern är inte klar: {{count}} sak återstår att konfigurera",
+  "Import from {{tools}}": "Importera från {{tools}}",
+  "Import from {{tools}} and others": "Importera från {{tools}} med flera",
+  "Import from {{tool}}": "Importera från {{tool}}",
+  "Show every tool": "Visa alla verktyg"
 }

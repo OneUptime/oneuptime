@@ -658,3 +658,145 @@ describe("the new list descriptions", () => {
     },
   );
 });
+
+/*
+ * The lists a team moving from another tool fills first - Monitors,
+ * On-Call Policies and Schedules, Status Pages - offer the importer while
+ * empty (#6809): one quiet link beside the list's Create, naming the tools
+ * that fill that list, which opens the importer on those tools and says
+ * where it came from. Only to someone who may create the list's record;
+ * the other lists offer nothing of the kind.
+ */
+describe("the lists a team moving over fills first offer the importer", () => {
+  const IMPORTER_PATH: string = (
+    RouteMap[PageMap.SETTINGS_IMPORT_FROM_TOOL] as Route
+  )
+    .toString()
+    .replace(":projectId", PROJECT_ID);
+
+  const IMPORT_LISTS: Array<[string, CoreList, string, string]> = [
+    [
+      "Monitors",
+      CORE_LISTS[0]!,
+      "Import from UptimeRobot, Better Stack, Pingdom and others",
+      "?from=monitors-empty&kind=Monitor",
+    ],
+    [
+      "Status Pages",
+      CORE_LISTS[2]!,
+      "Import from UptimeRobot, Atlassian Statuspage or Better Stack",
+      "?from=status-pages-empty&kind=StatusPage",
+    ],
+    [
+      "On-Call Policies",
+      CORE_LISTS[3]!,
+      "Import from Opsgenie, PagerDuty, incident.io and others",
+      "?from=on-call-policies-empty&kind=OnCallPolicy",
+    ],
+    [
+      "On-Call Schedules",
+      CORE_LISTS[4]!,
+      "Import from Opsgenie, PagerDuty, incident.io and others",
+      "?from=on-call-schedules-empty&kind=OnCallSchedule",
+    ],
+  ];
+
+  function importLink(): HTMLElement | null {
+    return screen.queryByTestId("empty-table-import-link");
+  }
+
+  async function findImportLink(): Promise<HTMLElement> {
+    return await waitFor((): HTMLElement => {
+      const found: HTMLElement | null = importLink();
+
+      if (!found) {
+        throw new Error("No import link yet");
+      }
+
+      return found;
+    });
+  }
+
+  test.each(IMPORT_LISTS)(
+    "%s: one quiet link in the empty state, naming the tools that fill the list",
+    async (_name: string, list: CoreList, words: string) => {
+      await renderEmpty(list);
+      await firstButton(list);
+
+      const link: HTMLElement = await findImportLink();
+
+      expect(link).toHaveTextContent(words);
+      expect(screen.getAllByTestId("empty-table-import-link")).toHaveLength(1);
+      // In the empty state, with its sentence, not a banner over the page.
+      expect(
+        link
+          .closest('[data-testid$="-no-items"]')
+          ?.contains(screen.getByText(titleOf(list))),
+      ).toBe(true);
+      // A link, not a second button beside Create.
+      expect(link.className).not.toContain("bg-white");
+      expect(link.className).not.toContain("bg-indigo");
+    },
+  );
+
+  test.each(IMPORT_LISTS)(
+    "%s: the link opens the importer on the tools that fill the list, saying where it came from",
+    async (_name: string, list: CoreList, _words: string, query: string) => {
+      await renderEmpty(list);
+      await firstButton(list);
+
+      fireEvent.click(await findImportLink());
+
+      expect(navigateCalls).toEqual([`${IMPORTER_PATH}${query}`]);
+    },
+  );
+
+  test.each(IMPORT_LISTS)(
+    "%s: a read-only member is not offered it",
+    async (_name: string, list: CoreList) => {
+      permissionsForTest = [Permission.Viewer];
+      await renderEmpty(list);
+      await waitFor(() => {
+        expect(emptyStateButton()).not.toBeNull();
+      });
+
+      expect(importLink()).toBeNull();
+    },
+  );
+
+  test("a project that has had a monitor (archived, or hidden by another filter) still offers it, after the empty state's own Create", async () => {
+    mockCount = 3;
+    await renderEmpty(CORE_LISTS[0]!);
+    await waitFor(() => {
+      expect(emptyStateButton()).not.toBeNull();
+    });
+
+    const link: HTMLElement = await findImportLink();
+
+    expect(
+      emptyStateButton()!.compareDocumentPosition(link) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test.each(
+    CORE_LISTS.filter((list: CoreList): boolean => {
+      return ![
+        "Monitors",
+        "Status Pages",
+        "On-Call Policies",
+        "On-Call Schedules",
+      ].includes(list.name);
+    }).map((list: CoreList): [string, CoreList] => {
+      return [list.name, list];
+    }),
+  )(
+    "%s offers no import: no tool OneUptime imports from fills it",
+    async (_name: string, list: CoreList) => {
+      await renderEmpty(list);
+      await firstButton(list);
+
+      expect(importLink()).toBeNull();
+    },
+  );
+});

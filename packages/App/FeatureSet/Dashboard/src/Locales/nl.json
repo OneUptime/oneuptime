@@ -50740,5 +50740,9 @@
   "Only you see this, as the server's admin.": "Alleen u ziet dit, als beheerder van de server.",
   "Server Setup Choices": "Keuzes bij de serverinstelling",
   "This server is not finished: {{count}} things to set up": "Deze server is niet af: nog {{count}} dingen in te stellen",
-  "This server is not finished: {{count}} things to set up_one": "Deze server is niet af: nog {{count}} ding in te stellen"
+  "This server is not finished: {{count}} things to set up_one": "Deze server is niet af: nog {{count}} ding in te stellen",
+  "Import from {{tools}}": "Importeren uit {{tools}}",
+  "Import from {{tools}} and others": "Importeren uit {{tools}} en andere",
+  "Import from {{tool}}": "Importeren uit {{tool}}",
+  "Show every tool": "Alle tools tonen"
 }

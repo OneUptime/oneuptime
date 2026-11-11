@@ -50740,5 +50740,9 @@
   "Only you see this, as the server's admin.": "Solo usted ve esto, como administrador del servidor.",
   "Server Setup Choices": "Elecciones de configuración del servidor",
   "This server is not finished: {{count}} things to set up": "Este servidor no está terminado: quedan {{count}} cosas por configurar",
-  "This server is not finished: {{count}} things to set up_one": "Este servidor no está terminado: queda {{count}} cosa por configurar"
+  "This server is not finished: {{count}} things to set up_one": "Este servidor no está terminado: queda {{count}} cosa por configurar",
+  "Import from {{tools}}": "Importar desde {{tools}}",
+  "Import from {{tools}} and others": "Importar desde {{tools}} y otras",
+  "Import from {{tool}}": "Importar desde {{tool}}",
+  "Show every tool": "Mostrar todas las herramientas"
 }
