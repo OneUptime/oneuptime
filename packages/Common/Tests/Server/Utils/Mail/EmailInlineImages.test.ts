@@ -383,6 +383,40 @@ describe("EmailInlineImages.attach - what one email may carry", () => {
     );
   });
 
+  /*
+   * The email renderer leaves out a copy of a screenshot past what
+   * references may copy into one field with this note (issue #6481), so
+   * the reader sees the same note however the image was left out.
+   */
+  test("getTooLargeImageNotice is the note attach() leaves for an image too large", () => {
+    const tooLarge: string = pngOfSize(5000);
+
+    expect(
+      EmailInlineImages.attach(`<p>${image(tooLarge)}</p>`, {
+        maxTotalBytes: 1000,
+      }).html,
+    ).toBe(`<p>${EmailInlineImages.getTooLargeImageNotice("Shot")}</p>`);
+    expect(
+      EmailInlineImages.attach(
+        `<img src="data:image/png;base64,${tooLarge}" alt="">`,
+        { maxTotalBytes: 1000 },
+      ).html,
+    ).toBe(EmailInlineImages.getTooLargeImageNotice(""));
+  });
+
+  test("getTooLargeImageNotice takes alt text as an alt attribute holds it, escaped, and says so plainly without", () => {
+    expect(
+      EmailInlineImages.getTooLargeImageNotice(
+        "a &lt;b&gt;bold&lt;/b&gt; &amp; &quot;quoted&quot; shot",
+      ),
+    ).toBe(
+      '<span style="color:#64748b;font-style:italic;">[a &lt;b&gt;bold&lt;/b&gt; &amp; &quot;quoted&quot; shot: image too large to include in this email]</span>',
+    );
+    expect(EmailInlineImages.getTooLargeImageNotice("")).toBe(
+      '<span style="color:#64748b;font-style:italic;">[Image too large to include in this email]</span>',
+    );
+  });
+
   test("an <img> with a raw < or > in an attribute is not read as an image at all", () => {
     const html: string = `<img src="data:image/png;base64,${PNG}" alt='a <b>bold</b> shot'>`;
 

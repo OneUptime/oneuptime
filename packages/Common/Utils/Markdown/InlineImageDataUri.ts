@@ -271,11 +271,12 @@ export const getInlineImageTypeOfBase64: GetInlineImageTypeFunction = (
 };
 
 /**
- * Whether `prefix` - "data:", a media type and ";base64,", the start of a
- * data: URL before its data - is one an inline image can start with: a
- * media type parseInlineImageDataUri takes, with no parameters. Whatever
- * data follows a prefix this answers false for, the URL is not an inline
- * image. The data decides the rest, so true does not make it one.
+ * Whether `prefix` - the start of a data: URL up to its first ",", before
+ * its data: "data:", a media type, its parameters - is one an inline image
+ * starts with: a media type parseInlineImageDataUri takes, with no
+ * parameters but ";base64". Whatever data follows a prefix this answers
+ * false for, the URL is not an inline image. The data decides the rest, so
+ * true does not make it one.
  */
 export const isInlineImageDataUriPrefix: (prefix: string) => boolean = (
   prefix: string,

@@ -1512,11 +1512,9 @@ export default class Markdown {
         return putBack(value, true);
       },
       heldIn: (value: string): Array<number> => {
-        return Markdown.getHeldTokens(value).map(
-          (token: HeldToken): number => {
-            return token.index;
-          },
-        );
+        return Markdown.getHeldTokens(value).map((token: HeldToken): number => {
+          return token.index;
+        });
       },
       restoredLength: (value: string): number => {
         return Markdown.getHeldTokens(value).reduce(
@@ -1710,9 +1708,9 @@ export default class Markdown {
         }
 
         copied += length;
-      } else {
-        notePutBack(indexes);
       }
+
+      notePutBack(indexes);
 
       return { fate: "kept", href: held.restore(href) };
     };
@@ -1750,11 +1748,7 @@ export default class Markdown {
       title: string | null | undefined,
       text: string,
     ): string {
-      const address: HeldAddress = takeAddress(
-        href,
-        EMAIL_LINK_SCHEMES,
-        false,
-      );
+      const address: HeldAddress = takeAddress(href, EMAIL_LINK_SCHEMES, false);
 
       // Refused or left out: its text, as any link the renderer does not keep.
       if (address.fate !== "kept") {
@@ -1770,11 +1764,7 @@ export default class Markdown {
       title: string | null,
       text: string,
     ): string {
-      const address: HeldAddress = takeAddress(
-        href,
-        EMAIL_IMAGE_SCHEMES,
-        true,
-      );
+      const address: HeldAddress = takeAddress(href, EMAIL_IMAGE_SCHEMES, true);
 
       if (address.fate === "refused") {
         return text;
@@ -1796,11 +1786,12 @@ export default class Markdown {
    * keep, whatever that text is: `start` holds its whole scheme, read as
    * getEmailUrl reads it, and that is none of `allowedSchemes`. For an
    * image (`mayBeInlineImage`), a data: URL can still be an inline image
-   * (parseInlineImageDataUri), so it is refused only when `start` holds its
-   * media type and ";base64," whole, as Utils/Markdown/Base64Data leaves
-   * them before its data, and the media type is none an inline image has.
-   * False whenever `start` does not say: the address is put back and
-   * judged whole.
+   * (parseInlineImageDataUri), whose address is "data:", its media type and
+   * ";base64," up to its first ",": so it is refused only when `start`
+   * holds that "," - Utils/Markdown/Base64Data leaves the data's start
+   * before what it holds back - and what comes up to it is not an inline
+   * image's. False whenever `start` does not say: the address is put back
+   * and judged whole.
    */
   private static isRefusedWhateverFollows(
     start: string,
@@ -1818,8 +1809,11 @@ export default class Markdown {
       return true;
     }
 
+    const dataStart: number = start.indexOf(",");
+
     return (
-      IMAGE_DATA_URL_PREFIX.test(start) && !isInlineImageDataUriPrefix(start)
+      dataStart !== -1 &&
+      !isInlineImageDataUriPrefix(start.slice(0, dataStart + 1))
     );
   }
 
