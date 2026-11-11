@@ -170,6 +170,8 @@ Una app creada antes de `/oneuptime page` necesita la misma actualización: hast
 
 Una aplicación creada antes de la pestaña **Home** necesita la misma actualización: hasta que la tenga, Slack no muestra ninguna pestaña **Home** para la aplicación, y la aplicación no publica ningún saludo en un canal al que se añade. La actualización activa la pestaña y suscribe la aplicación a los eventos `app_home_opened` y `member_joined_channel`. No añade ningún scope, así que no hay que volver a conectar nada.
 
+Una aplicación instalada para toda una organización de Slack Enterprise Grid necesita la misma actualización para enterarse cuando un administrador añade OneUptime a uno de los espacios de trabajo de la organización o lo quita. La actualización suscribe la aplicación a los eventos `team_access_granted` y `team_access_revoked`, y OneUptime vuelve a leer entonces los espacios de trabajo al momento. Hasta entonces, los vuelve a leer cuando se necesitan y se leyeron por última vez hace más de 10 minutos, o cuando alguien hace clic en **Actualizar** en la tarjeta **Espacios de trabajo de Slack**. No añade ningún scope, así que no hay que volver a conectar nada.
+
 ## Acceso de red para despliegues autoalojados
 
 ### Sentido del tráfico y endpoints

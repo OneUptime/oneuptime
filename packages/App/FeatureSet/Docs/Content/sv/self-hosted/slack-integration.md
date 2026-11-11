@@ -170,6 +170,8 @@ En app som skapades före `/oneuptime page` behöver samma uppdatering: tills de
 
 En app som skapades före fliken **Home** behöver samma uppdatering: tills den har den visar Slack ingen flik **Home** för appen, och appen publicerar ingen hälsning i en kanal den läggs till i. Uppdateringen slår på fliken och prenumererar appen på händelserna `app_home_opened` och `member_joined_channel`. Den lägger inte till något scope, så inget behöver anslutas igen.
 
+En app som är installerad för en hel organisation på Slack Enterprise Grid behöver samma uppdatering för att få veta när en administratör lägger till OneUptime i en av organisationens arbetsytor eller tar bort det. Uppdateringen prenumererar appen på händelserna `team_access_granted` och `team_access_revoked`, och OneUptime läser då arbetsytorna igen direkt. Till dess läser den dem igen när de behövs och senast lästes för mer än 10 minuter sedan, eller när någon klickar på **Uppdatera** på kortet **Slack-arbetsytor**. Den lägger inte till något scope, så inget behöver anslutas igen.
+
 ## Nätverksåtkomst för egenvärdade installationer
 
 ### Trafikriktning och slutpunkter

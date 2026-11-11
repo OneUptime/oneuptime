@@ -5,6 +5,7 @@ import WorkspaceProjectAuthToken, {
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
+import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../../Types/Date";
 import BadRequestException from "../../../../Types/Exception/BadRequestException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -36,12 +37,15 @@ import { SLACK_WORKSPACE_NOT_ADDED_ERROR } from "./SlackChannelMembers";
  *
  * - the workspaces OneUptime has been added to, as Slack lists them
  *   (auth.teams.list), read again when they are needed and older than
- *   WORKSPACES_FRESH_FOR_SECONDS - an admin adds it to workspaces in Slack,
- *   which tells OneUptime nothing;
+ *   WORKSPACES_FRESH_FOR_SECONDS, and at once when Slack says an admin
+ *   added OneUptime to a workspace or removed it (team_access_granted and
+ *   team_access_revoked, refreshOrganization) - an app whose manifest
+ *   subscribes to neither hears of it only through the reads;
  * - a default workspace: where a rule that names none creates its channel,
  *   and looked in first for a channel named without a workspace. A project
  *   that moved from one workspace to the organization keeps that workspace
- *   as its default.
+ *   as its default. A default OneUptime is removed from moves to the first
+ *   workspace left by name.
  *
  * A project connected to one workspace of an organization moves to the
  * organization's installation when the organization's is installed for it
@@ -318,6 +322,32 @@ export default class SlackOrganization {
         listedNow: workspaces,
       });
 
+    const miscData: SlackMiscData = data.projectAuth.miscData as SlackMiscData;
+
+    const defaultWorkspaceId: string | undefined =
+      SlackOrganization.pickDefaultWorkspaceId({
+        workspaces: workspaces,
+        defaultWorkspaceId: miscData.defaultWorkspaceId,
+      });
+
+    /*
+     * The default chosen - or kept from the workspace the project was
+     * connected to before - that Slack lists no more: OneUptime was removed
+     * from it. It moves to the first workspace left by name, and is stored
+     * there, so adding OneUptime to the old one again does not move it back.
+     * Storing it drops the channels cached as other workspaces', so a rule
+     * that names no workspace looks for its channel in the new default
+     * first (updateSlackOrganization).
+     */
+    const chosenDefaultId: string = SlackOrganization.textOf(
+      miscData.defaultWorkspaceId,
+    );
+
+    const isDefaultMoved: boolean =
+      Boolean(chosenDefaultId) &&
+      Boolean(defaultWorkspaceId) &&
+      defaultWorkspaceId !== chosenDefaultId;
+
     try {
       await WorkspaceProjectAuthTokenService.updateSlackOrganization({
         projectId: data.projectId,
@@ -325,6 +355,7 @@ export default class SlackOrganization {
         workspaces: workspaces,
         workspacesReadAt: readAt,
         removedWorkspaces: removedWorkspaces,
+        ...(isDefaultMoved ? { defaultWorkspaceId: defaultWorkspaceId } : {}),
       });
     } catch (err) {
       logger.debug(
@@ -333,14 +364,6 @@ export default class SlackOrganization {
       );
       logger.debug(err);
     }
-
-    const miscData: SlackMiscData = data.projectAuth.miscData as SlackMiscData;
-
-    const defaultWorkspaceId: string | undefined =
-      SlackOrganization.pickDefaultWorkspaceId({
-        workspaces: workspaces,
-        defaultWorkspaceId: miscData.defaultWorkspaceId,
-      });
 
     return {
       ...organization,
@@ -352,6 +375,77 @@ export default class SlackOrganization {
       workspacesReadAt: readAt,
       removedWorkspaces: removedWorkspaces,
     };
+  }
+
+  /*
+   * Slack telling OneUptime's installation for a whole organization that an
+   * admin added it to some of the organization's workspaces
+   * (team_access_granted) or removed it from them (team_access_revoked):
+   * each project connected to the organization - stored under its id -
+   * reads its workspaces again at once (getOfConnection, refresh), rather
+   * than when they are next needed. A default OneUptime was removed from
+   * moves to the first workspace left by name. A project connected to one
+   * workspace of the organization lists no workspaces, and is left alone,
+   * as is every other organization's. Never throws. The projects read again.
+   */
+  @CaptureSpan()
+  public static async refreshOrganization(data: {
+    enterpriseId: string | undefined;
+  }): Promise<Array<ObjectID>> {
+    const enterpriseId: string = SlackOrganization.textOf(data.enterpriseId);
+
+    if (!enterpriseId) {
+      return [];
+    }
+
+    let connections: Array<WorkspaceProjectAuthToken> = [];
+
+    try {
+      connections = await WorkspaceProjectAuthTokenService.findBy({
+        query: {
+          workspaceType: WorkspaceType.Slack,
+          workspaceProjectId: enterpriseId,
+        },
+        select: {
+          projectId: true,
+          authToken: true,
+          workspaceProjectId: true,
+          miscData: true,
+        },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        "Could not read the projects connected to a Slack Enterprise organization.",
+      );
+      logger.error(err);
+      return [];
+    }
+
+    const refreshed: Array<ObjectID> = [];
+
+    for (const connection of connections) {
+      if (
+        !connection.projectId ||
+        !SlackOrganization.isOrganization(connection.miscData)
+      ) {
+        continue;
+      }
+
+      await SlackOrganization.getOfConnection({
+        projectId: connection.projectId,
+        projectAuth: connection,
+        refresh: true,
+      });
+
+      refreshed.push(connection.projectId);
+    }
+
+    return refreshed;
   }
 
   /*
