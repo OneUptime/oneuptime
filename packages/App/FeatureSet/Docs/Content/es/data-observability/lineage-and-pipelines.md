@@ -105,6 +105,8 @@ Cada job, proyecto de dbt y sincronización aparece en **Canalizaciones**, con s
 - **Pipeline Run Unusually Long**: una ejecución ha tardado el doble de lo habitual o más, comprobado cada cinco minutos mientras se ejecuta, de modo que una ejecución que se cuelga se detecta antes de que termine.
 - **Pipeline Is Late**: no ha empezado ninguna ejecución en más tiempo del que permite su programación.
 
+La página de un pipeline dibuja su **Linaje**, el primer sitio donde mirar cuando una ejecución falla o se retrasa: a la izquierda, las tablas que lee; a la derecha, las tablas que escribe; en medio, el pipeline; y cada tarjeta dice cómo está ahora. Elige más pasos para ver a partir de qué se construyen esas tablas y qué se construye a partir de ellas, y abre cualquier tabla para ver su propia pestaña **Linaje**.
+
 ## Una incidencia por causa
 
 Cuando una tabla se queda desactualizada, todas las tablas construidas a partir de ella también. Antes de que se abra una alerta de datos, OneUptime busca en el linaje una alerta ya abierta sobre aquello a partir de lo que se construye su tabla o su pipeline: las tablas de origen, los pipelines que escriben en ellas y las bases de datos donde están, hasta cinco niveles hacia arriba. Si encuentra una, la nueva alerta es consecuencia de esa alerta:
@@ -113,6 +115,10 @@ Cuando una tabla se queda desactualizada, todas las tablas construidas a partir 
 - Su feed y su tarjeta **Datos** indican qué alerta la causó, y se une al episodio de la causa.
 
 La tarjeta **Datos** de la causa enumera su **Impacto aguas abajo**: todas las alertas que causó. La tarjeta de una alerta de tabla también muestra los servicios que escriben en la tabla, con sus escrituras fallidas, y sus despliegues y otros cambios en el día anterior a la alerta.
+
+Bajo la tarjeta **Datos**, la página de una alerta dibuja su **Linaje**: alrededor de su tabla, tal como lo dibuja la pestaña **Linaje** de la tabla, o alrededor de su pipeline. El camino hacia arriba hasta la alerta que la causó y hacia abajo hasta cada alerta que causó aparece resaltado - la tabla o el pipeline de la causa marcado como **Causa**, los de cada alerta causada como **Consecuencia** - y el resto se atenúa, así que quien la abre ve en qué punto de la cadena empezó el problema. Cuando la causa trata de una base de datos entera, o está más arriba de lo que alcanza el diagrama, la tarjeta lo dice con palabras. **Explorar linaje** abre la pestaña **Linaje** de la tabla, o la página del pipeline.
+
+Quien no puede ver la alerta que la causó no recibe ni la tarjeta **Datos** ni el linaje, y una alerta causada que no puede ver ni se resalta ni se cuenta.
 
 ## Antes de que se fusione un cambio
 

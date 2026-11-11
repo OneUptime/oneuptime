@@ -33,6 +33,8 @@ It works with a read-only sign-in, and answers as the person or API key that sig
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Airbyte's sync webhooks | The ingestion key in the URL |
 | `POST /api/data-observability/tables/freshness` | A table's freshness, as the MCP tool answers it, with `{ "table": "public.orders" }` | An API key |
 | `POST /api/data-observability/tables/lineage` | A table's lineage a few steps each way, with how each table is now, as its **Lineage** tab draws it, with `{ "dataAssetId": "<table ID>", "depth": 3 }` | An API key |
+| `POST /api/data-observability/pipelines/lineage` | The tables a pipeline reads and writes, with how each is now, as its page draws them, with `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | An API key |
+| `POST /api/data-observability/alerts/<alert ID>/lineage` | A data alert's lineage, as its page draws it, with the way to the alert that caused it and to the alerts it caused | An API key |
 | `POST /api/data-observability/checks/apply` | Make the project's checks match a file, as `oneuptime data-checks apply` does, with `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | An API key |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | A data product's "data as of" badge | The badge's own token |
 

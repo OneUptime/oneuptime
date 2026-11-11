@@ -42,8 +42,10 @@ export class Service extends ProjectReferencesService<DataAlert> {
    * one, its cause - the alert's privacy filter on alertId, and the same,
    * null-tolerant, on causeAlertId. Nobody but OneUptime writes a row
    * (create, update and delete: []), so reads are all there is to narrow.
+   * A read as OneUptime on someone's behalf (a data alert's lineage) puts
+   * their clause on its query with this, so it narrows the same way.
    */
-  private static applyPrivacyFilters<T>(
+  public static applyPrivacyFilters<T>(
     query: T,
     props: DatabaseCommonInteractionProps,
   ): T {

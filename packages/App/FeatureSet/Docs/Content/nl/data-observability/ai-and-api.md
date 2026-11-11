@@ -33,6 +33,8 @@ Het werkt met een alleen-lezen aanmelding, en antwoordt als de persoon of API-sl
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | De synchronisatiewebhooks van Airbyte | De ingestiesleutel in de URL |
 | `POST /api/data-observability/tables/freshness` | De actualiteit van een tabel, zoals de MCP-tool die beantwoordt, met `{ "table": "public.orders" }` | Een API-sleutel |
 | `POST /api/data-observability/tables/lineage` | De herkomst van een tabel een paar stappen in elke richting, met hoe elke tabel er nu voor staat, zoals het tabblad **Herkomst** die tekent, met `{ "dataAssetId": "<table ID>", "depth": 3 }` | Een API-sleutel |
+| `POST /api/data-observability/pipelines/lineage` | De tabellen die een pipeline leest en schrijft, met hoe elke tabel er nu voor staat, zoals zijn pagina ze tekent, met `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | Een API-sleutel |
+| `POST /api/data-observability/alerts/<alert ID>/lineage` | De herkomst van een gegevenswaarschuwing, zoals haar pagina die tekent, met de weg naar de waarschuwing die haar veroorzaakte en naar de waarschuwingen die ze veroorzaakte | Een API-sleutel |
 | `POST /api/data-observability/checks/apply` | Laat de controles van het project overeenkomen met een bestand, zoals `oneuptime data-checks apply` doet, met `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | Een API-sleutel |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | De badge "data as of" van een dataproduct | Het eigen token van de badge |
 

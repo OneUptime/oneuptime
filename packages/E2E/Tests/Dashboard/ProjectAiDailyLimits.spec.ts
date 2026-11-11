@@ -98,11 +98,19 @@ test.describe("Project Settings → AI → AI Features: daily AI limits", () => 
     });
   };
 
-  // Opens the fold, the card's Edit dialog, and hands back the dialog.
+  /*
+   * Opens the fold, the Daily limits card's Edit dialog, and hands back the
+   * dialog. Limits per run has an Edit of its own in the same fold, so the
+   * button is the one in the Daily limits section.
+   */
   const openEditDialog: () => Promise<Locator> = async (): Promise<Locator> => {
     await foldHeader().click();
     await expect(foldHeader()).toHaveAttribute("aria-expanded", "true");
-    await section().getByRole("button", { name: "Edit" }).click();
+    await section()
+      .locator('[data-testid="card"][data-card-surface="section"]')
+      .filter({ hasText: "Daily limits" })
+      .getByRole("button", { name: "Edit" })
+      .click();
 
     const modal: Locator = page.getByTestId("modal");
     await expect(modal).toBeVisible();
