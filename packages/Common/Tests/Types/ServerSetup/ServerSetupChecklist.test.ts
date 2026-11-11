@@ -327,7 +327,12 @@ describe("the catalogue", () => {
         continue;
       }
 
-      expect(routeMap).toContain(`new Route(\`${adminPath}\`)`);
+      expect({
+        adminPath,
+        isRoute: new RegExp(`new Route\\(\\s*\`${adminPath}\`\\s*,?\\s*\\)`).test(
+          routeMap,
+        ),
+      }).toEqual({ adminPath, isRoute: true });
     }
   });
 
@@ -592,6 +597,8 @@ describe("SMS and calls", () => {
     expect(result.status).toBe(ServerSetupStatus.Untested);
     expect(result.isFinished).toBe(false);
     expect(result.choice).toBeNull();
+    // A choice that would change nothing now is not offered.
+    expect(result.canChoose).toBeNull();
     expect(result.tests).toEqual([
       ServerSendingChannel.SMS,
       ServerSendingChannel.Call,
@@ -743,6 +750,8 @@ describe("probes, backups and update checks", () => {
     expect(failed.status).toBe(ServerSetupStatus.Failing);
     expect(failed.reason).toBe("The bucket refused the upload.");
     expect(failed.isFinished).toBe(false);
+    // A confirmation would not undo a backup that failed: not offered.
+    expect(failed.canChoose).toBeNull();
   });
 
   test("backups say whether scheduled backups can be set up here", () => {

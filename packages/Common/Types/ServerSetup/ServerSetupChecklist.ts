@@ -679,12 +679,19 @@ export default class ServerSetupChecklistUtil {
     reason?: string | null | undefined;
     channels?: ServerSetupCheckResult["channels"] | undefined;
     tests?: Array<ServerSendingChannel> | undefined;
+    /*
+     * False when the check's choice would change nothing now: SMS and calls
+     * once one of them is set up, backups once the server has made one.
+     * The real state decides those, so the choice is not offered.
+     */
+    isChoiceApplicable?: boolean | undefined;
   }): ServerSetupCheckResult {
     const definition: ServerSetupCheckDefinition =
       ServerSetupChecklistUtil.getDefinition(data.id);
     const isFinished: boolean = ServerSetupChecklistUtil.isFinished(
       data.status,
     );
+    const isChoiceApplicable: boolean = data.isChoiceApplicable !== false;
 
     // A choice is shown only while it is what the check stands on.
     const stored: ServerSetupChoice | undefined =
@@ -706,8 +713,14 @@ export default class ServerSetupChecklistUtil {
       reason: data.reason || null,
       channels: data.channels || [],
       choice: choice,
-      // Offered while the check is open, or while it stands on the choice (to undo it).
-      canChoose: !isFinished || choice ? definition.choice : null,
+      /*
+       * Offered while the check is open and the choice would count, or
+       * while it stands on the choice (to undo it).
+       */
+      canChoose:
+        choice || (!isFinished && isChoiceApplicable)
+          ? definition.choice
+          : null,
       tests: data.tests || [],
     };
   }
@@ -794,6 +807,7 @@ export default class ServerSetupChecklistUtil {
         reason: first.lastFailure,
         channels: channels,
         tests: tests,
+        isChoiceApplicable: false,
       });
     }
 
@@ -809,6 +823,7 @@ export default class ServerSetupChecklistUtil {
       facts: facts,
       channels: channels,
       tests: tests,
+      isChoiceApplicable: false,
     });
   }
 
@@ -837,6 +852,8 @@ export default class ServerSetupChecklistUtil {
       facts: facts,
       time: backup ? backup.finishedAt : null,
       reason: backup && !backup.succeeded ? backup.error : null,
+      // A failed backup the server made is not undone by a confirmation.
+      isChoiceApplicable: !backup,
     });
 
     answer.hasScheduledBackups = facts.hasScheduledBackups;

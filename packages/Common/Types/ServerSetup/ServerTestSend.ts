@@ -164,6 +164,7 @@ export const parseServerTestSendAnswer: (
 
   if (
     !ServerSendingStatusUtil.isChannel(row["channel"]) ||
+    !SERVER_TEST_SEND_CHANNELS.includes(row["channel"]) ||
     !Object.values(ServerTestSendResult).includes(
       row["result"] as ServerTestSendResult,
     )
