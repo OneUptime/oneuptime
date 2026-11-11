@@ -388,13 +388,23 @@ onboarding for 60 days from its onboarding email (until about 8 January
    - Accept the Cloud Marketplace agreements Producer Portal shows
      (`https://console.cloud.google.com/producer-portal?project=oneuptime-marketplace`).
 
-2. **Ask the Partner Engineer two things before building on them**: that
-   Google still takes new **deployer-based** Kubernetes apps (Producer Portal
-   also offers Terraform-based Kubernetes apps, whose billing works another
-   way: this integration is built for the deployer kind, with the reporting
-   secret), and that it takes images from an **Artifact Registry
-   `pkg.dev`** repository (Google's older guide speaks of Container Registry,
-   which has shut down).
+2. **The product type is Kubernetes, not Terraform Kubernetes app**, and it
+   cannot be changed once the product exists. Producer Portal offers both,
+   but only the classic, deployer-based type bills a metric of the seller's
+   own (`users`, with the reporting secret and Service Control): a Terraform
+   Kubernetes app is priced only by the vCPU, memory, GPU and TPU its pods
+   are given, metered from a pod annotation
+   ([pricing](https://docs.cloud.google.com/marketplace/docs/partners/terraform-kubernetes/select-pricing)).
+   Google's docs (checked on 11 November 2026) do not call the deployer type
+   deprecated, but it gets less upkeep: its pages still speak of Container
+   Registry, which has shut down, and Google archived its example app in
+   April 2026. **Ask the Partner Engineer three things before building on
+   them**: that the classic type is open to new products; that it takes
+   images from an **Artifact Registry `us-docker.pkg.dev`** repository; and
+   whether customer-tenant consumption tracking (the `goog-partner-solution`
+   label) applies to it - Google's requirements ask it of every product
+   deployed into customers' projects, but describe it for Kubernetes only on
+   the Terraform type's pages.
 3. **Access for Google**: the roles of step 1 (Editor includes the
    `roles/viewer` an older version of this guide asked for), and whatever
    else Producer Portal's technical integration page asks for.
@@ -1077,8 +1087,8 @@ cost a review round.
 - **AWS: running as root.** Images "should be configured to run with non-root
   privileges by default"; the OneUptime `nginx` and `probe` images run as
   root. A recommendation, not a rule: expect the question.
-- **Google: the product type and the registry** (step 2 of the Google
-  setup).
+- **Google: the product type, the registry and consumption tracking** (step
+  2 of the Google setup).
 - **Vulnerability scans on every release**, on all three (see
   [Before every release](#before-every-release)).
 
@@ -1086,12 +1096,31 @@ cost a review round.
 
 - Google Cloud's values in `editions.json` are placeholders until Producer
   Portal has the product.
-- **Google Cloud deployments have no upgrade path yet.** Google Cloud
-  Marketplace never updates a deployed app, and a deployer-based app has no
-  upgrade button: Google asks sellers to document the upgrade steps, and the
-  buyer guide only says to contact support. Settle it with the Partner
-  Engineer (Terraform-based Kubernetes apps update in place) before the
-  Google listing goes live.
+- **No user guide for the Google Cloud app yet.** Google's review requires
+  one
+  ([requirements](https://docs.cloud.google.com/marketplace/docs/partners/kubernetes/create-app-package),
+  checked on 11 November 2026) with these sections: overview (linking the
+  listing); one-time setup (client tools, the Application CRD, and the
+  license Secret of a commercial app); installing from the command line,
+  with image references pinned to digests; basic usage; backup and restore;
+  image updates; scaling; and deletion, PersistentVolumeClaims included. The
+  buyer guide (`/docs/installation/cloud-marketplaces`) covers installing
+  from the console, billing, licensing, scaling and troubleshooting, but not
+  installing from the command line, backup and restore, image updates or
+  deletion. Google's own apps keep this guide as a README beside the app
+  (`GoogleCloudPlatform/click-to-deploy`); one beside
+  `HelmChart/Marketplace/google-cloud` needs no translations. Write it
+  before the first submission, once Producer Portal shows the paths Google
+  serves the images from.
+- **Google Cloud deployments have no upgrade path yet.** Google pins a
+  deployment to the image digests it installed and never updates it; a new
+  version only becomes the default for new deployments, and breaking changes
+  go on a new track. Google asks sellers to document updating the images in
+  the user guide (above), and the buyer guide only says to contact support.
+  Settle it with the Partner Engineer before the Google listing goes live.
+- **No GKE Autopilot.** Google Cloud Marketplace's Kubernetes apps cannot be
+  installed on Autopilot clusters: buyers need a Standard cluster. The buyer
+  guide does not say so yet.
 - **Google's version is added by hand** in Producer Portal: Google has no API
   for it. The workflow pushes everything and writes what to add.
 - **The automation has met the real listings only in part.** Checked against

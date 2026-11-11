@@ -148,18 +148,26 @@ submit button without a maintainer's explicit go-ahead in chat.
   claim a cloud OneUptime will not be on:
   - **Google Cloud Marketplace** lists only products "hosted primarily on
     Google Cloud". Google checks this against its approved hosting patterns
-    during onboarding, and a change that affects it must be reported to
-    Google for re-review
-    ([requirements](https://docs.cloud.google.com/marketplace/docs/partners/get-started)).
-    OneUptime qualifies while it runs fully on Google Cloud. **Before the
-    move**, a maintainer decides between keeping the listing eligible under
-    Google's "storage and backup on Google Cloud" pattern (the application
-    may run elsewhere, but all customer data must replicate to Google Cloud)
-    and telling Google and withdrawing the listing. The listing lives in a
-    Google Cloud project of its own (`oneuptime-marketplace`), never in
-    `oneuptime-k8s`. Whether a purchase counts toward a buyer's Google Cloud
-    commitment is Google's rule for the product, not something to promise in
-    the listing.
+    when it validates each listing, and a change that affects it must be
+    reported to Google for re-review and re-approval; a product that no
+    longer meets the requirements may be offered an adjusted revenue share
+    ([requirements](https://docs.cloud.google.com/marketplace/docs/partners/get-started),
+    checked on 11 November 2026). OneUptime qualifies while it runs fully on
+    Google Cloud (pattern 1; its production cluster was still on GKE on 11
+    November 2026). Two other patterns describe OneUptime, and both need the
+    part that grows with usage - ingest, storage and queries - on Google
+    Cloud: pattern 5, "agent data analysis" (agents anywhere, sending their
+    data to a compute or data plane on Google Cloud), and pattern 2 (the
+    compute or data plane on Google Cloud, smaller control or support parts
+    elsewhere). Pattern 3, "storage and backup on Google Cloud", is for
+    storage, backup, replication and disaster-recovery products only:
+    copying OneUptime's data to Google Cloud does not keep the listing
+    eligible. **Before the move**, a maintainer decides between keeping the
+    data plane on Google Cloud and telling Google and withdrawing the
+    listing. The listing lives in a Google Cloud project of its own
+    (`oneuptime-marketplace`), never in `oneuptime-k8s`. Whether a purchase
+    counts toward a buyer's Google Cloud commitment is Google's rule for the
+    product, not something to promise in the listing.
   - **AWS Marketplace** lists SaaS hosted anywhere (since May 2025). Only
     products deployed on AWS get the "Deployed on AWS" badge and count toward
     a buyer's AWS spend commitment, so OneUptime's listing has neither.
@@ -327,11 +335,12 @@ rules do: see the hosting rule under
    partner) went in on 11 November with that product's listing type. Producer
    Portal is pending: Google turns it on within 2 business days of the form.
    See [SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md#google-cloud-marketplace-kubernetes-app)
-   for the details. Ask the Partner Engineer whether this SaaS product can be
-   added in Producer Portal next to the Kubernetes app or needs an approval of
-   its own, and settle the hosting rule above first. The service accounts of
-   steps 5 and 6 (`marketplace@` and `marketplace-pubsub-push@`) exist, with
-   no key yet.
+   for the details. This SaaS product goes into the same project, created in
+   Producer Portal next to the Kubernetes app with no new partner sign-up,
+   but Google validates every listing on its own (its Onboarding Validation
+   Form), including the hosting rule above: settle that rule first. The
+   service accounts of steps 5 and 6 (`marketplace@` and
+   `marketplace-pubsub-push@`) exist, with no key yet.
 
 2. **Create the product**: a SaaS product, "integrated with Google Cloud"
    (Google Cloud bills it).
@@ -366,8 +375,11 @@ rules do: see the hosting rule under
 
    `GOOGLE_CLOUD_MARKETPLACE_PUBSUB_SERVICE_ACCOUNT_EMAIL` is that push service
    account. The subscription must be created by the service account linked for
-   Pub/Sub (or a person with its permissions). If push deliveries are refused
-   with 401 in OneUptime's logs, the Pub/Sub service agent
+   Pub/Sub (or a person with its permissions). Google's current docs name
+   neither the topic nor push or pull (checked on 11 November 2026): the
+   Partner Engineer creates the topic, so take its name from them and
+   confirm that a push subscription to it is fine. If push deliveries are
+   refused with 401 in OneUptime's logs, the Pub/Sub service agent
    (`service-<project number>@gcp-sa-pubsub.iam.gserviceaccount.com`) needs
    `roles/iam.serviceAccountTokenCreator` on the push service account.
 
