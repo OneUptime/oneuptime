@@ -27,7 +27,7 @@ import {
 } from "@jest/globals";
 import type { Mock } from "jest-mock";
 import Twilio from "twilio";
-import OnCallTimelineRows from "./Fixtures/OnCallTimelineRows";
+import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 
 /*
  * TWILIO'S DELIVERY CALLBACK LANDING BEFORE THE SEND'S OWN WRITE (issues

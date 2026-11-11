@@ -206,6 +206,7 @@ import "./Jobs/EmailRollup/FlushDueRollups";
 // User Notifications Log
 import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
 import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
+import "./Jobs/UserOnCallLog/SettleStuckNotifications";
 
 /*
  * Mobile push receipts. Load-bearing like every import here: without it the

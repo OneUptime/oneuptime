@@ -1,7 +1,7 @@
 import SmsService from "../Services/SmsService";
 import { isStatusCallbackTokenValid } from "../Utils/StatusCallbackToken";
 import { getProviderConfigOfCallback } from "../Utils/StatusCallbackProviderConfig";
-import { recordProviderReport } from "../Utils/OnCallNotificationStatus";
+import { recordProviderReport } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import Select from "Common/Server/Types/Database/Select";
 import NotificationDeliveryMetrics, {
   NotificationDeliveryChannel,

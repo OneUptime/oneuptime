@@ -60,6 +60,10 @@ import OnCallReadinessService, {
 } from "./OnCallReadinessService";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
+import {
+  whenNotificationRequestFails,
+  whenSendFails,
+} from "../Utils/OnCall/OnCallSendFailure";
 import URL from "../../Types/API/URL";
 import AuditLogAction from "../../Types/AuditLog/AuditLogAction";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -1433,18 +1437,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending email.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending email.",
+          }),
+        );
       }
 
       // send email for incident
@@ -1491,18 +1489,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending email.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending email.",
+          }),
+        );
       }
 
       // send email for alert episode
@@ -1545,18 +1537,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending email.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending email.",
+          }),
+        );
       }
 
       // send email for incident episode
@@ -1603,18 +1589,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending email.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending email.",
+          }),
+        );
       }
     }
 
@@ -1684,18 +1664,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending SMS.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending SMS.",
+          }),
+        );
       }
 
       // send sms for incident
@@ -1743,18 +1717,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending SMS.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending SMS.",
+          }),
+        );
       }
 
       // send sms for alert episode
@@ -1798,18 +1766,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending SMS.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending SMS.",
+          }),
+        );
       }
 
       // send sms for incident episode
@@ -1856,18 +1818,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending SMS.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending SMS.",
+          }),
+        );
       }
     }
 
@@ -1927,18 +1883,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending WhatsApp message.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending WhatsApp message.",
+          }),
+        );
       }
 
       if (
@@ -1977,18 +1927,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending WhatsApp message.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending WhatsApp message.",
+          }),
+        );
       }
 
       // send WhatsApp for alert episode
@@ -2028,18 +1972,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending WhatsApp message.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending WhatsApp message.",
+          }),
+        );
       }
 
       // send WhatsApp for incident episode
@@ -2082,18 +2020,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending WhatsApp message.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending WhatsApp message.",
+          }),
+        );
       }
     }
 
@@ -2161,18 +2093,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending Telegram message.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending Telegram message.",
+          }),
+        );
       }
 
       if (
@@ -2218,18 +2144,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending Telegram message.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending Telegram message.",
+          }),
+        );
       }
 
       if (
@@ -2274,18 +2194,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending Telegram message.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending Telegram message.",
+          }),
+        );
       }
 
       if (
@@ -2333,18 +2247,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending Telegram message.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending Telegram message.",
+          }),
+        );
       }
     }
 
@@ -2554,18 +2462,12 @@ export class Service extends ProjectReferencesService<Model> {
             ...callbacksByKind.alert,
             ...callbacksByKind.incident,
           },
-        ).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending webhook.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        ).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending webhook.",
+          }),
+        );
       };
 
       if (
@@ -2739,18 +2641,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error making call.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error making call.",
+          }),
+        );
       }
 
       if (
@@ -2796,18 +2692,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error making call.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error making call.",
+          }),
+        );
       }
 
       // send call for alert episode
@@ -2850,18 +2740,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error making call.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error making call.",
+          }),
+        );
       }
 
       // send call for incident episode
@@ -2907,18 +2791,12 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error making call.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error making call.",
+          }),
+        );
       }
     }
 
@@ -3092,18 +2970,12 @@ export class Service extends ProjectReferencesService<Model> {
               options.onCallDutyPolicyExecutionLogTimelineId,
             onCallScheduleId: options.onCallScheduleId,
           },
-        ).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending push notification.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        ).catch(
+          whenSendFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending push notification.",
+          }),
+        );
       }
 
       // send push notification for incident
@@ -3199,18 +3071,12 @@ export class Service extends ProjectReferencesService<Model> {
               options.onCallDutyPolicyExecutionLogTimelineId,
             onCallScheduleId: options.onCallScheduleId,
           },
-        ).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending push notification.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        ).catch(
+          whenSendFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending push notification.",
+          }),
+        );
       }
 
       // send push notification for alert episode
@@ -3303,18 +3169,12 @@ export class Service extends ProjectReferencesService<Model> {
               options.onCallDutyPolicyExecutionLogTimelineId,
             onCallScheduleId: options.onCallScheduleId,
           },
-        ).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending push notification.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        ).catch(
+          whenSendFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending push notification.",
+          }),
+        );
       }
 
       // send push notification for incident episode
@@ -3406,18 +3266,12 @@ export class Service extends ProjectReferencesService<Model> {
               options.onCallDutyPolicyExecutionLogTimelineId,
             onCallScheduleId: options.onCallScheduleId,
           },
-        ).catch(async (err: Error) => {
-          await UserOnCallLogTimelineService.updateOneById({
-            id: updatedLog.id!,
-            data: {
-              status: UserNotificationStatus.Error,
-              statusMessage: err.message || "Error sending push notification.",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        });
+        ).catch(
+          whenSendFails({
+            userOnCallLogTimelineId: updatedLog.id!,
+            fallbackStatusMessage: "Error sending push notification.",
+          }),
+        );
       }
     }
 
@@ -3709,19 +3563,12 @@ export class Service extends ProjectReferencesService<Model> {
       onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
       teamId: options.userBelongsToTeamId,
       onCallScheduleId: options.onCallScheduleId,
-    }).catch(async (err: Error) => {
-      await UserOnCallLogTimelineService.updateOneById({
-        id: updatedLog.id!,
-        data: {
-          status: UserNotificationStatus.Error,
-          statusMessage:
-            err.message || `Error sending ${channelDisplayName} message.`,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    });
+    }).catch(
+      whenSendFails({
+        userOnCallLogTimelineId: updatedLog.id!,
+        fallbackStatusMessage: `Error sending ${channelDisplayName} message.`,
+      }),
+    );
 
     return true;
   }
@@ -3824,18 +3671,12 @@ export class Service extends ProjectReferencesService<Model> {
       payload: payload,
       projectId: options.projectId,
       userOnCallLogTimelineId: updatedLog.id!,
-    }).catch(async (err: Error) => {
-      await UserOnCallLogTimelineService.updateOneById({
-        id: updatedLog.id!,
-        data: {
-          status: UserNotificationStatus.Error,
-          statusMessage: err.message || `Error sending to ${channelName}.`,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    });
+    }).catch(
+      whenNotificationRequestFails({
+        userOnCallLogTimelineId: updatedLog.id!,
+        fallbackStatusMessage: `Error sending to ${channelName}.`,
+      }),
+    );
 
     return true;
   }

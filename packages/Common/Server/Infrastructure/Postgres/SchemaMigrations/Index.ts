@@ -962,6 +962,7 @@ import { AddDataBiConnectionRefreshAlerts1809110200000 } from "./1809110200000-A
 import { AddCloudAppSignalArrivals1809110300000 } from "./1809110300000-AddCloudAppSignalArrivals";
 import { AddServerSendingHealth1809110400000 } from "./1809110400000-AddServerSendingHealth";
 import { AddProjectMilestones1809110500000 } from "./1809110500000-AddProjectMilestones";
+import { AddUserOnCallLogTimelineSendingIndex1809120200000 } from "./1809120200000-AddUserOnCallLogTimelineSendingIndex";
 
 export default [
   InitialMigration,
@@ -1928,4 +1929,5 @@ export default [
   AddCloudAppSignalArrivals1809110300000,
   AddServerSendingHealth1809110400000,
   AddProjectMilestones1809110500000,
+  AddUserOnCallLogTimelineSendingIndex1809120200000,
 ];

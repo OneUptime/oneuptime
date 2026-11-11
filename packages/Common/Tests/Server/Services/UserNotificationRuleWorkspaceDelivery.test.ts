@@ -30,6 +30,13 @@ import {
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import OnCallTimelineRows, {
+  StoredOnCallNotification,
+} from "../TestingUtils/OnCallTimelineRows";
+import {
+  refusedRequestError,
+  resetRequestError,
+} from "../TestingUtils/NotificationRequestErrors";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
 /*
@@ -52,7 +59,10 @@ import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
  *      itself), and the correlation ids of whatever fired.
  *
  *   4. FIRE-AND-FORGET. A sender rejection is caught and lands on the
- *      timeline row as Error; it never rejects the execution.
+ *      timeline row as Error - whatever it threw, as the message is sent in
+ *      this process - over Sending only, at the version read: the sender's
+ *      own result, or the person's acknowledgement, stays (issue #6873). It
+ *      never rejects the execution.
  *
  *   5. THE EVENT MAP. All four event types deliver on every channel, and the
  *      blocks handed over are the event's own generator output (markdown with
@@ -109,14 +119,16 @@ interface TimelineRow {
   userMattermostId: ObjectID | undefined;
 }
 
-function flushMicrotasks(): Promise<void> {
-  return Promise.resolve()
-    .then((): Promise<void> => {
-      return Promise.resolve();
-    })
-    .then((): Promise<void> => {
-      return Promise.resolve();
+/*
+ * The sender's .catch runs after the execution resolved, and reads and
+ * writes the timeline row: let every stand-in answer.
+ */
+async function flushMicrotasks(): Promise<void> {
+  for (let i: number = 0; i < 5; i++) {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
     });
+  }
 }
 
 function executeOptions(
@@ -183,6 +195,12 @@ describe("deliverNotificationForRule - Slack, Microsoft Teams and Mattermost", (
   let timelineCreate: jest.SpyInstance;
   let timelineUpdate: jest.SpyInstance;
   let timelineRows: Array<TimelineRow>;
+  // The row the page wrote, as the failure handler reads and writes it.
+  let timeline: OnCallTimelineRows;
+
+  function row(): StoredOnCallNotification {
+    return timeline.get(TIMELINE_ID)!;
+  }
 
   beforeEach(() => {
     timelineRows = [];
@@ -307,9 +325,14 @@ describe("deliverNotificationForRule - Slack, Microsoft Teams and Mattermost", (
       },
     );
 
+    // The blind write by id a failure once made: never made now.
     timelineUpdate = jest
       .spyOn(UserOnCallLogTimelineService, "updateOneById")
       .mockResolvedValue(undefined as never);
+
+    timeline = new OnCallTimelineRows();
+    timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+    timeline.standIn(UserOnCallLogTimelineService);
   });
 
   afterEach(() => {
@@ -583,13 +606,11 @@ describe("deliverNotificationForRule - Slack, Microsoft Teams and Mattermost", (
       await expect(execute()).resolves.toBeUndefined();
       await flushMicrotasks();
 
-      const arg: {
-        data: { status: UserNotificationStatus; statusMessage: string };
-      } = timelineUpdate.mock.calls[0][0] as {
-        data: { status: UserNotificationStatus; statusMessage: string };
-      };
-      expect(arg.data.status).toBe(UserNotificationStatus.Error);
-      expect(arg.data.statusMessage).toBe("Error sending Mattermost message.");
+      expect(row()).toMatchObject({
+        status: UserNotificationStatus.Error,
+        statusMessage: "Error sending Mattermost message.",
+      });
+      expect(timelineUpdate).not.toHaveBeenCalled();
     });
   });
 
@@ -751,17 +772,24 @@ describe("deliverNotificationForRule - Slack, Microsoft Teams and Mattermost", (
       await expect(execute()).resolves.toBeUndefined();
       await flushMicrotasks();
 
-      expect(timelineUpdate).toHaveBeenCalledTimes(1);
-      const arg: {
-        id: ObjectID;
-        data: { status: UserNotificationStatus; statusMessage: string };
-      } = timelineUpdate.mock.calls[0][0] as {
-        id: ObjectID;
-        data: { status: UserNotificationStatus; statusMessage: string };
-      };
-      expect(arg.id.toString()).toBe(TIMELINE_ID.toString());
-      expect(arg.data.status).toBe(UserNotificationStatus.Error);
-      expect(arg.data.statusMessage).toBe("slack workspace revoked");
+      expect(timelineUpdate).not.toHaveBeenCalled();
+      // Over Sending only, at the version read, as root.
+      expect(UserOnCallLogTimelineService.updateOneBy).toHaveBeenCalledWith({
+        query: {
+          _id: TIMELINE_ID.toString(),
+          status: UserNotificationStatus.Sending,
+          version: 1,
+        },
+        data: {
+          status: UserNotificationStatus.Error,
+          statusMessage: "slack workspace revoked",
+        },
+        props: { isRoot: true },
+      });
+      expect(row()).toMatchObject({
+        status: UserNotificationStatus.Error,
+        statusMessage: "slack workspace revoked",
+      });
     });
 
     test("a rejection with no message falls back to the channel-named default", async () => {
@@ -770,10 +798,86 @@ describe("deliverNotificationForRule - Slack, Microsoft Teams and Mattermost", (
       await execute();
       await flushMicrotasks();
 
-      const arg: { data: { statusMessage: string } } = timelineUpdate.mock
-        .calls[0][0] as { data: { statusMessage: string } };
-      expect(arg.data.statusMessage).toBe("Error sending Slack message.");
+      expect(row().statusMessage).toBe("Error sending Slack message.");
     });
+
+    test.each([
+      ["refused", refusedRequestError],
+      ["reset", resetRequestError],
+    ])(
+      "a request error the sender threw (%s) - Slack's, not the Notification service's - is Error in its words",
+      async (_name: string, error: () => Error) => {
+        const thrown: Error = error();
+        sendDm.mockRejectedValue(thrown as never);
+
+        await execute();
+        await flushMicrotasks();
+
+        expect(row()).toMatchObject({
+          status: UserNotificationStatus.Error,
+          statusMessage: thrown.message,
+        });
+      },
+    );
+
+    test.each([
+      [UserNotificationStatus.Sent, "Slack message sent."],
+      [UserNotificationStatus.Error, "Slack user not found (users_not_found)."],
+      [UserNotificationStatus.Acknowledged, "Acknowledged by SMS."],
+    ])(
+      "the row already %s - the sender's own result, or the person's answer - stays",
+      async (status: UserNotificationStatus, message: string) => {
+        sendDm.mockImplementation(async () => {
+          // The sender writes its result, then throws.
+          row().status = status;
+          row().statusMessage = message;
+          throw new Error("slack workspace revoked");
+        });
+
+        await execute();
+        await flushMicrotasks();
+
+        expect(row()).toMatchObject({ status: status, statusMessage: message });
+        expect(timeline.writes).toEqual([]);
+      },
+    );
+
+    test("an acknowledgement between the handler's read and its write stays", async () => {
+      sendDm.mockRejectedValue(new Error("slack workspace revoked") as never);
+      timeline.whenRead((stored: StoredOnCallNotification) => {
+        stored.status = UserNotificationStatus.Acknowledged;
+      });
+
+      await execute();
+      await flushMicrotasks();
+
+      expect(row().status).toBe(UserNotificationStatus.Acknowledged);
+      expect(timeline.writes).toEqual([]);
+    });
+
+    test.each([
+      [
+        "Microsoft Teams",
+        verifiedTeams,
+        "Error sending Microsoft Teams message.",
+      ],
+      ["Mattermost", verifiedMattermost, "Error sending Mattermost message."],
+      ["Slack", verifiedSlack, "Error sending Slack message."],
+    ])(
+      "%s: its own default, for a rejection with no words at all",
+      async (_name: string, method: () => JSONObject, expected: string) => {
+        findRule.mockResolvedValue(ruleItem(method()) as never);
+        sendDm.mockRejectedValue(undefined as never);
+
+        await execute();
+        await flushMicrotasks();
+
+        expect(row()).toMatchObject({
+          status: UserNotificationStatus.Error,
+          statusMessage: expected,
+        });
+      },
+    );
   });
 
   /*

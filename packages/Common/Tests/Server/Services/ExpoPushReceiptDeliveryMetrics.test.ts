@@ -84,6 +84,9 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import API, { APIRequestOptions } from "../../../Utils/API";
 import FakeSortedSetRedis from "../TestingUtils/Redis/FakeSortedSetRedis";
+import OnCallTimelineRows from "../TestingUtils/OnCallTimelineRows";
+import ObjectID from "../../../Types/ObjectID";
+import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import { Expo, ExpoPushReceipt } from "expo-server-sdk";
 
 type MockedFn = ReturnType<typeof jest.fn>;
@@ -156,6 +159,7 @@ let now: number;
 let expoReceipts: Map<string, ExpoPushReceipt>;
 let expoFailure: Error | null;
 let relayReceipts: JSONObject;
+let timeline: OnCallTimelineRows;
 
 async function check(): Promise<ExpoPushReceiptCheckSummary> {
   return await ExpoPushReceiptService.checkDueReceipts({
@@ -222,9 +226,10 @@ beforeEach(() => {
   jest
     .spyOn(PushNotificationLogService, "updateOneBy")
     .mockResolvedValue(1 as never);
-  jest
-    .spyOn(UserOnCallLogTimelineService, "updateOneBy")
-    .mockResolvedValue(1 as never);
+  // The page's timeline row, Sent as the push left it.
+  timeline = new OnCallTimelineRows();
+  timeline.add(new ObjectID(TIMELINE_ID), UserNotificationStatus.Sent);
+  timeline.standIn(UserOnCallLogTimelineService);
 });
 
 afterEach(() => {
@@ -454,6 +459,9 @@ describe("what is counted, and what never is", () => {
     expect(summary.delivered).toBe(1);
     expect(summary.notDelivered).toBe(1);
     expect(UserOnCallLogTimelineService.updateOneBy).toHaveBeenCalledTimes(1);
+    expect(timeline.get(new ObjectID(TIMELINE_ID))!.status).toBe(
+      UserNotificationStatus.Error,
+    );
     expect(PushNotificationLogService.updateOneBy).toHaveBeenCalledTimes(1);
   });
 

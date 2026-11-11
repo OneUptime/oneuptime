@@ -2511,6 +2511,47 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ExpoPushReceiptsPostgres.test.ts --forceExit
 
+      # Clones the migrated UserOnCallLogTimeline table into an isolated
+      # schema (#6873). The migration built the partial index of the on-call
+      # notifications that say Sending, and the stuck check's read uses it;
+      # the check settles a notification still Sending 15 minutes or more
+      # after it was written, within the last day, and nothing else - oldest
+      # first, 500 a run - leaving an acknowledgement that lands between its
+      # read and its write; a page's request that never reached the
+      # Notification service writes Error over Sending only, one that got no
+      # answer writes nothing, and a send that finishes late replaces the
+      # stuck verdict.
+      - name: Test on-call notifications that never got a result on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ONCALL_STUCK_NOTIFICATIONS_TESTS: "true"
+          ONCALL_STUCK_NOTIFICATIONS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ONCALL_STUCK_NOTIFICATIONS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ONCALL_STUCK_NOTIFICATIONS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/OnCall/OnCallStuckNotificationsPostgres.test.ts --forceExit
+
+      # Clones the migrated ProjectMilestone and the tables its sources read
+      # into an isolated schema (#6830). A milestone is kept once however
+      # many servers race for it; a project that does not exist keeps
+      # nothing and a deleted one's go with it; the second-member count
+      # counts people; and the backfill reads every source as the live hooks
+      # count, marks its rows backfilled and never overwrites a milestone
+      # kept live.
+      - name: Test project activation milestones on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROJECT_MILESTONE_TESTS: "true"
+          PROJECT_MILESTONE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROJECT_MILESTONE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROJECT_MILESTONE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ProjectMilestonePostgres.test.ts --forceExit
+
       # Clones the migrated PacketCapture, File and Probe tables into an
       # isolated schema and runs packet capture's hand-written SQL: a probe
       # claims only its own Pending captures (FOR UPDATE SKIP LOCKED), hears
