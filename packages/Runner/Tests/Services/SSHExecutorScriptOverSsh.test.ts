@@ -44,9 +44,39 @@ import {
 const USERNAME: string = "deploy";
 const PASSWORD: string = "correct horse battery staple";
 
-const HOST_KEY: string = utils.generateKeyPairSync("ed25519").private;
+/*
+ * An ed25519 key pair, drawn until ssh2 reads both halves back. ssh2's
+ * generateKeyPairSync drops the leading zero bytes of the public key
+ * (keygen.js strips them from the key's DER bit string), so about one key
+ * in 256 comes out a byte short and ssh2's own parseKey refuses it
+ * ("Malformed OpenSSH private key"): the suite failed to run on such a
+ * draw. OneUptime makes no key this way; only this suite draws keys with
+ * ssh2.
+ */
+const generateKeyPairSsh2Reads: () => {
+  private: string;
+  public: string;
+} = (): { private: string; public: string } => {
+  for (let attempt: number = 1; attempt <= 20; attempt++) {
+    const pair: { private: string; public: string } =
+      utils.generateKeyPairSync("ed25519");
+
+    if (
+      !(utils.parseKey(pair.private) instanceof Error) &&
+      !(utils.parseKey(pair.public) instanceof Error)
+    ) {
+      return pair;
+    }
+  }
+
+  throw new Error(
+    "ssh2 read back none of the 20 ed25519 key pairs it generated",
+  );
+};
+
+const HOST_KEY: string = generateKeyPairSsh2Reads().private;
 const USER_KEY: { private: string; public: string } =
-  utils.generateKeyPairSync("ed25519");
+  generateKeyPairSsh2Reads();
 
 const parsedUserKey: ParsedKey = utils.parseKey(USER_KEY.public) as ParsedKey;
 
@@ -59,7 +89,7 @@ const HOST_KEY_FINGERPRINT: string = getSshHostKeyFingerprint(
 // Another machine's key, which the server never presents.
 const OTHER_HOST_KEY_FINGERPRINT: string = getSshHostKeyFingerprint(
   (
-    utils.parseKey(utils.generateKeyPairSync("ed25519").public) as ParsedKey
+    utils.parseKey(generateKeyPairSsh2Reads().public) as ParsedKey
   ).getPublicSSH(),
 );
 
