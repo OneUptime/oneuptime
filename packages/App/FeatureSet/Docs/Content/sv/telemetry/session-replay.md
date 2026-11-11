@@ -672,7 +672,7 @@ Flödeskartan har en kolumn per steg. En sida är en ruta vars höjd är antalet
 | **From session start** | Steg 1 är varje sessions landningssida. |
 | **After a page** | Förankrar kartan vid en sida och följer sessionerna från första gången de nådde den — «vart går folk efter `/pricing`?» |
 | **Before a page** | Följer sessioner bakåt från första gången de nådde en sida — «hur kommer folk till `/checkout`?» Ankaret ritas till höger. |
-| **Steg** / **Sidor per steg** | Hur många kolumner som ritas, och hur många sidor en kolumn nämner innan resten samlas i **Other pages** (klicka på den för att se vad den innehåller). |
+| **Steg** / **Sidor per steg** | Hur många kolumner som ritas, och hur många sidor en kolumn nämner innan resten samlas i **Andra sidor** (klicka på den för att se vad den innehåller). |
 | **Sessioner** | Alla sessioner, bara sessioner med fel eller bara sessioner med frustrationssignaler (ilskeklick, döda klick, felklick, ilskeomladdningar). Dina egna signaler räknas med när de räknas som frustration. |
 | **Enhet** | Bara sessioner från dator, mobil eller surfplatta. |
 | **Gruppera ID:n i URL:er** | Påslagen som standard: `/orders/1042` och `/orders/1043` är en sida, `/orders/:id`. Tal, hexadecimala ID:n och långa token av bokstäver och siffror grupperas, precis som varje segment som inspelaren redan har ersatt med `[redacted]`. Av som standard för en användare eller en session. |

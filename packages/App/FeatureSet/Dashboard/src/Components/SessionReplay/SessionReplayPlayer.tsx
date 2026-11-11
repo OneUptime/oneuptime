@@ -1346,6 +1346,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       isRecordingLive: isManifestRecordingLive(manifest),
       /* Header ids: backend rows of these traces join the rail by trace id. */
       traceIds: manifest.details.traceIds,
+      translator: translator,
     });
 
     setBackendStore(store);

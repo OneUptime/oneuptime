@@ -604,13 +604,14 @@ describe("the retention override tier", () => {
   });
 
   test("the upsell names the feature and never offers the default retention", () => {
+    // The caller words the whole sentence, in the reader's language (#6658).
+    const description: string =
+      "Keep telemetry collected from this host for longer or shorter than the project's default retention.";
     const upsell: ReturnType<typeof getTelemetryRetentionUpsell> =
-      getTelemetryRetentionUpsell("collected from this host");
+      getTelemetryRetentionUpsell(description);
 
     expect(upsell.featureName).toBe("Retention Overrides");
-    expect(upsell.description).toBe(
-      "Keep telemetry collected from this host for longer or shorter than the project's default retention.",
-    );
+    expect(upsell.description).toBe(description);
     expect(upsell.benefits.length).toBeGreaterThan(0);
   });
 });

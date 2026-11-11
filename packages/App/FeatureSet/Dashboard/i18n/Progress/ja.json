@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 49779,
-    "untranslated": 1518
+    "keys": 50206,
+    "untranslated": 1461
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -42,6 +42,7 @@
     "AWS ECS · us-east-1 · 123456789012",
     "AWS Lambda",
     "Active + Clean",
+    "Airbyte",
     "Amazon EKS",
     "Amphora",
     "Amphora ID",
@@ -91,6 +92,7 @@
     "Enterprise Edition",
     "Envoy Proxy",
     "First Contentful Paint",
+    "Fivetran",
     "Floating IP",
     "Floating IP ID",
     "Fluent Bit",
@@ -113,6 +115,7 @@
     "HAProxy",
     "HH",
     "HTTP {{code}}",
+    "HTTP {{status}}",
     "HackerBay, Inc.",
     "Hello world",
     "Horizontal Pod Autoscalers",
@@ -284,6 +287,7 @@
     "gpt-4o",
     "gpt-5.1, claude-sonnet-5, llama-3.3-70b-versatile",
     "hh",
+    "history {{kind}}",
     "host:port",
     "ifIndex {{index}}",
     "internal-probe",

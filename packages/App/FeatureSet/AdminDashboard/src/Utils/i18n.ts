@@ -4,10 +4,12 @@ import { initReactI18next } from "react-i18next";
 import { toDetectedLanguage } from "Common/Types/ReaderLanguage";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
+import { setCodeApartInSentence } from "Common/Types/CodeInSentence";
 import {
   CODE_READS_AS_WRITTEN_POST_PROCESSOR,
   codeReadsAsWrittenPostProcessor,
   leaveIsolatesOutOfCopiedText,
+  setCodeApartWith,
 } from "Common/UI/Utils/CodeReadsAsWritten";
 
 import {
@@ -75,6 +77,13 @@ const convertDetectedLanguage: (lng: string) => string = (
 
   return toDetectedLanguage(lng, SUPPORTED_ADMIN_DASHBOARD_LANGUAGE_CODES);
 };
+
+/*
+ * Every language's words are bundled above, so the rules that set the code
+ * in the Arabic and Persian ones apart are bundled with them: there from
+ * the first sentence (Common/UI/Utils/CodeReadsAsWritten).
+ */
+setCodeApartWith(setCodeApartInSentence);
 
 i18n
   .use(LanguageDetector)

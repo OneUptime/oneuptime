@@ -1290,8 +1290,9 @@ describe("Session Replay docs page", (): void => {
      * CLS and INP over the page's whole life: reported again, as another
      * row, when they grew after the visitor came back - CLS when its value
      * differs from the one last reported, INP when its interaction does -
-     * and the rail's detail of each report names the other (Earlier /
-     * Updated, ReplaySignals.findVitalReports).
+     * and the rail's detail of each report names the other ("Earlier
+     * report" / "Later report", ReplaySignals.findVitalReports; "Earlier"
+     * and "Updated" until the UI review of #6658 named them whole).
      */
     expect(vitals).toContain(
       "CLS and INP cover the page's whole life: if either grows after the visitor comes back to the tab, it is reported again as a new row, and the two rows' details link to each other.",
@@ -1301,12 +1302,12 @@ describe("Session Replay docs page", (): void => {
       "view.reportedLatencyMs === interaction.latencyMs",
     );
     expect(railDetail).toContain("findVitalReports(props.signals");
-    expect(railDetail).toContain('<Fact label="Earlier">');
-    expect(railDetail).toContain('<Fact label="Updated">');
+    expect(railDetail).toContain('<Fact label="Earlier report">');
+    expect(railDetail).toContain('<Fact label="Later report">');
 
     /*
-     * The details name a prerendered or a restored page - the rail's View
-     * row - and nothing claims they name a page opened in a background
+     * The details name a prerendered or a restored page - the rail's
+     * Navigation row - and nothing claims they name a page opened in a background
      * tab: no vital of that page says so.
      */
     expect(vitals).toContain(

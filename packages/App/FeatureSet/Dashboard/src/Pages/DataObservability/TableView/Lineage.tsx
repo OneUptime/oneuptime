@@ -7,6 +7,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { getRunStatePill } from "../Pipelines";
 import { useTableViewContext } from "./TableViewContext";
 import DataAssetLineage from "Common/Models/DatabaseModels/DataAssetLineage";
+import { readDataAssetColumns } from "Common/Types/DataObservability/DataAssetColumn";
 import DataAssetLineageSource from "Common/Types/DataObservability/DataAssetLineageSource";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -17,7 +18,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 function tableLink(
   id: ObjectID | undefined,
@@ -55,7 +56,15 @@ const TableLineagePage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const { dataAssetId } = useTableViewContext();
+  const { dataAssetId, dataAsset } = useTableViewContext();
+  // Its columns in its own order: a column of it can be followed in the diagram.
+  const columnOrder: Array<string> = useMemo((): Array<string> => {
+    return readDataAssetColumns(dataAsset?.columns).map(
+      (column: { name: string }): string => {
+        return column.name;
+      },
+    );
+  }, [dataAsset]);
 
   const seenInColumn: Column<DataAssetLineage> = {
     field: {
@@ -146,7 +155,10 @@ const TableLineagePage: FunctionComponent<
 
   return (
     <div className="space-y-5">
-      <TableLineageDiagram dataAssetId={dataAssetId} />
+      <TableLineageDiagram
+        dataAssetId={dataAssetId}
+        columnOrder={columnOrder}
+      />
       <TableDashboards dataAssetId={dataAssetId} />
       <ModelTable<DataAssetLineage>
         modelType={DataAssetLineage}

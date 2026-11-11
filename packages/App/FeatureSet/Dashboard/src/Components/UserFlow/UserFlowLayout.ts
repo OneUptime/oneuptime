@@ -3,6 +3,7 @@ import {
   UserFlowLink,
   UserFlowNode,
 } from "Common/Utils/Rum/UserFlow";
+import { Translator } from "Common/Types/Translator";
 
 /*
  * Geometry for the flow map: where every node box, link band and drop-off
@@ -148,7 +149,29 @@ function buildStubPath(
 export function describeUserFlowColumn(
   step: number,
   graph: Pick<UserFlowGraph, "anchorPage" | "direction">,
+  translator?: Translator | undefined,
 ): string {
+  if (translator) {
+    if (!graph.anchorPage) {
+      return step === 0
+        ? translator.translateText("Landing page") || "Landing page"
+        : translator.translateTemplate("Page {{number}}", {
+            number: translator.formatNumber(step + 1),
+          });
+    }
+
+    if (step === 0) {
+      return translator.translateText("Selected page") || "Selected page";
+    }
+
+    return translator.translatePlural(
+      graph.direction === "backward"
+        ? { one: "{{count}} page before", other: "{{count}} pages before" }
+        : { one: "{{count}} page after", other: "{{count}} pages after" },
+      step,
+    );
+  }
+
   if (!graph.anchorPage) {
     return step === 0 ? "Landing page" : `Page ${step + 1}`;
   }

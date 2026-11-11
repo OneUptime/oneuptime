@@ -17,7 +17,11 @@ Der Tab **Datenherkunft** einer Tabelle zeigt die Tabellen, aus denen sie erstel
 
 Oben im Tab zeichnet ein Diagramm diese Datenherkunft einige Schritte in jede Richtung (drei, oder wählen Sie 1, 2 oder 5): links, woraus die Tabelle erstellt wird, rechts die Tabellen und Dashboards, die aus ihr erstellt werden, und die Pipelines, die Daten von außen laden, dort, wo sie hereinkommen. Jede Karte zeigt, wie es jetzt um sie steht - verspätet, eine offene Warnung, ein fehlgeschlagener Lauf -, und ein Pfeil wird rot, wenn der letzte Lauf seiner Pipeline fehlgeschlagen ist, sodass sich eine verspätete Tabelle bis zu dem Lauf zurückverfolgen lässt, der sie aufgehalten hat. Öffnen Sie eine beliebige Tabelle, um das Diagramm auf sie zu zentrieren.
 
+Eine Karte zeichnet höchstens zehn Tabellen in jede Richtung und zählt den Rest, etwa **+14**. Wählen Sie die Zahl aus, um bis zu zehn weitere davon an Ort und Stelle zu zeichnen, Probleme zuerst, mit jedem Pfeil zwischen ihnen und dem bereits Gezeichneten. **Diagramm zurücksetzen** kehrt zum Diagramm zurück, wie es zuerst gezeichnet wurde. Sobald eine Seite so viele Tabellen hält, wie ein Diagramm fassen kann, öffnen Sie eine Tabelle, um das Diagramm auf sie zu zentrieren.
+
 Wo die Quelle Spalten nennt, sagt der Tab **Spalten** einer Tabelle, woher jede Spalte kommt und was sie speist: der Zugriffsverlauf von Snowflake (Enterprise-Edition, die `IMPORTED PRIVILEGES` auf der Datenbank `SNOWFLAKE` braucht) und das Facet `columnLineage` von OpenLineage.
+
+Wählen Sie im Tab **Datenherkunft** unter **Einer Spalte folgen** eine Spalte der Tabelle aus, um hervorzuheben, woher sie stammt und wohin sie fließt: im Diagramm hinauf zu den Spalten, aus denen sie erstellt wird, hinab zu den Spalten, die aus ihr erstellt werden, jede auf ihrer Tabelle benannt, auch wo die Spalte unterwegs umbenannt wurde. Ein Pfeil, dessen Quellen keine Spalten nennen, kann sie weiter tragen, als hervorgehoben ist, und das Diagramm sagt das.
 
 ## OpenLineage
 
@@ -117,7 +121,7 @@ Jeder Job, jedes dbt-Projekt und jeder Sync erscheint unter **Pipelines**, mit s
 - **Pipeline Run Unusually Long**: Ein Lauf dauert doppelt so lange wie üblich oder länger, geprüft alle fünf Minuten, während er läuft, sodass ein hängender Lauf erkannt wird, bevor er endet.
 - **Pipeline Is Late**: Seit längerer Zeit, als ihr Zeitplan erlaubt, hat kein Lauf begonnen.
 
-Die Seite einer Pipeline zeichnet ihre **Datenherkunft**, die erste Anlaufstelle, wenn ein Lauf fehlschlägt oder sich verspätet: links die Tabellen, die sie liest, rechts die Tabellen, die sie schreibt, dazwischen die Pipeline, und wie es jetzt um jede steht. Wählen Sie mehr Schritte, um zu sehen, woraus diese Tabellen erstellt werden und was aus ihnen erstellt wird, und öffnen Sie eine beliebige Tabelle, um ihren eigenen Tab **Datenherkunft** zu sehen.
+Die Seite einer Pipeline zeichnet ihre **Datenherkunft**, die erste Anlaufstelle, wenn ein Lauf fehlschlägt oder sich verspätet: links die Tabellen, die sie liest, rechts die Tabellen, die sie schreibt, dazwischen die Pipeline, und wie es jetzt um jede steht. Wählen Sie mehr Schritte, um zu sehen, woraus diese Tabellen erstellt werden und was aus ihnen erstellt wird, und öffnen Sie eine beliebige Tabelle, um ihren eigenen Tab **Datenherkunft** zu sehen. Eine Zahl nicht gezeichneter Tabellen, auf der Karte der Pipeline oder einer Tabelle, zeichnet auch hier weitere davon an Ort und Stelle.
 
 ## Eine Meldung pro Ursache
 

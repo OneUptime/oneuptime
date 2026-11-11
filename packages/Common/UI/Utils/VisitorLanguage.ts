@@ -4,10 +4,12 @@ import {
   getVisitorLanguage,
   toSupportedLanguage,
 } from "../../Types/ReaderLanguage";
+import { setCodeApartInSentence } from "../../Types/CodeInSentence";
 import {
   CODE_READS_AS_WRITTEN_POST_PROCESSOR,
   codeReadsAsWrittenPostProcessor,
   leaveIsolatesOutOfCopiedText,
+  setCodeApartWith,
 } from "./CodeReadsAsWritten";
 
 /*
@@ -67,6 +69,13 @@ export const startVisitorTranslation: (locales: VisitorLocales) => string = (
   for (const code of supportedLanguages) {
     resources[code] = { translation: locales[code] || {} };
   }
+
+  /*
+   * Every language's words come bundled, so the rules that set the code in
+   * the Arabic and Persian ones apart come bundled with them: there from
+   * the first sentence (CodeReadsAsWritten).
+   */
+  setCodeApartWith(setCodeApartInSentence);
 
   void i18n
     .use(initReactI18next)

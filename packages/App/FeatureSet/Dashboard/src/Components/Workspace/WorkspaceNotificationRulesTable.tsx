@@ -74,6 +74,7 @@ import {
   TestSendTargets,
 } from "../TestSend/TestSendLock";
 import {
+  MattermostConnectionTeam,
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
   SlackOrganizationWorkspace,
@@ -206,6 +207,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [slackOrganization, setSlackOrganization] = React.useState<
     SlackRuleWorkspaces | undefined
   >(undefined);
+  /*
+   * Mattermost: the teams of the server the project's bot is a member of,
+   * for a rule to pick the one its channels are in.
+   */
+  const [mattermostTeams, setMattermostTeams] = React.useState<
+    Array<MattermostConnectionTeam>
+  >([]);
   const [users, setUsers] = React.useState<Array<User>>([]);
   const [onCallSchedules, setOnCallSchedules] = React.useState<
     Array<OnCallDutyPolicySchedule>
@@ -714,6 +722,14 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         setSlackOrganization(organization);
         setSlackWorkspaces(organization?.workspaces || []);
       }
+
+      /*
+       * Mattermost: the teams its bot is a member of. A bot in one team -
+       * or a server OneUptime could not ask - has rules that pick no team.
+       */
+      if (props.workspaceType === WorkspaceType.Mattermost) {
+        setMattermostTeams(await loadMattermostTeams());
+      }
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Exception));
     }
@@ -755,6 +771,52 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         return undefined;
       }
     };
+
+  type LoadMattermostTeamsFunction = () => Promise<
+    Array<MattermostConnectionTeam>
+  >;
+
+  const loadMattermostTeams: LoadMattermostTeamsFunction = async (): Promise<
+    Array<MattermostConnectionTeam>
+  > => {
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.get({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/mattermost/connected-teams`,
+          ),
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        return [];
+      }
+
+      const teams: unknown = response.data?.["teams"];
+
+      return Array.isArray(teams)
+        ? (teams as Array<JSONObject>)
+            .filter((team: JSONObject): boolean => {
+              return typeof team["id"] === "string" && Boolean(team["id"]);
+            })
+            .map((team: JSONObject): MattermostConnectionTeam => {
+              const name: string =
+                typeof team["name"] === "string" ? team["name"] : "";
+
+              return {
+                id: team["id"] as string,
+                name: name,
+                displayName:
+                  (typeof team["displayName"] === "string" &&
+                    team["displayName"]) ||
+                  name,
+              };
+            })
+        : [];
+    } catch {
+      return [];
+    }
+  };
 
   useEffect(() => {
     loadPage().catch((err: Exception) => {
@@ -820,6 +882,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         microsoftTeamsChats={microsoftTeamsChats}
         slackWorkspaces={slackWorkspaces}
         slackOrganization={slackOrganization}
+        mattermostTeams={mattermostTeams}
         users={users}
         onCallSchedules={onCallSchedules}
         numberPrefixes={numberPrefixes}
@@ -1252,6 +1315,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             microsoftTeamsChats: microsoftTeamsChats,
             slackWorkspaces: slackWorkspaces,
             slackOrganization: slackOrganization,
+            mattermostTeams: mattermostTeams,
             videoCallConnections: videoCallConnections,
             numberPrefixes: numberPrefixes,
             exampleRecordName: exampleRecordName,

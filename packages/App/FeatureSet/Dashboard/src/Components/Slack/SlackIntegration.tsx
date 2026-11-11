@@ -327,7 +327,9 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
     if (!authorizationUrl) {
       throw new Error(
-        "OneUptime could not start the Slack connection. Please try again.",
+        translator.translateText(
+          "OneUptime could not start the Slack connection. Please try again.",
+        ),
       );
     }
 
@@ -446,8 +448,9 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
             } else {
               setError(
                 <div>
-                  Looks like the user auth token id is not set properly. Please
-                  try again.
+                  {translator.translateText(
+                    "Looks like the user auth token id is not set properly. Please try again.",
+                  )}
                 </div>,
               );
             }
@@ -498,7 +501,9 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
       if (!authorizationUrl) {
         throw new Error(
-          "OneUptime could not start the Slack connection. Please try again.",
+          translator.translateText(
+            "OneUptime could not start the Slack connection. Please try again.",
+          ),
         );
       }
 
@@ -513,8 +518,9 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
       if (!ProjectUtil.getCurrentProjectId()) {
         setError(
           <div>
-            Looks like you have not selected any project. Please select a
-            project to continue.
+            {translator.translateText(
+              "Looks like you have not selected any project. Please select a project to continue.",
+            )}
           </div>,
         );
         return;
@@ -523,7 +529,9 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
       if (!UserUtil.getUserId()) {
         setError(
           <div>
-            Looks like you are not logged in. Please login to continue.
+            {translator.translateText(
+              "Looks like you are not logged in. Please login to continue.",
+            )}
           </div>,
         );
         return;
@@ -541,14 +549,14 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     } else {
       setError(
         <div>
-          Looks like the Slack App Client ID is not set in the environment
-          variables when you installed OneUptime. For more information, please
-          check this guide to set up Slack App properly:{" "}
+          {translator.translateText(
+            "Looks like the Slack App Client ID is not set in the environment variables when you installed OneUptime. For more information, please check this guide to set up Slack App properly:",
+          )}{" "}
           <Link
             to={new Route("/docs/self-hosted/slack-integration")}
             openInNewTab={true}
           >
-            Slack Integration
+            {translator.translateText("Slack Integration")}
           </Link>
         </div>,
       );

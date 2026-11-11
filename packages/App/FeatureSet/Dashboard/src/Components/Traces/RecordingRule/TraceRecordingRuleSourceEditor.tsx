@@ -18,6 +18,7 @@ import Input from "Common/UI/Components/Input/Input";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -159,14 +160,21 @@ const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
           </span>
           <div>
             <div className="text-sm font-semibold text-gray-900">
-              Source {props.source.alias}
+              {translator.translateTemplate("Source {{alias}}", {
+                alias: props.source.alias,
+              })}
             </div>
             <div className="text-xs text-gray-500">
-              Reference as{" "}
-              <code className="font-mono text-indigo-600">
-                {props.source.alias}
-              </code>{" "}
-              in the expression.
+              <TranslatedSentence
+                template="Reference as {{alias}} in the expression."
+                slots={{
+                  alias: (
+                    <code className="font-mono text-indigo-600">
+                      {props.source.alias}
+                    </code>
+                  ),
+                }}
+              />
             </div>
           </div>
         </div>
@@ -207,7 +215,7 @@ const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
               return setShowSpanFilter(true);
             }}
           >
-            + Span filter
+            {translator.translateText("+ Span filter")}
           </button>
         )}
         {!showAttrFilter && (
@@ -218,7 +226,7 @@ const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
               return setShowAttrFilter(true);
             }}
           >
-            + Attribute filter
+            {translator.translateText("+ Attribute filter")}
           </button>
         )}
       </div>
@@ -227,7 +235,7 @@ const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
         <div className="rounded-md bg-gray-50 border border-gray-200 p-3 mt-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold uppercase tracking-widest text-gray-500">
-              Span Filter
+              {translator.translateText("Span Filter")}
             </span>
             <button
               type="button"
@@ -237,7 +245,7 @@ const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
                 clearSpanFilter();
               }}
             >
-              Remove
+              {translator.translateText("Remove")}
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -280,7 +288,7 @@ const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
         <div className="rounded-md bg-gray-50 border border-gray-200 p-3 mt-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold uppercase tracking-widest text-gray-500">
-              Attribute Filters (ANDed)
+              {translator.translateText("Attribute Filters (ANDed)")}
             </span>
             <button
               type="button"
@@ -290,7 +298,7 @@ const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
                 clearAttributeFilter();
               }}
             >
-              Remove all
+              {translator.translateText("Remove all")}
             </button>
           </div>
           <div className="space-y-3">
@@ -371,7 +379,7 @@ const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
               ]);
             }}
           >
-            + Add another attribute
+            {translator.translateText("+ Add another attribute")}
           </button>
         </div>
       )}

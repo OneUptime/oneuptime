@@ -394,10 +394,13 @@ describe("UpdateWorkflowVariableContentModal", () => {
       expect(modal().description).toContain("next run");
     });
 
-    test("falls back to 'this variable' when the variable has no name", () => {
+    // A sentence of its own, not "this variable" in quotes as if a name.
+    test("says 'this variable' when the variable has no name", () => {
       renderContentModal(staticVariable({ name: null }));
 
-      expect(modal().description).toContain('"this variable"');
+      expect(modal().description).toBe(
+        "Replace the content of this variable. Every workflow that refers to this variable uses the new content from its next run.",
+      );
     });
   });
 
@@ -738,10 +741,13 @@ describe("UpdateWorkflowVariableCredentialsModal", () => {
       );
     });
 
-    test("falls back to 'this variable' when the variable has no name", () => {
+    // A sentence of its own, not "this variable" in quotes as if a name.
+    test("says 'this variable' when the variable has no name", () => {
       renderCredentialsModal(oauthVariable({ name: null }));
 
-      expect(modal().description).toContain('"this variable"');
+      expect(modal().description).toBe(
+        "Replace the credentials this variable uses to get access tokens. Leave a field empty to keep what is saved.",
+      );
     });
 
     // Both credentials are write-only and encrypted: nothing to prefill.

@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import {
@@ -29,11 +31,16 @@ export interface ComponentProps {
 const WorkflowVariableTokenRefreshModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (!props.outcome) {
     return (
       <ConfirmModal
         title="Fetching an Access Token"
-        description={`Asking your identity provider for an access token for "${props.variableName}".`}
+        description={translator.translateTemplate(
+          'Asking your identity provider for an access token for "{{name}}".',
+          { name: props.variableName },
+        )}
         submitButtonText="Close"
         submitButtonType={ButtonStyleType.NORMAL}
         isLoading={true}

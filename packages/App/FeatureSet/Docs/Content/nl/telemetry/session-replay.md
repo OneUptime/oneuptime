@@ -672,7 +672,7 @@ De stroomkaart heeft één kolom per stap. Een pagina is een blok waarvan de hoo
 | **From session start** | Stap 1 is de landingspagina van elke sessie. |
 | **After a page** | Verankert de kaart aan één pagina en volgt sessies vanaf het eerste moment dat ze die bereikten — «waar gaan mensen heen na `/pricing`?» |
 | **Before a page** | Volgt sessies terug vanaf het eerste moment dat ze een pagina bereikten — «hoe komen mensen bij `/checkout`?» Het anker wordt rechts getekend. |
-| **Stappen** / **Pagina's per stap** | Hoeveel kolommen er worden getekend en hoeveel pagina's een kolom noemt voordat de rest wordt samengevoegd tot **Other pages** (klik erop om te zien wat erin zit). |
+| **Stappen** / **Pagina's per stap** | Hoeveel kolommen er worden getekend en hoeveel pagina's een kolom noemt voordat de rest wordt samengevoegd tot **Andere pagina's** (klik erop om te zien wat erin zit). |
 | **Sessies** | Alle sessies, alleen sessies met fouten, of alleen sessies met frustratiesignalen (rage-klikken, dead-klikken, error-klikken, rage-herladen). Je eigen signalen tellen mee wanneer ze als frustratie tellen. |
 | **Apparaat** | Alleen desktop-, mobiele of tabletsessies. |
 | **ID's in URL's groeperen** | Standaard aan: `/orders/1042` en `/orders/1043` zijn één pagina, `/orders/:id`. Getallen, hexadecimale id's en lange tokens van letters en cijfers worden gegroepeerd, net als elk segment dat de recorder al door `[redacted]` heeft vervangen. Standaard uit voor één gebruiker of één sessie. |

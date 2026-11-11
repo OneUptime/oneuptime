@@ -170,6 +170,8 @@ Un'app creata prima di `/oneuptime page` ha bisogno dello stesso aggiornamento: 
 
 Un'app creata prima della scheda **Home** richiede lo stesso aggiornamento: finché non lo ha, Slack non mostra nessuna scheda **Home** per l'app, e l'app non pubblica nessun saluto in un canale a cui viene aggiunta. L'aggiornamento attiva la scheda e iscrive l'app agli eventi `app_home_opened` e `member_joined_channel`. Non aggiunge nessuno scope, quindi non c'è niente da ricollegare.
 
+Un'app installata per un'intera organizzazione su Slack Enterprise Grid richiede lo stesso aggiornamento per sapere quando un amministratore aggiunge OneUptime a uno dei workspace dell'organizzazione o lo rimuove. L'aggiornamento iscrive l'app agli eventi `team_access_granted` e `team_access_revoked`, e OneUptime rilegge allora subito i workspace. Fino ad allora, li rilegge quando servono e sono stati letti l'ultima volta più di 10 minuti prima, o quando qualcuno fa clic su **Aggiorna** nella scheda **Spazi di lavoro Slack**. Non aggiunge nessuno scope, quindi non c'è niente da ricollegare.
+
 ## Accesso di rete per le installazioni self-hosted
 
 ### Direzione del traffico ed endpoint

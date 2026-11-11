@@ -1,8 +1,9 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/RumProductAnalyticsSavedView";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
@@ -32,8 +33,23 @@ import {
  * columns cannot be updated). An application keeps at most
  * PRODUCT_ANALYTICS_SAVED_VIEWS_PER_APPLICATION_MAX of each kind: the
  * pages read the whole list.
+ *
+ * The RUM application a saved view reads is its project's own, whichever
+ * of its two names a write uses (ProjectReferencesService): another
+ * project's application is refused in the words an id that matches
+ * nothing gets, before anything here reads or counts it. Saved under
+ * another project's application, a view would show that application's
+ * name back through the relation, which a read joins without asking
+ * whose it is.
  */
-export class Service extends DatabaseService<Model> {
+
+// The application's two names, ID column first: a write may use either.
+const RUM_APPLICATION_KEYS: Array<string> = [
+  "rumApplicationId",
+  "rumApplication",
+];
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -102,6 +118,12 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    /*
+     * The application it names is the project's own, under either of its
+     * names, before anything here reads it or counts its saved views.
+     */
+    await super.onBeforeCreate(createBy);
+
     const viewType: unknown = createBy.data.viewType;
 
     createBy.data.name = Service.readName(createBy.data.name);
@@ -110,14 +132,29 @@ export class Service extends DatabaseService<Model> {
       createBy.data.definition,
     );
 
-    const projectId: ObjectID | undefined =
-      createBy.data.projectId ||
-      (createBy.props.tenantId as ObjectID | undefined);
+    /*
+     * The application under either of its names (the two must agree), kept
+     * in the ID column: a create that names it only by the relation is
+     * counted against it too.
+     */
+    const rumApplicationId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      RUM_APPLICATION_KEYS,
+      "RUM Application",
+    );
 
-    if (projectId && createBy.data.rumApplicationId) {
+    /*
+     * The project the application was just held to: the request's, which
+     * DatabaseService writes on the row, else the one a write without a
+     * project on the request names.
+     */
+    const projectId: ObjectID | undefined =
+      createBy.props.tenantId || createBy.data.projectId || undefined;
+
+    if (projectId && rumApplicationId) {
       await this.assertApplicationHasRoom({
         projectId: projectId,
-        rumApplicationId: createBy.data.rumApplicationId,
+        rumApplicationId: rumApplicationId,
         viewType: viewType as ProductAnalyticsSavedViewType,
       });
     }
@@ -128,12 +165,17 @@ export class Service extends DatabaseService<Model> {
   /*
    * A rename is checked as a name; a new definition as one of the kind the
    * saved view is, read from the rows the update writes. An update that
-   * names a kind names the one each row already is, or is refused.
+   * names a kind names the one each row already is, or is refused. An
+   * application an update names is held to the project as on a create,
+   * first: no request may change it, but a write that skips the column
+   * checks (OneUptime's own, a master admin's) is held all the same.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const data: JSONObject = updateBy.data as unknown as JSONObject;
 
     if (data["name"] !== undefined) {

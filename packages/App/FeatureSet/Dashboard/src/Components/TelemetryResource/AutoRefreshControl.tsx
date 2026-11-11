@@ -36,6 +36,7 @@ interface CountdownCircleProps {
 const CountdownCircle: FunctionComponent<CountdownCircleProps> = (
   props: CountdownCircleProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const SIZE: number = 18;
   const STROKE_WIDTH: number = 2;
 
@@ -89,7 +90,13 @@ const CountdownCircle: FunctionComponent<CountdownCircleProps> = (
     <span
       className="relative inline-flex flex-shrink-0 items-center justify-center"
       style={{ width: SIZE, height: SIZE }}
-      title={`Next refresh in ${remainingSec}s`}
+      title={translator.translatePlural(
+        {
+          one: "Next refresh in {{count}} second",
+          other: "Next refresh in {{count}} seconds",
+        },
+        remainingSec,
+      )}
     >
       <svg width={SIZE} height={SIZE} className="-rotate-90">
         {/* Track */}
