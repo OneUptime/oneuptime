@@ -10,6 +10,7 @@ import MicrosoftSignInClient, {
   MicrosoftSignInError,
 } from "Common/Server/Utils/MicrosoftSignIn/MicrosoftSignInClient";
 import createProviderSignInRouter from "../Utils/ProviderSignIn";
+import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
 
 /*
  * Sign in with Microsoft (see MicrosoftSignInClient for what it is, and who
@@ -35,6 +36,7 @@ const router: ExpressRouter = createProviderSignInRouter({
   name: "Microsoft",
   path: "microsoft",
   signedUpWith: SignedUpWithMicrosoft,
+  signInMethod: SignInMethod.Microsoft,
   getClient: (): MicrosoftSignInClient | null => {
     if (!MicrosoftSignInClientId || !MicrosoftSignInClientSecret) {
       return null;

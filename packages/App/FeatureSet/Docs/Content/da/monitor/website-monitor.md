@@ -27,6 +27,8 @@ flowchart TB
 
 Når ingen af monitorens kriterier læser svarets brødtekst (et filter **Svarets brødtekst** eller **JavaScript-udtryk**), sender sonden en anmodning `HEAD` i stedet for et `GET` og gentager den som `GET`, hvis serveren afviser `HEAD`. Din servers adgangslogge kan vise begge.
 
+Sonden kontrollerer webstedets certifikat, som en browser gør, også om udstederen har tilbagekaldt det. Et tilbagekaldt certifikat får kontrollen til at mislykkes ligesom et udløbet: monitoren går offline, og fejlårsagen siger, at certifikatet blev tilbagekaldt. **Tillad selvsignerede certifikater** slår disse kontroller fra for monitorens eget værtsnavn.
+
 En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet resultat, så den kan ikke markere dit websted som offline.
 
 ## Før du starter

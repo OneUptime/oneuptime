@@ -1,17 +1,21 @@
 # SSL-Zertifikat-Überwachung
 
-Ein SSL-Zertifikat-Monitor prüft die TLS-Zertifikate, die Ihre Websites und Dienste vorzeigen, so wie ein Browser es tut, und warnt Sie, bevor sie ablaufen. Außerdem nimmt er den Monitor offline, wenn ein Zertifikat nicht mehr gültig ist: abgelaufen, selbstsigniert, für einen anderen Hostnamen ausgestellt oder von einer Stelle, der Browser nicht vertrauen.
+Ein SSL-Zertifikat-Monitor prüft die TLS-Zertifikate, die Ihre Websites und Dienste vorzeigen, so wie ein Browser es tut, und warnt Sie, bevor sie ablaufen. Außerdem nimmt er den Monitor offline, wenn ein Zertifikat nicht mehr gültig ist: abgelaufen, von seiner ausstellenden Stelle widerrufen, selbstsigniert, für einen anderen Hostnamen ausgestellt oder von einer Stelle, der Browser nicht vertrauen.
 
 :::cards
 - [Den Monitor erstellen](#einen-ssl-zertifikat-monitor-erstellen): Sechs Schritte im Dashboard.
 - [Standardkriterien](#standardkriterien): Eine Ablaufwarnung 14 Tage im Voraus, ohne Einrichtung.
-- [Überwachungskriterien](#überwachungskriterien): Gültigkeit, Ablauf und selbstsignierte Zertifikate.
-- [Fehlerbehebung](#fehlerbehebung): Selbstsignierte und interne Zertifikate.
+- [Überwachungskriterien](#überwachungskriterien): Gültigkeit, Ablauf, Widerruf und selbstsignierte Zertifikate.
+- [Fehlerbehebung](#fehlerbehebung): Selbstsignierte und interne Zertifikate sowie die Widerrufsprüfung.
 :::
 
 ## So funktioniert es
 
 Bei jeder Prüfung öffnet eine Sonde eine TLS-Verbindung zum Host und Port in der URL, Port `443`, sofern die URL keinen anderen nennt, und prüft das Zertifikat wie ein Browser: eine vertrauenswürdige ausstellende Stelle, ein passender Hostname und ein Gültigkeitszeitraum, der heute einschließt. Besteht das Zertifikat die Prüfung nicht, liest die Sonde es trotzdem, sodass sein Ablaufdatum, seine ausstellende Stelle und seine Fingerabdrücke in jedem Fall festgehalten werden. Eine Verbindung, die fehlschlägt, in ein Zeitlimit läuft oder ein ungültiges Zertifikat vorzeigt, wird erneut versucht, bis zur Zahl der Wiederholungen, die Sie zulassen. Danach prüft OneUptime das Ergebnis anhand der Kriterien des Monitors.
+
+Ein Zertifikat, das diese Prüfungen besteht, wird außerdem auf einen Widerruf geprüft, wie es ein Browser tut. Die Sonde liest die OCSP-Antwort, die der Server mit seinem Zertifikat mitsendet, sofern es eine gibt, fragt dann den im Zertifikat genannten OCSP-Responder der ausstellenden Stelle und liest, nur wenn dieser keine Antwort gibt, die Zertifikatssperrliste (CRL) der ausstellenden Stelle. Sie vertraut nur einer aktuellen Antwort, die von der ausstellenden Stelle oder einem von ihr autorisierten Responder signiert ist, und sie prüft das eigene Zertifikat des Servers, nicht die Zwischenzertifikate. Ein widerrufenes Zertifikat ist nicht gültig. Ist keine signierte Antwort zu bekommen, ist der Widerrufsstatus unbekannt, und wie in einem Browser wird das Zertifikat nicht als widerrufen behandelt.
+
+Eine Antwort wird bis zur nächsten Aktualisierung der ausstellenden Stelle aufbewahrt, höchstens eine Stunde lang, und eine fehlgeschlagene Abfrage wird nach 5 Minuten wiederholt. Ein neues Zertifikat wird also sofort geprüft, und ein Zertifikat, das während seiner Verwendung widerrufen wird, wird innerhalb einer Stunde erkannt.
 
 ```mermaid title="Wie die Standardkriterien ein Zertifikat beurteilen"
 flowchart TB
@@ -73,9 +77,10 @@ Kriterien entscheiden, wann das Zertifikat als in Ordnung, beeinträchtigt oder 
 
 | Filter | Bedingungen | Was er prüft |
 | --- | --- | --- |
-| **Zertifikat ist gültig** | **Wahr**, **Falsch** | Das Zertifikat besteht die Prüfungen eines Browsers: eine vertrauenswürdige ausstellende Stelle, ein passender Hostname und ein Gültigkeitszeitraum, der heute einschließt. **Falsch**, wenn der Endpunkt nicht geantwortet hat. |
+| **Zertifikat ist gültig** | **Wahr**, **Falsch** | Das Zertifikat besteht die Prüfungen eines Browsers: eine vertrauenswürdige ausstellende Stelle, ein passender Hostname, ein Gültigkeitszeitraum, der heute einschließt, und kein Widerruf durch die ausstellende Stelle. **Falsch**, wenn der Endpunkt nicht geantwortet hat. |
 | **Zertifikat ist ungültig** | **Wahr**, **Falsch** | Das Gegenteil von **Zertifikat ist gültig**: **Wahr**, wenn das Zertifikat diese Prüfungen nicht besteht oder nicht geprüft werden konnte. |
 | **Zertifikat ist abgelaufen** | **Wahr**, **Falsch** | Das Ablaufdatum des Zertifikats ist überschritten. |
+| **Zertifikat ist widerrufen** | **Wahr**, **Falsch** | Die ausstellende Stelle des Zertifikats hat es widerrufen. **Falsch**, wenn die ausstellende Stelle sagt, dass es nicht widerrufen ist, und wenn das nicht geprüft werden konnte. |
 | **Zertifikat ist selbstsigniert** | **Wahr**, **Falsch** | Das Zertifikat oder eines in seiner Kette ist selbstsigniert. |
 | **Tage bis zum Ablauf** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Tage, bis das Zertifikat abläuft. |
 | **Stunden bis zum Ablauf** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Stunden, bis das Zertifikat abläuft. |
@@ -88,7 +93,7 @@ Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutre
 
 Ein neuer SSL-Zertifikat-Monitor beginnt mit drei Kriterien, sodass er Sie ohne jede Einrichtung warnt, bevor ein Zertifikat abläuft:
 
-1. **Zertifikat ist nicht gültig** — das Zertifikat ist abgelaufen, selbstsigniert, für einen anderen Hostnamen oder von einer nicht vertrauenswürdigen Stelle ausgestellt oder konnte nicht geprüft werden, weil der Endpunkt nicht geantwortet hat. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_monitor name_ certificate is not valid“ wird erstellt. Seine Grundursache sagt, welcher dieser Fälle es war. Der Vorfall löst sich von selbst auf, sobald das Zertifikat wieder gültig ist.
+1. **Zertifikat ist nicht gültig** — das Zertifikat ist abgelaufen, wurde von seiner ausstellenden Stelle widerrufen, ist selbstsigniert, wurde für einen anderen Hostnamen oder von einer nicht vertrauenswürdigen Stelle ausgestellt oder konnte nicht geprüft werden, weil der Endpunkt nicht geantwortet hat. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_monitor name_ certificate is not valid“ wird erstellt. Seine Grundursache sagt, welcher dieser Fälle es war, und bei einem widerrufenen Zertifikat, wann und warum die ausstellende Stelle es widerrufen hat. Der Vorfall löst sich von selbst auf, sobald das Zertifikat wieder gültig ist.
 2. **Zertifikat läuft bald ab** — das Zertifikat ist gültig, läuft aber in 14 Tagen oder früher ab. Eine **Warnung** namens „_monitor name_ certificate expires soon“ wird erstellt.
 3. **Zertifikat ist gültig** — der Monitor wird als **Betriebsbereit** markiert.
 
@@ -115,8 +120,9 @@ Monitore, die erstellt wurden, bevor OneUptime diese Warnung eingeführt hat, ha
 | Am letzten Tag jemanden alarmieren | **Stunden bis zum Ablauf** | **Kleiner als** | `24` |
 | Erst offline, wenn das Zertifikat abgelaufen ist | **Zertifikat ist abgelaufen** | **Wahr** | — |
 | Ein selbstsigniertes Zertifikat kennzeichnen | **Zertifikat ist selbstsigniert** | **Wahr** | — |
+| Das Sicherheitsteam alarmieren, wenn die ausstellende Stelle das Zertifikat widerruft | **Zertifikat ist widerrufen** | **Wahr** | — |
 
-Ein Kriterium zum Ablauf muss über dem Kriterium stehen, das das Zertifikat als gültig markiert: Ein Zertifikat kurz vor dem Ablauf ist noch gültig, und das erste zutreffende Kriterium gewinnt.
+Ein Kriterium zum Ablauf muss über dem Kriterium stehen, das das Zertifikat als gültig markiert: Ein Zertifikat kurz vor dem Ablauf ist noch gültig, und das erste zutreffende Kriterium gewinnt. Ebenso ist ein widerrufenes Zertifikat auch nicht gültig, daher muss ein Kriterium mit **Zertifikat ist widerrufen** über dem Kriterium „nicht gültig“ stehen.
 
 ## Bewährte Vorgehensweisen
 
@@ -143,6 +149,12 @@ Solange das Zertifikat aktuell ist, trifft kein Kriterium zu, und der Monitor ze
 
 :::details Der Monitor ist offline mit „could not be checked because the endpoint is not reachable“
 Die Sonde konnte keine TLS-Verbindung zum Host und Port öffnen. Prüfen Sie den Port in der URL und ob eine Firewall die Sonden durchlässt. Ein Host in einem privaten Netzwerk braucht eine [benutzerdefinierte Sonde](/docs/probe/custom-probe).
+:::
+
+:::details Der Widerrufsstatus des Zertifikats konnte nicht geprüft werden
+Wenn die Sonde keine signierte Antwort von der ausstellenden Stelle des Zertifikats bekommt, zeigt die Zusammenfassung des Monitors **Widerrufsstatus** als **Konnte nicht geprüft werden**, und **Problem bei der Widerrufsprüfung** unter **Weitere Details anzeigen** sagt, warum: Das Zertifikat nennt keinen OCSP-Responder und keine CRL, die ausstellende Stelle hat nicht rechtzeitig geantwortet, oder ihre Antwort konnte nicht verifiziert werden. Wie in einem Browser wird ein solches Zertifikat nicht als widerrufen behandelt, und die Sonde fragt nach 5 Minuten erneut.
+
+Eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) ohne Internetzugang kann keine ausstellende Stelle erreichen. Sie prüft Zertifikate trotzdem: Sie wartet einige Sekunden auf jeden Responder, den sie nicht erreicht, etwa einmal alle 5 Minuten. Damit sie nicht mehr fragt, setzen Sie `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` auf der Sonde auf `false` und starten Sie sie neu.
 :::
 
 ## Nächste Schritte

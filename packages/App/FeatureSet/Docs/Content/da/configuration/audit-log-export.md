@@ -140,7 +140,7 @@ Hver post er ét JSON-objekt, med nøglerne altid i denne rækkefølge:
 | `id` | Postens id. Den samme post, sendt to gange, har det samme id. |
 | `createdAt` | Hvornår ændringen blev registreret, i UTC. |
 | `projectId` | Det projekt, ændringen blev foretaget i. |
-| `action` | `Create`, `Update`, `Delete` eller `Download`. |
+| `action` | `Create`, `Update`, `Delete` eller `Download`, eller for en session `SignIn`, `SignOut`, `SessionTimeout` eller `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Hvad der blev ændret. |
 | `rootResourceType`, `rootResourceId` | Den ressource, den hører til, som et SLO for dets regel. |
 | `userId`, `userName`, `userEmail`, `userType` | Hvem der foretog ændringen. |

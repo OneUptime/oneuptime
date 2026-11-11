@@ -140,7 +140,7 @@ OneUptime отправляет каждый пакет методом POST на 
 | `id` | Идентификатор записи. Одна и та же запись, отправленная дважды, имеет один и тот же идентификатор. |
 | `createdAt` | Когда изменение было записано, в UTC. |
 | `projectId` | Проект, в котором сделано изменение. |
-| `action` | `Create`, `Update`, `Delete` или `Download`. |
+| `action` | `Create`, `Update`, `Delete` или `Download`, а для сеанса — `SignIn`, `SignOut`, `SessionTimeout` или `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Что изменилось. |
 | `rootResourceType`, `rootResourceId` | Ресурс, к которому оно относится, например SLO для его правила. |
 | `userId`, `userName`, `userEmail`, `userType` | Кто сделал изменение. |

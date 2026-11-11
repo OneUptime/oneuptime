@@ -1,17 +1,21 @@
 # Monitor de certificado SSL
 
-Um monitor de certificado SSL verifica os certificados TLS que os seus sites e serviços apresentam, do jeito que um navegador faz, e avisa você antes que eles vençam. Ele também deixa o monitor offline quando um certificado não é mais válido: vencido, autoassinado, emitido para outro nome de host ou por uma autoridade em que os navegadores não confiam.
+Um monitor de certificado SSL verifica os certificados TLS que os seus sites e serviços apresentam, do jeito que um navegador faz, e avisa você antes que eles vençam. Ele também deixa o monitor offline quando um certificado não é mais válido: vencido, revogado pelo emissor, autoassinado, emitido para outro nome de host ou por uma autoridade em que os navegadores não confiam.
 
 :::cards
 - [Criar o monitor](#criar-um-monitor-de-certificado-ssl): Seis passos no painel.
 - [Critérios padrão](#critérios-padrão): Um aviso de vencimento com 14 dias de antecedência, sem configurar nada.
-- [Critérios de monitoramento](#critérios-de-monitoramento): Validade, vencimento e certificados autoassinados.
-- [Solução de problemas](#solução-de-problemas): Certificados autoassinados e internos.
+- [Critérios de monitoramento](#critérios-de-monitoramento): Validade, vencimento, revogação e certificados autoassinados.
+- [Solução de problemas](#solução-de-problemas): Certificados autoassinados e internos, e a verificação de revogação.
 :::
 
 ## Como funciona
 
 A cada verificação, uma sonda abre uma conexão TLS com o host e a porta da URL, a porta `443` a menos que a URL indique outra, e verifica o certificado como um navegador faria: um emissor confiável, um nome de host que corresponde e datas que incluem hoje. Se o certificado não passar na verificação, a sonda o lê mesmo assim, então a data de vencimento, o emissor e as impressões digitais dele são registrados de qualquer forma. Uma conexão que falha, esgota o tempo limite ou apresenta um certificado inválido é tentada de novo, até o número de tentativas que você permitir. Depois, o OneUptime avalia o resultado com os critérios do monitor.
+
+Um certificado que passa nessas verificações também é verificado quanto à revogação, como um navegador faz. A sonda lê a resposta OCSP que o servidor envia com o certificado, se houver uma, depois consulta o respondedor OCSP do emissor indicado no certificado e, só se ele não der resposta, lê a lista de revogação de certificados (CRL) do emissor. Ela só confia em uma resposta atual assinada pelo emissor ou por um respondedor que o emissor autorizou, e verifica o próprio certificado do servidor, não os intermediários. Um certificado revogado não é válido. Quando não é possível obter uma resposta assinada, o status de revogação é desconhecido e, como em um navegador, o certificado não é tratado como revogado.
+
+Uma resposta é guardada até a próxima atualização do emissor, por no máximo uma hora, e uma consulta que falhou é tentada de novo após 5 minutos. Assim, um certificado novo é verificado na hora, e um certificado revogado enquanto está em uso é detectado em até uma hora.
 
 ```mermaid title="Como os critérios padrão julgam um certificado"
 flowchart TB
@@ -73,9 +77,10 @@ Os critérios decidem quando o certificado conta como bom, degradado ou quebrado
 
 | Filtro | Condições | O que verifica |
 | --- | --- | --- |
-| **Certificado válido** | **Verdadeiro**, **Falso** | O certificado passa nas verificações de um navegador: um emissor confiável, um nome de host que corresponde e datas que incluem hoje. **Falso** quando o endpoint não respondeu. |
+| **Certificado válido** | **Verdadeiro**, **Falso** | O certificado passa nas verificações de um navegador: um emissor confiável, um nome de host que corresponde, datas que incluem hoje e nenhuma revogação pelo emissor. **Falso** quando o endpoint não respondeu. |
 | **Certificado inválido** | **Verdadeiro**, **Falso** | O oposto de **Certificado válido**: **Verdadeiro** quando o certificado não passa nessas verificações ou não pôde ser verificado. |
 | **Certificado expirado** | **Verdadeiro**, **Falso** | A data de vencimento do certificado já passou. |
+| **Certificado revogado** | **Verdadeiro**, **Falso** | O emissor do certificado o revogou. **Falso** quando o emissor diz que ele não está revogado, e quando isso não pôde ser verificado. |
 | **Certificado autoassinado** | **Verdadeiro**, **Falso** | O certificado, ou um da cadeia dele, é autoassinado. |
 | **Dias até a expiração** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | Os dias até o certificado vencer. |
 | **Horas até a expiração** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | As horas até o certificado vencer. |
@@ -88,7 +93,7 @@ Com dois ou mais filtros, **Condição de correspondência** decide se **Todos**
 
 Um monitor de certificado SSL novo começa com três critérios, então ele avisa você antes que um certificado vença sem configurar nada:
 
-1. **O certificado não é válido** — o certificado venceu, é autoassinado, foi emitido para outro nome de host ou por uma autoridade não confiável, ou não pôde ser verificado porque o endpoint não respondeu. O monitor é marcado como **Offline** e um incidente chamado "_monitor name_ certificate is not valid" é criado. A causa raiz dele diz qual desses casos foi. O incidente se resolve sozinho assim que o certificado volta a ser válido.
+1. **O certificado não é válido** — o certificado venceu, foi revogado pelo emissor, é autoassinado, foi emitido para outro nome de host ou por uma autoridade não confiável, ou não pôde ser verificado porque o endpoint não respondeu. O monitor é marcado como **Offline** e um incidente chamado "_monitor name_ certificate is not valid" é criado. A causa raiz dele diz qual desses casos foi e, para um certificado revogado, quando e por que o emissor o revogou. O incidente se resolve sozinho assim que o certificado volta a ser válido.
 2. **O certificado vence em breve** — o certificado é válido, mas vence em 14 dias ou menos. Um **alerta** chamado "_monitor name_ certificate expires soon" é criado.
 3. **O certificado é válido** — o monitor é marcado como **Operacional**.
 
@@ -115,8 +120,9 @@ Monitores criados antes de o OneUptime adicionar este aviso não têm um critér
 | Acionar alguém no último dia | **Horas até a expiração** | **Menor que** | `24` |
 | Offline só quando o certificado já venceu | **Certificado expirado** | **Verdadeiro** | — |
 | Sinalizar um certificado autoassinado | **Certificado autoassinado** | **Verdadeiro** | — |
+| Acionar a equipe de segurança quando o emissor revogar o certificado | **Certificado revogado** | **Verdadeiro** | — |
 
-Um critério sobre o vencimento precisa ficar acima do critério que marca o certificado como válido: um certificado prestes a vencer ainda é válido, e o primeiro critério que corresponde vence.
+Um critério sobre o vencimento precisa ficar acima do critério que marca o certificado como válido: um certificado prestes a vencer ainda é válido, e o primeiro critério que corresponde vence. Da mesma forma, um certificado revogado também não é válido, então um critério sobre **Certificado revogado** precisa ficar acima do critério "não é válido".
 
 ## Boas práticas
 
@@ -143,6 +149,12 @@ Enquanto o certificado estiver em dia, nenhum critério corresponde e o monitor 
 
 :::details O monitor está offline com "could not be checked because the endpoint is not reachable"
 A sonda não conseguiu abrir uma conexão TLS com o host e a porta. Confira a porta na URL, e se um firewall deixa as sondas passarem. Um host em uma rede privada precisa de uma [sonda personalizada](/docs/probe/custom-probe).
+:::
+
+:::details Não foi possível verificar o status de revogação do certificado
+Quando a sonda não consegue obter uma resposta assinada do emissor do certificado, o resumo do monitor mostra **Status de revogação** como **Não foi possível verificar**, e **Problema na verificação de revogação**, em **Mostrar mais detalhes**, diz por quê: o certificado não indica nenhum respondedor OCSP nem nenhuma CRL, o emissor não respondeu a tempo, ou a resposta dele não pôde ser verificada. Como em um navegador, um certificado assim não é tratado como revogado, e a sonda pergunta de novo após 5 minutos.
+
+Uma [sonda personalizada](/docs/probe/custom-probe) sem acesso à internet não consegue alcançar nenhum emissor. Ela continua verificando certificados: espera alguns segundos por cada respondedor que não consegue alcançar, mais ou menos uma vez a cada 5 minutos. Para ela parar de perguntar, defina `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` como `false` na sonda e reinicie-a.
 :::
 
 ## Próximos passos

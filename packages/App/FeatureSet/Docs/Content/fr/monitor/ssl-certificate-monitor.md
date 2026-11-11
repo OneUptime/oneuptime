@@ -1,17 +1,21 @@
 # Surveillance de certificat SSL
 
-Un moniteur de certificat SSL vérifie les certificats TLS que présentent vos sites et services, comme le fait un navigateur, et vous avertit avant leur expiration. Il met aussi le moniteur hors ligne quand un certificat n'est plus valide : expiré, auto-signé, émis pour un autre nom d'hôte, ou par une autorité à laquelle les navigateurs ne font pas confiance.
+Un moniteur de certificat SSL vérifie les certificats TLS que présentent vos sites et services, comme le fait un navigateur, et vous avertit avant leur expiration. Il met aussi le moniteur hors ligne quand un certificat n'est plus valide : expiré, révoqué par son émetteur, auto-signé, émis pour un autre nom d'hôte, ou par une autorité à laquelle les navigateurs ne font pas confiance.
 
 :::cards
 - [Créer le moniteur](#créer-un-moniteur-de-certificat-ssl): Six étapes dans le tableau de bord.
 - [Critères par défaut](#critères-par-défaut): Un avertissement d'expiration 14 jours à l'avance, sans rien configurer.
-- [Critères de surveillance](#critères-de-surveillance): Validité, expiration et certificats auto-signés.
-- [Dépannage](#dépannage): Certificats auto-signés et internes.
+- [Critères de surveillance](#critères-de-surveillance): Validité, expiration, révocation et certificats auto-signés.
+- [Dépannage](#dépannage): Certificats auto-signés et internes, et vérification de la révocation.
 :::
 
 ## Fonctionnement
 
 À chaque vérification, une sonde ouvre une connexion TLS vers l'hôte et le port de l'URL, le port `443` sauf si l'URL en indique un autre, et vérifie le certificat comme le ferait un navigateur : un émetteur de confiance, un nom d'hôte qui correspond et des dates qui incluent aujourd'hui. Si le certificat échoue à la vérification, la sonde le lit quand même, donc sa date d'expiration, son émetteur et ses empreintes sont enregistrés dans tous les cas. Une connexion qui échoue, expire ou présente un certificat invalide est retentée, dans la limite du nombre de tentatives que vous autorisez. OneUptime passe ensuite le résultat au crible des critères du moniteur.
+
+Un certificat qui passe ces vérifications est aussi contrôlé pour la révocation, comme le fait un navigateur. La sonde lit la réponse OCSP que le serveur envoie avec son certificat, s'il y en a une, puis interroge le répondeur OCSP de l'émetteur indiqué dans le certificat et, seulement s'il ne donne pas de réponse, lit la liste de révocation de certificats (CRL) de l'émetteur. Elle ne fait confiance qu'à une réponse à jour signée par l'émetteur ou par un répondeur que l'émetteur a autorisé, et elle vérifie le certificat du serveur lui-même, pas les certificats intermédiaires. Un certificat révoqué n'est pas valide. Quand aucune réponse signée ne peut être obtenue, le statut de révocation est inconnu et, comme dans un navigateur, le certificat n'est pas traité comme révoqué.
+
+Une réponse est conservée jusqu'à la prochaine mise à jour de l'émetteur, pendant une heure au plus, et une recherche qui a échoué est retentée après 5 minutes. Un nouveau certificat est donc vérifié tout de suite, et un certificat révoqué pendant qu'il est utilisé est détecté en moins d'une heure.
 
 ```mermaid title="Comment les critères par défaut jugent un certificat"
 flowchart TB
@@ -73,9 +77,10 @@ Les critères décident quand le certificat compte comme bon, dégradé ou défa
 
 | Filtre | Conditions | Ce qu'il vérifie |
 | --- | --- | --- |
-| **Certificat valide** | **Vrai**, **Faux** | Le certificat passe les vérifications d'un navigateur : un émetteur de confiance, un nom d'hôte qui correspond et des dates qui incluent aujourd'hui. **Faux** quand le point de terminaison n'a pas répondu. |
+| **Certificat valide** | **Vrai**, **Faux** | Le certificat passe les vérifications d'un navigateur : un émetteur de confiance, un nom d'hôte qui correspond, des dates qui incluent aujourd'hui, et aucune révocation par son émetteur. **Faux** quand le point de terminaison n'a pas répondu. |
 | **Certificat non valide** | **Vrai**, **Faux** | Le contraire de **Certificat valide** : **Vrai** quand le certificat échoue à ces vérifications ou n'a pas pu être vérifié. |
 | **Certificat expiré** | **Vrai**, **Faux** | La date d'expiration du certificat est passée. |
+| **Certificat révoqué** | **Vrai**, **Faux** | L'émetteur du certificat l'a révoqué. **Faux** quand l'émetteur indique qu'il n'est pas révoqué, et quand cela n'a pas pu être vérifié. |
 | **Certificat auto-signé** | **Vrai**, **Faux** | Le certificat, ou l'un de ceux de sa chaîne, est auto-signé. |
 | **Jours avant expiration** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Les jours avant l'expiration du certificat. |
 | **Heures avant expiration** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Les heures avant l'expiration du certificat. |
@@ -88,7 +93,7 @@ Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** d
 
 Un nouveau moniteur de certificat SSL commence avec trois critères, donc il vous avertit avant l'expiration d'un certificat sans rien configurer :
 
-1. **Certificat non valide** — le certificat a expiré, est auto-signé, a été émis pour un autre nom d'hôte ou par une autorité non fiable, ou n'a pas pu être vérifié parce que le point de terminaison n'a pas répondu. Le moniteur est marqué **Hors ligne** et un incident appelé « _monitor name_ certificate is not valid » est créé. Sa cause racine indique lequel de ces cas s'est produit. L'incident se résout de lui-même dès que le certificat est de nouveau valide.
+1. **Certificat non valide** — le certificat a expiré, a été révoqué par son émetteur, est auto-signé, a été émis pour un autre nom d'hôte ou par une autorité non fiable, ou n'a pas pu être vérifié parce que le point de terminaison n'a pas répondu. Le moniteur est marqué **Hors ligne** et un incident appelé « _monitor name_ certificate is not valid » est créé. Sa cause racine indique lequel de ces cas s'est produit et, pour un certificat révoqué, quand et pourquoi son émetteur l'a révoqué. L'incident se résout de lui-même dès que le certificat est de nouveau valide.
 2. **Certificat bientôt expiré** — le certificat est valide mais expire dans 14 jours ou moins. Une **alerte** appelée « _monitor name_ certificate expires soon » est créée.
 3. **Certificat valide** — le moniteur est marqué **Opérationnel**.
 
@@ -115,8 +120,9 @@ Les moniteurs créés avant que OneUptime n'ajoute cet avertissement n'ont pas d
 | Prévenir quelqu'un le dernier jour | **Heures avant expiration** | **Inférieur à** | `24` |
 | Hors ligne seulement une fois le certificat expiré | **Certificat expiré** | **Vrai** | — |
 | Signaler un certificat auto-signé | **Certificat auto-signé** | **Vrai** | — |
+| Prévenir l'équipe de sécurité quand l'émetteur révoque le certificat | **Certificat révoqué** | **Vrai** | — |
 
-Un critère sur l'expiration doit se trouver au-dessus du critère qui marque le certificat valide : un certificat sur le point d'expirer est encore valide, et le premier critère qui correspond l'emporte.
+Un critère sur l'expiration doit se trouver au-dessus du critère qui marque le certificat valide : un certificat sur le point d'expirer est encore valide, et le premier critère qui correspond l'emporte. De même, un certificat révoqué n'est pas non plus valide, donc un critère sur **Certificat révoqué** doit se trouver au-dessus du critère « non valide ».
 
 ## Bonnes pratiques
 
@@ -143,6 +149,12 @@ Tant que le certificat est à jour, aucun critère ne correspond et le moniteur 
 
 :::details Le moniteur est hors ligne avec « could not be checked because the endpoint is not reachable »
 La sonde n'a pas pu ouvrir de connexion TLS vers l'hôte et le port. Vérifiez le port dans l'URL, et qu'un pare-feu laisse passer les sondes. Un hôte sur un réseau privé a besoin d'une [sonde personnalisée](/docs/probe/custom-probe).
+:::
+
+:::details Le statut de révocation du certificat n'a pas pu être vérifié
+Quand la sonde ne peut pas obtenir de réponse signée de l'émetteur du certificat, le résumé du moniteur affiche **Statut de révocation** à **Vérification impossible**, et **Problème de vérification de la révocation**, sous **Afficher plus de détails**, indique pourquoi : le certificat n'indique aucun répondeur OCSP ni aucune CRL, l'émetteur n'a pas répondu à temps, ou sa réponse n'a pas pu être vérifiée. Comme dans un navigateur, un tel certificat n'est pas traité comme révoqué, et la sonde repose la question après 5 minutes.
+
+Une [sonde personnalisée](/docs/probe/custom-probe) sans accès à Internet ne peut joindre aucun émetteur. Elle vérifie quand même les certificats : elle attend quelques secondes chaque répondeur qu'elle ne peut pas joindre, environ une fois toutes les 5 minutes. Pour qu'elle arrête de les interroger, réglez `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` sur `false` sur la sonde et redémarrez-la.
 :::
 
 ## Étapes suivantes

@@ -140,7 +140,7 @@ Chaque entrée est un objet JSON, dont les clés sont toujours dans cet ordre :
 | `id` | L'id de l'entrée. La même entrée envoyée deux fois a le même id. |
 | `createdAt` | Quand la modification a été enregistrée, en UTC. |
 | `projectId` | Le projet dans lequel la modification a été faite. |
-| `action` | `Create`, `Update`, `Delete` ou `Download`. |
+| `action` | `Create`, `Update`, `Delete` ou `Download`, ou pour une session `SignIn`, `SignOut`, `SessionTimeout` ou `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Ce qui a été modifié. |
 | `rootResourceType`, `rootResourceId` | La ressource à laquelle elle appartient, comme un SLO pour sa règle. |
 | `userId`, `userName`, `userEmail`, `userType` | Qui a fait la modification. |

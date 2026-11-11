@@ -24,6 +24,9 @@ import FakeEnterpriseModule, {
   uninstallEnterpriseModule,
 } from "../Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
+import AuditLogAction from "../../../Types/AuditLog/AuditLogAction";
+import { SessionAuditEvent } from "../../../Types/AuditLog/AuditLogSessionEvent";
+import { SignInMethod } from "../../../Types/UserSession/SessionSignIn";
 
 /*
  * Core's AuditLogService after the Community / Enterprise split.
@@ -144,9 +147,29 @@ const downloadData: () => DownloadData = (): DownloadData => {
 
 // The record entry points, each driven the way its caller drives it.
 type EntryPoint = {
-  name: "recordCreate" | "recordUpdate" | "recordDelete" | "recordDownload";
+  name:
+    | "recordCreate"
+    | "recordUpdate"
+    | "recordDelete"
+    | "recordDownload"
+    | "recordSessionEvents";
   call: (service: AuditLogService) => Promise<void>;
 };
+
+// A sign-in, as UserSessionService hands it over (issue #6762).
+const sessionEvents: () => Array<SessionAuditEvent> =
+  (): Array<SessionAuditEvent> => {
+    return [
+      {
+        action: AuditLogAction.SignIn,
+        userId: new ObjectID("12121212-1212-4212-8212-121212121212"),
+        sessionId: new ObjectID("13131313-1313-4313-8313-131313131313"),
+        signIn: { method: SignInMethod.Password },
+        device: "Chrome 130 on macOS",
+        ipAddress: "203.0.113.7",
+      },
+    ];
+  };
 
 const RECORD_ENTRY_POINTS: Array<EntryPoint> = [
   {
@@ -171,6 +194,12 @@ const RECORD_ENTRY_POINTS: Array<EntryPoint> = [
     name: "recordDownload",
     call: (service: AuditLogService): Promise<void> => {
       return service.recordDownload(downloadData());
+    },
+  },
+  {
+    name: "recordSessionEvents",
+    call: (service: AuditLogService): Promise<void> => {
+      return service.recordSessionEvents(sessionEvents());
     },
   },
 ];
@@ -294,6 +323,35 @@ describe("with the Enterprise Edition loaded", () => {
     expect(recorder.recordCreate).not.toHaveBeenCalled();
     expect(recorder.recordUpdate).not.toHaveBeenCalled();
     expect(recorder.recordDelete).not.toHaveBeenCalled();
+  });
+
+  test("recordSessionEvents hands the recorder the very events it was given", async () => {
+    const events: Array<SessionAuditEvent> = sessionEvents();
+
+    await AuditLogServiceInstance.recordSessionEvents(events);
+
+    expect(recorder.recordSessionEvents).toHaveBeenCalledTimes(1);
+    expect(recorder.recordSessionEvents.mock.calls[0]![0]).toBe(events);
+    expect(recorder.recordCreate).not.toHaveBeenCalled();
+  });
+
+  test("no events are not handed over at all", async () => {
+    await AuditLogServiceInstance.recordSessionEvents([]);
+
+    expect(recorder.recordSessionEvents).not.toHaveBeenCalled();
+  });
+
+  test("recordSessionEvents never throws when the recorder does: the sign-in goes ahead", async () => {
+    recorder.recordSessionEvents.mockRejectedValue(
+      new Error("recorder broke its promise") as never,
+    );
+
+    await expect(
+      AuditLogServiceInstance.recordSessionEvents(sessionEvents()),
+    ).resolves.toBeUndefined();
+    expect(warnSpy).toHaveBeenCalledWith(
+      "AuditLog: failed to record session events",
+    );
   });
 
   test("invalidateProjectSettings reaches the recorder's cache", () => {
@@ -432,6 +490,7 @@ describe("what core's AuditLogService still is", () => {
       "recordUpdate",
       "recordDelete",
       "recordDownload",
+      "recordSessionEvents",
       "invalidateProjectSettings",
     ]) {
       expect(methods).toContain(entryPoint);

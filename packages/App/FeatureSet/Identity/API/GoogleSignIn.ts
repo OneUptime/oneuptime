@@ -10,6 +10,7 @@ import GoogleSignInClient, {
   GoogleSignInError,
 } from "Common/Server/Utils/GoogleSignIn/GoogleSignInClient";
 import createProviderSignInRouter from "../Utils/ProviderSignIn";
+import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
 
 /*
  * Continue with Google (see GoogleSignInClient for what it is, and who it
@@ -35,6 +36,7 @@ const router: ExpressRouter = createProviderSignInRouter({
   name: "Google",
   path: "google",
   signedUpWith: SignedUpWithGoogle,
+  signInMethod: SignInMethod.Google,
   getClient: (): GoogleSignInClient | null => {
     if (!GoogleSignInClientId || !GoogleSignInClientSecret) {
       return null;

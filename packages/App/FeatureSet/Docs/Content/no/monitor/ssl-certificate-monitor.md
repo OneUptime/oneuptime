@@ -1,17 +1,21 @@
 # SSL-sertifikat-overvåking
 
-En SSL-sertifikatmonitor sjekker TLS-sertifikatene som nettstedene og tjenestene dine presenterer, slik en nettleser gjør, og varsler deg før de utløper. Den tar også monitoren frakoblet når et sertifikat ikke lenger er gyldig: utløpt, selvsignert, utstedt for et annet vertsnavn eller fra en utsteder som nettlesere ikke stoler på.
+En SSL-sertifikatmonitor sjekker TLS-sertifikatene som nettstedene og tjenestene dine presenterer, slik en nettleser gjør, og varsler deg før de utløper. Den tar også monitoren frakoblet når et sertifikat ikke lenger er gyldig: utløpt, tilbakekalt av utstederen, selvsignert, utstedt for et annet vertsnavn eller fra en utsteder som nettlesere ikke stoler på.
 
 :::cards
 - [Opprett monitoren](#opprett-en-ssl-sertifikatmonitor): Seks trinn i dashbordet.
 - [Standardkriterier](#standardkriterier): Et utløpsvarsel 14 dager i forveien, uten oppsett.
-- [Overvåkingskriterier](#overvåkingskriterier): Gyldighet, utløp og selvsignerte sertifikater.
-- [Feilsøking](#feilsøking): Selvsignerte og interne sertifikater.
+- [Overvåkingskriterier](#overvåkingskriterier): Gyldighet, utløp, tilbakekalling og selvsignerte sertifikater.
+- [Feilsøking](#feilsøking): Selvsignerte og interne sertifikater, og sjekk av tilbakekalling.
 :::
 
 ## Slik fungerer det
 
 Ved hver sjekk åpner en sonde en TLS-tilkobling til verten og porten i URL-en, port `443` med mindre URL-en angir en annen, og verifiserer sertifikatet slik en nettleser ville gjort: en utsteder det er tillit til, et vertsnavn som stemmer, og en gyldighetsperiode som omfatter i dag. Hvis sertifikatet ikke består verifiseringen, leser sonden det likevel, så utløpsdatoen, utstederen og fingeravtrykkene registreres uansett. En tilkobling som feiler, får tidsavbrudd eller presenterer et ugyldig sertifikat, prøves på nytt, opptil antallet nye forsøk du tillater. Deretter kjører OneUptime resultatet gjennom monitorens kriterier.
+
+Et sertifikat som består disse sjekkene, sjekkes også for tilbakekalling, slik en nettleser gjør. Sonden leser OCSP-svaret serveren sender med sertifikatet sitt, hvis det finnes et, spør deretter utstederens OCSP-responder som sertifikatet nevner, og leser, bare hvis den ikke gir noe svar, utstederens liste over tilbakekalte sertifikater (CRL). Den stoler bare på et gjeldende svar som er signert av utstederen eller av en responder utstederen har autorisert, og den sjekker serverens eget sertifikat, ikke mellomsertifikatene. Et tilbakekalt sertifikat er ikke gyldig. Når det ikke går an å få et signert svar, er tilbakekallingsstatusen ukjent, og som i en nettleser behandles sertifikatet ikke som tilbakekalt.
+
+Et svar beholdes til utstederens neste oppdatering, i høyst en time, og et oppslag som mislyktes, prøves igjen etter 5 minutter. Et nytt sertifikat sjekkes altså med en gang, og et sertifikat som tilbakekalles mens det er i bruk, oppdages innen en time.
 
 ```mermaid title="Slik vurderer standardkriteriene et sertifikat"
 flowchart TB
@@ -73,9 +77,10 @@ Kriterier avgjør når sertifikatet regnes som i orden, redusert eller feil, og 
 
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
-| **Er gyldig sertifikat** | **Sann**, **Usann** | Sertifikatet består en nettlesers sjekker: en utsteder det er tillit til, et vertsnavn som stemmer, og en gyldighetsperiode som omfatter i dag. **Usann** når endepunktet ikke svarte. |
+| **Er gyldig sertifikat** | **Sann**, **Usann** | Sertifikatet består en nettlesers sjekker: en utsteder det er tillit til, et vertsnavn som stemmer, en gyldighetsperiode som omfatter i dag, og ingen tilbakekalling fra utstederen. **Usann** når endepunktet ikke svarte. |
 | **Er ikke et gyldig sertifikat** | **Sann**, **Usann** | Det motsatte av **Er gyldig sertifikat**: **Sann** når sertifikatet ikke består de sjekkene eller ikke kunne sjekkes. |
 | **Er utløpt sertifikat** | **Sann**, **Usann** | Sertifikatets utløpsdato er passert. |
+| **Er tilbakekalt sertifikat** | **Sann**, **Usann** | Utstederen av sertifikatet har tilbakekalt det. **Usann** når utstederen sier at det ikke er tilbakekalt, og når det ikke kunne sjekkes. |
 | **Er selvsignert sertifikat** | **Sann**, **Usann** | Sertifikatet, eller ett i kjeden, er selvsignert. |
 | **Dager til utløp** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Dager til sertifikatet utløper. |
 | **Timer til utløp** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Timer til sertifikatet utløper. |
@@ -88,7 +93,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny SSL-sertifikatmonitor starter med tre kriterier, så den varsler deg før et sertifikat utløper, helt uten oppsett:
 
-1. **Sertifikatet er ikke gyldig** — sertifikatet er utløpt, selvsignert, utstedt for et annet vertsnavn eller av en utsteder det ikke er tillit til, eller kunne ikke sjekkes fordi endepunktet ikke svarte. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "_monitor name_ certificate is not valid". Rotårsaken forteller hvilket av disse tilfellene det var. Hendelsen løser seg selv når sertifikatet er gyldig igjen.
+1. **Sertifikatet er ikke gyldig** — sertifikatet er utløpt, tilbakekalt av utstederen, selvsignert, utstedt for et annet vertsnavn eller av en utsteder det ikke er tillit til, eller kunne ikke sjekkes fordi endepunktet ikke svarte. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "_monitor name_ certificate is not valid". Rotårsaken forteller hvilket av disse tilfellene det var, og for et tilbakekalt sertifikat, når og hvorfor utstederen tilbakekalte det. Hendelsen løser seg selv når sertifikatet er gyldig igjen.
 2. **Sertifikatet utløper snart** — sertifikatet er gyldig, men utløper om 14 dager eller mindre. Det opprettes et **varsel** med navnet "_monitor name_ certificate expires soon".
 3. **Sertifikatet er gyldig** — monitoren merkes som **I drift**.
 
@@ -115,8 +120,9 @@ Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke no
 | Tilkall noen den siste dagen | **Timer til utløp** | **Mindre enn** | `24` |
 | Frakoblet først når sertifikatet er utløpt | **Er utløpt sertifikat** | **Sann** | — |
 | Marker et selvsignert sertifikat | **Er selvsignert sertifikat** | **Sann** | — |
+| Tilkall sikkerhetsteamet når utstederen tilbakekaller sertifikatet | **Er tilbakekalt sertifikat** | **Sann** | — |
 
-Et kriterium om utløp må stå over kriteriet som merker sertifikatet som gyldig: et sertifikat som snart utløper, er fortsatt gyldig, og det første kriteriet som samsvarer, vinner.
+Et kriterium om utløp må stå over kriteriet som merker sertifikatet som gyldig: et sertifikat som snart utløper, er fortsatt gyldig, og det første kriteriet som samsvarer, vinner. På samme måte er et tilbakekalt sertifikat heller ikke gyldig, så et kriterium med **Er tilbakekalt sertifikat** må stå over kriteriet "ikke gyldig".
 
 ## Beste praksis
 
@@ -143,6 +149,12 @@ Så lenge sertifikatet er gjeldende, samsvarer ingen kriterier, og monitoren vis
 
 :::details Monitoren er frakoblet med "could not be checked because the endpoint is not reachable"
 Sonden kunne ikke åpne en TLS-tilkobling til verten og porten. Sjekk porten i URL-en, og at en brannmur slipper sondene gjennom. En vert på et privat nettverk trenger en [egendefinert sonde](/docs/probe/custom-probe).
+:::
+
+:::details Sertifikatets tilbakekallingsstatus kunne ikke sjekkes
+Når sonden ikke får et signert svar fra utstederen av sertifikatet, viser monitorens sammendrag **Tilbakekallingsstatus** som **Kunne ikke kontrolleres**, og **Problem med kontroll av tilbakekalling**, under **Vis flere detaljer**, forteller hvorfor: sertifikatet nevner ingen OCSP-responder eller CRL, utstederen svarte ikke i tide, eller svaret kunne ikke verifiseres. Som i en nettleser behandles et slikt sertifikat ikke som tilbakekalt, og sonden spør igjen etter 5 minutter.
+
+En [egendefinert sonde](/docs/probe/custom-probe) uten internettilgang kan ikke nå noen utsteder. Den sjekker likevel sertifikater: den venter noen sekunder på hver responder den ikke når, omtrent én gang hvert 5. minutt. For at den skal slutte å spørre, sett `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` til `false` på sonden og start den på nytt.
 :::
 
 ## Neste steg

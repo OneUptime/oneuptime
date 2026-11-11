@@ -140,7 +140,7 @@ OneUptime 將每個批次以 POST 方式傳送到 **URL**，依照**內文格式
 | `id` | 條目的 ID。同一條目傳送兩次時 ID 相同。 |
 | `createdAt` | 變更被記錄的時間，採用 UTC。 |
 | `projectId` | 進行變更的專案。 |
-| `action` | `Create`、`Update`、`Delete` 或 `Download`。 |
+| `action` | `Create`、`Update`、`Delete` 或 `Download`，對於工作階段則為 `SignIn`、`SignOut`、`SessionTimeout` 或 `SessionRevoked`。 |
 | `resourceType`, `resourceId`, `resourceName` | 被變更的內容。 |
 | `rootResourceType`, `rootResourceId` | 它所屬的資源，例如規則所屬的 SLO。 |
 | `userId`, `userName`, `userEmail`, `userType` | 進行變更的人。 |

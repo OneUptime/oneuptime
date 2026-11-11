@@ -288,6 +288,7 @@ Docker Engine 27 及更新版本會為該網路選擇一個 IPv6 子網路，並
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | 設為 `true` 後，合成監測器中的 Chromium 會在它自己的沙箱中執行。只有在探測器的容器使用允許沙箱的 seccomp 設定檔（例如 Playwright 的設定檔）執行時才開啟它：沒有這樣的設定檔，Chromium 無法啟動。關閉時，探測器會在啟動時記錄一則警告。 |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Custom Code 監測器指令碼的逾時時間，單位為毫秒。 |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | 設為 `true` 後，此探測器上的 Website、API、External Status Page 和 Custom Code 監測器可以連到私有位址。請參閱 [私有網路存取](/docs/self-hosted/private-network-access)。 |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | 此探測器上的 SSL Certificate、Website 和 API 監測器會像瀏覽器一樣，詢問憑證的簽發者是否已撤銷該憑證。設為 `false` 可停止詢問，例如在無法存取網際網路的探測器上。探測器無法連到的簽發者永遠不會被當作撤銷：對於每個無法連到的回應程式，探測器大約每 5 分鐘會等待幾秒。請參閱 [SSL 憑證監控](/docs/monitor/ssl-certificate-monitor)。 |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | 探測器同時輪詢的網路裝置數量。輪詢裝置很多的探測器可以調高它。 |
 
 合成監測器執行時的限制（同時執行的數量、記憶體和磁碟）請見 [合成監控](/docs/monitor/synthetic-monitor) 頁面。

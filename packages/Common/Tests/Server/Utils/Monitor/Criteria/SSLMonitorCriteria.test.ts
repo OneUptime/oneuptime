@@ -4,6 +4,8 @@ import {
   CriteriaFilter,
   FilterType,
 } from "../../../../../Types/Monitor/CriteriaFilter";
+import CertificateRevocationCheckMethod from "../../../../../Types/Monitor/SSLMonitor/CertificateRevocationCheckMethod";
+import CertificateRevocationStatus from "../../../../../Types/Monitor/SSLMonitor/CertificateRevocationStatus";
 import SslMonitorResponse from "../../../../../Types/Monitor/SSLMonitor/SslMonitorResponse";
 import ProbeMonitorResponse from "../../../../../Types/Probe/ProbeMonitorResponse";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -347,6 +349,271 @@ describe("SSLMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       );
 
       expect(result).toContain("SSL certificate is not valid");
+    });
+  });
+
+  /*
+   * A certificate its issuer has revoked passes every check Node's TLS
+   * stack makes, so before the probe asked the issuer (OCSP, then the CRL)
+   * a monitor stayed green on a certificate browsers refused with
+   * SEC_ERROR_REVOKED_CERTIFICATE. The probe now records the issuer's
+   * answer; these hold the criteria to it.
+   */
+  describe("IsRevokedCertificate", () => {
+    const REVOKED_AT: string = "2026-11-10T08:00:00.000Z";
+    // The same moment, as the probe and the criteria write it.
+    const REVOKED_AT_TEXT: string = "2026-11-10 08:00:00 UTC";
+
+    // A revoked certificate, as the probe reports one.
+    function revokedResponse(
+      overrides: Partial<SslMonitorResponse> = {},
+    ): SslMonitorResponse {
+      return {
+        isValidCertificate: false,
+        isSelfSigned: false,
+        certificateValidationErrorCode: "CERT_REVOKED",
+        certificateValidationError: `certificate has been revoked by its issuer on ${REVOKED_AT_TEXT} (reason: Key Compromise)`,
+        revocationStatus: CertificateRevocationStatus.Revoked,
+        revocationCheckMethod: CertificateRevocationCheckMethod.Ocsp,
+        revokedAt: new Date(REVOKED_AT),
+        revocationReason: "Key Compromise",
+        expiresAt: dateFromNow({ days: 60 }),
+        ...overrides,
+      };
+    }
+
+    function notRevokedResponse(
+      overrides: Partial<SslMonitorResponse> = {},
+    ): SslMonitorResponse {
+      return {
+        isValidCertificate: true,
+        isSelfSigned: false,
+        certificateValidationErrorCode: "",
+        certificateValidationError: "",
+        revocationStatus: CertificateRevocationStatus.NotRevoked,
+        revocationCheckMethod: CertificateRevocationCheckMethod.StapledOcsp,
+        expiresAt: dateFromNow({ days: 60 }),
+        ...overrides,
+      };
+    }
+
+    async function isRevoked(
+      sslResponse: SslMonitorResponse | undefined,
+      filterType: FilterType,
+    ): Promise<string | null> {
+      return evaluate(
+        buildDataToProcess({
+          isOnline: true,
+          sslResponse: sslResponse,
+          includeSslResponse: Boolean(sslResponse),
+        }),
+        {
+          checkOn: CheckOn.IsRevokedCertificate,
+          filterType: filterType,
+          value: undefined,
+        },
+      );
+    }
+
+    test("revoked + True → met, naming when and why the issuer revoked it", async () => {
+      expect(await isRevoked(revokedResponse(), FilterType.True)).toBe(
+        `SSL certificate has been revoked by its issuer on ${REVOKED_AT_TEXT} (reason: Key Compromise).`,
+      );
+    });
+
+    test("revoked + False → not met", async () => {
+      expect(await isRevoked(revokedResponse(), FilterType.False)).toBeNull();
+    });
+
+    test("not revoked + False → met", async () => {
+      expect(await isRevoked(notRevokedResponse(), FilterType.False)).toBe(
+        "SSL certificate is not revoked.",
+      );
+    });
+
+    test("not revoked + True → not met", async () => {
+      expect(await isRevoked(notRevokedResponse(), FilterType.True)).toBeNull();
+    });
+
+    /*
+     * Unknown: no signed answer could be had (no responder named, none
+     * reachable, nothing verifiable). Like a browser, that is no revocation,
+     * or a probe without internet access would flag every certificate.
+     */
+    test("a status that could not be checked counts as not revoked", async () => {
+      const unknown: SslMonitorResponse = notRevokedResponse({
+        revocationStatus: CertificateRevocationStatus.Unknown,
+        revocationCheckMethod: undefined,
+        revocationCheckError: "No OCSP responder answered within 5 seconds.",
+      });
+
+      expect(await isRevoked(unknown, FilterType.True)).toBeNull();
+      expect(await isRevoked(unknown, FilterType.False)).toBe(
+        "SSL certificate is not revoked.",
+      );
+    });
+
+    /*
+     * No status at all: the check did not run (another validation failure,
+     * the probe has it turned off, or the probe is older than the check).
+     */
+    test("no status counts as not revoked", async () => {
+      const unchecked: SslMonitorResponse = notRevokedResponse({
+        revocationStatus: undefined,
+        revocationCheckMethod: undefined,
+      });
+
+      expect(await isRevoked(unchecked, FilterType.True)).toBeNull();
+      expect(await isRevoked(unchecked, FilterType.False)).toBe(
+        "SSL certificate is not revoked.",
+      );
+    });
+
+    test("no ssl response counts as not revoked", async () => {
+      expect(await isRevoked(undefined, FilterType.True)).toBeNull();
+      expect(await isRevoked(undefined, FilterType.False)).toBe(
+        "SSL certificate is not revoked.",
+      );
+    });
+
+    test("the reason leaves out what the issuer did not say", async () => {
+      expect(
+        await isRevoked(
+          revokedResponse({
+            revokedAt: undefined,
+            revocationReason: undefined,
+          }),
+          FilterType.True,
+        ),
+      ).toBe("SSL certificate has been revoked by its issuer.");
+
+      expect(
+        await isRevoked(
+          revokedResponse({ revokedAt: undefined }),
+          FilterType.True,
+        ),
+      ).toBe(
+        "SSL certificate has been revoked by its issuer (reason: Key Compromise).",
+      );
+
+      expect(
+        await isRevoked(
+          revokedResponse({ revocationReason: "  " }),
+          FilterType.True,
+        ),
+      ).toBe(
+        `SSL certificate has been revoked by its issuer on ${REVOKED_AT_TEXT}.`,
+      );
+    });
+
+    // The probe's response reaches the server as JSON: a date is a string.
+    test("the revocation date arriving as an ISO string reads the same", async () => {
+      expect(
+        await isRevoked(
+          revokedResponse({ revokedAt: REVOKED_AT as unknown as Date }),
+          FilterType.True,
+        ),
+      ).toBe(
+        `SSL certificate has been revoked by its issuer on ${REVOKED_AT_TEXT} (reason: Key Compromise).`,
+      );
+    });
+
+    test("a revocation date that cannot be read is left out, not shown as Invalid Date", async () => {
+      expect(
+        await isRevoked(
+          revokedResponse({ revokedAt: 12345 as unknown as Date }),
+          FilterType.True,
+        ),
+      ).toBe(
+        "SSL certificate has been revoked by its issuer (reason: Key Compromise).",
+      );
+    });
+
+    /*
+     * A revoked certificate is also not valid, so the default criteria -
+     * "Is Not A Valid Certificate" takes the monitor offline - catch it with
+     * no change, and their root cause says it was revoked.
+     */
+    test("a revoked certificate fails IsValidCertificate", async () => {
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        isOnline: true,
+        sslResponse: revokedResponse(),
+      });
+
+      expect(
+        await evaluate(dataToProcess, {
+          checkOn: CheckOn.IsValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        }),
+      ).toBeNull();
+
+      expect(
+        await evaluate(dataToProcess, {
+          checkOn: CheckOn.IsValidCertificate,
+          filterType: FilterType.False,
+          value: undefined,
+        }),
+      ).toContain("revoked");
+    });
+
+    test("a revoked certificate satisfies IsNotAValidCertificate, and the root cause says when and why", async () => {
+      const result: string | null = await evaluate(
+        buildDataToProcess({ isOnline: true, sslResponse: revokedResponse() }),
+        {
+          checkOn: CheckOn.IsNotAValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      );
+
+      expect(result).toBe(
+        `SSL certificate is not valid: certificate has been revoked by its issuer on ${REVOKED_AT_TEXT} (reason: Key Compromise)`,
+      );
+    });
+
+    // Should a probe ever report the status without the validation error.
+    test("the root cause names a revocation even without the probe's validation error", async () => {
+      const result: string | null = await evaluate(
+        buildDataToProcess({
+          isOnline: true,
+          sslResponse: revokedResponse({
+            certificateValidationError: undefined,
+          }),
+        }),
+        {
+          checkOn: CheckOn.IsNotAValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      );
+
+      expect(result).toBe(
+        `SSL certificate is not valid: the certificate has been revoked by its issuer on ${REVOKED_AT_TEXT} (reason: Key Compromise).`,
+      );
+    });
+
+    test("a certificate the issuer did not revoke stays valid", async () => {
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        isOnline: true,
+        sslResponse: notRevokedResponse(),
+      });
+
+      expect(
+        await evaluate(dataToProcess, {
+          checkOn: CheckOn.IsValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        }),
+      ).toBe("SSL certificate is valid.");
+
+      expect(
+        await evaluate(dataToProcess, {
+          checkOn: CheckOn.IsNotAValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        }),
+      ).toBeNull();
     });
   });
 

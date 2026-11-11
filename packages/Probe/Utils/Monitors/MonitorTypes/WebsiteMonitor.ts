@@ -24,6 +24,8 @@ import HttpMonitorRequest, {
   PreparedHttpMonitorRequest,
   RedirectRequest,
 } from "../HttpMonitorRequest";
+import CertificateRevocationChecker from "../CertificateRevocation/CertificateRevocationChecker";
+import { TlsPeerCertificateRecorder } from "../CertificateRevocation/TlsPeerCertificates";
 
 // Five attempts, the same as before retries were counted after the first attempt.
 const DEFAULT_RETRIES_WHEN_UNSET: number = 4;
@@ -93,6 +95,17 @@ export default class WebsiteMonitor {
 
     const timingCollector: HttpTimingCollector = new HttpTimingCollector();
 
+    /*
+     * The TLS certificates of every hop that answered, checked for
+     * revocation once the response time has been taken.
+     */
+    const answeredHops: Array<{
+      url: string;
+      peerCertificates?: TlsPeerCertificateRecorder | undefined;
+    }> = [];
+    const checkCertificateRevocation: boolean =
+      CertificateRevocationChecker.isEnabled();
+
     const attemptedAt: Date = new Date();
     try {
       logger.debug(
@@ -133,6 +146,7 @@ export default class WebsiteMonitor {
                 includeClientIdentity: includeTlsClientIdentity,
               }),
               timingCollector: timingCollector,
+              recordPeerCertificates: checkCertificateRevocation,
             });
           });
         };
@@ -197,6 +211,11 @@ export default class WebsiteMonitor {
             throw error;
           }
 
+          answeredHops.push({
+            url: currentUrl,
+            peerCertificates: prepared.peerCertificates,
+          });
+
           if (options.doNotFollowRedirects) {
             return result;
           }
@@ -241,6 +260,18 @@ export default class WebsiteMonitor {
       const responseTimeInMS: PositiveNumber = new PositiveNumber(
         Math.ceil((endTime[0] * 1000000000 + endTime[1]) / 1000000),
       );
+
+      /*
+       * A browser refuses a certificate its issuer revoked, so the check
+       * fails too - exactly as it does for an expired one, which Node
+       * rejects on its own. Throws CertificateRevokedError into the catch
+       * below; asked after the response time is taken so it is not counted.
+       */
+      await HttpMonitorRequest.assertCertificatesNotRevoked({
+        hops: answeredHops,
+        remainingTimeInMs: executionContext.remainingTimeInMsOrZero(),
+      });
+
       const responseReceivedAt: Date = new Date();
 
       options.attempts!.push({

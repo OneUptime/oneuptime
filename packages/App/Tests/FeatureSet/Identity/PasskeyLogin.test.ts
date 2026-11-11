@@ -30,6 +30,7 @@ import IdentityRateLimit, {
 import logger from "Common/Server/Utils/Logger";
 import { HttpProtocol } from "Common/Server/EnvironmentConfig";
 import "../../../FeatureSet/Identity/API/Authentication";
+import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
 
 /*
  * The server does not require single sign-on here: every sign-in and sign-up
@@ -384,6 +385,9 @@ describe("passkey login", () => {
         userId,
         isGlobalLogin: true,
         ipAddress: "127.0.0.1",
+        // The audit log says how they signed in (SessionSignIn, issue #6762).
+        signIn: { method: SignInMethod.Passkey },
+        requestOrigin: expect.any(Object),
       }),
     );
     expect(CookieUtil.setUserCookie).toHaveBeenCalledWith(
@@ -768,6 +772,9 @@ describe("native mobile passkey code exchange", () => {
         userId,
         isGlobalLogin: true,
         ipAddress: "127.0.0.1",
+        // The audit log says how they signed in (SessionSignIn, issue #6762).
+        signIn: { method: SignInMethod.Passkey },
+        requestOrigin: expect.any(Object),
       }),
     );
     expect(CookieUtil.setUserCookie).not.toHaveBeenCalled();

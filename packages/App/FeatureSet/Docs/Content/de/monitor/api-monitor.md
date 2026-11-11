@@ -25,6 +25,8 @@ sequenceDiagram
     O->>O: Die Kriterien von<br/>oben nach unten prüfen
 ```
 
+Die Sonde prüft das Zertifikat der API so, wie ein Browser es tut, auch ob seine ausstellende Stelle es widerrufen hat. Ein widerrufenes Zertifikat lässt die Prüfung wie ein abgelaufenes fehlschlagen: Der Monitor geht offline, und die Fehlerursache sagt, dass das Zertifikat widerrufen wurde. **Selbstsignierte Zertifikate zulassen** schaltet diese Prüfungen für den eigenen Hostnamen des Monitors ab.
+
 Eine Sonde, die ihre eigene Netzwerkverbindung verloren hat, meldet kein Ergebnis und kann Ihre API daher nicht als offline markieren.
 
 ## Bevor Sie beginnen

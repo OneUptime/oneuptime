@@ -140,7 +140,7 @@ OneUptime 将每个批次以 POST 方式发送到 **URL**，按照**正文格式
 | `id` | 条目的 ID。同一条目发送两次时 ID 相同。 |
 | `createdAt` | 更改被记录的时间，采用 UTC。 |
 | `projectId` | 进行更改的项目。 |
-| `action` | `Create`、`Update`、`Delete` 或 `Download`。 |
+| `action` | `Create`、`Update`、`Delete` 或 `Download`，对于会话则为 `SignIn`、`SignOut`、`SessionTimeout` 或 `SessionRevoked`。 |
 | `resourceType`, `resourceId`, `resourceName` | 被更改的内容。 |
 | `rootResourceType`, `rootResourceId` | 它所属的资源，例如规则所属的 SLO。 |
 | `userId`, `userName`, `userEmail`, `userType` | 进行更改的人。 |

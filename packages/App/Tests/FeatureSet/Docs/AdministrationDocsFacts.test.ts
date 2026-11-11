@@ -57,6 +57,12 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
+import { AUDIT_LOG_ACTION_LABELS } from "Common/Types/AuditLog/AuditLogActionLabel";
+import {
+  AUDIT_LOG_SESSION_RESOURCE_TYPE,
+  SESSION_AUDIT_LOG_ACTIONS,
+} from "Common/Types/AuditLog/AuditLogSessionEvent";
+import { DEFAULT_SESSION_IDLE_DAYS } from "Common/Types/UserSession/SessionLength";
 import {
   AUDIT_LOG_EXEMPTION_KINDS,
   AUDIT_LOG_EXEMPT_TABLES,
@@ -2024,9 +2030,18 @@ describe("Audit Logs", () => {
     );
   });
 
-  it("names the actions an entry can record, a download included", () => {
+  it("names the actions an entry can record, a download and a person's sessions included", () => {
     expect(Object.values(AuditLogAction).sort()).toEqual(
-      ["Create", "Update", "Delete", "Download"].sort(),
+      [
+        "Create",
+        "Update",
+        "Delete",
+        "Download",
+        "SignIn",
+        "SignOut",
+        "SessionTimeout",
+        "SessionRevoked",
+      ].sort(),
     );
     expect(readCommonSource("Server/API/PacketCaptureAPI.ts")).toContain(
       "AuditLogService.recordDownload({",
@@ -2039,12 +2054,63 @@ describe("Audit Logs", () => {
       return row[0] === "**Action**";
     })?.[1] as string;
 
-    expect(inlineCodes(actions)).toEqual([
-      "Create",
-      "Update",
-      "Delete",
-      "Download",
-    ]);
+    // As the table draws them: an action by its words ("Sign In").
+    expect(inlineCodes(actions)).toEqual(
+      Object.values(AuditLogAction).map((action: AuditLogAction): string => {
+        return AUDIT_LOG_ACTION_LABELS[action];
+      }),
+    );
+  });
+
+  /*
+   * Issue #6762: every sign-in and every session's end is in the audit log
+   * of each project its person is a member of, as theirs, whether or not the
+   * project stores system events. The page names each session action as the
+   * table draws it, and what the product does: the session service records
+   * a sign-in as it makes the session and an end as a revocation writes it,
+   * every revocation names its cause, and a sweep ends what ran out.
+   */
+  it("says sign-ins and sessions are recorded, in every project of the person's, as the product records them", () => {
+    const sessions: string = section(page, "## Sign-ins and sessions");
+    const rows: Array<Array<string>> = tableRows(sessions, "Action");
+
+    expect(
+      rows.map((row: Array<string>): string => {
+        return inlineCodes(row[0] as string)[0] as string;
+      }),
+    ).toEqual(
+      SESSION_AUDIT_LOG_ACTIONS.map((action: AuditLogAction): string => {
+        return AUDIT_LOG_ACTION_LABELS[action];
+      }),
+    );
+    expect(sessions).toContain(
+      "A sign-in is to OneUptime, not to one project, so every project the person is a member of records it.",
+    );
+    expect(sessions).toContain(
+      "Sign-ins and sessions are recorded whether or not the project stores system events.",
+    );
+    expect(sessions).toContain(
+      `or ${DEFAULT_SESSION_IDLE_DAYS} days without use.`,
+    );
+    expect(sessions).toContain(
+      "A project's own SSO provider is named only in that project's audit log.",
+    );
+    expect(AUDIT_LOG_SESSION_RESOURCE_TYPE).toBe("User Session");
+
+    const sessionService: string = readCommonSource(
+      "Server/Services/UserSessionService.ts",
+    );
+
+    // A sign-in as the session is made, an end as a revocation writes it.
+    expect(sessionService).toContain(
+      "await AuditLogService.recordSessionEvents([",
+    );
+    expect(sessionService).toContain("Service.toSignInEvent({");
+    expect(sessionService).toContain(
+      "protected override async onBeforeUpdate(",
+    );
+    expect(sessionService).toContain("await this.recordSessionEnds({");
+    expect(sessionService).toContain("public async endSessionsThatRanOut(");
   });
 
   it("says an administrator's changes to someone else's notification setup are recorded", () => {

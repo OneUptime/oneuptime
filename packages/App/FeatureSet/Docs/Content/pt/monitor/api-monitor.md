@@ -25,6 +25,8 @@ sequenceDiagram
     O->>O: Verificar os critérios,<br/>de cima para baixo
 ```
 
+A sonda verifica o certificado da API como um navegador faz, incluindo se o emissor o revogou. Um certificado revogado faz a verificação falhar como um vencido: o monitor fica offline, e a causa da falha diz que o certificado foi revogado. **Permitir certificados autoassinados** desliga essas verificações para o próprio nome de host do monitor.
+
 Uma sonda que perdeu a própria conexão de rede não informa nenhum resultado, então não pode marcar a sua API como offline.
 
 ## Antes de começar

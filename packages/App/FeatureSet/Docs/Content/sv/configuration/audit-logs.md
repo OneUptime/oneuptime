@@ -1,11 +1,12 @@
 # Granskningsloggar
 
-Granskningsloggen registrerar vem som ändrade vad i ditt projekt: varje skapande, ändring och borttagning av de resurser den täcker, med värdena före och efter. Använd den för att ta reda på vem som stängde av en monitor eller ändrade en API-nyckel, och för att föra dokumentation inför efterlevnadsgranskningar. Den ingår i Enterprise-planen i OneUptime Cloud och i Enterprise Edition när du kör självhostat.
+Granskningsloggen registrerar vem som ändrade vad i ditt projekt: varje skapande, ändring och borttagning av de resurser den täcker, med värdena före och efter, och varje gång någon loggar in eller ut. Använd den för att ta reda på vem som stängde av en monitor eller ändrade en API-nyckel, vem som loggade in och varifrån, och för att föra dokumentation inför efterlevnadsgranskningar. Den ingår i Enterprise-planen i OneUptime Cloud och i Enterprise Edition när du kör självhostat.
 
 :::cards
 - [Slå på granskningsloggning](#slå-på-granskningsloggning): Den är avstängd från början i alla projekt.
 - [Läs granskningsloggen](#läs-granskningsloggen): Vem ändrade vad, och när.
 - [Vad som registreras](#vad-som-registreras): Resurserna och åtgärderna den täcker.
+- [Inloggningar och sessioner](#inloggningar-och-sessioner): Vem som loggade in, och hur varje session slutade.
 - [Hur länge poster behålls](#hur-länge-poster-behålls): Från 7 till 180 dagar.
 :::
 
@@ -64,10 +65,10 @@ En ändring av de här inställningarna träder i kraft inom en minut.
 | Kolumn | Vad den visar |
 | --- | --- |
 | **När** | Hur länge sedan, med datum och klockslag. |
-| **Åtgärd** | `Create`, `Update` eller `Delete`, eller `Download` för en paketinspelningsfil som någon har laddat ner. |
+| **Åtgärd** | `Create`, `Update` eller `Delete`, `Download` för en paketinspelningsfil som någon har laddat ner, eller `Sign In`, `Sign Out`, `Session Timeout` eller `Session Revoked` för en session. |
 | **Resurs** | Resursens namn, som öppnar den så länge den finns, och dess typ. |
 | **Aktör** | Vem som gjorde ändringen: en person, en API-nyckel, ett arbetsflöde eller `System` för en ändring som OneUptime själv gjorde. En persons ändring via en MCP-klient anger vilken. |
-| **Ändringar** | Hur många fält som ändrades, eller registrerades vid ett skapande eller en borttagning. Klicka för att se varje fält. |
+| **Ändringar** | Hur många fält som ändrades, eller registrerades vid ett skapande eller en borttagning. För en session: hur den loggade in eller varför den slutade. Klicka för att se varje fält. |
 
 Filtrera efter **Resurstyp**, **Resursnamn**, **Åtgärd**, **Användares e-post** eller **Tid**. En ändring visar bara de fält som ändrades, före och efter, och en sparning som inte ändrar något lägger inte till någon post.
 
@@ -85,7 +86,7 @@ Allt som personer skapar, ändrar eller tar bort i ett projekt registreras: öve
 | Registreringar av körningar | Var och en är redan registreringen av en körning av ett arbetsflöde, en joureskalering, en skanning, en import eller en AI-körning. |
 | Det som agenter och telemetri rapporterar | Upptäckta resurser, mätvärden och användning ändras med varje rapport, inte för att någon har ändrat dem. |
 | Aktivitetsflöden | Ett flöde visar ändringar som granskningsloggen redan registrerar. |
-| OneUptimes arbetstillstånd | Sessioner, köade jobb och annat tillstånd som OneUptime håller medan det arbetar. |
+| OneUptimes arbetstillstånd | Sessioner för läsare av statussidor, köade jobb och annat tillstånd som OneUptime håller medan det arbetar. |
 | En persons egen aviseringskonfiguration | Varje persons adresser, nummer och personliga jourregler tillhör bara dem. |
 
 Det registreras också när en administratör lägger till eller tar bort en aviseringsmetod eller en personlig jourregel på någon annans konto, utan själva adressen eller numret.
@@ -104,6 +105,21 @@ Det OneUptime gör för att någon bad om det registreras också som deras ändr
 Det en regel gör av sig själv är OneUptimes egen ändring och registreras när **Lagra systemhändelser** är på: etiketter och ägare som en regel lägger till när en post skapas, och en post som den då gör privat; de enheter och monitorer som en regel för automatisk import skapar från nya skanningsresultat; och det en monitorregel på en statussida eller en SLO ändrar när en regel, en monitor eller en etikett sparas.
 
 Att återställa AI-agenten för en värd, ett kluster eller ett molnkonto registreras på resursens egen sida **Granskningsloggar**, som ändringen av `aiAgentResetAt` gjord av den som återställde den: vem, och när. Detsamma gäller att skapa en nyckel för ett molnkontos AI-agent: nycklarna visas som ändrade, aldrig med en nyckel eller en hash. Det en agent rapporterar när den ansluter och hör av sig lämnas utanför, som tidigare.
+
+## Inloggningar och sessioner
+
+Varje gång en medlem i projektet loggar in i OneUptime registrerar granskningsloggen det, och igen när den sessionen slutar. En inloggning sker i OneUptime, inte i ett enskilt projekt, så varje projekt som personen är medlem i registrerar den.
+
+| Åtgärd | När den registreras |
+| --- | --- |
+| `Sign In` | Någon loggar in: med lösenord eller inloggningslänk, passnyckel, Google, Microsoft, Vercel eller enkel inloggning. |
+| `Sign Out` | Personen loggar ut. |
+| `Session Timeout` | OneUptime avslutar sessionen när tiden har gått ut: den inaktivitetstid eller sessionslängd som en serveradministratör har angett, eller 30 dagar utan användning. |
+| `Session Revoked` | OneUptime avslutar sessionen för att lösenordet ändrades, kontot blockerades, eller en serveradministratör återställde eller krävde tvåfaktorsautentisering. |
+
+En posts **Resurs** är sessionen, som får namn efter enheten den loggade in från, till exempel `Chrome 130 on macOS`. Dess **Aktör** är personen som sessionen tillhör, så om du filtrerar efter **Användares e-post** hittar du alla personens inloggningar och sessioner. Detaljerna anger hur personen loggade in och med vilken andra faktor, IP-adressen och platsen, och för en session som har slutat när den loggade in, när den senast användes och när tiden gick ut. Ett projekts egen SSO-leverantör namnges bara i det projektets granskningslogg.
+
+Inloggningar och sessioner registreras oavsett om projektet lagrar systemhändelser eller inte. En sessionslängd eller 30 dagar utan användning registreras inom några minuter efter att tiden har gått ut. En inaktivitetstid registreras när personens öppna flik eller mobilappen nästa gång når OneUptime.
 
 ## Hur länge poster behålls
 

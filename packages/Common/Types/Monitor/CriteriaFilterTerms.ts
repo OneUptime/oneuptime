@@ -52,6 +52,7 @@ export const CHECK_ON_TERMS: Readonly<Record<CheckOn, string>> = {
   [CheckOn.IsNotAValidCertificate]: translationKey(
     "Is Not A Valid Certificate",
   ),
+  [CheckOn.IsRevokedCertificate]: translationKey("Is Revoked Certificate"),
   [CheckOn.IsRequestTimeout]: translationKey("Is Request Timeout"),
   [CheckOn.ResultValue]: translationKey("Result Value"),
   [CheckOn.Error]: translationKey("Error"),

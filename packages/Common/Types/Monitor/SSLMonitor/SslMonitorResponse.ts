@@ -1,3 +1,6 @@
+import CertificateRevocationCheckMethod from "./CertificateRevocationCheckMethod";
+import CertificateRevocationStatus from "./CertificateRevocationStatus";
+
 /*
  * Every field is optional AND explicitly undefined-able: a certificate need
  * not carry any given subject field, and under exactOptionalPropertyTypes the
@@ -37,6 +40,30 @@ export default interface SslMonitorResponse {
    * false and is described by certificateValidationErrorCode instead.
    */
   isSelfSigned?: boolean | undefined;
+
+  /*
+   * Whether the issuer has revoked the certificate, from an OCSP response or
+   * CRL the issuer signed. A revoked certificate is also not valid:
+   * isValidCertificate is false and certificateValidationErrorCode is
+   * "CERT_REVOKED", so the criteria that ask whether the certificate is
+   * valid catch it with no change.
+   *
+   * Absent when no check ran: the certificate failed validation for another
+   * reason, the probe has the check turned off
+   * (PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED=false), or the response
+   * comes from a probe older than the check.
+   */
+  revocationStatus?: CertificateRevocationStatus | undefined;
+
+  // Where the answer came from, when there was one.
+  revocationCheckMethod?: CertificateRevocationCheckMethod | undefined;
+
+  // When the issuer revoked the certificate, and why ("Key Compromise", ...).
+  revokedAt?: Date | undefined;
+  revocationReason?: string | undefined;
+
+  // Why the status is Unknown: no responder named, no answer in time, ...
+  revocationCheckError?: string | undefined;
 
   createdAt?: Date | undefined;
   expiresAt?: Date | undefined;
