@@ -1470,8 +1470,12 @@ describe("the facts sent with a reason", () => {
     renderPanel("incident");
     await flush();
 
-    expect(screen.getByText(/^This incident's severity, /).textContent).toBe(
-      "This incident's severity, Low, was below the minimum for AI investigation, High.",
+    expect(
+      screen.getByText(
+        /^OneUptime AI investigates only the incidents with a severity of /,
+      ).textContent,
+    ).toBe(
+      "OneUptime AI investigates only the incidents with a severity of High or higher, and this one's severity was Low.",
     );
   });
 

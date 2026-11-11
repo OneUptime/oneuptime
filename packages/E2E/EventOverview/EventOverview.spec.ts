@@ -7579,6 +7579,50 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
     await expect(aiOffLine(page)).toHaveCount(0);
   });
 
+  /*
+   * The server sends the severity names beside its English (#6656): the
+   * whole card says the rule with its minimum, then the record's own
+   * severity, in the reader's language - never the server's sentence.
+   */
+  for (const { name, path, query, title, description, serverWords } of [
+    {
+      name: "an incident, in English",
+      path: INCIDENT_PATH,
+      query: "ai=off-severity&fixing=acted",
+      title: "Severity was below the minimum for AI investigation",
+      description:
+        "OneUptime AI investigates only the incidents with a severity of SEV-1 or higher, and this one's severity was SEV-2.",
+      serverWords: "did not meet the minimum SEV-1 investigation severity",
+    },
+    {
+      name: "an alert, in German",
+      path: ALERT_PATH,
+      query: "ai=off-severity&fixing=acted&lang=de",
+      title: "Der Schweregrad lag unter dem Mindestwert für KI-Untersuchungen",
+      description:
+        "OneUptime AI untersucht nur Warnungen mit dem Schweregrad Critical oder höher, und diese Warnung hatte den Schweregrad High.",
+      serverWords: "did not meet the minimum Critical investigation severity",
+    },
+  ]) {
+    test(`the whole card names the severity and the minimum for ${name} (?ai=off-severity&fixing=acted)`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, path, query);
+
+      const notStarted: Locator = page.getByTestId("investigation-not-started");
+      await expect(notStarted).toBeVisible({ timeout: 30000 });
+      await expect(
+        notStarted.getByRole("heading", { level: 3, name: title, exact: true }),
+      ).toBeVisible();
+      await expect(
+        notStarted.getByText(description, { exact: true }),
+      ).toBeVisible();
+      await expect(notStarted.getByText(serverWords)).toHaveCount(0);
+    });
+  }
+
   test("Ask OneUptime AI on the line opens the conversation in the same card, its box focused, and the line stays", async ({
     page,
   }: {

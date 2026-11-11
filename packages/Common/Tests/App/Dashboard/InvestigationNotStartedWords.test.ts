@@ -546,15 +546,20 @@ describe("the facts a reason carries", () => {
       minimumSeverityName: "High",
     };
 
+    /*
+     * The rule with its minimum, then the record's own severity: the title
+     * above already says it was below the minimum, so the sentence does not
+     * say it again, and each name ends a clause of its own (UI review).
+     */
     test.each(KINDS)(
       "a %s's severity and the minimum, by name",
       (kind: NotStartedSubjectType) => {
-        const record: string = kind === "incident" ? "incident" : "alert";
+        const records: string = kind === "incident" ? "incidents" : "alerts";
 
         expect(
           read("severity_below_threshold", kind, { facts: FACTS })[1],
         ).toBe(
-          `This ${record}'s severity, Low, was below the minimum for AI investigation, High.`,
+          `OneUptime AI investigates only the ${records} with a severity of High or higher, and this one's severity was Low.`,
         );
         expect(
           read("severity_below_threshold", kind, {
@@ -562,8 +567,30 @@ describe("the facts a reason carries", () => {
             source: "current_configuration",
           })[1],
         ).toBe(
-          `This ${record}'s severity, Low, is below the minimum for AI investigation, High.`,
+          `OneUptime AI investigates only the ${records} with a severity of High or higher, and this one's severity is Low.`,
         );
+      },
+    );
+
+    test.each(KINDS)(
+      "a %s's named sentence never repeats its title",
+      (kind: NotStartedSubjectType) => {
+        for (const source of SOURCES) {
+          const [title, description] = read("severity_below_threshold", kind, {
+            facts: FACTS,
+            source,
+          });
+
+          // "was below the minimum for AI investigation", and the present.
+          const titleWithoutItsSubject: string = title
+            .toLowerCase()
+            .slice("severity ".length);
+
+          expect(title.toLowerCase().startsWith("severity ")).toBe(true);
+          expect(description.toLowerCase()).not.toContain(
+            titleWithoutItsSubject,
+          );
+        }
       },
     );
 
@@ -606,7 +633,7 @@ describe("the facts a reason carries", () => {
       )!;
 
       expect(withoutIsolateMarks(words.description)).toBe(
-        "Der Schweregrad dieser Warnung, Low, lag unter dem Mindestwert für KI-Untersuchungen, High.",
+        "OneUptime AI untersucht nur Warnungen mit dem Schweregrad High oder höher, und diese Warnung hatte den Schweregrad Low.",
       );
     });
 

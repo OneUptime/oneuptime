@@ -335,10 +335,10 @@ export const NOT_STARTED_BY_KIND: Record<
       "OneUptime AI investigates only the incidents at or above a minimum severity, and this one is below it.",
     ),
     severityWasBelowNamed: translationKey(
-      "This incident's severity, {{severity}}, was below the minimum for AI investigation, {{minimumSeverity}}.",
+      "OneUptime AI investigates only the incidents with a severity of {{minimumSeverity}} or higher, and this one's severity was {{severity}}.",
     ),
     severityIsBelowNamed: translationKey(
-      "This incident's severity, {{severity}}, is below the minimum for AI investigation, {{minimumSeverity}}.",
+      "OneUptime AI investigates only the incidents with a severity of {{minimumSeverity}} or higher, and this one's severity is {{severity}}.",
     ),
     cooldownWasOn: translationKey(
       "Another incident on the same monitor had been investigated within the re-investigation cooldown, so no investigation started.",
@@ -404,10 +404,10 @@ export const NOT_STARTED_BY_KIND: Record<
       "OneUptime AI investigates only the alerts at or above a minimum severity, and this one is below it.",
     ),
     severityWasBelowNamed: translationKey(
-      "This alert's severity, {{severity}}, was below the minimum for AI investigation, {{minimumSeverity}}.",
+      "OneUptime AI investigates only the alerts with a severity of {{minimumSeverity}} or higher, and this one's severity was {{severity}}.",
     ),
     severityIsBelowNamed: translationKey(
-      "This alert's severity, {{severity}}, is below the minimum for AI investigation, {{minimumSeverity}}.",
+      "OneUptime AI investigates only the alerts with a severity of {{minimumSeverity}} or higher, and this one's severity is {{severity}}.",
     ),
     cooldownWasOn: translationKey(
       "Another alert on the same monitor had been investigated within the re-investigation cooldown, so no investigation started.",

@@ -6847,6 +6847,13 @@ function aiOffReason(investigation) {
   const kind = investigation.subjectType;
   const isRecorded = decidedMode === "recorded";
   const code = AI_OFF_CODES[aiMode];
+  /*
+   * Incident #1042 is SEV-2 and Alert #311 is High; the minimum is the
+   * severity above each. The server sends both names as facts beside its
+   * English (InvestigationEligibility.getFacts), and the card says them.
+   */
+  const severityName = kind === "alert" ? "High" : "SEV-2";
+  const minimumSeverityName = kind === "alert" ? "Critical" : "SEV-1";
   const words = {
     ai_disabled: {
       title: isRecorded
@@ -6876,7 +6883,9 @@ function aiOffReason(investigation) {
       title: isRecorded
         ? "Severity was below the investigation threshold at creation"
         : "Severity is below the current investigation threshold",
-      description: `When this ${kind} was created, its SEV-3 severity did not meet the minimum SEV-2 investigation severity.`,
+      description: isRecorded
+        ? `When this ${kind} was created, its ${severityName} severity did not meet the minimum ${minimumSeverityName} investigation severity.`
+        : `This ${kind}'s ${severityName} severity does not meet the minimum ${minimumSeverityName} investigation severity.`,
       nextStep:
         "Review the minimum investigation severity in AI settings. Changes apply to new records and do not retry this record.",
     },
@@ -6886,6 +6895,9 @@ function aiOffReason(investigation) {
     ...words,
     source: isRecorded ? "recorded" : "current_configuration",
     evaluatedAt: iso(investigation.createdAt),
+    ...(code === "severity_below_threshold"
+      ? { facts: { severityName, minimumSeverityName } }
+      : {}),
   };
 }
 
